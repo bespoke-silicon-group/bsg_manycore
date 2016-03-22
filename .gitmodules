@@ -1,0 +1,6 @@
+[submodule "imports/vscale"]
+	path = imports/vscale
+	url = https://github.com/ucb-bar/vscale.git
+[submodule "imports/bsg_ip_cores"]
+	path = imports/bsg_ip_cores
+	url = https://vb000@bitbucket.org/taylor-bsg/bsg_ip_cores.git
