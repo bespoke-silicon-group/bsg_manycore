@@ -32,6 +32,7 @@ DESIGN_SRCS = \
 $(DESIGN_HDRS) \
 $(addprefix $(BSG_IP_CORES)/, \
 bsg_misc/bsg_transpose.v \
+bsg_misc/bsg_crossbar_o_by_i.v \
 bsg_misc/bsg_round_robin_arb.v \
 bsg_misc/bsg_mux_one_hot.v \
 bsg_misc/bsg_encode_one_hot.v \
@@ -68,7 +69,7 @@ bsg_vscale_tile.v \
 SIM_TOP        = $(TEST_DIR)/test_bsg_vscale_tile.v
 SIM_TOP_MODULE = $(TEST_DIR)/test_bsg_vscale_tile
 
-default: compile $(foreach x, $(RV32_TESTS), run.$(x)) 
+run-tile-tests: compile $(foreach x, $(RV32_TESTS), run.$(x)) 
 
 compile: $(DESIGN_SRCS) $(SIM_TOP)
 	vlog -sv -mfcu -work ./work $(DESIGN_SRCS) $(SIM_TOP)

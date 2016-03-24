@@ -139,5 +139,4 @@ module test_bsg_vscale_tile;
      end
   end
 
-endmodule // vscale_hex_tb
-
+endmodule
