@@ -1,32 +1,34 @@
 import bsg_vscale_pkg::*;
+import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
 module bsg_vscale_tile #
-  ( parameter bank_size_p       = -1
-   ,parameter num_banks_p       = -1
-   ,parameter mem_addr_width_lp = $clog2(num_banks_p) + `BSG_SAFE_CLOG2(bank_size_p)
+  ( parameter dirs_p            = 4
+   ,parameter stub_p            = {dirs_p{1'b0}} // {s,n,e,w}
+   ,parameter lg_node_x_p       = 5
+   ,parameter lg_node_y_p       = 5
 
    ,parameter fifo_els_p        = -1
 
+   ,parameter bank_size_p       = -1
+   ,parameter num_banks_p       = -1
    ,parameter data_width_p      = hdata_width_p
    ,parameter addr_width_p      = haddr_width_p 
-   ,parameter dirs_p            = 4 
-   ,parameter lg_node_x_p       = 5
-   ,parameter lg_node_y_p       = 5
+   ,parameter mem_addr_width_lp = $clog2(num_banks_p) + `BSG_SAFE_CLOG2(bank_size_p)
    ,parameter packet_width_lp   = 6 + lg_node_x_p + lg_node_y_p
                                     + addr_width_p + data_width_p
   )
   ( input                                       clk_i
    ,input                                       reset_i
 
-   // input fifo
-   ,input   [dirs_p-1:0] [packet_width_lp-1:0]  data_i  
+   // input fifos
+   ,input   [dirs_p-1:0] [packet_width_lp-1:0]  packet_i  
    ,input   [dirs_p-1:0]                        valid_i 
-   ,output  logic [dirs_p-1:0]                  yumi_o  
+   ,output  logic [dirs_p-1:0]                  ready_o  
 
-   // output fifo
-   ,input   [dirs_p-1:0]                        ready_i
-   ,output  [dirs_p-1:0] [packet_width_lp-1:0]  data_o  
+   // output fifos
+   ,output  [dirs_p-1:0] [packet_width_lp-1:0]  packet_o  
    ,output  logic [dirs_p-1:0]                  valid_o 
+   ,input   [dirs_p-1:0]                        yumi_i
 
    // tile coordinates
    ,input   [lg_node_x_p-1:0]                   my_x_i 
@@ -37,6 +39,7 @@ module bsg_vscale_tile #
    ,output [htif_pcr_width_p-1:0] htif_pcr_resp_data_o
    // synopsys translate on
   );
+
 
   typedef struct packed {
     logic [5:0]               op;
@@ -106,14 +109,16 @@ module bsg_vscale_tile #
 
 
   /* ROUTER & FIFOS */
+  
+  // router signals
+  bsg_vscale_remote_packet_s [dirs_p:0] rtr_rdata;
+  logic                      [dirs_p:0] rtr_rv;
+  logic                      [dirs_p:0] rtr_yumi;
+  bsg_vscale_remote_packet_s [dirs_p:0] rtr_wdata;
+  logic                      [dirs_p:0] rtr_wv;
+  logic                      [dirs_p:0] rtr_ready;
 
-  // router (to fifo) signals
-  bsg_vscale_remote_packet_s rtr_rdata;
-  logic                      rtr_rv;
-  logic                      rtr_yumi;
-  bsg_vscale_remote_packet_s rtr_wdata;
-  logic                      rtr_wv;
-  logic                      rtr_ready;
+
 
   bsg_mesh_router #( .dirs_p      (5)
                     ,.width_p     (packet_width_lp)
@@ -123,58 +128,88 @@ module bsg_vscale_tile #
                    ( .clk_i    (clk_i)
                     ,.reset_i  (reset_i)
                     
-                    ,.data_i   ({data_i , rtr_rdata})
-                    ,.valid_i  ({valid_i, rtr_rv})
-                    ,.yumi_o   ({yumi_o , rtr_yumi})
+                    ,.data_i   (rtr_rdata)
+                    ,.valid_i  (rtr_rv)
+                    ,.yumi_o   (rtr_yumi)
 
-                    ,.ready_i  ({ready_i, rtr_ready})
-                    ,.data_o   ({data_o , rtr_wdata})
-                    ,.valid_o  ({valid_o, rtr_wv})
+                    ,.ready_i  (rtr_ready)
+                    ,.data_o   (rtr_wdata)
+                    ,.valid_o  (rtr_wv)
 
                     ,.my_x_i   (my_x_i)
                     ,.my_y_i   (my_y_i)
                    );
 
-  // fifo (to core/mem) signals
-  logic                         fifo_out_valid;
-  bsg_vscale_remote_packet_s    fifo_out_data;
-  logic                         fifo_yumi;
-  logic                         fifo_in_valid;
-  bsg_vscale_remote_packet_s    fifo_in_data;
-  logic                         fifo_ready;
+  // fifo signals
+  logic                      [dirs_p:0] fifo_out_valid;
+  bsg_vscale_remote_packet_s [dirs_p:0] fifo_out_data;
+  logic                      [dirs_p:0] fifo_yumi;
+  logic                      [dirs_p:0] fifo_in_valid;
+  bsg_vscale_remote_packet_s [dirs_p:0] fifo_in_data;
+  logic                      [dirs_p:0] fifo_ready;
 
-  bsg_fifo_1r1w_small # ( .width_p            (packet_width_lp)
-                         ,.els_p              (fifo_els_p)
-                         ,.ready_THEN_valid_p (1)
-                        ) fifo_rtr_to_mem
-                        ( .clk_i   (clk_i)
-                         ,.reset_i (reset_i)
+  genvar i;
 
-                         ,.data_i  (rtr_wdata)
-                         ,.v_i     (rtr_wv)
-                         ,.ready_o (rtr_ready)
+  for(i=P; i<=S; i=i+1)
+  begin: fifo_gen
+    if(!((stub_p >> (i-1)) & 1'b1))
+      begin
+        bsg_fifo_1r1w_small # ( .width_p            (packet_width_lp)
+                               ,.els_p              (fifo_els_p)
+                               ,.ready_THEN_valid_p (0)
+                              ) fifo_from_rtr
+                              ( .clk_i   (clk_i)
+                               ,.reset_i (reset_i)
 
-                         ,.v_o     (fifo_out_valid)
-                         ,.data_o  (fifo_out_data)
-                         ,.yumi_i  (fifo_yumi)
-                        );
+                               ,.data_i  (rtr_wdata[i])
+                               ,.v_i     (rtr_wv[i])
+                               ,.ready_o (rtr_ready[i])
 
-  bsg_fifo_1r1w_small # ( .width_p            (packet_width_lp)
-                         ,.els_p              (fifo_els_p)
-                         ,.ready_THEN_valid_p (0)
-                        ) fifo_core_to_rtr
-                        ( .clk_i   (clk_i)
-                         ,.reset_i (reset_i)
+                               ,.v_o     (fifo_out_valid[i])
+                               ,.data_o  (fifo_out_data[i])
+                               ,.yumi_i  (fifo_yumi[i])
+                              );
 
-                         ,.data_i  (fifo_in_data)
-                         ,.v_i     (fifo_in_valid)
-                         ,.ready_o (fifo_ready)
+        bsg_fifo_1r1w_small # ( .width_p            (packet_width_lp)
+                               ,.els_p              (fifo_els_p)
+                               ,.ready_THEN_valid_p (0)
+                              ) fifo_to_rtr
+                              ( .clk_i   (clk_i)
+                               ,.reset_i (reset_i)
 
-                         ,.v_o     (rtr_rv)
-                         ,.data_o  (rtr_rdata)
-                         ,.yumi_i  (rtr_yumi)
-                        );
+                               ,.data_i  (fifo_in_data[i])
+                               ,.v_i     (fifo_in_valid[i])
+                               ,.ready_o (fifo_ready[i])
 
+                               ,.v_o     (rtr_rv[i])
+                               ,.data_o  (rtr_rdata[i])
+                               ,.yumi_i  (rtr_yumi[i])
+                              );
+      end
+  end
+
+
+  for(i=W; i<=S; i=i+1)
+  begin
+    if(!((stub_p >> (i-1)) & 1'b1))
+      begin
+        assign fifo_in_data  [i]   = packet_i       [i-1];
+        assign fifo_in_valid [i]   = valid_i        [i-1];
+        assign fifo_yumi     [i]   = yumi_i         [i-1];
+        assign packet_o      [i-1] = fifo_out_data  [i];
+        assign valid_o       [i-1] = fifo_out_valid [i];
+        assign ready_o       [i-1] = fifo_ready     [i];
+      end
+    else
+      begin
+        assign rtr_rdata [i]   = packet_width_lp'(0);
+        assign rtr_rv    [i]   = 1'b0;
+        assign rtr_ready [i]   = 1'b0;
+        assign packet_o  [i-1] = packet_width_lp'(0);
+        assign valid_o   [i-1] = 1'b0;
+        assign ready_o   [i-1] = 1'b0;
+      end
+  end
 
   // stall logic
   always_ff @(posedge clk_i)
@@ -182,8 +217,8 @@ module bsg_vscale_tile #
     if(reset_i)
       stall_r <= 1'b1;
     else
-      if(fifo_out_data.op == 2 & (fifo_out_data.addr == 0 | fifo_out_data.addr == 1))
-        stall_r <= fifo_out_data.addr;
+      if(fifo_out_data[0].op == 2 & (fifo_out_data[0].addr == 0 | fifo_out_data[0].addr == 1))
+        stall_r <= fifo_out_data[0].addr;
   end
 
   
@@ -200,36 +235,34 @@ module bsg_vscale_tile #
     ) banked_crossbar
     ( .clk_i   (clk_i)
      ,.reset_i (reset_i)
-     ,.v_i     ({(fifo_out_valid ? (fifo_out_data.op == 6'(1)) : 1'b0)
+     ,.v_i     ({(fifo_out_valid[0] ? (fifo_out_data[0].op == 6'(1)) : 1'b0)
                  , (~h2m_addr[1][addr_width_p-1] & h2m_v[1])
                  , (~h2m_addr[0][addr_width_p-1] & h2m_v[0])
                 }
                )
      ,.w_i     ({1'b1, h2m_w})
-     ,.addr_i  ({fifo_out_data.addr[2+:mem_addr_width_lp]
+     ,.addr_i  ({fifo_out_data[0].addr[2+:mem_addr_width_lp]
                  , h2m_addr[1][2+:mem_addr_width_lp]
                  , h2m_addr[0][2+:mem_addr_width_lp]
                 }
                )
-     ,.data_i  ({fifo_out_data.data, h2m_wdata})
+     ,.data_i  ({fifo_out_data[0].data, h2m_wdata})
      ,.mask_i  ({(data_width_p>>3)'(0), h2m_mask})
-     ,.yumi_o  ({fifo_yumi, m_yumi})
+     ,.yumi_o  ({fifo_yumi[0], m_yumi})
      ,.v_o     ({m_rv, h2m_rv})
      ,.data_o  ({m_rdata, h2m_rdata})
     );
 
 
-  genvar i;
-
+  // synopsys translate off
   for(i=0; i<2; i=i+1)
   begin
-    // synopsys translate off
     always_comb
       if(h2m_v[i] & ~h2m_w[i])
         assert (~h2m_addr[i][addr_width_p-1])
           else $error("memory access request by core is out of scope");
-    // synopsys translate on
   end
+  // synopsys translate on
 
 
   logic [1:0] remote_store_reqs;
@@ -285,18 +318,19 @@ module bsg_vscale_tile #
     assign bit_mask[i*8+:8] = {8{rem_m_mask[i]}};
   
   // core to fifo
-  assign fifo_in_data.op     = 6'(rem_m_addr[addr_width_p-1]);
-  assign fifo_in_data.addr   = { {(lg_node_x_p + lg_node_y_p){1'b0}}
-                                 , rem_m_addr[0+:(addr_width_p-lg_node_x_p-lg_node_y_p)]
-                               };
-  assign fifo_in_data.data   = (~bit_mask) & rem_m_wdata;
-  assign fifo_in_data.y_cord = rem_m_addr[(addr_width_p-lg_node_x_p-1)-:lg_node_y_p];
-  assign fifo_in_data.x_cord = {1'b0, rem_m_addr[(addr_width_p-2)-:(lg_node_x_p-1)]};
-  assign fifo_in_valid       = rem_m_v & rem_m_w;
+  assign fifo_in_data[0].op     = 6'(rem_m_addr[addr_width_p-1]);
+  assign fifo_in_data[0].addr   = { {(lg_node_x_p + lg_node_y_p){1'b0}}
+                                  , rem_m_addr[0+:(addr_width_p-lg_node_x_p-lg_node_y_p)]
+                                  };
+  assign fifo_in_data[0].data   = (~bit_mask) & rem_m_wdata;
+  assign fifo_in_data[0].y_cord = rem_m_addr[(addr_width_p-lg_node_x_p-1)-:lg_node_y_p];
+  assign fifo_in_data[0].x_cord = {1'b0, rem_m_addr[(addr_width_p-2)-:(lg_node_x_p-1)]};
+  assign fifo_in_valid[0]       = rem_m_v & rem_m_w;
 
-  assign rem_m_yumi          = fifo_in_valid & fifo_ready;
+  assign rem_m_yumi          = fifo_in_valid[0] & fifo_ready[0];
   assign h2m_yumi            = {remote_store_grants[1] ? rem_m_yumi : m_yumi[1]
                                 , remote_store_grants[0] ? rem_m_yumi : m_yumi[0]
                                };
 
 endmodule
+

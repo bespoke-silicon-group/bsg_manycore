@@ -54,8 +54,8 @@ module test_bsg_vscale_tile;
   end
 
   logic [dirs_lp-1:0][packet_width_lp-1:0] test_input_data, test_output_data;
-  logic [dirs_lp-1:0]                      test_input_valid, test_input_ready
-                                           , test_output_yumi, test_output_valid;
+  logic [dirs_lp-1:0]                      test_input_valid, test_output_ready
+                                           , test_input_yumi, test_output_valid;
   logic                                    htif_pcr_resp_valid;
   logic [`HTIF_PCR_WIDTH-1:0]              htif_pcr_resp_data;
   
@@ -66,18 +66,19 @@ module test_bsg_vscale_tile;
      ,.data_width_p (data_width_lp)
      ,.addr_width_p (addr_width_lp)
      ,.dirs_p       (dirs_lp)
+     ,.stub_p       (4'b1110)
      ,.lg_node_x_p  (lg_node_x_lp)
      ,.lg_node_y_p  (lg_node_x_lp)
     ) UUT
     ( .clk_i   (clk)
      ,.reset_i (reset)
 
-     ,.data_i  (test_input_data)
-     ,.valid_i ({3'b0, test_input_valid[0]})
-     ,.yumi_o  (test_output_yumi)
+     ,.packet_i(test_input_data)
+     ,.valid_i (test_input_valid)
+     ,.ready_o (test_output_ready)
 
-     ,.ready_i (4'b0)
-     ,.data_o  (test_output_data)
+     ,.yumi_i  (test_input_yumi)
+     ,.packet_o(test_output_data)
      ,.valid_o (test_output_valid)
 
      ,.my_x_i  (lg_node_x_lp'(0))
@@ -89,7 +90,8 @@ module test_bsg_vscale_tile;
 
   always_comb
   begin
-    test_input_valid[0] = (~reset) & (load_count <= hexfile_words_lp*4);
+    test_input_yumi  = {dirs_lp{1'b0}};
+    test_input_valid = {{dirs_lp-1{1'b0}}, (~reset) & (load_count <= hexfile_words_lp*4)};
 
     if(load_count < hexfile_words_lp*4)
       test_input_data[0] = {6'(1)
@@ -109,7 +111,7 @@ module test_bsg_vscale_tile;
 
   always_ff @(posedge clk)
   begin
-    if(~reset & test_output_yumi[0])
+    if(~reset & test_output_ready[0])
       load_count <= load_count + 1;
   end
 
