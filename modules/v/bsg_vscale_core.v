@@ -1,6 +1,6 @@
+module bsg_vscale_core
 import bsg_vscale_pkg::*;
 
-module bsg_vscale_core
   ( input clk_i
    ,input reset_i
    ,input stall_i

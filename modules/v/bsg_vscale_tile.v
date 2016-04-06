@@ -1,8 +1,9 @@
 import bsg_vscale_pkg::*;
 import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
-module bsg_vscale_tile #
-  ( parameter dirs_p            = 4
+module bsg_vscale_tile
+
+ #( parameter dirs_p            = 4
    ,parameter stub_p            = {dirs_p{1'b0}} // {s,n,e,w}
    ,parameter lg_node_x_p       = 5
    ,parameter lg_node_y_p       = 5
@@ -23,11 +24,11 @@ module bsg_vscale_tile #
    // input fifos
    ,input   [dirs_p-1:0] [packet_width_lp-1:0]  packet_i  
    ,input   [dirs_p-1:0]                        valid_i 
-   ,output  logic [dirs_p-1:0]                  ready_o  
+   ,output  [dirs_p-1:0]                        ready_o  
 
    // output fifos
    ,output  [dirs_p-1:0] [packet_width_lp-1:0]  packet_o  
-   ,output  logic [dirs_p-1:0]                  valid_o 
+   ,output  [dirs_p-1:0]                        valid_o 
    ,input   [dirs_p-1:0]                        yumi_i
 
    // tile coordinates
