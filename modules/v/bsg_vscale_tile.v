@@ -1,7 +1,7 @@
-import bsg_vscale_pkg::*;
-import bsg_noc_pkg::*; // {P=0, W, E, N, S}
-
 module bsg_vscale_tile
+
+import bsg_vscale_pkg::*
+       , bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
  #( parameter dirs_p            = 4
    ,parameter stub_p            = {dirs_p{1'b0}} // {s,n,e,w}
@@ -17,7 +17,7 @@ module bsg_vscale_tile
    ,parameter mem_addr_width_lp = $clog2(num_banks_p) + `BSG_SAFE_CLOG2(bank_size_p)
    ,parameter packet_width_lp   = 6 + lg_node_x_p + lg_node_y_p
                                     + addr_width_p + data_width_p
-  )
+  ) 
   ( input                                       clk_i
    ,input                                       reset_i
 
@@ -40,7 +40,6 @@ module bsg_vscale_tile
    ,output [htif_pcr_width_p-1:0] htif_pcr_resp_data_o
    // synopsys translate on
   );
-
 
   typedef struct packed {
     logic [5:0]               op;

@@ -1,7 +1,7 @@
-import bsg_vscale_pkg::*;
-import bsg_noc_pkg::*; // {P=0, W, E, N, S}
-
 module bsg_vscale_tile_array
+
+import bsg_vscale_pkg::*
+       , bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
  #(// tile params
     parameter dirs_p            = 4 

@@ -109,10 +109,10 @@ module test_bsg_vscale_tile;
                            };
   end
 
-  always_ff @(posedge clk)
+  always @(posedge clk)
   begin
     if(~reset & test_output_ready[0])
-      load_count <= load_count + 1;
+      load_count = load_count + 1;
   end
 
 
