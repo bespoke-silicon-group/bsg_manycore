@@ -1,4 +1,4 @@
-SHELL = /bin/bash
+SHELL := /bin/bash
 
 include Makefrag
 
@@ -7,7 +7,9 @@ VSCALE_SRC_DIR = imports/vscale/src/main/verilog
 MODULES        = modules/v
 
 TEST_DIR       = testbenches
-MEM_DIR        = testbenches/common/inputs
+SIM_TOP_DIR    = $(TEST_DIR)/basic
+MEM_DIR        = $(TEST_DIR)/common/inputs
+ROM_DIR        = $(MEM_DIR)/rom
 
 MAX_CYCLES     = 1000000
 
@@ -69,23 +71,20 @@ DESIGN_SRCS = \
     common/v/bsg_manycore_spmd_loader.v \
   )
 
-SIM_TOPS = \
-  $(TEST_DIR)/basic/test_bsg_vscale_tile.v \
-  $(TEST_DIR)/basic/test_bsg_vscale_tile_array.v
-
-run-tile-tests: compile $(foreach x, $(RV32_TESTS), run_tile.$(x)) 
-run-tile-array-tests: compile $(foreach x, $(RV32_TESTS), run_tile_array.$(x)) 
-
-compile: initial $(DESIGN_HDRS) $(DESIGN_SRCS) $(SIM_TOPS)
-	vlog -sv -mfcu -work ./work -suppress 2583 $(DESIGN_HDRS) $(DESIGN_SRCS) $(SIM_TOPS)
+INSTRS = $(foreach x, $(RV32_TESTS), $(filter-out rv32ui, $(subst -p-, ,$(x))))
 
 initial:
 	rm -rf work/
 	vlib work
 	vmap work ./work
 
-run_tile.%:
-	vsim -batch -lib ./work -suppress 8315 test_bsg_vscale_tile +max-cycles=$(MAX_CYCLES) +loadmem=$(MEM_DIR)/$*.hex -do "run -all; quit -f"
+run-tile-asm-tests: initial $(foreach x, $(RV32_TESTS), run_tile_asm.$(x)) 
+run-tile-array-asm-tests: initial $(foreach x, $(INSTRS), run_tile_array_asm.$(x))
 
-run_tile_array.%:
-	vsim -batch -lib ./work -suppress 8315 test_bsg_vscale_tile_array +hexfile=$(MEM_DIR)/$*.hex -do "run -all; quit -f"
+run_tile_asm.%:
+	vlog -sv -mfcu -work ./work -suppress 2583 $(DESIGN_HDRS) $(DESIGN_SRCS) $(SIM_TOP_DIR)/test_bsg_vscale_tile.v
+	vsim -batch -lib ./work -suppress 8315 test_bsg_vscale_tile +max-cycles=$(MAX_CYCLES) +loadmem=$(MEM_DIR)/hex/$*.hex -do "run -all; quit -f"
+
+run_tile_array_asm.%:
+	vlog -sv -mfcu -work ./work -suppress 2583 $(DESIGN_HDRS) $(DESIGN_SRCS) $(ROM_DIR)/bsg_rom_instr_$*.v $(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v +define+SPMD=instr_$*
+	vsim -batch -lib ./work -suppress 8315 test_bsg_vscale_tile_array -do "run -all; quit -f"

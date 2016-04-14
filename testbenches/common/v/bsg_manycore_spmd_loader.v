@@ -3,19 +3,17 @@ module bsg_manycore_spmd_loader
 import  bsg_vscale_pkg::*  // vscale constants
        ,bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
- #( parameter mem_width_p     = 16   // bytes in a hexfile_word
-   ,parameter mem_depth_p     = 8192 // hexfile_words to be loaded
-   ,parameter mem_size_lp     = mem_width_p*mem_depth_p 
-
-   ,parameter tile_id_ptr_p   = -1
-   ,parameter num_rows_p      = -1
-   ,parameter ycord_width_lp  = `BSG_SAFE_CLOG2(num_rows_p + 1)
-   ,parameter num_cols_p      = -1
-   ,parameter xcord_width_lp  = `BSG_SAFE_CLOG2(num_cols_p)
+ #( parameter mem_size_p      = -1 // size of mem to be loaded
    ,parameter data_width_p    = hdata_width_p
    ,parameter addr_width_p    = haddr_width_p
+   ,parameter tile_id_ptr_p   = -1
+   ,parameter num_rows_p      = -1
+   ,parameter num_cols_p      = -1
+
+   ,parameter ycord_width_lp  = `BSG_SAFE_CLOG2(num_rows_p + 1)
+   ,parameter xcord_width_lp  = `BSG_SAFE_CLOG2(num_cols_p)
    ,parameter packet_width_lp = 6 + addr_width_p + data_width_p
-                                  + xcord_width_lp + ycord_width_lp
+                                  + xcord_width_lp + ycord_width_lp   
   )
   ( input                        clk_i
    ,input                        reset_i
@@ -23,7 +21,8 @@ import  bsg_vscale_pkg::*  // vscale constants
    ,output                       valid_o
    ,input                        ready_i
 
-   ,input [(mem_width_p*8)-1:0]  mem_i[mem_depth_p-1:0] // hexfile
+   ,input [data_width_p-1:0]     data_i
+   ,output[addr_width_p-1:0]     addr_o                       
   );
 
   logic [63:0]                tile_no; // tile number
@@ -40,13 +39,14 @@ import  bsg_vscale_pkg::*  // vscale constants
                      ? data_width_p'(0)
                      : (load_addr == tile_id_ptr_p) 
                         ? data_width_p'(tile_no) 
-                        : mem_i[load_addr/mem_width_p]
-                               [((load_addr%mem_width_p)*8)+:data_width_p];
+                        : data_i;
+
   assign ycord     = ycord_width_lp'(tile_no / num_cols_p);
   assign xcord     = xcord_width_lp'(tile_no % num_cols_p);
 
   assign packet_o = {(loaded ? 6'(2) : 6'(1)), load_addr, load_data, ycord, xcord};
   assign valid_o  = ~reset_i & (~loaded | (loaded && (tile_no < num_rows_p*num_cols_p)));
+  assign addr_o   = addr_width_p'(load_addr / (addr_width_p >> 3));
 
   always_ff @(posedge clk_i)
   begin
@@ -60,11 +60,11 @@ import  bsg_vscale_pkg::*  // vscale constants
       begin
         if(ready_i & ~loaded)
           begin
-            load_addr <= (load_addr + 4) % mem_size_lp;
-            tile_no   <= (tile_no + (load_addr == (mem_size_lp-4)))
+            load_addr <= (load_addr + 4) % mem_size_p;
+            tile_no   <= (tile_no + (load_addr == (mem_size_p-4)))
                           % (num_rows_p * num_cols_p);
             loaded    <= (tile_no == num_rows_p*num_cols_p -1)
-                          && (load_addr == (mem_size_lp-4));
+                          && (load_addr == (mem_size_p-4));
           end
 
         if(ready_i & loaded)

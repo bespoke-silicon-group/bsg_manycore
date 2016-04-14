@@ -1,20 +1,21 @@
+`define SPMD      ????             // test program to be loaded
+`define ROM(spmd) bsg_rom_``spmd`` // ROM contaning the spmd
+
 module test_bsg_vscale_tile_array;
 
 import  bsg_vscale_pkg::*  // vscale constants
        ,bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
   localparam max_cycles_lp   = 1000000;
-  localparam mem_width_lp    = 16;   // bytes in a hexfile word
-  localparam mem_depth_lp    = 8192; // hexfile word to be loaded
-
+  localparam mem_size_lp     = 131072; 
   localparam bank_size_lp    = 16384;
   localparam num_banks_lp    = 4;
   localparam fifo_els_lp     = 10;
   localparam dirs_lp         = 4;
   localparam data_width_lp   = 32;
   localparam addr_width_lp   = 32;
-  localparam num_tiles_x_lp  = 3;
-  localparam num_tiles_y_lp  = 3;
+  localparam num_tiles_x_lp  = 1;
+  localparam num_tiles_y_lp  = 1;
   localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
   localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + 1);
   localparam packet_width_lp = 6 + lg_node_x_lp + lg_node_y_lp
@@ -39,27 +40,20 @@ import  bsg_vscale_pkg::*  // vscale constants
                           );
   
 
-  logic [1023:0]               hexfile;
-  logic [(mem_width_lp*8)-1:0] mem[mem_depth_lp-1:0];
-  
   logic [63:0]  trace_count;
   logic [63:0]  load_count;
   logic [255:0] reason;
   integer       stderr = 32'h80000002;
 
-  initial 
-  begin
-    if ($value$plusargs("hexfile=%s", hexfile))
-      $readmemh(hexfile, mem);
-  end
-  
+  logic [addr_width_lp-1:0]   mem_addr;
+  logic [data_width_lp-1:0]   mem_data;
+
   logic [packet_width_lp-1:0] test_packet_in;
   logic                       test_valid_in;
   
   logic [S:N][num_tiles_x_lp-1:0][packet_width_lp-1:0] ver_packet_in;
   logic [S:N][num_tiles_x_lp-1:0]                      ver_valid_in;
-  logic [S:N][num_tiles_x_lp-1:0]                      ver_yumi_in;                                       
-                                                                     
+  logic [S:N][num_tiles_x_lp-1:0]                      ver_yumi_in;                                                                   
   logic [E:W][num_tiles_y_lp-1:0][packet_width_lp-1:0] hor_packet_in;
   logic [E:W][num_tiles_y_lp-1:0]                      hor_valid_in;
   logic [E:W][num_tiles_y_lp-1:0]                      hor_ready_out;
@@ -104,8 +98,7 @@ import  bsg_vscale_pkg::*  // vscale constants
     );
 
   bsg_manycore_spmd_loader
-    #( .mem_width_p   (mem_width_lp)
-      ,.mem_depth_p   (mem_depth_lp)
+    #( .mem_size_p    (mem_size_lp)
       ,.num_rows_p    (num_tiles_y_lp)
       ,.num_cols_p    (num_tiles_x_lp)
       ,.data_width_p  (data_width_lp)
@@ -117,7 +110,16 @@ import  bsg_vscale_pkg::*  // vscale constants
       ,.packet_o(test_packet_in)
       ,.valid_o (test_valid_in )
       ,.ready_i (hor_ready_out[W][0])
-      ,.mem_i   (mem)
+      ,.data_i  (mem_data)
+      ,.addr_o  (mem_addr)
+     );
+
+  `ROM(`SPMD)
+    #( .addr_width_p(addr_width_lp)
+      ,.width_p     (data_width_lp)
+     ) spmd_rom
+     ( .addr_i (mem_addr)
+      ,.data_o (mem_data)
      );
 
   assign ver_packet_in = (2*num_tiles_x_lp*packet_width_lp)'(0);
@@ -162,13 +164,13 @@ import  bsg_vscale_pkg::*  // vscale constants
 
     if(&finish_r)
       begin
-        $display("finished %0s in %0d cycles", hexfile, trace_count);
+        $display("finished in %0d cycles", trace_count);
         $finish;
       end
 
     if (reason) 
     begin
-       $error("*** FAILED *** %0s (%0s) after %0d cycles", hexfile, reason, trace_count);
+       $error("*** FAILED *** (%0s) after %0d cycles", reason, trace_count);
        $finish;
     end
   end

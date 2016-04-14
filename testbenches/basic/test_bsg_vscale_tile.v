@@ -126,7 +126,7 @@ module test_bsg_vscale_tile;
      if (!reset) begin
         if (htif_pcr_resp_valid && htif_pcr_resp_data != 0) begin
            if (htif_pcr_resp_data == 1) begin
-              $display("finshed %0s after %0d simulation cycles", loadmem, trace_count); 
+              $display("finished %0s after %0d simulation cycles", loadmem, trace_count); 
               $finish;
            end else begin
               $sformat(reason, "tohost = %d", htif_pcr_resp_data >> 1);
