@@ -7,6 +7,7 @@ import  bsg_vscale_pkg::*  // vscale constants
        ,bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
   localparam max_cycles_lp   = 1000000;
+  localparam tile_id_ptr_lp  = -1;
   localparam mem_size_lp     = 131072; 
   localparam bank_size_lp    = 16384;
   localparam num_banks_lp    = 4;
@@ -103,7 +104,7 @@ import  bsg_vscale_pkg::*  // vscale constants
       ,.num_cols_p    (num_tiles_x_lp)
       ,.data_width_p  (data_width_lp)
       ,.addr_width_p  (addr_width_lp)
-      ,.tile_id_ptr_p (-1)
+      ,.tile_id_ptr_p (tile_id_ptr_lp)
      ) spmd_loader
      ( .clk_i   (clk)
       ,.reset_i (reset)

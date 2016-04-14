@@ -1,15 +1,18 @@
 SHELL := /bin/bash
 
-include Makefrag
+BSG_IP_CORES  = ../bsg_ip_cores
+VSCALE        = imports/vscale
+VSCALE_SRC    = $(VSCALE)/src/main/verilog
+VSCALE_INPUTS = $(VSCALE)/src/test/inputs
+MODULES       = modules/v
 
-BSG_IP_CORES   = ../bsg_ip_cores
-VSCALE_SRC_DIR = imports/vscale/src/main/verilog
-MODULES        = modules/v
+TEST_DIR      = testbenches
+TEST_MODULES  = $(TEST_DIR)/common
+SIM_TOP_DIR   = $(TEST_DIR)/basic
+MEM_DIR       = $(TEST_DIR)/common/inputs
+ROM_DIR       = $(MEM_DIR)/rom
 
-TEST_DIR       = testbenches
-SIM_TOP_DIR    = $(TEST_DIR)/basic
-MEM_DIR        = $(TEST_DIR)/common/inputs
-ROM_DIR        = $(MEM_DIR)/rom
+include $(VSCALE)/Makefrag
 
 MAX_CYCLES     = 1000000
 
@@ -18,7 +21,7 @@ DESIGN_HDRS = \
     bsg_misc/bsg_defines.v \
     bsg_noc/bsg_noc_pkg.v \
   ) \
-  $(addprefix $(VSCALE_SRC_DIR)/, \
+  $(addprefix $(VSCALE_SRC)/, \
     vscale_ctrl_constants.vh \
     rv32_opcodes.vh \
     vscale_alu_ops.vh \
@@ -48,7 +51,7 @@ DESIGN_SRCS = \
     bsg_noc/bsg_mesh_router.v \
     bsg_riscv/bsg_hasti/bsg_vscale_hasti_converter.v \
   ) \
-  $(addprefix $(VSCALE_SRC_DIR)/, \
+  $(addprefix $(VSCALE_SRC)/, \
     vscale_core.v \
     vscale_hasti_bridge.v \
     vscale_pipeline.v \
@@ -71,20 +74,40 @@ DESIGN_SRCS = \
     common/v/bsg_manycore_spmd_loader.v \
   )
 
-INSTRS = $(foreach x, $(RV32_TESTS), $(filter-out rv32ui, $(subst -p-, ,$(x))))
 
-initial:
+# generates a ROM for each hexfile present in $(MEM_DIR)/hex
+# output dir. is $(MEM_DIR)/rom
+$(MEM_DIR)/rom/%.v:
+	$(SHELL) -c "source ./rom_gen.sh"
+
+# loads $(MEM_DIR)/hex exclusively with asm-tests
+load-asm-inputs:
+	rm -rf $(MEM_DIR)/hex
+	mkdir $(MEM_DIR)/hex
+	cp $(VSCALE_INPUTS)/*.hex $(MEM_DIR)/hex
+
+
+modelsim-init:
 	rm -rf work/
 	vlib work
 	vmap work ./work
 
-run-tile-asm-tests: initial $(foreach x, $(RV32_TESTS), run_tile_asm.$(x)) 
-run-tile-array-asm-tests: initial $(foreach x, $(INSTRS), run_tile_array_asm.$(x))
+modelsim-tile-array-asm-tests: modelsim-init load-asm-inputs $(MEM_DIR)/rom/%.v $(foreach x, $(subst -,_,$(RV32_TESTS)), modelsim_tile_array_asm.$(x))
 
-run_tile_asm.%:
+modelsim_tile_array_asm.%:
+	vlog -sv -mfcu -work ./work -suppress 2583 \
+		$(DESIGN_HDRS) \
+		$(DESIGN_SRCS) \
+		$(ROM_DIR)/bsg_rom_$*.v \
+		$(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v +define+SPMD=$*
+	vsim -batch -lib ./work -suppress 8315 test_bsg_vscale_tile_array -do "run -all; quit -f"
+
+modelsim-tile-asm-tests: modelsim-init load-asm-inputs $(foreach x, $(RV32_TESTS), modelsim_tile_asm.$(x)) 
+
+modelsim_tile_asm.%:
 	vlog -sv -mfcu -work ./work -suppress 2583 $(DESIGN_HDRS) $(DESIGN_SRCS) $(SIM_TOP_DIR)/test_bsg_vscale_tile.v
 	vsim -batch -lib ./work -suppress 8315 test_bsg_vscale_tile +max-cycles=$(MAX_CYCLES) +loadmem=$(MEM_DIR)/hex/$*.hex -do "run -all; quit -f"
 
-run_tile_array_asm.%:
-	vlog -sv -mfcu -work ./work -suppress 2583 $(DESIGN_HDRS) $(DESIGN_SRCS) $(ROM_DIR)/bsg_rom_instr_$*.v $(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v +define+SPMD=instr_$*
-	vsim -batch -lib ./work -suppress 8315 test_bsg_vscale_tile_array -do "run -all; quit -f"
+
+clean:
+	rm -rf $(MEM_DIR)/*
