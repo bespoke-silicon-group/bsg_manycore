@@ -59,7 +59,7 @@ import bsg_vscale_pkg::*
   logic                           htif_pcr_resp_valid;
   logic [htif_pcr_width_p-1:0]    htif_pcr_resp_data;
 
-  // hasti covereter signals
+  // hasti converter signals
   logic [1:0]                           h2m_v;
   logic [1:0]                           h2m_w;
   logic [1:0] [addr_width_p-1:0]        h2m_addr;
