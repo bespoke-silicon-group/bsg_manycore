@@ -39,7 +39,7 @@ module test_bsg_vscale_tile;
   reg [1023:0]   loadmem;
   integer        stderr = 32'h80000002;
   
-  initial 
+ initial 
   begin
     /*$dumpfile("output.vcd");
     $dumpvars;
@@ -50,7 +50,15 @@ module test_bsg_vscale_tile;
     trace_count = 0;
     load_count = 0;
     if ($value$plusargs("max-cycles=%d", max_cycles) && $value$plusargs("loadmem=%s", loadmem))
-       $readmemh(loadmem, hexfile);
+      begin
+	 $readmemh(loadmem, hexfile);
+	 $display("loaded %s", loadmem);
+      end
+    else
+      begin
+	 $display("both max-cycles and loadmem must be given");
+	 $finish;
+      end
   end
 
   logic [dirs_lp-1:0][packet_width_lp-1:0] test_input_data, test_output_data;
@@ -112,7 +120,10 @@ module test_bsg_vscale_tile;
   always @(posedge clk)
   begin
     if(~reset & test_output_ready[0])
-      load_count = load_count + 1;
+      begin
+	 load_count = load_count + 1;
+	 $display("Sent word %d/%d", load_count,hexfile_words_lp);
+      end
   end
 
 
