@@ -12,6 +12,13 @@ SIM_TOP_DIR   = $(TEST_DIR)/basic
 MEM_DIR       = $(TEST_DIR)/common/inputs
 ROM_DIR       = $(MEM_DIR)/rom
 
+BSG_ROM_GEN   = $(BSG_IP_CORES)/bsg_mem/bsg_ascii_to_rom.py
+HEX2BIN       = $(TEST_MODULES)/py/hex2binascii.py
+
+VLOG = xvlog -sv
+VELAB = xelab -debug typical -s top_sim
+VSIM = xsim --runall top_sim
+
 include $(VSCALE)/Makefrag
 
 MAX_CYCLES     = 1000000
@@ -74,40 +81,45 @@ DESIGN_SRCS = \
     common/v/bsg_manycore_spmd_loader.v \
   )
 
+setup:
+	mkdir -p $(MEM_DIR)/bin
+	mkdir -p $(MEM_DIR)/hex
+	mkdir -p $(MEM_DIR)/rom
 
-# generates a ROM for each hexfile present in $(MEM_DIR)/hex
-# output dir. is $(MEM_DIR)/rom
-$(MEM_DIR)/rom/%.v:
-	$(SHELL) -c "source ./rom_gen.sh"
+$(MEM_DIR)/bin/%.bin:
+	python $(HEX2BIN) $(subst _,-,$(MEM_DIR)/hex/$*.hex) 32 > $@
+
+$(ROM_DIR)/bsg_rom_%.v: $(MEM_DIR)/bin/%.bin
+	python $(BSG_ROM_GEN) $< bsg_rom_$* zero > $@
 
 # loads $(MEM_DIR)/hex exclusively with asm-tests
 load-asm-inputs:
 	rm -rf $(MEM_DIR)/hex
-	mkdir $(MEM_DIR)/hex
+	mkdir -p $(MEM_DIR)/hex
 	cp $(VSCALE_INPUTS)/*.hex $(MEM_DIR)/hex
-
 
 modelsim-init:
 	rm -rf work/
 	vlib work
 	vmap work ./work
 
-modelsim-tile-array-asm-tests: modelsim-init load-asm-inputs $(MEM_DIR)/rom/%.v $(foreach x, $(subst -,_,$(RV32_TESTS)), modelsim_tile_array_asm.$(x))
+modelsim-tile-array-asm-tests: load-asm-inputs $(foreach x, $(subst -,_,$(RV32_TESTS)), modelsim_tile_array_asm.$(x))
 
-modelsim_tile_array_asm.%:
-	vlog -sv -mfcu -work ./work -suppress 2583 \
-		$(DESIGN_HDRS) \
-		$(DESIGN_SRCS) \
-		$(ROM_DIR)/bsg_rom_$*.v \
-		$(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v +define+SPMD=$*
-	vsim -batch -lib ./work -suppress 8315 test_bsg_vscale_tile_array -do "run -all; quit -f"
+modelsim_tile_array_asm.%: $(ROM_DIR)/bsg_rom_%.v
+	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $(ROM_DIR)/bsg_rom_$*.v $(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v -d SPMD=$*
+	$(VELAB) test_bsg_vscale_tile_array | grep -v Compiling
+	$(VSIM)
 
-modelsim-tile-asm-tests: modelsim-init load-asm-inputs $(foreach x, $(RV32_TESTS), modelsim_tile_asm.$(x)) 
+modelsim-tile-asm-tests: load-asm-inputs $(foreach x, $(RV32_TESTS), modelsim_tile_asm.$(x)) 
 
 modelsim_tile_asm.%:
-	vlog -sv -mfcu -work ./work -suppress 2583 $(DESIGN_HDRS) $(DESIGN_SRCS) $(SIM_TOP_DIR)/test_bsg_vscale_tile.v
-	vsim -batch -lib ./work -suppress 8315 test_bsg_vscale_tile +max-cycles=$(MAX_CYCLES) +loadmem=$(MEM_DIR)/hex/$*.hex -do "run -all; quit -f"
+	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $(SIM_TOP_DIR)/test_bsg_vscale_tile.v
+	$(VELAB) test_bsg_vscale_tile
+	$(VSIM) --testplusarg max-cycles=$(MAX_CYCLES) --testplusarg loadmem=$(MEM_DIR)/hex/$*.hex
 
 
 clean:
-	rm -rf $(MEM_DIR)/*
+	rm -rf $(MEM_DIR)/* *.jou *.log *.wdb *.pb xsim.dir
+
+
+

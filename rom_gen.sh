@@ -18,7 +18,7 @@ do
 	name=${origname//-/_};
 	progname=${name%.*};
 	echo generating... bsg_rom_$progname.v
-	python $bsg_rom_gen $file bsg_rom_${progname} > $inputs/rom/bsg_rom_${progname}.v;
+	python $bsg_rom_gen $file bsg_rom_${progname} zero > $inputs/rom/bsg_rom_${progname}.v;
 done;
 
 echo removing binaries...

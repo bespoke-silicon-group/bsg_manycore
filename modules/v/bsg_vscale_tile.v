@@ -232,6 +232,7 @@ import bsg_vscale_pkg::*
      ,.num_banks_p  (num_banks_p)
      ,.bank_size_p  (bank_size_p)
      ,.data_width_p (data_width_p)
+//     ,.debug_p(1)
     ) banked_crossbar
     ( .clk_i   (clk_i)
      ,.reset_i (reset_i)
