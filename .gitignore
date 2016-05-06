@@ -1,3 +1,9 @@
 *.vcd
 *.wlf
 testbenches/common/inputs/
+*.wcfg
+.Xil/
+vivado_*
+*.dump
+*.o
+*.riscv

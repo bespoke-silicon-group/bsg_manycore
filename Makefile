@@ -6,20 +6,20 @@ VSCALE_SRC    = $(VSCALE)/src/main/verilog
 VSCALE_INPUTS = $(VSCALE)/src/test/inputs
 MODULES       = modules/v
 
-TEST_DIR      = testbenches
-TEST_MODULES  = $(TEST_DIR)/common
-SIM_TOP_DIR   = $(TEST_DIR)/basic
-MEM_DIR       = $(TEST_DIR)/common/inputs
-ROM_DIR       = $(MEM_DIR)/rom
+TEST_DIR     = testbenches
+TEST_MODULES = $(TEST_DIR)/common
+SIM_TOP_DIR  = $(TEST_DIR)/basic
+MEM_DIR      = $(TEST_DIR)/common/inputs
+ROM_DIR      = $(MEM_DIR)/rom
+SPMD_DIR     = $(TEST_DIR)/spmd
 
-BSG_ROM_GEN   = $(BSG_IP_CORES)/bsg_mem/bsg_ascii_to_rom.py
-HEX2BIN       = $(TEST_MODULES)/py/hex2binascii.py
+BSG_ROM_GEN = $(BSG_IP_CORES)/bsg_mem/bsg_ascii_to_rom.py
+HEX2BIN     = $(TEST_MODULES)/py/hex2binascii.py
 
-VLOG = xvlog -sv
+VLOG  = xvlog -sv
 VELAB = xelab -debug typical -s top_sim
-VSIM = xsim --runall top_sim
+VSIM  = xsim --runall top_sim
 
-include $(VSCALE)/Makefrag
 
 MAX_CYCLES     = 1000000
 
@@ -92,34 +92,80 @@ $(MEM_DIR)/bin/%.bin:
 $(ROM_DIR)/bsg_rom_%.v: $(MEM_DIR)/bin/%.bin
 	python $(BSG_ROM_GEN) $< bsg_rom_$* zero > $@
 
-# loads $(MEM_DIR)/hex exclusively with asm-tests
+
+
+#----------------------------------------------------------
+# SPMD tests
+# ---------------------------------------------------------
+spmds = \
+	hello
+
+include $(patsubst %, $(SPMD_DIR)/%/spmd.mk, $(spmds))
+
+INCS += -I$(SPMD_DIR)/common $(addprefix -I$(SPMD_DIR)/, $(spmds))
+
+RISCV_GCC       ?= riscv32-unknown-elf-gcc -march=RV32IM
+RISCV_GCC_OPTS  ?= -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf
+RISCV_LINK      ?= $(RISCV_GCC) -T $(SPMD_DIR)/common/test.ld $(INCS)
+RISCV_LINK_OPTS ?= -nostdlib -nostartfiles -ffast-math -lc -lgcc
+RISCV_SIM       ?= spike --isa=RV32IM
+
+spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
+
+VPATH += $(SPMD_DIR)/common $(addprefix $(SPMD_DIR)/, $(spmds))
+
+%.o: %.c
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) \
+		-c $(INCS) $< -o $@
+
+%.o: %.S
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -D__ASSEMBLY__=1 \
+		-c $(INCS) $< -o $@
+
+$(MEM_DIR)/hex/%.hex: %.riscv
+	elf2hex 16 8192 $< > $@
+
+# runs spike simulations
+riscv-spmd-sim: $(addsuffix .riscv, $(spmds))
+	$(RISCV_SIM) $<
+
+load-spmd-inputs: $(addprefix $(MEM_DIR)/hex/, $(addsuffix .hex, $(spmds)))
+
+vivado-spmd-tests: load-spmd-inputs $(foreach x, $(spmds), vivado_spmd.$(x))
+
+vivado_spmd.%: $(ROM_DIR)/bsg_rom_%.v
+	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $(ROM_DIR)/bsg_rom_$*.v $(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v -d SPMD=$*
+	$(VELAB) test_bsg_vscale_tile_array | grep -v Compiling
+	$(VSIM)
+
+
+
+#----------------------------------------------------------
+# Instruction tests
+# ---------------------------------------------------------
+include $(VSCALE)/Makefrag
+
 load-asm-inputs:
 	rm -rf $(MEM_DIR)/hex
 	mkdir -p $(MEM_DIR)/hex
 	cp $(VSCALE_INPUTS)/*.hex $(MEM_DIR)/hex
 
-modelsim-init:
-	rm -rf work/
-	vlib work
-	vmap work ./work
+vivado-tile-array-asm-tests: load-asm-inputs $(foreach x, $(subst -,_,$(RV32_TESTS)), vivado_tile_array_asm.$(x))
 
-modelsim-tile-array-asm-tests: load-asm-inputs $(foreach x, $(subst -,_,$(RV32_TESTS)), modelsim_tile_array_asm.$(x))
-
-modelsim_tile_array_asm.%: $(ROM_DIR)/bsg_rom_%.v
+vivado_tile_array_asm.%: $(ROM_DIR)/bsg_rom_%.v
 	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $(ROM_DIR)/bsg_rom_$*.v $(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v -d SPMD=$*
 	$(VELAB) test_bsg_vscale_tile_array | grep -v Compiling
 	$(VSIM)
 
-modelsim-tile-asm-tests: load-asm-inputs $(foreach x, $(RV32_TESTS), modelsim_tile_asm.$(x)) 
+vivado-tile-asm-tests: load-asm-inputs $(foreach x, $(RV32_TESTS), vivado_tile_asm.$(x)) 
 
-modelsim_tile_asm.%:
+vivado_tile_asm.%:
 	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $(SIM_TOP_DIR)/test_bsg_vscale_tile.v
 	$(VELAB) test_bsg_vscale_tile
 	$(VSIM) --testplusarg max-cycles=$(MAX_CYCLES) --testplusarg loadmem=$(MEM_DIR)/hex/$*.hex
 
 
+
 clean:
-	rm -rf $(MEM_DIR)/* *.jou *.log *.wdb *.pb xsim.dir
-
-
+	rm -rf $(MEM_DIR)/hex/* $(MEM_DIR)/bin/* $(MEM_DIR)/rom/* *.o *.riscv *.jou *.log *.wdb *.pb xsim.dir
 
