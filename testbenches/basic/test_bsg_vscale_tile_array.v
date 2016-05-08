@@ -1,22 +1,26 @@
-`define SPMD      ????             // test program to be loaded
-`define ROM(spmd) bsg_rom_``spmd`` // ROM contaning the spmd
+`define SPMD       ????             // test program to be loaded
+`define ROM(spmd)  bsg_rom_``spmd`` // ROM contaning the spmd
+`define MEM_SIZE   8192
+`define XTILES     4
+`define YTILES     4
+`define MAX_CYCLES 1000000
 
 module test_bsg_vscale_tile_array;
 
 import  bsg_vscale_pkg::*  // vscale constants
        ,bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
-  localparam max_cycles_lp   = 1000000;
+  localparam max_cycles_lp   = `MAX_CYCLES;
   localparam tile_id_ptr_lp  = -1;
-  localparam mem_size_lp     = 131072; 
+  localparam mem_size_lp     = `MEM_SIZE; 
   localparam bank_size_lp    = 16384;
   localparam num_banks_lp    = 4;
   localparam fifo_els_lp     = 10;
   localparam dirs_lp         = 4;
   localparam data_width_lp   = 32;
   localparam addr_width_lp   = 32;
-  localparam num_tiles_x_lp  = 1;
-  localparam num_tiles_y_lp  = 1;
+  localparam num_tiles_x_lp  = `XTILES;
+  localparam num_tiles_y_lp  = `YTILES;
   localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
   localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + 1);
   localparam packet_width_lp = 6 + lg_node_x_lp + lg_node_y_lp

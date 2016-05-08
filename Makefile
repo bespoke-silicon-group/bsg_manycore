@@ -20,11 +20,7 @@ VLOG  = xvlog -sv
 VELAB = xelab -debug typical -s top_sim
 VSIM  = xsim --runall top_sim
 
-
 MAX_CYCLES = 1000000
-MEM_SIZE   = 8192    # size of mem to be loaded
-XTILES     = 4
-YTILES     = 4
 
 DESIGN_HDRS = \
   $(addprefix $(BSG_IP_CORES)/, \
@@ -131,16 +127,7 @@ $(MEM_DIR)/hex/%.hex: %.riscv
 riscv-spmd-sim: $(addsuffix .riscv, $(spmds))
 	$(RISCV_SIM) $<
 
-load-spmd-inputs: $(addprefix $(MEM_DIR)/hex/, $(addsuffix .hex, $(spmds)))
-
-vivado-spmd-tests: load-spmd-inputs $(foreach x, $(spmds), vivado_spmd.$(x))
-
-vivado_spmd.%: $(ROM_DIR)/bsg_rom_%.v
-	@echo testing $*...
-	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $(ROM_DIR)/bsg_rom_$*.v $(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v \
-		-d SPMD=$* -d XTILES=$(XTILES) -d YTILES=$(YTILES) -d MEM_SIZE=$(MEM_SIZE)
-	$(VELAB) test_bsg_vscale_tile_array | grep -v Compiling
-	$(VSIM)
+vivado-spmd-tests: $(foreach x, $(spmds), vivado_spmd.$(x))
 
 
 
