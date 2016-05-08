@@ -30,5 +30,8 @@ common/: support code for compiling test programs
                            a sufficient value the size of memory loaded by the test module can
                            be controlled. This parameter considerably effects the simulation
                            time.
+             
+         NOTE: Please refrain from using special characters other than underscore (_) in 
+               spmd name.
 
 Makefrag: listing of all spmd programs; included in main Makefile
