@@ -1,0 +1,41 @@
+ifeq ($(RISCV_BIN_DIR),)
+$(error RISCV_BIN_DIR not defined)
+endif
+
+BSG_MANYCORE_BANKS=4
+# in bytes
+BSG_MANYCORE_BANKSIZE=8192
+
+# paths
+RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-gcc
+RISCV_ELF2HEX ?= $(RISCV_BIN_DIR)/elf2hex
+
+BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
+HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
+
+# flags
+RISCV_GCC_EXTRA_OPTS ?= -O2
+RISCV_GCC_OPTS  = -march=RV32IM -m32 -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+
+#RISCV_LINK_EXTRA_OPTS ?=
+RISCV_LINK_OPTS = -m32 -march=RV32IM -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
+spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
+
+RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
+
+%.o: %.c
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -c $(INCS) $< -o $@
+
+%.o: %.S
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -D__ASSEMBLY__=1 \
+		-c $(INCS) $< -o $@
+
+# <bytes per row> <rows>
+%.hex: %.riscv
+	$(RISCV_ELF2HEX) $(BSG_MANYCORE_BANKS) $(BSG_MANYCORE_BANKSIZE) $< > $@
+
+%.bin:  %.hex
+	python $(HEX2BIN) $< 32 > $@
+
+%.dis: %.riscv
+	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objdump --disassemble-all $<

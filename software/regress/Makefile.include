@@ -1,0 +1,11 @@
+find-dir-with = $(shell /usr/bin/perl -e 'chomp($$_ = `pwd`); while ($$_ ne "" && ! -e "$$_/$(1)") { m:(.*)/[^/]+/??:; $$_ = $$1; } print;')
+
+ifndef BSG_MANYCORE_DIR
+  export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
+endif
+
+$(warning $(BSG_MANYCORE_DIR))
+
+include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
+
+all:  $(basename $(wildcard *.hex)).run
