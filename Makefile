@@ -21,7 +21,10 @@ VELAB = xelab -debug typical -s top_sim
 VSIM  = xsim --runall top_sim
 
 
-MAX_CYCLES     = 1000000
+MAX_CYCLES = 1000000
+MEM_SIZE   = 8192    # size of mem to be loaded
+XTILES     = 4
+YTILES     = 4
 
 DESIGN_HDRS = \
   $(addprefix $(BSG_IP_CORES)/, \
@@ -87,7 +90,7 @@ setup:
 	mkdir -p $(MEM_DIR)/rom
 
 $(MEM_DIR)/bin/%.bin:
-	python $(HEX2BIN) $(subst _,-,$(MEM_DIR)/hex/$*.hex) 32 > $@
+	python $(HEX2BIN) $(MEM_DIR)/hex/$*.hex 32 > $@
 
 $(ROM_DIR)/bsg_rom_%.v: $(MEM_DIR)/bin/%.bin
 	python $(BSG_ROM_GEN) $< bsg_rom_$* zero > $@
@@ -97,8 +100,7 @@ $(ROM_DIR)/bsg_rom_%.v: $(MEM_DIR)/bin/%.bin
 #----------------------------------------------------------
 # SPMD tests
 # ---------------------------------------------------------
-spmds = \
-	hello
+include $(SPMD_DIR)/Makefrag
 
 include $(patsubst %, $(SPMD_DIR)/%/spmd.mk, $(spmds))
 
@@ -134,7 +136,9 @@ load-spmd-inputs: $(addprefix $(MEM_DIR)/hex/, $(addsuffix .hex, $(spmds)))
 vivado-spmd-tests: load-spmd-inputs $(foreach x, $(spmds), vivado_spmd.$(x))
 
 vivado_spmd.%: $(ROM_DIR)/bsg_rom_%.v
-	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $(ROM_DIR)/bsg_rom_$*.v $(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v -d SPMD=$*
+	@echo testing $*...
+	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $(ROM_DIR)/bsg_rom_$*.v $(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v \
+		-d SPMD=$* -d XTILES=$(XTILES) -d YTILES=$(YTILES) -d MEM_SIZE=$(MEM_SIZE)
 	$(VELAB) test_bsg_vscale_tile_array | grep -v Compiling
 	$(VSIM)
 
@@ -145,21 +149,21 @@ vivado_spmd.%: $(ROM_DIR)/bsg_rom_%.v
 # ---------------------------------------------------------
 include $(VSCALE)/Makefrag
 
-load-asm-inputs:
-	rm -rf $(MEM_DIR)/hex
-	mkdir -p $(MEM_DIR)/hex
-	cp $(VSCALE_INPUTS)/*.hex $(MEM_DIR)/hex
+load_asm.%:
+	cp $(VSCALE_INPUTS)/$*.hex $(MEM_DIR)/hex/$(subst -,_,$*).hex
 
-vivado-tile-array-asm-tests: load-asm-inputs $(foreach x, $(subst -,_,$(RV32_TESTS)), vivado_tile_array_asm.$(x))
+vivado-tile-array-asm-tests: setup $(foreach x, $(RV32_TESTS), load_asm.$(x)) $(foreach x, $(subst -,_,$(RV32_TESTS)), vivado_tile_array_asm.$(x))
 
 vivado_tile_array_asm.%: $(ROM_DIR)/bsg_rom_%.v
+	@echo testing $*...
 	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $(ROM_DIR)/bsg_rom_$*.v $(SIM_TOP_DIR)/test_bsg_vscale_tile_array.v -d SPMD=$*
 	$(VELAB) test_bsg_vscale_tile_array | grep -v Compiling
 	$(VSIM)
 
-vivado-tile-asm-tests: load-asm-inputs $(foreach x, $(RV32_TESTS), vivado_tile_asm.$(x)) 
+vivado-tile-asm-tests: setup $(foreach x, $(RV32_TESTS), load_asm.$(x)) $(foreach x, $(RV32_TESTS), vivado_tile_asm.$(x)) 
 
 vivado_tile_asm.%:
+	@echo testing $*...
 	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $(SIM_TOP_DIR)/test_bsg_vscale_tile.v
 	$(VELAB) test_bsg_vscale_tile
 	$(VSIM) --testplusarg max-cycles=$(MAX_CYCLES) --testplusarg loadmem=$(MEM_DIR)/hex/$*.hex
