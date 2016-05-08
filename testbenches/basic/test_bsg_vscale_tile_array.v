@@ -17,9 +17,6 @@ import  bsg_vscale_pkg::*  // vscale constants
   localparam tile_id_ptr_lp  = -1;
   localparam mem_size_lp     = `MEM_SIZE;  // actually the size of the file being loaded, in bytes
   localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
-  localparam num_banks_lp    = 4;
-  localparam fifo_els_lp     = 2;      // shouldn't need more than two.
-  localparam dirs_lp         = 4;
   localparam data_width_lp   = 32;
   localparam addr_width_lp   = 32;
   localparam num_tiles_x_lp  = `XTILES;
@@ -75,10 +72,8 @@ import  bsg_vscale_pkg::*  // vscale constants
    assign ver_yumi_in = ver_valid_out;
 
   bsg_vscale_tile_array #
-    ( .dirs_p       (dirs_lp)
-     ,.bank_size_p  (bank_size_lp)
-     ,.num_banks_p  (num_banks_lp)
-     ,.fifo_els_p   (fifo_els_lp)
+    (
+     .bank_size_p  (bank_size_lp)
      ,.data_width_p (data_width_lp)
      ,.addr_width_p (addr_width_lp)
      ,.num_tiles_x_p(num_tiles_x_lp)
