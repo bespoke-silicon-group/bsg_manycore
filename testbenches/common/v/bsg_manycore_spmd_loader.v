@@ -3,7 +3,7 @@ module bsg_manycore_spmd_loader
 import  bsg_vscale_pkg::*  // vscale constants
        ,bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
- #( parameter mem_size_p      = -1 // size of mem to be loaded
+ #( parameter mem_size_p      = -1 // size of mem to be loaded  (bytes) (?)
    ,parameter data_width_p    = hdata_width_p
    ,parameter addr_width_p    = haddr_width_p
    ,parameter tile_id_ptr_p   = -1
@@ -25,7 +25,7 @@ import  bsg_vscale_pkg::*  // vscale constants
    ,output[addr_width_p-1:0]     addr_o                       
   );
 
-  logic [63:0]                tile_no; // tile number
+  logic [63:0]                tile_no, tile_no_n; // tile number
   logic [addr_width_p-1:0]    load_addr;
   logic [data_width_p-1:0]    load_data;
   logic [ycord_width_lp-1:0]  ycord;
@@ -33,7 +33,7 @@ import  bsg_vscale_pkg::*  // vscale constants
 
   // after hexfile loading is complete packets with
   // opcode = 2 are sent to clear stall registers of tiles
-  logic loaded; // set if hexfile loading is complete 
+  logic loaded, loaded_n; // set if hexfile loading is complete 
 
   assign load_data = loaded 
                      ? data_width_p'(0)
@@ -48,6 +48,20 @@ import  bsg_vscale_pkg::*  // vscale constants
   assign valid_o  = ~reset_i & (~loaded | (loaded && (tile_no < num_rows_p*num_cols_p)));
   assign addr_o   = addr_width_p'(load_addr / (addr_width_p >> 3));
 
+  assign tile_no_n = (tile_no + (load_addr == (mem_size_p-4))) % (num_rows_p * num_cols_p);
+   assign loaded_n = (tile_no == num_rows_p*num_cols_p -1)
+     && (load_addr == (mem_size_p-4));
+
+
+  always_ff @(negedge clk_i)
+    if (~loaded && ready_i)
+      begin
+	 if ((load_addr & 12'hFFF) == 0)
+	   $display("Loader: Tile %d, Addr %x",tile_no, load_addr);
+	 if (loaded_n)
+	   $display("Finished loading.");
+      end
+   
   always_ff @(posedge clk_i)
   begin
     if(reset_i)
@@ -60,11 +74,9 @@ import  bsg_vscale_pkg::*  // vscale constants
       begin
         if(ready_i & ~loaded)
           begin
-            load_addr <= (load_addr + 4) % mem_size_p;
-            tile_no   <= (tile_no + (load_addr == (mem_size_p-4)))
-                          % (num_rows_p * num_cols_p);
-            loaded    <= (tile_no == num_rows_p*num_cols_p -1)
-                          && (load_addr == (mem_size_p-4));
+             load_addr <= (load_addr + 4) % mem_size_p;
+             tile_no   <= tile_no_n;
+	     loaded <= loaded_n;
           end
 
         if(ready_i & loaded)
