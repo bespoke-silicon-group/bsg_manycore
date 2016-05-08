@@ -7,6 +7,8 @@ hello.riscv:  hello.o $(SPMD_COMMON_OBJECTS) ../common/crt.o
 
 clean:
 	-rm *.o *.jou *.log *.pb bsg_rom_hello.v hello.riscv *.wdb hello.bin hello.hex
+	-rm -rf xsim.dir
+
 
 
 
