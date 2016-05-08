@@ -5,7 +5,7 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
                                        ,parameter data_width_p="inv"
                                        ,parameter num_channels_p="inv"
                                        ,parameter packet_width_lp = 6+xcord_width_p+ycord_width_p+addr_width_p+data_width_p
-				       ,parameter max_cycles_p=1_000_000
+                                       ,parameter max_cycles_p=1_000_000
                               )
    (input clk_i
     ,input reset_i
@@ -41,20 +41,30 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
    for (i = 0; i < num_channels_p; i=i+1)
      begin: rof
         always_ff @(negedge clk_i)
-	  if (reset_i == 0)
+          if (reset_i == 0)
           begin
              if (valid_i[i] | finish_i)
                begin
-		  unique case (pkt_cast[i].addr[19:0])
-		    20'hDEAD_0:
-		      if (pkt_cast[i].data == 32'hDEAD_DEED)
-			begin
-			   $display("## RECEIVED FINISH PACKET at I/O %x on cycle 0x%x",i,trace_count);
-			   $finish();
-			end
-		    default:
-		      $display("## received I/O device %x, addr %x, data %x",i,pkt_cast[i].addr, pkt_cast[i].data);
-		  endcase
+                  unique case (pkt_cast[i].addr[19:0])
+                    20'hDEAD_0:
+                      begin
+                         $display("## RECEIVED FINISH PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x"
+                                  ,(pkt_cast[i].data >> 16)
+                                  ,(pkt_cast[i].data & 16'hffff)
+                                  , i,trace_count
+				  );
+                         $finish();
+                      end
+                    20'hDEAD_4:
+                      begin
+                         $display("## RECEIVED TIME PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x"
+                                  ,(pkt_cast[i].data >> 16)
+                                  ,(pkt_cast[i].data & 16'hffff)
+                                  , i,trace_count);
+                      end
+                    default:
+                      $display("## received I/O device %x, addr %x, data %x",i,pkt_cast[i].addr, pkt_cast[i].data);
+                  endcase
                end
           end
      end : rof
