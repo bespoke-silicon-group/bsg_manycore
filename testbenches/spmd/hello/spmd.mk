@@ -1,20 +1,3 @@
-# ======================================================================
-# This is a templete make framgment every spmd should have.
-#
-# This fragment should:
-#
-# - list all the required sources; makefile in the top dir. has rules to 
-#   generate object files from these sources
-#
-# - contain a rule to generate the elf-binary <spmd>.riscv linking object 
-#   files generated with listed sources
-#
-# - contain a rule for verilog simulation of tile array with your spmd. 
-#   The target name should be in the form <simulator>_spmd.<spmd>. Makefile 
-#   in the top dir. has rules for generating hex file and ROM required by 
-#   this target.
-# ======================================================================
-
 spmd = hello
 
 # Simulation parameters
