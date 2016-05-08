@@ -4,10 +4,10 @@ import bsg_vscale_pkg::*
        , bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
  #(// tile params
-    parameter dirs_p            = 4 
-   ,parameter fifo_els_p        = "inv"
+    parameter dirs_p            = 4
+   ,parameter fifo_els_p        = 2
    ,parameter bank_size_p       = "inv"
-   ,parameter num_banks_p       = "inv"
+   ,parameter num_banks_p       = 4
    ,parameter data_width_p      = hdata_width_p
    ,parameter addr_width_p      = haddr_width_p 
     
