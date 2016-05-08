@@ -1,0 +1,2 @@
+For the future, we will replace this with a regression directly that builds the
+tests from source code with our crt.S, etc.
