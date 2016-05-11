@@ -9,8 +9,8 @@ import bsg_vscale_pkg::*
    ,parameter bank_size_p       = "inv"
    ,parameter num_banks_p       = 4
    ,parameter data_width_p      = hdata_width_p
-   ,parameter addr_width_p      = haddr_width_p 
-    
+   ,parameter addr_width_p      = haddr_width_p
+
    // array params
    ,parameter num_tiles_x_p     = "inv"
    ,parameter num_tiles_y_p     = "inv"
@@ -29,7 +29,7 @@ import bsg_vscale_pkg::*
   )
   ( input clk_i
    ,input reset_i
-  
+
    // horizontal -- {E,W}
    ,input  [E:W][num_tiles_y_p-1:0][packet_width_lp-1:0] hor_packet_i
    ,input  [E:W][num_tiles_y_p-1:0]                      hor_valid_i
@@ -75,77 +75,77 @@ import bsg_vscale_pkg::*
   begin: tile_row_gen
     for (c = 0; c < num_tiles_x_p; c = c+1)
     begin: tile_col_gen
-      bsg_vscale_tile # 
-      ( .dirs_p        (dirs_p)                                           
-       ,.stub_p        ({ (r == num_tiles_y_p-1) ? (((stub_s_p>>c) & 1'b1) == 1) : 1'b0 // s 
+      bsg_vscale_tile #
+      ( .dirs_p        (dirs_p)
+       ,.stub_p        ({ (r == num_tiles_y_p-1) ? (((stub_s_p>>c) & 1'b1) == 1) : 1'b0 // s
                          ,(r == 0)               ? (((stub_n_p>>c) & 1'b1) == 1) : 1'b0 // n
                          ,(c == num_tiles_x_p-1) ? (((stub_e_p>>r) & 1'b1) == 1) : 1'b0 // e
                          ,(c == 0)               ? (((stub_w_p>>r) & 1'b1) == 1) : 1'b0 // w
-                        }                                                 
-                       )                                                  
-        ,.xcord_width_p  (xcord_width_lp)                                   
-        ,.ycord_width_p  (ycord_width_lp)                                   
-        ,.fifo_els_p   (fifo_els_p)                                       
-        ,.bank_size_p  (bank_size_p)                                      
-        ,.num_banks_p  (num_banks_p)                                      
-        ,.data_width_p (data_width_p)                                     
-        ,.addr_width_p (addr_width_p)                                     
-	,.debug_p      (debug_p)
-       ) tile                                                             
-       ( .clk_i (clk_i)                                                   
+                        }
+                       )
+        ,.xcord_width_p  (xcord_width_lp)
+        ,.ycord_width_p  (ycord_width_lp)
+        ,.fifo_els_p   (fifo_els_p)
+        ,.bank_size_p  (bank_size_p)
+        ,.num_banks_p  (num_banks_p)
+        ,.data_width_p (data_width_p)
+        ,.addr_width_p (addr_width_p)
+        ,.debug_p      (debug_p)
+       ) tile
+       ( .clk_i (clk_i)
         ,.reset_i(reset_i)
-                                                                          
-        ,.packet_i ({ (r == num_tiles_y_p-1)                              
-                       ? ver_packet_i[S][c]                               
-                       : packet_out[r+1][c][N] // s                         
-                     ,(r == 0)                                            
-                       ? ver_packet_i[N][c]                               
-                       : packet_out[r-1][c][S] // n                         
-                     ,(c == num_tiles_x_p-1)                              
-                       ? hor_packet_i[E][r]                               
-                       : packet_out[r][c+1][W] // e                         
-                     ,(c == 0)                                            
-                       ? hor_packet_i[W][r]                               
-                       : packet_out[r][c-1][E] // w                         
-                    }                                                     
-                   )                                                      
-        ,.valid_i  ({ (r == num_tiles_y_p-1)                              
-                       ? ver_valid_i[S][c]                                
-                       : valid_out[r+1][c][N] // s                          
-                     ,(r == 0)                                            
-                       ? ver_valid_i[N][c]                                
-                       : valid_out[r-1][c][S] // n                          
-                     ,(c == num_tiles_x_p-1)                              
-                       ? hor_valid_i[E][r]                                
-                       : valid_out[r][c+1][W] // e                          
-                     ,(c == 0)                                            
-                       ? hor_valid_i[W][r]                                
-                       : valid_out[r][c-1][E] // w                          
-                    }                                                     
-                   )                                                      
+
+        ,.packet_i ({ (r == num_tiles_y_p-1)
+                       ? ver_packet_i[S][c]
+                       : packet_out[r+1][c][N] // s
+                     ,(r == 0)
+                       ? ver_packet_i[N][c]
+                       : packet_out[r-1][c][S] // n
+                     ,(c == num_tiles_x_p-1)
+                       ? hor_packet_i[E][r]
+                       : packet_out[r][c+1][W] // e
+                     ,(c == 0)
+                       ? hor_packet_i[W][r]
+                       : packet_out[r][c-1][E] // w
+                    }
+                   )
+        ,.valid_i  ({ (r == num_tiles_y_p-1)
+                       ? ver_valid_i[S][c]
+                       : valid_out[r+1][c][N] // s
+                     ,(r == 0)
+                       ? ver_valid_i[N][c]
+                       : valid_out[r-1][c][S] // n
+                     ,(c == num_tiles_x_p-1)
+                       ? hor_valid_i[E][r]
+                       : valid_out[r][c+1][W] // e
+                     ,(c == 0)
+                       ? hor_valid_i[W][r]
+                       : valid_out[r][c-1][E] // w
+                    }
+                   )
         ,.ready_o  (ready_out[r][c])
-                                                                          
+
         ,.packet_o (packet_out[r][c])
         ,.valid_o  (valid_out[r][c])
         ,.yumi_i   (valid_out[r][c] &
-                    { (r == num_tiles_y_p-1) 
-                       ? ver_yumi_i[S][c] 
-                       : ready_out[r+1][c][N] // s                           
-                     ,(r == 0)                                            
-                       ? ver_yumi_i[N][c]                                 
-                       : ready_out[r-1][c][S] // n                           
-                     ,(c == num_tiles_x_p-1)                              
-                       ? hor_yumi_i[E][r]                                 
-                       : ready_out[r][c+1][W] // e                           
-                     ,(c == 0)                                            
-                       ? hor_yumi_i[W][r]                                 
-                       : ready_out[r][c-1][E] // w                           
-                    }                                                     
+                    { (r == num_tiles_y_p-1)
+                       ? ver_yumi_i[S][c]
+                       : ready_out[r+1][c][N] // s
+                     ,(r == 0)
+                       ? ver_yumi_i[N][c]
+                       : ready_out[r-1][c][S] // n
+                     ,(c == num_tiles_x_p-1)
+                       ? hor_yumi_i[E][r]
+                       : ready_out[r][c+1][W] // e
+                     ,(c == 0)
+                       ? hor_yumi_i[W][r]
+                       : ready_out[r][c-1][E] // w
+                    }
                    )
 
         ,.my_x_i   (xcord_width_lp'(c))
         ,.my_y_i   (ycord_width_lp'(r))
- 
+
         // synopsys translate off
         ,.htif_pcr_resp_valid_o (htif_pcr_resp_valid_o[r][c])
         ,.htif_pcr_resp_data_o  (htif_pcr_resp_data_o[r][c])
