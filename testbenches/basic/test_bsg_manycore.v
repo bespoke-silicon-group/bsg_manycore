@@ -318,12 +318,6 @@ import  bsg_vscale_pkg::*  // vscale constants
    // absorb all outgoing packets
   assign hor_ready_in   = { (2*num_tiles_y_lp) {1'b1}};
 
-   always @(negedge clk)
-     begin
-        if (ver_v_out[S])
-          $display("valid I/O coming out of S");
-     end
-
    bsg_nonsynth_manycore_monitor #(.xcord_width_p(lg_node_x_lp)
                                    ,.ycord_width_p(lg_node_y_lp)
                                    ,.addr_width_p(addr_width_lp)
