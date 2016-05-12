@@ -60,6 +60,8 @@ import bsg_vscale_pkg::*
       ,.my_y_i
       );
 
+   logic 		       freeze;
+
    bsg_manycore_proc #(
                        .x_cord_width_p (x_cord_width_p)
                        ,.y_cord_width_p(y_cord_width_p)
@@ -72,11 +74,17 @@ import bsg_vscale_pkg::*
    (.clk_i   (clk_i)
     ,.reset_i(reset_i)
     ,.v_i    (router_to_proc_v)
+
     ,.data_i (router_to_proc_data)
     ,.ready_o(router_to_proc_ready)
     ,.v_o    (proc_to_router_v)
     ,.data_o (proc_to_router_data)
     ,.ready_i(proc_to_router_ready)
+
+    ,.my_x_i(my_x_i)
+    ,.my_y_i(my_y_i)
+
+    ,.freeze_o(freeze)
     );
 
 
