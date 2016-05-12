@@ -11,7 +11,6 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
     ,input reset_i
     ,input [num_channels_p-1:0][packet_width_lp-1:0] data_i
     ,input [num_channels_p-1:0] v_i
-    , input finish_i
     );
 
   typedef struct packed {
@@ -43,8 +42,9 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
         always_ff @(negedge clk_i)
           if (reset_i == 0)
           begin
-             if (v_i[i] | finish_i)
+             if (v_i[i])
                begin
+		  $display("## received data at manycore monitor");
                   unique case (pkt_cast[i].addr[19:0])
                     20'hDEAD_0:
                       begin
@@ -63,7 +63,7 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
                                   , i,trace_count);
                       end
                     default:
-                      $display("## received I/O device %x, addr %x, data %x",i,pkt_cast[i].addr, pkt_cast[i].data);
+                      $display("## received I/O device %x, addr %x, data %x on cycle 0x%x",i,pkt_cast[i].addr, pkt_cast[i].data,trace_count);
                   endcase
                end
           end
