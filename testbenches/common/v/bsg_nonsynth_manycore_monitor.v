@@ -44,7 +44,6 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
           begin
              if (v_i[i])
                begin
-		  $display("## received data at manycore monitor");
                   unique case (pkt_cast[i].addr[19:0])
                     20'hDEAD_0:
                       begin

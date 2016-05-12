@@ -4,8 +4,7 @@ ifndef BSG_MANYCORE_DIR
   export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
 endif
 
-
-SPMD_COMMON_OBJECTS = $(BSG_MANYCORE_DIR)/software/spmd/common/syscalls.o
+SPMD_COMMON_OBJECTS = 
 
 $(warning $(BSG_MANYCORE_DIR))
 
