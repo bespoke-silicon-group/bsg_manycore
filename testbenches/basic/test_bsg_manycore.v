@@ -2,9 +2,146 @@
 `define ROM(spmd)  bsg_rom_``spmd`` // ROM contaning the spmd
 `define MEM_SIZE   32768
 `define BANK_SIZE  2048
-`define XTILES     2
+`define XTILES     4
 `define YTILES     2
-`define MAX_CYCLES 82000
+`define MAX_CYCLES 1000000
+
+
+module vscale_pipeline_trace
+ (input clk_i
+  , input [31:0] PC_IF
+  , input wr_reg_WB
+  , input [4:0] reg_to_wr_WB
+  , input [31:0] wb_data_WB
+  , input stall_WB
+  );
+
+   always @(negedge clk_i)
+     begin
+        $fwrite(1,"PC_IF=%4.4x ",PC_IF);
+        if (wr_reg_WB & ~stall_WB & (reg_to_wr_WB != 0))
+          $fwrite(1,"r[%2.2x]=%x ",reg_to_wr_WB,wb_data_WB);
+     end
+endmodule
+
+module bsg_manycore_tile_trace #(packet_width_lp="inv"
+                                 ,x_cord_width_p="inv"
+                                 ,y_cord_width_p="inv"
+                                 ,addr_width_p="inv"
+                                 ,data_width_p="inv"
+                                 ,dirs_lp=4)
+   (input clk_i
+    , input [dirs_lp-1:0][packet_width_lp-1:0] data_o
+    , input [dirs_lp-1:0] ready_i
+    , input [dirs_lp-1:0] v_o
+    , input [x_cord_width_p-1:0] my_x_i
+    , input [y_cord_width_p-1:0] my_y_i
+    , input freeze
+    );
+
+
+   typedef struct packed {
+      logic [5:0] op;
+      logic [addr_width_p-1:0] addr;
+      logic [data_width_p-1:0] data;
+      logic [y_cord_width_p-1:0] y_cord;
+      logic [x_cord_width_p-1:0] x_cord;
+   } bsg_manycore_packet_s;
+
+   bsg_manycore_packet_s [dirs_lp-1:0] pkt;
+   assign pkt = data_o;
+
+   genvar i;
+
+   always @(negedge clk_i)
+     begin
+        if (~freeze & (|(ready_i & v_o)))
+          begin
+             $fwrite(1,"%x ", bmm.trace_count);
+             $fwrite(1,"YX=%x,%x r ", my_y_i,my_x_i);
+             if (v_o[0] & ready_i[0])
+               $fwrite(1,"W<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}}",pkt[0].op,pkt[0].addr,pkt[0].data,pkt[0].y_cord,pkt[0].x_cord);
+             if (v_o[1] & ready_i[1])
+               $fwrite(1,"E<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}}",pkt[1].op,pkt[1].addr,pkt[1].data,pkt[1].y_cord,pkt[1].x_cord);
+             if (v_o[2] & ready_i[2])
+               $fwrite(1,"N<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}}",pkt[2].op,pkt[2].addr,pkt[2].data,pkt[2].y_cord,pkt[2].x_cord);
+             if (v_o[3] & ready_i[3])
+               $fwrite(1,"S<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}}",pkt[3].op,pkt[3].addr,pkt[3].data,pkt[3].y_cord,pkt[3].x_cord);
+             $fwrite(1,"\n");
+
+          end
+     end
+endmodule
+
+module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
+                                 , data_width_p=-1
+                                 , addr_width_p="inv"
+                                 , x_cord_width_p="inv"
+                                 , y_cord_width_p="inv"
+                                 , packet_width_lp="inv")
+  (input clk_i
+   , input [2:0] xbar_port_v_in
+   , input [2:0][mem_width_lp-1:0] xbar_port_addr_in
+   , input [2:0][data_width_p-1:0] xbar_port_data_in
+   , input [2:0] xbar_port_we_in
+   , input [2:0] xbar_port_yumi_out
+   , input [x_cord_width_p-1:0] my_x_i
+   , input [y_cord_width_p-1:0] my_y_i
+   , input v_out
+   , input [packet_width_lp-1:0] data_out
+   , input v_in
+   , input [packet_width_lp-1:0] data_in
+   , input freeze_r
+   );
+
+   typedef struct packed {
+      logic [5:0] op;
+      logic [addr_width_p-1:0] addr;
+      logic [data_width_p-1:0] data;
+      logic [y_cord_width_p-1:0] y_cord;
+      logic [x_cord_width_p-1:0] x_cord;
+   } bsg_manycore_packet_s;
+
+   bsg_manycore_packet_s [1:0] packets;
+
+   genvar i;
+
+   logic [1:0] logwrite;
+
+   always @(negedge clk_i)
+     begin
+        logwrite = { (xbar_port_we_in[2] & xbar_port_yumi_out[2])
+                     ,xbar_port_we_in[1] & xbar_port_yumi_out[1]
+          };
+
+        if (~freeze_r & ((|logwrite)| v_in | v_out))
+          begin
+             $fwrite(1,"%x ", bmm.trace_count);
+             $fwrite(1,"YX=%x,%x ", my_y_i,my_x_i);
+
+             if (logwrite[0])
+               $fwrite(1,"D%1.1x[%x]=%x, ", 1,{ xbar_port_addr_in[1],2'b00},xbar_port_data_in[1]);
+
+             if (logwrite[1])
+               $fwrite(1,"D%1.1x[%x]=%x, ", 2,{ xbar_port_addr_in[2],2'b00},xbar_port_data_in[2]);
+
+             if (~|logwrite)
+               $fwrite(1,"                   ");
+
+             packets = {data_in, data_out};
+
+             if (v_in)
+               $fwrite(1,"<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}}"
+                       ,packets[1].op,packets[1].addr,packets[1].data,packets[1].y_cord,packets[1].x_cord);
+
+             if (v_out)
+               $fwrite(1,"->{%2.2x,%8.8x,%8.8x,YX={%x,%x}}"
+                       ,packets[0].op,packets[0].addr,packets[0].data,packets[0].y_cord,packets[0].x_cord);
+
+             $fwrite(1,"\n");
+          end // if (xbar_port_yumi_out[1]...
+     end
+endmodule
 
 
 module test_bsg_manycore;
@@ -26,6 +163,47 @@ import  bsg_vscale_pkg::*  // vscale constants
   localparam packet_width_lp = 6 + lg_node_x_lp + lg_node_y_lp
                                   + data_width_lp + addr_width_lp;
   localparam cycle_time_lp   = 20;
+
+
+   bind bsg_manycore_tile  bsg_manycore_tile_trace #(.packet_width_lp(packet_width_lp)
+                                                     ,.x_cord_width_p(x_cord_width_p)
+                                                     ,.y_cord_width_p(y_cord_width_p)
+                                                     ,.addr_width_p(addr_width_p)
+                                                     ,.data_width_p(data_width_p)
+                                                           ) bmtt
+   (.clk_i
+    ,.data_o
+    ,.ready_i
+    ,.v_o
+    ,.my_x_i
+    ,.my_y_i
+    ,.freeze(freeze)
+    );
+
+
+//   bind vscale_pipeline vscale_pipeline_trace vscale_trace(clk,PC_IF,wr_reg_WB,reg_to_wr_WB,wb_data_WB,stall_WB);
+   bind bsg_manycore_proc bsg_manycore_proc_trace #(.mem_width_lp(mem_width_lp)
+                                                    ,.data_width_p(data_width_p)
+                                                    ,.addr_width_p(addr_width_p)
+                                                    ,.x_cord_width_p(x_cord_width_p)
+                                                    ,.y_cord_width_p(y_cord_width_p)
+                                                    ,.packet_width_lp(packet_width_lp)
+                                                    ) proc_trace
+     (clk_i
+      ,xbar_port_v_in
+      ,xbar_port_addr_in
+      ,xbar_port_data_in
+      ,xbar_port_we_in
+      ,xbar_port_yumi_out
+      ,my_x_i
+      ,my_y_i
+      ,v_o
+      ,data_o
+      ,v_i
+      ,data_i
+      ,freeze_r
+      );
+
 
   // clock and reset generation
   wire clk;
@@ -64,9 +242,6 @@ import  bsg_vscale_pkg::*  // vscale constants
   logic [E:W][num_tiles_y_lp-1:0]                      hor_v_in;
   logic [E:W][num_tiles_y_lp-1:0]                      hor_ready_out;
   logic [E:W][num_tiles_y_lp-1:0]                      hor_ready_in;
-
-  logic [num_tiles_y_lp-1:0][num_tiles_x_lp-1:0]                      htif_pcr_resp_valid;
-  logic [num_tiles_y_lp-1:0][num_tiles_x_lp-1:0][`HTIF_PCR_WIDTH-1:0] htif_pcr_resp_data;
 
   bsg_manycore #
     (
@@ -136,49 +311,23 @@ import  bsg_vscale_pkg::*  // vscale constants
    // absorb all outgoing packets
   assign hor_ready_in   = { (2*num_tiles_y_lp) {1'b1}};
 
+   always @(negedge clk)
+     begin
+        if (ver_v_out[S])
+          $display("valid I/O coming out of S");
+     end
 
-  logic [num_tiles_y_lp-1:0][num_tiles_x_lp-1:0] finish_r;
-   
-   bsg_nonsynth_manycore_monitor #(.xcord_width_p(`BSG_SAFE_CLOG2(num_tiles_x_lp))
-                                   ,.ycord_width_p(`BSG_SAFE_CLOG2(num_tiles_y_lp+1))
+   bsg_nonsynth_manycore_monitor #(.xcord_width_p(lg_node_x_lp)
+                                   ,.ycord_width_p(lg_node_y_lp)
                                    ,.addr_width_p(addr_width_lp)
                                    ,.data_width_p(data_width_lp)
                                    ,.num_channels_p(num_tiles_x_lp)
-				   ,.max_cycles_p(max_cycles_lp)
+                                   ,.max_cycles_p(max_cycles_lp)
                                    ) bmm (.clk_i(clk)
-                                          ,.reset_i (reset            )
+                                          ,.reset_i (reset)
                                           ,.data_i(ver_data_out[S])
                                           ,.v_i (ver_v_out [S])
-					  ,.finish_i(&finish_r)
                                           );
 
-  always_ff @(posedge clk)
-  begin
-     if(reset)
-       reason      <= 0;
-  end
-
-
-
-  always_ff @(posedge clk)
-  begin
-    if(reset)
-      finish_r <= 0;
-
-    for(int r=0; r<num_tiles_y_lp; r=r+1)
-      for(int c=0; c<num_tiles_x_lp; c=c+1)
-        if (!reset)
-          if (htif_pcr_resp_valid[r][c] && htif_pcr_resp_data[r][c] != 0)
-            if (htif_pcr_resp_data[r][c] == 1)
-              finish_r[r][c] <= 1'b1;
-            else
-               $sformat(reason, "tile: (%d, %d) tohost = %d", r, c, htif_pcr_resp_data[r][c] >> 1);
-
-    if (reason)
-    begin
-       $error("*** FAILED *** (%0s) after %0d cycles", reason, trace_count);
-       finish_r <= { (num_tiles_y_lp*num_tiles_x_lp)  {1'b1} };
-    end
-  end
 
 endmodule
