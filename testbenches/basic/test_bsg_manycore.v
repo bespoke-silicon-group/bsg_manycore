@@ -2,8 +2,15 @@
 `define ROM(spmd)  bsg_rom_``spmd`` // ROM contaning the spmd
 `define MEM_SIZE   32768
 `define BANK_SIZE  2048
-`define XTILES     4
-`define YTILES     2
+
+`ifndef bsg_tiles_X
+`error bsg_tiles_X must be defined; pass it in through the makefile
+`endif
+
+`ifndef bsg_tiles_Y
+`error bsg_tiles_Y must be defined; pass it in through the makefile
+`endif
+  
 `define MAX_CYCLES 1000000
 
 
@@ -156,8 +163,8 @@ import  bsg_vscale_pkg::*  // vscale constants
   localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
   localparam data_width_lp   = 32;
   localparam addr_width_lp   = 32;
-  localparam num_tiles_x_lp  = `XTILES;
-  localparam num_tiles_y_lp  = `YTILES;
+  localparam num_tiles_x_lp  = `bsg_tiles_X;
+  localparam num_tiles_y_lp  = `bsg_tiles_Y;
   localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
   localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + 1);
   localparam packet_width_lp = 6 + lg_node_x_lp + lg_node_y_lp
