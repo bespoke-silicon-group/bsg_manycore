@@ -1,3 +1,7 @@
+
+bsg_tiles_X = 2
+bsg_tiles_Y = 2
+
 include ../Makefile.include
 
 all: hello.run
