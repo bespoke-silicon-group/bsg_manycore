@@ -22,6 +22,12 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
     , output v_o
     , output [packet_width_lp-1:0] data_o
     , input ready_i
+
+    // tile coordinates
+    , input   [x_cord_width_p-1:0]                 my_x_i
+    , input   [y_cord_width_p-1:0]                 my_y_i
+
+    , output logic freeze_o
     );
 
    // input fifo from network
@@ -85,8 +91,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    assign cgni_yumi = remote_store_yumi | pkt_freeze | pkt_unfreeze;
 
    // create freeze gate
-
-   logic freeze_r;
+   logic                       freeze_r;
+   assign freeze_o = freeze_r;
 
    always_ff @(posedge clk_i)
      if (reset_i)
@@ -184,8 +190,25 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
 
 
-   wire [data_width_p-1:0]            unused_data;
-   wire                               unused_valid;
+   wire [data_width_p-1:0] unused_data;
+   wire                    unused_valid;
+
+   // we create dedicated signals for these wires to allow easy access for "bind" statements
+   wire [2:0]              xbar_port_v_in = { remote_store_v
+                                              // request to write only if we are not sending a remote store packet
+                                              // we check the high bit only for performance
+                                              , core_mem_v[1] & ~core_mem_addr[1][31]
+                                              , core_mem_v[0]
+                                              };
+   wire [2:0]                    xbar_port_we_in   = {1'b1, core_mem_w[1], 1'b0};
+   wire [2:0]                    xbar_port_yumi_out;
+   wire [2:0] [data_width_p-1:0] xbar_port_data_in = {remote_store_data,    core_mem_wdata};
+   wire [2:0] [mem_width_lp-1:0] xbar_port_addr_in = { remote_store_addr  [2+:mem_width_lp]
+                                                       , core_mem_addr[1] [2+:mem_width_lp]
+                                                       , core_mem_addr[0] [2+:mem_width_lp]
+                                                       };
+
+   assign {remote_store_yumi, core_mem_yumi } = xbar_port_yumi_out;
 
   bsg_mem_banked_crossbar #
     ( .num_ports_p  (3)
@@ -193,26 +216,18 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
      ,.bank_size_p  (bank_size_p)
      ,.data_width_p (data_width_p)
      ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
+//     ,.debug_reads_p(0)
     ) banked_crossbar
     ( .clk_i   (clk_i)
      ,.reset_i (reset_i)
-      ,.v_i     ({ remote_store_v
-                   // request to write only if we are not sending a remote store packet
-                   // we check the high bit only for performance
-                   , core_mem_v[1] & ~core_mem_addr[1][31]
-                   , core_mem_v[0]
-                   }
-                 )
+      ,.v_i    (xbar_port_v_in)
       // the network port always writes, proc data port sometimes writes, proc inst port never writes
-      ,.w_i     ({1'b1, core_mem_w[1], 1'b0})
-      ,.addr_i  ({ remote_store_addr[2+:mem_width_lp]
-                 , core_mem_addr[1] [2+:mem_width_lp]
-                 , core_mem_addr[0] [2+:mem_width_lp]
-                 })
-     ,.data_i  ({remote_store_data,    core_mem_wdata})
-     ,.mask_i  ({(data_width_p>>3)'(0), core_mem_mask})
+      ,.w_i     (xbar_port_we_in)
+      ,.addr_i  (xbar_port_addr_in)
+      ,.data_i  (xbar_port_data_in)
+      ,.mask_i  ({(data_width_p>>3)'(0), core_mem_mask})
       // whether the crossbar accepts the input
-     ,.yumi_o  ({remote_store_yumi, core_mem_yumi    })
+     ,.yumi_o  (xbar_port_yumi_out)
      ,.v_o     ({unused_valid,      core_mem_rv      })
      ,.data_o  ({unused_data,       core_mem_rdata   })
     );
