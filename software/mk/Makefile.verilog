@@ -45,6 +45,6 @@ bsg_rom_%.v: %.bin
 	python $(BSG_ROM_GEN) $< bsg_rom_$* zero > $@
 
 %.run:  bsg_rom_%.v
-	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) bsg_rom_$*.v $(TOP_LEVEL) -d SPMD=$*
+	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) bsg_rom_$*.v $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y)
 	$(VELAB) test_bsg_manycore | grep -v Compiling
 	$(VSIM) $(TEE-CMD)
