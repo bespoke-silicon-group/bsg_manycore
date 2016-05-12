@@ -28,6 +28,8 @@ SECTIONS
     *(.text)
   }
 
+  /* MBT put this in another bank to avoid bugs in vscale */
+  . = 0x4000;
   /* data segment */
   .data : { *(.data) }
 
