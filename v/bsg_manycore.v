@@ -149,16 +149,24 @@ import bsg_vscale_pkg::*
 
   for(r = 0; r < num_tiles_y_p; r = r+1)
   begin: hor_outputs
-    assign {hor_data_o[E][r], hor_data_o[W][r]} = {data_out[r][num_tiles_y_p-1][E], data_out[r][0][W]};
-    assign {hor_v_o [E][r], hor_v_o [W][r]} = {v_out [r][num_tiles_y_p-1][E], v_out [r][0][W]};
-    assign {hor_ready_o [E][r], hor_ready_o [W][r]} = {ready_out [r][num_tiles_y_p-1][E], ready_out [r][0][W]};
+    assign {hor_data_o[E][r], hor_data_o[W][r]} = {data_out[r][num_tiles_x_p-1][E], data_out[r][0][W]};
+    assign {hor_v_o [E][r], hor_v_o [W][r]} = {v_out [r][num_tiles_x_p-1][E], v_out [r][0][W]};
+    assign {hor_ready_o [E][r], hor_ready_o [W][r]} = {ready_out [r][num_tiles_x_p-1][E], ready_out [r][0][W]};
   end
 
   for(c = 0; c < num_tiles_x_p; c = c+1)
   begin: ver_outputs
-    assign {ver_data_o[S][c], ver_data_o[N][c]} = {data_out[num_tiles_x_p-1][c][S], data_out[0][c][N]};
-    assign {ver_v_o [S][c], ver_v_o [N][c]} = {v_out [num_tiles_x_p-1][c][S], v_out [0][c][N]};
-    assign {ver_ready_o [S][c], ver_ready_o [N][c]} = {ready_out [num_tiles_x_p-1][c][S], ready_out [0][c][N]};
+    assign {ver_data_o[S][c], ver_data_o[N][c]} = {data_out[num_tiles_y_p-1][c][S], data_out[0][c][N]};
+    assign {ver_v_o [S][c], ver_v_o [N][c]} = {v_out [num_tiles_y_p-1][c][S], v_out [0][c][N]};
+    assign {ver_ready_o [S][c], ver_ready_o [N][c]} = {ready_out [num_tiles_y_p-1][c][S], ready_out [0][c][N]};
   end
 
+
+   always @(negedge clk_i)
+     begin
+        if (ver_v_o[S])
+          $display("valid I/O coming out of S");
+     end
+
+   
 endmodule
