@@ -10,7 +10,47 @@ typedef volatile void *bsg_remote_void_ptr;
 #error bsg_tiles_Y must be defined
 #endif
 
-#define bsg_xcord_width (bsg_tiles_X)
+#if bsg_tiles_X == 1
+#define bsg_noc_xbits 1
+#elif bsg_tiles_X == 2
+#define bsg_noc_xbits 1
+#elif bsg_tiles_X == 3
+#define bsg_noc_xbits 2
+#elif bsg_tiles_X == 4
+#define bsg_noc_xbits 2
+#elif bsg_tiles_X == 5
+#define bsg_noc_xbits 3
+#elif bsg_tiles_X == 6
+#define bsg_noc_xbits 3
+#elif bsg_tiles_X == 7
+#define bsg_noc_xbits 3
+#elif bsg_tiles_X == 8
+#define bsg_noc_xbits 3
+#elif
+#error Unsupported bsg_tiles_X
+#endif
+
+#if bsg_tiles_Y == 1
+#define bsg_noc_ybits 1
+#elif bsg_tiles_Y == 2
+#define bsg_noc_ybits 2
+#elif bsg_tiles_Y == 3
+#define bsg_noc_ybits 2
+#elif bsg_tiles_Y == 4
+#define bsg_noc_ybits 3
+#elif bsg_tiles_Y == 5
+#define bsg_noc_ybits 3
+#elif bsg_tiles_Y == 6
+#define bsg_noc_ybits 3
+#elif bsg_tiles_Y == 7
+#define bsg_noc_ybits 3
+#elif bsg_tiles_Y == 8
+#define bsg_noc_ybits 4
+#elif
+#error Unsupported bsg_tiles_Y
+#endif
+
+
 
 // format of remote address is:
 // {1, y_offs, x_offs, addr }
