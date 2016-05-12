@@ -9,8 +9,8 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
                               )
    (input clk_i
     ,input reset_i
-    ,input [num_channels_p-1:0][packet_width_lp-1:0] packet_i
-    ,input [num_channels_p-1:0] valid_i
+    ,input [num_channels_p-1:0][packet_width_lp-1:0] data_i
+    ,input [num_channels_p-1:0] v_i
     , input finish_i
     );
 
@@ -34,7 +34,7 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
        end
 
    bsg_vscale_remote_packet_s [num_channels_p-1:0] pkt_cast;
-   assign pkt_cast = packet_i;
+   assign pkt_cast = data_i;
 
    genvar                       i;
 
@@ -43,7 +43,7 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
         always_ff @(negedge clk_i)
           if (reset_i == 0)
           begin
-             if (valid_i[i] | finish_i)
+             if (v_i[i] | finish_i)
                begin
                   unique case (pkt_cast[i].addr[19:0])
                     20'hDEAD_0:
