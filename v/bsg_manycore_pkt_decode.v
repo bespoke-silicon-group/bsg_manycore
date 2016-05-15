@@ -41,12 +41,13 @@ module bsg_manycore_pkt_decode #(
 
         if (v_i)
           unique case (pkt.op)
-            6'd2: if (~|pkt.addr[addr_width_p-1:1])
+            6'd2: if (~|pkt.addr[addr_width_p-1:0])
               begin
-                 pkt_freeze_o   = pkt.addr[0];
-                 pkt_unfreeze_o = ~pkt.addr[0];
+                 pkt_freeze_o   = pkt.data[0];
+                 pkt_unfreeze_o = ~pkt.data[0];
               end
-            6'd1: pkt_remote_store_o = 1'b1;
+            6'd1:
+		pkt_remote_store_o = 1'b1;
             default:
               pkt_unknown_o = 1'b1;
           endcase // unique case (fifo_out_data[0].op)
