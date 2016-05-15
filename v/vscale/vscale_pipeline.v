@@ -336,6 +336,11 @@ module vscale_pipeline
       endcase // case (wb_src_sel_WB)
    end
 
+   // ordinarily, we might have to catch the dmem rdata access on a WB stall
+   // but WB stall are only caused by instrs in WB that use md
+   // but by definition a load would be in WB
+   // and loads do not use MD.
+   
    assign load_data_WB = load_data(alu_out_WB,dmem_rdata,dmem_type_WB);
 
    always @(*) begin
