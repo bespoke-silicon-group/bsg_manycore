@@ -188,8 +188,6 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    // synopsys translate on
 
-
-
    wire [data_width_p-1:0] unused_data;
    wire                    unused_valid;
 
@@ -208,6 +206,23 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                                                        , core_mem_addr[0] [2+:mem_width_lp]
                                                        };
 
+   always @(negedge clk_i)
+     if (0)
+     begin
+	if (~freeze_r)
+	  $display("x=%x y=%x xbar_v_i=%b xbar_w_i=%b xbar_port_yumi_out=%b xbar_addr_i[2,1,0]=%x,%x,%x, xbar_data_i[2,1,0]=%x,%x,%x, xbar_data_o[1,0]=%x,%x"
+		   ,my_x_i
+		   ,my_y_i
+		   ,xbar_port_v_in
+		   ,xbar_port_we_in
+		   ,xbar_port_yumi_out
+		   ,xbar_port_addr_in[2]*4,xbar_port_addr_in[1]*4,xbar_port_addr_in[0]*4
+		   ,xbar_port_data_in[2], xbar_port_data_in[1], xbar_port_data_in[0]
+		   ,core_mem_rdata[1], core_mem_rdata[0]
+		   );
+     end
+
+   
    assign {remote_store_yumi, core_mem_yumi } = xbar_port_yumi_out;
 
   bsg_mem_banked_crossbar #
@@ -226,7 +241,10 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       ,.w_i     (xbar_port_we_in)
       ,.addr_i  (xbar_port_addr_in)
       ,.data_i  (xbar_port_data_in)
-      ,.mask_i  ({(data_width_p>>3)'(0), core_mem_mask})
+      ,.mask_i  ({
+		  { (data_width_p>>3) {1'b1} } 
+		  , core_mem_mask
+		  })
       // whether the crossbar accepts the input
      ,.yumi_o  (xbar_port_yumi_out)
      ,.v_o     ({unused_valid,      core_mem_rv      })
