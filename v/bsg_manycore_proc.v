@@ -104,11 +104,6 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
             freeze_r <= pkt_freeze;
          end
 
-   // htif outputs
-   logic htif_pcr_resp_valid;
-   logic [htif_pcr_width_p-1:0] htif_pcr_resp_data;
-
-   // hasti converter signals
    logic [1:0]                  core_mem_v;
    logic [1:0]                  core_mem_w;
    logic [1:0] [addr_width_p-1:0] core_mem_addr;
@@ -118,10 +113,13 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    logic [1:0]                         core_mem_rv;
    logic [1:0] [data_width_p-1:0]      core_mem_rdata;
 
-   bsg_vscale_core core
+   bsg_vscale_core #(.x_cord_width_p (x_cord_width_p)
+                     ,.y_cord_width_p(y_cord_width_p)
+                     )
+            core
      ( .clk_i   (clk_i)
        ,.reset_i (reset_i)
-       ,.stall_i (freeze_r)
+       ,.freeze_i (freeze_r)
 
        ,.m_v_o       (core_mem_v)
        ,.m_w_o       (core_mem_w)
@@ -135,6 +133,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                        , core_mem_yumi[0]})
        ,.m_v_i       (core_mem_rv)
        ,.m_data_i    (core_mem_rdata)
+       ,.my_x_i (my_x_i)
+       ,.my_y_i (my_y_i)
        );
 
    bsg_manycore_pkt_encode #(.x_cord_width_p (x_cord_width_p)
@@ -215,7 +215,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
      ,.num_banks_p  (num_banks_p)
      ,.bank_size_p  (bank_size_p)
      ,.data_width_p (data_width_p)
-     ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
+      ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
+//      ,.debug_p(4)
 //     ,.debug_reads_p(0)
     ) banked_crossbar
     ( .clk_i   (clk_i)
