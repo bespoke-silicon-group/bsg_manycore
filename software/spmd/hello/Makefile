@@ -13,6 +13,7 @@ clean:
 	-rm *.o *.jou *.log *.pb bsg_rom_hello.v hello.riscv *.wdb hello.bin hello.hex
 	-rm -rf xsim.dir
 
+hello.o: Makefile
 
 
 
