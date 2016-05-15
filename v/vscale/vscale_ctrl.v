@@ -461,9 +461,6 @@ module vscale_ctrl(
 
    assign kill_WB = stall_WB || ex_WB;
 
-   // mbt fix stall logic
-   // assign stall_WB = ((dmem_wait && dmem_en_WB) || (uses_md_WB && !md_resp_valid)) && !exception;
-
    assign stall_WB =  ((uses_md_WB && !md_resp_valid)) && !exception;
 
    assign dmem_access_exception = dmem_badmem_e && !stall_WB;
