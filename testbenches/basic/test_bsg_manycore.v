@@ -178,68 +178,84 @@ endmodule
 
 module test_bsg_manycore;
 
-import  bsg_vscale_pkg::*  // vscale constants
-       ,bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
+   import  bsg_vscale_pkg::*  // vscale constants
+          ,bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
-  localparam debug_lp = 0;
-  localparam max_cycles_lp   = `MAX_CYCLES;
-  localparam tile_id_ptr_lp  = -1;
-  localparam mem_size_lp     = `MEM_SIZE;  // actually the size of the file being loaded, in bytes
-  localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
-  localparam data_width_lp   = 32;
-  localparam addr_width_lp   = 32;
-  localparam num_tiles_x_lp  = `bsg_tiles_X;
-  localparam num_tiles_y_lp  = `bsg_tiles_Y;
-  localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
-  localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + 1);
-  localparam packet_width_lp = 6 + lg_node_x_lp + lg_node_y_lp
-                                  + data_width_lp + addr_width_lp;
-  localparam cycle_time_lp   = 20;
-
-
-   bind bsg_manycore_tile  bsg_manycore_tile_trace #(.packet_width_lp(packet_width_lp)
-                                                     ,.x_cord_width_p(x_cord_width_p)
-                                                     ,.y_cord_width_p(y_cord_width_p)
-                                                     ,.addr_width_p(addr_width_p)
-                                                     ,.data_width_p(data_width_p)
-                                                           ) bmtt
-   (.clk_i
-    ,.data_o
-    ,.ready_i
-    ,.v_o
-    ,.my_x_i
-    ,.my_y_i
-    ,.freeze(freeze)
-    );
-
-
-/*   bind   vscale_pipeline vscale_pipeline_trace #(.x_cord_width_p(x_cord_width_p)
-                          ,.y_cord_width_p(y_cord_width_p)
-                          )
-     vscale_trace(clk,PC_IF,wr_reg_WB,reg_to_wr_WB,wb_data_WB,stall_WB,imem_wait, dmem_wait, dmem_en,exception_code_WB, imem_addr, imem_rdata, freeze, my_x_i, my_y_i);
- */ 
-  
-   bind bsg_manycore_proc bsg_manycore_proc_trace #(.mem_width_lp(mem_width_lp)
-                                                    ,.data_width_p(data_width_p)
-                                                    ,.addr_width_p(addr_width_p)
-                                                    ,.x_cord_width_p(x_cord_width_p)
-                                                    ,.y_cord_width_p(y_cord_width_p)
-                                                    ,.packet_width_lp(packet_width_lp)
-                                                    ) proc_trace
-     (clk_i
-      ,xbar_port_v_in
-      ,xbar_port_addr_in
-      ,xbar_port_data_in
-      ,xbar_port_we_in
-      ,xbar_port_yumi_out
-      ,my_x_i
-      ,my_y_i
-      ,v_o
-      ,data_o
-      ,v_i
-      ,data_i
-      ,freeze_r
-      );
+   localparam debug_lp = 0;
+   localparam max_cycles_lp   = `MAX_CYCLES;
+   localparam tile_id_ptr_lp  = -1;
+   localparam mem_size_lp     = `MEM_SIZE;  // actually the size of the file being loaded, in bytes
+   localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
+   localparam data_width_lp   = 32;
+   localparam addr_width_lp   = 32;
+   localparam num_tiles_x_lp  = `bsg_tiles_X;
+   localparam num_tiles_y_lp  = `bsg_tiles_Y;
+   localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
+   localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + 1);
+   localparam packet_width_lp = 6 + lg_node_x_lp + lg_node_y_lp
+                                + data_width_lp + addr_width_lp;
+   localparam cycle_time_lp   = 20;
+   localparam trace_vscale_pipeline_lp=0;
+   localparam trace_manycore_tile_lp=0;
+   localparam trace_manycore_proc_lp=0;
+   
+   if (trace_manycore_tile_lp)
+     bind bsg_manycore_tile  bsg_manycore_tile_trace #(.packet_width_lp(packet_width_lp)
+                                                       ,.x_cord_width_p(x_cord_width_p)
+                                                       ,.y_cord_width_p(y_cord_width_p)
+                                                       ,.addr_width_p(addr_width_p)
+                                                       ,.data_width_p(data_width_p)
+                                                       ) bmtt
+       (.clk_i
+	,.data_o
+	,.ready_i
+	,.v_o
+	,.my_x_i
+	,.my_y_i
+	,.freeze(freeze)
+	);
+   
+   if (trace_vscale_pipeline_lp)
+     bind   vscale_pipeline vscale_pipeline_trace #(.x_cord_width_p(x_cord_width_p)
+						    ,.y_cord_width_p(y_cord_width_p)
+						    ) vscale_trace(clk
+								   ,PC_IF
+								   ,wr_reg_WB
+								   ,reg_to_wr_WB
+								   ,wb_data_WB
+								   ,stall_WB
+								   ,imem_wait
+								   ,dmem_wait
+								   ,dmem_en
+								   ,exception_code_WB
+								   ,imem_addr
+								   ,imem_rdata
+								   ,freeze
+								   ,my_x_i
+								   ,my_y_i
+								   );
+   if (trace_manycore_proc_lp)
+     bind bsg_manycore_proc bsg_manycore_proc_trace #(.mem_width_lp(mem_width_lp)
+                                                      ,.data_width_p(data_width_p)
+                                                      ,.addr_width_p(addr_width_p)
+                                                      ,.x_cord_width_p(x_cord_width_p)
+                                                      ,.y_cord_width_p(y_cord_width_p)
+                                                      ,.packet_width_lp(packet_width_lp)
+                                                      ) proc_trace
+       (clk_i
+	,xbar_port_v_in
+	,xbar_port_addr_in
+	,xbar_port_data_in
+	,xbar_port_we_in
+	,xbar_port_yumi_out
+	,my_x_i
+	,my_y_i
+	,v_o
+	,data_o
+	,v_i
+	,data_i
+	,freeze_r
+	);
 
 
   // clock and reset generation
