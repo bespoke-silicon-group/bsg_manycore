@@ -55,6 +55,7 @@ typedef volatile void *bsg_remote_void_ptr;
 // format of remote address is:
 // {1, y_offs, x_offs, addr }
 
+#define bsg_remote_addr_bits (31-bsg_noc_xbits-bsg_noc_ybits)
 #define bsg_remote_ptr(x,y,local_addr) ((bsg_remote_int_ptr) ( (1<<31)                                     \
                                                                | ((y) << (31-(bsg_noc_ybits)))             \
                                                                | ((x) << (31-bsg_noc_xbits-bsg_noc_ybits)) \
@@ -63,6 +64,10 @@ typedef volatile void *bsg_remote_void_ptr;
                                         )
 
 #define bsg_remote_store(x,y,local_addr,val) do { *(bsg_remote_ptr((x),(y),(local_addr))) = (int) (val); } while (0)
+
+#define bsg_remote_control_store(x,y,local_addr,val) bsg_remote_store((x),(y), (1 << (bsg_remote_addr_bits-1))+(local_addr),(val))
+#define bsg_remote_unfreeze(x,y) bsg_remote_control_store((x),(y),0,0)
+#define bsg_remote_freeze(x,y)   bsg_remote_control_store((x),(y),0,1)
 
 // remote loads unsupported
 //#define bsg_remote_load(x,y,local_addr) (*(bsg_remote_ptr((x),(y),(local_addr))))
@@ -73,6 +78,10 @@ typedef volatile void *bsg_remote_void_ptr;
 // see bsg_nonsynth_manycore_monitor for secret codes
 #define bsg_finish()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xDEAD0); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
 #define bsg_print_time()   do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xDEAD4); *ptr = ((bsg_y << 16) + bsg_x); } while(0)
+
+#define bsg_id_to_x(id) (id % bsg_tiles_X)
+#define bsg_id_to_y(id) (id / bsg_tiles_X)
+#define bsg_num_tiles (bsg_tiles_X*bsg_tiles_Y)
 
 // later, we can add some mechanisms to save power
 #define bsg_wait_while(cond) do {} while ((cond))
