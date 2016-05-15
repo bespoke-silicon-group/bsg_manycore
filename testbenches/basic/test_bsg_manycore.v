@@ -10,24 +10,39 @@
 `ifndef bsg_tiles_Y
 `error bsg_tiles_Y must be defined; pass it in through the makefile
 `endif
-  
+
 `define MAX_CYCLES 1000000
 
 
-module vscale_pipeline_trace
+  module vscale_pipeline_trace
+      #(parameter x_cord_width_p = "inv"
+        , y_cord_width_p = "inv")
  (input clk_i
   , input [31:0] PC_IF
   , input wr_reg_WB
   , input [4:0] reg_to_wr_WB
   , input [31:0] wb_data_WB
   , input stall_WB
+  , input imem_wait
+  , input dmem_wait
+  , input dmem_en
+  , input [3:0] exception_code_WB
+  , input [31:0] imem_addr
+  , input [31:0] imem_rdata
+  , input freeze
+   ,input   [x_cord_width_p-1:0] my_x_i
+   ,input   [y_cord_width_p-1:0] my_y_i
   );
 
    always @(negedge clk_i)
      begin
-        $fwrite(1,"PC_IF=%4.4x ",PC_IF);
-        if (wr_reg_WB & ~stall_WB & (reg_to_wr_WB != 0))
-          $fwrite(1,"r[%2.2x]=%x ",reg_to_wr_WB,wb_data_WB);
+        if (~freeze)
+          begin
+             $fwrite(1,"x=%x y=%x PC_IF=%4.4x imem_wait=%x dmem_wait=%x dmem_en=%x exception_code_WB=%x imem_addr=%x imem_data=%x replay_IF=%x stall_IF=%x stall_DX ",my_x_i, my_y_i,PC_IF,imem_wait,dmem_wait,dmem_en,exception_code_WB, imem_addr, imem_rdata, ctrl.replay_IF, ctrl.stall_IF, ctrl.stall_DX);
+             if (wr_reg_WB & ~stall_WB & (reg_to_wr_WB != 0))
+               $fwrite(1,"r[%2.2x]=%x ",reg_to_wr_WB,wb_data_WB);
+             $fwrite(1,"\n");
+          end
      end
 endmodule
 
@@ -60,6 +75,7 @@ module bsg_manycore_tile_trace #(packet_width_lp="inv"
 
    genvar i;
 
+//   if (0)
    always @(negedge clk_i)
      begin
         if (~freeze & (|(ready_i & v_o)))
@@ -114,14 +130,18 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
    genvar i;
 
    logic [1:0] logwrite;
+   logic [2:0] conflicts;
 
+//   if (0)
    always @(negedge clk_i)
      begin
         logwrite = { (xbar_port_we_in[2] & xbar_port_yumi_out[2])
                      ,xbar_port_we_in[1] & xbar_port_yumi_out[1]
           };
 
-        if (~freeze_r & ((|logwrite)| v_in | v_out))
+        conflicts = xbar_port_yumi_out ^ xbar_port_v_in;
+
+        if (~freeze_r & ((|logwrite)| v_in | v_out | (|conflicts)))
           begin
              $fwrite(1,"%x ", bmm.trace_count);
              $fwrite(1,"YX=%x,%x ", my_y_i,my_x_i);
@@ -138,12 +158,17 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
              packets = {data_in, data_out};
 
              if (v_in)
-               $fwrite(1,"<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}}"
+               $fwrite(1,"<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}} "
                        ,packets[1].op,packets[1].addr,packets[1].data,packets[1].y_cord,packets[1].x_cord);
 
              if (v_out)
-               $fwrite(1,"->{%2.2x,%8.8x,%8.8x,YX={%x,%x}}"
+               $fwrite(1,"->{%2.2x,%8.8x,%8.8x,YX={%x,%x}} "
                        ,packets[0].op,packets[0].addr,packets[0].data,packets[0].y_cord,packets[0].x_cord);
+
+             // detect bank conflicts
+
+             if (|conflicts)
+               $fwrite(1,"C%b",conflicts);
 
              $fwrite(1,"\n");
           end // if (xbar_port_yumi_out[1]...
@@ -188,7 +213,12 @@ import  bsg_vscale_pkg::*  // vscale constants
     );
 
 
-//   bind vscale_pipeline vscale_pipeline_trace vscale_trace(clk,PC_IF,wr_reg_WB,reg_to_wr_WB,wb_data_WB,stall_WB);
+/*   bind   vscale_pipeline vscale_pipeline_trace #(.x_cord_width_p(x_cord_width_p)
+                          ,.y_cord_width_p(y_cord_width_p)
+                          )
+     vscale_trace(clk,PC_IF,wr_reg_WB,reg_to_wr_WB,wb_data_WB,stall_WB,imem_wait, dmem_wait, dmem_en,exception_code_WB, imem_addr, imem_rdata, freeze, my_x_i, my_y_i);
+ */ 
+  
    bind bsg_manycore_proc bsg_manycore_proc_trace #(.mem_width_lp(mem_width_lp)
                                                     ,.data_width_p(data_width_p)
                                                     ,.addr_width_p(addr_width_p)
@@ -286,11 +316,15 @@ import  bsg_vscale_pkg::*  // vscale constants
 
   bsg_manycore_spmd_loader
     #( .mem_size_p    (mem_size_lp)
-      ,.num_rows_p    (num_tiles_y_lp)
-      ,.num_cols_p    (num_tiles_x_lp)
-      ,.data_width_p  (data_width_lp)
-      ,.addr_width_p  (addr_width_lp)
-      ,.tile_id_ptr_p (tile_id_ptr_lp)
+       ,.num_rows_p    (num_tiles_y_lp)
+       ,.num_cols_p    (num_tiles_x_lp)
+       // go viral booting
+       //,.load_rows_p(1)
+       //,.load_cols_p(1)
+
+       ,.data_width_p  (data_width_lp)
+       ,.addr_width_p  (addr_width_lp)
+       ,.tile_id_ptr_p (tile_id_ptr_lp)
      ) spmd_loader
      ( .clk_i   (clk)
       ,.reset_i (reset)
