@@ -16,12 +16,14 @@ module bsg_manycore_pkt_encode #(
     ,output v_o
     ,output [packet_width_lp-1:0] data_o
     );
+   
+   localparam addr_field_len_lp = addr_width_p-y_cord_width_p-x_cord_width_p-1;
 
    typedef struct packed {
       logic       remote;
       logic [y_cord_width_p-1:0] y_cord;
       logic [x_cord_width_p-1:0] x_cord;
-      logic [addr_width_p-y_cord_width_p-x_cord_width_p-2:0] addr;
+      logic [addr_field_len_lp-1:0] addr;
    } addr_decode_s;
 
    typedef struct packed {
@@ -35,11 +37,16 @@ module bsg_manycore_pkt_encode #(
    bsg_manycore_packet_s pkt;
    addr_decode_s addr_decode;
 
+
+
    assign addr_decode = addr_i;
    assign data_o = pkt;
 
-   assign pkt.op     = 6 ' (addr_decode.remote);
-   assign pkt.addr   = addr_width_p ' (addr_decode.addr);
+   assign pkt.op     = addr_decode.addr[addr_field_len_lp-1] ? 6'd2 : 6'd1;
+
+   // remote top bit of address
+   assign pkt.addr   = addr_width_p ' (addr_decode.addr[addr_field_len_lp-2:0]);
+
    assign pkt.data   = data_i;
    assign pkt.x_cord = addr_decode.x_cord;
    assign pkt.y_cord = addr_decode.y_cord;
@@ -66,7 +73,7 @@ module bsg_manycore_pkt_encode #(
           begin
              $error ("%m store to remote unaligned address %x", addr_i);
           end
-        if (addr_decode.remote & we_i & v_i & (|mask_i))
+        if (addr_decode.remote & we_i & v_i & (~&mask_i))
           begin
              $error ("%m store to remote addr %x unsupported mask %x", addr_i, mask_i);
           end
