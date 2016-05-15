@@ -161,12 +161,5 @@ import bsg_vscale_pkg::*
     assign {ver_ready_o [S][c], ver_ready_o [N][c]} = {ready_out [num_tiles_y_p-1][c][S], ready_out [0][c][N]};
   end
 
-
-   always @(negedge clk_i)
-     begin
-        if (ver_v_o[S])
-          $display("valid I/O coming out of S");
-     end
-
    
 endmodule
