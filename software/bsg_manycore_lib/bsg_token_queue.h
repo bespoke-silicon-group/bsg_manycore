@@ -26,16 +26,41 @@ typedef struct bsg_token_pair
   int receive;
 } bsg_token_pair_t;
 
+typedef struct bsg_token_connection
+{
+  bsg_token_pair_t *local_ptr;
+  volatile int *remote_ptr;
+} bsg_token_connection_t;
+
 #define bsg_declare_token_queue(x) bsg_token_pair_t x [bsg_tiles_X][bsg_tiles_Y] = {0,0}
 
+  inline bsg_token_connection_t bsg_tq_send_connection (bsg_token_pair_t token_array[][bsg_tiles_Y], int x, int y)
+  {
+    bsg_token_connection_t conn;
+    
+    conn.local_ptr  = &token_array[x][y];
+    conn.remote_ptr = bsg_remote_ptr(x,y,&(token_array[bsg_x][bsg_y].send)); 
+
+    return conn;
+  }
+
+inline bsg_token_connection_t bsg_tq_receive_connection (bsg_token_pair_t token_array[][bsg_tiles_Y], int x, int y)
+{
+  bsg_token_connection_t conn;
+  
+  conn.local_ptr  = &token_array[x][y];
+  conn.remote_ptr = bsg_remote_ptr(x,y,&(token_array[bsg_x][bsg_y].receive)); 
+
+  return conn;
+}
 
 // wait for at least depth address sets to be available to sender
-inline int bsg_tq_sender_confirm(bsg_token_pair_t token_array[][bsg_tiles_Y], int x, int y, int max_els, int depth)
+inline int bsg_tq_sender_confirm(bsg_token_connection_t conn, int max_els, int depth)
 {
-  int i = token_array[x][y].send;
+  int i = (conn.local_ptr)->send;
 
   // wait while number of available elements
-  bsg_wait_while((depth + i - bsg_volatile_access(token_array[x][y].receive)) > max_els);
+  bsg_wait_while((depth + i - bsg_volatile_access((conn.local_ptr)->receive)) > max_els);
 
   return i;
 }
@@ -43,46 +68,47 @@ inline int bsg_tq_sender_confirm(bsg_token_pair_t token_array[][bsg_tiles_Y], in
 // actually do the transfer; assumes that you have confirmed first 
 //
 
-inline int bsg_tq_sender_xfer(bsg_token_pair_t token_array[][bsg_tiles_Y],int x, int y, int max_els, int depth)
+inline int bsg_tq_sender_xfer(bsg_token_connection_t conn, int max_els, int depth)
 {
-  int   i = token_array[x][y].send + depth;
+  int   i = (conn.local_ptr)->send + depth;
 
   bsg_commit_stores();
   
   // local version
-  token_array[x][y].send = i;
+  (conn.local_ptr)->send = i;
 
   // remote version
-  bsg_remote_store(x,y,&(token_array[bsg_x][bsg_y].send),i);
+
+  *(conn.remote_ptr) = i;
   
   return i;
 }
 
 // wait for at least depth address sets to be available to receiver
-inline int bsg_tq_receiver_confirm(bsg_token_pair_t token_array[][bsg_tiles_Y], int x, int y, int depth)
+inline int bsg_tq_receiver_confirm(bsg_token_connection_t conn, int depth)
 {
-  int i = token_array[x][y].receive;
+  int i = (conn.local_ptr)->receive;
 
   // wait until that number of elements is available
-  bsg_wait_while((bsg_volatile_access(token_array[x][y].send)-i) < depth);
+  bsg_wait_while((bsg_volatile_access((conn.local_ptr)->send)-i) < depth);
 
   return i;
 }
 
 // return the addresses; assumes you have confirmed first
 
-inline void bsg_tq_receiver_release(bsg_token_pair_t token_array[][bsg_tiles_Y], int x, int y, int depth)
+inline void bsg_tq_receiver_release(bsg_token_connection_t conn, int depth)
 {
-  int i = token_array[x][y].receive+depth;
+  int i = (conn.local_ptr)->receive+depth;
 
   // since the receiver has the memory ranges local, we know that any stores to that range of
   // been committed, so bsg_commit_stores() should not be necessary.
 
   // local version
-  token_array[x][y].receive = i;
+  (conn.local_ptr)->receive=i;
 
   // remote version
-  bsg_remote_store(x,y,&(token_array[bsg_x][bsg_y].receive),i);
+  *(conn.remote_ptr) = i;
 }
 
 #endif
