@@ -1,3 +1,6 @@
+`include "bsg_manycore_packet.vh"
+
+
 `define SPMD       ????             // test program to be loaded
 `define ROM(spmd)  bsg_rom_``spmd`` // ROM contaning the spmd
 `define MEM_SIZE   32768
@@ -61,14 +64,7 @@ module bsg_manycore_tile_trace #(packet_width_lp="inv"
     , input freeze
     );
 
-
-   typedef struct packed {
-      logic [5:0] op;
-      logic [addr_width_p-1:0] addr;
-      logic [data_width_p-1:0] data;
-      logic [y_cord_width_p-1:0] y_cord;
-      logic [x_cord_width_p-1:0] x_cord;
-   } bsg_manycore_packet_s;
+   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
    bsg_manycore_packet_s [dirs_lp-1:0] pkt;
    assign pkt = data_o;
@@ -83,13 +79,13 @@ module bsg_manycore_tile_trace #(packet_width_lp="inv"
              $fwrite(1,"%x ", bmm.trace_count);
              $fwrite(1,"YX=%x,%x r ", my_y_i,my_x_i);
              if (v_o[0] & ready_i[0])
-               $fwrite(1,"W<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}}",pkt[0].op,pkt[0].addr,pkt[0].data,pkt[0].y_cord,pkt[0].x_cord);
+               $fwrite(1,"W<-{%1.1x,%8.8x,%8.8x,YX={%x,%x}}",pkt[0].op,pkt[0].addr,pkt[0].data,pkt[0].y_cord,pkt[0].x_cord);
              if (v_o[1] & ready_i[1])
-               $fwrite(1,"E<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}}",pkt[1].op,pkt[1].addr,pkt[1].data,pkt[1].y_cord,pkt[1].x_cord);
+               $fwrite(1,"E<-{%1.1x,%8.8x,%8.8x,YX={%x,%x}}",pkt[1].op,pkt[1].addr,pkt[1].data,pkt[1].y_cord,pkt[1].x_cord);
              if (v_o[2] & ready_i[2])
-               $fwrite(1,"N<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}}",pkt[2].op,pkt[2].addr,pkt[2].data,pkt[2].y_cord,pkt[2].x_cord);
+               $fwrite(1,"N<-{%1.1x,%8.8x,%8.8x,YX={%x,%x}}",pkt[2].op,pkt[2].addr,pkt[2].data,pkt[2].y_cord,pkt[2].x_cord);
              if (v_o[3] & ready_i[3])
-               $fwrite(1,"S<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}}",pkt[3].op,pkt[3].addr,pkt[3].data,pkt[3].y_cord,pkt[3].x_cord);
+               $fwrite(1,"S<-{%1.1x,%8.8x,%8.8x,YX={%x,%x}}",pkt[3].op,pkt[3].addr,pkt[3].data,pkt[3].y_cord,pkt[3].x_cord);
              $fwrite(1,"\n");
 
           end
@@ -106,6 +102,7 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
    , input [2:0] xbar_port_v_in
    , input [2:0][mem_width_lp-1:0] xbar_port_addr_in
    , input [2:0][data_width_p-1:0] xbar_port_data_in
+   , input [2:0][(data_width_p>>3)-1:0] xbar_port_mask_in
    , input [2:0] xbar_port_we_in
    , input [2:0] xbar_port_yumi_out
    , input [x_cord_width_p-1:0] my_x_i
@@ -117,13 +114,8 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
    , input freeze_r
    );
 
-   typedef struct packed {
-      logic [5:0] op;
-      logic [addr_width_p-1:0] addr;
-      logic [data_width_p-1:0] data;
-      logic [y_cord_width_p-1:0] y_cord;
-      logic [x_cord_width_p-1:0] x_cord;
-   } bsg_manycore_packet_s;
+
+   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
    bsg_manycore_packet_s [1:0] packets;
 
@@ -147,10 +139,10 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
              $fwrite(1,"YX=%x,%x ", my_y_i,my_x_i);
 
              if (logwrite[0])
-               $fwrite(1,"D%1.1x[%x]=%x, ", 1,{ xbar_port_addr_in[1],2'b00},xbar_port_data_in[1]);
+               $fwrite(1,"D%1.1x[%x,%b]=%x, ", 1,{ xbar_port_addr_in[1],2'b00},xbar_port_mask_in[1],xbar_port_data_in[1]);
 
              if (logwrite[1])
-               $fwrite(1,"D%1.1x[%x]=%x, ", 2,{ xbar_port_addr_in[2],2'b00},xbar_port_data_in[2]);
+               $fwrite(1,"D%1.1x[%x,%b]=%x, ", 2,{ xbar_port_addr_in[2],2'b00},xbar_port_mask_in[2],xbar_port_data_in[2]);
 
              if (~|logwrite)
                $fwrite(1,"                   ");
@@ -158,12 +150,12 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
              packets = {data_in, data_out};
 
              if (v_in)
-               $fwrite(1,"<-{%2.2x,%8.8x,%8.8x,YX={%x,%x}} "
-                       ,packets[1].op,packets[1].addr,packets[1].data,packets[1].y_cord,packets[1].x_cord);
+               $fwrite(1,"<-{%2.2b,%4.4b %8.8x,%8.8x,YX={%x,%x}} "
+                       ,packets[1].op,packets[1].op_ex,packets[1].addr,packets[1].data,packets[1].y_cord,packets[1].x_cord);
 
              if (v_out)
-               $fwrite(1,"->{%2.2x,%8.8x,%8.8x,YX={%x,%x}} "
-                       ,packets[0].op,packets[0].addr,packets[0].data,packets[0].y_cord,packets[0].x_cord);
+               $fwrite(1,"->{%2.2b,%4.4b %8.8x,%8.8x,YX={%x,%x}} "
+                       ,packets[0].op,packets[0].op_ex,packets[0].addr,packets[0].data,packets[0].y_cord,packets[0].x_cord);
 
              // detect bank conflicts
 
@@ -196,8 +188,8 @@ module test_bsg_manycore;
                                 + data_width_lp + addr_width_lp;
    localparam cycle_time_lp   = 20;
    localparam trace_vscale_pipeline_lp=0;
-   localparam trace_manycore_tile_lp=0;
-   localparam trace_manycore_proc_lp=0;
+   localparam trace_manycore_tile_lp=1;
+   localparam trace_manycore_proc_lp=1;
    
    if (trace_manycore_tile_lp)
      bind bsg_manycore_tile  bsg_manycore_tile_trace #(.packet_width_lp(packet_width_lp)
@@ -246,6 +238,7 @@ module test_bsg_manycore;
 	,xbar_port_v_in
 	,xbar_port_addr_in
 	,xbar_port_data_in
+	,xbar_port_mask_in
 	,xbar_port_we_in
 	,xbar_port_yumi_out
 	,my_x_i
