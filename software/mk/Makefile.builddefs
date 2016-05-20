@@ -13,6 +13,8 @@ RISCV_ELF2HEX ?= $(RISCV_BIN_DIR)/elf2hex
 BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
 
+VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+
 # flags
 RISCV_GCC_EXTRA_OPTS ?= -O2
 RISCV_GCC_OPTS  = -march=RV32IM -m32 -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
