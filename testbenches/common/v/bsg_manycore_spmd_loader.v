@@ -1,3 +1,5 @@
+`include "bsg_manycore_packet.vh"
+
 module bsg_manycore_spmd_loader
 
 import  bsg_vscale_pkg::*  // vscale constants
@@ -14,8 +16,7 @@ import  bsg_vscale_pkg::*  // vscale constants
 
    ,parameter y_cord_width_lp  = `BSG_SAFE_CLOG2(num_rows_p + 1)
    ,parameter x_cord_width_lp  = `BSG_SAFE_CLOG2(num_cols_p)
-   ,parameter packet_width_lp = 6 + addr_width_p + data_width_p
-                                  + x_cord_width_lp + y_cord_width_lp
+   ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
   )
   ( input                        clk_i
    ,input                        reset_i
@@ -46,11 +47,26 @@ import  bsg_vscale_pkg::*  // vscale constants
   assign y_cord     = y_cord_width_lp'(tile_no / num_cols_p);
   assign x_cord     = x_cord_width_lp'(tile_no % num_cols_p);
 
-  assign data_o = {(loaded ? 6'(2) : 6'(1)), load_addr, load_data, y_cord, x_cord};
-  assign v_o  = ~reset_i & (~loaded | (loaded && (tile_no < load_rows_p*load_cols_p)));
-  assign addr_o   = addr_width_p'(load_addr / (addr_width_p >> 3));
+   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
 
-  assign tile_no_n = (tile_no + (load_addr == (mem_size_p-4))) % (load_rows_p * load_cols_p);
+   bsg_manycore_packet_s pkt;
+
+   always_comb
+     begin
+        pkt.data   = load_data;
+        pkt.addr   = load_addr;
+        pkt.op     = loaded ? 2'b10: 2'b01;
+        pkt.op_ex  = loaded ? 4'b0000: 4'b1111;
+        pkt.x_cord = x_cord;
+        pkt.y_cord = y_cord;
+     end
+
+   assign data_o = pkt;
+
+   assign v_o  = ~reset_i & (~loaded | (loaded && (tile_no < load_rows_p*load_cols_p)));
+   assign addr_o   = addr_width_p'(load_addr / (addr_width_p >> 3));
+
+   assign tile_no_n = (tile_no + (load_addr == (mem_size_p-4))) % (load_rows_p * load_cols_p);
    assign loaded_n = (tile_no == load_rows_p*load_cols_p -1)
      && (load_addr == (mem_size_p-4));
 
