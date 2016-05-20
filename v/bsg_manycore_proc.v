@@ -1,8 +1,10 @@
+`include "bsg_manycore_packet.vh"
+
 module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , y_cord_width_p = "inv"
                            , data_width_p   = 32
                            , addr_width_p   = 32
-                           , packet_width_lp = 6 + x_cord_width_p + y_cord_width_p + data_width_p + addr_width_p
+                           , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
                            , debug_p        = 0
                            , bank_size_p    = 2048 // in words
@@ -57,6 +59,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    // decode incoming packet
    logic                       pkt_freeze, pkt_unfreeze, pkt_remote_store, pkt_unknown;
    logic [data_width_p-1:0]    remote_store_data;
+   logic [(data_width_p>>3)-1:0] remote_store_mask;
    logic [addr_width_p-1:0]    remote_store_addr;
    logic                       remote_store_v, remote_store_yumi;
 
@@ -84,6 +87,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       ,.pkt_remote_store_o (remote_store_v)
       ,.data_o             (remote_store_data)
       ,.addr_o             (remote_store_addr)
+      ,.mask_o             (remote_store_mask)
       );
 
    // deque if we successfully do a remote store, or if it's
@@ -158,13 +162,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    // synopsys translate off
 
-   typedef struct packed {
-      logic [5:0] op;
-      logic [addr_width_p-1:0] addr;
-      logic [data_width_p-1:0] data;
-      logic [y_cord_width_p-1:0] y_cord;
-      logic [x_cord_width_p-1:0] x_cord;
-   } bsg_manycore_packet_s;
+   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
    bsg_manycore_packet_s data_o_debug;
    assign data_o_debug = data_o;
@@ -205,6 +203,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                                                        , core_mem_addr[1] [2+:mem_width_lp]
                                                        , core_mem_addr[0] [2+:mem_width_lp]
                                                        };
+   wire [2:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { remote_store_mask, core_mem_mask };
 
    always @(negedge clk_i)
      if (0)
@@ -241,10 +240,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       ,.w_i     (xbar_port_we_in)
       ,.addr_i  (xbar_port_addr_in)
       ,.data_i  (xbar_port_data_in)
-      ,.mask_i  ({
-		  { (data_width_p>>3) {1'b1} } 
-		  , core_mem_mask
-		  })
+      ,.mask_i  (xbar_port_mask_in)
+
       // whether the crossbar accepts the input
      ,.yumi_o  (xbar_port_yumi_out)
      ,.v_o     ({unused_valid,      core_mem_rv      })

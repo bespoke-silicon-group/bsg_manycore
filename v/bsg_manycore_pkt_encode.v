@@ -1,11 +1,15 @@
-module bsg_manycore_pkt_encode #(
-                                 x_cord_width_p   = "inv"
-                                 , y_cord_width_p = "inv"
-                                 , data_width_p   = "inv"
-                                 , addr_width_p   = "inv"
-                                 , packet_width_lp = 6+x_cord_width_p+y_cord_width_p+data_width_p+addr_width_p
-                                 , debug_p=0
-                                 )
+`include "bsg_manycore_addr.vh"
+`include "bsg_manycore_packet.vh"
+
+module bsg_manycore_pkt_encode
+  #(
+    x_cord_width_p   = "inv"
+    , y_cord_width_p = "inv"
+    , data_width_p   = "inv"
+    , addr_width_p   = "inv"
+    , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , debug_p=0
+    )
    (
     input clk_i // for debug only
     ,input v_i
@@ -16,44 +20,28 @@ module bsg_manycore_pkt_encode #(
     ,output v_o
     ,output [packet_width_lp-1:0] data_o
     );
-   
-   localparam addr_field_len_lp = addr_width_p-y_cord_width_p-x_cord_width_p-1;
 
-   typedef struct packed {
-      logic       remote;
-      logic [y_cord_width_p-1:0] y_cord;
-      logic [x_cord_width_p-1:0] x_cord;
-      logic [addr_field_len_lp-1:0] addr;
-   } addr_decode_s;
+   `declare_bsg_manycore_addr_s(addr_width_p,x_cord_width_p,y_cord_width_p);
 
-   typedef struct packed {
-      logic [5:0] op;
-      logic [addr_width_p-1:0] addr;
-      logic [data_width_p-1:0] data;
-      logic [y_cord_width_p-1:0] y_cord;
-      logic [x_cord_width_p-1:0] x_cord;
-   } bsg_manycore_packet_s;
+   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
    bsg_manycore_packet_s pkt;
    addr_decode_s addr_decode;
 
-
-
    assign addr_decode = addr_i;
    assign data_o = pkt;
 
-   assign pkt.op     = addr_decode.addr[addr_field_len_lp-1] ? 6'd2 : 6'd1;
+   assign pkt.op     = addr_decode.addr[$size(addr_decode.addr)-1] ? 2'b10 : 2'b01;
+   assign pkt.op_ex  = mask_i;
 
    // remote top bit of address
-   assign pkt.addr   = addr_width_p ' (addr_decode.addr[addr_field_len_lp-2:0]);
+   assign pkt.addr   = addr_width_p ' (addr_decode.addr[$size(addr_decode.addr)-2:0]);
 
    assign pkt.data   = data_i;
    assign pkt.x_cord = addr_decode.x_cord;
    assign pkt.y_cord = addr_decode.y_cord;
 
    assign v_o = addr_decode.remote & we_i & v_i;
-
-
 
    // synopsys translate off
    if (debug_p)
@@ -69,14 +57,10 @@ module bsg_manycore_pkt_encode #(
              $error("%m load to remote address %x", addr_i);
              $finish();
           end
-        if (addr_decode.remote & we_i & v_i & (|addr_i[1:0]))
+/*        if (addr_decode.remote & we_i & v_i & (|addr_i[1:0]))
           begin
              $error ("%m store to remote unaligned address %x", addr_i);
-          end
-        if (addr_decode.remote & we_i & v_i & (~&mask_i))
-          begin
-             $error ("%m store to remote addr %x unsupported mask %x", addr_i, mask_i);
-          end
+          end*/
      end
    // synopsys translate on
 
