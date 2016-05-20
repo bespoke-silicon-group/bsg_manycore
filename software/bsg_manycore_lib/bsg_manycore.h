@@ -106,6 +106,6 @@ typedef volatile void *bsg_remote_void_ptr;
 //
 #define bsg_compiler_memory_barrier() asm volatile("" ::: "memory")
 
-#define bsg_commit_stores() do { /* fixme: add commit stores instr */  bsg_compiler_memory_barrier() } while (0)
+#define bsg_commit_stores() do { /* fixme: add commit stores instr */  } while (0)
 
 #endif
