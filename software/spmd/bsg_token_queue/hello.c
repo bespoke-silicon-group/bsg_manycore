@@ -30,8 +30,6 @@ int dest_process(int sum, int *ptr, volatile int *io_ptr)
   return sum;
 }
 
-
-
 int main()
 {
   bsg_set_tile_x_y();
@@ -48,7 +46,9 @@ int main()
     bsg_print_time();
     for (int i = 0; i < kBlocks; i++)
     {
-      // ensure that there are 5 elements free
+      // ensure that at least a frame is available to write
+      // we could have also counted in terms of kTransmitSize word buffers
+      // with input parameters of kBufferWindows,1
       bsg_tq_sender_confirm(tq,1,0,kBufferSize,kTransmitSize);
 
       source_process(&ptr[bufIndex]);
@@ -70,7 +70,10 @@ int main()
 
       int * ptr = buffer;
 
-      // ensure that there are 3 elements available
+      // ensure that at least a frame is available to write
+      // we could have also counted in terms of kTransmitSize word buffers
+      // with input parameters of kBufferWindows,1
+
       bsg_tq_receiver_confirm(tq,0,0,kTransmitSize);
 
       sum = dest_process(sum,&ptr[bufIndex],io_ptr);
