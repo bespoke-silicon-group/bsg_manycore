@@ -44,12 +44,14 @@ int main()
   {
     int seq = 0;
     bsg_print_time();
+    bsg_token_connection_t conn = bsg_tq_send_connection(tq,1,0);
+
     for (int i = 0; i < kBlocks; i++)
     {
       // ensure that at least a frame is available to write
       // we could have also counted in terms of kTransmitSize word buffers
       // with input parameters of kBufferWindows,1
-      bsg_tq_sender_confirm(tq,1,0,kBufferSize,kTransmitSize);
+      bsg_tq_sender_confirm(conn,kBufferSize,kTransmitSize);
 
       source_process(&ptr[bufIndex]);
 
@@ -57,13 +59,14 @@ int main()
       if (bufIndex == kBufferSize)
         bufIndex = 0;
 
-      bsg_tq_sender_xfer(tq,1,0,kBufferSize,kTransmitSize);
+      bsg_tq_sender_xfer(conn,kBufferSize,kTransmitSize);
     }
     bsg_wait_while(1);
   }
   else if (id == 1)
   {
     int sum=0;
+    bsg_token_connection_t conn = bsg_tq_receive_connection(tq,0,0);
     bsg_remote_int_ptr io_ptr = bsg_remote_ptr_io(0,0xCAB0);
     for (int i = 0; i < kBlocks; i++)
     {
@@ -74,7 +77,7 @@ int main()
       // we could have also counted in terms of kTransmitSize word buffers
       // with input parameters of kBufferWindows,1
 
-      bsg_tq_receiver_confirm(tq,0,0,kTransmitSize);
+      bsg_tq_receiver_confirm(conn,kTransmitSize);
 
       sum = dest_process(sum,&ptr[bufIndex],io_ptr);
 
@@ -86,7 +89,7 @@ int main()
         ptr = buffer ;
       }
 
-      bsg_tq_receiver_release(tq,0,0,kTransmitSize);
+      bsg_tq_receiver_release(conn,kTransmitSize);
     }
     bsg_finish();
   }
