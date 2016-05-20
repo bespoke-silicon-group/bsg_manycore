@@ -1,42 +1,6 @@
 
 #include "bsg_manycore.h"
-
-
-int bsg_x = -1;
-int bsg_y = -1;
-
-int bsg_set_tile_x_y()
-{
-  // everybody stores to tile 0,0
-  bsg_remote_store(0,0,&bsg_x,0);
-  bsg_remote_store(0,0,&bsg_y,0);
-
-  // make sure memory ops above are not moved down
-  bsg_compiler_memory_barrier();
-
-  // wait for my tile number to change
-  bsg_wait_while((bsg_volatile_access(bsg_x) == -1) || (bsg_volatile_access(bsg_y) == -1));
-
-  // make sure memory ops below are not moved above
-  bsg_compiler_memory_barrier();
-
-  // head of each column is responsible for
-  // propagating to next column
-  if ((bsg_x == 0)
-      && ((bsg_y + 1) != bsg_tiles_Y)
-    )
-  {
-    bsg_remote_store(0,bsg_y+1,&bsg_x,bsg_x);
-    bsg_remote_store(0,bsg_y+1,&bsg_y,bsg_y+1);
-  }
-
-  // propagate across each row
-  if ((bsg_x+1) != bsg_tiles_X)
-  {
-    bsg_remote_store(bsg_x+1,bsg_y,&bsg_x,bsg_x+1);
-    bsg_remote_store(bsg_x+1,bsg_y,&bsg_y,bsg_y);
-  }
-}
+#include "bsg_set_tile_x_y.h"
 
 volatile int foo[10];
 volatile char *cp =  (char *)  &foo[0];
