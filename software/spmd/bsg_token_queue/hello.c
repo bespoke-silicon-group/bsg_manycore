@@ -51,15 +51,15 @@ int main()
       // ensure that at least a frame is available to write
       // we could have also counted in terms of kTransmitSize word buffers
       // with input parameters of kBufferWindows,1
-      bsg_tq_sender_confirm(conn,kBufferSize,kTransmitSize);
+      bsg_tq_sender_confirm(conn,kBufferWindows,1);
 
       source_process(&ptr[bufIndex]);
 
-      bufIndex += kTransmitSize;
-      if (bufIndex == kBufferSize)
+      bufIndex++;
+      if (bufIndex == kBufferWindows)
         bufIndex = 0;
 
-      bsg_tq_sender_xfer(conn,kBufferSize,kTransmitSize);
+      bsg_tq_sender_xfer(conn,kBufferWindows,1);
     }
     bsg_wait_while(1);
   }
@@ -77,19 +77,19 @@ int main()
       // we could have also counted in terms of kTransmitSize word buffers
       // with input parameters of kBufferWindows,1
 
-      bsg_tq_receiver_confirm(conn,kTransmitSize);
+      bsg_tq_receiver_confirm(conn,1);
 
       sum = dest_process(sum,&ptr[bufIndex],io_ptr);
 
-      bufIndex += kTransmitSize;
+      bufIndex += 1;
 
-      if (bufIndex == kBufferSize)
+      if (bufIndex == kBufferWindows)
       {
         bufIndex = 0;
         ptr = buffer ;
       }
 
-      bsg_tq_receiver_release(conn,kTransmitSize);
+      bsg_tq_receiver_release(conn,1);
     }
     bsg_finish();
   }
