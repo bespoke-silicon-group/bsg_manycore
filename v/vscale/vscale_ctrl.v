@@ -158,16 +158,20 @@ module vscale_ctrl(
       end
    end
 
+   wire stall_DX_premem;
+
    // we kill DX if we would stall; or if we would have gone forward but are not granted access
    // to the memory crossbar
 
-   wire kill_DX_premem =  stall_DX || ex_DX || ex_WB ;
+   wire kill_DX_premem =  stall_DX_premem || ex_DX || ex_WB ;
 
    assign kill_DX = kill_DX_premem || (dmem_wait && dmem_en);
 
+   assign stall_DX = stall_DX_premem  || (dmem_wait && dmem_en);
+   
 // add dmem_wait to stall conditions
 
-   assign stall_DX = (stall_WB || load_use || raw_on_busy_md
+   assign stall_DX_premem = (stall_WB || load_use || raw_on_busy_md
                      || (fence_i && store_in_WB) || (uses_md_unkilled && !md_req_ready)) && !exception;
    assign new_ex_DX = ebreak || ecall || illegal_instruction || illegal_csr_access;
    assign ex_DX = had_ex_DX || ((new_ex_DX) && !stall_DX); // TODO: add causes
