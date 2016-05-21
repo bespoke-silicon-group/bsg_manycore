@@ -24,6 +24,8 @@ module vscale_ctrl(
                    output reg [`ALU_OP_WIDTH-1:0]     alu_op,
                    output wire                        dmem_en,
                    output wire                        dmem_wen,
+                   output wire                        dmem_reserve_en,
+                   input                              dmem_reservation_i,
                    output wire [2:0]                  dmem_size,
                    output wire [`MEM_TYPE_WIDTH-1:0]  dmem_type,
                    output                             md_req_valid,
@@ -81,6 +83,8 @@ module vscale_ctrl(
    wire                                               branch_taken;
    reg                                                dmem_en_unkilled;
    reg                                                dmem_wen_unkilled;
+   reg                                                dmem_reserve_en_unkilled;
+   reg                                                dmem_reserve_acq_en_unkilled;
    reg                                                jal_unkilled;
    wire                                               jal;
    reg                                                jalr_unkilled;
@@ -168,10 +172,12 @@ module vscale_ctrl(
    assign kill_DX = kill_DX_premem || (dmem_wait && dmem_en);
 
    assign stall_DX = stall_DX_premem  || (dmem_wait && dmem_en);
-   
-// add dmem_wait to stall conditions
 
-   assign stall_DX_premem = (stall_WB || load_use || raw_on_busy_md
+   // we stall if it is a dmem access that is to a reservation that has not been cleared
+
+   wire dmem_reserve_acq_stall = (dmem_reservation_i & dmem_reserve_acq_en_unkilled);
+
+   assign stall_DX_premem = (stall_WB || load_use || raw_on_busy_md || dmem_reserve_acq_stall
                      || (fence_i && store_in_WB) || (uses_md_unkilled && !md_req_ready)) && !exception;
    assign new_ex_DX = ebreak || ecall || illegal_instruction || illegal_csr_access;
    assign ex_DX = had_ex_DX || ((new_ex_DX) && !stall_DX); // TODO: add causes
@@ -229,7 +235,22 @@ module vscale_ctrl(
       wr_reg_unkilled_DX = 1'b0;
       wb_src_sel_DX = `WB_SRC_ALU;
       uses_md_unkilled = 1'b0;
+      dmem_reserve_en_unkilled = 1'b0;
+      dmem_reserve_acq_en_unkilled = 1'b0;
+
       case (opcode)
+        // MBT: add support for LR.W
+        `RV32_AMO  : begin
+           dmem_en_unkilled = 1'b1;
+           wr_reg_unkilled_DX = 1'b1;
+           wb_src_sel_DX = `WB_SRC_MEM;
+           // acq versus not acq
+           dmem_reserve_en_unkilled     = ~inst_DX[26];
+           dmem_reserve_acq_en_unkilled =  inst_DX[26];
+           uses_rs2 = 1'b1;
+           src_b_sel = `SRC_B_RS2;
+           alu_op = `ALU_OP_ADD;
+           end
         `RV32_LOAD : begin
            dmem_en_unkilled = 1'b1;
            wr_reg_unkilled_DX = 1'b1;
@@ -415,6 +436,7 @@ module vscale_ctrl(
    assign jalr = jalr_unkilled && !kill_DX;
    assign eret = eret_unkilled && !kill_DX;
    // send out dmem signal only if there is no reason inst would be killed
+   assign dmem_reserve_en = dmem_reserve_en_unkilled && !kill_DX_premem;
    assign dmem_en = dmem_en_unkilled && !kill_DX_premem;
    assign dmem_wen = dmem_wen_unkilled && !kill_DX_premem;
    assign wr_reg_DX = wr_reg_unkilled_DX && !kill_DX;
