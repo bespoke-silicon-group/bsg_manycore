@@ -4,8 +4,8 @@
 `define SPMD       ????             // test program to be loaded
 `define ROM(spmd)  bsg_rom_``spmd`` // ROM contaning the spmd
 `define MEM_SIZE   32768
-`define BANK_SIZE  2048
-
+`define BANK_SIZE  1024   // in words
+`define BANK_NUM   8
 `ifndef bsg_tiles_X
 `error bsg_tiles_X must be defined; pass it in through the makefile
 `endif
@@ -179,6 +179,7 @@ module test_bsg_manycore;
    localparam tile_id_ptr_lp  = -1;
    localparam mem_size_lp     = `MEM_SIZE;  // actually the size of the file being loaded, in bytes
    localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
+   localparam num_banks_lp    = `BANK_NUM;
    localparam data_width_lp   = 32;
    localparam addr_width_lp   = 32;
    localparam num_tiles_x_lp  = `bsg_tiles_X;
@@ -295,6 +296,7 @@ module test_bsg_manycore;
   bsg_manycore #
     (
      .bank_size_p  (bank_size_lp)
+     ,.num_banks_p (num_banks_lp)
      ,.data_width_p (data_width_lp)
      ,.addr_width_p (addr_width_lp)
      ,.num_tiles_x_p(num_tiles_x_lp)

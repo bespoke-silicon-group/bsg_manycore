@@ -10,8 +10,8 @@ import bsg_vscale_pkg::*
    ,parameter x_cord_width_p       = 5
    ,parameter y_cord_width_p       = 5
 
-   ,parameter bank_size_p       = -1
-   ,parameter num_banks_p       = -1
+   ,parameter bank_size_p       = "inv"
+   ,parameter num_banks_p       = "inv"
    ,parameter data_width_p      = hdata_width_p
    ,parameter addr_width_p      = haddr_width_p
    ,parameter mem_addr_width_lp = $clog2(num_banks_p) + `BSG_SAFE_CLOG2(bank_size_p)

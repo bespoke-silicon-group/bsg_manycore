@@ -9,7 +9,13 @@ import bsg_vscale_pkg::*
     parameter dirs_p            = 4
    ,parameter fifo_els_p        = 2
    ,parameter bank_size_p       = "inv"
-   ,parameter num_banks_p       = 4
+
+   // increasing the number of banks decreases ram efficiency
+   // but reduces conflicts between remote stores and local data accesses
+   // If there are too many conflicts, than traffic starts backing up into
+   // the network (i.e. cgni full cycles).
+
+   ,parameter num_banks_p       = "inv"
    ,parameter data_width_p      = hdata_width_p
    ,parameter addr_width_p      = haddr_width_p
 

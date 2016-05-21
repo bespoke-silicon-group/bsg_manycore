@@ -7,8 +7,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
                            , debug_p        = 0
-                           , bank_size_p    = 2048 // in words
-                           , num_banks_p    = 4
+                           , bank_size_p    = "inv" // in words
+                           , num_banks_p    = "inv"
 
                            // this is the size of the receive FIFO
                            , proc_fifo_els_p = 4
@@ -263,9 +263,10 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
      begin: port
 //      assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in[i] };
 
-        assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in  [i][(mem_width_lp-1)-:1]   // top bit
+        assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in  [i][(mem_width_lp-1)-:1]   // top bit is inst/data
                                                  , xbar_port_addr_in[i][0]                 // and lowest bit determines bank
-                                                 , xbar_port_addr_in[i][1+:(mem_width_lp-2)]
+                                                 , xbar_port_addr_in[i][1]                 // and lowest bit determines bank						 
+                                                 , xbar_port_addr_in[i][2+:(mem_width_lp-2)]
                                                  };
 
      end
