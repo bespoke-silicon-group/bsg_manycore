@@ -11,6 +11,7 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
     ,input reset_i
     ,input [num_channels_p-1:0][packet_width_lp-1:0] data_i
     ,input [num_channels_p-1:0] v_i
+    ,output finish_o
     );
 
   typedef struct packed {
@@ -23,13 +24,24 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
 
    logic [39:0]                 trace_count;
 
+   logic                        finish_r, finish_r_r;
+
+   assign finish_o = finish_r;
+
+   always_ff @(posedge clk_i)
+     finish_r_r <= finish_r;
+
    bsg_cycle_counter #(.width_p(40)) bcc (.clk(clk_i),.reset_i(reset_i),.ctr_r_o(trace_count));
+
+   always_ff @(posedge clk_i)
+     if (finish_r_r)
+       $finish();
 
    always_ff @(negedge clk_i)
      if (trace_count > max_cycles_p)
        begin
           $display("## TIMEOUT reached max_cycles_p = %x",max_cycles_p);
-          $finish();
+          finish_r <= 1'b1;
        end
 
    bsg_vscale_remote_packet_s [num_channels_p-1:0] pkt_cast;
@@ -47,22 +59,22 @@ module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
                   unique case (pkt_cast[i].addr[19:0])
                     20'hDEAD_0:
                       begin
-                         $display("## RECEIVED FINISH PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x"
+                         $display("## RECEIVED FINISH PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x (%d)"
                                   ,(pkt_cast[i].data >> 16)
                                   ,(pkt_cast[i].data & 16'hffff)
-                                  , i,trace_count
-				  );
-                         $finish();
+                                  , i,trace_count,trace_count
+                                  );
+                         finish_r <= 1'b1;
                       end
                     20'hDEAD_4:
                       begin
-                         $display("## RECEIVED TIME PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x"
+                         $display("## RECEIVED TIME PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x (%d)"
                                   ,(pkt_cast[i].data >> 16)
                                   ,(pkt_cast[i].data & 16'hffff)
-                                  , i,trace_count);
+                                  , i,trace_count,trace_count);
                       end
                     default:
-                      $display("## received I/O device %x, addr %x, data %x on cycle 0x%x",i,pkt_cast[i].addr, pkt_cast[i].data,trace_count);
+                      $display("## received I/O device %x, addr %x, data %x on cycle 0x%x (%d)",i,pkt_cast[i].addr, pkt_cast[i].data,trace_count,trace_count);
                   endcase
                end
           end
