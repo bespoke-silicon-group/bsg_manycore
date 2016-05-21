@@ -117,6 +117,34 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    logic [1:0]                         core_mem_rv;
    logic [1:0] [data_width_p-1:0]      core_mem_rdata;
 
+   logic core_mem_reservation_r;
+
+   logic [addr_width_p-1:0]      core_mem_reserve_addr_r;
+
+   // implement LR (load word reserved)
+   always_ff @(posedge clk_i)
+     begin
+        // if we commit a reserved memory access
+        // to the interface, then the reservation takes place
+        if (core_mem_v & core_mem_reserve_1 & core_mem_yumi[1])
+          begin
+             // copy address
+             core_mem_reservation_r  <= 1'b1;
+             core_mem_reserve_addr_r <= core_mem_addr[1];
+	     $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr[1]);
+          end
+        else
+          // otherwise, we clear existing reservations if the corresponding
+          // address is committed as a remote store
+          begin
+             if (remote_store_v && (core_mem_reserve_addr_r == remote_store_addr) && remote_store_yumi)
+	       begin
+		  core_mem_reservation_r  <= 1'b0;
+		  $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r);
+	       end
+          end
+     end
+
    bsg_vscale_core #(.x_cord_width_p (x_cord_width_p)
                      ,.y_cord_width_p(y_cord_width_p)
                      )
@@ -125,10 +153,12 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
        ,.reset_i (reset_i)
        ,.freeze_i (freeze_r)
 
-       ,.m_v_o       (core_mem_v)
-       ,.m_w_o       (core_mem_w)
-       ,.m_addr_o    (core_mem_addr)
-       ,.m_data_o    (core_mem_wdata)
+       ,.m_v_o        (core_mem_v)
+       ,.m_w_o        (core_mem_w)
+       ,.m_addr_o     (core_mem_addr)
+       ,.m_data_o     (core_mem_wdata)
+       ,.m_reserve_1_o  (core_mem_reserve_1)
+       ,.m_reservation_i(core_mem_reservation_r)
        ,.m_mask_o    (core_mem_mask)
 
        // for data port (1), either the network or the banked memory can
@@ -231,8 +261,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    for (i = 0; i < 3; i=i+1)
      begin: port
-//	assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in[i] };
-	
+//      assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in[i] };
+
         assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in  [i][(mem_width_lp-1)-:1]   // top bit
                                                  , xbar_port_addr_in[i][0]                 // and lowest bit determines bank
                                                  , xbar_port_addr_in[i][1+:(mem_width_lp-2)]
@@ -242,6 +272,14 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    assign { core_mem_yumi[1], remote_store_yumi, core_mem_yumi[0] } = xbar_port_yumi_out;
 
+   // potentially, we could get better bandwidth if we demultiplexed the remote store input port
+   // into four two-element fifos, one per bank. then, the arb could arbitrate for
+   // each bank using those fifos. this allows for reordering of remote_stores across
+   // banks, eliminating head-of-line blocking on a bank conflict. however, this would eliminate our
+   // guaranteed in-order delivery and violate sequential consistency; so it would require some
+   // extra hw to enforce that; and tagging of memory fences inside packets.
+   // we could most likely get rid of the cgni input fifo in this case.
+   
   bsg_mem_banked_crossbar #
     (.num_ports_p  (3)
      ,.num_banks_p  (num_banks_p)
