@@ -95,6 +95,10 @@ typedef volatile void *bsg_remote_void_ptr;
 // later, we can add some mechanisms to save power
 #define bsg_wait_while(cond) do {} while ((cond))
 
+// load reserved; and load reserved acquire
+inline int bsg_lr(int *p)    { int tmp; __asm__ __volatile__("lr.w    %0,%1\n" : "=r" (tmp) : "A" (*p)); return tmp; }
+inline int bsg_lr_aq(int *p) { int tmp; __asm__ __volatile__("lr.w.aq %0,%1\n" : "=r" (tmp) : "A" (*p)); return tmp; }
+
 #define bsg_volatile_access(var)        (*((bsg_remote_int_ptr) (&(var))))
 #define bsg_volatile_access_uint16(var) (*((bsg_remote_uint16_ptr) (&(var))))
 #define bsg_volatile_access_uint8(var)  (*((bsg_remote_uint8_ptr) (&(var))))

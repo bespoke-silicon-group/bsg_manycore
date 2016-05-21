@@ -49,7 +49,7 @@ inline bsg_token_connection_t bsg_tq_receive_connection (bsg_token_pair_t token_
   bsg_token_connection_t conn;
   
   conn.local_ptr  = &token_array[x][y];
-  conn.remote_ptr = bsg_remote_ptr(x,y,&(token_array[bsg_x][bsg_y].receive)); 
+  conn.remote_ptr = bsg_remote_ptr(x,y,&(token_array[bsg_x][bsg_y].receive));
 
   return conn;
 }
@@ -58,14 +58,16 @@ inline bsg_token_connection_t bsg_tq_receive_connection (bsg_token_pair_t token_
 inline int bsg_tq_sender_confirm(bsg_token_connection_t conn, int max_els, int depth)
 {
   int i = (conn.local_ptr)->send;
-
+  int tmp =  - max_els + depth + i;
   // wait while number of available elements
-  bsg_wait_while((depth + i - bsg_volatile_access((conn.local_ptr)->receive)) > max_els);
+  //  bsg_wait_while((depth + i - bsg_volatile_access((conn.local_ptr)->receive)) > max_els);
+
+  bsg_wait_while((bsg_lr(&((conn.local_ptr)->receive)) < tmp) && (bsg_lr_aq(&((conn.local_ptr)->receive)) < tmp));
 
   return i;
 }
 
-// actually do the transfer; assumes that you have confirmed first 
+// actually do the transfer; assumes that you have confirmed first
 //
 
 inline int bsg_tq_sender_xfer(bsg_token_connection_t conn, int max_els, int depth)
@@ -90,7 +92,10 @@ inline int bsg_tq_receiver_confirm(bsg_token_connection_t conn, int depth)
   int i = (conn.local_ptr)->receive;
 
   // wait until that number of elements is available
-  bsg_wait_while((bsg_volatile_access((conn.local_ptr)->send)-i) < depth);
+  //bsg_wait_while((bsg_volatile_access((conn.local_ptr)->send)-i) < depth);
+  int tmp = depth+i;
+
+  bsg_wait_while((bsg_lr(&((conn.local_ptr)->send)) < tmp) && (bsg_lr_aq(&((conn.local_ptr)->send)) < tmp));
 
   return i;
 }
