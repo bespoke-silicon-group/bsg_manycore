@@ -12,6 +12,8 @@ import bsg_vscale_pkg::*;
    // to banked crossbar
    ,output [1:0]                          m_v_o
    ,output [1:0]                          m_w_o
+   ,output                                m_reserve_1_o
+   ,input    m_reservation_i
    ,output [1:0] [haddr_width_p-1:0]      m_addr_o
    ,output [1:0] [hdata_width_p-1:0]      m_data_o
    ,output logic [1:0] [(hdata_width_p>>3)-1:0] m_mask_o
@@ -92,9 +94,11 @@ import bsg_vscale_pkg::*;
                       ,.imem_rdata    (m_data_i[0])  // i
                       ,.imem_badmem_e (1'b0)         // i
 
-                      ,.dmem_wait     (~m_yumi_i[1]) // i
-                      ,.dmem_en       (m_v_o[1])     // o
-                      ,.dmem_wen      (m_w_o[1])     // o
+                      ,.dmem_wait      (~m_yumi_i[1]) // i
+                      ,.dmem_en        (m_v_o[1])     // o
+                      ,.dmem_wen       (m_w_o[1])     // o
+		      ,.dmem_reserve_en(m_reserve_1_o) // o
+		      ,.dmem_reservation_i(m_reservation_i)
                       ,.dmem_size     (dmem_size)    // o
                       ,.dmem_addr     (m_addr_o[1])  // o
                       ,.dmem_wdata    (m_data_o[1])  // o
