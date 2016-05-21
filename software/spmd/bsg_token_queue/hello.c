@@ -7,8 +7,8 @@ bsg_declare_token_queue(tq);
 
 int sep[4];
 
-#define kTransmitSize 100
 #define kBufferWindows 2
+#define kTransmitSize 100
 #define kBufferSize (kTransmitSize*kBufferWindows)
 #define kBlocks 100
 
@@ -16,8 +16,11 @@ int buffer[kBufferSize+10];
 
 int source_process(int *ptr)
 {
-  for (int j = 0; j < kTransmitSize; j++)
-    ptr[j] = j;
+  for (int j = 0; j < kTransmitSize; j+=2)
+  {
+    ptr[j]   = j;
+    ptr[j+1] = j;
+  }
 }
 
 int dest_process(int sum, int *ptr, volatile int *io_ptr)
