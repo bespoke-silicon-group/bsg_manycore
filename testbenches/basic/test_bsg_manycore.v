@@ -330,8 +330,11 @@ module test_bsg_manycore;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] dmem_stalls;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] dx_stalls;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] redirect_stalls;
+   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] rsrv_stalls;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] cgni_full_cycles;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] cgno_full_cycles;
+   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] non_frozen_cycles;
+
 
    genvar                                               x,y;
 
@@ -348,12 +351,14 @@ module test_bsg_manycore;
             begin
                if (freeze_r & ~UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze)
                  begin
-                    imem_stalls[x][y]      <= 0;
-                    dmem_stalls[x][y]      <= 0;
-                    dx_stalls[x][y]        <= 0;
-                    redirect_stalls[x][y]  <= 0;
-                    cgni_full_cycles[x][y] <= 0;
-                    cgno_full_cycles[x][y] <= 0;
+                    imem_stalls[x][y]       <= 0;
+                    dmem_stalls[x][y]       <= 0;
+                    dx_stalls[x][y]         <= 0;
+                    redirect_stalls  [x][y] <= 0;
+                    cgni_full_cycles [x][y] <= 0;
+                    cgno_full_cycles [x][y] <= 0;
+                    non_frozen_cycles[x][y] <= 0;
+		    rsrv_stalls[x][y] <= 0;
                  end
                else
                  begin
@@ -362,6 +367,8 @@ module test_bsg_manycore;
                     if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_wait
                         & UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_en)
                       dmem_stalls[x][y] <= dmem_stalls[x][y]+1;
+		    else if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.dmem_reserve_acq_stall)
+		      rsrv_stalls[x][y] <= rsrv_stalls[x][y]+1;
                     else if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.stall_DX_premem)
                       dx_stalls[x][y] <= dx_stalls[x][y]+1;
                     else if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.redirect)
@@ -370,25 +377,28 @@ module test_bsg_manycore;
                       cgni_full_cycles[x][y] <= cgni_full_cycles[x][y]+1;
                     if (~UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_i)
                       cgno_full_cycles[x][y] <= cgno_full_cycles[x][y]+1;
+		    non_frozen_cycles[x][y] <= non_frozen_cycles[x][y]+1;
                  end
                if (finish_lo)
                  begin
                     if (x == 0 && y == 0)
                       begin
-			 $display("## PERFORMANCE DATA ###################################################");
-                         $display("## a. DMEM_stalls are either bank conflicts, or writing to full network");
-                         $display("## b. IMEM_stalls are bank conflicts");
+                         $display("## PERFORMANCE DATA ###################################################");
+                         $display("## a. DMEM_stalls occur when writing to full network");
+                         $display("## b. IMEM_stalls are bank conflicts with DMEM or remote_stores");
                          $display("## c. DX_stalls are bypass and load use stalls");
                          $display("## d. redirect stalls are branch taken penalties");
                          $display("## e. cgni_full_cycles are cycles when processor input buffer is full");
-                         $display("##      these are a result of remote_store bank conflicts and          ");
-                         $display("##      indicate sources of likely network congestion");
+                         $display("##      these are a result of remote_store/dmem bank conflicts and");
+                         $display("##      indicate likely sources of network congestion");
                          $display("## f. cgno_full_cycles are cycles when processor output buffer is full");
-
+			 $display("## g. rsrv stalls are stalls waiting on lr.w.acquire instructions");
+			 $display("##    these are used for high-level flow-control");
+			 $display("##   keep in mind that polling causes instruction count to vary");
                       end
 
-                    $display("## x,y=%x,%x stalls: DMEM=%d IMEM=%d DX=%d redirect=%d, full_cycles: cgni=%d cgno=%d"
-                             ,x,y,dmem_stalls[x][y],imem_stalls[x][y],dx_stalls[x][y],redirect_stalls[x][y],cgni_full_cycles[x][y],cgno_full_cycles[x][y]);
+                    $display("## x,y=%2.2d,%2.2d, cycles=%d, stalls: DMEM=%d IMEM=%d DX=%d redirect=%d rsrv=%d, full_cycles: cgni=%d cgno=%d"
+                             ,x,y,non_frozen_cycles[x][y],dmem_stalls[x][y],imem_stalls[x][y],dx_stalls[x][y],redirect_stalls[x][y],rsrv_stalls[x][y],cgni_full_cycles[x][y],cgno_full_cycles[x][y]);
                  end
             end // always @ (negedge clk)
        end
