@@ -10,7 +10,7 @@ module vscale_pipeline
    (
                        input 			    clk,
                        input 			    reset,
-		       input                        freeze,
+                       input 			    freeze,
                        input 			    imem_wait,
                        output [`XPR_LEN-1:0] 	    imem_addr,
                        input [`XPR_LEN-1:0] 	    imem_rdata,
@@ -18,9 +18,12 @@ module vscale_pipeline
                        input 			    dmem_wait,
                        output 			    dmem_en,
                        output 			    dmem_wen,
+                       output 			    dmem_reserve_en,
+                       // whether the reservation is set or cleared
+                       input 			    dmem_reservation_i,
                        output [`MEM_TYPE_WIDTH-1:0] dmem_size,
                        output [`XPR_LEN-1:0] 	    dmem_addr,
-		       output [`XPR_LEN-1:0] 	    dmem_wdata,
+                       output [`XPR_LEN-1:0] 	    dmem_wdata,
                        input [`XPR_LEN-1:0] 	    dmem_rdata,
                        input 			    dmem_badmem_e,
                        input 			    htif_reset,
@@ -32,8 +35,8 @@ module vscale_pipeline
                        output 			    htif_pcr_resp_valid,
                        input 			    htif_pcr_resp_ready,
                        output [`HTIF_PCR_WIDTH-1:0] htif_pcr_resp_data
-    ,input   [x_cord_width_p-1:0] my_x_i
-    ,input   [y_cord_width_p-1:0] my_y_i
+						    ,input [x_cord_width_p-1:0] my_x_i
+						    ,input [y_cord_width_p-1:0] my_y_i
                        );
 
    function [`XPR_LEN-1:0] store_data;
@@ -146,7 +149,7 @@ module vscale_pipeline
    vscale_ctrl ctrl(
                     .clk(clk),
                     .reset(reset),
-		    .freeze(freeze),
+                    .freeze(freeze),
                     .inst_DX(inst_DX),
                     .imem_wait(imem_wait),
                     .imem_badmem_e(imem_badmem_e),
@@ -162,6 +165,8 @@ module vscale_pipeline
                     .alu_op(alu_op),
                     .dmem_en(dmem_en),
                     .dmem_wen(dmem_wen),
+                    .dmem_reserve_en(dmem_reserve_en),
+		    .dmem_reservation_i(dmem_reservation_i),
                     .dmem_size(dmem_size),
                     .dmem_type(dmem_type),
                     .md_req_valid(md_req_valid),
@@ -221,8 +226,8 @@ module vscale_pipeline
    // then the core seems to expect that we keep the same
    // value
 
-   logic [`XPR_LEN-1:0] 	    imem_rdata_r;
-   logic 			    imem_wait_r;
+   logic [`XPR_LEN-1:0]             imem_rdata_r;
+   logic                            imem_wait_r;
 
    always @(posedge clk)
      imem_wait_r <= imem_wait;
@@ -340,7 +345,7 @@ module vscale_pipeline
    // but WB stall are only caused by instrs in WB that use md
    // but by definition a load would be in WB
    // and loads do not use MD.
-   
+
    assign load_data_WB = load_data(alu_out_WB,dmem_rdata,dmem_type_WB);
 
    always @(*) begin
