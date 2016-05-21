@@ -190,62 +190,83 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    wire                    unused_valid;
 
    // we create dedicated signals for these wires to allow easy access for "bind" statements
-   wire [2:0]              xbar_port_v_in = { remote_store_v
+   wire [2:0]              xbar_port_v_in = {
                                               // request to write only if we are not sending a remote store packet
                                               // we check the high bit only for performance
-                                              , core_mem_v[1] & ~core_mem_addr[1][31]
+                                               core_mem_v[1] & ~core_mem_addr[1][31]
+                                              , remote_store_v
                                               , core_mem_v[0]
                                               };
-   wire [2:0]                    xbar_port_we_in   = {1'b1, core_mem_w[1], 1'b0};
+
+   // proc data port sometimes writes, the network port always writes, proc inst port never writes
+   wire [2:0]                    xbar_port_we_in   = { core_mem_w[1], 1'b1, 1'b0};
    wire [2:0]                    xbar_port_yumi_out;
-   wire [2:0] [data_width_p-1:0] xbar_port_data_in = {remote_store_data,    core_mem_wdata};
-   wire [2:0] [mem_width_lp-1:0] xbar_port_addr_in = { remote_store_addr  [2+:mem_width_lp]
-                                                       , core_mem_addr[1] [2+:mem_width_lp]
-                                                       , core_mem_addr[0] [2+:mem_width_lp]
+   wire [2:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata [1], remote_store_data, core_mem_wdata[0]};
+   wire [2:0] [mem_width_lp-1:0] xbar_port_addr_in = {   core_mem_addr[1]  [2+:mem_width_lp]
+                                                       , remote_store_addr [2+:mem_width_lp]
+                                                       , core_mem_addr[0]  [2+:mem_width_lp]
                                                        };
-   wire [2:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { remote_store_mask, core_mem_mask };
+   wire [2:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask[1], remote_store_mask, core_mem_mask[0] };
 
    always @(negedge clk_i)
      if (0)
      begin
-	if (~freeze_r)
-	  $display("x=%x y=%x xbar_v_i=%b xbar_w_i=%b xbar_port_yumi_out=%b xbar_addr_i[2,1,0]=%x,%x,%x, xbar_data_i[2,1,0]=%x,%x,%x, xbar_data_o[1,0]=%x,%x"
-		   ,my_x_i
-		   ,my_y_i
-		   ,xbar_port_v_in
-		   ,xbar_port_we_in
-		   ,xbar_port_yumi_out
-		   ,xbar_port_addr_in[2]*4,xbar_port_addr_in[1]*4,xbar_port_addr_in[0]*4
-		   ,xbar_port_data_in[2], xbar_port_data_in[1], xbar_port_data_in[0]
-		   ,core_mem_rdata[1], core_mem_rdata[0]
-		   );
+        if (~freeze_r)
+          $display("x=%x y=%x xbar_v_i=%b xbar_w_i=%b xbar_port_yumi_out=%b xbar_addr_i[2,1,0]=%x,%x,%x, xbar_data_i[2,1,0]=%x,%x,%x, xbar_data_o[1,0]=%x,%x"
+                   ,my_x_i
+                   ,my_y_i
+                   ,xbar_port_v_in
+                   ,xbar_port_we_in
+                   ,xbar_port_yumi_out
+                   ,xbar_port_addr_in[2]*4,xbar_port_addr_in[1]*4,xbar_port_addr_in[0]*4
+                   ,xbar_port_data_in[2], xbar_port_data_in[1], xbar_port_data_in[0]
+                   ,core_mem_rdata[1], core_mem_rdata[0]
+                   );
      end
 
-   
-   assign {remote_store_yumi, core_mem_yumi } = xbar_port_yumi_out;
+   // the swizzle function changes how addresses are mapped to banks
+   wire [2:0] [mem_width_lp-1:0] xbar_port_addr_in_swizzled;
+
+   genvar                        i;
+
+   for (i = 0; i < 3; i=i+1)
+     begin: port
+//	assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in[i] };
+	
+        assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in  [i][(mem_width_lp-1)-:1]   // top bit
+                                                 , xbar_port_addr_in[i][0]                 // and lowest bit determines bank
+                                                 , xbar_port_addr_in[i][1+:(mem_width_lp-2)]
+                                                 };
+
+     end
+
+   assign { core_mem_yumi[1], remote_store_yumi, core_mem_yumi[0] } = xbar_port_yumi_out;
 
   bsg_mem_banked_crossbar #
-    ( .num_ports_p  (3)
+    (.num_ports_p  (3)
      ,.num_banks_p  (num_banks_p)
      ,.bank_size_p  (bank_size_p)
      ,.data_width_p (data_width_p)
-      ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
+//     ,.rr_lo_hi_p   (2'b10) // round robin
+//     ,.rr_lo_hi_p   (2'b01) // deadlock
+     ,.rr_lo_hi_p(0)          // local dmem has priority
+     ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
 //      ,.debug_p(4)
 //     ,.debug_reads_p(0)
     ) banked_crossbar
     ( .clk_i   (clk_i)
      ,.reset_i (reset_i)
       ,.v_i    (xbar_port_v_in)
-      // the network port always writes, proc data port sometimes writes, proc inst port never writes
+
       ,.w_i     (xbar_port_we_in)
-      ,.addr_i  (xbar_port_addr_in)
+      ,.addr_i  (xbar_port_addr_in_swizzled)
       ,.data_i  (xbar_port_data_in)
       ,.mask_i  (xbar_port_mask_in)
 
       // whether the crossbar accepts the input
-     ,.yumi_o  (xbar_port_yumi_out)
-     ,.v_o     ({unused_valid,      core_mem_rv      })
-     ,.data_o  ({unused_data,       core_mem_rdata   })
+     ,.yumi_o  ( xbar_port_yumi_out                                     )
+     ,.v_o     ({ core_mem_rv    [1], unused_valid, core_mem_rv    [0] })
+     ,.data_o  ({ core_mem_rdata [1], unused_data,  core_mem_rdata [0] })
     );
 
 
