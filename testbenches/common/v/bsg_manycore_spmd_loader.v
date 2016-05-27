@@ -2,12 +2,11 @@
 
 module bsg_manycore_spmd_loader
 
-import  bsg_vscale_pkg::*  // vscale constants
-       ,bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
+import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
  #( parameter mem_size_p      = -1 // size of mem to be loaded  (bytes) (?)
-   ,parameter data_width_p    = hdata_width_p
-   ,parameter addr_width_p    = haddr_width_p
+   ,parameter data_width_p    = 32 
+   ,parameter addr_width_p    = 32 
    ,parameter tile_id_ptr_p   = -1
    ,parameter num_rows_p      = -1
    ,parameter num_cols_p      = -1

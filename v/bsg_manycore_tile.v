@@ -2,8 +2,7 @@
 
 module bsg_manycore_tile
 
-import bsg_vscale_pkg::*
-       , bsg_noc_pkg::*; // {P=0, W, E, N, S}
+import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
  #( parameter dirs_p            = 4
    ,parameter stub_p            = {dirs_p{1'b0}} // {s,n,e,w}
@@ -12,8 +11,8 @@ import bsg_vscale_pkg::*
 
    ,parameter bank_size_p       = "inv"
    ,parameter num_banks_p       = "inv"
-   ,parameter data_width_p      = hdata_width_p
-   ,parameter addr_width_p      = haddr_width_p
+   ,parameter data_width_p      = 32 
+   ,parameter addr_width_p      = 32 
    ,parameter mem_addr_width_lp = $clog2(num_banks_p) + `BSG_SAFE_CLOG2(bank_size_p)
    ,parameter packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
    ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)

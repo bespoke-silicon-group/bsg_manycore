@@ -1,3 +1,6 @@
 [submodule "imports/vscale"]
 	path = imports/vscale
 	url = https://github.com/ucb-bar/vscale.git
+[submodule "imports/vanilla-bean"]
+	path = imports/vanilla-bean
+	url = https://bitbucket.org/taylor-bsg/vanilla-bean.git
