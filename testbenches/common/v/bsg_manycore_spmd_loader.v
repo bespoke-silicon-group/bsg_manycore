@@ -59,6 +59,8 @@ import  bsg_vscale_pkg::*  // vscale constants
         pkt.op_ex  = loaded ? 4'b0000: 4'b1111;
         pkt.x_cord = x_cord;
         pkt.y_cord = y_cord;
+        pkt.return_pkt.x_cord = 0;
+        pkt.return_pkt.y_cord = num_rows_p;           // route to east (fixme: will screw up east edge's credit counter)
      end
 
    assign data_o = pkt;
