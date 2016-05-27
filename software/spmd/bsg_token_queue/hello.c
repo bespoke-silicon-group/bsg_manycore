@@ -58,11 +58,11 @@ int main()
 
       source_process(&ptr[bufIndex]);
 
+      bsg_tq_sender_xfer(conn,kBufferWindows,1);
+
       bufIndex++;
       if (bufIndex == kBufferWindows)
         bufIndex = 0;
-
-      bsg_tq_sender_xfer(conn,kBufferWindows,1);
     }
     bsg_wait_while(1);
   }
@@ -84,6 +84,8 @@ int main()
 
       sum = dest_process(sum,&ptr[bufIndex],io_ptr);
 
+      bsg_tq_receiver_release(conn,1);
+
       bufIndex += 1;
 
       if (bufIndex == kBufferWindows)
@@ -91,8 +93,6 @@ int main()
         bufIndex = 0;
         ptr = buffer ;
       }
-
-      bsg_tq_receiver_release(conn,1);
     }
     bsg_finish();
   }
