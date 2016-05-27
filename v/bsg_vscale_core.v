@@ -12,14 +12,17 @@ import bsg_vscale_pkg::*;
    // to banked crossbar
    ,output [1:0]                          m_v_o
    ,output [1:0]                          m_w_o
-   ,output                                m_reserve_1_o
-   ,input    m_reservation_i
    ,output [1:0] [haddr_width_p-1:0]      m_addr_o
    ,output [1:0] [hdata_width_p-1:0]      m_data_o
    ,output logic [1:0] [(hdata_width_p>>3)-1:0] m_mask_o
    ,input  [1:0]                          m_yumi_i
    ,input  [1:0]                          m_v_i
    ,input  [1:0] [hdata_width_p-1:0]      m_data_i
+
+   ,output                                m_reserve_1_o
+   ,input                                 m_reservation_i
+
+   ,input                                 outstanding_stores_i
 
    ,input   [x_cord_width_p-1:0] my_x_i
    ,input   [y_cord_width_p-1:0] my_y_i
@@ -97,7 +100,7 @@ import bsg_vscale_pkg::*;
                       ,.dmem_wait      (~m_yumi_i[1]) // i
                       ,.dmem_en        (m_v_o[1])     // o
                       ,.dmem_wen       (m_w_o[1])     // o
-		      ,.dmem_reserve_en(m_reserve_1_o) // o
+		      ,.dmem_reserve_en   (m_reserve_1_o  ) // o
 		      ,.dmem_reservation_i(m_reservation_i)
                       ,.dmem_size     (dmem_size)    // o
                       ,.dmem_addr     (m_addr_o[1])  // o
@@ -114,6 +117,8 @@ import bsg_vscale_pkg::*;
                       ,.htif_pcr_resp_valid()
                       ,.htif_pcr_resp_ready(1'b1)
                       ,.htif_pcr_resp_data ()
+
+		      ,.outstanding_stores_i(outstanding_stores_i)
                       ,.my_x_i(my_x_i)
                       ,.my_y_i(my_y_i)
     );

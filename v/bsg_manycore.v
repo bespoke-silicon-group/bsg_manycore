@@ -24,8 +24,8 @@ import bsg_vscale_pkg::*
    ,parameter num_tiles_y_p     = "inv"
    ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
    ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
-   ,parameter packet_width_lp   = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
-
+   ,parameter packet_width_lp        = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+   ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_lp,y_cord_width_lp)
    // array i/o params
    ,parameter stub_w_p          = {num_tiles_y_p{1'b0}}
    ,parameter stub_e_p          = {num_tiles_y_p{1'b0}}
@@ -33,25 +33,36 @@ import bsg_vscale_pkg::*
    ,parameter stub_s_p          = {num_tiles_x_p{1'b0}}
 
    ,parameter debug_p           = 0
+
+   ,parameter num_nets_lp       = 2
   )
   ( input clk_i
    ,input reset_i
 
    // horizontal -- {E,W}
-   ,input  [E:W][num_tiles_y_p-1:0][packet_width_lp-1:0] hor_data_i
-   ,input  [E:W][num_tiles_y_p-1:0]                      hor_v_i
-   ,output [E:W][num_tiles_y_p-1:0]                      hor_ready_o
-   ,output [E:W][num_tiles_y_p-1:0][packet_width_lp-1:0] hor_data_o
-   ,output [E:W][num_tiles_y_p-1:0]                      hor_v_o
-   ,input  [E:W][num_tiles_y_p-1:0]                      hor_ready_i
+   ,input  [E:W][num_tiles_y_p-1:0][packet_width_lp-1:0]        hor_data_i
+   ,input  [E:W][num_tiles_y_p-1:0][return_packet_width_lp-1:0] hor_return_data_i
+
+   ,input  [E:W][num_tiles_y_p-1:0][num_nets_lp-1:0]            hor_v_i
+   ,output [E:W][num_tiles_y_p-1:0][num_nets_lp-1:0]            hor_ready_o
+   ,output [E:W][num_tiles_y_p-1:0][packet_width_lp-1:0]        hor_data_o
+   ,output [E:W][num_tiles_y_p-1:0][return_packet_width_lp-1:0] hor_return_data_o
+
+   ,output [E:W][num_tiles_y_p-1:0][num_nets_lp-1:0]     hor_v_o
+   ,input  [E:W][num_tiles_y_p-1:0][num_nets_lp-1:0]     hor_ready_i
 
    // vertical -- {S,N}
-   ,input  [S:N][num_tiles_x_p-1:0][packet_width_lp-1:0] ver_data_i
-   ,input  [S:N][num_tiles_x_p-1:0]                      ver_v_i
-   ,output [S:N][num_tiles_x_p-1:0]                      ver_ready_o
-   ,output [S:N][num_tiles_x_p-1:0][packet_width_lp-1:0] ver_data_o
-   ,output [S:N][num_tiles_x_p-1:0]                      ver_v_o
-   ,input  [S:N][num_tiles_x_p-1:0]                      ver_ready_i
+   ,input  [S:N][num_tiles_x_p-1:0][packet_width_lp-1:0]        ver_data_i
+   ,input  [S:N][num_tiles_x_p-1:0][return_packet_width_lp-1:0] ver_return_data_i
+
+   ,input  [S:N][num_tiles_x_p-1:0][num_nets_lp-1:0]     ver_v_i
+   ,output [S:N][num_tiles_x_p-1:0][num_nets_lp-1:0]     ver_ready_o
+
+    ,output [S:N][num_tiles_x_p-1:0][packet_width_lp-1:0]        ver_data_o
+    ,output [S:N][num_tiles_x_p-1:0][return_packet_width_lp-1:0] ver_return_data_o
+
+    ,output [S:N][num_tiles_x_p-1:0][num_nets_lp-1:0]     ver_v_o
+    ,input  [S:N][num_tiles_x_p-1:0][num_nets_lp-1:0]     ver_ready_i
   );
 
   // synopsys translate off
@@ -66,10 +77,12 @@ import bsg_vscale_pkg::*
 
   /* TILES */
 
-  // tiles' outputs
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W][packet_width_lp-1:0] data_out;
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W]                      v_out;
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W]                      ready_out;
+  // tiles' outputs WENS
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W][packet_width_lp-1:0       ]        data_out,        data_in;
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W][return_packet_width_lp-1:0] return_data_out, return_data_in;
+
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][num_nets_lp-1:0][S:W]     v_out,     v_in;
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][num_nets_lp-1:0][S:W] ready_out, ready_in;
 
   genvar r,c;
 
@@ -94,55 +107,17 @@ import bsg_vscale_pkg::*
         ,.debug_p      (debug_p)
        ) tile
        ( .clk_i (clk_i)
-        ,.reset_i(reset_i)
+         ,.reset_i(reset_i)
 
-        ,.data_i ({ (r == num_tiles_y_p-1)
-                       ? ver_data_i[S][c]
-                       : data_out[r+1][c][N] // s
-                     ,(r == 0)
-                       ? ver_data_i[N][c]
-                       : data_out[r-1][c][S] // n
-                     ,(c == num_tiles_x_p-1)
-                       ? hor_data_i[E][r]
-                       : data_out[r][c+1][W] // e
-                     ,(c == 0)
-                       ? hor_data_i[W][r]
-                       : data_out[r][c-1][E] // w
-                    }
-                   )
-        ,.v_i  ({ (r == num_tiles_y_p-1)
-                       ? ver_v_i[S][c]
-                       : v_out[r+1][c][N] // s
-                     ,(r == 0)
-                       ? ver_v_i[N][c]
-                       : v_out[r-1][c][S] // n
-                     ,(c == num_tiles_x_p-1)
-                       ? hor_v_i[E][r]
-                       : v_out[r][c+1][W] // e
-                     ,(c == 0)
-                       ? hor_v_i[W][r]
-                       : v_out[r][c-1][E] // w
-                    }
-                   )
-        ,.ready_o  (ready_out[r][c])
+         ,.data_i        (       data_in  [r][c])
+         ,.return_data_i (return_data_in  [r][c])
+         ,.v_i           (v_in     [r][c])
+         ,.ready_o       (ready_out[r][c])
 
-        ,.data_o  (data_out[r][c])
-        ,.v_o  (v_out[r][c])
-        ,.ready_i   (
-                    { (r == num_tiles_y_p-1)
-                       ? ver_ready_i[S][c]
-                       : ready_out[r+1][c][N] // s
-                     ,(r == 0)
-                       ? ver_ready_i[N][c]
-                       : ready_out[r-1][c][S] // n
-                     ,(c == num_tiles_x_p-1)
-                       ? hor_ready_i[E][r]
-                       : ready_out[r][c+1][W] // e
-                     ,(c == 0)
-                       ? hor_ready_i[W][r]
-                       : ready_out[r][c-1][E] // w
-                    }
-                   )
+         ,.data_o        (data_out       [r][c])
+         ,.return_data_o (return_data_out[r][c])
+         ,.v_o           (v_out          [r][c])
+         ,.ready_i       (ready_in       [r][c])
 
         ,.my_x_i   (x_cord_width_lp'(c))
         ,.my_y_i   (y_cord_width_lp'(r))
@@ -150,23 +125,29 @@ import bsg_vscale_pkg::*
     end
   end
 
+   // stitch together all of the tiles into a mesh
+   bsg_mesh_stitch #(.width_p(packet_width_lp), .x_max_p(num_tiles_x_p), .y_max_p(num_tiles_y_p)) data
+     (.outs_i(data_out),   .ins_o(data_in)
+      ,.hor_i(hor_data_i), .hor_o(hor_data_o)
+      ,.ver_i(ver_data_i), .ver_o(ver_data_o)
+      );
 
+   bsg_mesh_stitch #(.width_p(return_packet_width_lp), .x_max_p(num_tiles_x_p), .y_max_p(num_tiles_y_p)) return_data
+     (.outs_i(return_data_out), .ins_o(return_data_in)
+      ,.hor_i(hor_return_data_i), .hor_o(hor_return_data_o)
+      ,.ver_i(ver_return_data_i), .ver_o(ver_return_data_o)
+      );
 
-  /* OUTPUTS */
+   bsg_mesh_stitch #(.width_p(1), .x_max_p(num_tiles_x_p), .y_max_p(num_tiles_y_p), .nets_p(num_nets_lp)) ready
+     (.outs_i(ready_out),   .ins_o(ready_in)
+      ,.hor_i(hor_ready_i), .hor_o(hor_ready_o)
+      ,.ver_i(ver_ready_i), .ver_o(ver_ready_o)
+      );
 
-  for(r = 0; r < num_tiles_y_p; r = r+1)
-  begin: hor_outputs
-    assign {hor_data_o [E][r], hor_data_o [W][r]} = {data_out [r][num_tiles_x_p-1][E], data_out [r][0][W]};
-    assign {hor_v_o    [E][r], hor_v_o    [W][r]} = {v_out    [r][num_tiles_x_p-1][E], v_out    [r][0][W]};
-    assign {hor_ready_o[E][r], hor_ready_o[W][r]} = {ready_out[r][num_tiles_x_p-1][E], ready_out[r][0][W]};
-  end
+   bsg_mesh_stitch #(.width_p(1), .x_max_p(num_tiles_x_p), .y_max_p(num_tiles_y_p), .nets_p(num_nets_lp)) v
+     (.outs_i(v_out),   .ins_o(v_in)
+      ,.hor_i(hor_v_i), .hor_o(hor_v_o)
+      ,.ver_i(ver_v_i), .ver_o(ver_v_o)
+      );
 
-  for(c = 0; c < num_tiles_x_p; c = c+1)
-  begin: ver_outputs
-    assign {ver_data_o [S][c], ver_data_o [N][c]} = {data_out [num_tiles_y_p-1][c][S], data_out [0][c][N]};
-    assign {ver_v_o    [S][c], ver_v_o    [N][c]} = {v_out    [num_tiles_y_p-1][c][S], v_out    [0][c][N]};
-    assign {ver_ready_o[S][c], ver_ready_o[N][c]} = {ready_out[num_tiles_y_p-1][c][S], ready_out[0][c][N]};
-  end
-
-   
 endmodule

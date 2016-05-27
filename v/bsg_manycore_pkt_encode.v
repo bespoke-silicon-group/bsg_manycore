@@ -17,6 +17,8 @@ module bsg_manycore_pkt_encode
     ,input [data_width_p-1:0] data_i
     ,input [(data_width_p>>3)-1:0] mask_i
     ,input we_i
+    ,input [x_cord_width_p-1:0] my_x_i
+    ,input [y_cord_width_p-1:0] my_y_i
     ,output v_o
     ,output [packet_width_lp-1:0] data_o
     );
@@ -40,6 +42,9 @@ module bsg_manycore_pkt_encode
    assign pkt.data   = data_i;
    assign pkt.x_cord = addr_decode.x_cord;
    assign pkt.y_cord = addr_decode.y_cord;
+
+   assign pkt.return_pkt.x_cord = my_x_i;
+   assign pkt.return_pkt.y_cord = my_y_i;
 
    assign v_o = addr_decode.remote & we_i & v_i;
 

@@ -7,11 +7,11 @@ module bsg_manycore_pkt_decode
     , data_width_p   = "inv"
     , addr_width_p   = "inv"
     , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
     )
    (
     input   v_i
     ,input [packet_width_lp-1:0] data_i
-
     ,output logic pkt_freeze_o
     ,output logic pkt_unfreeze_o
     ,output logic pkt_unknown_o

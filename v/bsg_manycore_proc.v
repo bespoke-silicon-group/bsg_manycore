@@ -4,74 +4,94 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , y_cord_width_p = "inv"
                            , data_width_p   = 32
                            , addr_width_p   = 32
-                           , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-
+                           , packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                           , return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
                            , debug_p        = 0
                            , bank_size_p    = "inv" // in words
                            , num_banks_p    = "inv"
 
+                           // this credit counter is more for implementing memory fences
+                           // than containing the number of outstanding remote stores
+
+                           //, max_remote_store_credits_p = (1<<13)-1  // 13 bit counter
+                           , max_remote_store_credits_p = 200  // 13 bit counter
+
                            // this is the size of the receive FIFO
                            , proc_fifo_els_p = 4
                            , mem_width_lp    = $clog2(bank_size_p) + $clog2(num_banks_p)
+                           , num_nets_lp     = 2
                            )
    (input   clk_i
     , input reset_i
 
-    , input v_i
-    , input [packet_width_lp-1:0] data_i
-    , output ready_o
+    , input  [num_nets_lp-1:0]                       v_i
+    , input  [packet_width_lp-1:0]                data_i
+    , input  [return_packet_width_lp-1:0]  return_data_i
+    , output [num_nets_lp-1:0]                   ready_o
 
-    , output v_o
-    , output [packet_width_lp-1:0] data_o
-    , input ready_i
+    , output [num_nets_lp-1:0]                       v_o
+    , output [packet_width_lp-1:0]                data_o
+    , output [return_packet_width_lp-1:0]  return_data_o
+    , input  [num_nets_lp-1:0]                   ready_i
 
     // tile coordinates
-    , input   [x_cord_width_p-1:0]                 my_x_i
-    , input   [y_cord_width_p-1:0]                 my_y_i
+    , input   [x_cord_width_p-1:0]                my_x_i
+    , input   [y_cord_width_p-1:0]                my_y_i
 
     , output logic freeze_o
     );
 
+   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+
    // input fifo from network
 
-   logic cgni_v, cgni_yumi;
-   logic [packet_width_lp-1:0] cgni_data;
+   logic                              cgni_v, cgni_yumi;
+   logic [packet_width_lp-1:0] 	      cgni_data;
+   wire 			      credit_return_lo;
 
-   // this fifo buffers incoming remote store requests
-   // it is a little bigger than the standard twofer to accomodate
-   // bank conflicts
+   bsg_manycore_endpoint #(.x_cord_width_p (x_cord_width_p)
+                           ,.y_cord_width_p(y_cord_width_p)
+                           ,.fifo_els_p    (proc_fifo_els_p)
+                           ,.data_width_p  (data_width_p)
+                           ,.addr_width_p  (addr_width_p)
+                           ) endp
+   (.clk_i
+    ,.reset_i
+    ,.v_i, .data_i, .return_data_i, .ready_o
+    ,.return_v_o(v_o[1]), .return_data_o, .return_ready_i(ready_i[1])
 
-   bsg_fifo_1r1w_small #(.width_p(packet_width_lp)
-                        ,.els_p (proc_fifo_els_p)
-                        ) cgni
-     (.clk_i   (clk_i  )
-      ,.reset_i(reset_i)
+    ,.fifo_data_o(cgni_data)
+    ,.fifo_v_o   (cgni_v   )
+    ,.fifo_yumi_i(cgni_yumi)
 
-      ,.v_i     (v_i    )
-      ,.data_i  (data_i )
-      ,.ready_o (ready_o)
-
-      ,.v_o    (cgni_v   )
-      ,.data_o (cgni_data)
-      ,.yumi_i (cgni_yumi)
-      );
+    ,.credit_v_r_o(credit_return_lo)
+    );
 
    // decode incoming packet
-   logic                       pkt_freeze, pkt_unfreeze, pkt_remote_store, pkt_unknown;
-   logic [data_width_p-1:0]    remote_store_data;
+   logic                         pkt_freeze, pkt_unfreeze, pkt_remote_store, pkt_unknown;
+   logic [data_width_p-1:0]      remote_store_data;
    logic [(data_width_p>>3)-1:0] remote_store_mask;
-   logic [addr_width_p-1:0]    remote_store_addr;
-   logic                       remote_store_v, remote_store_yumi;
+   logic [addr_width_p-1:0]      remote_store_addr;
+   logic                         remote_store_v, remote_store_yumi;
+
+
+   always_ff @(negedge clk_i)
+     assert (~v_i[1] | (return_data_i == {my_y_i, my_x_i}))
+       else
+	 $error("%m errant credit packet for YX=%d,%d landed at YX=%d,%d",return_data_i[x_cord_width_p+:y_cord_width_p],return_data_i[0+:x_cord_width_p]
+		,my_y_i,my_x_i);
+
 
    if (debug_p)
    always_ff @(negedge clk_i)
-     if (v_o)
-       $display("%m attempting remote store of data %x, ready_i = %x",data_o,ready_i);
+     if (v_o[0])
+       $display("%m attempting remote store send of data %x, ready_i = %x",data_o,ready_i[0]);
 
    if (debug_p)
      always_ff @(negedge clk_i)
        if (cgni_v)
-         $display("%m data %x avail on cgni (cgni_yumi=%x,remote_store_v=%x, remote_store_addr=%x, remote_store_data=%x, remote_store_yumi=%x)",cgni_data,cgni_yumi,remote_store_v,remote_store_addr, remote_store_data, remote_store_yumi);
+         $display("%m data %x avail on cgni (cgni_yumi=%x,remote_store_v=%x, remote_store_addr=%x, remote_store_data=%x, remote_store_yumi=%x)"
+                  ,cgni_data,cgni_yumi,remote_store_v,remote_store_addr, remote_store_data, remote_store_yumi);
 
    bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
                              ,.y_cord_width_p(y_cord_width_p)
@@ -80,6 +100,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                              ) pkt_decode
      (.v_i                 (cgni_v)
       ,.data_i             (cgni_data)
+
       ,.pkt_freeze_o       (pkt_freeze)
       ,.pkt_unfreeze_o     (pkt_unfreeze)
       ,.pkt_unknown_o      (pkt_unknown)
@@ -108,16 +129,16 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
             freeze_r <= pkt_freeze;
          end
 
-   logic [1:0]                  core_mem_v;
-   logic [1:0]                  core_mem_w;
-   logic [1:0] [addr_width_p-1:0] core_mem_addr;
-   logic [1:0] [data_width_p-1:0] core_mem_wdata;
+   logic [1:0]                         core_mem_v;
+   logic [1:0]                         core_mem_w;
+   logic [1:0] [addr_width_p-1:0]      core_mem_addr;
+   logic [1:0] [data_width_p-1:0]      core_mem_wdata;
    logic [1:0] [(data_width_p>>3)-1:0] core_mem_mask;
    logic [1:0]                         core_mem_yumi;
    logic [1:0]                         core_mem_rv;
    logic [1:0] [data_width_p-1:0]      core_mem_rdata;
 
-   logic core_mem_reservation_r;
+   logic core_mem_reserve_1, core_mem_reservation_r;
 
    logic [addr_width_p-1:0]      core_mem_reserve_addr_r;
 
@@ -131,19 +152,23 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
              // copy address
              core_mem_reservation_r  <= 1'b1;
              core_mem_reserve_addr_r <= core_mem_addr[1];
-	     $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr[1]);
+             $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr[1]);
           end
         else
           // otherwise, we clear existing reservations if the corresponding
           // address is committed as a remote store
           begin
              if (remote_store_v && (core_mem_reserve_addr_r == remote_store_addr) && remote_store_yumi)
-	       begin
-		  core_mem_reservation_r  <= 1'b0;
-		  $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r);
-	       end
+               begin
+                  core_mem_reservation_r  <= 1'b0;
+                  $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r);
+               end
           end
      end
+
+   logic [$clog2(max_remote_store_credits_p+1)-1:0] remote_store_credits;
+
+   wire launching_remote_store = v_o[0] & ready_i[0];
 
    bsg_vscale_core #(.x_cord_width_p (x_cord_width_p)
                      ,.y_cord_width_p(y_cord_width_p)
@@ -153,23 +178,40 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
        ,.reset_i (reset_i)
        ,.freeze_i (freeze_r)
 
-       ,.m_v_o        (core_mem_v)
-       ,.m_w_o        (core_mem_w)
-       ,.m_addr_o     (core_mem_addr)
-       ,.m_data_o     (core_mem_wdata)
+       ,.m_v_o          (core_mem_v)
+       ,.m_w_o          (core_mem_w)
+       ,.m_addr_o       (core_mem_addr)
+       ,.m_data_o       (core_mem_wdata)
        ,.m_reserve_1_o  (core_mem_reserve_1)
        ,.m_reservation_i(core_mem_reservation_r)
-       ,.m_mask_o    (core_mem_mask)
+       ,.m_mask_o       (core_mem_mask)
 
        // for data port (1), either the network or the banked memory can
        // deque the item.
-       ,.m_yumi_i    ({(v_o & ready_i) | core_mem_yumi[1]
+       ,.m_yumi_i    ({(launching_remote_store) | core_mem_yumi[1]
                        , core_mem_yumi[0]})
        ,.m_v_i       (core_mem_rv)
        ,.m_data_i    (core_mem_rdata)
+
+       // whether there are any outstanding remote stores
+       ,.outstanding_stores_i(remote_store_credits != max_remote_store_credits_p)
+
        ,.my_x_i (my_x_i)
        ,.my_y_i (my_y_i)
        );
+
+
+   bsg_counter_up_down #(.max_val_p  (max_remote_store_credits_p)
+                         ,.init_val_p(max_remote_store_credits_p)
+                         ) remote_store_credit_ctr
+     (.clk_i
+      ,.reset_i
+      ,.down_i   (launching_remote_store)  // launch remote store
+      ,.up_i     (credit_return_lo      )  // receive credit back
+      ,.count_o(remote_store_credits )
+      );
+
+   wire remote_store_request;
 
    bsg_manycore_pkt_encode #(.x_cord_width_p (x_cord_width_p)
                              ,.y_cord_width_p(y_cord_width_p)
@@ -184,15 +226,24 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       ,.addr_i (core_mem_addr [1])
       ,.we_i   (core_mem_w    [1])
       ,.mask_i (core_mem_mask [1])
-
+      ,.my_x_i (my_x_i)
+      ,.my_y_i (my_y_i)
       // directly out to the network!
-      ,.v_o    (v_o   )
+      ,.v_o    (remote_store_request)
       ,.data_o (data_o)
       );
 
+   // we only request to send a remote store if it would not overflow the remote store credit counter
+   assign v_o[0] = remote_store_request & (|remote_store_credits);
+
    // synopsys translate off
 
-   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+   // this is not an error, but it is extremely surprising
+   // and merits investigation
+
+   always @(negedge clk_i)
+     assert (remote_store_credits != 0) else
+          $error("## %m out of remote store credits %(d)",remote_store_credits);
 
    bsg_manycore_packet_s data_o_debug;
    assign data_o_debug = data_o;
@@ -200,7 +251,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    if (debug_p)
      always @(negedge clk_i)
        begin
-          if (v_o & ready_o)
+          if (launching_remote_store)
             $display("proc sending packet %x (op=%x, addr=%x, data=%x, y_cord=%x, x_cord=%x), bit_mask=%x, core_mem_wdata=%x, core_mem_addr=%x"
                      , data_o_debug
                      , data_o_debug.op
@@ -256,16 +307,13 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    // the swizzle function changes how addresses are mapped to banks
    wire [2:0] [mem_width_lp-1:0] xbar_port_addr_in_swizzled;
-
-   genvar                        i;
+   genvar 			 i;
 
    for (i = 0; i < 3; i=i+1)
      begin: port
-//      assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in[i] };
-
         assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in  [i][(mem_width_lp-1)-:1]   // top bit is inst/data
                                                  , xbar_port_addr_in[i][0]                 // and lowest bit determines bank
-                                                 , xbar_port_addr_in[i][1]                 // and lowest bit determines bank						 
+                                                 , xbar_port_addr_in[i][1]                 // and lowest bit determines bank
                                                  , xbar_port_addr_in[i][2+:(mem_width_lp-2)]
                                                  };
 
@@ -280,7 +328,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    // guaranteed in-order delivery and violate sequential consistency; so it would require some
    // extra hw to enforce that; and tagging of memory fences inside packets.
    // we could most likely get rid of the cgni input fifo in this case.
-   
+
   bsg_mem_banked_crossbar #
     (.num_ports_p  (3)
      ,.num_banks_p  (num_banks_p)
@@ -293,9 +341,9 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 //      ,.debug_p(4)
 //     ,.debug_reads_p(0)
     ) banked_crossbar
-    ( .clk_i   (clk_i)
-     ,.reset_i (reset_i)
-      ,.v_i    (xbar_port_v_in)
+    ( .clk_i    (clk_i)
+     ,.reset_i  (reset_i)
+      ,.v_i     (xbar_port_v_in)
 
       ,.w_i     (xbar_port_we_in)
       ,.addr_i  (xbar_port_addr_in_swizzled)
