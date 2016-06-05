@@ -171,8 +171,7 @@ endmodule
 
 module test_bsg_manycore;
 
-   import  bsg_vscale_pkg::*  // vscale constants
-          ,bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
+   import  bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
    localparam debug_lp = 0;
    localparam max_cycles_lp   = `MAX_CYCLES;

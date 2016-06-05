@@ -2,8 +2,7 @@
 
 module bsg_manycore
 
-import bsg_vscale_pkg::*
-       , bsg_noc_pkg::*; // {P=0, W, E, N, S}
+import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
  #(// tile params
     parameter dirs_p            = 4
@@ -16,8 +15,8 @@ import bsg_vscale_pkg::*
    // the network (i.e. cgni full cycles).
 
    ,parameter num_banks_p       = "inv"
-   ,parameter data_width_p      = hdata_width_p
-   ,parameter addr_width_p      = haddr_width_p
+   ,parameter data_width_p      = 32 
+   ,parameter addr_width_p      = 32 
 
    // array params
    ,parameter num_tiles_x_p     = "inv"
