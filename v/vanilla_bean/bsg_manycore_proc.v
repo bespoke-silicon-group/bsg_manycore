@@ -173,7 +173,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
        begin // initiates pc pushing core to RUN state
          core_net_pkt.header.net_op   = PC;
          core_net_pkt.header.reserved = 5'(0);
-         core_net_pkt.header.addr     = 13'h24c;
+         core_net_pkt.header.addr     = 13'h200;
        end
 
     core_net_pkt.data   = remote_store_imem_not_dmem ? remote_store_data : 32'(0);

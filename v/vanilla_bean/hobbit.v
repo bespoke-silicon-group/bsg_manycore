@@ -545,7 +545,7 @@ mem_1rw #(.addr_width_p(imem_addr_width_p),
 genvar i;
 for(i=0; i<4; i=i+1)
   mem_1rw #(.addr_width_p(imem_addr_width_p),
-            .num_entries_p(1024),//2**imem_addr_width_p),
+            .num_entries_p(2**imem_addr_width_p),
             //.num_bits_p(instruction_size_gp)
             .num_bits_p(8)
            ) imem_0
