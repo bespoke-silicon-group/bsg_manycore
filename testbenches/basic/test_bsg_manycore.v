@@ -16,7 +16,7 @@
 
 `define MAX_CYCLES 1000000
 
-
+/*
   module vscale_pipeline_trace
       #(parameter x_cord_width_p = "inv"
         , y_cord_width_p = "inv")
@@ -49,7 +49,7 @@
           end
      end
 endmodule
-
+*/
 module bsg_manycore_tile_trace #(packet_width_lp="inv"
                                  ,x_cord_width_p="inv"
                                  ,y_cord_width_p="inv"
@@ -100,12 +100,12 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
                                  , y_cord_width_p="inv"
                                  , packet_width_lp="inv")
   (input clk_i
-   , input [2:0] xbar_port_v_in
-   , input [2:0][mem_width_lp-1:0] xbar_port_addr_in
-   , input [2:0][data_width_p-1:0] xbar_port_data_in
-   , input [2:0][(data_width_p>>3)-1:0] xbar_port_mask_in
-   , input [2:0] xbar_port_we_in
-   , input [2:0] xbar_port_yumi_out
+   , input [1:0] xbar_port_v_in
+   , input [1:0][mem_width_lp-1:0] xbar_port_addr_in
+   , input [1:0][data_width_p-1:0] xbar_port_data_in
+   , input [1:0][(data_width_p>>3)-1:0] xbar_port_mask_in
+   , input [1:0] xbar_port_we_in
+   , input [1:0] xbar_port_yumi_out
    , input [x_cord_width_p-1:0] my_x_i
    , input [y_cord_width_p-1:0] my_y_i
    , input v_out
@@ -123,12 +123,12 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
    genvar i;
 
    logic [1:0] logwrite;
-   logic [2:0] conflicts;
+   logic [1:0] conflicts;
 
 //   if (0)
    always @(negedge clk_i)
      begin
-        logwrite = { (xbar_port_we_in[2] & xbar_port_yumi_out[2])
+        logwrite = { (xbar_port_we_in[0] & xbar_port_yumi_out[0])
                      ,xbar_port_we_in[1] & xbar_port_yumi_out[1]
           };
 
@@ -143,7 +143,7 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
                $fwrite(1,"D%1.1x[%x,%b]=%x, ", 1,{ xbar_port_addr_in[1],2'b00},xbar_port_mask_in[1],xbar_port_data_in[1]);
 
              if (logwrite[1])
-               $fwrite(1,"D%1.1x[%x,%b]=%x, ", 2,{ xbar_port_addr_in[2],2'b00},xbar_port_mask_in[2],xbar_port_data_in[2]);
+               $fwrite(1,"D%1.1x[%x,%b]=%x, ", 0,{ xbar_port_addr_in[0],2'b00},xbar_port_mask_in[0],xbar_port_data_in[0]);
 
              if (~|logwrite)
                $fwrite(1,"                   ");
@@ -188,7 +188,7 @@ module test_bsg_manycore;
    localparam packet_width_lp = 6 + lg_node_x_lp + lg_node_y_lp
                                 + data_width_lp + addr_width_lp;
    localparam cycle_time_lp   = 20;
-   localparam trace_vscale_pipeline_lp=0;
+   //localparam trace_vscale_pipeline_lp=0;
    localparam trace_manycore_tile_lp=0;
    localparam trace_manycore_proc_lp=0;
 
@@ -210,6 +210,7 @@ module test_bsg_manycore;
         ,.freeze(freeze)
         );
 
+   /*
    if (trace_vscale_pipeline_lp)
      bind   vscale_pipeline vscale_pipeline_trace #(.x_cord_width_p(x_cord_width_p)
                                                     ,.y_cord_width_p(y_cord_width_p)
@@ -229,6 +230,8 @@ module test_bsg_manycore;
                                                                    ,my_x_i
                                                                    ,my_y_i
                                                                    );
+   */
+
    if (trace_manycore_proc_lp)
      bind bsg_manycore_proc bsg_manycore_proc_trace #(.mem_width_lp(mem_width_lp)
                                                       ,.data_width_p(data_width_p)
@@ -327,6 +330,7 @@ module test_bsg_manycore;
      ,.hor_ready_i   (hor_ready_in)
     );
 
+   /*
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] imem_stalls;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] dmem_stalls;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] dx_stalls;
@@ -403,6 +407,7 @@ module test_bsg_manycore;
                  end
             end // always @ (negedge clk)
        end
+  */
 
   bsg_manycore_spmd_loader
     #( .mem_size_p    (mem_size_lp)
