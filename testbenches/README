@@ -1,4 +1,4 @@
-Makefile in this directory runs RISC-V instruction tests (in common/rv32_tests) on the core used to build the manycore. UC Berkeley's 
+Makefile in this directory runs RISC-V instruction tests (in common/riscv_tests) on the core used to build the manycore. UC Berkeley's 
 riscv-tests are tweaked to directly boot test code, avoiding the use of system instructions and status registers, and to send finish packet 
 to bsg_nonsynth_manycore_monitor upon the completion of test. The data sent in the finish packet is equal to 0x0000_<TESNUM> if the core 
 passed all the tests and 0xffff_<TESTNUM> otherwise. TESTNUM represents the number of the final test case after which the simulation finished.
