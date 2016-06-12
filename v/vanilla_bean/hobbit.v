@@ -77,9 +77,15 @@ logic [RV32_reg_data_width_gp-1:0] rf_rs1_out, rf_rs2_out, rf_wd;
 logic [RV32_reg_addr_width_gp-1:0] rf_wa;
 logic                              rf_wen, rf_cen;
 
+// MUL/DIV signals 
+logic        instr_is_md, stall_md, md_valid, md_rs1_signed, md_rs2_signed;
+logic [2:0]  md_op, md_out_sel;
+logic        md_ready, md_resp_valid;
+logic [31:0] md_result;
+
 // ALU logic
 //logic [31:0] rs_to_alu, rd_to_alu, alu_result;
-logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, alu_result;
+logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, basic_comp_result, alu_result;
 logic                              jump_now;
 
 // Stores
@@ -237,7 +243,8 @@ assign stall_non_mem = (net_imem_write_cmd)
                      | (net_reg_write_cmd & wb.op_writes_rf)
                      | (net_reg_write_cmd)  
                      //| (exe.decode.is_netw_op & (~net_sent))
-                     | (state_r != RUN);
+                     | (state_r != RUN)
+                     | stall_md;
 
 // stall due to data memory access
 assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
@@ -402,6 +409,14 @@ if(debug_p)
                  ,mask
                  ,jump_now
                  ,flush
+                );
+        $display(" MUL: stall_md:%b md_vlaid:%b md_op:%b md_out_sel:%b md_resp_valid:%b md_result:%x"
+                 ,stall_md
+                 ,md_valid
+                 ,md_op
+                 ,md_out_sel
+                 ,md_resp_valid
+                 ,md_result
                 );
       end
 
@@ -674,6 +689,96 @@ reg_file #(.addr_width_p(RV32_reg_addr_width_gp)) rf_0
 
 //+----------------------------------------------
 //|
+//|     RISC-V edit: "M" STANDARAD EXTENSION 
+//|
+//+----------------------------------------------
+assign instr_is_md = (exe.instruction.opcode == `RV32_OP)
+                      & (exe.instruction.funct7 == 7'b0000001);
+assign md_valid    = instr_is_md & md_ready;
+assign stall_md    = instr_is_md & ~md_resp_valid;
+
+always_comb
+begin
+  md_op          = 2'bxx;
+  md_out_sel     = 2'bxx;
+  md_rs1_signed  = 1'b1;
+  md_rs2_signed  = 1'b1;
+
+  unique casez (exe.instruction.funct3)
+    3'b000: // MUL
+      begin
+        md_op      = 2'b00;
+        md_out_sel = 2'b00;
+      end
+
+    3'b001: // MULH
+      begin
+        md_op      = 2'b00;
+        md_out_sel = 2'b01;
+      end
+
+    3'b010: // MULHSU
+      begin
+        md_op         = 2'b00;
+        md_out_sel    = 2'b01;
+        md_rs2_signed = 1'b0;
+      end
+
+    3'b011: // MULHU
+      begin
+        md_op         = 2'b00;
+        md_out_sel    = 2'b01;
+        md_rs1_signed = 1'b0;
+        md_rs2_signed = 1'b0;
+      end
+
+    3'b100: // DIV
+      begin
+        md_op      = 2'b01;
+        md_out_sel = 2'b00;
+      end
+
+    3'b101: // DIVU
+      begin
+        md_op         = 2'b01;
+        md_out_sel    = 2'b00;
+        md_rs1_signed = 1'b0;
+        md_rs2_signed = 1'b0;
+      end
+
+    3'b110: // REM
+      begin
+        md_op      = 2'b10;
+        md_out_sel = 2'b10;
+      end
+    
+    3'b111: // REMU
+      begin
+        md_op         = 2'b10;
+        md_out_sel    = 2'b10;
+        md_rs1_signed = 1'b0;
+        md_rs2_signed = 1'b0;
+      end
+  endcase
+end
+
+vscale_mul_div md_0
+  ( .clk             (clk)
+   ,.reset           (reset)
+   ,.req_valid       (md_valid)
+   ,.req_ready       (md_ready)
+   ,.req_in_1_signed (md_rs1_signed)
+   ,.req_in_2_signed (md_rs2_signed)
+   ,.req_op          (md_op)
+   ,.req_out_sel     (md_out_sel)
+   ,.req_in_1        (rs1_to_alu)
+   ,.req_in_2        (rs2_to_alu)
+   ,.resp_valid      (md_resp_valid)
+   ,.resp_result     (md_result)
+  );
+
+//+----------------------------------------------
+//|
 //|                ALU SIGNALS
 //|
 //+----------------------------------------------
@@ -737,9 +842,11 @@ alu alu_0
     .rs1_i(rs1_to_alu),
     .rs2_i(rs2_to_alu),
     .op_i(exe.instruction),
-    .result_o(alu_result),
+    .result_o(basic_comp_result),
     .jump_now_o(jump_now)
 );
+
+assign alu_result = instr_is_md ? md_result : basic_comp_result;
 
 //+----------------------------------------------
 //|

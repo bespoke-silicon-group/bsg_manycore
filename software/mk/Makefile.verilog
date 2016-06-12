@@ -36,8 +36,9 @@ ifeq ($(MANYCORE_PROC),VSCALE)
 		   vscale_mul_div.v vscale_csr_file.v vscale_PC_mux.v) \
                  $(addprefix $(BSG_MANYCORE_DIR)/v/, bsg_vscale_pkg.v bsg_vscale_core.v bsg_manycore_proc.v)
 else ifeq ($(MANYCORE_PROC),VANILLA)
-  DESIGN_HDRS += -i $(VANILLA_SRC)/
+  DESIGN_HDRS += -i $(VANILLA_SRC)/ -i $(VSCALE_SRC)/
   DESIGN_SRCS += $(addprefix $(VANILLA_SRC)/, alu.v reg_file.v cl_decode.v cl_state_machine.v hobbit.v bsg_manycore_proc.v) \
+		 $(addprefix $(VSCALE_SRC)/, vscale_mul_div.v) \
                  $(addprefix $(VANILLA_MEM)/, mem_1rw.v)
 else
   $(error MANYCORE_PROC not defined or unknown)
