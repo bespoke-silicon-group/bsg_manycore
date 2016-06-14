@@ -34,5 +34,8 @@ single: rv32ui_p_add.run
 	make -C $(RISCV_INPUT_DIR)/isa/ $*
 	mv $(RISCV_INPUT_DIR)/isa/$* $*.riscv
 
+%.dis: %.riscv
+	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objdump -D $< > $@
+
 clean:
-	rm -rf xelab.* xvlog.* xsim* webtalk* *.wdb *.Xil
+	rm -rf xelab.* xvlog.* xsim* webtalk* *.wdb *.Xil *.riscv *.bin *.hex *.dis
