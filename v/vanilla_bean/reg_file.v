@@ -21,9 +21,6 @@ logic [31:0] RF [2**addr_width_p-1:0];
 always_comb
 begin
     if (cen_i) begin
-        //rs_val_o = RF [rs_addr_i];
-        //rd_val_o = RF [rd_addr_i];
-        
         // RISC-V edit: reg 0 hardwired to 0
         rs_val_o = (|rs_addr_i) ? RF [rs_addr_i] : 32'(0);
         rd_val_o = (|rd_addr_i) ? RF [rd_addr_i] : 32'(0);

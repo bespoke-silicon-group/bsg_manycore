@@ -2,7 +2,6 @@
 `define _definitions_v_
 
 `include "parameters.v"
-//`timescale 1 ns / 1 ns
 
 /**
  *  This file defines the structs and macros
@@ -17,10 +16,6 @@
     endcase
 
 //---- Controller states ----//
-// WORK state means start of any operation or wait for the 
-// response of memory in acknowledge of the command
-// MEM_WAIT state means the memory acknowledged the command, 
-// but it did not send the valid signal and core is waiting for it
 typedef enum logic [1:0] {
     IDLE = 2'b00,
     RUN  = 2'b01,    
@@ -37,17 +32,6 @@ typedef enum logic [2:0]
     BAR   = 3'b100  // Barrier mask
 }
 net_op_e;
-
-/*
-// Instruction structure
-typedef struct packed
-{
-    logic [opcode_size_gp-1:0] opcode; // Operator code
-    logic [rd_size_gp-1:0]     rd;     // Destination register
-    logic [rs_imm_size_gp-1:0] rs_imm; // Source register or immediate value
-}
-instruction_s;
-*/
 
 // RV32 Instruction structure
 // Ideally represents a R-type instruction; these fields if
@@ -96,19 +80,6 @@ typedef struct packed
 }
 mesh_packet_s;
 
-/*
-// Data memory input structure
-typedef struct packed
-{
-    logic        valid;         
-    logic        wen;           
-    logic        byte_not_word; 
-    logic [31:0] addr;          
-    logic [31:0] write_data;   
-    logic           yumi;    // in response to data memory
-}
-mem_in_s;
-*/
 // Data memory input structure
 typedef struct packed
 {
@@ -117,7 +88,7 @@ typedef struct packed
     logic [3:0]  mask;
     logic [31:0] addr;          
     logic [31:0] write_data;   
-    logic           yumi;    // in response to data memory
+    logic        yumi;    // in response to data memory
 }
 mem_in_s;
 
@@ -133,33 +104,12 @@ mem_out_s;
 // Debug signal structures
 typedef struct packed
 {
-    logic [imem_addr_width_gp-1:0]  PC_r_f;           // Program counter
+    logic [31:0]                    PC_r_f;           // Program counter
     logic [RV32_instr_width_gp-1:0] instruction_i_f;  // Instruction
     logic [1:0]                     state_r_f;        // Core state
-    //logic [mask_length_gp-1:0]      barrier_mask_r_f; // Barrier mask
-    //logic [mask_length_gp-1:0]      barrier_r_f;      // Barrier
 }
 debug_s;
 
-/*
-// Decode control signals structures
-typedef struct packed
-{
-    logic op_writes_rf; // Op writes to the register file
-    logic is_load_op;   // Op loads data from memory
-    logic is_store_op;  // Op stores data to memory
-    logic is_mem_op;    // Op modifies data memory
-    logic is_byte_op;   // Op specifies byte sized data
-    logic is_branch_op; // Op is a branch operation
-    logic is_jump_op;   // Op is a jump operation
-    logic is_bar_op;    // Op is a barrier operation
-    logic is_netw_op;   // Op is a network operation
-    logic op_reads_crf; // Op reads from constant register file
-    logic op_reads_rf1; // OP reads from first port of register file
-    logic op_reads_rf2; // OP reads from first port of register file
-}
-decode_s;
-*/
 // Decode control signals structures
 typedef struct packed
 {
@@ -175,18 +125,6 @@ typedef struct packed
 }
 decode_s;
 
-/*
-// Instruction decode stage signals
-typedef struct packed
-{
-    logic [imem_addr_width_gp-1:0] pc_plus1;     // PC + 1
-    logic [imem_addr_width_gp-1:0] pc_jump_addr; // Jump taget PC
-    logic [operand_size_gp-1:0]    long_imm;     // Load global offset
-    instruction_s                  instruction;  // Instruction being executed
-    decode_s                       decode;       // Decode signals
-}
-id_signals_s;
-*/
 // Instruction decode stage signals
 typedef struct packed
 {
@@ -197,20 +135,6 @@ typedef struct packed
 }
 id_signals_s;
 
-/*
-// Execute stage signals
-typedef struct packed
-{
-    logic [imem_addr_width_gp-1:0] pc_plus1;     // PC + 1
-    logic [imem_addr_width_gp-1:0] pc_jump_addr; // Jump taget PC
-    logic [operand_size_gp-1:0]    long_imm;     // Load global offset
-    instruction_s                  instruction;  // Instruction being executed
-    decode_s                       decode;       // Decode signals
-    logic [31:0]                   rs_val;       // RF output data from RS address
-    logic [31:0]                   rd_val;       // RF output data from RD address
-}
-exe_signals_s;
-*/
 // Execute stage signals
 typedef struct packed
 {
@@ -223,17 +147,6 @@ typedef struct packed
 }
 exe_signals_s;
 
-/*
-// Memory stage signals
-typedef struct packed
-{
-    logic [imem_addr_width_gp-1:0] pc_plus1;   // PC + 1
-    logic [rd_size_gp-1:0]         rd_addr;    // Destination address
-    decode_s                       decode;     // Decode signals
-    logic [31:0]                   alu_result; // ALU ouptut data
-}
-mem_signals_s;
-*/
 // Memory stage signals
 typedef struct packed
 {
@@ -245,16 +158,6 @@ typedef struct packed
 }
 mem_signals_s;
 
-/*
-// RF write back stage signals
-typedef struct packed
-{
-    logic                  op_writes_rf; // Op writes to the register file
-    logic [rd_size_gp-1:0] rd_addr;      // Register file write address
-    logic [31:0]           rf_data;      // Register file write data
-}
-wb_signals_s;
-*/
 // RF write back stage signals
 typedef struct packed
 {

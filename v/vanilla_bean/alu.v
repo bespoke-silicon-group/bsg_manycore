@@ -1,15 +1,12 @@
-//This is the ALU module of the core, op_code_e is defined in definitions.v file
 `include "parameters.v"
 `include "definitions.v"
 
-module alu (//input  [31:0] rd_i 
-           //,input  [31:0] rs_i
-            input [RV32_reg_data_width_gp-1:0] rs1_i
-           ,input [RV32_reg_data_width_gp-1:0] rs2_i
-           ,input  instruction_s op_i
-           //,output logic [31:0] result_o
-           ,output logic [RV32_reg_data_width_gp-1:0] result_o
-           ,output logic jump_now_o);
+module alu ( input [RV32_reg_data_width_gp-1:0] rs1_i
+            ,input [RV32_reg_data_width_gp-1:0] rs2_i
+            ,input  instruction_s op_i
+            ,output logic [RV32_reg_data_width_gp-1:0] result_o
+            ,output logic jump_now_o
+           );
 
 logic        is_imm_op, sub_not_add,
              carry, sum_is_zero, sign_ex_or_zero;
@@ -151,109 +148,4 @@ always_comb
     endcase
   end
 
-/*
-logic sub_not_add, carry, not_all_zero, sign_ex_or_zero;
-logic [31:0] sum, adder_input;
-logic [32:0] shr_out;
-logic [31:0] shl_out;
-logic [4:0] sh_amount;
-
-assign adder_input     = sub_not_add ? (~rs_i) : rs_i;
-assign {carry,sum}     = rd_i + adder_input + sub_not_add;
-assign not_all_zero    = | rd_i;
-
-assign sh_amount = rs_i[4:0];
-assign shr_out   = $signed ({sign_ex_or_zero,rd_i}) >>> sh_amount;
-assign shl_out   = rd_i << sh_amount;
-
-always_comb
-  begin
-    jump_now_o  = 1'bx;
-    result_o    = 32'dx;
-    sub_not_add = 1'bx;
-    sign_ex_or_zero = 1'bx;
-
-    unique casez (op_i)
-      `kADDU, `kLG, `kADDI:
-        begin
-          result_o    = sum;
-          sub_not_add = 1'b0;
-        end
-
-      `kSUBU:  
-        begin
-          result_o    = sum;
-          sub_not_add = 1'b1;
-        end
-      
-      `kSLLV:  
-        begin
-          result_o   = shl_out;  
-        end
-
-      `kSRAV:  
-        begin
-          result_o        = shr_out[31:0];
-          sign_ex_or_zero = rd_i[31];
-        end
-      
-      `kSRLV: 
-        begin
-          result_o        = shr_out[31:0];
-          sign_ex_or_zero = 1'b0;
-        end
-
-      `kAND:   result_o   = rd_i & rs_i;
-      `kOR:    result_o   = rd_i | rs_i;
-      `kNOR:   result_o   = ~ (rd_i|rs_i);
-
-      `kSLT:   
-        begin
-          sub_not_add = 1'b1;
-          result_o    = {{31{1'b0}},sum[31]};
-        end
-      
-      `kSLTU:
-        begin 
-          sub_not_add = 1'b1;
-          result_o    = {{31{1'b0}},~carry};
-        end
-      
-      `kBEQZ:  
-        begin
-          jump_now_o = ~not_all_zero;
-        end
-      
-      `kBNEQZ:
-        begin
-          jump_now_o = not_all_zero;
-        end
-      
-      
-      `kBGTZ:
-        begin
-          jump_now_o = ~rd_i[31] & not_all_zero;
-        end
-      
-      
-      `kBLTZ: 
-        begin
-          jump_now_o = rd_i[31];
-        end
-      
-      
-      `kMOV, `kLW, `kLBU, `kJALR, `kBAR, `kBARWAIT:   
-               result_o   = rs_i;
-      `kSW, `kSB, `kMOVI:    
-               result_o   = rd_i;
-      //`kWAIT:
-      //`kBL:
-      //`NETW: 
-      
-      default: 
-        begin 
-        end
-    endcase
-  end
-*/
 endmodule 

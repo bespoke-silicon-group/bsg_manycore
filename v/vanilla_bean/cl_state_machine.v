@@ -9,7 +9,6 @@ module cl_state_machine
 (
     input instruction_s instruction_i,
     input state_e       state_i,
-    //input               exception_i,
     input               net_pc_write_cmd_idle_i,
     input               stall_i,
     output state_e      state_o
@@ -26,17 +25,10 @@ begin
             else
                 state_o = IDLE;
 
-        // Run state, core is executing and will only go to idle is
-        // a wait command is executed
+        // RISC-V edit:
+        // Run state, core is executing and will only go to idle
+        // when reset is asserted
         RUN:
-            /*
-            unique casez (instruction_i)
-                `kWAIT, `kBARWAIT:
-                    state_o = IDLE;
-                default:
-                    state_o = RUN;
-            endcase
-            */
             state_o = RUN;
 
         // Error state, something has gone wrong and should stay in
@@ -49,11 +41,6 @@ begin
         default:
             state_o = ERR;
     endcase
-
-//    // If an exception has been asserted, then go into the error state
-//    if ((~stall_i) & exception_i) begin
-//        state_o = ERR;
-//    end
 end
 
 endmodule
