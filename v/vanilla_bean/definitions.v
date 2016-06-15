@@ -165,11 +165,8 @@ typedef struct packed
 {
     logic op_writes_rf; // Op writes to the register file
     logic is_load_op;   // Op loads data from memory
-    logic is_uload_op;  // Op loads unsigned byte or hex values
     logic is_store_op;  // Op stores data to memory
     logic is_mem_op;    // Op modifies data memory
-    logic is_byte_op;   // Op specifies byte sized data
-    logic is_hex_op;    // Op specifies hex sized data
     logic is_branch_op; // Op is a branch operation
     logic is_jump_op;   // Op is a jump operation
     logic op_reads_rf1; // OP reads from first port of register file
@@ -244,6 +241,7 @@ typedef struct packed
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;    // Destination address
     decode_s                           decode;     // Decode signals
     logic [RV32_reg_data_width_gp-1:0] alu_result; // ALU ouptut data
+    logic [2:0]                        ld_width;  // width of load
 }
 mem_signals_s;
 

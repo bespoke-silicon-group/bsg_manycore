@@ -282,12 +282,12 @@ end
 // RISC-V edit: support for byte and hex stores
 always_comb
 begin
-  if (exe.decode.is_byte_op)
+  if (~|exe.instruction.funct3[1:0]) // byte op
     begin
       store_data = (32'(rs2_to_alu[7:0])) << ((5'(alu_result[1:0])) << 3);
       mask       = (4'b0001 << alu_result[1:0]);
     end
-  else if(exe.decode.is_hex_op)
+  else if(exe.instruction.funct3[1:0] == 2'b01) // hex op
     begin
       store_data = (32'(rs2_to_alu[15:0])) << ((5'(alu_result[1:0])) << 3);
       mask       = (4'b0011 << alu_result[1:0]);
@@ -334,7 +334,7 @@ if(debug_p)
                  ,net_packet_r.header.addr
                  ,net_packet_r.data
                 );
-        $display("  ID: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b uld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b"
+        $display("  ID: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b"
                  ,id.pc_plus4
                  ,id.instruction.funct7
                  ,id.instruction.rs2
@@ -345,18 +345,15 @@ if(debug_p)
                  ,id.pc_jump_addr
                  ,id.decode.op_writes_rf
                  ,id.decode.is_load_op  
-                 ,id.decode.is_uload_op 
                  ,id.decode.is_store_op 
                  ,id.decode.is_mem_op   
-                 ,id.decode.is_byte_op  
-                 ,id.decode.is_hex_op   
                  ,id.decode.is_branch_op
                  ,id.decode.is_jump_op  
                  ,id.decode.op_reads_rf1
                  ,id.decode.op_reads_rf2
                  ,id.decode.op_is_auipc
                 );
-        $display(" EXE: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b uld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b rs1:%0x rs2:%0x"
+        $display(" EXE: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b rs1:%0x rs2:%0x"
                  ,exe.pc_plus4
                  ,exe.instruction.funct7
                  ,exe.instruction.rs2
@@ -367,11 +364,8 @@ if(debug_p)
                  ,exe.pc_jump_addr
                  ,exe.decode.op_writes_rf 
                  ,exe.decode.is_load_op   
-                 ,exe.decode.is_uload_op  
                  ,exe.decode.is_store_op  
                  ,exe.decode.is_mem_op    
-                 ,exe.decode.is_byte_op   
-                 ,exe.decode.is_hex_op    
                  ,exe.decode.is_branch_op 
                  ,exe.decode.is_jump_op   
                  ,exe.decode.op_reads_rf1 
@@ -380,16 +374,13 @@ if(debug_p)
                  ,exe.rs1_val
                  ,exe.rs2_val
                 );
-        $display(" MEM: pc+4:%x rd_addr:%x wrf:%b ld:%b uld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
+        $display(" MEM: pc+4:%x rd_addr:%x wrf:%b ld:%b st:%b mem:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
                  ,mem.pc_plus4
                  ,mem.rd_addr
                  ,mem.decode.op_writes_rf 
                  ,mem.decode.is_load_op   
-                 ,mem.decode.is_uload_op  
                  ,mem.decode.is_store_op  
                  ,mem.decode.is_mem_op    
-                 ,mem.decode.is_byte_op   
-                 ,mem.decode.is_hex_op    
                  ,mem.decode.is_branch_op 
                  ,mem.decode.is_jump_op   
                  ,mem.decode.op_reads_rf1 
@@ -888,6 +879,7 @@ begin
   if(exe.instruction ==? `RV32_LR_W)
     begin
       reserve_1_o = ~exe.instruction[26];
+      // stall until reseervation is cleared
       stall_lrw   = exe.instruction[26] & reservation_i;
     end
 end
@@ -1061,7 +1053,8 @@ begin
             pc_plus4   : exe.pc_plus4,
             rd_addr    : exe.instruction.rd,
             decode     : exe.decode,
-            alu_result : alu_result
+            alu_result : alu_result,
+            ld_width   : exe.instruction.funct3
         };
 end
 
@@ -1095,12 +1088,12 @@ begin
                       : from_mem_i.read_data[0+:16];
     
         //rf_data = from_mem_i.read_data;
-        if (mem.decode.is_byte_op)
-            rf_data = (mem.decode.is_uload_op) 
+        if (~|mem.ld_width[1:0])  // 2'b00 is byte op
+            rf_data = (mem.ld_width[2]) 
                        ? 32'(loaded_byte[7:0])
                        : {{24{loaded_byte[7]}}, loaded_byte[7:0]};
-        else if(mem.decode.is_hex_op)
-            rf_data = (mem.decode.is_uload_op)
+        else if(mem.ld_width[1:0] == 2'b01) // 2'b01 is hex op
+            rf_data = (mem.ld_width[2])
                        ? 32'(loaded_hex[15:0])
                        : {{24{loaded_hex[15]}}, loaded_hex[15:0]};
         else

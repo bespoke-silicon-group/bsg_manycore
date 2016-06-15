@@ -55,15 +55,6 @@ always_comb
             decode_o.is_load_op = 1'b0;
     endcase
 
-// RISC-V edit: Is unsigned load Op
-always_comb
-    unique casez (instruction_i)
-        `RV32_LBU,  `RV32_LHU:
-            decode_o.is_uload_op = 1'b1;
-        default:
-            decode_o.is_uload_op = 1'b0;
-    endcase
-
 // Is Store Op -- data memory store operation
 always_comb
     unique casez (instruction_i)
@@ -73,25 +64,6 @@ always_comb
         default:
             decode_o.is_store_op = 1'b0;
   endcase
-
-// Is Byte Op -- data memory byte wide operation
-always_comb
-    unique casez (instruction_i)
-        //`kLBU, `kSB:
-        `RV32_LB, `RV32_LBU, `RV32_SB:
-            decode_o.is_byte_op = 1'b1;
-        default:
-            decode_o.is_byte_op = 1'b0;
-    endcase
-
-// RISC-V edit: Is HEX Op -- data memory hex wide operation
-always_comb
-    unique casez (instruction_i)
-        `RV32_LH, `RV32_LHU, `RV32_SH:
-            decode_o.is_hex_op = 1'b1;
-        default:
-            decode_o.is_hex_op = 1'b0;
-    endcase
 
 // Is Branch Op -- pc branching operation
 // `kBL is actually like jump since there is
