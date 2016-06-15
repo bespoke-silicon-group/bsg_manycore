@@ -22,6 +22,8 @@ module hobbit #(parameter imem_addr_width_p = -1,
             
                 input  mem_out_s                  from_mem_i,
                 output mem_in_s                   to_mem_o,
+                input  logic                      reservation_i,
+                output logic                      reserve_1_o,
             
                 //input                             gate_way_full_i,
                 //output logic [mask_length_gp-1:0] barrier_o,
@@ -52,7 +54,7 @@ logic         net_id_match_valid, net_pc_write_cmd,  net_imem_write_cmd,
 
 // Stall and exception logic
 //logic stall, stall_non_mem, stall_mem, exception_n;
-logic stall, stall_non_mem, stall_mem;
+logic stall, stall_non_mem, stall_mem, stall_lrw;
 
 // Program counter logic
 //logic [imem_addr_width_p-1:0] pc_n, pc_r, pc_plus1, pc_jump_addr, pc_long_jump_addr;
@@ -79,7 +81,7 @@ logic                              rf_wen, rf_cen;
 
 // MUL/DIV signals 
 logic        instr_is_md, stall_md, md_valid, md_rs1_signed, md_rs2_signed;
-logic [2:0]  md_op, md_out_sel;
+logic [1:0]  md_op, md_out_sel;
 logic        md_ready, md_resp_valid;
 logic [31:0] md_result;
 
@@ -249,7 +251,8 @@ assign stall_non_mem = (net_imem_write_cmd)
 // stall due to data memory access
 assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
                  //| (mem.decode.is_mem_op & (~from_mem_i.valid));
-                   | (mem.decode.is_load_op & (~from_mem_i.valid));
+                   | (mem.decode.is_load_op & (~from_mem_i.valid))
+                   | stall_lrw;
 
 // Stall if LD/ST still active; or in non-RUN state
 assign stall = (stall_non_mem | stall_mem); 
@@ -399,10 +402,12 @@ if(debug_p)
                  ,wb.rd_addr      
                  ,wb.rf_data      
                 );
-        $display("MISC: stall:%b stall_mem:%b stall_non_mem:%b valid_to_mem_c:%b alu_result:%x st_data:%x mask:%b jump_now:%b flush:%b"
+        $display("MISC: stall:%b stall_mem:%b stall_non_mem:%b stall_lrw:%b reservation:%b valid_to_mem:%b alu_result:%x st_data:%x mask:%b jump_now:%b flush:%b"
                  ,stall
                  ,stall_mem      
                  ,stall_non_mem
+                 ,stall_lrw
+                 ,reservation_i
                  ,valid_to_mem_c
                  ,alu_result
                  ,store_data
@@ -410,7 +415,7 @@ if(debug_p)
                  ,jump_now
                  ,flush
                 );
-        $display(" MUL: stall_md:%b md_vlaid:%b md_op:%b md_out_sel:%b md_resp_valid:%b md_result:%x"
+        $display("  MD: stall_md:%b md_vlaid:%b md_op:%b md_out_sel:%b md_resp_valid:%b md_result:%x"
                  ,stall_md
                  ,md_valid
                  ,md_op
@@ -871,8 +876,21 @@ cl_state_machine state_machine
 //|
 //+----------------------------------------------
 
-assign valid_to_mem_c = exe.decode.is_mem_op & (~stall_non_mem);
+assign valid_to_mem_c = exe.decode.is_mem_op & (~stall_non_mem) & (~stall_lrw);
 assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
+
+// RISC-V edit: add reservation
+always_comb
+begin
+  reserve_1_o = 1'b0;
+  stall_lrw   = 1'b0;
+
+  if(exe.instruction ==? `RV32_LR_W)
+    begin
+      reserve_1_o = ~exe.instruction[26];
+      stall_lrw   = exe.instruction[26] & reservation_i;
+    end
+end
 
 //+----------------------------------------------
 //|

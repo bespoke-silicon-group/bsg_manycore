@@ -67,12 +67,12 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       );
 
    // decode incoming packet
-   logic                       pkt_freeze, pkt_unfreeze, pkt_remote_store, pkt_unknown;
-   logic [data_width_p-1:0]    remote_store_data;
+   logic                         pkt_freeze, pkt_unfreeze, pkt_remote_store, pkt_unknown;
+   logic [data_width_p-1:0]      remote_store_data;
    logic [(data_width_p>>3)-1:0] remote_store_mask;
-   logic [addr_width_p-1:0]    remote_store_addr;
-   logic                       remote_store_v, remote_store_yumi;
-   logic                       remote_store_imem_not_dmem;
+   logic [addr_width_p-1:0]      remote_store_addr;
+   logic                         remote_store_v, remote_store_yumi;
+   logic                         remote_store_imem_not_dmem;
 
    if (debug_p)
    always_ff @(negedge clk_i)
@@ -125,9 +125,35 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
          end
    
    // vanilla core signals
-   ring_packet_s core_net_pkt;
-   mem_in_s      core_to_mem;
-   mem_out_s     mem_to_core;
+   ring_packet_s            core_net_pkt;
+   mem_in_s                 core_to_mem;
+   mem_out_s                mem_to_core;
+   logic                    core_mem_reservation_r;
+   logic [addr_width_p-1:0] core_mem_reserve_addr_r;
+
+   // implement LR (load word reserved)
+   always_ff @(posedge clk_i)
+     begin
+        // if we commit a reserved memory access
+        // to the interface, then the reservation takes place
+        if (core_to_mem.valid & core_mem_reserve_1 & mem_to_core.yumi)
+          begin
+             // copy address
+             core_mem_reservation_r  <= 1'b1;
+             core_mem_reserve_addr_r <= core_to_mem.addr;
+	     $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_to_mem.addr);
+          end
+        else
+          // otherwise, we clear existing reservations if the corresponding
+          // address is committed as a remote store
+          begin
+             if (remote_store_v && (core_mem_reserve_addr_r == remote_store_addr) && remote_store_yumi)
+	       begin
+		  core_mem_reservation_r  <= 1'b0;
+		  $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r);
+	       end
+          end
+     end
 
    hobbit #
      ( .imem_addr_width_p(imem_addr_width_lp)
@@ -144,7 +170,9 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 //      ,.net_packet_o   ()
      
       ,.from_mem_i     (mem_to_core)
-      ,.to_mem_o       (core_to_mem) 
+      ,.to_mem_o       (core_to_mem)
+      ,.reserve_1_o    (core_mem_reserve_1)
+      ,.reservation_i  (core_mem_reservation_r)
      
 //      ,.gate_way_full_i(1'b1) 
 //      ,.barrier_o      () 
@@ -273,7 +301,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
      end
 
-   assign mem_to_core.yumi = (xbar_port_yumi_out[1] | (v_o & ready_i));
+   assign mem_to_core.yumi  = (xbar_port_yumi_out[1] | (v_o & ready_i));
    assign remote_store_yumi = (xbar_port_yumi_out[0] | remote_store_imem_not_dmem);
 
    // potentially, we could get better bandwidth if we demultiplexed the remote store input port

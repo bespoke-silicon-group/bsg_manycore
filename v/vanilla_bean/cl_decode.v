@@ -27,7 +27,7 @@ always_comb
         `RV32_SUB,  `RV32_SLL,   `RV32_SLT,   `RV32_SLTU, `RV32_XOR,
         `RV32_SRL,  `RV32_SRA,   `RV32_OR,    `RV32_AND,  `RV32_MUL,
         `RV32_MULH, `RV32_MULHSU,`RV32_MULHU, `RV32_DIV,  `RV32_DIVU,
-        `RV32_REM,  `RV32_REMU:
+        `RV32_REM,  `RV32_REMU,  `RV32_LR_W:
             decode_o.op_writes_rf = 1'b1;
         default:
             decode_o.op_writes_rf = 1'b0;
@@ -38,7 +38,7 @@ always_comb
     unique casez (instruction_i)
         //`kLW, `kLBU, `kSW, `kSB, `kLG:
         `RV32_LB,   `RV32_LH,    `RV32_LW,    `RV32_LBU,  `RV32_LHU,
-        `RV32_SB,   `RV32_SH,    `RV32_SW:
+        `RV32_SB,   `RV32_SH,    `RV32_SW, `RV32_LR_W:
             decode_o.is_mem_op = 1'b1;
         default:
             decode_o.is_mem_op = 1'b0;
@@ -48,7 +48,8 @@ always_comb
 always_comb
     unique casez (instruction_i)
         //`kLW, `kLBU, `kLG:
-        `RV32_LB,   `RV32_LH,    `RV32_LW,    `RV32_LBU,  `RV32_LHU:
+        `RV32_LB,   `RV32_LH,    `RV32_LW,    `RV32_LBU,  `RV32_LHU,
+        `RV32_LR_W:
             decode_o.is_load_op = 1'b1;
         default:
             decode_o.is_load_op = 1'b0;

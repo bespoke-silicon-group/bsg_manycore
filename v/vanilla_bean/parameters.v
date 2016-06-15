@@ -85,8 +85,7 @@
 `define RV32_DIVU      `RV32_Rtype(`RV32_OP     , 3'b101, 7'b0000001) 
 `define RV32_REM       `RV32_Rtype(`RV32_OP     , 3'b110, 7'b0000001) 
 `define RV32_REMU      `RV32_Rtype(`RV32_OP     , 3'b111, 7'b0000001) 
-`define RV32_FENCE     {25'0000_????_????_00000_000_00000, `RV32_MISC_MEM}
-`define RV32_FENCE_I   {25'0000_0000_0000_00000_001_00000, `RV32_MISC_MEM}
+`define RV32_LR_W      `RV32_Rtype(`RV32_AMO    , 3'b010, 7'b00010??)
 
 // RV32 Immediate sign extension macros
 `define RV32_signext_Iimm(instr) {{21{``instr``[31]}}, ``instr``[30:20]}
