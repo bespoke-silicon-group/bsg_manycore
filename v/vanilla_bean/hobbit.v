@@ -326,8 +326,11 @@ assign pc_wen = net_pc_write_cmd_idle | (~stall);
 // Next PC under normal circumstances
 assign pc_plus4 = pc_r + 3'b100;
 
-assign pc_jump_addr      = $signed(pc_r) + $signed(`RV32_signext_Bimm(instruction)); 
-assign pc_long_jump_addr = $signed(pc_r) + $signed(`RV32_signext_Jimm(instruction));
+assign pc_jump_addr      = $signed(pc_r) 
+                           + (decode.is_branch_op 
+                              ? $signed(`RV32_signext_Bimm(instruction))
+                              : $signed(`RV32_signext_Jimm(instruction))
+                             );
 
 // Determine what the next PC should be
 always_comb
@@ -354,17 +357,13 @@ begin
     else if (jalr_mispredict)
         pc_n = alu_result;
 
-    // Predict taken branch
-    else if (decode.is_branch_op & instruction[RV32_instr_width_gp-1])
+    // Predict taken branch or instrcution is a long jump
+    else if ((decode.is_branch_op & instruction[RV32_instr_width_gp-1]) | (instruction[6:0] == `RV32_JAL_OP))
         pc_n = pc_jump_addr;
 
     // Predict jump to previous linked location
-    else if (instruction ==? `RV32_JALR)
+    else if (decode.is_jump_op) // equivalent to (instruction ==? `RV32_JALR)
         pc_n = jalr_prediction_n;
-
-    // if the instruction is long branch, there is no prediction 
-    else if (instruction ==? `RV32_JAL)
-        pc_n = pc_long_jump_addr;
 
     // Standard operation or predict not taken branch
     else
