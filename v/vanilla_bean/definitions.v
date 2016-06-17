@@ -28,8 +28,7 @@ typedef enum logic [2:0]
     NULL  = 3'b000, // Nothing
     INSTR = 3'b001, // Instruction for instruction memory
     REG   = 3'b010, // Value for a register
-    PC    = 3'b011, // Change PC
-    BAR   = 3'b100  // Barrier mask
+    PC    = 3'b011  // Change PC
 }
 net_op_e;
 
