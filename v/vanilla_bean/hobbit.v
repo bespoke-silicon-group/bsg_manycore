@@ -558,7 +558,7 @@ assign  rs1_in_mem       = mem.decode.op_writes_rf
 assign  rs1_in_wb        = wb.op_writes_rf 
                            & (exe.instruction.rs1  == wb.rd_addr)
                            & (|exe.instruction.rs1);
-assign  rs1_forward_val  = rs1_in_mem ? rf_data : (rs1_in_wb ? wb.rf_data : 32'd0);
+assign  rs1_forward_val  = rs1_in_mem ? rf_data : wb.rf_data;
 assign  rs1_is_forward   = (rs1_in_mem | rs1_in_wb);
 
 // RD register forwarding
@@ -568,7 +568,7 @@ assign  rs2_in_mem       = mem.decode.op_writes_rf
 assign  rs2_in_wb        = wb.op_writes_rf 
                            & (exe.instruction.rs2  == wb.rd_addr)
                            & (|exe.instruction.rs2);
-assign  rs2_forward_val  = rs2_in_mem ? rf_data : (rs2_in_wb ? wb.rf_data : 32'd0);
+assign  rs2_forward_val  = rs2_in_mem ? rf_data : wb.rf_data;
 assign  rs2_is_forward   = (rs2_in_mem | rs2_in_wb);
 
 // RISC-V edit: Immediate values handled in alu
