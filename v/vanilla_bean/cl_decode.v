@@ -16,15 +16,9 @@ logic reads_crf;
 
 // Op Writes RF -- register file write operation
 always_comb
-    unique casez (instruction_i)
-        `RV32_LUI,  `RV32_AUIPC, `RV32_JAL,   `RV32_JALR,
-        `RV32_LB,   `RV32_LH,    `RV32_LW,    `RV32_LBU,  `RV32_LHU,
-        `RV32_ADDI, `RV32_SLTI,  `RV32_SLTIU, `RV32_XORI, `RV32_ORI, 
-        `RV32_ANDI, `RV32_SLLI,  `RV32_SRLI,  `RV32_SRAI, `RV32_ADD,
-        `RV32_SUB,  `RV32_SLL,   `RV32_SLT,   `RV32_SLTU, `RV32_XOR,
-        `RV32_SRL,  `RV32_SRA,   `RV32_OR,    `RV32_AND,  `RV32_MUL,
-        `RV32_MULH, `RV32_MULHSU,`RV32_MULHU, `RV32_DIV,  `RV32_DIVU,
-        `RV32_REM,  `RV32_REMU,  `RV32_LR_W:
+    unique casez (instruction_i.op)
+        `RV32_LUI_OP, `RV32_AUIPC_OP, `RV32_JAL_OP, `RV32_JALR_OP,
+        `RV32_LOAD,   `RV32_OP,       `RV32_OP_IMM, `RV32_AMO: 
             decode_o.op_writes_rf = 1'b1;
         default:
             decode_o.op_writes_rf = 1'b0;
@@ -32,28 +26,47 @@ always_comb
 
 // Is Mem Op -- data memory operation
 always_comb
-    unique casez (instruction_i)
-        `RV32_LB,   `RV32_LH,    `RV32_LW,    `RV32_LBU,  `RV32_LHU,
-        `RV32_SB,   `RV32_SH,    `RV32_SW, `RV32_LR_W:
+    unique casez (instruction_i.op)
+        `RV32_LOAD, `RV32_STORE:
             decode_o.is_mem_op = 1'b1;
         default:
             decode_o.is_mem_op = 1'b0;
     endcase
 
+// Is byte Op -- byte ld/st operation
+always_comb
+    unique casez (instruction_i.funct3[1:0])
+        2'b00:
+            decode_o.is_byte_op = decode_o.is_mem_op;
+        default:
+            decode_o.is_byte_op = 1'b0;
+    endcase
+
+// Is hex Op -- hex ld/st operation
+always_comb
+    unique casez (instruction_i.funct3[1:0])
+        2'b01:
+            decode_o.is_hex_op = decode_o.is_mem_op;
+        default:
+            decode_o.is_hex_op = 1'b0;
+    endcase
+
 // Is Load Op -- data memory load operation
 always_comb
-    unique casez (instruction_i)
-        `RV32_LB,   `RV32_LH,    `RV32_LW,    `RV32_LBU,  `RV32_LHU,
-        `RV32_LR_W:
+    unique casez (instruction_i.op)
+        `RV32_LOAD:
             decode_o.is_load_op = 1'b1;
         default:
             decode_o.is_load_op = 1'b0;
     endcase
 
+// Is load unsigned
+assign decode_o.is_load_unsigned = (instruction_i.funct3[2]) ? decode_o.is_load_op : 1'b0;
+
 // Is Store Op -- data memory store operation
 always_comb
-    unique casez (instruction_i)
-        `RV32_SB,   `RV32_SH,    `RV32_SW:
+    unique casez (instruction_i.op)
+        `RV32_STORE:
             decode_o.is_store_op = 1'b1;
         default:
             decode_o.is_store_op = 1'b0;
@@ -63,8 +76,8 @@ always_comb
 // `kBL is actually like jump since there is
 // no condition for it
 always_comb
-    unique casez (instruction_i)
-        `RV32_BEQ, `RV32_BNE, `RV32_BLT, `RV32_BGE, `RV32_BLTU,`RV32_BGEU:
+    unique casez (instruction_i.op)
+        `RV32_BRANCH:
             decode_o.is_branch_op = 1'b1;
         default:
             decode_o.is_branch_op = 1'b0;
@@ -72,8 +85,8 @@ always_comb
 
 // Is Jump Op -- pc jumping operation
 always_comb
-    unique casez (instruction_i)
-        `RV32_JAL, `RV32_JALR:
+    unique casez (instruction_i.op)
+        `RV32_JAL_OP, `RV32_JALR_OP:
             decode_o.is_jump_op = 1'b1;
         default:
             decode_o.is_jump_op = 1'b0;
@@ -81,17 +94,9 @@ always_comb
 
 // declares if OP reads from first port of register file
 always_comb
-    unique casez (instruction_i)
-        `RV32_JALR, 
-        `RV32_BEQ,  `RV32_BNE,  `RV32_BLT,    `RV32_BGE, `RV32_BLTU, `RV32_BGEU,   
-        `RV32_LB,   `RV32_LH,   `RV32_LW,    `RV32_LBU,  `RV32_LHU,   
-        `RV32_SB,   `RV32_SH,   `RV32_SW,
-        `RV32_ADDI, `RV32_SLTI, `RV32_SLTIU, `RV32_XORI, `RV32_ORI,   `RV32_ANDI, 
-        `RV32_SLLI, `RV32_SRLI, `RV32_SRAI, 
-        `RV32_ADD,  `RV32_SUB,  `RV32_SLL,    `RV32_SLT, `RV32_SLTU, `RV32_XOR,   
-        `RV32_SRL,  `RV32_SRA,  `RV32_OR,    `RV32_AND,   
-        `RV32_MUL,  `RV32_MULH, `RV32_MULHSU, `RV32_MULHU, 
-        `RV32_DIV,  `RV32_DIVU, `RV32_REM,  `RV32_REMU:
+    unique casez (instruction_i.op)
+        `RV32_JALR_OP, `RV32_BRANCH, `RV32_LOAD, `RV32_STORE,
+        `RV32_OP,      `RV32_OP_IMM, `RV32_AMO:
             decode_o.op_reads_rf1 = 1'b1;
         default:
             decode_o.op_reads_rf1 = 1'b0;
@@ -99,13 +104,8 @@ always_comb
     
 // declares if Op reads from second port of register file
 always_comb
-    unique casez (instruction_i)
-        `RV32_BEQ,  `RV32_BNE,  `RV32_BLT, `RV32_BGE, `RV32_BLTU, `RV32_BGEU,   
-        `RV32_SB,   `RV32_SH,   `RV32_SW,
-        `RV32_ADD,  `RV32_SUB,  `RV32_SLL,    `RV32_SLT, `RV32_SLTU, `RV32_XOR,   
-        `RV32_SRL,  `RV32_SRA,  `RV32_OR,    `RV32_AND,   
-        `RV32_MUL,  `RV32_MULH, `RV32_MULHSU, `RV32_MULHU, 
-        `RV32_DIV,  `RV32_DIVU, `RV32_REM,  `RV32_REMU:
+    unique casez (instruction_i.op)
+        `RV32_BRANCH, `RV32_STORE, `RV32_OP, `RV32_AMO:
             decode_o.op_reads_rf2 = 1'b1;
         default:
             decode_o.op_reads_rf2 = 1'b0;
@@ -113,7 +113,7 @@ always_comb
 
 // RISC-V edit: declares if Op is AUIPC
 always_comb
-  unique casez (instruction_i[6:0])
+  unique casez (instruction_i.op)
     `RV32_AUIPC_OP:
       decode_o.op_is_auipc = 1'b1;
     default:
