@@ -23,14 +23,13 @@ typedef enum logic [1:0] {
 } state_e;
 
 // Network operation enum
-typedef enum logic [2:0]
+typedef enum logic [1:0]
 {
-    NULL  = 3'b000, // Nothing
-    INSTR = 3'b001, // Instruction for instruction memory
-    REG   = 3'b010, // Value for a register
-    PC    = 3'b011  // Change PC
-}
-net_op_e;
+    NULL  = 2'b00, // Nothing
+    INSTR = 2'b01, // Instruction for instruction memory
+    REG   = 2'b10, // Value for a register
+    PC    = 2'b11  // Change PC
+} net_op_e;
 
 // RV32 Instruction structure
 // Ideally represents a R-type instruction; these fields if
@@ -41,7 +40,7 @@ typedef struct packed {
   logic [RV32_reg_addr_width_gp-1:0] rs1;
   logic [RV32_funct3_width_gp-1:0]   funct3;
   logic [RV32_reg_addr_width_gp-1:0] rd;
-  logic [RV32_opcode_width_gp-1:0]   opcode;
+  logic [RV32_opcode_width_gp-1:0]   op;
 } instruction_s;
 
 
@@ -55,9 +54,11 @@ typedef struct packed
                                         // sender in case of a broadcast pakcet 
     logic [4:0]  ring_ID;     // 26..22 // Ring ID of the receiver or sender
                                         // in case of a broadcast packet
-    net_op_e     net_op;      // 21..19 // Operation of the network packet 
+    net_op_e     net_op;      // 21..20 // Operation of the network packet 
                                         // for v_cores
-    logic [4:0]  reserved;    // 18..14 // reserved bits, later we may steal 
+    logic [3:0]  mask;        // 19..16 // byte mask for received network 
+                                        // data 
+    logic [1:0]  reserved;    // 15..14 // reserved bits, later we may steal 
                                         // more bits for net_op 
     logic [13:0] addr;        // 13..0  // the addr field which could be largened
                                         // using reserved field
@@ -70,15 +71,6 @@ typedef struct packed{
     logic [31:0]    data;    // 31..0
 } ring_packet_s;
 
-// Mesh network packet
-typedef struct packed
-{
-    logic           valid; 
-    logic           credit;
-    v_core_header_s data; 
-}
-mesh_packet_s;
-
 // Data memory input structure
 typedef struct packed
 {
@@ -88,8 +80,7 @@ typedef struct packed
     logic [31:0] addr;          
     logic [31:0] write_data;   
     logic        yumi;    // in response to data memory
-}
-mem_in_s;
+} mem_in_s;
 
 // Data memory output structure
 typedef struct packed
@@ -97,8 +88,7 @@ typedef struct packed
     logic        valid;     
     logic [31:0] read_data; 
     logic        yumi;      // in response to core
-}
-mem_out_s;
+} mem_out_s;
 
 // Debug signal structures
 typedef struct packed
@@ -106,23 +96,24 @@ typedef struct packed
     logic [31:0]                    PC_r_f;           // Program counter
     logic [RV32_instr_width_gp-1:0] instruction_i_f;  // Instruction
     logic [1:0]                     state_r_f;        // Core state
-}
-debug_s;
+} debug_s;
 
 // Decode control signals structures
 typedef struct packed
 {
-    logic op_writes_rf; // Op writes to the register file
-    logic is_load_op;   // Op loads data from memory
-    logic is_store_op;  // Op stores data to memory
-    logic is_mem_op;    // Op modifies data memory
-    logic is_branch_op; // Op is a branch operation
-    logic is_jump_op;   // Op is a jump operation
-    logic op_reads_rf1; // OP reads from first port of register file
-    logic op_reads_rf2; // OP reads from first port of register file
+    logic op_writes_rf;     // Op writes to the register file
+    logic is_load_op;       // Op loads data from memory
+    logic is_store_op;      // Op stores data to memory
+    logic is_mem_op;        // Op modifies data memory
+    logic is_byte_op;       // Op is byte load/store
+    logic is_hex_op;        // Op is hex load/store
+    logic is_load_unsigned; // Op is unsigned load
+    logic is_branch_op;     // Op is a branch operation
+    logic is_jump_op;       // Op is a jump operation
+    logic op_reads_rf1;     // OP reads from first port of register file
+    logic op_reads_rf2;     // OP reads from first port of register file
     logic op_is_auipc;
-}
-decode_s;
+} decode_s;
 
 // Instruction decode stage signals
 typedef struct packed
@@ -131,8 +122,7 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] pc_jump_addr; // Jump taget PC
     instruction_s                      instruction;  // Instruction being executed
     decode_s                           decode;       // Decode signals
-}
-id_signals_s;
+} id_signals_s;
 
 // Execute stage signals
 typedef struct packed
@@ -143,8 +133,7 @@ typedef struct packed
     decode_s                           decode;       // Decode signals
     logic [RV32_reg_data_width_gp-1:0] rs1_val;      // RF output data from RS1 address
     logic [RV32_reg_data_width_gp-1:0] rs2_val;      // RF output data from RS2 address
-}
-exe_signals_s;
+} exe_signals_s;
 
 // Memory stage signals
 typedef struct packed
@@ -153,9 +142,7 @@ typedef struct packed
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;    // Destination address
     decode_s                           decode;     // Decode signals
     logic [RV32_reg_data_width_gp-1:0] alu_result; // ALU ouptut data
-    logic [2:0]                        ld_width;  // width of load
-}
-mem_signals_s;
+} mem_signals_s;
 
 // RF write back stage signals
 typedef struct packed
@@ -163,7 +150,6 @@ typedef struct packed
     logic                              op_writes_rf; // Op writes to the register file
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;      // Register file write address
     logic [RV32_reg_data_width_gp-1:0] rf_data;      // Register file write data
-}
-wb_signals_s;
+} wb_signals_s;
 
 `endif

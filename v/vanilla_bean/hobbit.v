@@ -154,12 +154,12 @@ assign stall = (stall_non_mem | stall_mem);
 // RISC-V edit: support for byte and hex stores
 always_comb
 begin
-  if (~|exe.instruction.funct3[1:0]) // byte op
+  if (exe.decode.is_byte_op) // byte op
     begin
       store_data = (32'(rs2_to_alu[7:0])) << ((5'(alu_result[1:0])) << 3);
       mask       = (4'b0001 << alu_result[1:0]);
     end
-  else if(exe.instruction.funct3[1:0] == 2'b01) // hex op
+  else if(exe.decode.is_hex_op) // hex op
     begin
       store_data = (32'(rs2_to_alu[15:0])) << ((5'(alu_result[1:0])) << 3);
       mask       = (4'b0011 << alu_result[1:0]);
@@ -197,44 +197,48 @@ if(debug_p)
                  ,instruction.rs1
                  ,instruction.funct3
                  ,instruction.rd
-                 ,instruction.opcode
+                 ,instruction.op
                  ,state_r
                  ,net_packet_r.valid
                  ,net_packet_r.header.addr
                  ,net_packet_r.data
                 );
-        $display("  ID: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b"
+        $display("  ID: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b"
                  ,id.pc_plus4
                  ,id.instruction.funct7
                  ,id.instruction.rs2
                  ,id.instruction.rs1
                  ,id.instruction.funct3
                  ,id.instruction.rd
-                 ,id.instruction.opcode
+                 ,id.instruction.op
                  ,id.pc_jump_addr
                  ,id.decode.op_writes_rf
                  ,id.decode.is_load_op  
                  ,id.decode.is_store_op 
-                 ,id.decode.is_mem_op   
+                 ,id.decode.is_mem_op
+                 ,id.decode.is_byte_op
+                 ,id_decode.is_hex_op
                  ,id.decode.is_branch_op
                  ,id.decode.is_jump_op  
                  ,id.decode.op_reads_rf1
                  ,id.decode.op_reads_rf2
                  ,id.decode.op_is_auipc
                 );
-        $display(" EXE: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b rs1:%0x rs2:%0x"
+        $display(" EXE: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b rs1:%0x rs2:%0x"
                  ,exe.pc_plus4
                  ,exe.instruction.funct7
                  ,exe.instruction.rs2
                  ,exe.instruction.rs1
                  ,exe.instruction.funct3
                  ,exe.instruction.rd
-                 ,exe.instruction.opcode
+                 ,exe.instruction.op
                  ,exe.pc_jump_addr
                  ,exe.decode.op_writes_rf 
                  ,exe.decode.is_load_op   
                  ,exe.decode.is_store_op  
-                 ,exe.decode.is_mem_op    
+                 ,exe.decode.is_mem_op
+                 ,exe.decode.is_byte_op
+                 ,exe.decode.is_hex_op
                  ,exe.decode.is_branch_op 
                  ,exe.decode.is_jump_op   
                  ,exe.decode.op_reads_rf1 
@@ -243,13 +247,15 @@ if(debug_p)
                  ,exe.rs1_val
                  ,exe.rs2_val
                 );
-        $display(" MEM: pc+4:%x rd_addr:%x wrf:%b ld:%b st:%b mem:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
+        $display(" MEM: pc+4:%x rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
                  ,mem.pc_plus4
                  ,mem.rd_addr
                  ,mem.decode.op_writes_rf 
                  ,mem.decode.is_load_op   
                  ,mem.decode.is_store_op  
-                 ,mem.decode.is_mem_op    
+                 ,mem.decode.is_mem_op
+                 ,mem.decode.is_byte_op
+                 ,mem.decode.is_hex_op
                  ,mem.decode.is_branch_op 
                  ,mem.decode.is_jump_op   
                  ,mem.decode.op_reads_rf1 
@@ -307,7 +313,7 @@ assign branch_mispredict = exe.decode.is_branch_op
 
 // JALR mispredict (or just a JALR instruction in the single cycle because it
 // follows the same logic as a JALR mispredict)
-assign jalr_mispredict = (exe.instruction[6:0] ==? `RV32_JALR_OP) 
+assign jalr_mispredict = (exe.instruction.op ==? `RV32_JALR_OP) 
                          & (alu_result != jalr_prediction_rr);
 
 // Flush the control signals in the execute and instr decode stages if there
@@ -358,7 +364,7 @@ begin
         pc_n = alu_result;
 
     // Predict taken branch or instrcution is a long jump
-    else if ((decode.is_branch_op & instruction[RV32_instr_width_gp-1]) | (instruction[6:0] == `RV32_JAL_OP))
+    else if ((decode.is_branch_op & instruction[RV32_instr_width_gp-1]) | (instruction.op == `RV32_JAL_OP))
         pc_n = pc_jump_addr;
 
     // Predict jump to previous linked location
@@ -377,9 +383,9 @@ end
 //+----------------------------------------------
 
 // Selection between network and core for instruction address
-assign imem_addr = (net_imem_write_cmd) ? 
-                    net_packet_r.header.addr[2+:imem_addr_width_p] 
-                  : pc_n[2+:imem_addr_width_p];
+assign imem_addr = (net_imem_write_cmd) 
+                    ? net_packet_r.header.addr[2+:imem_addr_width_p] 
+                    : pc_n[2+:imem_addr_width_p];
 
 // Instruction memory chip enable signal
 assign imem_cen = (~stall) | (net_imem_write_cmd | net_pc_write_cmd_idle);
@@ -390,13 +396,12 @@ genvar i;
 for(i=0; i<4; i=i+1)
   mem_1rw #(.addr_width_p(imem_addr_width_p),
             .num_entries_p(2**imem_addr_width_p),
-            //.num_bits_p(instruction_size_gp)
             .num_bits_p(8)
            ) imem_0
   (
       .clk(clk),
       .addr_i(imem_addr),
-      .wen_i(net_imem_write_cmd & net_packet_r.header.reserved[i]),
+      .wen_i(net_imem_write_cmd & net_packet_r.header.mask[i]),
       .cen_i(imem_cen),
       .wd_i(net_packet_r.data[i*8+:8]),
       .rd_o(imem_out[i*8+:8])
@@ -460,7 +465,7 @@ reg_file #(.addr_width_p(RV32_reg_addr_width_gp)) rf_0
 //|     RISC-V edit: "M" STANDARAD EXTENSION 
 //|
 //+----------------------------------------------
-assign instr_is_md = (exe.instruction.opcode == `RV32_OP)
+assign instr_is_md = (exe.instruction.op == `RV32_OP)
                       & (exe.instruction.funct7 == 7'b0000001);
 assign md_valid    = instr_is_md & md_ready;
 assign stall_md    = instr_is_md & ~md_resp_valid;
@@ -686,7 +691,7 @@ end
 // Determine what rs1 value should be passed to the exe stage of the pipeline
 always_comb
 begin
-    // RS pre-forward found in the write back stage. A pre-forward is
+    // RS1 pre-forward found in the write back stage. A pre-forward is
     // a bypass of the write back signal in the ID stage, where the
     // normal forward occurs in the EXE stage right before the ALU
     if (|id.instruction.rs1 // RISC-V: no bypass for reg 0
@@ -703,7 +708,7 @@ end
 // Determine what rs2 value should be passed to the exe stage of the pipeine
 always_comb
 begin
-    // RD pre-forward found in the write back stage. A pre-forward is
+    // RD2 pre-forward found in the write back stage. A pre-forward is
     // a bypass of the write back signal in the ID stage, where the
     // normal forward occurs in the EXE stage right before the ALU
     if (|id.instruction.rs2 // RISC-V: no bypass for reg 0
@@ -749,8 +754,7 @@ begin
             pc_plus4   : exe.pc_plus4,
             rd_addr    : exe.instruction.rd,
             decode     : exe.decode,
-            alu_result : alu_result,
-            ld_width   : exe.instruction.funct3
+            alu_result : alu_result
         };
 end
 
@@ -764,7 +768,7 @@ end
 // that will end up being writen to the register file
 always_comb
 begin
-    // RISC-V edit: added support for byte and hex loads
+    // RISC-V edit: added support for auipc and byte/hex loads
     if (mem.decode.op_is_auipc)
         rf_data = mem.pc_plus4 - 3'b100 + mem.alu_result;
     else if (mem.decode.is_jump_op)
@@ -783,12 +787,12 @@ begin
                       ? from_mem_i.read_data[16+:16]
                       : from_mem_i.read_data[0+:16];
     
-        if (~|mem.ld_width[1:0])  // 2'b00 is byte op
-            rf_data = (mem.ld_width[2]) 
+        if (mem.decode.is_byte_op)
+            rf_data = (mem.decode.is_load_unsigned) 
                        ? 32'(loaded_byte[7:0])
                        : {{24{loaded_byte[7]}}, loaded_byte[7:0]};
-        else if(mem.ld_width[1:0] == 2'b01) // 2'b01 is hex op
-            rf_data = (mem.ld_width[2])
+        else if(mem.decode.is_hex_op)
+            rf_data = (mem.decode.is_load_unsigned)
                        ? 32'(loaded_hex[15:0])
                        : {{24{loaded_hex[15]}}, loaded_hex[15:0]};
         else

@@ -17,10 +17,10 @@ logic [31:0] adder_input;
 logic [32:0] shr_out;
 logic [31:0] shl_out, xor_out, and_out, or_out;
 
-assign is_imm_op    = (op_i[6:0] ==? `RV32_OP_IMM) 
-                       | (op_i[6:0] ==? `RV32_LOAD)
-                       | (op_i[6:0] ==? `RV32_JALR_OP);
-assign op2          = (op_i[6:0] == `RV32_STORE) 
+assign is_imm_op    = (op_i.op ==? `RV32_OP_IMM) 
+                       | (op_i.op ==? `RV32_LOAD)
+                       | (op_i.op ==? `RV32_JALR_OP);
+assign op2          = (op_i.op == `RV32_STORE) 
                        ? `RV32_signext_Simm(op_i)
                        : (is_imm_op ? `RV32_signext_Iimm(op_i) : rs2_i);
 assign adder_input  = sub_not_add ? (~op2) : op2;

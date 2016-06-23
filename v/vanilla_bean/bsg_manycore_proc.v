@@ -167,16 +167,12 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       ,.reset          (reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state
       
       ,.net_packet_i   (core_net_pkt)
-//      ,.net_packet_o   ()
      
       ,.from_mem_i     (mem_to_core)
       ,.to_mem_o       (core_to_mem)
       ,.reserve_1_o    (core_mem_reserve_1)
       ,.reservation_i  (core_mem_reservation_r)
      
-//      ,.gate_way_full_i(1'b1) 
-//      ,.barrier_o      () 
-//      ,.exception_o    ()
       ,.my_x_i         (my_x_i)
       ,.my_y_i         (my_y_i)
       ,.debug_o        () 
@@ -193,14 +189,14 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
      core_net_pkt.header.ring_ID  = 5'(0);
      if (remote_store_imem_not_dmem)
        begin // remote store to imem
-         core_net_pkt.header.net_op   = INSTR;
-         core_net_pkt.header.reserved = {1'b0, remote_store_mask};
-         core_net_pkt.header.addr     = remote_store_addr[13:0];
+         core_net_pkt.header.net_op = INSTR;
+         core_net_pkt.header.mask   = remote_store_mask;
+         core_net_pkt.header.addr   = remote_store_addr[13:0];
        end
      else
        begin // initiates pc pushing core to RUN state
          core_net_pkt.header.net_op   = PC;
-         core_net_pkt.header.reserved = 5'(0);
+         core_net_pkt.header.mask     = (data_width_p>>3)'(0);
          core_net_pkt.header.addr     = 13'h200;
        end
 
