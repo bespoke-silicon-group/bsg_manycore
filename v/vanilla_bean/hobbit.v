@@ -217,7 +217,7 @@ if(debug_p)
                  ,id.decode.is_store_op 
                  ,id.decode.is_mem_op
                  ,id.decode.is_byte_op
-                 ,id_decode.is_hex_op
+                 ,id.decode.is_hex_op
                  ,id.decode.is_branch_op
                  ,id.decode.is_jump_op  
                  ,id.decode.op_reads_rf1
@@ -447,18 +447,21 @@ assign rf_wd = (net_reg_write_cmd ? net_packet_r.data : wb.rf_data);
 assign rf_cen = (~stall) | (net_reg_write_cmd);
 
 // Instantiate the general purpose register file
-reg_file #(.addr_width_p(RV32_reg_addr_width_gp)) rf_0
-(
-    .clk(clk),
-    .rs_addr_i(id.instruction.rs1),
-    .rd_addr_i(id.instruction.rs2),
-    .wen_i(rf_wen),
-    .cen_i(rf_cen),
-    .write_addr_i(rf_wa),
-    .write_data_i(rf_wd),
-    .rs_val_o(rf_rs1_val),
-    .rd_val_o(rf_rs2_val)
-);
+bsg_mem_2r1w #( .width_p                (RV32_reg_data_width_gp)
+               ,.els_p                  (32)
+               ,.read_write_same_addr_p (1)
+              ) rf_0
+  ( .w_clk_i   (clk)
+   ,.w_v_i     (rf_cen & rf_wen)
+   ,.w_addr_i  (rf_wa)
+   ,.w_data_i  (rf_wd)
+   ,.r0_v_i    (rf_cen)
+   ,.r0_addr_i (id.instruction.rs1)
+   ,.r0_data_o (rf_rs1_val)
+   ,.r1_v_i    (rf_cen)
+   ,.r1_addr_i (id.instruction.rs2)
+   ,.r1_data_o (rf_rs2_val)
+  );
 
 assign rf_rs1_out = (~|id.instruction.rs1) ? RV32_reg_data_width_gp'(0) : rf_rs1_val;
 assign rf_rs2_out = (~|id.instruction.rs2) ? RV32_reg_data_width_gp'(0) : rf_rs2_val;
