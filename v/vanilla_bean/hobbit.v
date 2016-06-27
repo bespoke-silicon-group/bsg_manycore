@@ -53,7 +53,7 @@ logic [imem_addr_width_p-1:0] imem_addr;
 instruction_s                 imem_out, instruction, instruction_r;
 
 // Register file logic
-logic [RV32_reg_data_width_gp-1:0] rf_rs1_out, rf_rs2_out, rf_wd;
+logic [RV32_reg_data_width_gp-1:0] rf_rs1_val, rf_rs2_val, rf_rs1_out, rf_rs2_out, rf_wd;
 logic [RV32_reg_addr_width_gp-1:0] rf_wa;
 logic                              rf_wen, rf_cen;
 
@@ -456,9 +456,12 @@ reg_file #(.addr_width_p(RV32_reg_addr_width_gp)) rf_0
     .cen_i(rf_cen),
     .write_addr_i(rf_wa),
     .write_data_i(rf_wd),
-    .rs_val_o(rf_rs1_out),
-    .rd_val_o(rf_rs2_out)
+    .rs_val_o(rf_rs1_val),
+    .rd_val_o(rf_rs2_val)
 );
+
+assign rf_rs1_out = (~|id.instruction.rs1) ? RV32_reg_data_width_gp'(0) : rf_rs1_val;
+assign rf_rs2_out = (~|id.instruction.rs2) ? RV32_reg_data_width_gp'(0) : rf_rs2_val;
 
 //+----------------------------------------------
 //|
