@@ -394,18 +394,17 @@ assign imem_cen = (~stall) | (net_imem_write_cmd | net_pc_write_cmd_idle);
 //              used as mask input
 genvar i;
 for(i=0; i<4; i=i+1)
-  mem_1rw #(.addr_width_p(imem_addr_width_p),
-            .num_entries_p(2**imem_addr_width_p),
-            .num_bits_p(8)
-           ) imem_0
-  (
-      .clk(clk),
-      .addr_i(imem_addr),
-      .wen_i(net_imem_write_cmd & net_packet_r.header.mask[i]),
-      .cen_i(imem_cen),
-      .wd_i(net_packet_r.data[i*8+:8]),
-      .rd_o(imem_out[i*8+:8])
-  );
+  bsg_mem_1rw_sync #
+    ( .width_p (8)
+     ,.els_p   (2**imem_addr_width_p)
+    ) imem_0
+    ( .clk_i  (clk)
+     ,.v_i    (imem_cen)
+     ,.w_i    (net_imem_write_cmd & net_packet_r.header.mask[i])
+     ,.addr_i (imem_addr)
+     ,.data_i (net_packet_r.data[i*8+:8])
+     ,.data_o (imem_out[i*8+:8])
+    );
 
 // Since imem has one cycle delay and we send next cycle's address, pc_n,
 // if the PC is not written, the instruction must not change.
