@@ -39,7 +39,10 @@ else ifeq ($(MANYCORE_PROC),VANILLA)
   DESIGN_HDRS += -i $(VANILLA_SRC)/ -i $(VSCALE_SRC)/
   DESIGN_SRCS += $(addprefix $(VANILLA_SRC)/, alu.v cl_decode.v cl_state_machine.v hobbit.v bsg_manycore_proc.v) \
 		 $(addprefix $(VSCALE_SRC)/, vscale_mul_div.v) \
-		 $(addprefix $(BSG_IP_CORES_DIR)/bsg_mem/, bsg_mem_1rw_sync.v bsg_mem_2r1w.v)
+		 $(addprefix $(BSG_IP_CORES_DIR)/bsg_mem/, bsg_mem_1rw_sync.v bsg_mem_2r1w.v bsg_mem_1r1w.v \
+                              bsg_mem_banked_crossbar.v) \
+		 $(addprefix $(BSG_IP_CORES_DIR)/bsg_dataflow/, bsg_fifo_tracker.v) \
+		 $(addprefix $(BSG_MANYCORE_DIR)/v/, bsg_manycore_pkt_decode.v bsg_manycore_pkt_encode.v)
 else
   $(error MANYCORE_PROC not defined or unknown)
 endif
