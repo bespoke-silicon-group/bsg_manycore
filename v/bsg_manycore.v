@@ -15,16 +15,13 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    // the network (i.e. cgni full cycles).
 
    ,parameter num_banks_p       = "inv"
-   ,parameter data_width_p      = 32 
-   ,parameter addr_width_p      = 32 
+   ,parameter data_width_p      = 32
+   ,parameter addr_width_p      = 32
 
    // array params
    ,parameter num_tiles_x_p     = "inv"
    ,parameter num_tiles_y_p     = "inv"
-   ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
-   ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
-   ,parameter packet_width_lp        = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
-   ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_lp,y_cord_width_lp)
+
    // array i/o params
    ,parameter stub_w_p          = {num_tiles_y_p{1'b0}}
    ,parameter stub_e_p          = {num_tiles_y_p{1'b0}}
@@ -33,35 +30,20 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    ,parameter debug_p           = 0
 
-   ,parameter num_nets_lp       = 2
+   ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
+   ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
+   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
   )
   ( input clk_i
    ,input reset_i
 
    // horizontal -- {E,W}
-   ,input  [E:W][num_tiles_y_p-1:0][packet_width_lp-1:0]        hor_data_i
-   ,input  [E:W][num_tiles_y_p-1:0][return_packet_width_lp-1:0] hor_return_data_i
-
-   ,input  [E:W][num_tiles_y_p-1:0][num_nets_lp-1:0]            hor_v_i
-   ,output [E:W][num_tiles_y_p-1:0][num_nets_lp-1:0]            hor_ready_o
-   ,output [E:W][num_tiles_y_p-1:0][packet_width_lp-1:0]        hor_data_o
-   ,output [E:W][num_tiles_y_p-1:0][return_packet_width_lp-1:0] hor_return_data_o
-
-   ,output [E:W][num_tiles_y_p-1:0][num_nets_lp-1:0]     hor_v_o
-   ,input  [E:W][num_tiles_y_p-1:0][num_nets_lp-1:0]     hor_ready_i
+   ,input  [E:W][num_tiles_y_p-1:0][bsg_manycore_link_sif_width_lp-1:0] hor_link_sif_i
+   ,output [E:W][num_tiles_y_p-1:0][bsg_manycore_link_sif_width_lp-1:0] hor_link_sif_o
 
    // vertical -- {S,N}
-   ,input  [S:N][num_tiles_x_p-1:0][packet_width_lp-1:0]        ver_data_i
-   ,input  [S:N][num_tiles_x_p-1:0][return_packet_width_lp-1:0] ver_return_data_i
-
-   ,input  [S:N][num_tiles_x_p-1:0][num_nets_lp-1:0]     ver_v_i
-   ,output [S:N][num_tiles_x_p-1:0][num_nets_lp-1:0]     ver_ready_o
-
-    ,output [S:N][num_tiles_x_p-1:0][packet_width_lp-1:0]        ver_data_o
-    ,output [S:N][num_tiles_x_p-1:0][return_packet_width_lp-1:0] ver_return_data_o
-
-    ,output [S:N][num_tiles_x_p-1:0][num_nets_lp-1:0]     ver_v_o
-    ,input  [S:N][num_tiles_x_p-1:0][num_nets_lp-1:0]     ver_ready_i
+   ,input   [S:N][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_i
+   ,output  [S:N][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
   );
 
   // synopsys translate off
@@ -72,16 +54,12 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   end
   // synopsys translate on
 
+   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
 
+   bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
+   bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
 
   /* TILES */
-
-  // tiles' outputs WENS
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W][packet_width_lp-1:0       ]        data_out,        data_in;
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W][return_packet_width_lp-1:0] return_data_out, return_data_in;
-
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][num_nets_lp-1:0][S:W]     v_out,     v_in;
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][num_nets_lp-1:0][S:W] ready_out, ready_in;
 
   genvar r,c;
 
@@ -108,45 +86,21 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
        ( .clk_i (clk_i)
          ,.reset_i(reset_i)
 
-         ,.data_i        (       data_in  [r][c])
-         ,.return_data_i (return_data_in  [r][c])
-         ,.v_i           (v_in     [r][c])
-         ,.ready_o       (ready_out[r][c])
+         ,.links_sif_i (link_in [r][c])
+         ,.links_sif_o (link_out[r][c])
 
-         ,.data_o        (data_out       [r][c])
-         ,.return_data_o (return_data_out[r][c])
-         ,.v_o           (v_out          [r][c])
-         ,.ready_i       (ready_in       [r][c])
-
-        ,.my_x_i   (x_cord_width_lp'(c))
-        ,.my_y_i   (y_cord_width_lp'(r))
+         ,.my_x_i   (x_cord_width_lp'(c))
+         ,.my_y_i   (y_cord_width_lp'(r))
       );
     end
   end
 
    // stitch together all of the tiles into a mesh
-   bsg_mesh_stitch #(.width_p(packet_width_lp), .x_max_p(num_tiles_x_p), .y_max_p(num_tiles_y_p)) data
-     (.outs_i(data_out),   .ins_o(data_in)
-      ,.hor_i(hor_data_i), .hor_o(hor_data_o)
-      ,.ver_i(ver_data_i), .ver_o(ver_data_o)
-      );
 
-   bsg_mesh_stitch #(.width_p(return_packet_width_lp), .x_max_p(num_tiles_x_p), .y_max_p(num_tiles_y_p)) return_data
-     (.outs_i(return_data_out), .ins_o(return_data_in)
-      ,.hor_i(hor_return_data_i), .hor_o(hor_return_data_o)
-      ,.ver_i(ver_return_data_i), .ver_o(ver_return_data_o)
-      );
-
-   bsg_mesh_stitch #(.width_p(1), .x_max_p(num_tiles_x_p), .y_max_p(num_tiles_y_p), .nets_p(num_nets_lp)) ready
-     (.outs_i(ready_out),   .ins_o(ready_in)
-      ,.hor_i(hor_ready_i), .hor_o(hor_ready_o)
-      ,.ver_i(ver_ready_i), .ver_o(ver_ready_o)
-      );
-
-   bsg_mesh_stitch #(.width_p(1), .x_max_p(num_tiles_x_p), .y_max_p(num_tiles_y_p), .nets_p(num_nets_lp)) v
-     (.outs_i(v_out),   .ins_o(v_in)
-      ,.hor_i(hor_v_i), .hor_o(hor_v_o)
-      ,.ver_i(ver_v_i), .ver_o(ver_v_o)
+   bsg_mesh_stitch #(.width_p(bsg_manycore_link_sif_width_lp), .x_max_p(num_tiles_x_p), .y_max_p(num_tiles_y_p)) link
+     (.outs_i(link_out),   .ins_o(link_in)
+      ,.hor_i(hor_link_sif_i), .hor_o(hor_link_sif_o)
+      ,.ver_i(ver_link_sif_i), .ver_o(ver_link_sif_o)
       );
 
 endmodule

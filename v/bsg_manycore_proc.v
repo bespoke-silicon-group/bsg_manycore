@@ -4,8 +4,6 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , y_cord_width_p = "inv"
                            , data_width_p   = 32
                            , addr_width_p   = 32
-                           , packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                           , return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
                            , debug_p        = 0
                            , bank_size_p    = "inv" // in words
                            , num_banks_p    = "inv"
@@ -20,34 +18,41 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , proc_fifo_els_p = 4
                            , mem_width_lp    = $clog2(bank_size_p) + $clog2(num_banks_p)
                            , num_nets_lp     = 2
-                           )
+
+                           , packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                           , return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
+                           , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                          )
    (input   clk_i
     , input reset_i
 
-    , input  [num_nets_lp-1:0]                       v_i
-    , input  [packet_width_lp-1:0]                data_i
-    , input  [return_packet_width_lp-1:0]  return_data_i
-    , output [num_nets_lp-1:0]                   ready_o
+   // input and output links
+    , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
+    , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
-    , output [num_nets_lp-1:0]                       v_o
-    , output [packet_width_lp-1:0]                data_o
-    , output [return_packet_width_lp-1:0]  return_data_o
-    , input  [num_nets_lp-1:0]                   ready_i
-
-    // tile coordinates
+     // tile coordinates
     , input   [x_cord_width_p-1:0]                my_x_i
     , input   [y_cord_width_p-1:0]                my_y_i
 
     , output logic freeze_o
     );
 
+   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+   bsg_manycore_link_sif_s link_sif_i_cast, link_sif_o_cast;
+   assign link_sif_i_cast = link_sif_i;
+   assign link_sif_o = link_sif_o_cast;
+
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
    // input fifo from network
 
    logic                              cgni_v, cgni_yumi;
-   logic [packet_width_lp-1:0] 	      cgni_data;
-   wire 			      credit_return_lo;
+   logic [packet_width_lp-1:0]        cgni_data;
+   wire                               credit_return_lo;
+
+   logic [packet_width_lp-1:0]        fwd_out_data;
+   logic                              fwd_out_v;
+   logic                              fwd_out_ready;
 
    bsg_manycore_endpoint #(.x_cord_width_p (x_cord_width_p)
                            ,.y_cord_width_p(y_cord_width_p)
@@ -57,12 +62,20 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            ) endp
    (.clk_i
     ,.reset_i
-    ,.v_i, .data_i, .return_data_i, .ready_o
-    ,.return_v_o(v_o[1]), .return_data_o, .return_ready_i(ready_i[1])
+
+    ,.link_sif_i(link_sif_i_cast)
+    ,.link_sif_o(link_sif_o_cast)
 
     ,.fifo_data_o(cgni_data)
     ,.fifo_v_o   (cgni_v   )
     ,.fifo_yumi_i(cgni_yumi)
+
+    // we feed the endpoint with the data we want to send out
+    // it will get inserted into the above link_sif
+
+    ,.out_data_i (fwd_out_data )
+    ,.out_v_i    (fwd_out_v    )
+    ,.out_ready_o(fwd_out_ready)
 
     ,.credit_v_r_o(credit_return_lo)
     );
@@ -74,18 +87,22 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    logic [addr_width_p-1:0]      remote_store_addr;
    logic                         remote_store_v, remote_store_yumi;
 
+   bsg_manycore_return_packet_s return_packet;
+   assign return_packet = link_sif_i_cast.rev.data;
 
    always_ff @(negedge clk_i)
-     assert (~v_i[1] | (return_data_i == {my_y_i, my_x_i}))
+     assert (reset_i | ~link_sif_i_cast.rev.v | ({return_packet.y_cord, return_packet.x_cord} == {my_y_i, my_x_i}))
        else
-	 $error("%m errant credit packet for YX=%d,%d landed at YX=%d,%d",return_data_i[x_cord_width_p+:y_cord_width_p],return_data_i[0+:x_cord_width_p]
-		,my_y_i,my_x_i);
-
+         $error("%m errant credit packet v=%b for YX=%d,%d landed at YX=%d,%d"
+                ,link_sif_i_cast.rev.v
+                ,link_sif_i_cast.rev.data[x_cord_width_p+:y_cord_width_p]
+                ,link_sif_i_cast.rev.data[0+:x_cord_width_p]
+                ,my_y_i,my_x_i);
 
    if (debug_p)
    always_ff @(negedge clk_i)
-     if (v_o[0])
-       $display("%m attempting remote store send of data %x, ready_i = %x",data_o,ready_i[0]);
+     if (fwd_out_v) // v_o[0]
+       $display("%m attempting remote store send of data %x, ready_i = %x",fwd_out_data,fwd_out_ready);
 
    if (debug_p)
      always_ff @(negedge clk_i)
@@ -168,7 +185,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    logic [$clog2(max_remote_store_credits_p+1)-1:0] remote_store_credits;
 
-   wire launching_remote_store = v_o[0] & ready_i[0];
+   //   wire launching_remote_store = v_o[0] & ready_i[0];
+   wire launching_remote_store = fwd_out_v & fwd_out_ready;
 
    bsg_vscale_core #(.x_cord_width_p (x_cord_width_p)
                      ,.y_cord_width_p(y_cord_width_p)
@@ -230,11 +248,11 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       ,.my_y_i (my_y_i)
       // directly out to the network!
       ,.v_o    (remote_store_request)
-      ,.data_o (data_o)
+      ,.data_o (fwd_out_data)
       );
 
    // we only request to send a remote store if it would not overflow the remote store credit counter
-   assign v_o[0] = remote_store_request & (|remote_store_credits);
+   assign fwd_out_v = remote_store_request & (|remote_store_credits);
 
    // synopsys translate off
 
@@ -243,10 +261,10 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    always @(negedge clk_i)
      assert (remote_store_credits != 0) else
-          $error("## %m out of remote store credits %(d)",remote_store_credits);
+          $error("## %m out of remote store credits %d",remote_store_credits);
 
    bsg_manycore_packet_s data_o_debug;
-   assign data_o_debug = data_o;
+   assign data_o_debug = fwd_out_data;
 
    if (debug_p)
      always @(negedge clk_i)
@@ -307,7 +325,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    // the swizzle function changes how addresses are mapped to banks
    wire [2:0] [mem_width_lp-1:0] xbar_port_addr_in_swizzled;
-   genvar 			 i;
+   genvar                        i;
 
    for (i = 0; i < 3; i=i+1)
      begin: port

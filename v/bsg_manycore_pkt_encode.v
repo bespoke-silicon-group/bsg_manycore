@@ -33,6 +33,9 @@ module bsg_manycore_pkt_encode
    assign addr_decode = addr_i;
    assign data_o = pkt;
 
+   // memory map in special opcodes; fixme, can reclaim more address space by
+   // checking more bits.
+
    assign pkt.op     = addr_decode.addr[$size(addr_decode.addr)-1] ? 2'b10 : 2'b01;
    assign pkt.op_ex  = mask_i;
 

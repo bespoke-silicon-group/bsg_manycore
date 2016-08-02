@@ -3,34 +3,41 @@ module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
                                 ,fifo_els_p             = "inv"
                                 ,data_width_p           = 32
                                 ,addr_width_p           = 32
-                                ,packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                                ,return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
+                                ,packet_width_lp                          = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                ,return_packet_width_lp                   = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
+                                ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                 ,num_nets_lp            = 2
                                 )
    (input clk_i
     , input reset_i
 
     // mesh network
-    , input  [num_nets_lp-1:0]                       v_i
-    , input  [packet_width_lp-1:0]                data_i
-    , input  [return_packet_width_lp-1:0]  return_data_i
-    , output [num_nets_lp-1:0]                   ready_o
+    , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
+    , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
-    // mesh network (outgoing return)
-    , output                                return_v_o
-    , output [return_packet_width_lp-1:0]   return_data_o
-    , input                                 return_ready_i
-
-    // local interface
+    // local incoming data interface
     , output [packet_width_lp-1:0]          fifo_data_o
     , output                                fifo_v_o
     , input                                 fifo_yumi_i
+
+    // local outgoing data interface (does not include credits)
+
+    , input  [packet_width_lp-1:0]           out_data_i
+    , input                                  out_v_i
+    , output                                 out_ready_o
 
     // whether a credit was returned; not flow controlled
     , output                                credit_v_r_o
     );
 
    logic fifo_v;
+
+   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p,x_cord_width_p,y_cord_width_p);
+
+   // typecast
+   bsg_manycore_link_sif_s link_sif_i_cast, link_sif_o_cast;
+   assign link_sif_i_cast = link_sif_i;
+   assign link_sif_o = link_sif_o_cast;
 
    // buffer incoming non-return data
 
@@ -40,9 +47,9 @@ module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
      (.clk_i
       ,.reset_i
 
-      ,.v_i     (v_i[0]      )
-      ,.data_i  (data_i      )
-      ,.ready_o (ready_o[0]  )
+      ,.v_i     (link_sif_i_cast.fwd.v)
+      ,.data_i  (link_sif_i_cast.fwd.data)
+      ,.ready_o (link_sif_o_cast.fwd.ready_and_rev)
 
       ,.v_o     (fifo_v      )
       ,.data_o  (fifo_data_o )
@@ -50,26 +57,29 @@ module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
       );
 
    // hide data if we do not have the ability to send credit packets
-   assign fifo_v_o      = fifo_v & return_ready_i;
+   assign fifo_v_o      = fifo_v & link_sif_i_cast.rev.ready_and_rev;
 
    // Handle outgoing credit packets
    `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
-   assign return_v_o    = fifo_yumi_i;
+   assign link_sif_o_cast.rev.v   = fifo_yumi_i;
+   assign link_sif_o_cast.fwd.v   = out_v_i;
 
    bsg_manycore_packet_s pkt;
 
-   assign pkt           = fifo_data_o;
-   assign return_data_o = pkt.return_pkt;
+   assign pkt                       = fifo_data_o;
+   assign link_sif_o_cast.rev.data  = pkt.return_pkt;
+   assign link_sif_o_cast.fwd.data  = out_data_i;
+   assign out_ready_o               = link_sif_i_cast.fwd.ready_and_rev;
 
    // Handle incoming credit packets
 
-   assign ready_o[1]   = 1'b1;
+   assign link_sif_o_cast.rev.ready_and_rev = 1'b1;
 
    logic  credit_v_r;
 
    always @(posedge clk_i)
-     credit_v_r <= v_i[1];
+     credit_v_r <= link_sif_i_cast.rev.v;
 
    assign credit_v_r_o   = credit_v_r;
 
