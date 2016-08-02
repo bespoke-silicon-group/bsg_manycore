@@ -27,7 +27,8 @@ DESIGN_SRCS = \
     bsg_misc/bsg_round_robin_arb.v bsg_misc/bsg_arb_fixed.v bsg_misc/bsg_priority_encode.v bsg_misc/bsg_priority_encode_one_hot_out.v bsg_misc/bsg_mux_one_hot.v bsg_misc/bsg_encode_one_hot.v bsg_misc/bsg_scan.v bsg_misc/bsg_counter_up_down.v \
     bsg_misc/bsg_circular_ptr.v bsg_mem/bsg_mem_1r1w.v bsg_mem/bsg_mem_banked_crossbar.v bsg_dataflow/bsg_fifo_tracker.v          \
     bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v bsg_mem/bsg_mem_1rw_sync.v bsg_dataflow/bsg_fifo_1r1w_small.v bsg_dataflow/bsg_two_fifo.v \
-    bsg_test/bsg_nonsynth_clock_gen.v bsg_test/bsg_nonsynth_reset_gen.v bsg_noc/bsg_mesh_router.v bsg_noc/bsg_mesh_stitch.v bsg_noc/bsg_mesh_to_ring_stitch.v bsg_noc/bsg_mesh_router_buffered.v) \
+    bsg_test/bsg_nonsynth_clock_gen.v bsg_test/bsg_nonsynth_reset_gen.v bsg_noc/bsg_mesh_router.v bsg_noc/bsg_mesh_stitch.v bsg_noc/bsg_mesh_to_ring_stitch.v bsg_noc/bsg_mesh_router_buffered.v \
+    bsg_mem/bsg_mem_1r1w.v bsg_dataflow/bsg_fifo_tracker.v)\
   $(addprefix $(BSG_MANYCORE_DIR)/v/vscale/, vscale_pipeline.v vscale_ctrl.v) \
   $(addprefix $(VSCALE_SRC)/, vscale_regfile.v vscale_src_a_mux.v vscale_src_b_mux.v vscale_imm_gen.v vscale_alu.v          \
     vscale_mul_div.v vscale_csr_file.v vscale_PC_mux.v)                                           \
