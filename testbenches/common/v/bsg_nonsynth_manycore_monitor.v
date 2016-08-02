@@ -1,27 +1,29 @@
 `include "bsg_manycore_packet.vh"
 
-module bsg_nonsynth_manycore_monitor #(parameter x_cord_width_p="inv"
-                                       ,parameter y_cord_width_p="inv"
-                                       ,parameter addr_width_p="inv"
-                                       ,parameter data_width_p="inv"
-                                       ,parameter channel_num_p="inv"
-                                       ,parameter max_cycles_p=1_000_000
-                                       ,parameter packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                                       ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
-                                       ,parameter num_nets_lp=2
+module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
+                                       , y_cord_width_p="inv"
+                                       , addr_width_p="inv"
+                                       , data_width_p="inv"
+                                       , channel_num_p="inv"
+                                        // enable pass_thru
+                                       , pass_thru_p=0
+                                       , max_cycles_p=1_000_000
+                                       , packet_width_lp                = `bsg_manycore_packet_width  (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                       , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                       , num_nets_lp=2
                                        )
    (input clk_i
     ,input  reset_i
 
-    ,input  [num_nets_lp-1:0]            v_i
-    ,input  [packet_width_lp-1:0]        data_i
-    ,input  [return_packet_width_lp-1:0] return_data_i
-    ,output [num_nets_lp-1:0]            ready_o
+    ,input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
+    ,output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
-    ,output [num_nets_lp-1:0]            v_o
-    ,output [packet_width_lp-1:0]        data_o
-    ,output [return_packet_width_lp-1:0] return_data_o
-    ,input  [num_nets_lp-1:0]            ready_i
+    // this allows you to attach nodes to the monitor
+    // that send data, such as the bsg_manycore_spmd_loader
+
+    ,input  [packet_width_lp-1:0] pass_thru_data_i
+    ,input                        pass_thru_v_i
+    ,output                       pass_thru_ready_o
 
     ,input [39:0] cycle_count_i
     ,output finish_o
@@ -39,19 +41,23 @@ module bsg_nonsynth_manycore_monitor #(parameter x_cord_width_p="inv"
                            ) endp
      (.clk_i
       ,.reset_i
-      ,.v_i, .data_i, .return_data_i, .ready_o
-      ,.return_v_o(v_o[1]), .return_data_o, .return_ready_i(ready_i[1])
+
+
+
+      ,.link_sif_i
+      ,.link_sif_o
 
       ,.fifo_data_o (cgni_data)
       ,.fifo_v_o    (cgni_v   )
       ,.fifo_yumi_i (cgni_yumi)
 
+      // outgoing data for this module
+      ,.out_v_i     (pass_thru_p ? pass_thru_v_i    : 1'b0)
+      ,.out_data_i  (pass_thru_p ? pass_thru_data_i : 0)
+      ,.out_ready_o (pass_thru_ready_o)
+
       ,.credit_v_r_o(credit_return_lo)   // we don't actually track credits in this device
       );
-
-   // outgoing packets on main network: none sent
-   assign v_o[0]    = 1'b0 & ready_i[0];
-   assign data_o[0] = 0;
 
    // incoming packets on main network: always deque
    assign cgni_yumi = cgni_v;

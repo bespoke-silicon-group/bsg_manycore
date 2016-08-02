@@ -19,7 +19,6 @@
 
 `define MAX_CYCLES 1000000
 
-
   module vscale_pipeline_trace
       #(parameter x_cord_width_p = "inv"
         , y_cord_width_p = "inv")
@@ -53,7 +52,10 @@
      end
 endmodule
 
-module bsg_manycore_tile_trace #(packet_width_lp="inv"
+
+
+module bsg_manycore_tile_trace #(bsg_manycore_link_sif_width_lp="inv"
+                                 ,packet_width_lp="inv"
                                  ,return_packet_width_lp="inv"
                                  ,x_cord_width_p="inv"
                                  ,y_cord_width_p="inv"
@@ -62,52 +64,84 @@ module bsg_manycore_tile_trace #(packet_width_lp="inv"
                                  ,dirs_lp=4
                                  ,num_nets_lp=2)
    (input clk_i
-    , input [dirs_lp-1:0][packet_width_lp-1:0] data_o
-    , input [dirs_lp-1:0][return_packet_width_lp-1:0] return_data_o
-    , input [num_nets_lp-1:0][dirs_lp-1:0] ready_i
-    , input [num_nets_lp-1:0][dirs_lp-1:0] v_o
-    , input [num_nets_lp-1:0][dirs_lp-1:0] v_i
-    , input [dirs_lp-1:0][packet_width_lp-1:0] data_i
-    , input [dirs_lp-1:0][return_packet_width_lp-1:0] return_data_i
+    , input  [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_i
+    , input [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_o
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
     , input freeze
     );
 
    `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+
+   bsg_manycore_link_sif_s [dirs_lp-1:0] links_sif_i_cast, links_sif_o_cast;
 
    bsg_manycore_packet_s [dirs_lp-1:0] pkt;
    bsg_manycore_return_packet_s [dirs_lp-1:0] return_pkt;
 
-   assign pkt        = data_o;
-   assign return_pkt = return_data_o;
+   assign links_sif_i_cast = links_sif_i;
+   assign links_sif_o_cast = links_sif_o;
 
    genvar i;
+
+   logic [dirs_lp-1:0] activity;
+
+   for (i = 0; i < dirs_lp; i=i+1)
+     begin : rof2
+        assign pkt[i]        = links_sif_o_cast[i].fwd.data;
+        assign return_pkt[i] = links_sif_o_cast[i].rev.data;
+        assign activity  [i] = (links_sif_o_cast[i].fwd.v & links_sif_i_cast[i].fwd.v)
+                              |(links_sif_o_cast[i].rev.v & links_sif_i_cast[i].rev.v);
+     end
+
 
 //   if (0)
    always @(negedge clk_i)
      begin
-        if ( ~freeze &  (|(ready_i & v_o)))
+//        if ( ~freeze &  (|activity))
+        if (1)
           begin
              $fwrite(1,"%x ", test_bsg_manycore.cycle_count);
              $fwrite(1,"YX=%x,%x r ", my_y_i,my_x_i);
-             if (v_o[0][0] & ready_i[0][0])
+             $fwrite(1,"WENS vo=%b%b%b%b ri=%b%b%b%b vi=%b%b%b%b ro=%b%b%b%b "
+                     ,links_sif_o_cast[0].fwd.v
+                     ,links_sif_o_cast[1].fwd.v
+                     ,links_sif_o_cast[2].fwd.v
+                     ,links_sif_o_cast[3].fwd.v
+
+                     ,links_sif_i_cast[0].fwd.ready_and_rev
+                     ,links_sif_i_cast[1].fwd.ready_and_rev
+                     ,links_sif_i_cast[2].fwd.ready_and_rev
+                     ,links_sif_i_cast[3].fwd.ready_and_rev
+
+                     ,links_sif_i_cast[0].fwd.v
+                     ,links_sif_i_cast[1].fwd.v
+                     ,links_sif_i_cast[2].fwd.v
+                     ,links_sif_i_cast[3].fwd.v
+
+                     ,links_sif_o_cast[0].fwd.ready_and_rev
+                     ,links_sif_o_cast[1].fwd.ready_and_rev
+                     ,links_sif_o_cast[2].fwd.ready_and_rev
+                     ,links_sif_o_cast[3].fwd.ready_and_rev
+
+                     );
+//             if (links_sif_o_cast[0].fwd.v & links_sif_i_cast[0].fwd.ready_and_rev)
                $fwrite(1,"W<-{%1.1x,%8.8x,%8.8x,YX={%x,%x->%x,%x}}"
-		       ,pkt[0].op,pkt[0].addr,pkt[0].data, pkt[0].return_pkt.y_cord, pkt[0].return_pkt.x_cord, pkt[0].y_cord,pkt[0].x_cord);
-             if (v_o[0][1] & ready_i[0][1])
+                       ,pkt[0].op,pkt[0].addr,pkt[0].data, pkt[0].return_pkt.y_cord, pkt[0].return_pkt.x_cord, pkt[0].y_cord,pkt[0].x_cord);
+//             if (links_sif_o_cast[1].fwd.v & links_sif_i_cast[1].fwd.ready_and_rev)
                $fwrite(1,"E<-{%1.1x,%8.8x,%8.8x,YX={%x,%x->%x,%x}}",pkt[1].op,pkt[1].addr,pkt[1].data, pkt[1].return_pkt.y_cord, pkt[1].return_pkt.x_cord,pkt[1].y_cord,pkt[1].x_cord);
-             if (v_o[0][2] & ready_i[0][2])
+//             if (links_sif_o_cast[2].fwd.v & links_sif_i_cast[2].fwd.ready_and_rev)
                $fwrite(1,"N<-{%1.1x,%8.8x,%8.8x,YX={%x,%x->%x,%x}}",pkt[2].op,pkt[2].addr,pkt[2].data, pkt[2].return_pkt.y_cord, pkt[2].return_pkt.x_cord, pkt[2].y_cord,pkt[2].x_cord);
-             if (v_o[0][3] & ready_i[0][3])
+//             if (links_sif_o_cast[3].fwd.v & links_sif_i_cast[3].fwd.ready_and_rev)
                $fwrite(1,"S<-{%1.1x,%8.8x,%8.8x,YX={%x,%x->%x,%x}}",pkt[3].op,pkt[3].addr,pkt[3].data, pkt[3].return_pkt.y_cord, pkt[3].return_pkt.x_cord, pkt[3].y_cord,pkt[3].x_cord);
 
-             if (v_o[1][0] & ready_i[1][0])
+//             if (links_sif_o_cast[0].rev.v & links_sif_i_cast[0].rev.ready_and_rev)
                $fwrite(1,"W<-c YX={%x,%x}", return_pkt[0].y_cord, return_pkt[0].x_cord);
-             if (v_o[1][1] & ready_i[1][1])
+//             if (links_sif_o_cast[1].rev.v & links_sif_i_cast[1].rev.ready_and_rev)
                $fwrite(1,"E<-c YX={%x,%x}", return_pkt[1].y_cord, return_pkt[1].x_cord);
-             if (v_o[1][2] & ready_i[1][2])
+//             if (links_sif_o_cast[2].rev.v & links_sif_i_cast[2].rev.ready_and_rev)
                $fwrite(1,"N<-c YX={%x,%x}", return_pkt[2].y_cord, return_pkt[2].x_cord);
-             if (v_o[1][3] & ready_i[1][3])
+//             if (links_sif_o_cast[3].rev.v & links_sif_i_cast[3].rev.ready_and_rev)
                $fwrite(1,"S<-c YX={%x,%x}", return_pkt[3].y_cord, return_pkt[3].x_cord);
 
              $fwrite(1,"\n");
@@ -116,6 +150,8 @@ module bsg_manycore_tile_trace #(packet_width_lp="inv"
      end
 endmodule
 
+
+
 module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
                                  , data_width_p=-1
                                  , addr_width_p="inv"
@@ -123,6 +159,7 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
                                  , y_cord_width_p="inv"
                                  , packet_width_lp="inv"
                                  , return_packet_width_lp="inv"
+                                 , bsg_manycore_link_sif_width_lp="inv"
                                  , num_nets_lp=2
                                  )
   (input clk_i
@@ -134,14 +171,10 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
    , input [2:0] xbar_port_yumi_out
    , input [x_cord_width_p-1:0] my_x_i
    , input [y_cord_width_p-1:0] my_y_i
-   , input [num_nets_lp-1:0]            v_out
-   , input [num_nets_lp-1:0]            ready_in
-   , input [packet_width_lp-1:0]        data_out
-   , input [return_packet_width_lp-1:0] return_data_out
-   , input [num_nets_lp-1:0]            v_in
-   , input [num_nets_lp-1:0]            ready_out
-   , input [packet_width_lp-1:0]        data_in
-   , input [return_packet_width_lp-1:0] return_data_in
+
+   , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
+   , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
+
    , input freeze_r
    , input cgni_v_in
    , input [packet_width_lp-1:0] cgni_data_in
@@ -149,8 +182,16 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
 
    `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
+   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+   bsg_manycore_link_sif_s link_sif_i_cast, link_sif_o_cast;
+
+   assign link_sif_i_cast = link_sif_i;
+   assign link_sif_o_cast = link_sif_o;
+
    bsg_manycore_packet_s [1:0] packets;
    bsg_manycore_return_packet_s [1:0] return_packets;
+
+
 
    genvar i;
 
@@ -166,10 +207,21 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
 
         conflicts = xbar_port_yumi_out ^ xbar_port_v_in;
 
-        if (~freeze_r & ((|logwrite)| (|v_in) | (|v_out) | (|conflicts)))
+/*        if (~freeze_r & ((|logwrite)
+             | link_sif_i_cast.fwd.v
+             | link_sif_o_cast.fwd.v
+             | link_sif_i_cast.rev.v
+             | link_sif_o_cast.rev.v
+             | (|conflicts))) */
           begin
              $fwrite(1,"%x ", test_bsg_manycore.cycle_count);
-             $fwrite(1,"YX=%x,%x %b %b %b %x ", my_y_i,my_x_i, ready_in, ready_out, cgni_v_in, cgni_data_in);
+             $fwrite(1,"YX=%x,%x %b%b %b%b %b %x ", my_y_i,my_x_i
+                     , link_sif_i_cast.fwd.ready_and_rev
+                     , link_sif_o_cast.fwd.ready_and_rev
+                     , link_sif_i_cast.rev.ready_and_rev
+                     , link_sif_o_cast.rev.ready_and_rev
+                     , cgni_v_in
+                     , cgni_data_in);
 
              if (logwrite[0])
                $fwrite(1,"D%1.1x[%x,%b]=%x, ", 1,{ xbar_port_addr_in[1],2'b00},xbar_port_mask_in[1],xbar_port_data_in[1]);
@@ -180,21 +232,21 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
              if (~|logwrite)
                $fwrite(1,"                   ");
 
-             packets        = {       data_in,        data_out};
-             return_packets = {return_data_in, return_data_out};
+             packets        = { link_sif_i_cast.fwd.data, link_sif_o_cast.fwd.data };
+             return_packets = { link_sif_i_cast.rev.data, link_sif_o_cast.rev.data };
 
-             if (v_in[0])
+             if (link_sif_i_cast.fwd.v)
                $fwrite(1,"<-{%2.2b,%4.4b %8.8x,%8.8x,YX={%x,%x->%x,%x}} "
                        ,packets[1].op,packets[1].op_ex,packets[1].addr,packets[1].data, packets[1].return_pkt.y_cord, packets[1].return_pkt.x_cord, packets[1].y_cord,packets[1].x_cord);
 
-             if (v_out[0])
+             if (link_sif_o_cast.fwd.v)
                $fwrite(1,"->{%2.2b,%4.4b %8.8x,%8.8x,YX={%x,%x->%x,%x}} "
                        ,packets[0].op,packets[0].op_ex,packets[0].addr,packets[0].data,  packets[0].return_pkt.y_cord, packets[0].return_pkt.x_cord, packets[0].y_cord,packets[0].x_cord);
 
-             if (v_in[1])
+//             if (link_sif_i_cast.rev.v)
                $fwrite(1,"<-c(YX=%x,%x) ",return_packets[1].y_cord, return_packets[1].x_cord);
 
-             if (v_out[1])
+//             if (link_sif_o_cast.rev.v)
                $fwrite(1,"->c(YX=%x,%x) ",return_packets[0].y_cord, return_packets[0].x_cord);
 
              // detect bank conflicts
@@ -207,6 +259,8 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
      end
 endmodule
 
+`ifdef ENABLE_TRACE
+`endif  // TRACE
 
 module test_bsg_manycore;
 
@@ -240,15 +294,11 @@ module test_bsg_manycore;
                                                        ,.y_cord_width_p(y_cord_width_p)
                                                        ,.addr_width_p(addr_width_p)
                                                        ,.data_width_p(data_width_p)
+                                                       ,.bsg_manycore_link_sif_width_lp(bsg_manycore_link_sif_width_lp)
                                                        ) bmtt
        (.clk_i
-        ,.data_o
-        ,.return_data_o
-        ,.ready_i
-        ,.v_o
-        ,.v_i
-        ,.data_i
-        ,.return_data_i
+        ,.links_sif_i
+        ,.links_sif_o
         ,.my_x_i
         ,.my_y_i
         ,.freeze(freeze)
@@ -281,6 +331,7 @@ module test_bsg_manycore;
                                                       ,.y_cord_width_p(y_cord_width_p)
                                                       ,.packet_width_lp(packet_width_lp)
                                                       ,.return_packet_width_lp(return_packet_width_lp)
+                                                      ,.bsg_manycore_link_sif_width_lp(bsg_manycore_link_sif_width_lp)
                                                       ) proc_trace
        (clk_i
         ,xbar_port_v_in
@@ -291,14 +342,9 @@ module test_bsg_manycore;
         ,xbar_port_yumi_out
         ,my_x_i
         ,my_y_i
-        ,v_o
-        ,ready_i
-        ,data_o
-        ,return_data_o
-        ,v_i
-        ,ready_o
-        ,data_i
-        ,return_data_i
+        ,link_sif_i
+        ,link_sif_o
+
         ,freeze_r
         ,cgni_v
         ,cgni_data
@@ -326,23 +372,12 @@ module test_bsg_manycore;
 
   integer       stderr = 32'h80000002;
 
-  logic [addr_width_lp-1:0]   mem_addr;
-  logic [data_width_lp-1:0]   mem_data;
+   `declare_bsg_manycore_link_sif_s(addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp);
 
-  logic [packet_width_lp-1:0] test_data_in;
-  logic                       test_v_in;
+   bsg_manycore_link_sif_s [S:N][num_tiles_x_lp-1:0] ver_link_li, ver_link_lo;
+   bsg_manycore_link_sif_s [E:W][num_tiles_y_lp-1:0] hor_link_li, hor_link_lo;
 
-  logic [S:N][num_tiles_x_lp-1:0][num_nets_lp-1:0]     ver_v_in,     ver_v_out;
-  logic [S:N][num_tiles_x_lp-1:0][num_nets_lp-1:0]     ver_ready_in, ver_ready_out;
-
-  logic [S:N][num_tiles_x_lp-1:0][packet_width_lp-1:0] ver_data_in,  ver_data_out;
-  logic [E:W][num_tiles_y_lp-1:0][packet_width_lp-1:0] hor_data_in,  hor_data_out;
-
-  logic [S:N][num_tiles_x_lp-1:0][return_packet_width_lp-1:0] ver_return_data_in,  ver_return_data_out;
-  logic [E:W][num_tiles_y_lp-1:0][return_packet_width_lp-1:0] hor_return_data_in,  hor_return_data_out;
-
-  logic [E:W][num_tiles_y_lp-1:0][num_nets_lp-1:0]     hor_v_in, hor_v_out;
-  logic [E:W][num_tiles_y_lp-1:0][num_nets_lp-1:0]     hor_ready_in, hor_ready_out;
+`define TOPLEVEL UUT.bm
 
   bsg_manycore #
     (
@@ -352,37 +387,28 @@ module test_bsg_manycore;
      ,.addr_width_p (addr_width_lp)
      ,.num_tiles_x_p(num_tiles_x_lp)
      ,.num_tiles_y_p(num_tiles_y_lp)
+
+     // currently west side is stubbed except for upper left tile
      ,.stub_w_p     ({{(num_tiles_y_lp-1){1'b1}}, 1'b0})
      ,.stub_e_p     ({num_tiles_y_lp{1'b1}})
-     ,.stub_n_p     ({num_tiles_x_lp{1'b1}}) // loads through N-side of (0,0)
-      // ,.stub_s_p     ({num_tiles_x_lp{1'b1}})
-      // no stubs for south side
+     ,.stub_n_p     ({num_tiles_x_lp{1'b1}})
+
+     // south side is unstubbed
      ,.stub_s_p     ({num_tiles_x_lp{1'b0}})
      ,.debug_p(debug_lp)
     ) UUT
       ( .clk_i   (clk)
         ,.reset_i (reset)
 
-        ,.ver_data_i        (ver_data_in        )
-        ,.ver_return_data_i (ver_return_data_in )
-        ,.ver_v_i           (ver_v_in           )
-        ,.ver_ready_o       (ver_ready_out      )
+        ,.hor_link_sif_i(hor_link_li)
+        ,.hor_link_sif_o(hor_link_lo)
 
-        ,.ver_data_o        (ver_data_out       )
-        ,.ver_return_data_o (ver_return_data_out)
-        ,.ver_v_o           (ver_v_out          )
-        ,.ver_ready_i       (ver_ready_in       )
+        ,.ver_link_sif_i(ver_link_li)
+        ,.ver_link_sif_o(ver_link_lo)
 
-        ,.hor_data_i        (hor_data_in        )
-        ,.hor_return_data_i (hor_return_data_in )
-        ,.hor_v_i           (hor_v_in           )
-        ,.hor_ready_o       (hor_ready_out      )
-
-        ,.hor_data_o        (hor_data_out       )
-        ,.hor_return_data_o (hor_return_data_out)
-        ,.hor_v_o           (hor_v_out          )
-        ,.hor_ready_i       (hor_ready_in       )
         );
+
+`ifdef PERF_COUNT
 
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] imem_stalls;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] dmem_stalls;
@@ -404,11 +430,11 @@ module test_bsg_manycore;
           logic freeze_r;
 
           always @(negedge clk)
-            freeze_r <= UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze;
+            freeze_r <= `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze;
 
           always @(negedge clk)
             begin
-               if (freeze_r & ~UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze)
+               if (freeze_r & ~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze)
                  begin
                     imem_stalls[x][y]       <= 0;
                     dmem_stalls[x][y]       <= 0;
@@ -423,25 +449,25 @@ module test_bsg_manycore;
                 end
                else
                  begin
-                    if (min_store_credits[x][y] > UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.remote_store_credits)
-                      min_store_credits[x][y] <= UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.remote_store_credits;
+                    if (min_store_credits[x][y] > `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.remote_store_credits)
+                      min_store_credits[x][y] <= `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.remote_store_credits;
 
-                    if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.imem_wait)
+                    if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.imem_wait)
                       imem_stalls[x][y] <= imem_stalls[x][y]+1;
-                    if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_wait
-                        & UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_en)
+                    if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_wait
+                        & `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_en)
                       dmem_stalls[x][y] <= dmem_stalls[x][y]+1;
-                    else if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.dmem_reserve_acq_stall)
+                    else if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.dmem_reserve_acq_stall)
                       rsrv_stalls[x][y] <= rsrv_stalls[x][y]+1;
-                    else if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.stall_DX_premem)
+                    else if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.stall_DX_premem)
                       dx_stalls[x][y] <= dx_stalls[x][y]+1;
-                    else if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.redirect)
+                    else if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.redirect)
                       redirect_stalls[x][y] <= redirect_stalls[x][y]+1;
-                    if (~UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_o[0])
+                    if (~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_o[0])
                       cgni_full_cycles[x][y] <= cgni_full_cycles[x][y]+1;
-                    if (~UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_i[0])
+                    if (~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_i[0])
                       cgno_full_cycles[x][y] <= cgno_full_cycles[x][y]+1;
-                    if (~UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_i[1])
+                    if (~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_i[1])
                       cgno_credit_full_cycles[x][y] <= cgno_credit_full_cycles[x][y]+1;
 
                     non_frozen_cycles[x][y] <= non_frozen_cycles[x][y]+1;
@@ -470,9 +496,9 @@ module test_bsg_manycore;
                       end
 
                     $display("##   %2.2d,%2.2d  %9.9d %d |%d %d %d %d %d |%d %d %d"
-                             ,x,y,UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.csr.instret_full, non_frozen_cycles[x][y],dmem_stalls[x][y],imem_stalls[x][y],dx_stalls[x][y],redirect_stalls[x][y],rsrv_stalls[x][y],cgni_full_cycles[x][y],cgno_full_cycles[x][y],cgno_credit_full_cycles[x][y]);
+                             ,x,y,`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.csr.instret_full, non_frozen_cycles[x][y],dmem_stalls[x][y],imem_stalls[x][y],dx_stalls[x][y],redirect_stalls[x][y],rsrv_stalls[x][y],cgni_full_cycles[x][y],cgno_full_cycles[x][y],cgno_credit_full_cycles[x][y]);
                     $display("##                         %-2.1f%%        %-2.1f%%       %-2.1f%%       %-2.1f%%       %-2.1f%%      %-2.1f%%       %-2.1f%%       %-2.1f%%     %-2.1f%%"
-                             , 100.0 * ((real' (non_frozen_cycles[x][y]) / (real' (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.csr.instret_full))))
+                             , 100.0 * ((real' (non_frozen_cycles[x][y]) / (real' (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.csr.instret_full))))
                              , 100.0 * ((real' (dmem_stalls      [x][y]) / (real' (non_frozen_cycles[x][y]))))
                              , 100.0 * ((real' (imem_stalls      [x][y]) / (real' (non_frozen_cycles[x][y]))))
                              , 100.0 * ((real' (dx_stalls        [x][y]) / (real' (non_frozen_cycles[x][y]))))
@@ -482,7 +508,7 @@ module test_bsg_manycore;
                              , 100.0 * ((real' (cgno_full_cycles [x][y]) / (real' (non_frozen_cycles[x][y]))))
                              , 100.0 * ((real' (cgno_credit_full_cycles [x][y]) / (real' (non_frozen_cycles[x][y]))))
                              );
-                    $display("##        minimum store credits: %d / %d ", min_store_credits[x][y], UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.max_remote_store_credits_p);
+                    $display("##        minimum store credits: %d / %d ", min_store_credits[x][y], `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.max_remote_store_credits_p);
 
                     if (x == num_tiles_x_lp-1 && y == num_tiles_y_lp-1)
                       $display("##\n");
@@ -490,84 +516,118 @@ module test_bsg_manycore;
             end // always @ (negedge clk)
        end
 
-  bsg_manycore_spmd_loader
-    #( .mem_size_p    (mem_size_lp)
-       ,.num_rows_p    (num_tiles_y_lp)
-       ,.num_cols_p    (num_tiles_x_lp)
-       // go viral booting
-       //,.load_rows_p(1)
-       //,.load_cols_p(1)
-
-       ,.data_width_p  (data_width_lp)
-       ,.addr_width_p  (addr_width_lp)
-       ,.tile_id_ptr_p (tile_id_ptr_lp)
-     ) spmd_loader
-     ( .clk_i     (clk)
-       ,.reset_i  (reset)
-       ,.data_o   (test_data_in)
-       ,.v_o      (test_v_in)
-       ,.ready_i  (hor_ready_out[W][0][0])
-       ,.data_i   (mem_data)
-       ,.addr_o   (mem_addr)
-     );
-
-  `ROM(`SPMD)
-    #( .addr_width_p(addr_width_lp)
-      ,.width_p     (data_width_lp)
-     ) spmd_rom
-     ( .addr_i (mem_addr)
-      ,.data_o (mem_data)
-     );
-
-   // only North side needs to be tied off; south side is connected to manycore monitor
-   assign ver_data_in       [N] = (num_tiles_x_lp*packet_width_lp)'(0);
-   assign ver_return_data_in[N] = (num_tiles_x_lp*return_packet_width_lp)'(0);
-   assign ver_v_in          [N] = (num_nets_lp*num_tiles_x_lp)'(0);
-
-   // absorb all outgoing packets
-   assign ver_ready_in      [N] = { (num_nets_lp*num_tiles_x_lp) {1'b1} };
-
-   assign hor_data_in        = (2*num_tiles_y_lp*packet_width_lp)'(0) | test_data_in;
-   assign hor_return_data_in = (2*num_tiles_y_lp*packet_width_lp)'(0);
-   assign hor_v_in           = (2*num_nets_lp*num_tiles_y_lp)'(0)     | test_v_in;
-
-   // absorb all outgoing packets
-   assign hor_ready_in       = { (2*num_nets_lp*num_tiles_y_lp) {1'b1}};
+`endif
 
    wire [39:0] cycle_count;
 
    bsg_cycle_counter #(.width_p(40),.init_val_p(0))
    cc (.clk(clk), .reset_i(reset), .ctr_r_o(cycle_count));
 
-   wire [num_tiles_x_lp-1:0] finish_lo_vec;
+   genvar                   i,j;
 
+   for (i = 0; i < num_tiles_y_lp; i=i+1)
+     begin: rof2
+
+        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp  )
+                                       ,.data_width_p  (data_width_lp  )
+                                       ,.x_cord_width_p(lg_node_x_lp)
+                                       ,.y_cord_width_p(lg_node_y_lp)
+                                       ) bmlst
+        (.clk_i(clk)
+         ,.reset_i(reset)
+         ,.link_sif_i(hor_link_lo[W][i])
+         ,.link_sif_o(hor_link_li[W][i])
+         );
+
+        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp  )
+                                       ,.data_width_p  (data_width_lp  )
+                                       ,.x_cord_width_p(lg_node_x_lp   )
+                                       ,.y_cord_width_p(lg_node_y_lp   )
+                                       ) bmlst2
+        (.clk_i(clk)
+         ,.reset_i(reset)
+         ,.link_sif_i(hor_link_lo[E][i])
+         ,.link_sif_o(hor_link_li[E][i])
+         );
+     end
+
+
+  logic [addr_width_lp-1:0]   mem_addr;
+  logic [data_width_lp-1:0]   mem_data;
+
+  logic [packet_width_lp-1:0] loader_data_lo;
+  logic                       loader_v_lo;
+  logic                       loader_ready_li;
+
+   bsg_manycore_spmd_loader
+     #( .mem_size_p    (mem_size_lp)
+        ,.num_rows_p    (num_tiles_y_lp)
+        ,.num_cols_p    (num_tiles_x_lp)
+        // go viral booting
+        //,.load_rows_p(1)
+        //,.load_cols_p(1)
+
+        ,.data_width_p  (data_width_lp)
+        ,.addr_width_p  (addr_width_lp)
+        ,.tile_id_ptr_p (tile_id_ptr_lp)
+        ) spmd_loader
+       ( .clk_i     (clk)
+         ,.reset_i  (reset)
+         ,.data_o   (loader_data_lo )
+         ,.v_o      (loader_v_lo    )
+         ,.ready_i  (loader_ready_li)
+         ,.data_i   (mem_data)
+         ,.addr_o   (mem_addr)
+         );
+
+   `ROM(`SPMD)
+   #( .addr_width_p(addr_width_lp)
+      ,.width_p     (data_width_lp)
+      ) spmd_rom
+     ( .addr_i (mem_addr)
+       ,.data_o (mem_data)
+       );
+
+   wire [num_tiles_x_lp-1:0] finish_lo_vec;
    assign finish_lo = | finish_lo_vec;
 
-   genvar 		    i;
-   
    for (i = 0; i < num_tiles_x_lp; i=i+1)
      begin: rof
+        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp  )
+                                       ,.data_width_p  (data_width_lp  )
+                                       ,.x_cord_width_p(lg_node_x_lp)
+                                       ,.y_cord_width_p(lg_node_y_lp)
+                                       ) bmlst3
+        (.clk_i(clk)
+         ,.reset_i(reset)
+         ,.link_sif_i(ver_link_lo[N][i])
+         ,.link_sif_o(ver_link_li[N][i])
+         );
+
+        wire pass_thru_ready_lo;
+
+        // hook up the ready signal if this is x==0, S
+        if (i==0)
+          assign loader_ready_li = pass_thru_ready_lo;
+
         bsg_nonsynth_manycore_monitor #(.x_cord_width_p (lg_node_x_lp)
                                         ,.y_cord_width_p(lg_node_y_lp)
                                         ,.addr_width_p  (addr_width_lp)
                                         ,.data_width_p  (data_width_lp)
                                         ,.channel_num_p (i)
                                         ,.max_cycles_p(max_cycles_lp)
+                                        ,.pass_thru_p(i==0)
                                         ) bmm (.clk_i(clk)
                                                ,.reset_i (reset)
-
-                                               ,.v_i          (ver_v_out          [S][i])
-                                               ,.data_i       (ver_data_out       [S][i])
-                                               ,.return_data_i(ver_return_data_out[S][i])
-                                               ,.ready_o      (ver_ready_in       [S][i])
-
-                                               ,.v_o          (ver_v_in           [S][i])
-                                               ,.data_o       (ver_data_in        [S][i])
-                                               ,.return_data_o(ver_return_data_in [S][i])
-                                               ,.ready_i      (ver_ready_out      [S][i])
+                                               ,.link_sif_i   (ver_link_lo[S][i])
+                                               ,.link_sif_o   (ver_link_li[S][i])
+                                               ,.pass_thru_data_i (loader_data_lo )
+                                               ,.pass_thru_v_i    (loader_v_lo    )
+                                               ,.pass_thru_ready_o(pass_thru_ready_lo)
                                                ,.cycle_count_i(cycle_count)
                                                ,.finish_o     (finish_lo_vec[i])
                                                );
      end
+
 
 endmodule
