@@ -1,6 +1,9 @@
 `include "bsg_manycore_packet.vh"
 `include "definitions.v"
 
+`ifdef bsg_FPU
+ `include "float_definitions.v"
+`endif
 module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , y_cord_width_p = "inv"
                            , data_width_p   = 32
@@ -35,6 +38,13 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
     , output logic freeze_o
     );
+
+`ifdef bsg_FPU
+    //Instantiate the ALU/FPU interface
+    fpi_alu_inter fpi_alu();
+ 
+`endif
+
 
   // synopsys translate off
   initial
@@ -155,6 +165,20 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
           end
      end
 
+///////////////////////////////////////////////////////////////
+//
+// Instantiate the FPI instatnce.
+//
+`ifdef bsg_FPU
+
+    fpi riscv_fpi
+        (
+             .clk        (clk_i)
+            ,.reset      (reset_i)
+            ,.alu_inter  (fpi_alu)
+        );
+`endif
+
    hobbit #
      ( .imem_addr_width_p(imem_addr_width_lp)
       ,.gw_ID_p          (0)
@@ -172,6 +196,10 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       ,.to_mem_o       (core_to_mem)
       ,.reserve_1_o    (core_mem_reserve_1)
       ,.reservation_i  (core_mem_reservation_r)
+
+`ifdef bsg_FPU
+      ,.fpi_inter      (fpi_alu)
+`endif
      
       ,.my_x_i         (my_x_i)
       ,.my_y_i         (my_y_i)

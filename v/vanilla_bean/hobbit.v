@@ -1,5 +1,9 @@
 `include "parameters.v"
 `include "definitions.v"
+
+`ifdef bsg_FPU
+`include "float_definitions.v"
+`endif
 //`include "bsg_defines.v"
 
 /**
@@ -17,6 +21,9 @@ module hobbit #(parameter imem_addr_width_p = -1,
                 input                             clk,
                 input                             reset,
             
+`ifdef bsg_FPU
+                       fpi_alu_inter.alu_side     fpi_inter,
+`endif
                 input  ring_packet_s              net_packet_i,
             
                 input  mem_out_s                  from_mem_i,
@@ -166,12 +173,15 @@ begin
     end
   else
     begin
+`ifdef bsg_FPU
+      store_data = fpi_inter.exe_store_op ? fpi_inter.frs2_to_fiu: rs2_to_alu;
+`else
       store_data = rs2_to_alu;
+`endif
       mask       = 4'b1111;
     end
 end
 
-// Data_mem
 assign to_mem_o = '{
     write_data    : store_data,
     valid         : valid_to_mem_c,
@@ -820,4 +830,16 @@ begin
         };
 end
 
+///////////////////////////////////////////////////////////////////
+// Assign the outputs to FPI
+`ifdef bsg_FPU
+
+assign fpi_inter.rf_rs1_val     = rf_rs1_val;
+assign fpi_inter.alu_stall      = stall;
+assign fpi_inter.alu_flush      = flush;
+assign fpi_inter.rs1_of_alu     = rs1_to_alu;
+assign fpi_inter.flw_data       = from_mem_i.read_data; 
+assign fpi_inter.f_instruction  = instruction;
+
+`endif
 endmodule

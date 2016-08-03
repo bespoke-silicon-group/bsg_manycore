@@ -20,9 +20,17 @@ VSCALE_SRC    = $(VSCALE_DIR)/src/main/verilog
 VANILLA_SRC   = $(BSG_MANYCORE_DIR)/v/vanilla_bean
 VANILLA_MEM   = $(VANILLA_DIR)/parts/generic
 
-VLOG  = xvlog -sv
-VELAB = xelab -debug typical -s top_sim
+VLOG  = xvlog -sv ${BSG_FPU_OP}
+VELAB = xelab -debug typical ${BSG_FPU_OP} -s top_sim
 VSIM  = xsim --runall top_sim
+
+BSG_FPU_OP    = -d bsg_FPU
+
+ifneq ($(BSG_FPU_OP), )
+FPU_SRC       = $(addprefix $(VANILLA_SRC)/, float_decode.v fpi.v)
+else
+FPU_SRC       = 
+endif
 
 DESIGN_HDRS = 
 DESIGN_SRCS = 
@@ -39,6 +47,7 @@ else ifeq ($(MANYCORE_PROC),VANILLA)
   DESIGN_HDRS += -i $(VANILLA_SRC)/ -i $(VSCALE_SRC)/
   DESIGN_SRCS += $(addprefix $(VANILLA_SRC)/, alu.v cl_decode.v cl_state_machine.v hobbit.v bsg_manycore_proc.v) \
 		 $(addprefix $(VSCALE_SRC)/, vscale_mul_div.v) \
+         $(FPU_SRC)\
 		 $(addprefix $(BSG_IP_CORES_DIR)/bsg_mem/, bsg_mem_1rw_sync.v bsg_mem_2r1w.v bsg_mem_1r1w.v \
                               bsg_mem_banked_crossbar.v) \
 		 $(addprefix $(BSG_IP_CORES_DIR)/bsg_dataflow/, bsg_fifo_tracker.v) \
@@ -71,4 +80,4 @@ bsg_rom_%.v: %.bin
 %.run:  bsg_rom_%.v
 	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) bsg_rom_$*.v $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y)
 	$(VELAB) test_bsg_manycore | grep -v Compiling
-	$(VSIM) $(TEE-CMD)
+	#$(VSIM) $(TEE-CMD)

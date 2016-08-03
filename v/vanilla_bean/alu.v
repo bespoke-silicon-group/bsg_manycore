@@ -1,6 +1,10 @@
 `include "parameters.v"
 `include "definitions.v"
 
+`ifdef bsg_FPU
+`include "float_definitions.v"
+`endif
+
 module alu ( input [RV32_reg_data_width_gp-1:0] rs1_i
             ,input [RV32_reg_data_width_gp-1:0] rs2_i
             ,input  instruction_s op_i
@@ -17,12 +21,25 @@ logic [31:0] adder_input;
 logic [32:0] shr_out;
 logic [31:0] shl_out, xor_out, and_out, or_out;
 
+/////////////////////////////////////////////////////////
 assign is_imm_op    = (op_i.op ==? `RV32_OP_IMM) 
                        | (op_i.op ==? `RV32_LOAD)
+`ifdef bsg_FPU
+                       | (op_i.op ==? `RV32_LOAD_FP)
+`endif
                        | (op_i.op ==? `RV32_JALR_OP);
+
+/////////////////////////////////////////////////////////
+`ifdef bsg_FPU
+assign op2          = ( (op_i.op == `RV32_STORE) | (op_i.op == `RV32_STORE_FP) )
+`else
 assign op2          = (op_i.op == `RV32_STORE) 
+`endif
                        ? `RV32_signext_Simm(op_i)
                        : (is_imm_op ? `RV32_signext_Iimm(op_i) : rs2_i);
+///////////////////////////////////////////////////////////
+
+
 assign adder_input  = sub_not_add ? (~op2) : op2;
 assign sh_amount    = is_imm_op ? op_i.rs2 : rs2_i[4:0];
 
@@ -47,6 +64,9 @@ always_comb
       
       `RV32_ADDI, `RV32_ADD, 
       `RV32_LB, `RV32_LH, `RV32_LW, `RV32_LBU, `RV32_LHU,
+`ifdef bsg_FPU
+      `RV32_FLW, `RV32_FSW,
+`endif
       `RV32_SB, `RV32_SH, `RV32_SW:
         begin
           result_o = sum[31:0];

@@ -27,6 +27,10 @@ always_comb
 // Is Mem Op -- data memory operation
 always_comb
     unique casez (instruction_i.op)
+
+`ifdef bsg_FPU
+        `RV32_LOAD_FP, `RV32_STORE_FP,
+`endif
         `RV32_LOAD, `RV32_STORE:
             decode_o.is_mem_op = 1'b1;
         default:
@@ -54,6 +58,9 @@ always_comb
 // Is Load Op -- data memory load operation
 always_comb
     unique casez (instruction_i.op)
+`ifdef bsg_FPU
+        `RV32_LOAD_FP, 
+`endif
         `RV32_LOAD:
             decode_o.is_load_op = 1'b1;
         default:
@@ -66,6 +73,9 @@ assign decode_o.is_load_unsigned = (instruction_i.funct3[2]) ? decode_o.is_load_
 // Is Store Op -- data memory store operation
 always_comb
     unique casez (instruction_i.op)
+`ifdef bsg_FPU
+        `RV32_STORE_FP,
+`endif
         `RV32_STORE:
             decode_o.is_store_op = 1'b1;
         default:
@@ -95,6 +105,9 @@ always_comb
 // declares if OP reads from first port of register file
 always_comb
     unique casez (instruction_i.op)
+`ifdef  bsg_FPU
+        `RV32_LOAD_FP, `RV32_STORE_FP,
+`endif
         `RV32_JALR_OP, `RV32_BRANCH, `RV32_LOAD, `RV32_STORE,
         `RV32_OP,      `RV32_OP_IMM, `RV32_AMO:
             decode_o.op_reads_rf1 = 1'b1;
