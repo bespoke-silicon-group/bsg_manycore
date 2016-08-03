@@ -6,7 +6,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
  #( parameter mem_size_p      = -1 // size of mem to be loaded  (bytes) (?)
    ,parameter data_width_p    = 32 
-   ,parameter addr_width_p    = 32 
+   ,parameter addr_width_p    = 30
    ,parameter tile_id_ptr_p   = -1
    ,parameter num_rows_p      = -1
    ,parameter num_cols_p      = -1
@@ -53,19 +53,19 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    always_comb
      begin
         pkt.data   = load_data;
-        pkt.addr   = load_addr;
+        pkt.addr   = addr_width_p ' (load_addr >> 2);
         pkt.op     = loaded ? 2'b10: 2'b01;
         pkt.op_ex  = loaded ? 4'b0000: 4'b1111;
         pkt.x_cord = x_cord;
         pkt.y_cord = y_cord;
         pkt.return_pkt.x_cord = 0;
-        pkt.return_pkt.y_cord = num_rows_p;           // route to east (fixme: will screw up east edge's credit counter)
+        pkt.return_pkt.y_cord = num_rows_p;   // route to south (fixme: should provide actual coordinate
      end
 
    assign data_o = pkt;
 
    assign v_o  = ~reset_i & (~loaded | (loaded && (tile_no < load_rows_p*load_cols_p)));
-   assign addr_o   = addr_width_p'(load_addr / (addr_width_p >> 3));
+   assign addr_o   = addr_width_p'(load_addr >> 2);
 
    assign tile_no_n = (tile_no + (load_addr == (mem_size_p-4))) % (load_rows_p * load_cols_p);
    assign loaded_n = (tile_no == load_rows_p*load_cols_p -1)

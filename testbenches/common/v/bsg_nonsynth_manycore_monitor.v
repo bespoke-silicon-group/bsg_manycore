@@ -91,7 +91,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
        begin
           if (cgni_v)
             begin
-               unique case (pkt_cast.addr[19:0])
+               unique case ({pkt_cast.addr[19:0],2'b00})
                  20'hDEAD_0:
                    begin
                       $display("## RECEIVED FINISH PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x (%d)"
@@ -109,7 +109,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                                , channel_num_p,cycle_count_i,cycle_count_i);
                    end
                  default:
-                   $display("## received I/O device %x, addr %x, data %x on cycle %d", channel_num_p, pkt_cast.addr, pkt_cast.data,cycle_count_i);
+                   $display("## received I/O device %x, addr %x, data %x on cycle %d", channel_num_p, pkt_cast.addr<<2, pkt_cast.data,cycle_count_i);
                endcase
             end
        end

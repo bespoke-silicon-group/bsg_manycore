@@ -43,7 +43,7 @@
      begin
         if (~freeze)
           begin
-             $fwrite(1,"x=%x y=%x PC_IF=%4.4x imem_wait=%x dmem_wait=%x dmem_en=%x exception_code_WB=%x imem_addr=%x imem_data=%x replay_IF=%x stall_IF=%x stall_DX "
+             $fwrite(1,"x=%x y=%x PC_IF=%4.4x imem_wait=%x dmem_wait=%x dmem_en=%x exception_code_WB=%x imem_addr=%x imem_data=%x replay_IF=%x stall_IF=%x stall_DX=%x "
                      ,my_x_i, my_y_i,PC_IF,imem_wait,dmem_wait,dmem_en,exception_code_WB, imem_addr, imem_rdata, ctrl.replay_IF, ctrl.stall_IF, ctrl.stall_DX);
              if (wr_reg_WB & ~stall_WB & (reg_to_wr_WB != 0))
                $fwrite(1,"r[%2.2x]=%x ",reg_to_wr_WB,wb_data_WB);
@@ -273,7 +273,7 @@ module test_bsg_manycore;
    localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
    localparam num_banks_lp    = `BANK_NUM;
    localparam data_width_lp   = 32;
-   localparam addr_width_lp   = 32;
+   localparam addr_width_lp   = 20;
    localparam num_tiles_x_lp  = `bsg_tiles_X;
    localparam num_tiles_y_lp  = `bsg_tiles_Y;
    localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);

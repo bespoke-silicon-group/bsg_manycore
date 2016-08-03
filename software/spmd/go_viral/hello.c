@@ -68,7 +68,7 @@ int main()
 {
   go_viral();
 
-  bsg_remote_ptr_io_store(0,0xFAC0,bsg_id);
+  bsg_print_time();
   if (bsg_id == (bsg_num_tiles-1))
     bsg_finish();
   bsg_wait_while(1);
