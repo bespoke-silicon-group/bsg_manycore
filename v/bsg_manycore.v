@@ -5,9 +5,7 @@ module bsg_manycore
 import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
  #(// tile params
-    parameter dirs_p            = 4
-   ,parameter fifo_els_p        = 2
-   ,parameter bank_size_p       = "inv"
+   parameter bank_size_p       = "inv"
 
    // increasing the number of banks decreases ram efficiency
    // but reduces conflicts between remote stores and local data accesses
@@ -15,8 +13,6 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    // the network (i.e. cgni full cycles).
 
    ,parameter num_banks_p       = "inv"
-   ,parameter data_width_p      = 32
-   ,parameter addr_width_p      = 32
 
    // array params
    ,parameter num_tiles_x_p     = "inv"
@@ -30,8 +26,32 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    ,parameter debug_p           = 0
 
+   // this control how many extra IO rows are addressable in
+   // the network outside of the manycore array
+
+   ,parameter extra_io_rows_p   = 1
+
+   // this parameter sets the size of addresses that are transmitted in the network
+   // and corresponds to the amount of physical words that are addressable by a remote
+   // tile. here are some various settings:
+   //
+   // 30: maximum value, i.e. 2^30 words.
+   // 20: maximum value to allow for traversal over a bsg_fsb
+   // 13: value for 8 banks of 1024 words of ram in each tile
+   //
+   // obviously smaller values take up less die area.
+   //
+
+   ,parameter addr_width_p      = "inv"
+
    ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
-   ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
+   ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
+
+
+   // changing this parameter is untested
+
+   ,parameter data_width_p      = 32
+
    ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
   )
   ( input clk_i
@@ -59,6 +79,8 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
    bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
 
+   localparam dirs_lp = 4;
+
   /* TILES */
 
   genvar r,c;
@@ -68,8 +90,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
     for (c = 0; c < num_tiles_x_p; c = c+1)
     begin: tile_col_gen
       bsg_manycore_tile #
-      ( .dirs_p        (dirs_p)
-       ,.stub_p        ({ (r == num_tiles_y_p-1) ? (((stub_s_p>>c) & 1'b1) == 1) : 1'b0 // s
+      (.stub_p        ({ (r == num_tiles_y_p-1) ? (((stub_s_p>>c) & 1'b1) == 1) : 1'b0  // s
                          ,(r == 0)               ? (((stub_n_p>>c) & 1'b1) == 1) : 1'b0 // n
                          ,(c == num_tiles_x_p-1) ? (((stub_e_p>>r) & 1'b1) == 1) : 1'b0 // e
                          ,(c == 0)               ? (((stub_w_p>>r) & 1'b1) == 1) : 1'b0 // w

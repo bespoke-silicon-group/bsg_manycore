@@ -12,7 +12,7 @@ import bsg_vscale_pkg::*;
    // to banked crossbar
    ,output [1:0]                          m_v_o
    ,output [1:0]                          m_w_o
-   ,output [1:0] [haddr_width_p-1:0]      m_addr_o
+   ,output [1:0] [haddr_width_p-1:0]      m_addr_o // this is 32 bits
    ,output [1:0] [hdata_width_p-1:0]      m_data_o
    ,output logic [1:0] [(hdata_width_p>>3)-1:0] m_mask_o
    ,input  [1:0]                          m_yumi_i

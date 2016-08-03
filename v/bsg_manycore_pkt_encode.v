@@ -13,7 +13,9 @@ module bsg_manycore_pkt_encode
    (
     input clk_i // for debug only
     ,input v_i
-    ,input [addr_width_p-1:0] addr_i
+
+    // we take in the full 32-bit address here
+    ,input [32-1:0] addr_i
     ,input [data_width_p-1:0] data_i
     ,input [(data_width_p>>3)-1:0] mask_i
     ,input we_i
@@ -23,12 +25,12 @@ module bsg_manycore_pkt_encode
     ,output [packet_width_lp-1:0] data_o
     );
 
-   `declare_bsg_manycore_addr_s(addr_width_p,x_cord_width_p,y_cord_width_p);
+   `declare_bsg_manycore_addr_s(32,x_cord_width_p,y_cord_width_p);
 
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
    bsg_manycore_packet_s pkt;
-   addr_decode_s addr_decode;
+   bsg_manycore_addr_s addr_decode;
 
    assign addr_decode = addr_i;
    assign data_o = pkt;
@@ -39,8 +41,10 @@ module bsg_manycore_pkt_encode
    assign pkt.op     = addr_decode.addr[$size(addr_decode.addr)-1] ? 2'b10 : 2'b01;
    assign pkt.op_ex  = mask_i;
 
-   // remote top bit of address
+   // remote top bit of address, which is the special op code space.
+   // low bits are automatically
    assign pkt.addr   = addr_width_p ' (addr_decode.addr[$size(addr_decode.addr)-2:0]);
+
 
    assign pkt.data   = data_i;
    assign pkt.x_cord = addr_decode.x_cord;
@@ -55,8 +59,8 @@ module bsg_manycore_pkt_encode
    if (debug_p)
    always @(negedge clk_i)
      if (v_i)
-       $display("%m encode pkt addr_i=%x data_i=%x mask_i=%x we_i=%x v_o=%x, data_o=%x, remote=%x",
-                addr_i, data_i, mask_i, we_i, v_o, data_o, addr_decode.remote, $bits(addr_decode_s));
+       $display("%m encode pkt addr_i=%x data_i=%x mask_i=%x we_i=%x v_o=%x, data_o=%x, remote=%x bsg_manycore_addr_s size=%x",
+                addr_i, data_i, mask_i, we_i, v_o, data_o, addr_decode.remote, $bits(bsg_manycore_addr_s));
 
    always_ff @(negedge clk_i)
      begin

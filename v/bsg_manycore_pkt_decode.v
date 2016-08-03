@@ -28,7 +28,7 @@ module bsg_manycore_pkt_decode
 
    assign pkt = data_i;
    assign data_o = pkt.data;
-   assign addr_o = pkt.addr;
+   assign addr_o = addr_width_p ' (pkt.addr);
 
    always_comb
      begin
@@ -47,7 +47,7 @@ module bsg_manycore_pkt_decode
                     mask_o             = pkt.op_ex;
                  end
                2:
-                 if (~|pkt.addr[addr_width_p-1:0])
+                 if (~|pkt.addr[addr_width_p-1:0]) // if addr=0
                    begin
                       pkt_freeze_o   = pkt.data[0];
                       pkt_unfreeze_o = ~pkt.data[0];

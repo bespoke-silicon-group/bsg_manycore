@@ -14,14 +14,19 @@
       } bsg_manycore_return_packet_s;                \
                                                      \
    typedef struct packed {                           \
+      logic [(in_addr_width)-1:0] addr;              \
       logic [1:0] op;                                \
       logic [(in_data_width>>3)-1:0] op_ex;          \
-      logic [(in_addr_width)-1:0] addr;              \
       logic [(in_data_width)-1:0] data;              \
       bsg_manycore_return_packet_s return_pkt;       \
       logic [(in_y_cord_width)-1:0] y_cord;          \
       logic [(in_x_cord_width)-1:0] x_cord;          \
    } bsg_manycore_packet_s
+
+// note op_ex above is the byte mask for writes.
+// we put the addr at the top of the packet so that we can truncate it
+// X must be lowest in the packet, and Y must be the next lowest for bsg_mesh_router to work.
+//
 
 `define bsg_manycore_link_sif_width(in_addr_width,in_data_width,in_x_cord_width, in_y_cord_width)                              \
 (`bsg_ready_and_link_sif_width(`bsg_manycore_packet_width(in_addr_width,in_data_width,in_x_cord_width,in_y_cord_width))        \
@@ -35,10 +40,10 @@
      `declare_bsg_ready_and_link_sif_s(`bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width),name)
 
 // defines bsg_manycore_fwd_link_sif, bsg_manycore_rev_link_sif, and the combination, bsg_manycore_link_sif_s
-`define declare_bsg_manycore_link_sif_s(in_addr_width, in_data_width, in_x_cord_width, in_y_cord_width)                            \
+`define declare_bsg_manycore_link_sif_s(in_addr_width, in_data_width, in_x_cord_width, in_y_cord_width)                                \
     `declare_bsg_manycore_fwd_link_sif_s(in_addr_width, in_data_width, in_x_cord_width, in_y_cord_width, bsg_manycore_fwd_link_sif_s); \
     `declare_bsg_manycore_rev_link_sif_s(in_x_cord_width, in_y_cord_width, bsg_manycore_rev_link_sif_s);                               \
-                                                                                                                                   \
+                                                                                                                                       \
    typedef struct packed {             \
       bsg_manycore_fwd_link_sif_s fwd; \
       bsg_manycore_rev_link_sif_s rev; \
@@ -59,17 +64,17 @@
 // arrays, we would have to use a larger packet.
 //
 // bsg_fsb_manycore_80_bits small packet
-// 2  dest id (assumes point-to-point)
+// 4  dest id (we could reduce in future; but breaks some compatibility)
 // 1  cmd
-// 77 payload
-//    3 channel bits (8x8)
-//    74 network payload
-//       22 address (= 16 MB)
-//       32 data
-//        4 mask
-//        7 route sender
+// 75 payload
+//    3 channel bits (x4 configs; fwd+rev channel)
+//    72 network payload
+//       20 address (= 1 M words = 4 MB)
 //        2 op
-//        7 route dest
+//        4 mask
+//       32 data
+//        7 route sender --> 3+3+1 bits
+//        7 route dest   --> 3+3+1 bits
 //
 // For larger manycore arrays that are split across two chips (e.g. FPGA and ASIC
 // for NASA for a mesh "ADN"), we need to have a wider packet. Here is an encoding

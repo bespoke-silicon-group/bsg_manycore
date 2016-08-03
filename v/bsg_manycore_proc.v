@@ -3,7 +3,7 @@
 module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , y_cord_width_p = "inv"
                            , data_width_p   = 32
-                           , addr_width_p   = 32
+                           , addr_width_p   = "inv"
                            , debug_p        = 0
                            , bank_size_p    = "inv" // in words
                            , num_banks_p    = "inv"
@@ -16,7 +16,6 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
                            // this is the size of the receive FIFO
                            , proc_fifo_els_p = 4
-                           , mem_width_lp    = $clog2(bank_size_p) + $clog2(num_banks_p)
                            , num_nets_lp     = 2
 
                            , packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -148,7 +147,9 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    logic [1:0]                         core_mem_v;
    logic [1:0]                         core_mem_w;
-   logic [1:0] [addr_width_p-1:0]      core_mem_addr;
+
+   // this is coming from the vscale core; which has 32-bit addresses
+   logic [1:0] [32-1:0]                core_mem_addr;
    logic [1:0] [data_width_p-1:0]      core_mem_wdata;
    logic [1:0] [(data_width_p>>3)-1:0] core_mem_mask;
    logic [1:0]                         core_mem_yumi;
@@ -166,10 +167,10 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
         // to the interface, then the reservation takes place
         if (core_mem_v & core_mem_reserve_1 & core_mem_yumi[1])
           begin
-             // copy address
+             // copy address; ignore byte bits
              core_mem_reservation_r  <= 1'b1;
-             core_mem_reserve_addr_r <= core_mem_addr[1];
-             $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr[1]);
+             core_mem_reserve_addr_r <= core_mem_addr[1][2+:addr_width_p];
+             $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr[1] << 2);
           end
         else
           // otherwise, we clear existing reservations if the corresponding
@@ -297,12 +298,17 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                                               , core_mem_v[0]
                                               };
 
+   // fixme: not quite right for banks=1
+   localparam mem_width_lp    = $clog2(bank_size_p) + $clog2(num_banks_p);
+
    // proc data port sometimes writes, the network port always writes, proc inst port never writes
    wire [2:0]                    xbar_port_we_in   = { core_mem_w[1], 1'b1, 1'b0};
    wire [2:0]                    xbar_port_yumi_out;
    wire [2:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata [1], remote_store_data, core_mem_wdata[0]};
    wire [2:0] [mem_width_lp-1:0] xbar_port_addr_in = {   core_mem_addr[1]  [2+:mem_width_lp]
-                                                       , remote_store_addr [2+:mem_width_lp]
+//                                                       , remote_store_addr [2+:mem_width_lp]
+//                                                     remote stores already have bottom two bits snipped
+                                                       , mem_width_lp ' ( remote_store_addr )
                                                        , core_mem_addr[0]  [2+:mem_width_lp]
                                                        };
    wire [2:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask[1], remote_store_mask, core_mem_mask[0] };
@@ -310,7 +316,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    always @(negedge clk_i)
      if (0)
      begin
-        if (~freeze_r)
+       if (~freeze_r)
+        if (|xbar_port_v_in)
           $display("x=%x y=%x xbar_v_i=%b xbar_w_i=%b xbar_port_yumi_out=%b xbar_addr_i[2,1,0]=%x,%x,%x, xbar_data_i[2,1,0]=%x,%x,%x, xbar_data_o[1,0]=%x,%x"
                    ,my_x_i
                    ,my_y_i
@@ -355,7 +362,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 //     ,.rr_lo_hi_p   (2'b10) // round robin
 //     ,.rr_lo_hi_p   (2'b01) // deadlock
      ,.rr_lo_hi_p(0)          // local dmem has priority
-     ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
+//     ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
+     ,.debug_p(0*4)  // mbt: debug, multiply addresses by 4.     
 //      ,.debug_p(4)
 //     ,.debug_reads_p(0)
     ) banked_crossbar
