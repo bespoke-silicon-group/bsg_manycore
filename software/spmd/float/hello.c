@@ -24,6 +24,7 @@ int main()
 
     load_store_test(input);
     move_test(input);
+    bypass_test(input);
 
     bsg_finish();
   }

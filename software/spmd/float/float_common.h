@@ -9,8 +9,10 @@ int print_value( unsigned int *p);
 
 #define LOAD_STORE_TESTID   0x4
 #define MOVE_TESTID         0x8
+#define BYPASS_TESTID       0xC
 
-int load_store_teste(float *src, float *dst);
-int move_teste(float *src);
+void load_store_test(float *src);
+void move_test(float *src);
+void bypass_test(float *src);
 
 #endif

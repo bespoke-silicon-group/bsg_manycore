@@ -174,7 +174,7 @@ begin
   else
     begin
 `ifdef bsg_FPU
-      store_data = fpi_inter.exe_store_op ? fpi_inter.frs2_to_fiu: rs2_to_alu;
+      store_data = fpi_inter.exe_fpi_store_op ? fpi_inter.frs2_to_fiu: rs2_to_alu;
 `else
       store_data = rs2_to_alu;
 `endif
@@ -766,15 +766,17 @@ decode_s  fpi_alu_decode;
 always_comb
 begin
     fpi_alu_decode = exe.decode;
-    if( fpi_inter.exe_writes_rf )
+    if( fpi_inter.exe_fpi_writes_rf )
         fpi_alu_decode.op_writes_rf = 1'b1;
 end
-`endif
 
 logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
-assign fiu_alu_result = fpi_inter.exe_writes_rf
+assign fiu_alu_result = fpi_inter.exe_fpi_writes_rf
                        ?fpi_inter.fiu_result
                        :alu_result; 
+
+`endif
+
 
 // Synchronous stage shift
 always_ff @ (posedge clk)
@@ -855,12 +857,13 @@ end
 // Assign the outputs to FPI
 `ifdef bsg_FPU
 
-assign fpi_inter.rf_rs1_out     = rf_rs1_out;
-assign fpi_inter.alu_stall      = stall;
-assign fpi_inter.alu_flush      = flush;
-assign fpi_inter.rs1_of_alu     = rs1_to_alu;
-assign fpi_inter.flw_data       = from_mem_i.read_data; 
-assign fpi_inter.f_instruction  = instruction;
+assign fpi_inter.alu_stall              = stall;
+assign fpi_inter.alu_flush              = flush;
+assign fpi_inter.rs1_of_alu             = rs1_to_alu;
+assign fpi_inter.flw_data               = from_mem_i.read_data; 
+assign fpi_inter.f_instruction          = instruction;
+assign fpi_inter.mem_alu_writes_rf      = mem.decode.op_writes_rf;
+assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
 
 `endif
 endmodule

@@ -62,8 +62,8 @@ typedef struct packed
     logic                              op_writes_frf; // Op writes to the FALU register file
     logic                              is_fam_op;     // Op executed in FAM
     logic                              is_fpi_op;     // OP executed in FPI
-    logic [RV32_reg_addr_width_gp-1:0] frd_addr;       // Register file write address
-    logic [RV32_reg_data_width_gp-1:0] frf_data;       // Register file write data
+    logic [RV32_reg_addr_width_gp-1:0] frd_addr;      // Register file write address
+    logic [RV32_reg_data_width_gp-1:0] frf_data;      // Register file write data
 } f_wb_signals_s;
 
 // RF write back stage signals
@@ -88,19 +88,16 @@ interface  fpi_alu_inter ();
     //the interface in FE stage
     logic [RV32_instr_width_gp-1:0]         f_instruction; //the instrucitons
     
-    //the interface in ID stage
-    logic [RV32_reg_data_width_gp-1:0]      rf_rs1_out; //the value read from REG
-    
     //the interface in EXE stage
     logic [RV32_reg_data_width_gp-1:0]      rs1_of_alu; //values used for FCVT, FMV
     logic [RV32_reg_data_width_gp-1:0]      frs2_to_fiu;//values will stored to mem
     logic [RV32_reg_data_width_gp-1:0]      fiu_result; //fiu_result write to RF 
 
-    logic                                   exe_store_op;//store operation in EX    
-    logic                                   exe_writes_rf;//FPI writes I RF
-//    logic [RV32_reg_data_width_gp-1:0]      exe_rd_data; //FPI writes I RF DATA
-//    logic [RV32_reg_addr_width_gp-1:0]      exe_rf_addr; //FPI writes I RF ADDR
+    logic                                   exe_fpi_store_op;// FPI store in EX    
+    logic                                   exe_fpi_writes_rf;//FPI writes I RF
     
+    logic  [RV32_reg_addr_width_gp-1:0]     mem_alu_rd_addr;// 
+    logic                                   mem_alu_writes_rf;//FPI writes I RF
     //the interface in MEM stage
     logic [RV32_reg_data_width_gp-1:0]      flw_data;  //the loaded data 
     
@@ -109,22 +106,24 @@ interface  fpi_alu_inter ();
     logic                                   alu_stall; //alu pipeline stalls.
     
     modport alu_side( 
-                output  f_instruction, rf_rs1_out,
+                output  f_instruction, 
                 output  rs1_of_alu,
                 input   frs2_to_fiu,
                 input   fiu_result,
-                input   exe_store_op, exe_writes_rf, 
+                input   exe_fpi_store_op, exe_fpi_writes_rf, 
+                output  mem_alu_rd_addr,  mem_alu_writes_rf, 
                 output  flw_data,
                 output  alu_flush,
                 output  alu_stall
                 );  
     
     modport fpi_side( 
-                input   f_instruction, rf_rs1_out,
+                input   f_instruction,
                 input   rs1_of_alu,
                 output  frs2_to_fiu,
                 output  fiu_result,
-                output  exe_store_op,exe_writes_rf, 
+                output  exe_fpi_store_op,   exe_fpi_writes_rf, 
+                input   mem_alu_rd_addr,    mem_alu_writes_rf, 
                 input   flw_data,
                 input   alu_flush,
                 input   alu_stall
