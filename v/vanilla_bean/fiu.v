@@ -21,10 +21,11 @@ always_comb
         `RV32_FEQ_S:
          begin
             result_o = ( frs1_i == frs2_i );
-            $display("result_o = %8x", result_o);
          end
         `RV32_FLE_S:
+         begin
             result_o = ( $bitstoshortreal(frs1_i) <= $bitstoshortreal(frs2_i) );
+         end
         `RV32_FLT_S:
             result_o = ( $bitstoshortreal(frs1_i) <  $bitstoshortreal(frs2_i) );
       default:

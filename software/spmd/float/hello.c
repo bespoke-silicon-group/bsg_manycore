@@ -24,7 +24,9 @@ int main()
 
     load_store_test(input);
     move_test(input);
-    bypass_test(input);
+    bypass_alu_fpi_test(input);
+    bypass_fpi_fpi_test(input);
+    bypass_fpi_alu_test(input);
 
     bsg_finish();
   }
