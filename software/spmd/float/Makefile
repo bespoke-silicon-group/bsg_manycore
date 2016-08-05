@@ -3,7 +3,7 @@ bsg_tiles_X = 2
 bsg_tiles_Y = 2
 
 RISCV_GCC_EXTRA_OPTS ?= -O2 -funroll-loops
-OBJECT_FILES=hello.o bsg_set_tile_x_y.o
+OBJECT_FILES=hello.o bsg_set_tile_x_y.o load_store_test.o move_test.o
 include ../Makefile.include
 
 all: hello.run

@@ -27,7 +27,7 @@ VSIM  = xsim --runall top_sim
 BSG_FPU_OP    = -d bsg_FPU
 
 ifneq ($(BSG_FPU_OP), )
-FPU_SRC       = $(addprefix $(VANILLA_SRC)/, float_decode.v fpi.v)
+FPU_SRC       = $(addprefix $(VANILLA_SRC)/, float_decode.v fpi.v fiu.v)
 else
 FPU_SRC       = 
 endif

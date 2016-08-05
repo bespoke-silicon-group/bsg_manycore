@@ -20,7 +20,8 @@ always_comb
     unique casez (f_instruction_i.op)
         `RV32_OP_FP:
             unique casez(f_instruction_i.funct7)
-                `RV32_FCVT_W_S_FUN7, `RV32_FMV_X_S_FUN7, `RV32_FCLASS_FUN7,
+                // FMV_X_S is the same with FCLASS
+                `RV32_FCVT_W_S_FUN7, `RV32_FMV_X_S_FUN7, //`RV32_FCLASS_FUN7,
                 `RV32_FCMP_FUN7:
                     f_decode_o.op_writes_rf = 1'b1;
 
@@ -68,7 +69,8 @@ always_comb
         `RV32_OP_FP:
             unique casez( f_instruction_i.funct7 )
                 `RV32_FADD_FUN7, `RV32_FSUB_FUN7, `RV32_FMUL_FUN7,
-                `RV32_FDIV_FUN7, `RV32_FSQRT_FUN7,`RV32_FMINMAX_FUN7:
+                `RV32_FDIV_FUN7, `RV32_FSQRT_FUN7,`RV32_FMINMAX_FUN7,
+                `RV32_FMV_S_X_FUN7, `RV32_FCVT_S_W_FUN7:
                     f_decode_o.op_writes_frf = 1'b1;
                 default:
                     f_decode_o.op_writes_frf = 1'b0;
@@ -98,8 +100,9 @@ always_comb
     unique casez( f_instruction_i.op )
         `RV32_OP_FP:
                 unique casez( f_instruction_i.funct7 )
+                // FMV_X_S is the same with FCLASS
                 `RV32_FSGN_FUN7, `RV32_FCVT_W_S_FUN7,`RV32_FCVT_S_W_FUN7,
-                `RV32_FMV_S_X_FUN7, `RV32_FMV_X_S_FUN7,`RV32_FCLASS_FUN7,
+                `RV32_FMV_S_X_FUN7, `RV32_FMV_X_S_FUN7,//`RV32_FCLASS_FUN7,
                 `RV32_FCMP_FUN7:
                     f_decode_o.is_fpi_op = 1'b1; 
                 default:
@@ -108,6 +111,21 @@ always_comb
         default
             f_decode_o.is_fpi_op = 1'b0;
     endcase
+
+// declares if Op reads from the first integer  register file port
+always_comb
+    unique casez( f_instruction_i.op )
+        `RV32_OP_FP:
+            unique casez( f_instruction_i.funct7)
+                `RV32_FCVT_S_W_FUN7, `RV32_FMV_S_X_FUN7:
+                    f_decode_o.op_reads_rf1 = 1'b1;
+                default:
+                    f_decode_o.op_reads_rf1 = 1'b0; 
+            endcase 
+        default:
+            f_decode_o.op_reads_rf1 = 1'b0;
+    endcase
+
 
 // declares if Op reads from the first floating register file port
 always_comb
@@ -132,7 +150,8 @@ always_comb
             f_decode_o.op_reads_frf2 = 1'b1;
         `RV32_OP_FP:
             unique casez( f_instruction_i.funct7)
-            `RV32_FSQRT_FUN7, `RV32_FCVT_W_S_FUN7, `RV32_FMV_X_S_FUN7, `RV32_FCLASS_FUN7,
+            // FCLASS is the same with `FMV_X_S
+            `RV32_FSQRT_FUN7, `RV32_FCVT_W_S_FUN7, `RV32_FMV_X_S_FUN7, //`RV32_FCLASS_FUN7,
             `RV32_FCVT_S_W_FUN7, `RV32_FMV_S_X_FUN7:
                 f_decode_o.op_reads_frf2 = 1'b0;
             default:

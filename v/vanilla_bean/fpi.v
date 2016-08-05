@@ -29,6 +29,7 @@ logic                               frf_wen, frf_cen;
 
 // Value forwarding logic
 logic [RV32_reg_data_width_gp-1:0] frs1_to_exe, frs2_to_exe;
+logic [RV32_reg_data_width_gp-1:0] frs1_to_fiu, frs2_to_fiu, fiu_result;
 
 //+----------------------------------------------
 //|
@@ -110,6 +111,11 @@ end
 // Determine what rs1 value should be passed to the exe stage of the pipeline
 always_comb
 begin
+    if(id.f_decode.op_reads_rf1 )
+    begin
+        frs1_to_exe = alu_inter.rf_rs1_out;
+    end 
+    else 
         frs1_to_exe = frf_rs1_out;
 end
 
@@ -138,7 +144,15 @@ end
 //|          EXECUTE TO MEMORY SHIFT
 //|
 //+----------------------------------------------
+assign frs1_to_fiu = exe.frs1_val;
+assign frs2_to_fiu = exe.frs2_val;
 
+
+fiu fiu_0 ( .frs1_i         ( frs1_to_fiu       ),
+            .frs2_i         ( frs2_to_fiu       ),
+            .op_i           ( exe.f_instruction ),
+            .result_o       ( fiu_result        )
+           );
 // Synchronous stage shift
 always_ff @ (posedge clk)
 begin
@@ -148,7 +162,7 @@ begin
         mem <= '{
             frd_addr        : exe.f_instruction.rd,
             f_decode        : exe.f_decode,
-            fiu_result      : exe.frs2_val
+            fiu_result      : fiu_result
         };
 end
 
@@ -205,5 +219,6 @@ end
 assign alu_inter.fiu_result     = exe.frs1_val;
 assign alu_inter.frs2_to_fiu    = exe.frs2_val;
 assign alu_inter.exe_store_op   = exe.f_decode.is_store_op;
+assign alu_inter.exe_writes_rf  = exe.f_decode.op_writes_rf;
 
 endmodule

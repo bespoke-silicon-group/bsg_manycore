@@ -105,12 +105,21 @@ always_comb
 // declares if OP reads from first port of register file
 always_comb
     unique casez (instruction_i.op)
-`ifdef  bsg_FPU
-        `RV32_LOAD_FP, `RV32_STORE_FP,
-`endif
         `RV32_JALR_OP, `RV32_BRANCH, `RV32_LOAD, `RV32_STORE,
         `RV32_OP,      `RV32_OP_IMM, `RV32_AMO:
             decode_o.op_reads_rf1 = 1'b1;
+
+`ifdef  bsg_FPU
+        `RV32_LOAD_FP, `RV32_STORE_FP:
+            decode_o.op_reads_rf1 = 1'b1;
+        `RV32_OP_FP:
+            unique casez( instruction_i.funct7 )
+                `RV32_FMV_S_X_FUN7:
+                    decode_o.op_reads_rf1 = 1'b1;  
+                default:
+                    decode_o.op_reads_rf1 = 1'b0;
+            endcase
+`endif
         default:
             decode_o.op_reads_rf1 = 1'b0;
     endcase

@@ -759,6 +759,23 @@ end
 //|
 //+----------------------------------------------
 
+`ifdef bsg_FPU
+//The combined decode signal to MEM stages.
+decode_s  fpi_alu_decode;
+
+always_comb
+begin
+    fpi_alu_decode = exe.decode;
+    if( fpi_inter.exe_writes_rf )
+        fpi_alu_decode.op_writes_rf = 1'b1;
+end
+`endif
+
+logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
+assign fiu_alu_result = fpi_inter.exe_writes_rf
+                       ?fpi_inter.fiu_result
+                       :alu_result; 
+
 // Synchronous stage shift
 always_ff @ (posedge clk)
 begin
@@ -768,8 +785,12 @@ begin
         mem <= '{
             pc_plus4   : exe.pc_plus4,
             rd_addr    : exe.instruction.rd,
+`ifdef bsg_FPU
+            decode     : fpi_alu_decode,
+`else
             decode     : exe.decode,
-            alu_result : alu_result
+`endif
+            alu_result : fiu_alu_result
         };
 end
 
@@ -834,7 +855,7 @@ end
 // Assign the outputs to FPI
 `ifdef bsg_FPU
 
-assign fpi_inter.rf_rs1_val     = rf_rs1_val;
+assign fpi_inter.rf_rs1_out     = rf_rs1_out;
 assign fpi_inter.alu_stall      = stall;
 assign fpi_inter.alu_flush      = flush;
 assign fpi_inter.rs1_of_alu     = rs1_to_alu;

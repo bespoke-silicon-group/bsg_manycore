@@ -15,6 +15,7 @@
 typedef struct packed
 {
     logic op_writes_rf;     // Op writes to the register file
+    logic op_reads_rf1;     // Op needs data from integer RF
     logic is_load_op;       // Op loads data from memory
     logic is_store_op;      // Op stores data to memory
     logic is_mem_op;        // Op modifies data memory
@@ -88,13 +89,17 @@ interface  fpi_alu_inter ();
     logic [RV32_instr_width_gp-1:0]         f_instruction; //the instrucitons
     
     //the interface in ID stage
-    logic [RV32_reg_data_width_gp-1:0]      rf_rs1_val; //the value read from REG
+    logic [RV32_reg_data_width_gp-1:0]      rf_rs1_out; //the value read from REG
     
     //the interface in EXE stage
     logic [RV32_reg_data_width_gp-1:0]      rs1_of_alu; //values used for FCVT, FMV
     logic [RV32_reg_data_width_gp-1:0]      frs2_to_fiu;//values will stored to mem
     logic [RV32_reg_data_width_gp-1:0]      fiu_result; //fiu_result write to RF 
+
     logic                                   exe_store_op;//store operation in EX    
+    logic                                   exe_writes_rf;//FPI writes I RF
+//    logic [RV32_reg_data_width_gp-1:0]      exe_rd_data; //FPI writes I RF DATA
+//    logic [RV32_reg_addr_width_gp-1:0]      exe_rf_addr; //FPI writes I RF ADDR
     
     //the interface in MEM stage
     logic [RV32_reg_data_width_gp-1:0]      flw_data;  //the loaded data 
@@ -104,22 +109,22 @@ interface  fpi_alu_inter ();
     logic                                   alu_stall; //alu pipeline stalls.
     
     modport alu_side( 
-                output  f_instruction, rf_rs1_val,
+                output  f_instruction, rf_rs1_out,
                 output  rs1_of_alu,
                 input   frs2_to_fiu,
                 input   fiu_result,
-                input   exe_store_op,
+                input   exe_store_op, exe_writes_rf, 
                 output  flw_data,
                 output  alu_flush,
                 output  alu_stall
                 );  
     
     modport fpi_side( 
-                input   f_instruction, rf_rs1_val,
+                input   f_instruction, rf_rs1_out,
                 input   rs1_of_alu,
                 output  frs2_to_fiu,
                 output  fiu_result,
-                output  exe_store_op,
+                output  exe_store_op,exe_writes_rf, 
                 input   flw_data,
                 input   alu_flush,
                 input   alu_stall
