@@ -70,7 +70,7 @@ always_comb
             unique casez( f_instruction_i.funct7 )
                 `RV32_FADD_FUN7, `RV32_FSUB_FUN7, `RV32_FMUL_FUN7,
                 `RV32_FDIV_FUN7, `RV32_FSQRT_FUN7,`RV32_FMINMAX_FUN7,
-                `RV32_FMV_S_X_FUN7, `RV32_FCVT_S_W_FUN7:
+                `RV32_FMV_S_X_FUN7, `RV32_FCVT_S_W_FUN7,`RV32_FSGN_FUN7:
                     f_decode_o.op_writes_frf = 1'b1;
                 default:
                     f_decode_o.op_writes_frf = 1'b0;

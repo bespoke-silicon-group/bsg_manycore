@@ -260,7 +260,7 @@ end
 //   Figure out the output signal
 //
 assign alu_inter.fiu_result     = fiu_result;
-assign alu_inter.frs2_to_fiu    = exe.frs2_val;
+assign alu_inter.frs2_to_fiu    = frs2_to_fiu;
 assign alu_inter.exe_fpi_store_op   = exe.f_decode.is_store_op;
 assign alu_inter.exe_fpi_writes_rf  = exe.f_decode.op_writes_rf;
 

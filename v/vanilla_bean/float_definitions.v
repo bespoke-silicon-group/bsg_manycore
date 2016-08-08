@@ -11,6 +11,14 @@
 //    SIGNALS OF DIFFERENT STAGES
 //
 /////////////////////////////////////////////////////////////
+// Define the single precision floationg point bit pattern
+typedef struct packed
+{
+    logic           sign;
+    logic[7:0]      exp;
+    logic[22:0]     mant;
+}f_bit_s;
+
 // Decode control signals structures
 typedef struct packed
 {

@@ -12,6 +12,7 @@ int print_value( unsigned int *p);
 #define BYPASS_ALU_FPI_TESTID       0xC
 #define BYPASS_FPI_FPI_TESTID       0x10
 #define BYPASS_FPI_ALU_TESTID       0x14
+#define CVT_SGN_CLASS_TESTID        0x18
 
 void load_store_test(float *src);
 void move_test(float *src);
