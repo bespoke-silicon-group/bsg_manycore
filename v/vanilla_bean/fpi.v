@@ -10,7 +10,8 @@
 module fpi (
             input                             clk,
             input                             reset,
-            fpi_alu_inter.fpi_side            alu_inter 
+            fpi_alu_inter.fpi_side            alu_inter,
+            fpi_fam_inter.fpi_side            fam_inter 
 );
 
 // Pipeline stage logic structures
@@ -119,7 +120,7 @@ end
 //|
 //+----------------------------------------------
 
-assign write_frf_data = wb1.frf_data;
+assign write_frf_data = wb1.is_fam_op? fam_inter.data_o : wb1.frf_data;
 always_comb
 begin
     if (|id.f_instruction.rs1 // RISC-V: no bypass for reg 0
@@ -259,9 +260,30 @@ end
 //
 //   Figure out the output signal
 //
+//   Output to alu
 assign alu_inter.fiu_result     = fiu_result;
 assign alu_inter.frs2_to_fiu    = frs2_to_fiu;
 assign alu_inter.exe_fpi_store_op   = exe.f_decode.is_store_op;
 assign alu_inter.exe_fpi_writes_rf  = exe.f_decode.op_writes_rf;
+//   Output to fam
+assign fam_inter.v_i        =   id.f_decode.is_fam_op;
+assign fam_inter.data_s_i   =   '{
+           f_instruction   :  alu_inter.f_instruction,
+           frs1_to_exe     :  frs1_to_exe,
+           frs2_to_exe     :  frs2_to_exe
+        };
+    
+always@( negedge clk) begin
+    if ( id.f_decode.is_fam_op ) $display("fpi:  ins: %08x, frs1:%08x, frs2: %08x",
+                alu_inter.f_instruction,
+                frs1_to_exe,
+                frs2_to_exe);
+
+end
+
+assign fam_inter.yumi_i =  (~alu_inter.alu_stall )  
+                         & wb1.op_writes_frf
+                         & wb1.is_fam_op;
 
 endmodule
+

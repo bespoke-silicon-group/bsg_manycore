@@ -1,5 +1,8 @@
 `include "bsg_manycore_packet.vh"
 
+`ifndef bsg_FPU
+`include "float_definitions.v"
+`endif
 module bsg_manycore
 
 import bsg_noc_pkg::*; // {P=0, W, E, N, S}
@@ -59,11 +62,21 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
     assert ((num_tiles_x_p > 0) && (num_tiles_y_p>0))
       else $error("num_tiles_x_p and num_tiles_y_p must be positive constants");
   end
+  `ifdef bsg_FPU
+  initial
+  begin
+    assert ( (num_tiles_x_p % 2 ) == 0 )
+      else $error("num_tiles_x_p must be even for the shared FPU option");
+  end
+  `endif
   // synopsys translate on
 
 
 
   /* TILES */
+
+
+
 
   // tiles' outputs
   logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W][packet_width_lp-1:0] data_out;
@@ -71,6 +84,32 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W]                      ready_out;
 
   genvar r,c;
+
+`ifdef bsg_FPU 
+  //The array of the interface between FAM and tile
+  fpi_fam_inter  ff_inter[num_tiles_y_p][num_tiles_x_p]();
+
+  for (r = 0; r < num_tiles_y_p; r = r+1)
+  begin: fam_row_gen
+    for (c = 0; c < num_tiles_x_p; c = c+1)
+    begin: fam_col_gen
+        if ( c %2 == 0 )
+        begin: shared
+            fam # (.in_data_width_p ( RV32_fam_input_width_gp)
+                  ,.out_data_width_p( RV32_reg_data_width_gp )
+                  ,.num_fifo_p      ( 2                      )
+                  ,.num_pipe_p      ( 3                      )
+                  )
+                fam_g(
+                 .clk_i     ( clk_i                 )
+                ,.reset_i   ( reset_i               )
+                ,.fpi_inter ( ff_inter[r][ c/2 : c/2+1 ] )
+                );
+        end
+    end
+  end
+`endif
+
 
   for (r = 0; r < num_tiles_y_p; r = r+1)
   begin: tile_row_gen
@@ -95,6 +134,9 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
        ( .clk_i (clk_i)
         ,.reset_i(reset_i)
 
+`ifdef bsg_FPU
+        ,.fam_inter( ff_inter[r][c] )
+`endif
         ,.data_i ({ (r == num_tiles_y_p-1)
                        ? ver_data_i[S][c]
                        : data_out[r+1][c][N] // s

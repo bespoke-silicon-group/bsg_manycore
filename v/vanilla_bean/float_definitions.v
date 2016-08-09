@@ -139,5 +139,54 @@ interface  fpi_alu_inter ();
 
 endinterface
 
+// The FIFO contents send to and get from FAM
+typedef struct packed{
+    logic [RV32_instr_width_gp-1:0]         f_instruction; //the instrucitons
+    logic [RV32_reg_data_width_gp-1:0]      frs1_to_exe;   //the first operans
+    logic [RV32_reg_data_width_gp-1:0]      frs2_to_exe;   //the second operans
+} f_fam_in_s; 
+
+parameter RV32_fam_input_width_gp =  RV32_instr_width_gp    
+                                  +2*RV32_reg_data_width_gp;
+//pipleline registers in FAM
+typedef struct packed{
+    logic [RV32_reg_data_width_gp-1:0] result;//the first operans
+    logic                              fam_in_from;//data come from which tile 
+    logic                              op_writes_frf;//data should write to frf 
+} f_fam_pipe_regs_s; 
+
+// Interface between FPI and FAM
+interface fpi_fam_inter();
+//The FAM inputs
+    logic                               v_i     ;
+    logic                               ready_o ;
+    f_fam_in_s                          data_s_i;    
+ 
+//The FAM outputs
+    logic                               v_o     ;
+    logic [RV32_reg_data_width_gp-1:0]  data_o  ;
+    logic                               yumi_i  ;
+    
+    modport fam_side(
+        input   v_i,
+        output  ready_o,
+        input   data_s_i,
+    
+        output  v_o,
+        output  data_o,
+        input   yumi_i
+    );
+
+    modport fpi_side(
+        output  v_i,
+        input   ready_o,
+        output  data_s_i,
+    
+        input   v_o,
+        input   data_o,
+        output  yumi_i
+    );
+
+endinterface
 
 `endif

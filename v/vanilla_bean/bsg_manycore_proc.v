@@ -33,8 +33,12 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
     , input ready_i
 
     // tile coordinates
-    , input   [x_cord_width_p-1:0]                 my_x_i
-    , input   [y_cord_width_p-1:0]                 my_y_i
+    , input   [x_cord_width_p-1:0] my_x_i
+    , input   [y_cord_width_p-1:0] my_y_i
+
+`ifdef bsg_FPU
+    , fpi_fam_inter.fpi_side       fam_inter 
+`endif
 
     , output logic freeze_o
     );
@@ -173,9 +177,10 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
     fpi riscv_fpi
         (
-             .clk        (clk_i)
-            ,.reset      (reset_i)
-            ,.alu_inter  (fpi_alu)
+             .clk        (clk_i         )
+            ,.reset      (reset_i       )
+            ,.alu_inter  (fpi_alu       )
+            ,.fam_inter  (fam_inter     )
         );
 `endif
 

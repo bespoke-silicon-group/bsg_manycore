@@ -47,7 +47,7 @@ int cvt_sgn_class(float *fsrc, int*isrc, float *dst){
   __asm__ __volatile__ ("sw  t0, 28(%0)" : :"r"(dst) ); 
 }
 
-void cvt_sgn_class_test(float *input){
+void cvt_sgn_class_test(){
     
     int i, error =0;
     unsigned int * int_output;

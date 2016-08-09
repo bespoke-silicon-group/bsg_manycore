@@ -1,5 +1,9 @@
 `include "bsg_manycore_packet.vh"
 
+`ifdef bsg_FPU
+ `include "float_definitions.v"
+`endif
+
 module bsg_manycore_tile
 
 import bsg_noc_pkg::*; // {P=0, W, E, N, S}
@@ -30,6 +34,10 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,output  [dirs_p-1:0] [packet_width_lp-1:0]  data_o
    ,output  [dirs_p-1:0]                        v_o
    ,input   [dirs_p-1:0]                        ready_i
+
+`ifdef bsg_FPU
+   ,fpi_fam_inter.fpi_side                      fam_inter 
+`endif
 
    // tile coordinates
    ,input   [x_cord_width_p-1:0]                 my_x_i
@@ -84,6 +92,10 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
+
+`ifdef bsg_FPU
+    ,.fam_inter( fam_inter )
+`endif
 
     ,.freeze_o(freeze)
     );

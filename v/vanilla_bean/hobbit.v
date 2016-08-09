@@ -22,7 +22,7 @@ module hobbit #(parameter imem_addr_width_p = -1,
                 input                             reset,
             
 `ifdef bsg_FPU
-                       fpi_alu_inter.alu_side     fpi_inter,
+                fpi_alu_inter.alu_side            fpi_inter,
 `endif
                 input  ring_packet_s              net_packet_i,
             
