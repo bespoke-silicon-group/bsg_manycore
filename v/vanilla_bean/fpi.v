@@ -40,6 +40,14 @@ logic [RV32_reg_data_width_gp-1:0] frf_data;
 logic                              frs1_is_forward, frs2_is_forward;
 logic [RV32_reg_data_width_gp-1:0] frs1_forward_val,frs2_forward_val;
 
+//forwarding logic for fam
+logic   fam_depend_stall;   // FAM data dependency stall
+
+logic   fam_frs1_in_mem, fam_frs1_in_wb;
+logic   fam_frs2_in_mem, fam_frs2_in_wb;
+logic                              fam_frs1_is_forward, fam_frs2_is_forward;
+logic [RV32_reg_data_width_gp-1:0] fam_frs1_forward_val,fam_frs2_forward_val;
+logic [RV32_reg_data_width_gp-1:0] fam_frs1_to_exe, fam_frs2_to_exe;
 // Data will be write back to the floating register file
 logic [RV32_reg_data_width_gp-1:0] write_frf_data;
 
@@ -105,9 +113,12 @@ end
 // Synchronous stage shift
 always_ff @ (posedge clk)
 begin
-    if (reset | ( alu_inter.alu_flush & (~ alu_inter.alu_stall)))
+    if (reset | (   alu_inter.alu_flush  
+                  & (~ (alu_inter.alu_stall | fam_depend_stall) )
+                )
+       )
         id <= '0;
-    else if (~alu_inter.alu_stall)
+    else if (~ (alu_inter.alu_stall| fam_depend_stall) )
         id <= '{
             f_instruction  : alu_inter.f_instruction,
             f_decode       : f_decode
@@ -119,8 +130,64 @@ end
 //|        INSTR DECODE TO EXECUTE SHIFT
 //|
 //+----------------------------------------------
+//
+
+
+// only FAM needs data in EXE will cause stall;
+wire fam_exe_dep1 =exe.f_decode.op_writes_frf 
+                 &( id.f_instruction.rs1 == exe.f_instruction.rd)
+                 &  id.f_decode.is_fam_op;
+
+wire fam_exe_dep2 =exe.f_decode.op_writes_frf 
+                 &( id.f_instruction.rs2 == exe.f_instruction.rd)
+                 &  id.f_decode.is_fam_op;
+                 
+//Only needs data in FAM.mem will cause stall;
+wire fam_mem_dep1 =mem.f_decode.op_writes_frf & mem.f_decode.is_fam_op
+                &( id.f_instruction.rs1 == mem.frd_addr) ;
+
+wire fam_mem_dep2 =mem.f_decode.op_writes_frf & mem.f_decode.is_fam_op
+                &( id.f_instruction.rs2 == mem.frd_addr) ;
+
+//Only needs data in FAM.wb will cause stall;
+wire fam_wb_dep1  =wb.op_writes_frf & wb.is_fam_op
+                &( id.f_instruction.rs1 == wb.frd_addr) ;
+
+wire fam_wb_dep2  =wb.op_writes_frf & wb.is_fam_op
+                &( id.f_instruction.rs2 == wb.frd_addr) ;
+
+// combine all the stall source
+wire fam_depend1 = id.f_decode.op_reads_frf1 
+                 & ( fam_exe_dep1 | fam_mem_dep1 | fam_wb_dep1 );
+
+wire fam_depend2 = id.f_decode.op_reads_frf2 
+                 & ( fam_exe_dep2 | fam_mem_dep2 | fam_wb_dep2 );
+
+assign fam_depend_stall = fam_depend1 | fam_depend2;
+
+// The value forwarded to FAM frs1
+assign  fam_frs1_in_mem  = mem.f_decode.op_writes_frf
+                         & (id.f_instruction.rs1==mem.frd_addr);
+
+assign  fam_frs1_in_wb  = wb.op_writes_frf & (id.f_instruction.rs1==wb.frd_addr);
+
+assign  fam_frs1_forward_val  = fam_frs1_in_mem ? frf_data :  wb.frf_data;
+assign  fam_frs1_is_forward   = fam_frs1_in_mem | fam_frs1_in_wb ;
+
+// The value forwarded to FAM frs2
+assign  fam_frs2_in_mem  = mem.f_decode.op_writes_frf
+                         & (id.f_instruction.rs2==mem.frd_addr);
+
+assign  fam_frs2_in_wb  = wb.op_writes_frf&(id.f_instruction.rs2==wb.frd_addr);
+
+assign  fam_frs2_forward_val  = fam_frs2_in_mem ? frf_data :  wb.frf_data;
+assign  fam_frs2_is_forward   = fam_frs2_in_mem | fam_frs2_in_wb ;
+
 
 assign write_frf_data = wb1.is_fam_op? fam_inter.data_o : wb1.frf_data;
+
+
+// The value send to FPI
 always_comb
 begin
     if (|id.f_instruction.rs1 // RISC-V: no bypass for reg 0
@@ -146,11 +213,19 @@ begin
     else
         frs2_to_exe = frf_rs2_out;
 end
+
+//The value sends to FAM
+assign fam_frs1_to_exe = fam_frs1_is_forward ? fam_frs1_forward_val : 
+                                                   frs1_to_exe      ;
+assign fam_frs2_to_exe = fam_frs2_is_forward ? fam_frs2_forward_val : 
+                                                   frs2_to_exe      ;
 // Synchronous stage shift
 always_ff @ (posedge clk)
 begin
     if (reset | (alu_inter.alu_flush & (~alu_inter.alu_stall)))
         exe <= '0;
+    else if ( fam_depend_stall & ~alu_inter.alu_stall)
+        exe <= '0; //insert a bubble into the pipeline.
     else if (~alu_inter.alu_stall)
         exe <= '{
             f_instruction: id.f_instruction,
@@ -167,14 +242,14 @@ end
 //+----------------------------------------------
 // RS1 register forwarding
 assign  frs1_in_mem      = mem.f_decode.op_writes_frf
-                         & (exe.f_instruction.rs1==mem.f_decode.op_writes_frf);
+                         & (exe.f_instruction.rs1==mem.frd_addr);
 assign  frs1_in_wb       = wb.op_writes_frf 
                          & (exe.f_instruction.rs1== wb.frd_addr);
 assign  frs1_in_wb1      = wb1.op_writes_frf 
                          & (exe.f_instruction.rs1== wb1.frd_addr);
 
 assign  frs1_forward_val  = frs1_in_mem ? frf_data :
-                           (frs1_in_wb  ?   wb.frf_data: wb1.frf_data) ;
+                           (frs1_in_wb  ?   wb.frf_data: write_frf_data) ;
 assign  frs1_is_forward   = (frs1_in_mem | frs1_in_wb | frs1_in_wb1 );
 
 assign  frs1_to_fiu   = exe.f_decode.op_reads_rf1 ? alu_inter.rs1_of_alu:
@@ -182,14 +257,14 @@ assign  frs1_to_fiu   = exe.f_decode.op_reads_rf1 ? alu_inter.rs1_of_alu:
 
 // RS2 register forwarding
 assign  frs2_in_mem      = mem.f_decode.op_writes_frf
-                         & (exe.f_instruction.rs2==mem.f_decode.op_writes_frf);
+                         & (exe.f_instruction.rs2==mem.frd_addr);
 assign  frs2_in_wb       = wb.op_writes_frf 
                          & (exe.f_instruction.rs2== wb.frd_addr);
 assign  frs2_in_wb1      = wb1.op_writes_frf 
                          & (exe.f_instruction.rs2== wb1.frd_addr);
 
 assign  frs2_forward_val  = frs2_in_mem ?  frf_data :
-                           (frs2_in_wb  ?  wb.frf_data: wb1.frf_data) ;
+                           (frs2_in_wb  ?  wb.frf_data: write_frf_data) ;
 assign  frs2_is_forward   = (frs2_in_mem | frs2_in_wb | frs2_in_wb1 );
 assign  frs2_to_fiu       = frs2_is_forward ?frs2_forward_val : exe.frs2_val;
 
@@ -265,19 +340,22 @@ assign alu_inter.fiu_result     = fiu_result;
 assign alu_inter.frs2_to_fiu    = frs2_to_fiu;
 assign alu_inter.exe_fpi_store_op   = exe.f_decode.is_store_op;
 assign alu_inter.exe_fpi_writes_rf  = exe.f_decode.op_writes_rf;
+assign alu_inter.fam_depend_stall   = fam_depend_stall;
 //   Output to fam
-assign fam_inter.v_i        =   id.f_decode.is_fam_op;
+assign fam_inter.v_i        =  id.f_decode.is_fam_op
+                              &(~alu_inter.alu_flush)
+                              &(~(fam_depend_stall | alu_inter.alu_stall) );
 assign fam_inter.data_s_i   =   '{
            f_instruction   :  alu_inter.f_instruction,
-           frs1_to_exe     :  frs1_to_exe,
-           frs2_to_exe     :  frs2_to_exe
+           frs1_to_exe     :  fam_frs1_to_exe,
+           frs2_to_exe     :  fam_frs2_to_exe
         };
     
 always@( negedge clk) begin
     if ( id.f_decode.is_fam_op ) $display("fpi:  ins: %08x, frs1:%08x, frs2: %08x",
                 alu_inter.f_instruction,
-                frs1_to_exe,
-                frs2_to_exe);
+                fam_frs1_to_exe,
+                fam_frs2_to_exe);
 
 end
 

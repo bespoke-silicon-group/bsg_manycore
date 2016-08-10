@@ -686,9 +686,22 @@ end
 // Synchronous stage shift
 always_ff @ (posedge clk)
 begin
+`ifdef bsg_FPU
+    if (reset | net_pc_write_cmd_idle |
+            (flush & (~(stall|fpi_inter.fam_depend_stall))) 
+       )
+`else
     if (reset | net_pc_write_cmd_idle | (flush & (~stall)))
+`endif
+
         id <= '0;
+
+`ifdef bsg_FPU
+    else if (~(stall|fpi_inter.fam_depend_stall))
+`else
     else if (~stall)
+`endif
+
         id <= '{
             pc_plus4     : pc_plus4,
             pc_jump_addr : pc_jump_addr,
@@ -742,6 +755,10 @@ always_ff @ (posedge clk)
 begin
     if (reset | net_pc_write_cmd_idle | (flush & (~stall)))
         exe <= '0;
+`ifdef bsg_FPU
+    else if( fpi_inter.fam_depend_stall & (~stall) )
+        exe <= '0; //insert a bubble to the pipeline
+`endif
     else if (~stall)
         exe <= '{
             pc_plus4     : id.pc_plus4,

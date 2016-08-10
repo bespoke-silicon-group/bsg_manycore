@@ -112,7 +112,7 @@ interface  fpi_alu_inter ();
     //The control signals
     logic                                   alu_flush; //alu pipeline flushes
     logic                                   alu_stall; //alu pipeline stalls.
-    
+    logic                                   fam_depend_stall; //dependency stall
     modport alu_side( 
                 output  f_instruction, 
                 output  rs1_of_alu,
@@ -122,7 +122,8 @@ interface  fpi_alu_inter ();
                 output  mem_alu_rd_addr,  mem_alu_writes_rf, 
                 output  flw_data,
                 output  alu_flush,
-                output  alu_stall
+                output  alu_stall,
+                input   fam_depend_stall
                 );  
     
     modport fpi_side( 
@@ -134,7 +135,8 @@ interface  fpi_alu_inter ();
                 input   mem_alu_rd_addr,    mem_alu_writes_rf, 
                 input   flw_data,
                 input   alu_flush,
-                input   alu_stall
+                input   alu_stall,
+                output  fam_depend_stall
                 );  
 
 endinterface

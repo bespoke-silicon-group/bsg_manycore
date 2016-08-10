@@ -82,7 +82,8 @@ always_comb
 // declares if Op should be send to FAM 
 always_comb
     unique casez( f_instruction_i.op )
-        `RV32_MADD,   `RV32_MSUB,  `RV32_NMADD,      `RV32_NMSUB,
+        `RV32_MADD,   `RV32_MSUB,  `RV32_NMADD,      `RV32_NMSUB:
+           f_decode_o.is_fam_op = 1'b1; 
         `RV32_OP_FP:
                 unique casez( f_instruction_i.funct7 )
                 `RV32_FADD_FUN7, `RV32_FSUB_FUN7, `RV32_FMUL_FUN7,

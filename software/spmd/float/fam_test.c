@@ -11,14 +11,10 @@ unsigned int fam_expect[N]  = { 0x40400000};
 
 int fam(float *src, float *dst){
 
-  __asm__ __volatile__ ("flw f0, 0(%0)" : :"r"(src) ); 
-  __asm__ __volatile__ ("flw f1, 4(%0)" : :"r"(src) ); 
+  __asm__ __volatile__ ("flw f11, 0(%0)" : :"r"(src) ); 
+  __asm__ __volatile__ ("flw f12, 4(%0)" : :"r"(src) ); 
 
-  __asm__ __volatile__ ("nop");
-  __asm__ __volatile__ ("nop");
-  __asm__ __volatile__ ("nop");
-
-  __asm__ __volatile__ ("fadd.s  f2, f0, f1"); 
+  __asm__ __volatile__ ("fadd.s  f2, f11, f12"); 
 
   __asm__ __volatile__ ("nop");
   __asm__ __volatile__ ("nop");
