@@ -142,6 +142,9 @@ assign stall_non_mem = (net_imem_write_cmd)
                      | (net_reg_write_cmd & wb.op_writes_rf)
                      | (net_reg_write_cmd)  
                      | (state_r != RUN)
+`ifdef bsg_FPU
+                     | fpi_inter.fam_contend_stall
+`endif
                      | stall_md;
 
 // stall due to data memory access
@@ -337,7 +340,11 @@ assign flush = (branch_mispredict | jalr_mispredict);
 //+----------------------------------------------
 
 // PC write enable. This stops the CPU updating the PC
+`ifdef bsg_FPU
+assign pc_wen = net_pc_write_cmd_idle | (~(stall | fpi_inter.fam_depend_stall));
+`else
 assign pc_wen = net_pc_write_cmd_idle | (~stall);
+`endif
 
 // Next PC under normal circumstances
 assign pc_plus4 = pc_r + 3'b100;
@@ -398,8 +405,12 @@ assign imem_addr = (net_imem_write_cmd)
                     : pc_n[2+:imem_addr_width_p];
 
 // Instruction memory chip enable signal
+`ifdef bsg_FPU
+assign imem_cen = (~( stall | fpi_inter.fam_depend_stall)) 
+                | (net_imem_write_cmd | net_pc_write_cmd_idle);
+`else
 assign imem_cen = (~stall) | (net_imem_write_cmd | net_pc_write_cmd_idle);
-
+`endif
 // RISC-V edit: reserved bits in network packet header
 //              used as mask input
 genvar i;
@@ -440,6 +451,7 @@ cl_decode cl_decode_0
 //+----------------------------------------------
 
 // Register write could be from network or the controller
+// FPU depend stall will not affect register file write back
 assign rf_wen = (net_reg_write_cmd) | (wb.op_writes_rf & (~stall));
 
 // Selection between network 0and address included in the instruction which is 
@@ -453,6 +465,7 @@ assign rf_wa = (net_reg_write_cmd ? net_packet_r.header.addr[RV32_reg_addr_width
 assign rf_wd = (net_reg_write_cmd ? net_packet_r.data : wb.rf_data);
 
 // Register file chip enable signal
+// FPU depend stall will not affect register file write back
 assign rf_cen = (~stall) | (net_reg_write_cmd);
 
 // Instantiate the general purpose register file

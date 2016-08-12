@@ -59,7 +59,6 @@ always_comb
         `RV32_FCLASS_S:   
         begin
             result_s = fclass( frs1_s) ;
-            $display("FCLASS: frs1=%08x, result_s=%08x", frs1_s, result_s);
         end
         `RV32_FCVT_W_S:
            if( op_i.rs2[0] == 1'b1 ) //FCVT.WU.S

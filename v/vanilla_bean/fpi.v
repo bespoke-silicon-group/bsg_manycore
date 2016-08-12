@@ -42,6 +42,7 @@ logic [RV32_reg_data_width_gp-1:0] frs1_forward_val,frs2_forward_val;
 
 //forwarding logic for fam
 logic   fam_depend_stall;   // FAM data dependency stall
+logic   fam_contend_stall;   // FAM contention stall
 
 logic   fam_frs1_in_mem, fam_frs1_in_wb;
 logic   fam_frs2_in_mem, fam_frs2_in_wb;
@@ -341,23 +342,18 @@ assign alu_inter.frs2_to_fiu    = frs2_to_fiu;
 assign alu_inter.exe_fpi_store_op   = exe.f_decode.is_store_op;
 assign alu_inter.exe_fpi_writes_rf  = exe.f_decode.op_writes_rf;
 assign alu_inter.fam_depend_stall   = fam_depend_stall;
+assign alu_inter.fam_contend_stall  = (~fam_inter.ready_o) 
+                                     & id.f_decode.is_fam_op;
 //   Output to fam
 assign fam_inter.v_i        =  id.f_decode.is_fam_op
                               &(~alu_inter.alu_flush)
                               &(~(fam_depend_stall | alu_inter.alu_stall) );
 assign fam_inter.data_s_i   =   '{
-           f_instruction   :  alu_inter.f_instruction,
+           f_instruction   :  id.f_instruction,
            frs1_to_exe     :  fam_frs1_to_exe,
            frs2_to_exe     :  fam_frs2_to_exe
         };
     
-always@( negedge clk) begin
-    if ( id.f_decode.is_fam_op ) $display("fpi:  ins: %08x, frs1:%08x, frs2: %08x",
-                alu_inter.f_instruction,
-                fam_frs1_to_exe,
-                fam_frs2_to_exe);
-
-end
 
 assign fam_inter.yumi_i =  (~alu_inter.alu_stall )  
                          & wb1.op_writes_frf

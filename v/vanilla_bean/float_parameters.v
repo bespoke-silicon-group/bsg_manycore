@@ -3,7 +3,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 //RV32F Instruction encodings
-`define RV32_FMAC_FUN7      {5{1'b?}}_2'b00
+`define RV32_FMAC_FUN7      7'b?????_00
 `define RV32_FADD_FUN7      7'b0000_000
 `define RV32_FSUB_FUN7      7'b0000_100
 `define RV32_FMUL_FUN7      7'b0001_000
@@ -33,8 +33,8 @@
 `define RV32_FSGNJ_S    `RV32_Rtype( `RV32_OP_FP,   3'b000, `RV32_FSGN_FUN7)
 `define RV32_FSGNJN_S   `RV32_Rtype( `RV32_OP_FP,   3'b001, `RV32_FSGN_FUN7)
 `define RV32_FSGNJX_S   `RV32_Rtype( `RV32_OP_FP,   3'b010, `RV32_FSGN_FUN7)
-`define RV32_FMIN_S     `RV32_Rtype( `RV32_OP_FP,   3'b000, `RV32_MINMAX_FUN7)
-`define RV32_FMAX_S     `RV32_Rtype( `RV32_OP_FP,   3'b001, `RV32_MINMAX_FUN7)
+`define RV32_FMIN_S     `RV32_Rtype( `RV32_OP_FP,   3'b000, `RV32_FMINMAX_FUN7)
+`define RV32_FMAX_S     `RV32_Rtype( `RV32_OP_FP,   3'b001, `RV32_FMINMAX_FUN7)
 
 //CVT.W.S and CVT.WU.S, Have to futher check rs2.
 `define RV32_FCVT_W_S   `RV32_Rtype( `RV32_OP_FP,   3'b???, `RV32_FCVT_W_S_FUN7)

@@ -29,6 +29,7 @@ f_fam_in_s  [num_fifo_p-1:0]                    fpi_out_data_s_o;
 
 //FAM to N fifo signals.
 logic  [num_fifo_p-1: 0 ]                       fam_out_v_o ; 
+logic  [num_fifo_p-1: 0 ]                       fam_out_ready_o ; 
 
 //n_to_1 output signals
 logic                           fam_in_v_o      ;
@@ -38,7 +39,7 @@ logic                           fam_in_from     ;
 logic [RV32_reg_data_width_gp-1:0] fam_result   ;
 
 //the pipeline register 
-f_fam_pipe_regs_s               fam_pipe_reg[num_pipe_regs_p];
+f_fam_pipe_regs_s [num_pipe_regs_p-1:0]  fam_pipe_reg;
 
 genvar n;
 
@@ -127,14 +128,16 @@ begin: output_fifo
 assign fam_out_v_o[n] = (fam_pipe_reg[num_pipe_regs_p-1].fam_in_from == n )
                        & fam_pipe_reg[num_pipe_regs_p-1].op_writes_frf;
 // input fifos
+// As FAM instruciton was issued in ID stage, and can't be stopped, there 
+// may be most (num_pipe_p +1 ) instructions stuck in FAM while ALU is stalled.
 bsg_fifo_1r1w_small #(  .width_p  ( RV32_reg_data_width_gp )
-                       ,.els_p    ( 1               )
+                       ,.els_p    ( num_pipe_p+1           )
                     )
    fam_out    ( .clk_i  ( clk_i     )
                ,.reset_i( reset_i   )
 
                ,.v_i    ( fam_out_v_o[n] )
-               ,.ready_o()                // it should be always ready
+               ,.ready_o( fam_out_ready_o[n]) // it should be always ready
                ,.data_i ( fam_pipe_reg[num_pipe_regs_p-1].result )
 
                ,.v_o    (fpi_inter[n].v_o      )
