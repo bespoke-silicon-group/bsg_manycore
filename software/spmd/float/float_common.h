@@ -14,6 +14,7 @@ int print_value( unsigned int *p);
 #define BYPASS_FPI_ALU_TESTID       0x14
 #define CVT_SGN_CLASS_TESTID        0x18
 #define FAM_TESTID                  0x1C
+#define STALL_FAM_FPI_TESTID        0x20
 
 void load_store_test(float *src);
 void move_test(float *src);
@@ -22,5 +23,6 @@ void bypass_fpi_fpi_test(float *src);
 void bypass_fpi_alu_test(float *src);
 void cvt_sgn_class_test();
 void fam_test(float *src);
+void stall_fam_fpi_test(float *src);
 
 #endif

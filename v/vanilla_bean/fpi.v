@@ -134,14 +134,18 @@ end
 //
 
 
-// only FAM needs data in EXE will cause stall;
-wire fam_exe_dep1 =exe.f_decode.op_writes_frf 
-                 &( id.f_instruction.rs1 == exe.f_instruction.rd)
-                 &  id.f_decode.is_fam_op;
 
-wire fam_exe_dep2 =exe.f_decode.op_writes_frf 
-                 &( id.f_instruction.rs2 == exe.f_instruction.rd)
-                 &  id.f_decode.is_fam_op;
+wire id_exe_rs1_match=    exe.f_decode.op_writes_frf
+                      & ( id.f_instruction.rs1 == exe.f_instruction.rd);
+wire id_exe_rs2_match=    exe.f_decode.op_writes_frf
+                      & ( id.f_instruction.rs2 == exe.f_instruction.rd);
+
+// 1.all units that need data in FAM exe will cause stall;
+// 2 FAM needs data in EXE will always stall!
+wire id_exe_stall_conds = exe.f_decode.is_fam_op | id.f_decode.is_fam_op;
+
+wire fam_exe_dep1 = id_exe_rs1_match & id_exe_stall_conds;
+wire fam_exe_dep2 = id_exe_rs2_match & id_exe_stall_conds;
                  
 //Only needs data in FAM.mem will cause stall;
 wire fam_mem_dep1 =mem.f_decode.op_writes_frf & mem.f_decode.is_fam_op
@@ -358,6 +362,7 @@ assign fam_inter.data_s_i   =   '{
 assign fam_inter.yumi_i =  (~alu_inter.alu_stall )  
                          & wb1.op_writes_frf
                          & wb1.is_fam_op;
+
 
 endmodule
 

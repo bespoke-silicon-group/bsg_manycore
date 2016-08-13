@@ -29,6 +29,7 @@ int main()
     bypass_fpi_alu_test(input);
     cvt_sgn_class_test();
     fam_test(input);
+    stall_fam_fpi_test(input);
 
     bsg_finish();
   }
