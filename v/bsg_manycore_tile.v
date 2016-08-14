@@ -36,7 +36,8 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,input   [dirs_p-1:0]                        ready_i
 
 `ifdef bsg_FPU
-   ,fpi_fam_inter.fpi_side                      fam_inter 
+   , input  f_fam_out_s                         fam_out_s_i 
+   , output f_fam_in_s                          fam_in_s_o 
 `endif
 
    // tile coordinates
@@ -94,7 +95,8 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
     ,.my_y_i(my_y_i)
 
 `ifdef bsg_FPU
-    ,.fam_inter( fam_inter )
+    ,.fam_in_s_o (fam_in_s_o    )
+    ,.fam_out_s_i(fam_out_s_i   )
 `endif
 
     ,.freeze_o(freeze)

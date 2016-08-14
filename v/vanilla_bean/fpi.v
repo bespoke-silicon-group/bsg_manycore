@@ -10,8 +10,9 @@
 module fpi (
             input                             clk,
             input                             reset,
-            fpi_alu_inter.fpi_side            alu_inter,
-            fpi_fam_inter.fpi_side            fam_inter 
+                     fpi_alu_inter.fpi_side   alu_inter,
+            input  f_fam_out_s                fam_out_s_i, 
+            output f_fam_in_s                 fam_in_s_o 
 );
 
 // Pipeline stage logic structures
@@ -42,7 +43,6 @@ logic [RV32_reg_data_width_gp-1:0] frs1_forward_val,frs2_forward_val;
 
 //forwarding logic for fam
 logic   fam_depend_stall;   // FAM data dependency stall
-logic   fam_contend_stall;   // FAM contention stall
 
 logic   fam_frs1_in_mem, fam_frs1_in_wb;
 logic   fam_frs2_in_mem, fam_frs2_in_wb;
@@ -189,7 +189,7 @@ assign  fam_frs2_forward_val  = fam_frs2_in_mem ? frf_data :  wb.frf_data;
 assign  fam_frs2_is_forward   = fam_frs2_in_mem | fam_frs2_in_wb ;
 
 
-assign write_frf_data = wb1.is_fam_op? fam_inter.data_o : wb1.frf_data;
+assign write_frf_data = wb1.is_fam_op? fam_out_s_i.data_o : wb1.frf_data;
 
 
 // The value send to FPI
@@ -346,20 +346,34 @@ assign alu_inter.frs2_to_fiu    = frs2_to_fiu;
 assign alu_inter.exe_fpi_store_op   = exe.f_decode.is_store_op;
 assign alu_inter.exe_fpi_writes_rf  = exe.f_decode.op_writes_rf;
 assign alu_inter.fam_depend_stall   = fam_depend_stall;
-assign alu_inter.fam_contend_stall  = (~fam_inter.ready_o) 
+assign alu_inter.fam_contend_stall  = (~fam_out_s_i.ready_o) 
                                      & id.f_decode.is_fam_op;
+
 //   Output to fam
-assign fam_inter.v_i        =  id.f_decode.is_fam_op
-                              &(~alu_inter.alu_flush)
-                              &(~(fam_depend_stall | alu_inter.alu_stall) );
-assign fam_inter.data_s_i   =   '{
+wire   no_stall_flush      = (~alu_inter.alu_flush) 
+                            &(~fam_depend_stall)
+                            &(~alu_inter.alu_stall) ;
+assign fam_in_s_o.v_i      =  id.f_decode.is_fam_op & no_stall_flush; 
+
+always@(negedge clk) begin
+    if(fam_in_s_o.v_i) 
+       $display("%b,%b,%b",fam_in_s_o.v_i, id.f_decode.is_fam_op, no_stall_flush);
+end
+
+assign fam_in_s_o.data_s_i  =   '{
            f_instruction   :  id.f_instruction,
            frs1_to_exe     :  fam_frs1_to_exe,
            frs2_to_exe     :  fam_frs2_to_exe
         };
-    
 
-assign fam_inter.yumi_i =  (~alu_inter.alu_stall )  
+always @( negedge clk ) begin
+    if( fam_in_s_o.v_i) $display("fpi ins:%08x, frs1=%08x, frs2=%08x",
+        id.f_instruction, fam_frs1_to_exe, fam_frs2_to_exe);    
+end
+
+                              ;
+
+assign fam_in_s_o.yumi_i =  (~alu_inter.alu_stall )  
                          & wb1.op_writes_frf
                          & wb1.is_fam_op;
 
