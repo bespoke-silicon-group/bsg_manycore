@@ -29,7 +29,8 @@ always_comb
     unique casez (instruction_i.op)
 
 `ifdef bsg_FPU
-        `RV32_LOAD_FP, `RV32_STORE_FP,
+        `RV32_LOAD_FP, `RV32_STORE_FP:
+            decode_o.is_mem_op = (instruction_i.funct3 == `RV32_FLS_FUN3);
 `endif
         `RV32_LOAD, `RV32_STORE:
             decode_o.is_mem_op = 1'b1;
@@ -59,7 +60,8 @@ always_comb
 always_comb
     unique casez (instruction_i.op)
 `ifdef bsg_FPU
-        `RV32_LOAD_FP, 
+        `RV32_LOAD_FP:
+            decode_o.is_load_op= (instruction_i.funct3 == `RV32_FLS_FUN3);
 `endif
         `RV32_LOAD:
             decode_o.is_load_op = 1'b1;
@@ -74,7 +76,8 @@ assign decode_o.is_load_unsigned = (instruction_i.funct3[2]) ? decode_o.is_load_
 always_comb
     unique casez (instruction_i.op)
 `ifdef bsg_FPU
-        `RV32_STORE_FP,
+        `RV32_STORE_FP:
+            decode_o.is_store_op= (instruction_i.funct3 == `RV32_FLS_FUN3);
 `endif
         `RV32_STORE:
             decode_o.is_store_op = 1'b1;

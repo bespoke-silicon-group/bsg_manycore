@@ -36,7 +36,7 @@ always_comb
 always_comb
     unique casez (f_instruction_i.op)
         `RV32_LOAD_FP, `RV32_STORE_FP:
-            f_decode_o.is_mem_op = 1'b1;
+            f_decode_o.is_mem_op = (f_instruction_i.funct3 == `RV32_FLS_FUN3);
         default:
             f_decode_o.is_mem_op = 1'b0;
     endcase
@@ -46,7 +46,7 @@ always_comb
 always_comb
     unique casez (f_instruction_i.op)
         `RV32_LOAD_FP:
-            f_decode_o.is_load_op = 1'b1;
+            f_decode_o.is_load_op = (f_instruction_i.funct3 == `RV32_FLS_FUN3);
         default:
             f_decode_o.is_load_op = 1'b0;
     endcase
@@ -55,7 +55,7 @@ always_comb
 always_comb
     unique casez (f_instruction_i.op)
         `RV32_STORE_FP:
-            f_decode_o.is_store_op = 1'b1;
+            f_decode_o.is_store_op = (f_instruction_i.funct3 == `RV32_FLS_FUN3);
         default:
             f_decode_o.is_store_op = 1'b0;
   endcase
@@ -63,8 +63,9 @@ always_comb
 // declares if Op writes to the floating register file
 always_comb
     unique casez (f_instruction_i.op)
-        `RV32_LOAD_FP, `RV32_MADD, `RV32_MSUB, `RV32_NMADD,
-        `RV32_NMSUB:
+        `RV32_LOAD_FP:
+            f_decode_o.op_writes_frf = (f_instruction_i.funct3 == `RV32_FLS_FUN3);
+        `RV32_MADD, `RV32_MSUB, `RV32_NMADD, `RV32_NMSUB:
             f_decode_o.op_writes_frf = 1'b1;
         `RV32_OP_FP:
             unique casez( f_instruction_i.funct7 )

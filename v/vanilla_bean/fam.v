@@ -48,7 +48,7 @@ genvar n;
 generate for( n=0; n< num_fifo_p; n++) 
 begin:fpi_out_fifo
 bsg_fifo_1r1w_small #(  .width_p ( in_data_width_p)
-                       ,.els_p   ( 2              )
+                       ,.els_p   ( 1              )
                        ,.ready_THEN_valid_p( 1    )
                     )
    in_fifo    ( .clk_i  ( clk_i     )
@@ -154,5 +154,11 @@ bsg_fifo_1r1w_small #(  .width_p  ( RV32_reg_data_width_gp )
     );
 end
 endgenerate
+
+int i;
+always@( negedge clk_i ) begin
+   for(i=0; i< num_fifo_p; i++)
+    if( fam_out_v_o[i] ) $display("FAM:write to fifo[%d]", i);  
+end
 
 endmodule

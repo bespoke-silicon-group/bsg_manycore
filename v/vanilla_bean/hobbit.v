@@ -50,6 +50,13 @@ logic         net_id_match_valid, net_pc_write_cmd,  net_imem_write_cmd,
 
 // Stall and exception logic
 logic stall, stall_non_mem, stall_mem, stall_lrw;
+//We have to buffer the returned data from memory 
+//if there is a non-memory stall at current cycle.
+logic                               is_load_buffer_valid;
+logic [RV32_reg_data_width_gp-1:0]  load_buffer_data;
+
+//the memory valid signal may comes from memory of the buffer register
+logic                               data_mem_valid;
 
 // Program counter logic
 logic [RV32_reg_data_width_gp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
@@ -137,6 +144,7 @@ assign net_pc_write_cmd_idle = net_pc_write_cmd & (state_r == IDLE);
 //|     STALL AND EXCEPTION LOGIC SIGNALS
 //|
 //+----------------------------------------------
+assign data_mem_valid = is_load_buffer_valid | from_mem_i.valid;
 
 assign stall_non_mem = (net_imem_write_cmd)
                      | (net_reg_write_cmd & wb.op_writes_rf)
@@ -149,7 +157,7 @@ assign stall_non_mem = (net_imem_write_cmd)
 
 // stall due to data memory access
 assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
-                   | (mem.decode.is_load_op & (~from_mem_i.valid))
+                   | (mem.decode.is_load_op & (~data_mem_valid))
                    | stall_lrw;
 
 // Stall if LD/ST still active; or in non-RUN state
@@ -643,7 +651,10 @@ cl_state_machine state_machine
 //+----------------------------------------------
 
 assign valid_to_mem_c = exe.decode.is_mem_op & (~stall_non_mem) & (~stall_lrw);
-assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
+
+//We should always accept the returned data even there is a non memory stall
+//assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
+assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid ;
 
 // RISC-V edit: add reservation
 always_comb
@@ -832,6 +843,33 @@ end
 //|
 //+----------------------------------------------
 
+
+always_ff @ (posedge clk)
+begin
+    if ( reset ) 
+    begin
+        is_load_buffer_valid <= 'b0;
+        load_buffer_data     <= 'b0;
+    end
+    //set the buffered value
+    else if( stall_non_mem & mem.decode.is_load_op & from_mem_i.valid )
+    begin
+        is_load_buffer_valid <= 1'b1; 
+        load_buffer_data     <= from_mem_i.read_data;
+    end
+    //we should clear the buffer if not stalled
+    else if( ~stall )
+    begin
+        is_load_buffer_valid <= 'b0;
+        load_buffer_data     <= 'b0;
+    end
+end
+
+
+logic [RV32_reg_data_width_gp-1:0] loaded_data;
+assign loaded_data =  is_load_buffer_valid ? load_buffer_data:
+                                             from_mem_i.read_data;
+
 // Determine what data to send to the write back stage
 // that will end up being writen to the register file
 always_comb
@@ -844,16 +882,16 @@ begin
     else if (mem.decode.is_load_op)
       begin
         unique casez (mem.alu_result[1:0])
-          00: loaded_byte = from_mem_i.read_data[0+:8];
-          01: loaded_byte = from_mem_i.read_data[8+:8];
-          10: loaded_byte = from_mem_i.read_data[16+:8];
-          11: loaded_byte = from_mem_i.read_data[24+:8];
+          00: loaded_byte = loaded_data[0+:8];
+          01: loaded_byte = loaded_data[8+:8];
+          10: loaded_byte = loaded_data[16+:8];
+          11: loaded_byte = loaded_data[24+:8];
           default: loaded_byte = 8'bx;
         endcase
 
         loaded_hex = (|mem.alu_result[1:0]) 
-                      ? from_mem_i.read_data[16+:16]
-                      : from_mem_i.read_data[0+:16];
+                      ? loaded_data[16+:16]
+                      : loaded_data[0+:16];
     
         if (mem.decode.is_byte_op)
             rf_data = (mem.decode.is_load_unsigned) 
@@ -864,7 +902,7 @@ begin
                        ? 32'(loaded_hex[15:0])
                        : {{24{loaded_hex[15]}}, loaded_hex[15:0]};
         else
-            rf_data = from_mem_i.read_data;
+            rf_data = loaded_data;
       end
     else
         rf_data = mem.alu_result;
@@ -890,7 +928,7 @@ end
 assign fpi_inter.alu_stall              = stall;
 assign fpi_inter.alu_flush              = flush;
 assign fpi_inter.rs1_of_alu             = rs1_to_alu;
-assign fpi_inter.flw_data               = from_mem_i.read_data; 
+assign fpi_inter.flw_data               = loaded_data; 
 assign fpi_inter.f_instruction          = instruction;
 assign fpi_inter.mem_alu_writes_rf      = mem.decode.op_writes_rf;
 assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;

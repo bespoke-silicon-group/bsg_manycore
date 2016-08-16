@@ -355,10 +355,6 @@ wire   no_stall_flush      = (~alu_inter.alu_flush)
                             &(~alu_inter.alu_stall) ;
 assign fam_in_s_o.v_i      =  id.f_decode.is_fam_op & no_stall_flush; 
 
-always@(negedge clk) begin
-    if(fam_in_s_o.v_i) 
-       $display("%b,%b,%b",fam_in_s_o.v_i, id.f_decode.is_fam_op, no_stall_flush);
-end
 
 assign fam_in_s_o.data_s_i  =   '{
            f_instruction   :  id.f_instruction,
@@ -366,12 +362,6 @@ assign fam_in_s_o.data_s_i  =   '{
            frs2_to_exe     :  fam_frs2_to_exe
         };
 
-always @( negedge clk ) begin
-    if( fam_in_s_o.v_i) $display("fpi ins:%08x, frs1=%08x, frs2=%08x",
-        id.f_instruction, fam_frs1_to_exe, fam_frs2_to_exe);    
-end
-
-                              ;
 
 assign fam_in_s_o.yumi_i =  (~alu_inter.alu_stall )  
                          & wb1.op_writes_frf
