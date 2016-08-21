@@ -18,6 +18,8 @@ module float_decode
 // Op Writes RF -- integer register file write operation
 always_comb
     unique casez (f_instruction_i.op)
+        `RV32_SYSTEM:
+            f_decode_o.op_writes_rf = 1'b1;
         `RV32_OP_FP:
             unique casez(f_instruction_i.funct7)
                 // FMV_X_S is the same with FCLASS
@@ -100,6 +102,8 @@ always_comb
 // declares if Op should be execute by FPI  
 always_comb
     unique casez( f_instruction_i.op )
+        `RV32_SYSTEM:
+            f_decode_o.is_fpi_op = 1'b1;
         `RV32_OP_FP:
                 unique casez( f_instruction_i.funct7 )
                 // FMV_X_S is the same with FCLASS
@@ -117,6 +121,8 @@ always_comb
 // declares if Op reads from the first integer  register file port
 always_comb
     unique casez( f_instruction_i.op )
+        `RV32_SYSTEM:
+            f_decode_o.op_reads_rf1 = 1'b1;
         `RV32_OP_FP:
             unique casez( f_instruction_i.funct7)
                 `RV32_FCVT_S_W_FUN7, `RV32_FMV_S_X_FUN7:
@@ -162,5 +168,11 @@ always_comb
         default:
             f_decode_o.op_reads_frf2 = 1'b0; 
     endcase
+// declares if op is a FCSR operations.
 
+assign f_decode_o.is_fcsr_op =  (f_instruction_i.op         == `RV32_SYSTEM) 
+                               &(f_instruction_i.funct3     != 3'b0        )
+                               &(f_instruction_i[31:20]     < 12'h4        );
+
+assign f_decode_o.op_writes_fflags = 1'b0;
 endmodule

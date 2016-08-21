@@ -30,9 +30,13 @@ typedef struct packed
 
     logic is_fam_op;	    //Should be send to FAM unit.
     logic is_fpi_op;        //is a FPI operation 
+    logic is_fcsr_op;       //is a FCSR operation
     logic op_writes_frf;    // write to the floating point regsiter file
     logic op_reads_frf1;    // OP reads from first port of register file
     logic op_reads_frf2;    // OP reads from second port of register file
+
+    logic op_reads_frm;     // Op needs the rounding mode register
+    logic op_writes_fflags; // Op will writes the fflags
 } f_decode_s;
 
 // Instruction decode stage signals
@@ -47,10 +51,10 @@ typedef struct packed
 // Execute stage signals
 typedef struct packed
 {
-    instruction_s                      f_instruction;  // Instruction being executed
-    f_decode_s                         f_decode;       // Decode signals
-    logic [RV32_reg_data_width_gp-1:0] frs1_val;     // RF output data from RS1 address
-    logic [RV32_reg_data_width_gp-1:0] frs2_val;     // RF output data from RS2 address
+    instruction_s                       f_instruction;  // Instruction being executed
+    f_decode_s                          f_decode;       // Decode signals
+    logic [RV32_freg_data_width_gp-1:0] frs1_val;     // RF output data from RS1 address
+    logic [RV32_freg_data_width_gp-1:0] frs2_val;     // RF output data from RS2 address
 } f_exe_signals_s;
 
 // Memory stage signals
@@ -60,28 +64,30 @@ typedef struct packed
     f_decode_s                         f_decode;   // Decode signal 
     //We only stores FMV.S.W and FCVT.S.W result. The result that write to
     //integre Regfile will be write to ALU pipeline register.
-    logic [RV32_reg_data_width_gp-1:0] fiu_result; // the FIU outpout 
+    logic [RV32_freg_data_width_gp-1:0] fiu_result; // the FIU outpout 
    
 } f_mem_signals_s;
 
 // RF write back stage signals
 typedef struct packed
 {
-    logic                              op_writes_frf; // Op writes to the FALU register file
-    logic                              is_fam_op;     // Op executed in FAM
-    logic                              is_fpi_op;     // OP executed in FPI
-    logic [RV32_reg_addr_width_gp-1:0] frd_addr;      // Register file write address
-    logic [RV32_reg_data_width_gp-1:0] frf_data;      // Register file write data
+    logic                               op_writes_frf; // Op writes to the FALU register file
+    logic                               is_fam_op;     // Op executed in FAM
+    logic                               is_fpi_op;     // OP executed in FPI
+    logic                               op_writes_fflags; // Op will writes the fflags
+    logic [RV32_reg_addr_width_gp-1:0]  frd_addr;      // Register file write address
+    logic [RV32_freg_data_width_gp-1:0] frf_data;      // Register file write data
 } f_wb_signals_s;
 
 // RF write back stage signals
 typedef struct packed
 {
-    logic                              op_writes_frf; // Op writes to the FALU register file
-    logic                              is_fam_op;     // Op executed in FAM
-    logic                              is_fpi_op;     // OP executed in FPI
-    logic [RV32_reg_addr_width_gp-1:0] frd_addr;       // Register file write address
-    logic [RV32_reg_data_width_gp-1:0] frf_data;       // Register file write data
+    logic                               op_writes_frf; // Op writes to the FALU register file
+    logic                               op_writes_fflags; // Op will writes the fflags
+    logic                               is_fam_op;     // Op executed in FAM
+    logic                               is_fpi_op;     // OP executed in FPI
+    logic [RV32_reg_addr_width_gp-1:0]  frd_addr;       // Register file write address
+    logic [RV32_freg_data_width_gp-1:0] frf_data;       // Register file write data
 } f_wb1_signals_s;
 
 /////////////////////////////////////////////////////////////
@@ -97,6 +103,7 @@ interface  fpi_alu_inter ();
     logic [RV32_instr_width_gp-1:0]         f_instruction; //the instrucitons
     
     //the interface in EXE stage
+    //all the data fromat will be converted by FPI
     logic [RV32_reg_data_width_gp-1:0]      rs1_of_alu; //values used for FCVT, FMV
     logic [RV32_reg_data_width_gp-1:0]      frs2_to_fiu;//values will stored to mem
     logic [RV32_reg_data_width_gp-1:0]      fiu_result; //fiu_result write to RF 
@@ -107,6 +114,7 @@ interface  fpi_alu_inter ();
     logic  [RV32_reg_addr_width_gp-1:0]     mem_alu_rd_addr;// 
     logic                                   mem_alu_writes_rf;//FPI writes I RF
     //the interface in MEM stage
+    //all the data fromat will be converted by FPI
     logic [RV32_reg_data_width_gp-1:0]      flw_data;  //the loaded data 
     
     //The control signals
@@ -146,18 +154,18 @@ endinterface
 
 // The FIFO contents send to and get from FAM
 typedef struct packed{
-    logic [RV32_instr_width_gp-1:0]         f_instruction; //the instrucitons
-    logic [RV32_reg_data_width_gp-1:0]      frs1_to_exe;   //the first operans
-    logic [RV32_reg_data_width_gp-1:0]      frs2_to_exe;   //the second operans
+    logic [RV32_instr_width_gp-1:0]          f_instruction; //the instrucitons
+    logic [RV32_freg_data_width_gp-1:0]      frs1_to_exe;   //the first operans
+    logic [RV32_freg_data_width_gp-1:0]      frs2_to_exe;   //the second operans
 } f_fam_in_data_s; 
 
 parameter RV32_fam_input_width_gp =  RV32_instr_width_gp    
-                                  +2*RV32_reg_data_width_gp;
+                                  +2*RV32_freg_data_width_gp;
 //pipleline registers in FAM
 typedef struct packed{
-    logic [RV32_reg_data_width_gp-1:0] result;//the first operans
-    logic                              fam_in_from;//data come from which tile 
-    logic                              op_writes_frf;//data should write to frf 
+    logic [RV32_freg_data_width_gp-1:0] result;//the first operans
+    logic                               fam_in_from;//data come from which tile 
+    logic                               op_writes_frf;//data should write to frf 
 } f_fam_pipe_regs_s; 
 
 // Interface between FPI and FAM
@@ -169,9 +177,15 @@ typedef struct packed{
 
 // Interface between FPI and FAM
 typedef struct packed{
-    logic                              ready_o;
-    logic                              v_o;    
-    logic [RV32_reg_data_width_gp-1:0] data_o; 
+    logic                               ready_o;
+    logic                               v_o;    
+    logic [RV32_freg_data_width_gp-1:0] data_o; 
 }f_fam_out_s;
+
+//the FSR register
+typedef struct packed{
+    logic [RV32_frm_width_gp   -1:0]    frm;
+    logic [RV32_fflags_width_gp-1:0]    fflags;
+}f_fcsr_s;
 
 `endif

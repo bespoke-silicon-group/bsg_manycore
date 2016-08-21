@@ -31,6 +31,14 @@
 `define RV32_CUSTOM_2 7'b1011011
 `define RV32_CUSTOM_3 7'b1111011
 
+`define RV32_CSRRW_FUN3 3'b001
+`define RV32_CSRRS_FUN3 3'b010
+`define RV32_CSRRC_FUN3 3'b011
+
+`define RV32_CSRRWI_FUN3 3'b101
+`define RV32_CSRRSI_FUN3 3'b110
+`define RV32_CSRRCI_FUN3 3'b111
+
 // Some useful RV32 instruction macros
 `define RV32_Rtype(op, funct3, funct7) {``funct7``, {5{1'b?}}, {5{1'b?}}, ``funct3``, {5{1'b?}}, ``op``}
 `define RV32_Itype(op, funct3)         {           {12{1'b?}}, {5{1'b?}}, ``funct3``, {5{1'b?}}, ``op``} 
@@ -84,6 +92,14 @@
 `define RV32_REM       `RV32_Rtype(`RV32_OP     , 3'b110, 7'b0000001) 
 `define RV32_REMU      `RV32_Rtype(`RV32_OP     , 3'b111, 7'b0000001) 
 `define RV32_LR_W      `RV32_Rtype(`RV32_AMO    , 3'b010, 7'b00010??)
+
+`define RV32_CSRRW      `RV32_Itype(`RV32_SYSTEM , `RV32_CSRRW_FUN3 )
+`define RV32_CSRRS      `RV32_Itype(`RV32_SYSTEM , `RV32_CSRRS_FUN3 )
+`define RV32_CSRRC      `RV32_Itype(`RV32_SYSTEM , `RV32_CSRRC_FUN3 )
+                                                                 
+`define RV32_CSRRWI     `RV32_Itype(`RV32_SYSTEM , `RV32_CSRRWI_FUN3)
+`define RV32_CSRRSI     `RV32_Itype(`RV32_SYSTEM , `RV32_CSRRSI_FUN3)
+`define RV32_CSRRCI     `RV32_Itype(`RV32_SYSTEM , `RV32_CSRRCI_FUN3)
 
 // RV32 Immediate sign extension macros
 `define RV32_signext_Iimm(instr) {{21{``instr``[31]}}, ``instr``[30:20]}

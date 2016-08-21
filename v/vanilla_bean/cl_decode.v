@@ -113,6 +113,8 @@ always_comb
             decode_o.op_reads_rf1 = 1'b1;
 
 `ifdef  bsg_FPU
+        `RV32_SYSTEM:
+            decode_o.op_reads_rf1 = ~instruction_i.funct3[2];
         `RV32_LOAD_FP, `RV32_STORE_FP:
             decode_o.op_reads_rf1 = 1'b1;
         `RV32_OP_FP:

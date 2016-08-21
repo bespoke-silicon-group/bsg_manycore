@@ -6,110 +6,144 @@
 typedef int unsigned unsigned_int;
 typedef int signed   signed_int;
 
-module fiu ( input [RV32_reg_data_width_gp-1:0] frs1_i
-            ,input [RV32_reg_data_width_gp-1:0] frs2_i
+module fiu ( input [RV32_freg_data_width_gp-1:0] frs1_i
+            ,input [RV32_freg_data_width_gp-1:0] frs2_i
             ,input  instruction_s op_i
-            ,output logic [RV32_reg_data_width_gp-1:0] result_o
+            ,input  f_fcsr_s     f_fcsr_s_i
+            ,output f_fcsr_s     f_fcsr_s_o
+            ,output logic [RV32_freg_data_width_gp-1:0] result_o
            );
 
-f_bit_s frs1_s,frs2_s;
-f_bit_s result_s;
+//The MV.S.X result
+logic [RV32_freg_data_width_gp-1:0]  mv_s_x_result; 
+bsg_recFNFromFN mv_s_x_RecF(  
+                .io_a   (  frs1_i[RV32_reg_data_width_gp-1:0]   )
+               ,.io_out (  mv_s_x_result                        )
+                 );
 
-assign  frs1_s = frs1_i;
-assign  frs2_s = frs2_i;
+//The MV.X.S result
+logic [RV32_reg_data_width_gp-1:0]   mv_x_s_result; 
+bsg_fNFromRecFN mv_x_s_FN(  
+                .io_a   ( frs1_i    )
+               ,.io_out ( mv_x_s_result )
+                 );
+
+
+localparam csri_pad_width       = RV32_fcsr_width_gp - RV32_reg_addr_width_gp;
+
+localparam fcsr_read_pad_width  =RV32_reg_data_width_gp - RV32_fcsr_width_gp;
+localparam frm_read_pad_width   =RV32_reg_data_width_gp - RV32_frm_width_gp;
+localparam fflags_read_pad_width=RV32_reg_data_width_gp - RV32_fflags_width_gp;
+
+wire[31:20] fcsr_addr   =  op_i[31:20]; 
 
 always_comb
   begin
-    result_s        = 32'dx;
+    result_o        = 'dx;
     unique casez (op_i)
-        `RV32_FMV_S_X,`RV32_FMV_X_S:   
-         begin
-            result_s = frs1_i; 
-         end
+        `RV32_CSRRW, `RV32_CSRRWI, `RV32_CSRRS, `RV32_CSRRSI,
+        `RV32_CSRRC, `RV32_CSRRCI:
+        unique casez( fcsr_addr )
+            RV32_csr_addr_frm:
+                result_o        = { {frm_read_pad_width{1'b0}}, f_fcsr_s_i.frm};  
+
+            RV32_csr_addr_fflags:
+                result_o            = { {fflags_read_pad_width{1'b0}}, f_fcsr_s_i.fflags};  
+
+            RV32_csr_addr_fcsr:
+                result_o        = { {fcsr_read_pad_width{1'b0}}, f_fcsr_s_i};  
+            default:
+            begin
+            end
+        endcase
+        `RV32_FMV_S_X:
+            result_o = mv_s_x_result;
+        `RV32_FMV_X_S:   
+            result_o = {1'b0, mv_x_s_result}; 
         `RV32_FEQ_S:
          begin
-            result_s = ( frs1_i == frs2_i );
          end
         `RV32_FLE_S:
          begin
-            result_s = ( $bitstoshortreal(frs1_i) <= $bitstoshortreal(frs2_i) );
          end
+/*TODO
         `RV32_FLT_S:
-            result_s = ( $bitstoshortreal(frs1_i) <  $bitstoshortreal(frs2_i) );
         `RV32_FSGNJ_S:
-         begin
-            result_s ='{
-              sign     :frs2_s.sign, 
-              exp      :frs1_s.exp,
-              mant     :frs1_s.mant
-           };
-         end
         `RV32_FSGNJN_S:   
-            result_s ='{
-              sign     :~frs2_s.sign, 
-              exp      :frs1_s.exp,
-              mant     :frs1_s.mant
-           };
         `RV32_FSGNJX_S:   
-            result_s ='{
-              sign     :frs1_s.sign ^ frs2_s.sign, 
-              exp      :frs1_s.exp,
-              mant     :frs1_s.mant
-           };
         `RV32_FCLASS_S:   
-        begin
-            result_s = fclass( frs1_s) ;
-        end
         `RV32_FCVT_W_S:
-           if( op_i.rs2[0] == 1'b1 ) //FCVT.WU.S
-                result_s = unsigned_int'( $bitstoshortreal(frs1_i) );             
-           else //FCVT.W.S.
-                result_s = signed_int'( $bitstoshortreal(frs1_i) );             
         `RV32_FCVT_S_W:
-           if( op_i.rs2[0] == 1'b1 ) //FCVT.S.WU.
-                result_s = $shortrealtobits( shortreal'( frs1_i ) );             
-           else //FCVT.S.W
-                result_s = $shortrealtobits( shortreal'( signed'(frs1_i) ) );             
+*/
       default:
         begin
         end
     endcase
   end
 
-assign result_o = result_s;
 
 
-//The function to perform the floating point classify operation
-function f_bit_s fclass( input f_bit_s frs1_s );
-    automatic logic is_max_exp    = ( frs1_s.exp  == 8'd255 );
-    automatic logic is_zero_exp   = ( frs1_s.exp  == 8'd0   );
-    automatic logic is_zero_mant  = ( frs1_s.mant == 23'b0  ); 
-    automatic logic is_quite_NaN  = ( frs1_s.mant[22]==1'b1 )
-                                  & (frs1_s.mant[21:0] == 22'b0 ) 
-                                  & (~frs1_s.sign);
-    // negtive infinite 
-    fclass[0] = frs1_s.sign & is_max_exp & is_zero_mant;
-    // negtive normal number
-    fclass[1] = frs1_s.sign & (~is_max_exp) & (~is_zero_exp);
-    // negtive subnormal number
-    fclass[2] = frs1_s.sign & (is_zero_exp) & (~is_zero_mant);
-    // negtive zero
-    fclass[3] = frs1_s.sign & (is_zero_exp) & (is_zero_mant);
-    // positve zero
-    fclass[4] = (~frs1_s.sign) & (is_zero_exp) & (is_zero_mant);
-    // positive subnormal number
-    fclass[5] = (~frs1_s.sign) & (is_zero_exp) & (~is_zero_mant);
-    // postitive normal number
-    fclass[6] = (~frs1_s.sign) & (~is_max_exp) & (~is_zero_exp);
-    // postitive  infinite 
-    fclass[7] = (~frs1_s.sign) & is_max_exp & is_zero_mant;
-    // signaling NaN
-    fclass[8] = is_max_exp & (~is_zero_mant) & (~ is_quite_NaN);  
-    // quite NaN
-    fclass[9] = is_max_exp & (~is_zero_mant) &  is_quite_NaN;  
+// The FCSR signals.
+logic[RV32_fcsr_width_gp-1:0]  fcsr_in_value;
+assign fcsr_in_value = ~op_i.funct3[2] 
+               ? frs1_i[RV32_fcsr_width_gp-1:0]       //from register 
+               : { {csri_pad_width{1'b0}}, op_i.rs1 };//from imm5
 
-    fclass[31:10] = 22'b0;
-endfunction    
+always_comb
+  begin
+    f_fcsr_s_o       = 'dx;
+    unique casez (op_i)
+        `RV32_CSRRW, `RV32_CSRRWI:
+        begin
+        unique casez( fcsr_addr )
+            RV32_csr_addr_frm:
+                f_fcsr_s_o.frm  = fcsr_in_value[RV32_frm_width_gp-1:0];
 
+            RV32_csr_addr_fflags:
+                f_fcsr_s_o.fflags   = fcsr_in_value[RV32_fflags_width_gp-1:0];
+
+            RV32_csr_addr_fcsr:
+                f_fcsr_s_o      = fcsr_in_value;
+            default:
+            begin
+            end
+        endcase
+            $display("FIU : fcsr_in_value %08x, f_fcsr_s_o: %08x",
+fcsr_in_value, f_fcsr_s_o);
+        end
+        `RV32_CSRRS, `RV32_CSRRSI:
+        unique casez( fcsr_addr )
+            RV32_csr_addr_frm:
+                f_fcsr_s_o.frm  = f_fcsr_s_i.frm | fcsr_in_value[RV32_frm_width_gp-1:0];
+
+            RV32_csr_addr_fflags:
+                f_fcsr_s_o.fflags   = f_fcsr_s_i.fflags | fcsr_in_value[RV32_fflags_width_gp-1:0];
+
+            RV32_csr_addr_fcsr:
+                f_fcsr_s_o      = f_fcsr_s_i | fcsr_in_value;
+            default:
+            begin
+            end
+        endcase 
+        `RV32_CSRRC, `RV32_CSRRCI:
+        unique casez( fcsr_addr )
+            RV32_csr_addr_frm:
+                f_fcsr_s_o.frm  = f_fcsr_s_i.frm & (~fcsr_in_value[RV32_frm_width_gp-1:0]);
+
+            RV32_csr_addr_fflags:
+                f_fcsr_s_o.fflags   = f_fcsr_s_i.fflags &(~ fcsr_in_value[RV32_fflags_width_gp-1:0]);
+
+            RV32_csr_addr_fcsr:
+                f_fcsr_s_o      = f_fcsr_s_i & (~fcsr_in_value);
+            default:
+            begin
+            end
+        endcase
+
+        default:
+        begin
+        end
+    endcase
+end
 
 endmodule 

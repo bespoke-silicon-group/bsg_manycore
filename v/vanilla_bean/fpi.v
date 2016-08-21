@@ -24,33 +24,38 @@ f_wb1_signals_s     wb1;
 
 
 // Register file logic
-logic [RV32_reg_data_width_gp-1:0]  frf_rs1_val, frf_rs2_val, frf_rs1_out,
-                                    frf_rs2_out, frf_wd;
-logic [RV32_reg_addr_width_gp-1:0]  frf_wa;
-logic                               frf_wen, frf_cen;
+logic [RV32_freg_data_width_gp-1:0]  frf_rs1_val, frf_rs2_val, frf_rs1_out,
+                                     frf_rs2_out, frf_wd;
+logic [RV32_reg_addr_width_gp-1:0]   frf_wa;
+logic                                frf_wen, frf_cen;
+
+// The FCSR register
+f_fcsr_s                             fcsr_r;
+f_fcsr_s                             fiu_fcsr_o;//outputs from fiu
 
 // Value forwarding logic
 // Forwarding signals
 logic   frs1_in_mem, frs1_in_wb, frs1_in_wb1;
 logic   frs2_in_mem, frs2_in_wb, frs2_in_wb1;
 
-logic [RV32_reg_data_width_gp-1:0] frs1_to_exe, frs2_to_exe;
-logic [RV32_reg_data_width_gp-1:0] frs1_to_fiu, frs2_to_fiu, fiu_result;
-logic [RV32_reg_data_width_gp-1:0] frf_data;  
+logic [RV32_freg_data_width_gp-1:0] frs1_to_exe, frs2_to_exe;
+logic [RV32_freg_data_width_gp-1:0] frs1_to_fiu, frs2_to_fiu, fiu_result;
+logic [RV32_freg_data_width_gp-1:0] frf_data;  
 
-logic                              frs1_is_forward, frs2_is_forward;
-logic [RV32_reg_data_width_gp-1:0] frs1_forward_val,frs2_forward_val;
+logic                               frs1_is_forward, frs2_is_forward;
+logic [RV32_freg_data_width_gp-1:0] frs1_forward_val,frs2_forward_val;
+
 
 //forwarding logic for fam
 logic   fam_depend_stall;   // FAM data dependency stall
 
 logic   fam_frs1_in_mem, fam_frs1_in_wb;
 logic   fam_frs2_in_mem, fam_frs2_in_wb;
-logic                              fam_frs1_is_forward, fam_frs2_is_forward;
-logic [RV32_reg_data_width_gp-1:0] fam_frs1_forward_val,fam_frs2_forward_val;
-logic [RV32_reg_data_width_gp-1:0] fam_frs1_to_exe, fam_frs2_to_exe;
+logic                               fam_frs1_is_forward, fam_frs2_is_forward;
+logic [RV32_freg_data_width_gp-1:0] fam_frs1_forward_val,fam_frs2_forward_val;
+logic [RV32_freg_data_width_gp-1:0] fam_frs1_to_exe, fam_frs2_to_exe;
 // Data will be write back to the floating register file
-logic [RV32_reg_data_width_gp-1:0] write_frf_data;
+logic [RV32_freg_data_width_gp-1:0] write_frf_data;
 
 //+----------------------------------------------
 //|
@@ -84,7 +89,7 @@ assign frf_wd =  write_frf_data;
 assign frf_cen = (~alu_inter.alu_stall) ;
 
 // Instantiate the general purpose floating register file
-bsg_mem_2r1w #( .width_p                (RV32_reg_data_width_gp)
+bsg_mem_2r1w #( .width_p                (RV32_freg_data_width_gp)
                ,.els_p                  (32)
                ,.read_write_same_addr_p (1)
               ) frf_0
@@ -133,7 +138,14 @@ end
 //+----------------------------------------------
 //
 
-
+//If there is a fcsr instruction and thre is fam or fpi instruction in
+//pipestages below ID, we should stall!
+wire fcsr_stall = id.f_decode.is_fcsr_op 
+                &( exe.f_decode.op_writes_fflags
+                 | mem.f_decode.op_writes_fflags
+                 | wb.op_writes_fflags
+                 | wb1.op_writes_fflags
+                 );
 
 wire id_exe_rs1_match=    exe.f_decode.op_writes_frf
                       & ( id.f_instruction.rs1 == exe.f_instruction.rd);
@@ -168,8 +180,9 @@ wire fam_depend1 = id.f_decode.op_reads_frf1
 wire fam_depend2 = id.f_decode.op_reads_frf2 
                  & ( fam_exe_dep2 | fam_mem_dep2 | fam_wb_dep2 );
 
-assign fam_depend_stall = fam_depend1 | fam_depend2;
+assign fam_depend_stall = fam_depend1 | fam_depend2 | fcsr_stall;
 
+///////////////////////////////////////////////////////////////////
 // The value forwarded to FAM frs1
 assign  fam_frs1_in_mem  = mem.f_decode.op_writes_frf
                          & (id.f_instruction.rs1==mem.frd_addr);
@@ -245,6 +258,56 @@ end
 //|          EXECUTE TO MEMORY SHIFT
 //|
 //+----------------------------------------------
+
+//Handle the FCSR writing in EXE stage.
+//write enable condition ,please refer to 
+// RISCV-V Instruction set Mannual Volumn I, Version2.1
+wire fcsrrw_write_en    =  (exe.f_instruction.rd !=0)
+       &(   ( exe.f_instruction.funct3 == `RV32_CSRRW_FUN3 )
+         || ( exe.f_instruction.funct3 == `RV32_CSRRWI_FUN3)
+        );
+wire fcsrrsc_write_en   =  (exe.f_instruction.rs1!=0)
+       &(   ( exe.f_instruction.funct3 != `RV32_CSRRW_FUN3 )
+         && ( exe.f_instruction.funct3 != `RV32_CSRRWI_FUN3)
+         && ( exe.f_instruction.funct3 != 3'b0             )
+        );
+
+wire fcsr_write_en = exe.f_decode.is_fcsr_op 
+                   & ( fcsrrw_write_en | fcsrrsc_write_en );
+
+wire fcsr_frm_write_en = fcsr_write_en
+                   &(  (exe.f_instruction[31:20] == RV32_csr_addr_frm  ) 
+                     | (exe.f_instruction[31:20] == RV32_csr_addr_fcsr )
+                    );  
+wire fcsr_fflags_write_en = fcsr_write_en
+                   &(  (exe.f_instruction[31:20] == RV32_csr_addr_fflags) 
+                     | (exe.f_instruction[31:20] == RV32_csr_addr_fcsr  )
+                    );  
+
+always_ff @ (posedge clk)
+begin
+    if (reset )
+        fcsr_r.frm <= '0;
+    else if ( fcsr_frm_write_en & (~alu_inter.alu_stall) )
+        fcsr_r.frm <= fiu_fcsr_o.frm;
+end
+
+always_ff @ (posedge clk)
+begin
+    if (reset )
+        fcsr_r.fflags <= '0;
+    else if ( fcsr_fflags_write_en & (~alu_inter.alu_stall) )
+        fcsr_r.fflags <= fiu_fcsr_o.fflags;
+end
+
+always@( negedge clk) begin
+
+if( fcsr_frm_write_en) $display("write frm %b", fiu_fcsr_o.frm);
+if( fcsr_fflags_write_en) $display("write fflags %b", fiu_fcsr_o.fflags);
+
+end
+
+
 // RS1 register forwarding
 assign  frs1_in_mem      = mem.f_decode.op_writes_frf
                          & (exe.f_instruction.rs1==mem.frd_addr);
@@ -257,7 +320,9 @@ assign  frs1_forward_val  = frs1_in_mem ? frf_data :
                            (frs1_in_wb  ?   wb.frf_data: write_frf_data) ;
 assign  frs1_is_forward   = (frs1_in_mem | frs1_in_wb | frs1_in_wb1 );
 
-assign  frs1_to_fiu   = exe.f_decode.op_reads_rf1 ? alu_inter.rs1_of_alu:
+// The data from ALU is definitely the integer value, so no data convertion 
+// is needed.
+assign  frs1_to_fiu   = exe.f_decode.op_reads_rf1 ? {1'b0,alu_inter.rs1_of_alu}:
                        (frs1_is_forward ?frs1_forward_val : exe.frs1_val);
 
 // RS2 register forwarding
@@ -273,9 +338,13 @@ assign  frs2_forward_val  = frs2_in_mem ?  frf_data :
 assign  frs2_is_forward   = (frs2_in_mem | frs2_in_wb | frs2_in_wb1 );
 assign  frs2_to_fiu       = frs2_is_forward ?frs2_forward_val : exe.frs2_val;
 
+//The FIU takes 33bit input and 33bit output.
+//The data format depends on specific instruction
 fiu fiu_0 ( .frs1_i         ( frs1_to_fiu       ),
             .frs2_i         ( frs2_to_fiu       ),
             .op_i           ( exe.f_instruction ),
+            .f_fcsr_s_i     ( fcsr_r            ),
+            .f_fcsr_s_o     ( fiu_fcsr_o        ),
             .result_o       ( fiu_result        )
            );
 // Synchronous stage shift
@@ -299,9 +368,17 @@ end
 
 // Determine what data to send to the write back stage
 // that will end up being writen to the register file
+
+// Convert the loaded data format to Record Float
+logic [RV32_freg_data_width_gp-1:0]  flw_data_RecF;
+bsg_recFNFromFN flw_data_to_RecF(  
+                .io_a   (  alu_inter.flw_data   )
+               ,.io_out (  flw_data_RecF        )
+                 );
+
 always_comb
 begin
-    frf_data = mem.f_decode.is_load_op? alu_inter.flw_data:
+    frf_data = mem.f_decode.is_load_op? flw_data_RecF:
                                         mem.fiu_result;
 end
 
@@ -312,7 +389,8 @@ begin
         wb <= '0;
     else if (~alu_inter.alu_stall)
         wb <= '{
-            op_writes_frf : mem.f_decode.op_writes_frf,
+            op_writes_frf   : mem.f_decode.op_writes_frf,
+            op_writes_fflags: mem.f_decode.op_writes_fflags,
             is_fam_op     : mem.f_decode.is_fam_op,
             is_fpi_op     : mem.f_decode.is_fpi_op,
             frd_addr      : mem.frd_addr,
@@ -328,7 +406,8 @@ begin
         wb1 <= '0;
     else if (~alu_inter.alu_stall)
         wb1 <= '{
-            op_writes_frf : wb.op_writes_frf,
+            op_writes_frf   : wb.op_writes_frf,
+            op_writes_fflags: wb.op_writes_fflags,
             is_fam_op     : wb.is_fam_op,
             is_fpi_op     : wb.is_fpi_op,
             frd_addr      : wb.frd_addr,
@@ -341,8 +420,20 @@ end
 //   Figure out the output signal
 //
 //   Output to alu
-assign alu_inter.fiu_result     = fiu_result;
-assign alu_inter.frs2_to_fiu    = frs2_to_fiu;
+
+
+// FIU should be responsible for converting the data format.
+// CVT, MV, etc.
+assign alu_inter.fiu_result = fiu_result[RV32_reg_data_width_gp-1:0];
+
+//used for float sotre instruction.
+logic [RV32_reg_data_width_gp-1:0]  frs2_to_fiu_FN;
+bsg_fNFromRecFN frs2_to_fiu_to_FN(  
+                .io_a   ( frs2_to_fiu    )
+               ,.io_out ( frs2_to_fiu_FN )
+                 );
+assign alu_inter.frs2_to_fiu    = frs2_to_fiu_FN;
+
 assign alu_inter.exe_fpi_store_op   = exe.f_decode.is_store_op;
 assign alu_inter.exe_fpi_writes_rf  = exe.f_decode.op_writes_rf;
 assign alu_inter.fam_depend_stall   = fam_depend_stall;
