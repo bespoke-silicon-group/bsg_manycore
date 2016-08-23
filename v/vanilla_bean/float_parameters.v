@@ -5,6 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 //RV32F Instruction encodings
 `define RV32_FLS_FUN3       3'b010
+`define RV32_FDLS_FUN3      3'b011
 `define RV32_FMAC_FUN7      7'b?????_00
 `define RV32_FADD_FUN7      7'b0000_000
 `define RV32_FSUB_FUN7      7'b0000_100

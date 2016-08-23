@@ -298,6 +298,8 @@ begin
         fcsr_r.fflags <= '0;
     else if ( fcsr_fflags_write_en & (~alu_inter.alu_stall) )
         fcsr_r.fflags <= fiu_fcsr_o.fflags;
+    else if (wb1.op_writes_fflags & (~alu_inter.alu_stall) )
+        fcsr_r.fflags <= wb1.fflags;
 end
 
 always@( negedge clk) begin
@@ -356,7 +358,8 @@ begin
         mem <= '{
             frd_addr        : exe.f_instruction.rd,
             f_decode        : exe.f_decode,
-            fiu_result      : fiu_result
+            fiu_result      : fiu_result,
+            fflags          : fiu_fcsr_o.fflags
         };
 end
 
@@ -391,6 +394,7 @@ begin
         wb <= '{
             op_writes_frf   : mem.f_decode.op_writes_frf,
             op_writes_fflags: mem.f_decode.op_writes_fflags,
+            fflags          : mem.fflags,
             is_fam_op     : mem.f_decode.is_fam_op,
             is_fpi_op     : mem.f_decode.is_fpi_op,
             frd_addr      : mem.frd_addr,
@@ -408,6 +412,7 @@ begin
         wb1 <= '{
             op_writes_frf   : wb.op_writes_frf,
             op_writes_fflags: wb.op_writes_fflags,
+            fflags          : wb.fflags,
             is_fam_op     : wb.is_fam_op,
             is_fpi_op     : wb.is_fpi_op,
             frd_addr      : wb.frd_addr,
@@ -457,7 +462,6 @@ assign fam_in_s_o.data_s_i  =   '{
 assign fam_in_s_o.yumi_i =  (~alu_inter.alu_stall )  
                          & wb1.op_writes_frf
                          & wb1.is_fam_op;
-
 
 endmodule
 

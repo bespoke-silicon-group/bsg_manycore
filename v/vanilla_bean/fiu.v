@@ -28,6 +28,47 @@ bsg_fNFromRecFN mv_x_s_FN(
                ,.io_out ( mv_x_s_result )
                  );
 
+//The CVT.W.S result
+logic [RV32_reg_data_width_gp-1:0]  cvt_w_s_result; 
+logic [2:0]                         cvt_w_s_flags_3;
+
+RecFNToIN  mv_w_s_0(
+    .io_in               ( frs1_i                )
+   ,.io_roundingMode     ( f_fcsr_s_i.frm[1:0]   )
+   ,.io_signedOut        ( ~op_i.rs2[0]          ) 
+   ,.io_out              ( cvt_w_s_result        )
+   ,.io_intExceptionFlags( cvt_w_s_flags_3       )
+);
+
+//The CVT.S.W result
+logic [RV32_freg_data_width_gp-1:0]  cvt_s_w_result; 
+logic [RV32_fflags_width_gp-1:0]     cvt_s_w_flags;
+INToRecFN mv_s_w_0(
+    .io_signedIn        ( ~op_i.rs2[0]          )
+   ,.io_in              ( frs1_i[31:0]          )
+   ,.io_roundingMode    ( f_fcsr_s_i.frm[1:0]   )
+   ,.io_out             ( cvt_s_w_result        )
+   ,.io_exceptionFlags  ( cvt_s_w_flags         )
+);
+//The FClass result
+logic [RV32_reg_data_width_gp-1:0]  fclass_result; 
+bsg_classifyRecFN fclass_0(
+    .io_a               ( frs1_i                )
+   ,.io_out             ( fclass_result         )
+);
+
+//The compare result
+logic fcmp_is_lt, fcmp_is_eq, fcmp_is_gt;
+logic [RV32_fflags_width_gp-1:0]  fcmp_flags;
+CompareRecFN fcmp_0(
+    .io_a               ( frs1_i                )
+   ,.io_b               ( frs2_i                )
+   ,.io_signaling       ( 1'b1                  )
+   ,.io_lt              ( fcmp_is_lt            )
+   ,.io_eq              ( fcmp_is_eq            )
+   ,.io_gt              ( fcmp_is_gt            )
+   ,.io_exceptionFlags  ( fcmp_flags            )
+);
 
 localparam csri_pad_width       = RV32_fcsr_width_gp - RV32_reg_addr_width_gp;
 
@@ -60,21 +101,31 @@ always_comb
             result_o = mv_s_x_result;
         `RV32_FMV_X_S:   
             result_o = {1'b0, mv_x_s_result}; 
-        `RV32_FEQ_S:
-         begin
-         end
-        `RV32_FLE_S:
-         begin
-         end
-/*TODO
-        `RV32_FLT_S:
-        `RV32_FSGNJ_S:
-        `RV32_FSGNJN_S:   
-        `RV32_FSGNJX_S:   
-        `RV32_FCLASS_S:   
         `RV32_FCVT_W_S:
+            result_o = {1'b0, cvt_w_s_result};
         `RV32_FCVT_S_W:
-*/
+            result_o = cvt_s_w_result;
+        `RV32_FSGNJ_S:
+            result_o = {frs2_i[RV32_freg_data_width_gp-1],
+                        frs1_i[RV32_freg_data_width_gp-2:0]} ;
+        `RV32_FSGNJN_S:   
+            result_o = {~frs2_i[RV32_freg_data_width_gp-1],
+                        frs1_i[RV32_freg_data_width_gp-2:0]} ;
+        `RV32_FSGNJX_S:   
+            result_o = {frs2_i[RV32_freg_data_width_gp-1]^frs1_i[RV32_freg_data_width_gp-1],
+                        frs1_i[RV32_freg_data_width_gp-2:0]} ;
+        `RV32_FCLASS_S: 
+            result_o = fclass_result;
+        `RV32_FEQ_S:
+            result_o = {31'b0, fcmp_is_eq };
+        `RV32_FLE_S:
+            result_o = {31'b0, ~fcmp_is_gt};
+        `RV32_FLT_S:
+            result_o = {31'b0, fcmp_is_lt };
+        `RV32_FMIN_S:
+            result_o =  fcmp_is_lt ? frs1_i : frs2_i;
+        `RV32_FMAX_S:
+            result_o =  fcmp_is_gt ? frs1_i : frs2_i;
       default:
         begin
         end
@@ -108,8 +159,7 @@ always_comb
             begin
             end
         endcase
-            $display("FIU : fcsr_in_value %08x, f_fcsr_s_o: %08x",
-fcsr_in_value, f_fcsr_s_o);
+            $display("FIU : fcsr_in_value %08x, f_fcsr_s_o: %08x", fcsr_in_value, f_fcsr_s_o);
         end
         `RV32_CSRRS, `RV32_CSRRSI:
         unique casez( fcsr_addr )
@@ -139,7 +189,12 @@ fcsr_in_value, f_fcsr_s_o);
             begin
             end
         endcase
-
+        `RV32_FCVT_W_S:
+            f_fcsr_s_o.fflags = {2'b0, cvt_w_s_flags_3};
+        `RV32_FCVT_S_W:
+            f_fcsr_s_o.fflags = cvt_s_w_flags;
+        `RV32_FLE_S, `RV32_FEQ_S, `RV32_FLT_S:
+            f_fcsr_s_o.fflags = fcmp_flags;
         default:
         begin
         end

@@ -43,6 +43,7 @@ begin
                             $bitstoshortreal(frs1_i) / $bitstoshortreal(frs2_i)
                         );
          end
+/*
         `RV32_FMIN_S:   
          begin
             result_s =  $shortrealtobits( 
@@ -57,6 +58,7 @@ begin
                             $bitstoshortreal(frs1_i) : $bitstoshortreal(frs2_i)
                         );
          end
+*/
         `RV32_FSQRT_S:
          begin
            $error("SQRT instruction not implemented!"); 

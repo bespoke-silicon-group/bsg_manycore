@@ -19,6 +19,16 @@ typedef struct packed
     logic[22:0]     mant;
 }f_bit_s;
 
+//the exception flags.
+typedef struct packed{
+    logic                               NV;
+    logic                               DZ;
+    logic                               OF;
+    logic                               UF;
+    logic                               NX;
+}f_flags_s;
+
+
 // Decode control signals structures
 typedef struct packed
 {
@@ -35,7 +45,7 @@ typedef struct packed
     logic op_reads_frf1;    // OP reads from first port of register file
     logic op_reads_frf2;    // OP reads from second port of register file
 
-    logic op_reads_frm;     // Op needs the rounding mode register
+//    logic op_reads_frm;     // Op needs the rounding mode register
     logic op_writes_fflags; // Op will writes the fflags
 } f_decode_s;
 
@@ -60,12 +70,13 @@ typedef struct packed
 // Memory stage signals
 typedef struct packed
 {
-    logic [RV32_reg_addr_width_gp-1:0] frd_addr;    // Destination address
-    f_decode_s                         f_decode;   // Decode signal 
+    logic [RV32_reg_addr_width_gp-1:0]  frd_addr;    // Destination address
+    f_decode_s                          f_decode;   // Decode signal 
     //We only stores FMV.S.W and FCVT.S.W result. The result that write to
     //integre Regfile will be write to ALU pipeline register.
     logic [RV32_freg_data_width_gp-1:0] fiu_result; // the FIU outpout 
-   
+
+    f_flags_s                           fflags;
 } f_mem_signals_s;
 
 // RF write back stage signals
@@ -75,6 +86,7 @@ typedef struct packed
     logic                               is_fam_op;     // Op executed in FAM
     logic                               is_fpi_op;     // OP executed in FPI
     logic                               op_writes_fflags; // Op will writes the fflags
+    f_flags_s                           fflags;
     logic [RV32_reg_addr_width_gp-1:0]  frd_addr;      // Register file write address
     logic [RV32_freg_data_width_gp-1:0] frf_data;      // Register file write data
 } f_wb_signals_s;
@@ -84,6 +96,7 @@ typedef struct packed
 {
     logic                               op_writes_frf; // Op writes to the FALU register file
     logic                               op_writes_fflags; // Op will writes the fflags
+    f_flags_s                           fflags;
     logic                               is_fam_op;     // Op executed in FAM
     logic                               is_fpi_op;     // OP executed in FPI
     logic [RV32_reg_addr_width_gp-1:0]  frd_addr;       // Register file write address
@@ -152,6 +165,7 @@ interface  fpi_alu_inter ();
 
 endinterface
 
+
 // The FIFO contents send to and get from FAM
 typedef struct packed{
     logic [RV32_instr_width_gp-1:0]          f_instruction; //the instrucitons
@@ -185,7 +199,7 @@ typedef struct packed{
 //the FSR register
 typedef struct packed{
     logic [RV32_frm_width_gp   -1:0]    frm;
-    logic [RV32_fflags_width_gp-1:0]    fflags;
+    f_flags_s                           fflags;
 }f_fcsr_s;
 
 `endif

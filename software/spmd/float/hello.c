@@ -24,10 +24,10 @@ int main()
 
     load_store_test(input);
     move_test(input);
-    //bypass_alu_fpi_test(input);
-    //bypass_fpi_fpi_test(input);
-    //bypass_fpi_alu_test(input);
-    //cvt_sgn_class_test();
+    bypass_alu_fpi_test(input);
+    bypass_fpi_fpi_test(input);
+    bypass_fpi_alu_test(input);
+    cvt_sgn_class_test();
     //fam_test(input);
     //stall_fam_fpi_test(input);
     fcsr_test(input);

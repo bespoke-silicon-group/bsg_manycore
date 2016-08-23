@@ -30,7 +30,9 @@ always_comb
 
 `ifdef bsg_FPU
         `RV32_LOAD_FP, `RV32_STORE_FP:
-            decode_o.is_mem_op = (instruction_i.funct3 == `RV32_FLS_FUN3);
+            //we have to handle the FLD/FSD
+            decode_o.is_mem_op = (instruction_i.funct3 == `RV32_FLS_FUN3)
+                               | (instruction_i.funct3 == `RV32_FDLS_FUN3);
 `endif
         `RV32_LOAD, `RV32_STORE:
             decode_o.is_mem_op = 1'b1;
@@ -61,7 +63,9 @@ always_comb
     unique casez (instruction_i.op)
 `ifdef bsg_FPU
         `RV32_LOAD_FP:
-            decode_o.is_load_op= (instruction_i.funct3 == `RV32_FLS_FUN3);
+            //We have to handle the FLD/FSD instruction.
+            decode_o.is_load_op= (instruction_i.funct3 == `RV32_FLS_FUN3)
+                               | (instruction_i.funct3 == `RV32_FDLS_FUN3);
 `endif
         `RV32_LOAD:
             decode_o.is_load_op = 1'b1;
@@ -77,7 +81,9 @@ always_comb
     unique casez (instruction_i.op)
 `ifdef bsg_FPU
         `RV32_STORE_FP:
-            decode_o.is_store_op= (instruction_i.funct3 == `RV32_FLS_FUN3);
+            //we have to handle the FLD/FSD
+            decode_o.is_store_op= (instruction_i.funct3 == `RV32_FLS_FUN3)
+                               |  (instruction_i.funct3 == `RV32_FDLS_FUN3);
 `endif
         `RV32_STORE:
             decode_o.is_store_op = 1'b1;
@@ -146,5 +152,6 @@ always_comb
     default:
       decode_o.op_is_auipc = 1'b0;
   endcase
+
 
 endmodule

@@ -932,6 +932,30 @@ assign fpi_inter.flw_data               = loaded_data;
 assign fpi_inter.f_instruction          = instruction;
 assign fpi_inter.mem_alu_writes_rf      = mem.decode.op_writes_rf;
 assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
+/////////////////////////////////////////////////////////////////////
+// Some instruction validation check.
+// synosys translate off
+always_comb
+begin
+    unique casez( id.instruction.op )
+        `RV32_STORE_FP, `RV32_LOAD_FP:
+        if(  id.instruction.funct3 == `RV32_FDLS_FUN3 )
+        begin
+            if(  id.instruction.rs1  != 5'd2 )
+                $error("Double Precision Load/Store With register other than SP: PC=%08x, INSTRUCTION:=%08x", 
+                   id.pc_plus4, id.instruction); 
+            else 
+                $warning("Double Precision Load/Store With SP: PC=%08x, INSTRUCTION:=%08x", 
+                   id.pc_plus4-4, id.instruction); 
+        end
+        default:
+        begin
+        end
+    endcase
+end
+
+// synosys translate on
+
 
 `endif
 endmodule
