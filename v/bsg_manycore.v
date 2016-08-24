@@ -95,8 +95,8 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
     for (c = 0; c < num_tiles_x_p; c = c+2)
     begin: fam_col_gen
         begin: shared
-            fam # (.in_data_width_p ( RV32_fam_input_width_gp)
-                  ,.out_data_width_p( RV32_reg_data_width_gp )
+            fam # (.in_data_width_p ( RV32_mac_input_width_gp  )
+                  ,.out_data_width_p( RV32_mac_output_width_gp )
                   ,.num_fifo_p      ( 2                      )
                   ,.num_pipe_p      ( 3                      )
                   )

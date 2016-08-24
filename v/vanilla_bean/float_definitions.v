@@ -168,16 +168,26 @@ endinterface
 
 // The FIFO contents send to and get from FAM
 typedef struct packed{
-    logic [RV32_instr_width_gp-1:0]          f_instruction; //the instrucitons
+    instruction_s                            f_instruction; //the instrucitons
     logic [RV32_freg_data_width_gp-1:0]      frs1_to_exe;   //the first operans
     logic [RV32_freg_data_width_gp-1:0]      frs2_to_exe;   //the second operans
+    logic [RV32_frm_width_gp   -1:0]         frm;           //the rounding mode bits
 } f_fam_in_data_s; 
 
-parameter RV32_fam_input_width_gp =  RV32_instr_width_gp    
-                                  +2*RV32_freg_data_width_gp;
-//pipleline registers in FAM
+parameter RV32_mac_input_width_gp =  RV32_instr_width_gp    
+                                  +2*RV32_freg_data_width_gp
+                                  +  RV32_frm_width_gp;
+
 typedef struct packed{
     logic [RV32_freg_data_width_gp-1:0] result;//the first operans
+    f_flags_s                           fflags;
+}f_mac_out_s;
+
+parameter RV32_mac_output_width_gp =  RV32_freg_data_width_gp +  RV32_fflags_width_gp;
+
+//pipleline registers in FAM
+typedef struct packed{
+    f_mac_out_s                         mac_out;//the first operans
     logic                               fam_in_from;//data come from which tile 
     logic                               op_writes_frf;//data should write to frf 
 } f_fam_pipe_regs_s; 
@@ -193,7 +203,7 @@ typedef struct packed{
 typedef struct packed{
     logic                               ready_o;
     logic                               v_o;    
-    logic [RV32_freg_data_width_gp-1:0] data_o; 
+    f_mac_out_s                         data_o; 
 }f_fam_out_s;
 
 //the FSR register

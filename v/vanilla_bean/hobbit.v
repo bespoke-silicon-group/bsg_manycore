@@ -935,7 +935,7 @@ assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
 /////////////////////////////////////////////////////////////////////
 // Some instruction validation check.
 // synosys translate off
-always_comb
+always@(negedge clk )
 begin
     unique casez( id.instruction.op )
         `RV32_STORE_FP, `RV32_LOAD_FP:

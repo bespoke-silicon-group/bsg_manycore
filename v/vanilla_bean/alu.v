@@ -65,7 +65,7 @@ always_comb
       `RV32_ADDI, `RV32_ADD, 
       `RV32_LB, `RV32_LH, `RV32_LW, `RV32_LBU, `RV32_LHU,
 `ifdef bsg_FPU
-      `RV32_FLW, `RV32_FSW,
+      `RV32_FLW, `RV32_FSW, `RV32_FLD,`RV32_FSD,
 `endif
       `RV32_SB, `RV32_SH, `RV32_SW:
         begin

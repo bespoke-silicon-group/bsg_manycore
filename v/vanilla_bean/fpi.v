@@ -138,14 +138,20 @@ end
 //+----------------------------------------------
 //
 
-//If there is a fcsr instruction and thre is fam or fpi instruction in
-//pipestages below ID, we should stall!
-wire fcsr_stall = id.f_decode.is_fcsr_op 
+//If there is a fcsr instruction and there are instructions in
+//pipestages that will update fflags, we should stall!
+wire fcsr_fflags_stall = id.f_decode.is_fcsr_op 
                 &( exe.f_decode.op_writes_fflags
                  | mem.f_decode.op_writes_fflags
                  | wb.op_writes_fflags
                  | wb1.op_writes_fflags
                  );
+
+//If there is a fam instruction which need frm resgiter value and 
+//there is a fcsr instruction value in exe updating frm, we should stall
+wire fcsr_frm_stall = id.f_decode.is_fam_op & exe.f_decode.is_fcsr_op;
+
+wire fcsr_stall = fcsr_fflags_stall | fcsr_frm_stall;
 
 wire id_exe_rs1_match=    exe.f_decode.op_writes_frf
                       & ( id.f_instruction.rs1 == exe.f_instruction.rd);
@@ -202,7 +208,7 @@ assign  fam_frs2_forward_val  = fam_frs2_in_mem ? frf_data :  wb.frf_data;
 assign  fam_frs2_is_forward   = fam_frs2_in_mem | fam_frs2_in_wb ;
 
 
-assign write_frf_data = wb1.is_fam_op? fam_out_s_i.data_o : wb1.frf_data;
+assign write_frf_data = wb1.is_fam_op? fam_out_s_i.data_o.result : wb1.frf_data;
 
 
 // The value send to FPI
@@ -283,6 +289,12 @@ wire fcsr_fflags_write_en = fcsr_write_en
                    &(  (exe.f_instruction[31:20] == RV32_csr_addr_fflags) 
                      | (exe.f_instruction[31:20] == RV32_csr_addr_fcsr  )
                     );  
+wire fflags_write_en = fcsr_fflags_write_en | wb1.op_writes_fflags ;
+                     
+wire [RV32_fflags_width_gp-1:0] 
+fflags_write_value = fcsr_fflags_write_en     ?   fiu_fcsr_o.fflags
+                    :(wb1.is_fam_op   ?   fam_out_s_i.data_o.fflags :   wb1.fflags);
+                                  
 
 always_ff @ (posedge clk)
 begin
@@ -296,16 +308,14 @@ always_ff @ (posedge clk)
 begin
     if (reset )
         fcsr_r.fflags <= '0;
-    else if ( fcsr_fflags_write_en & (~alu_inter.alu_stall) )
-        fcsr_r.fflags <= fiu_fcsr_o.fflags;
-    else if (wb1.op_writes_fflags & (~alu_inter.alu_stall) )
-        fcsr_r.fflags <= wb1.fflags;
+    else if ( fflags_write_en & (~alu_inter.alu_stall) )
+        fcsr_r.fflags <= fflags_write_value;
 end
 
 always@( negedge clk) begin
 
 if( fcsr_frm_write_en) $display("write frm %b", fiu_fcsr_o.frm);
-if( fcsr_fflags_write_en) $display("write fflags %b", fiu_fcsr_o.fflags);
+if( fflags_write_en) $display("write fflags %b", fflags_write_value);
 
 end
 
@@ -455,7 +465,8 @@ assign fam_in_s_o.v_i      =  id.f_decode.is_fam_op & no_stall_flush;
 assign fam_in_s_o.data_s_i  =   '{
            f_instruction   :  id.f_instruction,
            frs1_to_exe     :  fam_frs1_to_exe,
-           frs2_to_exe     :  fam_frs2_to_exe
+           frs2_to_exe     :  fam_frs2_to_exe,
+           frm             :  fcsr_r.frm
         };
 
 
