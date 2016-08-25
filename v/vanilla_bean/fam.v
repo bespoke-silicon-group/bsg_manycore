@@ -101,25 +101,25 @@ begin
         begin
             mac_op = 2'b00;
             fam_mul_input2 =fam_in_data_s_o.frs2_to_exe;
-            fam_addend     = 'x; //TODO
+            fam_addend     =fam_in_data_s_o.frs3_to_exe;
         end
         `RV32_NMADD: 
         begin
             mac_op = 2'b11;
             fam_mul_input2 =fam_in_data_s_o.frs2_to_exe;
-            fam_addend     = 'x; //TODO
+            fam_addend     =fam_in_data_s_o.frs3_to_exe;
         end
         `RV32_MSUB: 
         begin
             mac_op = 2'b01;
             fam_mul_input2 =fam_in_data_s_o.frs2_to_exe;
-            fam_addend     = 'x; //TODO
+            fam_addend     =fam_in_data_s_o.frs3_to_exe;
         end
         `RV32_NMSUB:
         begin
             mac_op = 2'b10;
             fam_mul_input2 =fam_in_data_s_o.frs2_to_exe;
-            fam_addend     = 'x; //TODO
+            fam_addend     =fam_in_data_s_o.frs3_to_exe;
         end
         `RV32_OP_FP:
             unique casez( fam_in_data_s_o.f_instruction.funct7)
@@ -127,7 +127,7 @@ begin
             begin
                 mac_op          = 2'b00;
                 // a*1 + b
-                //ValExec_MulAddRecFN.scala:111
+                //refer to Berkeley hardfloat: ValExec_MulAddRecFN.scala:111
                 //UInt(1)<<(expWidth + sigWidth - 1);
                 fam_mul_input2  ={1'b0, 1'b1, {(RV32_freg_data_width_gp-2){1'b0}} }; 
                 fam_addend      = fam_in_data_s_o.frs2_to_exe;
@@ -143,7 +143,7 @@ begin
                 mac_op          = 2'b00;
                 fam_mul_input2  = fam_in_data_s_o.frs2_to_exe;
                 //a*b + 0
-                //ValExec_MulAddRecFN.scala:155
+                //refer to Berkeley hardfloat: ValExec_MulAddRecFN.scala:155
                 //((io.a ^ io.b) & UInt(1)<<(expWidth + sigWidth - 1))<<1
                 fam_addend      =(  ( fam_in_data_s_o.frs1_to_exe ^ fam_in_data_s_o.frs2_to_exe)
                                   & {1'b0, 1'b1, {(RV32_freg_data_width_gp-2){1'b0}} } 
@@ -236,11 +236,5 @@ bsg_fifo_1r1w_small #(  .width_p  ( RV32_fam_result_width_gp    )
     );
 end
 endgenerate
-
-int i;
-always@( negedge clk_i ) begin
-   for(i=0; i< num_fifo_p; i++)
-    if( fam_out_v_o[i] ) $display("FAM:write to fifo[%d]", i);  
-end
 
 endmodule

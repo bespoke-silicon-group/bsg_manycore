@@ -7,12 +7,14 @@
 //    FPI to ALU bypass
 //    floating move --> alu addi 
 float        fam_output[N]   = {0.0};
-unsigned int fam_expect[N]  = {0x40400000,0xBF800000,0x40C00000,/*0x3F000000,*/0xBF800000,0x40C00000};
-
+unsigned int fam_expect[N]  =\
+{0x40400000,0xBF800000,0x40C00000,/*0x3F000000,*/0xBF800000,0x40C00000\
+,0x40E00000,0xC0E00000,0x40A00000,0xC0A00000};
 int fam(float *src, float *dst){
 
   __asm__ __volatile__ ("flw f11, 0(%0)" : :"r"(src) );  // 1.0
   __asm__ __volatile__ ("flw f12, 4(%0)" : :"r"(src) );  // 2.0
+  __asm__ __volatile__ ("flw f13, 8(%0)" : :"r"(src) );  // 3.0
 
   __asm__ __volatile__ ("fadd.s  f2, f11, f12");  //3.0
   __asm__ __volatile__ ("fsub.s  f3, f11, f12");  //-1.0
@@ -20,6 +22,10 @@ int fam(float *src, float *dst){
 //  __asm__ __volatile__ ("fdiv.s  f5, f11, f12");  //0.50
   __asm__ __volatile__ ("fmin.s  f6, f2,  f3");   // -1.0
   __asm__ __volatile__ ("fmax.s  f7, f2,  f4");   // 6.0 
+  __asm__ __volatile__ ("fmadd.s  f8,  f12, f13, f11");  // 2.0 * 3.0 + 1.0  =  7.0
+  __asm__ __volatile__ ("fnmadd.s f9,  f12, f13, f11"); // -(2.0 * 3.0 + 1.0)= -7.0
+  __asm__ __volatile__ ("fmsub.s  f10, f12, f13, f11"); // (2.0 * 3.0 - 1.0) =  5.0
+  __asm__ __volatile__ ("fnmsub.s f20, f12, f13, f11"); // -(2.0 * 3.0 - 1.0)= -5.0
 
   __asm__ __volatile__ ("fsw f2, 0(%0)" : :"r"(dst) ); 
   __asm__ __volatile__ ("fsw f3, 4(%0)" : :"r"(dst) ); 
@@ -27,6 +33,10 @@ int fam(float *src, float *dst){
 //  __asm__ __volatile__ ("fsw f5, 8(%0)" : :"r"(dst) ); 
   __asm__ __volatile__ ("fsw f6, 12(%0)" : :"r"(dst) ); 
   __asm__ __volatile__ ("fsw f7, 16(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("fsw f8, 20(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("fsw f9, 24(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("fsw f10,28(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("fsw f20,32(%0)" : :"r"(dst) ); 
 
 }
 
@@ -39,7 +49,7 @@ void fam_test(float *input){
     fam( input, fam_output);
     
     int_output = (unsigned int *) fam_output;
-    for( i=0; i<5; i++){
+    for( i=0; i<9; i++){
         if ( int_output[i]  !=  fam_expect[i] ) {
             error = 1; 
             break;

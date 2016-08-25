@@ -159,7 +159,6 @@ always_comb
             begin
             end
         endcase
-           // $display("FIU : fcsr_in_value %08x, f_fcsr_s_o: %08x", fcsr_in_value, f_fcsr_s_o);
         end
         `RV32_CSRRS, `RV32_CSRRSI:
         unique casez( fcsr_addr )

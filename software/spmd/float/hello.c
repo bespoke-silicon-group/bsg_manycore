@@ -30,7 +30,9 @@ int main()
     cvt_sgn_class_test();
     fam_test(input);
     stall_fam_fpi_test(input);
+    /*Adding following testcasewill cause the code size exceed 1024 WORDS*/
     fcsr_test(input);
+    fmac_test(input);
 
     bsg_finish();
   }

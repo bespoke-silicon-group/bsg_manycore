@@ -30,6 +30,8 @@ ifneq ($(BSG_FPU_OP), )
 FPU_SRC       = $(addprefix $(VANILLA_SRC)/, float_decode.v fpi.v fiu.v fam.v )
 FPU_SRC      += $(addprefix $(BSG_IP_CORES_DIR)/bsg_dataflow/, \
                             bsg_round_robin_n_to_1.v )
+FPU_SRC      += $(addprefix $(BSG_IP_CORES_DIR)/bsg_mem/, \
+                            bsg_mem_3r1w.v )
 FPU_SRC      += $(addprefix $(VANILLA_SRC)/bsg_ucb_hardfloat/, \
                                bsg_ucb_hardfloat.v)
 else

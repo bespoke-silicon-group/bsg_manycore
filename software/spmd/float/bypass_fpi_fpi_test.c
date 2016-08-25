@@ -8,7 +8,8 @@ extern float input[N];
 //    FPI to FPI bypass
 //    floating move --> floating compare 
 float        bypass_fpi_fpi_output[N]   = {0.0};
-unsigned int bypass_fpi_fpi_expect[N]  = { 0x1,0x0,0x1,0x0,0x1};
+unsigned int bypass_fpi_fpi_expect[N]  = { 0x1,0x0,0x1,0x0,0x1, 0x40a00000,
+0x40c00000, 0x40e00000};
 
 int bypass_fpi_fpi(float *src, float *dst){
 
@@ -51,6 +52,25 @@ int bypass_fpi_fpi(float *src, float *dst){
   __asm__ __volatile__ ("nop"  ); 
   __asm__ __volatile__ ("fle.s s6, f8, f9" );  // 3.0 <4.0, No by pass
 
+
+  //bypass for the third opperands.
+  //One stall 
+  __asm__ __volatile__ ("fmv.s.x f10, t0" ); 
+  __asm__ __volatile__ ("fmv.s.x f11, t1" ); 
+  __asm__ __volatile__ ("fmv.s.x f12, t2" ); 
+  __asm__ __volatile__ ("fmadd.s f22, f10,f11,f12");  // 1.0 * 2.0 + 3.0 = 5.0
+
+  //forward from MEM
+  __asm__ __volatile__ ("fmv.s.x f13, t3" ); 
+  __asm__ __volatile__ ("nop"  ); 
+  __asm__ __volatile__ ("fmadd.s f23, f10,f11,f13");  // 1.0 * 2.0 + 4.0 = 6.0
+
+  //forward from WB 
+  __asm__ __volatile__ ("fmv.s.x f14, t4" ); 
+  __asm__ __volatile__ ("nop"  ); 
+  __asm__ __volatile__ ("nop"  ); 
+  __asm__ __volatile__ ("fmadd.s f24, f10,f11,f14");  // 1.0 * 2.0 + 5.0 = 7.0
+
   __asm__ __volatile__ ("nop"  ); 
   __asm__ __volatile__ ("nop"  ); 
   __asm__ __volatile__ ("nop"  ); 
@@ -60,6 +80,9 @@ int bypass_fpi_fpi(float *src, float *dst){
   __asm__ __volatile__ ("sw s4, 8(%0)" : :"r"(dst) ); 
   __asm__ __volatile__ ("sw s5, 12(%0)" : :"r"(dst) ); 
   __asm__ __volatile__ ("sw s6, 16(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("fsw f22, 20(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("fsw f23, 24(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("fsw f24, 28(%0)" : :"r"(dst) ); 
 
 }
 
@@ -71,7 +94,7 @@ void bypass_fpi_fpi_test(float *input){
     bypass_fpi_fpi( input, bypass_fpi_fpi_output);
     
     int_output = (unsigned int *) bypass_fpi_fpi_output;
-    for( i=0; i<5; i++){
+    for( i=0; i<8; i++){
         if ( int_output[i]  !=  bypass_fpi_fpi_expect[i] ) {
             error = 1; 
             break;

@@ -44,6 +44,7 @@ typedef struct packed
     logic op_writes_frf;    // write to the floating point regsiter file
     logic op_reads_frf1;    // OP reads from first port of register file
     logic op_reads_frf2;    // OP reads from second port of register file
+    logic op_reads_frf3;    // OP reads from third port of register file
 
 //    logic op_reads_frm;     // Op needs the rounding mode register
     logic op_writes_fflags; // Op will writes the fflags
@@ -171,11 +172,12 @@ typedef struct packed{
     instruction_s                            f_instruction; //the instrucitons
     logic [RV32_freg_data_width_gp-1:0]      frs1_to_exe;   //the first operans
     logic [RV32_freg_data_width_gp-1:0]      frs2_to_exe;   //the second operans
+    logic [RV32_freg_data_width_gp-1:0]      frs3_to_exe;   //the third operans
     logic [RV32_frm_width_gp   -1:0]         frm;           //the rounding mode bits
 } f_fam_in_data_s; 
 
 parameter RV32_mac_input_width_gp =  RV32_instr_width_gp    
-                                  +2*RV32_freg_data_width_gp
+                                  +3*RV32_freg_data_width_gp
                                   +  RV32_frm_width_gp;
 
 typedef struct packed{

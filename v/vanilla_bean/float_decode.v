@@ -176,6 +176,16 @@ always_comb
             f_decode_o.op_reads_frf2 = 1'b0; 
     endcase
 
+// declares if Op reads from the third floating register file port
+always_comb
+    unique casez( f_instruction_i.op )
+        `RV32_MADD, `RV32_NMADD, `RV32_MSUB, `RV32_NMSUB:
+            f_decode_o.op_reads_frf3 = 1'b1;
+       default:
+            f_decode_o.op_reads_frf3 = 1'b0; 
+    endcase
+
+
 
 // declares if op is a FCSR operations.
 
