@@ -355,6 +355,17 @@ begin
         fcsr_r.fflags <= fflags_write_value;
 end
 
+/////////////////////////////////////////////////////////////
+//synopsys translate off
+
+always_comb
+    if( fcsr_r.fflags != 5'b0 ) 
+        $warning("Floating Exception Occured!, fflags=%b", fcsr_r.fflags);
+
+//synopsys translate on
+
+/////////////////////////////////////////////////////////////
+
 // RS1 register forwarding
 assign  frs1_in_mem      = mem.f_decode.op_writes_frf
                          & (exe.f_instruction.rs1==mem.frd_addr);

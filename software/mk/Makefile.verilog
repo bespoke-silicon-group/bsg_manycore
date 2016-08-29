@@ -25,15 +25,21 @@ VELAB = xelab -debug typical ${BSG_FPU_OP} -s top_sim
 VSIM  = xsim --runall top_sim
 
 BSG_FPU_OP    = -d bsg_FPU
-
+#############################################################
+#  Define the hardfloat source files.
 ifneq ($(BSG_FPU_OP), )
+
+HARDFLOAT_DIR = $(VANILLA_SRC)/bsg_ucb_hardfloat
+HARDFLOAT_VSRC = $(HARDFLOAT_DIR)/bsg_ucb_hardfloat.v
+HARDFLOAT_SSRC = $(BERKELEY_HARDFLOAT_DIR)/src/main/scala/bsg_ucb_hardfloat.scala 
+##########################
+# Adding source files
 FPU_SRC       = $(addprefix $(VANILLA_SRC)/, float_decode.v fpi.v fiu.v fam.v )
 FPU_SRC      += $(addprefix $(BSG_IP_CORES_DIR)/bsg_dataflow/, \
                             bsg_round_robin_n_to_1.v )
 FPU_SRC      += $(addprefix $(BSG_IP_CORES_DIR)/bsg_mem/, \
                             bsg_mem_3r1w.v )
-FPU_SRC      += $(addprefix $(VANILLA_SRC)/bsg_ucb_hardfloat/, \
-                               bsg_ucb_hardfloat.v)
+FPU_SRC      += $(HARDFLOAT_VSRC)
 else
 FPU_SRC       = 
 endif
@@ -86,4 +92,39 @@ bsg_rom_%.v: %.bin
 %.run:  bsg_rom_%.v
 	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) bsg_rom_$*.v $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y)
 	$(VELAB) test_bsg_manycore | grep -v Compiling
-	#$(VSIM) $(TEE-CMD)
+	$(VSIM) $(TEE-CMD)
+
+################################################
+# Generate the hardfloat files.
+ifneq ($(BSG_FPU_OP), )
+
+ifeq ($(BERKELEY_HARDFLOAT_DIR),)
+$(error BERKELEY_HARDFLOAT_DIR must be defined)
+endif
+
+SBT := $(shell command -v sbt 2> /dev/null)
+ifndef SBT
+$(error Please install sbt program)
+endif
+
+CHISEL_VERSION = 2.2.32
+
+#$(HARDFLOAT_VSRC):
+#	echo "Generate the bsg_ucb_hardfloat manually. "
+#####    1. Check the Berkeley hardfloat 
+#	@if [ -d ${BERKELEY_HARDFLOAT_DIR} ]; then \
+#		git --git-dir $(BERKELEY_HARDFLOAT_DIR)/.git reset --hard a07029b ; \
+#	else \
+#		echo "Please checkout the Berkeley Hardfloat to $(BERKELEY_HARDFLOAT_DIR)";\
+#		exit 1;\
+#	fi
+#####    2.  patch the Chisel file
+#	@if [ ! -f $(HARDFLOAT_SSRC) ]; then \
+#	    git --git-dir $(BERKELEY_HARDFLOAT_DIR)/.git apply $(VANILLA_SRC)/bsg_ucb_hardfloat.patch; \
+#	fi
+#
+####     3.  generate the verilog file
+#	cd $(BERKELEY_HARDFLOAT_DIR) &&\
+#	make -C $(BERKELEY_HARDFLOAT_DIR) bsg_ucb_hardfloat.v BSG_UCB_HARDFLOAT_DIR=$(HARDFLOAT_DIR) && \
+#	cd -
+endif

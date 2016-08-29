@@ -14,7 +14,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
                            , bank_size_p        = "inv" // dmem size in words
                            , num_banks_p        = "inv"
-                           , imem_size_p        = 4*bank_size_p // in words
+                           , imem_size_p        = bank_size_p // in words
                            , imem_addr_width_lp = $clog2(imem_size_p)
                            , mem_width_lp = $clog2(bank_size_p) + $clog2(num_banks_p)
 
