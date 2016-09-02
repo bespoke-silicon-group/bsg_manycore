@@ -105,7 +105,7 @@ bsg_rom_%.v: %.bin
 
 %.run:  bsg_rom_%.v
 ifneq ($(BSG_FPU_OP), )
-	if [ ! -f $(HARDFLOAT_VSRC) ]; then \
+	@if [ ! -f $(HARDFLOAT_VSRC) ]; then \
 		$(call bsg_ucb_hardfloat_gen)  \
 	fi
 endif
@@ -117,14 +117,18 @@ endif
 # Generate the hardfloat files.
 
 define bsg_ucb_hardfloat_gen
+	echo "===========================================================";\
+	echo  "Generating Verilog files from Berkeley Hardfloat ";\
+	echo "===========================================================";\
 	if [ -d ${BERKELEY_HARDFLOAT_DIR} ]; then \
-		git --git-dir $(BERKELEY_HARDFLOAT_DIR)/.git reset --hard $(HARDFLOAT_VER) ; \
+		cd $(BERKELEY_HARDFLOAT_DIR) && git reset --hard $(HARDFLOAT_VER) &&\
+        git clean -fd; \
 	else \
-		echo "Please checkout the Berkeley Hardfloat to $(BERKELEY_HARDFLOAT_DIR)";\
+		echo -e "Please checkout the Berkeley Hardfloat \n \
+                 from https://github.com/ucb-bar/berkeley-hardfloat \n \
+                 to $(BERKELEY_HARDFLOAT_DIR)";\
 		exit 1;\
 	fi; \
-	if [ ! -f $(HARDFLOAT_SSRC) ]; then \
-    	cd $(BERKELEY_HARDFLOAT_DIR) && git apply $(VANILLA_SRC)/bsg_ucb_hardfloat.patch; \
-	fi; \
+    cd $(BERKELEY_HARDFLOAT_DIR) && git apply $(VANILLA_SRC)/bsg_ucb_hardfloat.patch; \
 	$(MAKE) -C $(BERKELEY_HARDFLOAT_DIR) bsg_ucb_hardfloat.v BSG_UCB_HARDFLOAT_DIR=$(HARDFLOAT_DIR) ;
 endef
