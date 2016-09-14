@@ -10,20 +10,20 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
  #(// tile params
     parameter dirs_p            = 4
    ,parameter fifo_els_p        = 2
-   ,parameter bank_size_p       = "inv"
+   ,parameter bank_size_p       = "inv" 
 
    // increasing the number of banks decreases ram efficiency
    // but reduces conflicts between remote stores and local data accesses
    // If there are too many conflicts, than traffic starts backing up into
    // the network (i.e. cgni full cycles).
 
-   ,parameter num_banks_p       = "inv"
+   ,parameter num_banks_p       = "inv" 
    ,parameter data_width_p      = 32 
    ,parameter addr_width_p      = 32 
 
    // array params
-   ,parameter num_tiles_x_p     = "inv"
-   ,parameter num_tiles_y_p     = "inv"
+   ,parameter num_tiles_x_p     = -1 
+   ,parameter num_tiles_y_p     = -1
    ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
    ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
    ,parameter packet_width_lp   = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
@@ -56,7 +56,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,input  [S:N][num_tiles_x_p-1:0]                      ver_ready_i
   );
 
-  // synopsys translate off
+  // synopsys translate_off
   initial
   begin
     assert ((num_tiles_x_p > 0) && (num_tiles_y_p>0))
@@ -69,7 +69,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
       else $error("num_tiles_x_p must be even for the shared FPU option");
   end
   `endif
-  // synopsys translate on
+  // synopsys translate_on
 
 
 
@@ -94,7 +94,6 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   begin: fam_row_gen
     for (c = 0; c < num_tiles_x_p; c = c+2)
     begin: fam_col_gen
-        begin: shared
             fam # (.in_data_width_p ( RV32_mac_input_width_gp  )
                   ,.out_data_width_p( RV32_mac_output_width_gp )
                   ,.num_fifo_p      ( 2                      )
@@ -103,10 +102,9 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
                 fam_g(
                  .clk_i      ( clk_i                 )
                 ,.reset_i    ( reset_i               )
-                ,.fam_in_s_i ( {fam_in_s_v [r][ c+1],  fam_in_s_v[r][ c ]})
+                ,.fam_in_s_i ( {fam_in_s_v [r][ c+1], fam_in_s_v[r][ c ]})
                 ,.fam_out_s_o( {fam_out_s_v[r][ c+1], fam_out_s_v[r][ c ]})
                 );
-        end
     end
   end
 `endif

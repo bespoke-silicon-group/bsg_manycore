@@ -9,6 +9,7 @@ bypass_alu_fpi_test.o bypass_fpi_fpi_test.o bypass_fpi_alu_test.o
 include ../Makefile.include
 
 all: hello.run
+#all: hello.syn
 
 hello.riscv:  $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) -o $@ $(RISCV_LINK_OPTS)

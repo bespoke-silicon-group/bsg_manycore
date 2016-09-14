@@ -44,24 +44,24 @@
 //CVT.W.S and CVT.WU.S, Have to futher check rs2.
 `define RV32_FCVT_W_S   `RV32_Rtype( `RV32_OP_FP,   3'b???, `RV32_FCVT_W_S_FUN7)
 //CVT.W.S and CVT.WU.S, Have to futher check rs2.
-`define RV32_FCVT_S_W   `RV32_Rtype( `RV32_OP_FP,   3'b???, `RV32_FCVT_S_W_FUN7 )
+`define RV32_FCVT_S_W   `RV32_Rtype( `RV32_OP_FP,   3'b???, `RV32_FCVT_S_W_FUN7)
 
 `define RV32_FMV_X_S    `RV32_Rtype( `RV32_OP_FP,   3'b000, `RV32_FMV_X_S_FUN7)
 `define RV32_FMV_S_X    `RV32_Rtype( `RV32_OP_FP,   3'b000, `RV32_FMV_S_X_FUN7)
-`define RV32_FCLASS_S   `RV32_Rtype( `RV32_OP_FP,   3'b001, `RV32_FCLASS_FUN7 )
+`define RV32_FCLASS_S   `RV32_Rtype( `RV32_OP_FP,   3'b001, `RV32_FCLASS_FUN7)
 
 `define RV32_FEQ_S      `RV32_Rtype( `RV32_OP_FP,   3'b010, `RV32_FCMP_FUN7)
-`define RV32_FLT_S      `RV32_Rtype( `RV32_OP_FP,   3'b001, `RV32_FCMP_FUN7 )
+`define RV32_FLT_S      `RV32_Rtype( `RV32_OP_FP,   3'b001, `RV32_FCMP_FUN7)
 `define RV32_FLE_S      `RV32_Rtype( `RV32_OP_FP,   3'b000, `RV32_FCMP_FUN7)
 
-parameter RV32_freg_data_width_gp = 33;
+localparam RV32_freg_data_width_gp = 33;
 
 //CSR regsiter definition
-parameter RV32_csr_addr_fflags    =12'h001;
-parameter RV32_csr_addr_frm       =12'h002;
-parameter RV32_csr_addr_fcsr      =12'h003;
-parameter RV32_fflags_width_gp    = 5;
-parameter RV32_frm_width_gp       = 3;
-parameter RV32_fcsr_width_gp      = RV32_fflags_width_gp + RV32_frm_width_gp;
+localparam RV32_csr_addr_fflags    =12'h001;
+localparam RV32_csr_addr_frm       =12'h002;
+localparam RV32_csr_addr_fcsr      =12'h003;
+localparam RV32_fflags_width_gp    = 5;
+localparam RV32_frm_width_gp       = 3;
+localparam RV32_fcsr_width_gp      = RV32_fflags_width_gp + RV32_frm_width_gp;
 
 `endif

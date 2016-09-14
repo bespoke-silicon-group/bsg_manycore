@@ -356,13 +356,13 @@ begin
 end
 
 /////////////////////////////////////////////////////////////
-//synopsys translate off
+//synopsys translate_off
 
 always_comb
     if( fcsr_r.fflags != 5'b0 ) 
         $warning("Floating Exception Occured!, fflags=%b", fcsr_r.fflags);
 
-//synopsys translate on
+//synopsys translate_on
 
 /////////////////////////////////////////////////////////////
 

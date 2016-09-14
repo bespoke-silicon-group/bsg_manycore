@@ -1,0 +1,29 @@
+SYN_SRCS= $(filter %.v, $(DESIGN_HDRS) )\
+          $(BSG_MANYCORE_DIR)/testbenches/basic/syn_bsg_manycore.v \
+          $(filter-out %monitor.v %loader.v %clock_gen.v %reset_gen.v, $(DESIGN_SRCS)) 
+
+SYN_SEARCH_PATH=$(filter-out -i %.v,$(DESIGN_HDRS) ) $(BSG_IP_CORES_DIR)/bsg_misc/
+
+TCL_CMD="lappend search_path $(SYN_SEARCH_PATH) ; \
+		 set_app_var target_library {gtech.db};   \
+		 set_app_var synthetic_library {dw_foundation.sldb}; \
+		 set_app_var link_library  [list * $$target_library $$synthetic_library]; \
+		 set_host_options -max_cores 16; \
+         analyze -format sverilog  -define bsg_FPU  [ list $(SYN_SRCS) ] ;  \
+	     elaborate syn_bsg_manycore ;  \
+		 link;\
+		 create_clock -period 10000 clk_i; \
+		 check_design ; \
+         compile -area_effort none -no_design_rule; \
+		 report_qor; \
+         exit " \
+
+
+
+%.syn: 
+ifneq ($(BSG_FPU_OP), )
+	@if [ ! -f $(HARDFLOAT_VSRC) ]; then \
+		$(call bsg_ucb_hardfloat_gen)  \
+	fi
+endif
+	$(DC) -x $(TCL_CMD) | tee syn.log

@@ -3,10 +3,10 @@
 
 module bsg_manycore_pkt_encode
   #(
-    x_cord_width_p   = "inv"
-    , y_cord_width_p = "inv"
-    , data_width_p   = "inv"
-    , addr_width_p   = "inv"
+    x_cord_width_p   = -1 
+    , y_cord_width_p = -1
+    , data_width_p   = -1
+    , addr_width_p   = -1
     , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
     , debug_p=0
     )
@@ -43,7 +43,7 @@ module bsg_manycore_pkt_encode
 
    assign v_o = addr_decode.remote & we_i & v_i;
 
-   // synopsys translate off
+   // synopsys translate_off
    if (debug_p)
    always @(negedge clk_i)
      if (v_i)
@@ -62,6 +62,6 @@ module bsg_manycore_pkt_encode
              $error ("%m store to remote unaligned address %x", addr_i);
           end*/
      end
-   // synopsys translate on
+   // synopsys translate_on
 
 endmodule

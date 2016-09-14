@@ -2,10 +2,10 @@
 
 module bsg_manycore_pkt_decode
   #(
-    x_cord_width_p   = "inv"
-    , y_cord_width_p = "inv"
-    , data_width_p   = "inv"
-    , addr_width_p   = "inv"
+    x_cord_width_p   = -1
+    , y_cord_width_p = -1
+    , data_width_p   = -1
+    , addr_width_p   = -1
     , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
     )
    (

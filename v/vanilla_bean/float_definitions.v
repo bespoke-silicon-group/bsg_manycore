@@ -111,7 +111,7 @@ typedef struct packed
 /////////////////////////////////////////////////////////////
 
 //The interface between FPI and ALU pipleline
-interface  fpi_alu_inter ();
+interface  fpi_alu_inter;
 
     //the interface in FE stage
     logic [RV32_instr_width_gp-1:0]         f_instruction; //the instrucitons
@@ -176,7 +176,7 @@ typedef struct packed{
     logic [RV32_frm_width_gp   -1:0]         frm;           //the rounding mode bits
 } f_fam_in_data_s; 
 
-parameter RV32_mac_input_width_gp =  RV32_instr_width_gp    
+localparam RV32_mac_input_width_gp =  RV32_instr_width_gp    
                                   +3*RV32_freg_data_width_gp
                                   +  RV32_frm_width_gp;
 
@@ -185,7 +185,7 @@ typedef struct packed{
     f_flags_s                           fflags;
 }f_mac_out_s;
 
-parameter RV32_mac_output_width_gp =  RV32_freg_data_width_gp +  RV32_fflags_width_gp;
+localparam RV32_mac_output_width_gp =  RV32_freg_data_width_gp +  RV32_fflags_width_gp;
 
 //pipleline registers in FAM
 typedef struct packed{

@@ -204,7 +204,7 @@ assign to_mem_o = '{
 
 // DEBUG Struct
 assign debug_o = {pc_r, instruction, state_r};
-
+//synopsys translate_off
 if(debug_p)
   always_ff @(negedge clk)
   begin
@@ -313,7 +313,7 @@ if(debug_p)
       end
 
   end
-
+//synopsys translate_on
 //+----------------------------------------------
 //|
 //|     BRANCH AND JUMP PREDICTION SIGNALS
@@ -409,8 +409,8 @@ end
 
 // Selection between network and core for instruction address
 assign imem_addr = (net_imem_write_cmd) 
-                    ? net_packet_r.header.addr[2+:imem_addr_width_p] 
-                    : pc_n[2+:imem_addr_width_p];
+                   ? net_packet_r.header.addr[2+:imem_addr_width_p] 
+                   : pc_n[2+:imem_addr_width_p];
 
 // Instruction memory chip enable signal
 `ifdef bsg_FPU
@@ -800,6 +800,8 @@ end
 //|
 //+----------------------------------------------
 
+logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
+
 `ifdef bsg_FPU
 //The combined decode signal to MEM stages.
 decode_s  fpi_alu_decode;
@@ -811,10 +813,11 @@ begin
         fpi_alu_decode.op_writes_rf = 1'b1;
 end
 
-logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
 assign fiu_alu_result = fpi_inter.exe_fpi_writes_rf
                        ?fpi_inter.fiu_result
                        :alu_result; 
+`else
+assign fiu_alu_result = alu_result;
 
 `endif
 
@@ -934,7 +937,7 @@ assign fpi_inter.mem_alu_writes_rf      = mem.decode.op_writes_rf;
 assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
 /////////////////////////////////////////////////////////////////////
 // Some instruction validation check.
-// synosys translate off
+//synopsys translate_off
 always@(negedge clk )
 begin
     unique casez( id.instruction.op )
@@ -953,8 +956,7 @@ begin
         end
     endcase
 end
-
-// synosys translate on
+//synopsys translate_on
 
 
 `endif

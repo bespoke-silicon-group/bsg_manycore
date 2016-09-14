@@ -4,16 +4,16 @@
 `ifdef bsg_FPU
  `include "float_definitions.v"
 `endif
-module bsg_manycore_proc #(x_cord_width_p   = "inv"
-                           , y_cord_width_p = "inv"
+module bsg_manycore_proc #(x_cord_width_p   = -1 
+                           , y_cord_width_p = -1
                            , data_width_p   = 32
                            , addr_width_p   = 32
                            , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
-                           , debug_p           = 0
+                           , debug_p           = -1
 
-                           , bank_size_p        = "inv" // dmem size in words
-                           , num_banks_p        = "inv"
+                           , bank_size_p        = -1 // dmem size in words
+                           , num_banks_p        = -1
                            , imem_size_p        = bank_size_p // in words
                            , imem_addr_width_lp = $clog2(imem_size_p)
                            , mem_width_lp = $clog2(bank_size_p) + $clog2(num_banks_p)
@@ -51,11 +51,11 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 `endif
 
 
-  // synopsys translate off
+  // synopsys translate_off
   initial
     assert((imem_size_p & imem_size_p-1) == 0)
       else $error("imem_size_p must be a power of 2");
-  // synopsys translate on
+  // synopsys translate_on
 
    // input fifo from network
 
@@ -89,6 +89,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    logic                         remote_store_v, remote_store_yumi;
    logic                         remote_store_imem_not_dmem;
 
+//synopsys translate_off
    if (debug_p)
    always_ff @(negedge clk_i)
      if (v_o)
@@ -99,6 +100,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
        if (cgni_v)
          $display("%m data %x avail on cgni (cgni_yumi=%x,remote_store_v=%x, remote_store_addr=%x, remote_store_data=%x, remote_store_yumi=%x)",cgni_data,cgni_yumi,remote_store_v,remote_store_addr, remote_store_data, remote_store_yumi);
 
+//synopsys translate_on
+//
    bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
                              ,.y_cord_width_p(y_cord_width_p)
                              ,.data_width_p  (data_width_p )
@@ -135,7 +138,9 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
      else
        if (pkt_freeze | pkt_unfreeze)
          begin
+//synopsys translate_off
             $display("## freeze_r <= %x",pkt_freeze);
+//synopsys translate_on
             freeze_r <= pkt_freeze;
          end
    
@@ -145,6 +150,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    mem_out_s                mem_to_core;
    logic                    core_mem_reservation_r;
    logic [addr_width_p-1:0] core_mem_reserve_addr_r;
+   logic                    core_mem_reserve_1;
 
    // implement LR (load word reserved)
    always_ff @(posedge clk_i)
@@ -156,7 +162,9 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
              // copy address
              core_mem_reservation_r  <= 1'b1;
              core_mem_reserve_addr_r <= core_to_mem.addr;
+//synopsys translate_off
 	     $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_to_mem.addr);
+//synopsys translate_on
           end
         else
           // otherwise, we clear existing reservations if the corresponding
@@ -165,7 +173,9 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
              if (remote_store_v && (core_mem_reserve_addr_r == remote_store_addr) && remote_store_yumi)
 	       begin
 		  core_mem_reservation_r  <= 1'b0;
+//synopsys translate_off
 		  $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r);
+//synopsys translate_on
 	       end
           end
      end
@@ -216,7 +226,9 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    always_comb
    begin
      // remote stores to imem and initial pc value sent over vanilla core's network
-     core_net_pkt.valid  = remote_store_imem_not_dmem | pkt_unfreeze;
+     core_net_pkt.valid     = remote_store_imem_not_dmem | pkt_unfreeze;
+     //Shaolin Xie: To supress the 'Undriven' warning.
+     core_net_pkt.header.reserved  = 2'b0;
      
      core_net_pkt.header.bc       = 1'b0;
      core_net_pkt.header.external = 1'b0;
@@ -257,7 +269,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       ,.data_o (data_o)
       );
 
-   // synopsys translate off
+   // synopsys translate_off
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
    bsg_manycore_packet_s data_o_debug;
@@ -279,7 +291,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                      , core_to_mem.addr
                      );
        end
-   // synopsys translate on
+   // synopsys translate_on
 
    wire [data_width_p-1:0] unused_data;
    wire                    unused_valid;
@@ -298,6 +310,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                                                            };
    wire [1:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = {core_to_mem.mask, remote_store_mask};
 
+
+//synopsys translate_off
    always @(negedge clk_i)
      if (0)
      begin
@@ -314,6 +328,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                    ,mem_to_core.read_data
                    );
      end
+//synopsys translate_on
 
    // the swizzle function changes how addresses are mapped to banks
    wire [1:0] [mem_width_lp-1:0] xbar_port_addr_in_swizzled;
