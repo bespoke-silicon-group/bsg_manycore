@@ -18,7 +18,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , proc_fifo_els_p = 4
                            , num_nets_lp     = 2
 
-			   , hetero_type_p   = 0
+                           , hetero_type_p   = 0
                            , packet_width_lp                = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                            , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
                            , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width     (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -39,17 +39,17 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    wire freeze_r;
    assign freeze_o = freeze_r;
-   
+
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
-   logic [packet_width_lp-1:0]        fwd_out_data;
-   logic                              fwd_out_v;
-   logic                              fwd_out_ready;
+   logic [packet_width_lp-1:0]        out_data;
+   logic                              out_v;
+   logic                              out_ready;
 
-   logic [data_width_p-1:0]      in_data;
-   logic [(data_width_p>>3)-1:0] in_mask;
-   logic [addr_width_p-1:0]      in_addr;
-   logic                         in_v, in_yumi;
+   logic [data_width_p-1:0]      in_data_lo;
+   logic [(data_width_p>>3)-1:0] in_mask_lo;
+   logic [addr_width_p-1:0]      in_addr_lo;
+   logic                         in_v_lo, in_yumi_li;
    logic [$clog2(max_out_credits_p+1)-1:0] out_credits;
 
    bsg_manycore_endpoint_standard #(.x_cord_width_p (x_cord_width_p)
@@ -57,8 +57,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                                     ,.fifo_els_p    (proc_fifo_els_p)
                                     ,.data_width_p  (data_width_p)
                                     ,.addr_width_p  (addr_width_p)
-				    ,.max_out_credits_p(max_out_credits_p)
-				    ,.debug_p(debug_p)
+                                    ,.max_out_credits_p(max_out_credits_p)
+                                    ,.debug_p(debug_p)
                                     ) endp
    (.clk_i
     ,.reset_i
@@ -66,18 +66,18 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
     ,.link_sif_i
     ,.link_sif_o
 
-    ,.in_v
-    ,.in_yumi
-    ,.in_data
-    ,.in_mask
-    ,.in_addr
+    ,.in_v_o   (in_v_lo)
+    ,.in_yumi_i(in_yumi_li)
+    ,.in_data_o(in_data_lo)
+    ,.in_mask_o(in_mask_lo)
+    ,.in_addr_o(in_addr_lo)
 
     // we feed the endpoint with the data we want to send out
     // it will get inserted into the above link_sif
 
-    ,.out_data_i (fwd_out_data )
-    ,.out_v_i    (fwd_out_v    )
-    ,.out_ready_o(fwd_out_ready)
+    ,.out_data_i (out_data )
+    ,.out_v_i    (out_v    )
+    ,.out_ready_o(out_ready)
 
     ,.out_credits_o(out_credits)
 
@@ -117,7 +117,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
           // otherwise, we clear existing reservations if the corresponding
           // address is committed as a remote store
           begin
-             if (in_v && (core_mem_reserve_addr_r == in_addr) && in_yumi)
+             if (in_v_lo && (core_mem_reserve_addr_r == in_addr_lo) && in_yumi_li)
                begin
                   core_mem_reservation_r  <= 1'b0;
                   $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r);
@@ -126,7 +126,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
      end
 
    //   wire launching_remote_store = v_o[0] & ready_i[0];
-   wire launching_out = fwd_out_v & fwd_out_ready;
+   wire launching_out = out_v & out_ready;
 
    bsg_vscale_core #(.x_cord_width_p (x_cord_width_p)
                      ,.y_cord_width_p(y_cord_width_p)
@@ -178,16 +178,16 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       ,.my_y_i (my_y_i)
       // directly out to the network!
       ,.v_o    (out_request)
-      ,.data_o (fwd_out_data)
+      ,.data_o (out_data)
       );
 
    // we only request to send a remote store if it would not overflow the remote store credit counter
-   assign fwd_out_v = out_request & (|out_credits);
+   assign out_v = out_request & (|out_credits);
 
    // synopsys translate off
 
    bsg_manycore_packet_s data_o_debug;
-   assign data_o_debug = fwd_out_data;
+   assign data_o_debug = out_data;
 
    if (debug_p)
      always @(negedge clk_i)
@@ -216,7 +216,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                                               // request to write only if we are not sending a remote store packet
                                               // we check the high bit only for performance
                                                core_mem_v[1] & ~core_mem_addr[1][31]
-                                              , in_v
+                                              , in_v_lo
                                               , core_mem_v[0]
                                               };
 
@@ -226,14 +226,14 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    // proc data port sometimes writes, the network port always writes, proc inst port never writes
    wire [2:0]                    xbar_port_we_in   = { core_mem_w[1], 1'b1, 1'b0};
    wire [2:0]                    xbar_port_yumi_out;
-   wire [2:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata [1], in_data, core_mem_wdata[0]};
+   wire [2:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata [1], in_data_lo, core_mem_wdata[0]};
    wire [2:0] [mem_width_lp-1:0] xbar_port_addr_in = {   core_mem_addr[1]  [2+:mem_width_lp]
 //                                                       , in_addr [2+:mem_width_lp]
 //                                                     remote stores already have bottom two bits snipped
-                                                       , mem_width_lp ' ( in_addr )
+                                                       , mem_width_lp ' ( in_addr_lo )
                                                        , core_mem_addr[0]  [2+:mem_width_lp]
                                                        };
-   wire [2:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask[1], in_mask, core_mem_mask[0] };
+   wire [2:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask[1], in_mask_lo, core_mem_mask[0] };
 
    always @(negedge clk_i)
      if (0)
@@ -266,7 +266,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
      end
 
-   assign { core_mem_yumi[1], in_yumi, core_mem_yumi[0] } = xbar_port_yumi_out;
+   assign { core_mem_yumi[1], in_yumi_li, core_mem_yumi[0] } = xbar_port_yumi_out;
 
    // potentially, we could get better bandwidth if we demultiplexed the remote store input port
    // into four two-element fifos, one per bank. then, the arb could arbitrate for

@@ -18,11 +18,11 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
     // local incoming data interface
-    , output                         in_v
-    , input                          in_yumi
-    , output [data_width_p-1:0]      in_data
-    , output [(data_width_p>>3)-1:0] in_mask
-    , output [addr_width_p-1:0]      in_addr
+    , output                         in_v_o
+    , input                          in_yumi_i
+    , output [data_width_p-1:0]      in_data_o
+    , output [(data_width_p>>3)-1:0] in_mask_o
+    , output [addr_width_p-1:0]      in_addr_o
 
     // local outgoing data interface (does not include credits)
     , input                                  out_v_i
@@ -80,7 +80,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
    // deque if we successfully do a remote store, or if it's
    // either kind of packet freeze instruction
-   assign cgni_yumi = in_yumi | pkt_freeze | pkt_unfreeze;
+   assign cgni_yumi = in_yumi_i | pkt_freeze | pkt_unfreeze;
 
    bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
                              ,.y_cord_width_p(y_cord_width_p)
@@ -94,10 +94,10 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.pkt_unfreeze_o     (pkt_unfreeze)
       ,.pkt_unknown_o      (pkt_unknown)
 
-      ,.pkt_remote_store_o (in_v)     // to output of module
-      ,.data_o             (in_data)  // "
-      ,.addr_o             (in_addr)  // "
-      ,.mask_o             (in_mask)  // "
+      ,.pkt_remote_store_o (in_v_o)     // to output of module
+      ,.data_o             (in_data_o)  // "
+      ,.addr_o             (in_addr_o)  // "
+      ,.mask_o             (in_mask_o)  // "
       );
 
    // create freeze gate
@@ -123,7 +123,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
      always_ff @(negedge clk_i)
        if (cgni_v)
          $display("%m data %x avail on cgni (cgni_yumi=%x,in_v=%x, in_addr=%x, in_data=%x, in_yumi=%x)"
-                  ,cgni_data,cgni_yumi,in_v,in_addr, in_data, in_yumi);
+                  ,cgni_data,cgni_yumi,in_v_o,in_addr_o, in_data_o, in_yumi_i);
 
    // this is not an error, but it is extremely surprising
    // and merits investigation
