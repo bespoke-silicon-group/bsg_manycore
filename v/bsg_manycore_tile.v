@@ -10,6 +10,10 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    ,parameter bank_size_p       = "inv"
    ,parameter num_banks_p       = "inv"
+
+   // default is type 0, which is the processor
+   ,parameter hetero_type_p     = 0
+
    ,parameter data_width_p      = 32
    ,parameter addr_width_p      = "inv"
    ,parameter dirs_lp           = 4
@@ -107,27 +111,27 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    logic                       freeze;
 
-   bsg_manycore_proc #(
-                       .x_cord_width_p (x_cord_width_p)
-                       ,.y_cord_width_p(y_cord_width_p)
-                       ,.debug_p       (debug_p       )
-                       ,.bank_size_p   (bank_size_p   )
-                       ,.num_banks_p   (num_banks_p   )
-                       ,.data_width_p  (data_width_p  )
-                       ,.addr_width_p  (addr_width_p  )
-                       ) proc
-   (.clk_i   (clk_i)
-    ,.reset_i(reset_i)
-
-    ,.link_sif_i(proc_link_li)
-    ,.link_sif_o(proc_link_lo)
-
-    ,.my_x_i(my_x_i)
-    ,.my_y_i(my_y_i)
-
-    ,.freeze_o(freeze)
-    );
-
+   bsg_manycore_hetero_socket #(
+                                .x_cord_width_p (x_cord_width_p)
+                                ,.y_cord_width_p(y_cord_width_p)
+                                ,.debug_p       (debug_p       )
+                                ,.bank_size_p   (bank_size_p   )
+                                ,.num_banks_p   (num_banks_p   )
+                                ,.data_width_p  (data_width_p  )
+                                ,.addr_width_p  (addr_width_p  )
+                                ,.hetero_type_p (hetero_type_p )
+                                ) proc
+     (.clk_i   (clk_i)
+      ,.reset_i(reset_i)
+      
+      ,.link_sif_i(proc_link_li)
+      ,.link_sif_o(proc_link_lo)
+      
+      ,.my_x_i(my_x_i)
+      ,.my_y_i(my_y_i)
+      
+      ,.freeze_o(freeze)
+      );
 
 endmodule
 

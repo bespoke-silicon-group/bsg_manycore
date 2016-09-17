@@ -32,7 +32,7 @@ DESIGN_SRCS = \
   $(addprefix $(BSG_MANYCORE_DIR)/v/vscale/, vscale_pipeline.v vscale_ctrl.v) \
   $(addprefix $(VSCALE_SRC)/, vscale_regfile.v vscale_src_a_mux.v vscale_src_b_mux.v vscale_imm_gen.v vscale_alu.v          \
     vscale_mul_div.v vscale_csr_file.v vscale_PC_mux.v)                                           \
-  $(addprefix $(BSG_MANYCORE_DIR)/v/,  bsg_vscale_pkg.v bsg_vscale_core.v bsg_manycore_proc.v bsg_manycore_tile.v bsg_manycore.v bsg_manycore_pkt_encode.v bsg_manycore_pkt_decode.v bsg_manycore_endpoint.v bsg_manycore_link_sif_tieoff.v )           \
+  $(addprefix $(BSG_MANYCORE_DIR)/v/,  bsg_vscale_pkg.v bsg_vscale_core.v bsg_manycore_hetero_socket.v bsg_manycore_proc.v bsg_manycore_tile.v bsg_manycore.v bsg_manycore_pkt_encode.v bsg_manycore_pkt_decode.v bsg_manycore_endpoint.v bsg_manycore_endpoint_standard.v bsg_manycore_link_sif_tieoff.v )           \
   $(addprefix $(BSG_MANYCORE_DIR)/testbenches/common/v/, bsg_manycore_spmd_loader.v bsg_nonsynth_manycore_monitor.v bsg_manycore_wrapped.v)
 
 TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/basic/test_bsg_manycore.v

@@ -1,0 +1,155 @@
+module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
+                                         ,y_cord_width_p         = "inv"
+                                         ,fifo_els_p             = "inv"
+                                         ,data_width_p           = 32
+                                         ,addr_width_p           = 32
+                                         ,max_out_credits_p = "inv"
+                                         ,debug_p                = 0
+                                         ,packet_width_lp                          = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                         ,return_packet_width_lp                   = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
+                                         ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                         ,num_nets_lp            = 2
+                                         )
+   (input clk_i
+    , input reset_i
+
+    // mesh network
+    , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
+    , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
+
+    // local incoming data interface
+    , output                         in_v
+    , input                          in_yumi
+    , output [data_width_p-1:0]      in_data
+    , output [(data_width_p>>3)-1:0] in_mask
+    , output [addr_width_p-1:0]      in_addr
+
+    // local outgoing data interface (does not include credits)
+    , input                                  out_v_i
+    , input  [packet_width_lp-1:0]           out_data_i
+    , output                                 out_ready_o
+
+    , output [$clog2(max_out_credits_p+1)-1:0] out_credits_o
+
+     // tile coordinates
+    , input   [x_cord_width_p-1:0]                my_x_i
+    , input   [y_cord_width_p-1:0]                my_y_i
+
+    // whether module is frozen or not
+    , output freeze_r_o
+    );
+
+   wire credit_return_lo;
+
+   wire [packet_width_lp-1:0] cgni_data;
+   wire                       cgni_v;
+   wire                       cgni_yumi;
+
+   bsg_manycore_endpoint #(.x_cord_width_p (x_cord_width_p)
+                           ,.y_cord_width_p(y_cord_width_p)
+                           ,.fifo_els_p    (fifo_els_p  )
+                           ,.data_width_p  (data_width_p)
+                           ,.addr_width_p  (addr_width_p)
+                           ) bme
+     (.clk_i
+      ,.reset_i
+      ,.link_sif_i
+      ,.link_sif_o
+      ,.fifo_data_o(cgni_data)
+      ,.fifo_v_o   (cgni_v)
+      ,.fifo_yumi_i(cgni_yumi)
+      ,.out_data_i
+      ,.out_v_i
+      ,.out_ready_o
+      ,.credit_v_r_o(credit_return_lo)
+      );
+
+   wire launching_out = out_v_i & out_ready_o;
+
+   bsg_counter_up_down #(.max_val_p  (max_out_credits_p)
+                         ,.init_val_p(max_out_credits_p)
+                         ) out_credit_ctr
+     (.clk_i
+      ,.reset_i
+      ,.down_i   (launching_out)  // launch remote store
+      ,.up_i     (credit_return_lo      )  // receive credit back
+      ,.count_o(out_credits_o  )
+      );
+
+   logic                         pkt_freeze, pkt_unfreeze, pkt_unknown;
+
+   // deque if we successfully do a remote store, or if it's
+   // either kind of packet freeze instruction
+   assign cgni_yumi = in_yumi | pkt_freeze | pkt_unfreeze;
+
+   bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
+                             ,.y_cord_width_p(y_cord_width_p)
+                             ,.data_width_p  (data_width_p )
+                             ,.addr_width_p  (addr_width_p )
+                             ) pkt_decode
+     (.v_i                 (cgni_v)
+      ,.data_i             (cgni_data)
+
+      ,.pkt_freeze_o       (pkt_freeze)
+      ,.pkt_unfreeze_o     (pkt_unfreeze)
+      ,.pkt_unknown_o      (pkt_unknown)
+
+      ,.pkt_remote_store_o (in_v)     // to output of module
+      ,.data_o             (in_data)  // "
+      ,.addr_o             (in_addr)  // "
+      ,.mask_o             (in_mask)  // "
+      );
+
+   // create freeze gate
+   logic  freeze_r;
+   assign freeze_r_o = freeze_r;
+
+   always_ff @(posedge clk_i)
+     if (reset_i)
+       freeze_r <= 1'b1;
+     else
+       if (pkt_freeze | pkt_unfreeze)
+         begin
+            $display("## freeze_r <= %x (%m)",pkt_freeze);
+            freeze_r <= pkt_freeze;
+         end
+
+   if (debug_p)
+     always_ff @(negedge clk_i)
+       if (out_v_i)
+         $display("%m attempting remote store send of data %x, ready_i = %x",out_data_i,out_ready_o);
+
+   if (debug_p)
+     always_ff @(negedge clk_i)
+       if (cgni_v)
+         $display("%m data %x avail on cgni (cgni_yumi=%x,in_v=%x, in_addr=%x, in_data=%x, in_yumi=%x)"
+                  ,cgni_data,cgni_yumi,in_v,in_addr, in_data, in_yumi);
+
+   // this is not an error, but it is extremely surprising
+   // and merits investigation
+
+   always @(negedge clk_i)
+     assert (out_credits_o > 0) else
+          $warning("## out of remote store credits %d (%m)",out_credits_o);
+
+   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+   bsg_manycore_link_sif_s link_sif_i_cast;
+   assign link_sif_i_cast = link_sif_i;
+   
+   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+   bsg_manycore_return_packet_s return_packet;
+   assign return_packet = link_sif_i_cast.rev.data;
+
+   always_ff @(negedge clk_i)
+     assert (reset_i | ~link_sif_i_cast.rev.v | ({return_packet.y_cord, return_packet.x_cord} == {my_y_i, my_x_i}))
+       else
+         $error("%m errant credit packet v=%b for YX=%d,%d landed at YX=%d,%d"
+                ,link_sif_i_cast.rev.v
+                ,link_sif_i_cast.rev.data[x_cord_width_p+:y_cord_width_p]
+                ,link_sif_i_cast.rev.data[0+:x_cord_width_p]
+                ,my_y_i,my_x_i);
+
+
+endmodule
+
+

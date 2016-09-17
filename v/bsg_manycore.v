@@ -24,6 +24,13 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,parameter stub_n_p          = {num_tiles_x_p{1'b0}}
    ,parameter stub_s_p          = {num_tiles_x_p{1'b0}}
 
+   // for heterogeneous, this is a vector of num_tiles_x_p*num_tiles_y_p bytes;
+   // each byte contains the type of core being instantiated
+   // type 0 is the standard core
+
+   ,parameter hetero_type_vec_p      = 0
+
+   // enable debugging
    ,parameter debug_p           = 0
 
    // this control how many extra IO rows are addressable in
@@ -53,6 +60,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,parameter data_width_p      = 32
 
    ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+
   )
   ( input clk_i
    ,input reset_i
@@ -98,11 +106,12 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
                        )
         ,.x_cord_width_p  (x_cord_width_lp)
         ,.y_cord_width_p  (y_cord_width_lp)
-        ,.bank_size_p  (bank_size_p)
-        ,.num_banks_p  (num_banks_p)
-        ,.data_width_p (data_width_p)
-        ,.addr_width_p (addr_width_p)
-        ,.debug_p      (debug_p)
+        ,.bank_size_p    (bank_size_p)
+        ,.num_banks_p    (num_banks_p)
+        ,.data_width_p   (data_width_p)
+        ,.addr_width_p   (addr_width_p)
+        ,.debug_p        (debug_p)
+        ,.hetero_type_p  ((hetero_type_vec_p >> (8*(r*num_tiles_x_p + c))) & 8'b1111_1111)
        ) tile
        ( .clk_i (clk_i)
          ,.reset_i(reset_i)
