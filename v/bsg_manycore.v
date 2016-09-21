@@ -77,8 +77,11 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   // synopsys translate off
   initial
   begin
-    assert ((num_tiles_x_p > 0) && (num_tiles_y_p>0))
-      else $error("num_tiles_x_p and num_tiles_y_p must be positive constants");
+     assert ((num_tiles_x_p > 0) && (num_tiles_y_p>0))
+       else $error("num_tiles_x_p and num_tiles_y_p must be positive constants");
+
+     $display("$bits(addr)=%-d, $bits(op)=%-d, $bits(op_ex)=%-d, $bits(data)=%-d, $bits(return_pkt)=%-d, $bits(y_cord)=%-d, $bits(x_cord)=%-d",
+	      addr_width_p,2,(data_width_p>>3),data_width_p,y_cord_width_lp+x_cord_width_lp,y_cord_width_lp,x_cord_width_lp);
   end
   // synopsys translate on
 

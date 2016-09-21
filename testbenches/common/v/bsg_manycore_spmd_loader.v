@@ -5,7 +5,7 @@ module bsg_manycore_spmd_loader
 import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
  #( parameter mem_size_p      = -1 // size of mem to be loaded  (bytes) (?)
-   ,parameter data_width_p    = 32 
+   ,parameter data_width_p    = 32
    ,parameter addr_width_p    = 30
    ,parameter tile_id_ptr_p   = -1
    ,parameter num_rows_p      = -1
@@ -25,6 +25,9 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
    ,input [data_width_p-1:0]     data_i
    ,output[addr_width_p-1:0]     addr_o
+
+   ,input [y_cord_width_lp-1:0]  my_y_i
+   ,input [x_cord_width_lp-1:0]  my_x_i
   );
 
   logic [63:0]                tile_no, tile_no_n; // tile number
@@ -58,19 +61,29 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         pkt.op_ex  = loaded ? 4'b0000: 4'b1111;
         pkt.x_cord = x_cord;
         pkt.y_cord = y_cord;
-        pkt.return_pkt.x_cord = 0;
-        pkt.return_pkt.y_cord = num_rows_p;   // route to south (fixme: should provide actual coordinate
+        pkt.return_pkt.x_cord = my_x_i;
+        pkt.return_pkt.y_cord = my_y_i;
      end
 
    assign data_o = pkt;
 
-   assign v_o  = ~reset_i & (~loaded | (loaded && (tile_no < load_rows_p*load_cols_p)));
+`ifndef BSG_HETERO_TYPE_VEC
+`define BSG_HETERO_TYPE_VEC 0
+`endif
+
+   assign v_o  = ~reset_i
+                 & (~loaded | (loaded && (tile_no < load_rows_p*load_cols_p)))
+                 // for now, we override sending the program if the core is an accelerator core
+                 & (((`BSG_HETERO_TYPE_VEC >> (tile_no<<3)) & 8'b1111_1111) == 0);
+                   ;
+
    assign addr_o   = addr_width_p'(load_addr >> 2);
 
-   assign tile_no_n = (tile_no + (load_addr == (mem_size_p-4))) % (load_rows_p * load_cols_p);
+   wire tile_loading_done = (load_addr == (mem_size_p-4));
+
+   assign tile_no_n = (tile_no + tile_loading_done)  % (load_rows_p * load_cols_p);
    assign loaded_n = (tile_no == load_rows_p*load_cols_p -1)
      && (load_addr == (mem_size_p-4));
-
 
   always_ff @(negedge clk_i)
     if (~loaded && ready_i)

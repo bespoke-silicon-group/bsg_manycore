@@ -1,6 +1,7 @@
 module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          ,y_cord_width_p         = "inv"
                                          ,fifo_els_p             = "inv"
+                                         ,freeze_init_p          = 1'b1
                                          ,data_width_p           = 32
                                          ,addr_width_p           = 32
                                          ,max_out_credits_p = "inv"
@@ -26,7 +27,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
     // local outgoing data interface (does not include credits)
     , input                                  out_v_i
-    , input  [packet_width_lp-1:0]           out_data_i
+    , input  [packet_width_lp-1:0]           out_packet_i
     , output                                 out_ready_o
 
     , output [$clog2(max_out_credits_p+1)-1:0] out_credits_o
@@ -58,7 +59,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.fifo_data_o(cgni_data)
       ,.fifo_v_o   (cgni_v)
       ,.fifo_yumi_i(cgni_yumi)
-      ,.out_data_i
+      ,.out_packet_i
       ,.out_v_i
       ,.out_ready_o
       ,.credit_v_r_o(credit_return_lo)
@@ -104,9 +105,15 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    logic  freeze_r;
    assign freeze_r_o = freeze_r;
 
+   always_ff @(negedge clk_i)
+     if (pkt_unknown & cgni_v)
+       begin
+          $display("## UNKNOWN packet %b (%m)",cgni_data);
+       end
+
    always_ff @(posedge clk_i)
      if (reset_i)
-       freeze_r <= 1'b1;
+       freeze_r <= freeze_init_p;
      else
        if (pkt_freeze | pkt_unfreeze)
          begin
@@ -117,12 +124,18 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    if (debug_p)
      always_ff @(negedge clk_i)
        if (out_v_i)
-         $display("%m attempting remote store send of data %x, ready_i = %x",out_data_i,out_ready_o);
+         $display("## attempting remote store send of data %x, ready_i = %x (%m)",out_packet_i,out_ready_o);
 
    if (debug_p)
      always_ff @(negedge clk_i)
-       if (cgni_v)
-         $display("%m data %x avail on cgni (cgni_yumi=%x,in_v=%x, in_addr=%x, in_data=%x, in_yumi=%x)"
+       if (in_v_o & ~freeze_r)
+         $display("## received remote store request of data %x, addr %x, mask %b (%m)",
+                  in_data_o, in_addr_o, in_mask_o);
+
+   if (debug_p)
+     always_ff @(negedge clk_i)
+       if (cgni_v & ~freeze_r)
+         $display("## data %x avail on cgni (cgni_yumi=%x,in_v=%x, in_addr=%x, in_data=%x, in_yumi=%x) (%m)"
                   ,cgni_data,cgni_yumi,in_v_o,in_addr_o, in_data_o, in_yumi_i);
 
    // this is not an error, but it is extremely surprising
@@ -135,7 +148,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
    bsg_manycore_link_sif_s link_sif_i_cast;
    assign link_sif_i_cast = link_sif_i;
-   
+
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
    bsg_manycore_return_packet_s return_packet;
    assign return_packet = link_sif_i_cast.rev.data;
@@ -143,7 +156,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    always_ff @(negedge clk_i)
      assert (reset_i | ~link_sif_i_cast.rev.v | ({return_packet.y_cord, return_packet.x_cord} == {my_y_i, my_x_i}))
        else
-         $error("%m errant credit packet v=%b for YX=%d,%d landed at YX=%d,%d"
+         $error("## errant credit packet v=%b for YX=%d,%d landed at YX=%d,%d (%m)"
                 ,link_sif_i_cast.rev.v
                 ,link_sif_i_cast.rev.data[x_cord_width_p+:y_cord_width_p]
                 ,link_sif_i_cast.rev.data[0+:x_cord_width_p]

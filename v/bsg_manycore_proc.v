@@ -42,15 +42,15 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
-   logic [packet_width_lp-1:0]        out_data;
-   logic                              out_v;
-   logic                              out_ready;
+   bsg_manycore_packet_s              out_packet_li;
+   logic                              out_v_li;
+   logic                              out_ready_lo;
 
    logic [data_width_p-1:0]      in_data_lo;
    logic [(data_width_p>>3)-1:0] in_mask_lo;
    logic [addr_width_p-1:0]      in_addr_lo;
    logic                         in_v_lo, in_yumi_li;
-   logic [$clog2(max_out_credits_p+1)-1:0] out_credits;
+   logic [$clog2(max_out_credits_p+1)-1:0] out_credits_lo;
 
    bsg_manycore_endpoint_standard #(.x_cord_width_p (x_cord_width_p)
                                     ,.y_cord_width_p(y_cord_width_p)
@@ -58,7 +58,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                                     ,.data_width_p  (data_width_p)
                                     ,.addr_width_p  (addr_width_p)
                                     ,.max_out_credits_p(max_out_credits_p)
-                                    ,.debug_p(debug_p)
+//                                    ,.debug_p(debug_p)
+                                    ,.debug_p(1)
                                     ) endp
    (.clk_i
     ,.reset_i
@@ -75,11 +76,11 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
     // we feed the endpoint with the data we want to send out
     // it will get inserted into the above link_sif
 
-    ,.out_data_i (out_data )
-    ,.out_v_i    (out_v    )
-    ,.out_ready_o(out_ready)
+    ,.out_packet_i(out_packet_li )
+    ,.out_v_i     (out_v_li    )
+    ,.out_ready_o (out_ready_lo)
 
-    ,.out_credits_o(out_credits)
+    ,.out_credits_o(out_credits_lo)
 
     ,.my_x_i
     ,.my_y_i
@@ -126,7 +127,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
      end
 
    //   wire launching_remote_store = v_o[0] & ready_i[0];
-   wire launching_out = out_v & out_ready;
+   wire launching_out = out_v_li & out_ready_lo;
 
    bsg_vscale_core #(.x_cord_width_p (x_cord_width_p)
                      ,.y_cord_width_p(y_cord_width_p)
@@ -152,7 +153,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
        ,.m_data_i    (core_mem_rdata)
 
        // whether there are any outstanding remote stores
-       ,.outstanding_stores_i(out_credits != max_out_credits_p)
+       ,.outstanding_stores_i(out_credits_lo != max_out_credits_p)
 
        ,.my_x_i (my_x_i)
        ,.my_y_i (my_y_i)
@@ -178,16 +179,16 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
       ,.my_y_i (my_y_i)
       // directly out to the network!
       ,.v_o    (out_request)
-      ,.data_o (out_data)
+      ,.data_o (out_packet_li)
       );
 
    // we only request to send a remote store if it would not overflow the remote store credit counter
-   assign out_v = out_request & (|out_credits);
+   assign out_v_li = out_request & (|out_credits_lo);
 
    // synopsys translate off
 
    bsg_manycore_packet_s data_o_debug;
-   assign data_o_debug = out_data;
+   assign data_o_debug = out_packet_li;
 
    if (debug_p)
      always @(negedge clk_i)

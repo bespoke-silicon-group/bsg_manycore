@@ -19,245 +19,8 @@
 
 `define MAX_CYCLES 1000000
 
-  module vscale_pipeline_trace
-      #(parameter x_cord_width_p = "inv"
-        , y_cord_width_p = "inv")
- (input clk_i
-  , input [31:0] PC_IF
-  , input wr_reg_WB
-  , input [4:0] reg_to_wr_WB
-  , input [31:0] wb_data_WB
-  , input stall_WB
-  , input imem_wait
-  , input dmem_wait
-  , input dmem_en
-  , input [3:0] exception_code_WB
-  , input [31:0] imem_addr
-  , input [31:0] imem_rdata
-  , input freeze
-   ,input   [x_cord_width_p-1:0] my_x_i
-   ,input   [y_cord_width_p-1:0] my_y_i
-  );
-
-   always @(negedge clk_i)
-     begin
-        if (~freeze)
-          begin
-             $fwrite(1,"x=%x y=%x PC_IF=%4.4x imem_wait=%x dmem_wait=%x dmem_en=%x exception_code_WB=%x imem_addr=%x imem_data=%x replay_IF=%x stall_IF=%x stall_DX=%x "
-                     ,my_x_i, my_y_i,PC_IF,imem_wait,dmem_wait,dmem_en,exception_code_WB, imem_addr, imem_rdata, ctrl.replay_IF, ctrl.stall_IF, ctrl.stall_DX);
-             if (wr_reg_WB & ~stall_WB & (reg_to_wr_WB != 0))
-               $fwrite(1,"r[%2.2x]=%x ",reg_to_wr_WB,wb_data_WB);
-             $fwrite(1,"\n");
-          end
-     end
-endmodule
 
 
-
-module bsg_manycore_tile_trace #(bsg_manycore_link_sif_width_lp="inv"
-                                 ,packet_width_lp="inv"
-                                 ,return_packet_width_lp="inv"
-                                 ,x_cord_width_p="inv"
-                                 ,y_cord_width_p="inv"
-                                 ,addr_width_p="inv"
-                                 ,data_width_p="inv"
-                                 ,dirs_lp=4
-                                 ,num_nets_lp=2)
-   (input clk_i
-    , input  [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_i
-    , input [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_o
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
-    , input freeze
-    );
-
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-
-   bsg_manycore_link_sif_s [dirs_lp-1:0] links_sif_i_cast, links_sif_o_cast;
-
-   bsg_manycore_packet_s [dirs_lp-1:0] pkt;
-   bsg_manycore_return_packet_s [dirs_lp-1:0] return_pkt;
-
-   assign links_sif_i_cast = links_sif_i;
-   assign links_sif_o_cast = links_sif_o;
-
-   genvar i;
-
-   logic [dirs_lp-1:0] activity;
-
-   for (i = 0; i < dirs_lp; i=i+1)
-     begin : rof2
-        assign pkt[i]        = links_sif_o_cast[i].fwd.data;
-        assign return_pkt[i] = links_sif_o_cast[i].rev.data;
-        assign activity  [i] = (links_sif_o_cast[i].fwd.v & links_sif_i_cast[i].fwd.v)
-                              |(links_sif_o_cast[i].rev.v & links_sif_i_cast[i].rev.v);
-     end
-
-
-//   if (0)
-   always @(negedge clk_i)
-     begin
-//        if ( ~freeze &  (|activity))
-        if (1)
-          begin
-             $fwrite(1,"%x ", test_bsg_manycore.cycle_count);
-             $fwrite(1,"YX=%x,%x r ", my_y_i,my_x_i);
-             $fwrite(1,"WENS vo=%b%b%b%b ri=%b%b%b%b vi=%b%b%b%b ro=%b%b%b%b "
-                     ,links_sif_o_cast[0].fwd.v
-                     ,links_sif_o_cast[1].fwd.v
-                     ,links_sif_o_cast[2].fwd.v
-                     ,links_sif_o_cast[3].fwd.v
-
-                     ,links_sif_i_cast[0].fwd.ready_and_rev
-                     ,links_sif_i_cast[1].fwd.ready_and_rev
-                     ,links_sif_i_cast[2].fwd.ready_and_rev
-                     ,links_sif_i_cast[3].fwd.ready_and_rev
-
-                     ,links_sif_i_cast[0].fwd.v
-                     ,links_sif_i_cast[1].fwd.v
-                     ,links_sif_i_cast[2].fwd.v
-                     ,links_sif_i_cast[3].fwd.v
-
-                     ,links_sif_o_cast[0].fwd.ready_and_rev
-                     ,links_sif_o_cast[1].fwd.ready_and_rev
-                     ,links_sif_o_cast[2].fwd.ready_and_rev
-                     ,links_sif_o_cast[3].fwd.ready_and_rev
-
-                     );
-//             if (links_sif_o_cast[0].fwd.v & links_sif_i_cast[0].fwd.ready_and_rev)
-               $fwrite(1,"W<-{%1.1x,%8.8x,%8.8x,YX={%x,%x->%x,%x}}"
-                       ,pkt[0].op,pkt[0].addr,pkt[0].data, pkt[0].return_pkt.y_cord, pkt[0].return_pkt.x_cord, pkt[0].y_cord,pkt[0].x_cord);
-//             if (links_sif_o_cast[1].fwd.v & links_sif_i_cast[1].fwd.ready_and_rev)
-               $fwrite(1,"E<-{%1.1x,%8.8x,%8.8x,YX={%x,%x->%x,%x}}",pkt[1].op,pkt[1].addr,pkt[1].data, pkt[1].return_pkt.y_cord, pkt[1].return_pkt.x_cord,pkt[1].y_cord,pkt[1].x_cord);
-//             if (links_sif_o_cast[2].fwd.v & links_sif_i_cast[2].fwd.ready_and_rev)
-               $fwrite(1,"N<-{%1.1x,%8.8x,%8.8x,YX={%x,%x->%x,%x}}",pkt[2].op,pkt[2].addr,pkt[2].data, pkt[2].return_pkt.y_cord, pkt[2].return_pkt.x_cord, pkt[2].y_cord,pkt[2].x_cord);
-//             if (links_sif_o_cast[3].fwd.v & links_sif_i_cast[3].fwd.ready_and_rev)
-               $fwrite(1,"S<-{%1.1x,%8.8x,%8.8x,YX={%x,%x->%x,%x}}",pkt[3].op,pkt[3].addr,pkt[3].data, pkt[3].return_pkt.y_cord, pkt[3].return_pkt.x_cord, pkt[3].y_cord,pkt[3].x_cord);
-
-//             if (links_sif_o_cast[0].rev.v & links_sif_i_cast[0].rev.ready_and_rev)
-               $fwrite(1,"W<-c YX={%x,%x}", return_pkt[0].y_cord, return_pkt[0].x_cord);
-//             if (links_sif_o_cast[1].rev.v & links_sif_i_cast[1].rev.ready_and_rev)
-               $fwrite(1,"E<-c YX={%x,%x}", return_pkt[1].y_cord, return_pkt[1].x_cord);
-//             if (links_sif_o_cast[2].rev.v & links_sif_i_cast[2].rev.ready_and_rev)
-               $fwrite(1,"N<-c YX={%x,%x}", return_pkt[2].y_cord, return_pkt[2].x_cord);
-//             if (links_sif_o_cast[3].rev.v & links_sif_i_cast[3].rev.ready_and_rev)
-               $fwrite(1,"S<-c YX={%x,%x}", return_pkt[3].y_cord, return_pkt[3].x_cord);
-
-             $fwrite(1,"\n");
-
-          end
-     end
-endmodule
-
-
-
-module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
-                                 , data_width_p=-1
-                                 , addr_width_p="inv"
-                                 , x_cord_width_p="inv"
-                                 , y_cord_width_p="inv"
-                                 , packet_width_lp="inv"
-                                 , return_packet_width_lp="inv"
-                                 , bsg_manycore_link_sif_width_lp="inv"
-                                 , num_nets_lp=2
-                                 )
-  (input clk_i
-   , input [2:0] xbar_port_v_in
-   , input [2:0][mem_width_lp-1:0] xbar_port_addr_in
-   , input [2:0][data_width_p-1:0] xbar_port_data_in
-   , input [2:0][(data_width_p>>3)-1:0] xbar_port_mask_in
-   , input [2:0] xbar_port_we_in
-   , input [2:0] xbar_port_yumi_out
-   , input [x_cord_width_p-1:0] my_x_i
-   , input [y_cord_width_p-1:0] my_y_i
-
-   , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
-   , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
-
-   , input freeze_r
-   , input cgni_v_in
-   , input [packet_width_lp-1:0] cgni_data_in
-   );
-
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-
-   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
-   bsg_manycore_link_sif_s link_sif_i_cast, link_sif_o_cast;
-
-   assign link_sif_i_cast = link_sif_i;
-   assign link_sif_o_cast = link_sif_o;
-
-   bsg_manycore_packet_s [1:0] packets;
-   bsg_manycore_return_packet_s [1:0] return_packets;
-
-
-
-   genvar i;
-
-   logic [1:0] logwrite;
-   logic [2:0] conflicts;
-
-//   if (0)
-   always @(negedge clk_i)
-     begin
-        logwrite = { (xbar_port_we_in[2] & xbar_port_yumi_out[2])
-                     ,xbar_port_we_in[1] & xbar_port_yumi_out[1]
-          };
-
-        conflicts = xbar_port_yumi_out ^ xbar_port_v_in;
-
-/*        if (~freeze_r & ((|logwrite)
-             | link_sif_i_cast.fwd.v
-             | link_sif_o_cast.fwd.v
-             | link_sif_i_cast.rev.v
-             | link_sif_o_cast.rev.v
-             | (|conflicts))) */
-          begin
-             $fwrite(1,"%x ", test_bsg_manycore.cycle_count);
-             $fwrite(1,"YX=%x,%x %b%b %b%b %b %x ", my_y_i,my_x_i
-                     , link_sif_i_cast.fwd.ready_and_rev
-                     , link_sif_o_cast.fwd.ready_and_rev
-                     , link_sif_i_cast.rev.ready_and_rev
-                     , link_sif_o_cast.rev.ready_and_rev
-                     , cgni_v_in
-                     , cgni_data_in);
-
-             if (logwrite[0])
-               $fwrite(1,"D%1.1x[%x,%b]=%x, ", 1,{ xbar_port_addr_in[1],2'b00},xbar_port_mask_in[1],xbar_port_data_in[1]);
-
-             if (logwrite[1])
-               $fwrite(1,"D%1.1x[%x,%b]=%x, ", 2,{ xbar_port_addr_in[2],2'b00},xbar_port_mask_in[2],xbar_port_data_in[2]);
-
-             if (~|logwrite)
-               $fwrite(1,"                   ");
-
-             packets        = { link_sif_i_cast.fwd.data, link_sif_o_cast.fwd.data };
-             return_packets = { link_sif_i_cast.rev.data, link_sif_o_cast.rev.data };
-
-             if (link_sif_i_cast.fwd.v)
-               $fwrite(1,"<-{%2.2b,%4.4b %8.8x,%8.8x,YX={%x,%x->%x,%x}} "
-                       ,packets[1].op,packets[1].op_ex,packets[1].addr,packets[1].data, packets[1].return_pkt.y_cord, packets[1].return_pkt.x_cord, packets[1].y_cord,packets[1].x_cord);
-
-             if (link_sif_o_cast.fwd.v)
-               $fwrite(1,"->{%2.2b,%4.4b %8.8x,%8.8x,YX={%x,%x->%x,%x}} "
-                       ,packets[0].op,packets[0].op_ex,packets[0].addr,packets[0].data,  packets[0].return_pkt.y_cord, packets[0].return_pkt.x_cord, packets[0].y_cord,packets[0].x_cord);
-
-//             if (link_sif_i_cast.rev.v)
-               $fwrite(1,"<-c(YX=%x,%x) ",return_packets[1].y_cord, return_packets[1].x_cord);
-
-//             if (link_sif_o_cast.rev.v)
-               $fwrite(1,"->c(YX=%x,%x) ",return_packets[0].y_cord, return_packets[0].x_cord);
-
-             // detect bank conflicts
-
-             if (|conflicts)
-               $fwrite(1,"C%b",conflicts);
-
-             $fwrite(1,"\n");
-          end // if (xbar_port_yumi_out[1]...
-     end
-endmodule
 
 `ifdef ENABLE_TRACE
 `endif  // TRACE
@@ -305,7 +68,7 @@ module test_bsg_manycore;
         );
 
    if (trace_vscale_pipeline_lp)
-     bind   vscale_pipeline vscale_pipeline_trace #(.x_cord_width_p(x_cord_width_p)
+     bind   vscale_pipeline bsg_manycore_vscale_pipeline_trace #(.x_cord_width_p(x_cord_width_p)
                                                     ,.y_cord_width_p(y_cord_width_p)
                                                     ) vscale_trace(clk
                                                                    ,PC_IF
@@ -379,6 +142,10 @@ module test_bsg_manycore;
 
 `define TOPLEVEL UUT.bm
 
+`ifndef BSG_HETERO_TYPE_VEC
+`define BSG_HETERO_TYPE_VEC 0
+`endif
+
   bsg_manycore #
     (
      .bank_size_p  (bank_size_lp)
@@ -387,7 +154,7 @@ module test_bsg_manycore;
      ,.addr_width_p (addr_width_lp)
      ,.num_tiles_x_p(num_tiles_x_lp)
      ,.num_tiles_y_p(num_tiles_y_lp)
-
+     ,.hetero_type_vec_p(`BSG_HETERO_TYPE_VEC)
      // currently west side is stubbed except for upper left tile
      ,.stub_w_p     ({{(num_tiles_y_lp-1){1'b1}}, 1'b0})
      ,.stub_e_p     ({num_tiles_y_lp{1'b1}})
@@ -578,6 +345,8 @@ module test_bsg_manycore;
          ,.ready_i  (loader_ready_li)
          ,.data_i   (mem_data)
          ,.addr_o   (mem_addr)
+         ,.my_x_i   ( lg_node_x_lp '(0) )
+         ,.my_y_i   ( lg_node_y_lp ' (num_tiles_y_lp) )
          );
 
    `ROM(`SPMD)
@@ -591,10 +360,22 @@ module test_bsg_manycore;
    wire [num_tiles_x_lp-1:0] finish_lo_vec;
    assign finish_lo = | finish_lo_vec;
 
+   // we only set such a high number because we
+   // know these packets can always be consumed
+   // at the recipient and do not require any
+   // forwarded traffic. for an accelerator
+   // this would not be the case, and this
+   // number must be set to the same as the
+   // number of elements in the accelerator's
+   // input fifo
+
+   localparam spmd_max_out_credits_lp = 128;
+
    for (i = 0; i < num_tiles_x_lp; i=i+1)
      begin: rof
-        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp  )
-                                       ,.data_width_p  (data_width_lp  )
+        // tie off north side; which is inaccessible
+        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp)
+                                       ,.data_width_p  (data_width_lp)
                                        ,.x_cord_width_p(lg_node_x_lp)
                                        ,.y_cord_width_p(lg_node_y_lp)
                                        ) bmlst3
@@ -606,9 +387,17 @@ module test_bsg_manycore;
 
         wire pass_thru_ready_lo;
 
-        // hook up the ready signal if this is x==0, S
+        localparam credits_lp = (i==0) ? spmd_max_out_credits_lp : 4;
+
+        wire [`BSG_SAFE_CLOG2(credits_lp+1)-1:0] creds;
+
+        // hook up the ready signal if this is the SPMD loader
+        // we handle credits here but could do it in the SPMD module too
+
         if (i==0)
-          assign loader_ready_li = pass_thru_ready_lo;
+         begin: fi
+          assign loader_ready_li = pass_thru_ready_lo & (|creds);
+         end
 
         bsg_nonsynth_manycore_monitor #(.x_cord_width_p (lg_node_x_lp)
                                         ,.y_cord_width_p(lg_node_y_lp)
@@ -617,6 +406,11 @@ module test_bsg_manycore;
                                         ,.channel_num_p (i)
                                         ,.max_cycles_p(max_cycles_lp)
                                         ,.pass_thru_p(i==0)
+                                        // for the SPMD loader we don't anticipate
+                                        // any backwards flow control; but for an
+                                        // accelerator, we must be much more careful about
+                                        // setting this
+                                        ,.pass_thru_max_out_credits_p (credits_lp)
                                         ) bmm (.clk_i(clk)
                                                ,.reset_i (reset)
                                                ,.link_sif_i   (ver_link_lo[S][i])
@@ -624,6 +418,9 @@ module test_bsg_manycore;
                                                ,.pass_thru_data_i (loader_data_lo )
                                                ,.pass_thru_v_i    (loader_v_lo    )
                                                ,.pass_thru_ready_o(pass_thru_ready_lo)
+                                               ,.pass_thru_out_credits_o(creds)
+                                               ,.pass_thru_x_i(lg_node_x_lp '(i))
+                                               ,.pass_thru_y_i(lg_node_y_lp '(num_tiles_y_lp))
                                                ,.cycle_count_i(cycle_count)
                                                ,.finish_o     (finish_lo_vec[i])
                                                );

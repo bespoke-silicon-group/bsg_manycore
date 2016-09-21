@@ -22,7 +22,7 @@ module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
 
     // local outgoing data interface (does not include credits)
 
-    , input  [packet_width_lp-1:0]           out_data_i
+    , input  [packet_width_lp-1:0]           out_packet_i
     , input                                  out_v_i
     , output                                 out_ready_o
 
@@ -69,7 +69,7 @@ module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
 
    assign pkt                       = fifo_data_o;
    assign link_sif_o_cast.rev.data  = pkt.return_pkt;
-   assign link_sif_o_cast.fwd.data  = out_data_i;
+   assign link_sif_o_cast.fwd.data  = out_packet_i;
    assign out_ready_o               = link_sif_i_cast.fwd.ready_and_rev;
 
    // Handle incoming credit packets
