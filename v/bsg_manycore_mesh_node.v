@@ -5,21 +5,14 @@ module bsg_manycore_mesh_node
 import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
  #(
-   parameter x_cord_width_p       = 5
-   ,parameter y_cord_width_p       = 5
-
-   ,parameter bank_size_p       = "inv"
-   ,parameter num_banks_p       = "inv"
-
-   // default is type 0, which is the processor
-   ,parameter hetero_type_p     = 0
+   parameter x_cord_width_p     = -1
+   ,parameter y_cord_width_p    = -1
 
    ,parameter data_width_p      = 32
    ,parameter addr_width_p      = "inv"
    ,parameter dirs_lp           = 4
    ,parameter stub_p            = {dirs_lp{1'b0}} // {s,n,e,w}
 
-   ,parameter mem_addr_width_lp = $clog2(num_banks_p) + `BSG_SAFE_CLOG2(bank_size_p)
    ,parameter packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
    ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
    ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -27,20 +20,20 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    ,parameter debug_p = 0
   )
-  ( input                                       clk_i
-   ,input                                       reset_i
+   ( input                                       clk_i
+     ,input                                       reset_i
 
-   // input and output links
-    , input  [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_i
-    , output [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_o
+     // input and output links
+     , input  [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_i
+     , output [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_o
 
-    , input  [bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_i
-    , output [bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_o
+     , input  [bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_i
+     , output [bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_o
 
-    // tile coordinates
-    ,input   [x_cord_width_p-1:0]                my_x_i
-    ,input   [y_cord_width_p-1:0]                my_y_i
-  );
+     // tile coordinates
+     ,input   [x_cord_width_p-1:0]                my_x_i
+     ,input   [y_cord_width_p-1:0]                my_y_i
+     );
 
    `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p,x_cord_width_p,y_cord_width_p);
 
@@ -114,28 +107,6 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
            ,.my_y_i
            );
      end
-
-   bsg_manycore_hetero_socket #(
-                                .x_cord_width_p (x_cord_width_p)
-                                ,.y_cord_width_p(y_cord_width_p)
-                                ,.debug_p       (debug_p       )
-                                ,.bank_size_p   (bank_size_p   )
-                                ,.num_banks_p   (num_banks_p   )
-                                ,.data_width_p  (data_width_p  )
-                                ,.addr_width_p  (addr_width_p  )
-                                ,.hetero_type_p (hetero_type_p )
-                                ) proc
-     (.clk_i   (clk_i)
-      ,.reset_i(reset_i)
-
-      ,.link_sif_i(proc_link_li)
-      ,.link_sif_o(proc_link_lo)
-
-      ,.my_x_i(my_x_i)
-      ,.my_y_i(my_y_i)
-
-      ,.freeze_o(freeze)
-      );
 
 endmodule
 

@@ -4,18 +4,9 @@ module bsg_manycore_mesh
 
 import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
- #(// tile params
-   parameter bank_size_p       = "inv"
-
-   // increasing the number of banks decreases ram efficiency
-   // but reduces conflicts between remote stores and local data accesses
-   // If there are too many conflicts, than traffic starts backing up into
-   // the network (i.e. cgni full cycles).
-
-   ,parameter num_banks_p       = "inv"
-
+ #(
    // array params
-   ,parameter num_tiles_x_p     = "inv"
+   parameter num_tiles_x_p      = "inv"
    ,parameter num_tiles_y_p     = "inv"
 
    // array i/o params
@@ -23,12 +14,6 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,parameter stub_e_p          = {num_tiles_y_p{1'b0}}
    ,parameter stub_n_p          = {num_tiles_x_p{1'b0}}
    ,parameter stub_s_p          = {num_tiles_x_p{1'b0}}
-
-   // for heterogeneous, this is a vector of num_tiles_x_p*num_tiles_y_p bytes;
-   // each byte contains the type of core being instantiated
-   // type 0 is the standard core
-
-   ,parameter hetero_type_vec_p      = 0
 
    // enable debugging
    ,parameter debug_p           = 0
@@ -73,8 +58,8 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,input   [S:N][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_i
    ,output  [S:N][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
 
-   ,input  [num_tiles_x_p-1:0][num_tiles_y_p-1:0] proc_link_sif_i
-   ,output [num_tiles_x_p-1:0][num_tiles_y_p-1:0] proc_link_sif_o
+   ,input  [num_tiles_y_p-1:0][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_i
+   ,output [num_tiles_y_p-1:0][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_o
   );
 
   // synopsys translate off
@@ -112,12 +97,9 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
                        )
         ,.x_cord_width_p  (x_cord_width_lp)
         ,.y_cord_width_p  (y_cord_width_lp)
-        ,.bank_size_p    (bank_size_p)
-        ,.num_banks_p    (num_banks_p)
         ,.data_width_p   (data_width_p)
         ,.addr_width_p   (addr_width_p)
         ,.debug_p        (debug_p)
-        ,.hetero_type_p  ((hetero_type_vec_p >> (8*(r*num_tiles_x_p + c))) & 8'b1111_1111)
        ) tile
        ( .clk_i (clk_i)
          ,.reset_i(reset_i)
