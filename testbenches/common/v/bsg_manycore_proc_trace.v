@@ -39,7 +39,6 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
    bsg_manycore_return_packet_s [1:0] return_packets;
 
 
-
    genvar i;
 
    logic [1:0] logwrite;

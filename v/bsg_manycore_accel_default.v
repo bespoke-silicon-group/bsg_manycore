@@ -11,7 +11,7 @@ module bsg_manycore_accel_default #(
                                     , data_width_p   = 32
                                     , addr_width_p   = "inv"
                                     , debug_p        = 0
-
+                                    , freeze_init_p  = 1'b1
                                     // this credit counter is more for implementing memory fences
                                     // than containing the number of outstanding remote stores
                                     // but we use it for the later for now
@@ -72,7 +72,7 @@ module bsg_manycore_accel_default #(
                                     ,.fifo_els_p    (proc_fifo_els_p)
                                     ,.data_width_p  (data_width_p)
                                     ,.addr_width_p  (addr_width_p)
-
+                                    ,.freeze_init_p (freeze_init_p)
                                     // how big the fifo is at the next node
                                     ,.max_out_credits_p(max_out_credits_p)
                                     ,.debug_p(debug_p)
@@ -123,11 +123,11 @@ module bsg_manycore_accel_default #(
     );
 
    // we eat the data if any of the endpoints want it
-   assign in_yumi_li = | endpoint_en_vec_lo;
+   assign in_yumi_li = | endpoint_yumi_vec;
 
    // ADDRESS 0
    //
-   // set the tag for outgoing packets
+   // set the address tag for outgoing packets
    //
 
    logic [addr_width_p-1:0]    out_pkt_addr_n, out_pkt_addr_r;
@@ -194,7 +194,7 @@ module bsg_manycore_accel_default #(
    always @(negedge clk_i)
      begin
         if (in_v_lo | out_v_li | in_yumi_li)
-        $display("## bsg_manycore_accel_default (y,x=%d,%d) (in: v=%b, d_i=%b, a_i=0x%x, yumi=%b, endpoint=%b) (out:v=%b,d_o=%b,ready=%b)"
+        $display("## bsg_manycore_accel_default (y,x=%d,%d) (in: v=%b, d_i=%b, a_i=0h%x, yumi=%b, endpoint=%b) (out:v=%b,d_o=%b,ready=%b)"
                  , my_y_i, my_x_i, in_v_lo, in_data_lo, in_addr_lo, in_yumi_li, endpoint_en_vec_lo
                  , out_v_li, out_packet_li, out_ready_lo
                  );
@@ -208,10 +208,10 @@ module bsg_manycore_accel_default #(
    //
    // ADDRESS 2 (CUSTOMIZE THIS AND OTHER ADDRESSES)
    //
-   // currently, we just forward packets along, if there is space
+   // currently, we just forward packets along, but only if we have credits
    //
 
-   assign out_v_li   = endpoint_en_vec_lo[2];
+   assign out_v_li   = endpoint_en_vec_lo[2] & (|out_credits_lo);
 
    // we deque the incoming packet to address 2 only if we can send out
    // otherwise we would lose data

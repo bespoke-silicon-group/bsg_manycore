@@ -5,6 +5,9 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          ,data_width_p           = 32
                                          ,addr_width_p           = 32
                                          ,max_out_credits_p = "inv"
+                                         // if you are doing a streaming application then
+                                         // you might want to turn this off because it is fairly normal
+                                         ,warn_out_of_credits_p  = 1
                                          ,debug_p                = 0
                                          ,packet_width_lp                          = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                          ,return_packet_width_lp                   = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
@@ -105,12 +108,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    logic  freeze_r;
    assign freeze_r_o = freeze_r;
 
-   always_ff @(negedge clk_i)
-     if (pkt_unknown & cgni_v)
-       begin
-          $display("## UNKNOWN packet %b (%m)",cgni_data);
-       end
-
    always_ff @(posedge clk_i)
      if (reset_i)
        freeze_r <= freeze_init_p;
@@ -120,6 +117,25 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
             $display("## freeze_r <= %x (%m)",pkt_freeze);
             freeze_r <= pkt_freeze;
          end
+
+   // *************************************************
+   // ** checks
+   //
+   // everything below here is only for checking
+   //
+
+   if (debug_p)
+   always_ff @(negedge clk_i)
+     begin
+        if (credit_return_lo)
+          $display("## return packet received by (x,y)=%x,%x",my_x_i,my_y_i);
+     end
+
+   always_ff @(negedge clk_i)
+     if (pkt_unknown & cgni_v)
+       begin
+          $display("## UNKNOWN packet %b (%m)",cgni_data);
+       end
 
    if (debug_p)
      always_ff @(negedge clk_i)
@@ -141,9 +157,20 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    // this is not an error, but it is extremely surprising
    // and merits investigation
 
+
+   logic out_of_credits_warned = 0;
+
+  if (warn_out_of_credits_p)
    always @(negedge clk_i)
-     assert (out_credits_o > 0) else
-          $warning("## out of remote store credits %d (%m)",out_credits_o);
+     begin
+        if ( ~(reset_i) & ~out_of_credits_warned)
+        assert (out_credits_o === 'X || out_credits_o > 0) else
+          begin
+             $display("## out of remote store credits(=%d) x,y=%d,%d displaying only once (%m)",out_credits_o,my_x_i,my_y_i);
+	     $display("##   (this may be a performance problem; or normal behavior)");
+             out_of_credits_warned = 1;
+          end
+     end
 
    `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
    bsg_manycore_link_sif_s link_sif_i_cast;

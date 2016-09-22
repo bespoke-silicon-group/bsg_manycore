@@ -191,19 +191,21 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    assign data_o_debug = out_packet_li;
 
    if (debug_p)
+   // you can use this format to log packets coming from a node
      always @(negedge clk_i)
        begin
           if (launching_out)
-            $display("proc sending packet %x (op=%x, addr=%x, data=%x, y_cord=%x, x_cord=%x), bit_mask=%x, core_mem_wdata=%x, core_mem_addr=%x"
-                     , data_o_debug
-                     , data_o_debug.op
+            $display("# y,x=(%x,%x) PROC sending packet (addr=%b, op=%b, op_ex=%b, data=%b, return_pkt=%b, y_cord=%b, x_cord=%b\n%b"
+                     , my_y_i
+                     , my_x_i
                      , data_o_debug.addr
+                     , data_o_debug.op
+                     , data_o_debug.op_ex
                      , data_o_debug.data
+                     , data_o_debug.return_pkt
                      , data_o_debug.y_cord
                      , data_o_debug.x_cord
-                     , core_mem_mask [1]
-                     , core_mem_wdata[1]
-                     , core_mem_addr [1]
+                     , out_packet_li
                      );
        end
 
