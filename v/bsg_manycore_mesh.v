@@ -1,6 +1,6 @@
 `include "bsg_manycore_packet.vh"
 
-module bsg_manycore
+module bsg_manycore_mesh
 
 import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
@@ -72,6 +72,9 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    // vertical -- {S,N}
    ,input   [S:N][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_i
    ,output  [S:N][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
+
+   ,input  [num_tiles_x_p-1:0][num_tiles_y_p-1:0] proc_link_sif_i
+   ,output [num_tiles_x_p-1:0][num_tiles_y_p-1:0] proc_link_sif_o
   );
 
   // synopsys translate off
@@ -81,7 +84,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
        else $error("num_tiles_x_p and num_tiles_y_p must be positive constants");
 
      $display("$bits(addr)=%-d, $bits(op)=%-d, $bits(op_ex)=%-d, $bits(data)=%-d, $bits(return_pkt)=%-d, $bits(y_cord)=%-d, $bits(x_cord)=%-d",
-	      addr_width_p,2,(data_width_p>>3),data_width_p,y_cord_width_lp+x_cord_width_lp,y_cord_width_lp,x_cord_width_lp);
+              addr_width_p,2,(data_width_p>>3),data_width_p,y_cord_width_lp+x_cord_width_lp,y_cord_width_lp,x_cord_width_lp);
   end
   // synopsys translate on
 
@@ -100,7 +103,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   begin: tile_row_gen
     for (c = 0; c < num_tiles_x_p; c = c+1)
     begin: tile_col_gen
-      bsg_manycore_tile #
+      bsg_manycore_mesh_node #
       (.stub_p        ({ (r == num_tiles_y_p-1) ? (((stub_s_p>>c) & 1'b1) == 1) : 1'b0  // s
                          ,(r == 0)               ? (((stub_n_p>>c) & 1'b1) == 1) : 1'b0 // n
                          ,(c == num_tiles_x_p-1) ? (((stub_e_p>>r) & 1'b1) == 1) : 1'b0 // e
@@ -121,6 +124,9 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
          ,.links_sif_i (link_in [r][c])
          ,.links_sif_o (link_out[r][c])
+
+         ,.proc_link_sif_i(proc_link_sif_i [r][c])
+         ,.proc_link_sif_o(proc_link_sif_o [r][c])
 
          ,.my_x_i   (x_cord_width_lp'(c))
          ,.my_y_i   (y_cord_width_lp'(r))

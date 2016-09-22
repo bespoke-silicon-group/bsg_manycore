@@ -1,6 +1,6 @@
 `include "bsg_manycore_packet.vh"
 
-module bsg_manycore_tile
+module bsg_manycore_mesh_node
 
 import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
@@ -34,9 +34,12 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
     , input  [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_i
     , output [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_o
 
-   // tile coordinates
-   ,input   [x_cord_width_p-1:0]                my_x_i
-   ,input   [y_cord_width_p-1:0]                my_y_i
+    , input  [bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_i
+    , output [bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_o
+
+    // tile coordinates
+    ,input   [x_cord_width_p-1:0]                my_x_i
+    ,input   [y_cord_width_p-1:0]                my_y_i
   );
 
    `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p,x_cord_width_p,y_cord_width_p);
@@ -51,6 +54,9 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    // repackage proc link
    bsg_manycore_link_sif_s proc_link_li, proc_link_lo;
+
+   assign proc_link_sif_o = proc_link_li;
+   assign proc_link_lo    = proc_link_sif_i;
 
    assign proc_link_li.fwd = link_fwd_sif_o_cast[0];
    assign proc_link_li.rev = link_rev_sif_o_cast[0];
@@ -109,8 +115,6 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
            );
      end
 
-   logic                       freeze;
-
    bsg_manycore_hetero_socket #(
                                 .x_cord_width_p (x_cord_width_p)
                                 ,.y_cord_width_p(y_cord_width_p)
@@ -123,13 +127,13 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
                                 ) proc
      (.clk_i   (clk_i)
       ,.reset_i(reset_i)
-      
+
       ,.link_sif_i(proc_link_li)
       ,.link_sif_o(proc_link_lo)
-      
+
       ,.my_x_i(my_x_i)
       ,.my_y_i(my_y_i)
-      
+
       ,.freeze_o(freeze)
       );
 
