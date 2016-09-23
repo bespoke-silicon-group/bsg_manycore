@@ -39,7 +39,7 @@ modules you have already developed (it says "CUSTOMIZE BELOW").
 
 3. A few notable gotchas:
 
-a. If you chain the number of packets in the trace file used by the
+a. If you change the number of packets in the trace file used by the
 packet_streamer, you need to update the constant rom_words_lp in
 adn_example.v
 
