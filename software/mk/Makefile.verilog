@@ -25,6 +25,7 @@ VELAB = xelab -debug typical ${BSG_FPU_OP} -s top_sim
 VSIM  = xsim --runall top_sim
 
 BSG_FPU_OP    = -d bsg_FPU
+BSG_TAG_OP    =
 #############################################################
 #  Define the hardfloat source files.
 ifneq ($(BSG_FPU_OP), )
@@ -45,7 +46,21 @@ endif
 
 CHISEL_VERSION = 2.2.32
 
+ifneq ($(BSG_TAG_OP),)
+TAG_SRC =$(addprefix  $(BSG_IP_CORES_DIR)/bsg_tag/, bsg_tag_pkg.v \
+              bsg_tag_client.v bsg_tag_master.v)
 
+TAG_SRC +=$(addprefix $(BSG_IP_CORES_DIR)/bsg_misc/, bsg_counter_clear_up.v \
+           bsg_dff_reset_en.v)
+              
+
+TAG_SRC +=$(addprefix $(BSG_IP_CORES_DIR)/bsg_async/, bsg_launch_sync_sync.v)
+
+TAG_SRC += $(BSG_MANYCORE_DIR)/v/bsg_tag_manycore.v
+
+TAG_SRC +=$(addprefix $(BSG_CHIP_DIR)/bsg_one_loopback/sources/ip/bsg/bsg_misc/, \
+            bsg_dff_gatestack.v bsg_mux2_gatestack.v)
+endif
 ##########################
 # Adding source files
 FPU_SRC       = $(addprefix $(VANILLA_SRC)/, float_decode.v fpi.v fiu.v fam.v )
@@ -70,12 +85,16 @@ ifeq ($(MANYCORE_PROC),VSCALE)
 		   vscale_mul_div.v vscale_csr_file.v vscale_PC_mux.v) \
                  $(addprefix $(BSG_MANYCORE_DIR)/v/, bsg_vscale_pkg.v bsg_vscale_core.v bsg_manycore_proc.v)
 else ifeq ($(MANYCORE_PROC),VANILLA)
-  DESIGN_HDRS += -i $(VANILLA_SRC)/ -i $(VSCALE_SRC)/ -i $(BSG_IP_CORES_DIR)/bsg_noc
+  DESIGN_HDRS += -i $(VANILLA_SRC)/ -i $(VSCALE_SRC)/ -i $(BSG_IP_CORES_DIR)/bsg_noc \
+                 -i $(BSG_IP_CORES_DIR)/bsg_tag
+
   DESIGN_SRCS += $(addprefix $(VANILLA_SRC)/, alu.v cl_decode.v cl_state_machine.v hobbit.v bsg_manycore_proc.v) \
 		 $(addprefix $(VSCALE_SRC)/, vscale_mul_div.v) \
          $(FPU_SRC)\
 		 $(addprefix $(BSG_IP_CORES_DIR)/bsg_mem/, bsg_mem_2r1w.v ) \
-		 $(addprefix $(BSG_IP_CORES_DIR)/bsg_dataflow/, bsg_fifo_tracker.v) 
+		 $(addprefix $(BSG_IP_CORES_DIR)/bsg_dataflow/, bsg_fifo_tracker.v) \
+         $(TAG_SRC)
+		 
 else
   $(error MANYCORE_PROC not defined or unknown)
 endif
@@ -89,10 +108,19 @@ DESIGN_SRCS += \
     bsg_misc/bsg_circular_ptr.v bsg_mem/bsg_mem_1r1w.v bsg_mem/bsg_mem_banked_crossbar.v          \
     bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v bsg_mem/bsg_mem_1rw_sync.v bsg_dataflow/bsg_fifo_1r1w_small.v bsg_dataflow/bsg_two_fifo.v \
     bsg_test/bsg_nonsynth_clock_gen.v bsg_test/bsg_nonsynth_reset_gen.v bsg_noc/bsg_mesh_router.v bsg_noc/bsg_mesh_router_buffered.v) \
-  $(addprefix $(BSG_MANYCORE_DIR)/v/, bsg_manycore_tile.v bsg_manycore.v bsg_manycore_pkt_encode.v bsg_manycore_pkt_decode.v)           \
-  $(addprefix $(BSG_MANYCORE_DIR)/testbenches/common/v/, bsg_manycore_spmd_loader.v bsg_nonsynth_manycore_monitor.v)
+    $(addprefix $(BSG_MANYCORE_DIR)/v/, bsg_manycore_tile.v bsg_manycore.v bsg_manycore_pkt_encode.v bsg_manycore_pkt_decode.v)
 
+DESIGN_SRCS +=  $(addprefix $(BSG_MANYCORE_DIR)/testbenches/common/v/, bsg_manycore_spmd_loader.v bsg_nonsynth_manycore_monitor.v)
+
+ifneq ($(BSG_TAG_OP),)
+DESIGN_SRCS +=  $(addprefix $(BSG_MANYCORE_DIR)/testbenches/common/v/, bsg_manycore_tag_adaptor.v) 
+endif
+
+ifneq ($(BSG_TAG_OP),)
+TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/basic/test_tag_manycore.v
+else
 TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/basic/test_bsg_manycore.v
+endif
 
 ifeq ($(TEE),1)
 TEE-CMD=| tee run.log
@@ -108,8 +136,12 @@ ifneq ($(BSG_FPU_OP), )
 	fi
 endif
 	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) bsg_rom_$*.v $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y)
+ifneq ($(BSG_TAG_OP),)
+	$(VELAB) test_tag_manycore | grep -v Compiling
+else
 	$(VELAB) test_bsg_manycore | grep -v Compiling
-	$(VSIM) $(TEE-CMD)
+endif
+#	$(VSIM) $(TEE-CMD)
 
 ################################################
 # Generate the hardfloat files.

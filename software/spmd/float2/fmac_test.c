@@ -11,8 +11,6 @@ static float expect=440.0;
 
 void fmac_test(float *input)
 {
-  bsg_set_tile_x_y();
-
   int id = bsg_x_y_to_id(bsg_x,bsg_y);
 
   unsigned int * int_output_p = (unsigned int *)( & output );

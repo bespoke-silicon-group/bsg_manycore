@@ -3,4 +3,6 @@ VANILLA_DIR = $(BSG_MANYCORE_DIR)/imports/vanilla-bean
 BSG_IP_CORES_DIR = $(BSG_MANYCORE_DIR)/../bsg_ip_cores
 RISCV_BIN_DIR = $(BSG_MANYCORE_DIR)/../../riscv-tools/riscv-install/bin
 BERKELEY_HARDFLOAT_DIR = $(BSG_MANYCORE_DIR)/../berkeley-hardfloat
+BSG_CHIP_DIR = $(BSG_MANYCORE_DIR)/../chip
+BSG_CAD_DIR = $(BSG_MANYCORE_DIR)/../cad
 

@@ -173,7 +173,7 @@ module test_bsg_manycore;
 
    import  bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
-   localparam debug_lp = 0;
+   localparam debug_lp = 1;
    localparam max_cycles_lp   = `MAX_CYCLES;
    localparam tile_id_ptr_lp  = -1;
    localparam mem_size_lp     = `MEM_SIZE;  // actually the size of the file being loaded, in bytes

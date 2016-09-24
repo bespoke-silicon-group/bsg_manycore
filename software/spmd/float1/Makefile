@@ -1,6 +1,6 @@
 
 bsg_tiles_X = 2
-bsg_tiles_Y = 2
+bsg_tiles_Y = 1
 
 RISCV_GCC_EXTRA_OPTS ?= -O2 -funroll-loops
 OBJECT_FILES=hello.o bsg_set_tile_x_y.o load_store_test.o move_test.o \
@@ -20,6 +20,7 @@ clean:
 
 hello.o: Makefile
 
+.PRECIOUS:bsg_rom_hello.v
 
 
 
