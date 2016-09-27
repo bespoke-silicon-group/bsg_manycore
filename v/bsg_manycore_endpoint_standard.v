@@ -114,7 +114,9 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
      else
        if (pkt_freeze | pkt_unfreeze)
          begin
+// synopsys translate_off
             $display("## freeze_r <= %x (%m)",pkt_freeze);
+// synopsys translate_on
             freeze_r <= pkt_freeze;
          end
 
@@ -124,6 +126,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    // everything below here is only for checking
    //
 
+// synopsys translate_off
    if (debug_p)
    always_ff @(negedge clk_i)
      begin
@@ -188,7 +191,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                 ,link_sif_i_cast.rev.data[x_cord_width_p+:y_cord_width_p]
                 ,link_sif_i_cast.rev.data[0+:x_cord_width_p]
                 ,my_y_i,my_x_i);
-
+// synopsys translate_on
 
 endmodule
 
