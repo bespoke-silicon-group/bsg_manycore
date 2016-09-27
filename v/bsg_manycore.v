@@ -14,8 +14,8 @@ module bsg_manycore
    ,parameter num_banks_p       = "inv"
 
    // array params
-   ,parameter num_tiles_x_p     = "inv"
-   ,parameter num_tiles_y_p     = "inv"
+   ,parameter num_tiles_x_p     = -1
+   ,parameter num_tiles_y_p     = -1
 
    // array i/o params
    ,parameter stub_w_p          = {num_tiles_y_p{1'b0}}

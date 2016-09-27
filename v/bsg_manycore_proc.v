@@ -135,25 +135,25 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
             core
      ( .clk_i   (clk_i)
        ,.reset_i (reset_i)
-       ,.freeze_i (freeze_r)
+       ,.freeze_i (freeze_r) // from register
 
        ,.m_v_o          (core_mem_v)
        ,.m_w_o          (core_mem_w)
        ,.m_addr_o       (core_mem_addr)
        ,.m_data_o       (core_mem_wdata)
        ,.m_reserve_1_o  (core_mem_reserve_1)
-       ,.m_reservation_i(core_mem_reservation_r)
+       ,.m_reservation_i(core_mem_reservation_r) // from register
        ,.m_mask_o       (core_mem_mask)
 
        // for data port (1), either the network or the banked memory can
        // deque the item.
-       ,.m_yumi_i    ({(launching_out) | core_mem_yumi[1]
-                       , core_mem_yumi[0]})
-       ,.m_v_i       (core_mem_rv)
-       ,.m_data_i    (core_mem_rdata)
+       ,.m_yumi_i    ({(launching_out) | core_mem_yumi[1] // aka ~dmem_wait
+                       , core_mem_yumi[0]})               // aka ~imem_wait
+       ,.m_v_i       (core_mem_rv)    // unused by module
+       ,.m_data_i    (core_mem_rdata) // to register
 
        // whether there are any outstanding remote stores
-       ,.outstanding_stores_i(out_credits_lo != max_out_credits_p)
+       ,.outstanding_stores_i(out_credits_lo != max_out_credits_p)    // from register
 
        ,.my_x_i (my_x_i)
        ,.my_y_i (my_y_i)
@@ -185,7 +185,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    // we only request to send a remote store if it would not overflow the remote store credit counter
    assign out_v_li = out_request & (|out_credits_lo);
 
-   // synopsys translate off
+   // synopsys translate_off
 
    bsg_manycore_packet_s data_o_debug;
    assign data_o_debug = out_packet_li;
@@ -209,7 +209,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                      );
        end
 
-   // synopsys translate on
+   // synopsys translate_on
 
    wire [data_width_p-1:0] unused_data;
    wire                    unused_valid;

@@ -6,8 +6,8 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
  #(
    // array params
-   parameter num_tiles_x_p      = "inv"
-   ,parameter num_tiles_y_p     = "inv"
+   parameter num_tiles_x_p      = -1
+   ,parameter num_tiles_y_p     = -1
 
    // array i/o params
    ,parameter stub_w_p          = {num_tiles_y_p{1'b0}}
@@ -62,7 +62,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,output [num_tiles_y_p-1:0][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_o
   );
 
-  // synopsys translate off
+  // synopsys translate_off
   initial
   begin
      assert ((num_tiles_x_p > 0) && (num_tiles_y_p>0))
@@ -71,7 +71,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
      $display("$bits(addr)=%-d, $bits(op)=%-d, $bits(op_ex)=%-d, $bits(data)=%-d, $bits(return_pkt)=%-d, $bits(y_cord)=%-d, $bits(x_cord)=%-d",
               addr_width_p,2,(data_width_p>>3),data_width_p,y_cord_width_lp+x_cord_width_lp,y_cord_width_lp,x_cord_width_lp);
   end
-  // synopsys translate on
+  // synopsys translate_on
 
    `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
 

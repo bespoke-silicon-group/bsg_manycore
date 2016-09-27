@@ -1,7 +1,10 @@
 
-// This is a manycore attached to the fsb via a channel tunnel
-// It attaches the south side of the manycore and stubs out all other sides.
-// in this version, we using stubbing not termination
+// This module acts as a converter between the interconnect
+// of a manycore and the FSB interconnect.
+//
+// We make use of the bsg_channel_tunnel to virtualize the
+// links.
+//
 
 module  bsg_manycore_links_to_fsb
    import bsg_fsb_pkg::*;
@@ -51,7 +54,8 @@ module  bsg_manycore_links_to_fsb
    assign links_sif_i_cast = links_sif_i;
    assign links_sif_o = links_sif_i_cast;
 
-   localparam num_in_lp = num_links_p << 1;
+   localparam num_nets_lp = 2;
+   localparam num_in_lp = num_nets_lp * num_links_p;
    localparam width_lp =  `BSG_MAX($bits(bsg_manycore_packet_s),$bits(bsg_manycore_return_packet_s));
    localparam tagged_width_lp = $clog2(num_in_lp+1) + width_lp;
 
@@ -75,7 +79,7 @@ module  bsg_manycore_links_to_fsb
    // **** Handle manycore link side of bsg_channel_tunnel
    // ****
 
-   for (i = 0; i < num_tiles_x_p; i=i+1)
+   for (i = 0; i < num_links_p; i=i+1)
      begin: rof
         bsg_manycore_fwd_link_sif_s fwd_li, fwd_lo;
         bsg_manycore_rev_link_sif_s rev_li, rev_lo;
@@ -88,24 +92,32 @@ module  bsg_manycore_links_to_fsb
         assign links_sif_o_cast[i].fwd = fwd_li;
         assign links_sif_o_cast[i].rev = rev_li;
 
-        for (j = 0; j < num_tiles_y_p; j=j+1)
+        for (j = 0; j < num_nets_lp; j=j+1)
           begin: rof2
              localparam localwidth_lp = j ? $bits(bsg_manycore_return_packet_s) : $bits(bsg_manycore_packet_s);
              logic ready_lo;
 
+	     logic [localwidth_lp-1:0] data;
+
              if (j)
-               assign rev_li.ready_and_rev = ready_lo;
+	       begin
+		  assign rev_li.ready_and_rev = ready_lo;
+		  assign data = rev_lo.data;
+	       end
              else
-               assign fwd_li.ready_and_rev = ready_lo;
+	       begin
+		  assign fwd_li.ready_and_rev = ready_lo;
+		  assign data = fwd_lo.data;
+	       end
 
              // ** place a two fifo on both channels going from manycore to outside world
-             bsg_two_fifo #(.width_p(localwidth_lp))
+             bsg_two_fifo #(.width_p(localwidth_lp)) fifo
              (.clk_i   (clk_i  )
               ,.reset_i(reset_i)
 
               // input
               ,.ready_o(ready_lo)
-              ,.data_i (j ?              rev_lo.data          :              fwd_lo.data         )
+              ,.data_i (data)
               ,.v_i    (j ?              rev_lo.v             :              fwd_lo.v            )
 
               // output
@@ -115,18 +127,19 @@ module  bsg_manycore_links_to_fsb
               );
 
              // zero extra bits for shorter packet
-             assign data_li[width_lp-1:localwidth_lp] = 0;
-          end // block: rof2
+             if (localwidth_lp < width_lp)
+               assign data_li[i*2+j][width_lp-1:localwidth_lp] = 0;
+          end // block: rof2sd
 
         // ** for fwd channels going from outside world to manycore
         assign fwd_li.data    = data_lo[i*2  ][$bits(bsg_manycore_packet_s)-1:0];
         assign fwd_li.v       =    v_lo[i*2  ];
-        assign yumi_lo[i*2] =      v_lo[i*2  ] & fwd_lo.ready_and_rev;  // v/y to v&r conversion
+        assign yumi_li[i*2] =      v_lo[i*2  ] & fwd_lo.ready_and_rev;  // v/y to v&r conversion
 
         // ** for rev channels going from outside world to manycore
         assign rev_li.data    = data_lo[i*2+1][$bits(bsg_manycore_return_packet_s)-1:0];
         assign rev_li.v       =    v_lo[i*2+1];
-        assign yumi_lo[i*2+1] =    v_lo[i*2+1] & rev_lo.ready_and_rev;  // v/y to v&r conversion
+        assign yumi_li[i*2+1] =    v_lo[i*2+1] & rev_lo.ready_and_rev;  // v/y to v&r conversion
      end
 
 
@@ -141,7 +154,7 @@ module  bsg_manycore_links_to_fsb
 
    // ** place a FIFO on FSB traffic coming in from outside world towards bsg_channel_tunnel
 
-   bsg_two_fifo #(.width_p(tagged_width_lp))
+   bsg_two_fifo #(.width_p(tagged_width_lp)) fifo
    (.clk_i   (clk_i  )
     ,.reset_i(reset_i)
 
@@ -166,9 +179,11 @@ module  bsg_manycore_links_to_fsb
      assert($bits(bsg_fsb_pkt_client_s)==ring_width_p)
        else $error("bsg_fsb_pkt_client_s and ring_width_p do not line up",$bits(bsg_fsb_pkt_client_s),ring_width_p);
 
+   localparam bsg_fsb_pkt_client_s_data_size_lp = $bits(bsg_fsb_pkt_client_data_t);
+
    assign out_pkt.destid = dest_id_p;
    assign out_pkt.cmd    = 0;
-   assign out_pkt.data   = $bits(bsg_fsb_pkt_client_s.data) ' (multi_data_lo);
+   assign out_pkt.data   = bsg_fsb_pkt_client_s_data_size_lp ' (multi_data_lo);
    assign data_o = out_pkt;
 
    // ****
@@ -197,11 +212,11 @@ module  bsg_manycore_links_to_fsb
     // manycore side
 
     ,.data_i  (data_li)
-    ,.valid_i (v_li   )
+    ,.v_i     (v_li   )
     ,.yumi_o  (yumi_lo)
 
     ,.data_o  (data_lo)
-    ,.valid_o (v_lo   )
+    ,.v_o     (v_lo   )
     ,.yumi_i  (yumi_li)
     );
 

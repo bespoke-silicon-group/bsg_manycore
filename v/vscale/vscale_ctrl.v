@@ -50,8 +50,8 @@ module vscale_ctrl(
                    output wire 			      kill_WB,
                    output wire 			      exception_WB,
                    output wire [`ECODE_WIDTH-1:0]     exception_code_WB,
-                   output wire 			      retire_WB
-		   , output 			      outstanding_stores_i
+                   output wire 			      retire_WB,
+		   input 			      outstanding_stores_i
                    );
 
    // IF stage ctrl pipeline registers

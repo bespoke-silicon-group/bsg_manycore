@@ -1,3 +1,6 @@
+include ../../../cad/common/mk/cadenv.mk
+include ../../../cad/flow/dc/rm_setup/dc.mk
+
 BSG_IP_CORES_DIR=../../../bsg_ip_cores
 BSG_MANYCORE_DIR=../../../bsg_manycore
 
@@ -30,8 +33,7 @@ DESIGN_SRCS = \
     bsg_misc/bsg_circular_ptr.v bsg_mem/bsg_mem_1r1w.v  bsg_dataflow/bsg_fifo_tracker.v  bsg_misc/bsg_dff_reset.v        \
     bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v bsg_mem/bsg_mem_1rw_sync.v bsg_dataflow/bsg_fifo_1r1w_small.v bsg_dataflow/bsg_two_fifo.v \
     bsg_test/bsg_nonsynth_clock_gen.v bsg_test/bsg_nonsynth_reset_gen.v bsg_noc/bsg_mesh_router.v bsg_noc/bsg_mesh_stitch.v \
-    bsg_noc/bsg_mesh_router_buffered.v bsg_misc/bsg_decode_with_v.v bsg_misc/bsg_decode.v bsg_misc/bsg_dff_reset_en.v bsg_misc/bsg_counter_clear_up.v\
-    bsg_mem/bsg_mem_1r1w.v bsg_dataflow/bsg_fifo_tracker.v)\
+    bsg_noc/bsg_mesh_router_buffered.v bsg_misc/bsg_decode_with_v.v bsg_misc/bsg_decode.v bsg_misc/bsg_dff_reset_en.v bsg_misc/bsg_counter_clear_up.v) \
   $(addprefix $(BSG_MANYCORE_DIR)/v/, bsg_manycore_mesh.v bsg_manycore_mesh_node.v bsg_manycore_pkt_encode.v bsg_manycore_pkt_decode.v bsg_manycore_packet_streamer.v \
                                       bsg_manycore_endpoint.v bsg_manycore_endpoint_standard.v bsg_manycore_link_sif_tieoff.v bsg_manycore_accel_default.v ) \
   $(addprefix $(BSG_MANYCORE_DIR)/testbenches/network_only/, adn_example.v ) \
@@ -54,3 +56,6 @@ clean:
 	$(VELAB) test_bsg_manycore | grep -v Compiling
 	$(VSIM) $(TEE-CMD)
 
+vcs.run: bsg_rom_gen_adn.v
+	$(VCS) -full64 -sverilog  -top test_bsg_manycore  $(TOP_LEVEL) $(DESIGN_HDRS) $(DESIGN_SRCS) $< +define+bsg_tiles_X=$(bsg_tiles_X) +define+bsg_tiles_Y=$(bsg_tiles_Y) +incdir+$(BSG_IP_CORES_DIR)/bsg_misc  +incdir+$(BSG_IP_CORES_DIR)/bsg_noc +incdir+$(BSG_MANYCORE_DIR)/v
+	./simv

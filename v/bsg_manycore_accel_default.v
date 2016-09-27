@@ -25,8 +25,6 @@ module bsg_manycore_accel_default #(
 
                                     , proc_fifo_els_p = 4
 
-
-
                                     , num_nets_lp     = 2
 
                                     , bank_size_p    = "inv" // in words
@@ -171,7 +169,6 @@ module bsg_manycore_accel_default #(
 
    always_comb
      begin
-        out_packet_li.data                            = in_data_lo;
         out_packet_li.addr                            = out_pkt_addr_r;
         { out_packet_li.y_cord, out_packet_li.x_cord} = out_pkt_dest_r;
 

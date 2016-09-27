@@ -66,10 +66,14 @@ import bsg_vscale_pkg::*;
                              , ~(|m_addr_o[1][1:0])
                              };
          default:
-          if (m_v_o[1])
-            $error("%m unhandled dmem size %x", dmem_size);
+	   m_mask_o[1] = 4'bX;
+
         endcase // unique case dmem_size
      end // always_comb
+
+   always @(negedge clk_i)
+     if (m_v_o[1] & (dmem_size > 2))
+       $error("%m unhandled dmem size %x", dmem_size);
 
    always @(negedge clk_i)
      if (~reset_i & m_v_o[1] )

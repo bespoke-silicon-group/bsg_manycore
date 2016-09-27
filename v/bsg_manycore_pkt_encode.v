@@ -55,7 +55,7 @@ module bsg_manycore_pkt_encode
 
    assign v_o = addr_decode.remote & we_i & v_i;
 
-   // synopsys translate off
+   // synopsys translate_off
    if (debug_p)
    always @(negedge clk_i)
      if (v_i)
@@ -74,6 +74,6 @@ module bsg_manycore_pkt_encode
              $error ("%m store to remote unaligned address %x", addr_i);
           end*/
      end
-   // synopsys translate on
+   // synopsys translate_on
 
 endmodule

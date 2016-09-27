@@ -9,9 +9,9 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          // you might want to turn this off because it is fairly normal
                                          ,warn_out_of_credits_p  = 1
                                          ,debug_p                = 0
-                                         ,packet_width_lp                          = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                                         ,return_packet_width_lp                   = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
-                                         ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                         ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                         ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
+                                         ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                          ,num_nets_lp            = 2
                                          )
    (input clk_i

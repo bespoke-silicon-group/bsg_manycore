@@ -10,6 +10,16 @@ ifeq ($(BSG_MANYCORE_DIR),)
 $(error BSG_MANYCORE_DIR must be defined)
 endif
 
+ifeq ($(shell /bin/domainname),B.B)
+include $(CAD_DIR)/common/mk/cadenv.mk
+
+BSG-SIM-TOOL=vcs
+else
+BSG-SIM-TOOL=vivado
+endif
+
+$(warning $(BSG-SIM-TOOL))
+
 
 VSCALE_SRC    = $(VSCALE_DIR)/src/main/verilog
 
@@ -28,12 +38,12 @@ DESIGN_SRCS = \
     bsg_misc/bsg_circular_ptr.v bsg_mem/bsg_mem_1r1w.v bsg_mem/bsg_mem_banked_crossbar.v bsg_dataflow/bsg_fifo_tracker.v          \
     bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v bsg_mem/bsg_mem_1rw_sync.v bsg_dataflow/bsg_fifo_1r1w_small.v bsg_dataflow/bsg_two_fifo.v \
     bsg_test/bsg_nonsynth_clock_gen.v bsg_test/bsg_nonsynth_reset_gen.v bsg_noc/bsg_mesh_router.v bsg_noc/bsg_mesh_stitch.v bsg_noc/bsg_mesh_to_ring_stitch.v bsg_noc/bsg_mesh_router_buffered.v bsg_misc/bsg_decode_with_v.v bsg_misc/bsg_decode.v bsg_misc/bsg_dff_reset_en.v\
-    bsg_mem/bsg_mem_1r1w.v bsg_dataflow/bsg_fifo_tracker.v)\
+   bsg_dataflow/bsg_fifo_tracker.v)\
   $(addprefix $(BSG_MANYCORE_DIR)/v/vscale/, vscale_pipeline.v vscale_ctrl.v) \
   $(addprefix $(VSCALE_SRC)/, vscale_regfile.v vscale_src_a_mux.v vscale_src_b_mux.v vscale_imm_gen.v vscale_alu.v          \
     vscale_mul_div.v vscale_csr_file.v vscale_PC_mux.v)                                           \
   $(addprefix $(BSG_MANYCORE_DIR)/v/,  bsg_vscale_pkg.v bsg_vscale_core.v bsg_manycore_hetero_socket.v bsg_manycore_proc.v bsg_manycore_mesh.v bsg_manycore_mesh_node.v bsg_manycore.v bsg_manycore_pkt_encode.v bsg_manycore_pkt_decode.v bsg_manycore_endpoint.v bsg_manycore_endpoint_standard.v bsg_manycore_link_sif_tieoff.v bsg_manycore_accel_default.v )           \
-  $(addprefix $(BSG_MANYCORE_DIR)/testbenches/common/v/, bsg_manycore_spmd_loader.v bsg_nonsynth_manycore_monitor.v bsg_manycore_wrapped.v bsg_manycore_vscale_pipeline_trace.v bsg_manycore_proc_trace.v bsg_manycore_tile_trace.v)
+  $(addprefix $(BSG_MANYCORE_DIR)/testbenches/common/v/, bsg_manycore_spmd_loader.v bsg_nonsynth_manycore_monitor.v bsg_manycore_vscale_pipeline_trace.v bsg_manycore_proc_trace.v bsg_manycore_tile_trace.v)
 
 TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/basic/test_bsg_manycore.v
 
@@ -44,7 +54,11 @@ endif
 bsg_rom_%.v: %.bin
 	python $(BSG_ROM_GEN) $< bsg_rom_$* zero > $@
 
-%.run:  bsg_rom_%.v
+%.vivado.run:  bsg_rom_%.v
 	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) bsg_rom_$*.v $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y) $(VLOG_EXTRA)
 	$(VELAB) test_bsg_manycore | grep -v Compiling
 	$(VSIM) $(TEE-CMD)
+
+%.run: bsg_rom_%.v
+	$(VCS) -full64 -sverilog  -top test_bsg_manycore $(DESIGN_HDRS) $(DESIGN_SRCS)   $(TOP_LEVEL) $< +define+SPMD=$* +define+bsg_tiles_X=$(bsg_tiles_X) +define+bsg_tiles_Y=$(bsg_tiles_Y) +incdir+$(BSG_IP_CORES_DIR)/bsg_misc  +incdir+$(BSG_IP_CORES_DIR)/bsg_noc +incdir+$(BSG_MANYCORE_DIR)/v +incdir+$(BSG_MANYCORE_DIR)/imports/vscale/src/main/verilog $(VLOG_EXTRA)
+	./simv

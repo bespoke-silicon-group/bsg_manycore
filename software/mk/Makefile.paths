@@ -1,5 +1,6 @@
 VSCALE_DIR = $(BSG_MANYCORE_DIR)/imports/vscale
 BSG_IP_CORES_DIR = $(BSG_MANYCORE_DIR)/../bsg_ip_cores
-RISCV_BIN_DIR = $(BSG_MANYCORE_DIR)/../../riscv-tools/riscv-install/bin
+RISCV_BIN_DIR = $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install/bin
+CAD_DIR = $(BSG_MANYCORE_DIR)/../cad
 
 

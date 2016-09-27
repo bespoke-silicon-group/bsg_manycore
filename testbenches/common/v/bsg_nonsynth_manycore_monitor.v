@@ -79,21 +79,21 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
 
    assign finish_o = finish_r;
 
-   always_ff @(posedge clk_i)
+   always @(posedge clk_i)
      finish_r_r <= finish_r;
 
    always_ff @(posedge clk_i)
      if (finish_r_r)
        $finish();
 
-   always_ff @(negedge clk_i)
+   always @(negedge clk_i)
      if (cycle_count_i > max_cycles_p)
        begin
           $display("## TIMEOUT reached max_cycles_p = %x",max_cycles_p);
           finish_r <= 1'b1;
        end
 
-   always_ff @(negedge clk_i)
+   always @(negedge clk_i)
      if (reset_i == 0)
        begin
           if (cgni_v)
