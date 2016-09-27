@@ -175,10 +175,12 @@ module  bsg_manycore_links_to_fsb
 
    bsg_fsb_pkt_client_s out_pkt;
 
+   // synopsys translate_off
    initial
      assert($bits(bsg_fsb_pkt_client_s)==ring_width_p)
        else $error("bsg_fsb_pkt_client_s and ring_width_p do not line up",$bits(bsg_fsb_pkt_client_s),ring_width_p);
-
+   // synopsys translate_on
+   
    localparam bsg_fsb_pkt_client_s_data_size_lp = $bits(bsg_fsb_pkt_client_data_t);
 
    assign out_pkt.destid = dest_id_p;

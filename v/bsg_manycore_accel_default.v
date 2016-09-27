@@ -187,6 +187,7 @@ module bsg_manycore_accel_default #(
 
    localparam accel_debug_p=1;
 
+   // synopsys_translate_off
    if (accel_debug_p)
    always @(negedge clk_i)
      begin
@@ -196,6 +197,7 @@ module bsg_manycore_accel_default #(
                  , out_v_li, out_packet_li, out_ready_lo
                  );
      end
+   // synopsys_translate_on
 
    // ****************************************************************
    // * CUSTOMIZE BELOW (and above, if you need to)

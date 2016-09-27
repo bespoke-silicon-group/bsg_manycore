@@ -112,7 +112,9 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
              // copy address; ignore byte bits
              core_mem_reservation_r  <= 1'b1;
              core_mem_reserve_addr_r <= core_mem_addr[1][2+:addr_width_p];
+             // synopsys translate_off
              $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr[1] << 2);
+             // synopsys translate_on
           end
         else
           // otherwise, we clear existing reservations if the corresponding
@@ -121,7 +123,9 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
              if (in_v_lo && (core_mem_reserve_addr_r == in_addr_lo) && in_yumi_li)
                begin
                   core_mem_reservation_r  <= 1'b0;
+                  // synopsys translate_off
                   $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r);
+                  // synopsys translate_on
                end
           end
      end
@@ -238,6 +242,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                                                        };
    wire [2:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask[1], in_mask_lo, core_mem_mask[0] };
 
+   // synopsys translate_off
    always @(negedge clk_i)
      if (0)
      begin
@@ -254,6 +259,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                    ,core_mem_rdata[1], core_mem_rdata[0]
                    );
      end
+   // synopsys translate_on
 
    // the swizzle function changes how addresses are mapped to banks
    wire [2:0] [mem_width_lp-1:0] xbar_port_addr_in_swizzled;

@@ -5,53 +5,53 @@
 `include "vscale_md_constants.vh"
 
 module vscale_ctrl(
-                   input 			      clk,
-                   input 			      reset,
-                   input 			      freeze,
-                   input [`INST_WIDTH-1:0] 	      inst_DX,
-                   input 			      imem_wait,
-                   input 			      imem_badmem_e,
-                   input 			      dmem_wait,
-                   input 			      dmem_badmem_e,
-                   input 			      cmp_true,
-                   input [`PRV_WIDTH-1:0] 	      prv,
+                   input                              clk,
+                   input                              reset,
+                   input                              freeze,
+                   input [`INST_WIDTH-1:0]            inst_DX,
+                   input                              imem_wait,
+                   input                              imem_badmem_e,
+                   input                              dmem_wait,
+                   input                              dmem_badmem_e,
+                   input                              cmp_true,
+                   input [`PRV_WIDTH-1:0]             prv,
                    output reg [`PC_SRC_SEL_WIDTH-1:0] PC_src_sel,
                    output reg [`IMM_TYPE_WIDTH-1:0]   imm_type,
-                   output 			      bypass_rs1,
-                   output 			      bypass_rs2,
+                   output                             bypass_rs1,
+                   output                             bypass_rs2,
                    output reg [`SRC_A_SEL_WIDTH-1:0]  src_a_sel,
                    output reg [`SRC_B_SEL_WIDTH-1:0]  src_b_sel,
                    output reg [`ALU_OP_WIDTH-1:0]     alu_op,
-                   output wire 			      dmem_en,
-                   output wire 			      dmem_wen,
-                   output wire 			      dmem_reserve_en,
-                   input 			      dmem_reservation_i,
-                   output wire [2:0] 		      dmem_size,
+                   output wire                        dmem_en,
+                   output wire                        dmem_wen,
+                   output wire                        dmem_reserve_en,
+                   input                              dmem_reservation_i,
+                   output wire [2:0]                  dmem_size,
                    output wire [`MEM_TYPE_WIDTH-1:0]  dmem_type,
-                   output 			      md_req_valid,
-                   input 			      md_req_ready,
-                   output reg 			      md_req_in_1_signed,
-                   output reg 			      md_req_in_2_signed,
+                   output                             md_req_valid,
+                   input                              md_req_ready,
+                   output reg                         md_req_in_1_signed,
+                   output reg                         md_req_in_2_signed,
                    output reg [`MD_OP_WIDTH-1:0]      md_req_op,
                    output reg [`MD_OUT_SEL_WIDTH-1:0] md_req_out_sel,
-                   input 			      md_resp_valid,
-                   output wire 			      eret,
+                   input                              md_resp_valid,
+                   output wire                        eret,
                    output reg [`CSR_CMD_WIDTH-1:0]    csr_cmd,
-                   output reg 			      csr_imm_sel,
-                   input 			      illegal_csr_access,
-                   output wire 			      wr_reg_WB,
+                   output reg                         csr_imm_sel,
+                   input                              illegal_csr_access,
+                   output wire                        wr_reg_WB,
                    output reg [`REG_ADDR_WIDTH-1:0]   reg_to_wr_WB,
                    output reg [`WB_SRC_SEL_WIDTH-1:0] wb_src_sel_WB,
-                   output wire 			      stall_IF,
-                   output wire 			      kill_IF,
-                   output wire 			      stall_DX,
-                   output wire 			      kill_DX,
-                   output wire 			      stall_WB,
-                   output wire 			      kill_WB,
-                   output wire 			      exception_WB,
+                   output wire                        stall_IF,
+                   output wire                        kill_IF,
+                   output wire                        stall_DX,
+                   output wire                        kill_DX,
+                   output wire                        stall_WB,
+                   output wire                        kill_WB,
+                   output wire                        exception_WB,
                    output wire [`ECODE_WIDTH-1:0]     exception_code_WB,
-                   output wire 			      retire_WB,
-		   input 			      outstanding_stores_i
+                   output wire                        retire_WB,
+                   input                              outstanding_stores_i
                    );
 
    // IF stage ctrl pipeline registers
@@ -371,9 +371,11 @@ module vscale_ctrl(
       endcase // case (opcode)
    end // always @ (*)
 
+   // synopsys translate_off
    always @(negedge clk)
      if (illegal_instruction)
        $display("%m illegal instruction %x",inst_DX);
+   // synopsys translate_on
 
    assign add_or_sub = ((opcode == `RV32_OP) && (funct7[5])) ? `ALU_OP_SUB : `ALU_OP_ADD;
    assign srl_or_sra = (funct7[5]) ? `ALU_OP_SRA : `ALU_OP_SRL;

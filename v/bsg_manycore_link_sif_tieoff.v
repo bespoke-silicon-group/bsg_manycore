@@ -58,6 +58,7 @@ module bsg_manycore_link_sif_tieoff
    // absorb all outgoing return packets; they will disappear into the night
    assign link_sif_o_cast.rev.ready_and_rev = 1'b1;
 
+   // synopsys translate_off
    always_ff @(negedge clk_i)
      begin
         if (!reset_i)
@@ -68,5 +69,6 @@ module bsg_manycore_link_sif_tieoff
                $error("%m unexpected return data %x to tied off port; absorbing",link_sif_i_cast.rev.data);
           end
      end
+   // synopsys translate_on
 
 endmodule // bsg_manycore_link_sif_tieoff
