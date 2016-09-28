@@ -42,6 +42,9 @@ build-riscv-tools:
 	cd rocket-chip/riscv-tools; ./build.sh | tee $@.log
 
 clean:
+	rm -rf riscv-install
+
+really-clean: clean
 	rm -rf rocket-chip
 
 
