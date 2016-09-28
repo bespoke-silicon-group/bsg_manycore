@@ -1,6 +1,6 @@
 
-bsg_tiles_X = 4
-bsg_tiles_Y = 4
+bsg_tiles_X = 2
+bsg_tiles_Y = 1
 
 include ../Makefile.include
 

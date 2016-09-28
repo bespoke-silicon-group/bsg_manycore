@@ -6,6 +6,9 @@
 `define MEM_SIZE   32768
 `define BANK_SIZE  1024   // in words
 `define BANK_NUM   8
+//`define BANK_SIZE  2048   // in words
+//`define BANK_NUM   4
+
 `ifndef bsg_tiles_X
 `error bsg_tiles_X must be defined; pass it in through the makefile
 `endif
@@ -16,158 +19,11 @@
 
 `define MAX_CYCLES 1000000
 
-/*
-  module vscale_pipeline_trace
-      #(parameter x_cord_width_p = "inv"
-        , y_cord_width_p = "inv")
- (input clk_i
-  , input [31:0] PC_IF
-  , input wr_reg_WB
-  , input [4:0] reg_to_wr_WB
-  , input [31:0] wb_data_WB
-  , input stall_WB
-  , input imem_wait
-  , input dmem_wait
-  , input dmem_en
-  , input [3:0] exception_code_WB
-  , input [31:0] imem_addr
-  , input [31:0] imem_rdata
-  , input freeze
-   ,input   [x_cord_width_p-1:0] my_x_i
-   ,input   [y_cord_width_p-1:0] my_y_i
-  );
-
-   always @(negedge clk_i)
-     begin
-        if (~freeze)
-          begin
-             $fwrite(1,"x=%x y=%x PC_IF=%4.4x imem_wait=%x dmem_wait=%x dmem_en=%x exception_code_WB=%x imem_addr=%x imem_data=%x replay_IF=%x stall_IF=%x stall_DX "
-                     ,my_x_i, my_y_i,PC_IF,imem_wait,dmem_wait,dmem_en,exception_code_WB, imem_addr, imem_rdata, ctrl.replay_IF, ctrl.stall_IF, ctrl.stall_DX);
-             if (wr_reg_WB & ~stall_WB & (reg_to_wr_WB != 0))
-               $fwrite(1,"r[%2.2x]=%x ",reg_to_wr_WB,wb_data_WB);
-             $fwrite(1,"\n");
-          end
-     end
-endmodule
-*/
-module bsg_manycore_tile_trace #(packet_width_lp="inv"
-                                 ,x_cord_width_p="inv"
-                                 ,y_cord_width_p="inv"
-                                 ,addr_width_p="inv"
-                                 ,data_width_p="inv"
-                                 ,dirs_lp=4)
-   (input clk_i
-    , input [dirs_lp-1:0][packet_width_lp-1:0] data_o
-    , input [dirs_lp-1:0] ready_i
-    , input [dirs_lp-1:0] v_o
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
-    , input freeze
-    );
-
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-
-   bsg_manycore_packet_s [dirs_lp-1:0] pkt;
-   assign pkt = data_o;
-
-   genvar i;
-
-//   if (0)
-   always @(negedge clk_i)
-     begin
-        if (~freeze & (|(ready_i & v_o)))
-          begin
-             $fwrite(1,"%x ", bmm.trace_count);
-             $fwrite(1,"YX=%x,%x r ", my_y_i,my_x_i);
-             if (v_o[0] & ready_i[0])
-               $fwrite(1,"W<-{%1.1x,%8.8x,%8.8x,YX={%x,%x}}",pkt[0].op,pkt[0].addr,pkt[0].data,pkt[0].y_cord,pkt[0].x_cord);
-             if (v_o[1] & ready_i[1])
-               $fwrite(1,"E<-{%1.1x,%8.8x,%8.8x,YX={%x,%x}}",pkt[1].op,pkt[1].addr,pkt[1].data,pkt[1].y_cord,pkt[1].x_cord);
-             if (v_o[2] & ready_i[2])
-               $fwrite(1,"N<-{%1.1x,%8.8x,%8.8x,YX={%x,%x}}",pkt[2].op,pkt[2].addr,pkt[2].data,pkt[2].y_cord,pkt[2].x_cord);
-             if (v_o[3] & ready_i[3])
-               $fwrite(1,"S<-{%1.1x,%8.8x,%8.8x,YX={%x,%x}}",pkt[3].op,pkt[3].addr,pkt[3].data,pkt[3].y_cord,pkt[3].x_cord);
-             $fwrite(1,"\n");
-
-          end
-     end
-endmodule
-
-module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
-                                 , data_width_p=-1
-                                 , addr_width_p="inv"
-                                 , x_cord_width_p="inv"
-                                 , y_cord_width_p="inv"
-                                 , packet_width_lp="inv")
-  (input clk_i
-   , input [1:0] xbar_port_v_in
-   , input [1:0][mem_width_lp-1:0] xbar_port_addr_in
-   , input [1:0][data_width_p-1:0] xbar_port_data_in
-   , input [1:0][(data_width_p>>3)-1:0] xbar_port_mask_in
-   , input [1:0] xbar_port_we_in
-   , input [1:0] xbar_port_yumi_out
-   , input [x_cord_width_p-1:0] my_x_i
-   , input [y_cord_width_p-1:0] my_y_i
-   , input v_out
-   , input [packet_width_lp-1:0] data_out
-   , input v_in
-   , input [packet_width_lp-1:0] data_in
-   , input freeze_r
-   );
 
 
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
-   bsg_manycore_packet_s [1:0] packets;
-
-   genvar i;
-
-   logic [1:0] logwrite;
-   logic [1:0] conflicts;
-
-//   if (0)
-   always @(negedge clk_i)
-     begin
-        logwrite = { (xbar_port_we_in[0] & xbar_port_yumi_out[0])
-                     ,xbar_port_we_in[1] & xbar_port_yumi_out[1]
-          };
-
-        conflicts = xbar_port_yumi_out ^ xbar_port_v_in;
-
-        if (~freeze_r & ((|logwrite)| v_in | v_out | (|conflicts)))
-          begin
-             $fwrite(1,"%x ", bmm.trace_count);
-             $fwrite(1,"YX=%x,%x ", my_y_i,my_x_i);
-
-             if (logwrite[0])
-               $fwrite(1,"D%1.1x[%x,%b]=%x, ", 1,{ xbar_port_addr_in[1],2'b00},xbar_port_mask_in[1],xbar_port_data_in[1]);
-
-             if (logwrite[1])
-               $fwrite(1,"D%1.1x[%x,%b]=%x, ", 0,{ xbar_port_addr_in[0],2'b00},xbar_port_mask_in[0],xbar_port_data_in[0]);
-
-             if (~|logwrite)
-               $fwrite(1,"                   ");
-
-             packets = {data_in, data_out};
-
-             if (v_in)
-               $fwrite(1,"<-{%2.2b,%4.4b %8.8x,%8.8x,YX={%x,%x}} "
-                       ,packets[1].op,packets[1].op_ex,packets[1].addr,packets[1].data,packets[1].y_cord,packets[1].x_cord);
-
-             if (v_out)
-               $fwrite(1,"->{%2.2b,%4.4b %8.8x,%8.8x,YX={%x,%x}} "
-                       ,packets[0].op,packets[0].op_ex,packets[0].addr,packets[0].data,packets[0].y_cord,packets[0].x_cord);
-
-             // detect bank conflicts
-
-             if (|conflicts)
-               $fwrite(1,"C%b",conflicts);
-
-             $fwrite(1,"\n");
-          end // if (xbar_port_yumi_out[1]...
-     end
-endmodule
-
+`ifdef ENABLE_TRACE
+`endif  // TRACE
 
 module test_bsg_manycore;
 
@@ -180,15 +36,15 @@ module test_bsg_manycore;
    localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
    localparam num_banks_lp    = `BANK_NUM;
    localparam data_width_lp   = 32;
-   localparam addr_width_lp   = 32;
+   localparam addr_width_lp   = 20;
    localparam num_tiles_x_lp  = `bsg_tiles_X;
    localparam num_tiles_y_lp  = `bsg_tiles_Y;
    localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
    localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + 1);
-   localparam packet_width_lp = 6 + lg_node_x_lp + lg_node_y_lp
-                                + data_width_lp + addr_width_lp;
+   localparam packet_width_lp        = `bsg_manycore_packet_width       (addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp);
+   localparam return_packet_width_lp = `bsg_manycore_return_packet_width(lg_node_x_lp, lg_node_y_lp);
    localparam cycle_time_lp   = 20;
-   //localparam trace_vscale_pipeline_lp=0;
+   localparam trace_vscale_pipeline_lp=0;
    localparam trace_manycore_tile_lp=0;
    localparam trace_manycore_proc_lp=0;
 
@@ -196,23 +52,23 @@ module test_bsg_manycore;
 
    if (trace_manycore_tile_lp)
      bind bsg_manycore_tile  bsg_manycore_tile_trace #(.packet_width_lp(packet_width_lp)
+                                                       ,.return_packet_width_lp(return_packet_width_lp)
                                                        ,.x_cord_width_p(x_cord_width_p)
                                                        ,.y_cord_width_p(y_cord_width_p)
                                                        ,.addr_width_p(addr_width_p)
                                                        ,.data_width_p(data_width_p)
+                                                       ,.bsg_manycore_link_sif_width_lp(bsg_manycore_link_sif_width_lp)
                                                        ) bmtt
        (.clk_i
-        ,.data_o
-        ,.ready_i
-        ,.v_o
+        ,.links_sif_i
+        ,.links_sif_o
         ,.my_x_i
         ,.my_y_i
         ,.freeze(freeze)
         );
 
-   /*
    if (trace_vscale_pipeline_lp)
-     bind   vscale_pipeline vscale_pipeline_trace #(.x_cord_width_p(x_cord_width_p)
+     bind   vscale_pipeline bsg_manycore_vscale_pipeline_trace #(.x_cord_width_p(x_cord_width_p)
                                                     ,.y_cord_width_p(y_cord_width_p)
                                                     ) vscale_trace(clk
                                                                    ,PC_IF
@@ -230,8 +86,6 @@ module test_bsg_manycore;
                                                                    ,my_x_i
                                                                    ,my_y_i
                                                                    );
-   */
-
    if (trace_manycore_proc_lp)
      bind bsg_manycore_proc bsg_manycore_proc_trace #(.mem_width_lp(mem_width_lp)
                                                       ,.data_width_p(data_width_p)
@@ -239,6 +93,8 @@ module test_bsg_manycore;
                                                       ,.x_cord_width_p(x_cord_width_p)
                                                       ,.y_cord_width_p(y_cord_width_p)
                                                       ,.packet_width_lp(packet_width_lp)
+                                                      ,.return_packet_width_lp(return_packet_width_lp)
+                                                      ,.bsg_manycore_link_sif_width_lp(bsg_manycore_link_sif_width_lp)
                                                       ) proc_trace
        (clk_i
         ,xbar_port_v_in
@@ -249,13 +105,16 @@ module test_bsg_manycore;
         ,xbar_port_yumi_out
         ,my_x_i
         ,my_y_i
-        ,v_o
-        ,data_o
-        ,v_i
-        ,data_i
+        ,link_sif_i
+        ,link_sif_o
+
         ,freeze_r
+        ,cgni_v
+        ,cgni_data
         );
 
+
+   localparam num_nets_lp = 2;
 
   // clock and reset generation
   wire clk;
@@ -274,26 +133,18 @@ module test_bsg_manycore;
                            , .async_reset_o(reset)
                           );
 
-
-  logic [63:0]  trace_count;
-  logic [63:0]  load_count;
-  logic [255:0] reason;
   integer       stderr = 32'h80000002;
 
-  logic [addr_width_lp-1:0]   mem_addr;
-  logic [data_width_lp-1:0]   mem_data;
+   `declare_bsg_manycore_link_sif_s(addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp);
 
-  logic [packet_width_lp-1:0] test_data_in;
-  logic                       test_v_in;
+   bsg_manycore_link_sif_s [S:N][num_tiles_x_lp-1:0] ver_link_li, ver_link_lo;
+   bsg_manycore_link_sif_s [E:W][num_tiles_y_lp-1:0] hor_link_li, hor_link_lo;
 
-  logic [S:N][num_tiles_x_lp-1:0]                      ver_v_in, ver_v_out;
-  logic [S:N][num_tiles_x_lp-1:0]                      ver_ready_in;
-  logic [S:N][num_tiles_x_lp-1:0]                      ver_ready_out;
-  logic [S:N][num_tiles_x_lp-1:0][packet_width_lp-1:0] ver_data_in, ver_data_out;
-  logic [E:W][num_tiles_y_lp-1:0][packet_width_lp-1:0] hor_data_in;
-  logic [E:W][num_tiles_y_lp-1:0]                      hor_v_in;
-  logic [E:W][num_tiles_y_lp-1:0]                      hor_ready_out;
-  logic [E:W][num_tiles_y_lp-1:0]                      hor_ready_in;
+`define TOPLEVEL UUT.bm
+
+`ifndef BSG_HETERO_TYPE_VEC
+`define BSG_HETERO_TYPE_VEC 0
+`endif
 
   bsg_manycore #
     (
@@ -303,34 +154,29 @@ module test_bsg_manycore;
      ,.addr_width_p (addr_width_lp)
      ,.num_tiles_x_p(num_tiles_x_lp)
      ,.num_tiles_y_p(num_tiles_y_lp)
+     ,.hetero_type_vec_p(`BSG_HETERO_TYPE_VEC)
+     // currently west side is stubbed except for upper left tile
      ,.stub_w_p     ({{(num_tiles_y_lp-1){1'b1}}, 1'b0})
      ,.stub_e_p     ({num_tiles_y_lp{1'b1}})
-     ,.stub_n_p     ({num_tiles_x_lp{1'b1}}) // loads through N-side of (0,0)
-      // ,.stub_s_p     ({num_tiles_x_lp{1'b1}})
-      // no stubs for south side
-      ,.stub_s_p     ({num_tiles_x_lp{1'b0}})
-      ,.debug_p(debug_lp)
+     ,.stub_n_p     ({num_tiles_x_lp{1'b1}})
+
+     // south side is unstubbed
+     ,.stub_s_p     ({num_tiles_x_lp{1'b0}})
+     ,.debug_p(debug_lp)
     ) UUT
-    ( .clk_i   (clk)
-     ,.reset_i (reset)
+      ( .clk_i   (clk)
+        ,.reset_i (reset)
 
-     ,.ver_data_i (ver_data_in)
-     ,.ver_v_i  (ver_v_in )
-     ,.ver_ready_o  (ver_ready_out)
-     ,.ver_data_o (ver_data_out)
-     ,.ver_v_o  (ver_v_out)
+        ,.hor_link_sif_i(hor_link_li)
+        ,.hor_link_sif_o(hor_link_lo)
 
-      ,.ver_ready_i   (ver_ready_in)
+        ,.ver_link_sif_i(ver_link_li)
+        ,.ver_link_sif_o(ver_link_lo)
 
-     ,.hor_data_i (hor_data_in)
-     ,.hor_v_i  (hor_v_in)
-     ,.hor_ready_o  (hor_ready_out)
-     ,.hor_data_o ()
-     ,.hor_v_o  ()
-     ,.hor_ready_i   (hor_ready_in)
-    );
+        );
 
-   /*
+`ifdef PERF_COUNT
+   
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] imem_stalls;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] dmem_stalls;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] dx_stalls;
@@ -339,7 +185,8 @@ module test_bsg_manycore;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] cgni_full_cycles;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] cgno_full_cycles;
    logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] non_frozen_cycles;
-
+   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] cgno_credit_full_cycles;
+   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] min_store_credits;
 
    genvar                                               x,y;
 
@@ -350,115 +197,234 @@ module test_bsg_manycore;
           logic freeze_r;
 
           always @(negedge clk)
-            freeze_r <= UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze;
+            freeze_r <= `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze;
 
           always @(negedge clk)
             begin
-               if (freeze_r & ~UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze)
+               if (freeze_r & ~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze)
                  begin
                     imem_stalls[x][y]       <= 0;
                     dmem_stalls[x][y]       <= 0;
                     dx_stalls[x][y]         <= 0;
                     redirect_stalls  [x][y] <= 0;
-                    cgni_full_cycles [x][y] <= 0;
-                    cgno_full_cycles [x][y] <= 0;
+                    cgni_full_cycles [x][y]        <= 0;
+                    cgno_full_cycles [x][y]        <= 0;
+                    cgno_credit_full_cycles [x][y] <= 0;
                     non_frozen_cycles[x][y] <= 0;
-		    rsrv_stalls[x][y] <= 0;
-                 end
+                    rsrv_stalls[x][y]       <= 0;
+                    min_store_credits[x][y] <= 10000000;
+                end
                else
                  begin
-                    if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.imem_wait)
+                    if (min_store_credits[x][y] > `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.remote_store_credits)
+                      min_store_credits[x][y] <= `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.remote_store_credits;
+
+                    if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.imem_wait)
                       imem_stalls[x][y] <= imem_stalls[x][y]+1;
-                    if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_wait
-                        & UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_en)
+                    if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_wait
+                        & `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_en)
                       dmem_stalls[x][y] <= dmem_stalls[x][y]+1;
-		    else if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.dmem_reserve_acq_stall)
-		      rsrv_stalls[x][y] <= rsrv_stalls[x][y]+1;
-                    else if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.stall_DX_premem)
+                    else if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.dmem_reserve_acq_stall)
+                      rsrv_stalls[x][y] <= rsrv_stalls[x][y]+1;
+                    else if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.stall_DX_premem)
                       dx_stalls[x][y] <= dx_stalls[x][y]+1;
-                    else if (UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.redirect)
+                    else if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.redirect)
                       redirect_stalls[x][y] <= redirect_stalls[x][y]+1;
-                    if (~UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_o)
+                    if (~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_o[0])
                       cgni_full_cycles[x][y] <= cgni_full_cycles[x][y]+1;
-                    if (~UUT.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_i)
+                    if (~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_i[0])
                       cgno_full_cycles[x][y] <= cgno_full_cycles[x][y]+1;
-		    non_frozen_cycles[x][y] <= non_frozen_cycles[x][y]+1;
+                    if (~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_i[1])
+                      cgno_credit_full_cycles[x][y] <= cgno_credit_full_cycles[x][y]+1;
+
+                    non_frozen_cycles[x][y] <= non_frozen_cycles[x][y]+1;
                  end
                if (finish_lo)
                  begin
                     if (x == 0 && y == 0)
                       begin
+                         $display("\n");
                          $display("## PERFORMANCE DATA ###################################################");
+                         $display("##\n");
                          $display("## a. DMEM_stalls occur when writing to full network");
                          $display("## b. IMEM_stalls are bank conflicts with DMEM or remote_stores");
                          $display("## c. DX_stalls are bypass and load use stalls");
-                         $display("## d. redirect stalls are branch taken penalties");
+                         $display("## d. BT stalls are branch taken penalties");
                          $display("## e. cgni_full_cycles are cycles when processor input buffer is full");
                          $display("##      these are a result of remote_store/dmem bank conflicts and");
                          $display("##      indicate likely sources of network congestion");
                          $display("## f. cgno_full_cycles are cycles when processor output buffer is full");
-			 $display("## g. rsrv stalls are stalls waiting on lr.w.acquire instructions");
-			 $display("##    these are used for high-level flow-control");
-			 $display("##   keep in mind that polling causes instruction count to vary");
+                         $display("## g. rsrv stalls are stalls waiting on lr.w.acquire instructions");
+                         $display("##    these are used for high-level flow-control");
+                         $display("##   keep in mind that polling causes instruction count to vary\n");
+                         $display("##                                                        stalls                               full_cycles\n##");
+                         $display("##    X  Y     INSTRS     CYCLES |      DMEM       IMEM         DX         BT       RSRV |      CGNI       CGNO    Credit");
+                         $display("##   -- --  --------- ---------- |---------- ---------- ---------- ---------- ---------- |  -------- ---------- ---------");
                       end
 
-                    $display("## x,y=%2.2d,%2.2d, cycles=%d, stalls: DMEM=%d IMEM=%d DX=%d redirect=%d rsrv=%d, full_cycles: cgni=%d cgno=%d"
-                             ,x,y,non_frozen_cycles[x][y],dmem_stalls[x][y],imem_stalls[x][y],dx_stalls[x][y],redirect_stalls[x][y],rsrv_stalls[x][y],cgni_full_cycles[x][y],cgno_full_cycles[x][y]);
+                    $display("##   %2.2d,%2.2d  %9.9d %d |%d %d %d %d %d |%d %d %d"
+                             ,x,y,`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.csr.instret_full, non_frozen_cycles[x][y],dmem_stalls[x][y],imem_stalls[x][y],dx_stalls[x][y],redirect_stalls[x][y],rsrv_stalls[x][y],cgni_full_cycles[x][y],cgno_full_cycles[x][y],cgno_credit_full_cycles[x][y]);
+                    $display("##                         %-2.1f%%        %-2.1f%%       %-2.1f%%       %-2.1f%%       %-2.1f%%      %-2.1f%%       %-2.1f%%       %-2.1f%%     %-2.1f%%"
+                             , 100.0 * ((real' (non_frozen_cycles[x][y]) / (real' (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.csr.instret_full))))
+                             , 100.0 * ((real' (dmem_stalls      [x][y]) / (real' (non_frozen_cycles[x][y]))))
+                             , 100.0 * ((real' (imem_stalls      [x][y]) / (real' (non_frozen_cycles[x][y]))))
+                             , 100.0 * ((real' (dx_stalls        [x][y]) / (real' (non_frozen_cycles[x][y]))))
+                             , 100.0 * ((real' (redirect_stalls  [x][y]) / (real' (non_frozen_cycles[x][y]))))
+                             , 100.0 * ((real' (rsrv_stalls      [x][y]) / (real' (non_frozen_cycles[x][y]))))
+                             , 100.0 * ((real' (cgni_full_cycles [x][y]) / (real' (non_frozen_cycles[x][y]))))
+                             , 100.0 * ((real' (cgno_full_cycles [x][y]) / (real' (non_frozen_cycles[x][y]))))
+                             , 100.0 * ((real' (cgno_credit_full_cycles [x][y]) / (real' (non_frozen_cycles[x][y]))))
+                             );
+                    $display("##        minimum store credits: %d / %d ", min_store_credits[x][y], `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.max_remote_store_credits_p);
+
+                    if (x == num_tiles_x_lp-1 && y == num_tiles_y_lp-1)
+                      $display("##\n");
                  end
             end // always @ (negedge clk)
        end
-  */
 
-  bsg_manycore_spmd_loader
-    #( .mem_size_p    (mem_size_lp)
-       ,.num_rows_p    (num_tiles_y_lp)
-       ,.num_cols_p    (num_tiles_x_lp)
-       // go viral booting
-       //,.load_rows_p(1)
-       //,.load_cols_p(1)
+`endif
 
-       ,.data_width_p  (data_width_lp)
-       ,.addr_width_p  (addr_width_lp)
-       ,.tile_id_ptr_p (tile_id_ptr_lp)
-     ) spmd_loader
-     ( .clk_i     (clk)
-       ,.reset_i  (reset)
-       ,.data_o   (test_data_in)
-       ,.v_o      (test_v_in)
-       ,.ready_i  (hor_ready_out[W][0]                 )
-       ,.data_i   (mem_data)
-       ,.addr_o   (mem_addr)
-     );
+   wire [39:0] cycle_count;
 
-  `ROM(`SPMD)
-    #( .addr_width_p(addr_width_lp)
+   bsg_cycle_counter #(.width_p(40),.init_val_p(0))
+   cc (.clk(clk), .reset_i(reset), .ctr_r_o(cycle_count));
+
+   genvar                   i,j;
+
+   for (i = 0; i < num_tiles_y_lp; i=i+1)
+     begin: rof2
+
+        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp  )
+                                       ,.data_width_p  (data_width_lp  )
+                                       ,.x_cord_width_p(lg_node_x_lp)
+                                       ,.y_cord_width_p(lg_node_y_lp)
+                                       ) bmlst
+        (.clk_i(clk)
+         ,.reset_i(reset)
+         ,.link_sif_i(hor_link_lo[W][i])
+         ,.link_sif_o(hor_link_li[W][i])
+         );
+
+        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp  )
+                                       ,.data_width_p  (data_width_lp  )
+                                       ,.x_cord_width_p(lg_node_x_lp   )
+                                       ,.y_cord_width_p(lg_node_y_lp   )
+                                       ) bmlst2
+        (.clk_i(clk)
+         ,.reset_i(reset)
+         ,.link_sif_i(hor_link_lo[E][i])
+         ,.link_sif_o(hor_link_li[E][i])
+         );
+     end
+
+
+  logic [addr_width_lp-1:0]   mem_addr;
+  logic [data_width_lp-1:0]   mem_data;
+
+  logic [packet_width_lp-1:0] loader_data_lo;
+  logic                       loader_v_lo;
+  logic                       loader_ready_li;
+
+   bsg_manycore_spmd_loader
+     #( .mem_size_p    (mem_size_lp)
+        ,.num_rows_p    (num_tiles_y_lp)
+        ,.num_cols_p    (num_tiles_x_lp)
+        // go viral booting
+        //,.load_rows_p(1)
+        //,.load_cols_p(1)
+
+        ,.data_width_p  (data_width_lp)
+        ,.addr_width_p  (addr_width_lp)
+        ,.tile_id_ptr_p (tile_id_ptr_lp)
+        ) spmd_loader
+       ( .clk_i     (clk)
+         ,.reset_i  (reset)
+         ,.data_o   (loader_data_lo )
+         ,.v_o      (loader_v_lo    )
+         ,.ready_i  (loader_ready_li)
+         ,.data_i   (mem_data)
+         ,.addr_o   (mem_addr)
+         ,.my_x_i   ( lg_node_x_lp '(0) )
+         ,.my_y_i   ( lg_node_y_lp ' (num_tiles_y_lp) )
+         );
+
+   `ROM(`SPMD)
+   #( .addr_width_p(addr_width_lp)
       ,.width_p     (data_width_lp)
-     ) spmd_rom
+      ) spmd_rom
      ( .addr_i (mem_addr)
-      ,.data_o (mem_data)
-     );
+       ,.data_o (mem_data)
+       );
 
-  assign ver_data_in = (2*num_tiles_x_lp*packet_width_lp)'(0);
-  assign ver_v_in  = (2*num_tiles_x_lp)'(0);
-   // absorb all outgoing packets
-  assign ver_ready_in   = { (2*num_tiles_x_lp) {1'b1}};
-  assign hor_data_in = (2*num_tiles_y_lp*packet_width_lp)'(0) | test_data_in;
-  assign hor_v_in  = (2*num_tiles_y_lp)'(0) | test_v_in;
-   // absorb all outgoing packets
-  assign hor_ready_in   = { (2*num_tiles_y_lp) {1'b1}};
+   wire [num_tiles_x_lp-1:0] finish_lo_vec;
+   assign finish_lo = | finish_lo_vec;
 
-   bsg_nonsynth_manycore_monitor #(.xcord_width_p(lg_node_x_lp)
-                                   ,.ycord_width_p(lg_node_y_lp)
-                                   ,.addr_width_p(addr_width_lp)
-                                   ,.data_width_p(data_width_lp)
-                                   ,.num_channels_p(num_tiles_x_lp)
-                                   ,.max_cycles_p(max_cycles_lp)
-                                   ) bmm (.clk_i(clk)
-                                          ,.reset_i (reset)
-                                          ,.data_i(ver_data_out[S])
-                                          ,.v_i (ver_v_out [S])
-                                          ,.finish_o (finish_lo)
-                                          );
+   // we only set such a high number because we
+   // know these packets can always be consumed
+   // at the recipient and do not require any
+   // forwarded traffic. for an accelerator
+   // this would not be the case, and this
+   // number must be set to the same as the
+   // number of elements in the accelerator's
+   // input fifo
+
+   localparam spmd_max_out_credits_lp = 128;
+
+   for (i = 0; i < num_tiles_x_lp; i=i+1)
+     begin: rof
+        // tie off north side; which is inaccessible
+        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp)
+                                       ,.data_width_p  (data_width_lp)
+                                       ,.x_cord_width_p(lg_node_x_lp)
+                                       ,.y_cord_width_p(lg_node_y_lp)
+                                       ) bmlst3
+        (.clk_i(clk)
+         ,.reset_i(reset)
+         ,.link_sif_i(ver_link_lo[N][i])
+         ,.link_sif_o(ver_link_li[N][i])
+         );
+
+        wire pass_thru_ready_lo;
+
+        localparam credits_lp = (i==0) ? spmd_max_out_credits_lp : 4;
+
+        wire [`BSG_SAFE_CLOG2(credits_lp+1)-1:0] creds;
+
+        // hook up the ready signal if this is the SPMD loader
+        // we handle credits here but could do it in the SPMD module too
+
+        if (i==0)
+         begin: fi
+          assign loader_ready_li = pass_thru_ready_lo & (|creds);
+         end
+
+        bsg_nonsynth_manycore_monitor #(.x_cord_width_p (lg_node_x_lp)
+                                        ,.y_cord_width_p(lg_node_y_lp)
+                                        ,.addr_width_p  (addr_width_lp)
+                                        ,.data_width_p  (data_width_lp)
+                                        ,.channel_num_p (i)
+                                        ,.max_cycles_p(max_cycles_lp)
+                                        ,.pass_thru_p(i==0)
+                                        // for the SPMD loader we don't anticipate
+                                        // any backwards flow control; but for an
+                                        // accelerator, we must be much more careful about
+                                        // setting this
+                                        ,.pass_thru_max_out_credits_p (credits_lp)
+                                        ) bmm (.clk_i(clk)
+                                               ,.reset_i (reset)
+                                               ,.link_sif_i   (ver_link_lo[S][i])
+                                               ,.link_sif_o   (ver_link_li[S][i])
+                                               ,.pass_thru_data_i (loader_data_lo )
+                                               ,.pass_thru_v_i    (loader_v_lo    )
+                                               ,.pass_thru_ready_o(pass_thru_ready_lo)
+                                               ,.pass_thru_out_credits_o(creds)
+                                               ,.pass_thru_x_i(lg_node_x_lp '(i))
+                                               ,.pass_thru_y_i(lg_node_y_lp '(num_tiles_y_lp))
+                                               ,.cycle_count_i(cycle_count)
+                                               ,.finish_o     (finish_lo_vec[i])
+                                               );
+     end
 
 
 endmodule

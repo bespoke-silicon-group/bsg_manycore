@@ -35,8 +35,10 @@ module vscale_pipeline
                        output 			    htif_pcr_resp_valid,
                        input 			    htif_pcr_resp_ready,
                        output [`HTIF_PCR_WIDTH-1:0] htif_pcr_resp_data
-						    ,input [x_cord_width_p-1:0] my_x_i
-						    ,input [y_cord_width_p-1:0] my_y_i
+
+                       ,input outstanding_stores_i
+                       ,input [x_cord_width_p-1:0] my_x_i
+                       ,input [y_cord_width_p-1:0] my_y_i
                        );
 
    function [`XPR_LEN-1:0] store_data;
@@ -193,6 +195,7 @@ module vscale_pipeline
                     .illegal_csr_access(illegal_csr_access),
                     .prv(prv),
                     .eret(eret)
+		    ,.outstanding_stores_i(outstanding_stores_i)
                     );
 
 

@@ -50,7 +50,8 @@ module vscale_ctrl(
                    output wire                        kill_WB,
                    output wire                        exception_WB,
                    output wire [`ECODE_WIDTH-1:0]     exception_code_WB,
-                   output wire                        retire_WB
+                   output wire                        retire_WB,
+                   input                              outstanding_stores_i
                    );
 
    // IF stage ctrl pipeline registers
@@ -75,7 +76,7 @@ module vscale_ctrl(
    reg                                                ebreak;
    reg                                                ecall;
    reg                                                eret_unkilled;
-   reg                                                fence_i;
+   reg                                                fence_i, fence;
    wire [`ALU_OP_WIDTH-1:0]                           add_or_sub;
    wire [`ALU_OP_WIDTH-1:0]                           srl_or_sra;
    reg [`ALU_OP_WIDTH-1:0]                            alu_op_arith;
@@ -177,7 +178,9 @@ module vscale_ctrl(
 
    wire dmem_reserve_acq_stall = (dmem_reservation_i & dmem_reserve_acq_en_unkilled);
 
-   assign stall_DX_premem = (stall_WB || load_use || raw_on_busy_md || dmem_reserve_acq_stall
+   // outstanding_stores_i tracks if any remote stores are outstanding
+
+   assign stall_DX_premem = (stall_WB || load_use || raw_on_busy_md || dmem_reserve_acq_stall || (fence & outstanding_stores_i)
                      || (fence_i && store_in_WB) || (uses_md_unkilled && !md_req_ready)) && !exception;
    assign new_ex_DX = ebreak || ecall || illegal_instruction || illegal_csr_access;
    assign ex_DX = had_ex_DX || ((new_ex_DX) && !stall_DX); // TODO: add causes
@@ -220,6 +223,7 @@ module vscale_ctrl(
       ecall = 1'b0;
       ebreak = 1'b0;
       eret_unkilled = 1'b0;
+      fence   = 1'b0;
       fence_i = 1'b0;
       branch_taken_unkilled = 1'b0;
       jal_unkilled = 1'b0;
@@ -294,7 +298,7 @@ module vscale_ctrl(
            case (funct3)
              `RV32_FUNCT3_FENCE : begin
                 if ((inst_DX[31:28] == 0) && (rs1_addr == 0) && (reg_to_wr_DX == 0))
-                  ; // most fences are no-ops
+                  fence = 1'b1;
                 else
                   illegal_instruction = 1'b1;
              end
@@ -367,9 +371,11 @@ module vscale_ctrl(
       endcase // case (opcode)
    end // always @ (*)
 
+   // synopsys translate_off
    always @(negedge clk)
      if (illegal_instruction)
        $display("%m illegal instruction %x",inst_DX);
+   // synopsys translate_on
 
    assign add_or_sub = ((opcode == `RV32_OP) && (funct7[5])) ? `ALU_OP_SUB : `ALU_OP_ADD;
    assign srl_or_sra = (funct7[5]) ? `ALU_OP_SRA : `ALU_OP_SRL;

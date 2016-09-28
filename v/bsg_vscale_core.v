@@ -12,25 +12,29 @@ import bsg_vscale_pkg::*;
    // to banked crossbar
    ,output [1:0]                          m_v_o
    ,output [1:0]                          m_w_o
-   ,output                                m_reserve_1_o
-   ,input    m_reservation_i
-   ,output [1:0] [haddr_width_p-1:0]      m_addr_o
+   ,output [1:0] [haddr_width_p-1:0]      m_addr_o // this is 32 bits
    ,output [1:0] [hdata_width_p-1:0]      m_data_o
    ,output logic [1:0] [(hdata_width_p>>3)-1:0] m_mask_o
    ,input  [1:0]                          m_yumi_i
    ,input  [1:0]                          m_v_i
    ,input  [1:0] [hdata_width_p-1:0]      m_data_i
 
+   ,output                                m_reserve_1_o
+   ,input                                 m_reservation_i
+
+   ,input                                 outstanding_stores_i
+
    ,input   [x_cord_width_p-1:0] my_x_i
    ,input   [y_cord_width_p-1:0] my_y_i
   );
 
+   // synopsys translate_off
    if (0)
      always @(negedge clk_i)
        if (~freeze_i)
          $display("%m v=%x addr=%x mask=%b yumi=%b vi=%x, data_i=%x "
                   ,m_v_o[0], m_addr_o[0], m_mask_o[0], m_yumi_i[0], m_v_i[0], m_data_i[0]);
-
+   // synopsys translate_on
 
    assign m_data_o[0] = 0;
 
@@ -63,16 +67,22 @@ import bsg_vscale_pkg::*;
                              , ~(|m_addr_o[1][1:0])
                              };
          default:
-          if (m_v_o[1])
-            $error("%m unhandled dmem size %x", dmem_size);
+           m_mask_o[1] = 4'bX;
+
         endcase // unique case dmem_size
      end // always_comb
+
+   // synopsys translate_off
+   always @(negedge clk_i)
+     if (m_v_o[1] & (dmem_size > 2))
+       $error("%m unhandled dmem size %x", dmem_size);
 
    always @(negedge clk_i)
      if (~reset_i & m_v_o[1] )
        assert (~(dmem_size == 2 && (|m_addr_o[1][1:0]))
                && ~(dmem_size == 1 && (|m_addr_o[1][0])))
          else $error("%m unaligned access to %x",m_addr_o[1]);
+   // synopsys translate_on
 
    // the vscale_pipeline wants a _ready signal
    // but the crossbar requires a yumi signal
@@ -97,8 +107,8 @@ import bsg_vscale_pkg::*;
                       ,.dmem_wait      (~m_yumi_i[1]) // i
                       ,.dmem_en        (m_v_o[1])     // o
                       ,.dmem_wen       (m_w_o[1])     // o
-		      ,.dmem_reserve_en(m_reserve_1_o) // o
-		      ,.dmem_reservation_i(m_reservation_i)
+                      ,.dmem_reserve_en   (m_reserve_1_o  ) // o
+                      ,.dmem_reservation_i(m_reservation_i)
                       ,.dmem_size     (dmem_size)    // o
                       ,.dmem_addr     (m_addr_o[1])  // o
                       ,.dmem_wdata    (m_data_o[1])  // o
@@ -114,6 +124,8 @@ import bsg_vscale_pkg::*;
                       ,.htif_pcr_resp_valid()
                       ,.htif_pcr_resp_ready(1'b1)
                       ,.htif_pcr_resp_data ()
+
+                      ,.outstanding_stores_i(outstanding_stores_i)
                       ,.my_x_i(my_x_i)
                       ,.my_y_i(my_y_i)
     );

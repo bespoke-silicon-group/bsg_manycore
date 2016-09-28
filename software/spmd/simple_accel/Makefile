@@ -1,6 +1,13 @@
 
-bsg_tiles_X = 2
+bsg_tiles_X = 4
 bsg_tiles_Y = 1
+
+# configure which heterogeneous cores go where
+# 02..FF = your custom type
+# 01 = bsg_manycore_accel_default
+# 00 = bsg_manycore_proc
+
+VLOG_EXTRA = -d BSG_HETERO_TYPE_VEC="64'h01_01_01_00"
 
 RISCV_GCC_EXTRA_OPTS ?= -O2 -funroll-loops
 OBJECT_FILES=hello.o bsg_set_tile_x_y.o
@@ -12,9 +19,8 @@ hello.riscv:  $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) -o $@ $(RISCV_LINK_OPTS)
 
 clean:
-	-rm -rf $(OBJECT_FILES) *.jou *.log *.pb bsg_rom_hello.v hello.riscv *.wdb hello.bin hello.hex
+	-rm $(OBJECT_FILES) *.jou *.log *.pb bsg_rom_hello.v hello.riscv *.wdb hello.bin hello.hex
 	-rm -rf xsim.dir
-	-rm -rf simv csrc simv.daidir ucli.key
 
 hello.o: Makefile
 

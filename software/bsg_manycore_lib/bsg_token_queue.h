@@ -19,7 +19,6 @@
 //
 //
 
-// supports a max of 65,536 items
 typedef struct bsg_token_pair
 {
   int send;
@@ -59,10 +58,14 @@ inline int bsg_tq_sender_confirm(bsg_token_connection_t conn, int max_els, int d
 {
   int i = (conn.local_ptr)->send;
   int tmp =  - max_els + depth + i;
-  // wait while number of available elements
+
+  // wait until having the addition sent elements would not overflow the buffer
   //  bsg_wait_while((depth + i - bsg_volatile_access((conn.local_ptr)->receive)) > max_els);
 
-  bsg_wait_while((bsg_lr(&((conn.local_ptr)->receive)) < tmp) && (bsg_lr_aq(&((conn.local_ptr)->receive)) < tmp));
+  // these lines incorrect on wrap around because of modulo arithmetic
+  // bsg_wait_while((bsg_lr(&((conn.local_ptr)->receive)) < tmp) && (bsg_lr_aq(&((conn.local_ptr)->receive)) < tmp));
+
+  bsg_wait_while((tmp - bsg_lr(&((conn.local_ptr)->receive)) > 0) && (tmp - bsg_lr_aq(&((conn.local_ptr)->receive)) > 0));
 
   return i;
 }
@@ -74,15 +77,19 @@ inline int bsg_tq_sender_xfer(bsg_token_connection_t conn, int max_els, int dept
 {
   int   i = (conn.local_ptr)->send + depth;
 
+// MBT 9/18/16 fixme performance:  I believe in a sequentially consistent memory system
+// a fence should not be necessary if the data and the token queue are between
+// the same pair. but this requires more followup
+
   bsg_commit_stores();
-  
+
   // local version
   (conn.local_ptr)->send = i;
 
   // remote version
 
   *(conn.remote_ptr) = i;
-  
+
   return i;
 }
 
@@ -95,13 +102,17 @@ inline int bsg_tq_receiver_confirm(bsg_token_connection_t conn, int depth)
   //bsg_wait_while((bsg_volatile_access((conn.local_ptr)->send)-i) < depth);
   int tmp = depth+i;
 
-  bsg_wait_while((bsg_lr(&((conn.local_ptr)->send)) < tmp) && (bsg_lr_aq(&((conn.local_ptr)->send)) < tmp));
+  // this line is incorrect on wrap around; standard alegbra does not work in
+  // modulo arithmetic.
+
+  //bsg_wait_while((bsg_lr(&((conn.local_ptr)->send)) < tmp) && (bsg_lr_aq(&((conn.local_ptr)->send)) < tmp));
+
+  bsg_wait_while((bsg_lr(&((conn.local_ptr)->send))-tmp < 0) && (bsg_lr_aq(&((conn.local_ptr)->send))-tmp < 0));
 
   return i;
 }
 
 // return the addresses; assumes you have confirmed first
-
 inline void bsg_tq_receiver_release(bsg_token_connection_t conn, int depth)
 {
   int i = (conn.local_ptr)->receive+depth;

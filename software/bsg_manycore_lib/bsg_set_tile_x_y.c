@@ -8,7 +8,7 @@
 int bsg_x = -1;
 int bsg_y = -1;
 
-int bsg_set_tile_x_y()
+void bsg_set_tile_x_y()
 {
   volatile int *bsg_x_v = &bsg_x;
   volatile int *bsg_y_v = &bsg_y;
