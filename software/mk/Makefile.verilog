@@ -1,5 +1,5 @@
-#MANYCORE_PROC = VANILLA
-MANYCORE_PROC = VSCALE
+MANYCORE_PROC = VANILLA
+#MANYCORE_PROC = VSCALE
 
 ifeq ($(MANYCORE_PROC),VANILLA)
 BSG_FPU_OP    = -d bsg_FPU
@@ -28,9 +28,9 @@ VANILLA_SRC   = $(BSG_MANYCORE_DIR)/v/vanilla_bean
 
 ########################################
 # select the tools
-ifeq ($(shell /bin/domainname),b.b)
 include $(CAD_DIR)/common/mk/cadenv.mk
 
+ifeq ($(shell /bin/domainname),B.B)
 BSG-SIM-TOOL=vcs
 INC_OP		=+incdir+
 VCS_OP		=-full64 -sverilog
@@ -71,10 +71,6 @@ ifeq ($(BERKELEY_HARDFLOAT_DIR),)
 $(error BERKELEY_HARDFLOAT_DIR must be defined)
 endif
 
-SBT := $(shell command -v sbt 2> /dev/null)
-ifndef SBT
-$(error Please install sbt program)
-endif
 
 CHISEL_VERSION = 2.2.32
 
@@ -106,7 +102,7 @@ LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_noc_pkg.v
 
 LIST_VSCALE_INCS+= $(INC_OP)$(BSG_MANYCORE_DIR)/v/
 
-LIST_VALLINA_INCS =$(INC_OP)$(VANILLA_SRC)
+LIST_VANILLA_INCS =$(INC_OP)$(VANILLA_SRC)
 
 LIST_COMMON_INCS = $(INC_OP)$(BSG_MANYCORE_DIR)/v/
 LIST_COMMON_INCS+= $(INC_OP)$(VSCALE_SRC)   
@@ -124,13 +120,14 @@ LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_csr_file.v
 LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_PC_mux.v
 LIST_VSCALE_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_vscale_core.v
 
-LIST_VALLINA_SRCS =
+LIST_VANILLA_SRCS =
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/alu.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_decode.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_state_machine.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/hobbit.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/bsg_manycore_proc.v
 LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_2r1w.v
-LIST_VALLINA_SRCS+= $(LIST_FPU_SRCS)
+LIST_VANILLA_SRCS+= $(LIST_FPU_SRCS)
 
 LIST_COMMON_SRCS = $(BSG_IP_CORES_DIR)/bsg_misc/bsg_transpose.v 
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_crossbar_o_by_i.v
@@ -162,7 +159,7 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_clock_gen.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_reset_gen.v
 LIST_COMMON_SRCS+= $(VSCALE_SRC)/vscale_mul_div.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_hetero_socket.v
-LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_proc.v
+#LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_proc.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh.v 
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v 
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore.v
@@ -213,12 +210,12 @@ bsg_rom_%.v: %.bin
 
 
 
-%.vivado.run:  bsg_rom_%.v hardfloat_src
+%.vivado.run:  bsg_rom_%.v %.hardfloat_src
 	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) bsg_rom_$*.v $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y)
 	$(VELAB) test_bsg_manycore | grep -v Compiling
 	$(VSIM) $(TEE-CMD)
 
-%.run: bsg_rom_%.v hardfloat_src
+%.run: bsg_rom_%.v %.hardfloat_src
 	$(VCS) $(VCS_OP) \
      -top test_bsg_manycore 		\
     $(VCS_DEFINES)                  \
@@ -227,7 +224,7 @@ bsg_rom_%.v: %.bin
     $(TOP_LEVEL) $<                 
 	./simv
 
-hardfloat_src:
+%.hardfloat_src:
 ifneq ($(BSG_FPU_OP), )
 	@if [ ! -f $(HARDFLOAT_VSRC) ]; then \
 		$(call bsg_ucb_hardfloat_gen)  \
@@ -242,6 +239,7 @@ define bsg_ucb_hardfloat_gen
 	echo "===========================================================";\
 	echo  "Generating Verilog files from Berkeley Hardfloat ";\
 	echo "===========================================================";\
+																	   \
 	if [ -d ${BERKELEY_HARDFLOAT_DIR} ]; then \
 		cd $(BERKELEY_HARDFLOAT_DIR) && git reset --hard $(HARDFLOAT_VER) &&\
         git clean -fd; \
@@ -251,6 +249,13 @@ define bsg_ucb_hardfloat_gen
                  to $(BERKELEY_HARDFLOAT_DIR)";\
 		exit 1;\
 	fi; \
+                                                                                      \
     cd $(BERKELEY_HARDFLOAT_DIR) && git apply $(VANILLA_SRC)/bsg_ucb_hardfloat.patch; \
-	$(MAKE) -C $(BERKELEY_HARDFLOAT_DIR) bsg_ucb_hardfloat.v BSG_UCB_HARDFLOAT_DIR=$(HARDFLOAT_DIR) ;
+                                                                                      \
+	if command -v sbt > /dev/null 2>&1 ; then                                         \
+	    $(MAKE) -C $(BERKELEY_HARDFLOAT_DIR) bsg_ucb_hardfloat.v BSG_UCB_HARDFLOAT_DIR=$(HARDFLOAT_DIR) ;\
+    else                                                                              \
+		echo "Please install sbt program" && exit;                                    \
+    fi;                                                                               \
+	echo "===========================================================";               
 endef

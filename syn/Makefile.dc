@@ -1,0 +1,47 @@
+#SYN_SRCS= $(filter %.v, $(DESIGN_HDRS) )\
+#          $(BSG_MANYCORE_DIR)/testbenches/basic/syn_bsg_manycore.v \
+#          $(filter-out %monitor.v %loader.v %clock_gen.v %reset_gen.v, $(DESIGN_SRCS)) 
+#
+#SYN_SEARCH_PATH=$(filter-out -i %.v,$(DESIGN_HDRS) ) $(BSG_IP_CORES_DIR)/bsg_misc/
+
+SYN_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_defines.v
+SYN_SRCS+= $(VANILLA_SRC)/alu.v
+SYN_SRCS+= $(VANILLA_SRC)/cl_decode.v
+SYN_SRCS+= $(VANILLA_SRC)/cl_state_machine.v
+SYN_SRCS+= $(VANILLA_SRC)/hobbit.v
+SYN_SRCS+= $(VSCALE_SRC)/vscale_mul_div.v
+SYN_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_2r1w.v
+SYN_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync.v
+
+SYN_SEARCH_PATH=$(VANILLA_SRC)
+
+SYN_TOP=hobbit
+FPU_OP=
+CLK_PIN=clk
+
+PARA_STRING=\"imem_addr_width_p =\>  3, \
+              gw_ID_p           =\>  0, \
+              ring_ID_p         =\>  0, \
+              x_cord_width_p    =\>  1, \
+              y_cord_width_p    =\>  1, \
+              debug_p           =\>  0  \
+            \" 
+
+TCL_CMD="lappend search_path $(SYN_SEARCH_PATH) ; \
+		 set_app_var target_library {gtech.db};   \
+		 set_app_var synthetic_library {dw_foundation.sldb}; \
+		 set_app_var link_library  [list * $$target_library $$synthetic_library]; \
+		 set_host_options -max_cores 16; \
+         analyze -format sverilog $(FPU_OP) [ list $(SYN_SRCS) ] ;  \
+	     elaborate $(SYN_TOP) -parameter $(PARA_STRING) ;  \
+		 link;\
+		 create_clock -period 10000 $(CLK_PIN); \
+		 check_design ; \
+         compile -area_effort none -no_design_rule; \
+		 report_qor; \
+         exit " \
+
+
+
+%.syn: 
+	$(DC) -x $(TCL_CMD) | tee syn.log
