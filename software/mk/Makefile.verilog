@@ -231,6 +231,13 @@ ifneq ($(BSG_FPU_OP), )
 	fi
 endif
 
+%.vscale_src:
+	@if [ ! -f $(VSCALE_SRC)/vscale_mul_div.v ] ; then\
+		echo -e "========= Checking out vscale source =============\n"; \
+		git clone https://github.com/ucb-bar/vscale.git  $(BSG_MANYCORE_DIR)/imports/vscale; \
+		echo -e "==================================================\n"; \
+	fi
+
 
 ################################################
 # Generate the hardfloat files.

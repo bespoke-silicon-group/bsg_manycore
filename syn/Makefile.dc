@@ -43,5 +43,5 @@ TCL_CMD="lappend search_path $(SYN_SEARCH_PATH) ; \
 
 
 
-%.syn: 
+%.syn:%.vscale_src
 	$(DC) -x $(TCL_CMD) | tee syn.log
