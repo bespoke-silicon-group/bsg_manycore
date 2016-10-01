@@ -14,6 +14,10 @@
 
 `include "bsg_manycore_packet.vh"
 
+`ifdef bsg_FPU
+`include "float_definitions.v"
+`endif
+
 `define HETERO_TYPE_MACRO(BMC_TYPE,BMC_TYPE_MODULE)             \
    if (hetero_type_p == (BMC_TYPE))                             \
      begin: macro                                               \
@@ -24,7 +28,7 @@
                           ,.debug_p(debug_p)                    \
                           ,.bank_size_p(bank_size_p)            \
                           ,.num_banks_p(num_banks_p)            \
-			  ,.max_out_credits_p(max_out_credits_p)\
+            			  ,.max_out_credits_p(max_out_credits_p)\
                           ,.hetero_type_p(hetero_type_p)        \
                           ) mod                                 \
           (.clk_i                                               \
@@ -34,6 +38,10 @@
            ,.my_x_i                                             \
            ,.my_y_i                                             \
            ,.freeze_o                                           \
+ `ifdef bsg_FPU                                                 \
+           ,.fam_out_s_i                                        \
+           ,.fam_in_s_o                                         \
+ `endif                                                         \
            );                                                   \
      end
 
@@ -44,11 +52,11 @@ module bsg_manycore_hetero_socket #(x_cord_width_p      = "inv"
                                     , debug_p           = 0
                                     , bank_size_p       = "inv" // in words
                                     , num_banks_p       = "inv"
-				    , max_out_credits_p = 200
+                				    , max_out_credits_p = 200
                                     , hetero_type_p     = 1
                                     , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                     )
-   (input   clk_i
+   (  input   clk_i
     , input reset_i
 
     // input and output links
@@ -58,8 +66,13 @@ module bsg_manycore_hetero_socket #(x_cord_width_p      = "inv"
     // tile coordinates
     , input   [x_cord_width_p-1:0]                my_x_i
     , input   [y_cord_width_p-1:0]                my_y_i
-
     , output logic freeze_o
+
+ `ifdef bsg_FPU
+    , input  f_fam_out_s                         fam_out_s_i 
+    , output f_fam_in_s                          fam_in_s_o 
+ `endif
+
     );
 
    // add as many types as you like...

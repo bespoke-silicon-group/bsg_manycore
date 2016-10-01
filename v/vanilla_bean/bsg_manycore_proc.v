@@ -8,7 +8,6 @@ module bsg_manycore_proc #(x_cord_width_p   = -1
                            , y_cord_width_p = -1
                            , data_width_p   = 32
                            , addr_width_p   = 32
-                           , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
                            , debug_p           = -1
 
@@ -18,12 +17,19 @@ module bsg_manycore_proc #(x_cord_width_p   = -1
                            , imem_addr_width_lp = $clog2(imem_size_p)
                            , mem_width_lp = $clog2(bank_size_p) + $clog2(num_banks_p)
 
+                           , max_out_credits_p = 200  // 13 bit counter
+                           , hetero_type_p   = 0
+                           , packet_width_lp                = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                           , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
+                           , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width     (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+
                            // this is the size of the receive FIFO
                            , proc_fifo_els_p = 4
                            )
    (input   clk_i
     , input reset_i
 
+/*
     , input v_i
     , input [packet_width_lp-1:0] data_i
     , output ready_o
@@ -31,6 +37,10 @@ module bsg_manycore_proc #(x_cord_width_p   = -1
     , output v_o
     , output [packet_width_lp-1:0] data_o
     , input ready_i
+*/
+    // input and output links
+    , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
+    , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
     // tile coordinates
     , input   [x_cord_width_p-1:0] my_x_i
@@ -50,7 +60,34 @@ module bsg_manycore_proc #(x_cord_width_p   = -1
  
 `endif
 
+//////////////////////////////////////////////////////
+// Cast the data from  bsg_noc_link
+//
+logic  v_i                                 ;
+logic  [packet_width_lp-1:0] data_i        ;
+logic  ready_o                             ;
 
+logic  v_o                                 ;
+logic  [packet_width_lp-1:0] data_o        ;
+logic  ready_i                             ;
+
+
+`declare_bsg_ready_and_link_sif_s( packet_width_lp, noc_link_cast);
+
+noc_link_cast in_link_cast, out_link_cast;
+
+assign in_link_cast  = link_sif_i;
+assign link_sif_o    = out_link_cast ; 
+
+
+assign v_i      = in_link_cast.v;
+assign ready_i  = in_link_cast.ready_and_rev;
+assign data_i   = in_link_cast.data;
+
+assign out_link_cast.ready_and_rev  = ready_o;
+assign out_link_cast.v              = v_o;
+assign out_link_cast.data           = data_o;
+///////////////////////////////////////////////////////
   // synopsys translate_off
   initial
     assert((imem_size_p & imem_size_p-1) == 0)
@@ -263,6 +300,8 @@ module bsg_manycore_proc #(x_cord_width_p   = -1
       ,.addr_i (core_to_mem.addr)
       ,.we_i   (core_to_mem.wen)
       ,.mask_i (core_to_mem.mask)
+      ,.my_x_i  
+      ,.my_y_i
 
       // directly out to the network!
       ,.v_o    (v_o   )
