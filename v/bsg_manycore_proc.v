@@ -83,8 +83,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                                     ,.data_width_p  (data_width_p)
                                     ,.addr_width_p  (addr_width_p)
                                     ,.max_out_credits_p(max_out_credits_p)
-//                                    ,.debug_p(debug_p)
-                                    ,.debug_p(1)
+                                    ,.debug_p(debug_p)
+//                                    ,.debug_p(1)
                                     ) endp
    (.clk_i
     ,.reset_i

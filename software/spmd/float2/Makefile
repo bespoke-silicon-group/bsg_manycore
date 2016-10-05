@@ -15,6 +15,7 @@ hello.riscv:  $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
 clean:
 	-rm $(OBJECT_FILES) *.jou *.log *.pb bsg_rom_hello.v hello.riscv *.wdb hello.bin hello.hex
 	-rm -rf xsim.dir
+	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd
 
 hello.o: Makefile
 

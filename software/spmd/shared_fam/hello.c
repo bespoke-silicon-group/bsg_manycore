@@ -47,13 +47,13 @@ int main(int argc, char *argv[])
             break;
         } 
     if( error ){
-        bsg_remote_ptr_io_store(id, 0x0, 0x44444444 );
+        bsg_remote_ptr_io_store(0x0, 0x0, 0x44444444 );
         for(i=0;i<16;i++)
-            bsg_remote_ptr_io_store(id, 0x0, int_output_p[id*16 +i] );
-            bsg_remote_ptr_io_store(id, 0x0, 0x11111111 );
-            bsg_remote_ptr_io_store(id, 0x0, int_expect_p[id*16+ i] );
+            bsg_remote_ptr_io_store(0x0, 0x0, int_output_p[id*16 +i] );
+            bsg_remote_ptr_io_store(0x0, 0x0, 0x11111111 );
+            bsg_remote_ptr_io_store(0x0, 0x0, int_expect_p[id*16+ i] );
     }else{
-        bsg_remote_ptr_io_store(id, 0x0, 0x0 );
+        bsg_remote_ptr_io_store(0x0, 0x0, 0x0 );
     }
  
    /*The tile0 waits until other tiles finished */ 

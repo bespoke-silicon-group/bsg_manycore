@@ -1,10 +1,13 @@
 MANYCORE_PROC = VANILLA
 #MANYCORE_PROC = VSCALE
+BSG_FPU_OP       =0
 DVE=0
+
 #######################################
 ifeq ($(MANYCORE_PROC),VANILLA)
-BSG_FPU_OP       = -d bsg_FPU
-BERKELEY_TARGET  = \%.hardfloat_src
+ifeq ($(BSG_FPU_OP),1)
+BERKELEY_TARGET  =\%.hardfloat_src
+endif
 endif
 
 ########################################
@@ -40,7 +43,7 @@ VCS_DEFINES	= +define+SPMD=$*
 VCS_DEFINES+= +define+bsg_tiles_X=$(bsg_tiles_X)
 VCS_DEFINES+= +define+bsg_tiles_Y=$(bsg_tiles_Y) 
 
-ifneq ($(BSG_FPU_OP),)
+ifeq ($(BSG_FPU_OP),1)
 VCS_DEFINES+= +define+bsg_FPU
 endif
 
@@ -76,7 +79,7 @@ $(warning $(BSG-SIM-TOOL))
 
 #############################################################
 # Define the Chisel variables.
-ifneq ($(BSG_FPU_OP), )
+ifeq ($(BSG_FPU_OP),1)
 HARDFLOAT_DIR = $(VANILLA_SRC)/bsg_ucb_hardfloat
 HARDFLOAT_VSRC = $(HARDFLOAT_DIR)/bsg_ucb_hardfloat.v
 HARDFLOAT_SSRC = $(BERKELEY_HARDFLOAT_DIR)/src/main/scala/bsg_ucb_hardfloat.scala 
@@ -240,11 +243,9 @@ bsg_rom_%.v: %.bin
 	./simv
 
 %.hardfloat_src:
-ifneq ($(BSG_FPU_OP), )
 	@if [ ! -f $(HARDFLOAT_VSRC) ]; then \
 		$(call bsg_ucb_hardfloat_gen)  \
 	fi
-endif
 
 %.vscale_src:
 	@if [ ! -f $(VSCALE_SRC)/vscale_mul_div.v ] ; then\
