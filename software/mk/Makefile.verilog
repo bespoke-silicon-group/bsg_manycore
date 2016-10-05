@@ -1,6 +1,6 @@
 MANYCORE_PROC = VANILLA
 #MANYCORE_PROC = VSCALE
-BSG_FPU_OP       =0
+BSG_FPU_OP       =1
 DVE=0
 
 #######################################
@@ -129,7 +129,7 @@ LIST_COMMON_INCS+= $(INC_OP)$(BSG_IP_CORES_DIR)/bsg_misc
 
 LIST_VSCALE_SRCS = $(BSG_MANYCORE_DIR)/v/vscale/vscale_pipeline.v
 LIST_VSCALE_SRCS+= $(BSG_MANYCORE_DIR)/v/vscale/vscale_ctrl.v
-LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_regfile.v
+LIST_VSCALE_SRCS+= $(BSG_MANYCORE_DIR)/v/vscale/vscale_regfile.v
 LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_src_a_mux.v
 LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_src_b_mux.v
 LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_imm_gen.v
@@ -144,7 +144,6 @@ LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_decode.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_state_machine.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/hobbit.v
 #LIST_VANILLA_SRCS+= $(VANILLA_SRC)/bsg_manycore_proc.v
-LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_2r1w.v
 LIST_VANILLA_SRCS+= $(LIST_FPU_SRCS)
 
 LIST_COMMON_SRCS = $(BSG_IP_CORES_DIR)/bsg_misc/bsg_transpose.v 
@@ -163,6 +162,7 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode_with_v.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode.v 
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_dff_reset_en.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1r1w.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_2r1w.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_banked_crossbar.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync.v
@@ -192,6 +192,7 @@ LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycor
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_vscale_pipeline_trace.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_proc_trace.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_tile_trace.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_io_complex.v
 
 ###################################################################################
 #   Generate the real filelist

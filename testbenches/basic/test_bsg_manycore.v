@@ -285,11 +285,6 @@ module test_bsg_manycore;
 
 `endif
 
-   wire [39:0] cycle_count;
-
-   bsg_cycle_counter #(.width_p(40),.init_val_p(0))
-   cc (.clk(clk), .reset_i(reset), .ctr_r_o(cycle_count));
-
    genvar                   i,j;
 
    for (i = 0; i < num_tiles_y_lp; i=i+1)
@@ -319,58 +314,6 @@ module test_bsg_manycore;
      end
 
 
-  logic [addr_width_lp-1:0]   mem_addr;
-  logic [data_width_lp-1:0]   mem_data;
-
-  logic [packet_width_lp-1:0] loader_data_lo;
-  logic                       loader_v_lo;
-  logic                       loader_ready_li;
-
-   bsg_manycore_spmd_loader
-     #( .mem_size_p    (mem_size_lp)
-        ,.num_rows_p    (num_tiles_y_lp)
-        ,.num_cols_p    (num_tiles_x_lp)
-        // go viral booting
-        //,.load_rows_p(1)
-        //,.load_cols_p(1)
-
-        ,.data_width_p  (data_width_lp)
-        ,.addr_width_p  (addr_width_lp)
-        ,.tile_id_ptr_p (tile_id_ptr_lp)
-        ) spmd_loader
-       ( .clk_i     (clk)
-         ,.reset_i  (reset)
-         ,.data_o   (loader_data_lo )
-         ,.v_o      (loader_v_lo    )
-         ,.ready_i  (loader_ready_li)
-         ,.data_i   (mem_data)
-         ,.addr_o   (mem_addr)
-         ,.my_x_i   ( lg_node_x_lp '(0) )
-         ,.my_y_i   ( lg_node_y_lp ' (num_tiles_y_lp) )
-         );
-
-   `ROM(`SPMD)
-   #( .addr_width_p(addr_width_lp)
-      ,.width_p     (data_width_lp)
-      ) spmd_rom
-     ( .addr_i (mem_addr)
-       ,.data_o (mem_data)
-       );
-
-   wire [num_tiles_x_lp-1:0] finish_lo_vec;
-   assign finish_lo = | finish_lo_vec;
-
-   // we only set such a high number because we
-   // know these packets can always be consumed
-   // at the recipient and do not require any
-   // forwarded traffic. for an accelerator
-   // this would not be the case, and this
-   // number must be set to the same as the
-   // number of elements in the accelerator's
-   // input fifo
-
-   localparam spmd_max_out_credits_lp = 128;
-
    for (i = 0; i < num_tiles_x_lp; i=i+1)
      begin: rof
         // tie off north side; which is inaccessible
@@ -384,47 +327,23 @@ module test_bsg_manycore;
          ,.link_sif_i(ver_link_lo[N][i])
          ,.link_sif_o(ver_link_li[N][i])
          );
-
-        wire pass_thru_ready_lo;
-
-        localparam credits_lp = (i==0) ? spmd_max_out_credits_lp : 4;
-
-        wire [`BSG_SAFE_CLOG2(credits_lp+1)-1:0] creds;
-
-        // hook up the ready signal if this is the SPMD loader
-        // we handle credits here but could do it in the SPMD module too
-
-        if (i==0)
-         begin: fi
-          assign loader_ready_li = pass_thru_ready_lo & (|creds);
-         end
-
-        bsg_nonsynth_manycore_monitor #(.x_cord_width_p (lg_node_x_lp)
-                                        ,.y_cord_width_p(lg_node_y_lp)
-                                        ,.addr_width_p  (addr_width_lp)
-                                        ,.data_width_p  (data_width_lp)
-                                        ,.channel_num_p (i)
-                                        ,.max_cycles_p(max_cycles_lp)
-                                        ,.pass_thru_p(i==0)
-                                        // for the SPMD loader we don't anticipate
-                                        // any backwards flow control; but for an
-                                        // accelerator, we must be much more careful about
-                                        // setting this
-                                        ,.pass_thru_max_out_credits_p (credits_lp)
-                                        ) bmm (.clk_i(clk)
-                                               ,.reset_i (reset)
-                                               ,.link_sif_i   (ver_link_lo[S][i])
-                                               ,.link_sif_o   (ver_link_li[S][i])
-                                               ,.pass_thru_data_i (loader_data_lo )
-                                               ,.pass_thru_v_i    (loader_v_lo    )
-                                               ,.pass_thru_ready_o(pass_thru_ready_lo)
-                                               ,.pass_thru_out_credits_o(creds)
-                                               ,.pass_thru_x_i(lg_node_x_lp '(i))
-                                               ,.pass_thru_y_i(lg_node_y_lp '(num_tiles_y_lp))
-                                               ,.cycle_count_i(cycle_count)
-                                               ,.finish_o     (finish_lo_vec[i])
-                                               );
      end
+
+
+   bsg_nonsynth_manycore_io_complex
+     #( .mem_size_p  (mem_size_lp)
+        ,.addr_width_p(addr_width_lp)
+        ,.data_width_p(data_width_lp)
+	,.max_cycles_p(max_cycles_lp)
+        ,.num_tiles_x_p(num_tiles_x_lp)
+        ,.num_tiles_y_p(num_tiles_y_lp)
+	,.tile_id_ptr_p(tile_id_ptr_lp)
+        ) io
+   (.clk_i(clk)
+    ,.reset_i(reset)
+    ,.ver_link_sif_i(ver_link_lo[S])
+    ,.ver_link_sif_o(ver_link_li[S])
+    );
 
 
 endmodule

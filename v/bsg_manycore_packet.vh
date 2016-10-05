@@ -67,14 +67,14 @@
 // 4  dest id (we could reduce in future; but breaks some compatibility)
 // 1  cmd
 // 75 payload
-//    3 channel bits (x4 configs; fwd+rev channel)
+//    3 channel bits (x4 configs; fwd+rev channel)  (supports 4 exposed links)
 //    72 network payload
 //       20 address (= 1 M words = 4 MB)
 //        2 op
 //        4 mask
 //       32 data
 //        7 route sender --> 3+3+1 bits
-//        7 route dest   --> 3+3+1 bits
+//        7 route dest   --> 3+3+1 bits  (supports 8x8 mesh)
 //
 // For larger manycore arrays that are split across two chips (e.g. FPGA and ASIC
 // for NASA for a mesh "ADN"), we need to have a wider packet. Here is an encoding

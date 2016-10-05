@@ -20,7 +20,7 @@
 
 `define HETERO_TYPE_MACRO(BMC_TYPE,BMC_TYPE_MODULE)             \
    if (hetero_type_p == (BMC_TYPE))                             \
-     begin: macro                                               \
+     begin: h                                                   \
         BMC_TYPE_MODULE #(.x_cord_width_p(x_cord_width_p)       \
                           ,.y_cord_width_p(y_cord_width_p)      \
                           ,.data_width_p(data_width_p)          \
@@ -30,7 +30,7 @@
                           ,.num_banks_p(num_banks_p)            \
             			  ,.max_out_credits_p(max_out_credits_p)\
                           ,.hetero_type_p(hetero_type_p)        \
-                          ) mod                                 \
+                          ) z                                   \
           (.clk_i                                               \
            ,.reset_i                                            \
            ,.link_sif_i                                         \
@@ -85,7 +85,7 @@ module bsg_manycore_hetero_socket #(x_cord_width_p      = "inv"
    `HETERO_TYPE_MACRO(6,bsg_manycore_accel_default) else
    `HETERO_TYPE_MACRO(7,bsg_manycore_accel_default) else
    `HETERO_TYPE_MACRO(8,bsg_manycore_accel_default) else
-     begin : notmacro
+     begin : nh
         initial
           begin
              $error("## unidentified hetero core type ",hetero_type_p);

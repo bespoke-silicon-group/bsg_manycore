@@ -131,9 +131,9 @@ module bsg_manycore
 `endif
 
    for (r = 0; r < num_tiles_y_p; r = r+1)
-     begin: tile_row_gen
+     begin: y
         for (c = 0; c < num_tiles_x_p; c=c+1)
-          begin: tile_col_gen
+          begin: x
              bsg_manycore_hetero_socket #(
                                           .x_cord_width_p (x_cord_width_lp)
                                           ,.y_cord_width_p(y_cord_width_lp)

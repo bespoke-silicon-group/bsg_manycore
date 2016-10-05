@@ -473,7 +473,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
      ,.debug_p(0*4)  // mbt: debug, multiply addresses by 4.
 //      ,.debug_p(4)
 //     ,.debug_reads_p(0)
-    ) banked_crossbar
+    ) bnkd_xbar
     ( .clk_i    (clk_i)
      ,.reset_i  (reset_i)
       ,.v_i     (xbar_port_v_in)

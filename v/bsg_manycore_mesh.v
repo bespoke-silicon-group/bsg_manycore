@@ -85,9 +85,9 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   genvar r,c;
 
   for (r = 0; r < num_tiles_y_p; r = r+1)
-  begin: tile_row_gen
+  begin: y
     for (c = 0; c < num_tiles_x_p; c = c+1)
-    begin: tile_col_gen
+    begin: x
       bsg_manycore_mesh_node #
       (.stub_p        ({ (r == num_tiles_y_p-1) ? (((stub_s_p>>c) & 1'b1) == 1) : 1'b0  // s
                          ,(r == 0)               ? (((stub_n_p>>c) & 1'b1) == 1) : 1'b0 // n
@@ -100,7 +100,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
         ,.data_width_p   (data_width_p)
         ,.addr_width_p   (addr_width_p)
         ,.debug_p        (debug_p)
-       ) tile
+       ) rtr
        ( .clk_i (clk_i)
          ,.reset_i(reset_i)
 
