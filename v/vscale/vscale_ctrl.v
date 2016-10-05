@@ -373,7 +373,7 @@ module vscale_ctrl(
 
    // synopsys translate_off
    always @(negedge clk)
-     if (illegal_instruction)
+     if ((reset===1'b0) && illegal_instruction===1'b1)
        $display("%m illegal instruction %x",inst_DX);
    // synopsys translate_on
 
