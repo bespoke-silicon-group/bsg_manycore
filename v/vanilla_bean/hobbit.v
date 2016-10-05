@@ -563,7 +563,7 @@ begin
         md_out_sel = 2'b10;
       end
     
-    3'b111: // REMU
+    default://3'b111: // REMU
       begin
         md_op         = 2'b10;
         md_out_sel    = 2'b10;

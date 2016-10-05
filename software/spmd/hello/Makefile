@@ -12,7 +12,10 @@ hello.riscv:  hello.o $(SPMD_COMMON_OBJECTS) ../common/crt.o
 clean:
 	-rm -rf *.o *.jou *.log *.pb bsg_rom_hello.v hello.riscv *.wdb hello.bin hello.hex
 	-rm -rf xsim.dir
-	-rm -rf ./simv csrc simv.daidir ucli.key
+	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd
+
+dve64:
+	$(VCS_BIN)/dve -full64
 
 hello.o: Makefile
 

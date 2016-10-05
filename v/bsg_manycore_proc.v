@@ -1,5 +1,13 @@
 `include "bsg_manycore_packet.vh"
 
+`ifdef bsg_VANILLA
+`include "definitions.v"
+`endif
+
+`ifdef bsg_FPU
+ `include "float_definitions.v"
+`endif
+
 module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , y_cord_width_p = "inv"
                            , data_width_p   = 32
@@ -8,6 +16,8 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , bank_size_p    = "inv" // in words
                            , num_banks_p    = "inv"
 
+                           , imem_size_p        = bank_size_p // in words
+                           , imem_addr_width_lp = $clog2(imem_size_p)
                            // this credit counter is more for implementing memory fences
                            // than containing the number of outstanding remote stores
 
@@ -33,9 +43,24 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
      // tile coordinates
     , input   [x_cord_width_p-1:0]                my_x_i
     , input   [y_cord_width_p-1:0]                my_y_i
+`ifdef bsg_FPU
+    , input  f_fam_out_s           fam_out_s_i
+    , output f_fam_in_s            fam_in_s_o
+`endif
 
     , output logic freeze_o
     );
+
+   //paramter for memory port start index.if start from zero
+   //there are imem and dmem. if start from 1, there are only
+   //dmem. This mechanism is used to keep dmem port constant
+   // to 1
+   `ifdef bsg_VANILLA
+        parameter    core_imem_portID_lp = 1;
+   `else
+        parameter    core_imem_portID_lp = 0;
+   `endif
+
 
    wire freeze_r;
    assign freeze_o = freeze_r;
@@ -87,16 +112,16 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
     ,.freeze_r_o(freeze_r)
     );
 
-   logic [1:0]                         core_mem_v;
-   logic [1:0]                         core_mem_w;
+   logic [1:core_imem_portID_lp]                         core_mem_v;
+   logic [1:core_imem_portID_lp]                         core_mem_w;
 
    // this is coming from the vscale core; which has 32-bit addresses
-   logic [1:0] [32-1:0]                core_mem_addr;
-   logic [1:0] [data_width_p-1:0]      core_mem_wdata;
-   logic [1:0] [(data_width_p>>3)-1:0] core_mem_mask;
-   logic [1:0]                         core_mem_yumi;
-   logic [1:0]                         core_mem_rv;
-   logic [1:0] [data_width_p-1:0]      core_mem_rdata;
+   logic [1:core_imem_portID_lp] [32-1:0]                core_mem_addr;
+   logic [1:core_imem_portID_lp] [data_width_p-1:0]      core_mem_wdata;
+   logic [1:core_imem_portID_lp] [(data_width_p>>3)-1:0] core_mem_mask;
+   logic [1:core_imem_portID_lp]                         core_mem_yumi;
+   logic [1:core_imem_portID_lp]                         core_mem_rv;
+   logic [1:core_imem_portID_lp] [data_width_p-1:0]      core_mem_rdata;
 
    logic core_mem_reserve_1, core_mem_reservation_r;
 
@@ -133,6 +158,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    //   wire launching_remote_store = v_o[0] & ready_i[0];
    wire launching_out = out_v_li & out_ready_lo;
 
+`ifndef bsg_VANILLA
    bsg_vscale_core #(.x_cord_width_p (x_cord_width_p)
                      ,.y_cord_width_p(y_cord_width_p)
                      )
@@ -162,7 +188,110 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
        ,.my_x_i (my_x_i)
        ,.my_y_i (my_y_i)
        );
+`else
+    //////////////////////////////////////////////////////
+    //  The vanilla core version
+   `ifdef bsg_FPU
 
+       fpi_alu_inter fpi_alu();
+
+       fpi riscv_fpi (
+                .clk        (clk_i         )
+               ,.reset      (reset_i       )
+               ,.alu_inter  (fpi_alu       )
+               ,.fam_in_s_o (fam_in_s_o    )
+               ,.fam_out_s_i(fam_out_s_i   )
+           );
+   `endif
+   //////////////////////////////////////////////////////////
+   //
+   wire  remote_store_imem_not_dmem =
+          (in_v_lo
+             & (~|in_addr_lo[addr_width_p-1:imem_addr_width_lp])
+          );
+
+   // Logic detecting the falling edge of freeze_r signal
+   logic freeze_r_r;
+
+   always_ff@( posedge clk_i)
+   if( reset_i ) freeze_r_r <= 1'b0;
+   else          freeze_r_r <= freeze_r;
+
+   wire pkt_unfreeze = (freeze_r == 1'b0 ) && ( freeze_r_r == 1'b1);
+   wire pkt_freeze   = (freeze_r == 1'b1 ) && ( freeze_r_r == 1'b0);
+
+   // The memory and network interface
+   ring_packet_s            core_net_pkt;
+   mem_in_s                 core_to_mem;
+   mem_out_s                mem_to_core;
+   //////////////////////////////////////
+   hobbit #
+     ( .imem_addr_width_p(imem_addr_width_lp)
+      ,.gw_ID_p          (0)
+      ,.ring_ID_p        (0)
+      ,.x_cord_width_p   (x_cord_width_p)
+      ,.y_cord_width_p   (y_cord_width_p)
+      ,.debug_p          (debug_p)
+     ) vanilla_core
+     ( .clk            (clk_i)
+      ,.reset          (reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state
+
+      ,.net_packet_i   (core_net_pkt)
+
+      ,.from_mem_i     (mem_to_core)
+      ,.to_mem_o       (core_to_mem)
+      ,.reserve_1_o    (core_mem_reserve_1)
+      ,.reservation_i  (core_mem_reservation_r)
+
+`ifdef bsg_FPU
+      ,.fpi_inter      (fpi_alu)
+`endif
+
+      ,.my_x_i
+      ,.my_y_i
+      ,.debug_o        ()
+     );
+
+   always_comb
+   begin
+     // remote stores to imem and initial pc value sent over vanilla core's network
+     core_net_pkt.valid     = remote_store_imem_not_dmem | pkt_unfreeze;
+     //Shaolin Xie: To supress the 'Undriven' warning.
+     core_net_pkt.header.reserved  = 2'b0;
+
+     core_net_pkt.header.bc       = 1'b0;
+     core_net_pkt.header.external = 1'b0;
+     core_net_pkt.header.gw_ID    = 3'(0);
+     core_net_pkt.header.ring_ID  = 5'(0);
+     if (remote_store_imem_not_dmem)
+       begin // remote store to imem
+         core_net_pkt.header.net_op = INSTR;
+         core_net_pkt.header.mask   = in_mask_lo;
+         // this address alread stripped the byte bits
+         // We have to add them for compatibility
+         core_net_pkt.header.addr   = {in_addr_lo[11:0], 2'b0};
+       end
+     else
+       begin // initiates pc pushing core to RUN state
+         core_net_pkt.header.net_op   = PC;
+         core_net_pkt.header.mask     = (data_width_p>>3)'(0);
+         core_net_pkt.header.addr     = 13'h200;
+       end
+
+    core_net_pkt.data   = remote_store_imem_not_dmem ? in_data_lo : 32'(0);
+  end
+
+  //convert the core_to_mem structure to signals.
+  assign core_mem_v    [1] = core_to_mem.valid     ;
+  assign core_mem_wdata[1] = core_to_mem.write_data;
+  assign core_mem_addr [1] = core_to_mem.addr      ;
+  assign core_mem_w    [1] = core_to_mem.wen       ;
+  assign core_mem_mask [1] = core_to_mem.mask      ;
+  //the core_to_mem yumi signal is not used.
+
+  assign mem_to_core.valid      = core_mem_rv[1]   ;
+  assign mem_to_core.read_data  = core_mem_rdata[1];
+`endif
 
    wire out_request;
 
@@ -218,6 +347,24 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    wire [data_width_p-1:0] unused_data;
    wire                    unused_valid;
 
+`ifdef bsg_VANILLA
+   wire [1:0]              xbar_port_v_in = { core_mem_v[1] & ~core_mem_addr[1][31]
+                                              , in_v_lo
+                                              };
+
+   // fixme: not quite right for banks=1
+   localparam mem_width_lp    = $clog2(bank_size_p) + $clog2(num_banks_p);
+
+   wire [1:0]                    xbar_port_we_in   = { core_mem_w[1], 1'b1};
+   wire [1:0]                    xbar_port_yumi_out;
+   wire [1:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata[1], in_data_lo};
+   wire [1:0] [mem_width_lp-1:0] xbar_port_addr_in = { core_mem_addr[1][2+:mem_width_lp]
+//                                                     remote stores already have bottom two bits snipped
+                                                     , mem_width_lp ' ( in_addr_lo )
+                                                     };
+   wire [1:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask[1], in_mask_lo};
+
+`else
    // we create dedicated signals for these wires to allow easy access for "bind" statements
    wire [2:0]              xbar_port_v_in = {
                                               // request to write only if we are not sending a remote store packet
@@ -242,6 +389,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                                                        };
    wire [2:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask[1], in_mask_lo, core_mem_mask[0] };
 
+
    // synopsys translate_off
    always @(negedge clk_i)
      if (0)
@@ -260,7 +408,30 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
                    );
      end
    // synopsys translate_on
+`endif
+`ifdef bsg_VANILLA
+   // the swizzle function changes how addresses are mapped to banks
+   wire [1:0] [mem_width_lp-1:0] xbar_port_addr_in_swizzled;
+   genvar                        i;
 
+   for (i = 0; i < 2; i=i+1)
+     begin: port
+        assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in  [i][(mem_width_lp-1)-:1]   // top bit is inst/data
+                                                 , xbar_port_addr_in[i][0]                 // and lowest bit determines bank
+                                                 , xbar_port_addr_in[i][1]                 // and lowest bit determines bank
+                                                 , xbar_port_addr_in[i][2+:(mem_width_lp-2)]
+                                                 };
+     end
+
+   // local mem yumi the data from the core
+   assign  core_mem_yumi[1]    = xbar_port_yumi_out[1];
+   // local mem yumi the data from the network
+   assign in_yumi_li   = xbar_port_yumi_out[0] | remote_store_imem_not_dmem;
+
+   //the local memory or network can consume the store data
+   assign mem_to_core.yumi  = (xbar_port_yumi_out[1] | launching_out);
+
+`else
    // the swizzle function changes how addresses are mapped to banks
    wire [2:0] [mem_width_lp-1:0] xbar_port_addr_in_swizzled;
    genvar                        i;
@@ -277,6 +448,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
    assign { core_mem_yumi[1], in_yumi_li, core_mem_yumi[0] } = xbar_port_yumi_out;
 
+`endif
    // potentially, we could get better bandwidth if we demultiplexed the remote store input port
    // into four two-element fifos, one per bank. then, the arb could arbitrate for
    // each bank using those fifos. this allows for reordering of remote_stores across
@@ -286,7 +458,11 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
    // we could most likely get rid of the cgni input fifo in this case.
 
   bsg_mem_banked_crossbar #
+`ifdef bsg_VANILLA
+    (.num_ports_p  (2)
+`else
     (.num_ports_p  (3)
+`endif
      ,.num_banks_p  (num_banks_p)
      ,.bank_size_p  (bank_size_p)
      ,.data_width_p (data_width_p)
@@ -309,11 +485,12 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
 
       // whether the crossbar accepts the input
      ,.yumi_o  ( xbar_port_yumi_out                                     )
+`ifdef bsg_VANILLA
+     ,.v_o     ({ core_mem_rv    [1], unused_valid})
+     ,.data_o  ({ core_mem_rdata [1], unused_data })
+`else
      ,.v_o     ({ core_mem_rv    [1], unused_valid, core_mem_rv    [0] })
      ,.data_o  ({ core_mem_rdata [1], unused_data,  core_mem_rdata [0] })
+`endif
     );
-
-
-
-
 endmodule

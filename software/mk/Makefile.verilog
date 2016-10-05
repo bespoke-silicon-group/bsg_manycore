@@ -1,8 +1,10 @@
 MANYCORE_PROC = VANILLA
 #MANYCORE_PROC = VSCALE
-
+DVE=0
+#######################################
 ifeq ($(MANYCORE_PROC),VANILLA)
-BSG_FPU_OP    = -d bsg_FPU
+BSG_FPU_OP       = -d bsg_FPU
+BERKELEY_TARGET  = \%.hardfloat_src
 endif
 
 ########################################
@@ -28,18 +30,28 @@ VANILLA_SRC   = $(BSG_MANYCORE_DIR)/v/vanilla_bean
 
 ########################################
 # select the tools
+ifeq ($(shell /bin/domainname),B.B)
 include $(CAD_DIR)/common/mk/cadenv.mk
 
-ifeq ($(shell /bin/domainname),B.B)
 BSG-SIM-TOOL=vcs
 INC_OP		=+incdir+
 VCS_OP		=-full64 -sverilog
 VCS_DEFINES	= +define+SPMD=$*
 VCS_DEFINES+= +define+bsg_tiles_X=$(bsg_tiles_X)
 VCS_DEFINES+= +define+bsg_tiles_Y=$(bsg_tiles_Y) 
+
 ifneq ($(BSG_FPU_OP),)
 VCS_DEFINES+= +define+bsg_FPU
 endif
+
+ifeq ($(MANYCORE_PROC),VANILLA)
+VCS_DEFINES+= +define+bsg_VANILLA
+endif
+
+ifeq ($(DVE),1)
+VCS_OP     +=  +vcs+vcdpluson -debug_access+all
+endif
+###############################################
 else
 BSG-SIM-TOOL=vivado
 INC_OP=-i 
@@ -128,7 +140,7 @@ LIST_VANILLA_SRCS+= $(VANILLA_SRC)/alu.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_decode.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_state_machine.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/hobbit.v
-LIST_VANILLA_SRCS+= $(VANILLA_SRC)/bsg_manycore_proc.v
+#LIST_VANILLA_SRCS+= $(VANILLA_SRC)/bsg_manycore_proc.v
 LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_2r1w.v
 LIST_VANILLA_SRCS+= $(LIST_FPU_SRCS)
 
@@ -162,7 +174,6 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_clock_gen.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_reset_gen.v
 LIST_COMMON_SRCS+= $(VSCALE_SRC)/vscale_mul_div.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_hetero_socket.v
-#LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_proc.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh.v 
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v 
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore.v
@@ -172,6 +183,7 @@ LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint_standard.v 
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_tieoff.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_accel_default.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_proc.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_spmd_loader.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_monitor.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_vscale_pipeline_trace.v
@@ -213,12 +225,12 @@ bsg_rom_%.v: %.bin
 
 
 
-%.vivado.run:  bsg_rom_%.v %.hardfloat_src
+%.vivado.run:  bsg_rom_%.v $(BERKELEY_TARGET)
 	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) bsg_rom_$*.v $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y)
 	$(VELAB) test_bsg_manycore | grep -v Compiling
 	$(VSIM) $(TEE-CMD)
 
-%.run: bsg_rom_%.v %.hardfloat_src
+%.run: bsg_rom_%.v $(BERKELEY_TARGET) 
 	$(VCS) $(VCS_OP) \
      -top test_bsg_manycore 		\
     $(VCS_DEFINES)                  \
