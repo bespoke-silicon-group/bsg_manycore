@@ -45,7 +45,9 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
    wire credit_return_lo;
 
-   wire [packet_width_lp-1:0] cgni_data;
+   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+
+   bsg_manycore_packet_s      cgni_data;
    wire                       cgni_v;
    wire                       cgni_yumi;
 
@@ -137,7 +139,9 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    always_ff @(negedge clk_i)
      if (pkt_unknown & cgni_v)
        begin
-          $display("## UNKNOWN packet %b (%m)",cgni_data);
+          $write("## UNKNOWN packet: %b; ",cgni_data);
+          `write_bsg_manycore_packet_s(cgni_data);
+          $write("\n");
        end
 
    if (debug_p)
@@ -170,7 +174,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
         assert (out_credits_o === 'X || out_credits_o > 0) else
           begin
              $display("## out of remote store credits(=%d) x,y=%d,%d displaying only once (%m)",out_credits_o,my_x_i,my_y_i);
-	     $display("##   (this may be a performance problem; or normal behavior)");
+             $display("##   (this may be a performance problem; or normal behavior)");
              out_of_credits_warned = 1;
           end
      end
@@ -179,7 +183,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    bsg_manycore_link_sif_s link_sif_i_cast;
    assign link_sif_i_cast = link_sif_i;
 
-   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
    bsg_manycore_return_packet_s return_packet;
    assign return_packet = link_sif_i_cast.rev.data;
 

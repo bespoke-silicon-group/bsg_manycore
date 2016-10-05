@@ -1,6 +1,5 @@
 
 `include "bsg_manycore_packet.vh"
-`define ROM(spmd)  bsg_rom_``spmd`` // ROM contaning the spmd
 
 // currently only supports south side of chip
 
@@ -15,7 +14,7 @@ module bsg_nonsynth_manycore_io_complex
     ,tile_id_ptr_p = -1
     ,x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
     ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
-   ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+    ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
     )
    (input clk_i
@@ -26,6 +25,12 @@ module bsg_nonsynth_manycore_io_complex
     );
 
    localparam packet_width_lp = `bsg_manycore_packet_width(addr_width_p, data_width_p, x_cord_width_lp, y_cord_width_lp);
+
+   // we add this for easier debugging
+  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
+   bsg_manycore_link_sif_s  [num_tiles_x_p-1:0] ver_link_sif_i_cast, ver_link_sif_o_cast;
+   assign ver_link_sif_i_cast = ver_link_sif_i;
+   assign ver_link_sif_o      = ver_link_sif_o_cast;
 
    wire [39:0] cycle_count;
 
@@ -59,7 +64,7 @@ module bsg_nonsynth_manycore_io_complex
          ,.my_y_i   ( y_cord_width_lp ' (num_tiles_y_p) )
          );
 
-   `ROM(`SPMD)
+   bsg_manycore_io_complex_rom
    #( .addr_width_p(addr_width_p)
       ,.width_p     (data_width_p)
       ) spmd_rom
@@ -115,8 +120,8 @@ module bsg_nonsynth_manycore_io_complex
                                         ,.pass_thru_max_out_credits_p (credits_lp)
                                         ) bmm (.clk_i(clk_i)
                                                ,.reset_i (reset_i)
-                                               ,.link_sif_i   (ver_link_sif_i[i])
-                                               ,.link_sif_o   (ver_link_sif_o[i])
+                                               ,.link_sif_i   (ver_link_sif_i_cast[i])
+                                               ,.link_sif_o   (ver_link_sif_o_cast[i])
                                                ,.pass_thru_data_i (loader_data_lo )
                                                ,.pass_thru_v_i    (loader_v_lo    )
                                                ,.pass_thru_ready_o(pass_thru_ready_lo)

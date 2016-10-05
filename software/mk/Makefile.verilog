@@ -51,14 +51,14 @@ ifeq ($(TEE),1)
 TEE-CMD=| tee run.log
 endif
 
-bsg_rom_%.v: %.bin
-	python $(BSG_ROM_GEN) $< bsg_rom_$* zero > $@
+%_rom.v: main.bin
+	python $(BSG_ROM_GEN) $< $*_rom zero > $@
 
-%.vivado.run:  bsg_rom_%.v
-	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) bsg_rom_$*.v $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y) $(VLOG_EXTRA)
+%.vivado.run:  bsg_manycore_io_complex_rom.v
+	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $< $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y) $(VLOG_EXTRA)
 	$(VELAB) test_bsg_manycore | grep -v Compiling
 	$(VSIM) $(TEE-CMD)
 
-%.run: bsg_rom_%.v
-	$(VCS) -full64 -sverilog  -top test_bsg_manycore $(DESIGN_HDRS) $(DESIGN_SRCS)   $(TOP_LEVEL) $< +define+SPMD=$* +define+bsg_tiles_X=$(bsg_tiles_X) +define+bsg_tiles_Y=$(bsg_tiles_Y) +incdir+$(BSG_IP_CORES_DIR)/bsg_misc  +incdir+$(BSG_IP_CORES_DIR)/bsg_noc +incdir+$(BSG_MANYCORE_DIR)/v +incdir+$(BSG_MANYCORE_DIR)/imports/vscale/src/main/verilog $(VLOG_EXTRA)
+%.run: bsg_manycore_io_complex_rom.v
+	$(VCS) -full64 -sverilog  -top test_bsg_manycore $(DESIGN_HDRS) $(DESIGN_SRCS) $<  $(TOP_LEVEL) $< +define+SPMD=$* +define+bsg_tiles_X=$(bsg_tiles_X) +define+bsg_tiles_Y=$(bsg_tiles_Y) +incdir+$(BSG_IP_CORES_DIR)/bsg_misc  +incdir+$(BSG_IP_CORES_DIR)/bsg_noc +incdir+$(BSG_MANYCORE_DIR)/v +incdir+$(BSG_MANYCORE_DIR)/imports/vscale/src/main/verilog $(VLOG_EXTRA)
 	./simv

@@ -4,16 +4,16 @@ bsg_tiles_Y = 2
 
 include ../Makefile.include
 
-all: hello.run
+all: main.run
 
-hello.riscv:  hello.o $(SPMD_COMMON_OBJECTS) ../common/crt.o
+main.riscv:  main.o $(SPMD_COMMON_OBJECTS) ../common/crt.o
 	$(RISCV_LINK) $< -o $@ $(RISCV_LINK_OPTS)
 
 clean:
-	-rm *.o *.jou *.log *.pb bsg_rom_hello.v hello.riscv *.wdb hello.bin hello.hex
+	-rm *.o *.jou *.log *.pb bsg_rom_hello.v main.riscv *.wdb main.bin main.hex
 	-rm -rf xsim.dir
 
-hello.o: Makefile
+main.o: Makefile
 
 
 

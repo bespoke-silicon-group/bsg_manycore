@@ -196,6 +196,7 @@ module vscale_pipeline
                     .prv(prv),
                     .eret(eret)
 		    ,.outstanding_stores_i(outstanding_stores_i)
+		    ,.PC_DX(PC_DX)
                     );
 
 
