@@ -9,7 +9,9 @@ include ./Makefile.dc
 all: hello.syn
 
 clean:
-	@rm -rf *.log *.mr *.svf  *.pvl	 *.syn
+	@rm -rf *.log *.mr *.svf  *.pvl	 *.syn *.pvk *.tcl
+dc:
+	$(DC)
 
 
 

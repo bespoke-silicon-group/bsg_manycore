@@ -41,7 +41,7 @@ INC_OP		=+incdir+
 VCS_OP		=-full64 -sverilog
 VCS_DEFINES	= +define+SPMD=$*
 VCS_DEFINES+= +define+bsg_tiles_X=$(bsg_tiles_X)
-VCS_DEFINES+= +define+bsg_tiles_Y=$(bsg_tiles_Y) 
+VCS_DEFINES+= +define+bsg_tiles_Y=$(bsg_tiles_Y)
 
 ifeq ($(BSG_FPU_OP),1)
 VCS_DEFINES+= +define+bsg_FPU
@@ -57,7 +57,7 @@ endif
 ###############################################
 else
 BSG-SIM-TOOL=vivado
-INC_OP=-i 
+INC_OP=-i
 
 VLOG  = xvlog -sv ${BSG_FPU_OP}
 VELAB = xelab -debug typical ${BSG_FPU_OP} -s top_sim
@@ -71,7 +71,7 @@ $(warning $(BSG-SIM-TOOL))
 
 
 #############################################################
-#  
+#
 #  Define the hardfloat source files.
 #
 #############################################################
@@ -82,8 +82,8 @@ $(warning $(BSG-SIM-TOOL))
 ifeq ($(BSG_FPU_OP),1)
 HARDFLOAT_DIR = $(VANILLA_SRC)/bsg_ucb_hardfloat
 HARDFLOAT_VSRC = $(HARDFLOAT_DIR)/bsg_ucb_hardfloat.v
-HARDFLOAT_SSRC = $(BERKELEY_HARDFLOAT_DIR)/src/main/scala/bsg_ucb_hardfloat.scala 
-HARDFLOAT_VER  = a07029b 
+HARDFLOAT_SSRC = $(BERKELEY_HARDFLOAT_DIR)/src/main/scala/bsg_ucb_hardfloat.scala
+HARDFLOAT_VER  = a07029b
 
 ifeq ($(BERKELEY_HARDFLOAT_DIR),)
 $(error BERKELEY_HARDFLOAT_DIR must be defined)
@@ -98,16 +98,16 @@ LIST_FPU_SRCS       = $(VANILLA_SRC)/float_decode.v
 LIST_FPU_SRCS      += $(VANILLA_SRC)/fpi.v
 LIST_FPU_SRCS      += $(VANILLA_SRC)/fiu.v
 LIST_FPU_SRCS      += $(VANILLA_SRC)/fam.v
-LIST_FPU_SRCS      += $(BSG_IP_CORES_DIR)/bsg_dataflow/bsg_round_robin_n_to_1.v 
-LIST_FPU_SRCS      += $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_3r1w.v 
+LIST_FPU_SRCS      += $(BSG_IP_CORES_DIR)/bsg_dataflow/bsg_round_robin_n_to_1.v
+LIST_FPU_SRCS      += $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_3r1w.v
 LIST_FPU_SRCS      += $(HARDFLOAT_VSRC)
 else
-LIST_FPU_SRCS       = 
+LIST_FPU_SRCS       =
 endif
 ########### End of FPU SRC definition ######################
 
-LIST_VSCALE_HDRS+= $(VSCALE_SRC)/vscale_ctrl_constants.vh 
-LIST_VSCALE_HDRS+= $(VSCALE_SRC)/rv32_opcodes.vh 
+LIST_VSCALE_HDRS+= $(VSCALE_SRC)/vscale_ctrl_constants.vh
+LIST_VSCALE_HDRS+= $(VSCALE_SRC)/rv32_opcodes.vh
 LIST_VSCALE_HDRS+= $(VSCALE_SRC)/vscale_alu_ops.vh
 LIST_VSCALE_HDRS+= $(VSCALE_SRC)/vscale_md_constants.vh
 LIST_VSCALE_HDRS+= $(VSCALE_SRC)/vscale_hasti_constants.vh
@@ -118,14 +118,14 @@ LIST_VSCALE_HDRS+= $(BSG_MANYCORE_DIR)/v/bsg_vscale_pkg.v
 LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_defines.v
 LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_noc_pkg.v
 
-LIST_VSCALE_INCS+= $(INC_OP)$(BSG_MANYCORE_DIR)/v/
+LIST_VSCALE_INCS+= $(BSG_MANYCORE_DIR)/v/
 
-LIST_VANILLA_INCS =$(INC_OP)$(VANILLA_SRC)
+LIST_VANILLA_INCS =$(VANILLA_SRC)
 
-LIST_COMMON_INCS = $(INC_OP)$(BSG_MANYCORE_DIR)/v/
-LIST_COMMON_INCS+= $(INC_OP)$(VSCALE_SRC)   
-LIST_COMMON_INCS+= $(INC_OP)$(BSG_IP_CORES_DIR)/bsg_noc
-LIST_COMMON_INCS+= $(INC_OP)$(BSG_IP_CORES_DIR)/bsg_misc
+LIST_COMMON_INCS = $(BSG_MANYCORE_DIR)/v/
+LIST_COMMON_INCS+= $(VSCALE_SRC)
+LIST_COMMON_INCS+= $(BSG_IP_CORES_DIR)/bsg_noc
+LIST_COMMON_INCS+= $(BSG_IP_CORES_DIR)/bsg_misc
 
 LIST_VSCALE_SRCS = $(BSG_MANYCORE_DIR)/v/vscale/vscale_pipeline.v
 LIST_VSCALE_SRCS+= $(BSG_MANYCORE_DIR)/v/vscale/vscale_ctrl.v
@@ -146,7 +146,7 @@ LIST_VANILLA_SRCS+= $(VANILLA_SRC)/hobbit.v
 #LIST_VANILLA_SRCS+= $(VANILLA_SRC)/bsg_manycore_proc.v
 LIST_VANILLA_SRCS+= $(LIST_FPU_SRCS)
 
-LIST_COMMON_SRCS = $(BSG_IP_CORES_DIR)/bsg_misc/bsg_transpose.v 
+LIST_COMMON_SRCS = $(BSG_IP_CORES_DIR)/bsg_misc/bsg_transpose.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_crossbar_o_by_i.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_cycle_counter.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_round_robin_arb.v
@@ -159,7 +159,7 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_scan.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_counter_up_down.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_circular_ptr.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode_with_v.v
-LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode.v 
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_dff_reset_en.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1r1w.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_2r1w.v
@@ -169,24 +169,24 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_dataflow/bsg_fifo_1r1w_small.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_dataflow/bsg_two_fifo.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_dataflow/bsg_fifo_tracker.v
-LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_router.v 
-LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_stitch.v 
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_router.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_stitch.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_to_ring_stitch.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_router_buffered.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_clock_gen.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_reset_gen.v
 LIST_COMMON_SRCS+= $(VSCALE_SRC)/vscale_mul_div.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_hetero_socket.v
-LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh.v 
-LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v 
-LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore.v
-LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkt_encode.v
-LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkt_decode.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint.v
-LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint_standard.v 
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint_standard.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_tieoff.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_accel_default.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_proc.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkt_decode.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkt_encode.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_spmd_loader.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_monitor.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_vscale_pipeline_trace.v
@@ -234,13 +234,13 @@ bsg_rom_%.v: %.bin
 	$(VELAB) test_bsg_manycore | grep -v Compiling
 	$(VSIM) $(TEE-CMD)
 
-%.run: bsg_rom_%.v $(BERKELEY_TARGET) 
+%.run: bsg_rom_%.v $(BERKELEY_TARGET)
 	$(VCS) $(VCS_OP) \
      -top test_bsg_manycore 		\
     $(VCS_DEFINES)                  \
-    $(DESIGN_INCS)                  \
+    $(addprefix $(INC_OP), $(DESIGN_INCS) )\
     $(DESIGN_HDRS) $(DESIGN_SRCS)   \
-    $(TOP_LEVEL) $<                 
+    $(TOP_LEVEL) $<
 	./simv
 
 %.hardfloat_src:
@@ -281,5 +281,5 @@ define bsg_ucb_hardfloat_gen
     else                                                                              \
 		echo "Please install sbt program" && exit;                                    \
     fi;                                                                               \
-	echo "===========================================================";               
+	echo "===========================================================";
 endef

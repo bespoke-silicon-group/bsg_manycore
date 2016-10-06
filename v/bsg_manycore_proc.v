@@ -11,9 +11,9 @@
 module bsg_manycore_proc #(x_cord_width_p   = "inv"
                            , y_cord_width_p = "inv"
                            , data_width_p   = 32
-                           , addr_width_p   = "inv"
+                           , addr_width_p   = -1
                            , debug_p        = 0
-                           , bank_size_p    = "inv" // in words
+                           , bank_size_p    = -1// in words
                            , num_banks_p    = "inv"
 
                            , imem_size_p        = bank_size_p // in words
@@ -136,7 +136,7 @@ module bsg_manycore_proc #(x_cord_width_p   = "inv"
           begin
              // copy address; ignore byte bits
              core_mem_reservation_r  <= 1'b1;
-             core_mem_reserve_addr_r <= core_mem_addr[1][2+:addr_width_p];
+             core_mem_reserve_addr_r <= core_mem_addr[1][2+:(addr_width_p-2)];
              // synopsys translate_off
              $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr[1] << 2);
              // synopsys translate_on

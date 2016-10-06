@@ -1,5 +1,5 @@
-`include "bsg_manycore_packet.vh"
-`include "bsg_defines.v"
+//`include "bsg_manycore_packet.vh"
+//`include "bsg_defines.v"
 
 `define SPMD       ????             // test program to be loaded
 `define ROM(spmd)  bsg_rom_``spmd`` // ROM contaning the spmd

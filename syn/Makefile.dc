@@ -1,9 +1,7 @@
-#SYN_SRCS= $(filter %.v, $(DESIGN_HDRS) )\
-#          $(BSG_MANYCORE_DIR)/testbenches/basic/syn_bsg_manycore.v \
-#          $(filter-out %monitor.v %loader.v %clock_gen.v %reset_gen.v, $(DESIGN_SRCS)) 
-#
-#SYN_SEARCH_PATH=$(filter-out -i %.v,$(DESIGN_HDRS) ) $(BSG_IP_CORES_DIR)/bsg_misc/
+SYN_TOP=hobbit
+#SYN_TOP=bsg_manycore
 
+ifeq ($(SYN_TOP),hobbit)
 SYN_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_defines.v
 SYN_SRCS+= $(VANILLA_SRC)/alu.v
 SYN_SRCS+= $(VANILLA_SRC)/cl_decode.v
@@ -15,33 +13,66 @@ SYN_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync.v
 
 SYN_SEARCH_PATH=$(VANILLA_SRC)
 
-SYN_TOP=hobbit
-FPU_OP=
+SYN_DEFINES=
 CLK_PIN=clk
 
-PARA_STRING=\"imem_addr_width_p =\>  3, \
+PARA_STRING= -parameter \"imem_addr_width_p =\>  3, \
               gw_ID_p           =\>  0, \
               ring_ID_p         =\>  0, \
               x_cord_width_p    =\>  1, \
               y_cord_width_p    =\>  1, \
               debug_p           =\>  0  \
             \" 
+else
+
+SYN_SRCS= $(DESIGN_HDRS) $(filter-out \
+            %monitor.v %loader.v %clock_gen.v \
+            %reset_gen.v %trace.v %io_complex.v, $(DESIGN_SRCS))
+#            $(BSG_MANYCORE_DIR)/testbenches/basic/syn_bsg_manycore.v
+
+SYN_SEARCH_PATH=$(DESIGN_INCS)
+
+ifeq ($(MANYCORE_PROC),VANILLA)
+SYN_DEFINES= -define bsg_VANILLA
+
+ifeq ($(BSG_FPU_OP),1)
+SYN_DEFINES+= -define bsg_FPU
+endif	
+
+endif
+
+CLK_PIN=clk_i
+PARA_STRING= -parameter \"              \
+              bank_size_p       =\>  64, \
+              num_banks_p       =\>  2, \
+              data_width_p      =\>  32, \
+		      addr_width_p      =\>  32, \
+              num_tiles_x_p     =\>  2, \
+              num_tiles_y_p     =\>  1 \
+            \" 
+
+
+endif
+
 
 TCL_CMD="lappend search_path $(SYN_SEARCH_PATH) ; \
 		 set_app_var target_library {gtech.db};   \
 		 set_app_var synthetic_library {dw_foundation.sldb}; \
 		 set_app_var link_library  [list * $$target_library $$synthetic_library]; \
 		 set_host_options -max_cores 16; \
-         analyze -format sverilog $(FPU_OP) [ list $(SYN_SRCS) ] ;  \
-	     elaborate $(SYN_TOP) -parameter $(PARA_STRING) ;  \
+         analyze -format sverilog $(SYN_DEFINES) [ list $(SYN_SRCS) ] ; \
+	     elaborate $(SYN_TOP) $(PARA_STRING) ;  \
 		 link;\
 		 create_clock -period 10000 $(CLK_PIN); \
 		 check_design ; \
          compile -area_effort none -no_design_rule; \
-		 report_qor; \
-         exit " \
+		 report_qor; "
+#         exit " 
 
 
 
-%.syn:%.vscale_src
+%.syn:%.vscale_src $(BERKELEY_TARGET)
+	echo $(SYN_DEFINES)
+	exit;
 	$(DC) -x $(TCL_CMD) | tee syn.log
+

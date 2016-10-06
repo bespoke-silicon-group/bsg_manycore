@@ -169,5 +169,5 @@ module bsg_manycore
       else $error("num_tiles_x_p must be even for the shared FPU option");
   end
   `endif
-  //synopsys translate on
+  //synopsys translate_on
 endmodule
