@@ -86,7 +86,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
      && (load_addr == (mem_size_p-4));
 
   always_ff @(negedge clk_i)
-    if (~loaded && ready_i)
+    if (reset_i===0 && ~loaded && ready_i)
       begin
          if ((load_addr & 12'hFFF) == 0)
            $display("Loader: Tile %d, Addr %x",tile_no, load_addr);

@@ -52,7 +52,7 @@ module  bsg_manycore_links_to_fsb
    bsg_manycore_link_sif_s [num_links_p-1:0] links_sif_i_cast, links_sif_o_cast;
 
    assign links_sif_i_cast = links_sif_i;
-   assign links_sif_o = links_sif_i_cast;
+   assign links_sif_o = links_sif_o_cast;
 
    localparam num_nets_lp = 2;
    localparam num_in_lp = num_nets_lp * num_links_p;
@@ -97,18 +97,18 @@ module  bsg_manycore_links_to_fsb
              localparam localwidth_lp = j ? $bits(bsg_manycore_return_packet_s) : $bits(bsg_manycore_packet_s);
              logic ready_lo;
 
-	     logic [localwidth_lp-1:0] data;
+             logic [localwidth_lp-1:0] data;
 
              if (j)
-	       begin
-		  assign rev_li.ready_and_rev = ready_lo;
-		  assign data = rev_lo.data;
-	       end
+               begin
+                  assign rev_li.ready_and_rev = ready_lo;
+                  assign data = rev_lo.data;
+               end
              else
-	       begin
-		  assign fwd_li.ready_and_rev = ready_lo;
-		  assign data = fwd_lo.data;
-	       end
+               begin
+                  assign fwd_li.ready_and_rev = ready_lo;
+                  assign data = fwd_lo.data;
+               end
 
              // ** place a two fifo on both channels going from manycore to outside world
              bsg_two_fifo #(.width_p(localwidth_lp)) fifo
@@ -180,7 +180,7 @@ module  bsg_manycore_links_to_fsb
      assert($bits(bsg_fsb_pkt_client_s)==ring_width_p)
        else $error("bsg_fsb_pkt_client_s and ring_width_p do not line up",$bits(bsg_fsb_pkt_client_s),ring_width_p);
    // synopsys translate_on
-   
+
    localparam bsg_fsb_pkt_client_s_data_size_lp = $bits(bsg_fsb_pkt_client_data_t);
 
    assign out_pkt.destid = dest_id_p;

@@ -8,6 +8,7 @@ module vscale_ctrl(
                    input                              clk,
                    input                              reset,
                    input                              freeze,
+		   input [`XPR_LEN-1:0]               PC_DX,
                    input [`INST_WIDTH-1:0]            inst_DX,
                    input                              imem_wait,
                    input                              imem_badmem_e,
@@ -374,7 +375,7 @@ module vscale_ctrl(
    // synopsys translate_off
    always @(negedge clk)
      if ((reset===1'b0) && illegal_instruction===1'b1)
-       $display("%m illegal instruction %x",inst_DX);
+       $display("%m illegal instruction %x at PC %x",inst_DX, PC_DX);
    // synopsys translate_on
 
    assign add_or_sub = ((opcode == `RV32_OP) && (funct7[5])) ? `ALU_OP_SUB : `ALU_OP_ADD;

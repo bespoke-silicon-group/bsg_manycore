@@ -1,4 +1,4 @@
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.dimensions
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.paths
-include $(BSG_MANYCORE_DIR)/software/mk/Makefile.verilog
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.builddefs
+include $(BSG_MANYCORE_DIR)/software/mk/Makefile.verilog

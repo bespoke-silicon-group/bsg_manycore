@@ -224,17 +224,17 @@ TEE-CMD=| tee run.log
 endif
 
 ###################################################################################
-bsg_rom_%.v: %.bin
-	python $(BSG_ROM_GEN) $< bsg_rom_$* zero > $@
+%_rom.v: main.bin
+	python $(BSG_ROM_GEN) $< $*_rom zero > $@
 
 
 
-%.vivado.run:  bsg_rom_%.v $(BERKELEY_TARGET)
-	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) bsg_rom_$*.v $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y)
+%.vivado.run:  bsg_manycore_io_complex_rom.v $(BERKELEY_TARGET)
+	$(VLOG) $(DESIGN_HDRS) $(DESIGN_SRCS) $< $(TOP_LEVEL) -d SPMD=$* -d bsg_tiles_X=$(bsg_tiles_X) -d bsg_tiles_Y=$(bsg_tiles_Y)
 	$(VELAB) test_bsg_manycore | grep -v Compiling
 	$(VSIM) $(TEE-CMD)
 
-%.run: bsg_rom_%.v $(BERKELEY_TARGET)
+%.run: bsg_manycore_io_complex_rom.v $(BERKELEY_TARGET)
 	$(VCS) $(VCS_OP) \
      -top test_bsg_manycore 		\
     $(VCS_DEFINES)                  \

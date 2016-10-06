@@ -72,7 +72,5 @@ TCL_CMD="lappend search_path $(SYN_SEARCH_PATH) ; \
 
 
 %.syn:%.vscale_src $(BERKELEY_TARGET)
-	echo $(SYN_DEFINES)
-	exit;
 	$(DC) -x $(TCL_CMD) | tee syn.log
 
