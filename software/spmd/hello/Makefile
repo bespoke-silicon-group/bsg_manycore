@@ -1,13 +1,22 @@
 
 bsg_tiles_X = 2
 bsg_tiles_Y = 2
-
-
+#########################################################
+#each bytes defines the core type
+# 00: vanilla core
+# 01  vscale  core
+EXTRA_OPT=+define+BSG_HETERO_TYPE_VEC="64'h00_00_00_00"+
+#EXTRA_OPT=+define+BSG_HETERO_TYPE_VEC="64'h01_01_00_00"+
 
 all: main.run
 
 include ../Makefile.include
 
+#########################################################
+#            FPU OPTION
+#     The number of horizon node must be two and must 
+#     be vanilla core 
+BSG_FPU_OP=1
 
 main.riscv:  main.o $(SPMD_COMMON_OBJECTS) ../common/crt.o
 	$(RISCV_LINK) $< -o $@ $(RISCV_LINK_OPTS)

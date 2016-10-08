@@ -74,7 +74,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    assign v_o  = ~reset_i
                  & (~loaded | (loaded && (tile_no < load_rows_p*load_cols_p)))
                  // for now, we override sending the program if the core is an accelerator core
-                 & (((`BSG_HETERO_TYPE_VEC >> (tile_no<<3)) & 8'b1111_1111) == 0);
+                 & (((`BSG_HETERO_TYPE_VEC >> (tile_no<<3)) & 8'b1111_1111) < 3);
                    ;
 
    assign addr_o   = addr_width_p'(load_addr >> 2);

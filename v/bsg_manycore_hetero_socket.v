@@ -76,8 +76,8 @@ module bsg_manycore_hetero_socket #(x_cord_width_p      = "inv"
     );
 
    // add as many types as you like...
-   `HETERO_TYPE_MACRO(0,bsg_manycore_proc) else
-   `HETERO_TYPE_MACRO(1,bsg_manycore_accel_default) else
+   `HETERO_TYPE_MACRO(0,bsg_manycore_proc_vanilla) else
+   `HETERO_TYPE_MACRO(1,bsg_manycore_proc_vscale) else
    `HETERO_TYPE_MACRO(2,bsg_manycore_accel_default) else
    `HETERO_TYPE_MACRO(3,bsg_manycore_accel_default) else
    `HETERO_TYPE_MACRO(4,bsg_manycore_accel_default) else
