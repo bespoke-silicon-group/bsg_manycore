@@ -1,5 +1,6 @@
-SYN_TOP=hobbit
-#SYN_TOP=bsg_manycore
+#SYN_TOP=hobbit
+SYN_TOP=bsg_manycore
+TYPE_VEC="64\'h00_00_00_00"
 
 ifeq ($(SYN_TOP),hobbit)
 SYN_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_defines.v
@@ -16,12 +17,12 @@ SYN_SEARCH_PATH=$(VANILLA_SRC)
 SYN_DEFINES=
 CLK_PIN=clk
 
-PARA_STRING= -parameter \"imem_addr_width_p =\>  3, \
-              gw_ID_p           =\>  0, \
-              ring_ID_p         =\>  0, \
-              x_cord_width_p    =\>  1, \
-              y_cord_width_p    =\>  1, \
-              debug_p           =\>  0  \
+PARA_STRING= -parameter \"imem_addr_width_p =>  3, \
+              gw_ID_p           =>  0, \
+              ring_ID_p         =>  0, \
+              x_cord_width_p    =>  1, \
+              y_cord_width_p    =>  1, \
+              debug_p           =>  0  \
             \" 
 else
 
@@ -43,17 +44,21 @@ endif
 
 CLK_PIN=clk_i
 PARA_STRING= -parameter \"              \
-              bank_size_p       =\>  64, \
-              num_banks_p       =\>  2, \
-              data_width_p      =\>  32, \
-		      addr_width_p      =\>  32, \
-              num_tiles_x_p     =\>  2, \
-              num_tiles_y_p     =\>  1 \
-            \" 
+              bank_size_p       =>  64, \
+              num_banks_p       =>  2, \
+              data_width_p      =>  32, \
+		      addr_width_p      =>  32, \
+              num_tiles_x_p     =>  2, \
+              num_tiles_y_p     =>  1, \
+			  hetero_type_vec_p =>  ${TYPE_VEC}  \
+           \" 
 
 
 endif
 
+SUPRESS_MSG = suppress_message \
+               [list LINT-28 LINT-29 LINT-31 LINT-52 \
+                     LINT-32 LINT-33 LINT-1  LINT-2 ];
 
 TCL_CMD="lappend search_path $(SYN_SEARCH_PATH) ; \
 		 set_app_var target_library {gtech.db};   \
@@ -64,6 +69,7 @@ TCL_CMD="lappend search_path $(SYN_SEARCH_PATH) ; \
 	     elaborate $(SYN_TOP) $(PARA_STRING) ;  \
 		 link;\
 		 create_clock -period 10000 $(CLK_PIN); \
+		 $(SUPRESS_MSG)       \
 		 check_design ; \
          compile -area_effort none -no_design_rule; \
 		 report_qor; "
@@ -72,5 +78,7 @@ TCL_CMD="lappend search_path $(SYN_SEARCH_PATH) ; \
 
 
 %.syn:%.vscale_src $(BERKELEY_TARGET)
-	$(DC) -x $(TCL_CMD) | tee syn.log
+	@echo $(TCL_CMD) > syn.tcl
+	$(DC) -f syn.tcl | tee syn.log
+
 

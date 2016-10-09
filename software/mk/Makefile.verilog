@@ -1,8 +1,8 @@
 #MANYCORE_PROC = VANILLA
 #MANYCORE_PROC = VSCALE
 #BSG_FPU_OP       =0
-DVE=0
-
+#DVE=0
+TYPE_VEC="64'h00_00_00_00"
 #######################################
 #ifeq ($(MANYCORE_PROC),VANILLA)
 ifeq ($(BSG_FPU_OP),1)
@@ -42,6 +42,8 @@ VCS_OP		=-full64 -sverilog
 VCS_DEFINES	= +define+SPMD=$*
 VCS_DEFINES+= +define+bsg_tiles_X=$(bsg_tiles_X)
 VCS_DEFINES+= +define+bsg_tiles_Y=$(bsg_tiles_Y)
+VCS_DEFINES+= +vcs+loopreport+l000
+VCS_DEFINES+= +define+BSG_HETERO_TYPE_VEC=${TYPE_VEC}+
 
 ifeq ($(BSG_FPU_OP),1)
 VCS_DEFINES+= +define+bsg_FPU

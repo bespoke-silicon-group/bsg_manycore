@@ -4,8 +4,7 @@ bsg_tiles_Y = 2
 #each bytes defines the core type
 # 00: vanilla core
 # 01  vscale  core
-#EXTRA_OPT=+define+BSG_HETERO_TYPE_VEC="64'h00_00_00_00"+
-#EXTRA_OPT=+define+BSG_HETERO_TYPE_VEC="64'h01_01_00_00"+
+TYPE_VEC="64'h00_00_00_00"
 
 #########################################################
 #            FPU OPTION
