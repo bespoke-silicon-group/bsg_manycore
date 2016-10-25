@@ -1,83 +1,126 @@
+`include "bsg_manycore_packet.vh"
 
-module bsg_nonsynth_manycore_monitor #(parameter xcord_width_p="inv"
-                                       ,parameter ycord_width_p="inv"
-                                       ,parameter addr_width_p="inv"
-                                       ,parameter data_width_p="inv"
-                                       ,parameter num_channels_p="inv"
-                                       ,parameter packet_width_lp = 6+xcord_width_p+ycord_width_p+addr_width_p+data_width_p
-                                       ,parameter max_cycles_p=1_000_000
-                              )
+module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
+                                       , y_cord_width_p="inv"
+                                       , addr_width_p="inv"
+                                       , data_width_p="inv"
+                                       , channel_num_p="inv"
+                                        // enable pass_thru
+                                       , pass_thru_p=0
+                                       , pass_thru_max_out_credits_p=4
+                                       , pass_thru_freeze_init_p=1'b0
+                                       , max_cycles_p=1_000_000
+                                       , packet_width_lp                = `bsg_manycore_packet_width  (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                       , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                       , num_nets_lp=2
+                                       )
    (input clk_i
-    ,input reset_i
-    ,input [num_channels_p-1:0][packet_width_lp-1:0] data_i
-    ,input [num_channels_p-1:0] v_i
+    ,input  reset_i
+
+    ,input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
+    ,output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
+
+    // this allows you to attach nodes to the monitor
+    // that send data, such as the bsg_manycore_spmd_loader
+    // these are only used if pass_thru_p=1
+
+    ,input  [packet_width_lp-1:0] pass_thru_data_i
+    ,input                        pass_thru_v_i
+    ,output                       pass_thru_ready_o
+    ,output [$clog2(pass_thru_max_out_credits_p+1)-1:0] pass_thru_out_credits_o
+    ,input [x_cord_width_p-1:0]   pass_thru_x_i
+    ,input [y_cord_width_p-1:0]   pass_thru_y_i
+
+    ,input [39:0] cycle_count_i
     ,output finish_o
     );
 
-  typedef struct packed {
-    logic [5:0]               op;
-    logic [addr_width_p-1:0]  addr;
-    logic [data_width_p-1:0]  data;
-    logic [ycord_width_p-1:0]   y_cord;
-    logic [xcord_width_p-1:0]   x_cord;
-  } bsg_vscale_remote_packet_s;
+   logic                              cgni_v, cgni_yumi;
 
-   logic [39:0]                 trace_count;
+   logic [data_width_p-1:0     ]      pkt_data;
+   logic [addr_width_p-1:0     ]      pkt_addr;
+   logic [(data_width_p>>3)-1:0]      pkt_mask;
+
+   bsg_manycore_endpoint_standard #(.x_cord_width_p (x_cord_width_p)
+                                    ,.y_cord_width_p(y_cord_width_p)
+                                    ,.fifo_els_p    (2)
+                                    ,.freeze_init_p (pass_thru_freeze_init_p)
+                                    ,.max_out_credits_p(pass_thru_max_out_credits_p)
+                                    ,.data_width_p  (data_width_p)
+                                    ,.addr_width_p  (addr_width_p)
+                                    ) endp
+     (.clk_i
+      ,.reset_i
+
+      ,.link_sif_i
+      ,.link_sif_o
+
+      ,.in_v_o   (cgni_v)
+      ,.in_yumi_i(cgni_yumi)
+      ,.in_data_o(pkt_data)
+      ,.in_mask_o(pkt_mask)
+      ,.in_addr_o(pkt_addr)
+
+      // outgoing data for this module
+      ,.out_v_i     (pass_thru_p ? pass_thru_v_i    : 1'b0)
+      ,.out_packet_i(pass_thru_p ? pass_thru_data_i : 0)
+      ,.out_ready_o (pass_thru_ready_o)
+      ,.out_credits_o(pass_thru_out_credits_o)
+
+      ,.my_x_i(pass_thru_x_i)
+      ,.my_y_i(pass_thru_y_i)
+      ,.freeze_r_o()
+      );
+
+   // incoming packets on main network: always deque
+   assign cgni_yumi = cgni_v;
 
    logic                        finish_r, finish_r_r;
 
    assign finish_o = finish_r;
 
-   always_ff @(posedge clk_i)
+   always @(posedge clk_i)
      finish_r_r <= finish_r;
-
-   bsg_cycle_counter #(.width_p(40)) bcc (.clk(clk_i),.reset_i(reset_i),.ctr_r_o(trace_count));
 
    always_ff @(posedge clk_i)
      if (finish_r_r)
        $finish();
 
-   always_ff @(negedge clk_i)
-     if (trace_count > max_cycles_p)
+   always @(negedge clk_i)
+     if (cycle_count_i > max_cycles_p)
        begin
           $display("## TIMEOUT reached max_cycles_p = %x",max_cycles_p);
           finish_r <= 1'b1;
        end
 
-   bsg_vscale_remote_packet_s [num_channels_p-1:0] pkt_cast;
-   assign pkt_cast = data_i;
+   always @(negedge clk_i)
+     if (reset_i == 0)
+       begin
+          if (cgni_v)
+            begin
+               unique case ({pkt_addr[19:0],2'b00})
+                 20'hDEAD_0:
+                   begin
+                      $display("## RECEIVED FINISH PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x (%d)"
+                               ,(pkt_data >> 16)
+                               ,(pkt_data & 16'hffff)
+                               , channel_num_p, cycle_count_i,cycle_count_i
+                               );
+                      finish_r <= 1'b1;
+                   end
+                 20'hDEAD_4:
+                   begin
+                      $display("## RECEIVED TIME PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x (%d)"
+                               ,(pkt_data >> 16)
+                               ,(pkt_data & 16'hffff)
+                               , channel_num_p,cycle_count_i,cycle_count_i);
+                   end
+                 default:
+                   $display("## received I/O device %x, addr %x, data %x on cycle %d",
+                            channel_num_p, pkt_addr<<2, pkt_data,cycle_count_i);
+               endcase
+            end
+       end
 
-   genvar                       i;
-
-   for (i = 0; i < num_channels_p; i=i+1)
-     begin: rof
-        always_ff @(negedge clk_i)
-          if (reset_i == 0)
-          begin
-             if (v_i[i])
-               begin
-                  unique case (pkt_cast[i].addr[19:0])
-                    20'hDEAD_0:
-                      begin
-                         $display("## RECEIVED FINISH PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x (%d)"
-                                  ,(pkt_cast[i].data >> 16)
-                                  ,(pkt_cast[i].data & 16'hffff)
-                                  , i,trace_count,trace_count
-                                  );
-                         finish_r <= 1'b1;
-                      end
-                    20'hDEAD_4:
-                      begin
-                         $display("## RECEIVED TIME PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x (%d)"
-                                  ,(pkt_cast[i].data >> 16)
-                                  ,(pkt_cast[i].data & 16'hffff)
-                                  , i,trace_count,trace_count);
-                      end
-                    default:
-                      $display("## received I/O device %x, addr %x, data %x on cycle 0x%x (%d)",i,pkt_cast[i].addr, pkt_cast[i].data,trace_count,trace_count);
-                  endcase
-               end
-          end
-     end : rof
 endmodule
 

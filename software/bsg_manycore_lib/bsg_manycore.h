@@ -31,6 +31,10 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_noc_xbits 3
 #elif bsg_tiles_X == 8
 #define bsg_noc_xbits 3
+#elif bsg_tiles_X == 9
+#define bsg_noc_xbits 4
+#elif bsg_tiles_X == 16
+#define bsg_noc_xbits 4
 #elif
 #error Unsupported bsg_tiles_X
 #endif
@@ -51,6 +55,10 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_noc_ybits 3
 #elif bsg_tiles_Y == 8
 #define bsg_noc_ybits 4
+#elif bsg_tiles_Y == 9
+#define bsg_noc_ybits 4
+#elif bsg_tiles_Y == 16
+#define bsg_noc_ybits 5
 #elif
 #error Unsupported bsg_tiles_Y
 #endif
@@ -99,6 +107,8 @@ typedef volatile void *bsg_remote_void_ptr;
 inline int bsg_lr(int *p)    { int tmp; __asm__ __volatile__("lr.w    %0,%1\n" : "=r" (tmp) : "A" (*p)); return tmp; }
 inline int bsg_lr_aq(int *p) { int tmp; __asm__ __volatile__("lr.w.aq %0,%1\n" : "=r" (tmp) : "A" (*p)); return tmp; }
 
+inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
+
 #define bsg_volatile_access(var)        (*((bsg_remote_int_ptr) (&(var))))
 #define bsg_volatile_access_uint16(var) (*((bsg_remote_uint16_ptr) (&(var))))
 #define bsg_volatile_access_uint8(var)  (*((bsg_remote_uint8_ptr) (&(var))))
@@ -108,8 +118,12 @@ inline int bsg_lr_aq(int *p) { int tmp; __asm__ __volatile__("lr.w.aq %0,%1\n" :
 // see http://preshing.com/20120625/memory-ordering-at-compile-time/
 // see also atomic_signal_fence(std::memory_order_seq_cst) for C11
 //
+// this is a very heavy weight operation, and generally not advised
+// at least for GCC.
+//
+
 #define bsg_compiler_memory_barrier() asm volatile("" ::: "memory")
 
-#define bsg_commit_stores() do { /* fixme: add commit stores instr */  } while (0)
+#define bsg_commit_stores() do { bsg_fence(); /* fixme: add commit stores instr */  } while (0)
 
 #endif

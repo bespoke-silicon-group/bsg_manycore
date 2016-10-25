@@ -100,6 +100,7 @@ bsg_mem_3r1w #( .width_p                (RV32_freg_data_width_gp)
                ,.read_write_same_addr_p (1)
               ) frf_0
   ( .w_clk_i   (clk)
+   ,.w_reset_i (reset)
    ,.w_v_i     (frf_cen & frf_wen)
    ,.w_addr_i  (frf_wa)
    ,.w_data_i  (frf_wd)

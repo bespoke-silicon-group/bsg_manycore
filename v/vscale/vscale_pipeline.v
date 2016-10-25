@@ -3,6 +3,7 @@
 `include "rv32_opcodes.vh"
 `include "vscale_csr_addr_map.vh"
 `include "vscale_md_constants.vh"
+`include "vscale_platform_constants.vh"
 
 module vscale_pipeline
   #(parameter x_cord_width_p = "inv"
@@ -35,8 +36,10 @@ module vscale_pipeline
                        output 			    htif_pcr_resp_valid,
                        input 			    htif_pcr_resp_ready,
                        output [`HTIF_PCR_WIDTH-1:0] htif_pcr_resp_data
-						    ,input [x_cord_width_p-1:0] my_x_i
-						    ,input [y_cord_width_p-1:0] my_y_i
+
+                       ,input outstanding_stores_i
+                       ,input [x_cord_width_p-1:0] my_x_i
+                       ,input [y_cord_width_p-1:0] my_y_i
                        );
 
    function [`XPR_LEN-1:0] store_data;
@@ -193,6 +196,8 @@ module vscale_pipeline
                     .illegal_csr_access(illegal_csr_access),
                     .prv(prv),
                     .eret(eret)
+		    ,.outstanding_stores_i(outstanding_stores_i)
+		    ,.PC_DX(PC_DX)
                     );
 
 
@@ -370,6 +375,7 @@ module vscale_pipeline
    vscale_csr_file csr(
                        .clk(clk),
                        .reset(reset),
+                       .ext_interrupts({`N_EXT_INTS{1'b0}}),
                        .addr(csr_addr),
                        .cmd(csr_cmd),
                        .wdata(csr_wdata),

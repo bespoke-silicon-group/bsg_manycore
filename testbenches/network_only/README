@@ -1,0 +1,69 @@
+1. The adn_example has a (X-by-Y) = (4-by-1) network of accelerators.
+Each of the accelerators forwards incoming data to another
+accelerator, demonstrating streaming behavior. Credit-based flow
+control has been implemented, so it should be deadlock free. There are
+four accelerators and two I/O devices, which are logically located to
+the south of the 4x1 network of accelerators. The first I/O device,
+bsg_manycore_packet_streamer, streams a list of packets into the
+network. This is an easy way to test out the system in simulation, and
+also to configure the network at startup. You write the list of
+packets into an ASCII file, and a python scrypt converts it into a rom
+that can synthesized by the FPGA tools.  The second I/O device,
+bsg_nonsynth_manycore_packet_printer, prints out all of the packets
+that it receives. The test uses the packet_streamer to configure all
+of the accelerators into a chain, and then it streams data into the
+first accelerator. The data is forwarded through the chain
+accelerators to the packet_printer, which prints the values. It looks
+for a special sentinel value that terminates the simulation. (When you
+map to FPGA, you will have to find another way to output data in the
+real world.)
+
+2a. The accelerator that is instantiated is the file
+bsg_manycore_accel_default.v.  It has three addresses that you send
+packets to. Address 1 sets the X,Y coordinate of where it sends its
+output. Address 0 sets the address at that X,Y node that it will send
+the data to.  When you write to address 2, it will forward the
+incoming data to the place specified by the last values you wrote to
+Address 0 and 1. Thus, there is a way to easily build chains of
+accelerators.
+
+2b. The bsg_manycore_accel_default.v is a kind of template for
+implementing your own accelerators. It makes use of the
+bsg_manycore_endpoint_standard module (this instantiates the
+bsg_manycore_endpoint module but adds a bunch of functionality that is
+needed to play nicely in the system, such as flow control. It also
+decodes the packets for you, and supports the "freeze" register that
+allows you to deactivate the I/O device until you send it a message.)
+The location at the bottom of the file is where you can add the
+modules you have already developed (it says "CUSTOMIZE BELOW").
+
+3. A few notable gotchas:
+
+a. If you change the number of packets in the trace file used by the
+packet_streamer, you need to update the constant rom_words_lp in
+adn_example.v
+
+b. If you add or remove I/O devices, you will need to change the
+stub_s_p parameter to stub out the I/O device.
+
+c. If you change the dimensions of the accelerator array in the
+Makefile (bsg_tiles_X and bsg_tiles_Y), the packet format may change
+because the size of the packets needs to increase to accomodate
+additional bits for coordinates. The only place that you need to
+change would be the input.trace file.
+
+d. If you have an internal network accelerator position that is
+unattached to anything, you would need to tie it off. You can use the
+bsg_manycore_link_sif_tieoff.v module to do this. (I/O positions are
+tied off with the stub_s_p, which actually should remove the
+unnecessary logic in synthesis.)
+
+4. The complete flow to build and simulate the design with Vivado is
+located at bsg_manycore/testbenches/network_only. You just need to
+pull bsg_ip_cores and bsg_manycore from the bitbucket repository and
+put them in the same directory.
+
+5. There are many debug statements scattered throughout the code
+ that you can turn on to debug things.
+
+6. Feel free to email me if you have any questions or encounter any bugs.
