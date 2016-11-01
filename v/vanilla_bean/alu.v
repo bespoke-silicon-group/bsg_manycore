@@ -16,13 +16,13 @@ logic        is_imm_op, sub_not_add,
              carry, sum_is_zero, sign_ex_or_zero;
 logic [4:0]  sh_amount;
 logic [31:0] op2;
-logic [32:0] sum; 
+logic [32:0] sum;
 logic [31:0] adder_input;
 logic [32:0] shr_out;
 logic [31:0] shl_out, xor_out, and_out, or_out;
 
 /////////////////////////////////////////////////////////
-assign is_imm_op    = (op_i.op ==? `RV32_OP_IMM) 
+assign is_imm_op    = (op_i.op ==? `RV32_OP_IMM)
                        | (op_i.op ==? `RV32_LOAD)
 `ifdef bsg_FPU
                        | (op_i.op ==? `RV32_LOAD_FP)
@@ -33,7 +33,7 @@ assign is_imm_op    = (op_i.op ==? `RV32_OP_IMM)
 `ifdef bsg_FPU
 assign op2          = ( (op_i.op == `RV32_STORE) | (op_i.op == `RV32_STORE_FP) )
 `else
-assign op2          = (op_i.op == `RV32_STORE) 
+assign op2          = (op_i.op == `RV32_STORE)
 `endif
                        ? `RV32_signext_Simm(op_i)
                        : (is_imm_op ? `RV32_signext_Iimm(op_i) : rs2_i);
@@ -59,10 +59,10 @@ always_comb
     sign_ex_or_zero = 1'bx;
 
     unique casez (op_i)
-      `RV32_LUI, `RV32_AUIPC:    
-        result_o = `RV32_signext_Uimm(op_i); 
-      
-      `RV32_ADDI, `RV32_ADD, 
+      `RV32_LUI, `RV32_AUIPC:
+        result_o = `RV32_signext_Uimm(op_i);
+
+      `RV32_ADDI, `RV32_ADD,
       `RV32_LB, `RV32_LH, `RV32_LW, `RV32_LBU, `RV32_LHU,
 `ifdef bsg_FPU
       `RV32_FLW, `RV32_FSW, `RV32_FLD,`RV32_FSD,
@@ -77,50 +77,50 @@ always_comb
         begin
           result_o = rs1_i[31:0];
         end
-      
-      `RV32_SLTI, `RV32_SLT:   
+
+      `RV32_SLTI, `RV32_SLT:
         begin
           sub_not_add = 1'b1;
           result_o    = {{31{1'b0}},sum[32]};
         end
-      
-      `RV32_SLTIU, `RV32_SLTU:  
-        begin 
+
+      `RV32_SLTIU, `RV32_SLTU:
+        begin
           sub_not_add = 1'b1;
           result_o    = {{31{1'b0}},~carry};
         end
-      
-      `RV32_XORI, `RV32_XOR:   
+
+      `RV32_XORI, `RV32_XOR:
         result_o = xor_out;
-      
-      `RV32_ORI, `RV32_OR:    
-        result_o = or_out; 
-      
-      `RV32_ANDI, `RV32_AND:   
-        result_o = and_out; 
-      
-      `RV32_SLLI, `RV32_SLL:   
+
+      `RV32_ORI, `RV32_OR:
+        result_o = or_out;
+
+      `RV32_ANDI, `RV32_AND:
+        result_o = and_out;
+
+      `RV32_SLLI, `RV32_SLL:
         result_o = shl_out;
-      
-      `RV32_SRLI, `RV32_SRL:   
+
+      `RV32_SRLI, `RV32_SRL:
         begin
           result_o        = shr_out[31:0];
           sign_ex_or_zero = 1'b0;
         end
-      
-      `RV32_SRAI, `RV32_SRA:   
+
+      `RV32_SRAI, `RV32_SRA:
         begin
           result_o        = shr_out[31:0];
           sign_ex_or_zero = rs1_i[31];
         end
-      
-      `RV32_SUB:    
+
+      `RV32_SUB:
         begin
           result_o = sum[31:0];
           sub_not_add = 1'b1;
         end
-      
-      `RV32_JALR:   
+
+      `RV32_JALR:
         begin
           sub_not_add = 1'b0;
           result_o = sum[31:0] & 32'hfffe;
@@ -132,31 +132,31 @@ always_comb
           jump_now_o = sum_is_zero;
         end
 
-      `RV32_BNE:  
+      `RV32_BNE:
         begin
           sub_not_add = 1'b1;
           jump_now_o = ~sum_is_zero;
         end
-      
-      `RV32_BLT:  
+
+      `RV32_BLT:
         begin
           sub_not_add = 1'b1;
           jump_now_o  = sum[32];
         end
-      
-      `RV32_BGE:  
+
+      `RV32_BGE:
         begin
           sub_not_add = 1'b1;
           jump_now_o = ~sum[32];
         end
-      
-      `RV32_BLTU: 
+
+      `RV32_BLTU:
         begin
           sub_not_add = 1'b1;
           jump_now_o = ~carry;
         end
-      
-      `RV32_BGEU: 
+
+      `RV32_BGEU:
         begin
           sub_not_add = 1'b1;
           jump_now_o  = carry;
@@ -168,4 +168,4 @@ always_comb
     endcase
   end
 
-endmodule 
+endmodule
