@@ -16,6 +16,8 @@ module bsg_manycore
 
    ,parameter num_banks_p       = "inv"
 
+   ,parameter imem_size_p       = "inv" // in words
+
    // array params
    ,parameter num_tiles_x_p     = -1
    ,parameter num_tiles_y_p     = -1
@@ -106,7 +108,7 @@ module bsg_manycore
 
    genvar r,c;
 
-`ifdef bsg_FPU 
+`ifdef bsg_FPU
   //The array of the interface between FAM and tile
   f_fam_in_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0]  fam_in_s_v;
   f_fam_out_s[num_tiles_y_p-1:0][num_tiles_x_p-1:0]  fam_out_s_v;
@@ -139,6 +141,7 @@ module bsg_manycore
                                           ,.y_cord_width_p(y_cord_width_lp)
                                           ,.debug_p       (debug_p       )
                                           ,.bank_size_p   (bank_size_p   )
+                                          ,.imem_size_p   (imem_size_p   )
                                           ,.num_banks_p   (num_banks_p   )
                                           ,.data_width_p  (data_width_p  )
                                           ,.addr_width_p  (addr_width_p  )
@@ -148,7 +151,7 @@ module bsg_manycore
                   ,.reset_i(reset_i)
 
            `ifdef bsg_FPU
-                  ,.fam_in_s_o (  fam_in_s_v [r][c ] ) 
+                  ,.fam_in_s_o (  fam_in_s_v [r][c ] )
                   ,.fam_out_s_i(  fam_out_s_v[r][c ] )
            `endif
                   ,.link_sif_i(proc_link_sif_lo[r][c])

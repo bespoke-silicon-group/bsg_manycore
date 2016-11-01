@@ -421,20 +421,26 @@ assign imem_cen = (~stall) | (net_imem_write_cmd | net_pc_write_cmd_idle);
 `endif
 // RISC-V edit: reserved bits in network packet header
 //              used as mask input
-genvar i;
-for(i=0; i<4; i=i+1)
+
   bsg_mem_1rw_sync #
-    ( .width_p (8)
+    ( .width_p (32)
      ,.els_p   (2**imem_addr_width_p)
     ) imem_0
     ( .clk_i  (clk)
      ,.reset_i(reset)
      ,.v_i    (imem_cen)
-     ,.w_i    (net_imem_write_cmd & net_packet_r.header.mask[i])
+//     ,.w_i    (net_imem_write_cmd & net_packet_r.header.mask[i])
+     ,.w_i    (net_imem_write_cmd)
      ,.addr_i (imem_addr)
-     ,.data_i (net_packet_r.data[i*8+:8])
-     ,.data_o (imem_out[i*8+:8])
+     ,.data_i (net_packet_r.data)
+     ,.data_o (imem_out)
     );
+
+   always @(negedge clk)
+     begin
+	assert (~net_imem_write_cmd | (&net_packet_r.header_mask))
+	  else $error("## byte write to instruction memory (%m)");
+     end
 
 // Since imem has one cycle delay and we send next cycle's address, pc_n,
 // if the PC is not written, the instruction must not change.
@@ -463,11 +469,11 @@ cl_decode cl_decode_0
 // FPU depend stall will not affect register file write back
 assign rf_wen = (net_reg_write_cmd) | (wb.op_writes_rf & (~stall));
 
-// Selection between network 0and address included in the instruction which is 
-// exeuted Address for Reg. File is shorter than address of Ins. memory in network 
+// Selection between network 0and address included in the instruction which is
+// exeuted Address for Reg. File is shorter than address of Ins. memory in network
 // data Since network can write into immediate registers, the address is wider
 // but for the destination register in an instruction the extra bits must be zero
-assign rf_wa = (net_reg_write_cmd ? net_packet_r.header.addr[RV32_reg_addr_width_gp-1:0] 
+assign rf_wa = (net_reg_write_cmd ? net_packet_r.header.addr[RV32_reg_addr_width_gp-1:0]
                                   : wb.rd_addr);
 
 // Choose if the data is from the netword of the write-back stage

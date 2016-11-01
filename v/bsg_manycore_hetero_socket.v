@@ -28,7 +28,8 @@
                           ,.debug_p(debug_p)                    \
                           ,.bank_size_p(bank_size_p)            \
                           ,.num_banks_p(num_banks_p)            \
-            			  ,.max_out_credits_p(max_out_credits_p)\
+			  ,.imem_size_p(imem_size_p)            \
+            		  ,.max_out_credits_p(max_out_credits_p)\
                           ,.hetero_type_p(hetero_type_p)        \
                           ) z                                   \
           (.clk_i                                               \
@@ -51,6 +52,7 @@ module bsg_manycore_hetero_socket #(x_cord_width_p      = "inv"
                                     , addr_width_p      = "inv"
                                     , debug_p           = 0
                                     , bank_size_p       = "inv" // in words
+				    , imem_size_p       = "inv" // in words
                                     , num_banks_p       = "inv"
                 				    , max_out_credits_p = 200
                                     , hetero_type_p     = 1
