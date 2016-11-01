@@ -149,6 +149,7 @@ module test_bsg_manycore;
   bsg_manycore #
     (
      .bank_size_p  (bank_size_lp)
+     ,.imem_size_p (bank_size_lp)
      ,.num_banks_p (num_banks_lp)
      ,.data_width_p (data_width_lp)
      ,.addr_width_p (addr_width_lp)

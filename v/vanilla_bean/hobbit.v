@@ -438,7 +438,7 @@ assign imem_cen = (~stall) | (net_imem_write_cmd | net_pc_write_cmd_idle);
 
    always @(negedge clk)
      begin
-	assert (~net_imem_write_cmd | (&net_packet_r.header_mask))
+	assert (~net_imem_write_cmd | (&net_packet_r.header.mask))
 	  else $error("## byte write to instruction memory (%m)");
      end
 
