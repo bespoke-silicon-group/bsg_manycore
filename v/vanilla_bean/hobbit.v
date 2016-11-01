@@ -265,8 +265,10 @@ if(debug_p)
                  ,exe.decode.op_reads_rf1 
                  ,exe.decode.op_reads_rf2 
                  ,exe.decode.op_is_auipc
-                 ,exe.rs1_val
-                 ,exe.rs2_val
+                // ,exe.rs1_val
+                // ,exe.rs2_val
+                , rs1_to_exe
+                , rs2_to_exe
                 );
         $display(" MEM: pc+4:%x rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
                  ,mem.pc_plus4
@@ -484,12 +486,12 @@ assign rf_wd = (net_reg_write_cmd ? net_packet_r.data : wb.rf_data);
 assign rf_cen = (~stall) | (net_reg_write_cmd);
 
 // Instantiate the general purpose register file
-bsg_mem_2r1w #( .width_p                (RV32_reg_data_width_gp)
+bsg_mem_2r1w_sync #( .width_p                (RV32_reg_data_width_gp)
                ,.els_p                  (32)
                ,.read_write_same_addr_p (1)
               ) rf_0
-  ( .w_clk_i   (clk)
-   ,.w_reset_i (reset)
+  ( .clk_i   (clk)
+   ,.reset_i (reset)
    ,.w_v_i     (rf_cen & rf_wen)
    ,.w_addr_i  (rf_wa)
    ,.w_data_i  (rf_wd)
@@ -501,8 +503,6 @@ bsg_mem_2r1w #( .width_p                (RV32_reg_data_width_gp)
    ,.r1_data_o (rf_rs2_val)
   );
 
-assign rf_rs1_out = (~|id.instruction.rs1) ? RV32_reg_data_width_gp'(0) : rf_rs1_val;
-assign rf_rs2_out = (~|id.instruction.rs2) ? RV32_reg_data_width_gp'(0) : rf_rs2_val;
 
 //+----------------------------------------------
 //|
@@ -621,8 +621,8 @@ assign  rs2_forward_val  = rs2_in_mem ? rf_data : wb.rf_data;
 assign  rs2_is_forward   = (rs2_in_mem | rs2_in_wb);
 
 // RISC-V edit: Immediate values handled in alu
-assign rs1_to_alu = ((rs1_is_forward) ? rs1_forward_val : exe.rs1_val);
-assign rs2_to_alu = ((rs2_is_forward) ? rs2_forward_val : exe.rs2_val);
+assign rs1_to_alu = ((rs1_is_forward) ? rs1_forward_val : rs1_to_exe);
+assign rs2_to_alu = ((rs2_is_forward) ? rs2_forward_val : rs2_to_exe);
 
 // Instantiate the ALU
 alu alu_0
@@ -748,39 +748,6 @@ end
 //|
 //+----------------------------------------------
 
-// Determine what rs1 value should be passed to the exe stage of the pipeline
-always_comb
-begin
-    // RS1 pre-forward found in the write back stage. A pre-forward is
-    // a bypass of the write back signal in the ID stage, where the
-    // normal forward occurs in the EXE stage right before the ALU
-    if (|id.instruction.rs1 // RISC-V: no bypass for reg 0
-        & (id.instruction.rs1 == wb.rd_addr) 
-        & wb.op_writes_rf
-       )
-        rs1_to_exe = wb.rf_data;
-
-    // RS in general purpose register file
-    else
-        rs1_to_exe = rf_rs1_out;
-end
-
-// Determine what rs2 value should be passed to the exe stage of the pipeine
-always_comb
-begin
-    // RD2 pre-forward found in the write back stage. A pre-forward is
-    // a bypass of the write back signal in the ID stage, where the
-    // normal forward occurs in the EXE stage right before the ALU
-    if (|id.instruction.rs2 // RISC-V: no bypass for reg 0
-        & (id.instruction.rs2 == wb.rd_addr) 
-        & wb.op_writes_rf
-       )
-        rs2_to_exe = wb.rf_data;
-
-    // RD in general purpose register file
-    else
-        rs2_to_exe = rf_rs2_out;
-end
 
 // Synchronous stage shift
 always_ff @ (posedge clk)
@@ -797,8 +764,11 @@ begin
             pc_jump_addr : id.pc_jump_addr,
             instruction  : id.instruction,
             decode       : id.decode,
-            rs1_val      : rs1_to_exe,
-            rs2_val      : rs2_to_exe
+//          rs1_val      : rs1_to_exe,
+//          rs2_val      : rs2_to_exe
+            rf_bypass_addr  : wb.rd_addr,
+            rf_bypass_data  : wb.rf_data,
+            rf_bypass_wrf   : wb.op_writes_rf
         };
 end
 
@@ -807,6 +777,41 @@ end
 //|          EXECUTE TO MEMORY SHIFT
 //|
 //+----------------------------------------------
+
+assign rf_rs1_out = (~|exe.instruction.rs1) ? RV32_reg_data_width_gp'(0) : rf_rs1_val;
+assign rf_rs2_out = (~|exe.instruction.rs2) ? RV32_reg_data_width_gp'(0) : rf_rs2_val;
+
+// Determine what rs1 value should be passed to the exe stage of the pipeline
+always_comb
+begin
+    // RS1 pre-forward found in the write back stage. A pre-forward is
+    // a bypass of register file 
+    if (| exe.instruction.rs1 // RISC-V: no bypass for reg 0
+        & (exe.instruction.rs1 == exe.rf_bypass_addr) 
+        & exe.rf_bypass_wrf
+       )
+        rs1_to_exe = exe.rf_bypass_data;
+
+    // RS in general purpose register file
+    else
+        rs1_to_exe = rf_rs1_out;
+end
+
+// Determine what rs2 value should be passed to the exe stage of the pipeine
+always_comb
+begin
+    // RS2 pre-forward found in the write back stage. A pre-forward is
+    // a bypass of register file 
+    if (| exe.instruction.rs2 // RISC-V: no bypass for reg 0
+        & (exe.instruction.rs2 == exe.rf_bypass_addr) 
+        & exe.rf_bypass_wrf
+       )
+        rs2_to_exe = exe.rf_bypass_data;
+
+    // RD in general purpose register file
+    else
+        rs2_to_exe = rf_rs2_out;
+end
 
 logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
 

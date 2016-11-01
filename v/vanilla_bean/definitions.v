@@ -122,6 +122,7 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] pc_jump_addr; // Jump taget PC
     instruction_s                      instruction;  // Instruction being executed
     decode_s                           decode;       // Decode signals
+
 } id_signals_s;
 
 // Execute stage signals
@@ -131,8 +132,14 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] pc_jump_addr; // Jump taget PC
     instruction_s                      instruction;  // Instruction being executed
     decode_s                           decode;       // Decode signals
-    logic [RV32_reg_data_width_gp-1:0] rs1_val;      // RF output data from RS1 address
-    logic [RV32_reg_data_width_gp-1:0] rs2_val;      // RF output data from RS2 address
+    //the rf_value is stored in register file as using synchronous RF
+    //logic [RV32_reg_data_width_gp-1:0] rs1_val;      // RF output data from RS1 address
+    //logic [RV32_reg_data_width_gp-1:0] rs2_val;      // RF output data from RS2 address
+
+    //we have to store the write back value from wb to bypass the RF
+    logic [RV32_reg_addr_width_gp-1:0] rf_bypass_addr;  // Register file write address
+    logic [RV32_reg_data_width_gp-1:0] rf_bypass_data;  // Register file write data
+    logic                              rf_bypass_wrf;
 } exe_signals_s;
 
 // Memory stage signals
