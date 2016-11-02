@@ -88,11 +88,13 @@ module bsg_manycore_hetero_socket #(x_cord_width_p      = "inv"
    `HETERO_TYPE_MACRO(7,bsg_manycore_accel_default) else
    `HETERO_TYPE_MACRO(8,bsg_manycore_accel_default) else
      begin : nh
+	// synopsys translate_off
         initial
           begin
              $error("## unidentified hetero core type ",hetero_type_p);
              $finish();
           end
+        // synopsys translate_on
      end
 
 endmodule

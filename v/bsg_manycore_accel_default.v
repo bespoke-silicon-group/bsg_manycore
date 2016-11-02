@@ -192,7 +192,7 @@ module bsg_manycore_accel_default #(
    always @(negedge clk_i)
      begin
         if (in_v_lo | out_v_li | in_yumi_li)
-        $display("## bsg_manycore_accel_default (y,x=%d,%d) (in: v=%b, d_i=%b, a_i=0h%x, yumi=%b, endpoint=%b) (out:v=%b,d_o=%b,ready=%b)"
+        $display("## bsg_manycore_accel_default (y,x=%d,%d) (in: v=%b, d_i=%b, a_i=0h%h, yumi=%b, endpoint=%b) (out:v=%b,d_o=%b,ready=%b)"
                  , my_y_i, my_x_i, in_v_lo, in_data_lo, in_addr_lo, in_yumi_li, endpoint_en_vec_lo
                  , out_v_li, out_packet_li, out_ready_lo
                  );

@@ -438,12 +438,14 @@ assign imem_cen = (~stall) | (net_imem_write_cmd | net_pc_write_cmd_idle);
      ,.data_o (imem_out)
     );
 
+   // synopsys translate_off
    always @(negedge clk)
      begin
 	assert (~net_imem_write_cmd | (&net_packet_r.header.mask))
 	  else $error("## byte write to instruction memory (%m)");
      end
-
+   // synopsys translate_on
+   
 // Since imem has one cycle delay and we send next cycle's address, pc_n,
 // if the PC is not written, the instruction must not change.
 assign instruction = (pc_wen_r) ? imem_out : instruction_r;
