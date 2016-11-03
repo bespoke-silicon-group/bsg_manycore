@@ -488,10 +488,11 @@ assign rf_wd = (net_reg_write_cmd ? net_packet_r.data : wb.rf_data);
 assign rf_cen = (~stall) | (net_reg_write_cmd);
 
 // Instantiate the general purpose register file
-bsg_mem_2r1w_sync #( .width_p                (RV32_reg_data_width_gp)
-               ,.els_p                  (32)
-               ,.read_write_same_addr_p (1)
-              ) rf_0
+// This register file is write through, which means when read/write
+// The same address, the read gets the newly written value.
+rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
+                       ,.els_p                  (32)
+                      ) rf_0
   ( .clk_i   (clk)
    ,.reset_i (reset)
    ,.w_v_i     (rf_cen & rf_wen)
@@ -765,12 +766,7 @@ begin
             pc_plus4     : id.pc_plus4,
             pc_jump_addr : id.pc_jump_addr,
             instruction  : id.instruction,
-            decode       : id.decode,
-//          rs1_val      : rs1_to_exe,
-//          rs2_val      : rs2_to_exe
-            rf_bypass_addr  : wb.rd_addr,
-            rf_bypass_data  : wb.rf_data,
-            rf_bypass_wrf   : wb.op_writes_rf
+            decode       : id.decode
         };
 end
 
@@ -780,40 +776,8 @@ end
 //|
 //+----------------------------------------------
 
-assign rf_rs1_out = (~|exe.instruction.rs1) ? RV32_reg_data_width_gp'(0) : rf_rs1_val;
-assign rf_rs2_out = (~|exe.instruction.rs2) ? RV32_reg_data_width_gp'(0) : rf_rs2_val;
-
-// Determine what rs1 value should be passed to the exe stage of the pipeline
-always_comb
-begin
-    // RS1 pre-forward found in the write back stage. A pre-forward is
-    // a bypass of register file 
-    if (| exe.instruction.rs1 // RISC-V: no bypass for reg 0
-        & (exe.instruction.rs1 == exe.rf_bypass_addr) 
-        & exe.rf_bypass_wrf
-       )
-        rs1_to_exe = exe.rf_bypass_data;
-
-    // RS in general purpose register file
-    else
-        rs1_to_exe = rf_rs1_out;
-end
-
-// Determine what rs2 value should be passed to the exe stage of the pipeine
-always_comb
-begin
-    // RS2 pre-forward found in the write back stage. A pre-forward is
-    // a bypass of register file 
-    if (| exe.instruction.rs2 // RISC-V: no bypass for reg 0
-        & (exe.instruction.rs2 == exe.rf_bypass_addr) 
-        & exe.rf_bypass_wrf
-       )
-        rs2_to_exe = exe.rf_bypass_data;
-
-    // RD in general purpose register file
-    else
-        rs2_to_exe = rf_rs2_out;
-end
+assign rs1_to_exe = (~|exe.instruction.rs1) ? RV32_reg_data_width_gp'(0) : rf_rs1_val;
+assign rs2_to_exe = (~|exe.instruction.rs2) ? RV32_reg_data_width_gp'(0) : rf_rs2_val;
 
 logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
 

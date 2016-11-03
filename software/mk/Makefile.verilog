@@ -146,6 +146,7 @@ LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_decode.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_state_machine.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/hobbit.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/bsg_manycore_proc_vanilla.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/rf_2r1w_sync_wrapper.v
 LIST_VANILLA_SRCS+= $(LIST_FPU_SRCS)
 
 LIST_COMMON_SRCS = $(BSG_IP_CORES_DIR)/bsg_misc/bsg_transpose.v
@@ -164,7 +165,6 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode_with_v.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_dff_reset_en.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1r1w.v
-#LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_2r1w.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_2r1w_sync.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_banked_crossbar.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v
