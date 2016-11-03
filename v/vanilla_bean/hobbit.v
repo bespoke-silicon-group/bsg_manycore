@@ -106,6 +106,7 @@ logic [RV32_reg_data_width_gp-1:0] rs1_forward_val, rs2_forward_val;
 
 //logic [31:0]  rf_data, rs_to_exe, rd_to_exe;
 logic [RV32_reg_data_width_gp-1:0] rf_data, loaded_byte, loaded_hex, rs1_to_exe, rs2_to_exe;
+logic [RV32_reg_data_width_gp-1:0] mem_rf_data, non_mem_rf_data;
 
 // Branch and jump predictions
 logic [RV32_reg_data_width_gp-1:0] jalr_prediction_n, jalr_prediction_r, 
@@ -162,6 +163,16 @@ assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
 
 // Stall if LD/ST still active; or in non-RUN state
 assign stall = (stall_non_mem | stall_mem); 
+
+
+//data depenecy stall
+//only occurs when there is operation needs loaded data immediately 
+wire id_exe_rs1_match = id.decode.op_reads_rf1 & ( id.instruction.rs1 == exe.instruction.rd );
+wire id_exe_rs2_match = id.decode.op_reads_rf2 & ( id.instruction.rs2 == exe.instruction.rd );
+wire depend_stall      = (id_exe_rs1_match | id_exe_rs2_match)
+                       & exe.decode.is_load_op
+                       & exe.decode.op_writes_rf; //FPU load won't write rf
+
 
 //+----------------------------------------------
 //|
@@ -351,9 +362,9 @@ assign flush = (branch_mispredict | jalr_mispredict);
 
 // PC write enable. This stops the CPU updating the PC
 `ifdef bsg_FPU
-assign pc_wen = net_pc_write_cmd_idle | (~(stall | fpi_inter.fam_depend_stall));
+assign pc_wen = net_pc_write_cmd_idle | (~(stall | fpi_inter.fam_depend_stall | depend_stall));
 `else
-assign pc_wen = net_pc_write_cmd_idle | (~stall);
+assign pc_wen = net_pc_write_cmd_idle | (~(stall | depend_stall));
 `endif
 
 // Next PC under normal circumstances
@@ -416,10 +427,10 @@ assign imem_addr = (net_imem_write_cmd)
 
 // Instruction memory chip enable signal
 `ifdef bsg_FPU
-assign imem_cen = (~( stall | fpi_inter.fam_depend_stall)) 
+assign imem_cen = (~( stall | fpi_inter.fam_depend_stall | depend_stall )) 
                 | (net_imem_write_cmd | net_pc_write_cmd_idle);
 `else
-assign imem_cen = (~stall) | (net_imem_write_cmd | net_pc_write_cmd_idle);
+assign imem_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_write_cmd_idle);
 `endif
 // RISC-V edit: reserved bits in network packet header
 //              used as mask input
@@ -471,6 +482,7 @@ cl_decode cl_decode_0
 
 // Register write could be from network or the controller
 // FPU depend stall will not affect register file write back
+// MEM load depend stall will not affect register file write back
 assign rf_wen = (net_reg_write_cmd) | (wb.op_writes_rf & (~stall));
 
 // Selection between network 0and address included in the instruction which is
@@ -485,6 +497,7 @@ assign rf_wd = (net_reg_write_cmd ? net_packet_r.data : wb.rf_data);
 
 // Register file chip enable signal
 // FPU depend stall will not affect register file write back
+// MEM load depend stall will not affect register file write back
 assign rf_cen = (~stall) | (net_reg_write_cmd);
 
 // Instantiate the general purpose register file
@@ -610,7 +623,8 @@ assign  rs1_in_mem       = mem.decode.op_writes_rf
 assign  rs1_in_wb        = wb.op_writes_rf 
                            & (exe.instruction.rs1  == wb.rd_addr)
                            & (|exe.instruction.rs1);
-assign  rs1_forward_val  = rs1_in_mem ? rf_data : wb.rf_data;
+//We only forword the non loaded data in mem stage.
+assign  rs1_forward_val  = rs1_in_mem ? non_mem_rf_data : wb.rf_data;
 assign  rs1_is_forward   = (rs1_in_mem | rs1_in_wb);
 
 // RD register forwarding
@@ -620,7 +634,8 @@ assign  rs2_in_mem       = mem.decode.op_writes_rf
 assign  rs2_in_wb        = wb.op_writes_rf 
                            & (exe.instruction.rs2  == wb.rd_addr)
                            & (|exe.instruction.rs2);
-assign  rs2_forward_val  = rs2_in_mem ? rf_data : wb.rf_data;
+
+assign  rs2_forward_val  = rs2_in_mem ? non_mem_rf_data : wb.rf_data;
 assign  rs2_is_forward   = (rs2_in_mem | rs2_in_wb);
 
 // RISC-V edit: Immediate values handled in alu
@@ -660,7 +675,6 @@ cl_state_machine state_machine
 //|        DATA MEMORY HANDSHAKE SIGNALS
 //|
 //+----------------------------------------------
-
 assign valid_to_mem_c = exe.decode.is_mem_op & (~stall_non_mem) & (~stall_lrw);
 
 //We should always accept the returned data even there is a non memory stall
@@ -723,18 +737,18 @@ always_ff @ (posedge clk)
 begin
 `ifdef bsg_FPU
     if (reset | net_pc_write_cmd_idle |
-            (flush & (~(stall|fpi_inter.fam_depend_stall))) 
+            (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall ))) 
        )
 `else
-    if (reset | net_pc_write_cmd_idle | (flush & (~stall)))
+    if (reset | net_pc_write_cmd_idle | (flush & (~   (stall | depend_stall)  ) ) )
 `endif
 
         id <= '0;
 
 `ifdef bsg_FPU
-    else if (~(stall|fpi_inter.fam_depend_stall))
+    else if (~(stall|fpi_inter.fam_depend_stall | depend_stall ))
 `else
-    else if (~stall)
+    else if (~ ( stall | depend_stall) )
 `endif
 
         id <= '{
@@ -755,13 +769,17 @@ end
 // Synchronous stage shift
 always_ff @ (posedge clk)
 begin
-    if (reset | net_pc_write_cmd_idle | (flush & (~stall)))
+    if (reset | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
         exe <= '0;
 `ifdef bsg_FPU
-    else if( fpi_inter.fam_depend_stall & (~stall) )
-        exe <= '0; //insert a bubble to the pipeline
+    else if(    ( fpi_inter.fam_depend_stall | depend_stall ) 
+              & (~stall)  
+           )
+`else
+    else if ( depend_stall & (~stall) )
 `endif
-    else if (~stall)
+        exe <= '0; //insert a bubble to the pipeline
+    else if (~ stall)
         exe <= '{
             pc_plus4     : id.pc_plus4,
             pc_jump_addr : id.pc_jump_addr,
@@ -858,37 +876,41 @@ always_comb
 begin
     // RISC-V edit: added support for auipc and byte/hex loads
     if (mem.decode.op_is_auipc)
-        rf_data = mem.pc_plus4 - 3'b100 + mem.alu_result;
+        non_mem_rf_data = mem.pc_plus4 - 3'b100 + mem.alu_result;
     else if (mem.decode.is_jump_op)
-        rf_data = mem.pc_plus4;
-    else if (mem.decode.is_load_op)
-      begin
-        unique casez (mem.alu_result[1:0])
-          00: loaded_byte = loaded_data[0+:8];
-          01: loaded_byte = loaded_data[8+:8];
-          10: loaded_byte = loaded_data[16+:8];
-          11: loaded_byte = loaded_data[24+:8];
-          default: loaded_byte = 8'bx;
-        endcase
+        non_mem_rf_data = mem.pc_plus4;
+    else
+        non_mem_rf_data = mem.alu_result;
+end
 
-        loaded_hex = (|mem.alu_result[1:0]) 
+always_comb
+begin
+    unique casez (mem.alu_result[1:0])
+      00:       loaded_byte = loaded_data[0+:8];
+      01:       loaded_byte = loaded_data[8+:8];
+      10:       loaded_byte = loaded_data[16+:8];
+      default:  loaded_byte = loaded_data[24+:8];
+    endcase
+end
+
+assign loaded_hex = (|mem.alu_result[1:0]) 
                       ? loaded_data[16+:16]
                       : loaded_data[0+:16];
-    
-        if (mem.decode.is_byte_op)
-            rf_data = (mem.decode.is_load_unsigned) 
-                       ? 32'(loaded_byte[7:0])
-                       : {{24{loaded_byte[7]}}, loaded_byte[7:0]};
-        else if(mem.decode.is_hex_op)
-            rf_data = (mem.decode.is_load_unsigned)
-                       ? 32'(loaded_hex[15:0])
-                       : {{24{loaded_hex[15]}}, loaded_hex[15:0]};
-        else
-            rf_data = loaded_data;
-      end
+always_comb
+begin
+    if (mem.decode.is_byte_op)
+        mem_rf_data = (mem.decode.is_load_unsigned) 
+                   ? 32'(loaded_byte[7:0])
+                   : {{24{loaded_byte[7]}}, loaded_byte[7:0]};
+    else if(mem.decode.is_hex_op)
+        mem_rf_data = (mem.decode.is_load_unsigned)
+                   ? 32'(loaded_hex[15:0])
+                   : {{24{loaded_hex[15]}}, loaded_hex[15:0]};
     else
-        rf_data = mem.alu_result;
+        mem_rf_data = loaded_data;
 end
+
+assign rf_data = mem.decode.is_load_op ? mem_rf_data : non_mem_rf_data; 
 
 // Synchronous stage shift
 always_ff @ (posedge clk)
