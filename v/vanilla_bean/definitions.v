@@ -139,7 +139,6 @@ typedef struct packed
 // Memory stage signals
 typedef struct packed
 {
-    logic [RV32_reg_data_width_gp-1:0] pc_plus4;   // PC + 4
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;    // Destination address
     decode_s                           decode;     // Decode signals
     logic [RV32_reg_data_width_gp-1:0] alu_result; // ALU ouptut data

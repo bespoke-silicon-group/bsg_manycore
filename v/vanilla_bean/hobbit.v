@@ -79,6 +79,7 @@ logic [31:0] md_result;
 
 // ALU logic
 logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, basic_comp_result, alu_result;
+logic [RV32_reg_data_width_gp-1:0] jalr_addr;
 logic                              jump_now;
 
 // Stores
@@ -106,7 +107,7 @@ logic [RV32_reg_data_width_gp-1:0] rs1_forward_val, rs2_forward_val;
 
 //logic [31:0]  rf_data, rs_to_exe, rd_to_exe;
 logic [RV32_reg_data_width_gp-1:0] rf_data, loaded_byte, loaded_hex, rs1_to_exe, rs2_to_exe;
-logic [RV32_reg_data_width_gp-1:0] mem_rf_data, non_mem_rf_data;
+logic [RV32_reg_data_width_gp-1:0] mem_loaded_data, non_mem_rf_data;
 
 // Branch and jump predictions
 logic [RV32_reg_data_width_gp-1:0] jalr_prediction_n, jalr_prediction_r, 
@@ -346,7 +347,7 @@ assign branch_mispredict = exe.decode.is_branch_op
 // JALR mispredict (or just a JALR instruction in the single cycle because it
 // follows the same logic as a JALR mispredict)
 assign jalr_mispredict = (exe.instruction.op ==? `RV32_JALR_OP) 
-                         & (alu_result != jalr_prediction_rr);
+                         & (jalr_addr != jalr_prediction_rr);
 
 // Flush the control signals in the execute and instr decode stages if there
 // is a misprediciton and (only for the pipelined version of the core)
@@ -397,7 +398,7 @@ begin
 
     // Fixing a JALR misprediction (or a signal cycle JALR instruction)
     else if (jalr_mispredict)
-        pc_n = alu_result;
+        pc_n = jalr_addr;
 
     // Predict taken branch or instrcution is a long jump
     else if ((decode.is_branch_op & instruction[RV32_instr_width_gp-1]) | (instruction.op == `RV32_JAL_OP))
@@ -623,7 +624,7 @@ assign  rs1_in_wb        = wb.op_writes_rf
                            & (exe.instruction.rs1  == wb.rd_addr)
                            & (|exe.instruction.rs1);
 //We only forword the non loaded data in mem stage.
-assign  rs1_forward_val  = rs1_in_mem ? non_mem_rf_data : wb.rf_data;
+assign  rs1_forward_val  = rs1_in_mem ? mem.alu_result : wb.rf_data;
 assign  rs1_is_forward   = (rs1_in_mem | rs1_in_wb);
 
 // RD register forwarding
@@ -634,7 +635,7 @@ assign  rs2_in_wb        = wb.op_writes_rf
                            & (exe.instruction.rs2  == wb.rd_addr)
                            & (|exe.instruction.rs2);
 
-assign  rs2_forward_val  = rs2_in_mem ? non_mem_rf_data : wb.rf_data;
+assign  rs2_forward_val  = rs2_in_mem ? mem.alu_result : wb.rf_data;
 assign  rs2_is_forward   = (rs2_in_mem | rs2_in_wb);
 
 // RISC-V edit: Immediate values handled in alu
@@ -644,11 +645,13 @@ assign rs2_to_alu = ((rs2_is_forward) ? rs2_forward_val : exe.rs2_val);
 // Instantiate the ALU
 alu alu_0
 (
-    .rs1_i(rs1_to_alu),
-    .rs2_i(rs2_to_alu),
-    .op_i(exe.instruction),
-    .result_o(basic_comp_result),
-    .jump_now_o(jump_now)
+    .rs1_i      (   rs1_to_alu          )
+   ,.rs2_i      (   rs2_to_alu          )
+   ,.pc_plus4_i (   exe.pc_plus4        )
+   ,.op_i       (   exe.instruction     )
+   ,.result_o   (   basic_comp_result   )
+   ,.jalr_addr_o(   jalr_addr           )
+   ,.jump_now_o (   jump_now            )
 );
 
 assign alu_result = instr_is_md ? md_result : basic_comp_result;
@@ -841,7 +844,6 @@ begin
         mem <= '0;
     else if (~stall)
         mem <= '{
-            pc_plus4   : exe.pc_plus4,
             rd_addr    : exe.instruction.rd,
 `ifdef bsg_FPU
             decode     : fpi_alu_decode,
@@ -885,19 +887,6 @@ logic [RV32_reg_data_width_gp-1:0] loaded_data;
 assign loaded_data =  is_load_buffer_valid ? load_buffer_data:
                                              from_mem_i.read_data;
 
-// Determine what data to send to the write back stage
-// that will end up being writen to the register file
-always_comb
-begin
-    // RISC-V edit: added support for auipc and byte/hex loads
-    if (mem.decode.op_is_auipc)
-        non_mem_rf_data = mem.pc_plus4 - 3'b100 + mem.alu_result;
-    else if (mem.decode.is_jump_op)
-        non_mem_rf_data = mem.pc_plus4;
-    else
-        non_mem_rf_data = mem.alu_result;
-end
-
 always_comb
 begin
     unique casez (mem.alu_result[1:0])
@@ -914,18 +903,18 @@ assign loaded_hex = (|mem.alu_result[1:0])
 always_comb
 begin
     if (mem.decode.is_byte_op)
-        mem_rf_data = (mem.decode.is_load_unsigned) 
-                   ? 32'(loaded_byte[7:0])
-                   : {{24{loaded_byte[7]}}, loaded_byte[7:0]};
+        mem_loaded_data = (mem.decode.is_load_unsigned) 
+                        ? 32'(loaded_byte[7:0])
+                        : {{24{loaded_byte[7]}}, loaded_byte[7:0]};
     else if(mem.decode.is_hex_op)
-        mem_rf_data = (mem.decode.is_load_unsigned)
-                   ? 32'(loaded_hex[15:0])
-                   : {{24{loaded_hex[15]}}, loaded_hex[15:0]};
+        mem_loaded_data = (mem.decode.is_load_unsigned)
+                        ? 32'(loaded_hex[15:0])
+                        : {{24{loaded_hex[15]}}, loaded_hex[15:0]};
     else
-        mem_rf_data = loaded_data;
+        mem_loaded_data = loaded_data;
 end
 
-assign rf_data = mem.decode.is_load_op ? mem_rf_data : non_mem_rf_data; 
+assign rf_data = mem.decode.is_load_op ? mem_loaded_data : mem.alu_result; 
 
 // Synchronous stage shift
 always_ff @ (posedge clk)

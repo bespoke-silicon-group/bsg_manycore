@@ -7,8 +7,10 @@
 
 module alu ( input [RV32_reg_data_width_gp-1:0] rs1_i
             ,input [RV32_reg_data_width_gp-1:0] rs2_i
+            ,input [RV32_reg_data_width_gp-1:0] pc_plus4_i
             ,input  instruction_s op_i
             ,output logic [RV32_reg_data_width_gp-1:0] result_o
+            ,output logic [RV32_reg_data_width_gp-1:0] jalr_addr_o
             ,output logic jump_now_o
            );
 
@@ -55,12 +57,16 @@ always_comb
   begin
     jump_now_o      = 1'bx;
     result_o        = 32'dx;
+    jalr_addr_o     = 32'dx;
     sub_not_add     = 1'bx;
     sign_ex_or_zero = 1'bx;
 
     unique casez (op_i)
-      `RV32_LUI, `RV32_AUIPC:
+      `RV32_LUI:
         result_o = `RV32_signext_Uimm(op_i);
+
+      `RV32_AUIPC:
+        result_o = `RV32_signext_Uimm(op_i) + pc_plus4_i - 3'b100;
 
       `RV32_ADDI, `RV32_ADD,
       `RV32_LB, `RV32_LH, `RV32_LW, `RV32_LBU, `RV32_LHU,
@@ -123,9 +129,14 @@ always_comb
       `RV32_JALR:
         begin
           sub_not_add = 1'b0;
-          result_o = sum[31:0] & 32'hfffe;
+          jalr_addr_o = sum[31:0] & 32'hfffe;
+          result_o    = pc_plus4_i;
         end
 
+      `RV32_JAL:
+        begin
+          result_o    =pc_plus4_i;
+        end
       `RV32_BEQ:
         begin
           sub_not_add = 1'b1;
