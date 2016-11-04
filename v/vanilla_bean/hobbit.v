@@ -276,10 +276,8 @@ if(debug_p)
                  ,exe.decode.op_reads_rf1 
                  ,exe.decode.op_reads_rf2 
                  ,exe.decode.op_is_auipc
-                // ,exe.rs1_val
-                // ,exe.rs2_val
-                , rs1_to_exe
-                , rs2_to_exe
+                 ,exe.rs1_val
+                 ,exe.rs2_val
                 );
         $display(" MEM: pc+4:%x rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
                  ,mem.pc_plus4
@@ -498,7 +496,8 @@ assign rf_wd = (net_reg_write_cmd ? net_packet_r.data : wb.rf_data);
 // Register file chip enable signal
 // FPU depend stall will not affect register file write back
 // MEM load depend stall will not affect register file write back
-assign rf_cen = (~stall) | (net_reg_write_cmd);
+//assign rf_cen = (~ stall ) | (net_reg_write_cmd);
+   assign rf_cen= ~(stall | depend_stall );
 
 // Instantiate the general purpose register file
 // This register file is write through, which means when read/write
@@ -508,14 +507,14 @@ rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
                       ) rf_0
   ( .clk_i   (clk)
    ,.reset_i (reset)
-   ,.w_v_i     (rf_cen & rf_wen)
+   ,.w_v_i     (rf_wen)
    ,.w_addr_i  (rf_wa)
    ,.w_data_i  (rf_wd)
    ,.r0_v_i    (rf_cen)
-   ,.r0_addr_i (id.instruction.rs1)
+   ,.r0_addr_i (instruction.rs1)
    ,.r0_data_o (rf_rs1_val)
    ,.r1_v_i    (rf_cen)
-   ,.r1_addr_i (id.instruction.rs2)
+   ,.r1_addr_i (instruction.rs2)
    ,.r1_data_o (rf_rs2_val)
   );
 
@@ -639,8 +638,8 @@ assign  rs2_forward_val  = rs2_in_mem ? non_mem_rf_data : wb.rf_data;
 assign  rs2_is_forward   = (rs2_in_mem | rs2_in_wb);
 
 // RISC-V edit: Immediate values handled in alu
-assign rs1_to_alu = ((rs1_is_forward) ? rs1_forward_val : rs1_to_exe);
-assign rs2_to_alu = ((rs2_is_forward) ? rs2_forward_val : rs2_to_exe);
+assign rs1_to_alu = ((rs1_is_forward) ? rs1_forward_val : exe.rs1_val);
+assign rs2_to_alu = ((rs2_is_forward) ? rs2_forward_val : exe.rs2_val);
 
 // Instantiate the ALU
 alu alu_0
@@ -765,6 +764,22 @@ end
 //|
 //+----------------------------------------------
 
+//WB to ID forwarding logic
+wire id_wb_rs1_forward = id.decode.op_reads_rf1 & ( id.instruction.rs1 == wb.rd_addr)
+                       & wb.op_writes_rf
+                       & (| id.instruction.rs1) ; //should not forward r0
+wire id_wb_rs2_forward = id.decode.op_reads_rf2 & ( id.instruction.rs2 == wb.rd_addr)
+                       & wb.op_writes_rf
+                       & (| id.instruction.rs2); //should not forward r0
+
+wire [RV32_reg_data_width_gp-1:0]  rf_rs1_index0_fix = (~|id.instruction.rs1) ? 
+                                        RV32_reg_data_width_gp'(0) : rf_rs1_val;
+
+wire [RV32_reg_data_width_gp-1:0]  rf_rs2_index0_fix = (~|id.instruction.rs2) ? 
+                                        RV32_reg_data_width_gp'(0) : rf_rs2_val;
+
+assign rs1_to_exe    = id_wb_rs1_forward ? wb.rf_data : rf_rs1_index0_fix;
+assign rs2_to_exe    = id_wb_rs2_forward ? wb.rf_data : rf_rs2_index0_fix;
 
 // Synchronous stage shift
 always_ff @ (posedge clk)
@@ -784,7 +799,9 @@ begin
             pc_plus4     : id.pc_plus4,
             pc_jump_addr : id.pc_jump_addr,
             instruction  : id.instruction,
-            decode       : id.decode
+            decode       : id.decode,
+            rs1_val      : rs1_to_exe,
+            rs2_val      : rs2_to_exe
         };
 end
 
@@ -794,8 +811,6 @@ end
 //|
 //+----------------------------------------------
 
-assign rs1_to_exe = (~|exe.instruction.rs1) ? RV32_reg_data_width_gp'(0) : rf_rs1_val;
-assign rs2_to_exe = (~|exe.instruction.rs2) ? RV32_reg_data_width_gp'(0) : rf_rs2_val;
 
 logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
 
