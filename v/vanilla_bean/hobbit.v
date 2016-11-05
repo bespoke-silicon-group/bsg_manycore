@@ -624,7 +624,15 @@ assign  rs1_in_wb        = wb.op_writes_rf
                            & (exe.instruction.rs1  == wb.rd_addr)
                            & (|exe.instruction.rs1);
 //We only forword the non loaded data in mem stage.
-assign  rs1_forward_val  = rs1_in_mem ? mem.alu_result : wb.rf_data;
+//assign  rs1_forward_val  = rs1_in_mem ? mem.alu_result : wb.rf_data;
+bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
+           ,.els_p      ( 2                      )
+          ) rs1_forward_mux
+          ( .data_i     ( { mem.alu_result, wb.rf_data  }   )
+           ,.sel_i      ( rs1_in_mem                        ) 
+           ,.data_o     ( rs1_forward_val                   ) 
+          );
+
 assign  rs1_is_forward   = (rs1_in_mem | rs1_in_wb);
 
 // RD register forwarding
@@ -635,12 +643,35 @@ assign  rs2_in_wb        = wb.op_writes_rf
                            & (exe.instruction.rs2  == wb.rd_addr)
                            & (|exe.instruction.rs2);
 
-assign  rs2_forward_val  = rs2_in_mem ? mem.alu_result : wb.rf_data;
+//assign  rs2_forward_val  = rs2_in_mem ? mem.alu_result : wb.rf_data;
+bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
+           ,.els_p      ( 2                      )
+          ) rs2_forward_mux
+          ( .data_i     ( { mem.alu_result, wb.rf_data  }   )
+           ,.sel_i      ( rs2_in_mem                        ) 
+           ,.data_o     ( rs2_forward_val                   ) 
+          );
+
 assign  rs2_is_forward   = (rs2_in_mem | rs2_in_wb);
 
 // RISC-V edit: Immediate values handled in alu
-assign rs1_to_alu = ((rs1_is_forward) ? rs1_forward_val : exe.rs1_val);
-assign rs2_to_alu = ((rs2_is_forward) ? rs2_forward_val : exe.rs2_val);
+//assign rs1_to_alu = ((rs1_is_forward) ? rs1_forward_val : exe.rs1_val);
+bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
+           ,.els_p      ( 2                      )
+          ) rs1_alu_mux
+          ( .data_i     ( { rs1_forward_val, exe.rs1_val }  )
+           ,.sel_i      ( rs1_is_forward                    ) 
+           ,.data_o     ( rs1_to_alu                        ) 
+          );
+
+//assign rs2_to_alu = ((rs2_is_forward) ? rs2_forward_val : exe.rs2_val);
+bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
+           ,.els_p      ( 2                      )
+          ) rs2_alu_mux
+          ( .data_i     ( { rs2_forward_val, exe.rs2_val }  )
+           ,.sel_i      ( rs2_is_forward                    ) 
+           ,.data_o     ( rs2_to_alu                        ) 
+          );
 
 // Instantiate the ALU
 alu alu_0

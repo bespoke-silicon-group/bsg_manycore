@@ -147,6 +147,7 @@ LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_state_machine.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/hobbit.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/bsg_manycore_proc_vanilla.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/rf_2r1w_sync_wrapper.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_mux.v
 LIST_VANILLA_SRCS+= $(LIST_FPU_SRCS)
 
 LIST_COMMON_SRCS = $(BSG_IP_CORES_DIR)/bsg_misc/bsg_transpose.v
