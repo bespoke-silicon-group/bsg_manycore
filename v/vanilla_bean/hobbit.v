@@ -213,119 +213,6 @@ assign to_mem_o = '{
     yumi          : yumi_to_mem_c,
     addr          : alu_result
 };
-
-// DEBUG Struct
-assign debug_o = {pc_r, instruction, state_r};
-//synopsys translate_off
-if(debug_p)
-  always_ff @(negedge clk)
-  begin
-    if ((~|my_x_i & ~|my_y_i) & state_r==RUN)
-      begin
-        $display("\n%0dns (%d,%d):", $time, my_x_i, my_y_i);
-        $display("  IF: pc  :%x instr:{%x_%x_%x_%x_%x_%x} state:%b net_pkt:{%x_%x_%x}"
-                 ,pc_r
-                 ,instruction.funct7
-                 ,instruction.rs2
-                 ,instruction.rs1
-                 ,instruction.funct3
-                 ,instruction.rd
-                 ,instruction.op
-                 ,state_r
-                 ,net_packet_r.valid
-                 ,net_packet_r.header.addr
-                 ,net_packet_r.data
-                );
-        $display("  ID: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b"
-                 ,id.pc_plus4
-                 ,id.instruction.funct7
-                 ,id.instruction.rs2
-                 ,id.instruction.rs1
-                 ,id.instruction.funct3
-                 ,id.instruction.rd
-                 ,id.instruction.op
-                 ,id.pc_jump_addr
-                 ,id.decode.op_writes_rf
-                 ,id.decode.is_load_op  
-                 ,id.decode.is_store_op 
-                 ,id.decode.is_mem_op
-                 ,id.decode.is_byte_op
-                 ,id.decode.is_hex_op
-                 ,id.decode.is_branch_op
-                 ,id.decode.is_jump_op  
-                 ,id.decode.op_reads_rf1
-                 ,id.decode.op_reads_rf2
-                 ,id.decode.op_is_auipc
-                );
-        $display(" EXE: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b rs1:%0x rs2:%0x"
-                 ,exe.pc_plus4
-                 ,exe.instruction.funct7
-                 ,exe.instruction.rs2
-                 ,exe.instruction.rs1
-                 ,exe.instruction.funct3
-                 ,exe.instruction.rd
-                 ,exe.instruction.op
-                 ,exe.pc_jump_addr
-                 ,exe.decode.op_writes_rf 
-                 ,exe.decode.is_load_op   
-                 ,exe.decode.is_store_op  
-                 ,exe.decode.is_mem_op
-                 ,exe.decode.is_byte_op
-                 ,exe.decode.is_hex_op
-                 ,exe.decode.is_branch_op 
-                 ,exe.decode.is_jump_op   
-                 ,exe.decode.op_reads_rf1 
-                 ,exe.decode.op_reads_rf2 
-                 ,exe.decode.op_is_auipc
-                 ,exe.rs1_val
-                 ,exe.rs2_val
-                );
-        $display(" MEM: pc+4:%x rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
-                 ,mem.pc_plus4
-                 ,mem.rd_addr
-                 ,mem.decode.op_writes_rf 
-                 ,mem.decode.is_load_op   
-                 ,mem.decode.is_store_op  
-                 ,mem.decode.is_mem_op
-                 ,mem.decode.is_byte_op
-                 ,mem.decode.is_hex_op
-                 ,mem.decode.is_branch_op 
-                 ,mem.decode.is_jump_op   
-                 ,mem.decode.op_reads_rf1 
-                 ,mem.decode.op_reads_rf2 
-                 ,mem.decode.op_is_auipc
-                 ,mem.alu_result
-                );
-        $display("  WB: wrf:%b rd_addr:%x, rf_data:%x"
-                 ,wb.op_writes_rf 
-                 ,wb.rd_addr      
-                 ,wb.rf_data      
-                );
-        $display("MISC: stall:%b stall_mem:%b stall_non_mem:%b stall_lrw:%b reservation:%b valid_to_mem:%b alu_result:%x st_data:%x mask:%b jump_now:%b flush:%b"
-                 ,stall
-                 ,stall_mem      
-                 ,stall_non_mem
-                 ,stall_lrw
-                 ,reservation_i
-                 ,valid_to_mem_c
-                 ,alu_result
-                 ,store_data
-                 ,mask
-                 ,jump_now
-                 ,flush
-                );
-        $display("  MD: stall_md:%b md_vlaid:%b md_op:%b md_out_sel:%b md_resp_valid:%b md_result:%x"
-                 ,stall_md
-                 ,md_valid
-                 ,md_op
-                 ,md_out_sel
-                 ,md_resp_valid
-                 ,md_result
-                );
-      end
-
-  end
-//synopsys translate_on
 //+----------------------------------------------
 //|
 //|     BRANCH AND JUMP PREDICTION SIGNALS
@@ -709,18 +596,13 @@ end
 always_ff @ (posedge clk)
 begin
     if (reset) begin
-        pc_r               <= '0;
         state_r            <= IDLE;
-        instruction_r      <= '0;
         pc_wen_r           <= '0;
         jalr_prediction_r  <= '0;
         jalr_prediction_rr <= '0;
         net_packet_r       <= '0;
     end else begin
-        if (pc_wen)
-            pc_r           <= pc_n;
         state_r            <= state_n;
-        instruction_r      <= instruction;
         pc_wen_r           <= pc_wen;
         jalr_prediction_r  <= jalr_prediction_n;
         jalr_prediction_rr <= jalr_prediction_r;
@@ -728,6 +610,22 @@ begin
     end
 end
 
+   bsg_dff_reset #(.width_p($bits(instruction_s)), .harden_p(1)) instruction_r_reg
+     (.clock_i(clk)
+      ,.reset_i(reset)
+      ,.data_i(instruction)
+      ,.data_o(instruction_r)
+      );
+
+   bsg_dff_reset_en #(.width_p(RV32_reg_data_width_gp),.harden_p(1)) pc_r_reg
+     (.clock_i (clk)
+      ,.reset_i(reset)
+      ,.en_i   (pc_wen)
+      ,.data_i (pc_n)
+      ,.data_o (pc_r)
+      );
+   
+   
 //+----------------------------------------------
 //|
 //|     INSTR FETCH TO INSTR DECODE SHIFT
@@ -965,4 +863,121 @@ end
 
 
 `endif
+
+
+// DEBUG Struct
+assign debug_o = {pc_r, instruction, state_r};
+//synopsys translate_off
+if(debug_p)
+  always_ff @(negedge clk)
+  begin
+    if ((~|my_x_i & ~|my_y_i) & state_r==RUN)
+      begin
+        $display("\n%0dns (%d,%d):", $time, my_x_i, my_y_i);
+        $display("  IF: pc  :%x instr:{%x_%x_%x_%x_%x_%x} state:%b net_pkt:{%x_%x_%x}"
+                 ,pc_r
+                 ,instruction.funct7
+                 ,instruction.rs2
+                 ,instruction.rs1
+                 ,instruction.funct3
+                 ,instruction.rd
+                 ,instruction.op
+                 ,state_r
+                 ,net_packet_r.valid
+                 ,net_packet_r.header.addr
+                 ,net_packet_r.data
+                );
+        $display("  ID: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b"
+                 ,id.pc_plus4
+                 ,id.instruction.funct7
+                 ,id.instruction.rs2
+                 ,id.instruction.rs1
+                 ,id.instruction.funct3
+                 ,id.instruction.rd
+                 ,id.instruction.op
+                 ,id.pc_jump_addr
+                 ,id.decode.op_writes_rf
+                 ,id.decode.is_load_op  
+                 ,id.decode.is_store_op 
+                 ,id.decode.is_mem_op
+                 ,id.decode.is_byte_op
+                 ,id.decode.is_hex_op
+                 ,id.decode.is_branch_op
+                 ,id.decode.is_jump_op  
+                 ,id.decode.op_reads_rf1
+                 ,id.decode.op_reads_rf2
+                 ,id.decode.op_is_auipc
+                );
+        $display(" EXE: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b rs1:%0x rs2:%0x"
+                 ,exe.pc_plus4
+                 ,exe.instruction.funct7
+                 ,exe.instruction.rs2
+                 ,exe.instruction.rs1
+                 ,exe.instruction.funct3
+                 ,exe.instruction.rd
+                 ,exe.instruction.op
+                 ,exe.pc_jump_addr
+                 ,exe.decode.op_writes_rf 
+                 ,exe.decode.is_load_op   
+                 ,exe.decode.is_store_op  
+                 ,exe.decode.is_mem_op
+                 ,exe.decode.is_byte_op
+                 ,exe.decode.is_hex_op
+                 ,exe.decode.is_branch_op 
+                 ,exe.decode.is_jump_op   
+                 ,exe.decode.op_reads_rf1 
+                 ,exe.decode.op_reads_rf2 
+                 ,exe.decode.op_is_auipc
+                 ,exe.rs1_val
+                 ,exe.rs2_val
+                );
+        $display(" MEM: pc+4:%x rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
+                 ,mem.pc_plus4
+                 ,mem.rd_addr
+                 ,mem.decode.op_writes_rf 
+                 ,mem.decode.is_load_op   
+                 ,mem.decode.is_store_op  
+                 ,mem.decode.is_mem_op
+                 ,mem.decode.is_byte_op
+                 ,mem.decode.is_hex_op
+                 ,mem.decode.is_branch_op 
+                 ,mem.decode.is_jump_op   
+                 ,mem.decode.op_reads_rf1 
+                 ,mem.decode.op_reads_rf2 
+                 ,mem.decode.op_is_auipc
+                 ,mem.alu_result
+                );
+        $display("  WB: wrf:%b rd_addr:%x, rf_data:%x"
+                 ,wb.op_writes_rf 
+                 ,wb.rd_addr      
+                 ,wb.rf_data      
+                );
+        $display("MISC: stall:%b stall_mem:%b stall_non_mem:%b stall_lrw:%b reservation:%b valid_to_mem:%b alu_result:%x st_data:%x mask:%b jump_now:%b flush:%b"
+                 ,stall
+                 ,stall_mem      
+                 ,stall_non_mem
+                 ,stall_lrw
+                 ,reservation_i
+                 ,valid_to_mem_c
+                 ,alu_result
+                 ,store_data
+                 ,mask
+                 ,jump_now
+                 ,flush
+                );
+        $display("  MD: stall_md:%b md_vlaid:%b md_op:%b md_out_sel:%b md_resp_valid:%b md_result:%x"
+                 ,stall_md
+                 ,md_valid
+                 ,md_op
+                 ,md_out_sel
+                 ,md_resp_valid
+                 ,md_result
+                );
+      end
+
+  end
+//synopsys translate_on
+
+
+
 endmodule
