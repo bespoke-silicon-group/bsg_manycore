@@ -11,8 +11,8 @@
  *
  *  5 stage pipeline implementation of the vanilla core ISA.
  */
-module hobbit #(parameter imem_addr_width_p = -1, 
-                          gw_ID_p           = -1, 
+module hobbit #(parameter imem_addr_width_p = -1,
+                          gw_ID_p           = -1,
                           ring_ID_p         = -1,
                           x_cord_width_p    = -1,
                           y_cord_width_p    = -1,
@@ -20,17 +20,17 @@ module hobbit #(parameter imem_addr_width_p = -1,
                (
                 input                             clk,
                 input                             reset,
-            
+
 `ifdef bsg_FPU
                 fpi_alu_inter.alu_side            fpi_inter,
 `endif
                 input  ring_packet_s              net_packet_i,
-            
+
                 input  mem_out_s                  from_mem_i,
                 output mem_in_s                   to_mem_o,
                 input  logic                      reservation_i,
                 output logic                      reserve_1_o,
-            
+
                 input  [x_cord_width_p-1:0]       my_x_i,
                 input  [y_cord_width_p-1:0]       my_y_i,
                 output debug_s                    debug_o
@@ -42,82 +42,17 @@ exe_signals_s exe;
 mem_signals_s mem;
 wb_signals_s  wb;
 
-// Network signals logic
-ring_packet_s net_packet_r;
-logic         net_id_match_valid, net_pc_write_cmd,  net_imem_write_cmd,
-              net_reg_write_cmd, net_pc_write_cmd_idle,
-              exec_net_packet;
-
-// Stall and exception logic
-logic stall, stall_non_mem, stall_mem, stall_lrw;
-//We have to buffer the returned data from memory 
-//if there is a non-memory stall at current cycle.
-logic                               is_load_buffer_valid;
-logic [RV32_reg_data_width_gp-1:0]  load_buffer_data;
-
-//the memory valid signal may comes from memory of the buffer register
-logic                               data_mem_valid;
-
-// Program counter logic
-logic [RV32_reg_data_width_gp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
-logic                              pc_wen, pc_wen_r, imem_cen;
-
-// Instruction memory logic
-logic [imem_addr_width_p-1:0] imem_addr;
-instruction_s                 imem_out, instruction, instruction_r;
-
-// Register file logic
-logic [RV32_reg_data_width_gp-1:0] rf_rs1_val, rf_rs2_val, rf_rs1_out, rf_rs2_out, rf_wd;
-logic [RV32_reg_addr_width_gp-1:0] rf_wa;
-logic                              rf_wen, rf_cen;
-
-// MUL/DIV signals 
-logic        instr_is_md, stall_md, md_valid, md_rs1_signed, md_rs2_signed;
-logic [1:0]  md_op, md_out_sel;
-logic        md_ready, md_resp_valid;
-logic [31:0] md_result;
-
-// ALU logic
-logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, basic_comp_result, alu_result;
-logic [RV32_reg_data_width_gp-1:0] jalr_addr;
-logic                              jump_now;
-
-// Stores
-logic [RV32_reg_data_width_gp-1:0] store_data;
-logic [3:0]                        mask;
-
-// Sign extended immediate
-logic [RV32_instr_width_gp-1:0] sign_extended_imm;
-
-
-// Data memory handshake logic
-logic valid_to_mem_c, yumi_to_mem_c;
-
-// Decoded control signals logic
-decode_s decode;
-
-// State machine logic
-state_e state_n, state_r;
-
-// Value forwarding logic
-logic [RV32_reg_data_width_gp-1:0] rs1_forward_val, rs2_forward_val;
-
-//logic [31:0]  rf_data, rs_to_exe, rd_to_exe;
-logic [RV32_reg_data_width_gp-1:0] rf_data, loaded_byte, loaded_hex, rs1_to_exe, rs2_to_exe;
-logic [RV32_reg_data_width_gp-1:0] mem_loaded_data, non_mem_rf_data;
-
-// Branch and jump predictions
-logic [RV32_reg_data_width_gp-1:0] jalr_prediction_n, jalr_prediction_r, 
-                                   jalr_prediction_rr;
-logic                              jalr_mispredict, branch_under_predict, 
-                                   branch_over_predict, branch_mispredict;
-logic                              flush;
-
 //+----------------------------------------------
 //|
 //|         NETWORK PACKET SIGNALS
 //|
 //+----------------------------------------------
+
+// Network signals logic
+ring_packet_s net_packet_r;
+logic         net_id_match_valid, net_pc_write_cmd,  net_imem_write_cmd,
+              net_reg_write_cmd, net_pc_write_cmd_idle,
+              exec_net_packet;
 
 // Detect a valid packet for this core (vaild and IDs match)
 assign net_id_match_valid = (net_packet_r.header.ring_ID == ring_ID_p)
@@ -129,10 +64,13 @@ assign net_id_match_valid = (net_packet_r.header.ring_ID == ring_ID_p)
 //  1) IDs match and not a broadcast (if ID matches a broadcast, this core sent it)
 //  2) ID doesn't match but the packet is a broadcast
 assign exec_net_packet    = (net_id_match_valid & ~net_packet_r.header.bc)
-                            | ((~net_id_match_valid) & net_packet_r.header.bc & 
+                            | ((~net_id_match_valid) & net_packet_r.header.bc &
                             net_packet_r.valid & (~net_packet_r.header.external));
 
 // Network command control signals
+// State machine logic
+state_e state_n, state_r;
+
 assign net_pc_write_cmd      = exec_net_packet  & (net_packet_r.header.net_op == PC);
 assign net_imem_write_cmd    = exec_net_packet  & (net_packet_r.header.net_op == INSTR);
 assign net_reg_write_cmd     = exec_net_packet  & (net_packet_r.header.net_op == REG);
@@ -143,11 +81,25 @@ assign net_pc_write_cmd_idle = net_pc_write_cmd & (state_r == IDLE);
 //|     STALL AND EXCEPTION LOGIC SIGNALS
 //|
 //+----------------------------------------------
+// Stall and exception logic
+logic stall, stall_non_mem, stall_mem, stall_lrw, stall_md;
+
+//We have to buffer the returned data from memory
+//if there is a non-memory stall at current cycle.
+logic                               is_load_buffer_valid;
+logic [RV32_reg_data_width_gp-1:0]  load_buffer_data;
+
+//the memory valid signal may comes from memory of the buffer register
+logic                               data_mem_valid;
+
+// Decoded control signals logic
+decode_s decode;
+
 assign data_mem_valid = is_load_buffer_valid | from_mem_i.valid;
 
 assign stall_non_mem = (net_imem_write_cmd)
                      | (net_reg_write_cmd & wb.op_writes_rf)
-                     | (net_reg_write_cmd)  
+                     | (net_reg_write_cmd)
                      | (state_r != RUN)
 `ifdef bsg_FPU
                      | fpi_inter.fam_contend_stall
@@ -160,11 +112,11 @@ assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
                    | stall_lrw;
 
 // Stall if LD/ST still active; or in non-RUN state
-assign stall = (stall_non_mem | stall_mem); 
+assign stall = (stall_non_mem | stall_mem);
 
 
 //data depenecy stall
-//only occurs when there is operation needs loaded data immediately 
+//only occurs when there is operation needs loaded data immediately
 wire id_exe_rs1_match = id.decode.op_reads_rf1 & ( id.instruction.rs1 == exe.instruction.rd );
 wire id_exe_rs2_match = id.decode.op_reads_rf2 & ( id.instruction.rs2 == exe.instruction.rd );
 wire depend_stall      = (id_exe_rs1_match | id_exe_rs2_match)
@@ -177,6 +129,17 @@ wire depend_stall      = (id_exe_rs1_match | id_exe_rs2_match)
 //|        EXTERNAL MODULE CONNECTIONS
 //|
 //+----------------------------------------------
+// ALU logic
+logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, basic_comp_result, alu_result;
+logic [RV32_reg_data_width_gp-1:0] jalr_addr;
+logic                              jump_now;
+
+// Stores
+logic [RV32_reg_data_width_gp-1:0] store_data;
+logic [3:0]                        mask;
+
+// Data memory handshake logic
+logic valid_to_mem_c, yumi_to_mem_c;
 
 // RISC-V edit: support for byte and hex stores
 always_comb
@@ -216,32 +179,44 @@ assign to_mem_o = '{
 //|
 //+----------------------------------------------
 
+// Branch and jump predictions
+logic [RV32_reg_data_width_gp-1:0] jalr_prediction_n, jalr_prediction_r,
+                                   jalr_prediction_rr;
+
 // Under predicted flag (meaning that we predicted not taken when taken)
-assign branch_under_predict = 
+wire branch_under_predict =
         (~exe.instruction[RV32_instr_width_gp-1]) & jump_now;
 
 // Over predicted flag (meaning that we predicted taken when not taken)
-assign branch_over_predict = 
+wire branch_over_predict =
         exe.instruction[RV32_instr_width_gp-1] & (~jump_now);
 
 // Flag if a branch misptediction occured
-assign branch_mispredict = exe.decode.is_branch_op 
+wire branch_mispredict = exe.decode.is_branch_op
                            & (branch_under_predict | branch_over_predict);
 
 // JALR mispredict (or just a JALR instruction in the single cycle because it
 // follows the same logic as a JALR mispredict)
-assign jalr_mispredict = (exe.instruction.op ==? `RV32_JALR_OP) 
+wire jalr_mispredict = (exe.instruction.op ==? `RV32_JALR_OP)
                          & (jalr_addr != jalr_prediction_rr);
 
 // Flush the control signals in the execute and instr decode stages if there
 // is a misprediciton and (only for the pipelined version of the core)
-assign flush = (branch_mispredict | jalr_mispredict);
+wire flush = (branch_mispredict | jalr_mispredict);
 
 //+----------------------------------------------
 //|
 //|          PROGRAM COUNTER SIGNALS
 //|
 //+----------------------------------------------
+
+// Program counter logic
+logic [RV32_reg_data_width_gp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
+logic                              pc_wen, pc_wen_r, imem_cen;
+
+// Instruction memory logic
+logic [imem_addr_width_p-1:0] imem_addr;
+instruction_s                 imem_out, instruction, instruction_r;
 
 // PC write enable. This stops the CPU updating the PC
 `ifdef bsg_FPU
@@ -253,8 +228,8 @@ assign pc_wen = net_pc_write_cmd_idle | (~(stall | depend_stall));
 // Next PC under normal circumstances
 assign pc_plus4 = pc_r + 3'b100;
 
-assign pc_jump_addr      = $signed(pc_r) 
-                           + (decode.is_branch_op 
+assign pc_jump_addr      = $signed(pc_r)
+                           + (decode.is_branch_op
                               ? $signed(`RV32_signext_Bimm(instruction))
                               : $signed(`RV32_signext_Jimm(instruction))
                              );
@@ -303,14 +278,15 @@ end
 //|
 //+----------------------------------------------
 
+
 // Selection between network and core for instruction address
-assign imem_addr = (net_imem_write_cmd) 
-                   ? net_packet_r.header.addr[2+:imem_addr_width_p] 
+assign imem_addr = (net_imem_write_cmd)
+                   ? net_packet_r.header.addr[2+:imem_addr_width_p]
                    : pc_n[2+:imem_addr_width_p];
 
 // Instruction memory chip enable signal
 `ifdef bsg_FPU
-assign imem_cen = (~( stall | fpi_inter.fam_depend_stall | depend_stall )) 
+assign imem_cen = (~( stall | fpi_inter.fam_depend_stall | depend_stall ))
                 | (net_imem_write_cmd | net_pc_write_cmd_idle);
 `else
 assign imem_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_write_cmd_idle);
@@ -339,7 +315,7 @@ assign imem_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_wri
 	  else $error("## byte write to instruction memory (%m)");
      end
    // synopsys translate_on
-   
+
 // Since imem has one cycle delay and we send next cycle's address, pc_n,
 // if the PC is not written, the instruction must not change.
 assign instruction = (pc_wen_r) ? imem_out : instruction_r;
@@ -362,6 +338,11 @@ cl_decode cl_decode_0
 //|           REGISTER FILE SIGNALS
 //|
 //+----------------------------------------------
+
+// Register file logic
+logic [RV32_reg_data_width_gp-1:0] rf_rs1_val, rf_rs2_val, rf_rs1_out, rf_rs2_out, rf_wd;
+logic [RV32_reg_addr_width_gp-1:0] rf_wa;
+logic                              rf_wen, rf_cen;
 
 // Register write could be from network or the controller
 // FPU depend stall will not affect register file write back
@@ -406,88 +387,25 @@ rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
 
 //+----------------------------------------------
 //|
-//|     RISC-V edit: "M" STANDARAD EXTENSION 
+//|     RISC-V edit: "M" STANDARAD EXTENSION
 //|
 //+----------------------------------------------
-assign instr_is_md = (exe.instruction.op == `RV32_OP)
-                      & (exe.instruction.funct7 == 7'b0000001);
-assign md_valid    = instr_is_md & md_ready;
-assign stall_md    = instr_is_md & ~md_resp_valid;
+// MUL/DIV signals
+logic        md_ready, md_resp_valid;
+logic [31:0] md_result;
 
-always_comb
-begin
-  md_op          = 2'bxx;
-  md_out_sel     = 2'bxx;
-  md_rs1_signed  = 1'b1;
-  md_rs2_signed  = 1'b1;
-
-  unique casez (exe.instruction.funct3)
-    3'b000: // MUL
-      begin
-        md_op      = 2'b00;
-        md_out_sel = 2'b00;
-      end
-
-    3'b001: // MULH
-      begin
-        md_op      = 2'b00;
-        md_out_sel = 2'b01;
-      end
-
-    3'b010: // MULHSU
-      begin
-        md_op         = 2'b00;
-        md_out_sel    = 2'b01;
-        md_rs2_signed = 1'b0;
-      end
-
-    3'b011: // MULHU
-      begin
-        md_op         = 2'b00;
-        md_out_sel    = 2'b01;
-        md_rs1_signed = 1'b0;
-        md_rs2_signed = 1'b0;
-      end
-
-    3'b100: // DIV
-      begin
-        md_op      = 2'b01;
-        md_out_sel = 2'b00;
-      end
-
-    3'b101: // DIVU
-      begin
-        md_op         = 2'b01;
-        md_out_sel    = 2'b00;
-        md_rs1_signed = 1'b0;
-        md_rs2_signed = 1'b0;
-      end
-
-    3'b110: // REM
-      begin
-        md_op      = 2'b10;
-        md_out_sel = 2'b10;
-      end
-    
-    default://3'b111: // REMU
-      begin
-        md_op         = 2'b10;
-        md_out_sel    = 2'b10;
-        md_rs1_signed = 1'b0;
-        md_rs2_signed = 1'b0;
-      end
-  endcase
-end
+wire   md_valid    = exe.decode.is_md_instr & md_ready;
+assign stall_md    = exe.decode.is_md_instr & ~md_resp_valid;
 
 vscale_mul_div md_0
   ( .clk             (clk)
    ,.reset           (reset)
    ,.req_valid       (md_valid)
    ,.req_ready       (md_ready)
-   ,.req_in_1_signed (md_rs1_signed)
-   ,.req_in_2_signed (md_rs2_signed)
-   ,.req_op          (md_op)
-   ,.req_out_sel     (md_out_sel)
+   ,.req_in_1_signed (exe.decode.md_rs1_signed)
+   ,.req_in_2_signed (exe.decode.md_rs2_signed)
+   ,.req_op          (exe.decode.md_op)
+   ,.req_out_sel     (exe.decode.md_out_sel)
    ,.req_in_1        (rs1_to_alu)
    ,.req_in_2        (rs2_to_alu)
    ,.resp_valid      (md_resp_valid)
@@ -500,6 +418,9 @@ vscale_mul_div md_0
 //|
 //+----------------------------------------------
 
+// Value forwarding logic
+logic [RV32_reg_data_width_gp-1:0] rs1_forward_val, rs2_forward_val;
+
 //We only forword the non loaded data in mem stage.
 //assign  rs1_forward_val  = rs1_in_mem ? mem.alu_result : wb.rf_data;
 bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
@@ -507,7 +428,7 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
           ) rs1_forward_mux
           ( .data_i     ( { mem.alu_result, wb.rf_data  }   )
            ,.sel_i      ( exe.rs1_in_mem                    )
-           ,.data_o     ( rs1_forward_val                   ) 
+           ,.data_o     ( rs1_forward_val                   )
           );
 
 wire  rs1_is_forward   = (exe.rs1_in_mem | exe.rs1_in_wb);
@@ -518,7 +439,7 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
           ) rs2_forward_mux
           ( .data_i     ( { mem.alu_result, wb.rf_data  }   )
            ,.sel_i      ( exe.rs2_in_mem                    )
-           ,.data_o     ( rs2_forward_val                   ) 
+           ,.data_o     ( rs2_forward_val                   )
           );
 
 wire  rs2_is_forward   = (exe.rs2_in_mem | exe.rs2_in_wb);
@@ -529,8 +450,8 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.els_p      ( 2                      )
           ) rs1_alu_mux
           ( .data_i     ( { rs1_forward_val, exe.rs1_val }  )
-           ,.sel_i      ( rs1_is_forward                    ) 
-           ,.data_o     ( rs1_to_alu                        ) 
+           ,.sel_i      ( rs1_is_forward                    )
+           ,.data_o     ( rs1_to_alu                        )
           );
 
 //assign rs2_to_alu = ((rs2_is_forward) ? rs2_forward_val : exe.rs2_val);
@@ -538,8 +459,8 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.els_p      ( 2                      )
           ) rs2_alu_mux
           ( .data_i     ( { rs2_forward_val, exe.rs2_val }  )
-           ,.sel_i      ( rs2_is_forward                    ) 
-           ,.data_o     ( rs2_to_alu                        ) 
+           ,.sel_i      ( rs2_is_forward                    )
+           ,.data_o     ( rs2_to_alu                        )
           );
 
 // Instantiate the ALU
@@ -554,7 +475,7 @@ alu alu_0
    ,.jump_now_o (   jump_now            )
 );
 
-assign alu_result = instr_is_md ? md_result : basic_comp_result;
+assign alu_result = exe.decode.is_md_instr ? md_result : basic_comp_result;
 
 //+----------------------------------------------
 //|
@@ -637,8 +558,8 @@ end
       ,.data_i (pc_n)
       ,.data_o (pc_r)
       );
-   
-   
+
+
 //+----------------------------------------------
 //|
 //|     INSTR FETCH TO INSTR DECODE SHIFT
@@ -650,7 +571,7 @@ always_ff @ (posedge clk)
 begin
 `ifdef bsg_FPU
     if (reset | net_pc_write_cmd_idle |
-            (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall ))) 
+            (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall )))
        )
 `else
     if (reset | net_pc_write_cmd_idle | (flush & (~   (stall | depend_stall)  ) ) )
@@ -686,14 +607,16 @@ wire id_wb_rs2_forward = id.decode.op_reads_rf2 & ( id.instruction.rs2 == wb.rd_
                        & wb.op_writes_rf
                        & (| id.instruction.rs2); //should not forward r0
 
-wire [RV32_reg_data_width_gp-1:0]  rf_rs1_index0_fix = (~|id.instruction.rs1) ? 
+wire [RV32_reg_data_width_gp-1:0]  rf_rs1_index0_fix = (~|id.instruction.rs1) ?
                                         RV32_reg_data_width_gp'(0) : rf_rs1_val;
 
-wire [RV32_reg_data_width_gp-1:0]  rf_rs2_index0_fix = (~|id.instruction.rs2) ? 
+wire [RV32_reg_data_width_gp-1:0]  rf_rs2_index0_fix = (~|id.instruction.rs2) ?
                                         RV32_reg_data_width_gp'(0) : rf_rs2_val;
 
-assign rs1_to_exe    = id_wb_rs1_forward ? wb.rf_data : rf_rs1_index0_fix;
-assign rs2_to_exe    = id_wb_rs2_forward ? wb.rf_data : rf_rs2_index0_fix;
+wire [RV32_reg_data_width_gp-1:0] rs1_to_exe    = id_wb_rs1_forward ?
+                                        wb.rf_data : rf_rs1_index0_fix;
+wire [RV32_reg_data_width_gp-1:0] rs2_to_exe    = id_wb_rs2_forward ?
+                                        wb.rf_data : rf_rs2_index0_fix;
 
 // Pre-Compute the forwarding control signal for ALU in EXE
 // RS register forwarding
@@ -716,8 +639,8 @@ begin
     if (reset | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
         exe <= '0;
 `ifdef bsg_FPU
-    else if(    ( fpi_inter.fam_depend_stall | depend_stall ) 
-              & (~stall)  
+    else if(    ( fpi_inter.fam_depend_stall | depend_stall )
+              & (~stall)
            )
 `else
     else if ( depend_stall & (~stall) )
@@ -760,7 +683,7 @@ end
 
 assign fiu_alu_result = fpi_inter.exe_fpi_writes_rf
                        ?fpi_inter.fiu_result
-                       :alu_result; 
+                       :alu_result;
 `else
 assign fiu_alu_result = alu_result;
 
@@ -793,7 +716,7 @@ end
 
 always_ff @ (posedge clk)
 begin
-    if ( reset ) 
+    if ( reset )
     begin
         is_load_buffer_valid <= 'b0;
         load_buffer_data     <= 'b0;
@@ -801,7 +724,7 @@ begin
     //set the buffered value
     else if( stall_non_mem & mem.decode.is_load_op & from_mem_i.valid )
     begin
-        is_load_buffer_valid <= 1'b1; 
+        is_load_buffer_valid <= 1'b1;
         load_buffer_data     <= from_mem_i.read_data;
     end
     //we should clear the buffer if not stalled
@@ -817,6 +740,7 @@ logic [RV32_reg_data_width_gp-1:0] loaded_data;
 assign loaded_data =  is_load_buffer_valid ? load_buffer_data:
                                              from_mem_i.read_data;
 
+logic [RV32_reg_data_width_gp-1:0] loaded_byte;
 always_comb
 begin
     unique casez (mem.alu_result[1:0])
@@ -827,13 +751,15 @@ begin
     endcase
 end
 
-assign loaded_hex = (|mem.alu_result[1:0]) 
-                      ? loaded_data[16+:16]
-                      : loaded_data[0+:16];
+wire [RV32_reg_data_width_gp-1:0] loaded_hex = (|mem.alu_result[1:0])
+                                             ? loaded_data[16+:16]
+                                             : loaded_data[0+:16];
+
+logic [RV32_reg_data_width_gp-1:0] mem_loaded_data;
 always_comb
 begin
     if (mem.decode.is_byte_op)
-        mem_loaded_data = (mem.decode.is_load_unsigned) 
+        mem_loaded_data = (mem.decode.is_load_unsigned)
                         ? 32'(loaded_byte[7:0])
                         : {{24{loaded_byte[7]}}, loaded_byte[7:0]};
     else if(mem.decode.is_hex_op)
@@ -844,7 +770,8 @@ begin
         mem_loaded_data = loaded_data;
 end
 
-assign rf_data = mem.decode.is_load_op ? mem_loaded_data : mem.alu_result; 
+wire [RV32_reg_data_width_gp-1:0]  rf_data = mem.decode.is_load_op ?
+                                             mem_loaded_data : mem.alu_result;
 
 // Synchronous stage shift
 always_ff @ (posedge clk)
@@ -866,7 +793,7 @@ end
 assign fpi_inter.alu_stall              = stall;
 assign fpi_inter.alu_flush              = flush;
 assign fpi_inter.rs1_of_alu             = rs1_to_alu;
-assign fpi_inter.flw_data               = loaded_data; 
+assign fpi_inter.flw_data               = loaded_data;
 assign fpi_inter.f_instruction          = instruction;
 assign fpi_inter.mem_alu_writes_rf      = mem.decode.op_writes_rf;
 assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
@@ -880,11 +807,11 @@ begin
         if(  id.instruction.funct3 == `RV32_FDLS_FUN3 )
         begin
             if(  id.instruction.rs1  != 5'd2 )
-                $error("Double Precision Load/Store With register other than SP: PC=%08x, INSTRUCTION:=%08x", 
-                   id.pc_plus4, id.instruction); 
-            else 
-                $warning("Double Precision Load/Store With SP: PC=%08x, INSTRUCTION:=%08x", 
-                   id.pc_plus4-4, id.instruction); 
+                $error("Double Precision Load/Store With register other than SP: PC=%08x, INSTRUCTION:=%08x",
+                   id.pc_plus4, id.instruction);
+            else
+                $warning("Double Precision Load/Store With SP: PC=%08x, INSTRUCTION:=%08x",
+                   id.pc_plus4-4, id.instruction);
         end
         default:
         begin
@@ -929,13 +856,13 @@ if(debug_p)
                  ,id.instruction.op
                  ,id.pc_jump_addr
                  ,id.decode.op_writes_rf
-                 ,id.decode.is_load_op  
-                 ,id.decode.is_store_op 
+                 ,id.decode.is_load_op
+                 ,id.decode.is_store_op
                  ,id.decode.is_mem_op
                  ,id.decode.is_byte_op
                  ,id.decode.is_hex_op
                  ,id.decode.is_branch_op
-                 ,id.decode.is_jump_op  
+                 ,id.decode.is_jump_op
                  ,id.decode.op_reads_rf1
                  ,id.decode.op_reads_rf2
                  ,id.decode.op_is_auipc
@@ -949,16 +876,16 @@ if(debug_p)
                  ,exe.instruction.rd
                  ,exe.instruction.op
                  ,exe.pc_jump_addr
-                 ,exe.decode.op_writes_rf 
-                 ,exe.decode.is_load_op   
-                 ,exe.decode.is_store_op  
+                 ,exe.decode.op_writes_rf
+                 ,exe.decode.is_load_op
+                 ,exe.decode.is_store_op
                  ,exe.decode.is_mem_op
                  ,exe.decode.is_byte_op
                  ,exe.decode.is_hex_op
-                 ,exe.decode.is_branch_op 
-                 ,exe.decode.is_jump_op   
-                 ,exe.decode.op_reads_rf1 
-                 ,exe.decode.op_reads_rf2 
+                 ,exe.decode.is_branch_op
+                 ,exe.decode.is_jump_op
+                 ,exe.decode.op_reads_rf1
+                 ,exe.decode.op_reads_rf2
                  ,exe.decode.op_is_auipc
                  ,exe.rs1_val
                  ,exe.rs2_val
@@ -966,27 +893,27 @@ if(debug_p)
         $display(" MEM: pc+4:%x rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
                  ,mem.pc_plus4
                  ,mem.rd_addr
-                 ,mem.decode.op_writes_rf 
-                 ,mem.decode.is_load_op   
-                 ,mem.decode.is_store_op  
+                 ,mem.decode.op_writes_rf
+                 ,mem.decode.is_load_op
+                 ,mem.decode.is_store_op
                  ,mem.decode.is_mem_op
                  ,mem.decode.is_byte_op
                  ,mem.decode.is_hex_op
-                 ,mem.decode.is_branch_op 
-                 ,mem.decode.is_jump_op   
-                 ,mem.decode.op_reads_rf1 
-                 ,mem.decode.op_reads_rf2 
+                 ,mem.decode.is_branch_op
+                 ,mem.decode.is_jump_op
+                 ,mem.decode.op_reads_rf1
+                 ,mem.decode.op_reads_rf2
                  ,mem.decode.op_is_auipc
                  ,mem.alu_result
                 );
         $display("  WB: wrf:%b rd_addr:%x, rf_data:%x"
-                 ,wb.op_writes_rf 
-                 ,wb.rd_addr      
-                 ,wb.rf_data      
+                 ,wb.op_writes_rf
+                 ,wb.rd_addr
+                 ,wb.rf_data
                 );
         $display("MISC: stall:%b stall_mem:%b stall_non_mem:%b stall_lrw:%b reservation:%b valid_to_mem:%b alu_result:%x st_data:%x mask:%b jump_now:%b flush:%b"
                  ,stall
-                 ,stall_mem      
+                 ,stall_mem
                  ,stall_non_mem
                  ,stall_lrw
                  ,reservation_i
@@ -1000,8 +927,8 @@ if(debug_p)
         $display("  MD: stall_md:%b md_vlaid:%b md_op:%b md_out_sel:%b md_resp_valid:%b md_result:%x"
                  ,stall_md
                  ,md_valid
-                 ,md_op
-                 ,md_out_sel
+                 ,exe.decode.md_op
+                 ,exe.decode.md_out_sel
                  ,md_resp_valid
                  ,md_result
                 );
