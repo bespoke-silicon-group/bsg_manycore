@@ -613,15 +613,20 @@ begin
         pc_wen_r           <= '0;
         jalr_prediction_r  <= '0;
         jalr_prediction_rr <= '0;
-        net_packet_r       <= '0;
     end else begin
         state_r            <= state_n;
         pc_wen_r           <= pc_wen;
         jalr_prediction_r  <= jalr_prediction_n;
         jalr_prediction_rr <= jalr_prediction_r;
-        net_packet_r       <= net_packet_i;
     end
 end
+
+   bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(1)) net_packet_r_reg
+     (.clock_i(clk)
+      ,.reset_i(reset)
+      ,.data_i(net_packet_i)
+      ,.data_o(net_packet_r)
+      );
 
    bsg_dff_reset #(.width_p($bits(instruction_s)), .harden_p(1)) instruction_r_reg
      (.clock_i(clk)
