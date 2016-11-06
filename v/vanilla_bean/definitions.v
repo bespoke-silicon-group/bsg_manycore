@@ -134,6 +134,11 @@ typedef struct packed
     decode_s                           decode;       // Decode signals
     logic [RV32_reg_data_width_gp-1:0] rs1_val;      // RF output data from RS1 address
     logic [RV32_reg_data_width_gp-1:0] rs2_val;      // RF output data from RS2 address
+
+    logic                              rs1_in_mem;   // pre-computed forwarding signal
+    logic                              rs1_in_wb ;   // pre-computed forwarding signal
+    logic                              rs2_in_mem;   // pre-computed forwarding signal
+    logic                              rs2_in_wb ;   // pre-computed forwarding signal
 } exe_signals_s;
 
 // Memory stage signals

@@ -89,8 +89,6 @@ logic [3:0]                        mask;
 // Sign extended immediate
 logic [RV32_instr_width_gp-1:0] sign_extended_imm;
 
-// Forwarding signals
-logic   rs1_in_mem, rs1_in_wb, rs2_in_mem, rs2_in_wb;
 
 // Data memory handshake logic
 logic valid_to_mem_c, yumi_to_mem_c;
@@ -102,7 +100,6 @@ decode_s decode;
 state_e state_n, state_r;
 
 // Value forwarding logic
-logic                              rs1_is_forward, rs2_is_forward;
 logic [RV32_reg_data_width_gp-1:0] rs1_forward_val, rs2_forward_val;
 
 //logic [31:0]  rf_data, rs_to_exe, rd_to_exe;
@@ -503,43 +500,28 @@ vscale_mul_div md_0
 //|
 //+----------------------------------------------
 
-// RS register forwarding
-assign  rs1_in_mem       = mem.decode.op_writes_rf 
-                           & (exe.instruction.rs1 == mem.rd_addr)
-                           & (|exe.instruction.rs1);
-assign  rs1_in_wb        = wb.op_writes_rf 
-                           & (exe.instruction.rs1  == wb.rd_addr)
-                           & (|exe.instruction.rs1);
 //We only forword the non loaded data in mem stage.
 //assign  rs1_forward_val  = rs1_in_mem ? mem.alu_result : wb.rf_data;
 bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.els_p      ( 2                      )
           ) rs1_forward_mux
           ( .data_i     ( { mem.alu_result, wb.rf_data  }   )
-           ,.sel_i      ( rs1_in_mem                        ) 
+           ,.sel_i      ( exe.rs1_in_mem                    )
            ,.data_o     ( rs1_forward_val                   ) 
           );
 
-assign  rs1_is_forward   = (rs1_in_mem | rs1_in_wb);
-
-// RD register forwarding
-assign  rs2_in_mem       = mem.decode.op_writes_rf 
-                           & (exe.instruction.rs2 == mem.rd_addr)
-                           & (|exe.instruction.rs2);
-assign  rs2_in_wb        = wb.op_writes_rf 
-                           & (exe.instruction.rs2  == wb.rd_addr)
-                           & (|exe.instruction.rs2);
+wire  rs1_is_forward   = (exe.rs1_in_mem | exe.rs1_in_wb);
 
 //assign  rs2_forward_val  = rs2_in_mem ? mem.alu_result : wb.rf_data;
 bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.els_p      ( 2                      )
           ) rs2_forward_mux
           ( .data_i     ( { mem.alu_result, wb.rf_data  }   )
-           ,.sel_i      ( rs2_in_mem                        ) 
+           ,.sel_i      ( exe.rs2_in_mem                    )
            ,.data_o     ( rs2_forward_val                   ) 
           );
 
-assign  rs2_is_forward   = (rs2_in_mem | rs2_in_wb);
+wire  rs2_is_forward   = (exe.rs2_in_mem | exe.rs2_in_wb);
 
 // RISC-V edit: Immediate values handled in alu
 //assign rs1_to_alu = ((rs1_is_forward) ? rs1_forward_val : exe.rs1_val);
@@ -713,6 +695,21 @@ wire [RV32_reg_data_width_gp-1:0]  rf_rs2_index0_fix = (~|id.instruction.rs2) ?
 assign rs1_to_exe    = id_wb_rs1_forward ? wb.rf_data : rf_rs1_index0_fix;
 assign rs2_to_exe    = id_wb_rs2_forward ? wb.rf_data : rf_rs2_index0_fix;
 
+// Pre-Compute the forwarding control signal for ALU in EXE
+// RS register forwarding
+wire    exe_rs1_in_mem     = exe.decode.op_writes_rf
+                           & (id.instruction.rs1 == exe.instruction.rd)
+                           & (|id.instruction.rs1);
+wire    exe_rs1_in_wb      = mem.decode.op_writes_rf
+                           & (id.instruction.rs1  == mem.rd_addr)
+                           & (|id.instruction.rs1);
+
+wire    exe_rs2_in_mem     = exe.decode.op_writes_rf
+                           & (id.instruction.rs2 == exe.instruction.rd)
+                           & (|id.instruction.rs2);
+wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
+                           & (id.instruction.rs2  == mem.rd_addr)
+                           & (|id.instruction.rs2);
 // Synchronous stage shift
 always_ff @ (posedge clk)
 begin
@@ -733,7 +730,11 @@ begin
             instruction  : id.instruction,
             decode       : id.decode,
             rs1_val      : rs1_to_exe,
-            rs2_val      : rs2_to_exe
+            rs2_val      : rs2_to_exe,
+            rs1_in_mem   : exe_rs1_in_mem,
+            rs1_in_wb    : exe_rs1_in_wb,
+            rs2_in_mem   : exe_rs2_in_mem,
+            rs2_in_wb    : exe_rs2_in_wb
         };
 end
 
