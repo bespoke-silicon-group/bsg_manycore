@@ -134,7 +134,7 @@ logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, basic_comp_result, al
 logic [RV32_reg_data_width_gp-1:0] jalr_addr;
 logic                              jump_now;
 
-// Stores
+logic [RV32_reg_data_width_gp-1:0] mem_addr_send;
 logic [RV32_reg_data_width_gp-1:0] store_data;
 logic [3:0]                        mask;
 
@@ -146,13 +146,15 @@ always_comb
 begin
   if (exe.decode.is_byte_op) // byte op
     begin
-      store_data = (32'(rs2_to_alu[7:0])) << ((5'(alu_result[1:0])) << 3);
-      mask       = (4'b0001 << alu_result[1:0]);
+     // store_data = (32'(rs2_to_alu[7:0])) << ((5'(mem_addr_send[1:0])) << 3);
+     // mask       = (4'b0001 << mem_addr_send[1:0]);
+     store_data = (32'(rs2_to_alu[7:0])) << ((5'(mem_addr_send[1:0])) << 3);
+      mask       = (4'b0001 << mem_addr_send[1:0]);
     end
   else if(exe.decode.is_hex_op) // hex op
     begin
-      store_data = (32'(rs2_to_alu[15:0])) << ((5'(alu_result[1:0])) << 3);
-      mask       = (4'b0011 << alu_result[1:0]);
+      store_data = (32'(rs2_to_alu[15:0])) << ((5'(mem_addr_send[1:0])) << 3);
+      mask       = (4'b0011 << mem_addr_send[1:0]);
     end
   else
     begin
@@ -165,14 +167,23 @@ begin
     end
 end
 
+//compute the address for mem operation
+wire [RV32_reg_data_width_gp-1:0] mem_addr_op2 =
+        id.decode.op_is_load_reservation ? 'b0 :
+        id.decode.is_store_op            ? `RV32_signext_Simm(id.instruction)
+                                         : `RV32_signext_Iimm(id.instruction);
+
+assign mem_addr_send= rs1_to_alu +  exe.mem_addr_op2;
+
 assign to_mem_o = '{
     write_data    : store_data,
     valid         : valid_to_mem_c,
     wen           : exe.decode.is_store_op,
     mask          : mask,
     yumi          : yumi_to_mem_c,
-    addr          : alu_result
+    addr          : mem_addr_send
 };
+
 //+----------------------------------------------
 //|
 //|     BRANCH AND JUMP PREDICTION SIGNALS
@@ -654,6 +665,7 @@ begin
             decode       : id.decode,
             rs1_val      : rs1_to_exe,
             rs2_val      : rs2_to_exe,
+            mem_addr_op2 : mem_addr_op2,
             rs1_in_mem   : exe_rs1_in_mem,
             rs1_in_wb    : exe_rs1_in_wb,
             rs2_in_mem   : exe_rs2_in_mem,
@@ -703,7 +715,9 @@ begin
 `else
             decode     : exe.decode,
 `endif
-            alu_result : fiu_alu_result
+            alu_result : fiu_alu_result,
+
+            mem_addr_send: mem_addr_send
         };
 end
 
@@ -743,7 +757,8 @@ assign loaded_data =  is_load_buffer_valid ? load_buffer_data:
 logic [RV32_reg_data_width_gp-1:0] loaded_byte;
 always_comb
 begin
-    unique casez (mem.alu_result[1:0])
+//    unique casez (mem.mem_addr_send[1:0])
+    unique casez (mem.mem_addr_send[1:0])
       00:       loaded_byte = loaded_data[0+:8];
       01:       loaded_byte = loaded_data[8+:8];
       10:       loaded_byte = loaded_data[16+:8];
@@ -751,7 +766,8 @@ begin
     endcase
 end
 
-wire [RV32_reg_data_width_gp-1:0] loaded_hex = (|mem.alu_result[1:0])
+//wire [RV32_reg_data_width_gp-1:0] loaded_hex = (|mem.mem_addr_send[1:0])
+wire [RV32_reg_data_width_gp-1:0] loaded_hex = (|mem.mem_addr_send[1:0])
                                              ? loaded_data[16+:16]
                                              : loaded_data[0+:16];
 

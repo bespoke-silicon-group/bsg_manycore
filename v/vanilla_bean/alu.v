@@ -24,21 +24,10 @@ logic [32:0] shr_out;
 logic [31:0] shl_out, xor_out, and_out, or_out;
 
 /////////////////////////////////////////////////////////
-assign is_imm_op    = (op_i.op ==? `RV32_OP_IMM)
-                       | (op_i.op ==? `RV32_LOAD)
-`ifdef bsg_FPU
-                       | (op_i.op ==? `RV32_LOAD_FP)
-`endif
-                       | (op_i.op ==? `RV32_JALR_OP);
+assign is_imm_op    = (op_i.op ==? `RV32_OP_IMM) | (op_i.op ==? `RV32_JALR_OP);
 
 /////////////////////////////////////////////////////////
-`ifdef bsg_FPU
-assign op2          = ( (op_i.op == `RV32_STORE) | (op_i.op == `RV32_STORE_FP) )
-`else
-assign op2          = (op_i.op == `RV32_STORE)
-`endif
-                       ? `RV32_signext_Simm(op_i)
-                       : (is_imm_op ? `RV32_signext_Iimm(op_i) : rs2_i);
+assign op2          = is_imm_op ? `RV32_signext_Iimm(op_i) : rs2_i;
 ///////////////////////////////////////////////////////////
 
 
@@ -68,12 +57,7 @@ always_comb
       `RV32_AUIPC:
         result_o = `RV32_signext_Uimm(op_i) + pc_plus4_i - 3'b100;
 
-      `RV32_ADDI, `RV32_ADD,
-      `RV32_LB, `RV32_LH, `RV32_LW, `RV32_LBU, `RV32_LHU,
-`ifdef bsg_FPU
-      `RV32_FLW, `RV32_FSW, `RV32_FLD,`RV32_FSD,
-`endif
-      `RV32_SB, `RV32_SH, `RV32_SW:
+      `RV32_ADDI, `RV32_ADD:
         begin
           result_o = sum[31:0];
           sub_not_add = 1'b0;

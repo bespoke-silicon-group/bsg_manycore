@@ -113,6 +113,9 @@ typedef struct packed
     logic op_reads_rf1;     // OP reads from first port of register file
     logic op_reads_rf2;     // OP reads from first port of register file
     logic op_is_auipc;
+
+    logic op_is_load_reservation;
+
     //for M extension;
     logic       is_md_instr;    // indicates is md insruciton
     logic[1:0]  md_op;          // the opcode send to mul_div unit
@@ -141,6 +144,9 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] rs1_val;      // RF output data from RS1 address
     logic [RV32_reg_data_width_gp-1:0] rs2_val;      // RF output data from RS2 address
 
+    logic [RV32_reg_data_width_gp-1:0] mem_addr_op2; // the second operands to compute
+                                                     // memory address
+
     logic                              rs1_in_mem;   // pre-computed forwarding signal
     logic                              rs1_in_wb ;   // pre-computed forwarding signal
     logic                              rs2_in_mem;   // pre-computed forwarding signal
@@ -153,6 +159,7 @@ typedef struct packed
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;    // Destination address
     decode_s                           decode;     // Decode signals
     logic [RV32_reg_data_width_gp-1:0] alu_result; // ALU ouptut data
+    logic [RV32_reg_data_width_gp-1:0] mem_addr_send; //the address sent to memory
 } mem_signals_s;
 
 // RF write back stage signals

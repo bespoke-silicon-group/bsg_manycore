@@ -226,5 +226,6 @@ begin
   endcase
 end
 
+assign decode_o.op_is_load_reservation = instruction_i ==? `RV32_LR_W;
 
 endmodule
