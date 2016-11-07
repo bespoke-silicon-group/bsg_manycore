@@ -532,15 +532,25 @@ begin
     if (reset) begin
         state_r            <= IDLE;
         pc_wen_r           <= '0;
-        jalr_prediction_r  <= '0;
-        jalr_prediction_rr <= '0;
     end else begin
         state_r            <= state_n;
         pc_wen_r           <= pc_wen;
-        jalr_prediction_r  <= jalr_prediction_n;
-        jalr_prediction_rr <= jalr_prediction_r;
     end
 end
+
+   bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_r_reg
+     (.clock_i(clk)
+      ,.reset_i(reset)
+      ,.data_i(jalr_prediction_n)
+      ,.data_o(jalr_prediction_r)
+      );
+
+   bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_rr_reg
+     (.clock_i(clk)
+      ,.reset_i(reset)
+      ,.data_i(jalr_prediction_r)
+      ,.data_o(jalr_prediction_rr)
+      );
 
    bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(1)) net_packet_r_reg
      (.clock_i(clk)
