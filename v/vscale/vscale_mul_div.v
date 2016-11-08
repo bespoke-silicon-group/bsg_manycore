@@ -95,6 +95,7 @@ module vscale_mul_div(
       endcase // case (state)
    end
 
+   // synopsys sync_set_reset "state, req_valid"
    always @(posedge clk) begin
       case (state)
         s_idle : begin

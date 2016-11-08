@@ -44,7 +44,6 @@ assign or_out      = rs1_i | op2;
 
 always_comb
   begin
-    jump_now_o      = 1'bx;
     result_o        = 32'dx;
     jalr_addr_o     = 32'dx;
     sub_not_add     = 1'bx;
@@ -121,46 +120,28 @@ always_comb
         begin
           result_o    =pc_plus4_i;
         end
-      `RV32_BEQ:
-        begin
-          sub_not_add = 1'b1;
-          jump_now_o = sum_is_zero;
-        end
-
-      `RV32_BNE:
-        begin
-          sub_not_add = 1'b1;
-          jump_now_o = ~sum_is_zero;
-        end
-
-      `RV32_BLT:
-        begin
-          sub_not_add = 1'b1;
-          jump_now_o  = sum[32];
-        end
-
-      `RV32_BGE:
-        begin
-          sub_not_add = 1'b1;
-          jump_now_o = ~sum[32];
-        end
-
-      `RV32_BLTU:
-        begin
-          sub_not_add = 1'b1;
-          jump_now_o = ~carry;
-        end
-
-      `RV32_BGEU:
-        begin
-          sub_not_add = 1'b1;
-          jump_now_o  = carry;
-        end
-
       default:
         begin
         end
     endcase
   end
+
+//logic for branch instruction
+wire rs1_eq_rs2             = (rs1_i == rs2_i );
+wire rs1_lt_rs2_unsigned    = (rs1_i <  rs2_i );
+wire rs1_lt_rs2_signed      = ( $signed(rs1_i) < $signed( rs2_i ) );
+
+always_comb
+begin
+    unique casez(op_i )
+      `RV32_BEQ:    jump_now_o = rs1_eq_rs2;
+      `RV32_BNE:    jump_now_o = ~rs1_eq_rs2;
+      `RV32_BLT:    jump_now_o = rs1_lt_rs2_signed;
+      `RV32_BGE:    jump_now_o = ~rs1_lt_rs2_signed;
+      `RV32_BLTU:   jump_now_o = rs1_lt_rs2_unsigned;
+      `RV32_BGEU:   jump_now_o = ~rs1_lt_rs2_unsigned;
+      default:      jump_now_o = 1'b0;
+    endcase
+end
 
 endmodule

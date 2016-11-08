@@ -593,6 +593,8 @@ end
 //+----------------------------------------------
 
 // Synchronous stage shift
+
+// synopsys sync_set_reset  "reset, net_pc_write_cmd_idle, flush, stall, depend_stall"
 always_ff @ (posedge clk)
 begin
 `ifdef bsg_FPU
@@ -774,9 +776,9 @@ always_comb
 begin
 //    unique casez (mem.mem_addr_send[1:0])
     unique casez (mem.mem_addr_send[1:0])
-      00:       loaded_byte = loaded_data[0+:8];
-      01:       loaded_byte = loaded_data[8+:8];
-      10:       loaded_byte = loaded_data[16+:8];
+      2'b00:    loaded_byte = loaded_data[0+:8];
+      2'b01:    loaded_byte = loaded_data[8+:8];
+      2'b10:    loaded_byte = loaded_data[16+:8];
       default:  loaded_byte = loaded_data[24+:8];
     endcase
 end
