@@ -117,6 +117,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic [addr_width_p-1:0]      core_mem_reserve_addr_r;
 
    // implement LR (load word reserved)
+   // synopsys sync_set_reset "core_mem_v, core_mem_reserve_1, core_mem_yumi[1], in_v_lo, core_mem_reserve_addr_r, in_addr_lo, in_yumi_li"
    always_ff @(posedge clk_i)
      begin
         // if we commit a reserved memory access

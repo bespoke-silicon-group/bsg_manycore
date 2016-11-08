@@ -578,6 +578,8 @@ end
 //+----------------------------------------------
 
 // Synchronous stage shift
+
+// synopsys sync_set_reset  "reset, net_pc_write_cmd_idle, flush, stall, depend_stall"
 always_ff @ (posedge clk)
 begin
 `ifdef bsg_FPU
