@@ -131,7 +131,7 @@ wire depend_stall      = (id_exe_rs1_match | id_exe_rs2_match)
 //+----------------------------------------------
 // ALU logic
 logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, basic_comp_result, alu_result;
-logic [RV32_reg_data_width_gp-1:0] jalr_addr;
+logic [imem_addr_width_p-1:0]      jalr_addr;
 logic                              jump_now;
 
 logic [RV32_reg_data_width_gp-1:0] mem_addr_send;
@@ -222,7 +222,7 @@ wire flush = (branch_mispredict | jalr_mispredict);
 //+----------------------------------------------
 
 // Program counter logic
-logic [RV32_reg_data_width_gp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
+logic [imem_addr_width_p-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
 logic                              pc_wen, pc_wen_r, imem_cen;
 
 // Instruction memory logic
@@ -237,12 +237,15 @@ assign pc_wen = net_pc_write_cmd_idle | (~(stall | depend_stall));
 `endif
 
 // Next PC under normal circumstances
-assign pc_plus4 = pc_r + 3'b100;
+assign pc_plus4 = pc_r + 1'b1;
+
+wire  [RV32_instr_width_gp-1:0] BImm_ext =`RV32_signext_Bimm(instruction);
+wire  [RV32_instr_width_gp-1:0] JImm_ext =`RV32_signext_Jimm(instruction);
 
 assign pc_jump_addr      = $signed(pc_r)
                            + (decode.is_branch_op
-                              ? $signed(`RV32_signext_Bimm(instruction))
-                              : $signed(`RV32_signext_Jimm(instruction))
+                              ? $signed(BImm_ext[2+:imem_addr_width_p])
+                              : $signed(JImm_ext[2+:imem_addr_width_p])
                              );
 
 // Determine what the next PC should be
@@ -256,15 +259,15 @@ begin
 
     // Network setting PC (highest priority)
     if (net_pc_write_cmd_idle)
-        pc_n = RV32_reg_data_width_gp'(net_packet_r.header.addr[imem_addr_width_p-1:0]);
+        pc_n = net_packet_r.header.addr[2+:imem_addr_width_p];
 
     // Fixing a branch misprediction (or single cycle branch will
     // follow a branch under prediction logic)
     else if (branch_mispredict)
         if (branch_under_predict)
-            pc_n = exe.pc_jump_addr;
+            pc_n = exe.pc_jump_addr[2+:imem_addr_width_p];
         else
-            pc_n = exe.pc_plus4;
+            pc_n = exe.pc_plus4[2+:imem_addr_width_p];
 
     // Fixing a JALR misprediction (or a signal cycle JALR instruction)
     else if (jalr_mispredict)
@@ -293,7 +296,7 @@ end
 // Selection between network and core for instruction address
 assign imem_addr = (net_imem_write_cmd)
                    ? net_packet_r.header.addr[2+:imem_addr_width_p]
-                   : pc_n[2+:imem_addr_width_p];
+                   : pc_n;
 
 // Instruction memory chip enable signal
 `ifdef bsg_FPU
@@ -475,8 +478,8 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
           );
 
 // Instantiate the ALU
-alu alu_0
-(
+alu #(.imem_addr_width_p(imem_addr_width_p) )
+   alu_0 (
     .rs1_i      (   rs1_to_alu          )
    ,.rs2_i      (   rs2_to_alu          )
    ,.pc_plus4_i (   exe.pc_plus4        )
@@ -562,7 +565,7 @@ end
       ,.data_o(instruction_r)
       );
 
-   bsg_dff_reset_en #(.width_p(RV32_reg_data_width_gp),.harden_p(1)) pc_r_reg
+   bsg_dff_reset_en #(.width_p(imem_addr_width_p),.harden_p(1)) pc_r_reg
      (.clock_i (clk)
       ,.reset_i(reset)
       ,.en_i   (pc_wen)
@@ -599,8 +602,8 @@ begin
 `endif
 
         id <= '{
-            pc_plus4     : pc_plus4,
-            pc_jump_addr : pc_jump_addr,
+            pc_plus4     : pc_plus4<<2,
+            pc_jump_addr : pc_jump_addr<<2,
             instruction  : instruction,
             decode       : decode
         };

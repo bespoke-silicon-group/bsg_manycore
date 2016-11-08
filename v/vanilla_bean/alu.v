@@ -5,12 +5,13 @@
 `include "float_definitions.v"
 `endif
 
-module alu ( input [RV32_reg_data_width_gp-1:0] rs1_i
+module alu #(imem_addr_width_p = "inv")
+           ( input [RV32_reg_data_width_gp-1:0] rs1_i
             ,input [RV32_reg_data_width_gp-1:0] rs2_i
             ,input [RV32_reg_data_width_gp-1:0] pc_plus4_i
             ,input  instruction_s op_i
             ,output logic [RV32_reg_data_width_gp-1:0] result_o
-            ,output logic [RV32_reg_data_width_gp-1:0] jalr_addr_o
+            ,output logic [imem_addr_width_p-1:0] jalr_addr_o
             ,output logic jump_now_o
            );
 
@@ -112,7 +113,8 @@ always_comb
       `RV32_JALR:
         begin
           sub_not_add = 1'b0;
-          jalr_addr_o = sum[31:0] & 32'hfffe;
+//          jalr_addr_o = sum[31:0] & 32'hfffe;
+          jalr_addr_o = sum[2+:imem_addr_width_p];
           result_o    = pc_plus4_i;
         end
 
