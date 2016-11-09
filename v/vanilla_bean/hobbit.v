@@ -310,12 +310,12 @@ assign imem_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_wri
 //As imem is only 2K words in this design ,the jump and branch address can be
 //encoded entirly in the imm field of the instruction.
 //The address is encoded with WORD address
-//synopsys translate off
+//synopsys translate_off
 initial begin
 assert( imem_addr_width_p <= imem_addr_width_limit_lp )
 else $error("the imem_addr_width is too large");
 end
-//synopsys translate on
+//synopsys translate_on
 
 wire  [RV32_instr_width_gp-1:0] BImm_sign_ext =`RV32_signext_Bimm(net_packet_r.data);
 wire  [RV32_instr_width_gp-1:0] JImm_sign_ext =`RV32_signext_Jimm(net_packet_r.data);
