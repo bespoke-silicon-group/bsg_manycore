@@ -110,6 +110,15 @@
 `define RV32_signext_Uimm(instr) {``instr``[31:12], {12{1'b0}}}
 `define RV32_signext_Jimm(instr) {{12{``instr``[31]}},``instr``[19:12],``instr``[20],``instr``[30:21], {1'b0}} 
 
+//RV32 12bit Immediate injection/extraction, replace the Imm content with specified value
+//for injection, the inpute immeidate value index starting from 1
+`define RV32_Bimm_12inject1(instr,value) {``value``[12], ``value``[10:5], ``instr``[24:12],\
+                                          ``value``[4:1],``value``[11],``instr``[6:0]}
+`define RV32_Jimm_12inject1(instr,value) {1'b0, ``value``[10:1], ``value``[11], 7'b0,``value``[12], ``instr``[11:0]}
+
+`define RV32_Bimm_12extract(instr) {``instr``[31], ``instr``[7], ``instr``[30:25], ``instr``[11:8]};
+`define RV32_Jimm_12extract(instr) {``instr``[12], ``instr``[20],``instr``[30:21] };
+
 localparam RV32_instr_width_gp    = 32;
 localparam RV32_reg_data_width_gp = 32;
 localparam RV32_reg_addr_width_gp = 5;

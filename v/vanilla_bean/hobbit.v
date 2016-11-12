@@ -35,6 +35,9 @@ module hobbit #(parameter imem_addr_width_p = -1,
                 input  [y_cord_width_p-1:0]       my_y_i,
                 output debug_s                    debug_o
                );
+//the imem size constrains, which is limited by the instruction encode space
+localparam   imem_addr_width_limit_lp = 12;
+localparam   imem_addr_width_margin_lp = imem_addr_width_limit_lp - imem_addr_width_p;
 
 // Pipeline stage logic structures
 id_signals_s  id;
@@ -131,7 +134,7 @@ wire depend_stall      = (id_exe_rs1_match | id_exe_rs2_match)
 //+----------------------------------------------
 // ALU logic
 logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, basic_comp_result, alu_result;
-logic [RV32_reg_data_width_gp-1:0] jalr_addr;
+logic [imem_addr_width_p-1:0]      jalr_addr;
 logic                              jump_now;
 
 logic [RV32_reg_data_width_gp-1:0] mem_addr_send;
@@ -222,7 +225,7 @@ wire flush = (branch_mispredict | jalr_mispredict);
 //+----------------------------------------------
 
 // Program counter logic
-logic [RV32_reg_data_width_gp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
+logic [imem_addr_width_p-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
 logic                              pc_wen, pc_wen_r, imem_cen;
 
 // Instruction memory logic
@@ -237,13 +240,14 @@ assign pc_wen = net_pc_write_cmd_idle | (~(stall | depend_stall));
 `endif
 
 // Next PC under normal circumstances
-assign pc_plus4 = pc_r + 3'b100;
+assign pc_plus4 = pc_r + 1'b1;
+// Extract the WORD addres,
+wire  [imem_addr_width_limit_lp-1:0] BImm_extract =`RV32_Bimm_12extract(instruction);
+wire  [imem_addr_width_limit_lp-1:0] JImm_extract =`RV32_Jimm_12extract(instruction);
 
-assign pc_jump_addr      = $signed(pc_r)
-                           + (decode.is_branch_op
-                              ? $signed(`RV32_signext_Bimm(instruction))
-                              : $signed(`RV32_signext_Jimm(instruction))
-                             );
+assign pc_jump_addr      = decode.is_branch_op
+                         ? BImm_extract[0+:imem_addr_width_p]
+                         : JImm_extract[0+:imem_addr_width_p];
 
 // Determine what the next PC should be
 always_comb
@@ -256,15 +260,15 @@ begin
 
     // Network setting PC (highest priority)
     if (net_pc_write_cmd_idle)
-        pc_n = RV32_reg_data_width_gp'(net_packet_r.header.addr[imem_addr_width_p-1:0]);
+        pc_n = net_packet_r.header.addr[2+:imem_addr_width_p];
 
     // Fixing a branch misprediction (or single cycle branch will
     // follow a branch under prediction logic)
     else if (branch_mispredict)
         if (branch_under_predict)
-            pc_n = exe.pc_jump_addr;
+            pc_n = exe.pc_jump_addr[2+:imem_addr_width_p];
         else
-            pc_n = exe.pc_plus4;
+            pc_n = exe.pc_plus4[2+:imem_addr_width_p];
 
     // Fixing a JALR misprediction (or a signal cycle JALR instruction)
     else if (jalr_mispredict)
@@ -293,7 +297,7 @@ end
 // Selection between network and core for instruction address
 assign imem_addr = (net_imem_write_cmd)
                    ? net_packet_r.header.addr[2+:imem_addr_width_p]
-                   : pc_n[2+:imem_addr_width_p];
+                   : pc_n;
 
 // Instruction memory chip enable signal
 `ifdef bsg_FPU
@@ -302,6 +306,40 @@ assign imem_cen = (~( stall | fpi_inter.fam_depend_stall | depend_stall ))
 `else
 assign imem_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_write_cmd_idle);
 `endif
+//Pre-calculate the jump and branch address.
+//As imem is only 2K words in this design ,the jump and branch address can be
+//encoded entirly in the imm field of the instruction.
+//The address is encoded with WORD address
+//synopsys translate_off
+initial begin
+assert( imem_addr_width_p <= imem_addr_width_limit_lp )
+else $error("the imem_addr_width is too large");
+end
+//synopsys translate_on
+
+wire  [RV32_instr_width_gp-1:0] BImm_sign_ext =`RV32_signext_Bimm(net_packet_r.data);
+wire  [RV32_instr_width_gp-1:0] JImm_sign_ext =`RV32_signext_Jimm(net_packet_r.data);
+
+instruction_s  instr_cast;
+assign instr_cast  = net_packet_r.data;
+
+wire  write_branch_instr = ( instr_cast.op    ==? `RV32_BRANCH );
+wire  write_jal_instr    = ( instr_cast       ==? `RV32_JAL    );
+//The computed address is WORD address
+wire  [imem_addr_width_p-1:0] inject_pc_value  = $signed(imem_addr)
+                           + (write_branch_instr
+                              ? $signed(BImm_sign_ext[2+:imem_addr_width_p])
+                              : $signed(JImm_sign_ext[2+:imem_addr_width_p])
+                             );
+
+//index starting from 1, for consistent with the instruction coding.
+wire [imem_addr_width_limit_lp:1] inject_addr =
+                             { {imem_addr_width_margin_lp{1'b0}}, inject_pc_value};
+//Inject the WORD address
+wire [RV32_instr_width_gp-1:0] imem_w_data =
+        write_branch_instr ? `RV32_Bimm_12inject1( net_packet_r.data, inject_addr) :
+        write_jal_instr    ? `RV32_Jimm_12inject1( net_packet_r.data, inject_addr) :
+                             net_packet_r.data;
 // RISC-V edit: reserved bits in network packet header
 //              used as mask input
 
@@ -315,7 +353,7 @@ assign imem_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_wri
 //     ,.w_i    (net_imem_write_cmd & net_packet_r.header.mask[i])
      ,.w_i    (net_imem_write_cmd)
      ,.addr_i (imem_addr)
-     ,.data_i (net_packet_r.data)
+     ,.data_i (imem_w_data)
      ,.data_o (imem_out)
     );
 
@@ -475,8 +513,8 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
           );
 
 // Instantiate the ALU
-alu alu_0
-(
+alu #(.imem_addr_width_p(imem_addr_width_p) )
+   alu_0 (
     .rs1_i      (   rs1_to_alu          )
    ,.rs2_i      (   rs2_to_alu          )
    ,.pc_plus4_i (   exe.pc_plus4        )
@@ -577,7 +615,7 @@ end
       ,.data_o(instruction_r)
       );
 
-   bsg_dff_reset_en #(.width_p(RV32_reg_data_width_gp),.harden_p(1)) pc_r_reg
+   bsg_dff_reset_en #(.width_p(imem_addr_width_p),.harden_p(1)) pc_r_reg
      (.clock_i (clk)
       ,.reset_i(reset)
       ,.en_i   (pc_wen)
@@ -614,8 +652,8 @@ begin
 `endif
 
         id <= '{
-            pc_plus4     : pc_plus4,
-            pc_jump_addr : pc_jump_addr,
+            pc_plus4     : {pc_plus4,2'b0},
+            pc_jump_addr : {pc_jump_addr,2'b0},
             instruction  : instruction,
             decode       : decode
         };
