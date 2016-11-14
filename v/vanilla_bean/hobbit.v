@@ -325,12 +325,15 @@ assign instr_cast  = net_packet_r.data;
 
 wire  write_branch_instr = ( instr_cast.op    ==? `RV32_BRANCH );
 wire  write_jal_instr    = ( instr_cast       ==? `RV32_JAL    );
+
+wire [imem_addr_width_p-1:0] inject_pc_rel = write_branch_instr
+              ? $signed(BImm_sign_ext[2+:imem_addr_width_p])
+              : $signed(JImm_sign_ext[2+:imem_addr_width_p]);
+
 //The computed address is WORD address
-wire  [imem_addr_width_p-1:0] inject_pc_value  = $signed(imem_addr)
-                           + (write_branch_instr
-                              ? $signed(BImm_sign_ext[2+:imem_addr_width_p])
-                              : $signed(JImm_sign_ext[2+:imem_addr_width_p])
-                             );
+wire  [imem_addr_width_p-1:0] inject_pc_value  =
+             $signed(net_packet_r.header.addr[2+:imem_addr_width_p])
+            +$signed(inject_pc_rel);
 
 //index starting from 1, for consistent with the instruction coding.
 wire [imem_addr_width_limit_lp:1] inject_addr =
