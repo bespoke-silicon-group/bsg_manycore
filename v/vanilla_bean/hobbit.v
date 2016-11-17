@@ -449,21 +449,23 @@ logic [31:0] md_result;
 wire   md_valid    = exe.decode.is_md_instr & md_ready;
 assign stall_md    = exe.decode.is_md_instr & ~md_resp_valid;
 
-vscale_mul_div md_0
-  ( .clk             (clk)
-   ,.reset           (reset)
-   ,.req_valid       (md_valid)
-   ,.req_ready       (md_ready)
-   ,.req_in_1_signed (exe.decode.md_rs1_signed)
-   ,.req_in_2_signed (exe.decode.md_rs2_signed)
-   ,.req_op          (exe.decode.md_op)
-   ,.req_out_sel     (exe.decode.md_out_sel)
-   ,.req_in_1        (rs1_to_alu)
-   ,.req_in_2        (rs2_to_alu)
-   ,.resp_valid      (md_resp_valid)
-   ,.resp_result     (md_result)
-  );
+imul_idiv_iterative  md_0
+    (.reset_i   (reset)
+	,.clk_i     (clk)
 
+	,.v_i       (md_valid)//there is a request
+    ,.ready_o   (md_ready)//imul_idiv_module is idle
+
+    ,.opA_i     (rs1_to_alu)
+	,.opB_i     (rs2_to_alu)
+    ,.funct3    (exe.instruction.funct3)
+
+	,.v_o       (md_resp_valid )//result is valid
+	,.result_o  (md_result     )
+    //if there is a stall issued at MEM stage, we can't receive the mul/div
+    //result.
+    ,.yumi_i    (~stall_non_mem)
+    );
 //+----------------------------------------------
 //|
 //|                ALU SIGNALS

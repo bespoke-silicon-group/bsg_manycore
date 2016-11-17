@@ -39,6 +39,16 @@
 `define RV32_CSRRSI_FUN3 3'b110
 `define RV32_CSRRCI_FUN3 3'b111
 
+//MUL_DIV defines
+`define MD_MUL_FUN3       3'b000
+`define MD_MULH_FUN3      3'b001
+`define MD_MULHSU_FUN3    3'b010
+`define MD_MULHU_FUN3     3'b011
+`define MD_DIV_FUN3       3'b100
+`define MD_DIVU_FUN3      3'b101
+`define MD_REM_FUN3       3'b110
+`define MD_REMU_FUN3      3'b111
+
 // Some useful RV32 instruction macros
 `define RV32_Rtype(op, funct3, funct7) {``funct7``, {5{1'b?}},  {5{1'b?}},``funct3``, {5{1'b?}},``op``}
 `define RV32_Itype(op, funct3)         {{12{1'b?}},{5{1'b?}},``funct3``,{5{1'b?}},``op``} 
@@ -85,14 +95,14 @@
 `define RV32_SRA       `RV32_Rtype(`RV32_OP, 3'b101, 7'b0100000)
 `define RV32_OR        `RV32_Rtype(`RV32_OP, 3'b110, 7'b0000000)
 `define RV32_AND       `RV32_Rtype(`RV32_OP, 3'b111, 7'b0000000)
-`define RV32_MUL       `RV32_Rtype(`RV32_OP, 3'b000, 7'b0000001) 
-`define RV32_MULH      `RV32_Rtype(`RV32_OP, 3'b001, 7'b0000001) 
-`define RV32_MULHSU    `RV32_Rtype(`RV32_OP, 3'b010, 7'b0000001) 
-`define RV32_MULHU     `RV32_Rtype(`RV32_OP, 3'b011, 7'b0000001) 
-`define RV32_DIV       `RV32_Rtype(`RV32_OP, 3'b100, 7'b0000001) 
-`define RV32_DIVU      `RV32_Rtype(`RV32_OP, 3'b101, 7'b0000001) 
-`define RV32_REM       `RV32_Rtype(`RV32_OP, 3'b110, 7'b0000001) 
-`define RV32_REMU      `RV32_Rtype(`RV32_OP, 3'b111, 7'b0000001) 
+`define RV32_MUL       `RV32_Rtype(`RV32_OP, `MD_MUL_FUN3   , 7'b0000001) 
+`define RV32_MULH      `RV32_Rtype(`RV32_OP, `MD_MULH_FUN3  , 7'b0000001) 
+`define RV32_MULHSU    `RV32_Rtype(`RV32_OP, `MD_MULHSU_FUN3, 7'b0000001) 
+`define RV32_MULHU     `RV32_Rtype(`RV32_OP, `MD_MULHU_FUN3 , 7'b0000001) 
+`define RV32_DIV       `RV32_Rtype(`RV32_OP, `MD_DIV_FUN3   , 7'b0000001) 
+`define RV32_DIVU      `RV32_Rtype(`RV32_OP, `MD_DIVU_FUN3  , 7'b0000001) 
+`define RV32_REM       `RV32_Rtype(`RV32_OP, `MD_REM_FUN3   , 7'b0000001) 
+`define RV32_REMU      `RV32_Rtype(`RV32_OP, `MD_REMU_FUN3  , 7'b0000001) 
 `define RV32_LR_W      `RV32_Rtype(`RV32_AMO, 3'b010, 7'b00010??)
 
 `define RV32_CSRRW      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRW_FUN3)
@@ -131,5 +141,6 @@ localparam RV32_Simm_width_gp     = 12;
 localparam RV32_Bimm_width_gp     = 12;
 localparam RV32_Uimm_width_gp     = 20;
 localparam RV32_Jimm_width_gp     = 20;
+
 
 `endif

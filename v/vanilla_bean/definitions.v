@@ -118,10 +118,6 @@ typedef struct packed
 
     //for M extension;
     logic       is_md_instr;    // indicates is md insruciton
-    logic[1:0]  md_op;          // the opcode send to mul_div unit
-    logic[1:0]  md_out_sel;     // the opcode to control mul_div unit output
-    logic       md_rs1_signed;
-    logic       md_rs2_signed;
 } decode_s;
 
 // Instruction decode stage signals
