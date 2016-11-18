@@ -606,7 +606,8 @@ end
       ,.data_o(jalr_prediction_rr)
       );
 
-   bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(1)) net_packet_r_reg
+   // mbt: unharden to reduce congestion
+   bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(0)) net_packet_r_reg
      (.clock_i(clk)
       ,.reset_i(reset)
       ,.data_i(net_packet_i)
