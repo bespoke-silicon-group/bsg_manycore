@@ -3,11 +3,11 @@
 
 `define SPMD       ????             // test program to be loaded
 `define ROM(spmd)  bsg_rom_``spmd`` // ROM contaning the spmd
-`define MEM_SIZE   32768
 `define BANK_SIZE  1024   // in words
-`define BANK_NUM   8
-//`define BANK_SIZE  2048   // in words
-//`define BANK_NUM   4
+`define BANK_NUM   1
+`define IMEM_SIZE  1024   // in words
+ //The total memory size, which is used for ROM loader
+`define MEM_SIZE   ( `BANK_NUM*`BANK_SIZE*4  +  `IMEM_SIZE * 4)
 
 `ifndef bsg_tiles_X
 `error bsg_tiles_X must be defined; pass it in through the makefile
@@ -33,6 +33,7 @@ module test_bsg_manycore;
    localparam max_cycles_lp   = `MAX_CYCLES;
    localparam tile_id_ptr_lp  = -1;
    localparam mem_size_lp     = `MEM_SIZE;  // actually the size of the file being loaded, in bytes
+   localparam imem_size_lp    = `IMEM_SIZE;
    localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
    localparam num_banks_lp    = `BANK_NUM;
    localparam data_width_lp   = 32;
@@ -149,7 +150,7 @@ module test_bsg_manycore;
   bsg_manycore #
     (
      .bank_size_p  (bank_size_lp)
-     ,.imem_size_p (bank_size_lp)
+     ,.imem_size_p (imem_size_lp)
      ,.num_banks_p (num_banks_lp)
      ,.data_width_p (data_width_lp)
      ,.addr_width_p (addr_width_lp)
