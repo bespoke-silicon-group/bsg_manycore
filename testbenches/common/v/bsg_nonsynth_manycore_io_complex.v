@@ -24,6 +24,13 @@ module bsg_nonsynth_manycore_io_complex
     ,output [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
     );
 
+   initial
+     begin
+        $display("## creating manycore complex num_tiles (x,y) = %-d,%-d (%m)", num_tiles_x_p, num_tiles_y_p);
+     end
+
+   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
+
    localparam packet_width_lp = `bsg_manycore_packet_width(addr_width_p, data_width_p, x_cord_width_lp, y_cord_width_lp);
 
    // we add this for easier debugging
@@ -40,7 +47,7 @@ module bsg_nonsynth_manycore_io_complex
    logic [addr_width_p-1:0]  mem_addr;
    logic [data_width_p-1:0]  mem_data;
 
-   logic [packet_width_lp-1:0] loader_data_lo;
+   bsg_manycore_packet_s  loader_data_lo;
    logic                      loader_v_lo;
    logic                      loader_ready_li;
 
@@ -87,7 +94,7 @@ module bsg_nonsynth_manycore_io_complex
 
    localparam spmd_max_out_credits_lp = 128;
 
-   genvar 		    i;
+   genvar                   i;
 
    for (i = 0; i < num_tiles_x_p; i=i+1)
      begin: rof
@@ -98,12 +105,31 @@ module bsg_nonsynth_manycore_io_complex
 
         wire [`BSG_SAFE_CLOG2(credits_lp+1)-1:0] creds;
 
+        logic [x_cord_width_lp-1:0] pass_thru_x_li;
+        logic [y_cord_width_lp-1:0] pass_thru_y_li;
+
+        assign pass_thru_x_li = x_cord_width_lp ' (i);
+        assign pass_thru_y_li = y_cord_width_lp ' (num_tiles_y_p);
+
         // hook up the ready signal if this is the SPMD loader
         // we handle credits here but could do it in the SPMD module too
 
         if (i==0)
           begin: fi
              assign loader_ready_li = pass_thru_ready_lo & (|creds);
+
+	     if (0)
+             always @(negedge clk_i)
+               begin
+                  if (~reset_i & loader_ready_li & loader_v_lo)
+                    begin
+                       $write("Loader: Transmitted addr=%-d'h%h (x_cord_width_lp=%-d)(y_cord_width_lp=%-d) "
+                              ,addr_width_p, mem_addr, x_cord_width_lp, y_cord_width_lp);
+                       `write_bsg_manycore_packet_s(loader_data_lo);
+                       $write("\n");
+                    end
+                end
+
           end
 
         bsg_nonsynth_manycore_monitor #(.x_cord_width_p (x_cord_width_lp)
@@ -118,16 +144,16 @@ module bsg_nonsynth_manycore_io_complex
                                         // accelerator, we must be much more careful about
                                         // setting this
                                         ,.pass_thru_max_out_credits_p (credits_lp)
-                                        ) bmm (.clk_i(clk_i)
-                                               ,.reset_i (reset_i)
-                                               ,.link_sif_i   (ver_link_sif_i_cast[i])
-                                               ,.link_sif_o   (ver_link_sif_o_cast[i])
+                                        ) bmm (.clk_i             (clk_i)
+                                               ,.reset_i          (reset_i)
+                                               ,.link_sif_i       (ver_link_sif_i_cast[i])
+                                               ,.link_sif_o       (ver_link_sif_o_cast[i])
                                                ,.pass_thru_data_i (loader_data_lo )
                                                ,.pass_thru_v_i    (loader_v_lo    )
                                                ,.pass_thru_ready_o(pass_thru_ready_lo)
                                                ,.pass_thru_out_credits_o(creds)
-                                               ,.pass_thru_x_i(x_cord_width_lp '(i))
-                                               ,.pass_thru_y_i(y_cord_width_lp '(num_tiles_y_p))
+                                               ,.pass_thru_x_i(pass_thru_x_li)
+                                               ,.pass_thru_y_i(pass_thru_y_li)
                                                ,.cycle_count_i(cycle_count)
                                                ,.finish_o     (finish_lo_vec[i])
                                                );

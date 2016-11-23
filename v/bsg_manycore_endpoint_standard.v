@@ -137,11 +137,12 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
      end
 
    always_ff @(negedge clk_i)
-     if (pkt_unknown & cgni_v)
+     if (~reset_i & pkt_unknown & cgni_v)
        begin
-          $write("## UNKNOWN packet: %b; ",cgni_data);
+          $write("## UNKNOWN packet: %b PACKET_WIDTH=%d; (%m)  ",cgni_data,$bits(bsg_manycore_packet_s));
           `write_bsg_manycore_packet_s(cgni_data);
           $write("\n");
+	  $finish();
        end
 
    if (debug_p)

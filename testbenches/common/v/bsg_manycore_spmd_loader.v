@@ -89,9 +89,9 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
     if (reset_i===0 && ~loaded && ready_i)
       begin
          if ((load_addr & 12'hFFF) == 0)
-           $display("Loader: Tile %d, Addr %x",tile_no, load_addr);
+           $display("Loader: Tile %d, Addr %x (%m)",tile_no, load_addr);
          if (loaded_n)
-           $display("Finished loading.");
+           $display("Finished loading. (%m)");
       end
 
   always_ff @(posedge clk_i)

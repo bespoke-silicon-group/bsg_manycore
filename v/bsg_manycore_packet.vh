@@ -39,9 +39,9 @@
 `define declare_bsg_manycore_rev_link_sif_s(in_x_cord_width,in_y_cord_width,name)  \
      `declare_bsg_ready_and_link_sif_s(`bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width),name)
 
-`define write_bsg_manycore_packet_s(PKT)                                                                                \
-    $write("op=0b%b, op_ex=0b%b, addr=0h%x, data=h%x, (x,y)=(%d,%d) return (x,y)=(%d,%d)"                               \
-           , PKT.op, PKT.op_ex, PKT.addr, PKT.data, PKT.x_cord, PKT.y_cord, PKT.return_pkt.x_cord, PKT.return_pkt.y_cord)
+`define write_bsg_manycore_packet_s(PKT)                                                                                                     \
+    $write("op=2'b%b, op_ex=4'b%b, addr=%-d'h%h data=%-d'h%h (x,y)=(%-d'b%b,%-d'b%b), return (x,y)=(%-d'b%b,%-d'b%b)"                        \
+           , PKT.op, PKT.op_ex, $bits(PKT.addr), PKT.addr, $bits(PKT.data), PKT.data, $bits(PKT.x_cord), PKT.x_cord, $bits(PKT.y_cord), PKT.y_cord, $bits(PKT.return_pkt.x_cord), PKT.return_pkt.x_cord, $bits(PKT.return_pkt.y_cord), PKT.return_pkt.y_cord)
 
 // defines bsg_manycore_fwd_link_sif, bsg_manycore_rev_link_sif, and the combination, bsg_manycore_link_sif_s
 `define declare_bsg_manycore_link_sif_s(in_addr_width, in_data_width, in_x_cord_width, in_y_cord_width)                                \
