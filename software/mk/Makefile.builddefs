@@ -6,6 +6,15 @@ BSG_MANYCORE_BANKS=4
 # in bytes
 BSG_MANYCORE_BANKSIZE=8192
 
+#####################################################
+# DO we have the FPU implemented ?
+ifeq ($(BSG_FPU_OP),1)
+ARCH_OP=RV32IMAFD
+else
+ARCH_OP=RV32IMA
+endif
+#####################################################
+
 # paths
 RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-gcc
 RISCV_ELF2HEX ?= $(RISCV_BIN_DIR)/elf2hex
@@ -17,10 +26,10 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
 # flags
 RISCV_GCC_EXTRA_OPTS ?= -O2
-RISCV_GCC_OPTS  = -march=RV32IMAFD -m32 -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
+RISCV_GCC_OPTS  = -march=$(ARCH_OP) -m32 -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 
 #RISCV_LINK_EXTRA_OPTS ?=
-RISCV_LINK_OPTS = -m32 -march=RV32IMAFD -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
+RISCV_LINK_OPTS = -m32 -march=RV32IMA -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld

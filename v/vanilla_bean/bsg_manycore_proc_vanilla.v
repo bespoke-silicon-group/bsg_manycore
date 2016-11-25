@@ -234,7 +234,10 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
        begin // initiates pc pushing core to RUN state
          core_net_pkt.header.net_op   = PC;
          core_net_pkt.header.mask     = (data_width_p>>3)'(0);
-         core_net_pkt.header.addr     = 13'h200;
+         //1.  We don't support exceptions, and we don't want to waste the
+         //    instrution memory so the starting address of the first instruction
+         //    is ZERO
+         core_net_pkt.header.addr     = 13'h0;
        end
 
     core_net_pkt.data   = remote_store_imem_not_dmem ? in_data_lo : 32'(0);

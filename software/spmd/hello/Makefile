@@ -16,7 +16,7 @@ include ../Makefile.include
 #            FPU OPTION
 #     The number of horizon node must be two and must 
 #     be vanilla core 
-BSG_FPU_OP=1
+BSG_FPU_OP=0
 
 main.riscv:  main.o $(SPMD_COMMON_OBJECTS) ../common/crt.o
 	$(RISCV_LINK) $< -o $@ $(RISCV_LINK_OPTS)

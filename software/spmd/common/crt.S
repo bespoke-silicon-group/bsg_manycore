@@ -1,6 +1,6 @@
 # See LICENSE for license details.
 # MBT modified for bsg_manycore
-	
+
 #include "encoding.h"
 
 #ifdef __riscv64
@@ -13,6 +13,7 @@
 # define REGBYTES 4
 #endif
 
+#ifdef __bsg_exception
   .text
   .align 6
 user_trap_entry:
@@ -37,6 +38,9 @@ machine_trap_entry:
    li a5,3
    csrw mtohost,a5
    j .
+
+#endif
+
 
 .align 6
   .globl _start
@@ -150,7 +154,7 @@ _start:
   #1:bgeu a0, a1, 1b
 
   # mbt: put stack at top of local memory
-	
+
   li sp, 4*8192-4
   #la t0, main
   #csrw mepc, t0

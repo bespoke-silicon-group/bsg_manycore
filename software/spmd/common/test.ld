@@ -21,8 +21,13 @@ SECTIONS
 {
 
   /* text: test code section */
-  . = 0x100;
-  .text : 
+  /* SHX : Currently there is no exceptions allowed in bsg_manycore, so
+   *       we don't want to wast the instruciton memory space, the first
+   *       instuction address will start at zero
+   */
+
+  /* . = 0x100;  */
+  .text :
   {
     crt.o(.text)
     *(.text)
