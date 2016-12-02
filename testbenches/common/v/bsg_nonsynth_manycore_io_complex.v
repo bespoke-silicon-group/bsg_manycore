@@ -22,6 +22,8 @@ module bsg_nonsynth_manycore_io_complex
 
     ,input  [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_i
     ,output [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
+
+    ,output finish_lo
     );
 
    initial

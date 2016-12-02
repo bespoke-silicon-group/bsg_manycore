@@ -9,6 +9,7 @@
  //The total memory size, which is used for ROM loader
 `define MEM_SIZE   ( `BANK_NUM*`BANK_SIZE*4  +  `IMEM_SIZE * 4)
 
+
 `ifndef bsg_tiles_X
 `error bsg_tiles_X must be defined; pass it in through the makefile
 `endif
@@ -141,7 +142,6 @@ module test_bsg_manycore;
    bsg_manycore_link_sif_s [S:N][num_tiles_x_lp-1:0] ver_link_li, ver_link_lo;
    bsg_manycore_link_sif_s [E:W][num_tiles_y_lp-1:0] hor_link_li, hor_link_lo;
 
-`define TOPLEVEL UUT.bm
 
 `ifndef BSG_HETERO_TYPE_VEC
 `define BSG_HETERO_TYPE_VEC 0
@@ -177,118 +177,9 @@ module test_bsg_manycore;
 
         );
 
-`ifdef PERF_COUNT
-   
-   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] imem_stalls;
-   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] dmem_stalls;
-   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] dx_stalls;
-   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] redirect_stalls;
-   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] rsrv_stalls;
-   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] cgni_full_cycles;
-   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] cgno_full_cycles;
-   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] non_frozen_cycles;
-   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] cgno_credit_full_cycles;
-   logic [num_tiles_x_lp-1:0][num_tiles_y_lp-1:0][31:0] min_store_credits;
-
-   genvar                                               x,y;
-
-   for (x = 0; x < num_tiles_x_lp; x++)
-     for (y = 0; y < num_tiles_y_lp; y++)
-       begin : stats
-
-          logic freeze_r;
-
-          always @(negedge clk)
-            freeze_r <= `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze;
-
-          always @(negedge clk)
-            begin
-               if (freeze_r & ~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.freeze)
-                 begin
-                    imem_stalls[x][y]       <= 0;
-                    dmem_stalls[x][y]       <= 0;
-                    dx_stalls[x][y]         <= 0;
-                    redirect_stalls  [x][y] <= 0;
-                    cgni_full_cycles [x][y]        <= 0;
-                    cgno_full_cycles [x][y]        <= 0;
-                    cgno_credit_full_cycles [x][y] <= 0;
-                    non_frozen_cycles[x][y] <= 0;
-                    rsrv_stalls[x][y]       <= 0;
-                    min_store_credits[x][y] <= 10000000;
-                end
-               else
-                 begin
-                    if (min_store_credits[x][y] > `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.remote_store_credits)
-                      min_store_credits[x][y] <= `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.remote_store_credits;
-
-                    if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.imem_wait)
-                      imem_stalls[x][y] <= imem_stalls[x][y]+1;
-                    if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_wait
-                        & `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.dmem_en)
-                      dmem_stalls[x][y] <= dmem_stalls[x][y]+1;
-                    else if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.dmem_reserve_acq_stall)
-                      rsrv_stalls[x][y] <= rsrv_stalls[x][y]+1;
-                    else if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.stall_DX_premem)
-                      dx_stalls[x][y] <= dx_stalls[x][y]+1;
-                    else if (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.ctrl.redirect)
-                      redirect_stalls[x][y] <= redirect_stalls[x][y]+1;
-                    if (~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_o[0])
-                      cgni_full_cycles[x][y] <= cgni_full_cycles[x][y]+1;
-                    if (~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_i[0])
-                      cgno_full_cycles[x][y] <= cgno_full_cycles[x][y]+1;
-                    if (~`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.ready_i[1])
-                      cgno_credit_full_cycles[x][y] <= cgno_credit_full_cycles[x][y]+1;
-
-                    non_frozen_cycles[x][y] <= non_frozen_cycles[x][y]+1;
-                 end
-               if (finish_lo)
-                 begin
-                    if (x == 0 && y == 0)
-                      begin
-                         $display("\n");
-                         $display("## PERFORMANCE DATA ###################################################");
-                         $display("##\n");
-                         $display("## a. DMEM_stalls occur when writing to full network");
-                         $display("## b. IMEM_stalls are bank conflicts with DMEM or remote_stores");
-                         $display("## c. DX_stalls are bypass and load use stalls");
-                         $display("## d. BT stalls are branch taken penalties");
-                         $display("## e. cgni_full_cycles are cycles when processor input buffer is full");
-                         $display("##      these are a result of remote_store/dmem bank conflicts and");
-                         $display("##      indicate likely sources of network congestion");
-                         $display("## f. cgno_full_cycles are cycles when processor output buffer is full");
-                         $display("## g. rsrv stalls are stalls waiting on lr.w.acquire instructions");
-                         $display("##    these are used for high-level flow-control");
-                         $display("##   keep in mind that polling causes instruction count to vary\n");
-                         $display("##                                                        stalls                               full_cycles\n##");
-                         $display("##    X  Y     INSTRS     CYCLES |      DMEM       IMEM         DX         BT       RSRV |      CGNI       CGNO    Credit");
-                         $display("##   -- --  --------- ---------- |---------- ---------- ---------- ---------- ---------- |  -------- ---------- ---------");
-                      end
-
-                    $display("##   %2.2d,%2.2d  %9.9d %d |%d %d %d %d %d |%d %d %d"
-                             ,x,y,`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.csr.instret_full, non_frozen_cycles[x][y],dmem_stalls[x][y],imem_stalls[x][y],dx_stalls[x][y],redirect_stalls[x][y],rsrv_stalls[x][y],cgni_full_cycles[x][y],cgno_full_cycles[x][y],cgno_credit_full_cycles[x][y]);
-                    $display("##                         %-2.1f%%        %-2.1f%%       %-2.1f%%       %-2.1f%%       %-2.1f%%      %-2.1f%%       %-2.1f%%       %-2.1f%%     %-2.1f%%"
-                             , 100.0 * ((real' (non_frozen_cycles[x][y]) / (real' (`TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.core.vscale.csr.instret_full))))
-                             , 100.0 * ((real' (dmem_stalls      [x][y]) / (real' (non_frozen_cycles[x][y]))))
-                             , 100.0 * ((real' (imem_stalls      [x][y]) / (real' (non_frozen_cycles[x][y]))))
-                             , 100.0 * ((real' (dx_stalls        [x][y]) / (real' (non_frozen_cycles[x][y]))))
-                             , 100.0 * ((real' (redirect_stalls  [x][y]) / (real' (non_frozen_cycles[x][y]))))
-                             , 100.0 * ((real' (rsrv_stalls      [x][y]) / (real' (non_frozen_cycles[x][y]))))
-                             , 100.0 * ((real' (cgni_full_cycles [x][y]) / (real' (non_frozen_cycles[x][y]))))
-                             , 100.0 * ((real' (cgno_full_cycles [x][y]) / (real' (non_frozen_cycles[x][y]))))
-                             , 100.0 * ((real' (cgno_credit_full_cycles [x][y]) / (real' (non_frozen_cycles[x][y]))))
-                             );
-                    $display("##        minimum store credits: %d / %d ", min_store_credits[x][y], `TOPLEVEL.tile_row_gen[y].tile_col_gen[x].tile.proc.max_remote_store_credits_p);
-
-                    if (x == num_tiles_x_lp-1 && y == num_tiles_y_lp-1)
-                      $display("##\n");
-                 end
-            end // always @ (negedge clk)
-       end
-
-`endif
-
+/////////////////////////////////////////////////////////////////////////////////
+// Tie the unused I/O
    genvar                   i,j;
-
    for (i = 0; i < num_tiles_y_lp; i=i+1)
      begin: rof2
 
@@ -331,6 +222,8 @@ module test_bsg_manycore;
          );
      end
 
+/////////////////////////////////////////////////////////////////////////////////
+// instantiate the loader and moniter
 
    bsg_nonsynth_manycore_io_complex
      #( .mem_size_p  (mem_size_lp)
@@ -345,7 +238,49 @@ module test_bsg_manycore;
     ,.reset_i(reset)
     ,.ver_link_sif_i(ver_link_lo[S])
     ,.ver_link_sif_o(ver_link_li[S])
+    ,.finish_lo(finish_lo)
     );
 
+
+/////////////////////////////////////////////////////////////////////////////////
+// instantiate the  profiler
+`define  PERF_COUNT
+`define  TOPLEVEL UUT
+
+`ifdef PERF_COUNT
+genvar x,y;
+  for (x = 0; x < num_tiles_x_lp; x++) begin: prof_x
+    for (y = 0; y < num_tiles_y_lp; y++) begin: prof_y
+
+          //generate the unfreeze signal
+          wire  freeze_sig =  `TOPLEVEL.y[y].x[x].proc.h.z.freeze_o;
+          logic freeze_r;
+          always @(negedge clk) freeze_r  <=  freeze_sig;
+          assign          unfreeze_action  =  freeze_r & (~freeze_sig );
+
+          //assign the inputs to the profiler
+          manycore_profiler_s trigger_s;
+          assign trigger_s.reset_prof   = unfreeze_action   ;
+          assign trigger_s.finish_prof  = finish_lo         ;
+
+          assign trigger_s.dmem_stall   = `TOPLEVEL.y[y].x[x].proc.h.z.vanilla_core.stall_mem;
+          assign trigger_s.dx_stall     = `TOPLEVEL.y[y].x[x].proc.h.z.vanilla_core.depend_stall;
+          assign trigger_s.bt_stall     = `TOPLEVEL.y[y].x[x].proc.h.z.vanilla_core.flush;
+          assign trigger_s.in_fifo_full = ~`TOPLEVEL.y[y].x[x].proc.h.z.endp.bme.link_sif_o_cast.fwd.ready_and_rev;
+          assign trigger_s.out_fifo_full= ~`TOPLEVEL.y[y].x[x].proc.h.z.endp.bme.link_sif_i_cast.fwd.ready_and_rev;
+          assign trigger_s.credit_full  = `TOPLEVEL.y[y].x[x].proc.h.z.endp.out_credits_o == 0 ;
+          assign trigger_s.res_acq_stall= `TOPLEVEL.y[y].x[x].proc.h.z.vanilla_core.stall_lrw ;
+
+          //instantiate the profiler
+          bsg_manycore_profiler prof_inst(
+                .clk_i      ( clk        )
+               ,.x_id_i     ( x          )
+               ,.y_id_i     ( y          )
+               ,.prof_s_i   ( trigger_s  )
+          );
+
+    end
+  end
+`endif
 
 endmodule
