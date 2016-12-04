@@ -33,13 +33,15 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    (input   clk_i
     , input reset_i
 
-   // input and output links
+    // input and output links
     , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
     , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
-     // tile coordinates
+    // tile coordinates
     , input   [x_cord_width_p-1:0]                my_x_i
     , input   [y_cord_width_p-1:0]                my_y_i
+
+     // FPU interface
 `ifdef bsg_FPU
     , input  f_fam_out_s           fam_out_s_i
     , output f_fam_in_s            fam_in_s_o
@@ -209,6 +211,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       ,.my_x_i
       ,.my_y_i
       ,.debug_o        ()
+      ,.outstanding_stores_i(out_credits_lo != max_out_credits_p)    // from register
      );
 
    always_comb

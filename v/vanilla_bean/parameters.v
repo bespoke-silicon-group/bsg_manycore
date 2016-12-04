@@ -49,6 +49,11 @@
 `define MD_REM_FUN3       3'b110
 `define MD_REMU_FUN3      3'b111
 
+//FENCE defines
+`define RV32_FENCE_FUN3   3'b000
+`define RV32_FENCE_I_FUN3 3'b001
+
+
 // Some useful RV32 instruction macros
 `define RV32_Rtype(op, funct3, funct7) {``funct7``, {5{1'b?}},  {5{1'b?}},``funct3``, {5{1'b?}},``op``}
 `define RV32_Itype(op, funct3)         {{12{1'b?}},{5{1'b?}},``funct3``,{5{1'b?}},``op``} 

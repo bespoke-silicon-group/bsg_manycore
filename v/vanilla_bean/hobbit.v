@@ -18,22 +18,23 @@ module hobbit #(parameter imem_addr_width_p = -1,
                           y_cord_width_p    = -1,
                           debug_p           = 0)
                (
-                input                             clk,
-                input                             reset,
+                input                             clk
+               ,input                             reset
 
 `ifdef bsg_FPU
-                fpi_alu_inter.alu_side            fpi_inter,
+               ,fpi_alu_inter.alu_side            fpi_inter
 `endif
-                input  ring_packet_s              net_packet_i,
+               ,input  ring_packet_s              net_packet_i
 
-                input  mem_out_s                  from_mem_i,
-                output mem_in_s                   to_mem_o,
-                input  logic                      reservation_i,
-                output logic                      reserve_1_o,
+               ,input  mem_out_s                  from_mem_i
+               ,output mem_in_s                   to_mem_o
+               ,input  logic                      reservation_i
+               ,output logic                      reserve_1_o
 
-                input  [x_cord_width_p-1:0]       my_x_i,
-                input  [y_cord_width_p-1:0]       my_y_i,
-                output debug_s                    debug_o
+               ,input  [x_cord_width_p-1:0]       my_x_i
+               ,input  [y_cord_width_p-1:0]       my_y_i
+               ,output debug_s                    debug_o
+               ,input                             outstanding_stores_i
                );
 //the imem size constrains, which is limited by the instruction encode space
 localparam   imem_addr_width_limit_lp = 12;
@@ -86,6 +87,7 @@ assign net_pc_write_cmd_idle = net_pc_write_cmd & (state_r == IDLE);
 //+----------------------------------------------
 // Stall and exception logic
 logic stall, stall_non_mem, stall_mem, stall_lrw, stall_md;
+logic stall_fence;
 
 //We have to buffer the returned data from memory
 //if there is a non-memory stall at current cycle.
@@ -108,10 +110,13 @@ assign stall_non_mem = (net_imem_write_cmd)
                      | fpi_inter.fam_contend_stall
 `endif
                      | stall_md;
+// stall due to fence instruction
+assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 
 // stall due to data memory access
 assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
                    | (mem.decode.is_load_op & (~data_mem_valid))
+                   | stall_fence
                    | stall_lrw;
 
 // Stall if LD/ST still active; or in non-RUN state
@@ -877,6 +882,8 @@ assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
 /////////////////////////////////////////////////////////////////////
 // Some instruction validation check.
 //synopsys translate_off
+
+//Double Precision Floating Point Load/Store
 always@(negedge clk )
 begin
     unique casez( id.instruction.op )
@@ -894,6 +901,13 @@ begin
         begin
         end
     endcase
+end
+
+//FENCE_I instruction
+always@(negedge clk ) begin
+    if( id.decode.is_fence_i_op ) begin
+        $error("FENCE_I instruction not supported yet!");
+    end
 end
 //synopsys translate_on
 

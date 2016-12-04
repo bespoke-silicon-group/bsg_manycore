@@ -18,7 +18,7 @@
 //---- Controller states ----//
 typedef enum logic [1:0] {
     IDLE = 2'b00,
-    RUN  = 2'b01,    
+    RUN  = 2'b01,
     ERR  = 2'b11
 } state_e;
 
@@ -49,17 +49,17 @@ typedef struct packed
 {
     logic        bc;          // 31     // Broadcast flag
     logic        external;    // 30     // External flag, meaning the packet
-                                        // is for a device outside the ring      
-    logic [2:0]  gw_ID;       // 29..27 // Gate Way ID of the receiver or 
-                                        // sender in case of a broadcast pakcet 
+                                        // is for a device outside the ring
+    logic [2:0]  gw_ID;       // 29..27 // Gate Way ID of the receiver or
+                                        // sender in case of a broadcast pakcet
     logic [4:0]  ring_ID;     // 26..22 // Ring ID of the receiver or sender
                                         // in case of a broadcast packet
-    net_op_e     net_op;      // 21..20 // Operation of the network packet 
+    net_op_e     net_op;      // 21..20 // Operation of the network packet
                                         // for v_cores
-    logic [3:0]  mask;        // 19..16 // byte mask for received network 
-                                        // data 
-    logic [1:0]  reserved;    // 15..14 // reserved bits, later we may steal 
-                                        // more bits for net_op 
+    logic [3:0]  mask;        // 19..16 // byte mask for received network
+                                        // data
+    logic [1:0]  reserved;    // 15..14 // reserved bits, later we may steal
+                                        // more bits for net_op
     logic [13:0] addr;        // 13..0  // the addr field which could be largened
                                         // using reserved field
 } v_core_header_s;
@@ -74,19 +74,19 @@ typedef struct packed{
 // Data memory input structure
 typedef struct packed
 {
-    logic        valid;         
-    logic        wen;           
+    logic        valid;
+    logic        wen;
     logic [3:0]  mask;
-    logic [31:0] addr;          
-    logic [31:0] write_data;   
+    logic [31:0] addr;
+    logic [31:0] write_data;
     logic        yumi;    // in response to data memory
 } mem_in_s;
 
 // Data memory output structure
 typedef struct packed
 {
-    logic        valid;     
-    logic [31:0] read_data; 
+    logic        valid;
+    logic [31:0] read_data;
     logic        yumi;      // in response to core
 } mem_out_s;
 
@@ -117,7 +117,11 @@ typedef struct packed
     logic op_is_load_reservation;
 
     //for M extension;
-    logic       is_md_instr;    // indicates is md insruciton
+    logic is_md_instr;    // indicates is md insruciton
+
+    //for FENCE instruction
+    logic is_fence_op;
+    logic is_fence_i_op;
 } decode_s;
 
 // Instruction decode stage signals

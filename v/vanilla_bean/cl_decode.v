@@ -18,7 +18,7 @@ logic reads_crf;
 always_comb
     unique casez (instruction_i.op)
         `RV32_LUI_OP, `RV32_AUIPC_OP, `RV32_JAL_OP, `RV32_JALR_OP,
-        `RV32_LOAD,   `RV32_OP,       `RV32_OP_IMM, `RV32_AMO: 
+        `RV32_LOAD,   `RV32_OP,       `RV32_OP_IMM, `RV32_AMO:
             decode_o.op_writes_rf = 1'b1;
         default:
             decode_o.op_writes_rf = 1'b0;
@@ -126,7 +126,7 @@ always_comb
         `RV32_OP_FP:
             unique casez( instruction_i.funct7 )
                 `RV32_FMV_S_X_FUN7:
-                    decode_o.op_reads_rf1 = 1'b1;  
+                    decode_o.op_reads_rf1 = 1'b1;
                 default:
                     decode_o.op_reads_rf1 = 1'b0;
             endcase
@@ -134,7 +134,7 @@ always_comb
         default:
             decode_o.op_reads_rf1 = 1'b0;
     endcase
-    
+
 // declares if Op reads from second port of register file
 always_comb
     unique casez (instruction_i.op)
@@ -163,4 +163,18 @@ assign decode_o.is_md_instr  = (instruction_i.op == `RV32_OP)
 
 assign decode_o.op_is_load_reservation = instruction_i ==? `RV32_LR_W;
 
+
+//fence instruction
+
+assign decode_o.is_fence_op  =  ( instruction_i.op       == `RV32_MISC_MEM  )
+                              &&( instruction_i.funct3   == `RV32_FENCE_FUN3)
+                              &&( instruction_i.rs1      == 5'b0            )
+                              &&( instruction_i.rd       == 5'b0            )
+                              &&( instruction_i[31:28]   == 4'b0            );
+
+assign decode_o.is_fence_i_op = ( instruction_i.op       == `RV32_MISC_MEM    )
+                              &&( instruction_i.funct3   == `RV32_FENCE_I_FUN3)
+                              &&( instruction_i.rs1      == 5'b0              )
+                              &&( instruction_i.rd       == 5'b0              )
+                              &&( instruction_i[31:20]   == 12'b0             );
 endmodule
