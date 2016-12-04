@@ -366,9 +366,12 @@ wire [RV32_instr_width_gp-1:0] imem_w_data =
     );
 
    // synopsys translate_off
+   logic reset_r;
+
+   always @(posedge clk) reset_r <= reset;
    always @(negedge clk)
      begin
-	assert (~net_imem_write_cmd | (&net_packet_r.header.mask))
+	  assert ( (reset_r !== 0 ) | ~net_imem_write_cmd | (&net_packet_r.header.mask))
 	  else $error("## byte write to instruction memory (%m)");
      end
    // synopsys translate_on

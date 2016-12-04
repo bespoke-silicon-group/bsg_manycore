@@ -187,8 +187,11 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    bsg_manycore_return_packet_s return_packet;
    assign return_packet = link_sif_i_cast.rev.data;
 
+   logic reset_i_r ;
+   always_ff @(posedge clk_i)  reset_i_r <= reset_i;
+
    always_ff @(negedge clk_i)
-     assert ( (reset_i!==0) | ~link_sif_i_cast.rev.v | ({return_packet.y_cord, return_packet.x_cord} == {my_y_i, my_x_i}))
+     assert ( (reset_i_r!==0) | ~link_sif_i_cast.rev.v | ({return_packet.y_cord, return_packet.x_cord} == {my_y_i, my_x_i}))
        else
          $error("## errant credit packet v=%b for YX=%d,%d landed at YX=%d,%d (%m)"
                 ,link_sif_i_cast.rev.v
