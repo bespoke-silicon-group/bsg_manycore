@@ -52,13 +52,13 @@ always_ff@(negedge clk_i)  begin
         prof_matrix[ RES_ACQ_STALL] <= 32'b0;
         non_frozen_cycles           <= 32'b0;
     end else begin
-        if      ( prof_s_i.dmem_stall   )  prof_matrix[ DMEM_STALL   ] <= prof_matrix[ DMEM_STALL   ]+ 1;
-        else if ( prof_s_i.dx_stall     )  prof_matrix[ DX_STALL     ] <= prof_matrix[ DX_STALL     ]+ 1;
-        else if ( prof_s_i.bt_stall     )  prof_matrix[ BT_STALL     ] <= prof_matrix[ BT_STALL     ]+ 2;
-        else if ( prof_s_i.in_fifo_full )  prof_matrix[ IN_FIFO_FULL ] <= prof_matrix[ IN_FIFO_FULL ]+ 1;
-        else if ( prof_s_i.out_fifo_full)  prof_matrix[ OUT_FIFO_FULL] <= prof_matrix[ OUT_FIFO_FULL]+ 1;
-        else if ( prof_s_i.credit_full  )  prof_matrix[ CREDIT_FULL  ] <= prof_matrix[ CREDIT_FULL  ]+ 1;
-        else if ( prof_s_i.res_acq_stall)  prof_matrix[ RES_ACQ_STALL] <= prof_matrix[ RES_ACQ_STALL]+ 1;
+        if ( prof_s_i.dmem_stall   )  prof_matrix[ DMEM_STALL   ] <= prof_matrix[ DMEM_STALL   ]+ 1;
+        if ( prof_s_i.dx_stall     )  prof_matrix[ DX_STALL     ] <= prof_matrix[ DX_STALL     ]+ 1;
+        if ( prof_s_i.bt_stall     )  prof_matrix[ BT_STALL     ] <= prof_matrix[ BT_STALL     ]+ 2;
+        if ( prof_s_i.in_fifo_full )  prof_matrix[ IN_FIFO_FULL ] <= prof_matrix[ IN_FIFO_FULL ]+ 1;
+        if ( prof_s_i.out_fifo_full)  prof_matrix[ OUT_FIFO_FULL] <= prof_matrix[ OUT_FIFO_FULL]+ 1;
+        if ( prof_s_i.credit_full  )  prof_matrix[ CREDIT_FULL  ] <= prof_matrix[ CREDIT_FULL  ]+ 1;
+        if ( prof_s_i.res_acq_stall)  prof_matrix[ RES_ACQ_STALL] <= prof_matrix[ RES_ACQ_STALL]+ 1;
         non_frozen_cycles <= non_frozen_cycles + 1;
     end
 end

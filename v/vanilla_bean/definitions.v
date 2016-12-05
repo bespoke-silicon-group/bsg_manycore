@@ -114,14 +114,14 @@ typedef struct packed
     logic op_reads_rf2;     // OP reads from first port of register file
     logic op_is_auipc;
 
-    logic op_is_load_reservation;
-
     //for M extension;
     logic is_md_instr;    // indicates is md insruciton
 
     //for FENCE instruction
     logic is_fence_op;
     logic is_fence_i_op;
+    logic op_is_load_reservation;
+    logic op_is_lr_acq          ;
 } decode_s;
 
 // Instruction decode stage signals

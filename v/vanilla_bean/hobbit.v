@@ -567,18 +567,12 @@ assign valid_to_mem_c = exe.decode.is_mem_op & (~stall_non_mem) & (~stall_lrw);
 assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid ;
 
 // RISC-V edit: add reservation
-always_comb
-begin
-  reserve_1_o = 1'b0;
-  stall_lrw   = 1'b0;
+//lr.acq will stall until the reservation is cleard;
+assign stall_lrw    = exe.decode.op_is_lr_acq & reservation_i;
 
-  if(exe.instruction ==? `RV32_LR_W)
-    begin
-      reserve_1_o = ~exe.instruction[26];
-      // stall until reseervation is cleared
-      stall_lrw   = exe.instruction[26] & reservation_i;
-    end
-end
+//lr instrution will load the data and reserve the address
+assign reserve_1_o  = exe.decode.op_is_load_reservation
+                   &(~exe.decode.op_is_lr_acq)  ;
 
 //+----------------------------------------------
 //|

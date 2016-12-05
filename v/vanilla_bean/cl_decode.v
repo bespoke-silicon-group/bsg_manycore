@@ -34,7 +34,7 @@ always_comb
             decode_o.is_mem_op = (instruction_i.funct3 == `RV32_FLS_FUN3)
                                | (instruction_i.funct3 == `RV32_FDLS_FUN3);
 `endif
-        `RV32_LOAD, `RV32_STORE:
+        `RV32_LOAD, `RV32_STORE, `RV32_AMO:
             decode_o.is_mem_op = 1'b1;
         default:
             decode_o.is_mem_op = 1'b0;
@@ -67,7 +67,9 @@ always_comb
             decode_o.is_load_op= (instruction_i.funct3 == `RV32_FLS_FUN3)
                                | (instruction_i.funct3 == `RV32_FDLS_FUN3);
 `endif
-        `RV32_LOAD:
+        //currently we only supports lr AMO. further extensions should
+        //decode more details
+        `RV32_LOAD, `RV32_AMO:
             decode_o.is_load_op = 1'b1;
         default:
             decode_o.is_load_op = 1'b0;
@@ -136,9 +138,10 @@ always_comb
     endcase
 
 // declares if Op reads from second port of register file
+// According the ISA, LR instruction don't read rs2
 always_comb
     unique casez (instruction_i.op)
-        `RV32_BRANCH, `RV32_STORE, `RV32_OP, `RV32_AMO:
+        `RV32_BRANCH, `RV32_STORE, `RV32_OP :
             decode_o.op_reads_rf2 = 1'b1;
         default:
             decode_o.op_reads_rf2 = 1'b0;
@@ -161,10 +164,12 @@ always_comb
 assign decode_o.is_md_instr  = (instruction_i.op == `RV32_OP)
                              & (instruction_i.funct7 == 7'b0000001);
 
+//memory order related instructions.
 assign decode_o.op_is_load_reservation = instruction_i ==? `RV32_LR_W;
+assign decode_o.op_is_lr_acq           = decode_o.op_is_load_reservation
+                                       & instruction_i[26] ;
 
 
-//fence instruction
 
 assign decode_o.is_fence_op  =  ( instruction_i.op       == `RV32_MISC_MEM  )
                               &&( instruction_i.funct3   == `RV32_FENCE_FUN3)
