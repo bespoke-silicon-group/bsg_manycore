@@ -1,6 +1,6 @@
 
-bsg_tiles_X = 2
-bsg_tiles_Y = 1
+bsg_tiles_X = 5
+bsg_tiles_Y = 2
 
 RISCV_GCC_EXTRA_OPTS ?= -O2 -funroll-loops
 OBJECT_FILES=main.o bsg_set_tile_x_y.o
