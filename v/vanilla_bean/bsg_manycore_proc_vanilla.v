@@ -361,10 +361,10 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      ,.num_banks_p  (num_banks_p)
      ,.bank_size_p  (bank_size_p)
      ,.data_width_p (data_width_p)
-     ,.rr_lo_hi_p   ( 4 ) // round robin reset
+//     ,.rr_lo_hi_p   ( 4 ) // round robin reset
 //     ,.rr_lo_hi_p   (2'b10) // round robin
 //     ,.rr_lo_hi_p   (2'b01) // deadlock
-//     ,.rr_lo_hi_p(0)          // local dmem has priority
+     ,.rr_lo_hi_p(0)          // local dmem has priority
 //     ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
      ,.debug_p(0*4)  // mbt: debug, multiply addresses by 4.
 //      ,.debug_p(4)
