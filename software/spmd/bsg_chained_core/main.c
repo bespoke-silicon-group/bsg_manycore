@@ -8,17 +8,17 @@
  *
  * +--------------+                 +------------+
  * |              |                 |            |
- * |              |  req_num        |            |
+ * |              |  valid_num      |            |
  * |              | +----------->   |            |
  * |              |                 |            |
  * |   Producer   |                 | Consumer   |
  * |              |                 |            |
- * |              |  ack_num        |            |
+ * |              |  ready_num      |            |
  * |              | <-----------+   |            |
  * |              |                 |            |
  * +--------------+                 +------------+
  *  1. Loop_start:
- *  2.      Wait req_num to change
+ *  2.      Wait valid_num to change
  *  2.      remote store data to the next core
  *  3.      Additional delay cycles.
  *  4. Loop_end: 
@@ -26,42 +26,36 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-//shall we need the flow control ?
-#define NEED_ACK
 //additional cycles between each round
 #define DELAY_CYCLE 0
 //how many rounds we want to run ?
 #define MAX_ROUND_NUM 16 
 
 //the vector length 
-#define VEC_LEN   8 
+#define BUF_LEN   128 
 
 //The requst number, while will updated by remote store
-int req_num     = 0;
+int valid_num[2]  ={0};
+
 //local round number, updated by local processor
 int round_num   = 0; 
+
 //the backward ack to notify sender that the data has been processed.
-int ack_num     = 0;
+int ready_num[2]  ={0};
 
 //the vector data, two pools run in round robin manner
-int vect1[VEC_LEN] = {0};
-
-
+int buffer[2][BUF_LEN] = {0};
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //the process will wait until the specified memory address was written with specific value
-int spin_cond(int * ptr,  int cond ) {
+inline void spin_cond(int * ptr,  int cond ) {
     int tmp; 
     while(1){
         tmp = bsg_lr( ptr );
-        if( tmp == cond ) return 0;  //the data is ready, TODO:shall we clear the reservation?
+        if( tmp == cond ) return ;  //the data is ready, TODO:shall we clear the reservation?
         else{
             tmp = bsg_lr_aq( ptr );  //stall until somebody clear the reservation
-
-            //Used for debug, print the recieved value
-            // bsg_remote_ptr_io_store(bsg_x, &tmp, tmp);
-
-            if( tmp == cond ) return 0; //return if data is expected, otherwise retry
+            if( tmp == cond ) return ; //return if data is expected, otherwise retry
         }
     }
 }
@@ -77,7 +71,8 @@ inline void spin_uncond(int cycles){
 //////////////////////////////////////////////////////////////////////////////////////////
 //code runs on processor 
 void proc( int id ){
-   int i; 
+   int i, j; 
+   volatile int * remote_ptr;
 
    //get the (x,y) of prevoius and next core 
    int next_x, next_y;
@@ -88,52 +83,45 @@ void proc( int id ){
 
    prev_x = bsg_id_to_x(id-1);
    prev_y = bsg_id_to_y(id-1);
-/*    
-   if( id < (bsg_tiles_X * bsg_tiles_Y -1) ){
-     bsg_remote_ptr_io_store( bsg_x, &next_x , next_x);
-     bsg_remote_ptr_io_store( bsg_x, &next_y , next_y);
-    }
-   if( id > 0  ){
-     bsg_remote_ptr_io_store( bsg_x, &prev_x , prev_x);
-     bsg_remote_ptr_io_store( bsg_x, &prev_y , prev_y);
+
+   //at the beginning, we notify privous core that we are ready!
+   round_num++;
+   if( id !=0 ) {
+        bsg_remote_store(prev_x, prev_y, ready_num  ,  round_num   ) ;
+        bsg_remote_store(prev_x, prev_y, ready_num+1,  round_num+1 ) ;
    }
- */ 
-   while( round_num < MAX_ROUND_NUM) {
-        //wait data is ready
-        if( id !=0 ){
-            spin_cond(&req_num,  round_num+1 ) ;
-        } 
 
-        //increase the round number
-        round_num ++;
+   do {
+     for( j=0; j<2; j++){ //switch from buffer 0 and buffer 1
 
-        //send the vect data 
-        if( id != (bsg_tiles_X * bsg_tiles_Y -1) ){
-            for( i=0; i< VEC_LEN; i++ )
-                bsg_remote_store(next_x, next_y, &vect1, vect1[i]);
+        //wait until data is valid
+        if( id !=0 ) spin_cond( (valid_num+j),  round_num ) ;
 
-            //notify next core the data is ready
-            bsg_remote_store(next_x, next_y, &req_num, round_num); 
+        remote_ptr = bsg_remote_ptr( next_x, next_y, buffer[j]);
+        if( id !=  (bsg_num_tiles -1) ){
+            //wait until buffer is ready
+            if( id != (bsg_num_tiles-1) )   spin_cond( (ready_num +j),  round_num ) ;
+            //send the data to remote buffer
+            for( i=0; i< BUF_LEN; i++ )     *remote_ptr = buffer[j][i] ;
+            //notify next core the data is valid
+            bsg_remote_store( next_x, next_y, (valid_num+j), round_num ); 
 
-        //last core prints the round number
         }else{
             bsg_remote_ptr_io_store( bsg_x, &round_num , round_num );
         }
 
-        //send back the ack
-        #ifdef NEED_ACK
-        if( id !=0 ) bsg_remote_store(prev_x, prev_y, &ack_num,  round_num ) ;
-        #endif
-
         //delay for a specifc period
         spin_uncond( DELAY_CYCLE );        
 
-        //wait the ack
-        #ifdef NEED_ACK
-        if( id != (bsg_tiles_X * bsg_tiles_Y -1) )
-            spin_cond(&ack_num,  round_num ) ;
-        #endif
-    };
+        //increase the round number and notify that one buffer is ready!
+        round_num ++;
+        if( round_num > MAX_ROUND_NUM ) 
+            break;
+        else if( id !=0 ) 
+            bsg_remote_store(prev_x, prev_y, ready_num+j,  round_num+1 ) ;
+
+      } // end of for( j=0 )
+    }while( round_num <= MAX_ROUND_NUM) ;//end of while
 }
 
 
@@ -147,14 +135,15 @@ int main()
   int id = bsg_x_y_to_id(bsg_x,bsg_y);
   if( id == 0) {
         //initial the data 
-        for( i =0; i< VEC_LEN; i++){
-           vect1[i]  = i; 
+        for( i =0; i< BUF_LEN; i++){
+           buffer[0][i]  = i+BUF_LEN; 
+           buffer[1][i]  = i+BUF_LEN; 
         }
    }
 
   proc( id );
 
-  if( id == ( bsg_tiles_X * bsg_tiles_Y -1 ) ) bsg_finish();
+  if( id == ( bsg_num_tiles  -1 ) ) bsg_finish();
     
   bsg_wait_while(1);
 }
