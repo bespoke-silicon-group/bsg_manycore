@@ -25,14 +25,9 @@
 *****************************************************************************/
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
+#include "chained_core.h"
 
-//additional cycles between each round
-#define DELAY_CYCLE 0
-//how many rounds we want to run ?
-#define MAX_ROUND_NUM 16 
-
-//the vector length 
-#define BUF_LEN   128 
+extern proc_func_ptr func_array[];
 
 //The requst number, while will updated by remote store
 int valid_num[2]  ={0};
@@ -99,10 +94,15 @@ void proc( int id ){
 
         remote_ptr = bsg_remote_ptr( next_x, next_y, buffer[j]);
         if( id !=  (bsg_num_tiles -1) ){
+
             //wait until buffer is ready
+            //if( id == 1) bsg_print_time(); 
             if( id != (bsg_num_tiles-1) )   spin_cond( (ready_num +j),  round_num ) ;
-            //send the data to remote buffer
-            for( i=0; i< BUF_LEN; i++ )     *remote_ptr = buffer[j][i] ;
+            //if( id == 1) bsg_print_time(); 
+
+            //run the specific process
+            if( func_array[id]) ( func_array[id]( buffer[j], remote_ptr, BUF_LEN) );
+
             //notify next core the data is valid
             bsg_remote_store( next_x, next_y, (valid_num+j), round_num ); 
 
@@ -133,6 +133,7 @@ int main()
   bsg_set_tile_x_y();
 
   int id = bsg_x_y_to_id(bsg_x,bsg_y);
+
   if( id == 0) {
         //initial the data 
         for( i =0; i< BUF_LEN; i++){
@@ -140,7 +141,9 @@ int main()
            buffer[1][i]  = i+BUF_LEN; 
         }
    }
-
+  
+  init_func_array( CONFIG );
+  
   proc( id );
 
   if( id == ( bsg_num_tiles  -1 ) ) bsg_finish();

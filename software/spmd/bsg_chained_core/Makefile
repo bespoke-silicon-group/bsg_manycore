@@ -1,9 +1,9 @@
 
-bsg_tiles_X = 2 
-bsg_tiles_Y = 2
+bsg_tiles_X = 3 
+bsg_tiles_Y = 3
 
 RISCV_GCC_EXTRA_OPTS ?= -O2 -funroll-loops
-OBJECT_FILES=main.o bsg_set_tile_x_y.o
+OBJECT_FILES=main.o bsg_set_tile_x_y.o proc.o
 include ../Makefile.include
 
 all: main.run
