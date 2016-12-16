@@ -8,11 +8,5 @@
 //the vector length 
 #define BUF_LEN   128
 
-/******************************************************************************/
-//the configutations of the proc array. see chained_core.h and proc.c for different
-//configs.
-//#define CONFIG eALL_PASS_FUNCS
-#define CONFIG eONE_COPY_FUNCS
-/******************************************************************************/
 
 #endif
