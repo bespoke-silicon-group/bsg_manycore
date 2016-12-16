@@ -40,11 +40,17 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   // opcode = 2 are sent to clear stall registers of tiles
   logic loaded, loaded_n; // set if hexfile loading is complete
 
-  assign load_data = loaded
-                     ? data_width_p'(0)
-                     : (load_addr == tile_id_ptr_p)
-                        ? data_width_p'(tile_no)
-                        : data_i;
+  /************************************************************/
+  // logic for config the arbiter
+  logic         unfreezed_r;     // set if the cores are all unfreezed
+  logic         arb_configed_r;
+  localparam    arb_cfg_value = 0;
+  localparam    arb_cfg_addr  = addr_width_p'(4);
+  /************************************************************/
+
+  assign load_data = loaded                       ? data_width_p'(0)            :
+                     (unfreezed_r               ) ? data_width_p'(arb_cfg_value):
+                     (load_addr == tile_id_ptr_p) ? data_width_p'(tile_no)      : data_i;
 
   assign y_cord     = y_cord_width_lp'(tile_no / num_cols_p);
   assign x_cord     = x_cord_width_lp'(tile_no % num_cols_p);
@@ -53,10 +59,14 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
    bsg_manycore_packet_s pkt;
 
+   logic [addr_width_p-1:0]    send_addr;
+   assign send_addr = unfreezed_r    ? arb_cfg_addr >>2  :
+                      arb_configed_r ? 0                 :
+                                       addr_width_p'(load_addr>>2);
    always_comb
      begin
         pkt.data   = load_data;
-        pkt.addr   = addr_width_p ' (load_addr >> 2);
+        pkt.addr   = send_addr;
         pkt.op     = loaded ? 2'b10: 2'b01;
         pkt.op_ex  = loaded ? 4'b0000: 4'b1111;
         pkt.x_cord = x_cord;
@@ -72,7 +82,9 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 `endif
 
    assign v_o  = ~reset_i
-                 & (~loaded | (loaded && (tile_no < load_rows_p*load_cols_p)))
+                 // & (~unfreezed_r | ( unfreezed_r && (tile_no < load_rows_p*load_cols_p)))
+                 & (~arb_configed_r)
+                 //& (~unfreezed_r )
                  // for now, we override sending the program if the core is an accelerator core
                  & (((`BSG_HETERO_TYPE_VEC >> (tile_no<<3)) & 8'b1111_1111) < 3);
                    ;
@@ -83,7 +95,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
    assign tile_no_n = (tile_no + tile_loading_done)  % (load_rows_p * load_cols_p);
    assign loaded_n = (tile_no == load_rows_p*load_cols_p -1)
-     && (load_addr == (mem_size_p-4));
+                  && (load_addr == (mem_size_p-4));
 
   always_ff @(negedge clk_i)
     if (reset_i===0 && ~loaded && ready_i)
@@ -101,18 +113,28 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         tile_no   <= 0;
         load_addr <= 0;
         loaded    <= 0;
+        unfreezed_r<= 0;
+        arb_configed_r <=0;
       end
     else
       begin
-        if(ready_i & ~loaded)
-          begin
+        if(ready_i & ~loaded) begin
              load_addr <= (load_addr + 4) % mem_size_p;
              tile_no   <= tile_no_n;
-             loaded <= loaded_n;
-          end
+             loaded    <= loaded_n;
+        end else if(ready_i & ( loaded | unfreezed_r ) ) begin
+          if( unfreezed_r ) begin
+                tile_no <=  tile_no + 1;
+          end else
+                tile_no <= ( tile_no + 1 ) % ( load_rows_p*load_cols_p );
+        end
 
-        if(ready_i & loaded)
-          tile_no <= tile_no + 1;
+        if(  loaded &&  tile_no ==  (load_rows_p * load_cols_p-1) )
+          unfreezed_r <= 1'b1;
+
+        if( unfreezed_r  &&  tile_no ==  (load_rows_p * load_cols_p-1) )
+          arb_configed_r<= 1'b1;
+
       end
   end
 endmodule
