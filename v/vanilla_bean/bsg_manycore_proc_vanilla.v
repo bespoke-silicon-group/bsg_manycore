@@ -238,7 +238,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
          core_net_pkt.header.net_op   = PC;
          core_net_pkt.header.mask     = (data_width_p>>3)'(0);
          //1.  We don't support exceptions, and we don't want to waste the
-         //    instrution memory so the starting address of the first instruction
+         //    instruction memory so the starting address of the first instruction
          //    is ZERO
          core_net_pkt.header.addr     = 13'h0;
        end
@@ -321,6 +321,21 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    wire [1:0]                    xbar_port_we_in   = { core_mem_w[1], 1'b1};
    wire [1:0]                    xbar_port_yumi_out;
    wire [1:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata[1], in_data_lo};
+
+   // synopsys translate_off
+
+   always @(negedge_clk)
+     begin
+        if (addr_width_lp > mem_width_lp)
+          assert (in_v_lo & ~(|in_addr_lo[addr_width_lp:mem_width_lp]))
+            else
+              begin
+                 $error("remote store addr exceeds bank address range",in_addr_lo,mem_width_lp);
+              end
+     end
+
+   // synopsys translate_on
+
    wire [1:0] [mem_width_lp-1:0] xbar_port_addr_in = { core_mem_addr[1][2+:mem_width_lp]
 //                                                     remote stores already have bottom two bits snipped
                                                      , mem_width_lp ' ( in_addr_lo )
