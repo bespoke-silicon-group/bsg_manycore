@@ -799,7 +799,8 @@ begin
         load_buffer_data     <= 'b0;
     end
     //set the buffered value
-    else if( stall_non_mem & mem.decode.is_load_op & from_mem_i.valid )
+    else if( stall & mem.decode.is_load_op & from_mem_i.valid )
+    //else if( stall_non_mem & mem.decode.is_load_op & from_mem_i.valid )
     begin
         is_load_buffer_valid <= 1'b1;
         load_buffer_data     <= from_mem_i.read_data;

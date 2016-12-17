@@ -72,6 +72,8 @@ int main()
   int id = bsg_x_y_to_id(bsg_x,bsg_y);
 
   init_func_array( CONFIG );
+
+  //if( id == 0) bsg_remote_arb_config(1,0, 0);
   
   proc( id );
 

@@ -1,5 +1,9 @@
 `include "bsg_manycore_packet.vh"
 
+//should we shut down the dynamic feature of the arbiter ?
+//`define  SHUT_DY_ARB
+
+
 module bsg_manycore_spmd_loader
 
 import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
@@ -83,8 +87,11 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
    assign v_o  = ~reset_i
                  // & (~unfreezed_r | ( unfreezed_r && (tile_no < load_rows_p*load_cols_p)))
+               `ifdef SHUT_DY_ARB
                  & (~arb_configed_r)
-                 //& (~unfreezed_r )
+               `else
+                 & (~unfreezed_r )
+               `endif
                  // for now, we override sending the program if the core is an accelerator core
                  & (((`BSG_HETERO_TYPE_VEC >> (tile_no<<3)) & 8'b1111_1111) < 3);
                    ;

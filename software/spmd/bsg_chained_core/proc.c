@@ -13,7 +13,7 @@ proc_func_ptr func_array[ bsg_num_tiles ] = { 0 };
 // compute/mem = 1:1
 void pass_proc( int *local_ptr, volatile int *remote_ptr, int num){
     int i;
-    for( i=0; i< num; i++ )     *remote_ptr = *local_ptr;
+    for( i=0; i< num; i++ )     remote_ptr[i] = local_ptr[i];
 }
 
 /////////////////////////////////////////////////////////////////////////////
