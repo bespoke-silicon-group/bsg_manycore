@@ -33,8 +33,8 @@ SECTIONS
     *(.text)
   }
 
-  /* MBT put this in another bank to reduce conflicts */
-  . = 0x4000;
+  /* beginning of data memory; set by imem size and bank conflict concerns */
+  . = 0x1000;
   /* data segment */
   .data : { *(.data) }
 

@@ -168,10 +168,11 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    `endif
    //////////////////////////////////////////////////////////
    //
-   wire  remote_store_imem_not_dmem =
-          (in_v_lo
-             & (~|in_addr_lo[addr_width_p-1:imem_addr_width_lp])
-          );
+
+   wire non_imem_bits_set = |in_addr_lo[addr_width_p-1:imem_addr_width_lp];
+
+   wire remote_store_imem_not_dmem = in_v_lo & ~non_imem_bits_set;
+   wire remote_store_dmem_not_imem = in_v_lo & non_imem_bits_set;
 
    // Logic detecting the falling edge of freeze_r signal
    logic freeze_r_r;
@@ -314,7 +315,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    wire                    unused_valid;
 
    wire [1:0]              xbar_port_v_in = { core_mem_v[1] & ~core_mem_addr[1][31]
-                                              , in_v_lo
+                                              ,  remote_store_dmem_not_imem
                                               };
 
    // fixme: not quite right for banks=1
@@ -326,13 +327,14 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
    // synopsys translate_off
 
-   always @(negedge_clk)
+   always @(negedge clk_i)
      begin
-        if (addr_width_lp > mem_width_lp)
-          assert (in_v_lo & ~(|in_addr_lo[addr_width_lp:mem_width_lp]))
+        if (remote_store_dmem_not_imem)
+          assert (in_addr_lo < ((1 << imem_addr_width_lp) + (bank_size_p*num_banks_p)))
             else
               begin
-                 $error("remote store addr exceeds bank address range",in_addr_lo,mem_width_lp);
+                 $error("# ERROR y,x=(%x,%x) remote store addr (%x) past end of data memory (%x)",my_y_i,my_x_i,in_addr_lo*4,4*((1 << imem_addr_width_lp)+(bank_size_p*num_banks_p)));
+                 $finish();
               end
      end
 
@@ -351,8 +353,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    for (i = 0; i < 2; i=i+1)
      begin: port
         assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in  [i][(mem_width_lp-1)-:1]   // top bit is inst/data
-                                                 , xbar_port_addr_in[i][0]                 // and lowest bit determines bank
-                                                 , xbar_port_addr_in[i][1]                 // and lowest bit determines bank
+                                                 , xbar_port_addr_in[i][0]                     // and lowest bit determines bank
+                                                 , xbar_port_addr_in[i][1]                     // and lowest bit determines bank
                                                  , xbar_port_addr_in[i][2+:(mem_width_lp-2)]
                                                  };
      end
