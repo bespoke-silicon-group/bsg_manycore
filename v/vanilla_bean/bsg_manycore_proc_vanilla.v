@@ -54,6 +54,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
 
    wire freeze_r;
+   wire reverse_arb_pr;
    assign freeze_o = freeze_r;
 
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
@@ -101,6 +102,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ,.my_x_i
     ,.my_y_i
     ,.freeze_r_o(freeze_r)
+    ,.reverse_arb_pr_o( reverse_arb_pr )
     );
 
    logic [1:core_imem_portID_lp]                         core_mem_v;
@@ -376,6 +378,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      ,.num_banks_p  (num_banks_p)
      ,.bank_size_p  (bank_size_p)
      ,.data_width_p (data_width_p)
+     ,.rr_lo_hi_p   ( 5 ) // dynmaic priority based on FIFO status
 //     ,.rr_lo_hi_p   ( 4 ) // round robin reset
 //     ,.rr_lo_hi_p   (2'b10) // round robin
 //     ,.rr_lo_hi_p   (2'b01) // deadlock
@@ -387,6 +390,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ) bnkd_xbar
     ( .clk_i    (clk_i)
      ,.reset_i  (reset_i)
+    //the reverse the priority for the dynamic scheme
+      ,.reverse_pr_i( reverse_arb_pr  )
       ,.v_i     (xbar_port_v_in)
 
       ,.w_i     (xbar_port_we_in)

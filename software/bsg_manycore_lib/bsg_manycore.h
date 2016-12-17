@@ -84,6 +84,7 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_remote_control_store(x,y,local_addr,val) bsg_remote_store((x),(y), (1 << (bsg_remote_addr_bits-1))+(local_addr),(val))
 #define bsg_remote_unfreeze(x,y) bsg_remote_control_store((x),(y),0,0)
 #define bsg_remote_freeze(x,y)   bsg_remote_control_store((x),(y),0,1)
+#define bsg_remote_arb_config(x,y,value)   bsg_remote_control_store((x),(y),4,value)
 
 // remote loads unsupported
 //#define bsg_remote_load(x,y,local_addr) (*(bsg_remote_ptr((x),(y),(local_addr))))

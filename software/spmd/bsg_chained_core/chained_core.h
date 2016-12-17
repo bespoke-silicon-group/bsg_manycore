@@ -1,7 +1,6 @@
 #ifndef __CHAINED_CORES__
 #define __CHAINED_CORES__
 
-#include "chained_config.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // Declare the function array 
@@ -16,4 +15,5 @@ typedef enum {eALL_ZERO_FUNCS, eALL_PASS_FUNCS, eONE_COPY_FUNCS} config_enum;
 
 void init_func_array( config_enum );
 
+#include "chained_config.h"
 #endif

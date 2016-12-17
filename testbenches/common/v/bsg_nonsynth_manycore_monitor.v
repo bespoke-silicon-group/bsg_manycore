@@ -70,6 +70,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
       ,.my_x_i(pass_thru_x_i)
       ,.my_y_i(pass_thru_y_i)
       ,.freeze_r_o()
+      ,.reverse_arb_pr_o()
       );
 
    // incoming packets on main network: always deque

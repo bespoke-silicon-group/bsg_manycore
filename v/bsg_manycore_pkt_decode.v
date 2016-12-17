@@ -14,6 +14,7 @@ module bsg_manycore_pkt_decode
     ,input [packet_width_lp-1:0] data_i
     ,output logic pkt_freeze_o
     ,output logic pkt_unfreeze_o
+    ,output logic pkt_arb_cfg_o
     ,output logic pkt_unknown_o
 
     ,output logic pkt_remote_store_o
@@ -34,6 +35,7 @@ module bsg_manycore_pkt_decode
      begin
         pkt_freeze_o        = 1'b0;
         pkt_unfreeze_o      = 1'b0;
+        pkt_arb_cfg_o       = 1'b0;
         pkt_remote_store_o  = 1'b0;
         pkt_unknown_o       = 1'b0;
         mask_o              = 0;
@@ -52,6 +54,8 @@ module bsg_manycore_pkt_decode
                       pkt_freeze_o   = pkt.data[0];
                       pkt_unfreeze_o = ~pkt.data[0];
                    end
+                 else if( pkt.addr[addr_width_p-1:0] == addr_width_p'(1) )
+                      pkt_arb_cfg_o  = 1'b1;
                  else
                    pkt_unknown_o = 1'b1;
                default:

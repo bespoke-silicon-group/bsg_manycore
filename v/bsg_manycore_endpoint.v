@@ -28,6 +28,7 @@ module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
 
     // whether a credit was returned; not flow controlled
     , output                                credit_v_r_o
+    , output                                in_fifo_full_o
     );
 
    logic fifo_v;
@@ -82,7 +83,7 @@ module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
      credit_v_r <= link_sif_i_cast.rev.v;
 
    assign credit_v_r_o   = credit_v_r;
-
+   assign in_fifo_full_o = link_sif_o_cast.fwd.ready_and_rev;
 endmodule
 
 

@@ -142,7 +142,8 @@ int main()
         }
    }
   
-  init_func_array( CONFIG );
+  init_func_array( eONE_COPY_FUNCS );
+  //init_func_array( eALL_PASS_FUNCS );
   
   proc( id );
 

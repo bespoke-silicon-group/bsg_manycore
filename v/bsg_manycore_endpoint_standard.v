@@ -41,10 +41,12 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
     // whether module is frozen or not
     , output freeze_r_o
+    // reverse the arbiter priority
+    , output reverse_arb_pr_o
     );
 
    wire credit_return_lo;
-
+   wire in_fifo_full;
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
    bsg_manycore_packet_s      cgni_data;
@@ -67,6 +69,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.out_packet_i
       ,.out_v_i
       ,.out_ready_o
+      ,.in_fifo_full_o( in_fifo_full )
       ,.credit_v_r_o(credit_return_lo)
       );
 
@@ -82,11 +85,11 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.count_o(out_credits_o  )
       );
 
-   logic                         pkt_freeze, pkt_unfreeze, pkt_unknown;
+   logic  pkt_freeze, pkt_unfreeze, pkt_arb_cfg, pkt_unknown;
 
    // deque if we successfully do a remote store, or if it's
    // either kind of packet freeze instruction
-   assign cgni_yumi = in_yumi_i | pkt_freeze | pkt_unfreeze;
+   assign cgni_yumi = in_yumi_i | pkt_freeze | pkt_unfreeze | pkt_arb_cfg ;
 
    bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
                              ,.y_cord_width_p(y_cord_width_p)
@@ -98,6 +101,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
       ,.pkt_freeze_o       (pkt_freeze)
       ,.pkt_unfreeze_o     (pkt_unfreeze)
+      ,.pkt_arb_cfg_o      (pkt_arb_cfg)
       ,.pkt_unknown_o      (pkt_unknown)
 
       ,.pkt_remote_store_o (in_v_o)     // to output of module
@@ -121,7 +125,19 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 // synopsys translate_on
             freeze_r <= pkt_freeze;
          end
+   //the arbiter configuation gate
+   logic arb_cfg_r ;
 
+   always_ff @(posedge clk_i)
+   if( reset_i )            arb_cfg_r <= 1'b1;
+   else if( pkt_arb_cfg ) begin
+    // synopsys translate_off
+     $display("## arb_cfg_r <= %b (%m)", in_data_o[0]);
+    // synopsys translate_on
+      arb_cfg_r <= in_data_o[0];
+   end
+
+   assign reverse_arb_pr_o = arb_cfg_r & in_fifo_full ;
    // *************************************************
    // ** checks
    //
