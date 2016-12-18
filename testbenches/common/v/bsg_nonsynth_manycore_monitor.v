@@ -116,6 +116,16 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                                ,(pkt_data & 16'hffff)
                                , channel_num_p,cycle_count_i,cycle_count_i);
                    end
+                 20'hDEAD_8:
+                   begin
+                      $display("## RECEIVED FAIL PACKET from tile x,y=%2d,%2d at I/O %x on cycle 0x%x (%d)"
+                               ,(pkt_data >> 16)
+                               ,(pkt_data & 16'hffff)
+                               , channel_num_p, cycle_count_i,cycle_count_i
+                               );
+                      finish_r <= 1'b1;
+                   end
+
                  default:
                    $display("## received I/O device %x, addr %x, data %x on cycle %d",
                             channel_num_p, pkt_addr<<2, pkt_data,cycle_count_i);
