@@ -3,7 +3,7 @@
 
 /**
  *  This module defines a decode unit that looks at the instruction
- *  and sets a bunch of control signals that descibe the use of the
+ *  and sets a bunch of control signals that describe the use of the
  *  instruction.
  */
 module cl_decode
@@ -158,7 +158,7 @@ always_comb
 
 //+----------------------------------------------
 //|
-//|     RISC-V edit: "M" STANDARAD EXTENSION
+//|     RISC-V edit: "M" STANDARD EXTENSION
 //|
 //+----------------------------------------------
 assign decode_o.is_md_instr  = (instruction_i.op == `RV32_OP)

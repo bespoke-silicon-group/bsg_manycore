@@ -15,7 +15,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
                            , imem_size_p        = bank_size_p // in words
                            , imem_addr_width_lp = $clog2(imem_size_p)
-                           // this credit counter is more for implementing memory fences
+                           // this credit counter is more for memory fences
                            // than containing the number of outstanding remote stores
 
                            //, max_out_credits_p = (1<<13)-1  // 13 bit counter
@@ -49,9 +49,6 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
     , output logic freeze_o
     );
-
-   localparam       core_imem_portID_lp = 1;
-
 
    wire freeze_r;
    wire reverse_arb_pr;
@@ -105,34 +102,33 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ,.reverse_arb_pr_o( reverse_arb_pr )
     );
 
-   logic [1:core_imem_portID_lp]                         core_mem_v;
-   logic [1:core_imem_portID_lp]                         core_mem_w;
+   logic core_mem_v;
+   logic core_mem_w;
 
-   // this is coming from the vscale core; which has 32-bit addresses
-   logic [1:core_imem_portID_lp] [32-1:0]                core_mem_addr;
-   logic [1:core_imem_portID_lp] [data_width_p-1:0]      core_mem_wdata;
-   logic [1:core_imem_portID_lp] [(data_width_p>>3)-1:0] core_mem_mask;
-   logic [1:core_imem_portID_lp]                         core_mem_yumi;
-   logic [1:core_imem_portID_lp]                         core_mem_rv;
-   logic [1:core_imem_portID_lp] [data_width_p-1:0]      core_mem_rdata;
+   logic [32-1:0]                core_mem_addr;
+   logic [data_width_p-1:0]      core_mem_wdata;
+   logic [(data_width_p>>3)-1:0] core_mem_mask;
+   logic                         core_mem_yumi;
+   logic                         core_mem_rv;
+   logic [data_width_p-1:0]      core_mem_rdata;
 
    logic core_mem_reserve_1, core_mem_reservation_r;
 
    logic [addr_width_p-1:0]      core_mem_reserve_addr_r;
 
    // implement LR (load word reserved)
-   // synopsys sync_set_reset "core_mem_v, core_mem_reserve_1, core_mem_yumi[1], in_v_lo, core_mem_reserve_addr_r, in_addr_lo, in_yumi_li"
+   // synopsys sync_set_reset "core_mem_v, core_mem_reserve_1, core_mem_yumi, in_v_lo, core_mem_reserve_addr_r, in_addr_lo, in_yumi_li"
    always_ff @(posedge clk_i)
      begin
         // if we commit a reserved memory access
         // to the interface, then the reservation takes place
-        if (core_mem_v & core_mem_reserve_1 & core_mem_yumi[1])
+        if (core_mem_v & core_mem_reserve_1 & core_mem_yumi)
           begin
              // copy address; ignore byte bits
              core_mem_reservation_r  <= 1'b1;
-             core_mem_reserve_addr_r <= core_mem_addr[1][2+:(addr_width_p-2)];
+             core_mem_reserve_addr_r <= core_mem_addr[2+:(addr_width_p-2)];
              // synopsys translate_off
-             $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr[1] << 2);
+             $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr);
              // synopsys translate_on
           end
         else
@@ -143,13 +139,12 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                begin
                   core_mem_reservation_r  <= 1'b0;
                   // synopsys translate_off
-                  $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r);
+                  $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r << 2);
                   // synopsys translate_on
                end
           end
      end
 
-   //   wire launching_remote_store = v_o[0] & ready_i[0];
    wire launching_out = out_v_li & out_ready_lo;
 
     //////////////////////////////////////////////////////
@@ -250,15 +245,15 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   end
 
   //convert the core_to_mem structure to signals.
-  assign core_mem_v    [1] = core_to_mem.valid     ;
-  assign core_mem_wdata[1] = core_to_mem.write_data;
-  assign core_mem_addr [1] = core_to_mem.addr      ;
-  assign core_mem_w    [1] = core_to_mem.wen       ;
-  assign core_mem_mask [1] = core_to_mem.mask      ;
+  assign core_mem_v        = core_to_mem.valid     ;
+  assign core_mem_wdata    = core_to_mem.write_data;
+  assign core_mem_addr     = core_to_mem.addr      ;
+  assign core_mem_w        = core_to_mem.wen       ;
+  assign core_mem_mask     = core_to_mem.mask      ;
   //the core_to_mem yumi signal is not used.
 
-  assign mem_to_core.valid      = core_mem_rv[1]   ;
-  assign mem_to_core.read_data  = core_mem_rdata[1];
+  assign mem_to_core.valid      = core_mem_rv   ;
+  assign mem_to_core.read_data  = core_mem_rdata;
 
    wire out_request;
 
@@ -270,11 +265,11 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      (.clk_i(clk_i)
 
       // the memory request, from the core's data memory port
-      ,.v_i    (core_mem_v    [1])
-      ,.data_i (core_mem_wdata[1])
-      ,.addr_i (core_mem_addr [1])
-      ,.we_i   (core_mem_w    [1])
-      ,.mask_i (core_mem_mask [1])
+      ,.v_i    (core_mem_v    )
+      ,.data_i (core_mem_wdata)
+      ,.addr_i (core_mem_addr )
+      ,.we_i   (core_mem_w    )
+      ,.mask_i (core_mem_mask )
       ,.my_x_i (my_x_i)
       ,.my_y_i (my_y_i)
       // directly out to the network!
@@ -314,16 +309,15 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    wire [data_width_p-1:0] unused_data;
    wire                    unused_valid;
 
-   wire [1:0]              xbar_port_v_in = { core_mem_v[1] & ~core_mem_addr[1][31]
+   wire [1:0]              xbar_port_v_in = { core_mem_v & ~core_mem_addr[31]  // not a remote packet
                                               ,  remote_store_dmem_not_imem
                                               };
 
-   // fixme: not quite right for banks=1
    localparam mem_width_lp    = $clog2(bank_size_p) + $clog2(num_banks_p);
 
-   wire [1:0]                    xbar_port_we_in   = { core_mem_w[1], 1'b1};
+   wire [1:0]                    xbar_port_we_in   = { core_mem_w, 1'b1};
    wire [1:0]                    xbar_port_yumi_out;
-   wire [1:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata[1], in_data_lo};
+   wire [1:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata, in_data_lo};
 
    // synopsys translate_off
 
@@ -340,11 +334,11 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
    // synopsys translate_on
 
-   wire [1:0] [mem_width_lp-1:0] xbar_port_addr_in = { core_mem_addr[1][2+:mem_width_lp]
+   wire [1:0] [mem_width_lp-1:0] xbar_port_addr_in = { core_mem_addr[2+:mem_width_lp]
 //                                                     remote stores already have bottom two bits snipped
                                                      , mem_width_lp ' ( in_addr_lo )
                                                      };
-   wire [1:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask[1], in_mask_lo};
+   wire [1:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask, in_mask_lo};
 
    // the swizzle function changes how addresses are mapped to banks
    wire [1:0] [mem_width_lp-1:0] xbar_port_addr_in_swizzled;
@@ -352,15 +346,15 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
    for (i = 0; i < 2; i=i+1)
      begin: port
-        assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in  [i][(mem_width_lp-1)-:1]   // top bit is inst/data
-                                                 , xbar_port_addr_in[i][0]                     // and lowest bit determines bank
+        assign xbar_port_addr_in_swizzled[i] = {
+                                                   xbar_port_addr_in[i][0]                     // and lowest bit determines bank
                                                  , xbar_port_addr_in[i][1]                     // and lowest bit determines bank
-                                                 , xbar_port_addr_in[i][2+:(mem_width_lp-2)]
+                                                 , xbar_port_addr_in[i][mem_width_lp-1:2]
                                                  };
      end
 
    // local mem yumi the data from the core
-   assign  core_mem_yumi[1]    = xbar_port_yumi_out[1];
+   assign  core_mem_yumi    = xbar_port_yumi_out[1];
    // local mem yumi the data from the network
    assign in_yumi_li   = xbar_port_yumi_out[0] | remote_store_imem_not_dmem;
 
@@ -403,7 +397,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
       // whether the crossbar accepts the input
      ,.yumi_o  ( xbar_port_yumi_out                                     )
-     ,.v_o     ({ core_mem_rv    [1], unused_valid})
-     ,.data_o  ({ core_mem_rdata [1], unused_data })
+     ,.v_o     ({ core_mem_rv    , unused_valid})
+     ,.data_o  ({ core_mem_rdata , unused_data })
     );
 endmodule

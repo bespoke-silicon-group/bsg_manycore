@@ -36,9 +36,16 @@ module hobbit #(parameter imem_addr_width_p = -1,
                ,output debug_s                    debug_o
                ,input                             outstanding_stores_i
                );
-//the imem size constrains, which is limited by the instruction encode space
-localparam   imem_addr_width_limit_lp = 12;
+//the imem size constraints, which are limited by the instruction encoding space
+localparam   imem_addr_width_limit_lp  = 12;
 localparam   imem_addr_width_margin_lp = imem_addr_width_limit_lp - imem_addr_width_p;
+
+// position in recoded instruction memory of prediction bit
+// for branches. normally this would be bit 31 in RISCV ISA (branch ofs sign bit)
+// but we've partially evaluated the addresses so they are absolute. instead
+// we replicate that bit in bit 0 of the RISC-V instruction, which is unused
+
+localparam pred_index_lp = 0;
 
 // Pipeline stage logic structures
 id_signals_s  id;
@@ -94,7 +101,7 @@ logic stall_fence;
 logic                               is_load_buffer_valid;
 logic [RV32_reg_data_width_gp-1:0]  load_buffer_data;
 
-//the memory valid signal may comes from memory of the buffer register
+//the memory valid signal may come from memory of the buffer register
 logic                               data_mem_valid;
 
 // Decoded control signals logic
@@ -123,8 +130,8 @@ assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
 assign stall = (stall_non_mem | stall_mem);
 
 
-//data depenecy stall
-//only occurs when there is operation needs loaded data immediately
+//data dependency stall
+//only occurs when the is operation needs loaded data immediately
 wire id_exe_rs1_match = id.decode.op_reads_rf1 & ( id.instruction.rs1 == exe.instruction.rd );
 wire id_exe_rs2_match = id.decode.op_reads_rf2 & ( id.instruction.rs2 == exe.instruction.rd );
 wire depend_stall      = (id_exe_rs1_match | id_exe_rs2_match)
@@ -204,13 +211,13 @@ logic [RV32_reg_data_width_gp-1:0] jalr_prediction_n, jalr_prediction_r,
 
 // Under predicted flag (meaning that we predicted not taken when taken)
 wire branch_under_predict =
-        (~exe.instruction[RV32_instr_width_gp-1]) & jump_now;
+        (~exe.instruction[pred_index_lp]) & jump_now;
 
 // Over predicted flag (meaning that we predicted taken when not taken)
 wire branch_over_predict =
-        exe.instruction[RV32_instr_width_gp-1] & (~jump_now);
+        exe.instruction[pred_index_lp] & (~jump_now);
 
-// Flag if a branch misptediction occured
+// Flag if a branch misprediction occured
 wire branch_mispredict = exe.decode.is_branch_op
                            & (branch_under_predict | branch_over_predict);
 
@@ -220,7 +227,7 @@ wire jalr_mispredict = (exe.instruction.op ==? `RV32_JALR_OP)
                          & (jalr_addr != jalr_prediction_rr);
 
 // Flush the control signals in the execute and instr decode stages if there
-// is a misprediciton and (only for the pipelined version of the core)
+// is a misprediction
 wire flush = (branch_mispredict | jalr_mispredict);
 
 //+----------------------------------------------
@@ -246,7 +253,7 @@ assign pc_wen = net_pc_write_cmd_idle | (~(stall | depend_stall));
 
 // Next PC under normal circumstances
 assign pc_plus4 = pc_r + 1'b1;
-// Extract the WORD addres,
+// Extract the WORD address,
 wire  [imem_addr_width_limit_lp-1:0] BImm_extract =`RV32_Bimm_12extract(instruction);
 wire  [imem_addr_width_limit_lp-1:0] JImm_extract =`RV32_Jimm_12extract(instruction);
 
@@ -280,7 +287,7 @@ begin
         pc_n = jalr_addr;
 
     // Predict taken branch or instrcution is a long jump
-    else if ((decode.is_branch_op & instruction[RV32_instr_width_gp-1]) | (instruction.op == `RV32_JAL_OP))
+    else if ((decode.is_branch_op & instruction[pred_index_lp]) | (instruction.op == `RV32_JAL_OP))
         pc_n = pc_jump_addr;
 
     // Predict jump to previous linked location
@@ -345,9 +352,9 @@ wire [imem_addr_width_limit_lp:1] inject_addr =
                              { {imem_addr_width_margin_lp{1'b0}}, inject_pc_value};
 //Inject the WORD address
 wire [RV32_instr_width_gp-1:0] imem_w_data =
-        write_branch_instr ? `RV32_Bimm_12inject1( net_packet_r.data, inject_addr) :
-        write_jal_instr    ? `RV32_Jimm_12inject1( net_packet_r.data, inject_addr) :
-                             net_packet_r.data;
+        write_branch_instr ? `RV32_Bimm_12inject1( net_packet_r.data, inject_addr)
+                           :  write_jal_instr    ? `RV32_Jimm_12inject1( net_packet_r.data, inject_addr)
+                                                 : net_packet_r.data;
 // RISC-V edit: reserved bits in network packet header
 //              used as mask input
 
@@ -447,7 +454,7 @@ rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
 
 //+----------------------------------------------
 //|
-//|     RISC-V edit: "M" STANDARAD EXTENSION
+//|     RISC-V edit: "M" STANDARD EXTENSION
 //|
 //+----------------------------------------------
 // MUL/DIV signals
@@ -560,17 +567,18 @@ cl_state_machine state_machine
 //|        DATA MEMORY HANDSHAKE SIGNALS
 //|
 //+----------------------------------------------
-assign valid_to_mem_c = exe.decode.is_mem_op & (~stall_non_mem) & (~stall_lrw);
+assign valid_to_mem_c = exe.decode.is_mem_op & (~stall_non_mem) & (~stall_lrw); // don't present address if we are stalling
 
 //We should always accept the returned data even there is a non memory stall
 //assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
 assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid ;
 
 // RISC-V edit: add reservation
-//lr.acq will stall until the reservation is cleard;
+//lr.acq will stall until the reservation is cleared;
 assign stall_lrw    = exe.decode.op_is_lr_acq & reservation_i;
 
 //lr instrution will load the data and reserve the address
+// NB: lr_acq is a type of load reservation, hence the check
 assign reserve_1_o  = exe.decode.op_is_load_reservation
                    &(~exe.decode.op_is_lr_acq)  ;
 

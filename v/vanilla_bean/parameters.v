@@ -5,9 +5,15 @@
 `define RV32_LOAD     7'b0000011
 `define RV32_STORE    7'b0100011
 `define RV32_MADD     7'b1000011
-`define RV32_BRANCH   7'b1100011
+
+// we have branch instructions ignore the low bit so that we can place the prediction bit there
+// RISC-V by default has the low bits set to 11 in the icache, so we can use those creatively
+// note this relies on all code using ==? and casez.
+
+`define RV32_BRANCH   7'b110001?
+
 `define RV32_LOAD_FP  7'b0000111
-`define RV32_STORE_FP 7'b0100111 
+`define RV32_STORE_FP 7'b0100111
 `define RV32_MSUB     7'b1000111
 `define RV32_JALR_OP  7'b1100111
 `define RV32_CUSTOM_0 7'b0001011
@@ -125,10 +131,12 @@
 `define RV32_signext_Uimm(instr) {``instr``[31:12], {12{1'b0}}}
 `define RV32_signext_Jimm(instr) {{12{``instr``[31]}},``instr``[19:12],``instr``[20],``instr``[30:21], {1'b0}} 
 
-//RV32 12bit Immediate injection/extraction, replace the Imm content with specified value
-//for injection, the inpute immeidate value index starting from 1
+// RV32 12bit Immediate injection/extraction, replace the Imm content with specified value
+// for injection, input immediate value index starting from 1
+// * store the sign bit (bit 31) of branches into bit of the stored instruction for use as prediction bit
+
 `define RV32_Bimm_12inject1(instr,value) {``value``[12], ``value``[10:5], ``instr``[24:12],\
-                                          ``value``[4:1],``value``[11],``instr``[6:0]}
+                                          ``value``[4:1],``value``[11],``instr``[6:1],``instr``[31]}
 `define RV32_Jimm_12inject1(instr,value) {1'b0, ``value``[10:1], ``value``[11], 7'b0,``value``[12], ``instr``[11:0]}
 
 `define RV32_Bimm_12extract(instr) {``instr``[31], ``instr``[7], ``instr``[30:25], ``instr``[11:8]};
