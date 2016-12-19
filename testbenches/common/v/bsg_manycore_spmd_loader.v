@@ -136,10 +136,10 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                 tile_no <= ( tile_no + 1 ) % ( load_rows_p*load_cols_p );
         end
 
-        if(  loaded &&  tile_no ==  (load_rows_p * load_cols_p-1) )
+        if(ready_i &&  loaded &&  tile_no ==  (load_rows_p * load_cols_p-1) )
           unfreezed_r <= 1'b1;
 
-        if( unfreezed_r  &&  tile_no ==  (load_rows_p * load_cols_p-1) )
+        if(ready_i && unfreezed_r  &&  tile_no ==  (load_rows_p * load_cols_p-1) )
           arb_configed_r<= 1'b1;
 
       end
