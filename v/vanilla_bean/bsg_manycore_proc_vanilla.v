@@ -399,7 +399,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      ,.rr_lo_hi_p(0)          // local dmem has priority
 //     ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
 //     ,.debug_p(0*4)  // mbt: debug, multiply addresses by 4.
-      ,.debug_p(4)
+//      ,.debug_p(4)
 //     ,.debug_reads_p(0)
     ) bnkd_xbar
     ( .clk_i    (clk_i)

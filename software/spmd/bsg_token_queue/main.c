@@ -12,8 +12,8 @@ int source_process(int *ptr)
 {
   for (int j = 0; j < kTransmitSize; j+=2)
   {
-    ptr[j]   = 0;
-    ptr[j+1] = 1;
+    ptr[j]   = j;
+    ptr[j+1] = j;
   }
 }
 
@@ -80,8 +80,8 @@ int main()
 
       bsg_tq_sender_xfer(conn,kBufferWindows,1);
 
-      bufIndex++;
-      if (bufIndex == kBufferWindows)
+      bufIndex+=kTransmitSize;
+      if (bufIndex == kBufferSize)
         bufIndex = 0;
     }
     bsg_wait_while(1);
@@ -106,9 +106,9 @@ int main()
 
       bsg_tq_receiver_release(conn,1);
 
-      bufIndex += 1;
+      bufIndex += kTransmitSize;
 
-      if (bufIndex == kBufferWindows)
+      if (bufIndex == kBufferSize)
       {
         bufIndex = 0;
         ptr = buffer ;

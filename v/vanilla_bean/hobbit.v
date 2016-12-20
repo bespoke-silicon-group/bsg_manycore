@@ -38,7 +38,8 @@ module hobbit #(parameter imem_addr_width_p = -1,
                );
 
 
-localparam trace_lp = 1'b1;
+//localparam trace_lp = 1'b1;
+   localparam trace_lp = 1'b0;
 
 //the imem size constraints, which are limited by the instruction encoding space
 localparam   imem_addr_width_limit_lp  = 12;
