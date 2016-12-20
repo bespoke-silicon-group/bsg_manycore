@@ -26,9 +26,6 @@ clean:
 	-rm -rf xsim.dir
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd
 
-dve64:
-	$(VCS_BIN)/dve -full64
-
 main.o: Makefile
 
 
