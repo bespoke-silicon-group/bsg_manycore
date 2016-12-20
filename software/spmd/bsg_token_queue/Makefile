@@ -2,7 +2,8 @@
 bsg_tiles_X = 2
 bsg_tiles_Y = 5
 
-RISCV_GCC_EXTRA_OPTS ?= -O2 -funroll-loops
+RISCV_GCC_EXTRA_OPTS ?= -O2
+# -funroll-loops
 OBJECT_FILES=main.o bsg_set_tile_x_y.o
 include ../Makefile.include
 
@@ -23,6 +24,11 @@ verify: main.c
 	gcc -DVERIFY main.c -std=c99 -o verify
 	./verify > verify.vals
 
+# typing make foo.check will strip out the sum codes
+%.check: 
+	grep 'data ' trace | awk '{print $$9}' | cut -b4-9 > $@
+
+include ../../mk/Makefile.tail_rules
 
 
 

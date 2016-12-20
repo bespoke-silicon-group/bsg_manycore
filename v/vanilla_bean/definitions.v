@@ -93,9 +93,10 @@ typedef struct packed
 // Debug signal structures
 typedef struct packed
 {
-    logic [31:0]                    PC_r_f;           // Program counter
-    logic [RV32_instr_width_gp-1:0] instruction_i_f;  // Instruction
-    logic [1:0]                     state_r_f;        // Core state
+    logic [15:0]                    PC_r;           // Program counter
+    instruction_s                   instruction_i;
+    logic [1:0]                     state_r;        // Core state
+    logic                           squashed;
 } debug_s;
 
 // Decode control signals structures

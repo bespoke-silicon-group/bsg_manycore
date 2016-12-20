@@ -190,7 +190,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       ,.ring_ID_p        (0)
       ,.x_cord_width_p   (x_cord_width_p)
       ,.y_cord_width_p   (y_cord_width_p)
-      ,.debug_p          (debug_p)
+//      ,.debug_p          (debug_p)
+//,.debug_p(1)
      ) vanilla_core
      ( .clk            (clk_i)
       ,.reset          (reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state
@@ -208,7 +209,6 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
       ,.my_x_i
       ,.my_y_i
-      ,.debug_o        ()
       ,.outstanding_stores_i(out_credits_lo != max_out_credits_p)    // from register
      );
 
@@ -362,11 +362,13 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
    for (i = 0; i < 2; i=i+1)
      begin: port
-        assign xbar_port_addr_in_swizzled[i] = {
-                                                   xbar_port_addr_in[i][0]                     // and lowest bit determines bank
+        assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in[i]
+
+/*                                                   xbar_port_addr_in[i][0]                     // and lowest bit determines bank
                                                  , xbar_port_addr_in[i][1]                     // and lowest bit determines bank
                                                  , xbar_port_addr_in[i][mem_width_lp-1:2]
-                                                 };
+*/
+                                                  };
      end
 
    // local mem yumi the data from the core
@@ -396,8 +398,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 //     ,.rr_lo_hi_p   (2'b01) // deadlock
      ,.rr_lo_hi_p(0)          // local dmem has priority
 //     ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
-     ,.debug_p(0*4)  // mbt: debug, multiply addresses by 4.
-//      ,.debug_p(4)
+//     ,.debug_p(0*4)  // mbt: debug, multiply addresses by 4.
+      ,.debug_p(4)
 //     ,.debug_reads_p(0)
     ) bnkd_xbar
     ( .clk_i    (clk_i)

@@ -12,8 +12,8 @@ int source_process(int *ptr)
 {
   for (int j = 0; j < kTransmitSize; j+=2)
   {
-    ptr[j]   = j;
-    ptr[j+1] = j;
+    ptr[j]   = 0;
+    ptr[j+1] = 1;
   }
 }
 

@@ -33,9 +33,13 @@ module hobbit #(parameter imem_addr_width_p = -1,
 
                ,input  [x_cord_width_p-1:0]       my_x_i
                ,input  [y_cord_width_p-1:0]       my_y_i
-               ,output debug_s                    debug_o
+
                ,input                             outstanding_stores_i
                );
+
+
+localparam trace_lp = 1'b1;
+
 //the imem size constraints, which are limited by the instruction encoding space
 localparam   imem_addr_width_limit_lp  = 12;
 localparam   imem_addr_width_margin_lp = imem_addr_width_limit_lp - imem_addr_width_p;
@@ -286,7 +290,7 @@ begin
     else if (jalr_mispredict)
         pc_n = jalr_addr;
 
-    // Predict taken branch or instrcution is a long jump
+    // Predict taken branch or instruction is a long jump
     else if ((decode.is_branch_op & instruction[pred_index_lp]) | (instruction.op == `RV32_JAL_OP))
         pc_n = pc_jump_addr;
 
@@ -378,8 +382,8 @@ wire [RV32_instr_width_gp-1:0] imem_w_data =
    always @(posedge clk) reset_r <= reset;
    always @(negedge clk)
      begin
-	  assert ( (reset_r !== 0 ) | ~net_imem_write_cmd | (&net_packet_r.header.mask))
-	  else $error("## byte write to instruction memory (%m)");
+          assert ( (reset_r !== 0 ) | ~net_imem_write_cmd | (&net_packet_r.header.mask))
+          else $error("## byte write to instruction memory (%m)");
      end
    // synopsys translate_on
 
@@ -466,17 +470,17 @@ assign stall_md    = exe.decode.is_md_instr & ~md_resp_valid;
 
 imul_idiv_iterative  md_0
     (.reset_i   (reset)
-	,.clk_i     (clk)
+        ,.clk_i     (clk)
 
-	,.v_i       (md_valid)//there is a request
+        ,.v_i       (md_valid)//there is a request
     ,.ready_o   (md_ready)//imul_idiv_module is idle
 
     ,.opA_i     (rs1_to_alu)
-	,.opB_i     (rs2_to_alu)
+        ,.opB_i     (rs2_to_alu)
     ,.funct3    (exe.instruction.funct3)
 
-	,.v_o       (md_resp_valid )//result is valid
-	,.result_o  (md_result     )
+        ,.v_o       (md_resp_valid )//result is valid
+        ,.result_o  (md_result     )
     //if there is a stall issued at MEM stage, we can't receive the mul/div
     //result.
     ,.yumi_i    (~stall_non_mem)
@@ -640,6 +644,21 @@ end
       );
 
 
+   // synopsys translate_off
+  debug_s debug_if, debug_id, debug_exe, debug_mem, debug_wb;
+
+   localparam squashed_lp = 1'b1;
+
+  // 1 indicates unsquashed
+  assign debug_if = '{
+                      PC_r : pc_r,
+                      instruction_i: instruction,
+                      state_r: state_r,
+                      squashed: 1'b0
+                      };
+
+   // synopsys translate_on
+
 //+----------------------------------------------
 //|
 //|     INSTR FETCH TO INSTR DECODE SHIFT
@@ -658,21 +677,28 @@ begin
 `else
     if (reset | net_pc_write_cmd_idle | (flush & (~   (stall | depend_stall)  ) ) )
 `endif
-
-        id <= '0;
-
+      begin
+         id <= '0;
+   // synopsys translate_off
+         debug_id <= debug_if | squashed_lp ;
+   // synopsys translate_on
+      end
 `ifdef bsg_FPU
     else if (~(stall|fpi_inter.fam_depend_stall | depend_stall ))
 `else
     else if (~ ( stall | depend_stall) )
 `endif
-
+      begin
+   // synopsys translate_off
+        debug_id <= debug_if;
+   // synopsys translate_on
         id <= '{
             pc_plus4     : {pc_plus4,2'b0},
             pc_jump_addr : {pc_jump_addr,2'b0},
             instruction  : instruction,
             decode       : decode
         };
+      end
 end
 
 //+----------------------------------------------
@@ -719,7 +745,12 @@ wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
 always_ff @ (posedge clk)
 begin
     if (reset | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
-        exe <= '0;
+      begin
+   // synopsys translate_off
+         debug_exe <= debug_id | squashed_lp;
+   // synopsys translate_on
+        exe       <= '0;
+      end
 `ifdef bsg_FPU
     else if(    ( fpi_inter.fam_depend_stall | depend_stall )
               & (~stall)
@@ -727,21 +758,31 @@ begin
 `else
     else if ( depend_stall & (~stall) )
 `endif
-        exe <= '0; //insert a bubble to the pipeline
+      begin
+   // synopsys translate_off
+         debug_exe <= debug_id | squashed_lp;
+   // synopsys translate_on
+         exe       <= '0; //insert a bubble to the pipeline
+      end
     else if (~ stall)
-        exe <= '{
-            pc_plus4     : id.pc_plus4,
-            pc_jump_addr : id.pc_jump_addr,
-            instruction  : id.instruction,
-            decode       : id.decode,
-            rs1_val      : rs1_to_exe,
-            rs2_val      : rs2_to_exe,
-            mem_addr_op2 : mem_addr_op2,
-            rs1_in_mem   : exe_rs1_in_mem,
-            rs1_in_wb    : exe_rs1_in_wb,
-            rs2_in_mem   : exe_rs2_in_mem,
-            rs2_in_wb    : exe_rs2_in_wb
-        };
+      begin
+         // synopsys translate_off
+         debug_exe <= debug_id;
+         // synopsys translate_on
+         exe <= '{
+                  pc_plus4     : id.pc_plus4,
+                  pc_jump_addr : id.pc_jump_addr,
+                  instruction  : id.instruction,
+                  decode       : id.decode,
+                  rs1_val      : rs1_to_exe,
+                  rs2_val      : rs2_to_exe,
+                  mem_addr_op2 : mem_addr_op2,
+                  rs1_in_mem   : exe_rs1_in_mem,
+                  rs1_in_wb    : exe_rs1_in_wb,
+                  rs2_in_mem   : exe_rs2_in_mem,
+                  rs2_in_wb    : exe_rs2_in_wb
+                  };
+      end
 end
 
 //+----------------------------------------------
@@ -777,8 +818,18 @@ assign fiu_alu_result = alu_result;
 always_ff @ (posedge clk)
 begin
     if (reset | net_pc_write_cmd_idle)
-        mem <= '0;
+      begin
+   // synopsys translate_off
+         debug_mem <= squashed_lp;
+   // synopsys translate_on
+         mem       <= '0;
+      end
     else if (~stall)
+      begin
+   // synopsys translate_off
+         debug_mem <= debug_exe;
+   // synopsys translate_on
+
         mem <= '{
             rd_addr    : exe.instruction.rd,
 `ifdef bsg_FPU
@@ -790,6 +841,7 @@ begin
 
             mem_addr_send: mem_addr_send
         };
+      end
 end
 
 //+----------------------------------------------
@@ -865,13 +917,23 @@ wire [RV32_reg_data_width_gp-1:0]  rf_data = mem.decode.is_load_op ?
 always_ff @ (posedge clk)
 begin
     if (reset | net_pc_write_cmd_idle)
-        wb <= '0;
+      begin
+         wb       <= '0;
+   // synopsys translate_off
+         debug_wb <= squashed_lp;
+   // synopsys translate_on
+      end
     else if (~stall)
-        wb <= '{
-            op_writes_rf : mem.decode.op_writes_rf,
-            rd_addr      : mem.rd_addr,
-            rf_data      : rf_data
-        };
+      begin
+   // synopsys translate_off
+         debug_wb <= debug_mem;
+   // synopsys translate_on
+         wb       <= '{
+                       op_writes_rf : mem.decode.op_writes_rf,
+                       rd_addr      : mem.rd_addr,
+                       rf_data      : rf_data
+                       };
+      end
 end
 
 ///////////////////////////////////////////////////////////////////
@@ -920,14 +982,35 @@ end
 
 `endif
 
-
-// DEBUG Struct
-assign debug_o = {pc_r, instruction, state_r};
 //synopsys translate_off
+
+   if (trace_lp)
+//if (0)
+     always_ff @(negedge clk)
+       begin
+          if (~(debug_wb.squashed  & (debug_wb.PC_r == 0)))
+            begin
+               $write("X,Y=(%x,%x) PC=%x (%x)"
+                      ,my_x_i, my_y_i
+                      , (debug_wb.PC_r <<2)
+                      ,debug_wb.instruction_i
+                      );
+               if (debug_wb.squashed)
+                 $write(" <squashed>");
+               if (stall)
+                 $write(" <stall>");
+
+               if (wb.op_writes_rf)
+                 $write(" r[%d] <= %x", wb.rd_addr, wb.rf_data);
+
+               $write("\n");
+            end
+       end
+
 if(debug_p)
   always_ff @(negedge clk)
   begin
-    if ((~|my_x_i & ~|my_y_i) & state_r==RUN)
+    if ((my_x_i == 1) & (my_y_i == 0) & (state_r==RUN))
       begin
         $display("\n%0dns (%d,%d):", $time, my_x_i, my_y_i);
         $display("  IF: pc  :%x instr:{%x_%x_%x_%x_%x_%x} state:%b net_pkt:{%x_%x_%x}"
@@ -987,8 +1070,8 @@ if(debug_p)
                  ,exe.rs1_val
                  ,exe.rs2_val
                 );
-        $display(" MEM: pc+4:%x rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
-                 ,mem.pc_plus4
+        $display(" MEM:  rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
+//                 ,mem.pc_plus4
                  ,mem.rd_addr
                  ,mem.decode.op_writes_rf
                  ,mem.decode.is_load_op
@@ -1003,11 +1086,13 @@ if(debug_p)
                  ,mem.decode.op_is_auipc
                  ,mem.alu_result
                 );
-        $display("  WB: wrf:%b rd_addr:%x, rf_data:%x"
+
+        $display(" WB: wrf:%b rd_addr:%x, rf_data:%x"
                  ,wb.op_writes_rf
                  ,wb.rd_addr
                  ,wb.rf_data
                 );
+
         $display("MISC: stall:%b stall_mem:%b stall_non_mem:%b stall_lrw:%b reservation:%b valid_to_mem:%b alu_result:%x st_data:%x mask:%b jump_now:%b flush:%b"
                  ,stall
                  ,stall_mem
@@ -1021,11 +1106,11 @@ if(debug_p)
                  ,jump_now
                  ,flush
                 );
-        $display("  MD: stall_md:%b md_vlaid:%b md_op:%b md_out_sel:%b md_resp_valid:%b md_result:%x"
+        $display("  MD: stall_md:%b md_vlaid:%b md_resp_valid:%b md_result:%x"
                  ,stall_md
                  ,md_valid
-                 ,exe.decode.md_op
-                 ,exe.decode.md_out_sel
+//                 ,exe.decode.md_op
+//                 ,exe.decode.md_out_sel
                  ,md_resp_valid
                  ,md_result
                 );
