@@ -154,8 +154,8 @@ _start:
   #1:bgeu a0, a1, 1b
 
   # mbt: put stack at top of local memory
-
-  li sp, 4*8192-4
+  # mbt fix for 4KB IMEM / 4KB DMEM
+  li sp, 4096*2-4
   #la t0, main
   #csrw mepc, t0
   j main

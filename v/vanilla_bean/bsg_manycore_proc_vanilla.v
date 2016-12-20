@@ -327,7 +327,23 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
           assert (in_addr_lo < ((1 << imem_addr_width_lp) + (bank_size_p*num_banks_p)))
             else
               begin
-                 $error("# ERROR y,x=(%x,%x) remote store addr (%x) past end of data memory (%x)",my_y_i,my_x_i,in_addr_lo*4,4*((1 << imem_addr_width_lp)+(bank_size_p*num_banks_p)));
+                 $error("# ERROR y,x=(%x,%x) remote store addr (%x) past end of data memory (%x)"
+                        ,my_y_i,my_x_i,in_addr_lo*4,4*((1 << imem_addr_width_lp)+(bank_size_p*num_banks_p)));
+                 $finish();
+              end
+     end
+
+   //initial
+   //   $display("imem_addr_width_lp %d, bank_size_p %d, num_banks_p %d\n",imem_addr_width_lp,bank_size_p,num_banks_p);
+
+   always @(negedge clk_i)
+     begin
+        if (xbar_port_v_in[1])
+          assert (core_mem_addr[30:2] < ((1 << imem_addr_width_lp) + (bank_size_p*num_banks_p)))
+            else
+              begin
+                 $error("# ERROR y,x=(%x,%x) local store addr (%x) past end of data memory (%x)"
+                        ,my_y_i,my_x_i,core_mem_addr,4*((1 << imem_addr_width_lp)+(bank_size_p*num_banks_p)));
                  $finish();
               end
      end

@@ -1,10 +1,4 @@
 
-#include "bsg_manycore.h"
-#include "bsg_set_tile_x_y.h"
-#include "bsg_token_queue.h"
-
-bsg_declare_token_queue(tq);
-
 int sep[4];
 
 #define kBufferWindows 2
@@ -32,6 +26,32 @@ int dest_process(int sum, int *ptr, volatile int *io_ptr)
 
   return sum;
 }
+
+#ifdef VERIFY
+
+#include <stdlib.h>
+#include <stdio.h>
+
+int main()
+{
+  int sum;
+  int io_ptr;
+  for (int i = 0; i < kBlocks; i++)
+  {
+    source_process(buffer);
+    sum=dest_process(sum,buffer,&io_ptr);
+    printf("%x\n",io_ptr);
+  }
+}
+
+#else
+
+#include "bsg_manycore.h"
+#include "bsg_set_tile_x_y.h"
+#include "bsg_token_queue.h"
+
+bsg_declare_token_queue(tq);
+
 
 int main()
 {
@@ -100,3 +120,4 @@ int main()
   bsg_wait_while(1);
 }
 
+#endif

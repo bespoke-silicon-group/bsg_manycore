@@ -19,6 +19,10 @@ clean:
 hello.o: Makefile
 
 
+verify: main.c
+	gcc -DVERIFY main.c -std=c99 -o verify
+	./verify > verify.vals
+
 
 
 
