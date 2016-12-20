@@ -1,6 +1,6 @@
 
 bsg_tiles_X = 2
-bsg_tiles_Y = 1
+bsg_tiles_Y = 5
 
 #########################################################
 #each bytes defines the core type
@@ -33,6 +33,8 @@ clean:
 main.o: Makefile
 
 
+dve64:
+	$(VCS_BIN)/dve -full64
 
 
 

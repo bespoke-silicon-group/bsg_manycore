@@ -3,7 +3,7 @@
 // 11/02/2016, shawnless.xie@gmail.com
 //====================================================================
 
-//This module instantiate a 2r1w sync memory file and add a bypass 
+//This module instantiate a 2r1w sync memory file and add a bypass
 //register. When there is a write and read and the same time, it output
 //the newly written value, which is "write through"
 
@@ -27,9 +27,9 @@ module rf_2r1w_sync_wrapper  #(parameter width_p=-1
     , input [addr_width_lp-1:0]  r1_addr_i
     , output logic [width_p-1:0] r1_data_o
     );
-    
-    wire r0_rw_same_addr = w_v_i & r0_v_i & ( w_addr_i == r0_addr_i); 
-    wire r1_rw_same_addr = w_v_i & r1_v_i & ( w_addr_i == r1_addr_i); 
+
+    wire r0_rw_same_addr = w_v_i & r0_v_i & ( w_addr_i == r0_addr_i);
+    wire r1_rw_same_addr = w_v_i & r1_v_i & ( w_addr_i == r1_addr_i);
 
     wire r0_wrapper_v    = r0_rw_same_addr ? 1'b0 : r0_v_i;
     wire r1_wrapper_v    = r1_rw_same_addr ? 1'b0 : r1_v_i;
@@ -57,10 +57,10 @@ module rf_2r1w_sync_wrapper  #(parameter width_p=-1
          ,.r1_v_i      ( r1_wrapper_v  )
          ,.r1_addr_i   ( r1_addr_i     )
          ,.r1_data_o   ( r1_mem_data   )
-        );    
+        );
 
     logic                   r0_rw_same_addr_r,  r1_rw_same_addr_r;
-    always_ff@(posedge clk_i) 
+    always_ff@(posedge clk_i)
     begin
         if( reset_i )  begin
             r0_rw_same_addr_r  <= 1'b0;
@@ -80,15 +80,34 @@ module rf_2r1w_sync_wrapper  #(parameter width_p=-1
         else if( w_v_i) w_data_r <= w_data_i;
     end
 
-    //assign the output
-    assign r0_data_o = r0_rw_same_addr_r ? w_data_r : r0_mem_data;
-    assign r1_data_o = r1_rw_same_addr_r ? w_data_r : r1_mem_data;
+    //get the safe data
+    wire [width_p-1:0]  r0_data_safe = r0_rw_same_addr_r ? w_data_r : r0_mem_data;
+    wire [width_p-1:0]  r1_data_safe = r1_rw_same_addr_r ? w_data_r : r1_mem_data;
 
+    //save the output if the pipleline is stalled.
+    logic [width_p-1:0] r0_data_r, r1_data_r;
+    logic r0_v_r, r1_v_r;
+
+    always_ff@( posedge clk_i ) begin
+        r0_data_r   <=  r0_data_o;
+        r1_data_r   <=  r1_data_o;
+    end
+
+    always_ff@( posedge clk_i) begin
+        r0_v_r <= r0_v_i;
+        r1_v_r <= r1_v_i;
+    end
+
+    //assign the output
+    assign  r0_data_o   = r0_v_r ? r0_data_safe : r0_data_r;
+    assign  r1_data_o   = r1_v_r ? r1_data_safe : r1_data_r;
+
+    ///////////////////////////////////////
     if(0) begin
         always_ff@ ( negedge clk_i ) begin
-            if ( r0_rw_same_addr ) 
+            if ( r0_rw_same_addr )
                 $display("port0 read with the same address with write: addr=%08x, value=%08x\n",r0_addr_i, w_data_i);
-            if ( r1_rw_same_addr ) 
+            if ( r1_rw_same_addr )
                 $display("port1 read with the same address with write: addr=%08x, value=%08x\n",r1_addr_i, w_data_i);
         end
     end
