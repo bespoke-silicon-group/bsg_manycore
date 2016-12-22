@@ -32,12 +32,4 @@ clean:
 
 main.o: Makefile
 
-
-
-
-
-
-
-
-
-
+include ../../mk/Makefile.tail_rules
