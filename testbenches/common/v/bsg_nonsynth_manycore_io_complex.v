@@ -151,7 +151,7 @@ module bsg_nonsynth_manycore_io_complex
                                                ,.link_sif_i       (ver_link_sif_i_cast[i])
                                                ,.link_sif_o       (ver_link_sif_o_cast[i])
                                                ,.pass_thru_data_i (loader_data_lo )
-                                               ,.pass_thru_v_i    (loader_v_lo    )
+                                               ,.pass_thru_v_i    (loader_v_lo & loader_ready_li    )
                                                ,.pass_thru_ready_o(pass_thru_ready_lo)
                                                ,.pass_thru_out_credits_o(creds)
                                                ,.pass_thru_x_i(pass_thru_x_li)

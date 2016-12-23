@@ -46,6 +46,9 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
+   // insert bufx8's on outputs
+   ,parameter buffer_output_p  = 0 //   snew * x * y bits.
+   
   )
   ( input clk_i
    ,input reset_i
@@ -100,6 +103,8 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
         ,.data_width_p   (data_width_p)
         ,.addr_width_p   (addr_width_p)
         ,.debug_p        (debug_p)
+       // select buffer instructions for this particular node
+       ,.buffer_output_p(  (buffer_output_p >> (4*(r*num_tiles_x_p+c))) & 4'b1111)
        ) rtr
        ( .clk_i (clk_i)
          ,.reset_i(reset_i)
