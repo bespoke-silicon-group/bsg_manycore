@@ -66,7 +66,7 @@ module bsg_manycore
    ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
    // snew * y * x bits
-   ,parameter buffer_output_p = 0
+   ,parameter repeater_output_p = 0
 
   )
   ( input clk_i
@@ -95,7 +95,7 @@ module bsg_manycore
                        ,.extra_io_rows_p(extra_io_rows_p)
                        ,.addr_width_p(addr_width_p)
                        ,.data_width_p(data_width_p)
-                       ,.buffer_output_p(buffer_output_p)
+                       ,.repeater_output_p(repeater_output_p)
                        ) bmm
      (.clk_i
       ,.reset_i

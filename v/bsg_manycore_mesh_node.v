@@ -12,8 +12,8 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,parameter addr_width_p      = "inv"
    ,parameter dirs_lp           = 4
    ,parameter stub_p            = {dirs_lp{1'b0}} // {s,n,e,w}
-   ,parameter buffer_output_p   = {dirs_lp{1'b0}} // {s,n,e,w}
-   
+   ,parameter repeater_output_p = {dirs_lp{1'b0}} // {s,n,e,w}
+
    ,parameter packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
    ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
    ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -97,7 +97,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
                                    ,.stub_p({stub_p, 1'b0})
                                    // needed for doing I/O to south edge of array
                                    ,.allow_S_to_EW_p(1'b1)
-				   ,.buffer_output_p({buffer_output_p,1'b0})
+                                   ,.repeater_output_p({repeater_output_p,1'b0})
                                    ) bmrb
           (.clk_i    (clk_i)
            ,.reset_i (reset_i)
