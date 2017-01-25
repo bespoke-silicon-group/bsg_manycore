@@ -1,5 +1,5 @@
 //====================================================================
-// bsg_manycore_links_to_rocc.v
+// bsg_manycore_link_to_rocc.v
 // 01/18/2016, shawnless.xie@gmail.com
 //====================================================================
 // This module acts as a converter between the bsg_manycore_link_sif
@@ -10,7 +10,7 @@
 `include "bsg_rocc.v"
 `include "bsg_manycore_packet.vh"
 
-module  bsg_manycore_links_to_rocc
+module  bsg_manycore_link_to_rocc
   #(  parameter addr_width_p="inv"
     , parameter data_width_p="inv"
     , parameter x_cord_width_p="inv"
@@ -28,8 +28,8 @@ module  bsg_manycore_links_to_rocc
      input   [x_cord_width_p-1:0]                my_x_i
    , input   [y_cord_width_p-1:0]                my_y_i
 
-   , input  [bsg_manycore_link_sif_width_lp-1:0] links_sif_i
-   , output [bsg_manycore_link_sif_width_lp-1:0] links_sif_o
+   , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
+   , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
    // Rocket side
    , input rocket_clk_i
@@ -74,7 +74,7 @@ module  bsg_manycore_links_to_rocc
   logic                                rocc2manycore_v     ;
   logic                                rocc2manycore_ready ;
 
-  logic [$clog2(max_out_credits_p+1)-1:0] out_credits     ;
+  logic [$clog2(max_out_credits_lp+1)-1:0] out_credits     ;
 
   bsg_manycore_endpoint_standard #( 
      .x_cord_width_p     ( x_cord_width_p )
@@ -86,7 +86,7 @@ module  bsg_manycore_links_to_rocc
  )rocc_endpoint_standard
    ( //TODO: changing to manycore clock domain. 
      .clk_i         ( rocket_clk_i    )
-    ,.reset_i       ( rocet_reset_i   )
+    ,.reset_i       ( rocket_reset_i   )
 
     // mesh network
     ,.link_sif_i
@@ -94,7 +94,7 @@ module  bsg_manycore_links_to_rocc
 
     // local incoming data interface
     ,.in_v_o        ( manycore2rocc_v       )
-    ,.in_yumi       ( manycore2rocc_yumi    )
+    ,.in_yumi_i     ( manycore2rocc_yumi    )
     ,.in_data_o     ( manycore2rocc_data    )
     ,.in_mask_o     ( manycore2rocc_mask    )
     ,.in_addr_o     ( manycore2rocc_addr    )
@@ -108,6 +108,9 @@ module  bsg_manycore_links_to_rocc
     ,.out_credits_o ( out_credits           )
     ,.freeze_r_o    (                       )
     ,.reverse_arb_pr_o(                     )
+
+    ,.my_x_i
+    ,.my_y_i
     );
 
   ///////////////////////////////////////////////////////////////////////////////////
@@ -122,7 +125,7 @@ module  bsg_manycore_links_to_rocc
  
   always_ff@(posedge rocket_clk_i )
     if( write_seg_en ) 
-        seg_addr_r <= core_cmd_s_i.rs1_val[ rocc_addr_width_gp : addr_width_p ];
+        seg_addr_r <= core_cmd_s_i.rs1_val[ rocc_addr_width_gp-1 : addr_width_p ];
 
   //store data into manycore
   assign rocc2manycore_v =   core_cmd_valid_i 
@@ -137,7 +140,7 @@ module  bsg_manycore_links_to_rocc
   ///////////////////////////////////////////////////////////////////////////////////
   // assign the outputs to rocc_mem
    assign   mem_req_valid_o     =   1'b0   ;
-   assign   rocc_mem_req_o      =    'b0   ;
+   assign   mem_req_s_o         =    'b0   ;
 
   // assign the outputs to rocc_core
    assign   core_cmd_ready_o    =   rocc2manycore_ready   ;

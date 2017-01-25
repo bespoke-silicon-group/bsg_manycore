@@ -10,6 +10,7 @@
 // Pleas contact Prof Taylor for the document.
 //
 `include "bsg_manycore_packet.vh"
+`include "bsg_rocc.v"
 
 `define ROCC_NUM_LIMITS 8
 
@@ -22,11 +23,10 @@ module bsg_manycore_rocc_wrapper
     //The distribution of the rocc interface.
     //1. Non-zero value is the index of the rocc interface,
     //   starting from 1.
-    //2. for example, {8'h0, 8'h1, 8'h0, 8'h2,    8'h0, 8'h0, 8'h0, 8'h0}
+    //2. for example, {32'h0000_2010}
     //   indicates there are two rocc interface, their x_cords are 1 and 3.
     //3. rocc_num_p must not bigger than tiles_x
-   ,parameter byte rocc_dist_vec_p  [`ROCC_NUM_LIMITS-1:0]  = 
-            {8'h0, 8'h0, 8'h0, 8'h0,    8'h0, 8'h0, 8'h0, 8'h0}
+   ,parameter rocc_dist_vec_p = 0
 
     //////////////////////////////////////////////////////
     //Parameters for manycore 
@@ -39,12 +39,7 @@ module bsg_manycore_rocc_wrapper
    ,parameter num_tiles_x_p     = -1
    ,parameter num_tiles_y_p     = -1
 
-   // array i/o params
-   ,parameter stub_w_p          = {num_tiles_y_p{1'b0}}
-   ,parameter stub_e_p          = {num_tiles_y_p{1'b0}}
-   ,parameter stub_n_p          = {num_tiles_x_p{1'b0}}
-   ,parameter stub_s_p          = {num_tiles_x_p{1'b0}}
-   ,parameter hetero_type_vec_p      = 0
+   ,parameter hetero_type_vec_p = 0
    // enable debugging
    ,parameter debug_p           = 0
    ,parameter extra_io_rows_p   = 1
@@ -85,6 +80,10 @@ module bsg_manycore_rocc_wrapper
    , input  rocc_mem_resp_s     [rocc_num_p-1:0]  mem_resp_s_i
   );
 
+  //get one byte from the parameter p
+ `define GET_BYTE(p, ind)       ( (p >> (ind* 4)) & 4'hF )
+ `define GET_BYTE_MIN_1(p, ind) ( `GET_BYTE(p,ind) - 4'h1 )
+
   //declare the interface to the bsg_manycore
   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_lp, y_cord_width_lp);
 
@@ -105,9 +104,8 @@ module bsg_manycore_rocc_wrapper
      ,.stub_w_p     ({num_tiles_y_p{1'b1}})
      ,.stub_e_p     ({num_tiles_y_p{1'b1}})
      ,.stub_n_p     ({num_tiles_x_p{1'b1}})
-     // south side is unstubbed. If the bit width do not match, 
-     // bits extension with 0 or low bit cutoff are expected
-     ,.stub_s_p     ( ~( { num_tiles_x_p{1'b0} } | rocc_dist_vec_p ) )
+     // south side is unstubbed. 
+     ,.stub_s_p     ({num_tiles_x_p{1'b0}})
      ,.debug_p(debug_p)
      ,.extra_io_rows_p  ( extra_io_rows_p   )
      ,.repeater_output_p( repeater_output_p )
@@ -160,8 +158,8 @@ module bsg_manycore_rocc_wrapper
                                        ,.x_cord_width_p(x_cord_width_lp)
                                        ,.y_cord_width_p(y_cord_width_lp)
                                        ) bmlst3
-        (.clk_i(clk)
-         ,.reset_i(reset)
+        (.clk_i(clk_i)
+         ,.reset_i(reset_i)
          ,.link_sif_i(ver_link_lo[N][i])
          ,.link_sif_o(ver_link_li[N][i])
          );
@@ -172,42 +170,41 @@ module bsg_manycore_rocc_wrapper
                                      ? `ROCC_NUM_LIMITS : num_tiles_x_p ;
    genvar io_ind;
    for( io_ind=0; io_ind < rocc_index_limit_lp; io_ind ++) begin: rocc_inst
-        //this is the real rocc instantion
-        if( rocc_dist_vec_p [ io_ind ] != 8'h0 ) begin: rocc_inst_real
-            bsg_manycore_links_to_rocc
+        if( `GET_BYTE(rocc_dist_vec_p, io_ind)  != 0 ) begin: rocc_inst_real
+            bsg_manycore_link_to_rocc
             #(  .addr_width_p  (addr_width_p    ) 
               , .data_width_p  (data_width_p    ) 
               , .x_cord_width_p(x_cord_width_lp  ) 
               , .y_cord_width_p(y_cord_width_lp  ) 
               ) rocc ( 
-                 .my_x_i( io_ind      )
-                ,.my_y_i( num_tiles_y_p )
+                 .my_x_i( x_cord_width_lp'(io_ind )       )
+                ,.my_y_i( y_cord_width_lp'(num_tiles_y_p) )
 
-                ,.links_sif_i ( ver_link_lo[S][ io_ind ] )
-                ,.links_sif_o ( ver_link_li[S][ io_ind ] )
+                ,.link_sif_i ( ver_link_lo[S][ io_ind ] )
+                ,.link_sif_o ( ver_link_li[S][ io_ind ] )
 
                 ,.rocket_clk_i  ( clk_i     )
                 ,.rocket_reset_i( reset_i   )
 
-                ,.core_status_i        (core_status_i    [ rocc_dist_vec_p[ io_ind ] ] ) 
-                ,.core_exception_i     (core_exception_i [ rocc_dist_vec_p[ io_ind ] ] )
-                ,.acc_interrupt_o      (acc_interrupt_o  [ rocc_dist_vec_p[ io_ind ] ] )
-                ,.acc_busy_o           (acc_busy_o       [ rocc_dist_vec_p[ io_ind ] ] )
+                ,.core_status_i        (core_status_i    [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] ) 
+                ,.core_exception_i     (core_exception_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.acc_interrupt_o      (acc_interrupt_o  [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.acc_busy_o           (acc_busy_o       [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                                        
-                ,.core_cmd_valid_i     (core_cmd_valid_i [ rocc_dist_vec_p[ io_ind ] ] )
-                ,.core_cmd_s_i         (core_cmd_s_i     [ rocc_dist_vec_p[ io_ind ] ] )
-                ,.core_cmd_ready_o     (core_cmd_ready_o [ rocc_dist_vec_p[ io_ind ] ] )
+                ,.core_cmd_valid_i     (core_cmd_valid_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_cmd_s_i         (core_cmd_s_i     [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_cmd_ready_o     (core_cmd_ready_o [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                                        
-                ,.core_resp_valid_o    (core_resp_valid_o[ rocc_dist_vec_p[ io_ind ] ] )
-                ,.core_resp_s_o        (core_resp_s_o    [ rocc_dist_vec_p[ io_ind ] ] )
-                ,.core_resp_ready_i    (core_resp_ready_i[ rocc_dist_vec_p[ io_ind ] ] )
+                ,.core_resp_valid_o    (core_resp_valid_o[`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_resp_s_o        (core_resp_s_o    [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_resp_ready_i    (core_resp_ready_i[`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                                      
-                ,.mem_req_valid_o      (mem_req_valid_o  [ rocc_dist_vec_p[ io_ind ] ] )
-                ,.mem_req_s_o          (mem_req_s_o      [ rocc_dist_vec_p[ io_ind ] ] )
-                ,.mem_req_ready_i      (mem_req_ready_i  [ rocc_dist_vec_p[ io_ind ] ] )
+                ,.mem_req_valid_o      (mem_req_valid_o  [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_req_s_o          (mem_req_s_o      [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_req_ready_i      (mem_req_ready_i  [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                                     
-                ,.mem_resp_valid_i     (mem_resp_valid_i [ rocc_dist_vec_p[ io_ind ] ] )
-                ,.mem_resp_s_i         (mem_resp_s_i     [ rocc_dist_vec_p[ io_ind ] ] )
+                ,.mem_resp_valid_i     (mem_resp_valid_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_resp_s_i         (mem_resp_s_i     [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
             );
         //otherwise tieoff 
         end else begin: rocc_inst_tieoff
@@ -246,16 +243,26 @@ module bsg_manycore_rocc_wrapper
    int rocc_index = 1;
    int k=0;
    initial begin
-        assert( rocc_num_p <= num_tiles_x_p     );
-        assert( rocc_num_p <= `ROCC_NUM_LIMITS  );
+        assert( rocc_num_p <= num_tiles_x_p     )
+        else $error(" rocc_num_p must less or equal num_tiles_x_p");
+
+        assert( rocc_num_p <= `ROCC_NUM_LIMITS  )
+        else $error(" rocc_num_p must less than %d", `ROCC_NUM_LIMITS);
+
         //validate the rocc_dis_vec_p 
         for( k = 0; k< `ROCC_NUM_LIMITS; k++) begin
-            if( rocc_dist_vec_p[k] != 8'h0 ) begin
-                assert( rocc_index == rocc_dist_vec_p[k] ); 
+            if( `GET_BYTE(rocc_dist_vec_p, k)  != 4'h0 ) begin
+
+                assert( rocc_index == `GET_BYTE(rocc_dist_vec_p,k) ) 
+                else $error(" the rocc index must inrease one by one ");
+
                 rocc_index++;
             end 
         end 
-        if( rocc_num_p != 0 ) assert ( rocc_num_p == rocc_index );
+        if( rocc_num_p != 0 ) begin
+             assert ( rocc_num_p == rocc_index )
+             else $error("the rocc_num_p must match the maximum rocc index");
+        end
    end
    // synopsys translate_on
 endmodule

@@ -16,7 +16,7 @@ localparam rocc_instr_opcode_width_gp   = 7 ;
 
 localparam rocc_mem_addr_width_gp       = 40;
 localparam rocc_mem_tag_width_gp        = 10;
-localparam rocc_mem_cmd_width_gp        = 4;
+localparam rocc_mem_cmd_width_gp        = 5;
 localparam rocc_mem_typ_width_gp        = 3;
 localparam rocc_y_cord_width_gp         = 15;
 localparam rocc_x_cord_width_gp         = 16;
@@ -84,32 +84,32 @@ typedef struct packed{
 typedef struct packed{
     logic [rocc_mem_addr_width_gp-1 :0]         req_addr;
     //tag of different request, in case of out-of-order memory response
-    logic [rocc_mem_tag_width_gp-1  :0]         reg_tag;
+    logic [rocc_mem_tag_width_gp-1  :0]         req_tag;
     // 0000 for load, 0001 for store
     eRoCC_mem_cmd                               req_cmd;   
     // type for the request : 000=8bits, 0001=16bits, 010=32bits, 011=64bits
     eRoCC_mem_typ                               req_typ;   
     // whether the address is physical
-    logic                                       req_phy;
+    logic                                       req_phys;
     logic [rocc_data_width_gp-1     :0]         req_data;
 }rocc_mem_req_s;
 
 //the output signal from the mem
 typedef struct packed{
-    logic [rocc_mem_addr_width_gp-1 :0]         rsp_addr;
-    logic [rocc_mem_tag_width_gp-1  :0]         rsp_tag;
-    eRoCC_mem_cmd                               rsp_cmd;
-    eRoCC_mem_typ                               rsp_typ;
-    logic [rocc_data_width_gp-1     :0]         rsp_data;
+    logic [rocc_mem_addr_width_gp-1 :0]         resp_addr;
+    logic [rocc_mem_tag_width_gp-1  :0]         resp_tag;
+    eRoCC_mem_cmd                               resp_cmd;
+    eRoCC_mem_typ                               resp_typ;
+    logic [rocc_data_width_gp-1     :0]         resp_data;
     //Not clear yet
-    logic                                       rsp_nack;
+    logic                                       resp_nack;
     //Not clear yet
-    logic                                       rsp_replay;
+    logic                                       resp_replay;
     // whether the response contains valid data
-    logic                                       rsp_has_data;
-    logic [rocc_data_width_gp-1     :0]         rsp_bypass_data;
+    logic                                       resp_has_data;
+    logic [rocc_data_width_gp-1     :0]         resp_data_word_bypass;
     // the turned back written data
-    logic [rocc_data_width_gp-1     :0]         rsp_written_data;
+    logic [rocc_data_width_gp-1     :0]         resp_store_data;
 }rocc_mem_resp_s;
 
 `endif
