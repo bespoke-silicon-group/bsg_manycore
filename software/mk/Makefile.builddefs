@@ -4,7 +4,7 @@ endif
 
 BSG_MANYCORE_BANKS=4
 # in bytes
-BSG_MANYCORE_BANKSIZE=8192
+BSG_MANYCORE_BANKSIZE=2048
 
 #####################################################
 # DO we have the FPU implemented ?
@@ -50,3 +50,14 @@ RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 
 %.dis: %.riscv
 	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objdump --disassemble-all $<
+
+#added the '0x' prefix and and a ',' prefix to each line except the last line.
+#can be used to initialize a vector in C launguage.
+%.vec.c: %.hex
+	sed -e '$$ ! s/.*/0x&,/' $< | sed -e '$$ s/.*/0x&/'	 > $@
+	sed -i -e '1i \int manycore_mem_vect [ $(BSG_MANYCORE_BANKSIZE) ] __attribute__ ( (aligned ($(BSG_MANYCORE_BANKSIZE)* $(BSG_MANYCORE_BANKS)) ) ) = {' $@
+	sed -i -e '$$a \}  ;' $@
+	echo "int  bsg_rocc_manycore_mem_words=2048; "  >> $@
+
+%.riscv64:	%.riscv
+	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objcopy --output-target=elf64-littleriscv  $< $@

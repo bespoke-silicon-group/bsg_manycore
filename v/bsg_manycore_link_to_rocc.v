@@ -168,7 +168,7 @@ module  bsg_manycore_link_to_rocc
     assign get_manycore_pkt.op     = rocket_addr_s.cfg ? rocc_write_cfg_op_gp : rocc_write_store_op_gp;           
 
     //this is acutally the mask
-    assign get_manycore_pkt.op_ex  = 'b1;
+    assign get_manycore_pkt.op_ex  = 4'b1111;
 
     // remote top bit of address, which is the special op code space.
     // low bits are automatically cut off
