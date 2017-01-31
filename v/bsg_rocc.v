@@ -26,21 +26,21 @@ localparam rocc_write_store_op_gp       = 2'b01;
 localparam rocc_write_cfg_op_gp         = 2'b10;
 /////////////////////////////////////////////////////////////////////
 //different command and type defines.
-  typedef enum logic[rocc_instr_funct7_width_gp-1:0] { 
+  typedef enum logic[rocc_instr_funct7_width_gp-1:0] {
         eRoCC_core_write    =rocc_instr_funct7_width_gp'(0),
         eRoCC_core_seg_addr =rocc_instr_funct7_width_gp'(1)
   }eRoCC_core_cmd;
 
-  typedef enum logic[rocc_mem_cmd_width_gp-1:0] { 
+  typedef enum logic[rocc_mem_cmd_width_gp-1:0] {
         eRoCC_mem_load      =rocc_mem_cmd_width_gp'(0),
-        eRoCC_mem_store     =rocc_mem_cmd_width_gp'(1) 
+        eRoCC_mem_store     =rocc_mem_cmd_width_gp'(1)
   }eRoCC_mem_cmd;
 
-  typedef enum logic[rocc_mem_typ_width_gp-1:0] { 
+  typedef enum logic[rocc_mem_typ_width_gp-1:0] {
         eRoCC_mem_8bits     =rocc_mem_typ_width_gp'(0),
         eRoCC_mem_16bits    =rocc_mem_typ_width_gp'(1),
-        eRoCC_mem_32bits    =rocc_mem_typ_width_gp'(3),
-        eRoCC_mem_64bits    =rocc_mem_typ_width_gp'(4) 
+        eRoCC_mem_32bits    =rocc_mem_typ_width_gp'(2),
+        eRoCC_mem_64bits    =rocc_mem_typ_width_gp'(3)
   }eRoCC_mem_typ;
 
 /////////////////////////////////////////////////////////////////////
@@ -86,9 +86,9 @@ typedef struct packed{
     //tag of different request, in case of out-of-order memory response
     logic [rocc_mem_tag_width_gp-1  :0]         req_tag;
     // 0000 for load, 0001 for store
-    eRoCC_mem_cmd                               req_cmd;   
+    eRoCC_mem_cmd                               req_cmd;
     // type for the request : 000=8bits, 0001=16bits, 010=32bits, 011=64bits
-    eRoCC_mem_typ                               req_typ;   
+    eRoCC_mem_typ                               req_typ;
     // whether the address is physical
     logic                                       req_phys;
     logic [rocc_data_width_gp-1     :0]         req_data;

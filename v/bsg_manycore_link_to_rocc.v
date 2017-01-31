@@ -4,7 +4,7 @@
 //====================================================================
 // This module acts as a converter between the bsg_manycore_link_sif
 // of a manycore and rocc interface.
-// 
+//
 // Pleas contact Prof Taylor for the document.
 //
 `include "bsg_rocc.v"
@@ -19,9 +19,9 @@ module  bsg_manycore_link_to_rocc
     , parameter bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
     , parameter debug_lp      =0
     )
-  ( 
+  (
    // manycore side: manycore_link_sif
-   //the manycore clock and reset 
+   //the manycore clock and reset
    // TODO: using the cross clock domain
    //  input manycore_clk_i
    //, input manycore_reset_i
@@ -37,17 +37,17 @@ module  bsg_manycore_link_to_rocc
    , input rocket_reset_i
 
    //core control signals
-   , input                              core_status_i   
+   , input                              core_status_i
    , input                              core_exception_i
-   , output                             acc_interrupt_o 
-   , output                             acc_busy_o      
+   , output                             acc_interrupt_o
+   , output                             acc_busy_o
    //command signals
    , input                              core_cmd_valid_i
    , input  rocc_core_cmd_s             core_cmd_s_i
    , output                             core_cmd_ready_o
 
    , output                             core_resp_valid_o
-   , output rocc_core_resp_s            core_resp_s_o  
+   , output rocc_core_resp_s            core_resp_s_o
    , input                              core_resp_ready_i
 
    //mem signals
@@ -62,9 +62,10 @@ module  bsg_manycore_link_to_rocc
    //local parameter definition
     localparam max_out_credits_lp =200;
     localparam packet_width_lp    = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+    localparam byte_addr_width_lp = addr_width_p + 2;
 
   ///////////////////////////////////////////////////////////////////////////////////
-  // instantiate the endpoint 
+  // instantiate the endpoint
   logic                                manycore2rocc_v    ;
   logic                                manycore2rocc_yumi ;
   logic [data_width_p-1:0]             manycore2rocc_data ;
@@ -77,7 +78,7 @@ module  bsg_manycore_link_to_rocc
 
   logic [$clog2(max_out_credits_lp+1)-1:0] out_credits     ;
 
-  bsg_manycore_endpoint_standard #( 
+  bsg_manycore_endpoint_standard #(
      .x_cord_width_p     ( x_cord_width_p )
     ,.y_cord_width_p     ( y_cord_width_p )
     ,.fifo_els_p         ( fifo_els_p     )
@@ -85,7 +86,7 @@ module  bsg_manycore_link_to_rocc
     ,.addr_width_p       ( addr_width_p   )
     ,.max_out_credits_p  ( max_out_credits_lp)
  )rocc_endpoint_standard
-   ( //TODO: changing to manycore clock domain. 
+   ( //TODO: changing to manycore clock domain.
      .clk_i         ( rocket_clk_i    )
     ,.reset_i       ( rocket_reset_i   )
 
@@ -116,30 +117,30 @@ module  bsg_manycore_link_to_rocc
 
   ///////////////////////////////////////////////////////////////////////////////////
   // Code for handling rocket command
- 
-  //write segment address register 
-  localparam seg_addr_width_lp = rocc_addr_width_gp - addr_width_p;
+
+  //write segment address register, which is BYTE address
+  localparam seg_addr_width_lp = rocc_addr_width_gp - byte_addr_width_lp;
   logic [seg_addr_width_lp-1:0]     seg_addr_r;
 
-  wire write_seg_en =     core_cmd_valid_i 
+  wire write_seg_en =     core_cmd_valid_i
                       & ( core_cmd_s_i.instr.funct7 == eRoCC_core_seg_addr );
- 
+
   always_ff@(posedge rocket_clk_i )
-    if( write_seg_en ) 
-        seg_addr_r <= core_cmd_s_i.rs1_val[ rocc_addr_width_gp-1 : addr_width_p ];
+    if( write_seg_en )
+        seg_addr_r <= core_cmd_s_i.rs1_val[ rocc_addr_width_gp-1 : byte_addr_width_lp ];
 
   //write manycore memory
-  assign rocc2manycore_v =   core_cmd_valid_i 
+  assign rocc2manycore_v =   core_cmd_valid_i
                          & ( core_cmd_s_i.instr.funct7 == eRoCC_core_write );
 
-  assign rocc2manycore_packet = get_manycore_pkt( core_cmd_s_i.rs1_val, 
+  assign rocc2manycore_packet = get_manycore_pkt( core_cmd_s_i.rs1_val,
                                                   core_cmd_s_i.rs2_val);
-   
+
   ///////////////////////////////////////////////////////////////////////////////////
   // Code for handling manycore store
   assign mem_req_valid_o    = manycore2rocc_v ;
   //if the rocket memory is ready, we complete the request
-  assign manycore2rocc_yumi = manycore2rocc_v & mem_req_ready_i ; 
+  assign manycore2rocc_yumi = manycore2rocc_v & mem_req_ready_i ;
   assign mem_req_s_o        = get_rocket_mem_req(   manycore2rocc_data,
                                                     manycore2rocc_mask,
                                                     manycore2rocc_addr  );
@@ -152,23 +153,35 @@ module  bsg_manycore_link_to_rocc
    assign   core_resp_s_o       =    'b0   ;
 
    assign   acc_interrupt_o     =   1'b0   ;
-   //TODO: Improve this with flow control
-   assign   acc_busy_o          =   1'b0   ;
 
+   ///////////////////////////////////////////////////////////////////////////////
+   //the busy signal
+   logic [$clog2(max_out_credits_lp+1)-1:0] rocket_out_credits_o ;
+   bsg_counter_up_down #(.max_val_p  (max_out_credits_lp)
+                         ,.init_val_p(max_out_credits_lp)
+                         ) out_credit_ctr
+     ( .clk_i    (rocket_clk_i )
+      ,.reset_i  (rocket_reset_i )
+      ,.down_i   (manycore2rocc_yumi    )  // launch remote store
+      ,.up_i     (mem_resp_valid_i      )  // receive credit back
+      ,.count_o  (rocket_out_credits_o  )
+      );
+
+   assign   acc_busy_o =  manycore2rocc_yumi|(rocket_out_credits_o != max_out_credits_lp);
   ///////////////////////////////////////////////////////////////////////////////////
-  // functions and tasks 
+  // functions and tasks
   function [rocc_addr_width_gp-1:0] get_rocket_addr( input logic [ addr_width_p-1 : 0]  manycore_addr);
-    return { seg_addr_r, manycore_addr };
-  endfunction 
+    return { seg_addr_r, manycore_addr,2'b0 };
+  endfunction
 
   //functions to encode the manycore packet
   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
-  function bsg_manycore_packet_s get_manycore_pkt( 
+  function bsg_manycore_packet_s get_manycore_pkt(
                              input rocc_manycore_addr_s               rocket_addr_s
                            , input logic [ rocc_data_width_gp-1 : 0]  rocket_value
                            );
 
-    assign get_manycore_pkt.op     = rocket_addr_s.cfg ? rocc_write_cfg_op_gp : rocc_write_store_op_gp;           
+    assign get_manycore_pkt.op     = rocket_addr_s.cfg ? rocc_write_cfg_op_gp : rocc_write_store_op_gp;
 
     //this is acutally the mask
     assign get_manycore_pkt.op_ex  = 4'b1111;
@@ -184,21 +197,21 @@ module  bsg_manycore_link_to_rocc
     assign get_manycore_pkt.return_pkt.x_cord = my_x_i;
     assign get_manycore_pkt.return_pkt.y_cord = my_y_i;
 
-  endfunction 
+  endfunction
 
-  //functions to encode the rocket memory request 
+  //functions to encode the rocket memory request
   function rocc_mem_req_s get_rocket_mem_req(input [data_width_p-1:0        ] data,
                                              input [(data_width_p>>3)-1:0   ] mask,
-                                             input [addr_width_p-1:0        ] addr
+                                             input [addr_width_p-1:0        ] word_addr
                                             );
-    assign get_rocket_mem_req.req_addr =  get_rocket_addr( addr )   ;
+    assign get_rocket_mem_req.req_addr =  get_rocket_addr( word_addr )   ;
     assign get_rocket_mem_req.req_tag  =  rocc_mem_tag_width_gp'(0) ;
-    assign get_rocket_mem_req.req_cmd  =  eRoCC_mem_store           ; 
-    //currently only support 32bits 
+    assign get_rocket_mem_req.req_cmd  =  eRoCC_mem_store           ;
+    //currently only support 32bits
     assign get_rocket_mem_req.req_typ  =  eRoCC_mem_32bits          ;
     assign get_rocket_mem_req.req_phys =  1'b1                      ;
-    assign get_rocket_mem_req.req_data =  rocc_data_width_gp'(data) ; 
-    
+    assign get_rocket_mem_req.req_data =  rocc_data_width_gp'(data) ;
+
   endfunction
 
   ///////////////////////////////////////////////////////////////////////////////////
@@ -207,8 +220,8 @@ module  bsg_manycore_link_to_rocc
     always@(negedge rocket_clk_i ) begin
       if( write_seg_en ) begin
         $display("Configuring Segment Register with value :\
-             %h, Seg Reg bitwidth=%d, Maycore Addr bitwidth=%d", seg_addr_r, seg_addr_width_lp, addr_width_p); 
-      end 
+             %h, Seg Reg bitwidth=%d, Maycore Byte Addr bitwidth=%d", seg_addr_r, seg_addr_width_lp, byte_addr_width_lp);
+      end
     end
   end
 

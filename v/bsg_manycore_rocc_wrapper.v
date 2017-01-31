@@ -5,7 +5,7 @@
 // This module wrapper the bsg_manycore with RoCC interface
 // The RoCC distributed at the south of the manycore.
 // ******* ID of each RoCC is (num_tiles_y, x)
-// ******* NUMBER of RoCC IS  LIMITED to 8 
+// ******* NUMBER of RoCC IS  LIMITED to 8
 //
 // Pleas contact Prof Taylor for the document.
 //
@@ -29,7 +29,7 @@ module bsg_manycore_rocc_wrapper
    ,parameter rocc_dist_vec_p = 0
 
     //////////////////////////////////////////////////////
-    //Parameters for manycore 
+    //Parameters for manycore
     // tile params
    ,parameter bank_size_p       = "inv"
    ,parameter num_banks_p       = "inv"
@@ -59,17 +59,17 @@ module bsg_manycore_rocc_wrapper
    ,input reset_i
 
    //core control signals
-   , input                      [rocc_num_p-1:0]  core_status_i   
+   , input                      [rocc_num_p-1:0]  core_status_i
    , input                      [rocc_num_p-1:0]  core_exception_i
-   , output                     [rocc_num_p-1:0]  acc_interrupt_o 
-   , output                     [rocc_num_p-1:0]  acc_busy_o      
+   , output                     [rocc_num_p-1:0]  acc_interrupt_o
+   , output                     [rocc_num_p-1:0]  acc_busy_o
    //command signals
    , input                      [rocc_num_p-1:0]  core_cmd_valid_i
    , input  rocc_core_cmd_s     [rocc_num_p-1:0]  core_cmd_s_i
    , output                     [rocc_num_p-1:0]  core_cmd_ready_o
 
    , output                     [rocc_num_p-1:0]  core_resp_valid_o
-   , output rocc_core_resp_s    [rocc_num_p-1:0]  core_resp_s_o  
+   , output rocc_core_resp_s    [rocc_num_p-1:0]  core_resp_s_o
    , input                      [rocc_num_p-1:0]  core_resp_ready_i
    //mem signals
    , output                     [rocc_num_p-1:0]  mem_req_valid_o
@@ -89,9 +89,9 @@ module bsg_manycore_rocc_wrapper
 
   bsg_manycore_link_sif_s [S:N][num_tiles_x_p-1:0] ver_link_li, ver_link_lo;
   bsg_manycore_link_sif_s [E:W][num_tiles_y_p-1:0] hor_link_li, hor_link_lo;
- 
+
   //instantiate the manycore
-  bsg_manycore # ( 
+  bsg_manycore # (
       .bank_size_p      (bank_size_p        )
      ,.imem_size_p      (imem_size_p        )
      ,.num_banks_p      (num_banks_p        )
@@ -104,7 +104,7 @@ module bsg_manycore_rocc_wrapper
      ,.stub_w_p     ({num_tiles_y_p{1'b1}})
      ,.stub_e_p     ({num_tiles_y_p{1'b1}})
      ,.stub_n_p     ({num_tiles_x_p{1'b1}})
-     // south side is unstubbed. 
+     // south side is unstubbed.
      ,.stub_s_p     ({num_tiles_x_p{1'b0}})
      ,.debug_p(debug_p)
      ,.extra_io_rows_p  ( extra_io_rows_p   )
@@ -166,17 +166,17 @@ module bsg_manycore_rocc_wrapper
      end
    /////////////////////////////////////////////////////////////////////////////////
    // Instantiate the RoCC interface
-   localparam  rocc_index_limit_lp = ( num_tiles_x_p > `ROCC_NUM_LIMITS ) 
+   localparam  rocc_index_limit_lp = ( num_tiles_x_p > `ROCC_NUM_LIMITS )
                                      ? `ROCC_NUM_LIMITS : num_tiles_x_p ;
    genvar io_ind;
    for( io_ind=0; io_ind < rocc_index_limit_lp; io_ind ++) begin: rocc_inst
         if( `GET_BYTE(rocc_dist_vec_p, io_ind)  != 0 ) begin: rocc_inst_real
             bsg_manycore_link_to_rocc
-            #(  .addr_width_p  (addr_width_p    ) 
-              , .data_width_p  (data_width_p    ) 
-              , .x_cord_width_p(x_cord_width_lp  ) 
-              , .y_cord_width_p(y_cord_width_lp  ) 
-              ) rocc ( 
+            #(  .addr_width_p  (addr_width_p    )
+              , .data_width_p  (data_width_p    )
+              , .x_cord_width_p(x_cord_width_lp  )
+              , .y_cord_width_p(y_cord_width_lp  )
+              ) rocc (
                  .my_x_i( x_cord_width_lp'(io_ind )       )
                 ,.my_y_i( y_cord_width_lp'(num_tiles_y_p) )
 
@@ -186,27 +186,27 @@ module bsg_manycore_rocc_wrapper
                 ,.rocket_clk_i  ( clk_i     )
                 ,.rocket_reset_i( reset_i   )
 
-                ,.core_status_i        (core_status_i    [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] ) 
+                ,.core_status_i        (core_status_i    [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.core_exception_i     (core_exception_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.acc_interrupt_o      (acc_interrupt_o  [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.acc_busy_o           (acc_busy_o       [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                                       
+
                 ,.core_cmd_valid_i     (core_cmd_valid_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.core_cmd_s_i         (core_cmd_s_i     [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.core_cmd_ready_o     (core_cmd_ready_o [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                                       
+
                 ,.core_resp_valid_o    (core_resp_valid_o[`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.core_resp_s_o        (core_resp_s_o    [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.core_resp_ready_i    (core_resp_ready_i[`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                                     
+
                 ,.mem_req_valid_o      (mem_req_valid_o  [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.mem_req_s_o          (mem_req_s_o      [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.mem_req_ready_i      (mem_req_ready_i  [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                                    
+
                 ,.mem_resp_valid_i     (mem_resp_valid_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.mem_resp_s_i         (mem_resp_s_i     [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
             );
-        //otherwise tieoff 
+        //otherwise tieoff
         end else begin: rocc_inst_tieoff
             bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_p)
                                            ,.data_width_p  (data_width_p)
@@ -238,9 +238,9 @@ module bsg_manycore_rocc_wrapper
    end: extra_tieoff
 
    /////////////////////////////////////////////////////////////////////////////////
-   // parameter check 
+   // parameter check
    // synopsys translate_off
-   int rocc_index = 1;
+   int rocc_index = 0;
    int k=0;
    initial begin
         assert( rocc_num_p <= num_tiles_x_p     )
@@ -249,16 +249,14 @@ module bsg_manycore_rocc_wrapper
         assert( rocc_num_p <= `ROCC_NUM_LIMITS  )
         else $error(" rocc_num_p must less than %d", `ROCC_NUM_LIMITS);
 
-        //validate the rocc_dis_vec_p 
+        //validate the rocc_dis_vec_p
         for( k = 0; k< `ROCC_NUM_LIMITS; k++) begin
             if( `GET_BYTE(rocc_dist_vec_p, k)  != 4'h0 ) begin
-
-                assert( rocc_index == `GET_BYTE(rocc_dist_vec_p,k) ) 
-                else $error(" the rocc index must inrease one by one ");
-
                 rocc_index++;
-            end 
-        end 
+                assert( rocc_index == `GET_BYTE(rocc_dist_vec_p,k) )
+                else $error(" the rocc index must inrease one by one ");
+            end
+        end
         if( rocc_num_p != 0 ) begin
              assert ( rocc_num_p == rocc_index )
              else $error("the rocc_num_p must match the maximum rocc index");
