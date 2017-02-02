@@ -434,8 +434,9 @@ assign rf_wd = (net_reg_write_cmd ? net_packet_r.data : wb.rf_data);
 // Register file chip enable signal
 // FPU depend stall will not affect register file write back
 // MEM load depend stall will not affect register file write back
-//assign rf_cen = (~ stall ) | (net_reg_write_cmd);
-   assign rf_cen= ~(stall | depend_stall );
+// assign rf_cen = (~ stall ) | (net_reg_write_cmd);
+ assign rf_cen= ~(stall | depend_stall );
+//   assign rf_cen=  ~stall ;
 
 // Instantiate the general purpose register file
 // This register file is write through, which means when read/write

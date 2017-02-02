@@ -85,12 +85,22 @@ module rf_2r1w_sync_wrapper  #(parameter width_p=-1
     wire [width_p-1:0]  r1_data_safe = r1_rw_same_addr_r ? w_data_r : r1_mem_data;
 
     //save the output if the pipleline is stalled.
-    logic [width_p-1:0] r0_data_r, r1_data_r;
+    logic [width_p-1:0]         r0_data_r, r1_data_r;
+    logic [addr_width_lp-1:0]   r0_addr_r, r1_addr_r;
     logic r0_v_r, r1_v_r;
 
+
     always_ff@( posedge clk_i ) begin
-        r0_data_r   <=  r0_data_o;
-        r1_data_r   <=  r1_data_o;
+        r0_addr_r   <=  r0_addr_i;
+        r1_addr_r   <=  r1_addr_i;
+    end
+
+    wire update_hold_reg0 = r0_v_r &&  w_v_i && (r0_addr_r == w_addr_i ) ;
+    wire update_hold_reg1 = r1_v_r &&  w_v_i && (r1_addr_r == w_addr_i ) ;
+
+    always_ff@( posedge clk_i ) begin
+        r0_data_r   <=  update_hold_reg0 ? w_data_i : r0_data_o;
+        r1_data_r   <=  update_hold_reg1 ? w_data_i : r1_data_o;
     end
 
     always_ff@( posedge clk_i) begin
