@@ -128,4 +128,10 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 
 #define bsg_commit_stores() do { bsg_fence(); /* fixme: add commit stores instr */  } while (0)
 
+// This micros are used to print the definiations in manycore program at compile time.
+// Useful for other program to the get the manycore configurations, like the number of tiles, buffer size etc.
+#define bsg_VALUE_TO_STRING(x) #x
+#define bsg_VALUE(x) bsg_VALUE_TO_STRING(x)
+#define bsg_VAR_NAME_VALUE(var) "MANYCORE_EXPORT #define " #var " "  bsg_VALUE(var)
+
 #endif

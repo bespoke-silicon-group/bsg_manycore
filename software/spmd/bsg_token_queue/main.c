@@ -1,10 +1,19 @@
-
-int sep[4];
-
 #define kBufferWindows 2
 #define kTransmitSize 100
 #define kBufferSize (kTransmitSize*kBufferWindows)
 #define kBlocks 100
+
+//////////////////////////////////////////////////////////////////
+//if this is the program running under Rocket control, we need a data structure 
+//to communicate with Rocket
+#ifdef ROCKET_MANYCORE
+
+#define MANYCORE_PROG
+#define MANYCORE_DST_BUF_LEN        kBlocks
+#include "bsg_manycore_buffer.h"
+
+#endif
+//////////////////////////////////////////////////////////////////
 
 int buffer[kBufferSize+10];
 
@@ -90,7 +99,7 @@ int main()
   {
     int sum=0;
     bsg_token_connection_t conn = bsg_tq_receive_connection(tq,0,0);
-    bsg_remote_int_ptr io_ptr = bsg_remote_ptr_io(0,0xCAB0);
+    bsg_remote_int_ptr io_ptr ;
     for (int i = 0; i < kBlocks; i++)
     {
 
@@ -101,6 +110,16 @@ int main()
       // with input parameters of kBufferWindows,1
 
       bsg_tq_receiver_confirm(conn,1);
+
+      #ifdef ROCKET_MANYCORE
+      io_ptr = bsg_remote_ptr_io(0,(( unsigned int )manycore_data_s.result  \
+                                        + manycore_data_s.base_addr         \
+                                        + i*4                               \
+                                   )                                        \
+                                 );
+      #else
+      io_ptr = bsg_remote_ptr_io(0,0xCAB0);
+      #endif
 
       sum = dest_process(sum,&ptr[bufIndex],io_ptr);
 
@@ -114,10 +133,21 @@ int main()
         ptr = buffer ;
       }
     }
-    bsg_finish();
+    #ifdef ROCKET_MANYCORE
+        bsg_rocc_finish(& manycore_data_s);        
+    #else
+        bsg_finish();
+    #endif
   }
 
   bsg_wait_while(1);
 }
+////////////////////////////////////////////////////////////////
+//Print the current manycore configurations
+#pragma message (bsg_VAR_NAME_VALUE( bsg_tiles_X )  )
+#pragma message (bsg_VAR_NAME_VALUE( bsg_tiles_Y )  )
+#pragma message (bsg_VAR_NAME_VALUE( kTransmitSize )  )
+#pragma message (bsg_VAR_NAME_VALUE( kBlocks )  )
+#pragma message (bsg_VAR_NAME_VALUE( kBufferSize )  )
 
 #endif

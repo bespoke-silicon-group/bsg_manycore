@@ -35,7 +35,7 @@ spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 
 %.o: %.c
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -c $(INCS) $< -o $@
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
 
 %.o: %.S
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -D__ASSEMBLY__=1 \
@@ -61,3 +61,6 @@ RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 
 %.riscv64:	%.riscv
 	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objcopy --output-target=elf64-littleriscv  $< $@
+
+%.cfg.h:    %.riscv
+	sed -n 's/^.*MANYCORE_EXPORT//p' *.comp.log > $@
