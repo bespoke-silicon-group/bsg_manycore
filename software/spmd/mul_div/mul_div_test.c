@@ -4,12 +4,14 @@
 
 extern int input[N];
 
-#define NUM_RES  4
+#define NUM_RES  8
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //    mul div  core
 int  mul_div_output[N]  = {0};
+
+// in C , 3%(-2) = 1, while in Python,  3%(-2) = -1
 int  mul_div_expect[N]  = {0xfffffffa, 0xffffffff, 0x00000002, 0xffffffff, \
-                           0xffffffff, 0x0,        0xffffffff, 0x00000003};
+                           0xffffffff, 0x0,        0x1, 0x00000003};
 
 int mul_div(int *src, int *dst){
 
@@ -23,7 +25,7 @@ int mul_div(int *src, int *dst){
   __asm__ __volatile__ ("div    s10,    t1, t0" );   //3/(-2) = -1 
   __asm__ __volatile__ ("divu   s9 ,    t1, t0" );   //3/FFFF_FFFE = 0 
 
-  __asm__ __volatile__ ("rem    s8 ,    t1, t0" );   //3%(-2) = -1
+  __asm__ __volatile__ ("rem    s8 ,    t1, t0" );   //3%(-2) = 1 
   __asm__ __volatile__ ("remu   s7 ,    t1, t0" );   //3%FFFF_FFFE = 3 
 
 
