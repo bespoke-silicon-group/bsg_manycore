@@ -34,35 +34,7 @@ typedef enum {  eALL_ZERO_FUNCS,    \
 
 void init_func_array( config_enum );
 
-//////////////////////////////////////////////////////////////////////////////////////////
-//the process will wait until the specified memory address was written with specific value
-inline void spin_cond(int * ptr,  int cond ) {
-    int tmp;
-    while(1){
-        tmp = bsg_lr( ptr );
-        if( tmp == cond ) return ;  //the data is ready, TODO:shall we clear the reservation?
-        else{
-            tmp = bsg_lr_aq( ptr );  //stall until somebody clear the reservation
-            if( tmp == cond ) return ; //return if data is expected, otherwise retry
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////
-//A delay function
-inline void spin_uncond(int cycles){
-    do{
-     __asm__ __volatile__ ("nop"  );
-    }while( ( cycles --) > 0);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////
-//print buffer content
-inline void print_buff( tag_data_s * pData, int len){
-    for( int i=0; i< len ; i ++ ){
-        bsg_remote_ptr_io_store(0, &(pData[i].data), pData[i].data);
-    }
-}
 
 #include "chained_config.h"
+
 #endif

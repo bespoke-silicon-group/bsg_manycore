@@ -27,6 +27,14 @@
 #include "bsg_set_tile_x_y.h"
 #include "chained_core.h"
 
+#ifdef ROCKET_MANYCORE
+
+#define MANYCORE_PROG
+#define MANYCORE_DST_BUF_LEN        BUF_LEN
+#include "bsg_manycore_buffer.h"
+
+#endif
+
 extern proc_func_ptr func_array[];
 
 //The requst number, while will updated by remote store
@@ -41,6 +49,9 @@ int ready_num[2]  ={0};
 //the vector data, two pools run in round robin manner
 tag_data_s buffer[2][BUF_LEN] = {0};
 
+inline void spin_cond(int * ptr,  int cond ); 
+inline void spin_uncond(int cycles);
+inline void print_buff( tag_data_s * pData, int len);
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //code runs on processor
@@ -127,8 +138,56 @@ int main()
 
   proc( id );
 
-  if( id == ( bsg_num_tiles  -1 ) ) bsg_finish();
+  if( id == ( bsg_num_tiles  -1 ) ){
+    #ifdef ROCKET_MANYCORE
+        bsg_rocc_finish(& manycore_data_s);
+    #else
+        bsg_finish();
+    #endif
+  }
 
   bsg_wait_while(1);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+//the process will wait until the specified memory address was written with specific value
+inline void spin_cond(int * ptr,  int cond ) {
+    int tmp;
+    while(1){
+        tmp = bsg_lr( ptr );
+        if( tmp == cond ) return ;  //the data is ready, TODO:shall we clear the reservation?
+        else{
+            tmp = bsg_lr_aq( ptr );  //stall until somebody clear the reservation
+            if( tmp == cond ) return ; //return if data is expected, otherwise retry
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//A delay function
+inline void spin_uncond(int cycles){
+    do{
+     __asm__ __volatile__ ("nop"  );
+    }while( ( cycles --) > 0);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//print buffer content
+inline void print_buff( tag_data_s * pData, int len){
+    tag_data_s  *pTmpData;
+    #ifdef ROCKET_MANYCORE
+        manycore_task_s *pRocketViewTask = bsg_rocket_view_task( &manycore_data_s);
+        pTmpData = (tag_data_s *)( pRocketViewTask->result );
+    #else
+        pTmpData = pData;
+    #endif
+    for( int i=0; i< len ; i ++ ){
+        bsg_remote_ptr_io_store(0, &(pTmpData[i].data), pData[i].data);
+    }
+}
+////////////////////////////////////////////////////////////////
+//Print the current manycore configurations
+#pragma message (bsg_VAR_NAME_VALUE( bsg_tiles_X )  )
+#pragma message (bsg_VAR_NAME_VALUE( bsg_tiles_Y )  )
+#pragma message (bsg_VAR_NAME_VALUE( MAX_ROUND_NUM )  )
+#pragma message (bsg_VAR_NAME_VALUE( BUF_LEN )  )
