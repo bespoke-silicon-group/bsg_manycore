@@ -17,13 +17,13 @@ module bsg_manycore_link_sif_async_buffer
     //the left side signal 
     input                                       clk_left_i
    ,input                                       reset_left_i
-   ,input [bsg_manycore_link_sif_width_lp-1:0] link_sif_left_i
-   ,input [bsg_manycore_link_sif_width_lp-1:0] link_sif_left_o
+   ,input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_left_i
+   ,output [bsg_manycore_link_sif_width_lp-1:0] link_sif_left_o
     //the right side signal
-   ,input                                      clk_right_i
-   ,input                                      reset_right_i
-   ,input [bsg_manycore_link_sif_width_lp-1:0] link_sif_right_i
-   ,input [bsg_manycore_link_sif_width_lp-1:0] link_sif_right_o
+   ,input                                       clk_right_i
+   ,input                                       reset_right_i
+   ,input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_right_i
+   ,output [bsg_manycore_link_sif_width_lp-1:0] link_sif_right_o
    ); 
    ////////////////////////////////////////////////////////////////////////////////////////
    // Declear the cast structures. 
@@ -75,7 +75,7 @@ module bsg_manycore_link_sif_async_buffer
     );
 
     assign l2r_fwd_w_enq    =  (~ l2r_fwd_w_full ) & link_sif_left_i_cast.fwd.v     ;
-    assign l2r_fwd_w_enq    =                        link_sif_left_i_cast.fwd.data  ;
+    assign l2r_fwd_w_data   =                        link_sif_left_i_cast.fwd.data  ;
     assign link_sif_left_o_cast.fwd.ready_and_rev = ~l2r_fwd_w_full                 ;
 
     assign l2r_fwd_r_deq    =  l2r_fwd_r_valid     & link_sif_right_i_cast.fwd.ready_and_rev;
@@ -110,7 +110,7 @@ module bsg_manycore_link_sif_async_buffer
     );
 
     assign r2l_rev_w_enq    =  (~ r2l_rev_w_full ) & link_sif_right_i_cast.rev.v     ;
-    assign r2l_rev_w_enq    =                        link_sif_right_i_cast.rev.data  ;
+    assign r2l_rev_w_data   =                        link_sif_right_i_cast.rev.data  ;
     assign link_sif_right_o_cast.rev.ready_and_rev = ~r2l_rev_w_full                 ;
 
     assign r2l_rev_r_deq    =  r2l_rev_r_valid     & link_sif_left_i_cast.rev.ready_and_rev;
@@ -146,7 +146,7 @@ module bsg_manycore_link_sif_async_buffer
     );
 
     assign l2r_rev_w_enq    =  (~ l2r_rev_w_full ) & link_sif_left_i_cast.rev.v     ;
-    assign l2r_rev_w_enq    =                        link_sif_left_i_cast.rev.data  ;
+    assign l2r_rev_w_data   =                        link_sif_left_i_cast.rev.data  ;
     assign link_sif_left_o_cast.rev.ready_and_rev = ~l2r_rev_w_full                 ;
 
     assign l2r_rev_r_deq    =  l2r_rev_r_valid     & link_sif_right_i_cast.rev.ready_and_rev;
@@ -182,10 +182,10 @@ module bsg_manycore_link_sif_async_buffer
     );
 
     assign r2l_fwd_w_enq    =  (~ r2l_fwd_w_full ) & link_sif_right_i_cast.fwd.v     ;
-    assign r2l_fwd_w_enq    =                        link_sif_right_i_cast.fwd.data  ;
-    assign link_sif_right_o_cast.fwd.ready_and_fwd = ~r2l_fwd_w_full                 ;
+    assign r2l_fwd_w_data   =                        link_sif_right_i_cast.fwd.data  ;
+    assign link_sif_right_o_cast.fwd.ready_and_rev = ~r2l_fwd_w_full                 ;
 
-    assign r2l_fwd_r_deq    =  r2l_fwd_r_valid     & link_sif_left_i_cast.fwd.ready_and_fwd;
+    assign r2l_fwd_r_deq    =  r2l_fwd_r_valid     & link_sif_left_i_cast.fwd.ready_and_rev;
     assign link_sif_left_o_cast.fwd.v            = r2l_fwd_r_valid                 ;
     assign link_sif_left_o_cast.fwd.data         = r2l_fwd_r_data                  ;
 endmodule
