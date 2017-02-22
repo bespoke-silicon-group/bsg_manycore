@@ -20,6 +20,7 @@ localparam rocc_mem_cmd_width_gp        = 5;
 localparam rocc_mem_typ_width_gp        = 3;
 localparam rocc_y_cord_width_gp         = 15;
 localparam rocc_x_cord_width_gp         = 16;
+localparam rocc_cfg_width_gp            = 16;
 //the parameter for rocc write command
 localparam rocc_write_addr_width_gp     = 32;
 localparam rocc_write_store_op_gp       = 2'b01;
@@ -28,7 +29,11 @@ localparam rocc_write_cfg_op_gp         = 2'b10;
 //different command and type defines.
   typedef enum logic[rocc_instr_funct7_width_gp-1:0] {
         eRoCC_core_write    =rocc_instr_funct7_width_gp'(0),
-        eRoCC_core_seg_addr =rocc_instr_funct7_width_gp'(1)
+        eRoCC_core_seg_addr =rocc_instr_funct7_width_gp'(1),
+        eRoCC_core_dma_addr =rocc_instr_funct7_width_gp'(2),
+        eRoCC_core_dma_skip =rocc_instr_funct7_width_gp'(3),
+        eRoCC_core_dma_xfer =rocc_instr_funct7_width_gp'(4),
+        eRoCC_core_dma_fence=rocc_instr_funct7_width_gp'(5)
   }eRoCC_core_cmd;
 
   typedef enum logic[rocc_mem_cmd_width_gp-1:0] {
@@ -43,8 +48,15 @@ localparam rocc_write_cfg_op_gp         = 2'b10;
         eRoCC_mem_64bits    =rocc_mem_typ_width_gp'(3)
   }eRoCC_mem_typ;
 
+////////////////////////////////////////////////////////////////////
+//The state machine
+    localparam dma_stat_bits_lp = 1 ;
+    typedef enum logic[dma_stat_bits_lp-1:0] {
+        eRoCC_dma_idle    = dma_stat_bits_lp'(0),
+        eRoCC_dma_busy    = dma_stat_bits_lp'(1)
+    }eRoCC_dma_stat;
 /////////////////////////////////////////////////////////////////////
-//the instrruction foramt of the rocc
+//the instruction foramt of the rocc
 typedef struct packed {
   logic [rocc_instr_funct7_width_gp-1:0]        funct7;
   logic [rocc_reg_addr_width_gp-1:0]            rs2;
