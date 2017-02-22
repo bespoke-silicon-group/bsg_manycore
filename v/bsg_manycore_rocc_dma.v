@@ -238,13 +238,13 @@ module bsg_manycore_rocc_dma #(
 //functions to encode the rocket memory request
   function rocc_mem_req_s get_rocket_load_req( input [rocc_mem_addr_width_gp-1:0 ] addr
                                             );
-    assign get_rocket_mem_req.req_addr =  addr  ;
-    assign get_rocket_mem_req.req_tag  =  rocc_mem_tag_width_gp'(0) ;
-    assign get_rocket_mem_req.req_cmd  =  eRoCC_mem_load            ;
+    assign get_rocket_load_req.req_addr =  addr  ;
+    assign get_rocket_load_req.req_tag  =  rocc_mem_tag_width_gp'(0) ;
+    assign get_rocket_load_req.req_cmd  =  eRoCC_mem_load            ;
     //currently only support 32bits
-    assign get_rocket_mem_req.req_typ  =  eRoCC_mem_32bits          ;
-    assign get_rocket_mem_req.req_phys =  1'b1                      ;
-    assign get_rocket_mem_req.req_data =  rocc_data_width_gp'(0)    ;
+    assign get_rocket_load_req.req_typ  =  eRoCC_mem_32bits          ;
+    assign get_rocket_load_req.req_phys =  1'b1                      ;
+    assign get_rocket_load_req.req_data =  rocc_data_width_gp'(0)    ;
 
   endfunction
 /////////////////////////////////////////////////////////////////////////

@@ -142,19 +142,21 @@ module  bsg_manycore_link_to_rocc
   //control signals coming from core
   wire is_core_write = ( core_cmd_s_i.instr.funct7 == eRoCC_core_write );
 
+  rocc_manycore_addr_s      core_rocc2manycore_addr_s;
   wire [data_width_p-1:0]   core_rocc2manycore_data  = core_cmd_s_i.rs2_val[data_width_p-1:0];
-  rocc_manycore_addr_s      core_rocc2manycore_addr_s= core_cmd_s_i.rs1_val;
   wire                      core_rocc2manycore_v     = core_cmd_valid_i & is_core_write;
+  assign                    core_rocc2manycore_addr_s= core_cmd_s_i.rs1_val;
 
 
   //merged control signals sent to manycore
   //DMA and core can't write at the same time. ready signal to core will be
   //disasserted while DMA is running.
+  rocc_manycore_addr_s    mc_addr_s ;
   wire              is_mc_write_cmd = dma_rocc2manycore_v | core_rocc2manycore_v;
-  rocc_manycore_addr_s    mc_addr_s = dma_rocc2manycore_v ? dma_rocc2manycore_addr_s
-                                                          : core_rocc2manycore_addr_s;
   wire [data_width_p-1:0] mc_data   = dma_rocc2manycore_v ? dma_rocc2manycore_data
                                                           : core_rocc2manycore_data ;
+  assign                  mc_addr_s = dma_rocc2manycore_v ? dma_rocc2manycore_addr_s
+                                                          : core_rocc2manycore_addr_s;
 
   assign rocc2manycore_v        = core_cmd_valid_i &  is_mc_write_cmd;
   assign rocc2manycore_packet   = get_manycore_pkt( mc_addr_s, mc_data);
@@ -163,7 +165,8 @@ module  bsg_manycore_link_to_rocc
   // Code for accessing rocket memory
   // Mancyore and DMA can't access the rocket memory at the same time. We
   // won't yumi the fifo while DMA is running
-  rocc_mem_req_s    mc_mem_req_s = get_rocket_mem_req(   manycore2rocc_data,
+  rocc_mem_req_s    mc_mem_req_s;
+  assign            mc_mem_req_s = get_rocket_mem_req(   manycore2rocc_data,
                                                          manycore2rocc_mask,
                                                          manycore2rocc_addr  );
   assign mem_req_valid_o    = dma_mem_req_valid | manycore2rocc_v ;
@@ -180,8 +183,8 @@ bsg_manycore_rocc_dma #(
        ,.data_width_p ( data_width_p )
        ,.cfg_width_p  ( rocc_cfg_width_gp  )
     )rocc_dma_controller(
-       .clk_i                (clk_i          )
-      ,.reset_i              (reset_i        )
+       .clk_i                (rocket_clk_i          )
+      ,.reset_i              (rocket_reset_i        )
       //command signals
       ,.core_cmd_valid_i     (core_cmd_valid_i   )
       ,.core_cmd_s_i         (core_cmd_s_i       )
