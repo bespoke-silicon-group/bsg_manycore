@@ -144,7 +144,7 @@ module  bsg_manycore_link_to_rocc
 
   rocc_manycore_addr_s      core_rocc2manycore_addr_s;
   wire [data_width_p-1:0]   core_rocc2manycore_data  = core_cmd_s_i.rs2_val[data_width_p-1:0];
-  wire                      core_rocc2manycore_v     = core_cmd_valid_i & is_core_write;
+  wire                      is_mc_write_cmd     = core_cmd_valid_i & is_core_write;
   assign                    core_rocc2manycore_addr_s= core_cmd_s_i.rs1_val;
 
 
@@ -152,14 +152,13 @@ module  bsg_manycore_link_to_rocc
   //DMA and core can't write at the same time. ready signal to core will be
   //disasserted while DMA is running.
   rocc_manycore_addr_s    mc_addr_s ;
-  wire              is_mc_write_cmd = dma_rocc2manycore_v | core_rocc2manycore_v;
   wire [data_width_p-1:0] mc_data   = dma_rocc2manycore_v ? dma_rocc2manycore_data
                                                           : core_rocc2manycore_data ;
   assign                  mc_addr_s = dma_rocc2manycore_v ? dma_rocc2manycore_addr_s
                                                           : core_rocc2manycore_addr_s;
 
-  assign rocc2manycore_v        = core_cmd_valid_i &  is_mc_write_cmd;
-  assign rocc2manycore_packet   = get_manycore_pkt( mc_addr_s, mc_data);
+  assign rocc2manycore_v        = dma_rocc2manycore_v | is_mc_write_cmd ;
+  assign rocc2manycore_packet   = get_manycore_pkt( mc_addr_s, mc_data) ;
 
   ///////////////////////////////////////////////////////////////////////////////////
   // Code for accessing rocket memory
@@ -205,7 +204,7 @@ bsg_manycore_rocc_dma #(
       ,.rocc2manycore_v_o        (dma_rocc2manycore_v     )
       ,.rocc2manycore_addr_s_o   (dma_rocc2manycore_addr_s)
       ,.rocc2manycore_data_o     (dma_rocc2manycore_data  )
-      ,.rocc2manycore_ready_i    (rocc2manycore_ready_i   )
+      ,.rocc2manycore_ready_i    (rocc2manycore_ready   )
 
       //DMA status signals
       ,.mem_req_credit_i         (dma_mem_req_credit      )
@@ -224,13 +223,13 @@ bsg_manycore_rocc_dma #(
       ,.count_o  (rocket_out_credits_o  )
       );
    //only allows 1 pending rocket memory request
-   assign dma_mem_req_credit = rocket_out_credits_o >= (max_out_credits_lp -1);
+   assign dma_mem_req_credit = rocket_out_credits_o > (max_out_credits_lp -1);
   ///////////////////////////////////////////////////////////////////////////////////
   // assign the outputs to rocc_core
    assign   core_cmd_ready_o    =   rocc2manycore_ready & dma_core_cmd_ready  ;
 
    assign   acc_interrupt_o     =   1'b0   ;
-   assign   acc_busy_o =  (rocket_out_credits_o != max_out_credits_lp);
+   assign   acc_busy_o =  (rocket_out_credits_o != max_out_credits_lp) | (~dma_core_cmd_ready);
   ///////////////////////////////////////////////////////////////////////////////////
   // functions and tasks
   function [rocc_addr_width_gp-1:0] get_rocket_addr( input logic [ addr_width_p-1 : 0]  manycore_addr);

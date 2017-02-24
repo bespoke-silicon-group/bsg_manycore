@@ -53,6 +53,8 @@ module bsg_manycore_rocc_dma #(
 /////////////////////////////////////////////////////////////////////////
 // manycore address registers.
    logic [rocc_addr_width_gp-1 : 0   ]         manycore_byte_addr_r;
+   //save the address that will send to the manycore
+   logic [rocc_addr_width_gp-1 : 0   ]         manycore_byte_addr_r_r;
 
    wire manycore_addr_cfg_en    = core_cmd_valid_i
                               & ( core_cmd_s_i.instr.funct7 == eRoCC_core_dma_addr);
@@ -67,6 +69,10 @@ module bsg_manycore_rocc_dma #(
    if( reset_i)                     manycore_byte_addr_r <= 'b0;
    else if( manycore_addr_cfg_en)   manycore_byte_addr_r <= manycore_addr_cfg_value;
    else if( manycore_addr_update_en)manycore_byte_addr_r <= manycore_addr_update_value;
+   end
+
+   always_ff@(posedge clk_i) begin
+        if( manycore_addr_update_en) manycore_byte_addr_r_r <= manycore_byte_addr_r ;
    end
 
 /////////////////////////////////////////////////////////////////////////
@@ -175,7 +181,7 @@ module bsg_manycore_rocc_dma #(
   wire run_word_overflowed;
   bsg_counter_en_overflow #( .width_p ( cfg_width_p-2 ) ) run_word_counter (
         .clk_i      ( clk_i                                     )
-       ,.reset_i    ( reset_i   & run_bytes_cfg_en              )
+       ,.reset_i    ( reset_i   | run_bytes_cfg_en              )
        ,.en_i       ( rocket_mem_req_valid                      )
        ,.limit_i    ( run_bytes_r[cfg_width_p-1:2]              )
        ,.counter_o  (                                           )
@@ -186,7 +192,7 @@ module bsg_manycore_rocc_dma #(
   wire repeats_overflowed;
   bsg_counter_en_overflow #( .width_p ( cfg_width_p) ) repeats_counter (
         .clk_i      ( clk_i                                     )
-       ,.reset_i    ( reset_i  & repeats_cfg_en                 )
+       ,.reset_i    ( reset_i  | repeats_cfg_en                 )
        ,.en_i       ( run_word_overflowed & rocket_mem_req_valid)
        ,.limit_i    ( repeats_r                                 )
        ,.counter_o  (                                           )
@@ -233,7 +239,7 @@ module bsg_manycore_rocc_dma #(
                                   & ( mem_resp_s_i.resp_cmd == eRoCC_mem_load);
 
    assign rocc2manycore_data_o      = mem_resp_s_i.resp_data[ data_width_p-1:0] ;
-   assign rocc2manycore_addr_s_o    = manycore_byte_addr_r                      ;
+   assign rocc2manycore_addr_s_o    = manycore_byte_addr_r_r                    ;
 
 //functions to encode the rocket memory request
   function rocc_mem_req_s get_rocket_load_req( input [rocc_mem_addr_width_gp-1:0 ] addr
