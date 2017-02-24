@@ -32,8 +32,8 @@ localparam rocc_write_cfg_op_gp         = 2'b10;
         eRoCC_core_seg_addr =rocc_instr_funct7_width_gp'(1),
         eRoCC_core_dma_addr =rocc_instr_funct7_width_gp'(2),
         eRoCC_core_dma_skip =rocc_instr_funct7_width_gp'(3),
-        eRoCC_core_dma_xfer =rocc_instr_funct7_width_gp'(4),
-        eRoCC_core_dma_fence=rocc_instr_funct7_width_gp'(5)
+        eRoCC_core_dma_xfer =rocc_instr_funct7_width_gp'(4)
+//        eRoCC_core_dma_fence=rocc_instr_funct7_width_gp'(5)
   }eRoCC_core_cmd;
 
   typedef enum logic[rocc_mem_cmd_width_gp-1:0] {

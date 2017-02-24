@@ -254,6 +254,7 @@ module bsg_manycore_rocc_dma #(
 
   endfunction
 /////////////////////////////////////////////////////////////////////////
+/*
   logic [2*cfg_width_p-1:0] bytes_transferred_r;
   always_ff@(posedge clk_i) begin
     if( reset_i )                   bytes_transferred_r <= '0;
@@ -267,9 +268,11 @@ module bsg_manycore_rocc_dma #(
     else if(core_fence_req)     core_fence_req_r <= 1'b1;
     else if(core_resp_valid_o)  core_fence_req_r <= 1'b0;
   end
-
   assign core_resp_valid_o        = core_fence_req_r & core_cmd_ready_o;
 
   assign core_resp_s_o            = { {zero_ext_lp'(0)}, bytes_transferred_r};
+*/
+  assign core_resp_valid_o        = 1'b0;
+  assign core_resp_s_o            =  'b0;
   assign core_cmd_ready_o         = (curr_stat_e_r != eRoCC_dma_busy);
 endmodule
