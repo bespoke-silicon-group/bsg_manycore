@@ -203,14 +203,14 @@ module bsg_manycore_rocc_dma #(
 //the manycore address update
   assign manycore_addr_update_en    = rocket_mem_req_valid ;
   assign manycore_addr_update_value = run_word_overflowed
-                                    ? (manycore_byte_addr_r + manycore_byte_skip_r)
-                                    : (manycore_byte_addr_r + 4                   )  ;
+                                    ? (manycore_byte_addr_r + manycore_byte_skip_r+4)
+                                    : (manycore_byte_addr_r + 4                     )  ;
 
 //the rocket address update
   assign rocket_addr_update_en    = rocket_mem_req_valid ;
   assign rocket_addr_update_value = run_word_overflowed
-                                    ? (rocket_byte_addr_r + rocket_byte_skip_r)
-                                    : (rocket_byte_addr_r + 4                 )   ;
+                                    ? (rocket_byte_addr_r + rocket_byte_skip_r + 4 )
+                                    : (rocket_byte_addr_r + 4                      )   ;
 
 /////////////////////////////////////////////////////////////////////////
 // The signals to the rocket memory
