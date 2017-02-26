@@ -205,6 +205,11 @@ LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_accel_default.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkt_decode.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkt_encode.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_to_rocc.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_async_buffer.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_rocc_wrapper.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_rocc_dma.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_counter_en_overflow.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_profiler.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_spmd_loader.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_monitor.v
@@ -264,7 +269,7 @@ endif
     $(addprefix $(INC_OP), $(DESIGN_INCS) )\
     $(DESIGN_HDRS) $(DESIGN_SRCS)   \
     $(TOP_LEVEL) $<
-	./simv
+	#./simv
 
 %.hardfloat_src:
 	@if [ ! -f $(HARDFLOAT_VSRC) ]; then \

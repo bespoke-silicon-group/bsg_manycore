@@ -208,12 +208,14 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
    always_ff @(negedge clk_i)
      assert ( (reset_i_r!==0) | ~link_sif_i_cast.rev.v | ({return_packet.y_cord, return_packet.x_cord} == {my_y_i, my_x_i}))
-       else
+       else begin
          $error("## errant credit packet v=%b for YX=%d,%d landed at YX=%d,%d (%m)"
                 ,link_sif_i_cast.rev.v
                 ,link_sif_i_cast.rev.data[x_cord_width_p+:y_cord_width_p]
                 ,link_sif_i_cast.rev.data[0+:x_cord_width_p]
                 ,my_y_i,my_x_i);
+        $finish();
+       end
 // synopsys translate_on
 
 endmodule

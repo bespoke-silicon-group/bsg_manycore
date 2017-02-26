@@ -56,6 +56,7 @@ module bsg_manycore_rocc_wrapper
 
   )
   ( input clk_i
+   ,input manycore_clk_i
    ,input reset_i
 
    //core control signals
@@ -89,43 +90,20 @@ module bsg_manycore_rocc_wrapper
 
   bsg_manycore_link_sif_s [S:N][num_tiles_x_p-1:0] ver_link_li, ver_link_lo;
   bsg_manycore_link_sif_s [E:W][num_tiles_y_p-1:0] hor_link_li, hor_link_lo;
-  ////////////////////////////////////////////////////////////////////////////////
-  // A seperate clock domain for Manycore
-  // synopsys translate_off
-  localparam cycle_time_lp          = 13;
 
-  wire manycore_clock;
+
+
+  //synchornize the main reset to manycore reset domain
   wire manycore_reset;
   logic reset_done_r;
 
-  bsg_nonsynth_clock_gen #( .cycle_time_p(cycle_time_lp)
-                          ) clock_gen
-                          ( .o(manycore_clock)
-                          );
-
   always_ff@( posedge clk_i )   reset_done_r <= reset_i;
 
-  /*
-  bsg_nonsynth_reset_gen #(  .num_clocks_p     (1)
-                           , .reset_cycles_lo_p(1)
-                           , .reset_cycles_hi_p(10)
-                          )  reset_gen
-                          (  .clk_i        (manycore_clock)
-                           , .async_reset_o(manycore_reset)
-                          );
-  */
-  //assign manycore_clock = clk_i;
   bsg_sync_sync#(.width_p (1) )manycore_reset_sync(
-        . oclk_i        ( manycore_clock)
+        . oclk_i        ( manycore_clk_i)
        ,. iclk_data_i   ( reset_done_r  )
        ,. oclk_data_o   ( manycore_reset)
   );
-  initial begin
-    $warning("===================================================");
-    $warning("%m.bsg_nonsynth_clock_gen:REMOVE THIS IN ACTUAL DESIGN");
-    $warning("===================================================");
-  end
-  // synopsys translate_on
 
   //instantiate the manycore
   bsg_manycore # (
@@ -147,8 +125,8 @@ module bsg_manycore_rocc_wrapper
      ,.extra_io_rows_p  ( extra_io_rows_p   )
      ,.repeater_output_p( repeater_output_p )
     ) UUT
-      (  .clk_i   (manycore_clock   )
-        ,.reset_i (manycore_reset )
+      (  .clk_i   (manycore_clk_i     )
+        ,.reset_i (manycore_reset     )
 
         ,.hor_link_sif_i(hor_link_li)
         ,.hor_link_sif_o(hor_link_lo)
@@ -217,8 +195,8 @@ module bsg_manycore_rocc_wrapper
               ,.y_cord_width_p(y_cord_width_lp)
               ,.fifo_els_p    (4)
             )manycore_rocc_async_buffer(
-            .clk_left_i     ( manycore_clock  )
-           ,.reset_left_i   ( manycore_reset)
+            .clk_left_i     ( manycore_clk_i  )
+           ,.reset_left_i   ( manycore_reset  )
            ,.link_sif_left_i( ver_link_lo[S][ io_ind ])
            ,.link_sif_left_o( ver_link_li[S][ io_ind ])
 
