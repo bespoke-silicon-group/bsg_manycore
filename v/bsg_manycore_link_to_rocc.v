@@ -243,21 +243,25 @@ bsg_manycore_rocc_dma #(
                            , input [data_width_p-1 : 0]               manycore_value
                            );
 
-    assign get_manycore_pkt.op     = rocket_addr_s.cfg ? rocc_write_cfg_op_gp : rocc_write_store_op_gp;
+          get_manycore_pkt = '{
+                                op     : rocket_addr_s.cfg
+                                       ? rocc_write_cfg_op_gp : rocc_write_store_op_gp,
 
-    //this is acutally the mask
-    assign get_manycore_pkt.op_ex  = 4'b1111;
+                                //this is acutally the mask
+                                op_ex  : 4'b1111                                      ,
 
-    // remote top bit of address, which is the special op code space.
-    // low bits are automatically cut off
-    assign get_manycore_pkt.addr   = rocket_addr_s.word_addr  [ addr_width_p-1: 0];
+                                // remote top bit of address, which is the special op code space.
+                                // low bits are automatically cut off
+                                addr   : rocket_addr_s.word_addr  [ addr_width_p-1: 0],
 
-    assign get_manycore_pkt.data   = manycore_value                                 ;
-    assign get_manycore_pkt.x_cord = rocket_addr_s.x_cord     [ x_cord_width_p-1: 0];
-    assign get_manycore_pkt.y_cord = rocket_addr_s.y_cord     [ y_cord_width_p-1: 0];
+                                data   : manycore_value                                 ,
+                                x_cord : rocket_addr_s.x_cord     [ x_cord_width_p-1: 0],
+                                y_cord : rocket_addr_s.y_cord     [ y_cord_width_p-1: 0],
 
-    assign get_manycore_pkt.return_pkt.x_cord = my_x_i;
-    assign get_manycore_pkt.return_pkt.y_cord = my_y_i;
+                                return_pkt : '{ x_cord : my_x_i,
+                                                y_cord : my_y_i
+                                              }
+                               };
 
   endfunction
 
@@ -266,13 +270,13 @@ bsg_manycore_rocc_dma #(
                                              input [(data_width_p>>3)-1:0   ] mask,
                                              input [addr_width_p-1:0        ] word_addr
                                             );
-    assign get_rocket_mem_req.req_addr =  get_rocket_addr( word_addr )   ;
-    assign get_rocket_mem_req.req_tag  =  rocc_mem_tag_width_gp'(0) ;
-    assign get_rocket_mem_req.req_cmd  =  eRoCC_mem_store           ;
+    get_rocket_mem_req.req_addr =  get_rocket_addr( word_addr )   ;
+    get_rocket_mem_req.req_tag  =  rocc_mem_tag_width_gp'(0) ;
+    get_rocket_mem_req.req_cmd  =  eRoCC_mem_store           ;
     //currently only support 32bits
-    assign get_rocket_mem_req.req_typ  =  eRoCC_mem_32bits          ;
-    assign get_rocket_mem_req.req_phys =  1'b1                      ;
-    assign get_rocket_mem_req.req_data =  rocc_data_width_gp'(data) ;
+    get_rocket_mem_req.req_typ  =  eRoCC_mem_32bits          ;
+    get_rocket_mem_req.req_phys =  1'b1                      ;
+    get_rocket_mem_req.req_data =  rocc_data_width_gp'(data) ;
 
   endfunction
 

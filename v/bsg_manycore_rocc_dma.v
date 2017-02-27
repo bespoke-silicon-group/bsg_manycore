@@ -111,7 +111,7 @@ module bsg_manycore_rocc_dma #(
 /////////////////////////////////////////////////////////////////////////
 // rocket skip registers.
    logic [rocc_mem_addr_width_gp-1:0 ]         rocket_byte_skip_r;
-   wire rocket_skip_cfg_en    = core_cmd_valid_i  &
+   wire rocket_skip_cfg_en    = core_cmd_valid_i
                               & ( core_cmd_s_i.instr.funct7 == eRoCC_core_dma_skip);
 
    wire [rocc_mem_addr_width_gp-1 : 0] rocket_skip_cfg_value =
@@ -126,7 +126,7 @@ module bsg_manycore_rocc_dma #(
 /////////////////////////////////////////////////////////////////////////
 // run_bytes register
    logic [cfg_width_p -1:0 ]         run_bytes_r;
-   wire run_bytes_cfg_en    = core_cmd_valid_i  &
+   wire run_bytes_cfg_en    = core_cmd_valid_i
                               & ( core_cmd_s_i.instr.funct7 == eRoCC_core_dma_xfer);
 
    wire [cfg_width_p-1 : 0] run_bytes_cfg_value =
@@ -140,7 +140,7 @@ module bsg_manycore_rocc_dma #(
 /////////////////////////////////////////////////////////////////////////
 // repeats register
    logic [cfg_width_p-1:0 ]         repeats_r;
-   wire repeats_cfg_en    = core_cmd_valid_i  &
+   wire repeats_cfg_en    = core_cmd_valid_i
                         & ( core_cmd_s_i.instr.funct7 == eRoCC_core_dma_xfer);
 
    wire [cfg_width_p-1 : 0] repeats_cfg_value =
@@ -238,19 +238,20 @@ module bsg_manycore_rocc_dma #(
    assign rocc2manycore_v_o         = mem_resp_valid_i
                                   & ( mem_resp_s_i.resp_cmd == eRoCC_mem_load);
 
-   assign rocc2manycore_data_o      = mem_resp_s_i.resp_data[ data_width_p-1:0] ;
-   assign rocc2manycore_addr_s_o    = manycore_byte_addr_r_r                    ;
+   assign rocc2manycore_data_o      = mem_resp_s_i.resp_data[ data_width_p-1:0];
+   assign rocc2manycore_addr_s_o    = manycore_byte_addr_r_r                   ;
 
 //functions to encode the rocket memory request
-  function rocc_mem_req_s get_rocket_load_req( input [rocc_mem_addr_width_gp-1:0 ] addr
-                                            );
-    assign get_rocket_load_req.req_addr =  addr  ;
-    assign get_rocket_load_req.req_tag  =  rocc_mem_tag_width_gp'(0) ;
-    assign get_rocket_load_req.req_cmd  =  eRoCC_mem_load            ;
-    //currently only support 32bits
-    assign get_rocket_load_req.req_typ  =  eRoCC_mem_32bits          ;
-    assign get_rocket_load_req.req_phys =  1'b1                      ;
-    assign get_rocket_load_req.req_data =  rocc_data_width_gp'(0)    ;
+  function rocc_mem_req_s get_rocket_load_req(
+            input [rocc_mem_addr_width_gp-1:0 ] addr);
+           get_rocket_load_req = '{ req_addr :  addr                     ,
+                                    req_tag  :  rocc_mem_tag_width_gp'(0),
+                                    req_cmd  :  eRoCC_mem_load           ,
+                                    //currently only support 32bits
+                                    req_typ  :  eRoCC_mem_32bits         ,
+                                    req_phys :  1'b1                     ,
+                                    req_data :  rocc_data_width_gp'(0)
+                                   };
 
   endfunction
 /////////////////////////////////////////////////////////////////////////
