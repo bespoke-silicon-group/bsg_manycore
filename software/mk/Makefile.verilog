@@ -269,7 +269,7 @@ endif
     $(addprefix $(INC_OP), $(DESIGN_INCS) )\
     $(DESIGN_HDRS) $(DESIGN_SRCS)   \
     $(TOP_LEVEL) $<
-	#./simv
+	./simv
 
 %.hardfloat_src:
 	@if [ ! -f $(HARDFLOAT_VSRC) ]; then \
