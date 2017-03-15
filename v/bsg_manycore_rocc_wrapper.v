@@ -57,7 +57,7 @@ module bsg_manycore_rocc_wrapper
   )
   ( input clk_i
    ,input manycore_clk_i
-   ,input reset_i
+   ,input                       [rocc_num_p-1:0]  reset_i
 
    //core control signals
    , input                      [rocc_num_p-1:0]  core_status_i
@@ -93,12 +93,19 @@ module bsg_manycore_rocc_wrapper
 
 
 
-  //synchornize the main reset to manycore reset domain
-  wire manycore_reset;
+  //generate the reset signal into the manycore
+  //1. if all rocket are in reset status, the manycore are all reseted.
+  //2. if any rocket is dis-reseted, the manycore reset is the reset signal
+  //   from the rocc interface, which is reset command from rocket core.
+  wire                  all_rocket_reset     =  & reset_i ;
+  wire [rocc_num_p-1:0] rocc_output_reset ;
+
+  wire reset_n = all_rocket_reset | ( | rocc_output_reset ) ;
+
   logic reset_done_r;
+  always_ff@( posedge clk_i )   reset_done_r <= reset_n;
 
-  always_ff@( posedge clk_i )   reset_done_r <= reset_i;
-
+  wire manycore_reset;
   bsg_sync_sync#(.width_p (1) )manycore_reset_sync(
         . oclk_i        ( manycore_clk_i)
        ,. iclk_data_i   ( reset_done_r  )
@@ -146,8 +153,8 @@ module bsg_manycore_rocc_wrapper
                                        ,.x_cord_width_p(x_cord_width_lp)
                                        ,.y_cord_width_p(y_cord_width_lp)
                                        ) bmlst
-        (.clk_i(clk_i)
-         ,.reset_i(reset_i)
+        (.clk_i(manycore_clk_i)
+         ,.reset_i(manycore_reset)
          ,.link_sif_i(hor_link_lo[W][i])
          ,.link_sif_o(hor_link_li[W][i])
          );
@@ -157,8 +164,8 @@ module bsg_manycore_rocc_wrapper
                                        ,.x_cord_width_p(x_cord_width_lp)
                                        ,.y_cord_width_p(y_cord_width_lp)
                                        ) bmlst2
-        (.clk_i(clk_i)
-         ,.reset_i(reset_i)
+        (.clk_i(manycore_clk_i)
+         ,.reset_i(manycore_reset)
          ,.link_sif_i(hor_link_lo[E][i])
          ,.link_sif_o(hor_link_li[E][i])
          );
@@ -173,8 +180,8 @@ module bsg_manycore_rocc_wrapper
                                        ,.x_cord_width_p(x_cord_width_lp)
                                        ,.y_cord_width_p(y_cord_width_lp)
                                        ) bmlst3
-        (.clk_i(clk_i)
-         ,.reset_i(reset_i)
+        (.clk_i(manycore_clk_i)
+         ,.reset_i(manycore_reset)
          ,.link_sif_i(ver_link_lo[N][i])
          ,.link_sif_o(ver_link_li[N][i])
          );
@@ -200,8 +207,8 @@ module bsg_manycore_rocc_wrapper
            ,.link_sif_left_i( ver_link_lo[S][ io_ind ])
            ,.link_sif_left_o( ver_link_li[S][ io_ind ])
 
-           ,.clk_right_i     (   clk_i       )
-           ,.reset_right_i   (   reset_i     )
+           ,.clk_right_i     (   clk_i                                                      )
+           ,.reset_right_i   (   reset_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ]        )
            ,.link_sif_right_i(   rocc_link_output )
            ,.link_sif_right_o(   rocc_link_input  )
            );
@@ -218,8 +225,8 @@ module bsg_manycore_rocc_wrapper
                 ,.link_sif_i ( rocc_link_input  )
                 ,.link_sif_o ( rocc_link_output )
 
-                ,.rocket_clk_i  ( clk_i     )
-                ,.rocket_reset_i( reset_i   )
+                ,.rocket_clk_i  ( clk_i                                                 )
+                ,.rocket_reset_i( reset_i   [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
                 ,.core_status_i        (core_status_i    [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.core_exception_i     (core_exception_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
@@ -240,6 +247,8 @@ module bsg_manycore_rocc_wrapper
 
                 ,.mem_resp_valid_i     (mem_resp_valid_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
                 ,.mem_resp_s_i         (mem_resp_s_i     [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+
+                ,.reset_manycore_r_o   (rocc_output_reset[`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
             );
         //otherwise tieoff
         end else begin: rocc_inst_tieoff
@@ -248,8 +257,8 @@ module bsg_manycore_rocc_wrapper
                                            ,.x_cord_width_p(x_cord_width_lp)
                                            ,.y_cord_width_p(y_cord_width_lp)
                                            ) bmlst4
-            ( .clk_i(clk_i)
-             ,.reset_i(reset_i)
+            ( .clk_i(manycore_clk_i)
+             ,.reset_i(manycore_reset)
              ,.link_sif_i(ver_link_lo[S][ io_ind ])
              ,.link_sif_o(ver_link_li[S][ io_ind ])
              );
@@ -264,8 +273,8 @@ module bsg_manycore_rocc_wrapper
                                            ,.x_cord_width_p(x_cord_width_lp)
                                            ,.y_cord_width_p(y_cord_width_lp)
                                            ) bmlst5
-            ( .clk_i(clk_i)
-             ,.reset_i(reset_i)
+            ( .clk_i(manycore_clk_i)
+             ,.reset_i(manycore_reset)
              ,.link_sif_i(ver_link_lo[S][i])
              ,.link_sif_o(ver_link_li[S][i])
              );
@@ -281,20 +290,24 @@ module bsg_manycore_rocc_wrapper
         assert( rocc_num_p <= num_tiles_x_p     )
         else $error(" rocc_num_p must less or equal num_tiles_x_p");
 
-        assert( rocc_num_p <= `ROCC_NUM_LIMITS  )
-        else $error(" rocc_num_p must less than %d", `ROCC_NUM_LIMITS);
-
         //validate the rocc_dis_vec_p
-        for( k = 0; k< `ROCC_NUM_LIMITS; k++) begin
+        for( k = 0; k< num_tiles_x_p; k++) begin
             if( `GET_BYTE(rocc_dist_vec_p, k)  != 4'h0 ) begin
                 rocc_index++;
                 assert( rocc_index == `GET_BYTE(rocc_dist_vec_p,k) )
-                else $error(" the rocc index must inrease one by one ");
+                else begin
+                     $error(" the rocc index must inrease one by one ");
+                     $finish();
+                end
             end
         end
         if( rocc_num_p != 0 ) begin
              assert ( rocc_num_p == rocc_index )
-             else $error("the rocc_num_p must match the maximum rocc index");
+             else begin
+                $display(" rocc_dist_vec_p = %h ", rocc_dist_vec_p );
+                $error("the rocc_num_p(%d) must match the maximum rocc index(%d)", rocc_num_p, rocc_index);
+                $finish();
+             end
         end
    end
    // synopsys translate_on
