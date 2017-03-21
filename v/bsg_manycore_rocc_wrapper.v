@@ -12,8 +12,6 @@
 `include "bsg_manycore_packet.vh"
 `include "bsg_rocc.v"
 
-`define ROCC_NUM_LIMITS 8
-
 module bsg_manycore_rocc_wrapper
    import  bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
  #(
@@ -82,8 +80,8 @@ module bsg_manycore_rocc_wrapper
   );
 
   //get one byte from the parameter p
- `define GET_BYTE(p, ind)       ( (p >> (ind* 4)) & 4'hF )
- `define GET_BYTE_MIN_1(p, ind) ( `GET_BYTE(p,ind) - 4'h1 )
+ `define GET_HEX(p, ind)       ( (p >> (ind* 4)) & 4'hF )
+ `define GET_HEX_MIN_1(p, ind) ( `GET_HEX(p,ind) - 4'h1 )
 
   //declare the interface to the bsg_manycore
   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_lp, y_cord_width_lp);
@@ -188,11 +186,11 @@ module bsg_manycore_rocc_wrapper
      end
    /////////////////////////////////////////////////////////////////////////////////
    // Instantiate the RoCC interface
-   localparam  rocc_index_limit_lp = ( num_tiles_x_p > `ROCC_NUM_LIMITS )
-                                     ? `ROCC_NUM_LIMITS : num_tiles_x_p ;
+   localparam  rocc_index_limit_lp =  num_tiles_x_p ;
+
    genvar io_ind;
    for( io_ind=0; io_ind < rocc_index_limit_lp; io_ind ++) begin: rocc_inst
-        if( `GET_BYTE(rocc_dist_vec_p, io_ind)  != 0 ) begin: rocc_inst_real
+        if( `GET_HEX(rocc_dist_vec_p, io_ind)  != 0 ) begin: rocc_inst_real
 
             bsg_manycore_link_sif_s  rocc_link_input, rocc_link_output;
             bsg_manycore_link_sif_async_buffer
@@ -208,7 +206,7 @@ module bsg_manycore_rocc_wrapper
            ,.link_sif_left_o( ver_link_li[S][ io_ind ])
 
            ,.clk_right_i     (   clk_i                                                      )
-           ,.reset_right_i   (   reset_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ]        )
+           ,.reset_right_i   (   reset_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ]        )
            ,.link_sif_right_i(   rocc_link_output )
            ,.link_sif_right_o(   rocc_link_input  )
            );
@@ -226,29 +224,29 @@ module bsg_manycore_rocc_wrapper
                 ,.link_sif_o ( rocc_link_output )
 
                 ,.rocket_clk_i  ( clk_i                                                 )
-                ,.rocket_reset_i( reset_i   [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.rocket_reset_i( reset_i   [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.core_status_i        (core_status_i    [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.core_exception_i     (core_exception_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.acc_interrupt_o      (acc_interrupt_o  [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.acc_busy_o           (acc_busy_o       [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_status_i        (core_status_i    [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_exception_i     (core_exception_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.acc_interrupt_o      (acc_interrupt_o  [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.acc_busy_o           (acc_busy_o       [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.core_cmd_valid_i     (core_cmd_valid_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.core_cmd_s_i         (core_cmd_s_i     [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.core_cmd_ready_o     (core_cmd_ready_o [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_cmd_valid_i     (core_cmd_valid_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_cmd_s_i         (core_cmd_s_i     [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_cmd_ready_o     (core_cmd_ready_o [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.core_resp_valid_o    (core_resp_valid_o[`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.core_resp_s_o        (core_resp_s_o    [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.core_resp_ready_i    (core_resp_ready_i[`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_resp_valid_o    (core_resp_valid_o[`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_resp_s_o        (core_resp_s_o    [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_resp_ready_i    (core_resp_ready_i[`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.mem_req_valid_o      (mem_req_valid_o  [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.mem_req_s_o          (mem_req_s_o      [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.mem_req_ready_i      (mem_req_ready_i  [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_req_valid_o      (mem_req_valid_o  [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_req_s_o          (mem_req_s_o      [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_req_ready_i      (mem_req_ready_i  [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.mem_resp_valid_i     (mem_resp_valid_i [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.mem_resp_s_i         (mem_resp_s_i     [`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_resp_valid_i     (mem_resp_valid_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_resp_s_i         (mem_resp_s_i     [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.reset_manycore_r_o   (rocc_output_reset[`GET_BYTE_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.reset_manycore_r_o   (rocc_output_reset[`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
             );
         //otherwise tieoff
         end else begin: rocc_inst_tieoff
@@ -264,22 +262,6 @@ module bsg_manycore_rocc_wrapper
              );
        end:rocc_inst_tieoff
    end:rocc_inst
-   /////////////////////////////////////////////////////////////////////////////////
-   // if num_tiles_x_p > ROCC_NUM_LIMITS, we have to tieoff extra tiles.
-   if(  num_tiles_x_p > `ROCC_NUM_LIMITS ) begin: extra_tieoff
-        for( i= `ROCC_NUM_LIMITS; i< num_tiles_x_p;  i++ ) begin: extra_tieoff_for
-            bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_p)
-                                           ,.data_width_p  (data_width_p)
-                                           ,.x_cord_width_p(x_cord_width_lp)
-                                           ,.y_cord_width_p(y_cord_width_lp)
-                                           ) bmlst5
-            ( .clk_i(manycore_clk_i)
-             ,.reset_i(manycore_reset)
-             ,.link_sif_i(ver_link_lo[S][i])
-             ,.link_sif_o(ver_link_li[S][i])
-             );
-        end
-   end: extra_tieoff
 
    /////////////////////////////////////////////////////////////////////////////////
    // parameter check
@@ -292,9 +274,9 @@ module bsg_manycore_rocc_wrapper
 
         //validate the rocc_dis_vec_p
         for( k = 0; k< num_tiles_x_p; k++) begin
-            if( `GET_BYTE(rocc_dist_vec_p, k)  != 4'h0 ) begin
+            if( `GET_HEX(rocc_dist_vec_p, k)  != 4'h0 ) begin
                 rocc_index++;
-                assert( rocc_index == `GET_BYTE(rocc_dist_vec_p,k) )
+                assert( rocc_index == `GET_HEX(rocc_dist_vec_p,k) )
                 else begin
                      $error(" the rocc index must inrease one by one ");
                      $finish();
