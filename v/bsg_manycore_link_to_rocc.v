@@ -54,6 +54,9 @@ module  bsg_manycore_link_to_rocc
 
    , input                              mem_resp_valid_i
    , input  rocc_mem_resp_s             mem_resp_s_i
+
+    //the reset signal output to the manycore
+   , output                             reset_manycore_r_o
    );
 
    //local parameter definition
@@ -113,6 +116,19 @@ module  bsg_manycore_link_to_rocc
     );
 
   ///////////////////////////////////////////////////////////////////////////////////
+  // Code for rocket reset manycore
+  logic reset_manycore_r;
+
+  wire is_core_reset=  core_cmd_valid_i
+                    &( core_cmd_s_i.instr.funct7 == eRoCC_core_reset );
+
+  always_ff@(posedge rocket_clk_i) begin
+    if( rocket_reset_i )            reset_manycore_r <=  1'b0 ;
+    else if ( is_core_reset )       reset_manycore_r <=  1'b1 ;
+    else if ( reset_manycore_r )    reset_manycore_r <=  1'b0 ;
+  end
+
+  ///////////////////////////////////////////////////////////////////////////////////
   // Code for  Segment Register
 
   //write segment address register, which is BYTE address
@@ -137,7 +153,10 @@ module  bsg_manycore_link_to_rocc
   wire [data_width_p-1:0]       dma_rocc2manycore_data  ;
   wire                          dma_mem_req_credit      ;
 
-  wire is_dma_cmd  = core_cmd_s_i.instr.funct7 >= eRoCC_core_dma_addr;
+  wire is_dma_cmd  = ( core_cmd_s_i.instr.funct7 == eRoCC_core_dma_addr )
+                    |( core_cmd_s_i.instr.funct7 == eRoCC_core_dma_skip )
+                    |( core_cmd_s_i.instr.funct7 == eRoCC_core_dma_xfer )
+                    ;
 
   //control signals coming from core
   wire is_core_write = ( core_cmd_s_i.instr.funct7 == eRoCC_core_write );
@@ -296,5 +315,7 @@ bsg_manycore_rocc_dma #(
         $error("Only supports word access to rocket right now");
   end
   //synopsys translate_on
+
+  assign    reset_manycore_r_o  = reset_manycore_r     ;
 endmodule
 
