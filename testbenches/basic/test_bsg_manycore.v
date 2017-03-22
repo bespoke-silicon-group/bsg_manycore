@@ -158,9 +158,15 @@ module test_bsg_manycore;
      ,.num_tiles_y_p(num_tiles_y_lp)
      ,.hetero_type_vec_p(`BSG_HETERO_TYPE_VEC)
      // currently west side is stubbed except for upper left tile
-     ,.stub_w_p     ({{(num_tiles_y_lp-1){1'b1}}, 1'b0})
-     ,.stub_e_p     ({num_tiles_y_lp{1'b1}})
-     ,.stub_n_p     ({num_tiles_x_lp{1'b1}})
+     //,.stub_w_p     ({{(num_tiles_y_lp-1){1'b1}}, 1'b0})
+     //,.stub_e_p     ({num_tiles_y_lp{1'b1}})
+     //,.stub_n_p     ({num_tiles_x_lp{1'b1}})
+     //
+     // try unstubbing all
+     ,.stub_w_p     ({num_tiles_y_lp{1'b0}})
+     ,.stub_e_p     ({num_tiles_y_lp{1'b0}})
+     ,.stub_n_p     ({num_tiles_x_lp{1'b0}})
+
 
      // south side is unstubbed
      ,.stub_s_p     ({num_tiles_x_lp{1'b0}})
@@ -253,7 +259,7 @@ genvar x,y;
     for (y = 0; y < num_tiles_y_lp; y++) begin: prof_y
 
           //generate the unfreeze signal
-          wire  freeze_sig =  `TOPLEVEL.y[y].x[x].proc.h.z.freeze_o;
+          wire  freeze_sig =  `TOPLEVEL.y[y].x[x].tile.proc.h.z.freeze_o;
           logic freeze_r;
           always @(negedge clk) freeze_r  <=  freeze_sig;
           assign          unfreeze_action  =  freeze_r & (~freeze_sig );
@@ -263,13 +269,13 @@ genvar x,y;
           assign trigger_s.reset_prof   = unfreeze_action   ;
           assign trigger_s.finish_prof  = finish_lo         ;
 
-          assign trigger_s.dmem_stall   = `TOPLEVEL.y[y].x[x].proc.h.z.vanilla_core.stall_mem;
-          assign trigger_s.dx_stall     = `TOPLEVEL.y[y].x[x].proc.h.z.vanilla_core.depend_stall;
-          assign trigger_s.bt_stall     = `TOPLEVEL.y[y].x[x].proc.h.z.vanilla_core.flush;
-          assign trigger_s.in_fifo_full = ~`TOPLEVEL.y[y].x[x].proc.h.z.endp.bme.link_sif_o_cast.fwd.ready_and_rev;
-          assign trigger_s.out_fifo_full= ~`TOPLEVEL.y[y].x[x].proc.h.z.endp.bme.link_sif_i_cast.fwd.ready_and_rev;
-          assign trigger_s.credit_full  = `TOPLEVEL.y[y].x[x].proc.h.z.endp.out_credits_o == 0 ;
-          assign trigger_s.res_acq_stall= `TOPLEVEL.y[y].x[x].proc.h.z.vanilla_core.stall_lrw ;
+          assign trigger_s.dmem_stall   = `TOPLEVEL.y[y].x[x].tile.proc.h.z.vanilla_core.stall_mem;
+          assign trigger_s.dx_stall     = `TOPLEVEL.y[y].x[x].tile.proc.h.z.vanilla_core.depend_stall;
+          assign trigger_s.bt_stall     = `TOPLEVEL.y[y].x[x].tile.proc.h.z.vanilla_core.flush;
+          assign trigger_s.in_fifo_full = ~`TOPLEVEL.y[y].x[x].tile.proc.h.z.endp.bme.link_sif_o_cast.fwd.ready_and_rev;
+          assign trigger_s.out_fifo_full= ~`TOPLEVEL.y[y].x[x].tile.proc.h.z.endp.bme.link_sif_i_cast.fwd.ready_and_rev;
+          assign trigger_s.credit_full  = `TOPLEVEL.y[y].x[x].tile.proc.h.z.endp.out_credits_o == 0 ;
+          assign trigger_s.res_acq_stall= `TOPLEVEL.y[y].x[x].tile.proc.h.z.vanilla_core.stall_lrw ;
 
           //instantiate the profiler
           bsg_manycore_profiler prof_inst(

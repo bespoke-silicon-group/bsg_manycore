@@ -82,33 +82,22 @@ module bsg_manycore
 
   );
 
-   wire [num_tiles_y_p-1:0][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_li;
-   wire [num_tiles_y_p-1:0][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_lo;
 
-   bsg_manycore_mesh #(.num_tiles_x_p(num_tiles_x_p)
-                       ,.num_tiles_y_p(num_tiles_y_p)
-                       ,.stub_w_p(stub_w_p)
-                       ,.stub_e_p(stub_e_p)
-                       ,.stub_n_p(stub_n_p)
-                       ,.stub_s_p(stub_s_p)
-                       ,.debug_p(debug_p)
-                       ,.extra_io_rows_p(extra_io_rows_p)
-                       ,.addr_width_p(addr_width_p)
-                       ,.data_width_p(data_width_p)
-                       ,.repeater_output_p(repeater_output_p)
-                       ) bmm
-     (.clk_i
-      ,.reset_i
+   // synopsys translate_off
+   initial
+   begin
+       assert ((num_tiles_x_p > 0) && (num_tiles_y_p > 0))
+           else $error("num_tiles_x_p and num_tiles_y_p must be positive constants");
 
-      ,.hor_link_sif_i
-      ,.hor_link_sif_o
+       $display("$bits(addr)=%-d, $bits(op)=%-d, $bits(op_ex)=%-d, $bits(data)=%-d, $bits(return_pkt)=%-d, $bits(y_cord)=%-d, $bits(x_cord)=%-d",
+           addr_width_p,2,(data_width_p>>3),data_width_p,y_cord_width_lp+x_cord_width_lp,y_cord_width_lp,x_cord_width_lp);
+   end
+   // synopsys translate_on
 
-      ,.ver_link_sif_i
-      ,.ver_link_sif_o
+   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
 
-      ,.proc_link_sif_i(proc_link_sif_li)
-      ,.proc_link_sif_o(proc_link_sif_lo)
-      );
+   bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
+   bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
 
    genvar r,c;
 
@@ -140,34 +129,58 @@ module bsg_manycore
      begin: y
         for (c = 0; c < num_tiles_x_p; c=c+1)
           begin: x
-             bsg_manycore_hetero_socket #(
-                                          .x_cord_width_p (x_cord_width_lp)
-                                          ,.y_cord_width_p(y_cord_width_lp)
-                                          ,.debug_p       (debug_p       )
-                                          ,.bank_size_p   (bank_size_p   )
-                                          ,.imem_size_p   (imem_size_p   )
-                                          ,.num_banks_p   (num_banks_p   )
-                                          ,.data_width_p  (data_width_p  )
-                                          ,.addr_width_p  (addr_width_p  )
-                                          ,.hetero_type_p  ((hetero_type_vec_p >> (8*(r*num_tiles_x_p + c))) & 8'b1111_1111)
-                                          ) proc
-                 (.clk_i   (clk_i)
-                  ,.reset_i(reset_i)
+            bsg_manycore_tile
+              #(
+                .bank_size_p(bank_size_p),
+                .num_banks_p(num_banks_p),
+                .imem_size_p(imem_size_p),
+                .x_cord_width_p(x_cord_width_lp),
+                .y_cord_width_p(y_cord_width_lp),
+                .data_width_p(data_width_p),
+                .addr_width_p(addr_width_p),
+                .stub_p({(r == num_tiles_y_p-1) ? (((stub_s_p>>c) & 1'b1) == 1) : 1'b0 /* s */
+                        ,(r == 0)               ? (((stub_n_p>>c) & 1'b1) == 1) : 1'b0 /* n */
+                        ,(c == num_tiles_x_p-1) ? (((stub_e_p>>r) & 1'b1) == 1) : 1'b0 /* e */
+                        ,(c == 0)               ? (((stub_w_p>>r) & 1'b1) == 1) : 1'b0 /* w */}),
+                .repeater_output_p((repeater_output_p >> (4*(r*num_tiles_x_p+c))) & 4'b1111),
+                .hetero_type_p((hetero_type_vec_p >> (8*(r*num_tiles_x_p + c))) & 8'b1111_1111),
+                .debug_p(debug_p)
+              )
+            tile
+              (
+                .clk_i(clk_i),
+                .reset_i(reset_i),
 
-           `ifdef bsg_FPU
-                  ,.fam_in_s_o (  fam_in_s_v [r][c ] )
-                  ,.fam_out_s_i(  fam_out_s_v[r][c ] )
-           `endif
-                  ,.link_sif_i(proc_link_sif_lo[r][c])
-                  ,.link_sif_o(proc_link_sif_li[r][c])
+                .link_in(link_in[r][c]),
+                .link_out(link_out[r][c]),
 
-                  ,.my_x_i   (x_cord_width_lp'(c))
-                  ,.my_y_i   (y_cord_width_lp'(r))
+              `ifdef bsg_FPU
+                .fam_in_s_o(fam_in_s_v[r][c]),
+                .fam_out_s_i(fam_out_s_v[r][c]),
+              `endif
 
-                  ,.freeze_o()
-                  );
+                .my_x_i(x_cord_width_lp'(c)),
+                .my_y_i(y_cord_width_lp'(r))
+              );
           end
      end
+
+    // stitch together all of the tiles into a mesh
+
+    bsg_mesh_stitch
+     #(.width_p(bsg_manycore_link_sif_width_lp)
+      ,.x_max_p(num_tiles_x_p)
+      ,.y_max_p(num_tiles_y_p)
+      )
+    link
+      (.outs_i(link_out)
+      ,.ins_o(link_in)
+      ,.hor_i(hor_link_sif_i)
+      ,.hor_o(hor_link_sif_o)
+      ,.ver_i(ver_link_sif_i)
+      ,.ver_o(ver_link_sif_o)
+      );
+
   //synopsys translate_off
   `ifdef bsg_FPU
   initial
