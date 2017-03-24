@@ -283,14 +283,14 @@ module bsg_manycore_rocc_wrapper
                 end
             end
         end
-        if( rocc_num_p != 0 ) begin
-             assert ( rocc_num_p == rocc_index )
-             else begin
-                $display(" rocc_dist_vec_p = %h ", rocc_dist_vec_p );
-                $error("the rocc_num_p(%d) must match the maximum rocc index(%d)", rocc_num_p, rocc_index);
-                $finish();
-             end
-        end
+        //if( rocc_num_p != 0 ) begin
+        //     assert ( rocc_num_p == rocc_index )
+        //     else begin
+        //        $display(" rocc_dist_vec_p = %h ", rocc_dist_vec_p );
+        //        $error("the rocc_num_p(%d) must match the maximum rocc index(%d)", rocc_num_p, rocc_index);
+        //        $finish();
+        //     end
+        //end
    end
    // synopsys translate_on
 endmodule
