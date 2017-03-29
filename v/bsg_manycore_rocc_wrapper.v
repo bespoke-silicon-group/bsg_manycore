@@ -98,18 +98,22 @@ module bsg_manycore_rocc_wrapper
   wire                  all_rocket_reset     =  & reset_i ;
   wire [rocc_num_p-1:0] rocc_output_reset ;
 
-  wire reset_n = all_rocket_reset | ( | rocc_output_reset ) ;
+  wire RC_reset_n = all_rocket_reset | ( | rocc_output_reset ) ;
 
-  logic reset_done_r;
-  always_ff@( posedge clk_i )   reset_done_r <= reset_n;
 
-  wire manycore_reset;
-  bsg_sync_sync#(.width_p (1) )manycore_reset_sync(
-        . oclk_i        ( manycore_clk_i)
-       ,. iclk_data_i   ( reset_done_r  )
-       ,. oclk_data_o   ( manycore_reset)
+  wire MC_reset_n;
+  bsg_launch_sync_sync#(.width_p (1) )manycore_reset_sync(
+        . iclk_i        ( clk_i         )
+       ,. iclk_reset_i  ( 1'b0          )
+       ,. oclk_i        ( manycore_clk_i)
+       ,. iclk_data_i   ( RC_reset_n       )
+       ,. iclk_data_o   (               )
+       ,. oclk_data_o   ( MC_reset_n)
   );
-
+   
+  logic MC_reset_r;
+  always_ff@(posedge manycore_clk_i)  MC_reset_r <= MC_reset_n;
+  
   //instantiate the manycore
   bsg_manycore # (
       .bank_size_p      (bank_size_p        )
@@ -131,7 +135,7 @@ module bsg_manycore_rocc_wrapper
      ,.repeater_output_p( repeater_output_p )
     ) UUT
       (  .clk_i   (manycore_clk_i     )
-        ,.reset_i (manycore_reset     )
+        ,.reset_i (MC_reset_r     )
 
         ,.hor_link_sif_i(hor_link_li)
         ,.hor_link_sif_o(hor_link_lo)
@@ -152,7 +156,7 @@ module bsg_manycore_rocc_wrapper
                                        ,.y_cord_width_p(y_cord_width_lp)
                                        ) bmlst
         (.clk_i(manycore_clk_i)
-         ,.reset_i(manycore_reset)
+         ,.reset_i(MC_reset_r)
          ,.link_sif_i(hor_link_lo[W][i])
          ,.link_sif_o(hor_link_li[W][i])
          );
@@ -163,7 +167,7 @@ module bsg_manycore_rocc_wrapper
                                        ,.y_cord_width_p(y_cord_width_lp)
                                        ) bmlst2
         (.clk_i(manycore_clk_i)
-         ,.reset_i(manycore_reset)
+         ,.reset_i(MC_reset_r)
          ,.link_sif_i(hor_link_lo[E][i])
          ,.link_sif_o(hor_link_li[E][i])
          );
@@ -179,7 +183,7 @@ module bsg_manycore_rocc_wrapper
                                        ,.y_cord_width_p(y_cord_width_lp)
                                        ) bmlst3
         (.clk_i(manycore_clk_i)
-         ,.reset_i(manycore_reset)
+         ,.reset_i(MC_reset_r)
          ,.link_sif_i(ver_link_lo[N][i])
          ,.link_sif_o(ver_link_li[N][i])
          );
@@ -201,7 +205,7 @@ module bsg_manycore_rocc_wrapper
               ,.fifo_els_p    (4)
             )manycore_rocc_async_buffer(
             .clk_left_i     ( manycore_clk_i  )
-           ,.reset_left_i   ( manycore_reset  )
+           ,.reset_left_i   ( MC_reset_r  )
            ,.link_sif_left_i( ver_link_lo[S][ io_ind ])
            ,.link_sif_left_o( ver_link_li[S][ io_ind ])
 
@@ -256,7 +260,7 @@ module bsg_manycore_rocc_wrapper
                                            ,.y_cord_width_p(y_cord_width_lp)
                                            ) bmlst4
             ( .clk_i(manycore_clk_i)
-             ,.reset_i(manycore_reset)
+             ,.reset_i(MC_reset_r)
              ,.link_sif_i(ver_link_lo[S][ io_ind ])
              ,.link_sif_o(ver_link_li[S][ io_ind ])
              );
