@@ -53,30 +53,30 @@ module bsg_manycore_rocc_wrapper
    ,parameter repeater_output_p = 0
 
   )
-  ( input clk_i
-   ,input manycore_clk_i
-   ,input                       [rocc_num_p-1:0]  reset_i
+  ( input RC_clk_i
+   ,input MC_clk_i
+   ,input                       [rocc_num_p-1:0]  RC_reset_i
 
    //core control signals
-   , input                      [rocc_num_p-1:0]  core_status_i
-   , input                      [rocc_num_p-1:0]  core_exception_i
-   , output                     [rocc_num_p-1:0]  acc_interrupt_o
-   , output                     [rocc_num_p-1:0]  acc_busy_o
+   , input                      [rocc_num_p-1:0]  RC_core_status_i
+   , input                      [rocc_num_p-1:0]  RC_core_exception_i
+   , output                     [rocc_num_p-1:0]  RC_acc_interrupt_o
+   , output                     [rocc_num_p-1:0]  RC_acc_busy_o
    //command signals
-   , input                      [rocc_num_p-1:0]  core_cmd_valid_i
-   , input  rocc_core_cmd_s     [rocc_num_p-1:0]  core_cmd_s_i
-   , output                     [rocc_num_p-1:0]  core_cmd_ready_o
+   , input                      [rocc_num_p-1:0]  RC_core_cmd_valid_i
+   , input  rocc_core_cmd_s     [rocc_num_p-1:0]  RC_core_cmd_s_i
+   , output                     [rocc_num_p-1:0]  RC_core_cmd_ready_o
 
-   , output                     [rocc_num_p-1:0]  core_resp_valid_o
-   , output rocc_core_resp_s    [rocc_num_p-1:0]  core_resp_s_o
-   , input                      [rocc_num_p-1:0]  core_resp_ready_i
+   , output                     [rocc_num_p-1:0]  RC_core_resp_valid_o
+   , output rocc_core_resp_s    [rocc_num_p-1:0]  RC_core_resp_s_o
+   , input                      [rocc_num_p-1:0]  RC_core_resp_ready_i
    //mem signals
-   , output                     [rocc_num_p-1:0]  mem_req_valid_o
-   , output  rocc_mem_req_s     [rocc_num_p-1:0]  mem_req_s_o
-   , input                      [rocc_num_p-1:0]  mem_req_ready_i
+   , output                     [rocc_num_p-1:0]  RC_mem_req_valid_o
+   , output  rocc_mem_req_s     [rocc_num_p-1:0]  RC_mem_req_s_o
+   , input                      [rocc_num_p-1:0]  RC_mem_req_ready_i
 
-   , input                      [rocc_num_p-1:0]  mem_resp_valid_i
-   , input  rocc_mem_resp_s     [rocc_num_p-1:0]  mem_resp_s_i
+   , input                      [rocc_num_p-1:0]  RC_mem_resp_valid_i
+   , input  rocc_mem_resp_s     [rocc_num_p-1:0]  RC_mem_resp_s_i
   );
 
   //get one byte from the parameter p
@@ -86,8 +86,8 @@ module bsg_manycore_rocc_wrapper
   //declare the interface to the bsg_manycore
   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_lp, y_cord_width_lp);
 
-  bsg_manycore_link_sif_s [S:N][num_tiles_x_p-1:0] ver_link_li, ver_link_lo;
-  bsg_manycore_link_sif_s [E:W][num_tiles_y_p-1:0] hor_link_li, hor_link_lo;
+  bsg_manycore_link_sif_s [S:N][num_tiles_x_p-1:0] MC_ver_link_li, MC_ver_link_lo;
+  bsg_manycore_link_sif_s [E:W][num_tiles_y_p-1:0] MC_hor_link_li, MC_hor_link_lo;
 
 
 
@@ -95,24 +95,24 @@ module bsg_manycore_rocc_wrapper
   //1. if all rocket are in reset status, the manycore are all reseted.
   //2. if any rocket is dis-reseted, the manycore reset is the reset signal
   //   from the rocc interface, which is reset command from rocket core.
-  wire                  all_rocket_reset     =  & reset_i ;
-  wire [rocc_num_p-1:0] rocc_output_reset ;
+  wire                  RC_all_rocket_reset     =  & RC_reset_i ;
+  wire [rocc_num_p-1:0] RC_rocc_output_reset ;
 
-  wire RC_reset_n = all_rocket_reset | ( | rocc_output_reset ) ;
+  wire RC_reset_n = RC_all_rocket_reset | ( | RC_rocc_output_reset ) ;
 
 
   wire MC_reset_n;
   bsg_launch_sync_sync#(.width_p (1) )manycore_reset_sync(
-        . iclk_i        ( clk_i         )
+        . iclk_i        ( RC_clk_i         )
        ,. iclk_reset_i  ( 1'b0          )
-       ,. oclk_i        ( manycore_clk_i)
+       ,. oclk_i        ( MC_clk_i)
        ,. iclk_data_i   ( RC_reset_n       )
        ,. iclk_data_o   (               )
        ,. oclk_data_o   ( MC_reset_n)
   );
    
   logic MC_reset_r;
-  always_ff@(posedge manycore_clk_i)  MC_reset_r <= MC_reset_n;
+  always_ff@(posedge MC_clk_i)  MC_reset_r <= MC_reset_n;
   
   //instantiate the manycore
   bsg_manycore # (
@@ -134,14 +134,14 @@ module bsg_manycore_rocc_wrapper
      ,.extra_io_rows_p  ( extra_io_rows_p   )
      ,.repeater_output_p( repeater_output_p )
     ) UUT
-      (  .clk_i   (manycore_clk_i     )
+      (  .clk_i   (MC_clk_i     )
         ,.reset_i (MC_reset_r     )
 
-        ,.hor_link_sif_i(hor_link_li)
-        ,.hor_link_sif_o(hor_link_lo)
+        ,.hor_link_sif_i(MC_hor_link_li)
+        ,.hor_link_sif_o(MC_hor_link_lo)
 
-        ,.ver_link_sif_i(ver_link_li)
-        ,.ver_link_sif_o(ver_link_lo)
+        ,.ver_link_sif_i(MC_ver_link_li)
+        ,.ver_link_sif_o(MC_ver_link_lo)
 
         );
 
@@ -155,10 +155,10 @@ module bsg_manycore_rocc_wrapper
                                        ,.x_cord_width_p(x_cord_width_lp)
                                        ,.y_cord_width_p(y_cord_width_lp)
                                        ) bmlst
-        (.clk_i(manycore_clk_i)
+        (.clk_i(MC_clk_i)
          ,.reset_i(MC_reset_r)
-         ,.link_sif_i(hor_link_lo[W][i])
-         ,.link_sif_o(hor_link_li[W][i])
+         ,.link_sif_i(MC_hor_link_lo[W][i])
+         ,.link_sif_o(MC_hor_link_li[W][i])
          );
 
         bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_p  )
@@ -166,10 +166,10 @@ module bsg_manycore_rocc_wrapper
                                        ,.x_cord_width_p(x_cord_width_lp)
                                        ,.y_cord_width_p(y_cord_width_lp)
                                        ) bmlst2
-        (.clk_i(manycore_clk_i)
+        (.clk_i(MC_clk_i)
          ,.reset_i(MC_reset_r)
-         ,.link_sif_i(hor_link_lo[E][i])
-         ,.link_sif_o(hor_link_li[E][i])
+         ,.link_sif_i(MC_hor_link_lo[E][i])
+         ,.link_sif_o(MC_hor_link_li[E][i])
          );
      end
 
@@ -182,10 +182,10 @@ module bsg_manycore_rocc_wrapper
                                        ,.x_cord_width_p(x_cord_width_lp)
                                        ,.y_cord_width_p(y_cord_width_lp)
                                        ) bmlst3
-        (.clk_i(manycore_clk_i)
+        (.clk_i(MC_clk_i)
          ,.reset_i(MC_reset_r)
-         ,.link_sif_i(ver_link_lo[N][i])
-         ,.link_sif_o(ver_link_li[N][i])
+         ,.link_sif_i(MC_ver_link_lo[N][i])
+         ,.link_sif_o(MC_ver_link_li[N][i])
          );
      end
    /////////////////////////////////////////////////////////////////////////////////
@@ -204,13 +204,13 @@ module bsg_manycore_rocc_wrapper
               ,.y_cord_width_p(y_cord_width_lp)
               ,.fifo_els_p    (4)
             )manycore_rocc_async_buffer(
-            .clk_left_i     ( manycore_clk_i  )
+            .clk_left_i     ( MC_clk_i  )
            ,.reset_left_i   ( MC_reset_r  )
-           ,.link_sif_left_i( ver_link_lo[S][ io_ind ])
-           ,.link_sif_left_o( ver_link_li[S][ io_ind ])
+           ,.link_sif_left_i( MC_ver_link_lo[S][ io_ind ])
+           ,.link_sif_left_o( MC_ver_link_li[S][ io_ind ])
 
-           ,.clk_right_i     (   clk_i                                                      )
-           ,.reset_right_i   (   reset_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ]        )
+           ,.clk_right_i     (   RC_clk_i                                                      )
+           ,.reset_right_i   (   RC_reset_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ]        )
            ,.link_sif_right_i(   rocc_link_output )
            ,.link_sif_right_o(   rocc_link_input  )
            );
@@ -227,30 +227,30 @@ module bsg_manycore_rocc_wrapper
                 ,.link_sif_i ( rocc_link_input  )
                 ,.link_sif_o ( rocc_link_output )
 
-                ,.rocket_clk_i  ( clk_i                                                 )
-                ,.rocket_reset_i( reset_i   [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.rocket_clk_i  ( RC_clk_i                                                 )
+                ,.rocket_reset_i( RC_reset_i   [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.core_status_i        (core_status_i    [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.core_exception_i     (core_exception_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.acc_interrupt_o      (acc_interrupt_o  [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.acc_busy_o           (acc_busy_o       [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_status_i        (RC_core_status_i    [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_exception_i     (RC_core_exception_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.acc_interrupt_o      (RC_acc_interrupt_o  [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.acc_busy_o           (RC_acc_busy_o       [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.core_cmd_valid_i     (core_cmd_valid_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.core_cmd_s_i         (core_cmd_s_i     [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.core_cmd_ready_o     (core_cmd_ready_o [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_cmd_valid_i     (RC_core_cmd_valid_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_cmd_s_i         (RC_core_cmd_s_i     [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_cmd_ready_o     (RC_core_cmd_ready_o [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.core_resp_valid_o    (core_resp_valid_o[`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.core_resp_s_o        (core_resp_s_o    [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.core_resp_ready_i    (core_resp_ready_i[`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_resp_valid_o    (RC_core_resp_valid_o[`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_resp_s_o        (RC_core_resp_s_o    [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.core_resp_ready_i    (RC_core_resp_ready_i[`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.mem_req_valid_o      (mem_req_valid_o  [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.mem_req_s_o          (mem_req_s_o      [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.mem_req_ready_i      (mem_req_ready_i  [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_req_valid_o      (RC_mem_req_valid_o  [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_req_s_o          (RC_mem_req_s_o      [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_req_ready_i      (RC_mem_req_ready_i  [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.mem_resp_valid_i     (mem_resp_valid_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
-                ,.mem_resp_s_i         (mem_resp_s_i     [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_resp_valid_i     (RC_mem_resp_valid_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.mem_resp_s_i         (RC_mem_resp_s_i     [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
 
-                ,.reset_manycore_r_o   (rocc_output_reset[`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
+                ,.reset_manycore_r_o   (RC_rocc_output_reset[`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
             );
         //otherwise tieoff
         end else begin: rocc_inst_tieoff
@@ -259,10 +259,10 @@ module bsg_manycore_rocc_wrapper
                                            ,.x_cord_width_p(x_cord_width_lp)
                                            ,.y_cord_width_p(y_cord_width_lp)
                                            ) bmlst4
-            ( .clk_i(manycore_clk_i)
+            ( .clk_i(MC_clk_i)
              ,.reset_i(MC_reset_r)
-             ,.link_sif_i(ver_link_lo[S][ io_ind ])
-             ,.link_sif_o(ver_link_li[S][ io_ind ])
+             ,.link_sif_i(MC_ver_link_lo[S][ io_ind ])
+             ,.link_sif_o(MC_ver_link_li[S][ io_ind ])
              );
        end:rocc_inst_tieoff
    end:rocc_inst
