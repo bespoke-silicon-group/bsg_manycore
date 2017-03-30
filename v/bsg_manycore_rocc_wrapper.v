@@ -196,7 +196,7 @@ module bsg_manycore_rocc_wrapper
    for( io_ind=0; io_ind < rocc_index_limit_lp; io_ind ++) begin: rocc_inst
         if( `GET_HEX(rocc_dist_vec_p, io_ind)  != 0 ) begin: rocc_inst_real
 
-            bsg_manycore_link_sif_s  rocc_link_input, rocc_link_output;
+            bsg_manycore_link_sif_s  RC_rocc_link_input, RC_rocc_link_output;
             bsg_manycore_link_sif_async_buffer
            #(  .addr_width_p  (addr_width_p)
               ,.data_width_p  (data_width_p)
@@ -211,8 +211,8 @@ module bsg_manycore_rocc_wrapper
 
            ,.R_clk_i     (   RC_clk_i                                                      )
            ,.R_reset_i   (   RC_reset_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ]        )
-           ,.R_link_sif_i(   rocc_link_output )
-           ,.R_link_sif_o(   rocc_link_input  )
+           ,.R_link_sif_i(   RC_rocc_link_output )
+           ,.R_link_sif_o(   RC_rocc_link_input  )
            );
 
             bsg_manycore_link_to_rocc
@@ -224,8 +224,8 @@ module bsg_manycore_rocc_wrapper
                  .my_x_i( x_cord_width_lp'(io_ind )       )
                 ,.my_y_i( y_cord_width_lp'(num_tiles_y_p) )
 
-                ,.link_sif_i ( rocc_link_input  )
-                ,.link_sif_o ( rocc_link_output )
+                ,.link_sif_i ( RC_rocc_link_input  )
+                ,.link_sif_o ( RC_rocc_link_output )
 
                 ,.rocket_clk_i  ( RC_clk_i                                                 )
                 ,.rocket_reset_i( RC_reset_i   [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ] )
