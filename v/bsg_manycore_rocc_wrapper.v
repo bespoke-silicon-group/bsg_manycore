@@ -204,15 +204,15 @@ module bsg_manycore_rocc_wrapper
               ,.y_cord_width_p(y_cord_width_lp)
               ,.fifo_els_p    (4)
             )manycore_rocc_async_buffer(
-            .clk_left_i     ( MC_clk_i  )
-           ,.reset_left_i   ( MC_reset_r  )
-           ,.link_sif_left_i( MC_ver_link_lo[S][ io_ind ])
-           ,.link_sif_left_o( MC_ver_link_li[S][ io_ind ])
+            .L_clk_i     ( MC_clk_i  )
+           ,.L_reset_i   ( MC_reset_r  )
+           ,.L_link_sif_i( MC_ver_link_lo[S][ io_ind ])
+           ,.L_link_sif_o( MC_ver_link_li[S][ io_ind ])
 
-           ,.clk_right_i     (   RC_clk_i                                                      )
-           ,.reset_right_i   (   RC_reset_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ]        )
-           ,.link_sif_right_i(   rocc_link_output )
-           ,.link_sif_right_o(   rocc_link_input  )
+           ,.R_clk_i     (   RC_clk_i                                                      )
+           ,.R_reset_i   (   RC_reset_i [`GET_HEX_MIN_1(rocc_dist_vec_p, io_ind) ]        )
+           ,.R_link_sif_i(   rocc_link_output )
+           ,.R_link_sif_o(   rocc_link_input  )
            );
 
             bsg_manycore_link_to_rocc

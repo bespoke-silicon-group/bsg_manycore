@@ -15,15 +15,15 @@ module bsg_manycore_link_sif_async_buffer
       , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p)
     )(
     //the left side signal 
-    input                                       clk_left_i
-   ,input                                       reset_left_i
-   ,input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_left_i
-   ,output [bsg_manycore_link_sif_width_lp-1:0] link_sif_left_o
+    input                                       L_clk_i
+   ,input                                       L_reset_i
+   ,input  [bsg_manycore_link_sif_width_lp-1:0] L_link_sif_i
+   ,output [bsg_manycore_link_sif_width_lp-1:0] L_link_sif_o
     //the right side signal
-   ,input                                       clk_right_i
-   ,input                                       reset_right_i
-   ,input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_right_i
-   ,output [bsg_manycore_link_sif_width_lp-1:0] link_sif_right_o
+   ,input                                       R_clk_i
+   ,input                                       R_reset_i
+   ,input  [bsg_manycore_link_sif_width_lp-1:0] R_link_sif_i
+   ,output [bsg_manycore_link_sif_width_lp-1:0] R_link_sif_o
    ); 
    ////////////////////////////////////////////////////////////////////////////////////////
    // Declear the cast structures. 
@@ -41,10 +41,10 @@ module bsg_manycore_link_sif_async_buffer
    bsg_manycore_link_sif_s link_sif_left_i_cast,  link_sif_left_o_cast ;
    bsg_manycore_link_sif_s link_sif_right_i_cast, link_sif_right_o_cast;
 
-   assign link_sif_left_i_cast = link_sif_left_i;
-   assign link_sif_left_o      = link_sif_left_o_cast;
-   assign link_sif_right_i_cast= link_sif_right_i;
-   assign link_sif_right_o     = link_sif_right_o_cast;
+   assign link_sif_left_i_cast  = L_link_sif_i;
+   assign L_link_sif_o          = link_sif_left_o_cast;
+   assign link_sif_right_i_cast = R_link_sif_i;
+   assign R_link_sif_o          = link_sif_right_o_cast;
 
    ////////////////////////////////////////////////////////////////////////////////////////
    // Covert left to right forwarding signals 
@@ -59,16 +59,16 @@ module bsg_manycore_link_sif_async_buffer
                     ,.width_p    ( packet_width_lp ) 
                     )left2right_fwd
    (
-     .w_clk_i   ( clk_left_i    )
-    ,.w_reset_i ( reset_left_i  )
+     .w_clk_i   ( L_clk_i    )
+    ,.w_reset_i ( L_reset_i  )
     // not legal to w_enq_i if w_full_o is not low.
     ,.w_enq_i   ( l2r_fwd_w_enq   )
     ,.w_data_i  ( l2r_fwd_w_data  )
     ,.w_full_o  ( l2r_fwd_w_full  )
 
     // not legal to r_deq_i if r_valid_o is not high.
-    ,.r_clk_i   ( clk_right_i     )
-    ,.r_reset_i ( reset_right_i   )
+    ,.r_clk_i   ( R_clk_i     )
+    ,.r_reset_i ( R_reset_i   )
     ,.r_deq_i   ( l2r_fwd_r_deq   )
     ,.r_data_o  ( l2r_fwd_r_data  )
     ,.r_valid_o ( l2r_fwd_r_valid )
@@ -94,16 +94,16 @@ module bsg_manycore_link_sif_async_buffer
                     ,.width_p    ( return_packet_width_lp   )
                     )right2left_rev
    (
-     .w_clk_i   ( clk_right_i    )
-    ,.w_reset_i ( reset_right_i  )
+     .w_clk_i   ( R_clk_i    )
+    ,.w_reset_i ( R_reset_i  )
     // not legal to w_enq_i if w_full_o is not low.
     ,.w_enq_i   ( r2l_rev_w_enq  )
     ,.w_data_i  ( r2l_rev_w_data )
     ,.w_full_o  ( r2l_rev_w_full )
 
     // not legal to r_deq_i if r_valid_o is not high.
-    ,.r_clk_i   ( clk_left_i     )
-    ,.r_reset_i ( reset_left_i   )
+    ,.r_clk_i   ( L_clk_i     )
+    ,.r_reset_i ( L_reset_i   )
     ,.r_deq_i   ( r2l_rev_r_deq  )
     ,.r_data_o  ( r2l_rev_r_data )
     ,.r_valid_o ( r2l_rev_r_valid)
@@ -130,16 +130,16 @@ module bsg_manycore_link_sif_async_buffer
                     ,.width_p    ( return_packet_width_lp ) 
                     )left2right_rev
    (
-     .w_clk_i   ( clk_left_i    )
-    ,.w_reset_i ( reset_left_i  )
+     .w_clk_i   ( L_clk_i    )
+    ,.w_reset_i ( L_reset_i  )
     // not legal to w_enq_i if w_full_o is not low.
     ,.w_enq_i   ( l2r_rev_w_enq   )
     ,.w_data_i  ( l2r_rev_w_data  )
     ,.w_full_o  ( l2r_rev_w_full  )
 
     // not legal to r_deq_i if r_valid_o is not high.
-    ,.r_clk_i   ( clk_right_i     )
-    ,.r_reset_i ( reset_right_i   )
+    ,.r_clk_i   ( R_clk_i     )
+    ,.r_reset_i ( R_reset_i   )
     ,.r_deq_i   ( l2r_rev_r_deq   )
     ,.r_data_o  ( l2r_rev_r_data  )
     ,.r_valid_o ( l2r_rev_r_valid )
@@ -166,16 +166,16 @@ module bsg_manycore_link_sif_async_buffer
                     ,.width_p    ( packet_width_lp          )
                     )right2left_fwd
    (
-     .w_clk_i   ( clk_right_i    )
-    ,.w_reset_i ( reset_right_i  )
+     .w_clk_i   ( R_clk_i    )
+    ,.w_reset_i ( R_reset_i  )
     // not legal to w_enq_i if w_full_o is not low.
     ,.w_enq_i   ( r2l_fwd_w_enq  )
     ,.w_data_i  ( r2l_fwd_w_data )
     ,.w_full_o  ( r2l_fwd_w_full )
 
     // not legal to r_deq_i if r_valid_o is not high.
-    ,.r_clk_i   ( clk_left_i     )
-    ,.r_reset_i ( reset_left_i   )
+    ,.r_clk_i   ( L_clk_i     )
+    ,.r_reset_i ( L_reset_i   )
     ,.r_deq_i   ( r2l_fwd_r_deq  )
     ,.r_data_o  ( r2l_fwd_r_data )
     ,.r_valid_o ( r2l_fwd_r_valid)
