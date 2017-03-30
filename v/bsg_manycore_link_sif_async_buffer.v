@@ -38,13 +38,13 @@ module bsg_manycore_link_sif_async_buffer
 
    `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
-   bsg_manycore_link_sif_s link_sif_left_i_cast,  link_sif_left_o_cast ;
-   bsg_manycore_link_sif_s link_sif_right_i_cast, link_sif_right_o_cast;
+   bsg_manycore_link_sif_s L_link_sif_i_cast,  L_link_sif_o_cast ;
+   bsg_manycore_link_sif_s R_link_sif_i_cast,  R_link_sif_o_cast;
 
-   assign link_sif_left_i_cast  = L_link_sif_i;
-   assign L_link_sif_o          = link_sif_left_o_cast;
-   assign link_sif_right_i_cast = R_link_sif_i;
-   assign R_link_sif_o          = link_sif_right_o_cast;
+   assign L_link_sif_i_cast     = L_link_sif_i;
+   assign L_link_sif_o          = L_link_sif_o_cast;
+   assign R_link_sif_i_cast     = R_link_sif_i;
+   assign R_link_sif_o          = R_link_sif_o_cast;
 
    ////////////////////////////////////////////////////////////////////////////////////////
    // Covert left to right forwarding signals 
@@ -74,13 +74,13 @@ module bsg_manycore_link_sif_async_buffer
     ,.r_valid_o ( l2r_fwd_r_valid )
     );
 
-    assign l2r_fwd_w_enq    =  (~ l2r_fwd_w_full ) & link_sif_left_i_cast.fwd.v     ;
-    assign l2r_fwd_w_data   =                        link_sif_left_i_cast.fwd.data  ;
-    assign link_sif_left_o_cast.fwd.ready_and_rev = ~l2r_fwd_w_full                 ;
+    assign l2r_fwd_w_enq    =  (~ l2r_fwd_w_full ) & L_link_sif_i_cast.fwd.v     ;
+    assign l2r_fwd_w_data   =                        L_link_sif_i_cast.fwd.data  ;
+    assign L_link_sif_o_cast.fwd.ready_and_rev = ~l2r_fwd_w_full                 ;
 
-    assign l2r_fwd_r_deq    =  l2r_fwd_r_valid     & link_sif_right_i_cast.fwd.ready_and_rev;
-    assign link_sif_right_o_cast.fwd.v            = l2r_fwd_r_valid                 ;
-    assign link_sif_right_o_cast.fwd.data         = l2r_fwd_r_data                  ;
+    assign l2r_fwd_r_deq    =  l2r_fwd_r_valid     & R_link_sif_i_cast.fwd.ready_and_rev;
+    assign R_link_sif_o_cast.fwd.v            = l2r_fwd_r_valid                 ;
+    assign R_link_sif_o_cast.fwd.data         = l2r_fwd_r_data                  ;
    ////////////////////////////////////////////////////////////////////////////////////////
    // Covert right to left reverse  signals 
    wire                                 r2l_rev_w_enq   ;
@@ -109,13 +109,13 @@ module bsg_manycore_link_sif_async_buffer
     ,.r_valid_o ( r2l_rev_r_valid)
     );
 
-    assign r2l_rev_w_enq    =  (~ r2l_rev_w_full ) & link_sif_right_i_cast.rev.v     ;
-    assign r2l_rev_w_data   =                        link_sif_right_i_cast.rev.data  ;
-    assign link_sif_right_o_cast.rev.ready_and_rev = ~r2l_rev_w_full                 ;
+    assign r2l_rev_w_enq    =  (~ r2l_rev_w_full ) & R_link_sif_i_cast.rev.v     ;
+    assign r2l_rev_w_data   =                        R_link_sif_i_cast.rev.data  ;
+    assign R_link_sif_o_cast.rev.ready_and_rev = ~r2l_rev_w_full                 ;
 
-    assign r2l_rev_r_deq    =  r2l_rev_r_valid     & link_sif_left_i_cast.rev.ready_and_rev;
-    assign link_sif_left_o_cast.rev.v            = r2l_rev_r_valid                 ;
-    assign link_sif_left_o_cast.rev.data         = r2l_rev_r_data                  ;
+    assign r2l_rev_r_deq    =  r2l_rev_r_valid     & L_link_sif_i_cast.rev.ready_and_rev;
+    assign L_link_sif_o_cast.rev.v            = r2l_rev_r_valid                 ;
+    assign L_link_sif_o_cast.rev.data         = r2l_rev_r_data                  ;
 
    ////////////////////////////////////////////////////////////////////////////////////////
    // Covert left to right reverse signals 
@@ -145,13 +145,13 @@ module bsg_manycore_link_sif_async_buffer
     ,.r_valid_o ( l2r_rev_r_valid )
     );
 
-    assign l2r_rev_w_enq    =  (~ l2r_rev_w_full ) & link_sif_left_i_cast.rev.v     ;
-    assign l2r_rev_w_data   =                        link_sif_left_i_cast.rev.data  ;
-    assign link_sif_left_o_cast.rev.ready_and_rev = ~l2r_rev_w_full                 ;
+    assign l2r_rev_w_enq    =  (~ l2r_rev_w_full ) & L_link_sif_i_cast.rev.v     ;
+    assign l2r_rev_w_data   =                        L_link_sif_i_cast.rev.data  ;
+    assign L_link_sif_o_cast.rev.ready_and_rev = ~l2r_rev_w_full                 ;
 
-    assign l2r_rev_r_deq    =  l2r_rev_r_valid     & link_sif_right_i_cast.rev.ready_and_rev;
-    assign link_sif_right_o_cast.rev.v            = l2r_rev_r_valid                 ;
-    assign link_sif_right_o_cast.rev.data         = l2r_rev_r_data                  ;
+    assign l2r_rev_r_deq    =  l2r_rev_r_valid     & R_link_sif_i_cast.rev.ready_and_rev;
+    assign R_link_sif_o_cast.rev.v            = l2r_rev_r_valid                 ;
+    assign R_link_sif_o_cast.rev.data         = l2r_rev_r_data                  ;
 
    ////////////////////////////////////////////////////////////////////////////////////////
    // Covert right to left forward  signals 
@@ -181,11 +181,11 @@ module bsg_manycore_link_sif_async_buffer
     ,.r_valid_o ( r2l_fwd_r_valid)
     );
 
-    assign r2l_fwd_w_enq    =  (~ r2l_fwd_w_full ) & link_sif_right_i_cast.fwd.v     ;
-    assign r2l_fwd_w_data   =                        link_sif_right_i_cast.fwd.data  ;
-    assign link_sif_right_o_cast.fwd.ready_and_rev = ~r2l_fwd_w_full                 ;
+    assign r2l_fwd_w_enq    =  (~ r2l_fwd_w_full ) & R_link_sif_i_cast.fwd.v     ;
+    assign r2l_fwd_w_data   =                        R_link_sif_i_cast.fwd.data  ;
+    assign R_link_sif_o_cast.fwd.ready_and_rev = ~r2l_fwd_w_full                 ;
 
-    assign r2l_fwd_r_deq    =  r2l_fwd_r_valid     & link_sif_left_i_cast.fwd.ready_and_rev;
-    assign link_sif_left_o_cast.fwd.v            = r2l_fwd_r_valid                 ;
-    assign link_sif_left_o_cast.fwd.data         = r2l_fwd_r_data                  ;
+    assign r2l_fwd_r_deq    =  r2l_fwd_r_valid     & L_link_sif_i_cast.fwd.ready_and_rev;
+    assign L_link_sif_o_cast.fwd.v            = r2l_fwd_r_valid                 ;
+    assign L_link_sif_o_cast.fwd.data         = r2l_fwd_r_data                  ;
 endmodule
