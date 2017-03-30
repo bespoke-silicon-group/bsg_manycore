@@ -135,7 +135,11 @@ module bsg_manycore_rocc_wrapper
      ,.repeater_output_p( repeater_output_p )
     ) UUT
       (  .clk_i   (MC_clk_i     )
-        ,.reset_i (MC_reset_r     )
+    //We only sent the synchronized but not registered reset into manycore.
+    //As the manycore will distribute across large area, it will take long
+    //time for the reset signal to propgate.
+    //Each tile should register the reset inside itself
+        ,.reset_i (MC_reset_n     )
 
         ,.hor_link_sif_i(MC_hor_link_li)
         ,.hor_link_sif_o(MC_hor_link_lo)
