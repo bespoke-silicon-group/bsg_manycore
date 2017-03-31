@@ -91,7 +91,7 @@ module bsg_manycore_rocc_streambuf_wrapper
    //FIFO output 
    , output                             v_o
    , output [out_fifo_width_lp-1:0]     data_o
-   , input                              yumi_i
+   , input                              ready_i
   );
 
   //get one hex from the parameter vector p
@@ -331,7 +331,8 @@ module bsg_manycore_rocc_streambuf_wrapper
   (
     //this will work under rocket clock domain
      .clk_i     ( clk_i         )
-   , .reset_i   ( reset_i       )
+    //This FIFO will be reseted as Manycore is reseted.
+   , .reset_i   ( RC_reset_n    )
 
    , .my_x_i    ( out_fifo_x_cord)
    , .my_y_i    ( out_fifo_y_cord)
@@ -343,7 +344,7 @@ module bsg_manycore_rocc_streambuf_wrapper
    //FIFO output 
    , .v_o     ( v_o     ) 
    , .data_o  ( data_o  )
-   , .yumi_i  ( yumi_i  )
+   , .ready_i ( ready_i )
    );
 
    /////////////////////////////////////////////////////////////////////////////////
