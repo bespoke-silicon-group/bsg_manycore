@@ -137,12 +137,14 @@ module  bsg_manycore_link_to_fifo
                                                 +:    out_fifo_width_scale_p ];
 
     for( j=0; j < out_fifo_width_scale_p ; j++) begin : merge_data_j
-        assign merged_data[ i ] [ j*data_width_p
-                               +:   data_width_p ] = endpoint_relayed_data[ i * j ];
+        assign merged_data[ i ] [ j*data_width_p  +:   data_width_p ]
+             = endpoint_relayed_data[ i * out_fifo_width_scale_p + j ];
     end
 
+    //TODO: is this OK ?
+    wire tmp_ready = merged_ready[ i ] & merged_v[ i ] ;
     assign endpoint_relayed_ready[ i*out_fifo_width_scale_p
-                                 +:  out_fifo_width_scale_p ] = { out_fifo_width_scale_p { merged_ready[ i ] } };
+                                 +:  out_fifo_width_scale_p ] = { out_fifo_width_scale_p { tmp_ready } };
 
 
   end
