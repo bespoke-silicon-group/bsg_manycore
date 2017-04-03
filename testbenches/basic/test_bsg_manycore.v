@@ -135,9 +135,6 @@ module test_bsg_manycore;
                            , .async_reset_o(reset)
                           );
 
-  logic reset_r;
-  always_ff @(posedge clk) reset_r <= reset;
-
   integer       stderr = 32'h80000002;
 
    `declare_bsg_manycore_link_sif_s(addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp);
@@ -198,7 +195,7 @@ module test_bsg_manycore;
                                        ,.y_cord_width_p(lg_node_y_lp)
                                        ) bmlst
         (.clk_i(clk)
-         ,.reset_i(reset_r)
+         ,.reset_i(reset)
          ,.link_sif_i(hor_link_lo[W][i])
          ,.link_sif_o(hor_link_li[W][i])
          );
@@ -209,7 +206,7 @@ module test_bsg_manycore;
                                        ,.y_cord_width_p(lg_node_y_lp   )
                                        ) bmlst2
         (.clk_i(clk)
-         ,.reset_i(reset_r)
+         ,.reset_i(reset)
          ,.link_sif_i(hor_link_lo[E][i])
          ,.link_sif_o(hor_link_li[E][i])
          );
@@ -225,7 +222,7 @@ module test_bsg_manycore;
                                        ,.y_cord_width_p(lg_node_y_lp)
                                        ) bmlst3
         (.clk_i(clk)
-         ,.reset_i(reset_r)
+         ,.reset_i(reset)
          ,.link_sif_i(ver_link_lo[N][i])
          ,.link_sif_o(ver_link_li[N][i])
          );
@@ -244,7 +241,7 @@ module test_bsg_manycore;
 	,.tile_id_ptr_p(tile_id_ptr_lp)
         ) io
    (.clk_i(clk)
-    ,.reset_i(reset_r)
+    ,.reset_i(reset)
     ,.ver_link_sif_i(ver_link_lo[S])
     ,.ver_link_sif_o(ver_link_li[S])
     ,.finish_lo(finish_lo)

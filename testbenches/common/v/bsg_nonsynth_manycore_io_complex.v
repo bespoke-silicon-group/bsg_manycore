@@ -53,6 +53,12 @@ module bsg_nonsynth_manycore_io_complex
    logic                      loader_v_lo;
    logic                      loader_ready_li;
 
+   logic reset_r;
+   always_ff @(posedge clk_i)
+     begin
+       reset_r <= reset_i;
+     end
+
    bsg_manycore_spmd_loader
      #( .mem_size_p    (mem_size_p)
         ,.num_rows_p    (num_tiles_y_p)
@@ -63,7 +69,7 @@ module bsg_nonsynth_manycore_io_complex
         ,.tile_id_ptr_p (tile_id_ptr_p)
         ) spmd_loader
        ( .clk_i     (clk_i)
-         ,.reset_i  (reset_i)
+         ,.reset_i  (reset_r)
          ,.data_o   (loader_data_lo )
          ,.v_o      (loader_v_lo    )
          ,.ready_i  (loader_ready_li)
@@ -147,7 +153,7 @@ module bsg_nonsynth_manycore_io_complex
                                         // setting this
                                         ,.pass_thru_max_out_credits_p (credits_lp)
                                         ) bmm (.clk_i             (clk_i)
-                                               ,.reset_i          (reset_i)
+                                               ,.reset_i          (reset_r)
                                                ,.link_sif_i       (ver_link_sif_i_cast[i])
                                                ,.link_sif_o       (ver_link_sif_o_cast[i])
                                                ,.pass_thru_data_i (loader_data_lo )
