@@ -60,6 +60,8 @@ module bsg_manycore_rocc_streambuf_wrapper
    ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
    // snew * y * x bits
    ,parameter repeater_output_p = 0
+   //the async FIFO depth
+   ,parameter async_fifo_els_p  = 8
 
    ,parameter out_fifo_width_lp   = data_width_p       * out_fifo_width_scale_p 
   )
@@ -225,7 +227,7 @@ module bsg_manycore_rocc_streambuf_wrapper
               ,.data_width_p  (data_width_p)
               ,.x_cord_width_p(x_cord_width_lp)
               ,.y_cord_width_p(y_cord_width_lp)
-              ,.fifo_els_p    (4)
+              ,.fifo_els_p    (async_fifo_els_p)
             )manycore_rocc_async_buffer(
             .L_clk_i     ( manycore_clk_i  )
            ,.L_reset_i   ( MC_reset_r  )
@@ -284,7 +286,7 @@ module bsg_manycore_rocc_streambuf_wrapper
               ,.data_width_p  (data_width_p)
               ,.x_cord_width_p(x_cord_width_lp)
               ,.y_cord_width_p(y_cord_width_lp)
-              ,.fifo_els_p    (4)
+              ,.fifo_els_p    (async_fifo_els_p)
             )manycore_out_fifo_async_buffer(
             .L_clk_i     ( manycore_clk_i  )
            ,.L_reset_i   ( MC_reset_r  )
