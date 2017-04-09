@@ -125,9 +125,9 @@ module bsg_manycore_rocc_wrapper
      ,.num_tiles_y_p    (num_tiles_y_p      )
      ,.hetero_type_vec_p(hetero_type_vec_p  )
 
-     ,.stub_w_p     ({num_tiles_y_p{1'b1}})
-     ,.stub_e_p     ({num_tiles_y_p{1'b1}})
-     ,.stub_n_p     ({num_tiles_x_p{1'b1}})
+     ,.stub_w_p     ({num_tiles_y_p{1'b0}})
+     ,.stub_e_p     ({num_tiles_y_p{1'b0}})
+     ,.stub_n_p     ({num_tiles_x_p{1'b0}})
      // south side is unstubbed.
      ,.stub_s_p     ({num_tiles_x_p{1'b0}})
      ,.debug_p(debug_p)
