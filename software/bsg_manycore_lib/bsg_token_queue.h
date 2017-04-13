@@ -19,17 +19,31 @@
 //
 //
 
+#ifdef BSG_TOKEN_QUEUE_SHORT
+#define bsg_token_pair_ATOM short
+#else
+#define bsg_token_pair_ATOM int
+#endif
+
+
 typedef struct bsg_token_pair
 {
-  int send;
-  int receive;
+  bsg_token_pair_ATOM send;
+  bsg_token_pair_ATOM receive;
 } bsg_token_pair_t;
+
+// hack
+// assumes a particular endian ordering and alignment of the above bsg_toke_pair array
+#define BSG_TOKEN_QUEUE_SHORT_RECEIVE(x) ((x) >> 16)
+#define BSG_TOKEN_QUEUE_SHORT_SEND(x) ((x) & 0xFFFF)
+
 
 typedef struct bsg_token_connection
 {
   bsg_token_pair_t *local_ptr;
-  volatile int *remote_ptr;
+  volatile bsg_token_pair_ATOM *remote_ptr;
 } bsg_token_connection_t;
+
 
 #define bsg_declare_token_queue(x) bsg_token_pair_t x [bsg_tiles_X][bsg_tiles_Y] = {0,0}
 
@@ -65,7 +79,21 @@ inline int bsg_tq_sender_confirm(bsg_token_connection_t conn, int max_els, int d
   // these lines incorrect on wrap around because of modulo arithmetic
   // bsg_wait_while((bsg_lr(&((conn.local_ptr)->receive)) < tmp) && (bsg_lr_aq(&((conn.local_ptr)->receive)) < tmp));
 
+#ifdef BSG_TOKEN_QUEUE_SHORT
+  while (1)
+  {
+    int recv = BSG_TOKEN_QUEUE_SHORT_RECEIVE(bsg_lr((int *) conn.local_ptr));
+
+    if (tmp - recv <= 0) break;
+
+    recv = BSG_TOKEN_QUEUE_SHORT_RECEIVE(bsg_lr_aq((int *) conn.local_ptr));
+
+    if (tmp - recv <= 0) break;
+  }
+
+#else
   bsg_wait_while((tmp - bsg_lr(&((conn.local_ptr)->receive)) > 0) && (tmp - bsg_lr_aq(&((conn.local_ptr)->receive)) > 0));
+#endif
 
   return i;
 }
@@ -107,7 +135,20 @@ inline int bsg_tq_receiver_confirm(bsg_token_connection_t conn, int depth)
 
   //bsg_wait_while((bsg_lr(&((conn.local_ptr)->send)) < tmp) && (bsg_lr_aq(&((conn.local_ptr)->send)) < tmp));
 
+#ifdef BSG_TOKEN_QUEUE_SHORT
+  while (1)
+  {
+    int send = BSG_TOKEN_QUEUE_SHORT_SEND(bsg_lr((int *)conn.local_ptr));
+
+    if (send - tmp >= 0) break;
+
+    send = BSG_TOKEN_QUEUE_SHORT_SEND(bsg_lr_aq((int *)conn.local_ptr));
+
+    if (send - tmp >= 0) break;
+  }
+#else
   bsg_wait_while((bsg_lr(&((conn.local_ptr)->send))-tmp < 0) && (bsg_lr_aq(&((conn.local_ptr)->send))-tmp < 0));
+#endif
 
   return i;
 }
