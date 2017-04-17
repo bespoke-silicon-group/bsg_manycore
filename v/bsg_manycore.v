@@ -83,6 +83,9 @@ module bsg_manycore
   );
 
 
+// Manycore is stubbed out when running synthesis on the top-level chip
+`ifndef SYNTHESIS_TOPLEVEL_STUB
+
    // synopsys translate_off
    initial
    begin
@@ -190,4 +193,5 @@ module bsg_manycore
   end
   `endif
   //synopsys translate_on
+`endif
 endmodule
