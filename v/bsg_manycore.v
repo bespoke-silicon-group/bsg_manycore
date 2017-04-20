@@ -82,7 +82,6 @@ module bsg_manycore
 
   );
 
-
 // Manycore is stubbed out when running synthesis on the top-level chip
 `ifndef SYNTHESIS_TOPLEVEL_STUB
 
@@ -104,6 +103,16 @@ module bsg_manycore
 
    genvar r,c;
 
+  // Pipeline the reset by 2 flip flops (for 16nm layout)
+  logic reset_i_r, reset_i_rr;
+
+  always_ff @(posedge clk_i)
+    begin
+      reset_i_r <= reset_i;
+      reset_i_rr <= reset_i_r;
+    end
+
+
 `ifdef bsg_FPU
   //The array of the interface between FAM and tile
   f_fam_in_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0]  fam_in_s_v;
@@ -120,7 +129,7 @@ module bsg_manycore
                   )
                 fam_g(
                  .clk_i      ( clk_i                 )
-                ,.reset_i    ( reset_i               )
+                ,.reset_i    ( reset_i_rr            )
                 ,.fam_in_s_i ( {fam_in_s_v [r][ c+1], fam_in_s_v[r][ c ]})
                 ,.fam_out_s_o( {fam_out_s_v[r][ c+1], fam_out_s_v[r][ c ]})
                 );
@@ -152,7 +161,7 @@ module bsg_manycore
             tile
               (
                 .clk_i(clk_i),
-                .reset_i(reset_i),
+                .reset_i(reset_i_rr),
 
                 .link_in(link_in[r][c]),
                 .link_out(link_out[r][c]),
