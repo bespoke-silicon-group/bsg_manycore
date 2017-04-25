@@ -35,8 +35,8 @@ module bsg_manycore_tile
     input  [bsg_manycore_link_sif_width_lp-1:0][S:W] link_in,
     output [bsg_manycore_link_sif_width_lp-1:0][S:W] link_out,
 `ifdef bsg_FPU
-    input  f_fam_out_s fam_out_s_i
-    output f_fam_in_s  fam_in_s_o
+    input  f_fam_out_s fam_out_s_i,
+    output f_fam_in_s  fam_in_s_o,
 `endif
 
     input [x_cord_width_p-1:0] my_x_i,

@@ -113,6 +113,7 @@ module rf_2r1w_sync_wrapper  #(parameter width_p=-1
     assign  r1_data_o   = r1_v_r ? r1_data_safe : r1_data_r;
 
     ///////////////////////////////////////
+    // synopsys translate_off
     if(0) begin
         always_ff@ ( negedge clk_i ) begin
             if ( r0_rw_same_addr )
@@ -121,6 +122,7 @@ module rf_2r1w_sync_wrapper  #(parameter width_p=-1
                 $display("port1 read with the same address with write: addr=%08x, value=%08x\n",r1_addr_i, w_data_i);
         end
     end
+    // synopsys translate_on
 
 endmodule
 
