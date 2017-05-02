@@ -11,6 +11,8 @@ module bsg_nonsynth_manycore_io_complex
     ,data_width_p  = 32
     ,num_tiles_x_p = -1
     ,num_tiles_y_p = -1
+    ,load_rows_p    =  num_tiles_y_p
+    ,load_cols_p    =  num_tiles_x_p
     ,tile_id_ptr_p = -1
     ,x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
     ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
@@ -63,7 +65,8 @@ module bsg_nonsynth_manycore_io_complex
      #( .mem_size_p    (mem_size_p)
         ,.num_rows_p    (num_tiles_y_p)
         ,.num_cols_p    (num_tiles_x_p)
-
+        ,.load_rows_p   ( load_rows_p)
+        ,.load_cols_p   ( load_cols_p)
         ,.data_width_p  (data_width_p)
         ,.addr_width_p  (addr_width_p)
         ,.tile_id_ptr_p (tile_id_ptr_p)
