@@ -33,6 +33,8 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
 
     ,input [39:0] cycle_count_i
     ,output finish_o
+	,output success_o
+	,output timeout_o
     );
 
    logic                              cgni_v, cgni_yumi;
@@ -76,9 +78,12 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
    // incoming packets on main network: always deque
    assign cgni_yumi = cgni_v;
 
-   logic                        finish_r, finish_r_r;
+   logic finish_r, finish_r_r;
+   logic success_r, timeout_r;
 
    assign finish_o = finish_r;
+   assign success_o = success_r;
+   assign timeout_o = timeout_r;
 
    always @(posedge clk_i)
      finish_r_r <= finish_r;
@@ -88,17 +93,19 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
        $finish();
 
    always @(negedge clk_i)
-     if (cycle_count_i > max_cycles_p)
-       begin
-          $display("## TIMEOUT reached max_cycles_p = %x",max_cycles_p);
-          finish_r <= 1'b1;
-       end
-
-   always @(negedge clk_i)
+   begin
      if (reset_i == 0)
        begin
+		   if (cycle_count_i > max_cycles_p)
+		   begin
+			 $display("## TIMEOUT reached max_cycles_p = %x",max_cycles_p);
+			 finish_r <= 1'b1;
+			 timeout_r <= 1'b1;
+		   end
+	   
           if (cgni_v)
             begin
+			
                unique case ({pkt_addr[19:0],2'b00})
                  20'hDEAD_0:
                    begin
@@ -108,6 +115,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                                , channel_num_p, cycle_count_i,cycle_count_i
                                );
                       finish_r <= 1'b1;
+					  success_r <= 1'b1;
                    end
                  20'hDEAD_4:
                    begin
@@ -131,7 +139,12 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                             channel_num_p, pkt_addr<<2, pkt_data,cycle_count_i);
                endcase
             end
-       end
+       end else begin
+			finish_r <= 1'b0;
+			success_r <= 1'b0;
+			timeout_r <= 1'b0;
+	   end
+	end
 
 endmodule
 

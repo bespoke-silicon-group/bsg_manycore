@@ -26,6 +26,8 @@ module bsg_nonsynth_manycore_io_complex
     ,output [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
 
     ,output finish_lo
+	,output success_lo
+	,output timeout_lo
     );
 
    initial
@@ -65,8 +67,8 @@ module bsg_nonsynth_manycore_io_complex
      #( .mem_size_p    (mem_size_p)
         ,.num_rows_p    (num_tiles_y_p)
         ,.num_cols_p    (num_tiles_x_p)
-        ,.load_rows_p   ( load_rows_p)
-        ,.load_cols_p   ( load_cols_p)
+        ,.load_rows_p   (load_rows_p)
+        ,.load_cols_p   (load_cols_p)
         ,.data_width_p  (data_width_p)
         ,.addr_width_p  (addr_width_p)
         ,.tile_id_ptr_p (tile_id_ptr_p)
@@ -93,6 +95,12 @@ module bsg_nonsynth_manycore_io_complex
 
    wire [num_tiles_x_p-1:0] finish_lo_vec;
    assign finish_lo = | finish_lo_vec;
+   
+   wire [num_tiles_x_p-1:0] success_lo_vec;
+   assign success_lo = | success_lo_vec;
+   
+   wire [num_tiles_x_p-1:0] timeout_lo_vec;
+   assign timeout_lo = | timeout_lo_vec;
 
    // we only set such a high number because we
    // know these packets can always be consumed
@@ -167,6 +175,8 @@ module bsg_nonsynth_manycore_io_complex
                                                ,.pass_thru_y_i(pass_thru_y_li)
                                                ,.cycle_count_i(cycle_count)
                                                ,.finish_o     (finish_lo_vec[i])
+											   ,.success_o(success_lo_vec[i])
+											   ,.timeout_o(timeout_lo_vec[i])
                                                );
      end
 

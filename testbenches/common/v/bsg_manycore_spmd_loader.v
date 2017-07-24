@@ -34,7 +34,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,input [x_cord_width_lp-1:0]  my_x_i
   );
 
-  logic [63:0]                tile_no, tile_no_n; // tile number
+  logic [7:0]                tile_no, tile_no_n; // tile number
   logic [addr_width_p-1:0]    load_addr;
   logic [data_width_p-1:0]    load_data;
   logic [y_cord_width_lp-1:0]  y_cord;
@@ -101,6 +101,9 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    wire tile_loading_done = (load_addr == (mem_size_p-4));
 
    assign tile_no_n = (tile_no + tile_loading_done)  % (load_rows_p * load_cols_p);
+   //assign tile_no_n = (tile_no + tile_loading_done) % load_cols_p;
+   
+   
    assign loaded_n = (tile_no == load_rows_p*load_cols_p -1)
                   && (load_addr == (mem_size_p-4));
 
@@ -134,6 +137,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                 tile_no <=  tile_no + 1;
           end else
                 tile_no <= ( tile_no + 1 ) % ( load_rows_p*load_cols_p );
+				//tile_no <= ( tile_no + 1 ) % load_cols_p;
         end
 
         if(ready_i &&  loaded &&  tile_no ==  (load_rows_p * load_cols_p-1) )
