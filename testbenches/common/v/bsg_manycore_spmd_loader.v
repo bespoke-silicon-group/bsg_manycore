@@ -34,7 +34,11 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,input [x_cord_width_lp-1:0]  my_x_i
   );
 
-  logic [7:0]                tile_no, tile_no_n; // tile number
+
+  localparam tile_no_width_lp = 10;
+  localparam tile_no_total_lp = load_rows_p * load_cols_p;
+
+  logic [tile_no_width_lp-1:0]    tile_no, tile_no_n; // tile number is limited to 1023
   logic [addr_width_p-1:0]    load_addr;
   logic [data_width_p-1:0]    load_data;
   logic [y_cord_width_lp-1:0]  y_cord;
@@ -100,8 +104,9 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
    wire tile_loading_done = (load_addr == (mem_size_p-4));
 
-   assign tile_no_n = (tile_no + tile_loading_done)  % (load_rows_p * load_cols_p);
-   //assign tile_no_n = (tile_no + tile_loading_done) % load_cols_p;
+   //assign tile_no_n = (tile_no + tile_loading_done)  % (load_rows_p * load_cols_p);
+   wire [tile_no_width_lp-1:0]  tile_no_plus_done= tile_no  + tile_loading_done;
+   assign tile_no_n = (tile_no_plus_done == tile_no_total_lp) ? 0 : tile_no_plus_done ;
    
    
    assign loaded_n = (tile_no == load_rows_p*load_cols_p -1)
@@ -136,8 +141,8 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
           if( unfreezed_r ) begin
                 tile_no <=  tile_no + 1;
           end else
-                tile_no <= ( tile_no + 1 ) % ( load_rows_p*load_cols_p );
-				//tile_no <= ( tile_no + 1 ) % load_cols_p;
+                //tile_no <= ( tile_no + 1 ) % ( load_rows_p*load_cols_p );
+                tile_no <= ( (tile_no + 1) == tile_no_total_lp) ?  0 : tile_no + 1;
         end
 
         if(ready_i &&  loaded &&  tile_no ==  (load_rows_p * load_cols_p-1) )
