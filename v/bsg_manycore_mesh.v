@@ -48,7 +48,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    // insert bufx8's on outputs
    ,parameter repeater_output_p  = 0 //   snew * x * y bits.
-   
+
   )
   ( input clk_i
    ,input reset_i

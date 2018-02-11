@@ -27,7 +27,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
                            , hetero_type_p   = 0
                            , packet_width_lp                = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                           , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
+                           , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p)
                            , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width     (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                           )
    (input   clk_i
@@ -60,6 +60,13 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic                              out_v_li;
    logic                              out_ready_lo;
 
+   logic [return_packet_width_lp-1:0] returned_data_r_lo  ;
+   logic                              returned_v_r_lo     ;
+
+   logic [data_width_p-1:0]           returning_data;
+   logic                              returning_v   ;
+
+   logic                         in_we_lo  ;
    logic [data_width_p-1:0]      in_data_lo;
    logic [(data_width_p>>3)-1:0] in_mask_lo;
    logic [addr_width_p-1:0]      in_addr_lo;
@@ -86,6 +93,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ,.in_data_o(in_data_lo)
     ,.in_mask_o(in_mask_lo)
     ,.in_addr_o(in_addr_lo)
+    ,.in_we_o  (in_we_lo  )
 
     // we feed the endpoint with the data we want to send out
     // it will get inserted into the above link_sif
@@ -93,6 +101,12 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ,.out_packet_i(out_packet_li )
     ,.out_v_i     (out_v_li    )
     ,.out_ready_o (out_ready_lo)
+
+    ,.returned_data_r_o ( returned_data_r_lo )
+    ,.returned_v_r_o    ( returned_v_r_lo    )
+
+    ,.returning_data_i ( returning_data )
+    ,.returning_v_i    ( returning_v    )
 
     ,.out_credits_o(out_credits_lo)
 
@@ -167,7 +181,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    wire non_imem_bits_set = |in_addr_lo[addr_width_p-1:imem_addr_width_lp];
 
    wire remote_store_imem_not_dmem = in_v_lo & ~non_imem_bits_set;
-   wire remote_store_dmem_not_imem = in_v_lo & non_imem_bits_set;
+   wire remote_access_dmem_not_imem = in_v_lo & non_imem_bits_set;
 
    // Logic detecting the falling edge of freeze_r signal
    logic freeze_r_r;
@@ -252,8 +266,10 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   assign core_mem_mask     = core_to_mem.mask      ;
   //the core_to_mem yumi signal is not used.
 
-  assign mem_to_core.valid      = core_mem_rv   ;
-  assign mem_to_core.read_data  = core_mem_rdata;
+  //The data can either from local memory or from the network.
+  assign mem_to_core.valid      = core_mem_rv   | returned_v_r_lo  ;
+  assign mem_to_core.read_data  = core_mem_rv ? core_mem_rdata
+                                              : returned_data_r_lo ;
 
    wire out_request;
 
@@ -306,16 +322,14 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
    // synopsys translate_on
 
-   wire [data_width_p-1:0] unused_data;
-   wire                    unused_valid;
 
-   wire [1:0]              xbar_port_v_in = { core_mem_v & ~core_mem_addr[31]  // not a remote packet
-                                              ,  remote_store_dmem_not_imem
+   wire [1:0]              xbar_port_v_in = {    core_mem_v & ~core_mem_addr[31]  // not a remote packet
+                                              ,  remote_access_dmem_not_imem
                                               };
 
    localparam mem_width_lp    = $clog2(bank_size_p) + $clog2(num_banks_p);
 
-   wire [1:0]                    xbar_port_we_in   = { core_mem_w, 1'b1};
+   wire [1:0]                    xbar_port_we_in   = { core_mem_w, in_we_lo};
    wire [1:0]                    xbar_port_yumi_out;
    wire [1:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata, in_data_lo};
 
@@ -323,11 +337,11 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
    always @(negedge clk_i)
      begin
-        if (remote_store_dmem_not_imem)
+        if (remote_access_dmem_not_imem)
           assert (in_addr_lo < ((1 << imem_addr_width_lp) + (bank_size_p*num_banks_p)))
             else
               begin
-                 $error("# ERROR y,x=(%x,%x) remote store addr (%x) past end of data memory (%x)"
+                 $error("# ERROR y,x=(%x,%x) remote access addr (%x) past end of data memory (%x)"
                         ,my_y_i,my_x_i,in_addr_lo*4,4*((1 << imem_addr_width_lp)+(bank_size_p*num_banks_p)));
                  $finish();
               end
@@ -372,9 +386,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      end
 
    // local mem yumi the data from the core
-   assign  core_mem_yumi    = xbar_port_yumi_out[1];
+   assign   core_mem_yumi   = xbar_port_yumi_out[1];
    // local mem yumi the data from the network
-   assign in_yumi_li   = xbar_port_yumi_out[0] | remote_store_imem_not_dmem;
+   assign   in_yumi_li      = xbar_port_yumi_out[0] | remote_store_imem_not_dmem;
 
    //the local memory or network can consume the store data
    assign mem_to_core.yumi  = (xbar_port_yumi_out[1] | launching_out);
@@ -415,7 +429,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
       // whether the crossbar accepts the input
      ,.yumi_o  ( xbar_port_yumi_out                                     )
-     ,.v_o     ({ core_mem_rv    , unused_valid})
-     ,.data_o  ({ core_mem_rdata , unused_data })
+     ,.v_o     ({ core_mem_rv    , returning_v})
+     ,.data_o  ({ core_mem_rdata , returning_data})
     );
 endmodule
