@@ -10,7 +10,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          ,warn_out_of_credits_p  = 1
                                          ,debug_p                = 0
                                          ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                                         ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
+                                         ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p)
                                          ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                          ,num_nets_lp            = 2
                                          )
@@ -27,11 +27,21 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     , output [data_width_p-1:0]      in_data_o
     , output [(data_width_p>>3)-1:0] in_mask_o
     , output [addr_width_p-1:0]      in_addr_o
+    , output                         in_we_o
 
     // local outgoing data interface (does not include credits)
     , input                                  out_v_i
     , input  [packet_width_lp-1:0]           out_packet_i
     , output                                 out_ready_o
+
+    // local returned data interface
+    // Like the memory interface, processor should always ready be to handle the returned data
+    , output [return_packet_width_lp-1:0]   returned_data_r_o
+    , output                                returned_v_r_o
+
+    // The memory read value
+    , input [data_width_p-1:0]              returning_data_i
+    , input                                 returning_v_i
 
     , output [$clog2(max_out_credits_p+1)-1:0] out_credits_o
 
@@ -45,13 +55,18 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     , output reverse_arb_pr_o
     );
 
-   wire credit_return_lo;
    wire in_fifo_full;
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
    bsg_manycore_packet_s      cgni_data;
    wire                       cgni_v;
    wire                       cgni_yumi;
+
+   wire [return_packet_width_lp-1:0] returning_packet_li     ;
+   wire                              returning_v_li        ;
+   wire                              returning_ready_lo    ;
+
+   wire credit_return_lo    = returned_v_r_o          ;
 
    bsg_manycore_endpoint #(.x_cord_width_p (x_cord_width_p)
                            ,.y_cord_width_p(y_cord_width_p)
@@ -63,17 +78,26 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.reset_i
       ,.link_sif_i
       ,.link_sif_o
+
       ,.fifo_data_o(cgni_data)
       ,.fifo_v_o   (cgni_v)
       ,.fifo_yumi_i(cgni_yumi)
+
       ,.out_packet_i
       ,.out_v_i
       ,.out_ready_o
+
+      ,.returned_data_r_o
+      ,.returned_v_r_o
+
+      ,.returning_data_i    ( returning_packet_li    )
+      ,.returning_v_i       ( returning_v_li       )
+      ,.returning_ready_o   ( returning_ready_lo   )
+
       ,.in_fifo_full_o( in_fifo_full )
-      ,.credit_v_r_o(credit_return_lo)
       );
 
-   wire launching_out = out_v_i & out_ready_o;
+   wire launching_out       = out_v_i & out_ready_o ;
 
    bsg_counter_up_down #(.max_val_p  (max_out_credits_p)
                          ,.init_val_p(max_out_credits_p)
@@ -85,11 +109,11 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.count_o(out_credits_o  )
       );
 
-   logic  pkt_freeze, pkt_unfreeze, pkt_arb_cfg, pkt_unknown;
+   // ----------------------------------------------------------------------------------------
+   // Handle incoming request packets
+   // ----------------------------------------------------------------------------------------
+   logic  pkt_freeze, pkt_remote_store, pkt_remote_load, pkt_unfreeze, pkt_arb_cfg, pkt_unknown;
 
-   // deque if we successfully do a remote store, or if it's
-   // either kind of packet freeze instruction
-   assign cgni_yumi = in_yumi_i | pkt_freeze | pkt_unfreeze | pkt_arb_cfg ;
 
    bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
                              ,.y_cord_width_p(y_cord_width_p)
@@ -99,17 +123,77 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
      (.v_i                 (cgni_v)
       ,.data_i             (cgni_data)
 
+      ,.pkt_remote_store_o (pkt_remote_store)
+      ,.pkt_remote_load_o  (pkt_remote_load)
       ,.pkt_freeze_o       (pkt_freeze)
       ,.pkt_unfreeze_o     (pkt_unfreeze)
       ,.pkt_arb_cfg_o      (pkt_arb_cfg)
       ,.pkt_unknown_o      (pkt_unknown)
 
-      ,.pkt_remote_store_o (in_v_o)     // to output of module
       ,.data_o             (in_data_o)  // "
       ,.addr_o             (in_addr_o)  // "
       ,.mask_o             (in_mask_o)  // "
       );
+   // dequeue only if
+   // 1. The imem or dmem is ready, or the packet is configure operation
+   // 2. The returning path is ready (which means the FIFO in the router is
+   // not full)
+   assign cgni_yumi = (in_yumi_i  | pkt_freeze | pkt_unfreeze | pkt_arb_cfg ) & returning_ready_lo;
+   assign in_v_o    = pkt_remote_store | pkt_remote_load    ;
+   assign in_we_o   = pkt_remote_store                      ;
 
+   // ----------------------------------------------------------------------------------------
+   // Handle outgoing credit packet
+   // ----------------------------------------------------------------------------------------
+   //                           +-------------------+
+   //                           |                   |
+   //                           +-->|  |            |
+   //                               |r |-->|    |   |
+   //                                      |mux |---+----> returning_data_n
+   //  in_fifo   --> dmem       ---------->|____|
+   //           |                            |
+   //           |--> update_reg--------------+
+   //           |--> v_reg      ------------------------->
+   //           |--> xy_cord_reg------------------------->
+
+   //updates the holding register if we sent current value
+   logic                            delayed_returning_v_r       ;
+   bsg_manycore_return_packet_s     delayed_returning_packet_r         ;
+   always_ff@(posedge clk_i) begin
+        if( returning_ready_lo ) begin
+            delayed_returning_v_r            <= cgni_yumi ;
+            delayed_returning_packet_r       <= { pkt_remote_store ? ePacketType_credit
+                                                                      : ePacketType_data
+                                                        , data_width_p'(0)
+                                                        , cgni_data.src_y_cord
+                                                        , cgni_data.src_x_cord
+                                                    };
+        end
+   end
+
+   //should we hold the returning data in case the retuning path is full when
+   //the data is returned from the memory
+   logic                            update_r               ;
+   always_ff@(posedge clk_i)        update_r <= cgni_yumi  ;
+   //backup the data from dmem
+   logic [data_width_p-1:0]    returning_data_r   ,   returning_data_n     ;
+   always_ff @( posedge clk_i ) returning_data_r   <=  returning_data_n     ;
+   //Select the data from the backup or current  memory output
+   assign returning_data_n    = update_r ? returning_data_i  : returning_data_r ;
+
+
+   assign returning_packet_li = {
+                     delayed_returning_packet_r.pkt_type
+                   , returning_data_n
+                   , delayed_returning_packet_r.y_cord
+                   , delayed_returning_packet_r.x_cord
+           };
+   assign returning_v_li = delayed_returning_v_r   ;
+
+
+   // ----------------------------------------------------------------------------------------
+   // Handle the control registers
+   // ----------------------------------------------------------------------------------------
    // create freeze gate
    logic  freeze_r;
    assign freeze_r_o = freeze_r;
@@ -216,6 +300,13 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                 ,my_y_i,my_x_i);
         $finish();
        end
+
+   always_ff @( negedge clk_i )
+        assert ( ( reset_i_r !== 0) | ( returning_v_i == delayed_returning_v_r ) )
+        else begin
+            $error(" Memory should return the readed data exactly 1 clock later. (%m)");
+            $finish();
+        end
 // synopsys translate_on
 
 endmodule

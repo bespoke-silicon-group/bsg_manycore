@@ -62,6 +62,13 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
       ,.in_data_o(pkt_data)
       ,.in_mask_o(pkt_mask)
       ,.in_addr_o(pkt_addr)
+      ,.in_we_o  ()
+
+      ,.returned_data_r_o()
+      ,.returned_v_r_o   ()
+
+      ,.returning_data_i ( 0 )
+      ,.returning_v_i    ( 1'b0 )
 
       // outgoing data for this module
       ,.out_v_i     (pass_thru_p ? pass_thru_v_i    : 1'b0)
@@ -102,10 +109,10 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
 			 finish_r <= 1'b1;
 			 timeout_r <= 1'b1;
 		   end
-	   
+
           if (cgni_v)
             begin
-			
+
                unique case ({pkt_addr[19:0],2'b00})
                  20'hDEAD_0:
                    begin

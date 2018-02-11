@@ -48,12 +48,18 @@ module bsg_manycore_link_sif_tieoff
 
    `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
-   bsg_manycore_packet_s temp;
+   bsg_manycore_packet_s            temp;
    assign temp = link_sif_i_cast.fwd.data;
 
    // send a credit packet back; if they route a packet off the side of the chip
+   bsg_manycore_return_packet_s     return_pkt      ;
+   assign return_pkt.pkt_type          = ePacketType_credit ;
+   assign return_pkt.data              = data_width_p'(0)   ;
+   assign return_pkt.y_cord            = temp.src_y_cord    ;
+   assign return_pkt.x_cord            = temp.src_x_cord    ;
+
    assign link_sif_o_cast.rev.v        = link_sif_i_cast.fwd.v;
-   assign link_sif_o_cast.rev.data     = temp.return_pkt;
+   assign link_sif_o_cast.rev.data     = return_pkt;
 
    // absorb all outgoing return packets; they will disappear into the night
    assign link_sif_o_cast.rev.ready_and_rev = 1'b1;
