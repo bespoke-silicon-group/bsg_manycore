@@ -301,12 +301,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
         $finish();
        end
 
-   always_ff @( negedge clk_i )
-        assert ( ( reset_i_r !== 0) | ( returning_v_i == delayed_returning_v_r ) )
-        else begin
-            $error(" Memory should return the readed data exactly 1 clock later. (%m)");
-            $finish();
-        end
 // synopsys translate_on
 
 endmodule
