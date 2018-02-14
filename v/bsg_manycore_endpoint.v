@@ -22,8 +22,8 @@ module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
 
     // local returned data interface
     // Like the memory interface, processor should always ready be to handle the returned data
-    , output [return_packet_width_lp-1:0]   returned_data_r_o
-    , output                                returned_v_r_o
+    , output [return_packet_width_lp-1:0]   returned_packet_r_o
+    , output                                returned_credit_v_r_o
 
     // The return packet interface
     , input [return_packet_width_lp-1:0]    returning_data_i
@@ -87,18 +87,18 @@ module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
    // ----------------------------------------------------------------------------------------
 
    // We buffer the returned packet
-   logic [return_packet_width_lp-1:0]   returned_data_r     ;
-   logic                                returned_v_r        ;
+   logic [return_packet_width_lp-1:0]   returned_packet_r     ;
+   logic                                returned_credit_v_r        ;
 
    always @(posedge clk_i) begin
-     returned_v_r     <= link_sif_i_cast.rev.v    ;
-     returned_data_r  <= link_sif_i_cast.rev.data ;
+     returned_credit_v_r     <= link_sif_i_cast.rev.v    ;
+     returned_packet_r  <= link_sif_i_cast.rev.data ;
    end
 
    // We can always receive the returned packet
    assign link_sif_o_cast.rev.ready_and_rev = 1'b1;
-   assign returned_v_r_o    = returned_v_r        ;
-   assign returned_data_r_o = returned_data_r     ;
+   assign returned_credit_v_r_o      = returned_credit_v_r        ;
+   assign returned_packet_r_o = returned_packet_r     ;
 
    assign in_fifo_full_o = ~link_sif_o_cast.fwd.ready_and_rev;
 endmodule
