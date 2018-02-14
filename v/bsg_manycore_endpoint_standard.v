@@ -36,7 +36,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
     // local returned data interface
     // Like the memory interface, processor should always ready be to handle the returned data
-    , output [return_packet_width_lp-1:0]   returned_data_r_o
+    , output [data_width_p-1:0]             returned_data_r_o
     , output                                returned_v_r_o
 
     // The memory read value
@@ -66,7 +66,8 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    wire                              returning_v_li        ;
    wire                              returning_ready_lo    ;
 
-   wire credit_return_lo    = returned_v_r_o          ;
+   wire                              returned_credit_lo   ;
+   bsg_manycore_return_packet_s      returned_packet_lo   ;
 
    bsg_manycore_endpoint #(.x_cord_width_p (x_cord_width_p)
                            ,.y_cord_width_p(y_cord_width_p)
@@ -87,27 +88,16 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.out_v_i
       ,.out_ready_o
 
-      ,.returned_data_r_o
-      ,.returned_v_r_o
+      ,.returned_packet_r_o          ( returned_packet_lo    )
+      ,.returned_credit_v_r_o        ( returned_credit_lo    )
 
-      ,.returning_data_i    ( returning_packet_li    )
+      ,.returning_data_i    ( returning_packet_li  )
       ,.returning_v_i       ( returning_v_li       )
       ,.returning_ready_o   ( returning_ready_lo   )
 
       ,.in_fifo_full_o( in_fifo_full )
       );
 
-   wire launching_out       = out_v_i & out_ready_o ;
-
-   bsg_counter_up_down #(.max_val_p  (max_out_credits_p)
-                         ,.init_val_p(max_out_credits_p)
-                         ) out_credit_ctr
-     (.clk_i
-      ,.reset_i
-      ,.down_i   (launching_out)  // launch remote store
-      ,.up_i     (credit_return_lo      )  // receive credit back
-      ,.count_o(out_credits_o  )
-      );
 
    // ----------------------------------------------------------------------------------------
    // Handle incoming request packets
@@ -190,7 +180,24 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
            };
    assign returning_v_li = delayed_returning_v_r   ;
 
+   // ----------------------------------------------------------------------------------------
+   // Handle returned credit & data
+   // ----------------------------------------------------------------------------------------
+   wire launching_out       = out_v_i & out_ready_o ;
 
+   bsg_counter_up_down #(.max_val_p  (max_out_credits_p)
+                         ,.init_val_p(max_out_credits_p)
+                         ) out_credit_ctr
+     (.clk_i
+      ,.reset_i
+      ,.down_i   (launching_out)  // launch remote store
+      ,.up_i     (returned_credit_lo      )  // receive credit back
+      ,.count_o(out_credits_o  )
+      );
+
+   assign returned_data_r_o     =   returned_packet_lo.data     ;
+   assign returned_v_r_o        =   returned_credit_lo
+                                 & ( returned_packet_lo.pkt_type == ePacketType_data ) ;
    // ----------------------------------------------------------------------------------------
    // Handle the control registers
    // ----------------------------------------------------------------------------------------
@@ -232,7 +239,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    if (debug_p)
    always_ff @(negedge clk_i)
      begin
-        if (credit_return_lo)
+        if (returned_credit_lo)
           $display("## return packet received by (x,y)=%x,%x",my_x_i,my_y_i);
      end
 

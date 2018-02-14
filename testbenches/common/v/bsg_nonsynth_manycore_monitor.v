@@ -113,7 +113,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
           if (cgni_v)
             begin
 
-               unique case ({pkt_addr[19:0],2'b00})
+               unique case ({pkt_addr[addr_width_p-2:0],2'b00})
                  20'hDEAD_0:
                    begin
                       $display("## RECEIVED FINISH PACKET from tile y,x=%2d,%2d at I/O %x on cycle 0x%x (%d)"
