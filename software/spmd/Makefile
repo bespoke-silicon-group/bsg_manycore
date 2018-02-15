@@ -8,7 +8,9 @@ test_case_list+=bsg_chained_core
 test_case_list+=bsg_outbuf_full
 test_case_list+=mul_div
 test_case_list+=bypass_core
+test_case_list+=bsg_remote_load
 
+all: main.regress_test
 ##############################################
 #  regression test
 %.regress_test:
