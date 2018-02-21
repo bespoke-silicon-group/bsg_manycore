@@ -35,7 +35,7 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_noc_xbits 4
 #elif bsg_tiles_X == 16
 #define bsg_noc_xbits 4
-#elif
+#else
 #error Unsupported bsg_tiles_X
 #endif
 
