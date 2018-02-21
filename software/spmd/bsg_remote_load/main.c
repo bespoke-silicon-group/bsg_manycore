@@ -25,18 +25,18 @@ void proc0(void){
 }
 
 //remote load
-#define REMOTE_LOAD_GEN( DATA_TYPE )                            \
-inline void remote_load_##DATA_TYPE(void){                      \
+#define REMOTE_LOAD_GEN( DATA_TYPE, X, Y )                            \
+inline void remote_load_##DATA_TYPE##_##X##_##Y(void){                      \
     DATA_TYPE tmp0,tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;    \
                                                                                 \
-    tmp0 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[0])   );          \
-    tmp1 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[1])   );          \
-    tmp2 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[2])   );          \
-    tmp3 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[3])   );          \
-    tmp4 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[4])   );          \
-    tmp5 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[5])   );          \
-    tmp6 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[6])   );          \
-    tmp7 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[7])   );          \
+    tmp0 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[0])   );          \
+    tmp1 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[1])   );          \
+    tmp2 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[2])   );          \
+    tmp3 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[3])   );          \
+    tmp4 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[4])   );          \
+    tmp5 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[5])   );          \
+    tmp6 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[6])   );          \
+    tmp7 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[7])   );          \
                                                                                 \
     DATA_TYPE##_local[0]   =  tmp0;                                                    \
     DATA_TYPE##_local[1]   =  tmp1;                                                    \
@@ -58,9 +58,18 @@ inline int check_##DATA_TYPE(void){                                          \
     return 0;                                                               \
 }
 
+#define CHECK_SELF_GEN( DATA_TYPE )                                              \
+inline int check_self_##DATA_TYPE(void){                                          \
+    for( int i=0; i< BUFF_LEN; i++){                                        \
+        if( DATA_TYPE##_local[i] != (DATA_TYPE##_array0[i] ) )              \
+            return ( i+1) ;                                                 \
+    }                                                                       \
+    return 0;                                                               \
+}
+
 //remote store & load
-#define REMOTE_STORE_LOAD_GEN( DATA_TYPE )                            \
-inline void remote_store_load_##DATA_TYPE(void){                      \
+#define REMOTE_STORE_LOAD_GEN( DATA_TYPE, X, Y )                            \
+inline void remote_store_load_##DATA_TYPE##_##X##_##Y(void){                      \
     DATA_TYPE tmp0,tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;    \
                                                                 \
     tmp4 = DATA_TYPE##_array1[ 4 ]  ;                           \
@@ -68,17 +77,17 @@ inline void remote_store_load_##DATA_TYPE(void){                      \
     tmp6 = DATA_TYPE##_array1[ 6 ]  ;                           \
     tmp7 = DATA_TYPE##_array1[ 7 ]  ;                           \
                                                                 \
-    *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[0])   )        = tmp4 ;          \
-    tmp0 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[0])   );                   \
+    *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[0])   )        = tmp4 ;          \
+    tmp0 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[0])   );                   \
                                                                                                 \
-    *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[1])   )        = tmp5 ;          \
-    tmp1 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[1])   );                   \
+    *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[1])   )        = tmp5 ;          \
+    tmp1 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[1])   );                   \
                                                                                                \
-    *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[2])   )        = tmp6 ;          \
-    tmp2 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[2])   );                   \
+    *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[2])   )        = tmp6 ;          \
+    tmp2 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[2])   );                   \
                                                                                                \
-    *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[3])   )        = tmp7 ;          \
-    tmp3 = *( ( DATA_TYPE *) bsg_remote_ptr(0,0, &DATA_TYPE##_array0[3])   );                   \
+    *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[3])   )        = tmp7 ;          \
+    tmp3 = *( ( DATA_TYPE *) bsg_remote_ptr(X,Y, &DATA_TYPE##_array0[3])   );                   \
                                                                                         \
     DATA_TYPE##_local[0]   =  tmp0;                                                    \
     DATA_TYPE##_local[1]   =  tmp1;                                                    \
@@ -98,34 +107,36 @@ inline int check_store_load_##DATA_TYPE( void ) {                               
 ////////////////////////////////////////////////////////////////////
 // Generate the load and check funcitons.
 
-REMOTE_LOAD_GEN( int )
+REMOTE_LOAD_GEN( int, 0, 0 )
 CHECK_GEN( int )
 
-REMOTE_LOAD_GEN( short )
+REMOTE_LOAD_GEN( short,0,0 )
 CHECK_GEN( short )
 
-REMOTE_LOAD_GEN( char )
+REMOTE_LOAD_GEN( char, 0,0)
 CHECK_GEN( char )
 
-REMOTE_STORE_LOAD_GEN( int)
-
+REMOTE_STORE_LOAD_GEN( int,0,0)
 CHECK_STORE_LOAD_GEN( int)
+
+REMOTE_LOAD_GEN( int,1,0)
+CHECK_SELF_GEN( int )
 //code runs on processor 1
 void proc1(void){
 
-    remote_load_int();
+    remote_load_int_0_0();
     int error = check_int();
 
     if( error == 0) bsg_remote_ptr_io_store( bsg_x, 0x0, 0x0 );
     else              bsg_fail();
 
-    remote_load_short();
+    remote_load_short_0_0();
     error = check_short();
 
     if( error == 0) bsg_remote_ptr_io_store( bsg_x, 0x0, 0x1 );
     else              bsg_fail();
 
-    remote_load_char();
+    remote_load_char_0_0();
     error = check_char();
 
     if( error == 0) {
@@ -134,10 +145,21 @@ void proc1(void){
         bsg_fail();
     }
 
-    remote_store_load_int();
+    remote_store_load_int_0_0();
     error = check_store_load_int();
+
     if( error == 0) {
         bsg_remote_ptr_io_store( bsg_x, 0x0, 0x3 );
+    } else {
+        bsg_fail();
+    }
+
+    //load from it self
+    remote_load_int_1_0();
+    error = check_self_int();
+
+    if( error == 0) {
+        bsg_remote_ptr_io_store( bsg_x, 0x0, 0x4 );
         bsg_finish();
     } else {
         bsg_fail();
