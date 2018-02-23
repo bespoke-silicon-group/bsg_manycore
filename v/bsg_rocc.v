@@ -23,8 +23,7 @@ localparam rocc_x_cord_width_gp         = 16;
 localparam rocc_cfg_width_gp            = 16;
 //the parameter for rocc write command
 localparam rocc_write_addr_width_gp     = 32;
-localparam rocc_write_store_op_gp       = 2'b01;
-localparam rocc_write_cfg_op_gp         = 2'b10;
+
 /////////////////////////////////////////////////////////////////////
 //different command and type defines.
   typedef enum logic[rocc_instr_funct7_width_gp-1:0] {
@@ -33,7 +32,8 @@ localparam rocc_write_cfg_op_gp         = 2'b10;
         eRoCC_core_dma_addr =rocc_instr_funct7_width_gp'(2),
         eRoCC_core_dma_skip =rocc_instr_funct7_width_gp'(3),
         eRoCC_core_dma_xfer =rocc_instr_funct7_width_gp'(4),
-        eRoCC_core_reset    =rocc_instr_funct7_width_gp'(5)
+        eRoCC_core_reset    =rocc_instr_funct7_width_gp'(5),
+        eRoCC_core_read     =rocc_instr_funct7_width_gp'(6)
   }eRoCC_core_cmd;
 
   typedef enum logic[rocc_mem_cmd_width_gp-1:0] {

@@ -45,16 +45,16 @@ module bsg_manycore_pkt_decode
         if (v_i)
           begin
              case (pkt.op)
-               ePacketOp_remote_store:
+               `ePacketOp_remote_store:
                  begin
                     pkt_remote_store_o = 1'b1;
                     mask_o             = pkt.op_ex;
                  end
 
-               ePacketOp_remote_load:
+               `ePacketOp_remote_load:
                     pkt_remote_load_o = 1'b1;
 
-               ePacketOp_configure:
+               `ePacketOp_configure:
                  if (~|pkt.addr[addr_width_p-1:0]) // if addr=0
                    begin
                       pkt_freeze_o   = pkt.data[0];

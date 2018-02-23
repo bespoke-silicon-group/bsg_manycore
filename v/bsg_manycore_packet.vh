@@ -5,9 +5,17 @@
 
 `define return_packet_type_width  1
 
+`define  ePacketOp_remote_store   2'b01
+`define  ePacketOp_configure      2'b10
+`define  ePacketOp_remote_load    2'b11
+
+`define  ePacketType_credit      `return_packet_type_width'(0)  
+`define  ePacketType_data        `return_packet_type_width'(1)   
+
+
 `define declare_bsg_manycore_packet_s(in_addr_width,in_data_width,in_x_cord_width,in_y_cord_width) \
    typedef struct packed {                                  \
-      logic [`return_packet_type_width-1:0]     pkt_type;     \
+      logic [`return_packet_type_width-1:0]     pkt_type;   \
       logic [(in_data_width)-1:0]               data  ;     \
       logic [(in_y_cord_width)-1:0]             y_cord;     \
       logic [(in_x_cord_width)-1:0]             x_cord;     \
@@ -41,16 +49,6 @@
         )
 
 
-typedef enum logic[1:0] {
-        ePacketOp_remote_store = 2'b01  ,
-        ePacketOp_configure    = 2'b10  ,
-        ePacketOp_remote_load  = 2'b11   
-} ePacketOp;
-
-typedef enum logic[`return_packet_type_width-1:0] {
-        ePacketType_credit      = `return_packet_type_width'(0)  ,
-        ePacketType_data        = `return_packet_type_width'(1)   
-} ePacketType;
 
 // note op_ex above is the byte mask for writes.
 // we put the addr at the top of the packet so that we can truncate it

@@ -1,3 +1,5 @@
+`include "bsg_manycore_packet.vh"
+
 module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          ,y_cord_width_p         = "inv"
                                          ,fifo_els_p             = "inv"
@@ -152,8 +154,8 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    always_ff@(posedge clk_i) begin
         if( returning_ready_lo ) begin
             delayed_returning_v_r            <= cgni_yumi ;
-            delayed_returning_packet_r       <= { pkt_remote_store ? ePacketType_credit
-                                                                      : ePacketType_data
+            delayed_returning_packet_r       <= { pkt_remote_store ? `ePacketType_credit
+                                                                   : `ePacketType_data
                                                         , data_width_p'(0)
                                                         , cgni_data.src_y_cord
                                                         , cgni_data.src_x_cord
@@ -197,7 +199,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
    assign returned_data_r_o     =   returned_packet_lo.data     ;
    assign returned_v_r_o        =   returned_credit_lo
-                                 & ( returned_packet_lo.pkt_type == ePacketType_data ) ;
+                                 & ( returned_packet_lo.pkt_type == `ePacketType_data ) ;
    // ----------------------------------------------------------------------------------------
    // Handle the control registers
    // ----------------------------------------------------------------------------------------

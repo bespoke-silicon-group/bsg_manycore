@@ -53,7 +53,7 @@ module bsg_manycore_link_sif_tieoff
 
    // send a credit packet back; if they route a packet off the side of the chip
    bsg_manycore_return_packet_s     return_pkt      ;
-   assign return_pkt.pkt_type          = ePacketType_credit ;
+   assign return_pkt.pkt_type          = `ePacketType_credit ;
    assign return_pkt.data              = data_width_p'(0)   ;
    assign return_pkt.y_cord            = temp.src_y_cord    ;
    assign return_pkt.x_cord            = temp.src_x_cord    ;

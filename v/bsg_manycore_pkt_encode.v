@@ -39,10 +39,10 @@ module bsg_manycore_pkt_encode
    // checking more bits.
 
    assign pkt.op     = we_i ? (     addr_decode.addr[$size(addr_decode.addr)-1]
-                                  ? ePacketOp_configure
-                                  : ePacketOp_remote_store
+                                  ? `ePacketOp_configure
+                                  : `ePacketOp_remote_store
                               )
-                            : ePacketOp_remote_load ;
+                            : `ePacketOp_remote_load ;
 
    assign pkt.op_ex  = mask_i;
 
