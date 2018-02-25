@@ -191,19 +191,6 @@ module  bsg_manycore_link_to_rocc
   assign                    core_rocc2manycore_addr_s   = core_cmd_s_i.rs1_val;
 
 
-  //merged control signals sent to manycore
-  //DMA and core can't write at the same time. ready signal to core will be
-  //disasserted while DMA is running.
-  rocc_manycore_addr_s    mc_addr_s ;
-  wire [data_width_p-1:0] mc_data   = dma_rocc2manycore_v ? dma_rocc2manycore_data
-                                                          : core_rocc2manycore_data ;
-  assign                  mc_addr_s = dma_rocc2manycore_v ? dma_rocc2manycore_addr_s
-                                                          : core_rocc2manycore_addr_s;
-
-  wire                    mc_wen    =  is_core_write | dma_rocc2manycore_v ;
-
-  assign rocc2manycore_v        = dma_rocc2manycore_v | is_mc_access_cmd ;
-  assign rocc2manycore_packet   = get_manycore_pkt( mc_addr_s, mc_data, mc_wen) ;
 
   ///////////////////////////////////////////////////////////////////////////////////
   // Code for read manycore memory
@@ -218,14 +205,27 @@ module  bsg_manycore_link_to_rocc
 
   always_ff@( posedge rocket_clk_i ) begin
     if( rocket_reset_i   )      on_fly_read_r <= 1'b0;
-    else if( update_wb_reg_id ) on_fly_read_r <= 1'b1;
     else if ( returned_v_r_lo ) on_fly_read_r <= 1'b0;
+    else if( update_wb_reg_id ) on_fly_read_r <= 1'b1;
   end
 
   assign core_resp_valid_o      = returned_v_r_lo | dma_core_resp_valid_lo ;
   assign core_resp_s_o.rd       = wb_reg_id_r;
   assign core_resp_s_o.rd_data  = returned_v_r_lo ? returned_data_r_lo
                                                   : dma_core_resp_s_lo.rd_data;
+  //merged control signals sent to manycore
+  //DMA and core can't write at the same time. ready signal to core will be
+  //disasserted while DMA is running.
+  rocc_manycore_addr_s    mc_addr_s ;
+  wire [data_width_p-1:0] mc_data   = dma_rocc2manycore_v ? dma_rocc2manycore_data
+                                                          : core_rocc2manycore_data ;
+  assign                  mc_addr_s = dma_rocc2manycore_v ? dma_rocc2manycore_addr_s
+                                                          : core_rocc2manycore_addr_s;
+
+  wire                    mc_wen    =  is_core_write | dma_rocc2manycore_v ;
+
+  assign rocc2manycore_v        = dma_rocc2manycore_v | (is_mc_access_cmd & (~on_fly_read_r)) ;
+  assign rocc2manycore_packet   = get_manycore_pkt( mc_addr_s, mc_data, mc_wen) ;
 
 
   ///////////////////////////////////////////////////////////////////////////////////
