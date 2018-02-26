@@ -3,10 +3,10 @@
 
 #define BUF_LEN    2
 
-#if bsg_tiles_X != 8
-#error "bsg_tiles_X should be 8 "
-#elif bsg_tiles_Y !=8
-#error "bsg_tiles_Y should be 8"
+#if bsg_tiles_X != 4
+#error "bsg_tiles_X should be 4 "
+#elif bsg_tiles_Y != 8
+#error "bsg_tiles_Y should be 8 "
 #endif
 
 #define XY_ID(x_cord, y_cord, X, Y)    ( ( (x_cord) *(X) +(y_cord) ) << 24  )
@@ -35,18 +35,6 @@ int RemoteArray[ bsg_tiles_X ][ bsg_tiles_Y ][ BUF_LEN ] ={
     },
     {
         GEN_X_VECTOR8( 3 )
-    },
-    {
-        GEN_X_VECTOR8( 4 )
-    },
-    {
-        GEN_X_VECTOR8( 5 )
-    },
-    {
-        GEN_X_VECTOR8( 6 )
-    },
-    {
-        GEN_X_VECTOR8( 7 )
     }
 };
 
