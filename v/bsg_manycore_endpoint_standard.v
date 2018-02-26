@@ -129,62 +129,59 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    // dequeue only if
    // 1. The outside is ready (they want to yumi the singal),
    //    or the packet is configure operation
-   // 2. The returning path is ready (which means the FIFO in the router is
-   // not full)
-   assign cgni_yumi = (in_yumi_i  | pkt_freeze | pkt_unfreeze | pkt_arb_cfg ) & returning_ready_lo;
+   // 2. The returning path is ready (which means the returning credit fifo is
+   //    not full
+   wire   rc_fifo_ready_lo, rc_fifo_v_lo, rc_fifo_yumi_li;
+   assign cgni_yumi = (in_yumi_i  | pkt_freeze | pkt_unfreeze | pkt_arb_cfg ) & rc_fifo_ready_lo;
 
    //we hide the request if the returning path is not ready
-   assign in_v_o    = (pkt_remote_store | pkt_remote_load) & returning_ready_lo  ;
+   assign in_v_o    = (pkt_remote_store | pkt_remote_load) & rc_fifo_ready_lo  ;
    assign in_we_o   = pkt_remote_store                      ;
 
    // ----------------------------------------------------------------------------------------
    // Handle outgoing credit packet
    // ----------------------------------------------------------------------------------------
-   //                           +-------------------+
-   //                           |                   |
-   //                           +-->|  |            |
-   //                               |r |-->|    |   |
-   //                                      |mux |---+----> returning_data_n
-   //  in_fifo   --> dmem       ---------->|____|
-   //           |                            |
-   //           |--> update_reg--------------+
-   //           |--> v_reg      ------------------------->
-   //           |--> xy_cord_reg------------------------->
+   typedef struct packed {
+      logic [`return_packet_type_width-1:0]     pkt_type;
+      logic [(y_cord_width_p)-1:0]                y_cord;
+      logic [(x_cord_width_p)-1:0]                x_cord;
+   } returning_credit_info;
 
-   //updates the holding register if we sent current value
-   logic                            delayed_returning_v_r       ;
-   bsg_manycore_return_packet_s     delayed_returning_packet_r         ;
-   always_ff@(posedge clk_i) begin
-        if( returning_ready_lo ) begin
-            delayed_returning_v_r            <= cgni_yumi ;
-            delayed_returning_packet_r       <= { pkt_remote_store ? `ePacketType_credit
-                                                                   : `ePacketType_data
-                                                        , data_width_p'(0)
-                                                        , cgni_data.src_y_cord
-                                                        , cgni_data.src_x_cord
-                                                    };
-        end
-   end
+   returning_credit_info  rc_fifo_li, rc_fifo_lo;
 
-   //should we hold the returning data in case the retuning path is full when
-   //the data is returned from the memory
-   logic                            update_r               ;
-   always_ff@(posedge clk_i)        update_r <= cgni_yumi  ;
-   //backup the data from dmem
-   logic [data_width_p-1:0]    returning_data_r   ,   returning_data_n     ;
-   always_ff @( posedge clk_i ) returning_data_r   <=  returning_data_n     ;
-   //Select the data from the backup or current  memory output
-   assign returning_data_n    = update_r ? returning_data_i  : returning_data_r ;
+   assign rc_fifo_li   ='{ pkt_type: pkt_remote_load ?`ePacketType_data :`ePacketType_credit
+                          ,y_cord  : cgni_data.src_y_cord
+                          ,x_cord  : cgni_data.src_x_cord
+                        };
 
 
-   assign returning_packet_li = {
-                     delayed_returning_packet_r.pkt_type
-                   , returning_data_n
-                   , delayed_returning_packet_r.y_cord
-                   , delayed_returning_packet_r.x_cord
-           };
-   assign returning_v_li = delayed_returning_v_r   ;
+   bsg_two_fifo #(.width_p($bits(returning_credit_info)) ) return_credit_fifo
+   ( .clk_i
+    ,.reset_i
 
+    // input side
+    ,.ready_o (rc_fifo_ready_lo)// early
+    ,.data_i  (rc_fifo_li      )// late
+    ,.v_i     (cgni_yumi       )// late
+
+    // output side
+    ,.v_o     (rc_fifo_v_lo    )// early
+    ,.data_o  (rc_fifo_lo      )// early
+    ,.yumi_i  (rc_fifo_yumi_li )// late
+    );
+
+    wire   is_store_return =  rc_fifo_lo.pkt_type == `ePacketType_credit ;
+    wire   load_store_ready=  is_store_return
+                            | ( (~is_store_return) & returning_v_i )    ;
+
+    assign rc_fifo_yumi_li =  rc_fifo_v_lo & returning_ready_lo & load_store_ready;
+
+    assign returning_v_li           =  rc_fifo_v_lo & load_store_ready;
+    assign returning_packet_li      = { rc_fifo_lo.pkt_type
+                                      , returning_data_i
+                                      , rc_fifo_lo.y_cord
+                                      , rc_fifo_lo.x_cord
+                                      };
    // ----------------------------------------------------------------------------------------
    // Handle returned credit & data
    // ----------------------------------------------------------------------------------------
