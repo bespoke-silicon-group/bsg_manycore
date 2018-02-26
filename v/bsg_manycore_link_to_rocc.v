@@ -71,6 +71,7 @@ module  bsg_manycore_link_to_rocc
   logic [data_width_p-1:0]             manycore2rocc_data ;
   logic [(data_width_p>>3)-1:0]        manycore2rocc_mask ;
   logic [addr_width_p-1:0]             manycore2rocc_addr ;
+  logic                                manycore2rocc_we   ;
 
   logic [packet_width_lp-1:0]          rocc2manycore_packet;
   logic                                rocc2manycore_v     ;
@@ -106,8 +107,7 @@ module  bsg_manycore_link_to_rocc
     ,.in_data_o     ( manycore2rocc_data    )
     ,.in_mask_o     ( manycore2rocc_mask    )
     ,.in_addr_o     ( manycore2rocc_addr    )
-    //TODO we suppose incoming data are all writes
-    ,.in_we_o       (                       )
+    ,.in_we_o       ( manycore2rocc_we      )
 
     // local outgoing data interface (does not include credits)
     ,.out_v_i       ( rocc2manycore_v       )
@@ -119,9 +119,8 @@ module  bsg_manycore_link_to_rocc
     ,.returned_v_r_o    ( returned_v_r_lo       )
 
     // The memory read value
-    // TODO
-    ,.returning_data_i (  data_width_p'(0)  )
-    ,.returning_v_i    (  1'b0              )
+    ,.returning_data_i ( returning_data_li  )
+    ,.returning_v_i    ( returning_v_li     )
 
     // whether a credit was returned; not flow controlled
     ,.out_credits_o ( out_credits           )
@@ -235,16 +234,26 @@ module  bsg_manycore_link_to_rocc
   rocc_mem_req_s    mc_mem_req_s;
   assign            mc_mem_req_s = get_rocket_mem_req(   manycore2rocc_data,
                                                          manycore2rocc_mask,
-                                                         manycore2rocc_addr  );
+                                                         manycore2rocc_addr,
+                                                         manycore2rocc_we  );
   assign mem_req_valid_o    = dma_mem_req_valid | manycore2rocc_v ;
   assign mem_req_s_o        = dma_mem_req_valid ? dma_mem_req_s   : mc_mem_req_s;
 
-  //if the rocket memory is ready, and DMA is not running, we complete the request
+  // We only complete the request in following case:
+  //    1. Rocket memory is ready
+  //    2. DMA is not running.
+  // manycore2rocc_v : high only if is load or store and the returning path is
+  //                   ready.
+  //
   assign manycore2rocc_yumi = manycore2rocc_v & mem_req_ready_i & dma_core_cmd_ready;
 
+  assign returning_v_li     = mem_resp_valid_i  & dma_core_cmd_ready    ;
+  assign returning_data_li  = mem_resp_s_i.resp_data                    ;
 
 ///////////////////////////////////////////////////////////////////////////////
 // THE DMA CONTROLLER
+
+  wire dma_mem_resp_v_li    = mem_resp_valid_i & (~dma_core_cmd_ready);
 bsg_manycore_rocc_dma #(
         .addr_width_p ( addr_width_p )
        ,.data_width_p ( data_width_p )
@@ -340,11 +349,12 @@ bsg_manycore_rocc_dma #(
   //functions to encode the rocket memory request
   function rocc_mem_req_s get_rocket_mem_req(input [data_width_p-1:0        ] data,
                                              input [(data_width_p>>3)-1:0   ] mask,
-                                             input [addr_width_p-1:0        ] word_addr
+                                             input [addr_width_p-1:0        ] word_addr ,
+                                             input                            we
                                             );
     get_rocket_mem_req.req_addr =  get_rocket_addr( word_addr )   ;
     get_rocket_mem_req.req_tag  =  rocc_mem_tag_width_gp'(0) ;
-    get_rocket_mem_req.req_cmd  =  eRoCC_mem_store           ;
+    get_rocket_mem_req.req_cmd  =  we ? eRoCC_mem_store : eRoCC_mem_load  ;
     //currently only support 32bits
     get_rocket_mem_req.req_typ  =  eRoCC_mem_32bits          ;
     get_rocket_mem_req.req_phys =  1'b1                      ;
@@ -369,8 +379,13 @@ bsg_manycore_rocc_dma #(
   end
 
   always@(negedge rocket_clk_i ) begin
-    if( manycore2rocc_v ) assert ( & manycore2rocc_mask) else
+    if( manycore2rocc_v & manycore2rocc_we) assert ( & manycore2rocc_mask) else
         $error("Only supports word access to rocket right now");
+  end
+
+  always@(negedge rocket_clk_i) begin
+    if( manycore2rocc_v ) assert( dma_core_cmd_ready ) else
+        $error("Memory traffics from manycore can not be handled with the DMA is running");
   end
   //synopsys translate_on
 
