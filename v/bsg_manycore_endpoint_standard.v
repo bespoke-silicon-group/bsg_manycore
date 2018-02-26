@@ -127,11 +127,14 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.mask_o             (in_mask_o)  // "
       );
    // dequeue only if
-   // 1. The imem or dmem is ready, or the packet is configure operation
+   // 1. The outside is ready (they want to yumi the singal),
+   //    or the packet is configure operation
    // 2. The returning path is ready (which means the FIFO in the router is
    // not full)
    assign cgni_yumi = (in_yumi_i  | pkt_freeze | pkt_unfreeze | pkt_arb_cfg ) & returning_ready_lo;
-   assign in_v_o    = pkt_remote_store | pkt_remote_load    ;
+
+   //we hide the request if the returning path is not ready
+   assign in_v_o    = (pkt_remote_store | pkt_remote_load) & returning_ready_lo  ;
    assign in_we_o   = pkt_remote_store                      ;
 
    // ----------------------------------------------------------------------------------------
