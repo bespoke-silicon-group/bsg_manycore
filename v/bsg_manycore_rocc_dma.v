@@ -236,7 +236,8 @@ module bsg_manycore_rocc_dma #(
 /////////////////////////////////////////////////////////////////////////
 // The signals to the manycore memory
    assign rocc2manycore_v_o         = mem_resp_valid_i
-                                  & ( mem_resp_s_i.resp_cmd == eRoCC_mem_load);
+                                  & ( mem_resp_s_i.resp_cmd == eRoCC_mem_load)
+                                  & ( curr_stat_e_r == eRoCC_dma_busy        );
 
    assign rocc2manycore_data_o      = mem_resp_s_i.resp_data[ data_width_p-1:0];
    assign rocc2manycore_addr_s_o    = manycore_byte_addr_r_r                   ;
