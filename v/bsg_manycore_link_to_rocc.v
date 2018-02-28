@@ -173,7 +173,7 @@ module  bsg_manycore_link_to_rocc
   wire                          dma_rocc2manycore_v;
   rocc_manycore_addr_s          dma_rocc2manycore_addr_s;
   wire [data_width_p-1:0]       dma_rocc2manycore_data  ;
-  wire                          dma_mem_req_credit      ;
+  wire                          rocket_mem_req_credit      ;
 
   wire is_dma_cmd  = ( core_cmd_s_i.instr.funct7 == eRoCC_core_dma_addr )
                     |( core_cmd_s_i.instr.funct7 == eRoCC_core_dma_skip )
@@ -236,19 +236,28 @@ module  bsg_manycore_link_to_rocc
                                                          manycore2rocc_mask,
                                                          manycore2rocc_addr,
                                                          manycore2rocc_we  );
-  assign mem_req_valid_o    = dma_mem_req_valid | manycore2rocc_v ;
+
+  //As the response will be returned out of order, we only send one request at
+  // a time
+  assign mem_req_valid_o    = (dma_mem_req_valid | manycore2rocc_v)
+                             & rocket_mem_req_credit ;
+
   assign mem_req_s_o        = dma_mem_req_valid ? dma_mem_req_s   : mc_mem_req_s;
 
   // We only complete the request in following case:
   //    1. Rocket memory is ready
   //    2. DMA is not running.
+  //    3. No pending rocket memory request
   // manycore2rocc_v : high only if is load or store and the returning path is
   //                   ready.
-  //
-  assign manycore2rocc_yumi = manycore2rocc_v & mem_req_ready_i & dma_core_cmd_ready;
+  assign manycore2rocc_yumi = manycore2rocc_v & mem_req_ready_i & dma_core_cmd_ready
+                            & rocket_mem_req_credit;
 
-  assign returning_v_li     = mem_resp_valid_i  & dma_core_cmd_ready    ;
-  assign returning_data_li  = mem_resp_s_i.resp_data                    ;
+  assign returning_v_li     =  mem_resp_valid_i
+                             &(mem_resp_s_i.resp_cmd == eRoCC_mem_load )
+                             & dma_core_cmd_ready    ;
+
+  assign returning_data_li  = mem_resp_s_i.resp_data ;
 
 ///////////////////////////////////////////////////////////////////////////////
 // THE DMA CONTROLLER
@@ -284,12 +293,13 @@ bsg_manycore_rocc_dma #(
       ,.rocc2manycore_ready_i    (rocc2manycore_ready   )
 
       //DMA status signals
-      ,.mem_req_credit_i         (dma_mem_req_credit      )
+      ,.mem_req_credit_i         (rocket_mem_req_credit      )
     );
 
    // counting the pending request into rocket
    logic [$clog2(max_out_credits_lp+1)-1:0] rocket_out_credits_o ;
    wire launch_rocket_mem_req = mem_req_valid_o & mem_req_ready_i ;
+
    bsg_counter_up_down #(.max_val_p  (max_out_credits_lp)
                          ,.init_val_p(max_out_credits_lp)
                          ) out_credit_ctr
@@ -300,7 +310,7 @@ bsg_manycore_rocc_dma #(
       ,.count_o  (rocket_out_credits_o  )
       );
    //only allows 1 pending rocket memory request
-   assign dma_mem_req_credit = rocket_out_credits_o > (max_out_credits_lp -1);
+   assign rocket_mem_req_credit = rocket_out_credits_o > (max_out_credits_lp -1);
   ///////////////////////////////////////////////////////////////////////////////////
   // assign the outputs to rocc_core
    assign   core_cmd_ready_o    =   rocc2manycore_ready & dma_core_cmd_ready & (~on_fly_read_r) ;
