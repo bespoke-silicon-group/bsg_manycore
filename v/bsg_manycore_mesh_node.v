@@ -15,7 +15,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,parameter repeater_output_p = {dirs_lp{1'b0}} // {s,n,e,w}
 
    ,parameter packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-   ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
+   ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
    ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
    ,parameter num_nets_lp            = 2 // 1=return network, 0=data network
 
