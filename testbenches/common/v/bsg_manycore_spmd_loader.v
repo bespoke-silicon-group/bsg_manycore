@@ -79,8 +79,8 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         pkt.op_ex  = loaded ? 4'b0000: 4'b1111;
         pkt.x_cord = x_cord;
         pkt.y_cord = y_cord;
-        pkt.return_pkt.x_cord = my_x_i;
-        pkt.return_pkt.y_cord = my_y_i;
+        pkt.src_x_cord = my_x_i;
+        pkt.src_y_cord = my_y_i;
      end
 
    assign data_o = pkt;
@@ -107,8 +107,8 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    //assign tile_no_n = (tile_no + tile_loading_done)  % (load_rows_p * load_cols_p);
    wire [tile_no_width_lp-1:0]  tile_no_plus_done= tile_no  + tile_loading_done;
    assign tile_no_n = (tile_no_plus_done == tile_no_total_lp) ? 0 : tile_no_plus_done ;
-   
-   
+
+
    assign loaded_n = (tile_no == load_rows_p*load_cols_p -1)
                   && (load_addr == (mem_size_p-4));
 

@@ -573,7 +573,9 @@ cl_state_machine state_machine
 //|        DATA MEMORY HANDSHAKE SIGNALS
 //|
 //+----------------------------------------------
-assign valid_to_mem_c = exe.decode.is_mem_op & (~stall_non_mem) & (~stall_lrw); // don't present address if we are stalling
+assign valid_to_mem_c = exe.decode.is_mem_op
+                      & (~stall_non_mem) & (~stall_lrw)                         // don't present address if we are stalling
+                      & ( ~  (mem.decode.is_load_op & (~data_mem_valid) )  );     // or we are waiting memory response
 
 //We should always accept the returned data even there is a non memory stall
 //assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);

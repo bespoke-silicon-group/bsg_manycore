@@ -39,6 +39,7 @@ include $(CAD_DIR)/common/mk/cadenv.mk
 BSG-SIM-TOOL=vcs
 INC_OP		=+incdir+
 VCS_OP		=-full64 -sverilog
+VCS_OP     += +lint=PCWM 
 VCS_DEFINES	= +define+SPMD=$*
 VCS_DEFINES+= +define+bsg_tiles_X=$(bsg_tiles_X)
 VCS_DEFINES+= +define+bsg_tiles_Y=$(bsg_tiles_Y)

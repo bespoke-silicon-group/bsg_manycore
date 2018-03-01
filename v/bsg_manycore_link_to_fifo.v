@@ -81,11 +81,22 @@ module  bsg_manycore_link_to_fifo
         ,.in_data_o     ( endpoint_data [ i ]   )
         ,.in_mask_o     ( endpoint_mask [ i ]   )
         ,.in_addr_o     ( endpoint_addr [ i ]   )
+        //TODO we suppose incoming data are all writes
+        ,.in_we_o       (                       )
 
         // local outgoing data interface (does not include credits)
         ,.out_v_i       ( 1'b0                          )
         ,.out_packet_i  ( { packet_width_lp { 1'b0 } }  )
         ,.out_ready_o   (                               )
+
+        // returned data for RoCC read command
+        ,.returned_data_r_o ( )
+        ,.returned_v_r_o    ( )
+
+        // The memory read value
+        // TODO
+        ,.returning_data_i (  data_width_p'(0)  )
+        ,.returning_v_i    (  1'b0              )
 
         // whether a credit was returned; not flow controlled
         ,.out_credits_o (                       )

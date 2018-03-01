@@ -3,7 +3,7 @@
 
 module bsg_manycore_pkt_encode
   #(
-    x_cord_width_p   = -1 
+    x_cord_width_p   = -1
     , y_cord_width_p = -1
     , data_width_p   = -1
     , addr_width_p   = -1
@@ -11,7 +11,7 @@ module bsg_manycore_pkt_encode
     , debug_p=0
     )
    (
-    input clk_i // for debug only
+     input clk_i // for debug only
     ,input v_i
 
     // we take in the full 32-bit address here
@@ -38,7 +38,12 @@ module bsg_manycore_pkt_encode
    // memory map in special opcodes; fixme, can reclaim more address space by
    // checking more bits.
 
-   assign pkt.op     = addr_decode.addr[$size(addr_decode.addr)-1] ? 2'b10 : 2'b01;
+   assign pkt.op     = we_i ? (     addr_decode.addr[$size(addr_decode.addr)-1]
+                                  ? `ePacketOp_configure
+                                  : `ePacketOp_remote_store
+                              )
+                            : `ePacketOp_remote_load ;
+
    assign pkt.op_ex  = mask_i;
 
    // remote top bit of address, which is the special op code space.
@@ -46,14 +51,14 @@ module bsg_manycore_pkt_encode
    assign pkt.addr   = addr_width_p ' (addr_decode.addr[$size(addr_decode.addr)-2:0]);
 
 
-   assign pkt.data   = data_i;
-   assign pkt.x_cord = addr_decode.x_cord;
-   assign pkt.y_cord = addr_decode.y_cord;
+   assign pkt.data       = data_i;
+   assign pkt.x_cord     = addr_decode.x_cord;
+   assign pkt.y_cord     = addr_decode.y_cord;
 
-   assign pkt.return_pkt.x_cord = my_x_i;
-   assign pkt.return_pkt.y_cord = my_y_i;
+   assign pkt.src_x_cord = my_x_i;
+   assign pkt.src_y_cord = my_y_i;
 
-   assign v_o = addr_decode.remote & we_i & v_i;
+   assign v_o = addr_decode.remote & v_i;
 
    // synopsys translate_off
    if (debug_p)
@@ -62,18 +67,18 @@ module bsg_manycore_pkt_encode
        $display("%m encode pkt addr_i=%x data_i=%x mask_i=%x we_i=%x v_o=%x, data_o=%x, remote=%x bsg_manycore_addr_s size=%x",
                 addr_i, data_i, mask_i, we_i, v_o, data_o, addr_decode.remote, $bits(bsg_manycore_addr_s));
 
-   always_ff @(negedge clk_i)
-     begin
-        if (addr_decode.remote & ~we_i & v_i)
-          begin
-             $error("%m load to remote address %x", addr_i);
-             $finish();
-          end
-/*        if (addr_decode.remote & we_i & v_i & (|addr_i[1:0]))
-          begin
-             $error ("%m store to remote unaligned address %x", addr_i);
-          end*/
-     end
+//   always_ff @(negedge clk_i)
+//     begin
+//        if (addr_decode.remote & ~we_i & v_i)
+//          begin
+//             $error("%m load to remote address %x", addr_i);
+//             $finish();
+//          end
+///*        if (addr_decode.remote & we_i & v_i & (|addr_i[1:0]))
+//          begin
+//             $error ("%m store to remote unaligned address %x", addr_i);
+//          end*/
+//     end
    // synopsys translate_on
 
 endmodule

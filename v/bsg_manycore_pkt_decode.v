@@ -7,7 +7,7 @@ module bsg_manycore_pkt_decode
     , data_width_p   = -1
     , addr_width_p   = -1
     , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p)
+    , return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p)
     )
    (
     input   v_i
@@ -18,6 +18,7 @@ module bsg_manycore_pkt_decode
     ,output logic pkt_unknown_o
 
     ,output logic pkt_remote_store_o
+    ,output logic pkt_remote_load_o
     ,output logic [data_width_p-1:0] data_o
     ,output logic [addr_width_p-1:0] addr_o
     ,output logic [(data_width_p>>3)-1:0] mask_o
@@ -37,18 +38,23 @@ module bsg_manycore_pkt_decode
         pkt_unfreeze_o      = 1'b0;
         pkt_arb_cfg_o       = 1'b0;
         pkt_remote_store_o  = 1'b0;
+        pkt_remote_load_o  = 1'b0;
         pkt_unknown_o       = 1'b0;
         mask_o              = 0;
 
         if (v_i)
           begin
              case (pkt.op)
-               1:
+               `ePacketOp_remote_store:
                  begin
                     pkt_remote_store_o = 1'b1;
                     mask_o             = pkt.op_ex;
                  end
-               2:
+
+               `ePacketOp_remote_load:
+                    pkt_remote_load_o = 1'b1;
+
+               `ePacketOp_configure:
                  if (~|pkt.addr[addr_width_p-1:0]) // if addr=0
                    begin
                       pkt_freeze_o   = pkt.data[0];

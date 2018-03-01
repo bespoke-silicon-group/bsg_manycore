@@ -35,7 +35,7 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_noc_xbits 4
 #elif bsg_tiles_X == 16
 #define bsg_noc_xbits 4
-#elif
+#else
 #error Unsupported bsg_tiles_X
 #endif
 
@@ -92,11 +92,12 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_remote_freeze(x,y)   bsg_remote_control_store((x),(y),0,1)
 #define bsg_remote_arb_config(x,y,value)   bsg_remote_control_store((x),(y),4,value)
 
-// remote loads unsupported
-//#define bsg_remote_load(x,y,local_addr) (*(bsg_remote_ptr((x),(y),(local_addr))))
+// remote loads
+//#define bsg_remote_load(x,y,local_addr, val) ( val = *(bsg_remote_ptr((x),(y),(local_addr))) )
 
 #define bsg_remote_ptr_io(x,local_addr) bsg_remote_ptr((x),bsg_tiles_Y,(local_addr))
 #define bsg_remote_ptr_io_store(x,local_addr,val) do { *(bsg_remote_ptr_io((x),(local_addr))) = (int) (val); } while (0)
+#define bsg_remote_ptr_io_load(x,local_addr,val) do { (val) = *(bsg_remote_ptr_io((x),(local_addr))) ; } while (0)
 
 // see bsg_nonsynth_manycore_monitor for secret codes
 #define bsg_finish()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xDEAD0); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
