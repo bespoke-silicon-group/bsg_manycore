@@ -48,8 +48,6 @@ void proc0(void){
     int need_wait;
     int i, j;
 
-    finish_array[0][0] = 1;
-
     do{
         need_wait=0;
 
@@ -77,7 +75,7 @@ void proc0(void){
 
 }
 
-//code runs on processor 1
+//code runs on any tiles
 void procX(){
    int i;
    int error = 0;
@@ -108,9 +106,9 @@ int main()
 
   int id = bsg_x_y_to_id(bsg_x,bsg_y);
 
+  procX();
 
   if (id == 0)          proc0();
-  else                  procX();
 
   bsg_wait_while(1);
 }
