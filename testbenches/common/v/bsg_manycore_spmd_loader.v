@@ -53,7 +53,10 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   logic         unfreezed_r;     // set if the cores are all unfreezed
   logic         arb_configed_r;
   localparam    arb_cfg_value = 0;
-  localparam    arb_cfg_addr  = addr_width_p'(4);
+  localparam    config_addr_bits = 1 << ( addr_width_p-1);
+
+  localparam    arb_cfg_addr  = addr_width_p'(4) | config_addr_bits;
+  localparam    unfreeze_addr = addr_width_p'(0) | config_addr_bits;
   /************************************************************/
 
   assign load_data = loaded                       ? data_width_p'(0)            :
@@ -68,14 +71,13 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    bsg_manycore_packet_s pkt;
 
    logic [addr_width_p-1:0]    send_addr;
-   assign send_addr = unfreezed_r    ? arb_cfg_addr >>2  :
-                      arb_configed_r ? 0                 :
-                                       addr_width_p'(load_addr>>2);
+   assign send_addr = loaded         ? unfreeze_addr  :
+                      unfreezed_r    ? arb_cfg_addr   : addr_width_p'(load_addr>>2)  ;
    always_comb
      begin
         pkt.data   = load_data;
         pkt.addr   = send_addr;
-        pkt.op     = loaded ? 2'b10: 2'b01;
+        pkt.op     = `ePacketOp_remote_store;
         pkt.op_ex  = loaded ? 4'b0000: 4'b1111;
         pkt.x_cord = x_cord;
         pkt.y_cord = y_cord;

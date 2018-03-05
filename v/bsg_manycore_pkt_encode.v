@@ -38,10 +38,7 @@ module bsg_manycore_pkt_encode
    // memory map in special opcodes; fixme, can reclaim more address space by
    // checking more bits.
 
-   assign pkt.op     = we_i ? (     addr_decode.addr[$size(addr_decode.addr)-1]
-                                  ? `ePacketOp_configure
-                                  : `ePacketOp_remote_store
-                              )
+   assign pkt.op     = we_i ? `ePacketOp_remote_store
                             : `ePacketOp_remote_load ;
 
    assign pkt.op_ex  = mask_i;

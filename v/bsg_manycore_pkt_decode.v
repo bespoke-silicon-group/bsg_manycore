@@ -32,42 +32,25 @@ module bsg_manycore_pkt_decode
    assign data_o = pkt.data;
    assign addr_o = addr_width_p ' (pkt.addr);
 
-   always_comb
-     begin
-        pkt_freeze_o        = 1'b0;
-        pkt_unfreeze_o      = 1'b0;
-        pkt_arb_cfg_o       = 1'b0;
-        pkt_remote_store_o  = 1'b0;
-        pkt_remote_load_o  = 1'b0;
-        pkt_unknown_o       = 1'b0;
-        mask_o              = 0;
+   wire is_config_op    = v_i & pkt.addr[addr_width_p-1]
+                              & (pkt.op == `ePacketOp_remote_store) ;
+   wire is_mem_op       = v_i & ( ~ pkt.addr[addr_width_p-1]      )  ;
 
-        if (v_i)
-          begin
-             case (pkt.op)
-               `ePacketOp_remote_store:
-                 begin
-                    pkt_remote_store_o = 1'b1;
-                    mask_o             = pkt.op_ex;
-                 end
+   wire is_freeze_addr  = {1'b0,pkt.addr[addr_width_p-2:0]} == addr_width_p'(0);
+   wire is_arb_cfg_addr = {1'b0,pkt.addr[addr_width_p-2:0]} == addr_width_p'(1);
 
-               `ePacketOp_remote_load:
-                    pkt_remote_load_o = 1'b1;
+   assign pkt_freeze_o      = is_config_op & is_freeze_addr & pkt.data[0]    ;
+   assign pkt_unfreeze_o    = is_config_op & is_freeze_addr & (~pkt.data[0]) ;
+   assign pkt_arb_cfg_o     = is_config_op & is_arb_cfg_addr                 ;
+   assign pkt_remote_store_o= is_mem_op    & ( pkt.op == `ePacketOp_remote_store);
+   assign pkt_remote_load_o = is_mem_op    & ( pkt.op == `ePacketOp_remote_load );
 
-               `ePacketOp_configure:
-                 if (~|pkt.addr[addr_width_p-1:0]) // if addr=0
-                   begin
-                      pkt_freeze_o   = pkt.data[0];
-                      pkt_unfreeze_o = ~pkt.data[0];
-                   end
-                 else if( pkt.addr[addr_width_p-1:0] == addr_width_p'(1) )
-                      pkt_arb_cfg_o  = 1'b1;
-                 else
-                   pkt_unknown_o = 1'b1;
-               default:
-                 pkt_unknown_o = 1'b1;
-             endcase
-          end
-     end
+   assign pkt_unkonw_o      = &{    ~pkt_freeze_o   ,
+                                    ~pkt_unfreeze_o ,
+                                    ~pkt_arb_cfg_o  ,
+                                    ~pkt_remote_store_o ,
+                                    ~pkt_remote_load_o
+                               };
+   assign mask_o            = pkt.op_ex;
 
 endmodule

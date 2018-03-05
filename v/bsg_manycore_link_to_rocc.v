@@ -332,7 +332,7 @@ bsg_manycore_rocc_dma #(
                            );
 
           logic [1:0] op_n ;
-          assign op_n= wen ? ( rocket_addr_s.cfg ? `ePacketOp_configure : `ePacketOp_remote_store)
+          assign op_n= wen ? `ePacketOp_remote_store
                            : `ePacketOp_remote_load ;
 
 
