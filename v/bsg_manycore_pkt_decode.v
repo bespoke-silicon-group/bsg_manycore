@@ -19,6 +19,9 @@ module bsg_manycore_pkt_decode
 
     ,output logic pkt_remote_store_o
     ,output logic pkt_remote_load_o
+    ,output logic pkt_remote_swap_aq_o
+    ,output logic pkt_remote_swap_rl_o
+
     ,output logic [data_width_p-1:0] data_o
     ,output logic [addr_width_p-1:0] addr_o
     ,output logic [(data_width_p>>3)-1:0] mask_o
@@ -39,17 +42,21 @@ module bsg_manycore_pkt_decode
    wire is_freeze_addr  = {1'b0,pkt.addr[addr_width_p-2:0]} == addr_width_p'(0);
    wire is_arb_cfg_addr = {1'b0,pkt.addr[addr_width_p-2:0]} == addr_width_p'(1);
 
-   assign pkt_freeze_o      = is_config_op & is_freeze_addr & pkt.data[0]    ;
-   assign pkt_unfreeze_o    = is_config_op & is_freeze_addr & (~pkt.data[0]) ;
-   assign pkt_arb_cfg_o     = is_config_op & is_arb_cfg_addr                 ;
-   assign pkt_remote_store_o= is_mem_op    & ( pkt.op == `ePacketOp_remote_store);
-   assign pkt_remote_load_o = is_mem_op    & ( pkt.op == `ePacketOp_remote_load );
+   assign pkt_freeze_o          = is_config_op & is_freeze_addr & pkt.data[0]    ;
+   assign pkt_unfreeze_o        = is_config_op & is_freeze_addr & (~pkt.data[0]) ;
+   assign pkt_arb_cfg_o         = is_config_op & is_arb_cfg_addr                 ;
+   assign pkt_remote_store_o    = is_mem_op    & ( pkt.op == `ePacketOp_remote_store);
+   assign pkt_remote_load_o     = is_mem_op    & ( pkt.op == `ePacketOp_remote_load );
+   assign pkt_remote_swap_aq_o  = is_mem_op    & ( pkt.op == `ePacketOp_remote_swap_aq );
+   assign pkt_remote_swap_rl_o  = is_mem_op    & ( pkt.op == `ePacketOp_remote_swap_rl );
 
    assign pkt_unkonw_o      = &{    ~pkt_freeze_o   ,
                                     ~pkt_unfreeze_o ,
                                     ~pkt_arb_cfg_o  ,
                                     ~pkt_remote_store_o ,
-                                    ~pkt_remote_load_o
+                                    ~pkt_remote_load_o  ,
+                                    ~pkt_remote_swap_aq_o   ,
+                                    ~pkt_remote_swap_rl_o
                                };
    assign mask_o            = pkt.op_ex;
 

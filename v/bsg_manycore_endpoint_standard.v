@@ -104,7 +104,8 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    // ----------------------------------------------------------------------------------------
    // Handle incoming request packets
    // ----------------------------------------------------------------------------------------
-   logic  pkt_freeze, pkt_remote_store, pkt_remote_load, pkt_unfreeze, pkt_arb_cfg, pkt_unknown;
+   logic  pkt_freeze, pkt_remote_store,     pkt_remote_load, pkt_unfreeze, pkt_arb_cfg, pkt_unknown;
+   logic              pkt_remote_swap_aq,   pkt_remote_swap_rl;
 
 
    bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
@@ -115,8 +116,10 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
      (.v_i                 (cgni_v)
       ,.data_i             (cgni_data)
 
-      ,.pkt_remote_store_o (pkt_remote_store)
-      ,.pkt_remote_load_o  (pkt_remote_load)
+      ,.pkt_remote_store_o    (pkt_remote_store)
+      ,.pkt_remote_load_o     (pkt_remote_load)
+      ,.pkt_remote_swap_aq_o  (pkt_remote_swap_aq)
+      ,.pkt_remote_swap_rl_o  (pkt_remote_swap_rl)
       ,.pkt_freeze_o       (pkt_freeze)
       ,.pkt_unfreeze_o     (pkt_unfreeze)
       ,.pkt_arb_cfg_o      (pkt_arb_cfg)
@@ -135,7 +138,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    assign cgni_yumi = (in_yumi_i  | pkt_freeze | pkt_unfreeze | pkt_arb_cfg ) & rc_fifo_ready_lo;
 
    //we hide the request if the returning path is not ready
-   assign in_v_o    = (pkt_remote_store | pkt_remote_load) & rc_fifo_ready_lo  ;
+   assign in_v_o    = (pkt_remote_store | pkt_remote_load | pkt_remote_swap_aq | pkt_remote_swap_rl ) & rc_fifo_ready_lo  ;
    assign in_we_o   = pkt_remote_store                      ;
 
    // ----------------------------------------------------------------------------------------

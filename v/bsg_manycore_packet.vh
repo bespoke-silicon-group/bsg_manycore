@@ -7,7 +7,7 @@
 
 `define  ePacketOp_remote_load    2'b00
 `define  ePacketOp_remote_store   2'b01
-`define  ePacketOp_remote_swap_ac 2'b10
+`define  ePacketOp_remote_swap_aq 2'b10
 `define  ePacketOp_remote_swap_rl 2'b11
 
 `define  ePacketType_credit      `return_packet_type_width'(0)  
