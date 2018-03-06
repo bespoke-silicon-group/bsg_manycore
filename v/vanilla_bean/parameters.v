@@ -59,10 +59,13 @@
 `define RV32_FENCE_FUN3   3'b000
 `define RV32_FENCE_I_FUN3 3'b001
 
+//SWAP defines
+`define RV32_AMOSWAP_AQ_FUN7   7'b0000110
+`define RV32_AMOSWAP_RL_FUN7   7'b0000101
 
 // Some useful RV32 instruction macros
 `define RV32_Rtype(op, funct3, funct7) {``funct7``, {5{1'b?}},  {5{1'b?}},``funct3``, {5{1'b?}},``op``}
-`define RV32_Itype(op, funct3)         {{12{1'b?}},{5{1'b?}},``funct3``,{5{1'b?}},``op``} 
+`define RV32_Itype(op, funct3)         {{12{1'b?}},{5{1'b?}},``funct3``,{5{1'b?}},``op``}
 `define RV32_Stype(op, funct3)         {{7{1'b?}},{5{1'b?}},{5{1'b?}},``funct3``,{5{1'b?}},``op``}
 `define RV32_Utype(op)                 {{20{1'b?}},{5{1'b?}},``op``}
 
@@ -106,20 +109,23 @@
 `define RV32_SRA       `RV32_Rtype(`RV32_OP, 3'b101, 7'b0100000)
 `define RV32_OR        `RV32_Rtype(`RV32_OP, 3'b110, 7'b0000000)
 `define RV32_AND       `RV32_Rtype(`RV32_OP, 3'b111, 7'b0000000)
-`define RV32_MUL       `RV32_Rtype(`RV32_OP, `MD_MUL_FUN3   , 7'b0000001) 
-`define RV32_MULH      `RV32_Rtype(`RV32_OP, `MD_MULH_FUN3  , 7'b0000001) 
-`define RV32_MULHSU    `RV32_Rtype(`RV32_OP, `MD_MULHSU_FUN3, 7'b0000001) 
-`define RV32_MULHU     `RV32_Rtype(`RV32_OP, `MD_MULHU_FUN3 , 7'b0000001) 
-`define RV32_DIV       `RV32_Rtype(`RV32_OP, `MD_DIV_FUN3   , 7'b0000001) 
-`define RV32_DIVU      `RV32_Rtype(`RV32_OP, `MD_DIVU_FUN3  , 7'b0000001) 
-`define RV32_REM       `RV32_Rtype(`RV32_OP, `MD_REM_FUN3   , 7'b0000001) 
-`define RV32_REMU      `RV32_Rtype(`RV32_OP, `MD_REMU_FUN3  , 7'b0000001) 
+`define RV32_MUL       `RV32_Rtype(`RV32_OP, `MD_MUL_FUN3   , 7'b0000001)
+`define RV32_MULH      `RV32_Rtype(`RV32_OP, `MD_MULH_FUN3  , 7'b0000001)
+`define RV32_MULHSU    `RV32_Rtype(`RV32_OP, `MD_MULHSU_FUN3, 7'b0000001)
+`define RV32_MULHU     `RV32_Rtype(`RV32_OP, `MD_MULHU_FUN3 , 7'b0000001)
+`define RV32_DIV       `RV32_Rtype(`RV32_OP, `MD_DIV_FUN3   , 7'b0000001)
+`define RV32_DIVU      `RV32_Rtype(`RV32_OP, `MD_DIVU_FUN3  , 7'b0000001)
+`define RV32_REM       `RV32_Rtype(`RV32_OP, `MD_REM_FUN3   , 7'b0000001)
+`define RV32_REMU      `RV32_Rtype(`RV32_OP, `MD_REMU_FUN3  , 7'b0000001)
 `define RV32_LR_W      `RV32_Rtype(`RV32_AMO, 3'b010, 7'b00010??)
+
+`define RV32_AMOSWAP_AQ_W `RV32_Rtype(`RV32_AMO, 3'b010, `RV32_AMOSWAP_AQ_FUN7)
+`define RV32_AMOSWAP_RL_W `RV32_Rtype(`RV32_AMO, 3'b010, `RV32_AMOSWAP_RL_FUN7)
 
 `define RV32_CSRRW      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRW_FUN3)
 `define RV32_CSRRS      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRS_FUN3)
 `define RV32_CSRRC      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRC_FUN3)
-                                                                 
+
 `define RV32_CSRRWI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRWI_FUN3)
 `define RV32_CSRRSI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRSI_FUN3)
 `define RV32_CSRRCI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRCI_FUN3)
@@ -129,7 +135,7 @@
 `define RV32_signext_Simm(instr) {{21{``instr``[31]}},``instr[30:25],``instr``[11:7]}
 `define RV32_signext_Bimm(instr) {{20{``instr``[31]}},``instr``[7],``instr``[30:25],``instr``[11:8], {1'b0}}
 `define RV32_signext_Uimm(instr) {``instr``[31:12], {12{1'b0}}}
-`define RV32_signext_Jimm(instr) {{12{``instr``[31]}},``instr``[19:12],``instr``[20],``instr``[30:21], {1'b0}} 
+`define RV32_signext_Jimm(instr) {{12{``instr``[31]}},``instr``[19:12],``instr``[20],``instr``[30:21], {1'b0}}
 
 // RV32 12bit Immediate injection/extraction, replace the Imm content with specified value
 // for injection, input immediate value index starting from 1

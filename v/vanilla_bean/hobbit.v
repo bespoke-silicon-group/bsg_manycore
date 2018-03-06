@@ -199,6 +199,8 @@ assign to_mem_o = '{
     write_data    : store_data,
     valid         : valid_to_mem_c,
     wen           : exe.decode.is_store_op,
+    swap_aq       : exe.decode.op_is_swap_aq,
+    swap_rl       : exe.decode.op_is_swap_rl,
     mask          : mask,
     yumi          : yumi_to_mem_c,
     addr          : mem_addr_send

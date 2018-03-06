@@ -285,6 +285,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       ,.data_i (core_mem_wdata)
       ,.addr_i (core_mem_addr )
       ,.we_i   (core_mem_w    )
+      ,.swap_aq_i ( core_to_mem.swap_aq )
+      ,.swap_rl_i ( core_to_mem.swap_rl )
       ,.mask_i (core_mem_mask )
       ,.my_x_i (my_x_i)
       ,.my_y_i (my_y_i)

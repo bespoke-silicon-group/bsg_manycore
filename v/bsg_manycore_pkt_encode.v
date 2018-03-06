@@ -15,14 +15,16 @@ module bsg_manycore_pkt_encode
     ,input v_i
 
     // we take in the full 32-bit address here
-    ,input [32-1:0] addr_i
-    ,input [data_width_p-1:0] data_i
-    ,input [(data_width_p>>3)-1:0] mask_i
-    ,input we_i
-    ,input [x_cord_width_p-1:0] my_x_i
-    ,input [y_cord_width_p-1:0] my_y_i
-    ,output v_o
-    ,output [packet_width_lp-1:0] data_o
+    ,input [32-1:0]                         addr_i
+    ,input [data_width_p-1:0]               data_i
+    ,input [(data_width_p>>3)-1:0]          mask_i
+    ,input                                  we_i
+    ,input                                  swap_aq_i
+    ,input                                  swap_rl_i
+    ,input [x_cord_width_p-1:0]             my_x_i
+    ,input [y_cord_width_p-1:0]             my_y_i
+    ,output                                 v_o
+    ,output [packet_width_lp-1:0]           data_o
     );
 
    `declare_bsg_manycore_addr_s(32,x_cord_width_p,y_cord_width_p);
@@ -38,8 +40,9 @@ module bsg_manycore_pkt_encode
    // memory map in special opcodes; fixme, can reclaim more address space by
    // checking more bits.
 
-   assign pkt.op     = we_i ? `ePacketOp_remote_store
-                            : `ePacketOp_remote_load ;
+   assign pkt.op     =  swap_aq_i ? `ePacketOp_remote_swap_aq :
+                        swap_rl_i ? `ePacketOp_remote_swap_rl :
+                        we_i      ? `ePacketOp_remote_store   : `ePacketOp_remote_load ;
 
    assign pkt.op_ex  = mask_i;
 
@@ -76,6 +79,15 @@ module bsg_manycore_pkt_encode
 //             $error ("%m store to remote unaligned address %x", addr_i);
 //          end*/
 //     end
+   always_ff @(negedge clk_i)
+     begin
+        if ( ~addr_decode.remote & (swap_aq_i | swap_rl_i ) & v_i)
+          begin
+             $error("%m swap with local memory address %x", addr_i);
+             $finish();
+          end
+     end
+
    // synopsys translate_on
 
 endmodule

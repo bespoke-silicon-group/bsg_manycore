@@ -76,6 +76,8 @@ typedef struct packed
 {
     logic        valid;
     logic        wen;
+    logic        swap_aq;
+    logic        swap_rl;
     logic [3:0]  mask;
     logic [31:0] addr;
     logic [31:0] write_data;
@@ -121,8 +123,12 @@ typedef struct packed
     //for FENCE instruction
     logic is_fence_op;
     logic is_fence_i_op;
+    //for load reservation and load reservation acquire
     logic op_is_load_reservation;
     logic op_is_lr_acq          ;
+    //for atomic swap
+    logic op_is_swap_aq         ;
+    logic op_is_swap_rl         ;
 } decode_s;
 
 // Instruction decode stage signals
