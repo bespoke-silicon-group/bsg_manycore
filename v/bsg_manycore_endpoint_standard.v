@@ -107,6 +107,11 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    logic  pkt_freeze, pkt_remote_store,     pkt_remote_load, pkt_unfreeze, pkt_arb_cfg, pkt_unknown;
    logic              pkt_remote_swap_aq,   pkt_remote_swap_rl;
 
+   //singals between FIFO to swap_ctrl
+   wire in_yumi_lo, in_v_li;
+   wire [data_width_p-1:0]          in_data_lo;
+   wire [addr_width_p-1:0]          in_addr_lo;
+   wire[(data_width_p>>3)-1:0]      in_mask_lo;
 
    bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
                              ,.y_cord_width_p(y_cord_width_p)
@@ -125,21 +130,64 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.pkt_arb_cfg_o      (pkt_arb_cfg)
       ,.pkt_unknown_o      (pkt_unknown)
 
-      ,.data_o             (in_data_o)  // "
-      ,.addr_o             (in_addr_o)  // "
-      ,.mask_o             (in_mask_o)  // "
+      ,.data_o             (in_data_lo)  // "
+      ,.addr_o             (in_addr_lo)  // "
+      ,.mask_o             (in_mask_lo)  // "
       );
    // dequeue only if
    // 1. The outside is ready (they want to yumi the singal),
    //    or the packet is configure operation
    // 2. The returning path is ready (which means the returning credit fifo is
    //    not full
+   wire   pkt_config_yumi = pkt_freeze | pkt_unfreeze | pkt_arb_cfg ;
    wire   rc_fifo_ready_lo, rc_fifo_v_lo, rc_fifo_yumi_li;
-   assign cgni_yumi = (in_yumi_i  | pkt_freeze | pkt_unfreeze | pkt_arb_cfg ) & rc_fifo_ready_lo;
 
+   assign cgni_yumi = (in_yumi_lo | pkt_config_yumi  ) & rc_fifo_ready_lo;
+   assign in_v_li   = (pkt_remote_store | pkt_remote_load | pkt_remote_swap_aq | pkt_remote_swap_rl ) & rc_fifo_ready_lo  ;
+
+
+   wire [data_width_p-1:0]  comb_returning_data_lo  ;
+   wire                     comb_returning_v_lo     ;
+   bsg_manycore_swap_ctrl         #(      .data_width_p   (data_width_p   )
+                                         ,.addr_width_p   (addr_width_p   )
+                                         ,.x_cord_width_p (x_cord_width_p )
+                                         ,.y_cord_width_p (y_cord_width_p )
+                                    ) swap_ctrl
+   ( .clk_i
+    ,.reset_i
+
+     // local endpoint incoming data interface
+    ,.in_v_i     (in_v_li        )
+    ,.in_yumi_o  (in_yumi_lo     )
+    ,.in_data_i  (in_data_lo     )
+    ,.in_mask_i  (in_mask_lo     )
+    ,.in_addr_i  (in_addr_lo     )
+    ,.in_we_i    (pkt_remote_store)
+
+    ,.in_swap_aq_i (pkt_remote_swap_aq )
+    ,.in_swap_rl_i (pkt_remote_swap_rl )
+    ,.in_x_cord_i  (cgni_data.src_x_cord )
+    ,.in_y_cord_i  (cgni_data.src_y_cord )
+
+    // combined  incoming data interface
+    ,.comb_v_o      (in_v_o      )
+    ,.comb_yumi_i   (in_yumi_i   )
+    ,.comb_data_o   (in_data_o   )
+    ,.comb_mask_o   (in_mask_o   )
+    ,.comb_addr_o   (in_addr_o   )
+    ,.comb_we_o     (in_we_o     )
+
+    // The memory read value
+    ,.returning_data_i
+    ,.returning_v_i
+
+    // The output read value
+    ,.comb_returning_data_o    ( comb_returning_data_lo     )
+    ,.comb_returning_v_o       ( comb_returning_v_lo        )
+
+
+    );
    //we hide the request if the returning path is not ready
-   assign in_v_o    = (pkt_remote_store | pkt_remote_load | pkt_remote_swap_aq | pkt_remote_swap_rl ) & rc_fifo_ready_lo  ;
-   assign in_we_o   = pkt_remote_store                      ;
 
    // ----------------------------------------------------------------------------------------
    // Handle outgoing credit packet
@@ -152,7 +200,9 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
    returning_credit_info  rc_fifo_li, rc_fifo_lo;
 
-   assign rc_fifo_li   ='{ pkt_type: pkt_remote_load ?`ePacketType_data :`ePacketType_credit
+   wire req_returning_data =pkt_remote_load | pkt_remote_swap_aq | pkt_remote_swap_rl ;
+
+   assign rc_fifo_li   ='{ pkt_type: ( req_returning_data) ?`ePacketType_data :`ePacketType_credit
                           ,y_cord  : cgni_data.src_y_cord
                           ,x_cord  : cgni_data.src_x_cord
                         };
@@ -175,13 +225,13 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
     wire   is_store_return =  rc_fifo_lo.pkt_type == `ePacketType_credit ;
     wire   load_store_ready=  is_store_return
-                            | ( (~is_store_return) & returning_v_i )    ;
+                            | ( (~is_store_return) & comb_returning_v_lo )    ;
 
     assign rc_fifo_yumi_li =  rc_fifo_v_lo & returning_ready_lo & load_store_ready;
 
     assign returning_v_li           =  rc_fifo_v_lo & load_store_ready;
     assign returning_packet_li      = { rc_fifo_lo.pkt_type
-                                      , returning_data_i
+                                      , comb_returning_data_lo
                                       , rc_fifo_lo.y_cord
                                       , rc_fifo_lo.x_cord
                                       };
