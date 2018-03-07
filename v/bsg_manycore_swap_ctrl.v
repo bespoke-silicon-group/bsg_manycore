@@ -14,6 +14,7 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
                                          ,addr_width_p           = 32
                                          ,x_cord_width_p         = "inv"
                                          ,y_cord_width_p         = "inv"
+                                         ,debug_p                = 0
                                          )
    (  input clk_i
     , input reset_i
@@ -67,7 +68,8 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
                           & (~swap_lock_r) & (swap_stat_r == SWAP_IDLE)  ;
 
     //on fail, will return immediately
-    wire swap_aq_fail    =  in_v_i & in_swap_aq_i & (~swap_lock_r);
+    wire swap_aq_fail    =  in_v_i & in_swap_aq_i & swap_lock_r
+                          & ( swap_stat_r == SWAP_IDLE );
 
     wire swap_aq_yumi    = swap_aq_success | swap_aq_fail    ;
 
@@ -82,7 +84,8 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
 
     //on fail, will return immediately
     wire swap_rl_fail    = in_v_i & in_swap_rl_i
-                          & (~swap_lock_r  | (swap_lock_r & ~swap_match) ) ;
+                          & (~swap_lock_r  | (swap_lock_r & ~swap_match) )
+                          & ( swap_stat_r == SWAP_IDLE );
 
     wire swap_rl_yumi    = swap_rl_success | swap_rl_fail;
 
@@ -92,9 +95,11 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
 
     always_ff@(posedge clk_i)
         if ( swap_success) begin
-            swap_data_r <=   in_data_i;
-            swap_addr_r <=   in_addr_i;
-            swap_mask_r <=   in_mask_i;
+            swap_data_r     <=   in_data_i      ;
+            swap_addr_r     <=   in_addr_i      ;
+            swap_x_cord_r   <=   in_x_cord_i    ;
+            swap_y_cord_r   <=   in_y_cord_i    ;
+            swap_mask_r     <=   in_mask_i      ;
         end
 
     always_ff@(posedge clk_i)
@@ -113,11 +118,8 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
     always_comb begin
         case (swap_stat_r)
             SWAP_IDLE:
-                if ( swap_success )                     swap_stat_n = SWAP_LOADING;
+                if ( swap_success )                     swap_stat_n = SWAP_STORING;
                 else                                    swap_stat_n = SWAP_IDLE   ;
-            SWAP_LOADING:
-                if ( returning_v_i )                    swap_stat_n = SWAP_STORING;
-                else                                    swap_stat_n = SWAP_LOADING;
             SWAP_STORING:
                 if ( comb_yumi_i   )                    swap_stat_n = SWAP_IDLE   ;
                 else                                    swap_stat_n = SWAP_STORING;
@@ -126,7 +128,6 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
         endcase
     end
 
-    wire swap_load_req   =    swap_stat_r  == SWAP_LOADING;
     wire swap_store_req  =    swap_stat_r  == SWAP_STORING;
     wire swap_working    =    swap_stat_r  != SWAP_IDLE   ;
 
@@ -141,8 +142,11 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
     assign in_yumi_o = swap_yumi | normal_yumi;
 
     //To local memory
-    //NOTE: comb_v_o =1 when  SWAP_IDLE -> SWAP_LOADING
-    assign comb_v_o     =   swap_working ?  (swap_load_req | swap_store_req)
+    wire   swap_failing              =  swap_aq_fail  | swap_rl_fail    ;
+    //NOTE: comb_v_o =1 when  SWAP_IDLE -> SWAP_LOADING, which is the load
+    //      request
+    assign comb_v_o     =   swap_working ?  swap_store_req :
+                            swap_failing ?  1'b0
                                          :  in_v_i ;
 
     assign comb_data_o  =   swap_store_req  ?  swap_data_r
@@ -154,14 +158,34 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
     assign comb_addr_o  =   swap_working    ?  swap_addr_r
                                             :  in_addr_i ;
 
-    assign comb_we_o    =   swap_load_req  ? 1'b0 :
-                            swap_store_req ? 1'b1 : in_we_i ;
+    assign comb_we_o    =   swap_store_req  ? 1'b1 : in_we_i ;
 
     //returning data to endpoint
-    wire   swap_finishing            = (swap_stat_r != SWAP_IDLE ) & ( swap_stat_n == SWAP_IDLE);
-    wire   swap_failing              =  swap_aq_fail  | swap_rl_fail    ;
+    logic                     swap_failing_r        ;
+    logic [data_width_p-1:0]  swap_failing_data_r   ;
 
-    assign comb_returning_v_o       = (swap_finishing | swap_failing) ? 1'b1 : returning_v_i ;
-    assign comb_returning_data_o    = swap_failing ?  in_data_i : returning_data_i ;
+    always_ff@( posedge clk_i) begin
+        swap_failing_r      <= swap_failing ;
+        swap_failing_data_r <= in_data_i    ;
+    end
 
+    assign comb_returning_v_o       = swap_failing_r ?  1'b1
+                                                     : returning_v_i ;
+
+    assign comb_returning_data_o    = swap_failing_r ?  swap_failing_data_r
+                                                     : returning_data_i ;
+
+    //-------------------------------------------------------------------------
+    // assertion and diagnosis
+    //-------------------------------------------------------------------------
+    //synopsys translate_off
+    if(debug_p) begin
+        always_ff@(negedge clk_i ) begin
+            if( swap_aq_success ) $display("##  addr=%h : (y,x)=(%d, %d) aquire success   %m, %t", in_addr_i<<2, in_y_cord_i, in_x_cord_i,$time );
+            if( swap_aq_fail    ) $display("##  addr=%h : (y,x)=(%d, %d) aquire fail      %m, %t", in_addr_i<<2, in_y_cord_i, in_x_cord_i,$time );
+            if( swap_rl_success ) $display("##  addr=%h : (y,x)=(%d, %d) release success  %m, %t", in_addr_i<<2, in_y_cord_i, in_x_cord_i,$time );
+            if( swap_rl_fail    ) $display("##  addr=%h : (y,x)=(%d, %d) release fail     %m, %t", in_addr_i<<2, in_y_cord_i, in_x_cord_i,$time );
+        end
+    end
+    //synopsys translate_on
 endmodule

@@ -152,6 +152,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          ,.addr_width_p   (addr_width_p   )
                                          ,.x_cord_width_p (x_cord_width_p )
                                          ,.y_cord_width_p (y_cord_width_p )
+                                         ,.debug_p        ( 1'b1          )
                                     ) swap_ctrl
    ( .clk_i
     ,.reset_i

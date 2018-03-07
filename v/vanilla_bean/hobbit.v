@@ -188,10 +188,14 @@ begin
 end
 
 //compute the address for mem operation
+wire is_amo_op = id.decode.op_is_load_reservation
+               | id.decode.op_is_swap_aq
+               | id.decode.op_is_swap_rl;
+
 wire [RV32_reg_data_width_gp-1:0] mem_addr_op2 =
-        id.decode.op_is_load_reservation ? 'b0 :
-        id.decode.is_store_op            ? `RV32_signext_Simm(id.instruction)
-                                         : `RV32_signext_Iimm(id.instruction);
+        is_amo_op                ? 'b0 :
+        id.decode.is_store_op    ? `RV32_signext_Simm(id.instruction)
+                                 : `RV32_signext_Iimm(id.instruction);
 
 assign mem_addr_send= rs1_to_alu +  exe.mem_addr_op2;
 
