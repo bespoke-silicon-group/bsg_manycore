@@ -81,6 +81,9 @@ typedef volatile void *bsg_remote_void_ptr;
                                                                | ((int) (local_addr))                      \
                                                              )                                             \
                                         )
+#define bsg_local_ptr( remote_addr)  (    (int) (remote_addr)                           \
+                                        & (   (1 << bsg_remote_addr_bits) - 1 )         \
+                                     )
 
 #define bsg_remote_store(x,y,local_addr,val) do { *(bsg_remote_ptr((x),(y),(local_addr))) = (int) (val); } while (0)
 
