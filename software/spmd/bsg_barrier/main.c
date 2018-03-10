@@ -17,7 +17,6 @@ int main() {
 
   int id = bsg_x_y_to_id(bsg_x,bsg_y);
 
-  bsg_barrier *p_barrier  = ( bsg_barrier *  ) bsg_remote_ptr( 0, 0, (int *) (& tile0_barrier) );
 
   if( id < BARRIER_TILES ){
         for( int i =0; i <= id; i++){
@@ -28,7 +27,7 @@ int main() {
         }
         //wait all threads finish
 
-        bsg_barrier_wait( p_barrier, 0, 0);
+        bsg_barrier_wait( &tile0_barrier, 0, 0);
   }
 
   if( id == 0)  bsg_finish();

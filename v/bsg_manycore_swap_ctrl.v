@@ -137,7 +137,10 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
 
     //yumi signal to endpoint
     wire   swap_req     = in_swap_aq_i | in_swap_rl_i         ;
-    wire   normal_yumi  = in_v_i & (~ swap_req ) & comb_yumi_i ;
+    //we should not present the normal reqeust if the swap is working
+    wire   normal_yumi  = in_v_i & (~ swap_req )  //normal reqeust
+                         &(~swap_working)         //swap is not working
+                         &comb_yumi_i         ;   //memory is not busy
 
     assign in_yumi_o = swap_yumi | normal_yumi;
 

@@ -13,6 +13,8 @@
 #include "bsg_mutex.h"
 #include "bsg_manycore.h"
 
+typedef enum {_alert_init=0, _alert_signaled=1} bsg_barrier_alert;
+
 typedef struct bsg_barrier_ {
     bsg_mutex       _mutex          ;
 
@@ -27,8 +29,9 @@ typedef struct bsg_barrier_ {
     unsigned int    _y_cord_end  :8 ;
 
     //the local varialbe that local thread will wait for.
-    unsigned int    _local_alert    ;
+    bsg_barrier_alert    _local_alert    ;
 } bsg_barrier ;
+
 
 //initial value of the bsg_barrier
 #define BSG_BARRIER_INIT( x_cord_start, x_cord_end, y_cord_start, y_cord_end)\
@@ -38,14 +41,18 @@ typedef struct bsg_barrier_ {
        ,x_cord_end              \
        ,y_cord_start            \
        ,y_cord_end              \
-       ,0                       \
+       ,_alert_init             \
     }
 
-void bsg_barrier_wait(  bsg_barrier *  p_remote_barrier, int barrier_x_cord, int barrier_y_cord );
+void bsg_barrier_wait(  bsg_barrier *  p_local_barrier, int barrier_x_cord, int barrier_y_cord );
 
 //------------------------------------------------------------------
 
-void bsg_barrier_wait(  bsg_barrier *  p_remote_barrier, int barrier_x_cord, int barrier_y_cord ){
+void bsg_barrier_wait(  bsg_barrier *  p_local_barrier, int barrier_x_cord, int barrier_y_cord ){
+
+    bsg_barrier * p_remote_barrier = (bsg_barrier *) bsg_remote_ptr( barrier_x_cord,    \
+                                                                     barrier_y_cord,    \
+                                                                     p_local_barrier);
 
     bsg_atomic_add ( &(p_remote_barrier->_mutex), &(p_remote_barrier->_joined_count) );
 
@@ -62,7 +69,7 @@ void bsg_barrier_wait(  bsg_barrier *  p_remote_barrier, int barrier_x_cord, int
 
         for( unsigned int i= p_remote_barrier->_x_cord_start; i <= p_remote_barrier->_x_cord_end; i++ ) {
             for( unsigned int j= p_remote_barrier->_y_cord_start; j<= p_remote_barrier->_y_cord_end; j++) {
-                 bsg_remote_store( i, j, &(p_remote_barrier->_local_alert), 0x0 );
+                 bsg_remote_store( i, j, &(p_remote_barrier->_local_alert), _alert_signaled );
             }
         }
         //reset the number of the joined threads
@@ -73,8 +80,8 @@ void bsg_barrier_wait(  bsg_barrier *  p_remote_barrier, int barrier_x_cord, int
     } else {
         //wait the 'chief' tile to send signal
         unsigned int *p_local_alert   = (unsigned int *)( bsg_local_ptr( & (p_remote_barrier->_local_alert)) );
-        bsg_lr(     p_local_alert )       ;
-        bsg_lr_aq(  p_local_alert )       ;
+        bsg_wait_local_int( p_local_alert, _alert_signaled);
+        *p_local_alert = _alert_init    ;
     }
 }
 #endif
