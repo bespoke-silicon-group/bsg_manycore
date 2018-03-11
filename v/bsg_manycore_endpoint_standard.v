@@ -137,13 +137,13 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    // dequeue only if
    // 1. The outside is ready (they want to yumi the singal),
    //    or the packet is configure operation
-   // 2. The returning path is ready (which means the returning credit fifo is
-   //    not full
+   // 2. The returning path is ready
    wire   pkt_config_yumi = pkt_freeze | pkt_unfreeze | pkt_arb_cfg ;
    wire   rc_fifo_ready_lo, rc_fifo_v_lo, rc_fifo_yumi_li;
 
-   assign cgni_yumi = (in_yumi_lo | pkt_config_yumi  ) & rc_fifo_ready_lo;
-   assign in_v_li   = (pkt_remote_store | pkt_remote_load | pkt_remote_swap_aq | pkt_remote_swap_rl ) & rc_fifo_ready_lo  ;
+   assign cgni_yumi = (in_yumi_lo | pkt_config_yumi  ) & ( returning_ready_lo  & rc_fifo_ready_lo );
+   assign in_v_li   = (pkt_remote_store | pkt_remote_load | pkt_remote_swap_aq | pkt_remote_swap_rl )
+                     & (returning_ready_lo & rc_fifo_ready_lo ) ;
 
 
    wire [data_width_p-1:0]  comb_returning_data_lo  ;
@@ -224,15 +224,34 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     ,.yumi_i  (rc_fifo_yumi_li )// late
     );
 
+    //there is 1 cycle delay between the "RC_FIFO is not full" and "returning data
+    //valid". Even in current cycle the "RC_FIFO is not full" and we yumi
+    //a incoming request. In next cycle the "RC_FIFO maybe full" and we can
+    //not receive the returning data.
+    // THUS WE NEED A HOLD MODULE TO HOLD THE RETURNING DATA
+    wire [data_width_p-1:0]     holded_returning_data_lo;
+    wire                        holded_returning_v_lo   ;
+
+    bsg_1hold #( .data_width_p( data_width_p) ) returning_hold (
+        .clk_i      ( clk_i                 )
+       ,.v_i        ( comb_returning_v_lo   )
+       ,.data_i     ( comb_returning_data_lo)
+
+       ,.v_o        ( holded_returning_v_lo     )
+       ,.data_o     ( holded_returning_data_lo  )
+
+       ,.hold_i     ( ~returning_ready_lo       )
+    );
+
     wire   is_store_return =  rc_fifo_lo.pkt_type == `ePacketType_credit ;
     wire   load_store_ready=  is_store_return
-                            | ( (~is_store_return) & comb_returning_v_lo )    ;
+                            | ( (~is_store_return) & holded_returning_v_lo )    ;
 
     assign rc_fifo_yumi_li =  rc_fifo_v_lo & returning_ready_lo & load_store_ready;
 
     assign returning_v_li           =  rc_fifo_v_lo & load_store_ready;
     assign returning_packet_li      = { rc_fifo_lo.pkt_type
-                                      , comb_returning_data_lo
+                                      , holded_returning_data_lo
                                       , rc_fifo_lo.y_cord
                                       , rc_fifo_lo.x_cord
                                       };

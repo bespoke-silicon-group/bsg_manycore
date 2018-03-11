@@ -201,6 +201,7 @@ LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_swap_ctrl.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_1hold.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint_standard.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_tieoff.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_accel_default.v

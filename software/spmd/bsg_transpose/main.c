@@ -16,8 +16,9 @@
 #define SUB_COL_NUM     2
 #define DATA_PER_TILE   (SUB_ROW_NUM * SUB_COL_NUM)
 
-#define NUM_X_TILES     2
-#define NUM_Y_TILES     2
+#define TILE_DIM        4
+#define NUM_X_TILES     TILE_DIM
+#define NUM_Y_TILES     TILE_DIM
 
 
 #define MATRIX_ROWS     ( SUB_ROW_NUM * NUM_Y_TILES)
