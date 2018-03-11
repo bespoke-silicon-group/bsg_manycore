@@ -4,8 +4,9 @@
 #include "bsg_barrier.h"
 // This test will transpose a matrix distributed accross the tile
 //---------------------------------------------------------
-//              4x4 data with 16 MSB row index, 16 LSB column index
-// outputs:     0x0000_0000
+// outputs:
+//            row num _ col num
+//              0x0000_0000
 //              0x0000_0001
 //              0x0000_0002
 //              0x0000_0003
@@ -13,7 +14,7 @@
 
 //how many data each tile holds?
 #define SUB_ROW_NUM     2
-#define SUB_COL_NUM     2
+#define SUB_COL_NUM     3
 #define DATA_PER_TILE   (SUB_ROW_NUM * SUB_COL_NUM)
 
 #define TILE_DIM        4
