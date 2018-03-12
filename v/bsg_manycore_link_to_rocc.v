@@ -332,8 +332,8 @@ bsg_manycore_rocc_dma #(
                            );
 
           logic [1:0] op_n ;
-          assign op_n= wen ? `ePacketOp_remote_store
-                           : `ePacketOp_remote_load ;
+          op_n= wen ? `ePacketOp_remote_store
+                    : `ePacketOp_remote_load ;
 
 
           get_manycore_pkt = '{

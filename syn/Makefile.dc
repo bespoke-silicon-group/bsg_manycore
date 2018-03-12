@@ -27,7 +27,7 @@ PARA_STRING= -parameter \"imem_addr_width_p =>  3, \
 else
 
 SYN_SRCS= $(DESIGN_HDRS) $(filter-out \
-            %monitor.v %loader.v %clock_gen.v \
+            %monitor.v %loader.v %clock_gen.v %profiler.v\
             %reset_gen.v %trace.v %io_complex.v, $(DESIGN_SRCS))
 #            $(BSG_MANYCORE_DIR)/testbenches/basic/syn_bsg_manycore.v
 
@@ -44,6 +44,7 @@ endif
 
 CLK_PIN=clk_i
 PARA_STRING= -parameter \"              \
+		      imem_size_p       =>  64, \
               bank_size_p       =>  64, \
               num_banks_p       =>  2, \
               data_width_p      =>  32, \
