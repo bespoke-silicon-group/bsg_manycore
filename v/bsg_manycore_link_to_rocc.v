@@ -343,7 +343,7 @@ bsg_manycore_rocc_dma #(
 
                                 // remote top bit of address, which is the special op code space.
                                 // low bits are automatically cut off
-                               ,addr   : rocket_addr_s.word_addr  [ addr_width_p-1: 0]
+                               ,addr   : { rocket_addr_s.cfg, rocket_addr_s.word_addr  [ addr_width_p-2: 0]}
 
                                ,data   : manycore_value
                                ,x_cord : rocket_addr_s.x_cord     [ x_cord_width_p-1: 0]

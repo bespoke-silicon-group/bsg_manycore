@@ -48,7 +48,8 @@ module bsg_manycore_pkt_encode
 
    // remote top bit of address, which is the special op code space.
    // low bits are automatically
-   assign pkt.addr   = addr_width_p ' (addr_decode.addr[$size(addr_decode.addr)-2:0]);
+   // The 'configure' operation is now encoded in the address
+   assign pkt.addr   = addr_width_p ' (addr_decode.addr[$size(addr_decode.addr)-1:0]);
 
 
    assign pkt.data       = data_i;
