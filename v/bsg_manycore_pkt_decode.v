@@ -50,7 +50,7 @@ module bsg_manycore_pkt_decode
    assign pkt_remote_swap_aq_o  = is_mem_op    & ( pkt.op == `ePacketOp_remote_swap_aq );
    assign pkt_remote_swap_rl_o  = is_mem_op    & ( pkt.op == `ePacketOp_remote_swap_rl );
 
-   assign pkt_unkonw_o      = &{    ~pkt_freeze_o   ,
+   assign pkt_unknown_o      = &{    ~pkt_freeze_o   ,
                                     ~pkt_unfreeze_o ,
                                     ~pkt_arb_cfg_o  ,
                                     ~pkt_remote_store_o ,
