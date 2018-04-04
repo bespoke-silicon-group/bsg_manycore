@@ -34,11 +34,27 @@ export SHELL:=$(SHELL)
 nothing:
 
 checkout-all:
-	git clone https://github.com/ucb-bar/rocket-chip.git
+	git clone git://github.com/ucb-bar/rocket-chip.git
 	cd rocket-chip; git checkout 48170fd9aa4de6bf2a443010881d25dd55238941;
+	############
+	# replace the https:// with git:// because of the SSL update on Github
+	sed 's/https:/git:/' -i rocket-chip/.gitmodules
 	cd rocket-chip; git submodule init riscv-tools
 	cd rocket-chip; git submodule update riscv-tools
-	cd rocket-chip/riscv-tools; git submodule update --init --recursive	
+	############
+	# replace the https:// with git:// because of the SSL update on Github
+	sed 's/https:/git:/' -i rocket-chip/riscv-tools/.gitmodules
+	cd rocket-chip/riscv-tools; git submodule init riscv-fesvr;         git submodule update riscv-fesvr
+	cd rocket-chip/riscv-tools; git submodule init riscv-gnu-toolchain; git submodule update riscv-gnu-toolchain
+	cd rocket-chip/riscv-tools; git submodule init riscv-isa-sim;       git submodule update riscv-isa-sim
+	cd rocket-chip/riscv-tools; git submodule init riscv-opcodes;       git submodule update riscv-opcodes
+	cd rocket-chip/riscv-tools; git submodule init riscv-pk;            git submodule update riscv-pk
+	cd rocket-chip/riscv-tools; git submodule init riscv-llvm;          git submodule update riscv-llvm
+	cd rocket-chip/riscv-tools; git submodule init riscv-tests;         git submodule update riscv-tests
+	sed 's/https:/git:/' -i rocket-chip/riscv-tools/riscv-llvm/.gitmodules
+	sed 's/https:/git:/' -i rocket-chip/riscv-tools/riscv-tests/.gitmodules
+	cd rocket-chip/riscv-tools/riscv-llvm/;   git submodule update --init --recursive	
+	cd rocket-chip/riscv-tools/riscv-tests/;  git submodule update --init --recursive	
 
 build-riscv-tools:
 	cd rocket-chip/riscv-tools; sed -i 's/JOBS=16/JOBS=2/' build.common
