@@ -4,15 +4,15 @@
 //====================================================================
 // This module instantiate an mesh router, a slave and master
 //
-//     TIED       TIED          TIED       TIED      (Y, X)
+//  MASTER(0,0)   TIED          TIED       TIED      (Y, X)
 //        \        |               \        |
 //         \       |                \       |
 //          |-------------|          |-------------|
-//   TIED---| ROUTER(0,0) | ---------| ROUTER(0,1) | --- SLAVE(0,2)
+//   TIED---| ROUTER(0,0) | ---------| ROUTER(0,1) | --- TIED
 //          |-------------|          |-------------|
 //                 |                        |
 //                 |                        |
-//              MASTER(1,0)               TIED
+//               TIED                     SLAVE(1,1)
 //
 `include "bsg_manycore_packet.vh"
 
@@ -44,7 +44,7 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
    for( i=0; i< nodes_lp; i++) begin
          bsg_manycore_mesh_node #(
                               // S         N         E         W
-            .stub_p           ({(i==1),   1'b1,     1'b0,  (i==0)} )
+            .stub_p           ({(i==0),   1'b1,    (i==1),  (i==0)} )
            ,.x_cord_width_p   (x_cord_width_p )
            ,.y_cord_width_p   (y_cord_width_p )
            ,.data_width_p     (data_width_p   )
@@ -77,14 +77,14 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
     , .reset_i
 
     // mesh network
-    , .link_sif_i       ( router_link_sif_lo[0][ bsg_noc_pkg::S ] )
-    , .link_sif_o       ( router_link_sif_li[0][ bsg_noc_pkg::S ] )
+    , .link_sif_i       ( proc_link_sif_li[0])
+    , .link_sif_o       ( proc_link_sif_lo[0])
 
     , .my_x_i           ( x_cord_width_p'(0) )
-    , .my_y_i           ( y_cord_width_p'(1) )
+    , .my_y_i           ( y_cord_width_p'(0) )
 
-    , .dest_x_i         ( x_cord_width_p'(2) )
-    , .dest_y_i         ( y_cord_width_p'(0) )
+    , .dest_x_i         ( x_cord_width_p'(1) )
+    , .dest_y_i         ( y_cord_width_p'(1) )
 
     , .finish_o
     );
@@ -101,11 +101,11 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
     , .reset_i
 
     // mesh network
-    , .link_sif_i       ( router_link_sif_lo[1][ bsg_noc_pkg::E ] )
-    , .link_sif_o       ( router_link_sif_li[1][ bsg_noc_pkg::E ] )
+    , .link_sif_i       ( router_link_sif_lo[1][ bsg_noc_pkg::S ] )
+    , .link_sif_o       ( router_link_sif_li[1][ bsg_noc_pkg::S ] )
 
-    , .my_x_i           ( x_cord_width_p'(2) )
-    , .my_y_i           ( x_cord_width_p'(0) )
+    , .my_x_i           ( x_cord_width_p'(1) )
+    , .my_y_i           ( x_cord_width_p'(1) )
   );
 
 
@@ -113,8 +113,11 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
   genvar j;
   for( i=0; i< nodes_lp ; i++) begin
         for( j= w_idx_lp; j <= s_idx_lp; j++) begin:tie_up // {P=0, W, E, N, S}
-              if(      ( j != bsg_noc_pkg::E )
-                    && ( i==1  && j != bsg_noc_pkg::W )
+              if(      ( i==0  && j != bsg_noc_pkg::E )
+                    && ( i==1  && (     j != bsg_noc_pkg::W
+                                    ||  j != bsg_noc_pkg::S
+                                  )
+                       )
                 )begin //this direction is stubbed
                       bsg_manycore_link_sif_tieoff
                       #(.addr_width_p  (addr_width_p  )
@@ -130,17 +133,18 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
 
               end
          end
-          bsg_manycore_link_sif_tieoff
-          #(.addr_width_p  (addr_width_p  )
-           ,.data_width_p  (data_width_p  )
-           ,.x_cord_width_p(x_cord_width_p)
-           ,.y_cord_width_p(y_cord_width_p)
-          ) bmlst_proc
-          (        .clk_i
-                  ,.reset_i
-                  ,.link_sif_i( proc_link_sif_li  [ i ] )
-                  ,.link_sif_o( proc_link_sif_lo  [ i ] )
-          );
    end
+
+   bsg_manycore_link_sif_tieoff
+   #(.addr_width_p  (addr_width_p  )
+    ,.data_width_p  (data_width_p  )
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+   ) bmlst_proc
+   (        .clk_i
+           ,.reset_i
+           ,.link_sif_i( proc_link_sif_li  [ 1 ] )
+           ,.link_sif_o( proc_link_sif_lo  [ 1 ] )
+   );
 
 endmodule
