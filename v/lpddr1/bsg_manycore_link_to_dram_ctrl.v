@@ -19,6 +19,7 @@
 `include "bsg_manycore_packet.vh"
 
 module  bsg_manycore_link_to_dram_ctrl
+  import bsg_dram_ctrl_pkg::*;
   #(  parameter addr_width_p="inv"
     , parameter data_width_p="inv"
     , parameter x_cord_width_p="inv"
@@ -28,7 +29,7 @@ module  bsg_manycore_link_to_dram_ctrl
     , parameter fifo_els_p              = 4
     , parameter max_out_credits_lp      = 16
     , parameter bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , parameter packet_width_lp    = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+    , parameter packet_width_lp    = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
     )
   (
 
@@ -46,6 +47,10 @@ module  bsg_manycore_link_to_dram_ctrl
    , bsg_dram_ctrl_if.master            dram_ctrl_if
    );
 
+    localparam core_mask_width_lp = data_width_p >> 3                   ;
+    localparam dram_mask_width_lp = dram_ctrl_dwidth_p >> 3              ;
+    localparam mask_fill_bits_lp  = dram_mask_width_lp - core_mask_width_lp;
+    localparam data_fill_bits_lp  = dram_ctrl_dwidth_p - data_width_p;
 
    ///////////////////////////////////////////////////////////////////////////////////
    // instantiate the endpoint
@@ -101,8 +106,8 @@ module  bsg_manycore_link_to_dram_ctrl
      ,.freeze_r_o    (                       )
      ,.reverse_arb_pr_o(                     )
 
-     ,.my_x_i        ( my_x_i [ i ]          )
-     ,.my_y_i        ( my_y_i [ i ]          )
+     ,.my_x_i
+     ,.my_y_i
      );
     ///////////////////////////////////////////////////////////////////////////////////
     // convert the manycore link reqeust from manycore
@@ -120,25 +125,31 @@ module  bsg_manycore_link_to_dram_ctrl
     assign dram_ctrl_if.app_addr        =  {endpoint_addr_lo, 2'b0}             ;
 
     assign dram_ctrl_if.app_wdf_wren    =  write_valid                          ;
-    assign dram_ctrl_if.app_wdf_data    =  set_dram_data( endpoint_data_lo, endpoint_addr_lo );
-    assign dram_ctrl_if.app_wdf_mask    =  set_dram_mask( endpoint_mask_lo, endpoint_addr_lo );
+    assign dram_ctrl_if.app_wdf_data    =  { {data_fill_bits_lp{1'b0}},endpoint_data_lo };
+    assign dram_ctrl_if.app_wdf_mask    =  { {mask_fill_bits_lp{1'b0}},endpoint_mask_lo };
     assign dram_ctrl_if.app_wdf_end     =  write_valid                          ;
 
     assign endpoint_returning_v_li      =  dram_ctrl_if.app_rd_data_valid              ;
     assign endpoint_returning_data_li   =  dram_ctrl_if.app_rd_data[data_width_p-1:0]  ;
 
     assign dram_ctrl_if.app_ref_req     = 1'b0                                  ;
-    assign dram_ctrl_if.app_zq_re       = 1'b0                                  ;
+    assign dram_ctrl_if.app_zq_req      = 1'b0                                  ;
     assign dram_ctrl_if.app_sr_req      = 1'b0                                  ;
 
+    //synopsys translate_off
+    initial begin
+        if( addr_width_p +2 != dram_ctrl_awidth_p ) begin
+                $error("Address range of manycore must equal to dram address range!\n");
+                $finish;
+        end
+    end
+    //synopsys translate_on
     ///////////////////////////////////////////////////////////////////////////////////
     // set up the data and mask to dram
+ /*
     localparam width_ratio_lp     = dram_ctrl_dwidth_p / data_width_p    ;
-    localparam core_mask_width_lp = data_width_p >> 3                   ;
-    localparam dram_mask_width_lp = dram_ctrl_dwidth_p >> 3              ;
-
     // set data
-    function [dram_ctrl_dwidth_p-1:0] set_dram_data( input [data_width_p-1:0] data_i, input [addr_width_p-1:0] addr_i) begin
+    function [dram_ctrl_dwidth_p-1:0] set_dram_data( input [data_width_p-1:0] data_i, input [addr_width_p-1:0] addr_i);
         //----------------------
         if( width_ratio_lp == 2)   begin
                 set_dram_data = addr_i[0] ? { data_i            , data_width_p{1'b0} }
@@ -156,10 +167,10 @@ module  bsg_manycore_link_to_dram_ctrl
         end else begin
                 set_dram_data = data_i ;
         end
-    end
+    endfunction
 
     // set mask
-    function [dram_mask_width_lp-1:0] set_dram_mask( input [core_data_mask_lp-1:0] mask_i, input [addr_width_p-1:0] addr_i) begin
+    function [dram_mask_width_lp-1:0] set_dram_mask( input [core_data_mask_lp-1:0] mask_i, input [addr_width_p-1:0] addr_i);
         //----------------------
         if( width_ratio_lp == 2)   begin
                 set_dram_mask = addr_i[0] ? { data_i                  , core_mask_width_lp{1'b0} }
@@ -177,14 +188,7 @@ module  bsg_manycore_link_to_dram_ctrl
         end else begin
                 set_dram_mask = mask_i ;
         end
-    end
-    //synopsys translate_off
-    initial begin
-        if( addr_width_p +2 != dram_ctrl_awidth_p ) begin
-                $error("Address range of manycore must equal to dram address range!\n");
-                $finish;
-        end
-    end
-    //synopsys translate_on
+    endfunction
+  */
 endmodule
 

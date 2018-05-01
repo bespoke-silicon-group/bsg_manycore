@@ -10,19 +10,19 @@
 // (https://www.xilinx.com/support/documentation/ip_documentation/mig_7series/v1_4/ug586_7Series_MIS.pdf)
 //
 
-interface bsg_dram_ctrl_if #(
+interface bsg_dram_ctrl_if
+        import bsg_dram_ctrl_pkg::*;
+        #(
         //the basic dram parameters
          parameter addr_width_p = 32
         ,parameter data_width_p = 64
-        ,parameter mask_width_p = 4
+        ,parameter mask_width_p = data_width_p >> 3
         )
         //synopsys translate_off
         ( input clk_i ) //used for simualtion check only
         //synopsys translate_on
         ;
 
-        //the command definition
-        typdef enum [2:0] eAppCmd { eAppRead=3'b001, eAppWrite=3'b000};
 
         //The three groups, command, write, and read have seperated FIFO, and
         //do not need to be synced with the same cycle, but sure need to be in
@@ -41,7 +41,7 @@ interface bsg_dram_ctrl_if #(
         logic                           app_wdf_wren    ;   //write data valid
         logic                           app_wdf_rdy     ;   //write data ready
         logic [data_width_p-1:0]        app_wdf_data    ;
-        logic                           app_wdf_mask    ;   //write mask
+        logic [mask_width_p-1:0]        app_wdf_mask    ;   //write mask
         logic                           app_wdf_end     ;   //last data of the burst.
                                                             //Should be same with app_wdf_wren in our design
 
@@ -121,7 +121,7 @@ interface bsg_dram_ctrl_if #(
         //synopsys translate_off
         always@(negedge clk_i) begin
                 assert(         (app_wdf_wren === app_wdf_end)
-                        &&      (app_rd_data_valid == app_rd_data_end )
+                        &&      (app_rd_data_valid === app_rd_data_end )
                       ) else begin
                         $display("Only supprot back to back reqeust");
                 end
