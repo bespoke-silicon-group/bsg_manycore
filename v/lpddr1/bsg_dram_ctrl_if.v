@@ -41,7 +41,7 @@ interface bsg_dram_ctrl_if
         logic                           app_wdf_wren    ;   //write data valid
         logic                           app_wdf_rdy     ;   //write data ready
         logic [data_width_p-1:0]        app_wdf_data    ;
-        logic [mask_width_p-1:0]        app_wdf_mask    ;   //write mask
+        logic [mask_width_p-1:0]        app_wdf_mask    ;   //write mask, ACTIVE_LOW!!!!
         logic                           app_wdf_end     ;   //last data of the burst.
                                                             //Should be same with app_wdf_wren in our design
 

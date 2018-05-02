@@ -126,7 +126,7 @@ module  bsg_manycore_link_to_dram_ctrl
 
     assign dram_ctrl_if.app_wdf_wren    =  write_valid                          ;
     assign dram_ctrl_if.app_wdf_data    =  { {data_fill_bits_lp{1'b0}},endpoint_data_lo };
-    assign dram_ctrl_if.app_wdf_mask    =  { {mask_fill_bits_lp{1'b0}},endpoint_mask_lo };
+    assign dram_ctrl_if.app_wdf_mask    =  { {mask_fill_bits_lp{1'b1}},~endpoint_mask_lo }; //ACTIVE LOW!!!!!
     assign dram_ctrl_if.app_wdf_end     =  write_valid                          ;
 
     assign endpoint_returning_v_li      =  dram_ctrl_if.app_rd_data_valid              ;
