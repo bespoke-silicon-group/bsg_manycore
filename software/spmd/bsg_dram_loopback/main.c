@@ -16,8 +16,8 @@
 #define DRAM_X_CORD       1
 #define DRAM_Y_CORD       1
 
-const int  data_vect[VECTOR_LEN] = DATA_VECT;
-const int  addr_vect[VECTOR_LEN] = ADDR_VECT;
+int  data_vect[VECTOR_LEN] = DATA_VECT;
+int  addr_vect[VECTOR_LEN] = ADDR_VECT;
 
 int main()
 {
@@ -31,21 +31,24 @@ int main()
                  bsg_remote_store(DRAM_X_CORD,  DRAM_Y_CORD,   addr_vect[ i ],  data_vect[i]  );
         }
        //read dram and check the result
+        for( int i=0; i< VECTOR_LEN; i++){
+                 bsg_remote_ptr_io_store(0,  0x0,  data_vect[i]  );
+        }
+
         int read_value;
-        int error=0;
         for( int j= VECTOR_LEN-1 ; j>=0 ; j--){
                 bsg_remote_load(DRAM_X_CORD,  DRAM_Y_CORD,    addr_vect[ j ], read_value );
 
-                bsg_remote_ptr_io_store(0, 0x0, read_value);
+                bsg_remote_ptr_io_store(0, addr_vect[j], read_value);
 
                 if( read_value != data_vect[ j ]  ){
-                        error =1 ;
-                        break;
+                        bsg_remote_ptr_io_store(0, 0x0, read_value);
+                        bsg_remote_ptr_io_store(0, 0x0, data_vect[j] );
+                        bsg_fail();
                 }
         }
-        //finish the program and print the check result
-        if( error == 1) { bsg_fail();     }
-        else            { bsg_finish();   }
+
+        bsg_finish();
   }
 
   bsg_wait_while(1);
