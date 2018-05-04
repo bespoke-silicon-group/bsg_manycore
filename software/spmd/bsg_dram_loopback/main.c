@@ -30,10 +30,6 @@ int main()
         for( int i=0; i< VECTOR_LEN; i++){
                  bsg_remote_store(DRAM_X_CORD,  DRAM_Y_CORD,   addr_vect[ i ],  data_vect[i]  );
         }
-       //read dram and check the result
-        for( int i=0; i< VECTOR_LEN; i++){
-                 bsg_remote_ptr_io_store(0,  0x0,  data_vect[i]  );
-        }
 
         int read_value;
         for( int j= VECTOR_LEN-1 ; j>=0 ; j--){
