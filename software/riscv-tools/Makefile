@@ -22,10 +22,10 @@
 
 export RISCV:=$(PWD)/riscv-install
 export SED=sed
-export CC=/opt/rh/devtoolset-2/root/usr/bin/gcc
-export CXX=/opt/rh/devtoolset-2/root/usr/bin/g++
-#export CC=gcc
-#export CXX=g++
+#export CC=/opt/rh/devtoolset-2/root/usr/bin/gcc
+#export CXX=/opt/rh/devtoolset-2/root/usr/bin/g++
+export CC=gcc
+export CXX=g++
 export SED=sed
 export PATH
 export SHELL:=$(SHELL)
