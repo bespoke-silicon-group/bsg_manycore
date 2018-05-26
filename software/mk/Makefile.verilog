@@ -33,13 +33,14 @@ VANILLA_SRC   = $(BSG_MANYCORE_DIR)/v/vanilla_bean
 
 ########################################
 # select the tools
-ifeq ($(shell /bin/domainname),B.B)
+#ifeq ($(shell /bin/domainname),B.B)
 include $(CAD_DIR)/common/mk/cadenv.mk
 
 BSG-SIM-TOOL=vcs
 INC_OP		=+incdir+
 VCS_OP		=-full64 -sverilog
-VCS_OP     += +lint=PCWM 
+VCS_OP         += +lint=PCWM 
+VCS_OP         += -timescale=1ps/1ps
 VCS_DEFINES	= +define+SPMD=$*
 VCS_DEFINES+= +define+bsg_tiles_X=$(bsg_tiles_X)
 VCS_DEFINES+= +define+bsg_tiles_Y=$(bsg_tiles_Y)
@@ -57,16 +58,16 @@ endif
 ifeq ($(DVE),1)
 VCS_OP     +=  +vcs+vcdpluson -debug_access+all
 endif
-###############################################
-else
-BSG-SIM-TOOL=vivado
-INC_OP=-i
-
-VLOG  = xvlog -sv ${BSG_FPU_OP}
-VELAB = xelab -debug typical ${BSG_FPU_OP} -s top_sim
-VSIM  = xsim --runall top_sim
-
-endif
+################################################
+#else
+#BSG-SIM-TOOL=vivado
+#INC_OP=-i
+#
+#VLOG  = xvlog -sv ${BSG_FPU_OP}
+#VELAB = xelab -debug typical ${BSG_FPU_OP} -s top_sim
+#VSIM  = xsim --runall top_sim
+#
+#endif
 
 $(warning $(BSG-SIM-TOOL))
 
@@ -194,8 +195,6 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_router.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_stitch.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_to_ring_stitch.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_router_buffered.v
-LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_clock_gen.v
-LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_reset_gen.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_hetero_socket.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v
@@ -221,6 +220,8 @@ LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_vscale_
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_proc_trace.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_tile_trace.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_io_complex.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_clock_gen.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_reset_gen.v
 
 ###################################################################################
 #   Generate the real filelist
