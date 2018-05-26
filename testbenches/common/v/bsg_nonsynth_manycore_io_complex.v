@@ -14,6 +14,7 @@ module bsg_nonsynth_manycore_io_complex
     ,load_rows_p    =  num_tiles_y_p
     ,load_cols_p    =  num_tiles_x_p
     ,tile_id_ptr_p = -1
+    ,src_x_cord_p = 0
     ,x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
     ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
     ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
@@ -80,7 +81,7 @@ module bsg_nonsynth_manycore_io_complex
          ,.ready_i  (loader_ready_li)
          ,.data_i   (mem_data)
          ,.addr_o   (mem_addr)
-         ,.my_x_i   ( x_cord_width_lp '(0) )
+         ,.my_x_i   ( x_cord_width_lp ' (src_x_cord_p) )
          ,.my_y_i   ( y_cord_width_lp ' (num_tiles_y_p) )
          );
 
@@ -120,7 +121,7 @@ module bsg_nonsynth_manycore_io_complex
 
         wire pass_thru_ready_lo;
 
-        localparam credits_lp = (i==0) ? spmd_max_out_credits_lp : 4;
+        localparam credits_lp = (i== src_x_cord_p) ? spmd_max_out_credits_lp : 4;
 
         wire [`BSG_SAFE_CLOG2(credits_lp+1)-1:0] creds;
 
@@ -133,7 +134,7 @@ module bsg_nonsynth_manycore_io_complex
         // hook up the ready signal if this is the SPMD loader
         // we handle credits here but could do it in the SPMD module too
 
-        if (i==0)
+        if (i== src_x_cord_p)
           begin: fi
              assign loader_ready_li = pass_thru_ready_lo & (|creds);
 
@@ -157,7 +158,7 @@ module bsg_nonsynth_manycore_io_complex
                                         ,.data_width_p  (data_width_p)
                                         ,.channel_num_p (i)
                                         ,.max_cycles_p(max_cycles_p)
-                                        ,.pass_thru_p(i==0)
+                                        ,.pass_thru_p(i== src_x_cord_p)
                                         // for the SPMD loader we don't anticipate
                                         // any backwards flow control; but for an
                                         // accelerator, we must be much more careful about

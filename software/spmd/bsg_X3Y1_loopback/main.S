@@ -62,7 +62,7 @@
                                        )
 
 
-#define FINISH_ADDR    bsg_remote_ptr( 0x0, bsg_tiles_Y, 0xDEAD0)
+#define FINISH_ADDR    bsg_remote_ptr( 0x2, bsg_tiles_Y, 0xDEAD0)
 #define DM_START       0x1000
 
 .text 
