@@ -17,7 +17,7 @@ endif
 
 # paths
 RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-gcc
-RISCV_ELF2HEX ?= $(RISCV_BIN_DIR)/elf2hex
+RISCV_ELF2HEX ?= LD_LIBRARY_PATH=$(RISCV_BIN_DIR)/../lib $(RISCV_BIN_DIR)/elf2hex
 
 BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
