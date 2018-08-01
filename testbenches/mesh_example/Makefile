@@ -35,6 +35,8 @@ VCS_OP     += -R
 VCS_OP     += +libext+.v
 #enable waveform dump
 VCS_OP     +=  +vcs+vcdpluson -debug_pp
+#setup the timescale
+VCS_OP     += -timescale=1ns/1ps
 
 run: 
 	$(VCS) $(VCS_OP) 			\
