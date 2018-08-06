@@ -70,8 +70,8 @@ module mesh_master_example #(x_cord_width_p         = "inv"
     ,.in_we_o    (      )
 
     // The memory read value
-    ,.returning_data_i  (   )
-    ,.returning_v_i     (   )
+    ,.returning_data_i  (   data_width_p'(0))
+    ,.returning_v_i     (   1'b0 )
 
     // local outgoing data interface (does not include credits)
     // Tied up all the outgoing signals
