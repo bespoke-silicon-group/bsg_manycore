@@ -43,8 +43,13 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
    genvar i;
    for( i=0; i< nodes_lp; i++) begin
          bsg_manycore_mesh_node #(
-                              // S         N         E         W
-            .stub_p           ({(i==0),   1'b1,    (i==1),  (i==0)} )
+                               // S         N         E         W
+           //.stub_p           ({(i==0),   1'b1,    (i==1),  (i==0)} )
+           //1. stub_p will only affect the synthesis, for simplicity, we can
+           //   set the stub_p to 4'b0.
+           //
+           //2. We should use tieoff module for unused ports.
+           .stub_p           ( 4'b0)
            ,.x_cord_width_p   (x_cord_width_p )
            ,.y_cord_width_p   (y_cord_width_p )
            ,.data_width_p     (data_width_p   )
@@ -113,9 +118,9 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
   genvar j;
   for( i=0; i< nodes_lp ; i++) begin
         for( j= w_idx_lp; j <= s_idx_lp; j++) begin:tie_up // {P=0, W, E, N, S}
-              if(      ( i==0  && j != bsg_noc_pkg::E )
-                    && ( i==1  && (     j != bsg_noc_pkg::W
-                                    ||  j != bsg_noc_pkg::S
+              if(      ( i==0  && j != bsg_noc_pkg::E  )
+                    || ( i==1  && (     j != bsg_noc_pkg::W 
+                                    &&  j != bsg_noc_pkg::S 
                                   )
                        )
                 )begin //this direction is stubbed
