@@ -1,5 +1,8 @@
 
+%.echo:
+	echo $($*)
 dve:
 	$(VCS_BIN)/dve -full64 -vpd vcdplus.vpd &
+
 
 

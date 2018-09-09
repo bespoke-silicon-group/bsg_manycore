@@ -10,11 +10,12 @@ COREMARK_INCS=-I$(COREMARK_DIR)/ -I$(COREMARK_DIR)/manycore
 COREMARK_SRCS=$(COREMARK_DIR)/core_matrix.c
 COREMARK_SRCS+=$(COREMARK_DIR)/core_state.c
 COREMARK_SRCS+=$(COREMARK_DIR)/core_list_join.c
-COREMARK_SRCS+=$(COREMARK_DIR)/manycore/core_util.c
+COREMARK_SRCS+=$(COREMARK_DIR)/core_util.c
+#COREMARK_SRCS+=$(COREMARK_DIR)/manycore/iterate.c
 
 COREMARK_OBJS=$(COREMARK_SRCS:.c=.o)
 ##########################################################
-RISCV_GCC_EXTRA_OPTS ?= -Os -fno-exceptions -s -finline-functions $(COREMARK_INCS)
+RISCV_GCC_EXTRA_OPTS ?= -Os $(COREMARK_INCS) -DMANYCORE_PROG
 
 all: main.run
 
@@ -33,6 +34,7 @@ clean:
 	-rm -rf *.o *.jou *.log *.pb bsg_manycore_io_complex_rom.v main.riscv *.wdb main.bin main.hex main.vec
 	-rm -rf xsim.dir
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd
+	-rm $(COREMARK_OBJS)
 
 main.o: Makefile
 

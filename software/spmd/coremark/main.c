@@ -1,7 +1,5 @@
 #include "bsg_manycore.h"
 
-#define MANYCORE_PROG
-
 //this macro will defined in Makefile, indicates which rocc can be wrote into
 //#define bsg_active_rocc_index
 int main()
