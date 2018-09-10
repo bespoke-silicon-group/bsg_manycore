@@ -260,9 +260,8 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    // ----------------------------------------------------------------------------------------
    wire launching_out       = out_v_i & out_ready_o ;
 
-   bsg_counter_up_down #( .max_val_p  (max_out_credits_p)
+   bsg_counter_up_down #(.max_val_p  (max_out_credits_p)
                          ,.init_val_p(max_out_credits_p)
-                         ,.max_step_p(1)
                          ) out_credit_ctr
      (.clk_i
       ,.reset_i
