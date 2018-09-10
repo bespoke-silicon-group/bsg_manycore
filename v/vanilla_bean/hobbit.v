@@ -617,14 +617,14 @@ begin
 end
 
    bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_r_reg
-     (.clock_i(clk)
+     ( .clk_i(clk)
       ,.reset_i(reset)
       ,.data_i(jalr_prediction_n)
       ,.data_o(jalr_prediction_r)
       );
 
    bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_rr_reg
-     (.clock_i(clk)
+     ( .clk_i(clk)
       ,.reset_i(reset)
       ,.data_i(jalr_prediction_r)
       ,.data_o(jalr_prediction_rr)
@@ -632,21 +632,21 @@ end
 
    // mbt: unharden to reduce congestion
    bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(0)) net_packet_r_reg
-     (.clock_i(clk)
+     ( .clk_i(clk)
       ,.reset_i(reset)
       ,.data_i(net_packet_i)
       ,.data_o(net_packet_r)
       );
 
    bsg_dff_reset #(.width_p($bits(instruction_s)), .harden_p(1)) instruction_r_reg
-     (.clock_i(clk)
+     ( .clk_i(clk)
       ,.reset_i(reset)
       ,.data_i(instruction)
       ,.data_o(instruction_r)
       );
 
    bsg_dff_reset_en #(.width_p(imem_addr_width_p),.harden_p(1)) pc_r_reg
-     (.clock_i (clk)
+     ( .clk_i (clk)
       ,.reset_i(reset)
       ,.en_i   (pc_wen)
       ,.data_i (pc_n)

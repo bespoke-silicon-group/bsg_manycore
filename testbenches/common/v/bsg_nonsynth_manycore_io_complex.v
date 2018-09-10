@@ -49,7 +49,7 @@ module bsg_nonsynth_manycore_io_complex
    wire [39:0] cycle_count;
 
    bsg_cycle_counter #(.width_p(40),.init_val_p(0))
-   cc (.clk(clk_i), .reset_i(reset_i), .ctr_r_o(cycle_count));
+   cc (.clk_i(clk_i), .reset_i(reset_i), .ctr_r_o(cycle_count));
 
    logic [addr_width_p-1:0]  mem_addr;
    logic [data_width_p-1:0]  mem_data;
