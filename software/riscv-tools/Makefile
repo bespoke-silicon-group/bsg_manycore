@@ -37,7 +37,7 @@ checkout-all:
 	cd rocket-chip/riscv-tools;     git submodule update --init --recursive	
 
 build-riscv-tools:
-	cd rocket-chip/riscv-tools; sed -i 's/JOBS=16/JOBS=2/' build.common
+	#cd rocket-chip/riscv-tools; sed -i 's/JOBS=16/JOBS=2/' build.common
 	cd rocket-chip/riscv-tools; sed -i 's/build_project riscv-gnu-toolchain/build_project riscv-gnu-toolchain --enable-multilib/' build.sh
 	cd rocket-chip/riscv-tools; ./build.sh | tee $@.log
 
