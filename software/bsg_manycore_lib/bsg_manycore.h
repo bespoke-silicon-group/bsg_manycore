@@ -108,6 +108,7 @@ typedef volatile void *bsg_remote_void_ptr;
 
 #define bsg_finish_x(x)       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(x,0xDEAD0); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
 #define bsg_fail()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xDEAD8); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
+#define bsg_fail_x(x)       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(x,0xDEAD8); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
 #define bsg_print_time()   do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xDEAD4); *ptr = ((bsg_y << 16) + bsg_x); } while(0)
 
 #define bsg_id_to_x(id)    ((id) % bsg_tiles_X)

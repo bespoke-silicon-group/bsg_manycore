@@ -2,7 +2,7 @@
 // bsg_dram_loopback_cache.c
 // 09/11/2018, tommy
 //====================================================================
-// This program will write and then read data from dram
+// this program will write and then read data from dram
 //
 
 #include "bsg_manycore.h"
@@ -21,8 +21,47 @@ int data_vect[2][VECTOR_LEN] = {
   {2, 3, 5, 7, 11, 13, 17, 19}
 };
 
-int addr_vect[VECTOR_LEN] = {0*4, 1*4, 2*4, 3*4, 4*4, 5*4, 6*4, 7*4};
 bsg_barrier tile0_barrier = BSG_BARRIER_INIT(0, 1, 0 ,0); 
+
+void test_store_stride(int id, int offset, int stride, int **data_vect)
+{
+  int addr_vect[VECTOR_LEN];
+
+  // set up addr vector.
+  for (int i = 0; i < VECTOR_LEN; i++)
+  {
+    addr_vect[i] = offset + (i*stride);
+  }
+
+  // write data vector.
+  for (int i = 0; i < VECTOR_LEN; i++)
+  {
+    bsg_remote_store(id, DRAM_Y_CORD, addr_vect[i], data_vect[id][i]);
+  }
+
+  // write zero vectors for the same set but different tags,
+  // so that the first vector is flushed and written to DRAM.
+  for (int i = 0; i < VECTOR_LEN; i++)
+  {
+    bsg_remote_store(id, DRAM_Y_CORD, addr_vect[i] | 0x1000000, 0xffffffff);
+  }
+
+  for (int i = 0; i < VECTOR_LEN; i++)
+  {
+    bsg_remote_store(id, DRAM_Y_CORD, addr_vect[i] | 0x2000000, 0xeeeeeeee);
+  }
+  
+  int read_val;
+  for (int i = VECTOR_LEN-1; i >= 0; i--)
+  {
+    bsg_remote_load(id, DRAM_Y_CORD, addr_vect[i], read_val);
+
+    if (read_val != data_vect[id][i])
+    {
+      bsg_fail_x(2);
+    }
+  }
+}
 
 int main()
 {
@@ -38,37 +77,12 @@ int main()
       bsg_remote_store(id, DRAM_Y_CORD, TAG_MEM_BOUNDARY + (i<<5), 0);
     }
 
-    // write the vector.
-    for (int i = 0; i < VECTOR_LEN; i++)
+    for (int i = 0; i < 8; i++) 
     {
-      bsg_remote_store(id, DRAM_Y_CORD, addr_vect[i], data_vect[id][i]);
-    }
-
-    // write zero vectors for the same set but different tags,
-    // so that the first vector is flushed and written to DRAM.
-    for (int i = 0; i < VECTOR_LEN; i++)
-    {
-      bsg_remote_store(id, DRAM_Y_CORD, addr_vect[i] | 0x4000, 0xffffffff);
-    }
-
-    for (int i = 0; i < VECTOR_LEN; i++)
-    {
-      bsg_remote_store(id, DRAM_Y_CORD, addr_vect[i] | 0x8000, 0xffffffff);
-    }
-
-    int read_value;
-    for (int j = VECTOR_LEN-1; j >= 0; j--)
-    {
-      bsg_remote_load(id, DRAM_Y_CORD, addr_vect[j], read_value);
-
-      bsg_remote_ptr_io_store(0, addr_vect[j], read_value);
-
-      if (read_value != data_vect[id][j])
-      {
-        bsg_remote_ptr_io_store(0, 0x0, read_value);
-        bsg_remote_ptr_io_store(0, 0x0, data_vect[id][j]);
-        bsg_fail();
-      }
+      test_store_stride(id, 0, (4 << i), (int**) data_vect);
+      test_store_stride(id, 4, (4 << i), (int**) data_vect);
+      test_store_stride(id, 8, (4 << i), (int**) data_vect);
+      test_store_stride(id, 12, (4 << i), (int**) data_vect);
     }
 
     bsg_barrier_wait(&tile0_barrier, 0, 0);
