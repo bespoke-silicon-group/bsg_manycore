@@ -14,7 +14,7 @@
 #define DRAM_Y_CORD 1
 #define CACHE_NUM_SET 512
 #define CACHE_NUM_WAY 2
-#define TAG_MEM_BOUNDARY 0x04000000
+#define TAG_MEM_MASK 0x07ff8000
 
 int data_vect[2][VECTOR_LEN] = {
   {0, 1, 4, 9, 16, 25, 36, 49},
@@ -74,7 +74,7 @@ int main()
     // clear tag mem in cache
     for (int i = 0; i < CACHE_NUM_SET*CACHE_NUM_WAY; i++) 
     {
-      bsg_remote_store(id, DRAM_Y_CORD, TAG_MEM_BOUNDARY + (i<<5), 0);
+      bsg_remote_store(id, DRAM_Y_CORD, TAG_MEM_MASK + (i<<5), 0);
     }
 
     for (int i = 0; i < 8; i++) 
