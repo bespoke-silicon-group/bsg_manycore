@@ -12,9 +12,9 @@
 
 #define VECTOR_LEN 8
 #define DRAM_Y_CORD 1
-#define CACHE_NUM_SET 512
+#define CACHE_NUM_SET 256
 #define CACHE_NUM_WAY 2
-#define TAG_MEM_MASK 0x07ff8000
+#define TAG_MEM_MASK 0x07ffc000
 
 int data_vect[2][VECTOR_LEN] = {
   {0, 1, 4, 9, 16, 25, 36, 49},
@@ -71,7 +71,7 @@ int main()
 
   if (id < 2) 
   {
-    // clear tag mem in cache
+    // clear tag mem in cache.
     for (int i = 0; i < CACHE_NUM_SET*CACHE_NUM_WAY; i++) 
     {
       bsg_remote_store(id, DRAM_Y_CORD, TAG_MEM_MASK + (i<<5), 0);
