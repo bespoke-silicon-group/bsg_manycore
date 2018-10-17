@@ -46,7 +46,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
    bsg_manycore_endpoint_standard #(.x_cord_width_p (x_cord_width_p)
                                     ,.y_cord_width_p(y_cord_width_p)
                                     ,.fifo_els_p    (2)
-                                    ,.freeze_init_p (pass_thru_freeze_init_p)
+                                    //,.freeze_init_p (pass_thru_freeze_init_p)
                                     ,.max_out_credits_p(pass_thru_max_out_credits_p)
                                     ,.data_width_p  (data_width_p)
                                     ,.addr_width_p  (addr_width_p)
@@ -68,7 +68,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
       ,.returned_v_r_o   ()
 
       ,.returning_data_i ( 0 )
-      ,.returning_v_i    ( 1'b0 )
+      ,.returning_v_i    (cgni_yumi )
 
       // outgoing data for this module
       ,.out_v_i     (pass_thru_p ? pass_thru_v_i    : 1'b0)
@@ -78,8 +78,6 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
 
       ,.my_x_i(pass_thru_x_i)
       ,.my_y_i(pass_thru_y_i)
-      ,.freeze_r_o()
-      ,.reverse_arb_pr_o()
       );
 
    // incoming packets on main network: always deque

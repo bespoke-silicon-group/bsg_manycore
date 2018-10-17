@@ -10,9 +10,9 @@ test_case_list+=mul_div
 test_case_list+=bypass_core
 test_case_list+=bsg_remote_load
 test_case_list+=bsg_remote_congestion
-test_case_list+=bsg_swap
-test_case_list+=bsg_barrier
-test_case_list+=bsg_transpose
+#test_case_list+=bsg_swap
+#test_case_list+=bsg_barrier
+#test_case_list+=bsg_transpose
 
 all: main.regress_test
 ##############################################

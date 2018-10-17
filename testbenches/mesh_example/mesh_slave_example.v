@@ -94,19 +94,15 @@ module mesh_slave_example #( x_cord_width_p         = "inv"
     ,.returned_data_r_o(                )
     ,.returned_v_r_o   (                )
 
-
     ,.out_credits_o     (               )
-    ,.freeze_r_o        (               )
-    ,.reverse_arb_pr_o  (               )
     );
 
     ////////////////////////////////////////////////////////////////
     // assign the signals to endpoint
     assign  in_yumi_li  =       in_v_lo   ;     //we can always handle the reqeust
 
-    //the returning data is only avaliable when it is a read request
     always_ff@(posedge clk_i)
         if( reset_i ) returning_v_r <= 1'b0;
-        else          returning_v_r <= (in_yumi_li & ~in_we_lo);
+        else          returning_v_r <= in_yumi_li;
 
 endmodule

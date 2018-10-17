@@ -84,10 +84,7 @@ module mesh_master_example #(x_cord_width_p         = "inv"
     ,.returned_data_r_o(  returned_data_lo      )
     ,.returned_v_r_o   (  returned_v_lo         )
 
-
     ,.out_credits_o     (               )
-    ,.freeze_r_o        (               )
-    ,.reverse_arb_pr_o  (               )
     );
 
 

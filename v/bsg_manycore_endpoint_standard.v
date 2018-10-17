@@ -16,7 +16,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                          ,num_nets_lp            = 2
                                          )
-   (input clk_i
+   (  input clk_i
     , input reset_i
 
     // mesh network
@@ -51,10 +51,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     , input   [x_cord_width_p-1:0]                my_x_i
     , input   [y_cord_width_p-1:0]                my_y_i
 
-    // whether module is frozen or not
-    , output freeze_r_o
-    // reverse the arbiter priority
-    , output reverse_arb_pr_o
     );
 
    wire in_fifo_full;
@@ -104,46 +100,48 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    // ----------------------------------------------------------------------------------------
    // Handle incoming request packets
    // ----------------------------------------------------------------------------------------
-   logic  pkt_freeze, pkt_remote_store,     pkt_remote_load, pkt_unfreeze, pkt_arb_cfg, pkt_unknown;
-   logic              pkt_remote_swap_aq,   pkt_remote_swap_rl;
-
    //singals between FIFO to swap_ctrl
    wire in_yumi_lo, in_v_li;
-   wire [data_width_p-1:0]          in_data_lo;
-   wire [addr_width_p-1:0]          in_addr_lo;
-   wire[(data_width_p>>3)-1:0]      in_mask_lo;
 
-   bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
-                             ,.y_cord_width_p(y_cord_width_p)
-                             ,.data_width_p  (data_width_p )
-                             ,.addr_width_p  (addr_width_p )
-                             ) pkt_decode
-     (.v_i                 (cgni_v)
-      ,.data_i             (cgni_data)
+   wire [data_width_p-1:0]          in_data_lo  =cgni_data.data;
+   wire [addr_width_p-1:0]          in_addr_lo  =cgni_data.addr;
+   wire[(data_width_p>>3)-1:0]      in_mask_lo  =cgni_data.op_ex;
 
-      ,.pkt_remote_store_o    (pkt_remote_store)
-      ,.pkt_remote_load_o     (pkt_remote_load)
-      ,.pkt_remote_swap_aq_o  (pkt_remote_swap_aq)
-      ,.pkt_remote_swap_rl_o  (pkt_remote_swap_rl)
-      ,.pkt_freeze_o       (pkt_freeze)
-      ,.pkt_unfreeze_o     (pkt_unfreeze)
-      ,.pkt_arb_cfg_o      (pkt_arb_cfg)
-      ,.pkt_unknown_o      (pkt_unknown)
+   wire pkt_remote_store   = cgni_v & (cgni_data.op == `ePacketOp_remote_store  );
+   wire pkt_remote_load    = cgni_v & (cgni_data.op == `ePacketOp_remote_load   );
+   wire pkt_remote_swap_aq = cgni_v & (cgni_data.op == `ePacketOp_remote_swap_aq);
+   wire pkt_remote_swap_rl = cgni_v & (cgni_data.op == `ePacketOp_remote_swap_rl);
 
-      ,.data_o             (in_data_lo)  // "
-      ,.addr_o             (in_addr_lo)  // "
-      ,.mask_o             (in_mask_lo)  // "
-      );
+   //bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
+   //                          ,.y_cord_width_p(y_cord_width_p)
+   //                          ,.data_width_p  (data_width_p )
+   //                          ,.addr_width_p  (addr_width_p )
+   //                          ) pkt_decode
+   //  (.v_i                 (cgni_v)
+   //   ,.data_i             (cgni_data)
+
+   //   ,.pkt_remote_store_o    (pkt_remote_store)
+   //   ,.pkt_remote_load_o     (pkt_remote_load)
+   //   ,.pkt_remote_swap_aq_o  (pkt_remote_swap_aq)
+   //   ,.pkt_remote_swap_rl_o  (pkt_remote_swap_rl)
+   //   ,.pkt_freeze_o       (pkt_freeze)
+   //   ,.pkt_unfreeze_o     (pkt_unfreeze)
+   //   ,.pkt_arb_cfg_o      (pkt_arb_cfg)
+   //   ,.pkt_unknown_o      (pkt_unknown)
+
+   //   ,.data_o             (in_data_lo)  // "
+   //   ,.addr_o             (in_addr_lo)  // "
+   //   ,.mask_o             (in_mask_lo)  // "
+   //   );
+
+   
    // dequeue only if
    // 1. The outside is ready (they want to yumi the singal),
-   //    or the packet is configure operation
    // 2. The returning path is ready
-   wire   pkt_config_yumi = pkt_freeze | pkt_unfreeze | pkt_arb_cfg ;
    wire   rc_fifo_ready_lo, rc_fifo_v_lo, rc_fifo_yumi_li;
 
-   assign cgni_yumi = (in_yumi_lo | pkt_config_yumi  ) & ( returning_ready_lo  & rc_fifo_ready_lo );
-   assign in_v_li   = (pkt_remote_store | pkt_remote_load | pkt_remote_swap_aq | pkt_remote_swap_rl )
-                     & (returning_ready_lo & rc_fifo_ready_lo ) ;
+   assign cgni_yumi = in_yumi_lo  & (returning_ready_lo & rc_fifo_ready_lo );
+   assign in_v_li   = cgni_v      & (returning_ready_lo & rc_fifo_ready_lo );
 
 
    wire [data_width_p-1:0]  comb_returning_data_lo  ;
@@ -243,9 +241,10 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
        ,.hold_i     ( ~returning_ready_lo       )
     );
 
-    wire   is_store_return =  rc_fifo_lo.pkt_type == `ePacketType_credit ;
-    wire   load_store_ready=  is_store_return
-                            | ( (~is_store_return) & holded_returning_v_lo )    ;
+//    wire   is_store_return =  rc_fifo_lo.pkt_type == `ePacketType_credit ;
+//    wire   load_store_ready=  is_store_return
+//                            | ( (~is_store_return) & holded_returning_v_lo )    ;
+    wire   load_store_ready = holded_returning_v_lo;
 
     assign rc_fifo_yumi_li =  rc_fifo_v_lo & returning_ready_lo & load_store_ready;
 
@@ -274,38 +273,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    assign returned_data_r_o     =   returned_packet_lo.data     ;
    assign returned_v_r_o        =   returned_credit_lo
                                  & ( returned_packet_lo.pkt_type == `ePacketType_data ) ;
-   // ----------------------------------------------------------------------------------------
-   // Handle the control registers
-   // ----------------------------------------------------------------------------------------
-   // create freeze gate
-   logic  freeze_r;
-   assign freeze_r_o = freeze_r;
-
-   always_ff @(posedge clk_i)
-     if (reset_i)
-       freeze_r <= freeze_init_p;
-     else
-       if (pkt_freeze | pkt_unfreeze)
-         begin
-// synopsys translate_off
-            $display("## freeze_r <= %x (%m)",pkt_freeze);
-// synopsys translate_on
-            freeze_r <= pkt_freeze;
-         end
-   //the arbiter configuation gate
-   logic arb_cfg_r ;
-
-   always_ff @(posedge clk_i)
-   if( reset_i )            arb_cfg_r <= 1'b1;
-   else if( pkt_arb_cfg ) begin
-    // synopsys translate_off
-     $display("## arb_cfg_r <= %b (%m)", in_data_o[0]);
-    // synopsys translate_on
-      arb_cfg_r <= in_data_o[0];
-   end
-
-   assign reverse_arb_pr_o = arb_cfg_r & in_fifo_full ;
-   // *************************************************
+  // *************************************************
    // ** checks
    //
    // everything below here is only for checking
@@ -319,31 +287,31 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
           $display("## return packet received by (x,y)=%x,%x",my_x_i,my_y_i);
      end
 
-   always_ff @(negedge clk_i)
-     if (~reset_i & pkt_unknown & cgni_v)
-       begin
-          $write("## UNKNOWN packet: %b PACKET_WIDTH=%d; (%m)  ",cgni_data,$bits(bsg_manycore_packet_s));
-          `write_bsg_manycore_packet_s(cgni_data);
-          $write("\n");
-	  $finish();
-       end
+//   always_ff @(negedge clk_i)
+//     if (~reset_i & pkt_unknown & cgni_v)
+//       begin
+//          $write("## UNKNOWN packet: %b PACKET_WIDTH=%d; (%m)  ",cgni_data,$bits(bsg_manycore_packet_s));
+//          `write_bsg_manycore_packet_s(cgni_data);
+//          $write("\n");
+//	  $finish();
+//       end
 
    if (debug_p)
      always_ff @(negedge clk_i)
        if (out_v_i)
          $display("## attempting remote store send of data %x, ready_i = %x (%m)",out_packet_i,out_ready_o);
 
-   if (debug_p)
-     always_ff @(negedge clk_i)
-       if (in_v_o & ~freeze_r)
-         $display("## received remote store request of data %x, addr %x, mask %b (%m)",
-                  in_data_o, in_addr_o, in_mask_o);
+//   if (debug_p)
+//     always_ff @(negedge clk_i)
+//       if (in_v_o & ~freeze_r)
+//         $display("## received remote store request of data %x, addr %x, mask %b (%m)",
+//                  in_data_o, in_addr_o, in_mask_o);
 
-   if (debug_p)
-     always_ff @(negedge clk_i)
-       if (cgni_v & ~freeze_r)
-         $display("## data %x avail on cgni (cgni_yumi=%x,in_v=%x, in_addr=%x, in_data=%x, in_yumi=%x) (%m)"
-                  ,cgni_data,cgni_yumi,in_v_o,in_addr_o, in_data_o, in_yumi_i);
+//   if (debug_p)
+//     always_ff @(negedge clk_i)
+//       if (cgni_v & ~freeze_r)
+//         $display("## data %x avail on cgni (cgni_yumi=%x,in_v=%x, in_addr=%x, in_data=%x, in_yumi=%x) (%m)"
+//                  ,cgni_data,cgni_yumi,in_v_o,in_addr_o, in_data_o, in_yumi_i);
 
    // this is not an error, but it is extremely surprising
    // and merits investigation

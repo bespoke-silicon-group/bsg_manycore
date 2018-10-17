@@ -26,6 +26,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                            , num_nets_lp     = 2
 
                            , hetero_type_p   = 0
+                           //do we run immediately after reset?
+                           , freeze_init_p  = 1'b1
+
                            , packet_width_lp                = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                            , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p)
                            , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width     (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -50,8 +53,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     , output logic freeze_o
     );
 
-   wire freeze_r;
-   wire reverse_arb_pr;
+   logic freeze_r;
    assign freeze_o = freeze_r;
 
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
@@ -63,8 +65,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic [data_width_p-1:0]           returned_data_r_lo  ;
    logic                              returned_v_r_lo     ;
 
-   logic [data_width_p-1:0]           returning_data;
-   logic                              returning_v   ;
+   logic [data_width_p-1:0]           load_returning_data, store_returning_data_r, returning_data;
+   logic                              load_returning_v, store_returning_v_r, returning_v;
 
    logic                         in_we_lo  ;
    logic [data_width_p-1:0]      in_data_lo;
@@ -112,8 +114,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
     ,.my_x_i
     ,.my_y_i
-    ,.freeze_r_o(freeze_r)
-    ,.reverse_arb_pr_o( reverse_arb_pr )
+    //,.freeze_r_o(freeze_r)
+    //,.reverse_arb_pr_o( reverse_arb_pr )
     );
 
    logic core_mem_v;
@@ -177,11 +179,11 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    `endif
    //////////////////////////////////////////////////////////
    //
-
-   wire non_imem_bits_set = |in_addr_lo[addr_width_p-1:imem_addr_width_lp];
+   wire is_config_op      = in_v_lo & in_addr_lo[addr_width_p-1] & in_we_lo;
+   wire non_imem_bits_set = | in_addr_lo[addr_width_p-1:imem_addr_width_lp];
 
    wire remote_store_imem_not_dmem = in_v_lo & ~non_imem_bits_set;
-   wire remote_access_dmem_not_imem = in_v_lo & non_imem_bits_set;
+   wire remote_access_dmem_not_imem = in_v_lo & non_imem_bits_set & (~is_config_op);
 
    // Logic detecting the falling edge of freeze_r signal
    logic freeze_r_r;
@@ -390,7 +392,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    // local mem yumi the data from the core
    assign   core_mem_yumi   = xbar_port_yumi_out[1];
    // local mem yumi the data from the network
-   assign   in_yumi_li      = xbar_port_yumi_out[0] | remote_store_imem_not_dmem;
+   assign   in_yumi_li      = xbar_port_yumi_out[0] | remote_store_imem_not_dmem | is_config_op ;
 
    //the local memory or network can consume the store data
    assign mem_to_core.yumi  = (xbar_port_yumi_out[1] | launching_out);
@@ -420,8 +422,10 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ) bnkd_xbar
     ( .clk_i    (clk_i)
      ,.reset_i  (reset_i)
-    //the reverse the priority for the dynamic scheme
-      ,.reverse_pr_i( reverse_arb_pr  )
+//    SHX: DEPRECATED FUNCTION
+//    the reverse the priority for the dynamic scheme
+//      ,.reverse_pr_i( reverse_arb_pr  )
+      ,.reverse_pr_i( 1'b0)
       ,.v_i     (xbar_port_v_in)
 
       ,.w_i     (xbar_port_we_in)
@@ -430,8 +434,54 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       ,.mask_i  (xbar_port_mask_in)
 
       // whether the crossbar accepts the input
-     ,.yumi_o  ( xbar_port_yumi_out                                     )
-     ,.v_o     ({ core_mem_rv    , returning_v})
-     ,.data_o  ({ core_mem_rdata , returning_data})
+     ,.yumi_o  ( xbar_port_yumi_out                    )
+     ,.v_o     ({ core_mem_rv    , load_returning_v}   )
+     ,.data_o  ({ core_mem_rdata , load_returning_data})
     );
+
+
+   // ----------------------------------------------------------------------------------------
+   // Handle the control registers
+   // ----------------------------------------------------------------------------------------
+
+   wire  is_freeze_addr = {1'b0, in_addr_lo[addr_width_p-2:0]} == addr_width_p'(0);
+
+   wire  freeze_op     = is_config_op & is_freeze_addr & in_data_lo[0] ;
+   wire  unfreeze_op   = is_config_op & is_freeze_addr & (~in_data_lo[0]);
+
+   always_ff @(posedge clk_i)
+     if (reset_i) freeze_r <= freeze_init_p;
+     else if (freeze_op | unfreeze_op) begin
+            // synopsys translate_off
+            $display("## freeze_r <= %x (%m)",pkt_freeze);
+            // synopsys translate_on
+            freeze_r <= pkt_freeze;
+     end
+   
+  // synopsys translate_off
+  always_ff@(negedge clk_i)
+        if ( is_config_op  & (~is_freeze_addr )) begin
+                $error(" Wrong Tile Configuation Address = %h", in_addr_lo );
+                $finish();
+        end
+
+   // synopsys translate_on
+   // ----------------------------------------------------------------------------------------
+   // Handle the returning data/credit back to the network
+   // ----------------------------------------------------------------------------------------
+   wire         store_yumi      = in_yumi_li & in_we_lo;
+   //delay the response for store for 1 cycle
+   always_ff@(posedge clk_i)    store_returning_v_r   <= store_yumi;
+   always_ff@(posedge clk_i)    store_returning_data_r<= in_data_lo;
+
+   assign       returning_v     = load_returning_v | store_returning_v_r;
+   assign       returning_data  = store_returning_v_r? store_returning_data_r : load_returning_data;
+
+  // synopsys translate_off
+  always_ff@(negedge clk_i)
+        if ( (store_returning_v_r & load_returning_v) == 1'b1 ) begin
+                $error(" Store returning and Load returning happens at the same time!" );
+                $finish();
+        end
+  // synopsys translate_on
 endmodule
