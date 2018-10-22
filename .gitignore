@@ -1,4 +1,5 @@
 *.vcd
+*.vdb/
 *.wlf
 testbenches/common/inputs/
 *.dump

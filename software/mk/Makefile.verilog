@@ -2,6 +2,7 @@
 #MANYCORE_PROC = VSCALE
 #BSG_FPU_OP       =0
 DVE=1
+COVERAGE=0
 TYPE_VEC="64'h00_00_00_00"
 #######################################
 #ifeq ($(MANYCORE_PROC),VANILLA)
@@ -47,6 +48,7 @@ VCS_DEFINES+= +define+bsg_tiles_Y=$(bsg_tiles_Y)
 VCS_DEFINES+= +vcs+loopreport+l000
 VCS_DEFINES+= +define+BSG_HETERO_TYPE_VEC=${TYPE_VEC}+
 
+
 ifeq ($(BSG_FPU_OP),1)
 VCS_DEFINES+= +define+bsg_FPU
 endif
@@ -58,6 +60,13 @@ endif
 ifeq ($(DVE),1)
 VCS_OP     +=  +vcs+vcdpluson -debug_access+all
 endif
+
+#########################################
+# VCS coverge options
+ifeq ($(COVERAGE),1)
+VCS_OP += -cm line+tgl
+endif
+
 ################################################
 #else
 #BSG-SIM-TOOL=vivado
