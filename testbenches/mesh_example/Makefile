@@ -7,7 +7,7 @@ CAD_DIR=$(abspath ../../../cad)
 
 ###########################################
 # SETUP THE TOOL PATHS
-include $(CAD_DIR)/common/mk/cadenv.mk
+# include $(CAD_DIR)/common/mk/cadenv.mk
 
 #############################################
 # SETUP THE INCLUDE PATH and SEARCH PATH
