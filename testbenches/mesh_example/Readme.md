@@ -1,3 +1,6 @@
+0. Setup VCS license and DIRs.
+        VCS_BIN : Points to the VCS executable dir.
+        VCS     : Points to the VCS executable file.
 1. mkdir manycore
 2. cd manycore
 3. git clone git@bitbucket.org:taylor-bsg/bsg_manycore.git
