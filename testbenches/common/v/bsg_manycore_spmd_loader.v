@@ -11,6 +11,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
  #( parameter mem_size_p      = -1 // size of mem to be loaded  (bytes) (?)
    ,parameter data_width_p    = 32
    ,parameter addr_width_p    = 30
+   ,parameter epa_addr_width_p= 16
    ,parameter tile_id_ptr_p   = -1
    ,parameter num_rows_p      = -1
    ,parameter num_cols_p      = -1
@@ -53,7 +54,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   logic         unfreezed_r;     // set if the cores are all unfreezed
   logic         arb_configed_r;
   localparam    arb_cfg_value = 0;
-  localparam    config_addr_bits = 1 << ( addr_width_p-1);
+  localparam    config_addr_bits = 1 << ( epa_addr_width_p-1);
 
   localparam    arb_cfg_addr  = addr_width_p'(4) | config_addr_bits;
   localparam    unfreeze_addr = addr_width_p'(0) | config_addr_bits;

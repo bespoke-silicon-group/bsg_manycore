@@ -1,92 +1,19 @@
 #ifndef _BSG_MANYCORE_H
 #define _BSG_MANYCORE_H
 
+#include "bsg_manycore_arch.h"
+
 typedef volatile int   *bsg_remote_int_ptr;
 typedef volatile unsigned char  *bsg_remote_uint8_ptr;
 typedef volatile unsigned short  *bsg_remote_uint16_ptr;
 typedef volatile void *bsg_remote_void_ptr;
 
-
-#ifndef bsg_tiles_X
-#error bsg_tiles_X must be defined
-#endif
-
-#ifndef bsg_tiles_Y
-#error bsg_tiles_Y must be defined
-#endif
-
-#if bsg_tiles_X == 1
-#define bsg_noc_xbits 1
-#elif bsg_tiles_X == 2
-#define bsg_noc_xbits 1
-#elif bsg_tiles_X == 3
-#define bsg_noc_xbits 2
-#elif bsg_tiles_X == 4
-#define bsg_noc_xbits 2
-#elif bsg_tiles_X == 5
-#define bsg_noc_xbits 3
-#elif bsg_tiles_X == 6
-#define bsg_noc_xbits 3
-#elif bsg_tiles_X == 7
-#define bsg_noc_xbits 3
-#elif bsg_tiles_X == 8
-#define bsg_noc_xbits 3
-#elif bsg_tiles_X == 9
-#define bsg_noc_xbits 4
-#elif bsg_tiles_X == 16
-#define bsg_noc_xbits 4
-#else
-#error Unsupported bsg_tiles_X
-#endif
-
-#if bsg_tiles_Y == 1
-#define bsg_noc_ybits 1
-#elif bsg_tiles_Y == 2
-#define bsg_noc_ybits 2
-#elif bsg_tiles_Y == 3
-#define bsg_noc_ybits 2
-#elif bsg_tiles_Y == 4
-#define bsg_noc_ybits 3
-#elif bsg_tiles_Y == 5
-#define bsg_noc_ybits 3
-#elif bsg_tiles_Y == 6
-#define bsg_noc_ybits 3
-#elif bsg_tiles_Y == 7
-#define bsg_noc_ybits 3
-#elif bsg_tiles_Y == 8
-#define bsg_noc_ybits 4
-#elif bsg_tiles_Y == 9
-#define bsg_noc_ybits 4
-#elif bsg_tiles_Y == 16
-#define bsg_noc_ybits 5
-#elif bsg_tiles_Y == 20
-#define bsg_noc_ybits 5
-#elif bsg_tiles_Y == 25
-#define bsg_noc_ybits 5
-#elif bsg_tiles_Y == 31
-#define bsg_noc_ybits 5
-#else
-#error Unsupported bsg_tiles_Y
-#endif
-
-
-
-// format of remote address is:
-// {1, y_offs, x_offs, addr }
-
-#define bsg_remote_addr_bits (31-bsg_noc_xbits-bsg_noc_ybits)
-#define bsg_remote_ptr(x,y,local_addr) ((bsg_remote_int_ptr) ( (1<<31)                                     \
-                                                               | ((y) << (31-(bsg_noc_ybits)))             \
-                                                               | ((x) << (31-bsg_noc_xbits-bsg_noc_ybits)) \
-                                                               | ((int) (local_addr))                      \
-                                                             )                                             \
-                                        )
-#define bsg_local_ptr( remote_addr)  (    (int) (remote_addr)                           \
-                                        & (   (1 << bsg_remote_addr_bits) - 1 )         \
-                                     )
-
 #define bsg_remote_store(x,y,local_addr,val) do { *(bsg_remote_ptr((x),(y),(local_addr))) = (int) (val); } while (0)
 #define bsg_remote_load(x,y,local_addr,val)  do { val = *(bsg_remote_ptr((x),(y),(local_addr))) ; } while (0)
+
+#define bsg_dram_store(dram_addr,val) do { *(bsg_dram_ptr((dram_addr))) = (int) (val); } while (0)
+#define bsg_dram_load(dram_addr,val)  do { val = *(bsg_dram_ptr((dram_addr))) ; } while (0)
+
 
 #define bsg_remote_store_uint8(x,y,local_addr,val)  do { *((bsg_remote_uint8_ptr)  (bsg_remote_ptr((x),(y),(local_addr)))) = (unsigned char) (val); } while (0)
 #define bsg_remote_store_uint16(x,y,local_addr,val) do { *((bsg_remote_uint16_ptr) (bsg_remote_ptr((x),(y),(local_addr)))) = (unsigned short) (val); } while (0)
@@ -94,7 +21,8 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_remote_control_store(x,y,local_addr,val) bsg_remote_store((x),(y), (1 << (bsg_remote_addr_bits-1))+(local_addr),(val))
 #define bsg_remote_unfreeze(x,y) bsg_remote_control_store((x),(y),0,0)
 #define bsg_remote_freeze(x,y)   bsg_remote_control_store((x),(y),0,1)
-#define bsg_remote_arb_config(x,y,value)   bsg_remote_control_store((x),(y),4,value)
+//deprecated
+//#define bsg_remote_arb_config(x,y,value)   bsg_remote_control_store((x),(y),4,value)
 
 // remote loads
 //#define bsg_remote_load(x,y,local_addr, val) ( val = *(bsg_remote_ptr((x),(y),(local_addr))) )
@@ -104,12 +32,13 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_remote_ptr_io_load(x,local_addr,val) do { (val) = *(bsg_remote_ptr_io((x),(local_addr))) ; } while (0)
 
 // see bsg_nonsynth_manycore_monitor for secret codes
-#define bsg_finish()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xDEAD0); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
+// For 18 bits remote address, we cannot mantain the 0xDEAD0 address.
+#define bsg_finish()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xEAD0); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
 
-#define bsg_finish_x(x)       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(x,0xDEAD0); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
-#define bsg_fail()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xDEAD8); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
-#define bsg_fail_x(x)       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(x,0xDEAD8); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
-#define bsg_print_time()   do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xDEAD4); *ptr = ((bsg_y << 16) + bsg_x); } while(0)
+#define bsg_finish_x(x)       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(x,0xEAD0); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
+#define bsg_fail()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xEAD8); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
+#define bsg_fail_x(x)       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(x,0xEAD8); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
+#define bsg_print_time()   do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(0,0xEAD4); *ptr = ((bsg_y << 16) + bsg_x); } while(0)
 
 #define bsg_id_to_x(id)    ((id) % bsg_tiles_X)
 #define bsg_id_to_y(id)    ((id) / bsg_tiles_X)

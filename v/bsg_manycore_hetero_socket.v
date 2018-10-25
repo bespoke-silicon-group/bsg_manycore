@@ -25,6 +25,9 @@
                           ,.y_cord_width_p(y_cord_width_p)      \
                           ,.data_width_p(data_width_p)          \
                           ,.addr_width_p(addr_width_p)          \
+                          ,.epa_addr_width_p(epa_addr_width_p)  \
+                          ,.dram_ch_addr_width_p ( dram_ch_addr_width_p )  \
+                          ,.dram_ch_start_col_p  ( dram_ch_start_col_p) \
                           ,.debug_p(debug_p)                    \
                           ,.bank_size_p(bank_size_p)            \
                           ,.num_banks_p(num_banks_p)            \
@@ -50,6 +53,9 @@ module bsg_manycore_hetero_socket #(x_cord_width_p      = "inv"
                                     , y_cord_width_p    = "inv"
                                     , data_width_p      = 32
                                     , addr_width_p      = "inv"
+                                    , epa_addr_width_p  = "inv"
+                                    , dram_ch_addr_width_p = "inv"
+                                    , dram_ch_start_col_p = 0
                                     , debug_p           = 0
                                     , bank_size_p       = "inv" // in words
 				    , imem_size_p       = "inv" // in words

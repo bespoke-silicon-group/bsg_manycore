@@ -8,6 +8,7 @@ module bsg_nonsynth_manycore_io_complex
     mem_size_p      = -1   // size of memory being loaded, in bytes
     ,max_cycles_p   = -1
     ,addr_width_p   = -1
+    ,epa_addr_width_p = -1
     ,data_width_p  = 32
     ,num_tiles_x_p = -1
     ,num_tiles_y_p = -1
@@ -72,6 +73,7 @@ module bsg_nonsynth_manycore_io_complex
         ,.load_cols_p   (load_cols_p)
         ,.data_width_p  (data_width_p)
         ,.addr_width_p  (addr_width_p)
+        ,.epa_addr_width_p (epa_addr_width_p)
         ,.tile_id_ptr_p (tile_id_ptr_p)
         ) spmd_loader
        ( .clk_i     (clk_i)

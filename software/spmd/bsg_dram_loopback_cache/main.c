@@ -11,10 +11,8 @@
 #include "bsg_mutex.h"
 
 #define VECTOR_LEN 8
-#define DRAM_Y_CORD 1
 #define CACHE_NUM_SET 256
 #define CACHE_NUM_WAY 2
-#define TAG_MEM_MASK 0x07ffc000
 
 int data_vect[2][VECTOR_LEN] = {
   {0, 1, 4, 9, 16, 25, 36, 49},
@@ -33,28 +31,30 @@ void test_store_stride(int id, int offset, int stride, int **data_vect)
     addr_vect[i] = offset + (i*stride);
   }
 
+  int x_coord_mask = id << 28;
+  
   // write data vector.
   for (int i = 0; i < VECTOR_LEN; i++)
   {
-    bsg_remote_store(id, DRAM_Y_CORD, addr_vect[i], data_vect[id][i]);
+    bsg_dram_store(x_coord_mask | addr_vect[i], data_vect[id][i]);
   }
 
   // write zero vectors for the same set but different tags,
   // so that the first vector is flushed and written to DRAM.
   for (int i = 0; i < VECTOR_LEN; i++)
   {
-    bsg_remote_store(id, DRAM_Y_CORD, addr_vect[i] | 0x1000000, 0xffffffff);
+    bsg_dram_store(x_coord_mask | addr_vect[i] | 0x1000000, 0xffffffff); 
   }
 
   for (int i = 0; i < VECTOR_LEN; i++)
   {
-    bsg_remote_store(id, DRAM_Y_CORD, addr_vect[i] | 0x2000000, 0xeeeeeeee);
+    bsg_dram_store(x_coord_mask | addr_vect[i] | 0x2000000, 0xeeeeeeee); 
   }
   
   int read_val;
   for (int i = VECTOR_LEN-1; i >= 0; i--)
   {
-    bsg_remote_load(id, DRAM_Y_CORD, addr_vect[i], read_val);
+    bsg_dram_load(x_coord_mask | addr_vect[i], read_val); 
 
     if (read_val != data_vect[id][i])
     {
@@ -72,9 +72,10 @@ int main()
   if (id < 2) 
   {
     // clear tag mem in cache.
+    int tag_addr_mask = (id << 28) | (1 << 27); 
     for (int i = 0; i < CACHE_NUM_SET*CACHE_NUM_WAY; i++) 
     {
-      bsg_remote_store(id, DRAM_Y_CORD, TAG_MEM_MASK + (i<<5), 0);
+      bsg_dram_store(tag_addr_mask | (i << 5), 0);
     }
 
     for (int i = 0; i < 8; i++) 

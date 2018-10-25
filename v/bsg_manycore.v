@@ -55,12 +55,40 @@ module bsg_manycore
 
    ,parameter addr_width_p      = "inv"
 
+   //the epa_addr_width_lp is the address bit used in C for remote access.
+   //the value should be set to EPA_ADDR_WIDTH-2, refer to bsg_manycore.h for EPA_ADDR_WDITH setting
+   ,parameter epa_addr_width_p =  "inv" 
+
+    //------------------------------------------------------
+    //  DRAM Address Definition
+    //------------------------------------------------------
+    // DRAMs are located at the south of mesh, and are divided
+    // into different channels depending on which column the dram 
+    // is attached to. 
+    //
+    // Should be less or equal to addr_width_p
+    //
+    //      |       |       |       |
+    //-----------------------------------
+    //      |       |       |       |
+    //      |       |       |       |
+    //     CH0     CH1     CH2     CH3
+    //
+    //  LOW_ADDR     ----->         HIGH_ADDR
+    //
+    // This parameter is used to decode which DRAM channel should be 
+    // send to.
+    // 32 bits = {1'b1, CH0, network address}
+    
+    //  26 = 32M WORDS for each channel
+   ,parameter dram_ch_addr_width_p = "inv"
+    //  Suppose the first channel is connected to column 0
+   ,parameter dram_ch_start_col_p  = 0
+
    ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
    ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
 
-
    // changing this parameter is untested
-
    ,parameter data_width_p      = 32
 
    ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
@@ -150,6 +178,9 @@ module bsg_manycore
                 .y_cord_width_p(y_cord_width_lp),
                 .data_width_p(data_width_p),
                 .addr_width_p(addr_width_p),
+                .epa_addr_width_p(epa_addr_width_p),
+                .dram_ch_addr_width_p( dram_ch_addr_width_p),
+                .dram_ch_start_col_p ( dram_ch_start_col_p ),
                 .stub_p({(r == num_tiles_y_p-1) ? (((stub_s_p>>c) & 1'b1) == 1) : 1'b0 /* s */
                         ,(r == 0)               ? (((stub_n_p>>c) & 1'b1) == 1) : 1'b0 /* n */
                         ,(c == num_tiles_x_p-1) ? (((stub_e_p>>r) & 1'b1) == 1) : 1'b0 /* e */

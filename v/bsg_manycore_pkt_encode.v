@@ -7,7 +7,13 @@ module bsg_manycore_pkt_encode
     , y_cord_width_p = -1
     , data_width_p   = -1
     , addr_width_p   = -1
+    , epa_addr_width_p = -1
+    , dram_ch_addr_width_p = -1
+    , dram_ch_start_col_p  = 0
+    , remote_addr_prefix_p = 2'b01
     , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , max_x_cord_width_lp = 6
+    , max_y_cord_width_lp = 6
     , debug_p=0
     )
    (
@@ -27,15 +33,18 @@ module bsg_manycore_pkt_encode
     ,output [packet_width_lp-1:0]           data_o
     );
 
-   `declare_bsg_manycore_addr_s(32,x_cord_width_p,y_cord_width_p);
+   `declare_bsg_manycore_addr_s(epa_addr_width_p, max_x_cord_width_lp, max_y_cord_width_lp);
+   `declare_bsg_manycore_dram_addr_s(dram_ch_addr_width_p);
 
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
-   bsg_manycore_packet_s pkt;
-   bsg_manycore_addr_s addr_decode;
+   bsg_manycore_packet_s        pkt;
+   bsg_manycore_addr_s          addr_decode;
+   bsg_manycore_dram_addr_s     dram_addr_decode;
 
-   assign addr_decode = addr_i;
-   assign data_o = pkt;
+   assign addr_decode           = addr_i;
+   assign dram_addr_decode      = addr_i;
+   assign data_o                = pkt;
 
    // memory map in special opcodes; fixme, can reclaim more address space by
    // checking more bits.
@@ -49,17 +58,22 @@ module bsg_manycore_pkt_encode
    // remote top bit of address, which is the special op code space.
    // low bits are automatically
    // The 'configure' operation is now encoded in the address
-   assign pkt.addr   = addr_width_p ' (addr_decode.addr[$size(addr_decode.addr)-1:0]);
+   assign pkt.addr   =  dram_addr_decode.is_dram_addr ? addr_width_p ' (dram_addr_decode.addr)
+                                                      : addr_width_p ' (addr_decode.addr[$size(addr_decode.addr)-1:0]);
 
 
    assign pkt.data       = data_i;
-   assign pkt.x_cord     = addr_decode.x_cord;
-   assign pkt.y_cord     = addr_decode.y_cord;
+   assign pkt.x_cord     = dram_addr_decode.is_dram_addr ? x_cord_width_p'(dram_addr_decode.x_cord + dram_ch_start_col_p)
+                                                         : addr_decode.x_cord;
+   assign pkt.y_cord     = dram_addr_decode.is_dram_addr ? {y_cord_width_p{1'b1}} //Set to Y_MAX
+                                                         : addr_decode.y_cord;
 
    assign pkt.src_x_cord = my_x_i;
    assign pkt.src_y_cord = my_y_i;
 
-   assign v_o = addr_decode.remote & v_i;
+   assign v_o = (   dram_addr_decode.is_dram_addr 
+                  |(addr_decode.remote == remote_addr_prefix_p)
+                ) & v_i;
 
    // synopsys translate_off
    if (debug_p)

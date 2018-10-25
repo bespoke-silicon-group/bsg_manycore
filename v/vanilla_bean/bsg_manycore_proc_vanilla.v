@@ -9,6 +9,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                            , y_cord_width_p = "inv"
                            , data_width_p   = 32
                            , addr_width_p   = -1
+                           , epa_addr_width_p = -1 
+                           , dram_ch_addr_width_p = -1
+                           , dram_ch_start_col_p = 0
                            , debug_p        = 0
                            , bank_size_p    = -1// in words
                            , num_banks_p    = "inv"
@@ -179,7 +182,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    `endif
    //////////////////////////////////////////////////////////
    //
-   wire is_config_op      = in_v_lo & in_addr_lo[addr_width_p-1] & in_we_lo;
+   wire is_config_op      = in_v_lo & in_addr_lo[epa_addr_width_p-1] & in_we_lo;
    wire non_imem_bits_set = | in_addr_lo[addr_width_p-1:imem_addr_width_lp];
 
    wire remote_store_imem_not_dmem = in_v_lo & ~non_imem_bits_set;
@@ -279,6 +282,10 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                              ,.y_cord_width_p(y_cord_width_p)
                              ,.data_width_p (data_width_p )
                              ,.addr_width_p (addr_width_p )
+                             ,.epa_addr_width_p( epa_addr_width_p)
+                             ,.dram_ch_addr_width_p ( dram_ch_addr_width_p)
+                             ,.dram_ch_start_col_p  ( dram_ch_start_col_p )
+                             ,.remote_addr_prefix_p( 2'b01  )
                              ) pkt_encode
      (.clk_i(clk_i)
 
@@ -326,10 +333,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
    // synopsys translate_on
 
-
-   wire [1:0]              xbar_port_v_in = {    core_mem_v & ~core_mem_addr[31]  // not a remote packet
-                                              ,  remote_access_dmem_not_imem
-                                              };
+   wire local_epa_request = core_mem_v & (~ out_request);// not a remote packet
+   wire [1:0]              xbar_port_v_in = { local_epa_request ,  remote_access_dmem_not_imem};
 
    localparam mem_width_lp    = $clog2(bank_size_p) + $clog2(num_banks_p);
 
@@ -444,7 +449,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    // Handle the control registers
    // ----------------------------------------------------------------------------------------
 
-   wire  is_freeze_addr = {1'b0, in_addr_lo[addr_width_p-2:0]} == addr_width_p'(0);
+   wire  is_freeze_addr = {1'b0, in_addr_lo[epa_addr_width_p-2:0]} == epa_addr_width_p'(0);
 
    wire  freeze_op     = is_config_op & is_freeze_addr & in_data_lo[0] ;
    wire  unfreeze_op   = is_config_op & is_freeze_addr & (~in_data_lo[0]);
