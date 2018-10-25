@@ -5,4 +5,5 @@ dve:
 	$(VCS_BIN)/dve -full64 -vpd vcdplus.vpd &
 
 
-
+urg:
+	$(VCS_BIN)/urg -full64 -report coverage/ -dir simv.vdb/ 

@@ -14,6 +14,18 @@ test_case_list+=bsg_remote_congestion
 #test_case_list+=bsg_barrier
 #test_case_list+=bsg_transpose
 
+include ./Makefile.include
+
+COVERAGE =
+###############################################
+# VCS Unified Coverage report Generator options
+VCS_COV_DBs = $(foreach testcase, $(test_case_list), $(testcase)/simv.vdb)
+URG_OPS     = -full64
+URG_OPS    += -report coverage/
+URG_OPS    += -format both  # report in both text and html
+URG_OPS    += -dir $(VCS_COV_DBs)  # merge all coverage dbs
+
+
 all: main.regress_test
 ##############################################
 #  regression test
@@ -21,8 +33,17 @@ all: main.regress_test
 	@for testcase in $(test_case_list) ; do \
 	echo "=====================================================================";\
 	echo "running testcase [ $$testcase ]                ";\
-	make -C ./$$testcase DVE=0  &> run.log;     			   \
+	make -C ./$$testcase DVE=0 COVERAGE=$(COVERAGE) &> run.log;     			   \
 	grep " FINISH \| I/O device \|^[Ee]rror"  run.log;    	   \
-	make -C ./$$testcase clean  &>/dev/null;     		   \
 	rm -rf run.log;											\
 	done;
+ifeq ($(COVERAGE),VCS)
+	$(URG) $(URG_OPS)
+endif
+	@for testcase in $(test_case_list) ; do \
+	make -C ./$$testcase clean  &>/dev/null;     		   \
+	done;
+
+
+clean:
+	rm -rf run.log coverage/
