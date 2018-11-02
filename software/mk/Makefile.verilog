@@ -33,7 +33,7 @@ VANILLA_SRC   = $(BSG_MANYCORE_DIR)/v/vanilla_bean
 
 ########################################
 # select the tools
-ifeq ($(shell /bin/domainname),B.B)
+#ifeq ($(shell /bin/domainname),B.B)
 include $(CAD_DIR)/common/mk/cadenv.mk
 
 BSG-SIM-TOOL=vcs
@@ -57,16 +57,16 @@ endif
 ifeq ($(DVE),1)
 VCS_OP     +=  +vcs+vcdpluson -debug_access+all
 endif
-###############################################
-else
-BSG-SIM-TOOL=vivado
-INC_OP=-i
-
-VLOG  = xvlog -sv ${BSG_FPU_OP}
-VELAB = xelab -debug typical ${BSG_FPU_OP} -s top_sim
-VSIM  = xsim --runall top_sim
-
-endif
+################################################
+#else
+#BSG-SIM-TOOL=vivado
+#INC_OP=-i
+#
+#VLOG  = xvlog -sv ${BSG_FPU_OP}
+#VELAB = xelab -debug typical ${BSG_FPU_OP} -s top_sim
+#VSIM  = xsim --runall top_sim
+#
+#endif
 
 $(warning $(BSG-SIM-TOOL))
 
