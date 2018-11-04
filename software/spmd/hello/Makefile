@@ -9,6 +9,7 @@ bsg_tiles_Y = 5
 #TYPE_VEC="64'h01_01_01_01"
 
 all: main.run
+OBJECT_FILES=main.o bsg_set_tile_x_y.o
 
 include ../Makefile.include
 
@@ -18,8 +19,8 @@ include ../Makefile.include
 #     be vanilla core 
 BSG_FPU_OP=0
 
-main.riscv:  main.o $(SPMD_COMMON_OBJECTS) ../common/crt.o
-	$(RISCV_LINK) $< -o $@ $(RISCV_LINK_OPTS)
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
 
 clean:
 	-rm -rf *.o *.jou *.log *.pb bsg_manycore_io_complex_rom.v main.riscv *.wdb main.bin main.hex
