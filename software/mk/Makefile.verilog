@@ -13,9 +13,6 @@ endif
 
 ########################################
 # Check the dirs
-ifeq ($(VSCALE_DIR),)
-$(error VSCALE_DIR must be defined)
-endif
 
 ifeq ($(VANILLA_DIR),)
 $(error VANILLA_DIR must be defined)
@@ -29,7 +26,6 @@ ifeq ($(BSG_MANYCORE_DIR),)
 $(error BSG_MANYCORE_DIR must be defined)
 endif
 
-VSCALE_SRC    = $(VSCALE_DIR)/src/main/verilog
 VANILLA_SRC   = $(BSG_MANYCORE_DIR)/v/vanilla_bean
 
 ########################################
@@ -121,39 +117,14 @@ LIST_FPU_SRCS       =
 endif
 ########### End of FPU SRC definition ######################
 
-LIST_VSCALE_HDRS+= $(VSCALE_SRC)/vscale_ctrl_constants.vh
-LIST_VSCALE_HDRS+= $(VSCALE_SRC)/rv32_opcodes.vh
-LIST_VSCALE_HDRS+= $(VSCALE_SRC)/vscale_alu_ops.vh
-LIST_VSCALE_HDRS+= $(VSCALE_SRC)/vscale_md_constants.vh
-LIST_VSCALE_HDRS+= $(VSCALE_SRC)/vscale_hasti_constants.vh
-LIST_VSCALE_HDRS+= $(VSCALE_SRC)/vscale_csr_addr_map.vh
-LIST_VSCALE_HDRS+= $(BSG_MANYCORE_DIR)/v/bsg_vscale_pkg.v
-
-
 LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_defines.v
 LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_noc_pkg.v
-
-LIST_VSCALE_INCS+= $(BSG_MANYCORE_DIR)/v/
 
 LIST_VANILLA_INCS =$(VANILLA_SRC)
 
 LIST_COMMON_INCS = $(BSG_MANYCORE_DIR)/v/
-LIST_COMMON_INCS+= $(VSCALE_SRC)
 LIST_COMMON_INCS+= $(BSG_IP_CORES_DIR)/bsg_noc
 LIST_COMMON_INCS+= $(BSG_IP_CORES_DIR)/bsg_misc
-
-LIST_VSCALE_SRCS = $(BSG_MANYCORE_DIR)/v/vscale/vscale_pipeline.v
-LIST_VSCALE_SRCS+= $(BSG_MANYCORE_DIR)/v/vscale/vscale_ctrl.v
-LIST_VSCALE_SRCS+= $(BSG_MANYCORE_DIR)/v/vscale/vscale_regfile.v
-LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_src_a_mux.v
-LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_src_b_mux.v
-LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_imm_gen.v
-LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_alu.v
-LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_csr_file.v
-LIST_VSCALE_SRCS+= $(VSCALE_SRC)/vscale_PC_mux.v
-LIST_COMMON_SRCS+= $(VSCALE_SRC)/vscale_mul_div.v
-LIST_VSCALE_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_vscale_core.v
-LIST_VSCALE_SRCS+= $(BSG_MANYCORE_DIR)/v/vscale/bsg_manycore_proc_vscale.v
 
 LIST_VANILLA_SRCS =
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/alu.v
@@ -238,28 +209,9 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_reset_gen.v
 ###################################################################################
 #   Generate the real filelist
 #
-#ifeq ($(MANYCORE_PROC),VANILLA)
-#DESIGN_HDRS = $(LIST_VANILLA_HDRS) $(LIST_COMMON_HDRS)
-#else
-#DESIGN_HDRS = $(LIST_VSCALE_HDRS) $(LIST_COMMON_HDRS)
-#endif
-
-DESIGN_HDRS = $(LIST_VSCALE_HDRS) $(LIST_VANILLA_HDRS) $(LIST_COMMON_HDRS)
-
-#ifeq ($(MANYCORE_PROC),VANILLA)
-#DESIGN_INCS = $(LIST_VANILLA_INCS) $(LIST_COMMON_INCS)
-#else
-#DESIGN_INCS = $(LIST_VSCALE_INCS) $(LIST_COMMON_INCS)
-#endif
-DESIGN_INCS = $(LIST_VSCALE_INCS) $(LIST_VANILLA_INCS) $(LIST_COMMON_INCS)
-
-
-#ifeq ($(MANYCORE_PROC),VANILLA)
-#DESIGN_SRCS = $(LIST_VANILLA_SRCS) $(LIST_COMMON_SRCS)
-#else
-#DESIGN_SRCS = $(LIST_VSCALE_SRCS) $(LIST_COMMON_SRCS)
-#endif
-DESIGN_SRCS = $(LIST_VSCALE_SRCS) $(LIST_VANILLA_SRCS) $(LIST_COMMON_SRCS)
+DESIGN_HDRS = $(LIST_VANILLA_HDRS) $(LIST_COMMON_HDRS)
+DESIGN_INCS = $(LIST_VANILLA_INCS) $(LIST_COMMON_INCS)
+DESIGN_SRCS = $(LIST_VANILLA_SRCS) $(LIST_COMMON_SRCS)
 
 TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/basic/test_bsg_manycore.v
 
@@ -293,14 +245,6 @@ endif
 	@if [ ! -f $(HARDFLOAT_VSRC) ]; then \
 		$(call bsg_ucb_hardfloat_gen)  \
 	fi
-
-%.vscale_src:
-	@if [ ! -f $(VSCALE_SRC)/vscale_mul_div.v ] ; then\
-		echo -e "========= Checking out vscale source =============\n"; \
-		git clone https://github.com/ucb-bar/vscale.git  $(BSG_MANYCORE_DIR)/imports/vscale; \
-		echo -e "==================================================\n"; \
-	fi
-
 
 ################################################
 # Generate the hardfloat files.

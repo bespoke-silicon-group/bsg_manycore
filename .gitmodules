@@ -1,3 +1,0 @@
-[submodule "imports/vscale"]
-	path = imports/vscale
-	url = git://github.com/ucb-bar/vscale.git
