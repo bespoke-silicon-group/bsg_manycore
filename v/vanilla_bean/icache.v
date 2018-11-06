@@ -3,29 +3,33 @@
 // 05/11/2018, shawnless.xie@gmail.com
 //====================================================================
 // Instruction cache for manycore. 
+
+`include "parameters.v"
+`include "definitions.v"
 module icache #(parameter 
-                          tag_width_p         = -1, 
-                          icache_addr_width_p = -1,
+                          icache_tag_width_p     = -1, 
+                          icache_addr_width_p    = -1,
                           //word address
-                          pc_width_lp         = tag_width_p + icache_format_width_lp, 
-                          icache_format_width_lp = `icache_format_width( tag_width_p )
+                          pc_width_lp            = icache_tag_width_p + icache_format_width_lp, 
+                          icache_format_width_lp = `icache_format_width( icache_tag_width_p )
                )
                (
-                input                             clk_i
-               ,input                             reset_i
+                input                              clk_i
+               ,input                              reset_i
 
-               ,input                             icache_cen_i
-               ,input                             icache_w_en_i
-               ,input [icache_addr_width_p-1:0]   icache_w_addr_i
-               ,input [icache_format_width_lp-1:0]icache_w_data_i
-               ,output[icache_format_width_lp-1:0]icache_out_o 
+               ,input                              icache_cen_i
+               ,input                              icache_w_en_i
+               ,input [icache_addr_width_p-1:0]    icache_w_addr_i
+               ,input [icache_tag_width_p -1:0]    icache_w_tag_i
+               ,input [RV32_instr_width_gp-1:0]    icache_w_instr_i
+               ,output[RV32_instr_width_gp-1:0]    icache_r_instr_o 
 
-               ,input [pc_width_lp-1:0]           pc_i
-               ,output [pc_width_lp-1:0]          jump_addr_o
+               ,input [pc_width_lp-1:0]            pc_i
+               ,output [pc_width_lp-1:0]           jump_addr_o
                );
 
   //the struct fo be written into the icache
-  `declare_icache_format_s( tag_width_p );
+  `declare_icache_format_s( icache_tag_width_p );
   icache_format_s       icache_w_data_s, icache_r_data_s;
 
   //the address of the icache entry
@@ -38,11 +42,9 @@ module icache #(parameter
   //
   //  The width of the adder is defined by the Imm width +1.
   //------------------------------------------------------------------
-  icache_format_s w_data_cast;
   instruction_s   w_instr;
 
-  assign w_data_cast  = icache_w_data_i;
-  assign w_instr      = w_data_cast.instr;
+  assign w_instr      = icache_w_instr_i;
 
   wire  write_branch_instr = ( w_instr.op    ==? `RV32_BRANCH );
   wire  write_jal_instr    = ( w_instr       ==? `RV32_JAL    );
@@ -77,7 +79,7 @@ module icache #(parameter
   
   assign icache_w_data_s = '{lower_sign:       imm_sign         ,
                              lower_cout:       pc_lower_cout    ,
-                             tag       :       w_data_cast.tag  ,
+                             tag       :       icache_w_tag_i  ,
                              instr     :       injected_instr
                             }
                              
@@ -98,7 +100,7 @@ module icache #(parameter
 
    logic [pc_width_lp-1:0]  pc_r;
 
-   always_ff@(posedge clk_i) if (icache_cen_i) pc_r <= pc_i;
+   always_ff@(posedge clk_i) if (icache_cen_i & ~(icache_w_en_i)) pc_r <= pc_i;
   //------------------------------------------------------------------
   // merge the PC lower part and high part
   localparam branch_pc_high_width_lp = pc_width_lp - RV32_Bimm_width_gp;
@@ -112,7 +114,7 @@ module icache #(parameter
   wire [jal_pc_high_width_lp-1:   0]  jal_pc_high       = pc_r[ 0+: jal_pc_high_width_lp   ];
   wire [jal_pc_high_width_lp-1:   0]  jal_pc_high_p1    = jal_pc_high + 1'b1;
   wire [jal_pc_high_width_lp-1:   0]  jal_pc_high_n1    = jal_pc_high +  'b1;
-  wire [jal_pc_high_width_lp-1:   0]  jal_pc_high_out
+  wire [jal_pc_high_width_lp-1:   0]  jal_pc_high_out ;
 
   //   pc_lower_sign    pc_lower_cout   pc_high-1       pc_high      pc_high+1
   //        0                 0                             1                   
@@ -146,7 +148,7 @@ module icache #(parameter
   wire [pc_width_lp+1:0] branch_pc = {branch_pc_high_out, `RV32_Bimm_13extract(icache_r_data_s.instr) };
   //------------------------------------------------------------------
   // assign outputs.
-  assign icache_out_o = icache_r_data_s;
-  assign jump_addr_o  = is_jal_instr ? jal_pc[0+:pc_width_lp] : branch_pc[0+:pc_width_lp];
+  assign icache_r_instr_o = icache_r_data_s.instr;
+  assign jump_addr_o      = is_jal_instr ? jal_pc[0+:pc_width_lp] : branch_pc[0+:pc_width_lp];
   
 endmodule

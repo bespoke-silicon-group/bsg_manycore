@@ -16,6 +16,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                            , bank_size_p    = -1// in words
                            , num_banks_p    = "inv"
 
+                           , icache_tag_width_p = -1
                            , imem_size_p        = bank_size_p // in words
                            , imem_addr_width_lp = $clog2(imem_size_p)
                            // this credit counter is more for memory fences
@@ -204,7 +205,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    mem_out_s                mem_to_core;
    //////////////////////////////////////
    hobbit #
-     ( .imem_addr_width_p(imem_addr_width_lp)
+     (
+      ,.icache_tag_width_p (icache_tag_width_p) 
+      ,.icache_addr_width_p(imem_addr_width_lp)
       ,.gw_ID_p          (0)
       ,.ring_ID_p        (0)
       ,.x_cord_width_p   (x_cord_width_p)

@@ -12,14 +12,16 @@
  *  5 stage pipeline implementation of the vanilla core ISA.
  */
 module hobbit #(parameter 
-                          tag_width_p       = -1, 
-                          imem_addr_width_p = -1,
+                          icache_tag_width_p  = -1, 
+                          icache_addr_width_p = -1,
                           gw_ID_p           = -1,
                           ring_ID_p         = -1,
                           x_cord_width_p    = -1,
                           y_cord_width_p    = -1,
-                          debug_p           = 0)
-               (
+                          debug_p           = 0
+                          pc_width_lp            = icache_tag_width_p + icache_format_width_lp, 
+                          icache_format_width_lp = `icache_format_width( icache_tag_width_p )
+               )(
                 input                             clk
                ,input                             reset
 
@@ -42,10 +44,6 @@ module hobbit #(parameter
 
 //localparam trace_lp = 1'b1;
    localparam trace_lp = 1'b0;
-
-//the imem size constraints, which are limited by the instruction encoding space
-localparam   imem_addr_width_limit_lp  = 12;
-localparam   imem_addr_width_margin_lp = imem_addr_width_limit_lp - imem_addr_width_p;
 
 // position in recoded instruction memory of prediction bit
 // for branches. normally this would be bit 31 in RISCV ISA (branch ofs sign bit)
@@ -108,7 +106,7 @@ logic stall_fence;
 logic                               is_load_buffer_valid;
 logic [RV32_reg_data_width_gp-1:0]  load_buffer_data;
 
-//the memory valid signal may come from memory of the buffer register
+//the memory valid signal may come from memory or the buffer register
 logic                               data_mem_valid;
 
 // Decoded control signals logic
@@ -153,7 +151,7 @@ wire depend_stall      = (id_exe_rs1_match | id_exe_rs2_match)
 //+----------------------------------------------
 // ALU logic
 logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, basic_comp_result, alu_result;
-logic [imem_addr_width_p-1:0]      jalr_addr;
+logic [pc_width_lp-1:0]            jalr_addr;
 logic                              jump_now;
 
 logic [RV32_reg_data_width_gp-1:0] mem_addr_send;
@@ -250,12 +248,12 @@ wire flush = (branch_mispredict | jalr_mispredict);
 //+----------------------------------------------
 
 // Program counter logic
-logic [imem_addr_width_p-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
-logic                              pc_wen, pc_wen_r, imem_cen;
+logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
+logic                   pc_wen, pc_wen_r, icache_cen;
 
 // Instruction memory logic
-logic [imem_addr_width_p-1:0] imem_addr;
-instruction_s                 imem_out, instruction, instruction_r;
+logic [icache_addr_width_p-1:0] icache_addr;
+instruction_s                   icache_r_instr_lo, instruction, instruction_r;
 
 // PC write enable. This stops the CPU updating the PC
 `ifdef bsg_FPU
@@ -266,35 +264,22 @@ assign pc_wen = net_pc_write_cmd_idle | (~(stall | depend_stall));
 
 // Next PC under normal circumstances
 assign pc_plus4 = pc_r + 1'b1;
-// Extract byte address
-wire  [RV32_Bimm_width_gp:0] BImm_extract =`RV32_Bimm_13extract(instruction);
-wire  [RV32_Jimm_width_gp:0] JImm_extract =`RV32_Jimm_21extract(instruction);
 
-//TODO
-assign pc_jump_addr      = decode.is_branch_op
-                         ? BImm_extract[0+:imem_addr_width_p]
-                         : JImm_extract[0+:imem_addr_width_p];
 
 // Determine what the next PC should be
 always_comb
 begin
-    // Update the JALR prediction register
-    if (exe.decode.is_jump_op)
-        jalr_prediction_n = exe.pc_plus4;
-    else
-        jalr_prediction_n = jalr_prediction_r;
-
     // Network setting PC (highest priority)
     if (net_pc_write_cmd_idle)
-        pc_n = net_packet_r.header.addr[2+:imem_addr_width_p];
+        pc_n = net_packet_r.header.addr[2+:icache_addr_width_p];
 
     // Fixing a branch misprediction (or single cycle branch will
     // follow a branch under prediction logic)
     else if (branch_mispredict)
         if (branch_under_predict)
-            pc_n = exe.pc_jump_addr[2+:imem_addr_width_p];
+            pc_n = exe.pc_jump_addr[2+:icache_addr_width_p];
         else
-            pc_n = exe.pc_plus4[2+:imem_addr_width_p];
+            pc_n = exe.pc_plus4[2+:icache_addr_width_p];
 
     // Fixing a JALR misprediction (or a signal cycle JALR instruction)
     else if (jalr_mispredict)
@@ -321,89 +306,40 @@ end
 
 
 // Selection between network and core for instruction address
-assign imem_addr = (net_imem_write_cmd)
-                   ? net_packet_r.header.addr[2+:imem_addr_width_p]
+assign icache_addr = (net_imem_write_cmd)
+                   ? net_packet_r.header.addr[2+:icache_addr_width_p]
                    : pc_n;
 
 // Instruction memory chip enable signal
 `ifdef bsg_FPU
-assign imem_cen = (~( stall | fpi_inter.fam_depend_stall | depend_stall ))
-                | (net_imem_write_cmd | net_pc_write_cmd_idle);
+assign icache_cen = (~( stall | fpi_inter.fam_depend_stall | depend_stall ))
+                    | (net_imem_write_cmd | net_pc_write_cmd_idle);
 `else
-assign imem_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_write_cmd_idle);
+assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_write_cmd_idle);
 `endif
-//Pre-calculate the jump and branch address.
-//As imem is only 2K words in this design ,the jump and branch address can be
-//encoded entirly in the imm field of the instruction.
-//The address is encoded with WORD address
-//synopsys translate_off
-initial begin
-assert( imem_addr_width_p <= imem_addr_width_limit_lp )
-else $error("the imem_addr_width is too large");
-end
-//synopsys translate_on
 
-instruction_s  instr_cast;
-assign instr_cast  = net_packet_r.data;
+`declare_icache_format_s( icache_tag_width_p );
+icache_format_s       icache_r_data_s;
 
-///////////////////////////////////////////////////////////////////
-//
-//  Pre-compute the lower part of the jump address for JAL and BRANCH
-//  instruction
-//
-//  The width of the adder is defined by the Imm width +1.
-//////////////////////////////////////////////////////////////////
-wire  write_branch_instr = ( instr_cast.op    ==? `RV32_BRANCH );
-wire  write_jal_instr    = ( instr_cast       ==? `RV32_JAL    );
+icache #(
+         .icache_tag_width_p  ( icache_tag_width_p)
+        ,.icache_addr_width_p ( icache_addr_width_p)
+         //word address
+        ) icache_0
+       (
+        .clk_i
+       ,.reset_i
 
-wire  [RV32_Bimm_width_gp:0] branch_imm_val     = `RV32_Bimm_13extract(net_packet_r.data);
-wire  [RV32_Bimm_width_gp:0] branch_pc_val      = net_packet_r.header.addr[0+:RV32_Bimm_width_gp]);
+       ,.icache_cen_i           (icache_cen             )
+       ,.icache_w_en_i          (net_imem_write_cmd     )
+       ,.icache_w_addr_i        (icache_addr            )
+       ,.icache_w_tag_i         (icache_tag_width_p'(0) )
+       ,.icache_w_instr_i       (net_packet_r.data      )
+       ,.icache_r_instr_o       (icache_r_instr_lo      )
 
-wire  [RV32_Jimm_width_gp:0] jal_imm_val        =`RV32_Jimm_21extract(net_packet_r.data);
-wire  [RV32_Jimm_width_gp:0] jal_pc_val         = net_packet_r.header.addr[0+:RV32_Jimm_width_gp]);
-
-wire  [RV32_Bimm_width_gp:0] branch_pc_lower_res;
-wire  [RV32_Jimm_width_gp:0] jal_pc_lower_res;
-wire  branch_pc_cout, jal_pc_lower_cout, BImm_sign, JImm_sign;
-
-{branch_pc_out, branch_pc_lower_res} = {1'b0, branch_imm_val} + {1'b0, branch_pc_val};
-{jal_pc_out,    jal_pc_lower_res   } = {1'b0, jal_imm_val}    + {1'b0, jal_pc_val   };
-
-wire  write_branch_instr = ( instr_cast.op    ==? `RV32_BRANCH );
-
-wire [imem_addr_width_p-1:0] inject_pc_rel = write_branch_instr
-              ? $signed(BImm_sign_ext[2+:imem_addr_width_p])
-              : $signed(JImm_sign_ext[2+:imem_addr_width_p]);
-
-//The computed address is WORD address
-wire  [imem_addr_width_p-1:0] inject_pc_value  =
-             $signed(net_packet_r.header.addr[2+:imem_addr_width_p])
-            +$signed(inject_pc_rel);
-
-//index starting from 1, for consistent with the instruction coding.
-wire [imem_addr_width_limit_lp:1] inject_addr =
-                             { {imem_addr_width_margin_lp{1'b0}}, inject_pc_value};
-//Inject the WORD address
-wire [RV32_instr_width_gp-1:0] imem_w_data =
-        write_branch_instr ? `RV32_Bimm_12inject1( net_packet_r.data, inject_addr)
-                           :  write_jal_instr    ? `RV32_Jimm_12inject1( net_packet_r.data, inject_addr)
-                                                 : net_packet_r.data;
-// RISC-V edit: reserved bits in network packet header
-//              used as mask input
-
-  bsg_mem_1rw_sync #
-    ( .width_p (32)
-     ,.els_p   (2**imem_addr_width_p)
-    ) imem_0
-    ( .clk_i  (clk)
-     ,.reset_i(reset)
-     ,.v_i    (imem_cen)
-//     ,.w_i    (net_imem_write_cmd & net_packet_r.header.mask[i])
-     ,.w_i    (net_imem_write_cmd)
-     ,.addr_i (imem_addr)
-     ,.data_i (imem_w_data)
-     ,.data_o (imem_out)
-    );
+       ,.pc_i                   (pc_n                   )
+       ,.jump_addr_o            (pc_jump_addr           )
+       );
 
    // synopsys translate_off
    logic reset_r;
@@ -418,7 +354,7 @@ wire [RV32_instr_width_gp-1:0] imem_w_data =
 
 // Since imem has one cycle delay and we send next cycle's address, pc_n,
 // if the PC is not written, the instruction must not change.
-assign instruction = (pc_wen_r) ? imem_out : instruction_r;
+assign instruction = (pc_wen_r) ? icache_r_instr_lo: instruction_r;
 
 //+----------------------------------------------
 //|
@@ -567,7 +503,7 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
           );
 
 // Instantiate the ALU
-alu #(.imem_addr_width_p(imem_addr_width_p) )
+alu #(.icache_addr_width_p(icache_addr_width_p) )
    alu_0 (
     .rs1_i      (   rs1_to_alu          )
    ,.rs2_i      (   rs2_to_alu          )
@@ -638,6 +574,10 @@ begin
     end
 end
 
+    // Update the JALR prediction register
+   assign jalr_prediction_n = exe.decode.is_jump_op ? exe.pc_plus4
+                                                    : jalr_prediction_r;
+
    bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_r_reg
      ( .clk_i(clk)
       ,.reset_i(reset)
@@ -667,7 +607,7 @@ end
       ,.data_o(instruction_r)
       );
 
-   bsg_dff_reset_en #(.width_p(imem_addr_width_p),.harden_p(1)) pc_r_reg
+   bsg_dff_reset_en #(.width_p(icache_addr_width_p),.harden_p(1)) pc_r_reg
      ( .clk_i (clk)
       ,.reset_i(reset)
       ,.en_i   (pc_wen)
