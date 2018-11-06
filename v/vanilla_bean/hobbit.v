@@ -11,7 +11,9 @@
  *
  *  5 stage pipeline implementation of the vanilla core ISA.
  */
-module hobbit #(parameter imem_addr_width_p = -1,
+module hobbit #(parameter 
+                          tag_width_p       = -1, 
+                          imem_addr_width_p = -1,
                           gw_ID_p           = -1,
                           ring_ID_p         = -1,
                           x_cord_width_p    = -1,
@@ -264,10 +266,11 @@ assign pc_wen = net_pc_write_cmd_idle | (~(stall | depend_stall));
 
 // Next PC under normal circumstances
 assign pc_plus4 = pc_r + 1'b1;
-// Extract the WORD address,
-wire  [imem_addr_width_limit_lp-1:0] BImm_extract =`RV32_Bimm_12extract(instruction);
-wire  [imem_addr_width_limit_lp-1:0] JImm_extract =`RV32_Jimm_12extract(instruction);
+// Extract byte address
+wire  [RV32_Bimm_width_gp:0] BImm_extract =`RV32_Bimm_13extract(instruction);
+wire  [RV32_Jimm_width_gp:0] JImm_extract =`RV32_Jimm_21extract(instruction);
 
+//TODO
 assign pc_jump_addr      = decode.is_branch_op
                          ? BImm_extract[0+:imem_addr_width_p]
                          : JImm_extract[0+:imem_addr_width_p];
@@ -340,14 +343,33 @@ else $error("the imem_addr_width is too large");
 end
 //synopsys translate_on
 
-wire  [RV32_instr_width_gp-1:0] BImm_sign_ext =`RV32_signext_Bimm(net_packet_r.data);
-wire  [RV32_instr_width_gp-1:0] JImm_sign_ext =`RV32_signext_Jimm(net_packet_r.data);
-
 instruction_s  instr_cast;
 assign instr_cast  = net_packet_r.data;
 
+///////////////////////////////////////////////////////////////////
+//
+//  Pre-compute the lower part of the jump address for JAL and BRANCH
+//  instruction
+//
+//  The width of the adder is defined by the Imm width +1.
+//////////////////////////////////////////////////////////////////
 wire  write_branch_instr = ( instr_cast.op    ==? `RV32_BRANCH );
 wire  write_jal_instr    = ( instr_cast       ==? `RV32_JAL    );
+
+wire  [RV32_Bimm_width_gp:0] branch_imm_val     = `RV32_Bimm_13extract(net_packet_r.data);
+wire  [RV32_Bimm_width_gp:0] branch_pc_val      = net_packet_r.header.addr[0+:RV32_Bimm_width_gp]);
+
+wire  [RV32_Jimm_width_gp:0] jal_imm_val        =`RV32_Jimm_21extract(net_packet_r.data);
+wire  [RV32_Jimm_width_gp:0] jal_pc_val         = net_packet_r.header.addr[0+:RV32_Jimm_width_gp]);
+
+wire  [RV32_Bimm_width_gp:0] branch_pc_lower_res;
+wire  [RV32_Jimm_width_gp:0] jal_pc_lower_res;
+wire  branch_pc_cout, jal_pc_lower_cout, BImm_sign, JImm_sign;
+
+{branch_pc_out, branch_pc_lower_res} = {1'b0, branch_imm_val} + {1'b0, branch_pc_val};
+{jal_pc_out,    jal_pc_lower_res   } = {1'b0, jal_imm_val}    + {1'b0, jal_pc_val   };
+
+wire  write_branch_instr = ( instr_cast.op    ==? `RV32_BRANCH );
 
 wire [imem_addr_width_p-1:0] inject_pc_rel = write_branch_instr
               ? $signed(BImm_sign_ext[2+:imem_addr_width_p])

@@ -145,8 +145,10 @@
                                           ``value``[4:1],``value``[11],``instr``[6:1],``instr``[31]}
 `define RV32_Jimm_12inject1(instr,value) {1'b0, ``value``[10:1], ``value``[11], 7'b0,``value``[12], ``instr``[11:0]}
 
-`define RV32_Bimm_12extract(instr) {``instr``[31], ``instr``[7], ``instr``[30:25], ``instr``[11:8]};
-`define RV32_Jimm_12extract(instr) {``instr``[12], ``instr``[20],``instr``[30:21] };
+// Both JAL and BRANCH use 2-byte address, we need to pad 1'b0 at MSB to get
+// the real byte address
+`define RV32_Bimm_13extract(instr) {``instr``[31], ``instr``[7], ``instr``[30:25], ``instr``[11:8], 1'b0}
+`define RV32_Jimm_21extract(instr) {``instr``[31], ``instr``[19:12],``instr``[20],``instr``[30:21], 1'b0}
 
 localparam RV32_instr_width_gp    = 32;
 localparam RV32_reg_data_width_gp = 32;
