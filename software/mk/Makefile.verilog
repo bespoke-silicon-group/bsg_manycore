@@ -31,7 +31,7 @@ VANILLA_SRC   = $(BSG_MANYCORE_DIR)/v/vanilla_bean
 ########################################
 # select the tools
 #ifeq ($(shell /bin/domainname),B.B)
-include $(CAD_DIR)/common/mk/cadenv.mk
+include $(CAD_DIR)/cadenv.mk
 
 BSG-SIM-TOOL=vcs
 INC_OP		=+incdir+

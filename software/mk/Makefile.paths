@@ -2,5 +2,5 @@ VANILLA_DIR = $(BSG_MANYCORE_DIR)/imports/vanilla-bean
 BSG_IP_CORES_DIR = $(BSG_MANYCORE_DIR)/../bsg_ip_cores
 BERKELEY_HARDFLOAT_DIR = $(BSG_MANYCORE_DIR)/../berkeley-hardfloat
 RISCV_BIN_DIR = $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install/bin
-CAD_DIR = $(BSG_MANYCORE_DIR)/../cad
+CAD_DIR = $(BSG_MANYCORE_DIR)/../bsg_cadenv
 
