@@ -23,7 +23,7 @@
     bsg_asm_remote_store(x,bsg_tiles_Y,0xEAD0,0)
 
 // fail in IO #x
-#define bsg_asm_fail(x) \
-    bsg_asm_remote_store(x,bsg_tiles_Y,0xEAD8,0)
+#define bsg_asm_fail(x, value) \
+    bsg_asm_remote_store(x,bsg_tiles_Y,0xEAD8,value)
 
 #endif
