@@ -35,6 +35,7 @@ module test_bsg_manycore;
    localparam tile_id_ptr_lp  = -1;
    localparam mem_size_lp     = `MEM_SIZE;  // actually the size of the file being loaded, in bytes
    localparam imem_size_lp    = `IMEM_SIZE;
+   localparam icache_tag_width_lp= 12;      // 16MB PC address 
    localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
    localparam num_banks_lp    = `BANK_NUM;
    localparam data_width_lp   = 32;
@@ -162,6 +163,7 @@ module test_bsg_manycore;
     (
      .bank_size_p  (bank_size_lp)
      ,.imem_size_p (imem_size_lp)
+     ,.icache_tag_width_p(icache_tag_width_lp)
      ,.num_banks_p (num_banks_lp)
      ,.data_width_p (data_width_lp)
      ,.addr_width_p (addr_width_lp)

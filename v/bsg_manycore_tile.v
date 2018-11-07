@@ -11,6 +11,7 @@ module bsg_manycore_tile
   parameter bank_size_p = -1,
   parameter num_banks_p = "inv",
   parameter imem_size_p = bank_size_p,
+  parameter icache_tag_width_p = -1, 
 
   parameter x_cord_width_p = -1,
   parameter y_cord_width_p = -1,
@@ -87,6 +88,7 @@ module bsg_manycore_tile
       .debug_p(debug_p),
       .bank_size_p(bank_size_p),
       .imem_size_p(imem_size_p),
+      .icache_tag_width_p( icache_tag_width_p ),
       .num_banks_p(num_banks_p),
       .data_width_p(data_width_p),
       .addr_width_p(addr_width_p),

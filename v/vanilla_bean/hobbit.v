@@ -11,15 +11,19 @@
  *
  *  5 stage pipeline implementation of the vanilla core ISA.
  */
-module hobbit #(parameter imem_addr_width_p = -1,
+module hobbit #(parameter 
+                          icache_tag_width_p  = -1, 
+                          icache_addr_width_p = -1,
                           gw_ID_p           = -1,
                           ring_ID_p         = -1,
                           x_cord_width_p    = -1,
                           y_cord_width_p    = -1,
-                          debug_p           = 0)
-               (
-                input                             clk
-               ,input                             reset
+                          debug_p           = 0 ,
+                          pc_width_lp            = icache_tag_width_p + icache_addr_width_p, 
+                          icache_format_width_lp = `icache_format_width( icache_tag_width_p )
+               )(
+                input                             clk_i
+               ,input                             reset_i
 
 `ifdef bsg_FPU
                ,fpi_alu_inter.alu_side            fpi_inter
@@ -40,10 +44,6 @@ module hobbit #(parameter imem_addr_width_p = -1,
 
 //localparam trace_lp = 1'b1;
    localparam trace_lp = 1'b0;
-
-//the imem size constraints, which are limited by the instruction encoding space
-localparam   imem_addr_width_limit_lp  = 12;
-localparam   imem_addr_width_margin_lp = imem_addr_width_limit_lp - imem_addr_width_p;
 
 // position in recoded instruction memory of prediction bit
 // for branches. normally this would be bit 31 in RISCV ISA (branch ofs sign bit)
@@ -106,7 +106,7 @@ logic stall_fence;
 logic                               is_load_buffer_valid;
 logic [RV32_reg_data_width_gp-1:0]  load_buffer_data;
 
-//the memory valid signal may come from memory of the buffer register
+//the memory valid signal may come from memory or the buffer register
 logic                               data_mem_valid;
 
 // Decoded control signals logic
@@ -151,7 +151,7 @@ wire depend_stall      = (id_exe_rs1_match | id_exe_rs2_match)
 //+----------------------------------------------
 // ALU logic
 logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, basic_comp_result, alu_result;
-logic [imem_addr_width_p-1:0]      jalr_addr;
+logic [pc_width_lp-1:0]            jalr_addr;
 logic                              jump_now;
 
 logic [RV32_reg_data_width_gp-1:0] mem_addr_send;
@@ -248,12 +248,11 @@ wire flush = (branch_mispredict | jalr_mispredict);
 //+----------------------------------------------
 
 // Program counter logic
-logic [imem_addr_width_p-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
-logic                              pc_wen, pc_wen_r, imem_cen;
+logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr;
+logic                   pc_wen, pc_wen_r, icache_cen;
 
 // Instruction memory logic
-logic [imem_addr_width_p-1:0] imem_addr;
-instruction_s                 imem_out, instruction, instruction_r;
+instruction_s                   icache_r_instr_lo, instruction, instruction_r;
 
 // PC write enable. This stops the CPU updating the PC
 `ifdef bsg_FPU
@@ -264,34 +263,22 @@ assign pc_wen = net_pc_write_cmd_idle | (~(stall | depend_stall));
 
 // Next PC under normal circumstances
 assign pc_plus4 = pc_r + 1'b1;
-// Extract the WORD address,
-wire  [imem_addr_width_limit_lp-1:0] BImm_extract =`RV32_Bimm_12extract(instruction);
-wire  [imem_addr_width_limit_lp-1:0] JImm_extract =`RV32_Jimm_12extract(instruction);
 
-assign pc_jump_addr      = decode.is_branch_op
-                         ? BImm_extract[0+:imem_addr_width_p]
-                         : JImm_extract[0+:imem_addr_width_p];
 
 // Determine what the next PC should be
 always_comb
 begin
-    // Update the JALR prediction register
-    if (exe.decode.is_jump_op)
-        jalr_prediction_n = exe.pc_plus4;
-    else
-        jalr_prediction_n = jalr_prediction_r;
-
     // Network setting PC (highest priority)
     if (net_pc_write_cmd_idle)
-        pc_n = net_packet_r.header.addr[2+:imem_addr_width_p];
+        pc_n = net_packet_r.header.addr[2+:icache_addr_width_p];
 
     // Fixing a branch misprediction (or single cycle branch will
     // follow a branch under prediction logic)
     else if (branch_mispredict)
         if (branch_under_predict)
-            pc_n = exe.pc_jump_addr[2+:imem_addr_width_p];
+            pc_n = exe.pc_jump_addr[2+:icache_addr_width_p];
         else
-            pc_n = exe.pc_plus4[2+:imem_addr_width_p];
+            pc_n = exe.pc_plus4[2+:icache_addr_width_p];
 
     // Fixing a JALR misprediction (or a signal cycle JALR instruction)
     else if (jalr_mispredict)
@@ -316,78 +303,42 @@ end
 //|
 //+----------------------------------------------
 
-
-// Selection between network and core for instruction address
-assign imem_addr = (net_imem_write_cmd)
-                   ? net_packet_r.header.addr[2+:imem_addr_width_p]
-                   : pc_n;
-
 // Instruction memory chip enable signal
 `ifdef bsg_FPU
-assign imem_cen = (~( stall | fpi_inter.fam_depend_stall | depend_stall ))
-                | (net_imem_write_cmd | net_pc_write_cmd_idle);
+assign icache_cen = (~( stall | fpi_inter.fam_depend_stall | depend_stall ))
+                    | (net_imem_write_cmd | net_pc_write_cmd_idle);
 `else
-assign imem_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_write_cmd_idle);
+assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_write_cmd_idle);
 `endif
-//Pre-calculate the jump and branch address.
-//As imem is only 2K words in this design ,the jump and branch address can be
-//encoded entirly in the imm field of the instruction.
-//The address is encoded with WORD address
-//synopsys translate_off
-initial begin
-assert( imem_addr_width_p <= imem_addr_width_limit_lp )
-else $error("the imem_addr_width is too large");
-end
-//synopsys translate_on
 
-wire  [RV32_instr_width_gp-1:0] BImm_sign_ext =`RV32_signext_Bimm(net_packet_r.data);
-wire  [RV32_instr_width_gp-1:0] JImm_sign_ext =`RV32_signext_Jimm(net_packet_r.data);
+`declare_icache_format_s( icache_tag_width_p );
+icache_format_s       icache_r_data_s;
 
-instruction_s  instr_cast;
-assign instr_cast  = net_packet_r.data;
+icache #(
+         .icache_tag_width_p  ( icache_tag_width_p      )
+        ,.icache_addr_width_p ( icache_addr_width_p     )
+         //word address
+        ) icache_0
+       (
+        .clk_i
+       ,.reset_i
 
-wire  write_branch_instr = ( instr_cast.op    ==? `RV32_BRANCH );
-wire  write_jal_instr    = ( instr_cast       ==? `RV32_JAL    );
+       ,.icache_cen_i           (icache_cen             )
+       ,.icache_w_en_i          (net_imem_write_cmd     )
+       ,.icache_w_addr_i        (net_packet_r.header.addr[2+:icache_addr_width_p])
+       ,.icache_w_tag_i         (icache_tag_width_p'(0) )
+       ,.icache_w_instr_i       (net_packet_r.data      )
+       ,.icache_r_instr_o       (icache_r_instr_lo      )
 
-wire [imem_addr_width_p-1:0] inject_pc_rel = write_branch_instr
-              ? $signed(BImm_sign_ext[2+:imem_addr_width_p])
-              : $signed(JImm_sign_ext[2+:imem_addr_width_p]);
-
-//The computed address is WORD address
-wire  [imem_addr_width_p-1:0] inject_pc_value  =
-             $signed(net_packet_r.header.addr[2+:imem_addr_width_p])
-            +$signed(inject_pc_rel);
-
-//index starting from 1, for consistent with the instruction coding.
-wire [imem_addr_width_limit_lp:1] inject_addr =
-                             { {imem_addr_width_margin_lp{1'b0}}, inject_pc_value};
-//Inject the WORD address
-wire [RV32_instr_width_gp-1:0] imem_w_data =
-        write_branch_instr ? `RV32_Bimm_12inject1( net_packet_r.data, inject_addr)
-                           :  write_jal_instr    ? `RV32_Jimm_12inject1( net_packet_r.data, inject_addr)
-                                                 : net_packet_r.data;
-// RISC-V edit: reserved bits in network packet header
-//              used as mask input
-
-  bsg_mem_1rw_sync #
-    ( .width_p (32)
-     ,.els_p   (2**imem_addr_width_p)
-    ) imem_0
-    ( .clk_i  (clk)
-     ,.reset_i(reset)
-     ,.v_i    (imem_cen)
-//     ,.w_i    (net_imem_write_cmd & net_packet_r.header.mask[i])
-     ,.w_i    (net_imem_write_cmd)
-     ,.addr_i (imem_addr)
-     ,.data_i (imem_w_data)
-     ,.data_o (imem_out)
-    );
+       ,.pc_i                   (pc_n                   )
+       ,.jump_addr_o            (pc_jump_addr           )
+       );
 
    // synopsys translate_off
    logic reset_r;
 
-   always @(posedge clk) reset_r <= reset;
-   always @(negedge clk)
+   always @(posedge clk_i) reset_r <= reset_i;
+   always @(negedge clk_i)
      begin
           assert ( (reset_r !== 0 ) | ~net_imem_write_cmd | (&net_packet_r.header.mask))
           else $error("## byte write to instruction memory (%m)");
@@ -396,7 +347,7 @@ wire [RV32_instr_width_gp-1:0] imem_w_data =
 
 // Since imem has one cycle delay and we send next cycle's address, pc_n,
 // if the PC is not written, the instruction must not change.
-assign instruction = (pc_wen_r) ? imem_out : instruction_r;
+assign instruction = (pc_wen_r) ? icache_r_instr_lo: instruction_r;
 
 //+----------------------------------------------
 //|
@@ -450,8 +401,8 @@ assign rf_wd = (net_reg_write_cmd ? net_packet_r.data : wb.rf_data);
 rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
                        ,.els_p                  (32)
                       ) rf_0
-  ( .clk_i   (clk)
-   ,.reset_i (reset)
+  ( .clk_i   (clk_i)
+   ,.reset_i (reset_i)
    ,.w_v_i     (rf_wen)
    ,.w_addr_i  (rf_wa)
    ,.w_data_i  (rf_wd)
@@ -477,8 +428,8 @@ wire   md_valid    = exe.decode.is_md_instr & md_ready;
 assign stall_md    = exe.decode.is_md_instr & ~md_resp_valid;
 
 imul_idiv_iterative  md_0
-    (.reset_i   (reset)
-        ,.clk_i     (clk)
+    (.reset_i   (reset_i)
+        ,.clk_i     (clk_i)
 
         ,.v_i       (md_valid)//there is a request
     ,.ready_o   (md_ready)//imul_idiv_module is idle
@@ -545,7 +496,7 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
           );
 
 // Instantiate the ALU
-alu #(.imem_addr_width_p(imem_addr_width_p) )
+alu #(.pc_width_p(pc_width_lp) )
    alu_0 (
     .rs1_i      (   rs1_to_alu          )
    ,.rs2_i      (   rs2_to_alu          )
@@ -605,9 +556,9 @@ assign reserve_1_o  = exe.decode.op_is_load_reservation
 // All sequental logic signals are set in this statement. The
 // active high reset signal is what causes all signals to be
 // reset to zero.
-always_ff @ (posedge clk)
+always_ff @ (posedge clk_i)
 begin
-    if (reset) begin
+    if (reset_i) begin
         state_r            <= IDLE;
         pc_wen_r           <= '0;
     end else begin
@@ -616,38 +567,42 @@ begin
     end
 end
 
+    // Update the JALR prediction register
+   assign jalr_prediction_n = exe.decode.is_jump_op ? exe.pc_plus4
+                                                    : jalr_prediction_r;
+
    bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_r_reg
-     ( .clk_i(clk)
-      ,.reset_i(reset)
+     ( .clk_i(clk_i)
+      ,.reset_i(reset_i)
       ,.data_i(jalr_prediction_n)
       ,.data_o(jalr_prediction_r)
       );
 
    bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_rr_reg
-     ( .clk_i(clk)
-      ,.reset_i(reset)
+     ( .clk_i(clk_i)
+      ,.reset_i(reset_i)
       ,.data_i(jalr_prediction_r)
       ,.data_o(jalr_prediction_rr)
       );
 
    // mbt: unharden to reduce congestion
    bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(0)) net_packet_r_reg
-     ( .clk_i(clk)
-      ,.reset_i(reset)
+     ( .clk_i(clk_i)
+      ,.reset_i(reset_i)
       ,.data_i(net_packet_i)
       ,.data_o(net_packet_r)
       );
 
    bsg_dff_reset #(.width_p($bits(instruction_s)), .harden_p(1)) instruction_r_reg
-     ( .clk_i(clk)
-      ,.reset_i(reset)
+     ( .clk_i(clk_i)
+      ,.reset_i(reset_i)
       ,.data_i(instruction)
       ,.data_o(instruction_r)
       );
 
-   bsg_dff_reset_en #(.width_p(imem_addr_width_p),.harden_p(1)) pc_r_reg
-     ( .clk_i (clk)
-      ,.reset_i(reset)
+   bsg_dff_reset_en #(.width_p(pc_width_lp),.harden_p(1)) pc_r_reg
+     ( .clk_i (clk_i)
+      ,.reset_i(reset_i)
       ,.en_i   (pc_wen)
       ,.data_i (pc_n)
       ,.data_o (pc_r)
@@ -677,15 +632,15 @@ end
 
 // Synchronous stage shift
 
-// synopsys sync_set_reset  "reset, net_pc_write_cmd_idle, flush, stall, depend_stall"
-always_ff @ (posedge clk)
+// synopsys sync_set_reset  "reset_i, net_pc_write_cmd_idle, flush, stall, depend_stall"
+always_ff @ (posedge clk_i)
 begin
 `ifdef bsg_FPU
-    if (reset | net_pc_write_cmd_idle |
+    if (reset_i | net_pc_write_cmd_idle |
             (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall )))
        )
 `else
-    if (reset | net_pc_write_cmd_idle | (flush & (~   (stall | depend_stall)  ) ) )
+    if (reset_i | net_pc_write_cmd_idle | (flush & (~   (stall | depend_stall)  ) ) )
 `endif
       begin
          id <= '0;
@@ -752,9 +707,9 @@ wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
                            & (id.instruction.rs2  == mem.rd_addr)
                            & (|id.instruction.rs2);
 // Synchronous stage shift
-always_ff @ (posedge clk)
+always_ff @ (posedge clk_i)
 begin
-    if (reset | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
+    if (reset_i | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
       begin
    // synopsys translate_off
          debug_exe <= debug_id | squashed_lp;
@@ -825,9 +780,9 @@ assign fiu_alu_result = alu_result;
 
 
 // Synchronous stage shift
-always_ff @ (posedge clk)
+always_ff @ (posedge clk_i)
 begin
-    if (reset | net_pc_write_cmd_idle)
+    if (reset_i | net_pc_write_cmd_idle)
       begin
    // synopsys translate_off
          debug_mem <= squashed_lp;
@@ -861,9 +816,9 @@ end
 //+----------------------------------------------
 
 
-always_ff @ (posedge clk)
+always_ff @ (posedge clk_i)
 begin
-    if ( reset )
+    if ( reset_i )
     begin
         is_load_buffer_valid <= 'b0;
         load_buffer_data     <= 'b0;
@@ -924,9 +879,9 @@ wire [RV32_reg_data_width_gp-1:0]  rf_data = mem.decode.is_load_op ?
                                              mem_loaded_data : mem.alu_result;
 
 // Synchronous stage shift
-always_ff @ (posedge clk)
+always_ff @ (posedge clk_i)
 begin
-    if (reset | net_pc_write_cmd_idle)
+    if (reset_i | net_pc_write_cmd_idle)
       begin
          wb       <= '0;
    // synopsys translate_off
@@ -962,7 +917,7 @@ assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
 //synopsys translate_off
 
 //Double Precision Floating Point Load/Store
-always@(negedge clk )
+always@(negedge clk_i )
 begin
     unique casez( id.instruction.op )
         `RV32_STORE_FP, `RV32_LOAD_FP:
@@ -982,7 +937,7 @@ begin
 end
 
 //FENCE_I instruction
-always@(negedge clk ) begin
+always@(negedge clk_i ) begin
     if( id.decode.is_fence_i_op ) begin
         $error("FENCE_I instruction not supported yet!");
     end
@@ -996,7 +951,7 @@ end
 
    if (trace_lp)
 //if (0)
-     always_ff @(negedge clk)
+     always_ff @(negedge clk_i)
        begin
           if (~(debug_wb.squashed  & (debug_wb.PC_r == 0)))
             begin
@@ -1018,7 +973,7 @@ end
        end
 
 if(debug_p)
-  always_ff @(negedge clk)
+  always_ff @(negedge clk_i)
   begin
     if ((my_x_i == 1) & (my_y_i == 0) & (state_r==RUN))
       begin

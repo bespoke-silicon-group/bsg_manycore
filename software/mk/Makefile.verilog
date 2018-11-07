@@ -131,6 +131,7 @@ LIST_VANILLA_SRCS+= $(VANILLA_SRC)/alu.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_decode.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_state_machine.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/hobbit.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/icache.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/imul_idiv_iterative.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/bsg_manycore_proc_vanilla.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/rf_2r1w_sync_wrapper.v

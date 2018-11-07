@@ -43,6 +43,16 @@ typedef struct packed {
   logic [RV32_opcode_width_gp-1:0]   op;
 } instruction_s;
 
+`define declare_icache_format_s( tag_width_p)             \
+typedef struct packed {                                 \
+  logic                              lower_cout;        \
+  logic                              lower_sign;        \
+  logic [tag_width_p-1:0]            tag;               \
+  instruction_s                      instr;             \
+} icache_format_s;
+
+`define icache_format_width( tag_width_p ) \
+        ( 1 + 1 + (tag_width_p) + $bits(instruction_s) )
 
 // Ring packet header
 typedef struct packed
@@ -60,7 +70,9 @@ typedef struct packed
                                         // data
     logic [1:0]  reserved;    // 15..14 // reserved bits, later we may steal
                                         // more bits for net_op
-    logic [13:0] addr;        // 13..0  // the addr field which could be largened
+    //TODO--The address should be parameterizable.
+    //      Right now set to the max(BRANCH_IMM, JAL_IMM)
+    logic [12:0] addr;        // 13..0  // the addr field which could be largened
                                         // using reserved field
 } v_core_header_s;
 
