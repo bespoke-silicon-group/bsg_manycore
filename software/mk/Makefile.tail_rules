@@ -6,4 +6,4 @@ dve:
 
 
 urg:
-	$(VCS_BIN)/urg -full64 -report coverage/ -dir simv.vdb/ 
+	$(VCS_BIN)/urg -full64 -report coverage/ -format both -dir simv.vdb/ 
