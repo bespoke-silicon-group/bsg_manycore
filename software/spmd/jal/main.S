@@ -2,7 +2,7 @@
 #include "bsg_manycore_asm.h"
 
 .text
-    auipc x2, 8;
+    la x2, fail;
     jal x1, check;
 
 fail:
