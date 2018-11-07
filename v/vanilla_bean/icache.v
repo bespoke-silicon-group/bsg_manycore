@@ -63,8 +63,8 @@ module icache #(parameter
   wire  [RV32_Jimm_width_gp:0] jal_pc_lower_res;
   wire  branch_pc_lower_cout, jal_pc_lower_cout;
   
-  assign {branch_pc_out,       branch_pc_lower_res} = {1'b0, branch_imm_val} + {1'b0, branch_pc_val};
-  assign {jal_pc_lower_out,    jal_pc_lower_res   } = {1'b0, jal_imm_val}    + {1'b0, jal_pc_val   };
+  assign {branch_pc_lower_cout, branch_pc_lower_res} = {1'b0, branch_imm_val} + {1'b0, branch_pc_val};
+  assign {jal_pc_lower_cout,    jal_pc_lower_res   } = {1'b0, jal_imm_val}    + {1'b0, jal_pc_val   };
   
   
   //Inject the 2-BYTE address, the LSB is ignored.
@@ -152,6 +152,7 @@ module icache #(parameter
   //------------------------------------------------------------------
   // assign outputs.
   assign icache_r_instr_o = icache_r_data_s.instr;
-  assign jump_addr_o      = is_jal_instr ? jal_pc[0+:pc_width_lp] : branch_pc[0+:pc_width_lp];
+  // jump_addr_o is WORD address
+  assign jump_addr_o      = is_jal_instr ? jal_pc[2+:pc_width_lp] : branch_pc[2+:pc_width_lp];
   
 endmodule
