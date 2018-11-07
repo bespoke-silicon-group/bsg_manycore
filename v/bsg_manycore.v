@@ -174,7 +174,7 @@ module bsg_manycore
                 .bank_size_p(bank_size_p),
                 .num_banks_p(num_banks_p),
                 .imem_size_p(imem_size_p),
-                .icache_tag_width_p(icache_tag_width_p)
+                .icache_tag_width_p(icache_tag_width_p),
                 .x_cord_width_p(x_cord_width_lp),
                 .y_cord_width_p(y_cord_width_lp),
                 .data_width_p(data_width_p),

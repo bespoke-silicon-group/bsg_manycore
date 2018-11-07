@@ -70,7 +70,9 @@ typedef struct packed
                                         // data
     logic [1:0]  reserved;    // 15..14 // reserved bits, later we may steal
                                         // more bits for net_op
-    logic [13:0] addr;        // 13..0  // the addr field which could be largened
+    //TODO--The address should be parameterizable.
+    //      Right now set to the max(BRANCH_IMM, JAL_IMM)
+    logic [12:0] addr;        // 13..0  // the addr field which could be largened
                                         // using reserved field
 } v_core_header_s;
 

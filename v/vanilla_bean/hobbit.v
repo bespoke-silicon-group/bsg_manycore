@@ -18,12 +18,12 @@ module hobbit #(parameter
                           ring_ID_p         = -1,
                           x_cord_width_p    = -1,
                           y_cord_width_p    = -1,
-                          debug_p           = 0
-                          pc_width_lp            = icache_tag_width_p + icache_format_width_lp, 
+                          debug_p           = 0 ,
+                          pc_width_lp            = icache_tag_width_p + icache_addr_width_p, 
                           icache_format_width_lp = `icache_format_width( icache_tag_width_p )
                )(
-                input                             clk
-               ,input                             reset
+                input                             clk_i
+               ,input                             reset_i
 
 `ifdef bsg_FPU
                ,fpi_alu_inter.alu_side            fpi_inter
@@ -248,11 +248,10 @@ wire flush = (branch_mispredict | jalr_mispredict);
 //+----------------------------------------------
 
 // Program counter logic
-logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr, pc_long_jump_addr;
+logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr;
 logic                   pc_wen, pc_wen_r, icache_cen;
 
 // Instruction memory logic
-logic [icache_addr_width_p-1:0] icache_addr;
 instruction_s                   icache_r_instr_lo, instruction, instruction_r;
 
 // PC write enable. This stops the CPU updating the PC
@@ -304,12 +303,6 @@ end
 //|
 //+----------------------------------------------
 
-
-// Selection between network and core for instruction address
-assign icache_addr = (net_imem_write_cmd)
-                   ? net_packet_r.header.addr[2+:icache_addr_width_p]
-                   : pc_n;
-
 // Instruction memory chip enable signal
 `ifdef bsg_FPU
 assign icache_cen = (~( stall | fpi_inter.fam_depend_stall | depend_stall ))
@@ -322,8 +315,8 @@ assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_w
 icache_format_s       icache_r_data_s;
 
 icache #(
-         .icache_tag_width_p  ( icache_tag_width_p)
-        ,.icache_addr_width_p ( icache_addr_width_p)
+         .icache_tag_width_p  ( icache_tag_width_p      )
+        ,.icache_addr_width_p ( icache_addr_width_p     )
          //word address
         ) icache_0
        (
@@ -332,7 +325,7 @@ icache #(
 
        ,.icache_cen_i           (icache_cen             )
        ,.icache_w_en_i          (net_imem_write_cmd     )
-       ,.icache_w_addr_i        (icache_addr            )
+       ,.icache_w_addr_i        (net_packet_r.header.addr[2+:icache_addr_width_p])
        ,.icache_w_tag_i         (icache_tag_width_p'(0) )
        ,.icache_w_instr_i       (net_packet_r.data      )
        ,.icache_r_instr_o       (icache_r_instr_lo      )
@@ -344,8 +337,8 @@ icache #(
    // synopsys translate_off
    logic reset_r;
 
-   always @(posedge clk) reset_r <= reset;
-   always @(negedge clk)
+   always @(posedge clk_i) reset_r <= reset_i;
+   always @(negedge clk_i)
      begin
           assert ( (reset_r !== 0 ) | ~net_imem_write_cmd | (&net_packet_r.header.mask))
           else $error("## byte write to instruction memory (%m)");
@@ -408,8 +401,8 @@ assign rf_wd = (net_reg_write_cmd ? net_packet_r.data : wb.rf_data);
 rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
                        ,.els_p                  (32)
                       ) rf_0
-  ( .clk_i   (clk)
-   ,.reset_i (reset)
+  ( .clk_i   (clk_i)
+   ,.reset_i (reset_i)
    ,.w_v_i     (rf_wen)
    ,.w_addr_i  (rf_wa)
    ,.w_data_i  (rf_wd)
@@ -435,8 +428,8 @@ wire   md_valid    = exe.decode.is_md_instr & md_ready;
 assign stall_md    = exe.decode.is_md_instr & ~md_resp_valid;
 
 imul_idiv_iterative  md_0
-    (.reset_i   (reset)
-        ,.clk_i     (clk)
+    (.reset_i   (reset_i)
+        ,.clk_i     (clk_i)
 
         ,.v_i       (md_valid)//there is a request
     ,.ready_o   (md_ready)//imul_idiv_module is idle
@@ -503,7 +496,7 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
           );
 
 // Instantiate the ALU
-alu #(.icache_addr_width_p(icache_addr_width_p) )
+alu #(.pc_width_p(pc_width_lp) )
    alu_0 (
     .rs1_i      (   rs1_to_alu          )
    ,.rs2_i      (   rs2_to_alu          )
@@ -563,9 +556,9 @@ assign reserve_1_o  = exe.decode.op_is_load_reservation
 // All sequental logic signals are set in this statement. The
 // active high reset signal is what causes all signals to be
 // reset to zero.
-always_ff @ (posedge clk)
+always_ff @ (posedge clk_i)
 begin
-    if (reset) begin
+    if (reset_i) begin
         state_r            <= IDLE;
         pc_wen_r           <= '0;
     end else begin
@@ -579,37 +572,37 @@ end
                                                     : jalr_prediction_r;
 
    bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_r_reg
-     ( .clk_i(clk)
-      ,.reset_i(reset)
+     ( .clk_i(clk_i)
+      ,.reset_i(reset_i)
       ,.data_i(jalr_prediction_n)
       ,.data_o(jalr_prediction_r)
       );
 
    bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_rr_reg
-     ( .clk_i(clk)
-      ,.reset_i(reset)
+     ( .clk_i(clk_i)
+      ,.reset_i(reset_i)
       ,.data_i(jalr_prediction_r)
       ,.data_o(jalr_prediction_rr)
       );
 
    // mbt: unharden to reduce congestion
    bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(0)) net_packet_r_reg
-     ( .clk_i(clk)
-      ,.reset_i(reset)
+     ( .clk_i(clk_i)
+      ,.reset_i(reset_i)
       ,.data_i(net_packet_i)
       ,.data_o(net_packet_r)
       );
 
    bsg_dff_reset #(.width_p($bits(instruction_s)), .harden_p(1)) instruction_r_reg
-     ( .clk_i(clk)
-      ,.reset_i(reset)
+     ( .clk_i(clk_i)
+      ,.reset_i(reset_i)
       ,.data_i(instruction)
       ,.data_o(instruction_r)
       );
 
-   bsg_dff_reset_en #(.width_p(icache_addr_width_p),.harden_p(1)) pc_r_reg
-     ( .clk_i (clk)
-      ,.reset_i(reset)
+   bsg_dff_reset_en #(.width_p(pc_width_lp),.harden_p(1)) pc_r_reg
+     ( .clk_i (clk_i)
+      ,.reset_i(reset_i)
       ,.en_i   (pc_wen)
       ,.data_i (pc_n)
       ,.data_o (pc_r)
@@ -639,15 +632,15 @@ end
 
 // Synchronous stage shift
 
-// synopsys sync_set_reset  "reset, net_pc_write_cmd_idle, flush, stall, depend_stall"
-always_ff @ (posedge clk)
+// synopsys sync_set_reset  "reset_i, net_pc_write_cmd_idle, flush, stall, depend_stall"
+always_ff @ (posedge clk_i)
 begin
 `ifdef bsg_FPU
-    if (reset | net_pc_write_cmd_idle |
+    if (reset_i | net_pc_write_cmd_idle |
             (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall )))
        )
 `else
-    if (reset | net_pc_write_cmd_idle | (flush & (~   (stall | depend_stall)  ) ) )
+    if (reset_i | net_pc_write_cmd_idle | (flush & (~   (stall | depend_stall)  ) ) )
 `endif
       begin
          id <= '0;
@@ -714,9 +707,9 @@ wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
                            & (id.instruction.rs2  == mem.rd_addr)
                            & (|id.instruction.rs2);
 // Synchronous stage shift
-always_ff @ (posedge clk)
+always_ff @ (posedge clk_i)
 begin
-    if (reset | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
+    if (reset_i | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
       begin
    // synopsys translate_off
          debug_exe <= debug_id | squashed_lp;
@@ -787,9 +780,9 @@ assign fiu_alu_result = alu_result;
 
 
 // Synchronous stage shift
-always_ff @ (posedge clk)
+always_ff @ (posedge clk_i)
 begin
-    if (reset | net_pc_write_cmd_idle)
+    if (reset_i | net_pc_write_cmd_idle)
       begin
    // synopsys translate_off
          debug_mem <= squashed_lp;
@@ -823,9 +816,9 @@ end
 //+----------------------------------------------
 
 
-always_ff @ (posedge clk)
+always_ff @ (posedge clk_i)
 begin
-    if ( reset )
+    if ( reset_i )
     begin
         is_load_buffer_valid <= 'b0;
         load_buffer_data     <= 'b0;
@@ -886,9 +879,9 @@ wire [RV32_reg_data_width_gp-1:0]  rf_data = mem.decode.is_load_op ?
                                              mem_loaded_data : mem.alu_result;
 
 // Synchronous stage shift
-always_ff @ (posedge clk)
+always_ff @ (posedge clk_i)
 begin
-    if (reset | net_pc_write_cmd_idle)
+    if (reset_i | net_pc_write_cmd_idle)
       begin
          wb       <= '0;
    // synopsys translate_off
@@ -924,7 +917,7 @@ assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
 //synopsys translate_off
 
 //Double Precision Floating Point Load/Store
-always@(negedge clk )
+always@(negedge clk_i )
 begin
     unique casez( id.instruction.op )
         `RV32_STORE_FP, `RV32_LOAD_FP:
@@ -944,7 +937,7 @@ begin
 end
 
 //FENCE_I instruction
-always@(negedge clk ) begin
+always@(negedge clk_i ) begin
     if( id.decode.is_fence_i_op ) begin
         $error("FENCE_I instruction not supported yet!");
     end
@@ -958,7 +951,7 @@ end
 
    if (trace_lp)
 //if (0)
-     always_ff @(negedge clk)
+     always_ff @(negedge clk_i)
        begin
           if (~(debug_wb.squashed  & (debug_wb.PC_r == 0)))
             begin
@@ -980,7 +973,7 @@ end
        end
 
 if(debug_p)
-  always_ff @(negedge clk)
+  always_ff @(negedge clk_i)
   begin
     if ((my_x_i == 1) & (my_y_i == 0) & (state_r==RUN))
       begin

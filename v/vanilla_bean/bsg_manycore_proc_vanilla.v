@@ -206,7 +206,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    //////////////////////////////////////
    hobbit #
      (
-      ,.icache_tag_width_p (icache_tag_width_p) 
+       .icache_tag_width_p (icache_tag_width_p) 
       ,.icache_addr_width_p(imem_addr_width_lp)
       ,.gw_ID_p          (0)
       ,.ring_ID_p        (0)
@@ -215,8 +215,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 //      ,.debug_p          (debug_p)
 //,.debug_p(1)
      ) vanilla_core
-     ( .clk            (clk_i)
-      ,.reset          (reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state
+     ( .clk_i          (clk_i)
+      ,.reset_i        (reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state
 
       ,.net_packet_i   (core_net_pkt)
 

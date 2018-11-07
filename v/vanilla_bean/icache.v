@@ -10,7 +10,7 @@ module icache #(parameter
                           icache_tag_width_p     = -1, 
                           icache_addr_width_p    = -1,
                           //word address
-                          pc_width_lp            = icache_tag_width_p + icache_format_width_lp, 
+                          pc_width_lp            = icache_tag_width_p + icache_addr_width_p, 
                           icache_format_width_lp = `icache_format_width( icache_tag_width_p )
                )
                (
@@ -19,6 +19,8 @@ module icache #(parameter
 
                ,input                              icache_cen_i
                ,input                              icache_w_en_i
+                //TODO: The written address should be enlarged. 
+                //      WORD address now
                ,input [icache_addr_width_p-1:0]    icache_w_addr_i
                ,input [icache_tag_width_p -1:0]    icache_w_tag_i
                ,input [RV32_instr_width_gp-1:0]    icache_w_instr_i
@@ -34,7 +36,7 @@ module icache #(parameter
 
   //the address of the icache entry
   wire [icache_addr_width_p-1:0]  icache_addr = icache_w_en_i ? icache_w_addr_i
-                                                            : pc_i[0+:icache_addr_width_p];
+                                                              : pc_i[0+:icache_addr_width_p];
   //------------------------------------------------------------------
   //
   //  Pre-compute the lower part of the jump address for JAL and BRANCH
@@ -49,19 +51,20 @@ module icache #(parameter
   wire  write_branch_instr = ( w_instr.op    ==? `RV32_BRANCH );
   wire  write_jal_instr    = ( w_instr       ==? `RV32_JAL    );
   
+  // TODO -- Re-factoring the ring packet so it can have full Imm bits address.
   // BYTE address computation
   wire  [RV32_Bimm_width_gp:0] branch_imm_val     = `RV32_Bimm_13extract(w_instr);
-  wire  [RV32_Bimm_width_gp:0] branch_pc_val      = net_packet_r.header.addr[0+:RV32_Bimm_width_gp]);
+  wire  [RV32_Bimm_width_gp:0] branch_pc_val      = RV32_Bimm_width_gp'({icache_w_addr_i,2'b0}); //TODO Use full address
   
   wire  [RV32_Jimm_width_gp:0] jal_imm_val        = `RV32_Jimm_21extract(w_instr);
-  wire  [RV32_Jimm_width_gp:0] jal_pc_val         = net_packet_r.header.addr[0+:RV32_Jimm_width_gp]);
+  wire  [RV32_Jimm_width_gp:0] jal_pc_val         = RV32_Jimm_width_gp'({icache_w_addr_i,2'b0}); //TODO Use full address
   
   wire  [RV32_Bimm_width_gp:0] branch_pc_lower_res;
   wire  [RV32_Jimm_width_gp:0] jal_pc_lower_res;
   wire  branch_pc_lower_cout, jal_pc_lower_cout;
   
-  {branch_pc_out,       branch_pc_lower_res} = {1'b0, branch_imm_val} + {1'b0, branch_pc_val};
-  {jal_pc_lower_out,    jal_pc_lower_res   } = {1'b0, jal_imm_val}    + {1'b0, jal_pc_val   };
+  assign {branch_pc_out,       branch_pc_lower_res} = {1'b0, branch_imm_val} + {1'b0, branch_pc_val};
+  assign {jal_pc_lower_out,    jal_pc_lower_res   } = {1'b0, jal_imm_val}    + {1'b0, jal_pc_val   };
   
   
   //Inject the 2-BYTE address, the LSB is ignored.
@@ -81,13 +84,13 @@ module icache #(parameter
                              lower_cout:       pc_lower_cout    ,
                              tag       :       icache_w_tag_i  ,
                              instr     :       injected_instr
-                            }
+                            };
                              
   //------------------------------------------------------------------
   // Instantiate the memory 
   bsg_mem_1rw_sync #
     ( .width_p ( icache_format_width_lp )
-     ,.els_p   (2**imem_addr_width_p)
+     ,.els_p   (2**icache_addr_width_p)
     ) imem_0
     ( .clk_i  (clk_i)
      ,.reset_i(reset_i)
@@ -123,22 +126,22 @@ module icache #(parameter
   //        1                 1                             1 
   wire sel_pc           = icache_r_data_s.lower_sign    ^ icache_r_data_s.lower_cout ; 
   wire sel_pc_p1        = (~icache_r_data_s.lower_sign) & icache_r_data_s.lower_cout ; 
-  wire sel_pc_n1        = icache_r_data_s.lower_sign)   & (~icache_r_data_s.lower_cout) ; 
+  wire sel_pc_n1        = icache_r_data_s.lower_sign    & (~icache_r_data_s.lower_cout) ; 
 
-  bsg_mux_one_hot #( els_p      (3                      )
-                    ,width_p    (branch_pc_high_width_lp)
+  bsg_mux_one_hot #( .els_p      (3                      )
+                    ,.width_p    (branch_pc_high_width_lp)
                    )branch_pc_high_mux
-                  ( .data_i        ( {branch_pc_high, branch_pc_high_p1, branch_high_n1} )
-                    .sel_one_hot_i ( {sel_pc        , sel_pc_p1,         sel_pc_n1     } )
-                    .data_o        ( branch_pc_high_out                                  )
+                  ( .data_i        ( {branch_pc_high, branch_pc_high_p1, branch_pc_high_n1} )
+                   ,.sel_one_hot_i ( {sel_pc        , sel_pc_p1,         sel_pc_n1        } )
+                   ,.data_o        ( branch_pc_high_out                                  )
                   );
 
-  bsg_mux_one_hot #( els_p      (3                      )
-                    ,width_p    (jal_pc_high_width_lp   )
+  bsg_mux_one_hot #( .els_p      (3                      )
+                    ,.width_p    (jal_pc_high_width_lp   )
                    )jal_pc_high_mux
-                  ( .data_i        ( {jal_pc_high, jal_pc_high_p1, jal_high_n1} )
-                    .sel_one_hot_i ( {sel_pc     , sel_pc_p1,      sel_pc_n1     } )
-                    .data_o        ( jal_pc_high_out               )
+                  ( .data_i        ( {jal_pc_high, jal_pc_high_p1, jal_pc_high_n1} )
+                   ,.sel_one_hot_i ( {sel_pc     , sel_pc_p1,      sel_pc_n1     } )
+                   ,.data_o        ( jal_pc_high_out               )
                   );
 
   wire is_jal_instr     = icache_r_data_s.instr ==? `RV32_JAL  ;

@@ -32,7 +32,7 @@
                           ,.bank_size_p(bank_size_p)            \
                           ,.num_banks_p(num_banks_p)            \
 			  ,.imem_size_p(imem_size_p)            \
-                          ..icache_tag_width_p (icache_tag_width_p) \
+                          ,.icache_tag_width_p (icache_tag_width_p) \
             		  ,.max_out_credits_p(max_out_credits_p)\
                           ,.hetero_type_p(hetero_type_p)        \
                           ) z                                   \
