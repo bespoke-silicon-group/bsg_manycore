@@ -24,15 +24,17 @@ module icache #(parameter
                ,input [icache_addr_width_p-1:0]    icache_w_addr_i
                ,input [icache_tag_width_p -1:0]    icache_w_tag_i
                ,input [RV32_instr_width_gp-1:0]    icache_w_instr_i
-               ,output[RV32_instr_width_gp-1:0]    icache_r_instr_o 
+               ,output[RV32_instr_width_gp-1:0]    instruction_o
 
                ,input [pc_width_lp-1:0]            pc_i
+               ,input                              pc_wen_i
+               ,output [pc_width_lp-1:0]           pc_r_o
                ,output [pc_width_lp-1:0]           jump_addr_o
                );
 
   //the struct fo be written into the icache
   `declare_icache_format_s( icache_tag_width_p );
-  icache_format_s       icache_w_data_s, icache_r_data_s;
+  icache_format_s       icache_w_data_s, icache_r_data_s, icache_r_data_r, icache_stall_out;
 
   //the address of the icache entry
   wire [icache_addr_width_p-1:0]  icache_addr = icache_w_en_i ? icache_w_addr_i
@@ -91,6 +93,7 @@ module icache #(parameter
   bsg_mem_1rw_sync #
     ( .width_p ( icache_format_width_lp )
      ,.els_p   (2**icache_addr_width_p)
+     ,.substitute_1r1w_p(1'b0)
     ) imem_0
     ( .clk_i  (clk_i)
      ,.reset_i(reset_i)
@@ -101,9 +104,25 @@ module icache #(parameter
      ,.data_o (icache_r_data_s)
     );
 
-   logic [pc_width_lp-1:0]  pc_r;
+  logic [pc_width_lp-1:0]  pc_r; 
+  logic                    pc_wen_r;
 
-   always_ff@(posedge clk_i) if (icache_cen_i & ~(icache_w_en_i)) pc_r <= pc_i;
+  // Since imem has one cycle delay and we send next cycle's address, pc_n,
+  // if the PC is not written, the instruction must not change.
+  always_ff@(posedge clk_i) 
+        if(reset_i)        pc_wen_r           <= 'b0;
+        else               pc_wen_r           <= pc_wen_i;
+
+  always_ff@(posedge clk_i) 
+        if(reset_i)        pc_r               <= 'b0;
+        else if( pc_wen_i) pc_r               <= pc_i;
+
+  always_ff@(posedge clk_i) 
+        if(reset_i)          icache_r_data_r    <= 'b0;
+        else                 icache_r_data_r    <= icache_r_data_s;
+
+  //this is the final output that send out, take stall into consideration
+  assign icache_stall_out = (pc_wen_r) ? icache_r_data_s: icache_r_data_r;
   //------------------------------------------------------------------
   // merge the PC lower part and high part
   localparam branch_pc_high_width_lp = pc_width_lp - RV32_Bimm_width_gp;
@@ -124,9 +143,9 @@ module icache #(parameter
   //        0                 1                                          1
   //        1                 0           1                                     
   //        1                 1                             1 
-  wire sel_pc           = icache_r_data_s.lower_sign    ^ icache_r_data_s.lower_cout ; 
-  wire sel_pc_p1        = (~icache_r_data_s.lower_sign) & icache_r_data_s.lower_cout ; 
-  wire sel_pc_n1        = icache_r_data_s.lower_sign    & (~icache_r_data_s.lower_cout) ; 
+  wire sel_pc           = icache_stall_out.lower_sign    ^ icache_stall_out.lower_cout ; 
+  wire sel_pc_p1        = (~icache_stall_out.lower_sign) & icache_stall_out.lower_cout ; 
+  wire sel_pc_n1        = icache_stall_out.lower_sign    & (~icache_stall_out.lower_cout) ; 
 
   bsg_mux_one_hot #( .els_p      (3                      )
                     ,.width_p    (branch_pc_high_width_lp)
@@ -144,14 +163,15 @@ module icache #(parameter
                    ,.data_o        ( jal_pc_high_out               )
                   );
 
-  wire is_jal_instr     = icache_r_data_s.instr ==? `RV32_JAL  ;
+  wire is_jal_instr     = icache_stall_out.instr ==? `RV32_JAL  ;
 
   //these are bytes address
-  wire [pc_width_lp+1:0] jal_pc    = {jal_pc_high_out,    `RV32_Jimm_21extract(icache_r_data_s.instr) };
-  wire [pc_width_lp+1:0] branch_pc = {branch_pc_high_out, `RV32_Bimm_13extract(icache_r_data_s.instr) };
+  wire [pc_width_lp+1:0] jal_pc    = {jal_pc_high_out,    `RV32_Jimm_21extract(icache_stall_out.instr) };
+  wire [pc_width_lp+1:0] branch_pc = {branch_pc_high_out, `RV32_Bimm_13extract(icache_stall_out.instr) };
   //------------------------------------------------------------------
   // assign outputs.
-  assign icache_r_instr_o = icache_r_data_s.instr;
+  assign instruction_o = icache_stall_out.instr;
+  assign pc_r_o        = pc_r;
   // jump_addr_o is WORD address
   assign jump_addr_o      = is_jal_instr ? jal_pc[2+:pc_width_lp] : branch_pc[2+:pc_width_lp];
   

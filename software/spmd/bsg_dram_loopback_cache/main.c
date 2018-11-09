@@ -7,8 +7,12 @@
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
-#include "bsg_barrier.h"
-#include "bsg_mutex.h"
+//SHX -- The barrier and mutex is working in progress, 
+//       should not use it now. 
+//#include "bsg_barrier.h"
+//#include "bsg_mutex.h"
+
+int done= -1;
 
 #define VECTOR_LEN 8
 #define CACHE_NUM_SET 256
@@ -19,10 +23,11 @@ int data_vect[2][VECTOR_LEN] = {
   {2, 3, 5, 7, 11, 13, 17, 19}
 };
 
-bsg_barrier tile0_barrier = BSG_BARRIER_INIT(0, 1, 0 ,0); 
+//bsg_barrier tile0_barrier = BSG_BARRIER_INIT(0, 1, 0 ,0); 
 
 void test_store_stride(int id, int offset, int stride, int **data_vect)
 {
+
   int addr_vect[VECTOR_LEN];
 
   // set up addr vector.
@@ -65,6 +70,7 @@ void test_store_stride(int id, int offset, int stride, int **data_vect)
 
 int main()
 {
+  volatile int *done_v = &done;
   bsg_set_tile_x_y();
 
   int id = bsg_x_y_to_id(bsg_x, bsg_y);
@@ -86,15 +92,15 @@ int main()
       test_store_stride(id, 12, (4 << i), (int**) data_vect);
     }
 
-    bsg_barrier_wait(&tile0_barrier, 0, 0);
-  }
-
-  if (id == 0)
-  {
-    bsg_finish_x(2);
-  }
-  else
-  {
+    //bsg_barrier_wait(&tile0_barrier, 0, 0);
+        if (id == 0) {
+          bsg_wait_while( *done_v < 0 );
+          bsg_finish_x(2);
+        }else {
+            bsg_remote_store(0,0,(&done), 1);
+            bsg_wait_while(1);
+        }
+  } else {
     bsg_wait_while(1);
   }
 }

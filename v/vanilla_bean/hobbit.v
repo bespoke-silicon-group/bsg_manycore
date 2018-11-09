@@ -249,10 +249,10 @@ wire flush = (branch_mispredict | jalr_mispredict);
 
 // Program counter logic
 logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr;
-logic                   pc_wen, pc_wen_r, icache_cen;
+logic                   pc_wen,  icache_cen;
 
 // Instruction memory logic
-instruction_s                   icache_r_instr_lo, instruction, instruction_r;
+instruction_s   instruction;
 
 // PC write enable. This stops the CPU updating the PC
 `ifdef bsg_FPU
@@ -328,9 +328,11 @@ icache #(
        ,.icache_w_addr_i        (net_packet_r.header.addr[2+:icache_addr_width_p])
        ,.icache_w_tag_i         (icache_tag_width_p'(0) )
        ,.icache_w_instr_i       (net_packet_r.data      )
-       ,.icache_r_instr_o       (icache_r_instr_lo      )
 
        ,.pc_i                   (pc_n                   )
+       ,.pc_wen_i               (pc_wen                 )
+       ,.pc_r_o                 (pc_r                   )
+       ,.instruction_o          (instruction            )
        ,.jump_addr_o            (pc_jump_addr           )
        );
 
@@ -344,10 +346,6 @@ icache #(
           else $error("## byte write to instruction memory (%m)");
      end
    // synopsys translate_on
-
-// Since imem has one cycle delay and we send next cycle's address, pc_n,
-// if the PC is not written, the instruction must not change.
-assign instruction = (pc_wen_r) ? icache_r_instr_lo: instruction_r;
 
 //+----------------------------------------------
 //|
@@ -560,10 +558,8 @@ always_ff @ (posedge clk_i)
 begin
     if (reset_i) begin
         state_r            <= IDLE;
-        pc_wen_r           <= '0;
     end else begin
         state_r            <= state_n;
-        pc_wen_r           <= pc_wen;
     end
 end
 
@@ -591,21 +587,6 @@ end
       ,.reset_i(reset_i)
       ,.data_i(net_packet_i)
       ,.data_o(net_packet_r)
-      );
-
-   bsg_dff_reset #(.width_p($bits(instruction_s)), .harden_p(1)) instruction_r_reg
-     ( .clk_i(clk_i)
-      ,.reset_i(reset_i)
-      ,.data_i(instruction)
-      ,.data_o(instruction_r)
-      );
-
-   bsg_dff_reset_en #(.width_p(pc_width_lp),.harden_p(1)) pc_r_reg
-     ( .clk_i (clk_i)
-      ,.reset_i(reset_i)
-      ,.en_i   (pc_wen)
-      ,.data_i (pc_n)
-      ,.data_o (pc_r)
       );
 
 
