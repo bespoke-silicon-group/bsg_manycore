@@ -4,7 +4,7 @@ bsg_tiles_Y= 1
 
 all: main.run
 
-include ../Makefile.include
+include ../../Makefile.include
 
 RISCV_LINK_OPTS = -m32 -march=RV32IMA -nostdlib -nostartfiles 
 
@@ -18,5 +18,5 @@ clean:
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd
 
 
-include ../../mk/Makefile.tail_rules
+include ../../../mk/Makefile.tail_rules
 
