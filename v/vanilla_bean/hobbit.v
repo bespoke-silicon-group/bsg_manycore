@@ -314,6 +314,8 @@ assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_w
 `declare_icache_format_s( icache_tag_width_p );
 icache_format_s       icache_r_data_s;
 
+wire [icache_tag_width_p-1:0] icache_w_tag = net_imem_write_cmd ? {icache_tag_width_p{1'b1}}
+                                                                : 'bx ; //TODO replace the one from remote load
 icache #(
          .icache_tag_width_p  ( icache_tag_width_p      )
         ,.icache_addr_width_p ( icache_addr_width_p     )
@@ -326,7 +328,7 @@ icache #(
        ,.icache_cen_i           (icache_cen             )
        ,.icache_w_en_i          (net_imem_write_cmd     )
        ,.icache_w_addr_i        (net_packet_r.header.addr[2+:icache_addr_width_p])
-       ,.icache_w_tag_i         (icache_tag_width_p'(0) )
+       ,.icache_w_tag_i         (icache_w_tag           ) 
        ,.icache_w_instr_i       (net_packet_r.data      )
 
        ,.pc_i                   (pc_n                   )
