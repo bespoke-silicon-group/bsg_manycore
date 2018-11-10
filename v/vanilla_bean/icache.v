@@ -34,7 +34,7 @@ module icache #(parameter
 
   //the struct fo be written into the icache
   `declare_icache_format_s( icache_tag_width_p );
-  icache_format_s       icache_w_data_s, icache_r_data_s, icache_r_data_r, icache_stall_out;
+  icache_format_s       icache_w_data_s, icache_r_data_s, icache_stall_out_r, icache_stall_out;
 
   //the address of the icache entry
   wire [icache_addr_width_p-1:0]  icache_addr = icache_w_en_i ? icache_w_addr_i
@@ -93,7 +93,7 @@ module icache #(parameter
   bsg_mem_1rw_sync #
     ( .width_p ( icache_format_width_lp )
      ,.els_p   (2**icache_addr_width_p)
-     ,.substitute_1r1w_p(1'b0)
+     //,.substitute_1r1w_p(1'b0)
     ) imem_0
     ( .clk_i  (clk_i)
      ,.reset_i(reset_i)
@@ -118,11 +118,11 @@ module icache #(parameter
         else if( pc_wen_i) pc_r               <= pc_i;
 
   always_ff@(posedge clk_i) 
-        if(reset_i)          icache_r_data_r    <= 'b0;
-        else                 icache_r_data_r    <= icache_r_data_s;
+        if(reset_i)          icache_stall_out_r    <= 'b0;
+        else                 icache_stall_out_r    <= icache_stall_out;
 
   //this is the final output that send out, take stall into consideration
-  assign icache_stall_out = (pc_wen_r) ? icache_r_data_s: icache_r_data_r;
+  assign icache_stall_out = (pc_wen_r) ? icache_r_data_s: icache_stall_out_r;
   //------------------------------------------------------------------
   // merge the PC lower part and high part
   localparam branch_pc_high_width_lp = pc_width_lp - RV32_Bimm_width_gp;
