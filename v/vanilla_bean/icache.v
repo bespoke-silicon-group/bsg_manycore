@@ -30,6 +30,7 @@ module icache #(parameter
                ,input                              pc_wen_i
                ,output [pc_width_lp-1:0]           pc_r_o
                ,output [pc_width_lp-1:0]           jump_addr_o
+               ,output                             icache_miss_o
                );
 
   //the struct fo be written into the icache
@@ -174,5 +175,7 @@ module icache #(parameter
   assign pc_r_o        = pc_r;
   // jump_addr_o is WORD address
   assign jump_addr_o      = is_jal_instr ? jal_pc[2+:pc_width_lp] : branch_pc[2+:pc_width_lp];
+  // the icache miss logic
+  assign icache_miss_o    =  ( icache_stall_out.tag != pc_r[icache_addr_width_p+:icache_tag_width_p] );
   
 endmodule

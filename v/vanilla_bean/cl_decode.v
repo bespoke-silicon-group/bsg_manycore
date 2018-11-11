@@ -9,6 +9,7 @@
 module cl_decode
 (
     input  instruction_s instruction_i,
+    input                icache_miss_i,
     output decode_s      decode_o
 );
 
@@ -37,14 +38,14 @@ always_comb
         `RV32_LOAD, `RV32_STORE, `RV32_AMO:
             decode_o.is_mem_op = 1'b1;
         default:
-            decode_o.is_mem_op = 1'b0;
+            decode_o.is_mem_op = icache_miss_i;
     endcase
 
 // Is byte Op -- byte ld/st operation
 always_comb
     unique casez (instruction_i.funct3)
         3'b000, 3'b100: //LB, LBU,SB:
-            decode_o.is_byte_op = decode_o.is_mem_op;
+            decode_o.is_byte_op = icache_miss_i? 1'b0 : decode_o.is_mem_op;
         default:
             decode_o.is_byte_op = 1'b0;
     endcase
@@ -53,7 +54,7 @@ always_comb
 always_comb
     unique casez (instruction_i.funct3)
         3'b001, 3'b101: //LH, LHU, SH
-            decode_o.is_hex_op = decode_o.is_mem_op;
+            decode_o.is_hex_op = icache_miss_i? 1'b0 : decode_o.is_mem_op;
         default:
             decode_o.is_hex_op = 1'b0;
     endcase
@@ -72,7 +73,7 @@ always_comb
         `RV32_LOAD, `RV32_AMO:
             decode_o.is_load_op = 1'b1;
         default:
-            decode_o.is_load_op = 1'b0;
+            decode_o.is_load_op = icache_miss_i ;
     endcase
 
 // Is load unsigned

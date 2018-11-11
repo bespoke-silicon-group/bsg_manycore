@@ -67,6 +67,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic                              out_ready_lo;
 
    logic [data_width_p-1:0]           returned_data_r_lo  ;
+   logic [addr_width_p-1:0]           returned_addr_r_lo  ;
    logic                              returned_v_r_lo     ;
 
    logic [data_width_p-1:0]           load_returning_data, store_returning_data_r, returning_data;
@@ -109,6 +110,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ,.out_ready_o (out_ready_lo)
 
     ,.returned_data_r_o ( returned_data_r_lo )
+    ,.returned_addr_r_o ( returned_addr_r_lo )
     ,.returned_v_r_o    ( returned_v_r_lo    )
 
     ,.returning_data_i ( returning_data )
@@ -275,9 +277,12 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   //the core_to_mem yumi signal is not used.
 
   //The data can either from local memory or from the network.
-  assign mem_to_core.valid      = core_mem_rv | returned_v_r_lo  ;
-  assign mem_to_core.read_data  = core_mem_rv ? core_mem_rdata
-                                              : returned_data_r_lo ;
+  assign mem_to_core.valid           = core_mem_rv | returned_v_r_lo  ;
+  assign mem_to_core.info.read_data  = core_mem_rv ? core_mem_rdata
+                                                   : returned_data_r_lo ;
+
+  localparam addr_fill_lp = 32 - 2 - addr_width_p;
+  assign mem_to_core.info.returned_addr = { {addr_fill_lp{1'b0}}, returned_addr_r_lo, 2'b0} ;
 
    wire out_request;
 
