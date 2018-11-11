@@ -96,7 +96,7 @@ typedef struct packed
     logic        yumi;    // in response to data memory
 } mem_in_s;
 
-typdef  struct packed
+typedef  struct packed
 {
     logic [31:0] read_data;
     logic [31:0] returned_addr;

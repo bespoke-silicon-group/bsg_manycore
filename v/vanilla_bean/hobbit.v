@@ -201,7 +201,7 @@ wire [RV32_reg_data_width_gp-1:0] ld_st_addr   = rs1_to_alu +  exe.mem_addr_op2;
 
 // We need to set the MSB of exe_pc to 1'b1 so it will be interpreted as DRAM
 // address
-wire [RV32_reg_data_width_gp-1:0] exe_pc       = (exe.pc_plus4 - 2'h4) | 32'h8000_0000 ; 
+wire [RV32_reg_data_width_gp-1:0] exe_pc       = (exe.pc_plus4 - 'h4) | 32'h8000_0000 ; 
 
 assign mem_addr_send= exe.icache_miss? exe_pc : ld_st_addr ;
 
@@ -324,6 +324,9 @@ assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_w
 `declare_icache_format_s( icache_tag_width_p );
 icache_format_s       icache_r_data_s;
 
+logic [RV32_reg_data_width_gp-1:0] loaded_data;
+logic [RV32_reg_data_width_gp-1:0] loaded_pc  ;
+
 wire                          icache_w_en  = net_imem_write_cmd | (mem.icache_miss & data_mem_valid );
 wire [icache_addr_width_p-1:0]icache_w_addr= net_imem_write_cmd ? net_packet_r.header.addr[2+:icache_addr_width_p]
                                                                 : loaded_pc[2+:icache_addr_width_p];
@@ -353,7 +356,7 @@ icache #(
        ,.pc_r_o                 (pc_r                   )
        ,.instruction_o          (instruction            )
        ,.jump_addr_o            (pc_jump_addr           )
-       ,.icache_miss_lo         (icache_miss_lo         )
+       ,.icache_miss_o          (icache_miss_lo         )
        );
 
    // synopsys translate_off
@@ -549,9 +552,9 @@ cl_state_machine state_machine
 //|        DATA MEMORY HANDSHAKE SIGNALS
 //|
 //+----------------------------------------------
-wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) );     // or we are waiting memory response
+wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) ;     // or we are waiting memory response
 wire non_ld_st_stall  = stall_non_mem | stall_lrw                 ;     // don't present address if we are stalling
-assign valid_to_mem_c = (exe.decode.is_mem_op ) //icache miss is also decoded as mem op
+assign valid_to_mem_c = (exe.decode.is_mem_op   //icache miss is also decoded as mem op
                         & (~wait_mem_rsp) 
                         & (~non_ld_st_stall) 
                         );
@@ -846,8 +849,6 @@ begin
 end
 
 
-logic [RV32_reg_data_width_gp-1:0] loaded_data;
-logic [RV32_reg_data_width_gp-1:0] loaded_pc  ;
 assign loaded_data =  is_load_buffer_valid ? load_buffer_info.read_data:
                                              from_mem_i.info.read_data;
 
@@ -909,7 +910,7 @@ begin
                        rd_addr      : mem.rd_addr,
                        rf_data      : rf_data,
                        icache_miss   : mem.icache_miss,
-                       icache_miss_pc: mem.icache_miss_pc
+                       icache_miss_pc: loaded_pc
                        };
       end
 end

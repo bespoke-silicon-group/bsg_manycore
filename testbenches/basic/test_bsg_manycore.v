@@ -47,7 +47,7 @@ module test_bsg_manycore;
    localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
    localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + 1);
    localparam packet_width_lp        = `bsg_manycore_packet_width       (addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp);
-   localparam return_packet_width_lp = `bsg_manycore_return_packet_width(lg_node_x_lp, lg_node_y_lp, data_width_lp);
+   localparam return_packet_width_lp = `bsg_manycore_return_packet_width(lg_node_x_lp, lg_node_y_lp, data_width_lp,addr_width_lp);
    localparam cycle_time_lp   = 20;
    localparam trace_vscale_pipeline_lp=0;
    localparam trace_manycore_tile_lp=0;

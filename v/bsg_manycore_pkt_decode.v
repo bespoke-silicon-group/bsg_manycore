@@ -7,7 +7,7 @@ module bsg_manycore_pkt_decode
     , data_width_p   = -1
     , addr_width_p   = -1
     , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p)
+    , return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p, addr_width_p)
     )
    (
     input   v_i
