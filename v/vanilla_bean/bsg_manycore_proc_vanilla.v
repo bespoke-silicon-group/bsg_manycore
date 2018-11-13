@@ -34,7 +34,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                            , freeze_init_p  = 1'b1
 
                            , packet_width_lp                = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                           , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p, addr_width_p)
+                           , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p)
                            , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width     (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                           )
    (input   clk_i
@@ -110,7 +110,6 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ,.out_ready_o (out_ready_lo)
 
     ,.returned_data_r_o ( returned_data_r_lo )
-    ,.returned_addr_r_o ( returned_addr_r_lo )
     ,.returned_v_r_o    ( returned_v_r_lo    )
 
     ,.returning_data_i ( returning_data )
@@ -253,7 +252,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
          core_net_pkt.header.mask   = in_mask_lo;
          // this address alread stripped the byte bits
          // We have to add them for compatibility
-         core_net_pkt.header.addr   = {in_addr_lo[11:0], 2'b0};
+         core_net_pkt.header.addr   = {in_addr_lo, 2'b0};
        end
      else
        begin // initiates pc pushing core to RUN state
@@ -262,7 +261,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
          //1.  We don't support exceptions, and we don't want to waste the
          //    instruction memory so the starting address of the first instruction
          //    is ZERO
-         core_net_pkt.header.addr     = 13'h0;
+         core_net_pkt.header.addr     = 'b0;
        end
 
     core_net_pkt.data   = remote_store_imem_not_dmem ? in_data_lo : 32'(0);
@@ -278,11 +277,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
   //The data can either from local memory or from the network.
   assign mem_to_core.valid           = core_mem_rv | returned_v_r_lo  ;
-  assign mem_to_core.info.read_data  = core_mem_rv ? core_mem_rdata
+  assign mem_to_core.read_data       = core_mem_rv ? core_mem_rdata
                                                    : returned_data_r_lo ;
 
-  localparam addr_fill_lp = 32 - 2 - addr_width_p;
-  assign mem_to_core.info.returned_addr = { {addr_fill_lp{1'b0}}, returned_addr_r_lo, 2'b0} ;
 
    wire out_request;
 

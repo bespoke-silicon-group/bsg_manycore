@@ -72,7 +72,7 @@ typedef struct packed
                                         // more bits for net_op
     //TODO--The address should be parameterizable.
     //      Right now set to the max(BRANCH_IMM, JAL_IMM)
-    logic [12:0] addr;        // 13..0  // the addr field which could be largened
+    logic [RV32_reg_data_width_gp-1:0] addr;        // 13..0  // the addr field which could be largened
                                         // using reserved field
 } v_core_header_s;
 
@@ -96,16 +96,11 @@ typedef struct packed
     logic        yumi;    // in response to data memory
 } mem_in_s;
 
-typedef  struct packed
-{
-    logic [31:0] read_data;
-    logic [31:0] returned_addr;
-}read_info_s;
 // Data memory output structure
 typedef struct packed
 {
     logic        valid;
-    read_info_s  info;
+    logic [31:0] read_data;
     logic        yumi;      // in response to core
 } mem_out_s;
 
@@ -196,7 +191,7 @@ typedef struct packed
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;      // Register file write address
     logic [RV32_reg_data_width_gp-1:0] rf_data;      // Register file write data
     logic                              icache_miss;
-    logic [RV32_reg_addr_width_gp-1:0] icache_miss_pc;
+    logic [RV32_reg_data_width_gp-1:0] icache_miss_pc;
 } wb_signals_s;
 
 `endif

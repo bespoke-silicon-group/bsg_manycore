@@ -20,7 +20,12 @@ module hobbit #(parameter
                           y_cord_width_p    = -1,
                           debug_p           = 0 ,
                           pc_width_lp            = icache_tag_width_p + icache_addr_width_p, 
-                          icache_format_width_lp = `icache_format_width( icache_tag_width_p )
+                          icache_format_width_lp = `icache_format_width( icache_tag_width_p ),
+                          //As all instructions will be resident in DRAM, we
+                          //need to pad the higher parts of the pc so it
+                          //points to DRAM.
+                          pc_high_padding_width_lp  = RV32_reg_data_width_gp - pc_width_lp -2 ,
+                          pc_high_padding_lp        = {1'b1, {pc_high_padding_width_lp{1'b0}} }
                )(
                 input                             clk_i
                ,input                             reset_i
@@ -104,7 +109,7 @@ logic stall_fence;
 //We have to buffer the returned data from memory
 //if there is a non-memory stall at current cycle.
 logic                               is_load_buffer_valid;
-read_info_s                         load_buffer_info;
+logic [RV32_reg_data_width_gp-1:0]  load_buffer_info;
 
 //the memory valid signal may come from memory or the buffer register
 logic                               data_mem_valid;
@@ -201,7 +206,7 @@ wire [RV32_reg_data_width_gp-1:0] ld_st_addr   = rs1_to_alu +  exe.mem_addr_op2;
 
 // We need to set the MSB of exe_pc to 1'b1 so it will be interpreted as DRAM
 // address
-wire [RV32_reg_data_width_gp-1:0] exe_pc       = (exe.pc_plus4 - 'h4) | 32'h8000_0000 ; 
+wire [RV32_reg_data_width_gp-1:0] exe_pc       = (exe.pc_plus4 - 'h4); 
 
 assign mem_addr_send= exe.icache_miss? exe_pc : ld_st_addr ;
 
@@ -380,7 +385,6 @@ icache #(
 cl_decode cl_decode_0
 (
     .instruction_i(instruction),
-    .icache_miss_i(icache_miss_lo),
     .decode_o(decode)
 );
 
@@ -552,12 +556,12 @@ cl_state_machine state_machine
 //|        DATA MEMORY HANDSHAKE SIGNALS
 //|
 //+----------------------------------------------
-wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) ;     // or we are waiting memory response
-wire non_ld_st_stall  = stall_non_mem | stall_lrw                 ;     // don't present address if we are stalling
-assign valid_to_mem_c = (exe.decode.is_mem_op   //icache miss is also decoded as mem op
-                        & (~wait_mem_rsp) 
-                        & (~non_ld_st_stall) 
-                        );
+// we are waiting memory response
+wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) ;     
+// don't present the request if we are stalling because of non-load/store reason
+wire non_ld_st_stall  = stall_non_mem | stall_lrw                 ;     
+//icache miss is also decoded as mem op
+assign valid_to_mem_c = (exe.decode.is_mem_op & (~wait_mem_rsp) & (~non_ld_st_stall) );
 
 //We should always accept the returned data even there is a non memory stall
 //assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
@@ -665,8 +669,8 @@ begin
         debug_id <= debug_if;
    // synopsys translate_on
         id <= '{
-            pc_plus4     : {pc_plus4,2'b0}      ,
-            pc_jump_addr : {pc_jump_addr,2'b0}  ,
+            pc_plus4     : {pc_high_padding_lp, pc_plus4,2'b0}      ,
+            pc_jump_addr : {pc_high_padding_lp, pc_jump_addr,2'b0}  ,
             instruction  : instruction          ,
             decode       : decode               ,
             icache_miss  : icache_miss_lo
@@ -714,6 +718,16 @@ wire    exe_rs2_in_mem     = exe.decode.op_writes_rf
 wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
                            & (id.instruction.rs2  == mem.rd_addr)
                            & (|id.instruction.rs2);
+
+// We set the icache miss as a remote load without read/write registers.
+decode_s     id2exe_decode;
+always_comb begin
+        id2exe_decode =  id.decode;
+        if( id.icache_miss ) begin
+                id2exe_decode.is_load_op = 1'b1;
+                id2exe_decode.is_mem_op  = 1'b1;
+        end
+end
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
@@ -746,7 +760,7 @@ begin
                   pc_plus4     : id.pc_plus4,
                   pc_jump_addr : id.pc_jump_addr,
                   instruction  : id.instruction,
-                  decode       : id.decode,
+                  decode       : id2exe_decode,
                   rs1_val      : rs1_to_exe,
                   rs2_val      : rs2_to_exe,
                   mem_addr_op2 : mem_addr_op2,
@@ -838,7 +852,7 @@ begin
     //else if( stall_non_mem & mem.decode.is_load_op & from_mem_i.valid )
     begin
         is_load_buffer_valid <= 1'b1;
-        load_buffer_info     <= from_mem_i.info;
+        load_buffer_info     <= from_mem_i.read_data;
     end
     //we should clear the buffer if not stalled
     else if( ~stall )
@@ -849,11 +863,9 @@ begin
 end
 
 
-assign loaded_data =  is_load_buffer_valid ? load_buffer_info.read_data:
-                                             from_mem_i.info.read_data;
-
-assign loaded_pc   =  is_load_buffer_valid ? load_buffer_info.returned_addr:
-                                             from_mem_i.info.returned_addr;
+assign loaded_data =  is_load_buffer_valid ? load_buffer_info
+                                           : from_mem_i.read_data;
+assign loaded_pc   =  mem.mem_addr_send;
 
 logic [RV32_reg_data_width_gp-1:0] loaded_byte;
 always_comb

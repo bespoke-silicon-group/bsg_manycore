@@ -17,7 +17,6 @@
 `define declare_bsg_manycore_packet_s(in_addr_width,in_data_width,in_x_cord_width,in_y_cord_width) \
    typedef struct packed {                                  \
       logic [`return_packet_type_width-1:0]     pkt_type;   \
-      logic [(in_addr_width)-1:0]               addr  ;     \
       logic [(in_data_width)-1:0]               data  ;     \
       logic [(in_y_cord_width)-1:0]             y_cord;     \
       logic [(in_x_cord_width)-1:0]             x_cord;     \
@@ -34,10 +33,9 @@
       logic [(in_x_cord_width)-1:0]  x_cord;         \
    } bsg_manycore_packet_s
 
-`define bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width,in_data_width,in_addr_width) ( (in_x_cord_width) \
+`define bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width,in_data_width) ( (in_x_cord_width) \
                                                                            +(in_y_cord_width) \
                                                                            +(in_data_width  ) \
-                                                                           +(in_addr_width  ) \
                                                                            +(`return_packet_type_width) \
                                                                           )
 
@@ -60,14 +58,14 @@
 
 `define bsg_manycore_link_sif_width(in_addr_width,in_data_width,in_x_cord_width, in_y_cord_width)                              \
      (   `bsg_ready_and_link_sif_width(`bsg_manycore_packet_width(in_addr_width,in_data_width,in_x_cord_width,in_y_cord_width))        \
-       + `bsg_ready_and_link_sif_width(`bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width, in_data_width, in_addr_width)) \
+       + `bsg_ready_and_link_sif_width(`bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width, in_data_width)) \
      )
 
 `define declare_bsg_manycore_fwd_link_sif_s(in_addr_width,in_data_width,in_x_cord_width,in_y_cord_width,name)  \
      `declare_bsg_ready_and_link_sif_s(`bsg_manycore_packet_width(in_addr_width,in_data_width,in_x_cord_width,in_y_cord_width),name)
 
-`define declare_bsg_manycore_rev_link_sif_s(in_x_cord_width,in_y_cord_width,in_data_width,in_addr_width,name)  \
-     `declare_bsg_ready_and_link_sif_s(`bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width, in_data_width,in_addr_width),name)
+`define declare_bsg_manycore_rev_link_sif_s(in_x_cord_width,in_y_cord_width,in_data_width,name)  \
+     `declare_bsg_ready_and_link_sif_s(`bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width, in_data_width),name)
 
 `define write_bsg_manycore_packet_s(PKT)                                                                                                     \
     $write("op=2'b%b, op_ex=4'b%b, addr=%-d'h%h data=%-d'h%h (x,y)=(%-d'b%b,%-d'b%b), return (x,y)=(%-d'b%b,%-d'b%b)"                        \
@@ -76,7 +74,7 @@
 // defines bsg_manycore_fwd_link_sif, bsg_manycore_rev_link_sif, and the combination, bsg_manycore_link_sif_s
 `define declare_bsg_manycore_link_sif_s(in_addr_width, in_data_width, in_x_cord_width, in_y_cord_width)                                \
     `declare_bsg_manycore_fwd_link_sif_s(in_addr_width, in_data_width, in_x_cord_width, in_y_cord_width, bsg_manycore_fwd_link_sif_s); \
-    `declare_bsg_manycore_rev_link_sif_s(in_x_cord_width, in_y_cord_width,in_data_width, in_addr_width, bsg_manycore_rev_link_sif_s);  \
+    `declare_bsg_manycore_rev_link_sif_s(in_x_cord_width, in_y_cord_width,in_data_width, bsg_manycore_rev_link_sif_s);  \
                                                                                                                                        \
    typedef struct packed {             \
       bsg_manycore_fwd_link_sif_s fwd; \

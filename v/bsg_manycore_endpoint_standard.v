@@ -12,7 +12,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          ,warn_out_of_credits_p  = 1
                                          ,debug_p                = 0
                                          ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                                         ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p,addr_width_p)
+                                         ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p)
                                          ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                          ,num_nets_lp            = 2
                                          )
@@ -40,7 +40,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     // Like the memory interface, processor should always ready be to handle the returned data
     , output [data_width_p-1:0]             returned_data_r_o
     , output                                returned_v_r_o
-    , output [addr_width_p-1:0]             returned_addr_r_o
 
     // The memory read value
     , input [data_width_p-1:0]              returning_data_i
@@ -194,7 +193,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    // ----------------------------------------------------------------------------------------
    typedef struct packed {
       logic [`return_packet_type_width-1:0]     pkt_type;
-      logic [(addr_width_p  )-1:0]              addr;
       logic [(y_cord_width_p)-1:0]              y_cord;
       logic [(x_cord_width_p)-1:0]              x_cord;
    } returning_credit_info;
@@ -204,7 +202,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    wire req_returning_data =pkt_remote_load | pkt_remote_swap_aq | pkt_remote_swap_rl ;
 
    assign rc_fifo_li   ='{ pkt_type: ( req_returning_data) ?`ePacketType_data :`ePacketType_credit
-                          ,addr    : cgni_data.addr
                           ,y_cord  : cgni_data.src_y_cord
                           ,x_cord  : cgni_data.src_x_cord
                         };
@@ -255,7 +252,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
     bsg_manycore_return_packet_s      returning_pkt_cast;
     assign returning_pkt_cast       = '{ pkt_type        : rc_fifo_lo.pkt_type
-                                       , addr            : rc_fifo_lo.addr
                                        , data            : holded_returning_data_lo
                                        , y_cord          : rc_fifo_lo.y_cord
                                        , x_cord          : rc_fifo_lo.x_cord
@@ -278,7 +274,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       );
 
    assign returned_data_r_o     =   returned_packet_lo.data     ;
-   assign returned_addr_r_o     =   returned_packet_lo.addr     ;
    assign returned_v_r_o        =   returned_credit_lo
                                  & ( returned_packet_lo.pkt_type == `ePacketType_data ) ;
   // *************************************************

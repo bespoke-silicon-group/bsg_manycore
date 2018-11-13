@@ -65,7 +65,6 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
       ,.in_we_o  ()
 
       ,.returned_data_r_o()
-      ,.returned_addr_r_o()
       ,.returned_v_r_o   ()
 
       ,.returning_data_i ( 0 )
