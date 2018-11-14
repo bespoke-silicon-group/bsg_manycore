@@ -66,7 +66,7 @@ module bsg_nonsynth_manycore_io_complex
      end
 
    bsg_manycore_spmd_loader
-     #( .icache_size_p    (mem_size_p)
+     #( .icache_entries_num_p    (mem_size_p/2)
         ,.num_rows_p    (num_tiles_y_p)
         ,.num_cols_p    (num_tiles_x_p)
         ,.load_rows_p   (load_rows_p)

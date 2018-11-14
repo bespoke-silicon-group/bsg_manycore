@@ -62,17 +62,24 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   localparam    config_addr_bits = 1 << ( epa_addr_width_p-1);
   localparam    unfreeze_addr = addr_width_p'(0) | config_addr_bits;
 
+  logic                         var_v_o;
+  logic [packet_width_lp-1:0]   var_data_o;
+
+  assign v_o    = var_v_o;
+  assign data_o = var_data_o;
+
   initial begin
         $readmemh(dmem_init_file_name, DMEM);
         $readmemh(dram_init_file_name, DRAM);
 
-        v_o <= 1'b0;
+        
+        var_v_o = 1'b0;
         wait( reset_i === 1'b0); //wait until the reset is done
 
-        init_icache_tag (clk_i, reset_i, ready_i, v_o, packet_o);
-        init_dmem       (clk_i, reset_i, ready_i, v_o, packet_o);
-        init_dram       (clk_i, reset_i, ready_i, v_o, packet_o);
-        unfreeze_tiles  (clk_i, reset_i, ready_i, v_o, packet_o);
+        init_icache_tag (clk_i, reset_i, ready_i, var_v_o, var_data_o);
+        init_dmem       (clk_i, reset_i, ready_i, var_v_o, var_data_o);
+        init_dram       (clk_i, reset_i, ready_i, var_v_o, var_data_o);
+        unfreeze_tiles  (clk_i, reset_i, ready_i, var_v_o, var_data_o);
   end
   ///////////////////////////////////////////////////////////////////////////////
   // Task to init the icache
@@ -87,7 +94,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                      $display("Initilizing ICACHE, y_cord=%d, x_cord=%d", y_cord, x_cord);
                      for(icache_addr =0; icache_addr <icache_entries_num_p; icache_addr ++) begin
                                 @(posedge clk_i);          //pull up the valid
-                                v_o <= 1'b1; 
+                                v_o = 1'b1; 
 
                                 packet_o.data   = 'b0;
                                 packet_o.addr   =  icache_addr;
@@ -117,9 +124,9 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                      $display("Initilizing DMEM, y_cord=%d, x_cord=%d", y_cord, x_cord);
                      for(dmem_addr =dmem_start_addr_lp; dmem_addr < dmem_end_addr_lp; dmem_addr= dmem_addr +4) begin
                                 @(posedge clk_i);          //pull up the valid
-                                v_o <= 1'b1; 
+                                v_o = 1'b1; 
 
-                                packet_o.data   = {DMEM[dmem_addr+3], DMEM[dmem_addr+2], DMEM[dmem_addr+1], DMEM[dmem_addr];
+                                packet_o.data   = {DMEM[dmem_addr+3], DMEM[dmem_addr+2], DMEM[dmem_addr+1], DMEM[dmem_addr]};
                                 packet_o.addr   =  dmem_addr>>2;
                                 packet_o.op     = `ePacketOp_remote_store;
                                 packet_o.op_ex  =  4'b1111; //TODO not handle the byte write.
@@ -146,11 +153,11 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         $display("Initilizing DRAM, y_cord=%d, x_cord=%d", y_cord, x_cord);
         for(dram_addr =dram_start_addr_lp; dram_addr < dram_end_addr_lp; dram_addr= dram_addr +4) begin
                    @(posedge clk_i);          //pull up the valid
-                   v_o <= 1'b1; 
+                   v_o = 1'b1; 
 
                    dram_addr_cast = dram_addr; 
 
-                   packet_o.data   = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr];
+                   packet_o.data   = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr]};
                    packet_o.addr   =  dram_addr>>2;
                    packet_o.op     = `ePacketOp_remote_store;
                    packet_o.op_ex  =  4'b1111; //TODO not handle the byte write.
@@ -170,26 +177,22 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                        ,output  v_o
                        ,output  bsg_manycore_packet_s packet_o);
         int x_cord, y_cord, dram_addr;
-        bsg_manycore_dram_addr_s  dram_addr_cast; 
 
         for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
                 for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
-                                @(posedge clk_i);          //pull up the valid
-                                v_o <= 1'b1; 
+                    @(posedge clk_i);          //pull up the valid
+                    v_o = 1'b1; 
 
-                                dram_addr_cast = dram_addr; 
+                    packet_o.data   =  'b0;
+                    packet_o.addr   = unfreeze_addr >> 2; 
+                    packet_o.op     = `ePacketOp_remote_store;
+                    packet_o.op_ex  =  4'b1111; //TODO not handle the byte write.
+                    packet_o.x_cord = x_cord;
+                    packet_o.y_cord = y_cord;
+                    packet_o.src_x_cord = my_x_i;
+                    packet_o.src_y_cord = my_y_i;
 
-                                packet_o.data   =  'b0
-                                packet_o.addr   = unfreeze_addr >> 2; 
-                                packet_o.op     = `ePacketOp_remote_store;
-                                packet_o.op_ex  =  4'b1111; //TODO not handle the byte write.
-                                packet_o.x_cord = x_cord;
-                                packet_o.y_cord = y_cord;
-                                packet_o.src_x_cord = my_x_i;
-                                packet_o.src_y_cord = my_y_i;
-
-                                wait( ready_i === 1'b1);   //check if the ready is pulled up.
-                       end 
+                    wait( ready_i === 1'b1);   //check if the ready is pulled up.
                 end
         end
   endtask 
