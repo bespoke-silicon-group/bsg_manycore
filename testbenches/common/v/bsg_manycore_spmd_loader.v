@@ -8,7 +8,7 @@ module bsg_manycore_spmd_loader
 
 import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
- #( parameter mem_size_p      = -1 // size of mem to be loaded  (bytes) (?)
+ #( parameter icache_size_p   = -1 // size of icache entry
    ,parameter data_width_p    = 32
    ,parameter addr_width_p    = 30
    ,parameter epa_addr_width_p= 16
@@ -21,6 +21,15 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,parameter y_cord_width_lp  = `BSG_SAFE_CLOG2(num_rows_p + 1)
    ,parameter x_cord_width_lp  = `BSG_SAFE_CLOG2(num_cols_p)
    ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+   //the data memory realted paraemters
+   ,parameter dmem_start_addr_lp = `_bsg_data_start_addr
+   ,parameter dmem_end_addr_lp   = `_bsg_data_end_addr
+   ,parameter dmem_init_file_name = `_dmem_init_file_name
+
+   //the dram  realted paraemters
+   ,parameter dram_start_addr_lp = `_bsg_dram_start_addr
+   ,parameter dram_end_addr_lp   = `_bsg_dram_end_addr
+   ,parameter dram_init_file_name = `_dram_init_file_name
   )
   ( input                        clk_i
    ,input                        reset_i
@@ -38,6 +47,18 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
   localparam tile_no_width_lp = 10;
   localparam tile_no_total_lp = load_rows_p * load_cols_p;
+
+  //initilization files
+  localparam dmem_size_lp = dmem_end_addr_lp - dmem_start_addr_lp;
+  localparam dram_size_lp = dram_end_addr_lp - dram_start_addr_lp; 
+
+  logic [7:0]  DMEM[dmem_end_addr_lp:dmem_start_addr_lp];
+  logic [7:0]  DRAM[dram_end_addr_lp:dram_start_addr_lp];
+  
+  initial begin
+        $readmemh(dmem_init_file_name, DMEM);
+        $readmemh(dram_init_file_name, DRAM);
+  end
 
   logic [tile_no_width_lp-1:0]    tile_no, tile_no_n; // tile number is limited to 1023
   logic [addr_width_p-1:0]    load_addr;
@@ -105,7 +126,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
    assign addr_o   = addr_width_p'(load_addr >> 2);
 
-   wire tile_loading_done = (load_addr == (mem_size_p-4));
+   wire tile_loading_done = (load_addr == (icache_size_p-4));
 
    //assign tile_no_n = (tile_no + tile_loading_done)  % (load_rows_p * load_cols_p);
    wire [tile_no_width_lp-1:0]  tile_no_plus_done= tile_no  + tile_loading_done;
@@ -113,7 +134,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
 
    assign loaded_n = (tile_no == load_rows_p*load_cols_p -1)
-                  && (load_addr == (mem_size_p-4));
+                  && (load_addr == (icache_size_p-4));
 
   always_ff @(negedge clk_i)
     if (reset_i===0 && ~loaded && ready_i)
@@ -137,7 +158,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
     else
       begin
         if(ready_i & ~loaded) begin
-             load_addr <= (load_addr + 4) % mem_size_p;
+             load_addr <= (load_addr + 4) % icache_size_p;
              tile_no   <= tile_no_n;
              loaded    <= loaded_n;
         end else if(ready_i & ( loaded | unfreezed_r ) ) begin

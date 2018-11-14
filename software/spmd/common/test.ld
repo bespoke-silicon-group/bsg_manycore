@@ -21,7 +21,7 @@ SECTIONS
 {
   /* beginning of data memory; set by imem size and bank conflict concerns */
   . = 0x1000;
-  _bsg_data_start = . ;
+  _bsg_data_start_addr = . ;
   /* data segment */
   .data : { *(.data) }
 
@@ -53,7 +53,7 @@ SECTIONS
   }
 
   /* End of uninitalized data segement */
-  _bsg_data_end = .;
+  _bsg_data_end_addr = .;
   /* text: test code section */
   /* SHX : Currently there is no exceptions allowed in bsg_manycore, so
    *       we don't want to wast the instruciton memory space, the first
@@ -62,13 +62,13 @@ SECTIONS
 
   /* . = 0x100;  */
   . = 0x10000000      ;
-  _bsg_dram_start = . ;
+  _bsg_dram_start_addr = . ;
   .text : 
   {
     crt.o(.text)
     *(.text)
     *(.text.startup)
   }
-  _bsg_dram_end = .  ;
+  _bsg_dram_end_addr = .  ;
 }
 

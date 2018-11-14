@@ -66,7 +66,7 @@ module bsg_nonsynth_manycore_io_complex
      end
 
    bsg_manycore_spmd_loader
-     #( .mem_size_p    (mem_size_p)
+     #( .icache_size_p    (mem_size_p)
         ,.num_rows_p    (num_tiles_y_p)
         ,.num_cols_p    (num_tiles_x_p)
         ,.load_rows_p   (load_rows_p)
@@ -86,7 +86,7 @@ module bsg_nonsynth_manycore_io_complex
          ,.my_x_i   ( x_cord_width_lp ' (src_x_cord_p) )
          ,.my_y_i   ( y_cord_width_lp ' (num_tiles_y_p) )
          );
-
+/*
    bsg_manycore_io_complex_rom
    #( .addr_width_p(addr_width_p)
       ,.width_p     (data_width_p)
@@ -95,7 +95,7 @@ module bsg_nonsynth_manycore_io_complex
        ,.data_o (mem_data)
        );
 
-
+*/
    wire [num_tiles_x_p-1:0] finish_lo_vec;
    assign finish_lo = | finish_lo_vec;
    

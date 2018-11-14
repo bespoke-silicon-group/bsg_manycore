@@ -1,0 +1,115 @@
+########################################
+# Check the dirs
+
+ifeq ($(VANILLA_DIR),)
+$(error VANILLA_DIR must be defined)
+endif
+
+ifeq ($(BSG_IP_CORES_DIR),)
+$(error BSG_IP_CORES_DIR must be defined)
+endif
+
+ifeq ($(BSG_MANYCORE_DIR),)
+$(error BSG_MANYCORE_DIR must be defined)
+endif
+
+VANILLA_SRC   = $(BSG_MANYCORE_DIR)/v/vanilla_bean
+
+LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_defines.v
+LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_noc_pkg.v
+
+LIST_VANILLA_INCS =$(VANILLA_SRC)
+
+LIST_COMMON_INCS = $(BSG_MANYCORE_DIR)/v/
+LIST_COMMON_INCS+= $(BSG_IP_CORES_DIR)/bsg_noc
+LIST_COMMON_INCS+= $(BSG_IP_CORES_DIR)/bsg_misc
+
+LIST_VANILLA_SRCS =
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/alu.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_decode.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_state_machine.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/hobbit.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/icache.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/imul_idiv_iterative.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/bsg_manycore_proc_vanilla.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/rf_2r1w_sync_wrapper.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_mux.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_dff_reset.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_imul_iterative.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_idiv_iterative_controller.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_idiv_iterative.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_adder_cin.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_nor2.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_buf_ctrl.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_buf.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_dff_en.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_xnor.v
+LIST_VANILLA_SRCS+= $(LIST_FPU_SRCS)
+
+LIST_COMMON_SRCS = $(BSG_IP_CORES_DIR)/bsg_misc/bsg_transpose.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_crossbar_o_by_i.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_cycle_counter.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_round_robin_arb.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_arb_fixed.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_priority_encode.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_priority_encode_one_hot_out.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_mux_one_hot.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_encode_one_hot.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_scan.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_counter_up_down.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_circular_ptr.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode_with_v.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_dff_reset_en.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1r1w.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1r1w_synth.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync_synth.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_2r1w_sync.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_2r1w_sync_synth.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_banked_crossbar.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_byte_synth.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_dataflow/bsg_fifo_1r1w_small.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_dataflow/bsg_two_fifo.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_dataflow/bsg_fifo_tracker.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_router.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_stitch.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_to_ring_stitch.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_router_buffered.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_hetero_socket.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_swap_ctrl.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_1hold.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint_standard.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_tieoff.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_accel_default.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkt_decode.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkt_encode.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_to_rocc.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_async_buffer.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_rocc_wrapper.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_rocc_dma.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_counter_dynamic_limit_en.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_profiler.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_spmd_loader.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_monitor.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_vscale_pipeline_trace.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_proc_trace.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_tile_trace.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_io_complex.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_clock_gen.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_test/bsg_nonsynth_reset_gen.v
+
+###################################################################################
+#   Generate the real filelist
+#
+DESIGN_HDRS = $(LIST_VANILLA_HDRS) $(LIST_COMMON_HDRS)
+DESIGN_INCS = $(LIST_VANILLA_INCS) $(LIST_COMMON_INCS)
+DESIGN_SRCS = $(LIST_VANILLA_SRCS) $(LIST_COMMON_SRCS)
+
+TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/basic/test_bsg_manycore.v
