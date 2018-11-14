@@ -3,11 +3,11 @@
 BSG_IP_CORES_DIR=$(abspath  ../../../bsg_ip_cores)
 BSG_MANYCORE_DIR=$(abspath  ../../../bsg_manycore)
 
-CAD_DIR=$(abspath ../../../cad)
+CADENV_DIR=$(abspath ../../../bsg_cadenv)
 
 ###########################################
 # SETUP THE TOOL PATHS
-# include $(CAD_DIR)/common/mk/cadenv.mk
+include $(CADENV_DIR)/cadenv.mk
 
 #############################################
 # SETUP THE INCLUDE PATH and SEARCH PATH
