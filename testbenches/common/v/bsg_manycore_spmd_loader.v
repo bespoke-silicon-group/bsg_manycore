@@ -65,28 +65,30 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   assign v_o    = var_v_o;
   assign data_o = var_data_o;
 
+//----------------------------------------------------------------------------
+// Main Procedure 
+//----------------------------------------------------------------------------
   initial begin
         $readmemh(dmem_init_file_name, DMEM);
         $readmemh(dram_init_file_name, DRAM);
-
         
         var_v_o = 1'b0;
         wait( reset_i === 1'b0); //wait until the reset is done
 
         init_icache_tag ();
-
+        init_dmem       ();
+        init_dram       ();
+        unfreeze_tiles  ();
         $finish();
-//        init_dmem       (clk_i, reset_i, ready_i, var_v_o[1], var_data_o);
-//        init_dram       (clk_i, reset_i, ready_i, var_v_o[2], var_data_o);
-//        unfreeze_tiles  (clk_i, reset_i, ready_i, var_v_o[3], var_data_o);
   end
-  ///////////////////////////////////////////////////////////////////////////////
-  // Task to init the icache
+//----------------------------------------------------------------------------
+// Task to init the icache
+//----------------------------------------------------------------------------
   task init_icache_tag();
         int x_cord, y_cord, icache_addr;
         for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
                 for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
-                     $display("Initilizing ICACHE, y_cord=%d, x_cord=%d", y_cord, x_cord);
+                     $display("Initilizing ICACHE, y_cord=%02d, x_cord=%02d, range=0000 - %h", y_cord, x_cord, icache_entries_num_p-1);
                      for(icache_addr =0; icache_addr <icache_entries_num_p; icache_addr ++) begin
                                 @(posedge clk_i);          //pull up the valid
                                 var_v_o = 1'b1; 
@@ -106,28 +108,23 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   endtask 
   ///////////////////////////////////////////////////////////////////////////////
   // Task to load the data memory
-  task init_dmem(       input   clk_i
-                       ,input   reset_i
-                       ,input   ready_i
-                       ,output  v_o
-                       ,output  bsg_manycore_packet_s packet_o);
+  task init_dmem();
         int x_cord, y_cord, dmem_addr;
-
         for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
                 for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
-                     $display("Initilizing DMEM, y_cord=%d, x_cord=%d", y_cord, x_cord);
+                     $display("Initilizing DMEM, y_cord=%02d, x_cord=%02d, range=%h - %h (byte)", y_cord, x_cord, dmem_start_addr_lp, dmem_end_addr_lp);
                      for(dmem_addr =dmem_start_addr_lp; dmem_addr < dmem_end_addr_lp; dmem_addr= dmem_addr +4) begin
                                 @(posedge clk_i);          //pull up the valid
-                                v_o = 1'b1; 
+                                var_v_o = 1'b1; 
 
-                                packet_o.data   = {DMEM[dmem_addr+3], DMEM[dmem_addr+2], DMEM[dmem_addr+1], DMEM[dmem_addr]};
-                                packet_o.addr   =  dmem_addr>>2;
-                                packet_o.op     = `ePacketOp_remote_store;
-                                packet_o.op_ex  =  4'b1111; //TODO not handle the byte write.
-                                packet_o.x_cord = x_cord;
-                                packet_o.y_cord = y_cord;
-                                packet_o.src_x_cord = my_x_i;
-                                packet_o.src_y_cord = my_y_i;
+                                var_data_o.data   = {DMEM[dmem_addr+3], DMEM[dmem_addr+2], DMEM[dmem_addr+1], DMEM[dmem_addr]};
+                                var_data_o.addr   =  dmem_addr>>2;
+                                var_data_o.op     = `ePacketOp_remote_store;
+                                var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
+                                var_data_o.x_cord = x_cord;
+                                var_data_o.y_cord = y_cord;
+                                var_data_o.src_x_cord = my_x_i;
+                                var_data_o.src_y_cord = my_y_i;
 
                                 wait( ready_i === 1'b1);   //check if the ready is pulled up.
                        end 
@@ -136,55 +133,48 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   endtask 
   ///////////////////////////////////////////////////////////////////////////////
   // Task to load the dram
-  task init_dram(       input   clk_i
-                       ,input   reset_i
-                       ,input   ready_i
-                       ,output  v_o
-                       ,output  bsg_manycore_packet_s packet_o);
-        int x_cord, y_cord, dram_addr;
+  task init_dram( );
+        int dram_addr;
         bsg_manycore_dram_addr_s  dram_addr_cast; 
 
-        $display("Initilizing DRAM, y_cord=%d, x_cord=%d", y_cord, x_cord);
+        $display("Initilizing DRAM, range=%h - %h (byte)", dram_start_addr_lp, dram_end_addr_lp);
         for(dram_addr =dram_start_addr_lp; dram_addr < dram_end_addr_lp; dram_addr= dram_addr +4) begin
                    @(posedge clk_i);          //pull up the valid
-                   v_o = 1'b1; 
+                   var_v_o = 1'b1; 
 
                    dram_addr_cast = dram_addr; 
 
-                   packet_o.data   = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr]};
-                   packet_o.addr   =  dram_addr>>2;
-                   packet_o.op     = `ePacketOp_remote_store;
-                   packet_o.op_ex  =  4'b1111; //TODO not handle the byte write.
-                   packet_o.x_cord = x_cord_width_lp'( dram_addr_cast.x_cord );
-                   packet_o.y_cord = {y_cord_width_lp{1'b1}};
-                   packet_o.src_x_cord = my_x_i;
-                   packet_o.src_y_cord = my_y_i;
+                   var_data_o.data   = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr]};
+                   var_data_o.addr   =  dram_addr>>2;
+                   var_data_o.op     = `ePacketOp_remote_store;
+                   var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
+                   var_data_o.x_cord = x_cord_width_lp'( dram_addr_cast.x_cord );
+                   var_data_o.y_cord = {y_cord_width_lp{1'b1}};
+                   var_data_o.src_x_cord = my_x_i;
+                   var_data_o.src_y_cord = my_y_i;
 
                    wait( ready_i === 1'b1);   //check if the ready is pulled up.
         end 
   endtask 
   ///////////////////////////////////////////////////////////////////////////////
   // Task to unfreeze the tiles
-  task unfreeze_tiles(  input   clk_i
-                       ,input   reset_i
-                       ,input   ready_i
-                       ,output  v_o
-                       ,output  bsg_manycore_packet_s packet_o);
-        int x_cord, y_cord, dram_addr;
+  task unfreeze_tiles();
+        int x_cord, y_cord ;
 
+        $display("Unfreezing tiles ...");
         for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
                 for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
                     @(posedge clk_i);          //pull up the valid
-                    v_o = 1'b1; 
+                    var_v_o = 1'b1; 
 
-                    packet_o.data   =  'b0;
-                    packet_o.addr   = unfreeze_addr >> 2; 
-                    packet_o.op     = `ePacketOp_remote_store;
-                    packet_o.op_ex  =  4'b1111; //TODO not handle the byte write.
-                    packet_o.x_cord = x_cord;
-                    packet_o.y_cord = y_cord;
-                    packet_o.src_x_cord = my_x_i;
-                    packet_o.src_y_cord = my_y_i;
+                    var_data_o.data   =  'b0;
+                    var_data_o.addr   = unfreeze_addr >> 2; 
+                    var_data_o.op     = `ePacketOp_remote_store;
+                    var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
+                    var_data_o.x_cord = x_cord;
+                    var_data_o.y_cord = y_cord;
+                    var_data_o.src_x_cord = my_x_i;
+                    var_data_o.src_y_cord = my_y_i;
 
                     wait( ready_i === 1'b1);   //check if the ready is pulled up.
                 end

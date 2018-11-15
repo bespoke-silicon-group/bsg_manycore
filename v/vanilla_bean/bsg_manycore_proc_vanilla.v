@@ -183,8 +183,10 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
            );
    `endif
    //////////////////////////////////////////////////////////
-   //
-   wire is_config_op      = in_v_lo & in_addr_lo[epa_addr_width_p-1] & in_we_lo;
+   // configuration  in_addr_lo = { 1 ------ } 2'b00
+   localparam  epa_config_bit_idx = (epa_addr_width_p-2) -1;
+
+   wire is_config_op      = in_v_lo & in_addr_lo[epa_config_bit_idx] & in_we_lo;
    wire non_imem_bits_set = | in_addr_lo[addr_width_p-1:imem_addr_width_lp];
 
    wire remote_store_imem_not_dmem = in_v_lo & ~non_imem_bits_set;
@@ -453,8 +455,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    // ----------------------------------------------------------------------------------------
    // Handle the control registers
    // ----------------------------------------------------------------------------------------
-
-   wire  is_freeze_addr = {1'b0, in_addr_lo[epa_addr_width_p-2:0]} == epa_addr_width_p'(0);
+                                         
+   wire  is_freeze_addr = {1'b0, in_addr_lo[epa_config_bit_idx-1:0]} == (epa_addr_width_p-2)'(0);
 
    wire  freeze_op     = is_config_op & is_freeze_addr & in_data_lo[0] ;
    wire  unfreeze_op   = is_config_op & is_freeze_addr & (~in_data_lo[0]);
