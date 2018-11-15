@@ -38,9 +38,6 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,output                       v_o
    ,input                        ready_i
 
-   ,input [data_width_p-1:0]     data_i
-   ,output[addr_width_p-1:0]     addr_o
-
    ,input [y_cord_width_lp-1:0]  my_y_i
    ,input [x_cord_width_lp-1:0]  my_x_i
   );

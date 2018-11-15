@@ -41,7 +41,7 @@ module test_bsg_manycore;
    localparam data_width_lp   = 32;
    localparam addr_width_lp   = 20;
    localparam epa_addr_width_lp       = 16;
-   localparam dram_ch_addr_width_lp   = 16;
+   localparam dram_ch_addr_width_lp   = $clog2(`IMEM_SIZE);
    localparam num_tiles_x_lp  = `bsg_tiles_X;
    localparam num_tiles_y_lp  = `bsg_tiles_Y;
    localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
@@ -251,6 +251,7 @@ module test_bsg_manycore;
      #( .mem_size_p  (mem_size_lp)
         ,.addr_width_p(addr_width_lp)
         ,.epa_addr_width_p(epa_addr_width_lp)
+        ,.dram_ch_addr_width_p( dram_ch_addr_width_lp)
         ,.data_width_p(data_width_lp)
 	,.max_cycles_p(max_cycles_lp)
         ,.num_tiles_x_p(num_tiles_x_lp)
