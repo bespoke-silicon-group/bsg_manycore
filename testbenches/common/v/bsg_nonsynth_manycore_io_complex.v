@@ -5,7 +5,7 @@
 
 module bsg_nonsynth_manycore_io_complex
   #(
-    mem_size_p      = -1   // size of memory being loaded, in bytes
+     icache_entries_num_p   = -1   // entries of the icache number
     ,max_cycles_p   = -1
     ,addr_width_p   = -1
     ,epa_addr_width_p = -1
@@ -65,7 +65,7 @@ module bsg_nonsynth_manycore_io_complex
      end
 
    bsg_manycore_spmd_loader
-     #( .icache_entries_num_p    (mem_size_p/2)
+     #( .icache_entries_num_p    ( icache_entries_num_p)
         ,.num_rows_p    (num_tiles_y_p)
         ,.num_cols_p    (num_tiles_x_p)
         ,.load_rows_p   (load_rows_p)

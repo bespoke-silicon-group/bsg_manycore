@@ -35,6 +35,7 @@ module test_bsg_manycore;
    localparam tile_id_ptr_lp  = -1;
    localparam mem_size_lp     = `MEM_SIZE;  // actually the size of the file being loaded, in bytes
    localparam imem_size_lp    = `IMEM_SIZE;
+   localparam icache_entries_num_lp  = `IMEM_SIZE;
    localparam icache_tag_width_lp= 12;      // 16MB PC address 
    localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
    localparam num_banks_lp    = `BANK_NUM;
@@ -248,7 +249,7 @@ module test_bsg_manycore;
 // instantiate the loader and moniter
 
    bsg_nonsynth_manycore_io_complex
-     #( .mem_size_p  (mem_size_lp)
+     #( .icache_entries_num_p(icache_entries_num_lp)
         ,.addr_width_p(addr_width_lp)
         ,.epa_addr_width_p(epa_addr_width_lp)
         ,.dram_ch_addr_width_p( dram_ch_addr_width_lp)

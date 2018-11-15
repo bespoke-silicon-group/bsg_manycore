@@ -60,7 +60,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   localparam    unfreeze_addr = addr_width_p'(0) | config_addr_bits;
 
   logic                         var_v_o;
-  logic [packet_width_lp-1:0]   var_data_o;
+  bsg_manycore_packet_s         var_data_o;
 
   assign v_o    = var_v_o;
   assign data_o = var_data_o;
@@ -73,35 +73,32 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         var_v_o = 1'b0;
         wait( reset_i === 1'b0); //wait until the reset is done
 
-        init_icache_tag (clk_i, reset_i, ready_i, var_v_o, var_data_o);
-        init_dmem       (clk_i, reset_i, ready_i, var_v_o, var_data_o);
-        init_dram       (clk_i, reset_i, ready_i, var_v_o, var_data_o);
-        unfreeze_tiles  (clk_i, reset_i, ready_i, var_v_o, var_data_o);
+        init_icache_tag ();
+
+        $finish();
+//        init_dmem       (clk_i, reset_i, ready_i, var_v_o[1], var_data_o);
+//        init_dram       (clk_i, reset_i, ready_i, var_v_o[2], var_data_o);
+//        unfreeze_tiles  (clk_i, reset_i, ready_i, var_v_o[3], var_data_o);
   end
   ///////////////////////////////////////////////////////////////////////////////
   // Task to init the icache
-  task init_icache_tag( input   clk_i
-                       ,input   reset_i
-                       ,input   ready_i
-                       ,output  v_o
-                       ,output  bsg_manycore_packet_s packet_o);
+  task init_icache_tag();
         int x_cord, y_cord, icache_addr;
         for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
                 for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
                      $display("Initilizing ICACHE, y_cord=%d, x_cord=%d", y_cord, x_cord);
                      for(icache_addr =0; icache_addr <icache_entries_num_p; icache_addr ++) begin
                                 @(posedge clk_i);          //pull up the valid
-                                v_o = 1'b1; 
+                                var_v_o = 1'b1; 
 
-                                packet_o.data   = 'b0;
-                                packet_o.addr   =  icache_addr;
-                                packet_o.op     = `ePacketOp_remote_store;
-                                packet_o.op_ex  =  4'b1111;
-                                packet_o.x_cord = x_cord;
-                                packet_o.y_cord = y_cord;
-                                packet_o.src_x_cord = my_x_i;
-                                packet_o.src_y_cord = my_y_i;
-
+                                var_data_o.data   = 'b0;
+                                var_data_o.addr   =  icache_addr;
+                                var_data_o.op     = `ePacketOp_remote_store;
+                                var_data_o.op_ex  =  4'b1111;
+                                var_data_o.x_cord = x_cord;
+                                var_data_o.y_cord = y_cord;
+                                var_data_o.src_x_cord = my_x_i;
+                                var_data_o.src_y_cord = my_y_i;
                                 wait( ready_i === 1'b1);   //check if the ready is pulled up.
                        end 
                 end
