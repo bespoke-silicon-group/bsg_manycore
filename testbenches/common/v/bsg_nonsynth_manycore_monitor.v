@@ -43,6 +43,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
    logic [addr_width_p-1:0     ]      pkt_addr;
    logic [(data_width_p>>3)-1:0]      pkt_mask;
 
+   logic cgni_yumi_r;
    bsg_manycore_endpoint_standard #(.x_cord_width_p (x_cord_width_p)
                                     ,.y_cord_width_p(y_cord_width_p)
                                     ,.fifo_els_p    (2)
@@ -68,7 +69,8 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
       ,.returned_v_r_o   ()
 
       ,.returning_data_i ( 0 )
-      ,.returning_v_i    (cgni_yumi )
+      //we have to delay the returning data at least 1 cycle.
+      ,.returning_v_i    (cgni_yumi_r )
 
       // outgoing data for this module
       ,.out_v_i     (pass_thru_p ? pass_thru_v_i    : 1'b0)
@@ -96,6 +98,9 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
    always_ff @(posedge clk_i)
      if (finish_r_r)
        $finish();
+
+   always_ff@(posedge clk_i)
+     cgni_yumi_r <= cgni_yumi;
 
    always @(negedge clk_i)
    begin

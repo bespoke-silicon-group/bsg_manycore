@@ -25,8 +25,8 @@ int main()
   bsg_set_tile_x_y();
 
   int id = bsg_x_y_to_id(bsg_x,bsg_y);
-  bsg_remote_int_ptr io_ptr = bsg_remote_ptr_io(bsg_tiles_X-1,0xCAB0);
-  bsg_remote_int_ptr io_ptr2 = bsg_remote_ptr_io(0,0xCAB4);
+  bsg_remote_int_ptr io_ptr = bsg_remote_ptr_io(IO_X_INDEX,0xCAB0);
+  bsg_remote_int_ptr io_ptr2 = bsg_remote_ptr_io(IO_X_INDEX,0xCAB4);
   int val = 23;
   if (id == 0)
   {
