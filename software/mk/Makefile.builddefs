@@ -58,7 +58,7 @@ RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 	python $(HEX2BIN) $< 32 > $@
 
 %.dis: %.riscv
-	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objdump --disassemble-all $<
+	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objdump -M numeric --disassemble-all $<
 
 #added the '0x' prefix and and a ',' prefix to each line except the last line.
 #can be used to initialize a vector in C launguage.

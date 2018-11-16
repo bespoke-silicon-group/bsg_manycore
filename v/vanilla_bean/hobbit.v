@@ -25,7 +25,9 @@ module hobbit #(parameter
                           //need to pad the higher parts of the pc so it
                           //points to DRAM.
                           pc_high_padding_width_lp  = RV32_reg_data_width_gp - pc_width_lp -2 ,
-                          pc_high_padding_lp        = {1'b1, {pc_high_padding_width_lp{1'b0}} }
+                          pc_high_padding_lp        = {pc_high_padding_width_lp{1'b0}} ,
+                          //used to direct the icache miss address to dram.
+                          dram_addr_mapping_lp      = 32'h8000_0000
                )(
                 input                             clk_i
                ,input                             reset_i
@@ -204,11 +206,11 @@ wire [RV32_reg_data_width_gp-1:0] mem_addr_op2 =
 
 wire [RV32_reg_data_width_gp-1:0] ld_st_addr   = rs1_to_alu +  exe.mem_addr_op2;
 
-// We need to set the MSB of exe_pc to 1'b1 so it will be interpreted as DRAM
+// We need to set the MSB of miss_pc to 1'b1 so it will be interpreted as DRAM
 // address
-wire [RV32_reg_data_width_gp-1:0] exe_pc       = (exe.pc_plus4 - 'h4); 
+wire [RV32_reg_data_width_gp-1:0] miss_pc       = (exe.pc_plus4 - 'h4) | dram_addr_mapping_lp; 
 
-assign mem_addr_send= exe.icache_miss? exe_pc : ld_st_addr ;
+assign mem_addr_send= exe.icache_miss? miss_pc : ld_st_addr ;
 
 assign to_mem_o = '{
     write_data    : store_data,
@@ -642,6 +644,28 @@ end
 //+----------------------------------------------
 
 // Synchronous stage shift
+id_signals_s  id_s;
+// We set the icache miss as a remote load without read/write registers.
+decode_s     id_decode;
+always_comb begin
+        id_decode =  'b0;
+        if( icache_miss_lo) begin
+                id_decode.is_load_op = 1'b1;
+                id_decode.is_mem_op  = 1'b1;
+        end else begin
+                id_decode = decode;
+        end
+end
+
+wire [RV32_instr_width_gp-1:0] id_instr = icache_miss_lo? 'b0 : instruction;
+
+assign id_s = '{
+                pc_plus4     : {pc_high_padding_lp, pc_plus4    ,2'b0}  ,
+                pc_jump_addr : {pc_high_padding_lp, pc_jump_addr,2'b0}  ,
+                instruction  : id_instr                                 ,
+                decode       : id_decode                                ,
+                icache_miss  : icache_miss_lo 
+                };
 
 // synopsys sync_set_reset  "reset_i, net_pc_write_cmd_idle, flush, stall, depend_stall"
 always_ff @ (posedge clk_i)
@@ -668,14 +692,8 @@ begin
    // synopsys translate_off
         debug_id <= debug_if;
    // synopsys translate_on
-        id <= '{
-            pc_plus4     : {pc_high_padding_lp, pc_plus4,2'b0}      ,
-            pc_jump_addr : {pc_high_padding_lp, pc_jump_addr,2'b0}  ,
-            instruction  : instruction          ,
-            decode       : decode               ,
-            icache_miss  : icache_miss_lo
-        };
-      end
+        id <= id_s      ;
+     end
 end
 
 //+----------------------------------------------
@@ -719,15 +737,6 @@ wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
                            & (id.instruction.rs2  == mem.rd_addr)
                            & (|id.instruction.rs2);
 
-// We set the icache miss as a remote load without read/write registers.
-decode_s     id2exe_decode;
-always_comb begin
-        id2exe_decode =  id.decode;
-        if( id.icache_miss ) begin
-                id2exe_decode.is_load_op = 1'b1;
-                id2exe_decode.is_mem_op  = 1'b1;
-        end
-end
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
@@ -760,7 +769,7 @@ begin
                   pc_plus4     : id.pc_plus4,
                   pc_jump_addr : id.pc_jump_addr,
                   instruction  : id.instruction,
-                  decode       : id2exe_decode,
+                  decode       : id.decode,
                   rs1_val      : rs1_to_exe,
                   rs2_val      : rs2_to_exe,
                   mem_addr_op2 : mem_addr_op2,

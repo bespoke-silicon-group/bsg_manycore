@@ -54,20 +54,20 @@ SECTIONS
 
   /* End of uninitalized data segement */
   _bsg_data_end_addr = .;
-  /* text: test code section */
-  /* SHX : Currently there is no exceptions allowed in bsg_manycore, so
-   *       we don't want to wast the instruciton memory space, the first
-   *       instuction address will start at zero
+  
+  /*The DRAM content is start at zero, 
+   *The instruction fetch unit and the loader will send address that 
+   *is mapped to the actual dram module.
    */
-
-  /* . = 0x100;  */
-  . = 0x10000000      ;
-  _bsg_dram_start_addr = . ;
-  .text : 
+  _bsg_dram_start_addr = 0x0;
+  OVERLAY 0x0 : 
   {
-    crt.o(.text)
-    *(.text)
-    *(.text.startup)
+        .text 
+        {
+          crt.o(.text)
+          *(.text)
+          *(.text.startup)
+        }
   }
   _bsg_dram_end_addr = .  ;
 }

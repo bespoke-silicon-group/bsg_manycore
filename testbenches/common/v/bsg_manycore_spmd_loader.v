@@ -23,13 +23,14 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,parameter x_cord_width_lp  = `BSG_SAFE_CLOG2(num_cols_p)
    ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
    //the data memory realted paraemters
-   ,parameter dmem_start_addr_lp = `_bsg_data_start_addr
+   ,parameter unsigned  dmem_start_addr_lp = `_bsg_data_start_addr
    ,parameter dmem_end_addr_lp   = `_bsg_data_end_addr
    ,parameter dmem_init_file_name = `_dmem_init_file_name
 
    //the dram  realted paraemters
-   ,parameter dram_start_addr_lp = `_bsg_dram_start_addr
-   ,parameter dram_end_addr_lp   = `_bsg_dram_end_addr
+   //VCS do not support index larger then 32'h7fff_ffff
+   ,parameter unsigned dram_start_addr_lp = `_bsg_dram_start_addr
+   ,parameter unsigned dram_end_addr_lp   = `_bsg_dram_end_addr  
    ,parameter dram_init_file_name = `_dram_init_file_name
   )
   ( input                        clk_i
@@ -41,10 +42,6 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,input [y_cord_width_lp-1:0]  my_y_i
    ,input [x_cord_width_lp-1:0]  my_x_i
   );
-
-
-  localparam tile_no_width_lp = 10;
-  localparam tile_no_total_lp = load_rows_p * load_cols_p;
 
   //initilization files
   localparam dmem_size_lp = dmem_end_addr_lp - dmem_start_addr_lp;
@@ -79,7 +76,9 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         init_dmem       ();
         init_dram       ();
         unfreeze_tiles  ();
-        $finish();
+
+        @(posedge clk_i);  
+        var_v_o = 1'b0;
   end
 //----------------------------------------------------------------------------
 // Task to init the icache
@@ -101,6 +100,8 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                                 var_data_o.y_cord = y_cord;
                                 var_data_o.src_x_cord = my_x_i;
                                 var_data_o.src_y_cord = my_y_i;
+
+                                @(negedge clk_i);
                                 wait( ready_i === 1'b1);   //check if the ready is pulled up.
                        end 
                 end
@@ -126,6 +127,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                                 var_data_o.src_x_cord = my_x_i;
                                 var_data_o.src_y_cord = my_y_i;
 
+                                @(negedge clk_i);
                                 wait( ready_i === 1'b1);   //check if the ready is pulled up.
                        end 
                 end
@@ -137,7 +139,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         int dram_addr;
         bsg_manycore_dram_addr_s  dram_addr_cast; 
 
-        $display("Initilizing DRAM, range=%h - %h (byte)", dram_start_addr_lp, dram_end_addr_lp);
+        $display("Initilizing DRAM, range=%h - %h (%4d bytes)", dram_start_addr_lp, dram_end_addr_lp, dram_size_lp);
         for(dram_addr =dram_start_addr_lp; dram_addr < dram_end_addr_lp; dram_addr= dram_addr +4) begin
                    @(posedge clk_i);          //pull up the valid
                    var_v_o = 1'b1; 
@@ -145,7 +147,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                    dram_addr_cast = dram_addr; 
 
                    var_data_o.data   = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr]};
-                   var_data_o.addr   =  dram_addr>>2;
+                   var_data_o.addr   = dram_addr >>2;
                    var_data_o.op     = `ePacketOp_remote_store;
                    var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
                    var_data_o.x_cord = x_cord_width_lp'( dram_addr_cast.x_cord );
@@ -153,6 +155,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                    var_data_o.src_x_cord = my_x_i;
                    var_data_o.src_y_cord = my_y_i;
 
+                   @(negedge clk_i);
                    wait( ready_i === 1'b1);   //check if the ready is pulled up.
         end 
   endtask 
@@ -176,6 +179,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                     var_data_o.src_x_cord = my_x_i;
                     var_data_o.src_y_cord = my_y_i;
 
+                    @(negedge clk_i);
                     wait( ready_i === 1'b1);   //check if the ready is pulled up.
                 end
         end
