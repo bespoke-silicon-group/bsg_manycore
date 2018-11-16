@@ -22,10 +22,6 @@ BSG_FPU_OP=0
 main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
 
-clean:
-	-rm -rf *.o *.jou *.log *.pb bsg_manycore_io_complex_rom.v main.riscv *.wdb main.bin main.hex
-	-rm -rf xsim.dir *.mem
-	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd *.vdb coverage/
 
 main.o: Makefile
 

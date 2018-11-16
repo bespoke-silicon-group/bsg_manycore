@@ -71,6 +71,9 @@
 #error Unsupported bsg_tiles_Y
 #endif
 
+#if bsg_tiles_X < 2
+#error bsg_tiles_X must be larger than 1
+#endif
 //------------------------------------------------------
 // 2.Tile Address Mapping Configuation
 //------------------------------------------------------
