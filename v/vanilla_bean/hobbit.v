@@ -675,7 +675,7 @@ begin
             (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall )))
        )
 `else
-    if (reset_i | net_pc_write_cmd_idle | icache_miss_in_pipe| (flush & (~   (stall | depend_stall)  ) ) )
+    if (reset_i | net_pc_write_cmd_idle | ( (flush|icache_miss_in_pipe) & (~   (stall | depend_stall)  ) ) )
 `endif
       begin
          id <= '0;

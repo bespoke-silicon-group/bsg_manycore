@@ -11,7 +11,7 @@ int input[N]   = {1, -2, 3, -4, 5, -6, 7, -8, 9,-10};
 int print_value( unsigned int *p){
     int i;
     for(i=0; i<N; i++) 
-        bsg_remote_ptr_io_store(0,0x0,p[i]);
+        bsg_remote_ptr_io_store(IO_X_INDEX,0x0,p[i]);
 }
 
 
