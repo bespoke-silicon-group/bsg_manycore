@@ -11,9 +11,6 @@ all: main.run
 main.riscv:  $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) -o $@ $(RISCV_LINK_OPTS)
 
-clean:
-	-rm -rf $(OBJECT_FILES) *.jou *.log *.pb bsg_rom_hello.v main.riscv *.wdb main.bin main.hex
-	-rm -rf xsim.dir  csrc simv  simv.daidir  ucli.key  vcdplus.vpd bsg_manycore_io_complex_rom.v
 
 main.o: Makefile
 

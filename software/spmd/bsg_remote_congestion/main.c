@@ -66,7 +66,7 @@ void proc0(void){
 
     for(i=0; i<bsg_tiles_X; i++){
         for(j=0; j<bsg_tiles_Y; j++){
-            int *ptr = bsg_remote_ptr_io(i, ( (i*bsg_tiles_Y + j)*4) );
+            int *ptr = bsg_remote_ptr_io(IO_X_INDEX, ( (i*bsg_tiles_Y + j)*4) );
             asm( "sw %[val],0(%[addr])" :: [val] "r"(finish_array[i][j]), [addr] "r"(ptr) ) ;
         }
     }
