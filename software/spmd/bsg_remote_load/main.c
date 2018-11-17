@@ -127,20 +127,20 @@ void proc1(void){
     remote_load_int_0_0();
     int error = check_int();
 
-    if( error == 0) bsg_remote_ptr_io_store( bsg_x, 0x0, 0x0 );
+    if( error == 0) bsg_remote_ptr_io_store( IO_X_INDEX, 0x0, 0x0 );
     else              bsg_fail();
 
     remote_load_short_0_0();
     error = check_short();
 
-    if( error == 0) bsg_remote_ptr_io_store( bsg_x, 0x0, 0x1 );
+    if( error == 0) bsg_remote_ptr_io_store( IO_X_INDEX, 0x0, 0x1 );
     else              bsg_fail();
 
     remote_load_char_0_0();
     error = check_char();
 
     if( error == 0) {
-        bsg_remote_ptr_io_store( bsg_x, 0x0, 0x2 );
+        bsg_remote_ptr_io_store( IO_X_INDEX, 0x0, 0x2 );
     } else {
         bsg_fail();
     }
@@ -149,7 +149,7 @@ void proc1(void){
     error = check_store_load_int();
 
     if( error == 0) {
-        bsg_remote_ptr_io_store( bsg_x, 0x0, 0x3 );
+        bsg_remote_ptr_io_store( IO_X_INDEX, 0x0, 0x3 );
     } else {
         bsg_fail();
     }
@@ -159,7 +159,7 @@ void proc1(void){
     error = check_self_int();
 
     if( error == 0) {
-        bsg_remote_ptr_io_store( bsg_x, 0x0, 0x4 );
+        bsg_remote_ptr_io_store( IO_X_INDEX, 0x0, 0x4 );
         bsg_finish();
     } else {
         bsg_fail();
