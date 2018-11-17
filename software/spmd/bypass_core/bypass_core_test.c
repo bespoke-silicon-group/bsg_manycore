@@ -75,11 +75,11 @@ void bypass_core_test(unsigned int  *input){
     }
 
     if( error == 0 ){
-        bsg_remote_ptr_io_store(0, BYPASS_CORE_TESTID, PASS_CODE );
+        bsg_remote_ptr_io_store(IO_X_INDEX, BYPASS_CORE_TESTID, PASS_CODE );
     }else{
-        bsg_remote_ptr_io_store(0, BYPASS_CORE_TESTID, ERROR_CODE );
+        bsg_remote_ptr_io_store(IO_X_INDEX, BYPASS_CORE_TESTID, ERROR_CODE );
         print_value( (unsigned int *) bypass_core_output  );
-        bsg_remote_ptr_io_store(0,0x0,0x11111111);
+        bsg_remote_ptr_io_store(IO_X_INDEX,0x0,0x11111111);
         print_value( bypass_core_expect );
     }
 }
