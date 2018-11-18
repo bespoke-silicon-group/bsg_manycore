@@ -118,7 +118,7 @@ int main()
                                    )                                        \
                                  );
       #else
-      io_ptr = bsg_remote_ptr_io(0,0xCAB0);
+      io_ptr = bsg_remote_ptr_io(IO_X_INDEX,0xCAB0);
       #endif
 
       sum = dest_process(sum,&ptr[bufIndex],io_ptr);
