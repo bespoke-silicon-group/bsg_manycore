@@ -110,15 +110,26 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   ///////////////////////////////////////////////////////////////////////////////
   // Task to load the data memory
   task init_dmem();
-        int x_cord, y_cord, dmem_addr;
+        int x_cord, y_cord, dmem_addr, init_data;
         for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
                 for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
                      $display("Initilizing DMEM, y_cord=%02d, x_cord=%02d, range=%h - %h (byte)", y_cord, x_cord, dmem_start_addr_lp, dmem_end_addr_lp);
                      for(dmem_addr =dmem_start_addr_lp; dmem_addr < dmem_end_addr_lp; dmem_addr= dmem_addr +4) begin
                                 @(posedge clk_i);          //pull up the valid
                                 var_v_o = 1'b1; 
-
-                                var_data_o.data   = {DMEM[dmem_addr+3], DMEM[dmem_addr+2], DMEM[dmem_addr+1], DMEM[dmem_addr]};
+                                
+                                init_data   = {DMEM[dmem_addr+3], DMEM[dmem_addr+2], DMEM[dmem_addr+1], DMEM[dmem_addr]};
+                                //TODO: SHX: This is used to fixe the
+                                //gcc-toolchain bugs, in some case, it put the initilized data into .bss and .sbss section.
+                                //which should be in .data or .sdata seciton. 
+                                //
+                                //Does the RISC-V toolchain assumes that all uninitilized data are zeros, so they put the zero
+                                //initilized data into .bss and .sbss section?
+                                //--------------------------------------------------------------------------------------------
+                                if( init_data === 32'bx) init_data = 32'b0;
+                                //--------------------------------------------------------------------------------------------
+                                
+                                var_data_o.data   = init_data    ;
                                 var_data_o.addr   =  dmem_addr>>2;
                                 var_data_o.op     = `ePacketOp_remote_store;
                                 var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.

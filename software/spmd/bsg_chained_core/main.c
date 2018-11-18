@@ -182,7 +182,7 @@ inline void print_buff( tag_data_s * pData, int len){
         pTmpData = pData;
     #endif
     for( int i=0; i< len ; i ++ ){
-        bsg_remote_ptr_io_store(0, &(pTmpData[i].data), pData[i].data);
+        bsg_remote_ptr_io_store(IO_X_INDEX, &(pTmpData[i].data), pData[i].data);
     }
 }
 ////////////////////////////////////////////////////////////////
