@@ -5,7 +5,8 @@
 // 0. basic SoC definitaion
 //------------------------------------------------------
 #define IO_X_INDEX     ((bsg_tiles_X)-1) 
-
+//in words.
+#define EPA_ADDR_BITS                   18
 //------------------------------------------------------
 // 1. X/Y dimention setting/Checking.
 //------------------------------------------------------
@@ -77,7 +78,6 @@
 //------------------------------------------------------
 // 2.Tile Address Mapping Configuation
 //------------------------------------------------------
-#define EPA_ADDR_BITS                   18
 #define MAX_X_CORD_BITS                 6
 #define MAX_Y_CORD_BITS                 6
 

@@ -31,7 +31,7 @@
                           ,.debug_p(debug_p)                    \
                           ,.bank_size_p(bank_size_p)            \
                           ,.num_banks_p(num_banks_p)            \
-			  ,.imem_size_p(imem_size_p)            \
+			  ,.icache_entries_p(icache_entries_p)            \
                           ,.icache_tag_width_p (icache_tag_width_p) \
             		  ,.max_out_credits_p(max_out_credits_p)\
                           ,.hetero_type_p(hetero_type_p)        \
@@ -59,7 +59,7 @@ module bsg_manycore_hetero_socket #(x_cord_width_p      = "inv"
                                     , dram_ch_start_col_p = 0
                                     , debug_p           = 0
                                     , bank_size_p       = "inv" // in words
-				    , imem_size_p       = "inv" // in words
+				    , icache_entries_p       = "inv" // in words
                                     , icache_tag_width_p= "inv"
                                     , num_banks_p       = "inv"
                 				    , max_out_credits_p = 200
