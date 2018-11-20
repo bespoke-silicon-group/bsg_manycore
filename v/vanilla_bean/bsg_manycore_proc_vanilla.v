@@ -13,11 +13,10 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                            , dram_ch_addr_width_p = -1
                            , dram_ch_start_col_p = 0
                            , debug_p        = 0
-                           , bank_size_p    = -1// in words
-                           , num_banks_p    = "inv"
 
-                           , icache_tag_width_p = -1
-                           , icache_entries_p        = bank_size_p // in words
+                           , icache_tag_width_p   = -1
+                           , icache_entries_p     = 1024 // in words
+                           , dmem_size_p          = 1024 // in words
                            , icache_addr_width_lp = $clog2(icache_entries_p)
                            // this credit counter is more for memory fences
                            // than containing the number of outstanding remote stores
@@ -343,7 +342,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    wire local_epa_request = core_mem_v & (~ out_request);// not a remote packet
    wire [1:0]              xbar_port_v_in = { local_epa_request ,  remote_access_dmem_not_imem};
 
-   localparam mem_width_lp    = $clog2(bank_size_p) + $clog2(num_banks_p);
+   localparam mem_width_lp    = $clog2(dmem_size_p) ;
 
    wire [1:0]                    xbar_port_we_in   = { core_mem_w, in_we_lo};
    wire [1:0]                    xbar_port_yumi_out;
@@ -354,26 +353,24 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    always @(negedge clk_i)
      begin
         if (remote_access_dmem_not_imem)
-          assert (in_addr_lo < ((1 << icache_addr_width_lp) + (bank_size_p*num_banks_p)))
+          assert (in_addr_lo < ((1 << icache_addr_width_lp) + (dmem_size_p)))
             else
               begin
                  $error("# ERROR y,x=(%x,%x) remote access addr (%x) past end of data memory (%x)"
-                        ,my_y_i,my_x_i,in_addr_lo*4,4*((1 << icache_addr_width_lp)+(bank_size_p*num_banks_p)));
+                        ,my_y_i,my_x_i,in_addr_lo*4,4*((1 << icache_addr_width_lp)+(dmem_size_p)));
                  $finish();
               end
      end
 
-   //initial
-   //   $display("icache_addr_width_lp %d, bank_size_p %d, num_banks_p %d\n",icache_addr_width_lp,bank_size_p,num_banks_p);
 
    always @(negedge clk_i)
      begin
         if (xbar_port_v_in[1])
-          assert (core_mem_addr[30:2] < ((1 << icache_addr_width_lp) + (bank_size_p*num_banks_p)))
+          assert (core_mem_addr[30:2] < ((1 << icache_addr_width_lp) + (dmem_size_p)))
             else
               begin
                  $error("# ERROR y,x=(%x,%x) local store addr (%x) past end of data memory (%x)"
-                        ,my_y_i,my_x_i,core_mem_addr,4*((1 << icache_addr_width_lp)+(bank_size_p*num_banks_p)));
+                        ,my_y_i,my_x_i,core_mem_addr,4*((1 << icache_addr_width_lp)+(dmem_size_p)));
                  $finish();
               end
      end
@@ -419,8 +416,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
   bsg_mem_banked_crossbar #
     (.num_ports_p  (2)
-     ,.num_banks_p  (num_banks_p)
-     ,.bank_size_p  (bank_size_p)
+     ,.num_banks_p  (1)
+     ,.bank_size_p  (dmem_size_p )
      ,.data_width_p (data_width_p)
      ,.rr_lo_hi_p   ( 5 ) // dynmaic priority based on FIFO status
 //     ,.rr_lo_hi_p   ( 4 ) // round robin reset

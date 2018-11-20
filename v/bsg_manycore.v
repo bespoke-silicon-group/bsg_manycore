@@ -7,15 +7,8 @@ module bsg_manycore
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }
 
  #(// tile params
-   parameter bank_size_p       = "inv"
 
-   // increasing the number of banks decreases ram efficiency
-   // but reduces conflicts between remote stores and local data accesses
-   // If there are too many conflicts, than traffic starts backing up into
-   // the network (i.e. cgni full cycles).
-
-   ,parameter num_banks_p       = "inv"
-
+    parameter dmem_size_p       = "inv"
    ,parameter icache_entries_p  = "inv" // in words
    ,parameter icache_tag_width_p= -1
    // array params
@@ -171,8 +164,7 @@ module bsg_manycore
           begin: x
             bsg_manycore_tile
               #(
-                .bank_size_p(bank_size_p),
-                .num_banks_p(num_banks_p),
+                .dmem_size_p     (dmem_size_p),
                 .icache_entries_p(icache_entries_p),
                 .icache_tag_width_p(icache_tag_width_p),
                 .x_cord_width_p(x_cord_width_lp),

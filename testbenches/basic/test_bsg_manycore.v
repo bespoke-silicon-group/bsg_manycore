@@ -1,14 +1,8 @@
 `include "bsg_manycore_packet.vh"
 
-
-`define SPMD       ????             // test program to be loaded
-`define ROM(spmd)  bsg_rom_``spmd`` // ROM contaning the spmd
-`define BANK_SIZE  1024   // in words
-`define BANK_NUM   1
-`define IMEM_SIZE  1024   // in words
- //The total memory size, which is used for ROM loader
-`define MEM_SIZE   ( `BANK_NUM*`BANK_SIZE*4  +  `IMEM_SIZE * 4)
-
+`define DMEM_SIZE       1024  //in words
+`define ICACHE_ENTRIES  1024
+`define DRAM_CH_SIZE    1024  //in words
 
 `ifndef bsg_tiles_X
 `error bsg_tiles_X must be defined; pass it in through the makefile
@@ -33,16 +27,13 @@ module test_bsg_manycore;
    localparam debug_lp = 0;
    localparam max_cycles_lp   = `MAX_CYCLES;
    localparam tile_id_ptr_lp  = -1;
-   localparam mem_size_lp     = `MEM_SIZE;  // actually the size of the file being loaded, in bytes
-   localparam imem_size_lp    = `IMEM_SIZE;
-   localparam icache_entries_num_lp  = `IMEM_SIZE;
+   localparam dmem_size_lp    = `DMEM_SIZE ;
+   localparam icache_entries_num_lp  = `ICACHE_ENTRIES;
+   localparam dram_ch_addr_width_lp   = $clog2(`DRAM_CH_SIZE);
    localparam icache_tag_width_lp= 12;      // 16MB PC address 
-   localparam bank_size_lp    = `BANK_SIZE;   // in 32-bit words
-   localparam num_banks_lp    = `BANK_NUM;
    localparam data_width_lp   = 32;
    localparam addr_width_lp   = 20;
    localparam epa_addr_width_lp       = 16;
-   localparam dram_ch_addr_width_lp   = $clog2(`IMEM_SIZE);
    localparam num_tiles_x_lp  = `bsg_tiles_X;
    localparam num_tiles_y_lp  = `bsg_tiles_Y;
    localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
@@ -162,10 +153,9 @@ module test_bsg_manycore;
 
   bsg_manycore #
     (
-     .bank_size_p  (bank_size_lp)
+      .dmem_size_p       (dmem_size_lp         )
      ,.icache_entries_p  (icache_entries_num_lp)
      ,.icache_tag_width_p(icache_tag_width_lp)
-     ,.num_banks_p (num_banks_lp)
      ,.data_width_p (data_width_lp)
      ,.addr_width_p (addr_width_lp)
      ,.epa_addr_width_p (epa_addr_width_lp)
