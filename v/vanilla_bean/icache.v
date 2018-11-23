@@ -56,14 +56,20 @@ module icache #(parameter
   
   // TODO -- Re-factoring the ring packet so it can have full Imm bits address.
   // BYTE address computation
-  wire  [RV32_Bimm_width_gp:0] branch_imm_val     = `RV32_Bimm_13extract(w_instr);
-  wire  [RV32_Bimm_width_gp:0] branch_pc_val      = RV32_Bimm_width_gp'({icache_w_addr_i,2'b0}); //TODO Use full address
+  localparam branch_pc_low_width_lp = (RV32_Bimm_width_gp+1);
+  localparam jal_pc_low_width_lp    = (RV32_Jimm_width_gp+1);
+
+  localparam branch_pc_high_width_lp = (pc_width_lp+2) - branch_pc_low_width_lp; 
+  localparam jal_pc_high_width_lp    = (pc_width_lp+2) - jal_pc_low_width_lp;
+
+  wire  [branch_pc_low_width_lp-1:0] branch_imm_val     = `RV32_Bimm_13extract(w_instr);
+  wire  [branch_pc_low_width_lp-1:0] branch_pc_val      = branch_pc_low_width_lp'({icache_w_tag_i,icache_w_addr_i,2'b0}); 
   
-  wire  [RV32_Jimm_width_gp:0] jal_imm_val        = `RV32_Jimm_21extract(w_instr);
-  wire  [RV32_Jimm_width_gp:0] jal_pc_val         = RV32_Jimm_width_gp'({icache_w_addr_i,2'b0}); //TODO Use full address
+  wire  [jal_pc_low_width_lp-1:0] jal_imm_val        = `RV32_Jimm_21extract(w_instr);
+  wire  [jal_pc_low_width_lp-1:0] jal_pc_val         = jal_pc_low_width_lp'({icache_w_tag_i, icache_w_addr_i,2'b0}); 
   
-  wire  [RV32_Bimm_width_gp:0] branch_pc_lower_res;
-  wire  [RV32_Jimm_width_gp:0] jal_pc_lower_res;
+  wire  [branch_pc_low_width_lp-1:0] branch_pc_lower_res;
+  wire  [jal_pc_low_width_lp-1:0]    jal_pc_lower_res;
   wire  branch_pc_lower_cout, jal_pc_lower_cout;
   
   assign {branch_pc_lower_cout, branch_pc_lower_res} = {1'b0, branch_imm_val} + {1'b0, branch_pc_val};
@@ -73,7 +79,7 @@ module icache #(parameter
   //Inject the 2-BYTE address, the LSB is ignored.
   wire [RV32_instr_width_gp-1:0] injected_instr =
           write_branch_instr ? `RV32_Bimm_12inject1( w_instr, branch_pc_lower_res)
-                             :  write_jal_instr    ? `RV32_Jimm_12inject1(w_instr, jal_pc_lower_res)
+                             :  write_jal_instr    ? `RV32_Jimm_20inject1(w_instr, jal_pc_lower_res)
                                                    : w_instr;
 
   wire imm_sign = write_branch_instr ? branch_imm_val[RV32_Bimm_width_gp] 
@@ -125,18 +131,16 @@ module icache #(parameter
   //this is the final output that send out, take stall into consideration
   assign icache_stall_out = (pc_wen_r) ? icache_r_data_s: icache_stall_out_r;
   //------------------------------------------------------------------
-  // merge the PC lower part and high part
-  localparam branch_pc_high_width_lp = pc_width_lp - RV32_Bimm_width_gp;
-  localparam jal_pc_high_width_lp    = pc_width_lp - RV32_Jimm_width_gp;
-
-  wire [branch_pc_high_width_lp-1:0]  branch_pc_high    = pc_r[ 0+: branch_pc_high_width_lp];
+  // Merge the PC lower part and high part
+  // BYTE operations
+  wire [branch_pc_high_width_lp-1:0]  branch_pc_high    = pc_r[ (branch_pc_low_width_lp-2)+: branch_pc_high_width_lp];
   wire [branch_pc_high_width_lp-1:0]  branch_pc_high_p1 = branch_pc_high + 1'b1; 
-  wire [branch_pc_high_width_lp-1:0]  branch_pc_high_n1 = branch_pc_high +  'b1; 
+  wire [branch_pc_high_width_lp-1:0]  branch_pc_high_n1 = branch_pc_high + {branch_pc_high_width_lp{1'b1}}; 
   wire [branch_pc_high_width_lp-1:0]  branch_pc_high_out;
 
-  wire [jal_pc_high_width_lp-1:   0]  jal_pc_high       = pc_r[ 0+: jal_pc_high_width_lp   ];
+  wire [jal_pc_high_width_lp-1:   0]  jal_pc_high       = pc_r[ (jal_pc_low_width_lp-2)+: jal_pc_high_width_lp ];
   wire [jal_pc_high_width_lp-1:   0]  jal_pc_high_p1    = jal_pc_high + 1'b1;
-  wire [jal_pc_high_width_lp-1:   0]  jal_pc_high_n1    = jal_pc_high +  'b1;
+  wire [jal_pc_high_width_lp-1:   0]  jal_pc_high_n1    = jal_pc_high + {jal_pc_high_width_lp{1'b1}};
   wire [jal_pc_high_width_lp-1:   0]  jal_pc_high_out ;
 
   //   pc_lower_sign    pc_lower_cout   pc_high-1       pc_high      pc_high+1
@@ -144,7 +148,7 @@ module icache #(parameter
   //        0                 1                                          1
   //        1                 0           1                                     
   //        1                 1                             1 
-  wire sel_pc           = icache_stall_out.lower_sign    ^ icache_stall_out.lower_cout ; 
+  wire sel_pc           = ~(icache_stall_out.lower_sign    ^ icache_stall_out.lower_cout) ; 
   wire sel_pc_p1        = (~icache_stall_out.lower_sign) & icache_stall_out.lower_cout ; 
   wire sel_pc_n1        = icache_stall_out.lower_sign    & (~icache_stall_out.lower_cout) ; 
 
