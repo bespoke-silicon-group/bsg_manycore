@@ -18,7 +18,7 @@ _code_section_1_start = .
 test_1:
     js test_2;
 fail_1:
-    bsg_asm_fail(0, 0x1);
+    bsg_asm_fail(IO_X_INDEX, 0x1);
 
 // (MAX-4) jump forward
 test_3:
@@ -29,14 +29,14 @@ test_3:
     la t0, finish;
     jr t0;
 fail_3:
-    bsg_asm_fail(0, 0x3);
+    bsg_asm_fail(IO_X_INDEX, 0x3);
 
 // jump backward
 test_2:
     bne x1,x2,fail_1;
     js test_3;
 fail_2:
-    bsg_asm_fail(0, 0x2);
+    bsg_asm_fail(IO_X_INDEX, 0x2);
 _code_section_1_end = .
 
 
@@ -46,12 +46,12 @@ _code_section_2_start = .
 3:
     bne x1, x2, fail_3;
     js test_3+24;
-    bsg_asm_fail(0, 0x3);
+    bsg_asm_fail(IO_X_INDEX, 0x3);
 
 finish:
     fence;
     li t0, 1;
     csrw mtohost, t0;
-    bsg_asm_finish(0);
+    bsg_asm_finish(IO_X_INDEX);
     j finish
 _code_section_2_end = .
