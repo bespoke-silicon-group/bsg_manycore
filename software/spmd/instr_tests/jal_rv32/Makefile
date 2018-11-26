@@ -2,7 +2,7 @@ bsg_tiles_X= 2
 bsg_tiles_Y= 2 
 
 NUM_CODE_SECTIONS = 2
-CODE_SECTIONS = _code_section_1 _code_section_2
+CODE_LABELS = _code_section_1 _code_section_2
 
 all: main.run
 

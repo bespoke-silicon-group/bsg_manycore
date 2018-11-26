@@ -3,6 +3,18 @@
 //should we shut down the dynamic feature of the arbiter ?
 //`define  SHUT_DY_ARB
 
+`ifndef NUM_CODE_SECTIONS
+	`define DEFAULT_CODE_SECTIONS
+`endif
+`ifndef CODE_SECTIONS
+	`define DEFAULT_CODE_SECTIONS
+`endif
+
+`ifdef DEFAULT_CODE_SECTIONS
+	`define NUM_CODE_SECTIONS 1
+	`define CODE_SECTIONS `_bsg_dram_start_addr,`_bsg_dram_end_addr
+`endif
+
 module bsg_manycore_spmd_loader
 
 import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
