@@ -3,6 +3,17 @@
 //should we shut down the dynamic feature of the arbiter ?
 //`define  SHUT_DY_ARB
 
+`ifndef NUM_CODE_SECTIONS
+	`define DEFAULT_CODE_SECTIONS
+`endif
+`ifndef CODE_SECTIONS
+	`define DEFAULT_CODE_SECTIONS
+`endif
+
+`ifdef DEFAULT_CODE_SECTIONS
+	`define NUM_CODE_SECTIONS 1
+	`define CODE_SECTIONS `_bsg_dram_start_addr,`_bsg_dram_end_addr
+`endif
 
 module bsg_manycore_spmd_loader
 
@@ -32,6 +43,11 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,parameter unsigned dram_start_addr_lp = `_bsg_dram_start_addr
    ,parameter unsigned dram_end_addr_lp   = `_bsg_dram_end_addr  
    ,parameter dram_init_file_name = `_dram_init_file_name
+
+   // Only the address space derived from the follwoing prameters is
+   // loaded into the memory
+   ,parameter unsigned num_code_sections_p = `NUM_CODE_SECTIONS
+   ,parameter integer code_sections_p[0:(2*num_code_sections_p)-1] = '{`CODE_SECTIONS}
   )
   ( input                        clk_i
    ,input                        reset_i
@@ -150,25 +166,30 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         int dram_addr;
         bsg_manycore_dram_addr_s  dram_addr_cast; 
 
-        $display("Initilizing DRAM, range=%h - %h (%4d bytes)", dram_start_addr_lp, dram_end_addr_lp, dram_size_lp);
-        for(dram_addr =dram_start_addr_lp; dram_addr < dram_end_addr_lp; dram_addr= dram_addr +4) begin
-                   @(posedge clk_i);          //pull up the valid
-                   var_v_o = 1'b1; 
+        int instr_count = 0;
+        for(integer section = 0; section < num_code_sections_p; section = section + 1) begin
+            $display("Initilizing DRAM section:%2d, range=%h - %h", section+1, code_sections_p[2*section], code_sections_p[2*section+1]);
+            for(dram_addr = code_sections_p[2*section]; dram_addr < code_sections_p[2*section+1]; dram_addr= dram_addr +4) begin
+                       @(posedge clk_i);          //pull up the valid
+                       instr_count++;
+                       var_v_o = 1'b1; 
 
-                   dram_addr_cast = dram_addr; 
+                       dram_addr_cast = dram_addr; 
 
-                   var_data_o.data   = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr]};
-                   var_data_o.addr   = dram_addr >>2;
-                   var_data_o.op     = `ePacketOp_remote_store;
-                   var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
-                   var_data_o.x_cord = x_cord_width_lp'( dram_addr_cast.x_cord );
-                   var_data_o.y_cord = {y_cord_width_lp{1'b1}};
-                   var_data_o.src_x_cord = my_x_i;
-                   var_data_o.src_y_cord = my_y_i;
+                       var_data_o.data   = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr]};
+                       var_data_o.addr   = dram_addr >>2;
+                       var_data_o.op     = `ePacketOp_remote_store;
+                       var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
+                       var_data_o.x_cord = x_cord_width_lp'( dram_addr_cast.x_cord );
+                       var_data_o.y_cord = {y_cord_width_lp{1'b1}};
+                       var_data_o.src_x_cord = my_x_i;
+                       var_data_o.src_y_cord = my_y_i;
 
-                   @(negedge clk_i);
-                   wait( ready_i === 1'b1);   //check if the ready is pulled up.
-        end 
+                       @(negedge clk_i);
+                       wait( ready_i === 1'b1);   //check if the ready is pulled up.
+            end
+        end
+        $display("instr_count %d", instr_count);
   endtask 
   ///////////////////////////////////////////////////////////////////////////////
   // Task to unfreeze the tiles
