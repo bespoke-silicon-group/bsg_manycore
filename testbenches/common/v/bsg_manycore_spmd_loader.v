@@ -168,7 +168,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
         int instr_count = 0;
         for(integer section = 0; section < num_code_sections_p; section = section + 1) begin
-            $display("Initilizing DRAM section:%2d, range=%h - %h", section+1, code_sections_p[2*section], code_sections_p[2*section+1]);
+            $display("Initilizing DRAM section:%0d, range=%h - %h", section+1, code_sections_p[2*section], code_sections_p[2*section+1]);
             for(dram_addr = code_sections_p[2*section]; dram_addr < code_sections_p[2*section+1]; dram_addr= dram_addr +4) begin
                        @(posedge clk_i);          //pull up the valid
                        instr_count++;
@@ -189,7 +189,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                        wait( ready_i === 1'b1);   //check if the ready is pulled up.
             end
         end
-        $display("instr_count %d", instr_count);
+        $display("Instruction count = %0d", instr_count);
   endtask 
   ///////////////////////////////////////////////////////////////////////////////
   // Task to unfreeze the tiles

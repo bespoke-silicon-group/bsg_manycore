@@ -29,7 +29,7 @@ module test_bsg_manycore;
    localparam tile_id_ptr_lp  = -1;
    localparam dmem_size_lp    = `DMEM_SIZE ;
    localparam icache_entries_num_lp  = `ICACHE_ENTRIES;
-   localparam dram_ch_addr_width_lp   = $clog2(`DRAM_CH_SIZE);
+   localparam dram_ch_addr_width_lp   =  19; // 2MB;
    localparam icache_tag_width_lp= 12;      // 16MB PC address 
    localparam data_width_lp   = 32;
    localparam addr_width_lp   = 20;
