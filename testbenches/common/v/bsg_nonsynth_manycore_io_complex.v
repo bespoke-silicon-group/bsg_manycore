@@ -19,6 +19,7 @@ module bsg_nonsynth_manycore_io_complex
     ,src_x_cord_p = num_tiles_x_p -1 
     ,x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
     ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
+    ,include_dram_model = 1'b1
     ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
     )
@@ -104,26 +105,30 @@ module bsg_nonsynth_manycore_io_complex
    assign timeout_lo = | timeout_lo_vec;
 
    genvar                   i;
-   for (i = 0; i < num_tiles_x_p-1; i=i+1) begin
-        
-    bsg_manycore_ram_model#( .x_cord_width_p    (x_cord_width_lp)
-                            ,.y_cord_width_p    (y_cord_width_lp)
-                            ,.data_width_p      (data_width_p   )
+   //-----------------------------------------------------------------
+   // Connects dram model
+   if(include_dram_model) begin
+        for (i = 0; i < num_tiles_x_p-1; i=i+1) begin
+             
+         bsg_manycore_ram_model#( .x_cord_width_p    (x_cord_width_lp)
+                                 ,.y_cord_width_p    (y_cord_width_lp)
+                                 ,.data_width_p      (data_width_p   )
 
-                            ,.addr_width_p      (addr_width_p   )
-                            ,.els_p             (2**dram_ch_addr_width_p)
-                           )ram
-   (  .clk_i
-    , .reset_i
+                                 ,.addr_width_p      (addr_width_p   )
+                                 ,.els_p             (2**dram_ch_addr_width_p)
+                                )ram
+        (  .clk_i
+         , .reset_i
 
-    // mesh network
-    , .link_sif_i (ver_link_sif_i_cast[i] )
-    , .link_sif_o (ver_link_sif_o_cast[i] )
+         // mesh network
+         , .link_sif_i (ver_link_sif_i_cast[i] )
+         , .link_sif_o (ver_link_sif_o_cast[i] )
 
-    , .my_x_i ( x_cord_width_lp'(i)             )
-    , .my_y_i ( y_cord_width_lp'(num_tiles_y_p) )
+         , .my_x_i ( x_cord_width_lp'(i)             )
+         , .my_y_i ( y_cord_width_lp'(num_tiles_y_p) )
 
-    );
+         );
+        end
    end
    // we only set such a high number because we
    // know these packets can always be consumed
