@@ -1,4 +1,5 @@
 `include "bsg_manycore_packet.vh"
+`include "bsg_manycore_addr.vh"
 
 //should we shut down the dynamic feature of the arbiter ?
 //`define  SHUT_DY_ARB

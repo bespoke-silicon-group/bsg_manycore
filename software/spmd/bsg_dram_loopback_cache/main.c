@@ -78,13 +78,13 @@ int main()
       bsg_dram_store(tag_addr_mask | (i << 5), 0);
     }
 
-    for (int i = 0; i < 8; i++) 
-    {
-      test_store_stride(id, 0, (4 << i), (int**) data_vect);
-      test_store_stride(id, 4, (4 << i), (int**) data_vect);
-      test_store_stride(id, 8, (4 << i), (int**) data_vect);
-      test_store_stride(id, 12, (4 << i), (int**) data_vect);
-    }
+    //for (int i = 0; i < 8; i++) 
+    //{
+    //  test_store_stride(id, 0, (4 << i), (int**) data_vect);
+    //  test_store_stride(id, 4, (4 << i), (int**) data_vect);
+    //  test_store_stride(id, 8, (4 << i), (int**) data_vect);
+    //  test_store_stride(id, 12, (4 << i), (int**) data_vect);
+    //}
 
     bsg_barrier_wait(&tile0_barrier, 0, 0);
   }
