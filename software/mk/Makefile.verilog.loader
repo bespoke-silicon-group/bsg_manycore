@@ -1,0 +1,30 @@
+################################################
+#Define the binary parameters for progam loader
+#Should be included in the Makefile.verilog
+PROG_NAME ?=main
+
+find-section-addr = $(shell nm --radix=d $(PROG_NAME).riscv | grep $(1) | awk '{print $$1}')
+VCS_OPTIONS+= +define+_bsg_data_start_addr="32'h$(shell nm $(PROG_NAME).riscv | grep _bsg_data_start_addr | awk '{print $$1}')"
+VCS_OPTIONS+= +define+_bsg_data_end_addr="32'h$(shell nm $(PROG_NAME).riscv | grep _bsg_data_end_addr | awk '{print $$1}')"
+VCS_OPTIONS+= +define+_bsg_dram_start_addr="32'h$(shell nm $(PROG_NAME).riscv | grep _bsg_dram_start_addr | awk '{print $$1}')"
+VCS_OPTIONS+= +define+_bsg_dram_end_addr="32'h$(shell nm $(PROG_NAME).riscv | grep _bsg_dram_end_addr | awk '{print $$1}')"
+VCS_OPTIONS+= +define+_dram_init_file_name='"$(PROG_NAME)_dram.mem"'
+VCS_OPTIONS+= +define+_dmem_init_file_name='"$(PROG_NAME)_dmem.mem"'
+# Info for the SPMD loader to only load specific sections of code
+# to the DRAM. If these are not defined, the complete address range
+# will be loaded into the DRAM which might be a waste of simulation 
+# time.
+ifdef NUM_CODE_SECTIONS
+ifdef CODE_LABELS
+VCS_OPTIONS+= +define+NUM_CODE_SECTIONS=$(NUM_CODE_SECTIONS)
+code_sections = $(strip $(foreach section, $(CODE_LABELS)\
+				  	        ,$(call find-section-addr, $(section)_start) \
+				  	         $(call find-section-addr, $(section)_end) ))
+# hack to substitue space with comma and a space
+comma:=,
+empty:=
+space:=$(empty) $(empty)
+VCS_OPTIONS+= +define+CODE_SECTIONS="$(subst $(space),$(comma)$(space),$(code_sections))"
+endif
+endif
+
