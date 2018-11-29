@@ -91,7 +91,7 @@ int main()
 
   if (id == 0)
   {
-    bsg_finish_x(2);
+    bsg_finish_x(IO_X_INDEX);
   }
   else
   {
