@@ -25,6 +25,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,parameter addr_width_p    = 30
    ,parameter epa_addr_width_p= 16
    ,parameter dram_ch_addr_width_p=-1
+   ,parameter dram_ch_num_p   = 0
    ,parameter tile_id_ptr_p   = -1
    ,parameter num_rows_p      = -1
    ,parameter num_cols_p      = -1
@@ -34,6 +35,10 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,parameter y_cord_width_lp  = `BSG_SAFE_CLOG2(num_rows_p + 1)
    ,parameter x_cord_width_lp  = `BSG_SAFE_CLOG2(num_cols_p)
    ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+   //the vicitim cache  paraemters
+   ,parameter init_vcache_p   = 0
+   ,parameter vcache_entries_p = -1 
+   ,parameter vcache_ways_p    = -1 
    //the data memory realted paraemters
    ,parameter unsigned  dmem_start_addr_lp = `_bsg_data_start_addr
    ,parameter dmem_end_addr_lp   = `_bsg_data_end_addr
@@ -91,6 +96,10 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
         init_icache_tag ();
         init_dmem       ();
+
+        if( init_vcache_p)
+                init_vcache();
+
         init_dram       ();
         unfreeze_tiles  ();
 
@@ -98,7 +107,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         var_v_o = 1'b0;
   end
 //----------------------------------------------------------------------------
-// Task to init the icache
+// Tasks to init the icache
 //----------------------------------------------------------------------------
   task init_icache_tag();
         int x_cord, y_cord, icache_addr;
@@ -214,6 +223,32 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
                     @(negedge clk_i);
                     wait( ready_i === 1'b1);   //check if the ready is pulled up.
+                end
+        end
+  endtask 
+  ///////////////////////////////////////////////////////////////////////////////
+  // Task to initilized the victim cache
+  task init_vcache();
+        int x_cord, y_cord, tag_addr ;
+
+        $display("initilizing the victim caches, sets=%0d, ways=%0d", vcache_entries_p, vcache_ways_p);
+        for (x_cord =0; x_cord < dram_ch_num_p; x_cord ++) begin
+                for(tag_addr =0; tag_addr < vcache_entries_p * vcache_ways_p; tag_addr++)begin
+                        @(posedge clk_i);          //pull up the valid
+                        var_v_o = 1'b1; 
+
+                        var_data_o.data   =  'b0;
+                        //MSB==1 : The vcache tag
+                        var_data_o.addr   =  (1<<(dram_ch_addr_width_p-1)) | (tag_addr << 3) ; 
+                        var_data_o.op     = `ePacketOp_remote_store;
+                        var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
+                        var_data_o.x_cord = x_cord;
+                        var_data_o.y_cord = {y_cord_width_lp{1'b1}};
+                        var_data_o.src_x_cord = my_x_i;
+                        var_data_o.src_y_cord = my_y_i;
+
+                        @(negedge clk_i);
+                        wait( ready_i === 1'b1);   //check if the ready is pulled up.
                 end
         end
   endtask 

@@ -71,12 +71,12 @@ int main()
 
   if (id < 2) 
   {
-    // clear tag mem in cache.
-    int tag_addr_mask = (id << 28) | (1 << 27); 
-    for (int i = 0; i < CACHE_NUM_SET*CACHE_NUM_WAY; i++) 
-    {
-      bsg_dram_store(tag_addr_mask | (i << 5), 0);
-    }
+    //// clear tag mem in cache.
+    //int tag_addr_mask = (id << 28) | (1 << 27); 
+    //for (int i = 0; i < CACHE_NUM_SET*CACHE_NUM_WAY; i++) 
+    //{
+    //  bsg_dram_store(tag_addr_mask | (i << 5), 0);
+    //}
 
     //for (int i = 0; i < 8; i++) 
     //{

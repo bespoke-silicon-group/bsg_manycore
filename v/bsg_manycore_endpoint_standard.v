@@ -238,7 +238,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
        ,.v_o        ( holded_returning_v_lo     )
        ,.data_o     ( holded_returning_data_lo  )
 
-       ,.hold_i     ( ~returning_ready_lo       )
+       ,.hold_i     ( (~returning_ready_lo) & holded_returning_v_lo )
     );
 
 //    wire   is_store_return =  rc_fifo_lo.pkt_type == `ePacketType_credit ;

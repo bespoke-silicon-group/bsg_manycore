@@ -9,6 +9,7 @@ module bsg_nonsynth_manycore_io_complex
     ,max_cycles_p   = -1
     ,addr_width_p   = -1
     ,epa_addr_width_p = -1
+    ,dram_ch_num_p       = 0
     ,dram_ch_addr_width_p=-1
     ,data_width_p  = 32
     ,num_tiles_x_p = -1
@@ -20,6 +21,12 @@ module bsg_nonsynth_manycore_io_complex
     ,x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
     ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
     ,include_dram_model = 1'b1
+
+    //parameters for victim cache    
+    ,init_vcache_p   = 0
+    ,vcache_entries_p = -1 
+    ,vcache_ways_p    = -1 
+
     ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
     )
@@ -74,8 +81,12 @@ module bsg_nonsynth_manycore_io_complex
         ,.data_width_p  (data_width_p)
         ,.addr_width_p  (addr_width_p)
         ,.epa_addr_width_p (epa_addr_width_p)
+        ,.dram_ch_num_p       ( dram_ch_num_p       )
         ,.dram_ch_addr_width_p( dram_ch_addr_width_p )
         ,.tile_id_ptr_p (tile_id_ptr_p)
+        ,.init_vcache_p (init_vcache_p)
+        ,.vcache_entries_p ( vcache_entries_p )
+        ,.vcache_ways_p    ( vcache_ways_p    )
         ) spmd_loader
        ( .clk_i     (clk_i)
          ,.reset_i  (reset_r)
