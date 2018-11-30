@@ -5,10 +5,11 @@
 // We make use of the bsg_channel_tunnel to virtualize the
 // links.
 //
+`include "bsg_fsb_pkg.vh"
 
 module  bsg_manycore_links_to_fsb
-   import bsg_fsb_pkg::*;
   #(parameter ring_width_p="inv"
+    , parameter id_width_p="inv"
     , parameter dest_id_p="inv"
     , parameter num_links_p="inv"
     , parameter addr_width_p="inv"
@@ -173,6 +174,8 @@ module  bsg_manycore_links_to_fsb
 
     // outgoing multiplexed data; we need to append the packet header info to convert into data_o, of size ring_width_p
    logic [tagged_width_lp-1:0]  multi_data_lo;
+
+   `declare_bsg_fsb_pkt_s(ring_width_p,id_width_p);
 
    bsg_fsb_pkt_client_s out_pkt;
 
