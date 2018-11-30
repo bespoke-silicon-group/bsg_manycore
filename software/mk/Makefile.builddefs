@@ -18,6 +18,7 @@ endif
 # paths
 RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-gcc
 RISCV_ELF2HEX ?= LD_LIBRARY_PATH=$(RISCV_BIN_DIR)/../lib $(RISCV_BIN_DIR)/elf2hex
+RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-objcopy
 
 BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
@@ -45,11 +46,19 @@ RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 %.hex: %.riscv
 	$(RISCV_ELF2HEX) $(BSG_MANYCORE_BANKS) $(BSG_MANYCORE_BANKSIZE) $< > $@
 
+# dump the data memory content
+%_dmem.mem:	%.riscv
+	$(RISCV_OBJCOPY) -O verilog -R .text $< $@
+
+# dump the dram content
+%_dram.mem:	%.riscv
+	$(RISCV_OBJCOPY) -O verilog -j .text $< $@
+
 %.bin:  %.hex
 	python $(HEX2BIN) $< 32 > $@
 
 %.dis: %.riscv
-	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objdump --disassemble-all $<
+	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objdump -M numeric --disassemble-all $<
 
 #added the '0x' prefix and and a ',' prefix to each line except the last line.
 #can be used to initialize a vector in C launguage.

@@ -8,9 +8,8 @@ module bsg_manycore_tile
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }
 
 #(
-  parameter bank_size_p = -1,
-  parameter num_banks_p = "inv",
-  parameter imem_size_p = bank_size_p,
+  parameter dmem_size_p        = -1,
+  parameter icache_entries_p   = -1,
   parameter icache_tag_width_p = -1, 
 
   parameter x_cord_width_p = -1,
@@ -86,10 +85,9 @@ module bsg_manycore_tile
       .x_cord_width_p(x_cord_width_p),
       .y_cord_width_p(y_cord_width_p),
       .debug_p(debug_p),
-      .bank_size_p(bank_size_p),
-      .imem_size_p(imem_size_p),
+      .dmem_size_p     (dmem_size_p     ),
+      .icache_entries_p(icache_entries_p),
       .icache_tag_width_p( icache_tag_width_p ),
-      .num_banks_p(num_banks_p),
       .data_width_p(data_width_p),
       .addr_width_p(addr_width_p),
       .epa_addr_width_p( epa_addr_width_p),

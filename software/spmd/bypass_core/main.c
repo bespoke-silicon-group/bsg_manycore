@@ -23,6 +23,8 @@ int main()
   if(bsg_x == 0 && bsg_y == 0){
 
     bypass_core_test(input);
+    //call the test twice as the icache is warmed up.
+    bypass_core_test(input);
     bsg_finish();
   }
 

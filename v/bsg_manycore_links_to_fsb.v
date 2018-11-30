@@ -5,10 +5,11 @@
 // We make use of the bsg_channel_tunnel to virtualize the
 // links.
 //
+`include "bsg_fsb_pkg.vh"
 
 module  bsg_manycore_links_to_fsb
-   import bsg_fsb_pkg::*;
   #(parameter ring_width_p="inv"
+    , parameter id_width_p="inv"
     , parameter dest_id_p="inv"
     , parameter num_links_p="inv"
     , parameter addr_width_p="inv"
@@ -174,12 +175,19 @@ module  bsg_manycore_links_to_fsb
     // outgoing multiplexed data; we need to append the packet header info to convert into data_o, of size ring_width_p
    logic [tagged_width_lp-1:0]  multi_data_lo;
 
+   `declare_bsg_fsb_pkt_s(ring_width_p,id_width_p);
+
    bsg_fsb_pkt_client_s out_pkt;
 
    // synopsys translate_off
-   initial
+   initial begin
      assert($bits(bsg_fsb_pkt_client_s)==ring_width_p)
        else $error("bsg_fsb_pkt_client_s and ring_width_p do not line up",$bits(bsg_fsb_pkt_client_s),ring_width_p);
+
+     assert(tagged_width_lp <= (ring_width_p - (id_width_p+1) ))
+       else $error("manycore packet size (tagged:%0d bits) exceed that of fsb (avaliable:%0d).", 
+                        tagged_width_lp, (ring_width_p - (id_width_p+1) ));
+   end
    // synopsys translate_on
 
    localparam bsg_fsb_pkt_client_s_data_size_lp = $bits(bsg_fsb_pkt_client_data_t);

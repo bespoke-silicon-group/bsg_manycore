@@ -72,7 +72,7 @@ int spin_cond(int * ptr,  int cond ) {
             tmp = bsg_lr_aq( ptr );  //stall until somebody clear the reservation
 
             //Used for debug, print the recieved value
-            bsg_remote_ptr_io_store(bsg_x, &tmp, tmp);
+            bsg_remote_ptr_io_store(IO_X_INDEX, &tmp, tmp);
 
             if( tmp == cond ) return 0; //return if data is expected, otherwise retry
         }

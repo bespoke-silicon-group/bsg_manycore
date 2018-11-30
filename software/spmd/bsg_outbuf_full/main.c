@@ -53,7 +53,7 @@ void proc( int id ){
    remote_ptr = bsg_remote_ptr( next_x, next_y, buffer);
    round_num++;
    do {
-         if( id == 1 ) bsg_remote_ptr_io_store( bsg_x, &round_num , round_num );
+         if( id == 1 ) bsg_remote_ptr_io_store( IO_X_INDEX, &round_num , round_num );
          //run the specific process
          if( func_array[id]){
             func_array[id]( buffer, remote_ptr, BUF_LEN ) ;

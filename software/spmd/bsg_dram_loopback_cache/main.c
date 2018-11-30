@@ -71,27 +71,27 @@ int main()
 
   if (id < 2) 
   {
-    // clear tag mem in cache.
-    int tag_addr_mask = (id << 28) | (1 << 27); 
-    for (int i = 0; i < CACHE_NUM_SET*CACHE_NUM_WAY; i++) 
-    {
-      bsg_dram_store(tag_addr_mask | (i << 5), 0);
-    }
+    //// clear tag mem in cache.
+    //int tag_addr_mask = (id << 28) | (1 << 27); 
+    //for (int i = 0; i < CACHE_NUM_SET*CACHE_NUM_WAY; i++) 
+    //{
+    //  bsg_dram_store(tag_addr_mask | (i << 5), 0);
+    //}
 
-    for (int i = 0; i < 8; i++) 
-    {
-      test_store_stride(id, 0, (4 << i), (int**) data_vect);
-      test_store_stride(id, 4, (4 << i), (int**) data_vect);
-      test_store_stride(id, 8, (4 << i), (int**) data_vect);
-      test_store_stride(id, 12, (4 << i), (int**) data_vect);
-    }
+    //for (int i = 0; i < 8; i++) 
+    //{
+    //  test_store_stride(id, 0, (4 << i), (int**) data_vect);
+    //  test_store_stride(id, 4, (4 << i), (int**) data_vect);
+    //  test_store_stride(id, 8, (4 << i), (int**) data_vect);
+    //  test_store_stride(id, 12, (4 << i), (int**) data_vect);
+    //}
 
     bsg_barrier_wait(&tile0_barrier, 0, 0);
   }
 
   if (id == 0)
   {
-    bsg_finish_x(2);
+    bsg_finish_x(IO_X_INDEX);
   }
   else
   {

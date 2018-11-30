@@ -13,12 +13,11 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                            , dram_ch_addr_width_p = -1
                            , dram_ch_start_col_p = 0
                            , debug_p        = 0
-                           , bank_size_p    = -1// in words
-                           , num_banks_p    = "inv"
 
-                           , icache_tag_width_p = -1
-                           , imem_size_p        = bank_size_p // in words
-                           , imem_addr_width_lp = $clog2(imem_size_p)
+                           , icache_tag_width_p   = -1
+                           , icache_entries_p     = 1024 // in words
+                           , dmem_size_p          = 1024 // in words
+                           , icache_addr_width_lp = $clog2(icache_entries_p)
                            // this credit counter is more for memory fences
                            // than containing the number of outstanding remote stores
 
@@ -67,6 +66,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic                              out_ready_lo;
 
    logic [data_width_p-1:0]           returned_data_r_lo  ;
+   logic [addr_width_p-1:0]           returned_addr_r_lo  ;
    logic                              returned_v_r_lo     ;
 
    logic [data_width_p-1:0]           load_returning_data, store_returning_data_r, returning_data;
@@ -182,9 +182,11 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
            );
    `endif
    //////////////////////////////////////////////////////////
-   //
-   wire is_config_op      = in_v_lo & in_addr_lo[epa_addr_width_p-1] & in_we_lo;
-   wire non_imem_bits_set = | in_addr_lo[addr_width_p-1:imem_addr_width_lp];
+   // configuration  in_addr_lo = { 1 ------ } 2'b00
+   localparam  epa_config_bit_idx = (epa_addr_width_p-2) -1;
+
+   wire is_config_op      = in_v_lo & in_addr_lo[epa_config_bit_idx] & in_we_lo;
+   wire non_imem_bits_set = | in_addr_lo[addr_width_p-1:icache_addr_width_lp];
 
    wire remote_store_imem_not_dmem = in_v_lo & ~non_imem_bits_set;
    wire remote_access_dmem_not_imem = in_v_lo & non_imem_bits_set & (~is_config_op);
@@ -207,7 +209,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    hobbit #
      (
        .icache_tag_width_p (icache_tag_width_p) 
-      ,.icache_addr_width_p(imem_addr_width_lp)
+      ,.icache_addr_width_p(icache_addr_width_lp)
       ,.gw_ID_p          (0)
       ,.ring_ID_p        (0)
       ,.x_cord_width_p   (x_cord_width_p)
@@ -251,7 +253,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
          core_net_pkt.header.mask   = in_mask_lo;
          // this address alread stripped the byte bits
          // We have to add them for compatibility
-         core_net_pkt.header.addr   = {in_addr_lo[11:0], 2'b0};
+         core_net_pkt.header.addr   = {in_addr_lo, 2'b0};
        end
      else
        begin // initiates pc pushing core to RUN state
@@ -260,7 +262,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
          //1.  We don't support exceptions, and we don't want to waste the
          //    instruction memory so the starting address of the first instruction
          //    is ZERO
-         core_net_pkt.header.addr     = 13'h0;
+         core_net_pkt.header.addr     = 'b0;
        end
 
     core_net_pkt.data   = remote_store_imem_not_dmem ? in_data_lo : 32'(0);
@@ -275,9 +277,10 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   //the core_to_mem yumi signal is not used.
 
   //The data can either from local memory or from the network.
-  assign mem_to_core.valid      = core_mem_rv | returned_v_r_lo  ;
-  assign mem_to_core.read_data  = core_mem_rv ? core_mem_rdata
-                                              : returned_data_r_lo ;
+  assign mem_to_core.valid           = core_mem_rv | returned_v_r_lo  ;
+  assign mem_to_core.read_data       = core_mem_rv ? core_mem_rdata
+                                                   : returned_data_r_lo ;
+
 
    wire out_request;
 
@@ -339,7 +342,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    wire local_epa_request = core_mem_v & (~ out_request);// not a remote packet
    wire [1:0]              xbar_port_v_in = { local_epa_request ,  remote_access_dmem_not_imem};
 
-   localparam mem_width_lp    = $clog2(bank_size_p) + $clog2(num_banks_p);
+   localparam mem_width_lp    = $clog2(dmem_size_p) ;
 
    wire [1:0]                    xbar_port_we_in   = { core_mem_w, in_we_lo};
    wire [1:0]                    xbar_port_yumi_out;
@@ -350,26 +353,24 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    always @(negedge clk_i)
      begin
         if (remote_access_dmem_not_imem)
-          assert (in_addr_lo < ((1 << imem_addr_width_lp) + (bank_size_p*num_banks_p)))
+          assert (in_addr_lo < ((1 << icache_addr_width_lp) + (dmem_size_p)))
             else
               begin
                  $error("# ERROR y,x=(%x,%x) remote access addr (%x) past end of data memory (%x)"
-                        ,my_y_i,my_x_i,in_addr_lo*4,4*((1 << imem_addr_width_lp)+(bank_size_p*num_banks_p)));
+                        ,my_y_i,my_x_i,in_addr_lo*4,4*((1 << icache_addr_width_lp)+(dmem_size_p)));
                  $finish();
               end
      end
 
-   //initial
-   //   $display("imem_addr_width_lp %d, bank_size_p %d, num_banks_p %d\n",imem_addr_width_lp,bank_size_p,num_banks_p);
 
    always @(negedge clk_i)
      begin
         if (xbar_port_v_in[1])
-          assert (core_mem_addr[30:2] < ((1 << imem_addr_width_lp) + (bank_size_p*num_banks_p)))
+          assert (core_mem_addr[30:2] < ((1 << icache_addr_width_lp) + (dmem_size_p)))
             else
               begin
                  $error("# ERROR y,x=(%x,%x) local store addr (%x) past end of data memory (%x)"
-                        ,my_y_i,my_x_i,core_mem_addr,4*((1 << imem_addr_width_lp)+(bank_size_p*num_banks_p)));
+                        ,my_y_i,my_x_i,core_mem_addr,4*((1 << icache_addr_width_lp)+(dmem_size_p)));
                  $finish();
               end
      end
@@ -415,8 +416,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
   bsg_mem_banked_crossbar #
     (.num_ports_p  (2)
-     ,.num_banks_p  (num_banks_p)
-     ,.bank_size_p  (bank_size_p)
+     ,.num_banks_p  (1)
+     ,.bank_size_p  (dmem_size_p )
      ,.data_width_p (data_width_p)
      ,.rr_lo_hi_p   ( 5 ) // dynmaic priority based on FIFO status
 //     ,.rr_lo_hi_p   ( 4 ) // round robin reset
@@ -451,8 +452,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    // ----------------------------------------------------------------------------------------
    // Handle the control registers
    // ----------------------------------------------------------------------------------------
-
-   wire  is_freeze_addr = {1'b0, in_addr_lo[epa_addr_width_p-2:0]} == epa_addr_width_p'(0);
+                                         
+   wire  is_freeze_addr = {1'b0, in_addr_lo[epa_config_bit_idx-1:0]} == (epa_addr_width_p-2)'(0);
 
    wire  freeze_op     = is_config_op & is_freeze_addr & in_data_lo[0] ;
    wire  unfreeze_op   = is_config_op & is_freeze_addr & (~in_data_lo[0]);

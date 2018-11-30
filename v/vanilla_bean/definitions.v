@@ -72,7 +72,7 @@ typedef struct packed
                                         // more bits for net_op
     //TODO--The address should be parameterizable.
     //      Right now set to the max(BRANCH_IMM, JAL_IMM)
-    logic [12:0] addr;        // 13..0  // the addr field which could be largened
+    logic [RV32_reg_data_width_gp-1:0] addr;        // 13..0  // the addr field which could be largened
                                         // using reserved field
 } v_core_header_s;
 
@@ -150,6 +150,7 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] pc_jump_addr; // Jump taget PC
     instruction_s                      instruction;  // Instruction being executed
     decode_s                           decode;       // Decode signals
+    logic                              icache_miss;
 
 } id_signals_s;
 
@@ -170,6 +171,7 @@ typedef struct packed
     logic                              rs1_in_wb ;   // pre-computed forwarding signal
     logic                              rs2_in_mem;   // pre-computed forwarding signal
     logic                              rs2_in_wb ;   // pre-computed forwarding signal
+    logic                              icache_miss;
 } exe_signals_s;
 
 // Memory stage signals
@@ -179,6 +181,7 @@ typedef struct packed
     decode_s                           decode;     // Decode signals
     logic [RV32_reg_data_width_gp-1:0] alu_result; // ALU ouptut data
     logic [RV32_reg_data_width_gp-1:0] mem_addr_send; //the address sent to memory
+    logic                              icache_miss;
 } mem_signals_s;
 
 // RF write back stage signals
@@ -187,6 +190,8 @@ typedef struct packed
     logic                              op_writes_rf; // Op writes to the register file
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;      // Register file write address
     logic [RV32_reg_data_width_gp-1:0] rf_data;      // Register file write data
+    logic                              icache_miss;
+    logic [RV32_reg_data_width_gp-1:0] icache_miss_pc;
 } wb_signals_s;
 
 `endif

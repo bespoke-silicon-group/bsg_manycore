@@ -16,3 +16,6 @@ webtalk*
 *.wcfg
 .Xil/
 vivado_*
+imports/
+software/riscv-tools/riscv-install
+software/riscv-tools/rocket-chip

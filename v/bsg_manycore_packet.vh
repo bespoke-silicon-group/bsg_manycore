@@ -58,13 +58,13 @@
 
 `define bsg_manycore_link_sif_width(in_addr_width,in_data_width,in_x_cord_width, in_y_cord_width)                              \
      (   `bsg_ready_and_link_sif_width(`bsg_manycore_packet_width(in_addr_width,in_data_width,in_x_cord_width,in_y_cord_width))        \
-       + `bsg_ready_and_link_sif_width(`bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width, in_data_width))                     \
+       + `bsg_ready_and_link_sif_width(`bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width, in_data_width)) \
      )
 
 `define declare_bsg_manycore_fwd_link_sif_s(in_addr_width,in_data_width,in_x_cord_width,in_y_cord_width,name)  \
      `declare_bsg_ready_and_link_sif_s(`bsg_manycore_packet_width(in_addr_width,in_data_width,in_x_cord_width,in_y_cord_width),name)
 
-`define declare_bsg_manycore_rev_link_sif_s(in_x_cord_width,in_y_cord_width,in_data_width, name)  \
+`define declare_bsg_manycore_rev_link_sif_s(in_x_cord_width,in_y_cord_width,in_data_width,name)  \
      `declare_bsg_ready_and_link_sif_s(`bsg_manycore_return_packet_width(in_x_cord_width,in_y_cord_width, in_data_width),name)
 
 `define write_bsg_manycore_packet_s(PKT)                                                                                                     \
@@ -74,7 +74,7 @@
 // defines bsg_manycore_fwd_link_sif, bsg_manycore_rev_link_sif, and the combination, bsg_manycore_link_sif_s
 `define declare_bsg_manycore_link_sif_s(in_addr_width, in_data_width, in_x_cord_width, in_y_cord_width)                                \
     `declare_bsg_manycore_fwd_link_sif_s(in_addr_width, in_data_width, in_x_cord_width, in_y_cord_width, bsg_manycore_fwd_link_sif_s); \
-    `declare_bsg_manycore_rev_link_sif_s(in_x_cord_width, in_y_cord_width,in_data_width, bsg_manycore_rev_link_sif_s);                               \
+    `declare_bsg_manycore_rev_link_sif_s(in_x_cord_width, in_y_cord_width,in_data_width, bsg_manycore_rev_link_sif_s);  \
                                                                                                                                        \
    typedef struct packed {             \
       bsg_manycore_fwd_link_sif_s fwd; \

@@ -193,8 +193,8 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    // ----------------------------------------------------------------------------------------
    typedef struct packed {
       logic [`return_packet_type_width-1:0]     pkt_type;
-      logic [(y_cord_width_p)-1:0]                y_cord;
-      logic [(x_cord_width_p)-1:0]                x_cord;
+      logic [(y_cord_width_p)-1:0]              y_cord;
+      logic [(x_cord_width_p)-1:0]              x_cord;
    } returning_credit_info;
 
    returning_credit_info  rc_fifo_li, rc_fifo_lo;
@@ -238,7 +238,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
        ,.v_o        ( holded_returning_v_lo     )
        ,.data_o     ( holded_returning_data_lo  )
 
-       ,.hold_i     ( ~returning_ready_lo       )
+       ,.hold_i     ( (~returning_ready_lo) & holded_returning_v_lo )
     );
 
 //    wire   is_store_return =  rc_fifo_lo.pkt_type == `ePacketType_credit ;
@@ -249,11 +249,14 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     assign rc_fifo_yumi_li =  rc_fifo_v_lo & returning_ready_lo & load_store_ready;
 
     assign returning_v_li           =  rc_fifo_v_lo & load_store_ready;
-    assign returning_packet_li      = { rc_fifo_lo.pkt_type
-                                      , holded_returning_data_lo
-                                      , rc_fifo_lo.y_cord
-                                      , rc_fifo_lo.x_cord
-                                      };
+
+    bsg_manycore_return_packet_s      returning_pkt_cast;
+    assign returning_pkt_cast       = '{ pkt_type        : rc_fifo_lo.pkt_type
+                                       , data            : holded_returning_data_lo
+                                       , y_cord          : rc_fifo_lo.y_cord
+                                       , x_cord          : rc_fifo_lo.x_cord
+                                       };
+    assign returning_packet_li      = returning_pkt_cast;
    // ----------------------------------------------------------------------------------------
    // Handle returned credit & data
    // ----------------------------------------------------------------------------------------

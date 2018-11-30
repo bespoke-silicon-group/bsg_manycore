@@ -144,7 +144,7 @@ _start:
   # initialize global pointer
   la gp, _gp
 
-  la  tp, _end + 63
+  la  tp, _bsg_data_end_addr + 63
   and tp, tp, -64
 
   # get core id

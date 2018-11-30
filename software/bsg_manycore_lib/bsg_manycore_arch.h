@@ -2,6 +2,12 @@
 #define _BSG_MANYCORE_ARCH_H
 
 //------------------------------------------------------
+// 0. basic SoC definitaion
+//------------------------------------------------------
+#define IO_X_INDEX     ((bsg_tiles_X)-1) 
+//in words.
+#define EPA_ADDR_BITS                   18
+//------------------------------------------------------
 // 1. X/Y dimention setting/Checking.
 //------------------------------------------------------
 #ifndef bsg_tiles_X
@@ -66,10 +72,12 @@
 #error Unsupported bsg_tiles_Y
 #endif
 
+#if bsg_tiles_X < 2
+#error bsg_tiles_X must be larger than 1
+#endif
 //------------------------------------------------------
 // 2.Tile Address Mapping Configuation
 //------------------------------------------------------
-#define EPA_ADDR_BITS                   18
 #define MAX_X_CORD_BITS                 6
 #define MAX_Y_CORD_BITS                 6
 

@@ -20,7 +20,14 @@ module hobbit #(parameter
                           y_cord_width_p    = -1,
                           debug_p           = 0 ,
                           pc_width_lp            = icache_tag_width_p + icache_addr_width_p, 
-                          icache_format_width_lp = `icache_format_width( icache_tag_width_p )
+                          icache_format_width_lp = `icache_format_width( icache_tag_width_p ),
+                          //As all instructions will be resident in DRAM, we
+                          //need to pad the higher parts of the pc so it
+                          //points to DRAM.
+                          pc_high_padding_width_lp  = RV32_reg_data_width_gp - pc_width_lp -2 ,
+                          pc_high_padding_lp        = {pc_high_padding_width_lp{1'b0}} ,
+                          //used to direct the icache miss address to dram.
+                          dram_addr_mapping_lp      = 32'h8000_0000
                )(
                 input                             clk_i
                ,input                             reset_i
@@ -104,7 +111,7 @@ logic stall_fence;
 //We have to buffer the returned data from memory
 //if there is a non-memory stall at current cycle.
 logic                               is_load_buffer_valid;
-logic [RV32_reg_data_width_gp-1:0]  load_buffer_data;
+logic [RV32_reg_data_width_gp-1:0]  load_buffer_info;
 
 //the memory valid signal may come from memory or the buffer register
 logic                               data_mem_valid;
@@ -126,8 +133,8 @@ assign stall_non_mem = (net_imem_write_cmd)
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 
 // stall due to data memory access
-assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
-                   | (mem.decode.is_load_op & (~data_mem_valid))
+assign stall_mem =  ( exe.decode.is_mem_op & (~from_mem_i.yumi))
+                   | mem.decode.is_load_op & (~data_mem_valid)
                    | stall_fence
                    | stall_lrw;
 
@@ -197,7 +204,13 @@ wire [RV32_reg_data_width_gp-1:0] mem_addr_op2 =
         id.decode.is_store_op    ? `RV32_signext_Simm(id.instruction)
                                  : `RV32_signext_Iimm(id.instruction);
 
-assign mem_addr_send= rs1_to_alu +  exe.mem_addr_op2;
+wire [RV32_reg_data_width_gp-1:0] ld_st_addr   = rs1_to_alu +  exe.mem_addr_op2;
+
+// We need to set the MSB of miss_pc to 1'b1 so it will be interpreted as DRAM
+// address
+wire [RV32_reg_data_width_gp-1:0] miss_pc       = (exe.pc_plus4 - 'h4) | dram_addr_mapping_lp; 
+
+assign mem_addr_send= exe.icache_miss? miss_pc : ld_st_addr ;
 
 assign to_mem_o = '{
     write_data    : store_data,
@@ -239,7 +252,8 @@ wire jalr_mispredict = (exe.instruction.op ==? `RV32_JALR_OP)
 
 // Flush the control signals in the execute and instr decode stages if there
 // is a misprediction
-wire flush = (branch_mispredict | jalr_mispredict);
+wire icache_miss_in_pipe = id.icache_miss | exe.icache_miss | mem.icache_miss | wb.icache_miss;
+wire flush = (branch_mispredict | jalr_mispredict );
 
 //+----------------------------------------------
 //|
@@ -270,15 +284,18 @@ always_comb
 begin
     // Network setting PC (highest priority)
     if (net_pc_write_cmd_idle)
-        pc_n = net_packet_r.header.addr[2+:icache_addr_width_p];
+        pc_n = net_packet_r.header.addr[2+:pc_width_lp];
+    // cache miss
+    else if (wb.icache_miss)
+        pc_n = wb.icache_miss_pc[2+:pc_width_lp];
 
     // Fixing a branch misprediction (or single cycle branch will
     // follow a branch under prediction logic)
     else if (branch_mispredict)
         if (branch_under_predict)
-            pc_n = exe.pc_jump_addr[2+:icache_addr_width_p];
+            pc_n = exe.pc_jump_addr[2+:pc_width_lp];
         else
-            pc_n = exe.pc_plus4[2+:icache_addr_width_p];
+            pc_n = exe.pc_plus4[2+:pc_width_lp];
 
     // Fixing a JALR misprediction (or a signal cycle JALR instruction)
     else if (jalr_mispredict)
@@ -314,6 +331,18 @@ assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_w
 `declare_icache_format_s( icache_tag_width_p );
 icache_format_s       icache_r_data_s;
 
+logic [RV32_reg_data_width_gp-1:0] loaded_data;
+logic [RV32_reg_data_width_gp-1:0] loaded_pc  ;
+
+wire                          icache_w_en  = net_imem_write_cmd | (mem.icache_miss & data_mem_valid );
+wire [icache_addr_width_p-1:0]icache_w_addr= net_imem_write_cmd ? net_packet_r.header.addr[2+:icache_addr_width_p]
+                                                                : loaded_pc[2+:icache_addr_width_p];
+wire [icache_tag_width_p-1:0] icache_w_tag = net_imem_write_cmd ? {icache_tag_width_p{1'b1}}
+                                                                : loaded_pc[(icache_addr_width_p+2)+: icache_tag_width_p] ; 
+wire [RV32_instr_width_gp-1:0]icache_w_instr=net_imem_write_cmd ? net_packet_r.data
+                                                                : loaded_data;
+
+wire icache_miss_lo;
 icache #(
          .icache_tag_width_p  ( icache_tag_width_p      )
         ,.icache_addr_width_p ( icache_addr_width_p     )
@@ -324,16 +353,17 @@ icache #(
        ,.reset_i
 
        ,.icache_cen_i           (icache_cen             )
-       ,.icache_w_en_i          (net_imem_write_cmd     )
-       ,.icache_w_addr_i        (net_packet_r.header.addr[2+:icache_addr_width_p])
-       ,.icache_w_tag_i         (icache_tag_width_p'(0) )
-       ,.icache_w_instr_i       (net_packet_r.data      )
+       ,.icache_w_en_i          (icache_w_en            )
+       ,.icache_w_addr_i        (icache_w_addr          )
+       ,.icache_w_tag_i         (icache_w_tag           ) 
+       ,.icache_w_instr_i       (icache_w_instr         )
 
        ,.pc_i                   (pc_n                   )
        ,.pc_wen_i               (pc_wen                 )
        ,.pc_r_o                 (pc_r                   )
        ,.instruction_o          (instruction            )
        ,.jump_addr_o            (pc_jump_addr           )
+       ,.icache_miss_o          (icache_miss_lo         )
        );
 
    // synopsys translate_off
@@ -528,14 +558,16 @@ cl_state_machine state_machine
 //|        DATA MEMORY HANDSHAKE SIGNALS
 //|
 //+----------------------------------------------
-assign valid_to_mem_c = exe.decode.is_mem_op
-                      & (~stall_non_mem) & (~stall_lrw)                         // don't present address if we are stalling
-                      & ( ~  (mem.decode.is_load_op & (~data_mem_valid) )  );     // or we are waiting memory response
+// we are waiting memory response
+wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) ;     
+// don't present the request if we are stalling because of non-load/store reason
+wire non_ld_st_stall  = stall_non_mem | stall_lrw                 ;     
+//icache miss is also decoded as mem op
+assign valid_to_mem_c = (exe.decode.is_mem_op & (~wait_mem_rsp) & (~non_ld_st_stall) );
 
 //We should always accept the returned data even there is a non memory stall
 //assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
-assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid ;
-
+assign yumi_to_mem_c  = (mem.decode.is_mem_op) & from_mem_i.valid ;
 // RISC-V edit: add reservation
 //lr.acq will stall until the reservation is cleared;
 assign stall_lrw    = exe.decode.op_is_lr_acq & reservation_i;
@@ -612,6 +644,28 @@ end
 //+----------------------------------------------
 
 // Synchronous stage shift
+id_signals_s  id_s;
+// We set the icache miss as a remote load without read/write registers.
+decode_s     id_decode;
+always_comb begin
+        id_decode =  'b0;
+        if( icache_miss_lo) begin
+                id_decode.is_load_op = 1'b1;
+                id_decode.is_mem_op  = 1'b1;
+        end else begin
+                id_decode = decode;
+        end
+end
+
+wire [RV32_instr_width_gp-1:0] id_instr = icache_miss_lo? 'b0 : instruction;
+
+assign id_s = '{
+                pc_plus4     : {pc_high_padding_lp, pc_plus4    ,2'b0}  ,
+                pc_jump_addr : {pc_high_padding_lp, pc_jump_addr,2'b0}  ,
+                instruction  : id_instr                                 ,
+                decode       : id_decode                                ,
+                icache_miss  : icache_miss_lo 
+                };
 
 // synopsys sync_set_reset  "reset_i, net_pc_write_cmd_idle, flush, stall, depend_stall"
 always_ff @ (posedge clk_i)
@@ -621,7 +675,7 @@ begin
             (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall )))
        )
 `else
-    if (reset_i | net_pc_write_cmd_idle | (flush & (~   (stall | depend_stall)  ) ) )
+    if (reset_i | net_pc_write_cmd_idle | ( (flush|icache_miss_in_pipe) & (~   (stall | depend_stall)  ) ) )
 `endif
       begin
          id <= '0;
@@ -638,13 +692,8 @@ begin
    // synopsys translate_off
         debug_id <= debug_if;
    // synopsys translate_on
-        id <= '{
-            pc_plus4     : {pc_plus4,2'b0},
-            pc_jump_addr : {pc_jump_addr,2'b0},
-            instruction  : instruction,
-            decode       : decode
-        };
-      end
+        id <= id_s      ;
+     end
 end
 
 //+----------------------------------------------
@@ -687,6 +736,7 @@ wire    exe_rs2_in_mem     = exe.decode.op_writes_rf
 wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
                            & (id.instruction.rs2  == mem.rd_addr)
                            & (|id.instruction.rs2);
+
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
@@ -726,7 +776,8 @@ begin
                   rs1_in_mem   : exe_rs1_in_mem,
                   rs1_in_wb    : exe_rs1_in_wb,
                   rs2_in_mem   : exe_rs2_in_mem,
-                  rs2_in_wb    : exe_rs2_in_wb
+                  rs2_in_wb    : exe_rs2_in_wb,
+                  icache_miss  : id.icache_miss
                   };
       end
 end
@@ -785,7 +836,8 @@ begin
 `endif
             alu_result : fiu_alu_result,
 
-            mem_addr_send: mem_addr_send
+            mem_addr_send       : mem_addr_send   ,
+            icache_miss         : exe.icache_miss
         };
       end
 end
@@ -802,27 +854,27 @@ begin
     if ( reset_i )
     begin
         is_load_buffer_valid <= 'b0;
-        load_buffer_data     <= 'b0;
+        load_buffer_info     <= 'b0;
     end
     //set the buffered value
     else if( stall & mem.decode.is_load_op & from_mem_i.valid )
     //else if( stall_non_mem & mem.decode.is_load_op & from_mem_i.valid )
     begin
         is_load_buffer_valid <= 1'b1;
-        load_buffer_data     <= from_mem_i.read_data;
+        load_buffer_info     <= from_mem_i.read_data;
     end
     //we should clear the buffer if not stalled
     else if( ~stall )
     begin
         is_load_buffer_valid <= 'b0;
-        load_buffer_data     <= 'b0;
+        load_buffer_info     <= 'b0;
     end
 end
 
 
-logic [RV32_reg_data_width_gp-1:0] loaded_data;
-assign loaded_data =  is_load_buffer_valid ? load_buffer_data:
-                                             from_mem_i.read_data;
+assign loaded_data =  is_load_buffer_valid ? load_buffer_info
+                                           : from_mem_i.read_data;
+assign loaded_pc   =  mem.mem_addr_send;
 
 logic [RV32_reg_data_width_gp-1:0] loaded_byte;
 always_comb
@@ -877,7 +929,9 @@ begin
          wb       <= '{
                        op_writes_rf : mem.decode.op_writes_rf,
                        rd_addr      : mem.rd_addr,
-                       rf_data      : rf_data
+                       rf_data      : rf_data,
+                       icache_miss   : mem.icache_miss,
+                       icache_miss_pc: loaded_pc
                        };
       end
 end

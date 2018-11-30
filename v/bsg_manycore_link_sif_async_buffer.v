@@ -29,7 +29,8 @@ module bsg_manycore_link_sif_async_buffer
    // Declear the cast structures.
    localparam return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,
                                                                          y_cord_width_p,
-                                                                         data_width_p );
+                                                                         data_width_p 
+                                                                         );
 
    localparam packet_width_lp        = `bsg_manycore_packet_width       (addr_width_p,
                                                                          data_width_p,

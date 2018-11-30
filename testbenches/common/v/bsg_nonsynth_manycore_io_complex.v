@@ -5,19 +5,28 @@
 
 module bsg_nonsynth_manycore_io_complex
   #(
-    mem_size_p      = -1   // size of memory being loaded, in bytes
+     icache_entries_num_p   = -1   // entries of the icache number
     ,max_cycles_p   = -1
     ,addr_width_p   = -1
     ,epa_addr_width_p = -1
+    ,dram_ch_num_p       = 0
+    ,dram_ch_addr_width_p=-1
     ,data_width_p  = 32
     ,num_tiles_x_p = -1
     ,num_tiles_y_p = -1
     ,load_rows_p    =  num_tiles_y_p
     ,load_cols_p    =  num_tiles_x_p
     ,tile_id_ptr_p = -1
-    ,src_x_cord_p = 0
+    ,src_x_cord_p = num_tiles_x_p -1 
     ,x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
     ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
+    ,include_dram_model = 1'b1
+
+    //parameters for victim cache    
+    ,init_vcache_p   = 0
+    ,vcache_entries_p = -1 
+    ,vcache_ways_p    = -1 
+
     ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
     )
@@ -52,8 +61,6 @@ module bsg_nonsynth_manycore_io_complex
    bsg_cycle_counter #(.width_p(40),.init_val_p(0))
    cc (.clk_i(clk_i), .reset_i(reset_i), .ctr_r_o(cycle_count));
 
-   logic [addr_width_p-1:0]  mem_addr;
-   logic [data_width_p-1:0]  mem_data;
 
    bsg_manycore_packet_s  loader_data_lo;
    logic                      loader_v_lo;
@@ -66,7 +73,7 @@ module bsg_nonsynth_manycore_io_complex
      end
 
    bsg_manycore_spmd_loader
-     #( .mem_size_p    (mem_size_p)
+     #( .icache_entries_num_p    ( icache_entries_num_p)
         ,.num_rows_p    (num_tiles_y_p)
         ,.num_cols_p    (num_tiles_x_p)
         ,.load_rows_p   (load_rows_p)
@@ -74,19 +81,22 @@ module bsg_nonsynth_manycore_io_complex
         ,.data_width_p  (data_width_p)
         ,.addr_width_p  (addr_width_p)
         ,.epa_addr_width_p (epa_addr_width_p)
+        ,.dram_ch_num_p       ( dram_ch_num_p       )
+        ,.dram_ch_addr_width_p( dram_ch_addr_width_p )
         ,.tile_id_ptr_p (tile_id_ptr_p)
+        ,.init_vcache_p (init_vcache_p)
+        ,.vcache_entries_p ( vcache_entries_p )
+        ,.vcache_ways_p    ( vcache_ways_p    )
         ) spmd_loader
        ( .clk_i     (clk_i)
          ,.reset_i  (reset_r)
          ,.data_o   (loader_data_lo )
          ,.v_o      (loader_v_lo    )
          ,.ready_i  (loader_ready_li)
-         ,.data_i   (mem_data)
-         ,.addr_o   (mem_addr)
          ,.my_x_i   ( x_cord_width_lp ' (src_x_cord_p) )
          ,.my_y_i   ( y_cord_width_lp ' (num_tiles_y_p) )
          );
-
+/*
    bsg_manycore_io_complex_rom
    #( .addr_width_p(addr_width_p)
       ,.width_p     (data_width_p)
@@ -95,7 +105,7 @@ module bsg_nonsynth_manycore_io_complex
        ,.data_o (mem_data)
        );
 
-
+*/
    wire [num_tiles_x_p-1:0] finish_lo_vec;
    assign finish_lo = | finish_lo_vec;
    
@@ -105,6 +115,32 @@ module bsg_nonsynth_manycore_io_complex
    wire [num_tiles_x_p-1:0] timeout_lo_vec;
    assign timeout_lo = | timeout_lo_vec;
 
+   genvar                   i;
+   //-----------------------------------------------------------------
+   // Connects dram model
+   if(include_dram_model) begin
+        for (i = 0; i < num_tiles_x_p-1; i=i+1) begin
+             
+         bsg_manycore_ram_model#( .x_cord_width_p    (x_cord_width_lp)
+                                 ,.y_cord_width_p    (y_cord_width_lp)
+                                 ,.data_width_p      (data_width_p   )
+
+                                 ,.addr_width_p      (addr_width_p   )
+                                 ,.els_p             (2**dram_ch_addr_width_p)
+                                )ram
+        (  .clk_i
+         , .reset_i
+
+         // mesh network
+         , .link_sif_i (ver_link_sif_i_cast[i] )
+         , .link_sif_o (ver_link_sif_o_cast[i] )
+
+         , .my_x_i ( x_cord_width_lp'(i)             )
+         , .my_y_i ( y_cord_width_lp'(num_tiles_y_p) )
+
+         );
+        end
+   end
    // we only set such a high number because we
    // know these packets can always be consumed
    // at the recipient and do not require any
@@ -115,10 +151,7 @@ module bsg_nonsynth_manycore_io_complex
    // input fifo
 
    localparam spmd_max_out_credits_lp = 128;
-
-   genvar                   i;
-
-   for (i = 0; i < num_tiles_x_p; i=i+1)
+   for (i = num_tiles_x_p-1; i < num_tiles_x_p; i=i+1)
      begin: rof
 
         wire pass_thru_ready_lo;
@@ -182,7 +215,5 @@ module bsg_nonsynth_manycore_io_complex
 											   ,.timeout_o(timeout_lo_vec[i])
                                                );
      end
-
-
 
 endmodule

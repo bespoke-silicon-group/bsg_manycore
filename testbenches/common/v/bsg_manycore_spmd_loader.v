@@ -1,17 +1,31 @@
 `include "bsg_manycore_packet.vh"
+`include "bsg_manycore_addr.vh"
 
 //should we shut down the dynamic feature of the arbiter ?
 //`define  SHUT_DY_ARB
 
+`ifndef NUM_CODE_SECTIONS
+	`define DEFAULT_CODE_SECTIONS
+`endif
+`ifndef CODE_SECTIONS
+	`define DEFAULT_CODE_SECTIONS
+`endif
+
+`ifdef DEFAULT_CODE_SECTIONS
+	`define NUM_CODE_SECTIONS 1
+	`define CODE_SECTIONS `_bsg_dram_start_addr,`_bsg_dram_end_addr
+`endif
 
 module bsg_manycore_spmd_loader
 
 import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
- #( parameter mem_size_p      = -1 // size of mem to be loaded  (bytes) (?)
+ #( parameter icache_entries_num_p   = -1 // size of icache entry
    ,parameter data_width_p    = 32
    ,parameter addr_width_p    = 30
    ,parameter epa_addr_width_p= 16
+   ,parameter dram_ch_addr_width_p=-1
+   ,parameter dram_ch_num_p   = 0
    ,parameter tile_id_ptr_p   = -1
    ,parameter num_rows_p      = -1
    ,parameter num_cols_p      = -1
@@ -21,6 +35,25 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,parameter y_cord_width_lp  = `BSG_SAFE_CLOG2(num_rows_p + 1)
    ,parameter x_cord_width_lp  = `BSG_SAFE_CLOG2(num_cols_p)
    ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+   //the vicitim cache  paraemters
+   ,parameter init_vcache_p   = 0
+   ,parameter vcache_entries_p = -1 
+   ,parameter vcache_ways_p    = -1 
+   //the data memory realted paraemters
+   ,parameter unsigned  dmem_start_addr_lp = `_bsg_data_start_addr
+   ,parameter dmem_end_addr_lp   = `_bsg_data_end_addr
+   ,parameter dmem_init_file_name = `_dmem_init_file_name
+
+   //the dram  realted paraemters
+   //VCS do not support index larger then 32'h7fff_ffff
+   ,parameter unsigned dram_start_addr_lp = `_bsg_dram_start_addr
+   ,parameter unsigned dram_end_addr_lp   = `_bsg_dram_end_addr  
+   ,parameter dram_init_file_name = `_dram_init_file_name
+
+   // Only the address space derived from the follwoing prameters is
+   // loaded into the memory
+   ,parameter unsigned num_code_sections_p = `NUM_CODE_SECTIONS
+   ,parameter integer code_sections_p[0:(2*num_code_sections_p)-1] = '{`CODE_SECTIONS}
   )
   ( input                        clk_i
    ,input                        reset_i
@@ -28,132 +61,195 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,output                       v_o
    ,input                        ready_i
 
-   ,input [data_width_p-1:0]     data_i
-   ,output[addr_width_p-1:0]     addr_o
-
    ,input [y_cord_width_lp-1:0]  my_y_i
    ,input [x_cord_width_lp-1:0]  my_x_i
   );
 
+  //initilization files
+  localparam dmem_size_lp = dmem_end_addr_lp - dmem_start_addr_lp;
+  localparam dram_size_lp = dram_end_addr_lp - dram_start_addr_lp; 
 
-  localparam tile_no_width_lp = 10;
-  localparam tile_no_total_lp = load_rows_p * load_cols_p;
+  logic [7:0]  DMEM[dmem_end_addr_lp:dmem_start_addr_lp];
+  logic [7:0]  DRAM[dram_end_addr_lp:dram_start_addr_lp];
 
-  logic [tile_no_width_lp-1:0]    tile_no, tile_no_n; // tile number is limited to 1023
-  logic [addr_width_p-1:0]    load_addr;
-  logic [data_width_p-1:0]    load_data;
-  logic [y_cord_width_lp-1:0]  y_cord;
-  logic [x_cord_width_lp-1:0]  x_cord;
+  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
+  `declare_bsg_manycore_dram_addr_s(dram_ch_addr_width_p);
 
-  // after hexfile loading is complete packets with
-  // opcode = 2 are sent to clear stall registers of tiles
-  logic loaded, loaded_n; // set if hexfile loading is complete
-
-  /************************************************************/
-  // logic for config the arbiter
-  logic         unfreezed_r;     // set if the cores are all unfreezed
-  logic         arb_configed_r;
-  localparam    arb_cfg_value = 0;
   localparam    config_addr_bits = 1 << ( epa_addr_width_p-1);
-
-  localparam    arb_cfg_addr  = addr_width_p'(4) | config_addr_bits;
   localparam    unfreeze_addr = addr_width_p'(0) | config_addr_bits;
-  /************************************************************/
 
-  assign load_data = loaded                       ? data_width_p'(0)            :
-                     (unfreezed_r               ) ? data_width_p'(arb_cfg_value):
-                     (load_addr == tile_id_ptr_p) ? data_width_p'(tile_no)      : data_i;
+  logic                         var_v_o;
+  bsg_manycore_packet_s         var_data_o;
 
-  assign y_cord     = y_cord_width_lp'(tile_no / num_cols_p);
-  assign x_cord     = x_cord_width_lp'(tile_no % num_cols_p);
+  assign v_o    = var_v_o;
+  assign data_o = var_data_o;
 
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
+//----------------------------------------------------------------------------
+// Main Procedure 
+//----------------------------------------------------------------------------
+  initial begin
+        $readmemh(dmem_init_file_name, DMEM);
+        $readmemh(dram_init_file_name, DRAM);
+        
+        var_v_o = 1'b0;
+        wait( reset_i === 1'b0); //wait until the reset is done
 
-   bsg_manycore_packet_s pkt;
+        init_icache_tag ();
+        init_dmem       ();
 
-   logic [addr_width_p-1:0]    send_addr;
-   assign send_addr = loaded         ? unfreeze_addr  :
-                      unfreezed_r    ? arb_cfg_addr   : addr_width_p'(load_addr>>2)  ;
-   always_comb
-     begin
-        pkt.data   = load_data;
-        pkt.addr   = send_addr;
-        pkt.op     = `ePacketOp_remote_store;
-        pkt.op_ex  = loaded ? 4'b0000: 4'b1111;
-        pkt.x_cord = x_cord;
-        pkt.y_cord = y_cord;
-        pkt.src_x_cord = my_x_i;
-        pkt.src_y_cord = my_y_i;
-     end
+        if( init_vcache_p)
+                init_vcache();
 
-   assign data_o = pkt;
+        init_dram       ();
+        unfreeze_tiles  ();
 
-`ifndef BSG_HETERO_TYPE_VEC
-`define BSG_HETERO_TYPE_VEC 0
-`endif
-
-   assign v_o  = ~reset_i
-                 // & (~unfreezed_r | ( unfreezed_r && (tile_no < load_rows_p*load_cols_p)))
-               `ifdef SHUT_DY_ARB
-                 & (~arb_configed_r)
-               `else
-                 & (~unfreezed_r )
-               `endif
-                 // for now, we override sending the program if the core is an accelerator core
-                 & (((`BSG_HETERO_TYPE_VEC >> (tile_no<<3)) & 8'b1111_1111) < 3);
-                   ;
-
-   assign addr_o   = addr_width_p'(load_addr >> 2);
-
-   wire tile_loading_done = (load_addr == (mem_size_p-4));
-
-   //assign tile_no_n = (tile_no + tile_loading_done)  % (load_rows_p * load_cols_p);
-   wire [tile_no_width_lp-1:0]  tile_no_plus_done= tile_no  + tile_loading_done;
-   assign tile_no_n = (tile_no_plus_done == tile_no_total_lp) ? 0 : tile_no_plus_done ;
-
-
-   assign loaded_n = (tile_no == load_rows_p*load_cols_p -1)
-                  && (load_addr == (mem_size_p-4));
-
-  always_ff @(negedge clk_i)
-    if (reset_i===0 && ~loaded && ready_i)
-      begin
-         if ((load_addr & 12'hFFF) == 0)
-           $display("Loader: Tile %d, Addr %x (%m)",tile_no, load_addr);
-         if (loaded_n)
-           $display("Finished loading. (%m)");
-      end
-
-  always_ff @(posedge clk_i)
-  begin
-    if(reset_i)
-      begin
-        tile_no   <= 0;
-        load_addr <= 0;
-        loaded    <= 0;
-        unfreezed_r<= 0;
-        arb_configed_r <=0;
-      end
-    else
-      begin
-        if(ready_i & ~loaded) begin
-             load_addr <= (load_addr + 4) % mem_size_p;
-             tile_no   <= tile_no_n;
-             loaded    <= loaded_n;
-        end else if(ready_i & ( loaded | unfreezed_r ) ) begin
-          if( unfreezed_r ) begin
-                tile_no <=  tile_no + 1;
-          end else
-                //tile_no <= ( tile_no + 1 ) % ( load_rows_p*load_cols_p );
-                tile_no <= ( (tile_no + 1) == tile_no_total_lp) ?  0 : tile_no + 1;
-        end
-
-        if(ready_i &&  loaded &&  tile_no ==  (load_rows_p * load_cols_p-1) )
-          unfreezed_r <= 1'b1;
-
-        if(ready_i && unfreezed_r  &&  tile_no ==  (load_rows_p * load_cols_p-1) )
-          arb_configed_r<= 1'b1;
-
-      end
+        @(posedge clk_i);  
+        var_v_o = 1'b0;
   end
+//----------------------------------------------------------------------------
+// Tasks to init the icache
+//----------------------------------------------------------------------------
+  task init_icache_tag();
+        int x_cord, y_cord, icache_addr;
+        for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
+                for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
+                     $display("Initilizing ICACHE, y_cord=%02d, x_cord=%02d, range=0000 - %h", y_cord, x_cord, icache_entries_num_p-1);
+                     for(icache_addr =0; icache_addr <icache_entries_num_p; icache_addr ++) begin
+                                @(posedge clk_i);          //pull up the valid
+                                var_v_o = 1'b1; 
+
+                                var_data_o.data   = 'b0;
+                                var_data_o.addr   =  icache_addr;
+                                var_data_o.op     = `ePacketOp_remote_store;
+                                var_data_o.op_ex  =  4'b1111;
+                                var_data_o.x_cord = x_cord;
+                                var_data_o.y_cord = y_cord;
+                                var_data_o.src_x_cord = my_x_i;
+                                var_data_o.src_y_cord = my_y_i;
+
+                                @(negedge clk_i);
+                                wait( ready_i === 1'b1);   //check if the ready is pulled up.
+                       end 
+                end
+        end
+  endtask 
+  ///////////////////////////////////////////////////////////////////////////////
+  // Task to load the data memory
+  task init_dmem();
+        int x_cord, y_cord, dmem_addr, init_data;
+        for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
+                for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
+                     $display("Initilizing DMEM, y_cord=%02d, x_cord=%02d, range=%h - %h (byte)", y_cord, x_cord, dmem_start_addr_lp, dmem_end_addr_lp);
+                     for(dmem_addr =dmem_start_addr_lp; dmem_addr < dmem_end_addr_lp; dmem_addr= dmem_addr +4) begin
+                                @(posedge clk_i);          //pull up the valid
+                                var_v_o = 1'b1; 
+                                
+                                init_data   = {DMEM[dmem_addr+3], DMEM[dmem_addr+2], DMEM[dmem_addr+1], DMEM[dmem_addr]};
+                                //TODO: SHX: This is used to fixe the
+                                //gcc-toolchain bugs, in some case, it put the initilized data into .bss and .sbss section.
+                                //which should be in .data or .sdata seciton. 
+                                //
+                                //Does the RISC-V toolchain assumes that all uninitilized data are zeros, so they put the zero
+                                //initilized data into .bss and .sbss section?
+                                //--------------------------------------------------------------------------------------------
+                                if( init_data === 32'bx) init_data = 32'b0;
+                                //--------------------------------------------------------------------------------------------
+                                
+                                var_data_o.data   = init_data    ;
+                                var_data_o.addr   =  dmem_addr>>2;
+                                var_data_o.op     = `ePacketOp_remote_store;
+                                var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
+                                var_data_o.x_cord = x_cord;
+                                var_data_o.y_cord = y_cord;
+                                var_data_o.src_x_cord = my_x_i;
+                                var_data_o.src_y_cord = my_y_i;
+
+                                @(negedge clk_i);
+                                wait( ready_i === 1'b1);   //check if the ready is pulled up.
+                       end 
+                end
+        end
+  endtask 
+  ///////////////////////////////////////////////////////////////////////////////
+  // Task to load the dram
+  task init_dram( );
+        int dram_addr;
+        bsg_manycore_dram_addr_s  dram_addr_cast; 
+
+        int instr_count = 0;
+        for(integer section = 0; section < num_code_sections_p; section = section + 1) begin
+            $display("Initilizing DRAM section:%0d, range=%h - %h", section+1, code_sections_p[2*section], code_sections_p[2*section+1]);
+            for(dram_addr = code_sections_p[2*section]; dram_addr < code_sections_p[2*section+1]; dram_addr= dram_addr +4) begin
+                       @(posedge clk_i);          //pull up the valid
+                       instr_count++;
+                       var_v_o = 1'b1; 
+
+                       dram_addr_cast = dram_addr; 
+
+                       var_data_o.data   = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr]};
+                       var_data_o.addr   = dram_addr >>2;
+                       var_data_o.op     = `ePacketOp_remote_store;
+                       var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
+                       var_data_o.x_cord = x_cord_width_lp'( dram_addr_cast.x_cord );
+                       var_data_o.y_cord = {y_cord_width_lp{1'b1}};
+                       var_data_o.src_x_cord = my_x_i;
+                       var_data_o.src_y_cord = my_y_i;
+
+                       @(negedge clk_i);
+                       wait( ready_i === 1'b1);   //check if the ready is pulled up.
+            end
+        end
+        $display("Instruction count = %0d", instr_count);
+  endtask 
+  ///////////////////////////////////////////////////////////////////////////////
+  // Task to unfreeze the tiles
+  task unfreeze_tiles();
+        int x_cord, y_cord ;
+
+        $display("Unfreezing tiles ...");
+        for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
+                for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
+                    @(posedge clk_i);          //pull up the valid
+                    var_v_o = 1'b1; 
+
+                    var_data_o.data   =  'b0;
+                    var_data_o.addr   = unfreeze_addr >> 2; 
+                    var_data_o.op     = `ePacketOp_remote_store;
+                    var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
+                    var_data_o.x_cord = x_cord;
+                    var_data_o.y_cord = y_cord;
+                    var_data_o.src_x_cord = my_x_i;
+                    var_data_o.src_y_cord = my_y_i;
+
+                    @(negedge clk_i);
+                    wait( ready_i === 1'b1);   //check if the ready is pulled up.
+                end
+        end
+  endtask 
+  ///////////////////////////////////////////////////////////////////////////////
+  // Task to initilized the victim cache
+  task init_vcache();
+        int x_cord, y_cord, tag_addr ;
+
+        $display("initilizing the victim caches, sets=%0d, ways=%0d", vcache_entries_p, vcache_ways_p);
+        for (x_cord =0; x_cord < dram_ch_num_p; x_cord ++) begin
+                for(tag_addr =0; tag_addr < vcache_entries_p * vcache_ways_p; tag_addr++)begin
+                        @(posedge clk_i);          //pull up the valid
+                        var_v_o = 1'b1; 
+
+                        var_data_o.data   =  'b0;
+                        //MSB==1 : The vcache tag
+                        var_data_o.addr   =  (1<<(dram_ch_addr_width_p-1)) | (tag_addr << 3) ; 
+                        var_data_o.op     = `ePacketOp_remote_store;
+                        var_data_o.op_ex  =  4'b1111; //TODO not handle the byte write.
+                        var_data_o.x_cord = x_cord;
+                        var_data_o.y_cord = {y_cord_width_lp{1'b1}};
+                        var_data_o.src_x_cord = my_x_i;
+                        var_data_o.src_y_cord = my_y_i;
+
+                        @(negedge clk_i);
+                        wait( ready_i === 1'b1);   //check if the ready is pulled up.
+                end
+        end
+  endtask 
 endmodule

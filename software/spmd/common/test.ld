@@ -19,22 +19,9 @@ OUTPUT_ARCH( "riscv" )
 
 SECTIONS
 {
-
-  /* text: test code section */
-  /* SHX : Currently there is no exceptions allowed in bsg_manycore, so
-   *       we don't want to wast the instruciton memory space, the first
-   *       instuction address will start at zero
-   */
-
-  /* . = 0x100;  */
-  .text :
-  {
-    crt.o(.text)
-    *(.text)
-  }
-
   /* beginning of data memory; set by imem size and bank conflict concerns */
   . = 0x1000;
+  _bsg_data_start_addr = . ;
   /* data segment */
   .data : { *(.data) }
 
@@ -66,6 +53,22 @@ SECTIONS
   }
 
   /* End of uninitalized data segement */
-  _end = .;
+  _bsg_data_end_addr = .;
+  
+  /*The DRAM content is start at zero, 
+   *The instruction fetch unit and the loader will send address that 
+   *is mapped to the actual dram module.
+   */
+  _bsg_dram_start_addr = 0x0;
+  OVERLAY 0x0 : 
+  {
+        .text 
+        {
+          crt.o(.text)
+          *(.text)
+          *(.text.startup)
+        }
+  }
+  _bsg_dram_end_addr = .  ;
 }
 

@@ -56,12 +56,13 @@ void mul_div_test(int  *input){
     }
 
     if( error == 0 ){
-        bsg_remote_ptr_io_store(0, MUL_DIV_TESTID, PASS_CODE );
+        bsg_finish();    
     }else{
-        bsg_remote_ptr_io_store(0, MUL_DIV_TESTID, ERROR_CODE );
+        bsg_remote_ptr_io_store(IO_X_INDEX, MUL_DIV_TESTID, ERROR_CODE );
         print_value( (unsigned int *) mul_div_output  );
-        bsg_remote_ptr_io_store(0,0x0,0x11111111);
+        bsg_remote_ptr_io_store(IO_X_INDEX,0x0,0x11111111);
         print_value( mul_div_expect );
+        bsg_fail();
     }
 }
 

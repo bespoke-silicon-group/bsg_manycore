@@ -25,13 +25,12 @@
                           ,.y_cord_width_p(y_cord_width_p)      \
                           ,.data_width_p(data_width_p)          \
                           ,.addr_width_p(addr_width_p)          \
+                          ,.dmem_size_p (dmem_size_p )          \
                           ,.epa_addr_width_p(epa_addr_width_p)  \
                           ,.dram_ch_addr_width_p ( dram_ch_addr_width_p )  \
                           ,.dram_ch_start_col_p  ( dram_ch_start_col_p) \
                           ,.debug_p(debug_p)                    \
-                          ,.bank_size_p(bank_size_p)            \
-                          ,.num_banks_p(num_banks_p)            \
-			  ,.imem_size_p(imem_size_p)            \
+			  ,.icache_entries_p(icache_entries_p)            \
                           ,.icache_tag_width_p (icache_tag_width_p) \
             		  ,.max_out_credits_p(max_out_credits_p)\
                           ,.hetero_type_p(hetero_type_p)        \
@@ -50,19 +49,18 @@
            );                                                   \
      end
 
-module bsg_manycore_hetero_socket #(x_cord_width_p      = "inv"
+module bsg_manycore_hetero_socket #(  x_cord_width_p      = "inv"
                                     , y_cord_width_p    = "inv"
                                     , data_width_p      = 32
                                     , addr_width_p      = "inv"
+                                    , dmem_size_p       = "inv"
                                     , epa_addr_width_p  = "inv"
                                     , dram_ch_addr_width_p = "inv"
                                     , dram_ch_start_col_p = 0
                                     , debug_p           = 0
-                                    , bank_size_p       = "inv" // in words
-				    , imem_size_p       = "inv" // in words
+				    , icache_entries_p       = "inv" // in words
                                     , icache_tag_width_p= "inv"
-                                    , num_banks_p       = "inv"
-                				    , max_out_credits_p = 200
+                	            , max_out_credits_p = 200
                                     , hetero_type_p     = 1
                                     , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                     )
