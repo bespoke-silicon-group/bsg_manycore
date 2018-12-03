@@ -165,7 +165,7 @@ logic [RV32_reg_data_width_gp-1:0] mem_addr_send;
 logic [RV32_reg_data_width_gp-1:0] store_data;
 logic [3:0]                        mask;
 
-logic [RV32_reg_data_width_gp-1:0] write_data;
+logic [RV32_reg_data_width_gp-1:0] mem_payload;
 
 // Data memory handshake logic
 logic valid_to_mem_c, yumi_to_mem_c;
@@ -214,12 +214,13 @@ wire [RV32_reg_data_width_gp-1:0] miss_pc       = (exe.pc_plus4 - 'h4) | dram_ad
 
 assign mem_addr_send= exe.icache_miss? miss_pc : ld_st_addr ;
 
-// A load op includes rd_addr in non-blocking load requests
-// to distinguish incoming responses
-assign write_data = exe.decode.is_load_op ? RV32_reg_data_width_gp'(exe.instruction.rd) : store_data;
+// Store op sends store data as the payload while
+// a load op sends destination register as the payload
+// to distinguish multiple non-blocking load requests
+assign mem_payload = exe.decode.is_load_op ? RV32_reg_data_width_gp'(exe.instruction.rd) : store_data;
 
 assign to_mem_o = '{
-    write_data    : write_data,
+    payload       : mem_payload,
     valid         : valid_to_mem_c,
     wen           : exe.decode.is_store_op,
     swap_aq       : exe.decode.op_is_swap_aq,

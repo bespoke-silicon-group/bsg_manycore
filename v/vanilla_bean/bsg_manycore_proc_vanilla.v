@@ -278,7 +278,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
   //convert the core_to_mem structure to signals.
   assign core_mem_v        = core_to_mem.valid     ;
-  assign core_mem_wdata    = core_to_mem.write_data;
+  assign core_mem_wdata    = core_to_mem.payload   ;
   assign core_mem_addr     = core_to_mem.addr      ;
   assign core_mem_w        = core_to_mem.wen       ;
   assign core_mem_mask     = core_to_mem.mask      ;
@@ -331,7 +331,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       local_load_id_r <= load_id_width_p'(0);
     else
       if (~out_request & core_mem_v & ~core_mem_w) // if local read
-        local_load_id_r <= core_mem_wdata[load_id_width_p-1:0];
+        local_load_id_r <= core_to_mem.payload.reg_id_s.reg_id;
   end
     
    // synopsys translate_off
