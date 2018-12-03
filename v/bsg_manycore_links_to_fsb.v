@@ -5,7 +5,7 @@
 // We make use of the bsg_channel_tunnel to virtualize the
 // links.
 //
-`include "bsg_fsb_pkg.vh"
+`include "bsg_fsb_pkg.v"
 
 module  bsg_manycore_links_to_fsb
   #(parameter ring_width_p="inv"
