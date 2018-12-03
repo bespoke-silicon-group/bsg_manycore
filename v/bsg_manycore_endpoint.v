@@ -1,12 +1,13 @@
-module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
-                                ,y_cord_width_p         = "inv"
-                                ,fifo_els_p             = "inv"
-                                ,data_width_p           = 32
-                                ,addr_width_p           = 32
-                                ,packet_width_lp                 = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                                ,return_packet_width_lp          = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
-                                ,bsg_manycore_link_sif_width_lp  = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                                ,num_nets_lp            = 2
+module bsg_manycore_endpoint #( x_cord_width_p                  = "inv"
+                                ,y_cord_width_p                 = "inv"
+                                ,fifo_els_p                     = "inv"
+                                ,data_width_p                   = 32
+                                ,addr_width_p                   = 32
+                                ,load_id_width_p                = 5
+                                ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+                                ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p, load_id_width_p)
+                                ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p)
+                                ,num_nets_lp                    = 2
                                 )
    (  input clk_i
     , input reset_i
@@ -39,7 +40,7 @@ module bsg_manycore_endpoint #( x_cord_width_p          = "inv"
     , output                                in_fifo_full_o
     );
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p,x_cord_width_p,y_cord_width_p);
+   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
 
    // typecast
    bsg_manycore_link_sif_s link_sif_i_cast, link_sif_o_cast;

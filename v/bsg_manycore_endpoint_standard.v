@@ -6,14 +6,15 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          ,freeze_init_p          = 1'b1
                                          ,data_width_p           = 32
                                          ,addr_width_p           = 32
-                                         ,max_out_credits_p = "inv"
+                                         ,max_out_credits_p      = "inv"
+                                         ,load_id_width_p        = 5
                                          // if you are doing a streaming application then
                                          // you might want to turn this off because it is fairly normal
                                          ,warn_out_of_credits_p  = 1
                                          ,debug_p                = 0
-                                         ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                                         ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p)
-                                         ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                         ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+                                         ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p, load_id_width_p)
+                                         ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p)
                                          ,num_nets_lp            = 2
                                          )
    (  input clk_i
@@ -39,6 +40,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     // local returned data interface
     // Like the memory interface, processor should always ready be to handle the returned data
     , output [data_width_p-1:0]             returned_data_r_o
+    , output [load_id_width_p-1:0]          returned_load_id_r_o
     , output                                returned_v_r_o
 
     // The memory read value
@@ -54,7 +56,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     );
 
    wire in_fifo_full;
-   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
 
    bsg_manycore_packet_s      cgni_data;
    wire                       cgni_v;
@@ -103,7 +105,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    //singals between FIFO to swap_ctrl
    wire in_yumi_lo, in_v_li;
 
-   wire [data_width_p-1:0]          in_data_lo  =cgni_data.data;
+   wire [data_width_p-1:0]          in_data_lo  =cgni_data.payload;
    wire [addr_width_p-1:0]          in_addr_lo  =cgni_data.addr;
    wire[(data_width_p>>3)-1:0]      in_mask_lo  =cgni_data.op_ex;
 
@@ -195,6 +197,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       logic [`return_packet_type_width-1:0]     pkt_type;
       logic [(y_cord_width_p)-1:0]              y_cord;
       logic [(x_cord_width_p)-1:0]              x_cord;
+      logic [(load_id_width_p)-1:0]             load_id;
    } returning_credit_info;
 
    returning_credit_info  rc_fifo_li, rc_fifo_lo;
@@ -204,6 +207,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    assign rc_fifo_li   ='{ pkt_type: ( req_returning_data) ?`ePacketType_data :`ePacketType_credit
                           ,y_cord  : cgni_data.src_y_cord
                           ,x_cord  : cgni_data.src_x_cord
+                          ,load_id : cgni_data.payload.load_info_s.load_id
                         };
 
 
@@ -255,6 +259,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                        , data            : holded_returning_data_lo
                                        , y_cord          : rc_fifo_lo.y_cord
                                        , x_cord          : rc_fifo_lo.x_cord
+                                       , load_id         : rc_fifo_lo.load_id
                                        };
     assign returning_packet_li      = returning_pkt_cast;
    // ----------------------------------------------------------------------------------------
@@ -274,6 +279,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       );
 
    assign returned_data_r_o     =   returned_packet_lo.data     ;
+   assign returned_load_id_r_o  =   returned_packet_lo.load_id  ;
    assign returned_v_r_o        =   returned_credit_lo
                                  & ( returned_packet_lo.pkt_type == `ePacketType_data ) ;
   // *************************************************
@@ -334,7 +340,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
           end
      end
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
    bsg_manycore_link_sif_s link_sif_i_cast;
    assign link_sif_i_cast = link_sif_i;
 

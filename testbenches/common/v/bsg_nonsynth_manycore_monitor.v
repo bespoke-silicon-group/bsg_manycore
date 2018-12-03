@@ -4,14 +4,15 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                                        , y_cord_width_p="inv"
                                        , addr_width_p="inv"
                                        , data_width_p="inv"
+                                       , load_id_width_p = "inv"
                                        , channel_num_p="inv"
                                         // enable pass_thru
                                        , pass_thru_p=0
                                        , pass_thru_max_out_credits_p=4
                                        , pass_thru_freeze_init_p=1'b0
                                        , max_cycles_p=1_000_000
-                                       , packet_width_lp                = `bsg_manycore_packet_width  (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                                       , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                       , packet_width_lp                = `bsg_manycore_packet_width  (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+                                       , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
                                        , num_nets_lp=2
                                        )
    (input clk_i
@@ -44,13 +45,14 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
    logic [(data_width_p>>3)-1:0]      pkt_mask;
 
    logic cgni_yumi_r;
-   bsg_manycore_endpoint_standard #(.x_cord_width_p (x_cord_width_p)
-                                    ,.y_cord_width_p(y_cord_width_p)
-                                    ,.fifo_els_p    (2)
+   bsg_manycore_endpoint_standard #(.x_cord_width_p    (x_cord_width_p)
+                                    ,.y_cord_width_p   (y_cord_width_p)
+                                    ,.fifo_els_p       (2)
                                     //,.freeze_init_p (pass_thru_freeze_init_p)
                                     ,.max_out_credits_p(pass_thru_max_out_credits_p)
-                                    ,.data_width_p  (data_width_p)
-                                    ,.addr_width_p  (addr_width_p)
+                                    ,.data_width_p     (data_width_p)
+                                    ,.addr_width_p     (addr_width_p)
+                                    ,.load_id_width_p  (load_id_width_p)
                                     ) endp
      (.clk_i
       ,.reset_i
@@ -65,8 +67,9 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
       ,.in_addr_o(pkt_addr)
       ,.in_we_o  ()
 
-      ,.returned_data_r_o()
-      ,.returned_v_r_o   ()
+      ,.returned_data_r_o   ()
+      ,.returned_load_id_r_o()
+      ,.returned_v_r_o      ()
 
       ,.returning_data_i ( 0 )
       //we have to delay the returning data at least 1 cycle.

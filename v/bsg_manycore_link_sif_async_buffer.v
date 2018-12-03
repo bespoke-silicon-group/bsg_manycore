@@ -11,8 +11,9 @@ module bsg_manycore_link_sif_async_buffer
       , data_width_p  = 32
       , x_cord_width_p = "inv"
       , y_cord_width_p = "inv"
+      , load_id_width_p = 5
       , fifo_els_p    = 2
-      , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p)
+      , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p)
     )(
     //the left side signal
     input                                       L_clk_i
@@ -29,16 +30,19 @@ module bsg_manycore_link_sif_async_buffer
    // Declear the cast structures.
    localparam return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,
                                                                          y_cord_width_p,
+                                                                         load_id_width_p,
                                                                          data_width_p 
                                                                          );
 
    localparam packet_width_lp        = `bsg_manycore_packet_width       (addr_width_p,
                                                                          data_width_p,
                                                                          x_cord_width_p,
-                                                                         y_cord_width_p);
+                                                                         y_cord_width_p,
+                                                                         load_id_width_p
+                                                                        );
    localparam fifo_lg_size_lp        = `BSG_SAFE_CLOG2( fifo_els_p );
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p);
 
    bsg_manycore_link_sif_s L_link_sif_i_cast,  L_link_sif_o_cast ;
    bsg_manycore_link_sif_s R_link_sif_i_cast,  R_link_sif_o_cast;

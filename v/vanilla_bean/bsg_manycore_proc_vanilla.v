@@ -9,6 +9,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                            , y_cord_width_p = "inv"
                            , data_width_p   = 32
                            , addr_width_p   = -1
+                           , load_id_width_p = 5
                            , epa_addr_width_p = -1 
                            , dram_ch_addr_width_p = -1
                            , dram_ch_start_col_p = 0
@@ -32,9 +33,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                            //do we run immediately after reset?
                            , freeze_init_p  = 1'b1
 
-                           , packet_width_lp                = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                           , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p)
-                           , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width     (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                           , packet_width_lp                = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+                           , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p,load_id_width_p)
+                           , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width     (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
                           )
    (input   clk_i
     , input reset_i
@@ -59,24 +60,25 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic freeze_r;
    assign freeze_o = freeze_r;
 
-   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
 
-   bsg_manycore_packet_s              out_packet_li;
-   logic                              out_v_li;
-   logic                              out_ready_lo;
+   bsg_manycore_packet_s out_packet_li;
+   logic                 out_v_li;
+   logic                 out_ready_lo;
 
-   logic [data_width_p-1:0]           returned_data_r_lo  ;
-   logic [addr_width_p-1:0]           returned_addr_r_lo  ;
-   logic                              returned_v_r_lo     ;
+   logic [load_id_width_p-1:0] returned_load_id_r_lo;
+   logic [data_width_p-1:0]    returned_data_r_lo  ;
+   logic [addr_width_p-1:0]    returned_addr_r_lo  ;
+   logic                       returned_v_r_lo     ;
 
-   logic [data_width_p-1:0]           load_returning_data, store_returning_data_r, returning_data;
-   logic                              load_returning_v, store_returning_v_r, returning_v;
+   logic [data_width_p-1:0] load_returning_data, store_returning_data_r, returning_data;
+   logic                    load_returning_v, store_returning_v_r, returning_v;
 
-   logic                         in_we_lo  ;
-   logic [data_width_p-1:0]      in_data_lo;
-   logic [(data_width_p>>3)-1:0] in_mask_lo;
-   logic [addr_width_p-1:0]      in_addr_lo;
-   logic                         in_v_lo, in_yumi_li;
+   logic                                   in_we_lo  ;
+   logic [data_width_p-1:0]                in_data_lo;
+   logic [(data_width_p>>3)-1:0]           in_mask_lo;
+   logic [addr_width_p-1:0]                in_addr_lo;
+   logic                                   in_v_lo, in_yumi_li;
    logic [$clog2(max_out_credits_p+1)-1:0] out_credits_lo;
 
    bsg_manycore_endpoint_standard #(.x_cord_width_p (x_cord_width_p)
@@ -108,8 +110,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ,.out_v_i     (out_v_li    )
     ,.out_ready_o (out_ready_lo)
 
-    ,.returned_data_r_o ( returned_data_r_lo )
-    ,.returned_v_r_o    ( returned_v_r_lo    )
+    ,.returned_data_r_o    (returned_data_r_lo )
+    ,.returned_load_id_r_o (returned_load_id_r_lo)
+    ,.returned_v_r_o       (returned_v_r_lo    )
 
     ,.returning_data_i ( returning_data )
     ,.returning_v_i    ( returning_v    )
@@ -121,6 +124,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     //,.freeze_r_o(freeze_r)
     //,.reverse_arb_pr_o( reverse_arb_pr )
     );
+
+   // register to hold to IDs of local loads
+   logic [load_id_width_p-1:0] local_load_id_r;
 
    logic core_mem_v;
    logic core_mem_w;
@@ -167,8 +173,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
    wire launching_out = out_v_li & out_ready_lo;
 
-    //////////////////////////////////////////////////////
-    //  The vanilla core version
+
+   //////////////////////////////////////////////////////
+   //  The vanilla core version
    `ifdef bsg_FPU
 
        fpi_alu_inter fpi_alu();
@@ -182,6 +189,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
            );
    `endif
    //////////////////////////////////////////////////////////
+
    // configuration  in_addr_lo = { 1 ------ } 2'b00
    localparam  epa_config_bit_idx = (epa_addr_width_p-2) -1;
 
@@ -280,6 +288,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   assign mem_to_core.valid           = core_mem_rv | returned_v_r_lo  ;
   assign mem_to_core.read_data       = core_mem_rv ? core_mem_rdata
                                                    : returned_data_r_lo ;
+  assign mem_to_core.reg_id          = core_mem_rv ? local_load_id_r
+                                                   : returned_load_id_r_lo;
 
 
    wire out_request;
@@ -296,15 +306,16 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      (.clk_i(clk_i)
 
       // the memory request, from the core's data memory port
-      ,.v_i    (core_mem_v    )
-      ,.data_i (core_mem_wdata)
-      ,.addr_i (core_mem_addr )
-      ,.we_i   (core_mem_w    )
-      ,.swap_aq_i ( core_to_mem.swap_aq )
-      ,.swap_rl_i ( core_to_mem.swap_rl )
-      ,.mask_i (core_mem_mask )
-      ,.my_x_i (my_x_i)
-      ,.my_y_i (my_y_i)
+      ,.v_i       (core_mem_v    )
+      ,.data_i    (core_mem_wdata)
+      ,.addr_i    (core_mem_addr )
+      ,.we_i      (core_mem_w    )
+      ,.swap_aq_i (core_to_mem.swap_aq )
+      ,.swap_rl_i (core_to_mem.swap_rl )
+      ,.mask_i    (core_mem_mask )
+      ,.my_x_i    (my_x_i)
+      ,.my_y_i    (my_y_i)
+
       // directly out to the network!
       ,.v_o    (out_request)
       ,.data_o (out_packet_li)
@@ -313,6 +324,16 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    // we only request to send a remote store if it would not overflow the remote store credit counter
    assign out_v_li = out_request & (|out_credits_lo);
 
+  // store load id of a local load
+  always_ff @(posedge clk_i)
+  begin
+    if (reset_i)
+      local_load_id_r <= load_id_width_p'(0);
+    else
+      if (~out_request & core_mem_v & ~core_mem_w) // if local read
+        local_load_id_r <= core_mem_wdata[load_id_width_p-1:0];
+  end
+    
    // synopsys translate_off
 
    bsg_manycore_packet_s data_o_debug;
@@ -329,7 +350,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                      , data_o_debug.addr
                      , data_o_debug.op
                      , data_o_debug.op_ex
-                     , data_o_debug.data
+                     , data_o_debug.payload
                      , data_o_debug.return_pkt
                      , data_o_debug.y_cord
                      , data_o_debug.x_cord

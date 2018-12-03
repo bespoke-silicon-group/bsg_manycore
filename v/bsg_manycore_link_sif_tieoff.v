@@ -13,9 +13,10 @@
 module bsg_manycore_link_sif_tieoff
   #(  addr_width_p  = 32
       , data_width_p  = 32
+      , load_id_width_p = 5
       , x_cord_width_p = "inv"
       , y_cord_width_p = "inv"
-      , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p)
+      , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p)
       )
    (
     // debug only
@@ -26,7 +27,7 @@ module bsg_manycore_link_sif_tieoff
     , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
     );
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p);
 
    bsg_manycore_link_sif_s link_sif_i_cast, link_sif_o_cast;
    assign link_sif_i_cast = link_sif_i;
@@ -46,7 +47,7 @@ module bsg_manycore_link_sif_tieoff
    // do we have to zero this on reset; otherwise we don't come out of reset correctly?
    assign link_sif_o_cast.fwd.ready_and_rev = link_sif_i_cast.rev.ready_and_rev;  // & ~reset_i;
 
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p);
 
    bsg_manycore_packet_s            temp;
    assign temp = link_sif_i_cast.fwd.data;

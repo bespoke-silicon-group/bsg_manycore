@@ -11,10 +11,11 @@ module bsg_manycore_ram_model#( x_cord_width_p         = "inv"
                             ,data_width_p           = 32
 
                             ,addr_width_p           = 26 
+                            ,load_id_width_p        = 5
                             ,els_p                  = 1024 //els_p must <= 2**addr_width_p
-                            ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                            ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
-                            ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                            ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+                            ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p,load_id_width_p)
+                            ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
                            )
    (  input clk_i
     , input reset_i
@@ -47,6 +48,7 @@ module bsg_manycore_ram_model#( x_cord_width_p         = "inv"
                              ,.fifo_els_p            ( 4                 )
                              ,.data_width_p          ( data_width_p      )
                              ,.addr_width_p          ( addr_width_p      )
+                             ,.load_id_width_p       ( load_id_width_p   )
                              ,.max_out_credits_p     ( 16                )
                         )ram_endpoint
 
@@ -79,8 +81,9 @@ module bsg_manycore_ram_model#( x_cord_width_p         = "inv"
    // local returned data interface
    // Like the memory interface, processor should always ready be to
    // handle the returned data
-    ,.returned_data_r_o(                )
-    ,.returned_v_r_o   (                )
+    ,.returned_data_r_o     (                )
+    ,.returned_load_id_r_o  (                )
+    ,.returned_v_r_o        (                )
 
     ,.out_credits_o     (               )
     );

@@ -7,6 +7,7 @@ module bsg_manycore_tile_trace #(bsg_manycore_link_sif_width_lp="inv"
                                  ,y_cord_width_p="inv"
                                  ,addr_width_p="inv"
                                  ,data_width_p="inv"
+                                 ,load_id_width_p="inv"
                                  ,dirs_lp=4
                                  ,num_nets_lp=2)
    (input clk_i
@@ -17,8 +18,8 @@ module bsg_manycore_tile_trace #(bsg_manycore_link_sif_width_lp="inv"
     , input freeze
     );
 
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
+   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
 
    bsg_manycore_link_sif_s [dirs_lp-1:0] links_sif_i_cast, links_sif_o_cast;
 

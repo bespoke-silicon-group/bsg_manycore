@@ -165,6 +165,8 @@ logic [RV32_reg_data_width_gp-1:0] mem_addr_send;
 logic [RV32_reg_data_width_gp-1:0] store_data;
 logic [3:0]                        mask;
 
+logic [RV32_reg_data_width_gp-1:0] write_data;
+
 // Data memory handshake logic
 logic valid_to_mem_c, yumi_to_mem_c;
 
@@ -212,8 +214,12 @@ wire [RV32_reg_data_width_gp-1:0] miss_pc       = (exe.pc_plus4 - 'h4) | dram_ad
 
 assign mem_addr_send= exe.icache_miss? miss_pc : ld_st_addr ;
 
+// A load op includes rd_addr in non-blocking load requests
+// to distinguish incoming responses
+assign write_data = exe.decode.is_load_op ? RV32_reg_data_width_gp'(exe.instruction.rd) : store_data;
+
 assign to_mem_o = '{
-    write_data    : store_data,
+    write_data    : write_data,
     valid         : valid_to_mem_c,
     wen           : exe.decode.is_store_op,
     swap_aq       : exe.decode.op_is_swap_aq,
@@ -947,6 +953,8 @@ assign fpi_inter.flw_data               = loaded_data;
 assign fpi_inter.f_instruction          = instruction;
 assign fpi_inter.mem_alu_writes_rf      = mem.decode.op_writes_rf;
 assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
+
+
 /////////////////////////////////////////////////////////////////////
 // Some instruction validation check.
 //synopsys translate_off
@@ -983,6 +991,15 @@ end
 `endif
 
 //synopsys translate_off
+
+always@(negedge clk_i) begin
+    if (mem.decode.is_load_op && from_mem_i.valid) begin
+        if (from_mem_i.reg_id == mem.rd_addr)
+            $error("LOAD ID ERROR: req_id: %08x resp_id: %08x",
+                from_mem_i.reg_id, mem.rd_addr);
+    end
+end
+
 
    if (trace_lp)
 //if (0)

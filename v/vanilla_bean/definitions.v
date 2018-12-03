@@ -86,22 +86,23 @@ typedef struct packed{
 // Data memory input structure
 typedef struct packed
 {
-    logic        valid;
-    logic        wen;
-    logic        swap_aq;
-    logic        swap_rl;
-    logic [3:0]  mask;
-    logic [31:0] addr;
-    logic [31:0] write_data;
-    logic        yumi;    // in response to data memory
+    logic                              valid;
+    logic                              wen;
+    logic                              swap_aq;
+    logic                              swap_rl;
+    logic [3:0]                        mask;
+    logic [31:0]                       addr;
+    logic [31:0]                       write_data;
+    logic                              yumi;    // in response to data memory
 } mem_in_s;
 
 // Data memory output structure
 typedef struct packed
 {
-    logic        valid;
-    logic [31:0] read_data;
-    logic        yumi;      // in response to core
+    logic                              valid;
+    logic [31:0]                       read_data;
+    logic                              yumi;      // in response to core
+    logic [RV32_reg_addr_width_gp-1:0] reg_id;
 } mem_out_s;
 
 // Debug signal structures
