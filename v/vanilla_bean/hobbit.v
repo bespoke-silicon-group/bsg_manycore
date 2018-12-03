@@ -107,6 +107,7 @@ assign net_pc_write_cmd_idle = net_pc_write_cmd & (state_r == IDLE);
 // Stall and exception logic
 logic stall, stall_non_mem, stall_mem, stall_lrw, stall_md;
 logic stall_fence;
+logic depend_stall;
 
 //We have to buffer the returned data from memory
 //if there is a non-memory stall at current cycle.
@@ -146,10 +147,6 @@ assign stall = (stall_non_mem | stall_mem);
 //only occurs when the is operation needs loaded data immediately
 wire id_exe_rs1_match = id.decode.op_reads_rf1 & ( id.instruction.rs1 == exe.instruction.rd );
 wire id_exe_rs2_match = id.decode.op_reads_rf2 & ( id.instruction.rs2 == exe.instruction.rd );
-wire depend_stall      = (id_exe_rs1_match | id_exe_rs2_match)
-                       & exe.decode.is_load_op
-                       & exe.decode.op_writes_rf; //FPU load won't write rf
-
 
 //+----------------------------------------------
 //|
@@ -447,6 +444,34 @@ rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
    ,.r1_v_i    (rf_cen)
    ,.r1_addr_i (instruction.rs2)
    ,.r1_data_o (rf_rs2_val)
+  );
+
+
+//+----------------------------------------------
+//|
+//|     SCOREBOARD of load dependencies
+//|
+//+----------------------------------------------
+logic record_load;
+
+assign record_load = id.decode.is_load_op & id.decode.op_writes_rf
+                       & ~(flush | net_pc_write_cmd_idle | stall | depend_stall);
+
+scoreboard
+ #(.els_p (32)
+  ) sb
+  (.clk_i        (clk_i)
+  ,.reset_i      (reset_i)
+
+  ,.src1_id_i    (id.instruction.rs1)
+  ,.src2_id_i    (id.instruction.rs2)
+  ,.dest_id_i    (id.instruction.rd)
+
+  ,.score_i      (record_load)
+  ,.clear_i      (from_mem_i.valid)
+  ,.clear_id_i   (from_mem_i.reg_id)
+
+  ,.dependency_o (depend_stall)
   );
 
 
@@ -992,14 +1017,6 @@ end
 `endif
 
 //synopsys translate_off
-
-always@(negedge clk_i) begin
-    if (mem.decode.is_load_op && from_mem_i.valid) begin
-        if (from_mem_i.reg_id != mem.rd_addr)
-            $error("LOAD ID ERROR: req_id: %08x resp_id: %08x",
-                from_mem_i.reg_id, mem.rd_addr);
-    end
-end
 
 
    if (trace_lp)
