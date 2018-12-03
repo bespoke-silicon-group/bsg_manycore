@@ -994,7 +994,7 @@ end
 
 always@(negedge clk_i) begin
     if (mem.decode.is_load_op && from_mem_i.valid) begin
-        if (from_mem_i.reg_id == mem.rd_addr)
+        if (from_mem_i.reg_id != mem.rd_addr)
             $error("LOAD ID ERROR: req_id: %08x resp_id: %08x",
                 from_mem_i.reg_id, mem.rd_addr);
     end
