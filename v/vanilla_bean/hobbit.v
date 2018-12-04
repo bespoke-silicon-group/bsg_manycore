@@ -135,18 +135,12 @@ assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 
 // stall due to data memory access
 assign stall_mem =  ( exe.decode.is_mem_op & (~from_mem_i.yumi))
-                   | mem.decode.is_load_op & (~data_mem_valid)
+                   | (mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss)
                    | stall_fence
                    | stall_lrw;
 
 // Stall if LD/ST still active; or in non-RUN state
 assign stall = (stall_non_mem | stall_mem);
-
-
-//data dependency stall
-//only occurs when the is operation needs loaded data immediately
-wire id_exe_rs1_match = id.decode.op_reads_rf1 & ( id.instruction.rs1 == exe.instruction.rd );
-wire id_exe_rs2_match = id.decode.op_reads_rf2 & ( id.instruction.rs2 == exe.instruction.rd );
 
 //+----------------------------------------------
 //|
@@ -452,10 +446,18 @@ rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
 //|     SCOREBOARD of load dependencies
 //|
 //+----------------------------------------------
-logic record_load;
+logic record_load, dependency, pending_load_data_arrived;
 
-assign record_load = id.decode.is_load_op & id.decode.op_writes_rf
-                       & ~(flush | net_pc_write_cmd_idle | stall | depend_stall);
+// Record a load in the scoreboard when a load instruction is moved to exe stage.
+assign record_load  = id.decode.is_load_op & id.decode.op_writes_rf
+                        & ~(flush | net_pc_write_cmd_idle | stall | depend_stall);
+
+assign pending_load_data_arrived = from_mem_i.valid & (from_mem_i.reg_id != mem.rd_addr);
+
+// "depend_stall" stalls decode stage and inserts nop into exe stage.
+// This signal is asserted either when a dependedncy is detected or 
+// when the data for a pending load instruction has arrived.
+assign depend_stall = dependency | pending_load_data_arrived;
 
 scoreboard
  #(.els_p (32)
@@ -471,7 +473,7 @@ scoreboard
   ,.clear_i      (from_mem_i.valid)
   ,.clear_id_i   (from_mem_i.reg_id)
 
-  ,.dependency_o (depend_stall)
+  ,.dependency_o (dependency)
   );
 
 
@@ -787,10 +789,23 @@ begin
     else if ( depend_stall & (~stall) )
 `endif
       begin
-   // synopsys translate_off
+         // synopsys translate_off
          debug_exe <= debug_id | squashed_lp;
-   // synopsys translate_on
-         exe       <= '0; //insert a bubble to the pipeline
+         // synopsys translate_on
+
+         exe <= '0; //insert a bubble to the pipeline
+
+         // hack to write back pending load by inserting an OR
+         // instruction into EXE stage
+         if(pending_load_data_arrived) begin
+           exe.instruction         <= `RV32_OR;
+           exe.instruction.rs1     <= '0;
+           exe.instruction.rs2     <= '0;
+           exe.instruction.rd      <= from_mem_i.reg_id;
+           exe.decode.op_writes_rf <= 1'b1;
+           exe.rs1_val             <= from_mem_i.read_data;
+           exe.rs2_val             <= '0;
+         end
       end
     else if (~ stall)
       begin
@@ -943,6 +958,11 @@ end
 wire [RV32_reg_data_width_gp-1:0]  rf_data = mem.decode.is_load_op ?
                                              mem_loaded_data : mem.alu_result;
 
+logic op_writes_rf_wb;
+assign op_writes_rf_to_wb = mem.decode.is_load_op 
+                             ? (from_mem_i.valid & (mem.rd_addr == from_mem_i.reg_id))
+                             : mem.decode.op_writes_rf;
+
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
@@ -959,9 +979,9 @@ begin
          debug_wb <= debug_mem;
    // synopsys translate_on
          wb       <= '{
-                       op_writes_rf : mem.decode.op_writes_rf,
-                       rd_addr      : mem.rd_addr,
-                       rf_data      : rf_data,
+                       op_writes_rf  : op_writes_rf_to_wb,
+                       rd_addr       : mem.rd_addr,
+                       rf_data       : rf_data,
                        icache_miss   : mem.icache_miss,
                        icache_miss_pc: loaded_pc
                        };
