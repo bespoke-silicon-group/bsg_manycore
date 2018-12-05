@@ -399,20 +399,37 @@ logic [RV32_reg_data_width_gp-1:0] rf_rs1_val, rf_rs2_val, rf_rs1_out, rf_rs2_ou
 logic [RV32_reg_addr_width_gp-1:0] rf_wa;
 logic                              rf_wen, rf_cen;
 
-// Register write could be from network or the controller
-// FPU depend stall will not affect register file write back
-// MEM load depend stall will not affect register file write back
-assign rf_wen = (net_reg_write_cmd) | (wb.op_writes_rf & (~stall));
+logic [RV32_reg_data_width_gp-1:0] mem_loaded_data;
 
-// Selection between network 0and address included in the instruction which is
-// exeuted Address for Reg. File is shorter than address of Ins. memory in network
-// data Since network can write into immediate registers, the address is wider
-// but for the destination register in an instruction the extra bits must be zero
-assign rf_wa = (net_reg_write_cmd ? net_packet_r.header.addr[RV32_reg_addr_width_gp-1:0]
-                                  : wb.rd_addr);
+// Regfile write process
+always_comb
+begin
+  rf_wa = wb.rd_addr;
+  rf_wd = wb.rf_data;
 
-// Choose if the data is from the netword of the write-back stage
-assign rf_wd = (net_reg_write_cmd ? net_packet_r.data : wb.rf_data);
+  // Register write could be from network or the controller
+  // FPU depend stall will not affect register file write back
+  // MEM load depend stall will not affect register file write back
+  // Selection between network 0and address included in the instruction which is
+  // exeuted Address for Reg. File is shorter than address of Ins. memory in network
+  // data Since network can write into immediate registers, the address is wider
+  // but for the destination register in an instruction the extra bits must be zero
+  if(net_reg_write_cmd) begin
+    rf_wen = 1'b1;
+    rf_wa  = net_packet_r.header.addr[RV32_reg_addr_width_gp-1:0];
+    rf_wd  = net_packet_r.data;
+  end else if(stall & from_mem_i.valid & (from_mem_i.reg_id != wb.rd_addr)) begin
+    // In case of a stall, directly write back mem data to the regfile. 
+    // Comparing the WB stage destination address to avoid WAW hazard
+    rf_wen = 1'b1;
+    rf_wa  = from_mem_i.reg_id;
+    rf_wd  = mem_loaded_data;
+  end else if(wb.op_writes_rf & (~stall)) begin
+    rf_wen = 1'b1;
+  end else begin
+    rf_wen = 1'b0;
+  end
+end
 
 // Register file chip enable signal
 // FPU depend stall will not affect register file write back
@@ -456,12 +473,14 @@ assign pending_load_data_arrived = from_mem_i.valid & (from_mem_i.reg_id != mem.
 
 // "depend_stall" stalls decode stage and inserts nop into exe stage.
 // This signal is asserted either when a dependedncy is detected or 
-// when the data for a pending load instruction has arrived.
+// when the data for a pending load instruction has arrived. Note that
+// this won't stall the pipeline if the returned data is for a load instruction
+// still in the MEM stage.
 assign depend_stall = dependency | pending_load_data_arrived;
 
 scoreboard
  #(.els_p (32)
-  ) sb
+  ) load_sb
   (.clk_i        (clk_i)
   ,.reset_i      (reset_i)
 
@@ -803,7 +822,7 @@ begin
            exe.instruction.rs2     <= '0;
            exe.instruction.rd      <= from_mem_i.reg_id;
            exe.decode.op_writes_rf <= 1'b1;
-           exe.rs1_val             <= from_mem_i.read_data;
+           exe.rs1_val             <= mem_loaded_data;
            exe.rs2_val             <= '0;
          end
       end
@@ -889,12 +908,12 @@ begin
       end
 end
 
+
 //+----------------------------------------------
 //|
 //|       MEMORY TO RF WRITE BACK SHIFT
 //|
 //+----------------------------------------------
-
 
 always_ff @ (posedge clk_i)
 begin
@@ -903,9 +922,11 @@ begin
         is_load_buffer_valid <= 'b0;
         load_buffer_info     <= 'b0;
     end
-    //set the buffered value
-    else if( stall & mem.decode.is_load_op & from_mem_i.valid )
-    //else if( stall_non_mem & mem.decode.is_load_op & from_mem_i.valid )
+    // Loads arriving during a stall gets directly written to the regfile if the 
+    // destination register is not same as that of the instruction in WB stage. If 
+    // arrived load and WB are going to write to the same register, we buffer the 
+    // load to satify WAW dependency.
+    else if( stall & from_mem_i.valid & (from_mem_i.reg_id == wb.rd_addr))
     begin
         is_load_buffer_valid <= 1'b1;
         load_buffer_info     <= from_mem_i.read_data;
@@ -918,15 +939,14 @@ begin
     end
 end
 
-
-assign loaded_data =  is_load_buffer_valid ? load_buffer_info
-                                           : from_mem_i.read_data;
-assign loaded_pc   =  mem.mem_addr_send;
+assign loaded_data    = (is_load_buffer_valid & ~stall)
+                          ? load_buffer_info
+                          : from_mem_i.read_data;
+assign loaded_pc      =  mem.mem_addr_send;
 
 logic [RV32_reg_data_width_gp-1:0] loaded_byte;
 always_comb
 begin
-//    unique casez (mem.mem_addr_send[1:0])
     unique casez (mem.mem_addr_send[1:0])
       2'b00:    loaded_byte = loaded_data[0+:8];
       2'b01:    loaded_byte = loaded_data[8+:8];
@@ -940,7 +960,6 @@ wire [RV32_reg_data_width_gp-1:0] loaded_hex = (|mem.mem_addr_send[1:0])
                                              ? loaded_data[16+:16]
                                              : loaded_data[0+:16];
 
-logic [RV32_reg_data_width_gp-1:0] mem_loaded_data;
 always_comb
 begin
     if (mem.decode.is_byte_op)
@@ -955,13 +974,13 @@ begin
         mem_loaded_data = loaded_data;
 end
 
-wire [RV32_reg_data_width_gp-1:0]  rf_data = mem.decode.is_load_op ?
-                                             mem_loaded_data : mem.alu_result;
+wire [RV32_reg_data_width_gp-1:0] rf_data = mem.decode.is_load_op 
+                                              ? mem_loaded_data : mem.alu_result;
 
 logic op_writes_rf_wb;
 assign op_writes_rf_to_wb = mem.decode.is_load_op 
-                             ? (from_mem_i.valid & (mem.rd_addr == from_mem_i.reg_id))
-                             : mem.decode.op_writes_rf;
+                              ? (is_load_buffer_valid | (from_mem_i.valid & (mem.rd_addr == from_mem_i.reg_id)))
+                              : mem.decode.op_writes_rf;
 
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
@@ -969,22 +988,23 @@ begin
     if (reset_i | net_pc_write_cmd_idle)
       begin
          wb       <= '0;
-   // synopsys translate_off
+         // synopsys translate_off
          debug_wb <= squashed_lp;
-   // synopsys translate_on
+         // synopsys translate_on
       end
     else if (~stall)
       begin
-   // synopsys translate_off
+         // synopsys translate_off
          debug_wb <= debug_mem;
-   // synopsys translate_on
-         wb       <= '{
-                       op_writes_rf  : op_writes_rf_to_wb,
-                       rd_addr       : mem.rd_addr,
-                       rf_data       : rf_data,
-                       icache_miss   : mem.icache_miss,
-                       icache_miss_pc: loaded_pc
-                       };
+         // synopsys translate_on
+
+         wb <= '{
+                 op_writes_rf  : op_writes_rf_to_wb,
+                 rd_addr       : mem.rd_addr,
+                 rf_data       : rf_data,
+                 icache_miss   : mem.icache_miss,
+                 icache_miss_pc: loaded_pc
+                 };
       end
 end
 

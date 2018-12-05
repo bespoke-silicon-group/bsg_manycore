@@ -37,7 +37,7 @@ module scoreboard
         // the pipeline should not allow a new dependency
         // on a register until the old dependency on that 
         // register is cleared.
-        if(score_i && dest_id_i==entry) begin
+        if(score_i && dest_id_i==entry && (dest_id_i!='0)) begin
           scoreboard[entry] <= 1'b1;
         end
       end
