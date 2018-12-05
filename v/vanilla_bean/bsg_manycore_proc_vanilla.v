@@ -86,6 +86,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                                     ,.fifo_els_p    (proc_fifo_els_p)
                                     ,.data_width_p  (data_width_p)
                                     ,.addr_width_p  (addr_width_p)
+                                    ,.load_id_width_p (load_id_width_p)
                                     ,.max_out_credits_p(max_out_credits_p)
                                     ,.debug_p(debug_p)
 //                                    ,.debug_p(1)
@@ -288,7 +289,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   assign mem_to_core.valid           = core_mem_rv | returned_v_r_lo  ;
   assign mem_to_core.read_data       = core_mem_rv ? core_mem_rdata
                                                    : returned_data_r_lo ;
-  assign mem_to_core.reg_id          = core_mem_rv ? local_load_id_r
+  assign mem_to_core.load_info       = core_mem_rv ? local_load_id_r
                                                    : returned_load_id_r_lo;
 
 
@@ -331,7 +332,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       local_load_id_r <= load_id_width_p'(0);
     else
       if (~out_request & core_mem_v & ~core_mem_w) // if local read
-        local_load_id_r <= core_to_mem.payload.reg_id_s.reg_id;
+        local_load_id_r <= core_to_mem.payload.read_info.load_info;
   end
     
    // synopsys translate_off

@@ -156,7 +156,7 @@ logic [RV32_reg_data_width_gp-1:0] mem_addr_send;
 logic [RV32_reg_data_width_gp-1:0] store_data;
 logic [3:0]                        mask;
 
-logic [RV32_reg_data_width_gp-1:0] mem_payload;
+mem_payload_u mem_payload;
 
 // Data memory handshake logic
 logic valid_to_mem_c, yumi_to_mem_c;
@@ -208,7 +208,21 @@ assign mem_addr_send= exe.icache_miss? miss_pc : ld_st_addr ;
 // Store op sends store data as the payload while
 // a load op sends destination register as the payload
 // to distinguish multiple non-blocking load requests
-assign mem_payload = exe.decode.is_load_op ? RV32_reg_data_width_gp'(exe.instruction.rd) : store_data;
+always_comb
+begin
+  if(exe.decode.is_load_op) begin
+    mem_payload.read_info = '{rsvd      : '0
+                             ,load_info : '{is_unsigned_op : exe.decode.is_load_unsigned
+                                           ,is_byte_op     : exe.decode.is_byte_op
+                                           ,is_hex_op      : exe.decode.is_hex_op
+                                           ,part_sel       : mem_addr_send[1:0]
+                                           ,reg_id         : exe.instruction.rd
+                                           }
+                             };
+  end else begin
+    mem_payload.write_data = store_data;
+  end
+end
 
 assign to_mem_o = '{
     payload       : mem_payload,
@@ -329,7 +343,7 @@ assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_w
 `declare_icache_format_s( icache_tag_width_p );
 icache_format_s       icache_r_data_s;
 
-logic [RV32_reg_data_width_gp-1:0] loaded_data;
+logic [RV32_reg_data_width_gp-1:0] mem_data;
 logic [RV32_reg_data_width_gp-1:0] loaded_pc  ;
 
 wire                          icache_w_en  = net_imem_write_cmd | (mem.icache_miss & data_mem_valid );
@@ -338,7 +352,7 @@ wire [icache_addr_width_p-1:0]icache_w_addr= net_imem_write_cmd ? net_packet_r.h
 wire [icache_tag_width_p-1:0] icache_w_tag = net_imem_write_cmd ? {icache_tag_width_p{1'b1}}
                                                                 : loaded_pc[(icache_addr_width_p+2)+: icache_tag_width_p] ; 
 wire [RV32_instr_width_gp-1:0]icache_w_instr=net_imem_write_cmd ? net_packet_r.data
-                                                                : loaded_data;
+                                                                : mem_data;
 
 wire icache_miss_lo;
 icache #(
@@ -418,11 +432,18 @@ begin
     rf_wen = 1'b1;
     rf_wa  = net_packet_r.header.addr[RV32_reg_addr_width_gp-1:0];
     rf_wd  = net_packet_r.data;
-  end else if(stall & from_mem_i.valid & (from_mem_i.reg_id != wb.rd_addr)) begin
-    // In case of a stall, directly write back mem data to the regfile. 
-    // Comparing the WB stage destination address to avoid WAW hazard
+
+  // In case of a stall, directly write back mem data to the regfile if there is
+  // no WAW dependency.
+  // 
+  // Comparing the WB stage destination address to detect WAW dependency. Since 
+  // the scoreboard wouldn't have allowed an instruction to reach WB stage if
+  // there was load pending to a register, WAW dependecy means that load data 
+  // belongs to the instruction that is still in MEM stage. Hence the loaded can be
+  // buffered and sent to WB stage like a usual load.
+  end else if(stall & from_mem_i.valid & (from_mem_i.load_info.reg_id != wb.rd_addr)) begin
     rf_wen = 1'b1;
-    rf_wa  = from_mem_i.reg_id;
+    rf_wa  = from_mem_i.load_info.reg_id;
     rf_wd  = mem_loaded_data;
   end else if(wb.op_writes_rf & (~stall)) begin
     rf_wen = 1'b1;
@@ -463,19 +484,26 @@ rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
 //|     SCOREBOARD of load dependencies
 //|
 //+----------------------------------------------
+// Scoreboard keeps track of load dependencies to support
+// non-blocking loads. A load instruction creates a dependency
+// on it's destination register when transitioning to EXE stage. 
+// Any instruction depending on that register is stalled in ID
+// stage until the loaded value is written back to RF.
+
 logic record_load, dependency, pending_load_data_arrived;
 
 // Record a load in the scoreboard when a load instruction is moved to exe stage.
 assign record_load  = id.decode.is_load_op & id.decode.op_writes_rf
                         & ~(flush | net_pc_write_cmd_idle | stall | depend_stall);
 
-assign pending_load_data_arrived = from_mem_i.valid & (from_mem_i.reg_id != mem.rd_addr);
+// Signal to detect the data arrival for a pending load
+assign pending_load_data_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id != mem.rd_addr);
 
-// "depend_stall" stalls decode stage and inserts nop into exe stage.
+// "depend_stall" stalls ID stage and inserts nop into EXE stage.
 // This signal is asserted either when a dependedncy is detected or 
 // when the data for a pending load instruction has arrived. Note that
-// this won't stall the pipeline if the returned data is for a load instruction
-// still in the MEM stage.
+// this won't stall the pipeline if the returned data is for a load 
+// instruction that is still in the MEM stage.
 assign depend_stall = dependency | pending_load_data_arrived;
 
 scoreboard
@@ -490,7 +518,7 @@ scoreboard
 
   ,.score_i      (record_load)
   ,.clear_i      (from_mem_i.valid)
-  ,.clear_id_i   (from_mem_i.reg_id)
+  ,.clear_id_i   (from_mem_i.load_info.reg_id)
 
   ,.dependency_o (dependency)
   );
@@ -525,6 +553,8 @@ imul_idiv_iterative  md_0
     //result.
     ,.yumi_i    (~stall_non_mem)
     );
+
+
 //+----------------------------------------------
 //|
 //|                ALU SIGNALS
@@ -590,6 +620,7 @@ alu #(.pc_width_p(pc_width_lp) )
 
 assign alu_result = exe.decode.is_md_instr ? md_result : basic_comp_result;
 
+
 //+----------------------------------------------
 //|
 //|            STATE MACHINE SIGNALS
@@ -605,6 +636,7 @@ cl_state_machine state_machine
     .stall_i(stall),
     .state_o(state_n)
 );
+
 
 //+----------------------------------------------
 //|
@@ -630,6 +662,7 @@ assign stall_lrw    = exe.decode.op_is_lr_acq & reservation_i;
 assign reserve_1_o  = exe.decode.op_is_load_reservation
                    &(~exe.decode.op_is_lr_acq)  ;
 
+
 //+----------------------------------------------
 //|
 //|        SEQUENTIAL LOGIC SIGNALS
@@ -648,47 +681,47 @@ begin
     end
 end
 
-    // Update the JALR prediction register
-   assign jalr_prediction_n = exe.decode.is_jump_op ? exe.pc_plus4
-                                                    : jalr_prediction_r;
+// Update the JALR prediction register
+assign jalr_prediction_n = exe.decode.is_jump_op ? exe.pc_plus4
+                                                 : jalr_prediction_r;
 
-   bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_r_reg
-     ( .clk_i(clk_i)
-      ,.reset_i(reset_i)
-      ,.data_i(jalr_prediction_n)
-      ,.data_o(jalr_prediction_r)
-      );
+bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_r_reg
+  ( .clk_i(clk_i)
+   ,.reset_i(reset_i)
+   ,.data_i(jalr_prediction_n)
+   ,.data_o(jalr_prediction_r)
+   );
 
-   bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_rr_reg
-     ( .clk_i(clk_i)
-      ,.reset_i(reset_i)
-      ,.data_i(jalr_prediction_r)
-      ,.data_o(jalr_prediction_rr)
-      );
+bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_rr_reg
+  ( .clk_i(clk_i)
+   ,.reset_i(reset_i)
+   ,.data_i(jalr_prediction_r)
+   ,.data_o(jalr_prediction_rr)
+   );
 
-   // mbt: unharden to reduce congestion
-   bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(0)) net_packet_r_reg
-     ( .clk_i(clk_i)
-      ,.reset_i(reset_i)
-      ,.data_i(net_packet_i)
-      ,.data_o(net_packet_r)
-      );
+// mbt: unharden to reduce congestion
+bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(0)) net_packet_r_reg
+  ( .clk_i(clk_i)
+   ,.reset_i(reset_i)
+   ,.data_i(net_packet_i)
+   ,.data_o(net_packet_r)
+   );
 
 
-   // synopsys translate_off
-  debug_s debug_if, debug_id, debug_exe, debug_mem, debug_wb;
+// synopsys translate_off
+debug_s debug_if, debug_id, debug_exe, debug_mem, debug_wb;
 
-   localparam squashed_lp = 1'b1;
+localparam squashed_lp = 1'b1;
 
-  // 1 indicates unsquashed
-  assign debug_if = '{
-                      PC_r : pc_r,
-                      instruction_i: instruction,
-                      state_r: state_r,
-                      squashed: 1'b0
-                      };
+// 1 indicates unsquashed
+assign debug_if = '{
+                    PC_r : pc_r,
+                    instruction_i: instruction,
+                    state_r: state_r,
+                    squashed: 1'b0
+                    };
+ // synopsys translate_on
 
-   // synopsys translate_on
 
 //+----------------------------------------------
 //|
@@ -701,13 +734,13 @@ id_signals_s  id_s;
 // We set the icache miss as a remote load without read/write registers.
 decode_s     id_decode;
 always_comb begin
-        id_decode =  'b0;
-        if( icache_miss_lo) begin
-                id_decode.is_load_op = 1'b1;
-                id_decode.is_mem_op  = 1'b1;
-        end else begin
-                id_decode = decode;
-        end
+    id_decode =  'b0;
+    if( icache_miss_lo) begin
+        id_decode.is_load_op = 1'b1;
+        id_decode.is_mem_op  = 1'b1;
+    end else begin
+        id_decode = decode;
+    end
 end
 
 wire [RV32_instr_width_gp-1:0] id_instr = icache_miss_lo? 'b0 : instruction;
@@ -748,6 +781,7 @@ begin
         id <= id_s      ;
      end
 end
+
 
 //+----------------------------------------------
 //|
@@ -820,7 +854,7 @@ begin
            exe.instruction         <= `RV32_OR;
            exe.instruction.rs1     <= '0;
            exe.instruction.rs2     <= '0;
-           exe.instruction.rd      <= from_mem_i.reg_id;
+           exe.instruction.rd      <= from_mem_i.load_info.reg_id;
            exe.decode.op_writes_rf <= 1'b1;
            exe.rs1_val             <= mem_loaded_data;
            exe.rs2_val             <= '0;
@@ -848,12 +882,12 @@ begin
       end
 end
 
+
 //+----------------------------------------------
 //|
 //|          EXECUTE TO MEMORY SHIFT
 //|
 //+----------------------------------------------
-
 
 logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
 
@@ -926,7 +960,7 @@ begin
     // destination register is not same as that of the instruction in WB stage. If 
     // arrived load and WB are going to write to the same register, we buffer the 
     // load to satify WAW dependency.
-    else if( stall & from_mem_i.valid & (from_mem_i.reg_id == wb.rd_addr))
+    else if( stall & from_mem_i.valid & (from_mem_i.load_info.reg_id == wb.rd_addr))
     begin
         is_load_buffer_valid <= 1'b1;
         load_buffer_info     <= from_mem_i.read_data;
@@ -939,47 +973,45 @@ begin
     end
 end
 
-assign loaded_data    = (is_load_buffer_valid & ~stall)
-                          ? load_buffer_info
-                          : from_mem_i.read_data;
-assign loaded_pc      =  mem.mem_addr_send;
+// load data for icache & fpu
+assign mem_data  = (is_load_buffer_valid & ~stall)
+                     ? load_buffer_info
+                     : from_mem_i.read_data;
+assign loaded_pc =  mem.mem_addr_send;
 
-logic [RV32_reg_data_width_gp-1:0] loaded_byte;
-always_comb
-begin
-    unique casez (mem.mem_addr_send[1:0])
-      2'b00:    loaded_byte = loaded_data[0+:8];
-      2'b01:    loaded_byte = loaded_data[8+:8];
-      2'b10:    loaded_byte = loaded_data[16+:8];
-      default:  loaded_byte = loaded_data[24+:8];
-    endcase
-end
+// byte or hex pack data from memory
+load_packer mem_load_packer
+  (.mem_data_i      (from_mem_i.read_data)
+  ,.unsigned_load_i (from_mem_i.load_info.is_unsigned_op)
+  ,.byte_load_i     (from_mem_i.load_info.is_byte_op)
+  ,.hex_load_i      (from_mem_i.load_info.is_hex_op)
+  ,.part_sel_i      (from_mem_i.load_info.part_sel)
+  ,.load_data_o     (mem_loaded_data)
+  );
 
-//wire [RV32_reg_data_width_gp-1:0] loaded_hex = (|mem.mem_addr_send[1:0])
-wire [RV32_reg_data_width_gp-1:0] loaded_hex = (|mem.mem_addr_send[1:0])
-                                             ? loaded_data[16+:16]
-                                             : loaded_data[0+:16];
-
-always_comb
-begin
-    if (mem.decode.is_byte_op)
-        mem_loaded_data = (mem.decode.is_load_unsigned)
-                        ? 32'(loaded_byte[7:0])
-                        : {{24{loaded_byte[7]}}, loaded_byte[7:0]};
-    else if(mem.decode.is_hex_op)
-        mem_loaded_data = (mem.decode.is_load_unsigned)
-                        ? 32'(loaded_hex[15:0])
-                        : {{24{loaded_hex[15]}}, loaded_hex[15:0]};
-    else
-        mem_loaded_data = loaded_data;
-end
+logic [RV32_reg_data_width_gp-1:0] buf_loaded_data;
+// byte or hex pack data from load buffer
+load_packer buf_load_packer
+  (.mem_data_i      (load_buffer_info)
+  ,.unsigned_load_i (mem.decode.is_load_unsigned)
+  ,.byte_load_i     (mem.decode.is_byte_op)
+  ,.hex_load_i      (mem.decode.is_hex_op)
+  ,.part_sel_i      (mem.mem_addr_send[1:0])
+  ,.load_data_o     (buf_loaded_data)
+  );
 
 wire [RV32_reg_data_width_gp-1:0] rf_data = mem.decode.is_load_op 
-                                              ? mem_loaded_data : mem.alu_result;
+                                              ? (is_load_buffer_valid ? buf_loaded_data : mem_loaded_data)
+                                              : mem.alu_result;
 
 logic op_writes_rf_wb;
-assign op_writes_rf_to_wb = mem.decode.is_load_op 
-                              ? (is_load_buffer_valid | (from_mem_i.valid & (mem.rd_addr == from_mem_i.reg_id)))
+assign op_writes_rf_to_wb = mem.decode.is_load_op
+                              ? (is_load_buffer_valid
+                                  // To supports non-blocking loads, load instr writes to 
+                                  // RF if only when the data arrives in the same cycle. If the
+                                  // data arrives later, it is inserted as an extra OR instr 
+                                  // into EXE stage.
+                                  | (from_mem_i.valid & (mem.rd_addr == from_mem_i.load_info.reg_id)))
                               : mem.decode.op_writes_rf;
 
 // Synchronous stage shift
@@ -1008,14 +1040,16 @@ begin
       end
 end
 
-///////////////////////////////////////////////////////////////////
-// Assign the outputs to FPI
+
+
 `ifdef bsg_FPU
 
+///////////////////////////////////////////////////////////////////
+// Assign the outputs to FPI
 assign fpi_inter.alu_stall              = stall;
 assign fpi_inter.alu_flush              = flush;
 assign fpi_inter.rs1_of_alu             = rs1_to_alu;
-assign fpi_inter.flw_data               = loaded_data;
+assign fpi_inter.flw_data               = mem_data;
 assign fpi_inter.f_instruction          = instruction;
 assign fpi_inter.mem_alu_writes_rf      = mem.decode.op_writes_rf;
 assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
@@ -1024,7 +1058,6 @@ assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
 /////////////////////////////////////////////////////////////////////
 // Some instruction validation check.
 //synopsys translate_off
-
 //Double Precision Floating Point Load/Store
 always@(negedge clk_i )
 begin
@@ -1053,33 +1086,31 @@ always@(negedge clk_i ) begin
 end
 //synopsys translate_on
 
-
 `endif
 
+
+
 //synopsys translate_off
+if (trace_lp)
+  always_ff @(negedge clk_i)
+    begin
+       if (~(debug_wb.squashed  & (debug_wb.PC_r == 0)))
+         begin
+            $write("X,Y=(%x,%x) PC=%x (%x)"
+                   ,my_x_i, my_y_i
+                   , (debug_wb.PC_r <<2)
+                   ,debug_wb.instruction_i
+                   );
+            if (debug_wb.squashed)
+              $write(" <squashed>");
+            if (stall)
+              $write(" <stall>");
 
+            if (wb.op_writes_rf)
+              $write(" r[%d] <= %x", wb.rd_addr, wb.rf_data);
 
-   if (trace_lp)
-//if (0)
-     always_ff @(negedge clk_i)
-       begin
-          if (~(debug_wb.squashed  & (debug_wb.PC_r == 0)))
-            begin
-               $write("X,Y=(%x,%x) PC=%x (%x)"
-                      ,my_x_i, my_y_i
-                      , (debug_wb.PC_r <<2)
-                      ,debug_wb.instruction_i
-                      );
-               if (debug_wb.squashed)
-                 $write(" <squashed>");
-               if (stall)
-                 $write(" <stall>");
-
-               if (wb.op_writes_rf)
-                 $write(" r[%d] <= %x", wb.rd_addr, wb.rf_data);
-
-               $write("\n");
-            end
+            $write("\n");
+         end
        end
 
 if(debug_p)

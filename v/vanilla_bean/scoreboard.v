@@ -2,19 +2,21 @@
 `include "definitions.v"
 
 module scoreboard
- #(parameter els_p = 32) 
-  (input                              clk_i
-  ,input                              reset_i
+ #(parameter els_p      = 32
+  ,parameter id_width_p = RV32_reg_addr_width_gp 
+  )
+  (input                  clk_i
+  ,input                  reset_i
 
-  ,input [RV32_reg_addr_width_gp-1:0] src1_id_i
-  ,input [RV32_reg_addr_width_gp-1:0] src2_id_i
-  ,input [RV32_reg_addr_width_gp-1:0] dest_id_i
+  ,input [id_width_p-1:0] src1_id_i
+  ,input [id_width_p-1:0] src2_id_i
+  ,input [id_width_p-1:0] dest_id_i
 
-  ,input                              score_i
-  ,input                              clear_i
-  ,input [RV32_reg_addr_width_gp-1:0] clear_id_i
+  ,input                  score_i
+  ,input                  clear_i
+  ,input [id_width_p-1:0] clear_id_i
 
-  ,output logic                       dependency_o
+  ,output logic           dependency_o
   );
 
   logic   scoreboard[0:els_p-1];
@@ -33,7 +35,7 @@ module scoreboard
 
         // "score" takes priority over "clear" in case of 
         // simultaneous score and clear. But this
-        // condition would not occur in general, as 
+        // condition should not occur in general, as 
         // the pipeline should not allow a new dependency
         // on a register until the old dependency on that 
         // register is cleared.

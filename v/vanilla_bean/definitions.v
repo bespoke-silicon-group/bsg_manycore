@@ -83,33 +83,42 @@ typedef struct packed{
     logic [31:0]    data;    // 31..0
 } ring_packet_s;
 
+typedef struct packed {
+  logic        is_unsigned_op;
+  logic        is_byte_op;
+  logic        is_hex_op;
+  logic [1:0]  part_sel;
+  logic [4:0]  reg_id;
+} load_info_s;
+
+typedef union packed {
+  logic [31:0] write_data; // stores send store data
+  struct packed {          // loads send reg_id to be loaded
+    logic [21:0] rsvd;
+    load_info_s load_info;
+  } read_info; 
+} mem_payload_u;
+
 // Data memory input structure
 typedef struct packed
 {
-    logic        valid;
-    logic        wen;
-    logic        swap_aq;
-    logic        swap_rl;
-    logic [3:0]  mask;
-    logic [31:0] addr;
-    logic        yumi;    // in response to data memory
-
-    union packed {
-      logic [31:0] write_data; // stores send store data
-      struct packed {          // loads send reg_id to be loaded
-        logic [(32-RV32_reg_addr_width_gp)-1:0] reg_id_padding;
-        logic [RV32_reg_addr_width_gp-1:0]      reg_id;
-      } reg_id_s; 
-    } payload;
+    logic          valid;
+    logic          wen;
+    logic          swap_aq;
+    logic          swap_rl;
+    logic [3:0]    mask;
+    logic [31:0]   addr;
+    logic          yumi;    // in response to data memory
+    mem_payload_u  payload;
 } mem_in_s;
 
 // Data memory output structure
 typedef struct packed
 {
-    logic                              valid;
-    logic [31:0]                       read_data;
-    logic                              yumi;      // in response to core
-    logic [RV32_reg_addr_width_gp-1:0] reg_id;
+    logic        valid;
+    logic [31:0] read_data;
+    logic        yumi;      // in response to core
+    load_info_s  load_info;
 } mem_out_s;
 
 // Debug signal structures

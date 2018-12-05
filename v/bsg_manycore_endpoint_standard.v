@@ -69,11 +69,12 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    wire                              returned_credit_lo   ;
    bsg_manycore_return_packet_s      returned_packet_lo   ;
 
-   bsg_manycore_endpoint #(.x_cord_width_p (x_cord_width_p)
-                           ,.y_cord_width_p(y_cord_width_p)
-                           ,.fifo_els_p    (fifo_els_p  )
-                           ,.data_width_p  (data_width_p)
-                           ,.addr_width_p  (addr_width_p)
+   bsg_manycore_endpoint #(.x_cord_width_p   (x_cord_width_p)
+                           ,.y_cord_width_p  (y_cord_width_p)
+                           ,.fifo_els_p      (fifo_els_p  )
+                           ,.data_width_p    (data_width_p)
+                           ,.addr_width_p    (addr_width_p)
+                           ,.load_id_width_p (load_id_width_p)
                            ) bme
      (.clk_i
       ,.reset_i

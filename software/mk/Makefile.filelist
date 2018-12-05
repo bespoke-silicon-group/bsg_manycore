@@ -34,6 +34,7 @@ LIST_VANILLA_SRCS+= $(VANILLA_SRC)/imul_idiv_iterative.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/bsg_manycore_proc_vanilla.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/rf_2r1w_sync_wrapper.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/scoreboard.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/load_packer.v
 LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_mux.v
 LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_dff_reset.v
 LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_imul_iterative.v
