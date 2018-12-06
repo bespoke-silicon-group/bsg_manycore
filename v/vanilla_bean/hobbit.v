@@ -490,21 +490,27 @@ rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
 // Any instruction depending on that register is stalled in ID
 // stage until the loaded value is written back to RF.
 
-logic record_load, dependency, pending_load_data_arrived;
+logic record_load, dependency, pending_load_data_arrived, current_load_data_arrived;
 
 // Record a load in the scoreboard when a load instruction is moved to exe stage.
 assign record_load  = id.decode.is_load_op & id.decode.op_writes_rf
                         & ~(flush | net_pc_write_cmd_idle | stall | depend_stall);
 
-// Signal to detect the data arrival for a pending load
+// Signals to detect the data arrival
 assign pending_load_data_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id != mem.rd_addr);
+assign current_load_data_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id == mem.rd_addr);
 
 // "depend_stall" stalls ID stage and inserts nop into EXE stage.
 // This signal is asserted either when a dependedncy is detected or 
 // when the data for a pending load instruction has arrived. Note that
 // this won't stall the pipeline if the returned data is for a load 
 // instruction that is still in the MEM stage.
-assign depend_stall = dependency | pending_load_data_arrived;
+//
+// Data arrived for a current load is guarenteed to be 
+// written to the WB stage or directly to regfile in the 
+// next cycle. Hence no need of an extra stall.
+assign depend_stall = (dependency & ~current_load_data_arrived) 
+                        | pending_load_data_arrived;
 
 scoreboard
  #(.els_p (32)
@@ -1004,14 +1010,13 @@ wire [RV32_reg_data_width_gp-1:0] rf_data = mem.decode.is_load_op
                                               ? (is_load_buffer_valid ? buf_loaded_data : mem_loaded_data)
                                               : mem.alu_result;
 
+// To supports non-blocking loads, load instr writes to 
+// RF if only when the data arrives in the same cycle. If the
+// data arrives later, it is inserted as an extra OR instr 
+// into EXE stage.
 logic op_writes_rf_wb;
 assign op_writes_rf_to_wb = mem.decode.is_load_op
-                              ? (is_load_buffer_valid
-                                  // To supports non-blocking loads, load instr writes to 
-                                  // RF if only when the data arrives in the same cycle. If the
-                                  // data arrives later, it is inserted as an extra OR instr 
-                                  // into EXE stage.
-                                  | (from_mem_i.valid & (mem.rd_addr == from_mem_i.load_info.reg_id)))
+                              ? (is_load_buffer_valid | current_load_data_arrived)
                               : mem.decode.op_writes_rf;
 
 // Synchronous stage shift

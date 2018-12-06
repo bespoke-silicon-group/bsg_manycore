@@ -19,7 +19,7 @@ module scoreboard
   ,output logic           dependency_o
   );
 
-  logic   scoreboard[0:els_p-1];
+  logic [els_p-1:0] scoreboard;
 
   integer entry;
   always_ff @(posedge clk_i)

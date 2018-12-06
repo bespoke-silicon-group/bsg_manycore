@@ -3,15 +3,18 @@
 
 .text
 
-li x5, 10;
+// loop index
+li a0, 3;
 
 prog:
-    li x1, 0xbaba;
-    sw x1, N, x0;
-    lw x2, N;
-    mv x3, x2;
-    addi x5, x5, -1;
-    bnez x5, prog;
+    la a1, N;
+    li t0, 0xbaba;
+    sw t0, 0x0(a1);
+    lw a2, N;
+    mv a3, a2;
+    bsg_asm_print_reg(IO_X_INDEX,a3);
+    addi a0, a0, -1;
+    bnez a0, prog;
 
 finish:
     fence;
@@ -20,6 +23,6 @@ finish:
     bsg_asm_finish(IO_X_INDEX);
     j finish
 
-.data
 
-N: .word
+.data
+N: .word 0xabab
