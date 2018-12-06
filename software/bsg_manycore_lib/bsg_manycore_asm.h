@@ -13,10 +13,9 @@
     li t1, val;                                  \
     sw t1, 0x0(t0);
 
-#define bsg_asm_remote_load(x,y,local_addr,reg) \
+#define bsg_asm_remote_load(reg,x,y,local_addr) \
     li t0, bsg_asm_remote_ptr(x,y,local_addr);  \
-    li t1, val;                                 \
-    lw t1, 0x0(t0); 
+    lw reg, 0x0(t0);
 
 // print a register ("reg") in IO #x
 #define bsg_asm_print_reg(x,reg)                  \
