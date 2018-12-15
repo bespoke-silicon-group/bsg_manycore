@@ -51,6 +51,8 @@ SECTIONS
     *(.tbss)
     crt.o(.tbss.end)
   }
+  .rodata : { *(.rodata) }
+  .eh_frame : { *(.eh_frame) }
 
   /* End of uninitalized data segement */
   _bsg_data_end_addr = .;
