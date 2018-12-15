@@ -117,10 +117,12 @@ logic [RV32_reg_data_width_gp-1:0]  load_buffer_info;
 //the memory valid signal may come from memory or the buffer register
 logic                               data_mem_valid;
 
+logic yumi_to_mem_c;
+
 // Decoded control signals logic
 decode_s decode;
 
-assign data_mem_valid = is_load_buffer_valid | from_mem_i.valid;
+assign data_mem_valid = is_load_buffer_valid | yumi_to_mem_c;
 
 assign stall_non_mem = (net_imem_write_cmd)
                      | (net_reg_write_cmd & wb.op_writes_rf)
@@ -134,7 +136,7 @@ assign stall_non_mem = (net_imem_write_cmd)
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 
 // stall due to data memory access
-assign stall_mem =  ( exe.decode.is_mem_op & (~from_mem_i.yumi))
+assign stall_mem =  ( exe.decode.is_mem_op & (~yumi_to_mem_c))
                    | (mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss)
                    | stall_fence
                    | stall_lrw;
@@ -441,7 +443,7 @@ begin
   // there was load pending to a register, WAW dependecy means that load data 
   // belongs to the instruction that is still in MEM stage. Hence the loaded can be
   // buffered and sent to WB stage like a usual load.
-  end else if(stall & from_mem_i.valid & (from_mem_i.load_info.reg_id != wb.rd_addr)) begin
+  end else if(stall & yumi_to_mem_c & (from_mem_i.load_info.reg_id != wb.rd_addr)) begin
     rf_wen = 1'b1;
     rf_wa  = from_mem_i.load_info.reg_id;
     rf_wd  = mem_loaded_data;
@@ -497,8 +499,8 @@ assign record_load  = id.decode.is_load_op & id.decode.op_writes_rf
                         & ~(flush | net_pc_write_cmd_idle | stall | depend_stall);
 
 // Signals to detect the data arrival
-assign pending_load_data_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id != mem.rd_addr);
-assign current_load_data_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id == mem.rd_addr);
+assign pending_load_data_arrived = yumi_to_mem_c & (from_mem_i.load_info.reg_id != mem.rd_addr);
+assign current_load_data_arrived = yumi_to_mem_c & (from_mem_i.load_info.reg_id == mem.rd_addr);
 
 // "depend_stall" stalls ID stage and inserts nop into EXE stage.
 // This signal is asserted either when a dependedncy is detected or 
@@ -523,7 +525,7 @@ scoreboard
   ,.dest_id_i    (id.instruction.rd)
 
   ,.score_i      (record_load)
-  ,.clear_i      (from_mem_i.valid)
+  ,.clear_i      (yumi_to_mem_c)
   ,.clear_id_i   (from_mem_i.load_info.reg_id)
 
   ,.dependency_o (dependency)
@@ -658,7 +660,8 @@ assign valid_to_mem_c = (exe.decode.is_mem_op & (~wait_mem_rsp) & (~non_ld_st_st
 
 //We should always accept the returned data even there is a non memory stall
 //assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
-assign yumi_to_mem_c  = (mem.decode.is_mem_op) & from_mem_i.valid ;
+assign yumi_to_mem_c  = from_mem_i.valid ;
+
 // RISC-V edit: add reservation
 //lr.acq will stall until the reservation is cleared;
 assign stall_lrw    = exe.decode.op_is_lr_acq & reservation_i;
@@ -966,7 +969,7 @@ begin
     // destination register is not same as that of the instruction in WB stage. If 
     // arrived load and WB are going to write to the same register, we buffer the 
     // load to satify WAW dependency.
-    else if( stall & from_mem_i.valid & (from_mem_i.load_info.reg_id == wb.rd_addr))
+    else if( stall & yumi_to_mem_c & (from_mem_i.load_info.reg_id == wb.rd_addr))
     begin
         is_load_buffer_valid <= 1'b1;
         load_buffer_info     <= from_mem_i.read_data;

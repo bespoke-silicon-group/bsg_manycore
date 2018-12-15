@@ -115,6 +115,7 @@ typedef struct packed
 // Data memory output structure
 typedef struct packed
 {
+    logic        buf_full;
     logic        valid;
     logic [31:0] read_data;
     logic        yumi;      // in response to core

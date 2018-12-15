@@ -286,6 +286,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   //the core_to_mem yumi signal is not used.
 
   //The data can either from local memory or from the network.
+  assign mem_to_core.buf_full        = 1'b0;
   assign mem_to_core.valid           = core_mem_rv | returned_v_r_lo  ;
   assign mem_to_core.read_data       = core_mem_rv ? core_mem_rdata
                                                    : returned_data_r_lo ;
