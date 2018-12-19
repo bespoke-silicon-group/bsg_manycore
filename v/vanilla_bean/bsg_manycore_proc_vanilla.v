@@ -223,8 +223,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       ,.ring_ID_p        (0)
       ,.x_cord_width_p   (x_cord_width_p)
       ,.y_cord_width_p   (y_cord_width_p)
-//      ,.debug_p          (debug_p)
-//,.debug_p(1)
+//    ,.debug_p          (debug_p)
+//    ,.debug_p(1)
      ) vanilla_core
      ( .clk_i          (clk_i)
       ,.reset_i        (reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state

@@ -136,7 +136,7 @@ assign stall_non_mem = (net_imem_write_cmd)
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 
 // stall due to data memory access
-assign stall_mem =  ( exe.decode.is_mem_op & (~yumi_to_mem_c))
+assign stall_mem =  ( exe.decode.is_mem_op & (~from_mem_i.yumi))
                    | (mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss)
                    | stall_fence
                    | stall_lrw;
@@ -507,12 +507,7 @@ assign current_load_data_arrived = yumi_to_mem_c & (from_mem_i.load_info.reg_id 
 // when the data for a pending load instruction has arrived. Note that
 // this won't stall the pipeline if the returned data is for a load 
 // instruction that is still in the MEM stage.
-//
-// Data arrived for a current load is guarenteed to be 
-// written to the WB stage or directly to regfile in the 
-// next cycle. Hence no need of an extra stall.
-assign depend_stall = (dependency & ~current_load_data_arrived) 
-                        | pending_load_data_arrived;
+assign depend_stall = (dependency | pending_load_data_arrived);
 
 scoreboard
  #(.els_p (32)
@@ -1124,11 +1119,13 @@ if (trace_lp)
 if(debug_p)
   always_ff @(negedge clk_i)
   begin
-    if ((my_x_i == 1) & (my_y_i == 0) & (state_r==RUN))
+    if ((// (my_x_i == 0 && my_y_i == 0)
+         (my_x_i == 1 && my_y_i == 0)
+        ) & (state_r==RUN))
       begin
         $display("\n%0dns (%d,%d):", $time, my_x_i, my_y_i);
         $display("  IF: pc  :%x instr:{%x_%x_%x_%x_%x_%x} state:%b net_pkt:{%x_%x_%x}"
-                 ,pc_r
+                 ,(pc_r<<2)
                  ,instruction.funct7
                  ,instruction.rs2
                  ,instruction.rs1
@@ -1140,7 +1137,7 @@ if(debug_p)
                  ,net_packet_r.header.addr
                  ,net_packet_r.data
                 );
-        $display("  ID: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b"
+        $display("  ID: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b dep:%b score:%b"
                  ,id.pc_plus4
                  ,id.instruction.funct7
                  ,id.instruction.rs2
@@ -1160,6 +1157,8 @@ if(debug_p)
                  ,id.decode.op_reads_rf1
                  ,id.decode.op_reads_rf2
                  ,id.decode.op_is_auipc
+                 ,dependency
+                 ,record_load
                 );
         $display(" EXE: pc+4:%x instr:{%x_%x_%x_%x_%x_%x} j_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b rs1:%0x rs2:%0x"
                  ,exe.pc_plus4
@@ -1184,7 +1183,7 @@ if(debug_p)
                  ,exe.rs1_val
                  ,exe.rs2_val
                 );
-        $display(" MEM:  rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x"
+        $display(" MEM:  rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x mem_v:%b mem_data:%x reg_id:%x"
 //                 ,mem.pc_plus4
                  ,mem.rd_addr
                  ,mem.decode.op_writes_rf
@@ -1199,6 +1198,9 @@ if(debug_p)
                  ,mem.decode.op_reads_rf2
                  ,mem.decode.op_is_auipc
                  ,mem.alu_result
+                 ,from_mem_i.valid
+                 ,from_mem_i.read_data
+                 ,from_mem_i.load_info.reg_id
                 );
 
         $display(" WB: wrf:%b rd_addr:%x, rf_data:%x"
@@ -1207,11 +1209,12 @@ if(debug_p)
                  ,wb.rf_data
                 );
 
-        $display("MISC: stall:%b stall_mem:%b stall_non_mem:%b stall_lrw:%b reservation:%b valid_to_mem:%b alu_result:%x st_data:%x mask:%b jump_now:%b flush:%b"
+        $display("MISC: stall:%b stall_mem:%b stall_non_mem:%b stall_lrw:%b depend_stall:%b reservation:%b valid_to_mem:%b alu_result:%x st_data:%x mask:%b jump_now:%b flush:%b"
                  ,stall
                  ,stall_mem
                  ,stall_non_mem
                  ,stall_lrw
+                 ,depend_stall
                  ,reservation_i
                  ,valid_to_mem_c
                  ,alu_result
