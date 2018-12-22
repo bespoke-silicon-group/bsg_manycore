@@ -500,28 +500,14 @@ rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
 // Any instruction depending on that register is stalled in ID
 // stage until the loaded value is written back to RF.
 
-logic record_load, dependency, insert_load_in_id, insert_load_in_exe;
+logic record_load, dependency;
+logic insert_load_in_id, insert_load_in_exe, insert_load_in_mem, insert_load_in_wb;
+
 
 // Record a load in the scoreboard when a load instruction is moved to exe stage.
 assign record_load  = id.decode.is_load_op & id.decode.op_writes_rf
                         & ~(flush | net_pc_write_cmd_idle | stall | depend_stall);
 
-
-assign pending_load_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id != mem.rd_addr);
-assign current_load_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id == mem.rd_addr);
-
-// insert pending load into EXE stage if the instruction 
-// in EXE doesn't write to RF
-assign insert_load_in_exe = pending_load_arrived
-                              & ~exe.decode.op_writes_rf
-                              & ~stall;
-
-// insert load into ID stage when the memory buffer is full and loaded data  can't 
-// be inserted into EXE stage
-assign insert_load_in_id = pending_load_arrived 
-                             & from_mem_i.buf_full 
-                             & ~insert_load_in_exe
-                             & ~stall;
 
 // "depend_stall" stalls ID stage and inserts nop into EXE stage.
 // This signal is asserted either when a dependedncy is detected or 
@@ -546,6 +532,40 @@ scoreboard
   ,.dependency_o (dependency)
   );
 
+//+----------------------------------------------
+//|
+//|           Load write-back logic
+//|
+//+----------------------------------------------
+
+assign pending_load_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id != mem.rd_addr);
+assign current_load_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id == mem.rd_addr);
+
+// Control signals to insert pending loads into the pipeline
+assign insert_load_in_wb  = pending_load_arrived
+                              & ~wb.op_writes_rf
+                              & ~stall
+                              & 1'b0; // TODO: disabled this temperorily
+
+assign insert_load_in_mem = pending_load_arrived
+                              & ~mem.decode.op_writes_rf
+                              & ~insert_load_in_wb
+                              & ~stall;
+
+assign insert_load_in_exe = pending_load_arrived
+                              & ~exe.decode.op_writes_rf
+                              & ~insert_load_in_mem
+                              & ~insert_load_in_wb
+                              & ~stall;
+
+// Load can be isereted in ID stage only with an extra NOP. Hence we use ID stage only 
+// when the input buffer is full
+assign insert_load_in_id  = pending_load_arrived 
+                              & from_mem_i.buf_full 
+                              & ~insert_load_in_exe
+                              & ~insert_load_in_mem
+                              & ~insert_load_in_wb
+                              & ~stall;
 
 //+----------------------------------------------
 //|
@@ -676,7 +696,13 @@ assign valid_to_mem_c = (exe.decode.is_mem_op & (~wait_mem_rsp) & (~non_ld_st_st
 //We should always accept the returned data even there is a non memory stall
 //assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
 assign yumi_to_mem_c  = from_mem_i.valid 
-                          & (stall | insert_load_in_id | insert_load_in_exe | current_load_arrived);
+                          & (stall 
+                              | current_load_arrived
+                              | insert_load_in_id
+                              | insert_load_in_exe
+                              | insert_load_in_mem
+                              | insert_load_in_wb
+                            );
 
 // RISC-V edit: add reservation
 //lr.acq will stall until the reservation is cleared;
@@ -1002,7 +1028,7 @@ begin
     end
     // During a stall buffer the loaded data if the corresponding instruction is still
     // in the MEM stage.
-    else if( stall & yumi_to_mem_c & (from_mem_i.load_info.reg_id == mem.rd_addr))
+    else if( stall & current_load_arrived )
     begin
         is_load_buffer_valid <= 1'b1;
         load_buffer_info     <= from_mem_i.read_data;
@@ -1042,18 +1068,21 @@ load_packer buf_load_packer
   ,.load_data_o     (buf_loaded_data)
   );
 
-wire [RV32_reg_data_width_gp-1:0] rf_data = mem.decode.is_load_op 
-                                              ? (is_load_buffer_valid ? buf_loaded_data : mem_loaded_data)
-                                              : mem.exe_result;
-
-// To supports non-blocking loads, load instr writes to 
-// RF if only when the data arrives in the same cycle. If the
-// data arrives later, it is inserted as an extra OR instr 
-// into EXE stage.
-logic op_writes_rf_wb;
-assign op_writes_rf_to_wb = mem.decode.is_load_op
-                              ? (is_load_buffer_valid | current_load_arrived)
-                              : mem.decode.op_writes_rf;
+logic [RV32_reg_data_width_gp-1:0] rf_data;
+logic                              op_writes_rf_to_wb;
+always_comb
+begin
+  if(insert_load_in_mem) begin
+    rf_data            = mem_loaded_data;
+    op_writes_rf_to_wb = 1'b1;
+  end else if(mem.decode.is_load_op) begin
+    rf_data            = is_load_buffer_valid ? buf_loaded_data : mem_loaded_data;
+    op_writes_rf_to_wb = is_load_buffer_valid | current_load_arrived;
+  end else begin
+    rf_data            = mem.exe_result;
+    op_writes_rf_to_wb = mem.decode.op_writes_rf;
+  end
+end
 
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
@@ -1221,7 +1250,7 @@ if(debug_p)
                  ,exe.rs1_val
                  ,exe.rs2_val
                 );
-        $display(" MEM:  rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x mem_v:%b mem_data:%x reg_id:%x"
+        $display(" MEM:  rd_addr:%x wrf:%b ld:%b st:%b mem:%b byte:%b hex:%b branch:%b jmp:%b reads_rf1:%b reads_rf2:%b auipc:%b alu:%x mem_v:%b mem_data:%x reg_id:%x yumi_out:%v"
 //                 ,mem.pc_plus4
                  ,mem.rd_addr
                  ,mem.decode.op_writes_rf
@@ -1239,6 +1268,7 @@ if(debug_p)
                  ,from_mem_i.valid
                  ,from_mem_i.read_data
                  ,from_mem_i.load_info.reg_id
+                 ,to_mem_o.yumi
                 );
 
         $display(" WB: wrf:%b rd_addr:%x, rf_data:%x"
