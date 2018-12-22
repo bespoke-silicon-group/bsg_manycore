@@ -4,7 +4,7 @@
 .text
 
 // loop index
-li ra, 10;
+li ra, 1;
 
 sum:
     bsg_asm_remote_store(0, 0, 0x1000, 1);

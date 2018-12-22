@@ -224,7 +224,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       ,.x_cord_width_p   (x_cord_width_p)
       ,.y_cord_width_p   (y_cord_width_p)
 //    ,.debug_p          (debug_p)
-//    ,.debug_p(1)
+      ,.debug_p(0)
      ) vanilla_core
      ( .clk_i          (clk_i)
       ,.reset_i        (reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state
@@ -286,7 +286,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   //the core_to_mem yumi signal is not used.
 
   //The data can either from local memory or from the network.
-  assign mem_to_core.buf_full        = 1'b0;
+  assign mem_to_core.buf_full        = 1'b1;
   assign mem_to_core.valid           = core_mem_rv | returned_v_r_lo  ;
   assign mem_to_core.read_data       = core_mem_rv ? core_mem_rdata
                                                    : returned_data_r_lo ;

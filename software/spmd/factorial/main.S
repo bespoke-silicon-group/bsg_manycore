@@ -6,7 +6,7 @@
 
 .text
 
-li gp, 100; // repeat the program to reduce cache miss effect
+li gp, 1; // repeat the program to reduce cache miss effect
 
 fact:
     li ra, N;

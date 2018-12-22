@@ -161,7 +161,7 @@ logic [3:0]                        mask;
 mem_payload_u mem_payload;
 
 // Data memory handshake logic
-logic valid_to_mem_c, yumi_to_mem_c;
+logic valid_to_mem_c;
 
 // RISC-V edit: support for byte and hex stores
 always_comb
@@ -412,7 +412,7 @@ cl_decode cl_decode_0
 
 // Register file logic
 logic [RV32_reg_data_width_gp-1:0] rf_rs1_val, rf_rs2_val, rf_rs1_out, rf_rs2_out, rf_wd;
-logic [RV32_reg_addr_width_gp-1:0] rf_wa;
+logic [RV32_reg_addr_width_gp-1:0] rf_wa, rf_rs1_addr, rf_rs2_addr;
 logic                              rf_wen, rf_cen;
 
 logic [RV32_reg_data_width_gp-1:0] mem_loaded_data;
@@ -435,15 +435,8 @@ begin
     rf_wa  = net_packet_r.header.addr[RV32_reg_addr_width_gp-1:0];
     rf_wd  = net_packet_r.data;
 
-  // In case of a stall, directly write back mem data to the regfile if there is
-  // no WAW dependency.
-  // 
-  // Comparing the WB stage destination address to detect WAW dependency. Since 
-  // the scoreboard wouldn't have allowed an instruction to reach WB stage if
-  // there was load pending to a register, WAW dependecy means that load data 
-  // belongs to the instruction that is still in MEM stage. Hence the loaded can be
-  // buffered and sent to WB stage like a usual load.
-  end else if(stall & yumi_to_mem_c & (from_mem_i.load_info.reg_id != wb.rd_addr)) begin
+  // In case of a stall, directly write back mem data to the regfile
+  end else if(stall & from_mem_i.valid & (from_mem_i.load_info.reg_id != mem.rd_addr)) begin
     rf_wen = 1'b1;
     rf_wa  = from_mem_i.load_info.reg_id;
     rf_wd  = mem_loaded_data;
@@ -454,12 +447,27 @@ begin
   end
 end
 
+// During a stall or depend_stall, regfile contents may be updated
+// by write-backs for pending loads. Hence we keep accessing rs1 & rs2
+// in ID to keep them up-to-date.
+always_comb
+begin
+  if(stall | depend_stall) begin
+    rf_rs1_addr <= id.instruction.rs1;
+    rf_rs2_addr <= id.instruction.rs2;
+  end else begin
+    rf_rs1_addr <= instruction.rs1;
+    rf_rs2_addr <= instruction.rs2;
+  end
+end
+
 // Register file chip enable signal
 // FPU depend stall will not affect register file write back
 // MEM load depend stall will not affect register file write back
 // assign rf_cen = (~ stall ) | (net_reg_write_cmd);
- assign rf_cen= ~(stall | depend_stall );
-//   assign rf_cen=  ~stall ;
+//   assign rf_cen= ~(stall | depend_stall );
+//  assign rf_cen=  ~stall ;
+assign rf_cen = 1'b1;
 
 // Instantiate the general purpose register file
 // This register file is write through, which means when read/write
@@ -467,16 +475,16 @@ end
 rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
                        ,.els_p                  (32)
                       ) rf_0
-  ( .clk_i   (clk_i)
-   ,.reset_i (reset_i)
+  ( .clk_i     (clk_i)
+   ,.reset_i   (reset_i)
    ,.w_v_i     (rf_wen)
    ,.w_addr_i  (rf_wa)
    ,.w_data_i  (rf_wd)
    ,.r0_v_i    (rf_cen)
-   ,.r0_addr_i (instruction.rs1)
+   ,.r0_addr_i (rf_rs1_addr)
    ,.r0_data_o (rf_rs1_val)
    ,.r1_v_i    (rf_cen)
-   ,.r1_addr_i (instruction.rs2)
+   ,.r1_addr_i (rf_rs2_addr)
    ,.r1_data_o (rf_rs2_val)
   );
 
@@ -492,22 +500,34 @@ rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
 // Any instruction depending on that register is stalled in ID
 // stage until the loaded value is written back to RF.
 
-logic record_load, dependency, pending_load_data_arrived, current_load_data_arrived;
+logic record_load, dependency, insert_load_in_id, insert_load_in_exe;
 
 // Record a load in the scoreboard when a load instruction is moved to exe stage.
 assign record_load  = id.decode.is_load_op & id.decode.op_writes_rf
                         & ~(flush | net_pc_write_cmd_idle | stall | depend_stall);
 
-// Signals to detect the data arrival
-assign pending_load_data_arrived = yumi_to_mem_c & (from_mem_i.load_info.reg_id != mem.rd_addr);
-assign current_load_data_arrived = yumi_to_mem_c & (from_mem_i.load_info.reg_id == mem.rd_addr);
+
+assign pending_load_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id != mem.rd_addr);
+assign current_load_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id == mem.rd_addr);
+
+// insert pending load into EXE stage if the instruction 
+// in EXE doesn't write to RF
+assign insert_load_in_exe = pending_load_arrived
+                              & ~exe.decode.op_writes_rf
+                              & ~stall;
+
+// insert load into ID stage when the memory buffer is full and loaded data  can't 
+// be inserted into EXE stage
+assign insert_load_in_id = pending_load_arrived 
+                             & from_mem_i.buf_full 
+                             & ~insert_load_in_exe
+                             & ~stall;
 
 // "depend_stall" stalls ID stage and inserts nop into EXE stage.
 // This signal is asserted either when a dependedncy is detected or 
-// when the data for a pending load instruction has arrived. Note that
-// this won't stall the pipeline if the returned data is for a load 
-// instruction that is still in the MEM stage.
-assign depend_stall = (dependency | pending_load_data_arrived);
+// when the data for a pending load instruction has to be inserted
+// into ID stage as an OR instruction
+assign depend_stall = (dependency | insert_load_in_id);
 
 scoreboard
  #(.els_p (32)
@@ -568,22 +588,22 @@ imul_idiv_iterative  md_0
 logic [RV32_reg_data_width_gp-1:0] rs1_forward_val, rs2_forward_val;
 
 //We only forword the non loaded data in mem stage.
-//assign  rs1_forward_val  = rs1_in_mem ? mem.alu_result : wb.rf_data;
+//assign  rs1_forward_val  = rs1_in_mem ? mem.exe_result : wb.rf_data;
 bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.els_p      ( 2                      )
           ) rs1_forward_mux
-          ( .data_i     ( { mem.alu_result, wb.rf_data  }   )
+          ( .data_i     ( { mem.exe_result, wb.rf_data  }   )
            ,.sel_i      ( exe.rs1_in_mem                    )
            ,.data_o     ( rs1_forward_val                   )
           );
 
 wire  rs1_is_forward   = (exe.rs1_in_mem | exe.rs1_in_wb);
 
-//assign  rs2_forward_val  = rs2_in_mem ? mem.alu_result : wb.rf_data;
+//assign  rs2_forward_val  = rs2_in_mem ? mem.exe_result : wb.rf_data;
 bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.els_p      ( 2                      )
           ) rs2_forward_mux
-          ( .data_i     ( { mem.alu_result, wb.rf_data  }   )
+          ( .data_i     ( { mem.exe_result, wb.rf_data  }   )
            ,.sel_i      ( exe.rs2_in_mem                    )
            ,.data_o     ( rs2_forward_val                   )
           );
@@ -655,7 +675,8 @@ assign valid_to_mem_c = (exe.decode.is_mem_op & (~wait_mem_rsp) & (~non_ld_st_st
 
 //We should always accept the returned data even there is a non memory stall
 //assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
-assign yumi_to_mem_c  = from_mem_i.valid ;
+assign yumi_to_mem_c  = from_mem_i.valid 
+                          & (stall | insert_load_in_id | insert_load_in_exe | current_load_arrived);
 
 // RISC-V edit: add reservation
 //lr.acq will stall until the reservation is cleared;
@@ -853,8 +874,8 @@ begin
          exe <= '0; //insert a bubble to the pipeline
 
          // hack to write back pending load by inserting an OR
-         // instruction into EXE stage
-         if(pending_load_data_arrived) begin
+         // instruction
+         if(insert_load_in_id) begin
            exe.instruction         <= `RV32_OR;
            exe.instruction.rs1     <= '0;
            exe.instruction.rs2     <= '0;
@@ -894,6 +915,9 @@ end
 //+----------------------------------------------
 
 logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
+logic [RV32_reg_data_width_gp-1:0] exe_result;
+logic [RV32_reg_addr_width_gp-1:0] exe_rd_addr;
+logic                              exe_op_writes_rf;
 
 `ifdef bsg_FPU
 //The combined decode signal to MEM stages.
@@ -914,35 +938,51 @@ assign fiu_alu_result = alu_result;
 
 `endif
 
+// Loded data is inserted into the exe stage along
+// with an instruction that doesn't write to RF
+always_comb
+begin
+  if (insert_load_in_exe) begin
+    exe_result         = mem_loaded_data;
+    exe_rd_addr        = from_mem_i.load_info.reg_id;
+    exe_op_writes_rf   = 1'b1;
+  end else begin
+    exe_result         = fiu_alu_result;
+    exe_rd_addr        = exe.instruction.rd;
+    exe_op_writes_rf   = exe.decode.op_writes_rf;
+  end
+end
 
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
     if (reset_i | net_pc_write_cmd_idle)
       begin
-   // synopsys translate_off
-         debug_mem <= squashed_lp;
-   // synopsys translate_on
-         mem       <= '0;
+        // synopsys translate_off
+        debug_mem <= squashed_lp;
+        // synopsys translate_on
+        mem       <= '0;
       end
     else if (~stall)
       begin
-   // synopsys translate_off
-         debug_mem <= debug_exe;
-   // synopsys translate_on
+        // synopsys translate_off
+        debug_mem <= debug_exe;
+        // synopsys translate_on
 
         mem <= '{
-            rd_addr    : exe.instruction.rd,
+            rd_addr       : exe_rd_addr,
 `ifdef bsg_FPU
-            decode     : fpi_alu_decode,
+            decode        : fpi_alu_decode,
 `else
-            decode     : exe.decode,
+            decode        : exe.decode,
 `endif
-            alu_result : fiu_alu_result,
+            exe_result    : exe_result,
 
-            mem_addr_send       : mem_addr_send   ,
-            icache_miss         : exe.icache_miss
+            mem_addr_send : mem_addr_send,
+            icache_miss   : exe.icache_miss
         };
+
+        mem.decode.op_writes_rf <= exe_op_writes_rf;
       end
 end
 
@@ -960,11 +1000,9 @@ begin
         is_load_buffer_valid <= 'b0;
         load_buffer_info     <= 'b0;
     end
-    // Loads arriving during a stall gets directly written to the regfile if the 
-    // destination register is not same as that of the instruction in WB stage. If 
-    // arrived load and WB are going to write to the same register, we buffer the 
-    // load to satify WAW dependency.
-    else if( stall & yumi_to_mem_c & (from_mem_i.load_info.reg_id == wb.rd_addr))
+    // During a stall buffer the loaded data if the corresponding instruction is still
+    // in the MEM stage.
+    else if( stall & yumi_to_mem_c & (from_mem_i.load_info.reg_id == mem.rd_addr))
     begin
         is_load_buffer_valid <= 1'b1;
         load_buffer_info     <= from_mem_i.read_data;
@@ -1006,7 +1044,7 @@ load_packer buf_load_packer
 
 wire [RV32_reg_data_width_gp-1:0] rf_data = mem.decode.is_load_op 
                                               ? (is_load_buffer_valid ? buf_loaded_data : mem_loaded_data)
-                                              : mem.alu_result;
+                                              : mem.exe_result;
 
 // To supports non-blocking loads, load instr writes to 
 // RF if only when the data arrives in the same cycle. If the
@@ -1014,7 +1052,7 @@ wire [RV32_reg_data_width_gp-1:0] rf_data = mem.decode.is_load_op
 // into EXE stage.
 logic op_writes_rf_wb;
 assign op_writes_rf_to_wb = mem.decode.is_load_op
-                              ? (is_load_buffer_valid | current_load_data_arrived)
+                              ? (is_load_buffer_valid | current_load_arrived)
                               : mem.decode.op_writes_rf;
 
 // Synchronous stage shift
@@ -1119,8 +1157,8 @@ if (trace_lp)
 if(debug_p)
   always_ff @(negedge clk_i)
   begin
-    if ((// (my_x_i == 0 && my_y_i == 0)
-         (my_x_i == 1 && my_y_i == 0)
+    if (((my_x_i == 0 && my_y_i == 0)
+         // (my_x_i == 1 && my_y_i == 0)
         ) & (state_r==RUN))
       begin
         $display("\n%0dns (%d,%d):", $time, my_x_i, my_y_i);
@@ -1197,7 +1235,7 @@ if(debug_p)
                  ,mem.decode.op_reads_rf1
                  ,mem.decode.op_reads_rf2
                  ,mem.decode.op_is_auipc
-                 ,mem.alu_result
+                 ,mem.exe_result
                  ,from_mem_i.valid
                  ,from_mem_i.read_data
                  ,from_mem_i.load_info.reg_id
