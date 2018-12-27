@@ -219,12 +219,11 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      (
        .icache_tag_width_p (icache_tag_width_p) 
       ,.icache_addr_width_p(icache_addr_width_lp)
-      ,.gw_ID_p          (0)
-      ,.ring_ID_p        (0)
-      ,.x_cord_width_p   (x_cord_width_p)
-      ,.y_cord_width_p   (y_cord_width_p)
-//    ,.debug_p          (debug_p)
-      ,.debug_p(0)
+      ,.gw_ID_p            (0)
+      ,.ring_ID_p          (0)
+      ,.x_cord_width_p     (x_cord_width_p)
+      ,.y_cord_width_p     (y_cord_width_p)
+      ,.debug_p            (0)
      ) vanilla_core
      ( .clk_i          (clk_i)
       ,.reset_i        (reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state
