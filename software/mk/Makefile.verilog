@@ -58,5 +58,5 @@ endif
     	$(addprefix $(INC_OP), $(DESIGN_INCS) )\
     	$(DESIGN_HDRS) $(DESIGN_SRCS)   \
     	$(TOP_LEVEL)
-	./simv $(VCS_RUN_OP)
+	./simv $(VCS_RUN_OP) | tee run.log
 	#./simv  +vcs+stop+600000

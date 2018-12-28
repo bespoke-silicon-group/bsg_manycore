@@ -1188,8 +1188,11 @@ if(debug_p | debug_lp) begin
   always_ff @(negedge clk_i)
   begin
     if(state_r==RUN) begin
-      $display("\n%0dns (%d,%d):", $time, my_x_i, my_y_i);
-      $display("  IF: pc=%0x instr=%0x rd=%0d rs1=%0d rs2=%0d state=%b net_pkt={v%0x_a%0x_d%0x}"
+      $display("X%d_Y%d.pelog ", my_x_i, my_y_i);
+      $display("X%d_Y%d.pelog %0dns:", my_x_i, my_y_i, $time);
+      $display("X%d_Y%d.pelog   IF: pc=%0x instr=%0x rd=%0d rs1=%0d rs2=%0d state=%b net_pkt={v%0x_a%0x_d%0x}"
+               ,my_x_i
+               ,my_y_i
                ,(pc_r<<2)
                ,instruction
                ,instruction.rd
@@ -1200,7 +1203,9 @@ if(debug_p | debug_lp) begin
                ,net_packet_r.header.addr
                ,net_packet_r.data
               );
-      $display("  ID: pc=%0x instr=%0x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b dep=%b score=%b"
+      $display("X%d_Y%d.pelog   ID: pc=%0x instr=%0x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b dep=%b score=%b"
+               ,my_x_i
+               ,my_y_i
                ,(id.pc_plus4-4)
                ,id.instruction
                ,id.instruction.rd
@@ -1221,7 +1226,9 @@ if(debug_p | debug_lp) begin
                ,dependency
                ,record_load
               );
-      $display(" EXE: pc=%0x instr=%0x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b r1_val=%0x r2_val=%0x"
+      $display("X%d_Y%d.pelog  EXE: pc=%0x instr=%0x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b r1_val=%0x r2_val=%0x"
+               ,my_x_i
+               ,my_y_i
                ,(exe.pc_plus4-4)
                ,exe.instruction
                ,exe.instruction.rd
@@ -1242,7 +1249,9 @@ if(debug_p | debug_lp) begin
                ,exe.rs1_val
                ,exe.rs2_val
               );
-      $display(" MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b exe_result=%0x mem_v=%b mem_data=%x reg_id=%0x yumi_out=%b"
+      $display("X%d_Y%d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b exe_result=%0x mem_v=%b mem_data=%x reg_id=%0x yumi_out=%b"
+               ,my_x_i
+               ,my_y_i
                ,mem.rd_addr
                ,mem.decode.op_writes_rf
                ,mem.decode.is_load_op
@@ -1261,12 +1270,16 @@ if(debug_p | debug_lp) begin
                ,from_mem_i.load_info.reg_id
                ,to_mem_o.yumi
               );
-      $display("  WB: wrf=%b rd_addr=%0d, rf_data=%0x"
+      $display("X%d_Y%d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x"
+               ,my_x_i
+               ,my_y_i
                ,wb.op_writes_rf
                ,wb.rd_addr
                ,wb.rf_data
               );
-      $display("MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b reservation=%b valid_to_mem=%b alu_result=%x st_data=%0x mask=%b jump_now=%b flush=%b"
+      $display("X%d_Y%d.pelog MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b reservation=%b valid_to_mem=%b alu_result=%x st_data=%0x mask=%b jump_now=%b flush=%b"
+               ,my_x_i
+               ,my_y_i
                ,stall
                ,stall_mem
                ,stall_non_mem
@@ -1280,7 +1293,9 @@ if(debug_p | debug_lp) begin
                ,jump_now
                ,flush
               );
-      $display("  MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x"
+      $display("X%d_Y%d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x"
+               ,my_x_i
+               ,my_y_i
                ,stall_md
                ,md_valid
                ,md_resp_valid
