@@ -687,8 +687,10 @@ cl_state_machine state_machine
 //|        DATA MEMORY HANDSHAKE SIGNALS
 //|
 //+----------------------------------------------
-// we are waiting memory response
-wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) ;     
+// we are waiting memory response in case of a cache miss
+// normal loads are non-blocking and hence execution would
+// continue even without the response
+wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss;     
 // don't present the request if we are stalling because of non-load/store reason
 wire non_ld_st_stall  = stall_non_mem | stall_lrw                 ;     
 //icache miss is also decoded as mem op
