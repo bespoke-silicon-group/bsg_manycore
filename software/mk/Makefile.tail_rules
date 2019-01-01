@@ -4,8 +4,8 @@
 dve:
 	$(VCS_BIN)/dve -full64 -vpd vcdplus.vpd &
 
-%.pelog:
-	cat run.log | grep '^$@' | sed 's/$@ //' > $@
+%.pelog: pe.log
+	cat pe.log | grep '^$@' | sed 's/$@ //' > $@
 
 urg:
 	$(VCS_BIN)/urg -full64 -report coverage/ -format both -dir simv.vdb/ 
