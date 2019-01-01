@@ -15,7 +15,12 @@ module cl_decode
 logic reads_crf;
 
 // Op Writes RF -- register file write operation
-always_comb
+always_comb 
+begin
+  if(instruction_i.rd == 0) begin
+    // reg 0 is always 0
+    decode_o.op_writes_rf = 1'b0;
+  end else begin
     unique casez (instruction_i.op)
         `RV32_LUI_OP, `RV32_AUIPC_OP, `RV32_JAL_OP, `RV32_JALR_OP,
         `RV32_LOAD,   `RV32_OP,       `RV32_OP_IMM, `RV32_AMO:
@@ -23,6 +28,8 @@ always_comb
         default:
             decode_o.op_writes_rf = 1'b0;
     endcase
+  end
+end
 
 // Is Mem Op -- data memory operation
 always_comb

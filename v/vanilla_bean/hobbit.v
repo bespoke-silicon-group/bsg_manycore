@@ -109,6 +109,7 @@ assign net_pc_write_cmd_idle = net_pc_write_cmd & (state_r == IDLE);
 logic stall, stall_non_mem, stall_mem, stall_lrw, stall_md;
 logic stall_fence;
 logic depend_stall;
+logic stall_wb;
 
 //We have to buffer the returned data from memory
 //if there is a non-memory stall at current cycle.
@@ -116,9 +117,13 @@ logic                               is_load_buffer_valid;
 logic [RV32_reg_data_width_gp-1:0]  load_buffer_info;
 
 //the memory valid signal may come from memory or the buffer register
-logic                               data_mem_valid;
+logic data_mem_valid;
 
 logic yumi_to_mem_c;
+
+// Signals for pending load write-back
+logic pending_load_arrived;
+logic insert_load_in_exe, insert_load_in_mem, insert_load_in_wb;
 
 // Decoded control signals logic
 decode_s decode;
@@ -136,11 +141,21 @@ assign stall_non_mem = (net_imem_write_cmd)
 // stall due to fence instruction
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 
+// Load write back stall: stall to write back loaded data 
+// if the input buffer is full and it can't be inserted in any
+// stage
+assign stall_load_wb = pending_load_arrived 
+                         & from_mem_i.buf_full
+                         & wb.op_writes_rf
+                         & mem.decode.op_writes_rf
+                         & exe.decode.op_writes_rf;
+
 // stall due to data memory access
-assign stall_mem =  ( exe.decode.is_mem_op & (~from_mem_i.yumi))
-                   | (mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss)
-                   | stall_fence
-                   | stall_lrw;
+assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
+                     | (mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss)
+                     | stall_fence
+                     | stall_lrw
+                     | stall_load_wb;
 
 // Stall if LD/ST still active; or in non-RUN state
 assign stall = (stall_non_mem | stall_mem);
@@ -437,7 +452,7 @@ begin
     rf_wd  = net_packet_r.data;
 
   // In case of a stall, directly write back mem data to the regfile
-  end else if(stall & from_mem_i.valid & (from_mem_i.load_info.reg_id != mem.rd_addr)) begin
+  end else if((stall & pending_load_arrived) | insert_load_in_wb) begin
     rf_wen = 1'b1;
     rf_wa  = from_mem_i.load_info.reg_id;
     rf_wd  = mem_loaded_data;
@@ -502,8 +517,6 @@ rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
 // stage until the loaded value is written back to RF.
 
 logic record_load, dependency;
-logic insert_load_in_id, insert_load_in_exe, insert_load_in_mem, insert_load_in_wb;
-
 
 // Record a load in the scoreboard when a load instruction is moved to exe stage.
 assign record_load  = id.decode.is_load_op & id.decode.op_writes_rf
@@ -511,10 +524,7 @@ assign record_load  = id.decode.is_load_op & id.decode.op_writes_rf
 
 
 // "depend_stall" stalls ID stage and inserts nop into EXE stage.
-// This signal is asserted either when a dependedncy is detected or 
-// when the data for a pending load instruction has to be inserted
-// into ID stage as an OR instruction
-assign depend_stall = (dependency | insert_load_in_id);
+assign depend_stall = dependency;
 
 scoreboard
  #(.els_p (32)
@@ -545,8 +555,7 @@ assign current_load_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id ==
 // Control signals to insert pending loads into the pipeline
 assign insert_load_in_wb  = pending_load_arrived
                               & ~wb.op_writes_rf
-                              & ~stall
-                              & 1'b0; // TODO: disabled this temperorily
+                              & ~stall;
 
 assign insert_load_in_mem = pending_load_arrived
                               & ~mem.decode.op_writes_rf
@@ -555,15 +564,6 @@ assign insert_load_in_mem = pending_load_arrived
 
 assign insert_load_in_exe = pending_load_arrived
                               & ~exe.decode.op_writes_rf
-                              & ~insert_load_in_mem
-                              & ~insert_load_in_wb
-                              & ~stall;
-
-// Load can be isereted in ID stage only with an extra NOP. Hence we use ID stage only 
-// when the input buffer is full
-assign insert_load_in_id  = pending_load_arrived 
-                              & from_mem_i.buf_full 
-                              & ~insert_load_in_exe
                               & ~insert_load_in_mem
                               & ~insert_load_in_wb
                               & ~stall;
@@ -692,14 +692,13 @@ wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) ;
 // don't present the request if we are stalling because of non-load/store reason
 wire non_ld_st_stall  = stall_non_mem | stall_lrw                 ;     
 //icache miss is also decoded as mem op
-assign valid_to_mem_c = (exe.decode.is_mem_op & (~wait_mem_rsp) & (~non_ld_st_stall) );
+assign valid_to_mem_c = (exe.decode.is_mem_op & (~wait_mem_rsp) & (~non_ld_st_stall) & (~stall_load_wb));
 
 //We should always accept the returned data even there is a non memory stall
 //assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
 assign yumi_to_mem_c  = from_mem_i.valid 
                           & (stall 
                               | current_load_arrived
-                              | insert_load_in_id
                               | insert_load_in_exe
                               | insert_load_in_mem
                               | insert_load_in_wb
@@ -899,18 +898,6 @@ begin
          // synopsys translate_on
 
          exe <= '0; //insert a bubble to the pipeline
-
-         // hack to write back pending load by inserting an OR
-         // instruction
-         if(insert_load_in_id) begin
-           exe.instruction         <= `RV32_OR;
-           exe.instruction.rs1     <= '0;
-           exe.instruction.rs2     <= '0;
-           exe.instruction.rd      <= from_mem_i.load_info.reg_id;
-           exe.decode.op_writes_rf <= 1'b1;
-           exe.rs1_val             <= mem_loaded_data;
-           exe.rs2_val             <= '0;
-         end
       end
     else if (~ stall)
       begin
@@ -945,6 +932,7 @@ logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
 logic [RV32_reg_data_width_gp-1:0] exe_result;
 logic [RV32_reg_addr_width_gp-1:0] exe_rd_addr;
 logic                              exe_op_writes_rf;
+logic                              remote_load_in_exe;
 
 `ifdef bsg_FPU
 //The combined decode signal to MEM stages.
@@ -965,6 +953,8 @@ assign fiu_alu_result = alu_result;
 
 `endif
 
+assign remote_load_in_exe = (exe.decode.is_load_op & mem_addr_send[RV32_reg_data_width_gp-1]);
+
 // Loded data is inserted into the exe stage along
 // with an instruction that doesn't write to RF
 always_comb
@@ -976,7 +966,8 @@ begin
   end else begin
     exe_result         = fiu_alu_result;
     exe_rd_addr        = exe.instruction.rd;
-    exe_op_writes_rf   = exe.decode.op_writes_rf;
+    exe_op_writes_rf   = exe.decode.op_writes_rf
+                           & ~remote_load_in_exe;
   end
 end
 
@@ -1184,123 +1175,187 @@ if (trace_lp)
          end
        end
 
+// file handle for processor execution log
+integer pelog;
+
 if(debug_p | debug_lp) begin
-  always_ff @(negedge clk_i)
-  begin
-    if(state_r==RUN) begin
-      $display("X%d_Y%d.pelog ", my_x_i, my_y_i);
-      $display("X%d_Y%d.pelog %0dns:", my_x_i, my_y_i, $time);
-      $display("X%d_Y%d.pelog   IF: pc=%0x instr=%0x rd=%0d rs1=%0d rs2=%0d state=%b net_pkt={v%0x_a%0x_d%0x}"
-               ,my_x_i
-               ,my_y_i
-               ,(pc_r<<2)
-               ,instruction
-               ,instruction.rd
-               ,instruction.rs1
-               ,instruction.rs2
-               ,state_r
-               ,net_packet_r.valid
-               ,net_packet_r.header.addr
-               ,net_packet_r.data
-              );
-      $display("X%d_Y%d.pelog   ID: pc=%0x instr=%0x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b dep=%b score=%b"
-               ,my_x_i
-               ,my_y_i
-               ,(id.pc_plus4-4)
-               ,id.instruction
-               ,id.instruction.rd
-               ,id.instruction.rs1
-               ,id.instruction.rs2
-               ,id.pc_jump_addr
-               ,id.decode.op_writes_rf
-               ,id.decode.is_load_op
-               ,id.decode.is_store_op
-               ,id.decode.is_mem_op
-               ,id.decode.is_byte_op
-               ,id.decode.is_hex_op
-               ,id.decode.is_branch_op
-               ,id.decode.is_jump_op
-               ,id.decode.op_reads_rf1
-               ,id.decode.op_reads_rf2
-               ,id.decode.op_is_auipc
-               ,dependency
-               ,record_load
-              );
-      $display("X%d_Y%d.pelog  EXE: pc=%0x instr=%0x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b r1_val=%0x r2_val=%0x"
-               ,my_x_i
-               ,my_y_i
-               ,(exe.pc_plus4-4)
-               ,exe.instruction
-               ,exe.instruction.rd
-               ,exe.instruction.rs1
-               ,exe.instruction.rs2
-               ,exe.pc_jump_addr
-               ,exe.decode.op_writes_rf
-               ,exe.decode.is_load_op
-               ,exe.decode.is_store_op
-               ,exe.decode.is_mem_op
-               ,exe.decode.is_byte_op
-               ,exe.decode.is_hex_op
-               ,exe.decode.is_branch_op
-               ,exe.decode.is_jump_op
-               ,exe.decode.op_reads_rf1
-               ,exe.decode.op_reads_rf2
-               ,exe.decode.op_is_auipc
-               ,exe.rs1_val
-               ,exe.rs2_val
-              );
-      $display("X%d_Y%d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b exe_result=%0x mem_v=%b mem_data=%x reg_id=%0x yumi_out=%b"
-               ,my_x_i
-               ,my_y_i
-               ,mem.rd_addr
-               ,mem.decode.op_writes_rf
-               ,mem.decode.is_load_op
-               ,mem.decode.is_store_op
-               ,mem.decode.is_mem_op
-               ,mem.decode.is_byte_op
-               ,mem.decode.is_hex_op
-               ,mem.decode.is_branch_op
-               ,mem.decode.is_jump_op
-               ,mem.decode.op_reads_rf1
-               ,mem.decode.op_reads_rf2
-               ,mem.decode.op_is_auipc
-               ,mem.exe_result
-               ,from_mem_i.valid
-               ,from_mem_i.read_data
-               ,from_mem_i.load_info.reg_id
-               ,to_mem_o.yumi
-              );
-      $display("X%d_Y%d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x"
-               ,my_x_i
-               ,my_y_i
-               ,wb.op_writes_rf
-               ,wb.rd_addr
-               ,wb.rf_data
-              );
-      $display("X%d_Y%d.pelog MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b reservation=%b valid_to_mem=%b alu_result=%x st_data=%0x mask=%b jump_now=%b flush=%b"
-               ,my_x_i
-               ,my_y_i
-               ,stall
-               ,stall_mem
-               ,stall_non_mem
-               ,stall_lrw
-               ,depend_stall
-               ,reservation_i
-               ,valid_to_mem_c
-               ,alu_result
-               ,store_data
-               ,mask
-               ,jump_now
-               ,flush
-              );
-      $display("X%d_Y%d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x"
-               ,my_x_i
-               ,my_y_i
-               ,stall_md
-               ,md_valid
-               ,md_resp_valid
-               ,md_result
-              );
+  initial begin
+    // open the file and clear it
+    pelog = $fopen("pe.log", "w");
+    $fwrite(pelog, "");
+    $fclose(pelog);
+
+    // append the log at every negedge
+    forever begin
+      @(negedge clk_i)
+      if(state_r==RUN) begin
+        pelog = $fopen("pe.log", "a");
+        $fwrite(pelog, "X%d_Y%d.pelog \n", my_x_i, my_y_i);
+        $fwrite(pelog, "X%d_Y%d.pelog %0dns:\n", my_x_i, my_y_i, $time);
+
+        // Fetch
+        $fwrite(pelog, "X%d_Y%d.pelog   IF: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d state=%b"
+                 ,my_x_i
+                 ,my_y_i
+                 ,{8'h00, (pc_r<<2)}
+                 ,instruction
+                 ,instruction.rd
+                 ,instruction.rs1
+                 ,instruction.rs2
+                 ,state_r
+                );
+        $fwrite(pelog, " net_pkt={v%0x_a%0x_d%0x} icm=%b\n"
+                 ,net_packet_r.valid
+                 ,net_packet_r.header.addr
+                 ,net_packet_r.data
+                 ,icache_miss_lo
+                );
+
+        // Decode
+        $fwrite(pelog, "X%d_Y%d.pelog   ID: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b"
+                 ,my_x_i
+                 ,my_y_i
+                 ,(id.pc_plus4-4)
+                 ,id.instruction
+                 ,id.instruction.rd
+                 ,id.instruction.rs1
+                 ,id.instruction.rs2
+                 ,id.pc_jump_addr
+                 ,id.decode.op_writes_rf
+                 ,id.decode.is_load_op
+                 ,id.decode.is_store_op
+                );
+        $fwrite(pelog, " mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b dep=%b score=%b icm=%b\n" 
+                 ,id.decode.is_mem_op
+                 ,id.decode.is_byte_op
+                 ,id.decode.is_hex_op
+                 ,id.decode.is_branch_op
+                 ,id.decode.is_jump_op
+                 ,id.decode.op_reads_rf1
+                 ,id.decode.op_reads_rf2
+                 ,id.decode.op_is_auipc
+                 ,dependency
+                 ,record_load
+                 ,id.icache_miss
+                );
+
+        // Execute
+        $fwrite(pelog, "X%d_Y%d.pelog  EXE: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b"
+                 ,my_x_i
+                 ,my_y_i
+                 ,(exe.pc_plus4-4)
+                 ,exe.instruction
+                 ,exe.instruction.rd
+                 ,exe.instruction.rs1
+                 ,exe.instruction.rs2
+                 ,exe.pc_jump_addr
+                 ,exe.decode.op_writes_rf
+                 ,exe.decode.is_load_op
+                 ,exe.decode.is_store_op
+                 ,exe.decode.is_mem_op
+                );
+        $fwrite(pelog, " byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b r1_val=%0x r2_val=%0x icm=%b\n"
+                 ,exe.decode.is_byte_op
+                 ,exe.decode.is_hex_op
+                 ,exe.decode.is_branch_op
+                 ,exe.decode.is_jump_op
+                 ,exe.decode.op_reads_rf1
+                 ,exe.decode.op_reads_rf2
+                 ,exe.decode.op_is_auipc
+                 ,exe.rs1_val
+                 ,exe.rs2_val
+                 ,exe.icache_miss
+                );
+        $fwrite(pelog, "X%d_Y%d.pelog       mem_v_o=%b mem_a_o=%x mem_d_o=%0x mem_y_i=%b\n"
+                 ,my_x_i
+                 ,my_y_i
+                 ,valid_to_mem_c
+                 ,to_mem_o.addr
+                 ,store_data
+                 ,from_mem_i.yumi
+                );
+
+        // Memory
+        $fwrite(pelog, "X%d_Y%d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b"
+                 ,my_x_i
+                 ,my_y_i
+                 ,mem.rd_addr
+                 ,mem.decode.op_writes_rf
+                 ,mem.decode.is_load_op
+                 ,mem.decode.is_store_op
+                 ,mem.decode.is_mem_op
+                 ,mem.decode.is_byte_op
+                 ,mem.decode.is_hex_op
+                 ,mem.decode.is_branch_op
+                 ,mem.decode.is_jump_op
+                );
+        $fwrite(pelog, " reads_rf1=%b reads_rf2=%b auipc=%b exe_res=%0x mem_v=%b mem_d=%x reg_id=%d yumi_o=%b icm=%b\n"
+                 ,mem.decode.op_reads_rf1
+                 ,mem.decode.op_reads_rf2
+                 ,mem.decode.op_is_auipc
+                 ,mem.exe_result
+                 ,from_mem_i.valid
+                 ,from_mem_i.read_data
+                 ,from_mem_i.load_info.reg_id
+                 ,to_mem_o.yumi
+                 ,mem.icache_miss
+                );
+
+        // Write back
+        $fwrite(pelog, "X%d_Y%d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x icm=%b icm_pc=%x\n"
+                 ,my_x_i
+                 ,my_y_i
+                 ,wb.op_writes_rf
+                 ,wb.rd_addr
+                 ,wb.rf_data
+                 ,wb.icache_miss
+                 ,wb.icache_miss_pc
+                );
+
+        // Misc
+        $fwrite(pelog, "X%d_Y%d.pelog MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b"
+                 ,my_x_i
+                 ,my_y_i
+                 ,stall
+                 ,stall_mem
+                 ,stall_non_mem
+                 ,stall_lrw
+                 ,depend_stall
+                );
+        $fwrite(pelog, " stall_ld_wb=%b reservation=%b alu_result=%x mask=%b jump_now=%b flush=%b\n"
+                 ,stall_load_wb
+                 ,reservation_i
+                 ,alu_result
+                 ,mask
+                 ,jump_now
+                 ,flush
+                );
+
+        // Register file
+        $fwrite(pelog, "X%d_Y%d.pelog   RF: wen=%b wa=%d wd=%0x cen=%b rs1_addr=%d rs1_val=%0x rs2_addr=%d rs2_val=%0x\n"
+                 ,my_x_i
+                 ,my_y_i
+                 ,rf_wen
+                 ,rf_wa
+                 ,rf_wd
+                 ,rf_cen
+                 ,rf_rs1_addr
+                 ,rf_rs1_val
+                 ,rf_rs2_addr
+                 ,rf_rs2_val
+                );
+
+        // Multiple-divide
+        $fwrite(pelog, "X%d_Y%d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x\n"
+                 ,my_x_i
+                 ,my_y_i
+                 ,stall_md
+                 ,md_valid
+                 ,md_resp_valid
+                 ,md_result
+                );
+        $fclose(pelog);
+      end
     end
   end
 end
