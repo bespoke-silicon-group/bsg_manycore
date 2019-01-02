@@ -128,7 +128,7 @@ logic insert_load_in_exe, insert_load_in_mem, insert_load_in_wb;
 // Decoded control signals logic
 decode_s decode;
 
-assign data_mem_valid = is_load_buffer_valid | yumi_to_mem_c;
+assign data_mem_valid = is_load_buffer_valid | from_mem_i.valid;
 
 assign stall_non_mem = (net_imem_write_cmd)
                      | (net_reg_write_cmd & wb.op_writes_rf)
@@ -146,9 +146,10 @@ assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 // stage
 assign stall_load_wb = pending_load_arrived 
                          & from_mem_i.buf_full
-                         & wb.op_writes_rf
-                         & mem.decode.op_writes_rf
                          & exe.decode.op_writes_rf;
+                         // uncomment if loads can be inserted in mem/wb
+                         // & mem.decode.op_writes_rf
+                         // & wb.op_writes_rf;
 
 // stall due to data memory access
 assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
@@ -452,7 +453,7 @@ begin
     rf_wd  = net_packet_r.data;
 
   // In case of a stall, directly write back mem data to the regfile
-  end else if((stall & pending_load_arrived) | insert_load_in_wb) begin
+  end else if(stall & pending_load_arrived) begin
     rf_wen = 1'b1;
     rf_wa  = from_mem_i.load_info.reg_id;
     rf_wd  = mem_loaded_data;
@@ -554,13 +555,15 @@ assign current_load_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id ==
 
 // Control signals to insert pending loads into the pipeline
 assign insert_load_in_wb  = pending_load_arrived
-                              & ~wb.op_writes_rf
-                              & ~stall;
+                              & ~wb_from_mem.op_writes_rf
+                              & ~stall
+                              & 1'b0; // disabled due to pre-computed forwarding
 
 assign insert_load_in_mem = pending_load_arrived
                               & ~mem.decode.op_writes_rf
                               & ~insert_load_in_wb
-                              & ~stall;
+                              & ~stall
+                              & 1'b0; // disabled due to pre-computed forwarding
 
 assign insert_load_in_exe = pending_load_arrived
                               & ~exe.decode.op_writes_rf
@@ -687,12 +690,12 @@ cl_state_machine state_machine
 //|        DATA MEMORY HANDSHAKE SIGNALS
 //|
 //+----------------------------------------------
-// we are waiting memory response in case of a cache miss
-// normal loads are non-blocking and hence execution would
+// we are waiting memory response in case of a cache miss.
+// Normal loads are non-blocking and hence execution would
 // continue even without the response
-wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss;     
+wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid);
 // don't present the request if we are stalling because of non-load/store reason
-wire non_ld_st_stall  = stall_non_mem | stall_lrw                 ;     
+wire non_ld_st_stall  = stall_non_mem | stall_lrw;     
 //icache miss is also decoded as mem op
 assign valid_to_mem_c = (exe.decode.is_mem_op & (~wait_mem_rsp) & (~non_ld_st_stall) & (~stall_load_wb));
 
@@ -841,6 +844,8 @@ end
 //|        INSTR DECODE TO EXECUTE SHIFT
 //|
 //+----------------------------------------------
+logic [RV32_reg_addr_width_gp-1:0] exe_rd_addr;
+logic                              exe_op_writes_rf;
 
 //WB to ID forwarding logic
 wire id_wb_rs1_forward = id.decode.op_reads_rf1 & ( id.instruction.rs1 == wb.rd_addr)
@@ -863,15 +868,15 @@ wire [RV32_reg_data_width_gp-1:0] rs2_to_exe    = id_wb_rs2_forward ?
 
 // Pre-Compute the forwarding control signal for ALU in EXE
 // RS register forwarding
-wire    exe_rs1_in_mem     = exe.decode.op_writes_rf
-                           & (id.instruction.rs1 == exe.instruction.rd)
+wire    exe_rs1_in_mem     = exe_op_writes_rf
+                           & (id.instruction.rs1 == exe_rd_addr)
                            & (|id.instruction.rs1);
 wire    exe_rs1_in_wb      = mem.decode.op_writes_rf
                            & (id.instruction.rs1  == mem.rd_addr)
                            & (|id.instruction.rs1);
 
-wire    exe_rs2_in_mem     = exe.decode.op_writes_rf
-                           & (id.instruction.rs2 == exe.instruction.rd)
+wire    exe_rs2_in_mem     = exe_op_writes_rf
+                           & (id.instruction.rs2 == exe_rd_addr)
                            & (|id.instruction.rs2);
 wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
                            & (id.instruction.rs2  == mem.rd_addr)
@@ -932,8 +937,6 @@ end
 
 logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
 logic [RV32_reg_data_width_gp-1:0] exe_result;
-logic [RV32_reg_addr_width_gp-1:0] exe_rd_addr;
-logic                              exe_op_writes_rf;
 logic                              remote_load_in_exe;
 
 `ifdef bsg_FPU
@@ -1064,26 +1067,31 @@ load_packer buf_load_packer
 
 logic [RV32_reg_data_width_gp-1:0] rf_data;
 logic                              op_writes_rf_to_wb;
+logic [RV32_reg_addr_width_gp-1:0] rd_addr_to_wb;
 always_comb
 begin
   if(insert_load_in_mem) begin
     rf_data            = mem_loaded_data;
     op_writes_rf_to_wb = 1'b1;
+    rd_addr_to_wb      = from_mem_i.load_info.reg_id;
   end else if(mem.decode.is_load_op) begin
     rf_data            = is_load_buffer_valid ? buf_loaded_data : mem_loaded_data;
     op_writes_rf_to_wb = is_load_buffer_valid | current_load_arrived;
+    rd_addr_to_wb      = mem.rd_addr;
   end else begin
     rf_data            = mem.exe_result;
     op_writes_rf_to_wb = mem.decode.op_writes_rf;
+    rd_addr_to_wb      = mem.rd_addr;
   end
 end
 
+wb_signals_s wb_from_mem;
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
     if (reset_i | net_pc_write_cmd_idle)
       begin
-         wb       <= '0;
+         wb_from_mem       <= '0;
          // synopsys translate_off
          debug_wb <= squashed_lp;
          // synopsys translate_on
@@ -1094,17 +1102,26 @@ begin
          debug_wb <= debug_mem;
          // synopsys translate_on
 
-         wb <= '{
-                 op_writes_rf  : op_writes_rf_to_wb,
-                 rd_addr       : mem.rd_addr,
-                 rf_data       : rf_data,
-                 icache_miss   : mem.icache_miss,
-                 icache_miss_pc: loaded_pc
-                 };
+         wb_from_mem <= '{
+                          op_writes_rf  : op_writes_rf_to_wb,
+                          rd_addr       : rd_addr_to_wb,
+                          rf_data       : rf_data,
+                          icache_miss   : mem.icache_miss,
+                          icache_miss_pc: loaded_pc
+                          };
       end
 end
 
+always_comb
+begin
+  wb = wb_from_mem;
 
+  if(insert_load_in_wb) begin
+    wb.op_writes_rf = 1'b1;
+    wb.rf_data      = mem_loaded_data;
+    wb.rd_addr      = from_mem_i.load_info.reg_id;
+  end
+end
 
 `ifdef bsg_FPU
 
