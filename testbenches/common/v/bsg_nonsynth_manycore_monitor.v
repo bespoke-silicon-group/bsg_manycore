@@ -43,6 +43,8 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
    logic [data_width_p-1:0     ]      pkt_data;
    logic [addr_width_p-1:0     ]      pkt_addr;
    logic [(data_width_p>>3)-1:0]      pkt_mask;
+   logic [x_cord_width_p-1:0]         pkt_x_cord;
+   logic [y_cord_width_p-1:0]         pkt_y_cord;
 
    logic cgni_yumi_r;
    bsg_manycore_endpoint_standard #(.x_cord_width_p    (x_cord_width_p)
@@ -60,12 +62,14 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
       ,.link_sif_i
       ,.link_sif_o
 
-      ,.in_v_o   (cgni_v)
-      ,.in_yumi_i(cgni_yumi)
-      ,.in_data_o(pkt_data)
-      ,.in_mask_o(pkt_mask)
-      ,.in_addr_o(pkt_addr)
-      ,.in_we_o  ()
+      ,.in_v_o         (cgni_v)
+      ,.in_yumi_i      (cgni_yumi)
+      ,.in_data_o      (pkt_data)
+      ,.in_mask_o      (pkt_mask)
+      ,.in_addr_o      (pkt_addr)
+      ,.in_we_o        ()
+      ,.in_src_x_cord_o(pkt_x_cord)
+      ,.in_src_y_cord_o(pkt_y_cord)
 
       ,.returned_data_r_o   ()
       ,.returned_load_id_r_o()
@@ -122,37 +126,49 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                unique case ({pkt_addr[addr_width_p-2:0],2'b00})
                  16'hEAD_0:
                    begin
-                      $display("## RECEIVED FINISH PACKET from tile y,x=%2d,%2d at I/O %x, data=%0d on cycle 0x%x (%d)"
-                               ,(pkt_data >> 16)
-                               ,(pkt_data & 16'hffff)
+                      $display("## RECEIVED FINISH PACKET from tile y,x=%2d,%2d at I/O %x, data %0d on cycle 0x%x (%d)"
+                               ,pkt_x_cord
+                               ,pkt_y_cord
+                               ,channel_num_p
                                ,pkt_data
-                               , channel_num_p, cycle_count_i,cycle_count_i
+                               ,cycle_count_i
+                               ,cycle_count_i
                                );
                       finish_r <= 1'b1;
 					            success_r <= 1'b1;
                    end
                  16'hEAD_4:
                    begin
-                      $display("## RECEIVED TIME PACKET from tile y,x=%2d,%2d at I/O %x, data=%0d on cycle 0x%x (%d)"
-                               ,(pkt_data >> 16)
-                               ,(pkt_data & 16'hffff)
+                      $display("## RECEIVED TIME PACKET from tile y,x=%2d,%2d at I/O %x, data %0d on cycle 0x%x (%d)"
+                               ,pkt_x_cord
+                               ,pkt_y_cord
+                               ,channel_num_p
                                ,pkt_data
-                               , channel_num_p,cycle_count_i,cycle_count_i);
+                               ,cycle_count_i
+                               ,cycle_count_i);
                    end
                  16'hEAD_8:
                    begin
-                      $display("## RECEIVED FAIL PACKET from tile y,x=%2d,%2d at I/O %x, data=%0d on cycle 0x%x (%d)"
-                               ,(pkt_data >> 16)
-                               ,(pkt_data & 16'hffff)
+                      $display("## RECEIVED FAIL PACKET from tile y,x=%2d,%2d at I/O %x, data %0d on cycle 0x%x (%d)"
+                               ,pkt_x_cord
+                               ,pkt_y_cord
+                               ,channel_num_p
                                ,pkt_data
-                               , channel_num_p, cycle_count_i,cycle_count_i
+                               ,cycle_count_i
+                               ,cycle_count_i
                                );
                       finish_r <= 1'b1;
                    end
 
                  default:
-                   $display("## received I/O device %x, addr %x, data %0d on cycle %d",
-                            channel_num_p, pkt_addr<<2, pkt_data,cycle_count_i);
+                   $display("## RECEIVED I/O from tile y,x=%2d,%2d at device %x, addr %x, data %0d on cycle %d"
+                            ,pkt_x_cord
+                            ,pkt_y_cord
+                            ,channel_num_p
+                            ,pkt_addr<<2
+                            ,pkt_data
+                            ,cycle_count_i
+                            );
                endcase
             end
        end else begin

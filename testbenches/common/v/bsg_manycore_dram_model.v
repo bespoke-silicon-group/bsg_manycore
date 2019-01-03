@@ -62,12 +62,14 @@ module bsg_manycore_ram_model#( x_cord_width_p         = "inv"
     ,.my_y_i
 
     // local incoming data interface
-    ,.in_v_o     ( in_v_lo              )
-    ,.in_yumi_i  ( in_yumi_li           )
-    ,.in_data_o  ( in_data_lo           )
-    ,.in_mask_o  ( in_mask_lo           ) 
-    ,.in_addr_o  ( in_addr_lo           )
-    ,.in_we_o    ( in_we_lo             )
+    ,.in_v_o         ( in_v_lo              )
+    ,.in_yumi_i      ( in_yumi_li           )
+    ,.in_data_o      ( in_data_lo           )
+    ,.in_mask_o      ( in_mask_lo           ) 
+    ,.in_addr_o      ( in_addr_lo           )
+    ,.in_we_o        ( in_we_lo             )
+    ,.in_src_x_cord_o(                      )
+    ,.in_src_y_cord_o(                      )
 
     // The memory read value
     ,.returning_data_i  ( read_data_r   )

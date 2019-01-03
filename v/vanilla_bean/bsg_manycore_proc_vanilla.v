@@ -98,12 +98,14 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ,.link_sif_i
     ,.link_sif_o
 
-    ,.in_v_o   (in_v_lo)
-    ,.in_yumi_i(in_yumi_li)
-    ,.in_data_o(in_data_lo)
-    ,.in_mask_o(in_mask_lo)
-    ,.in_addr_o(in_addr_lo)
-    ,.in_we_o  (in_we_lo  )
+    ,.in_v_o         (in_v_lo)
+    ,.in_yumi_i      (in_yumi_li)
+    ,.in_data_o      (in_data_lo)
+    ,.in_mask_o      (in_mask_lo)
+    ,.in_addr_o      (in_addr_lo)
+    ,.in_we_o        (in_we_lo  )
+    ,.in_src_x_cord_o()
+    ,.in_src_y_cord_o()
 
     // we feed the endpoint with the data we want to send out
     // it will get inserted into the above link_sif

@@ -25,12 +25,14 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
     // local incoming data interface
-    , output                         in_v_o
-    , input                          in_yumi_i
-    , output [data_width_p-1:0]      in_data_o
-    , output [(data_width_p>>3)-1:0] in_mask_o
-    , output [addr_width_p-1:0]      in_addr_o
-    , output                         in_we_o
+    , output                            in_v_o
+    , input                             in_yumi_i
+    , output [data_width_p-1:0]         in_data_o
+    , output [(data_width_p>>3)-1:0]    in_mask_o
+    , output [addr_width_p-1:0]         in_addr_o
+    , output                            in_we_o
+    , output [x_cord_width_p-1:0]       in_src_x_cord_o
+    , output [y_cord_width_p-1:0]       in_src_y_cord_o
 
     // local outgoing data interface (does not include credits)
     , input                                  out_v_i
@@ -172,12 +174,14 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     ,.in_y_cord_i  (cgni_data.src_y_cord )
 
     // combined  incoming data interface
-    ,.comb_v_o      (in_v_o      )
-    ,.comb_yumi_i   (in_yumi_i   )
-    ,.comb_data_o   (in_data_o   )
-    ,.comb_mask_o   (in_mask_o   )
-    ,.comb_addr_o   (in_addr_o   )
-    ,.comb_we_o     (in_we_o     )
+    ,.comb_v_o      (in_v_o         )
+    ,.comb_yumi_i   (in_yumi_i      )
+    ,.comb_data_o   (in_data_o      )
+    ,.comb_mask_o   (in_mask_o      )
+    ,.comb_addr_o   (in_addr_o      )
+    ,.comb_we_o     (in_we_o        )
+    ,.comb_x_cord_o (in_src_x_cord_o)
+    ,.comb_y_cord_o (in_src_y_cord_o)
 
     // The memory read value
     ,.returning_data_i
