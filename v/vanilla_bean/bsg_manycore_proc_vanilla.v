@@ -70,6 +70,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic [data_width_p-1:0]    returned_data_r_lo  ;
    logic [addr_width_p-1:0]    returned_addr_r_lo  ;
    logic                       returned_v_r_lo     ;
+   logic                       returned_fifo_full_lo;
 
    logic [data_width_p-1:0] load_returning_data, store_returning_data_r, returning_data;
    logic                    load_returning_v, store_returning_v_r, returning_v;
@@ -125,6 +126,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     //,.freeze_r_o(freeze_r)
     //,.reverse_arb_pr_o( reverse_arb_pr )
     );
+
+  // always full as fifo is not yet instantiated
+  assign returned_fifo_full = 1'b1;
 
    // register to hold to IDs of local loads
    logic [load_id_width_p-1:0] local_load_id_r;
@@ -282,16 +286,63 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   assign core_mem_addr     = core_to_mem.addr      ;
   assign core_mem_w        = core_to_mem.wen       ;
   assign core_mem_mask     = core_to_mem.mask      ;
-  //the core_to_mem yumi signal is not used.
 
-  //The data can either from local memory or from the network.
-  assign mem_to_core.buf_full        = 1'b1;
-  assign mem_to_core.valid           = core_mem_rv | returned_v_r_lo  ;
-  assign mem_to_core.read_data       = core_mem_rv ? core_mem_rdata
-                                                   : returned_data_r_lo ;
-  assign mem_to_core.load_info       = core_mem_rv ? local_load_id_r
-                                                   : returned_load_id_r_lo;
 
+  //+-----------------------------------------------------
+  //|Returned data arbitration between the local memory 
+  //|and the network.
+  //+-----------------------------------------------------
+
+  // Buffer full signal to the core. Core immediately yummies 
+  // when this signal is high.
+  logic buf_full_to_core;
+  assign buf_full_to_core = returned_v_r_lo & returned_fifo_full;
+                                                            
+  // Returned data buffer
+  logic                       returned_buf_v;
+  logic [data_width_p-1:0]    returned_data_buf;
+  logic [load_id_width_p-1:0] returned_load_id_buf;
+  always_ff @(posedge clk_i)                                  
+  begin                                                     
+    if(reset_i) begin                                       
+      returned_buf_v       <= 1'b0;
+      returned_data_buf    <= data_width_p'(0);
+      returned_load_id_buf <= load_id_width_p'(0);
+    end else begin
+      // Buffer the data when returned fifo is full and local mem
+      // or returend data is valid as they have higher priority. 
+      // One level of buffering is sufficient because core will not
+      // issue new requests when buf_full_to_core signal is high
+      if(buf_full_to_core & (core_mem_rv | returned_buf_v)) begin
+        returned_buf_v       <= 1'b1;
+        returned_data_buf    <= returned_data_r_lo;
+        returned_load_id_buf <= returned_load_id_r_lo;
+      end else if (core_to_mem.yumi & ~core_mem_rv) begin
+        returned_buf_v <= 1'b0;
+      end
+    end
+  end
+
+  always_comb
+  begin
+    mem_to_core.buf_full = buf_full_to_core;
+
+    // local mem has the highest priority
+    if(core_mem_rv) begin
+      mem_to_core.valid     = 1'b1;
+      mem_to_core.read_data = core_mem_rdata;
+      mem_to_core.load_info = local_load_id_r;
+    end else if(returned_buf_v) begin
+      mem_to_core.valid     = 1'b1;
+      mem_to_core.read_data = returned_data_buf;
+      mem_to_core.load_info = returned_load_id_buf;
+    end else begin
+      mem_to_core.valid     = returned_v_r_lo;
+      mem_to_core.read_data = returned_data_r_lo;
+      mem_to_core.load_info = returned_load_id_r_lo;
+    end
+  end
+      
 
    wire out_request;
 
