@@ -145,7 +145,7 @@ assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 // Load write back stall: stall to write back loaded data 
 // if the input buffer is full and it can't be inserted in any
 // stage
-assign stall_load_wb = pending_load_arrived 
+assign stall_load_wb = pending_load_arrived
                          & from_mem_i.buf_full
                          & exe.decode.op_writes_rf;
                          // uncomment if loads can be inserted in mem/wb
@@ -703,7 +703,13 @@ wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) & mem.icache_m
 // don't present the request if we are stalling because of non-load/store reason
 wire non_ld_st_stall  = stall_non_mem | stall_lrw;     
 //icache miss is also decoded as mem op
-assign valid_to_mem_c = (exe.decode.is_mem_op & (~wait_mem_rsp) & (~non_ld_st_stall) & (~stall_load_wb));
+assign valid_to_mem_c = exe.decode.is_mem_op 
+                          & (~wait_mem_rsp) 
+                          & (~non_ld_st_stall) 
+                          & (~stall_load_wb)
+                          // Below condition means there is a contention between the
+                          // network and local memory. Hence issue no more requests
+                          & ~(current_load_arrived & from_mem_i.buf_full);
 
 //We should always accept the returned data even there is a non memory stall
 //assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
@@ -798,8 +804,9 @@ decode_s     id_decode;
 always_comb begin
     id_decode =  'b0;
     if( icache_miss_lo) begin
-        id_decode.is_load_op = 1'b1;
-        id_decode.is_mem_op  = 1'b1;
+        id_decode.is_load_op   = 1'b1;
+        id_decode.is_mem_op    = 1'b1;
+        id_decode.op_writes_rf = 1'b1;
     end else begin
         id_decode = decode;
     end
@@ -1215,11 +1222,11 @@ if(debug_p | debug_lp) begin
       @(negedge clk_i)
       if(state_r==RUN) begin
         pelog = $fopen("pe.log", "a");
-        $fwrite(pelog, "X%d_Y%d.pelog \n", my_x_i, my_y_i);
-        $fwrite(pelog, "X%d_Y%d.pelog %0dns:\n", my_x_i, my_y_i, $time);
+        $fwrite(pelog, "X%0d_Y%0d.pelog \n", my_x_i, my_y_i);
+        $fwrite(pelog, "X%0d_Y%0d.pelog %0dns:\n", my_x_i, my_y_i, $time);
 
         // Fetch
-        $fwrite(pelog, "X%d_Y%d.pelog   IF: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d state=%b"
+        $fwrite(pelog, "X%0d_Y%0d.pelog   IF: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d state=%b"
                  ,my_x_i
                  ,my_y_i
                  ,{8'h00, (pc_r<<2)}
@@ -1237,7 +1244,7 @@ if(debug_p | debug_lp) begin
                 );
 
         // Decode
-        $fwrite(pelog, "X%d_Y%d.pelog   ID: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b"
+        $fwrite(pelog, "X%0d_Y%0d.pelog   ID: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b"
                  ,my_x_i
                  ,my_y_i
                  ,(id.pc_plus4-4)
@@ -1265,7 +1272,7 @@ if(debug_p | debug_lp) begin
                 );
 
         // Execute
-        $fwrite(pelog, "X%d_Y%d.pelog  EXE: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b"
+        $fwrite(pelog, "X%0d_Y%0d.pelog  EXE: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b"
                  ,my_x_i
                  ,my_y_i
                  ,(exe.pc_plus4-4)
@@ -1291,7 +1298,7 @@ if(debug_p | debug_lp) begin
                  ,exe.rs2_val
                  ,exe.icache_miss
                 );
-        $fwrite(pelog, "X%d_Y%d.pelog       mem_v_o=%b mem_a_o=%x mem_d_o=%0x reg_id_o=%0d mem_y_i=%b\n"
+        $fwrite(pelog, "X%0d_Y%0d.pelog       mem_v_o=%b mem_a_o=%x mem_d_o=%0x reg_id_o=%0d mem_y_i=%b\n"
                  ,my_x_i
                  ,my_y_i
                  ,valid_to_mem_c
@@ -1302,7 +1309,7 @@ if(debug_p | debug_lp) begin
                 );
 
         // Memory
-        $fwrite(pelog, "X%d_Y%d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b"
+        $fwrite(pelog, "X%0d_Y%0d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b"
                  ,my_x_i
                  ,my_y_i
                  ,mem.rd_addr
@@ -1328,7 +1335,7 @@ if(debug_p | debug_lp) begin
                 );
 
         // Write back
-        $fwrite(pelog, "X%d_Y%d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x icm=%b icm_pc=%x\n"
+        $fwrite(pelog, "X%0d_Y%0d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x icm=%b icm_pc=%x\n"
                  ,my_x_i
                  ,my_y_i
                  ,wb.op_writes_rf
@@ -1339,7 +1346,7 @@ if(debug_p | debug_lp) begin
                 );
 
         // Misc
-        $fwrite(pelog, "X%d_Y%d.pelog MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b"
+        $fwrite(pelog, "X%0d_Y%0d.pelog MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b"
                  ,my_x_i
                  ,my_y_i
                  ,stall
@@ -1358,7 +1365,7 @@ if(debug_p | debug_lp) begin
                 );
 
         // Register file
-        $fwrite(pelog, "X%d_Y%d.pelog   RF: wen=%b wa=%d wd=%0x cen=%b rs1_addr=%d rs1_val=%0x rs2_addr=%d rs2_val=%0x\n"
+        $fwrite(pelog, "X%0d_Y%0d.pelog   RF: wen=%b wa=%d wd=%0x cen=%b rs1_addr=%d rs1_val=%0x rs2_addr=%d rs2_val=%0x\n"
                  ,my_x_i
                  ,my_y_i
                  ,rf_wen
@@ -1372,7 +1379,7 @@ if(debug_p | debug_lp) begin
                 );
 
         // Multiple-divide
-        $fwrite(pelog, "X%d_Y%d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x\n"
+        $fwrite(pelog, "X%0d_Y%0d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x\n"
                  ,my_x_i
                  ,my_y_i
                  ,stall_md
