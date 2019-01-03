@@ -36,7 +36,7 @@ all: main.regress_test
 	echo "=====================================================================";\
 	echo "running testcase [ $$testcase ]                ";\
 	make -C ./$$testcase DVE=0 COVERAGE=$(COVERAGE) &> run.log;     			   \
-	grep " FINISH \| I/O device \|^[Ee]rror"  run.log;    	   \
+	grep " FINISH \| FAIL \| I/O device \|^[Ee]rror" run.log;    	   \
 	rm -rf run.log;											\
 	done;
 ifeq ($(COVERAGE),VCS)
