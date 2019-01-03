@@ -126,7 +126,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                unique case ({pkt_addr[addr_width_p-2:0],2'b00})
                  16'hEAD_0:
                    begin
-                      $display("## RECEIVED FINISH PACKET from tile y,x=%2d,%2d at I/O %x, data %0d on cycle 0x%x (%d)"
+                      $display("## RECEIVED FINISH PACKET from tile y,x=%2d,%2d at I/O %x, data %x on cycle 0x%x (%d)"
                                ,pkt_x_cord
                                ,pkt_y_cord
                                ,channel_num_p
@@ -139,7 +139,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                    end
                  16'hEAD_4:
                    begin
-                      $display("## RECEIVED TIME PACKET from tile y,x=%2d,%2d at I/O %x, data %0d on cycle 0x%x (%d)"
+                      $display("## RECEIVED TIME PACKET from tile y,x=%2d,%2d at I/O %x, data %x on cycle 0x%x (%d)"
                                ,pkt_x_cord
                                ,pkt_y_cord
                                ,channel_num_p
@@ -149,7 +149,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                    end
                  16'hEAD_8:
                    begin
-                      $display("## RECEIVED FAIL PACKET from tile y,x=%2d,%2d at I/O %x, data %0d on cycle 0x%x (%d)"
+                      $display("## RECEIVED FAIL PACKET from tile y,x=%2d,%2d at I/O %x, data %x on cycle 0x%x (%d)"
                                ,pkt_x_cord
                                ,pkt_y_cord
                                ,channel_num_p
@@ -161,7 +161,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                    end
 
                  default:
-                   $display("## RECEIVED I/O from tile y,x=%2d,%2d at device %x, addr %x, data %0d on cycle %d"
+                   $display("## RECEIVED I/O PACKET from tile y,x=%2d,%2d at I/O %x, addr %x, data %x on cycle (%d)"
                             ,pkt_x_cord
                             ,pkt_y_cord
                             ,channel_num_p
