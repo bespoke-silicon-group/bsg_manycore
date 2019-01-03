@@ -121,14 +121,15 @@ logic data_mem_valid;
 
 logic yumi_to_mem_c;
 
-// Signals for pending load write-back
+// Signals for load write-back
+logic current_load_arrived;
 logic pending_load_arrived;
 logic insert_load_in_exe, insert_load_in_mem, insert_load_in_wb;
 
 // Decoded control signals logic
 decode_s decode;
 
-assign data_mem_valid = is_load_buffer_valid | from_mem_i.valid;
+assign data_mem_valid = is_load_buffer_valid | current_load_arrived;
 
 assign stall_non_mem = (net_imem_write_cmd)
                      | (net_reg_write_cmd & wb.op_writes_rf)
@@ -231,7 +232,8 @@ always_comb
 begin
   if(exe.decode.is_load_op) begin
     mem_payload.read_info = '{rsvd      : '0
-                             ,load_info : '{is_unsigned_op : exe.decode.is_load_unsigned
+                             ,load_info : '{icache_fetch   : exe.icache_miss
+                                           ,is_unsigned_op : exe.decode.is_load_unsigned
                                            ,is_byte_op     : exe.decode.is_byte_op
                                            ,is_hex_op      : exe.decode.is_hex_op
                                            ,part_sel       : mem_addr_send[1:0]
@@ -550,8 +552,12 @@ scoreboard
 //|
 //+----------------------------------------------
 
-assign pending_load_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id != mem.rd_addr);
-assign current_load_arrived = from_mem_i.valid & (from_mem_i.load_info.reg_id == mem.rd_addr);
+assign current_load_arrived = from_mem_i.valid 
+                                & (mem.icache_miss 
+                                    ? from_mem_i.load_info.icache_fetch
+                                    : (from_mem_i.load_info.reg_id == mem.rd_addr)
+                                  );
+assign pending_load_arrived = from_mem_i.valid & ~current_load_arrived;
 
 // Control signals to insert pending loads into the pipeline
 assign insert_load_in_wb  = pending_load_arrived
@@ -693,7 +699,7 @@ cl_state_machine state_machine
 // we are waiting memory response in case of a cache miss.
 // Normal loads are non-blocking and hence execution would
 // continue even without the response
-wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid);
+wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss;
 // don't present the request if we are stalling because of non-load/store reason
 wire non_ld_st_stall  = stall_non_mem | stall_lrw;     
 //icache miss is also decoded as mem op
@@ -1285,12 +1291,13 @@ if(debug_p | debug_lp) begin
                  ,exe.rs2_val
                  ,exe.icache_miss
                 );
-        $fwrite(pelog, "X%d_Y%d.pelog       mem_v_o=%b mem_a_o=%x mem_d_o=%0x mem_y_i=%b\n"
+        $fwrite(pelog, "X%d_Y%d.pelog       mem_v_o=%b mem_a_o=%x mem_d_o=%0x reg_id_o=%0d mem_y_i=%b\n"
                  ,my_x_i
                  ,my_y_i
                  ,valid_to_mem_c
                  ,to_mem_o.addr
                  ,store_data
+                 ,to_mem_o.payload.read_info.load_info.reg_id
                  ,from_mem_i.yumi
                 );
 

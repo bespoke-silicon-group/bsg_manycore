@@ -84,6 +84,7 @@ typedef struct packed{
 } ring_packet_s;
 
 typedef struct packed {
+  logic        icache_fetch;
   logic        is_unsigned_op;
   logic        is_byte_op;
   logic        is_hex_op;
@@ -91,10 +92,12 @@ typedef struct packed {
   logic [4:0]  reg_id;
 } load_info_s;
 
+`define load_info_width ($bits(load_info_s))
+
 typedef union packed {
   logic [31:0] write_data; // stores send store data
   struct packed {          // loads send reg_id to be loaded
-    logic [21:0] rsvd;
+    logic [20:0] rsvd;
     load_info_s load_info;
   } read_info; 
 } mem_payload_u;
