@@ -1,6 +1,8 @@
 #ifndef _BSG_MANYCORE_ASM_H
 #define _BSG_MANYCORE_ASM_H
 
+// Only use temporary registers (t0-6) here
+
 #define bsg_asm_remote_ptr(x,y,local_addr)         \
     ((REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS) \
       | ((y) << Y_CORD_SHIFTS )                    \
@@ -13,12 +15,21 @@
     li t1, val;                                  \
     sw t1, 0x0(t0);
 
+#define bsg_asm_local_store(local_addr,val) \
+    li t0, local_addr;                      \
+    li t1, val;                             \
+    sw t1, 0x0(t0);
+
 #define bsg_asm_remote_store_reg(x,y,local_addr,reg) \
     li t0, bsg_asm_remote_ptr(x,y,local_addr);       \
     sw reg, 0x0(t0);
 
 #define bsg_asm_remote_load(reg,x,y,local_addr) \
     li t0, bsg_asm_remote_ptr(x,y,local_addr);  \
+    lw reg, 0x0(t0);
+
+#define bsg_asm_local_load(reg,local_addr) \
+    li t0, local_addr;                     \
     lw reg, 0x0(t0);
 
 // print a register ("reg") in IO #x
