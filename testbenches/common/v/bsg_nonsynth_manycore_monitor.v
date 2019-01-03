@@ -122,33 +122,36 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                unique case ({pkt_addr[addr_width_p-2:0],2'b00})
                  16'hEAD_0:
                    begin
-                      $display("## RECEIVED FINISH PACKET from tile y,x=%2d,%2d at I/O %x on cycle 0x%x (%d)"
+                      $display("## RECEIVED FINISH PACKET from tile y,x=%2d,%2d at I/O %x, data=%0d on cycle 0x%x (%d)"
                                ,(pkt_data >> 16)
                                ,(pkt_data & 16'hffff)
+                               ,pkt_data
                                , channel_num_p, cycle_count_i,cycle_count_i
                                );
                       finish_r <= 1'b1;
-					  success_r <= 1'b1;
+					            success_r <= 1'b1;
                    end
                  16'hEAD_4:
                    begin
-                      $display("## RECEIVED TIME PACKET from tile y,x=%2d,%2d at I/O %x on cycle 0x%x (%d)"
+                      $display("## RECEIVED TIME PACKET from tile y,x=%2d,%2d at I/O %x, data=%0d on cycle 0x%x (%d)"
                                ,(pkt_data >> 16)
                                ,(pkt_data & 16'hffff)
+                               ,pkt_data
                                , channel_num_p,cycle_count_i,cycle_count_i);
                    end
                  16'hEAD_8:
                    begin
-                      $display("## RECEIVED FAIL PACKET from tile y,x=%2d,%2d at I/O %x on cycle 0x%x (%d)"
+                      $display("## RECEIVED FAIL PACKET from tile y,x=%2d,%2d at I/O %x, data=%0d on cycle 0x%x (%d)"
                                ,(pkt_data >> 16)
                                ,(pkt_data & 16'hffff)
+                               ,pkt_data
                                , channel_num_p, cycle_count_i,cycle_count_i
                                );
                       finish_r <= 1'b1;
                    end
 
                  default:
-                   $display("## received I/O device %x, addr %x, data %x on cycle %d",
+                   $display("## received I/O device %x, addr %x, data %0d on cycle %d",
                             channel_num_p, pkt_addr<<2, pkt_data,cycle_count_i);
                endcase
             end
