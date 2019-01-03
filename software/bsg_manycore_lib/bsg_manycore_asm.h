@@ -71,4 +71,12 @@
 #define bsg_asm_fail_reg(x,reg) \
     bsg_asm_remote_store_reg(x,bsg_tiles_Y,0xEAD8,reg)
 
+
+// Branch
+
+// branch immediate
+#define bi(op,reg,val,dest) \
+    li t0, val;             \
+    op reg,t0,dest;
+
 #endif

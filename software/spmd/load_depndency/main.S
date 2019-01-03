@@ -26,6 +26,7 @@ sum:
     bsg_asm_local_store(0x1038, 15);
     fence;
 
+test_1:
     // Single cycle remote loads
     // nops to test zero delay remote loads
     bsg_asm_remote_load(s0, 0, 0, 0x1000); // 1
@@ -45,7 +46,10 @@ sum:
     add s1, s0, s1;
     add s2, s1, s2;
     add s0, s2, s3;
+    bi(beq, s0, 10, test_2);
+    bsg_asm_fail(IO_X_INDEX, 1);
 
+test_2:
     // Load write-back during stalls
     // A dummy multiply is used to create a stall
     bsg_asm_remote_load(s1, 0, 0, 0x1010); // 5
@@ -53,13 +57,19 @@ sum:
     nop;
     mul t0, t0, t0;
     add s0, s1, s0;
+    bi(beq, s0, 15, test_3);
+    bsg_asm_fail(IO_X_INDEX, 2);
 
+test_3:
     // Dependency test
     bsg_asm_remote_load(s1, 0, 0, 0x1014); // 6
     bsg_asm_remote_load(s2, 0, 0, 0x1018); // 7
     add s1, s0, s1;
     add s0, s1, s2;
+    bi(beq, s0, 28, test_4);
+    bsg_asm_fail(IO_X_INDEX, 3);
 
+test_4:
     // Contention between remote and local loads
     li s2, 0x1020;
     li s3, 0x1024;
@@ -85,24 +95,18 @@ sum:
     add s7, s6, s7;
     add s0, s7, s8;
 
+    // print the result
+    bsg_asm_print_reg(IO_X_INDEX,s0);
+    
+    // check result = sum of 15 natural numbers
+    .equ res, (15*16/2)
+    li t0, res;
+    beq s0, t0, done;
+    bsg_asm_fail(IO_X_INDEX, 4);
+
+done:
     addi ra, ra, -1;
     bnez ra, sum;
 // sum
 
-// print the result
-bsg_asm_print_reg(IO_X_INDEX,s0);
-
-// check result = sum of 15 natural numbers
-.equ res, (15*16/2)
-li t0, res;
-bne s0, t0, fail;
-
-finish:
-    fence;
-    li t0, 1;
-    csrw mtohost, t0;
-    bsg_asm_finish(IO_X_INDEX);
-    j finish
-
-fail:
-    bsg_asm_fail(IO_X_INDEX, 1);
+bsg_asm_finish(IO_X_INDEX, 0);
