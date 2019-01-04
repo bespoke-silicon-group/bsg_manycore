@@ -355,7 +355,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       end
     end
   end
-  // synopsys trnaslate on
+  // synopsys translate on
       
 
    wire out_request;
