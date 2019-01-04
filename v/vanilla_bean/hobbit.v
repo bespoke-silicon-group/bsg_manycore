@@ -12,22 +12,25 @@
  *  5 stage pipeline implementation of the vanilla core ISA.
  */
 module hobbit #(parameter 
-                          icache_tag_width_p  = -1, 
-                          icache_addr_width_p = -1,
-                          gw_ID_p           = -1,
-                          ring_ID_p         = -1,
-                          x_cord_width_p    = -1,
-                          y_cord_width_p    = -1,
-                          debug_p           = 0 ,
-                          pc_width_lp            = icache_tag_width_p + icache_addr_width_p, 
-                          icache_format_width_lp = `icache_format_width( icache_tag_width_p ),
+                          icache_tag_width_p         = -1, 
+                          icache_addr_width_p        = -1,
+                          gw_ID_p                    = -1,
+                          ring_ID_p                  = -1,
+                          x_cord_width_p             = -1,
+                          y_cord_width_p             = -1,
+                          debug_p                    = 0 ,
+                          pc_width_lp                = icache_tag_width_p + icache_addr_width_p, 
+                          icache_format_width_lp     = `icache_format_width( icache_tag_width_p ),
                           //As all instructions will be resident in DRAM, we
                           //need to pad the higher parts of the pc so it
                           //points to DRAM.
-                          pc_high_padding_width_lp  = RV32_reg_data_width_gp - pc_width_lp -2 ,
-                          pc_high_padding_lp        = {pc_high_padding_width_lp{1'b0}} ,
+                          pc_high_padding_width_lp   = RV32_reg_data_width_gp - pc_width_lp -2 ,
+                          pc_high_padding_lp         = {pc_high_padding_width_lp{1'b0}} ,
                           //used to direct the icache miss address to dram.
-                          dram_addr_mapping_lp      = 32'h8000_0000
+                          dram_addr_mapping_lp       = 32'h8000_0000,
+
+                          remote_addr_prefix_mask_lp = 32'hc000_0000,
+                          remote_addr_mapping_lp     = 32'h4000_0000
                )(
                 input                             clk_i
                ,input                             reset_i
@@ -124,6 +127,7 @@ logic yumi_to_mem_c;
 // Signals for load write-back
 logic current_load_arrived;
 logic pending_load_arrived;
+logic exe_free_for_load, mem_free_for_load, wb_free_for_load;
 logic insert_load_in_exe, insert_load_in_mem, insert_load_in_wb;
 
 // Decoded control signals logic
@@ -147,10 +151,9 @@ assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 // stage
 assign stall_load_wb = pending_load_arrived
                          & from_mem_i.buf_full
-                         & exe.decode.op_writes_rf;
-                         // uncomment if loads can be inserted in mem/wb
-                         // & mem.decode.op_writes_rf
-                         // & wb.op_writes_rf;
+                         & ~wb_free_for_load
+                         & ~mem_free_for_load
+                         & ~exe_free_for_load;;
 
 // stall due to data memory access
 assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
@@ -552,6 +555,9 @@ scoreboard
 //|
 //+----------------------------------------------
 
+// Singal to detect remote load in exe
+logic remote_load_in_exe;
+
 assign current_load_arrived = from_mem_i.valid 
                                 & (mem.icache_miss 
                                     ? from_mem_i.load_info.icache_fetch
@@ -559,20 +565,29 @@ assign current_load_arrived = from_mem_i.valid
                                   );
 assign pending_load_arrived = from_mem_i.valid & ~current_load_arrived;
 
+// Disable load data insertion in WB & MEM stages as forwarding
+// is pre-computed in EXE stage
+assign wb_free_for_load  = ~wb_from_mem.op_writes_rf & 1'b0;
+assign mem_free_for_load = ~mem.decode.op_writes_rf & 1'b0;
+// Since remote load takes more than one cycle to fetch, and as loads are
+// non-blocking, write-back wouldn't happen when the instrucion is still
+// in the pipeline
+assign exe_free_for_load = ~exe.decode.op_writes_rf | remote_load_in_exe;
+
 // Control signals to insert pending loads into the pipeline
 assign insert_load_in_wb  = pending_load_arrived
-                              & ~wb_from_mem.op_writes_rf
+                              & wb_free_for_load
                               & ~stall
                               & 1'b0; // disabled due to pre-computed forwarding
 
 assign insert_load_in_mem = pending_load_arrived
-                              & ~mem.decode.op_writes_rf
+                              & mem_free_for_load
                               & ~insert_load_in_wb
                               & ~stall
                               & 1'b0; // disabled due to pre-computed forwarding
 
 assign insert_load_in_exe = pending_load_arrived
-                              & ~exe.decode.op_writes_rf
+                              & exe_free_for_load
                               & ~insert_load_in_mem
                               & ~insert_load_in_wb
                               & ~stall;
@@ -950,7 +965,6 @@ end
 
 logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
 logic [RV32_reg_data_width_gp-1:0] exe_result;
-logic                              remote_load_in_exe;
 
 `ifdef bsg_FPU
 //The combined decode signal to MEM stages.
@@ -971,7 +985,8 @@ assign fiu_alu_result = alu_result;
 
 `endif
 
-assign remote_load_in_exe = (exe.decode.is_load_op & mem_addr_send[RV32_reg_data_width_gp-1]);
+assign remote_load_in_exe = exe.decode.is_load_op 
+                              & ((mem_addr_send & remote_addr_prefix_mask_lp) == remote_addr_mapping_lp);
 
 // Loded data is inserted into the exe stage along
 // with an instruction that doesn't write to RF
