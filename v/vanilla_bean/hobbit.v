@@ -722,9 +722,9 @@ assign valid_to_mem_c = exe.decode.is_mem_op
                           & (~wait_mem_rsp) 
                           & (~non_ld_st_stall) 
                           & (~stall_load_wb)
-                          // Below condition means there is a contention between the
-                          // network and local memory. Hence issue no more requests
-                          & ~(current_load_arrived & from_mem_i.buf_full);
+                          // Below condition means there is a contention between the network 
+                          // and local memory. Hence issue no more local load requests.
+                          & (~(current_load_arrived & from_mem_i.buf_full) | remote_load_in_exe); 
 
 //We should always accept the returned data even there is a non memory stall
 //assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);

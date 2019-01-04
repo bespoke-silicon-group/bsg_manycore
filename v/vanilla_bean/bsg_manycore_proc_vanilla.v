@@ -314,7 +314,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       // Buffer the data when returned fifo is full and local mem
       // or returend data is valid as they have higher priority. 
       // One level of buffering is sufficient because core will not
-      // issue new requests when buf_full_to_core signal is high
+      // issue new local requests when buf_full_to_core is asserted.
       if(buf_full_to_core & (core_mem_rv | returned_buf_v)) begin
         returned_buf_v       <= 1'b1;
         returned_data_buf    <= returned_data_r_lo;
@@ -344,6 +344,18 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       mem_to_core.load_info = returned_load_id_r_lo;
     end
   end
+
+  // synopsys translate off
+  always @(negedge clk_i)
+  begin
+    if(~reset_i) begin
+      assert(~(core_mem_rv & returned_buf_v & buf_full_to_core))
+      else begin
+        $error("# ERROR data lost due to contention between local and remote loads");
+      end
+    end
+  end
+  // synopsys trnaslate on
       
 
    wire out_request;
