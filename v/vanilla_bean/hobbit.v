@@ -54,7 +54,7 @@ module hobbit #(parameter
 
 //localparam trace_lp = 1'b1;
 localparam trace_lp = 1'b0;
-localparam debug_lp = 1'b1;
+localparam debug_lp = 1'b0;
 
 // position in recoded instruction memory of prediction bit
 // for branches. normally this would be bit 31 in RISCV ISA (branch ofs sign bit)
@@ -999,8 +999,7 @@ begin
   end else begin
     exe_result         = fiu_alu_result;
     exe_rd_addr        = exe.instruction.rd;
-    exe_op_writes_rf   = exe.decode.op_writes_rf
-                           & ~remote_load_in_exe;
+    exe_op_writes_rf   = exe.decode.op_writes_rf & ~remote_load_in_exe;
   end
 end
 
@@ -1030,6 +1029,7 @@ begin
             exe_result    : exe_result,
 
             mem_addr_send : mem_addr_send,
+            remote_load   : remote_load_in_exe,
             icache_miss   : exe.icache_miss
         };
 
@@ -1102,7 +1102,7 @@ begin
     rf_data            = mem_loaded_data;
     op_writes_rf_to_wb = 1'b1;
     rd_addr_to_wb      = from_mem_i.load_info.reg_id;
-  end else if(mem.decode.is_load_op) begin
+  end else if(mem.decode.is_load_op & ~mem.remote_load) begin
     rf_data            = is_load_buffer_valid ? buf_loaded_data : mem_loaded_data;
     op_writes_rf_to_wb = is_load_buffer_valid | current_load_arrived;
     rd_addr_to_wb      = mem.rd_addr;

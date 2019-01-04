@@ -202,6 +202,7 @@ typedef struct packed
     decode_s                           decode;        // Decode signals
     logic [RV32_reg_data_width_gp-1:0] exe_result;    // Execution result
     logic [RV32_reg_data_width_gp-1:0] mem_addr_send; //the address sent to memory
+    logic                              remote_load;
     logic                              icache_miss;
 } mem_signals_s;
 

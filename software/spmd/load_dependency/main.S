@@ -5,7 +5,7 @@
 
 // Loop index
 // Iterate to run without cache misses
-li ra, 2;
+li ra, 10;
 
 sum:
     // Store data in some locations
