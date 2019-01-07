@@ -86,6 +86,7 @@ module bsg_manycore_ram_model#( x_cord_width_p         = "inv"
     ,.returned_data_r_o     (                )
     ,.returned_load_id_r_o  (                )
     ,.returned_v_r_o        (                )
+    ,.returned_fifo_full_o  (                )
 
     ,.out_credits_o     (               )
     );

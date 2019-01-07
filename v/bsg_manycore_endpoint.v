@@ -1,6 +1,8 @@
 module bsg_manycore_endpoint #( x_cord_width_p                  = "inv"
                                 ,y_cord_width_p                 = "inv"
                                 ,fifo_els_p                     = "inv"
+                                ,returned_fifo_p                = 0
+                                ,returned_fifo_els_p            = 2
                                 ,data_width_p                   = 32
                                 ,addr_width_p                   = 32
                                 ,load_id_width_p                = 5
@@ -25,6 +27,7 @@ module bsg_manycore_endpoint #( x_cord_width_p                  = "inv"
     // Like the memory interface, processor should always ready be to handle the returned data
     , output [return_packet_width_lp-1:0]   returned_packet_r_o
     , output                                returned_credit_v_r_o
+    , output                                returned_fifo_full_o
 
     // The return packet interface
     , input [return_packet_width_lp-1:0]    returning_data_i
@@ -90,6 +93,8 @@ module bsg_manycore_endpoint #( x_cord_width_p                  = "inv"
    // We buffer the returned packet
    logic [return_packet_width_lp-1:0]   returned_packet_r     ;
    logic                                returned_credit_v_r        ;
+
+   assign returned_fifo_full_o = 1'b1;
 
    always @(posedge clk_i) begin
      returned_credit_v_r     <= link_sif_i_cast.rev.v    ;

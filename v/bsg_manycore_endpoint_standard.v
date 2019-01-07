@@ -3,6 +3,10 @@
 module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          ,y_cord_width_p         = "inv"
                                          ,fifo_els_p             = "inv"
+                                         // enable this to instantiate a fifo
+                                         // to buffer returned data
+                                         ,returned_fifo_p        = 0
+                                         ,returned_fifo_els_p    = 2
                                          ,freeze_init_p          = 1'b1
                                          ,data_width_p           = 32
                                          ,addr_width_p           = 32
@@ -44,6 +48,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     , output [data_width_p-1:0]             returned_data_r_o
     , output [load_id_width_p-1:0]          returned_load_id_r_o
     , output                                returned_v_r_o
+    , output                                returned_fifo_full_o
 
     // The memory read value
     , input [data_width_p-1:0]              returning_data_i
@@ -71,12 +76,14 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    wire                              returned_credit_lo   ;
    bsg_manycore_return_packet_s      returned_packet_lo   ;
 
-   bsg_manycore_endpoint #(.x_cord_width_p   (x_cord_width_p)
-                           ,.y_cord_width_p  (y_cord_width_p)
-                           ,.fifo_els_p      (fifo_els_p  )
-                           ,.data_width_p    (data_width_p)
-                           ,.addr_width_p    (addr_width_p)
-                           ,.load_id_width_p (load_id_width_p)
+   bsg_manycore_endpoint #(.x_cord_width_p       (x_cord_width_p)
+                           ,.y_cord_width_p      (y_cord_width_p)
+                           ,.fifo_els_p          (fifo_els_p  )
+                           ,.returned_fifo_p     (returned_fifo_p)
+                           ,.returned_fifo_els_p (returned_fifo_els_p)
+                           ,.data_width_p        (data_width_p)
+                           ,.addr_width_p        (addr_width_p)
+                           ,.load_id_width_p     (load_id_width_p)
                            ) bme
      (.clk_i
       ,.reset_i
@@ -93,6 +100,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
       ,.returned_packet_r_o          ( returned_packet_lo    )
       ,.returned_credit_v_r_o        ( returned_credit_lo    )
+      ,.returned_fifo_full_o         ( returned_fifo_full_o  )
 
       ,.returning_data_i    ( returning_packet_li  )
       ,.returning_v_i       ( returning_v_li       )

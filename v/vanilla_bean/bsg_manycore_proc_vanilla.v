@@ -82,14 +82,16 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic                                   in_v_lo, in_yumi_li;
    logic [$clog2(max_out_credits_p+1)-1:0] out_credits_lo;
 
-   bsg_manycore_endpoint_standard #(.x_cord_width_p (x_cord_width_p)
-                                    ,.y_cord_width_p(y_cord_width_p)
-                                    ,.fifo_els_p    (proc_fifo_els_p)
-                                    ,.data_width_p  (data_width_p)
-                                    ,.addr_width_p  (addr_width_p)
-                                    ,.load_id_width_p (load_id_width_p)
-                                    ,.max_out_credits_p(max_out_credits_p)
-                                    ,.debug_p(debug_p)
+   bsg_manycore_endpoint_standard #(.x_cord_width_p      (x_cord_width_p)
+                                    ,.y_cord_width_p     (y_cord_width_p)
+                                    ,.fifo_els_p         (proc_fifo_els_p)
+                                    ,.returned_fifo_p    (1)
+                                    ,.returned_fifo_els_p(2)
+                                    ,.data_width_p       (data_width_p)
+                                    ,.addr_width_p       (addr_width_p)
+                                    ,.load_id_width_p    (load_id_width_p)
+                                    ,.max_out_credits_p  (max_out_credits_p)
+                                    ,.debug_p            (debug_p)
 //                                    ,.debug_p(1)
                                     ) endp
    (.clk_i
@@ -117,6 +119,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ,.returned_data_r_o    (returned_data_r_lo )
     ,.returned_load_id_r_o (returned_load_id_r_lo)
     ,.returned_v_r_o       (returned_v_r_lo    )
+    ,.returned_fifo_full_o (returned_fifo_full_lo)
 
     ,.returning_data_i ( returning_data )
     ,.returning_v_i    ( returning_v    )
@@ -128,9 +131,6 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     //,.freeze_r_o(freeze_r)
     //,.reverse_arb_pr_o( reverse_arb_pr )
     );
-
-  // always full as fifo is not yet instantiated
-  assign returned_fifo_full = 1'b1;
 
    // register to hold to IDs of local loads
    logic [load_id_width_p-1:0] local_load_id_r;
@@ -298,7 +298,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   // Buffer full signal to the core. Core immediately yummies 
   // when this signal is high.
   logic buf_full_to_core;
-  assign buf_full_to_core = returned_v_r_lo & returned_fifo_full;
+  assign buf_full_to_core = returned_v_r_lo & returned_fifo_full_lo;
                                                             
   // Returned data buffer
   logic                       returned_buf_v;

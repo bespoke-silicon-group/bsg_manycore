@@ -74,6 +74,7 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
       ,.returned_data_r_o   ()
       ,.returned_load_id_r_o()
       ,.returned_v_r_o      ()
+      ,.returned_fifo_full_o()
 
       ,.returning_data_i ( 0 )
       //we have to delay the returning data at least 1 cycle.
