@@ -16,13 +16,9 @@ SECTIONS
    *is mapped to the actual dram module.
    */
   _bsg_dram_start_addr = 0x0;
-  OVERLAY 0x0 : 
-  {
-        .text 
-        {
+  .text 0x0 :  AT ( _bsg_data_end_addr ) {
           *(.text)
-        }
-  }
+   }
   _bsg_dram_end_addr = .  ;
 }
 

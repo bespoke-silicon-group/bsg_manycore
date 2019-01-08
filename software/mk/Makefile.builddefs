@@ -53,6 +53,7 @@ RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 # dump the dram content
 %_dram.mem:	%.riscv
 	$(RISCV_OBJCOPY) -O verilog -j .text $< $@
+	sed -i -e "1d" $@
 
 %.bin:  %.hex
 	python $(HEX2BIN) $< 32 > $@
