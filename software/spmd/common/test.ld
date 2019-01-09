@@ -58,6 +58,18 @@ SECTIONS
   /*The DRAM content is start at zero, 
    *The instruction fetch unit and the loader will send address that 
    *is mapped to the actual dram module.
+   
+   * FIXME: We set the phsical address to _bsg_data_end_addr, but this is just 
+   * a placehold address to prevent the linker from complaining about the overlapped
+   * physical address with .data section.
+   *
+   * The objcopy program will dump this section with @[pysical address] notation, which tells
+   * the verilog loader where to place the data.
+   *
+   * Ideally the physicall address should be 0x8000_0000, which is the DRAM address used in manycore 
+   * program, but the system verilog $readmemh() just can not read from such large address... 
+   * 
+   * Instead we just use a faked physical address and assumpt the phiscal address is aslo zero in the loader
    */
   _bsg_dram_start_addr = 0x0;
   .text 0x0 : AT ( _bsg_data_end_addr ){

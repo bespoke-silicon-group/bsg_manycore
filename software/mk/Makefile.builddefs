@@ -53,6 +53,14 @@ RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 # dump the dram content
 %_dram.mem:	%.riscv
 	$(RISCV_OBJCOPY) -O verilog -j .text $< $@
+	#  The objcopy program will dump the sections with @[pysical address] notation, which tells
+	#  the verilog loader where to place the data.
+	#   
+	#  Ideally the physicall address should be 0x8000_0000, which is the DRAM address used in manycore 
+	#  program, but the system verilog $readmemh() just can not read from such large address... 
+	#  
+	#  Instead we just use a faked physical address and assumpt the phyiscal address is aslo zero in the loader, 
+	#  And so we delete the first line of the dump files which is faked physical address...
 	sed -i -e "1d" $@
 
 %.bin:  %.hex
