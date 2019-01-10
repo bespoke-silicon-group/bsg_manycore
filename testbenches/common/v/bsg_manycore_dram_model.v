@@ -83,9 +83,11 @@ module bsg_manycore_ram_model#( x_cord_width_p         = "inv"
    // local returned data interface
    // Like the memory interface, processor should always ready be to
    // handle the returned data
-    ,.returned_data_r_o     (                )
-    ,.returned_load_id_r_o  (                )
-    ,.returned_v_r_o        (                )
+    ,.returned_data_r_o     (    )
+    ,.returned_load_id_r_o  (    )
+    ,.returned_v_r_o        (    )
+    ,.returned_fifo_full_o  (    )
+    ,.returned_yumi_i       (1'b1)
 
     ,.out_credits_o     (               )
     );

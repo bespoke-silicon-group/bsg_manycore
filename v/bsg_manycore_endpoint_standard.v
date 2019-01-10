@@ -3,6 +3,9 @@
 module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          ,y_cord_width_p         = "inv"
                                          ,fifo_els_p             = "inv"
+                                         // enable this to instantiate a fifo
+                                         // to buffer returned data
+                                         ,returned_fifo_p        = 0
                                          ,freeze_init_p          = 1'b1
                                          ,data_width_p           = 32
                                          ,addr_width_p           = 32
@@ -44,6 +47,8 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
     , output [data_width_p-1:0]             returned_data_r_o
     , output [load_id_width_p-1:0]          returned_load_id_r_o
     , output                                returned_v_r_o
+    , output                                returned_fifo_full_o
+    , input                                 returned_yumi_i
 
     // The memory read value
     , input [data_width_p-1:0]              returning_data_i
@@ -67,16 +72,19 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    wire [return_packet_width_lp-1:0] returning_packet_li     ;
    wire                              returning_v_li        ;
    wire                              returning_ready_lo    ;
+   wire                              returned_yumi_li;
 
-   wire                              returned_credit_lo   ;
-   bsg_manycore_return_packet_s      returned_packet_lo   ;
+   wire                              returned_credit;
+   wire                              returned_credit_v_lo;
+   bsg_manycore_return_packet_s      returned_packet_lo;
 
-   bsg_manycore_endpoint #(.x_cord_width_p   (x_cord_width_p)
-                           ,.y_cord_width_p  (y_cord_width_p)
-                           ,.fifo_els_p      (fifo_els_p  )
-                           ,.data_width_p    (data_width_p)
-                           ,.addr_width_p    (addr_width_p)
-                           ,.load_id_width_p (load_id_width_p)
+   bsg_manycore_endpoint #(.x_cord_width_p       (x_cord_width_p)
+                           ,.y_cord_width_p      (y_cord_width_p)
+                           ,.fifo_els_p          (fifo_els_p  )
+                           ,.returned_fifo_p     (returned_fifo_p)
+                           ,.data_width_p        (data_width_p)
+                           ,.addr_width_p        (addr_width_p)
+                           ,.load_id_width_p     (load_id_width_p)
                            ) bme
      (.clk_i
       ,.reset_i
@@ -92,7 +100,9 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.out_ready_o
 
       ,.returned_packet_r_o          ( returned_packet_lo    )
-      ,.returned_credit_v_r_o        ( returned_credit_lo    )
+      ,.returned_credit_v_r_o        ( returned_credit_v_lo    )
+      ,.returned_fifo_full_o         ( returned_fifo_full_o  )
+      ,.returned_yumi_i              ( returned_yumi_li      )
 
       ,.returning_data_i    ( returning_packet_li  )
       ,.returning_v_i       ( returning_v_li       )
@@ -101,6 +111,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
       ,.in_fifo_full_o( in_fifo_full )
       );
 
+   assign returned_credit = returned_credit_v_lo & returned_yumi_li;
 
    // ----------------------------------------------------------------------------------------
    // Handle incoming request packets
@@ -278,15 +289,19 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                          ) out_credit_ctr
      (.clk_i
       ,.reset_i
-      ,.down_i   (launching_out)  // launch remote store
-      ,.up_i     (returned_credit_lo      )  // receive credit back
-      ,.count_o(out_credits_o  )
+      ,.down_i  (launching_out) // launch remote store
+      ,.up_i    (returned_credit) // receive credit back
+      ,.count_o (out_credits_o)
       );
 
-   assign returned_data_r_o     =   returned_packet_lo.data     ;
-   assign returned_load_id_r_o  =   returned_packet_lo.load_id  ;
-   assign returned_v_r_o        =   returned_credit_lo
-                                 & ( returned_packet_lo.pkt_type == `ePacketType_data ) ;
+   assign returned_data_r_o     = returned_packet_lo.data     ;
+   assign returned_load_id_r_o  = returned_packet_lo.load_id  ;
+   assign returned_v_r_o        = returned_credit_v_lo
+                                    & (returned_packet_lo.pkt_type == `ePacketType_data);
+   assign returned_yumi_li      = returned_yumi_i 
+                                    | (returned_credit_v_lo 
+                                        & ~(returned_packet_lo.pkt_type == `ePacketType_data)
+                                      );
   // *************************************************
    // ** checks
    //
@@ -297,7 +312,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    if (debug_p)
    always_ff @(negedge clk_i)
      begin
-        if (returned_credit_lo)
+        if (returned_credit)
           $display("## return packet received by (x,y)=%x,%x",my_x_i,my_y_i);
      end
 

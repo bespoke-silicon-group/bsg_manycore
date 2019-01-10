@@ -13,7 +13,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                            , epa_addr_width_p = -1 
                            , dram_ch_addr_width_p = -1
                            , dram_ch_start_col_p = 0
-                           , debug_p        = 0
+                           , debug_p        = 1
 
                            , icache_tag_width_p   = -1
                            , icache_entries_p     = 1024 // in words
@@ -71,6 +71,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic [addr_width_p-1:0]    returned_addr_r_lo  ;
    logic                       returned_v_r_lo     ;
    logic                       returned_fifo_full_lo;
+   logic                       returned_yumi_li;
 
    logic [data_width_p-1:0] load_returning_data, store_returning_data_r, returning_data;
    logic                    load_returning_v, store_returning_v_r, returning_v;
@@ -82,14 +83,15 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic                                   in_v_lo, in_yumi_li;
    logic [$clog2(max_out_credits_p+1)-1:0] out_credits_lo;
 
-   bsg_manycore_endpoint_standard #(.x_cord_width_p (x_cord_width_p)
-                                    ,.y_cord_width_p(y_cord_width_p)
-                                    ,.fifo_els_p    (proc_fifo_els_p)
-                                    ,.data_width_p  (data_width_p)
-                                    ,.addr_width_p  (addr_width_p)
-                                    ,.load_id_width_p (load_id_width_p)
-                                    ,.max_out_credits_p(max_out_credits_p)
-                                    ,.debug_p(debug_p)
+   bsg_manycore_endpoint_standard #(.x_cord_width_p      (x_cord_width_p)
+                                    ,.y_cord_width_p     (y_cord_width_p)
+                                    ,.fifo_els_p         (proc_fifo_els_p)
+                                    ,.returned_fifo_p    (1)
+                                    ,.data_width_p       (data_width_p)
+                                    ,.addr_width_p       (addr_width_p)
+                                    ,.load_id_width_p    (load_id_width_p)
+                                    ,.max_out_credits_p  (max_out_credits_p)
+                                    ,.debug_p            (debug_p)
 //                                    ,.debug_p(1)
                                     ) endp
    (.clk_i
@@ -117,6 +119,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     ,.returned_data_r_o    (returned_data_r_lo )
     ,.returned_load_id_r_o (returned_load_id_r_lo)
     ,.returned_v_r_o       (returned_v_r_lo    )
+    ,.returned_fifo_full_o (returned_fifo_full_lo)
+    ,.returned_yumi_i      (returned_yumi_li)
 
     ,.returning_data_i ( returning_data )
     ,.returning_v_i    ( returning_v    )
@@ -128,9 +132,6 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     //,.freeze_r_o(freeze_r)
     //,.reverse_arb_pr_o( reverse_arb_pr )
     );
-
-  // always full as fifo is not yet instantiated
-  assign returned_fifo_full = 1'b1;
 
    // register to hold to IDs of local loads
    logic [load_id_width_p-1:0] local_load_id_r;
@@ -298,7 +299,13 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   // Buffer full signal to the core. Core immediately yummies 
   // when this signal is high.
   logic buf_full_to_core;
-  assign buf_full_to_core = returned_v_r_lo & returned_fifo_full;
+  assign buf_full_to_core = returned_v_r_lo & returned_fifo_full_lo;
+
+  // Yummi to the network and not local memory
+  logic yumi_to_network;
+  assign yumi_to_network = core_to_mem.yumi & ~core_mem_rv;
+
+  assign returned_yumi_li = yumi_to_network;
                                                             
   // Returned data buffer
   logic                       returned_buf_v;
@@ -319,7 +326,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
         returned_buf_v       <= 1'b1;
         returned_data_buf    <= returned_data_r_lo;
         returned_load_id_buf <= returned_load_id_r_lo;
-      end else if (core_to_mem.yumi & ~core_mem_rv) begin
+      end else if (yumi_to_network) begin
         returned_buf_v <= 1'b0;
       end
     end
@@ -410,14 +417,13 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      always @(negedge clk_i)
        begin
           if (launching_out)
-            $display("# y,x=(%x,%x) PROC sending packet (addr=%b, op=%b, op_ex=%b, data=%b, return_pkt=%b, y_cord=%b, x_cord=%b\n%b"
+            $display("# y,x=(%x,%x) PROC sending packet (addr=%x, op=%x, op_ex=%x, data=%x, y_cord=%x, x_cord=%x\n%b"
                      , my_y_i
                      , my_x_i
                      , data_o_debug.addr
                      , data_o_debug.op
                      , data_o_debug.op_ex
                      , data_o_debug.payload
-                     , data_o_debug.return_pkt
                      , data_o_debug.y_cord
                      , data_o_debug.x_cord
                      , out_packet_li
