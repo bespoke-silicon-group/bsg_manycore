@@ -1,0 +1,3 @@
+[submodule "imports/riscv-tests"]
+	path = imports/riscv-tests
+	url = https://github.com/riscv/riscv-tests.git
