@@ -1,6 +1,5 @@
-
-bsg_tiles_X = 2
-bsg_tiles_Y = 5
+bsg_tiles_X = 4
+bsg_tiles_Y = 4
 
 #########################################################
 #each bytes defines the core type
@@ -16,8 +15,9 @@ all: main.run
 # Redirects verilog standard output starting with "X<x_cord>_Y<y_cord>.pelog" 
 # to a unique log file for each coordinate in the manycore. This can be useful 
 # for a quick debug of processor or program running on it.
-proc_exe_logs: X0_Y0.pelog X1_Y0.pelog
+proc_exe_logs: X0_Y0.pelog
 
+RISCV_GCC_EXTRA_OPTS ?= -O2 -funroll-loops
 OBJECT_FILES=main.o bsg_set_tile_x_y.o
 
 include ../Makefile.include

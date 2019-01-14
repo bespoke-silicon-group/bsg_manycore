@@ -44,7 +44,9 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    ,parameter data_width_p      = 32
 
-   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+   ,parameter load_id_width_p   = 5
+
+   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
 
    // insert bufx8's on outputs
    ,parameter repeater_output_p  = 0 //   snew * x * y bits.
@@ -76,7 +78,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   end
   // synopsys translate_on
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
+   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p);
 
    bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
    bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
@@ -100,9 +102,10 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
                        )
         ,.x_cord_width_p  (x_cord_width_lp)
         ,.y_cord_width_p  (y_cord_width_lp)
-        ,.data_width_p   (data_width_p)
-        ,.addr_width_p   (addr_width_p)
-        ,.debug_p        (debug_p)
+        ,.data_width_p    (data_width_p)
+        ,.addr_width_p    (addr_width_p)
+        ,.load_id_width_p (load_id_width_p)
+        ,.debug_p         (debug_p)
        // select buffer instructions for this particular node
        ,.repeater_output_p(  (repeater_output_p >> (4*(r*num_tiles_x_p+c))) & 4'b1111)
        ) rtr
@@ -123,7 +126,10 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    // stitch together all of the tiles into a mesh
 
-   bsg_mesh_stitch #(.width_p(bsg_manycore_link_sif_width_lp), .x_max_p(num_tiles_x_p), .y_max_p(num_tiles_y_p)) link
+   bsg_mesh_stitch #( .width_p(bsg_manycore_link_sif_width_lp)
+                     ,.x_max_p(num_tiles_x_p)
+                     ,.y_max_p(num_tiles_y_p)
+                    ) link
      (.outs_i(link_out),   .ins_o(link_in)
       ,.hor_i(hor_link_sif_i), .hor_o(hor_link_sif_o)
       ,.ver_i(ver_link_sif_i), .ver_o(ver_link_sif_o)

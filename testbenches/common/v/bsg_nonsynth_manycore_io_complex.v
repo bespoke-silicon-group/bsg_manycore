@@ -8,6 +8,7 @@ module bsg_nonsynth_manycore_io_complex
      icache_entries_num_p   = -1   // entries of the icache number
     ,max_cycles_p   = -1
     ,addr_width_p   = -1
+    ,load_id_width_p = 5
     ,epa_addr_width_p = -1
     ,dram_ch_num_p       = 0
     ,dram_ch_addr_width_p=-1
@@ -27,7 +28,7 @@ module bsg_nonsynth_manycore_io_complex
     ,vcache_entries_p = -1 
     ,vcache_ways_p    = -1 
 
-    ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+    ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
 
     )
    (input clk_i
@@ -46,12 +47,12 @@ module bsg_nonsynth_manycore_io_complex
         $display("## creating manycore complex num_tiles (x,y) = %-d,%-d (%m)", num_tiles_x_p, num_tiles_y_p);
      end
 
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
+   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p);
 
-   localparam packet_width_lp = `bsg_manycore_packet_width(addr_width_p, data_width_p, x_cord_width_lp, y_cord_width_lp);
+   localparam packet_width_lp = `bsg_manycore_packet_width(addr_width_p, data_width_p, x_cord_width_lp, y_cord_width_lp, load_id_width_p);
 
    // we add this for easier debugging
-  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
+  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p);
    bsg_manycore_link_sif_s  [num_tiles_x_p-1:0] ver_link_sif_i_cast, ver_link_sif_o_cast;
    assign ver_link_sif_i_cast = ver_link_sif_i;
    assign ver_link_sif_o      = ver_link_sif_o_cast;
@@ -80,6 +81,7 @@ module bsg_nonsynth_manycore_io_complex
         ,.load_cols_p   (load_cols_p)
         ,.data_width_p  (data_width_p)
         ,.addr_width_p  (addr_width_p)
+        ,.load_id_width_p (load_id_width_p)
         ,.epa_addr_width_p (epa_addr_width_p)
         ,.dram_ch_num_p       ( dram_ch_num_p       )
         ,.dram_ch_addr_width_p( dram_ch_addr_width_p )
@@ -126,6 +128,7 @@ module bsg_nonsynth_manycore_io_complex
                                  ,.data_width_p      (data_width_p   )
 
                                  ,.addr_width_p      (addr_width_p   )
+                                 ,.load_id_width_p   (load_id_width_p)
                                  ,.els_p             (2**dram_ch_addr_width_p)
                                 )ram
         (  .clk_i
@@ -187,13 +190,14 @@ module bsg_nonsynth_manycore_io_complex
 
           end
 
-        bsg_nonsynth_manycore_monitor #(.x_cord_width_p (x_cord_width_lp)
-                                        ,.y_cord_width_p(y_cord_width_lp)
-                                        ,.addr_width_p  (addr_width_p)
-                                        ,.data_width_p  (data_width_p)
-                                        ,.channel_num_p (i)
-                                        ,.max_cycles_p(max_cycles_p)
-                                        ,.pass_thru_p(i== src_x_cord_p)
+        bsg_nonsynth_manycore_monitor #(.x_cord_width_p   (x_cord_width_lp)
+                                        ,.y_cord_width_p  (y_cord_width_lp)
+                                        ,.addr_width_p    (addr_width_p)
+                                        ,.data_width_p    (data_width_p)
+                                        ,.load_id_width_p (load_id_width_p)
+                                        ,.channel_num_p   (i)
+                                        ,.max_cycles_p    (max_cycles_p)
+                                        ,.pass_thru_p     (i== src_x_cord_p)
                                         // for the SPMD loader we don't anticipate
                                         // any backwards flow control; but for an
                                         // accelerator, we must be much more careful about

@@ -2,6 +2,7 @@
 module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
                                  , data_width_p=-1
                                  , addr_width_p="inv"
+                                 , load_id_width_p = "inv"
                                  , x_cord_width_p="inv"
                                  , y_cord_width_p="inv"
                                  , packet_width_lp="inv"
@@ -27,9 +28,9 @@ module bsg_manycore_proc_trace #(parameter mem_width_lp=-1
    , input [packet_width_lp-1:0] cgni_data_in
    );
 
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
    bsg_manycore_link_sif_s link_sif_i_cast, link_sif_o_cast;
 
    assign link_sif_i_cast = link_sif_i;
