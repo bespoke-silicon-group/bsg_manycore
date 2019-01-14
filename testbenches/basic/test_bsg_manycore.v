@@ -33,13 +33,14 @@ module test_bsg_manycore;
    localparam icache_tag_width_lp= 12;      // 16MB PC address 
    localparam data_width_lp   = 32;
    localparam addr_width_lp   = 20;
+   localparam load_id_width_lp = 11;
    localparam epa_addr_width_lp       = 16;
    localparam num_tiles_x_lp  = `bsg_tiles_X;
    localparam num_tiles_y_lp  = `bsg_tiles_Y;
    localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
    localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + 1);
-   localparam packet_width_lp        = `bsg_manycore_packet_width       (addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp);
-   localparam return_packet_width_lp = `bsg_manycore_return_packet_width(lg_node_x_lp, lg_node_y_lp, data_width_lp);
+   localparam packet_width_lp        = `bsg_manycore_packet_width       (addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp, load_id_width_lp);
+   localparam return_packet_width_lp = `bsg_manycore_return_packet_width(lg_node_x_lp, lg_node_y_lp, data_width_lp, load_id_width_lp);
    localparam cycle_time_lp   = 20;
    localparam trace_vscale_pipeline_lp=0;
    localparam trace_manycore_tile_lp=0;
@@ -54,6 +55,7 @@ module test_bsg_manycore;
                                                        ,.y_cord_width_p(y_cord_width_p)
                                                        ,.addr_width_p(addr_width_p)
                                                        ,.data_width_p(data_width_p)
+                                                       ,.load_id_width_p(load_id_width_p)
                                                        ,.bsg_manycore_link_sif_width_lp(bsg_manycore_link_sif_width_lp)
                                                        ) bmtt
        (.clk_i
@@ -87,6 +89,7 @@ module test_bsg_manycore;
      bind bsg_manycore_proc bsg_manycore_proc_trace #(.mem_width_lp(mem_width_lp)
                                                       ,.data_width_p(data_width_p)
                                                       ,.addr_width_p(addr_width_p)
+                                                      ,.load_id_width_p(load_id_width_p)
                                                       ,.x_cord_width_p(x_cord_width_p)
                                                       ,.y_cord_width_p(y_cord_width_p)
                                                       ,.packet_width_lp(packet_width_lp)
@@ -141,7 +144,7 @@ module test_bsg_manycore;
 
   integer       stderr = 32'h80000002;
 
-   `declare_bsg_manycore_link_sif_s(addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp);
+   `declare_bsg_manycore_link_sif_s(addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp, load_id_width_lp);
 
    bsg_manycore_link_sif_s [S:N][num_tiles_x_lp-1:0] ver_link_li, ver_link_lo;
    bsg_manycore_link_sif_s [E:W][num_tiles_y_lp-1:0] hor_link_li, hor_link_lo;
@@ -158,6 +161,7 @@ module test_bsg_manycore;
      ,.icache_tag_width_p(icache_tag_width_lp)
      ,.data_width_p (data_width_lp)
      ,.addr_width_p (addr_width_lp)
+     ,.load_id_width_p (load_id_width_lp)
      ,.epa_addr_width_p (epa_addr_width_lp)
      ,.dram_ch_addr_width_p( dram_ch_addr_width_lp )
      ,.dram_ch_start_col_p ( 1'b0                  )
@@ -196,10 +200,11 @@ module test_bsg_manycore;
    for (i = 0; i < num_tiles_y_lp; i=i+1)
      begin: rof2
 
-        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp  )
-                                       ,.data_width_p  (data_width_lp  )
-                                       ,.x_cord_width_p(lg_node_x_lp)
-                                       ,.y_cord_width_p(lg_node_y_lp)
+        bsg_manycore_link_sif_tieoff #(.addr_width_p     (addr_width_lp  )
+                                       ,.data_width_p    (data_width_lp  )
+                                       ,.load_id_width_p (load_id_width_lp)
+                                       ,.x_cord_width_p  (lg_node_x_lp)
+                                       ,.y_cord_width_p  (lg_node_y_lp)
                                        ) bmlst
         (.clk_i(clk)
          ,.reset_i(reset_rr)
@@ -207,10 +212,11 @@ module test_bsg_manycore;
          ,.link_sif_o(hor_link_li[W][i])
          );
 
-        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp  )
-                                       ,.data_width_p  (data_width_lp  )
-                                       ,.x_cord_width_p(lg_node_x_lp   )
-                                       ,.y_cord_width_p(lg_node_y_lp   )
+        bsg_manycore_link_sif_tieoff #(.addr_width_p     (addr_width_lp  )
+                                       ,.data_width_p    (data_width_lp  )
+                                       ,.load_id_width_p (load_id_width_lp)
+                                       ,.x_cord_width_p  (lg_node_x_lp   )
+                                       ,.y_cord_width_p  (lg_node_y_lp   )
                                        ) bmlst2
         (.clk_i(clk)
          ,.reset_i(reset_rr)
@@ -223,10 +229,11 @@ module test_bsg_manycore;
    for (i = 0; i < num_tiles_x_lp; i=i+1)
      begin: rof
         // tie off north side; which is inaccessible
-        bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp)
-                                       ,.data_width_p  (data_width_lp)
-                                       ,.x_cord_width_p(lg_node_x_lp)
-                                       ,.y_cord_width_p(lg_node_y_lp)
+        bsg_manycore_link_sif_tieoff #(.addr_width_p     (addr_width_lp)
+                                       ,.data_width_p    (data_width_lp)
+                                       ,.load_id_width_p (load_id_width_lp)
+                                       ,.x_cord_width_p  (lg_node_x_lp)
+                                       ,.y_cord_width_p  (lg_node_y_lp)
                                        ) bmlst3
         (.clk_i(clk)
          ,.reset_i(reset_rr)
@@ -241,6 +248,7 @@ module test_bsg_manycore;
    bsg_nonsynth_manycore_io_complex
      #( .icache_entries_num_p(icache_entries_num_lp)
         ,.addr_width_p(addr_width_lp)
+        ,.load_id_width_p(load_id_width_lp)
         ,.epa_addr_width_p(epa_addr_width_lp)
         ,.dram_ch_addr_width_p( dram_ch_addr_width_lp)
         ,.data_width_p(data_width_lp)
