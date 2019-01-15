@@ -17,10 +17,10 @@
 
 // implicit pass
 #define RVTEST_CODE_END \
-    bsg_asm_finish(IO_X_INDEX)
+    bsg_asm_finish(IO_X_INDEX, 0)
 
 #define RVTEST_PASS \
-    bsg_asm_finish(IO_X_INDEX)
+    bsg_asm_finish(IO_X_INDEX, 0)
 
 #define RVTEST_FAIL \
     bsg_asm_fail(IO_X_INDEX, 0)
