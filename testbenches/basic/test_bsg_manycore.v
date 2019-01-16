@@ -36,8 +36,10 @@ module test_bsg_manycore;
    localparam epa_addr_width_lp       = 16;
    localparam num_tiles_x_lp  = `bsg_tiles_X;
    localparam num_tiles_y_lp  = `bsg_tiles_Y;
+   localparam extra_io_rows_lp= 2;
+   localparam num_routers_y_lp  = num_tiles_y_lp + extra_io_rows_lp -1;
    localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
-   localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + 1);
+   localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + extra_io_rows_lp);
    localparam packet_width_lp        = `bsg_manycore_packet_width       (addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp);
    localparam return_packet_width_lp = `bsg_manycore_return_packet_width(lg_node_x_lp, lg_node_y_lp, data_width_lp);
    localparam cycle_time_lp   = 20;
@@ -143,8 +145,9 @@ module test_bsg_manycore;
 
    `declare_bsg_manycore_link_sif_s(addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp);
 
-   bsg_manycore_link_sif_s [S:N][num_tiles_x_lp-1:0] ver_link_li, ver_link_lo;
-   bsg_manycore_link_sif_s [E:W][num_tiles_y_lp-1:0] hor_link_li, hor_link_lo;
+   bsg_manycore_link_sif_s [S:N][num_tiles_x_lp-1:0]   ver_link_li, ver_link_lo;
+   bsg_manycore_link_sif_s [E:W][num_routers_y_lp-1:0] hor_link_li, hor_link_lo;
+   bsg_manycore_link_sif_s      [num_tiles_x_lp-1:0]   io_link_li,  io_link_lo;
 
 
 `ifndef BSG_HETERO_TYPE_VEC
@@ -188,12 +191,15 @@ module test_bsg_manycore;
         ,.ver_link_sif_i(ver_link_li)
         ,.ver_link_sif_o(ver_link_lo)
 
+        ,.io_link_sif_i(io_link_li)
+        ,.io_link_sif_o(io_link_lo)
+
         );
 
 /////////////////////////////////////////////////////////////////////////////////
 // Tie the unused I/O
    genvar                   i,j;
-   for (i = 0; i < num_tiles_y_lp; i=i+1)
+   for (i = 0; i < num_routers_y_lp; i=i+1)
      begin: rof2
 
         bsg_manycore_link_sif_tieoff #(.addr_width_p   (addr_width_lp  )
@@ -253,6 +259,8 @@ module test_bsg_manycore;
     ,.reset_i(reset_rr)
     ,.ver_link_sif_i(ver_link_lo[S])
     ,.ver_link_sif_o(ver_link_li[S])
+    ,.io_link_sif_i(io_link_lo)
+    ,.io_link_sif_o(io_link_li)
     ,.finish_lo(finish_lo)
     ,.success_lo()
     ,.timeout_lo()

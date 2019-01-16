@@ -19,7 +19,7 @@ module bsg_nonsynth_manycore_io_complex
     ,tile_id_ptr_p = -1
     ,src_x_cord_p = num_tiles_x_p -1 
     ,x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
-    ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + 1)
+    ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + 2)
     ,include_dram_model = 1'b1
 
     //parameters for victim cache    
@@ -35,6 +35,9 @@ module bsg_nonsynth_manycore_io_complex
 
     ,input  [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_i
     ,output [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
+
+    ,input  [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] io_link_sif_i
+    ,output [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] io_link_sif_o
 
     ,output finish_lo
 	,output success_lo
@@ -52,9 +55,9 @@ module bsg_nonsynth_manycore_io_complex
 
    // we add this for easier debugging
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
-   bsg_manycore_link_sif_s  [num_tiles_x_p-1:0] ver_link_sif_i_cast, ver_link_sif_o_cast;
-   assign ver_link_sif_i_cast = ver_link_sif_i;
-   assign ver_link_sif_o      = ver_link_sif_o_cast;
+   bsg_manycore_link_sif_s  [num_tiles_x_p-1:0] io_link_sif_i_cast, io_link_sif_o_cast;
+   assign io_link_sif_i_cast = io_link_sif_i;
+   assign io_link_sif_o      = io_link_sif_o_cast;
 
    wire [39:0] cycle_count;
 
@@ -119,7 +122,7 @@ module bsg_nonsynth_manycore_io_complex
    //-----------------------------------------------------------------
    // Connects dram model
    if(include_dram_model) begin
-        for (i = 0; i < num_tiles_x_p-1; i=i+1) begin
+        for (i = 0; i < num_tiles_x_p; i=i+1) begin
              
          bsg_manycore_ram_model#( .x_cord_width_p    (x_cord_width_lp)
                                  ,.y_cord_width_p    (y_cord_width_lp)
@@ -132,11 +135,11 @@ module bsg_nonsynth_manycore_io_complex
          , .reset_i
 
          // mesh network
-         , .link_sif_i (ver_link_sif_i_cast[i] )
-         , .link_sif_o (ver_link_sif_o_cast[i] )
+         , .link_sif_i (ver_link_sif_i[i] )
+         , .link_sif_o (ver_link_sif_o[i] )
 
-         , .my_x_i ( x_cord_width_lp'(i)             )
-         , .my_y_i ( y_cord_width_lp'(num_tiles_y_p) )
+         , .my_x_i ( x_cord_width_lp'(i)               )
+         , .my_y_i ( y_cord_width_lp'(num_tiles_y_p+1) )
 
          );
         end
@@ -151,7 +154,7 @@ module bsg_nonsynth_manycore_io_complex
    // input fifo
 
    localparam spmd_max_out_credits_lp = 128;
-   for (i = num_tiles_x_p-1; i < num_tiles_x_p; i=i+1)
+   for (i = 0; i < num_tiles_x_p; i=i+1)
      begin: rof
 
         wire pass_thru_ready_lo;
@@ -201,8 +204,8 @@ module bsg_nonsynth_manycore_io_complex
                                         ,.pass_thru_max_out_credits_p (credits_lp)
                                         ) bmm (.clk_i             (clk_i)
                                                ,.reset_i          (reset_r)
-                                               ,.link_sif_i       (ver_link_sif_i_cast[i])
-                                               ,.link_sif_o       (ver_link_sif_o_cast[i])
+                                               ,.link_sif_i       (io_link_sif_i_cast[i])
+                                               ,.link_sif_o       (io_link_sif_o_cast[i])
                                                ,.pass_thru_data_i (loader_data_lo )
                                                ,.pass_thru_v_i    (loader_v_lo & loader_ready_li    )
                                                ,.pass_thru_ready_o(pass_thru_ready_lo)
