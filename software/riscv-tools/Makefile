@@ -1,3 +1,12 @@
+# ##################################################################
+# For CENTOS 7.XX
+# ##################################################################
+# 1. Make sure you have internet connections because we need to download the automake/autoconf
+# 2. Make sure you have wget installed.
+#
+# #################################################################
+# For CENTOS 6.XX
+# #################################################################
 # MBT 12-18-15
 #
 # 1. Ran these commands to get gcc-4.8  (on bb-91/bb-92) CENTOS 6.7
@@ -16,14 +25,18 @@
 # assumed already installed: autoconf automake libtool curl gmp gawk bison flex texinfo gperf gcc48 gsed
 #
 #
-#
-#
+TOOLCHAIN_REPO=riscv-gnu-toolchain
+TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
+DEPENDS_DIR=$(PWD)/depends
 
+export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
+
+DEPENDS_LIST=autoconf-2.69 automake-1.14
+DEPENDS_URL=https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.xz \
+            https://ftp.gnu.org/gnu/automake/automake-1.14.tar.xz 
 
 export RISCV:=$(PWD)/riscv-install
 export SED=sed
-#export CC=/opt/rh/devtoolset-2/root/usr/bin/gcc
-#export CXX=/opt/rh/devtoolset-2/root/usr/bin/g++
 export CC=gcc
 export CXX=g++
 export SED=sed
@@ -34,38 +47,45 @@ export SHELL:=$(SHELL)
 nothing:
 
 checkout-all:
-	git clone git://github.com/ucb-bar/rocket-chip.git
-	cd rocket-chip; git checkout 48170fd9aa4de6bf2a443010881d25dd55238941;
-	############
-	# replace the https:// with git:// because of the SSL update on Github
-	sed 's/https:/git:/' -i rocket-chip/.gitmodules
-	cd rocket-chip; git submodule init riscv-tools
-	cd rocket-chip; git submodule update riscv-tools
-	############
-	# replace the https:// with git:// because of the SSL update on Github
-	sed 's/https:/git:/' -i rocket-chip/riscv-tools/.gitmodules
-	cd rocket-chip/riscv-tools; git submodule init riscv-fesvr;         git submodule update riscv-fesvr
-	cd rocket-chip/riscv-tools; git submodule init riscv-gnu-toolchain; git submodule update riscv-gnu-toolchain
-	cd rocket-chip/riscv-tools; git submodule init riscv-isa-sim;       git submodule update riscv-isa-sim
-	cd rocket-chip/riscv-tools; git submodule init riscv-opcodes;       git submodule update riscv-opcodes
-	cd rocket-chip/riscv-tools; git submodule init riscv-pk;            git submodule update riscv-pk
-	cd rocket-chip/riscv-tools; git submodule init riscv-llvm;          git submodule update riscv-llvm
-	cd rocket-chip/riscv-tools; git submodule init riscv-tests;         git submodule update riscv-tests
-	sed 's/https:/git:/' -i rocket-chip/riscv-tools/riscv-llvm/.gitmodules
-	sed 's/https:/git:/' -i rocket-chip/riscv-tools/riscv-tests/.gitmodules
-	cd rocket-chip/riscv-tools/riscv-llvm/;   git submodule update --init --recursive	
-	cd rocket-chip/riscv-tools/riscv-tests/;  git submodule update --init --recursive	
+	mkdir -p $(DEPENDS_DIR);	
+	mkdir -p $(RISCV);
+	@echo "====================================="
+	@echo "Downloading depends..."
+	@echo "====================================="
+	@cd $(DEPENDS_DIR) && 		\
+	for dep_url in $(DEPENDS_URL); do 	\
+		wget $$dep_url;			\
+	done
+	@echo "====================================="
+	@echo "Cloning riscv-toolchain repo..."
+	@echo "====================================="
+	@rm -rf $(TOOLCHAIN_REPO);
+	git clone --recursive $(TOOLCHAIN_URL); 
 
 build-riscv-tools:
-	cd rocket-chip/riscv-tools; sed -i 's/JOBS=16/JOBS=2/' build.common
-	cd rocket-chip/riscv-tools; sed -i 's/build_project riscv-gnu-toolchain/build_project riscv-gnu-toolchain --enable-multilib/' build.sh
-	cd rocket-chip/riscv-tools; ./build.sh | tee $@.log
+	@echo "====================================="
+	@echo "Building depends..."
+	@echo "====================================="
+	cd $(DEPENDS_DIR) && \
+	for dep_tool in $(DEPENDS_LIST); do 	\
+		tar xf $$dep_tool.tar.xz &&      \
+		cd $$dep_tool	&&	\
+		./configure --prefix=$(DEPENDS_DIR) && make && make install; \
+		cd ..;	\
+	done
+	@echo "====================================="
+	@echo "Building toolchain..."
+	@echo "====================================="
+	cd riscv-gnu-toolchain && \
+	./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32ima --with-abi=ilp32 && \
+	make -j 16 newlib && make install
 
 clean:
 	rm -rf riscv-install
 
 really-clean: clean
-	rm -rf rocket-chip
+	rm -rf $(TOOLCHAIN_REPO)
+	rm -rf $(DEPENDS_DIR)
 
 
 installs:
