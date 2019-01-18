@@ -9,16 +9,16 @@ BSG_MANYCORE_BANKSIZE=2048
 #####################################################
 # DO we have the FPU implemented ?
 ifeq ($(BSG_FPU_OP),1)
-ARCH_OP=RV32IMAFD
+ARCH_OP=rv32imafd
 else
-ARCH_OP=RV32IMA
+ARCH_OP=rv32ima
 endif
 #####################################################
 
 # paths
-RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-gcc
+RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-gcc
 RISCV_ELF2HEX ?= LD_LIBRARY_PATH=$(RISCV_BIN_DIR)/../lib $(RISCV_BIN_DIR)/elf2hex
-RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-objcopy
+RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-objcopy
 
 BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
@@ -27,10 +27,10 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
 # flags
 RISCV_GCC_EXTRA_OPTS ?= -O2
-RISCV_GCC_OPTS  = -march=$(ARCH_OP) -m32 -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
+RISCV_GCC_OPTS  = -march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 
 #RISCV_LINK_EXTRA_OPTS ?=
-RISCV_LINK_OPTS = -m32 -march=RV32IMA -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
+RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
@@ -67,7 +67,7 @@ RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 	python $(HEX2BIN) $< 32 > $@
 
 %.dis: %.riscv
-	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objdump -M numeric --disassemble-all $<
+	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all $<
 
 #added the '0x' prefix and and a ',' prefix to each line except the last line.
 #can be used to initialize a vector in C launguage.
@@ -78,7 +78,7 @@ RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 	echo "int  bsg_rocc_manycore_mem_words=2048; "  >> $@
 
 %.riscv64:	%.riscv
-	$(RISCV_BIN_DIR)/riscv64-unknown-elf-objcopy --output-target=elf64-littleriscv  $< $@
+	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objcopy --output-target=elf64-littleriscv  $< $@
 
 %.cfg.h:    %.riscv
 	sed -n 's/^.*MANYCORE_EXPORT//p' *.comp.log > $@

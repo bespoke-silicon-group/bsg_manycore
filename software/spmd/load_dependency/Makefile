@@ -13,7 +13,7 @@ proc_exe_logs: X0_Y0.pelog X1_Y0.pelog X0_Y1.pelog X1_Y1.pelog
 
 include ../Makefile.include
 
-RISCV_LINK_OPTS = -m32 -march=RV32IMA -nostdlib -nostartfiles 
+RISCV_LINK_OPTS =  -march=rv32ima -nostdlib -nostartfiles 
 
 main.riscv:  main.o 
 	$(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/asm.ld  $< -o $@ $(RISCV_LINK_OPTS)
