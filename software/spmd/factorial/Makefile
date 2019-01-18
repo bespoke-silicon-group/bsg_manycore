@@ -1,14 +1,11 @@
 bsg_tiles_X= 2
 bsg_tiles_Y= 2 
 
-NUM_CODE_SECTIONS = 2
-CODE_LABELS = _code_section_1 _code_section_2
-
 all: main.run
 
-include ../../Makefile.include
+include ../Makefile.include
 
-RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles 
+RISCV_LINK_OPTS = -m32 -march=RV32IMA -nostdlib -nostartfiles 
 
 main.riscv:  main.o 
 	$(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/asm.ld  $< -o $@ $(RISCV_LINK_OPTS)
@@ -20,5 +17,5 @@ clean:
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd
 
 
-include ../../../mk/Makefile.tail_rules
+include ../../mk/Makefile.tail_rules
 

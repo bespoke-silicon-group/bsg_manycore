@@ -6,8 +6,9 @@ module bsg_manycore_pkt_decode
     , y_cord_width_p = -1
     , data_width_p   = -1
     , addr_width_p   = -1
-    , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p)
+    , load_id_width_p = 5
+    , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+    , return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p,load_id_width_p)
     )
    (
     input   v_i
@@ -27,12 +28,12 @@ module bsg_manycore_pkt_decode
     ,output logic [(data_width_p>>3)-1:0] mask_o
     );
 
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
 
    bsg_manycore_packet_s pkt;
 
    assign pkt = data_i;
-   assign data_o = pkt.data;
+   assign data_o = pkt.payload;
    assign addr_o = addr_width_p ' (pkt.addr);
 
    wire is_config_op    = v_i & pkt.addr[addr_width_p-1]
@@ -42,8 +43,8 @@ module bsg_manycore_pkt_decode
    wire is_freeze_addr  = {1'b0,pkt.addr[addr_width_p-2:0]} == addr_width_p'(0);
    wire is_arb_cfg_addr = {1'b0,pkt.addr[addr_width_p-2:0]} == addr_width_p'(1);
 
-   assign pkt_freeze_o          = is_config_op & is_freeze_addr & pkt.data[0]    ;
-   assign pkt_unfreeze_o        = is_config_op & is_freeze_addr & (~pkt.data[0]) ;
+   assign pkt_freeze_o          = is_config_op & is_freeze_addr & pkt.payload[0]    ;
+   assign pkt_unfreeze_o        = is_config_op & is_freeze_addr & (~pkt.payload[0]) ;
    assign pkt_arb_cfg_o         = is_config_op & is_arb_cfg_addr                 ;
    assign pkt_remote_store_o    = is_mem_op    & ( pkt.op == `ePacketOp_remote_store);
    assign pkt_remote_load_o     = is_mem_op    & ( pkt.op == `ePacketOp_remote_load );

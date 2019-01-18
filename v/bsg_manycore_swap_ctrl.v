@@ -39,6 +39,8 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
     , output [(data_width_p>>3)-1:0] comb_mask_o
     , output [addr_width_p-1:0]      comb_addr_o
     , output                         comb_we_o
+    , output [x_cord_width_p-1:0]    comb_x_cord_o
+    , output [y_cord_width_p-1:0]    comb_y_cord_o
 
     // The memory read value
     , input [data_width_p-1:0]       returning_data_i
@@ -148,20 +150,26 @@ module bsg_manycore_swap_ctrl         #(  data_width_p           = 32
     wire   swap_failing              =  swap_aq_fail  | swap_rl_fail    ;
     //NOTE: comb_v_o =1 when  SWAP_IDLE -> SWAP_LOADING, which is the load
     //      request
-    assign comb_v_o     =   swap_working ?  swap_store_req :
-                            swap_failing ?  1'b0
-                                         :  in_v_i ;
+    assign comb_v_o       =   swap_working ?  swap_store_req :
+                              swap_failing ?  1'b0
+                                           :  in_v_i ;
 
-    assign comb_data_o  =   swap_store_req  ?  swap_data_r
-                                            :  in_data_i ;
+    assign comb_data_o    =   swap_store_req  ?  swap_data_r
+                                              :  in_data_i ;
 
-    assign comb_mask_o  =   swap_working    ?  swap_mask_r
-                                            :  in_mask_i ;
+    assign comb_mask_o    =   swap_working    ?  swap_mask_r
+                                              :  in_mask_i ;
 
-    assign comb_addr_o  =   swap_working    ?  swap_addr_r
-                                            :  in_addr_i ;
+    assign comb_addr_o    =   swap_working    ?  swap_addr_r
+                                              :  in_addr_i ;
 
-    assign comb_we_o    =   swap_store_req  ? 1'b1 : in_we_i ;
+    assign comb_x_cord_o  =   swap_working    ?  swap_x_cord_r
+                                              :  in_x_cord_i ;
+
+    assign comb_y_cord_o  =   swap_working    ?  swap_y_cord_r
+                                              :  in_y_cord_i ;
+
+    assign comb_we_o      =   swap_store_req  ? 1'b1 : in_we_i ;
 
     //returning data to endpoint
     logic                     swap_failing_r        ;

@@ -4,11 +4,13 @@
 dve:
 	$(VCS_BIN)/dve -full64 -vpd vcdplus.vpd &
 
+%.pelog: pe.log
+	cat pe.log | grep '^$@' | sed 's/$@ //' > $@
 
 urg:
 	$(VCS_BIN)/urg -full64 -report coverage/ -format both -dir simv.vdb/ 
 
 clean:
-	-rm -rf *.o *.jou *.log *.pb bsg_manycore_io_complex_rom.v main.riscv *.wdb main.bin main.hex
+	-rm -rf *.o *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v main.riscv *.wdb main.bin main.hex
 	-rm -rf xsim.dir *.mem
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd *.vdb coverage/

@@ -83,25 +83,46 @@ typedef struct packed{
     logic [31:0]    data;    // 31..0
 } ring_packet_s;
 
+typedef struct packed {
+  logic        icache_fetch;
+  logic        is_unsigned_op;
+  logic        is_byte_op;
+  logic        is_hex_op;
+  logic [1:0]  part_sel;
+  logic [4:0]  reg_id;
+} load_info_s;
+
+`define load_info_width ($bits(load_info_s))
+
+typedef union packed {
+  logic [31:0] write_data; // stores send store data
+  struct packed {          // loads send reg_id to be loaded
+    logic [20:0] rsvd;
+    load_info_s load_info;
+  } read_info; 
+} mem_payload_u;
+
 // Data memory input structure
 typedef struct packed
 {
-    logic        valid;
-    logic        wen;
-    logic        swap_aq;
-    logic        swap_rl;
-    logic [3:0]  mask;
-    logic [31:0] addr;
-    logic [31:0] write_data;
-    logic        yumi;    // in response to data memory
+    logic          valid;
+    logic          wen;
+    logic          swap_aq;
+    logic          swap_rl;
+    logic [3:0]    mask;
+    logic [31:0]   addr;
+    logic          yumi;    // in response to data memory
+    mem_payload_u  payload;
 } mem_in_s;
 
 // Data memory output structure
 typedef struct packed
 {
+    logic        buf_full;
     logic        valid;
     logic [31:0] read_data;
     logic        yumi;      // in response to core
+    load_info_s  load_info;
 } mem_out_s;
 
 // Debug signal structures
@@ -177,10 +198,11 @@ typedef struct packed
 // Memory stage signals
 typedef struct packed
 {
-    logic [RV32_reg_addr_width_gp-1:0] rd_addr;    // Destination address
-    decode_s                           decode;     // Decode signals
-    logic [RV32_reg_data_width_gp-1:0] alu_result; // ALU ouptut data
+    logic [RV32_reg_addr_width_gp-1:0] rd_addr;       // Destination address
+    decode_s                           decode;        // Decode signals
+    logic [RV32_reg_data_width_gp-1:0] exe_result;    // Execution result
     logic [RV32_reg_data_width_gp-1:0] mem_addr_send; //the address sent to memory
+    logic                              remote_load;
     logic                              icache_miss;
 } mem_signals_s;
 

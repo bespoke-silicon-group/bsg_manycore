@@ -48,7 +48,9 @@ module bsg_manycore_rocc_wrapper
 
    // changing this parameter is untested
    ,parameter data_width_p      = 32
-   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+
+   ,parameter load_id_width_p   = 5
+   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
    // snew * y * x bits
    ,parameter repeater_output_p = 0
 
@@ -84,7 +86,7 @@ module bsg_manycore_rocc_wrapper
  `define GET_HEX_MIN_1(p, ind) ( `GET_HEX(p,ind) - 4'h1 )
 
   //declare the interface to the bsg_manycore
-  `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_lp, y_cord_width_lp);
+  `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p, x_cord_width_lp, y_cord_width_lp, load_id_width_p);
 
   bsg_manycore_link_sif_s [S:N][num_tiles_x_p-1:0] MC_ver_link_li, MC_ver_link_lo;
   bsg_manycore_link_sif_s [E:W][num_tiles_y_p-1:0] MC_hor_link_li, MC_hor_link_lo;

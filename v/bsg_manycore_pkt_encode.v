@@ -7,11 +7,12 @@ module bsg_manycore_pkt_encode
     , y_cord_width_p = -1
     , data_width_p   = -1
     , addr_width_p   = -1
+    , load_id_width_p = 5
     , epa_addr_width_p = -1
     , dram_ch_addr_width_p = -1
     , dram_ch_start_col_p  = 0
     , remote_addr_prefix_p = 2'b01
-    , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
     , max_x_cord_width_lp = 6
     , max_y_cord_width_lp = 6
     , debug_p=0
@@ -36,7 +37,7 @@ module bsg_manycore_pkt_encode
    `declare_bsg_manycore_addr_s(epa_addr_width_p, max_x_cord_width_lp, max_y_cord_width_lp);
    `declare_bsg_manycore_dram_addr_s(dram_ch_addr_width_p);
 
-   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
 
    bsg_manycore_packet_s        pkt;
    bsg_manycore_addr_s          addr_decode;
@@ -62,7 +63,7 @@ module bsg_manycore_pkt_encode
                                                       : addr_width_p ' (addr_decode.addr[$size(addr_decode.addr)-1:0]);
 
 
-   assign pkt.data       = data_i;
+   assign pkt.payload    = data_i;
    assign pkt.x_cord     = dram_addr_decode.is_dram_addr ? x_cord_width_p'(dram_addr_decode.x_cord + dram_ch_start_col_p)
                                                          : addr_decode.x_cord;
    assign pkt.y_cord     = dram_addr_decode.is_dram_addr ? {y_cord_width_p{1'b1}} //Set to Y_MAX

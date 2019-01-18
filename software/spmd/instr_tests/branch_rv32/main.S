@@ -37,5 +37,5 @@ fail_4:
     bsg_asm_fail(IO_X_INDEX, 0x4);
 
 finish:
-    bsg_asm_finish(IO_X_INDEX);
+    bsg_asm_finish(IO_X_INDEX, 0);
 _code_section_2_end = .

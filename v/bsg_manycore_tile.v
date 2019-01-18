@@ -17,11 +17,12 @@ module bsg_manycore_tile
 
   parameter data_width_p = 32,
   parameter addr_width_p = "inv",
+  parameter load_id_width_p = 5,
   parameter epa_addr_width_p = "inv",
   parameter dram_ch_addr_width_p = "inv",
   parameter dram_ch_start_col_p  = 0,
 
-  parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p),
+  parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p),
 
   parameter dirs_lp = 4,
   parameter stub_p  = {dirs_lp{1'b0}}, // {s,n,e,w}
@@ -64,6 +65,7 @@ module bsg_manycore_tile
       .y_cord_width_p(y_cord_width_p),
       .data_width_p(data_width_p),
       .addr_width_p(addr_width_p),
+      .load_id_width_p(load_id_width_p),
       .debug_p(debug_p),
       // select buffer instructions for this particular node
       .repeater_output_p(repeater_output_p)
@@ -90,6 +92,7 @@ module bsg_manycore_tile
       .icache_tag_width_p( icache_tag_width_p ),
       .data_width_p(data_width_p),
       .addr_width_p(addr_width_p),
+      .load_id_width_p(load_id_width_p),
       .epa_addr_width_p( epa_addr_width_p),
       .dram_ch_addr_width_p( dram_ch_addr_width_p ),
       .dram_ch_start_col_p ( dram_ch_start_col_p  ),

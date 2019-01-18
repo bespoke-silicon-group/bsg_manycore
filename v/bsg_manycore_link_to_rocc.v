@@ -15,8 +15,9 @@ module  bsg_manycore_link_to_rocc
     , parameter data_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
+    , parameter load_id_width_p = 5
     , parameter fifo_els_p    = 4
-    , parameter bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , parameter bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
     , parameter debug_lp      =0
     )
   (
@@ -61,7 +62,7 @@ module  bsg_manycore_link_to_rocc
 
    //local parameter definition
     localparam max_out_credits_lp =200;
-    localparam packet_width_lp    = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+    localparam packet_width_lp    = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
     localparam byte_addr_width_lp = addr_width_p + 2;
 
   ///////////////////////////////////////////////////////////////////////////////////
@@ -324,7 +325,7 @@ bsg_manycore_rocc_dma #(
   endfunction
 
   //functions to encode the manycore packet
-  `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
+  `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
   function bsg_manycore_packet_s get_manycore_pkt(
                              input rocc_manycore_addr_s               rocket_addr_s
                            , input [data_width_p-1 : 0]               manycore_value
