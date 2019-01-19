@@ -159,7 +159,8 @@ _start:
   #la t0, main
   #csrw mepc, t0
   j main
-  eret
+2:
+  j 2b
 
 trap_entry:
 
