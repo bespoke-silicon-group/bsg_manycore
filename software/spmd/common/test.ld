@@ -24,6 +24,7 @@ SECTIONS
   _bsg_data_start_addr = . ;
   /* data segment */
   .data : { *(.data) }
+  .rodata : { *(.rodata) }
 
   .sdata : {
     _gp = . + 0x800;
