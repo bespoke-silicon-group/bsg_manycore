@@ -13,6 +13,7 @@ test_case_list+=bsg_remote_congestion
 test_case_list+=instr_tests/jal_rv32
 test_case_list+=instr_tests/branch_rv32
 test_case_list+=load_dependency
+test_case_list+=bsg_riscv_tests
 #test_case_list+=bsg_swap
 #test_case_list+=bsg_barrier
 #test_case_list+=bsg_transpose
@@ -22,7 +23,7 @@ include ./Makefile.include
 COVERAGE =
 ###############################################
 # VCS Unified Coverage report Generator options
-VCS_COV_DBs = $(foreach testcase, $(test_case_list), $(testcase)/simv.vdb)
+VCS_COV_DBs = $(foreach testcase, $(test_case_list), $(testcase)/*.vdb/)
 URG_OPS     = -full64
 URG_OPS    += -report coverage/
 URG_OPS    += -format both  # report in both text and html

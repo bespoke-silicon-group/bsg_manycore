@@ -10,15 +10,15 @@ PROG_NAME ?= main
 # select the tools
 include $(CAD_DIR)/cadenv.mk
 
-BSG-SIM-TOOL=vcs
-INC_OP		=+incdir+
-VCS_OP		=-full64 -sverilog
-VCS_OP         += +lint=PCWM 
-VCS_OP         += -timescale=1ps/1ps
-VCS_OPTIONS	= +define+SPMD=$*
-VCS_OPTIONS+= +define+bsg_tiles_X=$(bsg_tiles_X)
-VCS_OPTIONS+= +define+bsg_tiles_Y=$(bsg_tiles_Y)
-VCS_OPTIONS+= +define+BSG_HETERO_TYPE_VEC=${TYPE_VEC}+
+BSG-SIM-TOOL = vcs
+INC_OP = +incdir+
+VCS_OP = -full64 -sverilog
+VCS_OP += +lint=PCWM 
+VCS_OP += -timescale=1ps/1ps
+VCS_OPTIONS = +define+SPMD=$*
+VCS_OPTIONS += +define+bsg_tiles_X=$(bsg_tiles_X)
+VCS_OPTIONS += +define+bsg_tiles_Y=$(bsg_tiles_Y)
+VCS_OPTIONS += +define+BSG_HETERO_TYPE_VEC=${TYPE_VEC}+
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.verilog.loader
 
@@ -29,8 +29,9 @@ endif
 # VCS coverge options
 VCS_COV_OP =
 ifeq ($(COVERAGE),VCS)
-VCS_COV_OP += -cm line+tgl+branch 
+VCS_COV_OP += -cm line+tgl
 VCS_COV_OP += -cm_hier $(BSG_MANYCORE_DIR)/testbenches/basic/vcsCoverageHierConfig
+VCS_COV_OP += -cm_dir $(PROG_NAME).vdb/
 endif
 
 VCS_OP += $(VCS_COV_OP)

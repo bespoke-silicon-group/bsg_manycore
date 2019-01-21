@@ -1,6 +1,6 @@
-
 %.echo:
 	echo $($*)
+
 dve:
 	$(VCS_BIN)/dve -full64 -vpd vcdplus.vpd &
 
@@ -8,7 +8,7 @@ dve:
 	cat pe.log | grep '^$@' | sed 's/$@ //' > $@
 
 urg:
-	$(VCS_BIN)/urg -full64 -report coverage/ -format both -dir simv.vdb/ 
+	$(VCS_BIN)/urg -full64 -report coverage/ -format both -dir *.vdb/
 
 clean:
 	-rm -rf *.o *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex

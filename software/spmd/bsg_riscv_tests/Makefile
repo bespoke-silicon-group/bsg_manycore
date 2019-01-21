@@ -20,20 +20,8 @@ RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles
 %.riscv:  %.o
 	$(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/asm.ld  $< -o $@ $(RISCV_LINK_OPTS)
 
+# Set a separate program run for each run
 %.run: PROG_NAME=$(basename $@)
-
-# All instruction tests in the ISA
-#
-# Import list of tests from riscv-tests repo. Below Makefrags have tests listed as
-# variables in the format "<test_isa>_sc_tests"
-include $(foreach test_asm_dir, $(RVTEST_ASM_DIRs), $(test_asm_dir)/Makefrag)
-
-ALL_RUNS = $(foreach test_isa, $(RVTEST_ISAs)\
-               , $(foreach test, $($(test_isa)_sc_tests)\
-                     , $(RVTEST_DIR)/$(test_isa)/$(test).run))
-
-all: $(ALL_RUNS)
-	$(warning Finished running: $(ALL_RUNS))
 
 # Selected instrcution tests
 #
@@ -43,7 +31,6 @@ TEST_INSTRS = \
 	and andi \
 	auipc \
 	beq bge bgeu blt bltu bne \
-	fence_i \
 	jal jalr \
 	lb lbu lh lhu lw \
 	lui \
@@ -58,8 +45,26 @@ TEST_INSTRS = \
 	div divu \
 	mul mulh mulhsu mulhu \
 	rem remu \
+	#fence_i \
+	amoadd_w amoand_w amomax_w amomaxu_w amomin_w amominu_w amoor_w amoxor_w amoswap_w \
+	lrsc \
 
 selected: $(foreach instr, $(TEST_INSTRS), $(instr).run)
 	$(warning Finished running: $(TEST_INSTRS))
+
+# All instruction tests in the ISA
+#
+# Import list of tests from riscv-tests repo. Below Makefrags have tests listed as
+# variables in the format "<test_isa>_sc_tests"
+include $(foreach test_asm_dir, $(RVTEST_ASM_DIRs), $(test_asm_dir)/Makefrag)
+
+ALL_RUNS = $(foreach test_isa, $(RVTEST_ISAs)\
+               , $(foreach test, $($(test_isa)_sc_tests)\
+                     , $(RVTEST_DIR)/$(test_isa)/$(test).run))
+
+all: $(ALL_RUNS)
+	$(warning Finished running: $(ALL_RUNS))
+
+proc_exe_logs: X0_Y0.pelog X0_Y1.pelog X1_Y0.pelog X1_Y1.pelog
 
 include ../../mk/Makefile.tail_rules
