@@ -19,6 +19,7 @@ VCS_OPTIONS = +define+SPMD=$*
 VCS_OPTIONS += +define+bsg_tiles_X=$(bsg_tiles_X)
 VCS_OPTIONS += +define+bsg_tiles_Y=$(bsg_tiles_Y)
 VCS_OPTIONS += +define+BSG_HETERO_TYPE_VEC=${TYPE_VEC}+
+VCS_RUN_OP =
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.verilog.loader
 
@@ -26,16 +27,26 @@ ifeq ($(DVE),1)
 VCS_OP     +=  +vcs+vcdpluson -debug_access+all
 endif
 
+
+####################################################
 # VCS coverge options
-VCS_COV_OP =
+VCS_COV_COMP_OP =
+VCS_COV_RUN_OP =
 ifeq ($(COVERAGE),VCS)
-VCS_COV_OP += -cm line+tgl
-VCS_COV_OP += -cm_hier $(BSG_MANYCORE_DIR)/testbenches/basic/vcsCoverageHierConfig
-VCS_COV_OP += -cm_dir $(PROG_NAME).vdb/
+VCS_COV_COMP_OP += -cm_hier $(VCS_COV_HIER_CONFIG)
+VCS_COV_COMP_OP += -cm_dir $(PROG_NAME).vdb/
+VCS_COV_COMP_OP += -cm line+tgl
+VCS_COV_COMP_OP += -cm_line contassign
+VCS_COV_COMP_OP += -cm_noconst
+VCS_COV_COMP_OP += -cm_seqnoconst
+VCS_COV_COMP_OP += -cm_ignorepragmas
+VCS_COV_RUN_OP += -cm_dir $(PROG_NAME).vdb/
+VCS_COV_RUN_OP += -cm line+tgl
 endif
 
-VCS_OP += $(VCS_COV_OP)
-VCS_RUN_OP = $(VCS_COV_OP)
+VCS_OP += $(VCS_COV_COMP_OP)
+VCS_RUN_OP += $(VCS_COV_RUN_OP)
+
 
 $(warning $(BSG-SIM-TOOL))
 
