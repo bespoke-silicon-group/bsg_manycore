@@ -7,8 +7,11 @@ dve:
 %.pelog: pe.log
 	cat pe.log | grep '^$@' | sed 's/$@ //' > $@
 
+cov_dve:
+	$(VCS_BIN)/dve -full64 -dir *.vdb/
+
 urg:
-	$(VCS_BIN)/urg -full64 -report coverage/ -format both -dir *.vdb/
+	$(VCS_BIN)/urg -full64 -report coverage/ -format both -dir *.vdb/ -map $(VCS_COV_MAP_MODULE)
 
 clean:
 	-rm -rf *.o *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex
