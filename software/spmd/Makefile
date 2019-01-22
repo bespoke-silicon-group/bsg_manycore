@@ -26,13 +26,14 @@ COVERAGE =
 
 ###############################################
 # VCS Unified Coverage report Generator options
-VCS_COV_DBs = $(foreach testcase, $(test_case_list), $(testcase)/*.vdb/)
-URG_OPS     = -full64
-URG_OPS    += -report coverage/
-URG_OPS    += -format both  # report in both text and html
-URG_OPS    += -dir $(VCS_COV_DBs)  # merge all coverage dbs
-URG_OPS    += -map $(VCS_COV_MAP_MODULE)
-URG_OPS    += -log urg.log
+VCS_COV_DBs       = $(foreach testcase, $(test_case_list), $(testcase)/*.vdb/)
+VCS_MERGED_COV_DB = coverage
+URG_OPS           = -full64
+URG_OPS          += -dbname $(VCS_MERGED_COV_DB) 
+URG_OPS          += -show tests
+URG_OPS          += -format text  # report in text
+URG_OPS          += -dir $(VCS_COV_DBs)  # individual coverage dbs
+URG_OPS          += -map $(VCS_COV_MAP_MODULE)
 
 
 all: main.regress_test
@@ -47,15 +48,18 @@ all: main.regress_test
 	rm -rf run.log;											\
 	done;
 ifeq ($(COVERAGE),VCS)
-	$(URG) $(URG_OPS)
-	$(VCS_BIN)/dve -full64 -dir $(VCS_COV_DBs) &
+	@$(URG) $(URG_OPS) -report cov_reports/ -log cov.log &>/dev/null;
+	@echo "====================================================================";
+	@echo "Module Level Coverage Report";
+	@cat cov_reports/modlist.txt;
+	@rm -rf cov_reports/;
 endif
 	@for testcase in $(test_case_list) ; do \
 	make -C ./$$testcase clean  &>/dev/null;     		   \
 	done;
 
 coverage-debug:
-	$(VCS_BIN)/dve -full64 -dir $(VCS_COV_DBs) &
+	$(VCS_BIN)/dve -full64 -dir $(VCS_MERGED_COV_DB).vdb &
 
 clean:
-	rm -rf run.log urg.log coverage/
+	rm -rf run.log cov.log coverage* DVEfiles/
