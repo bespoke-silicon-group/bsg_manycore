@@ -11,7 +11,8 @@ cov_dve:
 	$(VCS_BIN)/dve -full64 -dir *.vdb &
 
 cov_report:
-	$(VCS_BIN)/urg -full64 -report coverage/ -format text -dir *.vdb/ -map $(VCS_COV_MAP_MODULE)
+	$(VCS_BIN)/urg -grade -full64 -report coverage/ -format text -dir *.vdb/
+	cat coverage/modlist.txt
 
 clean:
 	-rm -rf *.o *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex

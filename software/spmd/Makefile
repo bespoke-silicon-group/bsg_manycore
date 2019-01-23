@@ -19,7 +19,9 @@ test_case_list+=bsg_riscv_tests
 #test_case_list+=bsg_barrier
 #test_case_list+=bsg_transpose
 
+
 include ./Makefile.include
+
 
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
@@ -29,10 +31,11 @@ COVERAGE =
 # VCS Unified Coverage report Generator options
 VCS_COV_DBs  = $(foreach testcase, $(test_case_list), $(testcase)/*.vdb/)
 URG_OPS      = -full64
-URG_OPS     += -dbname coverage # merged db
-URG_OPS     += -show tests
+URG_OPS     += -grade # grades the impact of each test
+URG_OPS     += -show tests # keep track of tests after merging
 URG_OPS     += -format text  # report in text
 URG_OPS     += -dir $(VCS_COV_DBs) # individual coverage dbs
+URG_OPS     += -dbname coverage # merged db name
 
 
 all: main.regress_test
@@ -55,6 +58,10 @@ endif
 	@for testcase in $(test_case_list) ; do \
 	make -C ./$$testcase clean  &>/dev/null;     		   \
 	done;
+
+coverage-debug:
+	$(VCS_BIN)/dve -full64 -dir *.vdb &
+
 
 clean:
 	rm -rf run.log cov.log coverage* DVEfiles/

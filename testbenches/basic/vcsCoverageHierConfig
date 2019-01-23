@@ -1,1 +1,4 @@
-+tree test_bsg_manycore.UUT
++tree test_bsg_manycore.UUT.*.tile
+
+// No 0 -> 1 reset transition in our sims.
+-node 0to1 test_bsg_manycore*.reset_i
