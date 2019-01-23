@@ -1,4 +1,1 @@
-+tree test_bsg_manycore.UUT.y[0].x[0].tile
-+tree test_bsg_manycore.UUT.y[0].x[1].tile
-+tree test_bsg_manycore.UUT.y[1].x[0].tile
-+tree test_bsg_manycore.UUT.y[1].x[1].tile
++tree test_bsg_manycore.UUT

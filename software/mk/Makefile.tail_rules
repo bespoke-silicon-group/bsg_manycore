@@ -8,7 +8,7 @@ dve:
 	cat pe.log | grep '^$@' | sed 's/$@ //' > $@
 
 cov_dve:
-	$(VCS_BIN)/dve -full64 -dir *.vdb/
+	$(VCS_BIN)/dve -full64 -dir *.vdb &
 
 cov_report:
 	$(VCS_BIN)/urg -full64 -report coverage/ -format text -dir *.vdb/ -map $(VCS_COV_MAP_MODULE)
