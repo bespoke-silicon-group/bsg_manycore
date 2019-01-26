@@ -112,7 +112,7 @@ assign net_pc_write_cmd_idle = net_pc_write_cmd & (state_r == IDLE);
 logic stall, stall_non_mem, stall_mem, stall_lrw, stall_md;
 logic stall_fence;
 logic depend_stall;
-logic stall_wb;
+logic stall_load_wb;
 
 //We have to buffer the returned data from memory
 //if there is a non-memory stall at current cycle.
