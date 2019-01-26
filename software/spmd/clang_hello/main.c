@@ -1,19 +1,92 @@
-
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-int main()
-{
-  bsg_set_tile_x_y();
+//---------------------------------------------------------------
+#define STRIDE __attribute__((address_space(1)))
+#define DRAM __attribute((section(".dram.data")))
 
-  bsg_remote_ptr_io_store(IO_X_INDEX,0x1260,bsg_x);
-  bsg_remote_ptr_io_store(IO_X_INDEX,0x1264,bsg_y);
+// Remote EPA: 01YY_YYYY_XXXX_XXPP_PPPP_PPPP_PPPP_PPPP
 
-  bsg_remote_ptr_io_store(IO_X_INDEX,0x1234,0x13);
-
-  if ((bsg_x == bsg_tiles_X-1) && (bsg_y == bsg_tiles_Y-1))
-    bsg_finish();
-
-  bsg_wait_while(1);
+volatile int *get_ptr_val(int STRIDE *arr_ptr, int STRIDE *base_ptr,
+        unsigned elem_size) {
+    unsigned elem_offset = ((unsigned) arr_ptr - (unsigned) base_ptr) / elem_size;
+    unsigned num_tiles = bsg_tiles_X * bsg_tiles_Y;
+    unsigned index = elem_offset % num_tiles;
+    unsigned tile_x = index / bsg_tiles_X;
+    unsigned tile_y = index - (tile_x * bsg_tiles_X);
+    unsigned arr_ptr_val = (unsigned) arr_ptr;
+    unsigned remote_ptr_val = REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS |
+                              tile_x << X_CORD_SHIFTS |
+                              tile_y << Y_CORD_SHIFTS |
+                              arr_ptr_val;
+    unsigned ptr_val = (tile_x == bsg_x && tile_y == bsg_y) ?
+        arr_ptr_val : remote_ptr_val;
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x1000,index);
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x2010,tile_x | tile_y << 16);
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x3020,ptr_val);
+    return (volatile int *) ptr_val;
 }
 
+void extern_store(int STRIDE *arr_ptr, int STRIDE *base_ptr, unsigned elem_size,
+        unsigned val) {
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x2500,(unsigned) arr_ptr);
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x2550,(unsigned) base_ptr);
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x2570,(unsigned) elem_size);
+    volatile int *ptr = get_ptr_val(arr_ptr, base_ptr, elem_size);
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x0,0);
+}
+
+int extern_load(int STRIDE *arr_ptr, int STRIDE *base_ptr, unsigned elem_size) {
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x3500,(unsigned) arr_ptr);
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x3550,(unsigned) base_ptr);
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x3570,(unsigned) elem_size);
+    volatile int *ptr = get_ptr_val(arr_ptr, base_ptr, elem_size);
+    bsg_remote_ptr_io_store(IO_X_INDEX,0x0,0);
+    return *ptr;
+}
+
+//---------------------------------------------------------------
+
+#define N 8
+int STRIDE A[N][N] = {0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
+                      0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
+                      0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
+                      0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
+                      0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
+                      0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
+                      0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
+                      0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1};
+
+int load_store_test(int j) {
+    int y;
+    for (int i = 0; i < N; i++) {
+        A[i][i] = j;
+    }
+    for (int i = 0; i < N; i++) {
+        y += A[i][i];
+    }
+    for (int i = 0; i < N; i++) {
+        A[0][i] = y + j;
+    }
+    /* bsg_remote_ptr_io_store(IO_X_INDEX,0x1200,y); */
+    /* y++; */
+    /* bsg_remote_ptr_io_store(IO_X_INDEX,0x1200,y); */
+    /* A[2][2] = y; */
+    /* A[j][j] = 4; */
+    return A[j][j-1];
+}
+
+int main()
+{
+    bsg_set_tile_x_y();
+
+    /* bsg_remote_ptr_io_store(IO_X_INDEX,0x1260,bsg_x); */
+    /* bsg_remote_ptr_io_store(IO_X_INDEX,0x1264,bsg_y); */
+    /* bsg_remote_ptr_io_store(IO_X_INDEX,0x1234,0x13); */
+
+    if ((bsg_x == bsg_tiles_X-1) && (bsg_y == bsg_tiles_Y-1)) {
+        bsg_remote_ptr_io_store(IO_X_INDEX, 0x1300, load_store_test(bsg_x + 1));
+        bsg_finish();
+    }
+    bsg_wait_while(1);
+}

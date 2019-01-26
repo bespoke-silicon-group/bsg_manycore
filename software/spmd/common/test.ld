@@ -80,7 +80,7 @@ SECTIONS
           *(.text)
           *(.text.startup)
           *(.rodata*) 
-          *(.dram)
+          *(.dram*)
         }
   _bsg_dram_end_addr = .  ;
 }

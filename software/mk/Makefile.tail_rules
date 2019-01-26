@@ -18,3 +18,4 @@ clean:
 	-rm -rf *.o *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex
 	-rm -rf xsim.dir *.mem
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd *.vdb coverage* constfile.txt
+	-rm -rf build/ *.bc *.bc.pass

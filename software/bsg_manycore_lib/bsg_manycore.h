@@ -58,8 +58,6 @@ typedef volatile void *bsg_remote_void_ptr;
 
 // load reserved; and load reserved acquire
 #ifdef __clang__
-// Takes tmp as output, A as input
-// lr.w <output>,<input>
 inline int bsg_lr(int *p)    { int tmp; __asm__ __volatile__("lr.w    %0,%1\n" : "=r" (tmp) : "g" (*p)); return tmp; }
 inline int bsg_lr_aq(int *p) { int tmp; __asm__ __volatile__("lr.w.aq %0,%1\n" : "=r" (tmp) : "g" (*p)); return tmp; }
 #elif defined(__GNUC__) || defined(__GNUG__)
