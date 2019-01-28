@@ -296,21 +296,28 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   //|and the network.
   //+-----------------------------------------------------
 
-  // Buffer full signal to the core. Core immediately yummies 
-  // when this signal is high.
-  logic buf_full_to_core;
-  assign buf_full_to_core = returned_v_r_lo & returned_fifo_full_lo;
-
-  // Yummi to the network and not local memory
-  logic yumi_to_network;
-  assign yumi_to_network = core_to_mem.yumi & ~core_mem_rv;
-
-  assign returned_yumi_li = yumi_to_network;
-                                                            
-  // Returned data buffer
+  // Returned buffer signals
   logic                       returned_buf_v;
   logic [data_width_p-1:0]    returned_data_buf;
   logic [load_id_width_p-1:0] returned_load_id_buf;
+
+  // Buffer full signal to the core. Core immediately yummies 
+  // when this signal is high.
+  logic buf_full_to_core;
+  assign buf_full_to_core = (returned_fifo_full_lo | returned_buf_v);
+
+  // Yumi to the network and not local memory
+  logic yumi_to_network;
+  assign yumi_to_network = core_to_mem.yumi & ~core_mem_rv;
+
+  logic buffer_returned_data;
+  assign buffer_returned_data = returned_fifo_full_lo & (core_mem_rv | returned_buf_v);
+
+  // Yumi to returned fifo
+  assign returned_yumi_li = buffer_returned_data 
+                              | (yumi_to_network & ~returned_buf_v);
+                                                            
+  // Returned data buffer
   always_ff @(posedge clk_i)                                  
   begin                                                     
     if(reset_i) begin                                       
@@ -322,7 +329,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       // or returend data is valid as they have higher priority. 
       // One level of buffering is sufficient because core will not
       // issue new local requests when buf_full_to_core is asserted.
-      if(buf_full_to_core & (core_mem_rv | returned_buf_v)) begin
+      if(buffer_returned_data) begin
         returned_buf_v       <= 1'b1;
         returned_data_buf    <= returned_data_r_lo;
         returned_load_id_buf <= returned_load_id_r_lo;
