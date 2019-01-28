@@ -11,7 +11,7 @@ cov_dve:
 	$(VCS_BIN)/dve -full64 -dir *.vdb &
 
 cov_report:
-	$(VCS_BIN)/urg -grade -full64 -report coverage/ -format text -dir *.vdb/
+	$(VCS_BIN)/urg -grade -full64 -report coverage/ -format both -dir *.vdb/
 	cat coverage/modlist.txt
 
 clean:
