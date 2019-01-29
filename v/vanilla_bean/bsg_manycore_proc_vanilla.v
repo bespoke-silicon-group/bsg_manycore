@@ -352,7 +352,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     end
   end
 
-  // synopsys translate off
+  // synopsys translate_off
   always @(negedge clk_i)
   begin
     if(~reset_i) begin
@@ -362,7 +362,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       end
     end
   end
-  // synopsys translate on
+  // synopsys translate_on
       
 
    wire out_request;

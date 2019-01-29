@@ -71,11 +71,13 @@ SECTIONS
    * 
    * Instead we just use a faked physical address and assumpt the phiscal address is aslo zero in the loader
    */
-  _bsg_dram_start_addr = 0x0;
-  .text 0x0 : AT ( _bsg_data_end_addr ){
+  _bsg_dram_start_addr = 0x80000000;
+  .text 0x80000000 : AT ( _bsg_data_end_addr ){
           crt.o(.text)
           *(.text)
           *(.text.startup)
+          *(.rodata*) 
+          *(.dram)
         }
   _bsg_dram_end_addr = .  ;
 }
