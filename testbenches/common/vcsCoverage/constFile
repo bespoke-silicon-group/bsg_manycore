@@ -1,0 +1,5 @@
+// Consider West, E & N sides are constant
+//test_bsg_manycore.UUT.hor_link_sif_i 0
+//test_bsg_manycore.UUT.hor_link_sif_o 0
+//test_bsg_manycore.UUT.ver_link_sif_i[3][0] 120'd0
+//test_bsg_manycore.UUT.ver_link_sif_o[3] 0

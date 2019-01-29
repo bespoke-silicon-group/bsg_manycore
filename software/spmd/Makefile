@@ -38,7 +38,7 @@ URG_OPS     += -show tests # keep track of tests after merging
 URG_OPS     += -format both  # report in text
 URG_OPS     += -dir $(VCS_COV_DBs) # individual coverage dbs
 URG_OPS     += -dbname coverage # merged db name
-URG_OPS     += -map $(VCS_COV_MAP_MODULE)
+URG_OPS     += -map $(VCS_COV_MODULE_MAP)
 
 
 all: main.regress_test

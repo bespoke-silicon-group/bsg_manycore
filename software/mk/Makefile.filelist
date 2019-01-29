@@ -117,6 +117,8 @@ DESIGN_SRCS = $(LIST_VANILLA_SRCS) $(LIST_COMMON_SRCS)
 
 TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/basic/test_bsg_manycore.v
 
-# VCS coverage variables
-VCS_COV_HIER_CONFIG = $(BSG_MANYCORE_DIR)/testbenches/basic/vcsCoverageHierConfig
-VCS_COV_MAP_MODULE = "bsg_manycore_tile"
+###################################################################################
+# VCS coverage config files
+VCS_COV_HIER_CONFIG = $(BSG_MANYCORE_DIR)/testbenches/common/vcsCoverage/hierConfig
+VCS_COV_CONST_FILE  = $(BSG_MANYCORE_DIR)/testbenches/common/vcsCoverage/constFile
+VCS_COV_MODULE_MAP  = "bsg_manycore_tile"

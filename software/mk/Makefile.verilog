@@ -39,6 +39,7 @@ VCS_COV_COMP_OP += -cm line+tgl
 VCS_COV_COMP_OP += -cm_line contassign
 VCS_COV_COMP_OP += -cm_noconst
 VCS_COV_COMP_OP += -cm_seqnoconst
+#VCS_COV_COMP_OP += -cm_constfile $(VCS_COV_CONST_FILE)
 VCS_COV_COMP_OP += -diag noconst
 VCS_COV_COMP_OP += -cm_ignorepragmas
 VCS_COV_RUN_OP += -cm_dir $(PROG_NAME).vdb/

@@ -11,10 +11,10 @@ cov_dve:
 	$(VCS_BIN)/dve -full64 -dir *.vdb &
 
 cov_report:
-	$(VCS_BIN)/urg -grade -full64 -report coverage/ -format both -dir *.vdb/
+	$(VCS_BIN)/urg -full64 -map $(VCS_COV_MODULE_MAP) -report coverage/ -format both -dir *.vdb/ -log coverage.log
 	cat coverage/modlist.txt
 
 clean:
 	-rm -rf *.o *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex
 	-rm -rf xsim.dir *.mem
-	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd *.vdb coverage/
+	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd *.vdb coverage* constfile.txt
