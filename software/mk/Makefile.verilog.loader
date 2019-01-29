@@ -4,23 +4,21 @@
 PROG_NAME ?=main
 DRAM_SHIFT_ADDR=0x80000000
 
-find-section-addr = $(shell nm --radix=d $(PROG_NAME).riscv | grep $(1) | awk '{print $$1}')
-orignal_dram_start_addr = $(shell nm $(PROG_NAME).riscv | grep _bsg_dram_start_addr | awk '{print $$1}')
-orignal_dram_end_addr   = $(shell nm $(PROG_NAME).riscv | grep _bsg_dram_end_addr   | awk '{print $$1}')
+find-section-addr         = $(shell nm --radix=d $(PROG_NAME).riscv | grep $(1) | awk '{print $$1}')
+find-shifted-section-addr = $(shell echo $$(( $(call find-section-addr, $(1)) - $(2) )) )
+
+VCS_OPTIONS+= +define+_bsg_data_start_addr=$(call find-section-addr, _bsg_data_start_addr)
+VCS_OPTIONS+= +define+_bsg_data_end_addr=$(call find-section-addr, _bsg_data_end_addr)
+
 #  Ideally the physicall address should be 0x8000_0000, which is the DRAM address used in manycore 
 #  program, but the system verilog $readmemh() just can not read from such large address... 
 #  This constrains should be released when using C++/DPI loader
-shifted_dram_start_addr = $(shell echo $$(( 0x$(orignal_dram_start_addr) - $(DRAM_SHIFT_ADDR) )) )
-shifted_dram_end_addr   = $(shell echo $$(( 0x$(orignal_dram_end_addr)   - $(DRAM_SHIFT_ADDR) )) )
-
-VCS_OPTIONS+= +define+_bsg_data_start_addr="32'h$(shell nm $(PROG_NAME).riscv | grep _bsg_data_start_addr | awk '{print $$1}')"
-VCS_OPTIONS+= +define+_bsg_data_end_addr="32'h$(shell nm $(PROG_NAME).riscv | grep _bsg_data_end_addr | awk '{print $$1}')"
-
-VCS_OPTIONS+= +define+_bsg_dram_start_addr=$(shifted_dram_start_addr)
-VCS_OPTIONS+= +define+_bsg_dram_end_addr=$(shifted_dram_end_addr)
+VCS_OPTIONS+= +define+_bsg_dram_start_addr=$(call find-shifted-section-addr, _bsg_dram_start_addr, $(DRAM_SHIFT_ADDR))
+VCS_OPTIONS+= +define+_bsg_dram_end_addr=$(call find-shifted-section-addr, _bsg_dram_end_addr, $(DRAM_SHIFT_ADDR))
 
 VCS_OPTIONS+= +define+_dram_init_file_name='"$(PROG_NAME)_dram.mem"'
 VCS_OPTIONS+= +define+_dmem_init_file_name='"$(PROG_NAME)_dmem.mem"'
+
 # Info for the SPMD loader to only load specific sections of code
 # to the DRAM. If these are not defined, the complete address range
 # will be loaded into the DRAM which might be a waste of simulation 
@@ -29,8 +27,8 @@ ifdef NUM_CODE_SECTIONS
 ifdef CODE_LABELS
 VCS_OPTIONS+= +define+NUM_CODE_SECTIONS=$(NUM_CODE_SECTIONS)
 code_sections = $(strip $(foreach section, $(CODE_LABELS)\
-				  	        ,$(call find-section-addr, $(section)_start) \
-				  	         $(call find-section-addr, $(section)_end) ))
+				  	        ,$(call find-shifted-section-addr, $(section)_start, $(DRAM_SHIFT_ADDR)) \
+				  	         $(call find-shifted-section-addr, $(section)_end, $(DRAM_SHIFT_ADDR)) ))
 # hack to substitue space with comma and a space
 comma:=,
 empty:=
@@ -38,4 +36,3 @@ space:=$(empty) $(empty)
 VCS_OPTIONS+= +define+CODE_SECTIONS="$(subst $(space),$(comma)$(space),$(code_sections))"
 endif
 endif
-
