@@ -24,7 +24,6 @@ SECTIONS
   _bsg_data_start_addr = . ;
   /* data segment */
   .data : { *(.data) }
-  .rodata : { *(.rodata) }
 
   .sdata : {
     _gp = . + 0x800;
@@ -77,6 +76,8 @@ SECTIONS
           crt.o(.text)
           *(.text)
           *(.text.startup)
+          *(.rodata*) 
+          *(.dram)
         }
   _bsg_dram_end_addr = .  ;
 }

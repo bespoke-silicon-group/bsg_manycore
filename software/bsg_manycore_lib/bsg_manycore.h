@@ -3,6 +3,8 @@
 
 #include "bsg_manycore_arch.h"
 
+int bsg_printf(const char *fmt, ...);
+
 typedef volatile int   *bsg_remote_int_ptr;
 typedef volatile unsigned char  *bsg_remote_uint8_ptr;
 typedef volatile unsigned short  *bsg_remote_uint16_ptr;
