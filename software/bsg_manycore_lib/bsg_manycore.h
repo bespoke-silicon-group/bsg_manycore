@@ -3,6 +3,8 @@
 
 #include "bsg_manycore_arch.h"
 
+int bsg_printf(const char *fmt, ...);
+
 typedef volatile int   *bsg_remote_int_ptr;
 typedef volatile unsigned char  *bsg_remote_uint8_ptr;
 typedef volatile unsigned short  *bsg_remote_uint16_ptr;
@@ -39,6 +41,8 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_fail()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xEAD8); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
 #define bsg_fail_x(x)       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(x,0xEAD8); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
 #define bsg_print_time()   do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xEAD4); *ptr = ((bsg_y << 16) + bsg_x); } while(0)
+
+#define bsg_putchar( c )       do {  bsg_remote_uint8_ptr ptr = (bsg_remote_uint8_ptr) bsg_remote_ptr_io(IO_X_INDEX,0xEADC); *ptr = c; } while(0)
 
 #define bsg_id_to_x(id)    ((id) % bsg_tiles_X)
 #define bsg_id_to_y(id)    ((id) / bsg_tiles_X)

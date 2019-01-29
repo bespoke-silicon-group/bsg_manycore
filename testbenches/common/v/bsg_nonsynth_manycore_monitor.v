@@ -161,6 +161,16 @@ module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
                                );
                       finish_r <= 1'b1;
                    end
+                 16'hEAD_C:
+                   begin
+                      int i;
+                      for( i=0; i<4; i++) begin
+                        if( pkt_mask[i] ) begin
+                                $write("%c", pkt_data[i*8 +: 8 ]);
+                        end 
+                      end
+                   end
+                
 
                  default:
                    $display("## RECEIVED I/O PACKET from tile y,x=%2d,%2d at I/O %x, addr %x, data %x on cycle (%d)"
