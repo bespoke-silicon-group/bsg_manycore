@@ -20,6 +20,7 @@
 
 module  bsg_manycore_link_to_dram_ctrl
   import bsg_dram_ctrl_pkg::*;
+  import bsg_chip_pkg::*;
   #(  parameter addr_width_p="inv"
     , parameter data_width_p="inv"
     , parameter x_cord_width_p="inv"
@@ -28,8 +29,8 @@ module  bsg_manycore_link_to_dram_ctrl
     , parameter dram_ctrl_awidth_p      = 28
     , parameter fifo_els_p              = 4
     , parameter max_out_credits_lp      = 16
-    , parameter bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , parameter packet_width_lp    = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , parameter bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_gp)
+    , parameter packet_width_lp    = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_gp)
     )
   (
 
