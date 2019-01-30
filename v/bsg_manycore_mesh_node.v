@@ -19,6 +19,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p,load_id_width_p)
    ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
    ,parameter num_nets_lp            = 2 // 1=return network, 0=data network
+   ,parameter allow_S_to_EW_p        = 1'b0
 
    ,parameter debug_p = 0
   )
@@ -97,7 +98,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
                                    // adding proc into stub
                                    ,.stub_p({stub_p, 1'b0})
                                    // needed for doing I/O to south edge of array
-                                   ,.allow_S_to_EW_p(1'b1)
+                                   ,.allow_S_to_EW_p(allow_S_to_EW_p)
                                    ,.repeater_output_p({repeater_output_p,1'b0})
                                    ) bmrb
           (.clk_i    (clk_i)

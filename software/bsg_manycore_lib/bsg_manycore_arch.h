@@ -18,6 +18,8 @@
 #error bsg_tiles_Y must be defined
 #endif
 
+#define bsg_routers_Y ( (bsg_tiles_Y) +1) 
+
 #if bsg_tiles_X == 1
 #define bsg_noc_xbits 1
 #elif bsg_tiles_X == 2
@@ -42,39 +44,36 @@
 #error Unsupported bsg_tiles_X
 #endif
 
-#if bsg_tiles_Y == 1
+#if bsg_routers_Y == 1
 #define bsg_noc_ybits 1
-#elif bsg_tiles_Y == 2
+#elif bsg_routers_Y == 2
 #define bsg_noc_ybits 2
-#elif bsg_tiles_Y == 3
+#elif bsg_routers_Y == 3
 #define bsg_noc_ybits 2
-#elif bsg_tiles_Y == 4
+#elif bsg_routers_Y == 4
 #define bsg_noc_ybits 3
-#elif bsg_tiles_Y == 5
+#elif bsg_routers_Y == 5
 #define bsg_noc_ybits 3
-#elif bsg_tiles_Y == 6
+#elif bsg_routers_Y == 6
 #define bsg_noc_ybits 3
-#elif bsg_tiles_Y == 7
+#elif bsg_routers_Y == 7
 #define bsg_noc_ybits 3
-#elif bsg_tiles_Y == 8
+#elif bsg_routers_Y == 8
 #define bsg_noc_ybits 4
-#elif bsg_tiles_Y == 9
+#elif bsg_routers_Y == 9
 #define bsg_noc_ybits 4
-#elif bsg_tiles_Y == 16
+#elif bsg_routers_Y == 16
 #define bsg_noc_ybits 5
-#elif bsg_tiles_Y == 20
+#elif bsg_routers_Y == 20
 #define bsg_noc_ybits 5
-#elif bsg_tiles_Y == 25
+#elif bsg_routers_Y == 25
 #define bsg_noc_ybits 5
-#elif bsg_tiles_Y == 31
+#elif bsg_routers_Y == 31
 #define bsg_noc_ybits 5
 #else
-#error Unsupported bsg_tiles_Y
+#error Unsupported bsg_routers_Y
 #endif
 
-#if bsg_tiles_X < 2
-#error bsg_tiles_X must be larger than 1
-#endif
 //------------------------------------------------------
 // 2.Tile Address Mapping Configuation
 //------------------------------------------------------
@@ -90,7 +89,7 @@
 #define REMOTE_EPA_MASK_SHIFTS          (Y_CORD_SHIFTS + MAX_Y_CORD_BITS)
 
 
-#if (bsg_tiles_X + bsg_tiles_Y + EPA_ADDR_BITS) > 30
+#if (bsg_noc_xbits + bsg_noc_ybits + EPA_ADDR_BITS) > 30
 #error Unsupported address configuration
 #endif
 //------------------------------------------------------

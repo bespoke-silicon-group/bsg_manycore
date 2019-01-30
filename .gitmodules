@@ -1,0 +1,6 @@
+[submodule "imports/riscv-tests"]
+	path = imports/riscv-tests
+	url = https://github.com/riscv/riscv-tests.git
+[submodule "imports/coremark"]
+	path = imports/coremark
+	url = https://github.com/eembc/coremark.git
