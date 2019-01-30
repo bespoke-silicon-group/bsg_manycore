@@ -13,12 +13,8 @@ test_case_list+=instr_tests/jal_rv32
 test_case_list+=instr_tests/branch_rv32
 test_case_list+=load_dependency
 test_case_list+=remote_load_crc
-test_case_list+=bsg_riscv_tests
-ifndef COVERAGE
-# Coverage can be analyzed only on the same design. All tests 
-# that do not instantiate 4x4 manycore are grouped here.
 test_case_list+=bsg_remote_congestion
-endif
+test_case_list+=bsg_riscv_tests
 #test_case_list+=bsg_swap
 #test_case_list+=bsg_barrier
 #test_case_list+=bsg_transpose
@@ -29,6 +25,11 @@ include ./Makefile.include
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
 COVERAGE = 
+
+ifdef COVERAGE
+	bsg_tiles_X = 4
+	bsg_tiles_Y = 4
+endif
 
 ###############################################
 # VCS Unified Coverage Report Generator options
@@ -48,7 +49,7 @@ all: main.regress_test
 	@for testcase in $(test_case_list) ; do \
 	echo "====================================================================="; \
 	echo "running testcase [ $$testcase ]"; \
-	make -C ./$$testcase DVE=0 COVERAGE=$(COVERAGE) &> run.log; \
+	make -C ./$$testcase DVE=0 COVERAGE=$(COVERAGE) bsg_tiles_X=$(bsg_tiles_X) bsg_tiles_Y=$(bsg_tiles_Y) &> run.log; \
 	grep " FINISH \| FAIL \| I/O \|^[Ee]rror" run.log; \
 	rm -rf run.log; \
 	done;
@@ -66,7 +67,6 @@ endif
 
 coverage-debug:
 	$(VCS_BIN)/dve -full64 -dir *.vdb &
-
 
 clean:
 	rm -rf run.log cov.log coverage* DVEfiles/
