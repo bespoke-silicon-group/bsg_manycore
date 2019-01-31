@@ -343,7 +343,7 @@ begin
 
     // Predict jump to previous linked location
     else if (decode.is_jump_op) // equivalent to (instruction ==? `RV32_JALR)
-        pc_n = jalr_prediction_n;
+        pc_n = jalr_prediction_n [2 +: pc_width_lp];
 
     // Standard operation or predict not taken branch
     else
