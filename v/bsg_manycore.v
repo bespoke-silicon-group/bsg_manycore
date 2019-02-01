@@ -1,7 +1,7 @@
 `include "bsg_manycore_packet.vh"
 
 `ifdef bsg_FPU
-`include "float_definitions.v"
+`include "float_definitions.vh"
 `endif
 module bsg_manycore
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }

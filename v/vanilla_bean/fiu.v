@@ -1,7 +1,7 @@
-`include "parameters.v"
-`include "definitions.v"
+`include "parameters.vh"
+`include "definitions.vh"
 
-`include "float_definitions.v"
+`include "float_definitions.vh"
 
 typedef int unsigned unsigned_int;
 typedef int signed   signed_int;

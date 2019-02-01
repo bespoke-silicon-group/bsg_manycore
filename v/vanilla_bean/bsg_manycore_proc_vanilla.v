@@ -1,8 +1,8 @@
 `include "bsg_manycore_packet.vh"
-`include "definitions.v"
+`include "definitions.vh"
 
 `ifdef bsg_FPU
- `include "float_definitions.v"
+ `include "float_definitions.vh"
 `endif
 
 module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"

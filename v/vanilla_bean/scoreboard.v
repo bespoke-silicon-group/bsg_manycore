@@ -1,5 +1,5 @@
-`include "parameters.v"
-`include "definitions.v"
+`include "parameters.vh"
+`include "definitions.vh"
 
 module scoreboard
  #(parameter els_p      = 32

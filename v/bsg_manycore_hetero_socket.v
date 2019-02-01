@@ -15,7 +15,7 @@
 `include "bsg_manycore_packet.vh"
 
 `ifdef bsg_FPU
-`include "float_definitions.v"
+`include "float_definitions.vh"
 `endif
 
 `define HETERO_TYPE_MACRO(BMC_TYPE,BMC_TYPE_MODULE)             \

@@ -1,5 +1,5 @@
-`ifndef _float_parameters_v_
-`define _float_parameters_v_
+`ifndef _float_parameters_vh_
+`define _float_parameters_vh_
 
 
 ///////////////////////////////////////////////////////////////////////////////
