@@ -111,25 +111,30 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 // Tasks to init the icache
 //----------------------------------------------------------------------------
   task init_icache_tag();
-        int x_cord, y_cord, icache_addr;
+        int x_cord, y_cord, icache_addr, dram_byte_addr;
         for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
                 for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
                      $display("Initilizing ICACHE, y_cord=%02d, x_cord=%02d, range=0000 - %h", y_cord, x_cord, icache_entries_num_p-1);
                      for(icache_addr =0; icache_addr <icache_entries_num_p; icache_addr ++) begin
-                                @(posedge clk_i);          //pull up the valid
-                                var_v_o = 1'b1; 
+                           @(posedge clk_i);          //pull up the valid
+                           var_v_o = 1'b1; 
+                            
+                           //initial the icache with the first 4KB instrucions
+                           //in DRAM
+                           dram_byte_addr = icache_addr << 2;
+                           var_data_o.payload    = {DRAM[dram_byte_addr+3], DRAM[dram_byte_addr+2], 
+                                                    DRAM[dram_byte_addr+1], DRAM[dram_byte_addr+0]};
+                           var_data_o.addr       =  icache_addr | (1 << (`MC_ICACHE_MASK_BITS-2));
+                           var_data_o.op         = `ePacketOp_remote_store;
+                           //TODO: We can actually re-purpose this field.
+                           var_data_o.op_ex      =  4'b1111;
+                           var_data_o.x_cord     = x_cord;
+                           var_data_o.y_cord     = y_cord;
+                           var_data_o.src_x_cord = my_x_i;
+                           var_data_o.src_y_cord = my_y_i;
 
-                                var_data_o.payload    = 'b0;
-                                var_data_o.addr       =  icache_addr;
-                                var_data_o.op         = `ePacketOp_remote_store;
-                                var_data_o.op_ex      =  4'b1111;
-                                var_data_o.x_cord     = x_cord;
-                                var_data_o.y_cord     = y_cord;
-                                var_data_o.src_x_cord = my_x_i;
-                                var_data_o.src_y_cord = my_y_i;
-
-                                @(negedge clk_i);
-                                wait( ready_i === 1'b1);   //check if the ready is pulled up.
+                           @(negedge clk_i);
+                           wait( ready_i === 1'b1);   //check if the ready is pulled up.
                        end 
                 end
         end
