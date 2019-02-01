@@ -1,7 +1,7 @@
-`include "parameters.v"
-`include "definitions.v"
-`include "float_parameters.v"
-`include "float_definitions.v"
+`include "parameters.vh"
+`include "definitions.vh"
+`include "float_parameters.vh"
+`include "float_definitions.vh"
 
 /**
  *  This module defines a decode unit that looks at the instruction

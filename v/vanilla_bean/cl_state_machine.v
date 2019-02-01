@@ -1,5 +1,5 @@
-`include "parameters.v"
-`include "definitions.v"
+`include "parameters.vh"
+`include "definitions.vh"
 
 /**
  *  This module descibes the state machine that runs the core. It

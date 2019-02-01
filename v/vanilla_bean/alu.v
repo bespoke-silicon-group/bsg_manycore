@@ -1,8 +1,8 @@
-`include "parameters.v"
-`include "definitions.v"
+`include "parameters.vh"
+`include "definitions.vh"
 
 `ifdef bsg_FPU
-`include "float_definitions.v"
+`include "float_definitions.vh"
 `endif
 
 module alu #(pc_width_p = "inv")

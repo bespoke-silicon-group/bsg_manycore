@@ -1,5 +1,5 @@
-`ifndef _parameters_v_
-`define _parameters_v_
+`ifndef _parameters_vh_
+`define _parameters_vh_
 
 // RV32 Opcodes
 `define RV32_LOAD     7'b0000011
