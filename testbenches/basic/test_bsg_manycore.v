@@ -32,7 +32,7 @@ module test_bsg_manycore;
    localparam dram_ch_addr_width_lp   =  19; // 2MB;
    localparam icache_tag_width_lp= 12;      // 16MB PC address 
    localparam data_width_lp   = 32;
-   localparam addr_width_lp   = 20;
+   localparam addr_width_lp   = 24;
    localparam load_id_width_lp = 11;
    localparam epa_addr_width_lp       = 16;
    localparam num_tiles_x_lp  = `bsg_tiles_X;

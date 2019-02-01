@@ -343,7 +343,7 @@ begin
 
     // Predict jump to previous linked location
     else if (decode.is_jump_op) // equivalent to (instruction ==? `RV32_JALR)
-        pc_n = jalr_prediction_n;
+        pc_n = jalr_prediction_n [2 +: pc_width_lp];
 
     // Standard operation or predict not taken branch
     else
@@ -373,8 +373,10 @@ logic [RV32_reg_data_width_gp-1:0] loaded_pc  ;
 wire                          icache_w_en  = net_imem_write_cmd | (mem.icache_miss & data_mem_valid );
 wire [icache_addr_width_p-1:0]icache_w_addr= net_imem_write_cmd ? net_packet_r.header.addr[2+:icache_addr_width_p]
                                                                 : loaded_pc[2+:icache_addr_width_p];
-wire [icache_tag_width_p-1:0] icache_w_tag = net_imem_write_cmd ? {icache_tag_width_p{1'b1}}
-                                                                : loaded_pc[(icache_addr_width_p+2)+: icache_tag_width_p] ; 
+wire [icache_tag_width_p-1:0] icache_w_tag =  net_imem_write_cmd 
+                                            ? net_packet_r.header.addr[(icache_addr_width_p+2) +: icache_tag_width_p]
+                                            : loaded_pc               [(icache_addr_width_p+2) +: icache_tag_width_p] ; 
+
 wire [RV32_instr_width_gp-1:0]icache_w_instr=net_imem_write_cmd ? net_packet_r.data
                                                                 : mem_data;
 
