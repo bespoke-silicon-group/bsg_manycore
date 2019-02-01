@@ -250,6 +250,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                         var_data_o.op_ex      =  4'b1111; //TODO not handle the byte write.
                         var_data_o.x_cord     = x_cord;
                         var_data_o.y_cord     = {y_cord_width_lp{1'b1}};
+                        //var_data_o.y_cord     = (y_cord_width_lp)'(num_rows_p);
                         var_data_o.src_x_cord = my_x_i;
                         var_data_o.src_y_cord = my_y_i;
 
