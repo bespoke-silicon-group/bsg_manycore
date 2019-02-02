@@ -10,6 +10,7 @@ test_case_list+=mul_div
 test_case_list+=bypass_core
 test_case_list+=bsg_remote_load
 test_case_list+=bsg_remote_congestion
+test_case_list+=coremark
 #test_case_list+=instr_tests/jal_rv32
 #test_case_list+=instr_tests/branch_rv32
 #test_case_list+=load_dependency
@@ -37,7 +38,7 @@ all: main.regress_test
 	echo "=====================================================================";\
 	echo "running testcase [ $$testcase ]                ";\
 	make -C ./$$testcase DVE=0 COVERAGE=$(COVERAGE) &> run.log;     			   \
-	grep " FINISH \| FAIL \| I/O \|^[Ee]rror" run.log;    	   \
+	grep " FINISH \| FAIL \| I/O \|^[Ee]rror \|Correct" run.log;    	   \
 	rm -rf run.log;											\
 	done;
 ifeq ($(COVERAGE),VCS)

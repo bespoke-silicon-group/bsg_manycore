@@ -16,10 +16,10 @@
 ############################################
 #  Porting Variables.
 #
-
+export PROG_NAME=coremark
 RISCV_GCC_EXTRA_OPTS ?= -Os
 
-include ../Makefile.include
+include $(shell readlink -m ./manycore/../)/Makefile.include
 
 #############################################
 #File : core_portme.mak
@@ -60,10 +60,11 @@ LFLAGS_END =
 #	You may also need cvt.c if the fcvt functions are not provided as intrinsics by your compiler!
 PORT_SRCS = $(PORT_DIR)/core_portme.c $(PORT_DIR)/ee_printf.c 
 PORT_OBJS = $(PORT_DIR)/core_portme.o $(PORT_DIR)/ee_printf.o  \
-	    $(PORT_DIR)/bsg_set_tile_x_y.o  $(PORT_DIR)/crt.o
+	    $(PORT_DIR)/bsg_set_tile_x_y.o  
 
 vpath %.c $(PORT_DIR)  $(BSG_MANYCORE_DIR)/software/bsg_manycore/lib
 vpath %.s $(PORT_DIR)
+vpath %.o $(PORT_DIR)
 vpath %.S $(BSG_MANYCORE_DIR)/software/spmd/common/
 
 # Flag : LOAD
@@ -101,4 +102,4 @@ PORT_CLEAN= -rf $(OPATH)*$(OEXT) $(PORT_DIR)/*$(OEXT) \
 $(OPATH)coremark_dmem.mem $(OPATH)coremark_dram.mem   \
 $(OPATH)csrc $(OPATH)simv $(OPATH)/simv.daidir $(OPATH)ucli.key $(OPATH)vcdplus.vpd $(OPATH)*.map
 
-include ../../mk/Makefile.tail_rules
+include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
