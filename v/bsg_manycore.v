@@ -219,7 +219,6 @@ for (c = 0; c < num_tiles_x_p; c=c+1) begin:io
         
            ,.data_width_p       (data_width_p    )
            ,.addr_width_p       (addr_width_p    )
-           ,.allow_S_to_EW_p    ( 1'b1           )
           ) io_router
            (  .clk_i    (clk_i      )
              ,.reset_i  (reset_i_rr )
