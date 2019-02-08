@@ -2,6 +2,9 @@
 #include "bsg_set_tile_x_y.h"
 
 #define BUF_LEN    2
+// Should be passed by the compiler options
+//#define MASTER_X   0
+//#define MASTER_Y   0
 
 #if bsg_tiles_X != 4
 #error "bsg_tiles_X should be 4 "
@@ -80,20 +83,20 @@ void procX(){
    int i;
    int error = 0;
    for ( i=0; i< BUF_LEN; i++ ){
-      LocalArray[ i ] =  * bsg_remote_ptr( 0, 0, &(RemoteArray[bsg_x][bsg_y][i]) );
+      LocalArray[ i ] =  * bsg_remote_ptr( MASTER_X, MASTER_Y, &(RemoteArray[bsg_x][bsg_y][i]) );
    }
 
     for ( i=0; i< BUF_LEN; i++){
         int expect = i |  XY_ID( bsg_x, bsg_y, bsg_tiles_X, bsg_tiles_Y);
         if( LocalArray[ i ] != expect  ){
-            bsg_remote_store(0, 0, &(finish_array[bsg_x][bsg_y]), -1);
+            bsg_remote_store(MASTER_X, MASTER_Y, &(finish_array[bsg_x][bsg_y]), -1);
             error = 1;
             break;
         }
     }
 
     if( error == 0) {
-        bsg_remote_store(0, 0, &(finish_array[bsg_x][bsg_y]), 0x1 );
+        bsg_remote_store(MASTER_X, MASTER_Y, &(finish_array[bsg_x][bsg_y]), 0x1 );
     }
 
 }
@@ -105,10 +108,11 @@ int main()
   bsg_set_tile_x_y();
 
   int id = bsg_x_y_to_id(bsg_x,bsg_y);
+  int master_id = bsg_x_y_to_id( MASTER_X, MASTER_Y);
 
   procX();
 
-  if (id == 0)          proc0();
+  if (id == master_id)          proc0();
 
   bsg_wait_while(1);
 }
