@@ -15,7 +15,7 @@ test_case_list+=load_dependency
 test_case_list+=remote_load_crc
 test_case_list+=bsg_remote_congestion
 test_case_list+=coremark
-test_case_list+=bsg_riscv_tests
+#test_case_list+=bsg_riscv_tests
 #test_case_list+=bsg_swap
 #test_case_list+=bsg_barrier
 #test_case_list+=bsg_transpose
@@ -48,19 +48,11 @@ all: main.regress_test
 #  regression test
 %.regress_test:
 	@for testcase in $(test_case_list) ; do \
-<<<<<<< HEAD
 	echo "====================================================================="; \
 	echo "running testcase [ $$testcase ]"; \
 	make -C ./$$testcase DVE=0 COVERAGE=$(COVERAGE) bsg_tiles_X=$(bsg_tiles_X) bsg_tiles_Y=$(bsg_tiles_Y) &> run.log; \
-	grep " FINISH \| FAIL \| I/O \|^[Ee]rror" run.log; \
-	rm -rf run.log; \
-=======
-	echo "=====================================================================";\
-	echo "running testcase [ $$testcase ]                ";\
-	make -C ./$$testcase DVE=0 COVERAGE=$(COVERAGE) &> run.log;     			   \
 	grep " FINISH \| FAIL \| I/O \|^[Ee]rror \|Correct" run.log;    	   \
-	rm -rf run.log;											\
->>>>>>> d1f6cf71248c0b85dd72f5b3bb12c883cd99f3a6
+	rm -rf run.log; \
 	done;
 ifeq ($(COVERAGE),VCS)
 	@$(URG) $(URG_OPS) -report coverage_reports/ -log coverage.log &>/dev/null;
