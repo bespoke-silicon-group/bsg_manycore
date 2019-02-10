@@ -15,8 +15,8 @@ SECTIONS
    *The instruction fetch unit and the loader will send address that 
    *is mapped to the actual dram module.
    */
-  _bsg_dram_start_addr = 0x0;
-  .text 0x0 :  AT ( _bsg_data_end_addr ) {
+  _bsg_dram_start_addr = 0x80000000;
+  .text 0x80000000 :  {
           *(.text)
    }
   _bsg_dram_end_addr = .  ;

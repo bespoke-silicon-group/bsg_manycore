@@ -1,8 +1,8 @@
 `include "bsg_manycore_packet.vh"
-`include "definitions.v"
+`include "definitions.vh"
 
 `ifdef bsg_FPU
- `include "float_definitions.v"
+ `include "float_definitions.vh"
 `endif
 
 module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
@@ -202,10 +202,12 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    localparam  epa_config_bit_idx = (epa_addr_width_p-2) -1;
 
    wire is_config_op      = in_v_lo & in_addr_lo[epa_config_bit_idx] & in_we_lo;
-   wire non_imem_bits_set = | in_addr_lo[addr_width_p-1:icache_addr_width_lp];
+   wire is_dmem_addr      = `MC_IS_DMEM_ADDR(in_addr_lo, addr_width_p);
+   wire is_icache_addr    = `MC_IS_ICACHE_ADDR(in_addr_lo, addr_width_p);
 
-   wire remote_store_imem_not_dmem = in_v_lo & ~non_imem_bits_set;
-   wire remote_access_dmem_not_imem = in_v_lo & non_imem_bits_set & (~is_config_op);
+   wire remote_store_icache = in_v_lo & is_icache_addr;
+   wire remote_access_dmem  = in_v_lo & is_dmem_addr;
+   wire remote_invalid_addr = in_v_lo & ( ~( is_dmem_addr | is_icache_addr | is_config_op ) );
 
    // Logic detecting the falling edge of freeze_r signal
    logic freeze_r_r;
@@ -254,7 +256,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    always_comb
    begin
      // remote stores to imem and initial pc value sent over vanilla core's network
-     core_net_pkt.valid     = remote_store_imem_not_dmem | pkt_unfreeze;
+     core_net_pkt.valid     = remote_store_icache | pkt_unfreeze;
      //Shaolin Xie: To supress the 'Undriven' warning.
      core_net_pkt.header.reserved  = 2'b0;
 
@@ -262,7 +264,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      core_net_pkt.header.external = 1'b0;
      core_net_pkt.header.gw_ID    = 3'(0);
      core_net_pkt.header.ring_ID  = 5'(0);
-     if (remote_store_imem_not_dmem)
+     if (remote_store_icache)
        begin // remote store to imem
          core_net_pkt.header.net_op = INSTR;
          core_net_pkt.header.mask   = in_mask_lo;
@@ -280,7 +282,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
          core_net_pkt.header.addr     = 'b0;
        end
 
-    core_net_pkt.data   = remote_store_imem_not_dmem ? in_data_lo : 32'(0);
+    core_net_pkt.data   = remote_store_icache? in_data_lo : 32'(0);
   end
 
   //convert the core_to_mem structure to signals.
@@ -359,7 +361,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     end
   end
 
-  // synopsys translate off
+  // synopsys translate_off
   always @(negedge clk_i)
   begin
     if(~reset_i) begin
@@ -369,7 +371,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       end
     end
   end
-  // synopsys translate on
+  // synopsys translate_on
       
 
    wire out_request;
@@ -440,7 +442,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    // synopsys translate_on
 
    wire local_epa_request = core_mem_v & (~ out_request);// not a remote packet
-   wire [1:0]              xbar_port_v_in = { local_epa_request ,  remote_access_dmem_not_imem};
+   wire [1:0]              xbar_port_v_in = { local_epa_request ,  remote_access_dmem};
 
    localparam mem_width_lp    = $clog2(dmem_size_p) ;
 
@@ -452,12 +454,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
    always @(negedge clk_i)
      begin
-        if (remote_access_dmem_not_imem)
-          assert (in_addr_lo < ((1 << icache_addr_width_lp) + (dmem_size_p)))
-            else
+        if ( remote_invalid_addr)
               begin
-                 $error("# ERROR y,x=(%x,%x) remote access addr (%x) past end of data memory (%x)"
-                        ,my_y_i,my_x_i,in_addr_lo*4,4*((1 << icache_addr_width_lp)+(dmem_size_p)));
+                 $error("# ERROR y,x=(%x,%x) remote access addr (%x) is invalid",my_y_i,my_x_i,in_addr_lo*4);
                  $finish();
               end
      end
@@ -501,7 +500,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    // local mem yumi the data from the core
    assign   core_mem_yumi   = xbar_port_yumi_out[1];
    // local mem yumi the data from the network
-   assign   in_yumi_li      = xbar_port_yumi_out[0] | remote_store_imem_not_dmem | is_config_op ;
+   assign   in_yumi_li      = xbar_port_yumi_out[0] | remote_store_icache | is_config_op ;
 
    //the local memory or network can consume the store data
    assign mem_to_core.yumi  = (xbar_port_yumi_out[1] | launching_out);

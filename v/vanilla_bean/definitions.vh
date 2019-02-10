@@ -1,7 +1,7 @@
-`ifndef _definitions_v_
-`define _definitions_v_
+`ifndef _definitions_vh_
+`define _definitions_vh_
 
-`include "parameters.v"
+`include "parameters.vh"
 
 /**
  *  This file defines the structs and macros

@@ -1,7 +1,7 @@
 `include "bsg_manycore_packet.vh"
 
 `ifdef bsg_FPU
-`include "float_definitions.v"
+`include "float_definitions.vh"
 `endif
 module bsg_manycore
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }
@@ -33,8 +33,10 @@ module bsg_manycore
    // this control how many extra IO rows are addressable in
    // the network outside of the manycore array
 
-   ,parameter extra_io_rows_p   = 1
+   ,parameter extra_io_rows_p   = 2
 
+   //one extra routers for the IO.
+   ,parameter num_routers_y_lp = num_tiles_y_p + extra_io_rows_p -1 
    // this parameter sets the size of addresses that are transmitted in the network
    // and corresponds to the amount of physical words that are addressable by a remote
    // tile. here are some various settings:
@@ -97,13 +99,16 @@ module bsg_manycore
    ,input reset_i
 
    // horizontal -- {E,W}
-   ,input  [E:W][num_tiles_y_p-1:0][bsg_manycore_link_sif_width_lp-1:0] hor_link_sif_i
-   ,output [E:W][num_tiles_y_p-1:0][bsg_manycore_link_sif_width_lp-1:0] hor_link_sif_o
+   ,input  [E:W][num_routers_y_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] hor_link_sif_i
+   ,output [E:W][num_routers_y_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] hor_link_sif_o
 
    // vertical -- {S,N}
    ,input   [S:N][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_i
    ,output  [S:N][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
 
+   //IO
+   ,input   [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] io_link_sif_i
+   ,output  [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] io_link_sif_o
   );
 
 // Manycore is stubbed out when running synthesis on the top-level chip
@@ -122,8 +127,9 @@ module bsg_manycore
 
    `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p);
 
-   bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
-   bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
+
+   bsg_manycore_link_sif_s [num_routers_y_lp-1:0][num_tiles_x_p-1:0][S:W] link_in;
+   bsg_manycore_link_sif_s [num_routers_y_lp-1:0][num_tiles_x_p-1:0][S:W] link_out;
 
    genvar r,c;
 
@@ -205,12 +211,36 @@ module bsg_manycore
           end
      end
 
+for (c = 0; c < num_tiles_x_p; c=c+1) begin:io
+        bsg_manycore_mesh_node #(
+            .x_cord_width_p     (x_cord_width_lp )
+           ,.y_cord_width_p     (y_cord_width_lp )
+           ,.load_id_width_p    (load_id_width_p )
+        
+           ,.data_width_p       (data_width_p    )
+           ,.addr_width_p       (addr_width_p    )
+          ) io_router
+           (  .clk_i    (clk_i      )
+             ,.reset_i  (reset_i_rr )
+        
+             ,.links_sif_i      ( link_in [ num_tiles_y_p ][ c ] )
+             ,.links_sif_o      ( link_out[ num_tiles_y_p ][ c ] )
+        
+             ,.proc_link_sif_i  ( io_link_sif_i [ c ])
+             ,.proc_link_sif_o  ( io_link_sif_o [ c ])
+        
+             // tile coordinates
+             ,.my_x_i   ( x_cord_width_lp'(c              ))
+             ,.my_y_i   ( y_cord_width_lp'(num_tiles_y_p  ))
+             );
+        
+end
     // stitch together all of the tiles into a mesh
 
     bsg_mesh_stitch
      #(.width_p(bsg_manycore_link_sif_width_lp)
       ,.x_max_p(num_tiles_x_p)
-      ,.y_max_p(num_tiles_y_p)
+      ,.y_max_p(num_routers_y_lp)
       )
     link
       (.outs_i(link_out)

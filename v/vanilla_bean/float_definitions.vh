@@ -1,7 +1,7 @@
-`ifndef _float_definitions_v_
-`define _float_definitions_v_
+`ifndef _float_definitions_vh_
+`define _float_definitions_vh_
 
-`include "float_parameters.v"
+`include "float_parameters.vh"
 /**
  *  This file defines the structs and macros
  *  used through out the vallina core with floating point unit.

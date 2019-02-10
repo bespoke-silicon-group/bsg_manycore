@@ -1,5 +1,5 @@
-`ifndef _parameters_v_
-`define _parameters_v_
+`ifndef _parameters_vh_
+`define _parameters_vh_
 
 // RV32 Opcodes
 `define RV32_LOAD     7'b0000011
@@ -162,6 +162,16 @@ localparam RV32_Simm_width_gp     = 12;
 localparam RV32_Bimm_width_gp     = 12;
 localparam RV32_Uimm_width_gp     = 20;
 localparam RV32_Jimm_width_gp     = 20;
+/////////////////////////////////////////////////////
+// The MSB inidcator of the address in bytes.
+`define         MC_DMEM_MASK_BITS      12  
+`define         MC_IS_DMEM_ADDR(addr, addr_width)  (  addr[ `MC_DMEM_MASK_BITS -2]                              \
+                                                    & (~ (| addr[  (``addr_width``-1) : `MC_DMEM_MASK_BITS -1 ]) ) \
+                                                   )
 
+`define         MC_ICACHE_MASK_BITS    24 
+`define         MC_IS_ICACHE_ADDR(addr, addr_width)  (  addr[ `MC_ICACHE_MASK_BITS -2]                              \
+                                                      & (~ (| addr[ (``addr_width``-1) : `MC_ICACHE_MASK_BITS -1 ]) ) \
+                                                     )
 
 `endif

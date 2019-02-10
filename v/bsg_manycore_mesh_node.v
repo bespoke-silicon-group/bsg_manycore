@@ -96,8 +96,9 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
                                    ,.debug_p(debug_p)
                                    // adding proc into stub
                                    ,.stub_p({stub_p, 1'b0})
-                                   // needed for doing I/O to south edge of array
-                                   ,.allow_S_to_EW_p(1'b1)
+                                   //forward router:  X/Y routing
+                                   //reverse router:  Y/X routing
+                                   ,.XY_order_p(!i)
                                    ,.repeater_output_p({repeater_output_p,1'b0})
                                    ) bmrb
           (.clk_i    (clk_i)

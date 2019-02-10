@@ -1,8 +1,10 @@
 
 bsg_tiles_X = 4 
 bsg_tiles_Y = 8 
+MASTER_X   ?= 2
+MASTER_Y   ?= 2
 
-RISCV_GCC_EXTRA_OPTS ?= -O2 -funroll-loops
+RISCV_GCC_EXTRA_OPTS ?= -O2 -funroll-loops -DMASTER_X=$(MASTER_X) -DMASTER_Y=$(MASTER_Y)
 OBJECT_FILES=main.o bsg_set_tile_x_y.o
 include ../Makefile.include
 

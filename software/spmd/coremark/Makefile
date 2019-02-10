@@ -1,41 +1,18 @@
-#########################################################
-COREMARK_DIR=/home/shx/coremark-shaolin
-
-bsg_tiles_X = 16 
-bsg_tiles_Y = 31 
-
-##########################################################
-COREMARK_INCS=-I$(COREMARK_DIR)/ -I$(COREMARK_DIR)/manycore
-
-COREMARK_SRCS=$(COREMARK_DIR)/core_matrix.c
-COREMARK_SRCS+=$(COREMARK_DIR)/core_state.c
-COREMARK_SRCS+=$(COREMARK_DIR)/core_list_join.c
-COREMARK_SRCS+=$(COREMARK_DIR)/core_util.c
-#COREMARK_SRCS+=$(COREMARK_DIR)/manycore/iterate.c
-
-COREMARK_OBJS=$(COREMARK_SRCS:.c=.o)
-##########################################################
-RISCV_GCC_EXTRA_OPTS ?= -Os $(COREMARK_INCS) -DMANYCORE_PROG
-
-all: main.run
 
 include ../Makefile.include
 
-#########################################################
-#            FPU OPTION
-#     The number of horizon node must be two and must 
-#     be vanilla core 
-BSG_FPU_OP=0
+COREMARK_TOP=../coremark-top
+COREMARK_SRC=../../imports/coremark/
+MANYCORE_PORT_SRC=$(BSG_MANYCORE_DIR)/software/spmd/coremark/
+MANYCORE_PORT_DST=$(COREMARK_TOP)/manycore
 
-main.riscv:  main.o $(COREMARK_OBJS) 
-	$(RISCV_LINK) $^ -o $@ $(RISCV_LINK_OPTS) -Wl,-Map,link.map
-
+all:
+	ln -s $(COREMARK_SRC) $(COREMARK_TOP)
+	ln -s $(MANYCORE_PORT_SRC) $(MANYCORE_PORT_DST)
+	make coremark.run PORT_DIR=manycore ITERATIONS=1 -C $(COREMARK_TOP)
 clean:
-	-rm -rf *.o *.jou *.log *.pb bsg_manycore_io_complex_rom.v main.riscv *.wdb main.bin main.hex main.vec
-	-rm -rf xsim.dir
-	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd
-	-rm $(COREMARK_OBJS)
+	make clean PORT_DIR=manycore -C $(COREMARK_TOP)
+	rm -rf $(MANYCORE_PORT_DST)
+	rm -rf $(COREMARK_TOP)
+	rm -rf *.o *.log
 
-main.o: Makefile
-
-include ../../mk/Makefile.tail_rules

@@ -4,8 +4,8 @@
 //====================================================================
 // Instruction cache for manycore. 
 
-`include "parameters.v"
-`include "definitions.v"
+`include "parameters.vh"
+`include "definitions.vh"
 module icache #(parameter 
                           icache_tag_width_p     = -1, 
                           icache_addr_width_p    = -1,

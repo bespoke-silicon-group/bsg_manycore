@@ -1,3 +1,5 @@
+`include "bsg_manycore_packet.vh"
+
 module bsg_manycore_endpoint #( x_cord_width_p                  = "inv"
                                 ,y_cord_width_p                 = "inv"
                                 ,fifo_els_p                     = "inv"
