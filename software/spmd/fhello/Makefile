@@ -22,12 +22,11 @@ OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o \
 
 include ../Makefile.include
 
-FS_DIR = $(BSG_MANYCORE_DIR)/software/littlefs
-vpath %.c $(FS_DIR)
+LFS_DIR = $(BSG_MANYCORE_DIR)/software/littlefs/lfs # file system
+BD_DIR = $(BSG_MANYCORE_DIR)/software/littlefs/bd # block device
+vpath %.c $(LFS_DIR) $(BD_DIR)
 
-$(warning $(FS_DIR))
-
-RISCV_GCC_OPTS += -I$(FS_DIR) -DLFS_NO_ASSERT -DLFS_NO_MALLOC -DLFS_NO_DEBUG \
+RISCV_GCC_OPTS += -I$(LFS_DIR) -I$(BD_DIR) -DLFS_NO_ASSERT -DLFS_NO_MALLOC -DLFS_NO_DEBUG \
 				  -DLFS_NO_WARN -DLFS_NO_ERROR -DLFS_NO_INTRINSICS
 
 #########################################################
