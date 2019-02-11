@@ -6,9 +6,9 @@ endif
 CC ?= gcc
 DIS ?= objdump
 
-SRC = lfs.c lfs_util.c lfs_bd.c lfs_hello.c
+SRC = lfs/lfs.c lfs/lfs_util.c bd/lfs_bd.c lfs_hello.c
 OBJS = $(subst .c,.o,$(SRC))
-INCS = -I.
+INCS = -I. -Ilfs -Ibd
 
 ifdef DEBUG
 override CFLAGS += -O0 -g3
