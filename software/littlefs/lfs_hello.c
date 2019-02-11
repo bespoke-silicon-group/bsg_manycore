@@ -6,8 +6,11 @@
 // 2Kb file system memory
 // Block size cannot be less than 128 due to
 // LittleFS intrinsics.
+#define READ_SIZE 32
+#define PROG_SIZE 32
 #define BLOCK_SIZE 128
 #define BLOCK_COUNT 16
+#define LOOKAHEAD 32
 
 lfs_t           lfs; // littlefs data structure
 lfs_file_t      file; // littlefs file
@@ -16,6 +19,12 @@ uint8_t         lfs_mem[BLOCK_SIZE*BLOCK_COUNT]; // Data mem allocation for FS
 
 // File system memory pointer
 uint8_t *lfs_ptr = lfs_mem;
+
+// lfs static buffers
+char read_buffer[READ_SIZE];
+char prog_buffer[PROG_SIZE];
+char lookahead_buffer[LOOKAHEAD/8];
+char file_buffer[PROG_SIZE];
 
 // LittleFS configuration
 const struct lfs_config cfg = {
@@ -26,11 +35,16 @@ const struct lfs_config cfg = {
     .sync  = lfs_sync,
 
     // block device configuration
-    .read_size = 32,
-    .prog_size = 32,
+    .read_size = READ_SIZE,
+    .prog_size = PROG_SIZE,
     .block_size = BLOCK_SIZE,
     .block_count = BLOCK_COUNT,
-    .lookahead = 32,
+    .lookahead = LOOKAHEAD,
+
+    .read_buffer = read_buffer,
+    .prog_buffer = prog_buffer,
+    .lookahead_buffer = lookahead_buffer,
+    .file_buffer = file_buffer
 };
 
 int main() {
