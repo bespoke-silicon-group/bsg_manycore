@@ -1,5 +1,7 @@
 #####################################################
 # This file will run the regression test of bsg_manycore
+# 
+# FORMAT=<test case> <target>
 test_case_list =hello
 test_case_list+=bsg_token_queue
 test_case_list+=bsg_fence
@@ -15,7 +17,7 @@ test_case_list+=load_dependency
 test_case_list+=remote_load_crc
 test_case_list+=bsg_remote_congestion
 test_case_list+=coremark
-#test_case_list+=bsg_riscv_tests
+test_case_list+='bsg_riscv_tests add.run'
 #test_case_list+=bsg_swap
 #test_case_list+=bsg_barrier
 #test_case_list+=bsg_transpose
@@ -49,11 +51,14 @@ all: main.regress_test
 %.regress_test:
 	@for testcase in $(test_case_list) ; do \
 	echo "====================================================================="; \
-	echo "running testcase [ $$testcase ]"; \
-	make -C ./$$testcase DVE=0 COVERAGE=$(COVERAGE) bsg_tiles_X=$(bsg_tiles_X) bsg_tiles_Y=$(bsg_tiles_Y) &> run.log; \
+	export test_name=$$(echo $$testcase | awk '{print $$1}')	&&	\
+	export test_target=$$(echo $$testcase | awk '{print $$2}')	&&	\
+	echo "running testcase [ $$testcase, target=$$test_target ]"; \
+	make -C ./$$test_name $$test_target DVE=0 COVERAGE=$(COVERAGE)  \
+		bsg_tiles_X=$(bsg_tiles_X) bsg_tiles_Y=$(bsg_tiles_Y) &> run.log; \
 	grep " FINISH \| FAIL \| I/O \|^[Ee]rror \|Correct" run.log;    	   \
-	rm -rf run.log; \
 	done;
+
 ifeq ($(COVERAGE),VCS)
 	@$(URG) $(URG_OPS) -report coverage_reports/ -log coverage.log &>/dev/null;
 	@echo "====================================================================";
