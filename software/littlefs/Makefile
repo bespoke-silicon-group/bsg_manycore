@@ -18,6 +18,8 @@ endif
 override CFLAGS += -I.
 override CFLAGS += -std=c99 -Wall -pedantic
 override CFLAGS += -Wshadow -Wunused-parameter -Wjump-misses-init -Wsign-compare
+override CFLAGS += -DLFS_NO_ASSERT -DLFS_NO_MALLOC -DLFS_NO_DEBUG \
+				   -DLFS_NO_WARN -DLFS_NO_ERROR -DLFS_NO_INTRINSICS
 
 all: $(TARGET)
 
