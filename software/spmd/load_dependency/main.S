@@ -71,21 +71,26 @@ test_3:
 
 test_4:
     // Contention between remote and local loads
-    li s2, 0x1020;
-    li s3, 0x1024;
-    li s4, 0x1028;
-    li s5, 0x102c;
-    li s6, 0x1030;
-    li s7, 0x1034;
-    li s8, 0x1038;
+    li a0, 0x1028;
+    li a1, 0x102c;
+    li a2, 0x1030;
+    li a3, 0x1034;
+    li a4, 0x1038;
     bsg_asm_remote_load(s1, 0, 0, 0x101c); // 8
-    lw s2, 0x0(s2); // 9
-    lw s3, 0x0(s3); // 10
-    lw s4, 0x0(s4); // 11
-    lw s5, 0x0(s5); // 12
-    lw s6, 0x0(s6); // 13
-    lw s7, 0x0(s7); // 14
-    lw s8, 0x0(s8); // 15
+    bsg_asm_remote_load(s2, 0, 0, 0x1020); // 9
+    bsg_asm_remote_load(s3, 0, 0, 0x1024); // 10
+    lw s4, 0x0(a0); // 11
+    lw s5, 0x0(a1); // 12
+    lw s6, 0x0(a2); // 13
+    lw s7, 0x0(a3); // 14
+    lw s8, 0x0(a4); // 15
+    lw s8, 0x0(a4); // 15
+    lw s8, 0x0(a4); // 15
+    lw s8, 0x0(a4); // 15
+    lw s8, 0x0(a4); // 15
+    lw s8, 0x0(a4); // 15
+    lw s8, 0x0(a4); // 15
+    lw s8, 0x0(a4); // 15
     add s1, s0, s1;
     add s2, s1, s2;
     add s3, s2, s3;

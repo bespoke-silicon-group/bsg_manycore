@@ -6,10 +6,10 @@
 //#define MASTER_X   0
 //#define MASTER_Y   0
 
-#if bsg_tiles_X != 4
-#error "bsg_tiles_X should be 4 "
-#elif bsg_tiles_Y != 8
-#error "bsg_tiles_Y should be 8 "
+#if bsg_tiles_X > 4
+#error "bsg_tiles_X should be <= 4 "
+#elif bsg_tiles_Y > 8
+#error "bsg_tiles_Y should be <= 8 "
 #endif
 
 #define XY_ID(x_cord, y_cord, X, Y)    ( ( (x_cord) *(X) +(y_cord) ) << 24  )

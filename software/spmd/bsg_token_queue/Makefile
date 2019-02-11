@@ -1,6 +1,6 @@
 
-bsg_tiles_X = 2
-bsg_tiles_Y = 5
+bsg_tiles_X = 4
+bsg_tiles_Y = 4
 
 RISCV_GCC_EXTRA_OPTS += -O2 #-DBSG_TOKEN_QUEUE_SHORT
 # -funroll-loops
