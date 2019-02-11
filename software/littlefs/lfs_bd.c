@@ -1,5 +1,4 @@
 #include "lfs_bd.h"
-#include <stdlib.h>
 #include <string.h>
 
 int lfs_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off
