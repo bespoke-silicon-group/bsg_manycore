@@ -1,28 +1,4 @@
-#####################################################
-# This file will run the regression test of bsg_manycore
-# 
-# FORMAT=<test case> <target>
-test_case_list =hello
-test_case_list+=bsg_token_queue
-test_case_list+=bsg_fence
-test_case_list+=bsg_lr_acq
-test_case_list+=bsg_chained_core
-test_case_list+=bsg_outbuf_full
-test_case_list+=mul_div
-test_case_list+=bypass_core
-test_case_list+=bsg_remote_load
-test_case_list+=instr_tests/jal_rv32
-test_case_list+=instr_tests/branch_rv32
-test_case_list+=load_dependency
-test_case_list+=remote_load_crc
-test_case_list+=bsg_remote_congestion
-test_case_list+=coremark
-test_case_list+='bsg_riscv_tests add.run'
-#test_case_list+=bsg_swap
-#test_case_list+=bsg_barrier
-#test_case_list+=bsg_transpose
-
-
+include ./Makefile.regress.list
 include ./Makefile.include
 
 # Define this variable on cmd line to run coverage analysis. Currently
@@ -68,7 +44,7 @@ ifeq ($(COVERAGE),VCS)
 	@echo
 endif
 	@for testcase in $(test_case_list) ; do \
-	make -C ./$$testcase clean  &>/dev/null;     		   \
+	make -C ./$$(echo $$testcase | awk '{print $$1}') clean  &>/dev/null;     		   \
 	done;
 
 coverage-debug:

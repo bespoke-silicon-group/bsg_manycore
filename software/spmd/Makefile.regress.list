@@ -1,0 +1,75 @@
+#####################################################
+# This file will run the regression test of bsg_manycore
+# 
+# FORMAT=<test case> <target>
+#####################################################
+# The assmebly riscv-32 test
+# The rv32-ui
+#test_case_list+='bsg_riscv_tests addi.run'
+#test_case_list+='bsg_riscv_tests add.run'
+#test_case_list+='bsg_riscv_tests andi.run'
+#test_case_list+='bsg_riscv_tests and.run'
+#test_case_list+='bsg_riscv_tests auipc.run'
+#test_case_list+='bsg_riscv_tests beq.run'
+#test_case_list+='bsg_riscv_tests bge.run'
+#test_case_list+='bsg_riscv_tests bgeu.run'
+#test_case_list+='bsg_riscv_tests blt.run'
+#test_case_list+='bsg_riscv_tests bltu.run'
+#test_case_list+='bsg_riscv_tests bne.run'
+#test_case_list+='bsg_riscv_tests fence_i.run'
+#test_case_list+='bsg_riscv_tests jalr.run'
+#test_case_list+='bsg_riscv_tests jal.run'
+#test_case_list+='bsg_riscv_tests lb.run'
+#test_case_list+='bsg_riscv_tests lbu.run'
+#test_case_list+='bsg_riscv_tests lh.run'
+#test_case_list+='bsg_riscv_tests lhu.run'
+#test_case_list+='bsg_riscv_tests lui.run'
+#test_case_list+='bsg_riscv_tests lw.run'
+#test_case_list+='bsg_riscv_tests ori.run'
+#test_case_list+='bsg_riscv_tests or.run'
+#test_case_list+='bsg_riscv_tests sb.run'
+#test_case_list+='bsg_riscv_tests sh.run'
+#test_case_list+='bsg_riscv_tests simple.run'
+#test_case_list+='bsg_riscv_tests slli.run'
+#test_case_list+='bsg_riscv_tests sll.run'
+#test_case_list+='bsg_riscv_tests slti.run'
+#test_case_list+='bsg_riscv_tests sltiu.run'
+#test_case_list+='bsg_riscv_tests slt.run'
+#test_case_list+='bsg_riscv_tests sltu.run'
+#test_case_list+='bsg_riscv_tests srai.run'
+#test_case_list+='bsg_riscv_tests sra.run'
+#test_case_list+='bsg_riscv_tests srli.run'
+#test_case_list+='bsg_riscv_tests srl.run'
+#test_case_list+='bsg_riscv_tests sub.run'
+#test_case_list+='bsg_riscv_tests sw.run'
+#test_case_list+='bsg_riscv_tests xori.run'
+#test_case_list+='bsg_riscv_tests xor.run'
+# The rv32-um
+test_case_list+='bsg_riscv_tests div.run'
+test_case_list+='bsg_riscv_tests divu.run'
+test_case_list+='bsg_riscv_tests mulh.run'
+test_case_list+='bsg_riscv_tests mulhsu.run'
+test_case_list+='bsg_riscv_tests mulhu.run'
+test_case_list+='bsg_riscv_tests mul.run'
+test_case_list+='bsg_riscv_tests rem.run'
+test_case_list+='bsg_riscv_tests remu.run'
+#####################################################
+# The manycore specific test
+test_case_list+=hello
+test_case_list+=bsg_token_queue
+test_case_list+=bsg_fence
+test_case_list+=bsg_lr_acq
+test_case_list+=bsg_chained_core
+test_case_list+=bsg_outbuf_full
+test_case_list+=mul_div
+test_case_list+=bypass_core
+test_case_list+=bsg_remote_load
+test_case_list+=instr_tests/jal_rv32
+test_case_list+=instr_tests/branch_rv32
+test_case_list+=load_dependency
+test_case_list+=remote_load_crc
+test_case_list+=bsg_remote_congestion
+test_case_list+=coremark
+#test_case_list+=bsg_swap
+#test_case_list+=bsg_barrier
+#test_case_list+=bsg_transpose

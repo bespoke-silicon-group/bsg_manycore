@@ -25,8 +25,8 @@
     bsg_asm_finish(IO_X_INDEX, 0)       \
 1:                                      \
     j 1b;
-
+//the failed value is the test num
 #define RVTEST_FAIL \
-    bsg_asm_fail(IO_X_INDEX, 0)         \
+    bsg_asm_fail_reg(IO_X_INDEX, TESTNUM)         \
 1:                                      \
     j 1b;
