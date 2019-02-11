@@ -7,19 +7,25 @@
 // 2Kb file system memory
 // Block size cannot be less than 128 due to
 // LittleFS intrinsics.
+#define READ_SIZE 32
+#define PROG_SIZE 32
 #define BLOCK_SIZE 128
 #define BLOCK_COUNT 16
+#define LOOKAHEAD 32
 
-lfs_t           lfs;       // littlefs data structure
-lfs_file_t      file;      // littlefs file
+lfs_t           lfs; // littlefs data structure
+lfs_file_t      file; // littlefs file
 struct lfs_info file_info; // file info structure
+uint8_t         lfs_mem[BLOCK_SIZE*BLOCK_COUNT]; // Data mem allocation for FS
 
-// Memory allocation for the file system
-uint8_t lfs_mem[BLOCK_SIZE*BLOCK_COUNT];
-
-// File system memory pointer: special pointer needed by
-// the block device driver to get FS addr in the memory
+// File system memory pointer
 uint8_t *lfs_ptr = lfs_mem;
+
+// lfs static buffers
+char read_buffer[READ_SIZE];
+char prog_buffer[PROG_SIZE];
+char lookahead_buffer[LOOKAHEAD/8];
+char file_buffer[PROG_SIZE];
 
 // LittleFS configuration
 const struct lfs_config cfg = {
@@ -30,11 +36,16 @@ const struct lfs_config cfg = {
     .sync  = lfs_sync,
 
     // block device configuration
-    .read_size = 32,
-    .prog_size = 32,
+    .read_size = READ_SIZE,
+    .prog_size = PROG_SIZE,
     .block_size = BLOCK_SIZE,
     .block_count = BLOCK_COUNT,
-    .lookahead = 32,
+    .lookahead = LOOKAHEAD,
+
+    .read_buffer = read_buffer,
+    .prog_buffer = prog_buffer,
+    .lookahead_buffer = lookahead_buffer,
+    .file_buffer = file_buffer
 };
 
 int main()
@@ -49,32 +60,50 @@ int main()
         // format and mount
         if(lfs_format(&lfs, &cfg) < 0) 
             bsg_printf("(%0d, %0d): format error\n", bsg_x, bsg_y);
+        else
+            bsg_printf("(%0d, %0d): formatted the fs...\n", bsg_x, bsg_y);
         if(lfs_mount(&lfs, &cfg) < 0) 
             bsg_printf("(%0d, %0d): mount error\n", bsg_x, bsg_y);
+        else
+            bsg_printf("(%0d, %0d): file system mounted...\n", bsg_x, bsg_y);
 
         // write sequence: open, write & close
         // Close is important as writes aren't commited until close!!!
         if(lfs_file_open(&lfs, &file, filename, LFS_O_RDWR | LFS_O_CREAT) < 0)
             bsg_printf("(%0d, %0d): file open error\n", bsg_x, bsg_y);
+        else
+            bsg_printf("(%0d, %0d): file created for writing...\n", bsg_x, bsg_y);
         if(lfs_file_write(&lfs, &file, write_buf, sizeof(write_buf)) < 0)
             bsg_printf("(%0d, %0d): file write error\n", bsg_x, bsg_y);
+        else
+            bsg_printf("(%0d, %0d): file written...\n", bsg_x, bsg_y);
         if(lfs_file_close(&lfs, &file) < 0)
             bsg_printf("(%0d, %0d): file close error\n", bsg_x, bsg_y);
+        else
+            bsg_printf("(%0d, %0d): file closed...\n", bsg_x, bsg_y);
 
         // open, read & close
         // find the file size and read it into read buffer
         if(lfs_file_open(&lfs, &file, filename, LFS_O_RDONLY) < 0)
             bsg_printf("(%0d, %0d): file open error\n", bsg_x, bsg_y);
+        else
+            bsg_printf("(%0d, %0d): file created for reading...\n", bsg_x, bsg_y);
         if(lfs_stat(&lfs, filename, &file_info) < 0)
             bsg_printf("(%0d, %0d): file info error\n", bsg_x, bsg_y);
         if(lfs_file_read(&lfs, &file, read_buf, file_info.size) < 0)
             bsg_printf("(%0d, %0d): file read error\n", bsg_x, bsg_y);
+        else
+            bsg_printf("(%0d, %0d): file read...\n", bsg_x, bsg_y);
         if(lfs_file_close(&lfs, &file) < 0)
             bsg_printf("(%0d, %0d): file close error\n", bsg_x, bsg_y);
+        else
+            bsg_printf("(%0d, %0d): file closed...\n", bsg_x, bsg_y);
 
         // unmount
         if(lfs_unmount(&lfs) < 0)
             bsg_printf("(%0d, %0d): Unmounting error\n", bsg_x, bsg_y);
+        else
+            bsg_printf("(%0d, %0d): file system unmounted...\n", bsg_x, bsg_y);
 
         // Should be Hello World!
         bsg_printf(read_buf);
