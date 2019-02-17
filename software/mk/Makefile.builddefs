@@ -67,7 +67,7 @@ RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 	python $(HEX2BIN) $< 32 > $@
 
 %.dis: %.riscv
-	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all $<
+	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all -S $<
 
 %.S: %.c
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ |& tee $*.comp.log
