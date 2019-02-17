@@ -69,6 +69,9 @@ RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 %.dis: %.riscv
 	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all $<
 
+%.S: %.c
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ |& tee $*.comp.log
+
 #added the '0x' prefix and and a ',' prefix to each line except the last line.
 #can be used to initialize a vector in C launguage.
 %.vec.c: %.hex
