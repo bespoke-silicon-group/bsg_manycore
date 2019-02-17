@@ -47,7 +47,7 @@ extern "C"
 
 // Runtime assertions
 #ifndef LFS_NO_ASSERT
-#define LFS_ASSERT(test) { if(!test) bsg_printf("LFS Assertion failure: %s\n", #test); }
+#define LFS_ASSERT(test) { if(!(test)) bsg_printf("LFS Assertion failure: %s\n", #test); }
 #else
 #define LFS_ASSERT(test)
 #endif
