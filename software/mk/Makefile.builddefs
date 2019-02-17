@@ -125,7 +125,10 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 	python $(HEX2BIN) $< 32 > $@
 
 %.dis: %.riscv
-	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all $<
+	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all -S $<
+
+%.S: %.c
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ |& tee $*.comp.log
 
 #added the '0x' prefix and and a ',' prefix to each line except the last line.
 #can be used to initialize a vector in C launguage.

@@ -158,6 +158,7 @@ static inline void *lfs_malloc(size_t size) {
     return malloc(size);
 #else
     (void)size;
+    bsg_printf("LFS malloc used when not defined\n");
     return NULL;
 #endif
 }

@@ -16,16 +16,18 @@
 lfs_t           lfs; // littlefs data structure
 lfs_file_t      file; // littlefs file
 struct lfs_info file_info; // file info structure
-uint8_t         lfs_mem[BLOCK_SIZE*BLOCK_COUNT]; // Data mem allocation for FS
+
+// Data mem allocation for FS
+uint8_t lfs_mem[BLOCK_SIZE*BLOCK_COUNT] __attribute__ ((section (".dram")));
 
 // File system memory pointer
 uint8_t *lfs_ptr = lfs_mem;
 
 // lfs static buffers
-char read_buffer[READ_SIZE];
-char prog_buffer[PROG_SIZE];
-char lookahead_buffer[LOOKAHEAD/8];
-char file_buffer[PROG_SIZE];
+static char read_buffer[READ_SIZE];
+static char prog_buffer[PROG_SIZE];
+static char lookahead_buffer[LOOKAHEAD/8];
+static char file_buffer[PROG_SIZE];
 
 // LittleFS configuration
 const struct lfs_config cfg = {
@@ -52,9 +54,9 @@ int main()
 {
     bsg_set_tile_x_y();
 
-    if ((bsg_x == bsg_tiles_X-1) && (bsg_y == bsg_tiles_Y-1)) {
+    if ((bsg_x == 0) && (bsg_y == bsg_tiles_Y-1)) {
         const char filename[20] = "hello.txt";
-        const char write_buf[20] = "Hello World!\n";
+        const char write_buf[50] = "Hello! This is Little FS!\n";
         char read_buf[20] = "";
 
         // format and mount
@@ -87,7 +89,7 @@ int main()
         if(lfs_file_open(&lfs, &file, filename, LFS_O_RDONLY) < 0)
             bsg_printf("(%0d, %0d): file open error\n", bsg_x, bsg_y);
         else
-            bsg_printf("(%0d, %0d): file created for reading...\n", bsg_x, bsg_y);
+            bsg_printf("(%0d, %0d): file opened for reading...\n", bsg_x, bsg_y);
         if(lfs_stat(&lfs, filename, &file_info) < 0)
             bsg_printf("(%0d, %0d): file info error\n", bsg_x, bsg_y);
         if(lfs_file_read(&lfs, &file, read_buf, file_info.size) < 0)
@@ -106,7 +108,7 @@ int main()
             bsg_printf("(%0d, %0d): file system unmounted...\n", bsg_x, bsg_y);
 
         // Should be Hello World!
-        bsg_printf(read_buf);
+        bsg_printf("(%d, %d): %s", bsg_x, bsg_y, read_buf);
         bsg_finish();
     }
 
