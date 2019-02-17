@@ -15,7 +15,7 @@ all: main.run
 # Redirects verilog standard output starting with "X<x_cord>_Y<y_cord>.pelog" 
 # to a unique log file for each coordinate in the manycore. This can be useful 
 # for a quick debug of processor or program running on it.
-proc_exe_logs: X1_Y4.pelog
+proc_exe_logs: X0_Y4.pelog
 
 OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o \
 			  lfs.o lfs_util.o lfs_bd.o
@@ -27,8 +27,14 @@ LFS_CONFIG_DIR = $(BSG_MANYCORE_DIR)/software/littlefs
 BD_DIR = $(BSG_MANYCORE_DIR)/software/littlefs/bd # block device
 vpath %.c $(LFS_DIR) $(BD_DIR)
 
-RISCV_GCC_OPTS += -I$(LFS_DIR) -I$(LFS_CONFIG_DIR) -I$(BD_DIR) \
-				  -DLFS_NO_MALLOC -DLFS_CONFIG=bsg_lfs_config.h
+
+RISCV_GCC_EXTRA_OPTS = -I$(LFS_DIR) -I$(LFS_CONFIG_DIR) -I$(BD_DIR) \
+				  		 -DLFS_NO_MALLOC -DLFS_CONFIG=bsg_lfs_config.h
+ifdef DEBUG
+RISCV_GCC_EXTRA_OPTS += -O0 -g
+else
+RISCV_GCC_EXTRA_OPTS += -O0 # have to check with -Os
+endif
 
 #########################################################
 #            FPU OPTION
