@@ -33,7 +33,7 @@ RISCV_GCC_EXTRA_OPTS = -I$(LFS_DIR) -I$(LFS_CONFIG_DIR) -I$(BD_DIR) \
 ifdef DEBUG
 RISCV_GCC_EXTRA_OPTS += -O0 -g
 else
-RISCV_GCC_EXTRA_OPTS += -O0 # have to check with -Os
+RISCV_GCC_EXTRA_OPTS += -O1 # have to check with -Os
 endif
 
 #########################################################
