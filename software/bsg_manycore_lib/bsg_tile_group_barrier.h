@@ -24,7 +24,7 @@
 //      6. row alert        X_DIM     cycles // store
 //      -----------------------------------------------
 //                        5*( X_DIM + Y_DIM)
-//      For 3x3 group,  cycles = 462, heavy looping/checking overhead for small groups.
+//      For 3x3 group,  cycles = 181, heavy looping/checking overhead for small groups.
 #ifndef  BSG_TILE_GROUP_BARRIER_H_
 #define  BSG_TILE_GROUP_BARRIER_H_
 
