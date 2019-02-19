@@ -33,7 +33,68 @@ RISCV_GCC_EXTRA_OPTS = -I$(LFS_DIR) -I$(LFS_CONFIG_DIR) -I$(BD_DIR) \
 ifdef DEBUG
 RISCV_GCC_EXTRA_OPTS += -O0 -g
 else
-RISCV_GCC_EXTRA_OPTS += -O1 # have to check with -Os
+RISCV_GCC_EXTRA_OPTS += -O1 
+RISCV_GCC_EXTRA_OPTS +=-falign-functions  
+RISCV_GCC_EXTRA_OPTS +=-falign-jumps 
+RISCV_GCC_EXTRA_OPTS +=-falign-labels  
+RISCV_GCC_EXTRA_OPTS +=-falign-loops 
+RISCV_GCC_EXTRA_OPTS +=-fcaller-saves 
+#Error 
+#RISCV_GCC_EXTRA_OPTS +=-fcode-hoisting 
+
+RISCV_GCC_EXTRA_OPTS +=-fcrossjumping 
+RISCV_GCC_EXTRA_OPTS +=-fcse-follow-jumps  
+RISCV_GCC_EXTRA_OPTS +=-fcse-skip-blocks 
+RISCV_GCC_EXTRA_OPTS +=-fdelete-null-pointer-checks 
+RISCV_GCC_EXTRA_OPTS +=-fdevirtualize  
+RISCV_GCC_EXTRA_OPTS +=-fdevirtualize-speculatively 
+RISCV_GCC_EXTRA_OPTS +=-fexpensive-optimizations 
+RISCV_GCC_EXTRA_OPTS +=-fgcse  
+
+RISCV_GCC_EXTRA_OPTS +=-fgcse-lm  
+RISCV_GCC_EXTRA_OPTS +=-fhoist-adjacent-loads 
+RISCV_GCC_EXTRA_OPTS +=-finline-small-functions 
+RISCV_GCC_EXTRA_OPTS +=-findirect-inlining 
+RISCV_GCC_EXTRA_OPTS +=-fipa-bit-cp  
+#Error
+#RISCV_GCC_EXTRA_OPTS +=-fipa-cp  
+
+RISCV_GCC_EXTRA_OPTS +=-fipa-icf 
+RISCV_GCC_EXTRA_OPTS +=-fipa-ra  
+
+RISCV_GCC_EXTRA_OPTS +=-fipa-sra  
+RISCV_GCC_EXTRA_OPTS +=-fipa-vrp 
+RISCV_GCC_EXTRA_OPTS +=-fisolate-erroneous-paths-dereference 
+
+RISCV_GCC_EXTRA_OPTS +=-flra-remat 
+RISCV_GCC_EXTRA_OPTS +=-foptimize-sibling-calls 
+
+RISCV_GCC_EXTRA_OPTS +=-foptimize-strlen 
+RISCV_GCC_EXTRA_OPTS +=-fpartial-inlining 
+
+RISCV_GCC_EXTRA_OPTS +=-fpeephole2 
+RISCV_GCC_EXTRA_OPTS +=-freorder-blocks-algorithm=stc 
+
+RISCV_GCC_EXTRA_OPTS +=-freorder-blocks-and-partition  
+RISCV_GCC_EXTRA_OPTS +=-freorder-functions 
+
+RISCV_GCC_EXTRA_OPTS +=-frerun-cse-after-loop  
+RISCV_GCC_EXTRA_OPTS +=-fschedule-insns  
+RISCV_GCC_EXTRA_OPTS +=-fschedule-insns2 
+
+RISCV_GCC_EXTRA_OPTS +=-fsched-interblock  
+RISCV_GCC_EXTRA_OPTS +=-fsched-spec 
+RISCV_GCC_EXTRA_OPTS +=-fstore-merging 
+RISCV_GCC_EXTRA_OPTS +=-fstrict-aliasing 
+
+RISCV_GCC_EXTRA_OPTS +=-fthread-jumps 
+RISCV_GCC_EXTRA_OPTS +=-ftree-builtin-call-dce 
+#Error 
+#RISCV_GCC_EXTRA_OPTS +=-ftree-pre 
+
+RISCV_GCC_EXTRA_OPTS +=-ftree-switch-conversion  
+RISCV_GCC_EXTRA_OPTS +=-ftree-tail-merge 
+RISCV_GCC_EXTRA_OPTS +=-ftree-vrp
 endif
 
 #########################################################
