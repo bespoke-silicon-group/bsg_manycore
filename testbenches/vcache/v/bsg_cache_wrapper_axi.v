@@ -23,8 +23,9 @@ module bsg_cache_wrapper_axi
     ,parameter y_cord_width_p="inv"
     ,parameter load_id_width_p="inv"
 
-    ,parameter axi_strb_width_lp = (axi_data_width_p>>3)
-    ,parameter byte_offset_width_lp = `BSG_SAFE_CLOG2(data_width_p>>3)
+    ,parameter axi_strb_width_lp=(axi_data_width_p>>3)
+    ,parameter byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
+    ,parameter cache_addr_width_lp=addr_width_p-1+byte_offset_width_lp
 
     ,parameter link_sif_width_lp=
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
@@ -87,7 +88,7 @@ module bsg_cache_wrapper_axi
 
   // bsg_manycore_link_to_cache
   //
-  `declare_bsg_cache_pkt_s(addr_width_p+byte_offset_width_lp, data_width_p);
+  `declare_bsg_cache_pkt_s(cache_addr_width_lp, data_width_p);
   bsg_cache_pkt_s [num_cache_p-1:0] cache_pkt;
   logic [num_cache_p-1:0] cache_v_li;
   logic [num_cache_p-1:0] cache_ready_lo;
@@ -102,7 +103,6 @@ module bsg_cache_wrapper_axi
       ,.x_cord_width_p(x_cord_width_p)
       ,.y_cord_width_p(y_cord_width_p)
       ,.load_id_width_p(load_id_width_p)
-      
       ,.sets_p(sets_p)
       ,.ways_p(ways_p)
       ,.block_size_in_words_p(block_size_in_words_p)
@@ -128,7 +128,7 @@ module bsg_cache_wrapper_axi
 
   // bsg_cache
   //
-  `declare_bsg_cache_dma_pkt_s(addr_width_p+byte_offset_width_lp);
+  `declare_bsg_cache_dma_pkt_s(cache_addr_width_lp);
   bsg_cache_dma_pkt_s [num_cache_p-1:0] dma_pkt;
   logic [num_cache_p-1:0] dma_pkt_v_lo;
   logic [num_cache_p-1:0] dma_pkt_yumi_li;
@@ -143,7 +143,7 @@ module bsg_cache_wrapper_axi
 
   for (genvar i = 0; i < num_cache_p; i++) begin
     bsg_cache #(
-      .addr_width_p(addr_width_p+byte_offset_width_lp)
+      .addr_width_p(cache_addr_width_lp)
       ,.data_width_p(data_width_p)
       ,.block_size_in_words_p(block_size_in_words_p)
       ,.sets_p(sets_p)
@@ -178,7 +178,7 @@ module bsg_cache_wrapper_axi
   // bsg_cache_to_axi
   //
   bsg_cache_to_axi #(
-    .addr_width_p(addr_width_p+byte_offset_width_lp)
+    .addr_width_p(cache_addr_width_lp)
     ,.block_size_in_words_p(block_size_in_words_p)
     ,.data_width_p(data_width_p)
     ,.num_cache_p(num_cache_p)

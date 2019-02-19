@@ -6,7 +6,7 @@ module testbench();
 
   // parameters
   //
-  parameter addr_width_p = 26;
+  parameter addr_width_p = 28;
   parameter data_width_p = 32;
   parameter num_tiles_x_p = 4;
   parameter num_tiles_y_p = 4;
@@ -16,7 +16,7 @@ module testbench();
   parameter dmem_size_p = 1024;
   parameter icache_entries_p = 1024;
   parameter icache_tag_width_p = 12;
-  parameter dram_ch_addr_width_p = 26;
+  parameter dram_ch_addr_width_p = 27;
   parameter epa_addr_width_p = 16;
 
   parameter num_cache_p = 4;

@@ -59,15 +59,18 @@ module bsg_manycore_pkt_encode
    // remote top bit of address, which is the special op code space.
    // low bits are automatically
    // The 'configure' operation is now encoded in the address
-   assign pkt.addr   =  dram_addr_decode.is_dram_addr ? addr_width_p ' (dram_addr_decode.addr)
-                                                      : addr_width_p ' (addr_decode.addr[$size(addr_decode.addr)-1:0]);
+   assign pkt.addr   =  dram_addr_decode.is_dram_addr
+     ? {1'b0, (dram_ch_addr_width_p)'(dram_addr_decode.addr)}
+     : (addr_width_p)'(addr_decode.addr);
 
 
    assign pkt.payload    = data_i;
-   assign pkt.x_cord     = dram_addr_decode.is_dram_addr ? x_cord_width_p'(dram_addr_decode.x_cord + dram_ch_start_col_p)
-                                                         : addr_decode.x_cord;
-   assign pkt.y_cord     = dram_addr_decode.is_dram_addr ? {y_cord_width_p{1'b1}} //Set to Y_MAX
-                                                         : addr_decode.y_cord;
+   assign pkt.x_cord     = dram_addr_decode.is_dram_addr
+     ? x_cord_width_p'(dram_addr_decode.x_cord + dram_ch_start_col_p)
+     : x_cord_width_p'(addr_decode.x_cord);
+   assign pkt.y_cord     = dram_addr_decode.is_dram_addr
+     ? {y_cord_width_p{1'b1}} //Set to Y_MAX
+     : y_cord_width_p'(addr_decode.y_cord);
 
    assign pkt.src_x_cord = my_x_i;
    assign pkt.src_y_cord = my_y_i;
