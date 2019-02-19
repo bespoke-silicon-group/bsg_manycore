@@ -9,6 +9,7 @@ testbenches/common/inputs/
 *.log
 *.wdb
 *.pb
+*.swp
 xelab*
 xsim*
 xvlog*
@@ -19,3 +20,11 @@ vivado_*
 imports/
 software/riscv-tools/riscv-install
 software/riscv-tools/rocket-chip
+software/riscv-tools/
+
+vcdplus.vpd
+ucli.key
+simv
+simv.daidir
+DVEfiles
+csrc
