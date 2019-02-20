@@ -32,7 +32,7 @@ module testbench();
   parameter mem_els_p = 2**12;
 
   parameter spmd_max_out_credits_p = 128;
-  parameter max_cycles_p = 100000;
+  parameter max_cycles_p = 1000000;
   parameter loader_x_cord_p = (x_cord_width_p)'(num_tiles_x_p-1);
   parameter loader_y_cord_p = (y_cord_width_p)'(num_tiles_y_p);
 

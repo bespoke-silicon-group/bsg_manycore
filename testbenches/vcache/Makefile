@@ -6,7 +6,7 @@
 bsg_tiles_X = 4
 bsg_tiles_Y = 4
 
-TEST_NAME ?= hello_manycore
+TEST ?= hello_manycore
 
 # build setting
 RISCV_BIN_DIR = $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install/bin
@@ -24,13 +24,13 @@ OBJECT_FILES = main.o bsg_set_tile_x_y.o bsg_printf.o crt.o
 
 .PHONY: dve sim all clean
 
-all: sim
+all: clean sim
 
 # GCC rules
 
 main.o:
 	$(RISCV_GCC) $(RISCV_GCC_OPT) $(RISCV_GCC_INC) $(RISCV_GCC_EXTRA_OPT) \
-	-c test/$(TEST_NAME)/main.c -o main.o
+	-c test/$(TEST)/main.c -o main.o
 
 bsg_set_tile_x_y.o:
 	$(RISCV_GCC) $(RISCV_GCC_OPT) $(RISCV_GCC_INC) $(RISCV_GCC_EXTRA_OPT) \
