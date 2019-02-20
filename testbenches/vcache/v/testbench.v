@@ -20,7 +20,7 @@ module testbench();
   parameter epa_addr_width_p = 16;
 
   parameter num_cache_p = 4;
-  parameter sets_p = 512;
+  parameter sets_p = 16;
   parameter ways_p = 2;
   parameter block_size_in_words_p = 8;
 
