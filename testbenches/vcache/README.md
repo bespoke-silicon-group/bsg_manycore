@@ -12,7 +12,8 @@
 ```
 
 - Run `make` to run the simulation.
-  - `make TEST\_NAME=hello_manycore` to select the specific test.
+  - `make TEST=hello_manycore` to select the specific test.
+  - test names are the directory names in the 'test/'
 
 - Run `make dve` to open waveform viewer.
 
