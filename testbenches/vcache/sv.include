@@ -93,7 +93,7 @@ $BSG_IP_CORES_DIR/bsg_cache/bsg_cache_to_axi.v
 $BSG_IP_CORES_DIR/bsg_cache/bsg_cache_to_axi_rx.v
 $BSG_IP_CORES_DIR/bsg_cache/bsg_cache_to_axi_tx.v
 
-v/mock_axi_mem.v
-v/bsg_manycore_wrapper.v
-v/bsg_cache_wrapper_axi.v
-v/testbench.v
+$BSG_MANYCORE_DIR/v/bladerunner/bsg_manycore_wrapper.v
+$BSG_MANYCORE_DIR/v/bladerunner/bsg_cache_wrapper_axi.v
+mock_axi_mem.v
+testbench.v
