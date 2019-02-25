@@ -62,7 +62,7 @@ checkout-all:
 	@rm -rf $(TOOLCHAIN_REPO);
 	git clone --recursive $(TOOLCHAIN_URL); 
 
-build-riscv-tools:
+build-deps:
 	@echo "====================================="
 	@echo "Building depends..."
 	@echo "====================================="
@@ -73,12 +73,16 @@ build-riscv-tools:
 		./configure --prefix=$(DEPENDS_DIR) && make && make install; \
 		cd ..;	\
 	done
+
+build-riscv-gnu-tools:
 	@echo "====================================="
 	@echo "Building toolchain..."
 	@echo "====================================="
 	cd riscv-gnu-toolchain && \
 	./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32ima --with-abi=ilp32 && \
 	make -j 16 newlib && make install
+
+build-all: build-deps build-riscv-gnu-tools
 
 clean:
 	rm -rf riscv-install
