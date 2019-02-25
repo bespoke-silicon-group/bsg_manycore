@@ -1,3 +1,26 @@
+// Endpoint standard is the interface for any nodes that connecto the network.
+//
+// Orinigally designed by Michael B. Taylor <prof.taylor@gmail.com>
+// Extedned by Shaolin <shawnless.xie@gmail.com> and Bandhav <bandhav@uw.edu>
+//
+// See folloing google doc for more information.
+//
+// https://docs.google.com/document/d/1-i62N72pfx2Cd_xKT3hiTuSilQnuC0ZOaSQMG8UPkto/edit?usp=sharing
+//
+//   node                               endpoint_standard             router
+//
+// -------------|     1. in_request     |-------------- |          |---------|
+//              |  <------------------- |               |          |         |
+//      Slave   |                       |               | link_in  |         |
+//              |     2. out_response   |               |<---------|         |
+//              |  -------------------> |               |          |         |
+//              |                       |               |          |         |
+//              |     3. out_request    |               |          |         |
+//      Master  |  -------------------> |               |          |         |
+//              |                       |               | link_out |         |
+//              |     4. in_response    |               |--------->|         |
+//              |  <------------------- |               |          |         |
+//--------------                        |---------------|          |---------|
 `include "bsg_manycore_packet.vh"
 
 module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
@@ -22,37 +45,49 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                                          )
    (  input clk_i
     , input reset_i
-
-    // mesh network
+    //--------------------------------------------------------
+    // 0. signals to the router
     , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
     , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
-    // local incoming data interface
+    //--------------------------------------------------------
+    // 1. in_request signal group
+    //    request comming from the network
     , output                            in_v_o
     , input                             in_yumi_i
     , output [data_width_p-1:0]         in_data_o
     , output [(data_width_p>>3)-1:0]    in_mask_o
     , output [addr_width_p-1:0]         in_addr_o
     , output                            in_we_o
+      //debug only
     , output [x_cord_width_p-1:0]       in_src_x_cord_o
     , output [y_cord_width_p-1:0]       in_src_y_cord_o
 
-    // local outgoing data interface (does not include credits)
+    //--------------------------------------------------------
+    // 2. out_response signal group
+    //    responses that will send back to the network
+    , input [data_width_p-1:0]              returning_data_i
+    , input                                 returning_v_i
+
+    //--------------------------------------------------------
+    // 3. out_request signal group
+    //    request that will send to the network
     , input                                  out_v_i
     , input  [packet_width_lp-1:0]           out_packet_i
     , output                                 out_ready_o
 
-    // local returned data interface
-    // Like the memory interface, processor should always ready be to handle the returned data
+    //--------------------------------------------------------
+    // 4. in_response signal group
+    //    responses that send back from the network
+    //    the node shold always be ready to recieve this response.
     , output [data_width_p-1:0]             returned_data_r_o
     , output [load_id_width_p-1:0]          returned_load_id_r_o
     , output                                returned_v_r_o
-    , output                                returned_fifo_full_o
+      //must be 1 if returned_v_r_o is high
     , input                                 returned_yumi_i
+      //can be ignored.
+    , output                                returned_fifo_full_o
 
-    // The memory read value
-    , input [data_width_p-1:0]              returning_data_i
-    , input                                 returning_v_i
 
     , output [$clog2(max_out_credits_p+1)-1:0] out_credits_o
 
@@ -127,29 +162,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    wire pkt_remote_load    = cgni_v & (cgni_data.op == `ePacketOp_remote_load   );
    wire pkt_remote_swap_aq = cgni_v & (cgni_data.op == `ePacketOp_remote_swap_aq);
    wire pkt_remote_swap_rl = cgni_v & (cgni_data.op == `ePacketOp_remote_swap_rl);
-
-   //bsg_manycore_pkt_decode #(.x_cord_width_p (x_cord_width_p)
-   //                          ,.y_cord_width_p(y_cord_width_p)
-   //                          ,.data_width_p  (data_width_p )
-   //                          ,.addr_width_p  (addr_width_p )
-   //                          ) pkt_decode
-   //  (.v_i                 (cgni_v)
-   //   ,.data_i             (cgni_data)
-
-   //   ,.pkt_remote_store_o    (pkt_remote_store)
-   //   ,.pkt_remote_load_o     (pkt_remote_load)
-   //   ,.pkt_remote_swap_aq_o  (pkt_remote_swap_aq)
-   //   ,.pkt_remote_swap_rl_o  (pkt_remote_swap_rl)
-   //   ,.pkt_freeze_o       (pkt_freeze)
-   //   ,.pkt_unfreeze_o     (pkt_unfreeze)
-   //   ,.pkt_arb_cfg_o      (pkt_arb_cfg)
-   //   ,.pkt_unknown_o      (pkt_unknown)
-
-   //   ,.data_o             (in_data_lo)  // "
-   //   ,.addr_o             (in_addr_lo)  // "
-   //   ,.mask_o             (in_mask_lo)  // "
-   //   );
-
    
    // dequeue only if
    // 1. The outside is ready (they want to yumi the singal),
@@ -381,6 +393,12 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
         $finish();
        end
 
+   always_ff @(negedge clk_i) begin
+        if( (returned_v_r_o === 1'b1) && ( returned_yumi_i != 1'b1)) begin
+                $display("## Returned response will be dropped at YX=%d, %d (%m)", my_y_i, my_x_i);
+                $finish();
+        end
+   end
 // synopsys translate_on
 
 endmodule

@@ -2,6 +2,7 @@ module test_bench;
 
 localparam addr_width_lp        = 10;
 localparam data_width_lp        = 32;
+localparam load_id_width_lp     = 11;
 localparam x_cord_width_lp      = 2 ;
 localparam y_cord_width_lp      = 2 ;
 localparam cycle_time_lp = 50;
@@ -27,6 +28,7 @@ mesh_top_example #(   .x_cord_width_p ( x_cord_width_lp         )
                      ,.y_cord_width_p ( y_cord_width_lp         )
                      ,.data_width_p   ( data_width_lp           )
                      ,.addr_width_p   ( addr_width_lp           )
+                     ,.load_id_width_p( load_id_width_lp        )
                   )top
                   ( .clk_i     ( clk_li        )
                    ,.reset_i   ( reset_li      )
