@@ -3,3 +3,5 @@ main_dram.mem
 *.a
 coremark-top
 coremark/coremark
+coverage*
+*.vpd.tcl
