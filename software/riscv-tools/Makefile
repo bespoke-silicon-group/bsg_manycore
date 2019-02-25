@@ -60,9 +60,14 @@ checkout-all:
 	@echo "Cloning riscv-toolchain repo..."
 	@echo "====================================="
 	@rm -rf $(TOOLCHAIN_REPO);
-	git clone --recursive $(TOOLCHAIN_URL); 
+	git clone $(TOOLCHAIN_URL);
+	cd $(TOOLCHAIN_REPO) && git submodule init;
+	cd $(TOOLCHAIN_REPO) && git config submodule.riscv-newlib.url \
+		https://bitbucket.org/taylor-bsg/bsg_hammerblade_newlib.git;
+	cd $(TOOLCHAIN_REPO) && git submodule update --recursive
+	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout bsg_newlib
 
-build-riscv-tools:
+build-deps:
 	@echo "====================================="
 	@echo "Building depends..."
 	@echo "====================================="
@@ -73,12 +78,18 @@ build-riscv-tools:
 		./configure --prefix=$(DEPENDS_DIR) && make && make install; \
 		cd ..;	\
 	done
+
+configure-riscv-gnu-tools:
+	cd riscv-gnu-toolchain && \
+		./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32ima --with-abi=ilp32
+
+build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	@echo "Building toolchain..."
 	@echo "====================================="
-	cd riscv-gnu-toolchain && \
-	./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32ima --with-abi=ilp32 && \
-	make -j 16 newlib && make install
+	cd riscv-gnu-toolchain && make -j 16 newlib && make install
+
+build-all: build-deps build-riscv-gnu-tools
 
 clean:
 	rm -rf riscv-install
@@ -89,5 +100,6 @@ really-clean: clean
 
 
 installs:
-	sudo apt-get install autoconf automake libtool curl gawk bison flex texinfo gperf sed autotools-dev libmpc-dev libmpfr-dev libgmp-dev build-essential
+	sudo apt-get install autoconf automake libtool curl gawk bison flex texinfo gperf \
+		sed autotools-dev libmpc-dev libmpfr-dev libgmp-dev build-essential
 
