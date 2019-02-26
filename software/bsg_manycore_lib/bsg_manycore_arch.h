@@ -113,4 +113,6 @@
                                         & (   (1 << bsg_remote_addr_bits) - 1 )         \
                                      )
 
+#define bsg_tilegroup_ptr(lc_sh,index)	( bsg_remote_ptr( ((index)%BSG_TILE_GROUP_X_DIM) , (((index)/BSG_TILE_GROUP_X_DIM)%BSG_TILE_GROUP_Y_DIM) ,(&((lc_sh)[((index)/BSG_TILE_GROUP_Y_DIM)]))) )
+
 #endif
