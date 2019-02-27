@@ -29,11 +29,11 @@
 #define  BSG_TILE_GROUP_BARRIER_H_
 
 #ifndef  BSG_TILE_GROUP_X_DIM
-#error   BSG_TILE_GROUP_X_DIM must be defined
+#error   Please define BSG_TILE_GROUP_X_DIM before including bsg_tile_group_barrier.h
 #endif
 
 #ifndef  BSG_TILE_GROUP_Y_DIM
-#error   BSG_TILE_GROUP_Y_DIM must be defined
+#error   Please define BSG_TILE_GROUP_Y_DIM before including bsg_tile_group_barrier.h
 #endif
 
 //we need the global bsg_x,bsg_y value.
