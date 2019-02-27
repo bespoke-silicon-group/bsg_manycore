@@ -1,64 +1,55 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-//turn on the debug 
-//---------------------------------------------------------
-
-#define BARRIER_X_START 1
-#define BARRIER_Y_START 1
-
-#define BARRIER_X_END (bsg_tiles_X - 1)
-#define BARRIER_Y_END (bsg_tiles_Y - 1)
-#define BARRIER_X_NUM  (BARRIER_X_END - BARRIER_X_START +1) 
-#define BARRIER_Y_NUM  (BARRIER_Y_END - BARRIER_Y_START +1) 
-#define BARRIER_TILES ( BARRIER_X_NUM * BARRIER_Y_NUM )
-
-#define  BSG_BARRIER_DEBUG 1
-#define  BSG_TILE_GROUP_X_DIM BARRIER_X_NUM
-#define  BSG_TILE_GROUP_Y_DIM BARRIER_Y_NUM
+#define BSG_TILE_GROUP_X_DIM bsg_tiles_X
+#define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
+//#define BSG_BARRIER_DEBUG
 #include "bsg_tile_group_barrier.h"
-INIT_TILE_GROUP_BARRIER (row_barrier_inst, col_barrier_inst, BARRIER_X_START, BARRIER_X_END, BARRIER_Y_START, BARRIER_Y_END);
 
-////////////////////////////////////////////////////////////////////
+/************************************************************************
+ *  Declear an array in DRAM. 
+ *  *************************************************************************/
+//int data[4] __attribute__ ((section (".dram"))) = { -1, 1, 0xF, 0x80000000};
+
+#define array_size(a)               \
+    (sizeof(a)/(sizeof((a)[0])))
+
+volatile int data[bsg_tiles_X][bsg_tiles_Y] __attribute__((section (".dram")));
+
+INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
+
 int main() {
-  bsg_set_tile_x_y();
+        int i, j, id;
 
-  int id = bsg_x_y_to_id(bsg_x,bsg_y);
+        bsg_set_tile_x_y();
+
+        id = bsg_x_y_to_id(bsg_x, bsg_y);
+
+        data[bsg_id_to_x(id)][bsg_id_to_y(id)] = id;
+      
+
+        bsg_tile_group_barrier(&r_barrier, &c_barrier);
+
+        if (id == 0) {
+                for (i = 0; i < array_size(data); i++)
+                    for (j = 0; j < array_size(data[i]); j++)
+                            bsg_printf("data[%d][%d]=%08x\n", i, j, data[i][j]);  
+         }
+
+         bsg_tile_group_barrier(&r_barrier, &c_barrier);
 
 
-  if(  (bsg_x>= BARRIER_X_START  && bsg_x <= BARRIER_X_END)  \
-     &&(bsg_y>= BARRIER_Y_START  && bsg_y <= BARRIER_Y_END)   ){
-        //----------------------------------------------------------------
-        //1. differnt tiles will delay for different cycles.
-        //----------------------------------------------------------------
-        for( int i =0; i <= id; i++){
-          for(int j=0; j<32; j++){
-              asm volatile ("nop;");
-          }
-          bsg_remote_ptr_io_store(IO_X_INDEX, 0x100,  (id<<16) | i);
-        }
-        //----------------------------------------------------------------
-        //2. sync the group
-        //----------------------------------------------------------------
-        bsg_tile_group_barrier(&row_barrier_inst, &col_barrier_inst);
+         data[bsg_id_to_x(id)][bsg_id_to_y(id)] = 0;
 
-        //----------------------------------------------------------------
-        //3. All tiles print a heart beat packet.
-        //----------------------------------------------------------------
-                //addr 0x104: beat signal indicates sync'ed
-                //            should be printed in a row.
-        bsg_remote_ptr_io_store(IO_X_INDEX, 0x104,  id);
+         bsg_tile_group_barrier(&r_barrier, &c_barrier);
 
-        //----------------------------------------------------------------
-        //4. sync again.
-        //----------------------------------------------------------------
-        bsg_tile_group_barrier(&row_barrier_inst, &col_barrier_inst);
+         if (id == 0) {
+                   for (i = 0; i < array_size(data); i++)
+                           for (j = 0; j < array_size(data[i]); j++)
+                                bsg_printf("data[%d][%d]=%d\n", i, j, data[i][j]);
 
-        //----------------------------------------------------------------
-        //5. who ever runs fastest will terminate the simulation.
-        //----------------------------------------------------------------
-        bsg_finish();
-  }
-  bsg_wait_while(1);
+                   bsg_finish();
+         }
+
+         bsg_wait_while(1);
 }
-

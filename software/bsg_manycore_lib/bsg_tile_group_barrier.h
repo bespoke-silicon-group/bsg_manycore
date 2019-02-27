@@ -58,14 +58,14 @@ typedef struct _bsg_col_barrier_ {
 //initial value of the bsg_barrier
 #define INIT_TILE_GROUP_BARRIER( ROW_BARRIER_NAME, COL_BARRIER_NAME, x_cord_start, x_cord_end, y_cord_start, y_cord_end)\
 bsg_row_barrier ROW_BARRIER_NAME= {         \
-                                x_cord_start            \
-                               ,x_cord_end              \
+                                (x_cord_start)            \
+                               ,(x_cord_end)              \
                                ,{0}                     \
                                ,0                       \
                                 };                          \
 bsg_col_barrier COL_BARRIER_NAME= {        \
-                         y_cord_start            \
-                        ,y_cord_end              \
+                         (y_cord_start)            \
+                        ,(y_cord_end)              \
                         ,{0}                     \
                         ,0                       \
                         };
@@ -128,7 +128,7 @@ void inline bsg_col_barrier_alert(  bsg_col_barrier *  p_col_b ) {
         //write alert signal to all tiles in the column
         alert_col( p_col_b );
         //re-initilized the local column sync array.
-        for( i= 0; i < y_range; i++) {
+        for( i= 0; i <= y_range; i++) {
               p_col_b->_done_list[ i ] = 0;
         }
 
@@ -150,9 +150,11 @@ void inline bsg_row_barrier_alert(  bsg_row_barrier *  p_row_b, bsg_col_barrier 
         //write alert signal to all tiles in the row
         alert_row( p_row_b);
         //re-initilized the local row sync array.
-        for( i= 0; i < x_range; i++) {
+        for( i= 0; i <= x_range; i++) {
               p_row_b->_done_list[ i ] = 0;
         }
+        //clear the column alert signal
+        p_col_b -> _local_alert = 0;
 }
 //------------------------------------------------------------------
 //5. wait the row alert signal 
