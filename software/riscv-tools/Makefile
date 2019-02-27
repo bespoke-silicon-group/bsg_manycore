@@ -60,7 +60,11 @@ checkout-all:
 	@echo "Cloning riscv-toolchain repo..."
 	@echo "====================================="
 	@rm -rf $(TOOLCHAIN_REPO);
-	git clone --recursive $(TOOLCHAIN_URL); 
+	git clone $(TOOLCHAIN_URL);
+	cd $(TOOLCHAIN_REPO) && git submodule init;
+	cd $(TOOLCHAIN_REPO) && git config submodule.riscv-newlib.url \
+		https://bitbucket.org/taylor-bsg/bsg_hammerblade_newlib.git;
+	cd $(TOOLCHAIN_REPO) && git submodule update --recursive
 
 build-deps:
 	@echo "====================================="
