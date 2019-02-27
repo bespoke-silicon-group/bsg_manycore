@@ -65,7 +65,6 @@ checkout-all:
 	cd $(TOOLCHAIN_REPO) && git config submodule.riscv-newlib.url \
 		https://bitbucket.org/taylor-bsg/bsg_hammerblade_newlib.git;
 	cd $(TOOLCHAIN_REPO) && git submodule update --recursive
-	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout bsg_newlib
 
 build-deps:
 	@echo "====================================="
