@@ -561,9 +561,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      if (reset_i) freeze_r <= freeze_init_p;
      else if (freeze_op | unfreeze_op) begin
             // synopsys translate_off
-            $display("## freeze_r <= %x (%m)",pkt_freeze);
+            $display("## freeze_r <= %x (%m)", in_data_lo[0]);
             // synopsys translate_on
-            freeze_r <= pkt_freeze;
+            freeze_r <= in_data_lo[0];
      end
    
   // synopsys translate_off
