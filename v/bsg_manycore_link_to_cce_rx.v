@@ -1,5 +1,7 @@
 /**
  *  bsg_manycore_link_to_cce_rx.v
+ *
+ *  @author tommy
  */
 
 `include "bsg_manycore_packet.vh"
@@ -79,7 +81,7 @@ module bsg_manycore_link_to_cce_rx
 
   // mem_cmd logic
   //
-  typedef enum logic [1:0] {
+  typedef enum logic {
     WAIT
     ,READ_CACHE_BLOCK
   } rx_state_e;
@@ -137,8 +139,8 @@ module bsg_manycore_link_to_cce_rx
     mem_cmd_fifo_v_li = 1'b0;
 
     case (rx_state_r)
-
       // wait for mem_cmd to arrive.
+      // once it arrives, flop it in mem_cmd_r.
       WAIT: begin
         mem_cmd_ready_o = 1'b1;
         if (mem_cmd_v_i) begin
@@ -148,9 +150,8 @@ module bsg_manycore_link_to_cce_rx
           rx_state_n = READ_CACHE_BLOCK;
         end
       end
-
       // send packets to read a cache block
-      // once all the packets are sent out, queue the mem_cmd, and return to
+      // once all the packets are sent out, queue the mem_cmd_r in the fifo, and return to
       // WAIT state.
       READ_CACHE_BLOCK: begin
         rx_pkt_v_o = (rx_counter_lo != num_flits_lp);
@@ -173,10 +174,14 @@ module bsg_manycore_link_to_cce_rx
   assign rx_pkt.payload = '0;
   assign rx_pkt.src_y_cord = my_y_i;
   assign rx_pkt.src_x_cord = my_x_i;
-  assign rx_pkt.y_cord = (y_cord_width_p)'(my_y_i+1);
+  assign rx_pkt.y_cord = (y_cord_width_p)'(my_y_i+1); // the bridge module is connected to io row, and L2 is connected to the row below.
   assign rx_pkt.x_cord = mem_cmd_r.addr[link_byte_offset_width_lp+link_addr_width_p-1+:x_cord_width_p];
 
   // mem_data_resp logic
+  //
+  // data packets will return and accumulate in sipo.
+  // once sipo is full, send out mem_data_resp, and dequeue mem_cmd from the
+  // fifo, once it's sent out.
   //
   logic sipo_v_li;
   logic sipo_ready_lo;
@@ -199,6 +204,7 @@ module bsg_manycore_link_to_cce_rx
     ,.v_o(sipo_v_lo)
     ,.yumi_i(sipo_yumi_li)
   );
+
   assign sipo_v_li = returned_v_i;
   assign returned_yumi_o = returned_v_i & sipo_ready_lo;
 

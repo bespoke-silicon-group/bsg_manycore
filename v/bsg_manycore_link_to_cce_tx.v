@@ -54,7 +54,7 @@ module bsg_manycore_link_to_cce_tx
     , input [y_cord_width_p-1:0] my_y_i
   );
 
-  // casting structs
+  // manycore_packet struct
   //
   `declare_bsg_manycore_packet_s(link_addr_width_p,link_data_width_p,
     x_cord_width_p,y_cord_width_p,load_id_width_p);
@@ -62,6 +62,8 @@ module bsg_manycore_link_to_cce_tx
   bsg_manycore_packet_s tx_pkt;
   assign tx_pkt_o = tx_pkt;
 
+  // black-parrot mem interface
+  //
   `declare_bp_me_if(bp_addr_width_p,block_size_in_bits_p,num_lce_p,lce_assoc_p);
 
   bp_cce_mem_data_cmd_s mem_data_cmd;
@@ -70,10 +72,9 @@ module bsg_manycore_link_to_cce_tx
   assign mem_data_cmd = mem_data_cmd_i;
   assign mem_resp_o = mem_resp;
 
-  
   // mem_data_cmd
   //
-  typedef enum logic [1:0] {
+  typedef enum logic {
     WAIT
     ,WRITE_CACHE_BLOCK
   } tx_state_e;
@@ -84,7 +85,6 @@ module bsg_manycore_link_to_cce_tx
   logic tx_counter_clear_li;
   logic tx_counter_up_li;
   logic [tx_counter_width_lp-1:0] tx_counter_lo;
-  
 
   bsg_counter_clear_up #(
     .max_val_p(num_flits_lp)
@@ -109,6 +109,7 @@ module bsg_manycore_link_to_cce_tx
 
     case (tx_state_r)
       // wait until mem_data_cmd arrives.
+      // when it arrives, flop it in mem_data_cmd_r.
       WAIT: begin
         mem_data_cmd_ready_o = 1'b1;
 
@@ -120,6 +121,7 @@ module bsg_manycore_link_to_cce_tx
       end
 
       // send out packets to write the cache block.
+      // once all the packets are sent out, send out mem_resp.
       WRITE_CACHE_BLOCK: begin
         tx_pkt_v_o = tx_counter_lo != num_flits_lp;
         tx_counter_up_li = tx_pkt_yumi_i;

@@ -14,6 +14,8 @@ module bsg_manycore_ram_model#(
   , parameter load_id_width_p= 5
   , parameter els_p= 1024 //els_p must <= 2**addr_width_p
 
+  , parameter self_reset_p = 0
+
   , localparam mask_width_lp=(data_width_p>>3)
   , localparam packet_width_lp=
     `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
@@ -168,13 +170,21 @@ module bsg_manycore_ram_model#(
         in_yumi_li = in_v_lo;
         returning_v_n = in_v_lo;
       end
+
+      default: begin
+        dram_state_n = self_reset_p
+          ? RESET
+          : READY;
+      end
     endcase
   end
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       returning_v_r <= 1'b0;
-      dram_state_r <= RESET;
+      dram_state_r <= self_reset_p
+        ? RESET
+        : READY;
       clear_mem_count_r <= '0;
     end
     else begin

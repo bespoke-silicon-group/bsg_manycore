@@ -16,7 +16,7 @@ module bsg_manycore_link_to_cce
     , parameter y_cord_width_p="inv"
     , parameter load_id_width_p="inv"
 
-    , parameter bp_addr_width_p="inv"
+    , parameter bp_addr_width_p="inv" // risc-v physical address 56-bit.
     , parameter num_lce_p="inv"
     , parameter lce_assoc_p="inv"
     , parameter block_size_in_bits_p="inv"
@@ -104,10 +104,13 @@ module bsg_manycore_link_to_cce
 
   // declare some structs
   //
-  `declare_bsg_manycore_link_sif_s(link_addr_width_p,link_data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
-  `declare_bsg_manycore_packet_s(link_addr_width_p,link_data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
+  `declare_bsg_manycore_link_sif_s(link_addr_width_p,link_data_width_p,
+    x_cord_width_p,y_cord_width_p,load_id_width_p);
+  `declare_bsg_manycore_packet_s(link_addr_width_p,link_data_width_p,
+    x_cord_width_p,y_cord_width_p,load_id_width_p);
 
   // link_async_buffer
+  // we are crossing clock domain from manycore to black-parrot.
   //
   bsg_manycore_link_sif_s cce_link_sif_li;
   bsg_manycore_link_sif_s cce_link_sif_lo;
@@ -200,8 +203,8 @@ module bsg_manycore_link_to_cce
     ,.my_y_i(my_y_i)
   );
 
-  logic out_credits_no_underflow;
-  assign out_credits_no_underflow = (|ep_out_credits);
+  logic credit_left;
+  assign credit_left = (|ep_out_credits); // make sure that credit counter does not underflow!
 
   // rx module
   //
@@ -293,14 +296,14 @@ module bsg_manycore_link_to_cce
     tx_pkt_yumi_li = 1'b0;
 
     if (rx_pkt_v_lo) begin
-      ep_out_v_li = out_credits_no_underflow;
+      ep_out_v_li = credit_left;
       ep_out_packet_li = rx_pkt;
-      rx_pkt_yumi_li = rx_pkt_v_lo & out_credits_no_underflow & ep_out_ready_lo;
+      rx_pkt_yumi_li = credit_left & ep_out_ready_lo;
     end
     else begin
-      ep_out_v_li = tx_pkt_v_lo & out_credits_no_underflow;
+      ep_out_v_li = tx_pkt_v_lo & credit_left;
       ep_out_packet_li = tx_pkt;
-      tx_pkt_yumi_li = tx_pkt_v_lo & out_credits_no_underflow & ep_out_ready_lo;
+      tx_pkt_yumi_li = tx_pkt_v_lo & credit_left & ep_out_ready_lo;
     end
   end
 
