@@ -569,6 +569,7 @@ assign pending_load_arrived = from_mem_i.valid & ~current_load_arrived;
 
 // Disable load data insertion in WB & MEM stages as forwarding
 // is pre-computed in EXE stage
+wb_signals_s wb_from_mem;
 assign wb_free_for_load  = ~wb_from_mem.op_writes_rf & 1'b0;
 assign mem_free_for_load = ~mem.decode.op_writes_rf & 1'b0;
 // Since remote load takes more than one cycle to fetch, and as loads are
@@ -1115,7 +1116,6 @@ begin
   end
 end
 
-wb_signals_s wb_from_mem;
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
