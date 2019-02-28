@@ -55,11 +55,11 @@ module bsg_manycore_link_to_cce
     // bp side
     , input [bp_cce_mem_cmd_width_lp-1:0] mem_cmd_i
     , input mem_cmd_v_i
-    , output logic mem_cmd_yumi_o
+    , output logic mem_cmd_ready_o
 
     , input [bp_cce_mem_data_cmd_width_lp-1:0] mem_data_cmd_i
     , input mem_data_cmd_v_i
-    , output logic mem_data_cmd_yumi_o
+    , output logic mem_data_cmd_ready_o
 
     , output logic [bp_mem_cce_resp_width_lp-1:0] mem_resp_o
     , output logic mem_resp_v_o
@@ -105,7 +105,7 @@ module bsg_manycore_link_to_cce
   // declare some structs
   //
   `declare_bsg_manycore_link_sif_s(link_addr_width_p,link_data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
-  `declare_bsg_manycore_packet_s(link_addr_width_p,link_data_width_p,x_cor_width_p,y_cord_width_p,load_id_width_p);
+  `declare_bsg_manycore_packet_s(link_addr_width_p,link_data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
 
   // link_async_buffer
   //
@@ -156,8 +156,8 @@ module bsg_manycore_link_to_cce
   bsg_manycore_endpoint_standard #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.data_width_p(data_width_p)
-    ,.addr_width_p(addr_width_p)
+    ,.data_width_p(link_data_width_p)
+    ,.addr_width_p(link_addr_width_p)
     ,.load_id_width_p(load_id_width_p)
     ,.fifo_els_p(fifo_els_p)
     ,.max_out_credits_p(max_out_credits_p)
@@ -199,6 +199,9 @@ module bsg_manycore_link_to_cce
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
   );
+
+  logic out_credits_no_underflow;
+  assign out_credits_no_underflow = (|ep_out_credits);
 
   // rx module
   //
@@ -290,14 +293,14 @@ module bsg_manycore_link_to_cce
     tx_pkt_yumi_li = 1'b0;
 
     if (rx_pkt_v_lo) begin
-      ep_out_v_li = 1'b1;
+      ep_out_v_li = out_credits_no_underflow;
       ep_out_packet_li = rx_pkt;
-      rx_pkt_yumi_li = ep_out_ready_lo;
+      rx_pkt_yumi_li = rx_pkt_v_lo & out_credits_no_underflow & ep_out_ready_lo;
     end
     else begin
-      ep_out_v_li = tx_pkt_v_lo;
+      ep_out_v_li = tx_pkt_v_lo & out_credits_no_underflow;
       ep_out_packet_li = tx_pkt;
-      tx_pkt_yumi_li = ep_out_ready_lo;
+      tx_pkt_yumi_li = tx_pkt_v_lo & out_credits_no_underflow & ep_out_ready_lo;
     end
   end
 

@@ -40,7 +40,7 @@ module bsg_manycore_link_to_cce_rx
     // cce side
     , input [mem_cmd_width_lp-1:0] mem_cmd_i
     , input mem_cmd_v_i
-    , output logic mem_cmd_yumi_o
+    , output logic mem_cmd_ready_o
     
     , output logic [mem_data_resp_width_lp-1:0] mem_data_resp_o
     , output logic mem_data_resp_v_o
@@ -130,6 +130,7 @@ module bsg_manycore_link_to_cce_rx
   always_comb begin
     rx_state_n = rx_state_r;
     mem_cmd_n = mem_cmd_r;
+    mem_cmd_ready_o = 1'b0;
     rx_counter_clear_li = 1'b0;
     rx_counter_up_li = 1'b0;
     rx_pkt_v_o = 1'b0;
@@ -139,6 +140,7 @@ module bsg_manycore_link_to_cce_rx
 
       // wait for mem_cmd to arrive.
       WAIT: begin
+        mem_cmd_ready_o = 1'b1;
         if (mem_cmd_v_i) begin
           mem_cmd_n = mem_cmd;
           rx_counter_clear_li = 1'b1;
@@ -163,7 +165,7 @@ module bsg_manycore_link_to_cce_rx
     
   assign rx_pkt.addr = {
     1'b0,
-    mem_cmd_r.addr[link_byte_offset_width_lp+lg_num_flits_lp+:link_addr_width_p+lg_num_flits_lp-1]
+    mem_cmd_r.addr[link_byte_offset_width_lp+lg_num_flits_lp+:link_addr_width_p-lg_num_flits_lp-1],
     rx_counter_lo[0+:lg_num_flits_lp]
   };
   assign rx_pkt.op = `ePacketOp_remote_load;
@@ -171,7 +173,7 @@ module bsg_manycore_link_to_cce_rx
   assign rx_pkt.payload = '0;
   assign rx_pkt.src_y_cord = my_y_i;
   assign rx_pkt.src_x_cord = my_x_i;
-  assign rx_pkt.y_cord = my_y_i;
+  assign rx_pkt.y_cord = (y_cord_width_p)'(my_y_i+1);
   assign rx_pkt.x_cord = mem_cmd_r.addr[link_byte_offset_width_lp+link_addr_width_p-1+:x_cord_width_p];
 
   // mem_data_resp logic
@@ -203,10 +205,12 @@ module bsg_manycore_link_to_cce_rx
   assign mem_data_resp.msg_type = mem_cmd_fifo_data_lo.msg_type;
   assign mem_data_resp.addr = mem_cmd_fifo_data_lo.addr;
   assign mem_data_resp.payload = mem_cmd_fifo_data_lo.payload;
-  assign mem_data-resp.data = sipo_data_lo;
+  assign mem_data_resp.data = sipo_data_lo;
 
   assign mem_data_resp_v_o = sipo_v_lo;
   assign sipo_yumi_li = sipo_v_lo & mem_data_resp_ready_i;
+
+  assign mem_cmd_fifo_yumi_li = mem_cmd_fifo_v_lo & sipo_v_lo & mem_data_resp_ready_i;
 
   // sequential logic
   //

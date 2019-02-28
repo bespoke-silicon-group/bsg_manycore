@@ -44,7 +44,7 @@ module bsg_manycore_link_to_cce_mgmt
   mgmt_state_e mgmt_state_r, mgmt_state_n;
   logic [link_addr_width_p-1:0] addr_r, addr_n;
   logic [link_data_width_p-1:0] data_r, data_n;
-  logic [link_mask_width_p-1:0] mask_r, mask_n;
+  logic [link_mask_width_lp-1:0] mask_r, mask_n;
   logic [link_data_width_p-1:0] resp_data_r, resp_data_n;
 
   logic is_config_addr;
@@ -73,7 +73,7 @@ module bsg_manycore_link_to_cce_mgmt
           data_n = we_i
             ? data_i
             : data_r;
-          mask_n = mask_i
+          mask_n = mask_i;
           yumi_o = 1'b1;
           mgmt_state_n = we_i
             ? WRITE_DATA

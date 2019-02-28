@@ -39,7 +39,7 @@ module bsg_manycore_link_to_cce_tx
     // cce side
     , input [bp_cce_mem_data_cmd_width_lp-1:0] mem_data_cmd_i
     , input mem_data_cmd_v_i
-    , output logic mem_data_cmd_yumi_o
+    , output logic mem_data_cmd_ready_o
 
     , output logic [bp_mem_cce_resp_width_lp-1:0] mem_resp_o
     , output logic mem_resp_v_o
@@ -136,7 +136,7 @@ module bsg_manycore_link_to_cce_tx
 
   assign tx_pkt.addr = {
     1'b0,
-    mem_cmd_r.addr[link_byte_offset_width_lp+lg_num_flits_lp+:link_addr_width_p+lg_num_flits_lp-1]
+    mem_data_cmd_r.addr[link_byte_offset_width_lp+lg_num_flits_lp+:link_addr_width_p-lg_num_flits_lp-1],
     tx_counter_lo[0+:lg_num_flits_lp]
   };
   assign tx_pkt.op = `ePacketOp_remote_store;
@@ -144,8 +144,8 @@ module bsg_manycore_link_to_cce_tx
   assign tx_pkt.payload = mem_data[tx_counter_lo[0+:lg_num_flits_lp]];
   assign tx_pkt.src_y_cord = my_y_i;
   assign tx_pkt.src_x_cord = my_x_i;
-  assign tx_pkt.y_cord = my_y_i;
-  assign tx_pkt.x_cord = mem_cmd_r.addr[link_byte_offset_width_lp+link_addr_width_p-1+:x_cord_width_p];
+  assign tx_pkt.y_cord = (y_cord_width_p)'(my_y_i+1);
+  assign tx_pkt.x_cord = mem_data_cmd_r.addr[link_byte_offset_width_lp+link_addr_width_p-1+:x_cord_width_p];
 
   assign mem_resp.msg_type = mem_data_cmd_r.msg_type;
   assign mem_resp.addr = mem_data_cmd_r.addr;
