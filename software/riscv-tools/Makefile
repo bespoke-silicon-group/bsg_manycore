@@ -65,6 +65,7 @@ checkout-all:
 	cd $(TOOLCHAIN_REPO) && git config submodule.riscv-newlib.url \
 		https://bitbucket.org/taylor-bsg/bsg_hammerblade_newlib.git;
 	cd $(TOOLCHAIN_REPO) && git submodule update --recursive
+	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout bsg_newlib
 
 build-deps:
 	@echo "====================================="
@@ -78,13 +79,15 @@ build-deps:
 		cd ..;	\
 	done
 
-build-riscv-gnu-tools:
+configure-riscv-gnu-tools:
+	cd riscv-gnu-toolchain && \
+		./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32ima --with-abi=ilp32
+
+build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	@echo "Building toolchain..."
 	@echo "====================================="
-	cd riscv-gnu-toolchain && \
-	./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32ima --with-abi=ilp32 && \
-	make -j 16 newlib && make install
+	cd riscv-gnu-toolchain && make -j 16 newlib && make install
 
 build-all: build-deps build-riscv-gnu-tools
 
@@ -97,5 +100,6 @@ really-clean: clean
 
 
 installs:
-	sudo apt-get install autoconf automake libtool curl gawk bison flex texinfo gperf sed autotools-dev libmpc-dev libmpfr-dev libgmp-dev build-essential
+	sudo apt-get install autoconf automake libtool curl gawk bison flex texinfo gperf \
+		sed autotools-dev libmpc-dev libmpfr-dev libgmp-dev build-essential
 
