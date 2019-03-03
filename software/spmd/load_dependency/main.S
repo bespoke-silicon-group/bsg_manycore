@@ -115,3 +115,6 @@ done:
 // sum
 
 bsg_asm_finish(IO_X_INDEX, 0);
+
+1:
+        j 1b;

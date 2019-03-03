@@ -394,7 +394,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
        end
 
    always_ff @(negedge clk_i) begin
-        if( (returned_v_r_o === 1'b1) && ( returned_yumi_i != 1'b1) && in_fifo_full ) begin
+        if( (returned_v_r_o === 1'b1) && ( returned_yumi_i != 1'b1) && returned_fifo_full_o ) begin
                 $display("## Returned response will be dropped at YX=%d, %d (%m)", my_y_i, my_x_i);
                 $finish();
         end
