@@ -10,13 +10,10 @@ lfs_t bsg_newlib_fs;
 int main() {
   bsg_set_tile_x_y();
 
-  for(int i=0; i < BSG_NEWLIB_MAX_FDS; i++)
-    bsg_newlib_free_fd(i);
-  
-  const char write_buf[50] = "Hello! This is Little FS!\n";
-  char read_buf[50] = "";
-
   if ((bsg_x == 0) && (bsg_y == bsg_tiles_Y-1)) {
+    for(int i=0; i < BSG_NEWLIB_MAX_FDS; i++)
+      bsg_newlib_free_fd(i);
+  
     // Format and mount: can be moved to crt.S so that filesystem is mounted
     // in the beginning of every program
     if(lfs_format(&bsg_newlib_fs, &bsg_newlib_fs_cfg) < 0) 
@@ -27,6 +24,9 @@ int main() {
         bsg_printf("(%0d, %0d): mount error\n", bsg_x, bsg_y);
     else
         bsg_printf("(%0d, %0d): file system mounted...\n", bsg_x, bsg_y);
+
+    const char write_buf[50] = "Hello! This is Little FS!\n";
+    char *read_buf = (char *) malloc(50);
 
     FILE *stdinfile = fopen("stdin", "w");
     bsg_printf("(%d, %d): stdin opened: fd = %d\n", bsg_x, bsg_y, stdinfile);
@@ -52,6 +52,9 @@ int main() {
     ret = fclose(stdoutfile);
     bsg_printf("(%d, %d): stdout closed: ret = %d\n", bsg_x, bsg_y, ret);
     bsg_printf("(%d, %d): %s\n", bsg_x, bsg_y, read_buf);
+
+    free(read_buf);
+    ret = bsg_printf("(%d, %d): %s\n", bsg_x, bsg_y, read_buf); // prints garbage
 
     bsg_finish();
   }
