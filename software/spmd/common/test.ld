@@ -55,8 +55,10 @@ SECTIONS
   }
   .rodata : { *(.rodata) }
   .eh_frame : { *(.eh_frame) }
-  _striped_data_start = . ;
-  .striped.data : { *(.striped.data) }
+  .striped.data ALIGN(group_size * 4): {
+    _striped_data_start = . ;
+    *(.striped.data)
+  }
 
   /* End of uninitalized data segement */
   _bsg_data_end_addr = .;
