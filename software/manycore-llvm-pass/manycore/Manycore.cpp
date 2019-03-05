@@ -135,6 +135,7 @@ namespace {
                     }
                 }
             }
+            errs() << "Pass complete\n";
             return true;
         }
     };

@@ -62,15 +62,12 @@ float magnitude(float complex x) {
 
 // Load in memory that tiles in a group will share
 void init(int core_id) {
-
 }
 
 int main()
 {
   bsg_set_tile_x_y();
   int core_id = bsg_x * bsg_tiles_X + bsg_y;
-
-
   int val = 0xdeadbeef;
   bsg_dram_load(&fft_dram_arr[core_id], val);
   bsg_remote_ptr_io_store(IO_X_INDEX, 0x1000 + core_id * 4, val);
