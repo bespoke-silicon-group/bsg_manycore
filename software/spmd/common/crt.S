@@ -46,7 +46,7 @@ machine_trap_entry:
   .globl _start
 _start:
   li  x1, 0
-  li  x2, 0
+ // li  x2, 0
   li  x3, 0
   li  x4, 0
   li  x5, 0

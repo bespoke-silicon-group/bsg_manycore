@@ -1202,6 +1202,20 @@ end
 
 
 //synopsys translate_off
+//-----------------------------------------------------
+// SP overflow checking.
+// sp                           : x2
+// _bsg_data_end_addr           : defined in Makefile and passed to VCS
+localparam bsg_data_end_lp =  `_bsg_data_end_addr ;
+
+always@( negedge clk_i ) begin
+        if( !reset_i && rf_wen      &&      rf_wa == 2   && rf_wd < bsg_data_end_lp ) begin
+                $display("##---------------------------------------------");
+                $display("## Warning: SP underflow:  local memory data end =%x, sp=%h,%t,%m", bsg_data_end_lp, rf_wd, $time); 
+                $display("##---------------------------------------------");
+        end
+end
+
 if (trace_lp)
   always_ff @(negedge clk_i)
     begin

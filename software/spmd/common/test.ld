@@ -54,6 +54,7 @@ SECTIONS
 
   /* End of uninitalized data segement */
   _bsg_data_end_addr = .;
+  ASSERT(_bsg_data_end_addr < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
   
   /*The DRAM content is start at zero, 
    *The instruction fetch unit and the loader will send address that 
