@@ -7,41 +7,44 @@
 
 // Remote EPA: 01YY_YYYY_XXXX_XXPP_PPPP_PPPP_PPPP_PPPP
 
-volatile int *get_ptr_val(int STRIDE *arr_ptr, int STRIDE *base_ptr,
-        unsigned elem_size) {
-    unsigned elem_offset = ((unsigned) arr_ptr - (unsigned) base_ptr) / elem_size;
-    unsigned num_tiles = bsg_tiles_X * bsg_tiles_Y;
-    unsigned index = elem_offset % num_tiles;
-    unsigned tile_x = index / bsg_tiles_X;
-    unsigned tile_y = index - (tile_x * bsg_tiles_X);
-    unsigned arr_ptr_val = (unsigned) arr_ptr;
+// Passed from linker -- indicates start of striped arrays in DMEM
+extern unsigned _striped_data_start;
+
+volatile int *get_ptr_val(int STRIDE *arr_ptr, unsigned elem_size) {
+    unsigned start_ptr = (unsigned) &_striped_data_start;
+    unsigned ptr = (unsigned) arr_ptr;
+    unsigned index = ((ptr) - start_ptr) / group_size;
+    unsigned core_id = index % (elem_size);
+    unsigned local_addr = start_ptr + (index / group_size) * group_size;
+    unsigned tile_x = core_id / bsg_tiles_X;
+    unsigned tile_y = core_id - (tile_x * bsg_tiles_X);
     unsigned remote_ptr_val = REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS |
                               tile_x << X_CORD_SHIFTS |
                               tile_y << Y_CORD_SHIFTS |
-                              arr_ptr_val;
+                              local_addr;
     unsigned ptr_val = (tile_x == bsg_x && tile_y == bsg_y) ?
-        arr_ptr_val : remote_ptr_val;
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x1000,index);
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x2010,tile_x | tile_y << 16);
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x3020,ptr_val);
+        local_addr : remote_ptr_val;
+    bsg_printf("ID = %u, index = %u; striped_data_start = 0x%x\n",
+            core_id, index, &_striped_data_start);
+    bsg_printf("Pointer is (%u, %u, 0x%x)\n", tile_x, tile_y, local_addr);
+    bsg_printf("Final Pointer is 0x%x\n", ptr_val);
     return (volatile int *) ptr_val;
 }
 
-void extern_store(int STRIDE *arr_ptr, int STRIDE *base_ptr, unsigned elem_size,
-        unsigned val) {
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x2500,(unsigned) arr_ptr);
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x2550,(unsigned) base_ptr);
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x2570,(unsigned) elem_size);
-    volatile int *ptr = get_ptr_val(arr_ptr, base_ptr, elem_size);
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x0,0);
+void extern_store(int STRIDE *arr_ptr, unsigned elem_size, unsigned val) {
+    bsg_printf("\nCalling extern_store(0x%x, %d, %d)\n",
+            (unsigned) arr_ptr,
+            elem_size, val);
+    volatile int *ptr = get_ptr_val(arr_ptr, elem_size);
+    bsg_printf("Performing store\n");
+    *ptr = val;
 }
 
-int extern_load(int STRIDE *arr_ptr, int STRIDE *base_ptr, unsigned elem_size) {
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x3500,(unsigned) arr_ptr);
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x3550,(unsigned) base_ptr);
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x3570,(unsigned) elem_size);
-    volatile int *ptr = get_ptr_val(arr_ptr, base_ptr, elem_size);
-    bsg_remote_ptr_io_store(IO_X_INDEX,0x0,0);
+int extern_load(int STRIDE *arr_ptr, unsigned elem_size) {
+    bsg_printf("\nCalling extern_load(0x%x, %d)\n",
+            (unsigned) arr_ptr,
+            elem_size);
+    volatile int *ptr = get_ptr_val(arr_ptr, elem_size);
     return *ptr;
 }
 
@@ -56,6 +59,8 @@ int STRIDE A[N][N] = {0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
                       0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
                       0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
                       0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1};
+
+int __attribute((section(".striped.data"))) B[5];
 
 int load_store_test(int j) {
     int y;

@@ -17,6 +17,8 @@ OUTPUT_ARCH( "riscv" )
 /* Sections                                                             */
 /*----------------------------------------------------------------------*/
 
+group_size = 64;
+
 SECTIONS
 {
   /* beginning of data memory; set by imem size and bank conflict concerns */
@@ -53,10 +55,11 @@ SECTIONS
   }
   .rodata : { *(.rodata) }
   .eh_frame : { *(.eh_frame) }
+  .striped.data : { *(.striped.data) }
 
   /* End of uninitalized data segement */
   _bsg_data_end_addr = .;
-  ASSERT(_bsg_data_end_addr < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
+  ASSERT(_bsg_data_end_addr - (SIZEOF(.striped.data) / group_size) < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
   
   /*The DRAM content is start at zero, 
    *The instruction fetch unit and the loader will send address that 

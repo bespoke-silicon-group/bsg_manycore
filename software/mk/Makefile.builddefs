@@ -27,13 +27,12 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
 # flags
 RISCV_GCC_EXTRA_OPTS ?= -O2
-RISCV_GCC_OPTS  = -march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
+RISCV_GCC_OPTS  = -march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y) -Dgroup_size=$(group_size)
 
 #RISCV_LINK_EXTRA_OPTS ?=
 RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
-RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 
 ifdef CLANG
 LLVM_DIR       = /mnt/bsg/diskbits/neilryan/llvm/llvm-install
@@ -44,6 +43,8 @@ PASS_FILE = libManycorePass.so
 PASS_DIR = $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
 PASS_LIB = build/manycore/$(PASS_FILE)
 
+RISCV_LINK = $(RISCV_GCC) -T link_script.ld
+
 %.o: %.c $(PASS_LIB)
 	$(LLVM_CLANG) $(RISCV_GCC_OPTS) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $*.bc
 	$(LLVM_OPT) -load $(PASS_LIB) -manycore $*.bc -o $*.bc.pass
@@ -53,7 +54,11 @@ PASS_LIB = build/manycore/$(PASS_FILE)
 
 $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp
 	mkdir -p build && cd build && cmake $(PASS_DIR) && make
+
+link_script.ld : $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
+	sed -r 's/group_size = [0-9]+/group_size = $(group_size)/' $< > $@
 else
+RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 %.o: %.c
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
 endif

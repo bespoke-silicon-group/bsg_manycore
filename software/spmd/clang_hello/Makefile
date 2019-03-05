@@ -1,6 +1,7 @@
 
 bsg_tiles_X = 2
 bsg_tiles_Y = 2
+group_size = 4
 
 # Comment below line to compile with riscv64-unknown-elf-gcc
 CLANG=1
@@ -11,7 +12,7 @@ CLANG=1
 #TYPE_VEC="64'h01_01_01_01"
 
 all: main.run
-OBJECT_FILES=main.o bsg_set_tile_x_y.o
+OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o
 
 include ../Makefile.include
 
@@ -21,7 +22,7 @@ include ../Makefile.include
 #     be vanilla core
 BSG_FPU_OP=0
 
-main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o link_script.ld
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
 
 main.o: Makefile
