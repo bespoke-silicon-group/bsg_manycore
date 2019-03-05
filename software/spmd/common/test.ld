@@ -55,6 +55,7 @@ SECTIONS
   }
   .rodata : { *(.rodata) }
   .eh_frame : { *(.eh_frame) }
+  _striped_data_start = . ;
   .striped.data : { *(.striped.data) }
 
   /* End of uninitalized data segement */

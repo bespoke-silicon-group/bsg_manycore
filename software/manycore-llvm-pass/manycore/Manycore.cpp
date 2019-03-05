@@ -94,6 +94,7 @@ namespace {
         bool runOnModule(Module &M) override {
             int64_t x_dim = getGlobalVal(M, "bsg_X_len");
             int64_t y_dim = getGlobalVal(M, "bsg_Y_len");
+            int64_t group_size = getGlobalVal(M, "bsg_group_size");
             int64_t cores_in_group = x_dim * y_dim;
             std::vector<GlobalVariable *> globals_to_resize;
             for (auto &G : M.globals()) {
@@ -104,7 +105,11 @@ namespace {
                 }
             }
             for (auto G: globals_to_resize) {
-                G->setAlignment(16);
+                // We set alignment so that index 0 of an array is always on
+                // core 0. Additionally, this has the effect of the start of
+                // a striped array being word-aligned on individual cores,
+                // which is arguably more important.
+                G->setAlignment(4 * group_size);
                 G->setSection(".striped.data");
                 G->dump();
             }

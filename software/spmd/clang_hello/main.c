@@ -13,9 +13,9 @@ extern unsigned _striped_data_start;
 volatile int *get_ptr_val(int STRIDE *arr_ptr, unsigned elem_size) {
     unsigned start_ptr = (unsigned) &_striped_data_start;
     unsigned ptr = (unsigned) arr_ptr;
-    unsigned index = ((ptr) - start_ptr) / group_size;
-    unsigned core_id = index % (elem_size);
-    unsigned local_addr = start_ptr + (index / group_size) * group_size;
+    unsigned index = ((ptr) - start_ptr) / elem_size;
+    unsigned core_id = index % (group_size);
+    unsigned local_addr = start_ptr + (index / group_size) * elem_size;
     unsigned tile_x = core_id / bsg_tiles_X;
     unsigned tile_y = core_id - (tile_x * bsg_tiles_X);
     unsigned remote_ptr_val = REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS |
