@@ -27,23 +27,25 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
 # flags
 RISCV_GCC_EXTRA_OPTS ?= -O2
-RISCV_GCC_OPTS  = -march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y) -Dgroup_size=$(group_size)
+RISCV_GCC_OPTS  = -march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y) -Dbsg_group_size=$(bsg_group_size)
 
 #RISCV_LINK_EXTRA_OPTS ?=
 RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
+RISCV_LINK = $(RISCV_GCC) -T link_script.ld
+
+link_script.ld : $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
+	sed -r 's/bsg_group_size = REPLACE_WITH_SED_CMD/bsg_group_size = $(bsg_group_size)/' $< > $@
 
 ifdef CLANG
 LLVM_DIR       = /mnt/bsg/diskbits/neilryan/llvm/llvm-install
 LLVM_CLANG    ?= $(LLVM_DIR)/bin/clang
 LLVM_OPT      ?= $(LLVM_DIR)/bin/opt
 LLVM_LLC      ?= $(LLVM_DIR)/bin/llc
-PASS_FILE = libManycorePass.so
-PASS_DIR = $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
-PASS_LIB = build/manycore/$(PASS_FILE)
+PASS_DIR      ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
+PASS_LIB      ?= build/manycore/libManycorePass.so
 
-RISCV_LINK = $(RISCV_GCC) -T link_script.ld
 
 %.o: %.c $(PASS_LIB)
 	$(LLVM_CLANG) $(RISCV_GCC_OPTS) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $*.bc
@@ -53,12 +55,10 @@ RISCV_LINK = $(RISCV_GCC) -T link_script.ld
 	rm -f $*.s $*.bc $*.bc.pass
 
 $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp
-	mkdir -p build && cd build && cmake $(PASS_DIR) && make
+	mkdir -p build
+	cd build && cmake $(PASS_DIR) -Dbsg_group_size:INTEGER=$(bsg_group_size) && make
 
-link_script.ld : $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
-	sed -r 's/group_size = [0-9]+/group_size = $(group_size)/' $< > $@
 else
-RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
 %.o: %.c
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
 endif

@@ -40,9 +40,7 @@ void replace_extern_store(Module &M, StoreInst *op) {
 
         // Create the call and replace all uses of the store inst with the call
         Value *new_str = builder.CreateCall(store_fn, args);
-        for (auto &U : op->uses()) {
-            U.getUser()->setOperand(U.getOperandNo(), new_str);
-        }
+        op->replaceAllUsesWith(new_str);
 
         errs() << "Replace done\n";
         new_str->dump();
@@ -75,9 +73,7 @@ void replace_extern_load(Module &M, LoadInst *op) {
         ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
 
         Value *new_ld = builder.CreateCall(load_fn, args);
-        for (auto &U : op->uses()) {
-            U.getUser()->setOperand(U.getOperandNo(), new_ld);
-        }
+        op->replaceAllUsesWith(new_ld);
         errs() << "Replace done\n";
         new_ld->dump();
     } else {
@@ -106,11 +102,8 @@ namespace {
         } addressSpaceException;
 
         bool runOnModule(Module &M) override {
-            int64_t x_dim = getGlobalVal(M, "bsg_X_len");
-            int64_t y_dim = getGlobalVal(M, "bsg_Y_len");
-            int64_t group_size = getGlobalVal(M, "bsg_group_size");
-            int64_t cores_in_group = x_dim * y_dim;
             std::vector<GlobalVariable *> globals_to_resize;
+            std::vector<Instruction *> insts_to_remove;
             for (auto &G : M.globals()) {
                 Type *g_type = G.getType();
                 // If global variable is an array in address space 1
@@ -123,7 +116,9 @@ namespace {
                 // core 0. Additionally, this has the effect of the start of
                 // a striped array being word-aligned on individual cores,
                 // which is arguably more important.
-                G->setAlignment(4 * group_size);
+                //
+                // bsg_group_size is passed via the command line
+                G->setAlignment(4 * bsg_group_size);
                 G->setSection(".striped.data");
                 G->dump();
             }
@@ -137,6 +132,7 @@ namespace {
                                 op->dump();
                                 if (op->getPointerAddressSpace() == STRIPE) {
                                     replace_extern_store(M, op);
+                                    insts_to_remove.push_back(op);
                                 } else {
                                     throw addressSpaceException;
                                 }
@@ -147,6 +143,7 @@ namespace {
                                 op->dump();
                                 if (op->getPointerAddressSpace() == STRIPE) {
                                     replace_extern_load(M, op);
+                                    insts_to_remove.push_back(op);
                                 } else {
                                     throw addressSpaceException;
                                 }
@@ -156,6 +153,11 @@ namespace {
                     }
                 }
             }
+            // Can't erase while iterating, so we do it here
+            for (auto I : insts_to_remove) {
+                I->eraseFromParent();
+            }
+            errs() << "BSG_GROUP_SIZE = " << bsg_group_size << "\n";
             errs() << "Pass complete\n";
             return true;
         }

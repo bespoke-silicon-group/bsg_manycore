@@ -22,7 +22,7 @@ OUTPUT_ARCH( "riscv" )
  * path of least resistence, we choose to have the line below modified by a
  * sed command during compilation. We opt for this producing a separate file, so
  * that one-off changes to spmd/common/test.ld aren't propogated in git */
-group_size = 64;
+bsg_group_size = REPLACE_WITH_SED_CMD;
 
 SECTIONS
 {
@@ -60,14 +60,14 @@ SECTIONS
   }
   .rodata : { *(.rodata) }
   .eh_frame : { *(.eh_frame) }
-  .striped.data ALIGN(group_size * 4): {
-    _striped_data_start = . ;
+  .striped.data ALIGN(bsg_group_size * 4): {
+    _bsg_striped_data_start = . ;
     *(.striped.data)
   }
 
   /* End of uninitalized data segement */
   _bsg_data_end_addr = .;
-  ASSERT(_bsg_data_end_addr - (SIZEOF(.striped.data) / group_size) < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
+  ASSERT(_bsg_data_end_addr + (SIZEOF(.striped.data) / bsg_group_size) < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
   
   /*The DRAM content is start at zero, 
    *The instruction fetch unit and the loader will send address that 
@@ -91,7 +91,7 @@ SECTIONS
           *(.text)
           *(.text.startup)
           *(.rodata*) 
-          *(.dram*)
+          *(.dram)
         }
   _bsg_dram_end_addr = .  ;
 }

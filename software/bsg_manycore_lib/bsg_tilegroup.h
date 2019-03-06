@@ -9,7 +9,7 @@
 #define STRIPE __attribute__((address_space(1)))
 
 // Passed from linker -- indicates start of striped arrays in DMEM
-extern unsigned _striped_data_start;
+extern unsigned _bsg_striped_data_start;
 
 // Runtime functions called by the LLVM pass
 void extern_store(int STRIPE *arr_ptr, unsigned elem_size, unsigned val);
@@ -20,7 +20,7 @@ int extern_load(int STRIPE *arr_ptr, unsigned elem_size);
  * needs the definitions of runtime functions avaliable so that the pass can
  * replace loads and stores -- these aren't avaliable via declarations. */
 static inline volatile int *get_ptr_val(int STRIPE *arr_ptr, unsigned elem_size) {
-    unsigned start_ptr = (unsigned) &_striped_data_start;
+    unsigned start_ptr = (unsigned) &_bsg_striped_data_start;
     unsigned ptr = (unsigned) arr_ptr;
 
     // We only need to care about the offset from the start of the .striped.data
@@ -28,8 +28,8 @@ static inline volatile int *get_ptr_val(int STRIPE *arr_ptr, unsigned elem_size)
     // "index" into the overall .striped.data segment. In hardware, this would
     // be the same as caluclating the offset from a segment register
     unsigned index = ((ptr) - start_ptr) / elem_size;
-    unsigned core_id = index % (group_size);
-    unsigned local_addr = start_ptr + (index / group_size) * elem_size;
+    unsigned core_id = index % (bsg_group_size);
+    unsigned local_addr = start_ptr + (index / bsg_group_size) * elem_size;
 
     // Get X & Y coordinates of the tile that holds the memory address
     unsigned tile_x = core_id / bsg_tiles_X;
@@ -46,7 +46,7 @@ static inline volatile int *get_ptr_val(int STRIPE *arr_ptr, unsigned elem_size)
         local_addr : remote_ptr_val;
 #ifdef DEBUG
     bsg_printf("ID = %u, index = %u; striped_data_start = 0x%x\n",
-            core_id, index, &_striped_data_start);
+            core_id, index, &_bsg_striped_data_start);
     bsg_printf("NPA=(%u, %u, 0x%x)\n", tile_x, tile_y, local_addr);
     bsg_printf("Final Pointer is 0x%x\n", ptr_val);
 #endif

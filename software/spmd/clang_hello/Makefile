@@ -1,7 +1,7 @@
 
 bsg_tiles_X = 2
 bsg_tiles_Y = 2
-group_size = 4
+bsg_group_size = 4
 
 # Comment below line to compile with riscv64-unknown-elf-gcc
 CLANG=1

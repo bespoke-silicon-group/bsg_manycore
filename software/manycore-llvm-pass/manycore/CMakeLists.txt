@@ -13,6 +13,8 @@ set_target_properties(ManycorePass PROPERTIES
     COMPILE_FLAGS "-fno-rtti"
 )
 
+add_definitions(-Dbsg_group_size=${bsg_group_size})
+
 # Get proper shared-library behavior (where symbols are not necessarily
 # resolved when the shared library is linked) on OS X.
 if(APPLE)
