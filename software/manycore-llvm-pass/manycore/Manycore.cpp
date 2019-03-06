@@ -4,7 +4,14 @@
 #include "llvm/IR/Constants.h"
 using namespace llvm;
 
-#define STRIPE 1
+#define STRIPE 1 // Needs to match address_space set by library
+
+class GEPPointerException: public std::exception {
+    virtual const char *what() const throw() {
+        return "Error: Encountered a pointer that isn't set by a GEP instruction!\n";
+    }
+} gepPointerException;
+
 
 void replace_extern_store(Module &M, StoreInst *op) {
     IRBuilder<> builder(op);
@@ -23,6 +30,8 @@ void replace_extern_store(Module &M, StoreInst *op) {
             last = arr_t;
             arr_t = dyn_cast<ArrayType>(arr_t->getElementType());
         }
+
+        // Divide by 8 for bits->bytes
         args_vector.push_back(ConstantInt::get(last->getElementType(),
                     last->getElementType()->getPrimitiveSizeInBits() / 8, false));
 
@@ -37,6 +46,8 @@ void replace_extern_store(Module &M, StoreInst *op) {
 
         errs() << "Replace done\n";
         new_str->dump();
+    } else {
+        throw gepPointerException;
     }
 }
 
@@ -57,6 +68,7 @@ void replace_extern_load(Module &M, LoadInst *op) {
             last = arr_t;
             arr_t = dyn_cast<ArrayType>(arr_t->getElementType());
         }
+        // Divide by 8 for bits->bytes
         args_vector.push_back(ConstantInt::get(last->getElementType(),
                     last->getElementType()->getPrimitiveSizeInBits() / 8, false));
 
@@ -68,6 +80,8 @@ void replace_extern_load(Module &M, LoadInst *op) {
         }
         errs() << "Replace done\n";
         new_ld->dump();
+    } else {
+        throw gepPointerException;
     }
 }
 

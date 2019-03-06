@@ -17,6 +17,11 @@ OUTPUT_ARCH( "riscv" )
 /* Sections                                                             */
 /*----------------------------------------------------------------------*/
 
+/* This is a bit lame, but there isn't a good way to externally set variables in
+ * a linker script (like -D for gcc or environment variables). Opting for the
+ * path of least resistence, we choose to have the line below modified by a
+ * sed command during compilation. We opt for this producing a separate file, so
+ * that one-off changes to spmd/common/test.ld aren't propogated in git */
 group_size = 64;
 
 SECTIONS
