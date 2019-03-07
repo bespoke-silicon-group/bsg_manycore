@@ -32,7 +32,7 @@ OUTFLAG= -o
 CC 		= $(RISCV_GCC)
 # Flag : LD
 #	Use this flag to define compiler to use
-LD		= $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld  -Wl,-Map=link.map
+LD		= $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld  -Wl,-Map=link.map,--defsym,bsg_group_size=4
 # Flag : AS
 #	Use this flag to define compiler to use
 AS		= $(RISCV_GCC)  -D__ASSEMBLY__=1
