@@ -33,10 +33,7 @@ RISCV_GCC_OPTS  = -march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -
 RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
-RISCV_LINK = $(RISCV_GCC) -T link_script.ld
-
-link_script.ld : $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
-	sed -r 's/bsg_group_size = REPLACE_WITH_SED_CMD/bsg_group_size = $(bsg_group_size)/' $< > $@
+RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld -Wl,--defsym,bsg_group_size=$(bsg_group_size)
 
 ifdef CLANG
 LLVM_DIR       = /mnt/bsg/diskbits/neilryan/llvm/llvm-install

@@ -22,7 +22,7 @@ include ../Makefile.include
 #     be vanilla core
 BSG_FPU_OP=0
 
-main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o link_script.ld
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
 
 main.o: Makefile
