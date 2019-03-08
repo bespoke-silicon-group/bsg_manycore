@@ -16,6 +16,7 @@ module bsg_manycore_link_to_cce_tx
     , parameter num_lce_p="inv"
     , parameter lce_assoc_p="inv"
     , parameter block_size_in_bits_p="inv"
+    , parameter dram_bank_addr_width_p="inv"
 
     , localparam link_byte_offset_width_lp=`BSG_SAFE_CLOG2(link_data_width_p>>3)
     , localparam link_mask_width_lp=(link_data_width_p>>3)
@@ -39,7 +40,7 @@ module bsg_manycore_link_to_cce_tx
     // cce side
     , input [bp_cce_mem_data_cmd_width_lp-1:0] mem_data_cmd_i
     , input mem_data_cmd_v_i
-    , output logic mem_data_cmd_ready_o
+    , output logic mem_data_cmd_yumi_o
 
     , output logic [bp_mem_cce_resp_width_lp-1:0] mem_resp_o
     , output logic mem_resp_v_o
@@ -101,7 +102,7 @@ module bsg_manycore_link_to_cce_tx
 
     tx_state_n = tx_state_r;
     mem_data_cmd_n = mem_data_cmd_r;
-    mem_data_cmd_ready_o = 1'b0;
+    mem_data_cmd_yumi_o = 1'b0;
     tx_counter_clear_li = 1'b0;
     tx_counter_up_li = 1'b0;
     tx_pkt_v_o = 1'b0;
@@ -111,8 +112,7 @@ module bsg_manycore_link_to_cce_tx
       // wait until mem_data_cmd arrives.
       // when it arrives, flop it in mem_data_cmd_r.
       WAIT: begin
-        mem_data_cmd_ready_o = 1'b1;
-
+        mem_data_cmd_yumi_o = mem_data_cmd_v_i;
         if (mem_data_cmd_v_i) begin
           mem_data_cmd_n = mem_data_cmd;
           tx_counter_clear_li = 1'b1;
@@ -137,8 +137,8 @@ module bsg_manycore_link_to_cce_tx
   assign mem_data = mem_data_cmd_r.data;
 
   assign tx_pkt.addr = {
-    1'b0,
-    mem_data_cmd_r.addr[link_byte_offset_width_lp+lg_num_flits_lp+:link_addr_width_p-lg_num_flits_lp-1],
+    {(link_addr_width_p-dram_bank_addr_width_p){1'b0}},
+    mem_data_cmd_r.addr[link_byte_offset_width_lp+lg_num_flits_lp+:dram_bank_addr_width_p-lg_num_flits_lp],
     tx_counter_lo[0+:lg_num_flits_lp]
   };
   assign tx_pkt.op = `ePacketOp_remote_store;

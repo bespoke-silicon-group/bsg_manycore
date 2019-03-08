@@ -11,7 +11,7 @@
 module bsg_manycore_link_to_cce
   import bp_common_pkg::*;
   #(parameter link_data_width_p="inv"
-    , parameter link_addr_width_p="inv"
+    , parameter link_addr_width_p="inv" // in words
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
     , parameter load_id_width_p="inv"
@@ -20,6 +20,8 @@ module bsg_manycore_link_to_cce
     , parameter num_lce_p="inv"
     , parameter lce_assoc_p="inv"
     , parameter block_size_in_bits_p="inv"
+
+    , parameter dram_bank_addr_width_p="inv" // in words
    
     , parameter fifo_els_p=16
     , parameter max_out_credits_p=16
@@ -55,11 +57,11 @@ module bsg_manycore_link_to_cce
     // bp side
     , input [bp_cce_mem_cmd_width_lp-1:0] mem_cmd_i
     , input mem_cmd_v_i
-    , output logic mem_cmd_ready_o
+    , output logic mem_cmd_yumi_o
 
     , input [bp_cce_mem_data_cmd_width_lp-1:0] mem_data_cmd_i
     , input mem_data_cmd_v_i
-    , output logic mem_data_cmd_ready_o
+    , output logic mem_data_cmd_yumi_o
 
     , output logic [bp_mem_cce_resp_width_lp-1:0] mem_resp_o
     , output logic mem_resp_v_o
@@ -70,7 +72,6 @@ module bsg_manycore_link_to_cce
     , input  mem_data_resp_ready_i
     
     , output logic reset_o
-    , output logic freeze_o
   );
 
   // synchronize reset signal
@@ -136,6 +137,8 @@ module bsg_manycore_link_to_cce
 
   // endpoint_standard
   //
+  logic freeze;
+
   logic ep_in_v_lo;
   logic ep_in_yumi_li;
   logic [link_data_width_p-1:0] ep_in_data_lo;
@@ -223,6 +226,8 @@ module bsg_manycore_link_to_cce
     ,.num_lce_p(num_lce_p)
     ,.lce_assoc_p(lce_assoc_p)
     ,.block_size_in_bits_p(block_size_in_bits_p)
+
+    ,.dram_bank_addr_width_p(dram_bank_addr_width_p)
   ) rx (
     .clk_i(bp_clk_i)
     ,.reset_i(bp_reset_rr)
@@ -230,7 +235,7 @@ module bsg_manycore_link_to_cce
     // cce
     ,.mem_cmd_i(mem_cmd_i)
     ,.mem_cmd_v_i(mem_cmd_v_i)
-    ,.mem_cmd_ready_o(mem_cmd_ready_o)
+    ,.mem_cmd_yumi_o(mem_cmd_yumi_o)
 
     ,.mem_data_resp_o(mem_data_resp_o)
     ,.mem_data_resp_v_o(mem_data_resp_v_o)
@@ -266,6 +271,8 @@ module bsg_manycore_link_to_cce
     ,.num_lce_p(num_lce_p)
     ,.lce_assoc_p(lce_assoc_p)
     ,.block_size_in_bits_p(block_size_in_bits_p)
+
+    ,.dram_bank_addr_width_p(dram_bank_addr_width_p)
   ) tx (
     .clk_i(bp_clk_i)
     ,.reset_i(bp_reset_rr)
@@ -273,7 +280,7 @@ module bsg_manycore_link_to_cce
     // cce
     ,.mem_data_cmd_i(mem_data_cmd_i)
     ,.mem_data_cmd_v_i(mem_data_cmd_v_i)
-    ,.mem_data_cmd_ready_o(mem_data_cmd_ready_o)
+    ,.mem_data_cmd_yumi_o(mem_data_cmd_yumi_o)
 
     ,.mem_resp_o(mem_resp_o)
     ,.mem_resp_v_o(mem_resp_v_o)
@@ -320,7 +327,7 @@ module bsg_manycore_link_to_cce
   
     // black-parrot side
     ,.reset_o(reset_o)
-    ,.freeze_o(freeze_o)
+    ,.freeze_o(freeze)
 
     // manycore side
     ,.v_i(ep_in_v_lo)

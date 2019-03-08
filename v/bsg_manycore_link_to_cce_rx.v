@@ -18,6 +18,7 @@ module bsg_manycore_link_to_cce_rx
     , parameter num_lce_p="inv"
     , parameter lce_assoc_p="inv"
     , parameter block_size_in_bits_p="inv"
+    , parameter dram_bank_addr_width_p="inv"
 
     , localparam link_byte_offset_width_lp=`BSG_SAFE_CLOG2(link_data_width_p>>3)
     , localparam link_mask_width_lp=(link_data_width_p>>3)
@@ -42,7 +43,7 @@ module bsg_manycore_link_to_cce_rx
     // cce side
     , input [mem_cmd_width_lp-1:0] mem_cmd_i
     , input mem_cmd_v_i
-    , output logic mem_cmd_ready_o
+    , output logic mem_cmd_yumi_o
     
     , output logic [mem_data_resp_width_lp-1:0] mem_data_resp_o
     , output logic mem_data_resp_v_o
@@ -132,7 +133,7 @@ module bsg_manycore_link_to_cce_rx
   always_comb begin
     rx_state_n = rx_state_r;
     mem_cmd_n = mem_cmd_r;
-    mem_cmd_ready_o = 1'b0;
+    mem_cmd_yumi_o = 1'b0;
     rx_counter_clear_li = 1'b0;
     rx_counter_up_li = 1'b0;
     rx_pkt_v_o = 1'b0;
@@ -142,7 +143,7 @@ module bsg_manycore_link_to_cce_rx
       // wait for mem_cmd to arrive.
       // once it arrives, flop it in mem_cmd_r.
       WAIT: begin
-        mem_cmd_ready_o = 1'b1;
+        mem_cmd_yumi_o = mem_cmd_v_i;
         if (mem_cmd_v_i) begin
           mem_cmd_n = mem_cmd;
           rx_counter_clear_li = 1'b1;
@@ -165,8 +166,8 @@ module bsg_manycore_link_to_cce_rx
   end
     
   assign rx_pkt.addr = {
-    1'b0,
-    mem_cmd_r.addr[link_byte_offset_width_lp+lg_num_flits_lp+:link_addr_width_p-lg_num_flits_lp-1],
+    {(link_addr_width_p-dram_bank_addr_width_p){1'b0}},
+    mem_cmd_r.addr[link_byte_offset_width_lp+lg_num_flits_lp+:dram_bank_addr_width_p-lg_num_flits_lp],
     rx_counter_lo[0+:lg_num_flits_lp]
   };
   assign rx_pkt.op = `ePacketOp_remote_load;

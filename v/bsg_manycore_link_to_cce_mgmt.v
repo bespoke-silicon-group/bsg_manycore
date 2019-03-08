@@ -141,4 +141,18 @@ module bsg_manycore_link_to_cce_mgmt
     end
   end
 
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if (mgmt_state_r == WRITE_DATA) begin
+      if (is_freeze_addr) begin
+        $display("[BRIDGE MGMT] FREEZE = %d", data_r[0]);
+      end
+      if (is_reset_addr) begin
+        $display("[BRIDGE MGMT] RESET = %d", data_r[0]);
+      end
+    end
+  end
+
+  // synopsys translate_on
+
 endmodule
