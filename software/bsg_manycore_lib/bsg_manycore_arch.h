@@ -115,4 +115,5 @@
 
 #define bsg_tilegroup_ptr(lc_sh,index)	( bsg_remote_ptr( ((index)%BSG_TILE_GROUP_X_DIM) , (((index)/BSG_TILE_GROUP_X_DIM)%BSG_TILE_GROUP_Y_DIM) ,(&((lc_sh)[((index)/BSG_TILE_GROUP_Y_DIM)]))) )
 
+#define bsg_io_mutex_ptr(local_addr)  bsg_remote_ptr( IO_X_INDEX, bsg_tiles_Y, (local_addr))  
 #endif

@@ -24,13 +24,13 @@ int main()
 
   /************************************************************************
    Example of Using Prinf. 
-   Please call printf once a time, other wise the output string will be 
-   messed up.  
-   A mutex in printf should release this constraint.
+   A io mutex was defined for input/output node. 
+   The printf will get the mutex first and then output the char stream. 
   *************************************************************************/
+  bsg_printf("\nManycore>> Hello from core %d, %d.\n", bsg_x, bsg_y);
+
   if ((bsg_x == bsg_tiles_X-1) && (bsg_y == bsg_tiles_Y-1)) {
 
-     bsg_printf("\nManycore>> Hello from core %d, %d.\n", bsg_x, bsg_y);
      bsg_printf("Manycore>> Values in DRAM:");
      for(i=0; i<4; i++)
         bsg_printf("%08x,",data[i]);

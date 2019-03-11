@@ -92,6 +92,8 @@ module bsg_nonsynth_manycore_io_complex
         ,.init_vcache_p (init_vcache_p)
         ,.vcache_entries_p ( vcache_entries_p )
         ,.vcache_ways_p    ( vcache_ways_p    )
+        ,.x_cord_width_p   ( x_cord_width_lp  )
+        ,.y_cord_width_p   ( y_cord_width_lp  )
         ) spmd_loader
        ( .clk_i     (clk_i)
          ,.reset_i  (reset_r)

@@ -33,9 +33,9 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,parameter load_rows_p     = num_rows_p
    ,parameter load_cols_p     = num_cols_p
 
-   ,parameter y_cord_width_lp  = `BSG_SAFE_CLOG2(num_rows_p + 1)
-   ,parameter x_cord_width_lp  = `BSG_SAFE_CLOG2(num_cols_p)
-   ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
+   ,parameter y_cord_width_p  = -1
+   ,parameter x_cord_width_p  = -1 
+   ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
    //the vicitim cache  paraemters
    ,parameter init_vcache_p   = 0
    ,parameter vcache_entries_p = -1 
@@ -62,8 +62,8 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,output                       v_o
    ,input                        ready_i
 
-   ,input [y_cord_width_lp-1:0]  my_y_i
-   ,input [x_cord_width_lp-1:0]  my_x_i
+   ,input [y_cord_width_p-1:0]  my_y_i
+   ,input [x_cord_width_p-1:0]  my_x_i
   );
 
   //initilization files
@@ -73,7 +73,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   logic [7:0]  DMEM[dmem_end_addr_lp:dmem_start_addr_lp];
   logic [7:0]  DRAM[dram_end_addr_lp:dram_start_addr_lp];
 
-  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p);
+  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
   `declare_bsg_manycore_dram_addr_s(dram_ch_addr_width_p);
 
   localparam    config_addr_bits = 1 << ( epa_addr_width_p-1);
@@ -196,8 +196,8 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                        var_data_o.addr       = dram_addr >>2;
                        var_data_o.op         = `ePacketOp_remote_store;
                        var_data_o.op_ex      =  4'b1111; //TODO not handle the byte write.
-                       var_data_o.x_cord     = x_cord_width_lp'( dram_addr_cast.x_cord );
-                       var_data_o.y_cord     = {y_cord_width_lp{1'b1}};
+                       var_data_o.x_cord     = x_cord_width_p'( dram_addr_cast.x_cord );
+                       var_data_o.y_cord     = {y_cord_width_p{1'b1}};
                        var_data_o.src_x_cord = my_x_i;
                        var_data_o.src_y_cord = my_y_i;
 
@@ -249,8 +249,8 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                         var_data_o.op         = `ePacketOp_remote_store;
                         var_data_o.op_ex      =  4'b1111; //TODO not handle the byte write.
                         var_data_o.x_cord     = x_cord;
-                        var_data_o.y_cord     = {y_cord_width_lp{1'b1}};
-                        //var_data_o.y_cord     = (y_cord_width_lp)'(num_rows_p);
+                        var_data_o.y_cord     = {y_cord_width_p{1'b1}};
+                        //var_data_o.y_cord     = (y_cord_width_p)'(num_rows_p);
                         var_data_o.src_x_cord = my_x_i;
                         var_data_o.src_y_cord = my_y_i;
 

@@ -174,12 +174,13 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
    wire [data_width_p-1:0]  comb_returning_data_lo  ;
    wire                     comb_returning_v_lo     ;
-   bsg_manycore_swap_ctrl         #(      .data_width_p   (data_width_p   )
+   bsg_manycore_lock_ctrl         #(      .data_width_p   (data_width_p   )
                                          ,.addr_width_p   (addr_width_p   )
                                          ,.x_cord_width_p (x_cord_width_p )
                                          ,.y_cord_width_p (y_cord_width_p )
-                                         ,.debug_p        ( 1'b1          )
-                                    ) swap_ctrl
+                                         ,.max_out_credits_p ( max_out_credits_p )
+                                         ,.debug_p        ( 1'b0          )
+                                    ) lock_ctrl
    ( .clk_i
     ,.reset_i
 
@@ -230,7 +231,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
    returning_credit_info  rc_fifo_li, rc_fifo_lo;
 
-   wire req_returning_data =pkt_remote_load | pkt_remote_swap_aq | pkt_remote_swap_rl ;
+   wire req_returning_data =pkt_remote_load | pkt_remote_swap_aq;
 
    assign rc_fifo_li   ='{ pkt_type: ( req_returning_data) ?`ePacketType_data :`ePacketType_credit
                           ,y_cord  : cgni_data.src_y_cord
@@ -399,7 +400,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                 $finish();
         end
    end
-// synopsys translate_on
+        // synopsys translate_on
 
 endmodule
 
