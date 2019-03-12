@@ -27,16 +27,41 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
 # flags
 RISCV_GCC_EXTRA_OPTS ?= -O2
-RISCV_GCC_OPTS  = -march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
+RISCV_GCC_OPTS  = -march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y) -Dbsg_group_size=$(bsg_group_size)
 
 #RISCV_LINK_EXTRA_OPTS ?=
-RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
+RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
-RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld
+RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld -Wl,--defsym,bsg_group_size=$(bsg_group_size)
 
+ifdef CLANG
+LLVM_DIR       = /mnt/bsg/diskbits/neilryan/llvm/llvm-install
+LLVM_CLANG    ?= $(LLVM_DIR)/bin/clang
+LLVM_OPT      ?= $(LLVM_DIR)/bin/opt
+LLVM_LLC      ?= $(LLVM_DIR)/bin/llc
+PASS_DIR      ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
+PASS_LIB      ?= build/manycore/libManycorePass.so
+
+$(LLVM_DIR):
+	@echo "LLVM is not installed! Follow build instructions in the TRM and set LLVM_DIR accordingly" && exit 1
+
+%.o: %.c $(PASS_LIB) $(LLVM_DIR)
+	$(LLVM_CLANG) $(RISCV_GCC_OPTS) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $*.bc
+	$(LLVM_OPT) -load $(PASS_LIB) -manycore $*.bc -o $*.bc.pass
+	$(LLVM_LLC) $*.bc.pass -o $*.s
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) -c $*.s -o $@
+	rm -f $*.s $*.bc $*.bc.pass
+
+$(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
+	mkdir -p build
+	cd build && cmake $(PASS_DIR) -Dbsg_group_size:INTEGER=$(bsg_group_size) && make
+
+else
 %.o: %.c
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
+endif
+
 
 %.o: %.S
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -D__ASSEMBLY__=1 \

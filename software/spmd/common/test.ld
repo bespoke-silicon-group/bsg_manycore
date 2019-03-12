@@ -51,10 +51,17 @@ SECTIONS
     *(.tbss)
     crt.o(.tbss.end)
   }
+  .rodata : { *(.rodata) }
+  .eh_frame : { *(.eh_frame) }
+  /* RISC-V 32 has a 4 byte word size */
+  .striped.data ALIGN(bsg_group_size * 4): {
+    _bsg_striped_data_start = . ;
+    *(.striped.data)
+  }
 
   /* End of uninitalized data segement */
   _bsg_data_end_addr = .;
-  ASSERT(_bsg_data_end_addr < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
+  ASSERT(_bsg_data_end_addr + (SIZEOF(.striped.data) / bsg_group_size) < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
   
   /*The DRAM content is start at zero, 
    *The instruction fetch unit and the loader will send address that 
