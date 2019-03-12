@@ -46,12 +46,21 @@ PASS_LIB      ?= build/manycore/libManycorePass.so
 $(LLVM_DIR):
 	@echo "LLVM is not installed! Follow build instructions in the TRM and set LLVM_DIR accordingly" && exit 1
 
-%.o: %.c $(PASS_LIB) $(LLVM_DIR)
-	$(LLVM_CLANG) $(RISCV_GCC_OPTS) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $*.bc
-	$(LLVM_OPT) -load $(PASS_LIB) -manycore $*.bc -o $*.bc.pass
-	$(LLVM_LLC) $*.bc.pass -o $*.s
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) -c $*.s -o $@
-	rm -f $*.s $*.bc $*.bc.pass
+# Remove default %.o: %.c rule
+%.o: %.c
+
+%.bc: %.c $(PASS_LIB) $(LLVM_DIR)
+	$(LLVM_CLANG) $(RISCV_GCC_OPTS) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
+
+%.bc.pass: %.bc
+	$(LLVM_OPT) -load $(PASS_LIB) -manycore $< -o $@
+
+%.bc.s: %.bc.pass
+	$(LLVM_LLC) $< -o $@
+
+%.o: %.bc.s
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) -c $< -o $@
+
 
 $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
 	mkdir -p build
