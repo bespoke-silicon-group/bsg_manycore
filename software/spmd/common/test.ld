@@ -53,6 +53,7 @@ SECTIONS
   }
   .rodata : { *(.rodata) }
   .eh_frame : { *(.eh_frame) }
+  /* RISC-V 32 has a 4 byte word size */
   .striped.data ALIGN(bsg_group_size * 4): {
     _bsg_striped_data_start = . ;
     *(.striped.data)

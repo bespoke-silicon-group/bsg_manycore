@@ -43,15 +43,17 @@ LLVM_LLC      ?= $(LLVM_DIR)/bin/llc
 PASS_DIR      ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
 PASS_LIB      ?= build/manycore/libManycorePass.so
 
+$(LLVM_DIR):
+	@echo "LLVM is not installed! Follow build instructions in the TRM and set LLVM_DIR accordingly" && exit 1
 
-%.o: %.c $(PASS_LIB)
+%.o: %.c $(PASS_LIB) $(LLVM_DIR)
 	$(LLVM_CLANG) $(RISCV_GCC_OPTS) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $*.bc
 	$(LLVM_OPT) -load $(PASS_LIB) -manycore $*.bc -o $*.bc.pass
 	$(LLVM_LLC) $*.bc.pass -o $*.s
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) -c $*.s -o $@
 	rm -f $*.s $*.bc $*.bc.pass
 
-$(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp
+$(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
 	mkdir -p build
 	cd build && cmake $(PASS_DIR) -Dbsg_group_size:INTEGER=$(bsg_group_size) && make
 
