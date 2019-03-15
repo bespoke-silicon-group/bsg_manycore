@@ -23,7 +23,7 @@ int main() {
 
     tmp=bsg_wait_local_int( & count,  bsg_tiles_X * bsg_tiles_Y) ;
 
-    bsg_remote_ptr_io_store(0, 0, tmp);
+    bsg_remote_ptr_io_store(IO_X_INDEX, 0, tmp);
 
     bsg_finish();
 

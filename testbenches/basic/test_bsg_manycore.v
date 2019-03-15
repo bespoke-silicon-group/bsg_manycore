@@ -4,12 +4,12 @@
 `define ICACHE_ENTRIES  1024
 `define DRAM_CH_SIZE    1024  //in words
 
-`ifndef bsg_tiles_X
-`error bsg_tiles_X must be defined; pass it in through the makefile
+`ifndef bsg_global_X
+`error bsg_global_X must be defined; pass it in through the makefile
 `endif
 
-`ifndef bsg_tiles_Y
-`error bsg_tiles_Y must be defined; pass it in through the makefile
+`ifndef bsg_global_Y
+`error bsg_global_Y must be defined; pass it in through the makefile
 `endif
 
 `define MAX_CYCLES 1000000
@@ -32,11 +32,10 @@ module test_bsg_manycore;
    localparam icache_tag_width_lp= 12;      // 16MB PC address 
    localparam data_width_lp   = 32;
    localparam load_id_width_lp = 11;
-   localparam epa_addr_width_lp       = 16;
-   localparam num_tiles_x_lp  = `bsg_tiles_X;
-   localparam num_tiles_y_lp  = `bsg_tiles_Y;
-   localparam extra_io_rows_lp= 2;
-   localparam num_routers_y_lp  = num_tiles_y_lp + extra_io_rows_lp -1;
+   localparam epa_byte_addr_width_lp       = 18;
+   localparam num_tiles_x_lp  = `bsg_global_X;
+   localparam num_tiles_y_lp  = `bsg_global_Y;
+   localparam extra_io_rows_lp= 1;
    localparam lg_node_x_lp    = `BSG_SAFE_CLOG2(num_tiles_x_lp);
    localparam lg_node_y_lp    = `BSG_SAFE_CLOG2(num_tiles_y_lp + extra_io_rows_lp);
    localparam addr_width_lp   = 32-2-1-lg_node_x_lp+1;
@@ -149,7 +148,7 @@ module test_bsg_manycore;
    `declare_bsg_manycore_link_sif_s(addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp, load_id_width_lp);
 
    bsg_manycore_link_sif_s [S:N][num_tiles_x_lp-1:0]   ver_link_li, ver_link_lo;
-   bsg_manycore_link_sif_s [E:W][num_routers_y_lp-1:0] hor_link_li, hor_link_lo;
+   bsg_manycore_link_sif_s [E:W][num_tiles_y_lp-1:0]   hor_link_li, hor_link_lo;
    bsg_manycore_link_sif_s      [num_tiles_x_lp-1:0]   io_link_li,  io_link_lo;
 
 
@@ -165,11 +164,12 @@ module test_bsg_manycore;
      ,.data_width_p (data_width_lp)
      ,.addr_width_p (addr_width_lp)
      ,.load_id_width_p (load_id_width_lp)
-     ,.epa_addr_width_p (epa_addr_width_lp)
+     ,.epa_byte_addr_width_p (epa_byte_addr_width_lp)
      ,.dram_ch_addr_width_p( dram_ch_addr_width_lp )
      ,.dram_ch_start_col_p ( 1'b0                  )
      ,.num_tiles_x_p(num_tiles_x_lp)
      ,.num_tiles_y_p(num_tiles_y_lp)
+     ,.extra_io_rows_p ( extra_io_rows_lp  )
      ,.hetero_type_vec_p(`BSG_HETERO_TYPE_VEC)
      // currently west side is stubbed except for upper left tile
      //,.stub_w_p     ({{(num_tiles_y_lp-1){1'b1}}, 1'b0})
@@ -203,7 +203,7 @@ module test_bsg_manycore;
 /////////////////////////////////////////////////////////////////////////////////
 // Tie the unused I/O
    genvar                   i,j;
-   for (i = 0; i < num_routers_y_lp; i=i+1)
+   for (i = 0; i < num_tiles_y_lp; i=i+1)
      begin: rof2
 
         bsg_manycore_link_sif_tieoff #(.addr_width_p     (addr_width_lp  )
@@ -255,9 +255,10 @@ module test_bsg_manycore;
      #( .icache_entries_num_p(icache_entries_num_lp)
         ,.addr_width_p(addr_width_lp)
         ,.load_id_width_p(load_id_width_lp)
-        ,.epa_addr_width_p(epa_addr_width_lp)
+        ,.epa_byte_addr_width_p(epa_byte_addr_width_lp)
         ,.dram_ch_addr_width_p( dram_ch_addr_width_lp)
         ,.data_width_p(data_width_lp)
+        ,.extra_io_rows_p ( extra_io_rows_lp )
 	,.max_cycles_p(max_cycles_lp)
         ,.num_tiles_x_p(num_tiles_x_lp)
         ,.num_tiles_y_p(num_tiles_y_lp)
@@ -277,7 +278,7 @@ module test_bsg_manycore;
 
 /////////////////////////////////////////////////////////////////////////////////
 // instantiate the  profiler
-`define  PERF_COUNT
+//`define  PERF_COUNT
 `define  TOPLEVEL UUT
 
 `ifdef PERF_COUNT

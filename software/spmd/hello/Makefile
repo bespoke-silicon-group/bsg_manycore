@@ -1,5 +1,13 @@
-bsg_tiles_X = 4
-bsg_tiles_Y = 4
+bsg_global_X = 4
+bsg_global_Y = 4
+#########################################################
+#Tile group configuration
+# A 2x2 size tile group located at (1,1)
+bsg_tiles_org_X =1
+bsg_tiles_org_Y =1
+
+bsg_tiles_X = 2
+bsg_tiles_Y = 2
 
 #########################################################
 #each bytes defines the core type

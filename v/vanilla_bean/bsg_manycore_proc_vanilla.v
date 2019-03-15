@@ -10,7 +10,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                            , data_width_p   = 32
                            , addr_width_p   = -1
                            , load_id_width_p = 5
-                           , epa_addr_width_p = -1 
+                           , epa_byte_addr_width_p = -1 
                            , dram_ch_addr_width_p = -1
                            , dram_ch_start_col_p = 0
                            , debug_p        = 1
@@ -57,8 +57,14 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     , output logic freeze_o
     );
 
-   logic freeze_r;
-   assign freeze_o = freeze_r;
+   //-------------------------------------------------------------------------
+   //  The CSR  Regsiter Declare
+   logic                                CSR_FREEZE_r;
+   logic [x_cord_width_p-1:0]           CSR_TGO_X_r;
+   logic [y_cord_width_p-1:0]           CSR_TGO_Y_r;
+
+
+   assign freeze_o = CSR_FREEZE_r;
 
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
 
@@ -73,8 +79,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    logic                       returned_fifo_full_lo;
    logic                       returned_yumi_li;
 
-   logic [data_width_p-1:0] load_returning_data, store_returning_data_r, returning_data;
-   logic                    load_returning_v, store_returning_v_r, returning_v;
+   logic [data_width_p-1:0] load_returning_data, delayed_returning_data_r, returning_data;
+   logic                    load_returning_v, delayed_returning_v_r, returning_v;
 
    logic                                   in_we_lo  ;
    logic [data_width_p-1:0]                in_data_lo;
@@ -129,7 +135,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
 
     ,.my_x_i
     ,.my_y_i
-    //,.freeze_r_o(freeze_r)
+    //,.CSR_FREEZE_r_o(CSR_FREEZE_r)
     //,.reverse_arb_pr_o( reverse_arb_pr )
     );
 
@@ -199,9 +205,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    //////////////////////////////////////////////////////////
 
    // configuration  in_addr_lo = { 1 ------ } 2'b00
-   localparam  epa_config_bit_idx = (epa_addr_width_p-2) -1;
+   localparam  epa_word_addr_width_lp = epa_byte_addr_width_p-2;
 
-   wire is_config_op      = in_v_lo & in_addr_lo[epa_config_bit_idx] & in_we_lo;
+   wire is_config_op      = in_v_lo & in_addr_lo[epa_word_addr_width_lp-1] ;
    wire is_dmem_addr      = `MC_IS_DMEM_ADDR(in_addr_lo, addr_width_p);
    wire is_icache_addr    = `MC_IS_ICACHE_ADDR(in_addr_lo, addr_width_p);
 
@@ -209,15 +215,15 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    wire remote_access_dmem  = in_v_lo & is_dmem_addr;
    wire remote_invalid_addr = in_v_lo & ( ~( is_dmem_addr | is_icache_addr | is_config_op ) );
 
-   // Logic detecting the falling edge of freeze_r signal
-   logic freeze_r_r;
+   // Logic detecting the falling edge of CSR_FREEZE_r signal
+   logic CSR_FREEZE_r_r;
 
    always_ff@( posedge clk_i)
-   if( reset_i ) freeze_r_r <= 1'b0;
-   else          freeze_r_r <= freeze_r;
+   if( reset_i ) CSR_FREEZE_r_r <= 1'b0;
+   else          CSR_FREEZE_r_r <= CSR_FREEZE_r;
 
-   wire pkt_unfreeze = (freeze_r == 1'b0 ) && ( freeze_r_r == 1'b1);
-   wire pkt_freeze   = (freeze_r == 1'b1 ) && ( freeze_r_r == 1'b0);
+   wire pkt_unfreeze = (CSR_FREEZE_r == 1'b0 ) && ( CSR_FREEZE_r_r == 1'b1);
+   wire pkt_freeze   = (CSR_FREEZE_r == 1'b1 ) && ( CSR_FREEZE_r_r == 1'b0);
 
    // The memory and network interface
    ring_packet_s            core_net_pkt;
@@ -380,10 +386,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
                              ,.y_cord_width_p(y_cord_width_p)
                              ,.data_width_p (data_width_p )
                              ,.addr_width_p (addr_width_p )
-                             ,.epa_addr_width_p( epa_addr_width_p)
+                             ,.epa_word_addr_width_p( epa_byte_addr_width_p -2 )
                              ,.dram_ch_addr_width_p ( dram_ch_addr_width_p)
                              ,.dram_ch_start_col_p  ( dram_ch_start_col_p )
-                             ,.remote_addr_prefix_p( 2'b01  )
                              ) pkt_encode
      (.clk_i(clk_i)
 
@@ -395,6 +400,8 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
       ,.swap_aq_i (core_to_mem.swap_aq )
       ,.swap_rl_i (core_to_mem.swap_rl )
       ,.mask_i    (core_mem_mask )
+      ,.tile_group_x_i ( CSR_TGO_X_r  )
+      ,.tile_group_y_i ( CSR_TGO_Y_r  )
       ,.my_x_i    (my_x_i)
       ,.my_y_i    (my_y_i)
 
@@ -552,24 +559,34 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    // Handle the control registers
    // ----------------------------------------------------------------------------------------
                                          
-   wire  is_freeze_addr = {1'b0, in_addr_lo[epa_config_bit_idx-1:0]} == (epa_addr_width_p-2)'(0);
+   wire  is_freeze_addr = {1'b0, in_addr_lo[epa_word_addr_width_lp-2:0]} == epa_word_addr_width_lp'(`CSR_FREEZE);
+   wire  is_tgo_x_addr  = {1'b0, in_addr_lo[epa_word_addr_width_lp-2:0]} == epa_word_addr_width_lp'(`CSR_TGO_X);
+   wire  is_tgo_y_addr  = {1'b0, in_addr_lo[epa_word_addr_width_lp-2:0]} == epa_word_addr_width_lp'(`CSR_TGO_Y);
+   wire  is_config_decoded = is_freeze_addr | is_tgo_x_addr | is_tgo_y_addr;
 
+   // freeze register
    wire  freeze_op     = is_config_op & is_freeze_addr & in_data_lo[0] ;
    wire  unfreeze_op   = is_config_op & is_freeze_addr & (~in_data_lo[0]);
 
    always_ff @(posedge clk_i)
-     if (reset_i) freeze_r <= freeze_init_p;
+     if (reset_i) CSR_FREEZE_r <= freeze_init_p;
      else if (freeze_op | unfreeze_op) begin
             // synopsys translate_off
-            $display("## freeze_r <= %x (%m)", in_data_lo[0]);
+            $display("## CSR_FREEZE_r <= %x (%m)", in_data_lo[0]);
             // synopsys translate_on
-            freeze_r <= in_data_lo[0];
+            CSR_FREEZE_r <= in_data_lo[0];
      end
    
+   always_ff@(posedge clk_i) if( is_config_op & is_tgo_x_addr & in_we_lo )
+                                CSR_TGO_X_r <= x_cord_width_p'(in_data_lo);  
+
+   always_ff@(posedge clk_i) if( is_config_op & is_tgo_y_addr & in_we_lo )
+                                CSR_TGO_Y_r <= y_cord_width_p'(in_data_lo);  
+
   // synopsys translate_off
   always_ff@(negedge clk_i)
-        if ( is_config_op  & (~is_freeze_addr )) begin
-                $error(" Wrong Tile Configuation Address = %h", in_addr_lo );
+        if ( is_config_op  & (~is_config_decoded)) begin
+                $error("## Accessing Non-existing CSR Address = %h", in_addr_lo );
                 $finish();
         end
 
@@ -577,17 +594,21 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    // ----------------------------------------------------------------------------------------
    // Handle the returning data/credit back to the network
    // ----------------------------------------------------------------------------------------
-   wire         store_yumi      = in_yumi_li & in_we_lo;
+   wire                   store_yumi      = in_yumi_li & in_we_lo;
+   wire                   CSR_load_yumi   = in_v_lo & is_config_decoded & (~in_we_lo);
+   wire[data_width_p-1:0] CSR_load_data   = is_tgo_x_addr ? CSR_TGO_X_r : CSR_TGO_Y_r;
    //delay the response for store for 1 cycle
-   always_ff@(posedge clk_i)    store_returning_v_r   <= store_yumi;
-   always_ff@(posedge clk_i)    store_returning_data_r<= in_data_lo;
+   always_ff@(posedge clk_i) 
+        if( reset_i )   delayed_returning_v_r   <= 1'b0;
+        else            delayed_returning_v_r   <= store_yumi | CSR_load_yumi;
+   always_ff@(posedge clk_i)    delayed_returning_data_r<= CSR_load_yumi ? CSR_load_data :  in_data_lo;
 
-   assign       returning_v     = load_returning_v | store_returning_v_r;
-   assign       returning_data  = store_returning_v_r? store_returning_data_r : load_returning_data;
+   assign       returning_v     = load_returning_v | delayed_returning_v_r;
+   assign       returning_data  = delayed_returning_v_r? delayed_returning_data_r : load_returning_data;
 
   // synopsys translate_off
   always_ff@(negedge clk_i)
-        if ( (store_returning_v_r & load_returning_v) == 1'b1 ) begin
+        if ( (delayed_returning_v_r & load_returning_v) == 1'b1 ) begin
                 $error(" Store returning and Load returning happens at the same time!" );
                 $finish();
         end

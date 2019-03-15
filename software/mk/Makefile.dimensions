@@ -1,6 +1,16 @@
+bsg_tiles_org_X ?=0
+bsg_tiles_org_Y ?=1
+
 bsg_tiles_X ?= 2
 bsg_tiles_Y ?= 2
 bsg_group_size ?= 4
 
+bsg_global_X ?= $(bsg_tiles_X)
+bsg_global_Y ?= $(shell echo $(bsg_tiles_Y)+1 | bc )
+ 
+bsg_group_size ?= 4
+
+$(warning bsg_tiles_org_X = $(bsg_tiles_org_X); bsg_tiles_org_Y = $(bsg_tiles_org_Y))
+$(warning bsg_global_X = $(bsg_global_X); bsg_global_Y=$(bsg_global_Y))
 $(warning bsg_tiles_X = $(bsg_tiles_X); bsg_tiles_Y = $(bsg_tiles_Y); bsg_group_size = $(bsg_group_size))
 

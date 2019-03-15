@@ -27,7 +27,11 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
 # flags
 RISCV_GCC_EXTRA_OPTS ?= -O2
-RISCV_GCC_OPTS  = -march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf $(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib -Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y) -Dbsg_group_size=$(bsg_group_size)
+RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf
+RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y) 
+RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y) 
+RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
 
 #RISCV_LINK_EXTRA_OPTS ?=
 RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostdlib -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)

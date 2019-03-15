@@ -24,16 +24,16 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_remote_store_uint8(x,y,local_addr,val)  do { *((bsg_remote_uint8_ptr)  (bsg_remote_ptr((x),(y),(local_addr)))) = (unsigned char) (val); } while (0)
 #define bsg_remote_store_uint16(x,y,local_addr,val) do { *((bsg_remote_uint16_ptr) (bsg_remote_ptr((x),(y),(local_addr)))) = (unsigned short) (val); } while (0)
 
-#define bsg_remote_control_store(x,y,local_addr,val) bsg_remote_store((x),(y), (1 << (bsg_remote_addr_bits-1))+(local_addr),(val))
-#define bsg_remote_unfreeze(x,y) bsg_remote_control_store((x),(y),0,0)
-#define bsg_remote_freeze(x,y)   bsg_remote_control_store((x),(y),0,1)
+#define bsg_remote_ptr_control(x,y, CSR_offset) bsg_remote_ptr( (x), (y), ( (CSR_BASE_ADDR) + (CSR_offset) ) )
+//#define bsg_remote_unfreeze(x,y) bsg_remote_control_store((x),(y),0,0)
+//#define bsg_remote_freeze(x,y)   bsg_remote_control_store((x),(y),0,1)
 //deprecated
 //#define bsg_remote_arb_config(x,y,value)   bsg_remote_control_store((x),(y),4,value)
 
 // remote loads
 //#define bsg_remote_load(x,y,local_addr, val) ( val = *(bsg_remote_ptr((x),(y),(local_addr))) )
 
-#define bsg_remote_ptr_io(x,local_addr) bsg_remote_ptr((x),bsg_tiles_Y,(local_addr))
+#define bsg_remote_ptr_io(x,local_addr) bsg_global_ptr((x), IO_Y_INDEX,(local_addr))
 #define bsg_remote_ptr_io_store(x,local_addr,val) do { *(bsg_remote_ptr_io((x),(local_addr))) = (int) (val); } while (0)
 #define bsg_remote_ptr_io_load(x,local_addr,val) do { (val) = *(bsg_remote_ptr_io((x),(local_addr))) ; } while (0)
 
