@@ -19,47 +19,31 @@ void replace_extern_store(Module &M, StoreInst *op) {
 
     std::vector<Value *> args_vector;
     Value *ptr_op = op->getPointerOperand();
+    Type *int32_ptr = Type::getInt32PtrTy(M.getContext(),
+            dyn_cast<PointerType>(ptr_op->getType())->getAddressSpace());
+    Value *ptr_bc = builder.CreatePointerCast(ptr_op, int32_ptr);
 
-    if (auto *gep = dyn_cast<GEPOperator>(ptr_op)) {
-        Value *ptr_bc = builder.CreatePointerCast(ptr_op,
-                Type::getInt32PtrTy(M.getContext(), dyn_cast<PointerType>(ptr_op->getType())->getAddressSpace()));
-        args_vector.push_back(ptr_bc);
-
-        // Descend to find the base type of the array
-        ArrayType *arr_t = cast<ArrayType>(gep->getOperand(0)->getType()->getPointerElementType());
-        ArrayType *last;
-        // Array referencing starts at GEP operand 2
-        for (int i = 2; i < gep->getNumOperands(); i++) {
-            last = arr_t;
-            arr_t = dyn_cast<ArrayType>(arr_t->getElementType());
-        }
-
-        // Divide by 8 for bits->bytes
-        unsigned elem_size = last->getElementType()->getPrimitiveSizeInBits() / 8;
-        args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                    elem_size, false));
-
-        // Different store function so we return the right size variable
-        if (elem_size == 1) {
-            store_fn = M.getFunction("extern_store_char");
-        } else if (elem_size == 2) {
-            store_fn = M.getFunction("extern_store_short");
-        } else {
-            store_fn = M.getFunction("extern_store_int");
-        }
-        args_vector.push_back(op->getValueOperand());
-
-        ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
-
-        // Create the call and replace all uses of the store inst with the call
-        Value *new_str = builder.CreateCall(store_fn, args);
-        op->replaceAllUsesWith(new_str);
-
-        errs() << "Replace done\n";
-        new_str->dump();
+    args_vector.push_back(ptr_bc);
+    unsigned elem_size = op->getValueOperand()->getType()->getPrimitiveSizeInBits() / 8;
+    args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                elem_size, false));
+    if (elem_size == 1) {
+        store_fn = M.getFunction("extern_store_char");
+    } else if (elem_size == 2) {
+        store_fn = M.getFunction("extern_store_short");
     } else {
-        throw gepPointerException;
+        store_fn = M.getFunction("extern_store_int");
     }
+    args_vector.push_back(op->getValueOperand());
+
+    ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
+
+    // Create the call and replace all uses of the store inst with the call
+    Value *new_str = builder.CreateCall(store_fn, args);
+    op->replaceAllUsesWith(new_str);
+
+    errs() << "Replace done\n";
+    new_str->dump();
 }
 
 
@@ -67,46 +51,31 @@ void replace_extern_load(Module &M, LoadInst *op) {
     IRBuilder<> builder(op);
     Function *load_fn;
     std::vector<Value *> args_vector;
+
     Value *ptr_op = op->getPointerOperand();
+    Type *int32_ptr = Type::getInt32PtrTy(M.getContext(),
+            dyn_cast<PointerType>(ptr_op->getType())->getAddressSpace());
+    Value *ptr_bc = builder.CreatePointerCast(ptr_op, int32_ptr);
 
-    if (auto *gep = dyn_cast<GEPOperator>(ptr_op)) {
-
-        Value *ptr_bc = builder.CreatePointerCast(ptr_op,
-                Type::getInt32PtrTy(M.getContext(), dyn_cast<PointerType>(ptr_op->getType())->getAddressSpace()));
-
-        args_vector.push_back(ptr_bc);
-        // Descend to find the base type of the array
-        ArrayType *arr_t = cast<ArrayType>(gep->getOperand(0)->getType()->getPointerElementType());
-        ArrayType *last;
-        // Array referencing starts at GEP operand 2
-        for (int i = 2; i < gep->getNumOperands(); i++) {
-            last = arr_t;
-            arr_t = dyn_cast<ArrayType>(arr_t->getElementType());
-        }
-        // Divide by 8 for bits->bytes
-        unsigned elem_size = last->getElementType()->getPrimitiveSizeInBits() / 8;
-
-        // Different load function so we return the right size variable
-        if (elem_size == 1) {
-            load_fn = M.getFunction("extern_load_char");
-        } else if (elem_size == 2) {
-            load_fn = M.getFunction("extern_load_short");
-        } else {
-            load_fn = M.getFunction("extern_load_int");
-        }
-
-        args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                    elem_size, false));
-
-        ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
-
-        Value *new_ld = builder.CreateCall(load_fn, args);
-        op->replaceAllUsesWith(new_ld);
-        errs() << "Replace done\n";
-        new_ld->dump();
+    args_vector.push_back(ptr_bc);
+    unsigned elem_size = op->getType()->getPrimitiveSizeInBits() / 8;
+    if (elem_size == 1) {
+        load_fn = M.getFunction("extern_load_char");
+    } else if (elem_size == 2) {
+        load_fn = M.getFunction("extern_load_short");
     } else {
-        throw gepPointerException;
+        load_fn = M.getFunction("extern_load_int");
     }
+
+    args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
+                elem_size, false));
+
+    ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
+
+    Value *new_ld = builder.CreateCall(load_fn, args);
+    op->replaceAllUsesWith(new_ld);
+    errs() << "Replace done\n";
+    new_ld->dump();
 }
 
 

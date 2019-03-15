@@ -26,11 +26,12 @@ HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
 VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
 # flags
-RISCV_GCC_EXTRA_OPTS ?= -O2
+OPT_LEVEL ?= -O2
+RISCV_GCC_EXTRA_OPTS ?=
 RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf
 RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
-RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y) 
-RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y) 
+RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
+RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
 
 #RISCV_LINK_EXTRA_OPTS ?=
@@ -53,17 +54,19 @@ $(LLVM_DIR):
 # Remove default %.o: %.c rule
 %.o: %.c
 
+# Emit -O0 so that loads to consecutive memory locations aren't combined
+# Opt can run optimizations in any order, so it doesn't matter
 %.bc: %.c $(PASS_LIB) $(LLVM_DIR)
-	$(LLVM_CLANG) $(RISCV_GCC_OPTS) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
+	$(LLVM_CLANG) -O0 $(RISCV_GCC_OPTS) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
 %.bc.pass: %.bc
-	$(LLVM_OPT) -load $(PASS_LIB) -manycore $< -o $@
+	$(LLVM_OPT) -load $(PASS_LIB) -manycore $(OPT_LEVEL) $< -o $@
 
 %.bc.s: %.bc.pass
 	$(LLVM_LLC) $< -o $@
 
 %.o: %.bc.s
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) -c $< -o $@
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) -c $< -o $@
 
 
 $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
@@ -72,12 +75,12 @@ $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
 
 else
 %.o: %.c
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
 endif
 
 
 %.o: %.S
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -D__ASSEMBLY__=1 \
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -D__ASSEMBLY__=1 \
 		-c $(INCS) $< -o $@
 
 # <bytes per row> <rows>
@@ -93,11 +96,11 @@ endif
 	$(RISCV_OBJCOPY) -O verilog -j .text $< $@
 	#  The objcopy program will dump the sections with @[pysical address] notation, which tells
 	#  the verilog loader where to place the data.
-	#   
-	#  Ideally the physicall address should be 0x8000_0000, which is the DRAM address used in manycore 
-	#  program, but the system verilog $readmemh() just can not read from such large address... 
-	#  
-	#  Instead we just use a faked physical address and assumpt the phyiscal address is aslo zero in the loader, 
+	#
+	#  Ideally the physicall address should be 0x8000_0000, which is the DRAM address used in manycore
+	#  program, but the system verilog $readmemh() just can not read from such large address...
+	#
+	#  Instead we just use a faked physical address and assumpt the phyiscal address is aslo zero in the loader,
 	#  And so we delete the first line of the dump files which is faked physical address...
 	sed -i -e "1d" $@
 
