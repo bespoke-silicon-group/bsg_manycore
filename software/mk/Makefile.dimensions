@@ -1,16 +1,70 @@
-bsg_tiles_org_X ?=0
-bsg_tiles_org_Y ?=1
+########################################################################################
+# This file defines the default parameters for both Vanilla Core and Network Configuration
+#
+# All address are byte based.
+# The value can contains K, k, M, m, using following help function to canonicalze it to 
+# Hex value or digital value.
 
-bsg_tiles_X ?= 2
-bsg_tiles_Y ?= 2
+low_digit_expr=$(subst m,'*1048576',$(subst k,'*1024', $(1)) )
+all_digit_expr=$(subst M,'*1048576',$(subst K,'*1024', $(call low_digit_expr,$(1)) ) )
+
+bsg_mk_digit_value=$(shell echo           '$(call all_digit_expr, $(1))'  | bc )
+bsg_mk_hex_value  =$(shell echo 'obase=16; $(call all_digit_expr, $(1))'  | bc )
+
+#The overall parameter list, used to generate options passed to VCS/GCC/vivado etc
+bsg_param_list=
+#-------------------------------------
+# Vanilla Core Configuration
+
+# data memory space configuration
+bsg_mc_dmem_addr_start		= 	4K
+bsg_mc_dmem_size		= 	4K
+
+# instruction space configuration
+bsg_mc_icache_entries		=       1K
+bsg_mc_instr_size		=       16M
+
+# dram configuration
+bsg_mc_dram_bank_size		?=	1M
+
+bsg_param_list += bsg_mc_dmem_size
+bsg_param_list += bsg_mc_dmem_addr_start
+bsg_param_list += bsg_mc_instr_size
+bsg_param_list += bsg_mc_icache_entries
+bsg_param_list += bsg_mc_dram_bank_size
+#-------------------------------------
+# Network Configurations
+
+# tile group Configuration
+bsg_tiles_org_X 		?=0
+bsg_tiles_org_Y 		?=1
+bsg_tiles_X 			?= 2
+bsg_tiles_Y 			?= 2
+
+# network configurations
+bsg_global_X 			?= $(bsg_tiles_X)
+bsg_global_Y 			?= $(shell echo $(bsg_tiles_Y)+1 | bc )
+
+bsg_param_list += bsg_tiles_org_X
+bsg_param_list += bsg_tiles_org_Y
+bsg_parma_list += bsg_tiles_X
+bsg_parma_list += bsg_tiles_Y
+bsg_param_list += bsg_global_X
+bsg_param_list += bsg_global_Y
+
+# endpoint physical configurations 
+# 256K
+bsg_epa_size			= 	256K
+bsg_param_list += bsg_epa_size
+
+# LLVM group configuration
 bsg_group_size ?= 4
+bsg_parma_list += bsg_group_size
 
-bsg_global_X ?= $(bsg_tiles_X)
-bsg_global_Y ?= $(shell echo $(bsg_tiles_Y)+1 | bc )
- 
-bsg_group_size ?= 4
+#-------------------------------------
+# Option Strings pass to VCS
+vcs_param_list=$(foreach param, $(bsg_param_list), +define+$(param)="32'h$(call bsg_mk_hex_value, $($(param)))" )
+$(info vcs_param_list = $(vcs_param_list) )
 
-$(warning bsg_tiles_org_X = $(bsg_tiles_org_X); bsg_tiles_org_Y = $(bsg_tiles_org_Y))
-$(warning bsg_global_X = $(bsg_global_X); bsg_global_Y=$(bsg_global_Y))
-$(warning bsg_tiles_X = $(bsg_tiles_X); bsg_tiles_Y = $(bsg_tiles_Y); bsg_group_size = $(bsg_group_size))
-
+gcc_param_list=$(foreach param, $(bsg_param_list), -D$(param)=0x$(call bsg_mk_hex_value, $($(param))) )
+$(info gcc_param_list = $(gcc_param_list) )
