@@ -15,7 +15,7 @@ module bsg_manycore_wrapper
     , parameter dmem_size_p="inv"
     , parameter icache_entries_p="inv"
     , parameter icache_tag_width_p="inv"
-    , parameter epa_addr_width_p="inv"
+    , parameter epa_byte_addr_width_p="inv"
     , parameter dram_ch_addr_width_p="inv"
     , parameter load_id_width_p="inv"
  
@@ -67,7 +67,7 @@ module bsg_manycore_wrapper
     ,.hetero_type_vec_p(0)
     ,.debug_p(0)
     ,.addr_width_p(addr_width_p)
-    ,.epa_addr_width_p(epa_addr_width_p)
+    ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
     ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
     ,.data_width_p(data_width_p)
     ,.load_id_width_p(load_id_width_p)
