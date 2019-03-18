@@ -12,8 +12,10 @@
 `error bsg_global_Y must be defined; pass it in through the makefile
 `endif
 
-`define MAX_CYCLES 1000000
 
+parameter  [`bsg_global_Y][`bsg_global_X] [31:0] bsg_hetero_type_vec_gp={`bsg_hetero_type_vec};
+
+`define MAX_CYCLES 1000000
 
 
 
@@ -151,11 +153,6 @@ module test_bsg_manycore;
    bsg_manycore_link_sif_s [E:W][num_tiles_y_lp-1:0]   hor_link_li, hor_link_lo;
    bsg_manycore_link_sif_s      [num_tiles_x_lp-1:0]   io_link_li,  io_link_lo;
 
-
-`ifndef BSG_HETERO_TYPE_VEC
-`define BSG_HETERO_TYPE_VEC 0
-`endif
-
   bsg_manycore #
     (
       .dmem_size_p       (dmem_size_lp         )
@@ -170,7 +167,7 @@ module test_bsg_manycore;
      ,.num_tiles_x_p(num_tiles_x_lp)
      ,.num_tiles_y_p(num_tiles_y_lp)
      ,.extra_io_rows_p ( extra_io_rows_lp  )
-     ,.hetero_type_vec_p(`BSG_HETERO_TYPE_VEC)
+     ,.hetero_type_vec_p( bsg_hetero_type_vec_gp )
      // currently west side is stubbed except for upper left tile
      //,.stub_w_p     ({{(num_tiles_y_lp-1){1'b1}}, 1'b0})
      //,.stub_e_p     ({num_tiles_y_lp{1'b1}})

@@ -6,6 +6,17 @@
 bsg_global_X = 4
 bsg_global_Y = 4
 
+# Configure the types of each nodes in the network
+# Refer to bsg_manycore/v/bsg_manycore_hetero_socket.v for type definiation
+#
+# If not configured, Will use default Values
+# 	bsg_hetero_type_vec = 0
+#
+# The first row is assigned to IO router and will the configuration values are ignored.
+bsg_hetero_type_vec =  0, 0, 0, 0,  \
+		       0, 0, 0, 0,  \
+		       0, 0, 0, 0,  \
+                       1, 1, 1, 1
 #########################################################
 #Tile group configuration
 # If not configured, Will use default Values

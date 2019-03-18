@@ -3,20 +3,37 @@
 #BSG_FPU_OP       =0
 DVE=1
 COVERAGE=
-TYPE_VEC="64'h00_00_00_00"
 PROG_NAME ?= main
 
 ########################################
 # select the tools
+ifneq ($(HOSTNAME),xor.cs.washington.edu)
+# Checking the VCS settings
+ifeq ($(VCS),)
+$(error Please define the $$VCS which points to the VCS binaries )
+endif
+
+ifeq ($(DVE),)
+$(error Please define the $$DVE which points to the DVE binaries )
+endif
+#Using the cadenv.mk to setup the VCS
+else
 include $(CAD_DIR)/cadenv.mk
+endif 
+########################################
+
 
 BSG-SIM-TOOL = vcs
 INC_OP = +incdir+
+
 VCS_OP = -full64 -sverilog
 VCS_OP += +lint=PCWM 
 VCS_OP += -timescale=1ps/1ps
-VCS_OPTIONS = +define+SPMD=$*
-VCS_OPTIONS += +define+BSG_HETERO_TYPE_VEC=${TYPE_VEC}+
+VCS_OP += -suppress=CWUC
+VCS_OP += -p1800_macro_expansion
+
+VCS_OPTIONS = +define+SPMD=$*+
+VCS_OPTIONS += +define+bsg_hetero_type_vec="${bsg_hetero_type_vec}"+
 VCS_RUN_OP =
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.verilog.loader
