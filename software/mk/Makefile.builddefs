@@ -26,7 +26,7 @@ HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
 VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
 # flags
-OPT_LEVEL ?= -O3
+OPT_LEVEL ?= -O2
 RISCV_GCC_EXTRA_OPTS ?=
 RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf
 RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
@@ -60,7 +60,7 @@ $(LLVM_DIR):
 	$(LLVM_CLANG) -O0 $(RISCV_GCC_OPTS) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
 %.bc.pass: %.bc
-	$(LLVM_OPT) -always-inline -load $(PASS_LIB) -manycore $(OPT_LEVEL) $< -o $@
+	$(LLVM_OPT) -load $(PASS_LIB) -manycore $(OPT_LEVEL) -always-inline $< -o $@
 
 %.bc.s: %.bc.pass
 	$(LLVM_LLC) $< -o $@

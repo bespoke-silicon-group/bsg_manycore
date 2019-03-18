@@ -105,6 +105,11 @@ namespace {
         } addressSpaceException;
 
         bool runOnModule(Module &M) override {
+            // If the function doesn't exist, it means that this c file didn't
+            // include the striping functions.
+            if (!M.getFunction("extern_load_int")) {
+                return false;
+            }
             std::vector<GlobalVariable *> globals_to_resize;
             std::vector<Instruction *> insts_to_remove;
             for (auto &G : M.globals()) {
@@ -158,6 +163,20 @@ namespace {
             for (auto I : insts_to_remove) {
                 I->eraseFromParent();
             }
+
+            std::vector<Function *> funcs_to_internalize;
+            funcs_to_internalize.push_back(M.getFunction("extern_store_char"));
+            funcs_to_internalize.push_back(M.getFunction("extern_store_short"));
+            funcs_to_internalize.push_back(M.getFunction("extern_store_int"));
+            funcs_to_internalize.push_back(M.getFunction("extern_load_char"));
+            funcs_to_internalize.push_back(M.getFunction("extern_load_short"));
+            funcs_to_internalize.push_back(M.getFunction("extern_load_int"));
+            for (auto F : funcs_to_internalize) {
+                Attribute attr = Attribute::get(M.getContext(), "static", "true");
+                F->addAttribute(0, attr);
+            }
+
+
             return true;
         }
     };

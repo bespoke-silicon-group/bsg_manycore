@@ -4,21 +4,18 @@
 #ifndef _BSG_TILEGROUP_H
 #define _BSG_TILEGROUP_H
 
+#include "bsg_set_tile_x_y.h"
 #include "bsg_manycore.h"
 
 #define STRIPE __attribute__((address_space(1)))
 
-#define TILEGROUP_DEBUG
 // Passed from linker -- indicates start of striped arrays in DMEM
 extern unsigned _bsg_striped_data_start;
-
-// Runtime functions called by the LLVM pass
-
 
 /* NOTE: It's usually a cardinal sin to include code in header files, but LLVM
  * needs the definitions of runtime functions avaliable so that the pass can
  * replace loads and stores -- these aren't avaliable via declarations. */
-__attribute__((always_inline)) volatile void *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size) {
+ static volatile void *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size) {
     unsigned start_ptr = (unsigned) &_bsg_striped_data_start;
     unsigned ptr = (unsigned) arr_ptr;
 
