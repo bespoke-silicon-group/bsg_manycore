@@ -13,7 +13,7 @@ int STRIPE A[N][N] = {0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
                       0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1,
                       0x5, 0x1, 0x10, 0x6, 0x4, 0x13, 0x10, 0x1};
 
-inline int load_store_test(int j) {
+int load_store_test(int j) {
     int y;
     int STRIPE *a_ptr = &A[1][1];
     bsg_printf("A starts at %x, starting ptr at %x\n",
@@ -21,17 +21,17 @@ inline int load_store_test(int j) {
     for (int i = 0; i < N; i++) {
         *a_ptr = j;
         a_ptr++;
-        A[i][i] = j;
+        /* A[i][i] = j; */
     }
-    for (int i = 0; i < N; i++) {
-        y += A[i][i];
-    }
-    for (int i = 0; i < N; i++) {
-        A[0][i] = y + j;
-    }
-    y++;
-    A[2][2] = y;
-    A[j][j] = 4;
+    /* for (int i = 0; i < N; i++) { */
+    /*     y += A[i][i]; */
+    /* } */
+    /* for (int i = 0; i < N; i++) { */
+    /*     A[0][i] = y + j; */
+    /* } */
+    /* y++; */
+    /* A[2][2] = y; */
+    /* A[j][j] = 4; */
     return A[j][j-1];
 }
 

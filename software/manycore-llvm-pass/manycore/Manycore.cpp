@@ -6,11 +6,11 @@ using namespace llvm;
 
 #define STRIPE 1 // Needs to match address_space set by library
 
-class GEPPointerException: public std::exception {
+class FunctionNotFound: public std::exception {
     virtual const char *what() const throw() {
-        return "Error: Encountered a pointer that isn't set by a GEP instruction!\n";
+        return "Error: Function not found\n";
     }
-} gepPointerException;
+} functionNotFoundException;
 
 
 void replace_extern_store(Module &M, StoreInst *op) {
@@ -33,6 +33,9 @@ void replace_extern_store(Module &M, StoreInst *op) {
         store_fn = M.getFunction("extern_store_short");
     } else {
         store_fn = M.getFunction("extern_store_int");
+    }
+    if (store_fn == NULL) {
+       throw functionNotFoundException;
     }
     args_vector.push_back(op->getValueOperand());
 
@@ -65,6 +68,9 @@ void replace_extern_load(Module &M, LoadInst *op) {
         load_fn = M.getFunction("extern_load_short");
     } else {
         load_fn = M.getFunction("extern_load_int");
+    }
+    if (load_fn == NULL) {
+       throw functionNotFoundException;
     }
 
     args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
@@ -117,11 +123,9 @@ namespace {
                 // bsg_group_size is passed via the command line
                 G->setAlignment(4 * bsg_group_size);
                 G->setSection(".striped.data");
-                G->dump();
             }
 
             for (auto &F : M) {
-                errs() << "\nI saw a function called " << F.getName() << "!\n";
                 for (auto &B : F) {
                     for (auto &I : B) {
                         if (auto* op = dyn_cast<StoreInst>(&I)) {
@@ -154,8 +158,6 @@ namespace {
             for (auto I : insts_to_remove) {
                 I->eraseFromParent();
             }
-            errs() << "BSG_GROUP_SIZE = " << bsg_group_size << "\n";
-            errs() << "Pass complete\n";
             return true;
         }
     };

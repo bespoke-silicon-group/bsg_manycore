@@ -8,22 +8,17 @@
 
 #define STRIPE __attribute__((address_space(1)))
 
+#define TILEGROUP_DEBUG
 // Passed from linker -- indicates start of striped arrays in DMEM
 extern unsigned _bsg_striped_data_start;
 
 // Runtime functions called by the LLVM pass
-void extern_store_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned val);
-void extern_store_short(int STRIPE *arr_ptr, unsigned elem_size, short val);
-void extern_store_char(int STRIPE *arr_ptr, unsigned elem_size, char val);
-int extern_load_int(int STRIPE *arr_ptr, unsigned elem_size);
-short extern_load_short(int STRIPE *arr_ptr, unsigned elem_size);
-char extern_load_char(int STRIPE *arr_ptr, unsigned elem_size);
 
 
 /* NOTE: It's usually a cardinal sin to include code in header files, but LLVM
  * needs the definitions of runtime functions avaliable so that the pass can
  * replace loads and stores -- these aren't avaliable via declarations. */
-static inline volatile void *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size) {
+__attribute__((always_inline)) volatile void *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size) {
     unsigned start_ptr = (unsigned) &_bsg_striped_data_start;
     unsigned ptr = (unsigned) arr_ptr;
 
@@ -57,7 +52,7 @@ static inline volatile void *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_siz
     return (volatile int *) ptr_val;
 }
 
-inline void extern_store_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned val) {
+__attribute__((always_inline)) void extern_store_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned val) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_store_int(0x%x, %d, %d)\n", (unsigned) arr_ptr,
             elem_size, val);
@@ -66,7 +61,7 @@ inline void extern_store_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned v
     *ptr = val;
 }
 
-inline void extern_store_short(int STRIPE *arr_ptr, unsigned elem_size, short val) {
+__attribute__((always_inline)) void extern_store_short(int STRIPE *arr_ptr, unsigned elem_size, short val) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_store_short(0x%x, %d, %d)\n", (unsigned) arr_ptr,
             elem_size, val);
@@ -75,7 +70,7 @@ inline void extern_store_short(int STRIPE *arr_ptr, unsigned elem_size, short va
     *ptr = val;
 }
 
-inline void extern_store_char(int STRIPE *arr_ptr, unsigned elem_size, char val) {
+__attribute__((always_inline)) void extern_store_char(int STRIPE *arr_ptr, unsigned elem_size, char val) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_store_char(0x%x, %d, %d)\n", (unsigned) arr_ptr,
             elem_size, val);
@@ -84,7 +79,7 @@ inline void extern_store_char(int STRIPE *arr_ptr, unsigned elem_size, char val)
     *ptr = val;
 }
 
-inline int extern_load_int(int STRIPE *arr_ptr, unsigned elem_size) {
+__attribute__((always_inline)) int extern_load_int(int STRIPE *arr_ptr, unsigned elem_size) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_int(0x%x, %d)\n",
             (unsigned) arr_ptr,
@@ -94,7 +89,7 @@ inline int extern_load_int(int STRIPE *arr_ptr, unsigned elem_size) {
     return *ptr;
 }
 
-inline short extern_load_short(int STRIPE *arr_ptr, unsigned elem_size) {
+__attribute__((always_inline)) short extern_load_short(int STRIPE *arr_ptr, unsigned elem_size) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_short(0x%x, %d)\n",
             (unsigned) arr_ptr,
@@ -104,7 +99,7 @@ inline short extern_load_short(int STRIPE *arr_ptr, unsigned elem_size) {
     return *ptr;
 }
 
-inline char extern_load_char(int STRIPE *arr_ptr, unsigned elem_size) {
+__attribute__((always_inline)) char extern_load_char(int STRIPE *arr_ptr, unsigned elem_size) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_char(0x%x, %d)\n",
             (unsigned) arr_ptr,
