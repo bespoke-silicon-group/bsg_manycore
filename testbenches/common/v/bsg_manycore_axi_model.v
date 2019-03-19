@@ -1,8 +1,8 @@
 /**
- *  mock_axi_mem.v
+ *  bsg_manycore_axi_model.v
  */
 
-module mock_axi_mem
+module bsg_manycore_axi_model
   #(parameter axi_id_width_p="inv"
     , parameter axi_addr_width_p="inv"
     , parameter axi_data_width_p="inv"
