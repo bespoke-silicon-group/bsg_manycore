@@ -36,7 +36,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
    //the vicitim cache  paraemters
    ,parameter init_vcache_p   = 0
-   ,parameter vcache_entries_p = -1 
+   ,parameter vcache_sets_p = -1 
    ,parameter vcache_ways_p    = -1 
    //the data memory realted paraemters
    ,parameter unsigned  dmem_start_addr_lp = `_bsg_data_start_addr
@@ -238,9 +238,9 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   task init_vcache();
         integer x_cord, y_cord, tag_addr ;
 
-        $display("initilizing the victim caches, sets=%0d, ways=%0d", vcache_entries_p, vcache_ways_p);
+        $display("initilizing the victim caches, sets=%0d, ways=%0d", vcache_sets_p, vcache_ways_p);
         for (x_cord =0; x_cord < dram_ch_num_p; x_cord ++) begin
-                for(tag_addr =0; tag_addr < vcache_entries_p * vcache_ways_p; tag_addr++)begin
+                for(tag_addr =0; tag_addr < vcache_sets_p * vcache_ways_p; tag_addr++)begin
                         @(posedge clk_i);          //pull up the valid
                         var_v_o = 1'b1; 
 

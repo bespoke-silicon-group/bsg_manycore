@@ -1,50 +1,63 @@
-
 `include "bsg_manycore_packet.vh"
+`include "bsg_cache_pkt.vh"
+`include "bsg_cache_dma_pkt.vh"
 
 // currently only supports south side of chip
 
 module bsg_nonsynth_manycore_io_complex
-  #(
-     icache_entries_num_p   = -1   // entries of the icache number
-    ,max_cycles_p   = -1
-    ,addr_width_p   = -1
-    ,load_id_width_p = 5
-    ,epa_byte_addr_width_p = -1
-    ,dram_ch_num_p       = 0
-    ,dram_ch_addr_width_p=-1
-    ,data_width_p  = 32
-    ,num_tiles_x_p = -1
-    ,num_tiles_y_p = -1
-    ,extra_io_rows_p = 1
-    ,tile_id_ptr_p = -1
-    //the x/y cord of the 
-    ,IO_x_cord_p = num_tiles_x_p -1 
-    ,IO_y_cord_p = 0
-    ,x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
-    ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p)
-    ,include_dram_model = 1'b1
+  #(parameter icache_entries_num_p   = -1   // entries of the icache number
+    , parameter max_cycles_p   = -1
+    , parameter addr_width_p   = -1
+    , parameter load_id_width_p = 5
+    , parameter epa_byte_addr_width_p = -1
+    , parameter dram_ch_num_p       = 0
+    , parameter dram_ch_addr_width_p=-1
+    , parameter data_width_p  = 32
+    , parameter num_tiles_x_p = -1
+    , parameter num_tiles_y_p = -1
+    , parameter extra_io_rows_p = 1
+    , parameter tile_id_ptr_p = -1
 
-    //parameters for victim cache    
-    ,init_vcache_p   = 0
-    ,vcache_entries_p = -1 
-    ,vcache_ways_p    = -1 
+    // IO x,y cord
+    , parameter IO_x_cord_p = num_tiles_x_p -1 
+    , parameter IO_y_cord_p = 0
 
-    ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
 
-    )
-   (input clk_i
-    ,input reset_i
+    // parameters for victim cache    
+    , parameter init_vcache_p = 0   // for spmd loader
+    , parameter vcache_sets_p = 16 
+    , parameter vcache_ways_p = 2
+    , parameter vcache_block_size_in_words_p = 8
 
-    ,input  [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_i
-    ,output [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
+    // parameters for AXI
+    , parameter axi_id_width_p = 6
+    , parameter axi_addr_width_p = 64
+    , parameter axi_data_width_p = 256
+    , parameter axi_strb_width_lp = (axi_data_width_p>>3)
+    , parameter axi_burst_len_p = 1
 
-    ,input  [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] io_link_sif_i
-    ,output [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] io_link_sif_o
+    , localparam x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
+    , localparam y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p+extra_io_rows_p)
+    , localparam bsg_manycore_link_sif_width_lp =
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
 
-    ,output finish_lo
-	,output success_lo
-	,output timeout_lo
-    );
+    , localparam byte_offset_width_lp = `BSG_SAFE_CLOG2(data_width_p>>3)
+    , localparam cache_addr_width_lp = addr_width_p + byte_offset_width_lp
+  )
+  (
+    input clk_i
+    , input reset_i
+
+    , input  [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_i
+    , output [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
+
+    , input  [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] io_link_sif_i
+    , output [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] io_link_sif_o
+
+    , output finish_lo
+	  , output success_lo
+	  , output timeout_lo
+  );
 
    initial
      begin
@@ -89,7 +102,7 @@ module bsg_nonsynth_manycore_io_complex
         ,.dram_ch_addr_width_p( dram_ch_addr_width_p )
         ,.tile_id_ptr_p (tile_id_ptr_p)
         ,.init_vcache_p (init_vcache_p)
-        ,.vcache_entries_p ( vcache_entries_p )
+        ,.vcache_sets_p ( vcache_sets_p )
         ,.vcache_ways_p    ( vcache_ways_p    )
         ,.x_cord_width_p   ( x_cord_width_lp  )
         ,.y_cord_width_p   ( y_cord_width_lp  )
@@ -102,16 +115,7 @@ module bsg_nonsynth_manycore_io_complex
          ,.my_x_i   ( x_cord_width_lp ' (IO_x_cord_p) )
          ,.my_y_i   ( y_cord_width_lp ' (IO_y_cord_p) )
          );
-/*
-   bsg_manycore_io_complex_rom
-   #( .addr_width_p(addr_width_p)
-      ,.width_p     (data_width_p)
-      ) spmd_rom
-     ( .addr_i (mem_addr)
-       ,.data_o (mem_data)
-       );
 
-*/
    wire [num_tiles_x_p-1:0] finish_lo_vec;
    assign finish_lo = | finish_lo_vec;
    
@@ -121,32 +125,176 @@ module bsg_nonsynth_manycore_io_complex
    wire [num_tiles_x_p-1:0] timeout_lo_vec;
    assign timeout_lo = | timeout_lo_vec;
 
-   genvar                   i;
-   //-----------------------------------------------------------------
-   // Connects dram model
-   if(include_dram_model) begin
-        for (i = 0; i < num_tiles_x_p; i=i+1) begin
-             
-         bsg_manycore_ram_model#( .x_cord_width_p    (x_cord_width_lp)
-                                 ,.y_cord_width_p    (y_cord_width_lp)
-                                 ,.data_width_p      (data_width_p   )
+  //-----------------------------------------------------------------
+  // Connects vcache
+  genvar i;
 
-                                 ,.addr_width_p      (addr_width_p   )
-                                 ,.load_id_width_p   (load_id_width_p)
-                                 ,.els_p             (2**dram_ch_addr_width_p)
-                                )ram
-        (  .clk_i
-         , .reset_i
+  logic [axi_id_width_p-1:0] awid;
+  logic [axi_addr_width_p-1:0] awaddr;
+  logic [7:0] awlen;
+  logic [2:0] awsize;
+  logic [1:0] awburst;
+  logic [3:0] awcache;
+  logic [2:0] awprot;
+  logic awlock;
+  logic awvalid;
+  logic awready;
 
-         // mesh network
-         , .link_sif_i (ver_link_sif_i[i] )
-         , .link_sif_o (ver_link_sif_o[i] )
+  logic [axi_data_width_p-1:0] wdata;
+  logic [axi_strb_width_lp-1:0] wstrb;
+  logic wlast;
+  logic wvalid;
+  logic wready;
 
-         , .my_x_i ( x_cord_width_lp'(i)               )
-         , .my_y_i ( y_cord_width_lp'(num_tiles_y_p   ))
-         );
-        end
-   end
+  logic [axi_id_width_p-1:0] bid;
+  logic [1:0] bresp;
+  logic bvalid;
+  logic bready;
+
+  logic [axi_id_width_p-1:0] arid;
+  logic [axi_addr_width_p-1:0] araddr;
+  logic [7:0] arlen;
+  logic [2:0] arsize;
+  logic [1:0] arburst;
+  logic [3:0] arcache;
+  logic [2:0] arprot;
+  logic arlock;
+  logic arvalid;
+  logic arready;
+
+  logic [axi_id_width_p-1:0] rid;
+  logic [axi_data_width_p-1:0] rdata;
+  logic [1:0] rresp;
+  logic rlast;
+  logic rvalid;
+  logic rready;
+
+  logic [num_tiles_x_p-1:0][x_cord_width_lp-1:0] cache_x;
+  logic [num_tiles_x_p-1:0][y_cord_width_lp-1:0] cache_y;
+  for (i = 0; i < num_tiles_x_p; i++) begin
+    assign cache_x[i] = x_cord_width_lp'(i);
+    assign cache_y[i] = y_cord_width_lp'(num_tiles_y_p+1);
+  end
+
+  bsg_cache_wrapper_axi #(
+    .num_cache_p(num_tiles_x_p)
+    ,.data_width_p(data_width_p)
+    ,.addr_width_p(addr_width_p)
+    ,.block_size_in_words_p(vcache_block_size_in_words_p)
+    ,.sets_p(vcache_sets_p)
+    ,.ways_p(vcache_ways_p)
+
+    ,.axi_id_width_p(axi_id_width_p)
+    ,.axi_addr_width_p(axi_addr_width_p)
+    ,.axi_data_width_p(axi_data_width_p)
+    ,.axi_burst_len_p(axi_burst_len_p)
+
+    ,.x_cord_width_p(x_cord_width_lp)
+    ,.y_cord_width_p(y_cord_width_lp)
+    ,.load_id_width_p(load_id_width_p)
+  ) vcache_axi (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.my_x_i(cache_x)
+    ,.my_y_i(cache_y)
+
+    ,.link_sif_i(ver_link_sif_i)
+    ,.link_sif_o(ver_link_sif_o)
+
+    ,.axi_awid_o(awid)
+    ,.axi_awaddr_o(awaddr)
+    ,.axi_awlen_o(awlen)
+    ,.axi_awsize_o(awsize)
+    ,.axi_awburst_o(awburst)
+    ,.axi_awcache_o(awcache)
+    ,.axi_awprot_o(awprot)
+    ,.axi_awlock_o(awlock)
+    ,.axi_awvalid_o(awvalid)
+    ,.axi_awready_i(awready)
+
+    ,.axi_wdata_o(wdata)
+    ,.axi_wstrb_o(wstrb)
+    ,.axi_wlast_o(wlast)
+    ,.axi_wvalid_o(wvalid)
+    ,.axi_wready_i(wready)
+
+    ,.axi_bid_i(bid)
+    ,.axi_bresp_i(bresp)
+    ,.axi_bvalid_i(bvalid)
+    ,.axi_bready_o(bready)
+
+    ,.axi_arid_o(arid)
+    ,.axi_araddr_o(araddr)
+    ,.axi_arlen_o(arlen)
+    ,.axi_arsize_o(arsize)
+    ,.axi_arburst_o(arburst)
+    ,.axi_arcache_o(arcache)
+    ,.axi_arprot_o(arprot)
+    ,.axi_arlock_o(arlock)
+    ,.axi_arvalid_o(arvalid)
+    ,.axi_arready_i(arready)
+
+    ,.axi_rid_i(rid)
+    ,.axi_rdata_i(rdata)
+    ,.axi_rresp_i(rresp)
+    ,.axi_rlast_i(rlast)
+    ,.axi_rvalid_i(rvalid)
+    ,.axi_rready_o(rready)
+  );
+
+  bsg_manycore_axi_mem #(
+    .axi_id_width_p(axi_id_width_p)
+    ,.axi_addr_width_p(axi_addr_width_p)
+    ,.axi_data_width_p(axi_data_width_p)
+    ,.axi_burst_len_p(axi_burst_len_p)
+    ,.mem_els_p(2**dram_ch_addr_width_p)
+  ) axi_model (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.axi_awid_i(awid)
+    ,.axi_awaddr_i(awaddr)
+    ,.axi_awlen_i(awlen)
+    ,.axi_awsize_i(awsize)
+    ,.axi_awburst_i(awburst)
+    ,.axi_awcache_i(awcache)
+    ,.axi_awprot_i(awprot)
+    ,.axi_awlock_i(awlock)
+    ,.axi_awvalid_i(awvalid)
+    ,.axi_awready_o(awready)
+
+    ,.axi_wdata_i(wdata)
+    ,.axi_wstrb_i(wstrb)
+    ,.axi_wlast_i(wlast)
+    ,.axi_wvalid_i(wvalid)
+    ,.axi_wready_o(wready)
+
+    ,.axi_bid_o(bid)
+    ,.axi_bresp_o(bresp)
+    ,.axi_bvalid_o(bvalid)
+    ,.axi_bready_i(bready)
+
+    ,.axi_arid_i(arid)
+    ,.axi_araddr_i(araddr)
+    ,.axi_arlen_i(arlen)
+    ,.axi_arsize_i(arsize)
+    ,.axi_arburst_i(arburst)
+    ,.axi_arcache_i(arcache)
+    ,.axi_arprot_i(arprot)
+    ,.axi_arlock_i(arlock)
+    ,.axi_arvalid_i(arvalid)
+    ,.axi_arready_o(arready)
+
+    ,.axi_rid_o(rid)
+    ,.axi_rdata_o(rdata)
+    ,.axi_rresp_o(rresp)
+    ,.axi_rlast_o(rlast)
+    ,.axi_rvalid_o(rvalid)
+    ,.axi_rready_i(rready)
+  );
+
+
    // we only set such a high number because we
    // know these packets can always be consumed
    // at the recipient and do not require any

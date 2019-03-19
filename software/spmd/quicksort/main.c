@@ -149,12 +149,12 @@ int main()
     }
     if (sum == ANSWER)
     {
-      bsg_printf("sum: %d [PASSED]\n", sum);
+      bsg_printf("sum: %d, [PASSED]\n", sum);
       bsg_finish_x(3);
     }
     else 
     {
-      bsg_printf("sum: %d [FAILED\n", sum);
+      bsg_printf("sum: %d, [FAILED]\n", sum);
       bsg_fail_x(3);
     }
   }
