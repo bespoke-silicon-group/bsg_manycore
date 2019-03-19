@@ -9,7 +9,7 @@ endif
 llvm-install:
 	# Install cmake
 	wget https://github.com/Kitware/CMake/releases/download/v3.14.0-rc4/cmake-3.14.0-rc4-Linux-x86_64.sh -O cmake-install.sh
-	chmod +x cmake-install.sh && ./cmake-install.sh --skip-license --prefix=/usr/local
+	chmod +x cmake-install.sh && sudo ./cmake-install.sh --skip-license --prefix=/usr/local
 	rm cmake-install.sh
 	mkdir -p $(LLVM_DIR)/llvm-build && mkdir -p $(LLVM_DIR)/llvm-install
 	# Clone LLVM sources
