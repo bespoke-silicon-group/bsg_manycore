@@ -1,8 +1,8 @@
 /**
- *  bsg_manycore_axi_model.v
+ *  bsg_manycore_axi_mem.v
  */
 
-module bsg_manycore_axi_model
+module bsg_manycore_axi_mem
   #(parameter axi_id_width_p="inv"
     , parameter axi_addr_width_p="inv"
     , parameter axi_data_width_p="inv"

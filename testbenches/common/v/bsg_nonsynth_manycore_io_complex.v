@@ -243,7 +243,7 @@ module bsg_nonsynth_manycore_io_complex
     ,.axi_rready_o(rready)
   );
 
-  bsg_manycore_axi_model #(
+  bsg_manycore_axi_mem #(
     .axi_id_width_p(axi_id_width_p)
     ,.axi_addr_width_p(axi_addr_width_p)
     ,.axi_data_width_p(axi_data_width_p)
