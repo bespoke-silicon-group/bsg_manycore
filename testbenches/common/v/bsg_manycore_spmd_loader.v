@@ -103,7 +103,12 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                 init_vcache();
 
         init_dram();
+
+        if( 1 )   init_kernels(`bsg_tiles_org_X, `bsg_tiles_org_Y, `bsg_tiles_X, `bsg_tiles_Y );
+
         unfreeze_tiles   (`bsg_tiles_org_X, `bsg_tiles_org_Y, `bsg_tiles_X, `bsg_tiles_Y );
+
+        if( 1 )   invoke_kernels(`bsg_tiles_org_X, `bsg_tiles_org_Y, `bsg_tiles_X, `bsg_tiles_Y );
 
         @(posedge clk_i);  
         var_v_o = 1'b0;
@@ -294,5 +299,85 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                        $display("Tile (y,x)=(%0d,%0d) Set to Group Origin(y,x)=(%0d,%0d), dim(y,x)=(%0d,%0d).", y_cord, x_cord, tg_org_y, tg_org_x, tg_dim_y, tg_dim_x);
                 end
         end
+  endtask 
+  ///////////////////////////////////////////////////////////////////////////////
+  // Setup Kernels
+  // The  kernel_ptr is initilized to 1, which indicates invalide
+  
+  wire [data_width_p-1:0] bsg_cudal_sig_ptr_val = {2'b01, 6'(my_y_i), 6'(my_x_i), 18'b0};
+  wire logic[31:0] kernel_param_lp[4][2]  = '{   {32'h`_bsg_cudal_kernel_ptr, 1                     },         //0
+                                          {32'h`_bsg_cudal_argc      , 1                     },                //1
+                                          {32'h`_bsg_cudal_argv_ptr  , `_bsg_dram_end_addr|(1<<31)   },                //2
+                                          {32'h`_bsg_cudal_sig_ptr   , bsg_cudal_sig_ptr_val }                 //3
+                                     };
+  task init_kernels(integer tg_org_x, integer tg_org_y, integer tg_dim_x, integer tg_dim_y);
+        integer x_cord, y_cord, i;
+        bsg_manycore_dram_addr_s  dram_addr_cast; 
+
+        $display("## Setup Kernels...");
+        var_data_o.op         = `ePacketOp_remote_store;
+        var_data_o.op_ex      =  4'b1111; //TODO not handle the byte write.
+        var_data_o.src_x_cord = my_x_i;
+        var_data_o.src_y_cord = my_y_i;
+
+        //set up the dram value
+        dram_addr_cast = kernel_param_lp[2][1]; 
+        $display("## Write argv in DRAM [%h] = %h", dram_addr_cast, 32'h4444_4444);
+        @(posedge clk_i);          //pull up the valid
+                var_v_o               = 1'b1; 
+                var_data_o.payload    = 32'h4444_4444;
+                var_data_o.x_cord     = x_cord_width_p'( dram_addr_cast.x_cord );
+                var_data_o.y_cord     = {y_cord_width_p{1'b1}};
+                var_data_o.addr       = dram_addr_cast.addr   ;
+        @(negedge clk_i);
+        wait( ready_i === 1'b1);   //check if the ready is pulled up.
+
+
+        for(i=0; i<4; i++) begin
+         if(i==0) $write("## Write kernel_ptr ");
+         if(i==1) $write("## Write argc "); 
+         if(i==2) $write("## Write argv ");
+         if(i==3) $write("## write sig  ");
+         $write("[%h]= %h\n", kernel_param_lp[i][0], kernel_param_lp[i][1]);
+                for (y_cord =tg_org_y; y_cord < tg_org_y + tg_dim_y; y_cord++ ) begin
+                        for (x_cord =tg_org_x; x_cord < tg_org_x + tg_dim_x ; x_cord ++) begin
+                            @(posedge clk_i);          //pull up the valid
+                            var_v_o = 1'b1; 
+
+                            var_data_o.payload    = kernel_param_lp[i][1];
+                            var_data_o.x_cord     = x_cord;
+                            var_data_o.y_cord     = y_cord;
+                            var_data_o.addr       = kernel_param_lp[i][0]>> 2; 
+
+                            @(negedge clk_i);
+                            wait( ready_i === 1'b1);   //check if the ready is pulled up.
+                        end
+                end
+        end
+  endtask 
+  //Invoke the kernels
+  task invoke_kernels(integer tg_org_x, integer tg_org_y, integer tg_dim_x, integer tg_dim_y);
+        integer x_cord, y_cord, i;
+
+        $display("## Invoke Kernels, addr=%h...", 32'h`_bsg_kernel_addr);
+        var_data_o.op         = `ePacketOp_remote_store;
+        var_data_o.op_ex      =  4'b1111; //TODO not handle the byte write.
+        var_data_o.src_x_cord = my_x_i;
+        var_data_o.src_y_cord = my_y_i;
+
+         for (y_cord =tg_org_y; y_cord < tg_org_y + tg_dim_y; y_cord++ ) begin
+                 for (x_cord =tg_org_x; x_cord < tg_org_x + tg_dim_x ; x_cord ++) begin
+                     @(posedge clk_i);          //pull up the valid
+                     var_v_o = 1'b1; 
+
+                     var_data_o.payload    = 32'h`_bsg_kernel_addr;
+                     var_data_o.x_cord     = x_cord;
+                     var_data_o.y_cord     = y_cord;
+                     var_data_o.addr       = kernel_param_lp[0][0]>> 2; 
+
+                     @(negedge clk_i);
+                     wait( ready_i === 1'b1);   //check if the ready is pulled up.
+                 end
+         end
   endtask 
 endmodule
