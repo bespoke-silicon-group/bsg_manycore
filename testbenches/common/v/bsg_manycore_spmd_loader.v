@@ -313,6 +313,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   task init_kernels(integer tg_org_x, integer tg_org_y, integer tg_dim_x, integer tg_dim_y);
         integer x_cord, y_cord, i;
         bsg_manycore_dram_addr_s  dram_addr_cast; 
+        int kernel_param_init_lp = 32'h4444_4444;
 
         $display("## Setup Kernels...");
         var_data_o.op         = `ePacketOp_remote_store;
@@ -322,16 +323,17 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 
         //set up the dram value
         dram_addr_cast = kernel_param_lp[2][1]; 
-        $display("## Write argv in DRAM [%h] = %h", dram_addr_cast, 32'h4444_4444);
-        @(posedge clk_i);          //pull up the valid
-                var_v_o               = 1'b1; 
-                var_data_o.payload    = 32'h4444_4444;
-                var_data_o.x_cord     = x_cord_width_p'( dram_addr_cast.x_cord );
-                var_data_o.y_cord     = {y_cord_width_p{1'b1}};
-                var_data_o.addr       = dram_addr_cast.addr   ;
-        @(negedge clk_i);
-        wait( ready_i === 1'b1);   //check if the ready is pulled up.
-
+        for( i=0; i< 8; i++) begin
+                $display("## Write argv in DRAM [%h] = %h", dram_addr_cast +i , kernel_param_init_lp +i );
+                @(posedge clk_i);          //pull up the valid
+                        var_v_o               = 1'b1; 
+                        var_data_o.payload    = kernel_param_init_lp +i;
+                        var_data_o.x_cord     = x_cord_width_p'( dram_addr_cast.x_cord );
+                        var_data_o.y_cord     = {y_cord_width_p{1'b1}};
+                        var_data_o.addr       = dram_addr_cast.addr + i ;
+                @(negedge clk_i);
+                wait( ready_i === 1'b1);   //check if the ready is pulled up.
+        end
 
         for(i=0; i<4; i++) begin
          if(i==0) $write("## Write kernel_ptr ");

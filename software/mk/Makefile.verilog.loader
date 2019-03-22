@@ -3,7 +3,7 @@
 #Should be included in the Makefile.verilog
 PROG_NAME ?=main
 DRAM_SHIFT_ADDR=0x80000000
-KERNEL_NAME ?=kernel1
+KERNEL_NAME ?=kernel4
 
 find-section-addr         = $(shell nm --radix=d $(PROG_NAME).riscv | grep $(1) | awk '{print $$1}')
 find-hex-addr         = $(shell nm $(PROG_NAME).riscv | grep $(1) | awk '{print $$1}')
@@ -16,7 +16,7 @@ VCS_OPTIONS+= +define+_bsg_cudal_kernel_ptr=$(call find-hex-addr, _bsg_cudal_ker
 VCS_OPTIONS+= +define+_bsg_cudal_argc=$(call find-hex-addr, _bsg_cudal_argc)
 VCS_OPTIONS+= +define+_bsg_cudal_argv_ptr=$(call find-hex-addr, _bsg_cudal_argv_ptr)
 VCS_OPTIONS+= +define+_bsg_cudal_sig_ptr=$(call find-hex-addr, _bsg_cudal_sig_ptr)
-VCS_OPTIONS+= +define+_bsg_kernel_addr=$(call find-hex-addr, kernel1)
+VCS_OPTIONS+= +define+_bsg_kernel_addr=$(call find-hex-addr, $(KERNEL_NAME))
 
 #  Ideally the physicall address should be 0x8000_0000, which is the DRAM address used in manycore 
 #  program, but the system verilog $readmemh() just can not read from such large address... 
