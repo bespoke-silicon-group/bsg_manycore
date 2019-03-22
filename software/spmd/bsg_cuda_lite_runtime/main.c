@@ -42,9 +42,9 @@
 #define __wait_until_valid_func()       \
         asm("__wait_until_valid_func:                            \
              li         t0           ,   0x1;                    \
-             lr.w       t1           ,   0  (  s1  );            \
+             lr.w       t1           ,   0  (  s0  );            \
              bne        t0           ,   t1,  __invoke_kernel ;  \
-                lr.w.aq    t0           , 0 ( s1   );            \
+                lr.w.aq    t0           , 0 (  s0   );            \
              __invoke_kernel:                                    \
                 lw        a0           ,     0 ( s3  );          \
                 lw        a1           ,     4 ( s3  );          \
