@@ -849,11 +849,10 @@ assign id_s = '{
 always_ff @ (posedge clk_i)
 begin
 `ifdef bsg_FPU
-    if (reset_i | net_pc_write_cmd_idle |
-            (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall )))
+    if (reset_i | net_pc_write_cmd_idle | flush )
        )
 `else
-    if (reset_i | net_pc_write_cmd_idle | ( (flush|icache_miss_in_pipe) & (~   (stall | depend_stall)  ) ) )
+    if (reset_i | net_pc_write_cmd_idle | (flush|icache_miss_in_pipe)  )
 `endif
       begin
          id <= '0;
