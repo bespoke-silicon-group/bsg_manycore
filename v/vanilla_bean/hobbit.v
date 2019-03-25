@@ -396,7 +396,7 @@ icache #(
        ,.icache_w_tag_i         (icache_w_tag           ) 
        ,.icache_w_instr_i       (icache_w_instr         )
 
-       ,.flush_i                (flush                  )
+       ,.flush_i                (flush|icache_miss_in_pipe )
        ,.pc_i                   (pc_n                   )
        ,.pc_wen_i               (pc_wen                 )
        ,.pc_r_o                 (pc_r                   )
@@ -850,9 +850,9 @@ always_ff @ (posedge clk_i)
 begin
 `ifdef bsg_FPU
     if (reset_i | net_pc_write_cmd_idle | flush )
-       )
 `else
-    if (reset_i | net_pc_write_cmd_idle | (flush|icache_miss_in_pipe)  )
+    //if (reset_i | net_pc_write_cmd_idle |( (flush | icache_miss_in_pipe ) & (~(stall | depend_stall) ) ) )
+    if (reset_i | net_pc_write_cmd_idle | flush | (icache_miss_in_pipe & (~ (stall | depend_stall) ) ) )
 `endif
       begin
          id <= '0;
