@@ -920,7 +920,7 @@ wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
-    if (reset_i | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
+    if (reset_i | net_pc_write_cmd_idle | flush )
       begin
    // synopsys translate_off
          debug_exe <= debug_id | squashed_lp;
