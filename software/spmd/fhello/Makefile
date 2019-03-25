@@ -1,5 +1,5 @@
 bsg_tiles_X = 2
-bsg_tiles_Y = 5
+bsg_tiles_Y = 2
 
 #########################################################
 #each bytes defines the core type
