@@ -974,9 +974,10 @@ assign fiu_alu_result = fpi_inter.exe_fpi_writes_rf
 assign fiu_alu_result = alu_result;
 
 `endif
-
-assign remote_load_in_exe = exe.decode.is_load_op 
-                              & ((mem_addr_send & remote_addr_prefix_mask_lp) == remote_addr_mapping_lp);
+// dram addr                    : 1xxxxxxxx
+// out-group remote addr        : 01xxxxxxx
+// in-group remote addr         : 001xxxxxx
+assign remote_load_in_exe = exe.decode.is_load_op & ( | mem_addr_send[ (RV32_reg_data_width_gp-1)  -: 3] );
 
 // Loded data is inserted into the exe stage along
 // with an instruction that doesn't write to RF
