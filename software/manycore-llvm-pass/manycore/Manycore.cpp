@@ -181,6 +181,12 @@ namespace {
             }
         } addressSpaceException;
 
+        class StripedArrayException: public std::exception {
+            virtual const char *what() const throw() {
+                return "Arrays declared with STRIPE must not have initializers or be in DRAM!\n";
+            }
+        } stripedArrayException;
+
         bool runOnModule(Module &M) override {
             // If the function doesn't exist, it means that this c file didn't
             // include the striping functions.
@@ -194,6 +200,11 @@ namespace {
                 // If global variable is an array in address space 1
                 if (isa<PointerType>(g_type) && g_type->getPointerAddressSpace() > 0) {
                     globals_to_resize.push_back(&G);
+                    // Striped arrays cannot have initializers or be in DRAM at the moment
+                    if (!isa<ConstantAggregateZero>(G.getInitializer()) ||
+                            G.getSection().endswith(StringRef(".dram"))) {
+                        throw stripedArrayException;
+                    }
                 }
             }
             for (auto G: globals_to_resize) {
