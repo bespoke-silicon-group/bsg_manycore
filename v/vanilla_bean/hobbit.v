@@ -128,7 +128,7 @@ logic yumi_to_mem_c;
 logic current_load_arrived;
 logic pending_load_arrived;
 logic exe_free_for_load, mem_free_for_load, wb_free_for_load;
-logic insert_load_in_exe, insert_load_in_mem, insert_load_in_wb;
+logic insert_load_in_exe;
 
 // Decoded control signals logic
 decode_s decode;
@@ -396,6 +396,7 @@ icache #(
        ,.icache_w_tag_i         (icache_w_tag           ) 
        ,.icache_w_instr_i       (icache_w_instr         )
 
+       ,.flush_i                (flush|icache_miss_in_pipe )
        ,.pc_i                   (pc_n                   )
        ,.pc_wen_i               (pc_wen                 )
        ,.pc_r_o                 (pc_r                   )
@@ -580,23 +581,8 @@ assign mem_free_for_load = ~mem.decode.op_writes_rf & 1'b0;
 // non-blocking, write-back wouldn't happen when the instrucion is still
 // in the pipeline
 assign exe_free_for_load = ~exe.decode.op_writes_rf | remote_load_in_exe;
-
-// Control signals to insert pending loads into the pipeline
-assign insert_load_in_wb  = pending_load_arrived
-                              & wb_free_for_load
-                              & ~stall
-                              & 1'b0; // disabled due to pre-computed forwarding
-
-assign insert_load_in_mem = pending_load_arrived
-                              & mem_free_for_load
-                              & ~insert_load_in_wb
-                              & ~stall
-                              & 1'b0; // disabled due to pre-computed forwarding
-
 assign insert_load_in_exe = pending_load_arrived
                               & exe_free_for_load
-                              & ~insert_load_in_mem
-                              & ~insert_load_in_wb
                               & ~stall;
 
 //+----------------------------------------------
@@ -739,8 +725,6 @@ assign yumi_to_mem_c  = from_mem_i.valid
                           & (stall 
                               | current_load_arrived
                               | insert_load_in_exe
-                              | insert_load_in_mem
-                              | insert_load_in_wb
                             );
 
 // RISC-V edit: add reservation
@@ -848,11 +832,10 @@ assign id_s = '{
 always_ff @ (posedge clk_i)
 begin
 `ifdef bsg_FPU
-    if (reset_i | net_pc_write_cmd_idle |
-            (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall )))
-       )
+    if (reset_i | net_pc_write_cmd_idle | flush )
 `else
-    if (reset_i | net_pc_write_cmd_idle | ( (flush|icache_miss_in_pipe) & (~   (stall | depend_stall)  ) ) )
+    //if (reset_i | net_pc_write_cmd_idle |( (flush | icache_miss_in_pipe ) & (~(stall | depend_stall) ) ) )
+    if (reset_i | net_pc_write_cmd_idle | flush | (icache_miss_in_pipe & (~ (stall | depend_stall) ) ) )
 `endif
       begin
          id <= '0;
@@ -920,7 +903,7 @@ wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
-    if (reset_i | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
+    if (reset_i | net_pc_write_cmd_idle | flush )
       begin
    // synopsys translate_off
          debug_exe <= debug_id | squashed_lp;
@@ -991,9 +974,10 @@ assign fiu_alu_result = fpi_inter.exe_fpi_writes_rf
 assign fiu_alu_result = alu_result;
 
 `endif
-
-assign remote_load_in_exe = exe.decode.is_load_op 
-                              & ((mem_addr_send & remote_addr_prefix_mask_lp) == remote_addr_mapping_lp);
+// dram addr                    : 1xxxxxxxx
+// out-group remote addr        : 01xxxxxxx
+// in-group remote addr         : 001xxxxxx
+assign remote_load_in_exe = exe.decode.is_load_op & ( | mem_addr_send[ (RV32_reg_data_width_gp-1)  -: 3] );
 
 // Loded data is inserted into the exe stage along
 // with an instruction that doesn't write to RF
@@ -1105,11 +1089,7 @@ logic                              op_writes_rf_to_wb;
 logic [RV32_reg_addr_width_gp-1:0] rd_addr_to_wb;
 always_comb
 begin
-  if(insert_load_in_mem) begin
-    rf_data            = mem_loaded_data;
-    op_writes_rf_to_wb = 1'b1;
-    rd_addr_to_wb      = from_mem_i.load_info.reg_id;
-  end else if(mem.decode.is_load_op & ~mem.remote_load) begin
+  if(mem.decode.is_load_op & ~mem.remote_load) begin
     rf_data            = is_load_buffer_valid ? buf_loaded_data : mem_loaded_data;
     op_writes_rf_to_wb = is_load_buffer_valid | current_load_arrived;
     rd_addr_to_wb      = mem.rd_addr;
@@ -1146,16 +1126,8 @@ begin
       end
 end
 
-always_comb
-begin
-  wb = wb_from_mem;
+assign  wb = wb_from_mem;
 
-  if(insert_load_in_wb) begin
-    wb.op_writes_rf = 1'b1;
-    wb.rf_data      = mem_loaded_data;
-    wb.rd_addr      = from_mem_i.load_info.reg_id;
-  end
-end
 
 `ifdef bsg_FPU
 
