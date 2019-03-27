@@ -41,104 +41,69 @@ int get_struct_info(Module &M, Value *ptr_op, unsigned *struct_size) {
 }
 
 
-void replace_extern_store(Module &M, StoreInst *op) {
+void replace_mem_op(Module &M, Instruction *op, bool isStore) {
     IRBuilder<> builder(op);
-    Function *store_fn;
+    Function *mem_op_fn;
+    Value *ptr_op, *val_op;
+    unsigned value_elem_size;
+    if (isStore) {
+        ptr_op = cast<StoreInst>(op)->getPointerOperand();
+        val_op = cast<StoreInst>(op)->getValueOperand();
+        value_elem_size = val_op->getType()->getPrimitiveSizeInBits() / 8;
+    } else {
+        ptr_op = cast<LoadInst>(op)->getPointerOperand();
+        value_elem_size = cast<LoadInst>(op)->getType()->getPrimitiveSizeInBits() / 8;
+    }
+
 
     std::vector<Value *> args_vector;
-    Value *ptr_op = op->getPointerOperand();
     Type *int32_ptr = Type::getInt32PtrTy(M.getContext(),
             dyn_cast<PointerType>(ptr_op->getType())->getAddressSpace());
+    Type *int32 = Type::getInt32Ty(M.getContext());
     Value *ptr_bc = builder.CreatePointerCast(ptr_op, int32_ptr);
 
     args_vector.push_back(ptr_bc);
-    unsigned value_elem_size = op->getValueOperand()->getType()->getPrimitiveSizeInBits() / 8;
 
     if (value_elem_size == 1) {
-        store_fn = M.getFunction("extern_store_char");
+        mem_op_fn = (isStore) ? M.getFunction("extern_store_char") :
+            M.getFunction("extern_load_char");
     } else if (value_elem_size == 2) {
-        store_fn = M.getFunction("extern_store_short");
+        mem_op_fn = (isStore) ? M.getFunction("extern_store_short") :
+            M.getFunction("extern_load_short");
     } else {
-        store_fn = M.getFunction("extern_store_int");
+        mem_op_fn = (isStore) ? M.getFunction("extern_store_int") :
+            M.getFunction("extern_load_int");
     }
-    if (store_fn == NULL) {
-       throw functionNotFoundException;
+    if (mem_op_fn == NULL) {
+        throw functionNotFoundException;
     }
+
     unsigned struct_size;
     int struct_off = get_struct_info(M, ptr_op, &struct_size);
     if (struct_off < 0) { // Not accessing a struct field
-        args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                    value_elem_size, false));
-        args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                    0, false));
+        args_vector.push_back(ConstantInt::get(int32, value_elem_size, false));
+        args_vector.push_back(ConstantInt::get(int32, 0, false));
     } else { // Accessing a struct field
-        args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                    struct_size, false));
-        args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                    struct_off, false));
+        args_vector.push_back(ConstantInt::get(int32, struct_size, false));
+        args_vector.push_back(ConstantInt::get(int32, struct_off, false));
     }
-    args_vector.push_back(op->getValueOperand());
+    if (isStore) { args_vector.push_back(val_op);}
 
     ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
 
     // Create the call and replace all uses of the store inst with the call
-    Value *new_str = builder.CreateCall(store_fn, args);
-    op->replaceAllUsesWith(new_str);
+    Value *new_mem_op = builder.CreateCall(mem_op_fn, args);
+    op->replaceAllUsesWith(new_mem_op);
 
     errs() << "Replace done\n";
-    new_str->dump();
+    new_mem_op->dump();
 }
 
 
-void replace_extern_load(Module &M, LoadInst *op) {
-    IRBuilder<> builder(op);
-    Function *load_fn;
-    std::vector<Value *> args_vector;
-
-    Value *ptr_op = op->getPointerOperand();
-    Type *int32_ptr = Type::getInt32PtrTy(M.getContext(),
-            dyn_cast<PointerType>(ptr_op->getType())->getAddressSpace());
-    Value *ptr_bc = builder.CreatePointerCast(ptr_op, int32_ptr);
-
-    args_vector.push_back(ptr_bc);
-    unsigned value_elem_size = op->getType()->getPrimitiveSizeInBits() / 8;
-    if (value_elem_size == 1) {
-        load_fn = M.getFunction("extern_load_char");
-    } else if (value_elem_size == 2) {
-        load_fn = M.getFunction("extern_load_short");
-    } else {
-        load_fn = M.getFunction("extern_load_int");
-    }
-    if (load_fn == NULL) {
-       throw functionNotFoundException;
-    }
-
-    unsigned struct_size;
-    int struct_off = get_struct_info(M, ptr_op, &struct_size);
-    if (struct_off < 0) { // Not accessing a struct field
-        args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                    value_elem_size, false));
-        args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                    0, false));
-    } else { // Accessing a struct field
-        args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                    struct_size, false));
-        args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                    struct_off, false));
-    }
-
-    ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
-
-    Value *new_ld = builder.CreateCall(load_fn, args);
-    op->replaceAllUsesWith(new_ld);
-    errs() << "Replace done\n";
-    new_ld->dump();
-}
-
-void replace_extern_memcpy(Module &M, CallInst *op, bool stripedStore) {
+void replace_extern_memcpy(Module &M, CallInst *op, bool isStore) {
     IRBuilder<> builder(op);
     Function *memcpy_fn;
-    if (stripedStore) {
+    if (isStore) {
         memcpy_fn = M.getFunction("extern_store_memcpy");
     } else {
         memcpy_fn = M.getFunction("extern_load_memcpy");
@@ -190,18 +155,18 @@ namespace {
         }
 
 
-        bool shouldReplaceMemcpy(CallInst *op, bool *stripedStore) {
+        bool shouldReplaceMemcpy(CallInst *op, bool *isStore) {
             for (int i = 0; i < op->getNumArgOperands(); i++) {
                 if (auto *bc = dyn_cast<BitCastInst>(op->getArgOperand(i))) {
                     if (auto *pt = dyn_cast<PointerType>(bc->getSrcTy())) {
                         if (pt->getAddressSpace() == STRIPE) {
-                            *stripedStore = (i == 0);
+                            *isStore = (i == 0);
                             return true;
                         }
                     }
                     if (auto *pt = dyn_cast<PointerType>(bc->getDestTy())) {
                         if (pt->getAddressSpace() == STRIPE) {
-                            *stripedStore = (i == 0);
+                            *isStore = (i == 0);
                             return true;
                         }
                     }
@@ -245,35 +210,30 @@ namespace {
             for (auto &F : M) {
                 for (auto &B : F) {
                     for (auto &I : B) {
-                        if (auto* op = dyn_cast<StoreInst>(&I)) {
-                            if (op->getPointerAddressSpace() > 0) {
-                                op->dump();
-                                if (op->getPointerAddressSpace() == STRIPE) {
-                                    replace_extern_store(M, op);
-                                    insts_to_remove.push_back(op);
-                                } else {
-                                    throw addressSpaceException;
-                                }
-                                errs() << "\n";
+                        if (isa<StoreInst>(&I) || isa<LoadInst>(&I)) {
+                            unsigned addr_space;
+                            bool isStore;
+                            if (isa<StoreInst>(&I)) {
+                                addr_space = cast<StoreInst>(I).getPointerAddressSpace();
+                                isStore = true;
+                            } else {
+                                addr_space = cast<LoadInst>(I).getPointerAddressSpace();
+                                isStore = false;
                             }
-                        } else if (auto* op = dyn_cast<LoadInst>(&I)) {
-                            if (op->getPointerAddressSpace() > 0) {
-                                op->dump();
-                                if (op->getPointerAddressSpace() == STRIPE) {
-                                    replace_extern_load(M, op);
-                                    insts_to_remove.push_back(op);
-                                } else {
-                                    throw addressSpaceException;
-                                }
+                            if (addr_space > 0 && addr_space == STRIPE) {
+                                I.dump();
+                                replace_mem_op(M, &I, isStore);
                                 errs() << "\n";
+                            } else if (addr_space > 0) {
+                                throw addressSpaceException;
                             }
                         } else if (auto* op = dyn_cast<CallInst>(&I)) {
                             Function *F = op->getCalledFunction();
                             if (!isMemcpy(F)) { continue;}
                             op->dump();
-                            bool stripedStore;
-                            if (shouldReplaceMemcpy(op, &stripedStore)) {
-                                replace_extern_memcpy(M, op, stripedStore);
+                            bool isStore;
+                            if (shouldReplaceMemcpy(op, &isStore)) {
+                                replace_extern_memcpy(M, op, isStore);
                                 insts_to_remove.push_back(op);
                             }
                             errs() << "\n";
