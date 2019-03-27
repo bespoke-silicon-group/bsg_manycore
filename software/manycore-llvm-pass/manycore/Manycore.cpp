@@ -21,23 +21,31 @@ class FunctionNotFound: public std::exception {
 // a non-negative value
 int get_struct_info(Module &M, Value *ptr_op, unsigned *struct_size) {
     DataLayout layout = DataLayout(&M);
-    // Gives struct type
-    GEPOperator *gep = dyn_cast<GEPOperator>(ptr_op);
-    if (!gep) { return -1;}
-    Type *source_type = gep->getSourceElementType();
-    while (!isa<StructType>(source_type)) {
-        if (isa<SequentialType>(source_type)) {
-            source_type = source_type->getSequentialElementType();
-        } else {
-            return -1;
-        }
+
+    // Check if we're actually dealing with a struct
+    if (!isa<GEPOperator>(ptr_op)) { return -1;}
+    GEPOperator *gep = cast<GEPOperator>(ptr_op);
+    if (!isa<StructType>(gep->getSourceElementType())) { return -1;}
+
+    // Work backwards through GEP Operations, computing offsets of the field being accessed to
+    // get the total offset of the field into the struct
+    unsigned struct_offset = 0, struct_idx;
+    StructType *struct_type;
+    Value *struct_idx_val;
+    while (isa<GEPOperator>(gep->getOperand(0)) && isa<StructType>(gep->getSourceElementType())) {
+            // The last operand of GEP gives the index of the field in the struct definition
+            struct_idx_val = gep->getOperand(gep->getNumOperands() - 1);
+            struct_idx = cast<ConstantInt>(struct_idx_val)->getSExtValue();
+            struct_type = cast<StructType>(gep->getSourceElementType());
+            // We only care about the size of the outermost struct, but this does the same
+            *struct_size = layout.getTypeAllocSizeInBits(struct_type) / 8;
+            // Get the offset of the selected field into the struct, add it to the overall offset
+            struct_offset += layout.getStructLayout(struct_type)->getElementOffset(struct_idx);
+            // Get the GEP that preceeded the current one
+            gep = cast<GEPOperator>(gep->getOperand(0));
     }
-    StructType *struct_type = cast<StructType>(source_type);
-    *struct_size = layout.getTypeAllocSizeInBits(struct_type) / 8;
-    // The last operand of GEP gives the index of the field in the struct definition
-    unsigned struct_idx = cast<ConstantInt>(gep->getOperand(gep->getNumOperands() - 1))->getSExtValue();
-    // Get the offset of the selected field into the struct
-    return layout.getStructLayout(struct_type)->getElementOffset(struct_idx);
+
+    return struct_offset;
 }
 
 

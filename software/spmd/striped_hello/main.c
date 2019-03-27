@@ -4,9 +4,15 @@
 
 #define N bsg_group_size
 
+typedef struct test_s1 {
+    int i;
+    short s;
+} test_s1;
+
 typedef struct test_s {
     int i;
     char c;
+    test_s1 s;
 } test_t;
 
 int STRIPE A[N][N];
@@ -85,12 +91,15 @@ void remote_load_store_test(int id) {
 void struct_test() {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            test_t val = { .i = i * 5 + j, .c = i+j};
+            test_t val = { .i = i * 5 + j, .c = i+j,
+                .s = {.i = i * j, .s = i % j}};
             if (j & 1) {
                 C[i][j] = val;
             } else {
                 C[i][j].i = val.i;
                 C[i][j].c = val.c;
+                C[i][j].s.i = val.s.i;
+                C[i][j].s.s = val.s.s;
             }
         }
     }
@@ -100,10 +109,15 @@ void struct_test() {
             if (j & 1) {
                 val.i = C[i][j].i;
                 val.c = C[i][j].c;
+                val.s.i = C[i][j].s.i;
+                val.s.s = C[i][j].s.s;
             } else {
                 val = C[i][j];
             }
-            if ((val.i != i * 5 + j) || (val.c != i+j)) {
+            if ((val.i != i * 5 + j) ||
+                    (val.c != i+j) ||
+                    (val.s.i != i * j) ||
+                    (val.s.s != i % j)) {
                 bsg_fail();
             }
         }
