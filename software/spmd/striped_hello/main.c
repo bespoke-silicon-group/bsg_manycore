@@ -38,28 +38,6 @@ void indexing_test() {
     bsg_printf("Passed indexing test\n");
 }
 
-
-void char_ptr_arith_test() {
-    char STRIPE *arr = &B[0][0];
-    char curr = 0;
-    while (curr < N * N) {
-        *arr = curr;
-        arr++;
-        curr++;
-    }
-    curr = 0;
-    arr = &B[0][0];
-    while (curr < N * N) {
-        if (*arr != curr) {
-            bsg_fail();
-        }
-        arr++;
-        curr++;
-    }
-    bsg_printf("Passed char_ptr_arith_test\n");
-}
-
-
 void short_ptr_arith_test() {
     short STRIPE *arr = (short STRIPE *) &A[0][0];
     short curr = 0;
@@ -131,15 +109,9 @@ int main()
 
     int bsg_id = bsg_x * bsg_tiles_X + bsg_y;
 
-    if ((bsg_x == 0) && (bsg_y == 0)) {
-        remote_load_store_test(bsg_id);
-    }
     if ((bsg_x == bsg_tiles_X-1) && (bsg_y == bsg_tiles_Y-1)) {
-        remote_load_store_test(bsg_id);
-        bsg_printf("Passed remote_load_store_test\n");
 
         indexing_test();
-        char_ptr_arith_test();
         short_ptr_arith_test();
         struct_test();
 
