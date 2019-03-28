@@ -29,8 +29,6 @@ INC_OP = +incdir+
 VCS_OP = -full64 -sverilog
 VCS_OP += +lint=PCWM 
 VCS_OP += -timescale=1ps/1ps
-VCS_OP += -suppress=CWUC
-VCS_OP += -p1800_macro_expansion
 
 VCS_OPTIONS = +define+SPMD=$*+
 VCS_OPTIONS += +define+bsg_hetero_type_vec="${bsg_hetero_type_vec}"+

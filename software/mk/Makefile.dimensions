@@ -8,7 +8,7 @@ bsg_group_size ?= 4
 bsg_global_X ?= $(bsg_tiles_X)
 bsg_global_Y ?= $(shell echo $(bsg_tiles_Y)+1 | bc )
 
-bsg_hetero_type_vec ?= 0 
+bsg_hetero_type_vec ?= default:0
  
 bsg_group_size ?= 4
 
