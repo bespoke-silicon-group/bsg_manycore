@@ -13,9 +13,6 @@ int main() {
   if ((bsg_x == 0) && (bsg_y == bsg_tiles_Y-1)) {
     bsg_newlib_fs_init();
 
-    const char write_buf[50] = "Hello! This is Little FS!\n";
-    char *read_buf = (char *) malloc(50);
-
     FILE *stdinfile = fopen("stdin", "w");
     bsg_printf("(%d, %d): stdin opened: fd = %x\n", bsg_x, bsg_y, stdinfile);
     FILE *stdoutfile = fopen("stdout", "w");
@@ -23,8 +20,8 @@ int main() {
     FILE *stderrfile = fopen("stderr", "w");
     bsg_printf("(%d, %d): stderr opened: fd = %x\n", bsg_x, bsg_y, stderrfile);
 
-    size_t write_bytes = fwrite(write_buf, 1, 50, stdoutfile);
-    bsg_printf("(%d, %d): written %d bytes to stdout\n", bsg_x, bsg_y, write_bytes);
+    size_t write_bytes = fprintf(stdoutfile, "Hello! This is Little FS!\n");
+    bsg_printf("(%d, %d): written %d chars to stdout\n", bsg_x, bsg_y, write_bytes);
     
     int ret = fclose(stdinfile);
     bsg_printf("(%d, %d): stdin closed: ret = %d\n", bsg_x, bsg_y, ret);
@@ -32,6 +29,8 @@ int main() {
     bsg_printf("(%d, %d): stdout closed: ret = %d\n", bsg_x, bsg_y, ret);
     ret = fclose(stderrfile);
     bsg_printf("(%d, %d): stderr closed: ret = %d\n", bsg_x, bsg_y, ret);
+
+    char *read_buf = (char *) malloc(50);
 
     stdoutfile = fopen("stdout", "r");
     bsg_printf("(%d, %d): stdout opened for reading; fd = %x\n", bsg_x, bsg_y, stdoutfile);
