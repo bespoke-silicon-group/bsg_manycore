@@ -41,26 +41,28 @@ spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld -Wl,--defsym,bsg_group_size=$(bsg_group_size)
 
 ifdef CLANG
-LLVM_DIR       = /mnt/bsg/diskbits/neilryan/llvm/llvm-install
-LLVM_CLANG    ?= $(LLVM_DIR)/bin/clang
-LLVM_OPT      ?= $(LLVM_DIR)/bin/opt
-LLVM_LLC      ?= $(LLVM_DIR)/bin/llc
-PASS_DIR      ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
-PASS_LIB      ?= build/manycore/libManycorePass.so
+export LLVM_DIR   = /mnt/bsg/diskbits/neilryan/llvm/llvm-install
+LLVM_CLANG       ?= $(LLVM_DIR)/bin/clang
+LLVM_OPT         ?= $(LLVM_DIR)/bin/opt
+LLVM_LLC         ?= $(LLVM_DIR)/bin/llc
+PASS_DIR         ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
+PASS_LIB         ?= build/manycore/libManycorePass.so
+RUNTIME_FNS      ?= $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_tilegroup.h
 
 $(LLVM_DIR):
-	@echo "LLVM is not installed! Follow build instructions in the TRM and set LLVM_DIR accordingly" && exit 1
+	@echo "LLVM is not installed! Follow build instructions in the TRM and \
+	set LLVM_DIR in Makefile.builddefs accordingly" && exit 1
 
 # Remove default %.o: %.c rule
 %.o: %.c
 
 # Emit -O0 so that loads to consecutive memory locations aren't combined
 # Opt can run optimizations in any order, so it doesn't matter
-%.bc: %.c $(PASS_LIB) $(LLVM_DIR)
+%.bc: %.c $(PASS_LIB) $(LLVM_DIR) $(RUNTIME_FNS)
 	$(LLVM_CLANG) -O0 $(RISCV_GCC_OPTS) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
 %.bc.pass: %.bc
-	$(LLVM_OPT) -load $(PASS_LIB) -manycore $(OPT_LEVEL) -always-inline $< -o $@
+	$(LLVM_OPT) -load $(PASS_LIB) -manycore $(OPT_LEVEL) $< -o $@
 
 %.bc.s: %.bc.pass
 	$(LLVM_LLC) $< -o $@

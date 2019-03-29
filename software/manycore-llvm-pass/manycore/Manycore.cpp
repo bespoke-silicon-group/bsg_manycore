@@ -265,18 +265,6 @@ namespace {
                 I->eraseFromParent();
             }
 
-            std::vector<Function *> funcs_to_internalize;
-            funcs_to_internalize.push_back(M.getFunction("extern_store_char"));
-            funcs_to_internalize.push_back(M.getFunction("extern_store_short"));
-            funcs_to_internalize.push_back(M.getFunction("extern_store_int"));
-            funcs_to_internalize.push_back(M.getFunction("extern_load_char"));
-            funcs_to_internalize.push_back(M.getFunction("extern_load_short"));
-            funcs_to_internalize.push_back(M.getFunction("extern_load_int"));
-            for (auto F : funcs_to_internalize) {
-                Attribute attr = Attribute::get(M.getContext(), "static", "true");
-                F->addAttribute(0, attr);
-            }
-
             return true;
         }
     };

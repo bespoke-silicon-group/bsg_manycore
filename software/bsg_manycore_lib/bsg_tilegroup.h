@@ -15,7 +15,7 @@ extern unsigned _bsg_striped_data_start;
 /* NOTE: It's usually a cardinal sin to include code in header files, but LLVM
  * needs the definitions of runtime functions avaliable so that the pass can
  * replace loads and stores -- these aren't avaliable via declarations. */
- static volatile int *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size, unsigned local_offset) {
+static volatile int *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size, unsigned local_offset) {
     unsigned start_ptr = (unsigned) &_bsg_striped_data_start;
     unsigned ptr = (unsigned) arr_ptr;
 
