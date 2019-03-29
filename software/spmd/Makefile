@@ -10,6 +10,8 @@ ifdef COVERAGE
 	bsg_tiles_Y = 4
 endif
 
+export LLVM_DIR=/mnt/bsg/diskbits/neilryan/llvm/llvm-install
+
 ###############################################
 # VCS Unified Coverage Report Generator options
 VCS_COV_DBs  = $(foreach testcase, $(test_case_list), $(testcase)/*.vdb/)
@@ -19,7 +21,6 @@ URG_OPS     += -format both  # report in text
 URG_OPS     += -dir $(VCS_COV_DBs) # individual coverage dbs
 URG_OPS     += -dbname coverage # merged db name
 URG_OPS     += -map $(VCS_COV_MODULE_MAP)
-
 
 all: main.regress_test
 ##############################################
@@ -32,7 +33,7 @@ all: main.regress_test
 	echo "running testcase [ $$testcase, target=$$test_target ]"; \
 	make -C ./$$test_name $$test_target DVE=0 COVERAGE=$(COVERAGE)  \
 		bsg_tiles_X=$(bsg_tiles_X) bsg_tiles_Y=$(bsg_tiles_Y) &> run.log; \
-	grep " FINISH \| FAIL \| I/O \|^[Ee]rror \|Correct" run.log;    	   \
+	grep " FINISH \| FAIL \| I/O \|^[Ee]rror \|Correct \|Passed" run.log;    	   \
 	done;
 
 ifeq ($(COVERAGE),VCS)
