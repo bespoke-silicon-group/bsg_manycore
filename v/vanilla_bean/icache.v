@@ -27,6 +27,7 @@ module icache #(parameter
                ,output[RV32_instr_width_gp-1:0]    instruction_o
 
                ,input [pc_width_lp-1:0]            pc_i
+               ,input                              flush_i
                ,input                              pc_wen_i
                ,output [pc_width_lp-1:0]           pc_r_o
                ,output [pc_width_lp-1:0]           jump_addr_o
@@ -121,12 +122,12 @@ module icache #(parameter
         else               pc_wen_r           <= pc_wen_i;
 
   always_ff@(posedge clk_i) 
-        if(reset_i)        pc_r               <= 'b0;
-        else if( pc_wen_i) pc_r               <= pc_i;
+        if(reset_i )                    pc_r     <= 'b0;
+        else if( pc_wen_i)              pc_r     <= pc_i;
 
   always_ff@(posedge clk_i) 
-        if(reset_i)          icache_stall_out_r    <= 'b0;
-        else                 icache_stall_out_r    <= icache_stall_out;
+        if(reset_i | flush_i )      icache_stall_out_r    <= 'b0;
+        else                        icache_stall_out_r    <= icache_stall_out;
 
   //this is the final output that send out, take stall into consideration
   assign icache_stall_out = (pc_wen_r) ? icache_r_data_s: icache_stall_out_r;
