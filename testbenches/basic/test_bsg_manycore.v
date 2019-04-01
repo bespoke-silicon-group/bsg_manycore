@@ -13,7 +13,7 @@
 `endif
 
 
-parameter  [`bsg_global_Y][`bsg_global_X] [31:0] bsg_hetero_type_vec_gp={`bsg_hetero_type_vec};
+parameter int bsg_hetero_type_vec_gp [0:`bsg_global_Y-1][0:`bsg_global_X-1]  = '{ `bsg_hetero_type_vec };
 
 `define MAX_CYCLES 1000000
 

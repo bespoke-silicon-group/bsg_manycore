@@ -25,7 +25,7 @@ module bsg_manycore
    // each byte contains the type of core being instantiated
    // type 0 is the standard core
 
-   ,parameter [num_tiles_y_p][num_tiles_x_p][31:0] hetero_type_vec_p      ={0} 
+   ,parameter int hetero_type_vec_p [0:num_tiles_y_p-1][0:num_tiles_x_p-1]  ='{default:0}
 
    // enable debugging
    ,parameter debug_p           = 0
