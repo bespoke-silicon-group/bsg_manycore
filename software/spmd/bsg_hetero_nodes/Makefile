@@ -13,10 +13,10 @@ bsg_global_Y = 4
 # 	bsg_hetero_type_vec = 0
 #
 # The first row is assigned to IO router and will the configuration values are ignored.
-bsg_hetero_type_vec =  0, 0, 0, 0,  \
-		       0, 0, 0, 0,  \
-		       0, 0, 0, 0,  \
-                       1, 1, 1, 1
+bsg_hetero_type_vec =  {0, 0, 0, 0},  \
+		       {0, 0, 0, 0},  \
+		       {0, 0, 0, 0},  \
+                       {1, 1, 1, 1}
 #########################################################
 #Tile group configuration
 # If not configured, Will use default Values
