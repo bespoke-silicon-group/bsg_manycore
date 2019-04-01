@@ -1,2 +1,4 @@
 main_dmem.mem
 main_dram.mem
+coremark-top
+coremark/coremark
