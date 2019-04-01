@@ -544,6 +544,10 @@ scoreboard
   ,.src2_id_i    (id.instruction.rs2)
   ,.dest_id_i    (id.instruction.rd)
 
+  ,.op_reads_rf1 (id.decode.op_reads_rf1)
+  ,.op_reads_rf2 (id.decode.op_reads_rf2)
+  ,.op_writes_rf (id.decode.op_writes_rf)
+
   ,.score_i      (record_load)
   ,.clear_i      (yumi_to_mem_c)
   ,.clear_id_i   (from_mem_i.load_info.reg_id)
