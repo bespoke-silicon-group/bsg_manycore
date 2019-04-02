@@ -1,2 +1,4 @@
 coverage*
 *.vpd.tcl
+main_dmem.mem
+main_dram.mem

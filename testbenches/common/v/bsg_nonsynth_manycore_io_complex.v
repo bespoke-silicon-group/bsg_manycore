@@ -9,18 +9,19 @@ module bsg_nonsynth_manycore_io_complex
     ,max_cycles_p   = -1
     ,addr_width_p   = -1
     ,load_id_width_p = 5
-    ,epa_addr_width_p = -1
+    ,epa_byte_addr_width_p = -1
     ,dram_ch_num_p       = 0
     ,dram_ch_addr_width_p=-1
     ,data_width_p  = 32
     ,num_tiles_x_p = -1
     ,num_tiles_y_p = -1
-    ,load_rows_p    =  num_tiles_y_p
-    ,load_cols_p    =  num_tiles_x_p
+    ,extra_io_rows_p = 1
     ,tile_id_ptr_p = -1
-    ,src_x_cord_p = num_tiles_x_p -1 
+    //the x/y cord of the 
+    ,IO_x_cord_p = num_tiles_x_p -1 
+    ,IO_y_cord_p = 0
     ,x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
-    ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + 2)
+    ,y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p)
     ,include_dram_model = 1'b1
 
     //parameters for victim cache    
@@ -80,26 +81,26 @@ module bsg_nonsynth_manycore_io_complex
      #( .icache_entries_num_p    ( icache_entries_num_p)
         ,.num_rows_p    (num_tiles_y_p)
         ,.num_cols_p    (num_tiles_x_p)
-        ,.load_rows_p   (load_rows_p)
-        ,.load_cols_p   (load_cols_p)
         ,.data_width_p  (data_width_p)
         ,.addr_width_p  (addr_width_p)
         ,.load_id_width_p (load_id_width_p)
-        ,.epa_addr_width_p (epa_addr_width_p)
+        ,.epa_byte_addr_width_p (epa_byte_addr_width_p)
         ,.dram_ch_num_p       ( dram_ch_num_p       )
         ,.dram_ch_addr_width_p( dram_ch_addr_width_p )
         ,.tile_id_ptr_p (tile_id_ptr_p)
         ,.init_vcache_p (init_vcache_p)
         ,.vcache_entries_p ( vcache_entries_p )
         ,.vcache_ways_p    ( vcache_ways_p    )
+        ,.x_cord_width_p   ( x_cord_width_lp  )
+        ,.y_cord_width_p   ( y_cord_width_lp  )
         ) spmd_loader
        ( .clk_i     (clk_i)
          ,.reset_i  (reset_r)
          ,.data_o   (loader_data_lo )
          ,.v_o      (loader_v_lo    )
          ,.ready_i  (loader_ready_li)
-         ,.my_x_i   ( x_cord_width_lp ' (src_x_cord_p) )
-         ,.my_y_i   ( y_cord_width_lp ' (num_tiles_y_p) )
+         ,.my_x_i   ( x_cord_width_lp ' (IO_x_cord_p) )
+         ,.my_y_i   ( y_cord_width_lp ' (IO_y_cord_p) )
          );
 /*
    bsg_manycore_io_complex_rom
@@ -142,8 +143,7 @@ module bsg_nonsynth_manycore_io_complex
          , .link_sif_o (ver_link_sif_o[i] )
 
          , .my_x_i ( x_cord_width_lp'(i)               )
-         , .my_y_i ( y_cord_width_lp'(num_tiles_y_p+1) )
-
+         , .my_y_i ( y_cord_width_lp'(num_tiles_y_p   ))
          );
         end
    end
@@ -162,7 +162,7 @@ module bsg_nonsynth_manycore_io_complex
 
         wire pass_thru_ready_lo;
 
-        localparam credits_lp = (i== src_x_cord_p) ? spmd_max_out_credits_lp : 4;
+        localparam credits_lp = (i== IO_x_cord_p) ? spmd_max_out_credits_lp : 4;
 
         wire [`BSG_SAFE_CLOG2(credits_lp+1)-1:0] creds;
 
@@ -170,12 +170,12 @@ module bsg_nonsynth_manycore_io_complex
         logic [y_cord_width_lp-1:0] pass_thru_y_li;
 
         assign pass_thru_x_li = x_cord_width_lp ' (i);
-        assign pass_thru_y_li = y_cord_width_lp ' (num_tiles_y_p);
+        assign pass_thru_y_li = y_cord_width_lp ' (IO_y_cord_p);
 
         // hook up the ready signal if this is the SPMD loader
         // we handle credits here but could do it in the SPMD module too
 
-        if (i== src_x_cord_p)
+        if (i== IO_x_cord_p)
           begin: fi
              assign loader_ready_li = pass_thru_ready_lo & (|creds);
 
@@ -200,7 +200,7 @@ module bsg_nonsynth_manycore_io_complex
                                         ,.load_id_width_p (load_id_width_p)
                                         ,.channel_num_p   (i)
                                         ,.max_cycles_p    (max_cycles_p)
-                                        ,.pass_thru_p     (i== src_x_cord_p)
+                                        ,.pass_thru_p     (i== IO_x_cord_p)
                                         // for the SPMD loader we don't anticipate
                                         // any backwards flow control; but for an
                                         // accelerator, we must be much more careful about

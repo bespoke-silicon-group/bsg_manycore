@@ -27,7 +27,7 @@
 #
 TOOLCHAIN_REPO=riscv-gnu-toolchain
 TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
-DEPENDS_DIR=$(PWD)/depends
+DEPENDS_DIR=$(CURDIR)/depends
 
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
 
@@ -35,7 +35,7 @@ DEPENDS_LIST=autoconf-2.69 automake-1.14
 DEPENDS_URL=https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.xz \
             https://ftp.gnu.org/gnu/automake/automake-1.14.tar.xz 
 
-export RISCV:=$(PWD)/riscv-install
+export RISCV:=$(CURDIR)/riscv-install
 export SED=sed
 export CC=gcc
 export CXX=g++

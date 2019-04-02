@@ -8,10 +8,11 @@ module bsg_manycore_pkt_encode
     , data_width_p   = -1
     , addr_width_p   = -1
     , load_id_width_p = 5
-    , epa_addr_width_p = -1
+    , epa_word_addr_width_p = -1
     , dram_ch_addr_width_p = -1
     , dram_ch_start_col_p  = 0
-    , remote_addr_prefix_p = 2'b01
+    , remote_addr_prefix_lp = 3'b001
+    , global_addr_prefix_lp = 2'b01
     , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
     , max_x_cord_width_lp = 6
     , max_y_cord_width_lp = 6
@@ -30,21 +31,27 @@ module bsg_manycore_pkt_encode
     ,input                                  swap_rl_i
     ,input [x_cord_width_p-1:0]             my_x_i
     ,input [y_cord_width_p-1:0]             my_y_i
+
+    ,input [x_cord_width_p-1:0]             tile_group_x_i
+    ,input [y_cord_width_p-1:0]             tile_group_y_i
+
     ,output                                 v_o
     ,output [packet_width_lp-1:0]           data_o
     );
 
-   `declare_bsg_manycore_addr_s(epa_addr_width_p, max_x_cord_width_lp, max_y_cord_width_lp);
+   `declare_bsg_manycore_addr_s(epa_word_addr_width_p, max_x_cord_width_lp, max_y_cord_width_lp);
+   `declare_bsg_manycore_global_addr_s(epa_word_addr_width_p, max_x_cord_width_lp, max_y_cord_width_lp);
    `declare_bsg_manycore_dram_addr_s(dram_ch_addr_width_p);
-
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
 
    bsg_manycore_packet_s        pkt;
    bsg_manycore_addr_s          addr_decode;
    bsg_manycore_dram_addr_s     dram_addr_decode;
+   bsg_manycore_global_addr_s   global_addr_decode;
 
    assign addr_decode           = addr_i;
    assign dram_addr_decode      = addr_i;
+   assign global_addr_decode    = addr_i;
    assign data_o                = pkt;
 
    // memory map in special opcodes; fixme, can reclaim more address space by
@@ -56,25 +63,35 @@ module bsg_manycore_pkt_encode
 
    assign pkt.op_ex  = mask_i;
 
-   // remote top bit of address, which is the special op code space.
-   // low bits are automatically
-   // The 'configure' operation is now encoded in the address
-   assign pkt.addr   =  dram_addr_decode.is_dram_addr ? addr_width_p ' (dram_addr_decode.addr)
-                                                      : addr_width_p ' (addr_decode.addr[$size(addr_decode.addr)-1:0]);
+   // global addr -- global network addr
+   // remote addr -- in tile group remote addr 
+   wire is_global_addr = global_addr_decode.remote == global_addr_prefix_lp;
+   wire is_remote_addr = addr_decode.remote == remote_addr_prefix_lp;
+   wire is_dram_addr   = dram_addr_decode.is_dram_addr;
+
+   assign pkt.addr   =  dram_addr_decode.is_dram_addr
+                        ? {1'b0, (dram_ch_addr_width_p)'(dram_addr_decode.addr)}
+                        : (addr_width_p)'(addr_decode.addr);
 
 
    assign pkt.payload    = data_i;
-   assign pkt.x_cord     = dram_addr_decode.is_dram_addr ? x_cord_width_p'(dram_addr_decode.x_cord + dram_ch_start_col_p)
-                                                         : addr_decode.x_cord;
-   assign pkt.y_cord     = dram_addr_decode.is_dram_addr ? {y_cord_width_p{1'b1}} //Set to Y_MAX
-                                                         : addr_decode.y_cord;
+   assign pkt.x_cord     = dram_addr_decode.is_dram_addr ? 
+                            x_cord_width_p'(dram_addr_decode.x_cord + dram_ch_start_col_p)
+                           :( is_global_addr  ?  x_cord_width_p'(addr_decode.x_cord)
+                                              :  x_cord_width_p'(addr_decode.x_cord + tile_group_x_i)
+                            );
+
+   assign pkt.y_cord     = dram_addr_decode.is_dram_addr
+                          ? {y_cord_width_p{1'b1}} //Set to Y_MAX
+                          : ( is_global_addr ? y_cord_width_p'(addr_decode.y_cord)
+                                             : y_cord_width_p'(addr_decode.y_cord + tile_group_y_i)
+                            );
 
    assign pkt.src_x_cord = my_x_i;
    assign pkt.src_y_cord = my_y_i;
 
-   assign v_o = (   dram_addr_decode.is_dram_addr 
-                  |(addr_decode.remote == remote_addr_prefix_p)
-                ) & v_i;
+   wire  is_network_addr = is_global_addr | is_remote_addr | is_dram_addr ;
+   assign v_o =  is_network_addr & v_i;
 
    // synopsys translate_off
    if (debug_p)
@@ -97,7 +114,7 @@ module bsg_manycore_pkt_encode
 //     end
    always_ff @(negedge clk_i)
      begin
-        if ( ~addr_decode.remote & (swap_aq_i | swap_rl_i ) & v_i)
+        if ( ~is_network_addr & (swap_aq_i | swap_rl_i ) & v_i)
           begin
              $error("%m swap with local memory address %x", addr_i);
              $finish();

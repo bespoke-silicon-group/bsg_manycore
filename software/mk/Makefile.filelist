@@ -59,10 +59,12 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_mux_one_hot.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_encode_one_hot.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_scan.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_counter_up_down.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_counter_clear_up.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_circular_ptr.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode_with_v.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_decode.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_dff_reset_en.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_inv.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1r1w.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1r1w_synth.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_mem/bsg_mem_1rw_sync.v
@@ -80,10 +82,11 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_stitch.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_to_ring_stitch.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_router_buffered.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_hetero_socket.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_gather_scatter.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint.v
-LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_swap_ctrl.v
+LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_lock_ctrl.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_1hold.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint_standard.v
 LIST_COMMON_SRCS+= $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_tieoff.v
@@ -116,3 +119,9 @@ DESIGN_INCS = $(LIST_VANILLA_INCS) $(LIST_COMMON_INCS)
 DESIGN_SRCS = $(LIST_VANILLA_SRCS) $(LIST_COMMON_SRCS)
 
 TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/basic/test_bsg_manycore.v
+
+###################################################################################
+# VCS coverage config files
+VCS_COV_HIER_CONFIG = $(BSG_MANYCORE_DIR)/testbenches/common/vcsCoverage/hierConfig
+VCS_COV_CONST_FILE  = $(BSG_MANYCORE_DIR)/testbenches/common/vcsCoverage/constFile
+VCS_COV_MODULE_MAP  = "bsg_manycore_tile"

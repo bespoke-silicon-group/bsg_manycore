@@ -1,6 +1,6 @@
 
-bsg_tiles_X = 4 
-bsg_tiles_Y = 8 
+override bsg_tiles_X = 4 
+override bsg_tiles_Y = 8 
 MASTER_X   ?= 2
 MASTER_Y   ?= 2
 

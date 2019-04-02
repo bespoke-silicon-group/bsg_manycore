@@ -174,4 +174,10 @@ localparam RV32_Jimm_width_gp     = 20;
                                                       & (~ (| addr[ (``addr_width``-1) : `MC_ICACHE_MASK_BITS -1 ]) ) \
                                                      )
 
+/////////////////////////////////////////////////////
+// The CSR Address
+`define         CSR_FREEZE             0
+`define         CSR_TGO_X              1
+`define         CSR_TGO_Y              2
+
 `endif

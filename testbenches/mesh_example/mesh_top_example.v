@@ -20,9 +20,10 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
                             ,y_cord_width_p         = "inv"
                             ,data_width_p           = 32
                             ,addr_width_p           = 32
-                            ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                            ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
-                            ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                            ,load_id_width_p        = 11
+                            ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p)
+                            ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p, load_id_width_p)
+                            ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p)
                            )
    (  input     clk_i
     , input     reset_i
@@ -54,6 +55,7 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
            ,.y_cord_width_p   (y_cord_width_p )
            ,.data_width_p     (data_width_p   )
            ,.addr_width_p     (addr_width_p   )
+           ,.load_id_width_p  (load_id_width_p)
          )mesh_node
          (
             .clk_i            (clk_i                  )
@@ -77,6 +79,7 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
       ,.y_cord_width_p   (y_cord_width_p )
       ,.data_width_p     (data_width_p   )
       ,.addr_width_p     (addr_width_p   )
+      ,.load_id_width_p  (load_id_width_p)
   )master
    (  .clk_i
     , .reset_i
@@ -101,6 +104,7 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
       ,.y_cord_width_p   (y_cord_width_p )
       ,.data_width_p     (data_width_p   )
       ,.addr_width_p     (addr_width_p   )
+      ,.load_id_width_p  (load_id_width_p)
   )slave
    (  .clk_i
     , .reset_i
@@ -129,6 +133,7 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
                        ,.data_width_p  (data_width_p  )
                        ,.x_cord_width_p(x_cord_width_p)
                        ,.y_cord_width_p(y_cord_width_p)
+                       ,.load_id_width_p(load_id_width_p)
                       ) bmlst_router
                       (        .clk_i
                               ,.reset_i
@@ -145,6 +150,7 @@ module mesh_top_example #(   x_cord_width_p         = "inv"
     ,.data_width_p  (data_width_p  )
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
+    ,.load_id_width_p(load_id_width_p)
    ) bmlst_proc
    (        .clk_i
            ,.reset_i

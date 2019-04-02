@@ -24,18 +24,16 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    ,parameter data_width_p    = 32
    ,parameter addr_width_p    = 30
    ,parameter load_id_width_p = 5
-   ,parameter epa_addr_width_p= 16
+   ,parameter epa_byte_addr_width_p= 16
    ,parameter dram_ch_addr_width_p=-1
    ,parameter dram_ch_num_p   = 0
    ,parameter tile_id_ptr_p   = -1
    ,parameter num_rows_p      = -1
    ,parameter num_cols_p      = -1
-   ,parameter load_rows_p     = num_rows_p
-   ,parameter load_cols_p     = num_cols_p
 
-   ,parameter y_cord_width_lp  = `BSG_SAFE_CLOG2(num_rows_p + 1)
-   ,parameter x_cord_width_lp  = `BSG_SAFE_CLOG2(num_cols_p)
-   ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
+   ,parameter y_cord_width_p  = -1
+   ,parameter x_cord_width_p  = -1 
+   ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
    //the vicitim cache  paraemters
    ,parameter init_vcache_p   = 0
    ,parameter vcache_entries_p = -1 
@@ -55,15 +53,17 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
    // loaded into the memory
    ,parameter unsigned num_code_sections_p = `NUM_CODE_SECTIONS
    ,parameter integer code_sections_p[0:(2*num_code_sections_p)-1] = '{`CODE_SECTIONS}
+
   )
+  
   ( input                        clk_i
    ,input                        reset_i
    ,output [packet_width_lp-1:0] data_o
    ,output                       v_o
    ,input                        ready_i
 
-   ,input [y_cord_width_lp-1:0]  my_y_i
-   ,input [x_cord_width_lp-1:0]  my_x_i
+   ,input [y_cord_width_p-1:0]  my_y_i
+   ,input [x_cord_width_p-1:0]  my_x_i
   );
 
   //initilization files
@@ -73,11 +73,11 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   logic [7:0]  DMEM[dmem_end_addr_lp:dmem_start_addr_lp];
   logic [7:0]  DRAM[dram_end_addr_lp:dram_start_addr_lp];
 
-  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p);
+  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
   `declare_bsg_manycore_dram_addr_s(dram_ch_addr_width_p);
 
-  localparam    config_addr_bits = 1 << ( epa_addr_width_p-1);
-  localparam    unfreeze_addr = addr_width_p'(0) | config_addr_bits;
+  localparam    config_byte_addr = 1 << ( epa_byte_addr_width_p-1);
+  localparam    unfreeze_addr = addr_width_p'(0) | config_byte_addr;
 
   logic                         var_v_o;
   bsg_manycore_packet_s         var_data_o;
@@ -95,14 +95,15 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         var_v_o = 1'b0;
         wait( reset_i === 1'b0); //wait until the reset is done
 
-        init_icache_tag ();
-        init_dmem       ();
+        config_tile_group(`bsg_tiles_org_X, `bsg_tiles_org_Y, `bsg_tiles_X, `bsg_tiles_Y );
+        init_icache     (`bsg_tiles_org_X, `bsg_tiles_org_Y, `bsg_tiles_X, `bsg_tiles_Y );
+        init_dmem       (`bsg_tiles_org_X, `bsg_tiles_org_Y, `bsg_tiles_X, `bsg_tiles_Y );
 
         if( init_vcache_p)
                 init_vcache();
 
-        init_dram       ();
-        unfreeze_tiles  ();
+        init_dram();
+        unfreeze_tiles   (`bsg_tiles_org_X, `bsg_tiles_org_Y, `bsg_tiles_X, `bsg_tiles_Y );
 
         @(posedge clk_i);  
         var_v_o = 1'b0;
@@ -110,10 +111,10 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
 //----------------------------------------------------------------------------
 // Tasks to init the icache
 //----------------------------------------------------------------------------
-  task init_icache_tag();
-        int x_cord, y_cord, icache_addr, dram_byte_addr;
-        for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
-                for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
+  task init_icache( integer tg_org_x, integer tg_org_y, integer tg_dim_x, integer tg_dim_y);
+        integer x_cord, y_cord, icache_addr, dram_byte_addr;
+        for (y_cord = tg_org_y; y_cord < tg_org_y + tg_dim_y ; y_cord++ ) begin
+                for (x_cord =tg_org_x; x_cord < tg_org_x + tg_dim_x; x_cord ++) begin
                      $display("Initilizing ICACHE, y_cord=%02d, x_cord=%02d, range=0000 - %h", y_cord, x_cord, icache_entries_num_p-1);
                      for(icache_addr =0; icache_addr <icache_entries_num_p; icache_addr ++) begin
                            @(posedge clk_i);          //pull up the valid
@@ -141,10 +142,10 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   endtask 
   ///////////////////////////////////////////////////////////////////////////////
   // Task to load the data memory
-  task init_dmem();
-        int x_cord, y_cord, dmem_addr, init_data;
-        for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
-                for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
+  task init_dmem (integer tg_org_x, integer tg_org_y, integer tg_dim_x, integer tg_dim_y);
+        integer x_cord, y_cord, dmem_addr, init_data;
+        for (y_cord =tg_org_y; y_cord < tg_org_y + tg_dim_y ; y_cord++ ) begin
+                for (x_cord =tg_org_x; x_cord < tg_org_x + tg_dim_x; x_cord ++) begin
                      $display("Initilizing DMEM, y_cord=%02d, x_cord=%02d, range=%h - %h (byte)", y_cord, x_cord, dmem_start_addr_lp, dmem_end_addr_lp);
                      for(dmem_addr =dmem_start_addr_lp; dmem_addr < dmem_end_addr_lp; dmem_addr= dmem_addr +4) begin
                                 @(posedge clk_i);          //pull up the valid
@@ -179,10 +180,10 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   ///////////////////////////////////////////////////////////////////////////////
   // Task to load the dram
   task init_dram( );
-        int dram_addr;
+        integer dram_addr;
         bsg_manycore_dram_addr_s  dram_addr_cast; 
 
-        int instr_count = 0;
+        integer instr_count = 0;
         for(integer section = 0; section < num_code_sections_p; section = section + 1) begin
             $display("Initilizing DRAM section:%0d, range=%h - %h", section+1, code_sections_p[2*section], code_sections_p[2*section+1]);
             for(dram_addr = code_sections_p[2*section]; dram_addr < code_sections_p[2*section+1]; dram_addr= dram_addr +4) begin
@@ -196,8 +197,8 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                        var_data_o.addr       = dram_addr >>2;
                        var_data_o.op         = `ePacketOp_remote_store;
                        var_data_o.op_ex      =  4'b1111; //TODO not handle the byte write.
-                       var_data_o.x_cord     = x_cord_width_lp'( dram_addr_cast.x_cord );
-                       var_data_o.y_cord     = {y_cord_width_lp{1'b1}};
+                       var_data_o.x_cord     = x_cord_width_p'( dram_addr_cast.x_cord );
+                       var_data_o.y_cord     = {y_cord_width_p{1'b1}};
                        var_data_o.src_x_cord = my_x_i;
                        var_data_o.src_y_cord = my_y_i;
 
@@ -209,12 +210,12 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   endtask 
   ///////////////////////////////////////////////////////////////////////////////
   // Task to unfreeze the tiles
-  task unfreeze_tiles();
-        int x_cord, y_cord ;
+  task unfreeze_tiles(integer tg_org_x, integer tg_org_y, integer tg_dim_x, integer tg_dim_y);
+        integer x_cord, y_cord ;
 
         $display("Unfreezing tiles ...");
-        for (y_cord =0; y_cord < num_rows_p; y_cord++ ) begin
-                for (x_cord =0; x_cord < num_cols_p; x_cord ++) begin
+        for (y_cord =tg_org_y; y_cord < tg_org_y + tg_dim_y; y_cord++ ) begin
+                for (x_cord =tg_org_x; x_cord < tg_org_x + tg_dim_x ; x_cord ++) begin
                     @(posedge clk_i);          //pull up the valid
                     var_v_o = 1'b1; 
 
@@ -235,7 +236,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   ///////////////////////////////////////////////////////////////////////////////
   // Task to initilized the victim cache
   task init_vcache();
-        int x_cord, y_cord, tag_addr ;
+        integer x_cord, y_cord, tag_addr ;
 
         $display("initilizing the victim caches, sets=%0d, ways=%0d", vcache_entries_p, vcache_ways_p);
         for (x_cord =0; x_cord < dram_ch_num_p; x_cord ++) begin
@@ -249,13 +250,48 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                         var_data_o.op         = `ePacketOp_remote_store;
                         var_data_o.op_ex      =  4'b1111; //TODO not handle the byte write.
                         var_data_o.x_cord     = x_cord;
-                        var_data_o.y_cord     = {y_cord_width_lp{1'b1}};
-                        //var_data_o.y_cord     = (y_cord_width_lp)'(num_rows_p);
+                        var_data_o.y_cord     = {y_cord_width_p{1'b1}};
+                        //var_data_o.y_cord     = (y_cord_width_p)'(num_rows_p);
                         var_data_o.src_x_cord = my_x_i;
                         var_data_o.src_y_cord = my_y_i;
 
                         @(negedge clk_i);
                         wait( ready_i === 1'b1);   //check if the ready is pulled up.
+                end
+        end
+  endtask 
+  ///////////////////////////////////////////////////////////////////////////////
+  // Task to initilized the Tile Group Origin
+  task config_tile_group(integer tg_org_x, integer tg_org_y, integer tg_dim_x, integer tg_dim_y);
+        integer x_cord, y_cord, CSR_ADDR;
+        integer i;
+
+        $display("############################################################");
+        $display("Configuring the Tile Group Association.");
+        $display("############################################################");
+        $display("Total Tiles in network X=%02d, Y=%02d", `bsg_global_X, `bsg_global_Y);
+
+        for (y_cord =tg_org_y; y_cord < tg_org_y + tg_dim_y; y_cord ++) begin
+                for(x_cord =tg_org_x; x_cord < tg_org_x + tg_dim_x ; x_cord++)begin
+                      for(CSR_ADDR=4; CSR_ADDR<=8; CSR_ADDR=CSR_ADDR+4) begin
+                                @(posedge clk_i);          //pull up the valid
+                                var_v_o = 1'b1; 
+                                 
+                                var_data_o.payload    =  (CSR_ADDR==4)? tg_org_x : tg_org_y;
+                                //MSB==1 : The vcache tag
+                                var_data_o.addr       =  (config_byte_addr | CSR_ADDR )>>2 ;
+                                var_data_o.op         = `ePacketOp_remote_store;
+                                var_data_o.op_ex      =  4'b1111; //TODO not handle the byte write.
+                                var_data_o.x_cord     = x_cord;
+                                var_data_o.y_cord     = y_cord;
+                                //var_data_o.y_cord     = (y_cord_width_lp)'(num_rows_p);
+                                var_data_o.src_x_cord = my_x_i;
+                                var_data_o.src_y_cord = my_y_i;
+
+                                @(negedge clk_i);
+                                wait( ready_i === 1'b1);   //check if the ready is pulled up.
+                       end
+                       $display("Tile (y,x)=(%0d,%0d) Set to Group Origin(y,x)=(%0d,%0d), dim(y,x)=(%0d,%0d).", y_cord, x_cord, tg_org_y, tg_org_x, tg_dim_y, tg_dim_x);
                 end
         end
   endtask 

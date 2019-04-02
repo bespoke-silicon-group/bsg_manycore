@@ -544,6 +544,10 @@ scoreboard
   ,.src2_id_i    (id.instruction.rs2)
   ,.dest_id_i    (id.instruction.rd)
 
+  ,.op_reads_rf1 (id.decode.op_reads_rf1)
+  ,.op_reads_rf2 (id.decode.op_reads_rf2)
+  ,.op_writes_rf (id.decode.op_writes_rf)
+
   ,.score_i      (record_load)
   ,.clear_i      (yumi_to_mem_c)
   ,.clear_id_i   (from_mem_i.load_info.reg_id)
@@ -569,6 +573,7 @@ assign pending_load_arrived = from_mem_i.valid & ~current_load_arrived;
 
 // Disable load data insertion in WB & MEM stages as forwarding
 // is pre-computed in EXE stage
+wb_signals_s wb_from_mem;
 assign wb_free_for_load  = ~wb_from_mem.op_writes_rf & 1'b0;
 assign mem_free_for_load = ~mem.decode.op_writes_rf & 1'b0;
 // Since remote load takes more than one cycle to fetch, and as loads are
@@ -1115,7 +1120,6 @@ begin
   end
 end
 
-wb_signals_s wb_from_mem;
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
@@ -1202,6 +1206,20 @@ end
 
 
 //synopsys translate_off
+//-----------------------------------------------------
+// SP overflow checking.
+// sp                           : x2
+// _bsg_data_end_addr           : defined in Makefile and passed to VCS
+localparam bsg_data_end_lp =  `_bsg_data_end_addr ;
+
+always@( negedge clk_i ) begin
+        if( !reset_i && rf_wen      &&      rf_wa == 2   && rf_wd < bsg_data_end_lp ) begin
+                $display("##---------------------------------------------");
+                $display("## Warning: SP underflow:  local memory data end =%x, sp=%h,%t,%m", bsg_data_end_lp, rf_wd, $time); 
+                $display("##---------------------------------------------");
+        end
+end
+
 if (trace_lp)
   always_ff @(negedge clk_i)
     begin

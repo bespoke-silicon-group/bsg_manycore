@@ -1,0 +1,22 @@
+Manycore regression
+===================
+
+RTL regression testing of the manycore.
+
+make [bsg_tiles_X=<x>] [bsg_tiles_Y=<y>] [COVERAGE=VCS] 
+
+- bsg_tiles_X
+    Can be used to specify the number of rows to be instantiated. Default
+    value provided in individual testcases.
+- bsg_tiles_Y 
+    Can be used to specify the number of columns to be instantiated. Default
+    value provided in individual testcases.
+- COVERAGE=VCS
+    RTL Coverage analysis using VCS. Coverage reports generated using
+    Unified Coverage Genrator (URG). Default configuration used for
+    the coverage analysis is 4x4. This will be overwritten only when
+    above dimension variables are explicitly set.
+
+Note: 
+    Current design is only tested for x<=4, y<=4 and dimensions mentioned in
+    individual testcases.

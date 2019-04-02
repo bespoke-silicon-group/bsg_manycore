@@ -35,7 +35,7 @@ typedef struct bsg_barrier_ {
 
 //initial value of the bsg_barrier
 #define BSG_BARRIER_INIT( x_cord_start, x_cord_end, y_cord_start, y_cord_end)\
-    {   bsg_mutex_unlocked      \
+    {   0                       \
        ,0                       \
        ,x_cord_start            \
        ,x_cord_end              \
@@ -44,17 +44,17 @@ typedef struct bsg_barrier_ {
        ,_alert_init             \
     }
 
-void bsg_barrier_wait(  bsg_barrier *  p_local_barrier, int barrier_x_cord, int barrier_y_cord );
+static inline void bsg_barrier_wait(  bsg_barrier *  p_local_barrier, int barrier_x_cord, int barrier_y_cord );
 
 //------------------------------------------------------------------
 
-void bsg_barrier_wait(  bsg_barrier *  p_local_barrier, int barrier_x_cord, int barrier_y_cord ){
+static inline void bsg_barrier_wait(  bsg_barrier *  p_local_barrier, int barrier_x_cord, int barrier_y_cord ){
 
     bsg_barrier * p_remote_barrier = (bsg_barrier *) bsg_remote_ptr( barrier_x_cord,    \
                                                                      barrier_y_cord,    \
                                                                      p_local_barrier);
 
-    bsg_atomic_add ( &(p_remote_barrier->_mutex), &(p_remote_barrier->_joined_count) );
+    bsg_atomic_inc ( &(p_remote_barrier->_mutex), &(p_remote_barrier->_joined_count) );
 
     //wait all the thread reach the barrier
     if( (bsg_x == barrier_x_cord)  && (bsg_y == barrier_y_cord) ){

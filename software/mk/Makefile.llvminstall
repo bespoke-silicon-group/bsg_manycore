@@ -1,0 +1,37 @@
+ifndef LLVM_DIR
+    $(error Need to define LLVM_DIR)
+endif
+
+ifndef RISCV_INSTALL_DIR
+    $(error Need to define RISCV_INSTALL_DIR)
+endif
+
+llvm-install:
+	# Install cmake
+	wget https://github.com/Kitware/CMake/releases/download/v3.14.0-rc4/cmake-3.14.0-rc4-Linux-x86_64.sh -O cmake-install.sh
+	chmod +x cmake-install.sh && sudo ./cmake-install.sh --skip-license --prefix=/usr/local
+	rm cmake-install.sh
+	mkdir -p $(LLVM_DIR)/llvm-build && mkdir -p $(LLVM_DIR)/llvm-install
+	# Clone LLVM sources
+	cd $(LLVM_DIR) && wget http://releases.llvm.org/7.0.1/llvm-7.0.1.src.tar.xz && \
+	    tar -xf llvm-7.0.1.src.tar.xz && mv llvm-7.0.1.src llvm-src && rm llvm-7.0.1.src.tar.xz
+	# Clone clang sources
+	cd $(LLVM_DIR)/llvm-src/tools && wget http://releases.llvm.org/7.0.1/cfe-7.0.1.src.tar.xz \
+	    && tar -xf cfe-7.0.1.src.tar.xz && mv cfe-7.0.1.src clang && rm cfe-7.0.1.src.tar.xz
+	# -DGCC_INSTALL_PREFIX, -DDEFAULT_SYSROOT, -DLLVM_DEFAULT_TARGET_TRIPLE
+	# aren't strictly necessary, but otherwise there'd be more options to
+	# pass on the command line for clang. We Only need X86 and RISCV targets.
+	cd $(LLVM_DIR)/llvm-build \
+	    && cmake -DCMAKE_BUILD_TYPE="Debug" \
+	    -DLLVM_TARGETS_TO_BUILD="X86" \
+	    -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="RISCV" \
+	    -DBUILD_SHARED_LIBS=True \
+	    -DLLVM_USE_SPLIT_DWARF=True \
+	    -DLLVM_OPTIMIZED_TABLEGEN=True \
+	    -DCMAKE_INSTALL_PREFIX="$(LLVM_DIR)/llvm-install" \
+	    -DGCC_INSTALL_PREFIX="$(LLVM_DIR)/local" \
+	    -DDEFAULT_SYSROOT="$(RISCV_INSTALL_DIR)/riscv32-unknown-elf" \
+	    -DLLVM_DEFAULT_TARGET_TRIPLE="riscv32-unknown-elf" \
+	    ../llvm-src
+	cd  $(LLVM_DIR)/llvm-build && cmake --build . -- -j12 && make install
+	rm -rf $(LLVM_DIR)/llvm-build $(LLVM_DIR)/llvm-src

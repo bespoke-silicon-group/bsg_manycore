@@ -18,6 +18,14 @@ VCS_OPTIONS+= +define+_bsg_dram_end_addr=$(call find-shifted-section-addr, _bsg_
 
 VCS_OPTIONS+= +define+_dram_init_file_name='"$(PROG_NAME)_dram.mem"'
 VCS_OPTIONS+= +define+_dmem_init_file_name='"$(PROG_NAME)_dmem.mem"'
+####################
+# Tile Group Configuration
+VCS_OPTIONS+= +define+bsg_tiles_org_X=$(bsg_tiles_org_X)
+VCS_OPTIONS+= +define+bsg_tiles_org_Y=$(bsg_tiles_org_Y)
+VCS_OPTIONS+= +define+bsg_tiles_X=$(bsg_tiles_X)
+VCS_OPTIONS+= +define+bsg_tiles_Y=$(bsg_tiles_Y)
+VCS_OPTIONS+= +define+bsg_global_Y=$(bsg_global_Y)
+VCS_OPTIONS+= +define+bsg_global_X=$(bsg_global_X)
 
 # Info for the SPMD loader to only load specific sections of code
 # to the DRAM. If these are not defined, the complete address range

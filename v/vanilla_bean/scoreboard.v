@@ -12,6 +12,10 @@ module scoreboard
   ,input [id_width_p-1:0]        src2_id_i
   ,input [id_width_p-1:0]        dest_id_i
 
+  ,input                         op_reads_rf1
+  ,input                         op_reads_rf2
+  ,input                         op_writes_rf
+
   ,input                         score_i
   ,input                         clear_i
   ,input [id_width_p-1:0]        clear_id_i
@@ -46,9 +50,9 @@ module scoreboard
 
   always_comb
   begin
-    if((scoreboard[src1_id_i] & ~(clear_i & (clear_id_i == src1_id_i)))
-       || (scoreboard[src2_id_i] & ~(clear_i & (clear_id_i == src2_id_i)))
-       || (scoreboard[dest_id_i] & ~(clear_i & (clear_id_i == dest_id_i))))
+    if((scoreboard[src1_id_i] & ~(clear_i & (clear_id_i == src1_id_i) & op_reads_rf1))
+       || (scoreboard[src2_id_i] & ~(clear_i & (clear_id_i == src2_id_i) & op_reads_rf2))
+       || (scoreboard[dest_id_i] & ~(clear_i & (clear_id_i == dest_id_i) & op_writes_rf)))
       dependency_o = 1'b1;
     else
       dependency_o = 1'b0;

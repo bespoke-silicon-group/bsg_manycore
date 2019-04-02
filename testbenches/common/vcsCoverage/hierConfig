@@ -1,0 +1,23 @@
++tree test_bsg_manycore.UUT
+
+// No 0 -> 1 reset transition in our sims.
+-node 0to1 test_bsg_manycore*.reset_*
+
+// these are only used for debug purposes
+-node test_bsg_manycore*.my_x_i
+-node test_bsg_manycore*.my_y_i
+
+// Exclude memory arrays in banked local memories
+-node test_bsg_manycore.UUT.*.tile.proc.h.z.bnkd_xbar.z[0].m1rw_mask.synth.bk[*].mem_1rw_sync.synth.mem
+
+// Unused toplvel ports
+-node test_bsg_manycore.UUT.hor_link_sif_i // EW inputs
+-node test_bsg_manycore.UUT.hor_link_sif_o // EW outputs
+-node test_bsg_manycore.UUT.ver_link_sif_i[3] // N inputs; strangely, tool doesn't seem to consider signals with selects
+-node test_bsg_manycore.UUT.ver_link_sif_o[3] // N outputs
+
+// Unused ports in bsg_mesh_stitch
+-node test_bsg_manycore.UUT.link.hor_i
+-node test_bsg_manycore.UUT.link.hor_o
+-node test_bsg_manycore.UUT.link.ver_i[3]
+-node test_bsg_manycore.UUT.link.ver_o[3]

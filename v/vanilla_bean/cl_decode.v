@@ -76,8 +76,10 @@ always_comb
 `endif
         //currently we only supports lr, swap.aq, swap.rl AMO. further extensions should
         //decode more details
-        `RV32_LOAD, `RV32_AMO:
-            decode_o.is_load_op = 1'b1;
+        `RV32_LOAD:
+            decode_o.is_load_op = 1'b1; 
+        `RV32_AMO:
+            decode_o.is_load_op =(instruction_i.funct7 != `RV32_AMOSWAP_RL_FUN7);
         default:
             decode_o.is_load_op = 1'b0;
     endcase
@@ -97,8 +99,7 @@ always_comb
         `RV32_STORE:
             decode_o.is_store_op = 1'b1;
         `RV32_AMO: // amoswap.aq and amoswap.rl
-            decode_o.is_store_op =( instruction_i.funct7 == `RV32_AMOSWAP_AQ_FUN7)
-                                 |( instruction_i.funct7 == `RV32_AMOSWAP_RL_FUN7);
+            decode_o.is_store_op = ( instruction_i.funct7 == `RV32_AMOSWAP_RL_FUN7);
         default:
             decode_o.is_store_op = 1'b0;
   endcase

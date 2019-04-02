@@ -18,7 +18,7 @@ module bsg_manycore_tile
   parameter data_width_p = 32,
   parameter addr_width_p = "inv",
   parameter load_id_width_p = 5,
-  parameter epa_addr_width_p = "inv",
+  parameter epa_byte_addr_width_p = "inv",
   parameter dram_ch_addr_width_p = "inv",
   parameter dram_ch_start_col_p  = 0,
 
@@ -93,7 +93,7 @@ module bsg_manycore_tile
       .data_width_p(data_width_p),
       .addr_width_p(addr_width_p),
       .load_id_width_p(load_id_width_p),
-      .epa_addr_width_p( epa_addr_width_p),
+      .epa_byte_addr_width_p( epa_byte_addr_width_p),
       .dram_ch_addr_width_p( dram_ch_addr_width_p ),
       .dram_ch_start_col_p ( dram_ch_start_col_p  ),
       .hetero_type_p(hetero_type_p)

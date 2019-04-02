@@ -9,9 +9,10 @@ module mesh_slave_example #( x_cord_width_p         = "inv"
                             ,y_cord_width_p         = "inv"
                             ,data_width_p           = 32
                             ,addr_width_p           = 32
-                            ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-                            ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
-                            ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                            ,load_id_width_p        = 11
+                            ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p)
+                            ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p,load_id_width_p)
+                            ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p)
                            )
    (  input clk_i
     , input reset_i
@@ -59,6 +60,7 @@ module mesh_slave_example #( x_cord_width_p         = "inv"
                              ,.fifo_els_p            ( 4                 )
                              ,.data_width_p          ( data_width_p      )
                              ,.addr_width_p          ( addr_width_p      )
+                             ,.load_id_width_p       ( load_id_width_p   )
                              ,.max_out_credits_p     ( 16                )
                         )endpoint_example
 
@@ -78,6 +80,8 @@ module mesh_slave_example #( x_cord_width_p         = "inv"
     ,.in_mask_o  (                      )
     ,.in_addr_o  ( in_addr_lo           )
     ,.in_we_o    ( in_we_lo             )
+    ,.in_src_x_cord_o(  )
+    ,.in_src_y_cord_o(  )
 
     // The memory read value
     ,.returning_data_i  ( read_data_r   )
@@ -93,6 +97,9 @@ module mesh_slave_example #( x_cord_width_p         = "inv"
    // handle the returned data
     ,.returned_data_r_o(                )
     ,.returned_v_r_o   (                )
+    ,.returned_load_id_r_o(             )
+    ,.returned_fifo_full_o(             )
+    ,.returned_yumi_i      (   1'b0      )
 
     ,.out_credits_o     (               )
     );
