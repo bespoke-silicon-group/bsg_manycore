@@ -158,6 +158,7 @@ _start:
   li sp, 4096*2-4
   #la t0, main
   #csrw mepc, t0
+  call bsg_newlib_fs_init
   j main
 2:
   j 2b
