@@ -977,7 +977,14 @@ assign fiu_alu_result = alu_result;
 // dram addr                    : 1xxxxxxxx
 // out-group remote addr        : 01xxxxxxx
 // in-group remote addr         : 001xxxxxx
-assign remote_load_in_exe = exe.decode.is_load_op & ( | mem_addr_send[ (RV32_reg_data_width_gp-1)  -: 3] );
+//assign remote_load_in_exe = exe.decode.is_load_op & ( | mem_addr_send[ (RV32_reg_data_width_gp-1)  -: 3] );
+wire is_dram_addr   = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 1 ] == 1'b1;
+wire is_global_addr = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 2 ] == 2'b01;
+wire is_group_addr  = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 2 ] == 2'b001;
+
+assign remote_load_in_exe = exe.decode.is_load_op 
+                         & (is_global_addr | is_group_addr | is_dram_addr)
+                         & (~exe.icache_miss); 
 
 // Loded data is inserted into the exe stage along
 // with an instruction that doesn't write to RF
