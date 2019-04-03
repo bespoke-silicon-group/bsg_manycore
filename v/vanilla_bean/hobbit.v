@@ -316,38 +316,37 @@ assign pc_plus4 = pc_r + 1'b1;
 
 
 // Determine what the next PC should be
-always_comb
-begin
-    // Network setting PC (highest priority)
-    if (net_pc_write_cmd_idle)
-        pc_n = net_packet_r.header.addr[2+:pc_width_lp];
-    // cache miss
-    else if (wb.icache_miss)
-        pc_n = wb.icache_miss_pc[2+:pc_width_lp];
+always_comb begin
+  // Network setting PC (highest priority)
+  if (net_pc_write_cmd_idle)
+    pc_n = net_packet_r.header.addr[2+:pc_width_lp];
+  // cache miss
+  else if (wb.icache_miss)
+    pc_n = wb.icache_miss_pc[2+:pc_width_lp];
 
-    // Fixing a branch misprediction (or single cycle branch will
-    // follow a branch under prediction logic)
-    else if (branch_mispredict)
-        if (branch_under_predict)
-            pc_n = exe.pc_jump_addr[2+:pc_width_lp];
-        else
-            pc_n = exe.pc_plus4[2+:pc_width_lp];
-
-    // Fixing a JALR misprediction (or a signal cycle JALR instruction)
-    else if (jalr_mispredict)
-        pc_n = jalr_addr;
-
-    // Predict taken branch or instruction is a long jump
-    else if ((decode.is_branch_op & instruction[pred_index_lp]) | (instruction.op == `RV32_JAL_OP))
-        pc_n = pc_jump_addr;
-
-    // Predict jump to previous linked location
-    else if (decode.is_jump_op) // equivalent to (instruction ==? `RV32_JALR)
-        pc_n = jalr_prediction_n [2 +: pc_width_lp];
-
-    // Standard operation or predict not taken branch
+  // Fixing a branch misprediction (or single cycle branch will
+  // follow a branch under prediction logic)
+  else if (branch_mispredict)
+    if (branch_under_predict)
+      pc_n = exe.pc_jump_addr[2+:pc_width_lp];
     else
-        pc_n = pc_plus4;
+      pc_n = exe.pc_plus4[2+:pc_width_lp];
+
+  // Fixing a JALR misprediction (or a signal cycle JALR instruction)
+  else if (jalr_mispredict)
+    pc_n = jalr_addr;
+
+  // Predict taken branch or instruction is a long jump
+  else if ((decode.is_branch_op & instruction[pred_index_lp]) | (instruction.op == `RV32_JAL_OP))
+    pc_n = pc_jump_addr;
+
+  // Predict jump to previous linked location
+  else if (decode.is_jump_op) // equivalent to (instruction ==? `RV32_JALR)
+    pc_n = jalr_prediction_n [2 +: pc_width_lp];
+
+  // Standard operation or predict not taken branch
+  else
+    pc_n = pc_plus4;
 end
 
 //+----------------------------------------------
@@ -534,26 +533,24 @@ assign record_load  = id.decode.is_load_op & id.decode.op_writes_rf
 // "depend_stall" stalls ID stage and inserts nop into EXE stage.
 assign depend_stall = dependency;
 
-scoreboard
- #(.els_p (32)
-  ) load_sb
-  (.clk_i        (clk_i)
-  ,.reset_i      (reset_i)
+scoreboard scoreboard_inst (
+  .clk_i(clk_i)
+  ,.reset_i(reset_i)
 
-  ,.src1_id_i    (id.instruction.rs1)
-  ,.src2_id_i    (id.instruction.rs2)
-  ,.dest_id_i    (id.instruction.rd)
+  ,.src1_id_i(id.instruction.rs1)
+  ,.src2_id_i(id.instruction.rs2)
+  ,.dest_id_i(id.instruction.rd)
 
-  ,.op_reads_rf1 (id.decode.op_reads_rf1)
-  ,.op_reads_rf2 (id.decode.op_reads_rf2)
-  ,.op_writes_rf (id.decode.op_writes_rf)
+  ,.op_reads_rf1_i(id.decode.op_reads_rf1)
+  ,.op_reads_rf2_i(id.decode.op_reads_rf2)
+  ,.op_writes_rf_i(id.decode.op_writes_rf)
 
-  ,.score_i      (record_load)
-  ,.clear_i      (yumi_to_mem_c)
-  ,.clear_id_i   (from_mem_i.load_info.reg_id)
+  ,.score_i(record_load)
+  ,.clear_i(yumi_to_mem_c)
+  ,.clear_id_i(from_mem_i.load_info.reg_id)
 
-  ,.dependency_o (dependency)
-  );
+  ,.dependency_o(dependency)
+);
 
 //+----------------------------------------------
 //|
