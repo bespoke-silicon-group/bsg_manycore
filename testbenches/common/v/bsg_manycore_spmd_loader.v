@@ -306,7 +306,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
   
   wire [data_width_p-1:0] bsg_cudal_sig_ptr_val = {2'b01, 6'(my_y_i), 6'(my_x_i), 18'b0};
   wire logic[31:0] kernel_param_lp[4][2]  = '{   {32'h`_bsg_cudal_kernel_ptr, 1                     },         //0
-                                          {32'h`_bsg_cudal_argc      , 1                     },                //1
+                                          {32'h`_bsg_cudal_argc      , 8                     },                //1
                                           {32'h`_bsg_cudal_argv_ptr  , `_bsg_dram_end_addr|(1<<31)   },                //2
                                           {32'h`_bsg_cudal_sig_ptr   , bsg_cudal_sig_ptr_val }                 //3
                                      };
@@ -324,13 +324,13 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         //set up the dram value
         dram_addr_cast = kernel_param_lp[2][1]; 
         for( i=0; i< 8; i++) begin
-                $display("## Write argv in DRAM [%h] = %h", dram_addr_cast +i , kernel_param_init_lp +i );
+                $display("## Write argv in DRAM [%h] = %h", dram_addr_cast +4*i , kernel_param_init_lp +i );
                 @(posedge clk_i);          //pull up the valid
                         var_v_o               = 1'b1; 
                         var_data_o.payload    = kernel_param_init_lp +i;
                         var_data_o.x_cord     = x_cord_width_p'( dram_addr_cast.x_cord );
                         var_data_o.y_cord     = {y_cord_width_p{1'b1}};
-                        var_data_o.addr       = dram_addr_cast.addr + i ;
+                        var_data_o.addr       = dram_addr_cast.addr + 4*i ;
                 @(negedge clk_i);
                 wait( ready_i === 1'b1);   //check if the ready is pulled up.
         end
