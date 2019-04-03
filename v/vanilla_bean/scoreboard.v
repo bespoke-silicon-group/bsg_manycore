@@ -7,7 +7,7 @@
 `include "definitions.vh"
 
 module scoreboard
-  #(parameter els_p = 32
+  #(localparam els_lp = RV32_reg_els_gp
     , localparam reg_id_width_lp = RV32_reg_addr_width_gp 
   )
   (
@@ -31,13 +31,13 @@ module scoreboard
 
   // scoreboard logic
   //
-  logic [els_p-1:0] scoreboard_r;
-  logic [els_p-1:0] scoreboard_n;
-  logic [els_p-1:0] score_en;
-  logic [els_p-1:0] clear_en;
+  logic [els_lp-1:0] scoreboard_r;
+  logic [els_lp-1:0] scoreboard_n;
+  logic [els_lp-1:0] score_en;
+  logic [els_lp-1:0] clear_en;
 
   bsg_decode_with_v #(
-    .num_out_p(els_p)
+    .num_out_p(els_lp)
   ) score_decode (
     .i(dest_id_i)
     ,.v_i(score_i)
@@ -45,7 +45,7 @@ module scoreboard
   );
   
   bsg_decode_with_v #(
-    .num_out_p(els_p)
+    .num_out_p(els_lp)
   ) clear_decode (
     .i(clear_id_i)
     ,.v_i(clear_i)
@@ -53,7 +53,7 @@ module scoreboard
   );
 
   always_comb begin
-    for (integer i = 0; i < els_p; i++) begin
+    for (integer i = 0; i < els_lp; i++) begin
       if (i == 0) begin
         scoreboard_n[i] = 1'b0; // x0 is hard-wired zero, so no dependency can be created.
       end
