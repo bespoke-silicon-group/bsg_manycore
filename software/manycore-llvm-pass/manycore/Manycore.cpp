@@ -14,6 +14,7 @@ class FunctionNotFound: public std::exception {
     }
 } functionNotFoundException;
 
+
 // Get the size of the overall struct and the offset of the field being accessed.
 // Returns -1 if we're not accessing a struct, and the offset otherwise
 // The size of the struct is returned in *struct_size if the function returns
@@ -24,39 +25,24 @@ int get_struct_info(Module &M, Value *ptr_op, unsigned *struct_size) {
     // Check if we're actually dealing with a struct
     if (!isa<GEPOperator>(ptr_op)) { return -1;}
     GEPOperator *gep = cast<GEPOperator>(ptr_op);
-    // if GEP on array, descend until base type
-    Type *source_type = gep->getSourceElementType();
-    unsigned struct_start_op_idx = 2;
-    while (isa<SequentialType>(source_type)) {
-        source_type = cast<SequentialType>(source_type)->getElementType();
-        struct_start_op_idx++;
-    }
-    if (!isa<StructType>(source_type)) { return -1;}
+    if (!isa<StructType>(gep->getSourceElementType())) { return -1;}
 
     // Work backwards through GEP Operations, computing offsets of the field being accessed to
     // get the total offset of the field into the struct
     unsigned struct_offset = 0, struct_idx;
     StructType *struct_type;
     Value *struct_idx_val;
-    while ((gep != NULL) && isa<StructType>(source_type)) {
-        // The last operand of GEP gives the index of the field in the struct definition
-        struct_type = cast<StructType>(source_type);
-        for (int i = struct_start_op_idx; i < gep->getNumOperands(); i++) {
-            struct_idx_val = gep->getOperand(i);
+    while (isa<GEPOperator>(gep->getOperand(0)) && isa<StructType>(gep->getSourceElementType())) {
+            // The last operand of GEP gives the index of the field in the struct definition
+            struct_idx_val = gep->getOperand(gep->getNumOperands() - 1);
             struct_idx = cast<ConstantInt>(struct_idx_val)->getSExtValue();
+            struct_type = cast<StructType>(gep->getSourceElementType());
+            // We only care about the size of the outermost struct, but this does the same
+            *struct_size = layout.getTypeAllocSizeInBits(struct_type) / 8;
             // Get the offset of the selected field into the struct, add it to the overall offset
             struct_offset += layout.getStructLayout(struct_type)->getElementOffset(struct_idx);
-            if (!isa<StructType>(struct_type->getElementType(struct_idx))) { break;}
-            struct_type = cast<StructType>(struct_type->getElementType(struct_idx));
-        }
-
-        // We only care about the size of the outermost struct, but this does the same
-        struct_type = cast<StructType>(source_type);
-        *struct_size = layout.getTypeAllocSizeInBits(struct_type) / 8;
-
-        // Get the GEP that preceeded the current one
-        gep = dyn_cast<GEPOperator>(gep->getOperand(0));
-        source_type = (gep == NULL) ? NULL : gep->getSourceElementType();
+            // Get the GEP that preceeded the current one
+            gep = cast<GEPOperator>(gep->getOperand(0));
     }
 
     return struct_offset;
@@ -69,16 +55,13 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
     Value *ptr_op, *val_op;
     unsigned value_elem_size;
     if (isStore) {
-        errs() << "Replace Store begin\n";
         ptr_op = cast<StoreInst>(op)->getPointerOperand();
         val_op = cast<StoreInst>(op)->getValueOperand();
         value_elem_size = val_op->getType()->getPrimitiveSizeInBits() / 8;
     } else {
-        errs() << "Replace load begin\n";
         ptr_op = cast<LoadInst>(op)->getPointerOperand();
         value_elem_size = cast<LoadInst>(op)->getType()->getPrimitiveSizeInBits() / 8;
     }
-    op->dump();
 
 
     std::vector<Value *> args_vector;
@@ -120,20 +103,14 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
     Value *new_mem_op = builder.CreateCall(mem_op_fn, args);
     op->replaceAllUsesWith(new_mem_op);
 
+    errs() << "Replace done\n";
     new_mem_op->dump();
-    if (isStore) {
-        errs() << "Replace store done\n\n";
-    } else {
-        errs() << "Replace load done\n\n";
-    }
 }
 
 
 void replace_extern_memcpy(Module &M, CallInst *op, bool isStore) {
     IRBuilder<> builder(op);
     Function *memcpy_fn;
-    errs() << "Replacing memcpy\n";
-    op->dump();
     if (isStore) {
         memcpy_fn = M.getFunction("extern_store_memcpy");
     } else {
@@ -157,8 +134,8 @@ void replace_extern_memcpy(Module &M, CallInst *op, bool isStore) {
 
     Value *new_memcpy = builder.CreateCall(memcpy_fn, args);
     op->replaceAllUsesWith(new_memcpy);
+    errs() << "Memcpy replace done\n";
     new_memcpy->dump();
-    errs() << "Memcpy replace done\n\n";
 }
 
 
@@ -263,19 +240,22 @@ namespace {
                                 isStore = false;
                             }
                             if (addr_space > 0 && addr_space == STRIPE) {
+                                I.dump();
                                 replace_mem_op(M, &I, isStore);
-                                insts_to_remove.push_back(&I);
+                                errs() << "\n";
                             } else if (addr_space > 0) {
                                 throw addressSpaceException;
                             }
                         } else if (auto* op = dyn_cast<CallInst>(&I)) {
                             Function *F = op->getCalledFunction();
                             if (!isMemcpy(F)) { continue;}
+                            op->dump();
                             bool isStore;
                             if (shouldReplaceMemcpy(op, &isStore)) {
                                 replace_extern_memcpy(M, op, isStore);
                                 insts_to_remove.push_back(op);
                             }
+                            errs() << "\n";
                         }
                     }
                 }

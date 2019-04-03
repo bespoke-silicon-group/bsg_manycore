@@ -7,7 +7,7 @@
 #include "bsg_set_tile_x_y.h"
 #include "bsg_manycore.h"
 
-#define STRIPE volatile __attribute__((address_space(1)))
+#define STRIPE __attribute__((address_space(1)))
 
 // Passed from linker -- indicates start of striped arrays in DMEM
 extern unsigned _bsg_striped_data_start;
@@ -15,7 +15,6 @@ extern unsigned _bsg_striped_data_start;
 /* NOTE: It's usually a cardinal sin to include code in header files, but LLVM
  * needs the definitions of runtime functions avaliable so that the pass can
  * replace loads and stores -- these aren't avaliable via declarations. */
-
 static volatile int *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size, unsigned local_offset) {
     unsigned start_ptr = (unsigned) &_bsg_striped_data_start;
     unsigned ptr = (unsigned) arr_ptr;
@@ -33,24 +32,26 @@ static volatile int *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size, unsig
 
     // Get X & Y coordinates of the tile that holds the memory address
     unsigned tile_x = core_id / bsg_tiles_X;
-    unsigned tile_y = core_id % bsg_tiles_X;
+    unsigned tile_y = core_id - (tile_x * bsg_tiles_X);
 
     // Construct the remote NPA: 01YY_YYYY_XXXX_XXPP_PPPP_PPPP_PPPP_PPPP
     unsigned remote_ptr_val = REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS |
                               tile_x << X_CORD_SHIFTS |
                               tile_y << Y_CORD_SHIFTS |
                               local_addr;
-
+    // It's faster to avoid a conditional than try to check in software
+    unsigned ptr_val = remote_ptr_val;
 #ifdef TILEGROUP_DEBUG
     bsg_printf("ID = %u, index = %u; striped_data_start = 0x%x\n",
             core_id, index, &_bsg_striped_data_start);
-    bsg_printf("NPA(%d,%d)=(%u, %u, 0x%x, %u)\n", bsg_x, bsg_y, tile_x, tile_y, local_addr, local_offset);
-    bsg_printf("Final Pointer(%d,%d) is 0x%x\n", bsg_x, bsg_y, remote_ptr_val);
+    bsg_printf("NPA=(%u, %u, 0x%x)\n", tile_x, tile_y, local_addr);
+    bsg_printf("Final Pointer is 0x%x\n", ptr_val);
 #endif
-    return (volatile int *) remote_ptr_val;;
+    return (volatile int *) ptr_val;
 }
 
 
+__attribute__((always_inline))
 void extern_store_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset, unsigned val) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_store_int(0x%x, %d, %d, %d)\n",
@@ -61,6 +62,7 @@ void extern_store_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset, 
 }
 
 
+__attribute__((always_inline))
 void extern_store_short(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset, short val) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_store_short(0x%x, %d, %d, %d)\n",
@@ -70,7 +72,7 @@ void extern_store_short(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset
     *ptr = val;
 }
 
-
+__attribute__((always_inline))
 void extern_store_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset, char val) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_store_char(0x%x, %d, %d, %d)\n",
@@ -80,7 +82,7 @@ void extern_store_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset,
     *ptr = val;
 }
 
-
+__attribute__((always_inline))
 int extern_load_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_int(0x%x, %d, %d)\n",
@@ -90,7 +92,7 @@ int extern_load_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
     return *ptr;
 }
 
-
+__attribute__((always_inline))
 short extern_load_short(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_short(0x%x, %d, %d)\n",
@@ -100,7 +102,7 @@ short extern_load_short(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset
     return *ptr;
 }
 
-
+__attribute__((always_inline))
 char extern_load_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_char(0x%x, %d, %d)\n",
@@ -110,7 +112,7 @@ char extern_load_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) 
     return *ptr;
 }
 
-
+__attribute__((always_inline))
 void extern_load_memcpy(char *dest, char STRIPE *src, unsigned len) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_memcpy(0x%x<-0x%x; %u words)\n",
@@ -128,7 +130,7 @@ void extern_load_memcpy(char *dest, char STRIPE *src, unsigned len) {
     }
 }
 
-
+__attribute__((always_inline))
 void extern_store_memcpy(char STRIPE *dest, char *src, unsigned len) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_store_memcpy(0x%x<-0x%x; %u words)\n",

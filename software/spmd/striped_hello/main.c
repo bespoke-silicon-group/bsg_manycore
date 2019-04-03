@@ -78,21 +78,21 @@ void short_ptr_arith_test() {
     bsg_printf("Passed short_ptr_arith_test\n");
 }
 
-
 void remote_load_store_test(int id) {
     int other_id = (id) ? 0 : 3;
+    volatile int STRIPE *req;
     for (int i = 0; i < N; i++) {
-        A[i][other_id] = (other_id * 2) + i * 5;
-        while (A[i][id] != (id * 2) + i * 5);
+        req = &A[i][id];
+        A[i][other_id] = (i + 5) * other_id;
+        while (*req != (i + 5) * id);
     }
-    bsg_printf("Passed remote_load_store_test; id = %d\n", id);
 }
 
 void struct_test() {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             test_t val = { .i = i * 5 + j, .c = i+j,
-                .s = {.i = i & j, .s = i / j}};
+                .s = {.i = i * j, .s = i % j}};
             if (j & 1) {
                 C[i][j] = val;
             } else {
@@ -116,8 +116,8 @@ void struct_test() {
             }
             if ((val.i != i * 5 + j) ||
                     (val.c != i+j) ||
-                    (val.s.i != (i & j)) ||
-                    (val.s.s != i / j)) {
+                    (val.s.i != i * j) ||
+                    (val.s.s != i % j)) {
                 bsg_fail();
             }
         }
@@ -136,6 +136,7 @@ int main()
     }
     if ((bsg_x == bsg_tiles_X-1) && (bsg_y == bsg_tiles_Y-1)) {
         remote_load_store_test(bsg_id);
+        bsg_printf("Passed remote_load_store_test\n");
 
         indexing_test();
         char_ptr_arith_test();
