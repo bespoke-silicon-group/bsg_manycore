@@ -330,7 +330,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
                         var_data_o.payload    = kernel_param_init_lp +i;
                         var_data_o.x_cord     = x_cord_width_p'( dram_addr_cast.x_cord );
                         var_data_o.y_cord     = {y_cord_width_p{1'b1}};
-                        var_data_o.addr       = dram_addr_cast.addr + 4*i ;
+                        var_data_o.addr       = dram_addr_cast.addr + i ;
                 @(negedge clk_i);
                 wait( ready_i === 1'b1);   //check if the ready is pulled up.
         end
