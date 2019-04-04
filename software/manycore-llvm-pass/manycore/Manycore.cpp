@@ -206,6 +206,82 @@ namespace {
             return false;
         }
 
+
+        void insertInitializerLoads(Module *M, GlobalVariable *G, Instruction *insert_after) {
+            // We want to insert load_extern_array after bsg_set_tile_x_y()
+            Function *load_fn = M->getFunction("load_extern_array");
+            Type *int32 = Type::getInt32Ty(M->getContext());
+            IRBuilder<> builder(insert_after);
+            builder.SetInsertPoint(insert_after->getNextNode());
+
+            // Get types that we'll need for this function
+            unsigned addr_space = cast<PointerType>(G->getType())->getAddressSpace();
+            Type *int32_stripe_ptr = Type::getInt32PtrTy(M->getContext(), addr_space);
+            Type *int32_ptr = Type::getInt32PtrTy(M->getContext());
+
+            // Create a copy of the global variable with the initializer in DRAM
+            GlobalVariable *new_global = new GlobalVariable(*M,
+                    G->getValueType(),
+                    false,
+                    GlobalValue::ExternalLinkage,
+                    G->getInitializer(),
+                    G->getName().str() + "_dram");
+            new_global->setDSOLocal(true);
+            new_global->setAlignment(4 * bsg_group_size);
+            new_global->setSection(".dram");
+
+            // Figure out how many loads each tile needs to do to load the array
+            unsigned total_elems = 1;
+            Type *elem_type = cast<ConstantArray>(G->getInitializer())->getType();
+            while (isa<ArrayType>(elem_type)) {
+                ArrayType *arr_t = cast<ArrayType>(elem_type);
+                total_elems *= arr_t->getNumElements();
+                elem_type = arr_t->getElementType();
+            }
+            unsigned num_loads = total_elems / bsg_group_size;
+
+            unsigned elem_size = elem_type->getPrimitiveSizeInBits() / 8;
+            std::vector<Value *> args_vector;
+
+            // Unset the initializer for G, we don't need it anymore
+            G->setInitializer(ConstantAggregateZero::get(G->getInitializer()->getType()));
+            // Insert casts so that the types match our runtime function
+            Value *cast_var = builder.CreatePointerCast(G, int32_stripe_ptr);
+            Value *new_global_cast = builder.CreatePointerCast(new_global, int32_ptr);
+            // Pack the arguments to call load_extern_array
+            args_vector.push_back(cast_var);
+            args_vector.push_back(new_global_cast);
+            args_vector.push_back(ConstantInt::get(int32, num_loads, false));
+            args_vector.push_back(ConstantInt::get(int32, elem_size, false));
+
+            ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
+            builder.CreateCall(load_fn, args);
+        }
+
+
+        Instruction *findSetTileXY(Module *M) {
+            Function *main_fn = M->getFunction("main");
+            for (auto &B: *main_fn) {
+                for (auto &I : B) {
+                    if (auto *op = dyn_cast<CallInst>(&I)) {
+                        StringRef fname;
+                        if (op->getCalledFunction() == NULL) {
+                            Value *sv = op->getCalledValue()->stripPointerCasts();
+                            fname = sv->getName();
+                        } else {
+                            fname = op->getCalledFunction()->getName();
+                        }
+                        if (fname.startswith(StringRef("bsg_set_tile_x_y"))) {
+                            return &I;
+                        }
+                    }
+                }
+            }
+            throw functionNotFoundException;
+            return NULL;
+        }
+
+
         class AddressSpaceException: public std::exception {
             virtual const char *what() const throw() {
                 return "Invalid Address Space Encountered!\n";
@@ -214,7 +290,7 @@ namespace {
 
         class StripedArrayException: public std::exception {
             virtual const char *what() const throw() {
-                return "Arrays declared with STRIPE must not have initializers or be in DRAM!\n";
+                return "Arrays declared with STRIPE must not be in DRAM!\n";
             }
         } stripedArrayException;
 
@@ -224,21 +300,22 @@ namespace {
             if (!M.getFunction("extern_load_int")) {
                 return false;
             }
-            std::vector<GlobalVariable *> globals_to_resize;
+            std::vector<GlobalVariable *> striped_globals;
             std::vector<Instruction *> insts_to_remove;
             for (auto &G : M.globals()) {
                 Type *g_type = G.getType();
                 // If global variable is an array in address space 1
                 if (isa<PointerType>(g_type) && g_type->getPointerAddressSpace() > 0) {
-                    globals_to_resize.push_back(&G);
+                    striped_globals.push_back(&G);
                     // Striped arrays cannot have initializers or be in DRAM at the moment
-                    if (!isa<ConstantAggregateZero>(G.getInitializer()) ||
-                            G.getSection().endswith(StringRef(".dram"))) {
+                    if (G.getSection().endswith(StringRef(".dram"))) {
                         throw stripedArrayException;
                     }
                 }
             }
-            for (auto G: globals_to_resize) {
+            Instruction *setTileCall = findSetTileXY(&M);
+            setTileCall->dump();
+            for (auto G: striped_globals) {
                 // We set alignment so that index 0 of an array is always on
                 // core 0. Additionally, this has the effect of the start of
                 // a striped array being word-aligned on individual cores,
@@ -247,6 +324,9 @@ namespace {
                 // bsg_group_size is passed via the command line
                 G->setAlignment(4 * bsg_group_size);
                 G->setSection(".striped.data");
+                if (!isa<ConstantAggregateZero>(G->getInitializer())) {
+                    insertInitializerLoads(&M, G, setTileCall);
+                }
             }
 
             for (auto &F : M) {

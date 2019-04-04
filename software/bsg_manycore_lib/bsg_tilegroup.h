@@ -16,6 +16,21 @@ extern unsigned _bsg_striped_data_start;
  * needs the definitions of runtime functions avaliable so that the pass can
  * replace loads and stores -- these aren't avaliable via declarations. */
 
+// Load the initializer from an external array in DRAM into tiles
+void load_extern_array(int STRIPE *dest_ptr, int *src_ptr, unsigned num_elems, unsigned elem_size) {
+    unsigned start_ptr = (unsigned) &_bsg_striped_data_start;
+    unsigned ptr = (unsigned) dest_ptr;
+    unsigned index = (ptr - start_ptr) / elem_size;
+    unsigned local_addr = start_ptr + (index / bsg_group_size) * elem_size;
+    int *dest = (int *) local_addr;
+    src_ptr += bsg_id;
+    for (int i = 0; i < num_elems; i++) {
+        *dest  = *src_ptr;
+        src_ptr += bsg_group_size;
+        dest++;
+    }
+}
+
 static volatile int *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size, unsigned local_offset) {
     unsigned start_ptr = (unsigned) &_bsg_striped_data_start;
     unsigned ptr = (unsigned) arr_ptr;
