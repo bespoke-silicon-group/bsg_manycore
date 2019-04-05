@@ -40,27 +40,52 @@
             ")
 
 #define __wait_until_valid_func()       \
-        asm("__wait_until_valid_func:                            \
-             li         t0           ,   0x1;                    \
-             lr.w       t1           ,   0  (  s0  );            \
-             bne        t0           ,   t1,  __invoke_kernel ;  \
-                lr.w.aq    t0           , 0 (  s0   );            \
-             __invoke_kernel:                                    \
-                lw        a0           ,     0 ( s3  );          \
-                lw        a1           ,     4 ( s3  );          \
-                lw        a2           ,     8 ( s3  );          \
-                lw        a3           ,    12 ( s3  );          \
-                lw        a4           ,    16 ( s3  );          \
-                lw        a5           ,    20 ( s3  );          \
-                lw        a6           ,    24 ( s3  );          \
-                lw        a7           ,    28 ( s3  );          \
-                jalr      s1;                                    \
-                                                                 \
-                li         t0           , 0x1;                   \
-                sw         t0           , 0 ( s1   )   ;         \
-                li         t0           , 0x1;                   \
-                sw         t0           , 0 ( s4    )   ;        \
-                j                         __wait_until_valid_func; \
+        asm("__wait_until_valid_func:                                        \
+             li         t0           ,   0x1;                                \
+             lr.w       t1           ,   0  (  s0  );                        \
+             bne        t0           ,   t1,  __load_argument;               \
+                lr.w.aq    t0           , 0 (  s0   );                       \
+             __load_argument:                                                \
+                lw        a0           ,     0 ( s3  );                      \
+                lw        a1           ,     4 ( s3  );                      \
+                lw        a2           ,     8 ( s3  );                      \
+                lw        a3           ,    12 ( s3  );                      \
+                lw        a4           ,    16 ( s3  );                      \
+                lw        a5           ,    20 ( s3  );                      \
+                lw        a6           ,    24 ( s3  );                      \
+                lw        a7           ,    28 ( s3  );                      \
+                                                                             \
+                li        t0           ,    0x8;                             \
+                bge       t0           ,    s2        , __invoke_kernel;     \
+                addi      t0           ,    s2        ,     -0x8;            \
+                slli      t0           ,    t0        ,     0x2;             \
+                sub       sp           ,    sp        ,     t0;              \
+                li        t0           ,    0x8;                             \
+                li        t1           ,    0x20;                            \
+                li        t2           ,    0x0;                             \
+                li        t3           ,    0x0;                             \
+              __load_stack:                                                  \
+                add       t2           ,    t1        ,     s3;              \
+                lw        t4           ,    0 (t2);                          \
+                add       t5           ,    t3        ,     sp;              \
+                sw        t4           ,    0 (t5);                          \
+                addi      t0           ,    t0        ,     0x1;             \
+                addi      t1           ,    t1        ,     0x4;             \
+                addi      t3           ,    t3        ,     0x4;             \
+                blt       t0           ,    s2        , __load_stack;        \
+                                                                             \
+              __invoke_kernel:                                               \
+                jalr      s1;                                                \
+                                                                             \
+                addi      t0           ,    s2        , -0x8;                \
+                slli      t0           ,    t0        , 0x2;                 \
+                add       sp           ,    sp        , t0;                  \
+                                                                             \
+                li        t0           ,    0x1;                             \
+                sw        t0           ,    0 ( s1   );                      \
+                li        t0           ,    0x1;                             \
+                sw        t0           ,    0 ( s4    );                     \
+                j                          __wait_until_valid_func;          \
            ")
 int main()
 {
