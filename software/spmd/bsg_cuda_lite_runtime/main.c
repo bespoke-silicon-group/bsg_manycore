@@ -31,12 +31,12 @@
 #define  ASM_ARGV_PTR       s3
 #define  ASM_SIG_PTR        s4
 
-#define __bsg_init_param( )                               \
-        asm(" li        s0 ,     0x1000;                   \
-              lw        s1 ,     0 ( s0 );                 \
-              lw        s2 ,     4 ( s0 );                 \
-              lw        s3 ,     8 ( s0 );                 \
-              lw        s4 ,    12 ( s0 );                 \
+#define __bsg_init_param( )                                                  \
+        asm(" li        s0 ,     0x1000;                                     \
+              lw        s1 ,     0 ( s0 );                                   \
+              lw        s2 ,     4 ( s0 );                                   \
+              lw        s3 ,     8 ( s0 );                                   \
+              lw        s4 ,    12 ( s0 );                                   \
             ")
 
 #define __wait_until_valid_func()       \

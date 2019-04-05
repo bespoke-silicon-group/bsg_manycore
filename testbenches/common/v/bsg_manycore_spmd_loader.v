@@ -5,15 +5,15 @@
 //`define  SHUT_DY_ARB
 
 `ifndef NUM_CODE_SECTIONS
-	`define DEFAULT_CODE_SECTIONS
+  `define DEFAULT_CODE_SECTIONS
 `endif
 `ifndef CODE_SECTIONS
-	`define DEFAULT_CODE_SECTIONS
+  `define DEFAULT_CODE_SECTIONS
 `endif
 
 `ifdef DEFAULT_CODE_SECTIONS
-	`define NUM_CODE_SECTIONS 1
-	`define CODE_SECTIONS `_bsg_dram_start_addr,`_bsg_dram_end_addr
+  `define NUM_CODE_SECTIONS 1
+  `define CODE_SECTIONS `_bsg_dram_start_addr,`_bsg_dram_end_addr
 `endif
 
 module bsg_manycore_spmd_loader
@@ -324,7 +324,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         //set up the dram value
         dram_addr_cast = kernel_param_lp[2][1]; 
         for( i=0; i< kernel_param_lp[1][1]; i++) begin
-                $display("## Write argv in DRAM [%h] = %h", dram_addr_cast +4*i , kernel_param_init_lp +i );
+                $display("## Write argv [%-2d] in DRAM [%h] = %h", i, dram_addr_cast +4*i , kernel_param_init_lp +i );
                 @(posedge clk_i);          //pull up the valid
                         var_v_o               = 1'b1; 
                         var_data_o.payload    = kernel_param_init_lp +i;
