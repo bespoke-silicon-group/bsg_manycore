@@ -34,11 +34,13 @@ int  __attribute__ ((noinline)) kernel12( int p0, int p1, int p2, int p3, int p4
 		pass = -1;
 
 	
-      if (pass == 0) {
-        bsg_finish_x(IO_X_INDEX);
-      }
-      else {
-        bsg_fail_x(IO_X_INDEX);
-      }
+  //bsg_remote_ptr_io_store(IO_X_INDEX,0x1260,__bsg_x);
+ 
+  if (pass == 0) {
+    bsg_finish_x(IO_X_INDEX);
+  }
+  else {
+    bsg_fail_x(IO_X_INDEX);
+  }
 	return 0;
 }
