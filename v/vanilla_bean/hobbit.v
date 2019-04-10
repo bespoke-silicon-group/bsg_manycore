@@ -889,14 +889,16 @@ wire [RV32_reg_data_width_gp-1:0] rs2_to_exe    = id_wb_rs2_forward ?
 wire    exe_rs1_in_mem     = exe_op_writes_rf
                            & (id.instruction.rs1 == exe_rd_addr)
                            & (|id.instruction.rs1);
-wire    exe_rs1_in_wb      = mem.decode.op_writes_rf
+//TODO 
+//Ratify this logic with load buffer
+wire    exe_rs1_in_wb      = ( mem.decode.op_writes_rf | is_load_buffer_valid)
                            & (id.instruction.rs1  == mem.rd_addr)
                            & (|id.instruction.rs1);
 
 wire    exe_rs2_in_mem     = exe_op_writes_rf
                            & (id.instruction.rs2 == exe_rd_addr)
                            & (|id.instruction.rs2);
-wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
+wire    exe_rs2_in_wb      = ( mem.decode.op_writes_rf | is_load_buffer_valid )
                            & (id.instruction.rs2  == mem.rd_addr)
                            & (|id.instruction.rs2);
 
@@ -984,6 +986,7 @@ wire is_group_addr  = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 3 ] == 3'b00
 
 assign remote_load_in_exe = exe.decode.is_load_op 
                          & (is_global_addr | is_group_addr | is_dram_addr)
+                         //& (is_global_addr | is_group_addr )
                          & (~exe.icache_miss); 
 //assign remote_load_in_exe = exe.decode.is_load_op 
 //                         & (is_global_addr | is_group_addr );
@@ -1098,7 +1101,8 @@ logic                              op_writes_rf_to_wb;
 logic [RV32_reg_addr_width_gp-1:0] rd_addr_to_wb;
 always_comb
 begin
-  if(mem.decode.is_load_op & ~mem.remote_load) begin
+  //remote or local load can both be buffered
+  if ( mem.decode.is_load_op & (   (~mem.remote_load)  | is_load_buffer_valid ) ) begin
     rf_data            = is_load_buffer_valid ? buf_loaded_data : mem_loaded_data;
     op_writes_rf_to_wb = is_load_buffer_valid | current_load_arrived;
     rd_addr_to_wb      = mem.rd_addr;
@@ -1314,16 +1318,17 @@ if(debug_p | debug_lp) begin
         //         ,exe.rs2_val
         //         ,exe.icache_miss
         //        );
-        //$fwrite(pelog, "X%0d_Y%0d.pelog       mem_v_o=%b mem_a_o=%x mem_d_o=%0x reg_id_o=%0d mem_y_i=%b\n"
-        //         ,my_x_i
-        //         ,my_y_i
-        //         ,valid_to_mem_c
-        //         ,to_mem_o.addr
-        //         ,store_data
-        //         ,to_mem_o.payload.read_info.load_info.reg_id
-        //         ,from_mem_i.yumi
-        //        );
-
+        if( my_x_i == 2 && my_y_i == 2 && ( valid_to_mem_c & from_mem_i.yumi & to_mem_o.wen) ) begin
+        $fwrite(pelog, "X%0d_Y%0d.pelog       mem_v_o=%b mem_a_o=%x mem_d_o=%0x reg_id_o=%0d mem_y_i=%b\n"
+                 ,my_x_i
+                 ,my_y_i
+                 ,valid_to_mem_c
+                 ,to_mem_o.addr
+                 ,store_data
+                 ,to_mem_o.payload.read_info.load_info.reg_id
+                 ,from_mem_i.yumi
+                );
+        end
         //// Memory
         //$fwrite(pelog, "X%0d_Y%0d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b"
         //         ,my_x_i
@@ -1338,18 +1343,19 @@ if(debug_p | debug_lp) begin
         //         ,mem.decode.is_branch_op
         //         ,mem.decode.is_jump_op
         //        );
-        //$fwrite(pelog, " reads_rf1=%b reads_rf2=%b auipc=%b exe_res=%0x mem_v=%b mem_d=%x reg_id=%d yumi_o=%b icm=%b\n"
-        //         ,mem.decode.op_reads_rf1
-        //         ,mem.decode.op_reads_rf2
-        //         ,mem.decode.op_is_auipc
-        //         ,mem.exe_result
-        //         ,from_mem_i.valid
-        //         ,from_mem_i.read_data
-        //         ,from_mem_i.load_info.reg_id
-        //         ,to_mem_o.yumi
-        //         ,mem.icache_miss
-        //        );
-
+        if( my_x_i == 2 && my_y_i == 2 && ( from_mem_i.valid & to_mem_o.yumi) ) begin
+        $fwrite(pelog, " reads_rf1=%b reads_rf2=%b auipc=%b exe_res=%0x mem_v=%b mem_d=%x reg_id=%d yumi_o=%b icm=%b\n"
+                 ,mem.decode.op_reads_rf1
+                 ,mem.decode.op_reads_rf2
+                 ,mem.decode.op_is_auipc
+                 ,mem.exe_result
+                 ,from_mem_i.valid
+                 ,from_mem_i.read_data
+                 ,from_mem_i.load_info.reg_id
+                 ,to_mem_o.yumi
+                 ,mem.icache_miss
+                );
+        end
         // Write back
         //$fwrite(pelog, "X%0d_Y%0d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x icm=%b icm_pc=%x\n"
         //         ,my_x_i
