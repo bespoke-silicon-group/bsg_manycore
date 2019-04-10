@@ -24,8 +24,8 @@ void load_extern_array(int STRIPE *dest_ptr, int *src_ptr, unsigned num_elems, u
     unsigned local_addr = start_ptr + (index / bsg_group_size) * elem_size;
     int *dest = (int *) local_addr;
     src_ptr += bsg_id;
-    for (int i = 0; i < num_elems; i++) {
-        *dest  = *src_ptr;
+    for (int i = 0; i < num_elems * (elem_size / sizeof(int)); i++) {
+        *dest = *src_ptr;
         src_ptr += bsg_group_size;
         dest++;
     }
@@ -40,13 +40,13 @@ static volatile int *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size, unsig
     // "index" into the overall .striped.data segment. In hardware, this would
     // be the same as caluclating the offset from a segment register
     unsigned index = (ptr - start_ptr) / elem_size;
-    unsigned core_id = index % bsg_group_size;
     unsigned local_addr = start_ptr + (index / bsg_group_size) * elem_size;
     // We use local_offset to index into structs, since we stripe entire
     // structs instead of striping words
     local_addr += local_offset;
 
     // Get X & Y coordinates of the tile that holds the memory address
+    unsigned core_id = index % bsg_group_size;
     unsigned tile_x = core_id / bsg_tiles_X;
     unsigned tile_y = core_id % bsg_tiles_X;
 
