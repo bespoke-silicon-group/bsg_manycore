@@ -7,7 +7,6 @@
 // Any cuda-lite kernels should be linked with this runtime system.
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
-#include "bsg_barrier.h"
 
 //This defines the offset of the runtime variables 
 #define CUDAL_PARAM_BASE_ADDR   0x1000
@@ -33,14 +32,98 @@
 #define  ASM_SIG_PTR        s4
 
 
-// This defines the variables needed for bsg_barrier, defines the tilegroup coordinates and dimensions and a barrier variables (tile0_barrier) 
-// The barrier is used after the function execution is finished and before jumping back to __wait_until_valid_func
-#define BARRIER_X 0
-#define BARRIER_Y 0
-#define BARRIER_X_END (bsg_tiles_X - 1)
-#define BARRIER_Y_END (bsg_tiles_Y - 1)
-#define BARRIER_TILES ( (BARRIER_X_END +1) * ( BARRIER_Y_END+1) )
-bsg_barrier     tile0_barrier = BSG_BARRIER_INIT(0, BARRIER_X_END, 0, BARRIER_Y_END);
+
+/*
+#define BARRIER_X_START     0
+#define BARRIER_Y_START     0
+
+#define BARRIER_X_END     (BARRIER_X_START + bsg_tiles_X - 1)
+#define BARRIER_Y_END     (BARRIER_Y_START + bsg_tiles_Y - 1)
+#define BARRIER_X_NUM     (BARRIER_X_END - BARRIER_X_START +1) 
+#define BARRIER_Y_NUM     (BARRIER_Y_END - BARRIER_Y_START +1) 
+#define BARRIER_TILES     (BARRIER_X_NUM * BARRIER_Y_NUM)
+
+#define  BSG_BARRIER_DEBUG    1
+#define  BSG_TILE_GROUP_X_DIM BARRIER_X_NUM
+#define  BSG_TILE_GROUP_Y_DIM BARRIER_Y_NUM
+#define  BSG_TILE_GROUP_Z_DIM 1
+#define  BSG_TILE_GROUP_SIZE  (BSG_TILE_GROUP_X_DIM * BSG_TILE_GROUP_Y_DIM)
+#include "bsg_tile_group_barrier.h"
+
+INIT_TILE_GROUP_BARRIER (row_barrier_inst1, col_barrier_inst1, BARRIER_X_START, BARRIER_X_END, BARRIER_Y_START, BARRIER_Y_END);
+*/
+
+
+
+
+/********************************************************************************************************
+// This version (loading excess arguments from stack + barrier) is currently
+// not functional due to hardware bug in basejump_stl. Comming soon...
+#define __wait_until_valid_func()                                            \
+        asm("__wait_until_valid_func:                                        \
+               li         s0           ,    0x1000;                          \
+               li         t0           ,    0x1;                             \
+               lr.w       t1           ,    0 (  s0  );                      \
+               bne        t0           ,    t1        ,     __init_param;    \
+               lr.w.aq    t0           ,    0 (  s0  );                      \
+                                                                             \
+             __init_param:                                                   \
+                lw        s1           ,     0 ( s0  );                      \
+                lw        s2           ,     4 ( s0  );                      \
+                lw        s3           ,     8 ( s0  );                      \
+                lw        s4           ,    12 ( s0  );                      \
+                                                                             \
+             __load_argument:                                                \
+                lw        a0           ,     0 ( s3  );                      \
+                lw        a1           ,     4 ( s3  );                      \
+                lw        a2           ,     8 ( s3  );                      \
+                lw        a3           ,    12 ( s3  );                      \
+                lw        a4           ,    16 ( s3  );                      \
+                lw        a5           ,    20 ( s3  );                      \
+                lw        a6           ,    24 ( s3  );                      \
+                lw        a7           ,    28 ( s3  );                      \
+                                                                             \
+                li        t0           ,    0x8;                             \
+                bge       t0           ,    s2        ,     __invoke_kernel; \
+                                                                             \
+                addi      t0           ,    s2        ,     -0x8;            \
+                slli      t0           ,    t0        ,     0x2;             \
+                sub       sp           ,    sp        ,     t0;              \
+                li        t0           ,    0x8;                             \
+                li        t1           ,    0x20;                            \
+                li        t3           ,    0x0;                             \
+                                                                             \
+              __load_stack:                                                  \
+                add       t2           ,    t1        ,     s3;              \
+                lw        t4           ,    0 (t2);                          \
+                add       t5           ,    t3        ,     sp;              \
+                sw        t4           ,    0 (t5);                          \
+                addi      t0           ,    t0        ,     0x1;             \
+                addi      t1           ,    t1        ,     0x4;             \
+                addi      t3           ,    t3        ,     0x4;             \
+                blt       t0           ,    s2        ,     __load_stack;    \
+                                                                             \
+              __invoke_kernel:                                               \
+                jalr      s1;                                                \
+                li        t0           ,    0x8;                             \
+                bge       t0           ,    s2        ,     __kernel_return; \
+                addi      t0           ,    s2        ,     -0x8;            \
+                slli      t0           ,    t0        ,     0x2;             \
+                add       sp           ,    sp        ,     t0;              \
+              __kernel_return:                                               \
+            ");                                                              \
+                                                                             \
+        bsg_tile_group_barrier(&row_barrier_inst1, &col_barrier_inst1);      \
+                                                                             \
+        asm("                                                                \
+                li        t0           ,    0x1;                             \
+                sw        t0           ,    0 ( s1   );                      \
+                li        t0           ,    0x1;                             \
+                sw        t0           ,    0 ( s4    );                     \
+                j         __wait_until_valid_func;                           \
+           ");
+********************************************************************************************************/
+
 
 
 
@@ -69,36 +152,10 @@ bsg_barrier     tile0_barrier = BSG_BARRIER_INIT(0, BARRIER_X_END, 0, BARRIER_Y_
                 lw        a6           ,    24 ( s3  );                      \
                 lw        a7           ,    28 ( s3  );                      \
                                                                              \
-                li        t0           ,    0x8;                             \
-                bge       t0           ,    s2        ,     __invoke_kernel; \
-                addi      t0           ,    s2        ,     -0x8;            \
-                slli      t0           ,    t0        ,     0x2;             \
-                sub       sp           ,    sp        ,     t0;              \
-                li        t0           ,    0x8;                             \
-                li        t1           ,    0x20;                            \
-                li        t2           ,    0x0;                             \
-                li        t3           ,    0x0;                             \
-                                                                             \
-              __load_stack:                                                  \
-                add       t2           ,    t1        ,     s3;              \
-                lw        t4           ,    0 (t2);                          \
-                add       t5           ,    t3        ,     sp;              \
-                sw        t4           ,    0 (t5);                          \
-                addi      t0           ,    t0        ,     0x1;             \
-                addi      t1           ,    t1        ,     0x4;             \
-                addi      t3           ,    t3        ,     0x4;             \
-                blt       t0           ,    s2        ,     __load_stack;    \
-                                                                             \
               __invoke_kernel:                                               \
                 jalr      s1;                                                \
-                addi      t0           ,    s2        ,     -0x8;            \
-                slli      t0           ,    t0        ,     0x2;             \
-                add       sp           ,    sp        ,     t0;              \
-            ");                                                              \
                                                                              \
-        bsg_barrier_wait( &tile0_barrier, 0, 0);                             \
-                                                                             \
-        asm("                                                                \
+              __kernel_return:                                               \
                 li        t0           ,    0x1;                             \
                 sw        t0           ,    0 ( s1   );                      \
                 li        t0           ,    0x1;                             \

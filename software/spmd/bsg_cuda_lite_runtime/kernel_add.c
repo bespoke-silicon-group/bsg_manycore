@@ -7,6 +7,5 @@ int  __attribute__ ((noinline)) kernel_add(int *a, int *b, int *c, int n) {
   for (int i = 0; i < n; i++) {
   	c[i] = a[i] + b[i];
   }
-  bsg_finish_x(IO_X_INDEX);
   return 0;
 }
