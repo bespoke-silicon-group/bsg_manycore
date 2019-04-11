@@ -240,7 +240,9 @@ namespace {
             }
             unsigned num_loads = total_elems / bsg_group_size;
 
-            unsigned elem_size = elem_type->getPrimitiveSizeInBits() / 8;
+            DataLayout layout = DataLayout(M);
+            unsigned elem_size = layout.getTypeAllocSizeInBits(elem_type) / 8;
+
             std::vector<Value *> args_vector;
 
             // Unset the initializer for G, we don't need it anymore
@@ -255,7 +257,8 @@ namespace {
             args_vector.push_back(ConstantInt::get(int32, elem_size, false));
 
             ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
-            builder.CreateCall(load_fn, args);
+            errs() << "Loading initializer\n";
+            builder.CreateCall(load_fn, args)->dump();
         }
 
 
@@ -314,7 +317,6 @@ namespace {
                 }
             }
             Instruction *setTileCall = findSetTileXY(&M);
-            setTileCall->dump();
             for (auto G: striped_globals) {
                 // We set alignment so that index 0 of an array is always on
                 // core 0. Additionally, this has the effect of the start of
