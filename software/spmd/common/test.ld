@@ -22,8 +22,13 @@ SECTIONS
   /* beginning of data memory; set by imem size and bank conflict concerns */
   . = 0x1000;
   _bsg_data_start_addr = . ;
+
   /* data segment */
-  .data : { *(.data) }
+  .data : 
+  { 
+    EXCLUDE_FILE (*malloc*.o) /* Exclude malloc related data -- included in dram section */
+    *(.data) 
+  }
 
   .sdata : {
     _gp = . + 0x800;
@@ -51,7 +56,6 @@ SECTIONS
     *(.tbss)
     crt.o(.tbss.end)
   }
-  .rodata : { *(.rodata) }
   .eh_frame : { *(.eh_frame) }
   /* RISC-V 32 has a 4 byte word size */
   .striped.data ALIGN(bsg_group_size * 4): {
@@ -86,7 +90,8 @@ SECTIONS
           *(.text)
           *(.text.startup)
           *(.rodata*) 
-          *(.dram*)
+          *(.dram)
+          *malloc*.o(.data)
         }
   _bsg_dram_end_addr = .  ;
 }
