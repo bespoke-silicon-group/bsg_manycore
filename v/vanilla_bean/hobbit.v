@@ -491,7 +491,7 @@ end
 // assign rf_cen = (~ stall ) | (net_reg_write_cmd);
 //   assign rf_cen= ~(stall | depend_stall );
 //  assign rf_cen=  ~stall ;
-assign rf_cen = 1'b1;
+assign rf_cen = ~icache_miss_in_pipe;
 
 // Instantiate the general purpose register file
 // This register file is write through, which means when read/write
