@@ -302,7 +302,7 @@ logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr;
 logic                   pc_wen,  icache_cen;
 
 // Instruction memory logic
-instruction_s   instruction, instruction_out;
+instruction_s   instruction;
 
 // PC write enable. This stops the CPU updating the PC
 `ifdef bsg_FPU
@@ -399,12 +399,11 @@ icache #(
        ,.pc_i                   (pc_n                   )
        ,.pc_wen_i               (pc_wen                 )
        ,.pc_r_o                 (pc_r                   )
-       ,.instruction_o          (instruction_out            )
+       ,.instruction_o          (instruction            )
        ,.jump_addr_o            (pc_jump_addr           )
        ,.icache_miss_o          (icache_miss_lo         )
        );
 
-   assign instruction = icache_miss_in_pipe? 'b0 : instruction_out;
    // synopsys translate_off
    logic reset_r;
 
