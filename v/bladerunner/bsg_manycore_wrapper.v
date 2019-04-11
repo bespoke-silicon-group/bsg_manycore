@@ -39,6 +39,9 @@ module bsg_manycore_wrapper
 
     , input [link_sif_width_lp-1:0] loader_link_sif_i
     , output logic [link_sif_width_lp-1:0] loader_link_sif_o
+
+    , input [link_sif_width_lp-1:0] rom_link_sif_i
+    , output [link_sif_width_lp-1:0] rom_link_sif_o
   );
 
   // manycore
@@ -57,14 +60,13 @@ module bsg_manycore_wrapper
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.num_tiles_x_p(num_tiles_x_p)
-    ,.num_tiles_y_p(num_tiles_y_p)
+    ,.num_tiles_y_p(num_tiles_y_p+1)
 
     ,.stub_n_p({num_tiles_x_p{1'b0}})
     ,.stub_e_p({num_tiles_y_p{1'b0}})
     ,.stub_w_p({num_tiles_y_p{1'b0}})
     ,.stub_s_p({num_tiles_x_p{1'b0}})
 
-    ,.hetero_type_vec_p(0)
     ,.debug_p(0)
     ,.addr_width_p(addr_width_p)
     ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
@@ -87,15 +89,22 @@ module bsg_manycore_wrapper
 
   // connecting link_sif to outside
   //
+  //  north[0] : bladerunner_rom
+  //  north[-1]: loader
+
   //  south[0] : victim cache 0
   //  south[1] : victim cache 1
   //  ...
-  //  south[n-1] : loader
   //
   for (genvar i = 0; i < num_cache_p; i++) begin
     assign cache_link_sif_o[i] = ver_link_sif_lo[S][i];
     assign ver_link_sif_li[S][i] = cache_link_sif_i[i];
   end
+
+
+  assign rom_link_sif_o = io_link_sif_lo[0];
+  assign io_link_sif_li[0] = rom_link_sif_i;
+
 
   assign loader_link_sif_o = io_link_sif_lo[num_tiles_x_p-1];
   assign io_link_sif_li[num_tiles_x_p-1] = loader_link_sif_i;
@@ -170,7 +179,7 @@ module bsg_manycore_wrapper
     );
   end
 
-  for (genvar i = 0; i < num_tiles_x_p-1; i++) begin
+  for (genvar i = 1; i < num_tiles_x_p-1; i++) begin
     bsg_manycore_link_sif_tieoff #(
       .addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)

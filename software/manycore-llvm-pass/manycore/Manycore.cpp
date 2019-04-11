@@ -2,6 +2,8 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/DataLayout.h"
+
 using namespace llvm;
 
 #define STRIPE 1 // Needs to match address_space set by library
@@ -12,76 +14,151 @@ class FunctionNotFound: public std::exception {
     }
 } functionNotFoundException;
 
+// Get the size of the overall struct and the offset of the field being accessed.
+// Returns -1 if we're not accessing a struct, and the offset otherwise
+// The size of the struct is returned in *struct_size if the function returns
+// a non-negative value
+int get_struct_info(Module &M, Value *ptr_op, unsigned *struct_size) {
+    DataLayout layout = DataLayout(&M);
 
-void replace_extern_store(Module &M, StoreInst *op) {
+    // Check if we're actually dealing with a struct
+    if (!isa<GEPOperator>(ptr_op)) { return -1;}
+    GEPOperator *gep = cast<GEPOperator>(ptr_op);
+    // if GEP on array, descend until base type
+    Type *source_type = gep->getSourceElementType();
+    unsigned struct_start_op_idx = 2;
+    while (isa<SequentialType>(source_type)) {
+        source_type = cast<SequentialType>(source_type)->getElementType();
+        struct_start_op_idx++;
+    }
+    if (!isa<StructType>(source_type)) { return -1;}
+
+    // Work backwards through GEP Operations, computing offsets of the field being accessed to
+    // get the total offset of the field into the struct
+    unsigned struct_offset = 0, struct_idx;
+    StructType *struct_type;
+    Value *struct_idx_val;
+    while ((gep != NULL) && isa<StructType>(source_type)) {
+        // The last operand of GEP gives the index of the field in the struct definition
+        struct_type = cast<StructType>(source_type);
+        for (int i = struct_start_op_idx; i < gep->getNumOperands(); i++) {
+            struct_idx_val = gep->getOperand(i);
+            struct_idx = cast<ConstantInt>(struct_idx_val)->getSExtValue();
+            // Get the offset of the selected field into the struct, add it to the overall offset
+            struct_offset += layout.getStructLayout(struct_type)->getElementOffset(struct_idx);
+            if (!isa<StructType>(struct_type->getElementType(struct_idx))) { break;}
+            struct_type = cast<StructType>(struct_type->getElementType(struct_idx));
+        }
+
+        // We only care about the size of the outermost struct, but this does the same
+        struct_type = cast<StructType>(source_type);
+        *struct_size = layout.getTypeAllocSizeInBits(struct_type) / 8;
+
+        // Get the GEP that preceeded the current one
+        gep = dyn_cast<GEPOperator>(gep->getOperand(0));
+        source_type = (gep == NULL) ? NULL : gep->getSourceElementType();
+    }
+
+    return struct_offset;
+}
+
+
+void replace_mem_op(Module &M, Instruction *op, bool isStore) {
     IRBuilder<> builder(op);
-    Function *store_fn;
+    Function *mem_op_fn;
+    Value *ptr_op, *val_op;
+    unsigned value_elem_size;
+    if (isStore) {
+        errs() << "Replace Store begin\n";
+        ptr_op = cast<StoreInst>(op)->getPointerOperand();
+        val_op = cast<StoreInst>(op)->getValueOperand();
+        value_elem_size = val_op->getType()->getPrimitiveSizeInBits() / 8;
+    } else {
+        errs() << "Replace load begin\n";
+        ptr_op = cast<LoadInst>(op)->getPointerOperand();
+        value_elem_size = cast<LoadInst>(op)->getType()->getPrimitiveSizeInBits() / 8;
+    }
+    op->dump();
+
 
     std::vector<Value *> args_vector;
-    Value *ptr_op = op->getPointerOperand();
     Type *int32_ptr = Type::getInt32PtrTy(M.getContext(),
             dyn_cast<PointerType>(ptr_op->getType())->getAddressSpace());
+    Type *int32 = Type::getInt32Ty(M.getContext());
     Value *ptr_bc = builder.CreatePointerCast(ptr_op, int32_ptr);
 
     args_vector.push_back(ptr_bc);
-    unsigned elem_size = op->getValueOperand()->getType()->getPrimitiveSizeInBits() / 8;
-    args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                elem_size, false));
-    if (elem_size == 1) {
-        store_fn = M.getFunction("extern_store_char");
-    } else if (elem_size == 2) {
-        store_fn = M.getFunction("extern_store_short");
+
+    if (value_elem_size == 1) {
+        mem_op_fn = (isStore) ? M.getFunction("extern_store_char") :
+            M.getFunction("extern_load_char");
+    } else if (value_elem_size == 2) {
+        mem_op_fn = (isStore) ? M.getFunction("extern_store_short") :
+            M.getFunction("extern_load_short");
     } else {
-        store_fn = M.getFunction("extern_store_int");
+        mem_op_fn = (isStore) ? M.getFunction("extern_store_int") :
+            M.getFunction("extern_load_int");
     }
-    if (store_fn == NULL) {
-       throw functionNotFoundException;
+    if (mem_op_fn == NULL) {
+        throw functionNotFoundException;
     }
-    args_vector.push_back(op->getValueOperand());
+
+    unsigned struct_size;
+    int struct_off = get_struct_info(M, ptr_op, &struct_size);
+    if (struct_off < 0) { // Not accessing a struct field
+        args_vector.push_back(ConstantInt::get(int32, value_elem_size, false));
+        args_vector.push_back(ConstantInt::get(int32, 0, false));
+    } else { // Accessing a struct field
+        args_vector.push_back(ConstantInt::get(int32, struct_size, false));
+        args_vector.push_back(ConstantInt::get(int32, struct_off, false));
+    }
+    if (isStore) { args_vector.push_back(val_op);}
 
     ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
 
     // Create the call and replace all uses of the store inst with the call
-    Value *new_str = builder.CreateCall(store_fn, args);
-    op->replaceAllUsesWith(new_str);
+    Value *new_mem_op = builder.CreateCall(mem_op_fn, args);
+    op->replaceAllUsesWith(new_mem_op);
 
-    errs() << "Replace done\n";
-    new_str->dump();
+    new_mem_op->dump();
+    if (isStore) {
+        errs() << "Replace store done\n\n";
+    } else {
+        errs() << "Replace load done\n\n";
+    }
 }
 
 
-void replace_extern_load(Module &M, LoadInst *op) {
+void replace_extern_memcpy(Module &M, CallInst *op, bool isStore) {
     IRBuilder<> builder(op);
-    Function *load_fn;
+    Function *memcpy_fn;
+    errs() << "Replacing memcpy\n";
+    op->dump();
+    if (isStore) {
+        memcpy_fn = M.getFunction("extern_store_memcpy");
+    } else {
+        memcpy_fn = M.getFunction("extern_load_memcpy");
+    }
+    Type *char_ptr = Type::getInt8PtrTy(M.getContext(), 0);
+    Type *int_t = Type::getInt32Ty(M.getContext());
     std::vector<Value *> args_vector;
 
-    Value *ptr_op = op->getPointerOperand();
-    Type *int32_ptr = Type::getInt32PtrTy(M.getContext(),
-            dyn_cast<PointerType>(ptr_op->getType())->getAddressSpace());
-    Value *ptr_bc = builder.CreatePointerCast(ptr_op, int32_ptr);
+    assert(op->getNumArgOperands() == 4); // dest, src, len, isvolatile
 
-    args_vector.push_back(ptr_bc);
-    unsigned elem_size = op->getType()->getPrimitiveSizeInBits() / 8;
-    if (elem_size == 1) {
-        load_fn = M.getFunction("extern_load_char");
-    } else if (elem_size == 2) {
-        load_fn = M.getFunction("extern_load_short");
-    } else {
-        load_fn = M.getFunction("extern_load_int");
-    }
-    if (load_fn == NULL) {
-       throw functionNotFoundException;
-    }
-
-    args_vector.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()),
-                elem_size, false));
-
+    // Make all arguments pointers to address space 0 so types match runtime fn
+    Value *dest_ptr = op->getArgOperand(0);
+    Value *src_ptr = op->getArgOperand(1);
+    Value *isvol = builder.CreateIntCast(op->getArgOperand(3), int_t, false);
+    // Create argument list to pass to memcpy
+    args_vector.push_back(dest_ptr);
+    args_vector.push_back(src_ptr);
+    args_vector.push_back(op->getArgOperand(2));
     ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
 
-    Value *new_ld = builder.CreateCall(load_fn, args);
-    op->replaceAllUsesWith(new_ld);
-    errs() << "Replace done\n";
-    new_ld->dump();
+    Value *new_memcpy = builder.CreateCall(memcpy_fn, args);
+    op->replaceAllUsesWith(new_memcpy);
+    new_memcpy->dump();
+    errs() << "Memcpy replace done\n\n";
 }
 
 
@@ -98,11 +175,127 @@ namespace {
             return -1;
         }
 
+        bool isMemcpy(Function *F) {
+            if (F != NULL) {
+                StringRef fname = F->getName();
+                if (fname.startswith(StringRef("llvm.memcpy"))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
+        bool shouldReplaceMemcpy(CallInst *op, bool *isStore) {
+            for (int i = 0; i < op->getNumArgOperands(); i++) {
+                if (auto *bc = dyn_cast<BitCastInst>(op->getArgOperand(i))) {
+                    if (auto *pt = dyn_cast<PointerType>(bc->getSrcTy())) {
+                        if (pt->getAddressSpace() == STRIPE) {
+                            *isStore = (i == 0);
+                            return true;
+                        }
+                    }
+                    if (auto *pt = dyn_cast<PointerType>(bc->getDestTy())) {
+                        if (pt->getAddressSpace() == STRIPE) {
+                            *isStore = (i == 0);
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+
+        void insertInitializerLoads(Module *M, GlobalVariable *G, Instruction *insert_after) {
+            // We want to insert load_extern_array after bsg_set_tile_x_y()
+            Function *load_fn = M->getFunction("load_extern_array");
+            Type *int32 = Type::getInt32Ty(M->getContext());
+            IRBuilder<> builder(insert_after);
+            builder.SetInsertPoint(insert_after->getNextNode());
+
+            // Get types that we'll need for this function
+            unsigned addr_space = cast<PointerType>(G->getType())->getAddressSpace();
+            Type *int32_stripe_ptr = Type::getInt32PtrTy(M->getContext(), addr_space);
+            Type *int32_ptr = Type::getInt32PtrTy(M->getContext());
+
+            // Create a copy of the global variable with the initializer in DRAM
+            GlobalVariable *new_global = new GlobalVariable(*M,
+                    G->getValueType(),
+                    false,
+                    GlobalValue::ExternalLinkage,
+                    G->getInitializer(),
+                    G->getName().str() + "_dram");
+            new_global->setDSOLocal(true);
+            new_global->setAlignment(4 * bsg_group_size);
+            new_global->setSection(".dram");
+
+            // Figure out how many loads each tile needs to do to load the array
+            unsigned total_elems = 1;
+            Type *elem_type = cast<ConstantArray>(G->getInitializer())->getType();
+            while (isa<ArrayType>(elem_type)) {
+                ArrayType *arr_t = cast<ArrayType>(elem_type);
+                total_elems *= arr_t->getNumElements();
+                elem_type = arr_t->getElementType();
+            }
+            unsigned num_loads = total_elems / bsg_group_size;
+
+            DataLayout layout = DataLayout(M);
+            unsigned elem_size = layout.getTypeAllocSizeInBits(elem_type) / 8;
+
+            std::vector<Value *> args_vector;
+
+            // Unset the initializer for G, we don't need it anymore
+            G->setInitializer(ConstantAggregateZero::get(G->getInitializer()->getType()));
+            // Insert casts so that the types match our runtime function
+            Value *cast_var = builder.CreatePointerCast(G, int32_stripe_ptr);
+            Value *new_global_cast = builder.CreatePointerCast(new_global, int32_ptr);
+            // Pack the arguments to call load_extern_array
+            args_vector.push_back(cast_var);
+            args_vector.push_back(new_global_cast);
+            args_vector.push_back(ConstantInt::get(int32, num_loads, false));
+            args_vector.push_back(ConstantInt::get(int32, elem_size, false));
+
+            ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
+            errs() << "Loading initializer\n";
+            builder.CreateCall(load_fn, args)->dump();
+        }
+
+
+        Instruction *findSetTileXY(Module *M) {
+            Function *main_fn = M->getFunction("main");
+            for (auto &B: *main_fn) {
+                for (auto &I : B) {
+                    if (auto *op = dyn_cast<CallInst>(&I)) {
+                        StringRef fname;
+                        if (op->getCalledFunction() == NULL) {
+                            Value *sv = op->getCalledValue()->stripPointerCasts();
+                            fname = sv->getName();
+                        } else {
+                            fname = op->getCalledFunction()->getName();
+                        }
+                        if (fname.startswith(StringRef("bsg_set_tile_x_y"))) {
+                            return &I;
+                        }
+                    }
+                }
+            }
+            throw functionNotFoundException;
+            return NULL;
+        }
+
+
         class AddressSpaceException: public std::exception {
             virtual const char *what() const throw() {
                 return "Invalid Address Space Encountered!\n";
             }
         } addressSpaceException;
+
+        class StripedArrayException: public std::exception {
+            virtual const char *what() const throw() {
+                return "Arrays declared with STRIPE must not be in DRAM!\n";
+            }
+        } stripedArrayException;
 
         bool runOnModule(Module &M) override {
             // If the function doesn't exist, it means that this c file didn't
@@ -110,16 +303,21 @@ namespace {
             if (!M.getFunction("extern_load_int")) {
                 return false;
             }
-            std::vector<GlobalVariable *> globals_to_resize;
+            std::vector<GlobalVariable *> striped_globals;
             std::vector<Instruction *> insts_to_remove;
             for (auto &G : M.globals()) {
                 Type *g_type = G.getType();
                 // If global variable is an array in address space 1
                 if (isa<PointerType>(g_type) && g_type->getPointerAddressSpace() > 0) {
-                    globals_to_resize.push_back(&G);
+                    striped_globals.push_back(&G);
+                    // Striped arrays cannot have initializers or be in DRAM at the moment
+                    if (G.getSection().endswith(StringRef(".dram"))) {
+                        throw stripedArrayException;
+                    }
                 }
             }
-            for (auto G: globals_to_resize) {
+            Instruction *setTileCall = findSetTileXY(&M);
+            for (auto G: striped_globals) {
                 // We set alignment so that index 0 of an array is always on
                 // core 0. Additionally, this has the effect of the start of
                 // a striped array being word-aligned on individual cores,
@@ -128,32 +326,37 @@ namespace {
                 // bsg_group_size is passed via the command line
                 G->setAlignment(4 * bsg_group_size);
                 G->setSection(".striped.data");
+                if (!isa<ConstantAggregateZero>(G->getInitializer())) {
+                    insertInitializerLoads(&M, G, setTileCall);
+                }
             }
 
             for (auto &F : M) {
                 for (auto &B : F) {
                     for (auto &I : B) {
-                        if (auto* op = dyn_cast<StoreInst>(&I)) {
-                            if (op->getPointerAddressSpace() > 0) {
-                                op->dump();
-                                if (op->getPointerAddressSpace() == STRIPE) {
-                                    replace_extern_store(M, op);
-                                    insts_to_remove.push_back(op);
-                                } else {
-                                    throw addressSpaceException;
-                                }
-                                errs() << "\n";
+                        if (isa<StoreInst>(&I) || isa<LoadInst>(&I)) {
+                            unsigned addr_space;
+                            bool isStore;
+                            if (isa<StoreInst>(&I)) {
+                                addr_space = cast<StoreInst>(I).getPointerAddressSpace();
+                                isStore = true;
+                            } else {
+                                addr_space = cast<LoadInst>(I).getPointerAddressSpace();
+                                isStore = false;
                             }
-                        } else if (auto* op = dyn_cast<LoadInst>(&I)) {
-                            if (op->getPointerAddressSpace() > 0) {
-                                op->dump();
-                                if (op->getPointerAddressSpace() == STRIPE) {
-                                    replace_extern_load(M, op);
-                                    insts_to_remove.push_back(op);
-                                } else {
-                                    throw addressSpaceException;
-                                }
-                                errs() << "\n";
+                            if (addr_space > 0 && addr_space == STRIPE) {
+                                replace_mem_op(M, &I, isStore);
+                                insts_to_remove.push_back(&I);
+                            } else if (addr_space > 0) {
+                                throw addressSpaceException;
+                            }
+                        } else if (auto* op = dyn_cast<CallInst>(&I)) {
+                            Function *F = op->getCalledFunction();
+                            if (!isMemcpy(F)) { continue;}
+                            bool isStore;
+                            if (shouldReplaceMemcpy(op, &isStore)) {
+                                replace_extern_memcpy(M, op, isStore);
+                                insts_to_remove.push_back(op);
                             }
                         }
                     }
@@ -163,19 +366,6 @@ namespace {
             for (auto I : insts_to_remove) {
                 I->eraseFromParent();
             }
-
-            std::vector<Function *> funcs_to_internalize;
-            funcs_to_internalize.push_back(M.getFunction("extern_store_char"));
-            funcs_to_internalize.push_back(M.getFunction("extern_store_short"));
-            funcs_to_internalize.push_back(M.getFunction("extern_store_int"));
-            funcs_to_internalize.push_back(M.getFunction("extern_load_char"));
-            funcs_to_internalize.push_back(M.getFunction("extern_load_short"));
-            funcs_to_internalize.push_back(M.getFunction("extern_load_int"));
-            for (auto F : funcs_to_internalize) {
-                Attribute attr = Attribute::get(M.getContext(), "static", "true");
-                F->addAttribute(0, attr);
-            }
-
 
             return true;
         }
