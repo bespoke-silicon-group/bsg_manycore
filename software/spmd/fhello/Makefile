@@ -16,7 +16,7 @@ all: main.run
 # Redirects verilog standard output starting with "X<x_cord>_Y<y_cord>.pelog" 
 # to a unique log file for each coordinate in the manycore. This can be useful 
 # for a quick debug of processor or program running on it.
-proc_exe_logs: X0_Y1.pelog
+proc_exe_logs: X0_Y2.pelog
 
 OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o
 
