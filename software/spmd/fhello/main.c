@@ -38,11 +38,12 @@ int main() {
     stdoutfile = fopen("stdout", "r");
     bsg_printf("(%d, %d): stdout opened for reading; fd = %x\n", bsg_x, bsg_y, stdoutfile);
     size_t read_bytes = fread(read_buf, 1, read_buf_size, stdoutfile);
-    bsg_printf("(%d, %d): read %d bytes from stdout and strlen= %d\n", bsg_x, bsg_y, read_bytes, strlen(read_buf));
+    bsg_printf("(%d, %d): read %d bytes from stdout\n", bsg_x, bsg_y, read_bytes);
     ret = fclose(stdoutfile);
     bsg_printf("(%d, %d): stdout closed: ret = %d\n", bsg_x, bsg_y, ret);
 
-    bsg_printf("(%d, %d): %c\n", bsg_x, bsg_y, read_buf);
+    read_buf[read_buf_size-1] = NULL; // NULL termination for printing read buf as a string
+    bsg_printf("(%d, %d): %s\n", bsg_x, bsg_y, read_buf);
 
     bsg_finish();
   }
