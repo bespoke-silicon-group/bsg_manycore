@@ -4,10 +4,8 @@ bsg_tiles_Y = 2
 bsg_group_size = $(shell echo "$(bsg_tiles_X) * $(bsg_tiles_Y)" | bc)
 DVE = 0
 
-HAS_FLOAT = 1
-
 # Comment below line to compile with riscv64-unknown-elf-gcc
-# CLANG=1
+CLANG=1
 #########################################################
 #each bytes defines the core type
 # 00: vanilla core

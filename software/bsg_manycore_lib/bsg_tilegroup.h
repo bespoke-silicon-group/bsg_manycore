@@ -65,6 +65,14 @@ static volatile int *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size, unsig
     return (volatile int *) remote_ptr_val;;
 }
 
+void extern_store_float(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset, float val) {
+#ifdef TILEGROUP_DEBUG
+    bsg_printf("\nCalling extern_store_float(0x%x, %d, %d, %x)\n",
+            (unsigned) arr_ptr, elem_size, offset, val);
+#endif
+    volatile float *ptr = (volatile float *) get_ptr_val(arr_ptr, elem_size, offset);
+    *ptr = val;
+}
 
 void extern_store_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset, unsigned val) {
 #ifdef TILEGROUP_DEBUG
@@ -95,6 +103,15 @@ void extern_store_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset,
     *ptr = val;
 }
 
+
+float extern_load_float(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
+#ifdef TILEGROUP_DEBUG
+    bsg_printf("\nCalling extern_load_int(0x%x, %d, %d)\n",
+            (unsigned) arr_ptr, elem_size, offset);
+#endif
+    volatile float *ptr = (volatile float *) get_ptr_val(arr_ptr, elem_size, offset);
+    return *ptr;
+}
 
 int extern_load_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
 #ifdef TILEGROUP_DEBUG

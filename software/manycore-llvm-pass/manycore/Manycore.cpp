@@ -96,8 +96,14 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
         mem_op_fn = (isStore) ? M.getFunction("extern_store_short") :
             M.getFunction("extern_load_short");
     } else {
-        mem_op_fn = (isStore) ? M.getFunction("extern_store_int") :
-            M.getFunction("extern_load_int");
+        ptr_op->getType()->dump();
+        if (ptr_op->getType()->getPointerElementType()->isFloatTy()) {
+            mem_op_fn = (isStore) ? M.getFunction("extern_store_float") :
+                M.getFunction("extern_load_float");
+        } else {
+            mem_op_fn = (isStore) ? M.getFunction("extern_store_int") :
+                M.getFunction("extern_load_int");
+        }
     }
     if (mem_op_fn == NULL) {
         throw functionNotFoundException;
@@ -117,6 +123,10 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
     ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
 
     // Create the call and replace all uses of the store inst with the call
+    mem_op_fn->getType()->dump();
+    for (auto a : args) {
+        a->getType()->dump();
+    }
     Value *new_mem_op = builder.CreateCall(mem_op_fn, args);
     op->replaceAllUsesWith(new_mem_op);
 
