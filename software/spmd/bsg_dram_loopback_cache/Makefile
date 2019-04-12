@@ -1,5 +1,5 @@
-bsg_tiles_X = 3
-bsg_tiles_Y = 3
+bsg_tiles_X = 4
+bsg_tiles_Y = 4
 
 ROM_NAME = bsg_manycore_io_complex_rom
 
