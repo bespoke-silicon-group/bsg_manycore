@@ -125,7 +125,15 @@ INIT_TILE_GROUP_BARRIER (row_barrier_inst1, col_barrier_inst1, BARRIER_X_START, 
 ********************************************************************************************************/
 
 
-
+int write_signal () 
+{
+  if (__bsg_x == 0 && __bsg_y == 0) 
+  {
+    int **signal_reg = (int **) 0x100c;
+    int *signal_ptr = *signal_reg;
+    *signal_ptr = 0x1; /* arbitrary */
+  }
+}
 
 
 #define __wait_until_valid_func()                                            \
@@ -157,11 +165,10 @@ INIT_TILE_GROUP_BARRIER (row_barrier_inst1, col_barrier_inst1, BARRIER_X_START, 
                                                                              \
               __kernel_return:                                               \
                 li        t0           ,    0x1;                             \
-                sw        t0           ,    0 ( s1   );                      \
-                li        t0           ,    0x1;                             \
-                sw        t0           ,    0 ( s4    );                     \
-                j         __wait_until_valid_func;                           \
-           ");
+                sw        t0           ,    0 ( s0   );                      \
+           ");                                                               \
+           write_signal();                                                   \
+           asm("j         __wait_until_valid_func");
 
 
 int main()
@@ -174,6 +181,6 @@ int main()
 
   __wait_until_valid_func();
 
-  bsg_finish();
+  // bsg_finish();
 }
 
