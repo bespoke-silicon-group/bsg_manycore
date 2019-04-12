@@ -54,7 +54,7 @@ module hobbit #(parameter
 
 //localparam trace_lp = 1'b1;
 localparam trace_lp = 1'b0;
-localparam debug_lp = 1'b1;
+localparam debug_lp = 1'b0;
 
 // position in recoded instruction memory of prediction bit
 // for branches. normally this would be bit 31 in RISCV ISA (branch ofs sign bit)
