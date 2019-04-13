@@ -60,7 +60,10 @@ void fft(float complex *X, unsigned id) {
         work_id = 0;
         for (int i = 0; i < N; i += n) {
             for (int k = 0; k < n / 2; k++) {
-                if (work_id != id) { continue;}
+                if (work_id != id) {
+                    work_id = (work_id + 1) % bsg_group_size;
+                    continue;
+                }
 
                 even_idx = i + k;
                 odd_idx = even_idx + n / 2;
@@ -73,11 +76,8 @@ void fft(float complex *X, unsigned id) {
                 work_id = (work_id + 1) % bsg_group_size;
             }
         }
-        if (id == 0) { bsg_printf("N = %d\n", n);}
-        bsg_printf("id = %d\n", id);
         n = n * 2;
         bsg_tile_group_barrier(&r_barrier, &c_barrier);
-        if (id == 0) { bsg_printf("new N = %d\n", n);}
     }
 }
 
@@ -86,15 +86,15 @@ float magnitude(float complex x) {
     return sqrt(mag_val);
 }
 
+// 2993430
+//  786850
 int main()
 {
     bsg_set_tile_x_y();
-    bsg_printf("BSG_ID = %d\n", bsg_id);
     if (bsg_id == 0) {
         fft_swizzle(0, 1);
     }
     bsg_tile_group_barrier(&r_barrier, &c_barrier);
-    bsg_printf("BSG_ID = %d\n", bsg_id);
 
     fft(fft_work_arr, bsg_id);
 
