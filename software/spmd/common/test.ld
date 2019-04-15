@@ -21,12 +21,8 @@ SECTIONS
 {
   /* beginning of data memory; set by imem size and bank conflict concerns */
   . = 0x1000;
-  _bsg_data_start_addr  = . ;
-  _bsg_cudal_kernel_ptr = . ;      
-  _bsg_cudal_argc       = . + 4 ;      
-  _bsg_cudal_argv_ptr   = . + 8 ;
-  _bsg_cudal_sig_ptr    = . + 12;
-  . = . + 16 ;
+  .cuda_rtl : { *(.cuda_rtl) }
+
   /* data segment */
   .data : { *(.data) }
 
