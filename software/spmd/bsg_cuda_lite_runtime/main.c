@@ -8,6 +8,8 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
+int kernel_regs[4] __attribute__ ((section ("CUDA_RTL"))) = { 0x0 }; 
+
 //This defines the offset of the runtime variables 
 #define CUDAL_PARAM_BASE_ADDR   0x1000
 #define CUDAL_KERNEL_PTR_IDX    0x0     //function pointer of the kernel function
