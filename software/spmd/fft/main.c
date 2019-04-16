@@ -86,8 +86,6 @@ float magnitude(float complex x) {
     return sqrt(mag_val);
 }
 
-// 2993430
-//  786850
 int main()
 {
     bsg_set_tile_x_y();

@@ -123,10 +123,6 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
     ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
 
     // Create the call and replace all uses of the store inst with the call
-    mem_op_fn->getType()->dump();
-    for (auto a : args) {
-        a->getType()->dump();
-    }
     Value *new_mem_op = builder.CreateCall(mem_op_fn, args);
     op->replaceAllUsesWith(new_mem_op);
 
