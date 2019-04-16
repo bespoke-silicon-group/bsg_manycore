@@ -96,7 +96,6 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
         mem_op_fn = (isStore) ? M.getFunction("extern_store_short") :
             M.getFunction("extern_load_short");
     } else {
-        ptr_op->getType()->dump();
         if (ptr_op->getType()->getPointerElementType()->isFloatTy()) {
             mem_op_fn = (isStore) ? M.getFunction("extern_store_float") :
                 M.getFunction("extern_load_float");

@@ -106,7 +106,7 @@ void extern_store_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset,
 
 float extern_load_float(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
 #ifdef TILEGROUP_DEBUG
-    bsg_printf("\nCalling extern_load_int(0x%x, %d, %d)\n",
+    bsg_printf("\nCalling extern_load_float(0x%x, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset);
 #endif
     volatile float *ptr = (volatile float *) get_ptr_val(arr_ptr, elem_size, offset);
