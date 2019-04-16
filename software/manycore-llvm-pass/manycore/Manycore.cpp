@@ -96,8 +96,13 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
         mem_op_fn = (isStore) ? M.getFunction("extern_store_short") :
             M.getFunction("extern_load_short");
     } else {
-        mem_op_fn = (isStore) ? M.getFunction("extern_store_int") :
-            M.getFunction("extern_load_int");
+        if (ptr_op->getType()->getPointerElementType()->isFloatTy()) {
+            mem_op_fn = (isStore) ? M.getFunction("extern_store_float") :
+                M.getFunction("extern_load_float");
+        } else {
+            mem_op_fn = (isStore) ? M.getFunction("extern_store_int") :
+                M.getFunction("extern_load_int");
+        }
     }
     if (mem_op_fn == NULL) {
         throw functionNotFoundException;
