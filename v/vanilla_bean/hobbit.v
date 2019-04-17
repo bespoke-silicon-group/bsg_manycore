@@ -1,60 +1,63 @@
+/**
+ *  Vanilla-Bean Core
+ *
+ *  5 stage pipeline implementation of the vanilla core ISA.
+ */
+
 `include "parameters.vh"
 `include "definitions.vh"
 
 `ifdef bsg_FPU
 `include "float_definitions.vh"
 `endif
-//`include "bsg_defines.v"
 
-/**
- *  Vanilla-Bean Core
- *
- *  5 stage pipeline implementation of the vanilla core ISA.
- */
-module hobbit #(parameter 
-                          icache_tag_width_p         = -1, 
-                          icache_addr_width_p        = -1,
-                          gw_ID_p                    = -1,
-                          ring_ID_p                  = -1,
-                          x_cord_width_p             = -1,
-                          y_cord_width_p             = -1,
-                          debug_p                    = 0 ,
-                          pc_width_lp                = icache_tag_width_p + icache_addr_width_p, 
-                          icache_format_width_lp     = `icache_format_width( icache_tag_width_p ),
-                          //As all instructions will be resident in DRAM, we
-                          //need to pad the higher parts of the pc so it
-                          //points to DRAM.
-                          pc_high_padding_width_lp   = RV32_reg_data_width_gp - pc_width_lp -2 ,
-                          pc_high_padding_lp         = {pc_high_padding_width_lp{1'b0}} ,
-                          //used to direct the icache miss address to dram.
-                          dram_addr_mapping_lp       = 32'h8000_0000,
+module hobbit
+  #(parameter icache_tag_width_p = "inv" 
+    , parameter icache_addr_width_p = "inv"
+    , parameter gw_ID_p = "inv"
+    , parameter ring_ID_p = "inv"
+    , parameter x_cord_width_p = "inv"
+    , parameter y_cord_width_p = "inv"
 
-                          remote_addr_prefix_mask_lp = 32'hc000_0000,
-                          remote_addr_mapping_lp     = 32'h4000_0000
-               )(
-                input                             clk_i
-               ,input                             reset_i
+    , parameter debug_p = 0
+    , parameter trace_p = 0
 
-`ifdef bsg_FPU
-               ,fpi_alu_inter.alu_side            fpi_inter
-`endif
-               ,input  ring_packet_s              net_packet_i
+    , localparam pc_width_lp = (icache_tag_width_p + icache_addr_width_p)
+    , localparam icache_format_width_lp = `icache_format_width(icache_tag_width_p)
 
-               ,input  mem_out_s                  from_mem_i
-               ,output mem_in_s                   to_mem_o
-               ,input  logic                      reservation_i
-               ,output logic                      reserve_1_o
+    // As all instructions will be resident in DRAM, we
+    // need to pad the higher parts of the pc so it
+    // points to DRAM.
+    , localparam pc_high_padding_width_lp = (RV32_reg_data_width_gp-pc_width_lp-2)
+    , localparam pc_high_padding_lp = {pc_high_padding_width_lp{1'b0}}
+  
+    // used to direct the icache miss address to dram.
+    , localparam dram_addr_mapping_lp = 32'h8000_0000
 
-               ,input  [x_cord_width_p-1:0]       my_x_i
-               ,input  [y_cord_width_p-1:0]       my_y_i
+    , localparam remote_addr_prefix_mask_lp = 32'hc000_0000
+    , localparam remote_addr_mapping_lp = 32'h4000_0000
+  )
+  (
+    input clk_i
+    , input reset_i
 
-               ,input                             outstanding_stores_i
-               );
+    `ifdef bsg_FPU
+    , fpi_alu_inter.alu_side fpi_inter
+    `endif
 
+    , input ring_packet_s net_packet_i
 
-//localparam trace_lp = 1'b1;
-localparam trace_lp = 1'b0;
-localparam debug_lp = 1'b0;
+    , input mem_out_s from_mem_i
+    , output mem_in_s to_mem_o
+
+    , input logic reservation_i
+    , output logic reserve_1_o
+
+    , input [x_cord_width_p-1:0] my_x_i
+    , input [y_cord_width_p-1:0] my_y_i
+
+    , input outstanding_stores_i
+  );
 
 // position in recoded instruction memory of prediction bit
 // for branches. normally this would be bit 31 in RISCV ISA (branch ofs sign bit)
@@ -485,31 +488,35 @@ begin
   end
 end
 
-// Register file chip enable signal
-// FPU depend stall will not affect register file write back
-// MEM load depend stall will not affect register file write back
-// assign rf_cen = (~ stall ) | (net_reg_write_cmd);
-//   assign rf_cen= ~(stall | depend_stall );
-//  assign rf_cen=  ~stall ;
-assign rf_cen = 1'b1;
+  // Register file chip enable signal
+  // FPU depend stall will not affect register file write back
+  // MEM load depend stall will not affect register file write back
+  // assign rf_cen = (~ stall ) | (net_reg_write_cmd);
+  //   assign rf_cen= ~(stall | depend_stall );
+  //  assign rf_cen=  ~stall ;
+  assign rf_cen = 1'b1;
 
-// Instantiate the general purpose register file
-// This register file is write through, which means when read/write
-// The same address, the read gets the newly written value.
-rf_2r1w_sync_wrapper #( .width_p                (RV32_reg_data_width_gp)
-                       ,.els_p                  (32)
-                      ) rf_0
-  ( .clk_i     (clk_i)
-   ,.reset_i   (reset_i)
-   ,.w_v_i     (rf_wen)
-   ,.w_addr_i  (rf_wa)
-   ,.w_data_i  (rf_wd)
-   ,.r0_v_i    (rf_cen)
-   ,.r0_addr_i (rf_rs1_addr)
-   ,.r0_data_o (rf_rs1_val)
-   ,.r1_v_i    (rf_cen)
-   ,.r1_addr_i (rf_rs2_addr)
-   ,.r1_data_o (rf_rs2_val)
+  // Instantiate the general purpose register file
+  // This register file is write through, which means when read/write
+  // The same address, the read gets the newly written value.
+  rf_2r1w_sync_wrapper #(
+    .width_p(RV32_reg_data_width_gp)
+    ,.els_p(32)
+  ) rf_0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.w_v_i(rf_wen)
+    ,.w_addr_i(rf_wa)
+    ,.w_data_i(rf_wd)
+
+    ,.r0_v_i(rf_cen)
+    ,.r0_addr_i(rf_rs1_addr)
+    ,.r0_data_o(rf_rs1_val)
+
+    ,.r1_v_i(rf_cen)
+    ,.r1_addr_i(rf_rs2_addr)
+    ,.r1_data_o(rf_rs2_val)
   );
 
 
@@ -870,16 +877,13 @@ wire id_wb_rs2_forward = id.decode.op_reads_rf2 & ( id.instruction.rs2 == wb.rd_
                        & wb.op_writes_rf
                        & (| id.instruction.rs2); //should not forward r0
 
-wire [RV32_reg_data_width_gp-1:0]  rf_rs1_index0_fix = (~|id.instruction.rs1) ?
-                                        RV32_reg_data_width_gp'(0) : rf_rs1_val;
+wire [RV32_reg_data_width_gp-1:0] rs1_to_exe = id_wb_rs1_forward
+  ? wb.rf_data
+  : rf_rs1_val;
 
-wire [RV32_reg_data_width_gp-1:0]  rf_rs2_index0_fix = (~|id.instruction.rs2) ?
-                                        RV32_reg_data_width_gp'(0) : rf_rs2_val;
-
-wire [RV32_reg_data_width_gp-1:0] rs1_to_exe    = id_wb_rs1_forward ?
-                                        wb.rf_data : rf_rs1_index0_fix;
-wire [RV32_reg_data_width_gp-1:0] rs2_to_exe    = id_wb_rs2_forward ?
-                                        wb.rf_data : rf_rs2_index0_fix;
+wire [RV32_reg_data_width_gp-1:0] rs2_to_exe = id_wb_rs2_forward
+  ? wb.rf_data
+  : rf_rs2_val;
 
 // Pre-Compute the forwarding control signal for ALU in EXE
 // RS register forwarding
@@ -1202,7 +1206,7 @@ always@( negedge clk_i ) begin
         end
 end
 
-if (trace_lp)
+if (trace_p)
   always_ff @(negedge clk_i)
     begin
        if (~(debug_wb.squashed  & (debug_wb.PC_r == 0)))
@@ -1227,7 +1231,7 @@ if (trace_lp)
 // file handle for processor execution log
 integer pelog;
 
-if(debug_p | debug_lp) begin
+if (debug_p) begin
   initial begin
     // open the file and clear it
     pelog = $fopen("pe.log", "w");
