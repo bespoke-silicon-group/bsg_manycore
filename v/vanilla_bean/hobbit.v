@@ -1324,22 +1324,20 @@ if(debug_p | debug_lp) begin
                  ,to_mem_o.payload.read_info.load_info.reg_id
                  ,from_mem_i.yumi
                 );
-        end
-        //// Memory
-        //$fwrite(pelog, "X%0d_Y%0d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b"
-        //         ,my_x_i
-        //         ,my_y_i
-        //         ,mem.rd_addr
-        //         ,mem.decode.op_writes_rf
-        //         ,mem.decode.is_load_op
-        //         ,mem.decode.is_store_op
-        //         ,mem.decode.is_mem_op
-        //         ,mem.decode.is_byte_op
-        //         ,mem.decode.is_hex_op
-        //         ,mem.decode.is_branch_op
-        //         ,mem.decode.is_jump_op
-        //        );
-        if( my_x_i == 2 && my_y_i == 2 && ( from_mem_i.valid & to_mem_o.yumi) ) begin
+        // Memory
+        $fwrite(pelog, "X%0d_Y%0d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b"
+                 ,my_x_i
+                 ,my_y_i
+                 ,mem.rd_addr
+                 ,mem.decode.op_writes_rf
+                 ,mem.decode.is_load_op
+                 ,mem.decode.is_store_op
+                 ,mem.decode.is_mem_op
+                 ,mem.decode.is_byte_op
+                 ,mem.decode.is_hex_op
+                 ,mem.decode.is_branch_op
+                 ,mem.decode.is_jump_op
+                );
         $fwrite(pelog, " reads_rf1=%b reads_rf2=%b auipc=%b exe_res=%0x mem_v=%b mem_d=%x reg_id=%d yumi_o=%b icm=%b\n"
                  ,mem.decode.op_reads_rf1
                  ,mem.decode.op_reads_rf2
@@ -1351,39 +1349,37 @@ if(debug_p | debug_lp) begin
                  ,to_mem_o.yumi
                  ,mem.icache_miss
                 );
-        end
         // Write back
-        //$fwrite(pelog, "X%0d_Y%0d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x icm=%b icm_pc=%x\n"
-        //         ,my_x_i
-        //         ,my_y_i
-        //         ,wb.op_writes_rf
-        //         ,wb.rd_addr
-        //         ,wb.rf_data
-        //         ,wb.icache_miss
-        //         ,wb.icache_miss_pc
-        //        );
+        $fwrite(pelog, "X%0d_Y%0d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x icm=%b icm_pc=%x\n"
+                 ,my_x_i
+                 ,my_y_i
+                 ,wb.op_writes_rf
+                 ,wb.rd_addr
+                 ,wb.rf_data
+                 ,wb.icache_miss
+                 ,wb.icache_miss_pc
+                );
 
         // Misc
-        //$fwrite(pelog, "X%0d_Y%0d.pelog MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b"
-        //         ,my_x_i
-        //         ,my_y_i
-        //         ,stall
-        //         ,stall_mem
-        //         ,stall_non_mem
-        //         ,stall_lrw
-        //         ,depend_stall
-        //        );
-        //$fwrite(pelog, " stall_ld_wb=%b reservation=%b alu_result=%x mask=%b jump_now=%b flush=%b\n"
-        //         ,stall_load_wb
-        //         ,reservation_i
-        //         ,alu_result
-        //         ,mask
-        //         ,jump_now
-        //         ,flush
-        //        );
+        $fwrite(pelog, "X%0d_Y%0d.pelog MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b"
+                 ,my_x_i
+                 ,my_y_i
+                 ,stall
+                 ,stall_mem
+                 ,stall_non_mem
+                 ,stall_lrw
+                 ,depend_stall
+                );
+        $fwrite(pelog, " stall_ld_wb=%b reservation=%b alu_result=%x mask=%b jump_now=%b flush=%b\n"
+                 ,stall_load_wb
+                 ,reservation_i
+                 ,alu_result
+                 ,mask
+                 ,jump_now
+                 ,flush
+                );
 
         // Register file
-        if( my_x_i == 2 && my_y_i == 2 && rf_wen ) begin
         $fwrite(pelog, "X%0d_Y%0d.pelog   RF: wen=%b wa=%d wd=%0x cen=%b rs1_addr=%d rs1_val=%0x rs2_addr=%d rs2_val=%0x\n"
                  ,my_x_i
                  ,my_y_i
@@ -1396,16 +1392,15 @@ if(debug_p | debug_lp) begin
                  ,rf_rs2_addr
                  ,rf_rs2_val
                 );
-        end
-        //// Multiple-divide
-        //$fwrite(pelog, "X%0d_Y%0d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x\n"
-        //         ,my_x_i
-        //         ,my_y_i
-        //         ,stall_md
-        //         ,md_valid
-        //         ,md_resp_valid
-        //         ,md_result
-        //        );
+        // Multiple-divide
+        $fwrite(pelog, "X%0d_Y%0d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x\n"
+                 ,my_x_i
+                 ,my_y_i
+                 ,stall_md
+                 ,md_valid
+                 ,md_resp_valid
+                 ,md_result
+                );
         $fclose(pelog);
       end
     end
