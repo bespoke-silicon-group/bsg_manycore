@@ -29,8 +29,9 @@ module icache #(parameter
                ,input [pc_width_lp-1:0]            pc_i
                ,input                              flush_i
                ,input                              pc_wen_i
+               ,input  [pc_width_lp-1:0]           jalr_prediction_i
                ,output [pc_width_lp-1:0]           pc_r_o
-               ,output [pc_width_lp-1:0]           jump_addr_o
+               ,output [pc_width_lp-1:0]           pred_or_jump_addr_o
                ,output                             icache_miss_o
                );
 
@@ -169,17 +170,25 @@ module icache #(parameter
                    ,.data_o        ( jal_pc_high_out               )
                   );
 
-  wire is_jal_instr     = icache_stall_out.instr ==? `RV32_JAL  ;
+  wire is_jal_instr     = icache_stall_out.instr ==? `RV32_JAL;
+  wire is_jalr_instr    = icache_stall_out.instr ==? `RV32_JALR;
 
   //these are bytes address
   wire [pc_width_lp+1:0] jal_pc    = {jal_pc_high_out,    `RV32_Jimm_21extract(icache_stall_out.instr) };
   wire [pc_width_lp+1:0] branch_pc = {branch_pc_high_out, `RV32_Bimm_13extract(icache_stall_out.instr) };
+
   //------------------------------------------------------------------
   // assign outputs.
   assign instruction_o = icache_stall_out.instr;
   assign pc_r_o        = pc_r;
+
   // jump_addr_o is WORD address
-  assign jump_addr_o      = is_jal_instr ? jal_pc[2+:pc_width_lp] : branch_pc[2+:pc_width_lp];
+  assign pred_or_jump_addr_o = is_jal_instr
+    ? jal_pc[2+:pc_width_lp]
+    : (is_jalr_instr
+      ? jalr_prediction_i
+      : branch_pc[2+:pc_width_lp]);
+
   // the icache miss logic
   assign icache_miss_o    =  ( icache_stall_out.tag != pc_r[icache_addr_width_p+:icache_tag_width_p] );
   
