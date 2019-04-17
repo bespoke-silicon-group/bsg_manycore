@@ -128,7 +128,7 @@ logic yumi_to_mem_c;
 logic current_load_arrived;
 logic pending_load_arrived;
 logic exe_free_for_load, mem_free_for_load, wb_free_for_load;
-logic insert_load_in_exe, insert_load_in_mem, insert_load_in_wb;
+logic insert_load_in_exe;
 
 // Decoded control signals logic
 decode_s decode;
@@ -396,6 +396,7 @@ icache #(
        ,.icache_w_tag_i         (icache_w_tag           ) 
        ,.icache_w_instr_i       (icache_w_instr         )
 
+       ,.flush_i                (flush|icache_miss_in_pipe )
        ,.pc_i                   (pc_n                   )
        ,.pc_wen_i               (pc_wen                 )
        ,.pc_r_o                 (pc_r                   )
@@ -580,23 +581,8 @@ assign mem_free_for_load = ~mem.decode.op_writes_rf & 1'b0;
 // non-blocking, write-back wouldn't happen when the instrucion is still
 // in the pipeline
 assign exe_free_for_load = ~exe.decode.op_writes_rf | remote_load_in_exe;
-
-// Control signals to insert pending loads into the pipeline
-assign insert_load_in_wb  = pending_load_arrived
-                              & wb_free_for_load
-                              & ~stall
-                              & 1'b0; // disabled due to pre-computed forwarding
-
-assign insert_load_in_mem = pending_load_arrived
-                              & mem_free_for_load
-                              & ~insert_load_in_wb
-                              & ~stall
-                              & 1'b0; // disabled due to pre-computed forwarding
-
 assign insert_load_in_exe = pending_load_arrived
                               & exe_free_for_load
-                              & ~insert_load_in_mem
-                              & ~insert_load_in_wb
                               & ~stall;
 
 //+----------------------------------------------
@@ -739,8 +725,6 @@ assign yumi_to_mem_c  = from_mem_i.valid
                           & (stall 
                               | current_load_arrived
                               | insert_load_in_exe
-                              | insert_load_in_mem
-                              | insert_load_in_wb
                             );
 
 // RISC-V edit: add reservation
@@ -828,7 +812,7 @@ always_comb begin
     if( icache_miss_lo) begin
         id_decode.is_load_op   = 1'b1;
         id_decode.is_mem_op    = 1'b1;
-        id_decode.op_writes_rf = 1'b1;
+        id_decode.op_writes_rf = 1'b0;
     end else begin
         id_decode = decode;
     end
@@ -848,11 +832,10 @@ assign id_s = '{
 always_ff @ (posedge clk_i)
 begin
 `ifdef bsg_FPU
-    if (reset_i | net_pc_write_cmd_idle |
-            (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall )))
-       )
+    if (reset_i | net_pc_write_cmd_idle | flush )
 `else
-    if (reset_i | net_pc_write_cmd_idle | ( (flush|icache_miss_in_pipe) & (~   (stall | depend_stall)  ) ) )
+    //if (reset_i | net_pc_write_cmd_idle |( (flush | icache_miss_in_pipe ) & (~(stall | depend_stall) ) ) )
+    if (reset_i | net_pc_write_cmd_idle | flush | (icache_miss_in_pipe & (~ (stall | depend_stall) ) ) )
 `endif
       begin
          id <= '0;
@@ -906,21 +889,23 @@ wire [RV32_reg_data_width_gp-1:0] rs2_to_exe    = id_wb_rs2_forward ?
 wire    exe_rs1_in_mem     = exe_op_writes_rf
                            & (id.instruction.rs1 == exe_rd_addr)
                            & (|id.instruction.rs1);
-wire    exe_rs1_in_wb      = mem.decode.op_writes_rf
+//TODO 
+//Ratify this logic with load buffer
+wire    exe_rs1_in_wb      = ( mem.decode.op_writes_rf | is_load_buffer_valid)
                            & (id.instruction.rs1  == mem.rd_addr)
                            & (|id.instruction.rs1);
 
 wire    exe_rs2_in_mem     = exe_op_writes_rf
                            & (id.instruction.rs2 == exe_rd_addr)
                            & (|id.instruction.rs2);
-wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
+wire    exe_rs2_in_wb      = ( mem.decode.op_writes_rf | is_load_buffer_valid )
                            & (id.instruction.rs2  == mem.rd_addr)
                            & (|id.instruction.rs2);
 
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
-    if (reset_i | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
+    if (reset_i | net_pc_write_cmd_idle | flush )
       begin
    // synopsys translate_off
          debug_exe <= debug_id | squashed_lp;
@@ -991,9 +976,20 @@ assign fiu_alu_result = fpi_inter.exe_fpi_writes_rf
 assign fiu_alu_result = alu_result;
 
 `endif
+// dram addr                    : 1xxxxxxxx
+// out-group remote addr        : 01xxxxxxx
+// in-group remote addr         : 001xxxxxx
+//assign remote_load_in_exe = exe.decode.is_load_op & ( | mem_addr_send[ (RV32_reg_data_width_gp-1)  -: 3] );
+wire is_dram_addr   = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 1 ] == 1'b1;
+wire is_global_addr = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 2 ] == 2'b01;
+wire is_group_addr  = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 3 ] == 3'b001;
 
 assign remote_load_in_exe = exe.decode.is_load_op 
-                              & ((mem_addr_send & remote_addr_prefix_mask_lp) == remote_addr_mapping_lp);
+                         & (is_global_addr | is_group_addr | is_dram_addr)
+                         //& (is_global_addr | is_group_addr )
+                         & (~exe.icache_miss); 
+//assign remote_load_in_exe = exe.decode.is_load_op 
+//                         & (is_global_addr | is_group_addr );
 
 // Loded data is inserted into the exe stage along
 // with an instruction that doesn't write to RF
@@ -1105,11 +1101,8 @@ logic                              op_writes_rf_to_wb;
 logic [RV32_reg_addr_width_gp-1:0] rd_addr_to_wb;
 always_comb
 begin
-  if(insert_load_in_mem) begin
-    rf_data            = mem_loaded_data;
-    op_writes_rf_to_wb = 1'b1;
-    rd_addr_to_wb      = from_mem_i.load_info.reg_id;
-  end else if(mem.decode.is_load_op & ~mem.remote_load) begin
+  //remote or local load can both be buffered
+  if ( mem.decode.is_load_op & (   (~mem.remote_load)  | is_load_buffer_valid ) ) begin
     rf_data            = is_load_buffer_valid ? buf_loaded_data : mem_loaded_data;
     op_writes_rf_to_wb = is_load_buffer_valid | current_load_arrived;
     rd_addr_to_wb      = mem.rd_addr;
@@ -1146,16 +1139,8 @@ begin
       end
 end
 
-always_comb
-begin
-  wb = wb_from_mem;
+assign  wb = wb_from_mem;
 
-  if(insert_load_in_wb) begin
-    wb.op_writes_rf = 1'b1;
-    wb.rf_data      = mem_loaded_data;
-    wb.rd_addr      = from_mem_i.load_info.reg_id;
-  end
-end
 
 `ifdef bsg_FPU
 
@@ -1261,78 +1246,79 @@ if(debug_p | debug_lp) begin
         $fwrite(pelog, "X%0d_Y%0d.pelog %0dns:\n", my_x_i, my_y_i, $time);
 
         // Fetch
-        $fwrite(pelog, "X%0d_Y%0d.pelog   IF: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d state=%b"
-                 ,my_x_i
-                 ,my_y_i
-                 ,{8'h00, (pc_r<<2)}
-                 ,instruction
-                 ,instruction.rd
-                 ,instruction.rs1
-                 ,instruction.rs2
-                 ,state_r
-                );
-        $fwrite(pelog, " net_pkt={v%0x_a%0x_d%0x} icm=%b\n"
-                 ,net_packet_r.valid
-                 ,net_packet_r.header.addr
-                 ,net_packet_r.data
-                 ,icache_miss_lo
-                );
+        //$fwrite(pelog, "X%0d_Y%0d.pelog   IF: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d state=%b"
+        //         ,my_x_i
+        //         ,my_y_i
+        //         ,{8'h00, (pc_r<<2)}
+        //         ,instruction
+        //         ,instruction.rd
+        //         ,instruction.rs1
+        //         ,instruction.rs2
+        //         ,state_r
+        //        );
+        //$fwrite(pelog, " net_pkt={v%0x_a%0x_d%0x} icm=%b\n"
+        //         ,net_packet_r.valid
+        //         ,net_packet_r.header.addr
+        //         ,net_packet_r.data
+        //         ,icache_miss_lo
+        //        );
 
-        // Decode
-        $fwrite(pelog, "X%0d_Y%0d.pelog   ID: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b"
-                 ,my_x_i
-                 ,my_y_i
-                 ,(id.pc_plus4-4)
-                 ,id.instruction
-                 ,id.instruction.rd
-                 ,id.instruction.rs1
-                 ,id.instruction.rs2
-                 ,id.pc_jump_addr
-                 ,id.decode.op_writes_rf
-                 ,id.decode.is_load_op
-                 ,id.decode.is_store_op
-                );
-        $fwrite(pelog, " mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b dep=%b score=%b icm=%b\n" 
-                 ,id.decode.is_mem_op
-                 ,id.decode.is_byte_op
-                 ,id.decode.is_hex_op
-                 ,id.decode.is_branch_op
-                 ,id.decode.is_jump_op
-                 ,id.decode.op_reads_rf1
-                 ,id.decode.op_reads_rf2
-                 ,id.decode.op_is_auipc
-                 ,dependency
-                 ,record_load
-                 ,id.icache_miss
-                );
+        //// Decode
+        //$fwrite(pelog, "X%0d_Y%0d.pelog   ID: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b"
+        //         ,my_x_i
+        //         ,my_y_i
+        //         ,(id.pc_plus4-4)
+        //         ,id.instruction
+        //         ,id.instruction.rd
+        //         ,id.instruction.rs1
+        //         ,id.instruction.rs2
+        //         ,id.pc_jump_addr
+        //         ,id.decode.op_writes_rf
+        //         ,id.decode.is_load_op
+        //         ,id.decode.is_store_op
+        //        );
+        //$fwrite(pelog, " mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b dep=%b score=%b icm=%b\n" 
+        //         ,id.decode.is_mem_op
+        //         ,id.decode.is_byte_op
+        //         ,id.decode.is_hex_op
+        //         ,id.decode.is_branch_op
+        //         ,id.decode.is_jump_op
+        //         ,id.decode.op_reads_rf1
+        //         ,id.decode.op_reads_rf2
+        //         ,id.decode.op_is_auipc
+        //         ,dependency
+        //         ,record_load
+        //         ,id.icache_miss
+        //        );
 
-        // Execute
-        $fwrite(pelog, "X%0d_Y%0d.pelog  EXE: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b"
-                 ,my_x_i
-                 ,my_y_i
-                 ,(exe.pc_plus4-4)
-                 ,exe.instruction
-                 ,exe.instruction.rd
-                 ,exe.instruction.rs1
-                 ,exe.instruction.rs2
-                 ,exe.pc_jump_addr
-                 ,exe.decode.op_writes_rf
-                 ,exe.decode.is_load_op
-                 ,exe.decode.is_store_op
-                 ,exe.decode.is_mem_op
-                );
-        $fwrite(pelog, " byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b r1_val=%0x r2_val=%0x icm=%b\n"
-                 ,exe.decode.is_byte_op
-                 ,exe.decode.is_hex_op
-                 ,exe.decode.is_branch_op
-                 ,exe.decode.is_jump_op
-                 ,exe.decode.op_reads_rf1
-                 ,exe.decode.op_reads_rf2
-                 ,exe.decode.op_is_auipc
-                 ,exe.rs1_val
-                 ,exe.rs2_val
-                 ,exe.icache_miss
-                );
+        //// Execute
+        //$fwrite(pelog, "X%0d_Y%0d.pelog  EXE: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b"
+        //         ,my_x_i
+        //         ,my_y_i
+        //         ,(exe.pc_plus4-4)
+        //         ,exe.instruction
+        //         ,exe.instruction.rd
+        //         ,exe.instruction.rs1
+        //         ,exe.instruction.rs2
+        //         ,exe.pc_jump_addr
+        //         ,exe.decode.op_writes_rf
+        //         ,exe.decode.is_load_op
+        //         ,exe.decode.is_store_op
+        //         ,exe.decode.is_mem_op
+        //        );
+        //$fwrite(pelog, " byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b r1_val=%0x r2_val=%0x icm=%b\n"
+        //         ,exe.decode.is_byte_op
+        //         ,exe.decode.is_hex_op
+        //         ,exe.decode.is_branch_op
+        //         ,exe.decode.is_jump_op
+        //         ,exe.decode.op_reads_rf1
+        //         ,exe.decode.op_reads_rf2
+        //         ,exe.decode.op_is_auipc
+        //         ,exe.rs1_val
+        //         ,exe.rs2_val
+        //         ,exe.icache_miss
+        //        );
+        if( my_x_i == 2 && my_y_i == 2 && ( valid_to_mem_c & from_mem_i.yumi & to_mem_o.wen) ) begin
         $fwrite(pelog, "X%0d_Y%0d.pelog       mem_v_o=%b mem_a_o=%x mem_d_o=%0x reg_id_o=%0d mem_y_i=%b\n"
                  ,my_x_i
                  ,my_y_i
@@ -1342,21 +1328,22 @@ if(debug_p | debug_lp) begin
                  ,to_mem_o.payload.read_info.load_info.reg_id
                  ,from_mem_i.yumi
                 );
-
-        // Memory
-        $fwrite(pelog, "X%0d_Y%0d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b"
-                 ,my_x_i
-                 ,my_y_i
-                 ,mem.rd_addr
-                 ,mem.decode.op_writes_rf
-                 ,mem.decode.is_load_op
-                 ,mem.decode.is_store_op
-                 ,mem.decode.is_mem_op
-                 ,mem.decode.is_byte_op
-                 ,mem.decode.is_hex_op
-                 ,mem.decode.is_branch_op
-                 ,mem.decode.is_jump_op
-                );
+        end
+        //// Memory
+        //$fwrite(pelog, "X%0d_Y%0d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b"
+        //         ,my_x_i
+        //         ,my_y_i
+        //         ,mem.rd_addr
+        //         ,mem.decode.op_writes_rf
+        //         ,mem.decode.is_load_op
+        //         ,mem.decode.is_store_op
+        //         ,mem.decode.is_mem_op
+        //         ,mem.decode.is_byte_op
+        //         ,mem.decode.is_hex_op
+        //         ,mem.decode.is_branch_op
+        //         ,mem.decode.is_jump_op
+        //        );
+        if( my_x_i == 2 && my_y_i == 2 && ( from_mem_i.valid & to_mem_o.yumi) ) begin
         $fwrite(pelog, " reads_rf1=%b reads_rf2=%b auipc=%b exe_res=%0x mem_v=%b mem_d=%x reg_id=%d yumi_o=%b icm=%b\n"
                  ,mem.decode.op_reads_rf1
                  ,mem.decode.op_reads_rf2
@@ -1368,38 +1355,39 @@ if(debug_p | debug_lp) begin
                  ,to_mem_o.yumi
                  ,mem.icache_miss
                 );
-
+        end
         // Write back
-        $fwrite(pelog, "X%0d_Y%0d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x icm=%b icm_pc=%x\n"
-                 ,my_x_i
-                 ,my_y_i
-                 ,wb.op_writes_rf
-                 ,wb.rd_addr
-                 ,wb.rf_data
-                 ,wb.icache_miss
-                 ,wb.icache_miss_pc
-                );
+        //$fwrite(pelog, "X%0d_Y%0d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x icm=%b icm_pc=%x\n"
+        //         ,my_x_i
+        //         ,my_y_i
+        //         ,wb.op_writes_rf
+        //         ,wb.rd_addr
+        //         ,wb.rf_data
+        //         ,wb.icache_miss
+        //         ,wb.icache_miss_pc
+        //        );
 
         // Misc
-        $fwrite(pelog, "X%0d_Y%0d.pelog MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b"
-                 ,my_x_i
-                 ,my_y_i
-                 ,stall
-                 ,stall_mem
-                 ,stall_non_mem
-                 ,stall_lrw
-                 ,depend_stall
-                );
-        $fwrite(pelog, " stall_ld_wb=%b reservation=%b alu_result=%x mask=%b jump_now=%b flush=%b\n"
-                 ,stall_load_wb
-                 ,reservation_i
-                 ,alu_result
-                 ,mask
-                 ,jump_now
-                 ,flush
-                );
+        //$fwrite(pelog, "X%0d_Y%0d.pelog MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b"
+        //         ,my_x_i
+        //         ,my_y_i
+        //         ,stall
+        //         ,stall_mem
+        //         ,stall_non_mem
+        //         ,stall_lrw
+        //         ,depend_stall
+        //        );
+        //$fwrite(pelog, " stall_ld_wb=%b reservation=%b alu_result=%x mask=%b jump_now=%b flush=%b\n"
+        //         ,stall_load_wb
+        //         ,reservation_i
+        //         ,alu_result
+        //         ,mask
+        //         ,jump_now
+        //         ,flush
+        //        );
 
         // Register file
+        if( my_x_i == 2 && my_y_i == 2 && rf_wen ) begin
         $fwrite(pelog, "X%0d_Y%0d.pelog   RF: wen=%b wa=%d wd=%0x cen=%b rs1_addr=%d rs1_val=%0x rs2_addr=%d rs2_val=%0x\n"
                  ,my_x_i
                  ,my_y_i
@@ -1412,16 +1400,16 @@ if(debug_p | debug_lp) begin
                  ,rf_rs2_addr
                  ,rf_rs2_val
                 );
-
-        // Multiple-divide
-        $fwrite(pelog, "X%0d_Y%0d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x\n"
-                 ,my_x_i
-                 ,my_y_i
-                 ,stall_md
-                 ,md_valid
-                 ,md_resp_valid
-                 ,md_result
-                );
+        end
+        //// Multiple-divide
+        //$fwrite(pelog, "X%0d_Y%0d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x\n"
+        //         ,my_x_i
+        //         ,my_y_i
+        //         ,stall_md
+        //         ,md_valid
+        //         ,md_resp_valid
+        //         ,md_result
+        //        );
         $fclose(pelog);
       end
     end
