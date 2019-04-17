@@ -185,29 +185,28 @@ mem_payload_u mem_payload;
 logic valid_to_mem_c;
 
 // RISC-V edit: support for byte and hex stores
-always_comb
-begin
-  if (exe.decode.is_byte_op) // byte op
-    begin
-     // store_data = (32'(rs2_to_alu[7:0])) << ((5'(mem_addr_send[1:0])) << 3);
-     // mask       = (4'b0001 << mem_addr_send[1:0]);
-     store_data = (32'(rs2_to_alu[7:0])) << ((5'(mem_addr_send[1:0])) << 3);
-      mask       = (4'b0001 << mem_addr_send[1:0]);
-    end
-  else if(exe.decode.is_hex_op) // hex op
-    begin
-      store_data = (32'(rs2_to_alu[15:0])) << ((5'(mem_addr_send[1:0])) << 3);
-      mask       = (4'b0011 << mem_addr_send[1:0]);
-    end
-  else
-    begin
+always_comb begin
+  if (exe.decode.is_byte_op) begin
+    store_data = {4{rs2_to_alu[7:0]}};
+    mask = {mem_addr_send[1] & mem_addr_send[0],
+            mem_addr_send[1] & ~mem_addr_send[0],
+            ~mem_addr_send[1] & mem_addr_send[0],
+            ~mem_addr_send[1] & ~mem_addr_send[0]};
+  end
+  else if (exe.decode.is_hex_op) begin
+    store_data = {2{rs2_to_alu[15:0]}};
+    mask = {{2{mem_addr_send[1]}}, {2{~mem_addr_send[1]}}};
+  end
+  else begin
+
 `ifdef bsg_FPU
-      store_data = fpi_inter.exe_fpi_store_op ? fpi_inter.frs2_to_fiu: rs2_to_alu;
+    store_data = fpi_inter.exe_fpi_store_op ? fpi_inter.frs2_to_fiu: rs2_to_alu;
 `else
-      store_data = rs2_to_alu;
+    store_data = rs2_to_alu;
 `endif
-      mask       = 4'b1111;
-    end
+
+    mask = 4'b1111;
+  end
 end
 
 //compute the address for mem operation
@@ -266,8 +265,7 @@ assign to_mem_o = '{
 //+----------------------------------------------
 
 // Branch and jump predictions
-logic [RV32_reg_data_width_gp-1:0] jalr_prediction_n, jalr_prediction_r,
-                                   jalr_prediction_rr;
+logic [RV32_reg_data_width_gp-1:0] jalr_prediction_n, jalr_prediction_r;
 
 // Under predicted flag (meaning that we predicted not taken when taken)
 wire branch_under_predict =
@@ -284,7 +282,7 @@ wire branch_mispredict = exe.decode.is_branch_op
 // JALR mispredict (or just a JALR instruction in the single cycle because it
 // follows the same logic as a JALR mispredict)
 wire jalr_mispredict = (exe.instruction.op ==? `RV32_JALR_OP)
-                         & (jalr_addr != jalr_prediction_rr);
+                         & (jalr_addr != exe.pc_pred_or_jump_addr[2+:pc_width_lp]);
 
 // Flush the control signals in the execute and instr decode stages if there
 // is a misprediction
@@ -298,7 +296,7 @@ wire flush = (branch_mispredict | jalr_mispredict );
 //+----------------------------------------------
 
 // Program counter logic
-logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr;
+logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_pred_or_jump_addr;
 logic                   pc_wen,  icache_cen;
 
 // Instruction memory logic
@@ -329,7 +327,7 @@ begin
     // follow a branch under prediction logic)
     else if (branch_mispredict)
         if (branch_under_predict)
-            pc_n = exe.pc_jump_addr[2+:pc_width_lp];
+            pc_n = exe.pc_pred_or_jump_addr[2+:pc_width_lp];
         else
             pc_n = exe.pc_plus4[2+:pc_width_lp];
 
@@ -339,11 +337,11 @@ begin
 
     // Predict taken branch or instruction is a long jump
     else if ((decode.is_branch_op & instruction[pred_index_lp]) | (instruction.op == `RV32_JAL_OP))
-        pc_n = pc_jump_addr;
+        pc_n = pc_pred_or_jump_addr;
 
     // Predict jump to previous linked location
     else if (decode.is_jump_op) // equivalent to (instruction ==? `RV32_JALR)
-        pc_n = jalr_prediction_n [2 +: pc_width_lp];
+        pc_n = pc_pred_or_jump_addr;
 
     // Standard operation or predict not taken branch
     else
@@ -399,8 +397,9 @@ icache #(
        ,.pc_i                   (pc_n                   )
        ,.pc_wen_i               (pc_wen                 )
        ,.pc_r_o                 (pc_r                   )
+       ,.jalr_prediction_i      (jalr_prediction_n[2+:pc_width_lp])
        ,.instruction_o          (instruction            )
-       ,.jump_addr_o            (pc_jump_addr           )
+       ,.pred_or_jump_addr_o    (pc_pred_or_jump_addr   )
        ,.icache_miss_o          (icache_miss_lo         )
        );
 
@@ -772,22 +771,18 @@ begin
 end
 
 // Update the JALR prediction register
-assign jalr_prediction_n = exe.decode.is_jump_op ? exe.pc_plus4
-                                                 : jalr_prediction_r;
+assign jalr_prediction_n = exe.decode.is_jump_op
+  ? exe.pc_plus4
+  : jalr_prediction_r;
 
-bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_r_reg
-  ( .clk_i(clk_i)
-   ,.reset_i(reset_i)
-   ,.data_i(jalr_prediction_n)
-   ,.data_o(jalr_prediction_r)
-   );
-
-bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_rr_reg
-  ( .clk_i(clk_i)
-   ,.reset_i(reset_i)
-   ,.data_i(jalr_prediction_r)
-   ,.data_o(jalr_prediction_rr)
-   );
+bsg_dff_reset #(
+  .width_p(RV32_reg_data_width_gp)
+) jalr_prediction_r_reg (
+  .clk_i(clk_i)
+  ,.reset_i(reset_i)
+  ,.data_i(jalr_prediction_n)
+  ,.data_o(jalr_prediction_r)
+);
 
 // mbt: unharden to reduce congestion
 bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(0)) net_packet_r_reg
@@ -837,12 +832,12 @@ end
 wire [RV32_instr_width_gp-1:0] id_instr = icache_miss_lo? 'b0 : instruction;
 
 assign id_s = '{
-                pc_plus4     : {pc_high_padding_lp, pc_plus4    ,2'b0}  ,
-                pc_jump_addr : {pc_high_padding_lp, pc_jump_addr,2'b0}  ,
-                instruction  : id_instr                                 ,
-                decode       : id_decode                                ,
-                icache_miss  : icache_miss_lo 
-                };
+  pc_plus4     : {pc_high_padding_lp, pc_plus4    ,2'b0}  ,
+  pc_pred_or_jump_addr : {pc_high_padding_lp, pc_pred_or_jump_addr, 2'b0}  ,
+  instruction  : id_instr                                 ,
+  decode       : id_decode                                ,
+  icache_miss  : icache_miss_lo 
+};
 
 // synopsys sync_set_reset  "reset_i, net_pc_write_cmd_idle, flush, stall, depend_stall"
 always_ff @ (posedge clk_i)
@@ -948,7 +943,7 @@ begin
          // synopsys translate_on
          exe <= '{
                   pc_plus4     : id.pc_plus4,
-                  pc_jump_addr : id.pc_jump_addr,
+                  pc_pred_or_jump_addr : id.pc_pred_or_jump_addr,
                   instruction  : id.instruction,
                   decode       : id.decode,
                   rs1_val      : rs1_to_exe,
@@ -1287,7 +1282,7 @@ if(debug_p | debug_lp) begin
                  ,id.instruction.rd
                  ,id.instruction.rs1
                  ,id.instruction.rs2
-                 ,id.pc_jump_addr
+                 ,id.pc_pred_or_jump_addr
                  ,id.decode.op_writes_rf
                  ,id.decode.is_load_op
                  ,id.decode.is_store_op
@@ -1315,7 +1310,7 @@ if(debug_p | debug_lp) begin
                  ,exe.instruction.rd
                  ,exe.instruction.rs1
                  ,exe.instruction.rs2
-                 ,exe.pc_jump_addr
+                 ,exe.pc_pred_or_jump_addr
                  ,exe.decode.op_writes_rf
                  ,exe.decode.is_load_op
                  ,exe.decode.is_store_op
