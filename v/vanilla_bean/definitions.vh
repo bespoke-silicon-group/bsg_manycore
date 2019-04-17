@@ -168,7 +168,7 @@ typedef struct packed
 typedef struct packed
 {
     logic [RV32_reg_data_width_gp-1:0] pc_plus4;     // PC + 4
-    logic [RV32_reg_data_width_gp-1:0] pc_jump_addr; // Jump taget PC
+    logic [RV32_reg_data_width_gp-1:0] pc_pred_or_jump_addr; // Jump target PC
     instruction_s                      instruction;  // Instruction being executed
     decode_s                           decode;       // Decode signals
     logic                              icache_miss;
@@ -179,7 +179,7 @@ typedef struct packed
 typedef struct packed
 {
     logic [RV32_reg_data_width_gp-1:0] pc_plus4;     // PC + 4
-    logic [RV32_reg_data_width_gp-1:0] pc_jump_addr; // Jump taget PC
+    logic [RV32_reg_data_width_gp-1:0] pc_pred_or_jump_addr; // Jump target PC
     instruction_s                      instruction;  // Instruction being executed
     decode_s                           decode;       // Decode signals
     logic [RV32_reg_data_width_gp-1:0] rs1_val;      // RF output data from RS1 address
