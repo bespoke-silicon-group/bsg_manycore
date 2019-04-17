@@ -128,7 +128,7 @@ logic yumi_to_mem_c;
 logic current_load_arrived;
 logic pending_load_arrived;
 logic exe_free_for_load, mem_free_for_load, wb_free_for_load;
-logic insert_load_in_exe, insert_load_in_mem, insert_load_in_wb;
+logic insert_load_in_exe;
 
 // Decoded control signals logic
 decode_s decode;
@@ -185,29 +185,28 @@ mem_payload_u mem_payload;
 logic valid_to_mem_c;
 
 // RISC-V edit: support for byte and hex stores
-always_comb
-begin
-  if (exe.decode.is_byte_op) // byte op
-    begin
-     // store_data = (32'(rs2_to_alu[7:0])) << ((5'(mem_addr_send[1:0])) << 3);
-     // mask       = (4'b0001 << mem_addr_send[1:0]);
-     store_data = (32'(rs2_to_alu[7:0])) << ((5'(mem_addr_send[1:0])) << 3);
-      mask       = (4'b0001 << mem_addr_send[1:0]);
-    end
-  else if(exe.decode.is_hex_op) // hex op
-    begin
-      store_data = (32'(rs2_to_alu[15:0])) << ((5'(mem_addr_send[1:0])) << 3);
-      mask       = (4'b0011 << mem_addr_send[1:0]);
-    end
-  else
-    begin
+always_comb begin
+  if (exe.decode.is_byte_op) begin
+    store_data = {4{rs2_to_alu[7:0]}};
+    mask = {mem_addr_send[1] & mem_addr_send[0],
+            mem_addr_send[1] & ~mem_addr_send[0],
+            ~mem_addr_send[1] & mem_addr_send[0],
+            ~mem_addr_send[1] & ~mem_addr_send[0]};
+  end
+  else if (exe.decode.is_hex_op) begin
+    store_data = {2{rs2_to_alu[15:0]}};
+    mask = {{2{mem_addr_send[1]}}, {2{~mem_addr_send[1]}}};
+  end
+  else begin
+
 `ifdef bsg_FPU
-      store_data = fpi_inter.exe_fpi_store_op ? fpi_inter.frs2_to_fiu: rs2_to_alu;
+    store_data = fpi_inter.exe_fpi_store_op ? fpi_inter.frs2_to_fiu: rs2_to_alu;
 `else
-      store_data = rs2_to_alu;
+    store_data = rs2_to_alu;
 `endif
-      mask       = 4'b1111;
-    end
+
+    mask = 4'b1111;
+  end
 end
 
 //compute the address for mem operation
@@ -266,8 +265,7 @@ assign to_mem_o = '{
 //+----------------------------------------------
 
 // Branch and jump predictions
-logic [RV32_reg_data_width_gp-1:0] jalr_prediction_n, jalr_prediction_r,
-                                   jalr_prediction_rr;
+logic [RV32_reg_data_width_gp-1:0] jalr_prediction_n, jalr_prediction_r;
 
 // Under predicted flag (meaning that we predicted not taken when taken)
 wire branch_under_predict =
@@ -284,7 +282,7 @@ wire branch_mispredict = exe.decode.is_branch_op
 // JALR mispredict (or just a JALR instruction in the single cycle because it
 // follows the same logic as a JALR mispredict)
 wire jalr_mispredict = (exe.instruction.op ==? `RV32_JALR_OP)
-                         & (jalr_addr != jalr_prediction_rr);
+                         & (jalr_addr != exe.pc_pred_or_jump_addr[2+:pc_width_lp]);
 
 // Flush the control signals in the execute and instr decode stages if there
 // is a misprediction
@@ -298,7 +296,7 @@ wire flush = (branch_mispredict | jalr_mispredict );
 //+----------------------------------------------
 
 // Program counter logic
-logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_jump_addr;
+logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_pred_or_jump_addr;
 logic                   pc_wen,  icache_cen;
 
 // Instruction memory logic
@@ -329,7 +327,7 @@ begin
     // follow a branch under prediction logic)
     else if (branch_mispredict)
         if (branch_under_predict)
-            pc_n = exe.pc_jump_addr[2+:pc_width_lp];
+            pc_n = exe.pc_pred_or_jump_addr[2+:pc_width_lp];
         else
             pc_n = exe.pc_plus4[2+:pc_width_lp];
 
@@ -339,11 +337,11 @@ begin
 
     // Predict taken branch or instruction is a long jump
     else if ((decode.is_branch_op & instruction[pred_index_lp]) | (instruction.op == `RV32_JAL_OP))
-        pc_n = pc_jump_addr;
+        pc_n = pc_pred_or_jump_addr;
 
     // Predict jump to previous linked location
     else if (decode.is_jump_op) // equivalent to (instruction ==? `RV32_JALR)
-        pc_n = jalr_prediction_n [2 +: pc_width_lp];
+        pc_n = pc_pred_or_jump_addr;
 
     // Standard operation or predict not taken branch
     else
@@ -396,11 +394,13 @@ icache #(
        ,.icache_w_tag_i         (icache_w_tag           ) 
        ,.icache_w_instr_i       (icache_w_instr         )
 
+       ,.flush_i                (flush|icache_miss_in_pipe )
        ,.pc_i                   (pc_n                   )
        ,.pc_wen_i               (pc_wen                 )
        ,.pc_r_o                 (pc_r                   )
+       ,.jalr_prediction_i      (jalr_prediction_n[2+:pc_width_lp])
        ,.instruction_o          (instruction            )
-       ,.jump_addr_o            (pc_jump_addr           )
+       ,.pred_or_jump_addr_o    (pc_pred_or_jump_addr   )
        ,.icache_miss_o          (icache_miss_lo         )
        );
 
@@ -477,11 +477,11 @@ end
 always_comb
 begin
   if(stall | depend_stall) begin
-    rf_rs1_addr <= id.instruction.rs1;
-    rf_rs2_addr <= id.instruction.rs2;
+    rf_rs1_addr = id.instruction.rs1;
+    rf_rs2_addr = id.instruction.rs2;
   end else begin
-    rf_rs1_addr <= instruction.rs1;
-    rf_rs2_addr <= instruction.rs2;
+    rf_rs1_addr = instruction.rs1;
+    rf_rs2_addr = instruction.rs2;
   end
 end
 
@@ -580,23 +580,8 @@ assign mem_free_for_load = ~mem.decode.op_writes_rf & 1'b0;
 // non-blocking, write-back wouldn't happen when the instrucion is still
 // in the pipeline
 assign exe_free_for_load = ~exe.decode.op_writes_rf | remote_load_in_exe;
-
-// Control signals to insert pending loads into the pipeline
-assign insert_load_in_wb  = pending_load_arrived
-                              & wb_free_for_load
-                              & ~stall
-                              & 1'b0; // disabled due to pre-computed forwarding
-
-assign insert_load_in_mem = pending_load_arrived
-                              & mem_free_for_load
-                              & ~insert_load_in_wb
-                              & ~stall
-                              & 1'b0; // disabled due to pre-computed forwarding
-
 assign insert_load_in_exe = pending_load_arrived
                               & exe_free_for_load
-                              & ~insert_load_in_mem
-                              & ~insert_load_in_wb
                               & ~stall;
 
 //+----------------------------------------------
@@ -604,6 +589,7 @@ assign insert_load_in_exe = pending_load_arrived
 //|     RISC-V edit: "M" STANDARD EXTENSION
 //|
 //+----------------------------------------------
+
 // MUL/DIV signals
 logic        md_ready, md_resp_valid;
 logic [31:0] md_result;
@@ -611,23 +597,24 @@ logic [31:0] md_result;
 wire   md_valid    = exe.decode.is_md_instr & md_ready;
 assign stall_md    = exe.decode.is_md_instr & ~md_resp_valid;
 
-imul_idiv_iterative  md_0
-    (.reset_i   (reset_i)
-        ,.clk_i     (clk_i)
+imul_idiv_iterative md_0 (
+  .clk_i      (clk_i)
+  ,.reset_i   (reset_i)
 
-        ,.v_i       (md_valid)//there is a request
-    ,.ready_o   (md_ready)//imul_idiv_module is idle
+  ,.v_i       (md_valid)
+  ,.ready_o   (md_ready)
 
-    ,.opA_i     (rs1_to_alu)
-        ,.opB_i     (rs2_to_alu)
-    ,.funct3    (exe.instruction.funct3)
+  ,.opA_i     (rs1_to_alu)
+  ,.opB_i     (rs2_to_alu)
+  ,.funct3    (exe.instruction.funct3)
 
-        ,.v_o       (md_resp_valid )//result is valid
-        ,.result_o  (md_result     )
-    //if there is a stall issued at MEM stage, we can't receive the mul/div
-    //result.
-    ,.yumi_i    (~stall_non_mem)
-    );
+  ,.v_o       (md_resp_valid)
+  ,.result_o  (md_result    )
+
+  //if there is a stall issued at MEM stage, we can't receive the mul/div
+  //result.
+  ,.yumi_i    (~stall_non_mem)
+);
 
 
 //+----------------------------------------------
@@ -739,8 +726,6 @@ assign yumi_to_mem_c  = from_mem_i.valid
                           & (stall 
                               | current_load_arrived
                               | insert_load_in_exe
-                              | insert_load_in_mem
-                              | insert_load_in_wb
                             );
 
 // RISC-V edit: add reservation
@@ -772,22 +757,18 @@ begin
 end
 
 // Update the JALR prediction register
-assign jalr_prediction_n = exe.decode.is_jump_op ? exe.pc_plus4
-                                                 : jalr_prediction_r;
+assign jalr_prediction_n = exe.decode.is_jump_op
+  ? exe.pc_plus4
+  : jalr_prediction_r;
 
-bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_r_reg
-  ( .clk_i(clk_i)
-   ,.reset_i(reset_i)
-   ,.data_i(jalr_prediction_n)
-   ,.data_o(jalr_prediction_r)
-   );
-
-bsg_dff_reset #(.width_p(RV32_reg_data_width_gp), .harden_p(1)) jalr_prediction_rr_reg
-  ( .clk_i(clk_i)
-   ,.reset_i(reset_i)
-   ,.data_i(jalr_prediction_r)
-   ,.data_o(jalr_prediction_rr)
-   );
+bsg_dff_reset #(
+  .width_p(RV32_reg_data_width_gp)
+) jalr_prediction_r_reg (
+  .clk_i(clk_i)
+  ,.reset_i(reset_i)
+  ,.data_i(jalr_prediction_n)
+  ,.data_o(jalr_prediction_r)
+);
 
 // mbt: unharden to reduce congestion
 bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(0)) net_packet_r_reg
@@ -828,7 +809,7 @@ always_comb begin
     if( icache_miss_lo) begin
         id_decode.is_load_op   = 1'b1;
         id_decode.is_mem_op    = 1'b1;
-        id_decode.op_writes_rf = 1'b1;
+        id_decode.op_writes_rf = 1'b0;
     end else begin
         id_decode = decode;
     end
@@ -837,22 +818,21 @@ end
 wire [RV32_instr_width_gp-1:0] id_instr = icache_miss_lo? 'b0 : instruction;
 
 assign id_s = '{
-                pc_plus4     : {pc_high_padding_lp, pc_plus4    ,2'b0}  ,
-                pc_jump_addr : {pc_high_padding_lp, pc_jump_addr,2'b0}  ,
-                instruction  : id_instr                                 ,
-                decode       : id_decode                                ,
-                icache_miss  : icache_miss_lo 
-                };
+  pc_plus4     : {pc_high_padding_lp, pc_plus4    ,2'b0}  ,
+  pc_pred_or_jump_addr : {pc_high_padding_lp, pc_pred_or_jump_addr, 2'b0}  ,
+  instruction  : id_instr                                 ,
+  decode       : id_decode                                ,
+  icache_miss  : icache_miss_lo 
+};
 
 // synopsys sync_set_reset  "reset_i, net_pc_write_cmd_idle, flush, stall, depend_stall"
 always_ff @ (posedge clk_i)
 begin
 `ifdef bsg_FPU
-    if (reset_i | net_pc_write_cmd_idle |
-            (flush & (~(stall|fpi_inter.fam_depend_stall | depend_stall )))
-       )
+    if (reset_i | net_pc_write_cmd_idle | flush )
 `else
-    if (reset_i | net_pc_write_cmd_idle | ( (flush|icache_miss_in_pipe) & (~   (stall | depend_stall)  ) ) )
+    //if (reset_i | net_pc_write_cmd_idle |( (flush | icache_miss_in_pipe ) & (~(stall | depend_stall) ) ) )
+    if (reset_i | net_pc_write_cmd_idle | flush | (icache_miss_in_pipe & (~ (stall | depend_stall) ) ) )
 `endif
       begin
          id <= '0;
@@ -906,21 +886,23 @@ wire [RV32_reg_data_width_gp-1:0] rs2_to_exe    = id_wb_rs2_forward ?
 wire    exe_rs1_in_mem     = exe_op_writes_rf
                            & (id.instruction.rs1 == exe_rd_addr)
                            & (|id.instruction.rs1);
-wire    exe_rs1_in_wb      = mem.decode.op_writes_rf
+//TODO 
+//Ratify this logic with load buffer
+wire    exe_rs1_in_wb      = ( mem.decode.op_writes_rf | is_load_buffer_valid)
                            & (id.instruction.rs1  == mem.rd_addr)
                            & (|id.instruction.rs1);
 
 wire    exe_rs2_in_mem     = exe_op_writes_rf
                            & (id.instruction.rs2 == exe_rd_addr)
                            & (|id.instruction.rs2);
-wire    exe_rs2_in_wb      = mem.decode.op_writes_rf
+wire    exe_rs2_in_wb      = ( mem.decode.op_writes_rf | is_load_buffer_valid )
                            & (id.instruction.rs2  == mem.rd_addr)
                            & (|id.instruction.rs2);
 
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
-    if (reset_i | net_pc_write_cmd_idle | (flush & (~ (stall | depend_stall ))))
+    if (reset_i | net_pc_write_cmd_idle | flush )
       begin
    // synopsys translate_off
          debug_exe <= debug_id | squashed_lp;
@@ -948,7 +930,7 @@ begin
          // synopsys translate_on
          exe <= '{
                   pc_plus4     : id.pc_plus4,
-                  pc_jump_addr : id.pc_jump_addr,
+                  pc_pred_or_jump_addr : id.pc_pred_or_jump_addr,
                   instruction  : id.instruction,
                   decode       : id.decode,
                   rs1_val      : rs1_to_exe,
@@ -991,9 +973,20 @@ assign fiu_alu_result = fpi_inter.exe_fpi_writes_rf
 assign fiu_alu_result = alu_result;
 
 `endif
+// dram addr                    : 1xxxxxxxx
+// out-group remote addr        : 01xxxxxxx
+// in-group remote addr         : 001xxxxxx
+//assign remote_load_in_exe = exe.decode.is_load_op & ( | mem_addr_send[ (RV32_reg_data_width_gp-1)  -: 3] );
+wire is_dram_addr   = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 1 ] == 1'b1;
+wire is_global_addr = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 2 ] == 2'b01;
+wire is_group_addr  = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 3 ] == 3'b001;
 
 assign remote_load_in_exe = exe.decode.is_load_op 
-                              & ((mem_addr_send & remote_addr_prefix_mask_lp) == remote_addr_mapping_lp);
+                         & (is_global_addr | is_group_addr | is_dram_addr)
+                         //& (is_global_addr | is_group_addr )
+                         & (~exe.icache_miss); 
+//assign remote_load_in_exe = exe.decode.is_load_op 
+//                         & (is_global_addr | is_group_addr );
 
 // Loded data is inserted into the exe stage along
 // with an instruction that doesn't write to RF
@@ -1105,11 +1098,8 @@ logic                              op_writes_rf_to_wb;
 logic [RV32_reg_addr_width_gp-1:0] rd_addr_to_wb;
 always_comb
 begin
-  if(insert_load_in_mem) begin
-    rf_data            = mem_loaded_data;
-    op_writes_rf_to_wb = 1'b1;
-    rd_addr_to_wb      = from_mem_i.load_info.reg_id;
-  end else if(mem.decode.is_load_op & ~mem.remote_load) begin
+  //remote or local load can both be buffered
+  if ( mem.decode.is_load_op & (   (~mem.remote_load)  | is_load_buffer_valid ) ) begin
     rf_data            = is_load_buffer_valid ? buf_loaded_data : mem_loaded_data;
     op_writes_rf_to_wb = is_load_buffer_valid | current_load_arrived;
     rd_addr_to_wb      = mem.rd_addr;
@@ -1146,16 +1136,8 @@ begin
       end
 end
 
-always_comb
-begin
-  wb = wb_from_mem;
+assign  wb = wb_from_mem;
 
-  if(insert_load_in_wb) begin
-    wb.op_writes_rf = 1'b1;
-    wb.rf_data      = mem_loaded_data;
-    wb.rd_addr      = from_mem_i.load_info.reg_id;
-  end
-end
 
 `ifdef bsg_FPU
 
@@ -1287,7 +1269,7 @@ if(debug_p | debug_lp) begin
                  ,id.instruction.rd
                  ,id.instruction.rs1
                  ,id.instruction.rs2
-                 ,id.pc_jump_addr
+                 ,id.pc_pred_or_jump_addr
                  ,id.decode.op_writes_rf
                  ,id.decode.is_load_op
                  ,id.decode.is_store_op
@@ -1315,7 +1297,7 @@ if(debug_p | debug_lp) begin
                  ,exe.instruction.rd
                  ,exe.instruction.rs1
                  ,exe.instruction.rs2
-                 ,exe.pc_jump_addr
+                 ,exe.pc_pred_or_jump_addr
                  ,exe.decode.op_writes_rf
                  ,exe.decode.is_load_op
                  ,exe.decode.is_store_op
@@ -1342,7 +1324,6 @@ if(debug_p | debug_lp) begin
                  ,to_mem_o.payload.read_info.load_info.reg_id
                  ,from_mem_i.yumi
                 );
-
         // Memory
         $fwrite(pelog, "X%0d_Y%0d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b"
                  ,my_x_i
@@ -1368,7 +1349,6 @@ if(debug_p | debug_lp) begin
                  ,to_mem_o.yumi
                  ,mem.icache_miss
                 );
-
         // Write back
         $fwrite(pelog, "X%0d_Y%0d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x icm=%b icm_pc=%x\n"
                  ,my_x_i
@@ -1412,7 +1392,6 @@ if(debug_p | debug_lp) begin
                  ,rf_rs2_addr
                  ,rf_rs2_val
                 );
-
         // Multiple-divide
         $fwrite(pelog, "X%0d_Y%0d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x\n"
                  ,my_x_i
