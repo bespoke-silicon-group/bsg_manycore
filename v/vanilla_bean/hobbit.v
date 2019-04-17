@@ -477,11 +477,11 @@ end
 always_comb
 begin
   if(stall | depend_stall) begin
-    rf_rs1_addr <= id.instruction.rs1;
-    rf_rs2_addr <= id.instruction.rs2;
+    rf_rs1_addr = id.instruction.rs1;
+    rf_rs2_addr = id.instruction.rs2;
   end else begin
-    rf_rs1_addr <= instruction.rs1;
-    rf_rs2_addr <= instruction.rs2;
+    rf_rs1_addr = instruction.rs1;
+    rf_rs2_addr = instruction.rs2;
   end
 end
 
@@ -589,6 +589,7 @@ assign insert_load_in_exe = pending_load_arrived
 //|     RISC-V edit: "M" STANDARD EXTENSION
 //|
 //+----------------------------------------------
+
 // MUL/DIV signals
 logic        md_ready, md_resp_valid;
 logic [31:0] md_result;
@@ -596,23 +597,24 @@ logic [31:0] md_result;
 wire   md_valid    = exe.decode.is_md_instr & md_ready;
 assign stall_md    = exe.decode.is_md_instr & ~md_resp_valid;
 
-imul_idiv_iterative  md_0
-    (.reset_i   (reset_i)
-        ,.clk_i     (clk_i)
+imul_idiv_iterative md_0 (
+  .clk_i      (clk_i)
+  ,.reset_i   (reset_i)
 
-        ,.v_i       (md_valid)//there is a request
-    ,.ready_o   (md_ready)//imul_idiv_module is idle
+  ,.v_i       (md_valid)
+  ,.ready_o   (md_ready)
 
-    ,.opA_i     (rs1_to_alu)
-        ,.opB_i     (rs2_to_alu)
-    ,.funct3    (exe.instruction.funct3)
+  ,.opA_i     (rs1_to_alu)
+  ,.opB_i     (rs2_to_alu)
+  ,.funct3    (exe.instruction.funct3)
 
-        ,.v_o       (md_resp_valid )//result is valid
-        ,.result_o  (md_result     )
-    //if there is a stall issued at MEM stage, we can't receive the mul/div
-    //result.
-    ,.yumi_i    (~stall_non_mem)
-    );
+  ,.v_o       (md_resp_valid)
+  ,.result_o  (md_result    )
+
+  //if there is a stall issued at MEM stage, we can't receive the mul/div
+  //result.
+  ,.yumi_i    (~stall_non_mem)
+);
 
 
 //+----------------------------------------------
