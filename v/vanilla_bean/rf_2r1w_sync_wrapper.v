@@ -113,11 +113,11 @@ module rf_2r1w_sync_wrapper
       : r1_addr_r;
 
   assign r0_data_n = (w_v_i & (r0_addr_r == w_addr_i))
-    ? (w_addr_i == '0 ? '0 : w_data_i)
+    ? w_data_i
     : (r0_v_r ? r0_safe_data : r0_data_r);
 
   assign r1_data_n = (w_v_i & (r1_addr_r == w_addr_i))
-    ? (w_addr_i == '0 ? '0 : w_data_i)
+    ? w_data_i
     : (r1_v_r ? r1_safe_data : r1_data_r);
    
   assign w_data_n = (r0_rw_same_addr | r1_rw_same_addr)
