@@ -74,5 +74,6 @@ test_case_list+=bsg_mutex
 test_case_list+=bsg_barrier
 test_case_list+=bsg_transpose
 test_case_list+=regfile_x0_test
+test_case_list+=fib
 test_case_list+=striped_hello
 test_case_list+=coremark
