@@ -439,8 +439,8 @@ cl_decode cl_decode_0
 
 // Register file logic
 logic [RV32_reg_data_width_gp-1:0] rf_rs1_val, rf_rs2_val, rf_rs1_out, rf_rs2_out, rf_wd;
-logic [RV32_reg_addr_width_gp-1:0] rf_wa, rf_rs1_addr, rf_rs2_addr;
-logic                              rf_wen, rf_cen;
+logic [RV32_reg_addr_width_gp-1:0] rf_wa;
+logic                              rf_wen;
 
 logic [RV32_reg_data_width_gp-1:0] mem_loaded_data;
 
@@ -474,31 +474,21 @@ begin
   end
 end
 
-// During a stall or depend_stall, regfile contents may be updated
-// by write-backs for pending loads. Hence we keep accessing rs1 & rs2
-// in ID to keep them up-to-date.
-always_comb
-begin
-  if(stall | depend_stall) begin
-    rf_rs1_addr = id.instruction.rs1;
-    rf_rs2_addr = id.instruction.rs2;
-  end else begin
-    rf_rs1_addr = instruction.rs1;
-    rf_rs2_addr = instruction.rs2;
-  end
-end
-
-  // Register file chip enable signal
-  // FPU depend stall will not affect register file write back
-  // MEM load depend stall will not affect register file write back
-  // assign rf_cen = (~ stall ) | (net_reg_write_cmd);
-  //   assign rf_cen= ~(stall | depend_stall );
-  //  assign rf_cen=  ~stall ;
-  assign rf_cen = 1'b1;
 
   // Instantiate the general purpose register file
   // This register file is write through, which means when read/write
   // The same address, the read gets the newly written value.
+  logic id_r0_v_li;
+  logic id_r1_v_li;
+  logic [RV32_reg_addr_width_gp-1:0] rf_rs1_addr;
+  logic [RV32_reg_addr_width_gp-1:0] rf_rs2_addr;
+
+  assign id_r0_v_li = decode.op_reads_rf1 & ~(stall | depend_stall);
+  assign id_r1_v_li = decode.op_reads_rf2 & ~(stall | depend_stall);
+
+  assign rf_rs1_addr = instruction.rs1;
+  assign rf_rs2_addr = instruction.rs2;
+
   rf_2r1w_sync_wrapper #(
     .width_p(RV32_reg_data_width_gp)
     ,.els_p(32)
@@ -510,11 +500,11 @@ end
     ,.w_addr_i(rf_wa)
     ,.w_data_i(rf_wd)
 
-    ,.r0_v_i(rf_cen)
+    ,.r0_v_i(id_r0_v_li)
     ,.r0_addr_i(rf_rs1_addr)
     ,.r0_data_o(rf_rs1_val)
 
-    ,.r1_v_i(rf_cen)
+    ,.r1_v_i(id_r1_v_li)
     ,.r1_addr_i(rf_rs2_addr)
     ,.r1_data_o(rf_rs2_val)
   );
@@ -1384,13 +1374,12 @@ if (debug_p) begin
                 );
 
         // Register file
-        $fwrite(pelog, "X%0d_Y%0d.pelog   RF: wen=%b wa=%d wd=%0x cen=%b rs1_addr=%d rs1_val=%0x rs2_addr=%d rs2_val=%0x\n"
+        $fwrite(pelog, "X%0d_Y%0d.pelog   RF: wen=%b wa=%d wd=%0x rs1_addr=%d rs1_val=%0x rs2_addr=%d rs2_val=%0x\n"
                  ,my_x_i
                  ,my_y_i
                  ,rf_wen
                  ,rf_wa
                  ,rf_wd
-                 ,rf_cen
                  ,rf_rs1_addr
                  ,rf_rs1_val
                  ,rf_rs2_addr
