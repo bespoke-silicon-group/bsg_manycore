@@ -11,4 +11,4 @@ extern int __bsg_grp_org_y;     //The Y Cord of the tile group origin
 #define bsg_y __bsg_y
 #define bsg_id __bsg_id
 
-int bsg_set_tile_x_y();
+void bsg_set_tile_x_y();
