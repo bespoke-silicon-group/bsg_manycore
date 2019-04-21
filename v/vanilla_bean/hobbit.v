@@ -348,33 +348,32 @@ wire [icache_tag_width_p-1:0] icache_w_tag =  net_imem_write_cmd
                                             ? net_packet_r.header.addr[(icache_addr_width_p+2) +: icache_tag_width_p]
                                             : loaded_pc               [(icache_addr_width_p+2) +: icache_tag_width_p] ; 
 
-wire [RV32_instr_width_gp-1:0]icache_w_instr=net_imem_write_cmd ? net_packet_r.data
+wire [RV32_instr_width_gp-1:0] icache_w_instr = net_imem_write_cmd ? net_packet_r.data
                                                                 : mem_data;
 
 logic icache_miss_lo;
 
 icache #(
-  .icache_tag_width_p  ( icache_tag_width_p      )
-  ,.icache_addr_width_p ( icache_addr_width_p     )
-  //word address
+  .icache_tag_width_p(icache_tag_width_p)
+  ,.icache_addr_width_p(icache_addr_width_p) //word address
 ) icache_0 (
   .clk_i(clk_i)
   ,.reset_i(reset_i)
 
-  ,.icache_cen_i           (icache_cen             )
-  ,.icache_w_en_i          (icache_w_en            )
-  ,.icache_w_addr_i        (icache_w_addr          )
-  ,.icache_w_tag_i         (icache_w_tag           ) 
-  ,.icache_w_instr_i       (icache_w_instr         )
+  ,.icache_cen_i(icache_cen)
+  ,.icache_w_en_i(icache_w_en)
+  ,.icache_w_addr_i(icache_w_addr)
+  ,.icache_w_tag_i(icache_w_tag) 
+  ,.icache_w_instr_i(icache_w_instr)
 
-  ,.flush_i                (flush|icache_miss_in_pipe )
-  ,.pc_i                   (pc_n                   )
-  ,.pc_wen_i               (pc_wen                 )
-  ,.pc_r_o                 (pc_r                   )
-  ,.jalr_prediction_i      (jalr_prediction_n[2+:pc_width_lp])
-  ,.instruction_o          (instruction            )
-  ,.pred_or_jump_addr_o    (pc_pred_or_jump_addr   )
-  ,.icache_miss_o          (icache_miss_lo         )
+  ,.flush_i(flush | icache_miss_in_pipe)
+  ,.pc_i(pc_n)
+  ,.pc_wen_i(pc_wen)
+  ,.pc_r_o(pc_r)
+  ,.jalr_prediction_i(jalr_prediction_n[2+:pc_width_lp])
+  ,.instruction_o(instruction)
+  ,.pred_or_jump_addr_o(pc_pred_or_jump_addr)
+  ,.icache_miss_o(icache_miss_lo)
 );
 
 //+----------------------------------------------
@@ -404,29 +403,14 @@ logic                              rf_wen;
 logic [RV32_reg_data_width_gp-1:0] mem_loaded_data;
 
 // Regfile write process
-always_comb
-begin
+always_comb begin
   rf_wa = wb.rd_addr;
   rf_wd = wb.rf_data;
-
-  // Register write could be from network or the controller
-  // FPU depend stall will not affect register file write back
-  // MEM load depend stall will not affect register file write back
-  // Selection between network 0and address included in the instruction which is
-  // exeuted Address for Reg. File is shorter than address of Ins. memory in network
-  // data Since network can write into immediate registers, the address is wider
-  // but for the destination register in an instruction the extra bits must be zero
-  if(net_reg_write_cmd) begin
-    rf_wen = 1'b1;
-    rf_wa  = net_packet_r.header.addr[RV32_reg_addr_width_gp-1:0];
-    rf_wd  = net_packet_r.data;
-
-  // In case of a stall, directly write back mem data to the regfile
-  end else if(stall & pending_load_arrived) begin
+  if (stall & pending_load_arrived) begin
     rf_wen = 1'b1;
     rf_wa  = from_mem_i.load_info.reg_id;
     rf_wd  = mem_loaded_data;
-  end else if(wb.op_writes_rf & (~stall)) begin
+  end else if (wb.op_writes_rf & (~stall)) begin
     rf_wen = 1'b1;
   end else begin
     rf_wen = 1'b0;
@@ -480,16 +464,14 @@ end
 // Any instruction depending on that register is stalled in ID
 // stage until the loaded value is written back to RF.
 
-logic record_load, dependency;
+logic record_load;
 
 // Record a load in the scoreboard when a load instruction is moved to exe stage.
-assign record_load  = id.decode.is_load_op & id.decode.op_writes_rf
+assign record_load = id.decode.is_load_op & id.decode.op_writes_rf
                         & ~(flush | net_pc_write_cmd_idle | stall | depend_stall);
 
 
 // "depend_stall" stalls ID stage and inserts nop into EXE stage.
-assign depend_stall = dependency;
-
 scoreboard
  #(.els_p (32)
   ) load_sb
@@ -500,15 +482,15 @@ scoreboard
   ,.src2_id_i    (id.instruction.rs2)
   ,.dest_id_i    (id.instruction.rd)
 
-  ,.op_reads_rf1 (id.decode.op_reads_rf1)
-  ,.op_reads_rf2 (id.decode.op_reads_rf2)
-  ,.op_writes_rf (id.decode.op_writes_rf)
+  ,.op_reads_rf1_i (id.decode.op_reads_rf1)
+  ,.op_reads_rf2_i (id.decode.op_reads_rf2)
+  ,.op_writes_rf_i (id.decode.op_writes_rf)
 
   ,.score_i      (record_load)
   ,.clear_i      (yumi_to_mem_c)
   ,.clear_id_i   (from_mem_i.load_info.reg_id)
 
-  ,.dependency_o (dependency)
+  ,.dependency_o (depend_stall)
   );
 
 //+----------------------------------------------
@@ -530,6 +512,7 @@ assign pending_load_arrived = from_mem_i.valid & ~current_load_arrived;
 // Disable load data insertion in WB & MEM stages as forwarding
 // is pre-computed in EXE stage
 wb_signals_s wb_from_mem;
+
 // Since remote load takes more than one cycle to fetch, and as loads are
 // non-blocking, write-back wouldn't happen when the instrucion is still
 // in the pipeline
@@ -776,10 +759,8 @@ assign id_s = '{
   icache_miss  : icache_miss_lo 
 };
 
-// synopsys sync_set_reset  "reset_i, net_pc_write_cmd_idle, flush, stall, depend_stall"
 always_ff @ (posedge clk_i)
 begin
-    //if (reset_i | net_pc_write_cmd_idle |( (flush | icache_miss_in_pipe ) & (~(stall | depend_stall) ) ) )
     if (reset_i | net_pc_write_cmd_idle | flush | (icache_miss_in_pipe & (~ (stall | depend_stall) ) ) )
       begin
          id <= '0;
