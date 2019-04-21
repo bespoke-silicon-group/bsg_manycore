@@ -759,8 +759,7 @@ assign id_s = '{
   icache_miss  : icache_miss_lo 
 };
 
-always_ff @ (posedge clk_i)
-begin
+always_ff @ (posedge clk_i) begin
     if (reset_i | net_pc_write_cmd_idle | flush | (icache_miss_in_pipe & (~ (stall | depend_stall) ) ) )
       begin
          id <= '0;
