@@ -1,21 +1,18 @@
 /**
+ *  hobbit.v
+ *
  *  Vanilla-Bean Core
  *
  *  5 stage pipeline implementation of the vanilla core ISA.
+ *
  */
 
 `include "parameters.vh"
 `include "definitions.vh"
 
-`ifdef bsg_FPU
-`include "float_definitions.vh"
-`endif
-
 module hobbit
   #(parameter icache_tag_width_p = "inv" 
     , parameter icache_addr_width_p = "inv"
-    , parameter gw_ID_p = "inv"
-    , parameter ring_ID_p = "inv"
     , parameter x_cord_width_p = "inv"
     , parameter y_cord_width_p = "inv"
 
@@ -40,10 +37,6 @@ module hobbit
   (
     input clk_i
     , input reset_i
-
-    `ifdef bsg_FPU
-    , fpi_alu_inter.alu_side fpi_inter
-    `endif
 
     , input ring_packet_s net_packet_i
 
@@ -85,10 +78,7 @@ logic         net_id_match_valid, net_pc_write_cmd,  net_imem_write_cmd,
               exec_net_packet;
 
 // Detect a valid packet for this core (vaild and IDs match)
-assign net_id_match_valid = (net_packet_r.header.ring_ID == ring_ID_p)
-                       // & (net_packet_r.header.gw_ID == gw_ID_p)
-                          & (~net_packet_r.header.external)
-                          & (net_packet_r.valid);
+assign net_id_match_valid = (net_packet_r.valid);
 
 // Detect if this network packet should be executed by this core. Two cases:
 //  1) IDs match and not a broadcast (if ID matches a broadcast, this core sent it)
@@ -130,7 +120,7 @@ logic yumi_to_mem_c;
 // Signals for load write-back
 logic current_load_arrived;
 logic pending_load_arrived;
-logic exe_free_for_load, mem_free_for_load, wb_free_for_load;
+logic exe_free_for_load;
 logic insert_load_in_exe;
 
 // Decoded control signals logic
@@ -142,9 +132,6 @@ assign stall_non_mem = (net_imem_write_cmd)
                      | (net_reg_write_cmd & wb.op_writes_rf)
                      | (net_reg_write_cmd)
                      | (state_r != RUN)
-`ifdef bsg_FPU
-                     | fpi_inter.fam_contend_stall
-`endif
                      | stall_md;
 // stall due to fence instruction
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
@@ -154,8 +141,6 @@ assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 // stage
 assign stall_load_wb = pending_load_arrived
                          & from_mem_i.buf_full
-                         & ~wb_free_for_load
-                         & ~mem_free_for_load
                          & ~exe_free_for_load;;
 
 // stall due to data memory access
@@ -201,13 +186,7 @@ always_comb begin
     mask = {{2{mem_addr_send[1]}}, {2{~mem_addr_send[1]}}};
   end
   else begin
-
-`ifdef bsg_FPU
-    store_data = fpi_inter.exe_fpi_store_op ? fpi_inter.frs2_to_fiu: rs2_to_alu;
-`else
     store_data = rs2_to_alu;
-`endif
-
     mask = 4'b1111;
   end
 end
@@ -306,11 +285,7 @@ logic                   pc_wen,  icache_cen;
 instruction_s   instruction;
 
 // PC write enable. This stops the CPU updating the PC
-`ifdef bsg_FPU
-assign pc_wen = net_pc_write_cmd_idle | (~(stall | fpi_inter.fam_depend_stall | depend_stall));
-`else
 assign pc_wen = net_pc_write_cmd_idle | (~(stall | depend_stall));
-`endif
 
 // Next PC under normal circumstances
 assign pc_plus4 = pc_r + 1'b1;
@@ -358,12 +333,7 @@ end
 //+----------------------------------------------
 
 // Instruction memory chip enable signal
-`ifdef bsg_FPU
-assign icache_cen = (~( stall | fpi_inter.fam_depend_stall | depend_stall ))
-                    | (net_imem_write_cmd | net_pc_write_cmd_idle);
-`else
 assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_write_cmd_idle);
-`endif
 
 `declare_icache_format_s( icache_tag_width_p );
 icache_format_s       icache_r_data_s;
@@ -381,42 +351,31 @@ wire [icache_tag_width_p-1:0] icache_w_tag =  net_imem_write_cmd
 wire [RV32_instr_width_gp-1:0]icache_w_instr=net_imem_write_cmd ? net_packet_r.data
                                                                 : mem_data;
 
-wire icache_miss_lo;
+logic icache_miss_lo;
+
 icache #(
-         .icache_tag_width_p  ( icache_tag_width_p      )
-        ,.icache_addr_width_p ( icache_addr_width_p     )
-         //word address
-        ) icache_0
-       (
-        .clk_i
-       ,.reset_i
+  .icache_tag_width_p  ( icache_tag_width_p      )
+  ,.icache_addr_width_p ( icache_addr_width_p     )
+  //word address
+) icache_0 (
+  .clk_i(clk_i)
+  ,.reset_i(reset_i)
 
-       ,.icache_cen_i           (icache_cen             )
-       ,.icache_w_en_i          (icache_w_en            )
-       ,.icache_w_addr_i        (icache_w_addr          )
-       ,.icache_w_tag_i         (icache_w_tag           ) 
-       ,.icache_w_instr_i       (icache_w_instr         )
+  ,.icache_cen_i           (icache_cen             )
+  ,.icache_w_en_i          (icache_w_en            )
+  ,.icache_w_addr_i        (icache_w_addr          )
+  ,.icache_w_tag_i         (icache_w_tag           ) 
+  ,.icache_w_instr_i       (icache_w_instr         )
 
-       ,.flush_i                (flush|icache_miss_in_pipe )
-       ,.pc_i                   (pc_n                   )
-       ,.pc_wen_i               (pc_wen                 )
-       ,.pc_r_o                 (pc_r                   )
-       ,.jalr_prediction_i      (jalr_prediction_n[2+:pc_width_lp])
-       ,.instruction_o          (instruction            )
-       ,.pred_or_jump_addr_o    (pc_pred_or_jump_addr   )
-       ,.icache_miss_o          (icache_miss_lo         )
-       );
-
-   // synopsys translate_off
-   logic reset_r;
-
-   always @(posedge clk_i) reset_r <= reset_i;
-   always @(negedge clk_i)
-     begin
-          assert ( (reset_r !== 0 ) | ~net_imem_write_cmd | (&net_packet_r.header.mask))
-          else $error("## byte write to instruction memory (%m)");
-     end
-   // synopsys translate_on
+  ,.flush_i                (flush|icache_miss_in_pipe )
+  ,.pc_i                   (pc_n                   )
+  ,.pc_wen_i               (pc_wen                 )
+  ,.pc_r_o                 (pc_r                   )
+  ,.jalr_prediction_i      (jalr_prediction_n[2+:pc_width_lp])
+  ,.instruction_o          (instruction            )
+  ,.pred_or_jump_addr_o    (pc_pred_or_jump_addr   )
+  ,.icache_miss_o          (icache_miss_lo         )
+);
 
 //+----------------------------------------------
 //|
@@ -571,8 +530,6 @@ assign pending_load_arrived = from_mem_i.valid & ~current_load_arrived;
 // Disable load data insertion in WB & MEM stages as forwarding
 // is pre-computed in EXE stage
 wb_signals_s wb_from_mem;
-assign wb_free_for_load  = ~wb_from_mem.op_writes_rf & 1'b0;
-assign mem_free_for_load = ~mem.decode.op_writes_rf & 1'b0;
 // Since remote load takes more than one cycle to fetch, and as loads are
 // non-blocking, write-back wouldn't happen when the instrucion is still
 // in the pipeline
@@ -621,10 +578,10 @@ imul_idiv_iterative md_0 (
 //+----------------------------------------------
 
 // Value forwarding logic
-logic [RV32_reg_data_width_gp-1:0] rs1_forward_val, rs2_forward_val;
+logic [RV32_reg_data_width_gp-1:0] rs1_forward_val;
+logic [RV32_reg_data_width_gp-1:0] rs2_forward_val;
 
 //We only forword the non loaded data in mem stage.
-//assign  rs1_forward_val  = rs1_in_mem ? mem.exe_result : wb.rf_data;
 bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.els_p      ( 2                      )
           ) rs1_forward_mux
@@ -635,7 +592,6 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
 
 wire  rs1_is_forward   = (exe.rs1_in_mem | exe.rs1_in_wb);
 
-//assign  rs2_forward_val  = rs2_in_mem ? mem.exe_result : wb.rf_data;
 bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.els_p      ( 2                      )
           ) rs2_forward_mux
@@ -647,7 +603,6 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
 wire  rs2_is_forward   = (exe.rs2_in_mem | exe.rs2_in_wb);
 
 // RISC-V edit: Immediate values handled in alu
-//assign rs1_to_alu = ((rs1_is_forward) ? rs1_forward_val : exe.rs1_val);
 bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.els_p      ( 2                      )
           ) rs1_alu_mux
@@ -656,7 +611,6 @@ bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.data_o     ( rs1_to_alu                        )
           );
 
-//assign rs2_to_alu = ((rs2_is_forward) ? rs2_forward_val : exe.rs2_val);
 bsg_mux  #( .width_p    ( RV32_reg_data_width_gp )
            ,.els_p      ( 2                      )
           ) rs2_alu_mux
@@ -825,23 +779,15 @@ assign id_s = '{
 // synopsys sync_set_reset  "reset_i, net_pc_write_cmd_idle, flush, stall, depend_stall"
 always_ff @ (posedge clk_i)
 begin
-`ifdef bsg_FPU
-    if (reset_i | net_pc_write_cmd_idle | flush )
-`else
     //if (reset_i | net_pc_write_cmd_idle |( (flush | icache_miss_in_pipe ) & (~(stall | depend_stall) ) ) )
     if (reset_i | net_pc_write_cmd_idle | flush | (icache_miss_in_pipe & (~ (stall | depend_stall) ) ) )
-`endif
       begin
          id <= '0;
    // synopsys translate_off
          debug_id <= debug_if | squashed_lp ;
    // synopsys translate_on
       end
-`ifdef bsg_FPU
-    else if (~(stall|fpi_inter.fam_depend_stall | depend_stall ))
-`else
     else if (~ ( stall | depend_stall) )
-`endif
       begin
    // synopsys translate_off
         debug_id <= debug_if;
@@ -903,13 +849,7 @@ begin
    // synopsys translate_on
         exe       <= '0;
       end
-`ifdef bsg_FPU
-    else if(    ( fpi_inter.fam_depend_stall | depend_stall )
-              & (~stall)
-           )
-`else
     else if ( depend_stall & (~stall) )
-`endif
       begin
          // synopsys translate_off
          debug_exe <= debug_id | squashed_lp;
@@ -946,41 +886,18 @@ end
 //|
 //+----------------------------------------------
 
-logic [RV32_reg_data_width_gp-1:0] fiu_alu_result;
 logic [RV32_reg_data_width_gp-1:0] exe_result;
 
-`ifdef bsg_FPU
-//The combined decode signal to MEM stages.
-decode_s  fpi_alu_decode;
-
-always_comb
-begin
-    fpi_alu_decode = exe.decode;
-    if( fpi_inter.exe_fpi_writes_rf )
-        fpi_alu_decode.op_writes_rf = 1'b1;
-end
-
-assign fiu_alu_result = fpi_inter.exe_fpi_writes_rf
-                       ?fpi_inter.fiu_result
-                       :alu_result;
-`else
-assign fiu_alu_result = alu_result;
-
-`endif
 // dram addr                    : 1xxxxxxxx
 // out-group remote addr        : 01xxxxxxx
 // in-group remote addr         : 001xxxxxx
-//assign remote_load_in_exe = exe.decode.is_load_op & ( | mem_addr_send[ (RV32_reg_data_width_gp-1)  -: 3] );
 wire is_dram_addr   = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 1 ] == 1'b1;
 wire is_global_addr = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 2 ] == 2'b01;
 wire is_group_addr  = mem_addr_send [ (RV32_reg_data_width_gp-1) -: 3 ] == 3'b001;
 
 assign remote_load_in_exe = exe.decode.is_load_op 
                          & (is_global_addr | is_group_addr | is_dram_addr)
-                         //& (is_global_addr | is_group_addr )
                          & (~exe.icache_miss); 
-//assign remote_load_in_exe = exe.decode.is_load_op 
-//                         & (is_global_addr | is_group_addr );
 
 // Loded data is inserted into the exe stage along
 // with an instruction that doesn't write to RF
@@ -991,7 +908,7 @@ begin
     exe_rd_addr        = from_mem_i.load_info.reg_id;
     exe_op_writes_rf   = 1'b1;
   end else begin
-    exe_result         = fiu_alu_result;
+    exe_result         = alu_result;
     exe_rd_addr        = exe.instruction.rd;
     exe_op_writes_rf   = exe.decode.op_writes_rf & ~remote_load_in_exe;
   end
@@ -1015,11 +932,7 @@ begin
 
         mem <= '{
             rd_addr       : exe_rd_addr,
-`ifdef bsg_FPU
-            decode        : fpi_alu_decode,
-`else
             decode        : exe.decode,
-`endif
             exe_result    : exe_result,
 
             mem_addr_send : mem_addr_send,
@@ -1133,42 +1046,9 @@ end
 assign  wb = wb_from_mem;
 
 
-`ifdef bsg_FPU
-
-///////////////////////////////////////////////////////////////////
-// Assign the outputs to FPI
-assign fpi_inter.alu_stall              = stall;
-assign fpi_inter.alu_flush              = flush;
-assign fpi_inter.rs1_of_alu             = rs1_to_alu;
-assign fpi_inter.flw_data               = mem_data;
-assign fpi_inter.f_instruction          = instruction;
-assign fpi_inter.mem_alu_writes_rf      = mem.decode.op_writes_rf;
-assign fpi_inter.mem_alu_rd_addr        = mem.rd_addr;
 
 
-/////////////////////////////////////////////////////////////////////
-// Some instruction validation check.
 //synopsys translate_off
-//Double Precision Floating Point Load/Store
-always@(negedge clk_i )
-begin
-    unique casez( id.instruction.op )
-        `RV32_STORE_FP, `RV32_LOAD_FP:
-        if(  id.instruction.funct3 == `RV32_FDLS_FUN3 )
-        begin
-            if(  id.instruction.rs1  != 5'd2 )
-                $error("Double Precision Load/Store With register other than SP: PC=%08x, INSTRUCTION:=%08x",
-                   id.pc_plus4, id.instruction);
-            else
-                $warning("Double Precision Load/Store With SP: PC=%08x, INSTRUCTION:=%08x",
-                   id.pc_plus4-4, id.instruction);
-        end
-        default:
-        begin
-        end
-    endcase
-end
-
 //FENCE_I instruction
 always@(negedge clk_i ) begin
     if( id.decode.is_fence_i_op ) begin
@@ -1177,7 +1057,6 @@ always@(negedge clk_i ) begin
 end
 //synopsys translate_on
 
-`endif
 
 
 
