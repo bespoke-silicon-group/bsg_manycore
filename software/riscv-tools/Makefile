@@ -65,6 +65,7 @@ checkout-all:
 	cd $(TOOLCHAIN_REPO) && git config submodule.riscv-newlib.url \
 		https://bitbucket.org/taylor-bsg/bsg_hammerblade_newlib.git;
 	cd $(TOOLCHAIN_REPO) && git submodule update --recursive
+	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout bsg_manycore_newlib
 
 build-deps:
 	@echo "====================================="
@@ -89,6 +90,23 @@ build-riscv-gnu-tools: configure-riscv-gnu-tools
 	cd riscv-gnu-toolchain && make -j 16 newlib && make install
 
 build-all: build-deps build-riscv-gnu-tools
+
+# Following libs will be placed in the dram
+LIB_LIST = \
+	$(CURDIR)/riscv-install/lib/gcc/riscv32-unknown-elf/8.3.0/libgcc.a \
+	$(CURDIR)/riscv-install/riscv32-unknown-elf/lib/libc.a \
+	$(CURDIR)/riscv-install/riscv32-unknown-elf/lib/libgloss.a
+
+rebuild-newlib:
+	make -C $(TOOLCHAIN_REPO)/build-newlib
+	make -C $(TOOLCHAIN_REPO)/build-newlib install
+	for lib in $(LIB_LIST); do \
+		$(CURDIR)/riscv-install/bin/riscv32-unknown-elf-objcopy \
+			--rename-section .data=.dram \
+			--rename-section .rodata=.dram \
+			--rename-section .bss=.dram \
+			$$lib; \
+	done
 
 clean:
 	rm -rf riscv-install
