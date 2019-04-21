@@ -4,15 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <machine/bsg_newlib_fs.h>
 
 int main() {
-  bsg_set_tile_x_y();
+  bsg_newlib_fs_init();
 
   if ((__bsg_x == 0) && (__bsg_y == bsg_tiles_Y-1)) {
-    if(bsg_newlib_fs_init() < 0)
-      bsg_printf("bsg_newlib_fs_init failed!\n");
-
     FILE *stdinfile = fopen("stdin", "w");
     bsg_printf("(%d, %d): stdin opened: fd = %x\n", bsg_x, bsg_y, stdinfile);
     FILE *stdoutfile = fopen("stdout", "w");
