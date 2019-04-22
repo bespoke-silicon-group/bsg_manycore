@@ -12,7 +12,7 @@ CLANG=1
 #TYPE_VEC="64'h01_01_01_01"
 
 all: main.run
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o
+OBJECT_FILES=main.o bsg_set_tile_x_y.o
 
 include ../Makefile.include
 
