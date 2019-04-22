@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <machine/bsg_newlib_fs.h>
 
 int main() {
   if ((__bsg_x == 0) && (__bsg_y == bsg_tiles_Y-1)) {
