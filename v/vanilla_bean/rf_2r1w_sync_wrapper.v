@@ -41,7 +41,7 @@ module rf_2r1w_sync_wrapper  #(parameter width_p=-1
                         ,.addr_width_lp ( addr_width_lp )
                         ,.harden_p      ( harden_p      )
 
-                        ,.read_write_same_addr_p( 1'b1  )
+                        ,.read_write_same_addr_p( 1'b0  )
                         ) rf_mem
         ( .clk_i
          ,.reset_i

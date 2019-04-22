@@ -141,7 +141,7 @@ void inline bsg_row_barrier_alert(  bsg_row_barrier *  p_row_b, bsg_col_barrier 
         int i;
         int x_range = p_row_b-> _x_cord_end - p_row_b->_x_cord_start;
         
-        bsg_wait_local_int( (int *) &(p_col_b -> _local_alert),  1);
+        bsg_wait_local_int( & (p_col_b -> _local_alert),  1);
 
         #ifdef BSG_BARRIER_DEBUG
                //addr 0x8: column alerted. Starting to alter tiles in the row
@@ -161,7 +161,7 @@ void inline bsg_row_barrier_alert(  bsg_row_barrier *  p_row_b, bsg_col_barrier 
 //   execute by all tiles in the group
 //------------------------------------------------------------------
 void inline bsg_tile_wait(bsg_row_barrier * p_row_b){
-        bsg_wait_local_int( (int *) &(p_row_b->_local_alert), 1);
+        bsg_wait_local_int( &(p_row_b->_local_alert), 1);
         //re-initilized the flag.
         p_row_b->_local_alert = 0;
 }

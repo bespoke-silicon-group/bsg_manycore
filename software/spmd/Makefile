@@ -1,5 +1,3 @@
-.DEFAULT_GOAL := all
-
 include ./Makefile.regress.list
 include ./Makefile.include
 

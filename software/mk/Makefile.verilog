@@ -26,9 +26,9 @@ endif
 BSG-SIM-TOOL = vcs
 INC_OP = +incdir+
 
-VCS_OP = -full64 -sverilog +v2k
+VCS_OP = -full64 -sverilog
+VCS_OP += +lint=PCWM 
 VCS_OP += -timescale=1ps/1ps
-VCS_LINT = +lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS
 
 VCS_OPTIONS = +define+SPMD=$*+
 VCS_OPTIONS += +define+bsg_hetero_type_vec="${bsg_hetero_type_vec}"+
@@ -81,7 +81,6 @@ endif
 	$(VCS) $(VCS_OP) \
         -top test_bsg_manycore 		\
     	$(VCS_OPTIONS)                  \
-			$(VCS_LINT)											\
     	$(EXTRA_OPT)					\
     	$(addprefix $(INC_OP), $(DESIGN_INCS) )\
     	$(DESIGN_HDRS) $(DESIGN_SRCS)   \
