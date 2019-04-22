@@ -133,7 +133,7 @@ module icache
       if (pc_wen_i) begin
         pc_r <= pc_i;
       end
-      icache_stall_out_r = flush_i
+      icache_stall_out_r <= flush_i
         ? '0
         : icache_stall_out;
     end
