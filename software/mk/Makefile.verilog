@@ -10,7 +10,7 @@ PROG_NAME ?= main
 ifneq ($(HOSTNAME),xor.cs.washington.edu)
 # Checking the VCS settings
 ifeq ($(VCS),)
-$(error Please define the $$VCS which points to the VCS binaries )
+#$(error Please define the $$VCS which points to the VCS binaries )
 endif
 
 ifeq ($(DVE),)
