@@ -14,10 +14,6 @@
 
 `include "bsg_manycore_packet.vh"
 
-`ifdef bsg_FPU
-`include "float_definitions.vh"
-`endif
-
 `define HETERO_TYPE_MACRO(BMC_TYPE,BMC_TYPE_MODULE)             \
    if (hetero_type_p == (BMC_TYPE))                             \
      begin: h                                                   \
@@ -31,10 +27,9 @@
                           ,.dram_ch_addr_width_p ( dram_ch_addr_width_p )  \
                           ,.dram_ch_start_col_p  ( dram_ch_start_col_p) \
                           ,.debug_p(debug_p)                    \
-			  ,.icache_entries_p(icache_entries_p)            \
+			                    ,.icache_entries_p(icache_entries_p)            \
                           ,.icache_tag_width_p (icache_tag_width_p) \
-            		  ,.max_out_credits_p(max_out_credits_p)\
-                          ,.hetero_type_p(hetero_type_p)        \
+            		          ,.max_out_credits_p(max_out_credits_p)\
                           ) z                                   \
           (.clk_i                                               \
            ,.reset_i                                            \
@@ -43,10 +38,6 @@
            ,.my_x_i                                             \
            ,.my_y_i                                             \
            ,.freeze_o                                           \
- `ifdef bsg_FPU                                                 \
-           ,.fam_out_s_i                                        \
-           ,.fam_in_s_o                                         \
- `endif                                                         \
            );                                                   \
      end
 
@@ -60,9 +51,9 @@ module bsg_manycore_hetero_socket #(  x_cord_width_p      = "inv"
                                     , dram_ch_addr_width_p = "inv"
                                     , dram_ch_start_col_p = 0
                                     , debug_p           = 0
-				    , icache_entries_p       = "inv" // in words
+				                            , icache_entries_p       = "inv" // in words
                                     , icache_tag_width_p= "inv"
-                	            , max_out_credits_p = 200
+                	                  , max_out_credits_p = 200
                                     , hetero_type_p     = 1
                                     , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
                                     )
@@ -77,11 +68,6 @@ module bsg_manycore_hetero_socket #(  x_cord_width_p      = "inv"
     , input   [x_cord_width_p-1:0]                my_x_i
     , input   [y_cord_width_p-1:0]                my_y_i
     , output logic freeze_o
-
- `ifdef bsg_FPU
-    , input  f_fam_out_s                         fam_out_s_i 
-    , output f_fam_in_s                          fam_in_s_o 
- `endif
 
     );
 
