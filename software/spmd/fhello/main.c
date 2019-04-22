@@ -7,8 +7,6 @@
 #include <machine/bsg_newlib_fs.h>
 
 int main() {
-  bsg_newlib_fs_init();
-
   if ((__bsg_x == 0) && (__bsg_y == bsg_tiles_Y-1)) {
     FILE *stdinfile = fopen("stdin", "w");
     bsg_printf("(%d, %d): stdin opened: fd = %x\n", bsg_x, bsg_y, stdinfile);

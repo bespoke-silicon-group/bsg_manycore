@@ -33,9 +33,15 @@ RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/com
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
+ifeq ($(BSG_NEWLIB), 1)
+  RISCV_GCC_OPTS +=-D__bsg_newlib
+endif
 
 #RISCV_LINK_EXTRA_OPTS ?=
 RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
+ifneq ($(BSG_NEWLIB), 1)
+  RISCV_LINK_OPTS += -nostdlib
+endif
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 RISCV_LINK = $(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld -Wl,--defsym,bsg_group_size=$(bsg_group_size)

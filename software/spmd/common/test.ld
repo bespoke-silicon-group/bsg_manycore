@@ -82,10 +82,11 @@ SECTIONS
   _bsg_dram_start_addr = 0x80000000;
   .text 0x80000000 : AT ( _bsg_data_end_addr ){
           crt.o(.text)
+          bsg_newlib_init.o(.text)
           *(.text)
           *(.text.startup)
           *(.rodata*) 
-          *(.dram)
+          *(.dram*)
         }
   _bsg_dram_end_addr = .  ;
 }
