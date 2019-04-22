@@ -57,17 +57,14 @@ module bsg_manycore_proc_vanilla
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
 
-    , output logic freeze_o
   );
 
-   //-------------------------------------------------------------------------
-   //  The CSR  Regsiter Declare
-   logic CSR_FREEZE_r;
-   logic [x_cord_width_p-1:0] CSR_TGO_X_r;
-   logic [y_cord_width_p-1:0] CSR_TGO_Y_r;
+  //-------------------------------------------------------------------------
+  //  The CSR  Regsiter Declare
+  logic CSR_FREEZE_r;
+  logic [x_cord_width_p-1:0] CSR_TGO_X_r;
+  logic [y_cord_width_p-1:0] CSR_TGO_Y_r;
 
-
-   assign freeze_o = CSR_FREEZE_r;
 
   // endpoint standard
   //

@@ -1,8 +1,9 @@
-`include "bsg_manycore_packet.vh"
+/**
+ *  bsg_manycore_tile.v
+ *
+ */
 
-`ifdef bsg_FPU
-  `include "float_definitions.vh"
-`endif
+`include "bsg_manycore_packet.vh"
 
 module bsg_manycore_tile
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }
@@ -36,11 +37,6 @@ module bsg_manycore_tile
 
     , input  [link_sif_width_lp-1:0][S:W] link_in
     , output [link_sif_width_lp-1:0][S:W] link_out
-
-`ifdef bsg_FPU
-    , input  f_fam_out_s fam_out_s_i
-    , output f_fam_in_s  fam_in_s_o
-`endif
 
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
@@ -98,18 +94,11 @@ module bsg_manycore_tile
     .clk_i(clk_i)
     ,.reset_i(reset_r)
 
-    `ifdef bsg_FPU
-    ,.fam_in_s_o(fam_in_s_o)
-    ,.fam_out_s_i(fam_out_s_i)
-    `endif
-
     ,.link_sif_i(proc_link_sif_lo)
     ,.link_sif_o(proc_link_sif_li)
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
-
-    ,.freeze_o()
   );
 
 endmodule
