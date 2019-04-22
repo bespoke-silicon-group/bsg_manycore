@@ -1,8 +1,5 @@
 `include "bsg_manycore_packet.vh"
 
-`ifdef bsg_FPU
-`include "float_definitions.vh"
-`endif
 module bsg_manycore
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }
 
@@ -151,30 +148,6 @@ module bsg_manycore
       reset_i_rr <= reset_i_r;
     end
 
-
-`ifdef bsg_FPU
-  //The array of the interface between FAM and tile
-  f_fam_in_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0]  fam_in_s_v;
-  f_fam_out_s[num_tiles_y_p-1:0][num_tiles_x_p-1:0]  fam_out_s_v;
-
-  for (r = 0; r < num_tiles_y_p; r = r+1)
-  begin: fam_row_gen
-    for (c = 0; c < num_tiles_x_p; c = c+2)
-    begin: fam_col_gen
-            fam # (.in_data_width_p ( RV32_mac_input_width_gp  )
-                  ,.out_data_width_p( RV32_mac_output_width_gp )
-                  ,.num_fifo_p      ( 2                      )
-                  ,.num_pipe_p      ( 3                      )
-                  )
-                fam_g(
-                 .clk_i      ( clk_i                 )
-                ,.reset_i    ( reset_i_rr            )
-                ,.fam_in_s_i ( {fam_in_s_v [r][ c+1], fam_in_s_v[r][ c ]})
-                ,.fam_out_s_o( {fam_out_s_v[r][ c+1], fam_out_s_v[r][ c ]})
-                );
-    end
-  end
-`endif
    for (r = IO_row_idx_p+1; r < num_tiles_y_p; r = r+1)
      begin: y
         for (c = 0; c < num_tiles_x_p; c=c+1)
@@ -254,14 +227,5 @@ end
       ,.ver_o(ver_link_sif_o)
       );
 
-  //synopsys translate_off
-  `ifdef bsg_FPU
-  initial
-  begin
-    assert ( (num_tiles_x_p % 2 ) == 0 )
-      else $error("num_tiles_x_p must be even for the shared FPU option");
-  end
-  `endif
-  //synopsys translate_on
 `endif
 endmodule
