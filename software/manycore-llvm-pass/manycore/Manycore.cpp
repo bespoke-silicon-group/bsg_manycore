@@ -166,6 +166,39 @@ void replace_extern_memcpy(Module &M, CallInst *op, bool isStore) {
     errs() << "Memcpy replace done\n\n";
 }
 
+void replace_extern_memset(Module &M, CallInst *op) {
+    IRBuilder<> builder(op);
+    errs() << "Replacing memset\n";
+    Function *memset_fn = M.getFunction("extern_memset");
+    op->dump();
+    Type *char_ptr = Type::getInt8PtrTy(M.getContext(), 0);
+    Type *int_t = Type::getInt32Ty(M.getContext());
+    std::vector<Value *> args_vector;
+
+    assert(op->getNumArgOperands() == 4); // dest, val, len, isvolatile
+
+    // Make all arguments pointers to address space 0 so types match runtime fn
+    Value *dest_ptr = op->getArgOperand(0);
+    Value *val = op->getArgOperand(1);
+    Value *isvol = builder.CreateIntCast(op->getArgOperand(3), int_t, false);
+
+    // Create argument list to pass to memset
+    args_vector.push_back(dest_ptr);
+    args_vector.push_back(val);
+    args_vector.push_back(builder.CreateIntCast(op->getArgOperand(2), int_t, false));
+    ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
+
+    memset_fn->dump();
+    for (auto &a : args) {
+        a->getType()->dump();
+    }
+    Value *new_memset = builder.CreateCall(memset_fn, args);
+    op->replaceAllUsesWith(new_memset);
+    new_memset->dump();
+    errs() << "Memset replace done\n\n";
+
+}
+
 
 namespace {
     struct ManycorePass : public ModulePass {
@@ -190,6 +223,15 @@ namespace {
             return false;
         }
 
+        bool isMemset(Function *F) {
+            if (F != NULL) {
+                StringRef fname = F->getName();
+                if (fname.startswith(StringRef("llvm.memset"))) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         bool shouldReplaceMemcpy(CallInst *op, bool *isStore) {
             for (int i = 0; i < op->getNumArgOperands(); i++) {
@@ -211,6 +253,11 @@ namespace {
             return false;
         }
 
+        bool shouldReplaceMemset(CallInst *op) {
+            if (auto *ptr = dyn_cast<PointerType>(op->getArgOperand(0)->getType())) {
+                return ptr->getAddressSpace() == STRIPE;
+            }
+        }
 
         void insertInitializerLoads(Module *M, GlobalVariable *G, Instruction *insert_after) {
             // We want to insert load_extern_array after bsg_set_tile_x_y()
@@ -357,10 +404,12 @@ namespace {
                             }
                         } else if (auto* op = dyn_cast<CallInst>(&I)) {
                             Function *F = op->getCalledFunction();
-                            if (!isMemcpy(F)) { continue;}
                             bool isStore;
-                            if (shouldReplaceMemcpy(op, &isStore)) {
+                            if (isMemcpy(F) && shouldReplaceMemcpy(op, &isStore)) {
                                 replace_extern_memcpy(M, op, isStore);
+                                insts_to_remove.push_back(op);
+                            } else if (isMemset(F) && shouldReplaceMemset(op)) {
+                                replace_extern_memset(M, op);
                                 insts_to_remove.push_back(op);
                             }
                         }
