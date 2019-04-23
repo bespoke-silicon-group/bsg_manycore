@@ -1,143 +1,144 @@
+/**
+ *  bsg_manycore_proc_vanilla.v
+ *
+ *  This module connects to the mesh network. It contains hobbit, icache,
+ *  DMEM, and CSRs.
+ *
+ *  RX unit handles incoming requests. TX unit handles memory requests from hobbit.
+ */
+
+
 `include "bsg_manycore_packet.vh"
 `include "definitions.vh"
 
-`ifdef bsg_FPU
- `include "float_definitions.vh"
-`endif
+module bsg_manycore_proc_vanilla
+  #(parameter x_cord_width_p = "inv"
+    , parameter y_cord_width_p = "inv"
+    , parameter data_width_p = "inv"
+    , parameter addr_width_p = "inv"
+    , parameter load_id_width_p = "inv"
+    , parameter epa_byte_addr_width_p = "inv"
+    , parameter dram_ch_addr_width_p = "inv"
+    , parameter icache_tag_width_p = "inv"
+    , parameter icache_entries_p = "inv" // in words
+    , parameter dmem_size_p = "inv" // in words
 
-module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
-                           , y_cord_width_p = "inv"
-                           , data_width_p   = 32
-                           , addr_width_p   = -1
-                           , load_id_width_p = 5
-                           , epa_byte_addr_width_p = -1 
-                           , dram_ch_addr_width_p = -1
-                           , dram_ch_start_col_p = 0
-                           , debug_p        = 1
+    , parameter debug_p = 1
+    , parameter dram_ch_start_col_p = 0
 
-                           , icache_tag_width_p   = -1
-                           , icache_entries_p     = 1024 // in words
-                           , dmem_size_p          = 1024 // in words
-                           , icache_addr_width_lp = $clog2(icache_entries_p)
-                           // this credit counter is more for memory fences
-                           // than containing the number of outstanding remote stores
+    , localparam icache_addr_width_lp = $clog2(icache_entries_p)
 
-                           //, max_out_credits_p = (1<<13)-1  // 13 bit counter
-                           , max_out_credits_p = 200  // 13 bit counter
+    // credit counter is used for memory fences and limiting the number of
+    // stores.
+    , parameter max_out_credits_p = 200  // 13 bit counter
 
-                           // this is the size of the receive FIFO
-                           , proc_fifo_els_p = 4
-                           , num_nets_lp     = 2
+    // this is the size of the receive FIFO
+    , parameter proc_fifo_els_p = 4
 
-                           , hetero_type_p   = 0
-                           //do we run immediately after reset?
-                           , freeze_init_p  = 1'b1
+    // do we run immediately after reset?
+    , parameter freeze_init_p  = 1'b1
 
-                           , packet_width_lp                = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-                           , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p,load_id_width_p)
-                           , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width     (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-                          )
-   (input   clk_i
+    , localparam packet_width_lp =
+      `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+    , localparam return_packet_width_lp =
+      `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p,load_id_width_p)
+    , localparam bsg_manycore_link_sif_width_lp =
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+  )
+  (
+    input clk_i
     , input reset_i
 
     // input and output links
-    , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
+    , input [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
     , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
     // tile coordinates
-    , input   [x_cord_width_p-1:0]                my_x_i
-    , input   [y_cord_width_p-1:0]                my_y_i
+    , input [x_cord_width_p-1:0] my_x_i
+    , input [y_cord_width_p-1:0] my_y_i
 
-     // FPU interface
-`ifdef bsg_FPU
-    , input  f_fam_out_s           fam_out_s_i
-    , output f_fam_in_s            fam_in_s_o
-`endif
+  );
 
-    , output logic freeze_o
-    );
-
-   //-------------------------------------------------------------------------
-   //  The CSR  Regsiter Declare
-   logic                                CSR_FREEZE_r;
-   logic [x_cord_width_p-1:0]           CSR_TGO_X_r;
-   logic [y_cord_width_p-1:0]           CSR_TGO_Y_r;
+  //-------------------------------------------------------------------------
+  //  The CSR  Regsiter Declare
+  logic CSR_FREEZE_r;
+  logic [x_cord_width_p-1:0] CSR_TGO_X_r;
+  logic [y_cord_width_p-1:0] CSR_TGO_Y_r;
 
 
-   assign freeze_o = CSR_FREEZE_r;
+  // endpoint standard
+  //
+  `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p,
+    y_cord_width_p, load_id_width_p);
 
-   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
+  bsg_manycore_packet_s out_packet_li;
+  logic out_v_li;
+  logic out_ready_lo;
 
-   bsg_manycore_packet_s out_packet_li;
-   logic                 out_v_li;
-   logic                 out_ready_lo;
+  logic [load_id_width_p-1:0] returned_load_id_r_lo;
+  logic [data_width_p-1:0] returned_data_r_lo;
+  logic [addr_width_p-1:0] returned_addr_r_lo;
+  logic returned_v_r_lo;
+  logic returned_fifo_full_lo;
+  logic returned_yumi_li;
 
-   logic [load_id_width_p-1:0] returned_load_id_r_lo;
-   logic [data_width_p-1:0]    returned_data_r_lo  ;
-   logic [addr_width_p-1:0]    returned_addr_r_lo  ;
-   logic                       returned_v_r_lo     ;
-   logic                       returned_fifo_full_lo;
-   logic                       returned_yumi_li;
+  logic [data_width_p-1:0] load_returning_data, delayed_returning_data_r, returning_data;
+  logic load_returning_v, delayed_returning_v_r, returning_v;
 
-   logic [data_width_p-1:0] load_returning_data, delayed_returning_data_r, returning_data;
-   logic                    load_returning_v, delayed_returning_v_r, returning_v;
+  logic in_we_lo;
+  logic [data_width_p-1:0] in_data_lo;
+  logic [(data_width_p>>3)-1:0] in_mask_lo;
+  logic [addr_width_p-1:0] in_addr_lo;
+  logic in_v_lo, in_yumi_li;
+  logic [$clog2(max_out_credits_p+1)-1:0] out_credits_lo;
 
-   logic                                   in_we_lo  ;
-   logic [data_width_p-1:0]                in_data_lo;
-   logic [(data_width_p>>3)-1:0]           in_mask_lo;
-   logic [addr_width_p-1:0]                in_addr_lo;
-   logic                                   in_v_lo, in_yumi_li;
-   logic [$clog2(max_out_credits_p+1)-1:0] out_credits_lo;
+  bsg_manycore_endpoint_standard #(
+    .x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.fifo_els_p(proc_fifo_els_p)
+    ,.returned_fifo_p(1)
+    ,.data_width_p(data_width_p)
+    ,.addr_width_p(addr_width_p)
+    ,.load_id_width_p(load_id_width_p)
+    ,.max_out_credits_p(max_out_credits_p)
+    ,.debug_p(debug_p)
+  ) endp (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
 
-   bsg_manycore_endpoint_standard #(.x_cord_width_p      (x_cord_width_p)
-                                    ,.y_cord_width_p     (y_cord_width_p)
-                                    ,.fifo_els_p         (proc_fifo_els_p)
-                                    ,.returned_fifo_p    (1)
-                                    ,.data_width_p       (data_width_p)
-                                    ,.addr_width_p       (addr_width_p)
-                                    ,.load_id_width_p    (load_id_width_p)
-                                    ,.max_out_credits_p  (max_out_credits_p)
-                                    ,.debug_p            (debug_p)
-//                                    ,.debug_p(1)
-                                    ) endp
-   (.clk_i
-    ,.reset_i
+    ,.link_sif_i(link_sif_i)
+    ,.link_sif_o(link_sif_o)
 
-    ,.link_sif_i
-    ,.link_sif_o
-
-    ,.in_v_o         (in_v_lo)
-    ,.in_yumi_i      (in_yumi_li)
-    ,.in_data_o      (in_data_lo)
-    ,.in_mask_o      (in_mask_lo)
-    ,.in_addr_o      (in_addr_lo)
-    ,.in_we_o        (in_we_lo  )
+    ,.in_v_o(in_v_lo)
+    ,.in_yumi_i(in_yumi_li)
+    ,.in_data_o(in_data_lo)
+    ,.in_mask_o(in_mask_lo)
+    ,.in_addr_o(in_addr_lo)
+    ,.in_we_o(in_we_lo)
     ,.in_src_x_cord_o()
     ,.in_src_y_cord_o()
 
     // we feed the endpoint with the data we want to send out
     // it will get inserted into the above link_sif
 
-    ,.out_packet_i(out_packet_li )
-    ,.out_v_i     (out_v_li    )
-    ,.out_ready_o (out_ready_lo)
+    ,.out_packet_i(out_packet_li)
+    ,.out_v_i(out_v_li)
+    ,.out_ready_o(out_ready_lo)
 
-    ,.returned_data_r_o    (returned_data_r_lo )
-    ,.returned_load_id_r_o (returned_load_id_r_lo)
-    ,.returned_v_r_o       (returned_v_r_lo    )
-    ,.returned_fifo_full_o (returned_fifo_full_lo)
-    ,.returned_yumi_i      (returned_yumi_li)
+    ,.returned_data_r_o(returned_data_r_lo)
+    ,.returned_load_id_r_o(returned_load_id_r_lo)
+    ,.returned_v_r_o(returned_v_r_lo)
+    ,.returned_fifo_full_o(returned_fifo_full_lo)
+    ,.returned_yumi_i(returned_yumi_li)
 
-    ,.returning_data_i ( returning_data )
-    ,.returning_v_i    ( returning_v    )
+    ,.returning_data_i(returning_data)
+    ,.returning_v_i(returning_v)
 
     ,.out_credits_o(out_credits_lo)
 
-    ,.my_x_i
-    ,.my_y_i
-    //,.CSR_FREEZE_r_o(CSR_FREEZE_r)
-    //,.reverse_arb_pr_o( reverse_arb_pr )
-    );
+    ,.my_x_i(my_x_i)
+    ,.my_y_i(my_y_i)
+  );
 
    // register to hold to IDs of local loads
    logic [load_id_width_p-1:0] local_load_id_r;
@@ -188,21 +189,6 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    wire launching_out = out_v_li & out_ready_lo;
 
 
-   //////////////////////////////////////////////////////
-   //  The vanilla core version
-   `ifdef bsg_FPU
-
-       fpi_alu_inter fpi_alu();
-
-       fpi riscv_fpi (
-                .clk        (clk_i         )
-               ,.reset      (reset_i       )
-               ,.alu_inter  (fpi_alu       )
-               ,.fam_in_s_o (fam_in_s_o    )
-               ,.fam_out_s_i(fam_out_s_i   )
-           );
-   `endif
-   //////////////////////////////////////////////////////////
 
    // configuration  in_addr_lo = { 1 ------ } 2'b00
    localparam  epa_word_addr_width_lp = epa_byte_addr_width_p-2;
@@ -215,52 +201,51 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    wire remote_access_dmem  = in_v_lo & is_dmem_addr;
    wire remote_invalid_addr = in_v_lo & ( ~( is_dmem_addr | is_icache_addr | is_config_op ) );
 
-   // Logic detecting the falling edge of CSR_FREEZE_r signal
-   logic CSR_FREEZE_r_r;
+  // Logic detecting the falling edge of CSR_FREEZE_r signal
+  logic CSR_FREEZE_r_r;
 
-   always_ff@( posedge clk_i)
-   if( reset_i ) CSR_FREEZE_r_r <= 1'b0;
-   else          CSR_FREEZE_r_r <= CSR_FREEZE_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      CSR_FREEZE_r_r <= 1'b0;
+    end
+    else begin 
+      CSR_FREEZE_r_r <= CSR_FREEZE_r;
+    end
+  end
 
-   wire pkt_unfreeze = (CSR_FREEZE_r == 1'b0 ) && ( CSR_FREEZE_r_r == 1'b1);
-   wire pkt_freeze   = (CSR_FREEZE_r == 1'b1 ) && ( CSR_FREEZE_r_r == 1'b0);
+  wire pkt_unfreeze = (CSR_FREEZE_r == 1'b0 ) && ( CSR_FREEZE_r_r == 1'b1);
+  wire pkt_freeze   = (CSR_FREEZE_r == 1'b1 ) && ( CSR_FREEZE_r_r == 1'b0);
 
-   // The memory and network interface
-   ring_packet_s            core_net_pkt;
-   mem_in_s                 core_to_mem;
-   mem_out_s                mem_to_core;
-   //////////////////////////////////////
-   hobbit #
-     (
-       .icache_tag_width_p (icache_tag_width_p) 
-      ,.icache_addr_width_p(icache_addr_width_lp)
-      ,.gw_ID_p            (0)
-      ,.ring_ID_p          (0)
-      ,.x_cord_width_p     (x_cord_width_p)
-      ,.y_cord_width_p     (y_cord_width_p)
-      ,.debug_p            (0)
-     ) vanilla_core
-     ( .clk_i          (clk_i)
-      ,.reset_i        (reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state
+  // The memory and network interface
+  ring_packet_s core_net_pkt;
+  mem_in_s core_to_mem;
+  mem_out_s mem_to_core;
 
-      ,.net_packet_i   (core_net_pkt)
+  hobbit #(
+    .icache_tag_width_p(icache_tag_width_p) 
+    ,.icache_addr_width_p(icache_addr_width_lp)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.debug_p(0)
+  ) vanilla_core (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state
 
-      ,.from_mem_i     (mem_to_core)
-      ,.to_mem_o       (core_to_mem)
-      ,.reserve_1_o    (core_mem_reserve_1)
-      ,.reservation_i  (core_mem_reservation_r)
+    ,.net_packet_i(core_net_pkt)
 
-`ifdef bsg_FPU
-      ,.fpi_inter      (fpi_alu)
-`endif
+    ,.from_mem_i(mem_to_core)
+    ,.to_mem_o(core_to_mem)
+    ,.reserve_1_o(core_mem_reserve_1)
+    ,.reservation_i(core_mem_reservation_r)
 
-      ,.my_x_i
-      ,.my_y_i
-      ,.outstanding_stores_i(out_credits_lo != max_out_credits_p)    // from register
-     );
+    ,.outstanding_stores_i(out_credits_lo != max_out_credits_p)    // from register
 
-   always_comb
-   begin
+    ,.my_x_i(my_x_i)
+    ,.my_y_i(my_y_i)
+  );
+
+  always_comb
+  begin
      // remote stores to imem and initial pc value sent over vanilla core's network
      core_net_pkt.valid     = remote_store_icache | pkt_unfreeze;
      //Shaolin Xie: To supress the 'Undriven' warning.
@@ -347,8 +332,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
     end
   end
 
-  always_comb
-  begin
+  always_comb begin
     mem_to_core.buf_full = buf_full_to_core;
 
     // local mem has the highest priority
@@ -368,8 +352,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   end
 
   // synopsys translate_off
-  always @(negedge clk_i)
-  begin
+  always_ff @ (negedge clk_i) begin
     if(~reset_i) begin
       assert(~(core_mem_rv & returned_buf_v & buf_full_to_core))
       else begin
@@ -380,38 +363,38 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
   // synopsys translate_on
       
 
-   wire out_request;
+  wire out_request;
 
-   bsg_manycore_pkt_encode #(.x_cord_width_p (x_cord_width_p)
-                             ,.y_cord_width_p(y_cord_width_p)
-                             ,.data_width_p (data_width_p )
-                             ,.addr_width_p (addr_width_p )
-                             ,.epa_word_addr_width_p( epa_byte_addr_width_p -2 )
-                             ,.dram_ch_addr_width_p ( dram_ch_addr_width_p)
-                             ,.dram_ch_start_col_p  ( dram_ch_start_col_p )
-                             ) pkt_encode
-     (.clk_i(clk_i)
-
-      // the memory request, from the core's data memory port
-      ,.v_i       (core_mem_v    )
-      ,.data_i    (core_mem_wdata)
-      ,.addr_i    (core_mem_addr )
-      ,.we_i      (core_mem_w    )
-      ,.swap_aq_i (core_to_mem.swap_aq )
-      ,.swap_rl_i (core_to_mem.swap_rl )
-      ,.mask_i    (core_mem_mask )
-      ,.tile_group_x_i ( CSR_TGO_X_r  )
-      ,.tile_group_y_i ( CSR_TGO_Y_r  )
-      ,.my_x_i    (my_x_i)
-      ,.my_y_i    (my_y_i)
+  bsg_manycore_pkt_encode #(
+    .x_cord_width_p (x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.data_width_p (data_width_p )
+    ,.addr_width_p (addr_width_p )
+    ,.epa_word_addr_width_p( epa_byte_addr_width_p -2 )
+    ,.dram_ch_addr_width_p ( dram_ch_addr_width_p)
+    ,.dram_ch_start_col_p  ( dram_ch_start_col_p )
+  ) pkt_encode (
+    .clk_i(clk_i)
+    // the memory request, from the core's data memory port
+    ,.v_i       (core_mem_v    )
+    ,.data_i    (core_mem_wdata)
+    ,.addr_i    (core_mem_addr )
+    ,.we_i      (core_mem_w    )
+    ,.swap_aq_i (core_to_mem.swap_aq )
+    ,.swap_rl_i (core_to_mem.swap_rl )
+    ,.mask_i    (core_mem_mask )
+    ,.tile_group_x_i ( CSR_TGO_X_r  )
+    ,.tile_group_y_i ( CSR_TGO_Y_r  )
+    ,.my_x_i    (my_x_i)
+    ,.my_y_i    (my_y_i)
 
       // directly out to the network!
-      ,.v_o    (out_request)
-      ,.data_o (out_packet_li)
-      );
+    ,.v_o    (out_request)
+    ,.data_o (out_packet_li)
+  );
 
-   // we only request to send a remote store if it would not overflow the remote store credit counter
-   assign out_v_li = out_request & (|out_credits_lo);
+  // we only request to send a remote store if it would not overflow the remote store credit counter
+  assign out_v_li = out_request & (|out_credits_lo);
 
   // store load id of a local load
   always_ff @(posedge clk_i)
@@ -526,20 +509,9 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
      ,.bank_size_p  (dmem_size_p )
      ,.data_width_p (data_width_p)
      ,.rr_lo_hi_p   ( 5 ) // dynmaic priority based on FIFO status
-//     ,.rr_lo_hi_p   ( 4 ) // round robin reset
-//     ,.rr_lo_hi_p   (2'b10) // round robin
-//     ,.rr_lo_hi_p   (2'b01) // deadlock
-//     ,.rr_lo_hi_p(0)          // local dmem has priority
-//     ,.debug_p(debug_p*4)  // mbt: debug, multiply addresses by 4.
-//     ,.debug_p(0*4)  // mbt: debug, multiply addresses by 4.
-//      ,.debug_p(4)
-//     ,.debug_reads_p(0)
     ) bnkd_xbar
     ( .clk_i    (clk_i)
      ,.reset_i  (reset_i)
-//    SHX: DEPRECATED FUNCTION
-//    the reverse the priority for the dynamic scheme
-//      ,.reverse_pr_i( reverse_arb_pr  )
       ,.reverse_pr_i( 1'b0)
       ,.v_i     (xbar_port_v_in)
 
@@ -596,7 +568,7 @@ module bsg_manycore_proc_vanilla #(x_cord_width_p   = "inv"
    // ----------------------------------------------------------------------------------------
    wire                   store_yumi      = in_yumi_li & in_we_lo;
    wire                   CSR_load_yumi   = in_v_lo & is_config_decoded & (~in_we_lo);
-   wire[data_width_p-1:0] CSR_load_data   = is_tgo_x_addr ? CSR_TGO_X_r : CSR_TGO_Y_r;
+   wire [data_width_p-1:0] CSR_load_data   = is_tgo_x_addr ? CSR_TGO_X_r : CSR_TGO_Y_r;
    //delay the response for store for 1 cycle
    always_ff@(posedge clk_i) 
         if( reset_i )   delayed_returning_v_r   <= 1'b0;
