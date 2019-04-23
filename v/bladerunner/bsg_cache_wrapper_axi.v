@@ -23,12 +23,12 @@ module bsg_cache_wrapper_axi
     ,parameter y_cord_width_p="inv"
     ,parameter load_id_width_p="inv"
 
-    ,parameter axi_strb_width_lp=(axi_data_width_p>>3)
-    ,parameter byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
-    ,parameter cache_addr_width_lp=addr_width_p-1+byte_offset_width_lp
+    ,localparam axi_strb_width_lp=(axi_data_width_p>>3)
+    ,localparam byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
+    ,localparam cache_addr_width_lp=addr_width_p-1+byte_offset_width_lp
 
-    ,parameter link_sif_width_lp=
-      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+    ,localparam link_sif_width_lp=
+    `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
   )
   (
     input clk_i

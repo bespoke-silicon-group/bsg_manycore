@@ -12,6 +12,8 @@ ifdef COVERAGE
 	bsg_tiles_Y = 4
 endif
 
+ENABLE_VCACHE=1
+
 export LLVM_DIR=/mnt/bsg/diskbits/neilryan/llvm/llvm-install
 
 ###############################################

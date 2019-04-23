@@ -17,6 +17,9 @@ make [bsg_tiles_X=<x>] [bsg_tiles_Y=<y>] [COVERAGE=VCS]
     the coverage analysis is 4x4. This will be overwritten only when
     above dimension variables are explicitly set.
 
+- ENABLE_VCACHE = {0|1}
+    include vcache or instead include block SRAM.
+
 Note: 
     Current design is only tested for x<=4, y<=4 and dimensions mentioned in
     individual testcases.
