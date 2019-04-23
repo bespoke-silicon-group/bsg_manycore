@@ -131,6 +131,10 @@ module bsg_nonsynth_manycore_io_complex
   //-----------------------------------------------------------------
   // Connects dram model
   if (include_vcache_p) begin: vcache
+    
+    initial begin
+      $display("## Running simulation with vcache.");
+    end
 
     logic [axi_id_width_p-1:0] awid;
     logic [axi_addr_width_p-1:0] awaddr;
@@ -300,6 +304,11 @@ module bsg_nonsynth_manycore_io_complex
     
   end
   else begin: ram
+
+    initial begin
+      $display("## Running simulation with block RAM.");
+    end
+
     for (i = 0; i < num_tiles_x_p; i=i+1) begin
       bsg_manycore_ram_model #(
         .x_cord_width_p(x_cord_width_lp)
