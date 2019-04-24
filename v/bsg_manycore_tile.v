@@ -7,17 +7,17 @@
 
 module bsg_manycore_tile
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }
-  #(parameter dmem_size_p = 1024
-    , parameter icache_entries_p = 1024
-    , parameter icache_tag_width_p = 12
-    , parameter x_cord_width_p = 3
-    , parameter y_cord_width_p = 3
+  #(parameter dmem_size_p = "inv"
+    , parameter icache_entries_p = "inv"
+    , parameter icache_tag_width_p = "inv"
+    , parameter x_cord_width_p = "inv"
+    , parameter y_cord_width_p = "inv"
     
-    , parameter data_width_p = 32
-    , parameter addr_width_p = 26
-    , parameter load_id_width_p = 11
-    , parameter epa_byte_addr_width_p = 18
-    , parameter dram_ch_addr_width_p = 25
+    , parameter data_width_p = "inv"
+    , parameter addr_width_p = "inv"
+    , parameter load_id_width_p = "inv"
+    , parameter epa_byte_addr_width_p = "inv"
+    , parameter dram_ch_addr_width_p = "inv"
 
     , localparam dirs_lp = 4
 
