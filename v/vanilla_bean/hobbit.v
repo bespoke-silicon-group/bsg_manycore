@@ -31,8 +31,11 @@ module hobbit
     // used to direct the icache miss address to dram.
     , localparam dram_addr_mapping_lp = 32'h8000_0000
 
-    , localparam remote_addr_prefix_mask_lp = 32'hc000_0000
-    , localparam remote_addr_mapping_lp = 32'h4000_0000
+    // position in recoded instruction memory of prediction bit
+    // for branches. normally this would be bit 31 in RISCV ISA (branch ofs sign bit)
+    // but we've partially evaluated the addresses so they are absolute. instead
+    // we replicate that bit in bit 0 of the RISC-V instruction, which is unused
+    , localparam pred_index_lp = 0
   )
   (
     input clk_i
@@ -52,12 +55,7 @@ module hobbit
     , input outstanding_stores_i
   );
 
-// position in recoded instruction memory of prediction bit
-// for branches. normally this would be bit 31 in RISCV ISA (branch ofs sign bit)
-// but we've partially evaluated the addresses so they are absolute. instead
-// we replicate that bit in bit 0 of the RISC-V instruction, which is unused
 
-localparam pred_index_lp = 0;
 
 // Pipeline stage logic structures
 id_signals_s  id;
@@ -72,29 +70,14 @@ wb_signals_s  wb;
 //+----------------------------------------------
 
 // Network signals logic
-ring_packet_s net_packet_r;
-logic         net_id_match_valid, net_pc_write_cmd,  net_imem_write_cmd,
-              net_reg_write_cmd, net_pc_write_cmd_idle,
-              exec_net_packet;
+logic net_imem_write_cmd, exec_net_packet;
 
-// Detect a valid packet for this core (vaild and IDs match)
-assign net_id_match_valid = (net_packet_r.valid);
 
 // Detect if this network packet should be executed by this core. Two cases:
 //  1) IDs match and not a broadcast (if ID matches a broadcast, this core sent it)
 //  2) ID doesn't match but the packet is a broadcast
-assign exec_net_packet    = (net_id_match_valid & ~net_packet_r.header.bc)
-                            | ((~net_id_match_valid) & net_packet_r.header.bc &
-                            net_packet_r.valid & (~net_packet_r.header.external));
-
-// Network command control signals
-// State machine logic
-state_e state_n, state_r;
-
-assign net_pc_write_cmd      = exec_net_packet  & (net_packet_r.header.net_op == PC);
-assign net_imem_write_cmd    = exec_net_packet  & (net_packet_r.header.net_op == INSTR);
-assign net_reg_write_cmd     = exec_net_packet  & (net_packet_r.header.net_op == REG);
-assign net_pc_write_cmd_idle = net_pc_write_cmd & (state_r == IDLE);
+assign exec_net_packet = net_packet_i.valid;
+assign net_imem_write_cmd = exec_net_packet & (net_packet_i.header.net_op == INSTR);
 
 //+----------------------------------------------
 //|
@@ -128,11 +111,7 @@ decode_s decode;
 
 assign data_mem_valid = is_load_buffer_valid | current_load_arrived;
 
-assign stall_non_mem = (net_imem_write_cmd)
-                     | (net_reg_write_cmd & wb.op_writes_rf)
-                     | (net_reg_write_cmd)
-                     | (state_r != RUN)
-                     | stall_md;
+assign stall_non_mem = (net_imem_write_cmd) | stall_md;
 // stall due to fence instruction
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 
@@ -172,7 +151,6 @@ mem_payload_u mem_payload;
 // Data memory handshake logic
 logic valid_to_mem_c;
 
-// RISC-V edit: support for byte and hex stores
 always_comb begin
   if (exe.decode.is_byte_op) begin
     store_data = {4{rs2_to_alu[7:0]}};
@@ -212,8 +190,7 @@ assign mem_addr_send= exe.icache_miss? miss_pc : ld_st_addr ;
 // Store op sends store data as the payload while
 // a load op sends destination register as the payload
 // to distinguish multiple non-blocking load requests
-always_comb
-begin
+always_comb begin
   if(exe.decode.is_load_op) begin
     mem_payload.read_info = '{rsvd      : '0
                              ,load_info : '{icache_fetch   : exe.icache_miss
@@ -277,26 +254,33 @@ wire flush = (branch_mispredict | jalr_mispredict );
 //|
 //+----------------------------------------------
 
+logic reset_r;
+always_ff @ (posedge clk_i) begin
+  reset_r <= reset_i;
+end
+logic reset_down;
+assign reset_down = reset_r & ~reset_i;
+
 // Program counter logic
 logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_pred_or_jump_addr;
-logic                   pc_wen,  icache_cen;
+logic pc_wen,  icache_cen;
 
 // Instruction memory logic
 instruction_s   instruction;
 
 // PC write enable. This stops the CPU updating the PC
-assign pc_wen = net_pc_write_cmd_idle | (~(stall | depend_stall));
+assign pc_wen = (~(stall | depend_stall));
 
 // Next PC under normal circumstances
 assign pc_plus4 = pc_r + 1'b1;
 
 
 // Determine what the next PC should be
-always_comb
-begin
+
+always_comb begin
     // Network setting PC (highest priority)
-    if (net_pc_write_cmd_idle)
-        pc_n = net_packet_r.header.addr[2+:pc_width_lp];
+    if (reset_down)
+        pc_n = '0;
     // cache miss
     else if (wb.icache_miss)
         pc_n = wb.icache_miss_pc[2+:pc_width_lp];
@@ -333,23 +317,26 @@ end
 //+----------------------------------------------
 
 // Instruction memory chip enable signal
-assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd | net_pc_write_cmd_idle);
+assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd );
 
 `declare_icache_format_s( icache_tag_width_p );
-icache_format_s       icache_r_data_s;
 
 logic [RV32_reg_data_width_gp-1:0] mem_data;
 logic [RV32_reg_data_width_gp-1:0] loaded_pc  ;
 
-wire                          icache_w_en  = net_imem_write_cmd | (mem.icache_miss & data_mem_valid );
-wire [icache_addr_width_p-1:0]icache_w_addr= net_imem_write_cmd ? net_packet_r.header.addr[2+:icache_addr_width_p]
-                                                                : loaded_pc[2+:icache_addr_width_p];
-wire [icache_tag_width_p-1:0] icache_w_tag =  net_imem_write_cmd 
-                                            ? net_packet_r.header.addr[(icache_addr_width_p+2) +: icache_tag_width_p]
-                                            : loaded_pc               [(icache_addr_width_p+2) +: icache_tag_width_p] ; 
+wire icache_w_en  = net_imem_write_cmd | (mem.icache_miss & data_mem_valid);
 
-wire [RV32_instr_width_gp-1:0] icache_w_instr = net_imem_write_cmd ? net_packet_r.data
-                                                                : mem_data;
+wire [icache_addr_width_p-1:0] icache_w_addr = net_imem_write_cmd
+  ? net_packet_i.header.addr[2+:icache_addr_width_p]
+  : loaded_pc[2+:icache_addr_width_p];
+
+wire [icache_tag_width_p-1:0] icache_w_tag = net_imem_write_cmd 
+  ? net_packet_i.header.addr[(icache_addr_width_p+2) +: icache_tag_width_p]
+  : loaded_pc[(icache_addr_width_p+2) +: icache_tag_width_p] ; 
+
+wire [RV32_instr_width_gp-1:0] icache_w_instr = net_imem_write_cmd
+  ? net_packet_i.data
+  : mem_data;
 
 logic icache_miss_lo;
 
@@ -385,8 +372,8 @@ icache #(
 // Instantiate the instruction decoder
 cl_decode cl_decode_0
 (
-    .instruction_i(instruction),
-    .decode_o(decode)
+  .instruction_i(instruction)
+  ,.decode_o(decode)
 );
 
 //+----------------------------------------------
@@ -468,30 +455,29 @@ logic record_load;
 
 // Record a load in the scoreboard when a load instruction is moved to exe stage.
 assign record_load = id.decode.is_load_op & id.decode.op_writes_rf
-                        & ~(flush | net_pc_write_cmd_idle | stall | depend_stall);
+                        & ~(flush | stall | depend_stall );
 
 
-// "depend_stall" stalls ID stage and inserts nop into EXE stage.
-scoreboard
- #(.els_p (32)
-  ) load_sb
-  (.clk_i        (clk_i)
-  ,.reset_i      (reset_i)
+scoreboard #(
+  .els_p (32)
+) load_sb (
+  .clk_i(clk_i)
+  ,.reset_i(reset_i)
 
-  ,.src1_id_i    (id.instruction.rs1)
-  ,.src2_id_i    (id.instruction.rs2)
-  ,.dest_id_i    (id.instruction.rd)
+  ,.src1_id_i(id.instruction.rs1)
+  ,.src2_id_i(id.instruction.rs2)
+  ,.dest_id_i(id.instruction.rd)
 
-  ,.op_reads_rf1_i (id.decode.op_reads_rf1)
-  ,.op_reads_rf2_i (id.decode.op_reads_rf2)
-  ,.op_writes_rf_i (id.decode.op_writes_rf)
+  ,.op_reads_rf1_i(id.decode.op_reads_rf1)
+  ,.op_reads_rf2_i(id.decode.op_reads_rf2)
+  ,.op_writes_rf_i(id.decode.op_writes_rf)
 
-  ,.score_i      (record_load)
-  ,.clear_i      (yumi_to_mem_c)
-  ,.clear_id_i   (from_mem_i.load_info.reg_id)
+  ,.score_i(record_load)
+  ,.clear_i(yumi_to_mem_c)
+  ,.clear_id_i(from_mem_i.load_info.reg_id)
 
-  ,.dependency_o (depend_stall)
-  );
+  ,.dependency_o(depend_stall) // "depend_stall" stalls ID stage and inserts nop into EXE stage.
+);
 
 //+----------------------------------------------
 //|
@@ -535,22 +521,22 @@ wire   md_valid    = exe.decode.is_md_instr & md_ready;
 assign stall_md    = exe.decode.is_md_instr & ~md_resp_valid;
 
 imul_idiv_iterative md_0 (
-  .clk_i      (clk_i)
-  ,.reset_i   (reset_i)
+  .clk_i(clk_i)
+  ,.reset_i(reset_i)
 
-  ,.v_i       (md_valid)
-  ,.ready_o   (md_ready)
+  ,.v_i(md_valid)
+  ,.ready_o(md_ready)
 
-  ,.opA_i     (rs1_to_alu)
-  ,.opB_i     (rs2_to_alu)
-  ,.funct3    (exe.instruction.funct3)
+  ,.opA_i(rs1_to_alu)
+  ,.opB_i(rs2_to_alu)
+  ,.funct3(exe.instruction.funct3)
 
-  ,.v_o       (md_resp_valid)
-  ,.result_o  (md_result    )
+  ,.v_o(md_resp_valid)
+  ,.result_o(md_result)
 
   //if there is a stall issued at MEM stage, we can't receive the mul/div
   //result.
-  ,.yumi_i    (~stall_non_mem)
+  ,.yumi_i(~stall_non_mem)
 );
 
 
@@ -616,24 +602,6 @@ alu #(.pc_width_p(pc_width_lp) )
 
 assign alu_result = exe.decode.is_md_instr ? md_result : basic_comp_result;
 
-
-//+----------------------------------------------
-//|
-//|            STATE MACHINE SIGNALS
-//|
-//+----------------------------------------------
-
-// Instantiate the state machine
-cl_state_machine state_machine
-(
-    .instruction_i(exe.instruction),
-    .state_i(state_r),
-    .net_pc_write_cmd_idle_i(net_pc_write_cmd_idle),
-    .stall_i(stall),
-    .state_o(state_n)
-);
-
-
 //+----------------------------------------------
 //|
 //|        DATA MEMORY HANDSHAKE SIGNALS
@@ -672,23 +640,6 @@ assign reserve_1_o  = exe.decode.op_is_load_reservation
                    &(~exe.decode.op_is_lr_acq)  ;
 
 
-//+----------------------------------------------
-//|
-//|        SEQUENTIAL LOGIC SIGNALS
-//|
-//+----------------------------------------------
-
-// All sequental logic signals are set in this statement. The
-// active high reset signal is what causes all signals to be
-// reset to zero.
-always_ff @ (posedge clk_i)
-begin
-    if (reset_i) begin
-        state_r            <= IDLE;
-    end else begin
-        state_r            <= state_n;
-    end
-end
 
 // Update the JALR prediction register
 assign jalr_prediction_n = exe.decode.is_jump_op
@@ -704,14 +655,6 @@ bsg_dff_reset #(
   ,.data_o(jalr_prediction_r)
 );
 
-// mbt: unharden to reduce congestion
-bsg_dff_reset #(.width_p($bits(ring_packet_s)), .harden_p(0)) net_packet_r_reg
-  ( .clk_i(clk_i)
-   ,.reset_i(reset_i)
-   ,.data_i(net_packet_i)
-   ,.data_o(net_packet_r)
-   );
-
 
 // synopsys translate_off
 debug_s debug_if, debug_id, debug_exe, debug_mem, debug_wb;
@@ -722,7 +665,7 @@ localparam squashed_lp = 1'b1;
 assign debug_if = '{
                     PC_r : pc_r,
                     instruction_i: instruction,
-                    state_r: state_r,
+                    state_r: 1'b0,
                     squashed: 1'b0
                     };
  // synopsys translate_on
@@ -749,7 +692,9 @@ always_comb begin
     end
 end
 
-wire [RV32_instr_width_gp-1:0] id_instr = icache_miss_lo? 'b0 : instruction;
+wire [RV32_instr_width_gp-1:0] id_instr = icache_miss_lo
+  ? 'b0
+  : instruction;
 
 assign id_s = '{
   pc_plus4     : {pc_high_padding_lp, pc_plus4    ,2'b0}  ,
@@ -760,20 +705,18 @@ assign id_s = '{
 };
 
 always_ff @ (posedge clk_i) begin
-    if (reset_i | net_pc_write_cmd_idle | flush | (icache_miss_in_pipe & (~ (stall | depend_stall) ) ) )
-      begin
-         id <= '0;
-   // synopsys translate_off
-         debug_id <= debug_if | squashed_lp ;
-   // synopsys translate_on
-      end
-    else if (~ ( stall | depend_stall) )
-      begin
-   // synopsys translate_off
-        debug_id <= debug_if;
-   // synopsys translate_on
-        id <= id_s      ;
-     end
+  if (reset_i | flush | (icache_miss_in_pipe & (~ (stall | depend_stall) ) ) ) begin
+    id <= '0;
+    // synopsys translate_off
+    debug_id <= debug_if | squashed_lp ;
+    // synopsys translate_on
+  end
+  else if (~(stall | depend_stall)) begin
+    // synopsys translate_off
+    debug_id <= debug_if;
+    // synopsys translate_on
+    id <= id_s;
+  end
 end
 
 
@@ -820,16 +763,14 @@ wire    exe_rs2_in_wb      = ( mem.decode.op_writes_rf | is_load_buffer_valid )
                            & (|id.instruction.rs2);
 
 // Synchronous stage shift
-always_ff @ (posedge clk_i)
-begin
-    if (reset_i | net_pc_write_cmd_idle | flush )
-      begin
-   // synopsys translate_off
-         debug_exe <= debug_id | squashed_lp;
-   // synopsys translate_on
-        exe       <= '0;
-      end
-    else if ( depend_stall & (~stall) )
+always_ff @ (posedge clk_i) begin
+  if (reset_i | flush) begin
+    // synopsys translate_off
+    debug_exe <= debug_id | squashed_lp;
+    // synopsys translate_on
+    exe <= '0;
+  end
+  else if (depend_stall & (~stall))
       begin
          // synopsys translate_off
          debug_exe <= debug_id | squashed_lp;
@@ -897,7 +838,7 @@ end
 // Synchronous stage shift
 always_ff @ (posedge clk_i)
 begin
-    if (reset_i | net_pc_write_cmd_idle)
+    if (reset_i )
       begin
         // synopsys translate_off
         debug_mem <= squashed_lp;
@@ -998,9 +939,8 @@ begin
 end
 
 // Synchronous stage shift
-always_ff @ (posedge clk_i)
-begin
-    if (reset_i | net_pc_write_cmd_idle)
+always_ff @ (posedge clk_i) begin
+    if (reset_i)
       begin
          wb_from_mem       <= '0;
          // synopsys translate_off
@@ -1090,7 +1030,7 @@ if (debug_p) begin
     // append the log at every negedge
     forever begin
       @(negedge clk_i)
-      if(state_r==RUN) begin
+      if(1) begin
         pelog = $fopen("pe.log", "a");
         $fwrite(pelog, "X%0d_Y%0d.pelog \n", my_x_i, my_y_i);
         $fwrite(pelog, "X%0d_Y%0d.pelog %0dns:\n", my_x_i, my_y_i, $time);
@@ -1104,12 +1044,12 @@ if (debug_p) begin
                  ,instruction.rd
                  ,instruction.rs1
                  ,instruction.rs2
-                 ,state_r
+                 ,1'b0
                 );
         $fwrite(pelog, " net_pkt={v%0x_a%0x_d%0x} icm=%b\n"
-                 ,net_packet_r.valid
-                 ,net_packet_r.header.addr
-                 ,net_packet_r.data
+                 ,net_packet_i.valid
+                 ,net_packet_i.header.addr
+                 ,net_packet_i.data
                  ,icache_miss_lo
                 );
 

@@ -57,23 +57,11 @@ typedef struct packed {                                 \
 // Ring packet header
 typedef struct packed
 {
-    logic        bc;          // 31     // Broadcast flag
-    logic        external;    // 30     // External flag, meaning the packet
-                                        // is for a device outside the ring
-    logic [2:0]  gw_ID;       // 29..27 // Gate Way ID of the receiver or
-                                        // sender in case of a broadcast pakcet
-    logic [4:0]  ring_ID;     // 26..22 // Ring ID of the receiver or sender
-                                        // in case of a broadcast packet
     net_op_e     net_op;      // 21..20 // Operation of the network packet
                                         // for v_cores
     logic [3:0]  mask;        // 19..16 // byte mask for received network
                                         // data
-    logic [1:0]  reserved;    // 15..14 // reserved bits, later we may steal
-                                        // more bits for net_op
-    //TODO--The address should be parameterizable.
-    //      Right now set to the max(BRANCH_IMM, JAL_IMM)
     logic [RV32_reg_data_width_gp-1:0] addr;        // 13..0  // the addr field which could be largened
-                                        // using reserved field
 } v_core_header_s;
 
 // Ring packet

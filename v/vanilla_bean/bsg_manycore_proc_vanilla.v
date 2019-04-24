@@ -118,9 +118,6 @@ module bsg_manycore_proc_vanilla
     ,.in_src_x_cord_o()
     ,.in_src_y_cord_o()
 
-    // we feed the endpoint with the data we want to send out
-    // it will get inserted into the above link_sif
-
     ,.out_packet_i(out_packet_li)
     ,.out_v_i(out_v_li)
     ,.out_ready_o(out_ready_lo)
@@ -157,36 +154,36 @@ module bsg_manycore_proc_vanilla
 
    logic [addr_width_p-1:0]      core_mem_reserve_addr_r;
 
-   // implement LR (load word reserved)
-   // synopsys sync_set_reset "core_mem_v, core_mem_reserve_1, core_mem_yumi, in_v_lo, core_mem_reserve_addr_r, in_addr_lo, in_yumi_li"
-   always_ff @(posedge clk_i)
-     begin
-        // if we commit a reserved memory access
-        // to the interface, then the reservation takes place
-        if (core_mem_v & core_mem_reserve_1 & core_mem_yumi)
-          begin
-             // copy address; ignore byte bits
-             core_mem_reservation_r  <= 1'b1;
-             core_mem_reserve_addr_r <= core_mem_addr[2+:(addr_width_p-2)];
-             // synopsys translate_off
-             $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr);
-             // synopsys translate_on
-          end
-        else
-          // otherwise, we clear existing reservations if the corresponding
-          // address is committed as a remote store
-          begin
-             if (in_v_lo && (core_mem_reserve_addr_r == in_addr_lo) && in_yumi_li)
-               begin
-                  core_mem_reservation_r  <= 1'b0;
-                  // synopsys translate_off
-                  $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r << 2);
-                  // synopsys translate_on
-               end
-          end
-     end
+  // implement LR (load word reserved)
+  always_ff @(posedge clk_i) begin
+    if (reset_i) begin
+      core_mem_reservation_r <= 1'b0;
+    end
+    else begin
+      // if we commit a reserved memory access
+      // to the interface, then the reservation takes place
+      if (core_mem_v & core_mem_reserve_1 & core_mem_yumi) begin
+        // copy address; ignore byte bits
+        core_mem_reservation_r  <= 1'b1;
+        core_mem_reserve_addr_r <= core_mem_addr[2+:(addr_width_p-2)];
+        // synopsys translate_off
+        $display("## x,y = %d,%d enabling reservation on %x",my_x_i,my_y_i,core_mem_addr);
+        // synopsys translate_on
+      end
+      else begin
+        // otherwise, we clear existing reservations if the corresponding
+        // address is committed as a remote store
+        if (in_v_lo && (core_mem_reserve_addr_r == in_addr_lo) && in_yumi_li) begin
+          core_mem_reservation_r  <= 1'b0;
+          // synopsys translate_off
+          $display("## x,y = %d,%d clearing reservation on %x",my_x_i,my_y_i,core_mem_reserve_addr_r << 2);
+          // synopsys translate_on
+        end
+      end
+    end
+  end
 
-   wire launching_out = out_v_li & out_ready_lo;
+  wire launching_out = out_v_li & out_ready_lo;
 
 
 
@@ -201,21 +198,6 @@ module bsg_manycore_proc_vanilla
    wire remote_access_dmem  = in_v_lo & is_dmem_addr;
    wire remote_invalid_addr = in_v_lo & ( ~( is_dmem_addr | is_icache_addr | is_config_op ) );
 
-  // Logic detecting the falling edge of CSR_FREEZE_r signal
-  logic CSR_FREEZE_r_r;
-
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      CSR_FREEZE_r_r <= 1'b0;
-    end
-    else begin 
-      CSR_FREEZE_r_r <= CSR_FREEZE_r;
-    end
-  end
-
-  wire pkt_unfreeze = (CSR_FREEZE_r == 1'b0 ) && ( CSR_FREEZE_r_r == 1'b1);
-  wire pkt_freeze   = (CSR_FREEZE_r == 1'b1 ) && ( CSR_FREEZE_r_r == 1'b0);
-
   // The memory and network interface
   ring_packet_s core_net_pkt;
   mem_in_s core_to_mem;
@@ -229,7 +211,7 @@ module bsg_manycore_proc_vanilla
     ,.debug_p(0)
   ) vanilla_core (
     .clk_i(clk_i)
-    ,.reset_i(reset_i | pkt_freeze) // pkt_freeze pushes core to IDLE state
+    ,.reset_i(reset_i | CSR_FREEZE_r)
 
     ,.net_packet_i(core_net_pkt)
 
@@ -244,44 +226,20 @@ module bsg_manycore_proc_vanilla
     ,.my_y_i(my_y_i)
   );
 
-  always_comb
-  begin
-     // remote stores to imem and initial pc value sent over vanilla core's network
-     core_net_pkt.valid     = remote_store_icache | pkt_unfreeze;
-     //Shaolin Xie: To supress the 'Undriven' warning.
-     core_net_pkt.header.reserved  = 2'b0;
-
-     core_net_pkt.header.bc       = 1'b0;
-     core_net_pkt.header.external = 1'b0;
-     core_net_pkt.header.gw_ID    = 3'(0);
-     core_net_pkt.header.ring_ID  = 5'(0);
-     if (remote_store_icache)
-       begin // remote store to imem
-         core_net_pkt.header.net_op = INSTR;
-         core_net_pkt.header.mask   = in_mask_lo;
-         // this address alread stripped the byte bits
-         // We have to add them for compatibility
-         core_net_pkt.header.addr   = {in_addr_lo, 2'b0};
-       end
-     else
-       begin // initiates pc pushing core to RUN state
-         core_net_pkt.header.net_op   = PC;
-         core_net_pkt.header.mask     = (data_width_p>>3)'(0);
-         //1.  We don't support exceptions, and we don't want to waste the
-         //    instruction memory so the starting address of the first instruction
-         //    is ZERO
-         core_net_pkt.header.addr     = 'b0;
-       end
-
-    core_net_pkt.data   = remote_store_icache? in_data_lo : 32'(0);
+  always_comb begin
+    core_net_pkt.valid = remote_store_icache;
+    core_net_pkt.header.net_op = INSTR;
+    core_net_pkt.header.mask = '0;
+    core_net_pkt.header.addr = {in_addr_lo, 2'b0};
+    core_net_pkt.data = in_data_lo;
   end
 
   //convert the core_to_mem structure to signals.
-  assign core_mem_v        = core_to_mem.valid     ;
-  assign core_mem_wdata    = core_to_mem.payload   ;
-  assign core_mem_addr     = core_to_mem.addr      ;
-  assign core_mem_w        = core_to_mem.wen       ;
-  assign core_mem_mask     = core_to_mem.mask      ;
+  assign core_mem_v        = core_to_mem.valid;
+  assign core_mem_wdata    = core_to_mem.payload;
+  assign core_mem_addr     = core_to_mem.addr;
+  assign core_mem_w        = core_to_mem.wen;
+  assign core_mem_mask     = core_to_mem.mask;
 
 
   //+-----------------------------------------------------
@@ -406,6 +364,111 @@ module bsg_manycore_proc_vanilla
         local_load_id_r <= core_to_mem.payload.read_info.load_info;
   end
     
+
+   wire local_epa_request = core_mem_v & (~ out_request);// not a remote packet
+   wire [1:0]              xbar_port_v_in = { local_epa_request ,  remote_access_dmem};
+
+   localparam mem_width_lp    = $clog2(dmem_size_p) ;
+
+   wire [1:0]                    xbar_port_we_in   = { core_mem_w, in_we_lo};
+   wire [1:0]                    xbar_port_yumi_out;
+   wire [1:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata, in_data_lo};
+
+
+   wire [1:0] [mem_width_lp-1:0] xbar_port_addr_in = { core_mem_addr[2+:mem_width_lp]
+                                                     , mem_width_lp ' ( in_addr_lo )
+                                                     };
+   wire [1:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask, in_mask_lo};
+
+
+   // local mem yumi the data from the core
+   assign   core_mem_yumi   = xbar_port_yumi_out[1];
+   // local mem yumi the data from the network
+   assign   in_yumi_li      = xbar_port_yumi_out[0] | remote_store_icache | is_config_op ;
+
+   //the local memory or network can consume the store data
+   assign mem_to_core.yumi  = (xbar_port_yumi_out[1] | launching_out);
+
+   // potentially, we could get better bandwidth if we demultiplexed the remote store input port
+   // into four two-element fifos, one per bank. then, the arb could arbitrate for
+   // each bank using those fifos. this allows for reordering of remote_stores across
+   // banks, eliminating head-of-line blocking on a bank conflict. however, this would eliminate our
+   // guaranteed in-order delivery and violate sequential consistency; so it would require some
+   // extra hw to enforce that; and tagging of memory fences inside packets.
+   // we could most likely get rid of the cgni input fifo in this case.
+
+  bsg_mem_banked_crossbar #
+    (.num_ports_p(2)
+     ,.num_banks_p(1)
+     ,.bank_size_p(dmem_size_p )
+     ,.data_width_p(data_width_p)
+     ,.rr_lo_hi_p(5) // dynmaic priority based on FIFO status
+    ) bnkd_xbar
+    ( .clk_i(clk_i)
+     ,.reset_i(reset_i)
+      ,.reverse_pr_i(1'b0)
+      ,.v_i(xbar_port_v_in)
+
+      ,.w_i(xbar_port_we_in)
+      ,.addr_i(xbar_port_addr_in)
+      ,.data_i(xbar_port_data_in)
+      ,.mask_i(xbar_port_mask_in)
+
+      // whether the crossbar accepts the input
+     ,.yumi_o(xbar_port_yumi_out)
+     ,.v_o({core_mem_rv, load_returning_v})
+     ,.data_o({core_mem_rdata, load_returning_data})
+    );
+
+
+   // ----------------------------------------------------------------------------------------
+   // Handle the control registers
+   // ----------------------------------------------------------------------------------------
+                                         
+   wire  is_freeze_addr = {1'b0, in_addr_lo[epa_word_addr_width_lp-2:0]} == epa_word_addr_width_lp'(`CSR_FREEZE);
+   wire  is_tgo_x_addr  = {1'b0, in_addr_lo[epa_word_addr_width_lp-2:0]} == epa_word_addr_width_lp'(`CSR_TGO_X);
+   wire  is_tgo_y_addr  = {1'b0, in_addr_lo[epa_word_addr_width_lp-2:0]} == epa_word_addr_width_lp'(`CSR_TGO_Y);
+   wire  is_config_decoded = is_freeze_addr | is_tgo_x_addr | is_tgo_y_addr;
+
+   // freeze register
+   wire  freeze_op     = is_config_op & is_freeze_addr & in_data_lo[0] ;
+   wire  unfreeze_op   = is_config_op & is_freeze_addr & (~in_data_lo[0]);
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      CSR_FREEZE_r <= freeze_init_p;
+    end
+    else if (freeze_op | unfreeze_op) begin
+      // synopsys translate_off
+      $display("## CSR_FREEZE_r <= %x (%m)", in_data_lo[0]);
+      // synopsys translate_on
+      CSR_FREEZE_r <= in_data_lo[0];
+     end
+  end
+   
+   always_ff@(posedge clk_i) if( is_config_op & is_tgo_x_addr & in_we_lo )
+                                CSR_TGO_X_r <= x_cord_width_p'(in_data_lo);  
+
+   always_ff@(posedge clk_i) if( is_config_op & is_tgo_y_addr & in_we_lo )
+                                CSR_TGO_Y_r <= y_cord_width_p'(in_data_lo);  
+
+   // ----------------------------------------------------------------------------------------
+   // Handle the returning data/credit back to the network
+   // ----------------------------------------------------------------------------------------
+   wire                   store_yumi      = in_yumi_li & in_we_lo;
+   wire                   CSR_load_yumi   = in_v_lo & is_config_decoded & (~in_we_lo);
+   wire [data_width_p-1:0] CSR_load_data   = is_tgo_x_addr ? CSR_TGO_X_r : CSR_TGO_Y_r;
+   //delay the response for store for 1 cycle
+   always_ff@(posedge clk_i) 
+        if( reset_i )   delayed_returning_v_r   <= 1'b0;
+        else            delayed_returning_v_r   <= store_yumi | CSR_load_yumi;
+   always_ff@(posedge clk_i)    delayed_returning_data_r<= CSR_load_yumi ? CSR_load_data :  in_data_lo;
+
+   assign       returning_v     = load_returning_v | delayed_returning_v_r;
+   assign       returning_data  = delayed_returning_v_r? delayed_returning_data_r : load_returning_data;
+
+
+
    // synopsys translate_off
 
    bsg_manycore_packet_s data_o_debug;
@@ -429,18 +492,6 @@ module bsg_manycore_proc_vanilla
                      );
        end
 
-   // synopsys translate_on
-
-   wire local_epa_request = core_mem_v & (~ out_request);// not a remote packet
-   wire [1:0]              xbar_port_v_in = { local_epa_request ,  remote_access_dmem};
-
-   localparam mem_width_lp    = $clog2(dmem_size_p) ;
-
-   wire [1:0]                    xbar_port_we_in   = { core_mem_w, in_we_lo};
-   wire [1:0]                    xbar_port_yumi_out;
-   wire [1:0] [data_width_p-1:0] xbar_port_data_in = { core_mem_wdata, in_data_lo};
-
-   // synopsys translate_off
 
    always @(negedge clk_i)
      begin
@@ -464,121 +515,12 @@ module bsg_manycore_proc_vanilla
               end
      end
 
-   // synopsys translate_on
-
-   wire [1:0] [mem_width_lp-1:0] xbar_port_addr_in = { core_mem_addr[2+:mem_width_lp]
-//                                                     remote stores already have bottom two bits snipped
-                                                     , mem_width_lp ' ( in_addr_lo )
-                                                     };
-   wire [1:0] [(data_width_p>>3)-1:0] xbar_port_mask_in = { core_mem_mask, in_mask_lo};
-
-   // the swizzle function changes how addresses are mapped to banks
-   wire [1:0] [mem_width_lp-1:0] xbar_port_addr_in_swizzled;
-   genvar                        i;
-
-   for (i = 0; i < 2; i=i+1)
-     begin: port
-        assign xbar_port_addr_in_swizzled[i] = { xbar_port_addr_in[i]
-
-/*                                                   xbar_port_addr_in[i][0]                     // and lowest bit determines bank
-                                                 , xbar_port_addr_in[i][1]                     // and lowest bit determines bank
-                                                 , xbar_port_addr_in[i][mem_width_lp-1:2]
-*/
-                                                  };
-     end
-
-   // local mem yumi the data from the core
-   assign   core_mem_yumi   = xbar_port_yumi_out[1];
-   // local mem yumi the data from the network
-   assign   in_yumi_li      = xbar_port_yumi_out[0] | remote_store_icache | is_config_op ;
-
-   //the local memory or network can consume the store data
-   assign mem_to_core.yumi  = (xbar_port_yumi_out[1] | launching_out);
-
-   // potentially, we could get better bandwidth if we demultiplexed the remote store input port
-   // into four two-element fifos, one per bank. then, the arb could arbitrate for
-   // each bank using those fifos. this allows for reordering of remote_stores across
-   // banks, eliminating head-of-line blocking on a bank conflict. however, this would eliminate our
-   // guaranteed in-order delivery and violate sequential consistency; so it would require some
-   // extra hw to enforce that; and tagging of memory fences inside packets.
-   // we could most likely get rid of the cgni input fifo in this case.
-
-  bsg_mem_banked_crossbar #
-    (.num_ports_p  (2)
-     ,.num_banks_p  (1)
-     ,.bank_size_p  (dmem_size_p )
-     ,.data_width_p (data_width_p)
-     ,.rr_lo_hi_p   ( 5 ) // dynmaic priority based on FIFO status
-    ) bnkd_xbar
-    ( .clk_i    (clk_i)
-     ,.reset_i  (reset_i)
-      ,.reverse_pr_i( 1'b0)
-      ,.v_i     (xbar_port_v_in)
-
-      ,.w_i     (xbar_port_we_in)
-      ,.addr_i  (xbar_port_addr_in_swizzled)
-      ,.data_i  (xbar_port_data_in)
-      ,.mask_i  (xbar_port_mask_in)
-
-      // whether the crossbar accepts the input
-     ,.yumi_o  ( xbar_port_yumi_out                    )
-     ,.v_o     ({ core_mem_rv    , load_returning_v}   )
-     ,.data_o  ({ core_mem_rdata , load_returning_data})
-    );
-
-
-   // ----------------------------------------------------------------------------------------
-   // Handle the control registers
-   // ----------------------------------------------------------------------------------------
-                                         
-   wire  is_freeze_addr = {1'b0, in_addr_lo[epa_word_addr_width_lp-2:0]} == epa_word_addr_width_lp'(`CSR_FREEZE);
-   wire  is_tgo_x_addr  = {1'b0, in_addr_lo[epa_word_addr_width_lp-2:0]} == epa_word_addr_width_lp'(`CSR_TGO_X);
-   wire  is_tgo_y_addr  = {1'b0, in_addr_lo[epa_word_addr_width_lp-2:0]} == epa_word_addr_width_lp'(`CSR_TGO_Y);
-   wire  is_config_decoded = is_freeze_addr | is_tgo_x_addr | is_tgo_y_addr;
-
-   // freeze register
-   wire  freeze_op     = is_config_op & is_freeze_addr & in_data_lo[0] ;
-   wire  unfreeze_op   = is_config_op & is_freeze_addr & (~in_data_lo[0]);
-
-   always_ff @(posedge clk_i)
-     if (reset_i) CSR_FREEZE_r <= freeze_init_p;
-     else if (freeze_op | unfreeze_op) begin
-            // synopsys translate_off
-            $display("## CSR_FREEZE_r <= %x (%m)", in_data_lo[0]);
-            // synopsys translate_on
-            CSR_FREEZE_r <= in_data_lo[0];
-     end
-   
-   always_ff@(posedge clk_i) if( is_config_op & is_tgo_x_addr & in_we_lo )
-                                CSR_TGO_X_r <= x_cord_width_p'(in_data_lo);  
-
-   always_ff@(posedge clk_i) if( is_config_op & is_tgo_y_addr & in_we_lo )
-                                CSR_TGO_Y_r <= y_cord_width_p'(in_data_lo);  
-
-  // synopsys translate_off
   always_ff@(negedge clk_i)
         if ( is_config_op  & (~is_config_decoded)) begin
                 $error("## Accessing Non-existing CSR Address = %h", in_addr_lo );
                 $finish();
         end
 
-   // synopsys translate_on
-   // ----------------------------------------------------------------------------------------
-   // Handle the returning data/credit back to the network
-   // ----------------------------------------------------------------------------------------
-   wire                   store_yumi      = in_yumi_li & in_we_lo;
-   wire                   CSR_load_yumi   = in_v_lo & is_config_decoded & (~in_we_lo);
-   wire [data_width_p-1:0] CSR_load_data   = is_tgo_x_addr ? CSR_TGO_X_r : CSR_TGO_Y_r;
-   //delay the response for store for 1 cycle
-   always_ff@(posedge clk_i) 
-        if( reset_i )   delayed_returning_v_r   <= 1'b0;
-        else            delayed_returning_v_r   <= store_yumi | CSR_load_yumi;
-   always_ff@(posedge clk_i)    delayed_returning_data_r<= CSR_load_yumi ? CSR_load_data :  in_data_lo;
-
-   assign       returning_v     = load_returning_v | delayed_returning_v_r;
-   assign       returning_data  = delayed_returning_v_r? delayed_returning_data_r : load_returning_data;
-
-  // synopsys translate_off
   always_ff@(negedge clk_i)
         if ( (delayed_returning_v_r & load_returning_v) == 1'b1 ) begin
                 $error(" Store returning and Load returning happens at the same time!" );
