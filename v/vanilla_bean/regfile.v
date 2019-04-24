@@ -1,5 +1,5 @@
 //====================================================================
-// rf_2r1w_sync_wrapper.v
+// regfile.v
 // 11/02/2016, shawnless.xie@gmail.com
 //====================================================================
 
@@ -7,7 +7,7 @@
 // register. When there is a write and read and the same time, it output
 // the newly written value, which is "write through"
 
-module rf_2r1w_sync_wrapper
+module regfile
   #(parameter width_p = "inv"
     , parameter els_p = "inv"
 
