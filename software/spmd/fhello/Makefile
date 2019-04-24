@@ -19,6 +19,7 @@ all: main.run
 proc_exe_logs: X0_Y2.pelog
 
 OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o
+IN_FILES=hello.txt
 
 ifdef DEBUG
 	RISCV_EXTRA_OPTS += -g
