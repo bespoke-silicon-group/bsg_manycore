@@ -416,7 +416,7 @@ end
   assign rf_rs1_addr = instruction.rs1;
   assign rf_rs2_addr = instruction.rs2;
 
-  rf_2r1w_sync_wrapper #(
+  regfile #(
     .width_p(RV32_reg_data_width_gp)
     ,.els_p(32)
   ) rf_0 (
