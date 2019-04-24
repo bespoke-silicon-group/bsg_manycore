@@ -108,6 +108,7 @@ decode_s decode;
 assign data_mem_valid = is_load_buffer_valid | current_load_arrived;
 
 assign stall_non_mem = (net_imem_write_cmd) | stall_md | freeze_i; 
+
 // stall due to fence instruction
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 
@@ -135,12 +136,12 @@ assign stall = (stall_non_mem | stall_mem);
 //+----------------------------------------------
 // ALU logic
 logic [RV32_reg_data_width_gp-1:0] rs1_to_alu, rs2_to_alu, basic_comp_result, alu_result;
-logic [pc_width_lp-1:0]            jalr_addr;
-logic                              jump_now;
+logic [pc_width_lp-1:0] jalr_addr;
+logic jump_now;
 
 logic [RV32_reg_data_width_gp-1:0] mem_addr_send;
 logic [RV32_reg_data_width_gp-1:0] store_data;
-logic [3:0]                        mask;
+logic [3:0] mask;
 
 mem_payload_u mem_payload;
 
@@ -452,11 +453,11 @@ logic record_load;
 
 // Record a load in the scoreboard when a load instruction is moved to exe stage.
 assign record_load = id.decode.is_load_op & id.decode.op_writes_rf
-                        & ~(flush | stall | depend_stall );
+                        & ~(flush | stall | depend_stall);
 
 
 scoreboard #(
-  .els_p (32)
+  .els_p(32)
 ) load_sb (
   .clk_i(clk_i)
   ,.reset_i(reset_i)
@@ -491,10 +492,6 @@ assign current_load_arrived = from_mem_i.valid
                                     : (from_mem_i.load_info.reg_id == mem.rd_addr)
                                   );
 assign pending_load_arrived = from_mem_i.valid & ~current_load_arrived;
-
-// Disable load data insertion in WB & MEM stages as forwarding
-// is pre-computed in EXE stage
-wb_signals_s wb_from_mem;
 
 // Since remote load takes more than one cycle to fetch, and as loads are
 // non-blocking, write-back wouldn't happen when the instrucion is still
@@ -613,8 +610,10 @@ assign alu_result = exe.decode.is_md_instr ? md_result : basic_comp_result;
 // Normal loads are non-blocking and hence execution would
 // continue even without the response
 wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss;
+
 // don't present the request if we are stalling because of non-load/store reason
 wire non_ld_st_stall  = stall_non_mem | stall_lrw;     
+
 //icache miss is also decoded as mem op
 assign valid_to_mem_c = exe.decode.is_mem_op 
                           & (~wait_mem_rsp) 
@@ -625,7 +624,6 @@ assign valid_to_mem_c = exe.decode.is_mem_op
                           & (~(current_load_arrived & from_mem_i.buf_full) | remote_load_in_exe); 
 
 //We should always accept the returned data even there is a non memory stall
-//assign yumi_to_mem_c  = mem.decode.is_mem_op & from_mem_i.valid & (~stall_non_mem);
 assign yumi_to_mem_c  = from_mem_i.valid 
                           & (stall 
                               | current_load_arrived
@@ -638,8 +636,7 @@ assign stall_lrw    = exe.decode.op_is_lr_acq & reservation_i;
 
 //lr instrution will load the data and reserve the address
 // NB: lr_acq is a type of load reservation, hence the check
-assign reserve_1_o  = exe.decode.op_is_load_reservation
-                   &(~exe.decode.op_is_lr_acq)  ;
+assign reserve_1_o  = exe.decode.op_is_load_reservation & (~exe.decode.op_is_lr_acq);
 
 
 
@@ -729,15 +726,18 @@ end
 //|
 //+----------------------------------------------
 logic [RV32_reg_addr_width_gp-1:0] exe_rd_addr;
-logic                              exe_op_writes_rf;
+logic exe_op_writes_rf;
 
 //WB to ID forwarding logic
-wire id_wb_rs1_forward = id.decode.op_reads_rf1 & ( id.instruction.rs1 == wb.rd_addr)
+wire id_wb_rs1_forward = id.decode.op_reads_rf1
+                       & (id.instruction.rs1 == wb.rd_addr)
                        & wb.op_writes_rf
-                       & (| id.instruction.rs1) ; //should not forward r0
-wire id_wb_rs2_forward = id.decode.op_reads_rf2 & ( id.instruction.rs2 == wb.rd_addr)
+                       & (id.instruction.rs1 != '0); //should not forward r0
+
+wire id_wb_rs2_forward = id.decode.op_reads_rf2
+                       & (id.instruction.rs2 == wb.rd_addr)
                        & wb.op_writes_rf
-                       & (| id.instruction.rs2); //should not forward r0
+                       & (id.instruction.rs2 != '0); //should not forward r0
 
 wire [RV32_reg_data_width_gp-1:0] rs1_to_exe = id_wb_rs1_forward
   ? wb.rf_data
@@ -826,7 +826,8 @@ always_comb begin
     exe_result         = mem_loaded_data;
     exe_rd_addr        = from_mem_i.load_info.reg_id;
     exe_op_writes_rf   = 1'b1;
-  end else begin
+  end
+  else begin
     exe_result         = alu_result;
     exe_rd_addr        = exe.instruction.rd;
     exe_op_writes_rf   = exe.decode.op_writes_rf & ~remote_load_in_exe;
@@ -933,7 +934,7 @@ end
 // Synchronous stage shift
 always_ff @ (posedge clk_i) begin
   if (reset_i | freeze_i) begin
-    wb_from_mem       <= '0;
+    wb <= '0;
     // synopsys translate_off
     debug_wb <= squashed_lp;
     // synopsys translate_on
@@ -943,7 +944,7 @@ always_ff @ (posedge clk_i) begin
     debug_wb <= debug_mem;
     // synopsys translate_on
 
-    wb_from_mem <= '{
+    wb <= '{
       op_writes_rf  : op_writes_rf_to_wb,
       rd_addr       : rd_addr_to_wb,
       rf_data       : rf_data,
@@ -952,9 +953,6 @@ always_ff @ (posedge clk_i) begin
     };
   end
 end
-
-assign  wb = wb_from_mem;
-
 
 
 
@@ -965,12 +963,7 @@ always@(negedge clk_i ) begin
         $error("FENCE_I instruction not supported yet!");
     end
 end
-//synopsys translate_on
 
-
-
-
-//synopsys translate_off
 //-----------------------------------------------------
 // SP overflow checking.
 // sp                           : x2
@@ -1189,7 +1182,5 @@ if (debug_p) begin
   end
 end
 //synopsys translate_on
-
-
 
 endmodule
