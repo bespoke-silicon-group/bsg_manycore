@@ -19,3 +19,4 @@ clean:
 	-rm -rf xsim.dir *.mem
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd *.vdb coverage* constfile.txt
 	-rm -rf build/ *.bc*
+	-rm -rf lfs.c

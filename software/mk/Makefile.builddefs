@@ -37,6 +37,14 @@ ifeq ($(BSG_NEWLIB), 1)
   RISCV_GCC_OPTS +=-D__bsg_newlib
 endif
 
+SPMD_COMMON_OBJECTS ?=
+ifeq ($(BSG_NEWLIB), 1)
+SPMD_COMMON_OBJECTS += lfs.o
+
+lfs.c:
+	$(RISCV_BIN_DIR)/../riscv32-unknown-elf/bin/bsg_newlib_mklfs 128 64 $(IN_FILES) > $@
+endif
+
 #RISCV_LINK_EXTRA_OPTS ?=
 RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 ifneq ($(BSG_NEWLIB), 1)
