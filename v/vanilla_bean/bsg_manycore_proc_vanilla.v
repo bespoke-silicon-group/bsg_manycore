@@ -211,8 +211,9 @@ module bsg_manycore_proc_vanilla
     ,.debug_p(0)
   ) vanilla_core (
     .clk_i(clk_i)
-    ,.reset_i(reset_i | CSR_FREEZE_r)
+    ,.reset_i(reset_i)
 
+    ,.freeze_i(CSR_FREEZE_r)
     ,.net_packet_i(core_net_pkt)
 
     ,.from_mem_i(mem_to_core)
@@ -309,16 +310,6 @@ module bsg_manycore_proc_vanilla
     end
   end
 
-  // synopsys translate_off
-  always_ff @ (negedge clk_i) begin
-    if(~reset_i) begin
-      assert(~(core_mem_rv & returned_buf_v & buf_full_to_core))
-      else begin
-        $error("# ERROR data lost due to contention between local and remote loads");
-      end
-    end
-  end
-  // synopsys translate_on
       
 
   wire out_request;
@@ -526,5 +517,14 @@ module bsg_manycore_proc_vanilla
                 $error(" Store returning and Load returning happens at the same time!" );
                 $finish();
         end
+
+  always_ff @ (negedge clk_i) begin
+    if(~reset_i) begin
+      assert(~(core_mem_rv & returned_buf_v & buf_full_to_core))
+      else begin
+        $error("# ERROR data lost due to contention between local and remote loads");
+      end
+    end
+  end
   // synopsys translate_on
 endmodule

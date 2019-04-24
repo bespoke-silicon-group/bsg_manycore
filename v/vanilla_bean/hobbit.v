@@ -40,7 +40,9 @@ module hobbit
   (
     input clk_i
     , input reset_i
-
+  
+    , input freeze_i
+    
     , input ring_packet_s net_packet_i
 
     , input mem_out_s from_mem_i
@@ -55,29 +57,23 @@ module hobbit
     , input outstanding_stores_i
   );
 
-
-
 // Pipeline stage logic structures
-id_signals_s  id;
+//
+id_signals_s id;
 exe_signals_s exe;
 mem_signals_s mem;
-wb_signals_s  wb;
+wb_signals_s wb;
 
-//+----------------------------------------------
-//|
-//|         NETWORK PACKET SIGNALS
-//|
-//+----------------------------------------------
+// Network signals logic (icache write)
+//
+ring_packet_s net_packet_r;
 
-// Network signals logic
-logic net_imem_write_cmd, exec_net_packet;
+always_ff @ (posedge clk_i) begin
+  net_packet_r <= net_packet_i;
+end
 
-
-// Detect if this network packet should be executed by this core. Two cases:
-//  1) IDs match and not a broadcast (if ID matches a broadcast, this core sent it)
-//  2) ID doesn't match but the packet is a broadcast
-assign exec_net_packet = net_packet_i.valid;
-assign net_imem_write_cmd = exec_net_packet & (net_packet_i.header.net_op == INSTR);
+logic net_imem_write_cmd;
+assign net_imem_write_cmd = net_packet_r.valid;
 
 //+----------------------------------------------
 //|
@@ -92,7 +88,7 @@ logic stall_load_wb;
 
 //We have to buffer the returned data from memory
 //if there is a non-memory stall at current cycle.
-logic                               is_load_buffer_valid;
+logic is_load_buffer_valid;
 logic [RV32_reg_data_width_gp-1:0]  load_buffer_info;
 
 //the memory valid signal may come from memory or the buffer register
@@ -111,7 +107,7 @@ decode_s decode;
 
 assign data_mem_valid = is_load_buffer_valid | current_load_arrived;
 
-assign stall_non_mem = (net_imem_write_cmd) | stall_md;
+assign stall_non_mem = (net_imem_write_cmd) | stall_md | freeze_i; 
 // stall due to fence instruction
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
 
@@ -254,12 +250,13 @@ wire flush = (branch_mispredict | jalr_mispredict );
 //|
 //+----------------------------------------------
 
-logic reset_r;
+logic freeze_r;
 always_ff @ (posedge clk_i) begin
-  reset_r <= reset_i;
+  freeze_r <= freeze_i;
 end
-logic reset_down;
-assign reset_down = reset_r & ~reset_i;
+
+logic freeze_down;
+assign freeze_down = freeze_r & ~freeze_i;
 
 // Program counter logic
 logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_pred_or_jump_addr;
@@ -279,7 +276,7 @@ assign pc_plus4 = pc_r + 1'b1;
 
 always_comb begin
     // Network setting PC (highest priority)
-    if (reset_down)
+    if (freeze_down)
         pc_n = '0;
     // cache miss
     else if (wb.icache_miss)
@@ -317,7 +314,7 @@ end
 //+----------------------------------------------
 
 // Instruction memory chip enable signal
-assign icache_cen = (~ (stall | depend_stall) ) | (net_imem_write_cmd );
+assign icache_cen = (~stall & ~depend_stall) | (net_imem_write_cmd);
 
 `declare_icache_format_s( icache_tag_width_p );
 
@@ -327,15 +324,15 @@ logic [RV32_reg_data_width_gp-1:0] loaded_pc  ;
 wire icache_w_en  = net_imem_write_cmd | (mem.icache_miss & data_mem_valid);
 
 wire [icache_addr_width_p-1:0] icache_w_addr = net_imem_write_cmd
-  ? net_packet_i.header.addr[2+:icache_addr_width_p]
+  ? net_packet_r.header.addr[2+:icache_addr_width_p]
   : loaded_pc[2+:icache_addr_width_p];
 
 wire [icache_tag_width_p-1:0] icache_w_tag = net_imem_write_cmd 
-  ? net_packet_i.header.addr[(icache_addr_width_p+2) +: icache_tag_width_p]
+  ? net_packet_r.header.addr[(icache_addr_width_p+2) +: icache_tag_width_p]
   : loaded_pc[(icache_addr_width_p+2) +: icache_tag_width_p] ; 
 
 wire [RV32_instr_width_gp-1:0] icache_w_instr = net_imem_write_cmd
-  ? net_packet_i.data
+  ? net_packet_r.data
   : mem_data;
 
 logic icache_miss_lo;
@@ -1047,9 +1044,9 @@ if (debug_p) begin
                  ,1'b0
                 );
         $fwrite(pelog, " net_pkt={v%0x_a%0x_d%0x} icm=%b\n"
-                 ,net_packet_i.valid
-                 ,net_packet_i.header.addr
-                 ,net_packet_i.data
+                 ,net_packet_r.valid
+                 ,net_packet_r.header.addr
+                 ,net_packet_r.data
                  ,icache_miss_lo
                 );
 
