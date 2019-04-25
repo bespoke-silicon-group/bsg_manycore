@@ -89,7 +89,7 @@ build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	cd riscv-gnu-toolchain && make -j 16 newlib && make install
 
-build-all: build-deps build-riscv-gnu-tools
+build-all: build-deps build-riscv-gnu-tools rebuild-newlib
 
 # Following libs will be placed in the dram
 LIB_LIST = \
