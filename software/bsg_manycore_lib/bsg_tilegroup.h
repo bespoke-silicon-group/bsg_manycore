@@ -7,7 +7,7 @@
 #include "bsg_set_tile_x_y.h"
 #include "bsg_manycore.h"
 
-#define STRIPE volatile __attribute__((address_space(1)))
+#define STRIPE __attribute__((address_space(1)))
 
 // Passed from linker -- indicates start of striped arrays in DMEM
 extern unsigned _bsg_striped_data_start;
@@ -31,7 +31,7 @@ void load_extern_array(int STRIPE *dest_ptr, int *src_ptr, unsigned num_elems, u
     }
 }
 
-static volatile int *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size, unsigned local_offset) {
+static int *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size, unsigned local_offset) {
     unsigned start_ptr = (unsigned) &_bsg_striped_data_start;
     unsigned ptr = (unsigned) arr_ptr;
 
@@ -62,16 +62,24 @@ static volatile int *get_ptr_val(void STRIPE *arr_ptr, unsigned elem_size, unsig
     bsg_printf("NPA(%d,%d)=(%u, %u, 0x%x, %u)\n", bsg_x, bsg_y, tile_x, tile_y, local_addr, local_offset);
     bsg_printf("Final Pointer(%d,%d) is 0x%x\n", bsg_x, bsg_y, remote_ptr_val);
 #endif
-    return (volatile int *) remote_ptr_val;;
+    return (int *) remote_ptr_val;;
 }
 
+void extern_store_float(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset, float val) {
+#ifdef TILEGROUP_DEBUG
+    bsg_printf("\nCalling extern_store_float(0x%x, %d, %d, %x)\n",
+            (unsigned) arr_ptr, elem_size, offset, val);
+#endif
+    float *ptr = (float *) get_ptr_val(arr_ptr, elem_size, offset);
+    *ptr = val;
+}
 
 void extern_store_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset, unsigned val) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_store_int(0x%x, %d, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset, val);
 #endif
-    volatile int *ptr = get_ptr_val(arr_ptr, elem_size, offset);
+    int *ptr = get_ptr_val(arr_ptr, elem_size, offset);
     *ptr = val;
 }
 
@@ -81,7 +89,7 @@ void extern_store_short(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset
     bsg_printf("\nCalling extern_store_short(0x%x, %d, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset, val);
 #endif
-    volatile short *ptr = (volatile short *) get_ptr_val(arr_ptr, elem_size, offset);
+    short *ptr = (short *) get_ptr_val(arr_ptr, elem_size, offset);
     *ptr = val;
 }
 
@@ -91,17 +99,26 @@ void extern_store_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset,
     bsg_printf("\nCalling extern_store_char(0x%x, %d, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset, val);
 #endif
-    volatile char *ptr = (volatile char *) get_ptr_val(arr_ptr, elem_size, offset);
+    char *ptr = (char *) get_ptr_val(arr_ptr, elem_size, offset);
     *ptr = val;
 }
 
+
+float extern_load_float(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
+#ifdef TILEGROUP_DEBUG
+    bsg_printf("\nCalling extern_load_float(0x%x, %d, %d)\n",
+            (unsigned) arr_ptr, elem_size, offset);
+#endif
+    float *ptr = (float *) get_ptr_val(arr_ptr, elem_size, offset);
+    return *ptr;
+}
 
 int extern_load_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_int(0x%x, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset);
 #endif
-    volatile int *ptr = get_ptr_val(arr_ptr, elem_size, offset);
+    int *ptr = get_ptr_val(arr_ptr, elem_size, offset);
     return *ptr;
 }
 
@@ -111,7 +128,7 @@ short extern_load_short(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset
     bsg_printf("\nCalling extern_load_short(0x%x, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset);
 #endif
-    volatile short *ptr = (volatile short *) get_ptr_val(arr_ptr, elem_size, offset);
+    short *ptr = (short *) get_ptr_val(arr_ptr, elem_size, offset);
     return *ptr;
 }
 
@@ -121,7 +138,7 @@ char extern_load_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) 
     bsg_printf("\nCalling extern_load_char(0x%x, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset);
 #endif
-    volatile char *ptr = (volatile char *) get_ptr_val(arr_ptr, elem_size, offset);
+    char *ptr = (char *) get_ptr_val(arr_ptr, elem_size, offset);
     return *ptr;
 }
 
@@ -132,8 +149,8 @@ void extern_load_memcpy(char *dest, char STRIPE *src, unsigned len) {
             dest, src, len);
 #endif
     // TODO need offset for structs of structs
-    volatile int *src_base = get_ptr_val(src, len, 0);
-    volatile int *tdest = (volatile int *) dest;
+    int *src_base = get_ptr_val(src, len, 0);
+    int *tdest = (int *) dest;
 
     while (len) {
         *tdest = *src_base;
@@ -150,13 +167,28 @@ void extern_store_memcpy(char STRIPE *dest, char *src, unsigned len) {
             dest, src, len);
 #endif
 
-    volatile int *dest_base = get_ptr_val(dest, len, 0);
-    volatile int *tsrc = (volatile int *) src;
+    int *dest_base = get_ptr_val(dest, len, 0);
+    int *tsrc = (int *) src;
 
     while (len) {
         *dest_base = *tsrc;
         dest_base++;
         tsrc++;
+        len -= sizeof(int);
+    }
+}
+
+void extern_memset(char STRIPE *dest, char val, unsigned len) {
+#ifdef TILEGROUP_DEBUG
+    bsg_printf("\nCalling extern_memset(0x%x<-%x; %u words)\n",
+            dest, val, len);
+#endif
+
+    char *dest_base = (char *) get_ptr_val(dest, len, 0);
+
+    while (len) {
+        *dest_base = val;
+        dest_base++;
         len -= sizeof(int);
     }
 }

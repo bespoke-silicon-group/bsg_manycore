@@ -1,3 +1,5 @@
+.DEFAULT_GOAL := all
+
 include ./Makefile.regress.list
 include ./Makefile.include
 
@@ -9,6 +11,8 @@ ifdef COVERAGE
 	bsg_tiles_X = 4
 	bsg_tiles_Y = 4
 endif
+
+ENABLE_VCACHE=1
 
 export LLVM_DIR=/mnt/bsg/diskbits/neilryan/llvm/llvm-install
 

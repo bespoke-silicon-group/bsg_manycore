@@ -43,18 +43,14 @@ void char_ptr_arith_test() {
     char STRIPE *arr = &B[0][0];
     char curr = 0;
     while (curr < N * N) {
-        *arr = curr;
-        arr++;
-        curr++;
+        *arr++ = curr++;
     }
     curr = 0;
     arr = &B[0][0];
     while (curr < N * N) {
-        if (*arr != curr) {
+        if (*arr++ != curr++) {
             bsg_fail();
         }
-        arr++;
-        curr++;
     }
     bsg_printf("Passed char_ptr_arith_test\n");
 }

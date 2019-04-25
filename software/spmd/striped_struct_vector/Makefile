@@ -4,7 +4,7 @@ bsg_tiles_Y = 2
 bsg_group_size = $(shell echo "$(bsg_tiles_X) * $(bsg_tiles_Y)" | bc)
 
 # Comment below line to compile with riscv64-unknown-elf-gcc
-CLANG=1
+# CLANG=1
 #########################################################
 #each bytes defines the core type
 # 00: vanilla core
@@ -12,7 +12,7 @@ CLANG=1
 #TYPE_VEC="64'h01_01_01_01"
 
 all: main.run
-OBJECT_FILES=main.o bsg_set_tile_x_y.o
+OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o
 
 include ../Makefile.include
 

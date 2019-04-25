@@ -196,7 +196,7 @@ module bsg_manycore_ram_model#(
         
   //synopsys translate_off
   always_ff @ (negedge clk_i) begin
-    if ( | in_addr_lo[addr_width_p-1: mem_addr_width_lp] ) begin
+    if (in_addr_lo >= els_p) begin
       $error("Address exceed the memory range: in_addr =%h (words), mem range:%x, %m", in_addr_lo, els_p);
       $finish();
     end
