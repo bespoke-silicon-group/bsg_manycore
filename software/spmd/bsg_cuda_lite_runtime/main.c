@@ -36,31 +36,27 @@ int kernel_regs[4] __attribute__ ((section ("CUDA_RTL"))) = { 0x0 };
 
 
 /*
-#define BARRIER_X_START     0
-#define BARRIER_Y_START     0
-
-#define BARRIER_X_END     (BARRIER_X_START + bsg_tiles_X - 1)
-#define BARRIER_Y_END     (BARRIER_Y_START + bsg_tiles_Y - 1)
-#define BARRIER_X_NUM     (BARRIER_X_END - BARRIER_X_START +1) 
-#define BARRIER_Y_NUM     (BARRIER_Y_END - BARRIER_Y_START +1) 
-#define BARRIER_TILES     (BARRIER_X_NUM * BARRIER_Y_NUM)
-
-#define  BSG_BARRIER_DEBUG    1
-#define  BSG_TILE_GROUP_X_DIM BARRIER_X_NUM
-#define  BSG_TILE_GROUP_Y_DIM BARRIER_Y_NUM
-#define  BSG_TILE_GROUP_Z_DIM 1
-#define  BSG_TILE_GROUP_SIZE  (BSG_TILE_GROUP_X_DIM * BSG_TILE_GROUP_Y_DIM)
+#define BSG_TILE_GROUP_X_DIM bsg_tiles_X
+#define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
 #include "bsg_tile_group_barrier.h"
 
-INIT_TILE_GROUP_BARRIER (row_barrier_inst1, col_barrier_inst1, BARRIER_X_START, BARRIER_X_END, BARRIER_Y_START, BARRIER_Y_END);
+INIT_TILE_GROUP_BARRIER(main_r_barrier, main_c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 */
 
 
 
 
-/********************************************************************************************************
-// This version (loading excess arguments from stack + barrier) is currently
-// not functional due to hardware bug in basejump_stl. Comming soon...
+int write_signal () 
+{
+  if (__bsg_x == 0 && __bsg_y == 0) 
+  {
+    int **signal_reg = (int **) 0x100c;
+    int *signal_ptr = *signal_reg;
+    *signal_ptr = 0x1; /* arbitrary */
+  }
+}
+
+
 #define __wait_until_valid_func()                                            \
         asm("__wait_until_valid_func:                                        \
                li         s0           ,    0x1000;                          \
@@ -112,58 +108,6 @@ INIT_TILE_GROUP_BARRIER (row_barrier_inst1, col_barrier_inst1, BARRIER_X_START, 
                 addi      t0           ,    s2        ,     -0x8;            \
                 slli      t0           ,    t0        ,     0x2;             \
                 add       sp           ,    sp        ,     t0;              \
-              __kernel_return:                                               \
-            ");                                                              \
-                                                                             \
-        bsg_tile_group_barrier(&row_barrier_inst1, &col_barrier_inst1);      \
-                                                                             \
-        asm("                                                                \
-                li        t0           ,    0x1;                             \
-                sw        t0           ,    0 ( s1   );                      \
-                li        t0           ,    0x1;                             \
-                sw        t0           ,    0 ( s4    );                     \
-                j         __wait_until_valid_func;                           \
-           ");
-********************************************************************************************************/
-
-
-int write_signal () 
-{
-  if (__bsg_x == 0 && __bsg_y == 0) 
-  {
-    int **signal_reg = (int **) 0x100c;
-    int *signal_ptr = *signal_reg;
-    *signal_ptr = 0x1; /* arbitrary */
-  }
-}
-
-
-#define __wait_until_valid_func()                                            \
-        asm("__wait_until_valid_func:                                        \
-               li         s0           ,    0x1000;                          \
-               li         t0           ,    0x1;                             \
-               lr.w       t1           ,    0 (  s0  );                      \
-               bne        t0           ,    t1        ,     __init_param;    \
-               lr.w.aq    t0           ,    0 (  s0  );                      \
-                                                                             \
-             __init_param:                                                   \
-                lw        s1           ,     0 ( s0  );                      \
-                lw        s2           ,     4 ( s0  );                      \
-                lw        s3           ,     8 ( s0  );                      \
-                lw        s4           ,    12 ( s0  );                      \
-                                                                             \
-             __load_argument:                                                \
-                lw        a0           ,     0 ( s3  );                      \
-                lw        a1           ,     4 ( s3  );                      \
-                lw        a2           ,     8 ( s3  );                      \
-                lw        a3           ,    12 ( s3  );                      \
-                lw        a4           ,    16 ( s3  );                      \
-                lw        a5           ,    20 ( s3  );                      \
-                lw        a6           ,    24 ( s3  );                      \
-                lw        a7           ,    28 ( s3  );                      \
-                                                                             \
-              __invoke_kernel:                                               \
-                jalr      s1;                                                \
                                                                              \
               __kernel_return:                                               \
                 li        t0           ,    0x1;                             \
