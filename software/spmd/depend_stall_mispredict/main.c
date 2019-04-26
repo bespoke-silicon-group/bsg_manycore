@@ -13,6 +13,14 @@
  *
  *  the fix is to nullify depend_stall, if there is branch_mispredict.
  *
+ *
+ *  in the inline assembly code, there is a loop, which has an instruction (add)
+ *  with data dependency on the next remote load instruction (lw),
+ *  and counter incrementer (addi), and branch-less-than (blt) if the counter
+ *  is less than some fixed value.
+ *
+ *  In hobbit, backward branch function is always predicted taken, 
+ *  and the predicted branch target (add), stalls on the remote load sent previously.
  */
 
 
