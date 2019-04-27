@@ -455,6 +455,7 @@ logic record_load;
 assign record_load = id.decode.is_load_op & id.decode.op_writes_rf
                         & ~(flush | stall | depend_stall);
 
+logic dependency;
 
 scoreboard #(
   .els_p(32)
@@ -474,8 +475,10 @@ scoreboard #(
   ,.clear_i(yumi_to_mem_c)
   ,.clear_id_i(from_mem_i.load_info.reg_id)
 
-  ,.dependency_o(depend_stall) // "depend_stall" stalls ID stage and inserts nop into EXE stage.
+  ,.dependency_o(dependency)
 );
+
+assign depend_stall = dependency & (~branch_mispredict);
 
 //+----------------------------------------------
 //|
