@@ -78,5 +78,6 @@ test_case_list+=fib
 test_case_list+=crc32
 test_case_list+=quicksort
 test_case_list+=nprimes
+test_case_list+=depend_stall_mispredict
 test_case_list+=striped_hello
 test_case_list+=coremark
