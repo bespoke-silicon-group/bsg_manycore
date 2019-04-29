@@ -36,7 +36,7 @@ KERNEL_NAME ?=kernel_vec_add
 
 OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_vec_add.o 
 
-include ../Makefile.include
+include ../../Makefile.include
 
 #########################################################
 #            FPU OPTION
@@ -50,4 +50,4 @@ main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
 
 main.o: Makefile
 
-include ../../mk/Makefile.tail_rules
+include ../../../mk/Makefile.tail_rules
