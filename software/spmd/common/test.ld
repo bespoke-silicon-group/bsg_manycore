@@ -22,6 +22,10 @@ SECTIONS
   /* beginning of data memory; set by imem size and bank conflict concerns */
   . = 0x1000;
   _bsg_data_start_addr = . ;
+
+  /* Pin down memory location for __bsg_x and __bsg_y symbols. */
+  __bsg_x = . + 0x0100;
+  __bsg_y = . + 0x0104;
   /* data segment */
   .data : { *(.data) }
 
