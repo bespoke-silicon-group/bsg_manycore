@@ -103,6 +103,7 @@ int write_signal ()
                                                                              \
               __invoke_kernel:                                               \
                 jalr      s1;                                                \
+                                                                             \
                 li        t0           ,    0x8;                             \
                 bge       t0           ,    s2        ,     __kernel_return; \
                 addi      t0           ,    s2        ,     -0x8;            \
