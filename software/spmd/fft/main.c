@@ -10,9 +10,12 @@
 #include <math.h>
 #include <complex.h>
 
-#define N 16
+#define N 32
 
-int fft_arr[N] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+int fft_arr[N] = {
+                  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                  };
 #ifdef __clang__
 float complex STRIPE fft_work_arr[N];
 #else
@@ -51,15 +54,6 @@ void complex_remote_store(float complex *A, unsigned i, float complex val) {
 #endif
 
 INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
-
-void clear_barriers(bsg_row_barrier *row, bsg_col_barrier *col) {
-    row->_done_list[0] = 0;
-    row->_done_list[1] = 0;
-    row->_local_alert = 0;
-    col->_done_list[0] = 0;
-    col->_done_list[1] = 0;
-    col->_local_alert = 0;
-}
 
 int work_arr_idx = 0;
 /** @brief Swizzle the input data from DRAM into the order that FFT
@@ -114,9 +108,7 @@ void fft(float complex *X, unsigned id) {
 #endif
                 bsg_fence();
 
-                // TODO Problem lines -- one works, one doesn't
-                t_val = cexp(exp_val) * X[odd_idx];
-                /* t_val = cexp(exp_val) * odd_val; */
+                t_val = cexp(exp_val) * odd_val;
 
 #ifdef __clang__
                 X[odd_idx] =  even_val - t_val;
@@ -141,29 +133,23 @@ float magnitude(float complex x) {
 int main()
 {
     bsg_set_tile_x_y();
-    if (bsg_id == 0) {
-        fft_swizzle(0, 1);
-    }
+    if (bsg_id == 0) { fft_swizzle(0, 1);}
     bsg_tile_group_barrier(&r_barrier, &c_barrier);
 
     fft(fft_work_arr, bsg_id);
 
-#ifdef __clang__
+    float complex val;
     if (bsg_id == 0) {
         for (unsigned i = 0; i < N; i++) {
-            bsg_printf("a[%d] = {%d + %dj}\n", i, (int)crealf(fft_work_arr[i]),
-                    (int) cimagf(fft_work_arr[i]));
+#ifdef __clang__
+            val = fft_work_arr[i];
+#else
+            val = complex_remote_load(fft_work_arr, i);
+#endif
+            bsg_printf("a[%d] = {%d + %dj}\n", i,
+                    (int) crealf(val), (int) cimagf(val));
         }
         bsg_finish();
     }
-#else
-    for (unsigned i = 0; i < N/bsg_group_size; i++) {
-        bsg_printf("a[%d] = {%d + %dj}\n", i + bsg_id * (N/bsg_group_size),
-                (int)crealf(fft_work_arr[i]),
-                (int) cimagf(fft_arr[i]));
-    }
-    if (bsg_id == 0) { bsg_finish();}
-#endif
     bsg_wait_while(1);
 }
-
