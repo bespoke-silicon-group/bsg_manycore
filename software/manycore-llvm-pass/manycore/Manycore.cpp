@@ -105,6 +105,7 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
         }
     }
     if (mem_op_fn == NULL) {
+        errs() << "MemOp\n";
         throw functionNotFoundException;
     }
 
@@ -314,9 +315,10 @@ namespace {
         }
 
 
-        Instruction *findSetTileXY(Module *M) {
-            Function *main_fn = M->getFunction("main");
-            for (auto &B: *main_fn) {
+        // Take function to start looking recursively from
+        Instruction *findSetTileXY(Function *F) {
+            if (F == NULL) { return NULL;}
+            for (auto &B: *F) {
                 for (auto &I : B) {
                     if (auto *op = dyn_cast<CallInst>(&I)) {
                         StringRef fname;
@@ -328,11 +330,13 @@ namespace {
                         }
                         if (fname.startswith(StringRef("bsg_set_tile_x_y"))) {
                             return &I;
+                        } else {
+                            Instruction *found = findSetTileXY(op->getCalledFunction());
+                            if (found != NULL) { return found;}
                         }
                     }
                 }
             }
-            throw functionNotFoundException;
             return NULL;
         }
 
@@ -368,7 +372,7 @@ namespace {
                     }
                 }
             }
-            Instruction *setTileCall = findSetTileXY(&M);
+            Instruction *setTileCall = findSetTileXY(M.getFunction("main"));
             for (auto G: striped_globals) {
                 // We set alignment so that index 0 of an array is always on
                 // core 0. Additionally, this has the effect of the start of
