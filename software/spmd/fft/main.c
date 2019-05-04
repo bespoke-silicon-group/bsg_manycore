@@ -10,38 +10,73 @@
 #include <math.h>
 #include <complex.h>
 
-#define N 16
+#define N 32
 
-int fft_arr[N] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+int fft_arr[N] = {
+                  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                  };
+
+float complex fft_dram_arr[N];
 #ifdef __clang__
 float complex STRIPE fft_work_arr[N];
 #else
-float complex fft_work_arr[N];
+float complex fft_work_arr[N/bsg_group_size];
+typedef volatile float complex *bsg_remote_complex_ptr;
+#define bsg_remote_complex(x, y, local, addr) ((bsg_remote_complex_ptr)\
+        (( REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS)\
+            | ((y) << Y_CORD_SHIFTS) \
+            | ((x) << X_CORD_SHIFTS) \
+            | ((int) (local_addr))   \
+                )\
+        )
+
+#define bsg_complex_store(x,y,local_addr,val) do { *(bsg_remote_complex((x),(y),(local_addr))) = (float complex) (val); } while (0)
+#define bsg_complex_load(x,y,local_addr,val)  do { val = *(bsg_remote_complex((x),(y),(local_addr))) ; } while (0)
+
+
+float complex complex_remote_load(float complex *A, unsigned i) {
+    float complex val;
+    int tile_id = i % bsg_group_size;
+    int tile_x = tile_id / bsg_tiles_X;
+    int tile_y = tile_id % bsg_tiles_X;
+    int index = i / bsg_group_size;
+    bsg_remote_load(tile_x, tile_y, &A[index], val);
+    return val;
+}
+
+void complex_remote_store(float complex *A, unsigned i, float complex val) {
+    int tile_id = i % bsg_group_size;
+    int tile_x = tile_id / bsg_tiles_X;
+    int tile_y = tile_id % bsg_tiles_X;
+    int index = i / bsg_group_size;
+    bsg_remote_store(tile_x, tile_y, &A[index], val);
+}
+
 #endif
 
-INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1)
-
-void clear_barriers(bsg_row_barrier *row, bsg_col_barrier *col) {
-    row->_done_list[0] = 0;
-    row->_done_list[1] = 0;
-    row->_local_alert = 0;
-    col->_done_list[0] = 0;
-    col->_done_list[1] = 0;
-    col->_local_alert = 0;
-}
+INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 
 int work_arr_idx = 0;
 /** @brief Swizzle the input data from DRAM into the order that FFT
  *         naturally processes
  */
-void fft_swizzle(int start, int stride) {
+#ifdef __clang__
+void fft_swizzle(int start, int stride, int *input, float complex STRIPE *output) {
+#else
+void fft_swizzle(int start, int stride, int *input, float complex *output) {
+#endif
     int val;
     if (N > stride) {
-        fft_swizzle(start, stride * 2);
-        fft_swizzle(start + stride, stride * 2);
+        fft_swizzle(start, stride * 2, input, output);
+        fft_swizzle(start + stride, stride * 2, input, output);
     } else {
-        val = fft_arr[start];
-        fft_work_arr[work_arr_idx] = val;
+        val = input[start];
+#ifdef __clang__
+        output[work_arr_idx] = val;
+#else
+        complex_remote_store(output, work_arr_idx, (float complex) val);
+#endif
         work_arr_idx += 1;
     }
 }
@@ -55,7 +90,7 @@ void fft(float complex *X, unsigned id) {
 #endif
     int even_idx, odd_idx, work_id, n = 2;
     float k_div_n, exp_val;
-    float complex t_val;
+    float complex t_val, even_val, odd_val;
     while (n <= N) {
         work_id = 0;
         for (int i = 0; i < N; i += n) {
@@ -67,12 +102,27 @@ void fft(float complex *X, unsigned id) {
 
                 even_idx = i + k;
                 odd_idx = even_idx + n / 2;
-                k_div_n = (float) k / (float) n;
 
+                k_div_n = (float) k / (float) n;
                 exp_val = -2 * I * M_PI * k_div_n;
-                t_val = cexp(exp_val) * X[odd_idx];
-                X[odd_idx] = X[even_idx] - t_val;
-                X[even_idx] = X[even_idx] + t_val;
+#ifdef __clang__
+                odd_val = X[odd_idx];
+                even_val = X[even_idx];
+#else
+                odd_val = complex_remote_load(X, odd_idx);
+                even_val = complex_remote_load(X, even_idx);
+#endif
+                bsg_fence();
+
+                t_val = cexp(exp_val) * odd_val;
+
+#ifdef __clang__
+                X[odd_idx] =  even_val - t_val;
+                X[even_idx] = even_val + t_val;
+#else
+                complex_remote_store(X, odd_idx, even_val - t_val);
+                complex_remote_store(X, even_idx, even_val + t_val);
+#endif
                 work_id = (work_id + 1) % bsg_group_size;
             }
         }
@@ -86,24 +136,38 @@ float magnitude(float complex x) {
     return sqrt(mag_val);
 }
 
-int main()
-{
-    bsg_set_tile_x_y();
-    if (bsg_id == 0) {
-        fft_swizzle(0, 1);
-    }
-    bsg_tile_group_barrier(&r_barrier, &c_barrier);
 
+void fft_kernel(int *input, float complex *output) {
+    bsg_set_tile_x_y();
+    if (bsg_id == 0) { fft_swizzle(0, 1, input, fft_work_arr);}
+    bsg_tile_group_barrier(&r_barrier, &c_barrier);
     fft(fft_work_arr, bsg_id);
 
     if (bsg_id == 0) {
+        for (int i = 0; i < N; i++) {
+#ifdef __clang__
+            output[i] = fft_work_arr[i];
+#else
+            output[i] = complex_remote_load(fft_work_arr, i);
+#endif
+        }
+    }
+}
+
+
+int main()
+{
+    fft_kernel(fft_arr, fft_dram_arr);
+    float complex val;
+    if (bsg_id == 0) {
         for (unsigned i = 0; i < N; i++) {
-            bsg_printf("a[%d] = {%d + %dj}\n", i, (int)crealf(fft_work_arr[i]),
-                    (int) cimagf(fft_arr[i]));
+            val = fft_dram_arr[i];
+            bsg_printf("a[%d] = {%d + %dj}\n", i,
+                    (int) crealf(val), (int) cimagf(val));
         }
         bsg_finish();
     }
-
     bsg_wait_while(1);
 }
+
 
