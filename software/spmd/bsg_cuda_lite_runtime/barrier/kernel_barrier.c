@@ -11,7 +11,7 @@
 INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 
 
-int  __attribute__ ((noinline)) kernel_vec_add() {
+int  __attribute__ ((noinline)) kernel_barrier() {
   int id = bsg_x_y_to_id(__bsg_x, __bsg_y);
   bsg_tile_group_barrier(&r_barrier, &c_barrier);
   return 0;
