@@ -18,7 +18,7 @@ all: main.run
 # for a quick debug of processor or program running on it.
 proc_exe_logs: X0_Y2.pelog
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o
+OBJECT_FILES=main.o bsg_set_tile_x_y.o
 IN_FILES=hello.txt
 
 ifdef DEBUG
@@ -34,8 +34,8 @@ include ../Makefile.include
 #     be vanilla core 
 BSG_FPU_OP=0
 
-main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. -l:$(BSG_MANYCORE_LIB) -o $@ $(RISCV_LINK_OPTS)
 
 
 main.o: Makefile
