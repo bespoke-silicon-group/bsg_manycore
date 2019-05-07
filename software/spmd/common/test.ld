@@ -22,36 +22,43 @@ SECTIONS
   /* beginning of data memory; set by imem size and bank conflict concerns */
   . = 0x1000;
   _bsg_data_start_addr = . ;
+
   /* data segment */
-  .data : { *(.data) }
+  .data : 
+  { 
+    EXCLUDE_FILE (*lfs.o *bsg_newlib_init.o *libgloss.a:* *libc.a:* *libgcc.a:*) /* Exclude lib data -- included in dram section */
+    *(.data*) 
+  }
 
   .sdata : {
     _gp = . + 0x800;
-    *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata*)
-    *(.sdata .sdata.* .gnu.linkonce.s.*)
+    EXCLUDE_FILE (*lfs.o *bsg_newlib_init.o *libgloss.a:* *libc.a:* *libgcc.a:*) /* Exclude lib data -- included in dram section */
+    *(.sdata .sdata.* .gnu.linkonce.s.* .srodata.cst16 .srodata.cst8 .srodata.cst4 .srodata.cst2 .srodata*)
   }
 
   /* bss segment */
   .sbss : {
-    *(.sbss .sbss.* .gnu.linkonce.sb.*)
-    *(.scommon)
+    EXCLUDE_FILE (*lfs.o *bsg_newlib_init.o *libgloss.a:* *libc.a:* *libgcc.a:*) /* Exclude lib data -- included in dram section */
+    *(.sbss .sbss.* .gnu.linkonce.sb.* .scommon)
   }
-  .bss : { *(.bss) }
+  .bss : { 
+    EXCLUDE_FILE (*lfs.o *bsg_newlib_init.o *libgloss.a:* *libc.a:* *libgcc.a:*) /* Exclude lib data -- included in dram section */
+    *(.bss*) 
+  }
 
   /* thread-local data segment */
   .tdata :
   {
     _tls_data = .;
-    crt.o(.tdata.begin)
+    *crt.o(.tdata.begin)
     *(.tdata)
-    crt.o(.tdata.end)
+    *crt.o(.tdata.end)
   }
   .tbss :
   {
     *(.tbss)
-    crt.o(.tbss.end)
+    *crt.o(.tbss.end)
   }
-  .rodata : { *(.rodata) }
   .eh_frame : { *(.eh_frame) }
   /* RISC-V 32 has a 4 byte word size */
   .striped.data ALIGN(bsg_group_size * 4): {
@@ -59,11 +66,9 @@ SECTIONS
     *(.striped.data)
   }
 
-  _bsg_data_end_addr = . - SIZEOF(.striped.data) + (SIZEOF(.striped.data) / bsg_group_size);
-  _bsg_bin_end_addr = .;
   /* End of uninitalized data segement */
-  /* _bsg_data_end_addr = .; */
-  ASSERT(_bsg_data_end_addr < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
+  _bsg_data_end_addr = .;
+  ASSERT((_bsg_data_end_addr - SIZEOF(.striped.data) + SIZEOF(.striped.data) / bsg_group_size) < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
   
   /*The DRAM content is start at zero, 
    *The instruction fetch unit and the loader will send address that 
@@ -82,13 +87,17 @@ SECTIONS
    * Instead we just use a faked physical address and assumpt the phiscal address is aslo zero in the loader
    */
   _bsg_dram_start_addr = 0x80000000;
-  .text 0x80000000 : AT ( _bsg_bin_end_addr ){
-          crt.o(.text)
-          bsg_newlib_init.o(.text)
+  .text 0x80000000 : AT ( _bsg_data_end_addr ){
+          *crt.o(.text)
           *(.text)
           *(.text.startup)
-          *(.rodata*) 
           *(.dram*)
+          *(.rodata*) 
+          *(.data*)
+          *(.sdata .sdata.* .gnu.linkonce.s.* .srodata.cst16 .srodata.cst8 .srodata.cst4 .srodata.cst2 .srodata*)
+          *(.sbss .sbss.* .gnu.linkonce.sb.* .scommon)
+          *(.bss*)
+          *(.*)
         }
   _bsg_dram_end_addr = .  ;
 }
