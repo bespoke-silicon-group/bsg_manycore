@@ -100,13 +100,6 @@ LIB_LIST = \
 rebuild-newlib:
 	make -C $(TOOLCHAIN_REPO)/build-newlib
 	make -C $(TOOLCHAIN_REPO)/build-newlib install
-	for lib in $(LIB_LIST); do \
-		$(CURDIR)/riscv-install/bin/riscv32-unknown-elf-objcopy \
-			--rename-section .data=.dram \
-			--rename-section .rodata=.dram \
-			--rename-section .bss=.dram \
-			$$lib; \
-	done
 
 clean:
 	rm -rf riscv-install

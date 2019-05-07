@@ -28,9 +28,9 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 VPATH += $(BSG_MANYCORE_DIR)/software/spmd/common
 
 # flags
-OPT_LEVEL ?= -O2
+OPT_LEVEL ?= -O0
 RISCV_GCC_EXTRA_OPTS ?=
-RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf
+RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common
 RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
@@ -48,16 +48,17 @@ lfs.c:
 endif
 
 #RISCV_LINK_EXTRA_OPTS ?=
-RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
+RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS) -l:crt.o
+ifeq ($(BSG_NEWLIB), 1)
+  RISCV_LINK_OPTS += -l:bsg_newlib_init.o
+endif
 ifneq ($(BSG_NEWLIB), 1)
   RISCV_LINK_OPTS += -nostdlib
 endif
+
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
-RISCV_LINK = $(RISCV_GCC) -t -T $(LINK_SCRIPT) \
-						 -Wl,--defsym,bsg_group_size=$(bsg_group_size) \
-						 -Wl,--no-check-sections # TODO: temporary fix to solve this problem: \
-https://stackoverflow.com/questions/56518056/risc-v-linker-throwing-sections-lma-overlap-error-despite-lmas-belonging-to-dif
+RISCV_LINK = $(RISCV_GCC) -t -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld -Wl,--defsym,bsg_group_size=$(bsg_group_size)
 
 ifdef CLANG
 export LLVM_DIR   = /mnt/bsg/diskbits/neilryan/llvm/llvm-install
