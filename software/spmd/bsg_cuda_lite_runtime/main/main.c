@@ -102,9 +102,10 @@ int write_signal ()
                 blt       t0           ,    s2        ,     __load_stack;    \
                                                                              \
               __invoke_kernel:                                               \
-                jalr      s1;                                                \
+                jalr      s1");                                              \
                                                                              \
-                li        t0           ,    0x8;                             \
+                                                                             \
+           asm("li        t0           ,    0x8;                             \
                 bge       t0           ,    s2        ,     __kernel_return; \
                 addi      t0           ,    s2        ,     -0x8;            \
                 slli      t0           ,    t0        ,     0x2;             \
@@ -116,6 +117,10 @@ int write_signal ()
            ");                                                               \
            write_signal();                                                   \
            asm("j         __wait_until_valid_func");
+
+
+//           bsg_tile_group_barrier(&main_r_barrier, &main_c_barrier);         \
+
 
 
 int main()
