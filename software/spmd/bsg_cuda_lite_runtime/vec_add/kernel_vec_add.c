@@ -12,10 +12,10 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 */
 
 int  __attribute__ ((noinline)) kernel_vec_add(int *a, int *b, int *c, int n) {
-  int id = bsg_x_y_to_id(__bsg_x, __bsg_y);
-  for (int i = (id * n); i < (id * n + n); i++) {
+  //int id = bsg_x_y_to_id(__bsg_x, __bsg_y);
+  for (int i = (__bsg_id * n); i < (__bsg_id * n + n); i++) {
   	c[i] = a[i] + b[i];
-  //bsg_tile_group_barrier(&r_barrier, &c_barrier);
   }
+//  bsg_tile_group_barrier(&r_barrier, &c_barrier);
   return 0;
 }

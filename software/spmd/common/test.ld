@@ -26,6 +26,10 @@ SECTIONS
   /* Pin down memory location for __bsg_x and __bsg_y symbols. */
   __bsg_x = . + 0x0100;
   __bsg_y = . + 0x0104;
+  __bsg_grp_org_x = . + 0x0108;
+  __bsg_grp_org_y = . + 0x010c;
+  __bsg_id = . + 0x0110;
+
   /* data segment */
   .data : { *(.data) }
 
