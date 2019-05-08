@@ -125,14 +125,7 @@ int write_signal ()
 
 int main()
 {
-  //declare the function pointer of the kernel
-
-  //set up tile cord and group origins, maybe we can omit these if the loader
-  //supports initilization.
   bsg_set_tile_x_y();
-
   __wait_until_valid_func();
-
-  // bsg_finish();
 }
 
