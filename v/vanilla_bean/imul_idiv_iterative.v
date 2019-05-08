@@ -7,22 +7,24 @@
 `include "parameters.vh"
 
 //should not change the width_p because idiv is not parameterizable
-module imul_idiv_iterative #(width_p= 32)
-    (input                  reset_i
-	,input                  clk_i
+module imul_idiv_iterative
+  #(parameter width_p= 32
+  )
+  (
+    input clk_i
+	  , input reset_i
 
-	,input                  v_i      //there is a request
-    ,output                 ready_o  //imul_idiv_module is idle
+	  , input v_i
+    , output ready_o
 
-    ,input [width_p-1: 0]   opA_i
-	,input [width_p-1: 0]   opB_i
-    //the funct3 bits in the instruction encoding
-    ,input [2:0]            funct3
+    , input [width_p-1: 0] opA_i
+	  , input [width_p-1: 0] opB_i
+    , input [2:0] funct3
 
-	,output                       v_o      //result is valid
-	,output logic [width_p-1: 0]  result_o
-    ,input                        yumi_i
-    );
+	  , output logic v_o
+	  , output logic [width_p-1:0] result_o
+    , input yumi_i
+  );
 ////////////////////////////////////////////////////////////
 // Generates input signal for MUL and DIV
 logic idiv_v, signed_div, gets_quotient; 

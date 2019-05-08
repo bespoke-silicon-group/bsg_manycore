@@ -6,42 +6,47 @@
 
 `include "parameters.vh"
 `include "definitions.vh"
-module icache #(parameter 
-                          icache_tag_width_p     = -1, 
-                          icache_addr_width_p    = -1,
-                          //word address
-                          pc_width_lp            = icache_tag_width_p + icache_addr_width_p, 
-                          icache_format_width_lp = `icache_format_width( icache_tag_width_p )
-               )
-               (
-                input                              clk_i
-               ,input                              reset_i
 
-               ,input                              icache_cen_i
-               ,input                              icache_w_en_i
-                //TODO: The written address should be enlarged. 
-                //      WORD address now
-               ,input [icache_addr_width_p-1:0]    icache_w_addr_i
-               ,input [icache_tag_width_p -1:0]    icache_w_tag_i
-               ,input [RV32_instr_width_gp-1:0]    icache_w_instr_i
-               ,output[RV32_instr_width_gp-1:0]    instruction_o
+module icache
+  #(parameter icache_tag_width_p = "inv"
+    , parameter icache_addr_width_p = "inv" //word address
 
-               ,input [pc_width_lp-1:0]            pc_i
-               ,input                              flush_i
-               ,input                              pc_wen_i
-               ,input  [pc_width_lp-1:0]           jalr_prediction_i
-               ,output [pc_width_lp-1:0]           pc_r_o
-               ,output [pc_width_lp-1:0]           pred_or_jump_addr_o
-               ,output                             icache_miss_o
-               );
+    , localparam pc_width_lp = (icache_tag_width_p + icache_addr_width_p)
+    , localparam icache_format_width_lp = `icache_format_width(icache_tag_width_p)
+  )
+  (
+    input clk_i
+    , input reset_i
 
-  //the struct fo be written into the icache
-  `declare_icache_format_s( icache_tag_width_p );
-  icache_format_s       icache_w_data_s, icache_r_data_s, icache_stall_out_r, icache_stall_out;
+    , input icache_cen_i
+    , input icache_w_en_i
+    , input [icache_addr_width_p-1:0] icache_w_addr_i
+    , input [icache_tag_width_p -1:0] icache_w_tag_i
+    , input [RV32_instr_width_gp-1:0] icache_w_instr_i
+    , output[RV32_instr_width_gp-1:0] instruction_o
+
+    , input [pc_width_lp-1:0] pc_i
+    , input flush_i
+    , input pc_wen_i
+    , input [pc_width_lp-1:0] jalr_prediction_i
+    , output [pc_width_lp-1:0] pc_r_o
+    , output [pc_width_lp-1:0] pred_or_jump_addr_o
+    , output icache_miss_o
+  );
+
+  // declare icache entry struct.
+  //
+  `declare_icache_format_s(icache_tag_width_p);
+
+  icache_format_s icache_w_data_s;
+  icache_format_s icache_r_data_s;
+  icache_format_s icache_stall_out_r;
+  icache_format_s icache_stall_out;
 
   //the address of the icache entry
-  wire [icache_addr_width_p-1:0]  icache_addr = icache_w_en_i ? icache_w_addr_i
-                                                              : pc_i[0+:icache_addr_width_p];
+  wire [icache_addr_width_p-1:0] icache_addr = icache_w_en_i
+    ? icache_w_addr_i
+    : pc_i[0+:icache_addr_width_p];
   //------------------------------------------------------------------
   //
   //  Pre-compute the lower part of the jump address for JAL and BRANCH
@@ -99,39 +104,46 @@ module icache #(parameter
                              
   //------------------------------------------------------------------
   // Instantiate the memory 
-  bsg_mem_1rw_sync #
-    ( .width_p ( icache_format_width_lp )
-     ,.els_p   (2**icache_addr_width_p)
-     //,.substitute_1r1w_p(1'b0)
-    ) imem_0
-    ( .clk_i  (clk_i)
-     ,.reset_i(reset_i)
-     ,.v_i    (icache_cen_i)
-     ,.w_i    (icache_w_en_i)
-     ,.addr_i (icache_addr)
-     ,.data_i (icache_w_data_s)
-     ,.data_o (icache_r_data_s)
-    );
+  bsg_mem_1rw_sync #(
+    .width_p(icache_format_width_lp )
+    ,.els_p(2**icache_addr_width_p)
+  ) imem_0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.v_i(icache_cen_i)
+    ,.w_i(icache_w_en_i)
+    ,.addr_i(icache_addr)
+    ,.data_i(icache_w_data_s)
+    ,.data_o(icache_r_data_s)
+  );
 
-  logic [pc_width_lp-1:0]  pc_r; 
-  logic                    pc_wen_r;
+  logic [pc_width_lp-1:0] pc_r; 
+  logic pc_wen_r;
 
   // Since imem has one cycle delay and we send next cycle's address, pc_n,
   // if the PC is not written, the instruction must not change.
-  always_ff@(posedge clk_i) 
-        if(reset_i)        pc_wen_r           <= 'b0;
-        else               pc_wen_r           <= pc_wen_i;
-
-  always_ff@(posedge clk_i) 
-        if(reset_i )                    pc_r     <= 'b0;
-        else if( pc_wen_i)              pc_r     <= pc_i;
-
-  always_ff@(posedge clk_i) 
-        if(reset_i | flush_i )      icache_stall_out_r    <= 'b0;
-        else                        icache_stall_out_r    <= icache_stall_out;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      pc_wen_r <= '0;
+      pc_r <= '0;
+      icache_stall_out_r <= '0;
+    end
+    else begin
+      pc_wen_r <= pc_wen_i;
+      if (pc_wen_i) begin
+        pc_r <= pc_i;
+      end
+      icache_stall_out_r <= flush_i
+        ? '0
+        : icache_stall_out;
+    end
+  end
 
   //this is the final output that send out, take stall into consideration
-  assign icache_stall_out = (pc_wen_r) ? icache_r_data_s: icache_stall_out_r;
+  assign icache_stall_out = pc_wen_r
+    ? icache_r_data_s
+    : icache_stall_out_r;
+
   //------------------------------------------------------------------
   // Merge the PC lower part and high part
   // BYTE operations
@@ -154,24 +166,26 @@ module icache #(parameter
   wire sel_pc_p1        = (~icache_stall_out.lower_sign) & icache_stall_out.lower_cout ; 
   wire sel_pc_n1        = icache_stall_out.lower_sign    & (~icache_stall_out.lower_cout) ; 
 
-  bsg_mux_one_hot #( .els_p      (3                      )
-                    ,.width_p    (branch_pc_high_width_lp)
-                   )branch_pc_high_mux
-                  ( .data_i        ( {branch_pc_high, branch_pc_high_p1, branch_pc_high_n1} )
-                   ,.sel_one_hot_i ( {sel_pc        , sel_pc_p1,         sel_pc_n1        } )
-                   ,.data_o        ( branch_pc_high_out                                  )
-                  );
+  bsg_mux_one_hot #(
+    .els_p(3)
+    ,.width_p(branch_pc_high_width_lp)
+  ) branch_pc_high_mux (
+    .data_i({branch_pc_high, branch_pc_high_p1, branch_pc_high_n1})
+    ,.sel_one_hot_i ({sel_pc, sel_pc_p1, sel_pc_n1})
+    ,.data_o(branch_pc_high_out)
+  );
 
-  bsg_mux_one_hot #( .els_p      (3                      )
-                    ,.width_p    (jal_pc_high_width_lp   )
-                   )jal_pc_high_mux
-                  ( .data_i        ( {jal_pc_high, jal_pc_high_p1, jal_pc_high_n1} )
-                   ,.sel_one_hot_i ( {sel_pc     , sel_pc_p1,      sel_pc_n1     } )
-                   ,.data_o        ( jal_pc_high_out               )
-                  );
+  bsg_mux_one_hot #(
+    .els_p(3)
+    ,.width_p(jal_pc_high_width_lp)
+  ) jal_pc_high_mux (
+    .data_i({jal_pc_high, jal_pc_high_p1, jal_pc_high_n1})
+    ,.sel_one_hot_i ({sel_pc, sel_pc_p1, sel_pc_n1})
+    ,.data_o(jal_pc_high_out)
+  );
 
-  wire is_jal_instr     = icache_stall_out.instr ==? `RV32_JAL;
-  wire is_jalr_instr    = icache_stall_out.instr ==? `RV32_JALR;
+  wire is_jal_instr = icache_stall_out.instr ==? `RV32_JAL;
+  wire is_jalr_instr = icache_stall_out.instr ==? `RV32_JALR;
 
   //these are bytes address
   wire [pc_width_lp+1:0] jal_pc    = {jal_pc_high_out,    `RV32_Jimm_21extract(icache_stall_out.instr) };

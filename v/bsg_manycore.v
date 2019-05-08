@@ -1,39 +1,38 @@
+/**
+ *  bsg_manycore.v
+ *
+ */
+
+
 `include "bsg_manycore_packet.vh"
 
-`ifdef bsg_FPU
-`include "float_definitions.vh"
-`endif
 module bsg_manycore
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }
-
- #(// tile params
-
-    parameter dmem_size_p       = "inv"
-   ,parameter icache_entries_p  = "inv" // in words
-   ,parameter icache_tag_width_p= -1
-   // array params
-   ,parameter num_tiles_x_p     = -1
-   ,parameter num_tiles_y_p     = -1
+  #(parameter dmem_size_p = "inv"
+    , parameter icache_entries_p = "inv" // in words
+    , parameter icache_tag_width_p = "inv"
+    , parameter num_tiles_x_p = "inv"
+    , parameter num_tiles_y_p = "inv"
 
    // array i/o params
-   ,parameter stub_w_p          = {num_tiles_y_p{1'b0}}
-   ,parameter stub_e_p          = {num_tiles_y_p{1'b0}}
-   ,parameter stub_n_p          = {num_tiles_x_p{1'b0}}
-   ,parameter stub_s_p          = {num_tiles_x_p{1'b0}}
+   , parameter stub_w_p = {num_tiles_y_p{1'b0}}
+   , parameter stub_e_p = {num_tiles_y_p{1'b0}}
+   , parameter stub_n_p = {num_tiles_x_p{1'b0}}
+   , parameter stub_s_p = {num_tiles_x_p{1'b0}}
 
    // for heterogeneous, this is a vector of num_tiles_x_p*num_tiles_y_p bytes;
    // each byte contains the type of core being instantiated
    // type 0 is the standard core
 
-   ,parameter int hetero_type_vec_p [0:num_tiles_y_p-1][0:num_tiles_x_p-1]  ='{default:0}
+   , parameter int hetero_type_vec_p [0:num_tiles_y_p-1][0:num_tiles_x_p-1]  ='{default:0}
 
    // enable debugging
-   ,parameter debug_p           = 0
+   , parameter debug_p = 0
 
    // this control how many extra IO rows are addressable in
    // the network outside of the manycore array
 
-   ,parameter extra_io_rows_p   = 1
+   , parameter extra_io_rows_p = 1
 
    // this parameter sets the size of addresses that are transmitted in the network
    // and corresponds to the amount of physical words that are addressable by a remote
@@ -46,11 +45,11 @@ module bsg_manycore
    // obviously smaller values take up less die area.
    //
 
-   ,parameter addr_width_p      = "inv"
+   , parameter addr_width_p = "inv"
 
    //the epa_addr_width_lp is the address bit used in C for remote access.
    //the value should be set to EPA_ADDR_WIDTH-2, refer to bsg_manycore.h for EPA_ADDR_WDITH setting
-   ,parameter epa_byte_addr_width_p =  "inv" 
+   , parameter epa_byte_addr_width_p =  "inv" 
 
     //------------------------------------------------------
     //  DRAM Address Definition
@@ -73,39 +72,41 @@ module bsg_manycore
     // send to.
     // 32 bits = {1'b1, CH0, network address}
     
-    //  26 = 32M WORDS for each channel
-   ,parameter dram_ch_addr_width_p = "inv"
-    //  Suppose the first channel is connected to column 0
-   ,parameter dram_ch_start_col_p  = 0
-   // changing this parameter is untested
-   ,parameter data_width_p      = 32
-   // ID for load requests in the network
-   ,parameter load_id_width_p = 5
-    //The IO router row index
-   ,parameter IO_row_idx_p = 0
+   //  26 = 32M WORDS for each channel
+  , parameter dram_ch_addr_width_p = "inv"
+   //  Suppose the first channel is connected to column 0
+  , parameter dram_ch_start_col_p  = 0
+  // usually 32
+  , parameter data_width_p = "inv"
+  // ID for load requests in the network
+  , parameter load_id_width_p = "inv"
+  //The IO router row index
+  , parameter IO_row_idx_p = 0
 
-   ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
-   ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
-   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
+  , localparam x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+  , localparam y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
+  , localparam link_sif_width_lp =
+     `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
 
    // snew * y * x bits
-   ,parameter repeater_output_p = 0
+  , parameter repeater_output_p = 0
 
   )
-  ( input clk_i
-   ,input reset_i
+  (
+    input clk_i
+    , input reset_i
 
-   // horizontal -- {E,W}
-   ,input  [E:W][num_tiles_y_p-1:0][bsg_manycore_link_sif_width_lp-1:0] hor_link_sif_i
-   ,output [E:W][num_tiles_y_p-1:0][bsg_manycore_link_sif_width_lp-1:0] hor_link_sif_o
+    // horizontal -- {E,W}
+    , input [E:W][num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_i
+    , output [E:W][num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_o
 
-   // vertical -- {S,N}
-   ,input   [S:N][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_i
-   ,output  [S:N][num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] ver_link_sif_o
+    // vertical -- {S,N}
+    , input [S:N][num_tiles_x_p-1:0][link_sif_width_lp-1:0] ver_link_sif_i
+    , output [S:N][num_tiles_x_p-1:0][link_sif_width_lp-1:0] ver_link_sif_o
 
-   //IO
-   ,input   [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] io_link_sif_i
-   ,output  [num_tiles_x_p-1:0][bsg_manycore_link_sif_width_lp-1:0] io_link_sif_o
+    //IO
+    , input [num_tiles_x_p-1:0][link_sif_width_lp-1:0] io_link_sif_i
+    , output [num_tiles_x_p-1:0][link_sif_width_lp-1:0] io_link_sif_o
   );
 
 // Manycore is stubbed out when running synthesis on the top-level chip
@@ -151,30 +152,6 @@ module bsg_manycore
       reset_i_rr <= reset_i_r;
     end
 
-
-`ifdef bsg_FPU
-  //The array of the interface between FAM and tile
-  f_fam_in_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0]  fam_in_s_v;
-  f_fam_out_s[num_tiles_y_p-1:0][num_tiles_x_p-1:0]  fam_out_s_v;
-
-  for (r = 0; r < num_tiles_y_p; r = r+1)
-  begin: fam_row_gen
-    for (c = 0; c < num_tiles_x_p; c = c+2)
-    begin: fam_col_gen
-            fam # (.in_data_width_p ( RV32_mac_input_width_gp  )
-                  ,.out_data_width_p( RV32_mac_output_width_gp )
-                  ,.num_fifo_p      ( 2                      )
-                  ,.num_pipe_p      ( 3                      )
-                  )
-                fam_g(
-                 .clk_i      ( clk_i                 )
-                ,.reset_i    ( reset_i_rr            )
-                ,.fam_in_s_i ( {fam_in_s_v [r][ c+1], fam_in_s_v[r][ c ]})
-                ,.fam_out_s_o( {fam_out_s_v[r][ c+1], fam_out_s_v[r][ c ]})
-                );
-    end
-  end
-`endif
    for (r = IO_row_idx_p+1; r < num_tiles_y_p; r = r+1)
      begin: y
         for (c = 0; c < num_tiles_x_p; c=c+1)
@@ -202,11 +179,6 @@ module bsg_manycore
 
                 .link_in(link_in[r][c]),
                 .link_out(link_out[r][c]),
-
-              `ifdef bsg_FPU
-                .fam_in_s_o(fam_in_s_v[r][c]),
-                .fam_out_s_i(fam_out_s_v[r][c]),
-              `endif
 
                 .my_x_i(x_cord_width_lp'(c)),
                 .my_y_i(y_cord_width_lp'(r))
@@ -241,7 +213,7 @@ end
     // stitch together all of the tiles into a mesh
 
     bsg_mesh_stitch
-     #(.width_p(bsg_manycore_link_sif_width_lp)
+     #(.width_p(link_sif_width_lp)
       ,.x_max_p(num_tiles_x_p)
       ,.y_max_p(num_tiles_y_p)
       )
@@ -254,14 +226,5 @@ end
       ,.ver_o(ver_link_sif_o)
       );
 
-  //synopsys translate_off
-  `ifdef bsg_FPU
-  initial
-  begin
-    assert ( (num_tiles_x_p % 2 ) == 0 )
-      else $error("num_tiles_x_p must be even for the shared FPU option");
-  end
-  `endif
-  //synopsys translate_on
 `endif
 endmodule

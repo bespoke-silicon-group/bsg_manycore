@@ -256,10 +256,11 @@ module test_bsg_manycore;
         ,.dram_ch_addr_width_p( dram_ch_addr_width_lp)
         ,.data_width_p(data_width_lp)
         ,.extra_io_rows_p ( extra_io_rows_lp )
-	,.max_cycles_p(max_cycles_lp)
+	      ,.max_cycles_p(max_cycles_lp)
         ,.num_tiles_x_p(num_tiles_x_lp)
         ,.num_tiles_y_p(num_tiles_y_lp)
-	,.tile_id_ptr_p(tile_id_ptr_lp)
+	      ,.tile_id_ptr_p(tile_id_ptr_lp)
+        ,.include_vcache_p(`enable_vcache)
         ) io
    (.clk_i(clk)
     ,.reset_i(reset_rr)
