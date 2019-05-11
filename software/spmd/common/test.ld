@@ -24,13 +24,13 @@ SECTIONS
   _bsg_data_start_addr = . ;
 
   /* Pin down memory location for __bsg_x/y, __bsg_grp_org_x/y, and __bsg_id symbols. */
-/*
+
   __bsg_x = . + 0xFEC;
   __bsg_y = . + 0xFF0;
   __bsg_grp_org_x = . + 0xFF4;
   __bsg_grp_org_y = . + 0xFF8;
   __bsg_id = . + 0xFFC;
-*/
+
 
   /* data segment */
   .data : { *(.data) }
