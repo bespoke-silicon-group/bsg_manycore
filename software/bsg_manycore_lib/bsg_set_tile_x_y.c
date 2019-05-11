@@ -10,7 +10,6 @@ int __bsg_y = -1;
 int __bsg_id = -1;
 int __bsg_grp_org_x = -1;
 int __bsg_grp_org_y = -1;
-int __bsg_tiles_Y = bsg_tiles_Y;
 
 void bsg_set_tile_x_y()
 {
