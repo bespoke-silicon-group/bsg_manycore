@@ -94,6 +94,7 @@ LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_to_ring_stitch.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_mesh_router_buffered.v
 
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_cache/bsg_cache.v
+LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_cache/bsg_cache_pkt_decode.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_cache/bsg_cache_dma.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_cache/bsg_cache_miss.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_cache/bsg_cache_sbuf.v
