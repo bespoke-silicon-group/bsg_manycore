@@ -10,11 +10,12 @@
 #include <math.h>
 #include <complex.h>
 
-#define N 32
+#define N 8
 
 int fft_arr[N] = {
-                  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-                  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                  1,2,1,4,1,1,6,1,
+                  /* 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, */
+                  /* 1,2,1,4,1,1,2,1,7,1,2,1,3,1,1,1, */
                   };
 
 float complex fft_dram_arr[N];
@@ -23,7 +24,7 @@ float complex STRIPE fft_work_arr[N];
 #else
 float complex fft_work_arr[N/bsg_group_size];
 typedef volatile float complex *bsg_remote_complex_ptr;
-#define bsg_remote_complex(x, y, local, addr) ((bsg_remote_complex_ptr)\
+#define bsg_remote_complex(x, y, local_addr) ((bsg_remote_complex_ptr)\
         (( REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS)\
             | ((y) << Y_CORD_SHIFTS) \
             | ((x) << X_CORD_SHIFTS) \
@@ -41,7 +42,7 @@ float complex complex_remote_load(float complex *A, unsigned i) {
     int tile_x = tile_id / bsg_tiles_X;
     int tile_y = tile_id % bsg_tiles_X;
     int index = i / bsg_group_size;
-    bsg_remote_load(tile_x, tile_y, &A[index], val);
+    bsg_complex_load(tile_x, tile_y, &A[index], val);
     return val;
 }
 
@@ -50,7 +51,7 @@ void complex_remote_store(float complex *A, unsigned i, float complex val) {
     int tile_x = tile_id / bsg_tiles_X;
     int tile_y = tile_id % bsg_tiles_X;
     int index = i / bsg_group_size;
-    bsg_remote_store(tile_x, tile_y, &A[index], val);
+    bsg_complex_store(tile_x, tile_y, &A[index], val);
 }
 
 #endif
@@ -89,8 +90,8 @@ void fft(float complex STRIPE *X, unsigned id) {
 void fft(float complex *X, unsigned id) {
 #endif
     int even_idx, odd_idx, work_id, n = 2;
-    float k_div_n, exp_val;
-    float complex t_val, even_val, odd_val;
+    float k_div_n;
+    float complex exp_val, t_val, even_val, odd_val;
     while (n <= N) {
         work_id = 0;
         for (int i = 0; i < N; i += n) {
