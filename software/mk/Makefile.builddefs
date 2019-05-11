@@ -24,8 +24,9 @@ RISCV_AR      ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-ar
 BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
 
-VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 VPATH += $(BSG_MANYCORE_DIR)/software/spmd/common
+VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_newlib
 
 # flags
 OPT_LEVEL ?= -O0
@@ -40,6 +41,7 @@ ifeq ($(BSG_NEWLIB), 1)
 endif
 
 SPMD_COMMON_OBJECTS ?=
+
 ifeq ($(BSG_NEWLIB), 1)
 SPMD_COMMON_OBJECTS += lfs.o
 
@@ -47,18 +49,28 @@ lfs.c:
 	$(RISCV_BIN_DIR)/../riscv32-unknown-elf/bin/bsg_newlib_mklfs 128 64 $(IN_FILES) > $@
 endif
 
-#RISCV_LINK_EXTRA_OPTS ?=
-RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lgcc -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS) -l:crt.o
-ifeq ($(BSG_NEWLIB), 1)
-  RISCV_LINK_OPTS += -l:bsg_newlib_init.o
+# Manycore C library archiving rule
+BSG_MANYCORE_LIB_OBJS+= bsg_set_tile_x_y.o
+BSG_MANYCORE_LIB_OBJS+= bsg_printf.o
+
+ifeq ($(BSG_NEWLIB) ,1)
+  BSG_MANYCORE_LIB_OBJS+= bsg_newlib_init.o
 endif
+
+BSG_MANYCORE_LIB = bsg_manycore_lib.a
+
+#RISCV_LINK_EXTRA_OPTS ?=
+RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lgcc $(RISCV_LINK_EXTRA_OPTS) -l:crt.o \
+						        -L. -l:$(BSG_MANYCORE_LIB)  -L $(BSG_MANYCORE_DIR)/software/spmd/common\
+                    -l:$(BSG_MANYCORE_LIB)
 ifneq ($(BSG_NEWLIB), 1)
   RISCV_LINK_OPTS += -nostdlib
 endif
 
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
-RISCV_LINK = $(RISCV_GCC) -t -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld -Wl,--defsym,bsg_group_size=$(bsg_group_size)
+RISCV_LINK = $(RISCV_GCC) -t -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld \
+						 -Wl,--defsym,bsg_group_size=$(bsg_group_size)
 
 ifdef CLANG
 export LLVM_DIR   = /mnt/bsg/diskbits/neilryan/llvm/llvm-install
@@ -104,11 +116,6 @@ endif
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -D__ASSEMBLY__=1 \
 		-c $(INCS) $< -o $@
 
-
-# Manycore C library archiving rule
-BSG_MANYCORE_LIB_OBJS+= bsg_set_tile_x_y.o
-BSG_MANYCORE_LIB_OBJS+= bsg_printf.o
-BSG_MANYCORE_LIB      = bsg_manycore_lib.a
 
 $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 	$(RISCV_AR) rcs $@ $^
