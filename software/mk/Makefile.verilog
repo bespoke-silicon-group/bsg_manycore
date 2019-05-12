@@ -30,6 +30,7 @@ INC_OP = +incdir+
 
 VCS_OP = -full64 -sverilog +v2k
 VCS_OP += -timescale=1ps/1ps
+VCS_OP += -l vcs.log
 VCS_LINT = +lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS
 
 VCS_OPTIONS = +define+SPMD=$*+
