@@ -214,7 +214,6 @@ assign to_mem_o = '{
     addr          : mem_addr_send
 };
 
-
 //+----------------------------------------------
 //|
 //|     BRANCH AND JUMP PREDICTION SIGNALS
