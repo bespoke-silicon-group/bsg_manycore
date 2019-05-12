@@ -43,18 +43,26 @@ module hobbit
   
     , input freeze_i
     
-    , input ring_packet_s net_packet_i
+    // icache remote store interface 
+    , input icache_v_i
+    , input [pc_width_lp-1:0] icache_pc_i
+    , input [RV32_instr_width_gp-1:0] icache_instr_i
 
+    // load-response interface
     , input mem_out_s from_mem_i
+    
+    // load-store interface
     , output mem_in_s to_mem_o
 
+    // reservation
     , input logic reservation_i
     , output logic reserve_1_o
 
+    , input outstanding_stores_i
+
+    // for tracing
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
-
-    , input outstanding_stores_i
   );
 
 // Pipeline stage logic structures
@@ -64,16 +72,6 @@ exe_signals_s exe;
 mem_signals_s mem;
 wb_signals_s wb;
 
-// Network signals logic (icache write)
-//
-ring_packet_s net_packet_r;
-
-always_ff @ (posedge clk_i) begin
-  net_packet_r <= net_packet_i;
-end
-
-logic net_imem_write_cmd;
-assign net_imem_write_cmd = net_packet_r.valid;
 
 //+----------------------------------------------
 //|
@@ -107,7 +105,7 @@ decode_s decode;
 
 assign data_mem_valid = is_load_buffer_valid | current_load_arrived;
 
-assign stall_non_mem = (net_imem_write_cmd) | stall_md | freeze_i; 
+assign stall_non_mem = icache_v_i | stall_md | freeze_i; 
 
 // stall due to fence instruction
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
@@ -238,7 +236,7 @@ wire branch_mispredict = exe.decode.is_branch_op
 // JALR mispredict (or just a JALR instruction in the single cycle because it
 // follows the same logic as a JALR mispredict)
 wire jalr_mispredict = (exe.instruction.op ==? `RV32_JALR_OP)
-                         & (jalr_addr != exe.pc_pred_or_jump_addr[2+:pc_width_lp]);
+                         & (jalr_addr != exe.pred_or_jump_addr[2+:pc_width_lp]);
 
 // Flush the control signals in the execute and instr decode stages if there
 // is a misprediction
@@ -260,7 +258,7 @@ logic freeze_down;
 assign freeze_down = freeze_r & ~freeze_i;
 
 // Program counter logic
-logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pc_pred_or_jump_addr;
+logic [pc_width_lp-1:0] pc_n, pc_r, pc_plus4, pred_or_jump_addr;
 logic pc_wen, icache_cen;
 
 // Instruction memory logic
@@ -287,7 +285,7 @@ always_comb begin
     // follow a branch under prediction logic)
     else if (branch_mispredict)
         if (branch_under_predict)
-            pc_n = exe.pc_pred_or_jump_addr[2+:pc_width_lp];
+            pc_n = exe.pred_or_jump_addr[2+:pc_width_lp];
         else
             pc_n = exe.pc_plus4[2+:pc_width_lp];
 
@@ -297,11 +295,11 @@ always_comb begin
 
     // Predict taken branch or instruction is a long jump
     else if ((decode.is_branch_op & instruction[pred_index_lp]) | (instruction.op == `RV32_JAL_OP))
-        pc_n = pc_pred_or_jump_addr;
+        pc_n = pred_or_jump_addr;
 
     // Predict jump to previous linked location
     else if (decode.is_jump_op) // equivalent to (instruction ==? `RV32_JALR)
-        pc_n = pc_pred_or_jump_addr;
+        pc_n = pred_or_jump_addr;
 
     // Standard operation or predict not taken branch
     else
@@ -315,25 +313,23 @@ end
 //+----------------------------------------------
 
 // Instruction memory chip enable signal
-assign icache_cen = (~stall & ~depend_stall) | (net_imem_write_cmd);
-
-`declare_icache_format_s( icache_tag_width_p );
-
 logic [RV32_reg_data_width_gp-1:0] mem_data;
 logic [RV32_reg_data_width_gp-1:0] loaded_pc;
 
-wire icache_w_en  = net_imem_write_cmd | (mem.icache_miss & data_mem_valid);
+assign icache_cen = (~stall & ~depend_stall) | (icache_v_i);
 
-wire [icache_addr_width_p-1:0] icache_w_addr = net_imem_write_cmd
-  ? net_packet_r.header.addr[2+:icache_addr_width_p]
+wire icache_w_en  = icache_v_i | (mem.icache_miss & data_mem_valid);
+
+wire [icache_addr_width_p-1:0] icache_w_addr = icache_v_i
+  ? icache_pc_i[0+:icache_addr_width_p]
   : loaded_pc[2+:icache_addr_width_p];
 
-wire [icache_tag_width_p-1:0] icache_w_tag = net_imem_write_cmd 
-  ? net_packet_r.header.addr[(icache_addr_width_p+2) +: icache_tag_width_p]
+wire [icache_tag_width_p-1:0] icache_w_tag = icache_v_i
+  ? icache_pc_i[icache_addr_width_p+:icache_tag_width_p]
   : loaded_pc[(icache_addr_width_p+2) +: icache_tag_width_p] ; 
 
-wire [RV32_instr_width_gp-1:0] icache_w_instr = net_imem_write_cmd
-  ? net_packet_r.data
+wire [RV32_instr_width_gp-1:0] icache_w_instr = icache_v_i
+  ? icache_instr_i
   : mem_data;
 
 logic icache_miss_lo;
@@ -357,7 +353,7 @@ icache #(
   ,.pc_r_o(pc_r)
   ,.jalr_prediction_i(jalr_prediction_n[2+:pc_width_lp])
   ,.instruction_o(instruction)
-  ,.pred_or_jump_addr_o(pc_pred_or_jump_addr)
+  ,.pred_or_jump_addr_o(pred_or_jump_addr)
   ,.icache_miss_o(icache_miss_lo)
 );
 
@@ -658,20 +654,6 @@ bsg_dff_reset #(
 );
 
 
-// synopsys translate_off
-debug_s debug_if, debug_id, debug_exe, debug_mem, debug_wb;
-
-localparam squashed_lp = 1'b1;
-
-// 1 indicates unsquashed
-assign debug_if = '{
-  PC_r : pc_r,
-  instruction_i: instruction,
-  state_r: 1'b0,
-  squashed: 1'b0
-};
- // synopsys translate_on
-
 
 //+----------------------------------------------
 //|
@@ -701,7 +683,7 @@ wire [RV32_instr_width_gp-1:0] id_instr = icache_miss_lo
 
 assign id_s = '{
   pc_plus4     : {pc_high_padding_lp, pc_plus4    ,2'b0}  ,
-  pc_pred_or_jump_addr : {pc_high_padding_lp, pc_pred_or_jump_addr, 2'b0}  ,
+  pred_or_jump_addr : {pc_high_padding_lp, pred_or_jump_addr, 2'b0}  ,
   instruction  : id_instr                                 ,
   decode       : id_decode                                ,
   icache_miss  : icache_miss_lo 
@@ -710,14 +692,8 @@ assign id_s = '{
 always_ff @ (posedge clk_i) begin
   if (reset_i | freeze_i | flush | (icache_miss_in_pipe & (~ (stall | depend_stall)))) begin
     id <= '0;
-    // synopsys translate_off
-    debug_id <= debug_if | squashed_lp ;
-    // synopsys translate_on
   end
   else if (~stall & ~depend_stall) begin
-    // synopsys translate_off
-    debug_id <= debug_if;
-    // synopsys translate_on
     id <= id_s;
   end
 end
@@ -769,25 +745,15 @@ wire  exe_rs2_in_wb      = ( mem.decode.op_writes_rf | is_load_buffer_valid )
 // Synchronous stage shift
 always_ff @ (posedge clk_i) begin
   if (reset_i | flush | freeze_i) begin
-    // synopsys translate_off
-    debug_exe <= debug_id | squashed_lp;
-    // synopsys translate_on
     exe <= '0;
   end
   else if (depend_stall & (~stall)) begin
-    // synopsys translate_off
-    debug_exe <= debug_id | squashed_lp;
-    // synopsys translate_on
-
     exe <= '0; //insert a bubble to the pipeline
   end
   else if (~stall) begin
-    // synopsys translate_off
-    debug_exe <= debug_id;
-    // synopsys translate_on
     exe <= '{
       pc_plus4     : id.pc_plus4,
-      pc_pred_or_jump_addr : id.pc_pred_or_jump_addr,
+      pred_or_jump_addr : id.pred_or_jump_addr,
       instruction  : id.instruction,
       decode       : id.decode,
       rs1_val      : rs1_to_exe,
@@ -840,16 +806,9 @@ end
 // Synchronous stage shift
 always_ff @ (posedge clk_i) begin
   if (reset_i | freeze_i) begin
-    // synopsys translate_off
-    debug_mem <= squashed_lp;
-    // synopsys translate_on
     mem <= '0;
   end
   else if (~stall) begin
-    // synopsys translate_off
-    debug_mem <= debug_exe;
-    // synopsys translate_on
-
     mem <= '{
       rd_addr       : exe_rd_addr,
       decode        : exe.decode,
@@ -934,18 +893,11 @@ always_comb begin
   end
 end
 
-// Synchronous stage shift
 always_ff @ (posedge clk_i) begin
   if (reset_i | freeze_i) begin
     wb <= '0;
-    // synopsys translate_off
-    debug_wb <= squashed_lp;
-    // synopsys translate_on
   end
   else if (~stall) begin
-    // synopsys translate_off
-    debug_wb <= debug_mem;
-    // synopsys translate_on
 
     wb <= '{
       op_writes_rf  : op_writes_rf_to_wb,
@@ -960,11 +912,13 @@ end
 
 
 //synopsys translate_off
+
 //FENCE_I instruction
-always@(negedge clk_i ) begin
-    if( id.decode.is_fence_i_op ) begin
-        $error("FENCE_I instruction not supported yet!");
-    end
+//
+always_ff @ (negedge clk_i ) begin
+  if (id.decode.is_fence_i_op) begin
+    $error("FENCE_I instruction not supported yet!");
+  end
 end
 
 //-----------------------------------------------------
@@ -973,217 +927,16 @@ end
 // _bsg_data_end_addr           : defined in Makefile and passed to VCS
 localparam bsg_data_end_lp =  `_bsg_data_end_addr ;
 
-always@( negedge clk_i ) begin
-        if( !reset_i && rf_wen      &&      rf_wa == 2   && rf_wd < bsg_data_end_lp ) begin
-                $display("##---------------------------------------------");
-                $display("## Warning: SP underflow:  local memory data end =%x, sp=%h,%t,%m", bsg_data_end_lp, rf_wd, $time); 
-                $display("##---------------------------------------------");
-        end
-end
-
-if (trace_p)
-  always_ff @(negedge clk_i)
-    begin
-       if (~(debug_wb.squashed  & (debug_wb.PC_r == 0)))
-         begin
-            $write("X,Y=(%x,%x) PC=%x (%x)"
-                   ,my_x_i, my_y_i
-                   , (debug_wb.PC_r <<2)
-                   ,debug_wb.instruction_i
-                   );
-            if (debug_wb.squashed)
-              $write(" <squashed>");
-            if (stall)
-              $write(" <stall>");
-
-            if (wb.op_writes_rf)
-              $write(" r[%d] <= %x", wb.rd_addr, wb.rf_data);
-
-            $write("\n");
-         end
-       end
-
-// file handle for processor execution log
-integer pelog;
-
-if (debug_p) begin
-  initial begin
-    // open the file and clear it
-    pelog = $fopen("pe.log", "w");
-    $fwrite(pelog, "");
-    $fclose(pelog);
-
-    // append the log at every negedge
-    forever begin
-      @(negedge clk_i)
-      if(1) begin
-        pelog = $fopen("pe.log", "a");
-        $fwrite(pelog, "X%0d_Y%0d.pelog \n", my_x_i, my_y_i);
-        $fwrite(pelog, "X%0d_Y%0d.pelog %0dns:\n", my_x_i, my_y_i, $time);
-
-        // Fetch
-        $fwrite(pelog, "X%0d_Y%0d.pelog   IF: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d state=%b"
-                 ,my_x_i
-                 ,my_y_i
-                 ,{8'h00, (pc_r<<2)}
-                 ,instruction
-                 ,instruction.rd
-                 ,instruction.rs1
-                 ,instruction.rs2
-                 ,1'b0
-                );
-        $fwrite(pelog, " net_pkt={v%0x_a%0x_d%0x} icm=%b\n"
-                 ,net_packet_r.valid
-                 ,net_packet_r.header.addr
-                 ,net_packet_r.data
-                 ,icache_miss_lo
-                );
-
-        // Decode
-        $fwrite(pelog, "X%0d_Y%0d.pelog   ID: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b"
-                 ,my_x_i
-                 ,my_y_i
-                 ,(id.pc_plus4-4)
-                 ,id.instruction
-                 ,id.instruction.rd
-                 ,id.instruction.rs1
-                 ,id.instruction.rs2
-                 ,id.pc_pred_or_jump_addr
-                 ,id.decode.op_writes_rf
-                 ,id.decode.is_load_op
-                 ,id.decode.is_store_op
-                );
-        $fwrite(pelog, " mem=%b byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b dep=%b score=%b icm=%b\n" 
-                 ,id.decode.is_mem_op
-                 ,id.decode.is_byte_op
-                 ,id.decode.is_hex_op
-                 ,id.decode.is_branch_op
-                 ,id.decode.is_jump_op
-                 ,id.decode.op_reads_rf1
-                 ,id.decode.op_reads_rf2
-                 ,id.decode.op_is_auipc
-                 ,dependency
-                 ,record_load
-                 ,id.icache_miss
-                );
-
-        // Execute
-        $fwrite(pelog, "X%0d_Y%0d.pelog  EXE: pc=%x instr=%x rd=%0d rs1=%0d rs2=%0d j_addr=%0x wrf=%b ld=%b st=%b mem=%b"
-                 ,my_x_i
-                 ,my_y_i
-                 ,(exe.pc_plus4-4)
-                 ,exe.instruction
-                 ,exe.instruction.rd
-                 ,exe.instruction.rs1
-                 ,exe.instruction.rs2
-                 ,exe.pc_pred_or_jump_addr
-                 ,exe.decode.op_writes_rf
-                 ,exe.decode.is_load_op
-                 ,exe.decode.is_store_op
-                 ,exe.decode.is_mem_op
-                );
-        $fwrite(pelog, " byte=%b hex=%b branch=%b jmp=%b reads_rf1=%b reads_rf2=%b auipc=%b r1_val=%0x r2_val=%0x icm=%b\n"
-                 ,exe.decode.is_byte_op
-                 ,exe.decode.is_hex_op
-                 ,exe.decode.is_branch_op
-                 ,exe.decode.is_jump_op
-                 ,exe.decode.op_reads_rf1
-                 ,exe.decode.op_reads_rf2
-                 ,exe.decode.op_is_auipc
-                 ,exe.rs1_val
-                 ,exe.rs2_val
-                 ,exe.icache_miss
-                );
-        $fwrite(pelog, "X%0d_Y%0d.pelog       mem_v_o=%b mem_a_o=%x mem_d_o=%0x reg_id_o=%0d mem_y_i=%b\n"
-                 ,my_x_i
-                 ,my_y_i
-                 ,valid_to_mem_c
-                 ,to_mem_o.addr
-                 ,store_data
-                 ,to_mem_o.payload.read_info.load_info.reg_id
-                 ,from_mem_i.yumi
-                );
-        // Memory
-        $fwrite(pelog, "X%0d_Y%0d.pelog  MEM: rd_addr=%0d wrf=%b ld=%b st=%b mem=%b byte=%b hex=%b branch=%b jmp=%b"
-                 ,my_x_i
-                 ,my_y_i
-                 ,mem.rd_addr
-                 ,mem.decode.op_writes_rf
-                 ,mem.decode.is_load_op
-                 ,mem.decode.is_store_op
-                 ,mem.decode.is_mem_op
-                 ,mem.decode.is_byte_op
-                 ,mem.decode.is_hex_op
-                 ,mem.decode.is_branch_op
-                 ,mem.decode.is_jump_op
-                );
-        $fwrite(pelog, " reads_rf1=%b reads_rf2=%b auipc=%b exe_res=%0x mem_v=%b mem_d=%x reg_id=%d yumi_o=%b icm=%b\n"
-                 ,mem.decode.op_reads_rf1
-                 ,mem.decode.op_reads_rf2
-                 ,mem.decode.op_is_auipc
-                 ,mem.exe_result
-                 ,from_mem_i.valid
-                 ,from_mem_i.read_data
-                 ,from_mem_i.load_info.reg_id
-                 ,to_mem_o.yumi
-                 ,mem.icache_miss
-                );
-        // Write back
-        $fwrite(pelog, "X%0d_Y%0d.pelog   WB: wrf=%b rd_addr=%0d, rf_data=%0x icm=%b icm_pc=%x\n"
-                 ,my_x_i
-                 ,my_y_i
-                 ,wb.op_writes_rf
-                 ,wb.rd_addr
-                 ,wb.rf_data
-                 ,wb.icache_miss
-                 ,wb.icache_miss_pc
-                );
-
-        // Misc
-        $fwrite(pelog, "X%0d_Y%0d.pelog MISC: stall=%b stall_mem=%b stall_non_mem=%b stall_lrw=%b depend_stall=%b"
-                 ,my_x_i
-                 ,my_y_i
-                 ,stall
-                 ,stall_mem
-                 ,stall_non_mem
-                 ,stall_lrw
-                 ,depend_stall
-                );
-        $fwrite(pelog, " stall_ld_wb=%b reservation=%b alu_result=%x mask=%b jump_now=%b flush=%b\n"
-                 ,stall_load_wb
-                 ,reservation_i
-                 ,alu_result
-                 ,mask
-                 ,jump_now
-                 ,flush
-                );
-
-        // Register file
-        $fwrite(pelog, "X%0d_Y%0d.pelog   RF: wen=%b wa=%d wd=%0x rs1_addr=%d rs1_val=%0x rs2_addr=%d rs2_val=%0x\n"
-                 ,my_x_i
-                 ,my_y_i
-                 ,rf_wen
-                 ,rf_wa
-                 ,rf_wd
-                 ,rf_rs1_addr
-                 ,rf_rs1_val
-                 ,rf_rs2_addr
-                 ,rf_rs2_val
-                );
-        // Multiple-divide
-        $fwrite(pelog, "X%0d_Y%0d.pelog   MD: stall_md=%b md_vlaid=%b md_resp_valid=%b md_result=%0x\n"
-                 ,my_x_i
-                 ,my_y_i
-                 ,stall_md
-                 ,md_valid
-                 ,md_resp_valid
-                 ,md_result
-                );
-        $fclose(pelog);
-      end
-    end
+always_ff @ (negedge clk_i) begin
+  if (~reset_i & rf_wen & rf_wa == 2 & rf_wd < bsg_data_end_lp ) begin
+    $display("##---------------------------------------------");
+    $display("## Warning: SP underflow:  local memory data end =%x, sp=%h,%t,%m",
+      bsg_data_end_lp, rf_wd, $time); 
+    $display("##---------------------------------------------");
   end
 end
+
+
 //synopsys translate_on
 
 endmodule

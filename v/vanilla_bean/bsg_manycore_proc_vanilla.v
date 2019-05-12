@@ -199,7 +199,6 @@ module bsg_manycore_proc_vanilla
    wire remote_invalid_addr = in_v_lo & ( ~( is_dmem_addr | is_icache_addr | is_config_op ) );
 
   // The memory and network interface
-  ring_packet_s core_net_pkt;
   mem_in_s core_to_mem;
   mem_out_s mem_to_core;
 
@@ -214,7 +213,10 @@ module bsg_manycore_proc_vanilla
     ,.reset_i(reset_i)
 
     ,.freeze_i(CSR_FREEZE_r)
-    ,.net_packet_i(core_net_pkt)
+
+    ,.icache_v_i(remote_store_icache)
+    ,.icache_pc_i(in_addr_lo[0+:icache_addr_width_lp+icache_tag_width_p])
+    ,.icache_instr_i(in_data_lo)
 
     ,.from_mem_i(mem_to_core)
     ,.to_mem_o(core_to_mem)
@@ -227,15 +229,7 @@ module bsg_manycore_proc_vanilla
     ,.my_y_i(my_y_i)
   );
 
-  always_comb begin
-    core_net_pkt.valid = remote_store_icache;
-    core_net_pkt.header.net_op = INSTR;
-    core_net_pkt.header.mask = '0;
-    core_net_pkt.header.addr = {in_addr_lo, 2'b0};
-    core_net_pkt.data = in_data_lo;
-  end
-
-  //convert the core_to_mem structure to signals.
+  // convert the core_to_mem structure to signals.
   assign core_mem_v        = core_to_mem.valid;
   assign core_mem_wdata    = core_to_mem.payload;
   assign core_mem_addr     = core_to_mem.addr;
@@ -270,13 +264,13 @@ module bsg_manycore_proc_vanilla
                               | (yumi_to_network & ~returned_buf_v);
                                                             
   // Returned data buffer
-  always_ff @(posedge clk_i)                                  
-  begin                                                     
-    if(reset_i) begin                                       
+  always_ff @ (posedge clk_i) begin                                                     
+    if (reset_i) begin                                       
       returned_buf_v       <= 1'b0;
       returned_data_buf    <= data_width_p'(0);
       returned_load_id_buf <= load_id_width_p'(0);
-    end else begin
+    end
+    else begin
       // Buffer the data when returned fifo is full and local mem
       // or returend data is valid as they have higher priority. 
       // One level of buffering is sufficient because core will not
@@ -285,7 +279,8 @@ module bsg_manycore_proc_vanilla
         returned_buf_v       <= 1'b1;
         returned_data_buf    <= returned_data_r_lo;
         returned_load_id_buf <= returned_load_id_r_lo;
-      end else if (yumi_to_network) begin
+      end
+      else if (yumi_to_network) begin
         returned_buf_v <= 1'b0;
       end
     end
