@@ -4,7 +4,7 @@
 #	bsg_global_X ?= $(bsg_tiles_X)
 #	bsg_global_Y ?= $(bsg_tiles_Y)+1
 bsg_global_X = 4
-bsg_global_Y = 4
+bsg_global_Y = 5
 
 #########################################################
 #Tile group configuration
