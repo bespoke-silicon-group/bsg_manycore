@@ -39,5 +39,5 @@ void bsg_set_tile_x_y()
 
   __bsg_grp_org_x  = * grp_org_x_p;
   __bsg_grp_org_y  = * grp_org_y_p;
-  __bsg_id = __bsg_x * bsg_tiles_X + __bsg_y;
+  __bsg_id = __bsg_y * bsg_tiles_X + __bsg_x;
 }
