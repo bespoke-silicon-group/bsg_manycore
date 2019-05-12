@@ -8,18 +8,16 @@ module bsg_nonsynth_manycore_io_complex
     , parameter addr_width_p = "inv"
     , parameter load_id_width_p = "inv"
     , parameter epa_byte_addr_width_p = "inv"
-    , parameter dram_ch_num_p       = 0
+    , parameter dram_ch_num_p = 0
     , parameter dram_ch_addr_width_p=-1
     , parameter data_width_p  = 32
     , parameter num_tiles_x_p = "inv"
     , parameter num_tiles_y_p = "inv"
     , parameter extra_io_rows_p = 1
-    , parameter tile_id_ptr_p = -1
 
     // the x/y cord of the 
     , parameter IO_x_cord_p = num_tiles_x_p -1 
     , parameter IO_y_cord_p = 0
-
 
     // parameters for victim cache    
     , parameter init_vcache_p = 0
@@ -35,8 +33,8 @@ module bsg_nonsynth_manycore_io_complex
     , parameter axi_burst_len_p = 1
     , localparam axi_strb_width_lp = (axi_data_width_p>>3)
 
-    , localparam x_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_x_p)
-    , localparam y_cord_width_lp  = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p)
+    , localparam x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+    , localparam y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p)
 
     , localparam link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
@@ -54,24 +52,18 @@ module bsg_nonsynth_manycore_io_complex
     , output [num_tiles_x_p-1:0][link_sif_width_lp-1:0] io_link_sif_o
 
     , output finish_lo
-   , output success_lo
-   , output timeout_lo
+    , output success_lo
+    , output timeout_lo
   );
 
   initial begin
     $display("## creating manycore complex num_tiles (x,y) = %-d,%-d (%m)", num_tiles_x_p, num_tiles_y_p);
   end
 
-  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p);
-
-  // we add this for easier debugging
-  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p);
-  bsg_manycore_link_sif_s  [num_tiles_x_p-1:0] io_link_sif_i_cast, io_link_sif_o_cast;
-
-  assign io_link_sif_i_cast = io_link_sif_i;
-  assign io_link_sif_o      = io_link_sif_o_cast;
-
+  // cycle counter
+  //
   wire [39:0] cycle_count;
+
   bsg_cycle_counter #(
     .width_p(40)
     ,.init_val_p(0)
@@ -81,8 +73,22 @@ module bsg_nonsynth_manycore_io_complex
     ,.ctr_r_o(cycle_count)
   );
 
+  // link_sif struct.
+  // we add this for easier debugging.
+  //
+  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,
+    x_cord_width_lp,y_cord_width_lp,load_id_width_p);
 
+  bsg_manycore_link_sif_s [num_tiles_x_p-1:0] io_link_sif_i_cast;
+  bsg_manycore_link_sif_s [num_tiles_x_p-1:0] io_link_sif_o_cast;
+
+  assign io_link_sif_i_cast = io_link_sif_i;
+  assign io_link_sif_o = io_link_sif_o_cast;
+
+
+  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p);
   bsg_manycore_packet_s loader_data_lo;
+
   logic loader_v_lo;
   logic loader_ready_li;
 
@@ -101,7 +107,6 @@ module bsg_nonsynth_manycore_io_complex
     ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
     ,.dram_ch_num_p(dram_ch_num_p)
     ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
-    ,.tile_id_ptr_p(tile_id_ptr_p)
     ,.init_vcache_p(init_vcache_p)
     ,.vcache_entries_p(vcache_sets_p)
     ,.vcache_ways_p(vcache_ways_p)
@@ -309,7 +314,7 @@ module bsg_nonsynth_manycore_io_complex
       $display("## Running simulation with block RAM.");
     end
 
-    for (i = 0; i < num_tiles_x_p; i=i+1) begin
+    for (i = 0; i < num_tiles_x_p; i++) begin
       bsg_manycore_ram_model #(
         .x_cord_width_p(x_cord_width_lp)
         ,.y_cord_width_p(y_cord_width_lp)
@@ -342,7 +347,7 @@ module bsg_nonsynth_manycore_io_complex
 
   localparam spmd_max_out_credits_lp = 128;
 
-  for (i = 0; i < num_tiles_x_p; i=i+1) begin
+  for (i = 0; i < num_tiles_x_p; i++) begin
 
     wire pass_thru_ready_lo;
 
@@ -363,7 +368,7 @@ module bsg_nonsynth_manycore_io_complex
       assign loader_ready_li = pass_thru_ready_lo & (|creds);
 
 	    if (0) begin
-        always_ff @(negedge clk_i) begin
+        always_ff @ (negedge clk_i) begin
           if (~reset_i & loader_ready_li & loader_v_lo) begin
             $write("Loader: Transmitted addr=%-d'h%h (x_cord_width_lp=%-d)(y_cord_width_lp=%-d) "
               ,addr_width_p, mem_addr, x_cord_width_lp, y_cord_width_lp);
