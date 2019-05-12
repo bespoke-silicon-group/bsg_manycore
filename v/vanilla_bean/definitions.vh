@@ -1,5 +1,10 @@
-`ifndef _definitions_vh_
-`define _definitions_vh_
+/**
+ *    definitions.vh
+ *
+ */
+
+`ifndef DEFINITIONS_VH
+`define DEFINITIONS_VH
 
 `include "parameters.vh"
 
@@ -8,28 +13,6 @@
  *  used through out the vanilla core.
  */
 
-`define EqualsEqualsQuestion(out,left,right)\
-  always_comb\
-    unique casez(left)\
-      right:   out = 1'b1;\
-      default: out = 1'b0;\
-    endcase
-
-//---- Controller states ----//
-typedef enum logic [1:0] {
-    IDLE = 2'b00,
-    RUN  = 2'b01,
-    ERR  = 2'b11
-} state_e;
-
-// Network operation enum
-typedef enum logic [1:0]
-{
-    NULL  = 2'b00, // Nothing
-    INSTR = 2'b01, // Instruction for instruction memory
-    REG   = 2'b10, // Value for a register
-    PC    = 2'b11  // Change PC
-} net_op_e;
 
 // RV32 Instruction structure
 // Ideally represents a R-type instruction; these fields if
@@ -43,33 +26,17 @@ typedef struct packed {
   logic [RV32_opcode_width_gp-1:0]   op;
 } instruction_s;
 
-`define declare_icache_format_s( tag_width_p)             \
-typedef struct packed {                                 \
-  logic                              lower_cout;        \
-  logic                              lower_sign;        \
-  logic [tag_width_p-1:0]            tag;               \
-  instruction_s                      instr;             \
-} icache_format_s;
+`define declare_icache_format_s(tag_width_p) \
+  typedef struct packed { \
+    logic lower_cout; \
+    logic lower_sign; \
+    logic [tag_width_p-1:0] tag; \
+    instruction_s instr; \
+  } icache_format_s;
 
-`define icache_format_width( tag_width_p ) \
-        ( 1 + 1 + (tag_width_p) + $bits(instruction_s) )
+`define icache_format_width(tag_width_p) \
+   (1+1+tag_width_p+$bits(instruction_s))
 
-// Ring packet header
-typedef struct packed
-{
-    net_op_e     net_op;      // 21..20 // Operation of the network packet
-                                        // for v_cores
-    logic [3:0]  mask;        // 19..16 // byte mask for received network
-                                        // data
-    logic [RV32_reg_data_width_gp-1:0] addr;        // 13..0  // the addr field which could be largened
-} v_core_header_s;
-
-// Ring packet
-typedef struct packed{
-    logic           valid;
-    v_core_header_s header;  // 63..32
-    logic [31:0]    data;    // 31..0
-} ring_packet_s;
 
 typedef struct packed {
   logic        icache_fetch;
@@ -80,7 +47,6 @@ typedef struct packed {
   logic [4:0]  reg_id;
 } load_info_s;
 
-`define load_info_width ($bits(load_info_s))
 
 typedef union packed {
   logic [31:0] write_data; // stores send store data
@@ -93,13 +59,11 @@ typedef union packed {
 // Data memory input structure
 typedef struct packed
 {
-    logic          valid;
     logic          wen;
     logic          swap_aq;
     logic          swap_rl;
     logic [3:0]    mask;
     logic [31:0]   addr;
-    logic          yumi;    // in response to data memory
     mem_payload_u  payload;
 } mem_in_s;
 
@@ -107,20 +71,10 @@ typedef struct packed
 typedef struct packed
 {
     logic        buf_full;
-    logic        valid;
     logic [31:0] read_data;
-    logic        yumi;      // in response to core
     load_info_s  load_info;
 } mem_out_s;
 
-// Debug signal structures
-typedef struct packed
-{
-    logic [15:0]                    PC_r;           // Program counter
-    instruction_s                   instruction_i;
-    logic [1:0]                     state_r;        // Core state
-    logic                           squashed;
-} debug_s;
 
 // Decode control signals structures
 typedef struct packed
@@ -139,35 +93,36 @@ typedef struct packed
     logic op_is_auipc;
 
     //for M extension;
-    logic is_md_instr;    // indicates is md insruciton
+    logic is_md_instr;      // indicates is md insruciton
 
     //for FENCE instruction
     logic is_fence_op;
     logic is_fence_i_op;
+
     //for load reservation and load reservation acquire
     logic op_is_load_reservation;
-    logic op_is_lr_acq          ;
+    logic op_is_lr_acq;
+
     //for atomic swap
-    logic op_is_swap_aq         ;
-    logic op_is_swap_rl         ;
+    logic op_is_swap_aq;
+    logic op_is_swap_rl;
 } decode_s;
 
 // Instruction decode stage signals
 typedef struct packed
 {
     logic [RV32_reg_data_width_gp-1:0] pc_plus4;     // PC + 4
-    logic [RV32_reg_data_width_gp-1:0] pc_pred_or_jump_addr; // Jump target PC
+    logic [RV32_reg_data_width_gp-1:0] pred_or_jump_addr; // Jump target PC
     instruction_s                      instruction;  // Instruction being executed
     decode_s                           decode;       // Decode signals
     logic                              icache_miss;
-
 } id_signals_s;
 
 // Execute stage signals
 typedef struct packed
 {
     logic [RV32_reg_data_width_gp-1:0] pc_plus4;     // PC + 4
-    logic [RV32_reg_data_width_gp-1:0] pc_pred_or_jump_addr; // Jump target PC
+    logic [RV32_reg_data_width_gp-1:0] pred_or_jump_addr; // Jump target PC
     instruction_s                      instruction;  // Instruction being executed
     decode_s                           decode;       // Decode signals
     logic [RV32_reg_data_width_gp-1:0] rs1_val;      // RF output data from RS1 address

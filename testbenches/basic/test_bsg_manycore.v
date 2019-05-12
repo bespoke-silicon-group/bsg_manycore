@@ -73,7 +73,8 @@ module test_bsg_manycore;
   end
 
 
-  `declare_bsg_manycore_link_sif_s(addr_width_lp, data_width_lp, lg_node_x_lp, lg_node_y_lp, load_id_width_lp);
+  `declare_bsg_manycore_link_sif_s(addr_width_lp,data_width_lp,
+    lg_node_x_lp,lg_node_y_lp,load_id_width_lp);
 
   bsg_manycore_link_sif_s [S:N][num_tiles_x_lp-1:0] ver_link_li, ver_link_lo;
   bsg_manycore_link_sif_s [E:W][num_tiles_y_lp-1:0] hor_link_li, hor_link_lo;
@@ -187,4 +188,22 @@ module test_bsg_manycore;
     ,.timeout_lo()
   );
 
+  // vanilla core tracer
+  //
+  if (1) begin
+    bind bsg_manycore_proc_vanilla bsg_manycore_proc_vanilla_trace #(
+      .x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.icache_tag_width_p(icache_tag_width_p)
+      ,.icache_entries_p(icache_entries_p)
+      ,.data_width_p(data_width_p)
+      ,.dmem_size_p(dmem_size_p)
+    ) vanilla_tracer (
+      .*
+    );
+  end
+
+
 endmodule
+
+

@@ -1,44 +1,60 @@
+/**
+ *  load_packer.v
+ *
+ */
+
+
 module load_packer
- #(parameter data_width_p = RV32_reg_data_width_gp
-  )
-  (input [data_width_p-1:0]        mem_data_i
+  #(parameter data_width_p = RV32_reg_data_width_gp)
+  (
+    input [data_width_p-1:0] mem_data_i
 
-  ,input                           unsigned_load_i
-  ,input                           byte_load_i
-  ,input                           hex_load_i
-  ,input [1:0]                     part_sel_i
+    , input unsigned_load_i
+    , input byte_load_i
+    , input hex_load_i
+    , input [1:0] part_sel_i
 
-  ,output logic [data_width_p-1:0] load_data_o
+    , output logic [data_width_p-1:0] load_data_o
   );
 
-  logic [data_width_p-1:0] loaded_byte;
-  always_comb
-  begin
-    unique casez (part_sel_i)
-      2'b00:    loaded_byte = mem_data_i[0+:8];
-      2'b01:    loaded_byte = mem_data_i[8+:8];
-      2'b10:    loaded_byte = mem_data_i[16+:8];
-      default:  loaded_byte = mem_data_i[24+:8];
-    endcase
-  end
+  logic [7:0] loaded_byte;
+  logic [15:0] loaded_half;
 
+  bsg_mux #(
+    .width_p(8)
+    ,.els_p(data_width_p>>3)
+  ) byte_sel_mux (
+    .data_i(mem_data_i)
+    ,.sel_i(part_sel_i)
+    ,.data_o(loaded_byte)
+  );
 
-  wire [RV32_reg_data_width_gp-1:0] loaded_hex = (|part_sel_i)
-                                                   ? mem_data_i[16+:16]
-                                                   : mem_data_i[0+:16];
+  bsg_mux #(
+    .width_p(16)
+    ,.els_p(data_width_p>>4)
+  ) half_sel_mux (
+    .data_i(mem_data_i)
+    ,.sel_i(part_sel_i[1])
+    ,.data_o(loaded_half)
+  );
+
+  logic half_sigext;
+  logic byte_sigext;
+
+  assign half_sigext = ~unsigned_load_i & loaded_half[15];
+  assign byte_sigext = ~unsigned_load_i & loaded_byte[7];
+
   
-  always_comb
-  begin
-    if (byte_load_i)
-      load_data_o = (unsigned_load_i)
-                      ? 32'(loaded_byte[7:0])
-                      : {{24{loaded_byte[7]}}, loaded_byte[7:0]};
-    else if(hex_load_i)
-      load_data_o = (unsigned_load_i)
-                      ? 32'(loaded_hex[15:0])
-                      : {{24{loaded_hex[15]}}, loaded_hex[15:0]};
-    else
+  always_comb begin
+    if (byte_load_i) begin
+      load_data_o = {{24{byte_sigext}}, loaded_byte};
+    end
+    else if (hex_load_i) begin
+      load_data_o = {{16{half_sigext}}, loaded_half};
+    end
+    else begin
       load_data_o = mem_data_i;
+    end
   end
 
 endmodule
