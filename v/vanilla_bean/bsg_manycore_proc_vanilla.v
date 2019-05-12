@@ -244,10 +244,6 @@ module bsg_manycore_proc_vanilla
   );
 
   // convert the core_to_mem structure to signals.
-  assign core_mem_w = core_to_mem.wen;
-  assign core_mem_addr = core_to_mem.addr;
-  assign core_mem_mask = core_to_mem.mask;
-  assign core_mem_wdata = core_to_mem.payload;
 
 
   //+-----------------------------------------------------
@@ -406,7 +402,6 @@ module bsg_manycore_proc_vanilla
   assign core_mem_yumi = xbar_port_yumi_out[1];
   assign in_yumi_li = xbar_port_yumi_out[0] | remote_store_icache | is_config_op;
   assign to_mem_yumi_li = (xbar_port_yumi_out[1] | launching_out);
-
   // ----------------------------------------------------------------------------------------
   // Handle the control registers
   // ----------------------------------------------------------------------------------------
