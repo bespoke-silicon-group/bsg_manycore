@@ -10,8 +10,10 @@ int __bsg_y = -1;
 int __bsg_id = -1;
 int __bsg_grp_org_x = -1;
 int __bsg_grp_org_y = -1;
-int __bsg_grid_size = -1;
-int __bsg_tile_group_id = -1;
+int __bsg_grid_dim_x = -1;
+int __bsg_grid_dim_y = -1;
+int __bsg_tile_group_id_x = -1;
+int __bsg_tile_group_id_y = -1;
 
 void bsg_set_tile_x_y()
 {
@@ -42,6 +44,8 @@ void bsg_set_tile_x_y()
   __bsg_grp_org_x  = * grp_org_x_p;
   __bsg_grp_org_y  = * grp_org_y_p;
   __bsg_id = __bsg_y * bsg_tiles_X + __bsg_x;
-  __bsg_grid_size = 1;
-  __bsg_tile_group_id = 0;
+  __bsg_grid_dim_x = 1;
+  __bsg_grid_dim_y = 1;
+  __bsg_tile_group_id_x = 0;
+  __bsg_tile_group_id_y = 0;
 }
