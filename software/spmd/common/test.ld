@@ -29,6 +29,9 @@ SECTIONS
   __bsg_grp_org_x = . + 0xEF4;
   __bsg_grp_org_y = . + 0xEF8;
   __bsg_id = . + 0xEFC;
+  __bsg_grid_size = . + 0xEE8;
+  __bsg_tile_group_id = . + 0xEE4;
+
 
   /* data segment */
   .data : { *(.data) }

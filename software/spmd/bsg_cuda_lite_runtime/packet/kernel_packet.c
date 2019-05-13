@@ -1,4 +1,4 @@
-//This kernel sends an IO packet from each tile with the __bsg_id 
+//This kernel sends an IO packet from each tile with the __bsg_x/y __bsg_grp_org_x/y __bsg_id 
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
