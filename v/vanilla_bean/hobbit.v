@@ -51,8 +51,10 @@ module hobbit
     // load-response interface
     , input mem_out_s from_mem_i
     
-    // load-store interface
+    // load-store request interface
     , output mem_in_s to_mem_o
+    , output logic to_mem_v_o
+    , input to_mem_yumi_i
 
     // reservation
     , input logic reservation_i
@@ -118,7 +120,7 @@ assign stall_load_wb = pending_load_arrived
                          & ~exe_free_for_load;;
 
 // stall due to data memory access
-assign stall_mem = (exe.decode.is_mem_op & (~from_mem_i.yumi))
+assign stall_mem = (exe.decode.is_mem_op & (~to_mem_yumi_i))
                      | (mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss)
                      | stall_fence
                      | stall_lrw
@@ -144,7 +146,6 @@ logic [3:0] mask;
 mem_payload_u mem_payload;
 
 // Data memory handshake logic
-logic valid_to_mem_c;
 
 always_comb begin
   if (exe.decode.is_byte_op) begin
@@ -203,7 +204,6 @@ end
 
 assign to_mem_o = '{
     payload       : mem_payload,
-    valid         : valid_to_mem_c,
     wen           : exe.decode.is_store_op,
     swap_aq       : exe.decode.op_is_swap_aq,
     swap_rl       : exe.decode.op_is_swap_rl,
@@ -614,7 +614,7 @@ wire wait_mem_rsp     = mem.decode.is_load_op & (~data_mem_valid) & mem.icache_m
 wire non_ld_st_stall  = stall_non_mem | stall_lrw;     
 
 //icache miss is also decoded as mem op
-assign valid_to_mem_c = exe.decode.is_mem_op 
+assign to_mem_v_o = exe.decode.is_mem_op 
                           & (~wait_mem_rsp) 
                           & (~non_ld_st_stall) 
                           & (~stall_load_wb)

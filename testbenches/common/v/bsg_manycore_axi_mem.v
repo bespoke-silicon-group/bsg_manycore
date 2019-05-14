@@ -18,12 +18,6 @@ module bsg_manycore_axi_mem
   
     , input [axi_id_width_p-1:0] axi_awid_i
     , input [axi_addr_width_p-1:0] axi_awaddr_i
-    , input [7:0] axi_awlen_i
-    , input [2:0] axi_awsize_i
-    , input [1:0] axi_awburst_i
-    , input [3:0] axi_awcache_i
-    , input [2:0] axi_awprot_i
-    , input axi_awlock_i
     , input axi_awvalid_i
     , output logic axi_awready_o 
 
@@ -40,12 +34,6 @@ module bsg_manycore_axi_mem
 
     , input [axi_id_width_p-1:0] axi_arid_i
     , input [axi_addr_width_p-1:0] axi_araddr_i
-    , input [7:0] axi_arlen_i
-    , input [2:0] axi_arsize_i
-    , input [1:0] axi_arburst_i
-    , input [3:0] axi_arcache_i
-    , input [2:0] axi_arprot_i
-    , input axi_arlock_i
     , input axi_arvalid_i
     , output logic axi_arready_o
   

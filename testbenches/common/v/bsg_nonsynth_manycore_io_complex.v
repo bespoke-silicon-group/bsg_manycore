@@ -268,12 +268,6 @@ module bsg_nonsynth_manycore_io_complex
 
       ,.axi_awid_i(awid)
       ,.axi_awaddr_i(awaddr)
-      ,.axi_awlen_i(awlen)
-      ,.axi_awsize_i(awsize)
-      ,.axi_awburst_i(awburst)
-      ,.axi_awcache_i(awcache)
-      ,.axi_awprot_i(awprot)
-      ,.axi_awlock_i(awlock)
       ,.axi_awvalid_i(awvalid)
       ,.axi_awready_o(awready)
 
@@ -290,12 +284,6 @@ module bsg_nonsynth_manycore_io_complex
 
       ,.axi_arid_i(arid)
       ,.axi_araddr_i(araddr)
-      ,.axi_arlen_i(arlen)
-      ,.axi_arsize_i(arsize)
-      ,.axi_arburst_i(arburst)
-      ,.axi_arcache_i(arcache)
-      ,.axi_arprot_i(arprot)
-      ,.axi_arlock_i(arlock)
       ,.axi_arvalid_i(arvalid)
       ,.axi_arready_o(arready)
 

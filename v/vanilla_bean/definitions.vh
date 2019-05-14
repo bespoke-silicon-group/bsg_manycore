@@ -77,7 +77,6 @@ typedef union packed {
 // Data memory input structure
 typedef struct packed
 {
-    logic          valid;
     logic          wen;
     logic          swap_aq;
     logic          swap_rl;
@@ -93,7 +92,6 @@ typedef struct packed
     logic        buf_full;
     logic        valid;
     logic [31:0] read_data;
-    logic        yumi;      // in response to core
     load_info_s  load_info;
 } mem_out_s;
 
