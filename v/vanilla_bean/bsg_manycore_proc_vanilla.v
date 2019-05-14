@@ -214,7 +214,7 @@ module bsg_manycore_proc_vanilla
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
     ,.debug_p(0)
-  ) vanilla_core (
+  ) hobbit0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
 
