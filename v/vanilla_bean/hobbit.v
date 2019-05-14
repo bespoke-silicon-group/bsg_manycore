@@ -96,7 +96,6 @@ logic [RV32_reg_data_width_gp-1:0]  load_buffer_info;
 //the memory valid signal may come from memory or the buffer register
 logic data_mem_valid;
 
-logic yumi_to_mem_c;
 
 // Signals for load write-back
 logic current_load_arrived;
@@ -213,7 +212,6 @@ assign to_mem_o = '{
     addr          : mem_addr_send
 };
 
-assign from_mem_yumi_o = yumi_to_mem_c;
 
 //+----------------------------------------------
 //|
@@ -471,7 +469,7 @@ scoreboard #(
   ,.op_writes_rf_i(id.decode.op_writes_rf)
 
   ,.score_i(record_load)
-  ,.clear_i(yumi_to_mem_c)
+  ,.clear_i(from_mem_yumi_o)
   ,.clear_id_i(from_mem_i.load_info.reg_id)
 
   ,.dependency_o(dependency)
@@ -626,7 +624,7 @@ assign to_mem_v_o = exe.decode.is_mem_op
                           & (~(current_load_arrived & from_mem_i.buf_full) | remote_load_in_exe); 
 
 //We should always accept the returned data even there is a non memory stall
-assign yumi_to_mem_c  = from_mem_v_i 
+assign from_mem_yumi_o = from_mem_v_i 
                           & (stall 
                               | current_load_arrived
                               | insert_load_in_exe
@@ -886,9 +884,11 @@ logic op_writes_rf_to_wb;
 always_comb begin
   //remote or local load can both be buffered
   if (mem.decode.is_load_op & ((~mem.remote_load) | is_load_buffer_valid)) begin
-    rf_data            = is_load_buffer_valid ? buf_loaded_data : mem_loaded_data;
-    op_writes_rf_to_wb = is_load_buffer_valid | current_load_arrived;
-    rd_addr_to_wb      = mem.rd_addr;
+    rf_data = is_load_buffer_valid
+      ? buf_loaded_data
+      : mem_loaded_data;
+    op_writes_rf_to_wb = (is_load_buffer_valid | current_load_arrived) & ~mem.icache_miss;
+    rd_addr_to_wb = mem.rd_addr;
   end else begin
     rf_data            = mem.exe_result;
     op_writes_rf_to_wb = mem.decode.op_writes_rf;
