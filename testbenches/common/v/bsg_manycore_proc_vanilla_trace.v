@@ -3,7 +3,6 @@
  *  
  *  trace format:
  *
- *  <timestamp> <tileXY> <PC> <INSTR>
  */
 
 
@@ -25,36 +24,93 @@ module bsg_manycore_proc_vanilla_trace
 
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i 
-
-    , input CSR_FREEZE_r
-    
-    , input [1:0] xbar_port_v_in
-    , input [1:0] xbar_port_we_in
-    , input [1:0] xbar_port_yumi_out
-    , input [1:0][data_width_p-1:0] xbar_port_data_in
-    , input [1:0][mem_width_lp-1:0] xbar_port_addr_in
-    , input [1:0][(data_width_p>>3)-1:0] xbar_port_mask_in
-    , input [data_width_p-1:0] core_mem_rdata
-    , input [data_width_p-1:0] load_returning_data
   );
 
 
-  integer fd;
+  // hobbit signals (h_)
+  //
+  wire h_freeze = bsg_manycore_proc_vanilla.hobbit0.freeze_i;
+  wire h_stall = bsg_manycore_proc_vanilla.hobbit0.stall;
+  wire h_rf_wen = bsg_manycore_proc_vanilla.hobbit0.rf_wen;
+  wire [4:0] h_rf_wa = bsg_manycore_proc_vanilla.hobbit0.rf_wa;
+  wire [31:0] h_rf_wd = bsg_manycore_proc_vanilla.hobbit0.rf_wd; 
 
-  logic remote_load_v_r;
-  logic [mem_width_lp-1:0] remote_load_addr_r;
+  wire [31:0] h_exe_pc = (bsg_manycore_proc_vanilla.hobbit0.exe.pc_plus4 - 'd4) | 32'h80000000;
+  wire [31:0] h_exe_instr = bsg_manycore_proc_vanilla.hobbit0.exe.instruction;
+  wire h_pending_load_arrived = bsg_manycore_proc_vanilla.hobbit0.pending_load_arrived;
+  wire h_to_mem_v_o = bsg_manycore_proc_vanilla.hobbit0.to_mem_v_o;
+  wire h_to_mem_yumi_i = bsg_manycore_proc_vanilla.hobbit0.to_mem_yumi_i;
+  wire h_remote_load_in_exe = bsg_manycore_proc_vanilla.hobbit0.remote_load_in_exe;
+  wire h_insert_load_in_exe = bsg_manycore_proc_vanilla.hobbit0.insert_load_in_exe;
+  wire [4:0] h_exe_rd = bsg_manycore_proc_vanilla.hobbit0.exe.instruction.rd;
+  wire [4:0] h_exe_rd_addr = bsg_manycore_proc_vanilla.hobbit0.exe_rd_addr;
 
+
+  wire remote_load_sent = h_to_mem_v_o & h_to_mem_yumi_i & h_remote_load_in_exe;
+
+  logic [31:0] h_mem_pc_r;
+  logic [31:0] h_mem_instr_r;
+  logic mem_is_remote_load_r;
+
+  logic [31:0] h_wb_pc_r;
+  logic [31:0] h_wb_instr_r;
+  logic wb_is_remote_load_r;
+
+  logic [31:0][31:0] remote_load_pc_r;
+  logic [31:0][31:0] remote_load_instr_r;
+  
+
+  // remote load tracking
+  //
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
-        remote_load_v_r <= 1'b0;
-        remote_load_addr_r <= '0;
+      remote_load_pc_r <= '0;
+      remote_load_instr_r <= '0;
     end
     else begin
-        remote_load_v_r <= xbar_port_v_in[0] & ~xbar_port_we_in[0] & xbar_port_yumi_out[0];
-        remote_load_addr_r <= xbar_port_addr_in[0];
+      if (remote_load_sent) begin
+        remote_load_pc_r[h_exe_rd] <= h_exe_pc;
+        remote_load_instr_r[h_exe_rd] <= h_exe_instr;
+      end
     end
   end
+
+
+  // delay pipeline logic
+  //
+  always_ff @ (posedge clk_i) begin
+    if (reset_i | h_freeze) begin
+      h_mem_pc_r <= '0;
+      h_mem_instr_r <= '0;
+      h_wb_pc_r <= '0;
+      h_wb_instr_r <= '0;
+    end
+    else begin
+      if (~h_stall) begin
+
+        h_mem_pc_r <= h_insert_load_in_exe
+          ? remote_load_pc_r[h_exe_rd_addr]
+          : h_exe_pc;
+        h_mem_instr_r <= h_insert_load_in_exe
+          ? remote_load_pc_r[h_exe_rd_addr]
+          : h_exe_instr;
+        mem_is_remote_load_r <= h_insert_load_in_exe;
+      
+        h_wb_pc_r <= h_mem_pc_r;
+        h_wb_instr_r <= h_mem_instr_r;
+        wb_is_remote_load_r <= mem_is_remote_load_r;
+
+      end
+    end
+  end
+
+
  
+
+  // trace logger
+  //
+  integer fd;
+
   initial begin
 
     fd = $fopen("vanilla.log", "w");
@@ -64,55 +120,42 @@ module bsg_manycore_proc_vanilla_trace
     forever begin
       @(negedge clk_i) begin
         // we only trace when tile is unfrozen.
-        if (~CSR_FREEZE_r) begin
+        if (~h_freeze) begin
         
           fd = $fopen("vanilla.log", "a");
    
-          // timestamp
-          $fwrite(fd, "%08t ", $time); 
-
-          // x,y
-          $fwrite(fd, "%2d %2d ", my_x_i, my_y_i);
+          $fwrite(fd, "%08t ", $time); // timestamp
+          $fwrite(fd, "%2d %2d ", my_x_i, my_y_i); // x,y
           
-          // pc_r, instruction
-          $fwrite(fd, "%08x %08x ",
-            {{32-pc_width_lp-2{1'b0}}, bsg_manycore_proc_vanilla.vanilla_core.pc_r, 2'b00},
-            bsg_manycore_proc_vanilla.vanilla_core.instruction,
-          );
-
           // regfile write
-          if (bsg_manycore_proc_vanilla.vanilla_core.rf_wen) begin
-            $fwrite(fd, "x%02d=%08x ",
-              bsg_manycore_proc_vanilla.vanilla_core.rf_wa,
-              bsg_manycore_proc_vanilla.vanilla_core.rf_wd
-            );
+          if (h_rf_wen) begin
+
+            if (h_stall & h_pending_load_arrived) begin
+              // 1. remote load direct write to rf (Rx)
+              $fwrite(fd, "%08x %08x ", remote_load_pc_r[h_rf_wa], remote_load_instr_r[h_rf_wa]);
+              $fwrite(fd, "Rx[%2d]=%08x", h_rf_wa, h_rf_wd);
+
+            end
+            else if (wb_is_remote_load_r) begin
+              // 2. remote load wb (Rx)
+              $fwrite(fd, "%08x %08x ", h_wb_pc_r, h_wb_instr_r);
+              $fwrite(fd, "Rx[%2d]=%08x", h_rf_wa, h_rf_wd);
+
+            end
+            else begin
+              // 3. other types of wb (Lx)
+              $fwrite(fd, "%08x %08x ", h_wb_pc_r, h_wb_instr_r);
+              $fwrite(fd, "Lx[%2d]=%08x", h_rf_wa, h_rf_wd);
+            end
           end
           else begin
-            $fwrite(fd, "             ");
+            // print nothing
+            $fwrite(fd, {(8+1+8+1+2+4+1+8){" "}});
           end
 
-          if (xbar_port_v_in[0] & xbar_port_we_in[0] & xbar_port_yumi_out[0]) begin // remote store
-            $fwrite(fd, "RS[%08x]=%08x "
-              , {{(data_width_p-2-mem_width_lp){1'b0}},xbar_port_addr_in[0], 2'b00}
-              , xbar_port_data_in[0]
-            );
-          end
-
-          if (remote_load_v_r) begin
-            $fwrite(fd, "RL[%08x]=%08x "
-              , {{(data_width_p-2-mem_width_lp){1'b0}},remote_load_addr_r, 2'b00}
-              , load_returning_data
-            );
-          end
-
-          if (xbar_port_v_in[1] & xbar_port_we_in[1] & xbar_port_yumi_out[1]) begin // local store
-             
-          end
 
 
           $fwrite(fd, "\n");
-
-
           $fclose(fd);
       
         end
