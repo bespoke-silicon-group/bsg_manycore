@@ -28,6 +28,7 @@ module bsg_manycore_proc_vanilla
 
     , localparam icache_addr_width_lp = $clog2(icache_entries_p)
     , localparam mem_width_lp = $clog2(dmem_size_p)
+    , localparam  epa_word_addr_width_lp = (epa_byte_addr_width_p-2)
 
     // credit counter is used for memory fences and limiting the number of
     // stores.
@@ -139,22 +140,22 @@ module bsg_manycore_proc_vanilla
     ,.my_y_i(my_y_i)
   );
 
-   // register to hold to IDs of local loads
-   logic [load_id_width_p-1:0] local_load_id_r;
+  // register to hold to IDs of local loads
+  logic [load_id_width_p-1:0] local_load_id_r;
 
-   logic core_mem_v;
-   logic core_mem_w;
+  logic core_mem_v;
+  logic core_mem_w;
 
-   logic [31:0] core_mem_addr;
-   logic [data_width_p-1:0] core_mem_wdata;
-   logic [(data_width_p>>3)-1:0] core_mem_mask;
-   logic core_mem_yumi;
-   logic core_mem_rv;
-   logic [data_width_p-1:0] core_mem_rdata;
+  logic [31:0] core_mem_addr;
+  logic [data_width_p-1:0] core_mem_wdata;
+  logic [(data_width_p>>3)-1:0] core_mem_mask;
+  logic core_mem_yumi;
+  logic core_mem_rv;
+  logic [data_width_p-1:0] core_mem_rdata;
 
-   logic core_mem_reserve_1, core_mem_reservation_r;
+  logic core_mem_reserve_1, core_mem_reservation_r;
 
-   logic [addr_width_p-1:0]      core_mem_reserve_addr_r;
+  logic [addr_width_p-1:0] core_mem_reserve_addr_r;
 
   // implement LR (load word reserved)
   always_ff @(posedge clk_i) begin
@@ -189,16 +190,15 @@ module bsg_manycore_proc_vanilla
 
 
 
-   // configuration  in_addr_lo = { 1 ------ } 2'b00
-   localparam  epa_word_addr_width_lp = epa_byte_addr_width_p-2;
+  // configuration  in_addr_lo = { 1 ------ } 2'b00
 
-   wire is_config_op      = in_v_lo & in_addr_lo[epa_word_addr_width_lp-1] ;
-   wire is_dmem_addr      = `MC_IS_DMEM_ADDR(in_addr_lo, addr_width_p);
-   wire is_icache_addr    = `MC_IS_ICACHE_ADDR(in_addr_lo, addr_width_p);
+  wire is_config_op      = in_v_lo & in_addr_lo[epa_word_addr_width_lp-1] ;
+  wire is_dmem_addr      = `MC_IS_DMEM_ADDR(in_addr_lo, addr_width_p);
+  wire is_icache_addr    = `MC_IS_ICACHE_ADDR(in_addr_lo, addr_width_p);
 
-   wire remote_store_icache = in_v_lo & is_icache_addr;
-   wire remote_access_dmem  = in_v_lo & is_dmem_addr;
-   wire remote_invalid_addr = in_v_lo & ( ~( is_dmem_addr | is_icache_addr | is_config_op ) );
+  wire remote_store_icache = in_v_lo & is_icache_addr;
+  wire remote_access_dmem  = in_v_lo & is_dmem_addr;
+  wire remote_invalid_addr = in_v_lo & ( ~( is_dmem_addr | is_icache_addr | is_config_op ) );
 
   // The memory and network interface
   mem_in_s core_to_mem;
@@ -350,7 +350,7 @@ module bsg_manycore_proc_vanilla
   // store load id of a local load
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
-      local_load_id_r <= load_id_width_p'(0);
+      local_load_id_r <= '0;
     end
     else begin
       if (~out_request & core_mem_v & ~core_mem_w) // if local read
@@ -359,7 +359,7 @@ module bsg_manycore_proc_vanilla
   end
     
 
-  wire local_epa_request = core_mem_v & (~ out_request);// not a remote packet
+  wire local_epa_request = core_mem_v & (~out_request);// not a remote packet
   wire [1:0] xbar_port_v_in = {local_epa_request, remote_access_dmem};
 
 
