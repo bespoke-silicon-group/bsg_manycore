@@ -11,12 +11,12 @@ int  __attribute__ ((noinline)) kernel_matrix_mul(int *A, int *B, int *C, int n)
 	int thread_count_x = n / (__bsg_grid_dim_x * bsg_tiles_X);
 	int thread_count_y = n / (__bsg_grid_dim_y * bsg_tiles_Y);
 
-	int start_y = (__bsg_tile_group_id_y * bsg_tiles_Y + __bsg_y) * block_size_x;
-	int start_x = (__bsg_tile_group_id_x * bsg_tiles_X + __bsg_x) * block_size_y;
+	int start_y = (__bsg_tile_group_id_y * bsg_tiles_Y + __bsg_y) * thread_count_x;
+	int start_x = (__bsg_tile_group_id_x * bsg_tiles_X + __bsg_x) * thread_count_y;
 
 
 	for (int iter_y = 0 ; iter_y < thread_count_y; iter_y ++) { 
-		for (int iter_x = 0; iter_x < thead_count_x; iter_x ++) { 
+		for (int iter_x = 0; iter_x < thread_count_x; iter_x ++) { 
 
 			int sum = 0;
 			int id_y = start_y + iter_y; 
@@ -24,7 +24,7 @@ int  __attribute__ ((noinline)) kernel_matrix_mul(int *A, int *B, int *C, int n)
 			for (int k = 0; k < n; k ++) { 
 				sum += A[id_y * n + k] * B[k * n + id_x];
 			}
-			C[id_y * n + id_x] = res;
+			C[id_y * n + id_x] = sum;
 		}
 	}
 
