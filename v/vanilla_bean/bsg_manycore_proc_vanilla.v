@@ -205,6 +205,8 @@ module bsg_manycore_proc_vanilla
   logic to_mem_yumi_li;
 
   mem_out_s mem_to_core;
+  logic from_mem_v_li;
+  logic from_mem_yumi_lo;
 
   hobbit #(
     .icache_tag_width_p(icache_tag_width_p) 
@@ -223,6 +225,8 @@ module bsg_manycore_proc_vanilla
     ,.icache_instr_i(in_data_lo)
 
     ,.from_mem_i(mem_to_core)
+    ,.from_mem_v_i(from_mem_v_li)
+    ,.from_mem_yumi_o(from_mem_yumi_lo)
 
     ,.to_mem_o(core_to_mem)
     ,.to_mem_v_o(core_mem_v)
@@ -261,7 +265,7 @@ module bsg_manycore_proc_vanilla
 
   // Yumi to the network and not local memory
   logic yumi_to_network;
-  assign yumi_to_network = core_to_mem.yumi & ~core_mem_rv;
+  assign yumi_to_network = from_mem_yumi_lo & ~core_mem_rv;
 
   logic buffer_returned_data;
   assign buffer_returned_data = returned_fifo_full_lo & (core_mem_rv | returned_buf_v);
@@ -298,15 +302,15 @@ module bsg_manycore_proc_vanilla
 
     // local mem has the highest priority
     if(core_mem_rv) begin
-      mem_to_core.valid     = 1'b1;
+      from_mem_v_li = 1'b1;
       mem_to_core.read_data = core_mem_rdata;
       mem_to_core.load_info = local_load_id_r;
     end else if(returned_buf_v) begin
-      mem_to_core.valid     = 1'b1;
+      from_mem_v_li = 1'b1;
       mem_to_core.read_data = returned_data_buf;
       mem_to_core.load_info = returned_load_id_buf;
     end else begin
-      mem_to_core.valid     = returned_v_r_lo;
+      from_mem_v_li = returned_v_r_lo;
       mem_to_core.read_data = returned_data_r_lo;
       mem_to_core.load_info = returned_load_id_r_lo;
     end

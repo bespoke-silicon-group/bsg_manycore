@@ -50,6 +50,8 @@ module hobbit
 
     // load-response interface
     , input mem_out_s from_mem_i
+    , input from_mem_v_i
+    , output logic from_mem_yumi_o
     
     // load-store request interface
     , output mem_in_s to_mem_o
@@ -208,9 +210,10 @@ assign to_mem_o = '{
     swap_aq       : exe.decode.op_is_swap_aq,
     swap_rl       : exe.decode.op_is_swap_rl,
     mask          : mask,
-    yumi          : yumi_to_mem_c,
     addr          : mem_addr_send
 };
+
+assign from_mem_yumi_o = yumi_to_mem_c;
 
 //+----------------------------------------------
 //|
@@ -485,12 +488,12 @@ assign depend_stall = dependency & (~branch_mispredict);
 // Singal to detect remote load in exe
 logic remote_load_in_exe;
 
-assign current_load_arrived = from_mem_i.valid 
+assign current_load_arrived = from_mem_v_i 
                                 & (mem.icache_miss 
                                     ? from_mem_i.load_info.icache_fetch
                                     : (from_mem_i.load_info.reg_id == mem.rd_addr)
                                   );
-assign pending_load_arrived = from_mem_i.valid & ~current_load_arrived;
+assign pending_load_arrived = from_mem_v_i & ~current_load_arrived;
 
 // Since remote load takes more than one cycle to fetch, and as loads are
 // non-blocking, write-back wouldn't happen when the instrucion is still
@@ -623,7 +626,7 @@ assign to_mem_v_o = exe.decode.is_mem_op
                           & (~(current_load_arrived & from_mem_i.buf_full) | remote_load_in_exe); 
 
 //We should always accept the returned data even there is a non memory stall
-assign yumi_to_mem_c  = from_mem_i.valid 
+assign yumi_to_mem_c  = from_mem_v_i 
                           & (stall 
                               | current_load_arrived
                               | insert_load_in_exe
