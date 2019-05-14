@@ -23,15 +23,16 @@ SECTIONS
   . = 0x1000;
   _bsg_data_start_addr = . ;
 
-  /* Pin down memory location for __bsg_x/y, __bsg_grp_org_x/y, and __bsg_id symbols. */
-  __bsg_x = . + 0xEEC;
-  __bsg_y = . + 0xEF0;
-  __bsg_grp_org_x = . + 0xEF4;
-  __bsg_grp_org_y = . + 0xEF8;
-  __bsg_id = . + 0xEFC;
-  __bsg_grid_size = . + 0xEE8;
-  __bsg_tile_group_id = . + 0xEE4;
-
+  /* Pin down memory location for __bsg_x/y, __bsg_grp_org_x/y, __bsg_id, __bsg_grid_dim_x/y, and __bsg_tile_group_id_x/y symbols. */
+  __bsg_x = . + 0xEDC;
+  __bsg_y = . + 0xEE0;
+  __bsg_grp_org_x = . + 0xEE4;
+  __bsg_grp_org_y = . + 0xEE8;
+  __bsg_id = . + 0xEEC;
+  __bsg_grid_dim_x = . + 0xEF0;
+  __bsg_grid_dim_y = . + 0xEF4;
+  __bsg_tile_group_id_x = . + 0xEF8;
+  __bsg_tile_group_id_y = . + 0xEFC;
 
   /* data segment */
   .data : { *(.data) }
