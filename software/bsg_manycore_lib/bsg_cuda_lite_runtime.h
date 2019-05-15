@@ -43,13 +43,13 @@ int kernel_regs[4] __attribute__ ((section ("CUDA_RTL"))) = { 0x0 };
 
 
 
-
+/*
 #define BSG_TILE_GROUP_X_DIM bsg_tiles_X
 #define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
 #include "bsg_tile_group_barrier.h"
 
 INIT_TILE_GROUP_BARRIER(main_r_barrier, main_c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
-
+*/
 
 
 
@@ -92,7 +92,6 @@ int write_signal ()
               __invoke_kernel:                                               \
                 jalr      s1");                                              \
                                                                              \
-           bsg_tile_group_barrier(&main_r_barrier, &main_c_barrier);         \
                                                                              \
            asm("li        t0           ,    0x8;                             \
                                                                              \
