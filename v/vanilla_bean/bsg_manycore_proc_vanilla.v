@@ -79,6 +79,8 @@ module bsg_manycore_proc_vanilla
   logic [data_width_p-1:0] in_data_lo;
   logic [(data_width_p>>3)-1:0] in_mask_lo;
   logic in_yumi_li;
+  logic [x_cord_width_p-1:0] in_src_x_cord_lo;
+  logic [y_cord_width_p-1:0] in_src_y_cord_lo;
 
   bsg_manycore_packet_s out_packet_li;
   logic out_v_li;
@@ -118,8 +120,8 @@ module bsg_manycore_proc_vanilla
     ,.in_mask_o(in_mask_lo)
     ,.in_addr_o(in_addr_lo)
     ,.in_we_o(in_we_lo)
-    ,.in_src_x_cord_o()
-    ,.in_src_y_cord_o()
+    ,.in_src_x_cord_o(in_src_x_cord_lo)
+    ,.in_src_y_cord_o(in_src_y_cord_lo)
 
     ,.out_packet_i(out_packet_li)
     ,.out_v_i(out_v_li)
@@ -364,36 +366,24 @@ module bsg_manycore_proc_vanilla
     
 
   wire local_epa_request = core_mem_v & (~out_request);// not a remote packet
-  wire [1:0] xbar_port_v_in = {local_epa_request, remote_access_dmem};
 
-
-  wire [1:0] xbar_port_we_in = {core_mem_w, in_we_lo};
-  wire [1:0] xbar_port_yumi_out;
-  wire [1:0][data_width_p-1:0] xbar_port_data_in = {core_mem_wdata, in_data_lo};
-
-
-  wire [1:0][mem_width_lp-1:0] xbar_port_addr_in = {core_mem_addr[2+:mem_width_lp]
-                                                     ,in_addr_lo[0+:mem_width_lp]};
-  wire [1:0][(data_width_p>>3)-1:0] xbar_port_mask_in = {core_mem_mask, in_mask_lo};
-
-
-  // local mem yumi the data from the core
-  assign core_mem_yumi = xbar_port_yumi_out[1];
-
-  // local mem yumi the data from the network
-  assign in_yumi_li = xbar_port_yumi_out[0] | remote_store_icache | is_config_op;
-
-  //the local memory or network can consume the store data
-  assign to_mem_yumi_li = (xbar_port_yumi_out[1] | launching_out);
-
+  // crossbar mem
   // [0] = remote
   // [1] = local
+  wire [1:0] xbar_port_v_in = {local_epa_request, remote_access_dmem};
+  wire [1:0] xbar_port_we_in = {core_mem_w, in_we_lo};
+  wire [1:0][data_width_p-1:0] xbar_port_data_in = {core_mem_wdata, in_data_lo};
+  wire [1:0][mem_width_lp-1:0] xbar_port_addr_in =
+    {core_mem_addr[2+:mem_width_lp], in_addr_lo[0+:mem_width_lp]};
+  wire [1:0][(data_width_p>>3)-1:0] xbar_port_mask_in = {core_mem_mask, in_mask_lo};
+  wire [1:0] xbar_port_yumi_out;
+
   bsg_mem_banked_crossbar #(
     .num_ports_p(2)
     ,.num_banks_p(1)
     ,.bank_size_p(dmem_size_p)
     ,.data_width_p(data_width_p)
-    ,.rr_lo_hi_p(5) // dynmaic priority based on FIFO status
+    ,.rr_lo_hi_p(5)
   ) bnkd_xbar (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -406,11 +396,13 @@ module bsg_manycore_proc_vanilla
     ,.mask_i(xbar_port_mask_in)
     ,.yumi_o(xbar_port_yumi_out)
 
-    // whether the crossbar accepts the input
     ,.v_o({core_mem_rv, load_returning_v})
     ,.data_o({core_mem_rdata, load_returning_data})
   );
 
+  assign core_mem_yumi = xbar_port_yumi_out[1];
+  assign in_yumi_li = xbar_port_yumi_out[0] | remote_store_icache | is_config_op;
+  assign to_mem_yumi_li = (xbar_port_yumi_out[1] | launching_out);
 
   // ----------------------------------------------------------------------------------------
   // Handle the control registers
