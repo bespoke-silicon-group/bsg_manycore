@@ -66,7 +66,9 @@ int write_signal ()
 
 
 #define __wait_until_valid_func()                                            \
-        asm("__wait_until_valid_func:                                        \
+        asm("__wait_until_valid_func:");                                     \
+        bsg_set_tile_x_y();                                                  \
+        asm("                                                                \
                li         s0           ,    0x1000;                          \
                li         t0           ,    0x1;                             \
                lr.w       t1           ,    0 (  s0  );                      \
