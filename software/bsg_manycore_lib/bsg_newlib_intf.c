@@ -33,3 +33,7 @@ void bsg_newlib_exit(int exit_status) {
 
   bsg_wait_while(1);
 }
+
+void bsg_newlib_send_char(char ch) {
+  bsg_putchar(ch);
+}
