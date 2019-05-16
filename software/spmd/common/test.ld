@@ -59,6 +59,7 @@ SECTIONS
     *(.tbss)
     *crt.o(.tbss.end)
   }
+  .rodata : { *(.rodata) }
   .eh_frame : { *(.eh_frame) }
   /* RISC-V 32 has a 4 byte word size */
   .striped.data ALIGN(bsg_group_size * 4): {
@@ -66,9 +67,11 @@ SECTIONS
     *(.striped.data)
   }
 
+  _bsg_data_end_addr = . - SIZEOF(.striped.data) + (SIZEOF(.striped.data) / bsg_group_size);
+  _bsg_bin_end_addr = .;
   /* End of uninitalized data segement */
-  _bsg_data_end_addr = .;
-  ASSERT((_bsg_data_end_addr - SIZEOF(.striped.data) + SIZEOF(.striped.data) / bsg_group_size) < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
+  /* _bsg_data_end_addr = .; */
+  ASSERT(_bsg_data_end_addr < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
   
   /*The DRAM content is start at zero, 
    *The instruction fetch unit and the loader will send address that 
@@ -87,7 +90,7 @@ SECTIONS
    * Instead we just use a faked physical address and assumpt the phiscal address is aslo zero in the loader
    */
   _bsg_dram_start_addr = 0x80000000;
-  .text 0x80000000 : AT ( _bsg_data_end_addr ){
+  .text 0x80000000 : AT ( _bsg_bin_end_addr ){
           *crt.o(.text)
           *(.text)
           *(.text.startup)

@@ -29,7 +29,7 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_newlib
 
 # flags
-OPT_LEVEL ?= -O0
+OPT_LEVEL ?= -O2
 RISCV_GCC_EXTRA_OPTS ?=
 RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common
 RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
@@ -111,6 +111,7 @@ else
 %.o: %.c
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
 endif
+
 
 %.o: %.S
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -D__ASSEMBLY__=1 \
