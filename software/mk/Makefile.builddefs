@@ -26,7 +26,6 @@ HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
 
 VPATH += $(BSG_MANYCORE_DIR)/software/spmd/common
 VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
-VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_newlib
 
 # flags
 OPT_LEVEL ?= -O2
@@ -54,7 +53,7 @@ BSG_MANYCORE_LIB_OBJS+= bsg_set_tile_x_y.o
 BSG_MANYCORE_LIB_OBJS+= bsg_printf.o
 
 ifeq ($(BSG_NEWLIB) ,1)
-  BSG_MANYCORE_LIB_OBJS+= bsg_newlib_init.o
+  BSG_MANYCORE_LIB_OBJS+= bsg_newlib_intf.o
 endif
 
 BSG_MANYCORE_LIB = bsg_manycore_lib.a
