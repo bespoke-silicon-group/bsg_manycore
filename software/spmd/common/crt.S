@@ -48,13 +48,14 @@ _start:
 
 #ifdef __bsg_newlib
   call bsg_newlib_init
-#endif
-
   lw a0, 0(sp)                    # argc
   addi a1, sp, __SIZEOF_POINTER__ # argv
   li a2, 0                        # envp = NULL
   call main
   tail exit
+#else
+  j main
+#endif
 
 # Should never reach this
 1:
