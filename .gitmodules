@@ -6,3 +6,6 @@
 	path = imports/coremark
 	url = https://github.com/eembc/coremark.git
   ignore = dirty
+[submodule "imports/greenlight"]
+	path = imports/greenlight
+	url = https://bitbucket.org/taylor-bsg/greenlight/src/master/
