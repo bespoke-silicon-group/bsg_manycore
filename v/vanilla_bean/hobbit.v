@@ -83,7 +83,14 @@ wb_signals_s wb;
 //|
 //+----------------------------------------------
 // Stall and exception logic
-logic stall, stall_non_mem, stall_mem, stall_lrw, stall_md;
+logic stall;
+logic stall_non_mem;
+logic stall_mem;
+logic stall_lrw;
+logic stall_md;
+logic stall_ifetch;
+logic stall_iwrite;
+logic stall_mem_req;
 logic stall_fence;
 logic depend_stall;
 logic stall_load_wb;
@@ -107,25 +114,20 @@ logic insert_load_in_exe;
 decode_s decode;
 
 assign data_mem_valid = is_load_buffer_valid | current_load_arrived;
-
-assign stall_non_mem = icache_v_i | stall_md | freeze_i; 
-
-// stall due to fence instruction
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
-
-// Load write back stall: stall to write back loaded data 
-// if the input buffer is full and it can't be inserted in any
-// stage
-assign stall_load_wb = pending_load_arrived
-                         & from_mem_i.buf_full
-                         & ~exe_free_for_load;;
+assign stall_mem_req = (exe.decode.is_mem_op & (~to_mem_yumi_i));
+assign stall_ifetch = (mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss);
+assign stall_load_wb = pending_load_arrived & from_mem_i.buf_full & ~exe_free_for_load;
 
 // stall due to data memory access
-assign stall_mem = (exe.decode.is_mem_op & (~to_mem_yumi_i))
-                     | (mem.decode.is_load_op & (~data_mem_valid) & mem.icache_miss)
-                     | stall_fence
-                     | stall_lrw
-                     | stall_load_wb;
+assign stall_mem = stall_mem_req
+                 | stall_ifetch
+                 | stall_fence
+                 | stall_lrw
+                 | stall_load_wb;
+
+assign stall_iwrite = icache_v_i;
+assign stall_non_mem = stall_iwrite | stall_md | freeze_i; 
 
 // Stall if LD/ST still active; or in non-RUN state
 assign stall = (stall_non_mem | stall_mem);
