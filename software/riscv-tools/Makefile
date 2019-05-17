@@ -28,6 +28,8 @@
 TOOLCHAIN_REPO=riscv-gnu-toolchain
 TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
 DEPENDS_DIR=$(CURDIR)/depends
+BSG_NEWLIB_URL=https://bitbucket.org/taylor-bsg/bsg_hammerblade_newlib.git
+BSG_NEWLIB_BRANCH=bsg_manycore_newlib
 
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
 
@@ -46,7 +48,7 @@ export SHELL:=$(SHELL)
 
 nothing:
 
-checkout-all:
+checkout-repos:
 	mkdir -p $(DEPENDS_DIR);	
 	mkdir -p $(RISCV);
 	@echo "====================================="
@@ -60,12 +62,15 @@ checkout-all:
 	@echo "Cloning riscv-toolchain repo..."
 	@echo "====================================="
 	@rm -rf $(TOOLCHAIN_REPO);
-	git clone $(TOOLCHAIN_URL);
-	cd $(TOOLCHAIN_REPO) && git submodule init;
-	cd $(TOOLCHAIN_REPO) && git config submodule.riscv-newlib.url \
-		https://bitbucket.org/taylor-bsg/bsg_hammerblade_newlib.git;
-	cd $(TOOLCHAIN_REPO) && git submodule update --recursive
-	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout bsg_manycore_newlib
+	git clone --recursive $(TOOLCHAIN_URL);
+
+replace-newlib:
+	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.url $(BSG_NEWLIB_URL)
+	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.branch $(BSG_NEWLIB_BRANCH)
+	cd $(TOOLCHAIN_REPO) && git submodule sync
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive --remote riscv-newlib
+
+checkout-all: checkout-repos replace-newlib
 
 build-deps:
 	@echo "====================================="
@@ -80,6 +85,9 @@ build-deps:
 	done
 
 configure-riscv-gnu-tools:
+	@echo "====================================="
+	@echo "Configuring toolchain..."
+	@echo "====================================="
 	cd riscv-gnu-toolchain && \
 		./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32ima --with-abi=ilp32
 
@@ -89,13 +97,7 @@ build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	cd riscv-gnu-toolchain && make -j 16 newlib && make install
 
-build-all: build-deps build-riscv-gnu-tools rebuild-newlib
-
-# Following libs will be placed in the dram
-LIB_LIST = \
-	$(CURDIR)/riscv-install/lib/gcc/riscv32-unknown-elf/8.3.0/libgcc.a \
-	$(CURDIR)/riscv-install/riscv32-unknown-elf/lib/libc.a \
-	$(CURDIR)/riscv-install/riscv32-unknown-elf/lib/libgloss.a
+build-all: build-deps build-riscv-gnu-tools
 
 rebuild-newlib:
 	make -C $(TOOLCHAIN_REPO)/build-newlib
