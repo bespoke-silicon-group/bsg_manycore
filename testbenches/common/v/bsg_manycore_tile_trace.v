@@ -1,15 +1,17 @@
 
 
-module bsg_manycore_tile_trace #(bsg_manycore_link_sif_width_lp="inv"
-                                 ,packet_width_lp="inv"
-                                 ,return_packet_width_lp="inv"
-                                 ,x_cord_width_p="inv"
-                                 ,y_cord_width_p="inv"
-                                 ,addr_width_p="inv"
-                                 ,data_width_p="inv"
-                                 ,load_id_width_p="inv"
-                                 ,dirs_lp=4
-                                 ,num_nets_lp=2)
+module bsg_manycore_tile_trace #(
+  bsg_manycore_link_sif_width_lp="inv"
+  ,packet_width_lp="inv"
+  ,return_packet_width_lp="inv"
+  ,x_cord_width_p="inv"
+  ,y_cord_width_p="inv"
+  ,addr_width_p="inv"
+  ,data_width_p="inv"
+  ,load_id_width_p="inv"
+  ,dirs_lp=4
+  ,num_nets_lp=2
+  )
    (input clk_i
     , input  [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_i
     , input [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_o
