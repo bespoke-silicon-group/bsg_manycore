@@ -91,27 +91,6 @@ int write_signal ()
                 lw        a6           ,    24 ( s3  );                      \
                 lw        a7           ,    28 ( s3  );                      \
                                                                              \
-              __invoke_kernel:                                               \
-                jalr      s1");                                              \
-                                                                             \
-                                                                             \
-           asm("li        t0           ,    0x8;                             \
-                                                                             \
-             __kernel_return:                                                \
-                li        t0           ,    0x1;                             \
-                sw        t0           ,    0 ( s0   );                      \
-           ");                                                               \
-           write_signal();                                                   \
-           asm("j         __wait_until_valid_func");
-
-
-
-
-
-
-// The following are untested and cast aside for now 
-
-/*
                 li        t0           ,    0x8;                             \
                 bge       t0           ,    s2        ,     __invoke_kernel; \
                                                                              \
@@ -135,18 +114,22 @@ int write_signal ()
               __invoke_kernel:                                               \
                 jalr      s1");                                              \
                                                                              \
-                                                                             \
            asm("li        t0           ,    0x8;                             \
                 bge       t0           ,    s2        ,     __kernel_return; \
                 addi      t0           ,    s2        ,     -0x8;            \
                 slli      t0           ,    t0        ,     0x2;             \
                 add       sp           ,    sp        ,     t0;              \
                                                                              \
+             __kernel_return:                                                \
+                li        t0           ,    0x1;                             \
+                sw        t0           ,    0 ( s0   );                      \
+           ");                                                               \
+           write_signal();                                                   \
+           asm("j         __wait_until_valid_func");
 
 
 
-           bsg_tile_group_barrier(&main_r_barrier, &main_c_barrier);         \
-*/ 
+//           bsg_tile_group_barrier(&main_r_barrier, &main_c_barrier);         \
 
 
 #endif
