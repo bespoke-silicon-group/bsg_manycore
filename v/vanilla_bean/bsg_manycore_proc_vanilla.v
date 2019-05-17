@@ -377,6 +377,7 @@ module bsg_manycore_proc_vanilla
     {core_mem_addr[2+:mem_width_lp], in_addr_lo[0+:mem_width_lp]};
   wire [1:0][(data_width_p>>3)-1:0] xbar_port_mask_in = {core_mem_mask, in_mask_lo};
   wire [1:0] xbar_port_yumi_out;
+  wire [1:0][data_width_p-1:0] xbar_port_data_out;
 
   bsg_mem_banked_crossbar #(
     .num_ports_p(2)
@@ -397,9 +398,11 @@ module bsg_manycore_proc_vanilla
     ,.yumi_o(xbar_port_yumi_out)
 
     ,.v_o({core_mem_rv, load_returning_v})
-    ,.data_o({core_mem_rdata, load_returning_data})
+    ,.data_o(xbar_port_data_out)
   );
 
+  assign load_returning_data = xbar_port_data_out[0];
+  assign core_mem_rdata = xbar_port_data_out[1];
   assign core_mem_yumi = xbar_port_yumi_out[1];
   assign in_yumi_li = xbar_port_yumi_out[0] | remote_store_icache | is_config_op;
   assign to_mem_yumi_li = (xbar_port_yumi_out[1] | launching_out);
