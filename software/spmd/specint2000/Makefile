@@ -1,7 +1,15 @@
 BENCHMARKS = 000.plain
 BENCHMARKS+= 000.test
 
-all: $(patsubst %,%.run,$(BENCHMARKS))
+RUNS = $(patsubst %,%.run,$(BENCHMARKS))
+
+all: $(RUNS)
 
 %.run:
-	make Makefile.$*
+	make -f Makefile.$*
+	make -f Makefile.$* clean
+
+clean:
+	for benchmark in $(BENCHMARKS) ; do \
+	make -f Makefile.$$benchmark clean; \
+	done;
