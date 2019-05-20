@@ -32,9 +32,9 @@ all: main.run
 # for a quick debug of processor or program running on it.
 proc_exe_logs: X0_Y0.pelog X1_Y0.pelog
 
-KERNEL_NAME ?=kernel_vec_add
+KERNEL_NAME ?=kernel_vec_add_parallel_multi_grid
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_vec_add.o 
+OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_vec_add_parallel_multi_grid.o 
 
 include ../../Makefile.include
 
