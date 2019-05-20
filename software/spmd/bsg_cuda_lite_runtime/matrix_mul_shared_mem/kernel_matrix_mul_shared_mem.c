@@ -37,7 +37,7 @@ void __attribute__ ((noinline)) subblock2shmem_xposed (int *A, int *sh_dest, int
 	for (int iter_y = __bsg_y; iter_y < block_size_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = __bsg_x; iter_x < block_size_x; iter_x += bsg_tiles_X) { 
 			// sh_dest[iter_x][iter_y] <-- A[iter_y + start_y][iter_x + start_x]
-			bsg_tilegroup_store (sh_dest, (iter_x * block_size_x + iter_y), A[((iter_y + start_y) * N + iter_x + start_x)]);
+			bsg_tilegroup_store (sh_dest, (iter_x * block_size_y + iter_y), A[((iter_y + start_y) * N + iter_x + start_x)]);
 		}
 	}
 	return; 
