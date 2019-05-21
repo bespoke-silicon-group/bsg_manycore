@@ -37,12 +37,15 @@ RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
 ifeq ($(BSG_NEWLIB), 1)
   RISCV_GCC_OPTS +=-D__bsg_newlib
+  RISCV_GCC_OPTS +=-D__bsg_argc=$(ARGC)
+  RISCV_GCC_OPTS +=-D__bsg_argv=$(ARGV)
 endif
 
 SPMD_COMMON_OBJECTS ?=
 
 ifeq ($(BSG_NEWLIB), 1)
 SPMD_COMMON_OBJECTS += lfs.o
+SPMD_COMMON_OBJECTS += args.o
 
 lfs.c:
 	$(RISCV_BIN_DIR)/../riscv32-unknown-elf/bin/bsg_newlib_mklfs 128 64 $(IN_FILES) > $@
