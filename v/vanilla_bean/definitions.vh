@@ -39,13 +39,13 @@ typedef struct packed {
 
 
 typedef struct packed {
+  logic        is_float_wb;
   logic        icache_fetch;
   logic        is_unsigned_op;
   logic        is_byte_op;
   logic        is_hex_op;
   logic [1:0]  part_sel;
   logic [4:0]  reg_id;
-  logic        is_float_wb;
 } load_info_s;
 
 
