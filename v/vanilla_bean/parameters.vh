@@ -77,8 +77,8 @@
 `define RV32_Utype(op)                 {{20{1'b?}},{5{1'b?}},``op``}
 
 // RV32IM Instruction encodings
-// We have to delete the white spcae in micro definition, otherwise Design
-// Compilter would issue warings.
+// We have to delete the white space in macro definition,
+// otherwise Design Compiler would issue warings.
 `define RV32_LUI       `RV32_Utype(`RV32_LUI_OP)
 `define RV32_AUIPC     `RV32_Utype(`RV32_AUIPC_OP)
 `define RV32_JAL       `RV32_Utype(`RV32_JAL_OP)
@@ -137,6 +137,36 @@
 `define RV32_CSRRSI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRSI_FUN3)
 `define RV32_CSRRCI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRCI_FUN3)
 
+// RV32F Instruction Encodings
+`define RV32_FADD_S `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0000000)
+`define RV32_FSUB_S `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0000100)
+`define RV32_FMUL_S `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0001000)
+
+`define RV32_FSGNJ_S  `RV32_Rtype(`RV32_OP_FP, 3'b000, 7'b0010000)
+`define RV32_FSGNJN_S `RV32_Rtype(`RV32_OP_FP, 3'b001, 7'b0010000)
+`define RV32_FSGNJX_S `RV32_Rtype(`RV32_OP_FP, 3'b010, 7'b0010000)
+
+`define RV32_FMIN_S `RV32_Rtype(`RV32_OP_FP, 3'b000, 7'b0010100)
+`define RV32_FMAX_S `RV32_Rtype(`RV32_OP_FP, 3'b001, 7'b0010100)
+
+`define RV32_FEQ_S `RV32_Rtype(`RV32_OP_FP, 3'b010, 7'b1010000)
+`define RV32_FLT_S `RV32_Rtype(`RV32_OP_FP, 3'b001, 7'b1010000)
+`define RV32_FLE_S `RV32_Rtype(`RV32_OP_FP, 3'b000, 7'b1010000)
+
+`define RV32_FCLASS_S {7'b1110000, 5'b00000, 5'b?????, 3'001, 5'b?????, `RV32_OP_FP}
+
+`define RV32_FCVT_S_W  {7'b1101000, 5'b00000, 5'b?????, 3'???, 5'b?????, `RV32_OP_FP}
+`define RV32_FCVT_S_WU {7'b1101000, 5'b00001, 5'b?????, 3'???, 5'b?????, `RV32_OP_FP}
+
+`define RV32_FMV_W_S {7'b1111000, 5'b0000, 5'b?????, 3'b000, 5'b?????, `RV32_OP_FP}
+`define RV32_FMV_S_W {7'b1110000, 5'b0000, 5'b?????, 3'b000, 5'b?????, `RV32_OP_FP}
+
+`define RV32_FCVT_W_S  {7'b1100000, 5'b00000, 5'b?????, 3'b???, 5'b?????, `RV32_OP_FP}
+`define RV32_FCVT_WU_S {7'b1100000, 5'b00001, 5'b?????, 3'b???, 5'b?????, `RV32_OP_FP}
+
+`define RV32_FLW_S `RV32_Itype(`RV32_LOAD_FP, 3'b010)
+`define RV32_FSW_S `RV32_Itype(`RV32_STORE_FP, 3'b010)
+
 // RV32 Immediate sign extension macros
 `define RV32_signext_Iimm(instr) {{21{``instr``[31]}},``instr``[30:20]}
 `define RV32_signext_Simm(instr) {{21{``instr``[31]}},``instr[30:25],``instr``[11:7]}
@@ -169,6 +199,7 @@ localparam RV32_Simm_width_gp     = 12;
 localparam RV32_Bimm_width_gp     = 12;
 localparam RV32_Uimm_width_gp     = 20;
 localparam RV32_Jimm_width_gp     = 20;
+
 /////////////////////////////////////////////////////
 // The MSB indicator of the address in bytes.
 `define MC_DMEM_MASK_BITS 12  
