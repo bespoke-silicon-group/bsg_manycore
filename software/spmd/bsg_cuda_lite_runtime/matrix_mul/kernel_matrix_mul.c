@@ -6,6 +6,11 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
+#define BSG_TILE_GROUP_X_DIM bsg_tiles_X
+#define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
+#include "bsg_tile_group_barrier.h"
+INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
+
 int  __attribute__ ((noinline)) kernel_matrix_mul(int *A, int *B, int *C, int M, int N, int P, int block_size_y, int block_size_x) {
 
 
@@ -26,5 +31,8 @@ int  __attribute__ ((noinline)) kernel_matrix_mul(int *A, int *B, int *C, int M,
 			C[iter_y * P + iter_x] = sum;
 		}
 	}
+
+	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
+
 	return 0;
 }
