@@ -32,7 +32,7 @@ module test_bsg_manycore;
 
   localparam data_width_lp = 32;
   localparam addr_width_lp = 32-2-1-lg_node_x_lp+1;
-  localparam load_id_width_lp = 11;
+  localparam load_id_width_lp = 12;
 
   localparam dmem_size_lp = 1024;
   localparam icache_entries_num_lp = 1024;
