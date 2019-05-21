@@ -45,13 +45,14 @@ typedef struct packed {
   logic        is_hex_op;
   logic [1:0]  part_sel;
   logic [4:0]  reg_id;
+  logic        is_float_wb;
 } load_info_s;
 
 
 typedef union packed {
   logic [31:0] write_data; // stores send store data
   struct packed {          // loads send reg_id to be loaded
-    logic [20:0] rsvd;
+    logic [19:0] rsvd;
     load_info_s load_info;
   } read_info; 
 } mem_payload_u;
@@ -106,35 +107,43 @@ typedef struct packed
     //for atomic swap
     logic op_is_swap_aq;
     logic op_is_swap_rl;
+
+    //for F extension
+    logic op_reads_fp_rf1;  // reads rf1 of FP regfile
+    logic op_reads_fp_rf2;  // reads rf1 of FP regfile
+    logic is_fp_wb;         // writes back to FP regfile
+    logic is_fp_instr;      // goes into FP pipeline
+    logic is_signed_int;  // f2i, i2f with signed?
+
 } decode_s;
 
 // Instruction decode stage signals
 typedef struct packed
 {
-    logic [RV32_reg_data_width_gp-1:0] pc_plus4;     // PC + 4
+    logic [RV32_reg_data_width_gp-1:0] pc_plus4;          // PC + 4
     logic [RV32_reg_data_width_gp-1:0] pred_or_jump_addr; // Jump target PC
-    instruction_s                      instruction;  // Instruction being executed
-    decode_s                           decode;       // Decode signals
+    instruction_s                      instruction;       // Instruction being executed
+    decode_s                           decode;            // Decode signals
     logic                              icache_miss;
 } id_signals_s;
 
 // Execute stage signals
 typedef struct packed
 {
-    logic [RV32_reg_data_width_gp-1:0] pc_plus4;     // PC + 4
+    logic [RV32_reg_data_width_gp-1:0] pc_plus4;          // PC + 4
     logic [RV32_reg_data_width_gp-1:0] pred_or_jump_addr; // Jump target PC
-    instruction_s                      instruction;  // Instruction being executed
-    decode_s                           decode;       // Decode signals
-    logic [RV32_reg_data_width_gp-1:0] rs1_val;      // RF output data from RS1 address
-    logic [RV32_reg_data_width_gp-1:0] rs2_val;      // RF output data from RS2 address
+    instruction_s                      instruction;       // Instruction being executed
+    decode_s                           decode;            // Decode signals
+    logic [RV32_reg_data_width_gp-1:0] rs1_val;           // RF output data from RS1 address
+    logic [RV32_reg_data_width_gp-1:0] rs2_val;           // RF output data from RS2 address
 
-    logic [RV32_reg_data_width_gp-1:0] mem_addr_op2; // the second operands to compute
-                                                     // memory address
+    logic [RV32_reg_data_width_gp-1:0] mem_addr_op2;      // the second operands to compute
+                                                          // memory address
 
-    logic                              rs1_in_mem;   // pre-computed forwarding signal
-    logic                              rs1_in_wb ;   // pre-computed forwarding signal
-    logic                              rs2_in_mem;   // pre-computed forwarding signal
-    logic                              rs2_in_wb ;   // pre-computed forwarding signal
+    logic                              rs1_in_mem;        // pre-computed forwarding signal
+    logic                              rs1_in_wb ;        // pre-computed forwarding signal
+    logic                              rs2_in_mem;        // pre-computed forwarding signal
+    logic                              rs2_in_wb ;        // pre-computed forwarding signal
     logic                              icache_miss;
 } exe_signals_s;
 
