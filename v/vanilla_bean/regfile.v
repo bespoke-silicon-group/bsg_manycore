@@ -10,7 +10,7 @@
 module regfile
   #(parameter width_p = "inv"
     , parameter els_p = "inv"
-
+    , parameter is_float_p = 0 // if it's FP regfile, then x0 is not tied to zero.
     , localparam addr_width_lp = `BSG_SAFE_CLOG2(els_p)
   )
   ( 
@@ -47,13 +47,13 @@ module regfile
 
   assign r0_v_li = r0_rw_same_addr
     ? 1'b0
-    : r0_v_i & (r0_addr_i != '0);
+    : r0_v_i & ((is_float_p != 0) | r0_addr_i != '0);
 
   assign r1_v_li = r1_rw_same_addr
     ? 1'b0
-    : r1_v_i & (r1_addr_i != '0);
+    : r1_v_i & ((is_float_p != 0) | r1_addr_i != '0);
 
-  assign w_v_li = w_v_i & (w_addr_i != '0);
+  assign w_v_li = w_v_i & ((is_float_p != 0) | w_addr_i != '0);
 
   bsg_mem_2r1w_sync #(
     .width_p(width_p)
@@ -124,11 +124,11 @@ module regfile
     ? w_data_i
     : w_data_r;
 
-  assign r0_data_o = (r0_addr_r == '0)
+  assign r0_data_o = ((r0_addr_r == '0) & (is_float_p == 0))
     ? '0
     : (r0_v_r ? r0_safe_data : r0_data_r);
 
-  assign r1_data_o = (r1_addr_r == '0)
+  assign r1_data_o = ((r1_addr_r == '0) & (is_float_p == 0))
     ? '0
     : (r1_v_r ? r1_safe_data : r1_data_r);
 
@@ -140,8 +140,6 @@ module regfile
       r1_rw_same_addr_r <= 1'b0;
       r0_v_r <= 1'b0;
       r1_v_r <= 1'b0;
-      //r0_addr_r <= '0;
-      //r1_addr_r <= '0;
     end
     else begin
       r0_rw_same_addr_r <= r0_rw_same_addr;
