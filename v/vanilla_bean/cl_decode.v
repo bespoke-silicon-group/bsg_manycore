@@ -31,11 +31,6 @@ always_comb begin
               | ((instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
         end
 
-        `RV32_LOAD_FP: begin
-            decode_o.op_writes_rf = 1'b1;
-        end
-        
-
         default:
             decode_o.op_writes_rf = 1'b0;
     endcase
