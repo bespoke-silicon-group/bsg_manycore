@@ -198,6 +198,7 @@ always_comb begin
                                            ,is_hex_op      : exe.decode.is_hex_op
                                            ,part_sel       : mem_addr_send[1:0]
                                            ,reg_id         : exe.instruction.rd
+                                           ,is_float_wb    : 1'b0
                                            }
                              };
   end else begin
