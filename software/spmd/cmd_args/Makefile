@@ -1,14 +1,6 @@
-bsg_tiles_X = 1
-bsg_tiles_Y = 1
 BSG_NEWLIB = 1
-
-include ../Makefile.include
-
-vpath %.c $(BENCHMARK_DIR)/src.raw
-vpath %.h $(BENCHMARK_DIR)/src.raw
-vpath %.c ./rawlib
-
-RISCV_GCC_EXTRA_OPTS = -Irawlib
+bsg_tiles_X = 2
+bsg_tiles_Y = 2
 
 #########################################################
 #each bytes defines the core type
@@ -16,7 +8,7 @@ RISCV_GCC_EXTRA_OPTS = -Irawlib
 # 01  vscale  core
 #TYPE_VEC="64'h01_01_01_01"
 
-all: $(PROG_NAME).run
+all: main.run
 
 # Rule to write processor execution logs. To be used after the
 # verilog simulation.
@@ -26,13 +18,17 @@ all: $(PROG_NAME).run
 # for a quick debug of processor or program running on it.
 proc_exe_logs: X0_Y2.pelog
 
-OBJECT_FILES=$(BENCHMARK_OBJS)
-IN_FILES=$(BENCHMARK_INPS)
+OBJECT_FILES=main.o bsg_set_tile_x_y.o
+IN_FILES=
+ARGC=2
+ARGV=\"foo\",\"bar\"
 
 ifdef DEBUG
 	RISCV_EXTRA_OPTS += -g
 	RISCV_EXTRA_OPTS += -O0
 endif
+
+include ../Makefile.include
 
 #########################################################
 #            FPU OPTION
@@ -40,10 +36,10 @@ endif
 #     be vanilla core 
 BSG_FPU_OP=0
 
-$(PROG_NAME).riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. -l:$(BSG_MANYCORE_LIB) -o $@ $(RISCV_LINK_OPTS)
 
 
-$(PROG_NAME).o: Makefile
+main.o: Makefile
 
 include ../../mk/Makefile.tail_rules

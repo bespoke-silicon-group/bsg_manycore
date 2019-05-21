@@ -48,9 +48,10 @@ _start:
 
 #ifdef __bsg_newlib
   call bsg_newlib_init
-  lw a0, 0(sp)                    # argc
-  addi a1, sp, __SIZEOF_POINTER__ # argv
-  li a2, 0                        # envp = NULL
+  call set_cmd_args
+  lw a0, 0(sp)     # argc
+  lw a1, -4(sp)    # argv
+  li a2, 0         # envp = NULL
   call main
   tail exit
 #else
