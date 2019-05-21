@@ -47,8 +47,11 @@ ifeq ($(BSG_NEWLIB), 1)
 SPMD_COMMON_OBJECTS += lfs.o
 SPMD_COMMON_OBJECTS += args.o
 
+LFS_BLK_SIZE ?= 128
+LFS_BLK_CNT ?= 64
+
 lfs.c:
-	$(RISCV_BIN_DIR)/../riscv32-unknown-elf/bin/bsg_newlib_mklfs 128 64 $(IN_FILES) > $@
+	$(RISCV_BIN_DIR)/../riscv32-unknown-elf/bin/bsg_newlib_mklfs $(LFS_BLK_SIZE) $(LFS_BLOCK_CNT) $(IN_FILES) > $@
 endif
 
 # Manycore C library archiving rule
