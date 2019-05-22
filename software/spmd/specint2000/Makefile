@@ -1,5 +1,6 @@
 BENCHMARKS = 000.plain
 BENCHMARKS+= 000.test
+BENCHMARKS+= 175.vpr
 
 RUNS = $(patsubst %,%.run,$(BENCHMARKS))
 
