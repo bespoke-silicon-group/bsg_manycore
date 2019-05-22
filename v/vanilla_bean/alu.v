@@ -1,10 +1,6 @@
 `include "parameters.vh"
 `include "definitions.vh"
 
-`ifdef bsg_FPU
-`include "float_definitions.vh"
-`endif
-
 module alu #(pc_width_p = "inv")
            ( input [RV32_reg_data_width_gp-1:0] rs1_i
             ,input [RV32_reg_data_width_gp-1:0] rs2_i
