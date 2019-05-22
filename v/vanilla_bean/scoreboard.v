@@ -4,6 +4,7 @@
 module scoreboard
  #(parameter els_p      = 32
   ,parameter id_width_p = RV32_reg_addr_width_gp 
+  ,parameter is_float_p = 0
   )
   (input                         clk_i
   ,input                         reset_i
@@ -39,7 +40,7 @@ module scoreboard
         // the pipeline should not allow a new dependency
         // on a register until the old dependency on that 
         // register is cleared.
-        if(score_i && dest_id_i==entry && (dest_id_i!='0)) begin
+        if(score_i && dest_id_i==entry && ((is_float_p != 0) | (dest_id_i!='0))) begin
           scoreboard[entry] <= 1'b1;
         end else if(clear_i && clear_id_i==entry) begin
           scoreboard[entry] <= 1'b0;
