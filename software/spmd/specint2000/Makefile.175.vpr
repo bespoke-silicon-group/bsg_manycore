@@ -1,0 +1,34 @@
+.DEFAULT_GOAL = all
+
+BENCHMARK_DIR = $(BSG_MANYCORE_DIR)/imports/greenlight/benchmarks/spec2000/CINT2000/175.vpr
+
+PROG_NAME = vpr
+
+BENCHMARK_OBJS = \
+   main.o util.o read_netlist.o read_arch.o place.o route.o \
+	 draw.o graphics.o stats.o segment_stats.o rr_graph.o \
+	 rr_graph2.o rr_graph_sbox.o rr_graph_util.o \
+	 rr_graph_timing_params.o rr_graph_area.o check_rr_graph.o \
+	 check_route.o hash.o read_place.o raw.o
+
+INPUT_TYPE = smred
+
+BENCHMARK_INPS = $(INPUT_TYPE).net small.arch.in
+
+$(BENCHMARK_INPS): %:
+	cp $(BENCHMARK_DIR)/input/$@ $@
+
+BENCHMARK_DEFS = -D__raw__ -DSPEC_CPU2000 -DNO_GRAPHICS
+
+ARGC=15
+ARGV=\"vpr\",\"$(INPUT).net\",\"small.arch.in\",\"place.out\",\"other.out\",\"-nodisp\",\"-place_only\",\"-init_t\",\"5\",\"-exit_t\",\"0.005\",\"-alpha_t\",\"0.9412\",\"-inner_num\",\"2\"
+
+# lfs disk image size
+LFS_BLOCK_SIZE = 128
+LFS_BLOCK_COUNT = 64 # 8K
+
+LINK_SCRIPT = link.ld
+
+CLEAN_ITEMS = $(BENCHMARK_INPS)
+
+include ./Makefile.common
