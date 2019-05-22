@@ -32,8 +32,8 @@ module fpu_float
 
     , input v_i
     , input fp_decode_s fp_decode_i
-    , input [data_width_p-1:0] rs1_i
-    , input [data_width_p-1:0] rs2_i
+    , input [data_width_p-1:0] a_i
+    , input [data_width_p-1:0] b_i
     , input [reg_addr_width_p-1:0] rd_i
     , output logic ready_o
 
@@ -66,8 +66,8 @@ module fpu_float
     ,.en_i(add_sub_en_li)
   
     ,.v_i(add_sub_v_li)
-    ,.a_i(rs1_i)
-    ,.b_i(rs2_i)
+    ,.a_i(a_i)
+    ,.b_i(b_i)
     ,.sub_i(sub_li)
     ,.ready_o(add_sub_ready_lo)
 
@@ -98,8 +98,8 @@ module fpu_float
     ,.en_i(mul_en_li)
 
     ,.v_i(mul_v_li)
-    ,.a_i(rs1_i)
-    ,.b_i(rs2_i)
+    ,.a_i(a_i)
+    ,.b_i(b_i)
     ,.ready_o(mul_ready_lo)
 
     ,.v_o(mul_v_lo)
@@ -131,7 +131,7 @@ module fpu_float
 
     ,.v_i(i2f_v_li)
     ,.signed_i(i2f_signed_li)
-    ,.a_i(rs1_i)
+    ,.a_i(a_i)
     ,.ready_o(i2f_ready_lo)
 
     ,.v_o(i2f_v_lo)
@@ -151,11 +151,11 @@ module fpu_float
   fpu_float_aux fp_aux (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.en_i(aux_en_i)
+    ,.en_i(aux_en_li)
     
     ,.v_i(aux_v_li)
-    ,.a_i(rs1_i)
-    ,.b_i(rs2_i)
+    ,.a_i(a_i)
+    ,.b_i(b_i)
     ,.fp_decode_i(fp_decode_i)
     ,.ready_o(aux_ready_lo)
 
@@ -246,7 +246,7 @@ module fpu_float
         v_3_r <= v_2_r;
 
         if (v_2_r) begin
-          result_3_r <= results_2_r;
+          result_3_r <= result_2_r;
         end
       end
     end
@@ -287,6 +287,10 @@ module fpu_float
       z_o = result_3_r;
       add_sub_en_li = yumi_i;
       mul_en_li = yumi_i;
+    end
+    else begin
+      mul_en_li = 1'b1;
+      add_sub_en_li =1'b1;
     end
   end
 
