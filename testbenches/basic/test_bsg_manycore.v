@@ -15,7 +15,7 @@
 
 parameter int bsg_hetero_type_vec_gp [0:`bsg_global_Y-1][0:`bsg_global_X-1]  = '{ `bsg_hetero_type_vec };
 
-`define MAX_CYCLES 5000000
+`define MAX_CYCLES 100000000
 
 
 
