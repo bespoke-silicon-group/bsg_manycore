@@ -7,7 +7,7 @@
 module fpu_float_aux
   #(parameter e_p=8
     , parameter m_p=23
-    , parameter data_width_p=RV32_reg_data_width_p
+    , parameter data_width_p=RV32_reg_data_width_gp
   )
   (
     input clk_i
@@ -17,7 +17,7 @@ module fpu_float_aux
     ,input v_i
     ,input [data_width_p-1:0] a_i
     ,input [data_width_p-1:0] b_i
-    ,input fp_decode_s fp_decode_i
+    ,input fp_float_decode_s fp_float_decode_i
     ,output logic ready_o
 
     ,output logic v_o
@@ -53,19 +53,19 @@ module fpu_float_aux
   );
 
   always_comb begin
-    if (fp_decode_i.fmin_op) begin
-      aux_result = fmin_lo;
+    if (fp_float_decode_i.fmin_op) begin
+      aux_result = min_lo;
     end
-    else if (fp_decode_i.fmax_op) begin
-      aux_result = fmax_lo;
+    else if (fp_float_decode_i.fmax_op) begin
+      aux_result = max_lo;
     end
-    else if (fp_decode_i.fsgnj_op) begin
+    else if (fp_float_decode_i.fsgnj_op) begin
       aux_result = {b_i[data_width_p-1], a_i[0+:data_width_p-1]};
     end
-    else if (fp_decode_i.fsgnjn_op) begin
+    else if (fp_float_decode_i.fsgnjn_op) begin
       aux_result = {~b_i[data_width_p-1], a_i[0+:data_width_p-1]};
     end
-    else if (fp_decode_i.fsgnjx_op) begin
+    else if (fp_float_decode_i.fsgnjx_op) begin
       aux_result = {a_i[data_width_p-1] ^ b_i[data_width_p-1], a_i[0+:data_width_p-1]};
     end
     else begin
@@ -85,7 +85,7 @@ module fpu_float_aux
     end
     else begin
       if (~stall & en_i) begin
-        v_1_r <= v_i;
+        v_r <= v_i;
         if (v_i) begin
           aux_result_r <= aux_result;
         end
