@@ -10,7 +10,8 @@ module cl_decode
 (
     input  instruction_s instruction_i
     , output decode_s decode_o
-    , output fp_decode_s fp_decode_o
+    , output fp_float_decode_s fp_float_decode_o
+    , output fp_int_decode_s fp_int_decode_o
 );
 
 
@@ -323,24 +324,24 @@ always_comb begin
 end
 
 // fp_decode_s
-assign fp_decode_o.fadd_op        = instruction_i ==? `RV32_FADD_S;
-assign fp_decode_o.fsub_op        = instruction_i ==? `RV32_FSUB_S;
-assign fp_decode_o.fmul_op        = instruction_i ==? `RV32_FMUL_S;
-assign fp_decode_o.fsgnj_op       = instruction_i ==? `RV32_FSGNJ_S;
-assign fp_decode_o.fsgnjn_op      = instruction_i ==? `RV32_FSGNJN_S;
-assign fp_decode_o.fsgnjx_op      = instruction_i ==? `RV32_FSGNJX_S;
-assign fp_decode_o.fmin_op        = instruction_i ==? `RV32_FMIN_S;
-assign fp_decode_o.fmax_op        = instruction_i ==? `RV32_FMAX_S;
-assign fp_decode_o.fcvt_s_w_op    = instruction_i ==? `RV32_FCVT_S_W;
-assign fp_decode_o.fcvt_s_wu_op   = instruction_i ==? `RV32_FCVT_S_WU;
-assign fp_decode_o.fmv_w_x_op     = instruction_i ==? `RV32_FMV_W_X;
+assign fp_float_decode_o.fadd_op        = instruction_i ==? `RV32_FADD_S;
+assign fp_float_decode_o.fsub_op        = instruction_i ==? `RV32_FSUB_S;
+assign fp_float_decode_o.fmul_op        = instruction_i ==? `RV32_FMUL_S;
+assign fp_float_decode_o.fsgnj_op       = instruction_i ==? `RV32_FSGNJ_S;
+assign fp_float_decode_o.fsgnjn_op      = instruction_i ==? `RV32_FSGNJN_S;
+assign fp_float_decode_o.fsgnjx_op      = instruction_i ==? `RV32_FSGNJX_S;
+assign fp_float_decode_o.fmin_op        = instruction_i ==? `RV32_FMIN_S;
+assign fp_float_decode_o.fmax_op        = instruction_i ==? `RV32_FMAX_S;
+assign fp_float_decode_o.fcvt_s_w_op    = instruction_i ==? `RV32_FCVT_S_W;
+assign fp_float_decode_o.fcvt_s_wu_op   = instruction_i ==? `RV32_FCVT_S_WU;
+assign fp_float_decode_o.fmv_w_x_op     = instruction_i ==? `RV32_FMV_W_X;
 
-assign fp_decode_o.feq_op         = instruction_i ==? `RV32_FEQ_W_X;
-assign fp_decode_o.fle_op         = instruction_i ==? `RV32_FLE_W_X;
-assign fp_decode_o.flt_op         = instruction_i ==? `RV32_FLT_W_X;
-assign fp_decode_o.fcvt_w_s_op    = instruction_i ==? `RV32_FCVT_W_S;
-assign fp_decode_o.fcvt_wu_s_op   = instruction_i ==? `RV32_FCVT_WU_S;
-assign fp_decode_o.fclass_op      = instruction_i ==? `RV32_FCLASS_S;
-assign fp_decode_o.fmv_x_w_op     = instruction_i ==? `RV32_FMV_X_W;
+assign fp_int_decode_o.feq_op         = instruction_i ==? `RV32_FEQ_S;
+assign fp_int_decode_o.fle_op         = instruction_i ==? `RV32_FLE_S;
+assign fp_int_decode_o.flt_op         = instruction_i ==? `RV32_FLT_S;
+assign fp_int_decode_o.fcvt_w_s_op    = instruction_i ==? `RV32_FCVT_W_S;
+assign fp_int_decode_o.fcvt_wu_s_op   = instruction_i ==? `RV32_FCVT_WU_S;
+assign fp_int_decode_o.fclass_op      = instruction_i ==? `RV32_FCLASS_S;
+assign fp_int_decode_o.fmv_x_w_op     = instruction_i ==? `RV32_FMV_X_W;
 
 endmodule

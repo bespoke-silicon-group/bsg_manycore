@@ -130,6 +130,10 @@ typedef struct packed {
   logic fcvt_s_wu_op;
   logic fmv_w_x_op;
 
+} fp_float_decode_s;
+
+typedef struct packed {
+
   logic feq_op;
   logic fle_op;
   logic flt_op;
@@ -138,7 +142,7 @@ typedef struct packed {
   logic fclass_op;
   logic fmv_x_w_op;
 
-} fp_decode_s;
+} fp_int_decode_s;
 
 // Instruction decode stage signals
 typedef struct packed

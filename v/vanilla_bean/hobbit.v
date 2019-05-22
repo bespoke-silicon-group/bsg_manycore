@@ -112,7 +112,8 @@ logic insert_load_in_exe;
 
 // Decoded control signals logic
 decode_s decode;
-fp_decode_s fp_decode;
+fp_float_decode_s fp_float_decode;
+fp_int_decode_s fp_int_decode;
 
 assign data_mem_valid = is_load_buffer_valid | current_load_arrived;
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
@@ -372,7 +373,8 @@ cl_decode cl_decode_0
 (
   .instruction_i(instruction)
   ,.decode_o(decode)
-  ,.fp_decode_o(fp_decode)
+  ,.fp_float_decode_o(fp_float_decode)
+  ,.fp_int_decode_o(fp_int_decode)
 );
 
   //+----------------------------------------------
@@ -588,6 +590,20 @@ imul_idiv_iterative md_0 (
   //if there is a stall issued at MEM stage, we can't receive the mul/div
   //result.
   ,.yumi_i(~stall_non_mem)
+);
+
+//+----------------------------------------------
+//|
+//|                FPU int pipeline
+//|
+//+----------------------------------------------
+logic [RV32_reg_data_width_gp-1:0] fpu_int_result;
+
+fpu_int fpu_int_inst (
+  .a_i('0)
+  ,.b_i('0)
+  ,.fp_int_decode_i('0)
+  ,.result_o(fpu_int_result)
 );
 
 
@@ -968,6 +984,34 @@ always_ff @ (posedge clk_i) begin
     };
   end
 end
+
+
+////////////////////
+// FP FLOAT PIPELINE
+////////////////////
+
+logic fpu_float_ready_lo;
+logic fpu_float_v_lo;
+logic [RV32_reg_data_width_gp-1:0] fpu_float_result_lo;
+logic [RV32_reg_addr_width_gp-1:0] fpu_float_rd_lo;
+
+fpu_float fpu_float_inst (
+  .clk_i(clk_i)
+  ,.reset_i(reset_i)
+
+  ,.v_i('0)
+  ,.fp_float_decode_i('0)
+  ,.a_i('0)
+  ,.b_i('0)
+  ,.rd_i('0)
+  ,.ready_o(fpu_float_ready_lo)
+
+  ,.v_o(fpu_float_v_lo)
+  ,.result_o(fpu_float_result_lo)
+  ,.rd_o(fpu_float_rd_lo)
+  ,.yumi_i('0)
+);
+
 
 
 
