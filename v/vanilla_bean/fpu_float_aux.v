@@ -7,7 +7,7 @@
 module fpu_float_aux
   #(parameter e_p=8
     , parameter m_p=23
-    , parameter data_width_p=RV32_reg_data_width_p
+    , parameter data_width_p=RV32_reg_data_width_gp
   )
   (
     input clk_i
@@ -54,10 +54,10 @@ module fpu_float_aux
 
   always_comb begin
     if (fp_decode_i.fmin_op) begin
-      aux_result = fmin_lo;
+      aux_result = min_lo;
     end
     else if (fp_decode_i.fmax_op) begin
-      aux_result = fmax_lo;
+      aux_result = max_lo;
     end
     else if (fp_decode_i.fsgnj_op) begin
       aux_result = {b_i[data_width_p-1], a_i[0+:data_width_p-1]};
@@ -85,7 +85,7 @@ module fpu_float_aux
     end
     else begin
       if (~stall & en_i) begin
-        v_1_r <= v_i;
+        v_r <= v_i;
         if (v_i) begin
           aux_result_r <= aux_result;
         end
