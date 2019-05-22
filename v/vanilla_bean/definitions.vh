@@ -111,11 +111,24 @@ typedef struct packed
     //for F extension
     logic op_reads_fp_rf1;  // reads rf1 of FP regfile
     logic op_reads_fp_rf2;  // reads rf1 of FP regfile
-    logic is_fp_wb;         // writes back to FP regfile
+    logic op_writes_fp_rf;         // writes back to FP regfile
     logic is_fp_instr;      // goes into FP pipeline
     logic is_signed_int;  // f2i, i2f with signed?
 
 } decode_s;
+
+typedef struct packed {
+  logic add_op;
+  logic sub_op;
+  logic mul_op;
+  logic sgnj_op;
+  logic sgnjn_op;
+  logic sgnjx_op;
+  logic min_op;
+  logic max_op;
+  logic ui2f_op;
+  logic i2f_op;
+} fp_decode_s;
 
 // Instruction decode stage signals
 typedef struct packed
@@ -146,6 +159,15 @@ typedef struct packed
     logic                              rs2_in_wb ;        // pre-computed forwarding signal
     logic                              icache_miss;
 } exe_signals_s;
+
+// FP Execute stage signals
+typedef struct packed
+{
+  logic [RV32_reg_data_width_gp-1:0] rs1_val;
+  logic [RV32_reg_data_width_gp-1:0] rs2_val;
+  logic [RV32_reg_addr_width_gp-1:0] rd;
+  
+} fp_exe_signals_s;
 
 // Memory stage signals
 typedef struct packed

@@ -8,8 +8,9 @@
  */
 module cl_decode
 (
-    input  instruction_s instruction_i,
-    output decode_s      decode_o
+    input  instruction_s instruction_i
+    , output decode_s decode_o
+    , output fp_decode_s fp_decode_o
 );
 
 
@@ -227,7 +228,7 @@ always_comb begin
     `RV32_FMIN_S,  `RV32_FMAX_S: begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b1;
-      decode_o.is_fp_wb = 1'b1;
+      decode_o.op_writes_fp_rf = 1'b1;
       decode_o.is_fp_instr = 1'b1;
       decode_o.is_signed_int = 1'b0;
     end
@@ -235,7 +236,7 @@ always_comb begin
     `RV32_FEQ_S, `RV32_FLT_S, `RV32_FLE_S: begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b1;
-      decode_o.is_fp_wb = 1'b0;
+      decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
       decode_o.is_signed_int = 1'b0;
     end
@@ -243,7 +244,7 @@ always_comb begin
     `RV32_FCLASS_S: begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.is_fp_wb = 1'b0;
+      decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
       decode_o.is_signed_int = 1'b0;
     end
@@ -252,7 +253,7 @@ always_comb begin
     `RV32_FCVT_S_W: begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.is_fp_wb = 1'b1;
+      decode_o.op_writes_fp_rf = 1'b1;
       decode_o.is_fp_instr = 1'b1;
       decode_o.is_signed_int = 1'b1;
     end
@@ -261,7 +262,7 @@ always_comb begin
     `RV32_FCVT_S_WU: begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.is_fp_wb = 1'b1;
+      decode_o.op_writes_fp_rf = 1'b1;
       decode_o.is_fp_instr = 1'b1;
       decode_o.is_signed_int = 1'b0;
     end
@@ -270,7 +271,7 @@ always_comb begin
     `RV32_FCVT_W_S: begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.is_fp_wb = 1'b0;
+      decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
       decode_o.is_signed_int = 1'b1;
     end
@@ -279,7 +280,7 @@ always_comb begin
     `RV32_FCVT_WU_S: begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.is_fp_wb = 1'b0;
+      decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
       decode_o.is_signed_int = 1'b0;
     end
@@ -288,7 +289,7 @@ always_comb begin
     `RV32_FMV_X_W: begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.is_fp_wb = 1'b0;
+      decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
       decode_o.is_signed_int = 1'b0;
     end
@@ -297,7 +298,7 @@ always_comb begin
     `RV32_FMV_W_X: begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.is_fp_wb = 1'b1;
+      decode_o.op_writes_fp_rf = 1'b1;
       decode_o.is_fp_instr = 1'b1;
       decode_o.is_signed_int = 1'b0;
     end
@@ -306,7 +307,7 @@ always_comb begin
     `RV32_FLW_S: begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.is_fp_wb = 1'b1;
+      decode_o.op_writes_fp_rf = 1'b1;
       decode_o.is_fp_instr = 1'b0;
       decode_o.is_signed_int = 1'b0;
     end
@@ -315,7 +316,7 @@ always_comb begin
     `RV32_FSW_S: begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b1;
-      decode_o.is_fp_wb = 1'b0;
+      decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
       decode_o.is_signed_int = 1'b0;
     end
@@ -323,14 +324,24 @@ always_comb begin
     default: begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.is_fp_wb = 1'b0;
+      decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
       decode_o.is_signed_int = 1'b0;
     end
-
   endcase
-
 end
+
+// fp_decode_s
+assign fp_decode_o.add_op   = instruction_i ==? `RV32_FADD_S;
+assign fp_decode_o.sub_op   = instruction_i ==? `RV32_FSUB_S;
+assign fp_decode_o.mul_op   = instruction_i ==? `RV32_FMUL_S;
+assign fp_decode_o.sgnj_op  = instruction_i ==? `RV32_FSGNJ_S;
+assign fp_decode_o.sgnjn_op = instruction_i ==? `RV32_FSGNJN_S;
+assign fp_decode_o.sgnjx_op = instruction_i ==? `RV32_FSGNJX_S;
+assign fp_decode_o.min_op   = instruction_i ==? `RV32_FMIN_S;
+assign fp_decode_o.max_op   = instruction_i ==? `RV32_FMAX_S;
+assign fp_decode_o.ui2f_op  = instruction_i ==? `RV32_FCVT_S_W;
+assign fp_decode_o.i2f_op   = instruction_i ==? `RV32_FCVT_S_WU;
 
 
 endmodule
