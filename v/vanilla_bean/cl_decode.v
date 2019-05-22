@@ -230,23 +230,22 @@ always_comb begin
       decode_o.op_reads_fp_rf2 = 1'b1;
       decode_o.op_writes_fp_rf = 1'b1;
       decode_o.is_fp_instr = 1'b1;
-      decode_o.is_signed_int = 1'b0;
     end
 
+    // compare
     `RV32_FEQ_S, `RV32_FLT_S, `RV32_FLE_S: begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b1;
       decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
-      decode_o.is_signed_int = 1'b0;
     end
 
+    // classify
     `RV32_FCLASS_S: begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
-      decode_o.is_signed_int = 1'b0;
     end
  
     // i2f (signed int)
@@ -255,7 +254,6 @@ always_comb begin
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b1;
       decode_o.is_fp_instr = 1'b1;
-      decode_o.is_signed_int = 1'b1;
     end
 
     // i2f (unsigned int)
@@ -264,7 +262,6 @@ always_comb begin
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b1;
       decode_o.is_fp_instr = 1'b1;
-      decode_o.is_signed_int = 1'b0;
     end
    
     // f2i (signed int)
@@ -273,7 +270,6 @@ always_comb begin
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
-      decode_o.is_signed_int = 1'b1;
     end
 
     // f2i (unsigned int)
@@ -282,7 +278,6 @@ always_comb begin
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
-      decode_o.is_signed_int = 1'b0;
     end
 
     // FMV (fp -> int)
@@ -291,7 +286,6 @@ always_comb begin
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
-      decode_o.is_signed_int = 1'b0;
     end
 
     // FMV (int -> fp)
@@ -300,7 +294,6 @@ always_comb begin
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b1;
       decode_o.is_fp_instr = 1'b1;
-      decode_o.is_signed_int = 1'b0;
     end
 
     // Float load
@@ -309,7 +302,6 @@ always_comb begin
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b1;
       decode_o.is_fp_instr = 1'b0;
-      decode_o.is_signed_int = 1'b0;
     end
 
     // Float store
@@ -318,7 +310,6 @@ always_comb begin
       decode_o.op_reads_fp_rf2 = 1'b1;
       decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
-      decode_o.is_signed_int = 1'b0;
     end
 
     default: begin
@@ -326,22 +317,30 @@ always_comb begin
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
       decode_o.is_fp_instr = 1'b0;
-      decode_o.is_signed_int = 1'b0;
     end
+
   endcase
 end
 
 // fp_decode_s
-assign fp_decode_o.add_op   = instruction_i ==? `RV32_FADD_S;
-assign fp_decode_o.sub_op   = instruction_i ==? `RV32_FSUB_S;
-assign fp_decode_o.mul_op   = instruction_i ==? `RV32_FMUL_S;
-assign fp_decode_o.sgnj_op  = instruction_i ==? `RV32_FSGNJ_S;
-assign fp_decode_o.sgnjn_op = instruction_i ==? `RV32_FSGNJN_S;
-assign fp_decode_o.sgnjx_op = instruction_i ==? `RV32_FSGNJX_S;
-assign fp_decode_o.min_op   = instruction_i ==? `RV32_FMIN_S;
-assign fp_decode_o.max_op   = instruction_i ==? `RV32_FMAX_S;
-assign fp_decode_o.ui2f_op  = instruction_i ==? `RV32_FCVT_S_W;
-assign fp_decode_o.i2f_op   = instruction_i ==? `RV32_FCVT_S_WU;
+assign fp_decode_o.fadd_op        = instruction_i ==? `RV32_FADD_S;
+assign fp_decode_o.fsub_op        = instruction_i ==? `RV32_FSUB_S;
+assign fp_decode_o.fmul_op        = instruction_i ==? `RV32_FMUL_S;
+assign fp_decode_o.fsgnj_op       = instruction_i ==? `RV32_FSGNJ_S;
+assign fp_decode_o.fsgnjn_op      = instruction_i ==? `RV32_FSGNJN_S;
+assign fp_decode_o.fsgnjx_op      = instruction_i ==? `RV32_FSGNJX_S;
+assign fp_decode_o.fmin_op        = instruction_i ==? `RV32_FMIN_S;
+assign fp_decode_o.fmax_op        = instruction_i ==? `RV32_FMAX_S;
+assign fp_decode_o.fcvt_s_w_op    = instruction_i ==? `RV32_FCVT_S_W;
+assign fp_decode_o.fcvt_s_wu_op   = instruction_i ==? `RV32_FCVT_S_WU;
+assign fp_decode_o.fmv_w_x_op     = instruction_i ==? `RV32_FMV_W_X;
 
+assign fp_decode_o.feq_op         = instruction_i ==? `RV32_FEQ_W_X;
+assign fp_decode_o.fle_op         = instruction_i ==? `RV32_FLE_W_X;
+assign fp_decode_o.flt_op         = instruction_i ==? `RV32_FLT_W_X;
+assign fp_decode_o.fcvt_w_s_op    = instruction_i ==? `RV32_FCVT_W_S;
+assign fp_decode_o.fcvt_wu_s_op   = instruction_i ==? `RV32_FCVT_WU_S;
+assign fp_decode_o.fclass_op      = instruction_i ==? `RV32_FCLASS_S;
+assign fp_decode_o.fmv_x_w_op     = instruction_i ==? `RV32_FMV_X_W;
 
 endmodule
