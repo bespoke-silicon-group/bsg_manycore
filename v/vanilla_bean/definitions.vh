@@ -113,21 +113,31 @@ typedef struct packed
     logic op_reads_fp_rf2;  // reads rf1 of FP regfile
     logic op_writes_fp_rf;         // writes back to FP regfile
     logic is_fp_instr;      // goes into FP pipeline
-    logic is_signed_int;  // f2i, i2f with signed?
 
 } decode_s;
 
 typedef struct packed {
-  logic add_op;
-  logic sub_op;
-  logic mul_op;
-  logic sgnj_op;
-  logic sgnjn_op;
-  logic sgnjx_op;
-  logic min_op;
-  logic max_op;
-  logic ui2f_op;
-  logic i2f_op;
+
+  logic fadd_op;
+  logic fsub_op;
+  logic fmul_op;
+  logic fsgnj_op;
+  logic fsgnjn_op;
+  logic fsgnjx_op;
+  logic fmin_op;
+  logic fmax_op;
+  logic fcvt_s_w_op;
+  logic fcvt_s_wu_op;
+  logic fmv_w_x_op;
+
+  logic feq_op;
+  logic fle_op;
+  logic flt_op;
+  logic fcvt_w_s_op;
+  logic fcvt_wu_s_op;
+  logic fclass_op;
+  logic fmv_x_w_op;
+
 } fp_decode_s;
 
 // Instruction decode stage signals
