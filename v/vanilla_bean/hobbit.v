@@ -112,6 +112,7 @@ logic insert_load_in_exe;
 
 // Decoded control signals logic
 decode_s decode;
+fp_decode_s fp_decode;
 
 assign data_mem_valid = is_load_buffer_valid | current_load_arrived;
 assign stall_fence = exe.decode.is_fence_op & (outstanding_stores_i);
@@ -372,55 +373,33 @@ cl_decode cl_decode_0
 (
   .instruction_i(instruction)
   ,.decode_o(decode)
+  ,.fp_decode_o(fp_decode)
 );
 
-//+----------------------------------------------
-//|
-//|           REGISTER FILE SIGNALS
-//|
-//+----------------------------------------------
+  //+----------------------------------------------
+  //|
+  //|           REGISTER FILE SIGNALS
+  //|
+  //+----------------------------------------------
 
-// Register file logic
-logic [RV32_reg_data_width_gp-1:0] rf_rs1_val, rf_rs2_val, rf_wd;
-logic [RV32_reg_addr_width_gp-1:0] rf_wa;
-logic                              rf_wen;
+  
+  // INT regfile
+  //
+  logic [RV32_reg_data_width_gp-1:0] rf_rs1_val, rf_rs2_val, rf_wd;
+  logic [RV32_reg_addr_width_gp-1:0] rf_wa;
+  logic rf_wen;
+  logic id_r0_v_li, id_r1_v_li;
 
-logic [RV32_reg_data_width_gp-1:0] mem_loaded_data;
-
-// Regfile write process
-always_comb begin
-  rf_wa = wb.rd_addr;
-  rf_wd = wb.rf_data;
-  if (stall & pending_load_arrived) begin
-    rf_wen = 1'b1;
-    rf_wa  = from_mem_i.load_info.reg_id;
-    rf_wd  = mem_loaded_data;
-  end else if (wb.op_writes_rf & (~stall)) begin
-    rf_wen = 1'b1;
-  end else begin
-    rf_wen = 1'b0;
-  end
-end
-
-
-  // Instantiate the general purpose register file
-  // This register file is write through, which means when read/write
-  // The same address, the read gets the newly written value.
-  logic id_r0_v_li;
-  logic id_r1_v_li;
-  logic [RV32_reg_addr_width_gp-1:0] rf_rs1_addr;
-  logic [RV32_reg_addr_width_gp-1:0] rf_rs2_addr;
+  logic [RV32_reg_data_width_gp-1:0] mem_loaded_data;
 
   assign id_r0_v_li = decode.op_reads_rf1 & ~(stall | depend_stall);
   assign id_r1_v_li = decode.op_reads_rf2 & ~(stall | depend_stall);
 
-  assign rf_rs1_addr = instruction.rs1;
-  assign rf_rs2_addr = instruction.rs2;
-
   regfile #(
     .width_p(RV32_reg_data_width_gp)
     ,.els_p(32)
-  ) rf_0 (
+    ,.is_float_p(0)
+  ) rf_int (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
 
@@ -429,14 +408,58 @@ end
     ,.w_data_i(rf_wd)
 
     ,.r0_v_i(id_r0_v_li)
-    ,.r0_addr_i(rf_rs1_addr)
+    ,.r0_addr_i(instruction.rs1)
     ,.r0_data_o(rf_rs1_val)
 
     ,.r1_v_i(id_r1_v_li)
-    ,.r1_addr_i(rf_rs2_addr)
+    ,.r1_addr_i(instruction.rs2)
     ,.r1_data_o(rf_rs2_val)
   );
 
+  always_comb begin
+    rf_wa = wb.rd_addr;
+    rf_wd = wb.rf_data;
+
+    if (stall & pending_load_arrived) begin
+      rf_wen = 1'b1;
+      rf_wa  = from_mem_i.load_info.reg_id;
+      rf_wd  = mem_loaded_data;
+    end else if (wb.op_writes_rf & (~stall)) begin
+      rf_wen = 1'b1;
+    end else begin
+      rf_wen = 1'b0;
+    end
+  end
+
+  // FP regfile
+  //
+  logic fp_rf_wen;
+  logic [RV32_reg_addr_width_gp-1:0] fp_rf_wa;
+  logic [RV32_reg_data_width_gp-1:0] fp_rf_wd;
+  
+  logic fp_rs1_read, fp_rs2_read;
+  logic [RV32_reg_data_width_gp-1:0] fp_rf_rs1_val, fp_rf_rs2_val;
+
+  regfile #(
+    .width_p(RV32_reg_data_width_gp)
+    ,.els_p(32)
+    ,.is_float_p(1)
+  ) rf_float (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    
+    ,.w_v_i(fp_rf_wen)
+    ,.w_addr_i(fp_rf_wa)
+    ,.w_data_i(fp_rf_wd)
+
+    ,.r0_v_i(fp_rs1_read)
+    ,.r0_addr_i(instruction.rs1)
+    ,.r0_data_o(fp_rf_rs1_val)
+
+    ,.r1_v_i(fp_rs2_read)
+    ,.r1_addr_i(instruction.rs2)
+    ,.r1_data_o(fp_rf_rs2_val)
+  );
 
 //+----------------------------------------------
 //|
@@ -453,13 +476,14 @@ logic record_load;
 
 // Record a load in the scoreboard when a load instruction is moved to exe stage.
 assign record_load = id.decode.is_load_op & id.decode.op_writes_rf
-                        & ~(flush | stall | depend_stall);
+  & ~(flush | stall | depend_stall);
 
 logic dependency;
 
 scoreboard #(
   .els_p(32)
-) load_sb (
+  ,.is_float_p(0)
+) sb_int (
   .clk_i(clk_i)
   ,.reset_i(reset_i)
 
@@ -477,6 +501,36 @@ scoreboard #(
 
   ,.dependency_o(dependency)
 );
+
+
+  // FP scoreboard
+  //
+  logic fp_dependency;
+  logic fp_score;
+  logic fp_clear;
+  logic [RV32_reg_addr_width_gp-1:0] fp_clear_id;
+
+  scoreboard #(
+    .els_p(32)
+    ,.is_float_p(1)
+  ) sb_float (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.src1_id_i(id.instruction.rs1)
+    ,.src2_id_i(id.instruction.rs2)
+    ,.dest_id_i(id.instruction.rd)
+
+    ,.op_reads_rf1_i(id.decode.op_reads_fp_rf1)
+    ,.op_reads_rf2_i(id.decode.op_reads_fp_rf2)
+    ,.op_writes_rf_i(id.decode.op_writes_fp_rf)
+
+    ,.score_i(fp_score)
+    ,.clear_i(fp_clear)
+    ,.clear_id_i(fp_clear_id)
+
+    ,.dependency_o(fp_dependency)
+  );
 
 assign depend_stall = dependency & (~branch_mispredict);
 
