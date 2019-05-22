@@ -18,6 +18,7 @@ VANILLA_SRC   = $(BSG_MANYCORE_DIR)/v/vanilla_bean
 LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_defines.v
 LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_noc/bsg_noc_pkg.v
 LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_cache/bsg_cache_pkg.v
+LIST_COMMON_HDRS+= $(BSG_IP_CORES_DIR)/bsg_fpu/bsg_fpu_pkg.v
 
 LIST_VANILLA_INCS =$(VANILLA_SRC)
 
@@ -26,8 +27,7 @@ LIST_COMMON_INCS+= $(BSG_IP_CORES_DIR)/bsg_noc
 LIST_COMMON_INCS+= $(BSG_IP_CORES_DIR)/bsg_cache
 LIST_COMMON_INCS+= $(BSG_IP_CORES_DIR)/bsg_misc
 
-LIST_VANILLA_SRCS =
-LIST_VANILLA_SRCS+= $(VANILLA_SRC)/alu.v
+LIST_VANILLA_SRCS = $(VANILLA_SRC)/alu.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/cl_decode.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/hobbit.v
 LIST_VANILLA_SRCS+= $(VANILLA_SRC)/icache.v
@@ -47,7 +47,23 @@ LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_buf_ctrl.v
 LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_buf.v
 LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_dff_en.v
 LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_xnor.v
-LIST_VANILLA_SRCS+= $(LIST_FPU_SRCS)
+
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/fpu_float.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/fpu_float_aux.v
+LIST_VANILLA_SRCS+= $(VANILLA_SRC)/fpu_int.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_fpu/bsg_fpu_classify.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_fpu/bsg_fpu_preprocess.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_fpu/bsg_fpu_add_sub.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_fpu/bsg_fpu_mul.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_fpu/bsg_fpu_cmp.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_fpu/bsg_fpu_f2i.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_fpu/bsg_fpu_i2f.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_fpu/bsg_fpu_clz.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_fpu/bsg_fpu_sticky.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_less_than.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_reduce.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_abs.v
+LIST_VANILLA_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_mul_synth.v
 
 LIST_COMMON_SRCS = $(BSG_IP_CORES_DIR)/bsg_misc/bsg_transpose.v
 LIST_COMMON_SRCS+= $(BSG_IP_CORES_DIR)/bsg_misc/bsg_crossbar_o_by_i.v

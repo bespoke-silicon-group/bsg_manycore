@@ -31,14 +31,14 @@ module fpu_float
     , input reset_i
 
     , input v_i
-    , input fp_decode_s fp_decode_i
+    , input fp_float_decode_s fp_float_decode_i
     , input [data_width_p-1:0] a_i
     , input [data_width_p-1:0] b_i
     , input [reg_addr_width_p-1:0] rd_i
     , output logic ready_o
 
     , output logic v_o
-    , output logic [data_width_p-1:0] z_o
+    , output logic [data_width_p-1:0] result_o
     , output logic [reg_addr_width_p-1:0] rd_o
     , input yumi_i
   );
@@ -156,7 +156,7 @@ module fpu_float
     ,.v_i(aux_v_li)
     ,.a_i(a_i)
     ,.b_i(b_i)
-    ,.fp_decode_i(fp_decode_i)
+    ,.fp_float_decode_i(fp_float_decode_i)
     ,.ready_o(aux_ready_lo)
 
     ,.v_o(aux_v_lo)
@@ -170,12 +170,12 @@ module fpu_float
   logic is_aux_op;
 
   assign is_aux_op =
-    fp_decode_i.fsgnj_op
-    | fp_decode_i.fsgnjn_op
-    | fp_decode_i.fsgnjx_op
-    | fp_decode_i.fmin_op
-    | fp_decode_i.fmax_op
-    | fp_decode_i.fmv_w_x_op;
+    fp_float_decode_i.fsgnj_op
+    | fp_float_decode_i.fsgnjn_op
+    | fp_float_decode_i.fsgnjx_op
+    | fp_float_decode_i.fmin_op
+    | fp_float_decode_i.fmax_op
+    | fp_float_decode_i.fmv_w_x_op;
 
   always_comb begin
     ready_o = 1'b0;
@@ -186,26 +186,26 @@ module fpu_float
     aux_v_li = 1'b0;
     i2f_signed_li = 1'b0;
 
-    if (fp_decode_i.fadd_op) begin
+    if (fp_float_decode_i.fadd_op) begin
       add_sub_v_li = v_i;
       sub_li = 1'b0;
       ready_o = add_sub_ready_lo;
     end
-    else if (fp_decode_i.fsub_op) begin
+    else if (fp_float_decode_i.fsub_op) begin
       add_sub_v_li = v_i;
       sub_li = 1'b1;
       ready_o = add_sub_ready_lo;
     end
-    else if (fp_decode_i.fmul_op) begin
+    else if (fp_float_decode_i.fmul_op) begin
       mul_v_li = v_i;
       ready_o = mul_ready_lo;
     end
-    else if (fp_decode_i.fcvt_s_w_op) begin
+    else if (fp_float_decode_i.fcvt_s_w_op) begin
       i2f_v_li = v_i;
       i2f_signed_li = 1'b1;
       ready_o = i2f_ready_lo;
     end
-    else if (fp_decode_i.fcvt_s_wu_op) begin
+    else if (fp_float_decode_i.fcvt_s_wu_op) begin
       i2f_v_li = v_i;
       i2f_signed_li = 1'b0;
       ready_o = i2f_ready_lo;
@@ -265,26 +265,26 @@ module fpu_float
     add_sub_en_li = 1'b0;
     mul_yumi_li = 1'b0;
     mul_en_li = 1'b0; 
-    z_o = add_sub_z_lo;
+    result_o = add_sub_z_lo;
     v_o = 1'b0;
 
     if (add_sub_v_lo) begin
       v_o = 1'b1;
-      z_o = add_sub_z_lo;
+      result_o = add_sub_z_lo;
       add_sub_yumi_li = yumi_i;
       add_sub_en_li = yumi_i;
       mul_en_li = yumi_i;
     end
     else if (mul_v_lo) begin
       v_o = 1'b1;
-      z_o = mul_z_lo;
+      result_o = mul_z_lo;
       mul_yumi_li = yumi_i;
       add_sub_en_li = yumi_i;
       mul_en_li = yumi_i;
     end
     else if (v_3_r) begin
       v_o = 1'b1;
-      z_o = result_3_r;
+      result_o = result_3_r;
       add_sub_en_li = yumi_i;
       mul_en_li = yumi_i;
     end
