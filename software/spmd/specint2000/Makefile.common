@@ -2,13 +2,16 @@ bsg_tiles_X = 1
 bsg_tiles_Y = 1
 BSG_NEWLIB = 1
 
+OBJECT_FILES := $(BENCHMARK_OBJS)
+IN_FILES := $(BENCHMARK_INPS)
+
 include ../Makefile.include
 
 vpath %.c $(BENCHMARK_DIR)/src.raw
 vpath %.h $(BENCHMARK_DIR)/src.raw
 vpath %.c ./rawlib
 
-RISCV_GCC_EXTRA_OPTS = -Irawlib
+RISCV_GCC_EXTRA_OPTS = -Irawlib $(BENCHMARK_DEFS)
 
 #########################################################
 #each bytes defines the core type
@@ -25,9 +28,6 @@ all: $(PROG_NAME).run
 # to a unique log file for each coordinate in the manycore. This can be useful 
 # for a quick debug of processor or program running on it.
 proc_exe_logs: X0_Y2.pelog
-
-OBJECT_FILES=$(BENCHMARK_OBJS)
-IN_FILES=$(BENCHMARK_INPS)
 
 ifdef DEBUG
 	RISCV_EXTRA_OPTS += -g
