@@ -36,6 +36,9 @@ RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
 ifeq ($(BSG_NEWLIB), 1)
+	ARGC ?= 1
+	ARGV ?= \"main\"
+
   RISCV_GCC_OPTS +=-D__bsg_newlib
   RISCV_GCC_OPTS +=-D__bsg_argc=$(ARGC)
   RISCV_GCC_OPTS +=-D__bsg_argv=$(ARGV)
@@ -47,11 +50,11 @@ ifeq ($(BSG_NEWLIB), 1)
 SPMD_COMMON_OBJECTS += lfs.o
 SPMD_COMMON_OBJECTS += args.o
 
-LFS_BLK_SIZE ?= 128
-LFS_BLK_CNT ?= 64
+LFS_BLOCK_SIZE ?= 128
+LFS_BLOCK_COUNT ?= 64
 
-lfs.c:
-	$(RISCV_BIN_DIR)/../riscv32-unknown-elf/bin/bsg_newlib_mklfs $(LFS_BLK_SIZE) $(LFS_BLOCK_CNT) $(IN_FILES) > $@
+lfs.c: $(IN_FILES)
+	$(RISCV_BIN_DIR)/../riscv32-unknown-elf/bin/bsg_newlib_mklfs $(LFS_BLOCK_SIZE) $(LFS_BLOCK_COUNT) $(IN_FILES) > $@
 endif
 
 # Manycore C library archiving rule
@@ -65,7 +68,7 @@ endif
 BSG_MANYCORE_LIB = bsg_manycore_lib.a
 
 #RISCV_LINK_EXTRA_OPTS ?=
-RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lgcc $(RISCV_LINK_EXTRA_OPTS) -l:crt.o \
+RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc $(RISCV_LINK_EXTRA_OPTS) -l:crt.o \
 						        -L. -l:$(BSG_MANYCORE_LIB)  -L $(BSG_MANYCORE_DIR)/software/spmd/common\
                     -l:$(BSG_MANYCORE_LIB)
 ifneq ($(BSG_NEWLIB), 1)
@@ -74,7 +77,9 @@ endif
 
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
-RISCV_LINK = $(RISCV_GCC) -t -T $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld \
+LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld 
+
+RISCV_LINK = $(RISCV_GCC) -t -T $(LINK_SCRIPT)\
 						 -Wl,--defsym,bsg_group_size=$(bsg_group_size)
 
 ifdef CLANG
