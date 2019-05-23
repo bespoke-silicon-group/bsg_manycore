@@ -100,10 +100,16 @@ int  __attribute__ ((noinline)) kernel_matrix_mul_shared_mem(int *A, int *B, int
 
 	
 	// declare tile-group shared memory
-	int *sh_A, *sh_B, *sh_C;
-	bsg_tilegroup_int (sh_A, (block_size_y * BLOCK_WIDTH));
-	bsg_tilegroup_int (sh_B, (BLOCK_WIDTH * block_size_x));
-	bsg_tilegroup_int (sh_C, (block_size_y * block_size_x));
+//	int *sh_A, *sh_B, *sh_C;
+//	bsg_tilegroup_int (sh_A, (block_size_y * BLOCK_WIDTH));
+//	bsg_tilegroup_int (sh_B, (BLOCK_WIDTH * block_size_x));
+//	bsg_tilegroup_int (sh_C, (block_size_y * block_size_x));
+
+	// *** For now shared memory is temporarily defined by hand due to bug in tile group shared memory declaration. TODO: fix ***
+	int sh_A[(block_size_y * BLOCK_WIDTH ) / (bsg_tiles_X * bsg_tiles_Y)];
+	int sh_B[(BLOCK_WIDTH  * block_size_x) / (bsg_tiles_X * bsg_tiles_Y)];
+	int sh_C[(block_size_y * block_size_x) / (bsg_tiles_X * bsg_tiles_Y)];
+
 
 
 	int num_blocks = N / BLOCK_WIDTH;	// *** Must divide evenly
