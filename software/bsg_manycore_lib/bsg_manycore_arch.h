@@ -84,7 +84,7 @@
                                         & (   (1 << bsg_remote_addr_bits) - 1 )         \
                                      )
 
-#define bsg_tilegroup_ptr(lc_sh,index)	( bsg_remote_ptr( ((index)%bsg_tiles_X) , (((index)/bsg_tiles_X)%bsg_tiles_Y) ,(&((lc_sh)[((index)/(bsg_tiles_X *bsg_tiles_Y))]))) )
+#define bsg_tile_group_shared_ptr(lc_sh,index)	( bsg_remote_ptr( ((index)%bsg_tiles_X) , (((index)/bsg_tiles_X)%bsg_tiles_Y) ,(&((lc_sh)[((index)/(bsg_tiles_X * bsg_tiles_Y))]))) )
 
 #define bsg_io_mutex_ptr(local_addr)  bsg_global_ptr( IO_X_INDEX, IO_Y_INDEX, (local_addr))  
 #endif

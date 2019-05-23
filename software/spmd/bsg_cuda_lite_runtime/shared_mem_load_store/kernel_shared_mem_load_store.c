@@ -17,7 +17,7 @@ int  __attribute__ ((noinline)) kernel_shared_mem_load_store(int *A_in, int *A_o
 
 	
 	// declare tile-group shared memory
-	bsg_tilegroup_int (sh_A, (block_size_y * block_size_x));
+	bsg_tile_group_shared_mem (int, sh_A, (block_size_y * block_size_x));
 
 
 
@@ -27,8 +27,7 @@ int  __attribute__ ((noinline)) kernel_shared_mem_load_store(int *A_in, int *A_o
 	// Load a (block_size_y * block_size_x) block of A_in into tile_group_shared memory 
 	for (int iter_y = __bsg_y; iter_y < block_size_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = __bsg_x; iter_x < block_size_x; iter_x += bsg_tiles_X) { 
-			bsg_remote_ptr_io_store(IO_X_INDEX, 0x1000, ( iter_y * block_size_x + iter_y  ));
-			bsg_tilegroup_store (sh_A, (iter_y * block_size_x + iter_x) , A_in[(start_y + iter_y) * N + (start_x + iter_x)]);
+			bsg_tile_group_shared_store (sh_A, (iter_y * block_size_x + iter_x) , A_in[(start_y + iter_y) * N + (start_x + iter_x)]);
 		}
 	}
 
@@ -39,8 +38,7 @@ int  __attribute__ ((noinline)) kernel_shared_mem_load_store(int *A_in, int *A_o
 	// Store the same (block_size_y * block_size_x) block of shared memory into A_out
 	for (int iter_y = __bsg_y; iter_y < block_size_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = __bsg_x; iter_x < block_size_x; iter_x += bsg_tiles_X) { 
-			bsg_remote_ptr_io_store(IO_X_INDEX, 0x2000, ( iter_y * block_size_x + iter_x));
-			bsg_tilegroup_load (sh_A, (iter_y * block_size_x + iter_x) , A_out[(start_y + iter_y) * N + (start_x + iter_x)]);
+			bsg_tile_group_shared_load (sh_A, (iter_y * block_size_x + iter_x) , A_out[(start_y + iter_y) * N + (start_x + iter_x)]);
 		}
 	}
 
