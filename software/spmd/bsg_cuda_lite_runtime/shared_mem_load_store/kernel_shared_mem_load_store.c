@@ -17,7 +17,6 @@ int  __attribute__ ((noinline)) kernel_shared_mem_load_store(int *A_in, int *A_o
 
 	
 	// declare tile-group shared memory
-	int *sh_A;
 	bsg_tilegroup_int (sh_A, (block_size_y * block_size_x));
 
 

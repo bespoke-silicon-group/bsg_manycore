@@ -14,7 +14,6 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 
 int  __attribute__ ((noinline)) kernel_shared_mem (int *A, int N) {
 
-	int *sh_arr;
 	bsg_tilegroup_int (sh_arr, N); 
 
 	for (int iter_x = __bsg_id; iter_x < N; iter_x += bsg_tiles_X * bsg_tiles_Y) {

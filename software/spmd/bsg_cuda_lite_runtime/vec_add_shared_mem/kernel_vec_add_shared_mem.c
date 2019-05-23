@@ -15,16 +15,9 @@ int  __attribute__ ((noinline)) kernel_vec_add_shared_mem(int *A, int *B, int *C
 	// Declare tile-group shared memroy with specific size
 
 	// *** For now, declaration of tile-group shared memory is done by hand, as the macro is faulty. TODO: Fix *** 
-//	int *sh_A, *sh_B, *sh_C;
-//	bsg_tilegroup_int (sh_A, block_size_x);
-//	bsg_tilegroup_int (sh_B, block_size_x); 
-//	bsg_tilegroup_int (sh_C, block_size_x); 
-
-
-	int sh_A[block_size_x / (bsg_tiles_X * bsg_tiles_Y)];
-	int sh_B[block_size_x / (bsg_tiles_X * bsg_tiles_Y)];
-	int sh_C[block_size_x / (bsg_tiles_X * bsg_tiles_Y)];
-
+	bsg_tilegroup_int (sh_A, block_size_x);
+	bsg_tilegroup_int (sh_B, block_size_x); 
+	bsg_tilegroup_int (sh_C, block_size_x); 
 
 
 	int start_x = block_size_x * (__bsg_tile_group_id_y * __bsg_grid_dim_x + __bsg_tile_group_id_x); 
