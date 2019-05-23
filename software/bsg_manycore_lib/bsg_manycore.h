@@ -16,7 +16,8 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_dram_store(dram_addr,val) do { *(bsg_dram_ptr((dram_addr))) = (int) (val); } while (0)
 #define bsg_dram_load(dram_addr,val)  do { val = *(bsg_dram_ptr((dram_addr))) ; } while (0)
 
-#define bsg_tilegroup_int(lc_sh,size)	do { int m[(((size)+((bsg_tiles_X) * (bsg_tiles_Y))-1) / (((bsg_tiles_X) * (bsg_tiles_Y))))]; (lc_sh) = &m[0]; } while(0)	
+
+#define bsg_tilegroup_int(lc_sh,size) int lc_sh[((size + ((bsg_tiles_X * bsg_tiles_Y) -1))/(bsg_tiles_X * bsg_tiles_Y))]
 #define bsg_tilegroup_load(lc_sh,index,val) (  (val) = *(bsg_tilegroup_ptr((lc_sh),(index)))	)
 #define bsg_tilegroup_store(lc_sh,index,val) (  *(bsg_tilegroup_ptr((lc_sh),(index))) = (val)	)
 
