@@ -1,6 +1,6 @@
-// This code shows an example use of the bsg_tilegroup_int primitive.
-// bsg_tilegroup_int declares a tilegroup-shared array with the desired size, that is evenly distributed among tiles in a tilegroup using a specific hash function.
-// Access to tilegroup-shared memory is done through bsg_tilegroup_load and bsg_tilegroup_store primitives, that take in the pointer to local variable and the index.
+// This code shows an example use of the bsg_tile_group_shared_mem primitive.
+// bsg_tile_group_shared_mem declares a tilegroup-shared array with the desired size, that is evenly distributed among tiles in a tilegroup using a specific hash function.
+// Access to tilegroup-shared memory is done through bsg_tile_group_shared_load and bsg_tile_group_shared_store primitives, that take in the pointer to local variable and the index.
 
 
 
@@ -49,8 +49,7 @@ int main() {
         //----------------------------------------------------------------
         //1. Setup shared memory.
         //----------------------------------------------------------------
-		int *shared_mem;
-		bsg_tilegroup_int(shared_mem, 67);
+		bsg_tile_group_shared_mem(int, shared_mem, 67);
 		
 
 		
@@ -59,7 +58,7 @@ int main() {
 		//   Each tile stores its id to sh_mem[id+2] (which is in local memory of two tiles ahead)
 		//    Store to Shared Mem
         //----------------------------------------------------------------
-		bsg_tilegroup_store(shared_mem,(id+2),id);
+		bsg_tile_group_shared_store(shared_mem,(id+2),id);
 				
 				
         //----------------------------------------------------------------
@@ -71,7 +70,7 @@ int main() {
         //4. Each tile loads the first 16 elements of shared memory into local memory 	
         //----------------------------------------------------------------		
 		for (int idx = 0; idx < 16 ; idx ++ )
-			bsg_tilegroup_load(shared_mem,idx,local_var[idx]);
+			bsg_tile_group_shared_load(shared_mem,idx,local_var[idx]);
 		
 
         //----------------------------------------------------------------
