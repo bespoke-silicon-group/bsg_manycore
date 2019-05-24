@@ -7,12 +7,8 @@ BSG_MANYCORE_BANKS=4
 BSG_MANYCORE_BANKSIZE=2048
 
 #####################################################
-# DO we have the FPU implemented ?
-ifeq ($(BSG_FPU_OP),1)
-ARCH_OP=rv32imafd
-else
-ARCH_OP=rv32ima
-endif
+# DO we have the FPU implemented? yes
+ARCH_OP=rv32imaf
 #####################################################
 
 # paths
@@ -31,6 +27,7 @@ VPATH += $(BSG_MANYCORE_DIR)/software/spmd/common
 OPT_LEVEL ?= -O2
 RISCV_GCC_EXTRA_OPTS ?=
 RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf
+RISCV_GCC_OPTS += -ffp-contract=off -mno-fdiv
 RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
