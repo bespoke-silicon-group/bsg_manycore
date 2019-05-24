@@ -10,7 +10,6 @@ module bsg_manycore_pkt_encode
     , load_id_width_p = 5
     , epa_word_addr_width_p = -1
     , dram_ch_addr_width_p = -1
-    , dram_ch_start_col_p  = 0
     , remote_addr_prefix_lp = 3'b001
     , global_addr_prefix_lp = 2'b01
     , packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
@@ -76,7 +75,7 @@ module bsg_manycore_pkt_encode
 
    assign pkt.payload    = data_i;
    assign pkt.x_cord     = dram_addr_decode.is_dram_addr ? 
-                            x_cord_width_p'(dram_addr_decode.x_cord + dram_ch_start_col_p)
+                            x_cord_width_p'(dram_addr_decode.x_cord)
                            :( is_global_addr  ?  x_cord_width_p'(addr_decode.x_cord)
                                               :  x_cord_width_p'(addr_decode.x_cord + tile_group_x_i)
                             );
