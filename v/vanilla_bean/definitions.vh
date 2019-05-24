@@ -38,8 +38,10 @@ typedef struct packed {
    (1+1+tag_width_p+$bits(instruction_s))
 
 
+// load info
+//
 typedef struct packed {
-  logic        is_float_wb;
+  logic        float_wb;
   logic        icache_fetch;
   logic        is_unsigned_op;
   logic        is_byte_op;
@@ -48,33 +50,35 @@ typedef struct packed {
   logic [4:0]  reg_id;
 } load_info_s;
 
+`define load_info_width (5+2+5)
 
 typedef union packed {
-  logic [31:0] write_data; // stores send store data
-  struct packed {          // loads send reg_id to be loaded
-    logic [19:0] rsvd;
+  logic [31:0] write_data;
+  struct packed {
+    logic [19:0] reserved;
     load_info_s load_info;
   } read_info; 
-} mem_payload_u;
+} payload_u;
 
-// Data memory input structure
+// remote request from vanilla core
+//
 typedef struct packed
 {
-    logic          wen;
-    logic          swap_aq;
-    logic          swap_rl;
-    logic [3:0]    mask;
-    logic [31:0]   addr;
-    mem_payload_u  payload;
-} mem_in_s;
+  logic          write_not_read;
+  logic          swap_aq;
+  logic          swap_rl;
+  logic [3:0]    mask;
+  logic [31:0]   addr;
+  payload_u      payload;
+} remote_req_s;
 
-// Data memory output structure
+// remote load response from network
+//
 typedef struct packed
 {
-    logic        buf_full;
-    logic [31:0] read_data;
-    load_info_s  load_info;
-} mem_out_s;
+  load_info_s  load_info;
+  logic [31:0] load_data;
+} remote_load_resp_s;
 
 
 // Decode control signals structures
