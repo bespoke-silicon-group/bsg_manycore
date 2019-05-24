@@ -5,13 +5,17 @@
  *
  */
 
+`include "bsg_manycore_packet.vh"
+`include "definitions.vh"
 
 module bsg_manycore_proc_vanilla_trace
   #(parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
     , parameter icache_tag_width_p="inv"
     , parameter icache_entries_p="inv"
+    , parameter addr_width_p="inv"
     , parameter data_width_p="inv"
+    , parameter load_id_width_p="inv"
     , parameter dmem_size_p="inv"
 
     , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
@@ -34,6 +38,8 @@ module bsg_manycore_proc_vanilla_trace
     , input [1:0][data_width_p-1:0] xbar_port_data_out
   );
 
+  `declare_bsg_manycore_packet_s(addr_width_p, data_width_p,
+    x_cord_width_p, y_cord_width_p, load_id_width_p);
 
   // hobbit signals (h_)
   //
@@ -148,6 +154,12 @@ module bsg_manycore_proc_vanilla_trace
   assign remote_store = xbar_port_v_in[0] & xbar_port_we_in[0] & xbar_port_yumi_out[0];
   assign local_store = xbar_port_v_in[1] & xbar_port_we_in[1] & xbar_port_yumi_out[1];
  
+  // Network packet
+  //
+  bsg_manycore_packet_s tile_data_out;
+
+  wire launching_out = bsg_manycore_proc_vanilla.launching_out;
+  assign tile_data_out = bsg_manycore_proc_vanilla.data_o_debug;
   
 
   // trace logger
@@ -162,6 +174,7 @@ module bsg_manycore_proc_vanilla_trace
   string icache_write;
   string dmem_load;
   string dmem_store;
+  string network_pkt;
 
   initial begin
     fd = $fopen("vanilla.log", "w");
@@ -183,7 +196,7 @@ module bsg_manycore_proc_vanilla_trace
         fd = $fopen("vanilla.log", "a");
 
         // STAMP
-        stamp = $sformatf("%08t %2d %2d", $time, my_x_i, my_y_i);
+        stamp = $sformatf("%08t %2d %2d:", $time, my_x_i, my_y_i);
 
         // PC_INSTR
         wb_pc_instr = h_wb_pc_r == 32'hfffffffc
@@ -215,10 +228,10 @@ module bsg_manycore_proc_vanilla_trace
 
         // branch target
         if (h_wb_exe_r.decode.is_branch_op | h_wb_exe_r.decode.is_jump_op) begin
-          btarget = $sformatf("BTARGET=%08x", h_wb_pc_n_r | 32'h80000000);
+          btarget = $sformatf("BT=%08x", h_wb_pc_n_r | 32'h80000000);
         end
         else begin
-          btarget = {(8+8){" "}};
+          btarget = {(3+8){" "}};
         end
     
         // icache write
@@ -253,10 +266,23 @@ module bsg_manycore_proc_vanilla_trace
             xbar_port_addr_in[1], xbar_port_data_in[1], xbar_port_mask_in[1]);
         end
         else begin
-          dmem_store = "";
+          dmem_store = {28{" "}};
         end
 
-        $fwrite(fd, "%s %s %s | %s | %s | %s | %s | %s\n",
+        // network packet
+        if (launching_out) begin
+          network_pkt = $sformatf("{op=%02b,d=%08x}->t_%02d_%02d[%08x]",
+                          tile_data_out.op,
+                          tile_data_out.payload,
+                          tile_data_out.x_cord,
+                          tile_data_out.y_cord,
+                          tile_data_out.addr
+                        );
+        end else begin
+          network_pkt = {37{" "}};
+        end
+
+        $fwrite(fd, "%s %s %s | %s | %s | %s | %s | %s | %s\n",
           stamp,
           wb_pc_instr,
           stall_reason,
@@ -264,7 +290,8 @@ module bsg_manycore_proc_vanilla_trace
           btarget,
           icache_write,
           dmem_load,
-          dmem_store
+          dmem_store,
+          network_pkt
         );
 
         $fclose(fd);
