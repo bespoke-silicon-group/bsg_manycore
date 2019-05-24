@@ -1,12 +1,10 @@
 `include "bsg_manycore_packet.vh"
 `include "bsg_manycore_addr.vh"
 
-//should we shut down the dynamic feature of the arbiter ?
-//`define  SHUT_DY_ARB
-
 `ifndef NUM_CODE_SECTIONS
 	`define DEFAULT_CODE_SECTIONS
 `endif
+
 `ifndef CODE_SECTIONS
 	`define DEFAULT_CODE_SECTIONS
 `endif
@@ -17,61 +15,57 @@
 `endif
 
 module bsg_manycore_spmd_loader
+  import bsg_noc_pkg::*; // {P=0, W, E, N, S}
+  #(parameter icache_entries_num_p   = -1 // size of icache entry
+    ,parameter data_width_p    = 32
+    ,parameter addr_width_p    = 30
+    ,parameter load_id_width_p = 5
+    ,parameter epa_byte_addr_width_p= 16
+    ,parameter dram_ch_addr_width_p=-1
+    ,parameter dram_ch_num_p   = 0
+    ,parameter num_rows_p      = -1
+    ,parameter num_cols_p      = -1
 
-import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
+    ,parameter y_cord_width_p  = -1
+    ,parameter x_cord_width_p  = -1 
+    ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+    //the vicitim cache  paraemters
+    ,parameter init_vcache_p   = 0
+    ,parameter vcache_entries_p = -1 
+    ,parameter vcache_ways_p    = -1 
+    //the data memory realted paraemters
+    ,parameter unsigned  dmem_start_addr_lp = `_bsg_data_start_addr
+    ,parameter dmem_end_addr_lp   = `_bsg_data_end_addr
+    ,parameter dmem_init_file_name = `_dmem_init_file_name
 
- #( parameter icache_entries_num_p   = -1 // size of icache entry
-   ,parameter data_width_p    = 32
-   ,parameter addr_width_p    = 30
-   ,parameter load_id_width_p = 5
-   ,parameter epa_byte_addr_width_p= 16
-   ,parameter dram_ch_addr_width_p=-1
-   ,parameter dram_ch_num_p   = 0
-   ,parameter tile_id_ptr_p   = -1
-   ,parameter num_rows_p      = -1
-   ,parameter num_cols_p      = -1
+    //the dram  realted paraemters
+    //VCS do not support index larger then 32'h7fff_ffff
+    ,parameter unsigned dram_start_addr_lp = `_bsg_dram_start_addr
+    ,parameter unsigned dram_end_addr_lp   = `_bsg_dram_end_addr  
+    ,parameter dram_init_file_name = `_dram_init_file_name
 
-   ,parameter y_cord_width_p  = -1
-   ,parameter x_cord_width_p  = -1 
-   ,parameter packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-   //the vicitim cache  paraemters
-   ,parameter init_vcache_p   = 0
-   ,parameter vcache_entries_p = -1 
-   ,parameter vcache_ways_p    = -1 
-   //the data memory realted paraemters
-   ,parameter unsigned  dmem_start_addr_lp = `_bsg_data_start_addr
-   ,parameter dmem_end_addr_lp   = `_bsg_data_end_addr
-   ,parameter dmem_init_file_name = `_dmem_init_file_name
-
-   //the dram  realted paraemters
-   //VCS do not support index larger then 32'h7fff_ffff
-   ,parameter unsigned dram_start_addr_lp = `_bsg_dram_start_addr
-   ,parameter unsigned dram_end_addr_lp   = `_bsg_dram_end_addr  
-   ,parameter dram_init_file_name = `_dram_init_file_name
-
-   // Only the address space derived from the follwoing prameters is
-   // loaded into the memory
-   ,parameter unsigned num_code_sections_p = `NUM_CODE_SECTIONS
-   ,parameter integer code_sections_p[0:(2*num_code_sections_p)-1] = '{`CODE_SECTIONS}
-
+    // Only the address space derived from the follwoing prameters is
+    // loaded into the memory
+    ,parameter unsigned num_code_sections_p = `NUM_CODE_SECTIONS
+    ,parameter integer code_sections_p[0:(2*num_code_sections_p)-1] = '{`CODE_SECTIONS}
   )
-  
-  ( input                        clk_i
-   ,input                        reset_i
-   ,output [packet_width_lp-1:0] data_o
-   ,output                       v_o
-   ,input                        ready_i
+  ( 
+    input clk_i
+    , input reset_i
+    , output [packet_width_lp-1:0] data_o
+    , output v_o
+    , input ready_i
 
-   ,input [y_cord_width_p-1:0]  my_y_i
-   ,input [x_cord_width_p-1:0]  my_x_i
+    , input [y_cord_width_p-1:0] my_y_i
+    , input [x_cord_width_p-1:0] my_x_i
   );
 
   //initilization files
   localparam dmem_size_lp = dmem_end_addr_lp - dmem_start_addr_lp;
   localparam dram_size_lp = dram_end_addr_lp - dram_start_addr_lp; 
 
-  logic [7:0]  DMEM[dmem_end_addr_lp:dmem_start_addr_lp];
-  logic [7:0]  DRAM[dram_end_addr_lp:dram_start_addr_lp];
+  logic [7:0] DMEM [dmem_end_addr_lp:dmem_start_addr_lp];
+  logic [7:0] DRAM [dram_end_addr_lp:dram_start_addr_lp];
 
   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
   `declare_bsg_manycore_dram_addr_s(dram_ch_addr_width_p);
@@ -99,7 +93,7 @@ import bsg_noc_pkg   ::*; // {P=0, W, E, N, S}
         init_icache     (`bsg_tiles_org_X, `bsg_tiles_org_Y, `bsg_tiles_X, `bsg_tiles_Y );
         init_dmem       (`bsg_tiles_org_X, `bsg_tiles_org_Y, `bsg_tiles_X, `bsg_tiles_Y );
 
-        if( init_vcache_p)
+        if(init_vcache_p)
                 init_vcache();
 
         init_dram();
