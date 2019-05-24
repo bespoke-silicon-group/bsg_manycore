@@ -5,4 +5,8 @@ BENCHMARK_OBJS = raw.o plain.o
 BENCHMARK_INPS =
 PROG_NAME = plain
 
+LINK_SCRIPT = link.ld
+
+CLEAN_ITEMS = $(BENCHMARK_INPS)
+
 include ./Makefile.common
