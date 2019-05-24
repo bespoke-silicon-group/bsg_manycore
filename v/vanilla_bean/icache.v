@@ -8,10 +8,11 @@
 `include "definitions.vh"
 
 module icache
-  #(parameter icache_tag_width_p = "inv"
-    , parameter icache_addr_width_p = "inv" //word address
+  #(parameter icache_tag_width_p="inv"
+    , parameter icache_entries_p="inv"
 
-    , localparam pc_width_lp = (icache_tag_width_p + icache_addr_width_p)
+    , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
+    , localparam pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
     , localparam icache_format_width_lp = `icache_format_width(icache_tag_width_p)
   )
   (
@@ -19,8 +20,8 @@ module icache
     , input reset_i
 
     , input icache_cen_i
-    , input icache_w_en_i
-    , input [icache_addr_width_p-1:0] icache_w_addr_i
+    , input icache_wen_i
+    , input [icache_addr_width_lp-1:0] icache_w_addr_i
     , input [icache_tag_width_p -1:0] icache_w_tag_i
     , input [RV32_instr_width_gp-1:0] icache_w_instr_i
     , output[RV32_instr_width_gp-1:0] instruction_o
@@ -44,9 +45,9 @@ module icache
   icache_format_s icache_stall_out;
 
   //the address of the icache entry
-  wire [icache_addr_width_p-1:0] icache_addr = icache_w_en_i
+  wire [icache_addr_width_lp-1:0] icache_addr = icache_wen_i
     ? icache_w_addr_i
-    : pc_i[0+:icache_addr_width_p];
+    : pc_i[0+:icache_addr_width_lp];
   //------------------------------------------------------------------
   //
   //  Pre-compute the lower part of the jump address for JAL and BRANCH
@@ -105,13 +106,13 @@ module icache
   //------------------------------------------------------------------
   // Instantiate the memory 
   bsg_mem_1rw_sync #(
-    .width_p(icache_format_width_lp )
-    ,.els_p(2**icache_addr_width_p)
+    .width_p(icache_format_width_lp)
+    ,.els_p(icache_entries_p)
   ) imem_0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
     ,.v_i(icache_cen_i)
-    ,.w_i(icache_w_en_i)
+    ,.w_i(icache_wen_i)
     ,.addr_i(icache_addr)
     ,.data_i(icache_w_data_s)
     ,.data_o(icache_r_data_s)
@@ -204,6 +205,6 @@ module icache
       : branch_pc[2+:pc_width_lp]);
 
   // the icache miss logic
-  assign icache_miss_o    =  ( icache_stall_out.tag != pc_r[icache_addr_width_p+:icache_tag_width_p] );
+  assign icache_miss_o    =  ( icache_stall_out.tag != pc_r[icache_addr_width_lp+:icache_tag_width_p] );
   
 endmodule
