@@ -38,8 +38,10 @@ typedef struct packed {
    (1+1+tag_width_p+$bits(instruction_s))
 
 
+// load info
+//
 typedef struct packed {
-  logic        is_float_wb;
+  logic        float_wb;
   logic        icache_fetch;
   logic        is_unsigned_op;
   logic        is_byte_op;
@@ -48,33 +50,40 @@ typedef struct packed {
   logic [4:0]  reg_id;
 } load_info_s;
 
+`define load_info_width (5+2+5)
 
 typedef union packed {
-  logic [31:0] write_data; // stores send store data
-  struct packed {          // loads send reg_id to be loaded
-    logic [19:0] rsvd;
+  logic [31:0] write_data;
+  struct packed {
+    logic [19:0] reserved;
     load_info_s load_info;
   } read_info; 
-} mem_payload_u;
+} payload_u;
 
-// Data memory input structure
+// remote request from vanilla core
+//
 typedef struct packed
 {
-    logic          wen;
-    logic          swap_aq;
-    logic          swap_rl;
-    logic [3:0]    mask;
-    logic [31:0]   addr;
-    mem_payload_u  payload;
-} mem_in_s;
+  logic          write_not_read;
+  logic          swap_aq;
+  logic          swap_rl;
+  logic [3:0]    mask;
+  logic [31:0]   addr;
+  payload_u      payload;
+} remote_req_s;
 
-// Data memory output structure
+// remote load response from network
+//
 typedef struct packed
 {
-    logic        buf_full;
-    logic [31:0] read_data;
-    load_info_s  load_info;
-} mem_out_s;
+  logic float_wb;
+  logic [4:0] reg_id;
+  logic is_unsigned_op;
+  logic is_byte_op;
+  logic is_hex_op;
+  logic [1:0] part_sel;
+  logic [31:0] data;
+} remote_load_resp_s;
 
 
 // Decode control signals structures
@@ -94,15 +103,15 @@ typedef struct packed
     logic op_is_auipc;
 
     //for M extension;
-    logic is_md_instr;      // indicates is md insruciton
+    logic is_md_op;      // indicates is md insruciton
 
     //for FENCE instruction
     logic is_fence_op;
     logic is_fence_i_op;
 
     //for load reservation and load reservation acquire
-    logic op_is_load_reservation;
-    logic op_is_lr_acq;
+    logic op_is_lr_aq;
+    logic op_is_lr;
 
     //for atomic swap
     logic op_is_swap_aq;
@@ -111,8 +120,9 @@ typedef struct packed
     //for F extension
     logic op_reads_fp_rf1;  // reads rf1 of FP regfile
     logic op_reads_fp_rf2;  // reads rf1 of FP regfile
-    logic op_writes_fp_rf;         // writes back to FP regfile
-    logic is_fp_instr;      // goes into FP pipeline
+    logic op_writes_fp_rf;      // writes back to FP regfile
+    logic is_fp_float_op;    // goes into FP float pipeline
+    logic is_fp_int_op;      // goes into FP int pipeline
 
 } decode_s;
 
@@ -152,6 +162,8 @@ typedef struct packed
     instruction_s                      instruction;       // Instruction being executed
     decode_s                           decode;            // Decode signals
     logic                              icache_miss;
+    fp_int_decode_s                    fp_int_decode;
+    fp_float_decode_s                  fp_float_decode; 
 } id_signals_s;
 
 // Execute stage signals
@@ -172,26 +184,24 @@ typedef struct packed
     logic                              rs2_in_mem;        // pre-computed forwarding signal
     logic                              rs2_in_wb ;        // pre-computed forwarding signal
     logic                              icache_miss;
+    fp_int_decode_s                    fp_int_decode;
 } exe_signals_s;
 
-// FP Execute stage signals
-typedef struct packed
-{
-  logic [RV32_reg_data_width_gp-1:0] rs1_val;
-  logic [RV32_reg_data_width_gp-1:0] rs2_val;
-  logic [RV32_reg_addr_width_gp-1:0] rd;
-  
-} fp_exe_signals_s;
 
 // Memory stage signals
 typedef struct packed
 {
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;       // Destination address
-    decode_s                           decode;        // Decode signals
     logic [RV32_reg_data_width_gp-1:0] exe_result;    // Execution result
-    logic [RV32_reg_data_width_gp-1:0] mem_addr_send; //the address sent to memory
-    logic                              remote_load;
-    logic                              icache_miss;
+    logic [RV32_reg_data_width_gp-1:0] mem_addr_sent; //the address sent to memory
+    logic op_writes_rf;
+    logic op_writes_fp_rf;
+    logic is_byte_op;
+    logic is_hex_op;
+    logic is_load_unsigned;
+    logic local_load;
+    logic icache_miss;
+    
 } mem_signals_s;
 
 // RF write back stage signals
@@ -203,5 +213,28 @@ typedef struct packed
     logic                              icache_miss;
     logic [RV32_reg_data_width_gp-1:0] icache_miss_pc;
 } wb_signals_s;
+
+// FP Execute stage signals
+typedef struct packed
+{
+  logic [RV32_reg_data_width_gp-1:0] rs1_val;
+  logic [RV32_reg_data_width_gp-1:0] rs2_val;
+  logic [RV32_reg_addr_width_gp-1:0] rd;
+  fp_float_decode_s fp_float_decode;
+  logic valid;
+} fp_exe_signals_s;
+
+// FP writeback stage signals
+typedef struct packed
+{
+  logic [RV32_reg_data_width_gp-1:0] wb_data;
+  logic [RV32_reg_addr_width_gp-1:0] rd;
+  logic valid;
+} fp_wb_signals_s;
+
+
+
+
+
 
 `endif
