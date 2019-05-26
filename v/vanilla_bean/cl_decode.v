@@ -182,7 +182,7 @@ always_comb
 //|     RISC-V edit: "M" STANDARD EXTENSION
 //|
 //+----------------------------------------------
-assign decode_o.is_md_instr  = (instruction_i.op == `RV32_OP)
+assign decode_o.is_md_op  = (instruction_i.op == `RV32_OP)
                              & (instruction_i.funct7 == 7'b0000001);
 
 //memory order related instructions.
@@ -230,7 +230,8 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b1;
       decode_o.op_writes_fp_rf = 1'b1;
-      decode_o.is_fp_instr = 1'b1;
+      decode_o.is_fp_float_op = 1'b1;
+      decode_o.is_fp_int_op = 1'b0;
     end
 
     // compare
@@ -238,7 +239,8 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b1;
       decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_instr = 1'b0;
+      decode_o.is_fp_float_op = 1'b0;
+      decode_o.is_fp_int_op = 1'b1;
     end
 
     // classify
@@ -246,7 +248,8 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_instr = 1'b0;
+      decode_o.is_fp_float_op = 1'b0;
+      decode_o.is_fp_int_op = 1'b1;
     end
  
     // i2f (signed int)
@@ -254,7 +257,8 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b1;
-      decode_o.is_fp_instr = 1'b1;
+      decode_o.is_fp_float_op = 1'b1;
+      decode_o.is_fp_int_op = 1'b0;
     end
 
     // i2f (unsigned int)
@@ -262,7 +266,8 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b1;
-      decode_o.is_fp_instr = 1'b1;
+      decode_o.is_fp_float_op = 1'b1;
+      decode_o.is_fp_int_op = 1'b0;
     end
    
     // f2i (signed int)
@@ -270,7 +275,8 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_instr = 1'b0;
+      decode_o.is_fp_float_op = 1'b0;
+      decode_o.is_fp_int_op = 1'b1;
     end
 
     // f2i (unsigned int)
@@ -278,7 +284,8 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_instr = 1'b0;
+      decode_o.is_fp_float_op = 1'b0;
+      decode_o.is_fp_int_op = 1'b1;
     end
 
     // FMV (fp -> int)
@@ -286,7 +293,8 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b1;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_instr = 1'b0;
+      decode_o.is_fp_float_op = 1'b0;
+      decode_o.is_fp_int_op = 1'b1;
     end
 
     // FMV (int -> fp)
@@ -294,7 +302,8 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b1;
-      decode_o.is_fp_instr = 1'b1;
+      decode_o.is_fp_float_op = 1'b1;
+      decode_o.is_fp_int_op = 1'b0;
     end
 
     // Float load
@@ -302,7 +311,8 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b1;
-      decode_o.is_fp_instr = 1'b0;
+      decode_o.is_fp_float_op = 1'b0;
+      decode_o.is_fp_int_op = 1'b0;
     end
 
     // Float store
@@ -310,14 +320,16 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b1;
       decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_instr = 1'b0;
+      decode_o.is_fp_float_op = 1'b0;
+      decode_o.is_fp_int_op = 1'b0;
     end
 
     default: begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_instr = 1'b0;
+      decode_o.is_fp_float_instr = 1'b0;
+      decode_o.is_fp_int_op = 1'b0;
     end
 
   endcase

@@ -65,6 +65,7 @@ module network_tx
     
     , input [x_cord_width_p-1:0] tgo_x_i
     , input [y_cord_width_p-1:0] tgo_y_i
+
     , input [credit_counter_width_lp-1:0] out_credits_i
 
     , input [x_cord_width_p-1:0] my_x_i
@@ -79,13 +80,6 @@ module network_tx
   bsg_manycore_packet_s out_packet;
 
   assign out_packet_o = out_packet;
-  assign out_packet.op = remote_req_i.swap_aq
-    ? `ePacketOp_remote_swap_aq
-    : (remote_req_i.swap_rl
-      ? `ePacketOp_remote_swap_rl
-      : (remote_req_i.write_not_read
-        ? `ePacketOp_remote_store
-        : `ePacketOp_remote_load);
 
   assign out_packet.op_ex = remote_req_i.mask;
   assign out_packet.payload = remote_req_i.payload;
@@ -105,6 +99,15 @@ module network_tx
   bsg_manycore_addr_s in_group_addr;
 
   always_comb begin
+
+    out_packet.op = remote_req_i.swap_aq
+      ? `ePacketOp_remote_swap_aq
+      : (remote_req_i.swap_rl
+        ? `ePacketOp_remote_swap_rl
+        : (remote_req_i.write_not_read
+          ? `ePacketOp_remote_store
+          : `ePacketOp_remote_load));
+
     if (dram_addr.is_dram_addr) begin
       out_packet.y_cord = {y_cord_width_lp{1'b1}};
       out_packet.x_cord = dram_addr.x_cord;
@@ -126,8 +129,14 @@ module network_tx
       out_packet.y_cord = y_cord_width_p'(0);
       out_packet.x_cord = x_cord_width_p'(0);
       out_packet.addr = 'hEAD8; // fail packet address
+      out_packet.op = `ePacketOp_remote_store;
     end
   end
+
+  // handling outgoing requests
+  //
+  assign out_v_o = remote_req_v_i & (|out_credits_i)
+  assign remote_req_yumi_o = out_v_o & out_ready_i;
 
 
   // handling response packets

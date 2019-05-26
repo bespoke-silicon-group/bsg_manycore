@@ -259,6 +259,10 @@ module bsg_manycore_proc_vanilla
 
     ,.pc_init_val_i(pc_init_val)
     
+    ,.remote_req_o(remote_req)
+    ,.remote_req_v_o(remote_req_v)
+    ,.remote_req_yumi_i(remote_req_yumi)
+
     ,.icache_v_i(icache_v_lo)
     ,.icache_pc_i(icache_pc_lo)
     ,.icache_instr_i(icache_instr_lo)
@@ -266,14 +270,20 @@ module bsg_manycore_proc_vanilla
     ,.ifetch_v_i(ifetch_v_lo)
     ,.ifetch_instr_i(ifetch_instr_lo)
 
-    ,.remote_req_o(remote_req)
-    ,.remote_req_v_o(remote_req_v)
-    ,.remote_req_yumi_i(remote_req_yumi)
+    ,.remote_dmem_v_i(remote_dmem_v_lo)
+    ,.remote_dmem_w_i(remote_dmem_w_lo)
+    ,.remote_dmem_addr_i(remote_dmem_addr_lo)
+    ,.remote_dmem_data_i(remote_dmem_data_lo)
+    ,.remote_dmem_mask_i(remote_dmem_mask_lo)
+    ,.remote_dmem_data_o(remote_dmem_data_li)
+    ,.remote_dmem_yumi_o(remote_dmem_yumi_li)
 
     ,.remote_load_resp_i(remote_load_resp)
     ,.remote_load_resp_v_i(remote_load_resp_v_lo)
     ,.remote_load_resp_force_i(remote_load_resp_force_lo)
     ,.remote_load_resp_yumi_o(remote_load_resp_yumi_li)
+
+    ,.outstanding_req_i(out_credits_lo != max_out_credits_p)
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)

@@ -98,7 +98,7 @@ typedef struct packed
     logic op_is_auipc;
 
     //for M extension;
-    logic is_md_instr;      // indicates is md insruciton
+    logic is_md_op;      // indicates is md insruciton
 
     //for FENCE instruction
     logic is_fence_op;
@@ -115,8 +115,9 @@ typedef struct packed
     //for F extension
     logic op_reads_fp_rf1;  // reads rf1 of FP regfile
     logic op_reads_fp_rf2;  // reads rf1 of FP regfile
-    logic op_writes_fp_rf;         // writes back to FP regfile
-    logic is_fp_instr;      // goes into FP pipeline
+    logic op_writes_fp_rf;      // writes back to FP regfile
+    logic is_fp_float_op;    // goes into FP float pipeline
+    logic is_fp_int_op;      // goes into FP int pipeline
 
 } decode_s;
 
@@ -176,16 +177,9 @@ typedef struct packed
     logic                              rs2_in_mem;        // pre-computed forwarding signal
     logic                              rs2_in_wb ;        // pre-computed forwarding signal
     logic                              icache_miss;
+    fp_int_decode_s                    fp_int_decode;
 } exe_signals_s;
 
-// FP Execute stage signals
-typedef struct packed
-{
-  logic [RV32_reg_data_width_gp-1:0] rs1_val;
-  logic [RV32_reg_data_width_gp-1:0] rs2_val;
-  logic [RV32_reg_addr_width_gp-1:0] rd;
-  
-} fp_exe_signals_s;
 
 // Memory stage signals
 typedef struct packed
@@ -207,5 +201,28 @@ typedef struct packed
     logic                              icache_miss;
     logic [RV32_reg_data_width_gp-1:0] icache_miss_pc;
 } wb_signals_s;
+
+// FP Execute stage signals
+typedef struct packed
+{
+  logic [RV32_reg_data_width_gp-1:0] rs1_val;
+  logic [RV32_reg_data_width_gp-1:0] rs2_val;
+  logic [RV32_reg_addr_width_gp-1:0] rd;
+  fp_float_decode_s fp_float_decode;
+  logic valid;
+} fp_exe_signals_s;
+
+// FP writeback stage signals
+typedef struct packed
+{
+  logic [RV32_reg_data_width_gp-1:0] wb_data;
+  logic [RV32_reg_addr_width_gp-1:0] rd;
+  logic valid;
+} fp_wb_signals_s;
+
+
+
+
+
 
 `endif
