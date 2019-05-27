@@ -266,6 +266,7 @@ module bsg_manycore_proc_vanilla
     ,.icache_v_i(icache_v_lo)
     ,.icache_pc_i(icache_pc_lo)
     ,.icache_instr_i(icache_instr_lo)
+    ,.icache_yumi_o(icache_yumi_li)
 
     ,.ifetch_v_i(ifetch_v_lo)
     ,.ifetch_instr_i(ifetch_instr_lo)

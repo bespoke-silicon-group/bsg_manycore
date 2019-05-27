@@ -157,6 +157,8 @@ typedef struct packed
     instruction_s                      instruction;       // Instruction being executed
     decode_s                           decode;            // Decode signals
     logic                              icache_miss;
+    fp_int_decode_s                    fp_int_decode;
+    fp_float_decode_s                  fp_float_decode; 
 } id_signals_s;
 
 // Execute stage signals
@@ -172,10 +174,10 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] mem_addr_op2;      // the second operands to compute
                                                           // memory address
 
-    logic                              rs1_in_mem;        // pre-computed forwarding signal
-    logic                              rs1_in_wb ;        // pre-computed forwarding signal
-    logic                              rs2_in_mem;        // pre-computed forwarding signal
-    logic                              rs2_in_wb ;        // pre-computed forwarding signal
+    //logic                              rs1_in_mem;        // pre-computed forwarding signal
+    //logic                              rs1_in_wb ;        // pre-computed forwarding signal
+    //logic                              rs2_in_mem;        // pre-computed forwarding signal
+    //logic                              rs2_in_wb ;        // pre-computed forwarding signal
     logic                              icache_miss;
     fp_int_decode_s                    fp_int_decode;
 } exe_signals_s;
@@ -185,11 +187,17 @@ typedef struct packed
 typedef struct packed
 {
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;       // Destination address
-    decode_s                           decode;        // Decode signals
     logic [RV32_reg_data_width_gp-1:0] exe_result;    // Execution result
     logic [RV32_reg_data_width_gp-1:0] mem_addr_send; //the address sent to memory
-    logic                              remote_load;
-    logic                              icache_miss;
+  //  logic is_load_op;
+    logic op_writes_rf;
+    logic op_writes_fp_rf;
+    logic is_byte_op;
+    logic is_hex_op;
+    logic is_load_unsigned;
+    logic local_load;
+    logic icache_miss;
+    
 } mem_signals_s;
 
 // RF write back stage signals
