@@ -64,18 +64,15 @@ module vanilla_core
 
   // icache
   //
-  logic icache_cen;
-  logic icache_wen;
+  logic icache_cen, icache_wen;
   logic [icache_addr_width_lp-1:0] icache_waddr;
   logic [icache_tag_width_p-1:0] icache_wtag;
   logic [data_width_p-1:0] icache_winstr;
 
-  logic [pc_width_lp-1:0] pc_n;
-  logic [pc_width_lp-1:0] pc_r
+  logic [pc_width_lp-1:0] pc_n, pc_r;
   logic pc_wen;
   instruction_s instruction;
   logic icache_miss;
-
   logic icache_flush;
 
   logic [pc_width_lp-1:0] jalr_prediction; 
@@ -116,7 +113,7 @@ module vanilla_core
   fp_float_decode_s fp_float_decode;
   fp_int_decode_s fp_int_decode;
 
-  cl_decode (
+  cl_decode decode0 (
     .instruction_i(instruction)
     ,.decode_o(decode)
     ,.fp_float_decode_o(fp_float_decode)
@@ -267,14 +264,14 @@ module vanilla_core
     ,.dependency_o(float_dependency)
   );
 
-  // calcualte mem address offset
+  // calculate mem address offset
   //
   logic is_amo_op;
   logic [data_width_p-1:0] mem_addr_op2;
 
   assign is_amo_op = id_r.decode.op_is_load_reservation
-                  | id_r.decode.op_is_swap_aq
-                  | id_r.decode.op_is_swap_rl;
+    | id_r.decode.op_is_swap_aq
+    | id_r.decode.op_is_swap_rl;
 
   assign mem_addr_op2 = is_amo_op
     ? '0
@@ -339,14 +336,14 @@ module vanilla_core
     (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
 
   // save pc+4 of jump_op for predicting jalr branch target
-  logic jalr_prediction_r;
+  logic [pc_width_lp-1:0] jalr_prediction_r;
 
   assign jalr_prediction = exe_r.decode.is_jump_op
-    ? exe_r.pc_plus4
+    ? exe_r.pc_plus4[2+:pc_width_lp]
     : jalr_prediction_r;
 
   bsg_dff_reset #(
-    .width_p(data_width_p)
+    .width_p(pc_width_lp)
   ) jalr_pred_dff (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -409,8 +406,8 @@ module vanilla_core
   logic lsu_dmem_v_lo;
   logic lsu_dmem_w_lo;
   logic [dmem_addr_width_lp-1:0] lsu_dmem_addr_lo;
-  logic [data_width_p-1:0] dmem_data_lo;
-  logic [data_mask_width_lp-1:0] dmem_mask_lo;
+  logic [data_width_p-1:0] lsu_dmem_data_lo;
+  logic [data_mask_width_lp-1:0] lsu_dmem_mask_lo;
   load_info_s lsu_dmem_load_info_lo;
   logic lsu_reserve_lo;
   logic [data_width_p-1:0] lsu_mem_addr_send_lo;
@@ -424,7 +421,7 @@ module vanilla_core
     ,.exe_rs1_i(exe_rs1_forwarded)
     ,.exe_rs2_i(exe_rs2_forwarded)
     ,.exe_rd_i(exe_r.instruction.rd)
-    ,.mem_offset_o(exe_r.mem_addr_op2)
+    ,.mem_offset_i(exe_r.mem_addr_op2)
     ,.pc_plus4_i(exe_r.pc_plus4)
     ,.icache_miss_i(exe_r.icache_miss)
 
@@ -482,7 +479,7 @@ module vanilla_core
   logic [data_mask_width_lp-1:0] dmem_mask_li;
   logic [data_width_p-1:0] dmem_data_lo;
 
-  bsg_mem_1rw_sync_write_mask_byte #(
+  bsg_mem_1rw_sync_mask_write_byte #(
     .els_p(dmem_size_p)
     ,.data_width_p(data_width_p)
     ,.latch_last_read_p(1)
@@ -499,6 +496,8 @@ module vanilla_core
 
     ,.data_o(dmem_data_lo)
   );
+
+  assign remote_dmem_data_o = dmem_data_lo;
 
   //                          //
   //        WB STAGE          //
@@ -610,7 +609,7 @@ module vanilla_core
   logic flush_icache_miss;
 
   assign flush_mispredict = branch_mispredict | jalr_mispredict;
-  assign flush_icache_miss = id_r.cache_miss | exe_r.icache_miss
+  assign flush_icache_miss = id_r.icache_miss | exe_r.icache_miss
     | mem_r.icache_miss | wb_r.icache_miss;
 
   // next pc logic
@@ -663,11 +662,11 @@ module vanilla_core
   assign icache_cen = (~stall & ~stall_depend) | icache_v_i | ifetch_v_i;
   assign icache_wen = icache_v_i | ifetch_v_i;
   assign icache_waddr = ifetch_v_i
-    ? mem_r.mem_addr_send[2+:icache_addr_width_lp];
-    : icache_pc_i[0+:icache_addr_width_lp]
+    ? mem_r.mem_addr_send[2+:icache_addr_width_lp]
+    : icache_pc_i[0+:icache_addr_width_lp];
   assign icache_wtag = ifetch_v_i
-    ? mem_r.mem_addr_send[(2+icache_addr_width_lp)+:icache_tag_width_p];
-    : icache_pc_i[icache_addr_width_lp+:icache_tag_width_p]
+    ? mem_r.mem_addr_send[(2+icache_addr_width_lp)+:icache_tag_width_p]
+    : icache_pc_i[icache_addr_width_lp+:icache_tag_width_p];
   assign icache_winstr = ifetch_v_i
     ? ifetch_instr_i
     : icache_instr_i;
@@ -702,24 +701,23 @@ module vanilla_core
   end
 
   assign id_flush = flush_mispredict;
-  //assign id_en = ~(stall | stall_depend | stall_fp);   
   assign id_en = id_r.decode.is_fp_float_op
     ? ~(stall_depend | stall_fp)
     : ~(stall_depend | stall);
 
   // regfile read
   //
-  assign int_rf_read_rs1 = id_n.decode.op_reads_rf1 & ~(stall | stall_depend | fp_stall);
-  assign int_rf_read_rs2 = id_n.decode.op_reads_rf2 & ~(stall | stall_depend | fp_stall);
-  assign float_rf_read_rs1 = id_n.decode.op_reads_fp_rf1 & ~(stall | stall_depend | fp_stall);
-  assign float_rf_read_rs2 = id_n.decode.op_reads_fp_rf2 & ~(stall | stall_depend | fp_stall);
+  assign int_rf_read_rs1 = id_n.decode.op_reads_rf1 & ~(stall | stall_depend | stall_fp);
+  assign int_rf_read_rs2 = id_n.decode.op_reads_rf2 & ~(stall | stall_depend | stall_fp);
+  assign float_rf_read_rs1 = id_n.decode.op_reads_fp_rf1 & ~(stall | stall_depend | stall_fp);
+  assign float_rf_read_rs2 = id_n.decode.op_reads_fp_rf2 & ~(stall | stall_depend | stall_fp);
 
   // scoreboard
   //
-  assign int_sb_score = id_r.decode.is_load_op & ~id_r.icache_miss & id_r.op_writes_rf
+  assign int_sb_score = id_r.decode.is_load_op & ~id_r.icache_miss & id_r.decode.op_writes_rf
     & ~(id_flush | stall | stall_depend); // LW
 
-  assign float_sb_score = id_r.decode.op_writes_float_rf & ~id_flush & ~stall_depend
+  assign float_sb_score = id_r.decode.op_writes_fp_rf & ~id_flush & ~stall_depend
     & ((id_r.decode.is_fp_int_op & ~stall)
       | (id_r.decode.is_fp_float_op & ~stall_fp)); // FLW and FP_FLOAT
 
@@ -746,7 +744,7 @@ module vanilla_core
   assign fp_float_int_rs1_in_mem = (id_r.instruction.rs1 == mem_r.rd_addr)
     & mem_r.op_writes_rf & (id_r.instruction.rs1 != '0);
   assign fp_float_int_rs1_in_wb = (id_r.instruction.rs1 == wb_r.rd_addr)
-    & wb_r.decode.op_writes_rf & (id_r.instruction.rs1 != '0);
+    & wb_r.op_writes_rf & (id_r.instruction.rs1 != '0);
   assign fp_float_int_rs1_clear_now = (id_r.instruction.rs1 == int_sb_clear_id)
     & int_sb_clear;
 
@@ -833,8 +831,8 @@ module vanilla_core
   logic exe_rs2_forward_mem;
   logic exe_rs1_forward_wb;
   logic exe_rs2_forward_wb;
-  logix exe_rs1_forward;
-  logix exe_rs2_forward;
+  logic exe_rs1_forward;
+  logic exe_rs2_forward;
   logic [data_width_p-1:0] exe_rs1_forward_val;
   logic [data_width_p-1:0] exe_rs2_forward_val;
 
@@ -924,7 +922,7 @@ module vanilla_core
   // EXE stall
   //
   assign stall_lrw = exe_r.decode.op_is_lr_acq & reserved_r;
-  assign stall_fence = exe_r.decode.op_is_fence_op & outstanding_req_i;
+  assign stall_fence = exe_r.decode.is_fence_op & outstanding_req_i;
 
 
   // EXE -> MEM
@@ -953,7 +951,7 @@ module vanilla_core
   assign insert_remote_load = remote_load_resp_v_i
     & ~remote_load_resp_i.load_info.float_wb
     & ~remote_load_resp_i.load_info.icache_fetch
-    & exe_free_for_remote_load
+    & exe_free_for_remote_load;
 
   always_comb begin
     if (insert_remote_load) begin
@@ -1005,7 +1003,7 @@ module vanilla_core
 
       remote_dmem_yumi_o = 1'b0;
   
-      if (lsu_reserved_lo) begin
+      if (lsu_reserve_lo) begin
         reserved_n = 1'b1;
         reserved_addr_n = lsu_dmem_addr_lo;
 
@@ -1020,7 +1018,7 @@ module vanilla_core
       dmem_w_li = remote_dmem_w_i;
       dmem_addr_li = remote_dmem_addr_i;
       dmem_mask_li = remote_dmem_mask_i;
-      dmem_data_li = remote_dmdm_data_i;
+      dmem_data_li = remote_dmem_data_i;
       remote_dmem_yumi_o = dmem_v_li & ~mem_r.local_load;
 
       if (reserved_r & remote_dmem_yumi_o & (remote_dmem_addr_i == reserved_addr_r)) begin
@@ -1110,7 +1108,7 @@ module vanilla_core
     ? int_rf_rs1_data
     : (fp_exe_rs1_forward 
       ? fp_wb_r.wb_data
-      : float_rf_rs1_data;
+      : float_rf_rs1_data);
 
   assign rs2_to_fp_exe = fp_exe_rs2_forward
     ? fp_wb_r.wb_data

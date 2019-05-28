@@ -20,6 +20,7 @@ module bsg_manycore_proc_vanilla
 
     , parameter dram_ch_addr_width_p = "inv"
     , parameter epa_byte_addr_width_p = "inv"
+    , parameter dram_ch_start_col_p =0
 
     , parameter max_out_credits_p = 32
     , parameter proc_fifo_els_p = 4
@@ -29,6 +30,7 @@ module bsg_manycore_proc_vanilla
     , localparam icache_addr_width_lp = `BSG_SAFE_CLOG2(icache_entries_p)
     , localparam dmem_addr_width_lp = `BSG_SAFE_CLOG2(dmem_size_p)
     , localparam pc_width_lp=(icache_addr_width_lp+icache_tag_width_p)
+    , localparam data_mask_width_lp=(data_width_p>>3)
 
     , localparam link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,
@@ -57,7 +59,7 @@ module bsg_manycore_proc_vanilla
   logic [(data_width_p>>3)-1:0] in_mask_lo;
   logic in_yumi_li;
 
-  logic returning_v_li;
+  logic returning_data_v_li;
   logic [data_width_p-1:0] returning_data_li;
 
   bsg_manycore_packet_s out_packet_li;
@@ -100,7 +102,7 @@ module bsg_manycore_proc_vanilla
     ,.in_src_x_cord_o()
     ,.in_src_y_cord_o()
 
-    ,.returning_v_i(returning_v_li)
+    ,.returning_v_i(returning_data_v_li)
     ,.returning_data_i(returning_data_li)
 
     // tx
@@ -134,7 +136,7 @@ module bsg_manycore_proc_vanilla
   logic icache_v_lo;
   logic [pc_width_lp-1:0] icache_pc_lo;
   logic [data_width_p-1:0] icache_instr_lo;
-  logic icache_yumi_li
+  logic icache_yumi_li;
 
   logic freeze;
   logic [x_cord_width_p-1:0] tgo_x;
@@ -149,6 +151,7 @@ module bsg_manycore_proc_vanilla
     ,.icache_entries_p(icache_entries_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
+    ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
   ) rx (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -180,6 +183,9 @@ module bsg_manycore_proc_vanilla
     ,.tgo_x_o(tgo_x)
     ,.tgo_y_o(tgo_y)
     ,.pc_init_val_o(pc_init_val)
+
+    ,.my_x_i(my_x_i)
+    ,.my_y_i(my_y_i)
   );
 
 
@@ -205,6 +211,7 @@ module bsg_manycore_proc_vanilla
     ,.load_id_width_p(load_id_width_p)
 
     ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
+    ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
 
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)

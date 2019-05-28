@@ -328,7 +328,7 @@ always_comb begin
       decode_o.op_reads_fp_rf1 = 1'b0;
       decode_o.op_reads_fp_rf2 = 1'b0;
       decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_float_instr = 1'b0;
+      decode_o.is_fp_float_op = 1'b0;
       decode_o.is_fp_int_op = 1'b0;
     end
 

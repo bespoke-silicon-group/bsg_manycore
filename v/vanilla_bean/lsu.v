@@ -21,7 +21,7 @@ module lsu
   )
   (
     // from EXE
-    , input decode_s exe_decode_i
+    input decode_s exe_decode_i
     , input [data_width_p-1:0] exe_rs1_i
     , input [data_width_p-1:0] exe_rs2_i
     , input [reg_addr_width_lp-1:0] exe_rd_i
@@ -46,9 +46,9 @@ module lsu
   );
 
   logic [data_width_p-1:0] mem_addr;
-  logic [data_width_p-1:0] miss_addr
+  logic [data_width_p-1:0] miss_addr;
 
-  assign mem_addr = rs1_i + mem_offset_i;
+  assign mem_addr = exe_rs1_i + mem_offset_i;
   assign miss_addr = (pc_plus4_i - 'h4) | 32'h80000000;
 
   // store data mask
@@ -105,7 +105,7 @@ module lsu
   assign dmem_load_info_o = load_info;
 
   assign mem_addr_send_o = icache_miss_i
-    ? miss_pc
+    ? miss_addr
     : mem_addr;
 
   // remote req

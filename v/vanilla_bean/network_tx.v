@@ -83,8 +83,8 @@ module network_tx
 
   assign out_packet.op_ex = remote_req_i.mask;
   assign out_packet.payload = remote_req_i.payload;
-  assign out_packet.src_y_cord = my_x_i;
-  assign out_packet.src_x_cord = my_y_i;
+  assign out_packet.src_y_cord = my_y_i;
+  assign out_packet.src_x_cord = my_x_i;
 
   // EVA -> NPA translation
   //
@@ -109,7 +109,7 @@ module network_tx
           : `ePacketOp_remote_load));
 
     if (dram_addr.is_dram_addr) begin
-      out_packet.y_cord = {y_cord_width_lp{1'b1}};
+      out_packet.y_cord = {y_cord_width_p{1'b1}};
       out_packet.x_cord = dram_addr.x_cord;
       out_packet.addr = {1'b0, {(addr_width_p-1-dram_ch_addr_width_p){1'b0}}, dram_addr.addr};
     end
@@ -135,7 +135,7 @@ module network_tx
 
   // handling outgoing requests
   //
-  assign out_v_o = remote_req_v_i & (|out_credits_i)
+  assign out_v_o = remote_req_v_i & (|out_credits_i);
   assign remote_req_yumi_o = out_v_o & out_ready_i;
 
 
@@ -145,22 +145,25 @@ module network_tx
   assign returned_load_info = returned_load_id_i;
 
   always_comb begin
+
     ifetch_instr_o = returned_data_i;
     remote_load_resp_o.load_info = returned_load_info;
     remote_load_resp_o.load_data = returned_data_i;
 
     if (returned_load_info.icache_fetch) begin
       ifetch_v_o = returned_v_i;
-      remote_load_resp_v_i = 1'b0;
-      remote_load_resp_force_i = 1'b0;
+      remote_load_resp_v_o = 1'b0;
+      remote_load_resp_force_o = 1'b0;
       returned_yumi_o = returned_v_i;
     end
     else begin
       ifetch_v_o = 1'b0;
-      remote_load_resp_v_i = returned_v_i;
-      remote_load_resp_force_i = returned_fifo_full_i;
-      returned_yumi_o = remote_load_resp_yumi_o;
+      remote_load_resp_v_o = returned_v_i;
+      remote_load_resp_force_o = returned_fifo_full_i;
+      returned_yumi_o = remote_load_resp_yumi_i;
     end
+
   end
+
 
 endmodule
