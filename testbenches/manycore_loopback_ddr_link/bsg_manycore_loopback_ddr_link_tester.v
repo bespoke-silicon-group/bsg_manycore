@@ -67,7 +67,8 @@ module bsg_manycore_loopback_ddr_link_tester
   `declare_bsg_manycore_link_sif_s(mc_addr_width_p,mc_data_width_p,mc_x_cord_width_p,mc_y_cord_width_p,mc_load_id_width_p);
   `declare_bsg_ready_and_link_sif_s(width_p,bsg_ready_and_link_sif_s);
   
-  logic mc_clk_0, mc_clk_1, mc_reset_0, mc_reset_1;
+  logic mc_clk_0, mc_clk_1;
+  logic node_reset_0, node_reset_1, mc_reset_0, mc_reset_1;
   logic clk_0, clk_1, reset_0, reset_1;
   logic clk_1x_0, clk_1x_1, clk_2x_0, clk_2x_1;
   logic link_enable_0, link_enable_1;
@@ -165,7 +166,8 @@ module bsg_manycore_loopback_ddr_link_tester
    
   ,.clk_i(clk_0)
   ,.reset_i(chip_reset_0)
-  ,.en_i(node_en_0)
+  ,.manycore_reset_i(node_reset_0)
+  ,.manycore_en_i(node_en_0)
 
   ,.dest_x_i((x_cord_width_p)'(3))
   ,.dest_y_i((y_cord_width_p)'(0))
@@ -384,7 +386,8 @@ module bsg_manycore_loopback_ddr_link_tester
    
   ,.clk_i(clk_1)
   ,.reset_i(chip_reset_1)
-  ,.en_i(node_en_1)
+  ,.manycore_reset_i(node_reset_1)
+  ,.manycore_en_i(node_en_1)
 
   ,.dest_x_i((x_cord_width_p)'(2))
   ,.dest_y_i((y_cord_width_p)'(0))
@@ -451,6 +454,8 @@ module bsg_manycore_loopback_ddr_link_tester
 	node_en_1 = 0;
     chip_reset_0 = 1;
     chip_reset_1 = 1;
+    node_reset_0 = 1;
+    node_reset_1 = 1;
 	
 	#1000;
     
@@ -476,6 +481,14 @@ module bsg_manycore_loopback_ddr_link_tester
 	chip_reset_0 = 0;
 	@(posedge clk_1); #1;
 	chip_reset_1 = 0;
+    
+    #1000
+    
+    // node reset
+    @(posedge clk_0); #1;
+	node_reset_0 = 0;
+	@(posedge clk_1); #1;
+	node_reset_1 = 0;
     
     #1000
 	

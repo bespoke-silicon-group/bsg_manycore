@@ -31,7 +31,8 @@ module bsg_manycore_link_async_to_wormhole
   // Wormhole side
   ,input clk_i
   ,input reset_i
-  ,input en_i
+  ,input manycore_reset_i
+  ,input manycore_en_i
   
   ,input [wormhole_x_cord_width_p-1:0] dest_x_i
   ,input [wormhole_y_cord_width_p-1:0] dest_y_i
@@ -51,7 +52,7 @@ module bsg_manycore_link_async_to_wormhole
   (.iclk_i(clk_i)
   ,.iclk_reset_i(1'b0)
   ,.oclk_i(manycore_clk_i)
-  ,.iclk_data_i(reset_i)
+  ,.iclk_data_i(manycore_reset_i)
   ,.iclk_data_o()
   ,.oclk_data_o(manycore_reset_o));
   
@@ -61,7 +62,7 @@ module bsg_manycore_link_async_to_wormhole
   (.iclk_i(clk_i)
   ,.iclk_reset_i(1'b0)
   ,.oclk_i(manycore_clk_i)
-  ,.iclk_data_i(en_i)
+  ,.iclk_data_i(manycore_en_i)
   ,.iclk_data_o()
   ,.oclk_data_o(manycore_en_o));
   
