@@ -15,7 +15,7 @@ module bsg_manycore_link_async_to_wormhole
   ,parameter wormhole_y_cord_width_p = "inv"
   ,parameter wormhole_len_width_p = "inv"
   ,parameter wormhole_reserved_width_p = "inv"
-  ,parameter fifo_depth_p = 8
+  ,parameter lg_fifo_depth_p = 3
   ,localparam num_nets_lp = 2
   ,localparam bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
   ,localparam bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(wormhole_width_p))
@@ -119,7 +119,7 @@ module bsg_manycore_link_async_to_wormhole
   for (i = 0; i < num_nets_lp; i++) begin: afifo
   
     bsg_async_fifo
-   #(.lg_size_p(fifo_depth_p)
+   #(.lg_size_p(lg_fifo_depth_p)
     ,.width_p(wormhole_width_p))
     wh_2_mc_fifo
     (.w_clk_i(clk_i)
@@ -135,7 +135,7 @@ module bsg_manycore_link_async_to_wormhole
     ,.r_valid_o(mc_valid_lo[i]));
     
     bsg_async_fifo
-   #(.lg_size_p(fifo_depth_p)
+   #(.lg_size_p(lg_fifo_depth_p)
     ,.width_p(wormhole_width_p))
     mc_2_wh_fifo
     (.w_clk_i(manycore_clk_i)

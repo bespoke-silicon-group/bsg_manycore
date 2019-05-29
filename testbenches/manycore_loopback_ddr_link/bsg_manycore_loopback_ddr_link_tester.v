@@ -11,25 +11,55 @@ module bsg_manycore_loopback_ddr_link_tester
        , bsg_noc_pkg::N  // north
        , bsg_noc_pkg::S; // south
 
- #(parameter mc_addr_width_p = 10
+ #(// Manycore configuration parameters, should match real Manycore tiles
+   parameter mc_addr_width_p = 10
   ,parameter mc_data_width_p = 40
   ,parameter mc_load_id_width_p = 5
   ,parameter mc_x_cord_width_p = 5
   ,parameter mc_y_cord_width_p = 5
+  
+  // Loopback test node configuration
+  ,parameter mc_node_num_channel_p = 7
+  
+  // How many wormhole packet flits for request and response
+  // If ratio=n, then total packet length is n*width_p
+  // Increase these two parameters if adapter complains
   ,parameter req_ratio_p = 3
   ,parameter resp_ratio_p = 2
-  ,parameter mc_node_num_channel_p = 7
+  
+  // Wormhole packet configuration
+  // Width of each wormhole flit
   ,parameter width_p = 32
+  // How many bits are needed for x-y coordinate
+  // Always set to non-zero numbers
   ,parameter x_cord_width_p = 2
   ,parameter y_cord_width_p = 2
+  // How many bits are used to represent packet length
+  // If ratio is n, then length number is (n-1)
+  // Should be $clog2(ratio-1+1)
   ,parameter len_width_p = 2
+  // If channel tunnel num_in_p <= 3, reserved bits needed is 2
+  // Increase reserved bits if have more than 3 inputs
   ,parameter reserved_width_p = 2
+  
+  // DDR link configuration
   ,parameter channel_width_p = 8
+  // How many link channels do we have
   ,parameter num_channel_p = 2
+  // DDR Link buffer size
+  // 6 should be good for 500MHz, increase if channel stalls waiting for token
   ,parameter lg_fifo_depth_p = 6
+  // Do not change
   ,parameter lg_credit_to_token_decimation_p = 3
-  ,parameter remote_credits_p = 32
+  
+  // Channel tunnel configuration
+  // Size of channel tunnel buffer (hardened memory)
+  // Set to 96 / `BSG_MIN(req_ratio, resp_ratio)
+  ,parameter remote_credits_p = 48
+  // Should be `BSG_MAX(req_ratio, resp_ratio)-1
   ,parameter ct_max_len_p = 3-1
+  // How often does channel tunnel return credits
+  // Set to $clog2(width_p)-2
   ,parameter ct_lg_credit_decimation_p = 3)
   
   ();
@@ -463,7 +493,7 @@ module bsg_manycore_loopback_ddr_link_tester
     @(posedge clk_1); #1;
 	node_en_1 = 0;
 	
-	#25000
+	#5000
 	
     // link disable
     @(posedge clk_0); #1;
