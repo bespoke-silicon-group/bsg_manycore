@@ -210,7 +210,7 @@ module bsg_manycore_link_async_to_wormhole
     ,.data_o(mc_data_li[i])
     ,.yumi_i(mc_ready_lo[i]&mc_valid_li[i]));
     
-    bsg_serial_in_parallel_out_full
+    bsg_serial_in_parallel_out_full_buffered
    #(.width_p(wormhole_width_p)
     ,.els_p(ps_els_lp)
     ,.msb_then_lsb_p(1))
