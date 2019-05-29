@@ -126,14 +126,13 @@ module vanilla_core
   //                          //
 
   id_signals_s id_r, id_n;
-  logic id_flush;
   logic id_en;
 
   bsg_dff_reset_en #(
     .width_p($bits(id_signals_s))
   ) id_pipeline (
     .clk_i(clk_i)
-    ,.reset_i(reset_i | id_flush)
+    ,.reset_i(reset_i)
     ,.en_i(id_en)
     ,.data_i(id_n)
     ,.data_o(id_r)
@@ -286,25 +285,64 @@ module vanilla_core
 
 
   exe_signals_s exe_r, exe_n;
-  logic exe_flush;
-  logic exe_en;
 
   bsg_dff_reset_en #(
     .width_p($bits(exe_signals_s))
   ) exe_pipeline (
     .clk_i(clk_i)
-    ,.reset_i(reset_i | exe_flush)
-    ,.en_i(exe_en)
+    ,.reset_i(reset_i)
+    ,.en_i(~stall)
     ,.data_i(exe_n)
     ,.data_o(exe_r)
   );
 
 
-  // post forward values
-  //
-  logic [data_width_p-1:0] exe_rs1_forwarded;
-  logic [data_width_p-1:0] exe_rs2_forwarded;
 
+  // EXE forwarding muxes
+  //
+  logic exe_rs1_forward;
+  logic exe_rs2_forward;
+  logic [data_width_p-1:0] exe_rs1_final; // post-forward rs1
+  logic [data_width_p-1:0] exe_rs2_final; // post-forward rs2
+
+  assign exe_rs1_forward = exe_r.rs1_in_mem | exe_r.rs1_in_wb;
+  assign exe_rs2_forward = exe_r.rs2_in_mem | exe_r.rs2_in_wb;
+
+  bsg_mux #(
+    .width_p(data_width_p) 
+    ,.els_p(2)
+  ) exe_rs1_forward_val_mux (
+    .data_i({mem_r.exe_result, wb_r.rf_data})
+    ,.sel_i(exe_r.rs1_in_mem)
+    ,.data_o(exe_rs1_forward_val)
+  );
+
+  bsg_mux #(
+    .width_p(data_width_p)
+    ,.els_p(2)
+  ) exe_rs1_final_mux (
+    .data_i({exe_rs1_forward_val, exe_r.rs1_val})
+    ,.sel_i(exe_rs1_forward)
+    ,.data_o(exe_rs1_final)
+  );
+
+  bsg_mux #(
+    .width_p(data_width_p) 
+    ,.els_p(2)
+  ) exe_rs2_forward_val_mux (
+    .data_i({mem_r.exe_result, wb_r.rf_data})
+    ,.sel_i(exe_r.rs2_in_mem)
+    ,.data_o(exe_rs2_forward_val)
+  );
+
+  bsg_mux #(
+    .width_p(data_width_p)
+    ,.els_p(2)
+  ) exe_rs2_final_mux (
+    .data_i({exe_rs2_forward_val, exe_r.rs2_val})
+    ,.sel_i(exe_rs2_forward)
+    ,.data_o(exe_rs2_final)
+  );
 
   // ALU
   //
@@ -315,8 +353,8 @@ module vanilla_core
   alu #(
     .pc_width_p(pc_width_lp)
   ) alu0 (
-    .rs1_i(exe_rs1_forwarded)
-    ,.rs2_i(exe_rs2_forwarded)
+    .rs1_i(exe_rs1_final)
+    ,.rs2_i(exe_rs2_final)
     ,.pc_plus4_i(exe_r.pc_plus4)
     ,.op_i(exe_r.instruction)
     ,.result_o(alu_result)
@@ -358,8 +396,8 @@ module vanilla_core
   logic [data_width_p-1:0] fpu_int_result;
 
   fpu_int fpu_int0 (
-    .a_i(exe_rs1_forwarded)
-    ,.b_i(exe_rs2_forwarded)
+    .a_i(exe_rs1_final)
+    ,.b_i(exe_rs2_final)
     ,.fp_int_decode_i(exe_r.fp_int_decode)
     ,.result_o(fpu_int_result)
   );
@@ -382,8 +420,8 @@ module vanilla_core
     ,.v_i(md_v_li)
     ,.ready_o(md_ready_lo)
 
-    ,.opA_i(exe_rs1_forwarded)
-    ,.opB_i(exe_rs2_forwarded)
+    ,.opA_i(exe_rs1_final)
+    ,.opB_i(exe_rs2_final)
     ,.funct3(exe_r.instruction.funct3)
 
     ,.v_o(md_v_lo)
@@ -391,7 +429,8 @@ module vanilla_core
     ,.yumi_i(md_yumi_li)
   );
 
-  // exe result
+  // exe result (outputs from either ALU, FPU_int, or MD)
+  //
   logic [data_width_p-1:0] exe_result;
 
   assign exe_result = exe_r.decode.is_md_op
@@ -418,8 +457,8 @@ module vanilla_core
     ,.dmem_size_p(dmem_size_p)
   ) lsu0 (
     .exe_decode_i(exe_r.decode)
-    ,.exe_rs1_i(exe_rs1_forwarded)
-    ,.exe_rs2_i(exe_rs2_forwarded)
+    ,.exe_rs1_i(exe_rs1_final)
+    ,.exe_rs2_i(exe_rs2_final)
     ,.exe_rd_i(exe_r.instruction.rd)
     ,.mem_offset_i(exe_r.mem_addr_op2)
     ,.pc_plus4_i(exe_r.pc_plus4)
@@ -460,14 +499,13 @@ module vanilla_core
 
 
   mem_signals_s mem_r, mem_n;
-  logic mem_en;
 
   bsg_dff_reset_en #(
     .width_p($bits(mem_signals_s))
   ) mem_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.en_i(mem_en)
+    ,.en_i(~stall)
     ,.data_i(mem_n)
     ,.data_o(mem_r)
   );
@@ -499,20 +537,46 @@ module vanilla_core
 
   assign remote_dmem_data_o = dmem_data_lo;
 
+  // remote load handler
+  //
+  logic [data_width_p-1:0] fp_remote_load_data_lo;
+  logic fp_remote_load_v_lo;
+
+  logic [data_width_p-1:0] int_remote_load_data_lo;
+  logic int_remote_load_v_lo;
+  logic int_remote_load_force_lo;
+  logic int_remote_load_yumi_li;
+
+  remote_load_handler #(
+    .data_width_p(data_width_p)
+  ) rlh (
+    .remote_load_resp_i(remote_load_resp_i)
+    ,.remote_load_resp_v_i(remote_load_resp_v_i)
+    ,.remote_load_resp_force_i(remote_load_resp_force_i)
+    ,.remote_load_resp_yumi_o(remote_load_resp_yumi_o)
+
+    ,.fp_remote_load_data_o(fp_remote_load_data_lo)
+    ,.fp_remote_load_v_o(fp_remote_load_v_lo)
+
+    ,.int_remote_load_data_o(int_remote_load_data_lo)
+    ,.int_remote_load_v_o(int_remote_load_v_lo)
+    ,.int_remote_load_force_o(int_remote_load_force_lo)
+    ,.int_remote_load_yumi_i(int_remote_load_yumi_li)
+  );
+
   //                          //
   //        WB STAGE          //
   //                          //
 
 
   wb_signals_s wb_r, wb_n;
-  logic wb_en;
   
   bsg_dff_reset_en #(
     .width_p($bits(wb_signals_s))
   ) wb_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.en_i(wb_en)
+    ,.en_i(~stall)
     ,.data_i(wb_n)
     ,.data_o(wb_r)
   );
@@ -564,14 +628,12 @@ module vanilla_core
   //                          //
 
   fp_wb_signals_s fp_wb_n, fp_wb_r;
-  logic fp_wb_en;
 
-  bsg_dff_reset_en #(
+  bsg_dff_reset #(
     .width_p($bits(fp_wb_signals_s))
   ) fp_wb_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.en_i(fp_wb_en)
     ,.data_i(fp_wb_n)
     ,.data_o(fp_wb_r)
   );
@@ -587,7 +649,7 @@ module vanilla_core
   logic stall;              // stall integer pipeline
   logic stall_fp;           // stall on float pipeline
   logic stall_depend;       // stall on issuing instr to either EXE or FP_EXE
-  logic stall_ifetch;       // stall on ifetch in MEM
+  logic stall_ifetch_wait;  // stall on ifetch in MEM
   logic stall_icache_store; // stall on icache remote store
   logic stall_lrw;          // stall on lrw reservation
   logic stall_fence;        // stall on fence in EXE
@@ -595,7 +657,7 @@ module vanilla_core
   logic stall_force_wb;     // stall on force remote load wb 
   logic stall_remote_req;   // stall on sending remote request
 
-  assign stall = stall_ifetch
+  assign stall = stall_ifetch_wait // stall the entire int pipeline
     | stall_icache_store
     | stall_lrw
     | stall_fence
@@ -603,57 +665,46 @@ module vanilla_core
     | stall_force_wb
     | stall_remote_req;
 
+  assign stall_lrw = exe_r.decode.op_is_lr_acq & reserved_r;
+  assign stall_fence = exe_r.decode.is_fence_op & outstanding_req_i;
+  assign stall_remote_req = remote_req_v_o & ~remote_req_yumi_i;
+  assign stall_ifetch_wait = mem_r.icache_miss & ~ifetch_v_i; // ifetch and remote_load_resp cannot arrive simultaneously.
+
   // flush condition
   //
-  logic flush_mispredict;
-  logic flush_icache_miss;
-
-  assign flush_mispredict = branch_mispredict | jalr_mispredict;
-  assign flush_icache_miss = id_r.icache_miss | exe_r.icache_miss
-    | mem_r.icache_miss | wb_r.icache_miss;
+  logic flush;
+  assign flush = (branch_mispredict | jalr_mispredict)
+    | (id_r.icache_miss | exe_r.icache_miss
+      | mem_r.icache_miss | wb_r.icache_miss);
 
   // next pc logic
   //
   logic reset_r;
-  logic reset_down;
-
-  bsg_dff #(
-    .width_p(1)
-  ) dff_reset (
+  bsg_dff #(.width_p(1)) reset_dff (
     .clk_i(clk_i)
     ,.data_i(reset_i)
     ,.data_o(reset_r)
   );
   
-  assign reset_down = reset_r & ~reset_i;
-
   always_comb begin
-    if (reset_down) begin
+    if (reset_r & ~reset_i) // reset went down.
       pc_n = pc_init_val_i;
-    end
-    else if (wb_r.icache_miss) begin
+    else if (wb_r.icache_miss)
       pc_n = wb_r.icache_miss_pc[2+:pc_width_lp];
-    end
-    else if (branch_mispredict) begin
-      if (branch_under_predict) begin
+    else if (branch_mispredict)
+      if (branch_under_predict)
         pc_n = exe_r.pred_or_jump_addr[2+:pc_width_lp];
-      end
-      else begin
+      else
         pc_n = exe_r.pc_plus4[2+:pc_width_lp];
-      end
     end
-    else if (jalr_mispredict) begin
+    else if (jalr_mispredict)
       pc_n = alu_jalr_addr;
-    end
-    else if ((decode.is_branch_op & instruction[0]) | (instruction.op == `RV32_JAL_OP)) begin
+    else if ((decode.is_branch_op & instruction[0]) | (instruction.op == `RV32_JAL_OP))
       pc_n = pred_or_jump_addr;
-    end
-    else if (decode.is_jump_op) begin
+    else if (decode.is_jump_op)
       pc_n = pred_or_jump_addr;
-    end   
-    else begin
+    else
       pc_n = pc_plus4;
-    end
   end
 
 
@@ -672,9 +723,9 @@ module vanilla_core
     : icache_instr_i;
   assign icache_yumi_o = icache_v_i & (~ifetch_v_i);
 
-  assign icache_flush = flush_mispredict | flush_icache_miss;
+  assign icache_flush = flush;
 
-  assign pc_wen = ~(stall | stall_depend);
+  assign pc_wen = ~(stall | stall_depend | stall_fp);
 
   
   // IF -> ID
@@ -687,9 +738,16 @@ module vanilla_core
       // insert "icache bubble"
       id_n.instruction = '0;
       id_n.decode = '0;
-      id_n.decode.is_mem_op = 1'b1;
-      id_n.decode.is_load_op = 1'b1;
+      id_n.fp_int_decode = '0;
+      id_n.fp_float_decode = '0;
       id_n.icache_miss = 1'b1;
+    end
+    else if (flush) begin
+      id_n.instruction = '0;
+      id_n.decode = '0;
+      id_n.fp_int_decode = '0;
+      id_n.fp_float_decode = '0;
+      id_n.icache_miss = 1'b0;
     end
     else begin
       id_n.instruction = instruction;
@@ -700,37 +758,42 @@ module vanilla_core
     end
   end
 
-  assign id_flush = flush_mispredict;
-  assign id_en = id_r.decode.is_fp_float_op
-    ? ~(stall_depend | stall_fp)
-    : ~(stall_depend | stall);
+  assign id_en = ~(stall | stall_depend | stall_fp);
 
   // regfile read
   //
-  assign int_rf_read_rs1 = id_n.decode.op_reads_rf1 & ~(stall | stall_depend | stall_fp);
-  assign int_rf_read_rs2 = id_n.decode.op_reads_rf2 & ~(stall | stall_depend | stall_fp);
-  assign float_rf_read_rs1 = id_n.decode.op_reads_fp_rf1 & ~(stall | stall_depend | stall_fp);
-  assign float_rf_read_rs2 = id_n.decode.op_reads_fp_rf2 & ~(stall | stall_depend | stall_fp);
+  assign int_rf_read_rs1 = id_n.decode.op_reads_rf1 & id_en;
+  assign int_rf_read_rs2 = id_n.decode.op_reads_rf2 & id_en;
+  assign float_rf_read_rs1 = id_n.decode.op_reads_fp_rf1 & id_en;
+  assign float_rf_read_rs2 = id_n.decode.op_reads_fp_rf2 & id_en;
 
   // scoreboard
   //
-  assign int_sb_score = id_r.decode.is_load_op & ~id_r.icache_miss & id_r.decode.op_writes_rf
-    & ~(id_flush | stall | stall_depend); // LW
+  assign int_sb_score = (id_r.decode.is_load_op & id_r.decode.op_writes_rf)
+    & ~(flush | stall | stall_depend); // LW
 
-  assign float_sb_score = id_r.decode.op_writes_fp_rf & ~id_flush & ~stall_depend
-    & ((id_r.decode.is_fp_int_op & ~stall)
-      | (id_r.decode.is_fp_float_op & ~stall_fp)); // FLW and FP_FLOAT
+  assign float_sb_score = (id_r.decode.op_writes_fp_rf)
+    & ~(flush | stall | stall_depend | stall_fp);
 
-  assign int_sb_clear = remote_load_resp_v_i & remote_load_resp_yumi_o
-    & ~remote_load_resp_i.load_info.float_wb;
-  assign int_sb_clear_id = remote_load_resp_i.load_info.reg_id;
+  assign int_sb_clear = (remote_load_resp_v_i & remote_load_resp_yumi_o
+    & ~remote_load_resp_i.load_info.float_wb); // TODO: local load also clears
+
+  assign int_sb_clear_id = remote_load_resp_i.load_info.reg_id; // TODO: local load reg id
 
   assign float_sb_clear = fp_wb_r.valid;
   assign float_sb_clear_id = fp_wb_r.rd;
 
 
   // stall_depend logic
-  //
+  // 1. Is it float or int pipeline instruction?
+  // 2. If it's float instruction, check float and integer scoreboard for dependency.
+  //    If it reads integer regfile (rs1), check that rs1 does not match
+  //    rd in EXE, MEM, WB, and rs1 not being cleared in integer scoreboard now. 
+  // 3. If it's int instruction, check integer and float scoreboard for dependency.
+  //    If it reads float regfile (rs1 or rs2), check that rs1 or rs2 does not match
+  //    rd in FP_WB, and rs1 or rs2 is not being cleared in float scoreboard
+  //    now.
+
   logic stall_depend_float;
   logic stall_depend_int;
 
@@ -740,16 +803,19 @@ module vanilla_core
   logic fp_float_int_rs1_clear_now;
   
   assign fp_float_int_rs1_in_exe = (id_r.instruction.rs1 == exe_r.instruction.rd)
-    & exe_r.decode.op_writes_rf & (id_r.instruction.rs1 != '0);
+    & exe_r.decode.op_writes_rf;
+
   assign fp_float_int_rs1_in_mem = (id_r.instruction.rs1 == mem_r.rd_addr)
-    & mem_r.op_writes_rf & (id_r.instruction.rs1 != '0);
+    & mem_r.op_writes_rf;
+
   assign fp_float_int_rs1_in_wb = (id_r.instruction.rs1 == wb_r.rd_addr)
-    & wb_r.op_writes_rf & (id_r.instruction.rs1 != '0);
+    & wb_r.op_writes_rf;
+
   assign fp_float_int_rs1_clear_now = (id_r.instruction.rs1 == int_sb_clear_id)
     & int_sb_clear;
 
-  assign stall_depend_float = int_dependency | float_dependency
-    | (id_r.decode.op_reads_rf1
+  assign stall_depend_float = (int_dependency | float_dependency)
+    | (id_r.decode.op_reads_rf1 & (id_r.instruction.rs1 != '0)
       & (fp_float_int_rs1_in_exe
         | fp_float_int_rs1_in_mem
         | fp_float_int_rs1_in_wb
@@ -758,9 +824,11 @@ module vanilla_core
   logic float_rs1_clear_now;
   logic float_rs2_clear_now;
 
-  assign float_rs1_clear_now = (id_r.instruction.rs1 == float_sb_clear_id)
+  assign float_rs1_clear_now = id_r.decode.op_reads_fp_rf1
+    & (id_r.instruction.rs1 == float_sb_clear_id)
     & float_sb_clear;
-  assign float_rs2_clear_now = (id_r.instruction.rs2 == float_sb_clear_id)
+  assign float_rs2_clear_now = id_r.decode.op_reads_fp_rf2
+    & (id_r.instruction.rs2 == float_sb_clear_id)
     & float_sb_clear;
 
   assign stall_depend_int = int_dependency | float_dependency
@@ -768,10 +836,10 @@ module vanilla_core
 
   assign stall_depend = (id_r.decode.is_fp_float_op
     ? stall_depend_float
-    : stall_depend_int) & (~branch_mispredict) & (~jalr_mispredict);
+    : stall_depend_int) & ~(branch_mispredict | jalr_mispredict);
 
 
-  // ID forwarding
+  // ID int forwarding
   //
   logic id_rs1_forward_wb;
   logic id_rs2_forward_wb;
@@ -782,9 +850,9 @@ module vanilla_core
     & (id_r.instruction.rs1 != '0);
 
   assign id_rs2_forward_wb = id_r.decode.op_reads_rf2
-    & (id_r.instruction.rs1 == wb_r.rd_addr)
+    & (id_r.instruction.rs2 == wb_r.rd_addr)
     & wb_r.op_writes_rf
-    & (id_r.instruction.rs1 != '0);
+    & (id_r.instruction.rs2 != '0);
 
   logic [data_width_p-1:0] rs1_to_exe;
   logic [data_width_p-1:0] rs2_to_exe;
@@ -804,10 +872,30 @@ module vanilla_core
 
   // ID -> EXE
   //
-  assign exe_en = ~stall;
   
+  logic exe_rs1_in_mem; // pre-compute EXE forwarding
+  logic exe_rs2_in_mem;
+  logic exe_rs1_in_wb;
+  logic exe_rs2_in_wb;
+
+  assign exe_rs1_in_mem = mem_n.op_writes_rf
+    & (mem_n.rd_addr == id_r.decode.rs1)
+    & (men_n.rd_addr != '0);
+
+  assign exe_rs2_in_mem = mem_n.op_writes_rf
+    & (mem_n.rd_addr == id_r.decode.rs2)
+    & (men_n.rd_addr != '0);
+
+  assign exe_rs1_in_wb = wb_n.op_writes_rf
+    & (wb_n.rd_addr == id_r.decode.rs1)
+    & (wb_n.rd_addr != '0);
+
+  assign exe_rs2_in_wb = wb_n.op_writes_rf
+    & (wb_n.rd_addr == id_r.decode.rs2)
+    & (wb_n.rd_addr != '0);
+
   always_comb begin
-    if (stall_depend | flush_mispredict | id_r.decode.is_fp_float_op) begin
+    if (stall_depend | flush | id_r.decode.is_fp_float_op) begin
       exe_n = '0;
     end
     else begin
@@ -819,173 +907,54 @@ module vanilla_core
         rs1_val: rs1_to_exe,
         rs2_val: rs2_to_exe,
         mem_addr_op2: mem_addr_op2,
+        rs1_in_mem: exe_rs1_in_mem,
+        rs1_in_wb: exe_rs1_in_wb,
+        rs2_in_mem: exe_rs2_in_mem,
+        rs2_in_wb: exe_rs2_in_wb,
         icache_miss: id_r.icache_miss,
-        fp_int_decode: id_r.fp_int_decode 
+        fp_int_decode: id_r.fp_int_decode,
       };
     end
   end
 
-  // EXE forwarding
-  //
-  logic exe_rs1_forward_mem;
-  logic exe_rs2_forward_mem;
-  logic exe_rs1_forward_wb;
-  logic exe_rs2_forward_wb;
-  logic exe_rs1_forward;
-  logic exe_rs2_forward;
-  logic [data_width_p-1:0] exe_rs1_forward_val;
-  logic [data_width_p-1:0] exe_rs2_forward_val;
-
-  assign exe_rs1_forward_mem = mem_r.op_writes_rf
-    & exe_r.decode.op_reads_rf1
-    & (exe_r.instruction.rs1 == mem_r.rd_addr)
-    & (exe_r.instruction.rs1 != '0);
-
-  assign exe_rs1_forward_wb = wb_r.op_writes_rf
-    & exe_r.decode.op_reads_rf1
-    & (exe_r.instruction.rs1 == wb_r.rd_addr)
-    & (exe_r.instruction.rs1 != '0);
-
-  assign exe_rs2_forward_mem = mem_r.op_writes_rf
-    & exe_r.decode.op_reads_rf2
-    & (exe_r.instruction.rs2 == mem_r.rd_addr)
-    & (exe_r.instruction.rs2 != '0);
-
-  assign exe_rs2_forward_wb = wb_r.op_writes_rf
-    & exe_r.decode.op_reads_rf2
-    & (exe_r.instruction.rs2 == wb_r.rd_addr)
-    & (exe_r.instruction.rs2 != '0);
-
-  assign exe_rs1_forward = exe_rs1_forward_mem | exe_rs1_forward_wb;
-  assign exe_rs2_forward = exe_rs2_forward_mem | exe_rs2_forward_wb;
-
-  bsg_mux #(
-    .width_p(data_width_p) 
-    ,.els_p(2)
-  ) exe_rs1_forward_val_mux (
-    .data_i({mem_r.exe_result, wb_r.rf_data})
-    ,.sel_i(exe_rs1_forward_mem)
-    ,.data_o(exe_rs1_forward_val)
-  );
-
-  bsg_mux #(
-    .width_p(data_width_p)
-    ,.els_p(2)
-  ) exe_rs1_forwarded_mux (
-    .data_i({exe_rs1_forward_val, exe_r.rs1_val})
-    ,.sel_i(exe_rs1_forward)
-    ,.data_o(exe_rs1_forwarded)
-  );
-
-  bsg_mux #(
-    .width_p(data_width_p) 
-    ,.els_p(2)
-  ) exe_rs2_forward_val_mux (
-    .data_i({mem_r.exe_result, wb_r.rf_data})
-    ,.sel_i(exe_rs2_forward_mem)
-    ,.data_o(exe_rs2_forward_val)
-  );
-
-  bsg_mux #(
-    .width_p(data_width_p)
-    ,.els_p(2)
-  ) exe_rs2_forwarded_mux (
-    .data_i({exe_rs2_forward_val, exe_r.rs2_val})
-    ,.sel_i(exe_rs2_forward)
-    ,.data_o(exe_rs2_forwarded)
-  );
-
   // MULDIV logic
   //
+  logic md_sent_r, md_sent_n;
+
   assign stall_md = exe_r.decode.is_md_op & ~md_v_lo;
+  assign md_v_li = exe_r.decode.is_md_op & ~md_sent_r;
+  assign md_yumi_li = md_v_lo & ~stall;
 
-  logic md_sent_r;
-
+  // making sure that md_op does not use muldiv twice.
+  always_comb begin
+    if (md_sent_r) begin
+      md_sent_n = ~md_yumi_li;
+    end
+    else begin
+      md_sent_n = md_v_li & md_ready_lo;
+    end
+  end
+ 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       md_sent_r <= 1'b0;
     end
     else begin
-      md_sent_r <= (md_v_li & md_ready_lo) & stall;
+      md_sent_r <= md_sent_n;
     end
   end
-
-  assign md_v_li = exe_r.decode.is_md_op & ~md_sent_r;
-  assign md_yumi_li = md_v_lo & (~stall);
-
-
-  // LSU logic (remote_req_s)
-  //
-  assign remote_req_v_o = lsu_remote_req_v_lo & ~(stall_icache_store | stall_force_wb);
-  assign stall_remote_req = remote_req_v_o & ~remote_req_yumi_i;
-
-  // EXE stall
-  //
-  assign stall_lrw = exe_r.decode.op_is_lr_acq & reserved_r;
-  assign stall_fence = exe_r.decode.is_fence_op & outstanding_req_i;
-
+ 
 
   // EXE -> MEM
   //
   logic remote_load_in_exe;
   logic local_load_in_exe;
-  logic exe_op_writes_rf;
-  logic exe_op_writes_fp_rf;
-  logic insert_remote_load;
-  logic exe_free_for_remote_load;
   
-  assign remote_load_in_exe = exe_r.decode.is_load_op
-    & lsu_remote_req_v_lo & ~exe_r.icache_miss;
-
-  assign local_load_in_exe = exe_r.decode.is_load_op
-    & lsu_dmem_v_lo & ~exe_r.icache_miss;
+  assign remote_load_in_exe = exe_r.decode.is_load_op & lsu_remote_req_v_lo;
+  assign local_load_in_exe = exe_r.decode.is_load_op & lsu_dmem_v_lo;
 
   assign exe_op_writes_rf = exe_r.decode.op_writes_rf & ~remote_load_in_exe;
   assign exe_op_writes_fp_rf = exe_r.decode.op_writes_fp_rf & ~remote_load_in_exe;
-
-  assign exe_free_for_remote_load =
-    ~exe_op_writes_rf
-    & ~exe_op_writes_fp_rf
-    & ~local_load_in_exe;
-  
-  assign insert_remote_load = remote_load_resp_v_i
-    & ~remote_load_resp_i.load_info.float_wb
-    & ~remote_load_resp_i.load_info.icache_fetch
-    & exe_free_for_remote_load;
-
-  always_comb begin
-    if (insert_remote_load) begin
-      mem_n = '{
-        rd_addr: remote_load_resp_i.load_info.reg_id,
-        exe_result: remote_load_resp_i.load_data,
-        mem_addr_send: lsu_mem_addr_send_lo,
-        op_writes_rf: 1'b1,
-        op_writes_fp_rf: 1'b0,
-        is_byte_op: remote_load_resp_i.load_info.is_byte_op,
-        is_hex_op:  remote_load_resp_i.load_info.is_hex_op,
-        is_load_unsigned: remote_load_resp_i.load_info.is_unsigned_op,
-        local_load: 1'b0,
-        icache_miss: exe_r.icache_miss
-      };
-    end
-    else begin
-      mem_n = '{
-        rd_addr: exe_r.instruction.rd,
-        exe_result: exe_result,
-        mem_addr_send: lsu_mem_addr_send_lo,
-        op_writes_rf: exe_op_writes_rf,
-        op_writes_fp_rf: exe_op_writes_fp_rf,
-        is_byte_op: exe_r.decode.is_byte_op,
-        is_hex_op: exe_r.decode.is_hex_op,
-        is_load_unsigned: exe_r.decode.is_load_unsigned,
-        local_load: local_load_in_exe,
-        icache_miss: exe_r.icache_miss
-      };
-    end
-  end
-
-  assign mem_en = ~stall;
-
 
   // DMEM logic & reservation logic
   // local DMEM access has priority over remote DMEM access.
@@ -1045,14 +1014,9 @@ module vanilla_core
     ,.load_data_o(local_load_wb_data)
   );
 
-  // ifetch logic
-  //
-  assign stall_ifetch = mem_r.icache_miss & ~ifetch_v_i;
 
   // MEM -> WB
   //
-  assign wb_en = ~stall;
-
   assign wb_n = '{
     op_writes_rf: mem_r.op_writes_rf,
     rd_addr: mem_r.rd_addr,
@@ -1161,7 +1125,6 @@ module vanilla_core
 
   // float regfile writeback logic
   //
-  assign fp_wb_en = 1'b1; // no need to stall
   assign float_rf_wen = fp_wb_r.valid;
   assign float_rf_waddr = fp_wb_r.rd;
   assign float_rf_wdata = fp_wb_r.wb_data;

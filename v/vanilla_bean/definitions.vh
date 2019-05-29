@@ -76,8 +76,12 @@ typedef struct packed
 //
 typedef struct packed
 {
-  load_info_s  load_info;
-  logic [31:0] load_data;
+  logic float_wb;
+  logic is_unsigned_op;
+  logic is_byte_op;
+  logic is_hex_op;
+  logic [1:0] part_sel;
+  logic [31:0] data;
 } remote_load_resp_s;
 
 
@@ -174,10 +178,10 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] mem_addr_op2;      // the second operands to compute
                                                           // memory address
 
-    //logic                              rs1_in_mem;        // pre-computed forwarding signal
-    //logic                              rs1_in_wb ;        // pre-computed forwarding signal
-    //logic                              rs2_in_mem;        // pre-computed forwarding signal
-    //logic                              rs2_in_wb ;        // pre-computed forwarding signal
+    logic                              rs1_in_mem;        // pre-computed forwarding signal
+    logic                              rs1_in_wb ;        // pre-computed forwarding signal
+    logic                              rs2_in_mem;        // pre-computed forwarding signal
+    logic                              rs2_in_wb ;        // pre-computed forwarding signal
     logic                              icache_miss;
     fp_int_decode_s                    fp_int_decode;
 } exe_signals_s;
