@@ -186,11 +186,16 @@ assign decode_o.is_md_op  = (instruction_i.op == `RV32_OP)
                              & (instruction_i.funct7 == 7'b0000001);
 
 //memory order related instructions.
-assign decode_o.op_is_load_reservation = instruction_i ==? `RV32_LR_W;
-assign decode_o.op_is_lr_acq           = decode_o.op_is_load_reservation
-                                       & instruction_i[26] ;
+//assign decode_o.op_is_lr_aq           = decode_o.op_is_load_reservation
+//                                       & instruction_i[26] ;
 
+assign decode_o.op_is_lr = (instruction_i ==? `RV32_LR_W)
+  & ~instruction_i[26]
+  & ~instruction_i[25];
 
+assign decode_o.op_is_lr_aq = (instruction_i ==? `RV32_LR_W)
+  & instruction_i[26]
+  & ~instruction_i[25];
 
 assign decode_o.is_fence_op  =  ( instruction_i.op       == `RV32_MISC_MEM  )
                               &&( instruction_i.funct3   == `RV32_FENCE_FUN3)

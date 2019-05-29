@@ -109,8 +109,8 @@ typedef struct packed
     logic is_fence_i_op;
 
     //for load reservation and load reservation acquire
-    logic op_is_load_reservation;
-    logic op_is_lr_acq;
+    logic op_is_lr_aq;
+    logic op_is_lr;
 
     //for atomic swap
     logic op_is_swap_aq;

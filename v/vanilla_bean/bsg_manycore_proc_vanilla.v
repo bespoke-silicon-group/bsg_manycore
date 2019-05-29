@@ -20,7 +20,7 @@ module bsg_manycore_proc_vanilla
 
     , parameter dram_ch_addr_width_p = "inv"
     , parameter epa_byte_addr_width_p = "inv"
-    , parameter dram_ch_start_col_p =0
+    , parameter dram_ch_start_col_p = 0
 
     , parameter max_out_credits_p = 32
     , parameter proc_fifo_els_p = 4

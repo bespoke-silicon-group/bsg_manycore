@@ -99,7 +99,6 @@ module network_tx
   bsg_manycore_addr_s in_group_addr;
 
   always_comb begin
-
     out_packet.op = remote_req_i.swap_aq
       ? `ePacketOp_remote_swap_aq
       : (remote_req_i.swap_rl

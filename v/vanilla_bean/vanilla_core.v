@@ -202,7 +202,7 @@ module vanilla_core
   );
 
   // FP regfile
-  //
+  // f0 is not tied to zero.
   logic float_rf_wen;
   logic [reg_addr_width_lp-1:0] float_rf_waddr;
   logic [data_width_p-1:0] float_rf_wdata;
@@ -268,7 +268,8 @@ module vanilla_core
   logic is_amo_op;
   logic [data_width_p-1:0] mem_addr_op2;
 
-  assign is_amo_op = id_r.decode.op_is_load_reservation
+  assign is_amo_op = id_r.decode.op_is_lr
+    | id_r.decode.op_is_lr_aq
     | id_r.decode.op_is_swap_aq
     | id_r.decode.op_is_swap_rl;
 
@@ -441,6 +442,15 @@ module vanilla_core
 
   // LSU
   //
+  logic [data_width_p-1:0] lsu_fp_remote_load_data_lo;
+  logic lsu_fp_remote_load_v_lo;
+
+  logic [data_width_p-1:0] lsu_int_remote_load_data_lo;
+  logic lsu_int_remote_load_v_lo;
+  logic lsu_int_remote_load_force_lo;
+  logic lsu_int_remote_load_yumi_li;
+
+
   logic lsu_remote_req_v_lo;
   logic lsu_dmem_v_lo;
   logic lsu_dmem_w_lo;
@@ -456,7 +466,21 @@ module vanilla_core
     ,.pc_width_p(pc_width_lp)
     ,.dmem_size_p(dmem_size_p)
   ) lsu0 (
-    .exe_decode_i(exe_r.decode)
+
+    .remote_load_resp_i(remote_local_resp_i)
+    ,.remote_load_resp_v_i(remote_load_resp_v_i)
+    ,.remote_load_resp_force_i(remote_load_resp_force_i)
+    ,.remote_load_resp_yumi_o(remote_load_resp_yumi_o)
+
+    ,.fp_remote_load_data_o(lsu_fp_remote_load_data_lo)
+    ,.fp_remote_load_v_o(lsu_fp_remote_load_v_lo)
+
+    ,.int_remote_load_data_o(lsu_int_remote_load_data_lo)
+    ,.int_remote_load_v_o(lsu_int_remote_load_v_lo)
+    ,.int_remote_load_force_o(lsu_int_remote_load_force_lo)
+    ,.int_remote_load_yumi_i(lsu_int_remote_load_yumi_li)
+
+    ,.exe_decode_i(exe_r.decode)
     ,.exe_rs1_i(exe_rs1_final)
     ,.exe_rs2_i(exe_rs2_final)
     ,.exe_rd_i(exe_r.instruction.rd)
@@ -535,7 +559,31 @@ module vanilla_core
     ,.data_o(dmem_data_lo)
   );
 
-  assign remote_dmem_data_o = dmem_data_lo;
+
+  // local load buffer
+  //
+  logic local_load_en;
+  logic local_load_en_r;
+  logic [data_width_p-1:0] local_load_data_r;
+
+  bsg_dff_reset #(
+    .width_p(1)
+  ) local_load_en_dff (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.data_i(local_load_en)
+    ,.data_o(local_load_en_r)
+  );
+
+  bsg_dff_en_bypass #(
+    .width_p(data_width_p)
+  ) local_load_buffer (
+    .clk_i(clk_i)
+    ,.en_i(local_load_en_r)
+    ,.data_i(dmem_data_lo)
+    ,.data_o(local_load_data_r)
+  );
+
 
   // remote load handler
   //
@@ -563,6 +611,7 @@ module vanilla_core
     ,.int_remote_load_force_o(int_remote_load_force_lo)
     ,.int_remote_load_yumi_i(int_remote_load_yumi_li)
   );
+
 
   //                          //
   //        WB STAGE          //
@@ -651,21 +700,23 @@ module vanilla_core
   logic stall_depend;       // stall on issuing instr to either EXE or FP_EXE
   logic stall_ifetch_wait;  // stall on ifetch in MEM
   logic stall_icache_store; // stall on icache remote store
-  logic stall_lrw;          // stall on lrw reservation
+  logic stall_lr_aq;        // stall on lrw reservation
   logic stall_fence;        // stall on fence in EXE
   logic stall_md;           // stall on muldiv in EXE
   logic stall_force_wb;     // stall on force remote load wb 
   logic stall_remote_req;   // stall on sending remote request
+  logic stall_local_flw;    // stall on local flw
 
   assign stall = stall_ifetch_wait // stall the entire int pipeline
     | stall_icache_store
-    | stall_lrw
+    | stall_lr_aq
     | stall_fence
     | stall_md
     | stall_force_wb
-    | stall_remote_req;
+    | stall_remote_req
+    | stall_local_flw;
 
-  assign stall_lrw = exe_r.decode.op_is_lr_acq & reserved_r;
+  assign stall_lr_aq = exe_r.decode.op_is_lr_aq & reserved_r;
   assign stall_fence = exe_r.decode.is_fence_op & outstanding_req_i;
   assign stall_remote_req = remote_req_v_o & ~remote_req_yumi_i;
   assign stall_ifetch_wait = mem_r.icache_miss & ~ifetch_v_i; // ifetch and remote_load_resp cannot arrive simultaneously.
@@ -947,59 +998,26 @@ module vanilla_core
 
   // EXE -> MEM
   //
-  logic remote_load_in_exe;
+  logic remote_load_in_exe; // these are mutually exclusive events.
+  logic remote_store_in_exe;
   logic local_load_in_exe;
-  
+  logic local_store_in_exe;
+  logic icache_miss_in_exe;
+  logic lr_in_exe;
+  logic lr_aq_in_exe;  
+  logic flw_in_exe;
+  logic fsw_in_exe;
+
+  logic remote_load_insert; // this can happen anytime.
+
   assign remote_load_in_exe = exe_r.decode.is_load_op & lsu_remote_req_v_lo;
   assign local_load_in_exe = exe_r.decode.is_load_op & lsu_dmem_v_lo;
+  assign icache_miss_in_exe = exe_r.icache_miss & lsu_dmem_v_lo;
+  assign lr_in_exe = exe_r.decode.op_is_lr & lsu_dmem_v_lo;
+  assign lr_aq_in_exe = exe_r.decode.op_is_lr_aq & lsu_dmem_v_lo;
 
-  assign exe_op_writes_rf = exe_r.decode.op_writes_rf & ~remote_load_in_exe;
-  assign exe_op_writes_fp_rf = exe_r.decode.op_writes_fp_rf & ~remote_load_in_exe;
+  assign remote_load_insert = 
 
-  // DMEM logic & reservation logic
-  // local DMEM access has priority over remote DMEM access.
-
-  always_comb begin
-    reserved_n = reserved_r;
-    reserved_addr_n = reserved_addr_r;
-
-    if (lsu_dmem_v_lo & ~stall) begin
-      dmem_v_li = 1'b1;
-      dmem_w_li = lsu_dmem_w_lo;
-      dmem_addr_li = lsu_dmem_addr_lo;
-      dmem_mask_li = lsu_dmem_mask_lo;
-      dmem_data_li = lsu_dmem_data_lo;    
-
-      remote_dmem_yumi_o = 1'b0;
-  
-      if (lsu_reserve_lo) begin
-        reserved_n = 1'b1;
-        reserved_addr_n = lsu_dmem_addr_lo;
-
-        // synopsys translate_off
-        $display("## x,y = %d,%d enabling reservation on %x",
-          my_x_i, my_y_i, reserved_addr_n);
-        // synopsys translate_on
-      end
-    end
-    else begin
-      dmem_v_li = ~mem_r.local_load & remote_dmem_v_i;
-      dmem_w_li = remote_dmem_w_i;
-      dmem_addr_li = remote_dmem_addr_i;
-      dmem_mask_li = remote_dmem_mask_i;
-      dmem_data_li = remote_dmem_data_i;
-      remote_dmem_yumi_o = dmem_v_li & ~mem_r.local_load;
-
-      if (reserved_r & remote_dmem_yumi_o & (remote_dmem_addr_i == reserved_addr_r)) begin
-        reserved_n = 1'b0;
-
-        // synopsys translate_off
-        $display("## x,y = %d,%d clearing reservation on %x",
-          my_x_i, my_y_i, reserved_addr_n);
-        // synopsys translate_on
-      end
-    end
-  end
 
   // local load_packer
   //
