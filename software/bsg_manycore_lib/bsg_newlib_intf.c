@@ -1,20 +1,41 @@
 #include <stdlib.h>
 #include <machine/bsg_newlib_fs.h>
+
+#ifdef __spike__
+
+extern int tohost;
+
+#define bsg_finish() \
+  do { \
+    volatile int* ptr = &tohost; \
+    *ptr = 0x1; \
+    while(1); \
+  } while(0)
+
+#define bsg_fail() \
+  do { \
+    volatile int* ptr = &tohost; \
+    *ptr = 0x0; \
+    while(1); \
+  } while(0)
+
+#define bsg_putchar(ch) \
+  do { \
+    volatile int* ptr = &tohost; \
+    *ptr = 0xaa; \
+    while(1); \
+  } while(0)
+
+#else // ifndef __spike__
+
 #include "bsg_manycore.h"
-#include "bsg_set_tile_x_y.h"
+
+#endif // __spike__
 
 void bsg_newlib_init(void) {
-  bsg_set_tile_x_y();
-
-  // Only bottom left tile handles the filesystem
-  if((__bsg_x == 0) && (__bsg_y == bsg_tiles_Y-1)) {
-    // Init file system
-    if(bsg_newlib_fs_init() < 0) {
-      exit(EXIT_FAILURE);
-    }
-  } else {
-    // As of now, newlib only runs on a single core!
-    bsg_wait_while(1);
+  // Init file system
+  if(bsg_newlib_fs_init() < 0) {
+    exit(EXIT_FAILURE);
   }
 }
 
