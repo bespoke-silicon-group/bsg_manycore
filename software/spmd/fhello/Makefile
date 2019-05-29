@@ -1,6 +1,6 @@
 BSG_NEWLIB = 1
-bsg_tiles_X = 2
-bsg_tiles_Y = 2
+bsg_tiles_X = 1
+bsg_tiles_Y = 1
 
 #########################################################
 #each bytes defines the core type

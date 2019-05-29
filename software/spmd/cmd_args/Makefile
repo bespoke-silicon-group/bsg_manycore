@@ -1,6 +1,6 @@
 BSG_NEWLIB = 1
-bsg_tiles_X = 2
-bsg_tiles_Y = 2
+bsg_tiles_X = 1
+bsg_tiles_Y = 1
 
 #########################################################
 #each bytes defines the core type
@@ -18,10 +18,17 @@ all: main.run
 # for a quick debug of processor or program running on it.
 proc_exe_logs: X0_Y2.pelog
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o
+OBJECT_FILES=main.o
 IN_FILES=
 ARGC=2
 ARGV=\"foo\",\"bar\"
+
+CRT_OBJ = ../specint2000/crt.o
+LINK_SCRIPT = ../specint2000/link.ld
+
+ifdef SPIKE
+RISCV_GCC_EXTRA_OPTS += -D__spike__
+endif
 
 ifdef DEBUG
 	RISCV_EXTRA_OPTS += -g
@@ -36,8 +43,8 @@ include ../Makefile.include
 #     be vanilla core 
 BSG_FPU_OP=0
 
-main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. -l:$(BSG_MANYCORE_LIB) -o $@ $(RISCV_LINK_OPTS)
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) $(CRT_OBJ)
+	$(RISCV_LINK) -L. -l:$(BSG_MANYCORE_LIB) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
 
 
 main.o: Makefile
