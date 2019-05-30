@@ -256,7 +256,7 @@ module vanilla_core
   scoreboard #(
     .els_p(32)
     ,.is_float_p(1)
-    ,.num_clear_port(1)
+    ,.num_clear_port_p(1)
   ) float_sb (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
