@@ -136,7 +136,6 @@ module vanilla_core
   //                          //
 
   id_signals_s id_r, id_n;
-  logic id_en;
 
   bsg_dff_reset #(
     .width_p($bits(id_signals_s))
@@ -183,14 +182,18 @@ module vanilla_core
 
   // int scoreboard
   //
+  // this has two clear ports:
+  // [1] remote load clear
+  // [0] local load clear
   logic int_dependency;
   logic int_sb_score;
-  logic int_sb_clear;
-  logic [reg_addr_width_lp-1:0] int_sb_clear_id;
+  logic [1:0] int_sb_clear;
+  logic [1:0][reg_addr_width_lp-1:0] int_sb_clear_id;
 
   scoreboard #(
     .els_p(32)
     ,.is_float_p(0)
+    ,.num_clear_port_p(2)
   ) int_sb (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -253,6 +256,7 @@ module vanilla_core
   scoreboard #(
     .els_p(32)
     ,.is_float_p(1)
+    ,.num_clear_port(1)
   ) float_sb (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -801,21 +805,24 @@ module vanilla_core
   // scoreboard
   //
   assign int_sb_score = (id_r.decode.is_load_op & id_r.decode.op_writes_rf)
-    & ~(flush | stall | stall_depend); // LW
+    & ~(flush | stall | stall_depend | stall_fp); // LW
 
   assign float_sb_score = (id_r.decode.op_writes_fp_rf)
     & ~(flush | stall | stall_depend | stall_fp);
 
   // int scoreboard clears when
-  // 1) force wb
+  // 1) force wb, insert in exe-mem
   // 2) local load
-  // 3) insert in exe-mem
-  assign int_sb_clear = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o)
-    | (mem_r.local_load & mem_r.op_writes_rf & ~stall);
+  //assign int_sb_clear = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o)
+  //  | (mem_r.local_load & mem_r.op_writes_rf & ~stall);
+  assign int_sb_clear[1] = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o);
+  assign int_sb_clear[0] = (mem_r.local_load & mem_r.op_writes_rf & ~stall);
 
-  assign int_sb_clear_id = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o)
-    ? int_remote_load_resp_rd_i
-    : mem_r.rd_addr;
+  //assign int_sb_clear_id = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o)
+  //  ? int_remote_load_resp_rd_i
+  //  : mem_r.rd_addr;
+  assign int_sb_clear_id[1] = int_remote_load_resp_rd_i;
+  assign int_sb_clear_id[0] = mem_r.rd_addr;
 
   assign float_sb_clear = fp_wb_r.valid;
   assign float_sb_clear_id = fp_wb_r.rd;
@@ -848,8 +855,9 @@ module vanilla_core
   assign fp_float_int_rs1_in_wb = (id_r.instruction.rs1 == wb_r.rd_addr)
     & wb_r.op_writes_rf;
 
-  assign fp_float_int_rs1_clear_now = (id_r.instruction.rs1 == int_sb_clear_id)
-    & int_sb_clear;
+  assign fp_float_int_rs1_clear_now =
+    ((id_r.instruction.rs1 == int_sb_clear_id[1]) & int_sb_clear[1])
+    | ((id_r.instruction.rs1 == int_sb_clear_id[0]) & int_sb_clear[0]);
 
   assign stall_depend_float = (int_dependency | float_dependency)
     | (id_r.decode.op_reads_rf1 & (id_r.instruction.rs1 != '0)
@@ -1077,7 +1085,7 @@ module vanilla_core
         // insertable
         mem_n = '{
           rd_addr: int_remote_load_resp_v_i ? int_remote_load_resp_rd_i : '0,
-          exe_result: int_remote_load_resp_data_i,
+          exe_result: int_remote_load_resp_v_i ? int_remote_load_resp_data_i : '0,
           op_writes_rf: int_remote_load_resp_v_i,
           op_writes_fp_rf: 1'b0,
           mem_addr_sent: lsu_mem_addr_sent_lo,
