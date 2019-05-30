@@ -26,10 +26,10 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
 # flags
 OPT_LEVEL ?= -O2
-RISCV_GCC_EXTRA_OPTS ?=
+RISCV_GCC_EXTRA_OPTS ?=  -mno-fdiv
 RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf
-RISCV_GCC_OPTS += -ffp-contract=off -mno-fdiv
-RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+RISCV_GCC_OPTS += -ffp-contract=off
+RISCV_GCC_OPTS += -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
@@ -125,12 +125,12 @@ $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
 
 else
 %.o: %.c
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
+	$(RISCV_GCC) $(RISCV_GCC_EXTRA_OPTS) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
 endif
 
 
 %.o: %.S
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -D__ASSEMBLY__=1 \
+	$(RISCV_GCC) $(RISCV_GCC_EXTRA_OPTS) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -D__ASSEMBLY__=1 \
 		-c $(INCS) $< -o $@
 
 
