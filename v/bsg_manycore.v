@@ -11,8 +11,13 @@ module bsg_manycore
   #(parameter dmem_size_p = "inv"
     , parameter icache_entries_p = "inv" // in words
     , parameter icache_tag_width_p = "inv"
-    , parameter num_tiles_x_p = "inv"
-    , parameter num_tiles_y_p = "inv"
+
+    // change the default values from "inv" back to -1
+    // since num_tiles_x_p and num_tiles_y_p will be used to define the size of 2D array
+    // hetero_type_vec_p, they should be integer by default to avoid tool crash during
+    // synthesis (DC versions at least up to 2018.06)
+    , parameter num_tiles_x_p = -1
+    , parameter num_tiles_y_p = -1
 
    // array i/o params
    , parameter stub_w_p = {num_tiles_y_p{1'b0}}
@@ -23,7 +28,6 @@ module bsg_manycore
    // for heterogeneous, this is a vector of num_tiles_x_p*num_tiles_y_p bytes;
    // each byte contains the type of core being instantiated
    // type 0 is the standard core
-
    , parameter int hetero_type_vec_p [0:num_tiles_y_p-1][0:num_tiles_x_p-1]  ='{default:0}
 
    // enable debugging
