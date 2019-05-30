@@ -108,6 +108,17 @@ module network_tx
   assign global_addr = remote_req_i.addr; 
   assign in_group_addr = remote_req_i.addr; 
 
+  logic is_dram_addr;
+  logic is_global_addr;
+  logic is_in_group_addr;
+  assign is_dram_addr = dram_addr.is_dram_addr;
+  assign is_global_addr = global_addr.remote == 2'b01;
+  assign is_in_group_addr = in_group_addr.remote == 3'b001;
+
+
+  logic is_invalid_addr;
+  assign is_invalid_addr = ~(is_dram_addr | is_global_addr | is_in_group_addr);
+
   always_comb begin
     out_packet.op = remote_req_i.swap_aq
       ? `ePacketOp_remote_swap_aq
@@ -117,27 +128,26 @@ module network_tx
           ? `ePacketOp_remote_store
           : `ePacketOp_remote_load));
 
-    if (dram_addr.is_dram_addr) begin
+    if (is_dram_addr) begin
       out_packet.y_cord = {y_cord_width_p{1'b1}};
       out_packet.x_cord = dram_addr.x_cord;
       out_packet.addr = {1'b0, {(addr_width_p-1-dram_ch_addr_width_p){1'b0}}, dram_addr.addr};
     end
-    else if (global_addr.remote == 2'b01) begin
+    else if (is_global_addr) begin
       out_packet.y_cord = y_cord_width_p'(global_addr.y_cord);
       out_packet.x_cord = x_cord_width_p'(global_addr.x_cord);
       out_packet.addr = {{(addr_width_p-epa_word_addr_width_lp){1'b0}}, global_addr.addr};
     end
-    else if (in_group_addr.remote == 3'b001) begin
+    else if (is_in_group_addr) begin
       out_packet.y_cord = y_cord_width_p'(global_addr.y_cord + tgo_y_i);
       out_packet.x_cord = x_cord_width_p'(global_addr.x_cord + tgo_x_i);
       out_packet.addr = {{(addr_width_p-epa_word_addr_width_lp){1'b0}}, in_group_addr.addr};
     end
     else begin
-      // synopsys translate_off
-      $display("[ERROR][TX] Invalid EVA access. t=%0t, x=%d, y=%d, addr=%h",
-        $time, my_x_i, my_y_i, remote_req_i.addr);
-
-      // synopsys translate_on
+      // should never happen
+      out_packet.y_cord = '0;
+      out_packet.x_cord = '0;
+      out_packet.addr = '0;
     end
   end
 
@@ -193,5 +203,17 @@ module network_tx
     end
   end
 
+  /**
+    else begin
 
+    end
+  */
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if (out_v_o & is_invalid_addr) begin
+      $display("[ERROR][TX] Invalid EVA access. t=%0t, x=%d, y=%d, addr=%h",
+        $time, my_x_i, my_y_i, remote_req_i.addr);
+    end 
+  end
+  // synopsys translate_on
 endmodule

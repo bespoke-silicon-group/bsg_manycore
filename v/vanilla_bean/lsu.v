@@ -99,7 +99,8 @@ module lsu
   // to MEM
   //
   logic is_local_dmem_addr;
-  assign is_local_dmem_addr = mem_addr[data_width_p-1:2+dmem_addr_width_lp] == '0;
+  assign is_local_dmem_addr = mem_addr[2+dmem_addr_width_lp]
+    & (mem_addr[data_width_p-1:(2+1+dmem_addr_width_lp)] == '0);
 
   assign dmem_v_o = exe_decode_i.is_mem_op & is_local_dmem_addr;
   assign dmem_w_o = exe_decode_i.is_store_op;
