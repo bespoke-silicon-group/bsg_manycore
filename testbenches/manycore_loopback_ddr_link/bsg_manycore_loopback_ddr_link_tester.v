@@ -72,7 +72,7 @@ module bsg_manycore_loopback_ddr_link_tester
   logic clk_0, clk_1, reset_0, reset_1;
   logic clk_1x_0, clk_1x_1, clk_2x_0, clk_2x_1;
   logic link_enable_0, link_enable_1;
-  logic chip_reset_0, chip_reset_1;
+  logic router_reset_0, router_reset_1;
   logic node_en_0, node_en_1, mc_en_0, mc_en_1;
   logic mc_error_0, mc_error_1;
   logic [31:0] sent_0, received_0, sent_1, received_1;
@@ -165,7 +165,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.links_sif_o(out_mc_node_i)
    
   ,.clk_i(clk_0)
-  ,.reset_i(chip_reset_0)
+  ,.reset_i(router_reset_0)
   ,.manycore_reset_i(node_reset_0)
   ,.manycore_en_i(node_en_0)
 
@@ -189,7 +189,7 @@ module bsg_manycore_loopback_ddr_link_tester
     ,.stub_out_p(3'b010))
     router_0
     (.clk_i(clk_0)
-    ,.reset_i(chip_reset_0)
+    ,.reset_i(router_reset_0)
     // Configuration
     ,.my_x_i((x_cord_width_p)'(2))
     ,.my_y_i((y_cord_width_p)'(0))
@@ -219,7 +219,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.lg_credit_decimation_p(ct_lg_credit_decimation_p))
   out_ct
   (.clk_i(clk_0)
-  ,.reset_i(chip_reset_0)
+  ,.reset_i(router_reset_0)
   
   // incoming multiplexed data
   ,.multi_data_i(out_ct_data_i)
@@ -247,7 +247,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.clk_1x_i(clk_1x_0)
   ,.clk_2x_i(clk_2x_0)
   ,.reset_i(reset_0)
-  ,.chip_reset_i(chip_reset_0)
+  ,.chip_reset_i(router_reset_0)
   ,.link_enable_i(link_enable_0)
   ,.link_enable_o()
   
@@ -281,7 +281,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.clk_1x_i(clk_1x_1)
   ,.clk_2x_i(clk_2x_1)
   ,.reset_i(reset_1)
-  ,.chip_reset_i(chip_reset_1)
+  ,.chip_reset_i(router_reset_1)
   ,.link_enable_i(link_enable_1)
   ,.link_enable_o()
   
@@ -316,7 +316,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.lg_credit_decimation_p(ct_lg_credit_decimation_p))
   in_ct
   (.clk_i(clk_1)
-  ,.reset_i(chip_reset_1)
+  ,.reset_i(router_reset_1)
   
   // incoming multiplexed data
   ,.multi_data_i(in_ct_data_i)
@@ -346,7 +346,7 @@ module bsg_manycore_loopback_ddr_link_tester
     ,.stub_out_p(3'b100))
     router_1
     (.clk_i(clk_1)
-    ,.reset_i(chip_reset_1)
+    ,.reset_i(router_reset_1)
     // Configuration
     ,.my_x_i((x_cord_width_p)'(3))
     ,.my_y_i((y_cord_width_p)'(0))
@@ -385,7 +385,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.links_sif_o(in_mc_node_i)
    
   ,.clk_i(clk_1)
-  ,.reset_i(chip_reset_1)
+  ,.reset_i(router_reset_1)
   ,.manycore_reset_i(node_reset_1)
   ,.manycore_en_i(node_en_1)
 
@@ -452,8 +452,8 @@ module bsg_manycore_loopback_ddr_link_tester
     link_enable_1 = 0;
     node_en_0 = 0;
     node_en_1 = 0;
-    chip_reset_0 = 1;
-    chip_reset_1 = 1;
+    router_reset_0 = 1;
+    router_reset_1 = 1;
     node_reset_0 = 1;
     node_reset_1 = 1;
     
@@ -478,9 +478,9 @@ module bsg_manycore_loopback_ddr_link_tester
     
     // chip reset
     @(posedge clk_0); #1;
-    chip_reset_0 = 0;
+    router_reset_0 = 0;
     @(posedge clk_1); #1;
-    chip_reset_1 = 0;
+    router_reset_1 = 0;
     
     #1000
     
@@ -549,23 +549,3 @@ module bsg_manycore_loopback_ddr_link_tester
   end
 
 endmodule
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

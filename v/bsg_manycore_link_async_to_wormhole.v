@@ -200,7 +200,7 @@ module bsg_manycore_link_async_to_wormhole
     bsg_parallel_in_serial_out 
    #(.width_p(wormhole_width_p)
     ,.els_p(ps_els_lp)
-    ,.msb_then_lsb_p(1))
+    ,.msb_first_p(1))
     piso
     (.clk_i(manycore_clk_i)
     ,.reset_i(manycore_reset_o)
@@ -214,7 +214,7 @@ module bsg_manycore_link_async_to_wormhole
     bsg_serial_in_parallel_out_full_buffered
    #(.width_p(wormhole_width_p)
     ,.els_p(ps_els_lp)
-    ,.msb_then_lsb_p(1))
+    ,.msb_first_p(1))
     sipof
     (.clk_i(manycore_clk_i)
     ,.reset_i(manycore_reset_o)

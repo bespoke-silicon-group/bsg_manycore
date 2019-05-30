@@ -126,13 +126,13 @@ module  bsg_manycore_loopback_test_node
   assign resp_in_yumi = resp_in_v;
 
   // synopsys translate_off
-  always @(negedge clk_i)
+  always_ff @(negedge clk_i)
     if (resp_in_v & ~reset_i)
       assert(data_check == resp_in_data[width_p-1:0])
         else $error("check mismatch %x %x ", data_check,resp_in_data[width_p-1:0]);
   // synopsys translate_on
 
-  always @(posedge clk_i) begin
+  always_ff @(posedge clk_i) begin
     if (reset_i) begin
         error_o <= 0;
     end else begin
@@ -211,4 +211,3 @@ module  bsg_manycore_loopback_test_node
 
 
 endmodule
-
