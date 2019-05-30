@@ -77,6 +77,7 @@ typedef struct packed
 typedef struct packed
 {
   logic float_wb;
+  logic [4:0] reg_id;
   logic is_unsigned_op;
   logic is_byte_op;
   logic is_hex_op;
@@ -192,8 +193,7 @@ typedef struct packed
 {
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;       // Destination address
     logic [RV32_reg_data_width_gp-1:0] exe_result;    // Execution result
-    logic [RV32_reg_data_width_gp-1:0] mem_addr_send; //the address sent to memory
-  //  logic is_load_op;
+    logic [RV32_reg_data_width_gp-1:0] mem_addr_sent; //the address sent to memory
     logic op_writes_rf;
     logic op_writes_fp_rf;
     logic is_byte_op;
