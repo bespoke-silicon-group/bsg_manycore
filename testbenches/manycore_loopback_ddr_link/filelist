@@ -15,6 +15,7 @@ $BASEJUMP_STL_DIR/bsg_misc/bsg_gray_to_binary.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_binary_plus_one_to_gray.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_wait_cycles.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_thermometer_count.v
+$BASEJUMP_STL_DIR/bsg_misc/bsg_counter_up_down.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_counter_up_down_variable.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_counter_clear_up.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_decode_with_v.v
