@@ -265,9 +265,9 @@ module vanilla_core
     ,.src2_id_i(id_r.instruction.rs2)
     ,.dest_id_i(id_r.instruction.rd)
 
-    ,.op_reads_rf1_i(id_r.decode.op_reads_rf1)
-    ,.op_reads_rf2_i(id_r.decode.op_reads_rf2)
-    ,.op_writes_rf_i(id_r.decode.op_writes_rf)
+    ,.op_reads_rf1_i(id_r.decode.op_reads_fp_rf1)
+    ,.op_reads_rf2_i(id_r.decode.op_reads_fp_rf2)
+    ,.op_writes_rf_i(id_r.decode.op_writes_fp_rf)
 
     ,.score_i(float_sb_score)
     ,.clear_i(float_sb_clear)
@@ -1052,7 +1052,7 @@ module vanilla_core
       | stall_fence | stall_md | stall_remote_req | stall_local_flw) begin
       // cannot insert here
       mem_n = mem_r;
-      int_remote_load_resp_yumi_o = 1'b0;
+      int_remote_load_resp_yumi_o = int_remote_load_resp_v_i & int_remote_load_resp_force_i;
       stall_force_wb = int_remote_load_resp_v_i & int_remote_load_resp_force_i;
     end
     else begin
