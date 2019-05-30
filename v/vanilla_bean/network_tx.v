@@ -76,7 +76,7 @@ module network_tx
     , output logic [data_width_p-1:0] int_remote_load_resp_data_o
     , output logic int_remote_load_resp_v_o
     , output logic int_remote_load_resp_force_o
-    , input remote_load_resp_yumi_i
+    , input int_remote_load_resp_yumi_i
   );
 
   // manycore packet struct
@@ -134,7 +134,7 @@ module network_tx
     end
     else begin
       // synopsys translate_off
-      $display("[ERROR][TX] Invalid EVA access. t=%0t, x=%d, y=%d, addr=%h"
+      $display("[ERROR][TX] Invalid EVA access. t=%0t, x=%d, y=%d, addr=%h",
         $time, my_x_i, my_y_i, remote_req_i.addr);
 
       // synopsys translate_on
@@ -167,7 +167,7 @@ module network_tx
 
   assign int_remote_load_resp_data_o = int_load_data;
   assign int_remote_load_resp_rd_o = returned_load_info.reg_id;
-  assign float_remote_load_resp_data_o = returned_data_i
+  assign float_remote_load_resp_data_o = returned_data_i;
   assign float_remote_load_resp_rd_o = returned_load_info.reg_id;
 
 
@@ -189,7 +189,7 @@ module network_tx
       int_remote_load_resp_v_o = returned_v_i;
       float_remote_load_resp_v_o = 1'b0;
       int_remote_load_resp_force_o = returned_fifo_full_i & returned_v_i;
-      returned_yumi_o = remote_load_resp_yumi_i | (returned_fifo_full_i & returned_v_i);
+      returned_yumi_o = int_remote_load_resp_yumi_i | (returned_fifo_full_i & returned_v_i);
     end
   end
 

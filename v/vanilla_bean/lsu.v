@@ -101,7 +101,7 @@ module lsu
   logic is_local_dmem_addr;
   assign is_local_dmem_addr = mem_addr[data_width_p-1:2+dmem_addr_width_lp] == '0;
 
-  assign dmem_v_o = exe_decode_i.is_mem_op & is_local_dmem_addr & ~icache_miss_i;
+  assign dmem_v_o = exe_decode_i.is_mem_op & is_local_dmem_addr;
   assign dmem_w_o = exe_decode_i.is_store_op;
   assign dmem_addr_o = mem_addr[2+:dmem_addr_width_lp]; 
   assign dmem_data_o = store_data;

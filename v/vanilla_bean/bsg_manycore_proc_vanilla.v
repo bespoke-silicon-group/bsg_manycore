@@ -203,7 +203,7 @@ module bsg_manycore_proc_vanilla
 
   logic [reg_addr_width_lp-1:0] float_remote_load_resp_rd_lo;
   logic [data_width_p-1:0] float_remote_load_resp_data_lo;
-  logic [float_remote_load_resp_v_lo;
+  logic float_remote_load_resp_v_lo;
 
   logic [reg_addr_width_lp-1:0] int_remote_load_resp_rd_lo;
   logic [data_width_p-1:0] int_remote_load_resp_data_lo;

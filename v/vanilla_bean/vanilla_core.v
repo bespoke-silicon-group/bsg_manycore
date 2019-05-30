@@ -58,7 +58,7 @@ module vanilla_core
     , input [data_width_p-1:0] int_remote_load_resp_data_i
     , input int_remote_load_resp_v_i
     , input int_remote_load_resp_force_i
-    , output logic remote_load_resp_yumi_o
+    , output logic int_remote_load_resp_yumi_o
 
     , input outstanding_req_i
 
@@ -540,6 +540,7 @@ module vanilla_core
     ,.data_o(dmem_data_lo)
   );
 
+  assign remote_dmem_data_o = dmem_data_lo;
 
   // local load buffer
   //
@@ -741,6 +742,7 @@ module vanilla_core
 
   assign pc_wen = ~(stall | stall_depend | stall_fp);
 
+  assign stall_icache_store = icache_yumi_o;
   
   // IF -> ID
   //
@@ -799,10 +801,12 @@ module vanilla_core
   // 1) force wb
   // 2) local load
   // 3) insert in exe-mem
-  assign int_sb_clear = (remote_load_resp_v_i & remote_load_resp_yumi_o
-    & ~remote_load_resp_i.load_info.float_wb); // TODO: local load also clears
+  assign int_sb_clear = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o)
+    | (mem_r.local_load & mem_r.op_writes_rf & ~stall);
 
-  assign int_sb_clear_id = remote_load_resp_i.load_info.reg_id; // TODO: local load reg id
+  assign int_sb_clear_id = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o)
+    ? int_remote_load_resp_rd_i
+    : mem_r.rd_addr;
 
   assign float_sb_clear = fp_wb_r.valid;
   assign float_sb_clear_id = fp_wb_r.rd;
@@ -903,19 +907,19 @@ module vanilla_core
   logic exe_rs2_in_wb;
 
   assign exe_rs1_in_mem = mem_n.op_writes_rf
-    & (mem_n.rd_addr == id_r.decode.rs1)
-    & (men_n.rd_addr != '0);
+    & (mem_n.rd_addr == id_r.instruction.rs1)
+    & (mem_n.rd_addr != '0);
 
   assign exe_rs2_in_mem = mem_n.op_writes_rf
-    & (mem_n.rd_addr == id_r.decode.rs2)
-    & (men_n.rd_addr != '0);
+    & (mem_n.rd_addr == id_r.instruction.rs2)
+    & (mem_n.rd_addr != '0);
 
   assign exe_rs1_in_wb = wb_n.op_writes_rf
-    & (wb_n.rd_addr == id_r.decode.rs1)
+    & (wb_n.rd_addr == id_r.instruction.rs1)
     & (wb_n.rd_addr != '0);
 
   assign exe_rs2_in_wb = wb_n.op_writes_rf
-    & (wb_n.rd_addr == id_r.decode.rs2)
+    & (wb_n.rd_addr == id_r.instruction.rs2)
     & (wb_n.rd_addr != '0);
 
   always_comb begin
@@ -976,7 +980,6 @@ module vanilla_core
   // remote_req_o logic
   //
   assign remote_req_v_o = lsu_remote_req_v_lo & ~(stall_force_wb | stall_local_flw | stall_icache_store);
-  assign stall_remote_req = remote_req_v_o & ~remote_req_yumi_i; 
  
 
   // EXE -> MEM
@@ -1017,15 +1020,15 @@ module vanilla_core
     end
   end
 
-  logic local_load_in_exe: 
+  logic local_load_in_exe;
   logic remote_load_in_exe;
   logic exe_op_writes_rf;
   logic exe_op_writes_fp_rf;
 
   assign local_load_in_exe = exe_r.decode.is_load_op & lsu_dmem_v_lo & ~lsu_dmem_w_lo;  
   assign remote_load_in_exe = exe_r.decode.is_load_op & lsu_remote_req_v_lo;
-  assign exe_op_writes_rf = exe_r.op_writes_rf & ~remote_load_in_exe;
-  assign exe_op_writes_fp_rf = exe_r.op_writes_fp_rf & ~remote_load_in_exe;
+  assign exe_op_writes_rf = exe_r.decode.op_writes_rf & ~remote_load_in_exe;
+  assign exe_op_writes_fp_rf = exe_r.decode.op_writes_fp_rf & ~remote_load_in_exe;
 
   always_comb begin
     if (stall_ifetch_wait | stall_icache_store | stall_lr_aq
@@ -1041,7 +1044,7 @@ module vanilla_core
         // not insertable
         if (int_remote_load_resp_v_i & int_remote_load_resp_force_i) begin
           stall_force_wb = 1'b1;
-          int_remote_load_resp_yumi_o = 1'b0;
+          int_remote_load_resp_yumi_o = 1'b1;
           mem_n = mem_r;
         end 
         else begin
@@ -1065,8 +1068,10 @@ module vanilla_core
         // insertable
         mem_n = '{
           rd_addr: int_remote_load_resp_v_i ? int_remote_load_resp_rd_i : '0,
+          exe_result: int_remote_load_resp_data_i,
           op_writes_rf: int_remote_load_resp_v_i,
           op_writes_fp_rf: 1'b0,
+          mem_addr_sent: lsu_mem_addr_sent_lo,
           is_byte_op: 1'b0,
           is_hex_op: 1'b0,
           is_load_unsigned: 1'b0,
@@ -1076,6 +1081,21 @@ module vanilla_core
         int_remote_load_resp_yumi_o = int_remote_load_resp_v_i;
         stall_force_wb = 1'b0;
       end
+    end
+  end
+
+  always_comb begin
+    if (dmem_v_li & ~dmem_w_li & lsu_reserve_lo & ~stall) begin
+      reserved_n = 1'b1;
+      reserved_addr_n = dmem_addr_li;
+    end
+    else if (dmem_v_li & dmem_w_li &( dmem_addr_li == reserved_addr_r)) begin
+      reserved_n = 1'b0;
+      reserved_addr_n = reserved_addr_r;
+    end
+    else begin
+      reserved_n = reserved_r;
+      reserved_addr_n = reserved_addr_r;
     end
   end
 
@@ -1151,7 +1171,7 @@ module vanilla_core
           rs1_val: rs1_to_fp_exe,
           rs2_val: rs2_to_fp_exe,
           rd: id_r.instruction.rd,
-          fp_float-decode.id_r.fp_float_decode,
+          fp_float_decode: id_r.fp_float_decode,
           valid: fp_exe_valid
         };
       end
@@ -1166,7 +1186,7 @@ module vanilla_core
         rs1_val: rs1_to_fp_exe,
         rs2_val: rs2_to_fp_exe,
         rd: id_r.instruction.rd,
-        fp_float-decode.id_r.fp_float_decode,
+        fp_float_decode: id_r.fp_float_decode,
         valid: fp_exe_valid
       };
     end
@@ -1184,7 +1204,7 @@ module vanilla_core
       stall_local_flw = local_flw_valid;
       fpu_float_yumi_li = 1'b0;
       fp_wb_n = '{
-        wb_data: float_remote_load_resp_data_i;
+        wb_data: float_remote_load_resp_data_i,
         rd: float_remote_load_resp_rd_i,
         valid: 1'b1
       };
