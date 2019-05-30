@@ -300,6 +300,15 @@ module network_rx
         $time, my_x_i, my_y_i, w_i, addr_i, data_i);
     end
 
+    // FREEZE / UNFREEZE 
+    if (~reset_i) begin
+      if (freeze_n & ~freeze_r)
+        $display("[INFO][RX] Freezing tile t=%0t, x=%d, y=%d", $time, my_x_i, my_y_i);
+      if (~freeze_n & freeze_r)
+        $display("[INFO][RX] Unfreezing tile t=%0t, x=%d, y=%d", $time, my_x_i, my_y_i);
+    end
+
+
   end
   // synopsys translate_on
 
