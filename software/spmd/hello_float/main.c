@@ -37,9 +37,9 @@ int main()
     else
       bsg_fail_x(0);
 
+
     bsg_finish();
   }
 
   bsg_wait_while(1);
 }
-
