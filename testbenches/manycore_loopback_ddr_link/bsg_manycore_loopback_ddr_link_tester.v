@@ -439,7 +439,7 @@ module bsg_manycore_loopback_ddr_link_tester
   
     // Init
     clk_0 = 1;
-	clk_1 = 1;
+    clk_1 = 1;
     clk_1x_0 = 1;
     clk_1x_1 = 1;
     clk_2x_0 = 1;
@@ -447,75 +447,75 @@ module bsg_manycore_loopback_ddr_link_tester
     mc_clk_0 = 1;
     mc_clk_1 = 1;
     reset_0 = 1;
-	reset_1 = 1;
-	link_enable_0 = 0;
-	link_enable_1 = 0;
-	node_en_0 = 0;
-	node_en_1 = 0;
+    reset_1 = 1;
+    link_enable_0 = 0;
+    link_enable_1 = 0;
+    node_en_0 = 0;
+    node_en_1 = 0;
     chip_reset_0 = 1;
     chip_reset_1 = 1;
     node_reset_0 = 1;
     node_reset_1 = 1;
-	
-	#1000;
+    
+    #1000;
     
     // link reset
     @(posedge clk_0); #1;
-	reset_0 = 0;
-	@(posedge clk_1); #1;
-	reset_1 = 0;
-	
-	#1000;
+    reset_0 = 0;
+    @(posedge clk_1); #1;
+    reset_1 = 0;
+    
+    #1000;
 
     // link enable
     @(posedge clk_0); #1;
-	link_enable_0 = 1;
+    link_enable_0 = 1;
     @(posedge clk_1); #1;
-	link_enable_1 = 1;
-	
-	#1000;
+    link_enable_1 = 1;
+    
+    #1000;
     
     
     // chip reset
     @(posedge clk_0); #1;
-	chip_reset_0 = 0;
-	@(posedge clk_1); #1;
-	chip_reset_1 = 0;
+    chip_reset_0 = 0;
+    @(posedge clk_1); #1;
+    chip_reset_1 = 0;
     
     #1000
     
     // node reset
     @(posedge clk_0); #1;
-	node_reset_0 = 0;
-	@(posedge clk_1); #1;
-	node_reset_1 = 0;
+    node_reset_0 = 0;
+    @(posedge clk_1); #1;
+    node_reset_1 = 0;
     
     #1000
-	
-	// node enable
+    
+    // node enable
     @(posedge clk_0); #1;
-	node_en_0 = 1;
+    node_en_0 = 1;
     @(posedge clk_1); #1;
-	node_en_1 = 1;
-	
-	#50000
-	
-	// node disable
+    node_en_1 = 1;
+    
+    #50000
+    
+    // node disable
     @(posedge clk_0); #1;
-	node_en_0 = 0;
+    node_en_0 = 0;
     @(posedge clk_1); #1;
-	node_en_1 = 0;
-	
-	#5000
-	
+    node_en_1 = 0;
+    
+    #5000
+    
     // link disable
     @(posedge clk_0); #1;
-	link_enable_0 = 0;
+    link_enable_0 = 0;
     @(posedge clk_1); #1;
-	link_enable_1 = 0;
-	
-	#1000
-	
+    link_enable_1 = 0;
+    
+    #1000
+    
     
     assert(mc_error_0 == 0)
     else begin
