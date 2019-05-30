@@ -13,6 +13,9 @@ module bsg_manycore
     , parameter icache_tag_width_p = "inv"
 
     // change the default values from "inv" back to -1
+    // since num_tiles_x_p and num_tiles_y_p will be used to define the size of 2D array
+    // hetero_type_vec_p, they should be integer by default to avoid tool crash during
+    // synthesis (DC versions at least up to 2018.06)
     , parameter num_tiles_x_p = -1
     , parameter num_tiles_y_p = -1
 
@@ -25,9 +28,6 @@ module bsg_manycore
    // for heterogeneous, this is a vector of num_tiles_x_p*num_tiles_y_p bytes;
    // each byte contains the type of core being instantiated
    // type 0 is the standard core
-   // num_tiles_x_p and num_tiles_x_p should be integer by default to avoid tool crash
-   // during synthesis (DC versions prior to 2018.06)
-
    , parameter int hetero_type_vec_p [0:num_tiles_y_p-1][0:num_tiles_x_p-1]  ='{default:0}
 
    // enable debugging
