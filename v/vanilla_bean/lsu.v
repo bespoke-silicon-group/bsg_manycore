@@ -118,7 +118,7 @@ module lsu
   payload_u payload;
   
   always_comb begin
-    if (exe_decode_i.is_load_op) begin
+    if (exe_decode_i.is_load_op | icache_miss_i) begin
       payload.read_info = '{
         reserved: '0,
         load_info: load_info

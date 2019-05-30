@@ -111,6 +111,11 @@ module vanilla_core
 
   logic [pc_width_lp-1:0] pc_plus4;
   assign pc_plus4 = pc_r + 1'b1;
+  // synopsys translate_off
+  logic [data_width_p-1:0] pc_00;
+  assign pc_00 = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_r, 2'b00};
+  // synopsys translate_om
+  
 
   // instruction decode
   //
@@ -725,24 +730,28 @@ module vanilla_core
 
   // icache ctrl
   // icache fetch gets higher priority then icache remote store.
-  assign icache_cen = (~stall & ~stall_depend) | icache_v_i | ifetch_v_i;
+  assign icache_cen = (~stall & ~stall_depend & ~stall_fp) | icache_v_i | ifetch_v_i;
   assign icache_wen = icache_v_i | ifetch_v_i;
+
   assign icache_waddr = ifetch_v_i
     ? mem_r.mem_addr_sent[2+:icache_addr_width_lp]
     : icache_pc_i[0+:icache_addr_width_lp];
+
   assign icache_wtag = ifetch_v_i
     ? mem_r.mem_addr_sent[(2+icache_addr_width_lp)+:icache_tag_width_p]
     : icache_pc_i[icache_addr_width_lp+:icache_tag_width_p];
+
   assign icache_winstr = ifetch_v_i
     ? ifetch_instr_i
     : icache_instr_i;
+
   assign icache_yumi_o = icache_v_i & (~ifetch_v_i);
 
   assign icache_flush = flush | icache_miss_in_pipe;
 
   assign pc_wen = ~(stall | stall_depend | stall_fp);
 
-  assign stall_icache_store = icache_yumi_o;
+  assign stall_icache_store = icache_v_i & icache_yumi_o;
   
   // IF -> ID
   //
@@ -751,7 +760,7 @@ module vanilla_core
       id_n = id_r;
     end
     else begin
-      if (flush) begin
+      if (flush | icache_miss_in_pipe) begin
         id_n.pc_plus4 = '0;
         id_n.pred_or_jump_addr = '0;
         id_n.instruction = '0;
@@ -762,7 +771,7 @@ module vanilla_core
       end
       else if (icache_miss) begin
         // insert "icache bubble"
-        id_n.pc_plus4 = '0;
+        id_n.pc_plus4 = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0};
         id_n.pred_or_jump_addr = '0;
         id_n.instruction = '0;
         id_n.decode = '0;
