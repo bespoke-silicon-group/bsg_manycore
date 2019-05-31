@@ -113,7 +113,7 @@ module vanilla_core
   assign pc_plus4 = pc_r + 1'b1;
   // synopsys translate_off
   logic [data_width_p-1:0] pc_00;
-  assign pc_00 = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_r, 2'b00};
+  assign pc_00 = {1'b1,{(data_width_p-pc_width_lp-3){1'b0}}, pc_r, 2'b00};
   // synopsys translate_om
   
 
@@ -309,7 +309,8 @@ module vanilla_core
     ,.data_o(exe_r)
   );
 
-
+  logic [data_width_p-1:0] exe_pc;
+  assign exe_pc = (exe_r.pc_plus4 - 'd4) | 32'h80000000;
 
   // EXE forwarding muxes
   //
@@ -493,20 +494,8 @@ module vanilla_core
     ,.mem_addr_sent_o(lsu_mem_addr_sent_lo)
   );
 
-  logic reserved_r, reserved_n;
-  logic [dmem_addr_width_lp-1:0] reserved_addr_r, reserved_addr_n;
-
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      reserved_r <= 1'b0;
-      reserved_addr_r <= '0;
-    end
-    else begin
-      reserved_r <= reserved_n;
-      reserved_addr_r <= reserved_addr_n;
-    end
-  end
-
+  logic reserved_r;
+  logic [dmem_addr_width_lp-1:0] reserved_addr_r;
 
   //                          //
   //        MEM STAGE         //
@@ -592,7 +581,6 @@ module vanilla_core
   //                          //
   //        WB STAGE          //
   //                          //
-
 
   wb_signals_s wb_r, wb_n;
   
@@ -1101,18 +1089,27 @@ module vanilla_core
     end
   end
 
-  always_comb begin
-    if (dmem_v_li & ~dmem_w_li & lsu_reserve_lo & ~stall) begin
-      reserved_n = 1'b1;
-      reserved_addr_n = dmem_addr_li;
-    end
-    else if (dmem_v_li & dmem_w_li &( dmem_addr_li == reserved_addr_r)) begin
-      reserved_n = 1'b0;
-      reserved_addr_n = reserved_addr_r;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      reserved_r <= 1'b0;
+      reserved_addr_r <= '0;
     end
     else begin
-      reserved_n = reserved_r;
-      reserved_addr_n = reserved_addr_r;
+      if (dmem_v_li & ~dmem_w_li & lsu_reserve_lo & ~stall) begin
+        reserved_r <= 1'b1;
+        reserved_addr_r <= dmem_addr_li;
+        // synopsys translate_off
+        $display("[INFO][VCORE] making reservation. t=%0t, addr=%x", $time, dmem_addr_li);
+        // synopsys translate_on
+      end
+      else if ((reserved_r == 1'b1)
+        & dmem_v_li & dmem_w_li & (dmem_addr_li == reserved_addr_r)) begin
+        reserved_r <= 1'b0;
+        // synopsys translate_off
+        $display("[INFO][VCORE] breaking reservation. t=%0t.", $time);
+        // synopsys translate_on
+      end
     end
   end
 
@@ -1144,7 +1141,7 @@ module vanilla_core
       int_rf_wdata = int_remote_load_resp_data_i;
     end
     else begin
-      int_rf_wen = wb_r.op_writes_rf;
+      int_rf_wen = wb_r.op_writes_rf & (~stall);
       int_rf_waddr = wb_r.rd_addr;
       int_rf_wdata = wb_r.rf_data;
     end
