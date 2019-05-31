@@ -309,6 +309,10 @@ module vanilla_core
     ,.data_o(exe_r)
   );
 
+  // synopsys translate_off
+  logic [data_width_p-1:0] exe_pc;
+  assign exe_pc = exe_r.pc_plus4 - 'd4;
+  // synopsys translate_on
 
 
   // EXE forwarding muxes
@@ -1140,7 +1144,7 @@ module vanilla_core
       int_rf_wdata = int_remote_load_resp_data_i;
     end
     else begin
-      int_rf_wen = wb_r.op_writes_rf;
+      int_rf_wen = wb_r.op_writes_rf & (~stall);
       int_rf_waddr = wb_r.rd_addr;
       int_rf_wdata = wb_r.rf_data;
     end
