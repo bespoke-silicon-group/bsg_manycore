@@ -6,8 +6,10 @@ COVERAGE=
 PROG_NAME ?= main
 
 ########################################
+ifneq ($(IGNORE_CADENV),)
+$(warning "Ignoring cadenv")
 # select the tools
-ifneq ($(HOSTNAME),xor.cs.washington.edu)
+else ifneq ($(HOSTNAME),xor.cs.washington.edu)
 # Checking the VCS settings
 ifeq ($(VCS),)
 $(error Please define the $$VCS which points to the VCS binaries )
@@ -17,7 +19,7 @@ ifeq ($(DVE),)
 $(error Please define the $$DVE which points to the DVE binaries )
 endif
 #Using the cadenv.mk to setup the VCS
-else
+else 
 include $(CAD_DIR)/cadenv.mk
 endif 
 ########################################
