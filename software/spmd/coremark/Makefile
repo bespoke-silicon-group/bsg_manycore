@@ -16,3 +16,12 @@ clean:
 	rm -rf $(COREMARK_TOP)
 	rm -rf *.o *.log
 
+
+dve:
+	dve -full64 -vpd ../../../imports/coremark/vcdplus.vpd &
+
+dis:
+	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all \
+		../../../imports/coremark/coremark.riscv > coremark.dis
+
+	
