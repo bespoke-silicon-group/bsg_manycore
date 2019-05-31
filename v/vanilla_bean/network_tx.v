@@ -203,11 +203,6 @@ module network_tx
     end
   end
 
-  /**
-    else begin
-
-    end
-  */
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin
     if (out_v_o & is_invalid_addr) begin

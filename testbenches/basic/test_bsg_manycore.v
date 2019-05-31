@@ -190,10 +190,8 @@ module test_bsg_manycore;
 
   // vanilla core tracer
   //
-  //
-  /*
   if (1) begin
-    bind bsg_manycore_proc_vanilla bsg_manycore_proc_vanilla_trace #(
+    bind vanilla_core vanilla_core_trace #(
       .x_cord_width_p(x_cord_width_p)
       ,.y_cord_width_p(y_cord_width_p)
       ,.icache_tag_width_p(icache_tag_width_p)
@@ -202,11 +200,10 @@ module test_bsg_manycore;
       ,.data_width_p(data_width_p)
       ,.load_id_width_p(load_id_width_p)
       ,.dmem_size_p(dmem_size_p)
-    ) vanilla_tracer (
+    ) vtrace (
       .*
     );
   end
-*/
 
 endmodule
 
