@@ -309,11 +309,8 @@ module vanilla_core
     ,.data_o(exe_r)
   );
 
-  // synopsys translate_off
   logic [data_width_p-1:0] exe_pc;
-  assign exe_pc = exe_r.pc_plus4 - 'd4;
-  // synopsys translate_on
-
+  assign exe_pc = (exe_r.pc_plus4 - 'd4) | 32'h80000000;
 
   // EXE forwarding muxes
   //
