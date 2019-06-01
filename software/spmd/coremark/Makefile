@@ -15,6 +15,7 @@ clean:
 	rm -rf $(MANYCORE_PORT_DST)
 	rm -rf $(COREMARK_TOP)
 	rm -rf *.o *.log
+	rm -rf coremark.dis
 
 
 dve:
