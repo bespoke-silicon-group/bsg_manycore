@@ -16,6 +16,7 @@ module vanilla_core_trace
     , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , localparam pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
+    , localparam bsg_data_end_lp = `_bsg_data_end_addr
   )
   (
     input clk_i
@@ -136,5 +137,17 @@ module vanilla_core_trace
   end 
 
 
+  // synopsys translate_off
+  
+  // SP (x2) overflow checking.
+  always_ff @ (negedge clk_i) begin
+    if (int_rf_wen & (int_rf_waddr == 2) & int_rf_wdata < bsg_data_end_lp) begin
+      $display("[ERROR][VCORE] SP underflow. t=%0t data_end=%x, sp=%x",
+        $time, bsg_data_end_lp, int_rf_wdata);
+    end
+  end
+ 
+
+  // synopsys translate_on
 
 endmodule
