@@ -3,28 +3,7 @@
 
 #ifdef __spike__
 
-extern int tohost;
-
-#define bsg_finish() \
-  do { \
-    volatile int* ptr = &tohost; \
-    *ptr = 0x1; \
-    while(1); \
-  } while(0)
-
-#define bsg_fail() \
-  do { \
-    volatile int* ptr = &tohost; \
-    *ptr = 0x3; \
-    while(1); \
-  } while(0)
-
-#define bsg_putchar(ch) //\
-  do { \
-    volatile int* ptr = &tohost; \
-    *ptr = (ch << 8); \
-  } while(0)
-
+#include "spike.h"
 
 #else // ifndef __spike__
 
