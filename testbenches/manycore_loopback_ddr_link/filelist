@@ -18,6 +18,7 @@ $BASEJUMP_STL_DIR/bsg_misc/bsg_thermometer_count.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_counter_up_down.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_counter_up_down_variable.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_counter_clear_up.v
+$BASEJUMP_STL_DIR/bsg_misc/bsg_counter_dynamic_start_en_down.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_decode_with_v.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_decode.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_round_robin_arb.v

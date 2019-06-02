@@ -57,7 +57,7 @@ module bsg_manycore_loopback_ddr_link_tester
   // Set to 96 / `BSG_MIN(req_ratio, resp_ratio)
   ,parameter remote_credits_p = 48
   // Should be `BSG_MAX(req_ratio, resp_ratio)-1
-  ,parameter ct_max_len_p = 3-1
+  ,parameter ct_max_payload_flits_p = 3-1
   // How often does channel tunnel return credits
   // Set to $clog2(width_p)-2
   ,parameter ct_lg_credit_decimation_p = 3)
@@ -215,7 +215,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.reserved_width_p(reserved_width_p)
   ,.num_in_p(2)
   ,.remote_credits_p(remote_credits_p)
-  ,.max_len_p(ct_max_len_p)
+  ,.max_payload_flits_p(ct_max_payload_flits_p)
   ,.lg_credit_decimation_p(ct_lg_credit_decimation_p))
   out_ct
   (.clk_i(clk_0)
@@ -312,7 +312,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.reserved_width_p(reserved_width_p)
   ,.num_in_p(2)
   ,.remote_credits_p(remote_credits_p)
-  ,.max_len_p(ct_max_len_p)
+  ,.max_payload_flits_p(ct_max_payload_flits_p)
   ,.lg_credit_decimation_p(ct_lg_credit_decimation_p))
   in_ct
   (.clk_i(clk_1)
