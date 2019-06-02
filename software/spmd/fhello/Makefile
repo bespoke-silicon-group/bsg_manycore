@@ -26,6 +26,12 @@ ifdef DEBUG
 	RISCV_EXTRA_OPTS += -O0
 endif
 
+ifdef SPIKE
+RISCV_GCC_EXTRA_OPTS += -D__spike__
+CRT_OBJ = ../specint2000/crt.o
+LINK_SCRIPT = ../specint2000/link.ld
+endif
+
 include ../Makefile.include
 
 #########################################################
