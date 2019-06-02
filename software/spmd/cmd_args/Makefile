@@ -23,11 +23,10 @@ IN_FILES=
 ARGC=2
 ARGV=\"foo\",\"bar\"
 
-CRT_OBJ = ../specint2000/crt.o
-LINK_SCRIPT = ../specint2000/link.ld
-
 ifdef SPIKE
 RISCV_GCC_EXTRA_OPTS += -D__spike__
+CRT_OBJ = ../specint2000/crt.o
+LINK_SCRIPT = ../specint2000/link.ld
 endif
 
 ifdef DEBUG
