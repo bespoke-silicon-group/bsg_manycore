@@ -15,20 +15,21 @@ extern int tohost;
 #define bsg_fail() \
   do { \
     volatile int* ptr = &tohost; \
-    *ptr = 0x0; \
+    *ptr = 0x3; \
     while(1); \
   } while(0)
 
-#define bsg_putchar(ch) \
+#define bsg_putchar(ch) //\
   do { \
     volatile int* ptr = &tohost; \
-    *ptr = 0xaa; \
-    while(1); \
+    *ptr = (ch << 8); \
   } while(0)
+
 
 #else // ifndef __spike__
 
 #include "bsg_manycore.h"
+#include "bsg_set_tile_x_y.h"
 
 #endif // __spike__
 
