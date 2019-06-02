@@ -3,7 +3,11 @@
 #include <string.h>
 
 int main(int argc, char* argv[]) {
-  printf("argc = %d\n", argc);
-  printf("argv[0] = %s\n", argv[0]);
-  printf("argv[1] = %s\n", argv[1]);
+  if(argc == 2) {
+    if((strcmp(argv[0], "foo") == 0) 
+        && (strcmp(argv[1], "bar") == 0))
+      return 0;
+  }
+
+  return -1;
 }
