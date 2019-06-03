@@ -20,6 +20,7 @@ RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-gcc
 RISCV_ELF2HEX ?= LD_LIBRARY_PATH=$(RISCV_BIN_DIR)/../lib $(RISCV_BIN_DIR)/elf2hex
 RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-objcopy
 RISCV_AR      ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-ar
+RISCV_SIM     ?= $(RISCV_BIN_DIR)/spike
 
 BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
@@ -163,6 +164,9 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 
 %.dis: %.riscv
 	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all -S $<
+
+%.spike: %.riscv
+	$(RISCV_SIM) --isa=$(ARCH_OP) $<
 
 %.S: %.c
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ |& tee $*.comp.log
