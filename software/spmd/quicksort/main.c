@@ -119,7 +119,7 @@ void quicksort(int* lst, int n)
   }
   else
   {
-    bsg_fail_x(0);
+    bsg_fail();
   }
 }
 
@@ -138,18 +138,18 @@ int main()
 
       if (data[i] > data[i+1])
       {
-        bsg_fail_x(0);
+        bsg_fail();
       }
     }
     if (sum == ANSWER)
     {
       bsg_printf("sum: %d, [PASSED]\n", sum);
-      bsg_finish_x(0);
+      bsg_finish();
     }
     else 
     {
       bsg_printf("sum: %d, [FAILED]\n", sum);
-      bsg_fail_x(0);
+      bsg_fail();
     }
   }
 
