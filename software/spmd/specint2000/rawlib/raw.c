@@ -1,6 +1,4 @@
 #include "raw.h"
-#include "bsg_manycore.h"
-#include "bsg_set_tile_x_y.h"
 #include <stdio.h>
 
 void timebegin() {

@@ -4,6 +4,8 @@ BSG_NEWLIB = 1
 
 OBJECT_FILES := $(BENCHMARK_OBJS)
 IN_FILES := $(BENCHMARK_INPS)
+CRT_OBJ = ../specint2000/crt.o
+LINK_SCRIPT = ../specint2000/link.ld
 
 include ../Makefile.include
 
@@ -12,6 +14,10 @@ vpath %.h $(BENCHMARK_DIR)/src.raw
 vpath %.c ./rawlib
 
 RISCV_GCC_EXTRA_OPTS = -Irawlib $(BENCHMARK_DEFS)
+
+ifdef SPIKE
+RISCV_GCC_EXTRA_OPTS += -D__spike__
+endif
 
 #########################################################
 #each bytes defines the core type
