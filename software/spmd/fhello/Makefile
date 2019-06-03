@@ -8,7 +8,15 @@ bsg_tiles_Y = 1
 # 01  vscale  core
 #TYPE_VEC="64'h01_01_01_01"
 
+ifdef SPIKE
+all: main.spike
+
+RISCV_GCC_EXTRA_OPTS += -D__spike__
+CRT_OBJ = ../specint2000/crt.o
+LINK_SCRIPT = ../specint2000/link.ld
+else
 all: main.run
+endif
 
 # Rule to write processor execution logs. To be used after the
 # verilog simulation.
@@ -24,12 +32,6 @@ IN_FILES=hello.txt
 ifdef DEBUG
 	RISCV_EXTRA_OPTS += -g
 	RISCV_EXTRA_OPTS += -O0
-endif
-
-ifdef SPIKE
-RISCV_GCC_EXTRA_OPTS += -D__spike__
-CRT_OBJ = ../specint2000/crt.o
-LINK_SCRIPT = ../specint2000/link.ld
 endif
 
 include ../Makefile.include
