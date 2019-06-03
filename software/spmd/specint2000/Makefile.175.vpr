@@ -21,7 +21,9 @@ $(BENCHMARK_INPS): %:
 BENCHMARK_DEFS = -D__raw__ -DSPEC_CPU2000 -DNO_GRAPHICS
 
 ARGC=15
-ARGV=\"vpr\",\"$(INPUT_TYPE).net\",\"small.arch.in\",\"place.out\",\"other.out\",\"-nodisp\",\"-place_only\",\"-init_t\",\"5\",\"-exit_t\",\"0.005\",\"-alpha_t\",\"0.9412\",\"-inner_num\",\"2\"
+ARGV=vpr $(INPUT_TYPE).net small.arch.in place.out other.out \
+		 -nodisp -place_only -init_t 5 -exit_t 0.005 -alpha_t 0.9412 \
+		 -inner_num 2
 
 # lfs disk image size
 LFS_BLOCK_SIZE = 128
