@@ -176,7 +176,8 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.link_o(out_node_link_o));
   
   
-  for (i = 0; i < 2; i++) begin: r0
+  for (i = 0; i < 2; i++) 
+  begin: r0
 
     bsg_wormhole_router
    #(.width_p(width_p)
@@ -357,7 +358,8 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.link_o(in_demux_link_o));
   
   
-  for (i = 0; i < 2; i++) begin: r1
+  for (i = 0; i < 2; i++) 
+  begin: r1
   
     bsg_wormhole_router
    #(.width_p(width_p)
@@ -457,7 +459,8 @@ module bsg_manycore_loopback_ddr_link_tester
     clk_1x_1 = ~clk_1x_1;
   
   
-  initial begin
+  initial 
+  begin
 
     $display("Start Simulation\n");
   

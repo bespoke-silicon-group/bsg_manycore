@@ -132,7 +132,8 @@ module  bsg_manycore_loopback_test_node
         else $error("check mismatch %x %x ", data_check,resp_in_data[width_p-1:0]);
   // synopsys translate_on
 
-  always_ff @(posedge clk_i) begin
+  always_ff @(posedge clk_i)
+  begin
     if (reset_i) begin
         error_o <= 0;
     end else begin
