@@ -20,7 +20,6 @@ vivado_*
 imports/
 software/riscv-tools/riscv-install
 software/riscv-tools/rocket-chip
-software/riscv-tools/
 
 vcdplus.vpd
 ucli.key
