@@ -17,6 +17,7 @@ module bsg_manycore_link_async_to_wormhole
   ,parameter load_id_width_p = "inv"
   ,parameter x_cord_width_p="inv"
   ,parameter y_cord_width_p="inv"
+  
   ,parameter wormhole_req_ratio_p = "inv"
   ,parameter wormhole_resp_ratio_p = "inv"
   ,parameter wormhole_width_p = "inv"
@@ -24,10 +25,12 @@ module bsg_manycore_link_async_to_wormhole
   ,parameter wormhole_y_cord_width_p = "inv"
   ,parameter wormhole_len_width_p = "inv"
   ,parameter wormhole_reserved_width_p = "inv"
+  
   ,localparam lg_fifo_depth_lp = 3
   ,localparam num_nets_lp = 2
   ,localparam bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-  ,localparam bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(wormhole_width_p))
+  ,localparam bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(wormhole_width_p)
+  )
     
   (//
    // Manycore side
@@ -39,7 +42,7 @@ module bsg_manycore_link_async_to_wormhole
   ,output manycore_en_o
   
   // Manycore links
-  ,input [bsg_manycore_link_sif_width_lp-1:0] links_sif_i
+  ,input  [bsg_manycore_link_sif_width_lp-1:0] links_sif_i
   ,output [bsg_manycore_link_sif_width_lp-1:0] links_sif_o
   
   //
@@ -59,8 +62,9 @@ module bsg_manycore_link_async_to_wormhole
   ,input [wormhole_y_cord_width_p-1:0] dest_y_i
 
   // Wormhole links
-  ,input [num_nets_lp-1:0][bsg_ready_and_link_sif_width_lp-1:0] link_i
-  ,output [num_nets_lp-1:0][bsg_ready_and_link_sif_width_lp-1:0] link_o);
+  ,input  [num_nets_lp-1:0][bsg_ready_and_link_sif_width_lp-1:0] link_i
+  ,output [num_nets_lp-1:0][bsg_ready_and_link_sif_width_lp-1:0] link_o
+  );
   
   
   genvar i;
@@ -69,24 +73,26 @@ module bsg_manycore_link_async_to_wormhole
   // Reset signals
   
   bsg_launch_sync_sync 
- #(.width_p(1))
-  mc_reset_blss
-  (.iclk_i(clk_i)
+ #(.width_p(1)
+  ) mc_reset_blss
+  (.iclk_i      (clk_i)
   ,.iclk_reset_i(1'b0)
-  ,.oclk_i(manycore_clk_i)
-  ,.iclk_data_i(manycore_reset_i)
-  ,.iclk_data_o()
-  ,.oclk_data_o(manycore_reset_o));
+  ,.oclk_i      (manycore_clk_i)
+  ,.iclk_data_i (manycore_reset_i)
+  ,.iclk_data_o ()
+  ,.oclk_data_o (manycore_reset_o)
+  );
   
   bsg_launch_sync_sync 
- #(.width_p(1))
-  mc_en_blss
-  (.iclk_i(clk_i)
+ #(.width_p(1)
+  ) mc_en_blss
+  (.iclk_i      (clk_i)
   ,.iclk_reset_i(1'b0)
-  ,.oclk_i(manycore_clk_i)
-  ,.iclk_data_i(manycore_en_i)
-  ,.iclk_data_o()
-  ,.oclk_data_o(manycore_en_o));
+  ,.oclk_i      (manycore_clk_i)
+  ,.iclk_data_i (manycore_en_i)
+  ,.iclk_data_o ()
+  ,.oclk_data_o (manycore_en_o)
+  );
   
   
   // Interfacing bsg_noc links 
@@ -101,7 +107,7 @@ module bsg_manycore_link_async_to_wormhole
   bsg_ready_and_link_sif_s [num_nets_lp-1:0] link_i_cast, link_o_cast;
   
   for (i = 0; i < num_nets_lp; i++) 
-  begin
+  begin: noc_cast
   
     assign link_i_cast[i] = link_i[i];
     assign link_o[i] = link_o_cast[i];
@@ -145,35 +151,37 @@ module bsg_manycore_link_async_to_wormhole
   
     bsg_async_fifo
    #(.lg_size_p(lg_fifo_depth_lp)
-    ,.width_p(wormhole_width_p))
-    wh_2_mc_fifo
-    (.w_clk_i(clk_i)
+    ,.width_p(wormhole_width_p)
+    ) wh_2_mc_fifo
+    (.w_clk_i  (clk_i)
     ,.w_reset_i(reset_i)
-    ,.w_enq_i(wh_enq_li[i])
-    ,.w_data_i(data_li[i])
-    ,.w_full_o(wh_full_lo[i])
+    ,.w_enq_i  (wh_enq_li[i])
+    ,.w_data_i (data_li[i])
+    ,.w_full_o (wh_full_lo[i])
 
-    ,.r_clk_i(manycore_clk_i)
+    ,.r_clk_i  (manycore_clk_i)
     ,.r_reset_i(manycore_reset_o)
-    ,.r_deq_i(mc_deq_li[i])
-    ,.r_data_o(mc_data_lo[i])
-    ,.r_valid_o(mc_valid_lo[i]));
+    ,.r_deq_i  (mc_deq_li[i])
+    ,.r_data_o (mc_data_lo[i])
+    ,.r_valid_o(mc_valid_lo[i])
+    );
     
     bsg_async_fifo
    #(.lg_size_p(lg_fifo_depth_lp)
-    ,.width_p(wormhole_width_p))
-    mc_2_wh_fifo
-    (.w_clk_i(manycore_clk_i)
+    ,.width_p(wormhole_width_p)
+    ) mc_2_wh_fifo
+    (.w_clk_i  (manycore_clk_i)
     ,.w_reset_i(manycore_reset_o)
-    ,.w_enq_i(mc_enq_li[i])
-    ,.w_data_i(mc_data_li[i])
-    ,.w_full_o(mc_full_lo[i])
+    ,.w_enq_i  (mc_enq_li[i])
+    ,.w_data_i (mc_data_li[i])
+    ,.w_full_o (mc_full_lo[i])
 
-    ,.r_clk_i(clk_i)
+    ,.r_clk_i  (clk_i)
     ,.r_reset_i(reset_i)
-    ,.r_deq_i(valid_lo[i] & ready_li[i])
-    ,.r_data_o(data_lo[i])
-    ,.r_valid_o(valid_lo[i]));
+    ,.r_deq_i  (valid_lo[i] & ready_li[i])
+    ,.r_data_o (data_lo[i])
+    ,.r_valid_o(valid_lo[i])
+    );
   
   end
 
@@ -183,19 +191,20 @@ module bsg_manycore_link_async_to_wormhole
   // Define req and resp packets
   `declare_bsg_manycore_packet_s  (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
 
-  localparam mc_req_width_lp = $bits(bsg_manycore_packet_s);
+  localparam mc_req_width_lp  = $bits(bsg_manycore_packet_s);
   localparam mc_resp_width_lp = $bits(bsg_manycore_return_packet_s);
   
-  localparam wh_req_width_lp = wormhole_width_p*wormhole_req_ratio_p;
+  localparam wh_req_width_lp  = wormhole_width_p*wormhole_req_ratio_p;
   localparam wh_resp_width_lp = wormhole_width_p*wormhole_resp_ratio_p;
-  localparam wh_width_lp = `BSG_MAX(wh_req_width_lp, wh_resp_width_lp);
+  localparam wh_width_lp      = `BSG_MAX(wh_req_width_lp, wh_resp_width_lp);
   
-  localparam mc_wh_req_width_lp = `bsg_wormhole_packet_width(wormhole_reserved_width_p, wormhole_x_cord_width_p, wormhole_y_cord_width_p, wormhole_len_width_p, mc_req_width_lp);
+  localparam mc_wh_req_width_lp  = `bsg_wormhole_packet_width(wormhole_reserved_width_p, wormhole_x_cord_width_p, wormhole_y_cord_width_p, wormhole_len_width_p, mc_req_width_lp);
   localparam mc_wh_resp_width_lp = `bsg_wormhole_packet_width(wormhole_reserved_width_p, wormhole_x_cord_width_p, wormhole_y_cord_width_p, wormhole_len_width_p, mc_resp_width_lp);
   
   
    // synopsys translate_off
-   initial begin
+   initial 
+   begin
      assert (mc_wh_req_width_lp <= wh_req_width_lp)
      else $error("Wormhole request packet width %d is smaller than manycore request packet width plus wormhole header width %d", wh_req_width_lp, mc_wh_req_width_lp);
      
@@ -220,35 +229,37 @@ module bsg_manycore_link_async_to_wormhole
   begin: ps
     
     localparam ps_width_lp = (i==0)? wh_req_width_lp : wh_resp_width_lp;
-    localparam ps_els_lp = ps_width_lp / wormhole_width_p;
+    localparam ps_els_lp   = ps_width_lp / wormhole_width_p;
   
     bsg_parallel_in_serial_out 
    #(.width_p(wormhole_width_p)
     ,.els_p(ps_els_lp)
-    ,.msb_first_p(1))
-    piso
-    (.clk_i(manycore_clk_i)
+    ,.msb_first_p(1)
+    ) piso
+    (.clk_i  (manycore_clk_i)
     ,.reset_i(manycore_reset_o)
     ,.valid_i(mc_ps_valid_li[i])
-    ,.data_i(mc_ps_data_li[i][ps_width_lp-1:0])
+    ,.data_i (mc_ps_data_li[i][ps_width_lp-1:0])
     ,.ready_o(mc_ps_ready_lo[i])
     ,.valid_o(mc_valid_li[i])
-    ,.data_o(mc_data_li[i])
-    ,.yumi_i(mc_ready_lo[i]&mc_valid_li[i]));
+    ,.data_o (mc_data_li[i])
+    ,.yumi_i (mc_ready_lo[i]&mc_valid_li[i])
+    );
     
     bsg_serial_in_parallel_out_full_buffered
    #(.width_p(wormhole_width_p)
     ,.els_p(ps_els_lp)
-    ,.msb_first_p(1))
-    sipof
-    (.clk_i(manycore_clk_i)
+    ,.msb_first_p(1)
+    ) sipof
+    (.clk_i  (manycore_clk_i)
     ,.reset_i(manycore_reset_o)
-    ,.v_i(mc_valid_lo[i])
+    ,.v_i    (mc_valid_lo[i])
     ,.ready_o(mc_ready_li[i])
-    ,.data_i(mc_data_lo[i])
-    ,.data_o(mc_ps_data_lo[i][ps_width_lp-1:0])
-    ,.v_o(mc_ps_valid_lo[i])
-    ,.yumi_i(mc_ps_yumi_li[i]));  
+    ,.data_i (mc_data_lo[i])
+    ,.data_o (mc_ps_data_lo[i][ps_width_lp-1:0])
+    ,.v_o    (mc_ps_valid_lo[i])
+    ,.yumi_i (mc_ps_yumi_li[i])
+    );  
   
   end
   
@@ -278,7 +289,7 @@ module bsg_manycore_link_async_to_wormhole
   `declare_bsg_wormhole_packet_s(wh_resp_width_lp, wormhole_reserved_width_p, wormhole_x_cord_width_p, wormhole_y_cord_width_p, wormhole_len_width_p, resp_wormhole_packet);
   
   // Cast of wormhole packets
-  req_wormhole_packet mc_req_data_cast;
+  req_wormhole_packet  mc_req_data_cast;
   resp_wormhole_packet mc_resp_data_cast;
   
   assign mc_ps_data_li[0] = mc_req_data_cast;
@@ -288,31 +299,31 @@ module bsg_manycore_link_async_to_wormhole
   begin
   
     // req going out of manycore
-    mc_ps_valid_li[0] = fwd_li.v;
+    mc_ps_valid_li[0]         = fwd_li.v;
     mc_req_data_cast.reserved = 0;
-    mc_req_data_cast.x_cord = dest_x_i;
-    mc_req_data_cast.y_cord = dest_y_i;
-    mc_req_data_cast.len = wormhole_req_ratio_p-1;
-    mc_req_data_cast.data = fwd_li.data;
-    fwd_lo.ready_and_rev = mc_ps_ready_lo[0];
+    mc_req_data_cast.x_cord   = dest_x_i;
+    mc_req_data_cast.y_cord   = dest_y_i;
+    mc_req_data_cast.len      = wormhole_req_ratio_p-1;
+    mc_req_data_cast.data     = fwd_li.data;
+    fwd_lo.ready_and_rev      = mc_ps_ready_lo[0];
 
     // req coming into manycore
-    fwd_lo.v = mc_ps_valid_lo[0];
-    fwd_lo.data = mc_ps_data_lo[0][mc_req_width_lp-1:0];
+    fwd_lo.v         = mc_ps_valid_lo[0];
+    fwd_lo.data      = mc_ps_data_lo[0][mc_req_width_lp-1:0];
     mc_ps_yumi_li[0] = mc_ps_valid_lo[0] & fwd_li.ready_and_rev;
 
     // resp going out of manycore
-    mc_ps_valid_li[1] = rev_li.v;
+    mc_ps_valid_li[1]          = rev_li.v;
     mc_resp_data_cast.reserved = 0;
-    mc_resp_data_cast.x_cord = dest_x_i;
-    mc_resp_data_cast.y_cord = dest_y_i;
-    mc_resp_data_cast.len = wormhole_resp_ratio_p-1;
-    mc_resp_data_cast.data = rev_li.data;
-    rev_lo.ready_and_rev = mc_ps_ready_lo[1];
+    mc_resp_data_cast.x_cord   = dest_x_i;
+    mc_resp_data_cast.y_cord   = dest_y_i;
+    mc_resp_data_cast.len      = wormhole_resp_ratio_p-1;
+    mc_resp_data_cast.data     = rev_li.data;
+    rev_lo.ready_and_rev       = mc_ps_ready_lo[1];
 
     // resp coming into manycore
-    rev_lo.v = mc_ps_valid_lo[1];
-    rev_lo.data = mc_ps_data_lo[1][mc_resp_width_lp-1:0];
+    rev_lo.v         = mc_ps_valid_lo[1];
+    rev_lo.data      = mc_ps_data_lo[1][mc_resp_width_lp-1:0];
     mc_ps_yumi_li[1] = mc_ps_valid_lo[1] & rev_li.ready_and_rev;
   
   end
