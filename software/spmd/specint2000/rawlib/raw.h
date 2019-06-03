@@ -1,9 +1,17 @@
 #ifndef _RAW_H
 #define _RAW_H
 
+#ifdef __spike__
+
+#include "spike.h"
+
+#else // ifndef __spike__
+
 #include "bsg_manycore.h"
 #include "bsg_manycore_arch.h"
 #include "bsg_set_tile_x_y.h"
+
+#endif // __spike__
 
 void timebegin();
 void timeend();
