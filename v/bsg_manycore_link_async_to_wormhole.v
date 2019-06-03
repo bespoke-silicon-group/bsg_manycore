@@ -1,4 +1,13 @@
 
+//
+// Paul Gao 06/2019
+//
+// This is an adapter from wormhole network to bsg manycore link
+// It assumes that wormhole network and manycore are in different clock regions, an
+// asynchronous fifo is instantiated in this adapter to cross the clock domains.
+//
+//
+
 `include "bsg_manycore_packet.vh"
 
 module bsg_manycore_link_async_to_wormhole
@@ -15,28 +24,41 @@ module bsg_manycore_link_async_to_wormhole
   ,parameter wormhole_y_cord_width_p = "inv"
   ,parameter wormhole_len_width_p = "inv"
   ,parameter wormhole_reserved_width_p = "inv"
-  ,parameter lg_fifo_depth_p = 3
+  ,localparam lg_fifo_depth_lp = 3
   ,localparam num_nets_lp = 2
   ,localparam bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
   ,localparam bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(wormhole_width_p))
     
-  (// Manycore side
+  (//
+   // Manycore side
+   //
    input manycore_clk_i
+   
+   // Optional reset/enable outputs
   ,output manycore_reset_o
   ,output manycore_en_o
-   
+  
+  // Manycore links
   ,input [bsg_manycore_link_sif_width_lp-1:0] links_sif_i
   ,output [bsg_manycore_link_sif_width_lp-1:0] links_sif_o
-   
+  
+  //
   // Wormhole side
+  //
   ,input clk_i
   ,input reset_i
+  
+  // If the reset / enable signals for manycore is in wormhole clock domain, this adapter 
+  // can forward them to manycore clock domain with integrated synchronizers.
   ,input manycore_reset_i
   ,input manycore_en_i
   
+  // The wormhole destination IDs should either be connected to a register (whose value is
+  // initialized before reset is deasserted), or set to a constant value.
   ,input [wormhole_x_cord_width_p-1:0] dest_x_i
   ,input [wormhole_y_cord_width_p-1:0] dest_y_i
 
+  // Wormhole links
   ,input [num_nets_lp-1:0][bsg_ready_and_link_sif_width_lp-1:0] link_i
   ,output [num_nets_lp-1:0][bsg_ready_and_link_sif_width_lp-1:0] link_o);
   
@@ -78,7 +100,8 @@ module bsg_manycore_link_async_to_wormhole
   `declare_bsg_ready_and_link_sif_s(wormhole_width_p,bsg_ready_and_link_sif_s);
   bsg_ready_and_link_sif_s [num_nets_lp-1:0] link_i_cast, link_o_cast;
   
-  for (i = 0; i < num_nets_lp; i++) begin
+  for (i = 0; i < num_nets_lp; i++) 
+  begin
   
     assign link_i_cast[i] = link_i[i];
     assign link_o[i] = link_o_cast[i];
@@ -117,10 +140,11 @@ module bsg_manycore_link_async_to_wormhole
   assign wh_enq_li = valid_i & ready_o;
   
   
-  for (i = 0; i < num_nets_lp; i++) begin: afifo
+  for (i = 0; i < num_nets_lp; i++) 
+  begin: afifo
   
     bsg_async_fifo
-   #(.lg_size_p(lg_fifo_depth_p)
+   #(.lg_size_p(lg_fifo_depth_lp)
     ,.width_p(wormhole_width_p))
     wh_2_mc_fifo
     (.w_clk_i(clk_i)
@@ -136,7 +160,7 @@ module bsg_manycore_link_async_to_wormhole
     ,.r_valid_o(mc_valid_lo[i]));
     
     bsg_async_fifo
-   #(.lg_size_p(lg_fifo_depth_p)
+   #(.lg_size_p(lg_fifo_depth_lp)
     ,.width_p(wormhole_width_p))
     mc_2_wh_fifo
     (.w_clk_i(manycore_clk_i)
@@ -192,7 +216,8 @@ module bsg_manycore_link_async_to_wormhole
   logic [num_nets_lp-1:0] mc_ps_yumi_li;
   
   
-  for (i = 0; i < num_nets_lp; i++) begin: ps
+  for (i = 0; i < num_nets_lp; i++) 
+  begin: ps
     
     localparam ps_width_lp = (i==0)? wh_req_width_lp : wh_resp_width_lp;
     localparam ps_els_lp = ps_width_lp / wormhole_width_p;
@@ -259,7 +284,8 @@ module bsg_manycore_link_async_to_wormhole
   assign mc_ps_data_li[0] = mc_req_data_cast;
   assign mc_ps_data_li[1] = mc_resp_data_cast;
   
-  always_comb begin
+  always_comb 
+  begin
   
     // req going out of manycore
     mc_ps_valid_li[0] = fwd_li.v;

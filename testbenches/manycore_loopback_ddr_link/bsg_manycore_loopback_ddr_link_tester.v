@@ -1,4 +1,13 @@
 
+//
+// Paul Gao 06/2019
+//
+// This is a tester for wormhole network and bsg_link.
+// Two manycore loopback nodes send out packets, then receive the looped back packets.
+// Correctness are checked automatically.
+//
+//
+
 `timescale 1ps/1ps
 `include "bsg_manycore_packet.vh"
 
@@ -23,43 +32,78 @@ module bsg_manycore_loopback_ddr_link_tester
   
   // How many wormhole packet flits for request and response
   // If ratio=n, then total packet length is n*width_p
-  // Increase these two parameters if adapter complains
+  // 
+  // Calculation of proper ratios (same for req and resp)
+  // If the payload packet width is m, then:
+  // (m+x_cord_width_p+y_cord_width_p+len_width_p+reserved_width_p)
+  // must be smaller than or equal to (ratio*width_p)
+  //
+  // Increase these two ratios if adapter complains
   ,parameter req_ratio_p = 3
   ,parameter resp_ratio_p = 2
+  
+  // How many streams of traffic are merged in channel tunnel
+  // In this testbench the number of traffics is 2 (req and resp traffic)
+  ,parameter ct_num_in_p = 2
   
   // Wormhole packet configuration
   // Width of each wormhole flit
   ,parameter width_p = 32
+  
   // How many bits are needed for x-y coordinate
   // Always set to non-zero numbers
   ,parameter x_cord_width_p = 2
   ,parameter y_cord_width_p = 2
+  
   // How many bits are used to represent packet length
   // If ratio is n, then length number is (n-1)
   // Should be $clog2(ratio-1+1)
-  ,parameter len_width_p = 2
-  // If channel tunnel num_in_p <= 3, reserved bits needed is 2
-  // Increase reserved bits if have more than 3 inputs
-  ,parameter reserved_width_p = 2
+  //
+  // In this testbench, only 2 types of packets (req and resp)
+  // Only consider the longest one
+  ,parameter len_width_p = $clog2(`BSG_MAX(req_ratio_p, resp_ratio_p)-1+1)
   
-  // DDR link configuration
+  // This parameter is the property of wormhole network
+  // The reserved bits are for channel_tunnel_wormhole to mux and demux packets
+  // If we are merging m traffics in channel tunnel, then reserved bits needed
+  // is $clog2(m+1), where the "+1" is for credit returning packet.
+  ,parameter reserved_width_p = $clog2(ct_num_in_p+1)
+  
+  // Physical IO link configuration
   ,parameter channel_width_p = 8
-  // How many link channels do we have
+  
+  // How many physical IO link channels do we have for each bsg_link
+  // Should be power of 2
   ,parameter num_channels_p = 2
+  
   // DDR Link buffer size
   // 6 should be good for 500MHz, increase if channel stalls waiting for token
   ,parameter lg_fifo_depth_p = 6
+  
+  // This is for token credit return on IO channel
   // Do not change
   ,parameter lg_credit_to_token_decimation_p = 3
   
   // Channel tunnel configuration
   // Size of channel tunnel buffer (hardened memory)
-  // Set to 96 / `BSG_MIN(req_ratio, resp_ratio)
+  // There is a round-trip delay between sender and receiver for credit return
+  // Must have large enough buffer to prevent stalling
+  // Since credit counting is on header-flit, we need to consider the shortest possible packet
+  // Suggested value is (96/`BSG_MIN(req_ratio, resp_ratio)) or larger
   ,parameter remote_credits_p = 48
-  // Should be `BSG_MAX(req_ratio, resp_ratio)-1
-  ,parameter ct_max_payload_flits_p = 3-1
+  
+  // Max possible number of wormhole payload flits going into channel tunnel
+  // Each wormhole packet has 1 header flit and (m-1) payload flits
+  ,parameter ct_max_payload_flits_p = `BSG_MAX(req_ratio_p, resp_ratio_p)-1
+  
   // How often does channel tunnel return credits
-  // Set to $clog2(width_p)-2
+  // If parameter is set to m, then channel tunnel will return credit to sender
+  // after receiving 2^m wormhole packets (regardless of how many payload flits they have).
+  //
+  // Generally we don't want to send credit too often (wasteful of IO bandwidth)
+  // Receiving a quarter of packets before return credit is reasonable
+  // We may set lg_decimation to $clog2(remote_credits_p>>2) when remote_credits_p is power
+  // of 2, otherwise set to ($clog2(remote_credits_p>>2)-1).
   ,parameter ct_lg_credit_decimation_p = 3)
   
   ();
@@ -67,6 +111,7 @@ module bsg_manycore_loopback_ddr_link_tester
   `declare_bsg_manycore_link_sif_s(mc_addr_width_p,mc_data_width_p,mc_x_cord_width_p,mc_y_cord_width_p,mc_load_id_width_p);
   `declare_bsg_ready_and_link_sif_s(width_p,bsg_ready_and_link_sif_s);
   
+  // Clocks and control signals
   logic mc_clk_0, mc_clk_1;
   logic node_reset_0, node_reset_1, mc_reset_0, mc_reset_1;
   logic clk_0, clk_1, reset_0, reset_1;
@@ -176,7 +221,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.link_o(out_node_link_o));
   
   
-  for (i = 0; i < 2; i++) 
+  for (i = 0; i < ct_num_in_p; i++) 
   begin: r0
 
     bsg_wormhole_router
@@ -214,7 +259,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.y_cord_width_p(y_cord_width_p)
   ,.len_width_p(len_width_p)
   ,.reserved_width_p(reserved_width_p)
-  ,.num_in_p(2)
+  ,.num_in_p(ct_num_in_p)
   ,.remote_credits_p(remote_credits_p)
   ,.max_payload_flits_p(ct_max_payload_flits_p)
   ,.lg_credit_decimation_p(ct_lg_credit_decimation_p))
@@ -335,7 +380,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.y_cord_width_p(y_cord_width_p)
   ,.len_width_p(len_width_p)
   ,.reserved_width_p(reserved_width_p)
-  ,.num_in_p(2)
+  ,.num_in_p(ct_num_in_p)
   ,.remote_credits_p(remote_credits_p)
   ,.max_payload_flits_p(ct_max_payload_flits_p)
   ,.lg_credit_decimation_p(ct_lg_credit_decimation_p))
@@ -358,7 +403,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.link_o(in_demux_link_o));
   
   
-  for (i = 0; i < 2; i++) 
+  for (i = 0; i < ct_num_in_p; i++) 
   begin: r1
   
     bsg_wormhole_router
