@@ -4,6 +4,8 @@ BSG_NEWLIB = 1
 
 OBJECT_FILES := $(BENCHMARK_OBJS)
 IN_FILES := $(BENCHMARK_INPS)
+CRT_OBJ = ./crt.o
+LINK_SCRIPT = ./link.ld
 
 include ../Makefile.include
 
@@ -12,6 +14,10 @@ vpath %.h $(BENCHMARK_DIR)/src.raw
 vpath %.c ./rawlib
 
 RISCV_GCC_EXTRA_OPTS = -Irawlib $(BENCHMARK_DEFS)
+
+ifdef SPIKE
+RISCV_GCC_EXTRA_OPTS += -D__spike__
+endif
 
 #########################################################
 #each bytes defines the core type
@@ -40,7 +46,7 @@ endif
 #     be vanilla core 
 BSG_FPU_OP=0
 
-$(PROG_NAME).riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o
+$(PROG_NAME).riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) $(CRT_OBJ)
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. -l:$(BSG_MANYCORE_LIB) -o $@ $(RISCV_LINK_OPTS)
 
 

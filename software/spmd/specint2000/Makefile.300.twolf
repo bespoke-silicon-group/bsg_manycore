@@ -39,7 +39,7 @@ $(BENCHMARK_INPS): %:
 BENCHMARK_DEFS = -D__raw__ -DSPEC_CPU2000
 
 ARGC=2
-ARGV=\"twolf\",\"$(INPUT_TYPE)\"
+ARGV=twolf $(INPUT_TYPE)
 
 # lfs disk image size
 LFS_BLOCK_SIZE = 128

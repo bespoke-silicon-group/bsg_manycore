@@ -37,11 +37,15 @@ RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
 ifeq ($(BSG_NEWLIB), 1)
 	ARGC ?= 1
-	ARGV ?= \"main\"
+	ARGV ?= main
 
   RISCV_GCC_OPTS +=-D__bsg_newlib
   RISCV_GCC_OPTS +=-D__bsg_argc=$(ARGC)
-  RISCV_GCC_OPTS +=-D__bsg_argv=$(ARGV)
+
+  comma:=,
+  empty:=
+  space:=$(empty) $(empty)
+  RISCV_GCC_OPTS +=-D__bsg_argv=\"$(subst $(space),\"$(comma)\",$(strip $(ARGV)))\"
 endif
 
 SPMD_COMMON_OBJECTS ?=

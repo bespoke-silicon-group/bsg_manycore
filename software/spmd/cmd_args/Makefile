@@ -21,7 +21,7 @@ proc_exe_logs: X0_Y2.pelog
 OBJECT_FILES=main.o
 IN_FILES=
 ARGC=2
-ARGV=\"foo\",\"bar\"
+ARGV=foo bar
 
 ifdef SPIKE
 RISCV_GCC_EXTRA_OPTS += -D__spike__
