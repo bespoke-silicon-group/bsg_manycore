@@ -122,23 +122,23 @@ module bsg_manycore_loopback_ddr_link_tester
   logic mc_error_0, mc_error_1;
   logic [31:0] sent_0, received_0, sent_1, received_1;
   
-  bsg_manycore_link_sif_s out_mc_node_i;
-  bsg_manycore_link_sif_s out_mc_node_o;
+  bsg_manycore_link_sif_s out_mc_node_li;
+  bsg_manycore_link_sif_s out_mc_node_lo;
   
-  bsg_ready_and_link_sif_s [1:0] out_node_link_i;
-  bsg_ready_and_link_sif_s [1:0] out_node_link_o;
+  bsg_ready_and_link_sif_s [1:0] out_node_link_li;
+  bsg_ready_and_link_sif_s [1:0] out_node_link_lo;
   
-  bsg_ready_and_link_sif_s [1:0][2:0] out_router_link_i;
-  bsg_ready_and_link_sif_s [1:0][2:0] out_router_link_o;
+  bsg_ready_and_link_sif_s [1:0][2:0] out_router_link_li;
+  bsg_ready_and_link_sif_s [1:0][2:0] out_router_link_lo;
   
-  bsg_ready_and_link_sif_s [1:0] out_demux_link_i;
-  bsg_ready_and_link_sif_s [1:0] out_demux_link_o;
+  bsg_ready_and_link_sif_s [1:0] out_demux_link_li;
+  bsg_ready_and_link_sif_s [1:0] out_demux_link_lo;
   
-  logic out_ct_valid_o, out_ct_ready_i;
-  logic [width_p-1:0] out_ct_data_o;
+  logic out_ct_valid_lo, out_ct_ready_li;
+  logic [width_p-1:0] out_ct_data_lo;
   
-  logic out_ct_valid_i, out_ct_ready_o;
-  logic [width_p-1:0] out_ct_data_i;
+  logic out_ct_valid_li, out_ct_ready_lo;
+  logic [width_p-1:0] out_ct_data_li;
   
   logic [num_channels_p-1:0] edge_clk_0, edge_valid_0, edge_token_0;
   logic [num_channels_p-1:0][channel_width_p-1:0] edge_data_0;
@@ -146,23 +146,23 @@ module bsg_manycore_loopback_ddr_link_tester
   logic [num_channels_p-1:0] edge_clk_1, edge_valid_1, edge_token_1;
   logic [num_channels_p-1:0][channel_width_p-1:0] edge_data_1;
   
-  logic in_ct_valid_i, in_ct_ready_o;
-  logic [width_p-1:0] in_ct_data_i;
+  logic in_ct_valid_li, in_ct_ready_lo;
+  logic [width_p-1:0] in_ct_data_li;
   
-  logic in_ct_valid_o, in_ct_ready_i;
-  logic [width_p-1:0] in_ct_data_o;
+  logic in_ct_valid_lo, in_ct_ready_li;
+  logic [width_p-1:0] in_ct_data_lo;
   
-  bsg_ready_and_link_sif_s [1:0] in_demux_link_i;
-  bsg_ready_and_link_sif_s [1:0] in_demux_link_o;
+  bsg_ready_and_link_sif_s [1:0] in_demux_link_li;
+  bsg_ready_and_link_sif_s [1:0] in_demux_link_lo;
   
-  bsg_ready_and_link_sif_s [1:0][2:0] in_router_link_i;
-  bsg_ready_and_link_sif_s [1:0][2:0] in_router_link_o;
+  bsg_ready_and_link_sif_s [1:0][2:0] in_router_link_li;
+  bsg_ready_and_link_sif_s [1:0][2:0] in_router_link_lo;
   
-  bsg_ready_and_link_sif_s [1:0] in_node_link_i;
-  bsg_ready_and_link_sif_s [1:0] in_node_link_o;
+  bsg_ready_and_link_sif_s [1:0] in_node_link_li;
+  bsg_ready_and_link_sif_s [1:0] in_node_link_lo;
   
-  bsg_manycore_link_sif_s in_mc_node_i;
-  bsg_manycore_link_sif_s in_mc_node_o;
+  bsg_manycore_link_sif_s in_mc_node_li;
+  bsg_manycore_link_sif_s in_mc_node_lo;
   
   genvar i;
   
@@ -184,8 +184,8 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.sent_o(sent_0)
   ,.received_o(received_0)
 
-  ,.links_sif_i(out_mc_node_i)
-  ,.links_sif_o(out_mc_node_o));
+  ,.links_sif_i(out_mc_node_li)
+  ,.links_sif_o(out_mc_node_lo));
 
 
   bsg_manycore_link_async_to_wormhole
@@ -206,8 +206,8 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.manycore_reset_o(mc_reset_0)
   ,.manycore_en_o(mc_en_0)
    
-  ,.links_sif_i(out_mc_node_o)
-  ,.links_sif_o(out_mc_node_i)
+  ,.links_sif_i(out_mc_node_lo)
+  ,.links_sif_o(out_mc_node_li)
    
   ,.clk_i(clk_0)
   ,.reset_i(core_reset_0)
@@ -217,8 +217,8 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.dest_x_i((x_cord_width_p)'(3))
   ,.dest_y_i((y_cord_width_p)'(0))
   
-  ,.link_i(out_node_link_i)
-  ,.link_o(out_node_link_o));
+  ,.link_i(out_node_link_li)
+  ,.link_o(out_node_link_lo));
   
   
   for (i = 0; i < ct_num_in_p; i++) 
@@ -240,15 +240,15 @@ module bsg_manycore_loopback_ddr_link_tester
     ,.my_x_i((x_cord_width_p)'(2))
     ,.my_y_i((y_cord_width_p)'(0))
     // Traffics
-    ,.link_i(out_router_link_i[i])
-    ,.link_o(out_router_link_o[i]));
+    ,.link_i(out_router_link_li[i])
+    ,.link_o(out_router_link_lo[i]));
     
     
-    assign out_node_link_i[i] = out_router_link_o[i][P];
-    assign out_router_link_i[i][P] = out_node_link_o[i];
+    assign out_node_link_li[i] = out_router_link_lo[i][P];
+    assign out_router_link_li[i][P] = out_node_link_lo[i];
     
-    assign out_demux_link_i[i] = out_router_link_o[i][E];
-    assign out_router_link_i[i][E] = out_demux_link_o[i];
+    assign out_demux_link_li[i] = out_router_link_lo[i][E];
+    assign out_router_link_li[i][E] = out_demux_link_lo[i];
     
   end
   
@@ -268,18 +268,18 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.reset_i(core_reset_0)
   
   // incoming multiplexed data
-  ,.multi_data_i(out_ct_data_i)
-  ,.multi_v_i(out_ct_valid_i)
-  ,.multi_ready_o(out_ct_ready_o)
+  ,.multi_data_i(out_ct_data_li)
+  ,.multi_v_i(out_ct_valid_li)
+  ,.multi_ready_o(out_ct_ready_lo)
 
   // outgoing multiplexed data
-  ,.multi_data_o(out_ct_data_o)
-  ,.multi_v_o(out_ct_valid_o)
-  ,.multi_yumi_i(out_ct_ready_i&out_ct_valid_o)
+  ,.multi_data_o(out_ct_data_lo)
+  ,.multi_v_o(out_ct_valid_lo)
+  ,.multi_yumi_i(out_ct_ready_li&out_ct_valid_lo)
 
   // demultiplexed data
-  ,.link_i(out_demux_link_i)
-  ,.link_o(out_demux_link_o));
+  ,.link_i(out_demux_link_li)
+  ,.link_o(out_demux_link_lo));
   
   
   bsg_link_ddr_upstream
@@ -296,9 +296,9 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.core_reset_i(core_reset_0)
   ,.link_enable_i(link_enable_0)
   
-  ,.core_data_i(out_ct_data_o)
-  ,.core_valid_i(out_ct_valid_o)
-  ,.core_ready_o(out_ct_ready_i)
+  ,.core_data_i(out_ct_data_lo)
+  ,.core_valid_i(out_ct_valid_lo)
+  ,.core_ready_o(out_ct_ready_li)
 
   ,.io_clk_r_o(edge_clk_0)
   ,.io_data_r_o(edge_data_0)
@@ -318,9 +318,9 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.core_reset_i(core_reset_0)
   ,.link_enable_o()
   
-  ,.core_data_o(out_ct_data_i)
-  ,.core_valid_o(out_ct_valid_i)
-  ,.core_yumi_i(out_ct_valid_i&out_ct_ready_o)
+  ,.core_data_o(out_ct_data_li)
+  ,.core_valid_o(out_ct_valid_li)
+  ,.core_yumi_i(out_ct_valid_li&out_ct_ready_lo)
 
   ,.io_clk_i(edge_clk_1)
   ,.io_data_i(edge_data_1)
@@ -342,9 +342,9 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.core_reset_i(core_reset_1)
   ,.link_enable_i(link_enable_1)
   
-  ,.core_data_i(in_ct_data_o)
-  ,.core_valid_i(in_ct_valid_o)
-  ,.core_ready_o(in_ct_ready_i)
+  ,.core_data_i(in_ct_data_lo)
+  ,.core_valid_i(in_ct_valid_lo)
+  ,.core_ready_o(in_ct_ready_li)
 
   ,.io_clk_r_o(edge_clk_1)
   ,.io_data_r_o(edge_data_1)
@@ -364,9 +364,9 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.core_reset_i(core_reset_1)
   ,.link_enable_o()
   
-  ,.core_data_o(in_ct_data_i)
-  ,.core_valid_o(in_ct_valid_i)
-  ,.core_yumi_i(in_ct_valid_i&in_ct_ready_o)
+  ,.core_data_o(in_ct_data_li)
+  ,.core_valid_o(in_ct_valid_li)
+  ,.core_yumi_i(in_ct_valid_li&in_ct_ready_lo)
   
   ,.io_clk_i(edge_clk_0)
   ,.io_data_i(edge_data_0)
@@ -389,18 +389,18 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.reset_i(core_reset_1)
   
   // incoming multiplexed data
-  ,.multi_data_i(in_ct_data_i)
-  ,.multi_v_i(in_ct_valid_i)
-  ,.multi_ready_o(in_ct_ready_o)
+  ,.multi_data_i(in_ct_data_li)
+  ,.multi_v_i(in_ct_valid_li)
+  ,.multi_ready_o(in_ct_ready_lo)
 
   // outgoing multiplexed data
-  ,.multi_data_o(in_ct_data_o)
-  ,.multi_v_o(in_ct_valid_o)
-  ,.multi_yumi_i(in_ct_ready_i&in_ct_valid_o)
+  ,.multi_data_o(in_ct_data_lo)
+  ,.multi_v_o(in_ct_valid_lo)
+  ,.multi_yumi_i(in_ct_ready_li&in_ct_valid_lo)
 
   // demultiplexed data
-  ,.link_i(in_demux_link_i)
-  ,.link_o(in_demux_link_o));
+  ,.link_i(in_demux_link_li)
+  ,.link_o(in_demux_link_lo));
   
   
   for (i = 0; i < ct_num_in_p; i++) 
@@ -422,14 +422,14 @@ module bsg_manycore_loopback_ddr_link_tester
     ,.my_x_i((x_cord_width_p)'(3))
     ,.my_y_i((y_cord_width_p)'(0))
     // Traffics
-    ,.link_i(in_router_link_i[i])
-    ,.link_o(in_router_link_o[i]));
+    ,.link_i(in_router_link_li[i])
+    ,.link_o(in_router_link_lo[i]));
     
-    assign in_node_link_i[i] = in_router_link_o[i][P];
-    assign in_router_link_i[i][P] = in_node_link_o[i];
+    assign in_node_link_li[i] = in_router_link_lo[i][P];
+    assign in_router_link_li[i][P] = in_node_link_lo[i];
     
-    assign in_demux_link_i[i] = in_router_link_o[i][W];
-    assign in_router_link_i[i][W] = in_demux_link_o[i];
+    assign in_demux_link_li[i] = in_router_link_lo[i][W];
+    assign in_router_link_li[i][W] = in_demux_link_lo[i];
     
   end
 
@@ -452,8 +452,8 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.manycore_reset_o(mc_reset_1)
   ,.manycore_en_o(mc_en_1)
    
-  ,.links_sif_i(in_mc_node_o)
-  ,.links_sif_o(in_mc_node_i)
+  ,.links_sif_i(in_mc_node_lo)
+  ,.links_sif_o(in_mc_node_li)
    
   ,.clk_i(clk_1)
   ,.reset_i(core_reset_1)
@@ -463,8 +463,8 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.dest_x_i((x_cord_width_p)'(2))
   ,.dest_y_i((y_cord_width_p)'(0))
   
-  ,.link_i(in_node_link_i)
-  ,.link_o(in_node_link_o));
+  ,.link_i(in_node_link_li)
+  ,.link_o(in_node_link_lo));
   
   
   bsg_manycore_loopback_test_node
@@ -484,8 +484,8 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.sent_o(sent_1)
   ,.received_o(received_1)
 
-  ,.links_sif_i(in_mc_node_i)
-  ,.links_sif_o(in_mc_node_o));
+  ,.links_sif_i(in_mc_node_li)
+  ,.links_sif_o(in_mc_node_lo));
   
 
 

@@ -91,11 +91,11 @@ module bsg_manycore_link_async_to_wormhole
   
   // Interfacing bsg_noc links 
 
-  logic [num_nets_lp-1:0] valid_o, ready_i;
-  logic [num_nets_lp-1:0][wormhole_width_p-1:0] data_o;
+  logic [num_nets_lp-1:0] valid_lo, ready_li;
+  logic [num_nets_lp-1:0][wormhole_width_p-1:0] data_lo;
   
-  logic [num_nets_lp-1:0] valid_i, ready_o;
-  logic [num_nets_lp-1:0][wormhole_width_p-1:0] data_i;
+  logic [num_nets_lp-1:0] valid_li, ready_lo;
+  logic [num_nets_lp-1:0][wormhole_width_p-1:0] data_li;
   
   `declare_bsg_ready_and_link_sif_s(wormhole_width_p,bsg_ready_and_link_sif_s);
   bsg_ready_and_link_sif_s [num_nets_lp-1:0] link_i_cast, link_o_cast;
@@ -106,13 +106,13 @@ module bsg_manycore_link_async_to_wormhole
     assign link_i_cast[i] = link_i[i];
     assign link_o[i] = link_o_cast[i];
 
-    assign valid_i[i] = link_i_cast[i].v;
-    assign data_i[i] = link_i_cast[i].data;
-    assign link_o_cast[i].ready_and_rev = ready_o[i];
-
-    assign link_o_cast[i].v = valid_o[i];
-    assign link_o_cast[i].data = data_o[i];
-    assign ready_i[i] = link_i_cast[i].ready_and_rev;
+    assign valid_li[i] = link_i_cast[i].v;
+    assign data_li[i] = link_i_cast[i].data;
+    assign link_o_cast[i].ready_and_rev = ready_lo[i];
+    
+    assign link_o_cast[i].v = valid_lo[i];
+    assign link_o_cast[i].data = data_lo[i];
+    assign ready_li[i] = link_i_cast[i].ready_and_rev;
   
   end
   
@@ -136,8 +136,8 @@ module bsg_manycore_link_async_to_wormhole
   logic [num_nets_lp-1:0] wh_full_lo;
   logic [num_nets_lp-1:0] wh_enq_li;
   
-  assign ready_o = ~wh_full_lo;
-  assign wh_enq_li = valid_i & ready_o;
+  assign ready_lo = ~wh_full_lo;
+  assign wh_enq_li = valid_li & ready_lo;
   
   
   for (i = 0; i < num_nets_lp; i++) 
@@ -150,7 +150,7 @@ module bsg_manycore_link_async_to_wormhole
     (.w_clk_i(clk_i)
     ,.w_reset_i(reset_i)
     ,.w_enq_i(wh_enq_li[i])
-    ,.w_data_i(data_i[i])
+    ,.w_data_i(data_li[i])
     ,.w_full_o(wh_full_lo[i])
 
     ,.r_clk_i(manycore_clk_i)
@@ -171,9 +171,9 @@ module bsg_manycore_link_async_to_wormhole
 
     ,.r_clk_i(clk_i)
     ,.r_reset_i(reset_i)
-    ,.r_deq_i(valid_o[i] & ready_i[i])
-    ,.r_data_o(data_o[i])
-    ,.r_valid_o(valid_o[i]));
+    ,.r_deq_i(valid_lo[i] & ready_li[i])
+    ,.r_data_o(data_lo[i])
+    ,.r_valid_o(valid_lo[i]));
   
   end
 
