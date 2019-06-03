@@ -911,19 +911,23 @@ module vanilla_core
   logic exe_rs1_in_wb;
   logic exe_rs2_in_wb;
 
-  assign exe_rs1_in_mem = mem_n.op_writes_rf
+  assign exe_rs1_in_mem = id_r.decode.op_reads_rf1
+    & mem_n.op_writes_rf
     & (mem_n.rd_addr == id_r.instruction.rs1)
     & (mem_n.rd_addr != '0);
 
-  assign exe_rs2_in_mem = mem_n.op_writes_rf
+  assign exe_rs2_in_mem = id_r.decode.op_reads_rf2
+    & mem_n.op_writes_rf
     & (mem_n.rd_addr == id_r.instruction.rs2)
     & (mem_n.rd_addr != '0);
 
-  assign exe_rs1_in_wb = wb_n.op_writes_rf
+  assign exe_rs1_in_wb = id_r.decode.op_reads_rf1
+    & wb_n.op_writes_rf
     & (wb_n.rd_addr == id_r.instruction.rs1)
     & (wb_n.rd_addr != '0);
 
-  assign exe_rs2_in_wb = wb_n.op_writes_rf
+  assign exe_rs2_in_wb = id_r.decode.op_reads_rf2
+    & wb_n.op_writes_rf
     & (wb_n.rd_addr == id_r.instruction.rs2)
     & (wb_n.rd_addr != '0);
 
@@ -1228,7 +1232,7 @@ module vanilla_core
       stall_local_flw = 1'b0;
       fpu_float_yumi_li = 1'b0;
       fp_wb_n = '{
-        wb_data: dmem_data_lo,
+        wb_data: local_load_data_r,
         rd: mem_r.rd_addr,
         valid: 1'b1
       };
