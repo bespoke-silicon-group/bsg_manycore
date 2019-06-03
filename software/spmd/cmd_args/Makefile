@@ -8,7 +8,15 @@ bsg_tiles_Y = 1
 # 01  vscale  core
 #TYPE_VEC="64'h01_01_01_01"
 
+ifdef SPIKE
+all: main.spike
+
+RISCV_GCC_EXTRA_OPTS += -D__spike__
+CRT_OBJ = ../specint2000/crt.o
+LINK_SCRIPT = ../specint2000/link.ld
+else
 all: main.run
+endif
 
 # Rule to write processor execution logs. To be used after the
 # verilog simulation.
@@ -22,12 +30,6 @@ OBJECT_FILES=main.o
 IN_FILES=
 ARGC=2
 ARGV=foo bar
-
-ifdef SPIKE
-RISCV_GCC_EXTRA_OPTS += -D__spike__
-CRT_OBJ = ../specint2000/crt.o
-LINK_SCRIPT = ../specint2000/link.ld
-endif
 
 ifdef DEBUG
 	RISCV_EXTRA_OPTS += -g
@@ -44,7 +46,6 @@ BSG_FPU_OP=0
 
 main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) $(CRT_OBJ)
 	$(RISCV_LINK) -L. -l:$(BSG_MANYCORE_LIB) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
-
 
 main.o: Makefile
 
