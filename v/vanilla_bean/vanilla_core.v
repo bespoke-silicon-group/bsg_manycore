@@ -114,7 +114,7 @@ module vanilla_core
   // synopsys translate_off
   logic [data_width_p-1:0] pc_00;
   assign pc_00 = {1'b1,{(data_width_p-pc_width_lp-3){1'b0}}, pc_r, 2'b00};
-  // synopsys translate_om
+  // synopsys translate_on
   
 
   // instruction decode
