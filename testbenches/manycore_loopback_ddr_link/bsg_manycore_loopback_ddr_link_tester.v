@@ -19,7 +19,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,parameter mc_y_cord_width_p = 5
   
   // Loopback test node configuration
-  ,parameter mc_node_num_channel_p = 7
+  ,parameter mc_node_num_channels_p = 7
   
   // How many wormhole packet flits for request and response
   // If ratio=n, then total packet length is n*width_p
@@ -45,7 +45,7 @@ module bsg_manycore_loopback_ddr_link_tester
   // DDR link configuration
   ,parameter channel_width_p = 8
   // How many link channels do we have
-  ,parameter num_channel_p = 2
+  ,parameter num_channels_p = 2
   // DDR Link buffer size
   // 6 should be good for 500MHz, increase if channel stalls waiting for token
   ,parameter lg_fifo_depth_p = 6
@@ -72,7 +72,7 @@ module bsg_manycore_loopback_ddr_link_tester
   logic clk_0, clk_1, reset_0, reset_1;
   logic clk_1x_0, clk_1x_1, clk_2x_0, clk_2x_1;
   logic link_enable_0, link_enable_1;
-  logic chip_reset_0, chip_reset_1;
+  logic core_reset_0, core_reset_1;
   logic node_en_0, node_en_1, mc_en_0, mc_en_1;
   logic mc_error_0, mc_error_1;
   logic [31:0] sent_0, received_0, sent_1, received_1;
@@ -95,11 +95,11 @@ module bsg_manycore_loopback_ddr_link_tester
   logic out_ct_valid_i, out_ct_ready_o;
   logic [width_p-1:0] out_ct_data_i;
   
-  logic [num_channel_p-1:0] edge_clk_0, edge_valid_0, edge_token_0;
-  logic [num_channel_p-1:0][channel_width_p-1:0] edge_data_0;
+  logic [num_channels_p-1:0] edge_clk_0, edge_valid_0, edge_token_0;
+  logic [num_channels_p-1:0][channel_width_p-1:0] edge_data_0;
   
-  logic [num_channel_p-1:0] edge_clk_1, edge_valid_1, edge_token_1;
-  logic [num_channel_p-1:0][channel_width_p-1:0] edge_data_1;
+  logic [num_channels_p-1:0] edge_clk_1, edge_valid_1, edge_token_1;
+  logic [num_channels_p-1:0][channel_width_p-1:0] edge_data_1;
   
   logic in_ct_valid_i, in_ct_ready_o;
   logic [width_p-1:0] in_ct_data_i;
@@ -123,7 +123,7 @@ module bsg_manycore_loopback_ddr_link_tester
   
 
   bsg_manycore_loopback_test_node
- #(.num_channel_p(mc_node_num_channel_p)
+ #(.num_channels_p(mc_node_num_channels_p)
   ,.channel_width_p(channel_width_p)
   ,.addr_width_p(mc_addr_width_p)
   ,.data_width_p(mc_data_width_p)
@@ -165,7 +165,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.links_sif_o(out_mc_node_i)
    
   ,.clk_i(clk_0)
-  ,.reset_i(chip_reset_0)
+  ,.reset_i(core_reset_0)
   ,.manycore_reset_i(node_reset_0)
   ,.manycore_en_i(node_en_0)
 
@@ -189,7 +189,7 @@ module bsg_manycore_loopback_ddr_link_tester
     ,.stub_out_p(3'b010))
     router_0
     (.clk_i(clk_0)
-    ,.reset_i(chip_reset_0)
+    ,.reset_i(core_reset_0)
     // Configuration
     ,.my_x_i((x_cord_width_p)'(2))
     ,.my_y_i((y_cord_width_p)'(0))
@@ -219,7 +219,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.lg_credit_decimation_p(ct_lg_credit_decimation_p))
   out_ct
   (.clk_i(clk_0)
-  ,.reset_i(chip_reset_0)
+  ,.reset_i(core_reset_0)
   
   // incoming multiplexed data
   ,.multi_data_i(out_ct_data_i)
@@ -236,33 +236,45 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.link_o(out_demux_link_o));
   
   
-  bsg_link_ddr
+  bsg_link_ddr_upstream
  #(.width_p(width_p)
   ,.channel_width_p(channel_width_p)
-  ,.num_channel_p(num_channel_p)
+  ,.num_channels_p(num_channels_p)
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p))
-  link_0
-  (.clk_i(clk_0)
-  ,.clk_1x_i(clk_1x_0)
-  ,.clk_2x_i(clk_2x_0)
+  link_upstream_0
+  (.core_clk_i(clk_0)
+  ,.io_clk_1x_i(clk_1x_0)
+  ,.io_clk_2x_i(clk_2x_0)
   ,.link_reset_i(reset_0)
-  ,.chip_reset_i(chip_reset_0)
+  ,.core_reset_i(core_reset_0)
   ,.link_enable_i(link_enable_0)
-  ,.link_enable_o()
   
-  ,.data_i(out_ct_data_o)
-  ,.valid_i(out_ct_valid_o)
-  ,.ready_o(out_ct_ready_i)
-  
-  ,.data_o(out_ct_data_i)
-  ,.valid_o(out_ct_valid_i)
-  ,.yumi_i(out_ct_valid_i&out_ct_ready_o)
+  ,.core_data_i(out_ct_data_o)
+  ,.core_valid_i(out_ct_valid_o)
+  ,.core_ready_o(out_ct_ready_i)
 
   ,.io_clk_r_o(edge_clk_0)
   ,.io_data_r_o(edge_data_0)
   ,.io_valid_r_o(edge_valid_0)
-  ,.io_token_i(edge_token_0)
+  ,.io_token_i(edge_token_0));
+  
+  
+  bsg_link_ddr_downstream
+ #(.width_p(width_p)
+  ,.channel_width_p(channel_width_p)
+  ,.num_channels_p(num_channels_p)
+  ,.lg_fifo_depth_p(lg_fifo_depth_p)
+  ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p))
+  link_downstream_0
+  (.core_clk_i(clk_0)
+  ,.link_reset_i(reset_0)
+  ,.core_reset_i(core_reset_0)
+  ,.link_enable_o()
+  
+  ,.core_data_o(out_ct_data_i)
+  ,.core_valid_o(out_ct_valid_i)
+  ,.core_yumi_i(out_ct_valid_i&out_ct_ready_o)
 
   ,.io_clk_i(edge_clk_1)
   ,.io_data_i(edge_data_1)
@@ -270,33 +282,45 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.io_token_r_o(edge_token_1));
   
   
-  bsg_link_ddr
+  bsg_link_ddr_upstream
  #(.width_p(width_p)
   ,.channel_width_p(channel_width_p)
-  ,.num_channel_p(num_channel_p)
+  ,.num_channels_p(num_channels_p)
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p))
-  link_1
-  (.clk_i(clk_1)
-  ,.clk_1x_i(clk_1x_1)
-  ,.clk_2x_i(clk_2x_1)
+  link_upstream_1
+  (.core_clk_i(clk_1)
+  ,.io_clk_1x_i(clk_1x_1)
+  ,.io_clk_2x_i(clk_2x_1)
   ,.link_reset_i(reset_1)
-  ,.chip_reset_i(chip_reset_1)
+  ,.core_reset_i(core_reset_1)
   ,.link_enable_i(link_enable_1)
-  ,.link_enable_o()
   
-  ,.data_i(in_ct_data_o)
-  ,.valid_i(in_ct_valid_o)
-  ,.ready_o(in_ct_ready_i)
-  
-  ,.data_o(in_ct_data_i)
-  ,.valid_o(in_ct_valid_i)
-  ,.yumi_i(in_ct_valid_i&in_ct_ready_o)
+  ,.core_data_i(in_ct_data_o)
+  ,.core_valid_i(in_ct_valid_o)
+  ,.core_ready_o(in_ct_ready_i)
 
   ,.io_clk_r_o(edge_clk_1)
   ,.io_data_r_o(edge_data_1)
   ,.io_valid_r_o(edge_valid_1)
-  ,.io_token_i(edge_token_1)
+  ,.io_token_i(edge_token_1));
+  
+  
+  bsg_link_ddr_downstream
+ #(.width_p(width_p)
+  ,.channel_width_p(channel_width_p)
+  ,.num_channels_p(num_channels_p)
+  ,.lg_fifo_depth_p(lg_fifo_depth_p)
+  ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p))
+  link_downstream_1
+  (.core_clk_i(clk_1)
+  ,.link_reset_i(reset_1)
+  ,.core_reset_i(core_reset_1)
+  ,.link_enable_o()
+  
+  ,.core_data_o(in_ct_data_i)
+  ,.core_valid_o(in_ct_valid_i)
+  ,.core_yumi_i(in_ct_valid_i&in_ct_ready_o)
   
   ,.io_clk_i(edge_clk_0)
   ,.io_data_i(edge_data_0)
@@ -316,7 +340,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.lg_credit_decimation_p(ct_lg_credit_decimation_p))
   in_ct
   (.clk_i(clk_1)
-  ,.reset_i(chip_reset_1)
+  ,.reset_i(core_reset_1)
   
   // incoming multiplexed data
   ,.multi_data_i(in_ct_data_i)
@@ -346,7 +370,7 @@ module bsg_manycore_loopback_ddr_link_tester
     ,.stub_out_p(3'b100))
     router_1
     (.clk_i(clk_1)
-    ,.reset_i(chip_reset_1)
+    ,.reset_i(core_reset_1)
     // Configuration
     ,.my_x_i((x_cord_width_p)'(3))
     ,.my_y_i((y_cord_width_p)'(0))
@@ -385,7 +409,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.links_sif_o(in_mc_node_i)
    
   ,.clk_i(clk_1)
-  ,.reset_i(chip_reset_1)
+  ,.reset_i(core_reset_1)
   ,.manycore_reset_i(node_reset_1)
   ,.manycore_en_i(node_en_1)
 
@@ -397,7 +421,7 @@ module bsg_manycore_loopback_ddr_link_tester
   
   
   bsg_manycore_loopback_test_node
- #(.num_channel_p(mc_node_num_channel_p)
+ #(.num_channels_p(mc_node_num_channels_p)
   ,.channel_width_p(channel_width_p)
   ,.addr_width_p(mc_addr_width_p)
   ,.data_width_p(mc_data_width_p)
@@ -452,8 +476,8 @@ module bsg_manycore_loopback_ddr_link_tester
     link_enable_1 = 0;
     node_en_0 = 0;
     node_en_1 = 0;
-    chip_reset_0 = 1;
-    chip_reset_1 = 1;
+    core_reset_0 = 1;
+    core_reset_1 = 1;
     node_reset_0 = 1;
     node_reset_1 = 1;
     
@@ -478,9 +502,9 @@ module bsg_manycore_loopback_ddr_link_tester
     
     // chip reset
     @(posedge clk_0); #1;
-    chip_reset_0 = 0;
+    core_reset_0 = 0;
     @(posedge clk_1); #1;
-    chip_reset_1 = 0;
+    core_reset_1 = 0;
     
     #1000
     
