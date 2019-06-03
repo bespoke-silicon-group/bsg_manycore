@@ -28,8 +28,13 @@
 TOOLCHAIN_REPO=riscv-gnu-toolchain
 TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
 DEPENDS_DIR=$(CURDIR)/depends
+
 BSG_NEWLIB_URL=https://bitbucket.org/taylor-bsg/bsg_hammerblade_newlib.git
 BSG_NEWLIB_BRANCH=bsg_manycore_newlib
+
+SPIKE_REPO=riscv-isa-sim
+SPIKE_URL=https://github.com/riscv/riscv-isa-sim.git
+SPIKE_PATCH=spike.patch
 
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
 
@@ -70,7 +75,15 @@ replace-newlib:
 	cd $(TOOLCHAIN_REPO) && git submodule sync
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive --remote riscv-newlib
 
-checkout-all: checkout-repos replace-newlib
+checkout-spike:
+	@echo "====================================="
+	@echo "Cloning riscv-isa-sim repo..."
+	@echo "====================================="
+	@rm -rf $(SPIKE_REPO);
+	git clone --recursive $(SPIKE_URL);
+	cd $(SPIKE_REPO) && git apply ../$(SPIKE_PATCH)
+
+checkout-all: checkout-repos replace-newlib checkout-spike
 
 build-deps:
 	@echo "====================================="
@@ -97,7 +110,14 @@ build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	cd riscv-gnu-toolchain && make -j 16 newlib && make install
 
-build-all: build-deps build-riscv-gnu-tools
+build-spike:
+	@echo "====================================="
+	@echo "Building $(SPIKE_REPO)..."
+	@echo "====================================="
+	cd $(SPIKE_REPO) && ./configure --prefix=$(RISCV)
+	cd $(SPIKE_REPO) && make && make install
+
+build-all: build-deps build-riscv-gnu-tools build-spike
 
 rebuild-newlib:
 	make -C $(TOOLCHAIN_REPO)/build-newlib

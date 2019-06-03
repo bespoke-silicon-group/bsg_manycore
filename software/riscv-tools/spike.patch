@@ -1,0 +1,26 @@
+From 142da438504b145d5d54437e1c6877512424ad9a Mon Sep 17 00:00:00 2001
+From: Bandhav Veluri <bandhav.veluri00@gmail.com>
+Date: Mon, 3 Jun 2019 14:44:41 -0700
+Subject: [PATCH] Hack to print a char by tohost write
+
+---
+ fesvr/syscall.cc | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/fesvr/syscall.cc b/fesvr/syscall.cc
+index 6e8baf6..a2423eb 100644
+--- a/fesvr/syscall.cc
++++ b/fesvr/syscall.cc
+@@ -110,6 +110,9 @@ void syscall_t::handle_syscall(command_t cmd)
+       std::cerr << "*** FAILED *** (tohost = " << htif->exit_code() << ")" << std::endl;
+     return;
+   }
++  else if (cmd.payload() & 0x2){
++      std::cerr << char(cmd.payload() >> 8);
++  }
+   else // proxied system call
+     dispatch(cmd.payload());
+ 
+-- 
+1.8.3.1
+
