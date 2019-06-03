@@ -48,6 +48,7 @@ module bsg_manycore_loopback_ddr_link_tester
   
   // Wormhole packet configuration
   // Width of each wormhole flit
+  // MUST be multiple of (2*channel_width_p*num_channels_p) 
   ,parameter width_p = 32
   
   // How many bits are needed for x-y coordinate
@@ -73,7 +74,6 @@ module bsg_manycore_loopback_ddr_link_tester
   ,parameter channel_width_p = 8
   
   // How many physical IO link channels do we have for each bsg_link
-  // Should be power of 2
   ,parameter num_channels_p = 2
   
   // DDR Link buffer size

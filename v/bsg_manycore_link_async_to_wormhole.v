@@ -109,16 +109,16 @@ module bsg_manycore_link_async_to_wormhole
   for (i = 0; i < num_nets_lp; i++) 
   begin: noc_cast
   
-    assign link_i_cast[i] = link_i[i];
-    assign link_o[i] = link_o_cast[i];
+    assign link_i_cast[i]               = link_i[i];
+    assign link_o[i]                    = link_o_cast[i];
 
-    assign valid_li[i] = link_i_cast[i].v;
-    assign data_li[i] = link_i_cast[i].data;
+    assign valid_li[i]                  = link_i_cast[i].v;
+    assign data_li[i]                   = link_i_cast[i].data;
     assign link_o_cast[i].ready_and_rev = ready_lo[i];
     
-    assign link_o_cast[i].v = valid_lo[i];
-    assign link_o_cast[i].data = data_lo[i];
-    assign ready_li[i] = link_i_cast[i].ready_and_rev;
+    assign link_o_cast[i].v             = valid_lo[i];
+    assign link_o_cast[i].data          = data_lo[i];
+    assign ready_li[i]                  = link_i_cast[i].ready_and_rev;
   
   end
   
