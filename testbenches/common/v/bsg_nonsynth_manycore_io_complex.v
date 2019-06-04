@@ -16,7 +16,7 @@ module bsg_nonsynth_manycore_io_complex
     , parameter extra_io_rows_p = 1
 
     // the x/y cord of the 
-    , parameter IO_x_cord_p = num_tiles_x_p -1 
+    , parameter IO_x_cord_p = 0 
     , parameter IO_y_cord_p = 0
 
     // parameters for victim cache    
