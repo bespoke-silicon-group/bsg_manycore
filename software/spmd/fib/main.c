@@ -50,8 +50,11 @@ int main()
       bsg_printf("fib[%d] = %d\r\n", i, my_fib[i]);
       sum += my_fib[i];
     }
-
-    bsg_finish();
+  
+    if (sum == ANSWER)
+      bsg_finish();
+    else
+      bsg_fail();
   }
 
   bsg_wait_while(1);

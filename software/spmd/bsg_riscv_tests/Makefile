@@ -1,5 +1,9 @@
-bsg_tiles_X= 4
-bsg_tiles_Y= 4
+bsg_tiles_X= 1
+bsg_tiles_Y= 1
+bsg_global_X = 4
+bsg_global_Y = 5
+bsg_tiles_org_X = 0
+bsg_tiles_org_Y = 1
 
 include ../Makefile.include
 
