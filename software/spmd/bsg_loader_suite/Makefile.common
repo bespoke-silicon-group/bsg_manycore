@@ -1,0 +1,40 @@
+PATH_TO_SPMD_DIR=../..
+
+bsg_tiles_X = 3
+bsg_tiles_Y = 3
+
+ROM_NAME = bsg_manycore_io_complex_rom
+
+RISCV_GCC_EXTRA_OPTS += -O2 #-DBSG_TOKEN_QUEUE_SHORT
+# -funroll-loops
+
+include $(PATH_TO_SPMD_DIR)/Makefile.include
+
+all: main.run
+
+main.riscv:  $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(PATH_TO_SPMD_DIR)/common/crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) -o $@ $(RISCV_LINK_OPTS) 
+
+main.o: Makefile
+
+main.hex: main.riscv
+	$(RISCV_ELF2HEX) $(BSG_MANYCORE_BANKS) $(BSG_MANYCORE_BANKSIZE) $< > $@
+
+main.bin: main.hex
+	python $(HEX2BIN) $< 32 > $@
+
+$(ROM_NAME).v: main.bin
+	python $(BSG_ROM_GEN) main.bin $(ROM_NAME) > $(ROM_NAME).v
+
+rom: $(ROM_NAME).v
+
+
+verify: main.c
+	gcc -DVERIFY main.c -std=c99 -o verify
+	./verify > verify.vals
+
+# typing make foo.check will strip out the sum codes
+%.check: 
+	grep 'data ' trace | awk '{print $$9}' | cut -b4-9 > $@
+
+include $(PATH_TO_SPMD_DIR)/../mk/Makefile.tail_rules
