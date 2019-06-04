@@ -1,11 +1,12 @@
 # See LICENSE for license details.
 # MBT modified for bsg_manycore
 
-  .globl _start
+.text
+.globl _start
 _start:
   li  x1, 0
- // li  x2, 0
-  li  x3, 0
+  # li  x2, 0; stack pointer
+  # li  x3, 0; global pointer
   li  x4, 0
   li  x5, 0
   li  x6, 0
@@ -35,24 +36,16 @@ _start:
   li  x30,0
   li  x31,0
 
-
   # initialize global pointer
   la gp, _gp
 
   la  tp, _bsg_data_end_addr + 63
   and tp, tp, -64
 
-  # get core id
-  #csrr a0, mhartid
-  # for now, assume only 1 core
-  #li a1, 1
-  #1:bgeu a0, a1, 1b
-
   # mbt: put stack at top of local memory
   # mbt fix for 4KB IMEM / 4KB DMEM
   la sp, _sp
 
-#ifdef __bsg_newlib
   call bsg_newlib_init
   call set_cmd_args
   lw a0, 0(sp)     # argc
@@ -60,21 +53,7 @@ _start:
   li a2, 0         # envp = NULL
   call main
   tail exit
-#else
-  j main
-#endif
 
-2:
-  j 2b
-
-#ifdef __spike__
-.align 6; 
-.global tohost
-tohost:
-  .dword 0
-
-.align 6; 
-.global fromhost
-fromhost:
-  .dword 0
-#endif
+# Should never reach this
+1:
+  j 1b

@@ -25,8 +25,14 @@ ifdef SPIKE
 all: $(PROG_NAME).spike
 
 RISCV_GCC_EXTRA_OPTS += -D__spike__
+
 else
+
 all: $(PROG_NAME).run
+
+CRT_OBJ = crt_newlib.o
+LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_newlib.ld
+
 endif
 
 # Rule to write processor execution logs. To be used after the

@@ -9,14 +9,20 @@ bsg_tiles_Y = 1
 #TYPE_VEC="64'h01_01_01_01"
 
 ifdef SPIKE
+
 all: main.spike
 
 RISCV_GCC_EXTRA_OPTS += -D__spike__
-CRT_OBJ = ../specint2000/crt.o
-LINK_SCRIPT = ../specint2000/link.ld
+LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/spike.ld
+
 else
+
 all: main.run
+
+LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
+
 endif
+
 
 # Rule to write processor execution logs. To be used after the
 # verilog simulation.
@@ -26,7 +32,7 @@ endif
 # for a quick debug of processor or program running on it.
 proc_exe_logs: X0_Y2.pelog
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o
+OBJECT_FILES=main.o
 IN_FILES=hello.txt
 
 ifdef DEBUG
@@ -43,7 +49,7 @@ include ../Makefile.include
 BSG_FPU_OP=0
 
 main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. -l:$(BSG_MANYCORE_LIB) -o $@ $(RISCV_LINK_OPTS)
+	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. -l:$(BSG_MANYCORE_LIB) -o $@ $(RISCV_LINK_OPTS) -l:$(BSG_MANYCORE_LIB)
 
 
 main.o: Makefile
