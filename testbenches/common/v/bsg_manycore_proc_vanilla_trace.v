@@ -192,7 +192,7 @@ module bsg_manycore_proc_vanilla_trace
         dmem_load = "";
         dmem_store = "";
   
-      if ((my_x_i == 0) & (my_y_i == 1)) begin
+      if ((my_x_i == 1) & (my_y_i == 1)) begin
         fd = $fopen("vanilla.log", "a");
 
         // STAMP
