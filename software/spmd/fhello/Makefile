@@ -9,13 +9,20 @@ bsg_tiles_Y = 1
 #TYPE_VEC="64'h01_01_01_01"
 
 ifdef SPIKE
+
 all: main.spike
 
 RISCV_GCC_EXTRA_OPTS += -D__spike__
 CRT_OBJ = ../specint2000/crt.o
 LINK_SCRIPT = ../specint2000/link.ld
+
 else
+
 all: main.run
+
+CRT_OBJ = crt_newlib.o
+LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_newlib.ld
+
 endif
 
 # Rule to write processor execution logs. To be used after the

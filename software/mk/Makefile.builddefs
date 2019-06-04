@@ -55,6 +55,7 @@ CRT_OBJ ?= crt.o
 ifeq ($(BSG_NEWLIB), 1)
 SPMD_COMMON_OBJECTS += lfs.o
 SPMD_COMMON_OBJECTS += args.o
+SPMD_COMMON_OBJECTS += $(CRT_OBJ)
 
 LFS_BLOCK_SIZE ?= 128
 LFS_BLOCK_COUNT ?= 64
@@ -74,14 +75,13 @@ endif
 BSG_MANYCORE_LIB = bsg_manycore_lib.a
 
 #RISCV_LINK_EXTRA_OPTS ?=
-RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc $(RISCV_LINK_EXTRA_OPTS) -l:$(CRT_OBJ) \
-						        -L. -l:$(BSG_MANYCORE_LIB)  -L $(BSG_MANYCORE_DIR)/software/spmd/common\
-                    -l:$(BSG_MANYCORE_LIB)
+RISCV_LINK_OPTS ?= 
 ifneq ($(BSG_NEWLIB), 1)
   RISCV_LINK_OPTS += -nostdlib
 endif
+RISCV_LINK_OPTS += -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc $(RISCV_LINK_EXTRA_OPTS) \
+						         -L $(BSG_MANYCORE_DIR)/software/spmd/common
 
-SPMD_COMMON_OBJECTS += $(BSG_MANYCORE_LIB)
 
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
