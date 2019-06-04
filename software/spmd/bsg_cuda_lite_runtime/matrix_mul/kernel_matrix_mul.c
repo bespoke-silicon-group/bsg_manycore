@@ -19,9 +19,6 @@ int  __attribute__ ((noinline)) kernel_matrix_mul(int *A, int *B, int *C, int M,
 	int end_y = M < (start_y + block_size_y) ? P : (start_y + block_size_y);
 	int end_x = P < (start_x + block_size_x) ? M : (start_x + block_size_x);
 
-	bsg_remote_ptr_io_store(IO_X_INDEX, 0x1000, start_x); 
-	bsg_remote_ptr_io_store(IO_X_INDEX, 0x2000, start_y);	
-
 	for (int iter_y = start_y + __bsg_y; iter_y < end_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = start_x + __bsg_x; iter_x < end_x; iter_x += bsg_tiles_X) { 
 			int sum = 0; 
