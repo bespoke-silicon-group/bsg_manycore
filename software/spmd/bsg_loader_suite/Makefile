@@ -3,6 +3,7 @@ SUBDIRS += loopback
 SUBDIRS += loopback_cache
 SUBDIRS += loopback_fail
 SUBDIRS += loopback_big_text
+SUBDIRS += npa_to_eva
 
 SUBDIRS_CLEAN := $(foreach subdir, $(SUBDIRS), $(subdir)-clean)
 SUBDIRS_ALL   := $(foreach subdir, $(SUBDIRS), $(subdir)-all)
