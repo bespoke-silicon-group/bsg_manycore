@@ -81,6 +81,8 @@ ifneq ($(BSG_NEWLIB), 1)
   RISCV_LINK_OPTS += -nostdlib
 endif
 
+SPMD_COMMON_OBJECTS += $(BSG_MANYCORE_LIB)
+
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/test.ld 

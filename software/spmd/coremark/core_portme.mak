@@ -60,7 +60,7 @@ LFLAGS_END =
 #	You may also need cvt.c if the fcvt functions are not provided as intrinsics by your compiler!
 PORT_SRCS = $(PORT_DIR)/core_portme.c $(PORT_DIR)/ee_printf.c 
 PORT_OBJS = $(PORT_DIR)/core_portme.o $(PORT_DIR)/ee_printf.o  \
-	    $(PORT_DIR)/bsg_set_tile_x_y.o  
+	    $(PORT_DIR)/bsg_set_tile_x_y.o $(BSG_MANYCORE_LIB) 
 
 vpath %.c $(PORT_DIR)  $(BSG_MANYCORE_DIR)/software/bsg_manycore/lib
 vpath %.s $(PORT_DIR)

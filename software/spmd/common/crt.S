@@ -5,8 +5,8 @@
 .globl _start
 _start:
   li  x1, 0
-  li  x2, 0
-  li  x3, 0
+  # li  x2, 0; stack pointer
+  # li  x3, 0; global pointer
   li  x4, 0
   li  x5, 0
   li  x6, 0
