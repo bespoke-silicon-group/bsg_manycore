@@ -118,8 +118,8 @@ SECTIONS
   } >DMEM_VMA AT>DMEM_LMA
 
   _bsg_data_end_addr = . - SIZEOF(.striped.data) + (SIZEOF(.striped.data) / bsg_group_size);
-  _sp = _bsg_data_end_addr;
-  _bsg_bin_end_addr = .; /* End of uninitalized data segement */
+
+  _sp = 0x1fff;
 
   ASSERT(_bsg_data_end_addr < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
   
@@ -127,7 +127,7 @@ SECTIONS
   _bsg_dram_start_addr = 0x80000000;
 
   .text : {
-     crt.o(.text)
+     *crt.o(.text)
      *(.text)
      *(.text.startup)
   } >DRAM_T_VMA AT>DRAM_T_LMA : dram_t
