@@ -18,6 +18,7 @@ SECTIONS
   _bsg_dram_start_addr = 0x80000000;
   .text 0x80000000 :  {
           *(.text)
+          *(.dram)
    }
   _bsg_dram_end_addr = .  ;
 }
