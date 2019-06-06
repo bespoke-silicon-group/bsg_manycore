@@ -25,7 +25,6 @@ test_1:
   j fail;
   1:
 
-
 /* Test 2: PC relative addressing (auipc) */
 test_2:
   // load
