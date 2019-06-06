@@ -294,9 +294,8 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
   ) link_upstream_0
-  (.core_clk_i  (clk_0)
-  ,.io_clk_1x_i (clk_1x_0)
-  ,.io_clk_2x_i (clk_2x_0)
+  (.core_clk_i        (clk_0)
+  ,.io_master_clk_i   (clk_2x_0)
   ,.core_link_reset_i (reset_0)
   ,.core_reset_i      (core_reset_0)
   ,.core_link_enable_i(link_enable_0)
@@ -341,9 +340,8 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
   ) link_upstream_1
-  (.core_clk_i (clk_1)
-  ,.io_clk_1x_i(clk_1x_1)
-  ,.io_clk_2x_i(clk_2x_1)
+  (.core_clk_i        (clk_1)
+  ,.io_master_clk_i   (clk_2x_1)
   ,.core_link_reset_i (reset_1)
   ,.core_reset_i      (core_reset_1)
   ,.core_link_enable_i(link_enable_1)
