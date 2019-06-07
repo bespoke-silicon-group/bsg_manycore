@@ -28,6 +28,9 @@ module bsg_manycore_link_async_to_wormhole
   
   ,localparam lg_fifo_depth_lp = 3
   ,localparam num_nets_lp = 2
+  // Received wormhole links: {fwd_link, rev_link}
+  ,localparam rev_packet_index_lp = 0
+  ,localparam fwd_packet_index_lp = 1
   ,localparam bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
   ,localparam bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(wormhole_width_p)
   )
@@ -228,7 +231,7 @@ module bsg_manycore_link_async_to_wormhole
   for (i = 0; i < num_nets_lp; i++) 
   begin: ps
     
-    localparam ps_width_lp = (i==0)? wh_req_width_lp : wh_resp_width_lp;
+    localparam ps_width_lp = (i==fwd_packet_index_lp)? wh_req_width_lp : wh_resp_width_lp;
     localparam ps_els_lp   = ps_width_lp / wormhole_width_p;
   
     bsg_parallel_in_serial_out 
@@ -292,39 +295,39 @@ module bsg_manycore_link_async_to_wormhole
   req_wormhole_packet  mc_req_data_cast;
   resp_wormhole_packet mc_resp_data_cast;
   
-  assign mc_ps_data_li[0] = mc_req_data_cast;
-  assign mc_ps_data_li[1] = mc_resp_data_cast;
+  assign mc_ps_data_li[fwd_packet_index_lp] = mc_req_data_cast;
+  assign mc_ps_data_li[rev_packet_index_lp] = mc_resp_data_cast;
   
   always_comb 
   begin
   
     // req going out of manycore
-    mc_ps_valid_li[0]         = fwd_li.v;
-    mc_req_data_cast.reserved = 0;
-    mc_req_data_cast.x_cord   = dest_x_i;
-    mc_req_data_cast.y_cord   = dest_y_i;
-    mc_req_data_cast.len      = wormhole_req_ratio_p-1;
-    mc_req_data_cast.data     = fwd_li.data;
-    fwd_lo.ready_and_rev      = mc_ps_ready_lo[0];
+    mc_ps_valid_li[fwd_packet_index_lp] = fwd_li.v;
+    mc_req_data_cast.reserved           = 0;
+    mc_req_data_cast.x_cord             = dest_x_i;
+    mc_req_data_cast.y_cord             = dest_y_i;
+    mc_req_data_cast.len                = wormhole_req_ratio_p-1;
+    mc_req_data_cast.data               = fwd_li.data;
+    fwd_lo.ready_and_rev                = mc_ps_ready_lo[fwd_packet_index_lp];
 
     // req coming into manycore
-    fwd_lo.v         = mc_ps_valid_lo[0];
-    fwd_lo.data      = mc_ps_data_lo[0][mc_req_width_lp-1:0];
-    mc_ps_yumi_li[0] = mc_ps_valid_lo[0] & fwd_li.ready_and_rev;
+    fwd_lo.v                            = mc_ps_valid_lo[fwd_packet_index_lp];
+    fwd_lo.data                         = mc_ps_data_lo[fwd_packet_index_lp][mc_req_width_lp-1:0];
+    mc_ps_yumi_li[fwd_packet_index_lp]  = mc_ps_valid_lo[fwd_packet_index_lp] & fwd_li.ready_and_rev;
 
     // resp going out of manycore
-    mc_ps_valid_li[1]          = rev_li.v;
-    mc_resp_data_cast.reserved = 0;
-    mc_resp_data_cast.x_cord   = dest_x_i;
-    mc_resp_data_cast.y_cord   = dest_y_i;
-    mc_resp_data_cast.len      = wormhole_resp_ratio_p-1;
-    mc_resp_data_cast.data     = rev_li.data;
-    rev_lo.ready_and_rev       = mc_ps_ready_lo[1];
+    mc_ps_valid_li[rev_packet_index_lp] = rev_li.v;
+    mc_resp_data_cast.reserved          = 0;
+    mc_resp_data_cast.x_cord            = dest_x_i;
+    mc_resp_data_cast.y_cord            = dest_y_i;
+    mc_resp_data_cast.len               = wormhole_resp_ratio_p-1;
+    mc_resp_data_cast.data              = rev_li.data;
+    rev_lo.ready_and_rev                = mc_ps_ready_lo[rev_packet_index_lp];
 
     // resp coming into manycore
-    rev_lo.v         = mc_ps_valid_lo[1];
-    rev_lo.data      = mc_ps_data_lo[1][mc_resp_width_lp-1:0];
-    mc_ps_yumi_li[1] = mc_ps_valid_lo[1] & rev_li.ready_and_rev;
+    rev_lo.v                            = mc_ps_valid_lo[rev_packet_index_lp];
+    rev_lo.data                         = mc_ps_data_lo[rev_packet_index_lp][mc_resp_width_lp-1:0];
+    mc_ps_yumi_li[rev_packet_index_lp]  = mc_ps_valid_lo[rev_packet_index_lp] & rev_li.ready_and_rev;
   
   end
   
