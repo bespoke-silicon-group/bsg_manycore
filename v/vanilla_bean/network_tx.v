@@ -130,7 +130,7 @@ module network_tx
 
     if (is_dram_addr) begin
       out_packet.y_cord = {y_cord_width_p{1'b1}};
-      out_packet.x_cord = dram_addr.x_cord;
+      out_packet.x_cord = (x_cord_width_p)'(dram_addr.x_cord);
       out_packet.addr = {1'b0, {(addr_width_p-1-dram_ch_addr_width_p){1'b0}}, dram_addr.addr};
     end
     else if (is_global_addr) begin
