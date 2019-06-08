@@ -36,20 +36,9 @@ MEMORY
   DRAM_T_LMA (rx) : ORIGIN = 0x0, LENGTH = 16M
 
   /* DRAM data LMA */
-  DRAM_D_LMA (rw): ORIGIN = 0x01000000, LENGTH = 2032M
+  DRAM_D_LMA (rw) : ORIGIN = 0x01000000, LENGTH = 2032M
 }
 
-
-/*=============================
- * Program header declarations
- *=============================*/
-
-PHDRS
-{
-  dmem   PT_LOAD ;
-  dram_t PT_LOAD ;
-  dram_d PT_LOAD ;
-}
 
 
 /*=============================
@@ -58,15 +47,21 @@ PHDRS
 
 SECTIONS
 {
-  /* _bsg_data_start_addr and _bsg_data_end_addr are DMEM LMAs required by loader */
+
+  /*----------------------------------
+   * DMEM output sections
+   *----------------------------------*/
+
+
+  /* _bsg_data_start_addr and _bsg_data_end_addr are DMEM EPAs required by loader */
   _bsg_data_start_addr = 0x1000 ;
 
   /* data segment */
-  .data : { 
+  .data.dmem : { 
     *(.data) 
-  } >DMEM_VMA AT>DMEM_LMA : dmem
+  } >DMEM_VMA AT>DMEM_LMA
 
-  .sdata : {
+  .sdata.dmem : {
     _gp = . + 0x800;
     *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata*)
     *(.sdata .sdata.* .gnu.linkonce.s.*)
@@ -74,37 +69,37 @@ SECTIONS
 
 
   /* bss segment */
-  .sbss : {
+  .sbss.dmem : {
     *(.sbss .sbss.* .gnu.linkonce.sb.*)
     *(.scommon)
   } >DMEM_VMA AT>DMEM_LMA
 
-  .bss : { 
+  .bss.dmem : { 
     *(.bss) 
   } >DMEM_VMA AT>DMEM_LMA
 
 
   /* thread-local data segment */
-  .tdata : {
+  .tdata.dmem : {
     _tls_data = .;
     *(.tdata)
     *(.tdata*)
   } >DMEM_VMA AT>DMEM_LMA
 
-  .tbss : {
+  .tbss.dmem : {
     *(.tbss)
     *(.tbss*)
   } >DMEM_VMA AT>DMEM_LMA
 
 
   /* read-only data */
-  .rodata : { 
+  .rodata.dmem : { 
     *(.rodata) 
     *(.rodata*) 
   } >DMEM_VMA AT>DMEM_LMA
 
 
-  .eh_frame : { 
+  .eh_frame.dmem : { 
     *(.eh_frame) 
     *(.eh_frame*) 
   } >DMEM_VMA AT>DMEM_LMA
@@ -112,29 +107,52 @@ SECTIONS
   
   /* striped data */
   /* RISC-V 32 has a 4 byte word size */
-  .striped.data ALIGN(bsg_group_size * 4): {
+  .striped.data.dmem ALIGN(bsg_group_size * 4): {
     _bsg_striped_data_start = . ;
     *(.striped.data)
   } >DMEM_VMA AT>DMEM_LMA
 
-  _bsg_data_end_addr = . - SIZEOF(.striped.data) + (SIZEOF(.striped.data) / bsg_group_size);
+  _bsg_data_end_addr = . - SIZEOF(.striped.data.dmem) + (SIZEOF(.striped.data.dmem) / bsg_group_size);
 
   _sp = 0x1fff;
 
-  ASSERT(_bsg_data_end_addr < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage")
-  
-  /* _bsg_dram_start_addr and _bsg_dram_end_addr are the DRAM LMAs required by loader */
-  _bsg_dram_start_addr = 0x80000000;
+  ASSERT(_bsg_data_end_addr < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage") 
 
-  .text : {
+
+
+
+  /*----------------------------------
+   * DRAM output sections
+   *----------------------------------*/
+
+
+  /* I-EVA backing storage sections should end with .i.dram */
+ 
+  _bsg_dram_t_start_addr = 0x80000000; /* _bsg_dram_i_start_addr and _bsg_dram_i_end_addr 
+                                          are the DRAM NPAs required by loader 
+                                        */
+
+  .text.dram : {
      *crt.o(.text)
      *(.text)
      *(.text.startup)
-  } >DRAM_T_VMA AT>DRAM_T_LMA : dram_t
+  } >DRAM_T_VMA AT>DRAM_T_LMA
+
+  _bsg_dram_t_end_addr = 0x80000000 + .; /* added 0x80... becuase location counter would
+                                            VMA's of text section starts with 0x0 but loader
+                                            need NPAs of text section in the dram
+                                          */
+
+  
+  /* D-EVA sections in dram should end with .d.dram */
+ 
+  _bsg_dram_d_start_addr = 0x81000000; /* _bsg_dram_d_start_addr and _bsg_dram_d_end_addr 
+                                          are the DRAM NPAs required by loader 
+                                        */
 
   .data.dram : {
     *(.dram)
-  } >DRAM_D_VMA AT>DRAM_D_LMA : dram_d
+  } >DRAM_D_VMA AT>DRAM_D_LMA
 
-  _bsg_dram_end_addr = 0x81000000 + SIZEOF(.data.dram) ;
+  _bsg_dram_d_end_addr = .;
 }
