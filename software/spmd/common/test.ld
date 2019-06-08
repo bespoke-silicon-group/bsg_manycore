@@ -22,6 +22,7 @@ SECTIONS
   /* beginning of data memory; set by imem size and bank conflict concerns */
   . = 0x1000;
   _bsg_data_start_addr = . ;
+
   /* data segment */
   .data : { *(.data) }
 
