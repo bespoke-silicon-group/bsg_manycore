@@ -10,8 +10,11 @@
 `endif
 
 `ifdef DEFAULT_CODE_SECTIONS
-	`define NUM_CODE_SECTIONS 1
-	`define CODE_SECTIONS `_bsg_dram_start_addr,`_bsg_dram_end_addr
+	`define NUM_CODE_SECTIONS 2
+
+	`define CODE_SECTIONS \
+      `_bsg_dram_t_start_addr,`_bsg_dram_t_end_addr, \
+      `_bsg_dram_d_start_addr,`_bsg_dram_d_end_addr
 `endif
 
 module bsg_manycore_spmd_loader
@@ -40,8 +43,8 @@ module bsg_manycore_spmd_loader
 
     //the dram  realted paraemters
     //VCS do not support index larger then 32'h7fff_ffff
-    ,parameter unsigned dram_start_addr_lp = `_bsg_dram_start_addr
-    ,parameter unsigned dram_end_addr_lp   = `_bsg_dram_end_addr  
+    ,parameter unsigned dram_start_addr_lp = `_bsg_dram_t_start_addr
+    ,parameter unsigned dram_end_addr_lp   = `_bsg_dram_d_end_addr  
     ,parameter dram_init_file_name = `_dram_init_file_name
 
     // Only the address space derived from the follwoing prameters is
