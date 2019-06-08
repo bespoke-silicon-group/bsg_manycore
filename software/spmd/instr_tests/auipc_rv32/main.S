@@ -45,6 +45,9 @@ fail:
   bsg_asm_fail_reg(IO_X_INDEX, ra); // fail displaying test number
 
 
-.section .dram
+// For objcopy to copy this section we have to make this
+// an allocatable section by flags below
+.section .dram, "aw"
+
 dram_var:
   .word TEST_DATA0
