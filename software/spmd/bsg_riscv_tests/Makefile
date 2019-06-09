@@ -1,3 +1,5 @@
+.DEFAULT_GOAL := selected
+
 bsg_tiles_X= 1
 bsg_tiles_Y= 1
 bsg_global_X = 4
@@ -22,7 +24,7 @@ INCS += $(RVTEST_INCS)
 RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles
 
 %.riscv:  %.o
-	$(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/asm.ld  $< -o $@ $(RISCV_LINK_OPTS)
+	$(RISCV_LINK) $< -o $@ $(RISCV_LINK_OPTS)
 
 # Set a separate program run for each run
 %.run: PROG_NAME=$(basename $@)
