@@ -127,7 +127,7 @@ SECTIONS
 
 
   /* I-EVA backing storage sections should end with .i.dram */
- 
+  . = 0x0;                             /* I-EVAs start address */
   _bsg_dram_t_start_addr = 0x80000000; /* _bsg_dram_i_start_addr and _bsg_dram_i_end_addr 
                                           are the DRAM NPAs required by loader 
                                         */
@@ -145,10 +145,10 @@ SECTIONS
 
   
   /* D-EVA sections in dram should end with .d.dram */
- 
-  _bsg_dram_d_start_addr = 0x81000000; /* _bsg_dram_d_start_addr and _bsg_dram_d_end_addr 
-                                          are the DRAM NPAs required by loader 
-                                        */
+  . = 0x81000000;             /* DRAM data's VMA start address */
+  _bsg_dram_d_start_addr = .; /* _bsg_dram_d_start_addr and _bsg_dram_d_end_addr 
+                                are the DRAM NPAs required by loader 
+                              */
 
   .data.dram : {
     *(.dram)
