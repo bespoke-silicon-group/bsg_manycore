@@ -1,194 +1,113 @@
+/**
+ *  bsg_nonsynth_manycore_monitor.v
+ *
+ */
+
 `include "bsg_manycore_packet.vh"
 
-module bsg_nonsynth_manycore_monitor #( x_cord_width_p="inv"
-                                       , y_cord_width_p="inv"
-                                       , addr_width_p="inv"
-                                       , data_width_p="inv"
-                                       , load_id_width_p = "inv"
-                                       , channel_num_p="inv"
-                                        // enable pass_thru
-                                       , pass_thru_p=0
-                                       , pass_thru_max_out_credits_p=4
-                                       , pass_thru_freeze_init_p=1'b0
-                                       , max_cycles_p=1_000_000
-                                       , packet_width_lp                = `bsg_manycore_packet_width  (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-                                       , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-                                       , num_nets_lp=2
-                                       )
-   (input clk_i
-    ,input  reset_i
+module bsg_nonsynth_manycore_monitor
+  #(parameter x_cord_width_p="inv"
+    , parameter y_cord_width_p="inv"
+    , parameter addr_width_p="inv"
+    , parameter data_width_p="inv"
+    , parameter load_id_width_p="inv"
 
-    ,input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
-    ,output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
+    , parameter max_cycles_p="inv"
 
-    // this allows you to attach nodes to the monitor
-    // that send data, such as the bsg_manycore_spmd_loader
-    // these are only used if pass_thru_p=1
+    , parameter data_mask_width_lp=(data_width_p>>3)
+  )
+  (
+    input clk_i
+    , input  reset_i
 
-    ,input  [packet_width_lp-1:0] pass_thru_data_i
-    ,input                        pass_thru_v_i
-    ,output                       pass_thru_ready_o
-    ,output [$clog2(pass_thru_max_out_credits_p+1)-1:0] pass_thru_out_credits_o
-    ,input [x_cord_width_p-1:0]   pass_thru_x_i
-    ,input [y_cord_width_p-1:0]   pass_thru_y_i
+    , input v_i
+    , input [data_width_p-1:0] data_i
+    , input [data_mask_width_lp-1:0] mask_i
+    , input [addr_width_p-1:0] addr_i
+    , input we_i
+    , input [x_cord_width_p-1:0] src_x_cord_i
+    , input [y_cord_width_p-1:0] src_y_cord_i
+    , output logic yumi_o
 
-    ,input [39:0] cycle_count_i
-    ,output finish_o
-	,output success_o
-	,output timeout_o
-    );
+    , output logic [data_width_p-1:0] data_o
+    , output logic v_o
+  );
 
-   logic                              cgni_v, cgni_yumi;
 
-   logic [data_width_p-1:0     ]      pkt_data;
-   logic [addr_width_p-1:0     ]      pkt_addr;
-   logic [(data_width_p>>3)-1:0]      pkt_mask;
-   logic [x_cord_width_p-1:0]         pkt_x_cord;
-   logic [y_cord_width_p-1:0]         pkt_y_cord;
+  // cycle counter
+  //
+  logic [39:0] cycle_count;
 
-   logic cgni_yumi_r;
-   bsg_manycore_endpoint_standard #(.x_cord_width_p    (x_cord_width_p)
-                                    ,.y_cord_width_p   (y_cord_width_p)
-                                    ,.fifo_els_p       (2)
-                                    //,.freeze_init_p (pass_thru_freeze_init_p)
-                                    ,.max_out_credits_p(pass_thru_max_out_credits_p)
-                                    ,.data_width_p     (data_width_p)
-                                    ,.addr_width_p     (addr_width_p)
-                                    ,.load_id_width_p  (load_id_width_p)
-                                    ) endp
-     (.clk_i
-      ,.reset_i
+  bsg_cycle_counter #(
+    .width_p(40)
+    ,.init_val_p(0)
+  ) cc (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.ctr_r_o(cycle_count)
+  );
 
-      ,.link_sif_i
-      ,.link_sif_o
+  // handshaking
+  //
+  assign yumi_o = v_i;
+  assign data_o = '0;
 
-      ,.in_v_o         (cgni_v)
-      ,.in_yumi_i      (cgni_yumi)
-      ,.in_data_o      (pkt_data)
-      ,.in_mask_o      (pkt_mask)
-      ,.in_addr_o      (pkt_addr)
-      ,.in_we_o        ()
-      ,.in_src_x_cord_o(pkt_x_cord)
-      ,.in_src_y_cord_o(pkt_y_cord)
+  always_ff @ (posedge clk_i) begin
+    if (reset_i)
+      v_o <= 1'b0;
+    else
+      v_o <= v_i & yumi_o;
+  end
 
-      ,.returned_data_r_o   ()
-      ,.returned_load_id_r_o()
-      ,.returned_v_r_o      ()
-      ,.returned_fifo_full_o()
-      ,.returned_yumi_i     (1'b1)
 
-      ,.returning_data_i ( 0 )
-      //we have to delay the returning data at least 1 cycle.
-      ,.returning_v_i    (cgni_yumi_r )
+  // monitoring logic
+  //
+  logic [15:0] epa_addr;
+  assign epa_addr = {addr_i[13:0], 2'b00};
 
-      // outgoing data for this module
-      ,.out_v_i     (pass_thru_p ? pass_thru_v_i    : 1'b0)
-      ,.out_packet_i(pass_thru_p ? pass_thru_data_i : 0)
-      ,.out_ready_o (pass_thru_ready_o)
-      ,.out_credits_o(pass_thru_out_credits_o)
 
-      ,.my_x_i(pass_thru_x_i)
-      ,.my_y_i(pass_thru_y_i)
-      );
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
 
-   // incoming packets on main network: always deque
-   assign cgni_yumi = cgni_v;
+      if (cycle_count > max_cycles_p) begin
+        $display("[INFO][MONITOR] TIMEOUT reached max_cycles_p = %d", max_cycles_p);
+        $finish;
+      end
 
-   logic finish_r, finish_r_r;
-   logic success_r, timeout_r;
-
-   assign finish_o = finish_r;
-   assign success_o = success_r;
-   assign timeout_o = timeout_r;
-
-   always @(posedge clk_i)
-     finish_r_r <= finish_r;
-
-   always_ff @(posedge clk_i)
-     if (finish_r_r)
-       $finish();
-
-   always_ff@(posedge clk_i)
-     cgni_yumi_r <= cgni_yumi;
-
-   always @(negedge clk_i)
-   begin
-     if (reset_i == 0)
-       begin
-		   if (cycle_count_i > max_cycles_p)
-		   begin
-			 $display("## TIMEOUT reached max_cycles_p = %x",max_cycles_p);
-			 finish_r <= 1'b1;
-			 timeout_r <= 1'b1;
-		   end
-
-          if (cgni_v)
-            begin
-
-               unique case ({pkt_addr[addr_width_p-2:0],2'b00})
-                 16'hEAD_0:
-                   begin
-                      $display("## RECEIVED FINISH PACKET from tile y,x=%2d,%2d at I/O %x, data %x on cycle 0x%x (%d)"
-                               ,pkt_y_cord
-                               ,pkt_x_cord
-                               ,channel_num_p
-                               ,pkt_data
-                               ,cycle_count_i
-                               ,cycle_count_i
-                               );
-                      finish_r <= 1'b1;
-					            success_r <= 1'b1;
-                   end
-                 16'hEAD_4:
-                   begin
-                      $display("## RECEIVED TIME PACKET from tile y,x=%2d,%2d at I/O %x, data %x on cycle 0x%x (%d)"
-                               ,pkt_y_cord
-                               ,pkt_x_cord
-                               ,channel_num_p
-                               ,pkt_data
-                               ,cycle_count_i
-                               ,cycle_count_i);
-                   end
-                 16'hEAD_8:
-                   begin
-                      $display("## RECEIVED FAIL PACKET from tile y,x=%2d,%2d at I/O %x, data %x on cycle 0x%x (%d)"
-                               ,pkt_y_cord
-                               ,pkt_x_cord
-                               ,channel_num_p
-                               ,pkt_data
-                               ,cycle_count_i
-                               ,cycle_count_i
-                               );
-                      finish_r <= 1'b1;
-                   end
-                 16'hEAD_C:
-                   begin
-                      int i;
-                      for( i=0; i<4; i++) begin
-                        if( pkt_mask[i] ) begin
-                                $write("%c", pkt_data[i*8 +: 8 ]);
-                        end 
-                      end
-                   end
-                
-
-                 default:
-                   $display("## RECEIVED I/O PACKET from tile y,x=%2d,%2d at I/O %x, addr %x, data %x on cycle (%d)"
-                            ,pkt_y_cord
-                            ,pkt_x_cord
-                            ,channel_num_p
-                            ,pkt_addr<<2
-                            ,pkt_data
-                            ,cycle_count_i
-                            );
-               endcase
+      if (v_i & we_i) begin
+        if (epa_addr == 16'hEAD0) begin
+          $display("[INFO][MONITOR] RECEIVED FINISH PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+            src_y_cord_i, src_x_cord_i, data_i, $time);
+          $finish;
+        end
+        else if (epa_addr == 16'hEAD4) begin
+          $display("[INFO][MONITOR] RECEIVED TIME PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+            src_y_cord_i, src_x_cord_i, data_i, $time);
+        end
+        else if (epa_addr == 16'hEAD8) begin
+          $display("[INFO][MONITOR] RECEIVED FAIL PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+            src_y_cord_i, src_x_cord_i, data_i, $time);
+        end
+        else if (epa_addr == 16'hEADC) begin
+          for (integer i = 0; i < 4; i++) begin
+            if (mask_i[i]) begin
+              $write("%c", data_i[i*8+:8]);
             end
-       end else begin
-			finish_r <= 1'b0;
-			success_r <= 1'b0;
-			timeout_r <= 1'b0;
-	   end
-	end
+          end
+        end
+        else begin
+          $display("[INFO][MONITOR] RECEIVED IO PACKET from tile y,x=%2d,%2d, data=%x, addr=%x, time=%0t",
+            src_y_cord_i, src_x_cord_i, data_i, addr_i, $time);
+        end
+      end
+      else if (v_i & ~we_i) begin
+        $display("[INFO][MONITOR] RECEIVED IO PACKET from tile y,x=%2d,%2d, time=%0t",
+          src_y_cord_i, src_x_cord_i, $time);
+      end
+    end
+  end
+
+
 
 endmodule
 
