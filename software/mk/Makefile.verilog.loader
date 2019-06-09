@@ -37,8 +37,8 @@ ifdef NUM_CODE_SECTIONS
 ifdef CODE_LABELS
 VCS_OPTIONS+= +define+NUM_CODE_SECTIONS=$(NUM_CODE_SECTIONS)
 code_sections = $(strip $(foreach section, $(CODE_LABELS)\
-				  	        ,$(call find-shifted-section-addr, $(section)_start, $(DRAM_SHIFT_ADDR)) \
-				  	         $(call find-shifted-section-addr, $(section)_end, $(DRAM_SHIFT_ADDR)) ))
+				  	        ,$(call find-section-addr, $(section)_start, $(DRAM_SHIFT_ADDR)) \
+				  	         $(call find-section-addr, $(section)_end, $(DRAM_SHIFT_ADDR)) ))
 # hack to substitue space with comma and a space
 comma:=,
 empty:=
