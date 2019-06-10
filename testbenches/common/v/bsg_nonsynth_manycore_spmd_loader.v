@@ -41,9 +41,14 @@ module bsg_nonsynth_manycore_spmd_loader
         x_cord_width_p,y_cord_width_p,load_id_width_p)
 
     // victim cache parameters
-    , parameter init_vcache_p = 0
+    , parameter no_dram_ctrl_p = "inv"
     , parameter vcache_sets_p = "inv"
-    , parameter vcache_ways_p  = "inv" 
+    , parameter vcache_ways_p = "inv" 
+    , parameter vcache_size_p = "inv"
+    , parameter vcache_block_size_in_words_p = "inv"
+    , parameter vcache_addr_width_lp = `BSG_SAFE_CLOG2(vcache_size_p)
+    , parameter vcache_tag_addr_offset_lp = `BSG_SAFE_CLOG2(vcache_block_size_in_words_p)
+
 
     // the data memory related parameters
     , parameter unsigned dmem_start_addr_lp = `_bsg_data_start_addr
@@ -85,6 +90,7 @@ module bsg_nonsynth_manycore_spmd_loader
 
   localparam config_byte_addr = 1 << ( epa_byte_addr_width_p-1);
   localparam unfreeze_addr = addr_width_p'(0) | config_byte_addr;
+  localparam dram_enable_addr = addr_width_p'(16) | config_byte_addr;
 
   logic var_v_o;
   bsg_manycore_packet_s packet;
@@ -106,10 +112,12 @@ module bsg_nonsynth_manycore_spmd_loader
     init_icache();
     init_dmem();
 
-    if(init_vcache_p)
-      init_vcache();
+    if (no_dram_ctrl_p)
+      disable_dram();
 
-    init_dram();
+    init_vcache(no_dram_ctrl_p);
+    init_dram(no_dram_ctrl_p);
+
     unfreeze_tiles();
 
     @(posedge clk_i);  
@@ -200,7 +208,7 @@ module bsg_nonsynth_manycore_spmd_loader
  
   // init_dram 
   //
-  task init_dram();
+  task init_dram(integer no_dram_ctrl_p);
     integer dram_addr;
     logic [data_width_p-1:0] payload;
     bsg_manycore_dram_addr_s dram_addr_cast; 
@@ -208,11 +216,25 @@ module bsg_nonsynth_manycore_spmd_loader
     for (integer sec = 0; sec < num_code_sections_p; sec = sec + 1) begin
       $display("[INFO][LOADER] Initializing DRAM section:%0d, range=%h - %h",
         sec+1, code_sections_p[2*sec], code_sections_p[2*sec+1]);
+
       for (dram_addr = code_sections_p[2*sec]; dram_addr < code_sections_p[2*sec+1]; dram_addr=dram_addr+4) begin
-        dram_addr_cast = dram_addr; 
-        payload = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr]};
-        send_store(dram_addr_cast.x_cord, {y_cord_width_p{1'b1}}, dram_addr>>2, payload); 
+        if (no_dram_ctrl_p) begin
+          
+          payload = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr]};
+          send_store(
+            dram_addr[2+vcache_addr_width_lp+:x_cord_width_p],
+            {y_cord_width_p{1'b1}},
+            dram_addr[2+:vcache_addr_width_lp],
+            payload
+          ); 
+        end
+        else begin
+          dram_addr_cast = dram_addr; 
+          payload = {DRAM[dram_addr+3], DRAM[dram_addr+2], DRAM[dram_addr+1], DRAM[dram_addr]};
+          send_store(dram_addr_cast.x_cord, {y_cord_width_p{1'b1}}, dram_addr>>2, payload); 
+        end
       end
+
     end
   endtask 
 
@@ -232,28 +254,35 @@ module bsg_nonsynth_manycore_spmd_loader
 
   endtask 
 
+  // disable_dram
+  //
+  task disable_dram();
+    integer x, y;
+
+    $display("[INFO][LOADER] Disabling DRAM ctrl...");
+    for (y = tgo_y_p; y < tgo_y_p + tg_y_dim_p; y++) begin
+      for (x = tgo_x_p; x < tgo_x_p + tg_x_dim_p; x++) begin
+        send_store(x, y, dram_enable_addr>>2,'b0);
+      end
+    end
+  endtask
+
   // Task to initialize the victim cache
   //
-  task init_vcache();
+  task init_vcache(integer no_dram_ctrl_p);
     integer x_cord, y_cord, tag_addr ;
 
-    $display("initializing the victim caches, sets=%0d, ways=%0d", vcache_sets_p, vcache_ways_p);
-    for (x_cord =0; x_cord < dram_ch_num_p; x_cord++) begin
-      for (tag_addr =0; tag_addr < vcache_sets_p * vcache_ways_p; tag_addr++)begin
-        @(posedge clk_i);
-        var_v_o = 1'b1; 
-
-        packet.payload    =  'b0;
-        packet.addr       =  (1<<(dram_ch_addr_width_p-1)) | (tag_addr << 3) ; 
-        packet.op         = `ePacketOp_remote_store;
-        packet.op_ex      =  4'b1111;
-        packet.x_cord     = x_cord;
-        packet.y_cord     = {y_cord_width_p{1'b1}};
-        packet.src_x_cord = my_x_i;
-        packet.src_y_cord = my_y_i;
-
-        @(negedge clk_i);
-        wait(ready_i === 1'b1);
+    if (no_dram_ctrl_p) begin
+      $display("[INFO][LOADER] Initializing victim caches in no-DRAM-ctrl mode, sets=%0d, ways=%0d", vcache_sets_p, vcache_ways_p);
+      y_cord = {y_cord_width_p{1'b1}};
+      for (x_cord =0; x_cord < dram_ch_num_p; x_cord++) begin
+        for (tag_addr =0; tag_addr < vcache_sets_p * vcache_ways_p; tag_addr++)begin
+          send_store(
+            x_cord, y_cord,
+            (1<<(addr_width_p-1)) | (tag_addr << vcache_tag_addr_offset_lp),
+            32'h80000000 | tag_addr[`BSG_SAFE_CLOG2(vcache_sets_p)+:`BSG_SAFE_CLOG2(vcache_ways_p)]
+          );
+        end
       end
     end
   endtask 
