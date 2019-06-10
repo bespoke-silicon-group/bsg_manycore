@@ -8,6 +8,7 @@
 module bsg_manycore_tile
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }
   #(parameter dmem_size_p = "inv"
+    , parameter vcache_size_p ="inv"
     , parameter icache_entries_p = "inv"
     , parameter icache_tag_width_p = "inv"
     , parameter x_cord_width_p = "inv"
@@ -82,6 +83,7 @@ module bsg_manycore_tile
     ,.load_id_width_p(load_id_width_p)
 
     ,.dmem_size_p(dmem_size_p)
+    ,.vcache_size_p(vcache_size_p)
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
