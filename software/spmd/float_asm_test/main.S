@@ -212,6 +212,85 @@ _test11:
   fcvt.w.s t2, f0
   bne t2, t1, fail
 
+_test12:
+  li t0, 0x4138e148
+  li t1, 11
+  fmv.s.x f15, t0
+  fcvt.wu.s t2, f15
+  bne t2, t1, fail
+
+_test13:
+  li t0, 0xff800000
+  fmv.s.x f0, t0
+  fclass.s t1, f0
+  li t2, 1
+  bne t2, t1, fail
+
+_test14:
+  li t0, 0xfb804800
+  fmv.s.x f1, t0
+  fclass.s t0, f1
+  li t2, 2
+  bne t2, t0, fail
+
+
+_test15:
+  li t0, 0x80004800
+  li t1, 4
+  fmv.s.x f0, t0
+  fclass.s t0, f0
+  bne t0, t1, fail
+
+_test16:
+  li t0, 0x80000000
+  li t1, 8
+  fmv.s.x f0, t0
+  fclass.s t0, f0
+  bne t0, t1, fail
+
+_test17:
+  li t0, 0x00000000
+  li t1, 16
+  fmv.s.x f0, t0
+  fclass.s t0, f0
+  bne t0, t1, fail
+
+_test18:
+  li t0, 0x00084400
+  li t1, 32
+  fmv.s.x f0, t0
+  fclass.s t0, f0
+  bne t0, t1, fail
+
+_test19:
+  li t0, 0x63084400
+  li t1, 64
+  fmv.s.x f0, t0
+  fclass.s t0, f0
+  bne t0, t1, fail
+
+_test20:
+  li t0, 0x7f800000
+  li t1, 128
+  fmv.s.x f0, t0
+  fclass.s t0, f0
+  bne t0, t1, fail
+
+_test21:
+  li t0, 0x7f800003
+  li t1, 256
+  fmv.s.x f0, t0
+  fclass.s t0, f0
+  bne t0, t1, fail
+
+_test22:
+  li t0, 0x7fc00003
+  li t1, 512
+  fmv.s.x f0, t0
+  fclass.s t0, f0
+  bne t0, t1, fail
+
+
 pass:
   bsg_asm_finish(IO_X_INDEX, 0)
 
