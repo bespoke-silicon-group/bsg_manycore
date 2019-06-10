@@ -15,6 +15,7 @@ module network_tx
     , parameter load_id_width_p="inv"
     , parameter dram_ch_addr_width_p="inv"
     , parameter epa_byte_addr_width_p="inv"
+    , parameter vcache_size_p="inv" 
   
     , parameter icache_entries_p="inv"
     , parameter icache_tag_width_p="inv"
@@ -23,6 +24,8 @@ module network_tx
 
     , parameter max_y_cord_width_p=6
     , parameter max_x_cord_width_p=6
+
+    , parameter vcache_addr_width_lp=`BSG_SAFE_CLOG2(vcache_size_p)
 
     , localparam credit_counter_width_lp=$clog2(max_out_credits_p+1)
 
@@ -54,6 +57,7 @@ module network_tx
     
     , input [x_cord_width_p-1:0] tgo_x_i
     , input [y_cord_width_p-1:0] tgo_y_i
+    , input dram_enable_i
 
     , input [credit_counter_width_lp-1:0] out_credits_i
 
@@ -129,9 +133,16 @@ module network_tx
           : `ePacketOp_remote_load));
 
     if (is_dram_addr) begin
-      out_packet.y_cord = {y_cord_width_p{1'b1}};
-      out_packet.x_cord = (x_cord_width_p)'(dram_addr.x_cord);
-      out_packet.addr = {1'b0, {(addr_width_p-1-dram_ch_addr_width_p){1'b0}}, dram_addr.addr};
+      if (dram_enable_i) begin
+        out_packet.y_cord = {y_cord_width_p{1'b1}}; // send it to y-max
+        out_packet.x_cord = (x_cord_width_p)'(dram_addr.x_cord);
+        out_packet.addr = {1'b0, {(addr_width_p-1-dram_ch_addr_width_p){1'b0}}, dram_addr.addr};
+      end
+      else begin
+        out_packet.y_cord = {y_cord_width_p{1'b1}}; // send it to y-max
+        out_packet.x_cord = (x_cord_width_p)'(remote_req_i.addr[2+vcache_addr_width_lp+:x_cord_width_p]);
+        out_packet.addr = {1'b0, {(addr_width_p-1-vcache_addr_width_lp){1'b0}}, remote_req_i.addr[2+:vcache_addr_width_lp]};
+      end
     end
     else if (is_global_addr) begin
       out_packet.y_cord = y_cord_width_p'(global_addr.y_cord);

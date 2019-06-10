@@ -12,6 +12,8 @@ module bsg_manycore
     , parameter icache_entries_p = "inv" // in words
     , parameter icache_tag_width_p = "inv"
 
+    , parameter vcache_size_p = "inv" // capacity of vcache in words
+
     // change the default values from "inv" back to -1
     // since num_tiles_x_p and num_tiles_y_p will be used to define the size of 2D array
     // hetero_type_vec_p, they should be integer by default to avoid tool crash during
@@ -163,6 +165,7 @@ module bsg_manycore
             bsg_manycore_tile
               #(
                 .dmem_size_p     (dmem_size_p),
+                .vcache_size_p (vcache_size_p),
                 .icache_entries_p(icache_entries_p),
                 .icache_tag_width_p(icache_tag_width_p),
                 .x_cord_width_p(x_cord_width_lp),

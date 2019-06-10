@@ -43,6 +43,7 @@ module test_bsg_manycore;
   parameter load_id_width_p = 12;
 
   parameter dmem_size_p = 1024;
+  parameter vcache_size_p = 4096;
   parameter icache_entries_p = 1024;
   parameter icache_tag_width_p = 12;
   parameter epa_byte_addr_width_p = 18;
@@ -59,11 +60,10 @@ module test_bsg_manycore;
   localparam axi_strb_width_lp = (axi_data_width_p>>3);
  
   parameter include_vcache_p = 1; 
-  parameter init_vcache_p = 0;
+  parameter no_dram_ctrl_p = 0; // use this to disable DRAM
   parameter vcache_sets_p = 256;
   parameter vcache_ways_p = 2;
   parameter vcache_block_size_in_words_p = 8;
-  parameter no_dram_ctrl_p = 0;
 
 
   // clock and reset generation
@@ -108,6 +108,7 @@ module test_bsg_manycore;
 
   bsg_manycore #(
     .dmem_size_p(dmem_size_p)
+    ,.vcache_size_p(vcache_size_p)
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.data_width_p(data_width_p)
@@ -162,8 +163,9 @@ module test_bsg_manycore;
 
     ,.vcache_sets_p(vcache_sets_p)
     ,.vcache_ways_p(vcache_ways_p)
+    ,.vcache_size_p(vcache_size_p)
+    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
 
-    ,.init_vcache_p(init_vcache_p)
     ,.no_dram_ctrl_p(no_dram_ctrl_p)
 
     ,.tgo_x_p(tgo_x_p)
