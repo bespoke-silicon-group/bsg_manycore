@@ -59,6 +59,7 @@ SECTIONS
   /* data segment */
   .data.dmem : { 
     *(.data) 
+    *(.data*) 
   } >DMEM_VMA AT>DMEM_LMA
 
   .sdata.dmem : {
@@ -76,6 +77,7 @@ SECTIONS
 
   .bss.dmem : { 
     *(.bss) 
+    *(.bss*) 
   } >DMEM_VMA AT>DMEM_LMA
 
 
@@ -134,8 +136,9 @@ SECTIONS
 
   .text.dram : {
      *crt.o(.text)
-     *(.text)
      *(.text.startup)
+     *(.text)
+     *(.text.*)
   } >DRAM_T_VMA AT>DRAM_T_LMA
 
   _bsg_dram_t_end_addr = 0x80000000 + .; /* added 0x80... becuase location counter would
