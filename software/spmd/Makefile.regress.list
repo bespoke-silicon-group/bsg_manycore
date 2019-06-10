@@ -57,6 +57,7 @@ test_case_list+='bsg_riscv_tests remu.run'
 # The manycore specific test
 test_case_list+=hello
 test_case_list+=hello_float
+test_case_list+=float_asm_test
 test_case_list+=bsg_token_queue
 test_case_list+=bsg_fence
 test_case_list+=bsg_lr_acq
