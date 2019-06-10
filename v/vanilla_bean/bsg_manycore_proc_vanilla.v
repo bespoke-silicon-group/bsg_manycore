@@ -18,6 +18,7 @@ module bsg_manycore_proc_vanilla
     , parameter icache_entries_p = "inv"
 
     , parameter dmem_size_p = "inv"
+    , parameter vcache_size_p = "inv"
 
     , parameter dram_ch_addr_width_p = "inv"
     , parameter epa_byte_addr_width_p = "inv"
@@ -145,6 +146,7 @@ module bsg_manycore_proc_vanilla
   logic [x_cord_width_p-1:0] tgo_x;
   logic [y_cord_width_p-1:0] tgo_y;
   logic [pc_width_lp-1:0] pc_init_val;
+  logic dram_enable;
 
   network_rx #(
     .addr_width_p(addr_width_p)
@@ -186,6 +188,7 @@ module bsg_manycore_proc_vanilla
     ,.tgo_x_o(tgo_x)
     ,.tgo_y_o(tgo_y)
     ,.pc_init_val_o(pc_init_val)
+    ,.dram_enable_o(dram_enable)
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
@@ -219,6 +222,7 @@ module bsg_manycore_proc_vanilla
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
     ,.load_id_width_p(load_id_width_p)
+    ,.vcache_size_p(vcache_size_p)
 
     ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
     ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
@@ -243,6 +247,7 @@ module bsg_manycore_proc_vanilla
 
     ,.tgo_x_i(tgo_x)
     ,.tgo_y_i(tgo_y) 
+    ,.dram_enable_i(dram_enable)
     ,.out_credits_i(out_credits_lo)
 
     ,.my_x_i(my_x_i)
