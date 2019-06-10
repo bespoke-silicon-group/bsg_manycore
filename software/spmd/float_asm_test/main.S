@@ -163,6 +163,54 @@ _test7:
   fmv.x.s t4, f3
   bne t4, t3, fail
 
+_test8:
+  li t0, 0x41880000
+  li t1, 0xc0800000
+  fmv.s.x f0, t0
+  fmv.s.x f1, t1
+  fmin.s f2, f0, f1
+  fmax.s f3, f0, f1
+  fmv.x.s t2, f2
+  fmv.x.s t3, f3
+  bne t1, t2, fail
+  bne t0, t3, fail
+
+_test9:
+  li t0, 0x42c80000
+  li t1, 0x43480000
+  li t2, 1
+  fmv.s.x f0, t0
+  fmv.s.x f1, t1
+  fadd.s f2, f0, f0
+  feq.s t3, f0, f1
+  bne t3, x0, fail
+  feq.s t3, f1, f2
+  bne t3, t2, fail
+  flt.s t3, f0, f1
+  bne t3, t2, fail
+  flt.s t3, f1, f0
+  bne t3, x0, fail
+  fle.s t3, f1, f2
+  bne t3, t2, fail
+  fle.s t3, f0, f2
+  bne t3, t2, fail
+  fle.s t3, f2, f0
+  bne t3, x0, fail
+
+_test10:
+  li t0, 100
+  li t1, 0x42c80000
+  fcvt.s.w f11, t0
+  fsgnj.s f12, f11, f11
+  fmv.x.s t2, f12
+  bne t1, t2, fail
+
+_test11:
+  li t0, 0xc49a6000
+  li t1, -1235
+  fmv.s.x f0, t0
+  fcvt.w.s t2, f0
+  bne t2, t1, fail
 
 pass:
   bsg_asm_finish(IO_X_INDEX, 0)
