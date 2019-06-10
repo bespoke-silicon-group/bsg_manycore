@@ -87,6 +87,7 @@ module bsg_nonsynth_manycore_monitor
         else if (epa_addr == 16'hEAD8) begin
           $display("[INFO][MONITOR] RECEIVED FAIL PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
             src_y_cord_i, src_x_cord_i, data_i, $time);
+          $finish;
         end
         else if (epa_addr == 16'hEADC) begin
           for (integer i = 0; i < 4; i++) begin
