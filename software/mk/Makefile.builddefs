@@ -114,6 +114,7 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 # dump the dram content
 %_dram.mem:	%.riscv
 	$(RISCV_OBJCOPY) -O verilog -j *.dram $< $@
+	sed -i 's/@8/@0/' $@
 
 %.bin:  %.hex
 	python $(HEX2BIN) $< 32 > $@
