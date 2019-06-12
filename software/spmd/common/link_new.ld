@@ -104,7 +104,7 @@ SECTIONS
 
   _bsg_data_end_addr = . - SIZEOF(.striped.data.dmem) + (SIZEOF(.striped.data.dmem) / bsg_group_size);
 
-  _sp = 0x1fff;
+  _sp = 0x1ffc;
 
   ASSERT(_bsg_data_end_addr < 0x2000, "[ Error ] during linking, local dmem overflow, please check the dmem usage") 
 
@@ -124,8 +124,8 @@ SECTIONS
 
   .text.dram : AT(_dram_t_lma_start) {
      *crt.o(.text)
-     *(.text.startup)
      *(.text)
+     *(.text.startup)
      *(.text.*)
   } >DRAM_T_VMA 
 
@@ -142,8 +142,8 @@ SECTIONS
                               */
 
   .data.dram : AT(_dram_d_lma_start) {
-    *(.dram)
     *(.rodata*) 
+    *(.dram)
   } >DRAM_D_VMA 
 
   _bsg_dram_d_end_addr = .;
