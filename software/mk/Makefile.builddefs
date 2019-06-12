@@ -37,7 +37,7 @@ RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
 
 CRT_OBJ ?= crt.o
-LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_new.ld
+LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem.ld
 #RISCV_LINK_EXTRA_OPTS ?=
 
 RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostdlib -nostartfiles -ffast-math -lc -lgcc -l:$(CRT_OBJ)\
@@ -114,6 +114,11 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 # dump the dram content
 %_dram.mem:	%.riscv
 	$(RISCV_OBJCOPY) -O verilog -j *.dram $< $@
+
+	# Load addresses to dram start with 0x8 because NPA of dram start 
+	# with 0x8. But verilog loader's readmemh cannot handle large addresses
+	# starting with 0x8! Hence this changes load addresses to start with 
+	# 0x0, and converting to actual NPA is handled in the verilog loader.
 	sed -i 's/@8/@0/' $@
 
 %.bin:  %.hex
