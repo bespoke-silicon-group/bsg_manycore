@@ -4,8 +4,10 @@
 /*                            */
 /******************************/
 
-/* Links everything except bsg_manycore_lib.a
- * in DRAM.
+/* This link script places data section in dram
+ * by default. Text sections are places in dram.
+ *
+ * Data in bsg_manycore_lib.a & .dmem is placed in dmem. 
  */
 
 
@@ -53,6 +55,7 @@ SECTIONS
   .data.dmem : 
   AT(_dmem_lma_start) 
   { 
+    *(.dmem)
     *bsg_manycore_lib.a:(.data) 
     *bsg_manycore_lib.a:(.data*) 
   } >DMEM_VMA

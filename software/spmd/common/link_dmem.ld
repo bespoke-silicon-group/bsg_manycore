@@ -4,6 +4,13 @@
 /*                            */
 /******************************/
 
+/* This link script places data sections in dmem
+ * by default. Text sections are placed in dram.
+ *
+ * Data in sections ".rodata.*" and ".dram"
+ * is placed in the DRAM.
+ */
+
 
 /* Constants */
 PROVIDE(_dmem_lma_start   = 0x00001000);
