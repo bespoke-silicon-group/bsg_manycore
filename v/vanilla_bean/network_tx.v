@@ -197,12 +197,14 @@ module network_tx
       ifetch_v_o = returned_v_i;
       int_remote_load_resp_v_o = 1'b0;
       float_remote_load_resp_v_o = 1'b0;
+      int_remote_load_resp_force_o = 1'b0;
       returned_yumi_o = returned_v_i;
     end
     else if (returned_load_info.float_wb) begin
       ifetch_v_o = 1'b0;
       int_remote_load_resp_v_o = 1'b0;
       float_remote_load_resp_v_o = returned_v_i;
+      int_remote_load_resp_force_o = 1'b0;
       returned_yumi_o = returned_v_i;
     end
     else begin
