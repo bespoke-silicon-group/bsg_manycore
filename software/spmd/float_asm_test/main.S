@@ -1,6 +1,13 @@
 #include "bsg_manycore_arch.h"
 #include "bsg_manycore_asm.h"
 
+.data
+  float_dmem_arr: .space 64 // array of 16 floats
+
+.section .dram, "aw"
+  float_dram_arr: .space 64
+
+.text
 li x1, 0
 li x2, 4096*2-4
 li x3, 0
@@ -289,6 +296,51 @@ _test22:
   fmv.s.x f0, t0
   fclass.s t0, f0
   bne t0, t1, fail
+
+_test23:
+  la t0, float_dmem_arr
+  li t1, 0x41200000
+  sw t1, 0(t0)
+  li t1, 0x41a00000
+  sw t1, 4(t0)
+  flw f0, 0(t0)
+  flw f1, 4(t0)
+  fadd.s f2, f0, f1
+  fadd.s f3, f1, f0
+  fadd.s f4, f0, f1
+  li t2, 0x41f00000
+  fmv.x.s t3, f2
+  bne t2, t3, fail
+  fmv.x.s t4, f3
+  bne t2, t4, fail
+  fmv.x.s t5, f4
+  bne t2, t5, fail
+
+_test24:
+  la t0, float_dmem_arr
+  li t1, 0x4048f5c3
+  fmv.s.x f0, t1 
+  fsw f0, 8(t0)
+  addi t0, t0, 4
+  lw t2, 4(t0)
+  bne t1, t2, fail
+
+_test25:
+  add t0, x0, x0
+  add t1, x0, x0
+  add t2, x0, x0
+  la t0, float_dmem_arr
+  li t1, 0x4048f5c3
+  fmv.s.x f0, t1 
+  fsw f0, 8(t0)
+  lw t2, 8(t0)
+  bne t1, t2, fail
+
+
+
+
+
+
 
 
 pass:
