@@ -988,7 +988,7 @@ module vanilla_core
 
   // remote_req_o logic
   //
-  assign remote_req_v_o = lsu_remote_req_v_lo & ~(stall_force_wb | stall_local_flw | stall_icache_store);
+  assign remote_req_v_o = lsu_remote_req_v_lo & ~(stall_local_flw | stall_icache_store);
  
 
   // EXE -> MEM
