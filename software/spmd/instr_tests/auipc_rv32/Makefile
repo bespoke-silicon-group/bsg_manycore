@@ -3,12 +3,14 @@ bsg_tiles_Y= 1
 
 all: main.run
 
+LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_new.ld
+
 include ../../Makefile.include
 
 RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles 
 
 main.riscv:  main.o 
-	$(RISCV_GCC) -T $(BSG_MANYCORE_DIR)/software/spmd/common/asm.ld  $< -o $@ $(RISCV_LINK_OPTS)
+	$(RISCV_LINK) $< -o $@ $(RISCV_LINK_OPTS)
 
 
 clean:

@@ -13,8 +13,10 @@ VCS_OPTIONS+= +define+_bsg_data_end_addr=$(call find-section-addr, _bsg_data_end
 #  Ideally the physicall address should be 0x8000_0000, which is the DRAM address used in manycore 
 #  program, but the system verilog $readmemh() just can not read from such large address... 
 #  This constrains should be released when using C++/DPI loader
-VCS_OPTIONS+= +define+_bsg_dram_start_addr=$(call find-shifted-section-addr, _bsg_dram_start_addr, $(DRAM_SHIFT_ADDR))
-VCS_OPTIONS+= +define+_bsg_dram_end_addr=$(call find-shifted-section-addr, _bsg_dram_end_addr, $(DRAM_SHIFT_ADDR))
+VCS_OPTIONS+= +define+_bsg_dram_t_start_addr=$(call find-shifted-section-addr, _bsg_dram_t_start_addr, $(DRAM_SHIFT_ADDR))
+VCS_OPTIONS+= +define+_bsg_dram_t_end_addr=$(call find-shifted-section-addr, _bsg_dram_t_end_addr, $(DRAM_SHIFT_ADDR))
+VCS_OPTIONS+= +define+_bsg_dram_d_start_addr=$(call find-shifted-section-addr, _bsg_dram_d_start_addr, $(DRAM_SHIFT_ADDR))
+VCS_OPTIONS+= +define+_bsg_dram_d_end_addr=$(call find-shifted-section-addr, _bsg_dram_d_end_addr, $(DRAM_SHIFT_ADDR))
 
 VCS_OPTIONS+= +define+_dram_init_file_name='"$(PROG_NAME)_dram.mem"'
 VCS_OPTIONS+= +define+_dmem_init_file_name='"$(PROG_NAME)_dmem.mem"'
@@ -35,8 +37,8 @@ ifdef NUM_CODE_SECTIONS
 ifdef CODE_LABELS
 VCS_OPTIONS+= +define+NUM_CODE_SECTIONS=$(NUM_CODE_SECTIONS)
 code_sections = $(strip $(foreach section, $(CODE_LABELS)\
-				  	        ,$(call find-shifted-section-addr, $(section)_start, $(DRAM_SHIFT_ADDR)) \
-				  	         $(call find-shifted-section-addr, $(section)_end, $(DRAM_SHIFT_ADDR)) ))
+				  	        ,$(call find-section-addr, $(section)_start, $(DRAM_SHIFT_ADDR)) \
+				  	         $(call find-section-addr, $(section)_end, $(DRAM_SHIFT_ADDR)) ))
 # hack to substitue space with comma and a space
 comma:=,
 empty:=
