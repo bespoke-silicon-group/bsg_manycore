@@ -3,16 +3,18 @@
 
 #ifdef __spike__
 
-#include "spike.h"
+  #include "spike.h"
 
 #else // ifndef __spike__
 
-#include "bsg_manycore.h"
-#include "bsg_set_tile_x_y.h"
+  #include "bsg_manycore.h"
+  #include "bsg_set_tile_x_y.h"
 
 #endif // __spike__
 
 void bsg_newlib_init(void) {
+    bsg_set_tile_x_y();
+
   // Init file system
   if(bsg_newlib_fs_init() < 0) {
     exit(EXIT_FAILURE);

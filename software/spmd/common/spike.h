@@ -6,6 +6,8 @@ extern volatile int fromhost;
 
 #define __bsg_id 1
 
+#define bsg_set_tile_x_y()
+
 #define bsg_finish() \
   do { \
     volatile int* ptr = &tohost; \
