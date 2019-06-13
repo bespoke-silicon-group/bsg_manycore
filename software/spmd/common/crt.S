@@ -46,8 +46,30 @@ _start:
   # mbt fix for 4KB IMEM / 4KB DMEM
   la sp, _sp
 
+#ifdef __bsg_newlib
+  call bsg_newlib_init
+  call set_cmd_args
+  lw a0, 0(sp)     # argc
+  lw a1, -4(sp)    # argv
+  li a2, 0         # envp = NULL
+  call main
+  tail exit
+#else
   j main
+#endif
 
 2:
   # Should never this point
   j 2b
+
+#ifdef __spike__
+.align 6; 
+.global tohost
+tohost:
+  .dword 0
+
+.align 6; 
+.global fromhost
+fromhost:
+  .dword 0
+#endif
