@@ -50,12 +50,11 @@ ifeq ($(BSG_NEWLIB), 1)
 endif
 
 SPMD_COMMON_OBJECTS ?=
-CRT_OBJ ?= crt.o
 
 ifeq ($(BSG_NEWLIB), 1)
 SPMD_COMMON_OBJECTS += lfs.o
 SPMD_COMMON_OBJECTS += args.o
-SPMD_COMMON_OBJECTS += $(CRT_OBJ)
+SPMD_COMMON_OBJECTS += bsg_newlib_intf.o
 
 LFS_BLOCK_SIZE ?= 128
 LFS_BLOCK_COUNT ?= 64
@@ -67,10 +66,6 @@ endif
 # Manycore C library archiving rule
 BSG_MANYCORE_LIB_OBJS+= bsg_set_tile_x_y.o
 BSG_MANYCORE_LIB_OBJS+= bsg_printf.o
-
-ifeq ($(BSG_NEWLIB) ,1)
-  BSG_MANYCORE_LIB_OBJS+= bsg_newlib_intf.o
-endif
 
 BSG_MANYCORE_LIB = bsg_manycore_lib.a
 
