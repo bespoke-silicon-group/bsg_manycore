@@ -20,8 +20,7 @@ else
 
 all: main.run
 
-CRT_OBJ = crt_newlib.o
-LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_newlib.ld
+LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
 
 endif
 
@@ -52,7 +51,7 @@ include ../Makefile.include
 BSG_FPU_OP=0
 
 main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) $(CRT_OBJ)
-	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. -l:$(BSG_MANYCORE_LIB) -o $@ $(RISCV_LINK_OPTS)
+	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. -l:$(BSG_MANYCORE_LIB) -o $@ $(RISCV_LINK_OPTS) -l:$(BSG_MANYCORE_LIB)
 
 main.o: Makefile
 
