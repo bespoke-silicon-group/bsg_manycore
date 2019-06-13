@@ -114,12 +114,14 @@ module bsg_manycore_loopback_ddr_link_tester
   
   // Clocks and control signals
   logic mc_clk_0, mc_clk_1;
-  logic node_reset_0, node_reset_1, mc_reset_0, mc_reset_1;
+  logic mc_reset_0, mc_reset_1;
   logic clk_0, clk_1, reset_0, reset_1;
-  logic clk_1x_0, clk_1x_1, clk_2x_0, clk_2x_1;
-  logic link_enable_0, link_enable_1;
+  logic clk_2x_0, clk_2x_1;
+  logic token_reset_0, token_reset_1;
+  logic [num_channels_p-1:0] io_reset_0, io_reset_1;
+  logic core_link_reset_0, core_link_reset_1;
   logic core_reset_0, core_reset_1;
-  logic node_en_0, node_en_1, mc_en_0, mc_en_1;
+  logic mc_en_0, mc_en_1;
   logic mc_error_0, mc_error_1;
   logic [31:0] sent_0, received_0, sent_1, received_1;
   
@@ -196,8 +198,6 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.load_id_width_p(mc_load_id_width_p)
   ,.x_cord_width_p(mc_x_cord_width_p)
   ,.y_cord_width_p(mc_y_cord_width_p)
-  ,.wormhole_req_ratio_p(req_ratio_p)
-  ,.wormhole_resp_ratio_p(resp_ratio_p)
   ,.wormhole_width_p(width_p)
   ,.wormhole_x_cord_width_p(x_cord_width_p)
   ,.wormhole_y_cord_width_p(y_cord_width_p)
@@ -205,16 +205,13 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.wormhole_reserved_width_p(reserved_width_p)
   ) out_adapter
   (.manycore_clk_i  (mc_clk_0)
-  ,.manycore_reset_o(mc_reset_0)
-  ,.manycore_en_o   (mc_en_0)
+  ,.manycore_reset_i(mc_reset_0)
    
   ,.links_sif_i(out_mc_node_lo)
   ,.links_sif_o(out_mc_node_li)
    
   ,.clk_i   (clk_0)
   ,.reset_i (core_reset_0)
-  ,.manycore_reset_i(node_reset_0)
-  ,.manycore_en_i   (node_en_0)
 
   ,.dest_x_i((x_cord_width_p)'(3))
   ,.dest_y_i((y_cord_width_p)'(0))
@@ -294,11 +291,11 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
   ) link_upstream_0
-  (.core_clk_i        (clk_0)
-  ,.io_master_clk_i   (clk_2x_0)
-  ,.core_link_reset_i (reset_0)
-  ,.core_reset_i      (core_reset_0)
-  ,.core_link_enable_i(link_enable_0)
+  (.core_clk_i         (clk_0)
+  ,.io_clk_i           (clk_2x_0)
+  ,.core_link_reset_i  (core_link_reset_0)
+  ,.io_link_reset_i    (reset_0)
+  ,.async_token_reset_i(token_reset_0)
   
   ,.core_data_i (out_ct_data_lo)
   ,.core_valid_i(out_ct_valid_lo)
@@ -319,17 +316,17 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
   ) link_downstream_0
   (.core_clk_i(clk_0)
-  ,.core_link_reset_i(reset_0)
-  ,.core_reset_i     (core_reset_0)
+  ,.core_link_reset_i(core_link_reset_0)
+  ,.io_link_reset_i(io_reset_0)
   
-  ,.core_data_o (out_ct_data_li)
-  ,.core_valid_o(out_ct_valid_li)
-  ,.core_yumi_i (out_ct_valid_li&out_ct_ready_lo)
+  ,.core_data_o   (out_ct_data_li)
+  ,.core_valid_o  (out_ct_valid_li)
+  ,.core_yumi_i   (out_ct_valid_li&out_ct_ready_lo)
 
-  ,.io_clk_i    (edge_clk_1)
-  ,.io_data_i   (edge_data_1)
-  ,.io_valid_i  (edge_valid_1)
-  ,.io_token_r_o(edge_token_1)
+  ,.io_clk_i      (edge_clk_1)
+  ,.io_data_i     (edge_data_1)
+  ,.io_valid_i    (edge_valid_1)
+  ,.core_token_r_o(edge_token_1)
   );
   
   
@@ -340,11 +337,11 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
   ) link_upstream_1
-  (.core_clk_i        (clk_1)
-  ,.io_master_clk_i   (clk_2x_1)
-  ,.core_link_reset_i (reset_1)
-  ,.core_reset_i      (core_reset_1)
-  ,.core_link_enable_i(link_enable_1)
+  (.core_clk_i         (clk_1)
+  ,.io_clk_i           (clk_2x_1)
+  ,.core_link_reset_i  (core_link_reset_1)
+  ,.io_link_reset_i    (reset_1)
+  ,.async_token_reset_i(token_reset_1)
   
   ,.core_data_i (in_ct_data_lo)
   ,.core_valid_i(in_ct_valid_lo)
@@ -365,17 +362,17 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
   ) link_downstream_1
   (.core_clk_i(clk_1)
-  ,.core_link_reset_i(reset_1)
-  ,.core_reset_i     (core_reset_1)
+  ,.core_link_reset_i(core_link_reset_1)
+  ,.io_link_reset_i(io_reset_1)
   
-  ,.core_data_o (in_ct_data_li)
-  ,.core_valid_o(in_ct_valid_li)
-  ,.core_yumi_i (in_ct_valid_li&in_ct_ready_lo)
+  ,.core_data_o   (in_ct_data_li)
+  ,.core_valid_o  (in_ct_valid_li)
+  ,.core_yumi_i   (in_ct_valid_li&in_ct_ready_lo)
   
-  ,.io_clk_i    (edge_clk_0)
-  ,.io_data_i   (edge_data_0)
-  ,.io_valid_i  (edge_valid_0)
-  ,.io_token_r_o(edge_token_0)
+  ,.io_clk_i      (edge_clk_0)
+  ,.io_data_i     (edge_data_0)
+  ,.io_valid_i    (edge_valid_0)
+  ,.core_token_r_o(edge_token_0)
   );
 
 
@@ -447,8 +444,6 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.load_id_width_p(mc_load_id_width_p)
   ,.x_cord_width_p(mc_x_cord_width_p)
   ,.y_cord_width_p(mc_y_cord_width_p)
-  ,.wormhole_req_ratio_p(req_ratio_p)
-  ,.wormhole_resp_ratio_p(resp_ratio_p)
   ,.wormhole_width_p(width_p)
   ,.wormhole_x_cord_width_p(x_cord_width_p)
   ,.wormhole_y_cord_width_p(y_cord_width_p)
@@ -456,17 +451,14 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.wormhole_reserved_width_p(reserved_width_p)
   ) in_adapter
   (.manycore_clk_i  (mc_clk_1)
-  ,.manycore_reset_o(mc_reset_1)
-  ,.manycore_en_o   (mc_en_1)
+  ,.manycore_reset_i(mc_reset_1)
    
   ,.links_sif_i(in_mc_node_lo)
   ,.links_sif_o(in_mc_node_li)
    
   ,.clk_i  (clk_1)
   ,.reset_i(core_reset_1)
-  ,.manycore_reset_i(node_reset_1)
-  ,.manycore_en_i   (node_en_1)
-
+  
   ,.dest_x_i((x_cord_width_p)'(2))
   ,.dest_y_i((y_cord_width_p)'(0))
   
@@ -506,12 +498,8 @@ module bsg_manycore_loopback_ddr_link_tester
   always #4 mc_clk_0 = ~mc_clk_0;
   always #4 mc_clk_1 = ~mc_clk_1;
   
-  always @(posedge clk_2x_0)
-      clk_1x_0 = ~clk_1x_0;
-    
-  always @(posedge clk_2x_1)
-      clk_1x_1 = ~clk_1x_1;
   
+  integer j;
   
   initial 
   begin
@@ -521,41 +509,65 @@ module bsg_manycore_loopback_ddr_link_tester
     // Init
     clk_0 = 1;
     clk_1 = 1;
-    clk_1x_0 = 1;
-    clk_1x_1 = 1;
     clk_2x_0 = 1;
     clk_2x_1 = 1;
     mc_clk_0 = 1;
     mc_clk_1 = 1;
     reset_0 = 1;
     reset_1 = 1;
-    link_enable_0 = 0;
-    link_enable_1 = 0;
-    node_en_0 = 0;
-    node_en_1 = 0;
+    token_reset_0 = 0;
+    token_reset_1 = 0;
+    io_reset_0 = '1;
+    io_reset_1 = '1;
+    core_link_reset_0 = 1;
+    core_link_reset_1 = 1;
     core_reset_0 = 1;
     core_reset_1 = 1;
-    node_reset_0 = 1;
-    node_reset_1 = 1;
+    mc_reset_0 = 1;
+    mc_reset_1 = 1;
+    mc_en_0 = 0;
+    mc_en_1 = 0;
     
     #1000;
     
-    // link reset
-    @(posedge clk_0); #1;
+    // token async reset
+    token_reset_0 = 1;
+    token_reset_1 = 1;
+    
+    #1000;
+    
+    token_reset_0 = 0;
+    token_reset_1 = 0;
+    
+    #1000;
+    
+    // upstream io reset
+    @(posedge clk_2x_0); #1;
     reset_0 = 0;
-    @(posedge clk_1); #1;
+    @(posedge clk_2x_1); #1;
     reset_1 = 0;
     
     #1000;
-
-    // link enable
-    @(posedge clk_0); #1;
-    link_enable_0 = 1;
-    @(posedge clk_1); #1;
-    link_enable_1 = 1;
+    
+    // downstream IO reset
+    // edge clock 0 to downstream 1, edge clock 1 to downstream 0
+    for (j = 0; j < num_channels_p; j++)
+      begin
+        @(posedge edge_clk_1[j]); #1;
+        io_reset_0[j] = 0;
+        @(posedge edge_clk_0[j]); #1;
+        io_reset_1[j] = 0;
+      end
     
     #1000;
     
+    // core link reset
+    @(posedge clk_0); #1;
+    core_link_reset_0 = 0;
+    @(posedge clk_1); #1;
+    core_link_reset_1 = 0;
+    
+    #1000
     
     // chip reset
     @(posedge clk_0); #1;
@@ -565,37 +577,29 @@ module bsg_manycore_loopback_ddr_link_tester
     
     #1000
     
-    // node reset
-    @(posedge clk_0); #1;
-    node_reset_0 = 0;
-    @(posedge clk_1); #1;
-    node_reset_1 = 0;
+    // mc reset
+    @(posedge mc_clk_0); #1;
+    mc_reset_0 = 0;
+    @(posedge mc_clk_1); #1;
+    mc_reset_1 = 0;
     
     #1000
     
-    // node enable
-    @(posedge clk_0); #1;
-    node_en_0 = 1;
-    @(posedge clk_1); #1;
-    node_en_1 = 1;
+    // mc enable
+    @(posedge mc_clk_0); #1;
+    mc_en_0 = 1;
+    @(posedge mc_clk_1); #1;
+    mc_en_1 = 1;
     
     #50000
     
-    // node disable
-    @(posedge clk_0); #1;
-    node_en_0 = 0;
-    @(posedge clk_1); #1;
-    node_en_1 = 0;
+    // mc disable
+    @(posedge mc_clk_0); #1;
+    mc_en_0 = 0;
+    @(posedge mc_clk_1); #1;
+    mc_en_1 = 0;
     
     #5000
-    
-    // link disable
-    @(posedge clk_0); #1;
-    link_enable_0 = 0;
-    @(posedge clk_1); #1;
-    link_enable_1 = 0;
-    
-    #1000
     
     
     assert(mc_error_0 == 0)
