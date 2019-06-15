@@ -204,5 +204,5 @@ SECTIONS
   _bsg_dram_d_end_addr = . ;
   _bsg_dram_end_addr = . ;
 
-  _sp = 0xfffffffc; /* 2GB DRAM */
+  _sp = 0xbffffffc; /* End of 1st ch of dram: 28-bit dram ch width */
 }
