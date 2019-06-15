@@ -13,8 +13,7 @@ ifdef SPIKE
 all: main.spike
 
 RISCV_GCC_EXTRA_OPTS += -D__spike__
-CRT_OBJ = ../specint2000/crt.o
-LINK_SCRIPT = ../specint2000/link.ld
+LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/spike.ld
 
 else
 
