@@ -517,8 +517,6 @@ module bsg_manycore_loopback_ddr_link_tester
     reset_1 = 1;
     token_reset_0 = 0;
     token_reset_1 = 0;
-    io_reset_0 = '1;
-    io_reset_1 = '1;
     core_link_reset_0 = 1;
     core_link_reset_1 = 1;
     core_reset_0 = 1;
@@ -547,6 +545,17 @@ module bsg_manycore_loopback_ddr_link_tester
     @(posedge clk_2x_1); #1;
     reset_1 = 0;
     
+    #100;
+    
+    // Reset signals propagate to downstream after io_clk is generated
+    for (j = 0; j < num_channels_p; j++)
+      begin
+        @(posedge edge_clk_1[j]); #1;
+        io_reset_0[j] = 1;
+        @(posedge edge_clk_0[j]); #1;
+        io_reset_1[j] = 1;
+      end
+      
     #1000;
     
     // downstream IO reset
