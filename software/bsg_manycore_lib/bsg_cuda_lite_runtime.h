@@ -19,7 +19,7 @@
 int kernel_regs[4] __attribute__ ((section ("CUDA_RTL"))) = { 0x0 }; 
 
 //This defines the offset of the runtime variables 
-#define CUDAL_PARAM_BASE_ADDR   0x1000
+#define CUDAL_PARAM_BASE_ADDR   0x1100
 #define CUDAL_KERNEL_PTR_IDX    0x0     //function pointer of the kernel function
 #define CUDAL_ARGC_IDX          0x4     //argc of the kernel function
 #define CUDAL_ARGV_PTR_IDX      0x8     //argv of the kernel function
@@ -58,7 +58,7 @@ int write_signal ()
 {
   if (__bsg_x == 0 && __bsg_y == 0) 
   {
-    int **signal_reg = (int **) 0x100c;
+    int **signal_reg = (int **) (CUDAL_PARAM_BASE_ADDR + CUDAL_SIG_PTR_IDX);
     int *signal_ptr = *signal_reg;
     *signal_ptr = 0x1; /* arbitrary */
   }
@@ -69,7 +69,7 @@ int write_signal ()
         asm("__wait_until_valid_func:");                                     \
         bsg_set_tile_x_y();                                                  \
         asm("                                                                \
-               li         s0           ,    0x1000;                          \
+               li         s0           ,    0x1100;                          \
                li         t0           ,    0x1;                             \
                lr.w       t1           ,    0 (  s0  );                      \
                bne        t0           ,    t1        ,     __init_param;    \
