@@ -19,42 +19,36 @@ module bsg_manycore_loopback_ddr_link_tester
        , bsg_noc_pkg::E  // east
        , bsg_noc_pkg::N  // north
        , bsg_noc_pkg::S; // south
+  
+  // wormhole routing matrix
+  import bsg_wormhole_router_pkg::StrictX;
 
  #(// Manycore configuration parameters, should match real Manycore tiles
-   parameter mc_addr_width_p = 10
-  ,parameter mc_data_width_p = 40
-  ,parameter mc_load_id_width_p = 5
-  ,parameter mc_x_cord_width_p = 5
-  ,parameter mc_y_cord_width_p = 5
+   parameter mc_addr_width_p    = 28
+  ,parameter mc_data_width_p    = 32
+  ,parameter mc_load_id_width_p = 12
+  ,parameter mc_x_cord_width_p  = 2
+  ,parameter mc_y_cord_width_p  = 3
   
   // Loopback test node configuration
-  ,parameter mc_node_num_channels_p = 7
-  
-  // How many wormhole packet flits for request and response
-  // If ratio=n, then total packet length is n*width_p
-  // 
-  // Calculation of proper ratios (same for req and resp)
-  // If the payload packet width is m, then:
-  // (m+x_cord_width_p+y_cord_width_p+len_width_p+reserved_width_p)
-  // must be smaller than or equal to (ratio*width_p)
-  //
-  // Increase these two ratios if adapter complains
-  ,parameter req_ratio_p = 3
-  ,parameter resp_ratio_p = 2
+  ,parameter mc_node_num_channels_p = 6
   
   // How many streams of traffic are merged in channel tunnel
   // In this testbench the number of traffics is 2 (req and resp traffic)
   ,parameter ct_num_in_p = 2
+    // This parameter is the property of wormhole network
+  // The reserved bits are for channel_tunnel_wormhole to mux and demux packets
+  // If we are merging m traffics in channel tunnel, then reserved bits needed
+  // is $clog2(m+1), where the "+1" is for credit returning packet.
+  ,parameter tag_width_p = $clog2(ct_num_in_p+1)
   
   // Wormhole packet configuration
   // Width of each wormhole flit
   // MUST be multiple of (2*channel_width_p*num_channels_p) 
   ,parameter width_p = 32
-  
-  // How many bits are needed for x-y coordinate
-  // Always set to non-zero numbers
-  ,parameter x_cord_width_p = 2
-  ,parameter y_cord_width_p = 2
+  ,parameter flit_width_p = width_p - tag_width_p
+  ,parameter dims_p = 1
+  ,parameter int cord_markers_pos_p[dims_p:0] = '{4, 0}
   
   // How many bits are used to represent packet length
   // If ratio is n, then length number is (n-1)
@@ -62,19 +56,13 @@ module bsg_manycore_loopback_ddr_link_tester
   //
   // In this testbench, only 2 types of packets (req and resp)
   // Only consider the longest one
-  ,parameter len_width_p = $clog2(`BSG_MAX(req_ratio_p, resp_ratio_p)-1+1)
-  
-  // This parameter is the property of wormhole network
-  // The reserved bits are for channel_tunnel_wormhole to mux and demux packets
-  // If we are merging m traffics in channel tunnel, then reserved bits needed
-  // is $clog2(m+1), where the "+1" is for credit returning packet.
-  ,parameter reserved_width_p = $clog2(ct_num_in_p+1)
+  ,parameter len_width_p = 2
   
   // Physical IO link configuration
   ,parameter channel_width_p = 8
   
   // How many physical IO link channels do we have for each bsg_link
-  ,parameter num_channels_p = 2
+  ,parameter num_channels_p = 1
   
   // DDR Link buffer size
   // 6 should be good for 500MHz, increase if channel stalls waiting for token
@@ -90,11 +78,11 @@ module bsg_manycore_loopback_ddr_link_tester
   // Must have large enough buffer to prevent stalling
   // Since credit counting is on header-flit, we need to consider the shortest possible packet
   // Suggested value is (96/`BSG_MIN(req_ratio, resp_ratio)) or larger
-  ,parameter remote_credits_p = 48
+  ,parameter ct_remote_credits_p = 64
   
   // Max possible number of wormhole payload flits going into channel tunnel
   // Each wormhole packet has 1 header flit and (m-1) payload flits
-  ,parameter ct_max_payload_flits_p = `BSG_MAX(req_ratio_p, resp_ratio_p)-1
+  //,parameter ct_max_payload_flits_p = `BSG_MAX(req_ratio_p, resp_ratio_p)-1
   
   // How often does channel tunnel return credits
   // If parameter is set to m, then channel tunnel will return credit to sender
@@ -104,13 +92,16 @@ module bsg_manycore_loopback_ddr_link_tester
   // Receiving a quarter of packets before return credit is reasonable
   // We may set lg_decimation to $clog2(remote_credits_p>>2) when remote_credits_p is power
   // of 2, otherwise set to ($clog2(remote_credits_p>>2)-1).
-  ,parameter ct_lg_credit_decimation_p = 3
+  ,parameter ct_lg_credit_decimation_p = 4
+  ,parameter ct_use_pseudo_large_fifo_p = 1
   )
   
   ();
   
+  localparam cord_width_lp = cord_markers_pos_p[dims_p];
+  
   `declare_bsg_manycore_link_sif_s (mc_addr_width_p,mc_data_width_p,mc_x_cord_width_p,mc_y_cord_width_p,mc_load_id_width_p);
-  `declare_bsg_ready_and_link_sif_s(width_p,bsg_ready_and_link_sif_s);
+  `declare_bsg_ready_and_link_sif_s(flit_width_p,bsg_ready_and_link_sif_s);
   
   // Clocks and control signals
   logic mc_clk_0, mc_clk_1;
@@ -134,14 +125,13 @@ module bsg_manycore_loopback_ddr_link_tester
   bsg_ready_and_link_sif_s [1:0][2:0] out_router_link_li;
   bsg_ready_and_link_sif_s [1:0][2:0] out_router_link_lo;
   
-  bsg_ready_and_link_sif_s [1:0] out_demux_link_li;
-  bsg_ready_and_link_sif_s [1:0] out_demux_link_lo;
+  logic [1:0] out_ct_fifo_valid_lo, out_ct_fifo_yumi_li;
+  logic [1:0] out_ct_fifo_valid_li, out_ct_fifo_yumi_lo;
+  logic [1:0][flit_width_p-1:0] out_ct_fifo_data_lo, out_ct_fifo_data_li;
   
-  logic out_ct_valid_lo, out_ct_ready_li;
-  logic [width_p-1:0] out_ct_data_lo;
-  
-  logic out_ct_valid_li, out_ct_ready_lo;
-  logic [width_p-1:0] out_ct_data_li;
+  logic out_ct_valid_lo, out_ct_ready_li; 
+  logic out_ct_valid_li, out_ct_yumi_lo;
+  logic [width_p-1:0] out_ct_data_lo, out_ct_data_li;
   
   logic [num_channels_p-1:0] edge_clk_0, edge_valid_0, edge_token_0;
   logic [num_channels_p-1:0][channel_width_p-1:0] edge_data_0;
@@ -149,14 +139,13 @@ module bsg_manycore_loopback_ddr_link_tester
   logic [num_channels_p-1:0] edge_clk_1, edge_valid_1, edge_token_1;
   logic [num_channels_p-1:0][channel_width_p-1:0] edge_data_1;
   
-  logic in_ct_valid_li, in_ct_ready_lo;
-  logic [width_p-1:0] in_ct_data_li;
-  
   logic in_ct_valid_lo, in_ct_ready_li;
-  logic [width_p-1:0] in_ct_data_lo;
+  logic in_ct_valid_li, in_ct_yumi_lo;
+  logic [width_p-1:0] in_ct_data_li, in_ct_data_lo;
   
-  bsg_ready_and_link_sif_s [1:0] in_demux_link_li;
-  bsg_ready_and_link_sif_s [1:0] in_demux_link_lo;
+  logic [1:0] in_ct_fifo_valid_lo, in_ct_fifo_yumi_li;
+  logic [1:0] in_ct_fifo_valid_li, in_ct_fifo_yumi_lo;
+  logic [1:0][flit_width_p-1:0] in_ct_fifo_data_lo, in_ct_fifo_data_li;
   
   bsg_ready_and_link_sif_s [1:0][2:0] in_router_link_li;
   bsg_ready_and_link_sif_s [1:0][2:0] in_router_link_lo;
@@ -198,11 +187,10 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.load_id_width_p(mc_load_id_width_p)
   ,.x_cord_width_p(mc_x_cord_width_p)
   ,.y_cord_width_p(mc_y_cord_width_p)
-  ,.wormhole_width_p(width_p)
-  ,.wormhole_x_cord_width_p(x_cord_width_p)
-  ,.wormhole_y_cord_width_p(y_cord_width_p)
-  ,.wormhole_len_width_p(len_width_p)
-  ,.wormhole_reserved_width_p(reserved_width_p)
+  ,.flit_width_p(flit_width_p)
+  ,.dims_p(dims_p)
+  ,.cord_markers_pos_p(cord_markers_pos_p)
+  ,.len_width_p(len_width_p)
   ) out_adapter
   (.manycore_clk_i  (mc_clk_0)
   ,.manycore_reset_i(mc_reset_0)
@@ -213,8 +201,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.clk_i   (clk_0)
   ,.reset_i (core_reset_0)
 
-  ,.dest_x_i((x_cord_width_p)'(3))
-  ,.dest_y_i((y_cord_width_p)'(0))
+  ,.dest_cord_i(cord_width_lp'(3))
   
   ,.link_i(out_node_link_li)
   ,.link_o(out_node_link_lo)
@@ -223,7 +210,22 @@ module bsg_manycore_loopback_ddr_link_tester
   
   for (i = 0; i < ct_num_in_p; i++) 
   begin: r0
-
+  
+    bsg_wormhole_router_generalized
+   #(.flit_width_p      (flit_width_p)
+    ,.dims_p            (dims_p)
+    ,.cord_markers_pos_p(cord_markers_pos_p)
+    ,.routing_matrix_p  (StrictX)
+    ,.len_width_p       (len_width_p)
+    ) 
+    router_0
+    (.clk_i    (clk_0)
+	,.reset_i  (core_reset_0)
+	,.my_cord_i(cord_width_lp'(2))
+	,.link_i   (out_router_link_li[i])
+	,.link_o   (out_router_link_lo[i])
+	);
+/*
     bsg_wormhole_router
    #(.width_p(width_p)
     ,.x_cord_width_p(x_cord_width_p)
@@ -243,17 +245,33 @@ module bsg_manycore_loopback_ddr_link_tester
     ,.link_i(out_router_link_li[i])
     ,.link_o(out_router_link_lo[i])
     );
-    
-    
+*/
     assign out_node_link_li[i] = out_router_link_lo[i][P];
     assign out_router_link_li[i][P] = out_node_link_lo[i];
     
-    assign out_demux_link_li[i] = out_router_link_lo[i][E];
-    assign out_router_link_li[i][E] = out_demux_link_lo[i];
+    assign out_router_link_li[i][W].v             = 1'b0;
+    assign out_router_link_li[i][W].ready_and_rev = 1'b1;
+    
+    bsg_two_fifo
+   #(.width_p(flit_width_p))
+    out_ct_fifo
+    (.clk_i  (clk_0       )
+    ,.reset_i(core_reset_0)
+    ,.ready_o(out_router_link_li[i][E].ready_and_rev)
+    ,.data_i (out_router_link_lo[i][E].data         )
+    ,.v_i    (out_router_link_lo[i][E].v            )
+    ,.v_o    (out_ct_fifo_valid_lo[i])
+    ,.data_o (out_ct_fifo_data_lo[i] )
+    ,.yumi_i (out_ct_fifo_yumi_li[i] )
+    );
+    
+    assign out_router_link_li[i][E].v = out_ct_fifo_valid_li[i];
+    assign out_router_link_li[i][E].data = out_ct_fifo_data_li[i];
+    assign out_ct_fifo_yumi_lo[i] = out_router_link_li[i][E].v & out_router_link_lo[i][E].ready_and_rev;
     
   end
   
-  
+/*  
   bsg_channel_tunnel_wormhole
  #(.width_p(width_p)
   ,.x_cord_width_p(x_cord_width_p)
@@ -282,7 +300,39 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.link_i(out_demux_link_li)
   ,.link_o(out_demux_link_lo)
   );
-  
+*/
+
+  bsg_channel_tunnel 
+ #(.width_p(flit_width_p)
+  ,.num_in_p(ct_num_in_p)
+  ,.remote_credits_p(ct_remote_credits_p)
+  ,.use_pseudo_large_fifo_p(ct_use_pseudo_large_fifo_p)
+  ,.lg_credit_decimation_p(ct_lg_credit_decimation_p)
+  )
+  out_ct
+  (.clk_i  (clk_0)
+  ,.reset_i(core_reset_0)
+
+  // incoming multiplexed data
+  ,.multi_data_i(out_ct_data_li)
+  ,.multi_v_i   (out_ct_valid_li)
+  ,.multi_yumi_o(out_ct_yumi_lo)
+
+  // outgoing multiplexed data
+  ,.multi_data_o(out_ct_data_lo)
+  ,.multi_v_o   (out_ct_valid_lo)
+  ,.multi_yumi_i(out_ct_ready_li & out_ct_valid_lo)
+
+  // incoming demultiplexed data
+  ,.data_i(out_ct_fifo_data_lo)
+  ,.v_i   (out_ct_fifo_valid_lo)
+  ,.yumi_o(out_ct_fifo_yumi_li)
+
+  // outgoing demultiplexed data
+  ,.data_o(out_ct_fifo_data_li)
+  ,.v_o   (out_ct_fifo_valid_li)
+  ,.yumi_i(out_ct_fifo_yumi_lo)
+  );
   
   bsg_link_ddr_upstream
  #(.width_p(width_p)
@@ -321,7 +371,7 @@ module bsg_manycore_loopback_ddr_link_tester
   
   ,.core_data_o   (out_ct_data_li)
   ,.core_valid_o  (out_ct_valid_li)
-  ,.core_yumi_i   (out_ct_valid_li&out_ct_ready_lo)
+  ,.core_yumi_i   (out_ct_yumi_lo)
 
   ,.io_clk_i      (edge_clk_1)
   ,.io_data_i     (edge_data_1)
@@ -367,7 +417,7 @@ module bsg_manycore_loopback_ddr_link_tester
   
   ,.core_data_o   (in_ct_data_li)
   ,.core_valid_o  (in_ct_valid_li)
-  ,.core_yumi_i   (in_ct_valid_li&in_ct_ready_lo)
+  ,.core_yumi_i   (in_ct_yumi_lo)
   
   ,.io_clk_i      (edge_clk_0)
   ,.io_data_i     (edge_data_0)
@@ -375,7 +425,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.core_token_r_o(edge_token_0)
   );
 
-
+/*
   bsg_channel_tunnel_wormhole
  #(.width_p(width_p)
   ,.x_cord_width_p(x_cord_width_p)
@@ -404,11 +454,59 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.link_i(in_demux_link_li)
   ,.link_o(in_demux_link_lo)
   );
-  
+*/
+
+  bsg_channel_tunnel 
+ #(.width_p(flit_width_p)
+  ,.num_in_p(ct_num_in_p)
+  ,.remote_credits_p(ct_remote_credits_p)
+  ,.use_pseudo_large_fifo_p(ct_use_pseudo_large_fifo_p)
+  ,.lg_credit_decimation_p(ct_lg_credit_decimation_p)
+  )
+  in_ct
+  (.clk_i  (clk_1)
+  ,.reset_i(core_reset_1)
+
+  // incoming multiplexed data
+  ,.multi_data_i(in_ct_data_li)
+  ,.multi_v_i   (in_ct_valid_li)
+  ,.multi_yumi_o(in_ct_yumi_lo)
+
+  // outgoing multiplexed data
+  ,.multi_data_o(in_ct_data_lo)
+  ,.multi_v_o   (in_ct_valid_lo)
+  ,.multi_yumi_i(in_ct_ready_li & in_ct_valid_lo)
+
+  // incoming demultiplexed data
+  ,.data_i(in_ct_fifo_data_lo)
+  ,.v_i   (in_ct_fifo_valid_lo)
+  ,.yumi_o(in_ct_fifo_yumi_li)
+
+  // outgoing demultiplexed data
+  ,.data_o(in_ct_fifo_data_li)
+  ,.v_o   (in_ct_fifo_valid_li)
+  ,.yumi_i(in_ct_fifo_yumi_lo)
+  );
   
   for (i = 0; i < ct_num_in_p; i++) 
   begin: r1
   
+    bsg_wormhole_router_generalized
+   #(.flit_width_p      (flit_width_p)
+    ,.dims_p            (dims_p)
+    ,.cord_markers_pos_p(cord_markers_pos_p)
+    ,.routing_matrix_p  (StrictX)
+    ,.len_width_p       (len_width_p)
+    ) 
+    router_1
+    (.clk_i    (clk_1)
+	,.reset_i  (core_reset_1)
+	,.my_cord_i(cord_width_lp'(3))
+	,.link_i   (in_router_link_li[i])
+	,.link_o   (in_router_link_lo[i])
+	);
+  
+/*  
     bsg_wormhole_router
    #(.width_p(width_p)
     ,.x_cord_width_p(x_cord_width_p)
@@ -428,12 +526,29 @@ module bsg_manycore_loopback_ddr_link_tester
     ,.link_i(in_router_link_li[i])
     ,.link_o(in_router_link_lo[i])
     );
-    
+*/    
     assign in_node_link_li[i] = in_router_link_lo[i][P];
     assign in_router_link_li[i][P] = in_node_link_lo[i];
     
-    assign in_demux_link_li[i] = in_router_link_lo[i][W];
-    assign in_router_link_li[i][W] = in_demux_link_lo[i];
+    assign in_router_link_li[i][E].v             = 1'b0;
+    assign in_router_link_li[i][E].ready_and_rev = 1'b1;
+    
+    bsg_two_fifo
+   #(.width_p(flit_width_p))
+    in_ct_fifo
+    (.clk_i  (clk_1       )
+    ,.reset_i(core_reset_1)
+    ,.ready_o(in_router_link_li[i][W].ready_and_rev)
+    ,.data_i (in_router_link_lo[i][W].data         )
+    ,.v_i    (in_router_link_lo[i][W].v            )
+    ,.v_o    (in_ct_fifo_valid_lo[i])
+    ,.data_o (in_ct_fifo_data_lo[i] )
+    ,.yumi_i (in_ct_fifo_yumi_li[i] )
+    );
+    
+    assign in_router_link_li[i][W].v = in_ct_fifo_valid_li[i];
+    assign in_router_link_li[i][W].data = in_ct_fifo_data_li[i];
+    assign in_ct_fifo_yumi_lo[i] = in_router_link_li[i][W].v & in_router_link_lo[i][W].ready_and_rev;
     
   end
 
@@ -444,11 +559,10 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.load_id_width_p(mc_load_id_width_p)
   ,.x_cord_width_p(mc_x_cord_width_p)
   ,.y_cord_width_p(mc_y_cord_width_p)
-  ,.wormhole_width_p(width_p)
-  ,.wormhole_x_cord_width_p(x_cord_width_p)
-  ,.wormhole_y_cord_width_p(y_cord_width_p)
-  ,.wormhole_len_width_p(len_width_p)
-  ,.wormhole_reserved_width_p(reserved_width_p)
+  ,.flit_width_p(flit_width_p)
+  ,.dims_p(dims_p)
+  ,.cord_markers_pos_p(cord_markers_pos_p)
+  ,.len_width_p(len_width_p)
   ) in_adapter
   (.manycore_clk_i  (mc_clk_1)
   ,.manycore_reset_i(mc_reset_1)
@@ -459,8 +573,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.clk_i  (clk_1)
   ,.reset_i(core_reset_1)
   
-  ,.dest_x_i((x_cord_width_p)'(2))
-  ,.dest_y_i((y_cord_width_p)'(0))
+  ,.dest_cord_i(cord_width_lp'(2))
   
   ,.link_i(in_node_link_li)
   ,.link_o(in_node_link_lo)

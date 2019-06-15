@@ -9,6 +9,13 @@
 //
 
 `include "bsg_manycore_packet.vh"
+`include "bsg_wormhole_router.vh"
+
+`define declare_bsg_manycore_link_to_wormhole_s(load_width, hdr_struct_name, in_struct_name) \
+  typedef struct packed {                                                      \
+    logic [load_width-1:0]     data;                                           \
+    hdr_struct_name            hdr;                                            \
+  } in_struct_name
 
 module bsg_manycore_link_async_to_wormhole
 
@@ -20,15 +27,16 @@ module bsg_manycore_link_async_to_wormhole
   ,parameter y_cord_width_p="inv"
   
   // Wormhole link parameters
-  ,parameter wormhole_width_p = "inv"
-  ,parameter wormhole_x_cord_width_p = "inv"
-  ,parameter wormhole_y_cord_width_p = "inv"
-  ,parameter wormhole_len_width_p = "inv"
-  ,parameter wormhole_reserved_width_p = "inv"
+  ,parameter flit_width_p                     = "inv"
+  ,parameter dims_p                           = "inv"
+  ,parameter int cord_markers_pos_p[dims_p:0] = "inv"
+  ,parameter len_width_p                      = "inv"
   
   ,localparam num_nets_lp = 2
-  ,localparam bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-  ,localparam bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(wormhole_width_p)
+  ,localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+  ,localparam bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(flit_width_p)
+  
+  ,localparam cord_width_lp = cord_markers_pos_p[dims_p]
   )
 
   (// Manycore side
@@ -45,20 +53,18 @@ module bsg_manycore_link_async_to_wormhole
   
   // The wormhole destination IDs should either be connected to a register (whose value is
   // initialized before reset is deasserted), or set to a constant value.
-  ,input [wormhole_x_cord_width_p-1:0] dest_x_i
-  ,input [wormhole_y_cord_width_p-1:0] dest_y_i
+  ,input [cord_width_lp-1:0] dest_cord_i
 
   // Wormhole links: {fwd_link, rev_link}
   ,input  [num_nets_lp-1:0][bsg_ready_and_link_sif_width_lp-1:0] link_i
   ,output [num_nets_lp-1:0][bsg_ready_and_link_sif_width_lp-1:0] link_o
   );
-  
+
   localparam rev_packet_index_lp = 0;
   localparam fwd_packet_index_lp = 1;
   localparam lg_fifo_depth_lp = 3;
   
   genvar i;
-  
   
   /********************* Packet definition *********************/
   
@@ -71,25 +77,27 @@ module bsg_manycore_link_async_to_wormhole
   localparam mc_rev_width_lp = $bits(bsg_manycore_return_packet_s);
   
   // Define wormhole fwd and rev packets
-  `declare_bsg_wormhole_packet_s(wormhole_reserved_width_p, wormhole_x_cord_width_p, wormhole_y_cord_width_p, wormhole_len_width_p, mc_fwd_width_lp, fwd_wormhole_packet);
-  `declare_bsg_wormhole_packet_s(wormhole_reserved_width_p, wormhole_x_cord_width_p, wormhole_y_cord_width_p, wormhole_len_width_p, mc_rev_width_lp, rev_wormhole_packet);
+  `declare_bsg_wormhole_router_header_s(cord_width_lp, len_width_p, bsg_wormhole_hdr_s);
+  
+  `declare_bsg_manycore_link_to_wormhole_s(mc_fwd_width_lp, bsg_wormhole_hdr_s, fwd_wormhole_packet_s);
+  `declare_bsg_manycore_link_to_wormhole_s(mc_rev_width_lp, bsg_wormhole_hdr_s, rev_wormhole_packet_s);
   
   // Wormhole packet width
-  localparam wh_fwd_width_lp = $bits(fwd_wormhole_packet);
-  localparam wh_rev_width_lp = $bits(rev_wormhole_packet);
+  localparam wh_fwd_width_lp = $bits(fwd_wormhole_packet_s);
+  localparam wh_rev_width_lp = $bits(rev_wormhole_packet_s);
   
   // Determine PISO and SIPOF convertion ratio
-  localparam wh_fwd_ratio_lp = `BSG_CDIV(wh_fwd_width_lp, wormhole_width_p);
-  localparam wh_rev_ratio_lp = `BSG_CDIV(wh_rev_width_lp, wormhole_width_p);
+  localparam wh_fwd_ratio_lp = `BSG_CDIV(wh_fwd_width_lp, flit_width_p);
+  localparam wh_rev_ratio_lp = `BSG_CDIV(wh_rev_width_lp, flit_width_p);
   
   // synopsys translate_off
   initial
   begin
-    assert (wormhole_len_width_p >= `BSG_SAFE_CLOG2(wh_fwd_ratio_lp))
-    else $error("Wormhole packet len width %d is too narrow for fwd ratio %d. Please increase len width.", wormhole_len_width_p, wh_fwd_ratio_lp);
-     
-    assert (wormhole_len_width_p >= `BSG_SAFE_CLOG2(wh_rev_ratio_lp))
-    else $error("Wormhole packet len width %d is too narrow for rev ratio %d. Please increase len width.", wormhole_len_width_p, wh_rev_ratio_lp);
+    assert (len_width_p >= `BSG_SAFE_CLOG2(wh_fwd_ratio_lp))
+    else $error("Wormhole packet len width %d is too narrow for fwd ratio %d. Please increase len width.", len_width_p, wh_fwd_ratio_lp);
+    
+    assert (len_width_p >= `BSG_SAFE_CLOG2(wh_rev_ratio_lp))
+    else $error("Wormhole packet len width %d is too narrow for rev ratio %d. Please increase len width.", len_width_p, wh_rev_ratio_lp);
   end
   // synopsys translate_on
   
@@ -114,23 +122,19 @@ module bsg_manycore_link_async_to_wormhole
   assign links_sif_o_cast.rev = rev_lo;
   
   // fwd and rev wormhole packets
-  fwd_wormhole_packet mc_fwd_piso_data_li_cast, mc_fwd_sipof_data_lo_cast;
-  rev_wormhole_packet mc_rev_piso_data_li_cast, mc_rev_sipof_data_lo_cast;
+  fwd_wormhole_packet_s mc_fwd_piso_data_li_cast, mc_fwd_sipof_data_lo_cast;
+  rev_wormhole_packet_s mc_rev_piso_data_li_cast, mc_rev_sipof_data_lo_cast;
   
   always_comb 
   begin
     // fwd out of manycore
-    mc_fwd_piso_data_li_cast.reserved = '0;
-    mc_fwd_piso_data_li_cast.x_cord   = dest_x_i;
-    mc_fwd_piso_data_li_cast.y_cord   = dest_y_i;
-    mc_fwd_piso_data_li_cast.len      = wh_fwd_ratio_lp-1;
+    mc_fwd_piso_data_li_cast.hdr.cord = dest_cord_i;
+    mc_fwd_piso_data_li_cast.hdr.len  = wh_fwd_ratio_lp-1;
     mc_fwd_piso_data_li_cast.data     = fwd_li.data;
     
     // rev out of manycore
-    mc_rev_piso_data_li_cast.reserved = '0;
-    mc_rev_piso_data_li_cast.x_cord   = dest_x_i;
-    mc_rev_piso_data_li_cast.y_cord   = dest_y_i;
-    mc_rev_piso_data_li_cast.len      = wh_rev_ratio_lp-1;
+    mc_rev_piso_data_li_cast.hdr.cord = dest_cord_i;
+    mc_rev_piso_data_li_cast.hdr.len  = wh_rev_ratio_lp-1;
     mc_rev_piso_data_li_cast.data     = rev_li.data;
     
     // fwd into manycore
@@ -144,8 +148,8 @@ module bsg_manycore_link_async_to_wormhole
   /********************* SIPOF and PISO *********************/
   
   // PISO and SIPOF signals
-  logic [wh_fwd_ratio_lp*wormhole_width_p-1:0] mc_fwd_piso_data_li, mc_fwd_sipof_data_lo;
-  logic [wh_rev_ratio_lp*wormhole_width_p-1:0] mc_rev_piso_data_li, mc_rev_sipof_data_lo;
+  logic [wh_fwd_ratio_lp*flit_width_p-1:0] mc_fwd_piso_data_li, mc_fwd_sipof_data_lo;
+  logic [wh_rev_ratio_lp*flit_width_p-1:0] mc_rev_piso_data_li, mc_rev_sipof_data_lo;
   
   assign mc_fwd_piso_data_li       = {'0, mc_fwd_piso_data_li_cast};
   assign mc_rev_piso_data_li       = {'0, mc_rev_piso_data_li_cast};
@@ -156,12 +160,12 @@ module bsg_manycore_link_async_to_wormhole
   logic [num_nets_lp-1:0] mc_async_fifo_valid_li, mc_async_fifo_yumi_lo;
   logic [num_nets_lp-1:0] mc_async_fifo_valid_lo, mc_async_fifo_ready_li;
   
-  logic [num_nets_lp-1:0][wormhole_width_p-1:0] mc_async_fifo_data_li;
-  logic [num_nets_lp-1:0][wormhole_width_p-1:0] mc_async_fifo_data_lo;
+  logic [num_nets_lp-1:0][flit_width_p-1:0] mc_async_fifo_data_li;
+  logic [num_nets_lp-1:0][flit_width_p-1:0] mc_async_fifo_data_lo;
   
   // fwd link piso and sipof
   bsg_parallel_in_serial_out 
- #(.width_p(wormhole_width_p)
+ #(.width_p(flit_width_p)
   ,.els_p  (wh_fwd_ratio_lp )
   ) fwd_piso
   (.clk_i  (manycore_clk_i  )
@@ -175,7 +179,7 @@ module bsg_manycore_link_async_to_wormhole
   );
   
   bsg_serial_in_parallel_out_full
- #(.width_p(wormhole_width_p)
+ #(.width_p(flit_width_p)
   ,.els_p  (wh_fwd_ratio_lp )
   ) fwd_sipof
   (.clk_i  (manycore_clk_i  )
@@ -190,7 +194,7 @@ module bsg_manycore_link_async_to_wormhole
   
   // rev link piso and sipof
   bsg_parallel_in_serial_out 
- #(.width_p(wormhole_width_p)
+ #(.width_p(flit_width_p)
   ,.els_p  (wh_rev_ratio_lp )
   ) rev_piso
   (.clk_i  (manycore_clk_i  )
@@ -204,7 +208,7 @@ module bsg_manycore_link_async_to_wormhole
   );
   
   bsg_serial_in_parallel_out_full
- #(.width_p(wormhole_width_p)
+ #(.width_p(flit_width_p)
   ,.els_p  (wh_rev_ratio_lp )
   ) rev_sipof
   (.clk_i  (manycore_clk_i  )
@@ -222,10 +226,10 @@ module bsg_manycore_link_async_to_wormhole
   
   // Wormhole side signals
   logic [num_nets_lp-1:0] valid_lo, ready_li;
-  logic [num_nets_lp-1:0][wormhole_width_p-1:0] data_lo;
+  logic [num_nets_lp-1:0][flit_width_p-1:0] data_lo;
   
   logic [num_nets_lp-1:0] valid_li, ready_lo;
-  logic [num_nets_lp-1:0][wormhole_width_p-1:0] data_li;
+  logic [num_nets_lp-1:0][flit_width_p-1:0] data_li;
 
   // Manycore side async fifo input
   logic [num_nets_lp-1:0] mc_async_fifo_full_lo;
@@ -244,7 +248,7 @@ module bsg_manycore_link_async_to_wormhole
     // This async fifo crosses from wormhole clock to manycore clock
     bsg_async_fifo
    #(.lg_size_p(lg_fifo_depth_lp)
-    ,.width_p  (wormhole_width_p)
+    ,.width_p  (flit_width_p)
     ) wh_to_mc
     (.w_clk_i  (clk_i)
     ,.w_reset_i(reset_i)
@@ -262,7 +266,7 @@ module bsg_manycore_link_async_to_wormhole
     // This async fifo crosses from manycore clock to wormhole clock
     bsg_async_fifo
    #(.lg_size_p(lg_fifo_depth_lp)
-    ,.width_p  (wormhole_width_p)
+    ,.width_p  (flit_width_p)
     ) mc_to_wh
     (.w_clk_i  (manycore_clk_i)
     ,.w_reset_i(manycore_reset_i)
@@ -281,7 +285,7 @@ module bsg_manycore_link_async_to_wormhole
   
   /********************* Interfacing bsg_noc link *********************/
   
-  `declare_bsg_ready_and_link_sif_s(wormhole_width_p,bsg_ready_and_link_sif_s);
+  `declare_bsg_ready_and_link_sif_s(flit_width_p,bsg_ready_and_link_sif_s);
   bsg_ready_and_link_sif_s [num_nets_lp-1:0] link_i_cast, link_o_cast;
   
   for (i = 0; i < num_nets_lp; i++) 
