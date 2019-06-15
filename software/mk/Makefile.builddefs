@@ -162,7 +162,11 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all -S $<
 
 %.spike: %.riscv
-	$(RISCV_SIM) --isa=$(ARCH_OP) $<
+ifdef DEBUG
+	$(RISCV_SIM) -d --isa=$(ARCH_OP) $<
+else
+	$(RISCV_SIM) -l --isa=$(ARCH_OP) $< 2> spike.log
+endif
 
 %.S: %.c
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ |& tee $*.comp.log
