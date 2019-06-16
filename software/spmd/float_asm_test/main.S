@@ -336,11 +336,44 @@ _test25:
   lw t2, 8(t0)
   bne t1, t2, fail
 
+_test26:
+  la t0, float_dram_arr
+  li t1, 0x41400000
+  li t2, 0x41500000
+  sw t1, 0(t0)
+  sw t2, 4(t0)
+  flw f0, 0(t0)
+  flw f1, 4(t0)
+  fmul.s f2, f0, f1
+  fmv.x.s t3, f2
+  li t4, 0x431c0000
+  bne t3, t4, fail
 
+_test27:
+  la t0, float_dram_arr
+  li t1, 2
+  li t2, 16
+  li t3, 0x3f800000
+  sw t3, 0(t0)
+  sw t3, 4(t0)
 
+_test27_loop:
+  slli t3, t1, 2
+  add t3, t3, t0
+  flw f0, -8(t3)
+  flw f1, -4(t3)
+  fadd.s f2, f0, f1
+  fsw f2, 0(t3)
+  addi t1, t1, 1
+  bne t1, t2, _test27_loop  
 
-
-
+_test27_end:
+  addi t3, t2, -1
+  slli t3, t3, 2
+  add t3, t3, t0
+  lw t5, 0(t3)
+  li t4, 0x4476c000
+  bne t4, t5, fail
 
 
 pass:
