@@ -7,7 +7,6 @@
 /* This link script places data section in dram
  * by default. Text sections are places in dram.
  *
- * Data in bsg_manycore_lib.a & .dmem is placed in dmem. 
  */
 
 
@@ -33,7 +32,6 @@ MEMORY
   /* DRAM data VMA */
   DRAM_D_VMA (rw) : ORIGIN = 0x81000000, LENGTH = 2032M /* 2048M - 16M */
 }
-
 
 
 /*=============================
@@ -137,16 +135,12 @@ SECTIONS
          "[ Error ] during linking, local dmem overflow, please check the dmem usage"
         ) 
 
-
-
-
   /*----------------------------------
    * DRAM output sections
    *----------------------------------*/
 
 
   /* I-EVA backing storage sections should end with .i.dram */
-  . = 0x0;                                    /* I-EVAs start address */
   _bsg_dram_t_start_addr = _dram_t_lma_start; /* _bsg_dram_i_start_addr and _bsg_dram_i_end_addr 
                                                  are the DRAM NPAs required by loader 
                                                */
@@ -171,7 +165,6 @@ SECTIONS
   _bsg_dram_d_start_addr = .; /* _bsg_dram_d_start_addr and _bsg_dram_d_end_addr 
                                 are the DRAM NPAs required by loader 
                               */
-
   .data.dram : 
   AT(_dram_d_lma_start) 
   {
