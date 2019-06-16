@@ -15,8 +15,10 @@
 `endif
 
 `ifdef DEFAULT_CODE_SECTIONS
-	`define NUM_CODE_SECTIONS 1
-	`define CODE_SECTIONS `_bsg_dram_start_addr,`_bsg_dram_end_addr
+	`define NUM_CODE_SECTIONS 2
+	`define CODE_SECTIONS \
+    `_bsg_dram_t_start_addr,`_bsg_dram_t_end_addr, \
+    `_bsg_dram_d_start_addr,`_bsg_dram_d_end_addr
 `endif
 
 module bsg_nonsynth_manycore_spmd_loader
@@ -57,8 +59,8 @@ module bsg_nonsynth_manycore_spmd_loader
 
     // the dram related parameters
     // VCS do not support index larger than 32'h7fff_ffff
-    , parameter unsigned dram_start_addr_lp = `_bsg_dram_start_addr
-    , parameter unsigned dram_end_addr_lp = `_bsg_dram_end_addr  
+    , parameter unsigned dram_start_addr_lp = `_bsg_dram_t_start_addr
+    , parameter unsigned dram_end_addr_lp = `_bsg_dram_d_end_addr  
     , parameter dram_init_file_name = `_dram_init_file_name
 
     // Only the address space derived from the following parameters is
@@ -77,10 +79,6 @@ module bsg_nonsynth_manycore_spmd_loader
     , input [y_cord_width_p-1:0] my_y_i
     , input [x_cord_width_p-1:0] my_x_i
   );
-
-  // initialization files
-  localparam dmem_size_lp = dmem_end_addr_lp - dmem_start_addr_lp;
-  localparam dram_size_lp = dram_end_addr_lp - dram_start_addr_lp; 
 
   logic [7:0] DMEM [dmem_end_addr_lp:dmem_start_addr_lp];
   logic [7:0] DRAM [dram_end_addr_lp:dram_start_addr_lp];
