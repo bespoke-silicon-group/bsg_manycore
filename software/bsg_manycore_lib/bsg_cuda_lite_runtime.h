@@ -16,7 +16,7 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-int kernel_regs[4] __attribute__ ((section ("CUDA_RTL"))) = { 0x0 }; 
+//int kernel_regs[4] __attribute__ ((section ("CUDA_RTL"))) = { 0x0 }; 
 
 //This defines the offset of the runtime variables 
 #define CUDAL_PARAM_BASE_ADDR   0x1100
@@ -65,21 +65,32 @@ int write_signal ()
 }
 
 
+int cuda_kernel_ptr = 0;
+int cuda_argc = 0;
+int cuda_argv_ptr = 0; 
+int cuda_finish_signal_addr = 0; 
+
+
 #define __wait_until_valid_func()                                            \
         asm("__wait_until_valid_func:");                                     \
         bsg_set_tile_x_y();                                                  \
-        asm("                                                                \
-               li         s0           ,    0x1100;                          \
+        asm("                                                                \		
+               la         s0           ,    cuda_kernel_ptr;                 \
                li         t0           ,    0x1;                             \
                lr.w       t1           ,    0 (  s0  );                      \
                bne        t0           ,    t1        ,     __init_param;    \
                lr.w.aq    t0           ,    0 (  s0  );                      \
                                                                              \
              __init_param:                                                   \
-                lw        s1           ,     0 ( s0  );                      \
-                lw        s2           ,     4 ( s0  );                      \
-                lw        s3           ,     8 ( s0  );                      \
-                lw        s4           ,    12 ( s0  );                      \
+                la        t0           ,    cuda_kernel_ptr;                 \
+                lw        s1           ,     0 ( t0  );                      \
+                la        t0           ,    cuda_argc;                       \
+                lw        s2           ,     0 ( t0  );                      \
+                la        t0           ,    cuda_argv_ptr;                   \
+                lw        s3           ,     0 ( t0  );                      \
+                la        t0           ,    cuda_finish_signal_addr;         \
+                lw        s4           ,     0 ( t0  );                      \
+                                                                             \
                                                                              \
              __load_argument:                                                \
                 lw        a0           ,     0 ( s3  );                      \
