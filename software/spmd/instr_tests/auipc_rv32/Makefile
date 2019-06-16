@@ -3,7 +3,7 @@ bsg_tiles_Y= 1
 
 all: main.run
 
-LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_new.ld
+LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem.ld
 
 include ../../Makefile.include
 
