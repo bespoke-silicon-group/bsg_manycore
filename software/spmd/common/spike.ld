@@ -1,21 +1,49 @@
-OUTPUT_ARCH( "riscv" )
+/******************************/
+/*                            */
+/*   spike linker script      */
+/*                            */
+/******************************/
 
-/*----------------------------------------------------------------------*/
-/* Sections                                                             */
-/*----------------------------------------------------------------------*/
+
+/*=============================
+ * Memory region descriptions
+ *=============================*/
+
+MEMORY
+{
+  /* DRAM text VMA */
+  DRAM_T_VMA (rx) : ORIGIN = 0x80000000, LENGTH = 16M
+
+  /* DRAM data VMA */
+  DRAM_D_VMA (rw) : ORIGIN = 0x81000000, LENGTH = 2032M /* 2048M - 16M */
+}
+
+
+
+/*=============================
+ * Output section descriptions
+ *=============================*/
 
 SECTIONS
 {
-  .text 0x80000000: 
+  /*----------------------------------
+   * DRAM output sections
+   *----------------------------------*/
+
+
+  .text : 
   {
      *crt.o(.text)
      *(.text)
      *(.text.startup)
      *(.text.*)
-  } 
+  } >DRAM_T_VMA 
 
-  
-  .data 0x81000000: 
+
+
+  _bsg_data_start_addr =.;
+
+  .data : 
   {
     _dram_rodata = .;
     *(.rodata*) 
@@ -41,10 +69,17 @@ SECTIONS
 
     _dram_misc = .;
     *(.*)
-  } 
 
-  _bsg_data_end_addr = . ;
+    tohost = .;
+    . = . + 4;
+
+    fromhost = .;
+    . = . + 4;
+  } >DRAM_D_VMA 
+
+  _bsg_dram_d_end_addr = . ;
   _bsg_dram_end_addr = . ;
+  _bsg_data_end_addr = . ;
 
-  _sp = 0xbffffffc;
+  _sp = 0xbffffffc; /* End of 1st ch of dram: 28-bit dram ch width */
 }

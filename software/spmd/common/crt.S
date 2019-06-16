@@ -66,15 +66,3 @@ _start:
 
 2:
   j 2b
-
-#ifdef __spike__
-.align 6; 
-.global tohost
-tohost:
-  .dword 0
-
-.align 6; 
-.global fromhost
-fromhost:
-  .dword 0
-#endif
