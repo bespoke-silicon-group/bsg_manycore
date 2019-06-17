@@ -11,12 +11,6 @@
 `include "bsg_manycore_packet.vh"
 `include "bsg_wormhole_router.vh"
 
-`define declare_bsg_manycore_link_to_wormhole_s(load_width, hdr_struct_name, in_struct_name) \
-  typedef struct packed {                                                      \
-    logic [load_width-1:0]     data;                                           \
-    hdr_struct_name            hdr;                                            \
-  } in_struct_name
-
 module bsg_manycore_link_async_to_wormhole
 
  #(// Manycore link parameters
@@ -76,11 +70,17 @@ module bsg_manycore_link_async_to_wormhole
   localparam mc_fwd_width_lp = $bits(bsg_manycore_packet_s);
   localparam mc_rev_width_lp = $bits(bsg_manycore_return_packet_s);
   
-  // Define wormhole fwd and rev packets
+  // Define wormhole fwd and rev packets  
   `declare_bsg_wormhole_router_header_s(cord_width_lp, len_width_p, bsg_wormhole_hdr_s);
   
-  `declare_bsg_manycore_link_to_wormhole_s(mc_fwd_width_lp, bsg_wormhole_hdr_s, fwd_wormhole_packet_s);
-  `declare_bsg_manycore_link_to_wormhole_s(mc_rev_width_lp, bsg_wormhole_hdr_s, rev_wormhole_packet_s);
+  typedef struct packed {
+    logic [mc_fwd_width_lp-1:0] data;
+    bsg_wormhole_hdr_s          hdr;
+  } fwd_wormhole_packet_s;
+  typedef struct packed {
+    logic [mc_rev_width_lp-1:0] data;
+    bsg_wormhole_hdr_s          hdr;
+  } rev_wormhole_packet_s;
   
   // Wormhole packet width
   localparam wh_fwd_width_lp = $bits(fwd_wormhole_packet_s);

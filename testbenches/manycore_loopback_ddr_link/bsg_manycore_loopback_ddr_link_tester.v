@@ -23,40 +23,120 @@ module bsg_manycore_loopback_ddr_link_tester
   // wormhole routing matrix
   import bsg_wormhole_router_pkg::StrictX;
 
- #(// Manycore configuration parameters, should match real Manycore tiles
+ #(
+ 
+  /*********************** Loopback test node params ***********************/
+   
+  // Manycore configuration parameters, should match real Manycore tiles
    parameter mc_addr_width_p    = 28
   ,parameter mc_data_width_p    = 32
   ,parameter mc_load_id_width_p = 12
   ,parameter mc_x_cord_width_p  = 2
   ,parameter mc_y_cord_width_p  = 3
-  
+
   // Loopback test node configuration
   ,parameter mc_node_num_channels_p = 6
+  
+  
+  /*********************** Fundamental params ***********************/
   
   // How many streams of traffic are merged in channel tunnel
   // In this testbench the number of traffics is 2 (req and resp traffic)
   ,parameter ct_num_in_p = 2
-    // This parameter is the property of wormhole network
-  // The reserved bits are for channel_tunnel_wormhole to mux and demux packets
-  // If we are merging m traffics in channel tunnel, then reserved bits needed
-  // is $clog2(m+1), where the "+1" is for credit returning packet.
+  
+  // Tag bits are for channel_tunnel_wormhole to mux and demux packets
+  // If we are merging m traffics in channel tunnel, then tag bits shoule 
+  // be $clog2(m+1), where the "+1" is for credit returning packet.
   ,parameter tag_width_p = $clog2(ct_num_in_p+1)
   
-  // Wormhole packet configuration
-  // Width of each wormhole flit
+  // bsg_link data width
   // MUST be multiple of (2*channel_width_p*num_channels_p) 
-  ,parameter width_p = 32
-  ,parameter flit_width_p = width_p - tag_width_p
+  ,parameter link_width_p = 32
+  
+  
+  /*********************** Wormhole network params ***********************/
+  
+  // Wormhole flit width is narrower than link data width
+  ,parameter flit_width_p = link_width_p - tag_width_p
+  
+  // We do 1D routing here
   ,parameter dims_p = 1
+  
+  // This is the wormhole router coordinate marker
+  //
+  // Example of 1D routing: marker_p = '{b, a}
+  // x_cord = marker_p[b-1:a], cord_width = b-a.
+  //
+  // Example of 2D routing: marker_p = '{c, b, a}
+  // x_cord = marker_p[b-1:a], x_cord_width = b-a.
+  // y_cord = marker_p[c-1:b], y_cord_width = c-b.
+  //                             cord_width = c-a.
+  //
+  // Coordinate passed into each module is represented by cord_width'(cord).
+  // Child module use dims_p and cord_marker_pos_p to extract hidden information.
+  //
   ,parameter int cord_markers_pos_p[dims_p:0] = '{4, 0}
   
-  // How many bits are used to represent packet length
-  // If ratio is n, then length number is (n-1)
-  // Should be $clog2(ratio-1+1)
+  // Routing matrix that chooses which routing directions are enabled
+  // Must use StrictX for 1D routing
+  // StrictX directions: P->W, P->E, P->P, W->E, W->P, E->W, E->P
   //
-  // In this testbench, only 2 types of packets (req and resp)
-  // Only consider the longest one
-  ,parameter len_width_p = 2
+  ,parameter dirs_p = dims_p*2+1
+  ,parameter bit [1:0][dirs_p-1:0][dirs_p-1:0] routing_matrix_p = StrictX
+  
+  // How many bits are used to represent wormhole packet length
+  // Length is represented by number of payload flits in each packet
+  // len_width should be determined by max possiblt packet length
+  //
+  // In this testbench, max possible number of payload flit is 2 (manycore req)
+  // Max possible total flits is (max_payload_flit+1)
+  // Then len_width = `BSG_SAFE_CLOG2(max_payload_flit+1)
+  //
+  ,parameter len_width_p = `BSG_SAFE_CLOG2(2+1)
+  
+  
+  /*********************** Channel Tunnel params ***********************/
+  
+  // Number of available credits. There is a receive buffer (size equal to num of credits) 
+  // on receiver side, when data dequeue from buffer, it returns credit to sender. 
+  // If sender runs out of credit, it stalls.
+  //
+  // There is a round-trip delay between sender and receiver for credit returning
+  // Must have large enough amount of credit to prevent stalling
+  //
+  ,parameter ct_remote_credits_p = 64
+  
+  // How often does channel tunnel return credits
+  // If parameter is set to m, then channel tunnel will return credit to sender
+  // after receiving 2^m wormhole flits.
+  //
+  // Generally we don't want to send credit too often (wasteful of IO bandwidth)
+  // Receiving a quarter of packets before return credit is reasonable
+  //
+  ,parameter ct_credit_decimation_p    = ct_remote_credits_p/4
+  
+  // Smaller decimation means returning credit more frequently
+  // Need to get smallest reasonable lg_decimation to prevent stalling
+  ,parameter ct_lg_credit_decimation_p = $clog2(ct_credit_decimation_p/2+1)
+  
+  // Whether to use single 1rw memory as input buffer
+  // Pseudo large fifo saves 1.7x hardware, but read / write bandwidth is halved
+  // In this application we use pseudo fifo, because channel tunnel is not bottle-neck
+  //
+  // Proof of correctness:
+  // Assume we run IO at frequency f_io, physical IO channel width is w_ch, number
+  // of physical IO channels is num_ch, channel tunnel data width is w_ct, channel tunnel
+  // run at frequency f_ct. In order to use pseudo large fifo without sacrificing 
+  // performance, we should have:
+  //
+  //    f_ct >= f_io * (w_ch * num_ch / w_ct)
+  //
+  // For this application, it becomes f_ct >= 0.5*f_io, which is true most of the time.
+  //
+  ,parameter ct_use_pseudo_large_fifo_p = 1
+  
+  
+  /*********************** DRR link params ***********************/
   
   // Physical IO link configuration
   ,parameter channel_width_p = 8
@@ -72,66 +152,64 @@ module bsg_manycore_loopback_ddr_link_tester
   // Do not change
   ,parameter lg_credit_to_token_decimation_p = 3
   
-  // Channel tunnel configuration
-  // Size of channel tunnel buffer (hardened memory)
-  // There is a round-trip delay between sender and receiver for credit return
-  // Must have large enough buffer to prevent stalling
-  // Since credit counting is on header-flit, we need to consider the shortest possible packet
-  // Suggested value is (96/`BSG_MIN(req_ratio, resp_ratio)) or larger
-  ,parameter ct_remote_credits_p = 64
-  
-  // Max possible number of wormhole payload flits going into channel tunnel
-  // Each wormhole packet has 1 header flit and (m-1) payload flits
-  //,parameter ct_max_payload_flits_p = `BSG_MAX(req_ratio_p, resp_ratio_p)-1
-  
-  // How often does channel tunnel return credits
-  // If parameter is set to m, then channel tunnel will return credit to sender
-  // after receiving 2^m wormhole packets (regardless of how many payload flits they have).
-  //
-  // Generally we don't want to send credit too often (wasteful of IO bandwidth)
-  // Receiving a quarter of packets before return credit is reasonable
-  // We may set lg_decimation to $clog2(remote_credits_p>>2) when remote_credits_p is power
-  // of 2, otherwise set to ($clog2(remote_credits_p>>2)-1).
-  ,parameter ct_lg_credit_decimation_p = 4
-  ,parameter ct_use_pseudo_large_fifo_p = 1
   )
   
   ();
   
+  // This localparam should be defined in each module that handles wormhole
   localparam cord_width_lp = cord_markers_pos_p[dims_p];
+  
+  // Loopback test specific parameters
+  localparam out_node_cord = 2;
+  localparam in_node_cord  = 3;
   
   `declare_bsg_manycore_link_sif_s (mc_addr_width_p,mc_data_width_p,mc_x_cord_width_p,mc_y_cord_width_p,mc_load_id_width_p);
   `declare_bsg_ready_and_link_sif_s(flit_width_p,bsg_ready_and_link_sif_s);
   
-  // Clocks and control signals
-  logic mc_clk_0, mc_clk_1;
-  logic mc_reset_0, mc_reset_1;
-  logic clk_0, clk_1, reset_0, reset_1;
-  logic clk_2x_0, clk_2x_1;
-  logic token_reset_0, token_reset_1;
-  logic [num_channels_p-1:0] io_reset_0, io_reset_1;
-  logic core_link_reset_0, core_link_reset_1;
-  logic core_reset_0, core_reset_1;
+  // Loopback node control
   logic mc_en_0, mc_en_1;
   logic mc_error_0, mc_error_1;
-  logic [31:0] sent_0, received_0, sent_1, received_1;
+  logic [31:0] sent_0, sent_1;
+  logic [31:0] received_0, received_1;
+  
+  // Manycore clock and reset
+  logic mc_clk_0, mc_clk_1;
+  logic mc_reset_0, mc_reset_1;
+  
+  // Router clock and reset
+  logic router_clk_0, router_clk_1;
+  logic router_reset_0, router_reset_1;
+  
+  // Link upstream and downstream core reset
+  logic core_upstream_downstream_reset_0, core_upstream_downstream_reset_1;
+  
+  // Link upstream io clock and reset
+  logic io_upstream_clk_0, io_upstream_clk_1;
+  logic io_upstream_reset_0, io_upstream_reset_1;
+  
+  // Link upstream token async reset
+  logic token_reset_0, token_reset_1;
+  
+  // Link downstream io reset
+  logic [num_channels_p-1:0] io_downstream_reset_0, io_downstream_reset_1;
+  
   
   bsg_manycore_link_sif_s out_mc_node_li;
   bsg_manycore_link_sif_s out_mc_node_lo;
   
-  bsg_ready_and_link_sif_s [1:0] out_node_link_li;
-  bsg_ready_and_link_sif_s [1:0] out_node_link_lo;
+  bsg_ready_and_link_sif_s [ct_num_in_p-1:0] out_node_link_li;
+  bsg_ready_and_link_sif_s [ct_num_in_p-1:0] out_node_link_lo;
   
-  bsg_ready_and_link_sif_s [1:0][2:0] out_router_link_li;
-  bsg_ready_and_link_sif_s [1:0][2:0] out_router_link_lo;
+  bsg_ready_and_link_sif_s [ct_num_in_p-1:0][dirs_p-1:0] out_router_link_li;
+  bsg_ready_and_link_sif_s [ct_num_in_p-1:0][dirs_p-1:0] out_router_link_lo;
   
-  logic [1:0] out_ct_fifo_valid_lo, out_ct_fifo_yumi_li;
-  logic [1:0] out_ct_fifo_valid_li, out_ct_fifo_yumi_lo;
-  logic [1:0][flit_width_p-1:0] out_ct_fifo_data_lo, out_ct_fifo_data_li;
+  logic [ct_num_in_p-1:0] out_ct_fifo_valid_lo, out_ct_fifo_yumi_li;
+  logic [ct_num_in_p-1:0] out_ct_fifo_valid_li, out_ct_fifo_yumi_lo;
+  logic [ct_num_in_p-1:0][flit_width_p-1:0] out_ct_fifo_data_lo, out_ct_fifo_data_li;
   
   logic out_ct_valid_lo, out_ct_ready_li; 
   logic out_ct_valid_li, out_ct_yumi_lo;
-  logic [width_p-1:0] out_ct_data_lo, out_ct_data_li;
+  logic [link_width_p-1:0] out_ct_data_lo, out_ct_data_li;
   
   logic [num_channels_p-1:0] edge_clk_0, edge_valid_0, edge_token_0;
   logic [num_channels_p-1:0][channel_width_p-1:0] edge_data_0;
@@ -141,17 +219,17 @@ module bsg_manycore_loopback_ddr_link_tester
   
   logic in_ct_valid_lo, in_ct_ready_li;
   logic in_ct_valid_li, in_ct_yumi_lo;
-  logic [width_p-1:0] in_ct_data_li, in_ct_data_lo;
+  logic [link_width_p-1:0] in_ct_data_li, in_ct_data_lo;
   
-  logic [1:0] in_ct_fifo_valid_lo, in_ct_fifo_yumi_li;
-  logic [1:0] in_ct_fifo_valid_li, in_ct_fifo_yumi_lo;
-  logic [1:0][flit_width_p-1:0] in_ct_fifo_data_lo, in_ct_fifo_data_li;
+  logic [ct_num_in_p-1:0] in_ct_fifo_valid_lo, in_ct_fifo_yumi_li;
+  logic [ct_num_in_p-1:0] in_ct_fifo_valid_li, in_ct_fifo_yumi_lo;
+  logic [ct_num_in_p-1:0][flit_width_p-1:0] in_ct_fifo_data_lo, in_ct_fifo_data_li;
   
-  bsg_ready_and_link_sif_s [1:0][2:0] in_router_link_li;
-  bsg_ready_and_link_sif_s [1:0][2:0] in_router_link_lo;
+  bsg_ready_and_link_sif_s [ct_num_in_p-1:0][dirs_p-1:0] in_router_link_li;
+  bsg_ready_and_link_sif_s [ct_num_in_p-1:0][dirs_p-1:0] in_router_link_lo;
   
-  bsg_ready_and_link_sif_s [1:0] in_node_link_li;
-  bsg_ready_and_link_sif_s [1:0] in_node_link_lo;
+  bsg_ready_and_link_sif_s [ct_num_in_p-1:0] in_node_link_li;
+  bsg_ready_and_link_sif_s [ct_num_in_p-1:0] in_node_link_lo;
   
   bsg_manycore_link_sif_s in_mc_node_li;
   bsg_manycore_link_sif_s in_mc_node_lo;
@@ -160,21 +238,21 @@ module bsg_manycore_loopback_ddr_link_tester
   
 
   bsg_manycore_loopback_test_node
- #(.num_channels_p(mc_node_num_channels_p)
+ #(.num_channels_p (mc_node_num_channels_p)
   ,.channel_width_p(channel_width_p)
-  ,.addr_width_p(mc_addr_width_p)
-  ,.data_width_p(mc_data_width_p)
+  ,.addr_width_p   (mc_addr_width_p)
+  ,.data_width_p   (mc_data_width_p)
   ,.load_id_width_p(mc_load_id_width_p)
-  ,.x_cord_width_p(mc_x_cord_width_p)
-  ,.y_cord_width_p(mc_y_cord_width_p)
+  ,.x_cord_width_p (mc_x_cord_width_p)
+  ,.y_cord_width_p (mc_y_cord_width_p)
   ) out_mc_node
-  (.clk_i  (mc_clk_0)
-  ,.reset_i(mc_reset_0)
-  ,.en_i   (mc_en_0)
+  (.clk_i      (mc_clk_0)
+  ,.reset_i    (mc_reset_0)
+  ,.en_i       (mc_en_0)
   
-  ,.error_o   (mc_error_0)
-  ,.sent_o    (sent_0)
-  ,.received_o(received_0)
+  ,.error_o    (mc_error_0)
+  ,.sent_o     (sent_0)
+  ,.received_o (received_0)
 
   ,.links_sif_i(out_mc_node_li)
   ,.links_sif_o(out_mc_node_lo)
@@ -182,29 +260,29 @@ module bsg_manycore_loopback_ddr_link_tester
 
 
   bsg_manycore_link_async_to_wormhole
- #(.addr_width_p(mc_addr_width_p)
-  ,.data_width_p(mc_data_width_p)
-  ,.load_id_width_p(mc_load_id_width_p)
-  ,.x_cord_width_p(mc_x_cord_width_p)
-  ,.y_cord_width_p(mc_y_cord_width_p)
-  ,.flit_width_p(flit_width_p)
-  ,.dims_p(dims_p)
+ #(.addr_width_p      (mc_addr_width_p)
+  ,.data_width_p      (mc_data_width_p)
+  ,.load_id_width_p   (mc_load_id_width_p)
+  ,.x_cord_width_p    (mc_x_cord_width_p)
+  ,.y_cord_width_p    (mc_y_cord_width_p)
+  ,.flit_width_p      (flit_width_p)
+  ,.dims_p            (dims_p)
   ,.cord_markers_pos_p(cord_markers_pos_p)
-  ,.len_width_p(len_width_p)
+  ,.len_width_p       (len_width_p)
   ) out_adapter
   (.manycore_clk_i  (mc_clk_0)
   ,.manycore_reset_i(mc_reset_0)
    
-  ,.links_sif_i(out_mc_node_lo)
-  ,.links_sif_o(out_mc_node_li)
+  ,.links_sif_i     (out_mc_node_lo)
+  ,.links_sif_o     (out_mc_node_li)
    
-  ,.clk_i   (clk_0)
-  ,.reset_i (core_reset_0)
+  ,.clk_i           (router_clk_0)
+  ,.reset_i         (router_reset_0)
 
-  ,.dest_cord_i(cord_width_lp'(3))
+  ,.dest_cord_i     (cord_width_lp'(in_node_cord))
   
-  ,.link_i(out_node_link_li)
-  ,.link_o(out_node_link_lo)
+  ,.link_i          (out_node_link_li)
+  ,.link_o          (out_node_link_lo)
   );
   
   
@@ -215,48 +293,30 @@ module bsg_manycore_loopback_ddr_link_tester
    #(.flit_width_p      (flit_width_p)
     ,.dims_p            (dims_p)
     ,.cord_markers_pos_p(cord_markers_pos_p)
-    ,.routing_matrix_p  (StrictX)
+    ,.routing_matrix_p  (routing_matrix_p)
     ,.len_width_p       (len_width_p)
-    ) 
+    )
     router_0
-    (.clk_i    (clk_0)
-	,.reset_i  (core_reset_0)
-	,.my_cord_i(cord_width_lp'(2))
+    (.clk_i    (router_clk_0)
+	,.reset_i  (router_reset_0)
+	,.my_cord_i(cord_width_lp'(out_node_cord))
 	,.link_i   (out_router_link_li[i])
 	,.link_o   (out_router_link_lo[i])
 	);
-/*
-    bsg_wormhole_router
-   #(.width_p(width_p)
-    ,.x_cord_width_p(x_cord_width_p)
-    ,.y_cord_width_p(y_cord_width_p)
-    ,.len_width_p(len_width_p)
-    ,.reserved_width_p(reserved_width_p)
-    ,.enable_2d_routing_p(0)
-    ,.stub_in_p(3'b010)
-    ,.stub_out_p(3'b010)
-    ) router_0
-    (.clk_i  (clk_0)
-    ,.reset_i(core_reset_0)
-    // Configuration
-    ,.my_x_i((x_cord_width_p)'(2))
-    ,.my_y_i((y_cord_width_p)'(0))
-    // Traffics
-    ,.link_i(out_router_link_li[i])
-    ,.link_o(out_router_link_lo[i])
-    );
-*/
+
     assign out_node_link_li[i] = out_router_link_lo[i][P];
     assign out_router_link_li[i][P] = out_node_link_lo[i];
     
+    // Stub
     assign out_router_link_li[i][W].v             = 1'b0;
     assign out_router_link_li[i][W].ready_and_rev = 1'b1;
     
+    // Must add a fifo here, convert yumi_o to ready_o
     bsg_two_fifo
    #(.width_p(flit_width_p))
     out_ct_fifo
-    (.clk_i  (clk_0       )
-    ,.reset_i(core_reset_0)
+    (.clk_i  (router_clk_0  )
+    ,.reset_i(router_reset_0)
     ,.ready_o(out_router_link_li[i][E].ready_and_rev)
     ,.data_i (out_router_link_lo[i][E].data         )
     ,.v_i    (out_router_link_lo[i][E].v            )
@@ -265,53 +325,22 @@ module bsg_manycore_loopback_ddr_link_tester
     ,.yumi_i (out_ct_fifo_yumi_li[i] )
     );
     
-    assign out_router_link_li[i][E].v = out_ct_fifo_valid_li[i];
-    assign out_router_link_li[i][E].data = out_ct_fifo_data_li[i];
-    assign out_ct_fifo_yumi_lo[i] = out_router_link_li[i][E].v & out_router_link_lo[i][E].ready_and_rev;
-    
+    assign out_router_link_li [i][E].v    = out_ct_fifo_valid_li[i];
+    assign out_router_link_li [i][E].data = out_ct_fifo_data_li [i];
+    assign out_ct_fifo_yumi_lo[i]         = out_router_link_li  [i][E].v 
+                                          & out_router_link_lo  [i][E].ready_and_rev;
   end
-  
-/*  
-  bsg_channel_tunnel_wormhole
- #(.width_p(width_p)
-  ,.x_cord_width_p(x_cord_width_p)
-  ,.y_cord_width_p(y_cord_width_p)
-  ,.len_width_p(len_width_p)
-  ,.reserved_width_p(reserved_width_p)
-  ,.num_in_p(ct_num_in_p)
-  ,.remote_credits_p(remote_credits_p)
-  ,.max_payload_flits_p(ct_max_payload_flits_p)
-  ,.lg_credit_decimation_p(ct_lg_credit_decimation_p)
-  ) out_ct
-  (.clk_i  (clk_0)
-  ,.reset_i(core_reset_0)
-  
-  // incoming multiplexed data
-  ,.multi_data_i (out_ct_data_li)
-  ,.multi_v_i    (out_ct_valid_li)
-  ,.multi_ready_o(out_ct_ready_lo)
-
-  // outgoing multiplexed data
-  ,.multi_data_o(out_ct_data_lo)
-  ,.multi_v_o   (out_ct_valid_lo)
-  ,.multi_yumi_i(out_ct_ready_li&out_ct_valid_lo)
-
-  // demultiplexed data
-  ,.link_i(out_demux_link_li)
-  ,.link_o(out_demux_link_lo)
-  );
-*/
 
   bsg_channel_tunnel 
- #(.width_p(flit_width_p)
-  ,.num_in_p(ct_num_in_p)
-  ,.remote_credits_p(ct_remote_credits_p)
+ #(.width_p                (flit_width_p)
+  ,.num_in_p               (ct_num_in_p)
+  ,.remote_credits_p       (ct_remote_credits_p)
   ,.use_pseudo_large_fifo_p(ct_use_pseudo_large_fifo_p)
-  ,.lg_credit_decimation_p(ct_lg_credit_decimation_p)
+  ,.lg_credit_decimation_p (ct_lg_credit_decimation_p)
   )
   out_ct
-  (.clk_i  (clk_0)
-  ,.reset_i(core_reset_0)
+  (.clk_i  (router_clk_0)
+  ,.reset_i(router_reset_0)
 
   // incoming multiplexed data
   ,.multi_data_i(out_ct_data_li)
@@ -335,16 +364,16 @@ module bsg_manycore_loopback_ddr_link_tester
   );
   
   bsg_link_ddr_upstream
- #(.width_p(width_p)
+ #(.width_p        (link_width_p)
   ,.channel_width_p(channel_width_p)
-  ,.num_channels_p(num_channels_p)
+  ,.num_channels_p (num_channels_p)
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
   ) link_upstream_0
-  (.core_clk_i         (clk_0)
-  ,.io_clk_i           (clk_2x_0)
-  ,.core_link_reset_i  (core_link_reset_0)
-  ,.io_link_reset_i    (reset_0)
+  (.core_clk_i         (router_clk_0)
+  ,.io_clk_i           (io_upstream_clk_0)
+  ,.core_link_reset_i  (core_upstream_downstream_reset_0)
+  ,.io_link_reset_i    (io_upstream_reset_0)
   ,.async_token_reset_i(token_reset_0)
   
   ,.core_data_i (out_ct_data_lo)
@@ -359,15 +388,15 @@ module bsg_manycore_loopback_ddr_link_tester
   
   
   bsg_link_ddr_downstream
- #(.width_p(width_p)
+ #(.width_p        (link_width_p)
   ,.channel_width_p(channel_width_p)
-  ,.num_channels_p(num_channels_p)
+  ,.num_channels_p (num_channels_p)
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
   ) link_downstream_0
-  (.core_clk_i(clk_0)
-  ,.core_link_reset_i(core_link_reset_0)
-  ,.io_link_reset_i(io_reset_0)
+  (.core_clk_i       (router_clk_0)
+  ,.core_link_reset_i(core_upstream_downstream_reset_0)
+  ,.io_link_reset_i  (io_downstream_reset_0)
   
   ,.core_data_o   (out_ct_data_li)
   ,.core_valid_o  (out_ct_valid_li)
@@ -381,16 +410,16 @@ module bsg_manycore_loopback_ddr_link_tester
   
   
   bsg_link_ddr_upstream
- #(.width_p(width_p)
+ #(.width_p        (link_width_p)
   ,.channel_width_p(channel_width_p)
-  ,.num_channels_p(num_channels_p)
+  ,.num_channels_p (num_channels_p)
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
   ) link_upstream_1
-  (.core_clk_i         (clk_1)
-  ,.io_clk_i           (clk_2x_1)
-  ,.core_link_reset_i  (core_link_reset_1)
-  ,.io_link_reset_i    (reset_1)
+  (.core_clk_i         (router_clk_1)
+  ,.io_clk_i           (io_upstream_clk_1)
+  ,.core_link_reset_i  (core_upstream_downstream_reset_1)
+  ,.io_link_reset_i    (io_upstream_reset_1)
   ,.async_token_reset_i(token_reset_1)
   
   ,.core_data_i (in_ct_data_lo)
@@ -405,15 +434,15 @@ module bsg_manycore_loopback_ddr_link_tester
   
   
   bsg_link_ddr_downstream
- #(.width_p(width_p)
+ #(.width_p        (link_width_p)
   ,.channel_width_p(channel_width_p)
-  ,.num_channels_p(num_channels_p)
+  ,.num_channels_p (num_channels_p)
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
   ) link_downstream_1
-  (.core_clk_i(clk_1)
-  ,.core_link_reset_i(core_link_reset_1)
-  ,.io_link_reset_i(io_reset_1)
+  (.core_clk_i       (router_clk_1)
+  ,.core_link_reset_i(core_upstream_downstream_reset_1)
+  ,.io_link_reset_i  (io_downstream_reset_1)
   
   ,.core_data_o   (in_ct_data_li)
   ,.core_valid_o  (in_ct_valid_li)
@@ -425,47 +454,16 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.core_token_r_o(edge_token_0)
   );
 
-/*
-  bsg_channel_tunnel_wormhole
- #(.width_p(width_p)
-  ,.x_cord_width_p(x_cord_width_p)
-  ,.y_cord_width_p(y_cord_width_p)
-  ,.len_width_p(len_width_p)
-  ,.reserved_width_p(reserved_width_p)
-  ,.num_in_p(ct_num_in_p)
-  ,.remote_credits_p(remote_credits_p)
-  ,.max_payload_flits_p(ct_max_payload_flits_p)
-  ,.lg_credit_decimation_p(ct_lg_credit_decimation_p)
-  ) in_ct
-  (.clk_i  (clk_1)
-  ,.reset_i(core_reset_1)
-  
-  // incoming multiplexed data
-  ,.multi_data_i (in_ct_data_li)
-  ,.multi_v_i    (in_ct_valid_li)
-  ,.multi_ready_o(in_ct_ready_lo)
-
-  // outgoing multiplexed data
-  ,.multi_data_o(in_ct_data_lo)
-  ,.multi_v_o   (in_ct_valid_lo)
-  ,.multi_yumi_i(in_ct_ready_li&in_ct_valid_lo)
-
-  // demultiplexed data
-  ,.link_i(in_demux_link_li)
-  ,.link_o(in_demux_link_lo)
-  );
-*/
-
   bsg_channel_tunnel 
- #(.width_p(flit_width_p)
-  ,.num_in_p(ct_num_in_p)
-  ,.remote_credits_p(ct_remote_credits_p)
+ #(.width_p                (flit_width_p)
+  ,.num_in_p               (ct_num_in_p)
+  ,.remote_credits_p       (ct_remote_credits_p)
   ,.use_pseudo_large_fifo_p(ct_use_pseudo_large_fifo_p)
-  ,.lg_credit_decimation_p(ct_lg_credit_decimation_p)
+  ,.lg_credit_decimation_p (ct_lg_credit_decimation_p)
   )
   in_ct
-  (.clk_i  (clk_1)
-  ,.reset_i(core_reset_1)
+  (.clk_i  (router_clk_1)
+  ,.reset_i(router_reset_1)
 
   // incoming multiplexed data
   ,.multi_data_i(in_ct_data_li)
@@ -495,49 +493,30 @@ module bsg_manycore_loopback_ddr_link_tester
    #(.flit_width_p      (flit_width_p)
     ,.dims_p            (dims_p)
     ,.cord_markers_pos_p(cord_markers_pos_p)
-    ,.routing_matrix_p  (StrictX)
+    ,.routing_matrix_p  (routing_matrix_p)
     ,.len_width_p       (len_width_p)
     ) 
     router_1
-    (.clk_i    (clk_1)
-	,.reset_i  (core_reset_1)
-	,.my_cord_i(cord_width_lp'(3))
+    (.clk_i    (router_clk_1)
+	,.reset_i  (router_reset_1)
+	,.my_cord_i(cord_width_lp'(in_node_cord))
 	,.link_i   (in_router_link_li[i])
 	,.link_o   (in_router_link_lo[i])
 	);
-  
-/*  
-    bsg_wormhole_router
-   #(.width_p(width_p)
-    ,.x_cord_width_p(x_cord_width_p)
-    ,.y_cord_width_p(y_cord_width_p)
-    ,.len_width_p(len_width_p)
-    ,.reserved_width_p(reserved_width_p)
-    ,.enable_2d_routing_p(0)
-    ,.stub_in_p(3'b100)
-    ,.stub_out_p(3'b100)
-    ) router_1
-    (.clk_i  (clk_1)
-    ,.reset_i(core_reset_1)
-    // Configuration
-    ,.my_x_i((x_cord_width_p)'(3))
-    ,.my_y_i((y_cord_width_p)'(0))
-    // Traffics
-    ,.link_i(in_router_link_li[i])
-    ,.link_o(in_router_link_lo[i])
-    );
-*/    
+    
     assign in_node_link_li[i] = in_router_link_lo[i][P];
     assign in_router_link_li[i][P] = in_node_link_lo[i];
     
+    // Stub
     assign in_router_link_li[i][E].v             = 1'b0;
     assign in_router_link_li[i][E].ready_and_rev = 1'b1;
     
+    // Must add a fifo here, convert yumi_o to ready_o
     bsg_two_fifo
    #(.width_p(flit_width_p))
     in_ct_fifo
-    (.clk_i  (clk_1       )
-    ,.reset_i(core_reset_1)
+    (.clk_i  (router_clk_1  )
+    ,.reset_i(router_reset_1)
     ,.ready_o(in_router_link_li[i][W].ready_and_rev)
     ,.data_i (in_router_link_lo[i][W].data         )
     ,.v_i    (in_router_link_lo[i][W].v            )
@@ -546,94 +525,92 @@ module bsg_manycore_loopback_ddr_link_tester
     ,.yumi_i (in_ct_fifo_yumi_li[i] )
     );
     
-    assign in_router_link_li[i][W].v = in_ct_fifo_valid_li[i];
-    assign in_router_link_li[i][W].data = in_ct_fifo_data_li[i];
-    assign in_ct_fifo_yumi_lo[i] = in_router_link_li[i][W].v & in_router_link_lo[i][W].ready_and_rev;
-    
+    assign in_router_link_li [i][W].v    = in_ct_fifo_valid_li[i];
+    assign in_router_link_li [i][W].data = in_ct_fifo_data_li [i];
+    assign in_ct_fifo_yumi_lo[i]         = in_router_link_li  [i][W].v 
+                                         & in_router_link_lo  [i][W].ready_and_rev;
   end
 
-
   bsg_manycore_link_async_to_wormhole
- #(.addr_width_p(mc_addr_width_p)
-  ,.data_width_p(mc_data_width_p)
-  ,.load_id_width_p(mc_load_id_width_p)
-  ,.x_cord_width_p(mc_x_cord_width_p)
-  ,.y_cord_width_p(mc_y_cord_width_p)
-  ,.flit_width_p(flit_width_p)
-  ,.dims_p(dims_p)
+ #(.addr_width_p      (mc_addr_width_p)
+  ,.data_width_p      (mc_data_width_p)
+  ,.load_id_width_p   (mc_load_id_width_p)
+  ,.x_cord_width_p    (mc_x_cord_width_p)
+  ,.y_cord_width_p    (mc_y_cord_width_p)
+  ,.flit_width_p      (flit_width_p)
+  ,.dims_p            (dims_p)
   ,.cord_markers_pos_p(cord_markers_pos_p)
-  ,.len_width_p(len_width_p)
+  ,.len_width_p       (len_width_p)
   ) in_adapter
   (.manycore_clk_i  (mc_clk_1)
   ,.manycore_reset_i(mc_reset_1)
    
-  ,.links_sif_i(in_mc_node_lo)
-  ,.links_sif_o(in_mc_node_li)
+  ,.links_sif_i     (in_mc_node_lo)
+  ,.links_sif_o     (in_mc_node_li)
    
-  ,.clk_i  (clk_1)
-  ,.reset_i(core_reset_1)
+  ,.clk_i           (router_clk_1)
+  ,.reset_i         (router_reset_1)
   
-  ,.dest_cord_i(cord_width_lp'(2))
+  ,.dest_cord_i     (cord_width_lp'(out_node_cord))
   
-  ,.link_i(in_node_link_li)
-  ,.link_o(in_node_link_lo)
+  ,.link_i          (in_node_link_li)
+  ,.link_o          (in_node_link_lo)
   );
-  
   
   bsg_manycore_loopback_test_node
- #(.num_channels_p(mc_node_num_channels_p)
+ #(.num_channels_p (mc_node_num_channels_p)
   ,.channel_width_p(channel_width_p)
-  ,.addr_width_p(mc_addr_width_p)
-  ,.data_width_p(mc_data_width_p)
+  ,.addr_width_p   (mc_addr_width_p)
+  ,.data_width_p   (mc_data_width_p)
   ,.load_id_width_p(mc_load_id_width_p)
-  ,.x_cord_width_p(mc_x_cord_width_p)
-  ,.y_cord_width_p(mc_y_cord_width_p)
+  ,.x_cord_width_p (mc_x_cord_width_p)
+  ,.y_cord_width_p (mc_y_cord_width_p)
   ) in_mc_node
-  (.clk_i  (mc_clk_1)
-  ,.reset_i(mc_reset_1)
-  ,.en_i   (mc_en_1)
+  (.clk_i          (mc_clk_1)
+  ,.reset_i        (mc_reset_1)
+  ,.en_i           (mc_en_1)
   
-  ,.error_o   (mc_error_1)
-  ,.sent_o    (sent_1)
-  ,.received_o(received_1)
+  ,.error_o        (mc_error_1)
+  ,.sent_o         (sent_1)
+  ,.received_o     (received_1)
 
-  ,.links_sif_i(in_mc_node_li)
-  ,.links_sif_o(in_mc_node_lo)
+  ,.links_sif_i    (in_mc_node_li)
+  ,.links_sif_o    (in_mc_node_lo)
   );
-  
-
 
   // Simulation of Clock
-  always #3 clk_0    = ~clk_0;
-  always #3 clk_1    = ~clk_1;
-  always #2 clk_2x_0 = ~clk_2x_0;
-  always #3 clk_2x_1 = ~clk_2x_1;
+  always #3 router_clk_0 = ~router_clk_0;
+  always #3 router_clk_1 = ~router_clk_1;
+  always #2 io_upstream_clk_0 = ~io_upstream_clk_0;
+  always #3 io_upstream_clk_1 = ~io_upstream_clk_1;
   always #4 mc_clk_0 = ~mc_clk_0;
-  always #4 mc_clk_1 = ~mc_clk_1;
-  
+  always #4 mc_clk_1 = ~mc_clk_1; 
   
   integer j;
   
-  initial 
+  initial
   begin
 
     $display("Start Simulation\n");
   
     // Init
-    clk_0 = 1;
-    clk_1 = 1;
-    clk_2x_0 = 1;
-    clk_2x_1 = 1;
-    mc_clk_0 = 1;
-    mc_clk_1 = 1;
-    reset_0 = 1;
-    reset_1 = 1;
+    router_clk_0 = 1;
+    router_clk_1 = 1;
+    io_upstream_clk_0     = 1;
+    io_upstream_clk_1     = 1;
+    mc_clk_0     = 1;
+    mc_clk_1     = 1;
+    
+    io_upstream_reset_0 = 1;
+    io_upstream_reset_1 = 1;
     token_reset_0 = 0;
     token_reset_1 = 0;
-    core_link_reset_0 = 1;
-    core_link_reset_1 = 1;
-    core_reset_0 = 1;
-    core_reset_1 = 1;
+    
+    core_upstream_downstream_reset_0 = 1;
+    core_upstream_downstream_reset_1 = 1;
+    router_reset_0 = 1;
+    router_reset_1 = 1;
+    
     mc_reset_0 = 1;
     mc_reset_1 = 1;
     mc_en_0 = 0;
@@ -653,10 +630,10 @@ module bsg_manycore_loopback_ddr_link_tester
     #1000;
     
     // upstream io reset
-    @(posedge clk_2x_0); #1;
-    reset_0 = 0;
-    @(posedge clk_2x_1); #1;
-    reset_1 = 0;
+    @(posedge io_upstream_clk_0); #1;
+    io_upstream_reset_0 = 0;
+    @(posedge io_upstream_clk_1); #1;
+    io_upstream_reset_1 = 0;
     
     #100;
     
@@ -664,9 +641,9 @@ module bsg_manycore_loopback_ddr_link_tester
     for (j = 0; j < num_channels_p; j++)
       begin
         @(posedge edge_clk_1[j]); #1;
-        io_reset_0[j] = 1;
+        io_downstream_reset_0[j] = 1;
         @(posedge edge_clk_0[j]); #1;
-        io_reset_1[j] = 1;
+        io_downstream_reset_1[j] = 1;
       end
       
     #1000;
@@ -676,26 +653,26 @@ module bsg_manycore_loopback_ddr_link_tester
     for (j = 0; j < num_channels_p; j++)
       begin
         @(posedge edge_clk_1[j]); #1;
-        io_reset_0[j] = 0;
+        io_downstream_reset_0[j] = 0;
         @(posedge edge_clk_0[j]); #1;
-        io_reset_1[j] = 0;
+        io_downstream_reset_1[j] = 0;
       end
     
     #1000;
     
     // core link reset
-    @(posedge clk_0); #1;
-    core_link_reset_0 = 0;
-    @(posedge clk_1); #1;
-    core_link_reset_1 = 0;
+    @(posedge router_clk_0); #1;
+    core_upstream_downstream_reset_0 = 0;
+    @(posedge router_clk_1); #1;
+    core_upstream_downstream_reset_1 = 0;
     
     #1000
     
     // chip reset
-    @(posedge clk_0); #1;
-    core_reset_0 = 0;
-    @(posedge clk_1); #1;
-    core_reset_1 = 0;
+    @(posedge router_clk_0); #1;
+    router_reset_0 = 0;
+    @(posedge router_clk_1); #1;
+    router_reset_1 = 0;
     
     #1000
     

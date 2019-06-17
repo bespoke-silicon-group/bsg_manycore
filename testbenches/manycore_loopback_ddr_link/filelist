@@ -50,7 +50,6 @@ $BASEJUMP_STL_DIR/bsg_dataflow/bsg_serial_in_parallel_out.v
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_fifo_1r1w_pseudo_large.v
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_parallel_in_serial_out.v
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_serial_in_parallel_out_full.v
-$BASEJUMP_STL_DIR/bsg_dataflow/bsg_channel_tunnel_wormhole.v
 $BASEJUMP_STL_DIR/bsg_test/test_bsg_data_gen.v
 $BASEJUMP_STL_DIR/bsg_noc/bsg_noc_pkg.v
 $BASEJUMP_STL_DIR/bsg_noc/bsg_wormhole_router.v
