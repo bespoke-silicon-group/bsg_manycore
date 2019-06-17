@@ -498,7 +498,8 @@ assign pending_load_arrived = from_mem_v_i & ~current_load_arrived;
 // Since remote load takes more than one cycle to fetch, and as loads are
 // non-blocking, write-back wouldn't happen when the instrucion is still
 // in the pipeline
-assign exe_free_for_load = ~exe.decode.op_writes_rf | remote_load_in_exe;
+assign exe_free_for_load = (~exe.decode.op_writes_rf | remote_load_in_exe)
+                             & ~exe.icache_miss;
 assign insert_load_in_exe = pending_load_arrived
                               & exe_free_for_load
                               & ~stall;
