@@ -77,15 +77,13 @@ ifneq ($(BSG_NEWLIB), 1)
   RISCV_LINK_OPTS += -nostdlib
 endif
 
-RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lgcc -l:$(CRT_OBJ)\
+RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc -l:$(CRT_OBJ)\
 									-L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 
 CRT_OBJ ?= crt.o
 LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem.ld
 #RISCV_LINK_EXTRA_OPTS ?=
 
-RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostdlib -nostartfiles -ffast-math -lc -lgcc -l:$(CRT_OBJ)\
-									-L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 RISCV_LINK = $(RISCV_GCC) -t -T $(LINK_SCRIPT) \
