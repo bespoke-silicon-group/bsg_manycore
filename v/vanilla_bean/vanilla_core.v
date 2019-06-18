@@ -67,6 +67,16 @@ module vanilla_core
   );
 
 
+  // pipeline signals
+  //
+  id_signals_s id_r, id_n;
+  exe_signals_s exe_r, exe_n;
+  mem_signals_s mem_r, mem_n;
+  wb_signals_s wb_r, wb_n;
+  fp_exe_signals_s fp_exe_n, fp_exe_r;
+  fp_wb_signals_s fp_wb_n, fp_wb_r;
+
+
   // icache
   //
   logic icache_cen, icache_wen;
@@ -135,7 +145,6 @@ module vanilla_core
   //        ID STAGE          //
   //                          //
 
-  id_signals_s id_r, id_n;
 
   bsg_dff_reset #(
     .width_p($bits(id_signals_s))
@@ -298,7 +307,6 @@ module vanilla_core
   //                          //
 
 
-  exe_signals_s exe_r, exe_n;
 
   bsg_dff_reset #(
     .width_p($bits(exe_signals_s))
@@ -502,7 +510,6 @@ module vanilla_core
   //                          //
 
 
-  mem_signals_s mem_r, mem_n;
 
   bsg_dff_reset #(
     .width_p($bits(mem_signals_s))
@@ -582,7 +589,6 @@ module vanilla_core
   //        WB STAGE          //
   //                          //
 
-  wb_signals_s wb_r, wb_n;
   
   bsg_dff_reset #(
     .width_p($bits(wb_signals_s))
@@ -598,7 +604,6 @@ module vanilla_core
   //      FP EXE STAGE        //
   //                          //
 
-  fp_exe_signals_s fp_exe_n, fp_exe_r;
 
   bsg_dff_reset #(
     .width_p($bits(fp_exe_signals_s))
@@ -637,7 +642,6 @@ module vanilla_core
   //      FP WB  STAGE        //
   //                          //
 
-  fp_wb_signals_s fp_wb_n, fp_wb_r;
 
   bsg_dff_reset #(
     .width_p($bits(fp_wb_signals_s))
@@ -1159,10 +1163,10 @@ module vanilla_core
   logic fp_exe_rs1_forward;
   logic fp_exe_rs2_forward;
 
-  assign fp_exe_rs1_forward = fp_wb_r.valid & 
+  assign fp_exe_rs1_forward = fp_wb_r.valid 
     & (fp_wb_r.rd == id_r.instruction.rs1);
 
-  assign fp_exe_rs2_forward = fp_wb_r.valid & 
+  assign fp_exe_rs2_forward = fp_wb_r.valid 
     & (fp_wb_r.rd == id_r.instruction.rs2);
 
   assign rs1_to_fp_exe = id_r.decode.op_reads_rf1
