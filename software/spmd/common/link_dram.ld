@@ -7,6 +7,7 @@
 /* This link script places data section in dram
  * by default. Text sections are places in dram.
  *
+ * Data in bsg_manycore_lib.a & .dmem is placed in dmem. 
  */
 
 
@@ -134,6 +135,9 @@ SECTIONS
   ASSERT(_bsg_data_end_addr < 0x2000, 
          "[ Error ] during linking, local dmem overflow, please check the dmem usage"
         ) 
+
+
+
 
   /*----------------------------------
    * DRAM output sections
