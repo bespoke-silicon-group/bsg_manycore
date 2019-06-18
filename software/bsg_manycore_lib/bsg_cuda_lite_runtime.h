@@ -15,8 +15,9 @@
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
+#include "stdint.h"
 
-//int kernel_regs[4] __attribute__ ((section ("CUDA_RTL"))) = { 0x0 }; 
+int kernel_regs[4] __attribute__ ((section ("CUDA_RTL"))) = { 0x0 }; 
 
 //This defines the offset of the runtime variables 
 #define CUDAL_PARAM_BASE_ADDR   0x1100
@@ -54,21 +55,24 @@ INIT_TILE_GROUP_BARRIER(main_r_barrier, main_c_barrier, 0, bsg_tiles_X-1, 0, bsg
 
 
 
-int write_signal () 
+uint32_t cuda_kernel_ptr = 0;
+uint32_t cuda_argc = 0;
+uint32_t cuda_argv_ptr = 0; 
+uint32_t cuda_finish_signal_addr = 0; 
+
+
+
+
+int write_finish_signal () 
 {
-  if (__bsg_x == 0 && __bsg_y == 0) 
+  if (__bsg_id == 0) 
   {
-    int **signal_reg = (int **) (CUDAL_PARAM_BASE_ADDR + CUDAL_SIG_PTR_IDX);
-    int *signal_ptr = *signal_reg;
-    *signal_ptr = 0x1; /* arbitrary */
+     int *signal_ptr = (int *) cuda_finish_signal_addr; 
+     *signal_ptr = 0x1;     
   }
 }
 
 
-int cuda_kernel_ptr = 0;
-int cuda_argc = 0;
-int cuda_argv_ptr = 0; 
-int cuda_finish_signal_addr = 0; 
 
 
 #define __wait_until_valid_func()                                            \
@@ -135,7 +139,7 @@ int cuda_finish_signal_addr = 0;
                 li        t0           ,    0x1;                             \
                 sw        t0           ,    0 ( s0   );                      \
            ");                                                               \
-           write_signal();                                                   \
+           write_finish_signal();                                            \
            asm("j         __wait_until_valid_func");
 
 
