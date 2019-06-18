@@ -51,7 +51,7 @@ module bsg_manycore_loopback_ddr_link_tester
   
   // bsg_link data width
   // MUST be multiple of (2*channel_width_p*num_channels_p) 
-  ,parameter link_width_p = 32
+  ,parameter link_width_p = 34
   
   
   /*********************** Wormhole network params ***********************/
@@ -151,6 +151,8 @@ module bsg_manycore_loopback_ddr_link_tester
   // This is for token credit return on IO channel
   // Do not change
   ,parameter lg_credit_to_token_decimation_p = 3
+  
+  ,parameter use_extra_data_bit_p = 1
   
   )
   
@@ -369,6 +371,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.num_channels_p (num_channels_p)
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
+  ,.use_extra_data_bit_p(use_extra_data_bit_p)
   ) link_upstream_0
   (.core_clk_i         (router_clk_0)
   ,.io_clk_i           (io_upstream_clk_0)
@@ -393,6 +396,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.num_channels_p (num_channels_p)
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
+  ,.use_extra_data_bit_p(use_extra_data_bit_p)
   ) link_downstream_0
   (.core_clk_i       (router_clk_0)
   ,.core_link_reset_i(core_upstream_downstream_reset_0)
@@ -415,6 +419,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.num_channels_p (num_channels_p)
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
+  ,.use_extra_data_bit_p(use_extra_data_bit_p)
   ) link_upstream_1
   (.core_clk_i         (router_clk_1)
   ,.io_clk_i           (io_upstream_clk_1)
@@ -439,6 +444,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.num_channels_p (num_channels_p)
   ,.lg_fifo_depth_p(lg_fifo_depth_p)
   ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
+  ,.use_extra_data_bit_p(use_extra_data_bit_p)
   ) link_downstream_1
   (.core_clk_i       (router_clk_1)
   ,.core_link_reset_i(core_upstream_downstream_reset_1)
