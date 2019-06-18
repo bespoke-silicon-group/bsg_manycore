@@ -16,8 +16,8 @@ int  __attribute__ ((noinline)) kernel_matrix_mul(int *A, int *B, int *C, int M,
 
 	int start_y = __bsg_tile_group_id_y * block_size_y;
 	int start_x = __bsg_tile_group_id_x * block_size_x;
-	int end_y = M < (start_y + block_size_y) ? P : (start_y + block_size_y);
-	int end_x = P < (start_x + block_size_x) ? M : (start_x + block_size_x);
+	int end_y = M < (start_y + block_size_y) ? M : (start_y + block_size_y);
+	int end_x = P < (start_x + block_size_x) ? P : (start_x + block_size_x);
 
 	for (int iter_y = start_y + __bsg_y; iter_y < end_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = start_x + __bsg_x; iter_x < end_x; iter_x += bsg_tiles_X) { 
