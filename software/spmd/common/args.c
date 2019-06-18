@@ -1,6 +1,6 @@
 #if defined(__bsg_newlib) && defined(__bsg_argc) && defined(__bsg_argv)
 
-extern int* _sp;
+extern int _sp;
 
 int _argc = __bsg_argc;
 char* _argv[] = { __bsg_argv };

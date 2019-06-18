@@ -4,7 +4,7 @@
   .globl _start
 _start:
   li  x1, 0
- // li  x2, 0
+  // li  x2, 0
   li  x3, 0
   li  x4, 0
   li  x5, 0
@@ -42,12 +42,6 @@ _start:
   la  tp, _bsg_data_end_addr + 63
   and tp, tp, -64
 
-  # get core id
-  #csrr a0, mhartid
-  # for now, assume only 1 core
-  #li a1, 1
-  #1:bgeu a0, a1, 1b
-
   # mbt: put stack at top of local memory
   # mbt fix for 4KB IMEM / 4KB DMEM
   la sp, _sp
@@ -65,4 +59,5 @@ _start:
 #endif
 
 2:
+  # Should never this point
   j 2b
