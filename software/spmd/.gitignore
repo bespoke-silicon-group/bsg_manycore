@@ -1,7 +1,7 @@
+coverage*
+*.vpd.tcl
 main_dmem.mem
 main_dram.mem
 *.a
 coremark-top
 coremark/coremark
-coverage*
-*.vpd.tcl
