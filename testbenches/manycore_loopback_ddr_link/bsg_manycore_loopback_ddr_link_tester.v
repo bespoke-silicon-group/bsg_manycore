@@ -272,19 +272,19 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.cord_markers_pos_p(cord_markers_pos_p)
   ,.len_width_p       (len_width_p)
   ) out_adapter
-  (.manycore_clk_i  (mc_clk_0)
-  ,.manycore_reset_i(mc_reset_0)
+  (.mc_clk_i  (mc_clk_0)
+  ,.mc_reset_i(mc_reset_0)
    
-  ,.links_sif_i     (out_mc_node_lo)
-  ,.links_sif_o     (out_mc_node_li)
+  ,.mc_links_sif_i     (out_mc_node_lo)
+  ,.mc_links_sif_o     (out_mc_node_li)
    
-  ,.clk_i           (router_clk_0)
-  ,.reset_i         (router_reset_0)
+  ,.wh_clk_i           (router_clk_0)
+  ,.wh_reset_i         (router_reset_0)
 
   ,.dest_cord_i     (cord_width_lp'(in_node_cord))
   
-  ,.link_i          (out_node_link_li)
-  ,.link_o          (out_node_link_lo)
+  ,.wh_link_i          (out_node_link_li)
+  ,.wh_link_o          (out_node_link_lo)
   );
   
   
@@ -548,19 +548,19 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.cord_markers_pos_p(cord_markers_pos_p)
   ,.len_width_p       (len_width_p)
   ) in_adapter
-  (.manycore_clk_i  (mc_clk_1)
-  ,.manycore_reset_i(mc_reset_1)
+  (.mc_clk_i  (mc_clk_1)
+  ,.mc_reset_i(mc_reset_1)
    
-  ,.links_sif_i     (in_mc_node_lo)
-  ,.links_sif_o     (in_mc_node_li)
+  ,.mc_links_sif_i     (in_mc_node_lo)
+  ,.mc_links_sif_o     (in_mc_node_li)
    
-  ,.clk_i           (router_clk_1)
-  ,.reset_i         (router_reset_1)
+  ,.wh_clk_i           (router_clk_1)
+  ,.wh_reset_i         (router_reset_1)
   
   ,.dest_cord_i     (cord_width_lp'(out_node_cord))
   
-  ,.link_i          (in_node_link_li)
-  ,.link_o          (in_node_link_lo)
+  ,.wh_link_i          (in_node_link_li)
+  ,.wh_link_o          (in_node_link_lo)
   );
   
   bsg_manycore_loopback_test_node
