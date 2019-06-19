@@ -37,9 +37,9 @@ module instr_trace
             (exe_n.pc_plus4-'d4),
             exe_n.instruction
           ); 
-          $fclose(fd);
         end    
     
+        $fclose(fd);
 
       end //
       end
