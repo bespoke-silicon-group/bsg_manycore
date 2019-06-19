@@ -1,0 +1,51 @@
+`include "definitions.vh"
+
+module instr_trace
+  #(parameter x_cord_width_p="inv"
+    , parameter y_cord_width_p="inv"
+  )
+  (
+    input clk_i
+    , input reset_i
+
+    , input stall
+    , input stall_depend
+    , input flush
+    , input id_signals_s id_r
+    , input exe_signals_s exe_n
+
+    , input [x_cord_width_p-1:0] my_x_i
+    , input [y_cord_width_p-1:0] my_y_i
+  );
+
+  integer fd;
+
+  initial begin
+    fd = $fopen("instr.log", "w");
+    $fwrite(fd, "");
+    $fclose(fd);
+
+    forever begin
+      @(negedge clk_i) begin
+      if (my_x_i == 1'b0 & my_y_i == 2'b01 & ~reset_i) begin //
+
+        fd = $fopen("instr.log", "a");
+        if (~stall & ~(stall_depend | flush | id_r.decode.is_fp_float_op) & ~exe_n.icache_miss
+            & ~(exe_n.pc_plus4 == '0)) begin
+          $fwrite(fd, "t=%08t pc=%08x instr=%08x\n",
+            $time,
+            (exe_n.pc_plus4-'d4),
+            exe_n.instruction
+          ); 
+          $fclose(fd);
+        end    
+    
+
+      end //
+      end
+    end
+    
+
+  end
+
+endmodule

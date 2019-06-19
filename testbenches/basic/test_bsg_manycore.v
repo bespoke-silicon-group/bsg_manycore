@@ -13,7 +13,7 @@
 `error bsg_global_Y must be defined; pass it in through the makefile;
 `endif
 
-`define MAX_CYCLES 1000000
+`define MAX_CYCLES 100000000
 
 module test_bsg_manycore;
   import bsg_noc_pkg::*; // {P=0, W, E, N, S}
@@ -383,6 +383,13 @@ module test_bsg_manycore;
       ,.data_width_p(data_width_p)
       ,.dmem_size_p(dmem_size_p)
     ) vtrace (
+      .*
+    );
+
+    bind vanilla_core instr_trace #(
+      .x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+    ) itrace(
       .*
     );
   end
