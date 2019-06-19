@@ -17,21 +17,27 @@
 #include "bsg_set_tile_x_y.h"
 #include "stdint.h"
 
-int kernel_regs[4] __attribute__ ((section ("CUDA_RTL"))) = { 0x0 }; 
 
-//This defines the offset of the runtime variables 
-#define CUDAL_PARAM_BASE_ADDR   0x1100
-#define CUDAL_KERNEL_PTR_IDX    0x0     //function pointer of the kernel function
-#define CUDAL_ARGC_IDX          0x4     //argc of the kernel function
-#define CUDAL_ARGV_PTR_IDX      0x8     //argv of the kernel function
-#define CUDAL_SIG_PTR_IDX       0xC     //the address that a signal will be write back to
-                                        //when kernel finish computing.
+
+// These symbols are set by the host interface, once a kernel is dispatched to execute on tiles
+// Function pointer to the location of kernel in memory
+int32_t cuda_kernel_ptr = 0;
+// Argument count of the kernel function
+uint32_t cuda_argc = 0;	
+ // Pointer to the list of kernel's arguments in memory
+uint32_t cuda_argv_ptr = 0;
+ // Location kernel writes it's finish signal into
+uint32_t cuda_finish_signal_addr = 0;
+// The value that kernel writes in cuda_finish_signal_addr when it is finished
+uint32_t cuda_finish_signal_val = 0;
+// When cuda_kernel_ptr equals this value means the kernel is not loaded 
+uint32_t cuda_kernel_not_loaded_val = 0;
+
+
 
 //The RISCV ABI Paramters
 //The maximum number of parameters passed via regsiter
 #define CUDAL_REG_ARGS_NUM      8       
-#define CUDAL_INVLID_PTR        0x1
-#define CUDAL_SIG_VALUE         0x1
 
 
 //According to RISC-V ABI, the 's' register should be saved by Callee
@@ -55,10 +61,6 @@ INIT_TILE_GROUP_BARRIER(main_r_barrier, main_c_barrier, 0, bsg_tiles_X-1, 0, bsg
 
 
 
-uint32_t cuda_kernel_ptr = 0;
-uint32_t cuda_argc = 0;
-uint32_t cuda_argv_ptr = 0; 
-uint32_t cuda_finish_signal_addr = 0; 
 
 
 
@@ -68,7 +70,7 @@ int write_finish_signal ()
   if (__bsg_id == 0) 
   {
      int *signal_ptr = (int *) cuda_finish_signal_addr; 
-     *signal_ptr = 0x1;     
+     *signal_ptr = cuda_finish_signal_val;     
   }
 }
 
@@ -79,8 +81,8 @@ int write_finish_signal ()
         asm("__wait_until_valid_func:");                                     \
         bsg_set_tile_x_y();                                                  \
         asm("                                                                \		
+               lw         t0           ,    cuda_kernel_not_loaded_val;      \
                la         s0           ,    cuda_kernel_ptr;                 \
-               li         t0           ,    0x1;                             \
                lr.w       t1           ,    0 (  s0  );                      \
                bne        t0           ,    t1        ,     __init_param;    \
                lr.w.aq    t0           ,    0 (  s0  );                      \
@@ -136,7 +138,7 @@ int write_finish_signal ()
                 add       sp           ,    sp        ,     t0;              \
                                                                              \
              __kernel_return:                                                \
-                li        t0           ,    0x1;                             \
+                lw        t0           ,    cuda_kernel_not_loaded_val;      \
                 sw        t0           ,    0 ( s0   );                      \
            ");                                                               \
            write_finish_signal();                                            \
