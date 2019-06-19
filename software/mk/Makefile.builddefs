@@ -7,8 +7,13 @@ BSG_MANYCORE_BANKS=4
 BSG_MANYCORE_BANKSIZE=2048
 
 #####################################################
-# DO we have the FPU implemented? yes
+# DO we have the FPU implemented?
+BSG_FPU_OP = 1
+ifeq ($(BSG_FPU_OP), 1)
 ARCH_OP=rv32imaf
+else
+ARCH_OP=rv32ima
+endif
 #####################################################
 
 # paths
@@ -27,7 +32,10 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 # flags
 OPT_LEVEL ?= -O2
 RISCV_GCC_EXTRA_OPTS ?= 
-RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf -ffp-contract=off
+RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf
+ifeq ($(BSG_FPU_OP), 1)
+RISCV_GCC_OPTS += -ffp-contract=off
+endif
 RISCV_GCC_OPTS += $(RISCV_GCC_EXTRA_OPTS) 
 RISCV_GCC_OPTS += -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
@@ -71,7 +79,9 @@ LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem.ld
 RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc -l:$(CRT_OBJ)\
 									-L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 ifndef CLANG
+ifeq ($(BSG_FPU_OP), 1)
 RISCV_GCC_OPTS +=-mno-fdiv
+endif
 endif
 
 ifneq ($(BSG_NEWLIB), 1)
