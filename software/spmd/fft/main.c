@@ -13,9 +13,7 @@
 #define N 8
 
 int fft_arr[N] = {
-                  1,2,1,4,1,1,6,1,
-                  /* 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, */
-                  /* 1,2,1,4,1,1,2,1,7,1,2,1,3,1,1,1, */
+                  1,0,1,0,1,0,1,0,
                   };
 
 float complex fft_dram_arr[N];
@@ -113,7 +111,6 @@ void fft(float complex *X, unsigned id) {
                 odd_val = complex_remote_load(X, odd_idx);
                 even_val = complex_remote_load(X, even_idx);
 #endif
-                bsg_fence();
 
                 t_val = cexp(exp_val) * odd_val;
 
@@ -160,11 +157,23 @@ int main()
 {
     fft_kernel(fft_arr, fft_dram_arr);
     float complex val;
+    int real_val, imag_val;
     if (bsg_id == 0) {
         for (unsigned i = 0; i < N; i++) {
             val = fft_dram_arr[i];
-            bsg_printf("a[%d] = {%d + %dj}\n", i,
-                    (int) crealf(val), (int) cimagf(val));
+            real_val = (int) crealf(val);
+            imag_val = (int) cimagf(val);
+            if ((i % 4 == 0) && (real_val != 4)) {
+                bsg_printf("fail1\n");
+                bsg_fail();
+            } else if ((i % 4 != 0) && (real_val != 0)) {
+                bsg_printf("fail2\n");
+                bsg_fail();
+            }
+            if (imag_val != 0) {
+                bsg_printf("fail3\n");
+                bsg_fail();
+            }
         }
         bsg_finish();
     }
