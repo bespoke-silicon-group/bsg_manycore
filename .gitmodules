@@ -9,3 +9,6 @@
 [submodule "imports/greenlight"]
 	path = imports/greenlight
 	url = https://bitbucket.org/taylor-bsg/greenlight/src/master/
+[submodule "imports/beebs"]
+	path = imports/beebs
+	url = https://github.com/bespoke-silicon-group/beebs
