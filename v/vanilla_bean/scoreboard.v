@@ -103,13 +103,13 @@ module scoreboard
   logic depend_on_rd;
 
   assign depend_on_rs1 =
-    scoreboard_r[src1_id_i] & ~(clear_combined[src1_id_i] & op_reads_rf1_i);
+    scoreboard_r[src1_id_i] & ~(clear_combined[src1_id_i]) & op_reads_rf1_i;
 
   assign depend_on_rs2 = 
-    scoreboard_r[src2_id_i] & ~(clear_combined[src2_id_i] & op_reads_rf2_i);
+    scoreboard_r[src2_id_i] & ~(clear_combined[src2_id_i]) & op_reads_rf2_i;
 
   assign depend_on_rd = 
-    scoreboard_r[dest_id_i] & ~(clear_combined[dest_id_i] & op_writes_rf_i);
+    scoreboard_r[dest_id_i] & ~(clear_combined[dest_id_i]) & op_writes_rf_i;
 
   assign dependency_o = depend_on_rs1 | depend_on_rs2 | depend_on_rd;
 
