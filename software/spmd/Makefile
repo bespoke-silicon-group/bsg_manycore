@@ -35,8 +35,7 @@ all: main.regress_test
 	export test_name=$$(echo $$testcase | awk '{print $$1}')	&&	\
 	export test_target=$$(echo $$testcase | awk '{print $$2}')	&&	\
 	echo "running testcase [ $$testcase, target=$$test_target ]"; \
-	make -C ./$$test_name $$test_target DVE=0 COVERAGE=$(COVERAGE)  \
-		bsg_tiles_X=$(bsg_tiles_X) bsg_tiles_Y=$(bsg_tiles_Y) &> run.log; \
+	make -C ./$$test_name $$test_target DVE=0 COVERAGE=$(COVERAGE) &> run.log; \
 	grep " FINISH \| FAIL \| I/O \|^[Ee]rror \|Correct \|Passed" run.log;    	   \
 	done;
 
