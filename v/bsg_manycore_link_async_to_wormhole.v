@@ -22,8 +22,8 @@ module bsg_manycore_link_async_to_wormhole
   
   // Wormhole link parameters
   ,parameter flit_width_p                     = "inv"
-  ,parameter dims_p                           = "inv"
-  ,parameter int cord_markers_pos_p[dims_p:0] = "inv"
+  ,parameter dims_p                           = 2
+  ,parameter int cord_markers_pos_p[dims_p:0] = '{5, 4, 0}
   ,parameter len_width_p                      = "inv"
   
   ,localparam num_nets_lp = 2
