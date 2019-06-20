@@ -1,6 +1,7 @@
 # See LICENSE for license details.
 # MBT modified for bsg_manycore
 
+.section .crtbegin,"a"
   .globl _start
 _start:
   li  x1, 0

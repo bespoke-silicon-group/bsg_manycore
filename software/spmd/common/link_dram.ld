@@ -152,9 +152,9 @@ SECTIONS
   .text.dram : 
   AT(_dram_t_lma_start) 
   {
-     *crt.o(.text)
-     *(.text)
+     *(.crtbegin)
      *(.text.startup)
+     *(.text)
      *(.text.*)
   } >DRAM_T_VMA 
 
