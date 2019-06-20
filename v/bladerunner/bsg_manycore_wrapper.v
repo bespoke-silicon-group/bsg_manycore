@@ -18,6 +18,7 @@ module bsg_manycore_wrapper
     , parameter epa_byte_addr_width_p="inv"
     , parameter dram_ch_addr_width_p="inv"
     , parameter load_id_width_p="inv"
+    , parameter vcache_size_p="inv"
  
     , parameter num_cache_p="inv"
 
@@ -70,6 +71,7 @@ module bsg_manycore_wrapper
     ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
     ,.data_width_p(data_width_p)
     ,.load_id_width_p(load_id_width_p)
+    ,.vcache_size_p(vcache_size_p)
   ) manycore (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
