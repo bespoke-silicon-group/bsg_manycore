@@ -37,7 +37,7 @@ include ../../mk/Makefile.tail_rules
 #########################
 
 BEEBS_CC      = "$(RISCV_GCC)"
-BEEBS_CFLAGS  = "$(RISCV_GCC_OPTS) -DREPEAT_FACTOR=$(REPEAT_FACTOR)"
+BEEBS_CFLAGS  = "$(RISCV_GCC_OPTS) -DREPEAT_FACTOR=$(REPEAT_FACTOR) -D__bsg_argc=1 -D__bsg_argv=0"
 COMMON_SRCS   = $(RUN_DIR)/../common/args.c \
                 $(RUN_DIR)/../common/crt.S \
                 $(RUN_DIR)/../../bsg_manycore_lib/bsg_newlib_intf.c \
