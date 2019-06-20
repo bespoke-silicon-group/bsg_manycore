@@ -22,6 +22,8 @@ all: $(foreach bmark, $(BMARK_LIST), $(bmark).run)
 %.riscv:
 	cp $(BUILD_DIR)/bin/$* $@
 
+%.run: PROG_NAME=$(basename $@)
+
 include ../../mk/Makefile.tail_rules
 
 
