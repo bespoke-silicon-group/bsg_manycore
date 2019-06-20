@@ -273,4 +273,13 @@ typedef struct packed
   logic [RV32_reg_data_width_gp-1:0] local_store_data;
 } wb_debug_s;
 
+
+typedef struct packed
+{
+  logic [RV32_reg_data_width_gp-1:0] pc;
+  logic [RV32_instr_width_gp-1:0] instr;
+  logic valid;
+} fp_debug_s;
+
+
 `endif
