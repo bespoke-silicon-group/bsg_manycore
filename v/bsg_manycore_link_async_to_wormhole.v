@@ -86,10 +86,10 @@ module bsg_manycore_link_async_to_wormhole
   ,.ral_reset_i    (mc_reset_i    )
   ,.ral_link_i     (mc_links_sif_i_cast.fwd)
   ,.ral_link_o     (mc_links_sif_o_cast.fwd)
+  ,.ral_dest_cord_i(mc_dest_cord_i)
 
   ,.wh_clk_i        (wh_clk_i      )
   ,.wh_reset_i      (wh_reset_i    )
-  ,.ral_dest_cord_i (mc_dest_cord_i)
   ,.wh_link_i       (wh_link_i[fwd_index_lp])
   ,.wh_link_o       (wh_link_o[fwd_index_lp])
   );
@@ -106,10 +106,10 @@ module bsg_manycore_link_async_to_wormhole
   ,.ral_reset_i    (mc_reset_i    )
   ,.ral_link_i     (mc_links_sif_i_cast.rev)
   ,.ral_link_o     (mc_links_sif_o_cast.rev)
+  ,.ral_dest_cord_i(mc_dest_cord_i)
 
   ,.wh_clk_i        (wh_clk_i      )
   ,.wh_reset_i      (wh_reset_i    )
-  ,.ral_dest_cord_i (mc_dest_cord_i)
   ,.wh_link_i       (wh_link_i[rev_index_lp])
   ,.wh_link_o       (wh_link_o[rev_index_lp])
   );
