@@ -42,13 +42,19 @@ BEEBS_LDFLAGS = "-t -T $(LINK_SCRIPT) \
 install: $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o main.o
 	rm -rf $(BUILD_DIR);
 	mkdir -p $(BUILD_DIR);
+
+  # We provide all compiler and linker flags from this Makefile and 
+  # won't use any configuration support inside beebs. So we would choose
+  # a generic configuration that almost does nothing. But, beebs repo has 
+  # generic configuration only for riscv64 hosts. Hence we choose riscv64
+  # as our host. Other than that it has no affect on the compilation
+  # process.
 	cd $(BUILD_DIR) && $(BEEBS_DIR)/configure --prefix=$(BUILD_DIR) \
-		                   --host=riscv32 \
-											 --with-chip=compare-baseline \
-											 --with-board=generic \
+		                   --host=riscv64 \
+											 --with-chip=generic \
 											 CC=$(BEEBS_CC) \
 											 CFLAGS=$(BEEBS_CFLAGS) \
-											 LDFLAGS=$(BEEBS_LDFLAGS) \
-											 CHIP_CFLAGS="";
+											 LDFLAGS=$(BEEBS_LDFLAGS);
+
 	make -C $(BUILD_DIR);
 	make -C $(BUILD_DIR) install;
