@@ -1,9 +1,10 @@
 Run [BEEBS](https://github.com/bespoke-silicon-group/beebs) on the manycore:
 ----------------------------------------------------------------------------
 
-Installation:
+One time installation:
+- `git submodule update --init --recursive` in bsg_manycore's toplevel directory.
 - `make install` to install beebs benchmarks. 
-- This build all benchmark binaries compiled for manycore in `beeps-build` directory. This can be only once.
+- This build all benchmark binaries compiled for manycore in `beeps-build` directory.
 
 Simulation:
 - `make <benchmark>.run`: recompile and run VCS simulation of `<benchmark>`
