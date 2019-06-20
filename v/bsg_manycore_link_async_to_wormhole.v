@@ -76,40 +76,40 @@ module bsg_manycore_link_async_to_wormhole
   
   // Fwd link
   bsg_ready_and_link_async_to_wormhole
- #(.wide_link_width_p (manycore_fwd_packet_width_lp)
+ #(.ral_link_width_p  (manycore_fwd_packet_width_lp)
   ,.flit_width_p      (flit_width_p      )
   ,.dims_p            (dims_p            )
   ,.cord_markers_pos_p(cord_markers_pos_p)
   ,.len_width_p       (len_width_p       )
   ) fwd
-  (.wide_clk_i      (mc_clk_i      )
-  ,.wide_reset_i    (mc_reset_i    )
-  ,.wide_link_i     (mc_links_sif_i_cast.fwd)
-  ,.wide_link_o     (mc_links_sif_o_cast.fwd)
+  (.ral_clk_i      (mc_clk_i      )
+  ,.ral_reset_i    (mc_reset_i    )
+  ,.ral_link_i     (mc_links_sif_i_cast.fwd)
+  ,.ral_link_o     (mc_links_sif_o_cast.fwd)
 
   ,.wh_clk_i        (wh_clk_i      )
   ,.wh_reset_i      (wh_reset_i    )
-  ,.wide_dest_cord_i(mc_dest_cord_i)
+  ,.ral_dest_cord_i (mc_dest_cord_i)
   ,.wh_link_i       (wh_link_i[fwd_index_lp])
   ,.wh_link_o       (wh_link_o[fwd_index_lp])
   );
   
   // Rev link
   bsg_ready_and_link_async_to_wormhole
- #(.wide_link_width_p (manycore_rev_packet_width_lp)
+ #(.ral_link_width_p  (manycore_rev_packet_width_lp)
   ,.flit_width_p      (flit_width_p      )
   ,.dims_p            (dims_p            )
   ,.cord_markers_pos_p(cord_markers_pos_p)
   ,.len_width_p       (len_width_p       )
   ) rev
-  (.wide_clk_i      (mc_clk_i      )
-  ,.wide_reset_i    (mc_reset_i    )
-  ,.wide_link_i     (mc_links_sif_i_cast.rev)
-  ,.wide_link_o     (mc_links_sif_o_cast.rev)
+  (.ral_clk_i      (mc_clk_i      )
+  ,.ral_reset_i    (mc_reset_i    )
+  ,.ral_link_i     (mc_links_sif_i_cast.rev)
+  ,.ral_link_o     (mc_links_sif_o_cast.rev)
 
   ,.wh_clk_i        (wh_clk_i      )
   ,.wh_reset_i      (wh_reset_i    )
-  ,.wide_dest_cord_i(mc_dest_cord_i)
+  ,.ral_dest_cord_i (mc_dest_cord_i)
   ,.wh_link_i       (wh_link_i[rev_index_lp])
   ,.wh_link_o       (wh_link_o[rev_index_lp])
   );
