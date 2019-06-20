@@ -36,6 +36,8 @@ module vanilla_core_trace
     , input stall_local_flw
 
     , input flush
+    
+    , input id_signals_s id_r
     , input exe_signals_s exe_r
 
     , input [pc_width_lp-1:0] pc_n
@@ -43,6 +45,12 @@ module vanilla_core_trace
     , input int_rf_wen
     , input [reg_addr_width_lp-1:0] int_rf_waddr
     , input [data_width_p-1:0] int_rf_wdata
+
+    , input fp_exe_valid
+  
+    , input float_rf_wen
+    , input [reg_addr_width_lp-1:0] float_rf_waddr
+    , input [data_width_p-1:0] float_rf_wdata
 
     , input lsu_dmem_v_lo
     , input lsu_dmem_w_lo
@@ -75,7 +83,7 @@ module vanilla_core_trace
       wb_debug <= '0;
     end
     else begin
-      if (~stall) begin
+      if (~stall & ~id_r.decode.is_fp_float_op) begin
 
         mem_debug <= {
           pc: exe_debug.pc,
@@ -86,7 +94,6 @@ module vanilla_core_trace
           is_local_store: exe_debug.is_local_store,
           local_dmem_addr: exe_debug.local_dmem_addr,
           local_store_data: exe_debug.local_store_data
-
         };
   
         wb_debug <= {
@@ -105,7 +112,34 @@ module vanilla_core_trace
     end
   end
 
+  // FP pipeline track
+  //
+  fp_debug_s fp_exe_debug, fpu1_r, fpu2_r, fpu3_r, fp_wb_debug;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      fp_exe_debug <= '0;
+      fpu1_r <= '0;
+      fpu2_r <= '0;
+      fpu3_r <= '0;
+      fp_wb_debug <= '0;
+    end
+    else begin
+      if (~stall_fp) begin
+        fp_exe_debug.pc <= id_r.pc_plus4 - 'd4;
+        fp_exe_debug.instr <= id_r.instruction;
+        fp_exe_debug.valid <= fp_exe_valid;
+      end
 
+      if (~stall_fp) begin
+        fpu1_r <= fp_exe_debug;
+        fpu2_r <= fpu1_r;
+        fpu3_r <= fpu2_r;
+        fp_wb_debug <= fpu3_r;
+      end
+
+    end
+
+  end  
 
 
 
@@ -123,8 +157,10 @@ module vanilla_core_trace
   integer fd;
   string stamp;
   string pc_instr;
+  string fp_pc_instr;
   string stall_reason;
   string int_rf_write;
+  string float_rf_write;
   string btarget;
   string dmem_access;
 
@@ -138,13 +174,15 @@ module vanilla_core_trace
       @(negedge clk_i) begin
         stamp = "";
         pc_instr = "";
+        fp_pc_instr = "";
         stall_reason = "";
         int_rf_write = "";
+        float_rf_write = "";
         btarget = "";
         dmem_access = "";
 
         if (~reset_i) begin
-        if ((my_x_i == 1) & (my_y_i == 1)) begin // comment this out for global logging
+        if ((my_x_i == 0) & (my_y_i == 1)) begin // comment this out for global logging
           fd = $fopen("vanilla.log", "a");
 
           // STAMP
@@ -154,6 +192,11 @@ module vanilla_core_trace
           pc_instr = wb_debug.pc == 32'hfffffffc
             ? "BUBBLE           "
             : $sformatf("%08x %08x", wb_debug.pc, wb_debug.instr);
+
+          // FP PC INSTR
+          fp_pc_instr = fp_wb_debug.valid
+            ? $sformatf("%08x %08x", fp_wb_debug.pc, fp_wb_debug.instr)
+            : "FP_BUBBLE        ";
 
           // STALL REASON
           if (stall_ifetch_wait)
@@ -175,9 +218,14 @@ module vanilla_core_trace
           else
             stall_reason = "             ";
 
-          // RF WRITE
+          // INT RF WRITE
           int_rf_write = int_rf_wen
             ? $sformatf("x%02d=%08x",int_rf_waddr, int_rf_wdata)
+            : {(3+1+8){" "}};
+
+          // FP RF WRITE
+          float_rf_write = float_rf_wen
+            ? $sformatf("f%02d=%08x", float_rf_waddr, float_rf_wdata)
             : {(3+1+8){" "}};
 
           // BTARGET
@@ -195,11 +243,13 @@ module vanilla_core_trace
           else
             dmem_access = {(2+5+1+8){" "}};
 
-          $fwrite(fd, "%s %s %s %s %s %s\n",
+          $fwrite(fd, "%s %s %s %s | %s %s | %s %s\n",
             stamp,
             pc_instr,
-            stall_reason,
             int_rf_write,
+            stall_reason,
+            fp_pc_instr,
+            float_rf_write,
             btarget,
             dmem_access
           );
