@@ -14,8 +14,6 @@ BEEBS_DIR := $(BSG_MANYCORE_DIR)/imports/beebs
 RUN_DIR := $(BSG_MANYCORE_DIR)/software/spmd/beebs
 BUILD_DIR := $(RUN_DIR)/beebs-build
 
-RISCV_GCC_OPTS += -DREPEAT_FACTOR=$(REPEAT_FACTOR)
-
 # Run all benchmarks
 all: $(foreach bmark, $(BMARK_LIST), $(bmark).run)
 
@@ -26,10 +24,10 @@ all: $(foreach bmark, $(BMARK_LIST), $(bmark).run)
 %.riscv: $(BUILD_DIR)/bin/%
 	cp $(BUILD_DIR)/bin/$* $@
 
-# Recompile the benchmark if any common object file change
-$(BUILD_DIR)/bin/%: $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o main.o
+# Recompile the benchmark if any common object file changed
+$(BUILD_DIR)/bin/%: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 	make -C $(BUILD_DIR)/src/$* clean
-	make -C $(BUILD_DIR) install
+	make -C $(BUILD_DIR)/src/$* install
 
 include ../../mk/Makefile.tail_rules
 
@@ -39,16 +37,19 @@ include ../../mk/Makefile.tail_rules
 #########################
 
 BEEBS_CC      = "$(RISCV_GCC)"
-BEEBS_CFLAGS  = "$(RISCV_GCC_OPTS)"
-COMMON_LIBS   = $(addprefix -l:, $(SPMD_COMMON_OBJECTS) main.o)
-BEEBS_LDFLAGS = "-t -T $(LINK_SCRIPT) \
+BEEBS_CFLAGS  = "$(RISCV_GCC_OPTS) -DREPEAT_FACTOR=$(REPEAT_FACTOR)"
+COMMON_SRCS   = $(RUN_DIR)/../common/args.c \
+                $(RUN_DIR)/../common/crt.S \
+                $(RUN_DIR)/../../bsg_manycore_lib/bsg_newlib_intf.c \
+								$(RUN_DIR)/lfs.c
+BEEBS_LDFLAGS = "-t -T $(LINK_SCRIPT) -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc \
 						     -Wl,--defsym,bsg_group_size=$(bsg_group_size) \
 						     -Wl,--no-check-sections \
-								 $(RISCV_LINK_OPTS) \
-								 -L$(RUN_DIR) $(COMMON_LIBS) \
-								 -l:$(BSG_MANYCORE_LIB)"
+								 -I$(BEEBS_DIR)/support \
+								 $(COMMON_SRCS) \
+								 -L$(RUN_DIR) -l:$(BSG_MANYCORE_LIB)"
 
-install: $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o main.o
+install: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 	rm -rf $(BUILD_DIR);
 	mkdir -p $(BUILD_DIR);
 
