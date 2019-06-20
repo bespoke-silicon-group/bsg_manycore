@@ -281,7 +281,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.wh_clk_i           (router_clk_0)
   ,.wh_reset_i         (router_reset_0)
 
-  ,.dest_cord_i     (cord_width_lp'(in_node_cord))
+  ,.mc_dest_cord_i     (cord_width_lp'(in_node_cord))
   
   ,.wh_link_i          (out_node_link_li)
   ,.wh_link_o          (out_node_link_lo)
@@ -557,7 +557,7 @@ module bsg_manycore_loopback_ddr_link_tester
   ,.wh_clk_i           (router_clk_1)
   ,.wh_reset_i         (router_reset_1)
   
-  ,.dest_cord_i     (cord_width_lp'(out_node_cord))
+  ,.mc_dest_cord_i     (cord_width_lp'(out_node_cord))
   
   ,.wh_link_i          (in_node_link_li)
   ,.wh_link_o          (in_node_link_lo)

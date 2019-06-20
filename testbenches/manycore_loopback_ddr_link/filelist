@@ -69,6 +69,7 @@ $BASEJUMP_STL_DIR/bsg_noc/bsg_wormhole_router_input_control.v
 $BASEJUMP_STL_DIR/bsg_noc/bsg_wormhole_router_output_control.v 
 $BASEJUMP_STL_DIR/bsg_noc/bsg_wormhole_router_pkg.v
 $BASEJUMP_STL_DIR/bsg_noc/bsg_wormhole_router_generalized.v
+$BASEJUMP_STL_DIR/bsg_noc/bsg_ready_and_link_async_to_wormhole.v
 
 $BSG_MANYCORE_DIR/v/bsg_manycore_link_async_to_wormhole.v
 
