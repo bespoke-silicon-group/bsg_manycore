@@ -78,7 +78,7 @@ ifneq ($(BSG_NEWLIB), 1)
 endif
 
 RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc -l:$(CRT_OBJ)\
-									-L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
+									-L$(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 
 CRT_OBJ ?= crt.o
 LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem.ld
