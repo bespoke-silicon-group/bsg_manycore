@@ -21,13 +21,10 @@ all: $(foreach bmark, $(BMARK_LIST), $(bmark).run)
 %.run: PROG_NAME=$(basename $@)
 
 # Just copy the installed binary
-%.riscv: $(BUILD_DIR)/bin/%
-	cp $(BUILD_DIR)/bin/$* $@
-
-# Recompile the benchmark if any common object file changed
-$(BUILD_DIR)/bin/%: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
+%.riscv: $(BSG_MANYCORE_LIB) $(RUN_DIR)/lfs.c
 	make -C $(BUILD_DIR)/src/$* clean
 	make -C $(BUILD_DIR)/src/$* install
+	cp $(BUILD_DIR)/bin/$* $@
 
 include ../../mk/Makefile.tail_rules
 
