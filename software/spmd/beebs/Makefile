@@ -19,10 +19,17 @@ RISCV_GCC_OPTS += -DREPEAT_FACTOR=$(REPEAT_FACTOR)
 # Run all benchmarks
 all: $(foreach bmark, $(BMARK_LIST), $(bmark).run)
 
-%.riscv:
+# Set program name for individual benchmark
+%.run: PROG_NAME=$(basename $@)
+
+# Just copy the installed binary
+%.riscv: $(BUILD_DIR)/bin/%
 	cp $(BUILD_DIR)/bin/$* $@
 
-%.run: PROG_NAME=$(basename $@)
+# Recompile the benchmark if any common object file change
+$(BUILD_DIR)/bin/%: $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o main.o
+	make -C $(BUILD_DIR)/src/$* clean
+	make -C $(BUILD_DIR) install
 
 include ../../mk/Makefile.tail_rules
 
