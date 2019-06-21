@@ -14,6 +14,8 @@ cov_report:
 	$(VCS_BIN)/urg -full64 -map $(VCS_COV_MODULE_MAP) -report coverage/ -format both -dir *.vdb/ -log coverage.log
 	cat coverage/modlist.txt
 
+query_vcs_licenses:
+	make -C $(CAD_DIR) USE_EE=$(USE_EE) -f cadenv_debug.mk $@
 
 CLEAN_ITEMS ?=
 

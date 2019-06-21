@@ -1,3 +1,14 @@
+find-dir-with = $(shell /usr/bin/perl -e 'chomp($$_ = `pwd`); while ($$_ ne "" && ! -e "$$_/$(1)") { m:(.*)/[^/]+/??:; $$_ = $$1; } print;')
+
+ifndef BSG_MANYCORE_DIR
+  export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
+endif
+
+include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
+
+# Include the benchmark list
+include $(BSG_MANYCORE_DIR)/software/spmd/beebs/Makefile.bmarklist
+
 .DEFAULT_GOAL := all
 
 bsg_tiles_X = 1
@@ -6,25 +17,26 @@ BSG_NEWLIB = 1
 LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
 REPEAT_FACTOR = 2 # Number of iterations each benchmark is run
 
-# Include the benchmark list
-include Makefile.bmarklist
-include ../Makefile.include
-
 BEEBS_DIR := $(BSG_MANYCORE_DIR)/imports/beebs
 RUN_DIR := $(BSG_MANYCORE_DIR)/software/spmd/beebs
 BUILD_DIR := $(RUN_DIR)/beebs-build
 
 # Run all benchmarks
-all: $(foreach bmark, $(BMARK_LIST), $(bmark).run)
+# you can do make -j <# number of processors> !
+#
+
+all: $(foreach bmark, $(BMARK_LIST), $(bmark).beeb_run)
 
 # Set program name for individual benchmark
-%.run: PROG_NAME=$(basename $@)
+%.beeb_run:
+	mkdir -p $*_run
+	make -C  $*_run -f ../Makefile PROG_NAME=$* $*.run | tee $*_run/run.log
 
 # Just copy the installed binary
 %.riscv:
 	cp $(BUILD_DIR)/bin/$* $@
 
-include ../../mk/Makefile.tail_rules
+include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
 
 
 #########################
@@ -63,3 +75,17 @@ install: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 
 	make -C $(BUILD_DIR);
 	make -C $(BUILD_DIR) install;
+
+summarize:
+	grep --color -B 2 finish `find . -iname run.log`
+	grep --color ERROR `find . -iname run.log`
+	grep TIMEOUT `find . -iname run.log` | wc -l
+	grep ERROR `find . -iname run.log` | wc -l
+
+clean-build:
+	-rm *.a *.o *.log
+	-rm -rf $(BUILD_DIR);
+
+clean-runs:
+	-rm -rf *_run
+
