@@ -29,7 +29,7 @@ TOOLCHAIN_REPO=riscv-gnu-toolchain
 TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
 DEPENDS_DIR=$(CURDIR)/depends
 
-BSG_NEWLIB_URL=https://bitbucket.org/taylor-bsg/bsg_hammerblade_newlib.git
+BSG_NEWLIB_URL=git@github.com:bespoke-silicon-group/bsg_newlib_dramfs.git
 BSG_NEWLIB_BRANCH=bsg_manycore_newlib
 
 SPIKE_REPO=riscv-isa-sim
