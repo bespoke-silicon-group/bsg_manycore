@@ -9,10 +9,10 @@ PROG_NAME ?= main
 ifneq ($(IGNORE_CADENV),)
 $(warning "Ignoring cadenv")
 # select the tools
-else ifneq ($(HOSTNAME),xor.cs.washington.edu)
+else ifeq (,$findstring(cs.washington.edu,$(HOSTNAME)))
 # Checking the VCS settings
 ifeq ($(VCS),)
-$(error Please define the $$VCS which points to the VCS binaries )
+$(error Unfamiliar machine/cadtool setup: Please define the $$VCS which points to the VCS binaries )
 endif
 
 ifeq ($(DVE),)
@@ -20,6 +20,7 @@ $(error Please define the $$DVE which points to the DVE binaries )
 endif
 #Using the cadenv.mk to setup the VCS
 else 
+$(warning using cadenv.mk to configure cad tools)
 include $(CAD_DIR)/cadenv.mk
 endif 
 ########################################
