@@ -1,84 +1,234 @@
-#####################################################
-# This file will run the regression test of bsg_manycore
+#########################################################
+# BSG Manycore Regression Suite
 # 
-# FORMAT=<test case> <target>
-#####################################################
-# The assmebly riscv-32 test
+# Format of each run:
+#
+# <test group>_list += '<test directory> <make target>'
+#
+#
+# Current test groups:
+#
+# 1. rv32ui
+# 2. rv32um
+# 3. spmd
+# 4. coremark
+# 5. beebs
+#########################################################
+
+
+##########################################
+# Regression groups/levels
+
+ifndef test_case_list
+
+  ifdef GROUP
+    test_case_list = $($(GROUP)_list)
+  else
+    # Default is level 3 regression
+    LEVEL ?= 3
+
+    # Level 0
+    test_case_list = $(rv32ui_list)
+
+    # Level 1
+    ifeq ($(shell echo $(LEVEL)\>=1 | bc),1)
+      test_case_list += $(rv32um_list)
+    endif
+
+    # Level 2
+    ifeq ($(shell echo $(LEVEL)\>=2 | bc),1)
+      test_case_list += $(spmd_list)
+    endif
+
+    # Level 3
+    ifeq ($(shell echo $(LEVEL)\>=3 | bc),1)
+      test_case_list += $(coremark_list)
+    endif
+
+    # Level 4
+    ifeq ($(shell echo $(LEVEL)\>=4 | bc),1)
+      test_case_list += $(beebs_list)
+    endif
+  endif
+
+endif
+
+
+
+##########################################
+# RISC-V 32 Assembly Tests
+
 # The rv32-ui
-test_case_list+='bsg_riscv_tests addi.run'
-test_case_list+='bsg_riscv_tests add.run'
-test_case_list+='bsg_riscv_tests andi.run'
-test_case_list+='bsg_riscv_tests and.run'
-test_case_list+='bsg_riscv_tests auipc.run'
-test_case_list+='bsg_riscv_tests beq.run'
-test_case_list+='bsg_riscv_tests bge.run'
-test_case_list+='bsg_riscv_tests bgeu.run'
-test_case_list+='bsg_riscv_tests blt.run'
-test_case_list+='bsg_riscv_tests bltu.run'
-test_case_list+='bsg_riscv_tests bne.run'
-#test_case_list+='bsg_riscv_tests fence_i.run'
-test_case_list+='bsg_riscv_tests jalr.run'
-test_case_list+='bsg_riscv_tests jal.run'
-test_case_list+='bsg_riscv_tests lb.run'
-test_case_list+='bsg_riscv_tests lbu.run'
-test_case_list+='bsg_riscv_tests lh.run'
-test_case_list+='bsg_riscv_tests lhu.run'
-test_case_list+='bsg_riscv_tests lui.run'
-test_case_list+='bsg_riscv_tests lw.run'
-test_case_list+='bsg_riscv_tests ori.run'
-test_case_list+='bsg_riscv_tests or.run'
-test_case_list+='bsg_riscv_tests sb.run'
-test_case_list+='bsg_riscv_tests sh.run'
-test_case_list+='bsg_riscv_tests simple.run'
-test_case_list+='bsg_riscv_tests slli.run'
-test_case_list+='bsg_riscv_tests sll.run'
-test_case_list+='bsg_riscv_tests slti.run'
-test_case_list+='bsg_riscv_tests sltiu.run'
-test_case_list+='bsg_riscv_tests slt.run'
-test_case_list+='bsg_riscv_tests sltu.run'
-test_case_list+='bsg_riscv_tests srai.run'
-test_case_list+='bsg_riscv_tests sra.run'
-test_case_list+='bsg_riscv_tests srli.run'
-test_case_list+='bsg_riscv_tests srl.run'
-test_case_list+='bsg_riscv_tests sub.run'
-test_case_list+='bsg_riscv_tests sw.run'
-test_case_list+='bsg_riscv_tests xori.run'
-test_case_list+='bsg_riscv_tests xor.run'
+rv32ui_list+='bsg_riscv_tests addi.run'
+rv32ui_list+='bsg_riscv_tests add.run'
+rv32ui_list+='bsg_riscv_tests andi.run'
+rv32ui_list+='bsg_riscv_tests and.run'
+rv32ui_list+='bsg_riscv_tests auipc.run'
+rv32ui_list+='bsg_riscv_tests beq.run'
+rv32ui_list+='bsg_riscv_tests bge.run'
+rv32ui_list+='bsg_riscv_tests bgeu.run'
+rv32ui_list+='bsg_riscv_tests blt.run'
+rv32ui_list+='bsg_riscv_tests bltu.run'
+rv32ui_list+='bsg_riscv_tests bne.run'
+#rv32ui_list+='bsg_riscv_tests fence_i.run'
+rv32ui_list+='bsg_riscv_tests jalr.run'
+rv32ui_list+='bsg_riscv_tests jal.run'
+rv32ui_list+='bsg_riscv_tests lb.run'
+rv32ui_list+='bsg_riscv_tests lbu.run'
+rv32ui_list+='bsg_riscv_tests lh.run'
+rv32ui_list+='bsg_riscv_tests lhu.run'
+rv32ui_list+='bsg_riscv_tests lui.run'
+rv32ui_list+='bsg_riscv_tests lw.run'
+rv32ui_list+='bsg_riscv_tests ori.run'
+rv32ui_list+='bsg_riscv_tests or.run'
+rv32ui_list+='bsg_riscv_tests sb.run'
+rv32ui_list+='bsg_riscv_tests sh.run'
+rv32ui_list+='bsg_riscv_tests simple.run'
+rv32ui_list+='bsg_riscv_tests slli.run'
+rv32ui_list+='bsg_riscv_tests sll.run'
+rv32ui_list+='bsg_riscv_tests slti.run'
+rv32ui_list+='bsg_riscv_tests sltiu.run'
+rv32ui_list+='bsg_riscv_tests slt.run'
+rv32ui_list+='bsg_riscv_tests sltu.run'
+rv32ui_list+='bsg_riscv_tests srai.run'
+rv32ui_list+='bsg_riscv_tests sra.run'
+rv32ui_list+='bsg_riscv_tests srli.run'
+rv32ui_list+='bsg_riscv_tests srl.run'
+rv32ui_list+='bsg_riscv_tests sub.run'
+rv32ui_list+='bsg_riscv_tests sw.run'
+rv32ui_list+='bsg_riscv_tests xori.run'
+rv32ui_list+='bsg_riscv_tests xor.run'
+
 # The rv32-um
-test_case_list+='bsg_riscv_tests div.run'
-test_case_list+='bsg_riscv_tests divu.run'
-test_case_list+='bsg_riscv_tests mulh.run'
-test_case_list+='bsg_riscv_tests mulhsu.run'
-test_case_list+='bsg_riscv_tests mulhu.run'
-test_case_list+='bsg_riscv_tests mul.run'
-test_case_list+='bsg_riscv_tests rem.run'
-test_case_list+='bsg_riscv_tests remu.run'
+rv32um_list+='bsg_riscv_tests div.run'
+rv32um_list+='bsg_riscv_tests divu.run'
+rv32um_list+='bsg_riscv_tests mulh.run'
+rv32um_list+='bsg_riscv_tests mulhsu.run'
+rv32um_list+='bsg_riscv_tests mulhu.run'
+rv32um_list+='bsg_riscv_tests mul.run'
+rv32um_list+='bsg_riscv_tests rem.run'
+rv32um_list+='bsg_riscv_tests remu.run'
+
+
 #####################################################
-# The manycore specific test
-test_case_list+=hello
-test_case_list+=bsg_token_queue
-test_case_list+=bsg_fence
-test_case_list+=bsg_lr_acq
-test_case_list+=bsg_chained_core
-test_case_list+=bsg_outbuf_full
-test_case_list+=mul_div
-test_case_list+=bypass_core
-test_case_list+=bsg_remote_load
-test_case_list+=instr_tests/jal_rv32
-test_case_list+=instr_tests/branch_rv32
-test_case_list+=load_dependency
-test_case_list+=remote_load_crc
-test_case_list+=bsg_remote_congestion
-test_case_list+=bsg_tile_group_barrier
-test_case_list+=bsg_mutex
-test_case_list+=bsg_barrier
-test_case_list+=bsg_transpose
-test_case_list+=regfile_x0_test
-test_case_list+=fib
-test_case_list+=crc32
-test_case_list+=quicksort
-test_case_list+=nprimes
-test_case_list+=depend_stall_mispredict
-test_case_list+=striped_hello
-test_case_list+=coremark
-test_case_list+=fft
+# SPMD tests
+spmd_list+=hello
+spmd_list+=bsg_token_queue
+spmd_list+=bsg_fence
+spmd_list+=bsg_lr_acq
+spmd_list+=bsg_chained_core
+spmd_list+=bsg_outbuf_full
+spmd_list+=mul_div
+spmd_list+=bypass_core
+spmd_list+=bsg_remote_load
+spmd_list+=instr_tests/jal_rv32
+spmd_list+=instr_tests/branch_rv32
+spmd_list+=load_dependency
+spmd_list+=remote_load_crc
+spmd_list+=bsg_remote_congestion
+spmd_list+=bsg_tile_group_barrier
+spmd_list+=bsg_mutex
+spmd_list+=bsg_barrier
+spmd_list+=bsg_transpose
+spmd_list+=regfile_x0_test
+spmd_list+=fib
+spmd_list+=crc32
+spmd_list+=quicksort
+spmd_list+=nprimes
+spmd_list+=depend_stall_mispredict
+spmd_list+=striped_hello
+spmd_list+=fft
+
+
+#######################################################
+# Benchmarks
+
+# Coremark
+coremark_list+=coremark
+
+# Beebs
+beebs_list+='beebs aha-compress.run'
+beebs_list+='beebs aha-mont64.run'
+beebs_list+='beebs bs.run'
+beebs_list+='beebs bubblesort.run'
+beebs_list+='beebs cnt.run'
+beebs_list+='beebs compress.run'
+beebs_list+='beebs cover.run'
+beebs_list+='beebs crc.run'
+beebs_list+='beebs crc32.run'
+beebs_list+='beebs ctl.run'
+beebs_list+='beebs ctl-stack.run'
+beebs_list+='beebs ctl-string.run'
+beebs_list+='beebs ctl-vector.run'
+beebs_list+='beebs cubic.run'
+beebs_list+='beebs dijkstra.run'
+beebs_list+='beebs dtoa.run'
+beebs_list+='beebs duff.run'
+beebs_list+='beebs edn.run'
+beebs_list+='beebs expint.run'
+beebs_list+='beebs fac.run'
+beebs_list+='beebs fasta.run'
+beebs_list+='beebs fdct.run'
+beebs_list+='beebs fibcall.run'
+beebs_list+='beebs fir.run'
+beebs_list+='beebs frac.run'
+beebs_list+='beebs huffbench.run'
+beebs_list+='beebs insertsort.run'
+beebs_list+='beebs janne_complex.run'
+beebs_list+='beebs jfdctint.run'
+beebs_list+='beebs lcdnum.run'
+beebs_list+='beebs levenshtein.run'
+beebs_list+='beebs ludcmp.run'
+beebs_list+='beebs matmult.run'
+beebs_list+='beebs matmult-float.run'
+beebs_list+='beebs matmult-int.run'
+beebs_list+='beebs mergesort.run'
+beebs_list+='beebs miniz.run'
+beebs_list+='beebs minver.run'
+beebs_list+='beebs nbody.run'
+beebs_list+='beebs ndes.run'
+beebs_list+='beebs nettle-aes.run'
+beebs_list+='beebs nettle-arcfour.run'
+beebs_list+='beebs nettle-cast128.run'
+beebs_list+='beebs nettle-des.run'
+beebs_list+='beebs nettle-md5.run'
+beebs_list+='beebs nettle-sha256.run'
+beebs_list+='beebs newlib-exp.run'
+beebs_list+='beebs newlib-log.run'
+beebs_list+='beebs newlib-mod.run'
+beebs_list+='beebs newlib-sqrt.run'
+beebs_list+='beebs ns.run'
+beebs_list+='beebs nsichneu.run'
+beebs_list+='beebs picojpeg.run'
+beebs_list+='beebs prime.run'
+beebs_list+='beebs qrduino.run'
+beebs_list+='beebs qsort.run'
+beebs_list+='beebs qurt.run'
+beebs_list+='beebs recursion.run'
+beebs_list+='beebs rijndael.run'
+beebs_list+='beebs select.run'
+beebs_list+='beebs sglib-arraybinsearch.run'
+beebs_list+='beebs sglib-arrayheapsort.run'
+beebs_list+='beebs sglib-arrayquicksort.run'
+beebs_list+='beebs sglib-arraysort.run'
+beebs_list+='beebs sglib-dllist.run'
+beebs_list+='beebs sglib-hashtable.run'
+beebs_list+='beebs sglib-listinsertsort.run'
+beebs_list+='beebs sglib-listsort.run'
+beebs_list+='beebs sglib-queue.run'
+beebs_list+='beebs sglib-rbtree.run'
+beebs_list+='beebs slre.run'
+beebs_list+='beebs sqrt.run'
+beebs_list+='beebs st.run'
+beebs_list+='beebs statemate.run'
+beebs_list+='beebs stb_perlin.run'
+beebs_list+='beebs stringsearch1.run'
+beebs_list+='beebs strstr.run'
+beebs_list+='beebs tarai.run'
+beebs_list+='beebs template.run'
+beebs_list+='beebs trio.run'
+beebs_list+='beebs trio-snprintf.run'
+beebs_list+='beebs trio-sscanf.run'
+beebs_list+='beebs ud.run'
+beebs_list+='beebs whetstone.run'
+beebs_list+='beebs wikisort.run'
