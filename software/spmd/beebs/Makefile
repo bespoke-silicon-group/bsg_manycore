@@ -24,6 +24,8 @@ all: $(foreach bmark, $(BMARK_LIST), $(bmark).run)
 %.riscv:
 	cp $(BUILD_DIR)/bin/$* $@
 
+$(RUN_DIR)/lfs.c: lfs.c
+
 include ../../mk/Makefile.tail_rules
 
 
