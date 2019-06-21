@@ -7,13 +7,8 @@ BSG_MANYCORE_BANKS=4
 BSG_MANYCORE_BANKSIZE=2048
 
 #####################################################
-# DO we have the FPU implemented?
-BSG_FPU_OP = 1
-ifeq ($(BSG_FPU_OP), 1)
+# DO we have the FPU implemented ?
 ARCH_OP=rv32imaf
-else
-ARCH_OP=rv32ima
-endif
 #####################################################
 
 # paths
@@ -31,13 +26,10 @@ VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
 # flags
 OPT_LEVEL ?= -O2
-RISCV_GCC_EXTRA_OPTS ?= 
-RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -fno-builtin-printf
-ifeq ($(BSG_FPU_OP), 1)
-RISCV_GCC_OPTS += -ffp-contract=off
-endif
-RISCV_GCC_OPTS += $(RISCV_GCC_EXTRA_OPTS) 
-RISCV_GCC_OPTS += -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+RISCV_GCC_EXTRA_OPTS ?=
+RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -ffp-contract=off
+
+RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
@@ -76,18 +68,18 @@ BSG_MANYCORE_LIB = bsg_manycore_lib.a
 
 CRT_OBJ ?= crt.o
 LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem.ld
-RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc -l:$(CRT_OBJ)\
-									-L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
+RISCV_LINK_OPTS ?= 
+
 ifndef CLANG
-ifeq ($(BSG_FPU_OP), 1)
-RISCV_GCC_OPTS +=-mno-fdiv
-endif
+	RISCV_GCC_OPTS += -mno-fdiv
 endif
 
 ifneq ($(BSG_NEWLIB), 1)
   RISCV_LINK_OPTS += -nostdlib
 endif
 
+RISCV_LINK_OPTS = -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc -l:$(CRT_OBJ)\
+									-L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 
 CRT_OBJ ?= crt.o
 LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem.ld
@@ -137,12 +129,12 @@ $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
 
 else
 %.o: %.c
-	$(RISCV_GCC) $(RISCV_GCC_EXTRA_OPTS) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
 endif
 
 
 %.o: %.S
-	$(RISCV_GCC) $(RISCV_GCC_EXTRA_OPTS) $(RISCV_GCC_OPTS) $(RISCV_GCC_FOPTS) $(OPT_LEVEL) $(spmd_defs) -D__ASSEMBLY__=1 \
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -D__ASSEMBLY__=1 \
 		-c $(INCS) $< -o $@
 
 
