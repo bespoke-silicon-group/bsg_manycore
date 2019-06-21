@@ -59,7 +59,6 @@ BMARK_LIST  = aha-compress          \
               sglib-arraybinsearch  \
               sglib-arrayheapsort   \
               sglib-arrayquicksort  \
-              sglib-arraysort       \
               sglib-dllist          \
               sglib-hashtable       \
               sglib-listinsertsort  \
