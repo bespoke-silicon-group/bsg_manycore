@@ -157,7 +157,7 @@ SECTIONS
   .text.dram : 
   AT(_dram_t_lma_start) 
   {
-     *crt.o(.text)
+     *(.crtbegin)
      *(.text)
      *(.text.startup)
      *(.text.*)
