@@ -163,7 +163,7 @@ DESIGN_HDRS = $(LIST_VANILLA_HDRS) $(LIST_COMMON_HDRS)
 DESIGN_INCS = $(LIST_VANILLA_INCS) $(LIST_COMMON_INCS)
 DESIGN_SRCS = $(LIST_VANILLA_SRCS) $(LIST_COMMON_SRCS)
 
-TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/basic/test_bsg_manycore.v
+TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/basic/$(TOP_LEVEL_MODULE).v
 
 ###################################################################################
 # VCS coverage config files

@@ -10,4 +10,12 @@ SPMD_COMMON_OBJECTS =
 
 $(warning $(BSG_MANYCORE_DIR))
 
+ifndef TOP_LEVEL_MODULE
+  export TOP_LEVEL_MODULE := test_bsg_manycore
+endif
+
+ifdef INCLUDE_FILELIST
+  include $(BSG_MANYCORE_DIR)/software/mk/$(INCLUDE_FILELIST)
+endif
+
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master

@@ -83,12 +83,12 @@ endif
 
 %.run: %.riscv %_dmem.mem %_dram.mem
 	$(VCS) $(VCS_OP) \
-        -top test_bsg_manycore 		\
+        -top $(TOP_LEVEL_MODULE) 		\
     	$(VCS_OPTIONS)                  \
 			$(VCS_LINT)											\
     	$(EXTRA_OPT)					\
     	$(addprefix $(INC_OP), $(DESIGN_INCS) )\
-    	$(DESIGN_HDRS) $(DESIGN_SRCS)   \
+    	$(DESIGN_HDRS) $(DESIGN_SRCS) $(EXTRA_SRCS)   \
     	$(TOP_LEVEL)
 	./simv $(VCS_RUN_OP) -l simv.log
 	#./simv  +vcs+stop+600000
