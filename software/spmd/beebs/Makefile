@@ -21,9 +21,7 @@ all: $(foreach bmark, $(BMARK_LIST), $(bmark).run)
 %.run: PROG_NAME=$(basename $@)
 
 # Just copy the installed binary
-%.riscv: $(BSG_MANYCORE_LIB) $(RUN_DIR)/lfs.c
-	make -C $(BUILD_DIR)/src/$* clean
-	make -C $(BUILD_DIR)/src/$* install
+%.riscv:
 	cp $(BUILD_DIR)/bin/$* $@
 
 include ../../mk/Makefile.tail_rules
