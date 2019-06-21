@@ -7,7 +7,6 @@ BMARK_LIST  = aha-compress          \
               cover                 \
               crc                   \
               crc32                 \
-              ctl                   \
               ctl-stack             \
               ctl-string            \
               ctl-vector            \
@@ -30,7 +29,6 @@ BMARK_LIST  = aha-compress          \
               lcdnum                \
               levenshtein           \
               ludcmp                \
-              matmult               \
               matmult-float         \
               matmult-int           \
               mergesort             \
@@ -77,7 +75,6 @@ BMARK_LIST  = aha-compress          \
               strstr                \
               tarai                 \
               template              \
-              trio                  \
               trio-snprintf         \
               trio-sscanf           \
               ud                    \
