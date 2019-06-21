@@ -30,6 +30,20 @@ all: main.regress_test
 ##############################################
 #  regression test
 %.regress_test:
+ifdef GROUP
+	@echo ""
+	@echo "#####################################################################"
+	@echo "# RUNNING TEST GROUP: $(GROUP)"
+	@echo "#####################################################################"
+	@echo ""
+else ifdef LEVEL
+	@echo ""
+	@echo "#####################################################################"
+	@echo "# RUNNING LEVEL $(LEVEL) REGRESSION"
+	@echo "#####################################################################"
+	@echo ""
+endif
+
 	@for testcase in $(test_case_list) ; do \
 	echo "====================================================================="; \
 	export test_name=$$(echo $$testcase | awk '{print $$1}')	&&	\
@@ -48,6 +62,7 @@ ifeq ($(COVERAGE),VCS)
 	@echo "See coverage_reports/ for hierarchical coverage and more..."
 	@echo
 endif
+
 	@for testcase in $(test_case_list) ; do \
 	make -C ./$$(echo $$testcase | awk '{print $$1}') clean  &>/dev/null;     		   \
 	done;
