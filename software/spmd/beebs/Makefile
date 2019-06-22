@@ -1,7 +1,5 @@
 find-dir-with = $(shell /usr/bin/perl -e 'chomp($$_ = `pwd`); while ($$_ ne "" && ! -e "$$_/$(1)") { m:(.*)/[^/]+/??:; $$_ = $$1; } print;')
 
-ATTRIBUTES = NO_RECURSE
-
 ifndef BSG_MANYCORE_DIR
   export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
 endif
@@ -85,16 +83,6 @@ beebs.install.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 	$(MAKE) -C $(BUILD_DIR);
 	$(MAKE) -C $(BUILD_DIR) install;
 	touch beebs.install.touchfile
-
-summarize:
-	-grep -m --color -B 2 finish `find . -iname run.log`
-	-grep -m 1 --color "FINISH\|FAIL\|I/O" `find . -iname run.log`
-	grep -m 1 -C 2 --color "ERROR\|^[Ee]rror"  `find . -iname run.log`
-	-@echo -n "TIMEOUT:"; grep TIMEOUT `find . -iname run.log` | wc -l
-	-@echo -n "ERROR:"; grep ERROR `find . -iname run.log` | wc -l
-	-@echo -n "FAIL:";grep FAIL `find . -iname run.log` | wc -l
-	-@echo -n "Correct:"; grep Correct `find . -iname run.log` | wc -l
-	-@echo -n "Passed:"; grep Passed `find . -iname run.log` | wc -l
 
 clean-build:
 	-rm *.a *.o *.log

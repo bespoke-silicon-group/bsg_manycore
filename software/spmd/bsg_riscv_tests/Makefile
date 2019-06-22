@@ -1,76 +1,29 @@
-.DEFAULT_GOAL := selected
+find-dir-with = $(shell /usr/bin/perl -e 'chomp($$_ = `pwd`); while ($$_ ne "" && ! -e "$$_/$(1)") { m:(.*)/[^/]+/??:; $$_ = $$1; } print;')
 
-bsg_tiles_X= 1
-bsg_tiles_Y= 1
-bsg_global_X = 4
-bsg_global_Y = 5
-bsg_tiles_org_X = 0
-bsg_tiles_org_Y = 1
+ifndef BSG_MANYCORE_DIR
+  export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
+endif
 
-include ../Makefile.include
+RVTEST_DIR=$(BSG_MANYCORE_DIR)/imports/riscv-tests/isa
 
-RVTEST_ISAs = rv32ui rv32um rv32ua
-RVTEST_DIR = $(BSG_MANYCORE_DIR)/imports/riscv-tests/isa
+NO-RECURSE = fence_i amoadd_w amo amoadd_w amoand_w amomax_w amomaxu_w amomin_w amominu_w amoor_w amoxor_w amoswap_w lrsc
 
-# Add source directories to the search path
-RVTEST_ASM_DIRs = $(foreach test_isa, $(RVTEST_ISAs), $(RVTEST_DIR)/$(test_isa))
-vpath %.S $(RVTEST_ASM_DIRs)
+# not selected rv32mi rv32si rv32ua rv32uc rv32ud rv64mi rv64si rv64ua rv64uc rv64ud rv64uf rv64ui rv64um
+export RVTEST_ISA_VARIANTS = rv32ui rv32uf rv32um
 
-# Current directory has the modified header "riscv_test.h", which 
-# will override the original one.
-RVTEST_INCS = -I. -I$(RVTEST_DIR)/macros/scalar
+# get test names, filter the ones we don't want to run
 
-INCS += $(RVTEST_INCS)
-RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles
+RVTEST_INSTS = $(filter-out $(NO-RECURSE),$(basename $(notdir $(foreach x,$(RVTEST_ISA_VARIANTS),$(shell /usr/bin/find $(RVTEST_DIR)/$(x) -iname *.S)))))
 
-%.riscv:  %.o
-	$(RISCV_LINK) $< -o $@ $(RISCV_LINK_OPTS)
+$(warning RVTEST_INSTS = $(RVTEST_INSTS))
 
-# Set a separate program run for each run
-%.run: PROG_NAME=$(basename $@)
+all: $(foreach instr, $(RVTEST_INSTS), $(instr).riscv_tests_run)
+	$(warning Finished running: $(TEST_INSTS))
 
-# Selected instrcution tests
-#
-# Run following instruction tests
-TEST_INSTRS = \
-	add addi \
-	and andi \
-	auipc \
-	beq bge bgeu blt bltu bne \
-	jal jalr \
-	lb lbu lh lhu lw \
-	lui \
-	or ori \
-	sb sh sw \
-	sll slli \
-	slt slti sltiu sltu \
-	sra srai \
-	srl srli \
-	sub \
-	xor xori \
-	div divu \
-	mul mulh mulhsu mulhu \
-	rem remu \
-	#fence_i \
-	amoadd_w amoand_w amomax_w amomaxu_w amomin_w amominu_w amoor_w amoxor_w amoswap_w \
-	lrsc \
 
-selected: $(foreach instr, $(TEST_INSTRS), $(instr).run)
-	$(warning Finished running: $(TEST_INSTRS))
+%.riscv_tests_run:
+	mkdir -p $*_run
+	$(MAKE) -C $*_run -f ../Makefile.include $*.run | /usr/bin/tee  $*_run/run.log
 
-# All instruction tests in the ISA
-#
-# Import list of tests from riscv-tests repo. Below Makefrags have tests listed as
-# variables in the format "<test_isa>_sc_tests"
-include $(foreach test_asm_dir, $(RVTEST_ASM_DIRs), $(test_asm_dir)/Makefrag)
-
-ALL_RUNS = $(foreach test_isa, $(RVTEST_ISAs)\
-               , $(foreach test, $($(test_isa)_sc_tests)\
-                     , $(RVTEST_DIR)/$(test_isa)/$(test).run))
-
-all: $(ALL_RUNS)
-	$(warning Finished running: $(ALL_RUNS))
-
-proc_exe_logs: X0_Y0.pelog X0_Y1.pelog X1_Y0.pelog X1_Y1.pelog
-
-include ../../mk/Makefile.tail_rules
+clean:
+	-rm -rf *_run
