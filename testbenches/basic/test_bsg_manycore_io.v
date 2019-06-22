@@ -17,7 +17,6 @@
 
 module test_bsg_manycore_io;
   import bsg_noc_pkg::*; // {P=0, W, E, N, S}
-  import bsg_wormhole_router_pkg::*;
 
   parameter int bsg_hetero_type_vec_p [0:`bsg_global_Y-1][0:`bsg_global_X-1] = '{`bsg_hetero_type_vec};
   parameter cycle_time_p = 20; // clock period
@@ -81,7 +80,7 @@ module test_bsg_manycore_io;
   bsg_nonsynth_reset_gen #(
     .num_clocks_p(1)
     ,.reset_cycles_lo_p(1)
-    ,.reset_cycles_hi_p(10)
+    ,.reset_cycles_hi_p(1000)
   ) reset_gen (
     .clk_i(clk)
     ,.async_reset_o(reset)
@@ -105,7 +104,9 @@ module test_bsg_manycore_io;
 
   bsg_manycore_link_sif_s [S:N][num_tiles_x_p-1:0] ver_link_li, ver_link_lo;
   bsg_manycore_link_sif_s [E:W][num_tiles_y_p-1:0] hor_link_li, hor_link_lo;
+  
   bsg_manycore_link_sif_s [num_tiles_x_p-1:0] io_link_li, io_link_lo;
+  bsg_manycore_link_sif_s fpga_io_link_li, fpga_io_link_lo;
 
   bsg_manycore #(
     .dmem_size_p(dmem_size_p)
@@ -141,7 +142,6 @@ module test_bsg_manycore_io;
     ,.io_link_sif_o(io_link_lo)
   );
 
-
   // instantiate the loader and moniter
   // connects to (0,0)
   bsg_nonsynth_manycore_io_complex #(
@@ -176,8 +176,8 @@ module test_bsg_manycore_io;
   ) io(
     .clk_i(clk)
     ,.reset_i(reset_rr)
-    ,.io_link_sif_i(io_link_lo[0])
-    ,.io_link_sif_o(io_link_li[0])
+    ,.io_link_sif_i(fpga_io_link_li)
+    ,.io_link_sif_o(fpga_io_link_lo)
   );
 
 
@@ -191,8 +191,8 @@ module test_bsg_manycore_io;
     
     localparam byte_offset_width_lp = `BSG_SAFE_CLOG2(data_width_p>>3);
     localparam cache_addr_width_lp  = addr_width_p-1+byte_offset_width_lp;
-    
     `declare_bsg_cache_dma_pkt_s(cache_addr_width_lp);
+    
     bsg_cache_dma_pkt_s [num_tiles_x_p-1:0] dma_pkt_lo;
     logic [num_tiles_x_p-1:0] dma_pkt_v_lo;
     logic [num_tiles_x_p-1:0] dma_pkt_yumi_li;
@@ -204,6 +204,19 @@ module test_bsg_manycore_io;
     logic [num_tiles_x_p-1:0][data_width_p-1:0] dma_data_lo;
     logic [num_tiles_x_p-1:0] dma_data_v_lo;
     logic [num_tiles_x_p-1:0] dma_data_yumi_li;
+    
+    bsg_cache_dma_pkt_s [num_tiles_x_p-1:0] fpga_dma_pkt_li;
+    logic [num_tiles_x_p-1:0] fpga_dma_pkt_v_li;
+    logic [num_tiles_x_p-1:0] fpga_dma_pkt_yumi_lo;
+
+    logic [num_tiles_x_p-1:0][data_width_p-1:0] fpga_dma_data_lo;
+    logic [num_tiles_x_p-1:0] fpga_dma_data_v_lo;
+    logic [num_tiles_x_p-1:0] fpga_dma_data_ready_li;
+
+    logic [num_tiles_x_p-1:0][data_width_p-1:0] fpga_dma_data_li;
+    logic [num_tiles_x_p-1:0] fpga_dma_data_v_li;
+    logic [num_tiles_x_p-1:0] fpga_dma_data_yumi_lo;
+    
 
     logic [num_tiles_x_p-1:0][x_cord_width_lp-1:0] cache_x;
     logic [num_tiles_x_p-1:0][y_cord_width_lp-1:0] cache_y;
@@ -248,138 +261,60 @@ module test_bsg_manycore_io;
     );
     
     
-  // Wormhole network settings
-  
-  bsg_cache_dma_pkt_s [num_tiles_x_p-1:0] test_dma_pkt_lo;
-  logic [num_tiles_x_p-1:0] test_dma_pkt_v_lo;
-  logic [num_tiles_x_p-1:0] test_dma_pkt_yumi_li;
-  
-  logic [num_tiles_x_p-1:0][data_width_p-1:0] test_dma_data_li;
-  logic [num_tiles_x_p-1:0] test_dma_data_v_li;
-  logic [num_tiles_x_p-1:0] test_dma_data_ready_lo;
-  
-  logic [num_tiles_x_p-1:0][data_width_p-1:0] test_dma_data_lo;
-  logic [num_tiles_x_p-1:0] test_dma_data_v_lo;
-  logic [num_tiles_x_p-1:0] test_dma_data_yumi_li;
-  
-  localparam flit_width_p = 32;
-  localparam dims_p = 1;
-  localparam int cord_markers_pos_p[dims_p:0] = '{4, 0};
-  localparam len_width_p = 4;
-  
-  localparam dirs_lp = dims_p*2+1;
-  localparam bit [1:0][dirs_lp-1:0][dirs_lp-1:0] routing_matrix_p = StrictX;
-  localparam cord_width_lp = cord_markers_pos_p[dims_p];
-  
-  `declare_bsg_ready_and_link_sif_s(flit_width_p, bsg_ready_and_link_sif_s);
   genvar i;
   
-  bsg_ready_and_link_sif_s [num_tiles_x_p-1:0][dirs_lp-1:0] router_link_li, router_link_lo;
   
   
+  bsg_manycore_io_system
+ #(.mc_addr_width_p         (addr_width_p)
+  ,.mc_data_width_p         (data_width_p)
+  ,.mc_load_id_width_p      (load_id_width_p)
+  ,.mc_x_cord_width_p       (x_cord_width_lp)
+  ,.mc_y_cord_width_p       (y_cord_width_lp)
+  ,.mc_num_tiles_x_p        (num_tiles_x_p)
+  ,.mc_block_size_in_words_p(vcache_block_size_in_words_p)
+  ) io_system
+  (// On ASIC
+   .asic_mc_clk_i  (clk)
+  ,.asic_mc_reset_i(reset)
+
+  ,.asic_mc_link_i (io_link_lo[0])
+  ,.asic_mc_link_o (io_link_li[0])
+
+  ,.asic_dma_pkt_i             (dma_pkt_lo)
+  ,.asic_dma_pkt_v_i           (dma_pkt_v_lo)
+  ,.asic_dma_pkt_yumi_o        (dma_pkt_yumi_li)
+
+  ,.asic_dma_data_i            (dma_data_lo)
+  ,.asic_dma_data_v_i          (dma_data_v_lo)
+  ,.asic_dma_data_yumi_o       (dma_data_yumi_li)
+
+  ,.asic_dma_return_pkt_o      ()
+  ,.asic_dma_return_pkt_v_o    ()
+  ,.asic_dma_return_pkt_ready_i('1)
+
+  ,.asic_dma_data_o            (dma_data_li)
+  ,.asic_dma_data_v_o          (dma_data_v_li)
+  ,.asic_dma_data_ready_i      (dma_data_ready_lo)
   
-  for (i = 0; i < num_tiles_x_p; i++)
-    begin: adapters
-    
-      localparam my_id_lp = {1'b1, `BSG_SAFE_CLOG2(num_tiles_x_p)'(i)};
-    
-      bsg_cache_dma_async_to_wormhole
-     #(.cache_addr_width_p   (cache_addr_width_lp)
-      ,.data_width_p         (data_width_p)
-      ,.block_size_in_words_p(vcache_block_size_in_words_p)
-      ,.flit_width_p         (flit_width_p)
-      ,.dims_p               (dims_p)
-      ,.cord_markers_pos_p   (cord_markers_pos_p)
-      ,.len_width_p          (len_width_p)
-      ) dma_to_wh
-      (.dma_clk_i(clk)
-      ,.dma_reset_i(reset)
-                 
-      ,.dma_pkt_i(dma_pkt_lo[i])
-      ,.dma_pkt_v_i(dma_pkt_v_lo[i])
-      ,.dma_pkt_yumi_o(dma_pkt_yumi_li[i])
+  // On FPGA
+  ,.fpga_mc_clk_i  (clk)
+  ,.fpga_mc_reset_i(reset)
 
-      ,.dma_data_i(dma_data_lo[i])
-      ,.dma_data_v_i(dma_data_v_lo[i])
-      ,.dma_data_yumi_o(dma_data_yumi_li[i])
+  ,.fpga_mc_link_i (fpga_io_link_lo)
+  ,.fpga_mc_link_o (fpga_io_link_li)
 
-      ,.dma_return_pkt_o()
-      ,.dma_return_pkt_v_o()
-      ,.dma_return_pkt_ready_i(1'b1)
+  ,.fpga_dma_pkt_o       (fpga_dma_pkt_li)
+  ,.fpga_dma_pkt_v_o     (fpga_dma_pkt_v_li)
+  ,.fpga_dma_pkt_yumi_i  (fpga_dma_pkt_yumi_lo)
 
-      ,.dma_data_o(dma_data_li[i])
-      ,.dma_data_v_o(dma_data_v_li[i])
-      ,.dma_data_ready_i(dma_data_ready_lo[i])
-      
-      ,.dma_my_cord_i(cord_width_lp'(my_id_lp))
-      ,.dma_dest_cord_i(cord_width_lp'(0))
-      // FIXME: add router clock
-      ,.wh_clk_i(clk)
-      ,.wh_reset_i(reset)
+  ,.fpga_dma_data_i      (fpga_dma_data_lo)
+  ,.fpga_dma_data_v_i    (fpga_dma_data_v_lo)
+  ,.fpga_dma_data_ready_o(fpga_dma_data_ready_li)
 
-      ,.wh_link_i(router_link_lo[i][P])
-      ,.wh_link_o(router_link_li[i][P])
-      );
-      
-      bsg_wormhole_router_generalized
-     #(.flit_width_p      (flit_width_p)
-      ,.dims_p            (dims_p)
-      ,.cord_markers_pos_p(cord_markers_pos_p)
-      ,.routing_matrix_p  (routing_matrix_p)
-      ,.len_width_p       (len_width_p)
-      )
-      router
-      (.clk_i    (clk)
-      ,.reset_i  (reset)
-      ,.my_cord_i(cord_width_lp'(my_id_lp))
-      ,.link_i   (router_link_li[i])
-      ,.link_o   (router_link_lo[i])
-      );
-      
-      // Link to next router
-      if (i != num_tiles_x_p-1)
-        begin
-          assign router_link_li [i]  [E] = router_link_lo [i+1][W];
-          assign router_link_li [i+1][W] = router_link_lo [i]  [E];
-        end
-    end
-    
-    // Stub east side of router chain
-    assign router_link_li[num_tiles_x_p-1][E].v             = 1'b0;
-    assign router_link_li[num_tiles_x_p-1][E].ready_and_rev = 1'b1;
-        
-  bsg_wormhole_async_to_cache_dma
- #(.cache_addr_width_p   (cache_addr_width_lp)
-  ,.data_width_p         (data_width_p)
-  ,.block_size_in_words_p(vcache_block_size_in_words_p)
-  ,.num_cache_p          (num_tiles_x_p)
-  ,.flit_width_p         (flit_width_p)
-  ,.dims_p               (dims_p)
-  ,.cord_markers_pos_p   (cord_markers_pos_p)
-  ,.len_width_p          (len_width_p)
-  ) wh_to_dma
-  (.dma_clk_i       (clk)
-  ,.dma_reset_i     (reset)
-
-  ,.dma_pkt_o       (test_dma_pkt_lo)
-  ,.dma_pkt_v_o     (test_dma_pkt_v_lo)
-  ,.dma_pkt_yumi_i  (test_dma_pkt_yumi_li)
-
-  ,.dma_data_i      (test_dma_data_li)
-  ,.dma_data_v_i    (test_dma_data_v_li)
-  ,.dma_data_ready_o(test_dma_data_ready_lo)
-
-  ,.dma_data_o      (test_dma_data_lo)
-  ,.dma_data_v_o    (test_dma_data_v_lo)
-  ,.dma_data_yumi_i (test_dma_data_yumi_li)
-  
-  ,.dma_my_cord_i   (cord_width_lp'(0))
-
-  ,.wh_clk_i        (clk)
-  ,.wh_reset_i      (reset)
-
-  ,.wh_link_i       (router_link_lo[0][W])
-  ,.wh_link_o       (router_link_li[0][W])
+  ,.fpga_dma_data_o      (fpga_dma_data_li)
+  ,.fpga_dma_data_v_o    (fpga_dma_data_v_li)
+  ,.fpga_dma_data_yumi_i (fpga_dma_data_yumi_lo)
   );
 
     
@@ -438,17 +373,17 @@ module test_bsg_manycore_io;
       .clk_i(clk)
       ,.reset_i(reset)
       
-      ,.dma_pkt_i(test_dma_pkt_lo)
-      ,.dma_pkt_v_i(test_dma_pkt_v_lo)
-      ,.dma_pkt_yumi_o(test_dma_pkt_yumi_li)
+      ,.dma_pkt_i(fpga_dma_pkt_li)
+      ,.dma_pkt_v_i(fpga_dma_pkt_v_li)
+      ,.dma_pkt_yumi_o(fpga_dma_pkt_yumi_lo)
       
-      ,.dma_data_o(test_dma_data_li)
-      ,.dma_data_v_o(test_dma_data_v_li)
-      ,.dma_data_ready_i(test_dma_data_ready_lo)
+      ,.dma_data_o(fpga_dma_data_lo)
+      ,.dma_data_v_o(fpga_dma_data_v_lo)
+      ,.dma_data_ready_i(fpga_dma_data_ready_li)
       
-      ,.dma_data_i(test_dma_data_lo)
-      ,.dma_data_v_i(test_dma_data_v_lo)
-      ,.dma_data_yumi_o(test_dma_data_yumi_li)
+      ,.dma_data_i(fpga_dma_data_li)
+      ,.dma_data_v_i(fpga_dma_data_v_li)
+      ,.dma_data_yumi_o(fpga_dma_data_yumi_lo)
 
       ,.axi_awid_o(awid)
       ,.axi_awaddr_o(awaddr)
