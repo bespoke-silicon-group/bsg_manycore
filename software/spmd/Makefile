@@ -91,7 +91,7 @@ pre-recurse-clean:
 
 SUBDIRS-WITH-MAKE = $(patsubst %/Makefile,%,$(wildcard */Makefile))
 
-NO-RECURSE=bsg_riscv_tests specint2000
+NO-RECURSE=bsg_riscv_tests specint2000 beebs
 
 # reinvokes make after the pre-curse dependencies are done, on each subdirectory
 recurse-%: pre-recurse-%
