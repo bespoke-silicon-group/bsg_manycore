@@ -148,4 +148,4 @@ coremark_list+=coremark
 
 # Beebs
 include $(BSG_MANYCORE_DIR)/software/spmd/beebs/Makefile.bmarklist
-beebs_list+=$(foreach bmark, $(BMARK_LIST), 'beeps $(bmark).run')
+beebs_list+=$(foreach bmark, $(BMARK_LIST), 'beeps $(bmark).beeb_run')

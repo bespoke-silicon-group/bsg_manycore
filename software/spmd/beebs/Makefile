@@ -30,7 +30,7 @@ BUILD_DIR := $(RUN_DIR)/beebs-build
 # you can do make -j <# number of processors> !
 #
 
-all: beebs.install.touchfile
+all: configure
 	$(MAKE) $(foreach bmark, $(BMARK_LIST), $(bmark).beeb_run)
 
 # Set program name for individual benchmark
@@ -38,13 +38,13 @@ all: beebs.install.touchfile
 	mkdir -p $*_run
 	make -C  $*_run -f ../Makefile PROG_NAME=$* $*.run | tee $*_run/run.log
 
-# Just copy the installed binary
-%.riscv:
+# Install the binary if something changed and copy it
+%.riscv: $(COMMON_SRCS) $(BSG_MANYCORE_LIB) $(wildcard $(BEEBS_DIR)/src/%/*)
+	make -C $(BUILD_DIR)/src/$* clean
+	make -C $(BUILD_DIR)/src/$* install
 	cp $(BUILD_DIR)/bin/$* $@
 
-
 $(RUN_DIR)/lfs.c: lfs.c
-
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
 
@@ -57,15 +57,17 @@ BEEBS_CFLAGS  = "$(RISCV_GCC_OPTS) -DBOARD_REPEAT_FACTOR=$(REPEAT_FACTOR) -D__bs
 COMMON_SRCS   = $(RUN_DIR)/../common/args.c \
                 $(RUN_DIR)/../common/crt.S \
                 $(RUN_DIR)/../../bsg_manycore_lib/bsg_newlib_intf.c \
-								$(RUN_DIR)/lfs.c
+                $(RUN_DIR)/lfs.c
 BEEBS_LDFLAGS = "-t -T $(LINK_SCRIPT) -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc \
-						     -Wl,--defsym,bsg_group_size=$(bsg_group_size) \
-						     -Wl,--no-check-sections \
-								 -I$(BEEBS_DIR)/support \
-								 $(COMMON_SRCS) \
-								 -L$(RUN_DIR) -l:$(BSG_MANYCORE_LIB)"
+                 -Wl,--defsym,bsg_group_size=$(bsg_group_size) \
+                 -Wl,--no-check-sections \
+                 -I$(BEEBS_DIR)/support \
+                 $(COMMON_SRCS) \
+                 -L$(RUN_DIR) -l:$(BSG_MANYCORE_LIB)"
 
-beebs.install.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
+# Clean reconfigure to include link options, compile options, macro defs or other misc changes
+# that cannot be listed as make prerequisites
+configure: $(COMMON_SRCS) $(BSG_MANYCORE_LIB) FORCE
 	rm -rf $(BUILD_DIR);
 	mkdir -p $(BUILD_DIR);
 
@@ -76,15 +78,14 @@ beebs.install.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
   # as our host. Other than that it has no affect on the compilation
   # process.
 	cd $(BUILD_DIR) && $(BEEBS_DIR)/configure --prefix=$(BUILD_DIR) \
-		                   --host=riscv64 \
-											 --with-chip=generic \
-											 CC=$(BEEBS_CC) \
-											 CFLAGS=$(BEEBS_CFLAGS) \
-											 LDFLAGS=$(BEEBS_LDFLAGS);
+                       --host=riscv64 \
+                       --with-chip=generic \
+                       CC=$(BEEBS_CC) \
+                       CFLAGS=$(BEEBS_CFLAGS) \
+                       LDFLAGS=$(BEEBS_LDFLAGS);
 
-	$(MAKE) -C $(BUILD_DIR);
-	$(MAKE) -C $(BUILD_DIR) install;
-	touch beebs.install.touchfile
+  # Build support directory needed by all benchmarks
+	make -C $(BUILD_DIR)/support install;
 
 summarize:
 	-grep -m --color -B 2 finish `find . -iname run.log`
@@ -99,11 +100,10 @@ summarize:
 clean-build:
 	-rm *.a *.o *.log
 	-rm -rf $(BUILD_DIR);
-	-rm beebs.install.touchfile
 
 clean-runs:
 	-rm -rf *_run
 
 clean: clean-build clean-runs
 
-
+FORCE:
