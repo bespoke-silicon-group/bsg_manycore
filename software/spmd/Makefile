@@ -71,4 +71,33 @@ coverage-debug:
 	$(VCS_BIN)/dve -full64 -dir *.vdb &
 
 clean:
-	rm -rf run.log cov.log coverage* DVEfiles/
+	rm -rf run.log cov.log coverage* DVEfiles/ common/crt.o
+
+
+#
+# Recursion support (mbt)
+#
+# to avoid parallel runs stomping on each other
+# we must build shared files ahead of time
+#
+
+pre-recurse-all:
+	mkdir -p recurse-results
+	$(MAKE) common/crt.o
+
+pre-recurse-clean:
+	mkdir -p recurse-results
+	-rm recurse-results/*
+
+SUBDIRS-WITH-MAKE = $(patsubst %/Makefile,%,$(wildcard */Makefile))
+
+NO-RECURSE=bsg_riscv_tests specint2000
+
+# reinvokes make after the pre-curse dependencies are done, on each subdirectory
+recurse-%: pre-recurse-%
+	$(MAKE) $(foreach x,$(filter-out $(NO-RECURSE),$(SUBDIRS-WITH-MAKE)),recurse-iterate@$*@$(x))
+
+# this rule invokes the target rule on each directory that has a Makefile
+#	$(MAKE) -C $(firstword($(subst -, ,$*))) $(lastword($(subst -, ,$*)))
+recurse-iterate@%:
+	-$(MAKE) $(firstword $(subst @, ,$*)) -C $(word 2,$(subst @, ,$*)) | /usr/bin/tee recurse-results/$*

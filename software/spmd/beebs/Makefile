@@ -1,5 +1,7 @@
 find-dir-with = $(shell /usr/bin/perl -e 'chomp($$_ = `pwd`); while ($$_ ne "" && ! -e "$$_/$(1)") { m:(.*)/[^/]+/??:; $$_ = $$1; } print;')
 
+ATTRIBUTES = NO_RECURSE
+
 ifndef BSG_MANYCORE_DIR
   export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
 endif
@@ -25,7 +27,8 @@ BUILD_DIR := $(RUN_DIR)/beebs-build
 # you can do make -j <# number of processors> !
 #
 
-all: $(foreach bmark, $(BMARK_LIST), $(bmark).beeb_run)
+all: beebs.install.touchfile
+	$(MAKE) $(foreach bmark, $(BMARK_LIST), $(bmark).beeb_run)
 
 # Set program name for individual benchmark
 %.beeb_run:
@@ -37,7 +40,6 @@ all: $(foreach bmark, $(BMARK_LIST), $(bmark).beeb_run)
 	cp $(BUILD_DIR)/bin/$* $@
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
-
 
 #########################
 # Rule to install beebs
@@ -56,7 +58,7 @@ BEEBS_LDFLAGS = "-t -T $(LINK_SCRIPT) -march=$(ARCH_OP) -nostartfiles -ffast-mat
 								 $(COMMON_SRCS) \
 								 -L$(RUN_DIR) -l:$(BSG_MANYCORE_LIB)"
 
-install: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
+beebs.install.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 	rm -rf $(BUILD_DIR);
 	mkdir -p $(BUILD_DIR);
 
@@ -75,17 +77,27 @@ install: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 
 	make -C $(BUILD_DIR);
 	make -C $(BUILD_DIR) install;
+	touch beebs.install.touchfile
 
 summarize:
-	grep --color -B 2 finish `find . -iname run.log`
-	grep --color ERROR `find . -iname run.log`
-	grep TIMEOUT `find . -iname run.log` | wc -l
-	grep ERROR `find . -iname run.log` | wc -l
+	-grep -m --color -B 2 finish `find . -iname run.log`
+	-grep -m 1 --color "FINISH\|FAIL\|I/O" `find . -iname run.log`
+	grep -m 1 -C 2 --color "ERROR\|^[Ee]rror"  `find . -iname run.log`
+	-@echo -n "TIMEOUT:"; grep TIMEOUT `find . -iname run.log` | wc -l
+	-@echo -n "ERROR:"; grep ERROR `find . -iname run.log` | wc -l
+	-@echo -n "FAIL:";grep FAIL `find . -iname run.log` | wc -l
+	-@echo -n "Correct:"; grep Correct `find . -iname run.log` | wc -l
+	-@echo -n "Passed:"; grep Passed `find . -iname run.log` | wc -l
+
 
 clean-build:
 	-rm *.a *.o *.log
 	-rm -rf $(BUILD_DIR);
+	-rm beebs.install.touchfile
 
 clean-runs:
 	-rm -rf *_run
+
+clean: clean-build clean-runs
+
 
