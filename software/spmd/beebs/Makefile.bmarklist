@@ -1,3 +1,8 @@
+# Beebs benchmark list
+#
+# Total: 85
+# Excluded: crc32 ctl matmult sglib-arraysort trio
+
 BMARK_LIST  = aha-compress          \
               aha-mont64            \
               bs                    \
@@ -6,8 +11,6 @@ BMARK_LIST  = aha-compress          \
               compress              \
               cover                 \
               crc                   \
-              crc32                 \
-              ctl                   \
               ctl-stack             \
               ctl-string            \
               ctl-vector            \
@@ -30,7 +33,6 @@ BMARK_LIST  = aha-compress          \
               lcdnum                \
               levenshtein           \
               ludcmp                \
-              matmult               \
               matmult-float         \
               matmult-int           \
               mergesort             \
@@ -61,7 +63,6 @@ BMARK_LIST  = aha-compress          \
               sglib-arraybinsearch  \
               sglib-arrayheapsort   \
               sglib-arrayquicksort  \
-              sglib-arraysort       \
               sglib-dllist          \
               sglib-hashtable       \
               sglib-listinsertsort  \
@@ -77,7 +78,6 @@ BMARK_LIST  = aha-compress          \
               strstr                \
               tarai                 \
               template              \
-              trio                  \
               trio-snprintf         \
               trio-sscanf           \
               ud                    \
