@@ -81,6 +81,7 @@ checkout-spike:
 	@echo "====================================="
 	@rm -rf $(SPIKE_REPO);
 	git clone --recursive $(SPIKE_URL);
+	cd $(SPIKE_REPO) && git checkout tags/v1.0.0
 	cd $(SPIKE_REPO) && git apply ../$(SPIKE_PATCH)
 
 checkout-all: checkout-repos replace-newlib checkout-spike
