@@ -1,26 +1,26 @@
 Run [BEEBS](https://github.com/bespoke-silicon-group/beebs) on the manycore:
 ----------------------------------------------------------------------------
 
-* Pre-installation:
+Pre-installation:
 
 - `git submodule update --init --recursive` in bsg_manycore's toplevel directory.
 
 Batch run (run all benchmarks in Makefile.bmarklist):
 
-  make -j <threads>
+-  make -j `<threads>`
 
-* Individual run (run a single benchmark):
+Individual run (run a single benchmark):
 
-  make <benchmark>.single
+-  make `<benchmark>`.single
 
-* Cleanup
+Cleanup
 
-  make clean
+-  make clean
 
-* Miscellaneous:
+Miscellaneous:
 
- make configure         # required for below rules if you have not already tried to run them
+- make configure           # required for below rules if you have not already tried to run them
 
- make <benchmark>.riscv # recompile the binary of `<benchmark>`
+- make `<benchmark>`.riscv # recompile the binary of `<benchmark>`
 
- make <benchmark>.dis   # print disassembly of `<benchmark>` to console
+- make `<benchmark>`.dis   # print disassembly of `<benchmark>` to console
