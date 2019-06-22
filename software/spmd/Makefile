@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 
-include ./Makefile.regress.list
 include ./Makefile.include
+include ./Makefile.regress.list
 
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"

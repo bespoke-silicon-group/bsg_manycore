@@ -6,8 +6,17 @@ Manycore regression
 
 RTL regression testing of the manycore.
 
-`make [bsg_tiles_X=<x>] [bsg_tiles_Y=<y>] [COVERAGE=VCS]` 
+`make [<flag>=<value>]...`
 
+Some useful flags:
+
+- `GROUP=<group>`: Run only tests in a specific group. `<group>` can be one of the following...
+    - `rv32ui`
+    - `rv32um`
+    - `spmd`
+    - `coremark`
+    - `beebs`
+- `LEVEL=<level>`: Run different levels of regression. `<level>`=1 => group 0, `<level>`=2 => group 0, 1 and so on. **Default is `LEVEL=3`. Level 3 regression suceess is required for changes to be accepted into master.**
 - `bsg_tiles_X`:
     Can be used to specify the number of rows to be instantiated. Default
     value provided in individual testcases.
@@ -19,7 +28,7 @@ RTL regression testing of the manycore.
     Unified Coverage Genrator (URG). Default configuration used for
     the coverage analysis is 4x4. This will be overwritten only when
     above dimension variables are explicitly set.
-- `ENABLE_VCACHE = {0|1}`:
+- `ENABLE_VCACHE={0|1}`:
     include vcache or instead include block SRAM.
 
 Note: 
