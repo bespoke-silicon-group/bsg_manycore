@@ -28,8 +28,12 @@ BUILD_DIR := $(RUN_DIR)/beebs-build
 # you can do make -j <# number of processors> !
 #
 
-all: beebs.install.touchfile
+all: beebs.configure.touchfile
 	$(MAKE) $(foreach bmark, $(BMARK_LIST), $(bmark).beeb_run)
+
+# run a single benchmark
+%.single: beebs.configure.touchfile
+	$(MAKE) $*.beeb_run
 
 # Set program name for individual benchmark
 %.beeb_run:
@@ -37,7 +41,9 @@ all: beebs.install.touchfile
 	make -C  $*_run -f ../Makefile PROG_NAME=$* $*.run | tee $*_run/run.log
 
 # Just copy the installed binary
-%.riscv:
+%.riscv:  $(COMMON_SRCS) $(BSG_MANYCORE_LIB) $(wildcard $(BEEBS_DIR)/src/%/*)
+	make -C $(BUILD_DIR)/src/$* clean
+	make -C $(BUILD_DIR)/src/$* install
 	cp $(BUILD_DIR)/bin/$* $@
 
 
@@ -63,7 +69,9 @@ BEEBS_LDFLAGS = "-t -T $(LINK_SCRIPT) -march=$(ARCH_OP) -nostartfiles -ffast-mat
 								 $(COMMON_SRCS) \
 								 -L$(RUN_DIR) -l:$(BSG_MANYCORE_LIB)"
 
-beebs.install.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
+configure: beebs.configure.touchfile
+
+beebs.configure.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 	rm -rf $(BUILD_DIR);
 	mkdir -p $(BUILD_DIR);
 
@@ -80,14 +88,13 @@ beebs.install.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 											 CFLAGS=$(BEEBS_CFLAGS) \
 											 LDFLAGS=$(BEEBS_LDFLAGS);
 
-	$(MAKE) -C $(BUILD_DIR);
-	$(MAKE) -C $(BUILD_DIR) install;
-	touch beebs.install.touchfile
+	$(MAKE) -C $(BUILD_DIR)/support install;
+	touch beebs.configure.touchfile
 
 clean-build:
 	-rm *.a *.o *.log
 	-rm -rf $(BUILD_DIR);
-	-rm beebs.install.touchfile
+	-rm beebs.configure.touchfile
 
 clean-runs:
 	-rm -rf *_run
