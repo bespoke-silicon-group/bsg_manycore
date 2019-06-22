@@ -6,6 +6,9 @@ ifndef BSG_MANYCORE_DIR
   export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
 endif
 
+SPMD_COMMON_OBJECTS =
+BSG_NEWLIB = 1
+
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 
 # Include the benchmark list
@@ -15,7 +18,7 @@ include $(BSG_MANYCORE_DIR)/software/spmd/beebs/Makefile.bmarklist
 
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
-BSG_NEWLIB = 1
+
 LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
 REPEAT_FACTOR = 2 # Number of iterations each benchmark is run
 
@@ -38,6 +41,10 @@ all: beebs.install.touchfile
 # Just copy the installed binary
 %.riscv:
 	cp $(BUILD_DIR)/bin/$* $@
+
+
+$(RUN_DIR)/lfs.c: lfs.c
+
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
 
@@ -75,8 +82,8 @@ beebs.install.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 											 CFLAGS=$(BEEBS_CFLAGS) \
 											 LDFLAGS=$(BEEBS_LDFLAGS);
 
-	make -C $(BUILD_DIR);
-	make -C $(BUILD_DIR) install;
+	$(MAKE) -C $(BUILD_DIR);
+	$(MAKE) -C $(BUILD_DIR) install;
 	touch beebs.install.touchfile
 
 summarize:
@@ -88,7 +95,6 @@ summarize:
 	-@echo -n "FAIL:";grep FAIL `find . -iname run.log` | wc -l
 	-@echo -n "Correct:"; grep Correct `find . -iname run.log` | wc -l
 	-@echo -n "Passed:"; grep Passed `find . -iname run.log` | wc -l
-
 
 clean-build:
 	-rm *.a *.o *.log
