@@ -1,0 +1,24 @@
+{
+  "addr_width_p": 28,
+  "data_width_p": 32,
+
+  "x_cord_width_p": 2,
+  "y_cord_width_p": 3,
+
+  "icache_entries_p": 1024,
+
+  "dram_ch_addr_width_p": 27,
+
+  "bsg_global_X": 4,
+  "bsg_global_Y": 5,
+  "bsg_tiles_X": 1,
+  "bsg_tiles_Y": 1,
+  "bsg_tiles_org_X": 0,
+  "bsg_tiles_org_Y": 1,
+
+  "vcache_ways": 2,
+  "vcache_sets" : 256,
+  "vcache_block_size": 8,
+
+  "enable_dram": 1
+}
