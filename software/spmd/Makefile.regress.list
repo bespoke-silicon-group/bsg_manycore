@@ -8,11 +8,12 @@
 #
 # Current test groups:
 #
-# 1. rv32ui
-# 2. rv32um
-# 3. spmd
-# 4. coremark
-# 5. beebs
+# rv32ui
+# rv32um
+# rv32uf
+# spmd
+# coremark
+# beebs
 #########################################################
 
 
@@ -59,56 +60,68 @@ endif
 # RISC-V 32 Assembly Tests
 
 # The rv32-ui
-rv32ui_list+='bsg_riscv_tests addi.run'
-rv32ui_list+='bsg_riscv_tests add.run'
-rv32ui_list+='bsg_riscv_tests andi.run'
-rv32ui_list+='bsg_riscv_tests and.run'
-rv32ui_list+='bsg_riscv_tests auipc.run'
-rv32ui_list+='bsg_riscv_tests beq.run'
-rv32ui_list+='bsg_riscv_tests bge.run'
-rv32ui_list+='bsg_riscv_tests bgeu.run'
-rv32ui_list+='bsg_riscv_tests blt.run'
-rv32ui_list+='bsg_riscv_tests bltu.run'
-rv32ui_list+='bsg_riscv_tests bne.run'
-#rv32ui_list+='bsg_riscv_tests fence_i.run'
-rv32ui_list+='bsg_riscv_tests jalr.run'
-rv32ui_list+='bsg_riscv_tests jal.run'
-rv32ui_list+='bsg_riscv_tests lb.run'
-rv32ui_list+='bsg_riscv_tests lbu.run'
-rv32ui_list+='bsg_riscv_tests lh.run'
-rv32ui_list+='bsg_riscv_tests lhu.run'
-rv32ui_list+='bsg_riscv_tests lui.run'
-rv32ui_list+='bsg_riscv_tests lw.run'
-rv32ui_list+='bsg_riscv_tests ori.run'
-rv32ui_list+='bsg_riscv_tests or.run'
-rv32ui_list+='bsg_riscv_tests sb.run'
-rv32ui_list+='bsg_riscv_tests sh.run'
-rv32ui_list+='bsg_riscv_tests simple.run'
-rv32ui_list+='bsg_riscv_tests slli.run'
-rv32ui_list+='bsg_riscv_tests sll.run'
-rv32ui_list+='bsg_riscv_tests slti.run'
-rv32ui_list+='bsg_riscv_tests sltiu.run'
-rv32ui_list+='bsg_riscv_tests slt.run'
-rv32ui_list+='bsg_riscv_tests sltu.run'
-rv32ui_list+='bsg_riscv_tests srai.run'
-rv32ui_list+='bsg_riscv_tests sra.run'
-rv32ui_list+='bsg_riscv_tests srli.run'
-rv32ui_list+='bsg_riscv_tests srl.run'
-rv32ui_list+='bsg_riscv_tests sub.run'
-rv32ui_list+='bsg_riscv_tests sw.run'
-rv32ui_list+='bsg_riscv_tests xori.run'
-rv32ui_list+='bsg_riscv_tests xor.run'
+rv32ui_list+='bsg_riscv_tests addi.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests add.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests andi.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests and.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests auipc.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests beq.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests bge.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests bgeu.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests blt.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests bltu.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests bne.riscv_tests_run'
+#rv32ui_list+='bsg_riscv_tests fence_i.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests jalr.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests jal.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests lb.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests lbu.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests lh.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests lhu.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests lui.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests lw.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests ori.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests or.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests sb.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests sh.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests simple.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests slli.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests sll.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests slti.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests sltiu.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests slt.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests sltu.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests srai.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests sra.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests srli.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests srl.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests sub.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests sw.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests xori.riscv_tests_run'
+rv32ui_list+='bsg_riscv_tests xor.riscv_tests_run'
 
 # The rv32-um
-rv32um_list+='bsg_riscv_tests div.run'
-rv32um_list+='bsg_riscv_tests divu.run'
-rv32um_list+='bsg_riscv_tests mulh.run'
-rv32um_list+='bsg_riscv_tests mulhsu.run'
-rv32um_list+='bsg_riscv_tests mulhu.run'
-rv32um_list+='bsg_riscv_tests mul.run'
-rv32um_list+='bsg_riscv_tests rem.run'
-rv32um_list+='bsg_riscv_tests remu.run'
+rv32um_list+='bsg_riscv_tests div.riscv_tests_run'
+rv32um_list+='bsg_riscv_tests divu.riscv_tests_run'
+rv32um_list+='bsg_riscv_tests mulh.riscv_tests_run'
+rv32um_list+='bsg_riscv_tests mulhsu.riscv_tests_run'
+rv32um_list+='bsg_riscv_tests mulhu.riscv_tests_run'
+rv32um_list+='bsg_riscv_tests mul.riscv_tests_run'
+rv32um_list+='bsg_riscv_tests rem.riscv_tests_run'
+rv32um_list+='bsg_riscv_tests remu.riscv_tests_run'
 
+# The rv32-uf
+rv32uf_list+='bsg_riscv_tests fadd.riscv_tests_run'
+rv32uf_list+='bsg_riscv_tests fdiv.riscv_tests_run'
+rv32uf_list+='bsg_riscv_tests fclass.riscv_tests_run'
+rv32uf_list+='bsg_riscv_tests fcmp.riscv_tests_run'
+rv32uf_list+='bsg_riscv_tests fcvt.riscv_tests_run'
+rv32uf_list+='bsg_riscv_tests fcvt_w.riscv_tests_run'
+rv32uf_list+='bsg_riscv_tests fmadd.riscv_tests_run'
+rv32uf_list+='bsg_riscv_tests fmin.riscv_tests_run'
+rv32uf_list+='bsg_riscv_tests ldst.riscv_tests_run'
+rv32uf_list+='bsg_riscv_tests move.riscv_tests_run'
+rv32uf_list+='bsg_riscv_tests recoding.riscv_tests_run'
 
 #####################################################
 # SPMD tests

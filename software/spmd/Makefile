@@ -40,48 +40,49 @@ all:
 	@echo " Run 'top' to see what else is running to decided how many threads to run"
 
 # mbt: saving this code so that bandhav can scavenge the coverage stuff
-#
-#
-# all: main.regress_test
-# ##############################################
-# #  regression test
-# %.regress_test:
-# ifdef GROUP
-# 	@echo ""
-# 	@echo "#####################################################################"
-# 	@echo "# RUNNING TEST GROUP: $(GROUP)"
-# 	@echo "#####################################################################"
-# 	@echo ""
-# else ifdef LEVEL
-# 	@echo ""
-# 	@echo "#####################################################################"
-# 	@echo "# RUNNING LEVEL $(LEVEL) REGRESSION"
-# 	@echo "#####################################################################"
-# 	@echo ""
-# endif
+# uncommented below temporarily
 
-# 	@for testcase in $(test_case_list) ; do \
-# 	echo "====================================================================="; \
-# 	export test_name=$$(echo $$testcase | awk '{print $$1}')	&&	\
-# 	export test_target=$$(echo $$testcase | awk '{print $$2}')	&&	\
-# 	echo "running testcase [ $$testcase, target=$$test_target ]"; \
-# 	make -C ./$$test_name $$test_target DVE=0 COVERAGE=$(COVERAGE)  \
-# 		bsg_tiles_X=$(bsg_tiles_X) bsg_tiles_Y=$(bsg_tiles_Y) &> run.log; \
-# 	grep " FINISH \| FAIL \| I/O \|^[Ee]rror \|Correct \|Passed" run.log;    	   \
-# 	done;
 
-# ifeq ($(COVERAGE),VCS)
-# 	@$(URG) $(URG_OPS) -report coverage_reports/ -log coverage.log &>/dev/null;
-# 	@echo "====================================================================";
-# 	@echo "Module Level Coverage Report";
-# 	@cat coverage_reports/modlist.txt;
-# 	@echo "See coverage_reports/ for hierarchical coverage and more..."
-# 	@echo
-# endif
+old: main.regress_test
+##############################################
+#  regression test
+%.regress_test:
+ifdef GROUP
+	@echo ""
+	@echo "#####################################################################"
+	@echo "# RUNNING TEST GROUP: $(GROUP)"
+	@echo "#####################################################################"
+	@echo ""
+else ifdef LEVEL
+	@echo ""
+	@echo "#####################################################################"
+	@echo "# RUNNING LEVEL $(LEVEL) REGRESSION"
+	@echo "#####################################################################"
+	@echo ""
+endif
 
-# 	@for testcase in $(test_case_list) ; do \
-# 	make -C ./$$(echo $$testcase | awk '{print $$1}') clean  &>/dev/null;     		   \
-# 	done;
+	@for testcase in $(test_case_list) ; do \
+	echo "====================================================================="; \
+	export test_name=$$(echo $$testcase | awk '{print $$1}')	&&	\
+	export test_target=$$(echo $$testcase | awk '{print $$2}')	&&	\
+	echo "running testcase [ $$testcase, target=$$test_target ]"; \
+	make -C ./$$test_name $$test_target DVE=0 COVERAGE=$(COVERAGE)  \
+		bsg_tiles_X=$(bsg_tiles_X) bsg_tiles_Y=$(bsg_tiles_Y) &> run.log; \
+	grep " FINISH \| FAIL \| I/O \|^[Ee]rror \|Correct \|Passed" run.log;    	   \
+	done;
+
+ifeq ($(COVERAGE),VCS)
+	@$(URG) $(URG_OPS) -report coverage_reports/ -log coverage.log &>/dev/null;
+	@echo "====================================================================";
+	@echo "Module Level Coverage Report";
+	@cat coverage_reports/modlist.txt;
+	@echo "See coverage_reports/ for hierarchical coverage and more..."
+	@echo
+endif
+
+	@for testcase in $(test_case_list) ; do \
+	make -C ./$$(echo $$testcase | awk '{print $$1}') clean  &>/dev/null;     		   \
+	done;
 
 coverage-debug:
 	$(VCS_BIN)/dve -full64 -dir *.vdb &
