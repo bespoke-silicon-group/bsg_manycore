@@ -82,7 +82,7 @@ endif
 
 ###################################################################################
 
-%.run: %.riscv %_dmem.mem %_dram.mem
+%.run: %.riscv %_dmem.mem %_dram.mem %.nbf
 	$(VCS) $(VCS_OP) \
         -top test_bsg_manycore 		\
     	$(VCS_OPTIONS)                  \
@@ -91,5 +91,5 @@ endif
     	$(addprefix $(INC_OP), $(DESIGN_INCS) )\
     	$(DESIGN_HDRS) $(DESIGN_SRCS)   \
     	$(TOP_LEVEL)
-	./simv $(VCS_RUN_OP) -l simv.log
+	./simv $(VCS_RUN_OP) +nbf_file=$*.nbf -l simv.log
 	#./simv  +vcs+stop+600000
