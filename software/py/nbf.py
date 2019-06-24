@@ -100,7 +100,6 @@ class NBF:
   def read_dmem(self):
     self.dmem_data = self.read_objcopy(self.config["dmem_file"])
 
-
   # read dram
   def read_dram(self):
     self.dram_data = self.read_objcopy(self.config["dram_file"])
@@ -125,7 +124,7 @@ class NBF:
       for y in range(self.config["tg_dim_y"]):
         x_eff = self.config["tgo_x"] + x
         y_eff = self.config["tgo_y"] + y
-        for k in self.dram_data.keys():
+        for k in sorted(self.dram_data.keys()):
           if k < self.config["icache_entries"]:
             icache_epa = ICACHE_BASE_EPA | k
             self.print_nbf(x_eff, y_eff, icache_epa, self.dram_data[k])
@@ -138,10 +137,14 @@ class NBF:
 
         x_eff = self.config["tgo_x"] + x
         y_eff = self.config["tgo_y"] + y
-
-        for k in self.dmem_data.keys():
-          dmem_epa = DMEM_BASE_EPA | k
-          self.print_nbf(x_eff, y_eff, dmem_epa, self.dmem_data[k])
+        max_key = max(self.dmem_data.keys())
+        min_key = min(self.dmem_data.keys())
+        for k in range(1024):
+          dmem_epa = k + 1024
+          if dmem_epa in self.dmem_data.keys():
+            self.print_nbf(x_eff, y_eff, dmem_epa, self.dmem_data[dmem_epa])
+          else:
+            self.print_nbf(x_eff, y_eff, dmem_epa, 0)
  
   # disable dram mode
   def disable_dram(self):
@@ -154,6 +157,7 @@ class NBF:
   # initialize vcache in no DRAM mode
   def init_vcache(self):
 
+    y = config["num_tiles_y"]
     t_shift = self.safe_clog2(self.config["cache_block_size"])
 
     for x in range(self.config["num_tiles_x"]):
@@ -170,12 +174,12 @@ class NBF:
     cache_size = self.config["cache_size"]
 
     if enable_dram == 1:
-      for k in self.dram_data.keys():
+      for k in sorted(self.dram_data.keys()):
         x = k / dram_ch_size
         epa = k % dram_ch_size
         self.print_nbf(x, y, epa, self.dram_data[k])
     else:
-      for k in self.dram_data.keys():
+      for k in sorted(self.dram_data.keys()):
         x = k / cache_size
         epa = k % cache_size
         if (x < self.config["num_tiles_x"]):
@@ -190,8 +194,8 @@ class NBF:
     tgo_x = self.config["tgo_x"]
     tgo_y = self.config["tgo_y"]
 
-    for x in range(self.config["tg_dim_x"]):
-      for y in range(self.config["tg_dim_y"]):
+    for y in range(self.config["tg_dim_y"]):
+      for x in range(self.config["tg_dim_x"]):
         x_eff = tgo_x + x
         y_eff = tgo_y + y
         self.print_nbf(x_eff, y_eff, CSR_FREEZE, 0)
@@ -247,10 +251,10 @@ if __name__ == "__main__":
     config["icache_entries"] = 1024 # in words
 
     config["cache_size"] = config["cache_way"]*config["cache_set"]*config["cache_block_size"]
-    x_cord_width = int(math.log(config["num_tiles_x"], 2))
-    config["dram_ch_size"] = config["dram_size"] / (2**x_cord_width) # in words (512MB)
-    config["addr_width"] = int(math.log(config["dram_ch_size"]))+1
-
+    config["x_cord_width"] = int(math.log(config["num_tiles_x"], 2))
+    config["dram_ch_size"] = config["dram_size"] / (2**config["x_cord_width"]) # in words (512MB)
+    config["addr_width"] = int(math.log(config["dram_ch_size"],2))+1
+    #print(config)
     converter = NBF(config)
     converter.dump()
 
