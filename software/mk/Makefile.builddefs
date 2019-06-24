@@ -68,7 +68,7 @@ BSG_MANYCORE_LIB_OBJS+= bsg_printf.o
 BSG_MANYCORE_LIB = bsg_manycore_lib.a
 
 CRT_OBJ ?= crt.o
-LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem.ld
+LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem2.ld
 RISCV_LINK_OPTS ?= 
 
 ifndef CLANG
