@@ -132,13 +132,17 @@ class NBF:
  
   # initialize dmem
   def init_dmem(self):
+    if len(self.dmem_data.keys()) == 0:
+      return
     for x in range(self.config["tg_dim_x"]):
       for y in range(self.config["tg_dim_y"]):
 
         x_eff = self.config["tgo_x"] + x
         y_eff = self.config["tgo_y"] + y
+          
         max_key = max(self.dmem_data.keys())
         min_key = min(self.dmem_data.keys())
+
         for k in range(1024):
           dmem_epa = k + 1024
           if dmem_epa in self.dmem_data.keys():
@@ -243,7 +247,8 @@ if __name__ == "__main__":
       "enable_dram" : int(sys.argv[9]),
     }
 
-    config["dram_size"] = 2**29 # in words (2GB)
+    config["dram_size"] = 2**29 # in words (2GB) for spmd regression
+    #config["dram_size"] = 2**27 # in words (2GB) for chip
     config["data_width"] = 32
     config["cache_way"] = 2
     config["cache_set"] = 256
