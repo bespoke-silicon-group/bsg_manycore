@@ -166,21 +166,6 @@ module bsg_nonsynth_manycore_io_complex
     ,.y_cord_width_p(y_cord_width_p)
     ,.load_id_width_p(load_id_width_p)
 
-    ,.icache_entries_p(icache_entries_p)
-    ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
-    ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
-    ,.dram_ch_num_p(dram_ch_num_p)
-
-    ,.tgo_x_p(tgo_x_p)
-    ,.tgo_y_p(tgo_y_p)
-    ,.tg_x_dim_p(tg_x_dim_p)
-    ,.tg_y_dim_p(tg_y_dim_p)
-    
-    ,.no_dram_ctrl_p(no_dram_ctrl_p)
-    ,.vcache_size_p(vcache_size_p)
-    ,.vcache_sets_p(vcache_sets_p)
-    ,.vcache_ways_p(vcache_ways_p)
-    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
   ) loader (
     .clk_i(clk_i)
     ,.reset_i(reset_i)

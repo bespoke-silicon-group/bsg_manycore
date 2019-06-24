@@ -20,6 +20,7 @@ RISCV_SIM     ?= $(RISCV_BIN_DIR)/spike
 
 BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
+NBF_PY 			= $(BSG_MANYCORE_DIR)/software/py/nbf.py
 
 VPATH += $(BSG_MANYCORE_DIR)/software/spmd/common
 VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
@@ -159,6 +160,13 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 	# starting with 0x8! Hence this changes load addresses to start with 
 	# 0x0, and converting to actual NPA is handled in the verilog loader.
 	sed -i 's/@8/@0/' $@
+
+%.nbf: %_dmem.mem %_dram.mem
+	python $(NBF_PY) $*_dmem.mem $*_dram.mem \
+		$(bsg_global_X) $(bsg_global_Y) \
+		$(bsg_tiles_org_X) $(bsg_tiles_org_Y) \
+		$(bsg_tiles_X) $(bsg_tiles_Y) 1 > $*.nbf
+
 
 %.bin:  %.hex
 	python $(HEX2BIN) $< 32 > $@
