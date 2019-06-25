@@ -26,7 +26,7 @@ MEMORY
   DMEM_VMA (rw) : ORIGIN = 0x1000, LENGTH = 4K
 
   /* VCACHE LMA */
-  VCACHE_LMA (rw) : ORIGIN = 0x80000000, LENGTH = 64K
+  VCACHE_LMA (rw) : ORIGIN = 0x80000000, LENGTH = _bsg_elf_vcache_size
 }
 
 
@@ -197,5 +197,5 @@ SECTIONS
   _bsg_dram_d_end_addr = _bsg_dram_d_start_addr + SIZEOF(.data.dram) ;
   _bsg_dram_end_addr = _bsg_dram_d_end_addr ;
 
-  _sp = 0x8000fffc; /* End of vcache */
+  _sp = _bsg_elf_stack_ptr;
 }

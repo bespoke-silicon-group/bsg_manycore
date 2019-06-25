@@ -27,7 +27,7 @@ MEMORY
   DMEM_VMA (rw) : ORIGIN = 0x1000, LENGTH = 4K
 
   /* VCACHE LMA */
-  VCACHE_LMA (rw) : ORIGIN = 0x80000000, LENGTH = 64K
+  VCACHE_LMA (rw) : ORIGIN = 0x80000000, LENGTH = _bsg_elf_vcache_size
 }
 
 
@@ -129,7 +129,7 @@ SECTIONS
   _bsg_data_end_addr = . - SIZEOF(.striped.data.dmem) 
                          + (SIZEOF(.striped.data.dmem) / bsg_group_size);
 
-  _sp = 0x1ffc;
+  _sp = _bsg_elf_stack_ptr;
 
   ASSERT(_bsg_data_end_addr < 0x2000, 
          "[ Error ] during linking, local dmem overflow, please check the dmem usage"
