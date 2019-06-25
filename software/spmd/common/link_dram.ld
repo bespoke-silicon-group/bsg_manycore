@@ -31,7 +31,7 @@ MEMORY
   DRAM_T_VMA (rx) : ORIGIN = 0x0, LENGTH = 16M
 
   /* DRAM data VMA */
-  DRAM_D_VMA (rw) : ORIGIN = 0x81000000, LENGTH = 2032M /* 2048M - 16M */
+  DRAM_D_VMA (rw) : ORIGIN = 0x81000000, LENGTH = (_bsg_elf_dram_size - 16M)
 }
 
 
@@ -201,5 +201,5 @@ SECTIONS
   _bsg_dram_d_end_addr = . ;
   _bsg_dram_end_addr = . ;
 
-  _sp = 0xbffffffc; /* End of 1st ch of dram: 28-bit dram ch width */
+  _sp = _bsg_elf_stack_ptr;
 }
