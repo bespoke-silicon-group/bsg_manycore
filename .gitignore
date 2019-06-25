@@ -10,6 +10,7 @@ testbenches/common/inputs/
 *.wdb
 *.pb
 *.swp
+*.nbf
 xelab*
 xsim*
 xvlog*
