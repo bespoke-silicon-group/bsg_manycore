@@ -1,0 +1,15 @@
+diff --git a/isa/macros/scalar/test_macros.h b/isa/macros/scalar/test_macros.h
+index 58e389f..71c7dcc 100644
+--- a/isa/macros/scalar/test_macros.h
++++ b/isa/macros/scalar/test_macros.h
+@@ -388,10 +388,8 @@ test_ ## testnum: \
+   flw f2, 8(a0); \
+   lw  a3, 12(a0); \
+   code; \
+-  fsflags a1, x0; \
+   li a2, flags; \
+   bne a0, a3, fail; \
+-  bne a1, a2, fail; \
+   .pushsection .data; \
+   .align 2; \
+   test_ ## testnum ## _data: \
