@@ -20,28 +20,9 @@ module bsg_nonsynth_manycore_io_complex
     , parameter io_x_cord_p=0 
     , parameter io_y_cord_p=0
 
-    , parameter icache_entries_p="inv"
-    , parameter epa_byte_addr_width_p="inv"
-    , parameter dram_ch_addr_width_p="inv"
-    , parameter dram_ch_start_col_p="inv"
-    , parameter dram_ch_num_p="inv"
-
-    , parameter max_cycles_p="inv"
     , parameter max_out_credits_p=200
     , parameter credit_counter_width_lp=`BSG_SAFE_CLOG2(max_out_credits_p+1)
  
-    , parameter no_dram_ctrl_p=0
-    , parameter vcache_sets_p="inv"
-    , parameter vcache_ways_p="inv"
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_size_p="inv"
- 
-    // SPMD loader setting
-    , parameter tgo_x_p="inv"
-    , parameter tgo_y_p="inv"
-    , parameter tg_x_dim_p="inv"
-    , parameter tg_y_dim_p="inv"
-
     , parameter data_mask_width_lp=(data_width_p>>3)
 
     , parameter link_sif_width_lp =
@@ -139,7 +120,6 @@ module bsg_nonsynth_manycore_io_complex
     ,.addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
     ,.load_id_width_p(load_id_width_p)
-    ,.max_cycles_p(max_cycles_p)
   ) monitor (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
