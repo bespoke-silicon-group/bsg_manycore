@@ -1,3 +1,5 @@
+
+
 .DEFAULT_GOAL := all
 
 include ./Makefile.include
@@ -103,7 +105,7 @@ pre-recurse-all:
 
 pre-recurse-clean:
 	mkdir -p recurse-results
-	-rm recurse-results/*
+	-rm -rf recurse-results
 
 SUBDIRS-WITH-MAKE = $(patsubst %/Makefile,%,$(wildcard */Makefile))
 
@@ -113,20 +115,26 @@ recurse-%: pre-recurse-%
 
 # this rule invokes the target rule on each directory that has a Makefile
 #	$(MAKE) -C $(firstword($(subst -, ,$*))) $(lastword($(subst -, ,$*)))
+# first word is the rule to run and the second is the benchmark
 recurse-iterate@%:
-	-$(MAKE) $(firstword $(subst @, ,$*)) -C $(word 2,$(subst @, ,$*)) | /usr/bin/tee recurse-results/$*
+	-$(MAKE) $(firstword $(subst @, ,$*)) -C $(word 2,$(subst @, ,$*)) 2>&1 | /usr/bin/tee recurse-results/$(word 2,$(subst @, ,$*))-run.log
 
-LOG_FILES:=$(shell /usr/bin/find recurse-results -iname all@*) $(shell /usr/bin/find . -iname run.log)
-#$(warning $(LOG_FILES))
+LOG_FILES=`ls -t $(shell /usr/bin/find . -iname *run.log)`
 
-summarize:
-	-grep -m 1 --color -B 2 finish $(LOG_FILES)
-	-grep -m 1 --color "FINISH\|FAIL\|I/O"  $(LOG_FILES)
-	-grep -m 1 -C 2 --color "ERROR\|^[Ee]rror"  $(LOG_FILES)
-	-@echo -n "TIMEOUT:"; grep TIMEOUT  $(LOG_FILES) | wc -l
-	-@echo -n "ERROR:"; grep ERROR  $(LOG_FILES) | wc -l
-	-@echo -n "FAIL:";grep FAIL  $(LOG_FILES) | wc -l
-	-@echo -n "Correct:"; grep Correct  $(LOG_FILES) | wc -l
-	-@echo -n "Passed:"; grep Passed  $(LOG_FILES) | wc -l
-	-@echo -n "FINISH:"; grep FINISH  $(LOG_FILES) | wc -l
+SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@-run.log@@g' | /usr/bin/column -c 160
+
+%.scrape:
+	@echo "$*------------------------------------------------------------------------------------------------------>"
+	@-grep -i --files-with-matches --no-messages $* $(LOG_FILES) | $(SCRAPE-TAIL) || true
+	@echo;
+
+summary: FINISH.scrape TIMEOUT.scrape FAIL.scrape ERROR.scrape Correct.scrape Passed.scrape
+	@echo -n "SIMVs running:"; /usr/bin/ps a | /usr/bin/grep simv
+
+watch-summary:
+	watch make summary
+
+summarize-bad:
+#	-@grep -m 1 --color "FAIL\|I/O"  $(LOG_FILES)
+	-@grep -m 1 -C 2 --color "FAIL\|ERROR\|^[Ee]rror"  $(LOG_FILES)
 

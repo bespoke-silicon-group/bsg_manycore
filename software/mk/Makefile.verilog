@@ -68,7 +68,7 @@ VCS_OP += $(VCS_COV_COMP_OP)
 VCS_RUN_OP += $(VCS_COV_RUN_OP)
 
 
-$(warning $(BSG-SIM-TOOL))
+#$(warning $(BSG-SIM-TOOL))
 
 #############################################################
 #

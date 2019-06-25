@@ -23,7 +23,7 @@ all: $(foreach instr, $(RVTEST_INSTS), $(instr).riscv_tests_run)
 
 %.riscv_tests_run:
 	mkdir -p $*_run
-	$(MAKE) -C $*_run -f ../Makefile.include $*.run | /usr/bin/tee  $*_run/run.log
+	$(MAKE) -C $*_run -f ../Makefile.include $*.run 2>&1 | /usr/bin/tee $*_run/$*-run.log
 
 clean:
 	-rm -rf *_run
