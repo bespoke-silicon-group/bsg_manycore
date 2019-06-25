@@ -17,7 +17,7 @@ module vanilla_core_trace
     , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , localparam pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
     , localparam reg_addr_width_lp=5
-    , localparam bsg_data_end_lp = `_bsg_data_end_addr
+    //, localparam bsg_data_end_lp = `_bsg_data_end_addr
   )
   (
     input clk_i
@@ -265,7 +265,7 @@ module vanilla_core_trace
   end
 
 
-
+  /*
   
   // SP (x2) overflow checking.
   //
@@ -275,5 +275,7 @@ module vanilla_core_trace
         $time, bsg_data_end_lp, int_rf_wdata);
     end
   end
+
+  */
 
 endmodule

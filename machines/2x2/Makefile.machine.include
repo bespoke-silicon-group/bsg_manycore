@@ -1,0 +1,6 @@
+BSG_GLOBAL_X						= 2
+BSG_GLOBAL_Y						= 3
+BSG_VCACHE_SET					= 256
+BSG_VCACHE_WAY					= 2
+BSG_VCACHE_BLOCK_SIZE		= 8
+BSG_DRAM_SIZE						= 2**29  # in word (2GB)

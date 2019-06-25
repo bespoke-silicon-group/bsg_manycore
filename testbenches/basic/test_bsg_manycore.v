@@ -152,26 +152,6 @@ module test_bsg_manycore;
 
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
-
-    ,.icache_entries_p(icache_entries_p)
-    ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
-    ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
-    ,.dram_ch_start_col_p(dram_ch_start_col_p)
-    ,.dram_ch_num_p(dram_ch_num_p)
-
-	  ,.max_cycles_p(max_cycles_p)
-
-    ,.vcache_sets_p(vcache_sets_p)
-    ,.vcache_ways_p(vcache_ways_p)
-    ,.vcache_size_p(vcache_size_p)
-    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
-
-    ,.no_dram_ctrl_p(no_dram_ctrl_p)
-
-    ,.tgo_x_p(tgo_x_p)
-    ,.tgo_y_p(tgo_y_p)
-    ,.tg_x_dim_p(tg_x_dim_p)
-    ,.tg_y_dim_p(tg_y_dim_p)
   ) io(
     .clk_i(clk)
     ,.reset_i(reset_rr)
