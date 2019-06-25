@@ -1,23 +1,14 @@
 #
 #   nbf.py
 #
-#   Network Boot Format (.nbf)
-#
-#   USAGE:
-#
-#   python nbf_converter.py {dmem_file.mem} {dram_file.mem} 
-#   tgo_x, tgo_y, tg_dim_x, tg_dim_y, enable_dram
-#
-#   
-#   This script produces a file where the format of each line is:
-#   
-#   {x_coord}_{y_coord}_{epa}_{data}
+#   ELF (.riscv) to Network Boot Format (.nbf)
 #
 
 
 import sys
 import math
-
+import os
+import subprocess
 
 #
 #   NBF
@@ -44,18 +35,50 @@ class NBF:
   # constructor
   def __init__(self, config):
     self.config = config
+
+    # fixed arch params
+    self.icache_size = 1024
+    self.dmem_size = 1024
+    self.data_width = 32
+
+    # input binary
+    self.riscv_file = config["riscv_file"]
+
+    # machine setting
+    self.num_tiles_x = config["num_tiles_x"]
+    self.num_tiles_y = config["num_tiles_y"]
+    self.cache_way = config["cache_way"]
+    self.cache_set = config["cache_set"]
+    self.cache_block_size = config["cache_block_size"]
+    self.dram_size = config["dram_size"]
+  
+    # software setting
+    self.tgo_x = config["tgo_x"]
+    self.tgo_y = config["tgo_y"]
+    self.tg_dim_x = config["tg_dim_x"]
+    self.tg_dim_y = config["tg_dim_y"]
+    self.enable_dram = config["enable_dram"]
+
+    # derived params
+    self.cache_size = self.cache_way * self.cache_set * self.cache_block_size
+    self.x_cord_width = self.safe_clog2(self.num_tiles_x)
+    self.dram_ch_size = self.dram_size / (2**self.x_cord_width)
+    self.addr_width = self.safe_clog2(self.dram_ch_size) + 1
+
+    # process riscv
+    self.get_data_end_addr()
     self.read_dmem()
     self.read_dram()
    
   ##### UTIL FUNCTIONS #####
- 
+
   # take width and val and convert to binary string
   def get_binstr(self, val, width):
     return format(val, "0"+str(width)+"b")
 
+  # take width and val and convert to hex string
   def get_hexstr(self, val, width):
     return format(val, "0"+str(width)+"x")
-
 
   # take x,y coord, epa, data and turn it into nbf format.
   def print_nbf(self, x, y, epa, data):
@@ -67,13 +90,25 @@ class NBF:
 
   # read objcopy dumped in 'verilog' format.
   # return in EPA (word addr) and 32-bit value dictionary
-  def read_objcopy(self, filename):
-    addr_val = {}
+  def read_objcopy(self, section, output_file):
 
-    f = open(filename, "r")
-    lines = f.readlines()
+    # make sure that you have riscv tool binaries in
+    # bsg_manycore/software/riscv-tools/riscv-install/bin
+    dirname = os.path.abspath(os.path.dirname(__file__))
+    objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv32-unknown-elf-objcopy")
+
+    if not os.path.isfile(objcopy_path):
+      print("install riscv-tools first...")
+      sys.exit()
+
+    cmd = [objcopy_path, "-O", "verilog", "-j", section, self.riscv_file, output_file]
+    result = subprocess.call(cmd)
   
+    addr_val = {}
     curr_addr = 0
+
+    f = open(output_file, "r")
+    lines = f.readlines()
 
     for line in lines:
       stripped = line.strip()
@@ -93,89 +128,101 @@ class NBF:
     if x == 1:
       return 1
     else:
-      return int(math.log(x,2))        
+      return int(math.ceil(math.log(x,2)))
 
 
   # read dmem
   def read_dmem(self):
-    self.dmem_data = self.read_objcopy(self.config["dmem_file"])
+    self.dmem_data = self.read_objcopy("*.dmem", "main_dmem.mem")    
 
   # read dram
   def read_dram(self):
-    self.dram_data = self.read_objcopy(self.config["dram_file"])
+    self.dram_data = self.read_objcopy("*.dram", "main_dram.mem")    
+
+  
+  def get_data_end_addr(self):
+    proc = subprocess.Popen(["nm", "--radix=d", self.riscv_file], stdout=subprocess.PIPE)
+    lines = proc.stdout.readlines()
+    for line in lines:
+      stripped = line.strip()
+      words = stripped.split()
+      if words[2] == "_bsg_data_end_addr":
+        self.bsg_data_end_addr = (int(words[0]) >> 2) # make it word address
 
 
   ##### END UTIL FUNCTIONS #####
 
   ##### LOADER ROUTINES #####  
 
+
   # set TGO x,y
   def config_tile_group(self):
-    for x in range(self.config["tg_dim_x"]):
-      for y in range(self.config["tg_dim_y"]):
-        x_eff = self.config["tgo_x"] + x
-        y_eff = self.config["tgo_y"] + y
-        self.print_nbf(x_eff, y_eff, CSR_TGO_X, self.config["tgo_x"])
-        self.print_nbf(x_eff, y_eff, CSR_TGO_Y, self.config["tgo_y"])
+    for x in range(self.tg_dim_x):
+      for y in range(self.tg_dim_y):
+        x_eff = self.tgo_x + x
+        y_eff = self.tgo_y + y
+        self.print_nbf(x_eff, y_eff, CSR_TGO_X, self.tgo_x)
+        self.print_nbf(x_eff, y_eff, CSR_TGO_Y, self.tgo_y)
+
  
   # initialize icache
   def init_icache(self):
-    for x in range(self.config["tg_dim_x"]):
-      for y in range(self.config["tg_dim_y"]):
-        x_eff = self.config["tgo_x"] + x
-        y_eff = self.config["tgo_y"] + y
+    for x in range(self.tg_dim_x):
+      for y in range(self.tg_dim_y):
+        x_eff = self.tgo_x + x
+        y_eff = self.tgo_y + y
         for k in sorted(self.dram_data.keys()):
-          if k < self.config["icache_entries"]:
+          if k < self.icache_size:
             icache_epa = ICACHE_BASE_EPA | k
             self.print_nbf(x_eff, y_eff, icache_epa, self.dram_data[k])
         
  
   # initialize dmem
   def init_dmem(self):
+    # if there is nothing in dmem, just return.
     if len(self.dmem_data.keys()) == 0:
       return
-    for x in range(self.config["tg_dim_x"]):
-      for y in range(self.config["tg_dim_y"]):
 
-        x_eff = self.config["tgo_x"] + x
-        y_eff = self.config["tgo_y"] + y
+    for x in range(self.tg_dim_x):
+      for y in range(self.tg_dim_y):
+
+        x_eff = self.tgo_x + x
+        y_eff = self.tgo_y + y
           
-        max_key = max(self.dmem_data.keys())
-        min_key = min(self.dmem_data.keys())
-
-        for k in range(1024):
-          dmem_epa = k + 1024
-          if dmem_epa in self.dmem_data.keys():
-            self.print_nbf(x_eff, y_eff, dmem_epa, self.dmem_data[dmem_epa])
+        for k in range(1024, self.bsg_data_end_addr+1):
+          if k in self.dmem_data.keys():
+            self.print_nbf(x_eff, y_eff, k, self.dmem_data[k])
           else:
-            self.print_nbf(x_eff, y_eff, dmem_epa, 0)
+            self.print_nbf(x_eff, y_eff, k, 0)
+
  
   # disable dram mode
   def disable_dram(self):
-    for x in range(self.config["tg_dim_x"]):
-      for y in range(self.config["tg_dim_y"]):
-        x_eff = self.config["tgo_x"] + x
-        y_eff = self.config["tgo_y"] + y
+    for x in range(self.tg_dim_x):
+      for y in range(self.tg_dim_y):
+        x_eff = self.tgo_x + x
+        y_eff = self.tgo_y + y
         self.print_nbf(x_eff, y_eff, CSR_ENABLE_DRAM, 0)
-    
+   
+ 
   # initialize vcache in no DRAM mode
   def init_vcache(self):
 
-    y = config["num_tiles_y"]
-    t_shift = self.safe_clog2(self.config["cache_block_size"])
+    y = self.num_tiles_y
+    t_shift = self.safe_clog2(self.cache_block_size)
 
-    for x in range(self.config["num_tiles_x"]):
-      for t in range(self.config["cache_way"] * self.config["cache_set"]):
-        epa = (t << t_shift) | (1 << (self.config["addr_width"]-1))
-        data = (1 << (self.config["data_width"]-1)) | (t / self.config["cache_set"])
+    for x in range(self.num_tiles_x):
+      for t in range(self.cache_way * self.cache_set):
+        epa = (t << t_shift) | (1 << (self.addr_width-1))
+        data = (1 << (self.data_width-1)) | (t / self.cache_set)
         self.print_nbf(x, y, epa, data)
          
  
   # init DRAM
   def init_dram(self, enable_dram): 
-    y = self.config["num_tiles_y"]
-    dram_ch_size = self.config["dram_ch_size"]
-    cache_size = self.config["cache_size"]
+    y = self.num_tiles_y
+    dram_ch_size = self.dram_ch_size
+    cache_size = self.cache_size
 
     if enable_dram == 1:
       for k in sorted(self.dram_data.keys()):
@@ -186,20 +233,20 @@ class NBF:
       for k in sorted(self.dram_data.keys()):
         x = k / cache_size
         epa = k % cache_size
-        if (x < self.config["num_tiles_x"]):
+        if (x < self.num_tiles_x):
           self.print_nbf(x, y, epa, self.dram_data[k])
         else:
-          print("# WARNING: NO DRAM MODE, DRAM DATA OUT OF RANGE!!!")
+          print("## WARNING: NO DRAM MODE, DRAM DATA OUT OF RANGE!!!")
 
       
 
   # unfreeze tiles
   def unfreeze_tiles(self):
-    tgo_x = self.config["tgo_x"]
-    tgo_y = self.config["tgo_y"]
+    tgo_x = self.tgo_x
+    tgo_y = self.tgo_y
 
-    for y in range(self.config["tg_dim_y"]):
-      for x in range(self.config["tg_dim_x"]):
+    for y in range(self.tg_dim_y):
+      for x in range(self.tg_dim_x):
         x_eff = tgo_x + x
         y_eff = tgo_y + y
         self.print_nbf(x_eff, y_eff, CSR_FREEZE, 0)
@@ -217,7 +264,7 @@ class NBF:
     self.init_icache()
     self.init_dmem()
 
-    enable_dram = self.config["enable_dram"]
+    enable_dram = self.enable_dram
     if enable_dram != 1:
       self.disable_dram()    
       self.init_vcache()
@@ -227,46 +274,37 @@ class NBF:
 
     self.print_finish()
 
+
 #
 #   main()
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 10:
-
+  if len(sys.argv) == 13:
     # config setting
     config = {
-      "dmem_file" : sys.argv[1],
-      "dram_file" : sys.argv[2],
-      "num_tiles_x" : int(sys.argv[3]),
-      "num_tiles_y" : int(sys.argv[4]),
-      "tgo_x" : int(sys.argv[5]),
-      "tgo_y" : int(sys.argv[6]),
-      "tg_dim_x" : int(sys.argv[7]),
-      "tg_dim_y" : int(sys.argv[8]),
-      "enable_dram" : int(sys.argv[9]),
+      "riscv_file" : sys.argv[1],
+      "num_tiles_x" : int(sys.argv[2]),
+      "num_tiles_y" : int(sys.argv[3]),
+      "cache_way" : int(sys.argv[4]),
+      "cache_set" : int(sys.argv[5]),
+      "cache_block_size" : int(sys.argv[6]),
+      "dram_size": int(sys.argv[7]),
+
+      "tgo_x" : int(sys.argv[8]),
+      "tgo_y" : int(sys.argv[9]),
+      "tg_dim_x" : int(sys.argv[10]),
+      "tg_dim_y" : int(sys.argv[11]),
+      "enable_dram" : int(sys.argv[12]),
     }
 
-    config["dram_size"] = 2**29 # in words (2GB) for spmd regression
-    #config["dram_size"] = 2**27 # in words (2GB) for chip
-    config["data_width"] = 32
-    config["cache_way"] = 2
-    config["cache_set"] = 256
-    config["cache_block_size"] = 8
-    config["icache_entries"] = 1024 # in words
-
-    config["cache_size"] = config["cache_way"]*config["cache_set"]*config["cache_block_size"]
-    config["x_cord_width"] = int(math.log(config["num_tiles_x"], 2))
-    config["dram_ch_size"] = config["dram_size"] / (2**config["x_cord_width"]) # in words (512MB)
-    config["addr_width"] = int(math.log(config["dram_ch_size"],2))+1
-    #print(config)
     converter = NBF(config)
     converter.dump()
-
   else:
     print("USAGE:")
-    command = "python nbf.py {dmem_file.mem} {dram_file.mem} "
+    command = "python nbf.py {program.riscv} "
     command += "{num_tiles_x} {num_tiles_y} "
+    command += "{cache_way} {cache_set} {cache_block_size} {dram_size} "
     command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram}"
     print(command)
 
