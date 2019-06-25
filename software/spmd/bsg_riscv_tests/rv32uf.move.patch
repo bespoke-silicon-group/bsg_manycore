@@ -1,0 +1,25 @@
+diff --git a/isa/rv64uf/move.S b/isa/rv64uf/move.S
+index 60f7cf3..2217a29 100644
+--- a/isa/rv64uf/move.S
++++ b/isa/rv64uf/move.S
+@@ -14,13 +14,13 @@
+ RVTEST_RV64UF
+ RVTEST_CODE_BEGIN
+ 
+-  TEST_CASE(2, a1, 1, csrwi fcsr, 1; li a0, 0x1234; fssr a1, a0)
+-  TEST_CASE(3, a0, 0x34, frsr a0)
+-  TEST_CASE(4, a0, 0x14, frflags a0)
+-  TEST_CASE(5, a0, 0x01, csrrwi a0, frm, 2)
+-  TEST_CASE(6, a0, 0x54, frsr a0)
+-  TEST_CASE(7, a0, 0x14, csrrci a0, fflags, 4)
+-  TEST_CASE(8, a0, 0x50, frsr a0)
++  //TEST_CASE(2, a1, 1, csrwi fcsr, 1; li a0, 0x1234; fssr a1, a0)
++  //TEST_CASE(3, a0, 0x34, frsr a0)
++  //TEST_CASE(4, a0, 0x14, frflags a0)
++  //TEST_CASE(5, a0, 0x01, csrrwi a0, frm, 2)
++  //TEST_CASE(6, a0, 0x54, frsr a0)
++  //TEST_CASE(7, a0, 0x14, csrrci a0, fflags, 4)
++  //TEST_CASE(8, a0, 0x50, frsr a0)
+ 
+ #define TEST_FSGNJS(n, insn, new_sign, rs1_sign, rs2_sign) \
+   TEST_CASE(n, a0, 0x12345678 | (-(new_sign) << 31), \
