@@ -12,8 +12,6 @@ module bsg_nonsynth_manycore_monitor
     , parameter data_width_p="inv"
     , parameter load_id_width_p="inv"
 
-    , parameter max_cycles_p="inv"
-
     , parameter data_mask_width_lp=(data_width_p>>3)
   )
   (
@@ -33,6 +31,14 @@ module bsg_nonsynth_manycore_monitor
     , output logic v_o
   );
 
+  int status;
+  int max_cycle;
+  initial begin
+    status = $value$plusargs("max_cycle=%d", max_cycle);
+    if (max_cycle == 0) begin
+      max_cycle = 1000000; // default
+    end
+  end
 
   // cycle counter
   //
@@ -69,8 +75,8 @@ module bsg_nonsynth_manycore_monitor
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
 
-      if (cycle_count > max_cycles_p) begin
-        $display("[INFO][MONITOR] TIMEOUT reached max_cycles_p = %d", max_cycles_p);
+      if (cycle_count > max_cycle) begin
+        $display("[INFO][MONITOR] TIMEOUT reached max_cycle = %d", max_cycle);
         $finish;
       end
 
