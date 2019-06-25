@@ -32,7 +32,7 @@ MEMORY
   DRAM_T_VMA (rx) : ORIGIN = 0x0, LENGTH = 16M
 
   /* DRAM data VMA */
-  DRAM_D_VMA (rw) : ORIGIN = 0x81000000, LENGTH = 2032M /* 2048M - 16M */
+  DRAM_D_VMA (rw) : ORIGIN = 0x81000000, LENGTH = (_bsg_elf_dram_size - 16M)
 }
 
 
@@ -134,7 +134,7 @@ SECTIONS
   _bsg_data_end_addr = . - SIZEOF(.striped.data.dmem) 
                          + (SIZEOF(.striped.data.dmem) / bsg_group_size);
 
-  _sp = 0x1ffc;
+  _sp = _bsg_elf_stack_ptr;
 
   ASSERT(_bsg_data_end_addr < 0x2000, 
          "[ Error ] during linking, local dmem overflow, please check the dmem usage"
