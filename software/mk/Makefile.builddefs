@@ -210,11 +210,13 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 	# 0x0, and converting to actual NPA is handled in the verilog loader.
 	sed -i 's/@8/@0/' $@
 
-%.nbf: %_dmem.mem %_dram.mem
-	python $(NBF_PY) $*_dmem.mem $*_dram.mem \
-		$(bsg_global_X) $(bsg_global_Y) \
+%.nbf: %.riscv
+	python $(NBF_PY) $*.riscv \
+		$(BSG_GLOBAL_X) $(BSG_GLOBAL_Y) \
+		$(BSG_VCACHE_WAY) $(BSG_VCACHE_SET) $(BSG_VCACHE_BLOCK_SIZE) \
+		$(BSG_DRAM_SIZE) \
 		$(bsg_tiles_org_X) $(bsg_tiles_org_Y) \
-		$(bsg_tiles_X) $(bsg_tiles_Y) 1 > $*.nbf
+		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) > $*.nbf
 
 
 %.bin:  %.hex
