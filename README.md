@@ -22,6 +22,14 @@ aggregated [CoreMark](https://www.eembc.org/coremark/) score.
         * Version tag: **tile\_group\_org\_master**
         * A more comprehensive document including programming model, FPGA emulation and applications ([TVM](https://tvm.ai)) of manycore.
 
+# Initial Setup for running programs
+
+In this directory:
+
+- `make checkout_submodules`: To update all submodules in `imports/`.
+- `make tools`: To install software toolchain required running programs on BSG Manycore.
+- `make machines`: Compile simulation executables in `machines/`.
+
 # Tutorial 
 
 Comming Soon!
