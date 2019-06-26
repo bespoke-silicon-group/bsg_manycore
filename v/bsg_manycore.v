@@ -5,7 +5,6 @@
 
 
 `include "bsg_manycore_packet.vh"
-
 module bsg_manycore
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }
   #(parameter dmem_size_p = "inv"
@@ -97,6 +96,9 @@ module bsg_manycore
    // snew * y * x bits
   , parameter repeater_output_p = 0
 
+  // The number of registers between the reset_i port and the reset sinks
+  // Must be >= 1
+  , parameter reset_depth_p = 3
   )
   (
     input clk_i
@@ -149,13 +151,19 @@ module bsg_manycore
 
    genvar r,c;
 
-  // Pipeline the reset by 2 flip flops (for 16nm layout)
-  logic reset_i_r, reset_i_rr;
+  // Pipeline the reset. The bsg_manycore_tile has a single pipeline register
+  // on reset already, so we only want to pipeline reset_depth_p-1 times.
+  logic [reset_depth_p-1:0][num_tiles_y_p-1:0][num_tiles_x_p-1:0] reset_i_r;
 
-  always_ff @(posedge clk_i)
+  assign reset_i_r[0] = {(num_tiles_y_p*num_tiles_x_p){reset_i}};
+
+  genvar k;
+  for (k = 1; k < reset_depth_p; k++)
     begin
-      reset_i_r <= reset_i;
-      reset_i_rr <= reset_i_r;
+      always_ff @(posedge clk_i)
+        begin
+          reset_i_r[k] <= reset_i_r[k-1];
+        end
     end
 
    for (r = IO_row_idx_p+1; r < num_tiles_y_p; r = r+1)
@@ -182,7 +190,7 @@ module bsg_manycore
             tile
               (
                 .clk_i(clk_i),
-                .reset_i(reset_i_rr),
+                .reset_i(reset_i_r[reset_depth_p-1][r][c]),
 
                 .link_in(link_in[r][c]),
                 .link_out(link_out[r][c]),
@@ -203,7 +211,7 @@ for (c = 0; c < num_tiles_x_p; c=c+1) begin:io
            ,.addr_width_p       (addr_width_p    )
           ) io_router
            (  .clk_i    (clk_i      )
-             ,.reset_i  (reset_i_rr )
+             ,.reset_i  (reset_i_r[reset_depth_p-1][0][c] )
         
              ,.links_sif_i      ( link_in [ IO_row_idx_p][ c ] )
              ,.links_sif_o      ( link_out[ IO_row_idx_p][ c ] )
