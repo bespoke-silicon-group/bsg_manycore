@@ -46,8 +46,11 @@ BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
 NBF_PY 			= $(BSG_MANYCORE_DIR)/software/py/nbf.py
 
-VPATH += $(BSG_MANYCORE_DIR)/software/spmd/common
-VPATH += $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+COMMON_SRC_DIRS = $(BSG_MANYCORE_DIR)/software/spmd/common \
+                  $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+
+vpath %.c $(COMMON_SRC_DIRS)
+vpath %.S $(COMMON_SRC_DIRS)
 
 # flags
 OPT_LEVEL ?= -O2
@@ -100,7 +103,7 @@ ifeq ($(BSG_ELF_OFF_CHIP_MEM), 1)
   else ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), SHARED)
     LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
   else
-    $(error Invalid BSG_ELF_DEFAULT_VAL_LOC = $(BSG_ELF_DEFAULT_VAL_LOC); Only LOCAL and SHARED are valid)
+    $(error Invalid BSG_ELF_DEFAULT_DATA_LOC = $(BSG_ELF_DEFAULT_DATA_LOC); Only LOCAL and SHARED are valid)
   endif
 else ifeq ($(BSG_ELF_OFF_CHIP_MEM), 0)
   ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), LOCAL)
@@ -108,7 +111,7 @@ else ifeq ($(BSG_ELF_OFF_CHIP_MEM), 0)
   else ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), SHARED)
     LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram2.ld
   else
-    $(error Invalid BSG_ELF_DEFAULT_VAL_LOC = $(BSG_ELF_DEFAULT_VAL_LOC); Only LOCAL and SHARED are valid)
+    $(error Invalid BSG_ELF_DEFAULT_DATA_LOC = $(BSG_ELF_DEFAULT_DATA_LOC); Only LOCAL and SHARED are valid)
   endif
 else
   $(error Invalid BSG_ELF_OFF_CHIP_MEM = $(BSG_ELF_OFF_CHIP_MEM); Only 0 and 1 are valid)
