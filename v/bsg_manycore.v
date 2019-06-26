@@ -5,7 +5,6 @@
 
 
 `include "bsg_manycore_packet.vh"
-
 module bsg_manycore
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }
   #(parameter dmem_size_p = "inv"
@@ -99,7 +98,7 @@ module bsg_manycore
 
   // The number of registers between the reset_i port and the reset sinks
   // Must be >= 1
-  , parameter reset_depth_p = 1
+  , parameter reset_depth_p = 3
   )
   (
     input clk_i
