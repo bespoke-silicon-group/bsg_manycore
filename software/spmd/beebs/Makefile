@@ -4,6 +4,9 @@ ifndef BSG_MANYCORE_DIR
   export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
 endif
 
+BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/1x1
+BSG_ELF_OFFCHIP_MEM = 0
+BSG_ELF_DEFAULT_DATA_LOC = SHARED
 SPMD_COMMON_OBJECTS =
 BSG_NEWLIB = 1
 
@@ -17,7 +20,6 @@ include $(BSG_MANYCORE_DIR)/software/spmd/beebs/Makefile.bmarklist
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 
-LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
 REPEAT_FACTOR = 2 # Number of iterations each benchmark is run
 
 BEEBS_DIR := $(BSG_MANYCORE_DIR)/imports/beebs
@@ -43,7 +45,7 @@ all: beebs.configure.touchfile
 # Just copy the installed binary
 %.riscv:  $(COMMON_SRCS) $(BSG_MANYCORE_LIB) $(wildcard $(BEEBS_DIR)/src/%/*)
 	make -C $(BUILD_DIR)/src/$* clean
-	make -C $(BUILD_DIR)/src/$* install
+	make -C $(BUILD_DIR)/src/$* install V=1
 	cp $(BUILD_DIR)/bin/$* $@
 
 
