@@ -1,6 +1,23 @@
 SPMD Directory
 ==============
 
+
+Running single spmd program
+---------------------------
+
+In any of the sub-directories:
+- `make`: Run VCS simulation.
+- `make DVE=1` Run VCS simulation with waveform dump.
+- `make main.riscv`: Generate ELF binary of that SPMD program.
+- `make main.dis`: Print disassembly to the terminal.
+- `vanilla.log`: Vanilla core trace dumped during the simulation.
+
+Note: In directories containing multiple SPMD programs, `bsg_riscv_tests/` for instance,
+`main` has to be replaced by the program name. For example, to generate ELF binary of
+`add` riscv test, you have to run `make add.riscv`.
+
+
+
 Manycore regression
 -------------------
 
@@ -34,6 +51,7 @@ Some useful flags:
 Note: 
     Current design is only tested for x<=4, y<=4 and dimensions mentioned in
     individual testcases.
+
 
 
 `common/`
