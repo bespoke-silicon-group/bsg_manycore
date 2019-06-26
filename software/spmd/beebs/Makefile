@@ -17,7 +17,7 @@ include $(BSG_MANYCORE_DIR)/software/spmd/beebs/Makefile.bmarklist
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 
-LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram2.ld
+LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
 REPEAT_FACTOR = 2 # Number of iterations each benchmark is run
 
 BEEBS_DIR := $(BSG_MANYCORE_DIR)/imports/beebs
@@ -63,8 +63,7 @@ COMMON_SRCS   = $(RUN_DIR)/../common/args.c \
                 $(RUN_DIR)/../../bsg_manycore_lib/bsg_newlib_intf.c \
 								$(RUN_DIR)/lfs.c
 BEEBS_LDFLAGS = "-t -T $(LINK_SCRIPT) -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc \
-						     -Wl,--defsym,bsg_group_size=$(bsg_group_size) \
-						     -Wl,--no-check-sections \
+								 $(RISCV_LINK_SYMS) \
 								 -I$(BEEBS_DIR)/support \
 								 $(COMMON_SRCS) \
 								 -L$(RUN_DIR) -l:$(BSG_MANYCORE_LIB)"
