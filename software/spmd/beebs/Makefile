@@ -9,6 +9,7 @@ BSG_ELF_OFFCHIP_MEM = 0
 BSG_ELF_DEFAULT_DATA_LOC = SHARED
 SPMD_COMMON_OBJECTS =
 BSG_NEWLIB = 1
+MAX_CYCLES = 100000000
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 
@@ -40,7 +41,7 @@ all: beebs.configure.touchfile
 # Set program name for individual benchmark
 %.beeb_run:
 	mkdir -p $*_run
-	make -C  $*_run -f ../Makefile PROG_NAME=$* $*.run | tee $*_run/run.log
+	make -C  $*_run -f ../Makefile PROG_NAME=$* $*.run MAX_CYCLES=$(MAX_CYCLES) | tee $*_run/run.log
 
 # Just copy the installed binary
 %.riscv:  $(COMMON_SRCS) $(BSG_MANYCORE_LIB) $(wildcard $(BEEBS_DIR)/src/%/*)

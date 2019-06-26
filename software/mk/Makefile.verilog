@@ -1,6 +1,7 @@
 #MANYCORE_PROC = VANILLA
 #MANYCORE_PROC = VSCALE
 #BSG_FPU_OP       =0
+MAX_CYCLES ?= 1000000
 DVE ?= 0
 COVERAGE=
 PROG_NAME ?= main
@@ -83,4 +84,4 @@ endif
 ###################################################################################
 
 %.run: %.nbf
-	$(BSG_MACHINE_PATH)/simv +nbf_file=$*.nbf -l simv.log
+	$(BSG_MACHINE_PATH)/simv +nbf_file=$*.nbf +max_cycle=$(MAX_CYCLES) -l simv.log
