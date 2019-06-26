@@ -123,14 +123,14 @@ endif
 RISCV_LINK_OPTS += -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc -l:$(CRT_OBJ)\
                    -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
 
-RISCV_LINK_OPTS += -Wl,--defsym,bsg_group_size=$(bsg_group_size) \
+RISCV_LINK_SYMS += -Wl,--defsym,bsg_group_size=$(bsg_group_size) \
                    -Wl,--defsym,_bsg_elf_dram_size=$(BSG_ELF_DRAM_SIZE) \
                    -Wl,--defsym,_bsg_elf_vcache_size=$(BSG_ELF_VCACHE_SIZE) \
                    -Wl,--defsym,_bsg_elf_stack_ptr=$(BSG_ELF_STACK_PTR) \
                    -Wl,--no-check-sections # TODO: temporary fix to solve this problem: \
 https://stackoverflow.com/questions/56518056/risc-v-linker-throwing-sections-lma-overlap-error-despite-lmas-belonging-to-dif
 
-RISCV_LINK = $(RISCV_GCC) -t -T $(LINK_SCRIPT)
+RISCV_LINK = $(RISCV_GCC) -t -T $(LINK_SCRIPT) $(RISCV_LINK_SYMS)
 
 
 ifndef CLANG
