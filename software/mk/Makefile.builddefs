@@ -1,14 +1,29 @@
+#######################################################
 # BSG Manycore Machine Configuration
+
 BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/4x4
 include $(BSG_MACHINE_PATH)/Makefile.machine.include
 
+
+#######################################################
 # BSG Manycore ELF Configuration
-BSG_ELF_OFF_CHIP_MEM     ?= 1
+
+# Only use vcache EVA region if disabled
+BSG_ELF_OFF_CHIP_MEM ?= 1
+
+# Default data section location; LOCAL=>DMEM, SHARED=>DRAM
 BSG_ELF_DEFAULT_DATA_LOC ?= LOCAL
-BSG_ELF_DRAM_SIZE        ?= $(shell echo $$(( $(BSG_DRAM_SIZE) * 4 )) )
-BSG_ELF_VCACHE_SIZE      ?= $(shell echo \
-                              $(BSG_GLOBAL_X)*$(BSG_VCACHE_SET)*$(BSG_VCACHE_WAY)*$(BSG_VCACHE_BLOCK_SIZE)*4 \
-                              | bc)
+
+# Total addressable DRAM size
+BSG_ELF_DRAM_SIZE ?= $(shell echo \
+                       $(BSG_DRAM_BANK_SIZE)*$(BSG_GLOBAL_X)*4 \
+                       | bc)
+
+# Total addressable vcache size
+BSG_ELF_VCACHE_SIZE ?= $(shell echo \
+                         $(BSG_GLOBAL_X)*$(BSG_VCACHE_SET)*$(BSG_VCACHE_WAY)*$(BSG_VCACHE_BLOCK_SIZE)*4 \
+                         | bc)
+
 # EVA of stack pointer
 BSG_ELF_DRAM_EVA_OFFSET = 0x80000000
 ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), LOCAL)
