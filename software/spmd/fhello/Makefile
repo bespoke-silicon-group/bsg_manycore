@@ -1,3 +1,5 @@
+BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/1x1
+BSG_ELF_DEFAULT_DATA_LOC = SHARED
 BSG_NEWLIB = 1
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
@@ -19,18 +21,7 @@ else
 
 all: main.run
 
-LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
-
 endif
-
-
-# Rule to write processor execution logs. To be used after the
-# verilog simulation.
-#
-# Redirects verilog standard output starting with "X<x_cord>_Y<y_cord>.pelog" 
-# to a unique log file for each coordinate in the manycore. This can be useful 
-# for a quick debug of processor or program running on it.
-proc_exe_logs: X0_Y2.pelog
 
 OBJECT_FILES=main.o
 IN_FILES=hello.txt
