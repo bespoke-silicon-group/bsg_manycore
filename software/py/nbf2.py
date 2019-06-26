@@ -189,8 +189,7 @@ class NBF:
         x_eff = self.tgo_x + x
         y_eff = self.tgo_y + y
           
-        #for k in range(1024, self.bsg_data_end_addr+1):
-        for k in range(1024, 1024+1024):
+        for k in range(1024, self.bsg_data_end_addr+1):
           if k in self.dmem_data.keys():
             self.print_nbf(x_eff, y_eff, k, self.dmem_data[k])
           else:
@@ -212,8 +211,7 @@ class NBF:
     y = self.num_tiles_y
     t_shift = self.safe_clog2(self.cache_block_size)
 
-    #for x in range(self.num_tiles_x):
-    for x in range(1):
+    for x in range(self.num_tiles_x):
       for t in range(self.cache_way * self.cache_set):
         epa = (t << t_shift) | (1 << (self.addr_width-1))
         data = (1 << (self.data_width-1)) | (t / self.cache_set)
@@ -255,7 +253,8 @@ class NBF:
         y_eff = tgo_y + y
         self.print_nbf(x_eff, y_eff, CSR_FREEZE, 0)
 
-
+  # print finish
+  # when spmd loader sees, this it stops sending packets.
   def print_finish(self):
     self.print_nbf(0xff, 0xff, 0xffffffff, 0xffffffff)
 
@@ -268,12 +267,11 @@ class NBF:
     self.init_icache()
     self.init_dmem()
 
-    enable_dram = self.enable_dram
-    if enable_dram != 1:
+    if self.enable_dram != 1:
       self.disable_dram()    
       self.init_vcache()
 
-    self.init_dram(enable_dram)
+    self.init_dram(self.enable_dram)
     self.unfreeze_tiles()
 
     self.print_finish()
