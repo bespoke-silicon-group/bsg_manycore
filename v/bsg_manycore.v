@@ -152,7 +152,8 @@ module bsg_manycore
 
    genvar r,c;
 
-  // Pipeline the reset by 2 flip flops (for 16nm layout)
+  // Pipeline the reset. The bsg_manycore_tile has a single pipeline register
+  // on reset already, so we only want to pipeline reset_depth_p-1 times.
   logic [reset_depth_p-1:0][num_tiles_y_p-1:0][num_tiles_x_p-1:0] reset_i_r;
 
   assign reset_i_r[0] = {(num_tiles_y_p*num_tiles_x_p){reset_i}};
