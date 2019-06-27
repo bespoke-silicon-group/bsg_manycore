@@ -19,7 +19,7 @@ fail2:
     bsg_asm_fail(IO_X_INDEX, 0x2);
 
 all_finish:
-    bsg_asm_finish(IO_X_INDEX);
+    bsg_asm_finish(IO_X_INDEX,0);
 
 
 
