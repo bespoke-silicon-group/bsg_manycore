@@ -1,7 +1,6 @@
 #######################################################
 # BSG Manycore Machine Configuration
 
-BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/4x4
 include $(BSG_MACHINE_PATH)/Makefile.machine.include
 
 
@@ -9,7 +8,7 @@ include $(BSG_MACHINE_PATH)/Makefile.machine.include
 # BSG Manycore ELF Configuration
 
 # Only use vcache EVA region if disabled
-BSG_ELF_OFF_CHIP_MEM ?= 1
+BSG_ELF_OFF_CHIP_MEM ?= $(BSG_DRAM_INCLUDED)
 
 # Default data section location; LOCAL=>DMEM, SHARED=>DRAM
 BSG_ELF_DEFAULT_DATA_LOC ?= LOCAL
