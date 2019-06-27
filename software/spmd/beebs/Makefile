@@ -39,7 +39,7 @@ all: beebs.configure.touchfile
 # Set program name for individual benchmark
 %.beeb_run:
 	mkdir -p $*_run
-	make -C  $*_run -f ../Makefile PROG_NAME=$* $*.run MAX_CYCLES=$(MAX_CYCLES) | tee $*_run/run.log
+	make -C  $*_run -f ../Makefile PROG_NAME=$* $*.run MAX_CYCLES=$(MAX_CYCLES) | tee $*_run/$*-run.log
 
 # Just copy the installed binary
 %.riscv:  $(COMMON_SRCS) $(BSG_MANYCORE_LIB) $(wildcard $(BEEBS_DIR)/src/%/*)
