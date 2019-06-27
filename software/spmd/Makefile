@@ -132,7 +132,7 @@ SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@-run.log@@g' | /usr/bin/co
 	@-grep -i --files-with-matches --no-messages $* $(LOG_FILES) | $(SCRAPE-TAIL) || true
 	@echo;
 
-summary: FINISH.scrape TIMEOUT.scrape FAIL.scrape ERROR.scrape Correct.scrape Passed.scrape
+summary: BSG_FINISH.scrape BSG_TIMEOUT.scrape BSG_FAIL.scrape BSG_ERROR.scrape
 	@echo -n "SIMVs running:"; /usr/bin/ps a | /usr/bin/grep simv
 
 watch-summary:
