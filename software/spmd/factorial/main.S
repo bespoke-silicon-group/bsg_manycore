@@ -62,7 +62,6 @@ bsg_asm_print_reg(IO_X_INDEX,a7);
 finish:
     fence;
     li t0, 1;
-    csrw mtohost, t0;
-    bsg_asm_finish(IO_X_INDEX);
+    bsg_asm_finish(IO_X_INDEX, 0);
     j finish
 
