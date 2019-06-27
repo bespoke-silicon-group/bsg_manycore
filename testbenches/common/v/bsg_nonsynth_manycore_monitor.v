@@ -76,22 +76,22 @@ module bsg_nonsynth_manycore_monitor
     if (~reset_i) begin
 
       if (cycle_count > max_cycle) begin
-        $display("[INFO][MONITOR] TIMEOUT reached max_cycle = %d", max_cycle);
+        $display("[INFO][MONITOR] BSG_TIMEOUT reached max_cycle = %d", max_cycle);
         $finish;
       end
 
       if (v_i & we_i) begin
         if (epa_addr == 16'hEAD0) begin
-          $display("[INFO][MONITOR] RECEIVED FINISH PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+          $display("[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
             src_y_cord_i, src_x_cord_i, data_i, $time);
           $finish;
         end
         else if (epa_addr == 16'hEAD4) begin
-          $display("[INFO][MONITOR] RECEIVED TIME PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+          $display("[INFO][MONITOR] RECEIVED TIME BSG_PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
             src_y_cord_i, src_x_cord_i, data_i, $time);
         end
         else if (epa_addr == 16'hEAD8) begin
-          $display("[INFO][MONITOR] RECEIVED FAIL PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+          $display("[INFO][MONITOR] RECEIVED BSG_FAIL PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
             src_y_cord_i, src_x_cord_i, data_i, $time);
           $finish;
         end
@@ -103,12 +103,12 @@ module bsg_nonsynth_manycore_monitor
           end
         end
         else begin
-          $display("[INFO][MONITOR] RECEIVED IO PACKET from tile y,x=%2d,%2d, data=%x, addr=%x, time=%0t",
+          $display("[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x=%2d,%2d, data=%x, addr=%x, time=%0t",
             src_y_cord_i, src_x_cord_i, data_i, addr_i, $time);
         end
       end
       else if (v_i & ~we_i) begin
-        $display("[INFO][MONITOR] RECEIVED IO PACKET from tile y,x=%2d,%2d, time=%0t",
+        $display("[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x=%2d,%2d, time=%0t",
           src_y_cord_i, src_x_cord_i, $time);
       end
     end
