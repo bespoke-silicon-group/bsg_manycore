@@ -8,7 +8,7 @@ include ./Makefile.regress.list
 # list of subdirectories that we don't recurse into
 NO-RECURSE = \
 	specint2000 berkeley_bug bsg_dram_cache_byte bsg_dram_cache_evict bsg_hetero_nodes \
-  bsg_dram_loopback bsg_dram_scatter bsg_loader_suite_
+  bsg_dram_loopback bsg_dram_scatter bsg_loader_suite_ bsg_outbuf_full
 
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
