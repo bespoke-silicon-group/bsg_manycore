@@ -2,7 +2,7 @@ BSG_ELF_DEFAULT_DATA_LOC = SHARED
 BSG_NEWLIB = 1
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
-
+MAX_CYCLES=100000000
 #########################################################
 #each bytes defines the core type
 # 00: vanilla core
