@@ -4,7 +4,7 @@ ifndef BSG_MANYCORE_DIR
   export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
 endif
 
-MACHINES = 1x1 2x2 4x4
+MACHINES = 1x1 2x2 4x4 9x15
 
 SIMV = $(addsuffix /simv, $(MACHINES))
 SIMV_DAIDIR = $(addsuffix .daidir, $(SIMV))
