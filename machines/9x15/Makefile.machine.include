@@ -1,0 +1,8 @@
+BSG_GLOBAL_X            = 9
+BSG_GLOBAL_Y            = 15
+BSG_VCACHE_SET          = 512
+BSG_VCACHE_WAY          = 2
+BSG_VCACHE_BLOCK_SIZE   = 8
+BSG_DRAM_SIZE           = 536870912  # 2^29 words (2GB)
+BSG_DRAM_BANK_SIZE      = 33554432
+BSG_DRAM_INCLUDED       = 0
