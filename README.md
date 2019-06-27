@@ -29,6 +29,7 @@ In this directory:
 - `make checkout_submodules`: To update all submodules in `imports/`.
 - `make tools`: To install software toolchain required running programs on BSG Manycore.
 - `make machines`: Compile simulation executables in `machines/`.
+- Edit `BSG_MACHINE_PATH` in `software/mk/Makefile.paths` to choose the machine to run somd programs on.
 
 # Tutorial 
 
