@@ -40,3 +40,4 @@ all: $(SIMV)
 clean:
 	rm -rf csrc $(SIMV_DAIDIR)
 	rm -f $(SIMV) $(SIMV_DEBUG)
+	rm $(wildcard */*.log)
