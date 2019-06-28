@@ -303,9 +303,11 @@ module spmd_testbench;
   // detect cache miss
   //
   always_ff @ (negedge clk) begin
-    if (~reset & ~bsg_dram_included_p) begin
-      assert(awvalid !== 1'b1) else $error("[BSG_ERROR][TESTBENCH] awvalid detected in no DRAM mode!!!");
-      assert(arvalid !== 1'b1) else $error("[BSG_ERROR][TESTBENCH] arvalid detected in no DRAM mode!!!");
+    if (~reset) begin
+      if (bsg_dram_included_p == 0) begin
+        assert(awvalid !== 1'b1) else $error("[BSG_ERROR][TESTBENCH] awvalid detected in no DRAM mode!!!");
+        assert(arvalid !== 1'b1) else $error("[BSG_ERROR][TESTBENCH] arvalid detected in no DRAM mode!!!");
+      end
     end
   end
 
