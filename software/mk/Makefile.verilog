@@ -84,4 +84,8 @@ endif
 ###################################################################################
 
 %.run: %.nbf
+ifeq ($(DVE), 0)
 	$(BSG_MACHINE_PATH)/simv +nbf_file=$*.nbf +max_cycle=$(MAX_CYCLES) -l simv.log
+else
+	$(BSG_MACHINE_PATH)/simv-debug +nbf_file=$*.nbf +max_cycle=$(MAX_CYCLES) -l simv-debug.log
+endif
