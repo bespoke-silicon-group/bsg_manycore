@@ -1,6 +1,8 @@
 
 include ../Makefile.include
 
+
+
 COREMARK_TOP=../coremark-top
 COREMARK_SRC=../../imports/coremark/
 MANYCORE_PORT_SRC=$(BSG_MANYCORE_DIR)/software/spmd/coremark/

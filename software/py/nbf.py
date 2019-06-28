@@ -50,6 +50,7 @@ class NBF:
     self.cache_set = config["cache_set"]
     self.cache_block_size = config["cache_block_size"]
     self.dram_size = config["dram_size"]
+    self.addr_width = config["addr_width"]
   
     # software setting
     self.tgo_x = config["tgo_x"]
@@ -62,7 +63,6 @@ class NBF:
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size
     self.x_cord_width = self.safe_clog2(self.num_tiles_x)
     self.dram_ch_size = self.dram_size / (2**self.x_cord_width)
-    self.addr_width = self.safe_clog2(self.dram_ch_size) + 1
 
     # process riscv
     self.get_data_end_addr()
@@ -282,7 +282,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 13:
+  if len(sys.argv) == 14:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -292,12 +292,13 @@ if __name__ == "__main__":
       "cache_set" : int(sys.argv[5]),
       "cache_block_size" : int(sys.argv[6]),
       "dram_size": int(sys.argv[7]),
+      "addr_width": int(sys.argv[8]),
 
-      "tgo_x" : int(sys.argv[8]),
-      "tgo_y" : int(sys.argv[9]),
-      "tg_dim_x" : int(sys.argv[10]),
-      "tg_dim_y" : int(sys.argv[11]),
-      "enable_dram" : int(sys.argv[12]),
+      "tgo_x" : int(sys.argv[9]),
+      "tgo_y" : int(sys.argv[10]),
+      "tg_dim_x" : int(sys.argv[11]),
+      "tg_dim_y" : int(sys.argv[12]),
+      "enable_dram" : int(sys.argv[13]),
     }
 
     converter = NBF(config)
@@ -306,7 +307,7 @@ if __name__ == "__main__":
     print("USAGE:")
     command = "python nbf.py {program.riscv} "
     command += "{num_tiles_x} {num_tiles_y} "
-    command += "{cache_way} {cache_set} {cache_block_size} {dram_size} "
+    command += "{cache_way} {cache_set} {cache_block_size} {dram_size} {max_epa_width}"
     command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram}"
     print(command)
 
