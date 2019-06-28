@@ -8,19 +8,19 @@ include $(BSG_MACHINE_PATH)/Makefile.machine.include
 # BSG Manycore ELF Configuration
 
 # Only use vcache EVA region if disabled
-BSG_ELF_OFF_CHIP_MEM ?= $(BSG_DRAM_INCLUDED)
+BSG_ELF_OFF_CHIP_MEM ?= $(BSG_MACHINE_DRAM_INCLUDED)
 
 # Default data section location; LOCAL=>DMEM, SHARED=>DRAM
 BSG_ELF_DEFAULT_DATA_LOC ?= LOCAL
 
 # Total addressable DRAM size
 BSG_ELF_DRAM_SIZE ?= $(shell echo \
-                       $(BSG_DRAM_BANK_SIZE)*$(BSG_GLOBAL_X)*4 \
+                       $(BSG_MACHINE_DRAM_BANK_SIZE_WORDS)*$(BSG_MACHINE_GLOBAL_X)*4 \
                        | bc)
 
 # Total addressable vcache size
 BSG_ELF_VCACHE_SIZE ?= $(shell echo \
-                         $(BSG_GLOBAL_X)*$(BSG_VCACHE_SET)*$(BSG_VCACHE_WAY)*$(BSG_VCACHE_BLOCK_SIZE)*4 \
+                         $(BSG_MACHINE_GLOBAL_X)*$(BSG_MACHINE_VCACHE_SET)*$(BSG_MACHINE_VCACHE_WAY)*$(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS)*4 \
                          | bc)
 
 # EVA of stack pointer
@@ -226,9 +226,10 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 
 %.nbf: %.riscv
 	python $(NBF_PY) $*.riscv \
-		$(BSG_GLOBAL_X) $(BSG_GLOBAL_Y) \
-		$(BSG_VCACHE_WAY) $(BSG_VCACHE_SET) $(BSG_VCACHE_BLOCK_SIZE) \
-		$(BSG_DRAM_SIZE) \
+		$(BSG_MACHINE_GLOBAL_X) $(BSG_MACHINE_GLOBAL_Y) \
+		$(BSG_MACHINE_VCACHE_WAY) $(BSG_MACHINE_VCACHE_SET) \
+		$(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS) \
+		$(BSG_MACHINE_DRAM_SIZE_WORDS) $(BSG_MACHINE_MAX_EPA_WIDTH) \
 		$(bsg_tiles_org_X) $(bsg_tiles_org_Y) \
 		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) > $*.nbf
 

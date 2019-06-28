@@ -5,3 +5,5 @@ main_dram.mem
 *.a
 coremark-top
 coremark/coremark
+lfs.c
+*.touchfile
