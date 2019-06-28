@@ -4,6 +4,9 @@ ifndef BSG_MANYCORE_DIR
   export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
 endif
 
+# Sets "VCS" variable
+include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
+
 MACHINES = 1x1 2x2 4x4 9x15_no_dram 4x4_no_dram
 
 SIMV = $(addsuffix /simv, $(MACHINES))
@@ -28,11 +31,11 @@ all: $(SIMV)
 	$(eval VCS_DEFINE += +define+BSG_VCACHE_WAY=${BSG_VCACHE_WAY})
 	$(eval VCS_DEFINE += +define+BSG_VCACHE_BLOCK_SIZE=${BSG_VCACHE_BLOCK_SIZE})
 	$(eval VCS_DEFINE += +define+BSG_DRAM_SIZE=${BSG_DRAM_SIZE})
-	vcs +v2k -sverilog -full64 -o $*/simv \
+	$(VCS) +v2k -sverilog -full64 -o $*/simv \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
 		-timescale=1ps/1ps \
 		-f sv.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build.log
-	vcs +v2k -sverilog -full64 -debug_pp -o $*/simv-debug \
+	$(VCS) +v2k -sverilog -full64 -debug_pp -o $*/simv-debug \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
 		-timescale=1ps/1ps +vcs+vcdpluson \
 		-f sv.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build-debug.log
