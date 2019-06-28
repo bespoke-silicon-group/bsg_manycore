@@ -8,6 +8,8 @@ module instr_trace
     input clk_i
     , input reset_i
 
+    , input trace_en
+
     , input stall
     , input stall_depend
     , input flush
@@ -27,7 +29,7 @@ module instr_trace
 
     forever begin
       @(negedge clk_i) begin
-      if (my_x_i == 1'b0 & my_y_i == 2'b01 & ~reset_i) begin //
+      if (my_x_i == 1'b0 & my_y_i == 2'b01 & ~reset_i && (trace_en == 1)) begin //
 
         fd = $fopen("instr.log", "a");
         if (~stall & ~(stall_depend | flush | id_r.decode.is_fp_float_op) & ~exe_n.icache_miss
