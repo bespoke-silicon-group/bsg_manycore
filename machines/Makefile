@@ -7,7 +7,8 @@ endif
 MACHINES = 1x1 2x2 4x4 9x15_no_dram 4x4_no_dram
 
 SIMV = $(addsuffix /simv, $(MACHINES))
-SIMV_DAIDIR = $(addsuffix .daidir, $(SIMV))
+SIMV_DEBUG = $(addsuffix /simv-debug, $(MACHINES))
+SIMV_DAIDIR = $(addsuffix .daidir, $(SIMV) $(SIMV_DEBUG))
 
 VCS_INCDIR := +incdir+$(BASEJUMP_STL_DIR)/bsg_misc
 VCS_INCDIR += +incdir+$(BASEJUMP_STL_DIR)/bsg_cache
@@ -27,11 +28,15 @@ all: $(SIMV)
 	$(eval VCS_DEFINE += +define+BSG_VCACHE_WAY=${BSG_VCACHE_WAY})
 	$(eval VCS_DEFINE += +define+BSG_VCACHE_BLOCK_SIZE=${BSG_VCACHE_BLOCK_SIZE})
 	$(eval VCS_DEFINE += +define+BSG_DRAM_SIZE=${BSG_DRAM_SIZE})
-	vcs +v2k -sverilog -full64 -debug_pp -o $*/simv \
+	vcs +v2k -sverilog -full64 -o $*/simv \
+		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
+		-timescale=1ps/1ps \
+		-f sv.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build.log
+	vcs +v2k -sverilog -full64 -debug_pp -o $*/simv-debug \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
 		-timescale=1ps/1ps +vcs+vcdpluson \
-		-f sv.include $(VCS_INCDIR) $(VCS_DEFINE)
+		-f sv.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build-debug.log
 
 clean:
 	rm -rf csrc $(SIMV_DAIDIR)
-	rm -f $(SIMV)
+	rm -f $(SIMV) $(SIMV_DEBUG)
