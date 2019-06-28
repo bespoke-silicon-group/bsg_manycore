@@ -305,8 +305,8 @@ module spmd_testbench;
   always_ff @ (negedge clk) begin
     if (~reset) begin
       if (bsg_dram_included_p == 0) begin
-        assert(awvalid !== 1'b1) else $error("[BSG_ERROR][TESTBENCH] awvalid detected in no DRAM mode!!!");
-        assert(arvalid !== 1'b1) else $error("[BSG_ERROR][TESTBENCH] arvalid detected in no DRAM mode!!!");
+        assert(awvalid !== 1'b1) else $error("[BSG_ERROR][TESTBENCH] DRAM write detected in no DRAM mode!!!");
+        assert(arvalid !== 1'b1) else $error("[BSG_ERROR][TESTBENCH] DRAM read detected in no DRAM mode!!!");
       end
     end
   end
