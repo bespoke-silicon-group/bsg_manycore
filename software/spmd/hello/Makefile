@@ -1,7 +1,7 @@
-bsg_tiles_org_X =1
+bsg_tiles_org_X =0
 bsg_tiles_org_Y =1
-bsg_tiles_X = 2
-bsg_tiles_Y = 2
+bsg_tiles_X = 1
+bsg_tiles_Y = 1
 
 
 all: main.run

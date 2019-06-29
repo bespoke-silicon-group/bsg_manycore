@@ -1,16 +1,22 @@
+
+
+$(warning testing $(call bsg-max-fn 2 3))
+$(warning testing $(call bsg-minus-fn 3 2))
+
+
 bsg_tiles_org_X ?=0
 bsg_tiles_org_Y ?=1
 
-bsg_tiles_X ?= 2
-bsg_tiles_Y ?= 2
-bsg_group_size ?= 4
+bsg_tiles_X ?= $(call bsg-min-fn,2,$(BSG_MACHINE_GLOBAL_X))
+bsg_tiles_Y ?= $(call bsg-min-fn,2,$(call bsg-minus-fn $(BSG_MACHINE_GLOBAL_Y),1)
+bsg_group_size ?= $(call bsg-times-fn,$(bsg_tiles_X),$(bsg_tiles_Y))
 
 bsg_global_X ?= $(bsg_tiles_X)
-bsg_global_Y ?= $(shell echo $(bsg_tiles_Y)+1 | bc )
+bsg_global_Y ?= $(call bsg-plus-fn,$(bsg_tiles_Y),1)
 
 bsg_hetero_type_vec ?= default:0
  
-bsg_group_size ?= 4
+
 
 $(info Dimensions: bsg_tiles_org_[X,Y] = $(bsg_tiles_org_X) $(bsg_tiles_org_Y); bsg_global_[X,Y] = $(bsg_global_X),$(bsg_global_Y); bsg_tiles[X,Y] = $(bsg_tiles_X),$(bsg_tiles_Y); bsg_group_size = $(bsg_group_size))
 
