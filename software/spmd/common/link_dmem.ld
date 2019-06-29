@@ -61,7 +61,7 @@ SECTIONS
   } >DMEM_VMA
 
   .sdata.dmem :
-  AT(LOADADDR(.data.dmem) + SIZEOF(.data.dmem)) 
+  AT(LOADADDR(.data.dmem) + (ADDR(.sdata.dmem) - ADDR(.data.dmem)))
   {
     _gp = . + 0x800;
     *(.srodata.cst16) 
@@ -75,14 +75,14 @@ SECTIONS
 
   /* bss segment */
   .sbss.dmem : 
-  AT(LOADADDR(.sdata.dmem) + SIZEOF(.sdata.dmem)) 
+  AT(LOADADDR(.sdata.dmem) + (ADDR(.sbss.dmem) - ADDR(.sdata.dmem)))
   {
     *(.sbss .sbss.* .gnu.linkonce.sb.*)
     *(.scommon)
   } >DMEM_VMA 
 
   .bss.dmem : 
-  AT(LOADADDR(.sbss.dmem) + SIZEOF(.sbss.dmem)) 
+  AT(LOADADDR(.sbss.dmem) + (ADDR(.bss.dmem) - ADDR(.sbss.dmem)))
   { 
     *(.bss) 
     *(.bss*) 
@@ -91,7 +91,7 @@ SECTIONS
 
   /* thread-local data segment */
   .tdata.dmem : 
-  AT(LOADADDR(.bss.dmem) + SIZEOF(.bss.dmem)) 
+  AT(LOADADDR(.bss.dmem) + (ADDR(.tdata.dmem) - ADDR(.bss.dmem)))
   {
     _tls_data = .;
     *(.tdata)
@@ -99,7 +99,7 @@ SECTIONS
   } >DMEM_VMA 
 
   .tbss.dmem : 
-  AT(LOADADDR(.tdata.dmem) + SIZEOF(.tdata.dmem)) 
+  AT(LOADADDR(.tdata.dmem) + (ADDR(.tbss.dmem) - ADDR(.tdata.dmem)))
   {
     *(.tbss)
     *(.tbss*)
@@ -108,14 +108,14 @@ SECTIONS
 
   /* read-only data */
   .rodata.dmem :
-  AT(LOADADDR(.tbss.dmem) + SIZEOF(.tbss.dmem)) 
+  AT(LOADADDR(.tbss.dmem) + (ADDR(.rodata.dmem) - ADDR(.tbss.dmem)))
   { 
     *(.rodata) 
   } >DMEM_VMA 
 
 
   .eh_frame.dmem : 
-  AT(LOADADDR(.rodata.dmem) + SIZEOF(.rodata.dmem)) 
+  AT(LOADADDR(.rodata.dmem) + (ADDR(.eh_frame.dmem) - ADDR(.rodata.dmem)))
   { 
     *(.eh_frame) 
     *(.eh_frame*) 
@@ -125,7 +125,7 @@ SECTIONS
   /* striped data */
   /* RISC-V 32 has a 4 byte word size */
   .striped.data.dmem ALIGN(bsg_group_size * 4) : 
-  AT(LOADADDR(.eh_frame.dmem) + SIZEOF(.eh_frame.dmem)) 
+  AT(LOADADDR(.eh_frame.dmem) + (ADDR(.striped.data.dmem) - ADDR(.eh_frame.dmem)))
   {
     _bsg_striped_data_start = . ;
     *(.striped.data)
