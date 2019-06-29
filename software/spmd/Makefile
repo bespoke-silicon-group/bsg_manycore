@@ -129,7 +129,7 @@ SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@-run.log@@g' | /usr/bin/co
 	@echo;
 
 summary: FINISH.scrape TIMEOUT.scrape FAIL.scrape ERROR.scrape Correct.scrape Passed.scrape
-	@echo -n "SIMVs running:"; /usr/bin/ps a | /usr/bin/grep simv
+	@echo "SIMVs running:"; /usr/bin/ps a | /usr/bin/grep simv
 
 watch-summary:
 	watch make summary
