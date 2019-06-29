@@ -71,7 +71,11 @@ module bsg_manycore_link_sif_tieoff
         if (!reset_i)
           begin
              if (link_sif_i_cast.fwd.v)
-               $error("%m unexpected data %x to tied off port; sending credit packet",link_sif_i_cast.fwd.data);
+               begin
+                  $write("BSG_ERROR errant packet:");
+                  `write_bsg_manycore_packet_s(temp);
+                  $error("%m unexpected data %x to tied off port; sending credit packet",link_sif_i_cast.fwd.data);
+               end
              if (link_sif_i_cast.rev.v)
                $error("%m unexpected return data %x to tied off port; absorbing",link_sif_i_cast.rev.data);
           end
