@@ -12,5 +12,5 @@ bsg_hetero_type_vec ?= default:0
  
 bsg_group_size ?= 4
 
-$(warning bsg_tiles_org_[X,Y] = $(bsg_tiles_org_X) $(bsg_tiles_org_Y); bsg_global_[X,Y] = $(bsg_global_X),$(bsg_global_Y); bsg_tiles[X,Y] = $(bsg_tiles_X),$(bsg_tiles_Y); bsg_group_size = $(bsg_group_size))
+$(info Dimensions: bsg_tiles_org_[X,Y] = $(bsg_tiles_org_X) $(bsg_tiles_org_Y); bsg_global_[X,Y] = $(bsg_global_X),$(bsg_global_Y); bsg_tiles[X,Y] = $(bsg_tiles_X),$(bsg_tiles_Y); bsg_group_size = $(bsg_group_size))
 

@@ -8,6 +8,6 @@ endif
 
 SPMD_COMMON_OBJECTS = 
 
-$(warning $(BSG_MANYCORE_DIR))
+$(info Toplevel Directory: $(BSG_MANYCORE_DIR))
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
