@@ -2,7 +2,7 @@
 # Simulation run-time flags
 
 MAX_CYCLES ?= 1000000
-DVE        ?= 0
+WAVE       ?= 0
 TRACE      ?= 0
 COVERAGE   ?= 0
 PROG_NAME  ?= main
@@ -18,7 +18,7 @@ include $(CAD_DIR)/cadenv.mk
 #######################################
 # Simulator setup
 
-ifeq ($(DVE),0)
+ifeq ($(WAVE),0)
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-debug

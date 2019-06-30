@@ -7,7 +7,7 @@ Running single spmd program
 
 In any of the sub-directories:
 - `make`: Run VCS simulation.
-- `make DVE=1` Run VCS simulation with waveform dump.
+- `make WAVE=1` Run VCS simulation with waveform dump.
 - `make main.riscv`: Generate ELF binary of that SPMD program.
 - `make main.dis`: Print disassembly to the terminal.
 - `vanilla.log`: Vanilla core trace dumped during the simulation.
