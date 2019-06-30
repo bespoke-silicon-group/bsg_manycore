@@ -30,6 +30,9 @@ patch_riscv_tests.touchfile: $(RVTEST_PATCHES)
 	cd $(RVTEST_DIR)/.. && git apply $(foreach patch,$(RVTEST_PATCHES),$(BSG_MANYCORE_DIR)/software/spmd/bsg_riscv_tests/$(patch))
 	touch $@
 
+%.dve:
+	cd $*_run; make -f ../Makefile.include dve
+
 clean:
 	-rm -rf *_run
 	-rm -rf *.touchfile
