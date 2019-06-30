@@ -12,6 +12,9 @@ ARCH_OP=rv32imaf
 
 include $(BSG_MACHINE_PATH)/Makefile.machine.include
 
+# most be included after we get the machine parameters
+include $(BSG_MANYCORE_DIR)/software/mk/Makefile.dimensions
+
 
 #######################################################
 # BSG Manycore ELF Configuration
