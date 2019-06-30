@@ -108,8 +108,8 @@ pre-recurse-all:
 	$(MAKE) common/crt.o
 
 pre-recurse-clean:
-	mkdir -p recurse-results
 	-rm -rf recurse-results
+	mkdir -p recurse-results
 
 SUBDIRS-WITH-MAKE = $(patsubst %/Makefile,%,$(wildcard */Makefile))
 
@@ -133,6 +133,7 @@ SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@-run.log@@g' | /usr/bin/co
 	@echo;
 
 summary: BSG_FINISH.scrape BSG_TIMEOUT.scrape BSG_FAIL.scrape BSG_ERROR.scrape
+	@echo -n "Free disk:"; df .
 	@echo -n "SIMVs running:"; /usr/bin/ps a | /usr/bin/grep simv
 
 watch-summary:

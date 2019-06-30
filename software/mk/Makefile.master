@@ -4,7 +4,6 @@ bsg-minus-fn = $(shell /bin/expr $(1) - $(2))
 bsg-plus-fn = $(shell /bin/expr $(1) + $(2))
 bsg-times-fn = $(shell /bin/expr $(1) \* $(2))
 
-include $(BSG_MANYCORE_DIR)/software/mk/Makefile.dimensions
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.paths
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.builddefs
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.filelist
