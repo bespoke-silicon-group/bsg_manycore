@@ -1115,7 +1115,7 @@ module vanilla_core
     end
   end
 
-
+  // synopsys sync_set_reset "reset_i"
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       reserved_r <= 1'b0;

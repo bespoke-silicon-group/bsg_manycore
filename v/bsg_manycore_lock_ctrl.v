@@ -142,6 +142,8 @@ module bsg_manycore_lock_ctrl         #(  data_width_p           = 32
 
     //returning data to endpoint
     logic                     swap_result_v_r, swap_aq_result_r;
+
+   // synopsys sync_set_reset "reset_i"
     always_ff@( posedge clk_i) begin
         if( reset_i ) begin
                 swap_result_v_r  <= 1'b0;
