@@ -136,19 +136,34 @@ module regfile
   //
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
-      r0_rw_same_addr_r <= 1'b0;
-      r1_rw_same_addr_r <= 1'b0;
-      r0_v_r <= 1'b0;
-      r1_v_r <= 1'b0;
+       r0_rw_same_addr_r <= 1'b0;
+       r1_rw_same_addr_r <= 1'b0;
+
+       r0_v_r <= 1'b0;
+       r1_v_r <= 1'b0;
+
+
+       // MBT: added to be more reset conservative
+       w_data_r  <= '0;
+
+       r0_data_r <= '0;
+       r1_data_r <= '0;
+
+       r0_addr_r <= '0;
+       r1_addr_r <= '0;
     end
     else begin
       r0_rw_same_addr_r <= r0_rw_same_addr;
       r1_rw_same_addr_r <= r1_rw_same_addr;
+
       r0_v_r <= r0_v_i;
       r1_v_r <= r1_v_i;
+
       w_data_r <= w_data_n;
+
       r0_data_r <= r0_data_n;
       r1_data_r <= r1_data_n;
+
       r0_addr_r <= r0_addr_n;
       r1_addr_r <= r1_addr_n;
     end
