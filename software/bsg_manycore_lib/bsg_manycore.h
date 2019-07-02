@@ -6,6 +6,7 @@
 int bsg_printf(const char *fmt, ...);
 
 typedef volatile int   *bsg_remote_int_ptr;
+typedef volatile float   *bsg_remote_float_ptr;
 typedef volatile unsigned char  *bsg_remote_uint8_ptr;
 typedef volatile unsigned short  *bsg_remote_uint16_ptr;
 typedef volatile unsigned *bsg_remote_uint32_ptr;
@@ -13,6 +14,12 @@ typedef volatile void *bsg_remote_void_ptr;
 
 #define bsg_remote_store(x,y,local_addr,val) do { *(bsg_remote_ptr((x),(y),(local_addr))) = (int) (val); } while (0)
 #define bsg_remote_load(x,y,local_addr,val)  do { val = *(bsg_remote_ptr((x),(y),(local_addr))) ; } while (0)
+
+#define bsg_global_store(x,y,local_addr,val) do { *(bsg_global_ptr((x),(y),(local_addr))) = (int) (val); } while (0)
+#define bsg_global_load(x,y,local_addr,val)  do { val = *(bsg_global_ptr((x),(y),(local_addr))) ; } while (0)
+
+#define bsg_global_float_store(x,y,local_addr,val) do { *(bsg_global_float_ptr((x),(y),(local_addr))) = (float) (val); } while (0)
+#define bsg_global_float_load(x,y,local_addr,val)  do { val = *(bsg_global_float_ptr((x),(y),(local_addr))) ; } while (0)
 
 #define bsg_dram_store(dram_addr,val) do { *(bsg_dram_ptr((dram_addr))) = (int) (val); } while (0)
 #define bsg_dram_load(dram_addr,val)  do { val = *(bsg_dram_ptr((dram_addr))) ; } while (0)
