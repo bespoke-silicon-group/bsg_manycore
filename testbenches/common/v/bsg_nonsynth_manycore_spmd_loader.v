@@ -104,6 +104,15 @@ module bsg_nonsynth_manycore_spmd_loader
     if (~reset_i) begin
       if (loader_done)
         $display("[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. t=%0t", $time);
+  
+      if (v_o & ready_i)
+        $display("[BSG_INFO][SPMD_LOADER] sending packet #%0d. x,y=%0d,%0d, addr=%x, data=%x, t=%0t",
+          nbf_addr_r,
+          packet.x_cord, packet.y_cord,
+          packet.addr,
+          packet.payload,
+          $time
+        );
     end
       
   end
