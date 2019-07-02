@@ -167,10 +167,10 @@ module bsg_nonsynth_manycore_monitor
               end
             end
           end
-        end
-        else begin
-          $display("[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x=%2d,%2d, data=%x, addr=%x, time=%0t",
-            src_y_cord_i, src_x_cord_i, data_i, addr_i, $time);
+          else begin
+            $display("[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x=%2d,%2d, data=%x, addr=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, addr_i, $time);
+          end
         end
       end
       else if (v_i & ~we_i) begin
