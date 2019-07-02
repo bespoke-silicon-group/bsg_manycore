@@ -139,9 +139,16 @@ module network_tx
         out_packet.addr = {1'b0, {(addr_width_p-1-dram_ch_addr_width_p){1'b0}}, dram_addr.addr};
       end
       else begin
-        out_packet.y_cord = {y_cord_width_p{1'b1}}; // send it to y-max
-        out_packet.x_cord = (x_cord_width_p)'(remote_req_i.addr[2+vcache_addr_width_lp+:x_cord_width_p]);
-        out_packet.addr = {1'b0, {(addr_width_p-1-vcache_addr_width_lp){1'b0}}, remote_req_i.addr[2+:vcache_addr_width_lp]};
+        if (remote_req_i.addr[30]) begin
+          out_packet.y_cord = '0;
+          out_packet.x_cord = '0;
+          out_packet.addr = {1'b1, remote_req_i.addr[2+:addr_width_p-1]}; // HOST DRAM address
+        end
+        else begin
+          out_packet.y_cord = {y_cord_width_p{1'b1}}; // send it to y-max
+          out_packet.x_cord = (x_cord_width_p)'(remote_req_i.addr[2+vcache_addr_width_lp+:x_cord_width_p]);
+          out_packet.addr = {1'b0, {(addr_width_p-1-vcache_addr_width_lp){1'b0}}, remote_req_i.addr[2+:vcache_addr_width_lp]};
+        end
       end
     end
     else if (is_global_addr) begin
