@@ -14,8 +14,8 @@ bsg_tiles_X ?= $(call bsg-min-fn,2,$(BSG_MACHINE_GLOBAL_X))
 bsg_tiles_Y ?= $(call bsg-min-fn,2,$(call bsg-minus-fn,$(BSG_MACHINE_GLOBAL_Y),1))
 bsg_group_size ?= $(call bsg-times-fn,$(bsg_tiles_X),$(bsg_tiles_Y))
 
-bsg_global_X ?= $(bsg_tiles_X)
-bsg_global_Y ?= $(call bsg-plus-fn,$(bsg_tiles_Y),1)
+bsg_global_X ?= $(BSG_MACHINE_GLOBAL_X)
+bsg_global_Y ?= $(BSG_MACHINE_GLOBAL_Y)
 
 bsg_hetero_type_vec ?= default:0
  
