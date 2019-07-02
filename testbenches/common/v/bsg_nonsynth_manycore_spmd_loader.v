@@ -73,35 +73,52 @@ module bsg_nonsynth_manycore_spmd_loader
     $readmemh(nbf_file, nbf);
   end
 
+  logic loader_done_r, loader_done_n;
  
   always_comb begin
     if (reset_i) begin
       v_o = 1'b0;
       nbf_addr_n = nbf_addr_r;
+      loader_done_n = 1'b0;
     end
     else begin
       if (&nbf[nbf_addr_r]) begin // the last line in nbf should be "ff ff ffffffff ffffffff".
         v_o = 1'b0;
         nbf_addr_n = nbf_addr_r;
+        loader_done_n = 1'b1;
       end
       else begin
         v_o = 1'b1;
         nbf_addr_n = ready_i
           ? nbf_addr_r + 1
           : nbf_addr_r;
+        loader_done_n = 1'b0;
       end
     end
   end
   
+  logic loader_done;
+  assign loader_done = ~loader_done_r & loader_done_n;
+
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+      if (loader_done)
+        $display("[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. t=%0t", $time);
+    end
+      
+  end
+ 
 
   // sequential
   //
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       nbf_addr_r <= '0;
+      loader_done_r <= 1'b0;
     end
     else begin
       nbf_addr_r <= nbf_addr_n;
+      loader_done_r <= loader_done_n;
     end
   end
 
