@@ -78,6 +78,12 @@
                                                                | ((int) (local_addr)   )                     \
                                                              )                                               \
                                         )
+#define bsg_global_float_ptr(x,y,local_addr) ((bsg_remote_float_ptr) (   (GLOBAL_EPA_PREFIX << GLOBAL_EPA_MASK_SHIFTS) \
+                                                               | ((y) << Y_CORD_SHIFTS )                     \
+                                                               | ((x) << X_CORD_SHIFTS )                     \
+                                                               | ((int) (local_addr)   )                     \
+                                                             )                                               \
+                                        )
 #define bsg_dram_ptr(local_addr) (  (bsg_remote_int_ptr)  ((1<< 31) | ((int) (local_addr))  ) )
 
 #define bsg_local_ptr( remote_addr)  (    (int) (remote_addr)                           \
