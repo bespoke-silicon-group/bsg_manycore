@@ -49,16 +49,16 @@ int main() {
         //----------------------------------------------------------------
         //1. Setup shared memory.
         //----------------------------------------------------------------
-		bsg_tile_group_shared_mem(int, shared_mem, 67);
+	bsg_tile_group_shared_mem(int, shared_mem, 67);
 		
 
 		
         //----------------------------------------------------------------
-        //2. Initialize elements 2-17 of tilegroup-shared memory 
-		//   Each tile stores its id to sh_mem[id+2] (which is in local memory of two tiles ahead)
+        //2. Initialize elements 0-15 of tilegroup-shared memory 
+		//   Each tile stores its id to sh_mem[(id+2)%16] (which is in local memory of two tiles ahead)
 		//    Store to Shared Mem
         //----------------------------------------------------------------
-		bsg_tile_group_shared_store(shared_mem,(id+2),id);
+	bsg_tile_group_shared_store(shared_mem,((id+2)%16),id);
 				
 				
         //----------------------------------------------------------------
@@ -69,8 +69,8 @@ int main() {
         //----------------------------------------------------------------
         //4. Each tile loads the first 16 elements of shared memory into local memory 	
         //----------------------------------------------------------------		
-		for (int idx = 0; idx < 16 ; idx ++ )
-			bsg_tile_group_shared_load(shared_mem,idx,local_var[idx]);
+	for (int idx = 0; idx < 16 ; idx ++ )
+		bsg_tile_group_shared_load(shared_mem,idx,local_var[idx]);
 		
 
         //----------------------------------------------------------------
@@ -82,11 +82,11 @@ int main() {
         //----------------------------------------------------------------
         //6. Check print
         //----------------------------------------------------------------			
-		if ( id == 0)
-		{
-			for ( int idx = 0; idx < 16 ; idx ++)
-				bsg_printf( "Check Print:\tsh_mem[%d] = %d\n" , idx , local_var[idx]) ;
-		}
+	if ( id == 0)
+	{
+		for ( int idx = 0; idx < 16 ; idx ++)
+			bsg_printf( "Check Print:\tsh_mem[%d] = %d\n" , idx , local_var[idx]) ;
+	}
 		
         //----------------------------------------------------------------
         //7. Sync the group
@@ -96,9 +96,8 @@ int main() {
         //----------------------------------------------------------------
         //8. Tile 0 finished the execution
         //----------------------------------------------------------------
-		if( id == 0) 
-			bsg_finish();
-		
+	if( id == 0) 
+		bsg_finish();
 	}
 
 	bsg_wait_while(1);
