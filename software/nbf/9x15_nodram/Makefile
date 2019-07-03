@@ -1,6 +1,6 @@
 include ../../mk/Makefile.paths
 
-TESTS = fft fib float_math hello quicktouch
+TESTS = fib float_math hello quicktouch quicksort float_asm_test nprimes host_dram_access fft
 
 TESTS_RUN = $(addsuffix _run, $(TESTS))
 
