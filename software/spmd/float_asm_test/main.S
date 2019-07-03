@@ -78,15 +78,15 @@ _test1:
   fmv.s.x f0, t0
   fsgnj.s f1, f0, f0
   fmv.x.s t1, f1
-  bne t1, t1, fail
+  bne t0, t1, fail
 
 _test2:
   li t0, 0x40a51eb8
   fmv.s.x f0, t0
   fsgnjn.s f2, f0, f0
-  fmv.x.s t1, f1
+  fmv.x.s t1, f2
   li t0, 0xc0a51eb8
-  bne t1, t1, fail
+  bne t0, t1, fail
 
 _test3:
   li t0, 0x42f63efa
