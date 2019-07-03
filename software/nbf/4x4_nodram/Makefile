@@ -9,7 +9,7 @@ all: $(TESTS_RUN)
 
 %_run:
 	mkdir -p $@;
-	(cd $@; $(BSG_MACHINE_PATH)/simv +nbf_file=../$*.nbf;)
+	(cd $@; $(BSG_MACHINE_PATH)/simv +nbf_file=../$*.nbf | tee run.log)
 
 
 clean:
