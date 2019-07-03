@@ -22,26 +22,31 @@ int main()
   int remote_tile_store_val[bsg_global_X*(bsg_global_Y-1)];
   int remote_tile_load_val[bsg_global_X*(bsg_global_Y-1)];
 
+  bsg_set_tile_x_y();
+  int my_id = __bsg_grp_org_x + ((__bsg_grp_org_y-1)*bsg_global_X);
 
   for (int x = 0; x < bsg_global_X; x++)
   {
     for (int y = 0; y < bsg_global_Y-1; y++)
     {
-      if (x != 0 && y != 0) 
+      int id = x+(y*bsg_global_X);
+
+      if (id != my_id) 
       {
-        int id = x+(y*bsg_global_X);
         remote_tile_store_val[id] = 0xdead+x+y;
         bsg_global_store(x, y+1, 0x1000, remote_tile_store_val[id]);
       }
     }
   }
+
   for (int x = 0; x < bsg_global_X; x++)
   {
     for (int y = 0; y < bsg_global_Y-1; y++)
     {
-      if (x != 0 && y != 0) 
+      int id = x+(y*bsg_global_X);
+
+      if (id != my_id) 
       {
-        int id = x+(y*bsg_global_X);
         bsg_global_load(x, y+1, 0x1000, remote_tile_load_val[id]);
       }
     }
@@ -51,11 +56,18 @@ int main()
   {
     for (int y = 0; y < bsg_global_Y-1; y++)
     {
-      if (x != 0 && y != 0) 
+      int id = x+(y*bsg_global_X);
+
+      if (id != my_id) 
       {
-        int id = x+(y*bsg_global_X);
         if (remote_tile_load_val[id] != remote_tile_store_val[id])
+        {
+          bsg_printf("x,y: %d %d, expected: %x actual: %x\n",
+            x, y, remote_tile_store_val[id], remote_tile_load_val[id]
+          );
+
           bsg_fail();
+        }
       }
     }
   }
@@ -90,6 +102,7 @@ int main()
       bsg_fail();
     }
   }
+
   bsg_finish();
 }
 
