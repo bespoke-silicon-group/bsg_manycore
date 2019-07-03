@@ -333,6 +333,18 @@ module spmd_testbench;
     ) itrace(
       .*
     );
+
+    bind bsg_manycore_link_to_cache bsg_manycore_link_to_cache_tracer #(
+      .link_addr_width_p(link_addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.cache_addr_width_lp(cache_addr_width_lp)
+      ,.bsg_cache_pkt_width_lp(bsg_cache_pkt_width_lp)
+    ) mlctrace (
+      .*
+    );
+
   end
 
   
