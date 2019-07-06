@@ -232,7 +232,7 @@ class NBF:
         bit_2_0 = (addr >> 3) & 0b111
         bit_5_4 = (addr >> 6) & 0b110
         bit_3 = (addr >> 6) & 0b001
-        bit_9 = (addr >> 10) & 0b1
+        bit_9 = (addr >> 12) & 0b1
         if bit_2_0 == (bit_5_4 | (bit_3 ^ bit_9)):
           x = 8
         else:
