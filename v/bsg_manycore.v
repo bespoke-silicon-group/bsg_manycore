@@ -12,6 +12,7 @@ module bsg_manycore
     , parameter icache_tag_width_p = "inv"
 
     , parameter vcache_size_p = "inv" // capacity of vcache in words
+    , parameter vcache_block_size_in_words_p ="inv"
 
     // change the default values from "inv" back to -1
     // since num_tiles_x_p and num_tiles_y_p will be used to define the size of 2D array
@@ -186,6 +187,8 @@ module bsg_manycore
                 .dram_ch_start_col_p ( dram_ch_start_col_p ),
                 .hetero_type_p( hetero_type_vec_p[r][c] ),
                 .debug_p(debug_p)
+                ,.num_tiles_x_p(num_tiles_x_p)
+                ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
               )
             tile
               (
