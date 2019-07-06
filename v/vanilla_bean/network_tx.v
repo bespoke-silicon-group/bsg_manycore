@@ -16,6 +16,9 @@ module network_tx
     , parameter dram_ch_addr_width_p="inv"
     , parameter epa_byte_addr_width_p="inv"
     , parameter vcache_size_p="inv" 
+    , parameter vcache_block_size_in_words_p="inv"
+    
+    , parameter num_tiles_x_p="inv"
   
     , parameter icache_entries_p="inv"
     , parameter icache_tag_width_p="inv"
@@ -26,6 +29,8 @@ module network_tx
     , parameter max_x_cord_width_p=6
 
     , parameter vcache_addr_width_lp=`BSG_SAFE_CLOG2(vcache_size_p)
+
+    , parameter vcache_word_offset_width_lp = `BSG_SAFE_CLOG2(vcache_block_size_in_words_p)
 
     , localparam credit_counter_width_lp=$clog2(max_out_credits_p+1)
 
@@ -123,6 +128,30 @@ module network_tx
   logic is_invalid_addr;
   assign is_invalid_addr = ~(is_dram_addr | is_global_addr | is_in_group_addr);
 
+
+  // hash bank
+  //
+  localparam hash_bank_input_width_lp=data_width_p-1-2-vcache_word_offset_width_lp;
+  localparam hash_bank_index_width_lp=$clog2((2**hash_bank_input_width_lp+num_tiles_x_p-1)/num_tiles_x_p);
+
+  logic [hash_bank_input_width_lp-1:0] hash_bank_input;
+  logic [x_cord_width_p-1:0] hash_bank_lo;  
+  logic [hash_bank_index_width_lp-1:0] hash_bank_index_lo;
+
+  bsg_hash_bank #(
+    .banks_p(num_tiles_x_p)
+    ,.width_p(hash_bank_input_width_lp)
+  ) hashb (
+    .i(hash_bank_input)
+    ,.bank_o(hash_bank_lo)
+    ,.index_o(hash_bank_index_lo)
+  );
+
+  assign hash_bank_input = remote_req_i.addr[2+vcache_word_offset_width_lp+:hash_bank_input_width_lp];
+
+
+  // EVA Address Mapping
+  //
   always_comb begin
     out_packet.op = remote_req_i.swap_aq
       ? `ePacketOp_remote_swap_aq
@@ -135,8 +164,15 @@ module network_tx
     if (is_dram_addr) begin
       if (dram_enable_i) begin
         out_packet.y_cord = {y_cord_width_p{1'b1}}; // send it to y-max
-        out_packet.x_cord = (x_cord_width_p)'(dram_addr.x_cord);
-        out_packet.addr = {1'b0, {(addr_width_p-1-dram_ch_addr_width_p){1'b0}}, dram_addr.addr};
+        out_packet.x_cord = hash_bank_lo;
+        out_packet.addr = {
+          1'b0,
+          {(addr_width_p-1-vcache_word_offset_width_lp-hash_bank_index_width_lp){1'b0}},
+          hash_bank_index_lo,
+          remote_req_i.addr[2+:vcache_word_offset_width_lp]
+        };
+        //out_packet.x_cord = (x_cord_width_p)'(dram_addr.x_cord);
+        //out_packet.addr = {1'b0, {(addr_width_p-1-dram_ch_addr_width_p){1'b0}}, dram_addr.addr};
       end
       else begin
         if (remote_req_i.addr[30]) begin
