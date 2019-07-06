@@ -3,12 +3,11 @@
 #include "bsg_mutex.h"
 #include "bsg_barrier.h"
 
-// for 4x4 manycore
 #define BLOCK_SIZE 8
 #define TAG_OFFSET 13
-#define X_CORD_OFFSET 29
+#define X_CORD_OFFSET 27
 
-bsg_barrier my_barrier = BSG_BARRIER_INIT(0, 3, 0, 0);
+bsg_barrier my_barrier = BSG_BARRIER_INIT(0, bsg_global_X-1, 0, 0);
 
 int main()
 {

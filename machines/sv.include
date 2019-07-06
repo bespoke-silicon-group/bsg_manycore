@@ -38,8 +38,6 @@ $BASEJUMP_STL_DIR/bsg_misc/bsg_xnor.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_nor2.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_adder_cin.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_cycle_counter.v
-$BASEJUMP_STL_DIR/bsg_misc/bsg_hash_bank.v
-$BASEJUMP_STL_DIR/bsg_misc/bsg_hash_bank_reverse.v
 
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_fifo_1r1w_small.v
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_two_fifo.v
@@ -79,7 +77,6 @@ $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_dma.v
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_miss.v
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_sbuf.v
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_sbuf_queue.v
-$BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi.v
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_rx.v
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_to_axi_tx.v
 $BASEJUMP_STL_DIR/bsg_cache/bsg_manycore_link_to_cache.v
@@ -99,6 +96,9 @@ $BSG_MANYCORE_DIR/v/vanilla_bean/load_packer.v
 $BSG_MANYCORE_DIR/v/vanilla_bean/lsu.v
 $BSG_MANYCORE_DIR/v/vanilla_bean/regfile.v
 $BSG_MANYCORE_DIR/v/vanilla_bean/scoreboard.v
+$BSG_MANYCORE_DIR/v/vanilla_bean/hash_function.v
+$BSG_MANYCORE_DIR/v/vanilla_bean/hash_function_reverse.v
+$BSG_MANYCORE_DIR/v/vanilla_bean/bsg_cache_to_axi_hashed.v
 
 $BSG_MANYCORE_DIR/v/bsg_manycore.v
 $BSG_MANYCORE_DIR/v/bsg_manycore_tile.v
