@@ -138,7 +138,7 @@ module network_tx
   logic [x_cord_width_p-1:0] hash_bank_lo;  
   logic [hash_bank_index_width_lp-1:0] hash_bank_index_lo;
 
-  bsg_hash_bank #(
+  hash_function #(
     .banks_p(num_tiles_x_p)
     ,.width_p(hash_bank_input_width_lp)
   ) hashb (
