@@ -176,7 +176,7 @@ module bsg_cache_wrapper_axi
 
   // bsg_cache_to_axi
   //
-  bsg_cache_to_axi #(
+  bsg_cache_to_axi_hashed #(
     .addr_width_p(cache_addr_width_lp)
     ,.block_size_in_words_p(block_size_in_words_p)
     ,.data_width_p(data_width_p)

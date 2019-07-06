@@ -225,10 +225,23 @@ class NBF:
     cache_size = self.cache_size
 
     if enable_dram == 1:
+      
       for k in sorted(self.dram_data.keys()):
+        # hashing for 9 banks
         addr = k - 0x20000000
-        x = addr / dram_ch_size
-        epa = addr % dram_ch_size
+        bit_2_0 = (addr >> 3) & 0b111
+        bit_5_4 = (addr >> 6) & 0b110
+        bit_3 = (addr >> 6) & 0b001
+        bit_9 = (addr >> 10) & 0b1
+        if bit_2_0 == (bit_5_4 | (bit_3 ^ bit_9)):
+          x = 8
+        else:
+          x = bit_2_0
+
+        index = (addr >> 3) & 0b11111111111111111111111000
+        epa = (addr & 0b111) | index
+        #x = addr / dram_ch_size
+        #epa = addr % dram_ch_size
         self.print_nbf(x, y, epa, self.dram_data[k])
     else:
       for k in sorted(self.dram_data.keys()):
