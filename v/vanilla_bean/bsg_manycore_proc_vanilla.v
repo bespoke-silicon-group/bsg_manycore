@@ -19,10 +19,13 @@ module bsg_manycore_proc_vanilla
 
     , parameter dmem_size_p = "inv"
     , parameter vcache_size_p = "inv"
+    , parameter vcache_block_size_in_words_p="inv"
 
     , parameter dram_ch_addr_width_p = "inv"
     , parameter epa_byte_addr_width_p = "inv"
     , parameter dram_ch_start_col_p = 0
+
+    , parameter num_tiles_x_p="inv"
 
     , parameter max_out_credits_p = 32
     , parameter proc_fifo_els_p = 4
@@ -223,6 +226,7 @@ module bsg_manycore_proc_vanilla
     ,.y_cord_width_p(y_cord_width_p)
     ,.load_id_width_p(load_id_width_p)
     ,.vcache_size_p(vcache_size_p)
+    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
 
     ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
     ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
@@ -231,6 +235,8 @@ module bsg_manycore_proc_vanilla
     ,.icache_tag_width_p(icache_tag_width_p)
 
     ,.max_out_credits_p(max_out_credits_p)
+
+    ,.num_tiles_x_p(num_tiles_x_p)
   ) tx (
     .clk_i(clk_i)
     ,.reset_i(reset_i)

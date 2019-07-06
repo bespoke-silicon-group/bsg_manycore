@@ -38,6 +38,8 @@ $BASEJUMP_STL_DIR/bsg_misc/bsg_xnor.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_nor2.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_adder_cin.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_cycle_counter.v
+$BASEJUMP_STL_DIR/bsg_misc/bsg_hash_bank.v
+$BASEJUMP_STL_DIR/bsg_misc/bsg_hash_bank_reverse.v
 
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_fifo_1r1w_small.v
 $BASEJUMP_STL_DIR/bsg_dataflow/bsg_two_fifo.v

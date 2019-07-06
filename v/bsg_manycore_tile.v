@@ -13,12 +13,15 @@ module bsg_manycore_tile
     , parameter icache_tag_width_p = "inv"
     , parameter x_cord_width_p = "inv"
     , parameter y_cord_width_p = "inv"
+    , parameter num_tiles_x_p="inv"
     
     , parameter data_width_p = "inv"
     , parameter addr_width_p = "inv"
     , parameter load_id_width_p = "inv"
     , parameter epa_byte_addr_width_p = "inv"
     , parameter dram_ch_addr_width_p = "inv"
+
+    , parameter vcache_block_size_in_words_p="inv"
 
     , localparam dirs_lp = 4
 
@@ -90,6 +93,8 @@ module bsg_manycore_tile
     ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
     ,.dram_ch_start_col_p(dram_ch_start_col_p)
     ,.hetero_type_p(hetero_type_p)
+    ,.num_tiles_x_p(num_tiles_x_p)
+    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
 
     ,.debug_p(debug_p)
   ) proc (

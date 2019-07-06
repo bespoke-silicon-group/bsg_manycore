@@ -27,10 +27,12 @@
                           ,.dram_ch_addr_width_p ( dram_ch_addr_width_p )  \
                           ,.dram_ch_start_col_p  ( dram_ch_start_col_p) \
                           ,.vcache_size_p(vcache_size_p) \
+                          ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p) \
                           ,.debug_p(debug_p)                    \
 			                    ,.icache_entries_p(icache_entries_p)            \
                           ,.icache_tag_width_p (icache_tag_width_p) \
             		          ,.max_out_credits_p(max_out_credits_p)\
+                          ,.num_tiles_x_p(num_tiles_x_p)    \
                           ) z                                   \
           (.clk_i                                               \
            ,.reset_i                                            \
@@ -57,6 +59,8 @@ module bsg_manycore_hetero_socket
     , parameter debug_p = 0
     , parameter max_out_credits_p = 200
     , parameter hetero_type_p = 0
+    , parameter num_tiles_x_p="inv"
+    , parameter vcache_block_size_in_words_p="inv"
 
     , parameter bsg_manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
