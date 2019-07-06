@@ -15,7 +15,7 @@ module hash_function
   if (banks_p == 9) begin: b9
 
     always_comb begin
-      if (i[2:0] == {i[5:4], i[3] ^ i[9]}) begin
+      if (i[2:0] == {i[5:4], i[3] ^ i[12]}) begin
         bank_o = 'd8;
       end
       else begin
