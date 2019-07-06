@@ -232,8 +232,8 @@ class NBF:
         bit_2_0 = (addr >> 3) & 0b111
         bit_5_4 = (addr >> 6) & 0b110
         bit_3 = (addr >> 6) & 0b001
-        bit_9 = (addr >> 12) & 0b1
-        if bit_2_0 == (bit_5_4 | (bit_3 ^ bit_9)):
+        bit_12 = (addr >> 15) & 0b1
+        if bit_2_0 == (bit_5_4 | (bit_3 ^ bit_12)):
           x = 8
         else:
           x = bit_2_0
