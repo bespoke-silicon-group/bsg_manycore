@@ -20,7 +20,7 @@ module hash_function_reverse
     
     always_comb begin
       if (bank_i == 'd8) begin
-        o = {index_i, index_i[2:1], index_i[0] ^ index_i[6]}; 
+        o = {index_i, index_i[2:1], index_i[0] ^ index_i[9]}; 
       end
       else begin
         o = {index_i, bank_i[2:0]};
