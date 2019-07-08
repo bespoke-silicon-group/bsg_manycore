@@ -2,7 +2,8 @@
 #
 
 # Process corner format: <corner>_<rc_corner>[_ss]
-CORNERS :=  ffpg0p88vm40c_SigRCmax ffpg0p88v125c_SigRCmax #ffpg0p88v125c_SigRCmin 
+CORNERS := ffpg0p88vm40c_SigRCmax ffpg0p88vm40c_SigRCmin ffpg0p88v125c_SigRCmax ffpg0p88v125c_SigRCmin 
+RUNS := $(foreach corner, $(CORNERS), $(corner)-0) $(foreach corner, $(CORNERS), $(corner)-1)
 REGRESS_LIST := hello quicktouch
 
 BSG_MANYCORE_URL := git@github.com:bespoke-silicon-group/bsg_manycore.git
@@ -22,15 +23,15 @@ checkout:
 	git clone --recursive $(BSG_MANYCORE_URL) tmp.bsg_manycore
 	cd tmp.bsg_manycore/ && git checkout $(BSG_MANYCORE_BRANCH)
 	ln -s $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install/ tmp.bsg_manycore/software/riscv-tools/riscv-install
-	for corner in $(CORNERS); do \
-		cp -R tmp.bsg_manycore/ bsg_manycore_$$corner/; \
+	for run in $(RUNS); do \
+		cp -R tmp.bsg_manycore/ bsg_manycore_$$run/; \
 	done;
 	rm -rf tmp.bsg_manycore/
 	ln -s $(BSG_MANYCORE_DIR)/../bsg_cadenv bsg_cadenv
 
 bleach-checkout:
 	-rm -rf tmp.bsg_manycore/
-	-rm -rf $(foreach corner,$(CORNERS),bsg_manycore_$(corner))
+	-rm -rf $(foreach run,$(RUNS),bsg_manycore_$(run))
 	-rm bsg_cadenv
 
 
@@ -49,10 +50,10 @@ bleach-build:
 	-rm vc_hdrs.h
 
 
-run: $(foreach corner,$(CORNERS),run-$(corner))
+run: $(foreach run,$(RUNS),run-$(run))
 
 run-%: run_dir=$(BSG_MANYCORE_DIR)/software/regress/bsg_manycore_$*/software/spmd
-run-%: machine_dir=$(BSG_MANYCORE_DIR)/software/regress/machine-$*
+run-%: machine_dir=$(BSG_MANYCORE_DIR)/software/regress/machine-$(word 1, $(subst -, ,$*))
 run-%:
 	$(MAKE) -C $(run_dir) BSG_MACHINE_PATH=$(machine_dir) recurse-clean
 
@@ -62,12 +63,12 @@ run-%:
 		cp $(BSG_MANYCORE_DIR)/software/nbf/9x15_nodram/$$test.nbf $(run_dir)/$$test/main.nbf 2>/dev/null; \
 	done;
 
-	$(MAKE) -C $(run_dir) BSG_MACHINE_PATH=$(machine_dir) $(foreach test,$(REGRESS_LIST),recurse-iterate@all@$(test))
+	$(MAKE) -C $(run_dir) BSG_MACHINE_PATH=$(machine_dir) BSG_MACHINE_DRAM_INCLUDED=$(word 2, $(subst -, ,$*)) $(foreach test,$(REGRESS_LIST),recurse-iterate@all@$(test))
 
 
-clean_runs: $(foreach corner,$(CORNERS),clean-$(corner))
+clean_runs: $(foreach run,$(RUNS),clean-$(run))
 
-clean-%: machine_dir=$(BSG_MANYCORE_DIR)/software/regress/machine-$*
+clean-%: machine_dir=$(BSG_MANYCORE_DIR)/software/regress/machine-$(word 1, $(subst -, ,$*))
 clean-%: run_dir=$(BSG_MANYCORE_DIR)/software/regress/bsg_manycore_$*/software/spmd
 clean-%:
 	$(MAKE) -C $(run_dir) BSG_MACHINE_PATH=$(machine_dir) recurse-clean
