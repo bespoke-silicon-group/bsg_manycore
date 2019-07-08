@@ -41,7 +41,7 @@ void read_block(int tag, int bank)
     bsg_dram_load(dram_addr[b], load_val);
     if (load_val != dram_addr[b])
     {
-      bsg_printf("[BSG_FAIL] expected: %x, actual: %x\n", dram_addr[b], load_val);
+      //bsg_printf("[BSG_FAIL] expected: %x, actual: %x\n", dram_addr[b], load_val);
       bsg_fail();
     }
   } 
