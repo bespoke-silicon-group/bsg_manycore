@@ -11,8 +11,25 @@ PROG_NAME  ?= main
 ########################################
 # CAD Setup
 
-$(info CAD Environment: $(CAD_DIR)/cadenv.mk)
-include $(CAD_DIR)/cadenv.mk
+ifneq ($(IGNORE_CADENV),)
+  $(info CAD Environment: Ignoring cadenv)
+  # select the tools
+
+# Checking the VCS settings
+else ifeq (,$findstring(cs.washington.edu,$(HOSTNAME)))
+  ifeq ($(VCS),)
+    $(error Unfamiliar machine/cadtool setup: Please define the $$VCS which points to the VCS binaries )
+  endif
+
+  ifeq ($(DVE),)
+    $(error Please define the $$DVE which points to the DVE binaries )
+  endif
+
+# Using the cadenv.mk to setup the VCS
+else 
+  $(info CAD Environment: using $(CAD_DIR)/cadenv.mk to configure cad tools)
+  include $(CAD_DIR)/cadenv.mk
+endif
 
 
 #######################################
