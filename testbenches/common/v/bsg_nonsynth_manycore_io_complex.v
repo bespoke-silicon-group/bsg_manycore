@@ -35,6 +35,7 @@ module bsg_nonsynth_manycore_io_complex
   (
     input clk_i
     , input reset_i
+    , output loader_done_o
 
     , input [link_sif_width_lp-1:0] io_link_sif_i
     , output [link_sif_width_lp-1:0] io_link_sif_o
@@ -149,6 +150,7 @@ module bsg_nonsynth_manycore_io_complex
   ) loader (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
+    ,.done_o(loader_done_o)
 
     ,.packet_o(out_packet_li)
     ,.v_o(out_v_li)

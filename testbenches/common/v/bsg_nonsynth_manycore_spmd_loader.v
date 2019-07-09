@@ -23,6 +23,7 @@ module bsg_nonsynth_manycore_spmd_loader
   ( 
     input clk_i
     , input reset_i
+    , output done_o
 
     , output [packet_width_lp-1:0] packet_o
     , output logic v_o
@@ -74,6 +75,7 @@ module bsg_nonsynth_manycore_spmd_loader
   end
 
   logic loader_done_r, loader_done_n;
+  assign done_o = loader_done_r;
  
   always_comb begin
     if (reset_i) begin
