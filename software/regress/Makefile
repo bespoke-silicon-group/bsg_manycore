@@ -2,7 +2,22 @@
 #
 
 # Process corner format: <corner>_<rc_corner>[_ss]
-CORNERS := ffpg0p88vm40c_SigRCmax ffpg0p88vm40c_SigRCmin ffpg0p88v125c_SigRCmax ffpg0p88v125c_SigRCmin 
+CORNERS := sspg0p72vm40c_SigRCmax_ss \
+           sspg0p72vm40c_SigRCmin_ss \
+           sspg0p72v125c_SigRCmax_ss \
+           sspg0p72v125c_SigRCmin_ss \
+           sspg0p72vm40c_SigCmax_ss \
+           sspg0p72vm40c_SigCmin_ss \
+           sspg0p72v125c_SigCmax_ss \
+           sspg0p72v125c_SigCmin_ss \
+           ffpg0p88vm40c_SigRCmax \
+           ffpg0p88vm40c_SigRCmin \
+           ffpg0p88v125c_SigRCmax \
+           ffpg0p88v125c_SigRCmin \
+           ffpg0p88vm40c_SigCmax \
+           ffpg0p88vm40c_SigCmin \
+           ffpg0p88v125c_SigCmax \
+           ffpg0p88v125c_SigCmin
 RUNS := $(foreach corner, $(CORNERS), $(corner)-0) $(foreach corner, $(CORNERS), $(corner)-1)
 REGRESS_LIST := hello quicktouch
 
@@ -55,8 +70,6 @@ run: $(foreach run,$(RUNS),run-$(run))
 run-%: run_dir=$(BSG_MANYCORE_DIR)/software/regress/bsg_manycore_$*/software/spmd
 run-%: machine_dir=$(BSG_MANYCORE_DIR)/software/regress/machine-$(word 1, $(subst -, ,$*))
 run-%:
-	$(MAKE) -C $(run_dir) BSG_MACHINE_PATH=$(machine_dir) recurse-clean
-
 	# Below two commands are for fetching hacked nbf. Can be removed.
 	$(MAKE) -C $(run_dir) BSG_MACHINE_PATH=$(machine_dir) $(foreach test,$(REGRESS_LIST),recurse-iterate@main.nbf@$(test))
 	for test in $(REGRESS_LIST); do \
