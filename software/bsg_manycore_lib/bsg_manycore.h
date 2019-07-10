@@ -9,6 +9,7 @@ typedef volatile int   *bsg_remote_int_ptr;
 typedef volatile float   *bsg_remote_float_ptr;
 typedef volatile unsigned char  *bsg_remote_uint8_ptr;
 typedef volatile unsigned short  *bsg_remote_uint16_ptr;
+typedef volatile unsigned *bsg_remote_uint32_ptr;
 typedef volatile void *bsg_remote_void_ptr;
 
 #define bsg_remote_store(x,y,local_addr,val) do { *(bsg_remote_ptr((x),(y),(local_addr))) = (int) (val); } while (0)
@@ -57,6 +58,34 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_print_time()   do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xEAD4); *ptr = ((bsg_y << 16) + bsg_x); } while(0)
 
 #define bsg_putchar( c )       do {  bsg_remote_uint8_ptr ptr = (bsg_remote_uint8_ptr) bsg_remote_ptr_io(IO_X_INDEX,0xEADC); *ptr = c; } while(0)
+static inline void bsg_print_int(int i)
+{
+        bsg_remote_int_ptr ptr = (bsg_remote_int_ptr)bsg_remote_ptr_io(IO_X_INDEX,0xEAE0);
+        *ptr = i;
+}
+
+static inline void bsg_print_unsigned(unsigned u)
+{
+        bsg_remote_uint32_ptr ptr = (bsg_remote_uint32_ptr)bsg_remote_ptr_io(IO_X_INDEX,0xEAE4);
+        *ptr = u;
+}
+
+static inline void bsg_print_hexadecimal(unsigned u)
+{
+        bsg_remote_uint32_ptr ptr = (bsg_remote_uint32_ptr)bsg_remote_ptr_io(IO_X_INDEX,0xEAE8);
+        *ptr = u;
+}
+
+static inline void bsg_print_float(float f)
+{
+        bsg_remote_float_ptr ptr = (bsg_remote_float_ptr)bsg_remote_ptr_io(IO_X_INDEX,0xEAEC);
+        *ptr = f;
+}
+static inline void bsg_print_float_scientific(float f)
+{
+        bsg_remote_float_ptr ptr = (bsg_remote_float_ptr)bsg_remote_ptr_io(IO_X_INDEX,0xEAF0);
+        *ptr = f;
+}
 
 #define bsg_id_to_x(id)    ((id) % bsg_tiles_X)
 #define bsg_id_to_y(id)    ((id) / bsg_tiles_X)
