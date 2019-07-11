@@ -146,6 +146,9 @@ module bsg_nonsynth_manycore_io_complex
 
   // SPMD loader
   //
+  logic spmd_v_lo;
+  logic spmd_ready_li;
+
   bsg_nonsynth_manycore_spmd_loader #(
     .addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
@@ -159,12 +162,15 @@ module bsg_nonsynth_manycore_io_complex
     ,.done_o(loader_done_o)
 
     ,.packet_o(out_packet_li)
-    ,.v_o(out_v_li)
-    ,.ready_i(out_ready_lo)
+    ,.v_o(spmd_v_lo)
+    ,.ready_i(spmd_ready_li)
 
     ,.my_x_i((x_cord_width_p)'(io_x_cord_p))
     ,.my_y_i((y_cord_width_p)'(io_y_cord_p))
   );
+
+  assign out_v_li = spmd_v_lo & (out_credits_lo > 1);
+  assign spmd_ready_li = out_ready_lo & (out_credits_lo > 1);
 
 
 endmodule

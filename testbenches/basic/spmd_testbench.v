@@ -146,9 +146,9 @@ module spmd_testbench;
     ,.loader_done_o()
     ,.io_link_sif_i(io_link_lo[0])
     ,.io_link_sif_o(io_link_li[0])
-
     ,.print_stat_v_o(print_stat_v)
     ,.print_stat_tag_o(print_stat_tag)
+    ,.loader_done_o()
   );
 
 
