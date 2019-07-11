@@ -95,7 +95,7 @@ module bsg_cache_wrapper_axi
   logic [num_cache_p-1:0] cache_v_lo;
   logic [num_cache_p-1:0] cache_yumi_li;
 
-  for (genvar i = 0; i < num_cache_p; i++) begin
+  for (genvar i = 0; i < num_cache_p; i++) begin: l2c
     bsg_manycore_link_to_cache #(
       .link_addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
@@ -140,7 +140,7 @@ module bsg_cache_wrapper_axi
   logic [num_cache_p-1:0] dma_data_v_lo;
   logic [num_cache_p-1:0] dma_data_yumi_li;
 
-  for (genvar i = 0; i < num_cache_p; i++) begin
+  for (genvar i = 0; i < num_cache_p; i++) begin: vcache
     bsg_cache #(
       .addr_width_p(cache_addr_width_lp)
       ,.data_width_p(data_width_p)

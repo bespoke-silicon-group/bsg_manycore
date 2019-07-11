@@ -191,7 +191,7 @@ module vanilla_core_profiler
 
   // file logging
   //
-  localparam logfile_lp = "stats.log";
+  localparam logfile_lp = "vanilla_stats.log";
 
   integer fd;
   string stamp;
