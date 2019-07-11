@@ -1,0 +1,236 @@
+Toplevel Directory: /mnt/bsg/diskbits/dcjung/bsg/bsg_manycore
+Dimensions: bsg_tiles_org_[X,Y] = 0 1; bsg_global_[X,Y] = 9,16; bsg_tiles[X,Y] = 1,1; bsg_group_size = 1
+CAD Environment: using /mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/../bsg_cadenv/cadenv.mk to configure cad tools
+Machine executable: /mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/machines/9x15/simv
+/mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/software/riscv-tools/riscv-install/bin/riscv32-unknown-elf-gcc -march=rv32imaf -static -std=gnu99 -ffast-math -fno-common -ffp-contract=off  -I/mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/software/spmd/common/ -I/mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/software/bsg_manycore_lib -Dbsg_tiles_X=1 -Dbsg_tiles_Y=1 -Dbsg_global_X=9 -Dbsg_global_Y=16 -Dbsg_group_size=1 -mno-fdiv -O2 -DPREALLOCATE=0 -DHOST_DEBUG=0 -c  main.c -o main.o |& tee main.comp.log
+/mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/software/riscv-tools/riscv-install/bin/riscv32-unknown-elf-gcc -t -T /mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/software/spmd/common/link_dmem.ld -Wl,--defsym,bsg_group_size=1 -Wl,--defsym,_bsg_elf_dram_size=1207959552 -Wl,--defsym,_bsg_elf_vcache_size=294912 -Wl,--defsym,_bsg_elf_stack_ptr=0x00001ffc -Wl,--no-check-sections  main.o  -L. -l:bsg_manycore_lib.a -o main.riscv  -nostdlib -march=rv32imaf -nostartfiles -ffast-math -lc -lm -lgcc -l:crt.o -L /mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/software/spmd/common 
+main.o
+./bsg_manycore_lib.a
+/mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/software/riscv-tools/riscv-install/lib/gcc/riscv32-unknown-elf/8.3.0/../../../../riscv32-unknown-elf/lib/libc.a
+/mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/software/riscv-tools/riscv-install/lib/gcc/riscv32-unknown-elf/8.3.0/../../../../riscv32-unknown-elf/lib/libm.a
+/mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/software/riscv-tools/riscv-install/lib/gcc/riscv32-unknown-elf/8.3.0/libgcc.a
+./crt.o
+/mnt/bsg/diskbits/dcjung/bsg/bsg_manycore/software/riscv-tools/riscv-install/bin/riscv32-unknown-elf-objdump -M numeric --disassemble-all -S main.riscv
+
+main.riscv:     file format elf32-littleriscv
+
+
+Disassembly of section .sdata.dmem:
+
+00001000 <__bsg_tile_group_id_y>:
+    1000:	ffff                	0xffff
+    1002:	ffff                	0xffff
+
+00001004 <__bsg_tile_group_id_x>:
+    1004:	ffff                	0xffff
+    1006:	ffff                	0xffff
+
+00001008 <__bsg_grid_dim_y>:
+    1008:	ffff                	0xffff
+    100a:	ffff                	0xffff
+
+0000100c <__bsg_grid_dim_x>:
+    100c:	ffff                	0xffff
+    100e:	ffff                	0xffff
+
+00001010 <__bsg_grp_org_y>:
+    1010:	ffff                	0xffff
+    1012:	ffff                	0xffff
+
+00001014 <__bsg_grp_org_x>:
+    1014:	ffff                	0xffff
+    1016:	ffff                	0xffff
+
+00001018 <__bsg_id>:
+    1018:	ffff                	0xffff
+    101a:	ffff                	0xffff
+
+0000101c <__bsg_y>:
+    101c:	ffff                	0xffff
+    101e:	ffff                	0xffff
+
+00001020 <__bsg_x>:
+    1020:	ffff                	0xffff
+    1022:	ffff                	0xffff
+
+Disassembly of section .text.dram:
+
+00000000 <_start>:
+   0:	00000093          	li	x1,0
+   4:	00000193          	li	x3,0
+   8:	00000213          	li	x4,0
+   c:	00000293          	li	x5,0
+  10:	00000313          	li	x6,0
+  14:	00000393          	li	x7,0
+  18:	00000413          	li	x8,0
+  1c:	00000493          	li	x9,0
+  20:	00000513          	li	x10,0
+  24:	00000593          	li	x11,0
+  28:	00000613          	li	x12,0
+  2c:	00000693          	li	x13,0
+  30:	00000713          	li	x14,0
+  34:	00000793          	li	x15,0
+  38:	00000813          	li	x16,0
+  3c:	00000893          	li	x17,0
+  40:	00000913          	li	x18,0
+  44:	00000993          	li	x19,0
+  48:	00000a13          	li	x20,0
+  4c:	00000a93          	li	x21,0
+  50:	00000b13          	li	x22,0
+  54:	00000b93          	li	x23,0
+  58:	00000c13          	li	x24,0
+  5c:	00000c93          	li	x25,0
+  60:	00000d13          	li	x26,0
+  64:	00000d93          	li	x27,0
+  68:	00000e13          	li	x28,0
+  6c:	00000e93          	li	x29,0
+  70:	00000f13          	li	x30,0
+  74:	00000f93          	li	x31,0
+  78:	d0007053          	fcvt.s.w	f0,x0
+  7c:	d00070d3          	fcvt.s.w	f1,x0
+  80:	d0007153          	fcvt.s.w	f2,x0
+  84:	d00071d3          	fcvt.s.w	f3,x0
+  88:	d0007253          	fcvt.s.w	f4,x0
+  8c:	d00072d3          	fcvt.s.w	f5,x0
+  90:	d0007353          	fcvt.s.w	f6,x0
+  94:	d00073d3          	fcvt.s.w	f7,x0
+  98:	d0007453          	fcvt.s.w	f8,x0
+  9c:	d00074d3          	fcvt.s.w	f9,x0
+  a0:	d0007553          	fcvt.s.w	f10,x0
+  a4:	d00075d3          	fcvt.s.w	f11,x0
+  a8:	d0007653          	fcvt.s.w	f12,x0
+  ac:	d00076d3          	fcvt.s.w	f13,x0
+  b0:	d0007753          	fcvt.s.w	f14,x0
+  b4:	d00077d3          	fcvt.s.w	f15,x0
+  b8:	d0007853          	fcvt.s.w	f16,x0
+  bc:	d00078d3          	fcvt.s.w	f17,x0
+  c0:	d0007953          	fcvt.s.w	f18,x0
+  c4:	d00079d3          	fcvt.s.w	f19,x0
+  c8:	d0007a53          	fcvt.s.w	f20,x0
+  cc:	d0007ad3          	fcvt.s.w	f21,x0
+  d0:	d0007b53          	fcvt.s.w	f22,x0
+  d4:	d0007bd3          	fcvt.s.w	f23,x0
+  d8:	d0007c53          	fcvt.s.w	f24,x0
+  dc:	d0007cd3          	fcvt.s.w	f25,x0
+  e0:	d0007d53          	fcvt.s.w	f26,x0
+  e4:	d0007dd3          	fcvt.s.w	f27,x0
+  e8:	d0007e53          	fcvt.s.w	f28,x0
+  ec:	d0007ed3          	fcvt.s.w	f29,x0
+  f0:	d0007f53          	fcvt.s.w	f30,x0
+  f4:	d0007fd3          	fcvt.s.w	f31,x0
+  f8:	00001197          	auipc	x3,0x1
+  fc:	70818193          	addi	x3,x3,1800 # 1800 <_gp>
+ 100:	00001217          	auipc	x4,0x1
+ 104:	f6320213          	addi	x4,x4,-157 # 1063 <_bsg_data_end_addr+0x3f>
+ 108:	fc027213          	andi	x4,x4,-64
+ 10c:	00002117          	auipc	x2,0x2
+ 110:	ef010113          	addi	x2,x2,-272 # 1ffc <_bsg_elf_stack_ptr>
+ 114:	0cc0006f          	j	1e0 <main>
+ 118:	0000006f          	j	118 <bsg_group_size+0x117>
+
+0000011c <bsg_set_tile_x_y>:
+ 11c:	00001737          	lui	x14,0x1
+ 120:	200007b7          	lui	x15,0x20000
+ 124:	02070593          	addi	x11,x14,32 # 1020 <__bsg_x>
+ 128:	000016b7          	lui	x13,0x1
+ 12c:	00b7e5b3          	or	x11,x15,x11
+ 130:	01c68613          	addi	x12,x13,28 # 101c <__bsg_y>
+ 134:	0005a023          	sw	x0,0(x11)
+ 138:	00c7e633          	or	x12,x15,x12
+ 13c:	00062023          	sw	x0,0(x12)
+ 140:	02072783          	lw	x15,32(x14)
+ 144:	fe07cee3          	bltz	x15,140 <bsg_set_tile_x_y+0x24>
+ 148:	01c6a783          	lw	x15,28(x13)
+ 14c:	fe07cee3          	bltz	x15,148 <bsg_set_tile_x_y+0x2c>
+ 150:	02072783          	lw	x15,32(x14)
+ 154:	06078c63          	beqz	x15,1cc <bsg_set_tile_x_y+0xb0>
+ 158:	02072583          	lw	x11,32(x14)
+ 15c:	01c6a683          	lw	x13,28(x13)
+ 160:	20020737          	lui	x14,0x20020
+ 164:	01259613          	slli	x12,x11,0x12
+ 168:	01869793          	slli	x15,x13,0x18
+ 16c:	00c7e7b3          	or	x15,x15,x12
+ 170:	00470613          	addi	x12,x14,4 # 20020004 <_bsg_elf_vcache_size+0x1ffd8004>
+ 174:	00c7e633          	or	x12,x15,x12
+ 178:	00062603          	lw	x12,0(x12)
+ 17c:	00870713          	addi	x14,x14,8
+ 180:	00e7e7b3          	or	x15,x15,x14
+ 184:	00001737          	lui	x14,0x1
+ 188:	00c72a23          	sw	x12,20(x14) # 1014 <__bsg_grp_org_x>
+ 18c:	0007a603          	lw	x12,0(x15) # 20000000 <_bsg_elf_vcache_size+0x1ffb8000>
+ 190:	00001737          	lui	x14,0x1
+ 194:	00b686b3          	add	x13,x13,x11
+ 198:	00c72823          	sw	x12,16(x14) # 1010 <__bsg_grp_org_y>
+ 19c:	00001737          	lui	x14,0x1
+ 1a0:	00100793          	li	x15,1
+ 1a4:	00d72c23          	sw	x13,24(x14) # 1018 <__bsg_id>
+ 1a8:	00001737          	lui	x14,0x1
+ 1ac:	00f72623          	sw	x15,12(x14) # 100c <__bsg_grid_dim_x>
+ 1b0:	00001737          	lui	x14,0x1
+ 1b4:	00f72423          	sw	x15,8(x14) # 1008 <__bsg_grid_dim_y>
+ 1b8:	000017b7          	lui	x15,0x1
+ 1bc:	0007a223          	sw	x0,4(x15) # 1004 <__bsg_tile_group_id_x>
+ 1c0:	000017b7          	lui	x15,0x1
+ 1c4:	0007a023          	sw	x0,0(x15) # 1000 <_bsg_data_start_addr>
+ 1c8:	00008067          	ret
+ 1cc:	01c6a783          	lw	x15,28(x13)
+ 1d0:	f80794e3          	bnez	x15,158 <bsg_set_tile_x_y+0x3c>
+ 1d4:	0005a023          	sw	x0,0(x11)
+ 1d8:	00062023          	sw	x0,0(x12)
+ 1dc:	f7dff06f          	j	158 <bsg_set_tile_x_y+0x3c>
+
+000001e0 <main>:
+ 1e0:	ff010113          	addi	x2,x2,-16
+ 1e4:	00112623          	sw	x1,12(x2)
+ 1e8:	f35ff0ef          	jal	x1,11c <bsg_set_tile_x_y>
+ 1ec:	00001737          	lui	x14,0x1
+ 1f0:	000016b7          	lui	x13,0x1
+ 1f4:	02072783          	lw	x15,32(x14) # 1020 <__bsg_x>
+ 1f8:	01c6a603          	lw	x12,28(x13) # 101c <__bsg_y>
+ 1fc:	00c7e7b3          	or	x15,x15,x12
+ 200:	02079863          	bnez	x15,230 <main+0x50>
+ 204:	000017b7          	lui	x15,0x1
+ 208:	d007a623          	sw	x0,-756(x15) # d0c <main+0xb2c>
+ 20c:	00100613          	li	x12,1
+ 210:	d0c7a623          	sw	x12,-756(x15)
+ 214:	01c6a783          	lw	x15,28(x13)
+ 218:	02072703          	lw	x14,32(x14)
+ 21c:	01079793          	slli	x15,x15,0x10
+ 220:	00e787b3          	add	x15,x15,x14
+ 224:	4000f737          	lui	x14,0x4000f
+ 228:	acf72823          	sw	x15,-1328(x14) # 4000ead0 <_bsg_elf_vcache_size+0x3ffc6ad0>
+ 22c:	0000006f          	j	22c <main+0x4c>
+ 230:	0000006f          	j	230 <main+0x50>
+
+Disassembly of section .comment:
+
+00000000 <.comment>:
+   0:	3a434347          	fmsub.d	f6,f6,f4,f7,rmm
+   4:	2820                	fld	f8,80(x8)
+   6:	29554e47          	fmsub.s	f28,f10,f21,f5,rmm
+   a:	3820                	fld	f8,112(x8)
+   c:	332e                	fld	f6,232(x2)
+   e:	302e                	fld	f0,232(x2)
+	...
+
+Disassembly of section .riscv.attributes:
+
+00000000 <.riscv.attributes>:
+   0:	2841                	jal	90 <bsg_group_size+0x8f>
+   2:	0000                	unimp
+   4:	7200                	flw	f8,32(x12)
+   6:	7369                	lui	x6,0xffffa
+   8:	01007663          	bgeu	x0,x16,14 <bsg_group_size+0x13>
+   c:	001e                	c.slli	x0,0x7
+   e:	0000                	unimp
+  10:	7205                	lui	x4,0xfffe1
+  12:	3376                	fld	f6,376(x2)
+  14:	6932                	flw	f18,12(x2)
+  16:	7032                	flw	f0,44(x2)
+  18:	5f30                	lw	x12,120(x14)
+  1a:	326d                	jal	fffff9c4 <_dram_d_lma_start+0x7efff9c4>
+  1c:	3070                	fld	f12,224(x8)
+  1e:	615f 7032 5f30      	0x5f307032615f
+  24:	3266                	fld	f4,120(x2)
+  26:	3070                	fld	f12,224(x8)
+	...
