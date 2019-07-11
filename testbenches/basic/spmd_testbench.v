@@ -141,6 +141,7 @@ module spmd_testbench;
     ,.reset_i(reset_rr)
     ,.io_link_sif_i(io_link_lo[0])
     ,.io_link_sif_o(io_link_li[0])
+    ,.loader_done_o()
   );
 
 
