@@ -29,11 +29,16 @@ int main()
     {
       dp += fdata1[i] * fdata2[i];
     }
-    
+   
+    int product = 1;
+    for (int i = 0; i < N; i++)
+    {
+      product = product * idata[i];
+    } 
 
     bsg_print_stat(1);
 
-    if (sum == 30 && dp == 51.0f)
+    if (sum == 30 && dp == 51.0f && product == 12096)
       bsg_finish();
     else
       bsg_fail();
