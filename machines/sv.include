@@ -119,4 +119,5 @@ $BSG_MANYCORE_DIR/testbenches/common/v/bsg_nonsynth_manycore_io_complex.v
 $BSG_MANYCORE_DIR/testbenches/common/v/bsg_nonsynth_manycore_spmd_loader.v
 $BSG_MANYCORE_DIR/testbenches/common/v/bsg_nonsynth_manycore_monitor.v
 $BSG_MANYCORE_DIR/testbenches/common/v/vanilla_core_profiler.v
+$BSG_MANYCORE_DIR/testbenches/common/v/vcache_profiler.v
 $BSG_MANYCORE_DIR/testbenches/basic/spmd_testbench.v
