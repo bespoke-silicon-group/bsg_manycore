@@ -183,7 +183,7 @@ module vanilla_core_trace
         dmem_access = "";
 
         if (~reset_i & (trace_en == 1)) begin
-        if ((my_x_i == 0) & (my_y_i == 1)) begin // comment this out for global logging
+     //   if ((my_x_i == 0) & (my_y_i == 1)) begin // comment this out for global logging
           fd = $fopen("vanilla.log", "a");
 
           // STAMP
@@ -257,7 +257,7 @@ module vanilla_core_trace
     
           $fclose(fd);
 
-        end // comment this out for global logging
+   //     end // comment this out for global logging
         end
       end
     end

@@ -139,6 +139,7 @@ module spmd_testbench;
   ) io (
     .clk_i(clk)
     ,.reset_i(reset_rr)
+    ,.loader_done_o()
     ,.io_link_sif_i(io_link_lo[0])
     ,.io_link_sif_o(io_link_li[0])
     ,.loader_done_o()
@@ -349,6 +350,25 @@ module spmd_testbench;
 
   end
 
+  // profiler
+  //
+  logic [31:0] global_ctr;
+
+  bsg_cycle_counter global_cc (
+    .clk_i(clk)
+    ,.reset_i(reset)
+    ,.ctr_r_o(global_ctr)
+  );
+
+
+  bind vanilla_core vanilla_core_profiler #(
+    .x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.data_width_p(data_width_p)
+  ) prof (
+    .*
+    ,.global_ctr_i($root.spmd_testbench.global_ctr)
+  );
   
   // tieoffs
   //

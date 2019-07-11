@@ -102,4 +102,8 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 #define bsg_VALUE(x) bsg_VALUE_TO_STRING(x)
 #define bsg_VAR_NAME_VALUE(var) "MANYCORE_EXPORT #define " #var " "  bsg_VALUE(var)
 
+
+#define bsg_print_stat(tag) do { bsg_remote_int_ptr ptr = (bsg_remote_int_ptr) 0xd0c; *ptr = tag; } while (0)
+
+
 #endif

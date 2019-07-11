@@ -282,4 +282,8 @@ typedef struct packed
 } fp_debug_s;
 
 
+// Print stat
+`define BSG_PRINT_STAT_ADDR 32'hd0c
+
+
 `endif
