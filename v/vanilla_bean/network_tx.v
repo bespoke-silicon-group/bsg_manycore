@@ -207,8 +207,8 @@ module network_tx
 
   // handling outgoing requests
   //
-  assign out_v_o = remote_req_v_i & (|out_credits_i);
-  assign remote_req_yumi_o = out_v_o & out_ready_i;
+  assign out_v_o = remote_req_v_i & (|out_credits_i) & ~is_invalid_addr;
+  assign remote_req_yumi_o = (out_v_o & out_ready_i) | (remote_req_v_i & is_invalid_addr);
 
 
   // handling response packets
@@ -260,8 +260,12 @@ module network_tx
   end
 
   // synopsys translate_off
+  
+  logic is_print_stat_addr;
+  assign is_print_stat_addr = remote_req_i.addr == '0;
+
   always_ff @ (negedge clk_i) begin
-    if (out_v_o & is_invalid_addr) begin
+    if (out_v_o & is_invalid_addr & ~is_print_stat_addr) begin
       $display("[ERROR][TX] Invalid EVA access. t=%0t, x=%d, y=%d, addr=%h",
         $time, my_x_i, my_y_i, remote_req_i.addr);
     end 
