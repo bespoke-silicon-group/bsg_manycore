@@ -4,7 +4,10 @@
 
 #define N 8
 
-int data[N] = {3,6,2,4,1,7,3,4};
+int idata[N] = {3,6,2,4,1,7,3,4};
+float fdata1[N] = {-1.0, 3.0, 4.0, 9.0, 1.0, 2.0, 11.0, -2.0};
+float fdata2[N] = {-7.0, 2.0, -7.0, 8.0, 1.0, -6.0, 1.0, 3.0};
+
 
 int main()
 {
@@ -18,15 +21,19 @@ int main()
 
     for (int i = 0; i < N; i++)
     {
-      sum += data[i];
+      sum += idata[i];
     }
 
+    float dp = 0.0;
+    for (int i = 0; i < N; i++)
+    {
+      dp += fdata1[i] * fdata2[i];
+    }
     
-    bsg_printf("sum: %d\n", sum);
 
     bsg_print_stat(1);
 
-    if (sum == 30)
+    if (sum == 30 && dp == 51.0f)
       bsg_finish();
     else
       bsg_fail();

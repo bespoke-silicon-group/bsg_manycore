@@ -33,27 +33,47 @@ module vanilla_core_profiler
   // event signals
   //
   logic instr_committed;
+  logic fadd_committed;
+  logic fmul_committed;
+  logic ld_committed;
+  logic st_committed;
 
   assign instr_committed = (~stall & ~stall_depend & ~flush)
     & (id_r.instruction != '0)
     & ~id_r.icache_miss;
 
-
+  assign fadd_committed = instr_committed & id_r.decode.is_fp_float_op & id_r.fp_float_decode.fadd_op;
+  assign fmul_committed = instr_committed & id_r.decode.is_fp_float_op & id_r.fp_float_decode.fmul_op;
+  assign ld_committed = instr_committed & id_r.decode.is_load_op;
+  assign st_committed = instr_committed & id_r.decode.is_store_op;
 
   //  profiling counters
   //
-  integer total_cycle_r;
-  integer num_instr_committed_r;
+  integer num_cycle_r;
+  integer num_instr_r;
+  integer num_fadd_r;
+  integer num_fmul_r;
+  integer num_ld_r;
+  integer num_st_r;
 
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
-      total_cycle_r <= '0;
-      num_instr_committed_r <= '0;
+      num_cycle_r <= '0;
+      num_instr_r <= '0;
+      num_fadd_r <= '0;
+      num_fmul_r <= '0;
+      num_ld_r <= '0;
+      num_st_r <= '0;
+      
     end
     else begin
-      total_cycle_r <= total_cycle_r + 1;
-      if (instr_committed) num_instr_committed_r <= num_instr_committed_r + 1;
+      num_cycle_r <= num_cycle_r + 1;
+      if (instr_committed) num_instr_r <= num_instr_r + 1;
+      if (fadd_committed) num_fadd_r <= num_fadd_r + 1;
+      if (fmul_committed) num_fmul_r <= num_fmul_r + 1;
+      if (ld_committed) num_ld_r <= num_ld_r + 1;
+      if (st_committed) num_st_r <= num_st_r + 1;
     end
   end 
 
@@ -123,11 +143,12 @@ module vanilla_core_profiler
           fd = $fopen(logfile_lp, "a");
 
           $fwrite(fd,
-            "x=%02d,y=%02d,global_ctr=%0d,tag=%0d,total_cycle=%0d,num_instr_committed=%0d\n",
+            "x=%02d,y=%02d,global_ctr=%0d,tag=%0d,num_cycle=%0d,num_instr=%0d,num_fadd=%0d,num_fmul=%0d,num_ld=%0d,num_st=%0d\n",
             my_x_i, my_y_i,
             global_ctr_i, print_stat_tag_wb_r,
-            total_cycle_r,
-            num_instr_committed_r
+            num_cycle_r, num_instr_r,
+            num_fadd_r, num_fmul_r,
+            num_ld_r, num_st_r
           );
 
           $fclose(fd);          
