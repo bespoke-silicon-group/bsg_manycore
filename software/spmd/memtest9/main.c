@@ -54,6 +54,7 @@ int main()
 
   if (__bsg_x == 0 && __bsg_y == 0) 
   {
+    bsg_print_stat(0);
     // testing bank 0~7
     for (int i = 0; i < 8; i++)
     {
@@ -86,6 +87,8 @@ int main()
     read_block(1,1);
     read_block(2,0);
     read_block(3,1);
+
+    bsg_print_stat(0xdead);
 
     bsg_finish();
   }
