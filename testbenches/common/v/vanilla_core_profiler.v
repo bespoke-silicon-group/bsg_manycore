@@ -32,9 +32,12 @@ module vanilla_core_profiler
     , input branch_mispredict
     , input jalr_mispredict
 
-    //, input remote_req_s remote_req_o 
-    //, input remote_req_v_o
-    //, input remote_req_yumi_i
+    , input lsu_dmem_v_lo
+    , input lsu_dmem_w_lo
+  
+    , input remote_req_s remote_req_o
+    , input remote_req_v_o
+    , input remote_req_yumi_i
 
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
@@ -52,8 +55,11 @@ module vanilla_core_profiler
   logic fmul_committed;
   logic ld_committed;
   logic st_committed;
+  logic remote_ld_committed;
+  logic remote_st_committed;
   logic branch_committed;
   logic branch_mispredicted;
+  logic inc_icache_miss;
 
   assign instr_committed = (~stall & ~stall_depend & ~flush)
     & (id_r.instruction != '0)
@@ -61,8 +67,16 @@ module vanilla_core_profiler
 
   assign fadd_committed = instr_committed & id_r.decode.is_fp_float_op & id_r.fp_float_decode.fadd_op;
   assign fmul_committed = instr_committed & id_r.decode.is_fp_float_op & id_r.fp_float_decode.fmul_op;
-  assign ld_committed = instr_committed & id_r.decode.is_load_op;
-  assign st_committed = instr_committed & id_r.decode.is_store_op;
+
+  assign ld_committed = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall;
+  assign st_committed = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall;
+
+  assign remote_ld_committed = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
+    & ~remote_req_o.payload.read_info.load_info.icache_fetch;
+  assign remote_st_committed = remote_req_v_o & remote_req_yumi_i & remote_req_o.write_not_read;
+
+  assign inc_icache_miss = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
+    & remote_req_o.payload.read_info.load_info.icache_fetch;
 
   assign branch_committed = instr_committed
     & (id_r.decode.is_branch_op | (id_r.instruction.op == `RV32_JALR_OP)); 
@@ -76,6 +90,9 @@ module vanilla_core_profiler
   integer num_fmul_r;
   integer num_ld_r;
   integer num_st_r;
+  integer num_remote_ld_r;
+  integer num_remote_st_r;
+  integer num_icache_miss_r;
 
   integer num_branch_r;
   integer num_mispredict_r;
@@ -108,6 +125,10 @@ module vanilla_core_profiler
       num_fmul_r <= '0;
       num_ld_r <= '0;
       num_st_r <= '0;
+      num_remote_ld_r <= '0;
+      num_remote_st_r <= '0;
+      num_icache_miss_r <= '0;
+
       num_branch_r <= '0;
       num_mispredict_r <= '0;
 
@@ -125,10 +146,18 @@ module vanilla_core_profiler
       num_cycle_r <= num_cycle_r + 1;
       
       if (instr_committed) num_instr_r <= num_instr_r + 1;
+
       if (fadd_committed) num_fadd_r <= num_fadd_r + 1;
       if (fmul_committed) num_fmul_r <= num_fmul_r + 1;
+
       if (ld_committed) num_ld_r <= num_ld_r + 1;
       if (st_committed) num_st_r <= num_st_r + 1;
+
+      if (remote_ld_committed) num_remote_ld_r <= num_remote_ld_r + 1;
+      if (remote_st_committed) num_remote_st_r <= num_remote_st_r + 1;
+
+      if (inc_icache_miss) num_icache_miss_r <= num_icache_miss_r + 1;
+
       if (branch_committed) num_branch_r <= num_branch_r + 1;
       if (branch_mispredicted) num_mispredict_r <= num_mispredict_r + 1;
       
@@ -145,52 +174,6 @@ module vanilla_core_profiler
     end
   end 
 
-
-
-  // print signaling
-  //
-  /*
-  logic print_stat_exe;
-  logic print_stat_mem_r;
-  logic print_stat_wb_r;  
-  logic [data_width_p-1:0] print_stat_tag_exe;
-  logic [data_width_p-1:0] print_stat_tag_mem_r;
-  logic [data_width_p-1:0] print_stat_tag_wb_r;
-  logic print_now;
-  
-  assign print_stat_exe = remote_req_v_o & remote_req_yumi_i
-    & (remote_req_o.addr == `BSG_PRINT_STAT_ADDR);
-  assign print_stat_tag_exe = remote_req_o.payload;
-
-
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      print_stat_mem_r <= 1'b0;
-      print_stat_wb_r <= 1'b0;
-
-      print_stat_tag_mem_r <= '0;
-      print_stat_tag_wb_r <= '0;
-
-    end
-    else begin
-      if (~stall) begin
-        print_stat_mem_r <= print_stat_exe;
-        print_stat_wb_r <= print_stat_mem_r;
-
-        if (print_stat_exe) begin
-          print_stat_tag_mem_r <= print_stat_tag_exe;
-        end
-  
-        if (print_stat_mem_r) begin
-          print_stat_tag_wb_r <= print_stat_tag_mem_r;
-        end
-
-      end 
-    end
-  end
-
-  assign print_now = print_stat_wb_r & ~stall;
-  */
 
   // file logging
   //
@@ -221,8 +204,12 @@ module vanilla_core_profiler
           $fwrite(fd, "%s,num_cycle=%0d,num_instr=%0d,num_fadd=%0d,num_fmul=%0d\n",
             stamp, num_cycle_r, num_instr_r, num_fadd_r, num_fmul_r);
 
-          $fwrite(fd, "%s,num_ld=%0d,num_st=%0d,num_branch=%0d,num_mispredict=%0d\n",
-            stamp, num_ld_r, num_st_r, num_branch_r, num_mispredict_r);
+          $fwrite(fd, "%s,num_ld=%0d,num_st=%0d,num_remote_ld=%0d,num_remote_st=%0d,icache_miss=%0d\n",
+            stamp, num_ld_r, num_st_r, num_remote_ld_r, num_remote_st_r, num_icache_miss_r);
+        
+          $fwrite(fd, "%s,num_branch=%0d,num_mispredict=%0d\n",
+            stamp, num_branch_r, num_mispredict_r);
+        
 
           $fwrite(fd, "%s,st_fp=%0d,st_depend=%0d,st_ifetch=%0d,st_lr=%0d,st_fence=%0d,st_md=%0d,st_force_wb=%0d,st_remote_req=%0d,st_flw=%0d\n",
             stamp, stall_fp_r, stall_depend_r, stall_ifetch_wait_r, stall_lr_aq_r, stall_fence_r,
