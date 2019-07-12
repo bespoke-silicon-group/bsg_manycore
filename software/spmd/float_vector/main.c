@@ -58,6 +58,7 @@ int main()
     bsg_printf("Float Vector Test\n");
     bsg_printf("=================\n");
 
+    bsg_print_stat(0);
     for (int i = 0; i < NUM_ITER; i++)
     {
       bsg_printf("Iteration=%d\n", i);
@@ -68,6 +69,7 @@ int main()
       test_vector_multiply();
       test_conv_1d();
     }
+    bsg_print_stat(0xdead);
 
     bsg_finish();
   }
