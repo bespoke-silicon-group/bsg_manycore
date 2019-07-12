@@ -32,14 +32,16 @@ module vanilla_core_profiler
     , input branch_mispredict
     , input jalr_mispredict
 
-    , input remote_req_s remote_req_o 
-    , input remote_req_v_o
-    , input remote_req_yumi_i
+    //, input remote_req_s remote_req_o 
+    //, input remote_req_v_o
+    //, input remote_req_yumi_i
 
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
 
     , input [31:0] global_ctr_i
+    , input print_stat_v_i
+    , input [data_width_p-1:0] print_stat_tag_i
   );
 
 
@@ -147,6 +149,7 @@ module vanilla_core_profiler
 
   // print signaling
   //
+  /*
   logic print_stat_exe;
   logic print_stat_mem_r;
   logic print_stat_wb_r;  
@@ -187,7 +190,7 @@ module vanilla_core_profiler
   end
 
   assign print_now = print_stat_wb_r & ~stall;
-
+  */
 
   // file logging
   //
@@ -206,14 +209,14 @@ module vanilla_core_profiler
       @(negedge clk_i) begin
         stamp = "";
 
-        if (print_now) begin
-          $display("[BSG_INFO][PROFILER] t=%0t x,y=%02d,%02d printing stats.",
+        if (~reset_i & print_stat_v_i) begin
+          $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.",
             $time, my_x_i, my_y_i
           );
 
           fd = $fopen(logfile_lp, "a");
           stamp = $sformatf("x=%02d,y=%02d,global_ctr=%0d,tag=%0d",
-            my_x_i, my_y_i, global_ctr_i, print_stat_tag_wb_r);
+            my_x_i, my_y_i, global_ctr_i, print_stat_tag_i);
 
           $fwrite(fd, "%s,num_cycle=%0d,num_instr=%0d,num_fadd=%0d,num_fmul=%0d\n",
             stamp, num_cycle_r, num_instr_r, num_fadd_r, num_fmul_r);

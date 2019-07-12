@@ -127,6 +127,9 @@ module spmd_testbench;
 
   // instantiate the loader and moniter
   // connects to (0,0)
+  logic print_stat_v;
+  logic [data_width_p-1:0] print_stat_tag;
+
   bsg_nonsynth_manycore_io_complex #(
     .addr_width_p(bsg_max_epa_width_p)
     ,.data_width_p(data_width_p)
@@ -142,6 +145,9 @@ module spmd_testbench;
     ,.loader_done_o()
     ,.io_link_sif_i(io_link_lo[0])
     ,.io_link_sif_o(io_link_li[0])
+
+    ,.print_stat_v_o(print_stat_v)
+    ,.print_stat_tag_o(print_stat_tag)
   );
 
 
@@ -367,10 +373,17 @@ module spmd_testbench;
   ) vcore_prof (
     .*
     ,.global_ctr_i($root.spmd_testbench.global_ctr)
+    ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
+    ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
   );
   
-  bind bsg_cache vcache_profiler vcache_prof (
+  bind bsg_cache vcache_profiler #(
+    .data_width_p(data_width_p)
+  ) vcache_prof (
     .*
+    ,.global_ctr_i($root.spmd_testbench.global_ctr)
+    ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
+    ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
   );
 
   // tieoffs
