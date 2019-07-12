@@ -31,6 +31,10 @@ module bsg_nonsynth_manycore_monitor
 
     , output logic [data_width_p-1:0] data_o
     , output logic v_o
+
+
+    , output logic print_stat_v_o
+    , output logic [data_width_p-1:0] print_stat_tag_o
   );
 
   int status;
@@ -117,6 +121,7 @@ module bsg_nonsynth_manycore_monitor
     end
   end
 
+
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       send_mem_data_r <= 1'b0;
@@ -140,6 +145,7 @@ module bsg_nonsynth_manycore_monitor
   //
   logic [15:0] epa_addr;
   assign epa_addr = {addr_i[13:0], 2'b00};
+
 
 
   always_ff @ (negedge clk_i) begin
@@ -167,6 +173,10 @@ module bsg_nonsynth_manycore_monitor
               end
             end
           end
+          else if (epa_addr == 16'h0D0C) begin
+            $display("[INFO][MONITOR] RECEIVED PRINT_STAT PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, $time);      
+          end
           else begin
             $display("[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x=%2d,%2d, data=%x, addr=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, addr_i, $time);
@@ -182,7 +192,10 @@ module bsg_nonsynth_manycore_monitor
     end
   end
 
-
+  // print stat trigger
+  //
+  assign print_stat_v_o = v_i & (epa_addr == 16'hD0C);
+  assign print_stat_tag_o = data_i;
 
 endmodule
 
