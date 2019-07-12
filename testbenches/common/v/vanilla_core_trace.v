@@ -27,7 +27,7 @@ module vanilla_core_trace
 
     , input stall
     , input stall_fp
-    , input stall_depend
+    //, input stall_depend
     , input stall_ifetch_wait
     , input stall_icache_store
     , input stall_lr_aq
@@ -37,7 +37,7 @@ module vanilla_core_trace
     , input stall_remote_req
     , input stall_local_flw
 
-    , input flush
+    //, input flush
     
     , input id_signals_s id_r
     , input exe_signals_s exe_r
