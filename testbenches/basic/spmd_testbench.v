@@ -101,6 +101,7 @@ module spmd_testbench;
     .dmem_size_p(dmem_size_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_block_size_in_words_p(bsg_vcache_block_size_p)
+    ,.vcache_sets_p(bsg_vcache_set_p)
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.data_width_p(data_width_p)

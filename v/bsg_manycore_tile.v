@@ -22,6 +22,7 @@ module bsg_manycore_tile
     , parameter dram_ch_addr_width_p = "inv"
 
     , parameter vcache_block_size_in_words_p="inv"
+    , parameter vcache_sets_p="inv"
 
     , localparam dirs_lp = 4
 
@@ -95,6 +96,7 @@ module bsg_manycore_tile
     ,.hetero_type_p(hetero_type_p)
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+    ,.vcache_sets_p(vcache_sets_p)
 
     ,.debug_p(debug_p)
   ) proc (

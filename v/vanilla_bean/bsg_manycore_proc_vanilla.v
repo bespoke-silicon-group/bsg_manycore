@@ -20,6 +20,7 @@ module bsg_manycore_proc_vanilla
     , parameter dmem_size_p = "inv"
     , parameter vcache_size_p = "inv"
     , parameter vcache_block_size_in_words_p="inv"
+    , parameter vcache_sets_p = "inv"
 
     , parameter dram_ch_addr_width_p = "inv"
     , parameter epa_byte_addr_width_p = "inv"
@@ -227,6 +228,7 @@ module bsg_manycore_proc_vanilla
     ,.load_id_width_p(load_id_width_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+    ,.vcache_sets_p(vcache_sets_p)
 
     ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
     ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
