@@ -7,7 +7,7 @@ endif
 # Sets "VCS" variable
 include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
 
-MACHINES = 9x15
+MACHINES = 9x15 4x4
 
 SIMV = $(addsuffix /simv, $(MACHINES))
 SIMV_DEBUG = $(addsuffix /simv-debug, $(MACHINES))
