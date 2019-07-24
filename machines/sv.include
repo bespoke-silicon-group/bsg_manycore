@@ -2,6 +2,7 @@ $BASEJUMP_STL_DIR/bsg_misc/bsg_defines.v
 $BASEJUMP_STL_DIR/bsg_noc/bsg_noc_pkg.v
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_pkg.v
 $BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_pkg.v
+$BSG_MANYCORE_DIR/testbenches/common/v/bsg_mem_cfg_pkg.v
 
 $BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_clock_gen.v
 $BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_reset_gen.v
@@ -109,15 +110,20 @@ $BSG_MANYCORE_DIR/v/bsg_manycore_endpoint_standard.v
 $BSG_MANYCORE_DIR/v/bsg_manycore_lock_ctrl.v
 $BSG_MANYCORE_DIR/v/bsg_1hold.v
 $BSG_MANYCORE_DIR/v/bsg_manycore_link_sif_tieoff.v
-$BSG_MANYCORE_DIR/v/bladerunner/bsg_cache_wrapper_axi.v
+
+$BSG_MANYCORE_DIR/testbenches/common/v/memory_system.v
+$BSG_MANYCORE_DIR/testbenches/common/v/bsg_cache_wrapper_axi.v
+$BSG_MANYCORE_DIR/testbenches/common/v/bsg_manycore_axi_mem.v
 
 $BSG_MANYCORE_DIR/testbenches/common/v/instr_trace.v
 $BSG_MANYCORE_DIR/testbenches/common/v/vanilla_core_trace.v
 $BSG_MANYCORE_DIR/testbenches/common/v/bsg_manycore_link_to_cache_tracer.v
-$BSG_MANYCORE_DIR/testbenches/common/v/bsg_manycore_axi_mem.v
+
 $BSG_MANYCORE_DIR/testbenches/common/v/bsg_nonsynth_manycore_io_complex.v
 $BSG_MANYCORE_DIR/testbenches/common/v/bsg_nonsynth_manycore_spmd_loader.v
 $BSG_MANYCORE_DIR/testbenches/common/v/bsg_nonsynth_manycore_monitor.v
+
 $BSG_MANYCORE_DIR/testbenches/common/v/vanilla_core_profiler.v
 $BSG_MANYCORE_DIR/testbenches/common/v/vcache_profiler.v
+
 $BSG_MANYCORE_DIR/testbenches/basic/spmd_testbench.v
