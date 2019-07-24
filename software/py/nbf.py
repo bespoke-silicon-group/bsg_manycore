@@ -148,6 +148,14 @@ class NBF:
       if words[2] == "_bsg_data_end_addr":
         self.bsg_data_end_addr = (int(words[0]) >> 2) # make it word address
 
+  def select_bits(self, num, start, end):
+    retval = 0
+
+    for i in range(start, end+1):
+      b = num & (1 << i)
+      retval = retval | b
+
+    return (retval >> start)
 
   ##### END UTIL FUNCTIONS #####
 
@@ -223,26 +231,44 @@ class NBF:
     y = self.num_tiles_y
     dram_ch_size = self.dram_ch_size
     cache_size = self.cache_size
+    lg_x = self.safe_clog2(self.num_tiles_x)
+    lg_block_size = self.safe_clog2(self.cache_block_size)
+    lg_set = self.safe_clog2(self.cache_set)
+    index_width = self.addr_width-1-lg_block_size
 
     if enable_dram == 1:
-      
-      for k in sorted(self.dram_data.keys()):
+      if self.num_tiles_x == 9:      
         # hashing for 9 banks
-        addr = k - 0x20000000
-        bit_2_0 = (addr >> 3) & 0b111
-        bit_5_4 = (addr >> 6) & 0b110
-        bit_3 = (addr >> 6) & 0b001
-        bit_12 = (addr >> 15) & 0b1
-        if bit_2_0 == (bit_5_4 | (bit_3 ^ bit_12)):
-          x = 8
-        else:
-          x = bit_2_0
+        for k in sorted(self.dram_data.keys()):
+          addr = k - 0x20000000
+          bit_2_0 = (addr >> lg_block_size) & 0b111
+          bit_5_4 = (addr >> (3+lg_block_size)) & 0b110
+          bit_3 = (addr >> (3+lg_block_size)) & 0b001
+          bit_12 = (addr >> (3+lg_block_size+lg_set)) & 0b1
 
-        index = (addr >> 3) & 0b11111111111111111111111000
-        epa = (addr & 0b111) | index
-        #x = addr / dram_ch_size
-        #epa = addr % dram_ch_size
-        self.print_nbf(x, y, epa, self.dram_data[k])
+          if bit_2_0 == (bit_5_4 | (bit_3 ^ bit_12)):
+            x = 8
+          else:
+            x = bit_2_0
+    
+          block_offset = self.select_bits(addr, 0, lg_block_size-1)
+          index = self.select_bits(addr, lg_block_size+3, lg_block_size+3+index_width-1) << lg_block_size
+          epa = block_offset | index
+          self.print_nbf(x, y, epa, self.dram_data[k])
+
+      elif self.num_tiles_x & (self.num_tiles_x-1) == 0:
+        # hashing for power of 2 banks
+        for k in sorted(self.dram_data.keys()):
+          addr = k - 0x20000000
+          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1)
+          index = self.select_bits(addr, lg_block_size+lg_x, lg_block_size+lg_x+index_width-1)
+          epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
+          self.print_nbf(x, y, epa, self.dram_data[k])
+          
+      else:
+        print("hash function not supported for x={0}.")
+        sys.exit()
+
     else:
       for k in sorted(self.dram_data.keys()):
         addr = k - 0x20000000

@@ -17,6 +17,7 @@ module network_tx
     , parameter epa_byte_addr_width_p="inv"
     , parameter vcache_size_p="inv" 
     , parameter vcache_block_size_in_words_p="inv"
+    , parameter vcache_sets_p="inv"
     
     , parameter num_tiles_x_p="inv"
   
@@ -141,6 +142,7 @@ module network_tx
   hash_function #(
     .banks_p(num_tiles_x_p)
     ,.width_p(hash_bank_input_width_lp)
+    ,.vcache_sets_p(vcache_sets_p)
   ) hashb (
     .i(hash_bank_input)
     ,.bank_o(hash_bank_lo)
