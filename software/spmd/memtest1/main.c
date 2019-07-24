@@ -2,7 +2,7 @@
 #include "bsg_set_tile_x_y.h"
 
 #define BLOCK_SIZE 8
-#define INDEX 16384
+#define INDEX 1024
 
 int main()
 {
