@@ -121,6 +121,9 @@ module bsg_manycore_endpoint #( x_cord_width_p                  = "inv"
      end
 
      assign returned_fifo_full_o = 1'b1;
+      
+     wire unused =  returned_yumi_i;
+
    end
 
    // We should always receive the returned packet
