@@ -23,7 +23,7 @@ module vanilla_core_trace
     input clk_i
     , input reset_i
 
-    , input trace_en
+    , input trace_en_i
 
     , input stall
     , input stall_fp
@@ -182,7 +182,7 @@ module vanilla_core_trace
         btarget = "";
         dmem_access = "";
 
-        if (~reset_i & (trace_en == 1)) begin
+        if (~reset_i & (trace_en_i == 1)) begin
      //   if ((my_x_i == 0) & (my_y_i == 1)) begin // comment this out for global logging
           fd = $fopen("vanilla.log", "a");
 

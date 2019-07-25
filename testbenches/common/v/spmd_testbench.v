@@ -324,6 +324,15 @@ module spmd_testbench;
  
   // vanilla core tracer
   //
+  int status;
+  int trace_arg;
+  logic trace_en;
+
+  initial begin
+    status = $value$plusargs("vanilla_trace_en=%d", trace_arg);
+    assign trace_en = (trace_arg == 1);
+  end
+
   if (1) begin
 
     bind vanilla_core vanilla_core_trace #(
@@ -335,6 +344,7 @@ module spmd_testbench;
       ,.dmem_size_p(dmem_size_p)
     ) vtrace (
       .*
+      ,.trace_en_i($root.spmd_testbench.trace_en)
     );
 
     bind vanilla_core instr_trace #(
@@ -342,6 +352,7 @@ module spmd_testbench;
       ,.y_cord_width_p(y_cord_width_p)
     ) itrace(
       .*
+      ,.trace_en_i($root.spmd_testbench.trace_en)
     );
 
   end
