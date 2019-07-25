@@ -40,7 +40,7 @@ module memory_system
     , output [bsg_global_x_p-1:0][link_sif_width_lp-1:0] link_sif_o
   );
 
-  if (mem_cfg_p == e_mem_cfg_default) begin
+  if (mem_cfg_p == e_mem_cfg_default) begin: mem_default
     bsg_cache_wrapper_axi #(
       .bsg_global_x_p(bsg_global_x_p)
       ,.bsg_global_y_p(bsg_global_y_p)
@@ -66,6 +66,26 @@ module memory_system
       ,.link_sif_i(link_sif_i)
       ,.link_sif_o(link_sif_o)
     );
+  end
+  else if (mem_cfg_p == e_mem_cfg_infinite) begin: mem_infinite
+    for (genvar i = 0; i < bsg_global_x_p; i++) begin: mem_infty
+      bsg_nonsynth_mem_infinite #(
+        .data_width_p(data_width_p)
+        ,.addr_width_p(addr_width_p)
+        ,.x_cord_width_p(x_cord_width_p)
+        ,.y_cord_width_p(y_cord_width_p)
+        ,.load_id_width_p(load_id_width_p)
+      ) mem_infty (
+        .clk_i(clk_i)
+        ,.reset_i(reset_i)
+
+        ,.link_sif_i(link_sif_i[i])
+        ,.link_sif_o(link_sif_o[i])
+        
+        ,.my_x_i((x_cord_width_p)'(i))
+        ,.my_y_i((y_cord_width_p)'(bsg_global_y_p))
+      );
+    end
   end
   else begin
     initial begin
