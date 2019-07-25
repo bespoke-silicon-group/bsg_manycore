@@ -66,25 +66,6 @@ module vanilla_core
     , input [y_cord_width_p-1:0] my_y_i
   );
 
-
-  // trace control singal
-  //
-  // synopsys translate_off
-  int   status;
-  int   trace_arg;
-  logic trace_en;
-
-  initial begin
-    status = $value$plusargs("vanilla_trace_en=%d", trace_arg);
-
-    if (trace_arg == 1)
-      assign trace_en = 1'b1;
-    else
-      assign trace_en = 1'b0;
-  end
-  // synopsys translate_on
-
-
   // pipeline signals
   //
   id_signals_s id_r, id_n;
