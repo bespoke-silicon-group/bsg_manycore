@@ -16,7 +16,7 @@ module spmd_testbench;
   parameter bsg_dram_size_p = `BSG_MACHINE_DRAM_SIZE_WORDS; // in words
   parameter bsg_dram_included_p = `BSG_MACHINE_DRAM_INCLUDED;
   parameter bsg_max_epa_width_p = `BSG_MACHINE_MAX_EPA_WIDTH;
-  parameter bsg_mem_cfg_e bsg_mem_cfg_p = e_mem_cfg_default;
+  parameter bsg_mem_cfg_e bsg_mem_cfg_p = `BSG_MACHINE_MEM_CFG;
 
   // constant params
 
@@ -55,6 +55,7 @@ module spmd_testbench;
     $display("[INFO][TESTBENCH] BSG_MACHINE_DRAM_SIZE_WORDS          = %d", bsg_dram_size_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_DRAM_INCLUDED            = %d", bsg_dram_included_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_MAX_EPA_WIDTH            = %d", bsg_max_epa_width_p);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = %d", bsg_mem_cfg_p);
   end
 
 
@@ -210,17 +211,6 @@ module spmd_testbench;
       .*
     );
 
-    bind bsg_manycore_link_to_cache bsg_manycore_link_to_cache_tracer #(
-      .link_addr_width_p(link_addr_width_p)
-      ,.data_width_p(data_width_p)
-      ,.x_cord_width_p(x_cord_width_p)
-      ,.y_cord_width_p(y_cord_width_p)
-      ,.cache_addr_width_lp(cache_addr_width_lp)
-      ,.bsg_cache_pkt_width_lp(bsg_cache_pkt_width_lp)
-    ) mlctrace (
-      .*
-    );
-
   end
 
   // profiler
@@ -233,7 +223,6 @@ module spmd_testbench;
     ,.ctr_r_o(global_ctr)
   );
 
-
   bind vanilla_core vanilla_core_profiler #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -244,15 +233,30 @@ module spmd_testbench;
     ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
     ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
   );
+
+  if (bsg_mem_cfg_p == e_mem_cfg_default) begin
   
-  bind bsg_cache vcache_profiler #(
-    .data_width_p(data_width_p)
-  ) vcache_prof (
-    .*
-    ,.global_ctr_i($root.spmd_testbench.global_ctr)
-    ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
-    ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
-  );
+    bind bsg_cache vcache_profiler #(
+      .data_width_p(data_width_p)
+    ) vcache_prof (
+      .*
+      ,.global_ctr_i($root.spmd_testbench.global_ctr)
+      ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
+      ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
+    );
+
+    bind bsg_manycore_link_to_cache bsg_manycore_link_to_cache_tracer #(
+      .link_addr_width_p(link_addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.cache_addr_width_lp(cache_addr_width_lp)
+      ,.bsg_cache_pkt_width_lp(bsg_cache_pkt_width_lp)
+    ) mlctrace (
+      .*
+    );
+
+  end
 
   // tieoffs
   //

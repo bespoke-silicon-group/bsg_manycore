@@ -33,6 +33,7 @@ all: $(SIMV)
 	$(eval VCS_DEFINE += +define+BSG_MACHINE_DRAM_SIZE_WORDS=${BSG_MACHINE_DRAM_SIZE_WORDS})
 	$(eval VCS_DEFINE += +define+BSG_MACHINE_DRAM_INCLUDED=${BSG_MACHINE_DRAM_INCLUDED})
 	$(eval VCS_DEFINE += +define+BSG_MACHINE_MAX_EPA_WIDTH=${BSG_MACHINE_MAX_EPA_WIDTH})
+	$(eval VCS_DEFINE += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
 	$(VCS) +v2k -sverilog -full64 -o $*/simv \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
 		-timescale=1ps/1ps \
