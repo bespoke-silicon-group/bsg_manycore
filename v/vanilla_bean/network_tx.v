@@ -89,6 +89,8 @@ module network_tx
     , input int_remote_load_resp_yumi_i
   );
 
+  wire unused = reset_i;
+
   // manycore packet struct
   //
   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,
