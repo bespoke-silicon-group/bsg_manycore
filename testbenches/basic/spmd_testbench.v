@@ -157,6 +157,47 @@ module spmd_testbench;
 
   // configurable memory system
   //
+  logic [axi_id_width_p-1:0] awid;
+  logic [axi_addr_width_p-1:0] awaddr;
+  logic [7:0] awlen;
+  logic [2:0] awsize;
+  logic [1:0] awburst;
+  logic [3:0] awcache;
+  logic [2:0] awprot;
+  logic awlock;
+  logic awvalid;
+  logic awready;
+
+  logic [axi_data_width_p-1:0] wdata;
+  logic [axi_strb_width_lp-1:0] wstrb;
+  logic wlast;
+  logic wvalid;
+  logic wready;
+
+  logic [axi_id_width_p-1:0] bid;
+  logic [1:0] bresp;
+  logic bvalid;
+  logic bready;
+
+  logic [axi_id_width_p-1:0] arid;
+  logic [axi_addr_width_p-1:0] araddr;
+  logic [7:0] arlen;
+  logic [2:0] arsize;
+  logic [1:0] arburst;
+  logic [3:0] arcache;
+  logic [2:0] arprot;
+  logic arlock;
+  logic arvalid;
+  logic arready;
+
+  logic [axi_id_width_p-1:0] rid;
+  logic [axi_data_width_p-1:0] rdata;
+  logic [1:0] rresp;
+  logic rlast;
+  logic rvalid;
+  logic rready;
+
+
   memory_system #(
     .mem_cfg_p(bsg_mem_cfg_p)
 
@@ -177,22 +218,114 @@ module spmd_testbench;
     ,.axi_addr_width_p(axi_addr_width_p)
     ,.axi_data_width_p(axi_data_width_p)
     ,.axi_burst_len_p(axi_burst_len_p)
-
-    ,.bsg_dram_included_p(bsg_dram_included_p)
-    ,.bsg_dram_size_p(bsg_dram_size_p)
-
   ) memsys (
     .clk_i(clk)
     ,.reset_i(reset)
 
     ,.link_sif_i(ver_link_lo[S])
     ,.link_sif_o(ver_link_li[S])
+
+    ,.axi_awid_o(awid)
+    ,.axi_awaddr_o(awaddr)
+    ,.axi_awlen_o(awlen)
+    ,.axi_awsize_o(awsize)
+    ,.axi_awburst_o(awburst)
+    ,.axi_awcache_o(awcache)
+    ,.axi_awprot_o(awprot)
+    ,.axi_awlock_o(awlock)
+    ,.axi_awvalid_o(awvalid)
+    ,.axi_awready_i(awready)
+
+    ,.axi_wdata_o(wdata)
+    ,.axi_wstrb_o(wstrb)
+    ,.axi_wlast_o(wlast)
+    ,.axi_wvalid_o(wvalid)
+    ,.axi_wready_i(wready)
+
+    ,.axi_bid_i(bid)
+    ,.axi_bresp_i(bresp)
+    ,.axi_bvalid_i(bvalid)
+    ,.axi_bready_o(bready)
+
+    ,.axi_arid_o(arid)
+    ,.axi_araddr_o(araddr)
+    ,.axi_arlen_o(arlen)
+    ,.axi_arsize_o(arsize)
+    ,.axi_arburst_o(arburst)
+    ,.axi_arcache_o(arcache)
+    ,.axi_arprot_o(arprot)
+    ,.axi_arlock_o(arlock)
+    ,.axi_arvalid_o(arvalid)
+    ,.axi_arready_i(arready)
+
+    ,.axi_rid_i(rid)
+    ,.axi_rdata_i(rdata)
+    ,.axi_rresp_i(rresp)
+    ,.axi_rlast_i(rlast)
+    ,.axi_rvalid_i(rvalid)
+    ,.axi_rready_o(rready)
+
   );
+
+
+  bsg_manycore_axi_mem #(
+    .axi_id_width_p(axi_id_width_p)
+    ,.axi_addr_width_p(axi_addr_width_p)
+    ,.axi_data_width_p(axi_data_width_p)
+    ,.axi_burst_len_p(axi_burst_len_p)
+    ,.mem_els_p(bsg_dram_size_p/(axi_data_width_p/data_width_p))
+  ) axi_mem (
+    .clk_i(clk)
+    ,.reset_i(reset)
+
+    ,.axi_awid_i(awid)
+    ,.axi_awaddr_i(awaddr)
+    ,.axi_awvalid_i(awvalid)
+    ,.axi_awready_o(awready)
+
+    ,.axi_wdata_i(wdata)
+    ,.axi_wstrb_i(wstrb)
+    ,.axi_wlast_i(wlast)
+    ,.axi_wvalid_i(wvalid)
+    ,.axi_wready_o(wready)
+
+    ,.axi_bid_o(bid)
+    ,.axi_bresp_o(bresp)
+    ,.axi_bvalid_o(bvalid)
+    ,.axi_bready_i(bready)
+
+    ,.axi_arid_i(arid)
+    ,.axi_araddr_i(araddr)
+    ,.axi_arvalid_i(arvalid)
+    ,.axi_arready_o(arready)
+
+    ,.axi_rid_o(rid)
+    ,.axi_rdata_o(rdata)
+    ,.axi_rresp_o(rresp)
+    ,.axi_rlast_o(rlast)
+    ,.axi_rvalid_o(rvalid)
+    ,.axi_rready_i(rready)
+  );
+
+
+  // synopsys translate_off
+  always_ff @ (negedge clk) begin
+    if (~reset) begin
+      if (bsg_dram_included_p == 0) begin
+        assert(awvalid !== 1'b1) else
+          $error("[BSG_ERROR][TESTBENCH] DRAM write detected in no DRAM mode!!!");
+        assert(arvalid !== 1'b1) else
+          $error("[BSG_ERROR][TESTBENCH] DRAM read detected in no DRAM mode!!!");
+      end
+    end
+  end
+  // synopsys translate_on
 
  
   // vanilla core tracer
   //
   if (1) begin
+
     bind vanilla_core vanilla_core_trace #(
       .x_cord_width_p(x_cord_width_p)
       ,.y_cord_width_p(y_cord_width_p)
