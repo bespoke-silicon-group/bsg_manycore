@@ -95,7 +95,7 @@ module vanilla_core_profiler
   integer num_icache_miss_r;
 
   integer num_branch_r;
-  integer num_mispredict_r;
+  integer num_branch_mispredict_r;
 
   integer stall_fp_r;
   integer stall_depend_r;
@@ -130,7 +130,7 @@ module vanilla_core_profiler
       num_icache_miss_r <= '0;
 
       num_branch_r <= '0;
-      num_mispredict_r <= '0;
+      num_branch_mispredict_r <= '0;
 
       stall_fp_r <= '0;
       stall_depend_r <= '0;
@@ -159,7 +159,7 @@ module vanilla_core_profiler
       if (inc_icache_miss) num_icache_miss_r <= num_icache_miss_r + 1;
 
       if (branch_committed) num_branch_r <= num_branch_r + 1;
-      if (branch_mispredicted) num_mispredict_r <= num_mispredict_r + 1;
+      if (branch_mispredicted) num_branch_mispredict_r <= num_branch_mispredict_r + 1;
       
       if (inc_stall_fp) stall_fp_r <= stall_fp_r + 1;
       if (inc_stall_depend) stall_depend_r <= stall_depend_r + 1;
@@ -180,41 +180,53 @@ module vanilla_core_profiler
   localparam logfile_lp = "vanilla_stats.log";
 
   integer fd;
-  string stamp;
+  string header;
 
   initial begin
 
-    fd = $fopen(logfile_lp, "w");
-    $fwrite(fd, "");
-    $fclose(fd);
+    #1;
+
+    // the first tile opens the logfile and writes the csv header.
+    if ((my_x_i == x_cord_width_p'(0)) & (my_y_i == y_cord_width_p'(1))) begin
+      fd = $fopen(logfile_lp, "w");
+      $fwrite(fd, "%11s,%11s,%11s,%11s,",
+        "x", "y", "global_ctr", "tag");
+      $fwrite(fd, "%11s,%11s,%11s,%11s,",
+        "num_cycle", "num_instr", "num_fadd", "num_fmul");
+      $fwrite(fd, "%11s,%11s,%11s,%11s,%11s,",
+        "num_ld", "num_st", "num_rmt_ld", "num_rmt_st", "icache_miss");
+      $fwrite(fd, "%11s,%11s,",
+        "num_br", "num_br_miss");
+      $fwrite(fd, "%11s,%11s,%11s,%11s,%11s,%11s,%11s,%11s,%11s",
+        "st_fp","st_depend","st_ifetch","st_lr","st_fence","st_md","st_force_wb","st_rmt_req","st_flw");
+      $fwrite(fd, "\n");
+      $fclose(fd);
+    end
 
     forever begin
       @(negedge clk_i) begin
-        stamp = "";
 
         if (~reset_i & print_stat_v_i) begin
           $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.",
-            $time, my_x_i, my_y_i
-          );
+            $time, my_x_i, my_y_i);
 
           fd = $fopen(logfile_lp, "a");
-          stamp = $sformatf("x=%02d,y=%02d,global_ctr=%0d,tag=%0d",
-            my_x_i, my_y_i, global_ctr_i, print_stat_tag_i);
 
-          $fwrite(fd, "%s,num_cycle=%0d,num_instr=%0d,num_fadd=%0d,num_fmul=%0d\n",
-            stamp, num_cycle_r, num_instr_r, num_fadd_r, num_fmul_r);
+          $fwrite(fd, "%11d,%11d,%11d,%11d,", my_x_i, my_y_i, global_ctr_i, print_stat_tag_i);
 
-          $fwrite(fd, "%s,num_ld=%0d,num_st=%0d,num_remote_ld=%0d,num_remote_st=%0d,icache_miss=%0d\n",
-            stamp, num_ld_r, num_st_r, num_remote_ld_r, num_remote_st_r, num_icache_miss_r);
+          $fwrite(fd, "%11d,%d,%d,%d,",
+            num_cycle_r, num_instr_r, num_fadd_r, num_fmul_r);
+
+          $fwrite(fd, "%d,%d,%d,%d,%d,",
+            num_ld_r, num_st_r, num_remote_ld_r, num_remote_st_r, num_icache_miss_r);
         
-          $fwrite(fd, "%s,num_branch=%0d,num_mispredict=%0d\n",
-            stamp, num_branch_r, num_mispredict_r);
+          $fwrite(fd, "%d,%d,",
+            num_branch_r, num_branch_mispredict_r);
         
 
-          $fwrite(fd, "%s,st_fp=%0d,st_depend=%0d,st_ifetch=%0d,st_lr=%0d,st_fence=%0d,st_md=%0d,st_force_wb=%0d,st_remote_req=%0d,st_flw=%0d\n",
-            stamp, stall_fp_r, stall_depend_r, stall_ifetch_wait_r, stall_lr_aq_r, stall_fence_r,
-            stall_md_r, stall_force_wb_r, stall_remote_req_r, stall_local_flw_r
-          );
+          $fwrite(fd, "%d,%d,%d,%d,%d,%d,%d,%d,%d",
+            stall_fp_r, stall_depend_r, stall_ifetch_wait_r, stall_lr_aq_r, stall_fence_r,
+            stall_md_r, stall_force_wb_r, stall_remote_req_r, stall_local_flw_r);
       
           $fwrite(fd, "\n");
 
