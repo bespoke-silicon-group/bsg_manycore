@@ -29,6 +29,7 @@ typedef volatile void *bsg_remote_void_ptr;
 
 #define bsg_tile_group_shared_mem(type,lc_sh,size) type lc_sh[((size + ((bsg_tiles_X * bsg_tiles_Y) -1))/(bsg_tiles_X * bsg_tiles_Y))]
 #define bsg_tile_group_shared_load(type,lc_sh,index,val) (  (val) = *(bsg_tile_group_shared_ptr(type,(lc_sh),(index)))	)
+#define bsg_tile_group_shared_load_direct(type,lc_sh,index) (*(bsg_tile_group_shared_ptr(type,(lc_sh),(index))))
 #define bsg_tile_group_shared_store(type,lc_sh,index,val) (  *(bsg_tile_group_shared_ptr(type,(lc_sh),(index))) = (val)	)
 
 
