@@ -22,7 +22,7 @@ void __attribute__ ((noinline)) subblock2shmem (int *A, int *sh_dest, int M, int
 	for (int iter_y = __bsg_y; iter_y < block_size_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = __bsg_x; iter_x < block_size_x; iter_x += bsg_tiles_X) { 
 			// sh_dest[iter_y][iter_x] <-- A[iter_y + start_y][iter_x + start_x]
-			bsg_tile_group_shared_store (sh_dest, (iter_y * block_size_x + iter_x), A[((iter_y + start_y) * N + iter_x + start_x)]);
+			bsg_tile_group_shared_store (int, sh_dest, (iter_y * block_size_x + iter_x), A[((iter_y + start_y) * N + iter_x + start_x)]);
 		}
 	}
 	return; 
@@ -37,7 +37,7 @@ void __attribute__ ((noinline)) subblock2shmem_xposed (int *A, int *sh_dest, int
 	for (int iter_y = __bsg_y; iter_y < block_size_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = __bsg_x; iter_x < block_size_x; iter_x += bsg_tiles_X) { 
 			// sh_dest[iter_x][iter_y] <-- A[iter_y + start_y][iter_x + start_x]
-			bsg_tile_group_shared_store (sh_dest, (iter_x * block_size_y + iter_y), A[((iter_y + start_y) * N + iter_x + start_x)]);
+			bsg_tile_group_shared_store (int, sh_dest, (iter_x * block_size_y + iter_y), A[((iter_y + start_y) * N + iter_x + start_x)]);
 		}
 	}
 	return; 
@@ -52,7 +52,7 @@ void __attribute__ ((noinline)) shmem2subblock (int *A, int *sh_src, int M, int 
 	for (int iter_y = __bsg_y; iter_y < block_size_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = __bsg_x; iter_x < block_size_x; iter_x += bsg_tiles_X) { 
 			// A[iter_y + start_y][iter_x + start_x] <-- sh_src[iter_y][iter_x]
-			bsg_tile_group_shared_load (sh_src, (iter_y * block_size_x + iter_x), A[((iter_y + start_y) * N + iter_x + start_x)]);
+			bsg_tile_group_shared_load (int, sh_src, (iter_y * block_size_x + iter_x), A[((iter_y + start_y) * N + iter_x + start_x)]);
 		}
 	}
 	return; 
@@ -69,21 +69,21 @@ void __attribute__ ((noinline)) subblock_shmem_matrix_mul_xposed (int *sh_A, int
 			int lc_A, lc_B;
 			for (int k = 0; k < BLOCK_WIDTH; k ++) { 
 				// lc_A <-- sh_A[iter_y][iter_x]
-				bsg_tile_group_shared_load (sh_A, (iter_y * BLOCK_WIDTH + k), lc_A); 
+				bsg_tile_group_shared_load (int, sh_A, (iter_y * BLOCK_WIDTH + k), lc_A); 
 				// lc_B <-- sh_B[iter_y][iter_x]	remember B is transposed
-				bsg_tile_group_shared_load (sh_B, (iter_x * BLOCK_WIDTH + k), lc_B);
+				bsg_tile_group_shared_load (int, sh_B, (iter_x * BLOCK_WIDTH + k), lc_B);
 				sum += lc_A * lc_B;
 			}
 
 			if (!block_num) { 
 				// sh_C[iter_y][iter_x] <-- sum
-				bsg_tile_group_shared_store (sh_C, (iter_y * block_size_x + iter_x), sum);
+				bsg_tile_group_shared_store (int, sh_C, (iter_y * block_size_x + iter_x), sum);
 			}
 			else { 
 				int lc_C;
 				// sh_C[iter_y][iter_x] += sum
-				bsg_tile_group_shared_load (sh_C, (iter_y * block_size_x + iter_x), lc_C);
-				bsg_tile_group_shared_store (sh_C, (iter_y * block_size_x + iter_x), lc_C + sum);
+				bsg_tile_group_shared_load (int, sh_C, (iter_y * block_size_x + iter_x), lc_C);
+				bsg_tile_group_shared_store (int, sh_C, (iter_y * block_size_x + iter_x), lc_C + sum);
 			} 
 		}
 	}
