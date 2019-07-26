@@ -28,8 +28,8 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_host_dram_load(addr, val) do { val = *(bsg_host_dram_ptr((addr)));} while (0)
 
 #define bsg_tile_group_shared_mem(type,lc_sh,size) type lc_sh[((size + ((bsg_tiles_X * bsg_tiles_Y) -1))/(bsg_tiles_X * bsg_tiles_Y))]
-#define bsg_tile_group_shared_load(lc_sh,index,val) (  (val) = *(bsg_tile_group_shared_ptr((lc_sh),(index)))	)
-#define bsg_tile_group_shared_store(lc_sh,index,val) (  *(bsg_tile_group_shared_ptr((lc_sh),(index))) = (val)	)
+#define bsg_tile_group_shared_load(type,lc_sh,index,val) (  (val) = *(bsg_tile_group_shared_ptr(type,(lc_sh),(index)))	)
+#define bsg_tile_group_shared_store(type,lc_sh,index,val) (  *(bsg_tile_group_shared_ptr(type,(lc_sh),(index))) = (val)	)
 
 
 #define bsg_remote_store_uint8(x,y,local_addr,val)  do { *((bsg_remote_uint8_ptr)  (bsg_remote_ptr((x),(y),(local_addr)))) = (unsigned char) (val); } while (0)
