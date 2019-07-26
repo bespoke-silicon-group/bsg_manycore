@@ -58,7 +58,7 @@ int main() {
 		//   Each tile stores its id to sh_mem[(id+2)%16] (which is in local memory of two tiles ahead)
 		//    Store to Shared Mem
         //----------------------------------------------------------------
-	bsg_tile_group_shared_store(shared_mem,((id+2)%16),id);
+	bsg_tile_group_shared_store(int, shared_mem,((id+2)%16),id);
 				
 				
         //----------------------------------------------------------------
@@ -70,7 +70,7 @@ int main() {
         //4. Each tile loads the first 16 elements of shared memory into local memory 	
         //----------------------------------------------------------------		
 	for (int idx = 0; idx < 16 ; idx ++ )
-		bsg_tile_group_shared_load(shared_mem,idx,local_var[idx]);
+		bsg_tile_group_shared_load(int, shared_mem,idx,local_var[idx]);
 		
 
         //----------------------------------------------------------------
