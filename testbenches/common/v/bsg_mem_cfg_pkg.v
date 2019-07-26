@@ -4,6 +4,8 @@
 
 package bsg_mem_cfg_pkg;
 
+  `include "bsg_defines.v"
+
   localparam max_cfgs = 16;
   localparam lg_max_cfgs = `BSG_SAFE_CLOG2(max_cfgs); 
 
