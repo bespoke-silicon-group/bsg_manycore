@@ -71,6 +71,22 @@
                                                                | ((int) (local_addr)   )                     \
                                                              )                                               \
                                         )
+
+#define bsg_tile_group_remote_int_ptr(x,y,local_addr) ((bsg_remote_int_ptr) (   (REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS) \
+                                                                              | ((y) << Y_CORD_SHIFTS )                     \
+                                                                              | ((x) << X_CORD_SHIFTS )                     \
+                                                                              | ((int) (local_addr)   )                     \
+                                                                            )                                               \
+                                                      )
+
+#define bsg_tile_group_remote_float_ptr(x,y,local_addr) ((bsg_remote_float_ptr) (   (REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS) \
+                                                                                  | ((y) << Y_CORD_SHIFTS )                     \
+                                                                                  | ((x) << X_CORD_SHIFTS )                     \
+                                                                                  | ((int) (local_addr)   )                     \
+                                                                                )                                               \
+                                                        )
+
+
 //Used for global network access
 #define bsg_global_ptr(x,y,local_addr) ((bsg_remote_int_ptr) (   (GLOBAL_EPA_PREFIX << GLOBAL_EPA_MASK_SHIFTS) \
                                                                | ((y) << Y_CORD_SHIFTS )                     \
@@ -92,7 +108,11 @@
                                         & (   (1 << bsg_remote_addr_bits) - 1 )         \
                                      )
 
-#define bsg_tile_group_shared_ptr(lc_sh,index)	( bsg_remote_ptr( ((index)%bsg_tiles_X) , (((index)/bsg_tiles_X)%bsg_tiles_Y) ,(&((lc_sh)[((index)/(bsg_tiles_X * bsg_tiles_Y))]))) )
+#define CREATE_COMMAND_BY_TYPE(type) bsg_tile_group_remote_ ## type ## _ptr
 
+#define bsg_tile_group_shared_ptr(type,lc_sh,index) ( CREATE_COMMAND_BY_TYPE(type)  ( ((index)%bsg_tiles_X),                                  \
+                                                                                    (((index)/bsg_tiles_X)%bsg_tiles_Y),                      \
+                                                                                    (&((lc_sh)[((index)/(bsg_tiles_X * bsg_tiles_Y))]))) )
+                                                    
 #define bsg_io_mutex_ptr(local_addr)  bsg_global_ptr( IO_X_INDEX, IO_Y_INDEX, (local_addr))  
 #endif
