@@ -25,6 +25,8 @@
 # assumed already installed: autoconf automake libtool curl gmp gawk bison flex texinfo gperf gcc48 gsed
 #
 #
+.DEFAULT_GOAL := install-tools
+
 TOOLCHAIN_REPO=riscv-gnu-toolchain
 TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
 DEPENDS_DIR=$(CURDIR)/depends
@@ -124,13 +126,16 @@ rebuild-newlib:
 	make -C $(TOOLCHAIN_REPO)/build-newlib
 	make -C $(TOOLCHAIN_REPO)/build-newlib install
 
-clean:
+install-tools: checkout-all build-all clean-builds
+
+clean-builds:
+	rm -rf $(DEPENDS_DIR) $(TOOLCHAIN_REPO) $(SPIKE_REPO)
+
+clean-install:
 	rm -rf riscv-install
 
-really-clean: clean
-	rm -rf $(TOOLCHAIN_REPO)
-	rm -rf $(DEPENDS_DIR)
-
+clean-all:
+	rm -rf $(DEPENDS_DIR) $(TOOLCHAIN_REPO) $(SPIKE_REPO) riscv-install
 
 installs:
 	sudo apt-get install autoconf automake libtool curl gawk bison flex texinfo gperf \
