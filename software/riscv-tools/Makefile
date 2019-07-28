@@ -105,7 +105,7 @@ configure-riscv-gnu-tools:
 	@echo "Configuring toolchain..."
 	@echo "====================================="
 	cd riscv-gnu-toolchain && \
-		./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32ima --with-abi=ilp32
+		./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32imaf --with-abi=ilp32
 
 build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
