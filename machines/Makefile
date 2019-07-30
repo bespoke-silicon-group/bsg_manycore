@@ -4,7 +4,7 @@ ifndef BSG_MANYCORE_DIR
   export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
 endif
 
-export BASEJUMP_STL_DIR := ../../basejump_stl
+export BASEJUMP_STL_DIR := $(BSG_MANYCORE_DIR)/../basejump_stl
 
 # Sets "VCS" variable
 include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
