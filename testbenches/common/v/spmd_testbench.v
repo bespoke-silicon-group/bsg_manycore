@@ -397,6 +397,18 @@ module spmd_testbench;
     );
 
   end
+  else if (bsg_mem_cfg_p == e_mem_cfg_infinite) begin
+    bind bsg_nonsynth_mem_infinite infinite_mem_profiler #(
+      .data_width_p(data_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+    ) infinite_mem_prof (
+      .*
+      ,.global_ctr_i($root.spmd_testbench.global_ctr)
+      ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
+      ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
+    );
+  end
 
   // tieoffs
   //
