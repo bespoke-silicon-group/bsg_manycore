@@ -25,6 +25,8 @@
 # assumed already installed: autoconf automake libtool curl gmp gawk bison flex texinfo gperf gcc48 gsed
 #
 #
+.DEFAULT_GOAL := help
+
 TOOLCHAIN_REPO=riscv-gnu-toolchain
 TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
 DEPENDS_DIR=$(CURDIR)/depends
@@ -51,7 +53,8 @@ export PATH
 export SHELL:=$(SHELL)
 
 
-nothing:
+help:
+	@cat README.md
 
 checkout-repos:
 	mkdir -p $(DEPENDS_DIR);	
@@ -94,7 +97,7 @@ build-deps:
 	for dep_tool in $(DEPENDS_LIST); do 	\
 		tar xf $$dep_tool.tar.xz &&      \
 		cd $$dep_tool	&&	\
-		./configure --prefix=$(DEPENDS_DIR) && make && make install; \
+		./configure --prefix=$(DEPENDS_DIR) && $(MAKE) && $(MAKE) install; \
 		cd ..;	\
 	done
 
@@ -109,23 +112,28 @@ build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	@echo "Building toolchain..."
 	@echo "====================================="
-	cd riscv-gnu-toolchain && make -j 16 newlib && make install
+	cd riscv-gnu-toolchain && $(MAKE) -j 16 newlib && $(MAKE) install
 
 build-spike:
 	@echo "====================================="
 	@echo "Building $(SPIKE_REPO)..."
 	@echo "====================================="
 	cd $(SPIKE_REPO) && ./configure --prefix=$(RISCV)
-	cd $(SPIKE_REPO) && make && make install
+	cd $(SPIKE_REPO) && $(MAKE) && $(MAKE) install
 
 build-all: build-deps build-riscv-gnu-tools build-spike
 
 rebuild-newlib:
-	make -C $(TOOLCHAIN_REPO)/build-newlib
-	make -C $(TOOLCHAIN_REPO)/build-newlib install
+	$(MAKE) -C $(TOOLCHAIN_REPO)/build-newlib
+	$(MAKE) -C $(TOOLCHAIN_REPO)/build-newlib install
 
-install-with-builds: checkout-all build-all
-install-clean: install-with-builds clean-builds
+install-with-builds: 
+	$(MAKE) checkout-all 
+	$(MAKE) build-all
+
+install-clean: 
+	$(MAKE) install-with-builds 
+	$(MAKE) clean-builds
 
 clean-builds:
 	rm -rf $(DEPENDS_DIR) $(TOOLCHAIN_REPO) $(SPIKE_REPO)
