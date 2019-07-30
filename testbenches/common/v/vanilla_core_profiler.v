@@ -511,7 +511,7 @@ module vanilla_core_profiler
 
   initial begin
 
-    #1;
+    #1; // we need to wait for one time unit so that my_x_i becomes a known value.
 
     // the first tile opens the logfile and writes the csv header.
     if ((my_x_i == x_cord_width_p'(0)) & (my_y_i == y_cord_width_p'(1))) begin
