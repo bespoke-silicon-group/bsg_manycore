@@ -87,7 +87,10 @@ checkout-spike:
 	cd $(SPIKE_REPO) && git checkout tags/v1.0.0
 	cd $(SPIKE_REPO) && git apply ../$(SPIKE_PATCH)
 
-checkout-all: checkout-repos replace-newlib checkout-spike
+checkout-all: 
+	$(MAKE) checkout-repos 
+	$(MAKE) replace-newlib 
+	$(MAKE) checkout-spike
 
 build-deps:
 	@echo "====================================="
@@ -121,7 +124,10 @@ build-spike:
 	cd $(SPIKE_REPO) && ./configure --prefix=$(RISCV)
 	cd $(SPIKE_REPO) && $(MAKE) && $(MAKE) install
 
-build-all: build-deps build-riscv-gnu-tools build-spike
+build-all: 
+	$(MAKE) build-deps 
+	$(MAKE) build-riscv-gnu-tools 
+	$(MAKE) build-spike
 
 rebuild-newlib:
 	$(MAKE) -C $(TOOLCHAIN_REPO)/build-newlib
