@@ -116,10 +116,25 @@ class NBF:
           curr_addr = int(stripped.strip("@"), 16) / 4
         else:
           words = stripped.split()
-          for i in range(len(words)/4):
-            assembled_hex = words[4*i+3] + words[4*i+2] + words[4*i+1] + words[4*i+0]
+          #for i in range(len(words)/4):
+          #  assembled_hex = words[4*i+3] + words[4*i+2] + words[4*i+1] + words[4*i+0]
+          #  addr_val[curr_addr] = int(assembled_hex, 16)
+          #  curr_addr += 1
+          count = 0
+          assembled_hex = ""
+          for i in range(len(words)):
+            assembled_hex = words[i] + assembled_hex
+            count += 1
+            if count == 4:
+              addr_val[curr_addr] = int(assembled_hex, 16)
+              curr_addr += 1
+              assembled_hex = ""
+              count = 0
+
+          if count != 0:
+            for i in range(4-count):
+              assembled_hex = "00" + assembled_hex
             addr_val[curr_addr] = int(assembled_hex, 16)
-            curr_addr += 1
 
     return addr_val
 
