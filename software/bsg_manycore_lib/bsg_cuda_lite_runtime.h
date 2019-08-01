@@ -78,9 +78,7 @@ int write_finish_signal ()
 
 
 #define __wait_until_valid_func()                                            \
-        asm("__wait_until_valid_func:");                                     \
-        bsg_set_tile_x_y();                                                  \
-        asm("                                                                \		
+        asm("__wait_until_valid_func:                                        \
                lw         t0           ,    cuda_kernel_not_loaded_val;      \
                la         s0           ,    cuda_kernel_ptr;                 \
                lr.w       t1           ,    0 (  s0  );                      \
