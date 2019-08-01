@@ -55,7 +55,7 @@ module spmd_testbench;
     $display("[INFO][TESTBENCH] BSG_MACHINE_DRAM_SIZE_WORDS          = %d", bsg_dram_size_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_DRAM_INCLUDED            = %d", bsg_dram_included_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_MAX_EPA_WIDTH            = %d", bsg_max_epa_width_p);
-    $display("[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = %d", bsg_mem_cfg_p);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = %s", bsg_mem_cfg_p.name());
   end
 
 
