@@ -1,4 +1,5 @@
 #include "bsg_manycore.h"
+#include "bsg_barrier.h"
 #include "bsg_set_tile_x_y.h"
 
 #define NUM_DATA 512
@@ -70,6 +71,8 @@ int data[NUM_DATA] __attribute__ ((section (".dram"))) = {
 3767,  33851, 67335, 86309, 92744, 53379, 21082, 18900
 };
 
+int data_copy[bsg_tiles_X][bsg_tiles_Y][NUM_DATA] __attribute__ ((section (".dram")));
+
 #define ANSWER 25247145
 
 int local_lst[NUM_DATA];
@@ -123,35 +126,44 @@ void quicksort(int* lst, int n)
   }
 }
 
+bsg_barrier     tile0_barrier = BSG_BARRIER_INIT(0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
+
 int main()
 {
   bsg_set_tile_x_y();
+
+  bsg_barrier_wait( &tile0_barrier, 0, 0);
   
-  if (bsg_x == 0 && bsg_y == 0)
+  for (int i = 0; i < NUM_DATA; i++)
+    data_copy[bsg_x][bsg_y][i] = data[i];
+  
+  quicksort(data_copy[bsg_x][bsg_y], NUM_DATA);
+
+  int sum = data_copy[bsg_x][bsg_y][0];
+  for (int i = 0; i < NUM_DATA-1; i++)
   {
-    quicksort(data, NUM_DATA);
+    sum += data_copy[bsg_x][bsg_y][i+1];
 
-    int sum = data[0];
-    for (int i = 0; i < NUM_DATA-1; i++)
+    if (data_copy[bsg_x][bsg_y][i] > data_copy[bsg_x][bsg_y][i+1])
     {
-      sum += data[i+1];
-
-      if (data[i] > data[i+1])
-      {
-        bsg_fail_x(0);
-      }
-    }
-    if (sum == ANSWER)
-    {
-      bsg_printf("sum: %d, [PASSED]\n", sum);
-      bsg_finish_x(0);
-    }
-    else 
-    {
-      bsg_printf("sum: %d, [FAILED]\n", sum);
       bsg_fail_x(0);
     }
   }
+
+  if (sum == ANSWER)
+  {
+    bsg_printf("sum: %d, [PASSED]\n", sum);
+  }
+  else 
+  {
+    bsg_printf("sum: %d, expected %d, [FAILED]\n", sum,ANSWER);
+    bsg_fail_x(0);
+  }
+
+  bsg_barrier_wait( &tile0_barrier, 0, 0);
+
+  if( bsg_x == 0  && bsg_y == 0)
+    bsg_finish_x(0);
 
   bsg_wait_while(1);
 }
