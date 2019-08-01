@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+
+# Script to generate function call log from PC trace and ELF file.
+# Usage: func_call_log.py <pc_trace_file> <elf_file>
+#
+# Bandhav Veluri
+# 7/31/19
+
+import sys
+import os
+import bisect
+
+if len(sys.argv) != 3:
+  print("Usage: func_call_log.py <pc_trace_file> <elf_file>")
+  sys.exit()
+
+
+###########################################
+# Parse ELF to extract function list
+
+# This works on any ELF
+elf_parse_cmd = "readelf -s " \
+                  + sys.argv[2] \
+                  + ' | grep FUNC | sed "s/.*: *\(.\{8\}\) .* \([^ ]*$\)/\\1 \\2/\"'
+
+# Append start as it's not parsed as a function
+func_list = ['00000000 _start'] + (os.popen(elf_parse_cmd).read()).split('\n')[:-1]
+
+# Sort func_list accroding to it's start address 
+func_list.sort(key=(lambda x : int('0x' + x.split(' ')[0], 0)))
+
+# List of function pointers
+func_ptrs = [int('0x' + i.split(' ')[0], 0) for i in func_list]
+
+#print(func_list)
+#print(func_ptrs[0:100])
+
+
+###########################################
+# Parse PC tarce to extract PCs in a list
+
+pc_trace_parse_cmd = "cat " + sys.argv[1]
+pc_list = (os.popen(pc_trace_parse_cmd).read()).split('\n')[:-1]
+
+#print(pc_list[0:100])
+
+j = -1
+for pc in pc_list:
+  i = bisect.bisect_right(func_ptrs, int('0x' + pc.split(' ')[0], 0)); 
+  if i != j: print(pc.split(' ')[1], func_list[i-1].split(' ')[1])
+  j = i
