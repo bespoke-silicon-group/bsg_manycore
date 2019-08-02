@@ -84,7 +84,7 @@ module vanilla_core_trace
       wb_debug <= '0;
     end
     else begin
-      if (~stall & ~id_r.decode.is_fp_float_op) begin
+      if (~stall) begin
 
         mem_debug <= {
           pc: exe_debug.pc,
