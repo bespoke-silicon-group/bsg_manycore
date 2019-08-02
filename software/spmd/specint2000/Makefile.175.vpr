@@ -4,6 +4,8 @@ BENCHMARK_DIR = $(BENCHMARK_TOP)/175.vpr
 
 PROG_NAME = vpr
 
+MAX_CYCLES = 1000000000
+
 BENCHMARK_OBJS = \
    main.o util.o read_netlist.o read_arch.o place.o route.o \
 	 draw.o graphics.o stats.o segment_stats.o rr_graph.o \

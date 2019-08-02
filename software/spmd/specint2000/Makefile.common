@@ -2,6 +2,7 @@ bsg_tiles_X = 1
 bsg_tiles_Y = 1
 BSG_FPU_OP = 0
 BSG_NEWLIB = 1
+BSG_ELF_DEFAULT_DATA_LOC = SHARED
 
 BENCHMARK_TOP = $(BSG_MANYCORE_DIR)/software/spmd/specint2000/greenlight/benchmarks/spec2000/CINT2000
 
