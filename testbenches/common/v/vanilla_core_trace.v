@@ -4,6 +4,7 @@
  */
 
 `include "definitions.vh"
+`include "debug_if.vh"
 
 module vanilla_core_trace
   #(parameter x_cord_width_p="inv"
@@ -60,6 +61,10 @@ module vanilla_core_trace
     , input [data_width_p-1:0] lsu_dmem_data_lo
     , input [data_width_p-1:0] local_load_packed_data
   
+    , input remote_req_s remote_req_o
+    , input remote_req_v_o
+    //, input remote_req_yumi_i
+
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
   );
@@ -73,10 +78,17 @@ module vanilla_core_trace
   assign exe_debug.branch_or_jump = exe_r.decode.is_branch_op
     | exe_r.decode.is_jump_op;
   assign exe_debug.btarget = {{(32-2-pc_width_lp){1'b0}}, pc_n, 2'b00};
+
   assign exe_debug.is_local_load = lsu_dmem_v_lo & ~lsu_dmem_w_lo;
   assign exe_debug.is_local_store = lsu_dmem_v_lo & lsu_dmem_w_lo;
   assign exe_debug.local_dmem_addr = lsu_dmem_addr_lo;
   assign exe_debug.local_store_data = lsu_dmem_data_lo;
+
+  assign exe_debug.is_remote_load = remote_req_v_o & ~remote_req_o.write_not_read & ~remote_req_o.payload.read_info.load_info.icache_fetch;
+  assign exe_debug.is_remote_store = remote_req_v_o & remote_req_o.write_not_read;
+  assign exe_debug.remote_addr = remote_req_o.addr;
+  assign exe_debug.remote_store_data = remote_req_o.payload;
+
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
@@ -91,10 +103,16 @@ module vanilla_core_trace
           instr: exe_debug.instr,
           branch_or_jump: exe_debug.branch_or_jump,
           btarget: exe_debug.btarget,
+
           is_local_load: exe_debug.is_local_load,
           is_local_store: exe_debug.is_local_store,
           local_dmem_addr: exe_debug.local_dmem_addr,
-          local_store_data: exe_debug.local_store_data
+          local_store_data: exe_debug.local_store_data,
+
+          is_remote_load: exe_debug.is_remote_load,
+          is_remote_store: exe_debug.is_remote_store,
+          remote_addr: exe_debug.remote_addr,
+          remote_store_data: exe_debug.remote_store_data
         };
   
         wb_debug <= {
@@ -102,11 +120,17 @@ module vanilla_core_trace
           instr: mem_debug.instr,
           branch_or_jump: mem_debug.branch_or_jump,
           btarget: mem_debug.btarget,
+
           is_local_load: mem_debug.is_local_load,
           is_local_store: mem_debug.is_local_store,
           local_dmem_addr: mem_debug.local_dmem_addr,
           local_store_data: mem_debug.local_store_data,
-          local_load_data: local_load_packed_data
+          local_load_data: local_load_packed_data,
+
+          is_remote_load: mem_debug.is_remote_load,
+          is_remote_store: mem_debug.is_remote_store,
+          remote_addr: mem_debug.remote_addr,
+          remote_store_data: mem_debug.remote_store_data
         };
 
       end
@@ -164,6 +188,7 @@ module vanilla_core_trace
   string float_rf_write;
   string btarget;
   string dmem_access;
+  string remote_access;
 
   initial begin
     fd = $fopen("vanilla.log", "w");
@@ -181,6 +206,7 @@ module vanilla_core_trace
         float_rf_write = "";
         btarget = "";
         dmem_access = "";
+        remote_access = "";
 
         if (~reset_i & (trace_en_i == 1)) begin
      //   if ((my_x_i == 0) & (my_y_i == 1)) begin // comment this out for global logging
@@ -244,7 +270,16 @@ module vanilla_core_trace
           else
             dmem_access = {(2+5+1+8){" "}};
 
-          $fwrite(fd, "%s %s %s %s | %s %s | %s %s\n",
+          // REMOTE ACCESS
+          if (wb_debug.is_remote_load)
+            remote_access = $sformatf("RL[%8x]=        ", wb_debug.remote_addr);
+          else if (wb_debug.is_remote_store)
+            remote_access = $sformatf("RS[%8x]=%8x", wb_debug.remote_addr, wb_debug.remote_store_data);
+          else
+            remote_access = "";
+            
+
+          $fwrite(fd, "%s %s %s %s | %s %s | %s %s | %s\n",
             stamp,
             pc_instr,
             int_rf_write,
@@ -252,9 +287,11 @@ module vanilla_core_trace
             fp_pc_instr,
             float_rf_write,
             btarget,
-            dmem_access
+            dmem_access,
+            remote_access
           );
-    
+   
+ 
           $fclose(fd);
 
    //     end // comment this out for global logging
