@@ -79,7 +79,8 @@ void remote_load_store_test(int id) {
     int other_id = (id) ? 0 : 3;
     for (int i = 0; i < N; i++) {
         A[i][other_id] = (other_id * 2) + i * 5;
-        while (A[i][id] != (id * 2) + i * 5);
+        volatile int STRIPE *my_val = &A[i][id];
+        while (*my_val != (id * 2) + i * 5);
     }
     bsg_printf("Passed remote_load_store_test; id = %d\n", id);
 }
@@ -127,10 +128,10 @@ int main()
 
     int bsg_id = bsg_x * bsg_tiles_X + bsg_y;
 
-    if ((bsg_x == 0) && (bsg_y == 0)) {
+    if (bsg_id == 0) {
         remote_load_store_test(bsg_id);
     }
-    if ((bsg_x == bsg_tiles_X-1) && (bsg_y == bsg_tiles_Y-1)) {
+    if (bsg_id == 3) {
         remote_load_store_test(bsg_id);
 
         indexing_test();
