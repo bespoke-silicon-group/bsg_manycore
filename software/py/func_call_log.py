@@ -2,6 +2,19 @@
 
 # Script to generate function call log from PC trace and ELF file.
 # Usage: func_call_log.py <pc_trace_file> <elf_file>
+# 
+# PC trace format:
+# <line no>: <pc value in hex>
+# 
+# eg.:
+# 1:00000000
+# 2:00000001
+# ...
+# 234:0000fe45
+# ...
+#
+# Note: line numbers are prepended in the func log output so that 
+# they can be matched with correspoding line in the pc trace file.
 #
 # Bandhav Veluri
 # 7/31/19
@@ -23,7 +36,7 @@ elf_parse_cmd = "readelf -s " \
                   + sys.argv[2] \
                   + ' | grep FUNC | sed "s/.*: *\(.\{8\}\) .* \([^ ]*$\)/\\1 \\2/\"'
 
-# Append start as it's not parsed as a function
+# Prepend _start as it's not parsed as a function
 func_list = ['00000000 _start'] + (os.popen(elf_parse_cmd).read()).split('\n')[:-1]
 
 # Sort func_list accroding to it's start address 
@@ -46,6 +59,6 @@ pc_list = (os.popen(pc_trace_parse_cmd).read()).split('\n')[:-1]
 
 j = -1
 for pc in pc_list:
-  i = bisect.bisect_right(func_ptrs, int('0x' + pc.split(' ')[0], 0)); 
-  if i != j: print(pc.split(' ')[1], func_list[i-1].split(' ')[1])
+  i = bisect.bisect_right(func_ptrs, int('0x' + pc.split(':')[1], 0)); 
+  if i != j: print(pc.split(':')[0] + ':' + func_list[i-1].split(' ')[1])
   j = i
