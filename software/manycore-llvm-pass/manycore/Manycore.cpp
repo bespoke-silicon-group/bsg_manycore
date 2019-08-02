@@ -67,6 +67,7 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
     IRBuilder<> builder(op);
     Function *mem_op_fn;
     Value *ptr_op, *val_op;
+    bool isVol;
     unsigned value_elem_size;
     if (isStore) {
         errs() << "Replace Store begin\n";
@@ -76,6 +77,7 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
     } else {
         errs() << "Replace load begin\n";
         ptr_op = cast<LoadInst>(op)->getPointerOperand();
+        isVol = cast<LoadInst>(op)->isVolatile();
         value_elem_size = cast<LoadInst>(op)->getType()->getPrimitiveSizeInBits() / 8;
     }
     op->dump();
@@ -118,7 +120,11 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
         args_vector.push_back(ConstantInt::get(int32, struct_size, false));
         args_vector.push_back(ConstantInt::get(int32, struct_off, false));
     }
-    if (isStore) { args_vector.push_back(val_op);}
+    if (isStore) {
+        args_vector.push_back(val_op);
+    } else {
+        args_vector.push_back(ConstantInt::get(int32, isVol, false));
+    }
 
     ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
 

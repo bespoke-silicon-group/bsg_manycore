@@ -80,6 +80,7 @@ void extern_store_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset, 
             (unsigned) arr_ptr, elem_size, offset, val);
 #endif
     int *ptr = get_ptr_val(arr_ptr, elem_size, offset);
+    bsg_printf("store %x %d\n", arr_ptr, __bsg_id);
     *ptr = val;
 }
 
@@ -104,42 +105,62 @@ void extern_store_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset,
 }
 
 
-float extern_load_float(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
+float extern_load_float(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset,
+        unsigned is_vol) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_float(0x%x, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset);
 #endif
     float *ptr = (float *) get_ptr_val(arr_ptr, elem_size, offset);
-    return *ptr;
+    if (is_vol) {
+        return *((volatile float *) ptr);
+    } else {
+        return *ptr;
+    }
 }
 
-int extern_load_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
+int extern_load_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset,
+        unsigned is_vol) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_int(0x%x, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset);
 #endif
     int *ptr = get_ptr_val(arr_ptr, elem_size, offset);
-    return *ptr;
+    if (is_vol) {
+        return *((volatile int *) ptr);
+    } else {
+        return *ptr;
+    }
 }
 
 
-short extern_load_short(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
+short extern_load_short(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset,
+        unsigned is_vol) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_short(0x%x, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset);
 #endif
     short *ptr = (short *) get_ptr_val(arr_ptr, elem_size, offset);
-    return *ptr;
+    if (is_vol) {
+        return *((volatile short *) ptr);
+    } else {
+        return *ptr;
+    }
 }
 
 
-char extern_load_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset) {
+char extern_load_char(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset,
+        unsigned is_vol) {
 #ifdef TILEGROUP_DEBUG
     bsg_printf("\nCalling extern_load_char(0x%x, %d, %d)\n",
             (unsigned) arr_ptr, elem_size, offset);
 #endif
     char *ptr = (char *) get_ptr_val(arr_ptr, elem_size, offset);
-    return *ptr;
+    if (is_vol) {
+        return *((volatile char *) ptr);
+    } else {
+        return *ptr;
+    }
 }
 
 
