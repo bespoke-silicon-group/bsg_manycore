@@ -8,8 +8,6 @@
  */
 
 
-`include "bsg_cache_pkt.vh"
-
 module bsg_manycore_link_to_cache_tracer
   import bsg_cache_pkg::*;
   #(parameter link_addr_width_p="inv"
