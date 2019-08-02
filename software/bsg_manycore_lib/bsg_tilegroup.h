@@ -80,7 +80,6 @@ void extern_store_int(int STRIPE *arr_ptr, unsigned elem_size, unsigned offset, 
             (unsigned) arr_ptr, elem_size, offset, val);
 #endif
     int *ptr = get_ptr_val(arr_ptr, elem_size, offset);
-    bsg_printf("store %x %d\n", arr_ptr, __bsg_id);
     *ptr = val;
 }
 
