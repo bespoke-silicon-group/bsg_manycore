@@ -3,9 +3,8 @@
  *    
  */
 
-`include "bsg_cache_dma_pkt.vh"
-
 module bsg_cache_to_axi_hashed
+  import bsg_cache_pkg::*;
   #(parameter addr_width_p="inv"
     ,parameter block_size_in_words_p="inv"
     ,parameter data_width_p="inv"
