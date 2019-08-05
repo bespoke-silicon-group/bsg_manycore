@@ -115,7 +115,7 @@ def log_instr(info, pc, instr, trace_indx, int_not_fp):
   reg_wb_re = int_reg_wb_re if int_not_fp else fp_reg_wb_re
 
   if instr_decode['rd'] == None:
-    wb_out = None
+    wb_out = '            '
   else:
     j = trace_indx
 
@@ -132,7 +132,8 @@ def log_instr(info, pc, instr, trace_indx, int_not_fp):
         sys.exit()
 
     wb_out = ('x' if int_not_fp else 'f') + rd + '=' + data
-    print(info, pc, '(', instr, ')',  wb_out, dasm_out)
+  
+  print(info, pc, '(', instr, ')',  wb_out, dasm_out)
 
 
 for i in range(len(trace_list)-1):
