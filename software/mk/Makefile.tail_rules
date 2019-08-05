@@ -18,7 +18,7 @@ query_vcs_licenses:
 	make -C $(CAD_DIR) USE_EE=$(USE_EE) -f cadenv_debug.mk $@
 
 instr_trace:
-	../../py/post_process_trace.py vanilla.log $(PROG_NAME).riscv $(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump
+	$(BSG_MANYCORE_DIR)/software/py/post_process_trace.py vanilla.log $(PROG_NAME).riscv $(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump
 
 CLEAN_ITEMS ?=
 

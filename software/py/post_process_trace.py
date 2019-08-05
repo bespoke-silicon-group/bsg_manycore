@@ -96,7 +96,7 @@ def decode(pc):
       " " + program + \
       " | tail -n 1"
   pc_dasm = os.popen(dasm_parse_cmd).read()[:-1]
-  pc_dasm_re = re.compile('\s*([0-9a-f]*):[\s\t]*([0-9a-f]{8})\s*(.*)$')
+  pc_dasm_re = re.compile('\s*([0-9a-f]*):[\s]*([0-9a-f]{8})\s*(.*)$')
 
   instr['hex'] = re.sub(pc_dasm_re, r'\2', pc_dasm)
   instr['str'] = re.sub(pc_dasm_re, r'\3', pc_dasm)
