@@ -8,6 +8,9 @@
 # Input trace format:
 # <timing info>: <int pc> <int instr> <int reg write> ... | <float pc> <float instr> <float reg write> ... |
 #
+# Output format:
+# <timing info>: <pc> ( <instr> ) [<reg write>] <disassembly of instr>
+#
 # Bandhav Veluri
 # 8/2/2019
 
