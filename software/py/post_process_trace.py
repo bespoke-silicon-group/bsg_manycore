@@ -59,6 +59,15 @@ fp_reg_wb_re  = re.compile('^.*:.*\|\s*[0-9a-f]{8}\s*'
                            'f(\d*)=([0-9a-f]{8})\s*')               # group 1 matches fp rd, 2 matches fb wb data
 
 
+#####################
+# Filter out bubbles
+trace_list = []
+
+for line in input_trace:
+  if re.match(int_pc_re, line) or re.match(fp_pc_re, line):
+    trace_list.append(line)
+
+
 ###################################
 # Function to decode pc
 
@@ -100,17 +109,33 @@ def decode(pc):
   return instr
 
 
-############################################
-# Filter out bubbles
+def log_instr(info, pc, instr, trace_indx, int_not_fp):
+  instr_decode = decode(int('0x' + pc, 0))
+  dasm_out = instr_decode['str']
+  reg_wb_re = int_reg_wb_re if int_not_fp else fp_reg_wb_re
 
-trace_list = []
+  if instr_decode['rd'] == None:
+    wb_out = None
+  else:
+    j = trace_indx
 
-for line in input_trace:
-  if re.match(int_pc_re, line) or re.match(fp_pc_re, line):
-    trace_list.append(line)
+    while True:
+      if re.match(reg_wb_re, trace_list[j]):
+        rd = re.match(reg_wb_re, trace_list[j]).group(1)
+        data = re.match(reg_wb_re, trace_list[j]).group(2)
+        if int(rd) == int(instr_decode['rd']):
+          break
+
+      j += 1
+
+      if j == len(trace_list):
+        sys.exit()
+
+    wb_out = ('x' if int_not_fp else 'f') + rd + '=' + data
+    print(info, pc, '(', instr, ')',  wb_out, dasm_out)
 
 
-for i in range(300):#len(in_trace)-1):
+for i in range(len(trace_list)-1):
   line = trace_list[i]
   next_line = trace_list[i+1]
 
@@ -165,43 +190,7 @@ for i in range(300):#len(in_trace)-1):
     continue
   else:
     if fp_instr != None:
-      instr_decode = decode(int('0x' + fp_pc, 0))
-      pc_out = fp_pc
-      instr_out = fp_instr
-      dasm_out = instr_decode['str']
-      if instr_decode['rd'] == None:
-        wb_out = None
-      else:
-        j = i
-
-        while True:
-          rd = re.match(fp_reg_wb_re, trace_list[j]).group(1)
-          data = re.match(fp_reg_wb_re, trace_list[j]).group(2)
-          if int(rd) == int(instr_decode['rd']):
-            break
-          else:
-            j += 1
-
-        wb_out = 'f' + rd + '=' + data
-        print(info, fp_pc, '(', fp_instr, ')',  wb_out, dasm_out)
+      log_instr(info, fp_pc, fp_instr, i, 0)
 
     if int_instr != None:
-      instr_decode = decode(int('0x' + int_pc, 0))
-      pc_out = int_pc
-      instr_out = int_instr
-      dasm_out = instr_decode['str']
-      if instr_decode['rd'] == None:
-        wb_out = None
-      else:
-        j = i
-
-        while True:
-          rd = re.match(int_reg_wb_re, trace_list[j]).group(1)
-          data = re.match(int_reg_wb_re, trace_list[j]).group(2)
-          if int(rd) == int(instr_decode['rd']):
-            break
-          else:
-            j += 1
-
-        wb_out = 'x' + rd + '=' + data
-        print(info, int_pc, '(', int_instr, ')',  wb_out, dasm_out)
+      log_instr(info, int_pc, int_instr, i, 1)
