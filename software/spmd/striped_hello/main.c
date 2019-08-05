@@ -126,13 +126,11 @@ int main()
 {
     bsg_set_tile_x_y();
 
-    int bsg_id = bsg_x * bsg_tiles_X + bsg_y;
-
     if (bsg_id == 0) {
-        remote_load_store_test(bsg_id);
+        remote_load_store_test(__bsg_id);
     }
     if (bsg_id == 3) {
-        remote_load_store_test(bsg_id);
+        remote_load_store_test(__bsg_id);
 
         indexing_test();
         char_ptr_arith_test();
