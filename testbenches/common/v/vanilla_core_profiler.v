@@ -170,15 +170,15 @@ module vanilla_core_profiler
   logic bgeu_miss_inc;
   logic jalr_miss_inc;
 
-  assign beq_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction == `RV32_BEQ);
-  assign bne_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction == `RV32_BNE);
-  assign blt_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction == `RV32_BLT);
-  assign bge_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction == `RV32_BGE);
-  assign bltu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction == `RV32_BLTU);
-  assign bgeu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction == `RV32_BGEU);
+  assign beq_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BEQ);
+  assign bne_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BNE);
+  assign blt_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLT);
+  assign bge_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGE);
+  assign bltu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLTU);
+  assign bgeu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGEU);
 
-  assign jalr_inc = instr_inc & exe_r.decode.is_jump_op & (exe_r.instruction.op == `RV32_JALR_OP);
-  assign jal_inc = instr_inc & exe_r.decode.is_jump_op & (exe_r.instruction.op == `RV32_JAL_OP);
+  assign jalr_inc = instr_inc & exe_r.decode.is_jump_op & (exe_r.instruction.op ==? `RV32_JALR_OP);
+  assign jal_inc = instr_inc & exe_r.decode.is_jump_op & (exe_r.instruction.op ==? `RV32_JAL_OP);
 
   assign beq_miss_inc = beq_inc & branch_mispredict;
   assign bne_miss_inc = bne_inc & branch_mispredict;
@@ -216,29 +216,29 @@ module vanilla_core_profiler
   logic sltu_inc;
   logic sltiu_inc;
 
-  assign sll_inc = instr_inc & (exe_r.instruction == `RV32_SLL);
-  assign slli_inc = instr_inc & (exe_r.instruction == `RV32_SLLI);
-  assign srl_inc = instr_inc & (exe_r.instruction == `RV32_SRL);
-  assign srli_inc = instr_inc & (exe_r.instruction == `RV32_SRLI);
-  assign sra_inc = instr_inc & (exe_r.instruction == `RV32_SRA);
-  assign srai_inc = instr_inc & (exe_r.instruction == `RV32_SRAI);
+  assign sll_inc = instr_inc & (exe_r.instruction ==? `RV32_SLL);
+  assign slli_inc = instr_inc & (exe_r.instruction ==? `RV32_SLLI);
+  assign srl_inc = instr_inc & (exe_r.instruction ==? `RV32_SRL);
+  assign srli_inc = instr_inc & (exe_r.instruction ==? `RV32_SRLI);
+  assign sra_inc = instr_inc & (exe_r.instruction ==? `RV32_SRA);
+  assign srai_inc = instr_inc & (exe_r.instruction ==? `RV32_SRAI);
 
-  assign add_inc = instr_inc & (exe_r.instruction == `RV32_ADD);
-  assign addi_inc = instr_inc & (exe_r.instruction == `RV32_ADDI);
-  assign sub_inc = instr_inc & (exe_r.instruction == `RV32_SUB);
-  assign lui_inc = instr_inc & (exe_r.instruction == `RV32_LUI);
-  assign auipc_inc = instr_inc & (exe_r.instruction == `RV32_AUIPC);
-  assign xor_inc = instr_inc & (exe_r.instruction == `RV32_XOR);
-  assign xori_inc = instr_inc & (exe_r.instruction == `RV32_XORI);
-  assign or_inc = instr_inc & (exe_r.instruction == `RV32_OR);
-  assign ori_inc = instr_inc & (exe_r.instruction == `RV32_ORI);
-  assign and_inc = instr_inc & (exe_r.instruction == `RV32_AND);
-  assign andi_inc = instr_inc & (exe_r.instruction == `RV32_ANDI);
+  assign add_inc = instr_inc & (exe_r.instruction ==? `RV32_ADD);
+  assign addi_inc = instr_inc & (exe_r.instruction ==? `RV32_ADDI);
+  assign sub_inc = instr_inc & (exe_r.instruction ==? `RV32_SUB);
+  assign lui_inc = instr_inc & (exe_r.instruction ==? `RV32_LUI);
+  assign auipc_inc = instr_inc & (exe_r.instruction ==? `RV32_AUIPC);
+  assign xor_inc = instr_inc & (exe_r.instruction ==? `RV32_XOR);
+  assign xori_inc = instr_inc & (exe_r.instruction ==? `RV32_XORI);
+  assign or_inc = instr_inc & (exe_r.instruction ==? `RV32_OR);
+  assign ori_inc = instr_inc & (exe_r.instruction ==? `RV32_ORI);
+  assign and_inc = instr_inc & (exe_r.instruction ==? `RV32_AND);
+  assign andi_inc = instr_inc & (exe_r.instruction ==? `RV32_ANDI);
 
-  assign slt_inc = instr_inc & (exe_r.instruction == `RV32_SLT);
-  assign slti_inc = instr_inc & (exe_r.instruction == `RV32_SLTI);
-  assign sltu_inc = instr_inc & (exe_r.instruction == `RV32_SLTU);
-  assign sltiu_inc = instr_inc & (exe_r.instruction == `RV32_SLTIU);
+  assign slt_inc = instr_inc & (exe_r.instruction ==? `RV32_SLT);
+  assign slti_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTI);
+  assign sltu_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTU);
+  assign sltiu_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTIU);
 
 
   // MULDIV
@@ -252,14 +252,14 @@ module vanilla_core_profiler
   logic rem_inc;
   logic remu_inc;
 
-  assign mul_inc = instr_inc & (exe_r.instruction == `RV32_MUL);
-  assign mulh_inc = instr_inc & (exe_r.instruction == `RV32_MULH);
-  assign mulhsu_inc = instr_inc & (exe_r.instruction == `RV32_MULHSU);
-  assign mulhu_inc = instr_inc & (exe_r.instruction == `RV32_MULHU);
-  assign div_inc = instr_inc & (exe_r.instruction == `RV32_DIV);
-  assign divu_inc = instr_inc & (exe_r.instruction == `RV32_DIVU);
-  assign rem_inc = instr_inc & (exe_r.instruction == `RV32_REM);
-  assign remu_inc = instr_inc & (exe_r.instruction == `RV32_REMU);
+  assign mul_inc = instr_inc & (exe_r.instruction ==? `RV32_MUL);
+  assign mulh_inc = instr_inc & (exe_r.instruction ==? `RV32_MULH);
+  assign mulhsu_inc = instr_inc & (exe_r.instruction ==? `RV32_MULHSU);
+  assign mulhu_inc = instr_inc & (exe_r.instruction ==? `RV32_MULHU);
+  assign div_inc = instr_inc & (exe_r.instruction ==? `RV32_DIV);
+  assign divu_inc = instr_inc & (exe_r.instruction ==? `RV32_DIVU);
+  assign rem_inc = instr_inc & (exe_r.instruction ==? `RV32_REM);
+  assign remu_inc = instr_inc & (exe_r.instruction ==? `RV32_REMU);
 
   // fence
   //
