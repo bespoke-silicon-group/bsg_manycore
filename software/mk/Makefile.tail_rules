@@ -20,12 +20,15 @@ query_vcs_licenses:
 pp_trace:
 	$(TRACE_PP_SCRIPT) vanilla.log $(PROG_NAME).riscv $(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump
 
+pp_spike_trace:
+	cat spike.log | tr '\n' '@' | sed 's/@3/; /g' | sed 's/@/\n/g' > spike_pp.log
+
 func_call_log:
 	sed -n 's/.*\( pc=\(.\{8\}\) \).*/\2/p' instr.log | grep -n . > instr_pc.log
 	$(BSG_MANYCORE_DIR)/software/py/func_call_log.py instr_pc.log $(PROG_NAME).riscv > $@
 
-spike_call_log:
-	sed -n 's/.* 0x.\{8\}\(.\{8\}\) .*/\1/p' spike.log | grep -n . > spike_pc.log
+spike_call_log: pp_spike_trace
+	sed -n 's/.* 0x.\{8\}\(.\{8\}\) .*/\1/p' spike_pp.log | grep -n . > spike_pc.log
 	$(BSG_MANYCORE_DIR)/software/py/func_call_log.py spike_pc.log $(PROG_NAME).riscv > $@
 
 CLEAN_ITEMS ?=
