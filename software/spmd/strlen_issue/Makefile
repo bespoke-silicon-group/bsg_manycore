@@ -2,6 +2,7 @@ BSG_NEWLIB = 1
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 MAX_CYCLES = 10000000
+BSG_ELF_DEFAULT_DATA_LOC = SHARED
 
 ifdef SPIKE
 
