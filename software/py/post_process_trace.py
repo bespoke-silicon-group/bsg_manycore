@@ -48,18 +48,16 @@ objdump = sys.argv[3]
 # Regular expressions matching members of input trace format
 
 info_re       = re.compile('^(.*?:)')                               # group 1 matches info
+cords_re      = re.compile('^\s*\d*\s*(\d*)\s*(\d*)\s*:')           # group 1 matches xcord, 2 matches ycord
 
 int_pc_re     = re.compile('^.*:\s*([0-9a-f]{8})\s*')               # group 1 matches int_pc
 int_instr_re  = re.compile('^.*:\s*[0-9a-f]{8}\s*([0-9a-f]{8})\s*') # group 1 matches int instr
-int_reg_wb_re = re.compile('^.*:\s*[0-9a-f]{8}\s*[0-9a-f]{8}\s'
-                           'x(\d*)=([0-9a-f]{8})\s*')               # group 1 matches rd, 2 matches wb data
+int_reg_wb_re = re.compile('^.*:.*x(\d*)=([0-9a-f]{8})\s*')         # group 1 matches rd, 2 matches wb data
 
 fp_pc_re      = re.compile('^.*:.*\|\s*([0-9a-f]{8})\s*')           # group 1 matches fp pc
 fp_instr_re   = re.compile('^.*:.*\|\s*[0-9a-f]{8}\s*'
                            '([0-9a-f]{8})\s*')                      # group 1 matches fp instr
-fp_reg_wb_re  = re.compile('^.*:.*\|\s*[0-9a-f]{8}\s*'
-                           '[0-9a-f]{8}\s*'
-                           'f(\d*)=([0-9a-f]{8})\s*')               # group 1 matches fp rd, 2 matches fb wb data
+fp_reg_wb_re  = re.compile('^.*:.*\|.*f(\d*)=([0-9a-f]{8})\s*')     # group 1 matches fp rd, 2 matches fb wb data
 
 
 #####################
@@ -67,8 +65,7 @@ fp_reg_wb_re  = re.compile('^.*:.*\|\s*[0-9a-f]{8}\s*'
 trace_list = []
 
 for line in input_trace:
-  if re.match(int_pc_re, line) or re.match(fp_pc_re, line):
-    trace_list.append(line)
+  trace_list.append(line)
 
 
 ###################################
@@ -113,6 +110,9 @@ def decode(pc):
 
 
 def log_instr(info, pc, instr, trace_indx, int_not_fp):
+  cords = re.match(cords_re, trace_list[trace_indx])
+  xcord = cords.group(1)
+  ycord = cords.group(2)
   instr_decode = decode(int('0x' + pc, 0))
   dasm_out = instr_decode['str']
   reg_wb_re = int_reg_wb_re if int_not_fp else fp_reg_wb_re
@@ -122,8 +122,12 @@ def log_instr(info, pc, instr, trace_indx, int_not_fp):
   else:
     j = trace_indx
 
+    # loop until we find the write back cycle
     while True:
-      if re.match(reg_wb_re, trace_list[j]):
+      next_cords = re.match(cords_re, trace_list[i])
+      next_xcord = next_cords.group(1)
+      next_ycord = next_cords.group(2)
+      if re.match(reg_wb_re, trace_list[j]) and (xcord == next_xcord and ycord == next_ycord):
         rd = re.match(reg_wb_re, trace_list[j]).group(1)
         data = re.match(reg_wb_re, trace_list[j]).group(2)
         if int(rd) == int(instr_decode['rd']):
@@ -189,7 +193,10 @@ for i in range(len(trace_list)-1):
 
   ### Build the execution trace, instruction by instruction ###
 
-  if (int_pc == next_pc) and int_pc != None:
+  if not (re.match(int_pc_re, line) or re.match(fp_pc_re, line)):
+    # bubble
+    continue
+  if (int_pc == next_pc) and fp_pc == None:
     # icache miss, ignored
     continue
   else:
