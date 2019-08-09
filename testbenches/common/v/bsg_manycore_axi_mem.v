@@ -120,7 +120,18 @@ module bsg_manycore_axi_mem
   logic [lg_mem_els_lp-1:0] rd_ram_idx;
   assign rd_ram_idx = araddr_r[`BSG_SAFE_CLOG2(axi_data_width_p>>3)+:lg_mem_els_lp];
 
-  assign axi_rdata_o = ram[rd_ram_idx];
+  // uninitialized data
+  //
+  logic [axi_data_width_p-1:0] uninit_data;
+  assign uninit_data = {(axi_data_width_p/32){32'hdead_beef}};
+
+  for (genvar i = 0; i < axi_data_width_p-1; i++) begin
+    assign axi_rdata_o[i] = (ram[rd_ram_idx] === 1'bx)
+      ? uninit_data[i]
+      : ram[rd_ram_idx][i];
+  end
+
+  //assign axi_rdata_o = ram[rd_ram_idx];
  
   always_comb begin
 
@@ -201,6 +212,8 @@ module bsg_manycore_axi_mem
       
     end
   end
+  
+
   
 
 endmodule
