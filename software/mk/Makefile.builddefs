@@ -61,9 +61,10 @@ RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-objcopy
 RISCV_AR      ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-ar
 RISCV_SIM     ?= $(RISCV_BIN_DIR)/spike
 
-BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
-HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
-NBF_PY 			= $(BSG_MANYCORE_DIR)/software/py/nbf.py
+BSG_ROM_GEN     = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
+HEX2BIN         = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
+NBF_PY 			    = $(BSG_MANYCORE_DIR)/software/py/nbf.py
+TRACE_PP_SCRIPT = $(BSG_MANYCORE_DIR)/software/py/post_process_trace.py
 
 COMMON_SRC_DIRS = $(BSG_MANYCORE_DIR)/software/spmd/common \
                   $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
