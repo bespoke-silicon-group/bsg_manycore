@@ -125,8 +125,8 @@ module bsg_manycore_axi_mem
   logic [axi_data_width_p-1:0] uninit_data;
   assign uninit_data = {(axi_data_width_p/32){32'hdead_beef}};
 
-  for (genvar i = 0; i < axi_data_width_p-1; i++) begin
-    assign axi_rdata_o[i] = (ram[rd_ram_idx] === 1'bx)
+  for (genvar i = 0; i < axi_data_width_p; i++) begin
+    assign axi_rdata_o[i] = (ram[rd_ram_idx][i] === 1'bx)
       ? uninit_data[i]
       : ram[rd_ram_idx][i];
   end
