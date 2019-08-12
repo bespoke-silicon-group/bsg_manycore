@@ -1,17 +1,26 @@
-`include "parameters.vh"
-`include "definitions.vh"
 
 /**
+ *
+ *  cl_decode.v
+ *
+ *  instruction decoder.
+ *
  *  This module defines a decode unit that looks at the instruction
  *  and sets a bunch of control signals that describe the use of the
  *  instruction.
+ *
+ *
  */
+
+`include "parameters.vh"
+`include "definitions.vh"
+
 module cl_decode
 (
-    input  instruction_s instruction_i
-    , output decode_s decode_o
-    , output fp_float_decode_s fp_float_decode_o
-    , output fp_int_decode_s fp_int_decode_o
+  input instruction_s instruction_i
+  , output decode_s decode_o
+  , output fp_float_decode_s fp_float_decode_o
+  , output fp_int_decode_s fp_int_decode_o
 );
 
 
@@ -93,15 +102,6 @@ assign decode_o.is_load_unsigned = (instruction_i.funct3[2])
   ? decode_o.is_load_op
   : 1'b0;
 
-//always_comb
-//    unique casez (instruction_i.op)
-//        `RV32_LOAD:
-//          decode_o.is_load_unsigned = instruction_i.funct3[2];
-        //`RV32_LOAD_FP: // FLW
-        //  decode.is_load_unsigned = 1'b0;
-//        default: 
-//          decode_o.is_load_unsigned = 1'b0;
-//    endcase
 
 // Is Store Op -- data memory store operation
 always_comb
@@ -128,13 +128,9 @@ always_comb
     endcase
 
 // Is Jump Op -- pc jumping operation
-always_comb
-    unique casez (instruction_i.op)
-        `RV32_JAL_OP, `RV32_JALR_OP:
-            decode_o.is_jump_op = 1'b1;
-        default:
-            decode_o.is_jump_op = 1'b0;
-    endcase
+assign decode_o.is_jal_op = instruction_i.op == `RV32_JAL_OP;
+assign decode_o.is_jalr_op = instruction_i.op == `RV32_JALR_OP;
+
 
 // declares if OP reads from first port of register file
 always_comb

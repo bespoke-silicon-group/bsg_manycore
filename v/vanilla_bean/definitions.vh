@@ -97,7 +97,9 @@ typedef struct packed
     logic is_hex_op;        // Op is hex load/store
     logic is_load_unsigned; // Op is unsigned load
     logic is_branch_op;     // Op is a branch operation
-    logic is_jump_op;       // Op is a jump operation
+    logic is_jal_op;        // jal
+    logic is_jalr_op;       // jalr
+
     logic op_reads_rf1;     // OP reads from first port of register file
     logic op_reads_rf2;     // OP reads from second port of register file
     logic op_is_auipc;

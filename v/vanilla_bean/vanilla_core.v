@@ -16,11 +16,11 @@ module vanilla_core
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
 
-    , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
-    , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
-    , localparam pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
-    , localparam reg_addr_width_lp = RV32_reg_addr_width_gp
-    , localparam data_mask_width_lp=(data_width_p>>3)
+    , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
+    , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
+    , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
+    , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
+    , parameter data_mask_width_lp=(data_width_p>>3)
   )
   (
     input clk_i
@@ -335,8 +335,10 @@ module vanilla_core
     ,.data_o(exe_r)
   );
 
+  // synopsys translate_off
   logic [data_width_p-1:0] exe_pc;
   assign exe_pc = (exe_r.pc_plus4 - 'd4) | 32'h80000000;
+  // synopsys translate_on
 
   // EXE forwarding muxes
   //
@@ -412,13 +414,13 @@ module vanilla_core
   assign branch_under_predict = alu_jump_now & ~exe_r.instruction[0]; 
   assign branch_over_predict = ~alu_jump_now & exe_r.instruction[0]; 
   assign branch_mispredict = exe_r.decode.is_branch_op & (branch_under_predict | branch_over_predict);
-  assign jalr_mispredict = (exe_r.instruction.op == `RV32_JALR_OP) &
+  assign jalr_mispredict = exe_r.decode.is_jalr_op &
     (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
 
-  // save pc+4 of jump_op for predicting jalr branch target
+  // save pc+4 of jalr/jal for predicting jalr branch target
   logic [pc_width_lp-1:0] jalr_prediction_r;
 
-  assign jalr_prediction = exe_r.decode.is_jump_op
+  assign jalr_prediction = (exe_r.decode.is_jal_op | exe_r.decode.is_jalr_op)
     ? exe_r.pc_plus4[2+:pc_width_lp]
     : jalr_prediction_r;
 
@@ -733,9 +735,9 @@ module vanilla_core
         pc_n = exe_r.pc_plus4[2+:pc_width_lp];
     else if (jalr_mispredict)
       pc_n = alu_jalr_addr;
-    else if ((decode.is_branch_op & instruction[0]) | (instruction.op == `RV32_JAL_OP))
+    else if (decode.is_branch_op & instruction[0])
       pc_n = pred_or_jump_addr;
-    else if (decode.is_jump_op)
+    else if (decode.is_jal_op | decode.is_jalr_op)
       pc_n = pred_or_jump_addr;
     else
       pc_n = pc_plus4;
@@ -823,14 +825,9 @@ module vanilla_core
   // int scoreboard clears when
   // 1) force wb, insert in exe-mem
   // 2) local load
-  //assign int_sb_clear = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o)
-  //  | (mem_r.local_load & mem_r.op_writes_rf & ~stall);
   assign int_sb_clear[1] = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o);
   assign int_sb_clear[0] = (mem_r.local_load & mem_r.op_writes_rf & ~stall);
 
-  //assign int_sb_clear_id = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o)
-  //  ? int_remote_load_resp_rd_i
-  //  : mem_r.rd_addr;
   assign int_sb_clear_id[1] = int_remote_load_resp_rd_i;
   assign int_sb_clear_id[0] = mem_r.rd_addr;
 

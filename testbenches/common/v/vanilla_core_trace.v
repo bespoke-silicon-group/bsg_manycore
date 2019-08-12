@@ -71,7 +71,7 @@ module vanilla_core_trace
   assign exe_debug.pc = exe_r.pc_plus4 - 'd4;
   assign exe_debug.instr = exe_r.instruction;
   assign exe_debug.branch_or_jump = exe_r.decode.is_branch_op
-    | exe_r.decode.is_jump_op;
+    | exe_r.decode.is_jal_op | exe_r.decode.is_jalr_op;
   assign exe_debug.btarget = {{(32-2-pc_width_lp){1'b0}}, pc_n, 2'b00};
   assign exe_debug.is_local_load = lsu_dmem_v_lo & ~lsu_dmem_w_lo;
   assign exe_debug.is_local_store = lsu_dmem_v_lo & lsu_dmem_w_lo;
