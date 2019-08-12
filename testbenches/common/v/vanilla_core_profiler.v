@@ -177,8 +177,8 @@ module vanilla_core_profiler
   assign bltu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLTU);
   assign bgeu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGEU);
 
-  assign jalr_inc = instr_inc & exe_r.decode.is_jump_op & (exe_r.instruction.op ==? `RV32_JALR_OP);
-  assign jal_inc = instr_inc & exe_r.decode.is_jump_op & (exe_r.instruction.op ==? `RV32_JAL_OP);
+  assign jalr_inc = instr_inc & exe_r.decode.is_jalr_op;
+  assign jal_inc = instr_inc & exe_r.decode.is_jal_op;
 
   assign beq_miss_inc = beq_inc & branch_mispredict;
   assign bne_miss_inc = bne_inc & branch_mispredict;
