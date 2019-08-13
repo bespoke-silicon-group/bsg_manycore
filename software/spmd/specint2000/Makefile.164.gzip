@@ -1,0 +1,31 @@
+.DEFAULT_GOAL = all
+
+BENCHMARK_DIR = $(BSG_MANYCORE_DIR)/imports/greenlight/benchmarks/spec2000/CINT2000/164.gzip
+
+PROG_NAME = gzip
+
+MAX_CYCLES = 1000000000
+
+BENCHMARK_OBJS = raw.o \
+	bits.o deflate.o gzip.o getopt.o inflate.o lzw.o \
+	spec.o trees.o unlzh.o unlzw.o unpack.o unzip.o util.o zip.o
+
+INPUT_TYPE = smred
+
+BENCHMARK_INPS = $(INPUT_TYPE).source
+
+$(BENCHMARK_INPS): %:
+	cp $(BENCHMARK_DIR)/input/$@ $@
+
+BENCHMARK_DEFS = -D__raw__ -DSPEC_CPU2000
+
+ARGC=3
+ARGV=gzip $(BENCHMARK_INPS) 1
+
+# lfs disk image size
+LFS_BLOCK_SIZE = 128
+LFS_BLOCK_COUNT = 4096 # 16K
+
+CLEAN_ITEMS = $(BENCHMARK_INPS)
+
+include ./Makefile.common
