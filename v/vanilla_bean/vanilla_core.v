@@ -81,8 +81,7 @@ module vanilla_core
   logic icache_v_li;
   logic icache_w_li;
 
-  logic [icache_addr_width_lp-1:0] icache_waddr;
-  logic [icache_tag_width_p-1:0] icache_wtag;
+  logic [pc_width_lp-1:0] icache_w_pc;
   logic [data_width_p-1:0] icache_winstr;
 
   logic [pc_width_lp-1:0] pc_n, pc_r;
@@ -105,8 +104,7 @@ module vanilla_core
     ,.w_i(icache_w_li)
     ,.flush_i(icache_flush)
 
-    ,.w_addr_i(icache_waddr)
-    ,.w_tag_i(icache_wtag)
+    ,.w_pc_i(icache_w_pc)
     ,.w_instr_i(icache_winstr)
 
     ,.pc_i(pc_n)
@@ -761,13 +759,9 @@ module vanilla_core
 
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
-  assign icache_waddr = ifetch_v_i
-    ? mem_r.mem_addr_sent[2+:icache_addr_width_lp]
-    : icache_pc_i[0+:icache_addr_width_lp];
-
-  assign icache_wtag = ifetch_v_i
-    ? mem_r.mem_addr_sent[(2+icache_addr_width_lp)+:icache_tag_width_p]
-    : icache_pc_i[icache_addr_width_lp+:icache_tag_width_p];
+  assign icache_w_pc = ifetch_v_i
+    ? mem_r.mem_addr_sent[2+:pc_width_lp]
+    : icache_pc_i[0+:pc_width_lp];
 
   assign icache_winstr = ifetch_v_i
     ? ifetch_instr_i

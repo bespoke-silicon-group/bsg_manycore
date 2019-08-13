@@ -27,8 +27,7 @@ module icache
     , input flush_i
 
     // icache write
-    , input [icache_addr_width_lp-1:0] w_addr_i
-    , input [icache_tag_width_p-1:0]  w_tag_i
+    , input [pc_width_lp-1:0] w_pc_i
     , input [RV32_instr_width_gp-1:0] w_instr_i
 
     // icache read (by processor)
@@ -54,6 +53,15 @@ module icache
   //
   `declare_icache_format_s(icache_tag_width_p);
 
+  // address decode
+  //
+  logic [icache_addr_width_lp-1:0] w_addr;
+  logic [icache_tag_width_p-1:0] w_tag;
+
+  assign w_addr = w_pc_i[0+:icache_addr_width_lp]; 
+  assign w_tag = w_pc_i[icache_addr_width_lp+:icache_tag_width_p];
+  
+
   // Instantiate icache memory 
   //
   icache_format_s icache_data_li;
@@ -76,7 +84,7 @@ module icache
   );
 
   assign icache_addr_li = (v_i & w_i)
-    ? w_addr_i
+    ? w_addr
     : pc_i[0+:icache_addr_width_lp];
 
 
@@ -100,10 +108,10 @@ module icache
   // BYTE address computation
 
   wire [branch_pc_low_width_lp-1:0] branch_imm_val = `RV32_Bimm_13extract(w_instr);
-  wire [branch_pc_low_width_lp-1:0] branch_pc_val = branch_pc_low_width_lp'({w_tag_i, w_addr_i, 2'b0}); 
+  wire [branch_pc_low_width_lp-1:0] branch_pc_val = branch_pc_low_width_lp'({w_tag, w_addr, 2'b0}); 
   
   wire [jal_pc_low_width_lp-1:0] jal_imm_val = `RV32_Jimm_21extract(w_instr);
-  wire [jal_pc_low_width_lp-1:0] jal_pc_val = jal_pc_low_width_lp'({w_tag_i, w_addr_i, 2'b0}); 
+  wire [jal_pc_low_width_lp-1:0] jal_pc_val = jal_pc_low_width_lp'({w_tag, w_addr, 2'b0}); 
   
   logic [branch_pc_low_width_lp-1:0] branch_pc_lower_res;
   logic branch_pc_lower_cout;
@@ -137,7 +145,7 @@ module icache
   assign icache_data_li = '{
     lower_sign : imm_sign,
     lower_cout : pc_lower_cout,
-    tag        : w_tag_i,
+    tag        : w_tag,
     instr      : injected_instr
   };
                              
