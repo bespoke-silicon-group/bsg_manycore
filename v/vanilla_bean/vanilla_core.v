@@ -78,13 +78,15 @@ module vanilla_core
 
   // icache
   //
-  logic icache_cen, icache_wen;
+  //logic icache_cen, icache_wen;
+  logic icache_v_li;
+  logic icache_w_li;
+
   logic [icache_addr_width_lp-1:0] icache_waddr;
   logic [icache_tag_width_p-1:0] icache_wtag;
   logic [data_width_p-1:0] icache_winstr;
 
   logic [pc_width_lp-1:0] pc_n, pc_r;
-  logic pc_wen;
   instruction_s instruction;
   logic icache_miss;
   logic icache_flush;
@@ -99,23 +101,22 @@ module vanilla_core
   ) icache0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    
-    ,.icache_cen_i(icache_cen)
-    ,.icache_wen_i(icache_wen)
-    ,.icache_w_addr_i(icache_waddr)
-    ,.icache_w_tag_i(icache_wtag)
-    ,.icache_w_instr_i(icache_winstr)
-
-    ,.pc_i(pc_n)
-    ,.pc_wen_i(pc_wen)
-    ,.pc_r_o(pc_r)
-    ,.icache_miss_o(icache_miss)
-    ,.instruction_o(instruction)
-
+   
+    ,.v_i(icache_v_li)
+    ,.w_i(icache_w_li)
     ,.flush_i(icache_flush)
 
+    ,.w_addr_i(icache_waddr)
+    ,.w_tag_i(icache_wtag)
+    ,.w_instr_i(icache_winstr)
+
+    ,.pc_i(pc_n)
     ,.jalr_prediction_i(jalr_prediction)
+
+    ,.instr_o(instruction)
     ,.pred_or_jump_addr_o(pred_or_jump_addr)
+    ,.pc_r_o(pc_r)
+    ,.icache_miss_o(icache_miss)
   );
 
   logic [pc_width_lp-1:0] pc_plus4;
@@ -727,8 +728,15 @@ module vanilla_core
 
   // icache ctrl
   // icache fetch gets higher priority then icache remote store.
-  assign icache_cen = (~stall & ~stall_depend & ~stall_fp) | icache_v_i | ifetch_v_i;
-  assign icache_wen = icache_v_i | ifetch_v_i;
+
+  logic update_pc;
+  assign update_pc = (icache_miss_in_pipe & ~flush)
+    ? wb_r.icache_miss 
+    : 1'b1;
+
+  assign icache_v_li = icache_v_i | ifetch_v_i 
+    | (~stall & ~stall_depend & ~stall_fp & update_pc);
+  assign icache_w_li = icache_v_i | ifetch_v_i;
 
   assign icache_waddr = ifetch_v_i
     ? mem_r.mem_addr_sent[2+:icache_addr_width_lp]
@@ -745,8 +753,6 @@ module vanilla_core
   assign icache_yumi_o = icache_v_i & (~ifetch_v_i);
 
   assign icache_flush = flush | icache_miss_in_pipe;
-
-  assign pc_wen = ~(stall | stall_depend | stall_fp);
 
   assign stall_icache_store = icache_v_i & icache_yumi_o;
   
