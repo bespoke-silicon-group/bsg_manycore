@@ -78,7 +78,6 @@ module vanilla_core
 
   // icache
   //
-  //logic icache_cen, icache_wen;
   logic icache_v_li;
   logic icache_w_li;
 
@@ -692,6 +691,7 @@ module vanilla_core
   //
   logic flush;
   logic icache_miss_in_pipe;
+
   assign flush = (branch_mispredict | jalr_mispredict);
   assign icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss
       | mem_r.icache_miss | wb_r.icache_miss;
@@ -699,14 +699,18 @@ module vanilla_core
   // next pc logic
   //
   logic reset_r;
+  logic reset_down;
+
   bsg_dff #(.width_p(1)) reset_dff (
     .clk_i(clk_i)
     ,.data_i(reset_i)
     ,.data_o(reset_r)
   );
+
+  assign reset_down = reset_r & ~reset_i;
   
   always_comb begin
-    if (reset_r & ~reset_i) // reset went down.
+    if (reset_down)
       pc_n = pc_init_val_i;
     else if (wb_r.icache_miss)
       pc_n = wb_r.icache_miss_pc[2+:pc_width_lp];
@@ -726,16 +730,35 @@ module vanilla_core
   end
 
 
-  // icache ctrl
-  // icache fetch gets higher priority then icache remote store.
+  //  icache ctrl logic
+  //
+  //  icache can be written by:
+  //  1) remote store from host or another tile.
+  //  2) icache miss response.
+  //
+  //  icache fetch gets higher priority than icache remote store.
+  //  
+  //  when there is an incoming icache remote store, the pipeline stalls, and
+  //  allows writing into the icache.
+  //
+  //  PC update and icache read happen together.
+  //
+  //  icache can be flushed when:
+  //  1) there is branch/jump mispredict.
+  //  2) icache bubble in the pipeline.
+  //
+  //  icache can be flushed and read at the same time, and it will output the
+  //  read value.
+  //
+  logic read_icache;
 
-  logic update_pc;
-  assign update_pc = (icache_miss_in_pipe & ~flush)
+  assign read_icache = (icache_miss_in_pipe & ~flush)
     ? wb_r.icache_miss 
     : 1'b1;
 
   assign icache_v_li = icache_v_i | ifetch_v_i 
-    | (~stall & ~stall_depend & ~stall_fp & update_pc);
+    | (~stall & ~stall_depend & ~stall_fp & read_icache);
+
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
   assign icache_waddr = ifetch_v_i
@@ -755,7 +778,7 @@ module vanilla_core
   assign icache_flush = flush | icache_miss_in_pipe;
 
   assign stall_icache_store = icache_v_i & icache_yumi_o;
-  
+ 
   // IF -> ID
   //
   always_comb begin
