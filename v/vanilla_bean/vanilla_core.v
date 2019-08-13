@@ -78,13 +78,13 @@ module vanilla_core
 
   // icache
   //
-  logic icache_cen, icache_wen;
-  logic [icache_addr_width_lp-1:0] icache_waddr;
-  logic [icache_tag_width_p-1:0] icache_wtag;
+  logic icache_v_li;
+  logic icache_w_li;
+
+  logic [pc_width_lp-1:0] icache_w_pc;
   logic [data_width_p-1:0] icache_winstr;
 
   logic [pc_width_lp-1:0] pc_n, pc_r;
-  logic pc_wen;
   instruction_s instruction;
   logic icache_miss;
   logic icache_flush;
@@ -99,23 +99,21 @@ module vanilla_core
   ) icache0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    
-    ,.icache_cen_i(icache_cen)
-    ,.icache_wen_i(icache_wen)
-    ,.icache_w_addr_i(icache_waddr)
-    ,.icache_w_tag_i(icache_wtag)
-    ,.icache_w_instr_i(icache_winstr)
-
-    ,.pc_i(pc_n)
-    ,.pc_wen_i(pc_wen)
-    ,.pc_r_o(pc_r)
-    ,.icache_miss_o(icache_miss)
-    ,.instruction_o(instruction)
-
+   
+    ,.v_i(icache_v_li)
+    ,.w_i(icache_w_li)
     ,.flush_i(icache_flush)
 
+    ,.w_pc_i(icache_w_pc)
+    ,.w_instr_i(icache_winstr)
+
+    ,.pc_i(pc_n)
     ,.jalr_prediction_i(jalr_prediction)
+
+    ,.instr_o(instruction)
     ,.pred_or_jump_addr_o(pred_or_jump_addr)
+    ,.pc_r_o(pc_r)
+    ,.icache_miss_o(icache_miss)
   );
 
   logic [pc_width_lp-1:0] pc_plus4;
@@ -691,6 +689,7 @@ module vanilla_core
   //
   logic flush;
   logic icache_miss_in_pipe;
+
   assign flush = (branch_mispredict | jalr_mispredict);
   assign icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss
       | mem_r.icache_miss | wb_r.icache_miss;
@@ -698,14 +697,18 @@ module vanilla_core
   // next pc logic
   //
   logic reset_r;
+  logic reset_down;
+
   bsg_dff #(.width_p(1)) reset_dff (
     .clk_i(clk_i)
     ,.data_i(reset_i)
     ,.data_o(reset_r)
   );
+
+  assign reset_down = reset_r & ~reset_i;
   
   always_comb begin
-    if (reset_r & ~reset_i) // reset went down.
+    if (reset_down)
       pc_n = pc_init_val_i;
     else if (wb_r.icache_miss)
       pc_n = wb_r.icache_miss_pc[2+:pc_width_lp];
@@ -725,18 +728,40 @@ module vanilla_core
   end
 
 
-  // icache ctrl
-  // icache fetch gets higher priority then icache remote store.
-  assign icache_cen = (~stall & ~stall_depend & ~stall_fp) | icache_v_i | ifetch_v_i;
-  assign icache_wen = icache_v_i | ifetch_v_i;
+  //  icache ctrl logic
+  //
+  //  icache can be written by:
+  //  1) remote store from host or another tile.
+  //  2) icache miss response.
+  //
+  //  icache fetch gets higher priority than icache remote store.
+  //  
+  //  when there is an incoming icache remote store, the pipeline stalls, and
+  //  allows writing into the icache.
+  //
+  //  PC update and icache read happen together.
+  //
+  //  icache can be flushed when:
+  //  1) there is branch/jump mispredict.
+  //  2) icache bubble in the pipeline.
+  //
+  //  icache can be flushed and read at the same time, and it will output the
+  //  read value.
+  //
+  logic read_icache;
 
-  assign icache_waddr = ifetch_v_i
-    ? mem_r.mem_addr_sent[2+:icache_addr_width_lp]
-    : icache_pc_i[0+:icache_addr_width_lp];
+  assign read_icache = (icache_miss_in_pipe & ~flush)
+    ? wb_r.icache_miss 
+    : 1'b1;
 
-  assign icache_wtag = ifetch_v_i
-    ? mem_r.mem_addr_sent[(2+icache_addr_width_lp)+:icache_tag_width_p]
-    : icache_pc_i[icache_addr_width_lp+:icache_tag_width_p];
+  assign icache_v_li = icache_v_i | ifetch_v_i 
+    | (~stall & ~stall_depend & ~stall_fp & read_icache);
+
+  assign icache_w_li = icache_v_i | ifetch_v_i;
+
+  assign icache_w_pc = ifetch_v_i
+    ? mem_r.mem_addr_sent[2+:pc_width_lp]
+    : icache_pc_i[0+:pc_width_lp];
 
   assign icache_winstr = ifetch_v_i
     ? ifetch_instr_i
@@ -746,10 +771,8 @@ module vanilla_core
 
   assign icache_flush = flush | icache_miss_in_pipe;
 
-  assign pc_wen = ~(stall | stall_depend | stall_fp);
-
   assign stall_icache_store = icache_v_i & icache_yumi_o;
-  
+ 
   // IF -> ID
   //
   always_comb begin
