@@ -1,0 +1,31 @@
+.DEFAULT_GOAL = all
+
+BENCHMARK_DIR = $(BSG_MANYCORE_DIR)/imports/greenlight/benchmarks/spec2000/CINT2000/181.mcf
+
+PROG_NAME = mcf
+
+MAX_CYCLES = 1000000000
+
+BENCHMARK_OBJS = raw.o \
+  implicit.o mcf.o mcfutil.o output.o pbeampp.o pbla.o \
+	pflowup.o psimplex.o pstart.o readmin.o treeup.o
+
+INPUT_TYPE = smred
+
+BENCHMARK_INPS = $(INPUT_TYPE).in
+
+$(BENCHMARK_INPS): %:
+	cp $(BENCHMARK_DIR)/input/$@ $@
+
+BENCHMARK_DEFS = -D__raw__
+
+ARGC=3
+ARGV=mcf $(BENCHMARK_INPS) mcf.out0
+
+# lfs disk image size
+LFS_BLOCK_SIZE = 128
+LFS_BLOCK_COUNT = 128 # 16K
+
+CLEAN_ITEMS = $(BENCHMARK_INPS)
+
+include ./Makefile.common
