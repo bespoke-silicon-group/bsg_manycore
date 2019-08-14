@@ -265,10 +265,10 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all -S $<
 
 %.spike: %.riscv
-ifdef DEBUG
-	$(RISCV_SIM) -d --isa=$(ARCH_OP) $<
-else
+ifdef TRACE
 	$(RISCV_SIM) -l --isa=$(ARCH_OP) $< 2> spike.log
+else
+	$(RISCV_SIM) --isa=$(ARCH_OP) $<
 endif
 
 %.S: %.c
