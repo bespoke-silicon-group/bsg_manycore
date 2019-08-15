@@ -130,8 +130,8 @@ module vanilla_core_profiler
   logic local_st_inc;
   logic remote_ld_inc;
   logic remote_st_inc;
-  logic flw_inc;
-  logic fsw_inc;
+  logic local_flw_inc;
+  logic local_fsw_inc;
   logic remote_flw_inc;
   logic remote_fsw_inc;
   logic icache_miss_inc;
@@ -144,8 +144,8 @@ module vanilla_core_profiler
   assign remote_st_inc = remote_req_v_o & remote_req_yumi_i & remote_req_o.write_not_read
     & exe_r.decode.op_reads_rf2;
 
-  assign flw_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_fp_rf;
-  assign fsw_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_fp_rf2;
+  assign local_flw_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_fp_rf;
+  assign local_fsw_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_fp_rf2;
   assign remote_flw_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
     & ~remote_req_o.payload.read_info.load_info.icache_fetch
     & exe_r.decode.op_writes_fp_rf;
@@ -416,8 +416,8 @@ module vanilla_core_profiler
     integer st;
     integer remote_ld;
     integer remote_st;
-    integer flw;
-    integer fsw;
+    integer local_flw;
+    integer local_fsw;
     integer remote_flw;
     integer remote_fsw;
     integer icache_miss;
@@ -529,8 +529,8 @@ module vanilla_core_profiler
       if (local_st_inc) stat.st++;
       if (remote_ld_inc) stat.remote_ld++;
       if (remote_st_inc) stat.remote_st++;
-      if (flw_inc) stat.flw++;
-      if (fsw_inc) stat.fsw++;
+      if (local_flw_inc) stat.local_flw++;
+      if (local_fsw_inc) stat.local_fsw++;
       if (remote_flw_inc) stat.remote_flw++;
       if (remote_fsw_inc) stat.remote_fsw++;
       if (icache_miss_inc) stat.icache_miss++;
@@ -627,7 +627,7 @@ module vanilla_core_profiler
       $fwrite(fd, "x,y,tag,global_ctr,cycle,instr,");
       $fwrite(fd, "fadd,fsub,fmul,fsgnj,fsgnjn,fsgnjx,fmin,fmax,fcvt_s_w,fcvt_s_wu,fmv_w_x,");
       $fwrite(fd, "feq,flt,fle,fcvt_w_s,fcvt_wu_s,fclass,fmv_x_w,");
-      $fwrite(fd, "local_ld,local_st,remote_ld,remote_st,flw,fsw,remote_flw,remote_fsw,icache_miss,");
+      $fwrite(fd, "local_ld,local_st,remote_ld,remote_st,local_flw,local_fsw,remote_flw,remote_fsw,icache_miss,");
       $fwrite(fd, "lr,lr_aq,swap_aq,swap_rl,");
       $fwrite(fd, "beq,bne,blt,bge,bltu,bgeu,jalr,jal,");
       $fwrite(fd, "beq_miss,bne_miss,blt_miss,bge_miss,bltu_miss,bgeu_miss,jalr_miss,");
@@ -690,8 +690,8 @@ module vanilla_core_profiler
             stat.st,
             stat.remote_ld,
             stat.remote_st,
-            stat.flw,
-            stat.fsw,
+            stat.local_flw,
+            stat.local_fsw,
             stat.remote_flw,
             stat.remote_fsw,
             stat.icache_miss
