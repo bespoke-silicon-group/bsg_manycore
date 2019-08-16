@@ -1,0 +1,3 @@
+"As long as we can make them smaller, we can make them faster."
+
+-- Seymour Cray #2
