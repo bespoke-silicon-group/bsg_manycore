@@ -3,7 +3,7 @@
 #include <string.h>
 
 int main() {
-  char c;
+  int c;
 
   // Read from a file
   FILE *file1 = fopen("test/file1.txt", "r");
