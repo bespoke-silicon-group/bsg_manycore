@@ -13,7 +13,7 @@ print.o strncasecmp.o xalloc.o
 
 INPUT_TYPE = smred
 
-BENCHMARK_INPS = 2.1.dict words $(INPUT_TYPE).in
+BENCHMARK_INPS = 2.1.dict $(INPUT_TYPE).in words
 
 $(BENCHMARK_INPS): %:
 	cp -r $(BENCHMARK_DIR)/input/$@ $@
@@ -21,11 +21,11 @@ $(BENCHMARK_INPS): %:
 BENCHMARK_DEFS = -D__raw__
 
 ARGC=3
-ARGV=parser $(BENCHMARK_INPS)
+ARGV=parser 2.1.dict $(INPUT_TYPE).in
 
 # lfs disk image size
 LFS_BLOCK_SIZE = 128
-LFS_BLOCK_COUNT = 8192
+LFS_BLOCK_COUNT = 16384 # 2MB
 
 CLEAN_ITEMS = $(BENCHMARK_INPS)
 

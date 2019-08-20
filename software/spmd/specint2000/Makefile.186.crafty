@@ -28,7 +28,7 @@ ARGV=crafty input=crafty.in
 
 # lfs disk image size
 LFS_BLOCK_SIZE = 128
-LFS_BLOCK_COUNT = 64 # 8K
+LFS_BLOCK_COUNT = 1024 # 128K
 
 CLEAN_ITEMS = $(BENCHMARK_INPS)
 
