@@ -22,9 +22,9 @@ VCS_INCDIR += +incdir+$(BSG_MANYCORE_DIR)/v
 VCS_INCDIR += +incdir+$(BSG_MANYCORE_DIR)/v/vanilla_bean
 
 .PHONY: all clean
-	
+
 all: $(SIMV)
-	
+
 %/simv:
 	$(eval include $*/Makefile.machine.include)
 	$(eval VCS_DEFINE := +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
@@ -38,7 +38,7 @@ all: $(SIMV)
 	$(eval VCS_DEFINE += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
 	$(VCS) +v2k -sverilog -full64 -o $*/simv \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
-		-timescale=1ps/1ps \
+		-timescale=1ps/1ps $(BSG_MANYCORE_DIR)/testbenches/common/v/spmd_testbench.v \
 		-f sv.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build.log
 	$(VCS) +v2k -sverilog -full64 -debug_pp -o $*/simv-debug \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
