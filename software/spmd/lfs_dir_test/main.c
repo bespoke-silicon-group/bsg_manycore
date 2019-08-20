@@ -2,20 +2,33 @@
 #include <stdlib.h>
 #include <string.h>
 
-int main() {
+int print_file(char* path) {
   int c;
 
-  // Read from a file
-  FILE *file1 = fopen("test/file1.txt", "r");
-  if(file1 == NULL) {
-    printf("Cannot open test/file1.txt!\n");
+  FILE *file = fopen(path, "r");
+  if(file == NULL) {
+    fprintf(stderr, "Cannot open %s!\n", path);
     return -1;
   }
 
-  while((c = fgetc(file1)) != EOF) {
+  printf("\nReading %s:\n", path);
+
+  while((c = fgetc(file)) != EOF) {
     putchar(c);
   }
 
-  fclose(file1);
+  putchar('\n');
+
+  fclose(file);
+  return 0;
+}
+
+int main() {
+  char* paths[2] = {"test/file1.txt",
+                  "test/subtest/file2.txt"};
+
+  for(int i=0; i<2; i++)
+    print_file(paths[i]);
+
   return 0;
 }
