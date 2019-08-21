@@ -1,0 +1,8 @@
+-f $BSG_MANYCORE_DIR/machines/core.include
+-f $BSG_MANYCORE_DIR/machines/sim.include
+
+$BSG_MANYCORE_DIR/testbenches/common/v/bsg_nonsynth_manycore_io_complex.v
+$BSG_MANYCORE_DIR/testbenches/common/v/bsg_nonsynth_manycore_spmd_loader.v
+$BSG_MANYCORE_DIR/testbenches/common/v/bsg_nonsynth_manycore_monitor.v
+
+$BSG_MANYCORE_DIR/testbenches/common/v/spmd_testbench.v
