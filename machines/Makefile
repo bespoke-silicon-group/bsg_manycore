@@ -38,7 +38,7 @@ all: $(SIMV)
 	$(eval VCS_DEFINE += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
 	$(VCS) +v2k -sverilog -full64 -o $*/simv \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
-		-timescale=1ps/1ps -f tb.include\
+		-timescale=1ps/1ps \
 		-f tb.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build.log
 	$(VCS) +v2k -sverilog -full64 -debug_pp -o $*/simv-debug \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
