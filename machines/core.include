@@ -1,11 +1,11 @@
+# This file contains a list of the *core* manycore architecture files that are
+# used in simulation. This has NOT been used in tapeout or any tapeout related
+# activities beyond simulation
+
 $BASEJUMP_STL_DIR/bsg_misc/bsg_defines.v
 $BASEJUMP_STL_DIR/bsg_noc/bsg_noc_pkg.v
 $BASEJUMP_STL_DIR/bsg_cache/bsg_cache_pkg.v
 $BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_pkg.v
-$BSG_MANYCORE_DIR/testbenches/common/v/bsg_mem_cfg_pkg.v
-
-$BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_clock_gen.v
-$BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_reset_gen.v
 
 $BASEJUMP_STL_DIR/bsg_misc/bsg_less_than.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_reduce.v
@@ -57,9 +57,6 @@ $BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v
 $BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1rw_sync_mask_write_byte_synth.v
 $BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.v
 $BASEJUMP_STL_DIR/bsg_mem/bsg_mem_1rw_sync_mask_write_bit_synth.v
-
-$BASEJUMP_STL_DIR/bsg_mem/bsg_nonsynth_mem_1rw_sync_mask_write_byte_assoc.v
-$BASEJUMP_STL_DIR/bsg_mem/bsg_nonsynth_mem_1rw_sync_assoc.v
 
 $BASEJUMP_STL_DIR/bsg_noc/bsg_mesh_stitch.v
 $BASEJUMP_STL_DIR/bsg_noc/bsg_mesh_router.v
