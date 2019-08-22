@@ -10,6 +10,9 @@ module vanilla_core_profiler
   #(parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
     , parameter data_width_p="inv"
+    , parameter dmem_size_p="inv"
+    , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
+    , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
   )
   (
     input clk_i
@@ -27,13 +30,26 @@ module vanilla_core_profiler
     , input stall_remote_req
     , input stall_local_flw
 
-    //, input flush
-    //, input id_signals_s id_r
+    , input id_signals_s id_r
     , input exe_signals_s exe_r
+    , input exe_signals_s exe_n
+    , input mem_signals_s mem_n
+    , input wb_signals_s wb_n
     , input fp_exe_signals_s fp_exe_r
     , input branch_mispredict
     , input jalr_mispredict
     , input fpu_float_ready_lo
+    
+    , input [data_width_p-1:0] mem_addr_op2
+    , input [data_width_p-1:0] rs1_to_exe
+
+    , input int_sb_score
+    , input [1:0] int_sb_clear
+    , input [1:0][reg_addr_width_lp-1:0] int_sb_clear_id
+
+    , input float_sb_score
+    , input float_sb_clear
+    , input [reg_addr_width_lp-1:0] float_sb_clear_id 
 
     , input lsu_dmem_v_lo
     , input lsu_dmem_w_lo
@@ -41,6 +57,9 @@ module vanilla_core_profiler
     , input remote_req_s remote_req_o
     , input remote_req_v_o
     , input remote_req_yumi_i
+
+    , input float_remote_load_resp_v_i
+    , input local_flw_valid
 
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
@@ -55,10 +74,6 @@ module vanilla_core_profiler
   //
   logic instr_inc;
   logic fp_instr_inc;
-
-  //assign instr_inc = (~stall & ~stall_depend & ~flush)
-  //  & (id_r.instruction != '0)
-  //  & ~id_r.icache_miss;
 
   assign instr_inc = (~stall) & (exe_r.instruction != '0) & ~exe_r.icache_miss;
   assign fp_instr_inc = fp_exe_r.valid & fpu_float_ready_lo;
@@ -111,26 +126,26 @@ module vanilla_core_profiler
 
   // LSU
   //
-  logic ld_inc;
-  logic st_inc;
+  logic local_ld_inc;
+  logic local_st_inc;
   logic remote_ld_inc;
   logic remote_st_inc;
-  logic flw_inc;
-  logic fsw_inc;
+  logic local_flw_inc;
+  logic local_fsw_inc;
   logic remote_flw_inc;
   logic remote_fsw_inc;
   logic icache_miss_inc;
   
-  assign ld_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_rf;
-  assign st_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_rf2;
+  assign local_ld_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_rf;
+  assign local_st_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_rf2;
   assign remote_ld_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
     & ~remote_req_o.payload.read_info.load_info.icache_fetch
     & exe_r.decode.op_writes_rf;
   assign remote_st_inc = remote_req_v_o & remote_req_yumi_i & remote_req_o.write_not_read
     & exe_r.decode.op_reads_rf2;
 
-  assign flw_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_fp_rf;
-  assign fsw_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_fp_rf2;
+  assign local_flw_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_fp_rf;
+  assign local_fsw_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_fp_rf2;
   assign remote_flw_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
     & ~remote_req_o.payload.read_info.load_info.icache_fetch
     & exe_r.decode.op_writes_fp_rf;
@@ -266,24 +281,107 @@ module vanilla_core_profiler
   logic fence_inc;
   assign fence_inc = instr_inc & exe_r.decode.is_fence_op;
 
+  // remote/local scoreboard tracking 
+  //
+  // int_sb[1]: remote load
+  // int_sb[0]: local load
+  //
+  // float_sb[1] : remote load
+  // float_sb[0] : local_load
+  //
+  logic [31:0][1:0] int_sb_r;
+  logic [31:0][1:0] float_sb_r;
+  
+  logic remote_load_in_id;
+  logic local_load_in_id;
+
+  logic [data_width_p-1:0] load_addr;
+  assign load_addr = mem_addr_op2 +
+    (exe_n.rs1_in_mem
+      ? mem_n.exe_result
+      : (exe_n.rs1_in_wb
+        ? wb_n.rf_data
+        : rs1_to_exe));
+
+  assign local_load_in_id = load_addr[2+dmem_addr_width_lp]
+    & (load_addr[data_width_p-1:(2+1+dmem_addr_width_lp)] == '0);
+
+  assign remote_load_in_id = ~local_load_in_id;
+
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      int_sb_r <= '0;
+    end
+    else begin
+
+      if (int_sb_score & remote_load_in_id) begin
+        int_sb_r[id_r.instruction.rd][1] <= 1'b1;
+      end
+      else if (int_sb_clear[1]) begin
+        int_sb_r[int_sb_clear_id[1]][1] <= 1'b0;
+      end
+
+      if (int_sb_score & local_load_in_id) begin
+        int_sb_r[id_r.instruction.rd][0] <= 1'b1;
+      end
+      else if (int_sb_clear[0]) begin
+        int_sb_r[int_sb_clear_id[0]][0] <= 1'b0;
+      end
+
+
+    end
+  end
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      float_sb_r <= '0;
+    end
+    else begin
+
+      if (float_sb_score & id_r.decode.is_load_op & local_load_in_id) begin
+        float_sb_r[id_r.instruction.rd][1] <= 1'b1;
+      end
+      else if (float_sb_clear) begin
+        float_sb_r[float_sb_clear_id][1] <= 1'b0;
+      end
+
+      if (float_sb_score & id_r.decode.is_load_op & remote_load_in_id) begin
+        float_sb_r[id_r.instruction.rd][0] <= 1'b1;
+      end
+      else if (float_sb_clear) begin
+        float_sb_r[float_sb_clear_id][0] <= 1'b0;
+      end
+
+    end
+  end
+
   // stall
   //
-  integer stall_fp_r;
-  integer stall_depend_r;
-  integer stall_ifetch_wait_r;
-  integer stall_lr_aq_r;
-  integer stall_fence_r;
-  integer stall_md_r;
-  integer stall_force_wb_r;
-  integer stall_remote_req_r;
-  integer stall_local_flw_r;
- 
   logic stall_depend_inc;
-  logic stall_fp_inc;
-  logic stall_force_wb_inc;
+  logic stall_depend_local_load_inc;
+  logic stall_depend_remote_load_inc;
 
   assign stall_depend_inc = stall_depend & ~(stall | stall_fp);
-  assign stall_fp_inc = stall_fp & ~(stall | stall_depend);
+
+  assign stall_depend_local_load_inc = stall_depend_inc
+    & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][0]) |
+       (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][0]) |
+       (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][0]) |
+       (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][0]));
+    
+  assign stall_depend_remote_load_inc = stall_depend_inc
+    & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][1]) |
+       (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][1]) |
+       (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][1]) |
+       (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][1]));
+
+  logic stall_fp_remote_load_inc;
+  logic stall_fp_local_load_inc;
+  assign stall_fp_remote_load_inc = stall_fp & ~(stall | stall_depend) & float_remote_load_resp_v_i;
+  assign stall_fp_local_load_inc = stall_fp & ~(stall | stall_depend) & local_flw_valid;
+
+  logic stall_force_wb_inc;
   assign stall_force_wb_inc = stall_force_wb
     & ~(stall_ifetch_wait | stall_icache_store | stall_lr_aq
         | stall_fence | stall_md | stall_remote_req | stall_local_flw);
@@ -318,8 +416,8 @@ module vanilla_core_profiler
     integer st;
     integer remote_ld;
     integer remote_st;
-    integer flw;
-    integer fsw;
+    integer local_flw;
+    integer local_fsw;
     integer remote_flw;
     integer remote_fsw;
     integer icache_miss;
@@ -380,8 +478,13 @@ module vanilla_core_profiler
 
     integer fence;
 
-    integer stall_fp;
+    integer stall_fp_remote_load;
+    integer stall_fp_local_load;
+
     integer stall_depend;
+    integer stall_depend_local_load;
+    integer stall_depend_remote_load;
+
     integer stall_force_wb;
     integer stall_ifetch_wait;
     integer stall_icache_store;
@@ -392,111 +495,116 @@ module vanilla_core_profiler
   
   } vanilla_stat_s;
 
-  vanilla_stat_s curr_stat;
+  vanilla_stat_s stat;
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
-      curr_stat <= '0;
+      stat <= '0;
     end
     else begin
-      curr_stat.cycle++;
-      curr_stat.instr <= curr_stat.instr + instr_inc + fp_instr_inc;
+      stat.cycle++;
+      stat.instr <= stat.instr + instr_inc + fp_instr_inc;
 
-      if (fadd_inc) curr_stat.fadd++;
-      if (fsub_inc) curr_stat.fsub++;
-      if (fmul_inc) curr_stat.fmul++;
-      if (fsgnj_inc) curr_stat.fsgnj++;
-      if (fsgnjn_inc) curr_stat.fsgnjn++;
-      if (fsgnjx_inc) curr_stat.fsgnjx++;
-      if (fmin_inc) curr_stat.fmin++;
-      if (fmax_inc) curr_stat.fmax++;
-      if (fcvt_s_w_inc) curr_stat.fcvt_s_w++;
-      if (fcvt_s_wu_inc) curr_stat.fcvt_s_wu++;
-      if (fmv_w_x_inc) curr_stat.fmv_w_x++;
+      if (fadd_inc) stat.fadd++;
+      if (fsub_inc) stat.fsub++;
+      if (fmul_inc) stat.fmul++;
+      if (fsgnj_inc) stat.fsgnj++;
+      if (fsgnjn_inc) stat.fsgnjn++;
+      if (fsgnjx_inc) stat.fsgnjx++;
+      if (fmin_inc) stat.fmin++;
+      if (fmax_inc) stat.fmax++;
+      if (fcvt_s_w_inc) stat.fcvt_s_w++;
+      if (fcvt_s_wu_inc) stat.fcvt_s_wu++;
+      if (fmv_w_x_inc) stat.fmv_w_x++;
 
-      if (feq_inc) curr_stat.feq++;
-      if (flt_inc) curr_stat.flt++;
-      if (fle_inc) curr_stat.fle++;
-      if (fcvt_w_s_inc) curr_stat.fcvt_w_s++;
-      if (fcvt_wu_s_inc) curr_stat.fcvt_wu_s++;
-      if (fclass_inc) curr_stat.fclass++;
-      if (fmv_x_w_inc) curr_stat.fmv_x_w++;
+      if (feq_inc) stat.feq++;
+      if (flt_inc) stat.flt++;
+      if (fle_inc) stat.fle++;
+      if (fcvt_w_s_inc) stat.fcvt_w_s++;
+      if (fcvt_wu_s_inc) stat.fcvt_wu_s++;
+      if (fclass_inc) stat.fclass++;
+      if (fmv_x_w_inc) stat.fmv_x_w++;
 
-      if (ld_inc) curr_stat.ld++;
-      if (st_inc) curr_stat.st++;
-      if (remote_ld_inc) curr_stat.remote_ld++;
-      if (remote_st_inc) curr_stat.remote_st++;
-      if (flw_inc) curr_stat.flw++;
-      if (fsw_inc) curr_stat.fsw++;
-      if (remote_flw_inc) curr_stat.remote_flw++;
-      if (remote_fsw_inc) curr_stat.remote_fsw++;
-      if (icache_miss_inc) curr_stat.icache_miss++;
+      if (local_ld_inc) stat.ld++;
+      if (local_st_inc) stat.st++;
+      if (remote_ld_inc) stat.remote_ld++;
+      if (remote_st_inc) stat.remote_st++;
+      if (local_flw_inc) stat.local_flw++;
+      if (local_fsw_inc) stat.local_fsw++;
+      if (remote_flw_inc) stat.remote_flw++;
+      if (remote_fsw_inc) stat.remote_fsw++;
+      if (icache_miss_inc) stat.icache_miss++;
 
-      if (lr_inc) curr_stat.lr++;
-      if (lr_aq_inc) curr_stat.lr_aq++;
-      if (swap_aq_inc) curr_stat.swap_aq++;
-      if (swap_rl_inc) curr_stat.swap_rl++;
+      if (lr_inc) stat.lr++;
+      if (lr_aq_inc) stat.lr_aq++;
+      if (swap_aq_inc) stat.swap_aq++;
+      if (swap_rl_inc) stat.swap_rl++;
      
-      if (beq_inc) curr_stat.beq++; 
-      if (bne_inc) curr_stat.bne++; 
-      if (blt_inc) curr_stat.blt++; 
-      if (bge_inc) curr_stat.bge++; 
-      if (bltu_inc) curr_stat.bltu++; 
-      if (bgeu_inc) curr_stat.bgeu++; 
-      if (jalr_inc) curr_stat.jalr++; 
-      if (jal_inc) curr_stat.jal++; 
+      if (beq_inc) stat.beq++; 
+      if (bne_inc) stat.bne++; 
+      if (blt_inc) stat.blt++; 
+      if (bge_inc) stat.bge++; 
+      if (bltu_inc) stat.bltu++; 
+      if (bgeu_inc) stat.bgeu++; 
+      if (jalr_inc) stat.jalr++; 
+      if (jal_inc) stat.jal++; 
 
-      if (beq_miss_inc) curr_stat.beq_miss++; 
-      if (bne_miss_inc) curr_stat.bne_miss++; 
-      if (blt_miss_inc) curr_stat.blt_miss++; 
-      if (bge_miss_inc) curr_stat.bge_miss++; 
-      if (bltu_miss_inc) curr_stat.bltu_miss++; 
-      if (bgeu_miss_inc) curr_stat.bgeu_miss++; 
-      if (jalr_miss_inc) curr_stat.jalr_miss++; 
+      if (beq_miss_inc) stat.beq_miss++; 
+      if (bne_miss_inc) stat.bne_miss++; 
+      if (blt_miss_inc) stat.blt_miss++; 
+      if (bge_miss_inc) stat.bge_miss++; 
+      if (bltu_miss_inc) stat.bltu_miss++; 
+      if (bgeu_miss_inc) stat.bgeu_miss++; 
+      if (jalr_miss_inc) stat.jalr_miss++; 
      
-      if (sll_inc) curr_stat.sll++; 
-      if (slli_inc) curr_stat.slli++; 
-      if (srl_inc) curr_stat.srl++; 
-      if (srli_inc) curr_stat.srli++; 
-      if (sra_inc) curr_stat.sra++; 
-      if (srai_inc) curr_stat.srai++; 
+      if (sll_inc) stat.sll++; 
+      if (slli_inc) stat.slli++; 
+      if (srl_inc) stat.srl++; 
+      if (srli_inc) stat.srli++; 
+      if (sra_inc) stat.sra++; 
+      if (srai_inc) stat.srai++; 
 
-      if (add_inc) curr_stat.add++;
-      if (addi_inc) curr_stat.addi++;
-      if (sub_inc) curr_stat.sub++;
-      if (lui_inc) curr_stat.lui++;
-      if (auipc_inc) curr_stat.auipc++;
-      if (xor_inc) curr_stat.xor_++;
-      if (xori_inc) curr_stat.xori++;
-      if (or_inc) curr_stat.or_++;
-      if (ori_inc) curr_stat.ori++;
-      if (and_inc) curr_stat.and_++;
-      if (andi_inc) curr_stat.andi++;
-      if (slt_inc) curr_stat.slt++;
-      if (slti_inc) curr_stat.slti++;
-      if (sltu_inc) curr_stat.sltu++;
-      if (sltiu_inc) curr_stat.sltiu++;
+      if (add_inc) stat.add++;
+      if (addi_inc) stat.addi++;
+      if (sub_inc) stat.sub++;
+      if (lui_inc) stat.lui++;
+      if (auipc_inc) stat.auipc++;
+      if (xor_inc) stat.xor_++;
+      if (xori_inc) stat.xori++;
+      if (or_inc) stat.or_++;
+      if (ori_inc) stat.ori++;
+      if (and_inc) stat.and_++;
+      if (andi_inc) stat.andi++;
+      if (slt_inc) stat.slt++;
+      if (slti_inc) stat.slti++;
+      if (sltu_inc) stat.sltu++;
+      if (sltiu_inc) stat.sltiu++;
 
-      if (mul_inc) curr_stat.mul++;
-      if (mulh_inc) curr_stat.mulh++;
-      if (mulhsu_inc) curr_stat.mulhsu++;
-      if (mulhu_inc) curr_stat.mulhu++;
-      if (div_inc) curr_stat.div++;
-      if (divu_inc) curr_stat.divu++;
-      if (rem_inc) curr_stat.rem++;
-      if (remu_inc) curr_stat.remu++;
+      if (mul_inc) stat.mul++;
+      if (mulh_inc) stat.mulh++;
+      if (mulhsu_inc) stat.mulhsu++;
+      if (mulhu_inc) stat.mulhu++;
+      if (div_inc) stat.div++;
+      if (divu_inc) stat.divu++;
+      if (rem_inc) stat.rem++;
+      if (remu_inc) stat.remu++;
 
-      if (fence_inc) curr_stat.fence++;
+      if (fence_inc) stat.fence++;
 
-      if (stall_fp_inc) curr_stat.stall_fp++;
-      if (stall_depend_inc) curr_stat.stall_depend++;
-      if (stall_force_wb_inc) curr_stat.stall_force_wb++;
-      if (stall_ifetch_wait) curr_stat.stall_ifetch_wait++;
-      if (stall_icache_store) curr_stat.stall_icache_store++;
-      if (stall_lr_aq) curr_stat.stall_lr_aq++;
-      if (stall_md) curr_stat.stall_md++;
-      if (stall_remote_req) curr_stat.stall_remote_req++;
-      if (stall_local_flw) curr_stat.stall_local_flw++;
+      if (stall_fp_remote_load_inc) stat.stall_fp_remote_load++;
+      if (stall_fp_local_load_inc) stat.stall_fp_local_load++;
+
+      if (stall_depend_inc) stat.stall_depend++;
+      if (stall_depend_local_load_inc) stat.stall_depend_local_load++;
+      if (stall_depend_remote_load_inc) stat.stall_depend_remote_load++;
+
+      if (stall_force_wb_inc) stat.stall_force_wb++;
+      if (stall_ifetch_wait) stat.stall_ifetch_wait++;
+      if (stall_icache_store) stat.stall_icache_store++;
+      if (stall_lr_aq) stat.stall_lr_aq++;
+      if (stall_md) stat.stall_md++;
+      if (stall_remote_req) stat.stall_remote_req++;
+      if (stall_local_flw) stat.stall_local_flw++;
 
     end
   end 
@@ -519,7 +627,7 @@ module vanilla_core_profiler
       $fwrite(fd, "x,y,tag,global_ctr,cycle,instr,");
       $fwrite(fd, "fadd,fsub,fmul,fsgnj,fsgnjn,fsgnjx,fmin,fmax,fcvt_s_w,fcvt_s_wu,fmv_w_x,");
       $fwrite(fd, "feq,flt,fle,fcvt_w_s,fcvt_wu_s,fclass,fmv_x_w,");
-      $fwrite(fd, "ld,st,remote_ld,remote_st,flw,fsw,remote_flw,remote_fsw,icache_miss,");
+      $fwrite(fd, "local_ld,local_st,remote_ld,remote_st,local_flw,local_fsw,remote_flw,remote_fsw,icache_miss,");
       $fwrite(fd, "lr,lr_aq,swap_aq,swap_rl,");
       $fwrite(fd, "beq,bne,blt,bge,bltu,bgeu,jalr,jal,");
       $fwrite(fd, "beq_miss,bne_miss,blt_miss,bge_miss,bltu_miss,bgeu_miss,jalr_miss,");
@@ -527,7 +635,8 @@ module vanilla_core_profiler
       $fwrite(fd, "add,addi,sub,lui,auipc,xor,xori,or,ori,and,andi,slt,slti,sltu,sltiu,");
       $fwrite(fd, "mul,mulh,mulhsu,mulhu,div,divu,rem,remu,");
       $fwrite(fd, "fence,");
-      $fwrite(fd, "stall_fp,stall_depend,stall_force_wb,stall_ifetch_wait,stall_icache_store,");
+      $fwrite(fd, "stall_fp_remote_load,stall_fp_local_load,stall_depend,stall_depend_remote_load,stall_depend_local_load,");
+      $fwrite(fd, "stall_force_wb,stall_ifetch_wait,stall_icache_store,");
       $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw");
       $fwrite(fd, "\n");
       $fclose(fd);
@@ -537,60 +646,139 @@ module vanilla_core_profiler
       @(negedge clk_i) begin
 
         if (~reset_i & print_stat_v_i) begin
+
           $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.",
             $time, my_x_i, my_y_i);
 
           fd = $fopen(logfile_lp, "a");
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,", my_x_i, my_y_i, print_stat_tag_i, global_ctr_i, curr_stat.cycle, curr_stat.instr);
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
+            my_x_i,
+            my_y_i,
+            print_stat_tag_i,
+            global_ctr_i,
+            stat.cycle,
+            stat.instr
+          );
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,", curr_stat.fadd, curr_stat.fsub, curr_stat.fmul,
-            curr_stat.fsgnj, curr_stat.fsgnjn, curr_stat.fsgnjx,
-            curr_stat.fmin, curr_stat.fmax,
-            curr_stat.fcvt_s_w, curr_stat.fcvt_s_wu,
-            curr_stat.fmv_x_w);
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,", curr_stat.feq, curr_stat.flt, curr_stat.fle,
-            curr_stat.fcvt_w_s, curr_stat.fcvt_wu_s,
-            curr_stat.fclass, curr_stat.fmv_x_w);
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            curr_stat.ld, curr_stat.st,
-            curr_stat.remote_ld, curr_stat.remote_st,
-            curr_stat.flw, curr_stat.fsw,
-            curr_stat.remote_flw, curr_stat.remote_fsw,
-            curr_stat.icache_miss);
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,",
-            curr_stat.lr, curr_stat.lr_aq,
-            curr_stat.swap_aq, curr_stat.swap_rl);
-        
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            curr_stat.beq, curr_stat.bne, curr_stat.blt, curr_stat.bge,
-            curr_stat.bltu, curr_stat.bgeu, curr_stat.jalr, curr_stat.jal);
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+            stat.fadd,
+            stat.fsub,
+            stat.fmul,
+            stat.fsgnj,
+            stat.fsgnjn,
+            stat.fsgnjx,
+            stat.fmin,
+            stat.fmax,
+            stat.fcvt_s_w,
+            stat.fcvt_s_wu,
+            stat.fmv_x_w
+          );
 
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            curr_stat.beq_miss, curr_stat.bne_miss, curr_stat.blt_miss, curr_stat.bge_miss,
-            curr_stat.bltu_miss, curr_stat.bgeu_miss, curr_stat.jalr_miss);
+            stat.feq,
+            stat.flt,
+            stat.fle,
+            stat.fcvt_w_s,
+            stat.fcvt_wu_s,
+            stat.fclass,
+            stat.fmv_x_w
+          );
+
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+            stat.ld,
+            stat.st,
+            stat.remote_ld,
+            stat.remote_st,
+            stat.local_flw,
+            stat.local_fsw,
+            stat.remote_flw,
+            stat.remote_fsw,
+            stat.icache_miss
+          );
+
+          $fwrite(fd, "%0d,%0d,%0d,%0d,",
+            stat.lr,
+            stat.lr_aq,
+            stat.swap_aq,
+            stat.swap_rl
+          );
+        
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+            stat.beq,
+            stat.bne,
+            stat.blt,
+            stat.bge,
+            stat.bltu,
+            stat.bgeu,
+            stat.jalr,
+            stat.jal
+          );
+
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+            stat.beq_miss,
+            stat.bne_miss,
+            stat.blt_miss,
+            stat.bge_miss,
+            stat.bltu_miss,
+            stat.bgeu_miss,
+            stat.jalr_miss
+          );
 
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
-            curr_stat.sll, curr_stat.slli, curr_stat.srl, curr_stat.srli, curr_stat.sra, curr_stat.srai);
+            stat.sll,
+            stat.slli,
+            stat.srl,
+            stat.srli,
+            stat.sra,
+            stat.srai
+          );
 
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            curr_stat.add, curr_stat.addi, curr_stat.sub, curr_stat.lui, curr_stat.auipc,
-            curr_stat.xor_, curr_stat.xori, curr_stat.or_, curr_stat.ori, 
-            curr_stat.and_, curr_stat.andi, curr_stat.slt, curr_stat.slti, 
-            curr_stat.sltu, curr_stat.sltiu);
+            stat.add,
+            stat.addi,
+            stat.sub,
+            stat.lui,
+            stat.auipc,
+            stat.xor_,
+            stat.xori,
+            stat.or_,
+            stat.ori, 
+            stat.and_,
+            stat.andi,
+            stat.slt,
+            stat.slti, 
+            stat.sltu,
+            stat.sltiu
+          );
 
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            curr_stat.mul, curr_stat.mulh, curr_stat.mulhsu, curr_stat.mulhu,
-            curr_stat.div, curr_stat.divu, curr_stat.rem, curr_stat.remu);
+            stat.mul,
+            stat.mulh,
+            stat.mulhsu,
+            stat.mulhu,
+            stat.div,
+            stat.divu,
+            stat.rem,
+            stat.remu
+          );
 
-          $fwrite(fd, "%0d,", curr_stat.fence);
+          $fwrite(fd, "%0d,", stat.fence);
       
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d",
-            curr_stat.stall_fp, curr_stat.stall_depend, curr_stat.stall_force_wb, curr_stat.stall_ifetch_wait, curr_stat.stall_icache_store,
-            curr_stat.stall_lr_aq, curr_stat.stall_md, curr_stat.stall_remote_req, curr_stat.stall_local_flw);
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d",
+            stat.stall_fp_remote_load,
+            stat.stall_fp_local_load,
+            stat.stall_depend,
+            stat.stall_depend_remote_load,
+            stat.stall_depend_local_load,
+            stat.stall_force_wb,
+            stat.stall_ifetch_wait,
+            stat.stall_icache_store,
+            stat.stall_lr_aq,
+            stat.stall_md,
+            stat.stall_remote_req,
+            stat.stall_local_flw
+          );
         
       
           $fwrite(fd, "\n");
