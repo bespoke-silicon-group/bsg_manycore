@@ -7,28 +7,30 @@
 `include "parameters.vh"
 `include "definitions.vh"
 
+
 module scoreboard
- #(parameter els_p = 32
-  ,parameter id_width_p = `BSG_SAFE_CLOG2(els_p)
-  ,parameter is_float_p = 0
-  ,parameter num_clear_port_p=1
+  #(parameter els_p = 32
+    , parameter is_float_p = 0
+    , parameter num_clear_port_p=1
+    , parameter id_width_lp = `BSG_SAFE_CLOG2(els_p)
   )
-  (input                         clk_i
-  ,input                         reset_i
+  (
+    input clk_i
+    , input reset_i
 
-  ,input [id_width_p-1:0]        src1_id_i
-  ,input [id_width_p-1:0]        src2_id_i
-  ,input [id_width_p-1:0]        dest_id_i
+    , input [id_width_lp-1:0] src1_id_i
+    , input [id_width_lp-1:0] src2_id_i
+    , input [id_width_lp-1:0] dest_id_i
 
-  ,input                         op_reads_rf1_i
-  ,input                         op_reads_rf2_i
-  ,input                         op_writes_rf_i
+    , input op_reads_rf1_i
+    , input op_reads_rf2_i
+    , input op_writes_rf_i
 
-  ,input                         score_i
-  ,input [num_clear_port_p-1:0]  clear_i
-  ,input [num_clear_port_p-1:0][id_width_p-1:0] clear_id_i
+    , input score_i
+    , input [num_clear_port_p-1:0] clear_i
+    , input [num_clear_port_p-1:0][id_width_lp-1:0] clear_id_i
 
-  ,output logic                  dependency_o
+    , output logic dependency_o
   );
 
   logic [els_p-1:0] scoreboard_r;

@@ -369,6 +369,7 @@ module spmd_testbench;
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
     ,.data_width_p(data_width_p)
+    ,.dmem_size_p(dmem_size_p)
   ) vcore_prof (
     .*
     ,.global_ctr_i($root.spmd_testbench.global_ctr)
