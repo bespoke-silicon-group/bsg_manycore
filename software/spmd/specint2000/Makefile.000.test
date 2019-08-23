@@ -1,8 +1,7 @@
 .DEFAULT_GOAL = all
 
-BENCHMARK_DIR = $(BENCHMARK_TOP)/000.test
+BENCHMARK = 000.test
 BENCHMARK_OBJS = raw.o test.o
 BENCHMARK_INPS =
-PROG_NAME = test
 
 include ./Makefile.common

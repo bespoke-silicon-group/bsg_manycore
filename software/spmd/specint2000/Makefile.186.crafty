@@ -1,8 +1,6 @@
 .DEFAULT_GOAL = all
 
-BENCHMARK_DIR = $(BSG_MANYCORE_DIR)/imports/greenlight/benchmarks/spec2000/CINT2000/186.crafty
-
-PROG_NAME = crafty
+BENCHMARK = 186.crafty
 
 MAX_CYCLES = 1000000000
 

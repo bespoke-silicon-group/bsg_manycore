@@ -1,8 +1,6 @@
 .DEFAULT_GOAL = all
 
-BENCHMARK_DIR = $(BENCHMARK_TOP)/300.twolf
-
-PROG_NAME = twolf
+BENCHMARK = 300.twolf
 
 BENCHMARK_OBJS = \
       acceptt.o addimp.o alignfeed.o buildimp.o changrid.o clean.o   \

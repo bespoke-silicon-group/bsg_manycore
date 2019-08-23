@@ -1,8 +1,6 @@
 .DEFAULT_GOAL = all
 
-BENCHMARK_DIR = $(BSG_MANYCORE_DIR)/imports/greenlight/benchmarks/spec2000/CINT2000/197.parser
-
-PROG_NAME = parser
+BENCHMARK = 197.parser
 
 MAX_CYCLES = 1000000000
 
