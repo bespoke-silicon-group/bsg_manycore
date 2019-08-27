@@ -31,8 +31,7 @@ all: main.run
 # for a quick debug of processor or program running on it.
 proc_exe_logs: X0_Y0.pelog X1_Y0.pelog
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o
-OBJECT_FILES+=$(TVM_HOME)/hb/cuda_lite_compile/cuda_lite_kernel.o
+OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o cuda_lite_kernel.o
 
 include ../../Makefile.include
 
