@@ -47,6 +47,8 @@ HOST_OBJS = $(subst .o,_host.o,$(BENCHMARK_OBJS))
 
 run_host: $(HOST_OBJS) $(IN_FILES)
 	gcc -o $(BENCHMARK).host $(HOST_OBJS)
-	./$(BENCHMARK).host $(IN_FILES) 1
+	./$(BENCHMARK).host $(filter-out $(word 1, $(ARGV)), $(ARGV))
+
+CLEAN_ITEMS += $(BENCHMARK).host
 
 include ../../mk/Makefile.tail_rules
