@@ -33,6 +33,7 @@ int main()
   *************************************************************************/
   if ((__bsg_x == bsg_tiles_X-1) && (__bsg_y == bsg_tiles_Y-1)) {
 
+     /* STDOUT */
      bsg_printf("\nManycore>> Hello from core %d, %d in group origin=(%d,%d).\n", \
                         __bsg_x, __bsg_y, __bsg_grp_org_x, __bsg_grp_org_y);
 
@@ -40,6 +41,15 @@ int main()
      for(i=0; i<4; i++)
         bsg_printf("%08x,",data[i]);
      bsg_printf("\n\n");
+
+     /* STDERR */
+     char stderr_msg[] = "\nManycore stderr>> Hello!\n\n";
+     int i = 0;
+
+     while(stderr_msg[i]) {
+       bsg_putchar_err(stderr_msg[i]);
+       i++;
+     }
 
   /************************************************************************
     Terminates the Simulation
