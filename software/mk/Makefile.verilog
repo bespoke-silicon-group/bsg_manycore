@@ -56,7 +56,8 @@ BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
 $(info Machine executable: $(BSG_SIM_EXE))
 
 %.run: NBF_FILE=$*.nbf
-%.run: %.nbf
+%.run: %.nbf 
+	$(MAKE) -C $(BSG_MACHINE_PATH)/.. $(BSG_MACHINE_PATH)/stamp
 	$(BSG_SIM_EXE) $(BSG_SIM_OPTS)
 
 
