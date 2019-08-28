@@ -1,0 +1,14 @@
+include core_srcs.mk
+include sim_srcs.mk
+include tb_srcs.mk
+
+# Order is important!
+VCS_SRCS := $(CORE_SRCS) $(SIM_SRCS) $(TB_SRCS)
+
+VCS_INCDIR := +incdir+$(BASEJUMP_STL_DIR)/bsg_misc
+VCS_INCDIR += +incdir+$(BASEJUMP_STL_DIR)/bsg_cache
+VCS_INCDIR += +incdir+$(BASEJUMP_STL_DIR)/bsg_noc
+VCS_INCDIR += +incdir+$(BSG_MANYCORE_DIR)/v
+VCS_INCDIR += +incdir+$(BSG_MANYCORE_DIR)/v/vanilla_bean
+
+VCS_INCS = $(foreach incdir, $(VCS_INCDIR), $(shell find $(subst +incdir+,,$(incdir)) -name '*.vh'))
