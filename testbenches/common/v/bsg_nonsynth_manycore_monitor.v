@@ -166,10 +166,14 @@ module bsg_nonsynth_manycore_monitor
               src_y_cord_i, src_x_cord_i, data_i, $time);
             $finish;
           end
-          else if (epa_addr == 16'hEADC) begin
+          else if (epa_addr == 16'hEADC || epa_addr == 16'hEAE0) begin
+            integer out_fd = (epa_addr == 16'hEADC) 
+                               ? 32'h8000_0001  // 0xEADC => stdout
+                               : 32'h8000_0002; // 0xEAE0 => stderr
+
             for (integer i = 0; i < 4; i++) begin
               if (mask_i[i]) begin
-                $write("%c", data_i[i*8+:8]);
+                $fwrite(out_fd, "%c", data_i[i*8+:8]);
               end
             end
           end
