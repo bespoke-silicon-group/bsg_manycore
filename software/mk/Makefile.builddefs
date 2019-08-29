@@ -56,6 +56,7 @@ $(error RISCV_BIN_DIR not defined)
 endif
 
 RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-gcc
+RISCV_GXX     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-g++
 RISCV_ELF2HEX ?= LD_LIBRARY_PATH=$(RISCV_BIN_DIR)/../lib $(RISCV_BIN_DIR)/elf2hex
 RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-objcopy
 RISCV_AR      ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-ar
@@ -69,6 +70,7 @@ TRACE_PP_SCRIPT = $(BSG_MANYCORE_DIR)/software/py/post_process_trace.py
 COMMON_SRC_DIRS = $(BSG_MANYCORE_DIR)/software/spmd/common \
                   $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
+vpath %.cpp $(COMMON_SRC_DIRS)
 vpath %.c $(COMMON_SRC_DIRS)
 vpath %.S $(COMMON_SRC_DIRS)
 
@@ -161,6 +163,13 @@ ifndef CLANG
   RISCV_GCC_OPTS += -mno-fdiv
 endif
 
+# Construct C++ flags from C flags
+RISCV_GXX_EXTRA_OPTS ?=
+# filter out C -std flags and extra opts for C
+RISCV_GXX_OPTS =  $(filter-out -std=% $(RISCV_GCC_EXTRA_OPTS), $(RISCV_GCC_OPTS)) -std=c++11
+RISCV_GXX_OPTS += $(RISCV_GXX_EXTRA_OPTS)
+
+
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 ifdef CLANG
@@ -178,11 +187,16 @@ $(LLVM_DIR):
 
 # Remove default %.o: %.c rule
 %.o: %.c
+%.o: %.cpp
 
 # Emit -O0 so that loads to consecutive memory locations aren't combined
 # Opt can run optimizations in any order, so it doesn't matter
 %.bc: %.c $(PASS_LIB) $(LLVM_DIR) $(RUNTIME_FNS)
 	$(LLVM_CLANG) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
+
+# do the same for C++ sources
+%.bc: %.cpp $(PASS_LIB) $(LLVM_DIR) $(RUNTIME_FNS)
+	$(LLVM_CLANG) $(RISCV_GXX_OPTS) $(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
 %.bc.pass: %.bc
 	$(LLVM_OPT) -load $(PASS_LIB) -manycore $(OPT_LEVEL) $< -o $@
@@ -201,6 +215,9 @@ $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
 else
 %.o: %.c
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
+
+%.o: %.cpp
+	$(RISCV_GXX) $(RISCV_GXX_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ |& tee $*.comp.log
 endif
 
 
@@ -256,3 +273,7 @@ endif
 
 %.S: %.c
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ |& tee $*.comp.log
+
+%.S: %.cpp
+	$(RISCV_GXX) $(RISCV_GXX_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ |& tee $*.comp.log
+
