@@ -1,0 +1,16 @@
+BSG_MANYCORE_DIR ?= ../../..
+
+bsg_tiles_X = 1
+bsg_tileS_Y = 1
+
+OBJECT_FILES := main.o
+
+include $(BSG_MANYCORE_DIR)/software/spmd/Makefile.include
+
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS)
+	$(RISCV_LINK)  $(filter %.o, $^) -o $@ $(RISCV_LINK_OPTS)
+
+debug:
+	@echo $(RISCV_GXX_OPTS)
+
+include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
