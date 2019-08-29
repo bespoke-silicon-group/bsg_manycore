@@ -10,7 +10,6 @@ include $(BSG_MANYCORE_DIR)/software/spmd/Makefile.include
 main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS)
 	$(RISCV_LINK)  $(filter %.o, $^) -o $@ $(RISCV_LINK_OPTS)
 
-debug:
-	@echo $(RISCV_GXX_OPTS)
+main.o: Makefile
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
