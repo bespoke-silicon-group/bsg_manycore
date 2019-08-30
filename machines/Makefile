@@ -15,7 +15,7 @@ MACHINES = 9x15 4x4
 
 all: $(foreach machine, $(MACHINES), $(machine)/stamp)
 
-%/stamp: $(VSOURCES) $(VINCLUDES)
+%/stamp: $(VCS_SOURCES) $(VCS_INCLUDES)
 	$(eval include $*/Makefile.machine.include)
 	$(eval VCS_MACRO_DEFS := +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
 	$(eval VCS_MACRO_DEFS += +define+BSG_MACHINE_GLOBAL_Y=${BSG_MACHINE_GLOBAL_Y})
@@ -29,11 +29,11 @@ all: $(foreach machine, $(MACHINES), $(machine)/stamp)
 	$(VCS) +v2k -sverilog -full64 -o $*/simv \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
 		-timescale=1ps/1ps \
-		$(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) $(VCS_MACRO_DEFS) | tee -i $*/build.log
+		$(VCS_INCDIRS) $(VCS_DEFINES) $(VCS_SOURCES) $(VCS_MACRO_DEFS) | tee -i $*/build.log
 	$(VCS) +v2k -sverilog -full64 -debug_pp -o $*/simv-debug \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
 		-timescale=1ps/1ps +vcs+vcdpluson \
-		$(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) $(VCS_MACRO_DEFS) | tee -i $*/build-debug.log
+		$(VCS_INCDIRS) $(VCS_DEFINES) $(VCS_SOURCES) $(VCS_MACRO_DEFS) | tee -i $*/build-debug.log
 	touch $@
 
 clean:

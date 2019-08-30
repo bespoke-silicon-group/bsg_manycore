@@ -4,8 +4,10 @@ include tb_filelist.mk
 
 VDEFINES  := $(ARCH_VDEFINES) $(SIM_VDEFINES) $(TB_VDEFINES)
 VSOURCES  := $(ARCH_VSOURCES) $(SIM_VSOURCES) $(TB_VSOURCES)
-VINCLUDES := $(ARCH_VINCLUDES) $(SIM_VINCLUDES) $(TB_VINCLUDES)
+VINCDIRS  := $(ARCH_VINCDIRS) $(SIM_VINCDIRS) $(TB_VINCDIRS)
+VINCLUDES := $(foreach dir, $(VINCDIRS), $(shell find $(dir) -name '*.vh'))
 
 VCS_DEFINES  := $(VDEFINES)
 VCS_SOURCES  := $(VSOURCES)
-VCS_INCLUDES := $(foreach dir, $(VINCLUDES), +incdir+$(dir))
+VCS_INCDIRS  := $(foreach dir, $(VINCDIRS), +incdir+$(dir))
+VCS_INCLUDES := $(VINCLUDES)

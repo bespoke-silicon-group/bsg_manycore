@@ -2,11 +2,11 @@
 # used in simulation. This has NOT been used in tapeout or any tapeout related
 # activities beyond simulation
 
-ARCH_VINCLUDES =$(BASEJUMP_STL_DIR)/bsg_misc
-ARCH_VINCLUDES+=$(BASEJUMP_STL_DIR)/bsg_cache
-ARCH_VINCLUDES+=$(BASEJUMP_STL_DIR)/bsg_noc
-ARCH_VINCLUDES+=$(BSG_MANYCORE_DIR)/v
-ARCH_VINCLUDES+=$(BSG_MANYCORE_DIR)/v/vanilla_bean
+ARCH_VINCDIRS =$(BASEJUMP_STL_DIR)/bsg_misc
+ARCH_VINCDIRS+=$(BASEJUMP_STL_DIR)/bsg_cache
+ARCH_VINCDIRS+=$(BASEJUMP_STL_DIR)/bsg_noc
+ARCH_VINCDIRS+=$(BSG_MANYCORE_DIR)/v
+ARCH_VINCDIRS+=$(BSG_MANYCORE_DIR)/v/vanilla_bean
 
 ARCH_VDEFINES =$(BASEJUMP_STL_DIR)/bsg_misc/bsg_defines.v
 ARCH_VDEFINES+=$(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_pkg.v
@@ -44,6 +44,7 @@ ARCH_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_misc/bsg_buf_ctrl.v
 ARCH_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_misc/bsg_xnor.v
 ARCH_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_misc/bsg_nor2.v
 ARCH_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_misc/bsg_adder_cin.v
+ARCH_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_misc/bsg_cycle_counter.v
 
 ARCH_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1r1w_small.v
 ARCH_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_two_fifo.v
