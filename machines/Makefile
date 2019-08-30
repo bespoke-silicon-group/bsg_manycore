@@ -1,7 +1,8 @@
 .DEFAULT_GOAL = all
 
-export BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
-export BASEJUMP_STL_DIR := $(BSG_MANYCORE_DIR)/../basejump_stl
+BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
+# By convention, basejump_stl is in the same directory as $(BSG_MANYCORE_DIR)
+BASEJUMP_STL_DIR := $(BSG_MANYCORE_DIR)/../basejump_stl
 
 # Sets "VCS" variable
 include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
