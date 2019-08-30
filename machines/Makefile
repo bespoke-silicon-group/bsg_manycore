@@ -22,7 +22,7 @@ DEFAULT_MACHINES = 9x15 4x4
 .PHONY: all clean
 
 DEFAULT_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simv)
-DEFAULT_DEBUG_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simv_debug)
+DEFAULT_DEBUG_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simv-debug)
 all: $(DEFAULT_TARGETS) $(DEFAULT_DEBUG_TARGETS)
 
 # set_machine_variables includes the Makefile.machine.include file and sets the
@@ -46,11 +46,11 @@ endef
 	$(call set_machine_variables,$<)
 	$(VCS) $(VCS_FLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $(dir $@)/build.log
 
-%/simv_debug : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
+%/simv-debug : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
 	$(call set_machine_variables,$<)
 	$(eval VCS_FLAGS += -debug_pp +vcs+vcdpluson) # Debug adds these two variables to generate waveforms
 	$(VCS) $(VCS_FLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $(dir $@)/build_debug.log
 
 clean:
 	rm -rf csrc
-	rm -rf */*.log */*.daidir */simv */simv_debug
+	rm -rf */*.log */*.daidir */simv */simv-debug
