@@ -14,6 +14,8 @@ SIM_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_mem/bsg_nonsynth_mem_1rw_sync_assoc.v
 SIM_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_clock_gen.v
 SIM_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_reset_gen.v
 
+SIM_VSOURCES+=$(BASEJUMP_STL_DIR)/bsg_misc/bsg_cycle_counter.v
+
 SIM_VSOURCES+=$(BSG_MANYCORE_DIR)/testbenches/common/v/instr_trace.v
 SIM_VSOURCES+=$(BSG_MANYCORE_DIR)/testbenches/common/v/vanilla_core_trace.v
 SIM_VSOURCES+=$(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_link_to_cache_tracer.v
