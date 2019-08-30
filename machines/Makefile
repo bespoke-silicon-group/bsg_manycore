@@ -17,13 +17,13 @@ VCS_SOURCES  += $(VHEADERS) $(VSOURCES)
 VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
 	 	+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS
 
-MACHINES = 9x15 4x4
+DEFAULT_MACHINES = 9x15 4x4
 
 .PHONY: all clean
 
-TARGETS = $(foreach machine, $(MACHINES),$(machine)/simv)
-DEBUG_TARGETS = $(foreach machine, $(MACHINES),$(machine)/simv_debug)
-all: $(TARGETS) $(DEBUG_TARGETS)
+DEFAULT_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simv)
+DEFAULT_DEBUG_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simv_debug)
+all: $(DEFAULT_TARGETS) $(DEFAULT_DEBUG_TARGETS)
 
 # set_machine_variables includes the Makefile.machine.include file and sets the
 # VCS_DEFINES that define the architecture for a machine. This should be called
@@ -42,16 +42,15 @@ define set_machine_variables
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
 endef
 
-$(TARGETS): %/simv : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
+%/simv : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
 	$(call set_machine_variables,$<)
 	$(VCS) $(VCS_FLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $(dir $@)/build.log
 
-$(DEBUG_TARGETS): %/simv_debug : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
+%/simv_debug : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
 	$(call set_machine_variables,$<)
 	$(eval VCS_FLAGS += -debug_pp +vcs+vcdpluson) # Debug adds these two variables to generate waveforms
 	$(VCS) $(VCS_FLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $(dir $@)/build_debug.log
 
 clean:
 	rm -rf csrc
-	rm -rf $(DEBUG_TARGETS) $(TARGETS)
-	rm -rf $(foreach machine,$(MACHINES),$(machine)/*.log $(machine)/*.daidir)
+	rm -rf */*.log */*.daidir */simv */simv_debug
