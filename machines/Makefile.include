@@ -1,14 +1,13 @@
-include core_srcs.mk
-include sim_srcs.mk
-include tb_srcs.mk
+include arch_filelist.mk
+include sim_filelist.mk
+include tb_filelist.mk
 
-# Order is important!
-VCS_SRCS := $(CORE_SRCS) $(SIM_SRCS) $(TB_SRCS)
+VDEFINES  := $(ARCH_VDEFINES) $(SIM_VDEFINES) $(TB_VDEFINES)
+VSOURCES  := $(ARCH_VSOURCES) $(SIM_VSOURCES) $(TB_VSOURCES)
+VINCDIRS  := $(ARCH_VINCDIRS) $(SIM_VINCDIRS) $(TB_VINCDIRS)
+VINCLUDES := $(foreach dir, $(VINCDIRS), $(shell find $(dir) -name '*.vh'))
 
-VCS_INCDIR := +incdir+$(BASEJUMP_STL_DIR)/bsg_misc
-VCS_INCDIR += +incdir+$(BASEJUMP_STL_DIR)/bsg_cache
-VCS_INCDIR += +incdir+$(BASEJUMP_STL_DIR)/bsg_noc
-VCS_INCDIR += +incdir+$(BSG_MANYCORE_DIR)/v
-VCS_INCDIR += +incdir+$(BSG_MANYCORE_DIR)/v/vanilla_bean
-
-VCS_INCS = $(foreach incdir, $(VCS_INCDIR), $(shell find $(subst +incdir+,,$(incdir)) -name '*.vh'))
+VCS_DEFINES  := $(VDEFINES)
+VCS_SOURCES  := $(VSOURCES)
+VCS_INCDIRS  := $(foreach dir, $(VINCDIRS), +incdir+$(dir))
+VCS_INCLUDES := $(VINCLUDES)
