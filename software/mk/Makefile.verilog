@@ -38,7 +38,7 @@ endif
 ifeq ($(WAVE),0)
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv
 else
-  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-debug
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv_debug
 endif
 
 # Network boot format file
@@ -59,7 +59,7 @@ $(info Machine executable: $(BSG_SIM_EXE))
 %.run: %.nbf
 # Rebuid the machine if machines dir is internal
 ifeq ($(abspath $(BSG_MACHINE_PATH)/..),$(abspath $(BSG_MANYCORE_DIR)/machines))
-	$(MAKE) -C $(BSG_MACHINE_PATH)/.. $(BSG_MACHINE_PATH)/stamp
+	$(MAKE) -C $(BSG_MACHINE_PATH)/.. $(BSG_SIM_EXE)
 endif
 	$(BSG_SIM_EXE) $(BSG_SIM_OPTS)
 
