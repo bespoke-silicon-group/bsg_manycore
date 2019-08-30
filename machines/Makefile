@@ -13,16 +13,24 @@ include tb_filelist.mk
 
 VCS_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
 VCS_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
-VCS_SOURCES  += $(VSOURCES)
+VCS_SOURCES  += $(VHEADERS) $(VSOURCES) 
+VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
+	 	+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS
 
 MACHINES = 9x15 4x4
 
 .PHONY: all clean
 
-all: $(foreach machine, $(MACHINES), $(machine)/stamp)
+TARGETS = $(foreach machine, $(MACHINES),$(machine)/simv)
+DEBUG_TARGETS = $(foreach machine, $(MACHINES),$(machine)/simv_debug)
+all: $(TARGETS) $(DEBUG_TARGETS)
 
-%/stamp: %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
-	$(eval include $*/Makefile.machine.include)
+# set_machine_variables includes the Makefile.machine.include file and sets the
+# VCS_DEFINES that define the architecture for a machine. This should be called
+# from inside of the rule that builds the machine-specific executable for a
+# machine so that the *correct* Makfile.machine.include can be included
+define set_machine_variables
+	$(eval include $1)
 	$(eval VCS_DEFINES := +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_GLOBAL_Y=${BSG_MACHINE_GLOBAL_Y})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_SET=${BSG_MACHINE_VCACHE_SET})
@@ -32,19 +40,18 @@ all: $(foreach machine, $(MACHINES), $(machine)/stamp)
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_DRAM_INCLUDED=${BSG_MACHINE_DRAM_INCLUDED})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_MAX_EPA_WIDTH=${BSG_MACHINE_MAX_EPA_WIDTH})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
-	@$(VCS) +v2k -sverilog -full64 -o $*/simv \
-		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
-		-timescale=1ps/1ps \
-		$(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $*/build.log
-	@$(VCS) +v2k -sverilog -full64 -debug_pp -o $*/simv-debug \
-		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
-		-timescale=1ps/1ps +vcs+vcdpluson \
-		$(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $*/build-debug.log
-	touch $@
+endef
+
+$(TARGETS): %/simv : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_machine_variables,$<)
+	$(VCS) $(VCS_FLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $(dir $@)/build.log
+
+$(DEBUG_TARGETS): %/simv_debug : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_machine_variables,$<)
+	$(eval VCS_FLAGS += -debug_pp +vcs+vcdpluson) # Debug adds these two variables to generate waveforms
+	$(VCS) $(VCS_FLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $(dir $@)/build_debug.log
 
 clean:
 	rm -rf csrc
-	@for machine_dir in $(MACHINES); do \
-		rm -rf $$machine_dir/stamp $$machine_dir/*.log ; \
-		rm -rf $$machine_dir/simv* ; \
-	done;
+	rm -rf $(DEBUG_TARGETS) $(TARGETS)
+	rm -rf $(foreach machine,$(MACHINES),$(machine)/*.log)
