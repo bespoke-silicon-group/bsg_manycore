@@ -54,4 +54,4 @@ $(DEBUG_TARGETS): %/simv_debug : %/Makefile.machine.include $(VSOURCES) $(VINCLU
 clean:
 	rm -rf csrc
 	rm -rf $(DEBUG_TARGETS) $(TARGETS)
-	rm -rf $(foreach machine,$(MACHINES),$(machine)/*.log)
+	rm -rf $(foreach machine,$(MACHINES),$(machine)/*.log $(machine)/*.daidir)
