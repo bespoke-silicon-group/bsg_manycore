@@ -1,7 +1,7 @@
 # This file contains a list of non-synthesizable files used in manycore
 # simulation. These augment the sythesizable files in core.include.
 
-VDEFINES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_mem_cfg_pkg.v
+VHEADERS += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_mem_cfg_pkg.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/memory_system.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_cache_wrapper_axi.v
