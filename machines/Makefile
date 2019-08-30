@@ -1,50 +1,57 @@
-find-dir-with = $(shell /usr/bin/perl -e 'chomp($$_ = `pwd`); while ($$_ ne "" && ! -e "$$_/$(1)") { m:(.*)/[^/]+/??:; $$_ = $$1; } print;')
+.DEFAULT_GOAL = all
 
-ifndef BSG_MANYCORE_DIR
-  export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
-endif
-
-export BASEJUMP_STL_DIR := $(BSG_MANYCORE_DIR)/../basejump_stl
+BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
+# By convention, basejump_stl is in the same directory as $(BSG_MANYCORE_DIR)
+BASEJUMP_STL_DIR := $(BSG_MANYCORE_DIR)/../basejump_stl
 
 # Sets "VCS" variable
 include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
 
-MACHINES = 9x15 4x4
+# Include source lists
+include arch_filelist.mk
+include sim_filelist.mk
+include tb_filelist.mk
 
-SIMV = $(addsuffix /simv, $(MACHINES))
-SIMV_DEBUG = $(addsuffix /simv-debug, $(MACHINES))
-SIMV_DAIDIR = $(addsuffix .daidir, $(SIMV) $(SIMV_DEBUG))
+VCS_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
+VCS_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
+VCS_SOURCES  += $(VHEADERS) $(VSOURCES) 
+VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
+	 	+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS
 
-VCS_INCDIR := +incdir+$(BASEJUMP_STL_DIR)/bsg_misc
-VCS_INCDIR += +incdir+$(BASEJUMP_STL_DIR)/bsg_cache
-VCS_INCDIR += +incdir+$(BASEJUMP_STL_DIR)/bsg_noc
-VCS_INCDIR += +incdir+$(BSG_MANYCORE_DIR)/v
-VCS_INCDIR += +incdir+$(BSG_MANYCORE_DIR)/v/vanilla_bean
+DEFAULT_MACHINES = 9x15 4x4
 
 .PHONY: all clean
 
-all: $(SIMV)
+DEFAULT_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simv)
+DEFAULT_DEBUG_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simv-debug)
+all: $(DEFAULT_TARGETS) $(DEFAULT_DEBUG_TARGETS)
 
-%/simv:
-	$(eval include $*/Makefile.machine.include)
-	$(eval VCS_DEFINE := +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
-	$(eval VCS_DEFINE += +define+BSG_MACHINE_GLOBAL_Y=${BSG_MACHINE_GLOBAL_Y})
-	$(eval VCS_DEFINE += +define+BSG_MACHINE_VCACHE_SET=${BSG_MACHINE_VCACHE_SET})
-	$(eval VCS_DEFINE += +define+BSG_MACHINE_VCACHE_WAY=${BSG_MACHINE_VCACHE_WAY})
-	$(eval VCS_DEFINE += +define+BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS})
-	$(eval VCS_DEFINE += +define+BSG_MACHINE_DRAM_SIZE_WORDS=${BSG_MACHINE_DRAM_SIZE_WORDS})
-	$(eval VCS_DEFINE += +define+BSG_MACHINE_DRAM_INCLUDED=${BSG_MACHINE_DRAM_INCLUDED})
-	$(eval VCS_DEFINE += +define+BSG_MACHINE_MAX_EPA_WIDTH=${BSG_MACHINE_MAX_EPA_WIDTH})
-	$(eval VCS_DEFINE += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
-	$(VCS) +v2k -sverilog -full64 -o $*/simv \
-		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
-		-timescale=1ps/1ps \
-		-f tb.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build.log
-	$(VCS) +v2k -sverilog -full64 -debug_pp -o $*/simv-debug \
-		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
-		-timescale=1ps/1ps +vcs+vcdpluson \
-		-f tb.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build-debug.log
+# set_machine_variables includes the Makefile.machine.include file and sets the
+# VCS_DEFINES that define the architecture for a machine. This should be called
+# from inside of the rule that builds the machine-specific executable for a
+# machine so that the *correct* Makfile.machine.include can be included
+define set_machine_variables
+	$(eval include $1)
+	$(eval VCS_DEFINES := +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_GLOBAL_Y=${BSG_MACHINE_GLOBAL_Y})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_SET=${BSG_MACHINE_VCACHE_SET})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_WAY=${BSG_MACHINE_VCACHE_WAY})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_DRAM_SIZE_WORDS=${BSG_MACHINE_DRAM_SIZE_WORDS})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_DRAM_INCLUDED=${BSG_MACHINE_DRAM_INCLUDED})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_MAX_EPA_WIDTH=${BSG_MACHINE_MAX_EPA_WIDTH})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
+endef
+
+%/simv : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_machine_variables,$<)
+	$(VCS) $(VCS_FLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $(dir $@)/build.log
+
+%/simv-debug : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_machine_variables,$<)
+	$(eval VCS_FLAGS += -debug_pp +vcs+vcdpluson) # Debug adds these two variables to generate waveforms
+	$(VCS) $(VCS_FLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $(dir $@)/build_debug.log
 
 clean:
-	rm -rf csrc $(SIMV_DAIDIR)
-	rm -f $(SIMV) $(SIMV_DEBUG)
+	rm -rf csrc
+	rm -rf */*.log */*.daidir */simv */simv-debug

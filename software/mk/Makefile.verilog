@@ -57,6 +57,10 @@ $(info Machine executable: $(BSG_SIM_EXE))
 
 %.run: NBF_FILE=$*.nbf
 %.run: %.nbf
+# Rebuid the machine if machines dir is internal
+ifeq ($(abspath $(BSG_MACHINE_PATH)/..),$(abspath $(BSG_MANYCORE_DIR)/machines))
+	$(MAKE) -C $(BSG_MACHINE_PATH)/.. $(BSG_SIM_EXE)
+endif
 	$(BSG_SIM_EXE) $(BSG_SIM_OPTS)
 
 
