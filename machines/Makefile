@@ -1,21 +1,31 @@
-.DEFAULT_GOAL = all
+find-dir-with = $(shell /usr/bin/perl -e 'chomp($$_ = `pwd`); while ($$_ ne "" && ! -e "$$_/$(1)") { m:(.*)/[^/]+/??:; $$_ = $$1; } print;')
 
-export BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
+ifndef BSG_MANYCORE_DIR
+  export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
+endif
+
 export BASEJUMP_STL_DIR := $(BSG_MANYCORE_DIR)/../basejump_stl
 
 # Sets "VCS" variable
 include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
 
-# Include source lists
-include Makefile.include
-
 MACHINES = 9x15 4x4
+
+SIMV = $(addsuffix /simv, $(MACHINES))
+SIMV_DEBUG = $(addsuffix /simv-debug, $(MACHINES))
+SIMV_DAIDIR = $(addsuffix .daidir, $(SIMV) $(SIMV_DEBUG))
+
+VCS_INCDIR := +incdir+$(BASEJUMP_STL_DIR)/bsg_misc
+VCS_INCDIR += +incdir+$(BASEJUMP_STL_DIR)/bsg_cache
+VCS_INCDIR += +incdir+$(BASEJUMP_STL_DIR)/bsg_noc
+VCS_INCDIR += +incdir+$(BSG_MANYCORE_DIR)/v
+VCS_INCDIR += +incdir+$(BSG_MANYCORE_DIR)/v/vanilla_bean
 
 .PHONY: all clean
 
-all: $(foreach machine, $(MACHINES), $(machine)/stamp)
+all: $(SIMV)
 
-%/stamp: $(VCS_SRCS) $(VCS_INCS)
+%/simv:
 	$(eval include $*/Makefile.machine.include)
 	$(eval VCS_DEFINE := +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
 	$(eval VCS_DEFINE += +define+BSG_MACHINE_GLOBAL_Y=${BSG_MACHINE_GLOBAL_Y})
@@ -29,16 +39,12 @@ all: $(foreach machine, $(MACHINES), $(machine)/stamp)
 	$(VCS) +v2k -sverilog -full64 -o $*/simv \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
 		-timescale=1ps/1ps \
-		$(VCS_INCDIR) $(VCS_SRCS) $(VCS_DEFINE) | tee -i $*/build.log
+		-f tb.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build.log
 	$(VCS) +v2k -sverilog -full64 -debug_pp -o $*/simv-debug \
 		+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS \
 		-timescale=1ps/1ps +vcs+vcdpluson \
-		$(VCS_INCDIR) $(VCS_SRCS) $(VCS_DEFINE) | tee -i $*/build-debug.log
-	touch $@
+		-f tb.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build-debug.log
 
 clean:
-	rm -rf csrc
-	@for machine_dir in $(MACHINES); do \
-		rm -rf $$machine_dir/stamp $$machine_dir/*.log ; \
-		rm -rf $$machine_dir/simv* ; \
-	done;
+	rm -rf csrc $(SIMV_DAIDIR)
+	rm -f $(SIMV) $(SIMV_DEBUG)
