@@ -14,34 +14,36 @@
 
 `include "bsg_manycore_packet.vh"
 
-`define HETERO_TYPE_MACRO(BMC_TYPE,BMC_TYPE_MODULE)             \
-   if (hetero_type_p == (BMC_TYPE))                             \
-     begin: h                                                   \
-        BMC_TYPE_MODULE #(.x_cord_width_p(x_cord_width_p)       \
-                          ,.y_cord_width_p(y_cord_width_p)      \
-                          ,.data_width_p(data_width_p)          \
-                          ,.addr_width_p(addr_width_p)          \
-                          ,.load_id_width_p(load_id_width_p)    \
-                          ,.dmem_size_p (dmem_size_p )          \
-                          ,.epa_byte_addr_width_p(epa_byte_addr_width_p)  \
-                          ,.dram_ch_addr_width_p ( dram_ch_addr_width_p )  \
-                          ,.dram_ch_start_col_p  ( dram_ch_start_col_p) \
-                          ,.vcache_size_p(vcache_size_p) \
+`define HETERO_TYPE_MACRO(BMC_TYPE,BMC_TYPE_MODULE)                                    \
+   if (hetero_type_p == (BMC_TYPE))                                                    \
+     begin: h                                                                          \
+        BMC_TYPE_MODULE #(.x_cord_width_p(x_cord_width_p)                              \
+                          ,.y_cord_width_p(y_cord_width_p)                             \
+                          ,.data_width_p(data_width_p)                                 \
+                          ,.addr_width_p(addr_width_p)                                 \
+                          ,.load_id_width_p(load_id_width_p)                           \
+                          ,.dmem_size_p (dmem_size_p )                                 \
+                          ,.epa_byte_addr_width_p(epa_byte_addr_width_p)               \
+                          ,.dram_ch_addr_width_p ( dram_ch_addr_width_p )              \
+                          ,.dram_ch_start_col_p  ( dram_ch_start_col_p)                \
+                          ,.vcache_size_p(vcache_size_p)                               \
                           ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p) \
-                          ,.vcache_sets_p(vcache_sets_p) \
-                          ,.debug_p(debug_p)                    \
-			                    ,.icache_entries_p(icache_entries_p)            \
-                          ,.icache_tag_width_p (icache_tag_width_p) \
-            		          ,.max_out_credits_p(max_out_credits_p)\
-                          ,.num_tiles_x_p(num_tiles_x_p)    \
-                          ) z                                   \
-          (.clk_i                                               \
-           ,.reset_i                                            \
-           ,.link_sif_i                                         \
-           ,.link_sif_o                                         \
-           ,.my_x_i                                             \
-           ,.my_y_i                                             \
-           );                                                   \
+                          ,.vcache_sets_p(vcache_sets_p)                               \
+                          ,.debug_p(debug_p)                                           \
+                          ,.branch_trace_epa_p(branch_trace_epa_p)                             \
+                          ,.branch_trace_en_p(branch_trace_en_p)                                 \
+			                    ,.icache_entries_p(icache_entries_p)                         \
+                          ,.icache_tag_width_p (icache_tag_width_p)                    \
+            		          ,.max_out_credits_p(max_out_credits_p)                       \
+                          ,.num_tiles_x_p(num_tiles_x_p)                               \
+                          ) z                                                          \
+          (.clk_i                                                                      \
+           ,.reset_i                                                                   \
+           ,.link_sif_i                                                                \
+           ,.link_sif_o                                                                \
+           ,.my_x_i                                                                    \
+           ,.my_y_i                                                                    \
+           );                                                                          \
      end
 
 module bsg_manycore_hetero_socket
@@ -58,6 +60,8 @@ module bsg_manycore_hetero_socket
     , parameter dram_ch_start_col_p = 0
     , parameter vcache_size_p = "inv"
     , parameter debug_p = 0
+    , parameter branch_trace_epa_p = "inv"
+    , parameter branch_trace_en_p = 0
     , parameter max_out_credits_p = 200
     , parameter hetero_type_p = 0
     , parameter num_tiles_x_p="inv"

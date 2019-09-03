@@ -8,3 +8,4 @@ BSG_MACHINE_DRAM_BANK_SIZE_WORDS      = 134217728
 BSG_MACHINE_DRAM_INCLUDED             = 1
 BSG_MACHINE_MAX_EPA_WIDTH             = 28
 BSG_MACHINE_MEM_CFG                   = e_mem_cfg_default
+BSG_MACHINE_BRANCH_TRACE_EN           = 0
