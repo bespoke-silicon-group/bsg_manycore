@@ -18,6 +18,12 @@ module lsu
     , parameter pc_width_p="inv"
     , parameter dmem_size_p="inv"
 
+    // EPA parameters
+    , parameter branch_trace_epa_p="inv"
+
+    // Enables branch & jalr target-addr stream on stderr
+    , parameter branch_trace_en_p="inv"
+
     , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , localparam data_mask_width_lp=(data_width_p>>3)
     , localparam reg_addr_width_lp=RV32_reg_addr_width_gp
@@ -31,6 +37,7 @@ module lsu
     , input [data_width_p-1:0] mem_offset_i
     , input [data_width_p-1:0] pc_plus4_i
     , input icache_miss_i
+    , input [pc_width_p-1:0] pc_target_i 
 
     // to network TX
     , output remote_req_s remote_req_o
@@ -49,6 +56,18 @@ module lsu
 
   );
 
+  // Branch/jalr trace control signal
+  //
+  logic stream_target_pc;
+
+  // Does a store of target pc on every branch/jalr instruction to stderr epa
+  if (branch_trace_en_p == 1) begin
+    assign stream_target_pc = (exe_decode_i.is_branch_op | exe_decode_i.is_jalr_op);
+  end else begin
+    assign stream_target_pc = 1'b0; // tied lo by default
+  end
+
+
   logic [data_width_p-1:0] mem_addr;
   logic [data_width_p-1:0] miss_addr;
 
@@ -61,7 +80,11 @@ module lsu
   logic [data_mask_width_lp-1:0] store_mask;
 
   always_comb begin
-    if (exe_decode_i.is_byte_op) begin
+    if (stream_target_pc) begin
+      store_data = data_width_p'(pc_target_i << 2);
+      store_mask = 4'b1111;
+    end
+    else if (exe_decode_i.is_byte_op) begin
       store_data = {4{exe_rs2_i[7:0]}};
       store_mask = {
          mem_addr[1] &  mem_addr[0],
@@ -130,20 +153,20 @@ module lsu
   end
   
   assign remote_req_o = '{
-    write_not_read: exe_decode_i.is_store_op,
+    write_not_read: (exe_decode_i.is_store_op | stream_target_pc),
     swap_aq: exe_decode_i.op_is_swap_aq,
     swap_rl: exe_decode_i.op_is_swap_rl,
     mask: store_mask,
-    addr: (icache_miss_i ? miss_addr : mem_addr),
+    addr: (stream_target_pc ? branch_trace_epa_p : (icache_miss_i ? miss_addr : mem_addr)),
     payload: payload
   };
 
-  assign remote_req_v_o = (exe_decode_i.is_mem_op & ~is_local_dmem_addr) | icache_miss_i;
+  assign remote_req_v_o = (exe_decode_i.is_mem_op & ~is_local_dmem_addr) 
+                            | icache_miss_i
+                            | stream_target_pc;
 
   // reserve
   // only valid on local DMEM (for now)
   assign reserve_o = exe_decode_i.op_is_lr & is_local_dmem_addr;
-
-
 
 endmodule

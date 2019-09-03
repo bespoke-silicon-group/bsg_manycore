@@ -16,6 +16,12 @@ module vanilla_core
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
 
+    // EPA parameters
+    , parameter branch_trace_epa_p="inv"
+
+    // Enables branch & jalr target-addr stream on stderr
+    , parameter branch_trace_en_p=0
+
     , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
@@ -396,6 +402,19 @@ module vanilla_core
   assign jalr_mispredict = exe_r.decode.is_jalr_op &
     (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
 
+  // Compute branch/jalr target address
+  logic [pc_width_lp-1:0] exe_pc_target;
+
+  always_comb
+  begin
+    if (exe_r.decode.is_branch_op) begin
+      exe_pc_target = branch_under_predict
+        ? exe_r.pred_or_jump_addr[2+:pc_width_lp]
+        : exe_r.pc_plus4[2+:pc_width_lp];
+    end else
+      exe_pc_target = alu_jalr_addr;
+  end
+
   // save pc+4 of jalr/jal for predicting jalr branch target
   logic [pc_width_lp-1:0] jalr_prediction_r;
 
@@ -478,6 +497,8 @@ module vanilla_core
     .data_width_p(data_width_p)
     ,.pc_width_p(pc_width_lp)
     ,.dmem_size_p(dmem_size_p)
+    ,.branch_trace_epa_p(branch_trace_epa_p)
+    ,.branch_trace_en_p(branch_trace_en_p)
   ) lsu0 (
     .exe_decode_i(exe_r.decode)
     ,.exe_rs1_i(exe_rs1_final)
@@ -486,6 +507,7 @@ module vanilla_core
     ,.mem_offset_i(exe_r.mem_addr_op2)
     ,.pc_plus4_i(exe_r.pc_plus4)
     ,.icache_miss_i(exe_r.icache_miss)
+    ,.pc_target_i(exe_pc_target)
 
     ,.remote_req_o(remote_req_o)
     ,.remote_req_v_o(lsu_remote_req_v_lo)
@@ -712,13 +734,8 @@ module vanilla_core
       pc_n = pc_init_val_i;
     else if (wb_r.icache_miss)
       pc_n = wb_r.icache_miss_pc[2+:pc_width_lp];
-    else if (branch_mispredict)
-      if (branch_under_predict)
-        pc_n = exe_r.pred_or_jump_addr[2+:pc_width_lp];
-      else
-        pc_n = exe_r.pc_plus4[2+:pc_width_lp];
-    else if (jalr_mispredict)
-      pc_n = alu_jalr_addr;
+    else if (branch_mispredict | jalr_mispredict)
+      pc_n = exe_pc_target;
     else if (decode.is_branch_op & instruction[0])
       pc_n = pred_or_jump_addr;
     else if (decode.is_jal_op | decode.is_jalr_op)

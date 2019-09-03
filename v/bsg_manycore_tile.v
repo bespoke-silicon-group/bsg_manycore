@@ -32,6 +32,9 @@ module bsg_manycore_tile
     , parameter hetero_type_p = 0
     , parameter debug_p = 0
 
+    , parameter branch_trace_epa_p = "inv"
+    , parameter branch_trace_en_p = 0
+
     , localparam link_sif_width_lp =
     `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,
       load_id_width_p)
@@ -97,6 +100,9 @@ module bsg_manycore_tile
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
+
+    ,.branch_trace_epa_p(branch_trace_epa_p)
+    ,.branch_trace_en_p(branch_trace_en_p)
 
     ,.debug_p(debug_p)
   ) proc (

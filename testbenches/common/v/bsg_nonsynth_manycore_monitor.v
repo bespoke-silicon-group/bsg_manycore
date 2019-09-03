@@ -178,6 +178,12 @@ module bsg_nonsynth_manycore_monitor
               end
             end
           end
+          else if (epa_addr == 16'hEEE4) begin
+            // Branch and JALR trace
+            $fwrite('h8000_0002, "BSG_BRANCH_TRACE t=%0t x=%0d y=%0d target=%x\n"
+                      , $time, src_x_cord_i, src_y_cord_i, data_i
+                   );
+          end
           else if (epa_addr == 16'h0D0C) begin
             $display("[INFO][MONITOR] RECEIVED PRINT_STAT PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, $time);      

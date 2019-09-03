@@ -90,6 +90,12 @@ module bsg_manycore
   //The IO router row index
   , parameter IO_row_idx_p = 0
 
+  // EPA parameter
+  , parameter branch_trace_epa_p = "inv" // EPA for branch/jalr trace on stderr
+
+  // Enable branch/jalr trace
+  , parameter branch_trace_en_p = 0
+
   , localparam x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
   , localparam y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
   , localparam link_sif_width_lp =
@@ -188,6 +194,8 @@ module bsg_manycore
                 .dram_ch_start_col_p ( dram_ch_start_col_p ),
                 .hetero_type_p( hetero_type_vec_p[r][c] ),
                 .debug_p(debug_p)
+                ,.branch_trace_epa_p(branch_trace_epa_p)
+                ,.branch_trace_en_p(branch_trace_en_p)
                 ,.num_tiles_x_p(num_tiles_x_p)
                 ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
                 ,.vcache_sets_p(vcache_sets_p)
