@@ -5,6 +5,6 @@
 
 int main()
 {
- __wait_until_valid_func();
+        __wait_until_valid_func();
 }
 
