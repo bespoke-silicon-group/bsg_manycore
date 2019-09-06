@@ -6,6 +6,10 @@
 `include "bsg_manycore_packet.vh"
 
 module bsg_nonsynth_manycore_monitor
+ 
+  // Import address parameters
+  import bsg_manycore_addr_pkg::*;
+
   #(parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
     , parameter addr_width_p="inv"
@@ -153,22 +157,22 @@ module bsg_nonsynth_manycore_monitor
     if (~reset_i) begin
       if (v_i & we_i) begin
         if (~addr_i[addr_width_p-1]) begin
-          if (epa_addr == 16'hEAD0) begin
+          if (epa_addr == bsg_finish_epa_gp) begin
             $display("[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, $time);
             $finish;
           end
-          else if (epa_addr == 16'hEAD4) begin
+          else if (epa_addr == bsg_time_epa_gp) begin
             $display("[INFO][MONITOR] RECEIVED TIME BSG_PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, $time);
           end
-          else if (epa_addr == 16'hEAD8) begin
+          else if (epa_addr == bsg_fail_epa_gp) begin
             $display("[INFO][MONITOR] RECEIVED BSG_FAIL PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, $time);
             $finish;
           end
-          else if (epa_addr == 16'hEADC || epa_addr == 16'hEEE0) begin
-            out_fd = (epa_addr == 16'hEADC) 
+          else if (epa_addr == bsg_stdout_epa_gp || epa_addr == bsg_stderr_epa_gp) begin
+            out_fd = (epa_addr == bsg_stdout_epa_gp) 
                        ? 32'h8000_0001  // 0xEADC => stdout
                        : 32'h8000_0002; // 0xEEE0 => stderr
 
@@ -178,13 +182,13 @@ module bsg_nonsynth_manycore_monitor
               end
             end
           end
-          else if (epa_addr == 16'hEEE4) begin
+          else if (epa_addr == bsg_branch_trace_epa_gp) begin
             // Branch and JALR trace
             $fwrite('h8000_0002, "BSG_BRANCH_TRACE t=%0t x=%0d y=%0d target=%x\n"
                       , $time, src_x_cord_i, src_y_cord_i, data_i
                    );
           end
-          else if (epa_addr == 16'h0D0C) begin
+          else if (epa_addr == bsg_print_stat_epa_gp) begin
             $display("[INFO][MONITOR] RECEIVED PRINT_STAT PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, $time);      
           end
@@ -205,7 +209,7 @@ module bsg_nonsynth_manycore_monitor
 
   // print stat trigger
   //
-  assign print_stat_v_o = v_i & (epa_addr == 16'hD0C);
+  assign print_stat_v_o = v_i & (epa_addr == bsg_print_stat_epa_gp);
   assign print_stat_tag_o = data_i;
 
 endmodule

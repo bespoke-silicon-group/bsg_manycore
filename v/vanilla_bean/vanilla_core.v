@@ -7,6 +7,10 @@
 `include "parameters.vh"
 
 module vanilla_core
+
+  // Import address parameters
+  import bsg_manycore_addr_pkg::*;
+
   #(parameter data_width_p="inv"
     , parameter dmem_size_p="inv"
     
@@ -15,9 +19,6 @@ module vanilla_core
 
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-
-    // EPA parameters
-    , parameter branch_trace_epa_p="inv"
 
     // Enables branch & jalr target-addr stream on stderr
     , parameter branch_trace_en_p=0
@@ -322,7 +323,7 @@ module vanilla_core
 
   // synopsys translate_off
   logic [data_width_p-1:0] exe_pc;
-  assign exe_pc = (exe_r.pc_plus4 - 'd4) | 32'h80000000;
+  assign exe_pc = (exe_r.pc_plus4 - 'd4) | bsg_dram_npa_prefix_gp;
   // synopsys translate_on
 
   // EXE forwarding muxes
@@ -497,7 +498,6 @@ module vanilla_core
     .data_width_p(data_width_p)
     ,.pc_width_p(pc_width_lp)
     ,.dmem_size_p(dmem_size_p)
-    ,.branch_trace_epa_p(branch_trace_epa_p)
     ,.branch_trace_en_p(branch_trace_en_p)
   ) lsu0 (
     .exe_decode_i(exe_r.decode)

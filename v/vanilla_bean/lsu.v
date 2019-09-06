@@ -14,12 +14,13 @@
 
 
 module lsu
+
+  // Import address parameters
+  import bsg_manycore_addr_pkg::*;
+
   #(parameter data_width_p="inv"
     , parameter pc_width_p="inv"
     , parameter dmem_size_p="inv"
-
-    // EPA parameters
-    , parameter branch_trace_epa_p="inv"
 
     // Enables branch & jalr target-addr stream on stderr
     , parameter branch_trace_en_p="inv"
@@ -72,7 +73,7 @@ module lsu
   logic [data_width_p-1:0] miss_addr;
 
   assign mem_addr = exe_rs1_i + mem_offset_i;
-  assign miss_addr = (pc_plus4_i - 'h4) | 32'h80000000;
+  assign miss_addr = (pc_plus4_i - 'h4) | bsg_dram_npa_prefix_gp;
 
   // store data mask
   //
@@ -157,7 +158,7 @@ module lsu
     swap_aq: exe_decode_i.op_is_swap_aq,
     swap_rl: exe_decode_i.op_is_swap_rl,
     mask: store_mask,
-    addr: (stream_target_pc ? branch_trace_epa_p : (icache_miss_i ? miss_addr : mem_addr)),
+    addr: (stream_target_pc ? bsg_branch_trace_npa_gp : (icache_miss_i ? miss_addr : mem_addr)),
     payload: payload
   };
 
