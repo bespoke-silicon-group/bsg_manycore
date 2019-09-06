@@ -29,7 +29,6 @@ module spmd_testbench;
   parameter icache_tag_width_p = 12;
   parameter epa_byte_addr_width_p = 18;
   parameter load_id_width_p = 12;
-  parameter branch_trace_epa_p = 32'h4000_eee4;
 
   parameter axi_id_width_p = 6;
   parameter axi_addr_width_p = 64;
@@ -117,7 +116,6 @@ module spmd_testbench;
     ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
     ,.num_tiles_x_p(bsg_global_x_p)
     ,.num_tiles_y_p(bsg_global_y_p)
-    ,.branch_trace_epa_p(branch_trace_epa_p)
     ,.branch_trace_en_p(bsg_branch_trace_en_p)
   ) DUT (
     .clk_i(clk)

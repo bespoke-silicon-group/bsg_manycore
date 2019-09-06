@@ -12,6 +12,7 @@ VHEADERS += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_defines.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_pkg.v
+VHEADERS += $(BSG_MANYCORE_DIR)/v/bsg_manycore_addr_pkg.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_less_than.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_reduce.v

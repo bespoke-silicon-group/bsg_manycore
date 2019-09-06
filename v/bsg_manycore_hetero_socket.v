@@ -30,7 +30,6 @@
                           ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p) \
                           ,.vcache_sets_p(vcache_sets_p)                               \
                           ,.debug_p(debug_p)                                           \
-                          ,.branch_trace_epa_p(branch_trace_epa_p)                             \
                           ,.branch_trace_en_p(branch_trace_en_p)                                 \
 			                    ,.icache_entries_p(icache_entries_p)                         \
                           ,.icache_tag_width_p (icache_tag_width_p)                    \
@@ -60,7 +59,6 @@ module bsg_manycore_hetero_socket
     , parameter dram_ch_start_col_p = 0
     , parameter vcache_size_p = "inv"
     , parameter debug_p = 0
-    , parameter branch_trace_epa_p = "inv"
     , parameter branch_trace_en_p = 0
     , parameter max_out_credits_p = 200
     , parameter hetero_type_p = 0

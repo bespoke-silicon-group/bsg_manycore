@@ -91,7 +91,6 @@ module bsg_manycore
   , parameter IO_row_idx_p = 0
 
   // EPA parameter
-  , parameter branch_trace_epa_p = "inv" // EPA for branch/jalr trace on stderr
 
   // Enable branch/jalr trace
   , parameter branch_trace_en_p = 0
@@ -194,7 +193,6 @@ module bsg_manycore
                 .dram_ch_start_col_p ( dram_ch_start_col_p ),
                 .hetero_type_p( hetero_type_vec_p[r][c] ),
                 .debug_p(debug_p)
-                ,.branch_trace_epa_p(branch_trace_epa_p)
                 ,.branch_trace_en_p(branch_trace_en_p)
                 ,.num_tiles_x_p(num_tiles_x_p)
                 ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)

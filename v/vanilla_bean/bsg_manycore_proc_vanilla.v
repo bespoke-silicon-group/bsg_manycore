@@ -32,7 +32,6 @@ module bsg_manycore_proc_vanilla
     , parameter proc_fifo_els_p = 4
     , parameter debug_p = 1
 
-    , parameter branch_trace_epa_p = "inv"
     
     , parameter branch_trace_en_p = 0
 
@@ -293,7 +292,6 @@ module bsg_manycore_proc_vanilla
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.branch_trace_epa_p(branch_trace_epa_p)
     ,.branch_trace_en_p(branch_trace_en_p)
   ) vcore (
     .clk_i(clk_i)
