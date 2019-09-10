@@ -26,4 +26,4 @@ package bsg_manycore_addr_pkg;
   parameter bsg_stderr_npa_gp       = bsg_io_npa_prefix_gp | 32'(bsg_stderr_epa_gp      );
   parameter bsg_branch_trace_npa_gp = bsg_io_npa_prefix_gp | 32'(bsg_branch_trace_epa_gp);
 
-endpackage;
+endpackage
