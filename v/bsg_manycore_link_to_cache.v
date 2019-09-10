@@ -129,7 +129,6 @@ module bsg_manycore_link_to_cache
   logic [lg_sets_lp+lg_ways_lp:0] tagst_received_r, tagst_received_n;
 
   always_comb begin
-    cache_pkt.sigext = 1'b0;
     cache_pkt.mask = '0;
     cache_pkt.data = '0;
     cache_pkt.addr = '0;
