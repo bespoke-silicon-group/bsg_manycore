@@ -5,6 +5,7 @@
 
 
 module vcache_profiler
+  import bsg_cache_pkg::*;
   #(parameter data_width_p="inv")
   (
     input clk_i
@@ -13,8 +14,7 @@ module vcache_profiler
     , input v_o
     , input yumi_i
     , input miss_v
-    , input ld_op_v_r
-    , input st_op_v_r
+    , input bsg_cache_pkt_decode_s decode_v_r
 
     , input [31:0] global_ctr_i
     , input print_stat_v_i
@@ -29,10 +29,10 @@ module vcache_profiler
   logic inc_ld_miss;
   logic inc_st_miss;
 
-  assign inc_ld = v_o & yumi_i & ld_op_v_r;
-  assign inc_st = v_o & yumi_i & st_op_v_r;
-  assign inc_ld_miss = v_o & yumi_i & ld_op_v_r & miss_v;
-  assign inc_st_miss = v_o & yumi_i & st_op_v_r & miss_v;
+  assign inc_ld = v_o & yumi_i & decode_v_r.ld_op;
+  assign inc_st = v_o & yumi_i & decode_v_r.st_op;
+  assign inc_ld_miss = v_o & yumi_i & decode_v_r.ld_op & miss_v;
+  assign inc_st_miss = v_o & yumi_i & decode_v_r.st_op & miss_v;
 
 
   // stats counting

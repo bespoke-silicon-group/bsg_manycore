@@ -45,6 +45,9 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_buf_ctrl.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_xnor.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_nor2.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_adder_cin.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_expand_bitmask.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_lru_pseudo_tree_decode.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_lru_pseudo_tree_encode.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1r1w_small.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_two_fifo.v
