@@ -81,7 +81,7 @@ _start:
   la sp, _sp
 
 #ifdef __bsg_newlib
-  call bsg_newlib_init
+  call dramfs_init
   call set_cmd_args
   lw a0, 0(sp)     # argc
   lw a1, -4(sp)    # argv

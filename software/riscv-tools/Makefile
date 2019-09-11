@@ -32,7 +32,7 @@ TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
 DEPENDS_DIR=$(CURDIR)/depends
 
 BSG_NEWLIB_URL=https://github.com/bespoke-silicon-group/bsg_newlib_dramfs.git
-BSG_NEWLIB_BRANCH=bsg_manycore_newlib
+BSG_NEWLIB_BRANCH=dramfs
 
 SPIKE_REPO=riscv-isa-sim
 SPIKE_URL=https://github.com/riscv/riscv-isa-sim.git

@@ -152,7 +152,7 @@ SECTIONS
   .text.dram : 
   AT(_dram_t_lma_start) 
   {
-     *(.crtbegin)
+     *(.crtbegin) /* start code */
      *(.text.startup)
      *(.text)
      *(.text.*)
@@ -202,4 +202,5 @@ SECTIONS
   _bsg_dram_end_addr = . ;
 
   _sp = _bsg_elf_stack_ptr;
+  _end = _bsg_dram_end_addr; /* heap in dram */
 }
