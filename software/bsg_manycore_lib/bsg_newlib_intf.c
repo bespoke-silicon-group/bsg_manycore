@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <machine/bsg_newlib_fs.h>
+#include <machine/dramfs_fs.h>
 
 #ifdef __spike__
 
@@ -12,16 +12,16 @@
 
 #endif // __spike__
 
-void bsg_newlib_init(void) {
-    bsg_set_tile_x_y();
+void dramfs_init(void) {
+  bsg_set_tile_x_y();
 
   // Init file system
-  if(bsg_newlib_fs_init() < 0) {
+  if(dramfs_fs_init() < 0) {
     exit(EXIT_FAILURE);
   }
 }
 
-void bsg_newlib_exit(int exit_status) {
+void dramfs_exit(int exit_status) {
   if(exit_status == EXIT_SUCCESS) {
     bsg_finish();
   } else {
@@ -29,6 +29,6 @@ void bsg_newlib_exit(int exit_status) {
   }
 }
 
-void bsg_newlib_sendchar(char ch) {
+void dramfs_sendchar(char ch) {
   bsg_putchar(ch);
 }

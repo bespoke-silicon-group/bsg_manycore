@@ -108,7 +108,7 @@ LFS_BLOCK_SIZE ?= 128
 LFS_BLOCK_COUNT ?= 64
 
 lfs.c: $(IN_FILES)
-	$(RISCV_BIN_DIR)/../riscv32-unknown-elf/bin/bsg_newlib_mklfs $(LFS_BLOCK_SIZE) $(LFS_BLOCK_COUNT) $(IN_FILES) > $@
+	$(RISCV_BIN_DIR)/../riscv32-unknown-elf/bin/dramfs_mklfs $(LFS_BLOCK_SIZE) $(LFS_BLOCK_COUNT) $(IN_FILES) > $@
 endif
 
 # Manycore C library archiving rule

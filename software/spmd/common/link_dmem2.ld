@@ -150,7 +150,7 @@ SECTIONS
 
   .text.dram 0x0 : 
   {
-     *(.crtbegin)
+     *(.crtbegin) /* start code */
      *(.text)
      *(.text.startup)
      *(.text.*)
@@ -178,4 +178,5 @@ SECTIONS
 
   _bsg_dram_d_end_addr = _bsg_dram_d_start_addr + SIZEOF(.data.dram) ;
   _bsg_dram_end_addr = _bsg_dram_d_end_addr ;
+  _end = _bsg_dram_end_addr; /* heap in dram */
 }

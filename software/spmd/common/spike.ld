@@ -33,7 +33,7 @@ SECTIONS
 
   .text : 
   {
-     *crt.o(.text)
+     *(.crtbegin) /* start code */
      *(.text)
      *(.text.startup)
      *(.text.*)
@@ -84,4 +84,5 @@ SECTIONS
   _bsg_data_end_addr = . ;
 
   _sp = 0xbffffffc; /* End of 1st ch of dram: 28-bit dram ch width */
+  _end = _bsg_dram_end_addr; /* heap in dram */
 }
