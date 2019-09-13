@@ -1,6 +1,6 @@
 .DEFAULT_GOAL = all
 
-BENCHMARK_DIR = $(BSG_MANYCORE_DIR)/imports/greenlight/benchmarks/spec2000/CINT2000/000.test
+BENCHMARK_DIR = $(BENCHMARK_TOP)/000.test
 BENCHMARK_OBJS = raw.o test.o
 BENCHMARK_INPS =
 PROG_NAME = test
