@@ -4,13 +4,17 @@ BENCHMARKS+= 175.vpr
 
 RUNS = $(patsubst %,%.run,$(BENCHMARKS))
 
-all: $(RUNS)
+all: checkout
+	$(MAKE) $(RUNS)
 
 %.run:
-	make -f Makefile.$*
-	make -f Makefile.$* clean
+	$(MAKE) -f Makefile.$*
+	$(MAKE) -f Makefile.$* clean
+
+checkout:
+	git clone git@bitbucket.org:taylor-bsg/greenlight.git 2> /dev/null || (cd greenlight ; git pull)
 
 clean:
 	for benchmark in $(BENCHMARKS) ; do \
-	make -f Makefile.$$benchmark clean; \
+	$(MAKE) -f Makefile.$$benchmark clean; \
 	done;

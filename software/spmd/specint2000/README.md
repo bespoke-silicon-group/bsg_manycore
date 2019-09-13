@@ -1,6 +1,8 @@
 SPECInt2000 Benchamarks on Manycore
 ===================================
 
+- Initial setup:
+	`make checkout`
 - Benchmarks imported from RAW's greenlight repo
 - `rawlib/`: Since `greenlight` was originally written for raw, it uses 
   some raw library functions to run spec benchamrks. This folder

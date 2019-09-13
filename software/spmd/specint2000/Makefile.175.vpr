@@ -1,6 +1,6 @@
 .DEFAULT_GOAL = all
 
-BENCHMARK_DIR = $(BSG_MANYCORE_DIR)/imports/greenlight/benchmarks/spec2000/CINT2000/175.vpr
+BENCHMARK_DIR = $(BENCHMARK_TOP)/175.vpr
 
 PROG_NAME = vpr
 
