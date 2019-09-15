@@ -11,5 +11,5 @@ machines:
 	make -C machines/
 
 tools:
-	make -C software/spmd/riscv-tools checkout-all
-	make -C software/spmd/riscv-tools build-all
+	make -C software/riscv-tools checkout-all
+	make -C software/riscv-tools build-all
