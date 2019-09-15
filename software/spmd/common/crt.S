@@ -35,6 +35,17 @@ _start:
   li  x29,0
   li  x30,0
   li  x31,0
+
+  # Enable FPU and clear fcsr.
+  #
+  # These are ignored by manycore hardware but might be
+  # required by execution environments supporting 
+  # exceptions (such as Spike).
+  li t0, 0x00003000 # mstatus.FS
+  csrs mstatus, t0 # enable FPU
+  fscsr x0
+  li t0, 0
+
   fcvt.s.w f0, x0 
   fcvt.s.w f1, x0 
   fcvt.s.w f2, x0 
