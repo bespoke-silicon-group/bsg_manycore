@@ -1,9 +1,0 @@
-.DEFAULT_GOAL = all
-
-BENCHMARK = 000.plain
-BENCHMARK_OBJS = raw.o plain.o
-BENCHMARK_INPS =
-
-CLEAN_ITEMS = $(BENCHMARK_INPS)
-
-include ./Makefile.common
