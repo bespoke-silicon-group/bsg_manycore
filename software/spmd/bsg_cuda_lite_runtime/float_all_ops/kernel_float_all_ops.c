@@ -9,6 +9,10 @@
 #include "bsg_tile_group_barrier.h"
 INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 
+typedef union data_t {
+	int hb_mc_int;
+	float hb_mc_float;
+} hb_mc_data_t;
 
 
 int  __attribute__ ((noinline)) kernel_float_all_ops(float *A, float *B,
@@ -30,7 +34,9 @@ int  __attribute__ ((noinline)) kernel_float_all_ops(float *A, float *B,
 		else { 
 			res_compare[i] = 0.0;
 		}
-		res_convert[i] = A[i]; // TODO: fix
+		hb_mc_data_t data;
+		data.hb_mc_float = A[i]; 
+		res_convert[i] = (float) data.hb_mc_int;
 	}
 
 	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
