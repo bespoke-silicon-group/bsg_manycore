@@ -29,10 +29,12 @@
 
 TOOLCHAIN_REPO=riscv-gnu-toolchain
 TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
+TOOLCHAIN_VERSION=a03290eab661e2aa58288ad164f908bbbcc2169c
 DEPENDS_DIR=$(CURDIR)/depends
 
 BSG_NEWLIB_URL=https://github.com/bespoke-silicon-group/bsg_newlib_dramfs.git
 BSG_NEWLIB_BRANCH=dramfs
+BSG_NEWLIB_PATCH=newlib.patch
 
 SPIKE_REPO=riscv-isa-sim
 SPIKE_URL=https://github.com/riscv/riscv-isa-sim.git
@@ -70,11 +72,14 @@ checkout-repos:
 	@echo "Cloning riscv-toolchain repo..."
 	@echo "====================================="
 	@rm -rf $(TOOLCHAIN_REPO);
-	git clone --recursive $(TOOLCHAIN_URL);
+	git clone $(TOOLCHAIN_URL);
+	cd $(TOOLCHAIN_REPO) && git checkout $(TOOLCHAIN_VERSION);
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
 
 replace-newlib:
 	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.url $(BSG_NEWLIB_URL)
 	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.branch $(BSG_NEWLIB_BRANCH)
+	cd $(TOOLCHAIN_REPO) && git apply ../$(BSG_NEWLIB_PATCH)
 	cd $(TOOLCHAIN_REPO) && git submodule sync
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive riscv-newlib
 
