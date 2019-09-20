@@ -27,10 +27,15 @@
 #
 .DEFAULT_GOAL := help
 
+TARGET_ARCH   := rv32imaf
+TARGET_ABI    := ilp32 # TODO: Test ilp32f for potential performance improvement
+TARGET_CFLAGS := '-fno-common -ffp-contract=off -mno-fdiv'
+
 TOOLCHAIN_REPO=riscv-gnu-toolchain
 TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
-TOOLCHAIN_VERSION=a03290eab661e2aa58288ad164f908bbbcc2169c
+TOOLCHAIN_VERSION=8b239b71678fd397968c4885dc2b760cecd7c861
 DEPENDS_DIR=$(CURDIR)/depends
+
 
 BSG_NEWLIB_URL=https://github.com/bespoke-silicon-group/bsg_newlib_dramfs.git
 BSG_NEWLIB_BRANCH=dramfs
@@ -114,13 +119,13 @@ configure-riscv-gnu-tools:
 	@echo "Configuring toolchain..."
 	@echo "====================================="
 	cd riscv-gnu-toolchain && \
-		./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32imaf --with-abi=ilp32
+		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI)
 
 build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	@echo "Building toolchain..."
 	@echo "====================================="
-	cd riscv-gnu-toolchain && $(MAKE) -j 16 newlib && $(MAKE) install
+	cd riscv-gnu-toolchain && $(MAKE) -j 16 CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS)
 
 build-spike:
 	@echo "====================================="
