@@ -81,7 +81,7 @@ replace-newlib:
 	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.branch $(BSG_NEWLIB_BRANCH)
 	cd $(TOOLCHAIN_REPO) && git apply ../$(BSG_NEWLIB_PATCH)
 	cd $(TOOLCHAIN_REPO) && git submodule sync
-	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive riscv-newlib
+	cd $(TOOLCHAIN_REPO) && git submodule update --remote riscv-newlib
 
 checkout-spike:
 	@echo "====================================="
