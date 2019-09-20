@@ -32,7 +32,7 @@ class VanillaTraceParser:
   def parse_line(self, line):
     trace = {}
     columns = line.split("|")
-    columns = map(lambda c: c.strip(), columns)
+    columns = list(map(lambda c: c.strip(), columns))
 
     # first column
     # timestamp, x, y
