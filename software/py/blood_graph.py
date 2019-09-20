@@ -43,7 +43,7 @@ class BloodGraph:
 
   
   # main public method
-  def generate(self, input_file, output_file):
+  def generate(self, input_file):
     # parse vanilla.log
     traces = self.parser.parse(input_file)
 
@@ -109,7 +109,7 @@ class BloodGraph:
 # main()
 if __name__ == "__main__":
 
-  if len(sys.argv) != 8:
+  if len(sys.argv) != 7:
     print("wrong argument.")
     sys.exit()
  
@@ -119,7 +119,6 @@ if __name__ == "__main__":
   end_time = int(sys.argv[4])
   timestep = int(sys.argv[5])
   input_file = sys.argv[6]
-  output_file = sys.argv[7]
 
   bg = BloodGraph(x,y,start_time,end_time,timestep)
-  bg.generate(input_file, output_file)
+  bg.generate(input_file)
