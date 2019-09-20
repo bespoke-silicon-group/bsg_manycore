@@ -27,23 +27,25 @@
 #
 .DEFAULT_GOAL := help
 
-TARGET_ARCH   := rv32imaf
-TARGET_ABI    := ilp32 # TODO: Test ilp32f for potential performance improvement
-TARGET_CFLAGS := '-fno-common -ffp-contract=off -mno-fdiv'
+TARGET_ARCH       := rv32imaf
+TARGET_ABI        := ilp32 # TODO: Test ilp32f for potential performance improvement
+TARGET_CFLAGS     := '-fno-common -ffp-contract=off -mno-fdiv'
 
-TOOLCHAIN_REPO=riscv-gnu-toolchain
-TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
-TOOLCHAIN_VERSION=8b239b71678fd397968c4885dc2b760cecd7c861
-DEPENDS_DIR=$(CURDIR)/depends
+TOOLCHAIN_REPO    := riscv-gnu-toolchain
+TOOLCHAIN_URL     := https://github.com/riscv/$(TOOLCHAIN_REPO)
+TOOLCHAIN_VERSION := a03290eab661e2aa58288ad164f908bbbcc2169c
 
+DEPENDS_DIR       := $(CURDIR)/depends
 
-BSG_NEWLIB_URL=https://github.com/bespoke-silicon-group/bsg_newlib_dramfs.git
-BSG_NEWLIB_BRANCH=dramfs
-BSG_NEWLIB_PATCH=newlib.patch
+NEWLIB_URL        := https://github.com/bespoke-silicon-group/bsg_newlib_dramfs.git
+NEWLIB_BRANCH     := dramfs
+NEWLIB_VERSION    := 1341d8b68f8eeec01b36de67c27bb2875e70c6f6
+NEWLIB_PATCH      := newlib.patch
 
-SPIKE_REPO=riscv-isa-sim
-SPIKE_URL=https://github.com/riscv/riscv-isa-sim.git
-SPIKE_PATCH=spike.patch
+SPIKE_REPO        := riscv-isa-sim
+SPIKE_URL         := https://github.com/riscv/riscv-isa-sim.git
+SPIKE_PATCH       := spike.patch
+SPIKE_TAG         := v1.0.0
 
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
 
@@ -82,11 +84,12 @@ checkout-repos:
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
 
 replace-newlib:
-	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.url $(BSG_NEWLIB_URL)
-	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.branch $(BSG_NEWLIB_BRANCH)
-	cd $(TOOLCHAIN_REPO) && git apply ../$(BSG_NEWLIB_PATCH)
+	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.url $(NEWLIB_URL)
+	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.branch $(NEWLIB_BRANCH)
+	cd $(TOOLCHAIN_REPO) && git apply ../$(NEWLIB_PATCH)
 	cd $(TOOLCHAIN_REPO) && git submodule sync
 	cd $(TOOLCHAIN_REPO) && git submodule update --remote riscv-newlib
+	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout $(NEWLIB_VERSION)
 
 checkout-spike:
 	@echo "====================================="
@@ -94,7 +97,7 @@ checkout-spike:
 	@echo "====================================="
 	@rm -rf $(SPIKE_REPO);
 	git clone --recursive $(SPIKE_URL);
-	cd $(SPIKE_REPO) && git checkout tags/v1.0.0
+	cd $(SPIKE_REPO) && git checkout tags/$(SPIKE_TAG)
 	cd $(SPIKE_REPO) && git apply ../$(SPIKE_PATCH)
 
 checkout-all: 
