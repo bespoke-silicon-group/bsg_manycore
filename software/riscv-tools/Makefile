@@ -27,16 +27,26 @@
 #
 .DEFAULT_GOAL := help
 
-TOOLCHAIN_REPO=riscv-gnu-toolchain
-TOOLCHAIN_URL=https://github.com/riscv/$(TOOLCHAIN_REPO)
-DEPENDS_DIR=$(CURDIR)/depends
+TARGET_ARCH       := rv32imaf
+TARGET_ABI        := ilp32 # TODO: Test ilp32f for potential performance improvement
+TARGET_CFLAGS     := '-fno-common -ffp-contract=off -mno-fdiv' # Turn off fma, fdiv and fexp instructions
+                                                               # as manycore's FPU doesn't support them.
 
-BSG_NEWLIB_URL=https://github.com/bespoke-silicon-group/bsg_newlib_dramfs.git
-BSG_NEWLIB_BRANCH=dramfs
+TOOLCHAIN_REPO    := riscv-gnu-toolchain
+TOOLCHAIN_URL     := https://github.com/riscv/$(TOOLCHAIN_REPO)
+TOOLCHAIN_VERSION := a03290eab661e2aa58288ad164f908bbbcc2169c
 
-SPIKE_REPO=riscv-isa-sim
-SPIKE_URL=https://github.com/riscv/riscv-isa-sim.git
-SPIKE_PATCH=spike.patch
+DEPENDS_DIR       := $(CURDIR)/depends
+
+NEWLIB_URL        := https://github.com/bespoke-silicon-group/bsg_newlib_dramfs.git
+NEWLIB_BRANCH     := dramfs
+NEWLIB_VERSION    := 1341d8b68f8eeec01b36de67c27bb2875e70c6f6
+NEWLIB_PATCH      := newlib.patch
+
+SPIKE_REPO        := riscv-isa-sim
+SPIKE_URL         := https://github.com/riscv/riscv-isa-sim.git
+SPIKE_PATCH       := spike.patch
+SPIKE_TAG         := v1.0.0
 
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
 
@@ -70,13 +80,17 @@ checkout-repos:
 	@echo "Cloning riscv-toolchain repo..."
 	@echo "====================================="
 	@rm -rf $(TOOLCHAIN_REPO);
-	git clone --recursive $(TOOLCHAIN_URL);
+	git clone $(TOOLCHAIN_URL);
+	cd $(TOOLCHAIN_REPO) && git checkout $(TOOLCHAIN_VERSION);
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
 
 replace-newlib:
-	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.url $(BSG_NEWLIB_URL)
-	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.branch $(BSG_NEWLIB_BRANCH)
+	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.url $(NEWLIB_URL)
+	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.branch $(NEWLIB_BRANCH)
+	cd $(TOOLCHAIN_REPO) && git apply ../$(NEWLIB_PATCH)
 	cd $(TOOLCHAIN_REPO) && git submodule sync
-	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive riscv-newlib
+	cd $(TOOLCHAIN_REPO) && git submodule update --remote riscv-newlib
+	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout $(NEWLIB_VERSION)
 
 checkout-spike:
 	@echo "====================================="
@@ -84,7 +98,7 @@ checkout-spike:
 	@echo "====================================="
 	@rm -rf $(SPIKE_REPO);
 	git clone --recursive $(SPIKE_URL);
-	cd $(SPIKE_REPO) && git checkout tags/v1.0.0
+	cd $(SPIKE_REPO) && git checkout tags/$(SPIKE_TAG)
 	cd $(SPIKE_REPO) && git apply ../$(SPIKE_PATCH)
 
 checkout-all: 
@@ -109,13 +123,13 @@ configure-riscv-gnu-tools:
 	@echo "Configuring toolchain..."
 	@echo "====================================="
 	cd riscv-gnu-toolchain && \
-		./configure --prefix=$(RISCV) --disable-linux --with-arch=rv32imaf --with-abi=ilp32
+		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI)
 
 build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	@echo "Building toolchain..."
 	@echo "====================================="
-	cd riscv-gnu-toolchain && $(MAKE) -j 16 newlib && $(MAKE) install
+	cd riscv-gnu-toolchain && $(MAKE) -j 16 CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS)
 
 build-spike:
 	@echo "====================================="
