@@ -31,10 +31,11 @@ if len(sys.argv) != 3:
 ###########################################
 # Parse ELF to extract function list
 
-# This works on any ELF
+# Command to parse input ELF to 
+# generate "<start_address> <function_name>" pairs.
 elf_parse_cmd = "readelf -s " \
                   + sys.argv[2] \
-                  + ' | grep FUNC | sed "s/.*: *\(.\{8\}\) .* \([^ ]*$\)/\\1 \\2/\"'
+                  + ' | grep FUNC | awk \'{print $2 " " $8}\''
 
 # Prepend _start as it's not parsed as a function
 func_list = ['00000000 _start'] + (os.popen(elf_parse_cmd).read()).split('\n')[:-1]
