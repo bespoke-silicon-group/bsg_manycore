@@ -1,7 +1,7 @@
 #
 #   vanilla_trace_parser.py
 #
-#   this script reads the vanilla.log, and returns the trace in an object form (e.g. a list of trace objects)
+#   this class reads the vanilla.log, and returns the trace in an object form (e.g. a list of trace objects)
 #
 #   @author tommy
 #
