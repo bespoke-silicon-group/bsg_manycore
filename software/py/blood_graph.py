@@ -9,10 +9,12 @@
 #   @author tommy
 #
 #   How to use:
-#   python3 blood_graph.py {x} {y} {start_time} {end_time} {timestep} {vanilla.log}
+#   python blood_graph.py {x_min}-{x_max} {y_min}-{y_max} {start_time} {end_time} {timestep} {vanilla.log}
 #
-#   {x}           x-dimension
-#   {y}           y-dimension
+#   ex) python blood_graph.py 0-1 1-2 6000000 15000000 20 vanilla.log
+#
+#   {x_min/max}   x-cord range
+#   {y_min/max}   y-cord range
 #   {start_time}  start_time in picosecond
 #   {end_time}    end_time in picosecond
 #   {timestep}    time step in picosecond
@@ -27,15 +29,27 @@ from vanilla_trace_parser import *
 class BloodGraph:
 
   # default constructor
-  def __init__(self, x, y, start_time, end_time, timestep):
-    self.x = x
-    self.y = y
+  def __init__(self, xmin, xmax, ymin, ymax, start_time, end_time, timestep):
+
+    if xmin > xmax:
+      sys.exit("xmin cannot be greater than xmax.")
+    if ymin > ymax:
+      sys.exit("ymin cannot be greater than ymax.")
+  
+    self.xmin = xmin
+    self.xmax = xmax
+    self.ymin = ymin
+    self.ymax = ymax
+    
+    self.xdim = xmax-xmin+1
+    self.ydim = ymax-ymin+1
+
     self.start_time = start_time
     self.end_time = end_time
     self.timestep = timestep
 
     self.img_width = 1024   # default
-    self.img_height = ((((end_time-start_time)//timestep)+self.img_width)//self.img_width)*(2+(x*y))
+    self.img_height = ((((end_time-start_time)//timestep)+self.img_width)//self.img_width)*(2+(self.xdim*self.ydim))
     self.img = Image.new("RGB", (self.img_width, self.img_height), "black")
     self.pixel = self.img.load()
 
@@ -65,7 +79,9 @@ class BloodGraph:
     cycle = (trace["timestamp"]-self.start_time)//self.timestep
     col = cycle % self.img_width
     floor = cycle // self.img_width
-    row = floor*(2+(self.x*self.y)) + (trace["x"]*(trace["y"]-1))
+    tg_x = trace["x"] - self.xmin 
+    tg_y = trace["y"] - self.ymin
+    row = floor*(2+(self.xdim*self.ydim)) + (tg_x+(tg_y*self.xdim))
 
     # determine color
     # executed  = ffffff (white)
@@ -102,10 +118,6 @@ class BloodGraph:
           self.pixel[col,row] = (0x8b, 0x00, 0x00)
 
 
-
-
-
-
 # main()
 if __name__ == "__main__":
 
@@ -113,12 +125,20 @@ if __name__ == "__main__":
     print("wrong argument.")
     sys.exit()
  
-  x = int(sys.argv[1])
-  y = int(sys.argv[2])
+  x_range = sys.argv[1]
+  y_range = sys.argv[2]
   start_time = int(sys.argv[3])
   end_time = int(sys.argv[4])
   timestep = int(sys.argv[5])
   input_file = sys.argv[6]
 
-  bg = BloodGraph(x,y,start_time,end_time,timestep)
+  xcord = x_range.split("-")
+  ycord = y_range.split("-")
+  
+  xmin = int(xcord[0])
+  xmax = int(xcord[1])
+  ymin = int(ycord[0])
+  ymax = int(ycord[1])
+
+  bg = BloodGraph(xmin,xmax,ymin,ymax,start_time,end_time,timestep)
   bg.generate(input_file)
