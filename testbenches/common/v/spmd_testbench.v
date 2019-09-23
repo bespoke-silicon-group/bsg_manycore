@@ -397,6 +397,7 @@ module spmd_testbench;
       ,.bsg_cache_pkt_width_lp(bsg_cache_pkt_width_lp)
     ) mlctrace (
       .*
+      ,.trace_en_i($root.spmd_testbench.trace_en)
     );
 
   end

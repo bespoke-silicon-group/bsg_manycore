@@ -29,6 +29,8 @@ module bsg_manycore_link_to_cache_tracer
     , input [bsg_cache_pkt_width_lp-1:0] cache_pkt_o
     , input v_o
     , input ready_i
+
+    , input trace_en_i
   );
 
   `declare_bsg_cache_pkt_s(cache_addr_width_lp, data_width_p);
@@ -39,31 +41,34 @@ module bsg_manycore_link_to_cache_tracer
   integer fd;
 
   initial begin
-    fd = $fopen("vcache.log", "w");
-    $fwrite(fd, "");
-    $fclose(fd);
+    #1;
+    if (trace_en_i) begin
+      fd = $fopen("vcache.log", "w");
+      $fwrite(fd, "");
+      $fclose(fd);
 
-    forever begin
-      @(negedge clk_i) begin
-        if (~reset_i) begin
-          if (v_o & ready_i) begin
-            fd = $fopen("vcache.log", "a");
+      forever begin
+        @(negedge clk_i) begin
+          if (~reset_i) begin
+            if (v_o & ready_i) begin
+              fd = $fopen("vcache.log", "a");
 
-            if (cache_pkt_cast.opcode == SM) begin
-              $fwrite(fd, "x=%0d,y=%0d,addr=%0d,data=%0d,opcode=SM,t=%0t\n",
-                my_x_i, my_y_i,
-                cache_pkt_cast.addr, cache_pkt_cast.data, $time
-              );
-            end
+              if (cache_pkt_cast.opcode == SM) begin
+                $fwrite(fd, "x=%0d,y=%0d,addr=%0d,data=%0d,opcode=SM,t=%0t\n",
+                  my_x_i, my_y_i,
+                  cache_pkt_cast.addr, cache_pkt_cast.data, $time
+                );
+              end
         
-            if (cache_pkt_cast.opcode == LM) begin
-              $fwrite(fd, "x=%0d,y=%0d,addr=%0d,data=%0d,opcode=LM,t=%0t\n",
-                my_x_i, my_y_i,
-                cache_pkt_cast.addr, cache_pkt_cast.data, $time
-              );
-            end
+              if (cache_pkt_cast.opcode == LM) begin
+                $fwrite(fd, "x=%0d,y=%0d,addr=%0d,data=%0d,opcode=LM,t=%0t\n",
+                  my_x_i, my_y_i,
+                  cache_pkt_cast.addr, cache_pkt_cast.data, $time
+                );
+              end
 
-            $fclose(fd);
+              $fclose(fd);
+            end
           end
         end
       end
