@@ -135,7 +135,7 @@ build-spike:
 	@echo "====================================="
 	@echo "Building $(SPIKE_REPO)..."
 	@echo "====================================="
-	cd $(SPIKE_REPO) && ./configure --prefix=$(RISCV)
+	cd $(SPIKE_REPO) && ./configure --prefix=$(RISCV) --enable-commitlog
 	cd $(SPIKE_REPO) && $(MAKE) && $(MAKE) install
 
 build-all: 

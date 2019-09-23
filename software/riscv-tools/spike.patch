@@ -16,7 +16,7 @@ index 6e8baf6..a2423eb 100644
      return;
    }
 +  else if (cmd.payload() & 0x2){
-+      std::cerr << char(cmd.payload() >> 8);
++      std::cout << char(cmd.payload() >> 8);
 +  }
    else // proxied system call
      dispatch(cmd.payload());

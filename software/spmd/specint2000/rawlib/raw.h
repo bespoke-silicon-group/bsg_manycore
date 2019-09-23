@@ -1,7 +1,9 @@
 #ifndef _RAW_H
 #define _RAW_H
 
-#ifdef __spike__
+#ifdef __host__
+
+#elif __spike__
 
 #include "spike.h"
 

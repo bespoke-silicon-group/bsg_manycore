@@ -196,6 +196,9 @@ SECTIONS
 
     _dram_misc = .;
     *(.*)
+
+    /* bsg_f1 loader needs the load contents to be word aligned */
+    . = ALIGN(4);
   } >DRAM_D_VMA 
 
   _bsg_dram_d_end_addr = . ;

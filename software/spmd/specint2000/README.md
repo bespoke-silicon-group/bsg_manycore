@@ -9,3 +9,11 @@ SPECInt2000 Benchamarks on Manycore
   contains manycore versions of required raw library functions.
 - `Makefile.BenChMaRK`: Makefile to run `BenChMaRK`
 - `Makefile`: Makefile to run all specint benchmarks
+
+Status:
+-------
+- 175.vpr: Runs successfully
+- 164.gzip: Compilation successful. Runtime issue.
+- 300.twolf: Compilation issue; undefined macro
+- 186.crafty: Compilation issue; missing struct definition.
+- 181.mcf: Runs successfully

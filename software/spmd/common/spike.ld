@@ -34,8 +34,8 @@ SECTIONS
   .text : 
   {
      *(.crtbegin) /* start code */
-     *(.text)
      *(.text.startup)
+     *(.text)
      *(.text.*)
   } >DRAM_T_VMA 
 
