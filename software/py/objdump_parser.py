@@ -31,7 +31,8 @@ class ObjdumpParser:
 
     dasm = []
     for line in stripped:
-      match = re.match("^([a-f0-9]+):\s+([a-f0-9]{8})\s+([\s\S]+)$", line)
+      #match = 0
+      match = re.match("^([a-f0-9]+):\s+([a-f0-9]{8})\s+([\s\S]+)$", line.decode("utf-8"))
       if match:
         dump = {}
         dump["pc"] = match.group(1)
