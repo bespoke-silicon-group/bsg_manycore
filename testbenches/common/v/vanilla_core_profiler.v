@@ -624,7 +624,7 @@ module vanilla_core_profiler
     // the first tile opens the logfile and writes the csv header.
     if ((my_x_i == x_cord_width_p'(0)) & (my_y_i == y_cord_width_p'(1))) begin
       fd = $fopen(logfile_lp, "w");
-      $fwrite(fd, "x,y,tag,global_ctr,cycle,instr,");
+      $fwrite(fd, "time,x,y,tag,global_ctr,cycle,instr,");
       $fwrite(fd, "fadd,fsub,fmul,fsgnj,fsgnjn,fsgnjx,fmin,fmax,fcvt_s_w,fcvt_s_wu,fmv_w_x,");
       $fwrite(fd, "feq,flt,fle,fcvt_w_s,fcvt_wu_s,fclass,fmv_x_w,");
       $fwrite(fd, "local_ld,local_st,remote_ld,remote_st,local_flw,local_fsw,remote_flw,remote_fsw,icache_miss,");
@@ -652,7 +652,8 @@ module vanilla_core_profiler
 
           fd = $fopen(logfile_lp, "a");
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+            $time,
             my_x_i,
             my_y_i,
             print_stat_tag_i,

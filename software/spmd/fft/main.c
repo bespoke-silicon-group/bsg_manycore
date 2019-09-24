@@ -137,6 +137,7 @@ float magnitude(float complex x) {
 
 void fft_kernel(int *input, float complex *output) {
     bsg_set_tile_x_y();
+    if (bsg_id == 0) bsg_print_stat(0);
     if (bsg_id == 0) { fft_swizzle(0, 1, input, fft_work_arr);}
     bsg_tile_group_barrier(&r_barrier, &c_barrier);
     fft(fft_work_arr, bsg_id);
@@ -150,12 +151,16 @@ void fft_kernel(int *input, float complex *output) {
 #endif
         }
     }
+    if (bsg_id == 0) bsg_print_stat(0xdead);
 }
 
 
 int main()
 {
+
     fft_kernel(fft_arr, fft_dram_arr);
+
+
     float complex val;
     int real_val, imag_val;
     if (bsg_id == 0) {

@@ -113,6 +113,7 @@ module vanilla_core_trace
     end
   end
 
+
   // FP pipeline track
   //
   fp_debug_s fp_exe_debug, fpu1_r, fpu2_r, fpu3_r, fp_wb_debug;
@@ -141,16 +142,6 @@ module vanilla_core_trace
     end
 
   end  
-
-
-
-
-
-
-
-
-
-
 
 
   // TRACER LOGIC
@@ -187,7 +178,7 @@ module vanilla_core_trace
           fd = $fopen("vanilla.log", "a");
 
           // STAMP
-          stamp = $sformatf("%08t %2d %2d:", $time, my_x_i, my_y_i);
+          stamp = $sformatf("%08t %2d %2d", $time, my_x_i, my_y_i);
 
           // PC INSTR
           pc_instr = wb_debug.pc == 32'hfffffffc
@@ -201,23 +192,23 @@ module vanilla_core_trace
 
           // STALL REASON
           if (stall_ifetch_wait)
-            stall_reason = "STALL: IFETCH";
+            stall_reason = "STALL=IFETCH";
           else if (stall_icache_store)
-            stall_reason = "STALL: ISTORE";
+            stall_reason = "STALL=ISTORE";
           else if (stall_lr_aq)
-            stall_reason = "STALL: LR_AQ ";
+            stall_reason = "STALL=LR_AQ ";
           else if (stall_fence)
-            stall_reason = "STALL: FENCE ";
+            stall_reason = "STALL=FENCE ";
           else if (stall_md)
-            stall_reason = "STALL: MULDIV";
+            stall_reason = "STALL=MULDIV";
           else if (stall_force_wb)
-            stall_reason = "STALL: LOADWB";
+            stall_reason = "STALL=LOADWB";
           else if (stall_remote_req)
-            stall_reason = "STALL: MEMREQ";
+            stall_reason = "STALL=MEMREQ";
           else if (stall_local_flw)
-            stall_reason = "STALL: FLW   ";
+            stall_reason = "STALL=FLW   ";
           else
-            stall_reason = "             ";
+            stall_reason = "            ";
 
           // INT RF WRITE
           int_rf_write = int_rf_wen
@@ -244,15 +235,29 @@ module vanilla_core_trace
           else
             dmem_access = {(2+5+1+8){" "}};
 
-          $fwrite(fd, "%s %s %s %s | %s %s | %s %s\n",
+          // REMOTE ACCESS
+          if (wb_debug.is_remote_load)
+            remote_access = $sformatf("RL[%8x]=        ", wb_debug.remote_addr);
+          else if (wb_debug.is_remote_store)
+            remote_access = $sformatf("RS[%8x]=%8x", wb_debug.remote_addr, wb_debug.remote_store_data);
+          else
+            remote_access = "";
+            
+
+          $fwrite(fd, "%s | %s %s %s | %s %s | %s %s | %s\n",
             stamp,
+
             pc_instr,
             int_rf_write,
             stall_reason,
+
             fp_pc_instr,
             float_rf_write,
+
             btarget,
-            dmem_access
+            dmem_access,
+
+            remote_access
           );
     
           $fclose(fd);

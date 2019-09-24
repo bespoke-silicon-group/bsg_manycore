@@ -11,6 +11,9 @@ testbenches/common/inputs/
 *.pb
 *.swp
 *.nbf
+*.pyc
+__pycache__
+*.bmp
 xelab*
 xsim*
 xvlog*
