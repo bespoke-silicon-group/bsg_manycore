@@ -63,6 +63,8 @@ class Stats:
     self.timing_end_list = [0] * self.max_tile_groups
     self.total_execution_time = 0
     self.total_instr_cnt = 0
+    self.total_stall_cnt = 0
+    self.total_miss_cnt = 0
     self.stats_list = []
     self.stats_count = []
 
@@ -84,19 +86,10 @@ class Stats:
       else: 
         self.timing_end_list[int(tokens[self.stats_list.index('tag')]) - 1000] = int(tokens[self.stats_list.index('time')])
 
-  # Calculate number of executed instruction by type for all tiles and total
-  def generate_stats_instructions(self, tokens):
+  # Sum up all other stats for all tiles based on the last bsg_print_stat instr
+  def generate_stats_all(self, tokens):
     for idx in range (0, len(self.stats_list)):
-      if self.stats_list[idx] in instructions_list:
-        self.stats_count[idx] += int(tokens[idx])
-    return
-
-   # Calculate number of stall cycles by type for all tiles and total
-  def generate_stats_stalls(self, tokens):
-    return
-
-  # Calculate number of misses by type for all tiles and total
-  def generate_stats_miss(self, tokens):
+      self.stats_count[idx] += int(tokens[idx])
     return
 
 
@@ -117,19 +110,37 @@ class Stats:
                                     "=======================================================\n")
     for idx in range (0, len(self.stats_list)):
       if self.stats_list[idx] in instructions_list:
-        self.execution_stats_file.write("{:14}\t{}\n".format(self.stats_list[idx], self.stats_count[idx]))
+        self.execution_stats_file.write("{:25}\t{}\n".format(self.stats_list[idx], self.stats_count[idx]))
         if self.stats_list[idx] != 'instr':
           self.total_instr_cnt += self.stats_count[idx]
-    self.execution_stats_file.write("{:14}\t{}\n".format("Total", self.total_instr_cnt))
+    self.execution_stats_file.write("{:25}\t{}\n".format("Total", self.total_instr_cnt))
     self.execution_stats_file.write("=======================================================\n\n")
     return
 
+
   # Print instruction stats for all tiles and total
   def print_stats_stalls(self):
+    self.execution_stats_file.write("Stall Stats:\n" + \
+                                    "=======================================================\n")
+    for idx in range (0, len(self.stats_list)):
+      if self.stats_list[idx] in stalls_list:
+        self.execution_stats_file.write("{:25}\t{}\n".format(self.stats_list[idx], self.stats_count[idx]))
+        self.total_stall_cnt += self.stats_count[idx]
+    self.execution_stats_file.write("{:25}\t{}\n".format("Total", self.total_stall_cnt))
+    self.execution_stats_file.write("=======================================================\n\n")
     return
+
 
   # Print miss stats for all tiles and total
   def print_stats_miss(self):
+    self.execution_stats_file.write("Miss Stats:\n" + \
+                                    "=======================================================\n")
+    for idx in range (0, len(self.stats_list)):
+      if self.stats_list[idx] in miss_list:
+        self.execution_stats_file.write("{:25}\t{}\n".format(self.stats_list[idx], self.stats_count[idx]))
+        self.total_miss_cnt += self.stats_count[idx]
+    self.execution_stats_file.write("{:25}\t{}\n".format("Total", self.total_miss_cnt))
+    self.execution_stats_file.write("=======================================================\n\n")
     return
 
 
@@ -155,9 +166,7 @@ class Stats:
       for idx in range(len(self.vanilla_stats_lines) - self.manycore_dim, len(self.vanilla_stats_lines)):
         line = self.vanilla_stats_lines[idx]
         tokens = line.split(",")
-        self.generate_stats_instructions(tokens)
-        self.generate_stats_stalls(tokens)
-        self.generate_stats_miss(tokens)
+        self.generate_stats_all(tokens)
 
 
     self.print_stats_timing()
