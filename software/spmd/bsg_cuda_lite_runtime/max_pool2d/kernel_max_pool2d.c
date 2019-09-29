@@ -15,6 +15,9 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 
 int  __attribute__ ((noinline)) kernel_max_pool2d(int *A, int *B, int M, int N, int P, int W, int block_size_y, int block_size_x) {
 
+	if (__bsg_id == 0)
+		bsg_print_stat(__bsg_tile_group_id);
+
 	int sub_block_y = M / P; // Should divide evenly	
 	int sub_block_x = N / W; // Should divide evenly	
 	int start_y = __bsg_tile_group_id_y * block_size_y;
@@ -43,6 +46,11 @@ int  __attribute__ ((noinline)) kernel_max_pool2d(int *A, int *B, int M, int N, 
 			B[iter_y * W + iter_x] = sub_max;
 		}
 	}
+
+	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
+
+	if (__bsg_id == 0)
+		bsg_print_stat(1000 + __bsg_tile_group_id);
 
 	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
 

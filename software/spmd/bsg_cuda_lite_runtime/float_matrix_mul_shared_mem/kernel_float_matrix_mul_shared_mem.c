@@ -98,7 +98,10 @@ void __attribute__ ((noinline)) subblock_shmem_matrix_mul_xposed (float *sh_A, f
 
 int  __attribute__ ((noinline)) kernel_float_matrix_mul_shared_mem(float *A, float *B, float *C, int M, int N, int P, int block_size_y, int block_size_x) {
 
-	
+
+	if (__bsg_id == 0)
+		bsg_print_stat(__bsg_tile_group_id);
+
 	// declare tile-group shared memory
 	bsg_tile_group_shared_mem (float, sh_A, (block_size_y * BLOCK_WIDTH));
 	bsg_tile_group_shared_mem (float, sh_B, (BLOCK_WIDTH * block_size_x));
@@ -123,6 +126,11 @@ int  __attribute__ ((noinline)) kernel_float_matrix_mul_shared_mem(float *A, flo
 	shmem2subblock (C, sh_C, M, P, block_size_y, block_size_x, __bsg_tile_group_id_y, __bsg_tile_group_id_x); 
 
 	bsg_tile_group_barrier (&r_barrier, &c_barrier) ;
+
+	if (__bsg_id == 0)
+		bsg_print_stat(1000 + __bsg_tile_group_id);
+
+	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
 
 	return 0;
 }

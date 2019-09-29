@@ -15,10 +15,11 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 
 int  __attribute__ ((noinline)) kernel_shared_mem_load_store(int *A_in, int *A_out, int M, int N, int block_size_y, int block_size_x) {
 
+	if (__bsg_id == 0)
+		bsg_print_stat(__bsg_tile_group_id);
 	
 	// declare tile-group shared memory
 	bsg_tile_group_shared_mem (int, sh_A, (block_size_y * block_size_x));
-
 
 
 	int start_y = __bsg_tile_group_id_y * block_size_y;
@@ -45,6 +46,10 @@ int  __attribute__ ((noinline)) kernel_shared_mem_load_store(int *A_in, int *A_o
 
 	bsg_tile_group_barrier (&r_barrier, &c_barrier); 
 
+	if (__bsg_id == 0)
+		bsg_print_stat(1000 + __bsg_tile_group_id);
+
+	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
 
 	return 0;
 }

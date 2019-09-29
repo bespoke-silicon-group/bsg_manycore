@@ -14,6 +14,9 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 
 int  __attribute__ ((noinline)) kernel_shared_mem (int *A, int N) {
 
+	if (__bsg_id == 0)
+		bsg_print_stat(__bsg_tile_group_id);
+
 	bsg_tile_group_shared_mem (int, sh_arr, N); 
 
 	for (int iter_x = __bsg_id; iter_x < N; iter_x += bsg_tiles_X * bsg_tiles_Y) {
@@ -29,6 +32,11 @@ int  __attribute__ ((noinline)) kernel_shared_mem (int *A, int N) {
 		bsg_tile_group_shared_load(int, sh_arr, iter_x, A[iter_x]);
 	}
 
+
+	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
+
+	if (__bsg_id == 0)
+		bsg_print_stat(1000 + __bsg_tile_group_id);
 
 	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
 
