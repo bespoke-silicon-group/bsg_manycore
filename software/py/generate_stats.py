@@ -9,9 +9,13 @@
 #   @author Borna
 #
 #   How to use:
-#   python3 generate_stats.py {vanilla_stats.log}
+#   python3 generate_stats.py {manycore_dim_y} {manycore_dim_x} {vanilla_stats.log}
 #
+#   ex) python3 generate_stats.py 4 4 vanilla_stats.log
 #
+#   {manycore_dim_y}  Mesh Y dimension of manycore
+#   {manycore_dim_x}  Mesh X dimension of manycore
+
 
 
 import sys
@@ -20,20 +24,87 @@ import re
 from enum import Enum
 
 
+instructions_list = ['instr','fadd','fsub','fmul','fsgnj','fsgnjn',\
+                     'fsgnjx','fmin','fmax','fcvt_s_w','fcvt_s_wu',\
+                     'fmv_w_x','feq','flt','fle','fcvt_w_s','fcvt_wu_s',\
+                     'fclass','fmv_x_w','local_ld','local_st',\
+                     'remote_ld','remote_st','local_flw','local_fsw',\
+                     'remote_flw','remote_fsw','lr','lr_aq',\
+                     'swap_aq','swap_rl','beq','bne','blt','bge','bltu',\
+                     'bgeu','jalr','jal', 'sll',\
+                     'slli','srl','srli','sra','srai','add','addi','sub',\
+                     'lui','auipc','xor','xori','or','ori','and','andi',\
+                     'slt','slti','sltu','sltiu','mul','mulh','mulhsu',\
+                     'mulhu','div','divu','rem','remu','fence']
+
+unkonwns_list = ['icache_miss', 'beq_miss', 'bne_miss', 'blt_miss',\
+                'bge_miss', 'bltu_miss', 'bgeu_miss', 'jalr_miss']
+
+stalls_list = ['stall_fp_remote_load','stall_fp_local_load',\
+               'stall_depend','stall_depend_remote_load',\
+               'stall_depend_local_load','stall_force_wb',\
+               'stall_ifetch_wait','stall_icache_store',\
+               'stall_lr_aq','stall_md,stall_remote_req','stall_local_flw']
+
+
 
 class Stats:
 
   # default constructor
-  def __init__(self):
+  def __init__(self, manycore_dim_y, manycore_dim_x):
 
+    self.manycore_dim_y = manycore_dim_y
+    self.manycore_dim_x = manycore_dim_x
+    self.manycore_dim = manycore_dim_y * manycore_dim_x
+    self.execution_stats_file = open("execution_stats.log", "w")
     self.max_tile_groups = 1024
     self.num_tile_groups = 0
-    self.start_list = [0] * self.max_tile_groups
-    self.end_list = [0] * self.max_tile_groups
+    self.timing_start_list = [0] * self.max_tile_groups
+    self.timing_end_list = [0] * self.max_tile_groups
     self.total_execution_time = 0
-    self.execution_stats_file = open("execution_stats.log", "w")
+    self.stats_list = []
 
-  def define_stats(self, stat_tokens):
+  # Create a list of stat types
+  def define_stats_list(self, tokens):
+    for token in tokens:
+      self.stats_list += [token]
+    return
+
+
+  # Calculate execution time for tile groups and total
+  def generate_stats_timing(self, tokens):
+    if (tokens[self.stats_list.index('x')] == '0' and tokens[self.stats_list.index('y')] == '1'):
+      if (int(tokens[self.stats_list.index('tag')]) < 1000):
+        self.timing_start_list[int(tokens[self.stats_list.index('tag')])] = int(tokens[self.stats_list.index('time')])
+        self.num_tile_groups += 1
+      else: 
+        self.timing_end_list[int(tokens[self.stats_list.index('tag')]) - 1000] = int(tokens[self.stats_list.index('time')])
+
+  # Calculate number of executed instruction by type for all tiles and total
+  def generate_stats_instructions(self, tokens):
+    return
+
+   # Calculate number of stall cycles by type for all tiles and total
+  def generate_stats_stalls(self, tokens):
+    return
+ 
+
+  # Print execution timing for all tile groups 
+  def print_stats_timing(self):
+    self.execution_stats_file.write("Timing Stats ==========================================\n")
+    for i in range (0, self.num_tile_groups):
+      self.execution_stats_file.write("Tile group {}:\t{}\n".format(i, self.timing_end_list[i] - self.timing_start_list[i]))
+      self.total_execution_time += (self.timing_end_list[i] - self.timing_start_list[i])
+    self.execution_stats_file.write("Total(cycles):\t{}\n".format(self.total_execution_time))
+    self.execution_stats_file.write("=======================================================\n")
+
+
+  # Print instruction stats for all tiles and total
+  def print_stats_instructions(self):
+    return
+
+  # Print instruction stats for all tiles and total
+  def print_stats_stalls(self):
     return
 
 
@@ -46,24 +117,27 @@ class Stats:
       for idx,line in enumerate(self.vanilla_stats_lines):
         tokens = line.split(",")
 
+        # first line is list of stats types
         if (idx == 0):
-          self.define_stats(tokens)
+          self.define_stats_list(tokens)
           continue
 
-        self.execution_stats_file.write("Time: {}\tX: {}\tY: {}\tTGID: {}\n".format(tokens[0], tokens[1], tokens[2], tokens[3]))
-        if (tokens[1] == '0' and tokens[2] == '1'):
-          if (int(tokens[3]) < 1000):
-            self.start_list[int(tokens[3])] = int(tokens[0])
-            self.num_tile_groups += 1
-          else: 
-            self.end_list[int(tokens[3]) - 1000] = int(tokens[0])
+        # Generate timing stats 
+        self.generate_stats_timing(tokens)
 
-    self.execution_stats_file.write("Tile groups: {}\n".format(self.num_tile_groups))
+      #other stats are only read once per tile from the end of file
+      #i.e. if mesh dimensions are 4x4, only last 16 lines are needed 
+      for idx in range(len(self.vanilla_stats_lines) - self.manycore_dim, len(self.vanilla_stats_lines)):
+        line = self.vanilla_stats_lines[idx]
+        tokens = line.split(",")
+        self.generate_stats_instructions(tokens)
+        self.generate_stats_stalls(tokens)
 
-    for i in range (0, self.num_tile_groups):
-      self.total_execution_time += self.end_list[i] - self.start_list[i]
 
-    self.execution_stats_file.write("Total Execution cycles: {}".format(self.total_execution_time))
+    self.print_stats_timing()
+    self.print_stats_instructions()
+    self.print_stats_stalls()
+   
 
     # cleanup
     self.vanilla_stats_file.close()
@@ -73,13 +147,15 @@ class Stats:
 # main()
 if __name__ == "__main__":
 
-  if len(sys.argv) != 2:
+  if len(sys.argv) != 4:
     print("wrong number of arguments.")
     print("python vanilla.log")
     sys.exit()
  
-  input_file = sys.argv[1]
+  manycore_dim_y = int(sys.argv[1])
+  manycore_dim_x = int(sys.argv[2])
+  input_file = sys.argv[3]
 
-  st = Stats();
+  st = Stats(manycore_dim_y, manycore_dim_x)
   st.generate_stats(input_file)
 
