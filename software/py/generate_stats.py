@@ -9,9 +9,13 @@
 #   @author Borna
 #
 #   How to use:
-#   python3 generate_stats.py {vanilla_stats.log}
+#   python3 generate_stats.py {manycore_dim_y} {manycore_dim_x} {vanilla_stats.log}
 #
+#   ex) python3 generate_stats.py 4 4 vanilla_stats.log
 #
+#   {manycore_dim_y}  Mesh Y dimension of manycore
+#   {manycore_dim_x}  Mesh X dimension of manycore
+
 
 
 import sys
@@ -47,16 +51,18 @@ stalls_list = ['stall_fp_remote_load','stall_fp_local_load',\
 class Stats:
 
   # default constructor
-  def __init__(self):
+  def __init__(self, manycore_dim_y, manycore_dim_x):
 
+    self.manycore_dim_y = manycore_dim_y
+    self.manycore_dim_x = manycore_dim_x
+    self.manycore_dim = manycore_dim_y * manycore_dim_x
+    self.execution_stats_file = open("execution_stats.log", "w")
     self.max_tile_groups = 1024
     self.num_tile_groups = 0
     self.timing_start_list = [0] * self.max_tile_groups
     self.timing_end_list = [0] * self.max_tile_groups
     self.total_execution_time = 0
-    self.execution_stats_file = open("execution_stats.log", "w")
     self.stats_list = []
-    self.max_time = 0 # Used to find the last bsg_print_statement (latest in time)
 
   # Create a list of stat types
   def define_stats_list(self, tokens):
@@ -74,17 +80,14 @@ class Stats:
       else: 
         self.timing_end_list[int(tokens[self.stats_list.index('tag')]) - 1000] = int(tokens[self.stats_list.index('time')])
 
+  # Calculate number of executed instruction by type for all tiles and total
+  def generate_stats_instructions(self, tokens):
+    return
 
-  # Generate instruction stats
-#  def generate_instruction_stats(self, tokens): 
-#    if (tokens[self.stats_list.index('time')] < self.max_time):
-#      return
-#    self.max_time = tokens[self.stats_list.index('time')]
-#    for token in tokens:
-#      if token in instruction_list
-
-    
-   
+   # Calculate number of stall cycles by type for all tiles and total
+  def generate_stats_stalls(self, tokens):
+    return
+ 
 
   # Print execution timing for all tile groups 
   def print_stats_timing(self):
@@ -96,7 +99,13 @@ class Stats:
     self.execution_stats_file.write("=======================================================\n")
 
 
+  # Print instruction stats for all tiles and total
+  def print_stats_instructions(self):
+    return
 
+  # Print instruction stats for all tiles and total
+  def print_stats_stalls(self):
+    return
 
 
   # default stats generator
@@ -116,12 +125,19 @@ class Stats:
         # Generate timing stats 
         self.generate_stats_timing(tokens)
 
-        # Generate instruction stats
-        #self.generate_instruction_stats(tokens)
+      #other stats are only read once per tile from the end of file
+      #i.e. if mesh dimensions are 4x4, only last 16 lines are needed 
+      for idx in range(len(self.vanilla_stats_lines) - self.manycore_dim, len(self.vanilla_stats_lines)):
+        line = self.vanilla_stats_lines[idx]
+        tokens = line.split(",")
+        self.generate_stats_instructions(tokens)
+        self.generate_stats_stalls(tokens)
 
 
     self.print_stats_timing()
-    
+    self.print_stats_instructions()
+    self.print_stats_stalls()
+   
 
     # cleanup
     self.vanilla_stats_file.close()
@@ -131,13 +147,15 @@ class Stats:
 # main()
 if __name__ == "__main__":
 
-  if len(sys.argv) != 2:
+  if len(sys.argv) != 4:
     print("wrong number of arguments.")
     print("python vanilla.log")
     sys.exit()
  
-  input_file = sys.argv[1]
+  manycore_dim_y = int(sys.argv[1])
+  manycore_dim_x = int(sys.argv[2])
+  input_file = sys.argv[3]
 
-  st = Stats();
+  st = Stats(manycore_dim_y, manycore_dim_x)
   st.generate_stats(input_file)
 
