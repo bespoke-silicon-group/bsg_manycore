@@ -28,13 +28,40 @@ class Stats:
 
     self.max_tile_groups = 1024
     self.num_tile_groups = 0
-    self.start_list = [0] * self.max_tile_groups
-    self.end_list = [0] * self.max_tile_groups
+    self.timing_start_list = [0] * self.max_tile_groups
+    self.timing_end_list = [0] * self.max_tile_groups
     self.total_execution_time = 0
     self.execution_stats_file = open("execution_stats.log", "w")
+    self.stats_list = []
 
-  def define_stats(self, stat_tokens):
+  # Create a list of stat types
+  def define_stats_list(self, tokens):
+    for token in tokens:
+      self.stats_list += [token]
     return
+
+
+  # Calculate execution time for tile groups and total
+  def generate_stats_timing(self, tokens):
+    if (tokens[self.stats_list.index('x')] == '0' and tokens[self.stats_list.index('y')] == '1'):
+      if (int(tokens[self.stats_list.index('tag')]) < 1000):
+        self.timing_start_list[int(tokens[self.stats_list.index('tag')])] = int(tokens[self.stats_list.index('time')])
+        self.num_tile_groups += 1
+      else: 
+        self.timing_end_list[int(tokens[self.stats_list.index('tag')]) - 1000] = int(tokens[self.stats_list.index('time')])
+   
+
+  # Print execution timing for all tile groups 
+  def print_stats_timing(self):
+    self.execution_stats_file.write("Timing Stats ==========================================\n")
+    for i in range (0, self.num_tile_groups):
+      self.execution_stats_file.write("Tile group {}:\t{}\n".format(i, self.timing_end_list[i] - self.timing_start_list[i]))
+      self.total_execution_time += (self.timing_end_list[i] - self.timing_start_list[i])
+    self.execution_stats_file.write("Total(cycles):\t{}\n".format(self.total_execution_time))
+    self.execution_stats_file.write("=======================================================\n")
+
+
+
 
 
   # default stats generator
@@ -46,24 +73,16 @@ class Stats:
       for idx,line in enumerate(self.vanilla_stats_lines):
         tokens = line.split(",")
 
+        # first line is list of stats types
         if (idx == 0):
-          self.define_stats(tokens)
+          self.define_stats_list(tokens)
           continue
 
-        self.execution_stats_file.write("Time: {}\tX: {}\tY: {}\tTGID: {}\n".format(tokens[0], tokens[1], tokens[2], tokens[3]))
-        if (tokens[1] == '0' and tokens[2] == '1'):
-          if (int(tokens[3]) < 1000):
-            self.start_list[int(tokens[3])] = int(tokens[0])
-            self.num_tile_groups += 1
-          else: 
-            self.end_list[int(tokens[3]) - 1000] = int(tokens[0])
+        self.generate_stats_timing(tokens)
 
-    self.execution_stats_file.write("Tile groups: {}\n".format(self.num_tile_groups))
 
-    for i in range (0, self.num_tile_groups):
-      self.total_execution_time += self.end_list[i] - self.start_list[i]
-
-    self.execution_stats_file.write("Total Execution cycles: {}".format(self.total_execution_time))
+    self.print_stats_timing()
+    
 
     # cleanup
     self.vanilla_stats_file.close()
