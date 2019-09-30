@@ -18,16 +18,17 @@
 #   {timestep}    time step in picosecond
 # 
 #   Color Code:  
-#   executed  = ffffff (white)
-#   bubble    = ff1493 (pink)
-#   ifetch    = ff0000 (red)
-#   lr_aq     = ff4500 (orange)
-#   istore    = ffff00 (yellow)
-#   fence     = a52a2a (brown)
-#   muldiv    = 800080 (purple)
-#   loadwb    = dc143c (crimson)
-#   memreq    = 2f4f4f (grey)
-#   flw       = 8b0000 (dark red)
+#   int_executed  = ffffff (white)
+#   fp_executed   = 006400 (green)
+#   bubble        = ff1493 (pink)
+#   ifetch        = ff0000 (red)
+#   lr_aq         = ffbf7f (orange)
+#   istore        = ffff00 (yellow)
+#   fence         = a52a2a (brown)
+#   muldiv        = 800080 (purple)
+#   loadwb        = dc143c (crimson)
+#   memreq        = 2f4f4f (grey)
+#   flw           = 8b0000 (dark red)
 #
 
 
@@ -106,30 +107,32 @@ class BloodGraph:
     tg_y = trace["y"] - self.ymin
     row = floor*(2+(self.xdim*self.ydim)) + (tg_x+(tg_y*self.xdim))
 
-    # determine color
-    if "int_pc" not in trace:
-      self.pixel[col,row] = (0xff, 0x14, 0x93)
-    else:
-      if "stall_reason" not in trace:
-        self.pixel[col,row] = (0xff, 0xff, 0xff)
-      else:
-        if trace["stall_reason"] == "IFETCH":
-          self.pixel[col,row] = (0xff, 0x00, 0x00)
-        elif trace["stall_reason"] == "ISTORE":
-          self.pixel[col,row] = (0xff, 0xff, 0x00)
-        elif trace["stall_reason"] == "LR_AQ":
-          self.pixel[col,row] = (0xff, 0x45, 0x00)
-        elif trace["stall_reason"] == "FENCE":
-          self.pixel[col,row] = (0xa5, 0x2a, 0x2a)
-        elif trace["stall_reason"] == "MULDIV":
-          self.pixel[col,row] = (0x80, 0x00, 0x80)
-        elif trace["stall_reason"] == "LOADWB":
-          self.pixel[col,row] = (0xdc, 0x14, 0x3c)
-        elif trace["stall_reason"] == "MEMREQ":
-          self.pixel[col,row] = (0x2f, 0x4f, 0x4f)
-        elif trace["stall_reason"] == "FLW":
-          self.pixel[col,row] = (0x8b, 0x00, 0x00)
 
+    # determine color 
+    if "stall_reason" in trace:
+      if trace["stall_reason"] == "IFETCH":
+        self.pixel[col,row] = (0xff, 0x00, 0x00)
+      elif trace["stall_reason"] == "ISTORE":
+        self.pixel[col,row] = (0xff, 0xff, 0x00)
+      elif trace["stall_reason"] == "LR_AQ":
+        self.pixel[col,row] = (0xff, 0xbf, 0x7f)
+      elif trace["stall_reason"] == "FENCE":
+        self.pixel[col,row] = (0xa5, 0x2a, 0x2a)
+      elif trace["stall_reason"] == "MULDIV":
+        self.pixel[col,row] = (0x80, 0x00, 0x80)
+      elif trace["stall_reason"] == "LOADWB":
+        self.pixel[col,row] = (0xdc, 0x14, 0x3c)
+      elif trace["stall_reason"] == "MEMREQ":
+        self.pixel[col,row] = (0x2f, 0x4f, 0x4f)
+      elif trace["stall_reason"] == "FLW":
+        self.pixel[col,row] = (0x8b, 0x00, 0x00)
+    elif "int_pc" in trace:
+      self.pixel[col,row] = (0xff, 0xff, 0xff)
+    elif "fp_pc" in trace:
+      self.pixel[col,row] = (0x00, 0x64, 0x00)
+    else:
+      self.pixel[col,row] = (0xff, 0x14, 0x93)
+   
 
 # main()
 if __name__ == "__main__":
