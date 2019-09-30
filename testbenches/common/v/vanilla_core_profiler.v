@@ -389,9 +389,10 @@ module vanilla_core_profiler
   //  profiling counters
   //
   typedef struct packed {
-    integer cycle;
-    integer instr;
+    integer cycle; // total number of cycles since the reset went down (unfrozen).
+    integer instr; // total number of instruction executed.
 
+    // these are the counts of instructions executed for each type.
     integer fadd;
     integer fsub;
     integer fmul;
@@ -412,21 +413,22 @@ module vanilla_core_profiler
     integer fclass;
     integer fmv_x_w;
 
-    integer ld;
-    integer st;
-    integer remote_ld;
-    integer remote_st;
-    integer local_flw;
-    integer local_fsw;
-    integer remote_flw;
-    integer remote_fsw;
-    integer icache_miss;
+    integer ld;           // local_load count
+    integer st;           // local_store count
+    integer remote_ld;    // remote_load count
+    integer remote_st;    // remote_store count
+    integer local_flw;    // local_flw count
+    integer local_fsw;    // local_fsw count
+    integer remote_flw;   // remote_flw count
+    integer remote_fsw;   // remote_fsw count
+    integer icache_miss;  // total number of icache miss request sent out
 
     integer lr;
     integer lr_aq;
     integer swap_aq;
     integer swap_rl;
 
+    // number of branch count (both correct and incorrect prediction)
     integer beq;
     integer bne;
     integer blt;
@@ -436,6 +438,7 @@ module vanilla_core_profiler
     integer jalr;
     integer jal;
 
+    // number of incorrect branch prediction among all branch executed.
     integer beq_miss;
     integer bne_miss;
     integer blt_miss;
@@ -478,20 +481,25 @@ module vanilla_core_profiler
 
     integer fence;
 
-    integer stall_fp_remote_load;
-    integer stall_fp_local_load;
+    integer stall_fp_remote_load;     // FPU is stalled because of remote_load_response
+    integer stall_fp_local_load;      // FPU is stalled because of local_load_response
 
-    integer stall_depend;
-    integer stall_depend_local_load;
-    integer stall_depend_remote_load;
-
-    integer stall_force_wb;
-    integer stall_ifetch_wait;
-    integer stall_icache_store;
-    integer stall_lr_aq;
-    integer stall_md; 
-    integer stall_remote_req;
-    integer stall_local_flw;
+    // total number of cycle stalled, because there is some data dependency that has not been resolved.
+    // this can be a combination of:
+    // 1) FPU result
+    // 2) local load
+    // 3) remote load
+    integer stall_depend;             
+    integer stall_depend_local_load; // among stall_depend count, ones that include local_load dependency.
+    integer stall_depend_remote_load; // among stall_depend count, one that include remote_load dependency.
+  
+    integer stall_force_wb;       // stalled because of remote_load_response forcing a writeback
+    integer stall_ifetch_wait;    // stalled because of waiting for instruction fetch.
+    integer stall_icache_store;   // stalled because of icache store 
+    integer stall_lr_aq;          // stalled on lr_aq
+    integer stall_md;             // stalled on muldiv
+    integer stall_remote_req;     // stalled on waiting for the network to accept outgoing request.
+    integer stall_local_flw;      // stalled because local_flw is blocked by remote_flw.
   
   } vanilla_stat_s;
 
