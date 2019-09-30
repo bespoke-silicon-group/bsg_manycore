@@ -47,6 +47,9 @@ else
   endif
 endif
 
+# Enable branch trace during boot
+BRANCH_TRACE_CSR_EN ?= 0
+
 
 #######################################################
 # Paths
@@ -255,7 +258,7 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 		$(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS) \
 		$(BSG_MACHINE_DRAM_SIZE_WORDS) $(BSG_MACHINE_MAX_EPA_WIDTH) \
 		$(bsg_tiles_org_X) $(bsg_tiles_org_Y) \
-		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) > $*.nbf
+		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) $(BRANCH_TRACE_CSR_EN) > $*.nbf
 
 
 %.bin:  %.hex

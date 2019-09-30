@@ -26,6 +26,7 @@ CSR_TGO_X = 1 | CSR_BASE
 CSR_TGO_Y = 2 | CSR_BASE
 CSR_PC_INIT = 3 | CSR_BASE
 CSR_ENABLE_DRAM = 4 | CSR_BASE
+CSR_BRANCH_TRACE_EN = 5 | CSR_BASE
 ################################
 
 
@@ -58,6 +59,7 @@ class NBF:
     self.tg_dim_x = config["tg_dim_x"]
     self.tg_dim_y = config["tg_dim_y"]
     self.enable_dram = config["enable_dram"]
+    self.branch_trace_en = config["branch_trace_en"]
 
     # derived params
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size
@@ -294,7 +296,12 @@ class NBF:
         else:
           print("## WARNING: NO DRAM MODE, DRAM DATA OUT OF RANGE!!!")
 
-      
+  def enable_branch_trace(self):
+    for x in range(self.tg_dim_x):
+      for y in range(self.tg_dim_y):
+        x_eff = self.tgo_x + x
+        y_eff = self.tgo_y + y
+        self.print_nbf(x_eff, y_eff, CSR_BRANCH_TRACE_EN, 1)  
 
   # unfreeze tiles
   def unfreeze_tiles(self):
@@ -325,6 +332,9 @@ class NBF:
       self.disable_dram()    
       self.init_vcache()
 
+    if self.branch_trace_en == 1:
+      self.enable_branch_trace()
+
     self.init_dram(self.enable_dram)
     self.unfreeze_tiles()
 
@@ -336,7 +346,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 14:
+  if len(sys.argv) == 15:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -353,6 +363,7 @@ if __name__ == "__main__":
       "tg_dim_x" : int(sys.argv[11]),
       "tg_dim_y" : int(sys.argv[12]),
       "enable_dram" : int(sys.argv[13]),
+      "branch_trace_en" : int(sys.argv[14]),
     }
 
     converter = NBF(config)
@@ -362,6 +373,6 @@ if __name__ == "__main__":
     command = "python nbf.py {program.riscv} "
     command += "{num_tiles_x} {num_tiles_y} "
     command += "{cache_way} {cache_set} {cache_block_size} {dram_size} {max_epa_width}"
-    command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram}"
+    command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram} {branch_trace_en}"
     print(command)
 

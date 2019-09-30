@@ -165,6 +165,7 @@ module bsg_manycore_proc_vanilla
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
     ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
+    ,.branch_trace_en_p(branch_trace_en_p)
   ) rx (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
