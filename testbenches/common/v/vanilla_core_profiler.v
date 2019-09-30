@@ -194,7 +194,7 @@ module vanilla_core_profiler
 
   assign jalr_inc = instr_inc & exe_r.decode.is_jalr_op;
   assign jal_inc = instr_inc & exe_r.decode.is_jal_op;
-
+  
   assign beq_miss_inc = beq_inc & branch_mispredict;
   assign bne_miss_inc = bne_inc & branch_mispredict;
   assign blt_miss_inc = blt_inc & branch_mispredict;
@@ -421,6 +421,9 @@ module vanilla_core_profiler
     integer local_fsw;    // local_fsw count
     integer remote_flw;   // remote_flw count
     integer remote_fsw;   // remote_fsw count
+
+    // icache miss rate can be calculated by the expression:
+    // icache_miss_rate = icache_miss / (icache_miss + instr)
     integer icache_miss;  // total number of icache miss request sent out
 
     integer lr;
@@ -439,6 +442,8 @@ module vanilla_core_profiler
     integer jal;
 
     // number of incorrect branch prediction among all branch executed.
+    // branch mispredict rate = {beq_miss+bne_miss+...+bgeu_miss}/{beq+bne+...+bgeu}
+    // Similarly, jalr_mispredict_rate = {jalr_miss/jalr}
     integer beq_miss;
     integer bne_miss;
     integer blt_miss;
