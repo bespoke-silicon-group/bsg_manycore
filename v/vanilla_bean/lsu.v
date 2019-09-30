@@ -39,6 +39,7 @@ module lsu
     , input [data_width_p-1:0] pc_plus4_i
     , input icache_miss_i
     , input [pc_width_p-1:0] pc_target_i 
+    , input branch_trace_en_i
 
     // to network TX
     , output remote_req_s remote_req_o
@@ -63,7 +64,8 @@ module lsu
 
   // Does a store of target pc on every branch/jalr instruction to stderr epa
   if (branch_trace_en_p == 1) begin
-    assign stream_target_pc = (exe_decode_i.is_branch_op | exe_decode_i.is_jalr_op);
+    assign stream_target_pc = (exe_decode_i.is_branch_op | exe_decode_i.is_jalr_op)
+                                & branch_trace_en_i;
   end else begin
     assign stream_target_pc = 1'b0; // tied lo by default
   end

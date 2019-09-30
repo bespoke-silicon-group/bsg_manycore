@@ -69,6 +69,8 @@ module vanilla_core
 
     , input outstanding_req_i
 
+    , input branch_trace_en_i
+
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
   );
@@ -508,6 +510,7 @@ module vanilla_core
     ,.pc_plus4_i(exe_r.pc_plus4)
     ,.icache_miss_i(exe_r.icache_miss)
     ,.pc_target_i(exe_pc_target)
+    ,.branch_trace_en_i(branch_trace_en_i)
 
     ,.remote_req_o(remote_req_o)
     ,.remote_req_v_o(lsu_remote_req_v_lo)

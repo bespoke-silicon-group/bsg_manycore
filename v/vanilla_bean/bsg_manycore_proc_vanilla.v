@@ -154,6 +154,7 @@ module bsg_manycore_proc_vanilla
   logic [y_cord_width_p-1:0] tgo_y;
   logic [pc_width_lp-1:0] pc_init_val;
   logic dram_enable;
+  logic branch_trace_en;
 
   network_rx #(
     .addr_width_p(addr_width_p)
@@ -196,6 +197,7 @@ module bsg_manycore_proc_vanilla
     ,.tgo_y_o(tgo_y)
     ,.pc_init_val_o(pc_init_val)
     ,.dram_enable_o(dram_enable)
+    ,.branch_trace_en_o(branch_trace_en)
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
@@ -330,6 +332,8 @@ module bsg_manycore_proc_vanilla
     ,.int_remote_load_resp_yumi_o(int_remote_load_resp_yumi_li)
 
     ,.outstanding_req_i(out_credits_lo != max_out_credits_p)
+
+    ,.branch_trace_en_i(branch_trace_en)
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
