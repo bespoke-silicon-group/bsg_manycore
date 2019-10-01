@@ -1,5 +1,5 @@
 #
-#   generate_stats.py
+#   vanilla_stats_parser.py
 #
 #   vanilla core stats extractor
 # 
@@ -24,6 +24,14 @@ import re
 from enum import Enum
 
 
+# These values are used by the manycore library in bsg_print_stat instructions
+# They are added to the tag value to detremine wether the message is from the 
+# start or the end of the kernel 
+# the value of these paramters should match their counterpart inside 
+# bsg_manycore/software/bsg_manycore_lib/bsg_manycore.h
+bsg_PRINT_STAT_START_VAL = 0x00000000
+bsg_PRINT_STAT_END_VAL   = 0xDEAD0000
+
 instructions_list = ['instr','fadd','fsub','fmul','fsgnj','fsgnjn',\
                      'fsgnjx','fmin','fmax','fcvt_s_w','fcvt_s_wu',\
                      'fmv_w_x','feq','flt','fle','fcvt_w_s','fcvt_wu_s',\
@@ -37,18 +45,19 @@ instructions_list = ['instr','fadd','fsub','fmul','fsgnj','fsgnjn',\
                      'slt','slti','sltu','sltiu','mul','mulh','mulhsu',\
                      'mulhu','div','divu','rem','remu','fence']
 
-miss_list = ['icache_miss', 'beq_miss', 'bne_miss', 'blt_miss',\
-                'bge_miss', 'bltu_miss', 'bgeu_miss', 'jalr_miss']
+miss_list =         ['icache_miss', 'beq_miss', 'bne_miss', 'blt_miss',\
+                     'bge_miss', 'bltu_miss', 'bgeu_miss', 'jalr_miss']
 
-stalls_list = ['stall_fp_remote_load','stall_fp_local_load',\
-               'stall_depend','stall_depend_remote_load',\
-               'stall_depend_local_load','stall_force_wb',\
-               'stall_ifetch_wait','stall_icache_store',\
-               'stall_lr_aq','stall_md,stall_remote_req','stall_local_flw']
+stalls_list =       ['stall_fp_remote_load','stall_fp_local_load',\
+                     'stall_depend','stall_depend_remote_load',\
+                     'stall_depend_local_load','stall_force_wb',\
+                     'stall_ifetch_wait','stall_icache_store',\
+                     'stall_lr_aq','stall_md,stall_remote_req','stall_local_flw']
+
+separating_line = ('=' * 80 + '\n')
 
 
-
-class Stats:
+class VanillaStatsParser:
 
   # default constructor
   def __init__(self, manycore_dim_y, manycore_dim_x):
@@ -93,11 +102,11 @@ class Stats:
   # Calculate execution time for tile groups and total
   def generate_stats_timing(self, tokens):
     if (tokens[self.stats_list.index('x')] == '0' and tokens[self.stats_list.index('y')] == '1'):
-      if (int(tokens[self.stats_list.index('tag')]) < 1000):
+      if (int(tokens[self.stats_list.index('tag')]) < bsg_PRINT_STAT_END_VAL):
         self.timing_start_list[int(tokens[self.stats_list.index('tag')])] = int(tokens[self.stats_list.index('time')])
         self.num_tile_groups += 1
       else: 
-        self.timing_end_list[int(tokens[self.stats_list.index('tag')]) - 1000] = int(tokens[self.stats_list.index('time')])
+        self.timing_end_list[int(tokens[self.stats_list.index('tag')]) - bsg_PRINT_STAT_END_VAL] = int(tokens[self.stats_list.index('time')])
 
   # Sum up all other stats for all tiles based on the last bsg_print_stat instr
   def generate_stats_all(self):
@@ -119,66 +128,96 @@ class Stats:
 
   # Print execution timing for all tile groups 
   def print_stats_timing(self):
-    self.execution_stats_file.write("Timing Stats:\n" + \
-                                    "=======================================================\n")
+    self.execution_stats_file.write("Timing Stats\n")
+    self.execution_stats_file.write("{:<30}{:<10}\n".format("tile group", "exec time"))
+    self.execution_stats_file.write("{}".format(separating_line))
+
     for i in range (0, self.num_tile_groups):
-      self.execution_stats_file.write("{:10}{:5}{:25}{}\n".format("Tile group", i, ":", self.timing_end_list[i] - self.timing_start_list[i]))
+      self.execution_stats_file.write("{:<30}{:<10}\n".format( i, self.timing_end_list[i] - self.timing_start_list[i]))
       self.total_execution_time += (self.timing_end_list[i] - self.timing_start_list[i])
-    self.execution_stats_file.write("{:40}{}\n".format("Total (cycles):", self.total_execution_time))
-    self.execution_stats_file.write("=======================================================\n\n")
+    self.execution_stats_file.write("{:<30}{:<10}\n".format("total", self.total_execution_time))
+
+    self.execution_stats_file.write("{}\n".format(separating_line))
+    return
 
 
   # Print instruction stats for all tiles and total
   def print_stats_instructions(self):
-    self.execution_stats_file.write("Instruction Stats:\n" + \
-                                    "=======================================================\n")
+
+    self.execution_stats_file.write("Instruction Stats\n")
+    self.execution_stats_file.write("{:<30}{:<10}{:<10}\n".format("instruction", "count", "% of total"))
+    self.execution_stats_file.write("{}".format(separating_line))
+
+
     for instr, cnt in self.stats_instr_dict.items():
        if instr != 'instr':
          self.total_instr_cnt += cnt
      
     for instr, cnt in self.stats_instr_dict.items():
-       self.execution_stats_file.write("{:35}%{:0>5.2f}{:10}\n".format(instr, (100 * cnt / self.total_instr_cnt), cnt))
+       self.execution_stats_file.write("{:<30}{:<10}{:<5.2f}\n".format(instr, cnt, (100 * cnt / self.total_instr_cnt)))
 
-    self.execution_stats_file.write("{:41}{:10}\n".format("Total", self.total_instr_cnt))
-    self.execution_stats_file.write("=======================================================\n\n")
+
+    self.execution_stats_file.write("{:<30}{:<10}{:<5.2f}\n".format("total", self.total_instr_cnt, (100 * self.total_instr_cnt / self.total_instr_cnt)))
+
+    self.execution_stats_file.write("{}\n".format(separating_line))
     return
 
 
   # Print stall stats for all tiles and total
   def print_stats_stalls(self):
-    self.execution_stats_file.write("Stalls Stats:\n" + \
-                                    "=======================================================\n")
+    self.execution_stats_file.write("Stall Stats\n")
+    self.execution_stats_file.write("{:<30}{:<10}{:<10}\n".format("stall", "cycles", "% of total"))
+    self.execution_stats_file.write("{}".format(separating_line))
+
+
     for stall, cnt in self.stats_stall_dict.items():
          self.total_stall_cnt += cnt
      
     for stall, cnt in self.stats_stall_dict.items():
-       self.execution_stats_file.write("{:35}%{:0>5.2f}{:10}\n".format(stall, (100 * cnt / self.total_stall_cnt), cnt))
+       self.execution_stats_file.write("{:<30}{:<10}{:<5.2f}\n".format(stall, cnt, (100 * cnt / self.total_stall_cnt)))
 
-    self.execution_stats_file.write("{:41}{:10}\n".format("Total", self.total_stall_cnt))
-    self.execution_stats_file.write("=======================================================\n\n")
+    self.execution_stats_file.write("{:<30}{:<10}{:<5.2f}\n".format("total", self.total_stall_cnt, (100 * self.total_stall_cnt / self.total_stall_cnt)))
+
+    self.execution_stats_file.write("{}\n".format(separating_line))
     return
 
 
   # Print miss stats for all tiles and total
   def print_stats_miss(self):
-    self.execution_stats_file.write("Miss Stats:\n" + \
-                                    "=======================================================\n")
+    self.execution_stats_file.write("Miss Stats\n")
+    self.execution_stats_file.write("{:<20}{:>15}{:>15}{:>15}\n".format("unit", "miss", "total", "hit rate"))
+    self.execution_stats_file.write("{}".format(separating_line))
+
+
     for miss, cnt in self.stats_miss_dict.items():
          self.total_miss_cnt += cnt
      
-    for miss, cnt in self.stats_miss_dict.items():
-       self.execution_stats_file.write("{:35}%{:0>5.2f}{:10}\n".format(miss, (100 * cnt / self.total_miss_cnt), cnt))
+    for miss, miss_cnt in self.stats_miss_dict.items():
+       # Find total number of operations for that miss
+       # If operation is icache, the total is total # of instruction
+       # otherwise, search for the specific instruction
+       if (miss == "icache_miss"):
+         operation = "icache"
+         operation_cnt = self.stats_instr_dict["instr"]
 
-    self.execution_stats_file.write("{:41}{:10}\n".format("Total", self.total_miss_cnt))
-    self.execution_stats_file.write("=======================================================\n\n")
+       else:
+         operation = miss.replace("_miss", '')
+         operation_cnt = self.stats_instr_dict["instr"]
+
+       hit_rate = 1 if operation_cnt == 0 else (1 - miss_cnt/operation_cnt)
+         
+       self.execution_stats_file.write("{:<20}{:>15}{:>15}{:>13.4f}\n".format(operation, miss_cnt, operation_cnt, hit_rate ))
+
+
+    self.execution_stats_file.write("{}\n".format(separating_line))
     return
 
 
   def print_stats_all(self):
     self.print_stats_timing()
-    self.print_stats_instructions()
-    self.print_stats_stalls()
     self.print_stats_miss()
+    self.print_stats_stalls()
+    self.print_stats_instructions()
 
 
 
@@ -222,6 +261,6 @@ if __name__ == "__main__":
   manycore_dim_x = int(sys.argv[2])
   input_file = sys.argv[3]
 
-  st = Stats(manycore_dim_y, manycore_dim_x)
+  st = VanillaStatsParser(manycore_dim_y, manycore_dim_x)
   st.generate_stats(input_file)
 
