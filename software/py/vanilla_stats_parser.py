@@ -1,5 +1,5 @@
 #
-#   generate_stats.py
+#   vanilla_stats_parser.py
 #
 #   vanilla core stats extractor
 # 
@@ -37,18 +37,18 @@ instructions_list = ['instr','fadd','fsub','fmul','fsgnj','fsgnjn',\
                      'slt','slti','sltu','sltiu','mul','mulh','mulhsu',\
                      'mulhu','div','divu','rem','remu','fence']
 
-miss_list = ['icache_miss', 'beq_miss', 'bne_miss', 'blt_miss',\
-                'bge_miss', 'bltu_miss', 'bgeu_miss', 'jalr_miss']
+miss_list =         ['icache_miss', 'beq_miss', 'bne_miss', 'blt_miss',\
+                     'bge_miss', 'bltu_miss', 'bgeu_miss', 'jalr_miss']
 
-stalls_list = ['stall_fp_remote_load','stall_fp_local_load',\
-               'stall_depend','stall_depend_remote_load',\
-               'stall_depend_local_load','stall_force_wb',\
-               'stall_ifetch_wait','stall_icache_store',\
-               'stall_lr_aq','stall_md,stall_remote_req','stall_local_flw']
+stalls_list =       ['stall_fp_remote_load','stall_fp_local_load',\
+                     'stall_depend','stall_depend_remote_load',\
+                     'stall_depend_local_load','stall_force_wb',\
+                     'stall_ifetch_wait','stall_icache_store',\
+                     'stall_lr_aq','stall_md,stall_remote_req','stall_local_flw']
 
 
 
-class Stats:
+class VanillaStatsParser:
 
   # default constructor
   def __init__(self, manycore_dim_y, manycore_dim_x):
@@ -222,6 +222,6 @@ if __name__ == "__main__":
   manycore_dim_x = int(sys.argv[2])
   input_file = sys.argv[3]
 
-  st = Stats(manycore_dim_y, manycore_dim_x)
+  st = VanillaStatsParser(manycore_dim_y, manycore_dim_x)
   st.generate_stats(input_file)
 
