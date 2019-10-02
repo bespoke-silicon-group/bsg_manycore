@@ -145,7 +145,7 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 
 #define bsg_print_stat(tag) do { bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xd0c); *ptr = tag; } while (0)
 
-#define bsg_print_stat_start(tag) { bsg_print_stat(((bsg_PRINT_STAT_START_VAL) + (tag))); } while(0)
-#define bsg_print_stat_end(tag)   { bsg_print_stat(((bsg_PRINT_STAT_END_VAL)   + (tag))); } while(0)
+#define bsg_print_stat_start(tag) { if (__bsg_id == 0) {bsg_print_stat(((bsg_PRINT_STAT_START_VAL) + (tag)));} } while(0)
+#define bsg_print_stat_end(tag)   { if (__bsg_id == 0) {bsg_print_stat(((bsg_PRINT_STAT_END_VAL)   + (tag)));} } while(0)
 
 #endif
