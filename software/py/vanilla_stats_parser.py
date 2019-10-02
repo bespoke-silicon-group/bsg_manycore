@@ -24,6 +24,14 @@ import re
 from enum import Enum
 
 
+# These values are used by the manycore library in bsg_print_stat instructions
+# They are added to the tag value to detremine wether the message is from the 
+# start or the end of the kernel 
+# the value of these paramters should match their counterpart inside 
+# bsg_manycore/software/bsg_manycore_lib/bsg_manycore.h
+bsg_PRINT_STAT_START_VAL = 0x00000000
+bsg_PRINT_STAT_END_VAL   = 0xDEAD0000
+
 instructions_list = ['instr','fadd','fsub','fmul','fsgnj','fsgnjn',\
                      'fsgnjx','fmin','fmax','fcvt_s_w','fcvt_s_wu',\
                      'fmv_w_x','feq','flt','fle','fcvt_w_s','fcvt_wu_s',\
@@ -46,7 +54,7 @@ stalls_list =       ['stall_fp_remote_load','stall_fp_local_load',\
                      'stall_ifetch_wait','stall_icache_store',\
                      'stall_lr_aq','stall_md,stall_remote_req','stall_local_flw']
 
-separating_line = ('=' * 60 + '\n')
+separating_line = ('=' * 80 + '\n')
 
 
 class VanillaStatsParser:
@@ -94,11 +102,11 @@ class VanillaStatsParser:
   # Calculate execution time for tile groups and total
   def generate_stats_timing(self, tokens):
     if (tokens[self.stats_list.index('x')] == '0' and tokens[self.stats_list.index('y')] == '1'):
-      if (int(tokens[self.stats_list.index('tag')]) < 1000):
+      if (int(tokens[self.stats_list.index('tag')]) < bsg_PRINT_STAT_END_VAL):
         self.timing_start_list[int(tokens[self.stats_list.index('tag')])] = int(tokens[self.stats_list.index('time')])
         self.num_tile_groups += 1
       else: 
-        self.timing_end_list[int(tokens[self.stats_list.index('tag')]) - 1000] = int(tokens[self.stats_list.index('time')])
+        self.timing_end_list[int(tokens[self.stats_list.index('tag')]) - bsg_PRINT_STAT_END_VAL] = int(tokens[self.stats_list.index('time')])
 
   # Sum up all other stats for all tiles based on the last bsg_print_stat instr
   def generate_stats_all(self):
@@ -177,7 +185,7 @@ class VanillaStatsParser:
   # Print miss stats for all tiles and total
   def print_stats_miss(self):
     self.execution_stats_file.write("Miss Stats\n")
-    self.execution_stats_file.write("{:<30}{:<10}{:<10}{:<10}\n".format("unit", "miss", "total", "hit rate"))
+    self.execution_stats_file.write("{:<20}{:>15}{:>15}{:>15}\n".format("unit", "miss", "total", "hit rate"))
     self.execution_stats_file.write("{}".format(separating_line))
 
 
@@ -189,14 +197,16 @@ class VanillaStatsParser:
        # If operation is icache, the total is total # of instruction
        # otherwise, search for the specific instruction
        if (miss == "icache_miss"):
-         instr = "instr"
-       else:
-         instr = miss.replace("_miss", '')
+         operation = "icache"
+         operation_cnt = self.stats_instr_dict["instr"]
 
-       instr_cnt = self.stats_instr_dict[instr]
-       hit_rate = 1 if instr_cnt == 0 else (1 - miss_cnt/instr_cnt)
+       else:
+         operation = miss.replace("_miss", '')
+         operation_cnt = self.stats_instr_dict["instr"]
+
+       hit_rate = 1 if operation_cnt == 0 else (1 - miss_cnt/operation_cnt)
          
-       self.execution_stats_file.write("{:<30}{:<10}{:<10}{:<5.2f}\n".format(instr, miss_cnt, instr_cnt, hit_rate ))
+       self.execution_stats_file.write("{:<20}{:>15}{:>15}{:>13.4f}\n".format(operation, miss_cnt, operation_cnt, hit_rate ))
 
 
     self.execution_stats_file.write("{}\n".format(separating_line))
@@ -205,9 +215,9 @@ class VanillaStatsParser:
 
   def print_stats_all(self):
     self.print_stats_timing()
-    self.print_stats_instructions()
-    self.print_stats_stalls()
     self.print_stats_miss()
+    self.print_stats_stalls()
+    self.print_stats_instructions()
 
 
 
