@@ -13,7 +13,7 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 int  __attribute__ ((noinline)) kernel_vec_add_shared_mem(int *A, int *B, int *C, int N, int block_size_x) {
 
 	if (__bsg_id == 0)
-		bsg_print_stat(__bsg_tile_group_id);
+		bsg_print_stat_start(__bsg_tile_group_id);
 
 	// Declare tile-group shared memroy with specific size
 	bsg_tile_group_shared_mem (int, sh_A, block_size_x);
@@ -58,7 +58,7 @@ int  __attribute__ ((noinline)) kernel_vec_add_shared_mem(int *A, int *B, int *C
 	bsg_tile_group_barrier(&r_barrier, &c_barrier);
 
 	if (__bsg_id == 0)
-		bsg_print_stat(1000 + __bsg_tile_group_id);
+		bsg_print_stat_end(__bsg_tile_group_id);
 
 	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
 
