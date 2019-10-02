@@ -128,14 +128,24 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 
 #define bsg_commit_stores() do { bsg_fence(); /* fixme: add commit stores instr */  } while (0)
 
-// This micros are used to print the definiations in manycore program at compile time.
+// These micros are used to print the definiations in manycore program at compile time.
 // Useful for other program to the get the manycore configurations, like the number of tiles, buffer size etc.
 #define bsg_VALUE_TO_STRING(x) #x
 #define bsg_VALUE(x) bsg_VALUE_TO_STRING(x)
 #define bsg_VAR_NAME_VALUE(var) "MANYCORE_EXPORT #define " #var " "  bsg_VALUE(var)
 
+// These micros are used as tag for bsg_print_stat instruction to determine 
+// what tile group is sending the print_stat, and wether it is at the 
+// beginning or the end of kernel execution
+// The values for bsg_PRINT_STAT_START/END_VAL should match the micro
+// values inside bsg_manycore/software/py/vanilla_stats_parser.py
+// for parsing the vanilla_stats.log file 
+#define bsg_PRINT_STAT_START_VAL 0x00000000
+#define bsg_PRINT_STAT_END_VAL   0xdead0000
 
 #define bsg_print_stat(tag) do { bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xd0c); *ptr = tag; } while (0)
 
+#define bsg_print_stat_start(tag) { bsg_print_stat(((bsg_PRINT_STAT_START_VAL) + (tag))); } while(0)
+#define bsg_print_stat_end(tag)   { bsg_print_stat(((bsg_PRINT_STAT_END_VAL)   + (tag))); } while(0)
 
 #endif
