@@ -173,11 +173,10 @@ RISCV_GXX_OPTS += $(RISCV_GXX_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 ifdef CLANG
-LLVM_DIR ?= /opt/llvm
-export LLVM_DIR
-LLVM_CLANG       ?= $(LLVM_DIR)/llvm-install/bin/clang
-LLVM_OPT         ?= $(LLVM_DIR)/llvm-install/bin/opt
-LLVM_LLC         ?= $(LLVM_DIR)/llvm-install/bin/llc
+LLVM_DIR         ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/llvm/llvm-install
+LLVM_CLANG       ?= $(LLVM_DIR)/bin/clang
+LLVM_OPT         ?= $(LLVM_DIR)/bin/opt
+LLVM_LLC         ?= $(LLVM_DIR)/bin/llc
 PASS_DIR         ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
 PASS_LIB         ?= build/manycore/libManycorePass.so
 RUNTIME_FNS      ?= $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_tilegroup.h
@@ -211,7 +210,7 @@ $(LLVM_DIR):
 
 $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
 	mkdir -p build
-	cd build && cmake3 $(PASS_DIR) -Dbsg_group_size:INTEGER=$(bsg_group_size) && make
+	cd build && LLVM_DIR=$(LLVM_DIR) cmake3 $(PASS_DIR) -Dbsg_group_size:INTEGER=$(bsg_group_size) && make
 
 else
 %.o: %.c
