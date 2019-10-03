@@ -67,6 +67,8 @@ module vanilla_core_profiler
     , input [31:0] global_ctr_i
     , input print_stat_v_i
     , input [data_width_p-1:0] print_stat_tag_i
+
+    , input trace_en_i // from toplevel testbench
   );
 
 
@@ -339,14 +341,14 @@ module vanilla_core_profiler
     end
     else begin
 
-      if (float_sb_score & id_r.decode.is_load_op & local_load_in_id) begin
+      if (float_sb_score & id_r.decode.is_load_op & remote_load_in_id) begin
         float_sb_r[id_r.instruction.rd][1] <= 1'b1;
       end
       else if (float_sb_clear) begin
         float_sb_r[float_sb_clear_id][1] <= 1'b0;
       end
 
-      if (float_sb_score & id_r.decode.is_load_op & remote_load_in_id) begin
+      if (float_sb_score & id_r.decode.is_load_op & local_load_in_id) begin
         float_sb_r[id_r.instruction.rd][0] <= 1'b1;
       end
       else if (float_sb_clear) begin
@@ -626,8 +628,9 @@ module vanilla_core_profiler
   // file logging
   //
   localparam logfile_lp = "vanilla_stats.log";
+  localparam tracefile_lp = "vanilla_stall_trace.log";
 
-  integer fd;
+  integer fd, fd2;
   string header;
 
   initial begin
@@ -653,10 +656,53 @@ module vanilla_core_profiler
       $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw");
       $fwrite(fd, "\n");
       $fclose(fd);
+      if (trace_en_i) begin
+        fd2 = $fopen(tracefile_lp, "w");
+        $fwrite(fd2, "");
+        $fclose(fd2);
+      end
     end
+
+
 
     forever begin
       @(negedge clk_i) begin
+
+        if (~reset_i & trace_en_i) begin
+          fd2= $fopen(tracefile_lp, "a");
+          if (stall_depend_inc & ~stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_depend");
+          else if (stall_depend_inc & stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_depend_local_load");
+          else if (stall_depend_inc & ~stall_depend_local_load_inc & stall_depend_remote_load_inc)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_depend_remote_load");
+          else if (stall_depend_inc & stall_depend_local_load_inc & stall_depend_remote_load_inc)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_depend_local_remote_load");
+          else if (stall_fp_remote_load_inc)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_fp_remote_load");
+          else if (stall_fp_local_load_inc)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_fp_local_load");
+          else if (stall_force_wb_inc)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_force_wb");
+          else if (stall_ifetch_wait)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_ifetch_wait");
+          else if (stall_icache_store)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_icache_store");
+          else if (stall_lr_aq)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_lr_aq");
+          else if (stall_md)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_md");
+          else if (stall_remote_req)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_remote_req");
+          else if (stall_local_flw)
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_local_flw");
+          else
+            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "no_stall");
+
+          $fwrite(fd2, "\n"); 
+          $fclose(fd2);
+        end
+    
 
         if (~reset_i & print_stat_v_i) begin
 
