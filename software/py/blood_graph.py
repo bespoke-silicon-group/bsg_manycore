@@ -17,23 +17,11 @@
 #   {end_time}    end_time in picosecond
 #   {timestep}    time step in picosecond
 # 
-#   Color Code:  
-#   executed  = ffffff (white)
-#   bubble    = ff1493 (pink)
-#   ifetch    = ff0000 (red)
-#   lr_aq     = ff4500 (orange)
-#   istore    = ffff00 (yellow)
-#   fence     = a52a2a (brown)
-#   muldiv    = 800080 (purple)
-#   loadwb    = dc143c (crimson)
-#   memreq    = 2f4f4f (grey)
-#   flw       = 8b0000 (dark red)
-#
 
 
 import sys
+import csv
 from PIL import Image
-from vanilla_trace_parser import *
 
 
 class BloodGraph:
@@ -45,14 +33,21 @@ class BloodGraph:
     self.end_time = end_time
     self.timestep = timestep
 
-    self.parser = VanillaTraceParser()
-
   
   # main public method
   def generate(self, input_file):
-    # parse vanilla.log
-    traces = self.parser.parse(input_file)
-
+    # parse vanilla_stall_trace.log
+    traces = []
+    with open(input_file) as f:
+      csv_reader = csv.DictReader(f, delimiter=",")
+      for row in csv_reader:
+        trace = {}
+        trace["x"] = int(row["x"])  
+        trace["y"] = int(row["y"])  
+        trace["stall"] = row["stall"]
+        trace["timestamp"] = int(row["timestamp"])
+        traces.append(trace)
+  
     # get tile-group dim
     self.get_tg_dim(traces)
 
@@ -107,29 +102,35 @@ class BloodGraph:
     row = floor*(2+(self.xdim*self.ydim)) + (tg_x+(tg_y*self.xdim))
 
     # determine color
-    if "int_pc" not in trace:
-      self.pixel[col,row] = (0xff, 0x14, 0x93)
-    else:
-      if "stall_reason" not in trace:
-        self.pixel[col,row] = (0xff, 0xff, 0xff)
-      else:
-        if trace["stall_reason"] == "IFETCH":
-          self.pixel[col,row] = (0xff, 0x00, 0x00)
-        elif trace["stall_reason"] == "ISTORE":
-          self.pixel[col,row] = (0xff, 0xff, 0x00)
-        elif trace["stall_reason"] == "LR_AQ":
-          self.pixel[col,row] = (0xff, 0x45, 0x00)
-        elif trace["stall_reason"] == "FENCE":
-          self.pixel[col,row] = (0xa5, 0x2a, 0x2a)
-        elif trace["stall_reason"] == "MULDIV":
-          self.pixel[col,row] = (0x80, 0x00, 0x80)
-        elif trace["stall_reason"] == "LOADWB":
-          self.pixel[col,row] = (0xdc, 0x14, 0x3c)
-        elif trace["stall_reason"] == "MEMREQ":
-          self.pixel[col,row] = (0x2f, 0x4f, 0x4f)
-        elif trace["stall_reason"] == "FLW":
-          self.pixel[col,row] = (0x8b, 0x00, 0x00)
-
+    if trace["stall"] == "stall_depend":
+      self.pixel[col,row] = (0xdc, 0x14, 0x3c) # crimson
+    elif trace["stall"] == "stall_depend_local_load":
+      self.pixel[col,row] = (0xff, 0x45, 0x00) # orange
+    elif trace["stall"] == "stall_depend_remote_load":
+      self.pixel[col,row] = (0xff, 0x00, 0x00) # red
+    elif trace["stall"] == "stall_depend_local_remote_load":
+      self.pixel[col,row] = (0x80, 0x00, 0x00) # maroon
+    elif trace["stall"] == "stall_fp_remote_load":
+      self.pixel[col,row] = (0x00, 0x80, 0x00) # green
+    elif trace["stall"] == "stall_fp_local_load":
+      self.pixel[col,row] = (0x00, 0x64, 0x00) # darkgreen
+    elif trace["stall"] == "stall_force_wb":
+      self.pixel[col,row] = (0x20, 0xb2, 0xaa) # lightseagreen
+    elif trace["stall"] == "stall_ifetch_wait":
+      self.pixel[col,row] = (0x00, 0x00, 0xff) # blue
+    elif trace["stall"] == "stall_icache_store":
+      self.pixel[col,row] = (0x00, 0x00, 0xff) # grey
+    elif trace["stall"] == "stall_lr_aq":
+      self.pixel[col,row] = (0xff, 0xd7, 0x00) # gold
+    elif trace["stall"] == "stall_md":
+      self.pixel[col,row] = (0x80, 0x00, 0x80) # purple
+    elif trace["stall"] == "stall_remote_req":
+      self.pixel[col,row] = (0x00, 0xff, 0xff) # cyan
+    elif trace["stall"] == "stall_local_flw":
+      self.pixel[col,row] = (0x00, 0xff, 0x00) # lime
+    elif trace["stall"] == "no_stall":
+      self.pixel[col,row] = (0xff, 0xff, 0xff) # white
+      
 
 # main()
 if __name__ == "__main__":
