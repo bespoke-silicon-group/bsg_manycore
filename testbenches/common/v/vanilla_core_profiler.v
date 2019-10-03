@@ -656,11 +656,15 @@ module vanilla_core_profiler
       $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw");
       $fwrite(fd, "\n");
       $fclose(fd);
+  
+
       if (trace_en_i) begin
         fd2 = $fopen(tracefile_lp, "w");
-        $fwrite(fd2, "");
+        $fwrite(fd2, "timestamp,x,y,stall\n");
         $fclose(fd2);
       end
+
+
     end
 
 
