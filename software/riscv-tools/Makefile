@@ -48,6 +48,7 @@ SPIKE_URL         := https://github.com/riscv/riscv-isa-sim.git
 SPIKE_PATCH       := spike.patch
 SPIKE_TAG         := v1.0.0
 
+LLVM_DIR          := $(CURDIR)/llvm
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
 
 DEPENDS_LIST=autoconf-2.69 automake-1.14
@@ -138,10 +139,17 @@ build-spike:
 	cd $(SPIKE_REPO) && ./configure --prefix=$(RISCV) --enable-commitlog
 	cd $(SPIKE_REPO) && $(MAKE) && $(MAKE) install
 
+build-llvm:
+	@echo "====================================="
+	@echo "Building $(LLVM_DIR)..."
+	@echo "====================================="
+	$(MAKE) -C ../mk/ -f Makefile.llvminstall LLVM_DIR=$(LLVM_DIR) RISCV_INSTALL_DIR=$(RISCV)
+
 build-all: 
 	$(MAKE) build-deps 
 	$(MAKE) build-riscv-gnu-tools 
 	$(MAKE) build-spike
+	$(MAKE) build-llvm
 
 rebuild-newlib:
 	$(MAKE) -C $(TOOLCHAIN_REPO)/build-newlib
@@ -160,9 +168,10 @@ clean-builds:
 
 clean-install:
 	rm -rf riscv-install
+	rm -rf $(LLVM_DIR)
 
 clean-all:
-	rm -rf $(DEPENDS_DIR) $(TOOLCHAIN_REPO) $(SPIKE_REPO) riscv-install
+	rm -rf $(DEPENDS_DIR) $(TOOLCHAIN_REPO) $(SPIKE_REPO) riscv-install $(LLVM_DIR)
 
 installs:
 	sudo apt-get install autoconf automake libtool curl gawk bison flex texinfo gperf \

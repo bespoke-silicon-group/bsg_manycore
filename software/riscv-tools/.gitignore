@@ -2,3 +2,4 @@ depends/
 riscv-gnu-toolchain/
 riscv-isa-sim/
 riscv-install/
+llvm
