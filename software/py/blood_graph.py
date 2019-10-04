@@ -3,7 +3,7 @@
 #
 #   vanilla_core execution visualizer.
 # 
-#   input: vanilla.log
+#   input: vanilla_stall_trace.log
 #   output: bitmap file (blood.bmp)
 #
 #   @author tommy
@@ -11,7 +11,7 @@
 #   How to use:
 #   python blood_graph.py {start_time} {end_time} {timestep} {vanilla.log}
 #
-#   ex) python blood_graph.py 6000000 15000000 20 vanilla.log
+#   ex) python blood_graph.py 6000000 15000000 20 vanilla_stall_trace.log
 #
 #   {start_time}  start_time in picosecond
 #   {end_time}    end_time in picosecond
