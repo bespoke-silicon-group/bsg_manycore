@@ -32,6 +32,28 @@ from enum import Enum
 bsg_PRINT_STAT_START_VAL = 0x00000000
 bsg_PRINT_STAT_END_VAL   = 0xDEAD0000
 
+
+
+# formatting parameters for aligned printing
+name_length = 25
+type_length = 15
+int_length = 15
+float_length=15.4
+percent_length=15.2
+
+stats_timing_header_format = ("{:<"+str(name_length)+"}{:>"+str(type_length)+"}{:>"+str(type_length)+"}\n")
+stats_timing_data_format   = ("{:<"+str(name_length)+"}{:>"+str(int_length)+"}{:>"+str(percent_length)+"f}\n") 
+stats_instr_header_format  = ("{:<"+str(name_length)+"}{:>"+str(int_length)+"}{:>"+str(type_length)+"}\n")
+stats_instr_data_format    = ("{:<"+str(name_length)+"}{:>"+str(int_length)+"}{:>"+str(percent_length)+"f}\n")
+stats_stall_header_format  = ("{:<"+str(name_length)+"}{:>"+str(type_length)+"}{:>"+str(type_length)+"}\n")
+stats_stall_data_format    = ("{:<"+str(name_length)+"}{:>"+str(int_length)+"}{:>"+str(percent_length)+"f}\n")
+stats_miss_header_format   = ("{:<"+str(name_length)+"}{:>"+str(type_length)+"}{:>"+str(type_length)+"}{:>"+str(type_length)+"}\n")
+stats_miss_data_format     = ("{:<"+str(name_length)+"}{:>"+str(int_length)+"}{:>"+str(int_length)+"}{:>"+str(float_length)+"f}\n")
+separating_line = ('=' * 80 + '\n')
+
+
+
+# List of instructions, operations and events parsed from vanilla_stats.log
 instructions_list = ['instr','fadd','fsub','fmul','fsgnj','fsgnjn',\
                      'fsgnjx','fmin','fmax','fcvt_s_w','fcvt_s_wu',\
                      'fmv_w_x','feq','flt','fle','fcvt_w_s','fcvt_wu_s',\
@@ -54,7 +76,6 @@ stalls_list =       ['stall_fp_remote_load','stall_fp_local_load',\
                      'stall_ifetch_wait','stall_icache_store',\
                      'stall_lr_aq','stall_md,stall_remote_req','stall_local_flw']
 
-separating_line = ('=' * 80 + '\n')
 
 
 class VanillaStatsParser:
@@ -110,6 +131,17 @@ class VanillaStatsParser:
 
   # Sum up all other stats for all tiles based on the last bsg_print_stat instr
   def generate_stats_all(self):
+
+      # Generate timing stats
+      for idx,line in enumerate(self.vanilla_stats_lines):
+        tokens = line.split(",")
+        # first line is list of stats types
+        if (idx == 0):
+          self.define_stats_list(tokens)
+          continue
+        # Generate timing stats 
+        self.generate_stats_timing(tokens)
+
       #other stats are only read once per tile from the end of file
       #i.e. if mesh dimensions are 4x4, only last 16 lines are needed 
       for idx in range(len(self.vanilla_stats_lines) - self.manycore_dim, len(self.vanilla_stats_lines)):
@@ -123,20 +155,24 @@ class VanillaStatsParser:
             self.stats_stall_dict[self.stats_list[idx]] += int(token)
           elif self.stats_list[idx] in miss_list:
             self.stats_miss_dict[self.stats_list[idx]] += int(token)
-
+      return
 
 
   # Print execution timing for all tile groups 
   def print_stats_timing(self):
     self.execution_stats_file.write("Timing Stats\n")
-    self.execution_stats_file.write("{:<30}{:<10}\n".format("tile group", "exec time"))
+    self.execution_stats_file.write(stats_timing_header_format.format("tile group", "exec time", "share (%)"))
     self.execution_stats_file.write("{}".format(separating_line))
 
     for i in range (0, self.num_tile_groups):
-      self.execution_stats_file.write("{:<30}{:<10}\n".format( i, self.timing_end_list[i] - self.timing_start_list[i]))
       self.total_execution_time += (self.timing_end_list[i] - self.timing_start_list[i])
-    self.execution_stats_file.write("{:<30}{:<10}\n".format("total", self.total_execution_time))
 
+
+    for i in range (0, self.num_tile_groups):
+      tg_time = self.timing_end_list[i] - self.timing_start_list[i]
+      self.execution_stats_file.write(stats_timing_data_format.format( i, tg_time, (tg_time / self.total_execution_time * 100)))
+
+    self.execution_stats_file.write(stats_timing_data_format.format("total", self.total_execution_time, (self.total_execution_time / self.total_execution_time * 100)))
     self.execution_stats_file.write("{}\n".format(separating_line))
     return
 
@@ -145,20 +181,17 @@ class VanillaStatsParser:
   def print_stats_instructions(self):
 
     self.execution_stats_file.write("Instruction Stats\n")
-    self.execution_stats_file.write("{:<30}{:<10}{:<10}\n".format("instruction", "count", "% of total"))
+    self.execution_stats_file.write(stats_instr_header_format.format("instruction", "count", " share (%)"))
     self.execution_stats_file.write("{}".format(separating_line))
-
 
     for instr, cnt in self.stats_instr_dict.items():
        if instr != 'instr':
          self.total_instr_cnt += cnt
      
     for instr, cnt in self.stats_instr_dict.items():
-       self.execution_stats_file.write("{:<30}{:<10}{:<5.2f}\n".format(instr, cnt, (100 * cnt / self.total_instr_cnt)))
+       self.execution_stats_file.write(stats_instr_data_format.format(instr, cnt, (100 * cnt / self.total_instr_cnt)))
 
-
-    self.execution_stats_file.write("{:<30}{:<10}{:<5.2f}\n".format("total", self.total_instr_cnt, (100 * self.total_instr_cnt / self.total_instr_cnt)))
-
+    self.execution_stats_file.write(stats_instr_data_format.format("total", self.total_instr_cnt, (100 * self.total_instr_cnt / self.total_instr_cnt)))
     self.execution_stats_file.write("{}\n".format(separating_line))
     return
 
@@ -166,18 +199,16 @@ class VanillaStatsParser:
   # Print stall stats for all tiles and total
   def print_stats_stalls(self):
     self.execution_stats_file.write("Stall Stats\n")
-    self.execution_stats_file.write("{:<30}{:<10}{:<10}\n".format("stall", "cycles", "% of total"))
+    self.execution_stats_file.write(stats_stall_header_format.format("stall", "cycles", "share (%)"))
     self.execution_stats_file.write("{}".format(separating_line))
-
 
     for stall, cnt in self.stats_stall_dict.items():
          self.total_stall_cnt += cnt
      
     for stall, cnt in self.stats_stall_dict.items():
-       self.execution_stats_file.write("{:<30}{:<10}{:<5.2f}\n".format(stall, cnt, (100 * cnt / self.total_stall_cnt)))
+       self.execution_stats_file.write(stats_stall_data_format.format(stall, cnt, (100 * cnt / self.total_stall_cnt)))
 
-    self.execution_stats_file.write("{:<30}{:<10}{:<5.2f}\n".format("total", self.total_stall_cnt, (100 * self.total_stall_cnt / self.total_stall_cnt)))
-
+    self.execution_stats_file.write(stats_stall_data_format.format("total", self.total_stall_cnt, (100 * self.total_stall_cnt / self.total_stall_cnt)))
     self.execution_stats_file.write("{}\n".format(separating_line))
     return
 
@@ -185,9 +216,8 @@ class VanillaStatsParser:
   # Print miss stats for all tiles and total
   def print_stats_miss(self):
     self.execution_stats_file.write("Miss Stats\n")
-    self.execution_stats_file.write("{:<20}{:>15}{:>15}{:>15}\n".format("unit", "miss", "total", "hit rate"))
+    self.execution_stats_file.write(stats_miss_header_format.format("unit", "miss", "total", "hit rate"))
     self.execution_stats_file.write("{}".format(separating_line))
-
 
     for miss, cnt in self.stats_miss_dict.items():
          self.total_miss_cnt += cnt
@@ -199,16 +229,13 @@ class VanillaStatsParser:
        if (miss == "icache_miss"):
          operation = "icache"
          operation_cnt = self.stats_instr_dict["instr"]
-
        else:
          operation = miss.replace("_miss", '')
-         operation_cnt = self.stats_instr_dict["instr"]
+         operation_cnt = self.stats_instr_dict[operation]
 
        hit_rate = 1 if operation_cnt == 0 else (1 - miss_cnt/operation_cnt)
          
-       self.execution_stats_file.write("{:<20}{:>15}{:>15}{:>13.4f}\n".format(operation, miss_cnt, operation_cnt, hit_rate ))
-
-
+       self.execution_stats_file.write(stats_miss_data_format.format(operation, miss_cnt, operation_cnt, hit_rate ))
     self.execution_stats_file.write("{}\n".format(separating_line))
     return
 
@@ -227,15 +254,6 @@ class VanillaStatsParser:
     self.vanilla_stats_file = open (input_file, "r")
     if (self.vanilla_stats_file.mode == 'r'):
       self.vanilla_stats_lines = self.vanilla_stats_file.readlines()
-
-      for idx,line in enumerate(self.vanilla_stats_lines):
-        tokens = line.split(",")
-        # first line is list of stats types
-        if (idx == 0):
-          self.define_stats_list(tokens)
-          continue
-        # Generate timing stats 
-        self.generate_stats_timing(tokens)
 
     # generate all other stats
     self.generate_stats_all()
