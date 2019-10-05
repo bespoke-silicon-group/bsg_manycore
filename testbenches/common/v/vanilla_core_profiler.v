@@ -628,7 +628,7 @@ module vanilla_core_profiler
   // file logging
   //
   localparam logfile_lp = "vanilla_stats.log";
-  localparam tracefile_lp = "vanilla_stall_trace.log";
+  localparam tracefile_lp = "vanilla_operation_trace.log";
 
   integer fd, fd2;
   string header;
@@ -660,7 +660,7 @@ module vanilla_core_profiler
 
       if (trace_en_i) begin
         fd2 = $fopen(tracefile_lp, "w");
-        $fwrite(fd2, "timestamp,x,y,stall\n");
+        $fwrite(fd2, "timestamp,x,y,operation\n");
         $fclose(fd2);
       end
 
@@ -701,7 +701,178 @@ module vanilla_core_profiler
           else if (stall_local_flw)
             $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_local_flw");
           else
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "no_stall");
+          begin
+
+            if (local_ld_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "local_ld");
+            else if (local_st_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "local_st");
+            else if (remote_ld_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "remote_ld");
+            else if (remote_st_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "remote_st");
+            else if (local_flw_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "local_flw");
+            else if (local_fsw_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "local_fsw");
+            else if (remote_flw_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "remote_flw");
+            else if (remote_fsw_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "remote_fsw");
+            else if (icache_miss_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "icache_miss");
+
+            else if (lr_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "lr");
+            else if (lr_aq_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "lr_aq");
+            else if (swap_aq_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "swap_aq");
+            else if (swap_rl_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "swap_rl");
+
+            else if (beq_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "beq");
+            else if (bne_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bne");
+            else if (blt_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "blt");
+            else if (bge_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bge");
+            else if (bltu_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bltu");
+            else if (bgeu_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bgeu");
+            else if (jalr_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "jalr");
+            else if (jal_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "jal");
+
+            else if (beq_miss_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "beq_miss");
+            else if (bne_miss_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bne_miss");
+            else if (blt_miss_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "blt_miss");
+            else if (bge_miss_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bge_miss");
+            else if (bltu_miss_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bltu_miss");
+            else if (bgeu_miss_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bgeu_miss");
+            else if (jalr_miss_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "jalr_miss");
+
+            else if (sll_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sll");
+            else if (slli_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "slli");
+            else if (srl_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "srl");
+            else if (srli_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "slri");
+            else if (sra_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sra");
+            else if (srai_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "srai");
+
+            else if (add_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "add");
+            else if (addi_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "addi");
+            else if (sub_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sub");
+            else if (lui_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "lui");
+            else if (auipc_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "auipc");
+            else if (xor_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "xor");
+            else if (xori_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "xori");
+            else if (or_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "or");
+            else if (ori_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "ori");
+            else if (and_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "and");
+            else if (andi_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "andi");
+            else if (slt_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "slt");
+            else if (slti_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "slti");
+            else if (sltu_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sltu");
+            else if (sltiu_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sltiu");
+
+            else if (mul_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "mul");
+            else if (mulh_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "mulh");
+            else if (mulhsu_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "mulhsu");
+            else if (mulhu_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "mulhu");
+            else if (div_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "div");
+            else if (divu_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "divu");
+            else if (rem_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "rem");
+            else if (remu_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "remu");
+
+            else if (fence_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fence");
+
+            else if (fadd_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fadd");
+            else if (fsub_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fsub");
+            else if (fmul_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fmul");
+            else if (fsgnj_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fsgnj");
+            else if (fsgnjn_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fsgnjn");
+            else if (fsgnjx_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fsgnjx");
+            else if (fmin_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fmin");
+            else if (fmax_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fmax");
+            else if (fcvt_s_w_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fcvt_s_w");
+            else if (fcvt_s_wu_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fcvt_s_wu");
+            else if (fmv_w_x_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fmv_w_x");
+
+            else if (feq_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "feq");
+            else if (flt_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "flt");
+            else if (fle_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fle");
+            else if (fcvt_w_s_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fcvt_w_s");
+            else if (fcvt_wu_s_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fcvt_wu_s");
+            else if (fclass_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fclass");
+            else if (fmv_x_w_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fmv_x_w");
+
+
+             else if (instr_inc | fp_instr_inc)
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "unknown");
+
+             else 
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "nop");
+          end
+
 
           $fwrite(fd2, "\n"); 
           $fclose(fd2);
