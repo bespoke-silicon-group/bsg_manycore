@@ -24,6 +24,43 @@ import csv
 from PIL import Image
 
 
+
+# List of types of stalls incurred by the core 
+stall_list    = ["stall_depend", "stall_depend_local_load", \
+                 "stall_depend_remote_load", "stall_depend_local_remote_load", \
+                 "stall_fp_local_load", "stall_fp_remote_load", "stall_force_wb", \
+                 "stall_ifetch_wait", "stall_icache_store", "stall_lr_aq", \
+                 "stall_md", "stall_remote_req", "stall_local_flw" ]
+
+
+# List of types of integer instructions executed by the core 
+instr_list    = ["local_ld", "local_st", "remote_ld", "remote_st", \
+                 "local_flw", "local_fsw", "remote_flw", "remote_fsw", \
+                 "icache_miss", \
+                 "lr", "lr_aq", "swap_aq", "swap_rl", \
+                 "beq", "bne", "blt", "bge", \
+                 "bltu", "bgeu", "jalr", "jal" \
+                 "beq_miss", "bne_miss", "blt_miss", "bge_miss" \
+                 "bltu_miss", "bgeu_miss", "jalr_miss",
+                 "sll", "slli", "srl", "srli", "sra", "srai", \
+                 "add", "addi", "sub", "lui", "auipc", "xor", "xori", \
+                 "or", "ori", "and", "adni", "slt", "slti", "sltu", "sltiu", \
+                 "mul", "mulh", "mulhsu", "mulhu", \
+                 "div", "divu", "rem", "remu", \
+                 "fence"]
+
+
+# List of types of floating point instructions executed by the core
+fp_instr_list = ["fadd", "fsub", "fmul", "fsgnj", "fsgnjn", "fsgnjx", \
+                 "fmin", "fmax", "fcvt_s_w", "fcvt_s_wu", "fmv_w_x", \
+                 "feq", "flt", "fle", "fcvt_w_s", "fcvt_wu_s", \
+                 "fclass", "fmv_x_w" ]
+
+
+operation_color = [] 
+
+
+
 class BloodGraph:
 
   # default constructor
