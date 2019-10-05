@@ -3,15 +3,15 @@
 #
 #   vanilla_core execution visualizer.
 # 
-#   input: vanilla_stall_trace.log
+#   input: vanilla_operation_trace.log
 #   output: bitmap file (blood.bmp)
 #
 #   @author tommy
 #
 #   How to use:
-#   python blood_graph.py {start_time} {end_time} {timestep} {vanilla.log}
+#   python blood_graph.py {start_time} {end_time} {timestep} {vanilla_operation_trace.log}
 #
-#   ex) python blood_graph.py 6000000 15000000 20 vanilla_stall_trace.log
+#   ex) python blood_graph.py 6000000 15000000 20 vanilla_operation_trace.log
 #
 #   {start_time}  start_time in picosecond
 #   {end_time}    end_time in picosecond
@@ -36,7 +36,7 @@ class BloodGraph:
   
   # main public method
   def generate(self, input_file):
-    # parse vanilla_stall_trace.log
+    # parse vanilla_operation_trace.log
     traces = []
     with open(input_file) as f:
       csv_reader = csv.DictReader(f, delimiter=",")
@@ -44,7 +44,7 @@ class BloodGraph:
         trace = {}
         trace["x"] = int(row["x"])  
         trace["y"] = int(row["y"])  
-        trace["stall"] = row["stall"]
+        trace["operation"] = row["operation"]
         trace["timestamp"] = int(row["timestamp"])
         traces.append(trace)
   
@@ -102,33 +102,34 @@ class BloodGraph:
     row = floor*(2+(self.xdim*self.ydim)) + (tg_x+(tg_y*self.xdim))
 
     # determine color
-    if trace["stall"] == "stall_depend":
+    if trace["operation"] == "stall_depend":
       self.pixel[col,row] = (0xdc, 0x14, 0x3c) # crimson
-    elif trace["stall"] == "stall_depend_local_load":
+    elif trace["operation"] == "stall_depend_local_load":
       self.pixel[col,row] = (0xff, 0x45, 0x00) # orange
-    elif trace["stall"] == "stall_depend_remote_load":
+    elif trace["operation"] == "stall_depend_remote_load":
       self.pixel[col,row] = (0xff, 0x00, 0x00) # red
-    elif trace["stall"] == "stall_depend_local_remote_load":
+    elif trace["operation"] == "stall_depend_local_remote_load":
       self.pixel[col,row] = (0x80, 0x00, 0x00) # maroon
-    elif trace["stall"] == "stall_fp_remote_load":
+    elif trace["operation"] == "stall_fp_remote_load":
       self.pixel[col,row] = (0x00, 0x80, 0x00) # green
-    elif trace["stall"] == "stall_fp_local_load":
+    elif trace["operation"] == "stall_fp_local_load":
       self.pixel[col,row] = (0x00, 0x64, 0x00) # darkgreen
-    elif trace["stall"] == "stall_force_wb":
+    elif trace["operation"] == "stall_force_wb":
       self.pixel[col,row] = (0x20, 0xb2, 0xaa) # lightseagreen
-    elif trace["stall"] == "stall_ifetch_wait":
+    elif trace["operation"] == "stall_ifetch_wait":
       self.pixel[col,row] = (0x00, 0x00, 0xff) # blue
-    elif trace["stall"] == "stall_icache_store":
+    elif trace["operation"] == "stall_icache_store":
       self.pixel[col,row] = (0x00, 0x00, 0xff) # grey
-    elif trace["stall"] == "stall_lr_aq":
+    elif trace["operation"] == "stall_lr_aq":
       self.pixel[col,row] = (0xff, 0xd7, 0x00) # gold
-    elif trace["stall"] == "stall_md":
+    elif trace["operation"] == "stall_md":
       self.pixel[col,row] = (0x80, 0x00, 0x80) # purple
-    elif trace["stall"] == "stall_remote_req":
+    elif trace["operation"] == "stall_remote_req":
       self.pixel[col,row] = (0x00, 0xff, 0xff) # cyan
-    elif trace["stall"] == "stall_local_flw":
+    elif trace["operation"] == "stall_local_flw":
       self.pixel[col,row] = (0x00, 0xff, 0x00) # lime
-    elif trace["stall"] == "no_stall":
+#    elif trace["operation"] == "no_stall":
+    else:
       self.pixel[col,row] = (0xff, 0xff, 0xff) # white
       
 
@@ -136,8 +137,8 @@ class BloodGraph:
 if __name__ == "__main__":
 
   if len(sys.argv) != 5:
-    print("wrong number of arguments.")
-    print("python {start_time} {end_time} {timestep} vanilla.log")
+    print("Error: wrong number of arguments.")
+    print("python3 bloodgraph.py {start_time} {end_time} {timestep} vanilla_operation_trace.log")
     sys.exit()
  
   start_time = int(sys.argv[1])
@@ -145,6 +146,10 @@ if __name__ == "__main__":
   timestep = int(sys.argv[3])
   input_file = sys.argv[4]
 
+  if (start_time > end_time):
+    print("Error: start_time cannot be larger than end_time.")
+    print("python3 bloodgraph.py {start_time} {end_time} {timestep} vanilla_operation_trace.log")
+    sys.exit()
 
   bg = BloodGraph(start_time,end_time,timestep)
   bg.generate(input_file)
