@@ -870,7 +870,7 @@ module vanilla_core_profiler
               $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "unknown");
 
              else 
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "nop");
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bubble");
           end
 
 

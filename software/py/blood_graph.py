@@ -25,39 +25,6 @@ from PIL import Image
 
 
 
-
-
-# List of types of stalls incurred by the core 
-stall_list    = ["stall_depend", "stall_depend_local_load", \
-                 "stall_depend_remote_load", "stall_depend_local_remote_load", \
-                 "stall_fp_local_load", "stall_fp_remote_load", "stall_force_wb", \
-                 "stall_ifetch_wait", "stall_icache_store", "stall_lr_aq", \
-                 "stall_md", "stall_remote_req", "stall_local_flw" ]
-
-
-# List of types of integer instructions executed by the core 
-instr_list    = ["local_ld", "local_st", "remote_ld", "remote_st", \
-                 "local_flw", "local_fsw", "remote_flw", "remote_fsw", \
-                 "icache_miss", \
-                 "lr", "lr_aq", "swap_aq", "swap_rl", \
-                 "beq", "bne", "blt", "bge", \
-                 "bltu", "bgeu", "jalr", "jal", \
-                 "beq_miss", "bne_miss", "blt_miss", "bge_miss", \
-                 "bltu_miss", "bgeu_miss", "jalr_miss",
-                 "sll", "slli", "srl", "srli", "sra", "srai", \
-                 "add", "addi", "sub", "lui", "auipc", "xor", "xori", \
-                 "or", "ori", "and", "adni", "slt", "slti", "sltu", "sltiu", \
-                 "mul", "mulh", "mulhsu", "mulhu", \
-                 "div", "divu", "rem", "remu", \
-                 "fence"]
-
-
-# List of types of floating point instructions executed by the core
-fp_instr_list = ["fadd", "fsub", "fmul", "fsgnj", "fsgnjn", "fsgnjx", \
-                 "fmin", "fmax", "fcvt_s_w", "fcvt_s_wu", "fmv_w_x", \
-                 "feq", "flt", "fle", "fcvt_w_s", "fcvt_wu_s", \
-                 "fclass", "fmv_x_w" ]
-
 # List of unkonwn operation by the core 
 unknown_list  = ["unkonwn"]
 
@@ -70,6 +37,106 @@ class BloodGraph:
     self.start_time = start_time
     self.end_time = end_time
     self.timestep = timestep
+
+    # List of types of stalls incurred by the core 
+    self.stall_list    = ["stall_depend",
+                          "stall_depend_local_load",
+                          "stall_depend_remote_load",
+                          "stall_depend_local_remote_load",
+                          "stall_fp_local_load",
+                          "stall_fp_remote_load",
+                          "stall_force_wb",
+                          "stall_ifetch_wait",
+                          "stall_icache_store",
+                          "stall_lr_aq",
+                          "stall_md",
+                          "stall_remote_req",
+                          "stall_local_flw" ]
+
+
+    # List of types of integer instructions executed by the core 
+    self.instr_list    = ["local_ld",
+                          "local_st",
+                          "remote_ld",
+                          "remote_st",
+                          "local_flw",
+                          "local_fsw",
+                          "remote_flw",
+                          "remote_fsw",
+                          "icache_miss",
+                          "lr",
+                          "lr_aq",
+                          "swap_aq",
+                          "swap_rl",
+                          "beq",
+                          "bne",
+                          "blt",
+                          "bge",
+                          "bltu",
+                          "bgeu",
+                          "jalr",
+                          "jal",
+                          "beq_miss",
+                          "bne_miss",
+                          "blt_miss",
+                          "bge_miss",
+                          "bltu_miss",
+                          "bgeu_miss",
+                          "jalr_miss",
+                          "sll",
+                          "slli",
+                          "srl",
+                          "srli",
+                          "sra",
+                          "srai",
+                          "add",
+                          "addi",
+                          "sub",
+                          "lui",
+                          "auipc",
+                          "xor",
+                          "xori",
+                          "or",
+                          "ori",
+                          "and",
+                          "adni",
+                          "slt",
+                          "slti",
+                          "sltu",
+                          "sltiu",
+                          "mul",
+                          "mulh",
+                          "mulhsu",
+                          "mulhu",
+                          "div",
+                          "divu",
+                          "rem",
+                          "remu",
+                          "fence"]
+
+
+    # List of types of floating point instructions executed by the core
+    self.fp_instr_list = ["fadd",
+                          "fsub",
+                          "fmul",
+                          "fsgnj",
+                          "fsgnjn",
+                          "fsgnjx",
+                          "fmin",
+                          "fmax",
+                          "fcvt_s_w",
+                          "fcvt_s_wu",
+                          "fmv_w_x",
+                          "feq",
+                          "flt",
+                          "fle",
+                          "fcvt_w_s",
+                          "fcvt_wu_s",
+                          "fclass",
+                          "fmv_x_w" ]
+
+
+    # Coloring scheme for different types of operations 
     self.stall_bubble_color = { "stall_depend"                   : (0xdc, 0x14, 0x3c), # crimson
                                 "stall_depend_local_load"        : (0xff, 0x45, 0x00), # orange
                                 "stall_depend_remote_load"       : (0xff, 0x00, 0x00), # red
@@ -85,9 +152,11 @@ class BloodGraph:
                                 "stall_local_flw"                : (0x00, 0xff, 0x00), # lime
                                 "bubble"                         : (0xff, 0xb6, 0xc1)  # pink
                               }
-    self.instr_color    =                                          (0x00, 0x00, 0x00)  # white
-    self.fp_instr_color =                                          (0xff, 0xd7, 0x00)  # gold
+    self.unified_instr_color    =                                  (0x00, 0x00, 0x00)  # white
+    self.unified_fp_instr_color =                                  (0xff, 0xd7, 0x00)  # gold
     self.unknown_color  =                                          (0xff, 0xff, 0xff)  # black
+    return
+
   
   # main public method
   def generate(self, input_file):
@@ -115,6 +184,7 @@ class BloodGraph:
 
     #self.img.show()
     self.img.save("blood.bmp")
+    return
 
 
   # private function
@@ -129,6 +199,7 @@ class BloodGraph:
     
     self.xdim = self.xmax-self.xmin+1
     self.ydim = self.ymax-self.ymin+1
+    return
 
 
   # private function
@@ -138,7 +209,7 @@ class BloodGraph:
     self.img_height = ((((end_time-start_time)//timestep)+self.img_width)//self.img_width)*(2+(self.xdim*self.ydim))
     self.img = Image.new("RGB", (self.img_width, self.img_height), "black")
     self.pixel = self.img.load()
-  
+    return  
   
   # private function
   # mark the trace on output image
@@ -159,16 +230,16 @@ class BloodGraph:
     # determine color
     if trace["operation"] in self.stall_bubble_color.keys():
       self.pixel[col,row] = self.stall_bubble_color[trace["operation"]]
-    elif trace["operation"] in instr_list:
-      self.pixel[col,row] = self.instr_color
-    elif trace["operation"] in fp_instr_list:
-      self.pixel[col,row] = self.fp_instr_color
-    elif trace["operation"] in unknown_list:
+    elif trace["operation"] in self.instr_list:
+      self.pixel[col,row] = self.unified_instr_color
+    elif trace["operation"] in self.fp_instr_list:
+      self.pixel[col,row] = self.unified_fp_instr_color
+    elif trace["operation"] in self.unknown_list:
       self.pixel[col,row] = self.unknown_color
     else:
-      print ("Invalid operaiton in operation log: " + trace["operation"])
-      self.pixel[col,row] = self.unknown_color
-
+      print ("Error: invalid operaiton in operation log: " + trace["operation"])
+      sys.exit()
+    return
 
      
 
