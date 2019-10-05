@@ -25,6 +25,8 @@ from PIL import Image
 
 
 
+
+
 # List of types of stalls incurred by the core 
 stall_list    = ["stall_depend", "stall_depend_local_load", \
                  "stall_depend_remote_load", "stall_depend_local_remote_load", \
@@ -39,8 +41,8 @@ instr_list    = ["local_ld", "local_st", "remote_ld", "remote_st", \
                  "icache_miss", \
                  "lr", "lr_aq", "swap_aq", "swap_rl", \
                  "beq", "bne", "blt", "bge", \
-                 "bltu", "bgeu", "jalr", "jal" \
-                 "beq_miss", "bne_miss", "blt_miss", "bge_miss" \
+                 "bltu", "bgeu", "jalr", "jal", \
+                 "beq_miss", "bne_miss", "blt_miss", "bge_miss", \
                  "bltu_miss", "bgeu_miss", "jalr_miss",
                  "sll", "slli", "srl", "srli", "sra", "srai", \
                  "add", "addi", "sub", "lui", "auipc", "xor", "xori", \
@@ -56,9 +58,8 @@ fp_instr_list = ["fadd", "fsub", "fmul", "fsgnj", "fsgnjn", "fsgnjx", \
                  "feq", "flt", "fle", "fcvt_w_s", "fcvt_wu_s", \
                  "fclass", "fmv_x_w" ]
 
-
-operation_color = [] 
-
+# List of unkonwn operation by the core 
+unknown_list  = ["unkonwn"]
 
 
 class BloodGraph:
@@ -69,7 +70,24 @@ class BloodGraph:
     self.start_time = start_time
     self.end_time = end_time
     self.timestep = timestep
-
+    self.stall_bubble_color = { "stall_depend"                   : (0xdc, 0x14, 0x3c), # crimson
+                                "stall_depend_local_load"        : (0xff, 0x45, 0x00), # orange
+                                "stall_depend_remote_load"       : (0xff, 0x00, 0x00), # red
+                                "stall_depend_local_remote_load" : (0x80, 0x00, 0x00), # maroon
+                                "stall_fp_remote_load"           : (0x00, 0x80, 0x00), # green
+                                "stall_fp_local_load"            : (0x00, 0x64, 0x00), # dark green
+                                "stall_force_wb"                 : (0x20, 0xb2, 0xaa), # light sea green
+                                "stall_ifetch_wait"              : (0x00, 0x00, 0xff), # blue
+                                "stall_icache_store"             : (0x80, 0x80, 0x80), # grey
+                                "stall_lr_aq"                    : (0xd2, 0xb4, 0x8c), # tan 
+                                "stall_md"                       : (0x80, 0x00, 0x80), # purple 
+                                "stall_remote_req"               : (0x00, 0xff, 0xff), # cyan
+                                "stall_local_flw"                : (0x00, 0xff, 0x00), # lime
+                                "bubble"                         : (0xff, 0xb6, 0xc1)  # pink
+                              }
+    self.instr_color    =                                          (0x00, 0x00, 0x00)  # white
+    self.fp_instr_color =                                          (0xff, 0xd7, 0x00)  # gold
+    self.unknown_color  =                                          (0xff, 0xff, 0xff)  # black
   
   # main public method
   def generate(self, input_file):
@@ -139,36 +157,20 @@ class BloodGraph:
     row = floor*(2+(self.xdim*self.ydim)) + (tg_x+(tg_y*self.xdim))
 
     # determine color
-    if trace["operation"] == "stall_depend":
-      self.pixel[col,row] = (0xdc, 0x14, 0x3c) # crimson
-    elif trace["operation"] == "stall_depend_local_load":
-      self.pixel[col,row] = (0xff, 0x45, 0x00) # orange
-    elif trace["operation"] == "stall_depend_remote_load":
-      self.pixel[col,row] = (0xff, 0x00, 0x00) # red
-    elif trace["operation"] == "stall_depend_local_remote_load":
-      self.pixel[col,row] = (0x80, 0x00, 0x00) # maroon
-    elif trace["operation"] == "stall_fp_remote_load":
-      self.pixel[col,row] = (0x00, 0x80, 0x00) # green
-    elif trace["operation"] == "stall_fp_local_load":
-      self.pixel[col,row] = (0x00, 0x64, 0x00) # darkgreen
-    elif trace["operation"] == "stall_force_wb":
-      self.pixel[col,row] = (0x20, 0xb2, 0xaa) # lightseagreen
-    elif trace["operation"] == "stall_ifetch_wait":
-      self.pixel[col,row] = (0x00, 0x00, 0xff) # blue
-    elif trace["operation"] == "stall_icache_store":
-      self.pixel[col,row] = (0x00, 0x00, 0xff) # grey
-    elif trace["operation"] == "stall_lr_aq":
-      self.pixel[col,row] = (0xff, 0xd7, 0x00) # gold
-    elif trace["operation"] == "stall_md":
-      self.pixel[col,row] = (0x80, 0x00, 0x80) # purple
-    elif trace["operation"] == "stall_remote_req":
-      self.pixel[col,row] = (0x00, 0xff, 0xff) # cyan
-    elif trace["operation"] == "stall_local_flw":
-      self.pixel[col,row] = (0x00, 0xff, 0x00) # lime
-#    elif trace["operation"] == "no_stall":
+    if trace["operation"] in self.stall_bubble_color.keys():
+      self.pixel[col,row] = self.stall_bubble_color[trace["operation"]]
+    elif trace["operation"] in instr_list:
+      self.pixel[col,row] = self.instr_color
+    elif trace["operation"] in fp_instr_list:
+      self.pixel[col,row] = self.fp_instr_color
+    elif trace["operation"] in unknown_list:
+      self.pixel[col,row] = self.unknown_color
     else:
-      self.pixel[col,row] = (0xff, 0xff, 0xff) # white
-      
+      print ("Invalid operaiton in operation log: " + trace["operation"])
+      self.pixel[col,row] = self.unknown_color
+
+
+     
 
 # main()
 if __name__ == "__main__":
