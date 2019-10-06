@@ -25,9 +25,6 @@ from PIL import Image
 
 
 
-# List of unkonwn operation by the core 
-unknown_list  = ["unkonwn"]
-
 
 class BloodGraph:
 
@@ -99,7 +96,7 @@ class BloodGraph:
                           "or",
                           "ori",
                           "and",
-                          "adni",
+                          "andi",
                           "slt",
                           "slti",
                           "sltu",
@@ -135,26 +132,29 @@ class BloodGraph:
                           "fclass",
                           "fmv_x_w" ]
 
+    # List of unkonwn operation by the core 
+    self.unknown_list  = ["unkonwn"]
+
 
     # Coloring scheme for different types of operations 
-    self.stall_bubble_color = { "stall_depend"                   : (0xdc, 0x14, 0x3c), # crimson
-                                "stall_depend_local_load"        : (0xff, 0x45, 0x00), # orange
-                                "stall_depend_remote_load"       : (0xff, 0x00, 0x00), # red
-                                "stall_depend_local_remote_load" : (0x80, 0x00, 0x00), # maroon
-                                "stall_fp_remote_load"           : (0x00, 0x80, 0x00), # green
-                                "stall_fp_local_load"            : (0x00, 0x64, 0x00), # dark green
-                                "stall_force_wb"                 : (0x20, 0xb2, 0xaa), # light sea green
-                                "stall_ifetch_wait"              : (0x00, 0x00, 0xff), # blue
-                                "stall_icache_store"             : (0x80, 0x80, 0x80), # grey
-                                "stall_lr_aq"                    : (0xd2, 0xb4, 0x8c), # tan 
-                                "stall_md"                       : (0x80, 0x00, 0x80), # purple 
-                                "stall_remote_req"               : (0x00, 0xff, 0xff), # cyan
-                                "stall_local_flw"                : (0x00, 0xff, 0x00), # lime
-                                "bubble"                         : (0xff, 0xb6, 0xc1)  # pink
+    self.stall_bubble_color = { "stall_depend"                   : (0xff, 0xff, 0xff), ## white 
+                                "stall_depend_local_load"        : (0x00, 0x66, 0x00), ## dark green
+                                "stall_depend_remote_load"       : (0x00, 0xff, 0x00), ## green
+                                "stall_depend_local_remote_load" : (0x00, 0xcc, 0xcc), ## dark cyan
+                                "stall_fp_remote_load"           : (0x00, 0x00, 0xff), ## blue
+                                "stall_fp_local_load"            : (0x00, 0x00, 0x99), ## dark blue
+                                "stall_force_wb"                 : (0xff, 0x33, 0xff), ## pink
+                                "stall_ifetch_wait"              : (0x66, 0x00, 0x66), ## purple
+                                "stall_icache_store"             : (0xcc, 0x80, 0x00), ## dark orange
+                                "stall_lr_aq"                    : (0x40, 0x40, 0x40), ## dark gray
+                                "stall_md"                       : (0xff, 0xa5, 0x00), ## light orange
+                                "stall_remote_req"               : (0xff, 0xff, 0x00), ## yellow
+                                "stall_local_flw"                : (0x99, 0xff, 0xff), ## light cyan
+                                "bubble"                         : (0x00, 0x99, 0x99)  ## dark cyan
                               }
-    self.unified_instr_color    =                                  (0x00, 0x00, 0x00)  # white
-    self.unified_fp_instr_color =                                  (0xff, 0xd7, 0x00)  # gold
-    self.unknown_color  =                                          (0xff, 0xff, 0xff)  # black
+    self.unified_instr_color    =                                  (0xff, 0x00, 0x00)  ## red
+    self.unified_fp_instr_color =                                  (0xff, 0x80, 0x00)  ## orange
+    self.unknown_color  =                                          (0xff, 0xd7, 0x00)  ## gold
     return
 
   
