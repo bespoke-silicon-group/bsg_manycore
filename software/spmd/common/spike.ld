@@ -70,13 +70,6 @@ SECTIONS
     _dram_misc = .;
     *(.*)
 
-    . = ALIGN(64);
-    tohost = .;
-    . = . + 4;
-
-    . = ALIGN(64);
-    fromhost = .;
-    . = . + 4;
   } >DRAM_D_VMA 
 
   _bsg_dram_d_end_addr = . ;

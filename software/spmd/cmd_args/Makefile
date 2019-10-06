@@ -10,18 +10,14 @@ bsg_tiles_Y = 1
 
 ifdef SPIKE
 
-all: main.spike
-
 RISCV_GCC_EXTRA_OPTS += -D__spike__
-LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/spike.ld
+SPMD_COMMON_OBJECTS += spike.o
 
-else
-
-all: main.run
+endif
 
 LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
 
-endif
+all: main.run
 
 # Rule to write processor execution logs. To be used after the
 # verilog simulation.

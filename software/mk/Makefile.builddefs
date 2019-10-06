@@ -264,7 +264,11 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 %.dis: %.riscv
 	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all -S $<
 
-%.spike: %.riscv
+PROG_NAME ?= main
+
+run_spike: LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/spike.ld
+run_spike: RISCV_GCC_EXTRA_OPTS+=-D__spike_run__
+run_spike: $(PROG_NAME).riscv
 ifdef TRACE
 	$(RISCV_SIM) -l --isa=$(ARCH_OP) $< 2> spike.log
 else

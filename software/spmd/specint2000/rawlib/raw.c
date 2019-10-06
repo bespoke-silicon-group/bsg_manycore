@@ -7,15 +7,19 @@
 void timebegin() {
   printf("At begin: \n");
 
-#ifndef __host__
-  bsg_print_time();
-#endif
+  #ifdef __spike__
+    replace_spike_call(print_time);
+  #else
+    bsg_print_time();
+  #endif
 }
 
 void timeend() {
   printf("At end: \n");
 
-#ifndef __host__
-  bsg_print_time();
-#endif
+  #ifdef __spike__
+    replace_spike_call(print_time);
+  #else
+    bsg_print_time();
+  #endif
 }
