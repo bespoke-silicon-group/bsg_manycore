@@ -1,19 +1,19 @@
 #include <stdlib.h>
 #include <machine/dramfs_fs.h>
 
+#include "bsg_manycore.h"
+#include "bsg_set_tile_x_y.h"
+
 #ifdef __spike__
-
-  #include "spike.h"
-
-#else // ifndef __spike__
-
-  #include "bsg_manycore.h"
-  #include "bsg_set_tile_x_y.h"
-
-#endif // __spike__
+#include "spike.h"
+#endif
 
 void dramfs_init(void) {
-  bsg_set_tile_x_y();
+  #ifdef __spike__
+    replace_spike_call(set_tile_x_y);
+  #else
+    bsg_set_tile_x_y();
+  #endif
 
   // Init file system
   if(dramfs_fs_init() < 0) {
@@ -23,12 +23,24 @@ void dramfs_init(void) {
 
 void dramfs_exit(int exit_status) {
   if(exit_status == EXIT_SUCCESS) {
-    bsg_finish();
+    #ifdef __spike__
+      replace_spike_call(finish);
+    #else
+      bsg_finish();
+    #endif
   } else {
-    bsg_fail();
+    #ifdef __spike__
+      replace_spike_call(fail);
+    #else
+      bsg_fail();
+    #endif
   }
 }
 
 void dramfs_sendchar(char ch) {
-  bsg_putchar(ch);
+  #ifdef __spike__
+    replace_spike_call(putchar, ch);
+  #else
+    bsg_putchar(ch);
+  #endif
 }

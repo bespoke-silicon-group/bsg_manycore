@@ -6,16 +6,13 @@ MAX_CYCLES=100000000
 
 ifdef SPIKE
 
-all: main.spike
-
 RISCV_GCC_EXTRA_OPTS += -D__spike__
+SPMD_COMMON_OBJECTS = spike.o
 LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/spike.ld
 
-else
+endif
 
 all: main.run
-
-endif
 
 OBJECT_FILES=main.o
 IN_FILES=test
