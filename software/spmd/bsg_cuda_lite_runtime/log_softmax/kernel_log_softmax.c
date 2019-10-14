@@ -1,11 +1,12 @@
 
 /*!
- * This kernel computes Softmax of a matrix A with dimensions MxN and stores the result in B:
- * Softmax(A) = exp(A) / sum(exp(A)) (with division done element-wise).
+ * This kernel computes LogSoftmax of a matrix A with dimensions MxN and stores the result in B:
+ * LogSoftmax(A) = A - log(sum(exp(A))) (with division done element-wise).
  * The algorithm works in 3 phases:
  *      1) Compute max by doing a reduction in a shared array, store in variable m
- *      2) Compute sum(exp(A - m)), and store exp(A - m) into B while computing sum
- *      3) Divide every element of B by sum
+ *      2) Compute sum(exp(A - m)), and store exp(A - m) into B while computing sum,
+ *         then finally compute log(sum)
+ *      3) Make B equal to A - log(sum) elementwise
  */
 
 /*
@@ -81,7 +82,7 @@ float compute_max(const float *A, float *agg, int M, int N, int block_size_y, in
 }
 
 __attribute__((noinline))
-int kernel_softmax(const float *A, float *B, int M, int N, int block_size_y, int block_size_x)
+int kernel_log_softmax(const float *A, float *B, int M, int N, int block_size_y, int block_size_x)
 {
         // Array for aggregations
         bsg_tile_group_shared_mem(float, agg, bsg_tiles_X * bsg_tiles_Y);
@@ -100,7 +101,7 @@ int kernel_softmax(const float *A, float *B, int M, int N, int block_size_y, int
                 }
         }
         bsg_tile_group_barrier(&r_barrier, &c_barrier);
-        return 0;
+
         float partial_sum = 0;
         // Compute sum(B) for each element belonging to a tile in the tilegroup
         for(int y = start_y + __bsg_y; y < end_y; y += bsg_tiles_Y)
@@ -134,6 +135,7 @@ int kernel_softmax(const float *A, float *B, int M, int N, int block_size_y, int
                         bsg_tile_group_shared_load(float, agg, x, other);
                         partial_sum += other;
                 }
+                partial_sum = logf(partial_sum);
                 bsg_tile_group_shared_store(float, agg, 0, partial_sum);
         }
         bsg_tile_group_barrier(&r_barrier, &c_barrier);
@@ -143,7 +145,7 @@ int kernel_softmax(const float *A, float *B, int M, int N, int block_size_y, int
         {
                 for(int x = start_x + __bsg_x; x < end_x; x += bsg_tiles_X)
                 {
-                        B[y * N + x] /= sum;
+                        B[y * N + x] = A[y * N + x] - sum;
                 }
         }
         bsg_tile_group_barrier(&r_barrier, &c_barrier);
