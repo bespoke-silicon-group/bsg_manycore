@@ -770,7 +770,7 @@ module vanilla_core_profiler
             else if (srl_inc)
               $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "srl");
             else if (srli_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "slri");
+              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "srli");
             else if (sra_inc)
               $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sra");
             else if (srai_inc)
