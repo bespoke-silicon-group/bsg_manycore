@@ -9,13 +9,14 @@
 #   @author tommy
 #
 #   How to use:
-#   python blood_graph.py {start_time} {end_time} {timestep} {vanilla_operation_trace.log}
+#   python blood_graph.py {start_time} {end_time} {timestep} {mode} {vanilla_operation_trace.log}
 #
-#   ex) python blood_graph.py 6000000 15000000 20 vanilla_operation_trace.log
+#   ex) python blood_graph.py 6000000 15000000 20 detailed vanilla_operation_trace.log
 #
 #   {start_time}  start_time in picosecond
 #   {end_time}    end_time in picosecond
 #   {timestep}    time step in picosecond
+#   {mode}        abstract / detailed
 # 
 
 
@@ -29,11 +30,12 @@ from PIL import Image
 class BloodGraph:
 
   # default constructor
-  def __init__(self, start_time, end_time, timestep):
+  def __init__(self, start_time, end_time, timestep, mode):
 
     self.start_time = start_time
     self.end_time = end_time
     self.timestep = timestep
+    self.mode = mode
 
     # List of types of stalls incurred by the core 
     self.stall_list    = ["stall_depend",
@@ -134,31 +136,75 @@ class BloodGraph:
                           "fclass",
                           "fmv_x_w" ]
 
-    # List of unkonwn operation by the core 
-    self.unknown_list  = ["unkonwn"]
+    # List of unknown operation by the core 
+    self.unknown_list  = ["unknown"]
 
 
-    # Coloring scheme for different types of operations 
-    self.stall_bubble_color = { "stall_depend"                   : (0xff, 0xff, 0xff), ## white 
-                                "stall_depend_local_load"        : (0x00, 0x66, 0x00), ## dark green
-                                "stall_depend_remote_load"       : (0x00, 0xff, 0x00), ## green
-                                "stall_depend_local_remote_load" : (0x00, 0xcc, 0xcc), ## dark cyan
-                                "stall_fp_remote_load"           : (0x00, 0x00, 0xff), ## blue
-                                "stall_fp_local_load"            : (0x00, 0x00, 0x99), ## dark blue
-                                "stall_force_wb"                 : (0xff, 0x33, 0xff), ## pink
-                                # i_cache miss is treated the same is stall_ifetch_wait
-                                "icache_miss"                    : (0x66, 0x00, 0x66), ## purple 
-                                "stall_ifetch_wait"              : (0x66, 0x00, 0x66), ## purple
-                                "stall_icache_store"             : (0xcc, 0x80, 0x00), ## dark orange
-                                "stall_lr_aq"                    : (0x40, 0x40, 0x40), ## dark gray
-                                "stall_md"                       : (0xff, 0xa5, 0x00), ## light orange
-                                "stall_remote_req"               : (0xff, 0xff, 0x00), ## yellow
-                                "stall_local_flw"                : (0x99, 0xff, 0xff), ## light cyan
-                                "bubble"                         : (0x00, 0x99, 0x99)  ## dark cyan
-                              }
-    self.unified_instr_color    =                                  (0xff, 0x00, 0x00)  ## red
-    self.unified_fp_instr_color =                                  (0xff, 0x80, 0x00)  ## orange
-    self.unknown_color  =                                          (0xff, 0xd7, 0x00)  ## gold
+    # Coloring scheme for different types of operations
+    # For detailed mode 
+    # i_cache miss is treated the same is stall_ifetch_wait
+    self.detailed_stall_bubble_color = { "stall_depend"                   : (0x00, 0x00, 0x00), ## black
+                                         "stall_depend_local_load"        : (0x00, 0x66, 0x00), ## dark green
+                                         "stall_depend_remote_load"       : (0x00, 0xff, 0x00), ## green
+                                         "stall_depend_local_remote_load" : (0x00, 0xcc, 0xcc), ## dark cyan
+                                         "stall_fp_local_load"            : (0x66, 0x00, 0x66), ## dark puprle
+                                         "stall_fp_remote_load"           : (0xcc, 0x00, 0xcc), ## purple
+                                         "stall_force_wb"                 : (0xff, 0x66, 0xff), ## pink
+                                         "icache_miss"                    : (0x00, 0x00, 0xff), ## blue
+                                         "stall_ifetch_wait"              : (0x00, 0x00, 0xff), ## blue
+                                         "stall_icache_store"             : (0xcc, 0x80, 0x00), ## dark orange
+                                         "stall_lr_aq"                    : (0x40, 0x40, 0x40), ## dark gray
+                                         "stall_md"                       : (0xff, 0xa5, 0x00), ## light orange
+                                         "stall_remote_req"               : (0xff, 0xff, 0x00), ## yellow
+                                         "stall_local_flw"                : (0x99, 0xff, 0xff), ## light cyan
+                                         "bubble"                         : (0x00, 0x99, 0x99)  ## dark cyan
+                                       }
+    self.detailed_unified_instr_color    =                                  (0xff, 0x00, 0x00)  ## red
+    self.detailed_unified_fp_instr_color =                                  (0xff, 0x80, 0x00)  ## orange
+    self.detailed_unknown_color  =                                          (0xff, 0xd7, 0x00)  ## gold
+
+
+
+    # Coloring scheme for different types of operations
+    # For abstract mode 
+    # i_cache miss is treated the same is stall_ifetch_wait
+    self.abstract_stall_bubble_color = { "stall_depend"                   : (0xff, 0xff, 0xff), ## white 
+                                         "stall_depend_local_load"        : (0xff, 0xff, 0xff), ## white
+                                         "stall_depend_remote_load"       : (0x00, 0xff, 0x00), ## green
+                                         "stall_depend_local_remote_load" : (0x00, 0xff, 0x00), ## green
+                                         "stall_fp_local_load"            : (0xff, 0xff, 0xff), ## white
+                                         "stall_fp_remote_load"           : (0x00, 0xff, 0x00), ## green
+                                         "stall_force_wb"                 : (0xff, 0xff, 0xff), ## white
+                                         "icache_miss"                    : (0x00, 0x00, 0xff), ## blue
+                                         "stall_ifetch_wait"              : (0x00, 0x00, 0xff), ## blue
+                                         "stall_icache_store"             : (0xff, 0xff, 0xff), ## white
+                                         "stall_lr_aq"                    : (0x40, 0x40, 0x40), ## dark gray
+                                         "stall_md"                       : (0xff, 0x00, 0x00), ## red
+                                         "stall_remote_req"               : (0xff, 0xff, 0x00), ## yellow
+                                         "stall_local_flw"                : (0xff, 0xff, 0xff), ## white
+                                         "bubble"                         : (0xff, 0xff, 0xff)  ## white
+                                       }
+    self.abstract_unified_instr_color    =                                  (0xff, 0x00, 0x00)  ## red
+    self.abstract_unified_fp_instr_color =                                  (0xff, 0x00, 0x00)  ## red
+    self.abstract_unknown_color  =                                          (0xff, 0x00, 0x00)  ## red
+
+
+
+
+
+
+    # Determine coloring rules based on mode {abstract / detailed}
+    if (self.mode == "abstract"):
+      self.stall_bubble_color     = self.abstract_stall_bubble_color
+      self.unified_instr_color    = self.abstract_unified_instr_color
+      self.unified_fp_instr_color = self.abstract_unified_instr_color
+      self.unknown_color          = self.abstract_unknown_color
+    else:
+      self.stall_bubble_color     = self.detailed_stall_bubble_color
+      self.unified_instr_color    = self.detailed_unified_instr_color
+      self.unified_fp_instr_color = self.detailed_unified_instr_color
+      self.unknown_color          = self.detailed_unknown_color
+
     return
 
   
@@ -231,6 +277,8 @@ class BloodGraph:
     tg_y = trace["y"] - self.ymin
     row = floor*(2+(self.xdim*self.ydim)) + (tg_x+(tg_y*self.xdim))
 
+
+
     # determine color
     if trace["operation"] in self.stall_bubble_color.keys():
       self.pixel[col,row] = self.stall_bubble_color[trace["operation"]]
@@ -250,20 +298,34 @@ class BloodGraph:
 # main()
 if __name__ == "__main__":
 
-  if len(sys.argv) != 5:
+  if len(sys.argv) == 5:
+    mode = "detailed"
+    input_file = sys.argv[4]
+
+  elif len(sys.argv) == 6:
+    mode = sys.argv[4]
+    input_file = sys.argv[5]
+
+  else :
     print("Error: wrong number of arguments.")
-    print("python3 bloodgraph.py {start_time} {end_time} {timestep} vanilla_operation_trace.log")
+    print("python bloodgraph.py {start_time} {end_time} {timestep} {mode} vanilla_operation_trace.log")
     sys.exit()
  
   start_time = int(sys.argv[1])
   end_time = int(sys.argv[2])
   timestep = int(sys.argv[3])
-  input_file = sys.argv[4]
 
   if (start_time > end_time):
     print("Error: start_time cannot be larger than end_time.")
-    print("python3 bloodgraph.py {start_time} {end_time} {timestep} vanilla_operation_trace.log")
+    print("python bloodgraph.py {start_time} {end_time} {timestep} {mode} vanilla_operation_trace.log")
     sys.exit()
 
-  bg = BloodGraph(start_time,end_time,timestep)
+  if (not (mode == "abstract" or mode == "detailed")):
+    print("Error: Invalid mode, can be one of abstract / detailed.")
+    print("python bloodgraph.py {start_time} {end_time} {timestep} {mode} vanilla_operation_trace.log")
+    sys.exit()
+
+
+
+  bg = BloodGraph(start_time, end_time, timestep, mode)
   bg.generate(input_file)
