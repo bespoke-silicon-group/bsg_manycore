@@ -1,0 +1,14 @@
+diff --git a/libgcc/config/riscv/t-softfp32 b/libgcc/config/riscv/t-softfp32
+index 1bd51e803d1..c52337ae605 100644
+--- a/libgcc/config/riscv/t-softfp32
++++ b/libgcc/config/riscv/t-softfp32
+@@ -18,9 +18,7 @@ softfp_float_modes := df tf
+ softfp_extensions := sfdf sftf dftf
+ softfp_truncations := dfsf tfsf tfdf
+ 
+-ifndef ABI_SINGLE
+ softfp_float_modes += sf
+-endif
+ 
+ endif
+ endif

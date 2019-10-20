@@ -83,12 +83,14 @@ checkout-repos:
 	@rm -rf $(TOOLCHAIN_REPO);
 	git clone $(TOOLCHAIN_URL);
 	cd $(TOOLCHAIN_REPO) && git checkout $(TOOLCHAIN_VERSION);
-	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive -j 16;
+	cd $(TOOLCHAIN_REPO)/riscv-gcc && git apply $(CURDIR)/riscv-gcc.patch
 
 replace-newlib:
-	cd $(TOOLCHAIN_REPO) && git apply ../$(NEWLIB_PATCH)
+	cd $(TOOLCHAIN_REPO) && git apply $(CURDIR)/$(NEWLIB_PATCH)
 	cd $(TOOLCHAIN_REPO) && git submodule sync
-	cd $(TOOLCHAIN_REPO) && git submodule update riscv-newlib
+	cd $(TOOLCHAIN_REPO) && git submodule update --remote riscv-newlib
+	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout $(NEWLIB_BRANCH)
 	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout $(NEWLIB_VERSION)
 
 checkout-spike:
