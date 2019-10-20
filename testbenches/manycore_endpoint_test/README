@@ -1,0 +1,12 @@
+First time run of test
+
+$ cd <your_dir>/bsg_manycore/testbenches/manycore_endpoint_test
+$ git clone https://bitbucket.org/taylor-bsg/bsg_cadenv.git ../../../bsg_cadenv
+$ git clone https://github.com/bespoke-silicon-group/basejump_stl.git ../../../basejump_stl
+$ make run
+$ make view
+
+
+Clean generated files
+
+$ make clean
