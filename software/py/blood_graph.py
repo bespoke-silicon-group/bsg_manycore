@@ -60,7 +60,9 @@ class BloodGraph:
                           "local_fsw",
                           "remote_flw",
                           "remote_fsw",
-                          "icache_miss",
+                          # icache_miss is no longer treated as an instruction
+                          # but treated the same as stall_ifetch_wait
+                          #"icache_miss",
                           "lr",
                           "lr_aq",
                           "swap_aq",
@@ -144,6 +146,8 @@ class BloodGraph:
                                 "stall_fp_remote_load"           : (0x00, 0x00, 0xff), ## blue
                                 "stall_fp_local_load"            : (0x00, 0x00, 0x99), ## dark blue
                                 "stall_force_wb"                 : (0xff, 0x33, 0xff), ## pink
+                                # i_cache miss is treated the same is stall_ifetch_wait
+                                "icache_miss"                    : (0x66, 0x00, 0x66), ## purple 
                                 "stall_ifetch_wait"              : (0x66, 0x00, 0x66), ## purple
                                 "stall_icache_store"             : (0xcc, 0x80, 0x00), ## dark orange
                                 "stall_lr_aq"                    : (0x40, 0x40, 0x40), ## dark gray
