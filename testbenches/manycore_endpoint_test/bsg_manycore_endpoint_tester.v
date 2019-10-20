@@ -188,6 +188,9 @@ module bsg_manycore_endpoint_tester
     ,.returned_yumi_o(returned_yumi_li[i])
   
     ,.out_credits_i(out_credits_lo[i])
+    
+    ,.my_x_i('0)
+    ,.my_y_i(y_cord_width_p'(i))
     );
 
   end

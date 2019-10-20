@@ -49,6 +49,9 @@ module bsg_manycore_endpoint_test_node
   ,output logic returned_yumi_o
 
   ,input [credit_counter_width_lp-1:0] out_credits_i
+  
+  ,input [x_cord_width_p-1:0] my_x_i
+  ,input [y_cord_width_p-1:0] my_y_i
   );
   
   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
@@ -92,6 +95,8 @@ module bsg_manycore_endpoint_test_node
         out_packet = '0;
         out_packet.x_cord = 0;
         out_packet.y_cord = 4;
+        out_packet.src_x_cord = my_x_i;
+        out_packet.src_y_cord = my_y_i;
         out_packet.addr = counter_r;
         if (state_r == 0)
           begin
@@ -134,6 +139,8 @@ module bsg_manycore_endpoint_test_node
         out_packet = '0;
         out_packet.x_cord = 0;
         out_packet.y_cord = 3;
+        out_packet.src_x_cord = my_x_i;
+        out_packet.src_y_cord = my_y_i;
         out_packet.addr = counter_r;
         if (state_r == 0)
           begin
