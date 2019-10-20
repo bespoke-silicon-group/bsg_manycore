@@ -1,3 +1,4 @@
+import sys
 from blood_graph import BloodGraph
 from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
@@ -6,7 +7,13 @@ WIDTH  = 256
 HEIGHT = 256
 
 if __name__ == "__main__":
-    bg = BloodGraph(0,1,1)
+
+    if len(sys.argv) == 1:
+        mode = "detailed"
+    elif len(sys.argv) == 2:
+        mode = sys.argv[1] 
+
+    bg = BloodGraph(0,1,1, mode)
     img = Image.new("RGB", (WIDTH, HEIGHT), "black")
     draw = ImageDraw.Draw(img)
     font = ImageFont.load_default()
