@@ -55,11 +55,11 @@ ifeq ($(RISCV_BIN_DIR),)
 $(error RISCV_BIN_DIR not defined)
 endif
 
-RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-gcc
-RISCV_GXX     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-g++
+RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-gcc
+RISCV_GXX     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-g++
 RISCV_ELF2HEX ?= LD_LIBRARY_PATH=$(RISCV_BIN_DIR)/../lib $(RISCV_BIN_DIR)/elf2hex
-RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-objcopy
-RISCV_AR      ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-ar
+RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-objcopy
+RISCV_AR      ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-ar
 RISCV_SIM     ?= $(RISCV_BIN_DIR)/spike
 
 BSG_ROM_GEN     = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
@@ -108,7 +108,7 @@ LFS_BLOCK_SIZE ?= 128
 LFS_BLOCK_COUNT ?= 64
 
 lfs.c: $(IN_FILES)
-	$(RISCV_BIN_DIR)/../riscv32-unknown-elf/bin/dramfs_mklfs $(LFS_BLOCK_SIZE) $(LFS_BLOCK_COUNT) $(IN_FILES) > $@
+	$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/bin/dramfs_mklfs $(LFS_BLOCK_SIZE) $(LFS_BLOCK_COUNT) $(IN_FILES) > $@
 endif
 
 # Manycore C library archiving rule
@@ -262,7 +262,7 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 	python $(HEX2BIN) $< 32 > $@
 
 %.dis: %.riscv
-	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all -S $<
+	$(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-objdump -M numeric --disassemble-all -S $<
 
 PROG_NAME ?= main
 

@@ -28,7 +28,7 @@
 .DEFAULT_GOAL := help
 
 TARGET_ARCH       := rv32imaf
-TARGET_ABI        := ilp32 # TODO: Test ilp32f for potential performance improvement
+TARGET_ABI        := ilp32f # TODO: Test ilp32f for potential performance improvement
 TARGET_CFLAGS     := '-fno-common -ffp-contract=off -mno-fdiv' # Turn off fma, fdiv and fexp instructions
                                                                # as manycore's FPU doesn't support them.
 
@@ -40,7 +40,7 @@ DEPENDS_DIR       := $(CURDIR)/depends
 
 NEWLIB_URL        := https://github.com/bespoke-silicon-group/bsg_newlib_dramfs.git
 NEWLIB_BRANCH     := dramfs
-NEWLIB_VERSION    := 1341d8b68f8eeec01b36de67c27bb2875e70c6f6
+NEWLIB_VERSION    := 7f0037ac3ac5068524d8e34c9b0fb5553bc55be1
 NEWLIB_PATCH      := newlib.patch
 
 SPIKE_REPO        := riscv-isa-sim
@@ -86,11 +86,9 @@ checkout-repos:
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
 
 replace-newlib:
-	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.url $(NEWLIB_URL)
-	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.branch $(NEWLIB_BRANCH)
 	cd $(TOOLCHAIN_REPO) && git apply ../$(NEWLIB_PATCH)
 	cd $(TOOLCHAIN_REPO) && git submodule sync
-	cd $(TOOLCHAIN_REPO) && git submodule update --remote riscv-newlib
+	cd $(TOOLCHAIN_REPO) && git submodule update riscv-newlib
 	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout $(NEWLIB_VERSION)
 
 checkout-spike:
@@ -151,6 +149,7 @@ build-all:
 	$(MAKE) build-spike
 	$(MAKE) build-llvm
 
+rebuild-newlib: PATH:=$(RISCV)/bin:$(PATH)
 rebuild-newlib:
 	$(MAKE) -C $(TOOLCHAIN_REPO)/build-newlib
 	$(MAKE) -C $(TOOLCHAIN_REPO)/build-newlib install
