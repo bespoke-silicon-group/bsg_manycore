@@ -240,7 +240,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
                         };
 
 
-   bsg_two_fifo #(.width_p($bits(returning_credit_info)) ) return_credit_fifo
+   bsg_fifo_1r1w_small #(.width_p($bits(returning_credit_info)) ,.els_p(32)) return_credit_fifo
    ( .clk_i
     ,.reset_i
 
