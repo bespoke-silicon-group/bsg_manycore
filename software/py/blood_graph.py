@@ -136,22 +136,22 @@ class BloodGraph:
                           "fclass",
                           "fmv_x_w" ]
 
-    # List of unkonwn operation by the core 
-    self.unknown_list  = ["unkonwn"]
+    # List of unknown operation by the core 
+    self.unknown_list  = ["unknown"]
 
 
     # Coloring scheme for different types of operations
     # For detailed mode 
-    self.detailed_stall_bubble_color = { "stall_depend"                   : (0xff, 0xff, 0xff), ## white 
+    # i_cache miss is treated the same is stall_ifetch_wait
+    self.detailed_stall_bubble_color = { "stall_depend"                   : (0x00, 0x00, 0x00), ## black
                                          "stall_depend_local_load"        : (0x00, 0x66, 0x00), ## dark green
                                          "stall_depend_remote_load"       : (0x00, 0xff, 0x00), ## green
                                          "stall_depend_local_remote_load" : (0x00, 0xcc, 0xcc), ## dark cyan
-                                         "stall_fp_remote_load"           : (0x00, 0x00, 0xff), ## blue
-                                         "stall_fp_local_load"            : (0x00, 0x00, 0x99), ## dark blue
-                                         "stall_force_wb"                 : (0xff, 0x33, 0xff), ## pink
-                                         # i_cache miss is treated the same is stall_ifetch_wait
-                                         "icache_miss"                    : (0x66, 0x00, 0x66), ## purple 
-                                         "stall_ifetch_wait"              : (0x66, 0x00, 0x66), ## purple
+                                         "stall_fp_local_load"            : (0x66, 0x00, 0x66), ## dark puprle
+                                         "stall_fp_remote_load"           : (0xcc, 0x00, 0xcc), ## purple
+                                         "stall_force_wb"                 : (0xff, 0x66, 0xff), ## pink
+                                         "icache_miss"                    : (0x00, 0x00, 0xff), ## blue
+                                         "stall_ifetch_wait"              : (0x00, 0x00, 0xff), ## blue
                                          "stall_icache_store"             : (0xcc, 0x80, 0x00), ## dark orange
                                          "stall_lr_aq"                    : (0x40, 0x40, 0x40), ## dark gray
                                          "stall_md"                       : (0xff, 0xa5, 0x00), ## light orange
@@ -167,26 +167,29 @@ class BloodGraph:
 
     # Coloring scheme for different types of operations
     # For abstract mode 
+    # i_cache miss is treated the same is stall_ifetch_wait
     self.abstract_stall_bubble_color = { "stall_depend"                   : (0xff, 0xff, 0xff), ## white 
-                                         "stall_depend_local_load"        : (0x00, 0x66, 0x00), ## dark green
+                                         "stall_depend_local_load"        : (0xff, 0xff, 0xff), ## white
                                          "stall_depend_remote_load"       : (0x00, 0xff, 0x00), ## green
-                                         "stall_depend_local_remote_load" : (0x00, 0xcc, 0xcc), ## dark cyan
-                                         "stall_fp_remote_load"           : (0x00, 0x00, 0xff), ## blue
-                                         "stall_fp_local_load"            : (0x00, 0x00, 0x99), ## dark blue
-                                         "stall_force_wb"                 : (0xff, 0x33, 0xff), ## pink
-                                         # i_cache miss is treated the same is stall_ifetch_wait
-                                         "icache_miss"                    : (0x66, 0x00, 0x66), ## purple 
-                                         "stall_ifetch_wait"              : (0x66, 0x00, 0x66), ## purple
-                                         "stall_icache_store"             : (0xcc, 0x80, 0x00), ## dark orange
+                                         "stall_depend_local_remote_load" : (0x00, 0xff, 0x00), ## green
+                                         "stall_fp_local_load"            : (0xff, 0xff, 0xff), ## white
+                                         "stall_fp_remote_load"           : (0x00, 0xff, 0x00), ## green
+                                         "stall_force_wb"                 : (0xff, 0xff, 0xff), ## white
+                                         "icache_miss"                    : (0x00, 0x00, 0xff), ## blue
+                                         "stall_ifetch_wait"              : (0x00, 0x00, 0xff), ## blue
+                                         "stall_icache_store"             : (0xff, 0xff, 0xff), ## white
                                          "stall_lr_aq"                    : (0x40, 0x40, 0x40), ## dark gray
-                                         "stall_md"                       : (0xff, 0xa5, 0x00), ## light orange
+                                         "stall_md"                       : (0xff, 0x00, 0x00), ## red
                                          "stall_remote_req"               : (0xff, 0xff, 0x00), ## yellow
-                                         "stall_local_flw"                : (0x99, 0xff, 0xff), ## light cyan
-                                         "bubble"                         : (0x00, 0x99, 0x99)  ## dark cyan
+                                         "stall_local_flw"                : (0xff, 0xff, 0xff), ## white
+                                         "bubble"                         : (0xff, 0xff, 0xff)  ## white
                                        }
     self.abstract_unified_instr_color    =                                  (0xff, 0x00, 0x00)  ## red
-    self.abstract_unified_fp_instr_color =                                  (0xff, 0x80, 0x00)  ## orange
-    self.abstract_unknown_color  =                                          (0xff, 0xd7, 0x00)  ## gold
+    self.abstract_unified_fp_instr_color =                                  (0xff, 0x00, 0x00)  ## red
+    self.abstract_unknown_color  =                                          (0xff, 0x00, 0x00)  ## red
+
+
+
 
 
 
