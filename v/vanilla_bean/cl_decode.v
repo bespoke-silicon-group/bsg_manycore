@@ -42,6 +42,10 @@ always_comb begin
               | ((instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
         end
 
+        `RV32_SYSTEM: begin
+            decode_o.op_writes_rf = fp_int_decode_o.frrm_op;
+        end
+
         default:
             decode_o.op_writes_rf = 1'b0;
     endcase
@@ -235,6 +239,14 @@ always_comb begin
       decode_o.is_fp_int_op = 1'b0;
     end
 
+    `RV32_FRRM: begin
+      decode_o.op_reads_fp_rf1 = 1'b0;
+      decode_o.op_reads_fp_rf2 = 1'b0;
+      decode_o.op_writes_fp_rf = 1'b0;
+      decode_o.is_fp_float_op = 1'b0;
+      decode_o.is_fp_int_op = 1'b1;
+    end
+
     // compare
     `RV32_FEQ_S, `RV32_FLT_S, `RV32_FLE_S: begin
       decode_o.op_reads_fp_rf1 = 1'b1;
@@ -336,6 +348,7 @@ always_comb begin
   endcase
 end
 
+
 // fp_decode_s
 assign fp_float_decode_o.fadd_op        = instruction_i ==? `RV32_FADD_S;
 assign fp_float_decode_o.fsub_op        = instruction_i ==? `RV32_FSUB_S;
@@ -356,5 +369,7 @@ assign fp_int_decode_o.fcvt_w_s_op    = instruction_i ==? `RV32_FCVT_W_S;
 assign fp_int_decode_o.fcvt_wu_s_op   = instruction_i ==? `RV32_FCVT_WU_S;
 assign fp_int_decode_o.fclass_op      = instruction_i ==? `RV32_FCLASS_S;
 assign fp_int_decode_o.fmv_x_w_op     = instruction_i ==? `RV32_FMV_X_W;
+assign fp_int_decode_o.frrm_op     = instruction_i ==? `RV32_FRRM;
+
 
 endmodule

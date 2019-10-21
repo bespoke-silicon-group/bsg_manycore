@@ -136,6 +136,7 @@
 
 // RV32F Instruction Encodings
 
+
 `define RV32_OP_FP            7'b1010011
 `define RV32_LOAD_FP          7'b0000111
 `define RV32_STORE_FP         7'b0100111
@@ -180,6 +181,8 @@
 
 `define RV32_FLW_S `RV32_Itype(`RV32_LOAD_FP, 3'b010)
 `define RV32_FSW_S `RV32_Stype(`RV32_STORE_FP, 3'b010)
+
+`define RV32_FRRM {12'b10, 5'b00000, `RV32_CSRRS_FUN3, 5'b?????, `RV32_SYSTEM}
 
 // RV32 Immediate sign extension macros
 `define RV32_signext_Iimm(instr) {{21{``instr``[31]}},``instr``[30:20]}

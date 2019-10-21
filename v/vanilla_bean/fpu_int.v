@@ -102,6 +102,9 @@ module fpu_int
     else if (fp_int_decode_i.fclass_op) begin
       result_o = class_lo;
     end
+    else if (fp_int_decode_i.frrm_op) begin
+      result_o = '0;
+    end
     else begin
       result_o = a_i; // covers fmv
     end

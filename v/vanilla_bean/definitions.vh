@@ -154,6 +154,10 @@ typedef struct packed {
   logic fclass_op;
   logic fmv_x_w_op;
 
+  // Since we don't have actual FP CSR, whenever this is encountered in the code,
+  // store 0 into the register file, which is the default rounding mode (nearest even) that this HW supports.
+  logic frrm_op;
+
 } fp_int_decode_s;
 
 // Instruction decode stage signals
