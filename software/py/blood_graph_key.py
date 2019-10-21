@@ -1,19 +1,31 @@
 import sys
+import argparse
 from blood_graph import BloodGraph
 from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
 
 WIDTH  = 256
 HEIGHT = 256
+DEFAULT_MODE = "detailed"
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Depicts a visual key for bloodgraph")
+    parser.add_argument("--mode", default=DEFAULT_MODE, type=str,
+                        help="Type of bloodgraph - abstract / detailed")
+    args = parser.parse_args()
+
+    if (not (args.mode == "abstract" or args.mode == "detailed")):
+        parser.error("Invalid mode, can be one of abstract / detailed.")
+        sys.exit()
+
+    return args
+
+
 
 if __name__ == "__main__":
+    args = parse_args()
 
-    if len(sys.argv) == 1:
-        mode = "detailed"
-    elif len(sys.argv) == 2:
-        mode = sys.argv[1] 
-
-    bg = BloodGraph(0,1,1, mode)
+    bg = BloodGraph(0,1,1, args.mode)
     img = Image.new("RGB", (WIDTH, HEIGHT), "black")
     draw = ImageDraw.Draw(img)
     font = ImageFont.load_default()
