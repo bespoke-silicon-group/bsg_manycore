@@ -10,16 +10,20 @@
 #   @author Borna
 #
 #   How to use:
-#   python3 generate_stats.py {manycore_dim_y} {manycore_dim_x} {total OR per_tile} {vanilla_stats.log}
+#   python3 generate_stats.py --dim-y {manycore_dim_y}  --dim-x {manycore_dim_x} 
+#                             --per_tile (optional) --input {vanilla_stats.log}
 #
-#   ex) python3 generate_stats.py 4 4 per_tile vanilla_stats.log
+#   ex) python3 --input generate_stats.py --dim-y 4 --dim-x 4 --per_tile --input vanilla_stats.log
 #
-#   {manycore_dim_y}  Mesh Y dimension of manycore
-#   {manycore_dim_x}  Mesh X dimension of manycore
+#   {manycore_dim_y}  Mesh Y dimension of manycore default = 4
+#   {manycore_dim_x}  Mesh X dimension of manycore default = 4
+#   {per_tile}        Generate separate stats file for each tile default = False
+#   {input}           Vanilla stats input file     default = vanilla_stats.log
 
 
 
 import sys
+import argparse
 import os
 import re
 from enum import Enum
@@ -34,6 +38,13 @@ bsg_PRINT_STAT_START_VAL = 0x00000000
 bsg_PRINT_STAT_END_VAL   = 0xDEAD0000
 bsg_TILE_GROUP_ORG_X = 0
 bsg_TILE_GROUP_ORG_Y = 1
+
+# Default input values
+DEFAULT_MANYCORE_DIM_Y = 4
+DEFAULT_MANYCORE_DIM_X = 4
+DEFAULT_MODE = "total"
+DEFAULT_INPUT_FILE = "vanilla_stats.log"
+
 
 
 # formatting parameters for aligned printing
@@ -56,29 +67,29 @@ separating_line = ('=' * 80 + '\n')
 
 
 # List of instructions, operations and events parsed from vanilla_stats.log
-stats_list = ["time", "x", "y", "tag", "global_ctr", "cycle"]
+stats_list  = {"time", "x", "y", "tag", "global_ctr", "cycle"}
 
-instr_list = ['instr','fadd','fsub','fmul','fsgnj','fsgnjn',
-                     'fsgnjx','fmin','fmax','fcvt_s_w','fcvt_s_wu',
-                     'fmv_w_x','feq','flt','fle','fcvt_w_s','fcvt_wu_s',
-                     'fclass','fmv_x_w','local_ld','local_st',
-                     'remote_ld','remote_st','local_flw','local_fsw',
-                     'remote_flw','remote_fsw','lr','lr_aq',
-                     'swap_aq','swap_rl','beq','bne','blt','bge','bltu',
-                     'bgeu','jalr','jal', 'sll',
-                     'slli','srl','srli','sra','srai','add','addi','sub',
-                     'lui','auipc','xor','xori','or','ori','and','andi',
-                     'slt','slti','sltu','sltiu','mul','mulh','mulhsu',
-                     'mulhu','div','divu','rem','remu','fence']
+instr_list  = {'instr','fadd','fsub','fmul','fsgnj','fsgnjn',
+               'fsgnjx','fmin','fmax','fcvt_s_w','fcvt_s_wu',
+               'fmv_w_x','feq','flt','fle','fcvt_w_s','fcvt_wu_s',
+               'fclass','fmv_x_w','local_ld','local_st',
+               'remote_ld','remote_st','local_flw','local_fsw',
+               'remote_flw','remote_fsw','lr','lr_aq',
+               'swap_aq','swap_rl','beq','bne','blt','bge','bltu',
+               'bgeu','jalr','jal', 'sll',
+               'slli','srl','srli','sra','srai','add','addi','sub',
+               'lui','auipc','xor','xori','or','ori','and','andi',
+               'slt','slti','sltu','sltiu','mul','mulh','mulhsu',
+               'mulhu','div','divu','rem','remu','fence'}
 
-miss_list =         ['icache_miss', 'beq_miss', 'bne_miss', 'blt_miss',
-                     'bge_miss', 'bltu_miss', 'bgeu_miss', 'jalr_miss']
+miss_list   = {'icache_miss', 'beq_miss', 'bne_miss', 'blt_miss',
+               'bge_miss', 'bltu_miss', 'bgeu_miss', 'jalr_miss'}
 
-stalls_list =       ['stall_fp_remote_load','stall_fp_local_load',
-                     'stall_depend','stall_depend_remote_load',
-                     'stall_depend_local_load','stall_force_wb',
-                     'stall_ifetch_wait','stall_icache_store',
-                     'stall_lr_aq','stall_md','stall_remote_req','stall_local_flw']
+stalls_list = {'stall_fp_remote_load','stall_fp_local_load',
+               'stall_depend','stall_depend_remote_load',
+               'stall_depend_local_load','stall_force_wb',
+               'stall_ifetch_wait','stall_icache_store',
+               'stall_lr_aq','stall_md','stall_remote_req','stall_local_flw'}
 
 
 
@@ -112,6 +123,10 @@ class VanillaStatsParser:
     self.manycore_stat_dict = dict()
 
 
+
+  # private method
+  # parse the stats file to generate total execution time
+  # for each tile group and for total
   def generate_stats_timing(self, trace):
     y = trace["y"]
     x = trace["x"]
@@ -127,12 +142,12 @@ class VanillaStatsParser:
         self.timing_end_list[tg_num - bsg_PRINT_STAT_END_VAL] = trace["time"]
 
 
+  # private method
   # Sum up all other stats for all tiles based on the last bsg_print_stat instr
   def generate_stats_all(self):
       # Generate timing stats 
       for trace in self.traces:
         self.generate_stats_timing(trace)
-
 
       #other stats are only read once per tile from the end of file
       #i.e. if mesh dimensions are 4x4, only last 16 lines are needed 
@@ -151,7 +166,8 @@ class VanillaStatsParser:
             self.tile_stat_dict[y][x][miss] = trace[miss]
 
 
-  # Print execution timing for the entire manycore 
+  # private method
+  # print execution timing for the entire manycore 
   def print_manycore_stats_timing(self, stat_file):
     # For total execution time, we only sum up the execution time of origin tile in tile groups
     # The origin tile's relative coordinates is always 0,0 
@@ -176,7 +192,8 @@ class VanillaStatsParser:
     return
 
 
-  # Print instruction stats for the entire manycore
+  # private method
+  # print instruction stats for the entire manycore
   def print_manycore_stats_instructions(self, stat_file):
 
     stat_file.write("Instruction Stats\n")
@@ -197,7 +214,8 @@ class VanillaStatsParser:
     return
 
 
-  # Print instruction stats for each tile in a separate file 
+  # private method
+  # print instruction stats for each tile in a separate file 
   # y,x are tile coordinates 
   def print_per_tile_stats_instructions(self, y, x, stat_file):
 
@@ -226,7 +244,8 @@ class VanillaStatsParser:
 
 
 
-  # Print stall stats for the entire manycore
+  # private method
+  # print stall stats for the entire manycore
   def print_manycore_stats_stalls(self, stat_file):
     stat_file.write("Stall Stats\n")
     stat_file.write(stats_stall_header_format.format("stall", "cycles", "share (%)"))
@@ -245,7 +264,8 @@ class VanillaStatsParser:
     return
 
 
-  # Print stall stats for each tile in a separate file
+  # private method
+  # print stall stats for each tile in a separate file
   # y,x are tile coordinates 
   def print_per_tile_stats_stalls(self, y, x, stat_file):
     stat_file.write("Stall Stats\n")
@@ -271,8 +291,8 @@ class VanillaStatsParser:
 
 
 
-
-  # Print miss stats for the entire manycore
+  # private method
+  # print miss stats for the entire manycore
   def print_manycore_stats_miss(self, stat_file):
     stat_file.write("Miss Stats\n")
     stat_file.write(stats_miss_header_format.format("unit", "miss", "total", "hit rate"))
@@ -296,7 +316,8 @@ class VanillaStatsParser:
     return
 
 
-  # Print miss stats for each tile in a separate file
+  # private method
+  # print miss stats for each tile in a separate file
   # y,x are tile coordinates 
   def print_per_tile_stats_miss(self, y, x, stat_file):
     stat_file.write("Miss Stats\n")
@@ -322,8 +343,7 @@ class VanillaStatsParser:
 
 
 
-
-
+  # private method
   # Sums up all stats from all tiles to generate manycore stats 
   def calculate_manycore_stats_all(self):
 
@@ -357,6 +377,9 @@ class VanillaStatsParser:
  
 
 
+  # private method
+  # prints all four types of stats, timing, instruction,
+  # miss and stall for the entire manycore 
   def print_manycore_stats_all(self):
     self.calculate_manycore_stats_all()
     self.print_manycore_stats_timing(self.manycore_stats_file)
@@ -364,6 +387,10 @@ class VanillaStatsParser:
     self.print_manycore_stats_stalls(self.manycore_stats_file)
     self.print_manycore_stats_instructions(self.manycore_stats_file)
 
+
+  # private method
+  # prints all four types of stats, timing, instruction,
+  # miss and stall for each tile in a separate file  
   def print_per_tile_stats_all(self):
     stats_path = os.getcwd() + "/tile_stats/"
     if not os.path.exists(stats_path):
@@ -377,7 +404,7 @@ class VanillaStatsParser:
         self.print_per_tile_stats_instructions(y, x, stat_file)
 
 
-
+  # main public method
   # default stats generator
   def generate_stats(self, input_file):
     self.traces = []
@@ -395,44 +422,41 @@ class VanillaStatsParser:
           trace[miss] = int(row[miss])
         self.traces.append(trace)
 
-    # generate all other stats
+    # generate all stats by parsing input file
     self.generate_stats_all()
 
     # print all manycore stats 
     self.print_manycore_stats_all()
 
-    # If requested, print all per tile stats
-    if(per_tile_stat):
+    # if requested, print all per tile stats
+    if(self.per_tile_stat):
       self.print_per_tile_stats_all()
 
     # cleanup
     self.manycore_stats_file.close()
 
 
+# private method 
+# parses input arguments
+def parse_args():
+  parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
+  parser.add_argument("--input", default=DEFAULT_INPUT_FILE, type=str,
+                      help="Vanilla stats log file")
+  parser.add_argument("--per_tile", default=False, action='store_true',
+                      help="Also generate separate stats files for each tile.")
+  parser.add_argument("--dim-y", default=DEFAULT_MANYCORE_DIM_Y, type=int,
+                      help="Manycore Y dimension")
+  parser.add_argument("--dim-x", default=DEFAULT_MANYCORE_DIM_X, type=int,
+                      help="Manycore X dimension")
+  args = parser.parse_args()
+
+  return args
+
+
 # main()
 if __name__ == "__main__":
-
-  if len(sys.argv) != 5:
-    print("Error: wrong number of arguments.")
-    print("python3 vanilla_stats_parser.py {manycore_dim_x} {manycore_dim_y} {total/per_tile} {vanilla_stats.log} ")
-    sys.exit()
- 
-  manycore_dim_y = int(sys.argv[1])
-  manycore_dim_x = int(sys.argv[2])
-
-  stat_type = sys.argv[3]
-  if stat_type == "total":
-    per_tile_stat = False
-  elif stat_type == "per_tile":
-    per_tile_stat = True
-  else:
-    print("Error: invalid stat type " + stat_type + ". Can be total or per_tile.")
-    print("python3 vanilla_stats_parser.py {manycore_dim_x} {manycore_dim_y} {vanilla_stats.log} {total/per_tile}")
-    sys.exit()
-
-  input_file = sys.argv[4]
-
-
-  st = VanillaStatsParser(manycore_dim_y, manycore_dim_x, per_tile_stat)
-  st.generate_stats(input_file)
+  args = parse_args()
+  
+  st = VanillaStatsParser(args.dim_y, args.dim_x, args.per_tile)
+  st.generate_stats(args.input)
 
