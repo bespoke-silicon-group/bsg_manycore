@@ -25,7 +25,8 @@
 import sys
 import csv
 import argparse
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
+from itertools import chain
 
 
 DEFAULT_START_TIME = 19000000000
@@ -36,7 +37,9 @@ DEFAULT_INPUT_FILE = "vanilla_operation_trace.log"
 
 
 class BloodGraph:
-
+  # for generating the key
+  KEY_WIDTH  = 256
+  KEY_HEIGHT = 256
   # default constructor
   def __init__(self, start_time, end_time, timestep, mode):
 
@@ -244,6 +247,33 @@ class BloodGraph:
     self.img.save("blood.bmp")
     return
 
+  def generate_key(self, key_image_fname = "key"):
+    img  = Image.new("RGB", (self.KEY_WIDTH, self.KEY_HEIGHT), "black")
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.load_default()
+    # the current row position of our key
+    yt = 0
+    # for each color in stalls...
+    for (key,color) in chain(self.stall_bubble_color.iteritems(),
+                             [("unified_instr"    ,self.unified_instr_color),
+                              ("unified_fp_instr" ,self.unified_fp_instr_color),
+                              ("unknown"          ,self.unknown_color)]):
+        # get the font size
+        (font_height,font_width) = font.getsize(key)
+        # draw a rectangle with color fill
+        yb = yt + font_width
+        # [0, yt, 64, yb] is [top left x, top left y, bottom right x, bottom left y]
+        draw.rectangle([0, yt, 64, yb], color)
+        # write the label for this color in white
+        # (68, yt) = (top left x, top left y)
+        # (255, 255, 255) = white
+        draw.text((68, yt), key, (255,255,255))
+        # create the new row's y-coord
+        yt += font_width
+
+    # save the key
+    img.save("{}.bmp".format(key_image_fname))
+    return
 
   # private function
   # look through the input file to get the tile group dimension (x,y)
@@ -314,6 +344,11 @@ def parse_args():
                       help="Ending cycle of bloodgraph")
   parser.add_argument("--timestamp", default=DEFAULT_TIMESTAMP, type=int,
                       help="Distance between each trace in cycles")
+  parser.add_argument("--generate-key", default=False, action='store_true',
+                      help="Generate a key image")
+  parser.add_argument("--no-blood-graph", default=False, action='store_true',
+                      help="Skip blood graph generation")
+
   args = parser.parse_args()
 
   if (args.start > args.end):
@@ -332,5 +367,8 @@ if __name__ == "__main__":
   args = parse_args()
   
   bg = BloodGraph(args.start, args.end, args.timestamp, args.mode)
-  bg.generate(args.input)
+  if not args.no_blood_graph:
+    bg.generate(args.input)
+  if args.generate_key:
+    bg.generate_key()
 
