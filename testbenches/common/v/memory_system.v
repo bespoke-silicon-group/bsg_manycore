@@ -84,7 +84,7 @@ module memory_system
     ,output logic axi_rready_o
   );
 
-  if (mem_cfg_p == e_mem_cfg_default) begin: mem_default
+  if (mem_cfg_p == e_mem_cfg_default || mem_cfg_p == e_mem_cfg_f1_dram) begin: mem_default
 
     bsg_cache_wrapper_axi #(
       .bsg_global_x_p(bsg_global_x_p)
