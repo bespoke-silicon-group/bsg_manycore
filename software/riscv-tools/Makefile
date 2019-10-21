@@ -84,6 +84,9 @@ checkout-repos:
 	git clone $(TOOLCHAIN_URL);
 	cd $(TOOLCHAIN_REPO) && git checkout $(TOOLCHAIN_VERSION);
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive -j 16;
+
+	# This patch is necessary if target abi is ilp32f because of the issue
+	# https://github.com/riscv/riscv-gnu-toolchain/issues/530
 	cd $(TOOLCHAIN_REPO)/riscv-gcc && git apply $(CURDIR)/riscv-gcc.patch
 
 replace-newlib:
