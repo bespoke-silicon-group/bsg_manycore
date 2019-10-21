@@ -254,10 +254,10 @@ class BloodGraph:
     # the current row position of our key
     yt = 0
     # for each color in stalls...
-    for (key,color) in chain(bg.stall_bubble_color.iteritems(),
-                             [("unified_instr"    ,bg.unified_instr_color),
-                              ("unified_fp_instr" ,bg.unified_fp_instr_color),
-                              ("unknown"          ,bg.unknown_color)]):
+    for (key,color) in chain(self.stall_bubble_color.iteritems(),
+                             [("unified_instr"    ,self.unified_instr_color),
+                              ("unified_fp_instr" ,self.unified_fp_instr_color),
+                              ("unknown"          ,self.unknown_color)]):
         # get the font size
         (font_height,font_width) = font.getsize(key)
         # draw a rectangle with color fill
