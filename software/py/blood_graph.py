@@ -6,12 +6,14 @@
 #   input: vanilla_operation_trace.log
 #   output: bitmap file (blood.bmp)
 #
-#   @author tommy
+#   @author tommy and borna
 #
 #   How to use:
-#   python blood_graph.py {start_time} {end_time} {timestep} {mode} {vanilla_operation_trace.log}
+#   python blood_graph.py --start {start_time} --end {end_time} --timestamp{timestep} 
+#                         --mode {detailed/abstract} --input {vanilla_operation_trace.log}
 #
-#   ex) python blood_graph.py 6000000 15000000 20 detailed vanilla_operation_trace.log
+#   ex) python blood_graph.py --start 6000000 --end 15000000 --timestamp 20 
+#                             --mode detailed --input vanilla_operation_trace.log
 #
 #   {start_time}  start_time in picosecond
 #   {end_time}    end_time in picosecond
@@ -22,9 +24,15 @@
 
 import sys
 import csv
+import argparse
 from PIL import Image
 
 
+DEFAULT_START_TIME = 19000000000
+DEFAULT_END_TIME   = 21000000000
+DEFAULT_TIMESTAMP  = 8000
+DEFAULT_MODE       = "detailed"
+DEFAULT_INPUT_FILE = "vanilla_operation_trace.log"
 
 
 class BloodGraph:
@@ -143,7 +151,7 @@ class BloodGraph:
     # Coloring scheme for different types of operations
     # For detailed mode 
     # i_cache miss is treated the same is stall_ifetch_wait
-    self.detailed_stall_bubble_color = { "stall_depend"                   : (0x00, 0x00, 0x00), ## black
+    self.detailed_stall_bubble_color = { "stall_depend"                   : (0xff, 0xff, 0xff), ## white
                                          "stall_depend_local_load"        : (0x00, 0x66, 0x00), ## dark green
                                          "stall_depend_remote_load"       : (0x00, 0xff, 0x00), ## green
                                          "stall_depend_local_remote_load" : (0x00, 0xcc, 0xcc), ## dark cyan
@@ -256,7 +264,7 @@ class BloodGraph:
   # initialize image
   def init_image(self):
     self.img_width = 1024   # default
-    self.img_height = ((((end_time-start_time)//timestep)+self.img_width)//self.img_width)*(2+(self.xdim*self.ydim))
+    self.img_height = ((((self.end_time-self.start_time)//self.timestep)+self.img_width)//self.img_width)*(2+(self.xdim*self.ydim))
     self.img = Image.new("RGB", (self.img_width, self.img_height), "black")
     self.pixel = self.img.load()
     return  
@@ -278,7 +286,6 @@ class BloodGraph:
     row = floor*(2+(self.xdim*self.ydim)) + (tg_x+(tg_y*self.xdim))
 
 
-
     # determine color
     if trace["operation"] in self.stall_bubble_color.keys():
       self.pixel[col,row] = self.stall_bubble_color[trace["operation"]]
@@ -293,39 +300,37 @@ class BloodGraph:
       sys.exit()
     return
 
-     
+   
+
+def parse_args():
+  parser = argparse.ArgumentParser(description="TODO")
+  parser.add_argument("--input", default=DEFAULT_INPUT_FILE, type=str,
+                      help="Vanilla operation log file")
+  parser.add_argument("--mode", default=DEFAULT_MODE, type=str,
+                      help="Type of bloodgraph - abstract / detailed")
+  parser.add_argument("--start", default=DEFAULT_START_TIME, type=int,
+                      help="Starting cycle of bloodgraph")
+  parser.add_argument("--end", default=DEFAULT_END_TIME, type=int,
+                      help="Ending cycle of bloodgraph")
+  parser.add_argument("--timestamp", default=DEFAULT_TIMESTAMP, type=int,
+                      help="Distance between each trace in cycles")
+  args = parser.parse_args()
+
+  if (args.start > args.end):
+    parser.error("start cycle cannot be larger than end time.")
+    sys.exit()
+
+  if (not (args.mode == "abstract" or args.mode == "detailed")):
+    parser.error("Invalid mode, can be one of abstract / detailed.")
+    sys.exit()
+
+  return args
+
 
 # main()
 if __name__ == "__main__":
+  args = parse_args()
+  
+  bg = BloodGraph(args.start, args.end, args.timestamp, args.mode)
+  bg.generate(args.input)
 
-  if len(sys.argv) == 5:
-    mode = "detailed"
-    input_file = sys.argv[4]
-
-  elif len(sys.argv) == 6:
-    mode = sys.argv[4]
-    input_file = sys.argv[5]
-
-  else :
-    print("Error: wrong number of arguments.")
-    print("python bloodgraph.py {start_time} {end_time} {timestep} {mode} vanilla_operation_trace.log")
-    sys.exit()
- 
-  start_time = int(sys.argv[1])
-  end_time = int(sys.argv[2])
-  timestep = int(sys.argv[3])
-
-  if (start_time > end_time):
-    print("Error: start_time cannot be larger than end_time.")
-    print("python bloodgraph.py {start_time} {end_time} {timestep} {mode} vanilla_operation_trace.log")
-    sys.exit()
-
-  if (not (mode == "abstract" or mode == "detailed")):
-    print("Error: Invalid mode, can be one of abstract / detailed.")
-    print("python bloodgraph.py {start_time} {end_time} {timestep} {mode} vanilla_operation_trace.log")
-    sys.exit()
-
-
-
-  bg = BloodGraph(start_time, end_time, timestep, mode)
-  bg.generate(input_file)
