@@ -18,9 +18,9 @@
 all: main.run
 
 
-KERNEL_NAME ?=kernel_memcpy
+KERNEL_NAME ?=kernel_device_memcpy
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_memcpy.o
+OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_device_memcpy.o
 
 include ../../Makefile.include
 

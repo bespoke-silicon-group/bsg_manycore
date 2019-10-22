@@ -11,7 +11,7 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 
 
 
-int  __attribute__ ((noinline)) kernel_memcpy(int *dst, const int *src, const int size) {
+int  __attribute__ ((noinline)) kernel_device_memcpy(int *dst, const int *src, const int size) {
 
 	int __bsg_tile_group_id = (__bsg_tile_group_id_y * __bsg_grid_dim_x + __bsg_tile_group_id_x);
 	int __bsg_tile_group_size = (bsg_tiles_X * bsg_tiles_Y);
