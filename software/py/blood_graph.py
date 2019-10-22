@@ -49,7 +49,7 @@ class BloodGraph:
     self.mode = mode
 
     # List of types of stalls incurred by the core 
-    self.stall_list    = ["stall_depend",
+    self.stalls_list   = {"stall_depend",
                           "stall_depend_local_load",
                           "stall_depend_remote_load",
                           "stall_depend_local_remote_load",
@@ -61,11 +61,11 @@ class BloodGraph:
                           "stall_lr_aq",
                           "stall_md",
                           "stall_remote_req",
-                          "stall_local_flw" ]
+                          "stall_local_flw" }
 
 
     # List of types of integer instructions executed by the core 
-    self.instr_list    = ["local_ld",
+    self.instr_list    = {"local_ld",
                           "local_st",
                           "remote_ld",
                           "remote_st",
@@ -124,11 +124,11 @@ class BloodGraph:
                           "divu",
                           "rem",
                           "remu",
-                          "fence"]
+                          "fence" }
 
 
     # List of types of floating point instructions executed by the core
-    self.fp_instr_list = ["fadd",
+    self.fp_instr_list = {"fadd",
                           "fsub",
                           "fmul",
                           "fsgnj",
@@ -145,7 +145,7 @@ class BloodGraph:
                           "fcvt_w_s",
                           "fcvt_wu_s",
                           "fclass",
-                          "fmv_x_w" ]
+                          "fmv_x_w" }
 
     # List of unknown operation by the core 
     self.unknown_list  = ["unknown"]
