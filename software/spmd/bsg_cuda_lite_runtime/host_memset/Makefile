@@ -18,9 +18,9 @@
 all: main.run
 
 
-KERNEL_NAME ?=kernel_memset
+KERNEL_NAME ?=kernel_host_memset
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_memset.o
+OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_host_memset.o
 
 include ../../Makefile.include
 

@@ -10,7 +10,7 @@
 INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 
 
-int  __attribute__ ((noinline)) kernel_memset() {
+int  __attribute__ ((noinline)) kernel_host_memset() {
   bsg_tile_group_barrier(&r_barrier, &c_barrier);
   return 0;
 }
