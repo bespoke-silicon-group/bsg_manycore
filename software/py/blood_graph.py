@@ -9,16 +9,15 @@
 #   @author tommy and borna
 #
 #   How to use:
-#   python blood_graph.py --start {start_time} --end {end_time} --timestamp{timestep} 
-#                         --mode {detailed/abstract} --input {vanilla_operation_trace.log}
+#   python blood_graph.py --time {start_time@end_time} --timestamp{timestep} 
+#                         --abstract {optional} --input {vanilla_operation_trace.log}
 #
-#   ex) python blood_graph.py --start 6000000 --end 15000000 --timestamp 20 
-#                             --mode detailed --input vanilla_operation_trace.log
+#   ex) python blood_graph.py --time 6000000@15000000 --timestamp 20 
+#                             --abstract --input vanilla_operation_trace.log
 #
-#   {start_time}  start_time in picosecond
-#   {end_time}    end_time in picosecond
-#   {timestep}    time step in picosecond
-#   {mode}        abstract / detailed
+#   {time}        start_time@end_time in picosecond
+#   {timestep}    Distance between two consecutive traces (clock period) in picoseconds
+#   {abstract}    used for abstract simplifed bloodgraph
 # 
 
 
@@ -29,8 +28,8 @@ from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
 
 
-DEFAULT_START_TIME = 19000000000
-DEFAULT_END_TIME   = 21000000000
+DEFAULT_START_TIME = 18000000000
+DEFAULT_END_TIME   = 20000000000
 DEFAULT_TIMESTAMP  = 8000
 DEFAULT_MODE       = "detailed"
 DEFAULT_INPUT_FILE = "vanilla_operation_trace.log"
@@ -41,12 +40,12 @@ class BloodGraph:
   KEY_WIDTH  = 256
   KEY_HEIGHT = 256
   # default constructor
-  def __init__(self, start_time, end_time, timestep, mode):
+  def __init__(self, start_time, end_time, timestep, abstract):
 
     self.start_time = start_time
     self.end_time = end_time
     self.timestep = timestep
-    self.mode = mode
+    self.abstract = abstract
 
     # List of types of stalls incurred by the core 
     self.stalls_list   = {"stall_depend",
@@ -201,11 +200,8 @@ class BloodGraph:
 
 
 
-
-
-
     # Determine coloring rules based on mode {abstract / detailed}
-    if (self.mode == "abstract"):
+    if (self.abstract):
       self.stall_bubble_color     = self.abstract_stall_bubble_color
       self.unified_instr_color    = self.abstract_unified_instr_color
       self.unified_fp_instr_color = self.abstract_unified_instr_color
@@ -247,6 +243,8 @@ class BloodGraph:
     self.img.save("blood.bmp")
     return
 
+  # public method to generate key for bloodgraph
+  # called if --generate-key argument is true
   def generate_key(self, key_image_fname = "key"):
     img  = Image.new("RGB", (self.KEY_WIDTH, self.KEY_HEIGHT), "black")
     draw = ImageDraw.Draw(img)
@@ -254,12 +252,12 @@ class BloodGraph:
     # the current row position of our key
     yt = 0
     # for each color in stalls...
-    for (key,color) in chain(self.stall_bubble_color.iteritems(),
+    for (operation,color) in chain(self.stall_bubble_color.iteritems(),
                              [("unified_instr"    ,self.unified_instr_color),
                               ("unified_fp_instr" ,self.unified_fp_instr_color),
                               ("unknown"          ,self.unknown_color)]):
         # get the font size
-        (font_height,font_width) = font.getsize(key)
+        (font_height,font_width) = font.getsize(operation)
         # draw a rectangle with color fill
         yb = yt + font_width
         # [0, yt, 64, yb] is [top left x, top left y, bottom right x, bottom left y]
@@ -267,7 +265,7 @@ class BloodGraph:
         # write the label for this color in white
         # (68, yt) = (top left x, top left y)
         # (255, 255, 255) = white
-        draw.text((68, yt), key, (255,255,255))
+        draw.text((68, yt), operation, (255,255,255))
         # create the new row's y-coord
         yt += font_width
 
@@ -275,7 +273,7 @@ class BloodGraph:
     img.save("{}.bmp".format(key_image_fname))
     return
 
-  # private function
+  # private method
   # look through the input file to get the tile group dimension (x,y)
   def get_tg_dim(self, traces):
     xs = list(map(lambda t: t["x"], traces))
@@ -290,7 +288,7 @@ class BloodGraph:
     return
 
 
-  # private function
+  # private method
   # initialize image
   def init_image(self):
     self.img_width = 1024   # default
@@ -299,7 +297,7 @@ class BloodGraph:
     self.pixel = self.img.load()
     return  
   
-  # private function
+  # private method
   # mark the trace on output image
   def mark_trace(self, trace):
 
@@ -330,35 +328,48 @@ class BloodGraph:
       sys.exit()
     return
 
-   
 
-def parse_args():
-  parser = argparse.ArgumentParser(description="TODO")
+class TimeAction(argparse.Action):
+  def __call__(self, parser, namespace, time, option_string=None):
+    start_str,end_str = time.split("@")
+
+    # Check if start time is given as input
+    if(not start_str):
+      start_time = DEFAULT_START_TIME
+    else:
+      start_time = int(start_str)
+
+    # Check if end time is given as input
+    if(not end_str):
+      end_time = DEFAULT_END_TIME
+    else:
+      end_time = int(end_str)
+
+    # check if start time is before end time
+    if(start_time > end_time):
+      raise ValueError("start time {} cannot be larger than end time {}.".format(start_time, end_time))
+
+    setattr(namespace, "start", start_time)
+    setattr(namespace, "end", end_time)
+ 
+
+def parse_args():  
+  parser = argparse.ArgumentParser(description="Argument parser for blood_graph.py")
   parser.add_argument("--input", default=DEFAULT_INPUT_FILE, type=str,
                       help="Vanilla operation log file")
-  parser.add_argument("--mode", default=DEFAULT_MODE, type=str,
+  parser.add_argument("--time", nargs='?', required=1, action=TimeAction, 
+                      const = (str(DEFAULT_START_TIME)+"@"+str(DEFAULT_END_TIME)),
+                      help="Time window of bloodgraph as start_time@end_time in picoseconds")
+  parser.add_argument("--abstract", default=False, action='store_true',
                       help="Type of bloodgraph - abstract / detailed")
-  parser.add_argument("--start", default=DEFAULT_START_TIME, type=int,
-                      help="Starting cycle of bloodgraph")
-  parser.add_argument("--end", default=DEFAULT_END_TIME, type=int,
-                      help="Ending cycle of bloodgraph")
   parser.add_argument("--timestamp", default=DEFAULT_TIMESTAMP, type=int,
-                      help="Distance between each trace in cycles")
+                      help="Distance between each trace (clock period) in picoseconds")
   parser.add_argument("--generate-key", default=False, action='store_true',
                       help="Generate a key image")
   parser.add_argument("--no-blood-graph", default=False, action='store_true',
                       help="Skip blood graph generation")
 
   args = parser.parse_args()
-
-  if (args.start > args.end):
-    parser.error("start cycle cannot be larger than end time.")
-    sys.exit()
-
-  if (not (args.mode == "abstract" or args.mode == "detailed")):
-    parser.error("Invalid mode, can be one of abstract / detailed.")
-    sys.exit()
-
   return args
 
 
@@ -366,7 +377,7 @@ def parse_args():
 if __name__ == "__main__":
   args = parse_args()
   
-  bg = BloodGraph(args.start, args.end, args.timestamp, args.mode)
+  bg = BloodGraph(args.start, args.end, args.timestamp, args.abstract)
   if not args.no_blood_graph:
     bg.generate(args.input)
   if args.generate_key:
