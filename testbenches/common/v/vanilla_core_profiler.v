@@ -72,6 +72,11 @@ module vanilla_core_profiler
   );
 
 
+  // task to print a line of operation trace
+  task print_operation_trace(integer fd, string op);
+    $fwrite(fd, "%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, op);
+  endtask
+
   // event signals
   //
   logic instr_inc;
@@ -675,202 +680,202 @@ module vanilla_core_profiler
         if (~reset_i & trace_en_i) begin
           fd2= $fopen(tracefile_lp, "a");
           if (stall_depend_inc & ~stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_depend");
+            print_operation_trace(fd2, "stall_depend");
           else if (stall_depend_inc & stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_depend_local_load");
+            print_operation_trace(fd2, "stall_depend_local_load");
           else if (stall_depend_inc & ~stall_depend_local_load_inc & stall_depend_remote_load_inc)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_depend_remote_load");
+            print_operation_trace(fd2, "stall_depend_remote_load");
           else if (stall_depend_inc & stall_depend_local_load_inc & stall_depend_remote_load_inc)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_depend_local_remote_load");
+            print_operation_trace(fd2, "stall_depend_local_remote_load");
           else if (stall_fp_remote_load_inc)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_fp_remote_load");
+            print_operation_trace(fd2, "stall_fp_remote_load");
           else if (stall_fp_local_load_inc)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_fp_local_load");
+            print_operation_trace(fd2, "stall_fp_local_load");
           else if (stall_force_wb_inc)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_force_wb");
+            print_operation_trace(fd2, "stall_force_wb");
           else if (stall_ifetch_wait)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_ifetch_wait");
+            print_operation_trace(fd2, "stall_ifetch_wait");
           else if (stall_icache_store)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_icache_store");
+            print_operation_trace(fd2, "stall_icache_store");
           else if (stall_lr_aq)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_lr_aq");
+            print_operation_trace(fd2, "stall_lr_aq");
           else if (stall_md)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_md");
+            print_operation_trace(fd2, "stall_md");
           else if (stall_remote_req)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_remote_req");
+            print_operation_trace(fd2, "stall_remote_req");
           else if (stall_local_flw)
-            $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "stall_local_flw");
+            print_operation_trace(fd2, "stall_local_flw");
           else
           begin
 
             if (local_ld_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "local_ld");
+              print_operation_trace(fd2, "local_ld");
             else if (local_st_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "local_st");
+              print_operation_trace(fd2, "local_st");
             else if (remote_ld_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "remote_ld");
+              print_operation_trace(fd2, "remote_ld");
             else if (remote_st_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "remote_st");
+              print_operation_trace(fd2, "remote_st");
             else if (local_flw_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "local_flw");
+              print_operation_trace(fd2, "local_flw");
             else if (local_fsw_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "local_fsw");
+              print_operation_trace(fd2, "local_fsw");
             else if (remote_flw_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "remote_flw");
+              print_operation_trace(fd2, "remote_flw");
             else if (remote_fsw_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "remote_fsw");
+              print_operation_trace(fd2, "remote_fsw");
             else if (icache_miss_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "icache_miss");
+              print_operation_trace(fd2, "icache_miss");
 
             else if (lr_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "lr");
+              print_operation_trace(fd2, "lr");
             else if (lr_aq_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "lr_aq");
+              print_operation_trace(fd2, "lr_aq");
             else if (swap_aq_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "swap_aq");
+              print_operation_trace(fd2, "swap_aq");
             else if (swap_rl_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "swap_rl");
+              print_operation_trace(fd2, "swap_rl");
 
             else if (beq_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "beq");
+              print_operation_trace(fd2, "beq");
             else if (bne_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bne");
+              print_operation_trace(fd2, "bne");
             else if (blt_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "blt");
+              print_operation_trace(fd2, "blt");
             else if (bge_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bge");
+              print_operation_trace(fd2, "bge");
             else if (bltu_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bltu");
+              print_operation_trace(fd2, "bltu");
             else if (bgeu_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bgeu");
+              print_operation_trace(fd2, "bgeu");
             else if (jalr_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "jalr");
+              print_operation_trace(fd2, "jalr");
             else if (jal_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "jal");
+              print_operation_trace(fd2, "jal");
 
             else if (beq_miss_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "beq_miss");
+              print_operation_trace(fd2, "beq_miss");
             else if (bne_miss_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bne_miss");
+              print_operation_trace(fd2, "bne_miss");
             else if (blt_miss_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "blt_miss");
+              print_operation_trace(fd2, "blt_miss");
             else if (bge_miss_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bge_miss");
+              print_operation_trace(fd2, "bge_miss");
             else if (bltu_miss_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bltu_miss");
+              print_operation_trace(fd2, "bltu_miss");
             else if (bgeu_miss_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bgeu_miss");
+              print_operation_trace(fd2, "bgeu_miss");
             else if (jalr_miss_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "jalr_miss");
+              print_operation_trace(fd2, "jalr_miss");
 
             else if (sll_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sll");
+              print_operation_trace(fd2, "sll");
             else if (slli_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "slli");
+              print_operation_trace(fd2, "slli");
             else if (srl_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "srl");
+              print_operation_trace(fd2, "srl");
             else if (srli_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "srli");
+              print_operation_trace(fd2, "srli");
             else if (sra_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sra");
+              print_operation_trace(fd2, "sra");
             else if (srai_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "srai");
+              print_operation_trace(fd2, "srai");
 
             else if (add_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "add");
+              print_operation_trace(fd2, "add");
             else if (addi_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "addi");
+              print_operation_trace(fd2, "addi");
             else if (sub_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sub");
+              print_operation_trace(fd2, "sub");
             else if (lui_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "lui");
+              print_operation_trace(fd2, "lui");
             else if (auipc_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "auipc");
+              print_operation_trace(fd2, "auipc");
             else if (xor_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "xor");
+              print_operation_trace(fd2, "xor");
             else if (xori_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "xori");
+              print_operation_trace(fd2, "xori");
             else if (or_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "or");
+              print_operation_trace(fd2, "or");
             else if (ori_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "ori");
+              print_operation_trace(fd2, "ori");
             else if (and_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "and");
+              print_operation_trace(fd2, "and");
             else if (andi_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "andi");
+              print_operation_trace(fd2, "andi");
             else if (slt_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "slt");
+              print_operation_trace(fd2, "slt");
             else if (slti_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "slti");
+              print_operation_trace(fd2, "slti");
             else if (sltu_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sltu");
+              print_operation_trace(fd2, "sltu");
             else if (sltiu_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "sltiu");
+              print_operation_trace(fd2, "sltiu");
 
             else if (mul_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "mul");
+              print_operation_trace(fd2, "mul");
             else if (mulh_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "mulh");
+              print_operation_trace(fd2, "mulh");
             else if (mulhsu_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "mulhsu");
+              print_operation_trace(fd2, "mulhsu");
             else if (mulhu_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "mulhu");
+              print_operation_trace(fd2, "mulhu");
             else if (div_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "div");
+              print_operation_trace(fd2, "div");
             else if (divu_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "divu");
+              print_operation_trace(fd2, "divu");
             else if (rem_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "rem");
+              print_operation_trace(fd2, "rem");
             else if (remu_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "remu");
+              print_operation_trace(fd2, "remu");
 
             else if (fence_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fence");
+              print_operation_trace(fd2, "fence");
 
             else if (fadd_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fadd");
+              print_operation_trace(fd2, "fadd");
             else if (fsub_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fsub");
+              print_operation_trace(fd2, "fsub");
             else if (fmul_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fmul");
+              print_operation_trace(fd2, "fmul");
             else if (fsgnj_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fsgnj");
+              print_operation_trace(fd2, "fsgnj");
             else if (fsgnjn_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fsgnjn");
+              print_operation_trace(fd2, "fsgnjn");
             else if (fsgnjx_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fsgnjx");
+              print_operation_trace(fd2, "fsgnjx");
             else if (fmin_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fmin");
+              print_operation_trace(fd2, "fmin");
             else if (fmax_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fmax");
+              print_operation_trace(fd2, "fmax");
             else if (fcvt_s_w_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fcvt_s_w");
+              print_operation_trace(fd2, "fcvt_s_w");
             else if (fcvt_s_wu_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fcvt_s_wu");
+              print_operation_trace(fd2, "fcvt_s_wu");
             else if (fmv_w_x_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fmv_w_x");
+              print_operation_trace(fd2, "fmv_w_x");
 
             else if (feq_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "feq");
+              print_operation_trace(fd2, "feq");
             else if (flt_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "flt");
+              print_operation_trace(fd2, "flt");
             else if (fle_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fle");
+              print_operation_trace(fd2, "fle");
             else if (fcvt_w_s_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fcvt_w_s");
+              print_operation_trace(fd2, "fcvt_w_s");
             else if (fcvt_wu_s_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fcvt_wu_s");
+              print_operation_trace(fd2, "fcvt_wu_s");
             else if (fclass_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fclass");
+              print_operation_trace(fd2, "fclass");
             else if (fmv_x_w_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "fmv_x_w");
+              print_operation_trace(fd2, "fmv_x_w");
 
 
              else if (instr_inc | fp_instr_inc)
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "unknown");
+              print_operation_trace(fd2, "unknown");
 
              else 
-              $fwrite(fd2,"%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, "bubble");
+              print_operation_trace(fd2, "bubble");
           end
 
 
