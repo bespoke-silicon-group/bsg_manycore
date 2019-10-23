@@ -28,7 +28,7 @@
 .DEFAULT_GOAL := help
 
 TARGET_ARCH       := rv32imaf
-TARGET_ABI        := ilp32f # TODO: Test ilp32f for potential performance improvement
+TARGET_ABI        := ilp32f
 TARGET_CFLAGS     := '-fno-common -ffp-contract=off -mno-fdiv' # Turn off fma, fdiv and fexp instructions
                                                                # as manycore's FPU doesn't support them.
 
