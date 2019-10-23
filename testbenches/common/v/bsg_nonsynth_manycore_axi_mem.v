@@ -9,8 +9,10 @@ module bsg_nonsynth_manycore_axi_mem
     , parameter axi_burst_len_p="inv"
     , parameter mem_els_p="inv"
 
-    , localparam lg_mem_els_lp=`BSG_SAFE_CLOG2(mem_els_p)
-    , localparam axi_strb_width_lp=(axi_data_width_p>>3)
+    , parameter bsg_dram_included_p=1
+
+    , parameter lg_mem_els_lp=`BSG_SAFE_CLOG2(mem_els_p)
+    , parameter axi_strb_width_lp=(axi_data_width_p>>3)
   )
   ( 
     input clk_i

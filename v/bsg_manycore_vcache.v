@@ -14,10 +14,10 @@ module bsg_manycore_vcache
     , parameter ways_p = "inv"
     
     , parameter x_cord_width_p="inv"
-    , parameter y_cord_wdith_p="inv"
+    , parameter y_cord_width_p="inv"
     , parameter load_id_width_p="inv"
 
-    , parameter byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p)
+    , parameter byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
     , parameter cache_addr_width_lp=(addr_width_p-1+byte_offset_width_lp)
 
     , parameter link_sif_width_lp =
@@ -106,8 +106,8 @@ module bsg_manycore_vcache
     ,.sets_p(sets_p)
     ,.ways_p(ways_p)
   ) cache (
-    .clk_i(clk)
-    ,.reset_i(reset)
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
     
     ,.cache_pkt_i(cache_pkt)
     ,.v_i(cache_v_li)

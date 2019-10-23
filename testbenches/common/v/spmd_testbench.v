@@ -11,8 +11,8 @@ module spmd_testbench;
   // rename it to something more familiar.
   parameter num_tiles_x_p = `BSG_MACHINE_GLOBAL_X;
   parameter num_tiles_y_p = `BSG_MACHINE_GLOBAL_Y;
-  parameter vcache_set_p = `BSG_MACHINE_VCACHE_SET;
-  parameter vcache_way_p = `BSG_MACHINE_VCACHE_WAY;
+  parameter vcache_sets_p = `BSG_MACHINE_VCACHE_SET;
+  parameter vcache_ways_p = `BSG_MACHINE_VCACHE_WAY;
   parameter vcache_block_size_in_words_p = `BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS; // in words
   parameter bsg_dram_size_p = `BSG_MACHINE_DRAM_SIZE_WORDS; // in words
   parameter bsg_dram_included_p = `BSG_MACHINE_DRAM_INCLUDED;
@@ -40,8 +40,10 @@ module spmd_testbench;
   parameter x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p);
   parameter y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p);
 
-  parameter vcache_size_p = vcache_set_p * vcache_way_p * vcache_block_size_p;
+  parameter vcache_size_p = vcache_sets_p * vcache_ways_p * vcache_block_size_in_words_p;
   parameter dram_ch_addr_width_p = `BSG_SAFE_CLOG2(bsg_dram_size_p)-x_cord_width_lp; // virtual bank addr width (in word)
+  parameter byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3);
+  parameter cache_addr_width_lp=(bsg_max_epa_width_p-1+byte_offset_width_lp);
 
 
   // print machine settings
@@ -49,13 +51,13 @@ module spmd_testbench;
     $display("MACHINE SETTINGS:");
     $display("[INFO][TESTBENCH] BSG_MACHINE_GLOBAL_X                 = %d", num_tiles_x_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_GLOBAL_Y                 = %d", num_tiles_y_p);
-    $display("[INFO][TESTBENCH] BSG_MACHINE_VCACHE_SET               = %d", bsg_vcache_set_p);
-    $display("[INFO][TESTBENCH] BSG_MACHINE_VCACHE_WAY               = %d", bsg_vcache_way_p);
-    $display("[INFO][TESTBENCH] BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS  = %d", bsg_vcache_block_size_p);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_VCACHE_SET               = %d", vcache_sets_p);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_VCACHE_WAY               = %d", vcache_ways_p);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS  = %d", vcache_block_size_in_words_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_DRAM_SIZE_WORDS          = %d", bsg_dram_size_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_DRAM_INCLUDED            = %d", bsg_dram_included_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_MAX_EPA_WIDTH            = %d", bsg_max_epa_width_p);
-    $display("[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = %s", bsg_mem_cfg_p.name());
+    $display("[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = %s", bsg_manycore_mem_cfg_p.name());
   end
 
 
@@ -104,8 +106,8 @@ module spmd_testbench;
   bsg_manycore #(
     .dmem_size_p(dmem_size_p)
     ,.vcache_size_p(vcache_size_p)
-    ,.vcache_block_size_in_words_p(bsg_vcache_block_size_p)
-    ,.vcache_sets_p(bsg_vcache_set_p)
+    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+    ,.vcache_sets_p(vcache_sets_p)
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.data_width_p(data_width_p)
@@ -177,9 +179,9 @@ module spmd_testbench;
     for (genvar i = 0; i < num_tiles_x_p; i++) begin
       bsg_nonsynth_mem_infinite #(
         .data_width_p(data_width_p)
-        ,.addr_width_p(addr_width_p)
-        ,.x_cord_width_p(x_cord_width_p)
-        ,.y_cord_width_p(y_cord_width_p)
+        ,.addr_width_p(bsg_max_epa_width_p)
+        ,.x_cord_width_p(x_cord_width_lp)
+        ,.y_cord_width_p(y_cord_width_lp)
         ,.load_id_width_p(load_id_width_p)
       ) mem_infty (
         .clk_i(clk)
@@ -188,8 +190,8 @@ module spmd_testbench;
         ,.link_sif_i(ver_link_lo[S][i])
         ,.link_sif_o(ver_link_li[S][i])
         
-        ,.my_x_i((x_cord_width_p)'(i))
-        ,.my_y_i((y_cord_width_p)'(num_tiles_y_p))
+        ,.my_x_i((x_cord_width_lp)'(i))
+        ,.my_y_i((y_cord_width_lp)'(num_tiles_y_p))
       );
     end
     
@@ -205,7 +207,7 @@ module spmd_testbench;
     );
 
   end
-  else if (bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem) begin
+  else if (bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem) begin: lv1_vcache
 
     import bsg_cache_pkg::*;
   
@@ -226,7 +228,7 @@ module spmd_testbench;
 
       bsg_manycore_vcache #(
         .data_width_p(data_width_p)
-        ,.addr_width_p(addr_width_p)
+        ,.addr_width_p(bsg_max_epa_width_p)
         ,.block_size_in_words_p(vcache_block_size_in_words_p)
         ,.sets_p(vcache_sets_p)
         ,.ways_p(vcache_ways_p)
@@ -272,7 +274,7 @@ module spmd_testbench;
 
   // LEVEL 2
   //
-  if (bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem) begin
+  if (bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem) begin: lv2_axi4
 
     logic [axi_id_width_p-1:0] axi_awid;
     logic [axi_addr_width_p-1:0] axi_awaddr;
@@ -325,20 +327,20 @@ module spmd_testbench;
       ,.axi_data_width_p(axi_data_width_p)
       ,.axi_burst_len_p(axi_burst_len_p)
     ) cache_to_axi (
-      .clk_i(clk_i)
-      ,.reset_i(reset_i)
+      .clk_i(clk)
+      ,.reset_i(reset)
 
-      ,.dma_pkt_i(dma_pkt)
-      ,.dma_pkt_v_i(dma_pkt_v_lo)
-      ,.dma_pkt_yumi_o(dma_pkt_yumi_li)
+      ,.dma_pkt_i(lv1_vcache.dma_pkt)
+      ,.dma_pkt_v_i(lv1_vcache.dma_pkt_v_lo)
+      ,.dma_pkt_yumi_o(lv1_vcache.dma_pkt_yumi_li)
 
-      ,.dma_data_o(dma_data_li)
-      ,.dma_data_v_o(dma_data_v_li)
-      ,.dma_data_ready_i(dma_data_ready_lo)
+      ,.dma_data_o(lv1_vcache.dma_data_li)
+      ,.dma_data_v_o(lv1_vcache.dma_data_v_li)
+      ,.dma_data_ready_i(lv1_vcache.dma_data_ready_lo)
 
-      ,.dma_data_i(dma_data_lo)
-      ,.dma_data_v_i(dma_data_v_lo)
-      ,.dma_data_yumi_o(dma_data_yumi_li)
+      ,.dma_data_i(lv1_vcache.dma_data_lo)
+      ,.dma_data_v_i(lv1_vcache.dma_data_v_lo)
+      ,.dma_data_yumi_o(lv1_vcache.dma_data_yumi_li)
 
       ,.axi_awid_o(axi_awid)
       ,.axi_awaddr_o(axi_awaddr)
@@ -399,33 +401,33 @@ module spmd_testbench;
       .clk_i(clk)
       ,.reset_i(reset)
 
-      ,.axi_awid_i(axi_awid)
-      ,.axi_awaddr_i(axi_awaddr)
-      ,.axi_awvalid_i(axi_awvalid)
-      ,.axi_awready_o(axi_awready)
+      ,.axi_awid_i(lv2_axi4.axi_awid)
+      ,.axi_awaddr_i(lv2_axi4.axi_awaddr)
+      ,.axi_awvalid_i(lv2_axi4.axi_awvalid)
+      ,.axi_awready_o(lv2_axi4.axi_awready)
 
-      ,.axi_wdata_i(axi_wdata)
-      ,.axi_wstrb_i(axi_wstrb)
-      ,.axi_wlast_i(axi_wlast)
-      ,.axi_wvalid_i(axi_wvalid)
-      ,.axi_wready_o(axi_wready)
+      ,.axi_wdata_i(lv2_axi4.axi_wdata)
+      ,.axi_wstrb_i(lv2_axi4.axi_wstrb)
+      ,.axi_wlast_i(lv2_axi4.axi_wlast)
+      ,.axi_wvalid_i(lv2_axi4.axi_wvalid)
+      ,.axi_wready_o(lv2_axi4.axi_wready)
 
-      ,.axi_bid_o(axi_bid)
-      ,.axi_bresp_o(axi_bresp)
-      ,.axi_bvalid_o(axi_bvalid)
-      ,.axi_bready_i(axi_bready)
+      ,.axi_bid_o(lv2_axi4.axi_bid)
+      ,.axi_bresp_o(lv2_axi4.axi_bresp)
+      ,.axi_bvalid_o(lv2_axi4.axi_bvalid)
+      ,.axi_bready_i(lv2_axi4.axi_bready)
 
-      ,.axi_arid_i(axi_arid)
-      ,.axi_araddr_i(axi_araddr)
-      ,.axi_arvalid_i(axi_arvalid)
-      ,.axi_arready_o(axi_arready)
+      ,.axi_arid_i(lv2_axi4.axi_arid)
+      ,.axi_araddr_i(lv2_axi4.axi_araddr)
+      ,.axi_arvalid_i(lv2_axi4.axi_arvalid)
+      ,.axi_arready_o(lv2_axi4.axi_arready)
 
-      ,.axi_rid_o(axi_rid)
-      ,.axi_rdata_o(axi_rdata)
-      ,.axi_rresp_o(axi_rresp)
-      ,.axi_rlast_o(axi_rlast)
-      ,.axi_rvalid_o(axi_rvalid)
-      ,.axi_rready_i(axi_rready)
+      ,.axi_rid_o(lv2_axi4.axi_rid)
+      ,.axi_rdata_o(lv2_axi4.axi_rdata)
+      ,.axi_rresp_o(lv2_axi4.axi_rresp)
+      ,.axi_rlast_o(lv2_axi4.axi_rlast)
+      ,.axi_rvalid_o(lv2_axi4.axi_rvalid)
+      ,.axi_rready_i(lv2_axi4.axi_rready)
     );
     
   end
