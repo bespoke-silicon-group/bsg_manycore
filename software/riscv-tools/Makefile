@@ -28,7 +28,7 @@
 .DEFAULT_GOAL := help
 
 TARGET_ARCH       := rv32imaf
-TARGET_ABI        := ilp32 # TODO: Test ilp32f for potential performance improvement
+TARGET_ABI        := ilp32f
 TARGET_CFLAGS     := '-fno-common -ffp-contract=off -mno-fdiv' # Turn off fma, fdiv and fexp instructions
                                                                # as manycore's FPU doesn't support them.
 
@@ -40,7 +40,7 @@ DEPENDS_DIR       := $(CURDIR)/depends
 
 NEWLIB_URL        := https://github.com/bespoke-silicon-group/bsg_newlib_dramfs.git
 NEWLIB_BRANCH     := dramfs
-NEWLIB_VERSION    := 1341d8b68f8eeec01b36de67c27bb2875e70c6f6
+NEWLIB_VERSION    := 7f0037ac3ac5068524d8e34c9b0fb5553bc55be1
 NEWLIB_PATCH      := newlib.patch
 
 SPIKE_REPO        := riscv-isa-sim
@@ -83,14 +83,17 @@ checkout-repos:
 	@rm -rf $(TOOLCHAIN_REPO);
 	git clone $(TOOLCHAIN_URL);
 	cd $(TOOLCHAIN_REPO) && git checkout $(TOOLCHAIN_VERSION);
-	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive -j 16;
+
+	# This patch is necessary if target abi is ilp32f because of the issue
+	# https://github.com/riscv/riscv-gnu-toolchain/issues/530
+	cd $(TOOLCHAIN_REPO)/riscv-gcc && git apply $(CURDIR)/riscv-gcc.patch
 
 replace-newlib:
-	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.url $(NEWLIB_URL)
-	cd $(TOOLCHAIN_REPO) && git config --file=.gitmodules submodule.riscv-newlib.branch $(NEWLIB_BRANCH)
-	cd $(TOOLCHAIN_REPO) && git apply ../$(NEWLIB_PATCH)
+	cd $(TOOLCHAIN_REPO) && git apply $(CURDIR)/$(NEWLIB_PATCH)
 	cd $(TOOLCHAIN_REPO) && git submodule sync
 	cd $(TOOLCHAIN_REPO) && git submodule update --remote riscv-newlib
+	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout $(NEWLIB_BRANCH)
 	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout $(NEWLIB_VERSION)
 
 checkout-spike:
@@ -151,6 +154,7 @@ build-all:
 	$(MAKE) build-spike
 	$(MAKE) build-llvm
 
+rebuild-newlib: PATH:=$(RISCV)/bin:$(PATH)
 rebuild-newlib:
 	$(MAKE) -C $(TOOLCHAIN_REPO)/build-newlib
 	$(MAKE) -C $(TOOLCHAIN_REPO)/build-newlib install
