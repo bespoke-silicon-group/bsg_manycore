@@ -324,6 +324,14 @@ module vanilla_core
   // synopsys translate_off
   logic [data_width_p-1:0] exe_pc;
   assign exe_pc = (exe_r.pc_plus4 - 'd4) | bsg_dram_npa_prefix_gp;
+
+  always_ff @ (negedge clk_i) begin
+    // checking SYSTEM opcode
+    if (~reset_i & exe_r.instruction.op == `RV32_SYSTEM)
+      assert(exe_r.instruction ==? `RV32_FRRM) else
+        $error("[BSG_ERROR] %m. Unsupported SYSTEM op. x=%0d, y=%0d, t=%t, instr=%8x",
+          my_x_i, my_y_i, $time, exe_r.instruction);
+  end
   // synopsys translate_on
 
   // EXE forwarding muxes
