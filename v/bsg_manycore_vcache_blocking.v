@@ -1,11 +1,11 @@
 /**
- *  bsg_manycore_vcache.v
+ *  bsg_manycore_vcache_blocking.v
  *
  */
 
 `include "bsg_manycore_packet.vh"
 
-module bsg_manycore_vcache
+module bsg_manycore_vcache_blocking
   import bsg_cache_pkg::*;
   #(parameter data_width_p="inv"
     , parameter addr_width_p="inv"

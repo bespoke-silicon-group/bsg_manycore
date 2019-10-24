@@ -227,7 +227,7 @@ module spmd_testbench;
 
     for (genvar i = 0; i < num_tiles_x_p; i++) begin
 
-      bsg_manycore_vcache #(
+      bsg_manycore_vcache_blocking #(
         .data_width_p(data_width_p)
         ,.addr_width_p(bsg_max_epa_width_p)
         ,.block_size_in_words_p(vcache_block_size_in_words_p)
