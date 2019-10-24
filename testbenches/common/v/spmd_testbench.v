@@ -84,13 +84,14 @@ module spmd_testbench;
   );
 
 
-  // The manycore has a 2-FF pipelined reset in 16nm, therefore we need
-  // to add a 2 cycle latency to all other modules.
-  logic reset_r, reset_rr;
+  // bsg_manycore has 3 flops that reset signal needs to go through.
+  // So we are trying to match that here.
+  logic [2:0] reset_r;
 
   always_ff @ (posedge clk) begin
-    reset_r <= reset;
-    reset_rr <= reset_r;
+    reset_r[0] <= reset;
+    reset_r[1] <= reset_r[0];
+    reset_r[2] <= reset_r[1];
   end
 
 
@@ -149,7 +150,7 @@ module spmd_testbench;
     ,.num_tiles_y_p(num_tiles_y_p)
   ) io (
     .clk_i(clk)
-    ,.reset_i(reset_rr)
+    ,.reset_i(reset_r[2])
     ,.io_link_sif_i(io_link_lo[0])
     ,.io_link_sif_o(io_link_li[0])
     ,.print_stat_v_o(print_stat_v)
@@ -164,7 +165,7 @@ module spmd_testbench;
 
   bsg_cycle_counter global_cc (
     .clk_i(clk)
-    ,.reset_i(reset)
+    ,.reset_i(reset_r[2])
     ,.ctr_r_o(global_ctr)
   );
 
@@ -185,7 +186,7 @@ module spmd_testbench;
         ,.load_id_width_p(load_id_width_p)
       ) mem_infty (
         .clk_i(clk)
-        ,.reset_i(reset)
+        ,.reset_i(reset_r[2])
 
         ,.link_sif_i(ver_link_lo[S][i])
         ,.link_sif_o(ver_link_li[S][i])
@@ -238,7 +239,7 @@ module spmd_testbench;
         ,.load_id_width_p(load_id_width_p)
       ) vcache (
         .clk_i(clk)
-        ,.reset_i(reset)
+        ,.reset_i(reset_r[2])
 
         ,.link_sif_i(ver_link_lo[S][i])
         ,.link_sif_o(ver_link_li[S][i])
@@ -328,7 +329,7 @@ module spmd_testbench;
       ,.axi_burst_len_p(axi_burst_len_p)
     ) cache_to_axi (
       .clk_i(clk)
-      ,.reset_i(reset)
+      ,.reset_i(reset_r[2])
 
       ,.dma_pkt_i(lv1_vcache.dma_pkt)
       ,.dma_pkt_v_i(lv1_vcache.dma_pkt_v_lo)
@@ -399,7 +400,7 @@ module spmd_testbench;
       ,.bsg_dram_included_p(bsg_dram_included_p)
     ) axi_mem (
       .clk_i(clk)
-      ,.reset_i(reset)
+      ,.reset_i(reset_r[2])
 
       ,.axi_awid_i(lv2_axi4.axi_awid)
       ,.axi_awaddr_i(lv2_axi4.axi_awaddr)
@@ -494,7 +495,7 @@ module spmd_testbench;
       ,.y_cord_width_p(y_cord_width_lp)
     ) tieoff_w (
       .clk_i(clk)
-      ,.reset_i(reset_rr)
+      ,.reset_i(reset_r[2])
       ,.link_sif_i(hor_link_lo[W][i])
       ,.link_sif_o(hor_link_li[W][i])
     );
@@ -507,7 +508,7 @@ module spmd_testbench;
       ,.y_cord_width_p(y_cord_width_lp)
     ) tieoff_e (
       .clk_i(clk)
-      ,.reset_i(reset_rr)
+      ,.reset_i(reset_r[2])
       ,.link_sif_i(hor_link_lo[E][i])
       ,.link_sif_o(hor_link_li[E][i])
     );
@@ -522,7 +523,7 @@ module spmd_testbench;
       ,.y_cord_width_p(y_cord_width_lp)
     ) tieoff_n (
       .clk_i(clk)
-      ,.reset_i(reset_rr)
+      ,.reset_i(reset_r[2])
       ,.link_sif_i(ver_link_lo[N][i])
       ,.link_sif_o(ver_link_li[N][i])
     );
@@ -537,7 +538,7 @@ module spmd_testbench;
       ,.y_cord_width_p(y_cord_width_lp)
     ) tieoff_io (
       .clk_i(clk)
-      ,.reset_i(reset_rr)
+      ,.reset_i(reset_r[2])
       ,.link_sif_i(io_link_lo[i])
       ,.link_sif_o(io_link_li[i])
     );
