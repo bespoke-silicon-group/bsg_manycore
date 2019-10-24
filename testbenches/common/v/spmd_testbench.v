@@ -239,7 +239,7 @@ module spmd_testbench;
         ,.load_id_width_p(load_id_width_p)
       ) vcache (
         .clk_i(clk)
-        ,.reset_i(reset_r[2])
+        ,.reset_i(reset_r[1])
 
         ,.link_sif_i(ver_link_lo[S][i])
         ,.link_sif_o(ver_link_li[S][i])

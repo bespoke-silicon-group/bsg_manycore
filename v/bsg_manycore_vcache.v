@@ -51,6 +51,12 @@ module bsg_manycore_vcache
   );
 
 
+  // reset flop
+  //
+  logic reset_r;
+  always_ff @ (posedge clk_i)
+    reset_r <= reset_i;
+
   // link_to_cache
   //
   `declare_bsg_cache_pkt_s(cache_addr_width_lp,data_width_p);
@@ -72,7 +78,7 @@ module bsg_manycore_vcache
     ,.block_size_in_words_p(block_size_in_words_p)
   ) link_to_cache (
     .clk_i(clk_i)
-    ,.reset_i(reset_i)
+    ,.reset_i(reset_r)
 
     ,.my_x_i((x_cord_width_p)'(my_x_i))
     ,.my_y_i((y_cord_width_p)'(my_y_i))
@@ -100,7 +106,7 @@ module bsg_manycore_vcache
     ,.ways_p(ways_p)
   ) cache (
     .clk_i(clk_i)
-    ,.reset_i(reset_i)
+    ,.reset_i(reset_r)
     
     ,.cache_pkt_i(cache_pkt)
     ,.v_i(cache_v_li)
