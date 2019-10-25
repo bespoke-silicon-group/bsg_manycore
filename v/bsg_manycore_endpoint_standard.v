@@ -27,9 +27,6 @@ module bsg_manycore_endpoint_standard
   #( x_cord_width_p          = "inv"
      ,y_cord_width_p         = "inv"
      ,fifo_els_p             = "inv"
-     // enable this to instantiate a fifo
-     // to buffer returned data
-     ,returned_fifo_p        = 0
      ,freeze_init_p          = 1'b1
      ,data_width_p           = 32
      ,addr_width_p           = 32
@@ -97,7 +94,6 @@ module bsg_manycore_endpoint_standard
 
     );
 
-   wire in_fifo_full;
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
 
    bsg_manycore_packet_s      cgni_data;
@@ -116,34 +112,31 @@ module bsg_manycore_endpoint_standard
    bsg_manycore_endpoint #(.x_cord_width_p       (x_cord_width_p)
                            ,.y_cord_width_p      (y_cord_width_p)
                            ,.fifo_els_p          (fifo_els_p  )
-                           ,.returned_fifo_p     (returned_fifo_p)
                            ,.data_width_p        (data_width_p)
                            ,.addr_width_p        (addr_width_p)
                            ,.load_id_width_p     (load_id_width_p)
                            ) bme
-     (.clk_i
-      ,.reset_i
-      ,.link_sif_i
-      ,.link_sif_o
+     (.clk_i(clk_i)
+      ,.reset_i(reset_i)
+      ,.link_sif_i(link_sif_i)
+      ,.link_sif_o(link_sif_o)
 
-      ,.fifo_data_o(cgni_data)
-      ,.fifo_v_o   (cgni_v)
-      ,.fifo_yumi_i(cgni_yumi)
+      ,.packet_o(cgni_data)
+      ,.packet_v_o   (cgni_v)
+      ,.packet_yumi_i(cgni_yumi)
 
-      ,.out_packet_i
-      ,.out_v_i
-      ,.out_ready_o
+      ,.packet_i(out_packet_i)
+      ,.packet_v_i(out_v_i)
+      ,.packet_ready_o(out_ready_o)
 
-      ,.returned_packet_r_o          ( returned_packet_lo    )
-      ,.returned_credit_v_r_o        ( returned_credit_v_lo    )
-      ,.returned_fifo_full_o         ( returned_fifo_full_o  )
-      ,.returned_yumi_i              ( returned_yumi_li      )
+      ,.return_packet_o            ( returned_packet_lo    )
+      ,.return_packet_v_o          ( returned_credit_v_lo  )
+      ,.return_packet_fifo_full_o  ( returned_fifo_full_o  )
+      ,.return_packet_yumi_i       ( returned_yumi_li      )
 
-      ,.returning_data_i    ( returning_packet_li  )
-      ,.returning_v_i       ( returning_v_li       )
-      ,.returning_ready_o   ( returning_ready_lo   )
-
-      ,.in_fifo_full_o( in_fifo_full )
+      ,.return_packet_i         ( returning_packet_li  )
+      ,.return_packet_v_i       ( returning_v_li       )
+      ,.return_packet_ready_o   ( returning_ready_lo   )
       );
 
    assign returned_credit = returned_credit_v_lo & returned_yumi_li;
