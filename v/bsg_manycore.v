@@ -4,8 +4,8 @@
  */
 
 
-`include "bsg_manycore_packet.vh"
 module bsg_manycore
+  import bsg_manycore_pkg::*;
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }
   #(parameter dmem_size_p = "inv"
     , parameter icache_entries_p = "inv" // in words

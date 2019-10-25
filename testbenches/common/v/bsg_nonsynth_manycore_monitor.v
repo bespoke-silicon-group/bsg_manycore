@@ -3,11 +3,11 @@
  *
  */
 
-`include "bsg_manycore_packet.vh"
 
 module bsg_nonsynth_manycore_monitor
  
   // Import address parameters
+  import bsg_manycore_pkg::*;
   import bsg_manycore_addr_pkg::*;
 
   #(parameter x_cord_width_p="inv"

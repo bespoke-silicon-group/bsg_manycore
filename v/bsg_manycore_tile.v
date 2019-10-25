@@ -3,10 +3,9 @@
  *
  */
 
-`include "bsg_manycore_packet.vh"
-
 module bsg_manycore_tile
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }
+  import bsg_manycore_pkg::*;
   #(parameter dmem_size_p = "inv"
     , parameter vcache_size_p ="inv"
     , parameter icache_entries_p = "inv"

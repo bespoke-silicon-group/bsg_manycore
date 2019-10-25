@@ -13,9 +13,9 @@ VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_links.vh
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_pkg.v
+VHEADERS += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkg.v
 VHEADERS += $(BSG_MANYCORE_DIR)/v/bsg_manycore_addr_pkg.v
 VHEADERS += $(BSG_MANYCORE_DIR)/v/bsg_manycore_addr.vh
-VHEADERS += $(BSG_MANYCORE_DIR)/v/bsg_manycore_packet.vh
 VHEADERS += $(BSG_MANYCORE_DIR)/v/vanilla_bean/parameters.vh
 VHEADERS += $(BSG_MANYCORE_DIR)/v/vanilla_bean/definitions.vh
 

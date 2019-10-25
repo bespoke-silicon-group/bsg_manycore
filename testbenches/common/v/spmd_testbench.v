@@ -5,6 +5,7 @@
 
 module spmd_testbench;
   import bsg_noc_pkg::*; // {P=0, W, E, N, S}
+  import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
 
   // defines from VCS

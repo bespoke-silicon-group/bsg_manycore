@@ -4,9 +4,8 @@
  *  @author tommy
  */
 
-`include "bsg_manycore_packet.vh"
-
 module bsg_manycore_link_to_cache
+  import bsg_manycore_pkg::*;
   import bsg_cache_pkg::*;
   #(parameter link_addr_width_p="inv"
     , parameter data_width_p="inv"
