@@ -175,6 +175,31 @@ module spmd_testbench;
   // Configurable Memory System   //
   //                              //
 
+
+
+  if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem)
+      | (bsg_manycore_mem_cfg_p == e_vcache_non_blocking_axi4_nonsynth_mem)) begin: lv1_dma
+
+    // for now blocking and non-blocking shares the wire, since interface is
+    // the same. But it might change in the future.
+    import bsg_cache_pkg::*;
+    localparam dma_pkt_width_lp = `bsg_cache_dma_pkt_width(cache_addr_width_lp);
+
+    logic [num_tiles_x_p-1:0][dma_pkt_width_lp-1:0] dma_pkt;
+    logic [num_tiles_x_p-1:0] dma_pkt_v_lo;
+    logic [num_tiles_x_p-1:0] dma_pkt_yumi_li;
+
+    logic [num_tiles_x_p-1:0][data_width_p-1:0] dma_data_li;
+    logic [num_tiles_x_p-1:0] dma_data_v_li;
+    logic [num_tiles_x_p-1:0] dma_data_ready_lo;
+
+    logic [num_tiles_x_p-1:0][data_width_p-1:0] dma_data_lo;
+    logic [num_tiles_x_p-1:0] dma_data_v_lo;
+    logic [num_tiles_x_p-1:0] dma_data_yumi_li;
+
+  end
+
+
   // LEVEL 1
   if (bsg_manycore_mem_cfg_p == e_infinite_mem) begin
     
@@ -211,20 +236,6 @@ module spmd_testbench;
   end
   else if (bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem) begin: lv1_vcache
 
-    import bsg_cache_pkg::*;
-  
-    `declare_bsg_cache_dma_pkt_s(cache_addr_width_lp);
-    bsg_cache_dma_pkt_s [num_tiles_x_p-1:0] dma_pkt;
-    logic [num_tiles_x_p-1:0] dma_pkt_v_lo;
-    logic [num_tiles_x_p-1:0] dma_pkt_yumi_li;
-
-    logic [num_tiles_x_p-1:0][data_width_p-1:0] dma_data_li;
-    logic [num_tiles_x_p-1:0] dma_data_v_li;
-    logic [num_tiles_x_p-1:0] dma_data_ready_lo;
-
-    logic [num_tiles_x_p-1:0][data_width_p-1:0] dma_data_lo;
-    logic [num_tiles_x_p-1:0] dma_data_v_lo;
-    logic [num_tiles_x_p-1:0] dma_data_yumi_li;
 
     for (genvar i = 0; i < num_tiles_x_p; i++) begin
 
@@ -248,17 +259,17 @@ module spmd_testbench;
         ,.my_x_i((x_cord_width_lp)'(i))
         ,.my_y_i((y_cord_width_lp)'(num_tiles_y_p))
   
-        ,.dma_pkt_o(dma_pkt[i])
-        ,.dma_pkt_v_o(dma_pkt_v_lo[i])
-        ,.dma_pkt_yumi_i(dma_pkt_yumi_li[i])
+        ,.dma_pkt_o(lv1_dma.dma_pkt[i])
+        ,.dma_pkt_v_o(lv1_dma.dma_pkt_v_lo[i])
+        ,.dma_pkt_yumi_i(lv1_dma.dma_pkt_yumi_li[i])
 
-        ,.dma_data_i(dma_data_li[i])
-        ,.dma_data_v_i(dma_data_v_li[i])
-        ,.dma_data_ready_o(dma_data_ready_lo[i])
+        ,.dma_data_i(lv1_dma.dma_data_li[i])
+        ,.dma_data_v_i(lv1_dma.dma_data_v_li[i])
+        ,.dma_data_ready_o(lv1_dma.dma_data_ready_lo[i])
 
-        ,.dma_data_o(dma_data_lo[i])
-        ,.dma_data_v_o(dma_data_v_lo[i])
-        ,.dma_data_yumi_i(dma_data_yumi_li[i])
+        ,.dma_data_o(lv1_dma.dma_data_lo[i])
+        ,.dma_data_v_o(lv1_dma.dma_data_v_lo[i])
+        ,.dma_data_yumi_i(lv1_dma.dma_data_yumi_li[i])
      );
       
     end
@@ -273,10 +284,49 @@ module spmd_testbench;
     );
 
   end
+  else if (bsg_manycore_mem_cfg_p == e_vcache_non_blocking_axi4_nonsynth_mem) begin: lv1_vcache_nb
+
+    for (genvar i = 0; i < num_tiles_x_p; i++) begin
+
+      bsg_manycore_vcache_non_blocking #(
+        .data_width_p(data_width_p)
+        ,.addr_width_p(bsg_max_epa_width_p)
+        ,.block_size_in_words_p(vcache_block_size_in_words_p)
+        ,.sets_p(vcache_sets_p)
+        ,.ways_p(vcache_ways_p)
+        ,.miss_fifo_els_p(23)
+    
+        ,.x_cord_width_p(x_cord_width_lp)
+        ,.y_cord_width_p(y_cord_width_lp)
+        ,.load_id_width_p(load_id_width_p)
+      ) vcache (
+        .clk_i(clk)
+        ,.reset_i(reset_r[1])
+
+        ,.link_sif_i(ver_link_lo[S][i])
+        ,.link_sif_o(ver_link_li[S][i])
+
+        ,.dma_pkt_o(lv1_dma.dma_pkt[i])
+        ,.dma_pkt_v_o(lv1_dma.dma_pkt_v_lo[i])
+        ,.dma_pkt_yumi_i(lv1_dma.dma_pkt_yumi_li[i])
+
+        ,.dma_data_i(lv1_dma.dma_data_li[i])
+        ,.dma_data_v_i(lv1_dma.dma_data_v_li[i])
+        ,.dma_data_ready_o(lv1_dma.dma_data_ready_lo[i])
+
+        ,.dma_data_o(lv1_dma.dma_data_lo[i])
+        ,.dma_data_v_o(lv1_dma.dma_data_v_lo[i])
+        ,.dma_data_yumi_i(lv1_dma.dma_data_yumi_li[i])
+     );
+      
+    end
+
+  end
 
   // LEVEL 2
   //
-  if (bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem) begin: lv2_axi4
+  if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem)
+      |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_axi4_nonsynth_mem)) begin: lv2_axi4
 
     logic [axi_id_width_p-1:0] axi_awid;
     logic [axi_addr_width_p-1:0] axi_awaddr;
@@ -332,17 +382,17 @@ module spmd_testbench;
       .clk_i(clk)
       ,.reset_i(reset_r[2])
 
-      ,.dma_pkt_i(lv1_vcache.dma_pkt)
-      ,.dma_pkt_v_i(lv1_vcache.dma_pkt_v_lo)
-      ,.dma_pkt_yumi_o(lv1_vcache.dma_pkt_yumi_li)
+      ,.dma_pkt_i(lv1_dma.dma_pkt)
+      ,.dma_pkt_v_i(lv1_dma.dma_pkt_v_lo)
+      ,.dma_pkt_yumi_o(lv1_dma.dma_pkt_yumi_li)
 
-      ,.dma_data_o(lv1_vcache.dma_data_li)
-      ,.dma_data_v_o(lv1_vcache.dma_data_v_li)
-      ,.dma_data_ready_i(lv1_vcache.dma_data_ready_lo)
+      ,.dma_data_o(lv1_dma.dma_data_li)
+      ,.dma_data_v_o(lv1_dma.dma_data_v_li)
+      ,.dma_data_ready_i(lv1_dma.dma_data_ready_lo)
 
-      ,.dma_data_i(lv1_vcache.dma_data_lo)
-      ,.dma_data_v_i(lv1_vcache.dma_data_v_lo)
-      ,.dma_data_yumi_o(lv1_vcache.dma_data_yumi_li)
+      ,.dma_data_i(lv1_dma.dma_data_lo)
+      ,.dma_data_v_i(lv1_dma.dma_data_v_lo)
+      ,.dma_data_yumi_o(lv1_dma.dma_data_yumi_li)
 
       ,.axi_awid_o(axi_awid)
       ,.axi_awaddr_o(axi_awaddr)
@@ -390,7 +440,8 @@ module spmd_testbench;
 
   // LEVEL 3
   //
-  if (bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem) begin
+  if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem)
+     |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_axi4_nonsynth_mem)) begin
 
     bsg_nonsynth_manycore_axi_mem #(
       .axi_id_width_p(axi_id_width_p)
