@@ -139,19 +139,18 @@ module bsg_manycore_link_to_cache_non_blocking
     return_packet_v_li = 1'b0;
     return_packet_li = '0;
 
+    cache_pkt_id = '0;
+    cache_pkt.id = cache_pkt_id;
+
     case (state_r)
 
       RESET: begin
         v_o = 1'b0;
         yumi_o = 1'b0;
         state_n = CLEAR_TAG;
-        cache_pkt_id = '0;
-        cache_pkt.id = cache_pkt_id;
       end
 
       CLEAR_TAG: begin
-        cache_pkt_id = '0;
-        cache_pkt.id = cache_pkt_id;
         v_o = tagst_sent_r != (ways_p*sets_p);
         cache_pkt.opcode = TAGST;
         cache_pkt.data = '0;
