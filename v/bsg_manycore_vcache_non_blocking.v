@@ -52,7 +52,12 @@ module bsg_manycore_vcache_non_blocking
 
 
   localparam id_width_lp=(x_cord_width_p+y_cord_width_p+load_id_width_p+1);
-  
+ 
+  // flop the reset signal, since vcache tile may be large. 
+  logic reset_r;
+  always_ff @ (posedge clk_i)
+    reset_r <= reset_i;
+
   
   `declare_bsg_cache_non_blocking_pkt_s(id_width_lp,cache_addr_width_lp,data_width_p);
   bsg_cache_non_blocking_pkt_s cache_pkt;
@@ -63,10 +68,26 @@ module bsg_manycore_vcache_non_blocking
   logic cache_v_lo;
   logic cache_yumi_li;
 
+  logic fifo_ready_lo;
+  logic fifo_v_lo;
+  logic [data_width_p-1:0] fifo_data_lo;
+  logic [id_width_lp-1:0] fifo_id_lo;
+  logic fifo_yumi_li;
 
-  logic reset_r;
-  always_ff @ (posedge clk_i)
-    reset_r <= reset_i;
+  bsg_two_fifo #(
+    .width_p(id_width_lp+data_width_p)
+  ) return_fifo (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.v_i(cache_v_lo)
+    ,.data_i({cache_id_lo, cache_data_lo})
+    ,.ready_o(fifo_ready_lo)
+
+    ,.v_o(fifo_v_lo)
+    ,.yumi_i(fifo_yumi_li)
+    ,.data_o({fifo_id_lo, fifo_data_lo})
+  );
 
 
   bsg_manycore_link_to_cache_non_blocking #(
@@ -91,11 +112,12 @@ module bsg_manycore_vcache_non_blocking
     ,.v_o(cache_v_li)
     ,.ready_i(cache_ready_lo)
 
-    ,.v_i(cache_v_lo)
-    ,.id_i(cache_id_lo)
-    ,.data_i(cache_data_lo)
-    ,.yumi_o(cache_yumi_li)
+    ,.v_i(fifo_v_lo)
+    ,.id_i(fifo_id_lo)
+    ,.data_i(fifo_data_lo)
+    ,.yumi_o(fifo_yumi_li)
   );
+
 
 
   bsg_cache_non_blocking #(
@@ -132,12 +154,7 @@ module bsg_manycore_vcache_non_blocking
     ,.dma_data_yumi_i(dma_data_yumi_i) 
   );
 
-
-
-
-
-
-
+  assign cache_yumi_li = cache_v_lo & fifo_ready_lo;
 
 
 endmodule
