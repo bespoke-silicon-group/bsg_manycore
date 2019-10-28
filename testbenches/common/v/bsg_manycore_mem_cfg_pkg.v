@@ -46,6 +46,7 @@ package bsg_manycore_mem_cfg_pkg;
     // LEVEL 2) bsg_cache_to_axi
     // LEVEl 3) bsg_nonsynth_manycore_axi_mem
     , e_vcache_blocking_axi4_nonsynth_mem
+    , e_vcache_blocking_axi4_f1_dram
 
   } bsg_manycore_mem_cfg_e;
 
