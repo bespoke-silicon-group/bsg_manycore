@@ -77,6 +77,13 @@ module vanilla_core_profiler
     $fwrite(fd, "%0t,%0d,%0d,%s", $time, my_x_i, my_y_i, op);
   endtask
 
+  // Task to print a line of operation trace 
+  // With its specific address
+  // Used for remote load/store operations
+  task print_operation_addr_trace(integer fd, string op, integer addr);
+    $fwrite(fd, "%0t,%0d,%0d,%s,%0d", $time, my_x_i, my_y_i, op, addr);
+  endtask
+
   // event signals
   //
   logic instr_inc;
@@ -684,11 +691,41 @@ module vanilla_core_profiler
           else if (stall_depend_inc & stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
             print_operation_trace(fd2, "stall_depend_local_load");
           else if (stall_depend_inc & ~stall_depend_local_load_inc & stall_depend_remote_load_inc)
-            print_operation_trace(fd2, "stall_depend_remote_load");
+          begin
+            // Determine type (dram, global, group) remote, depending on request address 
+            if (`REMOTE_IS_DRAM_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+              print_operation_trace(fd2, "stall_depend_remote_dram_load");
+            else if (`REMOTE_IS_GLOBAL_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+              print_operation_trace(fd2, "stall_depend_remote_global_load");
+            else if (`REMOTE_IS_GROUP_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+              print_operation_trace(fd2, "stall_depend_remote_group_load");
+            else
+              print_operation_addr_trace(fd2, "stall_depend_remote_unknown_load", remote_req_o.addr);
+          end
           else if (stall_depend_inc & stall_depend_local_load_inc & stall_depend_remote_load_inc)
-            print_operation_trace(fd2, "stall_depend_local_remote_load");
+          begin
+            // Determine type (dram, global, group) remote, depending on request address 
+            if (`REMOTE_IS_DRAM_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+              print_operation_trace(fd2, "stall_depend_local_remote_dram_load");
+            else if (`REMOTE_IS_GLOBAL_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+              print_operation_trace(fd2, "stall_depend_local_remote_global_load");
+            else if (`REMOTE_IS_GROUP_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+              print_operation_trace(fd2, "stall_depend_local_remote_group_load");
+            else
+              print_operation_addr_trace(fd2, "stall_depend_local_remote_unknown_load", remote_req_o.addr);
+          end
           else if (stall_fp_remote_load_inc)
-            print_operation_trace(fd2, "stall_fp_remote_load");
+          begin
+            // Determine type (dram, global, group) remote, depending on request address 
+            if (`REMOTE_IS_DRAM_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+              print_operation_trace(fd2, "stall_fp_remote_dram_load");
+            else if (`REMOTE_IS_GLOBAL_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+              print_operation_trace(fd2, "stall_fp_remote_global_load");
+            else if (`REMOTE_IS_GROUP_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+              print_operation_trace(fd2, "stall_fp_remote_group_load");
+            else
+              print_operation_addr_trace(fd2, "stall_fp_remote_unknown_load", remote_req_o.addr);
+          end
           else if (stall_fp_local_load_inc)
             print_operation_trace(fd2, "stall_fp_local_load");
           else if (stall_force_wb_inc)
@@ -713,9 +750,29 @@ module vanilla_core_profiler
             else if (local_st_inc)
               print_operation_trace(fd2, "local_st");
             else if (remote_ld_inc)
-              print_operation_trace(fd2, "remote_ld");
+            begin
+              // Determine type (dram, global, group) remote, depending on request address 
+              if (`REMOTE_IS_DRAM_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+                print_operation_trace(fd2, "remote_dram_ld");
+              else if (`REMOTE_IS_GLOBAL_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+                print_operation_trace(fd2, "remote_global_ld");
+              else if (`REMOTE_IS_GROUP_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+                print_operation_trace(fd2, "remote_group_ld");
+              else
+                print_operation_addr_trace(fd2, "remote_unknown_ld", remote_req_o.addr);
+            end
             else if (remote_st_inc)
-              print_operation_trace(fd2, "remote_st");
+            begin
+              // Determine type (dram, global, group) remote, depending on request address 
+              if (`REMOTE_IS_DRAM_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+                print_operation_trace(fd2, "remote_dram_st");
+              else if (`REMOTE_IS_GLOBAL_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+                print_operation_trace(fd2, "remote_global_st");
+              else if (`REMOTE_IS_GROUP_ADDR(remote_req_o.addr, `REMOTE_ADDR_WIDTH))
+                print_operation_trace(fd2, "remote_group_st");
+              else
+                print_operation_addr_trace(fd2, "remote_unknown_st", remote_req_o.addr);
+            end
             else if (local_flw_inc)
               print_operation_trace(fd2, "local_flw");
             else if (local_fsw_inc)

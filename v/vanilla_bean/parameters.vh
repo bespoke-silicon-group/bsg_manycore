@@ -227,6 +227,17 @@ localparam RV32_Jimm_width_gp     = 20;
                                                      )
 
 /////////////////////////////////////////////////////
+// The MSB indicator of the remote request address in bytes.
+`define REMOTE_ADDR_WIDTH 32
+`define REMOTE_IS_DRAM_ADDR(addr, addr_width)    (  addr[ ``addr_width -1] )
+
+`define REMOTE_IS_GLOBAL_ADDR(addr, addr_width)  (  ~ addr[ ``addr_width -1] & addr[ ``addr_width -2] )
+
+`define REMOTE_IS_GROUP_ADDR(addr, addr_width)   (  ~ (| addr[ ``addr_width-1 : ``addr_width -2])       \
+                                                    & (  addr[ ``addr_width -3])                         \
+                                                 )
+
+/////////////////////////////////////////////////////
 // The CSR Address
 `define         CSR_FREEZE             0
 `define         CSR_TGO_X              1
