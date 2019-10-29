@@ -290,16 +290,23 @@ module vanilla_core_profiler
 
   // remote/local scoreboard tracking 
   //
-  // int_sb[1]: remote load
+  // int_sb[3]: remote dram load
+  // int_sb[2]: remote global load
+  // int_sb[1]: remote group load
   // int_sb[0]: local load
   //
-  // float_sb[1] : remote load
-  // float_sb[0] : local_load
+  // float_sb[3]: remote dram load
+  // float_sb[2]: remote global load
+  // float_sb[1]: remote group load
+  // float_sb[0]: local_load
   //
-  logic [31:0][1:0] int_sb_r;
-  logic [31:0][1:0] float_sb_r;
+  logic [31:0][3:0] int_sb_r;
+  logic [31:0][3:0] float_sb_r;
   
   logic remote_load_in_id;
+  logic remote_load_dram_in_id;
+  logic remote_load_global_in_id;
+  logic remote_load_group_in_id;
   logic local_load_in_id;
 
   logic [data_width_p-1:0] load_addr;
@@ -314,6 +321,15 @@ module vanilla_core_profiler
     & (load_addr[data_width_p-1:(2+1+dmem_addr_width_lp)] == '0);
 
   assign remote_load_in_id = ~local_load_in_id;
+  assign remote_load_dram_in_id = remote_load_in_id 
+    & (load_addr[data_width_p-1]);
+  assign remote_load_global_in_id = remote_load_in_id 
+    & ~remote_load_dram_in_id
+    & (load_addr[data_width_p-2]);
+  assign remote_load_group_in_id = remote_load_in_id
+    & ~remote_load_dram_in_id
+    & ~remote_load_global_in_id
+    & (load_addr[data_width_p-3]);
 
 
   always_ff @ (posedge clk_i) begin
@@ -322,7 +338,21 @@ module vanilla_core_profiler
     end
     else begin
 
-      if (int_sb_score & remote_load_in_id) begin
+      if (int_sb_score & remote_load_dram_in_id) begin
+        int_sb_r[id_r.instruction.rd][3] <= 1'b1;
+      end
+      else if (int_sb_clear[1]) begin
+        int_sb_r[int_sb_clear_id[1]][3] <= 1'b0;
+      end
+
+      if (int_sb_score & remote_load_global_in_id) begin
+        int_sb_r[id_r.instruction.rd][2] <= 1'b1;
+      end
+      else if (int_sb_clear[1]) begin
+        int_sb_r[int_sb_clear_id[1]][2] <= 1'b0;
+      end
+
+      if (int_sb_score & remote_load_group_in_id) begin
         int_sb_r[id_r.instruction.rd][1] <= 1'b1;
       end
       else if (int_sb_clear[1]) begin
@@ -346,7 +376,21 @@ module vanilla_core_profiler
     end
     else begin
 
-      if (float_sb_score & id_r.decode.is_load_op & remote_load_in_id) begin
+      if (float_sb_score & id_r.decode.is_load_op & remote_load_dram_in_id) begin
+        float_sb_r[id_r.instruction.rd][3] <= 1'b1;
+      end
+      else if (float_sb_clear) begin
+        float_sb_r[float_sb_clear_id][3] <= 1'b0;
+      end
+
+      if (float_sb_score & id_r.decode.is_load_op & remote_load_global_in_id) begin
+        float_sb_r[id_r.instruction.rd][2] <= 1'b1;
+      end
+      else if (float_sb_clear) begin
+        float_sb_r[float_sb_clear_id][2] <= 1'b0;
+      end
+
+      if (float_sb_score & id_r.decode.is_load_op & remote_load_group_in_id) begin
         float_sb_r[id_r.instruction.rd][1] <= 1'b1;
       end
       else if (float_sb_clear) begin
@@ -368,6 +412,9 @@ module vanilla_core_profiler
   logic stall_depend_inc;
   logic stall_depend_local_load_inc;
   logic stall_depend_remote_load_inc;
+  logic stall_depend_remote_load_dram_inc;
+  logic stall_depend_remote_load_global_inc;
+  logic stall_depend_remote_load_group_inc;
 
   assign stall_depend_inc = stall_depend & ~(stall | stall_fp);
 
@@ -377,11 +424,27 @@ module vanilla_core_profiler
        (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][0]) |
        (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][0]));
     
-  assign stall_depend_remote_load_inc = stall_depend_inc
+  assign stall_depend_remote_load_dram_inc = stall_depend_inc
+    & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][3]) |
+       (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][3]) |
+       (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][3]) |
+       (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][3]));
+    
+  assign stall_depend_remote_load_global_inc = stall_depend_inc
+    & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][2]) |
+       (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][2]) |
+       (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][2]) |
+       (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][2]));
+    
+  assign stall_depend_remote_load_group_inc = stall_depend_inc
     & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][1]) |
        (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][1]) |
        (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][1]) |
        (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][1]));
+    
+  assign stall_depend_remote_load_inc = stall_depend_remote_load_dram_inc |
+                                        stall_depend_remote_load_global_inc |
+                                        stall_depend_remote_load_group_inc;
 
   logic stall_fp_remote_load_inc;
   logic stall_fp_local_load_inc;
@@ -504,7 +567,10 @@ module vanilla_core_profiler
     integer stall_depend;             
     integer stall_depend_local_load; // among stall_depend count, ones that include local_load dependency.
     integer stall_depend_remote_load; // among stall_depend count, one that include remote_load dependency.
-  
+    integer stall_depend_remote_load_dram; // among stall_depend count, one that include remote_load to dram dependency.
+    integer stall_depend_remote_load_global; // among stall_depend count, one that include remote_load to global tile dependency.
+    integer stall_depend_remote_load_group; // among stall_depend count, one that include remote_load to group tile dependency.
+
     integer stall_force_wb;       // stalled because of remote_load_response forcing a writeback
     integer stall_ifetch_wait;    // stalled because of waiting for instruction fetch.
     integer stall_icache_store;   // stalled because of icache store 
@@ -617,6 +683,9 @@ module vanilla_core_profiler
       if (stall_depend_inc) stat.stall_depend++;
       if (stall_depend_local_load_inc) stat.stall_depend_local_load++;
       if (stall_depend_remote_load_inc) stat.stall_depend_remote_load++;
+      if (stall_depend_remote_load_dram_inc) stat.stall_depend_remote_load_dram++;
+      if (stall_depend_remote_load_global_inc) stat.stall_depend_remote_load_global++;
+      if (stall_depend_remote_load_group_inc) stat.stall_depend_remote_load_group++;
 
       if (stall_force_wb_inc) stat.stall_force_wb++;
       if (stall_ifetch_wait) stat.stall_ifetch_wait++;
@@ -683,10 +752,26 @@ module vanilla_core_profiler
             print_operation_trace(fd2, "stall_depend");
           else if (stall_depend_inc & stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
             print_operation_trace(fd2, "stall_depend_local_load");
-          else if (stall_depend_inc & ~stall_depend_local_load_inc & stall_depend_remote_load_inc)
-            print_operation_trace(fd2, "stall_depend_remote_load");
+          else if (stall_depend_inc & ~stall_depend_local_load_inc & stall_depend_remote_load_inc) 
+            // stall_depend_remote_load has 3 types of dram, global, group
+            begin
+              if (stall_depend_remote_load_dram_inc)
+                print_operation_trace(fd2, "stall_depend_remote_load_dram");
+              else if (stall_depend_remote_load_global_inc)
+                print_operation_trace(fd2, "stall_depend_remote_load_global");
+              else if (stall_depend_remote_load_group_inc)
+                print_operation_trace(fd2, "stall_depend_remote_load_group");
+            end
           else if (stall_depend_inc & stall_depend_local_load_inc & stall_depend_remote_load_inc)
-            print_operation_trace(fd2, "stall_depend_local_remote_load");
+            // stall_depend_local_remote_load, the remote request has 3 types of dram, global, group
+            begin
+              if (stall_depend_remote_load_dram_inc)
+                print_operation_trace(fd2, "stall_depend_local_remote_load_dram");
+              else if (stall_depend_remote_load_global_inc)
+                print_operation_trace(fd2, "stall_depend_local_remote_load_global");
+              else if (stall_depend_remote_load_group_inc)
+                print_operation_trace(fd2, "stall_depend_local_remote_load_group");
+            end
           else if (stall_fp_remote_load_inc)
             print_operation_trace(fd2, "stall_fp_remote_load");
           else if (stall_fp_local_load_inc)
