@@ -203,6 +203,7 @@
 
 localparam RV32_instr_width_gp    = 32;
 localparam RV32_reg_data_width_gp = 32;
+localparam RV32_reg_els_gp        = 32;
 localparam RV32_reg_addr_width_gp = 5;
 localparam RV32_shamt_width_gp    = 5;
 localparam RV32_opcode_width_gp   = 7;
