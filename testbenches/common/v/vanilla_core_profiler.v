@@ -746,7 +746,9 @@ module vanilla_core_profiler
       $fwrite(fd, "time,x,y,tag,global_ctr,cycle,instr,");
       $fwrite(fd, "fadd,fsub,fmul,fsgnj,fsgnjn,fsgnjx,fmin,fmax,fcvt_s_w,fcvt_s_wu,fmv_w_x,");
       $fwrite(fd, "feq,flt,fle,fcvt_w_s,fcvt_wu_s,fclass,fmv_x_w,");
-      $fwrite(fd, "local_ld,local_st,remote_ld,remote_st,local_flw,local_fsw,remote_flw,remote_fsw,icache_miss,");
+      $fwrite(fd, "local_ld,local_st,remote_ld_dram,remote_ld_global,remote_ld_group,");
+      $fwrite(fd, "remote_st_dram,remote_st_global,remote_st_group,");
+      $fwrite(fd, "local_flw,local_fsw,remote_flw,remote_fsw,icache_miss,");
       $fwrite(fd, "lr,lr_aq,swap_aq,swap_rl,");
       $fwrite(fd, "beq,bne,blt,bge,bltu,bgeu,jalr,jal,");
       $fwrite(fd, "beq_miss,bne_miss,blt_miss,bge_miss,bltu_miss,bgeu_miss,jalr_miss,");
@@ -754,7 +756,9 @@ module vanilla_core_profiler
       $fwrite(fd, "add,addi,sub,lui,auipc,xor,xori,or,ori,and,andi,slt,slti,sltu,sltiu,");
       $fwrite(fd, "mul,mulh,mulhsu,mulhu,div,divu,rem,remu,");
       $fwrite(fd, "fence,");
-      $fwrite(fd, "stall_fp_remote_load,stall_fp_local_load,stall_depend,stall_depend_remote_load,stall_depend_local_load,");
+      $fwrite(fd, "stall_fp_remote_load,stall_fp_local_load,stall_depend,");
+      $fwrite(fd, "stall_depend_remote_load_dram,stall_depend_remote_load_global,stall_depend_remote_load_group,");
+      $fwrite(fd, "stall_depend_local_load,");
       $fwrite(fd, "stall_force_wb,stall_ifetch_wait,stall_icache_store,");
       $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw");
       $fwrite(fd, "\n");
@@ -1053,11 +1057,15 @@ module vanilla_core_profiler
             stat.fmv_x_w
           );
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             stat.ld,
             stat.st,
-            stat.remote_ld,
-            stat.remote_st,
+            stat.remote_ld_dram,
+            stat.remote_ld_global,
+            stat.remote_ld_group,
+            stat.remote_st_dram,
+            stat.remote_st_global,
+            stat.remote_st_group,
             stat.local_flw,
             stat.local_fsw,
             stat.remote_flw,
@@ -1133,11 +1141,13 @@ module vanilla_core_profiler
 
           $fwrite(fd, "%0d,", stat.fence);
       
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d",
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             stat.stall_fp_remote_load,
             stat.stall_fp_local_load,
             stat.stall_depend,
-            stat.stall_depend_remote_load,
+            stat.stall_depend_remote_load_dram,
+            stat.stall_depend_remote_load_global,
+            stat.stall_depend_remote_load_group,
             stat.stall_depend_local_load,
             stat.stall_force_wb,
             stat.stall_ifetch_wait,
