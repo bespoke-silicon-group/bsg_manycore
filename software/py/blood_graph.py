@@ -50,8 +50,12 @@ class BloodGraph:
     # List of types of stalls incurred by the core 
     self.stalls_list   = {"stall_depend",
                           "stall_depend_local_load",
-                          "stall_depend_remote_load",
-                          "stall_depend_local_remote_load",
+                          "stall_depend_remote_load_dram",
+                          "stall_depend_remote_load_global",
+                          "stall_depend_remote_load_group",
+                          "stall_depend_local_remote_load_dram",
+                          "stall_depend_local_remote_load_global",
+                          "stall_depend_local_remote_load_group",
                           "stall_fp_local_load",
                           "stall_fp_remote_load",
                           "stall_force_wb",
@@ -66,8 +70,12 @@ class BloodGraph:
     # List of types of integer instructions executed by the core 
     self.instr_list    = {"local_ld",
                           "local_st",
-                          "remote_ld",
-                          "remote_st",
+                          "remote_ld_dram",
+                          "remote_ld_global",
+                          "remote_ld_group",
+                          "remote_st_dram",
+                          "remote_st_global",
+                          "remote_st_group",
                           "local_flw",
                           "local_fsw",
                           "remote_flw",
@@ -153,50 +161,58 @@ class BloodGraph:
     # Coloring scheme for different types of operations
     # For detailed mode 
     # i_cache miss is treated the same is stall_ifetch_wait
-    self.detailed_stall_bubble_color = { "stall_depend"                   : (0xff, 0xff, 0xff), ## white
-                                         "stall_depend_local_load"        : (0x00, 0x66, 0x00), ## dark green
-                                         "stall_depend_remote_load"       : (0x00, 0xff, 0x00), ## green
-                                         "stall_depend_local_remote_load" : (0x00, 0xcc, 0xcc), ## dark cyan
-                                         "stall_fp_local_load"            : (0x66, 0x00, 0x66), ## dark puprle
-                                         "stall_fp_remote_load"           : (0xcc, 0x00, 0xcc), ## purple
-                                         "stall_force_wb"                 : (0xff, 0x66, 0xff), ## pink
-                                         "icache_miss"                    : (0x00, 0x00, 0xff), ## blue
-                                         "stall_ifetch_wait"              : (0x00, 0x00, 0xff), ## blue
-                                         "stall_icache_store"             : (0xcc, 0x80, 0x00), ## dark orange
-                                         "stall_lr_aq"                    : (0x40, 0x40, 0x40), ## dark gray
-                                         "stall_md"                       : (0xff, 0xa5, 0x00), ## light orange
-                                         "stall_remote_req"               : (0xff, 0xff, 0x00), ## yellow
-                                         "stall_local_flw"                : (0x99, 0xff, 0xff), ## light cyan
-                                         "bubble"                         : (0x00, 0x99, 0x99)  ## dark cyan
+    self.detailed_stall_bubble_color = { "stall_depend"                           : (0xff, 0xff, 0xff), ## white
+                                         "stall_depend_local_load"                : (0x00, 0x66, 0x00), ## dark green
+                                         "stall_depend_remote_load_dram"          : (0x00, 0xff, 0x00), ## green
+                                         "stall_depend_remote_load_global"        : (0x00, 0xff, 0x00), ## green
+                                         "stall_depend_remote_load_group"         : (0x00, 0xff, 0x00), ## green
+                                         "stall_depend_local_remote_load_dram"    : (0x00, 0xcc, 0xcc), ## dark cyan
+                                         "stall_depend_local_remote_load_global"  : (0x00, 0xcc, 0xcc), ## dark cyan
+                                         "stall_depend_local_remote_load_group"   : (0x00, 0xcc, 0xcc), ## dark cyan
+                                         "stall_fp_local_load"                    : (0x66, 0x00, 0x66), ## dark puprle
+                                         "stall_fp_remote_load"                   : (0xcc, 0x00, 0xcc), ## purple
+                                         "stall_force_wb"                         : (0xff, 0x66, 0xff), ## pink
+                                         "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
+                                         "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
+                                         "stall_icache_store"                     : (0xcc, 0x80, 0x00), ## dark orange
+                                         "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray
+                                         "stall_md"                               : (0xff, 0xa5, 0x00), ## light orange
+                                         "stall_remote_req"                       : (0xff, 0xff, 0x00), ## yellow
+                                         "stall_local_flw"                        : (0x99, 0xff, 0xff), ## light cyan
+                                         "bubble"                                 : (0x00, 0x99, 0x99)  ## dark cyan
                                        }
-    self.detailed_unified_instr_color    =                                  (0xff, 0x00, 0x00)  ## red
-    self.detailed_unified_fp_instr_color =                                  (0xff, 0x80, 0x00)  ## orange
-    self.detailed_unknown_color  =                                          (0xff, 0xd7, 0x00)  ## gold
+    self.detailed_unified_instr_color    =                                          (0xff, 0x00, 0x00)  ## red
+    self.detailed_unified_fp_instr_color =                                          (0xff, 0x80, 0x00)  ## orange
+    self.detailed_unknown_color  =                                                  (0xff, 0xd7, 0x00)  ## gold
 
 
 
     # Coloring scheme for different types of operations
     # For abstract mode 
     # i_cache miss is treated the same is stall_ifetch_wait
-    self.abstract_stall_bubble_color = { "stall_depend"                   : (0xff, 0xff, 0xff), ## white 
-                                         "stall_depend_local_load"        : (0xff, 0xff, 0xff), ## white
-                                         "stall_depend_remote_load"       : (0x00, 0xff, 0x00), ## green
-                                         "stall_depend_local_remote_load" : (0x00, 0xff, 0x00), ## green
-                                         "stall_fp_local_load"            : (0xff, 0xff, 0xff), ## white
-                                         "stall_fp_remote_load"           : (0x00, 0xff, 0x00), ## green
-                                         "stall_force_wb"                 : (0xff, 0xff, 0xff), ## white
-                                         "icache_miss"                    : (0x00, 0x00, 0xff), ## blue
-                                         "stall_ifetch_wait"              : (0x00, 0x00, 0xff), ## blue
-                                         "stall_icache_store"             : (0xff, 0xff, 0xff), ## white
-                                         "stall_lr_aq"                    : (0x40, 0x40, 0x40), ## dark gray
-                                         "stall_md"                       : (0xff, 0x00, 0x00), ## red
-                                         "stall_remote_req"               : (0xff, 0xff, 0x00), ## yellow
-                                         "stall_local_flw"                : (0xff, 0xff, 0xff), ## white
-                                         "bubble"                         : (0xff, 0xff, 0xff)  ## white
+    self.abstract_stall_bubble_color = { "stall_depend"                           : (0xff, 0xff, 0xff), ## white 
+                                         "stall_depend_local_load"                : (0xff, 0xff, 0xff), ## white
+                                         "stall_depend_remote_load_dram"          : (0x00, 0xff, 0x00), ## green
+                                         "stall_depend_remote_load_global"        : (0x00, 0xff, 0x00), ## green
+                                         "stall_depend_remote_load_group"         : (0x00, 0xff, 0x00), ## green
+                                         "stall_depend_local_remote_load_dram"    : (0x00, 0xff, 0x00), ## green
+                                         "stall_depend_local_remote_load_global"  : (0x00, 0xff, 0x00), ## green
+                                         "stall_depend_local_remote_load_group"   : (0x00, 0xff, 0x00), ## green
+                                         "stall_fp_local_load"                    : (0xff, 0xff, 0xff), ## white
+                                         "stall_fp_remote_load"                   : (0x00, 0xff, 0x00), ## green
+                                         "stall_force_wb"                         : (0xff, 0xff, 0xff), ## white
+                                         "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
+                                         "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
+                                         "stall_icache_store"                     : (0xff, 0xff, 0xff), ## white
+                                         "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray
+                                         "stall_md"                               : (0xff, 0x00, 0x00), ## red
+                                         "stall_remote_req"                       : (0xff, 0xff, 0x00), ## yellow
+                                         "stall_local_flw"                        : (0xff, 0xff, 0xff), ## white
+                                         "bubble"                                 : (0xff, 0xff, 0xff)  ## white
                                        }
-    self.abstract_unified_instr_color    =                                  (0xff, 0x00, 0x00)  ## red
-    self.abstract_unified_fp_instr_color =                                  (0xff, 0x00, 0x00)  ## red
-    self.abstract_unknown_color  =                                          (0xff, 0x00, 0x00)  ## red
+    self.abstract_unified_instr_color    =                                          (0xff, 0x00, 0x00)  ## red
+    self.abstract_unified_fp_instr_color =                                          (0xff, 0x00, 0x00)  ## red
+    self.abstract_unknown_color  =                                                  (0xff, 0x00, 0x00)  ## red
 
 
 
