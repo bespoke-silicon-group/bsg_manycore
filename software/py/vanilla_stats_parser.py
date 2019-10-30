@@ -48,7 +48,7 @@ DEFAULT_INPUT_FILE = "vanilla_stats.log"
 
 
 # formatting parameters for aligned printing
-name_length = 25
+name_length = 35
 type_length = 15
 int_length = 15
 float_length=15.4
@@ -62,34 +62,38 @@ stats_stall_header_format  = ("{:<"+str(name_length)+"}{:>"+str(type_length)+"}{
 stats_stall_data_format    = ("{:<"+str(name_length)+"}{:>"+str(int_length)+"}{:>"+str(percent_length)+"f}\n")
 stats_miss_header_format   = ("{:<"+str(name_length)+"}{:>"+str(type_length)+"}{:>"+str(type_length)+"}{:>"+str(type_length)+"}\n")
 stats_miss_data_format     = ("{:<"+str(name_length)+"}{:>"+str(int_length)+"}{:>"+str(int_length)+"}{:>"+str(float_length)+"f}\n")
-separating_line = ('=' * 80 + '\n')
+separating_line = ('=' * 90 + '\n')
 
 
 
 # List of instructions, operations and events parsed from vanilla_stats.log
-stats_list  = {"time", "x", "y", "tag", "global_ctr", "cycle"}
+stats_list  = ["time", "x", "y", "tag", "global_ctr", "cycle"]
 
-instr_list  = {'instr','fadd','fsub','fmul','fsgnj','fsgnjn',
+instr_list  = ['instr','fadd','fsub','fmul','fsgnj','fsgnjn',
                'fsgnjx','fmin','fmax','fcvt_s_w','fcvt_s_wu',
                'fmv_w_x','feq','flt','fle','fcvt_w_s','fcvt_wu_s',
                'fclass','fmv_x_w','local_ld','local_st',
-               'remote_ld','remote_st','local_flw','local_fsw',
-               'remote_flw','remote_fsw','lr','lr_aq',
-               'swap_aq','swap_rl','beq','bne','blt','bge','bltu',
-               'bgeu','jalr','jal', 'sll',
+               'remote_ld_dram','remote_ld_global','remote_ld_group',
+               'remote_st_dram','remote_st_global','remote_st_group',
+               'local_flw','local_fsw','remote_flw','remote_fsw',
+               'lr','lr_aq','swap_aq','swap_rl','beq','bne',
+               'blt','bge','bltu','bgeu','jalr','jal', 'sll',
                'slli','srl','srli','sra','srai','add','addi','sub',
                'lui','auipc','xor','xori','or','ori','and','andi',
                'slt','slti','sltu','sltiu','mul','mulh','mulhsu',
-               'mulhu','div','divu','rem','remu','fence'}
+               'mulhu','div','divu','rem','remu','fence']
 
-miss_list   = {'icache_miss', 'beq_miss', 'bne_miss', 'blt_miss',
-               'bge_miss', 'bltu_miss', 'bgeu_miss', 'jalr_miss'}
+miss_list   = ['icache_miss', 'beq_miss', 'bne_miss', 'blt_miss',
+               'bge_miss', 'bltu_miss', 'bgeu_miss', 'jalr_miss']
 
-stalls_list = {'stall_fp_remote_load','stall_fp_local_load',
-               'stall_depend','stall_depend_remote_load',
+stalls_list = ['stall_fp_remote_load','stall_fp_local_load',
+               'stall_depend',
+               'stall_depend_remote_load_dram',
+               'stall_depend_remote_load_global',
+               'stall_depend_remote_load_group',
                'stall_depend_local_load','stall_force_wb',
                'stall_ifetch_wait','stall_icache_store',
-               'stall_lr_aq','stall_md','stall_remote_req','stall_local_flw'}
+               'stall_lr_aq','stall_md','stall_remote_req','stall_local_flw']
 
 
 
