@@ -12,6 +12,7 @@ module vanilla_core_profiler
     , parameter data_width_p="inv"
     , parameter dmem_size_p="inv"
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
+    , parameter reg_els_lp = RV32_reg_els_gp
     , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
   )
   (
@@ -317,8 +318,8 @@ module vanilla_core_profiler
   // float_sb[1]: remote group load
   // float_sb[0]: local_load
   //
-  logic [31:0][3:0] int_sb_r;
-  logic [31:0][3:0] float_sb_r;
+  logic [reg_els_lp-1:0][3:0] int_sb_r;
+  logic [reg_els_lp-1:0][3:0] float_sb_r;
   
   logic remote_load_in_id;
   logic remote_load_dram_in_id;
