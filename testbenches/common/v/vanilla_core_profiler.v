@@ -136,7 +136,13 @@ module vanilla_core_profiler
   logic local_ld_inc;
   logic local_st_inc;
   logic remote_ld_inc;
+  logic remote_ld_dram_inc;
+  logic remote_ld_global_inc;
+  logic remote_ld_group_inc;
   logic remote_st_inc;
+  logic remote_st_dram_inc;
+  logic remote_st_global_inc;
+  logic remote_st_group_inc;
   logic local_flw_inc;
   logic local_fsw_inc;
   logic remote_flw_inc;
@@ -148,8 +154,19 @@ module vanilla_core_profiler
   assign remote_ld_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
     & ~remote_req_o.payload.read_info.load_info.icache_fetch
     & exe_r.decode.op_writes_rf;
+  assign remote_ld_dram_inc   = remote_ld_inc & (remote_req_o.addr[data_width_p-1]);
+  assign remote_ld_global_inc = remote_ld_inc & ~remote_ld_dram_inc 
+                              & (remote_req_o.addr[data_width_p-2]);
+  assign remote_ld_group_inc  = remote_ld_inc & ~remote_ld_dram_inc & ~remote_ld_global_inc
+                              & (remote_req_o.addr[data_width_p-3]);
+
   assign remote_st_inc = remote_req_v_o & remote_req_yumi_i & remote_req_o.write_not_read
     & exe_r.decode.op_reads_rf2;
+  assign remote_st_dram_inc   = remote_st_inc & (remote_req_o.addr[data_width_p-1]);
+  assign remote_st_global_inc = remote_st_inc & ~remote_st_dram_inc 
+                              & (remote_req_o.addr[data_width_p-2]);
+  assign remote_st_group_inc  = remote_st_inc & ~remote_st_dram_inc & ~remote_st_global_inc
+                              & (remote_req_o.addr[data_width_p-3]);
 
   assign local_flw_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_fp_rf;
   assign local_fsw_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_fp_rf2;
@@ -483,14 +500,20 @@ module vanilla_core_profiler
     integer fclass;
     integer fmv_x_w;
 
-    integer ld;           // local_load count
-    integer st;           // local_store count
-    integer remote_ld;    // remote_load count
-    integer remote_st;    // remote_store count
-    integer local_flw;    // local_flw count
-    integer local_fsw;    // local_fsw count
-    integer remote_flw;   // remote_flw count
-    integer remote_fsw;   // remote_fsw count
+    integer ld;                // local_load count
+    integer st;                // local_store count
+    integer remote_ld;         // remote_load count
+    integer remote_ld_dram;    // remote_load to dram count
+    integer remote_ld_global;  // remote_load to global tile count
+    integer remote_ld_group;   // remote_load to group tile count
+    integer remote_st;         // remote_store count
+    integer remote_st_dram;    // remote_store to dram count
+    integer remote_st_global;  // remote_store to global tile count
+    integer remote_st_group;   // remote_store to group tile count
+    integer local_flw;         // local_flw count
+    integer local_fsw;         // local_fsw count
+    integer remote_flw;        // remote_flw count
+    integer remote_fsw;        // remote_fsw count
 
     // icache miss rate can be calculated by the expression:
     // icache_miss_rate = icache_miss / (icache_miss + instr)
@@ -614,7 +637,13 @@ module vanilla_core_profiler
       if (local_ld_inc) stat.ld++;
       if (local_st_inc) stat.st++;
       if (remote_ld_inc) stat.remote_ld++;
+      if (remote_ld_dram_inc) stat.remote_ld_dram++;
+      if (remote_ld_global_inc) stat.remote_ld_global++;
+      if (remote_ld_group_inc) stat.remote_ld_group++;
       if (remote_st_inc) stat.remote_st++;
+      if (remote_st_dram_inc) stat.remote_st_dram++;
+      if (remote_st_global_inc) stat.remote_st_global++;
+      if (remote_st_group_inc) stat.remote_st_group++;
       if (local_flw_inc) stat.local_flw++;
       if (local_fsw_inc) stat.local_fsw++;
       if (remote_flw_inc) stat.remote_flw++;
@@ -798,9 +827,23 @@ module vanilla_core_profiler
             else if (local_st_inc)
               print_operation_trace(fd2, "local_st");
             else if (remote_ld_inc)
-              print_operation_trace(fd2, "remote_ld");
+            begin
+              if (remote_ld_dram_inc)
+                print_operation_trace(fd2, "remote_ld_dram");
+              else if (remote_ld_global_inc)
+                print_operation_trace(fd2, "remote_ld_global");
+              else if (remote_ld_group_inc)
+                print_operation_trace(fd2, "remote_ld_group");
+            end
             else if (remote_st_inc)
-              print_operation_trace(fd2, "remote_st");
+            begin
+              if (remote_st_dram_inc)
+                print_operation_trace(fd2, "remote_st_dram");
+              else if (remote_st_global_inc)
+                print_operation_trace(fd2, "remote_st_global");
+              else if (remote_st_group_inc)
+                print_operation_trace(fd2, "remote_st_group");
+            end
             else if (local_flw_inc)
               print_operation_trace(fd2, "local_flw");
             else if (local_fsw_inc)
