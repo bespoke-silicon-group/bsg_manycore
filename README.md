@@ -31,6 +31,12 @@ In this directory:
 - `make machines`: Compile simulation executables in `machines/`.
 - Edit `BSG_MACHINE_PATH` in `software/mk/Makefile.paths` to choose the machine to run somd programs on.
 
+# Contributions
+
+If you're developing on a branch called `mybranch`, please pull a branch called `ci_mybranch` based
+on `mybranch` to run CI and `mybranch`. It's advised to keep working on `mybranch` for incremental
+updates and rebase `ci_mybranch` on `mybranch` when it's ready for another CI run.
+
 # Tutorial 
 
 Comming Soon!
