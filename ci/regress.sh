@@ -3,8 +3,8 @@
 NUM_CORES=${CI_NUM_CORES:-16}
 
 cd software/spmd
-make -j $NUM_CORES recurse-clean 
-make -j $NUM_CORES recurse-all
+make -j $NUM_CORES recurse-clean > /dev/null 2>&1
+make -j $NUM_CORES recurse-all > /dev/null 2>&1
 for file in recurse-results/*.log; do
   if grep --quiet BSG_FAIL $file; then
     echo $file failed!
@@ -16,5 +16,5 @@ for file in recurse-results/*.log; do
     exit 1
   fi
 done
-exit `(grep --quiet BSG_PASS recurse-results/*.log)`
 make BSG_FINISH.scrape BSG_FAIL.scrape BSG_TIMEOUT.scrape
+exit `(grep --quiet BSG_PASS recurse-results/*.log)`
