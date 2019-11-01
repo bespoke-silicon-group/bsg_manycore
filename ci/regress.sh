@@ -17,3 +17,4 @@ for file in recurse-results/*.log; do
   fi
 done
 exit `(grep --quiet BSG_PASS recurse-results/*.log)`
+make BSG_FINISH.scrape BSG_FAIL.scrape BSG_TIMEOUT.scrape
