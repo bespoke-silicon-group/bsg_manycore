@@ -57,14 +57,20 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_expand_bitmask.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_lru_pseudo_tree_decode.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_lru_pseudo_tree_encode.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_lru_pseudo_tree_backup.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_thermometer_count.v
 
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1r1w_large.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1rw_large.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1r1w_small.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1r1w_small_unhardened.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_two_fifo.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_round_robin_n_to_1.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_round_robin_2_to_2.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_parallel_in_serial_out.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_serial_in_parallel_out.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_tracker.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_make_2D_array.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_flatten_2D_array.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1r1w.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1r1w_synth.v
@@ -93,6 +99,16 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_f2i.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_clz.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_sticky.v
 
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_pkg.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_controller.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_phy.v
+
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_launch_sync_sync.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_sync_sync.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_async_fifo.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_async_ptr_gray.v
+
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_pkt_decode.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_dma.v
@@ -115,6 +131,11 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_non_blocking_mhu.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_non_blocking_tl_stage.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_to_cache_non_blocking.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_vcache_non_blocking.v
+
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl_rx.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl_tx.v
+
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_manycore_proc_vanilla.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/network_rx.v

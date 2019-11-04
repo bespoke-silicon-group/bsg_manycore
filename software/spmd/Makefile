@@ -10,7 +10,7 @@ NO-RECURSE = \
 	specint2000 berkeley_bug bsg_dram_cache_byte bsg_dram_cache_evict bsg_hetero_nodes \
   bsg_dram_loopback bsg_dram_scatter bsg_loader_suite bsg_outbuf_full \
 	bsg_X4Y4_loopback rocket_manycore_2tile_loopback simple_accel go_viral \
-	bsg_remote_congestion bsg_hetero_nodes memtest1
+	bsg_remote_congestion bsg_hetero_nodes memtest1 bsg_cache_miss
 
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
