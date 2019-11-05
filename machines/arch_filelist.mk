@@ -116,7 +116,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/hash_function.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/hash_function_reverse.v
-VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_cache_to_axi_hashed.v
+#VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_cache_to_axi_hashed.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile.v

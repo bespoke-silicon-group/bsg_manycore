@@ -94,7 +94,7 @@ class NBF:
     # make sure that you have riscv tool binaries in
     # bsg_manycore/software/riscv-tools/riscv-install/bin
     dirname = os.path.abspath(os.path.dirname(__file__))
-    objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv32-unknown-elf-dramfs-objcopy")
+    objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv32-unknown-elf-objcopy")
 
     if not os.path.isfile(objcopy_path):
       print("install riscv-tools first...")
