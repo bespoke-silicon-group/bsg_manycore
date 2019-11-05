@@ -744,21 +744,32 @@ module vanilla_core_profiler
     // the first tile opens the logfile and writes the csv header.
     if ((my_x_i == x_cord_width_p'(0)) & (my_y_i == y_cord_width_p'(1))) begin
       fd = $fopen(logfile_lp, "w");
-      $fwrite(fd, "time,x,y,tag,global_ctr,cycle,instr,");
-      $fwrite(fd, "fadd,fsub,fmul,fsgnj,fsgnjn,fsgnjx,fmin,fmax,fcvt_s_w,fcvt_s_wu,fmv_w_x,");
-      $fwrite(fd, "feq,flt,fle,fcvt_w_s,fcvt_wu_s,fclass,fmv_x_w,");
-      $fwrite(fd, "local_ld,local_st,remote_ld_dram,remote_ld_global,remote_ld_group,");
-      $fwrite(fd, "remote_st_dram,remote_st_global,remote_st_group,");
-      $fwrite(fd, "local_flw,local_fsw,remote_flw,remote_fsw,icache_miss,");
-      $fwrite(fd, "lr,lr_aq,swap_aq,swap_rl,");
-      $fwrite(fd, "beq,bne,blt,bge,bltu,bgeu,jalr,jal,");
-      $fwrite(fd, "beq_miss,bne_miss,blt_miss,bge_miss,bltu_miss,bgeu_miss,jalr_miss,");
-      $fwrite(fd, "sll,slli,srl,srli,sra,srai,");
-      $fwrite(fd, "add,addi,sub,lui,auipc,xor,xori,or,ori,and,andi,slt,slti,sltu,sltiu,");
-      $fwrite(fd, "mul,mulh,mulhsu,mulhu,div,divu,rem,remu,");
-      $fwrite(fd, "fence,");
+      $fwrite(fd, "time,x,y,tag,global_ctr,cycle,");
+      $fwrite(fd, "instr_total,instr_fadd,instr_fsub,instr_fmul,");
+      $fwrite(fd, "instr_fsgnj,instr_fsgnjn,instr_fsgnjx,");
+      $fwrite(fd, "instr_fmin,instr_fmax,instr_fcvt_s_w,instr_fcvt_s_wu,instr_fmv_w_x,");
+      $fwrite(fd, "instr_feq,instr_flt,instr_fle,");
+      $fwrite(fd, "instr_fcvt_w_s,instr_fcvt_wu_s,instr_fclass,instr_fmv_x_w,");
+      $fwrite(fd, "instr_local_ld,instr_local_st,");
+      $fwrite(fd, "instr_remote_ld_dram,instr_remote_ld_global,instr_remote_ld_group,");
+      $fwrite(fd, "instr_remote_st_dram,instr_remote_st_global,instr_remote_st_group,");
+      $fwrite(fd, "instr_local_flw,instr_local_fsw,");
+      $fwrite(fd, "instr_remote_flw,instr_remote_fsw,");
+      $fwrite(fd, "instr_lr,instr_lr_aq,instr_swap_aq,instr_swap_rl,");
+      $fwrite(fd, "instr_beq,instr_bne,instr_blt,instr_bge,");
+      $fwrite(fd, "instr_bltu,instr_bgeu,instr_jalr,instr_jal,");
+      $fwrite(fd, "instr_sll,instr_slli,instr_srl,instr_srli,instr_sra,instr_srai,");
+      $fwrite(fd, "instr_add,instr_addi,instr_sub,instr_lui,instr_auipc,");
+      $fwrite(fd, "instr_xor,instr_xori,instr_or,instr_ori,");
+      $fwrite(fd, "instr_and,instr_andi,instr_slt,instr_slti,instr_sltu,instr_sltiu,");
+      $fwrite(fd, "instr_mul,instr_mulh,instr_mulhsu,instr_mulhu,");
+      $fwrite(fd, "instr_div,instr_divu,instr_rem,instr_remu,");
+      $fwrite(fd, "instr_fence,");
+      $fwrite(fd, "miss_icache,miss_beq,miss_bne,miss_blt,miss_bge,miss_bltu,miss_bgeu,miss_jalr,");
       $fwrite(fd, "stall_fp_remote_load,stall_fp_local_load,stall_depend,");
-      $fwrite(fd, "stall_depend_remote_load_dram,stall_depend_remote_load_global,stall_depend_remote_load_group,");
+      $fwrite(fd, "stall_depend_remote_load_dram,");
+      $fwrite(fd, "stall_depend_remote_load_global,");
+      $fwrite(fd, "stall_depend_remote_load_group,");
       $fwrite(fd, "stall_depend_local_load,");
       $fwrite(fd, "stall_force_wb,stall_ifetch_wait,stall_icache_store,");
       $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw");
@@ -1058,7 +1069,7 @@ module vanilla_core_profiler
             stat.fmv_x_w
           );
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             stat.ld,
             stat.st,
             stat.remote_ld_dram,
@@ -1070,8 +1081,7 @@ module vanilla_core_profiler
             stat.local_flw,
             stat.local_fsw,
             stat.remote_flw,
-            stat.remote_fsw,
-            stat.icache_miss
+            stat.remote_fsw
           );
 
           $fwrite(fd, "%0d,%0d,%0d,%0d,",
@@ -1090,16 +1100,6 @@ module vanilla_core_profiler
             stat.bgeu,
             stat.jalr,
             stat.jal
-          );
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.beq_miss,
-            stat.bne_miss,
-            stat.blt_miss,
-            stat.bge_miss,
-            stat.bltu_miss,
-            stat.bgeu_miss,
-            stat.jalr_miss
           );
 
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
@@ -1141,7 +1141,18 @@ module vanilla_core_profiler
           );
 
           $fwrite(fd, "%0d,", stat.fence);
-      
+
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+            stat.icache_miss,
+            stat.beq_miss,
+            stat.bne_miss,
+            stat.blt_miss,
+            stat.bge_miss,
+            stat.bltu_miss,
+            stat.bgeu_miss,
+            stat.jalr_miss
+          );
+     
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             stat.stall_fp_remote_load,
             stat.stall_fp_local_load,
