@@ -26,8 +26,9 @@ import sys
 import argparse
 import os
 import re
-from enum import Enum
 import csv
+from enum import Enum
+from collections import Counter
 
 # These values are used by the manycore library in bsg_print_stat instructions
 # They are added to the tag value to determine whether the message is from the 
@@ -51,7 +52,7 @@ DEFAULT_INPUT_FILE = "vanilla_stats.log"
 class VanillaStatsParser:
 
   # default constructor
-  def __init__(self, manycore_dim_y, manycore_dim_x, per_tile_stat):
+  def __init__(self, manycore_dim_y, manycore_dim_x, per_tile_stat, input_file):
 
     self.manycore_dim_y = manycore_dim_y
     self.manycore_dim_x = manycore_dim_x
@@ -62,16 +63,14 @@ class VanillaStatsParser:
     self.max_tile_groups = 1024
     self.num_tile_groups = 0
 
-    self.timing_start_list = [0] * self.max_tile_groups 
-    self.timing_end_list =   [0] * self.max_tile_groups
-    self.timing_stat = [0] * self.max_tile_groups
+    self.timing_stat = Counter()
 
     self.total_execution_time = 0
     self.total_instr_cnt = 0
     self.total_stall_cnt = 0
     self.total_miss_cnt = 0
 
-    self.tile_stat_dict = [[dict() for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)]
+    self.tile_stat_dict = dict() 
     self.manycore_stat_dict = dict()
 
 
@@ -127,71 +126,78 @@ class VanillaStatsParser:
                         'stall_lr_aq','stall_md','stall_remote_req','stall_local_flw']
 
 
+    # Call generate_stats after initialization
+    self.generate_stats(input_file)
+    return
 
-  # private method
+
+
+
   # print a line of stat into stats file based on stat type
   def __print_stat(self, stat_file, stat_type, *argv):
     stat_file.write(self.print_format[stat_type].format(*argv));
     return
 
 
-  # private method
-  # parse the stats file to generate total execution time
-  # for each tile group and for total
-  def generate_stats_timing(self, trace):
-    y = trace["y"]
-    x = trace["x"]
-    relative_y = y - bsg_TILE_GROUP_ORG_Y
-    relative_x = x - bsg_TILE_GROUP_ORG_X
-    tg_num = trace["tag"]
-    # Only count those coming from the origin tile (0,0)
-    if (relative_x == 0 and relative_y == 0):
-      if(tg_num < bsg_PRINT_STAT_END_VAL):
-        self.timing_start_list[tg_num] = trace["time"]
-        self.num_tile_groups += 1
-      else:
-        self.timing_end_list[tg_num - bsg_PRINT_STAT_END_VAL] = trace["time"]
+  # go though the input traces and extract start and end time of 
+  # each tile group execution, and subtract to create a list of 
+  # timing status for each tile group
+  # return number of tile groups and the timing stats
+  def __generate_timing_stats(self, traces):
+
+    timing_start = Counter()
+    timing_end = Counter()
+    timing_stat = Counter()
+    num_tile_groups = 0
+
+    for trace in traces:
+      y = trace["y"]
+      x = trace["x"]
+      tg_num = trace["tag"]
+      # Only count those coming from the origin tile 
+      # (bsg_TILE_GROUP_ORG_X,bsg_TILE_GROUP_ORG_Y)
+      if (x == bsg_TILE_GROUP_ORG_X and y == bsg_TILE_GROUP_ORG_Y):
+        if(tg_num < bsg_PRINT_STAT_END_VAL):
+          timing_start[tg_num] = trace["time"]
+          num_tile_groups += 1
+        else:
+          timing_end[tg_num - bsg_PRINT_STAT_END_VAL] = trace["time"]
+
+    # Generate execution time by subtracting start time from end time
+    timing_stat = timing_end - timing_start
+
+    return num_tile_groups, timing_stat
 
 
-  # private method
-  # Sum up all other stats for all tiles based on the last bsg_print_stat instr
-  def generate_stats_all(self):
-      # Generate timing stats 
-      for trace in self.traces:
-        self.generate_stats_timing(trace)
-
-      for tg_id in range (0, self.num_tile_groups):
-        self.timing_stat[tg_id] = self.timing_end_list[tg_id] - self.timing_start_list[tg_id];
-
-
-      #other stats are only read once per tile from the end of file
-      #i.e. if mesh dimensions are 4x4, only last 16 lines are needed 
-      trace_idx = len(self.traces)
-      for y in range(self.manycore_dim_y):
-        for x in range(self.manycore_dim_x):
-          trace_idx -= 1
-          trace = self.traces[trace_idx]
-          for stat in self.stats_list:
-            self.tile_stat_dict[y][x][stat] = trace[stat]
-          for instr in self.instr_list:
-            self.tile_stat_dict[y][x][instr] = trace[instr]
-          for stall in self.stalls_list:
-            self.tile_stat_dict[y][x][stall] = trace[stall]
-          for miss in self.miss_list:
-            self.tile_stat_dict[y][x][miss] = trace[miss]
+  # Generate a stats dictionary for each tile containing the stat and it's aggregate count
+  # other than timing, tile stats are only read once per tile from the end of file
+  # i.e. if mesh dimensions are 4x4, only last 16 lines are needed 
+  def __generate_tile_stat_dict (self, traces):
+    tile_stat_dict = [[dict() for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)]
+    trace_idx = len(traces)
+    for y in range(self.manycore_dim_y):
+      for x in range(self.manycore_dim_x):
+        trace_idx -= 1
+        trace = traces[trace_idx]
+        for stat in self.stats_list:
+          tile_stat_dict[y][x][stat] = trace[stat]
+        for instr in self.instr_list:
+          tile_stat_dict[y][x][instr] = trace[instr]
+        for stall in self.stalls_list:
+          tile_stat_dict[y][x][stall] = trace[stall]
+        for miss in self.miss_list:
+          tile_stat_dict[y][x][miss] = trace[miss]
+    return tile_stat_dict
 
 
-  # private method
   # print execution timing for the entire manycore 
-  def print_manycore_stats_timing(self, stat_file):
+  def __print_manycore_stats_timing(self, stat_file):
     # For total execution time, we only sum up the execution time of origin tile in tile groups
     # The origin tile's relative coordinates is always 0,0 
     stat_file.write("Timing Stats\n")
     self.__print_stat(stat_file, "timing_header", "tile group", "exec time", "share (%)")
     self.__print_stat(stat_file, "line_break")
 
-    # Sum up execution time for all tile groups 
-    self.total_execution_time = sum(self.timing_stat)
 
     for i in range (0, self.num_tile_groups):
       self.__print_stat(stat_file, "timing_data", i,
@@ -205,9 +211,8 @@ class VanillaStatsParser:
     return
 
 
-  # private method
   # print instruction stats for the entire manycore
-  def print_manycore_stats_instructions(self, stat_file):
+  def __print_manycore_stats_instructions(self, stat_file):
 
     stat_file.write("Instruction Stats\n")
     self.__print_stat(stat_file, "instr_header", "instruction", "count", "share (%)")
@@ -227,10 +232,9 @@ class VanillaStatsParser:
     return
 
 
-  # private method
   # print instruction stats for each tile in a separate file 
   # y,x are tile coordinates 
-  def print_per_tile_stats_instructions(self, y, x, stat_file):
+  def __print_per_tile_stats_instructions(self, y, x, stat_file):
 
     stat_file.write("Instruction Stats\n")
     self.__print_stat(stat_file, "instr_header", "instruction", "count", " share (%)")
@@ -257,9 +261,8 @@ class VanillaStatsParser:
 
 
 
-  # private method
   # print stall stats for the entire manycore
-  def print_manycore_stats_stalls(self, stat_file):
+  def __print_manycore_stats_stalls(self, stat_file):
     stat_file.write("Stall Stats\n")
     self.__print_stat(stat_file, "stall_header", "stall", "cycles", "share (%)")
     self.__print_stat(stat_file, "line_break")
@@ -277,10 +280,9 @@ class VanillaStatsParser:
     return
 
 
-  # private method
   # print stall stats for each tile in a separate file
   # y,x are tile coordinates 
-  def print_per_tile_stats_stalls(self, y, x, stat_file):
+  def __print_per_tile_stats_stalls(self, y, x, stat_file):
     stat_file.write("Stall Stats\n")
     self.__print_stat(stat_file, "stall_header", "stall", "cycles", "share (%)")
     self.__print_stat(stat_file, "line_break")
@@ -304,9 +306,8 @@ class VanillaStatsParser:
 
 
 
-  # private method
   # print miss stats for the entire manycore
-  def print_manycore_stats_miss(self, stat_file):
+  def __print_manycore_stats_miss(self, stat_file):
     stat_file.write("Miss Stats\n")
     self.__print_stat(stat_file, "miss_header", "unit", "miss", "total", "hit rate")
     self.__print_stat(stat_file, "line_break")
@@ -329,10 +330,9 @@ class VanillaStatsParser:
     return
 
 
-  # private method
   # print miss stats for each tile in a separate file
   # y,x are tile coordinates 
-  def print_per_tile_stats_miss(self, y, x, stat_file):
+  def __print_per_tile_stats_miss(self, y, x, stat_file):
     stat_file.write("Miss Stats\n")
     self.__print_stat(stat_file, "miss_header", "unit", "miss", "total", "hit rate")
     self.__print_stat(stat_file, "line_break")
@@ -355,53 +355,60 @@ class VanillaStatsParser:
     return
 
 
+  # Calculate aggregate manycore stats dictionary by summing 
+  # all per tile stats dictionaries
+  def __generate_manycore_stat_all(self, tile_stat_dict, timing_stat):
 
-  # private method
-  # Sums up all stats from all tiles to generate manycore stats 
-  def calculate_manycore_stats_all(self):
+    # Create a dictionary and initialize elements to zero
+    manycore_stat_dict = dict()
+    total_instr_cnt = 0
+    total_stall_cnt = 0
+    total_miss_cnt = 0
+    total_execution_time = 0
 
-    # Initialize counts to zero
     for instr in self.instr_list:
-      self.manycore_stat_dict[instr] = 0
+      manycore_stat_dict[instr] = 0
     for stall in self.stalls_list:
-      self.manycore_stat_dict[stall] = 0
+      manycore_stat_dict[stall] = 0
     for miss in self.miss_list:
-      self.manycore_stat_dict[miss] = 0
+      manycore_stat_dict[miss] = 0
 
     for y in range(self.manycore_dim_y):
       for x in range(self.manycore_dim_x):
 
         # Calculate total instruction count for each tile and for manycore
         for instr in self.instr_list: 
-          self.manycore_stat_dict[instr] += self.tile_stat_dict[y][x][instr]
+          manycore_stat_dict[instr] += tile_stat_dict[y][x][instr]
           if (instr != "instr"):
-            self.total_instr_cnt += self.tile_stat_dict[y][x][instr]
+            total_instr_cnt += tile_stat_dict[y][x][instr]
 
         # Calculate total stall count for each tile and for manycore
         for stall in self.stalls_list: 
-          self.manycore_stat_dict[stall] += self.tile_stat_dict[y][x][stall]
-          self.total_stall_cnt += self.tile_stat_dict[y][x][stall]
+          manycore_stat_dict[stall] += tile_stat_dict[y][x][stall]
+          total_stall_cnt += tile_stat_dict[y][x][stall]
 
         # Calculate total miss count for each tile and for manycore
         for miss in self.miss_list: 
-          self.manycore_stat_dict[miss] += self.tile_stat_dict[y][x][miss]
-          self.total_miss_cnt += self.tile_stat_dict[y][x][miss]
-    return 
+          manycore_stat_dict[miss] += tile_stat_dict[y][x][miss]
+          total_miss_cnt += tile_stat_dict[y][x][miss]
+
+    # Sum up execution time for all tile groups to get total manycore execution time
+    total_execution_time = sum(self.timing_stat.values())
+
+    return total_execution_time, total_instr_cnt, total_stall_cnt, total_miss_cnt, manycore_stat_dict
  
 
 
-  # private method
   # prints all four types of stats, timing, instruction,
   # miss and stall for the entire manycore 
   def print_manycore_stats_all(self):
     manycore_stats_file = open("manycore_stats.log", "w")
-    self.print_manycore_stats_timing(manycore_stats_file)
-    self.print_manycore_stats_miss(manycore_stats_file)
-    self.print_manycore_stats_stalls(manycore_stats_file)
-    self.print_manycore_stats_instructions(manycore_stats_file)
+    self.__print_manycore_stats_timing(manycore_stats_file)
+    self.__print_manycore_stats_miss(manycore_stats_file)
+    self.__print_manycore_stats_stalls(manycore_stats_file)
+    self.__print_manycore_stats_instructions(manycore_stats_file)
     manycore_stats_file.close()
 
-  # private method
   # prints all four types of stats, timing, instruction,
   # miss and stall for each tile in a separate file  
   def print_per_tile_stats_all(self):
@@ -412,9 +419,9 @@ class VanillaStatsParser:
       for x in range(self.manycore_dim_x):
         stat_file = open( (stats_path + "tile_" + str(y) + "_" + str(x) + "_stats.log"), "w")
         #self.print_per_tile_stats_timing(y, x, stat_file)
-        self.print_per_tile_stats_miss(y, x, stat_file)
-        self.print_per_tile_stats_stalls(y, x, stat_file)
-        self.print_per_tile_stats_instructions(y, x, stat_file)
+        self.__print_per_tile_stats_miss(y, x, stat_file)
+        self.__print_per_tile_stats_stalls(y, x, stat_file)
+        self.__print_per_tile_stats_instructions(y, x, stat_file)
         stat_file.close()
 
 
@@ -436,12 +443,16 @@ class VanillaStatsParser:
           trace[miss] = int(row[miss])
         self.traces.append(trace)
 
-    # generate all stats by parsing input file
-    self.generate_stats_all()
+    # generate timing stats for each tile group 
+    self.num_tile_groups, self.timing_stat = self.__generate_timing_stats(self.traces)
+
+    # generate per tile stat dictionary with stat type and count 
+    self.tile_stat_dict = self.__generate_tile_stat_dict(self.traces)
 
     # Calculate total aggregate stats for manycore
-    # By summing up per_tile stats
-    self.calculate_manycore_stats_all()
+    # By summing up per_tile stat counts
+    (self.total_execution_time, self.total_instr_cnt, self.total_stall_cnt, self.total_miss_cnt, self.manycore_stat_dict) = \
+    self.__generate_manycore_stat_all(self.tile_stat_dict, self.timing_stat)
 
     # return timing_stat (list of tile group execution times)
     # and per_tile stats dictionary
@@ -449,7 +460,6 @@ class VanillaStatsParser:
 
 
 
-# private method 
 # parses input arguments
 def parse_args():
   parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
@@ -470,8 +480,7 @@ def parse_args():
 if __name__ == "__main__":
   args = parse_args()
   
-  st = VanillaStatsParser(args.dim_y, args.dim_x, args.per_tile)
-  timing_stat, manycore_stat, per_tile_stat = st.generate_stats(args.input)
+  st = VanillaStatsParser(args.dim_y, args.dim_x, args.per_tile, args.input)
   st.print_manycore_stats_all()
   if(st.per_tile_stat):
     st.print_per_tile_stats_all()
