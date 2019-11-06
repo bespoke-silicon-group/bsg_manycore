@@ -100,7 +100,7 @@ int kernel_softmax(const float *A, float *B, int M, int N, int block_size_y, int
                 }
         }
         bsg_tile_group_barrier(&r_barrier, &c_barrier);
-        return 0;
+
         float partial_sum = 0;
         // Compute sum(B) for each element belonging to a tile in the tilegroup
         for(int y = start_y + __bsg_y; y < end_y; y += bsg_tiles_Y)
