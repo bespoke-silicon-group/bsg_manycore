@@ -117,6 +117,9 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_sbuf.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_sbuf_queue.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_rx.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_tx.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl_rx.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl_tx.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_to_cache.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_vcache_blocking.v
 
@@ -131,11 +134,6 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_non_blocking_mhu.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_non_blocking_tl_stage.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_to_cache_non_blocking.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_vcache_non_blocking.v
-
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl_rx.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl_tx.v
-
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_manycore_proc_vanilla.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/network_rx.v

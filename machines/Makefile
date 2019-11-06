@@ -10,7 +10,6 @@ include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
 # Include source lists
 include arch_filelist.mk
 include sim_filelist.mk
-include tb_filelist.mk
 
 VCS_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
 VCS_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
