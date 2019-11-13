@@ -1,6 +1,6 @@
 /**
  *  bsg_cache_to_axi_hashed.v
- *    
+ *
  */
 
 module bsg_cache_to_axi_hashed
@@ -24,7 +24,7 @@ module bsg_cache_to_axi_hashed
 
     ,parameter axi_strb_width_lp=(axi_data_width_p>>3)
 
-    ,parameter dram_size_in_words_p=2**29
+    ,parameter dram_size_in_words_p=2**27
     ,parameter block_number_width_lp=`BSG_SAFE_CLOG2(dram_size_in_words_p)-lg_block_size_in_words_lp
   )
   (
@@ -116,11 +116,11 @@ module bsg_cache_to_axi_hashed
   ) read_rr (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    
+
     ,.data_i(dma_pkt)
     ,.v_i(read_rr_v_li)
     ,.yumi_o(read_rr_yumi_lo)
-    
+
     ,.v_o(read_rr_v_lo)
     ,.data_o(read_rr_dma_pkt)
     ,.tag_o(read_rr_tag_lo)
@@ -147,7 +147,7 @@ module bsg_cache_to_axi_hashed
   ) write_rr (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    
+
     ,.data_i(dma_pkt)
     ,.v_i(write_rr_v_li)
     ,.yumi_o(write_rr_yumi_lo)
@@ -172,7 +172,7 @@ module bsg_cache_to_axi_hashed
     ,.width_p(block_number_width_lp)
   ) hash_bank_rev_rx (
     .index_i(rx_index)
-    ,.bank_i(read_rr_tag_lo)    
+    ,.bank_i(read_rr_tag_lo)
     ,.o(rx_block_num)
   );
 
@@ -181,11 +181,11 @@ module bsg_cache_to_axi_hashed
     ,.width_p(block_number_width_lp)
   ) hash_bank_rev_tx (
     .index_i(tx_index)
-    ,.bank_i(write_rr_tag_lo)    
+    ,.bank_i(write_rr_tag_lo)
     ,.o(tx_block_num)
   );
 
-  assign rx_index = 
+  assign rx_index =
     read_rr_dma_pkt.addr[lg_data_mask_width_lp+lg_block_size_in_words_lp+:hash_bank_index_width_lp];
   assign tx_index =
     write_rr_dma_pkt.addr[lg_data_mask_width_lp+lg_block_size_in_words_lp+:hash_bank_index_width_lp];
@@ -201,7 +201,7 @@ module bsg_cache_to_axi_hashed
     //{(axi_addr_width_p-lg_num_cache_lp-addr_width_p){1'b0}}
     //,read_rr_tag_lo
     //,read_rr_dma_pkt.addr
-  };  
+  };
 
   assign tx_axi_addr = {
     {(axi_addr_width_p-block_number_width_lp-lg_data_mask_width_lp-lg_block_size_in_words_lp){1'b0}},
@@ -210,7 +210,7 @@ module bsg_cache_to_axi_hashed
     //{(axi_addr_width_p-lg_num_cache_lp-addr_width_p){1'b0}}
     //,write_rr_tag_lo
     //,write_rr_dma_pkt.addr
-  };  
+  };
 
 
   // dma_pkt handshake
@@ -276,7 +276,7 @@ module bsg_cache_to_axi_hashed
   ) axi_tx (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    
+
     ,.v_i(write_rr_v_lo)
     ,.yumi_o(write_rr_yumi_li)
     ,.tag_i(write_rr_tag_lo)
