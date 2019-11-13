@@ -41,6 +41,11 @@ define set_machine_variables
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_MAX_EPA_WIDTH=${BSG_MACHINE_MAX_EPA_WIDTH})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_BRANCH_TRACE_EN=${BSG_MACHINE_BRANCH_TRACE_EN})
+	# These define are required by mobile_ddr.v.
+	# density     	= 2048 Mbit
+	# speed grade 	= 5
+	# organization 	= x16
+	# allocation    = FULL_MEM
 	$(eval VCS_DEFINES += +define+den2048Mb+sg5+x16+FULL_MEM)
 endef
 
