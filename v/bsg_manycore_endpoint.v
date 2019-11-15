@@ -120,6 +120,19 @@ module bsg_manycore_endpoint
    assign link_sif_out.rev.ready_and_rev = 1'b1;
 
 
+  // synopsys translate_off
+
+  always_ff @ (negedge clk_i) begin
+
+    if (~reset_i & ~returned_fifo_ready)
+      assert(return_packet_yumi_i) else
+        $error("[BSG_ERROR] return fifo has to be dequeued, when it's full.");
+
+  end
+
+  // synopsys translate_on
+
+
 endmodule
 
 
