@@ -96,34 +96,12 @@ class VanillaStatsParser:
 
 
 
-    #List of instructions, operations and events parsed from vanilla_stats.log
-    self.stats_list  = ["time", "x", "y", "tag", "global_ctr", "cycle"]
-
-    self.instr_list  = ['instr','fadd','fsub','fmul','fsgnj','fsgnjn',
-                        'fsgnjx','fmin','fmax','fcvt_s_w','fcvt_s_wu',
-                        'fmv_w_x','feq','flt','fle','fcvt_w_s','fcvt_wu_s',
-                        'fclass','fmv_x_w','local_ld','local_st',
-                        'remote_ld_dram','remote_ld_global','remote_ld_group',
-                        'remote_st_dram','remote_st_global','remote_st_group',
-                        'local_flw','local_fsw','remote_flw','remote_fsw',
-                        'lr','lr_aq','swap_aq','swap_rl','beq','bne',
-                        'blt','bge','bltu','bgeu','jalr','jal', 'sll',
-                        'slli','srl','srli','sra','srai','add','addi','sub',
-                        'lui','auipc','xor','xori','or','ori','and','andi',
-                        'slt','slti','sltu','sltiu','mul','mulh','mulhsu',
-                        'mulhu','div','divu','rem','remu','fence']
-
-    self.miss_list   = ['icache_miss', 'beq_miss', 'bne_miss', 'blt_miss',
-                        'bge_miss', 'bltu_miss', 'bgeu_miss', 'jalr_miss']
-
-    self.stalls_list = ['stall_fp_remote_load','stall_fp_local_load',
-                        'stall_depend',
-                        'stall_depend_remote_load_dram',
-                        'stall_depend_remote_load_global',
-                        'stall_depend_remote_load_group',
-                        'stall_depend_local_load','stall_force_wb',
-                        'stall_ifetch_wait','stall_icache_store',
-                        'stall_lr_aq','stall_md','stall_remote_req','stall_local_flw']
+    # list of instructions, operations and events parsed from vanilla_stats.log
+    # populated by reading the header of input file 
+    self.stats_list  = []
+    self.instr_list  = []
+    self.miss_list   = []
+    self.stalls_list = []
 
 
     # Call generate_stats after initialization
@@ -243,7 +221,7 @@ class VanillaStatsParser:
     # Calculate total instruction count for tile 
     tile_total_instr_cnt = 0
     for instr in self.instr_list:
-      if (instr != "instr"):
+      if (instr != "instr_total"):
         tile_total_instr_cnt += self.tile_stat_dict[y][x][instr]
    
     # Print instruction stats for manycore
@@ -318,7 +296,7 @@ class VanillaStatsParser:
        # otherwise, search for the specific instruction
        if (miss == "icache_miss"):
          operation = "icache"
-         operation_cnt = self.manycore_stat_dict["instr"]
+         operation_cnt = self.manycore_stat_dict["instr_total"]
        else:
          operation = miss.replace("_miss", '')
          operation_cnt = self.manycore_stat_dict[operation]
@@ -343,7 +321,7 @@ class VanillaStatsParser:
        # otherwise, search for the specific instruction
        if (miss == "icache_miss"):
          operation = "icache"
-         operation_cnt = self.tile_stat_dict[y][x]["instr"]
+         operation_cnt = self.tile_stat_dict[y][x]["instr_total"]
        else:
          operation = miss.replace("_miss", '')
          operation_cnt = self.tile_stat_dict[y][x][operation]
@@ -379,9 +357,8 @@ class VanillaStatsParser:
         # Calculate total instruction count for each tile and for manycore
         for instr in self.instr_list: 
           manycore_stat_dict[instr] += tile_stat_dict[y][x][instr]
-          if (instr != "instr"):
+          if (instr != "instr_total"):
             total_instr_cnt += tile_stat_dict[y][x][instr]
-
         # Calculate total stall count for each tile and for manycore
         for stall in self.stalls_list: 
           manycore_stat_dict[stall] += tile_stat_dict[y][x][stall]
@@ -431,6 +408,20 @@ class VanillaStatsParser:
     self.traces = []
     with open(input_file) as f:
       csv_reader = csv.DictReader (f, delimiter=",")
+
+      # Generate list of instruction/miss/stall types
+      header = csv_reader.fieldnames
+      for item in header:
+        if (item.startswith('instr_')):
+          self.instr_list += [item]
+        elif (item.startswith('miss_')):
+          self.miss_list += [item]
+        elif (item.startswith('stall_')):
+          self.stalls_list += [item]
+        else:
+          self.stats_list += [item]
+
+
       for row in csv_reader:
         trace = {}
         for stat in self.stats_list:
