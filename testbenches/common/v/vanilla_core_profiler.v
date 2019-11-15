@@ -1035,17 +1035,17 @@ module vanilla_core_profiler
 
           fd = $fopen(logfile_lp, "a");
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
             $time,
             my_x_i,
             my_y_i,
             print_stat_tag_i,
             global_ctr_i,
-            stat.cycle,
-            stat.instr
+            stat.cycle
           );
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+            stat.instr,
             stat.fadd,
             stat.fsub,
             stat.fmul,
