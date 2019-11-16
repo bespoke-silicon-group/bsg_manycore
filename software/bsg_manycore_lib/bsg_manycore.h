@@ -146,7 +146,7 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
                                        int val = ( (BSG_CUDA_PRINT_STAT_ID << 30)                |                    \
                                                    (((__bsg_grp_org_y + __bsg_y) & 0x3F) << 24)  |                    \
                                                    (((__bsg_grp_org_x + __bsg_x) & 0x3F) << 18)  |                    \
-                                                   ((tg_id & 0x3FF) << 10)                       |                    \
+                                                   ((tg_id & 0x3FF) << 8)                        |                    \
                                                    (tag & 0xFF) );                                                    \
                                        bsg_print_stat(val);                                                           \
                                     } while (0)
@@ -156,7 +156,7 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
                                              int val = ( (BSG_CUDA_PRINT_STAT_START_ID << 30)          |                    \
                                                          (((__bsg_grp_org_y + __bsg_y) & 0x3F) << 24)  |                    \
                                                          (((__bsg_grp_org_x + __bsg_x) & 0x3F) << 18)  |                    \
-                                                         ((tg_id & 0x3FF) << 10)                       |                    \
+                                                         ((tg_id & 0x3FF) << 8)                        |                    \
                                                          (tag & 0xFF) );                                                    \
                                              bsg_print_stat(val);                                                           \
                                           } while (0)
@@ -166,7 +166,7 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
                                            int val = ( (BSG_CUDA_PRINT_STAT_END_ID << 30)            |                    \
                                                        (((__bsg_grp_org_y + __bsg_y) & 0x3F) << 24)  |                    \
                                                        (((__bsg_grp_org_x + __bsg_x) & 0x3F) << 18)  |                    \
-                                                       ((tg_id & 0x3FF) << 10)                       |                    \
+                                                       ((tg_id & 0x3FF) << 8)                        |                    \
                                                        (tag & 0xFF) );                                                    \
                                            bsg_print_stat(val);                                                           \
                                         } while (0)
