@@ -14,6 +14,10 @@ module vanilla_core_profiler
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter reg_els_lp = RV32_reg_els_gp
     , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
+    , parameter STAT_TAG_Y_START_BIT = 29
+    , parameter STAT_TAG_Y_END_BIT   = 24
+    , parameter STAT_TAG_X_START_BIT = 23
+    , parameter STAT_TAG_X_END_BIT   = 18
   )
   (
     input clk_i
@@ -734,6 +738,7 @@ module vanilla_core_profiler
   localparam logfile_lp = "vanilla_stats.log";
   localparam tracefile_lp = "vanilla_operation_trace.log";
 
+
   integer fd, fd2;
   string header;
 
@@ -1027,8 +1032,11 @@ module vanilla_core_profiler
           $fclose(fd2);
         end
     
-
-        if (~reset_i & print_stat_v_i) begin
+        // only print stat if core's x,y coordinates matches the ones in the
+        // print_stat_tag_i section of the print_stat
+        if (~reset_i & print_stat_v_i
+             & my_y_i == print_stat_tag_i[STAT_TAG_Y_START_BIT:STAT_TAG_Y_END_BIT]
+             & my_x_i == print_stat_tag_i[STAT_TAG_X_START_BIT:STAT_TAG_X_END_BIT]) begin
 
           $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.",
             $time, my_x_i, my_y_i);
