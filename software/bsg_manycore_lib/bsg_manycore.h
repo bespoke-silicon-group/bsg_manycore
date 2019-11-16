@@ -138,4 +138,40 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 #define bsg_print_stat(tag) do { bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xd0c); *ptr = tag; } while (0)
 
 
+
+#define BSG_CUDA_PRINT_STAT_ID         0
+#define BSG_CUDA_PRINT_STAT_START_ID   1
+#define BSG_CUDA_PRINT_STAT_END_ID     2
+#define bsg_cuda_print_stat(tag) do { if (__bsg_id == 0) {                                                               \
+                                          int tg_id = __bsg_tile_group_id_y * __bsg_grid_dim_x + __bsg_tile_group_id_x;  \
+                                          int val = ( (BSG_CUDA_PRINT_STAT_ID << 30) |                                   \
+                                                      ((tg_id & 0x3FFF) << 16)       |                                   \
+                                                      (tag & 0xFFFF) );                                                  \
+                                          bsg_print_stat(val);                                                           \
+                                      };                                                                                 \
+                                    } while (0)
+
+
+#define bsg_cuda_print_stat_start(tag) do { if (__bsg_id == 0) {                                                               \
+                                                int tg_id = __bsg_tile_group_id_y * __bsg_grid_dim_x + __bsg_tile_group_id_x;  \
+                                                int val = ( (BSG_CUDA_PRINT_STAT_START_ID << 30) |                             \
+                                                            ((tg_id & 0x3FFF) << 16)             |                             \
+                                                            (tag & 0xFFFF) );                                                  \
+                                                bsg_print_stat(val);                                                           \
+                                            } ;                                                                                \
+                                          } while (0)
+
+
+#define bsg_cuda_print_stat_end(tag) do { if (__bsg_id == 0) {                                                               \
+                                              int tg_id = __bsg_tile_group_id_y * __bsg_grid_dim_x + __bsg_tile_group_id_x;  \
+                                              int val = ( (BSG_CUDA_PRINT_STAT_END_ID << 30) |                               \
+                                                          ((tg_id & 0x3FFF) << 16)           |                               \
+                                                          (tag & 0xFFFF) );                                                  \
+                                              bsg_print_stat(val);                                                           \
+                                          } ;                                                                                \
+                                        } while (0)
+
+
+
+
 #endif
