@@ -110,10 +110,10 @@ class VanillaStatsParser:
                          "timing_data"     : type_format["cord"] + type_format["int"]  + type_format["int"]     + type_format["percent"] + "\n",
                          "instr_header"    : type_format["name"] + type_format["int"]  + type_format["type"]    + "\n",
                          "instr_data"      : type_format["name"] + type_format["int"]  + type_format["percent"] + "\n",
-                         "stall_header"    : type_format["name"] + type_format["type"] + type_format["type"]    + "\n",
-                         "stall_data"      : type_format["name"] + type_format["int"]  + type_format["percent"] + "\n",
-                         "miss_header"     : type_format["name"] + type_format["type"] + type_format["type"]    + type_format["type"]  + "\n",
-                         "miss_data"       : type_format["name"] + type_format["int"]  + type_format["int"]     + type_format["float"] + "\n",
+                         "stall_header"    : type_format["name"] + type_format["type"] + type_format["type"]    + type_format["type"]    + "\n",
+                         "stall_data"      : type_format["name"] + type_format["int"]  + type_format["percent"] + type_format["percent"] + "\n",
+                         "miss_header"     : type_format["name"] + type_format["type"] + type_format["type"]    + type_format["type"]    + "\n",
+                         "miss_data"       : type_format["name"] + type_format["int"]  + type_format["int"]     + type_format["float"]   + "\n",
                          "line_break"      : '=' * 90 + "\n"
                         }
 
@@ -341,13 +341,14 @@ class VanillaStatsParser:
   # print stall stats for the entire manycore
   def __print_manycore_stats_stalls(self, stat_file):
     stat_file.write("Stall Stats\n")
-    self.__print_stat(stat_file, "stall_header", "stall", "cycles", "share (%)")
+    self.__print_stat(stat_file, "stall_header", "stall", "cycles", "stall share(%)", "cycle share(%)")
     self.__print_stat(stat_file, "line_break")
 
     # Print stall stats for manycore
     for stall in self.stalls_list:
        self.__print_stat(stat_file, "stall_data", stall,
                                     self.manycore_stat[stall],
+                                    (100 * self.manycore_stat[stall] / self.manycore_stat["global_ctr"]),
                                     (100 * self.manycore_stat[stall] / self.manycore_stat["stall_total"]))
     self.__print_stat(stat_file, "line_break")
     return
@@ -357,13 +358,14 @@ class VanillaStatsParser:
   # y,x are tile coordinates 
   def __print_per_tile_stats_stalls(self, y, x, stat_file):
     stat_file.write("Stall Stats\n")
-    self.__print_stat(stat_file, "stall_header", "stall", "cycles", "share (%)")
+    self.__print_stat(stat_file, "stall_header", "stall", "cycles", "stall share(%)", "cycle share(%)")
     self.__print_stat(stat_file, "line_break")
 
     # Print stall stats for manycore
     for stall in self.stalls_list:
        self.__print_stat(stat_file, "stall_data", stall,
                                     self.tile_stat[y][x][stall],
+                                    (100 * self.tile_stat[y][x][stall] / self.tile_stat[y][x]["global_ctr"]),
                                     (100 * self.tile_stat[y][x][stall] / self.tile_stat[y][x]["stall_total"]))
     self.__print_stat(stat_file, "line_break")
     return
