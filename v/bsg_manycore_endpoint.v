@@ -5,17 +5,22 @@
 
 module bsg_manycore_endpoint
   import bsg_manycore_pkg::*;
-  #( x_cord_width_p                  = "inv"
-     ,y_cord_width_p                 = "inv"
-     ,fifo_els_p                     = "inv"
-     ,data_width_p                   = 32
-     ,addr_width_p                   = 32
-     ,load_id_width_p                = "inv"
-     ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-     ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p, load_id_width_p)
-     ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p)
-   )
-   (  input clk_i
+  #(parameter x_cord_width_p = "inv"
+    , parameter y_cord_width_p = "inv"
+    , parameter fifo_els_p = "inv"
+    , parameter data_width_p = 32
+    , parameter addr_width_p = "inv"
+    , parameter load_id_width_p = "inv"
+    
+    , parameter packet_width_lp = 
+      `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+    , parameter return_packet_width_lp =
+      `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p,load_id_width_p)
+    , parameter bsg_manycore_link_sif_width_lp =
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+  )
+  (
+    input clk_i
     , input reset_i
 
     // mesh network
@@ -45,7 +50,7 @@ module bsg_manycore_endpoint
 
   );
 
-  `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
+  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
 
   // typecast
   bsg_manycore_link_sif_s link_sif_in, link_sif_out;
