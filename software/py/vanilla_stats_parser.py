@@ -34,8 +34,6 @@ from collections import Counter
 
 
 
-
-
 # These values are used by the manycore library in bsg_print_stat instructions
 # they are added to the tag value to determine the tile group that triggered the stat
 # and also the type of stat (stand-alone stat, start, or end)
@@ -46,29 +44,25 @@ from collections import Counter
 # Section                 Stat type  -   y cord   -   x cord   -    tile group id   -        tag
 # of bits                <----2----> -   <--6-->  -   <--6-->  -   <------10----->  -   <-----8----->
 # Stat type value: {"stat":0, "start":1, "end":2}
-bsg_STAT_TAG_BITS   = 8
-bsg_STAT_TG_ID_BITS = 10
-bsg_STAT_X_BITS     = 6
-bsg_STAT_Y_BITS     = 6
-bsg_STAT_TYPE_BITS  = 2
-bsg_STAT_TAG_MASK   = ((1 << bsg_STAT_TAG_BITS) - 1)
-bsg_STAT_TG_ID_MASK = ((1 << bsg_STAT_TG_ID_BITS) - 1)
-bsg_STAT_X_MASK     = ((1 << bsg_STAT_X_BITS) - 1)
-bsg_STAT_Y_MASK     = ((1 << bsg_STAT_Y_BITS) - 1)
-bsg_STAT_TYPE_STAT  = 0
-bsg_STAT_TYPE_START = 1
-bsg_STAT_TYPE_END   = 2
+BSG_STAT_TAG_BITS   = 8
+BSG_STAT_TG_ID_BITS = 10
+BSG_STAT_X_BITS     = 6
+BSG_STAT_Y_BITS     = 6
+BSG_STAT_TYPE_BITS  = 2
+BSG_STAT_TAG_MASK   = ((1 << BSG_STAT_TAG_BITS) - 1)
+BSG_STAT_TG_ID_MASK = ((1 << BSG_STAT_TG_ID_BITS) - 1)
+BSG_STAT_X_MASK     = ((1 << BSG_STAT_X_BITS) - 1)
+BSG_STAT_Y_MASK     = ((1 << BSG_STAT_Y_BITS) - 1)
+BSG_STAT_TYPE_STAT  = 0
+BSG_STAT_TYPE_START = 1
+BSG_STAT_TYPE_END   = 2
 
-
-bsg_TILE_GROUP_ORG_X = 0
-bsg_TILE_GROUP_ORG_Y = 1
-bsg_ORG_X = 0
-bsg_ORG_Y = 1
+# Default coordinates of origin tile
+BSG_ORG_X = 0
+BSG_ORG_Y = 1
 
 # Default input values
-DEFAULT_MANYCORE_DIM_Y = 4
-DEFAULT_MANYCORE_DIM_X = 4
-DEFAULT_INPUT_FILE = "vanilla_stats.log"
+DEFAULT_INPUT_FILE = "vanilla_stats.csv"
 
 
 
@@ -141,11 +135,11 @@ class VanillaStatsParser:
   # Decodes the tag value of the stat to determine the type of 
   # stat, the tile group id of sending tile, and the tag value 
   def __decode_stat_val(self, stat_val):
-    stat_type   = (stat_val >> (bsg_STAT_TAG_BITS + bsg_STAT_TG_ID_BITS + bsg_STAT_X_BITS + bsg_STAT_Y_BITS))
-    stat_y      = (stat_val >> (bsg_STAT_TAG_BITS + bsg_STAT_TG_ID_BITS + bsg_STAT_X_BITS)) & bsg_STAT_Y_MASK
-    stat_x      = (stat_val >> (bsg_STAT_TAG_BITS + bsg_STAT_TG_ID_BITS)) & bsg_STAT_X_MASK
-    stat_tg_id  = (stat_val >> (bsg_STAT_TAG_BITS)) & bsg_STAT_TG_ID_MASK
-    stat_tag    = (stat_val) & bsg_STAT_TAG_MASK
+    stat_type   = (stat_val >> (BSG_STAT_TAG_BITS + BSG_STAT_TG_ID_BITS + BSG_STAT_X_BITS + BSG_STAT_Y_BITS))
+    stat_y      = (stat_val >> (BSG_STAT_TAG_BITS + BSG_STAT_TG_ID_BITS + BSG_STAT_X_BITS)) & BSG_STAT_Y_MASK
+    stat_x      = (stat_val >> (BSG_STAT_TAG_BITS + BSG_STAT_TG_ID_BITS)) & BSG_STAT_X_MASK
+    stat_tg_id  = (stat_val >> (BSG_STAT_TAG_BITS)) & BSG_STAT_TG_ID_MASK
+    stat_tag    = (stat_val) & BSG_STAT_TAG_MASK
     return (stat_type, stat_y, stat_x, stat_tg_id, stat_tag)
     
 
@@ -154,7 +148,8 @@ class VanillaStatsParser:
   # for each tile, and each tile group 
   # return number of tile groups, tile group timing stats, and the tile stats
   # this function only counts the portion between two print_stat_start and end messages
-  # in theory, this excludes the time tiles are waiting to be loaded, etc.
+  # in practice, this excludes the time in between executions,
+  # i.e. when tiles are waiting to be loaded by the host.
   def __generate_tile_stats(self, traces):
 
     num_tile_groups = 0
@@ -170,12 +165,12 @@ class VanillaStatsParser:
     for trace in traces:
       y = trace["y"]
       x = trace["x"]
-      relative_y = y - bsg_ORG_Y
-      relative_x = x - bsg_ORG_X
+      relative_y = y - BSG_ORG_Y
+      relative_x = x - BSG_ORG_X
       stat_val = trace["tag"]
       stat_type, stat_y, stat_x, stat_tg_id, stat_tag = self.__decode_stat_val(stat_val)
       # Separate depending on stat type (start or end)
-      if(stat_type == bsg_STAT_TYPE_START):
+      if(stat_type == BSG_STAT_TYPE_START):
         # Only increase number of tile groups if haven't seen a trace from this tile group before
         if(not tile_group_stat_start[stat_tg_id]):
           num_tile_groups += 1
@@ -183,7 +178,7 @@ class VanillaStatsParser:
           tile_stat_start[relative_y][relative_x][op] = trace[op]
           tile_group_stat_start[stat_tg_id][op] += trace[op]
 
-      elif (stat_type == bsg_STAT_TYPE_END):
+      elif (stat_type == BSG_STAT_TYPE_END):
         for op in self.all_ops_list:
           tile_stat_end[relative_y][relative_x][op] = trace[op]
           tile_group_stat_end[stat_tg_id][op] += trace[op]
@@ -585,14 +580,8 @@ class VanillaStatsParser:
 
       for row in csv_reader:
         trace = {}
-        for stat in self.stats_list:
-          trace[stat] = int(row[stat])
-        for instr in self.instr_list:
-          trace[instr] = int(row[instr])
-        for stall in self.stalls_list:
-          trace[stall] = int(row[stall])
-        for miss in self.miss_list:
-          trace[miss] = int(row[miss])
+        for op in self.all_ops_list:
+          trace[op] = int(row[op])
         self.traces.append(trace)
 
     # generate timing stats for each tile group 
@@ -616,9 +605,9 @@ def parse_args():
                       help="Also generate separate stats files for each tile.")
   parser.add_argument("--tile_group", default=False, action='store_true',
                       help="Also generate separate stats files for each tile group.")
-  parser.add_argument("--dim-y", default=DEFAULT_MANYCORE_DIM_Y, type=int,
+  parser.add_argument("--dim-y", required=1, type=int,
                       help="Manycore Y dimension")
-  parser.add_argument("--dim-x", default=DEFAULT_MANYCORE_DIM_X, type=int,
+  parser.add_argument("--dim-x", required=1, type=int,
                       help="Manycore X dimension")
   args = parser.parse_args()
 
