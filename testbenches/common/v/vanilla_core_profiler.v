@@ -735,9 +735,8 @@ module vanilla_core_profiler
 
   // file logging
   //
-  localparam logfile_lp = "vanilla_stats.log";
+  localparam logfile_lp = "vanilla_stats.csv";
   localparam tracefile_lp = "vanilla_operation_trace.log";
-
 
   integer fd, fd2;
   string header;
@@ -1161,7 +1160,7 @@ module vanilla_core_profiler
             stat.jalr_miss
           );
      
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d",
             stat.stall_fp_remote_load,
             stat.stall_fp_local_load,
             stat.stall_depend,
