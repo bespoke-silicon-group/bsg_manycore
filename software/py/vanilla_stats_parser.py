@@ -623,15 +623,12 @@ class VanillaStatsParser:
   # default stats generator
   def generate_stats(self, input_file):
     self.traces = []
-    with open(input_file) as f:
-      csv_reader = csv.DictReader (f, delimiter=",")
+    with open(input_file, 'r') as f:
 
-      for row in csv_reader:
-        trace = {}
-        for op in self.all_ops_list:
-          trace[op] = int(row[op])
-        self.traces.append(trace)
-
+      csv_reader = csv.DictReader(f, delimiter=",")
+      self.traces = [Counter({k:int(v) for (k,v) in row.items()})
+                     for row in csv_reader]
+    print(self.traces)
     # generate timing stats for each tile group 
     self.num_tile_groups, self.tile_group_stat, self.tile_stat = self.__generate_tile_stats(self.traces)
 
