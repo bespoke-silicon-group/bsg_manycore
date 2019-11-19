@@ -47,6 +47,7 @@ package bsg_manycore_mem_cfg_pkg;
     // LEVEl 3) bsg_nonsynth_manycore_axi_mem
     , e_vcache_blocking_axi4_nonsynth_mem
     , e_vcache_blocking_axi4_f1_dram
+    , e_vcache_blocking_axi4_xilinx_hbm_direct_no_ro
 
   } bsg_manycore_mem_cfg_e;
 
