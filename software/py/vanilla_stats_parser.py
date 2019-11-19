@@ -34,8 +34,8 @@ from collections import Counter
 
 
 # Default coordinates of origin tile
-BSG_ORG_X = 0
-BSG_ORG_Y = 1
+BSG_ORIGIN_X = 0
+BSG_ORIGIN_Y = 1
 
 # Default input values
 DEFAULT_INPUT_FILE = "vanilla_stats.csv"
@@ -186,8 +186,8 @@ class VanillaStatsParser:
     for trace in traces:
       y = trace["y"]
       x = trace["x"]
-      relative_y = y - BSG_ORG_Y
-      relative_x = x - BSG_ORG_X
+      relative_y = y - BSG_ORIGIN_Y
+      relative_x = x - BSG_ORIGIN_X
 
       # instantiate a CudaStatTag object with the tag value
       cuda_tag = CudaStatTag(trace["tag"])
