@@ -59,14 +59,20 @@ class CudaStatTag:
   # bsg_manycore/software/bsg_manycore_lib/bsg_manycore.h
   # For formatting, see the CudaStatTag class
   _TAG_WIDTH   = 8
-  _TG_ID_WIDTH = 10
-  _X_WIDTH     = 6
-  _Y_WIDTH     = 6
-  _TYPE_WIDTH  = 2
+  _TAG_INDEX   = 0
   _TAG_MASK   = ((1 << _TAG_WIDTH) - 1)
+  _TG_ID_WIDTH = 10
+  _TG_ID_INDEX = _TAG_WIDTH + _TAG_INDEX
   _TG_ID_MASK = ((1 << _TG_ID_WIDTH) - 1)
+  _X_WIDTH     = 6
   _X_MASK     = ((1 << _X_WIDTH) - 1)
+  _X_INDEX     = _TG_ID_WIDTH + _TG_ID_INDEX
+  _Y_WIDTH     = 6
+  _Y_INDEX     = _X_WIDTH + _X_INDEX
   _Y_MASK     = ((1 << _Y_WIDTH) - 1)
+  _TYPE_WIDTH  = 2
+  _TYPE_INDEX  = _Y_WIDTH + _Y_INDEX
+  _TYPE_MASK   = ((1 << _TYPE_WIDTH) - 1)
 
   class StatType(Enum):
     STAT  = 0
@@ -75,38 +81,39 @@ class CudaStatTag:
 
   def __init__(self, tag):
     self.__s = tag;
+    self.__type = self.StatType((self.__s >> self._TYPE_INDEX) & self._TYPE_MASK)
 
   @property 
   def tag(self):
-    return ((self.__s) & self._TAG_MASK)
+    return ((self.__s >> self._TAG_INDEX) & self._TAG_MASK)
 
   @property 
   def tg_id(self):
-    return ((self.__s >> (self._TAG_WIDTH)) & self._TG_ID_MASK)
+    return ((self.__s >> self._TG_ID_INDEX) & self._TG_ID_MASK)
 
   @property 
   def x(self):
-    return ((self.__s >> (self._TAG_WIDTH + self._TG_ID_WIDTH)) & self._X_MASK)
+    return ((self.__s >> self._X_INDEX) & self._X_MASK)
 
   @property 
   def y(self):
-    return ((self.__s >> (self._TAG_WIDTH + self._TG_ID_WIDTH + self._X_WIDTH)) & self._Y_MASK)
+    return ((self.__s >> self._Y_INDEX) & self._Y_MASK)
 
   @property 
   def statType(self):
-    return ((self.__s >> (self._TAG_WIDTH + self._TG_ID_WIDTH + self._X_WIDTH + self._Y_WIDTH)))
+    return self.__type
 
   @property 
   def isStart(self):
-    return (self.statType == self.StatType.START)
+    return (self.__type == self.StatType.START)
 
   @property 
   def isEnd(self):
-    return (self.statType == self.StatType.END)
+    return (self.__type == self.StatType.END)
 
   @property 
   def isStat(self):
-    return (self.statType == self.StatType.STAT)
+    return (self.__type == self.StatType.STAT)
 
  
 class VanillaStatsParser:
@@ -163,12 +170,11 @@ class VanillaStatsParser:
     # method and pass the object around until initialization is
     # complete.
     self.stats, self.instrs, self.misses, self.stalls = self.parse_header(input_file)
-    self.all_ops_list = self.stats + self.instrs + self.misses + self.stalls
     self.instrs += ["instr_total"]
     self.stalls += ["stall_total"]
     self.misses += ["miss_total"]
+    self.all_ops_list = self.stats + self.instrs + self.misses + self.stalls
 
-    print(self.all_ops_list)
     self.generate_stats(input_file)
     return
 
@@ -224,7 +230,7 @@ class VanillaStatsParser:
           tile_stat_end[relative_y][relative_x][op] = trace[op]
           tile_group_stat_end[stat_tg_id][op] += trace[op]
 
-
+        
     # Generate all tile stats by subtracting start time from end time
     for y in range(self.manycore_dim_y):
       for x in range(self.manycore_dim_x):
@@ -543,7 +549,6 @@ class VanillaStatsParser:
       for x in range(self.manycore_dim_x):
         for op in self.all_ops_list:
           manycore_stat[op] += tile_stat[y][x][op]
-
     return manycore_stat
  
 
@@ -622,15 +627,14 @@ class VanillaStatsParser:
   # main public method
   # default stats generator
   def generate_stats(self, input_file):
-    self.traces = []
     with open(input_file, 'r') as f:
 
       csv_reader = csv.DictReader(f, delimiter=",")
-      self.traces = [Counter({k:int(v) for (k,v) in row.items()})
-                     for row in csv_reader]
-    print(self.traces)
+      traces = [Counter({k:int(v) for (k,v) in row.items()})
+                for row in csv_reader]
+
     # generate timing stats for each tile group 
-    self.num_tile_groups, self.tile_group_stat, self.tile_stat = self.__generate_tile_stats(self.traces)
+    self.num_tile_groups, self.tile_group_stat, self.tile_stat = self.__generate_tile_stats(traces)
 
     # Calculate total aggregate stats for manycore
     # By summing up per_tile stat counts
