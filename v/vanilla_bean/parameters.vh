@@ -235,4 +235,18 @@ localparam RV32_Jimm_width_gp     = 20;
 
 
 
+/////////////////////////////////////////////////////
+// The CUDA Print stat parameters
+// The cuda print stat tag message incorporates within itself the x,y coordiantes
+// and the tile group id of the tile that triggerd the bsg_cuda_print_stat instruction
+// <stat_type>   -   <y cord>   -   <x cord>   -   <tile group id>   -   <tag>
+localparam RV32_cuda_print_stat_tag_width_gp    = 8;
+localparam RV32_cuda_print_stat_tg_id_width_gp  = 10;
+localparam RV32_cuda_print_stat_x_width_gp      = 6;
+localparam RV32_cuda_print_stat_y_width_gp      = 6;
+localparam RV32_cuda_print_stat_type_width_gp   = 2;
+
+
+
+
 `endif
