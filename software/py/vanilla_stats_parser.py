@@ -40,30 +40,6 @@ BSG_ORG_Y = 1
 # Default input values
 DEFAULT_INPUT_FILE = "vanilla_stats.csv"
 
-
-
-
-
-# These values are used by the manycore library in bsg_print_stat instructions
-# they are added to the tag value to determine the tile group that triggered the stat
-# and also the type of stat (stand-alone stat, start, or end)
-# the value of these paramters should match their counterpart inside 
-# bsg_manycore/software/bsg_manycore_lib/bsg_manycore.h
-# For formatting, see the CudaStatTag class
-BSG_STAT_TAG_WIDTH   = 8
-BSG_STAT_TG_ID_WIDTH = 10
-BSG_STAT_X_WIDTH     = 6
-BSG_STAT_Y_WIDTH     = 6
-BSG_STAT_TYPE_WIDTH  = 2
-BSG_STAT_TAG_MASK   = ((1 << BSG_STAT_TAG_WIDTH) - 1)
-BSG_STAT_TG_ID_MASK = ((1 << BSG_STAT_TG_ID_WIDTH) - 1)
-BSG_STAT_X_MASK     = ((1 << BSG_STAT_X_WIDTH) - 1)
-BSG_STAT_Y_MASK     = ((1 << BSG_STAT_Y_WIDTH) - 1)
-BSG_STAT_TYPE_STAT  = 0
-BSG_STAT_TYPE_START = 1
-BSG_STAT_TYPE_END   = 2
-
-
 # CudaStatTag class
 # Is instantiated by a packet tag value that is recieved from a 
 # bsg_cuda_print_stat(tag) insruction
@@ -76,33 +52,87 @@ BSG_STAT_TYPE_END   = 2
 # of bits                <----2----> -   <--6-->  -   <--6-->  -   <------10----->  -   <-----8----->
 # Stat type value: {"stat":0, "start":1, "end":2}
 class CudaStatTag:
+  # These values are used by the manycore library in bsg_print_stat instructions
+  # they are added to the tag value to determine the tile group that triggered the stat
+  # and also the type of stat (stand-alone stat, start, or end)
+  # the value of these paramters should match their counterpart inside 
+  # bsg_manycore/software/bsg_manycore_lib/bsg_manycore.h
+  # For formatting, see the CudaStatTag class
+  _TAG_WIDTH   = 8
+  _TG_ID_WIDTH = 10
+  _X_WIDTH     = 6
+  _Y_WIDTH     = 6
+  _TYPE_WIDTH  = 2
+  _TAG_MASK   = ((1 << _TAG_WIDTH) - 1)
+  _TG_ID_MASK = ((1 << _TG_ID_WIDTH) - 1)
+  _X_MASK     = ((1 << _X_WIDTH) - 1)
+  _Y_MASK     = ((1 << _Y_WIDTH) - 1)
+
+  class StatType(Enum):
+    STAT  = 0
+    START = 1
+    END   = 2
+
   def __init__(self, tag):
-    self.stat_val = tag;
+    self.__s = tag;
 
-  def get_tag(self):
-    return ((self.stat_val) & BSG_STAT_TAG_MASK)
-  def get_tg_id(self):
-    return ((self.stat_val >> (BSG_STAT_TAG_WIDTH)) & BSG_STAT_TG_ID_MASK)
-  def get_x(self):
-    return ((self.stat_val >> (BSG_STAT_TAG_WIDTH + BSG_STAT_TG_ID_WIDTH)) & BSG_STAT_X_MASK)
-  def get_y(self):
-    return ((self.stat_val >> (BSG_STAT_TAG_WIDTH + BSG_STAT_TG_ID_WIDTH + BSG_STAT_X_WIDTH)) & BSG_STAT_Y_MASK)
-  def get_type(self):
-    return ((self.stat_val >> (BSG_STAT_TAG_WIDTH + BSG_STAT_TG_ID_WIDTH + BSG_STAT_X_WIDTH + BSG_STAT_Y_WIDTH)))
+  @property 
+  def tag(self):
+    return ((self.__s) & self._TAG_MASK)
 
+  @property 
+  def tg_id(self):
+    return ((self.__s >> (self._TAG_WIDTH)) & self._TG_ID_MASK)
+
+  @property 
+  def x(self):
+    return ((self.__s >> (self._TAG_WIDTH + self._TG_ID_WIDTH)) & self._X_MASK)
+
+  @property 
+  def y(self):
+    return ((self.__s >> (self._TAG_WIDTH + self._TG_ID_WIDTH + self._X_WIDTH)) & self._Y_MASK)
+
+  @property 
+  def statType(self):
+    return ((self.__s >> (self._TAG_WIDTH + self._TG_ID_WIDTH + self._X_WIDTH + self._Y_WIDTH)))
+
+  @property 
   def isStart(self):
-    return (self.get_type() == BSG_STAT_TYPE_START)
+    return (self.statType == self.StatType.START)
+
+  @property 
   def isEnd(self):
-    return (self.get_type() == BSG_STAT_TYPE_END)
+    return (self.statType == self.StatType.END)
+
+  @property 
   def isStat(self):
-    return (self.get_type() == BSG_STAT_TYPE_STAT)
-
-
-   
-
+    return (self.statType == self.StatType.STAT)
 
  
 class VanillaStatsParser:
+
+  # formatting parameters for aligned printing
+  # Moved these to class variables because they're not dynamic
+  type_fmt = {"name"      : "{:<35}",
+              "type"      : "{:>15}",
+              "int"       : "{:>15}",
+              "float"     : "{:>15.4f}",
+              "percent"   : "{:>15.2f}",
+              "cord"      : "{},{:<33}",
+  }
+
+
+  print_format = {"tg_timing_header": type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                  "tg_timing_data"  : type_fmt["name"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["percent"] + "\n",
+                  "timing_header"   : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                  "timing_data"     : type_fmt["cord"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["percent"] + "\n",
+                  "instr_header"    : type_fmt["name"] + type_fmt["int"]  + type_fmt["type"]    + "\n",
+                  "instr_data"      : type_fmt["name"] + type_fmt["int"]  + type_fmt["percent"] + "\n",
+                  "stall_header"    : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                  "stall_data"      : type_fmt["name"] + type_fmt["int"]  + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                  "miss_header"     : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                  "miss_data"       : type_fmt["name"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + "\n",
+                  "line_break"      : '=' * 90 + "\n"}
 
   # default constructor
   def __init__(self, manycore_dim_y, manycore_dim_x, per_tile_stat, per_tile_group_stat, input_file):
@@ -121,40 +151,24 @@ class VanillaStatsParser:
     self.manycore_stat = Counter()
 
 
-    # formatting parameters for aligned printing
-    type_format = {"name"      : "{:<35}",
-                   "type"      : "{:>15}",
-                   "int"       : "{:>15}",
-                   "float"     : "{:>15.4f}",
-                   "percent"   : "{:>15.2f}",
-                   "cord"      : "{},{:<33}",
-                  }
+    # Call generate_stats after initialization 
 
+    # This currently doesn't work (div by 0 error?) but this is what I'm
+    # pushing for: Non-init methods (i.e. methods without __init as a
+    # prefix) should not set instance variables). Instead, it's better
+    # form to have an __init_ method, or a parse method which parses
+    # the header of the CSV file and returns a list of stall reasons.
 
-    self.print_format = {"tg_timing_header": type_format["name"] + type_format["type"] + type_format["type"]    + type_format["type"]    + "\n",
-                         "tg_timing_data"  : type_format["name"] + type_format["int"]  + type_format["int"]     + type_format["percent"] + "\n",
-                         "timing_header"   : type_format["name"] + type_format["type"] + type_format["type"]    + type_format["type"]    + "\n",
-                         "timing_data"     : type_format["cord"] + type_format["int"]  + type_format["int"]     + type_format["percent"] + "\n",
-                         "instr_header"    : type_format["name"] + type_format["int"]  + type_format["type"]    + "\n",
-                         "instr_data"      : type_format["name"] + type_format["int"]  + type_format["percent"] + "\n",
-                         "stall_header"    : type_format["name"] + type_format["type"] + type_format["type"]    + type_format["type"]    + "\n",
-                         "stall_data"      : type_format["name"] + type_format["int"]  + type_format["percent"] + type_format["percent"] + "\n",
-                         "miss_header"     : type_format["name"] + type_format["type"] + type_format["type"]    + type_format["type"]    + "\n",
-                         "miss_data"       : type_format["name"] + type_format["int"]  + type_format["int"]     + type_format["float"]   + "\n",
-                         "line_break"      : '=' * 90 + "\n"
-                        }
+    # if performance is a concern, open the csv file in the init
+    # method and pass the object around until initialization is
+    # complete.
+    self.stats, self.instrs, self.misses, self.stalls = self.parse_header(input_file)
+    self.all_ops_list = self.stats + self.instrs + self.misses + self.stalls
+    self.instrs += ["instr_total"]
+    self.stalls += ["stall_total"]
+    self.misses += ["miss_total"]
 
-
-
-    # list of instructions, operations and events parsed from vanilla_stats.log
-    # populated by reading the header of input file 
-    self.stats_list   = []
-    self.instr_list   = []
-    self.miss_list    = []
-    self.stalls_list  = []
-    self.all_ops_list = []
-
-    # Call generate_stats after initialization
+    print(self.all_ops_list)
     self.generate_stats(input_file)
     return
 
@@ -190,14 +204,14 @@ class VanillaStatsParser:
       relative_x = x - BSG_ORG_X
 
       # instantiate a CudaStatTag object with the tag value
-      cuda_tag = CudaStatTag(trace["tag"])
+      cst = CudaStatTag(trace["tag"])
 
       # extract tile group id from the print stat's tag value 
       # see CudaStatTag class comments for more detail
-      stat_tg_id = cuda_tag.get_tg_id()
+      stat_tg_id = cst.tg_id
 
       # Separate depending on stat type (start or end)
-      if(cuda_tag.isStart()):
+      if(cst.isStart):
         # Only increase number of tile groups if haven't seen a trace from this tile group before
         if(not tile_group_stat_start[stat_tg_id]):
           num_tile_groups += 1
@@ -205,7 +219,7 @@ class VanillaStatsParser:
           tile_stat_start[relative_y][relative_x][op] = trace[op]
           tile_group_stat_start[stat_tg_id][op] += trace[op]
 
-      elif (cuda_tag.isEnd()):
+      elif (cst.isEnd):
         for op in self.all_ops_list:
           tile_stat_end[relative_y][relative_x][op] = trace[op]
           tile_group_stat_end[stat_tg_id][op] += trace[op]
@@ -223,26 +237,22 @@ class VanillaStatsParser:
     # Generate total stats for each tile by summing all stats 
     for y in range(self.manycore_dim_y):
       for x in range(self.manycore_dim_x):
-        for instr in self.instr_list:
+        for instr in self.instrs:
           tile_stat[y][x]["instr_total"] += tile_stat[y][x][instr]
-        for stall in self.stalls_list:
+        for stall in self.stalls:
           tile_stat[y][x]["stall_total"] += tile_stat[y][x][stall]
-        for miss in self.miss_list:
+        for miss in self.misses:
           tile_stat[y][x]["miss_total"] += tile_stat[y][x][miss]
 
     # Generate total stats for each tile group by summing all stats 
     for tg_id in range(num_tile_groups):
-      for instr in self.instr_list:
+      for instr in self.instrs:
         tile_group_stat[tg_id]["instr_total"] += tile_group_stat[tg_id][instr]
-      for stall in self.stalls_list:
+      for stall in self.stalls:
         tile_group_stat[tg_id]["stall_total"] += tile_group_stat[tg_id][stall]
-      for miss in self.miss_list:
+      for miss in self.misses:
         tile_group_stat[tg_id]["miss_total"] += tile_group_stat[tg_id][miss]
 
-    self.instr_list += ["instr_total"]
-    self.stalls_list += ["stall_total"]
-    self.miss_list += ["miss_total"]
-    self.all_ops_list += ["instr_total", "stall_total", "miss_total"]
 
     return num_tile_groups, tile_group_stat, tile_stat
 
@@ -353,7 +363,7 @@ class VanillaStatsParser:
 
    
     # Print instruction stats for manycore
-    for instr in self.instr_list:
+    for instr in self.instrs:
        self.__print_stat(stat_file, "instr_data", instr,
                                     self.manycore_stat[instr],
                                     (100 * self.manycore_stat[instr] / self.manycore_stat["instr_total"]))
@@ -370,7 +380,7 @@ class VanillaStatsParser:
     self.__print_stat(stat_file, "line_break")
 
     # Print instruction stats for manycore
-    for instr in self.instr_list:
+    for instr in self.instrs:
        self.__print_stat(stat_file, "instr_data", instr,
                                     self.tile_group_stat[tg_id][instr],
                                     (100 * self.tile_group_stat[tg_id][instr] / self.tile_group_stat[tg_id]["instr_total"]))
@@ -387,7 +397,7 @@ class VanillaStatsParser:
     self.__print_stat(stat_file, "line_break")
 
     # Print instruction stats for manycore
-    for instr in self.instr_list:
+    for instr in self.instrs:
        self.__print_stat(stat_file, "instr_data", instr,
                                     self.tile_stat[y][x][instr],
                                     (100 * self.tile_stat[y][x][instr] / self.tile_stat[y][x]["instr_total"]))
@@ -404,7 +414,7 @@ class VanillaStatsParser:
     self.__print_stat(stat_file, "line_break")
 
     # Print stall stats for manycore
-    for stall in self.stalls_list:
+    for stall in self.stalls:
        self.__print_stat(stat_file, "stall_data", stall,
                                     self.manycore_stat[stall],
                                     (100 * self.manycore_stat[stall] / self.manycore_stat["global_ctr"]),
@@ -421,7 +431,7 @@ class VanillaStatsParser:
     self.__print_stat(stat_file, "line_break")
 
     # Print stall stats for manycore
-    for stall in self.stalls_list:
+    for stall in self.stalls:
        self.__print_stat(stat_file, "stall_data", stall,
                                     self.tile_group_stat[tg_id][stall],
                                     (100 * self.tile_group_stat[tg_id][stall] / self.tile_group_stat[tg_id]["global_ctr"]),
@@ -439,7 +449,7 @@ class VanillaStatsParser:
     self.__print_stat(stat_file, "line_break")
 
     # Print stall stats for manycore
-    for stall in self.stalls_list:
+    for stall in self.stalls:
        self.__print_stat(stat_file, "stall_data", stall,
                                     self.tile_stat[y][x][stall],
                                     (100 * self.tile_stat[y][x][stall] / self.tile_stat[y][x]["global_ctr"]),
@@ -455,7 +465,7 @@ class VanillaStatsParser:
     self.__print_stat(stat_file, "miss_header", "unit", "miss", "total", "hit rate")
     self.__print_stat(stat_file, "line_break")
 
-    for miss in self.miss_list:
+    for miss in self.misses:
        # Find total number of operations for that miss
        # If operation is icache, the total is total # of instruction
        # otherwise, search for the specific instruction
@@ -480,7 +490,7 @@ class VanillaStatsParser:
     self.__print_stat(stat_file, "miss_header", "unit", "miss", "total", "hit rate")
     self.__print_stat(stat_file, "line_break")
 
-    for miss in self.miss_list:
+    for miss in self.misses:
        # Find total number of operations for that miss
        # If operation is icache, the total is total # of instruction
        # otherwise, search for the specific instruction
@@ -505,7 +515,7 @@ class VanillaStatsParser:
     self.__print_stat(stat_file, "miss_header", "unit", "miss", "total", "hit rate")
     self.__print_stat(stat_file, "line_break")
 
-    for miss in self.miss_list:
+    for miss in self.misses:
        # Find total number of operations for that miss
        # If operation is icache, the total is total # of instruction
        # otherwise, search for the specific instruction
@@ -584,26 +594,37 @@ class VanillaStatsParser:
         stat_file.close()
 
 
+  def parse_header(self, f):
+    # Generate lists of stats/instruction/miss/stall names
+
+    instrs = []
+    misses = []
+    stalls = []
+    stats  = []
+
+    with open(f) as fp:
+      rdr = csv.DictReader (fp, delimiter=",")
+      
+      header = rdr.fieldnames
+      for item in header:
+        if (item.startswith('instr_')):
+          if (not item == 'instr_total'):
+            instrs += [item]
+        elif (item.startswith('miss_')):
+          misses += [item]
+        elif (item.startswith('stall_')):
+          stalls += [item]
+        else:
+          stats += [item]
+      return (stats, instrs, misses, stalls)
+
+
   # main public method
   # default stats generator
   def generate_stats(self, input_file):
     self.traces = []
     with open(input_file) as f:
       csv_reader = csv.DictReader (f, delimiter=",")
-
-      # Generate list of instruction/miss/stall types
-      header = csv_reader.fieldnames
-      for item in header:
-        if (item.startswith('instr_')):
-          if (not item == 'instr_total'):
-            self.instr_list += [item]
-        elif (item.startswith('miss_')):
-          self.miss_list += [item]
-        elif (item.startswith('stall_')):
-          self.stalls_list += [item]
-        else:
-          self.stats_list += [item]
-      self.all_ops_list = self.stats_list + self.instr_list + self.miss_list + self.stalls_list
 
       for row in csv_reader:
         trace = {}
