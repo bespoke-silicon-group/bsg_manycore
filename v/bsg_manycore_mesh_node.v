@@ -1,9 +1,7 @@
-`include "bsg_manycore_packet.vh"
 
 module bsg_manycore_mesh_node
-
-import bsg_noc_pkg::*; // {P=0, W, E, N, S}
-
+  import bsg_manycore_pkg::*;
+  import bsg_noc_pkg::*; // {P=0, W, E, N, S}
  #(
    parameter x_cord_width_p     = -1
    ,parameter y_cord_width_p    = -1

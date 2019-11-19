@@ -12,8 +12,6 @@
 //  this one.
 //
 
-`include "bsg_manycore_packet.vh"
-
 `define HETERO_TYPE_MACRO(BMC_TYPE,BMC_TYPE_MODULE)                                    \
    if (hetero_type_p == (BMC_TYPE))                                                    \
      begin: h                                                                          \
@@ -46,6 +44,7 @@
      end
 
 module bsg_manycore_hetero_socket
+  import bsg_manycore_pkg::*;
   #(parameter x_cord_width_p = "inv"
     , parameter y_cord_width_p = "inv"
     , parameter data_width_p = "inv"

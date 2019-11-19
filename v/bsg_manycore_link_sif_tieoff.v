@@ -11,6 +11,7 @@
 //
 
 module bsg_manycore_link_sif_tieoff
+  import bsg_manycore_pkg::*;
   #(  addr_width_p  = 32
       , data_width_p  = 32
       , load_id_width_p = 5
@@ -54,7 +55,7 @@ module bsg_manycore_link_sif_tieoff
 
    // send a credit packet back; if they route a packet off the side of the chip
    bsg_manycore_return_packet_s     return_pkt      ;
-   assign return_pkt.pkt_type          = `ePacketType_credit ;
+   assign return_pkt.pkt_type          = e_return_credit ;
    assign return_pkt.data              = data_width_p'(0)   ;
    assign return_pkt.y_cord            = temp.src_y_cord    ;
    assign return_pkt.x_cord            = temp.src_x_cord    ;
@@ -73,7 +74,14 @@ module bsg_manycore_link_sif_tieoff
              if (link_sif_i_cast.fwd.v)
                begin
                   $write("BSG_ERROR errant packet:");
-                  `write_bsg_manycore_packet_s(temp);
+                  $write("op=2'b%b, op_ex=4'b%b, addr=%-d'h%h data=%-d'h%h (x,y)=(%-d'b%b,%-d'b%b), return (x,y)=(%-d'b%b,%-d'b%b)"
+                    ,temp.op, temp.op_ex
+                    ,$bits(temp.addr), temp.addr
+                    ,$bits(temp.payload), temp.payload
+                    ,$bits(temp.x_cord), temp.x_cord
+                    ,$bits(temp.y_cord), temp.y_cord
+                    ,$bits(temp.src_x_cord), temp.src_x_cord
+                    ,$bits(temp.src_y_cord), temp.src_y_cord);
                   $error("%m unexpected data %x to tied off port; sending credit packet",link_sif_i_cast.fwd.data);
                end
              if (link_sif_i_cast.rev.v)

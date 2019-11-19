@@ -7,6 +7,7 @@
  */
 
 module bsg_nonsynth_mem_infinite
+  import bsg_manycore_pkg::*;
   #(parameter data_width_p="inv"
     , parameter addr_width_p="inv"
     , parameter x_cord_width_p="inv"

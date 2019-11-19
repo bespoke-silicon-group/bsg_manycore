@@ -3,11 +3,11 @@
  *
  */
 
-`include "bsg_manycore_packet.vh"
 `include "bsg_manycore_addr.vh"
 `include "definitions.vh"
 
 module network_tx
+  import bsg_manycore_pkg::*;
   #(parameter data_width_p="inv"
     , parameter addr_width_p="inv"
     , parameter x_cord_width_p="inv"
@@ -158,12 +158,12 @@ module network_tx
   //
   always_comb begin
     out_packet.op = remote_req_i.swap_aq
-      ? `ePacketOp_remote_swap_aq
+      ? e_remote_swap_aq
       : (remote_req_i.swap_rl
-        ? `ePacketOp_remote_swap_rl
+        ? e_remote_swap_rl
         : (remote_req_i.write_not_read
-          ? `ePacketOp_remote_store
-          : `ePacketOp_remote_load));
+          ? e_remote_store
+          : e_remote_load));
 
     if (is_dram_addr) begin
       if (dram_enable_i) begin

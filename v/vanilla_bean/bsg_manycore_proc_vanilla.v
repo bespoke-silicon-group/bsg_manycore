@@ -3,11 +3,11 @@
  *
  */
 
-`include "bsg_manycore_packet.vh"
 `include "definitions.vh"
 `include "parameters.vh"
 
 module bsg_manycore_proc_vanilla
+  import bsg_manycore_pkg::*;
   #(parameter x_cord_width_p = "inv"
     , parameter y_cord_width_p = "inv"
     , parameter data_width_p = "inv"
@@ -94,7 +94,6 @@ module bsg_manycore_proc_vanilla
 
     ,.fifo_els_p(proc_fifo_els_p)
     ,.max_out_credits_p(max_out_credits_p)
-    ,.returned_fifo_p(1)
     ,.debug_p(debug_p)
   ) endp (
     .clk_i(clk_i)

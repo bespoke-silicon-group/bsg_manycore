@@ -6,7 +6,11 @@
 
 module vcache_profiler
   import bsg_cache_pkg::*;
-  #(parameter data_width_p="inv")
+  #(parameter data_width_p="inv"
+    , parameter addr_width_p="inv"
+
+    , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
+  )
   (
     input clk_i
     , input reset_i
@@ -16,45 +20,56 @@ module vcache_profiler
     , input miss_v
     , input bsg_cache_pkt_decode_s decode_v_r
 
+    , input [dma_pkt_width_lp-1:0] dma_pkt_o
+    , input dma_pkt_v_o
+    , input dma_pkt_yumi_i
+
     , input [31:0] global_ctr_i
     , input print_stat_v_i
     , input [data_width_p-1:0] print_stat_tag_i
   );
 
+  `declare_bsg_cache_dma_pkt_s(addr_width_p);
+  bsg_cache_dma_pkt_s dma_pkt;
+  assign dma_pkt = dma_pkt_o;
+
 
   // event signals
   //
-  logic inc_ld;
-  logic inc_st;
-  logic inc_ld_miss;
-  logic inc_st_miss;
 
-  assign inc_ld = v_o & yumi_i & decode_v_r.ld_op;
-  assign inc_st = v_o & yumi_i & decode_v_r.st_op;
-  assign inc_ld_miss = v_o & yumi_i & decode_v_r.ld_op & miss_v;
-  assign inc_st_miss = v_o & yumi_i & decode_v_r.st_op & miss_v;
+  wire inc_ld = v_o & yumi_i & decode_v_r.ld_op;
+  wire inc_st = v_o & yumi_i & decode_v_r.st_op;
+  wire inc_ld_miss = v_o & yumi_i & decode_v_r.ld_op & miss_v;
+  wire inc_st_miss = v_o & yumi_i & decode_v_r.st_op & miss_v;
+  wire inc_dma_read_req = dma_pkt_v_o & dma_pkt_yumi_i & ~dma_pkt.write_not_read;
+  wire inc_dma_write_req = dma_pkt_v_o & dma_pkt_yumi_i & dma_pkt.write_not_read;
 
 
   // stats counting
   //
-  integer ld_count_r;
-  integer st_count_r;
-  integer ld_miss_count_r;
-  integer st_miss_count_r;
+  typedef struct packed {
+    integer ld_count;
+    integer st_count;
+    integer ld_miss_count;
+    integer st_miss_count;
+    integer dma_read_req;
+    integer dma_write_req;
+  } vcache_stat_s;
 
-  always_ff @ (negedge clk_i) begin
+  vcache_stat_s stat_r;
+
+  always_ff @ (posedge clk_i) begin
 
     if (reset_i) begin
-      ld_count_r <= '0;
-      st_count_r <= '0;
-      ld_miss_count_r <= '0;
-      st_miss_count_r <= '0;
+      stat_r <= '0;
     end
     else begin
-      if (inc_ld) ld_count_r <= ld_count_r + 1;
-      if (inc_st) st_count_r <= st_count_r + 1;
-      if (inc_ld_miss) ld_miss_count_r <= ld_miss_count_r + 1;
-      if (inc_st_miss) st_miss_count_r <= st_miss_count_r + 1;
+      if (inc_ld) stat_r.ld_count++;
+      if (inc_st) stat_r.st_count++;
+      if (inc_ld_miss) stat_r.ld_miss_count++;
+      if (inc_st_miss) stat_r.st_miss_count++;
+      if (inc_dma_read_req) stat_r.dma_read_req++;
+      if (inc_dma_write_req) stat_r.dma_write_req++;
     end
 
   end
@@ -72,7 +87,7 @@ module vcache_profiler
     my_name = $sformatf("%m");
     if (str_match(my_name, "vcache[0]")) begin
       fd = $fopen(logfile_lp, "w");
-      $fwrite(fd, "instance,global_ctr,tag,ld,st,ld_miss,st_miss\n");
+      $fwrite(fd, "instance,global_ctr,tag,ld,st,ld_miss,st_miss,dma_read_req,dma_write_req\n");
       $fclose(fd);
     end
 
@@ -83,8 +98,12 @@ module vcache_profiler
           $display("[BSG_INFO][VCACHE_PROFILER] %s t=%0t printing stats.", my_name, $time);
 
           fd = $fopen(logfile_lp, "a");
-          $fwrite(fd, "%s,%0d,%0d,%0d,%0d,%0d,%0d\n",
-            my_name, global_ctr_i, print_stat_tag_i, ld_count_r, st_count_r, ld_miss_count_r, st_miss_count_r);   
+          $fwrite(fd, "%s,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
+            my_name, global_ctr_i, print_stat_tag_i,
+            stat_r.ld_count, stat_r.st_count,
+            stat_r.ld_miss_count, stat_r.st_miss_count,
+            stat_r.dma_read_req, stat_r.dma_write_req 
+          );   
           $fclose(fd);
         end
       end

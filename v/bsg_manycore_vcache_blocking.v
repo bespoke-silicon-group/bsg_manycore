@@ -3,9 +3,8 @@
  *
  */
 
-`include "bsg_manycore_packet.vh"
-
 module bsg_manycore_vcache_blocking
+  import bsg_manycore_pkg::*;
   import bsg_cache_pkg::*;
   #(parameter data_width_p="inv"
     , parameter addr_width_p="inv"

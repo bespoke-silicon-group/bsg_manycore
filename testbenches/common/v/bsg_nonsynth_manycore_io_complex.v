@@ -5,9 +5,9 @@
  *
  */
 
-`include "bsg_manycore_packet.vh"
 
 module bsg_nonsynth_manycore_io_complex
+  import bsg_manycore_pkg::*;
   #(parameter addr_width_p="inv"
     , parameter data_width_p="inv"
     , parameter x_cord_width_p="inv"

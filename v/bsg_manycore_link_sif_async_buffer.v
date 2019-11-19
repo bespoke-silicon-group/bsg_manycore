@@ -7,6 +7,7 @@
 //clock domains.
 
 module bsg_manycore_link_sif_async_buffer
+  import bsg_manycore_pkg::*;
    #(   addr_width_p  = 32
       , data_width_p  = 32
       , x_cord_width_p = "inv"

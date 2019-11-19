@@ -10,7 +10,6 @@ include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
 # Include source lists
 include arch_filelist.mk
 include sim_filelist.mk
-include tb_filelist.mk
 
 VCS_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
 VCS_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
@@ -18,7 +17,7 @@ VCS_SOURCES  += $(VHEADERS) $(VSOURCES)
 VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
 	 	+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS
 
-DEFAULT_MACHINES = 9x15 4x4
+DEFAULT_MACHINES = 9x15 4x4 4x4_dmc
 
 .PHONY: all clean
 
@@ -37,11 +36,18 @@ define set_machine_variables
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_SET=${BSG_MACHINE_VCACHE_SET})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_WAY=${BSG_MACHINE_VCACHE_WAY})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_MISS_FIFO_ELS=${BSG_MACHINE_VCACHE_MISS_FIFO_ELS})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_DRAM_SIZE_WORDS=${BSG_MACHINE_DRAM_SIZE_WORDS})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_DRAM_INCLUDED=${BSG_MACHINE_DRAM_INCLUDED})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_MAX_EPA_WIDTH=${BSG_MACHINE_MAX_EPA_WIDTH})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_BRANCH_TRACE_EN=${BSG_MACHINE_BRANCH_TRACE_EN})
+	# These define are required by mobile_ddr.v.
+	# density     	= 2048 Mbit
+	# speed grade 	= 5
+	# organization 	= x16
+	# allocation    = FULL_MEM
+	$(eval VCS_DEFINES += +define+den2048Mb+sg5+x16+FULL_MEM)
 endef
 
 %/simv : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 

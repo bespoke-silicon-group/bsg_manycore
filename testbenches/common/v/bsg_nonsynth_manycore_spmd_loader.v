@@ -3,10 +3,10 @@
  *
  */
 
-`include "bsg_manycore_packet.vh"
 `include "bsg_manycore_addr.vh"
 
 module bsg_nonsynth_manycore_spmd_loader
+  import bsg_manycore_pkg::*;
   #(parameter addr_width_p="inv"
     , parameter data_width_p="inv"
     , parameter y_cord_width_p="inv"
@@ -59,7 +59,7 @@ module bsg_nonsynth_manycore_spmd_loader
   assign curr_nbf = nbf[nbf_addr_r];
 
   assign packet.addr = curr_nbf.epa[0+:addr_width_p];
-  assign packet.op = `ePacketOp_remote_store;
+  assign packet.op = e_remote_store;
   assign packet.op_ex = 4'b1111;
   assign packet.payload = curr_nbf.data;
   assign packet.src_y_cord = my_y_i;

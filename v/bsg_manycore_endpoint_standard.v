@@ -21,28 +21,25 @@
 //              |     4. in_response    |               |--------->|         |
 //              |  <------------------- |               |          |         |
 //--------------                        |---------------|          |---------|
-`include "bsg_manycore_packet.vh"
 
-module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
-                                         ,y_cord_width_p         = "inv"
-                                         ,fifo_els_p             = "inv"
-                                         // enable this to instantiate a fifo
-                                         // to buffer returned data
-                                         ,returned_fifo_p        = 0
-                                         ,freeze_init_p          = 1'b1
-                                         ,data_width_p           = 32
-                                         ,addr_width_p           = 32
-                                         ,max_out_credits_p      = "inv"
-                                         ,load_id_width_p        = 5
-                                         // if you are doing a streaming application then
-                                         // you might want to turn this off because it is fairly normal
-                                         ,warn_out_of_credits_p  = 1
-                                         ,debug_p                = 0
-                                         ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-                                         ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p, load_id_width_p)
-                                         ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p)
-                                         ,num_nets_lp            = 2
-                                         )
+module bsg_manycore_endpoint_standard 
+  import bsg_manycore_pkg::*; 
+  #( x_cord_width_p          = "inv"
+     ,y_cord_width_p         = "inv"
+     ,fifo_els_p             = "inv"
+     ,freeze_init_p          = 1'b1
+     ,data_width_p           = 32
+     ,addr_width_p           = 32
+     ,max_out_credits_p      = "inv"
+     ,load_id_width_p        = 5
+     // if you are doing a streaming application then
+     // you might want to turn this off because it is fairly normal
+     ,warn_out_of_credits_p  = 1
+     ,debug_p                = 0
+     ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+     ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p, load_id_width_p)
+     ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p)
+   )
    (  input clk_i
     , input reset_i
     //--------------------------------------------------------
@@ -97,7 +94,6 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
     );
 
-   wire in_fifo_full;
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
 
    bsg_manycore_packet_s      cgni_data;
@@ -116,34 +112,31 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    bsg_manycore_endpoint #(.x_cord_width_p       (x_cord_width_p)
                            ,.y_cord_width_p      (y_cord_width_p)
                            ,.fifo_els_p          (fifo_els_p  )
-                           ,.returned_fifo_p     (returned_fifo_p)
                            ,.data_width_p        (data_width_p)
                            ,.addr_width_p        (addr_width_p)
                            ,.load_id_width_p     (load_id_width_p)
                            ) bme
-     (.clk_i
-      ,.reset_i
-      ,.link_sif_i
-      ,.link_sif_o
+     (.clk_i(clk_i)
+      ,.reset_i(reset_i)
+      ,.link_sif_i(link_sif_i)
+      ,.link_sif_o(link_sif_o)
 
-      ,.fifo_data_o(cgni_data)
-      ,.fifo_v_o   (cgni_v)
-      ,.fifo_yumi_i(cgni_yumi)
+      ,.packet_o(cgni_data)
+      ,.packet_v_o   (cgni_v)
+      ,.packet_yumi_i(cgni_yumi)
 
-      ,.out_packet_i
-      ,.out_v_i
-      ,.out_ready_o
+      ,.packet_i(out_packet_i)
+      ,.packet_v_i(out_v_i)
+      ,.packet_ready_o(out_ready_o)
 
-      ,.returned_packet_r_o          ( returned_packet_lo    )
-      ,.returned_credit_v_r_o        ( returned_credit_v_lo    )
-      ,.returned_fifo_full_o         ( returned_fifo_full_o  )
-      ,.returned_yumi_i              ( returned_yumi_li      )
+      ,.return_packet_o            ( returned_packet_lo    )
+      ,.return_packet_v_o          ( returned_credit_v_lo  )
+      ,.return_packet_fifo_full_o  ( returned_fifo_full_o  )
+      ,.return_packet_yumi_i       ( returned_yumi_li      )
 
-      ,.returning_data_i    ( returning_packet_li  )
-      ,.returning_v_i       ( returning_v_li       )
-      ,.returning_ready_o   ( returning_ready_lo   )
-
-      ,.in_fifo_full_o( in_fifo_full )
+      ,.return_packet_i         ( returning_packet_li  )
+      ,.return_packet_v_i       ( returning_v_li       )
+      ,.return_packet_ready_o   ( returning_ready_lo   )
       );
 
    assign returned_credit = returned_credit_v_lo & returned_yumi_li;
@@ -158,10 +151,10 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    wire [addr_width_p-1:0]          in_addr_lo  =cgni_data.addr;
    wire[(data_width_p>>3)-1:0]      in_mask_lo  =cgni_data.op_ex;
 
-   wire pkt_remote_store   = cgni_v & (cgni_data.op == `ePacketOp_remote_store  );
-   wire pkt_remote_load    = cgni_v & (cgni_data.op == `ePacketOp_remote_load   );
-   wire pkt_remote_swap_aq = cgni_v & (cgni_data.op == `ePacketOp_remote_swap_aq);
-   wire pkt_remote_swap_rl = cgni_v & (cgni_data.op == `ePacketOp_remote_swap_rl);
+   wire pkt_remote_store   = cgni_v & (cgni_data.op == e_remote_store  );
+   wire pkt_remote_load    = cgni_v & (cgni_data.op == e_remote_load   );
+   wire pkt_remote_swap_aq = cgni_v & (cgni_data.op == e_remote_swap_aq);
+   wire pkt_remote_swap_rl = cgni_v & (cgni_data.op == e_remote_swap_rl);
    
    // dequeue only if
    // 1. The outside is ready (they want to yumi the singal),
@@ -223,7 +216,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    // Handle outgoing credit packet
    // ----------------------------------------------------------------------------------------
    typedef struct packed {
-      logic [`return_packet_type_width-1:0]     pkt_type;
+      bsg_manycore_return_packet_type_e     pkt_type;
       logic [(y_cord_width_p)-1:0]              y_cord;
       logic [(x_cord_width_p)-1:0]              x_cord;
       logic [(load_id_width_p)-1:0]             load_id;
@@ -233,7 +226,7 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
 
    wire req_returning_data =pkt_remote_load | pkt_remote_swap_aq;
 
-   assign rc_fifo_li   ='{ pkt_type: ( req_returning_data) ?`ePacketType_data :`ePacketType_credit
+   assign rc_fifo_li   ='{ pkt_type: ( req_returning_data) ? e_return_data : e_return_credit
                           ,y_cord  : cgni_data.src_y_cord
                           ,x_cord  : cgni_data.src_x_cord
                           ,load_id : cgni_data.payload.load_info_s.load_id
@@ -310,10 +303,10 @@ module bsg_manycore_endpoint_standard #( x_cord_width_p          = "inv"
    assign returned_data_r_o     = returned_packet_lo.data     ;
    assign returned_load_id_r_o  = returned_packet_lo.load_id  ;
    assign returned_v_r_o        = returned_credit_v_lo
-                                    & (returned_packet_lo.pkt_type == `ePacketType_data);
+                                    & (returned_packet_lo.pkt_type == e_return_data);
    assign returned_yumi_li      = returned_yumi_i 
                                     | (returned_credit_v_lo 
-                                        & ~(returned_packet_lo.pkt_type == `ePacketType_data)
+                                        & ~(returned_packet_lo.pkt_type == e_return_data)
                                       );
   // *************************************************
    // ** checks

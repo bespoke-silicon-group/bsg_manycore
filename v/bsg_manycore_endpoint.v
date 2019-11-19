@@ -1,56 +1,61 @@
-`include "bsg_manycore_packet.vh"
+/**
+ *    bsg_manycore_endpoint.v
+ *
+ */
 
-module bsg_manycore_endpoint #( x_cord_width_p                  = "inv"
-                                ,y_cord_width_p                 = "inv"
-                                ,fifo_els_p                     = "inv"
-                                ,returned_fifo_p                = 0
-                                ,data_width_p                   = 32
-                                ,addr_width_p                   = 32
-                                ,load_id_width_p                = 5
-                                ,packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-                                ,return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p, load_id_width_p)
-                                ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p, load_id_width_p)
-                                ,num_nets_lp                    = 2
-                                )
-   (  input clk_i
+module bsg_manycore_endpoint
+  import bsg_manycore_pkg::*;
+  #(parameter x_cord_width_p = "inv"
+    , parameter y_cord_width_p = "inv"
+    , parameter fifo_els_p = "inv"
+    , parameter data_width_p = 32
+    , parameter addr_width_p = "inv"
+    , parameter load_id_width_p = "inv"
+    
+    , parameter packet_width_lp = 
+      `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+    , parameter return_packet_width_lp =
+      `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p,load_id_width_p)
+    , parameter bsg_manycore_link_sif_width_lp =
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+  )
+  (
+    input clk_i
     , input reset_i
 
     // mesh network
     , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
     , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
-    // local incoming data interface
-    , output [packet_width_lp-1:0]          fifo_data_o
-    , output                                fifo_v_o
-    , input                                 fifo_yumi_i
+    // incoming request
+    , output [packet_width_lp-1:0]          packet_o
+    , output                                packet_v_o
+    , input                                 packet_yumi_i
 
-    // local returned data interface
-    // Like the memory interface, processor should always ready be to handle the returned data
-    , output [return_packet_width_lp-1:0]   returned_packet_r_o
-    , output                                returned_credit_v_r_o
-    , output                                returned_fifo_full_o
-    , input                                 returned_yumi_i
+    // outgoing response
+    , input  [return_packet_width_lp-1:0]   return_packet_i
+    , input                                 return_packet_v_i
+    , output                                return_packet_ready_o
 
-    // The return packet interface
-    , input [return_packet_width_lp-1:0]    returning_data_i
-    , input                                 returning_v_i
-    , output                                returning_ready_o
+    // outgoing request
+    , input  [packet_width_lp-1:0]          packet_i
+    , input                                 packet_v_i
+    , output                                packet_ready_o
 
-    // local outgoing data interface (does not include credits)
+    // incoming response
+    , output [return_packet_width_lp-1:0]   return_packet_o
+    , output                                return_packet_v_o
+    , input                                 return_packet_yumi_i
+    , output                                return_packet_fifo_full_o
 
-    , input  [packet_width_lp-1:0]           out_packet_i
-    , input                                  out_v_i
-    , output                                 out_ready_o
+  );
 
-    , output                                in_fifo_full_o
-    );
+  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
-
-   // typecast
-   bsg_manycore_link_sif_s link_sif_i_cast, link_sif_o_cast;
-   assign link_sif_i_cast = link_sif_i;
-   assign link_sif_o = link_sif_o_cast;
+  // typecast
+  bsg_manycore_link_sif_s link_sif_in, link_sif_out;
+  assign link_sif_in = link_sif_i;
+  assign link_sif_o = link_sif_out;
 
    // ----------------------------------------------------------------------------------------
    // Handle incoming request packets
@@ -59,79 +64,80 @@ module bsg_manycore_endpoint #( x_cord_width_p                  = "inv"
    // buffer incoming non-return data
    // we should buffer this incoming request because the local memory might
    // not be able to handle the read/write request
-   bsg_fifo_1r1w_small #(.width_p(packet_width_lp)
-                         ,.els_p (fifo_els_p)
-                         ) fifo
-     ( .clk_i
-      ,.reset_i
+   bsg_fifo_1r1w_small #(
+    .width_p(packet_width_lp)
+    ,.els_p (fifo_els_p)
+   ) fifo
+     ( .clk_i(clk_i)
+      ,.reset_i(reset_i)
 
-      ,.v_i     (link_sif_i_cast.fwd.v)
-      ,.data_i  (link_sif_i_cast.fwd.data)
-      ,.ready_o (link_sif_o_cast.fwd.ready_and_rev)
+      ,.v_i     (link_sif_in.fwd.v)
+      ,.data_i  (link_sif_in.fwd.data)
+      ,.ready_o (link_sif_out.fwd.ready_and_rev)
 
-      ,.v_o     (fifo_v_o    )
-      ,.data_o  (fifo_data_o )
-      ,.yumi_i  (fifo_yumi_i )
+
+      ,.v_o     (packet_v_o    )
+      ,.data_o  (packet_o )
+      ,.yumi_i  (packet_yumi_i )
       );
 
    // ----------------------------------------------------------------------------------------
-   // Handle outgoing credit packets
+   // Handle outgoing response
    // ----------------------------------------------------------------------------------------
-   assign link_sif_o_cast.rev.v             = returning_v_i        ;
-   assign link_sif_o_cast.rev.data          = returning_data_i     ;
-   assign returning_ready_o                 = link_sif_i_cast.rev.ready_and_rev ;
+   assign link_sif_out.rev.v             = return_packet_v_i;
+   assign link_sif_out.rev.data          = return_packet_i;
+   assign return_packet_ready_o          = link_sif_in.rev.ready_and_rev ;
 
    // ----------------------------------------------------------------------------------------
    // Handle outgoing request packets
    // ----------------------------------------------------------------------------------------
-   assign link_sif_o_cast.fwd.v     = out_v_i;
-   assign link_sif_o_cast.fwd.data  = out_packet_i;
-   assign out_ready_o               = link_sif_i_cast.fwd.ready_and_rev;
+   assign link_sif_out.fwd.v     = packet_v_i;
+   assign link_sif_out.fwd.data  = packet_i;
+   assign packet_ready_o         = link_sif_in.fwd.ready_and_rev;
 
    // ----------------------------------------------------------------------------------------
    // Handle incoming credit packets
    // ----------------------------------------------------------------------------------------
 
    // We buffer the returned packet
-   logic [return_packet_width_lp-1:0] returned_packet_r;
-   logic                              returned_credit_v_r;
-   logic                              returned_fifo_ready;
+   logic returned_fifo_ready;
 
-   if(returned_fifo_p == 1) begin
-     bsg_two_fifo #(.width_p                 (return_packet_width_lp)
-                    ,.allow_enq_deq_on_full_p(1)
-                    ) returned_fifo
-       (.clk_i
-        ,.reset_i
+   bsg_two_fifo #(
+    .width_p(return_packet_width_lp)
+    ,.allow_enq_deq_on_full_p(1)
+   ) returned_fifo
+       (.clk_i(clk_i)
+        ,.reset_i(reset_i)
 
-        ,.v_i     (link_sif_i_cast.rev.v)
-        ,.data_i  (link_sif_i_cast.rev.data)
+        ,.v_i     (link_sif_in.rev.v)
+        ,.data_i  (link_sif_in.rev.data)
         ,.ready_o (returned_fifo_ready)
 
-        ,.v_o     (returned_credit_v_r)
-        ,.data_o  (returned_packet_r)
-        ,.yumi_i  (returned_yumi_i)
+        ,.v_o     (return_packet_v_o)
+        ,.data_o  (return_packet_o)
+        ,.yumi_i  (return_packet_yumi_i)
         );
 
-     assign returned_fifo_full_o = ~returned_fifo_ready;
-   end else begin
-     always_ff @(posedge clk_i) begin
-       returned_credit_v_r <= link_sif_i_cast.rev.v;
-       returned_packet_r   <= link_sif_i_cast.rev.data;
-     end
+   assign return_packet_fifo_full_o = ~returned_fifo_ready;
 
-     assign returned_fifo_full_o = 1'b1;
-      
-     wire unused =  returned_yumi_i;
-
-   end
 
    // We should always receive the returned packet
-   assign link_sif_o_cast.rev.ready_and_rev = 1'b1;
-   assign returned_credit_v_r_o             = returned_credit_v_r;
-   assign returned_packet_r_o               = returned_packet_r;
+   assign link_sif_out.rev.ready_and_rev = 1'b1;
 
-   assign in_fifo_full_o = ~link_sif_o_cast.fwd.ready_and_rev;
+
+  // synopsys translate_off
+
+  always_ff @ (negedge clk_i) begin
+
+    if (~reset_i & ~returned_fifo_ready)
+      assert(return_packet_yumi_i) else
+        $error("[BSG_ERROR] return fifo has to be dequeued, when it's full.");
+
+  end
+
+  // synopsys translate_on
+
+
 endmodule
 
 
