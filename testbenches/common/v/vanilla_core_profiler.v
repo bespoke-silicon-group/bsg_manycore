@@ -7,6 +7,7 @@
 `include "parameters.vh"
 
 module vanilla_core_profiler
+  import bsg_manycore_profile_pkg::*;
   #(parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
     , parameter data_width_p="inv"
@@ -14,11 +15,6 @@ module vanilla_core_profiler
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter reg_els_lp = RV32_reg_els_gp
     , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
-    , parameter print_stat_tag_width_p = RV32_cuda_print_stat_tag_width_gp
-    , parameter print_stat_tg_id_width_p = RV32_cuda_print_stat_tg_id_width_gp
-    , parameter print_stat_y_width_p = RV32_cuda_print_stat_x_width_gp
-    , parameter print_stat_x_width_p = RV32_cuda_print_stat_y_width_gp
-    , parameter print_stat_type_width_p = RV32_cuda_print_stat_type_width_gp
   )
   (
     input clk_i
@@ -78,15 +74,10 @@ module vanilla_core_profiler
   );
 
 
-  // Local parameters for decoding the print_stat tag message to extract x,y 
-  // coordinates of the tile that triggered the cuda_print_stat message
-  // Tag message
+  // bsg_manycore_profile_pkg for the packed print_stat_tag_i signal
   // <stat type>  -  <y cord>  -  <x cord>  -  <tile group id>  -  <tag>
-  // type_width_p -  y_width_p -  x_width_p -   tg_id_width_p   - tag_width_p
-  parameter print_stat_x_start_bit_idx_lp = print_stat_tag_width_p + print_stat_tg_id_width_p;
-  parameter print_stat_x_end_bit_idx_lp   = print_stat_x_start_bit_idx_lp + print_stat_x_width_p;
-  parameter print_stat_y_start_bit_idx_lp = print_stat_x_start_bit_idx_lp + print_stat_x_width_p;
-  parameter print_stat_y_end_bit_idx_lp   = print_stat_y_start_bit_idx_lp + print_stat_y_width_p;
+  bsg_manycore_vanilla_core_stat_tag_s print_stat_tag;
+  assign print_stat_tag = print_stat_tag_i;
 
 
   // task to print a line of operation trace
@@ -1048,12 +1039,9 @@ module vanilla_core_profiler
         // coordinates of the tile calling the bsg_print_stats, along with its 
         // tile group id is incorporated in the following form"
         // <stat type>  -  <y cord>  -  <x cord>  -  <tile group id>  -  <tag>
-        //    2 bits    -   6 bits   -   6 bits   -      10 bits      -  8 bits
         // A core's profiler only prints the stat if core's x,y coordinates 
         // matches the ones incorporated in the print_stat_tag_i
-        if (~reset_i & print_stat_v_i
-             & my_y_i == print_stat_tag_i[print_stat_y_end_bit_idx_lp-1:print_stat_y_start_bit_idx_lp]
-             & my_x_i == print_stat_tag_i[print_stat_x_end_bit_idx_lp-1:print_stat_x_start_bit_idx_lp]) begin
+        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == my_y_i & print_stat_tag.x_cord == my_x_i) begin
 
           $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.",
             $time, my_x_i, my_y_i);
