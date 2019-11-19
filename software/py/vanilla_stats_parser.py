@@ -16,8 +16,8 @@
 #
 #   ex) python3 --input generate_stats.py --dim-y 4 --dim-x 4 --tile --tile_group --input vanilla_stats.log
 #
-#   {manycore_dim_y}  Mesh Y dimension of manycore default = 4
-#   {manycore_dim_x}  Mesh X dimension of manycore default = 4
+#   {manycore_dim_y}  Mesh Y dimension of manycore 
+#   {manycore_dim_x}  Mesh X dimension of manycore 
 #   {per_tile}        Generate separate stats file for each tile default = False
 #   {input}           Vanilla stats input file     default = vanilla_stats.log
 
@@ -33,30 +33,6 @@ from collections import Counter
 
 
 
-
-# These values are used by the manycore library in bsg_print_stat instructions
-# they are added to the tag value to determine the tile group that triggered the stat
-# and also the type of stat (stand-alone stat, start, or end)
-# the value of these paramters should match their counterpart inside 
-# bsg_manycore/software/bsg_manycore_lib/bsg_manycore.h
-# Formatting for bsg_cuda_print_stat instructions
-# < stat_type >
-# Section                 Stat type  -   y cord   -   x cord   -    tile group id   -        tag
-# of bits                <----2----> -   <--6-->  -   <--6-->  -   <------10----->  -   <-----8----->
-# Stat type value: {"stat":0, "start":1, "end":2}
-BSG_STAT_TAG_BITS   = 8
-BSG_STAT_TG_ID_BITS = 10
-BSG_STAT_X_BITS     = 6
-BSG_STAT_Y_BITS     = 6
-BSG_STAT_TYPE_BITS  = 2
-BSG_STAT_TAG_MASK   = ((1 << BSG_STAT_TAG_BITS) - 1)
-BSG_STAT_TG_ID_MASK = ((1 << BSG_STAT_TG_ID_BITS) - 1)
-BSG_STAT_X_MASK     = ((1 << BSG_STAT_X_BITS) - 1)
-BSG_STAT_Y_MASK     = ((1 << BSG_STAT_Y_BITS) - 1)
-BSG_STAT_TYPE_STAT  = 0
-BSG_STAT_TYPE_START = 1
-BSG_STAT_TYPE_END   = 2
-
 # Default coordinates of origin tile
 BSG_ORG_X = 0
 BSG_ORG_Y = 1
@@ -67,6 +43,65 @@ DEFAULT_INPUT_FILE = "vanilla_stats.csv"
 
 
 
+
+# These values are used by the manycore library in bsg_print_stat instructions
+# they are added to the tag value to determine the tile group that triggered the stat
+# and also the type of stat (stand-alone stat, start, or end)
+# the value of these paramters should match their counterpart inside 
+# bsg_manycore/software/bsg_manycore_lib/bsg_manycore.h
+# For formatting, see the CudaStatTag class
+BSG_STAT_TAG_WIDTH   = 8
+BSG_STAT_TG_ID_WIDTH = 10
+BSG_STAT_X_WIDTH     = 6
+BSG_STAT_Y_WIDTH     = 6
+BSG_STAT_TYPE_WIDTH  = 2
+BSG_STAT_TAG_MASK   = ((1 << BSG_STAT_TAG_WIDTH) - 1)
+BSG_STAT_TG_ID_MASK = ((1 << BSG_STAT_TG_ID_WIDTH) - 1)
+BSG_STAT_X_MASK     = ((1 << BSG_STAT_X_WIDTH) - 1)
+BSG_STAT_Y_MASK     = ((1 << BSG_STAT_Y_WIDTH) - 1)
+BSG_STAT_TYPE_STAT  = 0
+BSG_STAT_TYPE_START = 1
+BSG_STAT_TYPE_END   = 2
+
+
+# CudaStatTag class
+# Is instantiated by a packet tag value that is recieved from a 
+# bsg_cuda_print_stat(tag) insruction
+# Breaks down the tag into (type, y, x, tg_id, tag>
+# type of tag could be start, end, stat
+# x,y are coordinates of the tile that triggered the print_stat instruciton
+# tg_id is the tile group id of the tile that triggered the print_stat instruction
+# Formatting for bsg_cuda_print_stat instructions
+# Section                 stat type  -   y cord   -   x cord   -    tile group id   -        tag
+# of bits                <----2----> -   <--6-->  -   <--6-->  -   <------10----->  -   <-----8----->
+# Stat type value: {"stat":0, "start":1, "end":2}
+class CudaStatTag:
+  def __init__(self, tag):
+    self.stat_val = tag;
+
+  def get_tag(self):
+    return ((self.stat_val) & BSG_STAT_TAG_MASK)
+  def get_tg_id(self):
+    return ((self.stat_val >> (BSG_STAT_TAG_WIDTH)) & BSG_STAT_TG_ID_MASK)
+  def get_x(self):
+    return ((self.stat_val >> (BSG_STAT_TAG_WIDTH + BSG_STAT_TG_ID_WIDTH)) & BSG_STAT_X_MASK)
+  def get_y(self):
+    return ((self.stat_val >> (BSG_STAT_TAG_WIDTH + BSG_STAT_TG_ID_WIDTH + BSG_STAT_X_WIDTH)) & BSG_STAT_Y_MASK)
+  def get_type(self):
+    return ((self.stat_val >> (BSG_STAT_TAG_WIDTH + BSG_STAT_TG_ID_WIDTH + BSG_STAT_X_WIDTH + BSG_STAT_Y_WIDTH)))
+
+  def isStart(self):
+    return (self.get_type() == BSG_STAT_TYPE_START)
+  def isEnd(self):
+    return (self.get_type() == BSG_STAT_TYPE_END)
+  def isStat(self):
+    return (self.get_type() == BSG_STAT_TYPE_STAT)
+
+
+   
+
+
+ 
 class VanillaStatsParser:
 
   # default constructor
@@ -124,24 +159,10 @@ class VanillaStatsParser:
     return
 
 
-
-
   # print a line of stat into stats file based on stat type
   def __print_stat(self, stat_file, stat_type, *argv):
     stat_file.write(self.print_format[stat_type].format(*argv));
     return
-
-
-  # Decodes the tag value of the stat to determine the type of 
-  # stat, the tile group id of sending tile, and the tag value 
-  def __decode_stat_val(self, stat_val):
-    stat_type   = (stat_val >> (BSG_STAT_TAG_BITS + BSG_STAT_TG_ID_BITS + BSG_STAT_X_BITS + BSG_STAT_Y_BITS))
-    stat_y      = (stat_val >> (BSG_STAT_TAG_BITS + BSG_STAT_TG_ID_BITS + BSG_STAT_X_BITS)) & BSG_STAT_Y_MASK
-    stat_x      = (stat_val >> (BSG_STAT_TAG_BITS + BSG_STAT_TG_ID_BITS)) & BSG_STAT_X_MASK
-    stat_tg_id  = (stat_val >> (BSG_STAT_TAG_BITS)) & BSG_STAT_TG_ID_MASK
-    stat_tag    = (stat_val) & BSG_STAT_TAG_MASK
-    return (stat_type, stat_y, stat_x, stat_tg_id, stat_tag)
-    
 
 
   # go though the input traces and extract start and end stats  
@@ -167,10 +188,16 @@ class VanillaStatsParser:
       x = trace["x"]
       relative_y = y - BSG_ORG_Y
       relative_x = x - BSG_ORG_X
-      stat_val = trace["tag"]
-      stat_type, stat_y, stat_x, stat_tg_id, stat_tag = self.__decode_stat_val(stat_val)
+
+      # instantiate a CudaStatTag object with the tag value
+      cuda_tag = CudaStatTag(trace["tag"])
+
+      # extract tile group id from the print stat's tag value 
+      # see CudaStatTag class comments for more detail
+      stat_tg_id = cuda_tag.get_tg_id()
+
       # Separate depending on stat type (start or end)
-      if(stat_type == BSG_STAT_TYPE_START):
+      if(cuda_tag.isStart()):
         # Only increase number of tile groups if haven't seen a trace from this tile group before
         if(not tile_group_stat_start[stat_tg_id]):
           num_tile_groups += 1
@@ -178,7 +205,7 @@ class VanillaStatsParser:
           tile_stat_start[relative_y][relative_x][op] = trace[op]
           tile_group_stat_start[stat_tg_id][op] += trace[op]
 
-      elif (stat_type == BSG_STAT_TYPE_END):
+      elif (cuda_tag.isEnd()):
         for op in self.all_ops_list:
           tile_stat_end[relative_y][relative_x][op] = trace[op]
           tile_group_stat_end[stat_tg_id][op] += trace[op]
