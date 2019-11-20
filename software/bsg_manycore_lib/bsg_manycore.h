@@ -164,11 +164,10 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 
 
 #define bsg_cuda_print_stat_type(tag,stat_type) do {                                                              \
-    int tg_id = __bsg_tile_group_id_y * __bsg_grid_dim_x + __bsg_tile_group_id_x;                                 \
     int val = ( (stat_type << BSG_CUDA_PRINT_STAT_TYPE_SHIFT)                                                |    \
                 (((__bsg_grp_org_y + __bsg_y) & BSG_CUDA_PRINT_STAT_Y_MASK) << BSG_CUDA_PRINT_STAT_Y_SHIFT)  |    \
                 (((__bsg_grp_org_x + __bsg_x) & BSG_CUDA_PRINT_STAT_X_MASK) << BSG_CUDA_PRINT_STAT_X_SHIFT)  |    \
-                ((tg_id & BSG_CUDA_PRINT_STAT_TG_ID_MASK) << BSG_CUDA_PRINT_STAT_TG_ID_SHIFT)                |    \
+                ((__bsg_tile_group_id & BSG_CUDA_PRINT_STAT_TG_ID_MASK) << BSG_CUDA_PRINT_STAT_TG_ID_SHIFT)  |    \
                 ((tag & BSG_CUDA_PRINT_STAT_TAG_MASK) << BSG_CUDA_PRINT_STAT_TAG_SHIFT) );                        \
     bsg_print_stat(val);                                                                                          \
 } while (0)
