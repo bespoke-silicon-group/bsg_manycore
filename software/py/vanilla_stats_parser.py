@@ -129,7 +129,7 @@ class VanillaStatsParser:
                 "int"       : "{:>15}",
                 "float"     : "{:>15.4f}",
                 "percent"   : "{:>15.2f}",
-                "cord"      : "{:<2}, {:<30}",
+                "cord"      : "{:<2}, {:<31}",
                }
 
 

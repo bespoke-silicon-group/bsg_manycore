@@ -7,6 +7,7 @@ extern int __bsg_grid_dim_x;	  //The X Dimensions of the grid of tile groups
 extern int __bsg_grid_dim_y;	  //The Y Dimensions of the grid of tile groups
 extern int __bsg_tile_group_id_x; //The X Cord of the tile group within the grid
 extern int __bsg_tile_group_id_y; //The Y Cord of the tile group within the grid
+extern int __bsg_tile_group_id;   //The flat ID of the tile group within the grid
 
 //----------------------------------------------------------
 //bsg_x and bsg_y is going to be deprecated.

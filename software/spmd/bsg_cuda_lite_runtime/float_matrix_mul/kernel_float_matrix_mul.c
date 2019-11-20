@@ -14,6 +14,8 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 int  __attribute__ ((noinline)) kernel_float_matrix_mul(float *A, float *B, float *C, int M, int N, int P, int block_size_y, int block_size_x) {
 
 
+	bsg_cuda_print_stat_start(0);
+
 	int start_y = __bsg_tile_group_id_y * block_size_y;
 	int start_x = __bsg_tile_group_id_x * block_size_x;
 	int end_y = start_y + block_size_y;
@@ -32,6 +34,7 @@ int  __attribute__ ((noinline)) kernel_float_matrix_mul(float *A, float *B, floa
 	}
 
 	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
+	bsg_cuda_print_stat_end(0);
 
 	return 0;
 }
