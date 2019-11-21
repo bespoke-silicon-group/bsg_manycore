@@ -1,6 +1,6 @@
 // Structure for vanilla core profiler bsg_cuda_print_stat tag formatting
 // <stat type>   -   <y cord>   -   <x cord>   -   <tile group id>   -   <tag>
-//   2 bits      -    6 bits    -    6 bits    -      10 bits        -  8 bits
+//   2 bits      -    6 bits    -    6 bits    -      14 bits        -  4 bits
 
 package bsg_manycore_profile_pkg;
 
@@ -20,8 +20,8 @@ package bsg_manycore_profile_pkg;
         bsg_manycore_stat_type_e stat_type;
         logic [5:0] y_cord;
         logic [5:0] x_cord;
-        logic [9:0] tile_group_id;
-        logic [7:0] tag;
+        logic [13:0] tile_group_id;
+        logic [3:0] tag;
     } bsg_manycore_vanilla_core_stat_tag_s;
 
 endpackage    
