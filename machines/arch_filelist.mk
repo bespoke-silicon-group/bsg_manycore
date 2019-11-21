@@ -95,9 +95,9 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_sbuf.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_sbuf_queue.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_rx.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_tx.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_to_cache.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_vcache_blocking.v
-
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_manycore_proc_vanilla.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/network_rx.v
