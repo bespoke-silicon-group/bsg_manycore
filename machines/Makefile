@@ -17,7 +17,14 @@ VCS_SOURCES  += $(VHEADERS) $(VSOURCES)
 VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
 	 	+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS
 
-DEFAULT_MACHINES = 9x15 4x4 4x4_dmc
+VCS_CFLAGS   =  -cpp clang++
+VCS_CFLAGS   += -CFLAGS "-std=c++11 -g -Wall"
+VCS_CFLAGS   += -CFLAGS "-fPIC"
+VCS_CFLAGS   += -CFLAGS "-I$(BSG_MANYCORE_DIR)/imports/ramulator/src"
+VCS_CFLAGS   += -CFLAGS "-DRAMULATOR"
+VCS_CFLAGS   += -CFLAGS "-DHBM_CONFIG_PATH=$(BSG_MANYCORE_DIR)/imports/ramulator/configs/HBM-config.cfg"
+
+DEFAULT_MACHINES = 9x15 4x4 4x4_dmc 8x8_hbm
 
 .PHONY: all clean
 
@@ -50,15 +57,16 @@ define set_machine_variables
 	$(eval VCS_DEFINES += +define+den2048Mb+sg5+x16+FULL_MEM)
 endef
 
-%/simv : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
+%/simv : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
 	$(call set_machine_variables,$<)
-	$(VCS) $(VCS_FLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $(dir $@)/build.log
+	$(VCS) $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) | tee -i $(dir $@)/build.log
 
-%/simv-debug : %/Makefile.machine.include $(VSOURCES) $(VINCLUDES) $(VHEADERS) 
+%/simv-debug : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
 	$(call set_machine_variables,$<)
 	$(eval VCS_FLAGS += -debug_pp +vcs+vcdpluson) # Debug adds these two variables to generate waveforms
-	$(VCS) $(VCS_FLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(VCS_SOURCES) | tee -i $(dir $@)/build_debug.log
+	$(VCS) $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) | tee -i $(dir $@)/build_debug.log
 
 clean:
 	rm -rf csrc
 	rm -rf */*.log */*.daidir */simv */simv-debug
+	rm -f vc_hdrs.h

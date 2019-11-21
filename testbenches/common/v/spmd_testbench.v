@@ -51,6 +51,10 @@ module spmd_testbench;
   parameter cache_addr_width_lp=(bsg_max_epa_width_p-1+byte_offset_width_lp);
   parameter data_mask_width_lp=(data_width_p>>3);
 
+  // hbm ramulator related
+  localparam hbm_channel_addr_width_p = 29;   // 512 MB
+  localparam hbm_data_width_p = 512;
+  localparam hbm_num_channels_p = 8;
 
   // print machine settings
   initial begin
@@ -184,7 +188,9 @@ module spmd_testbench;
   if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem)
       |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_axi4_nonsynth_mem)
       |(bsg_manycore_mem_cfg_p == e_vcache_blocking_dmc_lpddr4)
-      |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_dmc_lpddr4)) begin: lv1_dma
+      |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_dmc_lpddr4)
+      |(bsg_manycore_mem_cfg_p == e_vcache_blocking_ramulator_hbm)
+      |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_ramulator_hbm)) begin: lv1_dma
 
     // for now blocking and non-blocking shares the same wire, since interface is
     // the same. But it might change in the future.
@@ -241,7 +247,8 @@ module spmd_testbench;
 
   end
   else if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem)
-          |(bsg_manycore_mem_cfg_p == e_vcache_blocking_dmc_lpddr4)) begin: lv1_vcache
+          |(bsg_manycore_mem_cfg_p == e_vcache_blocking_dmc_lpddr4)
+          |(bsg_manycore_mem_cfg_p == e_vcache_blocking_ramulator_hbm)) begin: lv1_vcache
 
 
     for (genvar i = 0; i < num_tiles_x_p; i++) begin: vcache
@@ -293,7 +300,8 @@ module spmd_testbench;
 
   end
   else if ((bsg_manycore_mem_cfg_p == e_vcache_non_blocking_axi4_nonsynth_mem)
-          |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_dmc_lpddr4)) begin: lv1_vcache_nb
+          |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_dmc_lpddr4)
+          |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_ramulator_hbm)) begin: lv1_vcache_nb
 
     for (genvar i = 0; i < num_tiles_x_p; i++) begin: vcache
 
@@ -539,6 +547,85 @@ module spmd_testbench;
       ,.app_rd_data_end_i(app_rd_data_end)
     );
 
+  end
+  else if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_ramulator_hbm)
+          |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_ramulator_hbm)) begin: lv2_ram_hbm
+   
+
+    bit hbm_clk;
+    bit hbm_reset;
+
+    bsg_nonsynth_clock_gen #(
+      .cycle_time_p(2000) // 500 MHz
+    ) hbm_cg (
+      .o(hbm_clk)
+    );
+
+    bsg_nonsynth_reset_gen #(
+      .reset_cycles_lo_p(0)
+      ,.reset_cycles_hi_p(100)
+    ) hbm_rg (
+      .clk_i(hbm_clk)
+      ,.async_reset_o(hbm_reset)
+    );
+
+    logic [num_tiles_x_p-1:0] hbm_req_valid;
+    logic [num_tiles_x_p-1:0] hbm_req_yumi;
+    logic [num_tiles_x_p-1:0] hbm_write_not_read;
+    logic [num_tiles_x_p-1:0][hbm_channel_addr_width_p-1:0] hbm_ch_addr;
+
+    logic [num_tiles_x_p-1:0][hbm_data_width_p-1:0] hbm_data_lo;
+    logic [num_tiles_x_p-1:0] hbm_data_v_lo;
+    logic [num_tiles_x_p-1:0] hbm_data_yumi_li;
+
+    logic [num_tiles_x_p-1:0][hbm_data_width_p-1:0] hbm_data_li;
+    logic [num_tiles_x_p-1:0] hbm_data_v_li;
+
+
+    // one-to-one
+    for (genvar i = 0; i < num_tiles_x_p; i++) begin
+
+      bsg_cache_to_ramulator_hbm #(
+        .num_cache_p(1)
+        ,.addr_width_p(cache_addr_width_lp)
+        ,.data_width_p(data_width_p)
+        ,.block_size_in_words_p(vcache_block_size_in_words_p)
+        ,.cache_bank_addr_width_p(dram_ch_addr_width_p+byte_offset_width_lp)
+        ,.hbm_channel_addr_width_p(hbm_channel_addr_width_p)
+        ,.hbm_data_width_p(hbm_data_width_p)
+      ) cache_to_ram_hbm (
+        .core_clk_i(core_clk)
+        ,.core_reset_i(reset_r[2])
+
+        ,.dma_pkt_i(lv1_dma.dma_pkt[i])
+        ,.dma_pkt_v_i(lv1_dma.dma_pkt_v_lo[i])
+        ,.dma_pkt_yumi_o(lv1_dma.dma_pkt_yumi_li[i])
+
+        ,.dma_data_o(lv1_dma.dma_data_li[i])
+        ,.dma_data_v_o(lv1_dma.dma_data_v_li[i])
+        ,.dma_data_ready_i(lv1_dma.dma_data_ready_lo[i])
+
+        ,.dma_data_i(lv1_dma.dma_data_lo[i])
+        ,.dma_data_v_i(lv1_dma.dma_data_v_lo[i])
+        ,.dma_data_yumi_o(lv1_dma.dma_data_yumi_li[i])
+
+        ,.hbm_clk_i(hbm_clk)
+        ,.hbm_reset_i(hbm_reset)
+
+        ,.hbm_req_v_o(hbm_req_valid[i])
+        ,.hbm_write_not_read_o(hbm_write_not_read[i])
+        ,.hbm_ch_addr_o(hbm_ch_addr[i])
+        ,.hbm_req_yumi_i(hbm_req_yumi[i])
+
+        ,.hbm_data_v_o(hbm_data_v_lo[i])
+        ,.hbm_data_o(hbm_data_lo[i])
+        ,.hbm_data_yumi_i(hbm_data_yumi_li[i])
+
+        ,.hbm_data_v_i(hbm_data_v_li[i])
+        ,.hbm_data_i(hbm_data_li[i])
+      ); 
+
+    end
 
   end
 
@@ -768,6 +855,31 @@ module spmd_testbench;
       assign ddr_dq[i] = ddr_dq_oen_lo[i] ? 1'bz : ddr_dq_lo[i];
       assign ddr_dq_li[i] = ddr_dq[i];
     end
+
+  end
+  else if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_ramulator_hbm)
+          |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_ramulator_hbm)) begin
+
+    bsg_nonsynth_ramulator_hbm #(
+      .channel_addr_width_p(hbm_channel_addr_width_p)
+      ,.data_width_p(hbm_data_width_p)
+      ,.num_channels_p(hbm_num_channels_p)
+    ) ram_hbm (
+      .clk_i(lv2_ram_hbm.hbm_clk)
+      ,.reset_i(lv2_ram_hbm.hbm_reset)
+
+      ,.v_i(lv2_ram_hbm.hbm_req_valid)
+      ,.write_not_read_i(lv2_ram_hbm.hbm_write_not_read)
+      ,.ch_addr_i(lv2_ram_hbm.hbm_ch_addr)
+      ,.yumi_o(lv2_ram_hbm.hbm_req_yumi)
+
+      ,.data_v_i(lv2_ram_hbm.hbm_data_v_lo)
+      ,.data_i(lv2_ram_hbm.hbm_data_lo)
+      ,.data_yumi_o(lv2_ram_hbm.hbm_data_yumi_li)
+
+      ,.data_v_o(lv2_ram_hbm.hbm_data_v_li)
+      ,.data_o(lv2_ram_hbm.hbm_data_li)
+    );
 
   end
 
