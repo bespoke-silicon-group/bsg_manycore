@@ -123,10 +123,10 @@ class VanillaStatsParser:
 
     # formatting parameters for aligned printing
     type_fmt = {"name"      : "{:<35}",
-                "type"      : "{:>15}",
-                "int"       : "{:>15}",
-                "float"     : "{:>15.4f}",
-                "percent"   : "{:>15.2f}",
+                "type"      : "{:>20}",
+                "int"       : "{:>20}",
+                "float"     : "{:>20.4f}",
+                "percent"   : "{:>20.2f}",
                 "cord"      : "{:<2}, {:<31}",
                 "tag"       : "Tag {:<2}",
                }
@@ -136,17 +136,17 @@ class VanillaStatsParser:
                     "tg_timing_data"  : type_fmt["name"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["int"]  + type_fmt["percent"] + "\n",
                     "timing_header"   : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"] + type_fmt["type"]    + "\n",
                     "timing_data"     : type_fmt["cord"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["int"]  + type_fmt["percent"] + "\n",
-                    "instr_header"    : type_fmt["name"] + type_fmt["int"]  + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "instr_data"      : type_fmt["name"] + type_fmt["int"]  + type_fmt["percent"] + type_fmt["percent"] + "\n",
-                    "stall_header"    : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "stall_data"      : type_fmt["name"] + type_fmt["int"]  + type_fmt["percent"] + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "instr_header"    : type_fmt["name"] + type_fmt["int"]  + type_fmt["type"]    + "\n",
+                    "instr_data"      : type_fmt["name"] + type_fmt["int"]  + type_fmt["percent"] + "\n",
+                    "stall_header"    : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                    "stall_data"      : type_fmt["name"] + type_fmt["int"]  + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "miss_header"     : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
                     "miss_data"       : type_fmt["name"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + "\n",
                     "tag_header"      : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"] + "\n",
                     "tag_data"        : type_fmt["name"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + "\n",
-                    "tag_separator"   : '-' * 60 + ' ' * 2 + type_fmt["tag"]  + ' ' * 2 + '-' * 60 + "\n",
-                    "start_lbreak"    : '=' *130 + "\n",
-                    "end_lbreak"      : '=' *130 + "\n\n",
+                    "tag_separator"   : '-' * 75 + ' ' * 2 + type_fmt["tag"]  + ' ' * 2 + '-' * 75 + "\n",
+                    "start_lbreak"    : '=' *160 + "\n",
+                    "end_lbreak"      : '=' *160 + "\n\n",
                    }
 
 
@@ -174,9 +174,9 @@ class VanillaStatsParser:
         # list of instructions, operations and events parsed from vanilla_stats.log
         # populated by reading the header of input file 
         self.stats_list   = []
-        self.instrs   = []
-        self.misses    = []
-        self.stalls  = []
+        self.instrs = []
+        self.misses = []
+        self.stalls = []
         self.all_ops = []
 
         # Parse input file's header to generate a list of all types of operations
@@ -289,7 +289,7 @@ class VanillaStatsParser:
     # Prints manycore timing stats per tile group for all tags 
     def __print_manycore_stats_tile_group_timing(self, stat_file):
         stat_file.write("Tile Group Timing Stats\n")
-        self.__print_stat(stat_file, "tg_timing_header", "tile group", "instr sum", "cycle sum", "IPC", "share (%)", "time sum (ps)", "kernel share(%)")
+        self.__print_stat(stat_file, "tg_timing_header", "tile group", "instr sum", "cycle sum", "IPC", "TG&tag / tag(%)", "time sum (ps)", "TG&tag / TG&kernel(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.manycore_stat[tag]["global_ctr"]):
@@ -321,7 +321,7 @@ class VanillaStatsParser:
                                      ,(self.manycore_stat[tag]["instr_total"])
                                      ,(self.manycore_stat[tag]["global_ctr"])
                                      ,(self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["global_ctr"])
-                                     ,(self.manycore_stat[tag]["global_ctr"] / self.manycore_stat[tag]["global_ctr"])
+                                     ,(100 * self.manycore_stat[tag]["global_ctr"] / self.manycore_stat[tag]["global_ctr"])
                                      ,(self.manycore_stat[tag]["time"])
                                      ,(100 * self.manycore_stat[tag]["global_ctr"] / self.manycore_stat[BSG_PRINT_STAT_TOTAL_TAG]["global_ctr"]))
         return
@@ -330,7 +330,7 @@ class VanillaStatsParser:
     # Prints manycore timing stats per tile group for all tags 
     def __print_manycore_stats_tile_timing(self, stat_file):
         stat_file.write("Tile Timing Stats\n")
-        self.__print_stat(stat_file, "timing_header", "tile", "instr", "cycle", "IPC", "share (%)", "time (ps)", "kernel share(%)")
+        self.__print_stat(stat_file, "timing_header", "tile", "instr", "cycle", "IPC", "tile&tag / tag(%)", "time (ps)", "tile&tag / tile&kernel(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.manycore_stat[tag]["global_ctr"]):
@@ -360,7 +360,7 @@ class VanillaStatsParser:
     # Print timing stat for each tile group in separate file for all tags 
     def __print_per_tile_group_stats_timing(self, tg_id, stat_file):
         stat_file.write("Timing Stats\n")
-        self.__print_stat(stat_file, "tg_timing_header", "tile group", "instr sum", "cycle sum", "IPC", "share (%)", "time sum (ps)", "kernel share(%)")
+        self.__print_stat(stat_file, "tg_timing_header", "tile group", "instr sum", "cycle sum", "IPC", "TG&tag / tag(%)", "time sum (ps)", "TG&tag / TG&kernel(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.tile_group_stat[tag][tg_id]["global_ctr"]):
@@ -392,7 +392,7 @@ class VanillaStatsParser:
     # print timing stats for each tile in a separate file for all tags 
     def __print_per_tile_stats_timing(self, y, x, stat_file):
         stat_file.write("Timing Stats\n")
-        self.__print_stat(stat_file, "timing_header", "tile", "instr", "cycle", "IPC", "share (%)", "time (ps)", "kernel share(%)")
+        self.__print_stat(stat_file, "timing_header", "tile", "instr", "cycle", "IPC", "tile&tag / tag(%)", "time (ps)", "tile&tag / tile&kernel(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.tile_stat[tag][y][x]["global_ctr"]):
@@ -410,16 +410,16 @@ class VanillaStatsParser:
         # Print instruction stats for manycore
         for instr in self.instrs:
             self.__print_stat(stat_file, "instr_data", instr,
-                                         self.manycore_stat[tag][instr],
-                                         (100 * self.manycore_stat[tag][instr] / self.manycore_stat[tag]["instr_total"])
-                                         ,(100 * np.float64(self.manycore_stat[tag][instr]) / self.manycore_stat[BSG_PRINT_STAT_TOTAL_TAG][instr]))
+                                         self.manycore_stat[tag][instr]
+                                         ,(100 * self.manycore_stat[tag][instr] / self.manycore_stat[tag]["instr_total"]))
+#                                         ,(100 * np.float64(self.manycore_stat[tag][instr]) / self.manycore_stat[BSG_PRINT_STAT_TOTAL_TAG][instr]))
         return
 
 
     # Prints manycore instruction stats per tile group for all tags 
     def __print_manycore_stats_instr(self, stat_file):
         stat_file.write("Instruction Stats\n")
-        self.__print_stat(stat_file, "instr_header", "instruction", "count", "share (%)", "kernel share(%)")
+        self.__print_stat(stat_file, "instr_header", "instruction", "count", "tag instr mix(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.manycore_stat[tag]["global_ctr"]):
@@ -438,16 +438,16 @@ class VanillaStatsParser:
         # Print instruction stats for manycore
         for instr in self.instrs:
             self.__print_stat(stat_file, "instr_data", instr,
-                                         self.tile_group_stat[tag][tg_id][instr],
-                                         (100 * self.tile_group_stat[tag][tg_id][instr] / self.tile_group_stat[tag][tg_id]["instr_total"])
-                                         ,(100 * np.float64(self.tile_group_stat[tag][tg_id][instr]) / self.tile_group_stat[BSG_PRINT_STAT_TOTAL_TAG][tg_id][instr]))
+                                         self.tile_group_stat[tag][tg_id][instr]
+                                         ,(100 * self.tile_group_stat[tag][tg_id][instr] / self.tile_group_stat[tag][tg_id]["instr_total"]))
+#                                         ,(100 * np.float64(self.tile_group_stat[tag][tg_id][instr]) / self.tile_group_stat[BSG_PRINT_STAT_TOTAL_TAG][tg_id][instr]))
         return
 
 
     # Print instruction stat for each tile group in separate file for all tags 
     def __print_per_tile_group_stats_instr(self, tg_id, stat_file):
         stat_file.write("Instruction Stats\n")
-        self.__print_stat(stat_file, "instr_header", "instruction", "count", " share (%)", "kernel share(%)")
+        self.__print_stat(stat_file, "instr_header", "instruction", "count", "tag instr mix(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.tile_group_stat[tag][tg_id]["global_ctr"]):
@@ -466,16 +466,16 @@ class VanillaStatsParser:
         # Print instruction stats for manycore
         for instr in self.instrs:
             self.__print_stat(stat_file, "instr_data", instr,
-                                         self.tile_stat[tag][y][x][instr],
-                                         (100 * np.float64(self.tile_stat[tag][y][x][instr]) / self.tile_stat[tag][y][x]["instr_total"])
-                                         ,(100 * np.float64(self.tile_stat[tag][y][x][instr]) / self.tile_stat[BSG_PRINT_STAT_TOTAL_TAG][y][x][instr]))
+                                         self.tile_stat[tag][y][x][instr]
+                                         ,(100 * np.float64(self.tile_stat[tag][y][x][instr]) / self.tile_stat[tag][y][x]["instr_total"]))
+#                                         ,(100 * np.float64(self.tile_stat[tag][y][x][instr]) / self.tile_stat[BSG_PRINT_STAT_TOTAL_TAG][y][x][instr]))
         return
 
 
     # print instr stats for each tile in a separate file for all tags 
     def __print_per_tile_stats_instr(self, y, x, stat_file):
         stat_file.write("Instruction Stats\n")
-        self.__print_stat(stat_file, "instr_header", "instruction", "count", " share (%)", "kernel share(%)")
+        self.__print_stat(stat_file, "instr_header", "instruction", "count", "tag instr mix(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.tile_stat[tag][y][x]["global_ctr"]):
@@ -495,15 +495,15 @@ class VanillaStatsParser:
             self.__print_stat(stat_file, "stall_data", stall,
                                          self.manycore_stat[tag][stall],
                                          (100 * self.manycore_stat[tag][stall] / self.manycore_stat[tag]["stall_total"])
-                                         ,(100 * self.manycore_stat[tag][stall] / self.manycore_stat[tag]["global_ctr"])
-                                         ,(100 * np.float64(self.manycore_stat[tag][stall]) / self.manycore_stat[BSG_PRINT_STAT_TOTAL_TAG][stall]))
+                                         ,(100 * self.manycore_stat[tag][stall] / self.manycore_stat[tag]["global_ctr"]))
+#                                         ,(100 * np.float64(self.manycore_stat[tag][stall]) / self.manycore_stat[BSG_PRINT_STAT_TOTAL_TAG][stall]))
         return
 
 
     # Prints manycore stall stats per tile group for all tags 
     def __print_manycore_stats_stall(self, stat_file):
         stat_file.write("Stall Stats\n")
-        self.__print_stat(stat_file, "stall_header", "stall", "cycles", "stall share(%)", "cycle share(%)", "kernel share(%)")
+        self.__print_stat(stat_file, "stall_header", "stall", "cycles", "tag stall mix(%)", "cycle share(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.manycore_stat[tag]["global_ctr"]):
@@ -525,15 +525,15 @@ class VanillaStatsParser:
                                          ,stall
                                          ,self.tile_group_stat[tag][tg_id][stall]
                                          ,(100 * self.tile_group_stat[tag][tg_id][stall] / self.tile_group_stat[tag][tg_id]["stall_total"])
-                                         ,(100 * self.tile_group_stat[tag][tg_id][stall] / self.tile_group_stat[tag][tg_id]["global_ctr"])
-                                         ,(100 * np.float64(self.tile_group_stat[tag][tg_id][stall]) / self.tile_group_stat[BSG_PRINT_STAT_TOTAL_TAG][tg_id][stall]))
+                                         ,(100 * self.tile_group_stat[tag][tg_id][stall] / self.tile_group_stat[tag][tg_id]["global_ctr"]))
+#                                         ,(100 * np.float64(self.tile_group_stat[tag][tg_id][stall]) / self.tile_group_stat[BSG_PRINT_STAT_TOTAL_TAG][tg_id][stall]))
         return
 
 
     # Print stall stat for each tile group in separate file for all tags 
     def __print_per_tile_group_stats_stall(self, tg_id, stat_file):
         stat_file.write("Stall Stats\n")
-        self.__print_stat(stat_file, "stall_header", "stall", "cycles", "stall share(%)", "cycle share(%)", "kernel share(%)")
+        self.__print_stat(stat_file, "stall_header", "stall", "cycles", "tag stall mix(%)", "cycle share(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.tile_group_stat[tag][tg_id]["global_ctr"]):
@@ -554,15 +554,15 @@ class VanillaStatsParser:
             self.__print_stat(stat_file, "stall_data", stall,
                                          self.tile_stat[tag][y][x][stall],
                                          (100 * np.float64(self.tile_stat[tag][y][x][stall]) / self.tile_stat[tag][y][x]["stall_total"])
-                                         ,(100 * np.float64(self.tile_stat[tag][y][x][stall]) / self.tile_stat[tag][y][x]["global_ctr"])
-                                         ,(100 * np.float64(self.tile_stat[tag][y][x][stall]) / self.tile_stat[BSG_PRINT_STAT_TOTAL_TAG][y][x][stall]))
+                                         ,(100 * np.float64(self.tile_stat[tag][y][x][stall]) / self.tile_stat[tag][y][x]["global_ctr"]))
+#                                         ,(100 * np.float64(self.tile_stat[tag][y][x][stall]) / self.tile_stat[BSG_PRINT_STAT_TOTAL_TAG][y][x][stall]))
         return
 
 
     # print stall stats for each tile in a separate file for all tags 
     def __print_per_tile_stats_stall(self, y, x, stat_file):
         stat_file.write("Stall Stats\n")
-        self.__print_stat(stat_file, "stall_header", "stall", "cycles", "stall share(%)", "cycle share(%)", "kernel share(%)")
+        self.__print_stat(stat_file, "stall_header", "stall", "cycles", "tag stall mix(%)", "cycle share(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.tile_stat[tag][y][x]["global_ctr"]):
@@ -745,7 +745,7 @@ class VanillaStatsParser:
     # i.e. when tiles are waiting to be loaded by the host.
     def __generate_tile_stats(self, traces):
         num_tags = 0
-        num_tile_groups = [0] * self.max_tags
+        num_tile_groups = [0 for tag in range(self.max_tags)]
 
         tile_stat_start = [[[Counter() for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)] for tag in range(self.max_tags)]
         tile_stat_end   = [[[Counter() for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)] for tag in range(self.max_tags)]
@@ -754,6 +754,8 @@ class VanillaStatsParser:
         tile_group_stat_start = [[Counter() for tg_id in range(self.max_tile_groups)] for tag in range(self.max_tags)]
         tile_group_stat_end   = [[Counter() for tg_id in range(self.max_tile_groups)] for tag in range(self.max_tags)]
         tile_group_stat       = [[Counter() for tg_id in range(self.max_tile_groups)] for tag in range(self.max_tags)]
+
+        tag_credits = [[[0 for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)] for tag in range(self.max_tags)]
 
 
         for trace in traces:
@@ -770,6 +772,7 @@ class VanillaStatsParser:
 
             # Separate depending on stat type (start or end)
             if(cst.isStart):
+                tag_credits[cst.tag][relative_y][relative_x] += 1;
                 # Only increase number of tags if haven't seen a trace from this tag before 
                 if (not tile_group_stat_start[cst.tag]):
                     num_tags += 1
@@ -781,6 +784,10 @@ class VanillaStatsParser:
                     tile_group_stat_start[cst.tag][cst.tg_id][op] += trace[op]
 
             elif (cst.isEnd):
+                tag_credits[cst.tag][relative_y][relative_x] -= 1;
+                if(tag_credits[cst.tag][relative_y][relative_x] < 0):
+                    print ("Warning: missing start stat for tag {}, tile {},{}.".format(cst.tag, relative_x, relative_y))
+
                 for op in self.all_ops:
                     tile_stat_end[cst.tag][relative_y][relative_x][op] = trace[op]
                     tile_group_stat_end[cst.tag][cst.tg_id][op] += trace[op]
@@ -791,7 +798,10 @@ class VanillaStatsParser:
         for tag in range(self.max_tags):
             for y in range(self.manycore_dim_y):
                 for x in range(self.manycore_dim_x):
-                     tile_stat[tag][y][x] = tile_stat_end[tag][y][x] - tile_stat_start[tag][y][x]
+                    if(tag_credits[tag][y][x] > 0):
+                        print ("Warning: {} missing end stat(s) for tag {}, tile {},{}.".format(tag_credits[tag][y][x], tag, x, y))
+
+                    tile_stat[tag][y][x] = tile_stat_end[tag][y][x] - tile_stat_start[tag][y][x]
 
         # Generate all tile group stats by subtracting start time from end time
         for tag in range(self.max_tags):
@@ -857,6 +867,7 @@ class VanillaStatsParser:
                 for x in range(self.manycore_dim_x):
                     for op in self.all_ops:
                         manycore_stat[tag][op] += tile_stat[tag][y][x][op]
+
         return manycore_stat
  
 
