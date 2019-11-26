@@ -10,15 +10,25 @@ module vanilla_core_profiler
   import bsg_manycore_profile_pkg::*;
   #(parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
+
+    , parameter icache_tag_width_p="inv"
+    , parameter icache_entries_p="inv"
+    , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
+    , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
+
     , parameter data_width_p="inv"
     , parameter dmem_size_p="inv"
+    , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
+
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter reg_els_lp = RV32_reg_els_gp
-    , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
   )
   (
     input clk_i
     , input reset_i
+
+    , input [pc_width_lp-1:0] pc_r
+    , input [pc_width_lp-1:0] pc_n
 
     , input stall
     , input stall_depend
@@ -751,7 +761,7 @@ module vanilla_core_profiler
     // the first tile opens the logfile and writes the csv header.
     if ((my_x_i == x_cord_width_p'(0)) & (my_y_i == y_cord_width_p'(1))) begin
       fd = $fopen(logfile_lp, "w");
-      $fwrite(fd, "time,x,y,tag,global_ctr,cycle,");
+      $fwrite(fd, "time,x,y,pc_r,pc_n,tag,global_ctr,cycle,");
       $fwrite(fd, "instr_total,instr_fadd,instr_fsub,instr_fmul,");
       $fwrite(fd, "instr_fsgnj,instr_fsgnjn,instr_fsgnjx,");
       $fwrite(fd, "instr_fmin,instr_fmax,instr_fcvt_s_w,instr_fcvt_s_wu,instr_fmv_w_x,");
@@ -1048,10 +1058,12 @@ module vanilla_core_profiler
 
           fd = $fopen(logfile_lp, "a");
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             $time,
             my_x_i,
             my_y_i,
+            pc_r,
+            pc_n,
             print_stat_tag_i,
             global_ctr_i,
             stat.cycle
