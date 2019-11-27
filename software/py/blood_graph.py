@@ -9,14 +9,13 @@
 #   @author tommy and borna
 #
 #   How to use:
-#   python blood_graph.py --time {start_time@end_time} --timestamp{timestep} 
+#   python blood_graph.py --cycle {start_cycle@end_cycle}  
 #                         --abstract {optional} --input {vanilla_operation_trace.log}
 #
-#   ex) python blood_graph.py --time 6000000@15000000 --timestamp 20 
+#   ex) python blood_graph.py --cycle 6000000@15000000  
 #                             --abstract --input vanilla_operation_trace.log
 #
-#   {time}        start_time@end_time in picosecond
-#   {timestep}    Distance between two consecutive traces (clock period) in picoseconds
+#   {cycle}       start_cycle@end_cycle of execution
 #   {abstract}    used for abstract simplifed bloodgraph
 # 
 
@@ -28,9 +27,8 @@ from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
 
 
-DEFAULT_START_TIME = 18000000000
-DEFAULT_END_TIME   = 20000000000
-DEFAULT_TIMESTAMP  = 8000
+DEFAULT_START_CYCLE = 0
+DEFAULT_END_CYCLE   = 500000
 DEFAULT_MODE       = "detailed"
 DEFAULT_INPUT_FILE = "vanilla_operation_trace.log"
 
@@ -40,11 +38,10 @@ class BloodGraph:
   KEY_WIDTH  = 256
   KEY_HEIGHT = 256
   # default constructor
-  def __init__(self, start_time, end_time, timestep, abstract):
+  def __init__(self, start_cycle, end_cycle, abstract):
 
-    self.start_time = start_time
-    self.end_time = end_time
-    self.timestep = timestep
+    self.start_cycle = start_cycle
+    self.end_cycle = end_cycle
     self.abstract = abstract
 
     # List of types of stalls incurred by the core 
@@ -243,7 +240,7 @@ class BloodGraph:
         trace["x"] = int(row["x"])  
         trace["y"] = int(row["y"])  
         trace["operation"] = row["operation"]
-        trace["timestamp"] = int(row["timestamp"])
+        trace["cycle"] = int(row["cycle"])
         traces.append(trace)
   
     # get tile-group dim
@@ -307,7 +304,7 @@ class BloodGraph:
   # initialize image
   def __init_image(self):
     self.img_width = 2048   # default
-    self.img_height = ((((self.end_time-self.start_time)//self.timestep)+self.img_width)//self.img_width)*(2+(self.xdim*self.ydim))
+    self.img_height = (((self.end_cycle-self.start_cycle)+self.img_width)//self.img_width)*(2+(self.xdim*self.ydim))
     self.img = Image.new("RGB", (self.img_width, self.img_height), "black")
     self.pixel = self.img.load()
     return  
@@ -315,12 +312,12 @@ class BloodGraph:
   # mark the trace on output image
   def __mark_trace(self, trace):
 
-    # ignore trace outside the time range
-    if trace["timestamp"] < self.start_time or trace["timestamp"] >= self.end_time:
+    # ignore trace outside the cycle range
+    if trace["cycle"] < self.start_cycle or trace["cycle"] >= self.end_cycle:
       return
 
     # determine pixel location
-    cycle = (trace["timestamp"]-self.start_time)//self.timestep
+    cycle = (trace["cycle"] - self.start_cycle)
     col = cycle % self.img_width
     floor = cycle // self.img_width
     tg_x = trace["x"] - self.xmin 
@@ -344,42 +341,40 @@ class BloodGraph:
 
 
 # The action to take in two input arguments for start and 
-# end time of execution in the form of start_time@end_time
-class TimeAction(argparse.Action):
-  def __call__(self, parser, namespace, time, option_string=None):
-    start_str,end_str = time.split("@")
+# end cycle of execution in the form of start_cycle@end_cycle
+class CycleAction(argparse.Action):
+  def __call__(self, parser, namespace, cycle, option_string=None):
+    start_str,end_str = cycle.split("@")
 
-    # Check if start time is given as input
+    # Check if start cycle is given as input
     if(not start_str):
-      start_time = DEFAULT_START_TIME
+      start_cycle = DEFAULT_START_CYCLE
     else:
-      start_time = int(start_str)
+      start_cycle = int(start_str)
 
-    # Check if end time is given as input
+    # Check if end cycle is given as input
     if(not end_str):
-      end_time = DEFAULT_END_TIME
+      end_cycle = DEFAULT_END_CYCLE
     else:
-      end_time = int(end_str)
+      end_cycle = int(end_str)
 
-    # check if start time is before end time
-    if(start_time > end_time):
-      raise ValueError("start time {} cannot be larger than end time {}.".format(start_time, end_time))
+    # check if start cycle is before end cycle
+    if(start_cycle > end_cycle):
+      raise ValueError("start cycle {} cannot be larger than end cycle {}.".format(start_cycle, end_cycle))
 
-    setattr(namespace, "start", start_time)
-    setattr(namespace, "end", end_time)
+    setattr(namespace, "start", start_cycle)
+    setattr(namespace, "end", end_cycle)
  
 # Parse input arguments and options 
 def parse_args():  
   parser = argparse.ArgumentParser(description="Argument parser for blood_graph.py")
   parser.add_argument("--input", default=DEFAULT_INPUT_FILE, type=str,
                       help="Vanilla operation log file")
-  parser.add_argument("--time", nargs='?', required=1, action=TimeAction, 
-                      const = (str(DEFAULT_START_TIME)+"@"+str(DEFAULT_END_TIME)),
-                      help="Time window of bloodgraph as start_time@end_time in picoseconds")
+  parser.add_argument("--cycle", nargs='?', required=1, action=CycleAction, 
+                      const = (str(DEFAULT_START_CYCLE)+"@"+str(DEFAULT_END_CYCLE)),
+                      help="Cycle window of bloodgraph as start_cycle@end_cycle.")
   parser.add_argument("--abstract", default=False, action='store_true',
                       help="Type of bloodgraph - abstract / detailed")
-  parser.add_argument("--timestamp", default=DEFAULT_TIMESTAMP, type=int,
-                      help="Distance between each trace (clock period) in picoseconds")
   parser.add_argument("--generate-key", default=False, action='store_true',
                       help="Generate a key image")
   parser.add_argument("--no-blood-graph", default=False, action='store_true',
@@ -393,7 +388,7 @@ def parse_args():
 if __name__ == "__main__":
   args = parse_args()
   
-  bg = BloodGraph(args.start, args.end, args.timestamp, args.abstract)
+  bg = BloodGraph(args.start, args.end, args.abstract)
   if not args.no_blood_graph:
     bg.generate(args.input)
   if args.generate_key:
