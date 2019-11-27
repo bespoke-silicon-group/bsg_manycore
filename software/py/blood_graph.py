@@ -257,7 +257,7 @@ class BloodGraph:
       self.__mark_trace(trace)
 
     #self.img.show()
-    self.img.save("blood.bmp")
+    self.img.save("blood.png")
     return
 
   # public method to generate key for bloodgraph
@@ -306,7 +306,7 @@ class BloodGraph:
 
   # initialize image
   def __init_image(self):
-    self.img_width = 1024   # default
+    self.img_width = 2048   # default
     self.img_height = ((((self.end_time-self.start_time)//self.timestep)+self.img_width)//self.img_width)*(2+(self.xdim*self.ydim))
     self.img = Image.new("RGB", (self.img_width, self.img_height), "black")
     self.pixel = self.img.load()
