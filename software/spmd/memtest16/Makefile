@@ -1,7 +1,7 @@
 bsg_tiles_org_X =0
 bsg_tiles_org_Y =1
-bsg_tiles_X = 4
-bsg_tiles_Y = 4
+bsg_tiles_X = 8
+bsg_tiles_Y = 8
 MAX_CYCLES=1000000000
 
 

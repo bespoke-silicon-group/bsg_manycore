@@ -62,6 +62,16 @@ package bsg_manycore_mem_cfg_pkg;
     // LEVEL 3) bsg_dmc (lpddr4) (512 MB)
     , e_vcache_non_blocking_dmc_lpddr4
 
+    // LEVEL 1) bsg_manycore_vcache (blocking)
+    // LEVEL 2) bsg_cache_to_ramulator_hbm
+    // LEVEL 3) bsg_nonsynth_ramulator_hbm
+    , e_vcache_blocking_ramulator_hbm
+
+    // LEVEL 1) bsg_manycore_vcache (blocking)
+    // LEVEL 2) bsg_cache_to_ramulator_hbm
+    // LEVEL 3) bsg_nonsynth_ramulator_hbm
+    , e_vcache_non_blocking_ramulator_hbm
+
   } bsg_manycore_mem_cfg_e;
 
 
