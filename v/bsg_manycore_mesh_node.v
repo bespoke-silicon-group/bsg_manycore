@@ -8,14 +8,13 @@ module bsg_manycore_mesh_node
 
    ,parameter data_width_p      = 32
    ,parameter addr_width_p      = "inv"
-   ,parameter load_id_width_p   = 5
    ,parameter dirs_lp           = 4
    ,parameter stub_p            = {dirs_lp{1'b0}} // {s,n,e,w}
    ,parameter repeater_output_p = {dirs_lp{1'b0}} // {s,n,e,w}
 
-   ,parameter packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-   ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p,load_id_width_p)
-   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+   ,parameter packet_width_lp        = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+   ,parameter return_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
+   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
    ,parameter num_nets_lp            = 2 // 1=return network, 0=data network
 
    ,parameter debug_p = 0
@@ -35,7 +34,7 @@ module bsg_manycore_mesh_node
      ,input   [y_cord_width_p-1:0]                my_y_i
      );
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
+   `declare_bsg_manycore_link_sif_s(addr_width_p, data_width_p,x_cord_width_p,y_cord_width_p);
 
    // typecast
    bsg_manycore_link_sif_s [dirs_lp-1:0] links_sif_i_cast, links_sif_o_cast;

@@ -12,7 +12,6 @@ module bsg_nonsynth_manycore_io_complex
     , parameter data_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-    , parameter load_id_width_p="inv"
 
     , parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
@@ -27,10 +26,10 @@ module bsg_nonsynth_manycore_io_complex
 
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,
-        x_cord_width_p,y_cord_width_p,load_id_width_p)
+        x_cord_width_p,y_cord_width_p)
 
     , parameter mc_packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,
-        x_cord_width_p,y_cord_width_p,load_id_width_p)
+        x_cord_width_p,y_cord_width_p)
   )
   (
     input clk_i
@@ -58,6 +57,7 @@ module bsg_nonsynth_manycore_io_complex
   logic in_we_lo;
   logic [x_cord_width_p-1:0] in_src_x_cord;
   logic [y_cord_width_p-1:0] in_src_y_cord;
+  bsg_manycore_load_info_s in_load_info_lo;
 
   logic [data_width_p-1:0] returning_data_li;
   logic returning_v_li;
@@ -76,7 +76,6 @@ module bsg_nonsynth_manycore_io_complex
     ,.y_cord_width_p(y_cord_width_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-    ,.load_id_width_p(load_id_width_p)
     ,.max_out_credits_p(max_out_credits_p)
     ,.fifo_els_p(16)
   ) endp (
@@ -95,6 +94,7 @@ module bsg_nonsynth_manycore_io_complex
     ,.in_src_x_cord_o(in_src_x_cord)
     ,.in_src_y_cord_o(in_src_y_cord)
     ,.in_yumi_i(in_yumi_i)
+    ,.in_load_info_o(in_load_info_lo)
 
     ,.returning_data_i(returning_data_li)
     ,.returning_v_i(returning_v_li)
@@ -105,7 +105,8 @@ module bsg_nonsynth_manycore_io_complex
     ,.out_ready_o(out_ready_lo)
 
     ,.returned_data_r_o()
-    ,.returned_load_id_r_o()
+    ,.returned_reg_id_r_o()
+    ,.returned_pkt_type_r_o()
     ,.returned_v_r_o(returned_v_r_lo)
     ,.returned_fifo_full_o()
     ,.returned_yumi_i(returned_v_r_lo)
@@ -123,7 +124,6 @@ module bsg_nonsynth_manycore_io_complex
     ,.y_cord_width_p(y_cord_width_p)
     ,.addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
-    ,.load_id_width_p(load_id_width_p)
   ) monitor (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -135,6 +135,7 @@ module bsg_nonsynth_manycore_io_complex
     ,.we_i(in_we_lo)
     ,.src_x_cord_i(in_src_x_cord)
     ,.src_y_cord_i(in_src_y_cord)
+    ,.load_info_i(in_load_info_lo)
     ,.yumi_o(in_yumi_i)
 
     ,.data_o(returning_data_li)
@@ -154,7 +155,6 @@ module bsg_nonsynth_manycore_io_complex
     ,.data_width_p(data_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.load_id_width_p(load_id_width_p)
 
   ) loader (
     .clk_i(clk_i)

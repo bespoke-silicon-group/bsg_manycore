@@ -30,7 +30,6 @@ module spmd_testbench;
   parameter icache_entries_p = 1024;
   parameter icache_tag_width_p = 12;
   parameter epa_byte_addr_width_p = 18;
-  parameter load_id_width_p = 12;
 
   parameter axi_id_width_p = 6;
   parameter axi_addr_width_p = 64;
@@ -109,7 +108,7 @@ module spmd_testbench;
   // instantiate manycore
   //
   `declare_bsg_manycore_link_sif_s(bsg_max_epa_width_p,data_width_p,
-    x_cord_width_lp,y_cord_width_lp,load_id_width_p);
+    x_cord_width_lp,y_cord_width_lp);
 
   bsg_manycore_link_sif_s [S:N][num_tiles_x_p-1:0] ver_link_li, ver_link_lo;
   bsg_manycore_link_sif_s [E:W][num_tiles_y_p-1:0] hor_link_li, hor_link_lo;
@@ -124,7 +123,6 @@ module spmd_testbench;
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(bsg_max_epa_width_p)
-    ,.load_id_width_p(load_id_width_p)
     ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
     ,.dram_ch_addr_width_p(dram_ch_addr_width_p)
     ,.num_tiles_x_p(num_tiles_x_p)
@@ -155,7 +153,6 @@ module spmd_testbench;
     ,.data_width_p(data_width_p)
     ,.x_cord_width_p(x_cord_width_lp)
     ,.y_cord_width_p(y_cord_width_lp)
-    ,.load_id_width_p(load_id_width_p)
 
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
@@ -221,7 +218,6 @@ module spmd_testbench;
         ,.addr_width_p(bsg_max_epa_width_p)
         ,.x_cord_width_p(x_cord_width_lp)
         ,.y_cord_width_p(y_cord_width_lp)
-        ,.load_id_width_p(load_id_width_p)
       ) mem_infty (
         .clk_i(core_clk)
         ,.reset_i(reset_r[2])
@@ -262,16 +258,12 @@ module spmd_testbench;
     
         ,.x_cord_width_p(x_cord_width_lp)
         ,.y_cord_width_p(y_cord_width_lp)
-        ,.load_id_width_p(load_id_width_p)
       ) vcache (
         .clk_i(core_clk)
         ,.reset_i(reset_r[1])
 
         ,.link_sif_i(ver_link_lo[S][i])
         ,.link_sif_o(ver_link_li[S][i])
-
-        ,.my_x_i((x_cord_width_lp)'(i))
-        ,.my_y_i((y_cord_width_lp)'(num_tiles_y_p))
   
         ,.dma_pkt_o(lv1_dma.dma_pkt[i])
         ,.dma_pkt_v_o(lv1_dma.dma_pkt_v_lo[i])
@@ -315,7 +307,6 @@ module spmd_testbench;
     
         ,.x_cord_width_p(x_cord_width_lp)
         ,.y_cord_width_p(y_cord_width_lp)
-        ,.load_id_width_p(load_id_width_p)
       ) vcache (
         .clk_i(core_clk)
         ,.reset_i(reset_r[1])
@@ -937,12 +928,11 @@ module spmd_testbench;
 
   // tieoffs
   //
-  for (genvar i = 0; i < num_tiles_y_p; i++) begin
+  for (genvar i = 0; i < num_tiles_y_p; i++) begin: we_tieoff
 
     bsg_manycore_link_sif_tieoff #(
       .addr_width_p(bsg_max_epa_width_p)
       ,.data_width_p(data_width_p)
-      ,.load_id_width_p(load_id_width_p)
       ,.x_cord_width_p(x_cord_width_lp)
       ,.y_cord_width_p(y_cord_width_lp)
     ) tieoff_w (
@@ -955,7 +945,6 @@ module spmd_testbench;
     bsg_manycore_link_sif_tieoff #(
       .addr_width_p(bsg_max_epa_width_p)
       ,.data_width_p(data_width_p)
-      ,.load_id_width_p(load_id_width_p)
       ,.x_cord_width_p(x_cord_width_lp)
       ,.y_cord_width_p(y_cord_width_lp)
     ) tieoff_e (
@@ -966,11 +955,10 @@ module spmd_testbench;
     );
   end
 
-  for (genvar i = 0; i < num_tiles_x_p; i++) begin
+  for (genvar i = 0; i < num_tiles_x_p; i++) begin: n_tieoff
     bsg_manycore_link_sif_tieoff #(
       .addr_width_p(bsg_max_epa_width_p)
       ,.data_width_p(data_width_p)
-      ,.load_id_width_p(load_id_width_p)
       ,.x_cord_width_p(x_cord_width_lp)
       ,.y_cord_width_p(y_cord_width_lp)
     ) tieoff_n (
@@ -981,11 +969,10 @@ module spmd_testbench;
     );
   end
 
-  for (genvar i = 1; i < num_tiles_x_p; i++) begin
+  for (genvar i = 1; i < num_tiles_x_p; i++) begin: io_tieoff
     bsg_manycore_link_sif_tieoff #(
       .addr_width_p(bsg_max_epa_width_p)
       ,.data_width_p(data_width_p)
-      ,.load_id_width_p(load_id_width_p)
       ,.x_cord_width_p(x_cord_width_lp)
       ,.y_cord_width_p(y_cord_width_lp)
     ) tieoff_io (

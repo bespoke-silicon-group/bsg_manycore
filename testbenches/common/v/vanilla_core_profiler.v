@@ -3,10 +3,10 @@
  *
  */
 
-`include "definitions.vh"
-`include "parameters.vh"
 
 module vanilla_core_profiler
+  import bsg_manycore_pkg::*;
+  import bsg_vanilla_pkg::*;
   import bsg_manycore_profile_pkg::*;
   #(parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
@@ -97,231 +97,134 @@ module vanilla_core_profiler
 
   // event signals
   //
-  logic instr_inc;
-  logic fp_instr_inc;
-
-  assign instr_inc = (~stall) & (exe_r.instruction != '0) & ~exe_r.icache_miss;
-  assign fp_instr_inc = fp_exe_r.valid & fpu_float_ready_lo;
+  wire instr_inc = (~stall) & (exe_r.instruction != '0) & ~exe_r.icache_miss;
+  wire fp_instr_inc = fp_exe_r.valid & fpu_float_ready_lo;
 
   // fp_float
   //
-  logic fadd_inc;
-  logic fsub_inc;
-  logic fmul_inc;
-  logic fsgnj_inc;
-  logic fsgnjn_inc;
-  logic fsgnjx_inc;
-  logic fmin_inc;
-  logic fmax_inc;
-  logic fcvt_s_w_inc;
-  logic fcvt_s_wu_inc;
-  logic fmv_w_x_inc;
-
-  assign fadd_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fadd_op;
-  assign fsub_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsub_op;
-  assign fmul_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmul_op;
-  assign fsgnj_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsgnj_op;
-  assign fsgnjn_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsgnjn_op;
-  assign fsgnjx_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsgnjx_op;
-  assign fmin_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmin_op;
-  assign fmax_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmax_op;
-  assign fcvt_s_w_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fcvt_s_w_op;
-  assign fcvt_s_wu_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fcvt_s_wu_op;
-  assign fmv_w_x_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmv_w_x_op; 
+  wire fadd_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fadd_op;
+  wire fsub_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsub_op;
+  wire fmul_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmul_op;
+  wire fsgnj_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsgnj_op;
+  wire fsgnjn_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsgnjn_op;
+  wire fsgnjx_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsgnjx_op;
+  wire fmin_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmin_op;
+  wire fmax_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmax_op;
+  wire fcvt_s_w_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fcvt_s_w_op;
+  wire fcvt_s_wu_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fcvt_s_wu_op;
+  wire fmv_w_x_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmv_w_x_op; 
 
   // fp_int
   //
-  logic fp_int_inc; 
-  logic feq_inc;
-  logic flt_inc;
-  logic fle_inc;
-  logic fcvt_w_s_inc;
-  logic fcvt_wu_s_inc;
-  logic fclass_inc;
-  logic fmv_x_w_inc;
-  
-  assign fp_int_inc = instr_inc & exe_r.decode.is_fp_int_op;
-  assign feq_inc = fp_int_inc & exe_r.fp_int_decode.feq_op;
-  assign flt_inc = fp_int_inc & exe_r.fp_int_decode.flt_op;
-  assign fle_inc = fp_int_inc & exe_r.fp_int_decode.fle_op;
-  assign fcvt_w_s_inc = fp_int_inc & exe_r.fp_int_decode.fcvt_w_s_op;
-  assign fcvt_wu_s_inc = fp_int_inc & exe_r.fp_int_decode.fcvt_wu_s_op;
-  assign fclass_inc = fp_int_inc & exe_r.fp_int_decode.fclass_op;
-  assign fmv_x_w_inc = fp_int_inc & exe_r.fp_int_decode.fmv_x_w_op;
+  wire fp_int_inc = instr_inc & exe_r.decode.is_fp_int_op;
+  wire feq_inc = fp_int_inc & exe_r.fp_int_decode.feq_op;
+  wire flt_inc = fp_int_inc & exe_r.fp_int_decode.flt_op;
+  wire fle_inc = fp_int_inc & exe_r.fp_int_decode.fle_op;
+  wire fcvt_w_s_inc = fp_int_inc & exe_r.fp_int_decode.fcvt_w_s_op;
+  wire fcvt_wu_s_inc = fp_int_inc & exe_r.fp_int_decode.fcvt_wu_s_op;
+  wire fclass_inc = fp_int_inc & exe_r.fp_int_decode.fclass_op;
+  wire fmv_x_w_inc = fp_int_inc & exe_r.fp_int_decode.fmv_x_w_op;
 
   // LSU
   //
-  logic local_ld_inc;
-  logic local_st_inc;
-  logic remote_ld_inc;
-  logic remote_ld_dram_inc;
-  logic remote_ld_global_inc;
-  logic remote_ld_group_inc;
-  logic remote_st_inc;
-  logic remote_st_dram_inc;
-  logic remote_st_global_inc;
-  logic remote_st_group_inc;
-  logic local_flw_inc;
-  logic local_fsw_inc;
-  logic remote_flw_inc;
-  logic remote_fsw_inc;
-  logic icache_miss_inc;
-  
-  assign local_ld_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_rf;
-  assign local_st_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_rf2;
-  assign remote_ld_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
-    & ~remote_req_o.payload.read_info.load_info.icache_fetch
+  wire local_ld_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_rf;
+  wire local_st_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_rf2;
+  wire remote_ld_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
+    & ~remote_req_o.load_info.icache_fetch
     & exe_r.decode.op_writes_rf;
-  assign remote_ld_dram_inc   = remote_ld_inc & (remote_req_o.addr[data_width_p-1]);
-  assign remote_ld_global_inc = remote_ld_inc & ~remote_ld_dram_inc 
+  wire remote_ld_dram_inc   = remote_ld_inc & (remote_req_o.addr[data_width_p-1]);
+  wire remote_ld_global_inc = remote_ld_inc & ~remote_ld_dram_inc 
                               & (remote_req_o.addr[data_width_p-2]);
-  assign remote_ld_group_inc  = remote_ld_inc & ~remote_ld_dram_inc & ~remote_ld_global_inc
+  wire remote_ld_group_inc  = remote_ld_inc & ~remote_ld_dram_inc & ~remote_ld_global_inc
                               & (remote_req_o.addr[data_width_p-3]);
 
-  assign remote_st_inc = remote_req_v_o & remote_req_yumi_i & remote_req_o.write_not_read
+  wire remote_st_inc = remote_req_v_o & remote_req_yumi_i & remote_req_o.write_not_read
     & exe_r.decode.op_reads_rf2;
-  assign remote_st_dram_inc   = remote_st_inc & (remote_req_o.addr[data_width_p-1]);
-  assign remote_st_global_inc = remote_st_inc & ~remote_st_dram_inc 
+  wire remote_st_dram_inc   = remote_st_inc & (remote_req_o.addr[data_width_p-1]);
+  wire remote_st_global_inc = remote_st_inc & ~remote_st_dram_inc 
                               & (remote_req_o.addr[data_width_p-2]);
-  assign remote_st_group_inc  = remote_st_inc & ~remote_st_dram_inc & ~remote_st_global_inc
+  wire remote_st_group_inc  = remote_st_inc & ~remote_st_dram_inc & ~remote_st_global_inc
                               & (remote_req_o.addr[data_width_p-3]);
 
-  assign local_flw_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_fp_rf;
-  assign local_fsw_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_fp_rf2;
-  assign remote_flw_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
-    & ~remote_req_o.payload.read_info.load_info.icache_fetch
+  wire local_flw_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_fp_rf;
+  wire local_fsw_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_fp_rf2;
+  wire remote_flw_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
+    & ~remote_req_o.load_info.icache_fetch
     & exe_r.decode.op_writes_fp_rf;
-  assign remote_fsw_inc = remote_req_v_o & remote_req_yumi_i & remote_req_o.write_not_read
+  wire remote_fsw_inc = remote_req_v_o & remote_req_yumi_i & remote_req_o.write_not_read
     & exe_r.decode.op_reads_fp_rf2;
 
-  assign icache_miss_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
-    & remote_req_o.payload.read_info.load_info.icache_fetch;
+  wire icache_miss_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
+    & remote_req_o.load_info.icache_fetch;
 
-  logic lr_inc;
-  logic lr_aq_inc;
-  logic swap_aq_inc;
-  logic swap_rl_inc;
-
-  assign lr_inc = instr_inc & exe_r.decode.op_is_lr;
-  assign lr_aq_inc = instr_inc & exe_r.decode.op_is_lr_aq;
-  assign swap_aq_inc = instr_inc & exe_r.decode.op_is_swap_aq;
-  assign swap_rl_inc = instr_inc & exe_r.decode.op_is_swap_rl;
+  wire lr_inc = instr_inc & exe_r.decode.op_is_lr;
+  wire lr_aq_inc = instr_inc & exe_r.decode.op_is_lr_aq;
+  wire amoswap_inc = instr_inc & exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_swap);
+  wire amoor_inc = instr_inc & exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_or);
 
 
   // branch & jump
   //
-  logic beq_inc;
-  logic bne_inc;
-  logic blt_inc;
-  logic bge_inc;
-  logic bltu_inc;
-  logic bgeu_inc;
-  logic jalr_inc;
-  logic jal_inc;
+  wire beq_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BEQ);
+  wire bne_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BNE);
+  wire blt_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLT);
+  wire bge_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGE);
+  wire bltu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLTU);
+  wire bgeu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGEU);
 
-  logic beq_miss_inc;
-  logic bne_miss_inc;
-  logic blt_miss_inc;
-  logic bge_miss_inc;
-  logic bltu_miss_inc;
-  logic bgeu_miss_inc;
-  logic jalr_miss_inc;
-
-  assign beq_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BEQ);
-  assign bne_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BNE);
-  assign blt_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLT);
-  assign bge_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGE);
-  assign bltu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLTU);
-  assign bgeu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGEU);
-
-  assign jalr_inc = instr_inc & exe_r.decode.is_jalr_op;
-  assign jal_inc = instr_inc & exe_r.decode.is_jal_op;
+  wire jalr_inc = instr_inc & exe_r.decode.is_jalr_op;
+  wire jal_inc = instr_inc & exe_r.decode.is_jal_op;
   
-  assign beq_miss_inc = beq_inc & branch_mispredict;
-  assign bne_miss_inc = bne_inc & branch_mispredict;
-  assign blt_miss_inc = blt_inc & branch_mispredict;
-  assign bge_miss_inc = bge_inc & branch_mispredict;
-  assign bltu_miss_inc = bltu_inc & branch_mispredict;
-  assign bgeu_miss_inc = bgeu_inc & branch_mispredict;
+  wire beq_miss_inc = beq_inc & branch_mispredict;
+  wire bne_miss_inc = bne_inc & branch_mispredict;
+  wire blt_miss_inc = blt_inc & branch_mispredict;
+  wire bge_miss_inc = bge_inc & branch_mispredict;
+  wire bltu_miss_inc = bltu_inc & branch_mispredict;
+  wire bgeu_miss_inc = bgeu_inc & branch_mispredict;
 
-  assign jalr_miss_inc = jalr_inc & jalr_mispredict;
+  wire jalr_miss_inc = jalr_inc & jalr_mispredict;
   
   // ALU
   //
-  logic sll_inc;
-  logic slli_inc;
-  logic srl_inc;
-  logic srli_inc;
-  logic sra_inc;
-  logic srai_inc;
-  
-  logic add_inc;
-  logic addi_inc;
-  logic sub_inc;
-  logic lui_inc;
-  logic auipc_inc;
+  wire sll_inc = instr_inc & (exe_r.instruction ==? `RV32_SLL);
+  wire slli_inc = instr_inc & (exe_r.instruction ==? `RV32_SLLI);
+  wire srl_inc = instr_inc & (exe_r.instruction ==? `RV32_SRL);
+  wire srli_inc = instr_inc & (exe_r.instruction ==? `RV32_SRLI);
+  wire sra_inc = instr_inc & (exe_r.instruction ==? `RV32_SRA);
+  wire srai_inc = instr_inc & (exe_r.instruction ==? `RV32_SRAI);
 
-  logic xor_inc;
-  logic xori_inc;
-  logic or_inc;
-  logic ori_inc;
-  logic and_inc;
-  logic andi_inc;
-  
-  logic slt_inc;
-  logic slti_inc;
-  logic sltu_inc;
-  logic sltiu_inc;
+  wire add_inc = instr_inc & (exe_r.instruction ==? `RV32_ADD);
+  wire addi_inc = instr_inc & (exe_r.instruction ==? `RV32_ADDI);
+  wire sub_inc = instr_inc & (exe_r.instruction ==? `RV32_SUB);
+  wire lui_inc = instr_inc & (exe_r.instruction ==? `RV32_LUI);
+  wire auipc_inc = instr_inc & (exe_r.instruction ==? `RV32_AUIPC);
+  wire xor_inc = instr_inc & (exe_r.instruction ==? `RV32_XOR);
+  wire xori_inc = instr_inc & (exe_r.instruction ==? `RV32_XORI);
+  wire or_inc = instr_inc & (exe_r.instruction ==? `RV32_OR);
+  wire ori_inc = instr_inc & (exe_r.instruction ==? `RV32_ORI);
+  wire and_inc = instr_inc & (exe_r.instruction ==? `RV32_AND);
+  wire andi_inc = instr_inc & (exe_r.instruction ==? `RV32_ANDI);
 
-  assign sll_inc = instr_inc & (exe_r.instruction ==? `RV32_SLL);
-  assign slli_inc = instr_inc & (exe_r.instruction ==? `RV32_SLLI);
-  assign srl_inc = instr_inc & (exe_r.instruction ==? `RV32_SRL);
-  assign srli_inc = instr_inc & (exe_r.instruction ==? `RV32_SRLI);
-  assign sra_inc = instr_inc & (exe_r.instruction ==? `RV32_SRA);
-  assign srai_inc = instr_inc & (exe_r.instruction ==? `RV32_SRAI);
-
-  assign add_inc = instr_inc & (exe_r.instruction ==? `RV32_ADD);
-  assign addi_inc = instr_inc & (exe_r.instruction ==? `RV32_ADDI);
-  assign sub_inc = instr_inc & (exe_r.instruction ==? `RV32_SUB);
-  assign lui_inc = instr_inc & (exe_r.instruction ==? `RV32_LUI);
-  assign auipc_inc = instr_inc & (exe_r.instruction ==? `RV32_AUIPC);
-  assign xor_inc = instr_inc & (exe_r.instruction ==? `RV32_XOR);
-  assign xori_inc = instr_inc & (exe_r.instruction ==? `RV32_XORI);
-  assign or_inc = instr_inc & (exe_r.instruction ==? `RV32_OR);
-  assign ori_inc = instr_inc & (exe_r.instruction ==? `RV32_ORI);
-  assign and_inc = instr_inc & (exe_r.instruction ==? `RV32_AND);
-  assign andi_inc = instr_inc & (exe_r.instruction ==? `RV32_ANDI);
-
-  assign slt_inc = instr_inc & (exe_r.instruction ==? `RV32_SLT);
-  assign slti_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTI);
-  assign sltu_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTU);
-  assign sltiu_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTIU);
+  wire slt_inc = instr_inc & (exe_r.instruction ==? `RV32_SLT);
+  wire slti_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTI);
+  wire sltu_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTU);
+  wire sltiu_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTIU);
 
 
   // MULDIV
   //
-  logic mul_inc;
-  logic mulh_inc;
-  logic mulhsu_inc;
-  logic mulhu_inc;
-  logic div_inc;
-  logic divu_inc;
-  logic rem_inc;
-  logic remu_inc;
-
-  assign mul_inc = instr_inc & (exe_r.instruction ==? `RV32_MUL);
-  assign mulh_inc = instr_inc & (exe_r.instruction ==? `RV32_MULH);
-  assign mulhsu_inc = instr_inc & (exe_r.instruction ==? `RV32_MULHSU);
-  assign mulhu_inc = instr_inc & (exe_r.instruction ==? `RV32_MULHU);
-  assign div_inc = instr_inc & (exe_r.instruction ==? `RV32_DIV);
-  assign divu_inc = instr_inc & (exe_r.instruction ==? `RV32_DIVU);
-  assign rem_inc = instr_inc & (exe_r.instruction ==? `RV32_REM);
-  assign remu_inc = instr_inc & (exe_r.instruction ==? `RV32_REMU);
+  wire mul_inc = instr_inc & (exe_r.instruction ==? `RV32_MUL);
+  wire mulh_inc = instr_inc & (exe_r.instruction ==? `RV32_MULH);
+  wire mulhsu_inc = instr_inc & (exe_r.instruction ==? `RV32_MULHSU);
+  wire mulhu_inc = instr_inc & (exe_r.instruction ==? `RV32_MULHU);
+  wire div_inc = instr_inc & (exe_r.instruction ==? `RV32_DIV);
+  wire divu_inc = instr_inc & (exe_r.instruction ==? `RV32_DIVU);
+  wire rem_inc = instr_inc & (exe_r.instruction ==? `RV32_REM);
+  wire remu_inc = instr_inc & (exe_r.instruction ==? `RV32_REMU);
 
   // fence
   //
-  logic fence_inc;
-  assign fence_inc = instr_inc & exe_r.decode.is_fence_op;
+  wire fence_inc = instr_inc & exe_r.decode.is_fence_op;
 
   // remote/local scoreboard tracking 
   //
@@ -400,7 +303,6 @@ module vanilla_core_profiler
       else if (int_sb_clear[0]) begin
         int_sb_r[int_sb_clear_id[0]][0] <= 1'b0;
       end
-
 
     end
   end
@@ -539,8 +441,8 @@ module vanilla_core_profiler
 
     integer lr;
     integer lr_aq;
-    integer swap_aq;
-    integer swap_rl;
+    integer amoswap;
+    integer amoor;
 
     // number of branch count (both correct and incorrect prediction)
     integer beq;
@@ -670,8 +572,8 @@ module vanilla_core_profiler
 
       if (lr_inc) stat.lr++;
       if (lr_aq_inc) stat.lr_aq++;
-      if (swap_aq_inc) stat.swap_aq++;
-      if (swap_rl_inc) stat.swap_rl++;
+      if (amoswap_inc) stat.amoswap++;
+      if (amoor_inc) stat.amoor++;
      
       if (beq_inc) stat.beq++; 
       if (bne_inc) stat.bne++; 
@@ -772,7 +674,7 @@ module vanilla_core_profiler
       $fwrite(fd, "instr_remote_st_dram,instr_remote_st_global,instr_remote_st_group,");
       $fwrite(fd, "instr_local_flw,instr_local_fsw,");
       $fwrite(fd, "instr_remote_flw,instr_remote_fsw,");
-      $fwrite(fd, "instr_lr,instr_lr_aq,instr_swap_aq,instr_swap_rl,");
+      $fwrite(fd, "instr_lr,instr_lr_aq,instr_amoswap,instr_amoor,");
       $fwrite(fd, "instr_beq,instr_bne,instr_blt,instr_bge,");
       $fwrite(fd, "instr_bltu,instr_bgeu,instr_jalr,instr_jal,");
       $fwrite(fd, "instr_sll,instr_slli,instr_srl,instr_srli,instr_sra,instr_srai,");
@@ -892,10 +794,10 @@ module vanilla_core_profiler
               print_operation_trace(fd2, "lr");
             else if (lr_aq_inc)
               print_operation_trace(fd2, "lr_aq");
-            else if (swap_aq_inc)
-              print_operation_trace(fd2, "swap_aq");
-            else if (swap_rl_inc)
-              print_operation_trace(fd2, "swap_rl");
+            else if (amoswap_inc)
+              print_operation_trace(fd2, "amoswap");
+            else if (amoor_inc)
+              print_operation_trace(fd2, "amoor");
 
             else if (beq_inc)
               print_operation_trace(fd2, "beq");
@@ -1112,8 +1014,8 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,%0d,%0d,%0d,",
             stat.lr,
             stat.lr_aq,
-            stat.swap_aq,
-            stat.swap_rl
+            stat.amoswap,
+            stat.amoor
           );
         
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",

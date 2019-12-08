@@ -1,6 +1,8 @@
 /**
  *    bsg_manycore_link_to_cache_non_blocking.v
  *
+ *    This module connects manycore link to the non-blocking vcache.
+ *
  */
 
 
@@ -11,11 +13,11 @@ module bsg_manycore_link_to_cache_non_blocking
     , parameter data_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-    , parameter load_id_width_p="inv"
 
     , parameter link_sif_width_lp=
-      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
+    // cache parmeters
     , parameter sets_p="inv"
     , parameter ways_p="inv"
     , parameter block_size_in_words_p="inv"
@@ -24,7 +26,7 @@ module bsg_manycore_link_to_cache_non_blocking
     , parameter byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
     , parameter cache_addr_width_lp=(addr_width_p-1+byte_offset_width_lp)
     
-    , parameter id_width_lp=(x_cord_width_p+y_cord_width_p+load_id_width_p+1)
+    , parameter id_width_lp=(x_cord_width_p+y_cord_width_p+5+2)
     , parameter cache_pkt_width_lp=
       `bsg_cache_non_blocking_pkt_width(id_width_lp,cache_addr_width_lp,data_width_p)
   )
@@ -53,7 +55,7 @@ module bsg_manycore_link_to_cache_non_blocking
   localparam block_offset_width_lp = `BSG_SAFE_CLOG2(block_size_in_words_p)+byte_offset_width_lp;
 
 
-  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
+  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
   bsg_manycore_packet_s packet_lo;
   logic packet_v_lo;
@@ -68,7 +70,6 @@ module bsg_manycore_link_to_cache_non_blocking
     ,.y_cord_width_p(y_cord_width_p) 
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-    ,.load_id_width_p(load_id_width_p)
     ,.fifo_els_p(4)
   ) ep (
     .clk_i(clk_i)
@@ -111,12 +112,16 @@ module bsg_manycore_link_to_cache_non_blocking
   bsg_cache_non_blocking_pkt_s cache_pkt;
   assign cache_pkt_o = cache_pkt;
 
+  bsg_manycore_load_info_s load_info;
+  assign load_info = packet_lo.payload.load_info_s.load_info;
+
+
   typedef struct packed {
     logic [x_cord_width_p-1:0] src_x;
     logic [y_cord_width_p-1:0] src_y;
-    logic store_not_load;
-    logic [load_id_width_p-1:0] load_id;
-  } bsg_manycore_cache_id_s;
+    bsg_manycore_return_packet_type_e pkt_type; 
+    logic [4:0] reg_id;
+  } bsg_manycore_cache_id_s; // non-blocking cache request id.
 
   bsg_manycore_cache_id_s cache_pkt_id;
   bsg_manycore_cache_id_s id_li;
@@ -178,29 +183,58 @@ module bsg_manycore_link_to_cache_non_blocking
 
       READY: begin
 
+        // cache pkt
         v_o = packet_v_lo;
         packet_yumi_li = packet_v_lo & ready_i;
         
-        cache_pkt.opcode = packet_lo.addr[addr_width_p-1]
-          ? ((packet_lo.op == e_remote_store) ? TAGST : TAGLA)
-          : ((packet_lo.op == e_remote_store) ? SM : LW);
+        if (packet_lo.addr[addr_width_p-1]) begin
+          cache_pkt.opcode = (packet_lo.op == e_remote_store)
+            ? TAGST
+            : TAGLA;
+        end
+        else begin
+          if (packet_lo.op == e_remote_store) begin
+            cache_pkt.opcode = SM;
+          end
+          else begin
+            if (load_info.is_byte_op)
+              cache_pkt.opcode = load_info.is_unsigned_op
+                ? LBU
+                : LB;
+            else if (load_info.is_hex_op)
+              cache_pkt.opcode = load_info.is_unsigned_op
+                ? LHU
+                : LH;
+            else begin
+              cache_pkt.opcode = LW;
+            end
+          end
+        end
+
         cache_pkt.data = packet_lo.payload;
-        cache_pkt.addr = {packet_lo.addr[0+:addr_width_p-1], {byte_offset_width_lp{1'b0}}};
+        cache_pkt.addr = {
+          packet_lo.addr[0+:addr_width_p-1],
+          (packet_lo.op == e_remote_store) ? 2'b00 : load_info.part_sel
+        };
         cache_pkt.mask = packet_lo.op_ex;
+
         cache_pkt_id.src_x = packet_lo.src_x_cord;
         cache_pkt_id.src_y = packet_lo.src_y_cord;
-        cache_pkt_id.store_not_load = (packet_lo.op == e_remote_store);
-        cache_pkt_id.load_id = packet_lo.payload.load_info_s.load_id;
+        cache_pkt_id.reg_id = packet_lo.reg_id; 
+        cache_pkt_id.pkt_type = (packet_lo.op == e_remote_store)
+          ? e_return_credit
+          : (load_info.icache_fetch
+            ? e_return_ifetch
+            : (load_info.float_wb ? e_return_float_wb : e_return_int_wb));
         cache_pkt.id = cache_pkt_id;
 
+        // return packet
         return_packet_v_li = v_i;
         yumi_o = v_i & return_packet_ready_lo;
 
-        return_packet_li.pkt_type = id_li.store_not_load
-          ? e_return_credit
-          : e_return_data;
+        return_packet_li.pkt_type = id_li.pkt_type;
         return_packet_li.data = data_i;
-        return_packet_li.load_id = id_li.load_id;
+        return_packet_li.reg_id = id_li.reg_id;
         return_packet_li.y_cord = id_li.src_y;
         return_packet_li.x_cord = id_li.src_x;
         

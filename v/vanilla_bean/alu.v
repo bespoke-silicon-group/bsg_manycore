@@ -1,7 +1,7 @@
-`include "parameters.vh"
-`include "definitions.vh"
 
-module alu #(pc_width_p = "inv")
+module alu
+  import bsg_vanilla_pkg::*;
+  #(pc_width_p = "inv")
            ( input [RV32_reg_data_width_gp-1:0] rs1_i
             ,input [RV32_reg_data_width_gp-1:0] rs2_i
             ,input [RV32_reg_data_width_gp-1:0] pc_plus4_i

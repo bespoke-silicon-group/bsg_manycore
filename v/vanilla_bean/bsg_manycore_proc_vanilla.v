@@ -3,16 +3,14 @@
  *
  */
 
-`include "definitions.vh"
-`include "parameters.vh"
 
 module bsg_manycore_proc_vanilla
   import bsg_manycore_pkg::*;
+  import bsg_vanilla_pkg::*;
   #(parameter x_cord_width_p = "inv"
     , parameter y_cord_width_p = "inv"
     , parameter data_width_p = "inv"
     , parameter addr_width_p = "inv"
-    , parameter load_id_width_p = "inv"
 
     , parameter icache_tag_width_p = "inv"
     , parameter icache_entries_p = "inv"
@@ -43,8 +41,7 @@ module bsg_manycore_proc_vanilla
     , localparam reg_addr_width_lp=RV32_reg_addr_width_gp
 
     , localparam link_sif_width_lp =
-      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,
-        x_cord_width_p,y_cord_width_p,load_id_width_p)
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
   )
   (
@@ -60,8 +57,7 @@ module bsg_manycore_proc_vanilla
 
   // endpoint standard
   //
-  `declare_bsg_manycore_packet_s(addr_width_p, data_width_p,
-    x_cord_width_p, y_cord_width_p, load_id_width_p);
+  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
   logic in_v_lo;
   logic in_we_lo;
@@ -69,6 +65,7 @@ module bsg_manycore_proc_vanilla
   logic [data_width_p-1:0] in_data_lo;
   logic [(data_width_p>>3)-1:0] in_mask_lo;
   logic in_yumi_li;
+  bsg_manycore_load_info_s in_load_info_lo;
 
   logic returning_data_v_li;
   logic [data_width_p-1:0] returning_data_li;
@@ -80,7 +77,8 @@ module bsg_manycore_proc_vanilla
   logic returned_v_r_lo;
   logic returned_yumi_li;
   logic [data_width_p-1:0] returned_data_r_lo;
-  logic [load_id_width_p-1:0] returned_load_id_r_lo;
+  bsg_manycore_return_packet_type_e returned_pkt_type_r_lo;
+  logic [4:0] returned_reg_id_r_lo;
   logic returned_fifo_full_lo;
 
   logic [credit_counter_width_lp-1:0] out_credits_lo;
@@ -90,7 +88,6 @@ module bsg_manycore_proc_vanilla
     ,.y_cord_width_p(y_cord_width_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-    ,.load_id_width_p(load_id_width_p)
 
     ,.fifo_els_p(proc_fifo_els_p)
     ,.max_out_credits_p(max_out_credits_p)
@@ -109,6 +106,7 @@ module bsg_manycore_proc_vanilla
     ,.in_data_o(in_data_lo)
     ,.in_mask_o(in_mask_lo)
     ,.in_yumi_i(in_yumi_li)
+    ,.in_load_info_o(in_load_info_lo)
     ,.in_src_x_cord_o()
     ,.in_src_y_cord_o()
 
@@ -122,7 +120,8 @@ module bsg_manycore_proc_vanilla
 
     ,.returned_v_r_o(returned_v_r_lo)
     ,.returned_data_r_o(returned_data_r_lo)
-    ,.returned_load_id_r_o(returned_load_id_r_lo)
+    ,.returned_reg_id_r_o(returned_reg_id_r_lo)
+    ,.returned_pkt_type_r_o(returned_pkt_type_r_lo)
     ,.returned_fifo_full_o(returned_fifo_full_lo)
     ,.returned_yumi_i(returned_yumi_li)
 
@@ -172,6 +171,7 @@ module bsg_manycore_proc_vanilla
     ,.addr_i(in_addr_lo)
     ,.data_i(in_data_lo)
     ,.mask_i(in_mask_lo)
+    ,.load_info_i(in_load_info_lo)
     ,.yumi_o(in_yumi_li)
 
     ,.returning_data_o(returning_data_li)
@@ -227,7 +227,6 @@ module bsg_manycore_proc_vanilla
     ,.addr_width_p(addr_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.load_id_width_p(load_id_width_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
@@ -251,7 +250,8 @@ module bsg_manycore_proc_vanilla
 
     ,.returned_v_i(returned_v_r_lo)
     ,.returned_data_i(returned_data_r_lo)
-    ,.returned_load_id_i(returned_load_id_r_lo)
+    ,.returned_reg_id_i(returned_reg_id_r_lo)
+    ,.returned_pkt_type_i(returned_pkt_type_r_lo)
     ,.returned_fifo_full_i(returned_fifo_full_lo)
     ,.returned_yumi_o(returned_yumi_li)
 

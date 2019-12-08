@@ -1,10 +1,13 @@
 /**
  *    network_rx.v
  *
+ *    This handles receiving remote packets, and sending out responses.
  */
 
 
 module network_rx 
+  import bsg_manycore_pkg::*;
+  import bsg_vanilla_pkg::*;
   #(parameter data_width_p="inv"
     , parameter addr_width_p="inv"
     , parameter dmem_size_p="inv"
@@ -35,6 +38,7 @@ module network_rx
     , input [addr_width_p-1:0] addr_i
     , input [data_width_p-1:0] data_i
     , input [data_mask_width_lp-1:0] mask_i
+    , input bsg_manycore_load_info_s load_info_i
     , output logic yumi_o
 
     , output logic [data_width_p-1:0] returning_data_o
@@ -64,6 +68,7 @@ module network_rx
     , input [y_cord_width_p-1:0] my_y_i
   );
 
+  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
   // address decoding
   //
@@ -122,6 +127,8 @@ module network_rx
   logic send_dram_enable_r, send_dram_enable_n; 
 
 
+  bsg_manycore_load_info_s load_info_r, load_info_n;
+
   always_comb begin
 
     freeze_n = freeze_r;
@@ -144,6 +151,8 @@ module network_rx
     remote_dmem_data_o = data_i;
     remote_dmem_addr_o = addr_i[0+:dmem_addr_width_lp];
     remote_dmem_mask_o = mask_i;
+
+    load_info_n = load_info_r;
 
     icache_v_o = 1'b0;
     icache_pc_o = addr_i[0+:pc_width_lp];
@@ -201,6 +210,9 @@ module network_rx
           remote_dmem_w_o = 1'b0;
           yumi_o = remote_dmem_yumi_i;
           send_dmem_data_n = remote_dmem_yumi_i;
+          load_info_n = remote_dmem_yumi_i
+            ? load_info_i
+            : load_info_r;
         end
         else if (is_freeze_addr) begin
           yumi_o = 1'b1;
@@ -232,6 +244,17 @@ module network_rx
 
   // response logic
   //
+  logic [data_width_p-1:0] load_data_lo;
+  load_packer lp0 (
+    .mem_data_i(remote_dmem_data_i)
+    ,.unsigned_load_i(load_info_r.is_unsigned_op)
+    ,.byte_load_i(load_info_r.is_byte_op)
+    ,.hex_load_i(load_info_r.is_hex_op)
+    ,.part_sel_i(load_info_r.part_sel)
+    ,.load_data_o(load_data_lo)
+  );
+
+
   always_comb begin
     returning_data_v_o = send_dmem_data_r
       | send_freeze_r
@@ -243,7 +266,7 @@ module network_rx
       | send_zero_r;
       
     if (send_dmem_data_r) begin
-      returning_data_o = remote_dmem_data_i;
+      returning_data_o = load_data_lo;
     end
     else if (send_freeze_r) begin
       returning_data_o = {{(data_width_p-1){1'b0}}, freeze_r};
@@ -255,7 +278,7 @@ module network_rx
       returning_data_o = {{(data_width_p-y_cord_width_p){1'b0}}, tgo_y_r};
     end
     else if (send_pc_init_val_r) begin
-      returning_data_o = {{(data_width_p-pc_width_lp-2){1'b0}}, tgo_y_r, 2'b00};
+      returning_data_o = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_init_val_r, 2'b00};
     end
     else if (send_dram_enable_r) begin
       returning_data_o = {{(data_width_p-1){1'b0}}, dram_enable_r};
@@ -290,6 +313,7 @@ module network_rx
       send_invalid_r <= 1'b0;
       send_zero_r <= 1'b0;
       send_dram_enable_r <= 1'b0;
+      load_info_r <= '0;
     end
     else begin
       freeze_r <= freeze_n;
@@ -306,6 +330,7 @@ module network_rx
       send_invalid_r <= send_invalid_n;
       send_zero_r <= send_zero_n;
       send_dram_enable_r <= send_dram_enable_n;
+      load_info_r <= load_info_n;
     end
   end
 

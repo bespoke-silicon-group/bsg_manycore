@@ -3,10 +3,9 @@
  *
  */
 
-`include "definitions.vh"
-`include "debug_if.vh"
 
 module vanilla_core_trace
+  import bsg_vanilla_pkg::*;
   #(parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
     , parameter icache_tag_width_p="inv"
@@ -17,7 +16,7 @@ module vanilla_core_trace
     , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , localparam pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
-    , localparam reg_addr_width_lp=5
+    , localparam reg_addr_width_lp=RV32_reg_addr_width_gp
     //, localparam bsg_data_end_lp = `_bsg_data_end_addr
   )
   (
@@ -84,10 +83,10 @@ module vanilla_core_trace
   assign exe_debug.local_dmem_addr = lsu_dmem_addr_lo;
   assign exe_debug.local_store_data = lsu_dmem_data_lo;
 
-  assign exe_debug.is_remote_load = remote_req_v_o & ~remote_req_o.write_not_read & ~remote_req_o.payload.read_info.load_info.icache_fetch;
+  assign exe_debug.is_remote_load = remote_req_v_o & ~remote_req_o.write_not_read & ~remote_req_o.load_info.icache_fetch;
   assign exe_debug.is_remote_store = remote_req_v_o & remote_req_o.write_not_read;
   assign exe_debug.remote_addr = remote_req_o.addr;
-  assign exe_debug.remote_store_data = remote_req_o.payload;
+  assign exe_debug.remote_store_data = remote_req_o.data;
 
 
   always_ff @ (posedge clk_i) begin

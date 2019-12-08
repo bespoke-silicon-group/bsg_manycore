@@ -7,10 +7,9 @@
  *
  */
 
-`include "parameters.vh"
-`include "definitions.vh"
 
 module icache
+  import bsg_vanilla_pkg::*;
   #(parameter icache_tag_width_p="inv"
     , parameter icache_entries_p="inv"
 

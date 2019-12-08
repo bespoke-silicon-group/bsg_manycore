@@ -5,6 +5,7 @@
 
 
 module load_packer
+  import bsg_vanilla_pkg::*;
   #(parameter data_width_p = RV32_reg_data_width_gp)
   (
     input [data_width_p-1:0] mem_data_i

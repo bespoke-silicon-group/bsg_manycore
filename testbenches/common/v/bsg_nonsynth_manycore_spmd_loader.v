@@ -3,7 +3,6 @@
  *
  */
 
-`include "bsg_manycore_addr.vh"
 
 module bsg_nonsynth_manycore_spmd_loader
   import bsg_manycore_pkg::*;
@@ -11,11 +10,10 @@ module bsg_nonsynth_manycore_spmd_loader
     , parameter data_width_p="inv"
     , parameter y_cord_width_p="inv"
     , parameter x_cord_width_p="inv"
-    , parameter load_id_width_p="inv"
 
     , parameter packet_width_lp =
       `bsg_manycore_packet_width(addr_width_p,data_width_p,
-        x_cord_width_p,y_cord_width_p,load_id_width_p)
+        x_cord_width_p,y_cord_width_p)
 
     , parameter max_nbf_p = 2**20
     , parameter nbf_addr_width_lp = `BSG_SAFE_CLOG2(max_nbf_p)
@@ -43,7 +41,7 @@ module bsg_nonsynth_manycore_spmd_loader
   } bsg_nbf_s;
 
   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,
-    x_cord_width_p,y_cord_width_p,load_id_width_p);
+    x_cord_width_p,y_cord_width_p);
 
   bsg_manycore_packet_s packet;
 
@@ -66,6 +64,7 @@ module bsg_nonsynth_manycore_spmd_loader
   assign packet.src_x_cord = my_x_i;
   assign packet.y_cord = curr_nbf.y_cord[0+:y_cord_width_p];
   assign packet.x_cord = curr_nbf.x_cord[0+:x_cord_width_p];
+  assign packet.reg_id = '0;
 
   integer status;
   string nbf_file;
