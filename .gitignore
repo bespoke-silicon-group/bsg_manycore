@@ -12,6 +12,7 @@ testbenches/common/inputs/
 *.swp
 *.nbf
 *.pyc
+*.csv
 __pycache__
 *.bmp
 xelab*
