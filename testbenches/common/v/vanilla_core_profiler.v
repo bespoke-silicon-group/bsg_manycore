@@ -1,6 +1,10 @@
 /**
  *  vanilla_core_profiler.v
  *
+ *  This profiler keeps track of what instructions/bubbles are in EXE and FP_EXE stage.
+ *  When these instructions/bubbles moves out of EXE and FP_EXE stage, the corresponding counters are incremented.
+ *  If EXE or FP_EXE stage is stalled for some reason, the corresponding stall counters are also incremented.
+ *
  */
 
 
@@ -41,6 +45,12 @@ module vanilla_core_profiler
     , input stall_force_wb
     , input stall_remote_req
     , input stall_local_flw
+    , input stall_amo_aq
+    , input stall_amo_rl
+  
+    , input stall_id
+    , input flush
+    , input icache_miss_in_pipe
 
     , input id_signals_s id_r
     , input exe_signals_s exe_r
@@ -255,8 +265,7 @@ module vanilla_core_profiler
         ? wb_n.rf_data
         : rs1_to_exe));
 
-  assign local_load_in_id = load_addr[2+dmem_addr_width_lp]
-    & (load_addr[data_width_p-1:(2+1+dmem_addr_width_lp)] == '0);
+  assign local_load_in_id = (load_addr ==? 32'b00000000_00000000_0001????_????????);
 
   assign remote_load_in_id = ~local_load_in_id;
   assign remote_load_dram_in_id = remote_load_in_id 
@@ -344,54 +353,165 @@ module vanilla_core_profiler
     end
   end
 
-  // stall
+  // stall depend bubble
   //
-  logic stall_depend_inc;
-  logic stall_depend_local_load_inc;
-  logic stall_depend_remote_load_inc;
-  logic stall_depend_remote_load_dram_inc;
-  logic stall_depend_remote_load_global_inc;
-  logic stall_depend_remote_load_group_inc;
+  logic stall_depend_bubble;
+  logic stall_depend_local_load_bubble;
+  //logic stall_depend_remote_load_bubble;
+  logic stall_depend_remote_load_dram_bubble;
+  logic stall_depend_remote_load_global_bubble;
+  logic stall_depend_remote_load_group_bubble;
 
-  assign stall_depend_inc = stall_depend & ~(stall | stall_fp);
+  assign stall_depend_bubble = stall_depend & ~(stall | stall_fp);
 
-  assign stall_depend_local_load_inc = stall_depend_inc
+  assign stall_depend_local_load_bubble = stall_depend_bubble
     & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][0]) |
        (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][0]) |
        (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][0]) |
        (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][0]));
     
-  assign stall_depend_remote_load_dram_inc = stall_depend_inc
+  assign stall_depend_remote_load_dram_bubble = stall_depend_bubble
     & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][3]) |
        (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][3]) |
        (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][3]) |
        (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][3]));
     
-  assign stall_depend_remote_load_global_inc = stall_depend_inc
+  assign stall_depend_remote_load_global_bubble = stall_depend_bubble
     & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][2]) |
        (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][2]) |
        (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][2]) |
        (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][2]));
     
-  assign stall_depend_remote_load_group_inc = stall_depend_inc
+  assign stall_depend_remote_load_group_bubble = stall_depend_bubble
     & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][1]) |
        (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][1]) |
        (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][1]) |
        (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][1]));
     
-  assign stall_depend_remote_load_inc = stall_depend_remote_load_dram_inc |
-                                        stall_depend_remote_load_global_inc |
-                                        stall_depend_remote_load_group_inc;
+  //assign stall_depend_remote_load_bubble = stall_depend_remote_load_dram_bubble |
+  //                                         stall_depend_remote_load_global_bubble |
+  //                                         stall_depend_remote_load_group_bubble;
 
-  logic stall_fp_remote_load_inc;
-  logic stall_fp_local_load_inc;
-  assign stall_fp_remote_load_inc = stall_fp & ~(stall | stall_depend) & float_remote_load_resp_v_i;
-  assign stall_fp_local_load_inc = stall_fp & ~(stall | stall_depend) & local_flw_valid;
+  wire stall_fp_remote_load_inc = stall_fp & ~(stall | stall_depend) & float_remote_load_resp_v_i;
+  wire stall_fp_local_load_inc = stall_fp & ~(stall | stall_depend) & local_flw_valid;
 
-  logic stall_force_wb_inc;
-  assign stall_force_wb_inc = stall_force_wb
+  wire stall_force_wb_inc = stall_force_wb
     & ~(stall_ifetch_wait | stall_icache_store | stall_lr_aq
         | stall_fence | stall_md | stall_remote_req | stall_local_flw);
+
+  // Keep track of what type of "bubble" is inserted in ID, EXE stage.
+
+  // ID stage
+  // [0] branch_mispredict bubble
+  // [1] icache_miss bubble
+  typedef enum logic [1:0] {
+    e_id_branch_mispredict,
+    e_id_icache_miss,
+    e_id_no_bubble
+  } id_bubble_type_e;
+
+  id_bubble_type_e id_bubble_r;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      id_bubble_r <= e_id_no_bubble;
+    end
+    else begin
+      if (~stall_id) begin
+        if (flush)
+          id_bubble_r <= e_id_branch_mispredict;
+        else if (icache_miss_in_pipe)
+          id_bubble_r <= e_id_icache_miss;
+        else
+          id_bubble_r <= e_id_no_bubble;
+      end
+    end
+  end
+
+  // EXE stage
+  // [0]  branch mispredict bubble
+  // [1]  icache miss bubble
+  // [2]  stall_amo_aq
+  // [3]  stall_amo_rl
+  // [4]  fp_op bubble
+  // [5]  stall_depend bubble
+  //      - local_load
+  //      - remote_load_dram
+  //      - remote_load_global
+  //      - remote_load_group
+  //      - fpu
+  typedef enum logic [2:0] {
+    e_exe_branch_mispredict,
+    e_exe_icache_miss,
+    e_exe_fp_op,
+    e_exe_stall_amo_aq,
+    e_exe_stall_amo_rl,
+    e_exe_stall_depend,
+    e_exe_no_bubble
+  } exe_bubble_type_e;
+
+  exe_bubble_type_e exe_bubble_r;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      exe_bubble_r <= e_exe_no_bubble;
+    end
+    else begin
+      if (~stall) begin
+        if (flush)
+          exe_bubble_r <= e_exe_branch_mispredict;
+        else if (id_bubble_r == e_id_branch_mispredict)
+          exe_bubble_r <= e_exe_branch_mispredict;
+        else if (id_r.decode.is_fp_float_op)
+          exe_bubble_r <= e_exe_fp_op;
+        else if (id_bubble_r == e_id_icache_miss)
+          exe_bubble_r <= e_exe_icache_miss;
+        else if (stall_amo_aq)
+          exe_bubble_r <= e_exe_stall_amo_aq;
+        else if (stall_amo_rl)
+          exe_bubble_r <= e_exe_stall_amo_rl;
+        else if (stall_depend_bubble)
+          exe_bubble_r <= e_exe_stall_depend;
+        else
+          exe_bubble_r <= e_exe_no_bubble;
+      end
+    end
+  end
+
+  logic exe_stall_depend_local_load_r;
+  logic exe_stall_depend_remote_load_dram_r;
+  logic exe_stall_depend_remote_load_global_r;
+  logic exe_stall_depend_remote_load_group_r;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      exe_stall_depend_local_load_r <= 1'b0;
+      exe_stall_depend_remote_load_dram_r <= 1'b0;
+      exe_stall_depend_remote_load_global_r <= 1'b0;
+      exe_stall_depend_remote_load_group_r <= 1'b0;
+    end
+    else begin
+      exe_stall_depend_local_load_r <= stall_depend_local_load_bubble;
+      exe_stall_depend_remote_load_dram_r <= stall_depend_remote_load_dram_bubble;
+      exe_stall_depend_remote_load_global_r <= stall_depend_remote_load_global_bubble;
+      exe_stall_depend_remote_load_group_r <= stall_depend_remote_load_group_bubble;
+    end
+  end
+
+  wire stall_amo_aq_inc = ~stall & (exe_bubble_r == e_exe_stall_amo_aq); // TODO include me in logs
+  wire stall_amo_rl_inc = ~stall & (exe_bubble_r == e_exe_stall_amo_rl); // TODO include me in logs
+  wire icache_bubble_inc = ~stall & (exe_bubble_r == e_exe_icache_miss); // TODO include me in logs
+  wire branch_mispredict_bubble_inc = ~stall & (exe_bubble_r == e_exe_branch_mispredict); // TODO include me in logs
+  wire fp_op_bubble_inc = ~stall & (exe_bubble_r == e_exe_fp_op);
+
+  wire stall_depend_inc = ~stall & (exe_bubble_r == e_exe_stall_depend); 
+  wire stall_depend_local_load_inc = stall_depend_inc & exe_stall_depend_local_load_r;
+  wire stall_depend_remote_load_dram_inc = stall_depend_inc & exe_stall_depend_remote_load_dram_r;
+  wire stall_depend_remote_load_global_inc = stall_depend_inc & exe_stall_depend_remote_load_global_r;
+  wire stall_depend_remote_load_group_inc = stall_depend_inc & exe_stall_depend_remote_load_group_r;
+  wire stall_depend_remote_load_inc = stall_depend_remote_load_dram_inc |
+                                      stall_depend_remote_load_global_inc |
+                                      stall_depend_remote_load_group_inc;
 
   //  profiling counters
   //
