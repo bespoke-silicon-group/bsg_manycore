@@ -525,7 +525,9 @@ module vanilla_core
     ,.dmem_size_p(dmem_size_p)
     ,.branch_trace_en_p(branch_trace_en_p)
   ) lsu0 (
-    .exe_decode_i(exe_r.decode)
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.exe_decode_i(exe_r.decode)
     ,.exe_rs1_i(exe_rs1_final)
     ,.exe_rs2_i(exe_rs2_final)
     ,.exe_rd_i(exe_r.instruction.rd)
@@ -550,10 +552,10 @@ module vanilla_core
   logic reserved_r;
   logic [dmem_addr_width_lp-1:0] reserved_addr_r;
 
+
   //                          //
   //        MEM STAGE         //
   //                          //
-
 
 
   bsg_dff_reset #(

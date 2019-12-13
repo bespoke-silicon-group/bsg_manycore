@@ -28,8 +28,11 @@ module lsu
     , localparam reg_addr_width_lp=RV32_reg_addr_width_gp
   )
   (
+    input clk_i
+    , input reset_i
+
     // from EXE
-    input decode_s exe_decode_i
+    , input decode_s exe_decode_i
     , input [data_width_p-1:0] exe_rs1_i
     , input [data_width_p-1:0] exe_rs2_i
     , input [reg_addr_width_lp-1:0] exe_rd_i
@@ -174,6 +177,26 @@ module lsu
   // reserve
   // only valid on local DMEM
   assign reserve_o = exe_decode_i.op_is_lr & is_local_dmem_addr;
+
+
+
+
+  // synopsys translate_off
+
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+      if (exe_decode_i.is_amo_op)
+        assert(~is_local_dmem_addr) else $error("[BSG_ERROR] atomic operations cannot be made on local DMEM address space.");
+
+      if (exe_decode_i.op_is_lr | exe_decode_i.op_is_lr_aq)
+        assert(is_local_dmem_addr) else $error("[BSG_ERROR] LR operation can only be made on local DMEM address space.");
+
+    end
+  end
+
+
+  // synopsys translate_on
+
 
 
 endmodule
