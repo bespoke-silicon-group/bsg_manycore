@@ -298,9 +298,6 @@ typedef struct packed
 `define RV32_FENCE_FUN3   3'b000
 `define RV32_FENCE_I_FUN3 3'b001
 
-//SWAP defines
-`define RV32_AMOSWAP_AQ_FUN7   7'b0000110
-`define RV32_AMOSWAP_RL_FUN7   7'b0000101
 
 // Some useful RV32 instruction macros
 `define RV32_Rtype(op, funct3, funct7) {``funct7``, {5{1'b?}},  {5{1'b?}},``funct3``, {5{1'b?}},``op``}
@@ -358,8 +355,6 @@ typedef struct packed
 `define RV32_REMU      `RV32_Rtype(`RV32_OP, `MD_REMU_FUN3  , 7'b0000001)
 `define RV32_LR_W      `RV32_Rtype(`RV32_AMO, 3'b010, 7'b00010??)
 
-`define RV32_AMOSWAP_AQ_W `RV32_Rtype(`RV32_AMO, 3'b010, `RV32_AMOSWAP_AQ_FUN7)
-`define RV32_AMOSWAP_RL_W `RV32_Rtype(`RV32_AMO, 3'b010, `RV32_AMOSWAP_RL_FUN7)
 
 `define RV32_CSRRW      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRW_FUN3)
 `define RV32_CSRRS      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRS_FUN3)
