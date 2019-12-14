@@ -53,7 +53,7 @@ package bsg_manycore_pkg;
     logic icache_fetch;
     logic is_unsigned_op;
     logic is_byte_op;
-    logic is_hex_op;
+    logic is_hex_op;  // this is a "half" op.
     logic [1:0] part_sel;
   } bsg_manycore_load_info_s;
  
