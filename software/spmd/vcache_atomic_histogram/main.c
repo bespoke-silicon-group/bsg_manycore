@@ -53,7 +53,7 @@ void do_histogram_work()
   int local_histogram[32] = {0};
 
   int start_idx = __bsg_id * 64;
-  //bsg_printf("%d\n", start_idx);
+  bsg_printf("%d\n", start_idx);
   for (int i = 0; i < 64; i++)
   {
     int local_data = data[start_idx+i];

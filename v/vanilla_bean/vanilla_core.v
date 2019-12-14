@@ -1110,7 +1110,7 @@ module vanilla_core
 
   wire local_load_in_exe = lsu_dmem_v_lo & ~lsu_dmem_w_lo &
     (exe_r.decode.is_load_op | exe_r.decode.op_is_lr | exe_r.decode.op_is_lr_aq) ;  
-  wire remote_load_in_exe = exe_r.decode.is_load_op & lsu_remote_req_v_lo;
+  wire remote_load_in_exe = (exe_r.decode.is_load_op | exe_r.decode.is_amo_op) & lsu_remote_req_v_lo;
   wire exe_op_writes_rf = exe_r.decode.op_writes_rf & ~remote_load_in_exe;
   wire exe_op_writes_fp_rf = exe_r.decode.op_writes_fp_rf & ~remote_load_in_exe;
 
