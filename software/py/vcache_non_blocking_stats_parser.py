@@ -85,22 +85,55 @@ class VcacheNonBlockingStatsParser:
 
     aggregate_stats = list(aggregate_stats)
     
+    # find earliest and latest.
     min_stat = min(aggregate_stats, key=lambda x: x[0])
     max_stat = max(aggregate_stats, key=lambda x: x[0])
 
-    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    print("Number of Cycles             = {}".format(max_stat[0]-min_stat[0]))
-    print("Load Hit                     = {}".format(max_stat[1]-min_stat[1]))
-    print("Store Hit                    = {}".format(max_stat[2]-min_stat[2]))
-    print("Load Hit Under Miss          = {}".format(max_stat[3]-min_stat[3]))
-    print("Store Hit Under Miss         = {}".format(max_stat[4]-min_stat[4]))
-    print("Load Miss                    = {}".format(max_stat[5]-min_stat[5]))
-    print("Store Miss                   = {}".format(max_stat[6]-min_stat[6]))
-    print("Load by MHU                  = {}".format(max_stat[7]-min_stat[7]))
-    print("Store by MHU                 = {}".format(max_stat[8]-min_stat[8]))
-    print("DMA write request            = {}".format(max_stat[9]-min_stat[9]))
-    print("DMA read request             = {}".format(max_stat[10]-min_stat[10]))
-    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    # calculate diff.
+    num_cycles = max_stat[0] - min_stat[0]
+    load_hit = max_stat[1] - min_stat[1]
+    store_hit = max_stat[2] - min_stat[2]
+    load_hit_under_miss = max_stat[3] - min_stat[3]
+    store_hit_under_miss = max_stat[4] - min_stat[4]
+    load_miss = max_stat[5] - min_stat[5]
+    store_miss = max_stat[6] - min_stat[6]
+    load_mhu = max_stat[7] - min_stat[7]
+    store_mhu = max_stat[8] - min_stat[8]
+    dma_write_req = max_stat[9] - min_stat[9]
+    dma_read_req = max_stat[10] - min_stat[10]
+    
+    # miss rate
+    total_load = load_miss + load_hit
+    total_store = store_miss + store_hit
+
+    load_miss_rate = load_miss / float(total_load) * 100.0
+    store_miss_rate = store_miss / float(total_store) * 100.0
+    miss_rate = (load_miss+store_miss) / float(total_load+total_store) * 100.0
+
+    # bandwidth (word per cycle)
+    bandwidth = (total_load+total_store) / float(num_cycles)
+    
+
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("Number of Cycles             = {}".format(num_cycles))
+    print("Load Hit                     = {}".format(load_hit))
+    print("Store Hit                    = {}".format(store_hit))
+    print("Load Hit Under Miss          = {}".format(load_hit_under_miss))
+    print("Store Hit Under Miss         = {}".format(store_hit_under_miss))
+    print("Load Miss                    = {}".format(load_miss))
+    print("Store Miss                   = {}".format(store_miss))
+    print("Load by MHU                  = {}".format(load_mhu))
+    print("Store by MHU                 = {}".format(store_mhu))
+    print("DMA write request            = {}".format(dma_write_req))
+    print("DMA read request             = {}".format(dma_read_req))
+    print("----------------------------------------------------------------------")
+    print("Load Miss Rate (%)           = {}".format(load_miss_rate))
+    print("Store Miss Rate (%)          = {}".format(store_miss_rate))
+    print("Miss Rate (%)                = {}".format(miss_rate))
+    print("----------------------------------------------------------------------")
+    print("Bandwidth (word per cycle)   = {}".format(bandwidth))
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    
 
 
 
