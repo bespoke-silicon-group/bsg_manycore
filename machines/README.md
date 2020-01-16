@@ -1,0 +1,20 @@
+```
+Machine.machine.include parameters
+
+- BSG_MACHINE_GLOBAL_X                  =   x-dimension of manycore array.
+- BSG_MACHINE_GLOBAL_Y                  =   y-dimension of manycore array (including the io router row).
+- BSG_MACHINE_VCACHE_SET                =   number of sets in each vcache
+- BSG_MACHINE_VCACHE_WAY                =   number of ways in each vcache
+- BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS   =   number of words in each vcache block.
+- BSG_MACHINE_VCACHE_MISS_FIFO_ELS      =   number of entries in miss fifo (non-blocking vcache only).
+- BSG_MACHINE_DRAM_SIZE_WORDS           =   the total size of main memory. 2GB max, but it can be set to lower.
+- BSG_MACHINE_DRAM_BANK_SIZE_WORDS      =   the size of address space spanned by each bank.
+                                            This is usually BSG_MACHINE_DRAM_SIZE_WORDS divided by BSG_MACHINE_GLOBAL_X.
+- BSG_MACHINE_DRAM_INCLUDED             =   This flag indicates whether the main memory is available.
+                                            If this flag is set to zero, the manycore can only operate in NO-DRAM mode,
+                                            meaning that the vcache is only used as block memory.
+- BSG_MACHINE_MAX_EPA_WIDTH             =   Width of word address on the mesh network.
+- BSG_MACHINE_MEM_CFG                   =   e_vcache_non_blocking_axi4_nonsynth_mem
+- BSG_MACHINE_BRANCH_TRACE_EN           =   Enable branch trace.
+
+```
