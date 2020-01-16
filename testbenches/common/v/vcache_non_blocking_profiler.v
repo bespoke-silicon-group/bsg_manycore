@@ -19,28 +19,40 @@ module vcache_non_blocking_profiler
       `bsg_cache_non_blocking_miss_fifo_entry_width(id_width_p,addr_width_p,data_width_p)
     , parameter dma_pkt_width_lp = 
       `bsg_cache_non_blocking_dma_pkt_width(addr_width_p)
+
+    //, parameter lg_sets_lp = `BSG_SAFE_CLOG2(sets_p)
+    //, parameter lg_block_size_in_words_lp = `BSG_SAFE_CLOG2(block_size_in_words_p)
+    //, parameter byte_sel_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
+    //, parameter tag_width_lp = (addr_width_p-lg_sets_lp-lg_block_size_in_words_lp-byte_sel_width_lp)
+    //, parameter mhu_dff_width_lp =
+    //  `bsg_cache_non_blocking_mhu_dff_width(id_width_p,addr_width_p,tag_width_lp,ways_p)
   ) 
   (
     input clk_i
     , input reset_i
 
-    , input [data_mem_pkt_width_lp-1:0] tl_data_mem_pkt_i
-    , input tl_data_mem_pkt_v_i
-    , input tl_data_mem_pkt_ready_i
+    , input [data_mem_pkt_width_lp-1:0] tl_data_mem_pkt_lo
+    , input tl_data_mem_pkt_v_lo
+    , input tl_data_mem_pkt_ready_li
 
-    , input mhu_idle_i
+    , input mhu_idle
   
-    , input [data_mem_pkt_width_lp-1:0] mhu_data_mem_pkt_i
-    , input mhu_data_mem_pkt_v_i
-    , input mhu_data_mem_pkt_yumi_i
+    , input [data_mem_pkt_width_lp-1:0] mhu_data_mem_pkt_lo
+    , input mhu_data_mem_pkt_v_lo
+    , input mhu_data_mem_pkt_yumi_li
 
-    , input [miss_fifo_entry_width_lp-1:0] miss_fifo_data_i
-    , input miss_fifo_v_i
-    , input miss_fifo_ready_i
+    , input [miss_fifo_entry_width_lp-1:0] miss_fifo_data_li
+    , input miss_fifo_v_li
+    , input miss_fifo_ready_lo
 
-    , input [dma_pkt_width_lp-1:0] dma_pkt_i
-    , input dma_pkt_v_i
+    , input [dma_pkt_width_lp-1:0] dma_pkt_o
+    , input dma_pkt_v_o
     , input dma_pkt_yumi_i
+
+    , input dma_cmd_v_lo
+    , input replacement_dirty // connect to mhu0.replacement_dirty
+    , input replacement_valid // connect to mhu0.replacement_valid
+    //, input [mhu_dff_width_lp-1:0] mhu_dff_r // connect to mhu0.mhu_dff_r
 
     , input [31:0] global_ctr_i
     , input print_stat_v_i
@@ -56,14 +68,18 @@ module vcache_non_blocking_profiler
 
   bsg_cache_non_blocking_data_mem_pkt_s tl_data_mem_pkt;
   bsg_cache_non_blocking_data_mem_pkt_s mhu_data_mem_pkt;
-  assign tl_data_mem_pkt = tl_data_mem_pkt_i;
-  assign mhu_data_mem_pkt = mhu_data_mem_pkt_i;
+  assign tl_data_mem_pkt = tl_data_mem_pkt_lo;
+  assign mhu_data_mem_pkt = mhu_data_mem_pkt_lo;
   
   bsg_cache_non_blocking_miss_fifo_entry_s miss_fifo_data;
-  assign miss_fifo_data = miss_fifo_data_i;
+  assign miss_fifo_data = miss_fifo_data_li;
 
   bsg_cache_non_blocking_dma_pkt_s dma_pkt;
-  assign dma_pkt = dma_pkt_i;
+  assign dma_pkt = dma_pkt_o;
+
+  //`declare_bsg_cache_non_blocking_miss_fifo_entry_width(id_width_p,addr_width_p,data_width_p);
+  //bsg_cache_non_blocking_mhu_dff_s mhu_dff;
+  //assign mhu_dff = mhu_dff_r;
 
 
   //  Profiling Events
@@ -78,33 +94,27 @@ module vcache_non_blocking_profiler
   //  - st_mhu (mhu)          : # of stores processed by MHU.
   //  - DMA_read_req          : # of DMA read requests
   //  - DMA_write_req         : # of DMA write requests
+  wire ld_hit_inc = ~tl_data_mem_pkt.write_not_read & tl_data_mem_pkt_v_lo & tl_data_mem_pkt_ready_li;
+  wire st_hit_inc = tl_data_mem_pkt.write_not_read & tl_data_mem_pkt_v_lo & tl_data_mem_pkt_ready_li;
 
-  logic ld_hit_inc;
-  logic st_hit_inc;
-  logic ld_hit_under_miss_inc;
-  logic st_hit_under_miss_inc;
-  logic ld_miss_inc;
-  logic st_miss_inc;
-  logic ld_mhu_inc;
-  logic st_mhu_inc;
-  logic dma_read_req_inc;
-  logic dma_write_req_inc;
+  wire ld_hit_under_miss_inc = ld_hit_inc & ~mhu_idle;
+  wire st_hit_under_miss_inc = st_hit_inc & ~mhu_idle;
 
-  assign ld_hit_inc = ~tl_data_mem_pkt.write_not_read & tl_data_mem_pkt_v_i & tl_data_mem_pkt_ready_i;
-  assign st_hit_inc = tl_data_mem_pkt.write_not_read & tl_data_mem_pkt_v_i & tl_data_mem_pkt_ready_i;
+  wire ld_miss_inc = ~miss_fifo_data.write_not_read & miss_fifo_v_li & miss_fifo_ready_lo;
+  wire st_miss_inc = miss_fifo_data.write_not_read & miss_fifo_v_li & miss_fifo_ready_lo;
 
-  assign ld_hit_under_miss_inc = ld_hit_inc & ~mhu_idle_i;
-  assign st_hit_under_miss_inc = st_hit_inc & ~mhu_idle_i;
+  wire ld_mhu_inc = ~mhu_data_mem_pkt.write_not_read & mhu_data_mem_pkt_v_lo & mhu_data_mem_pkt_yumi_li;
+  wire st_mhu_inc = mhu_data_mem_pkt.write_not_read & mhu_data_mem_pkt_v_lo & mhu_data_mem_pkt_yumi_li;
 
-  assign ld_miss_inc = ~miss_fifo_data.write_not_read & miss_fifo_v_i & miss_fifo_ready_i;
-  assign st_miss_inc = miss_fifo_data.write_not_read & miss_fifo_v_i & miss_fifo_ready_i;
+  wire dma_read_req_inc = ~dma_pkt.write_not_read & dma_pkt_v_o & dma_pkt_yumi_i;
+  wire dma_write_req_inc = dma_pkt.write_not_read & dma_pkt_v_o & dma_pkt_yumi_i;
 
-  assign ld_mhu_inc = ~mhu_data_mem_pkt.write_not_read & mhu_data_mem_pkt_v_i & mhu_data_mem_pkt_yumi_i;
-  assign st_mhu_inc = mhu_data_mem_pkt.write_not_read & mhu_data_mem_pkt_v_i & mhu_data_mem_pkt_yumi_i;
-
-  assign dma_read_req_inc = ~dma_pkt.write_not_read & dma_pkt_v_i & dma_pkt_yumi_i;
-  assign dma_write_req_inc = dma_pkt.write_not_read & dma_pkt_v_i & dma_pkt_yumi_i;
-
+  // replacement stat
+  //
+  wire replace_invalid_inc = dma_cmd_v_lo & ~replacement_valid;
+  wire replace_valid_inc = dma_cmd_v_lo & replacement_valid & ~replacement_dirty;
+  wire replace_dirty_inc = dma_cmd_v_lo & replacement_valid & replacement_dirty;
+  
 
   // stat struct
   //
@@ -119,6 +129,10 @@ module vcache_non_blocking_profiler
     integer st_mhu;
     integer dma_read_req;
     integer dma_write_req;
+
+    integer replace_invalid;
+    integer replace_valid;
+    integer replace_dirty;
   } vcache_non_blocking_stat_s;
 
   vcache_non_blocking_stat_s stat_r;
@@ -138,6 +152,10 @@ module vcache_non_blocking_profiler
       if (st_mhu_inc) stat_r.st_mhu++;
       if (dma_read_req_inc) stat_r.dma_read_req++;
       if (dma_write_req_inc) stat_r.dma_write_req++;
+
+      if (replace_invalid_inc) stat_r.replace_invalid++;
+      if (replace_valid_inc) stat_r.replace_valid++;
+      if (replace_dirty_inc) stat_r.replace_dirty++;
     end
   end
    
@@ -154,7 +172,8 @@ module vcache_non_blocking_profiler
     my_name = $sformatf("%m");
     if (str_match(my_name, "vcache[0]")) begin
       fd = $fopen(logfile_lp, "w");
-      $fwrite(fd, "instance,global_ctr,tag,ld_hit,st_hit,ld_hit_under_miss,st_hit_under_miss,ld_miss,st_miss,ld_mhu,st_mhu,dma_read_req,dma_write_req\n");
+      $fwrite(fd, "instance,global_ctr,tag,ld_hit,st_hit,ld_hit_under_miss,st_hit_under_miss,ld_miss,st_miss,ld_mhu,st_mhu,dma_read_req,dma_write_req,");
+      $fwrite(fd, "replace_invalid,replace_valid,replace_dirty\n");
       $fclose(fd);
     end
   
@@ -165,13 +184,18 @@ module vcache_non_blocking_profiler
           $display("[BSG_INFO][VCACHE_PROFILER] %s t=%0t printing stats.", my_name, $time);
 
           fd = $fopen(logfile_lp, "a");
-          $fwrite(fd, "%s,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
+          $fwrite(fd, "%s,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             my_name, global_ctr_i, print_stat_tag_i,
             stat_r.ld_hit, stat_r.st_hit,
             stat_r.ld_hit_under_miss, stat_r.st_hit_under_miss,
             stat_r.ld_miss, stat_r.st_miss,
             stat_r.ld_mhu, stat_r.st_mhu,
             stat_r.dma_read_req, stat_r.dma_write_req
+          );   
+          $fwrite(fd, "%0d,%0d,%0d\n",
+            stat_r.replace_invalid,
+            stat_r.replace_valid,
+            stat_r.replace_dirty
           );   
           $fclose(fd);
         end

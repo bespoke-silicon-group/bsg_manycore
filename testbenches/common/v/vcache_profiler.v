@@ -48,7 +48,6 @@ module vcache_profiler
 
   // event signals
   //
-
   wire inc_ld = v_o & yumi_i & decode_v_r.ld_op;
   wire inc_st = v_o & yumi_i & decode_v_r.st_op;
   wire inc_ld_miss = v_o & yumi_i & decode_v_r.ld_op & miss_v;

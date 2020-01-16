@@ -351,27 +351,9 @@ module spmd_testbench;
       ,.id_width_p(id_width_p)
       ,.block_size_in_words_p(block_size_in_words_p)
     ) vcache_prof (
-      .clk_i(clk_i)
-      ,.reset_i(reset_i)
-
-      ,.tl_data_mem_pkt_i(tl_data_mem_pkt_lo)
-      ,.tl_data_mem_pkt_v_i(tl_data_mem_pkt_v_lo)
-      ,.tl_data_mem_pkt_ready_i(tl_data_mem_pkt_ready_li)
-
-      ,.mhu_idle_i(mhu_idle)
-
-      ,.mhu_data_mem_pkt_i(mhu_data_mem_pkt_lo)
-      ,.mhu_data_mem_pkt_v_i(mhu_data_mem_pkt_v_lo)
-      ,.mhu_data_mem_pkt_yumi_i(mhu_data_mem_pkt_yumi_li)
-
-      ,.miss_fifo_data_i(miss_fifo_data_li)
-      ,.miss_fifo_v_i(miss_fifo_v_li)
-      ,.miss_fifo_ready_i(miss_fifo_ready_lo)
-
-      ,.dma_pkt_i(dma_pkt_o)
-      ,.dma_pkt_v_i(dma_pkt_v_o)
-      ,.dma_pkt_yumi_i(dma_pkt_yumi_i)
-
+      .*
+      ,.replacement_dirty(mhu0.replacement_dirty)
+      ,.replacement_valid(mhu0.replacement_valid)
       ,.global_ctr_i($root.spmd_testbench.global_ctr)
       ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
       ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
