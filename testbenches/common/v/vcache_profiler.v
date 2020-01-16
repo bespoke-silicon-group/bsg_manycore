@@ -8,13 +8,15 @@ module vcache_profiler
   import bsg_cache_pkg::*;
   #(parameter data_width_p="inv"
     , parameter addr_width_p="inv"
+    , parameter ways_p="inv"
 
     // this string is matched against the name of the instance, and decides whether to print csv header or not.
     , parameter header_print_p="y[3].x[0]"
 
-    , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
-
     , parameter data_mask_width_lp=(data_width_p>>3)
+    , parameter lg_ways_lp=`BSG_SAFE_CLOG2(ways_p)
+    , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
+    , parameter stat_info_width_lp=`bsg_cache_stat_info_width(ways_p)
   )
   (
     input clk_i
@@ -29,6 +31,12 @@ module vcache_profiler
     , input [dma_pkt_width_lp-1:0] dma_pkt_o
     , input dma_pkt_v_o
     , input dma_pkt_yumi_i
+
+    , input [lg_ways_lp-1:0] chosen_way_n // connect to miss.chosen_way_n
+    , input [ways_p-1:0] valid_v_r
+    , input [stat_info_width_lp-1:0] stat_mem_data_lo
+    , input bsg_cache_dma_cmd_e dma_cmd_lo
+    , input dma_done_li
 
     , input [31:0] global_ctr_i
     , input print_stat_v_i
@@ -48,6 +56,9 @@ module vcache_profiler
   bsg_cache_dma_pkt_s dma_pkt;
   assign dma_pkt = dma_pkt_o;
 
+  `declare_bsg_cache_stat_info_s(ways_p);
+  bsg_cache_stat_info_s stat_info;
+  assign stat_info = stat_mem_data_lo;
 
 
   // event signals
@@ -98,6 +109,16 @@ module vcache_profiler
   wire inc_stall_rsp = v_o & ~yumi_i;
   wire inc_idle     = ~v_o & ~miss_v; // Simplified From: ~(v_o & yumi_i) & ~(inc_miss) & ~(inc_stall_rsp);
 
+  // replacement stats
+  // 1) replace invalid
+  // 2) replace valid
+  // 3) replace valid+dirty
+  wire replacing = (dma_cmd_lo == e_dma_send_fill_addr) & dma_done_li;
+  wire inc_replace_invalid = replacing & ~valid_v_r[chosen_way_n];
+  wire inc_replace_valid = replacing & valid_v_r[chosen_way_n] & ~stat_info.dirty[chosen_way_n]; 
+  wire inc_replace_dirty = replacing & valid_v_r[chosen_way_n] & stat_info.dirty[chosen_way_n];
+ 
+
   // stats counting
   //
   typedef struct packed {
@@ -140,6 +161,9 @@ module vcache_profiler
 
     integer dma_read_req;
     integer dma_write_req;
+    integer replace_invalid;
+    integer replace_valid;
+    integer replace_dirty;
   } vcache_stat_s;
 
   vcache_stat_s stat_r;
@@ -190,6 +214,9 @@ module vcache_profiler
        
       if (inc_dma_read_req)  stat_r.dma_read_req++;
       if (inc_dma_write_req) stat_r.dma_write_req++;
+      if (inc_replace_invalid) stat_r.replace_invalid++;
+      if (inc_replace_valid) stat_r.replace_valid++;
+      if (inc_replace_dirty) stat_r.replace_dirty++;
     end
 
   end
@@ -215,14 +242,13 @@ module vcache_profiler
       $fwrite(log_fd, "instr_tagst,instr_tagfl,instr_taglv,instr_tagla,");
       $fwrite(log_fd, "instr_afl,instr_aflinv,instr_ainv,instr_alock,instr_aunlock,");
       $fwrite(log_fd, "instr_atomic,instr_amoswap,instr_amoor,");
-      $fwrite(log_fd, "miss_ld,miss_st,miss_amo,stall_miss,stall_idle,stall_rsp,dma_read_req,dma_write_req\n");
+      $fwrite(log_fd, "miss_ld,miss_st,miss_amo,stall_miss,stall_idle,stall_rsp,dma_read_req,dma_write_req,");
+      $fwrite(log_fd, "replace_invalid,replace_valid,replace_dirty\n");
       $fclose(log_fd);
 
-      //if (trace_en_i) begin
-        trace_fd = $fopen(tracefile_lp, "w");
-        $fwrite(trace_fd, "cycle,vcache,operation\n");
-        $fclose(trace_fd);
-      //end
+      trace_fd = $fopen(tracefile_lp, "w");
+      $fwrite(trace_fd, "cycle,vcache,operation\n");
+      $fclose(trace_fd);
     end
   end
 
@@ -282,7 +308,7 @@ module vcache_profiler
             stat_r.amoor_count,
           );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             stat_r.miss_ld_count,
             stat_r.miss_st_count,
             stat_r.miss_amo_count,
@@ -292,6 +318,12 @@ module vcache_profiler
             stat_r.dma_read_req,
             stat_r.dma_write_req
           );
+
+          $fwrite(log_fd, "%0d,%0d,%0d\n",
+            stat_r.replace_invalid,
+            stat_r.replace_valid,
+            stat_r.replace_dirty
+          );   
 
           $fclose(log_fd);
         end

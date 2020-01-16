@@ -406,8 +406,13 @@ module spmd_testbench;
       .data_width_p(data_width_p)
       ,.addr_width_p(addr_width_p)
       ,.header_print_p("y[3].x[0]")
+      ,.ways_p(ways_p)
     ) vcache_prof (
+      // everything else
       .*
+      // bsg_cache_miss
+      ,.chosen_way_n(miss.chosen_way_n)
+      // from spmd_testbench
       ,.global_ctr_i($root.spmd_testbench.global_ctr)
       ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
       ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
