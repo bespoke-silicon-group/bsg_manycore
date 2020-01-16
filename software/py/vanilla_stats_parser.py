@@ -180,11 +180,12 @@ class VanillaStatsParser:
         self.instrs = []
         self.misses = []
         self.stalls = []
+        self.bubbles = []
         self.all_ops = []
 
         # Parse input file's header to generate a list of all types of operations
-        self.stats, self.instrs, self.misses, self.stalls = self.parse_header(input_file)
-        self.all_ops = self.stats + self.instrs + self.misses + self.stalls
+        self.stats, self.instrs, self.misses, self.stalls, self.bubbles = self.parse_header(input_file)
+        self.all_ops = self.stats + self.instrs + self.misses + self.stalls + self.bubbles
 
         # Parse stats file line by line, and append the trace line to traces list. 
         with open(input_file) as f:
@@ -889,11 +890,11 @@ class VanillaStatsParser:
     # operations based on type (stat, instruction, miss, stall)
     def parse_header(self, f):
         # Generate lists of stats/instruction/miss/stall names
-        instrs = []
-        misses = []
-        stalls = []
-        stats  = []
-
+        instrs  = []
+        misses  = []
+        stalls  = []
+        bubbles = []
+        stats   = []
         with open(f) as fp:
             rdr = csv.DictReader (fp, delimiter=",")
       
@@ -906,9 +907,11 @@ class VanillaStatsParser:
                     misses += [item]
                 elif (item.startswith('stall_')):
                     stalls += [item]
+                elif (item.startswith('bubble_')):
+                    bubbles += [item]
                 else:
                     stats += [item]
-        return (stats, instrs, misses, stalls)
+        return (stats, instrs, misses, stalls, bubbles)
 
 
 # parses input arguments
