@@ -195,14 +195,14 @@ class VanillaStatsParser:
         self.max_tags = 1 << CudaStatTag._TAG_WIDTH
         self.num_tags = 0
 
-        self.tile_stat = {tag:Counter() for tag in range(self.max_tags)}
-        self.tile_group_stat = [Counter() for tag in range(self.max_tags)]
-        self.manycore_stat = {tag:Counter() for tag in range(self.max_tags)}
-
+        tags = list(range(self.max_tags)) + ["kernel"]
+        self.tile_stat = {tag:Counter() for tag in tags}
+        self.tile_group_stat = {tag:Counter() for tag in tags}
+        self.manycore_stat = {tag:Counter() for tag in tags}
 
         # list of instructions, operations and events parsed from vanilla_stats.log
         # populated by reading the header of input file 
-        self.stats_list   = []
+        self.stats_list = []
         self.instrs = []
         self.misses = []
         self.stalls = []
@@ -317,8 +317,8 @@ class VanillaStatsParser:
                                          ,(self.tile_group_stat[tag][tg_id]["instr_total"])
                                          ,(self.tile_group_stat[tag][tg_id]["global_ctr"])
                                          ,(np.float64(self.tile_group_stat[tag][tg_id]["instr_total"]) / self.tile_group_stat[tag][tg_id]["global_ctr"])
-                                         ,(100 * self.tile_group_stat[tag][tg_id]["global_ctr"] / self.manycore_stat[tag]["global_ctr"])
-                                         ,(100 * np.float64(self.tile_group_stat[tag][tg_id]["global_ctr"]) / self.tile_group_stat["kernel"][tg_id]["global_ctr"]))
+                                         ,(np.float64(100.0 * self.tile_group_stat[tag][tg_id]["global_ctr"]) / self.manycore_stat[tag]["global_ctr"])
+                                         ,(np.float64(100.0 * self.tile_group_stat[tag][tg_id]["global_ctr"]) / self.tile_group_stat["kernel"][tg_id]["global_ctr"]))
 
         self.__print_stat(stat_file, "tg_timing_data"
                                      ,"total"
