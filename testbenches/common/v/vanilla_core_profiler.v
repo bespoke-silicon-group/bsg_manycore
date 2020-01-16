@@ -641,6 +641,9 @@ module vanilla_core_profiler
     integer stall_md;             // stalled on muldiv
     integer stall_remote_req;     // stalled on waiting for the network to accept outgoing request.
     integer stall_local_flw;      // stalled because local_flw is blocked by remote_flw.
+
+    integer stall_amo_aq;         // stalled on TODO 
+    integer stall_amo_rl;         // stalled on TODO
   
   } vanilla_stat_s;
 
@@ -764,6 +767,9 @@ module vanilla_core_profiler
       if (stall_remote_req) stat.stall_remote_req++;
       if (stall_local_flw) stat.stall_local_flw++;
 
+      if (stall_amo_aq) stat.stall_amo_aq++;
+      if (stall_local_flw) stat.stall_amo_rl++;
+
     end
   end 
 
@@ -812,6 +818,7 @@ module vanilla_core_profiler
       $fwrite(fd, "stall_depend_local_load,");
       $fwrite(fd, "stall_force_wb,stall_ifetch_wait,stall_icache_store,");
       $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw");
+      $fwrite(fd, "stall_amo_aq,stall_amo_rl");
       $fwrite(fd, "\n");
       $fclose(fd);
   
@@ -874,6 +881,10 @@ module vanilla_core_profiler
             print_operation_trace(fd2, "stall_remote_req");
           else if (stall_local_flw)
             print_operation_trace(fd2, "stall_local_flw");
+          else if (stall_amo_aq)
+            print_operation_trace(fd2, "stall_amo_aq");
+          else if (stall_amo_rl)
+            print_operation_trace(fd2, "stall_amo_rl");
           else
           begin
 
@@ -1200,7 +1211,7 @@ module vanilla_core_profiler
             stat.jalr_miss
           );
      
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d",
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d",
             stat.stall_fp_remote_load,
             stat.stall_fp_local_load,
             stat.stall_depend,
@@ -1214,7 +1225,9 @@ module vanilla_core_profiler
             stat.stall_lr_aq,
             stat.stall_md,
             stat.stall_remote_req,
-            stat.stall_local_flw
+            stat.stall_local_flw,
+            stat.stall_amo_aq,
+            stat.stall_amo_rl
           );
         
       
