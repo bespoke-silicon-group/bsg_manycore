@@ -63,7 +63,6 @@ module vcache_profiler
 
   // event signals
   //
-
   wire inc_miss     = miss_v;
 
   // Manycore performs all types of stores operations using the SM, therefore
