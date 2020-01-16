@@ -871,8 +871,7 @@ class VanillaStatsParser:
         tile_group_stat_end   = [[Counter() for tg_id in range(self.max_tile_groups)] for tag in range(self.max_tags)]
         tile_group_stat       = [[Counter() for tg_id in range(self.max_tile_groups)] for tag in range(self.max_tags)]
 
-        tag_credits = [[[0 for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)] for tag in range(self.max_tags)]
-
+        tag_credits = [[[False for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)] for tag in range(self.max_tags)]
 
         for trace in traces:
             y = trace["y"]
@@ -888,36 +887,38 @@ class VanillaStatsParser:
 
             # Separate depending on stat type (start or end)
             if(cst.isStart):
-                tag_credits[cst.tag][relative_y][relative_x] += 1;
+                if(tag_credits[cst.tag][relative_y][relative_x]):
+                    print ("Warning: missing start stat for tag {}, tile {},{}.".format(cst.tag, relative_x, relative_y))                    
+                tag_credits[cst.tag][relative_y][relative_x] = True;
+
                 # Only increase number of tags if haven't seen a trace from this tag before 
                 if (not tile_group_stat_start[cst.tag]):
                     num_tags += 1
+
                 # Only increase number of tile groups if haven't seen a trace from this tile group before
                 if(not tile_group_stat_start[cst.tag][cst.tg_id]):
                     num_tile_groups[cst.tag] += 1
+
                 for op in self.all_ops:
                     tile_stat_start[cst.tag][relative_y][relative_x][op] = trace[op]
                     tile_group_stat_start[cst.tag][cst.tg_id][op] += trace[op]
 
             elif (cst.isEnd):
-                tag_credits[cst.tag][relative_y][relative_x] -= 1;
-                if(tag_credits[cst.tag][relative_y][relative_x] < 0):
+                if(not tag_credits[cst.tag][relative_y][relative_x]):
                     print ("Warning: missing start stat for tag {}, tile {},{}.".format(cst.tag, relative_x, relative_y))
+                tag_credits[cst.tag][relative_y][relative_x] = False;
 
                 for op in self.all_ops:
                     tile_stat_end[cst.tag][relative_y][relative_x][op] = trace[op]
                     tile_group_stat_end[cst.tag][cst.tg_id][op] += trace[op]
 
-
-
         # Generate all tile stats by subtracting start time from end time
         for tag in range(self.max_tags):
             for y in range(self.manycore_dim_y):
                 for x in range(self.manycore_dim_x):
-                    if(tag_credits[tag][y][x] > 0):
-                        print ("Warning: {} missing end stat(s) for tag {}, tile {},{}.".format(tag_credits[tag][y][x], tag, x, y))
-
                     tile_stat[tag][y][x] = tile_stat_end[tag][y][x] - tile_stat_start[tag][y][x]
+                    if(tag_credits[tag][y][x]):
+                        print ("Warning: {} missing end stat(s) for tag {}, tile {},{}.".format(tag_credits[tag][y][x], tag, x, y))
 
         # Generate all tile group stats by subtracting start time from end time
         for tag in range(self.max_tags):
@@ -962,27 +963,6 @@ class VanillaStatsParser:
         self.all_ops += ["instr_total", "stall_total", "bubble_total","miss_total"]
 
         return num_tags, num_tile_groups, tile_group_stat, tile_stat
-
-
-
-    # Generate a stats dictionary for each tile containing the stat and it's aggregate count
-    # other than timing, tile stats are only read once per tile from the end of file
-    # i.e. if mesh dimensions are 4x4, only last 16 lines are needed 
-    # Deprecated  -- might be used later if needed
-    # This method count the aggregate stats (including the time tiles are waiting
-    # for a program to be loaded)
-    def __generate_inclusive_tile_stat (self, traces):
-        tile_stat = [[Counter() for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)]
-        trace_idx = len(traces)
-        for y in range(self.manycore_dim_y):
-            for x in range(self.manycore_dim_x):
-                trace_idx -= 1
-                trace = traces[trace_idx]
-                for op in self.all_ops:
-                    tile_stat[y][x][op] = trace[op]
-        return tile_stat
-
-
 
     # Calculate aggregate manycore stats dictionary by summing 
     # all per tile stats dictionaries
