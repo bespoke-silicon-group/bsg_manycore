@@ -22,13 +22,6 @@ module vcache_non_blocking_profiler
       `bsg_cache_non_blocking_miss_fifo_entry_width(id_width_p,addr_width_p,data_width_p)
     , parameter dma_pkt_width_lp = 
       `bsg_cache_non_blocking_dma_pkt_width(addr_width_p)
-
-    //, parameter lg_sets_lp = `BSG_SAFE_CLOG2(sets_p)
-    //, parameter lg_block_size_in_words_lp = `BSG_SAFE_CLOG2(block_size_in_words_p)
-    //, parameter byte_sel_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
-    //, parameter tag_width_lp = (addr_width_p-lg_sets_lp-lg_block_size_in_words_lp-byte_sel_width_lp)
-    //, parameter mhu_dff_width_lp =
-    //  `bsg_cache_non_blocking_mhu_dff_width(id_width_p,addr_width_p,tag_width_lp,ways_p)
   ) 
   (
     input clk_i
@@ -55,7 +48,6 @@ module vcache_non_blocking_profiler
     , input dma_cmd_v_lo
     , input replacement_dirty // connect to mhu0.replacement_dirty
     , input replacement_valid // connect to mhu0.replacement_valid
-    //, input [mhu_dff_width_lp-1:0] mhu_dff_r // connect to mhu0.mhu_dff_r
 
     , input [31:0] global_ctr_i
     , input print_stat_v_i
@@ -79,10 +71,6 @@ module vcache_non_blocking_profiler
 
   bsg_cache_non_blocking_dma_pkt_s dma_pkt;
   assign dma_pkt = dma_pkt_o;
-
-  //`declare_bsg_cache_non_blocking_miss_fifo_entry_width(id_width_p,addr_width_p,data_width_p);
-  //bsg_cache_non_blocking_mhu_dff_s mhu_dff;
-  //assign mhu_dff = mhu_dff_r;
 
 
   //  Profiling Events
@@ -111,6 +99,7 @@ module vcache_non_blocking_profiler
 
   wire dma_read_req_inc = ~dma_pkt.write_not_read & dma_pkt_v_o & dma_pkt_yumi_i;
   wire dma_write_req_inc = dma_pkt.write_not_read & dma_pkt_v_o & dma_pkt_yumi_i;
+
 
   // replacement stat
   //
