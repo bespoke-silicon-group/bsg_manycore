@@ -320,7 +320,7 @@ class VanillaStatsParser:
     # Prints manycore timing stats per tile group for all tags 
     def __print_manycore_stats_tile_group_timing(self, stat_file):
         stat_file.write("Tile Group Timing Stats\n")
-        self.__print_stat(stat_file, "tg_timing_header", "tile group", "Instructions", "Cycles", "IPC", "   TG-Tag / Tag-Total (%)", "   TG-Tag / Kernel-Total(%)")
+        self.__print_stat(stat_file, "tg_timing_header", "tile group", "Instructions", "Cycles", "IPC", "   TG / Tag-Total (%)", "   TG / Kernel-Total(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.manycore_stat[tag]["global_ctr"]):
@@ -359,7 +359,7 @@ class VanillaStatsParser:
     # Prints manycore timing stats per tile group for all tags 
     def __print_manycore_stats_tile_timing(self, stat_file):
         stat_file.write("Tile Timing Stats\n")
-        self.__print_stat(stat_file, "timing_header", "tile", "Instructions", "Cycles", "IPC", "   Tag / Tag-Total (%)", "   Tag / Kernel-Total(%)")
+        self.__print_stat(stat_file, "timing_header", "tile", "Instructions", "Cycles", "IPC", "   Tile / Tag-Total (%)", "   Tile / Kernel-Total(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.manycore_stat[tag]["global_ctr"]):
@@ -388,7 +388,7 @@ class VanillaStatsParser:
     # Print timing stat for each tile group in separate file for all tags 
     def __print_per_tile_group_stats_timing(self, tg_id, stat_file):
         stat_file.write("Timing Stats\n")
-        self.__print_stat(stat_file, "tg_timing_header", "tile group", "Instructions", "Cycles", "IPC", "    Tag / Tag-Total (%)", "    Tag / Kernel-Total(%)")
+        self.__print_stat(stat_file, "tg_timing_header", "tile group", "Instructions", "Cycles", "IPC", "    TG / Tag-Total (%)", "    TG / Kernel-Total(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.tile_group_stat[tag][tg_id]["global_ctr"]):
@@ -419,7 +419,7 @@ class VanillaStatsParser:
     # print timing stats for each tile in a separate file for all tags 
     def __print_per_tile_stats_timing(self, y, x, stat_file):
         stat_file.write("Timing Stats\n")
-        self.__print_stat(stat_file, "timing_header", "tile", "instr", "cycle", "IPC", "    Tag / Tag-Total (%)", "    Tag / Kernel-Total (%)")
+        self.__print_stat(stat_file, "timing_header", "tile", "instr", "cycle", "IPC", "    Tile / Tag-Total (%)", "    Tile / Kernel-Total (%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in range(self.max_tags):
             if(self.tile_stat[tag][y][x]["global_ctr"]):
