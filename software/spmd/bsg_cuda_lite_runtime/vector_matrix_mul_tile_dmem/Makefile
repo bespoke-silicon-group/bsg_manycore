@@ -19,8 +19,8 @@ all: main.run
 
 
 KERNEL_NAME ?=kernel
-
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel.o
+RISCV_GXX_OPTS:-fno-inline-functions
+OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel.o 
 
 include ../../Makefile.include
 
