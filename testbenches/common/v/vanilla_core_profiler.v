@@ -49,7 +49,8 @@ module vanilla_core_profiler
     , input stall_amo_rl
   
     , input stall_id
-    , input flush
+    , input branch_mispredict
+    , input jalr_mispredict
     , input icache_miss_in_pipe
 
     , input id_signals_s id_r
@@ -58,8 +59,6 @@ module vanilla_core_profiler
     , input mem_signals_s mem_n
     , input wb_signals_s wb_n
     , input fp_exe_signals_s fp_exe_r
-    , input branch_mispredict
-    , input jalr_mispredict
     , input fpu_float_ready_lo
     
     , input [data_width_p-1:0] mem_addr_op2
@@ -403,9 +402,11 @@ module vanilla_core_profiler
 
   // ID stage
   // [0] branch_mispredict bubble
-  // [1] icache_miss bubble
+  // [1] jalr_mispredict bubble
+  // [2] icache_miss bubble
   typedef enum logic [1:0] {
     e_id_branch_mispredict,
+    e_id_jalr_mispredict,
     e_id_icache_miss,
     e_id_no_bubble
   } id_bubble_type_e;
@@ -418,8 +419,10 @@ module vanilla_core_profiler
     end
     else begin
       if (~stall_id) begin
-        if (flush)
+        if (branch_mispredict)
           id_bubble_r <= e_id_branch_mispredict;
+        else if (jalr_mispredict)
+          id_bubble_r <= e_id_jalr_mispredict;
         else if (icache_miss_in_pipe)
           id_bubble_r <= e_id_icache_miss;
         else
@@ -430,11 +433,12 @@ module vanilla_core_profiler
 
   // EXE stage
   // [0]  branch mispredict bubble
-  // [1]  icache miss bubble
-  // [2]  stall_amo_aq
-  // [3]  stall_amo_rl
-  // [4]  fp_op bubble
-  // [5]  stall_depend bubble
+  // [1]  jalr mispredict bubble
+  // [2]  icache miss bubble
+  // [3]  stall_amo_aq
+  // [4]  stall_amo_rl
+  // [5]  fp_op bubble
+  // [6]  stall_depend bubble
   //      - local_load
   //      - remote_load_dram
   //      - remote_load_global
@@ -442,6 +446,7 @@ module vanilla_core_profiler
   //      - fpu
   typedef enum logic [2:0] {
     e_exe_branch_mispredict,
+    e_exe_jalr_mispredict,
     e_exe_icache_miss,
     e_exe_fp_op,
     e_exe_stall_amo_aq,
@@ -458,10 +463,14 @@ module vanilla_core_profiler
     end
     else begin
       if (~stall) begin
-        if (flush)
+        if (branch_mispredict)
           exe_bubble_r <= e_exe_branch_mispredict;
+        else if (jalr_mispredict)
+          exe_bubble_r <= e_exe_jalr_mispredict;
         else if (id_bubble_r == e_id_branch_mispredict)
           exe_bubble_r <= e_exe_branch_mispredict;
+        else if (id_bubble_r == e_id_jalr_mispredict)
+          exe_bubble_r <= e_exe_jalr_mispredict;
         else if (id_bubble_r == e_id_icache_miss)
           exe_bubble_r <= e_exe_icache_miss;
         else if (stall_amo_aq)
@@ -502,6 +511,7 @@ module vanilla_core_profiler
   wire stall_amo_rl_inc = ~stall & (exe_bubble_r == e_exe_stall_amo_rl);
   wire bubble_icache_inc = ~stall & (exe_bubble_r == e_exe_icache_miss); // TODO include me in logs
   wire bubble_branch_mispredict_inc = ~stall & (exe_bubble_r == e_exe_branch_mispredict); // TODO include me in logs
+  wire bubble_jalr_mispredict_inc = ~stall & (exe_bubble_r == e_exe_jalr_mispredict); // TODO include me in logs
   wire bubble_fp_op_inc = ~stall & (exe_bubble_r == e_exe_fp_op); // TODO include me in logs
 
   wire stall_depend_inc = ~stall & (exe_bubble_r == e_exe_stall_depend); 
@@ -647,6 +657,7 @@ module vanilla_core_profiler
 
     integer bubble_icache;                    // Bubble in pipeline (exe stalled) after i-cache miss is handled 
     integer bubble_branch_mispredict;         // Bubble in pipeline (exe stalled) after branch mispredict occurs
+    integer bubble_jalr_mispredict;
     integer bubble_fp_op;                     // Bubble in floating point pipeline after TODO
 
   
@@ -777,6 +788,7 @@ module vanilla_core_profiler
 
       if (bubble_icache_inc) stat.bubble_icache++;
       if (bubble_branch_mispredict_inc) stat.bubble_branch_mispredict++;
+      if (bubble_jalr_mispredict_inc) stat.bubble_jalr_mispredict++;
       if (bubble_fp_op_inc) stat.bubble_fp_op++;
 
 
@@ -829,7 +841,7 @@ module vanilla_core_profiler
       $fwrite(fd, "stall_force_wb,stall_ifetch_wait,stall_icache_store,");
       $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw,");
       $fwrite(fd, "stall_amo_aq,stall_amo_rl,");
-      $fwrite(fd, "bubble_icache,bubble_branch_mispredict,bubble_fp_op");
+      $fwrite(fd, "bubble_icache,bubble_branch_mispredict,bubble_jalr_mispredict,bubble_fp_op");
       $fwrite(fd, "\n");
       $fclose(fd);
   
@@ -1085,6 +1097,8 @@ module vanilla_core_profiler
                   print_operation_trace(fd2, "bubble_icache");
                 else if (bubble_branch_mispredict_inc)
                   print_operation_trace(fd2, "bubble_branch_mispredict");
+                else if (bubble_jalr_mispredict_inc)
+                  print_operation_trace(fd2, "bubble_jalr_mispredict");
                 else if (bubble_fp_op_inc)
                   print_operation_trace(fd2, "bubble_fp_op");
                 else
@@ -1250,9 +1264,10 @@ module vanilla_core_profiler
             stat.stall_amo_rl
           );
 
-           $fwrite(fd, "%0d,%0d,%0d",
+           $fwrite(fd, "%0d,%0d,%0d,%0d",
             stat.bubble_icache,
             stat.bubble_branch_mispredict,
+            stat.bubble_jalr_mispredict,
             stat.bubble_fp_op
           );
        
