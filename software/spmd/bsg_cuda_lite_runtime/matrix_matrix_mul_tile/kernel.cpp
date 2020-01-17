@@ -125,10 +125,6 @@ int __attribute__ ((noinline)) kernel_matrix_multiply_transpose_nomul(
 
         return 0;
 }
-// Notes - Turn into a Vector-Matrix Mul/Matrix-Matrix Mul
-//       - Unroll inner loop?
-//       - Total: 4640 Cycles / 1759 Instructions
-//       - Stalls: 2226 (1546 icache)
 
 /*
  * These are type-specific wrappers of the functions above. They are
@@ -491,24 +487,6 @@ extern "C" {
                 rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
                                                             A_HEIGHT, A_WIDTH, B_WIDTH);
                 bsg_cuda_print_stat_start(15);
-                rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
-                                                            A_HEIGHT, A_WIDTH, B_WIDTH);
-                rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
-                                                            A_HEIGHT, A_WIDTH, B_WIDTH);
-                rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
-                                                            A_HEIGHT, A_WIDTH, B_WIDTH);
-                rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
-                                                            A_HEIGHT, A_WIDTH, B_WIDTH);
-                rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
-                                                            A_HEIGHT, A_WIDTH, B_WIDTH);
-                rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
-                                                            A_HEIGHT, A_WIDTH, B_WIDTH);
-                rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
-                                                            A_HEIGHT, A_WIDTH, B_WIDTH);
-                rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
-                                                            A_HEIGHT, A_WIDTH, B_WIDTH);
-                rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
-                                                            A_HEIGHT, A_WIDTH, B_WIDTH);
                 rc = kernel_matrix_multiply_transpose_nomul(A_local, B_local, C_local,
                                                             A_HEIGHT, A_WIDTH, B_WIDTH);
                 bsg_cuda_print_stat_end(15);
