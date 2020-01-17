@@ -178,7 +178,7 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 //#define bsg_cuda_print_stat(tag)          bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_STAT)
 #define bsg_cuda_print_stat_start(tag)    bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_START)
 #define bsg_cuda_print_stat_end(tag)      bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_END)
-#define bsg_cuda_print_stat_kernel_start() bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_KENREL_START)
+#define bsg_cuda_print_stat_kernel_start() bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_KERNEL_START)
 #define bsg_cuda_print_stat_kernel_end()   bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_KERNEL_END)
 
 

@@ -225,8 +225,6 @@ class VanillaStatsParser:
 
         # Use sets to determine the active tiles (without duplicates)
         active_tiles = set()
-        xdimvals = set()
-        ydimvals = set()
 
         # Parse stats file line by line, and append the trace line to traces list. 
         with open(input_file) as f:
@@ -237,17 +235,11 @@ class VanillaStatsParser:
                     trace[op] = int(row[op])
                 self.traces.append(trace)
                 active_tiles.add((trace['y'], trace['x']))
-                xdimvals.add(trace['x'])
-                ydimvals.add(trace['y'])
 
 
         # Save the active tiles in a list
-        self.x_tiles = [x - self._BSG_ORIGIN_X for x in xdimvals]
-        self.y_tiles = [y - self._BSG_ORIGIN_Y for y in ydimvals]
         self.active = [(y - self._BSG_ORIGIN_Y, x - self._BSG_ORIGIN_X) for (y,x) in active_tiles]
-
-        self.x_tiles.sort()
-        self.y_tiles.sort()
+        self.active.sort()
 
         # generate timing stats for each tile and tile group 
         self.num_tags, self.num_tile_groups, self.tile_group_stat, self.tile_stat = self.__generate_tile_stats(self.traces, self.active)
@@ -481,7 +473,6 @@ class VanillaStatsParser:
             self.__print_stat(stat_file, "instr_data", instr,
                                          self.manycore_stat[tag][instr]
                                          ,(100 * self.manycore_stat[tag][instr] / self.manycore_stat[tag]["instr_total"]))
-#                                         ,(100 * np.float64(self.manycore_stat[tag][instr]) / self.manycore_stat[BSG_PRINT_STAT_KERNEL_TAG][instr]))
         return
 
 
@@ -509,7 +500,6 @@ class VanillaStatsParser:
             self.__print_stat(stat_file, "instr_data", instr,
                                          self.tile_group_stat[tag][tg_id][instr]
                                          ,(100 * self.tile_group_stat[tag][tg_id][instr] / self.tile_group_stat[tag][tg_id]["instr_total"]))
-#                                         ,(100 * np.float64(self.tile_group_stat[tag][tg_id][instr]) / self.tile_group_stat[BSG_PRINT_STAT_KERNEL_TAG][tg_id][instr]))
         return
 
 
@@ -537,7 +527,6 @@ class VanillaStatsParser:
             self.__print_stat(stat_file, "instr_data", instr,
                                          self.tile_stat[tag][tile][instr]
                                          ,(100 * np.float64(self.tile_stat[tag][tile][instr]) / self.tile_stat[tag][tile]["instr_total"]))
-#                                         ,(100 * np.float64(self.tile_stat[tag][tile][instr]) / self.tile_stat[BSG_PRINT_STAT_KERNEL_TAG][tile][instr]))
         return
 
 
@@ -566,7 +555,6 @@ class VanillaStatsParser:
                                          self.manycore_stat[tag][stall],
                                          (100 * self.manycore_stat[tag][stall] / self.manycore_stat[tag]["stall_total"])
                                          ,(100 * self.manycore_stat[tag][stall] / self.manycore_stat[tag]["global_ctr"]))
-#                                         ,(100 * np.float64(self.manycore_stat[tag][stall]) / self.manycore_stat[BSG_PRINT_STAT_KERNEL_TAG][stall]))
 
         return
 
@@ -598,7 +586,6 @@ class VanillaStatsParser:
                                          ,self.tile_group_stat[tag][tg_id][stall]
                                          ,(100 * self.tile_group_stat[tag][tg_id][stall] / self.tile_group_stat[tag][tg_id]["stall_total"])
                                          ,(100 * self.tile_group_stat[tag][tg_id][stall] / self.tile_group_stat[tag][tg_id]["global_ctr"]))
-#                                         ,(100 * np.float64(self.tile_group_stat[tag][tg_id][stall]) / self.tile_group_stat[BSG_PRINT_STAT_KERNEL_TAG][tg_id][stall]))
         return
 
 
@@ -628,7 +615,6 @@ class VanillaStatsParser:
                                          self.tile_stat[tag][tile][stall],
                                          (100 * np.float64(self.tile_stat[tag][tile][stall]) / self.tile_stat[tag][tile]["stall_total"])
                                          ,(100 * np.float64(self.tile_stat[tag][tile][stall]) / self.tile_stat[tag][tile]["global_ctr"]))
-#                                         ,(100 * np.float64(self.tile_stat[tag][tile][stall]) / self.tile_stat[BSG_PRINT_STAT_KERNEL_TAG][tile][stall]))
         return
 
 
@@ -656,7 +642,6 @@ class VanillaStatsParser:
                                          self.manycore_stat[tag][bubble],
                                          (100 * np.float64(self.manycore_stat[tag][bubble]) / self.manycore_stat[tag]["bubble_total"])
                                          ,(100 * self.manycore_stat[tag][bubble] / self.manycore_stat[tag]["global_ctr"]))
-#                                         ,(100 * np.float64(self.manycore_stat[tag][bubble]) / self.manycore_stat[BSG_PRINT_STAT_KERNEL_TAG][bubble]))
         return
 
 
@@ -686,7 +671,6 @@ class VanillaStatsParser:
                                          ,self.tile_group_stat[tag][tg_id][bubble]
                                          ,(100 * np.float64(self.tile_group_stat[tag][tg_id][bubble]) / self.tile_group_stat[tag][tg_id]["bubble_total"])
                                          ,(100 * self.tile_group_stat[tag][tg_id][bubble] / self.tile_group_stat[tag][tg_id]["global_ctr"]))
-#                                         ,(100 * np.float64(self.tile_group_stat[tag][tg_id][bubble]) / self.tile_group_stat[BSG_PRINT_STAT_KERNEL_TAG][tg_id][bubble]))
         return
 
 
@@ -715,7 +699,6 @@ class VanillaStatsParser:
                                          self.tile_stat[tag][tile][bubble],
                                          (100 * np.float64(self.tile_stat[tag][tile][bubble]) / self.tile_stat[tag][tile]["bubble_total"])
                                          ,(100 * np.float64(self.tile_stat[tag][tile][bubble]) / self.tile_stat[tag][tile]["global_ctr"]))
-#                                         ,(100 * np.float64(self.tile_stat[tag][tile][bubble]) / self.tile_stat[BSG_PRINT_STAT_KERNEL_TAG][tile][bubble]))
         return
 
 
