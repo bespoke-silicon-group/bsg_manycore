@@ -1148,7 +1148,7 @@ module vanilla_core_profiler
             stat.fmax,
             stat.fcvt_s_w,
             stat.fcvt_s_wu,
-            stat.fmv_x_w
+            stat.fmv_w_x
           );
 
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
