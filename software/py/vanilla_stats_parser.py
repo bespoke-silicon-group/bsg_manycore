@@ -124,6 +124,7 @@ class VanillaStatsParser:
 
     # formatting parameters for aligned printing
     type_fmt = {"name"      : "{:<35}",
+                "name_indt" : "  {:<33}",
                 "type"      : "{:>20}",
                 "int"       : "{:>20}",
                 "float"     : "{:>20.4f}",
@@ -133,23 +134,24 @@ class VanillaStatsParser:
                }
 
 
-    print_format = {"tg_timing_header": type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "tg_timing_data"  : type_fmt["name"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
-                    "timing_header"   : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "timing_data"     : type_fmt["cord"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
-                    "instr_header"    : type_fmt["name"] + type_fmt["int"]  + type_fmt["type"]    + "\n",
-                    "instr_data"      : type_fmt["name"] + type_fmt["int"]  + type_fmt["percent"] + "\n",
-                    "stall_header"    : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "stall_data"      : type_fmt["name"] + type_fmt["int"]  + type_fmt["percent"] + type_fmt["percent"] + "\n",
-                    "bubble_header"   : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "bubble_data"     : type_fmt["name"] + type_fmt["int"]  + type_fmt["percent"] + type_fmt["percent"] + "\n",
-                    "miss_header"     : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "miss_data"       : type_fmt["name"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + "\n",
-                    "tag_header"      : type_fmt["name"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"] + "\n",
-                    "tag_data"        : type_fmt["name"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + "\n",
-                    "tag_separator"   : '-' * 75 + ' ' * 2 + type_fmt["tag"]  + ' ' * 2 + '-' * 75 + "\n",
-                    "start_lbreak"    : '=' *160 + "\n",
-                    "end_lbreak"      : '=' *160 + "\n\n",
+    print_format = {"tg_timing_header": type_fmt["name"]      + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                    "tg_timing_data"  : type_fmt["name"]      + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "timing_header"   : type_fmt["name"]      + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                    "timing_data"     : type_fmt["cord"]      + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "instr_header"    : type_fmt["name"]      + type_fmt["int"]  + type_fmt["type"]    + "\n",
+                    "instr_data"      : type_fmt["name"]      + type_fmt["int"]  + type_fmt["percent"] + "\n",
+                    "stall_header"    : type_fmt["name"]      + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                    "stall_data"      : type_fmt["name"]      + type_fmt["int"]  + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "stall_data_indt" : type_fmt["name_indt"] + type_fmt["int"]  + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "bubble_header"   : type_fmt["name"]      + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                    "bubble_data"     : type_fmt["name"]      + type_fmt["int"]  + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "miss_header"     : type_fmt["name"]      + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                    "miss_data"       : type_fmt["name"]      + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + "\n",
+                    "tag_header"      : type_fmt["name"]      + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"] + "\n",
+                    "tag_data"        : type_fmt["name"]      + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + "\n",
+                    "tag_separator"   : '-' * 75 + ' ' * 2    + type_fmt["tag"]  + ' ' * 2 + '-' * 75 + "\n",
+                    "start_lbreak"    : '=' *166 + "\n",
+                    "end_lbreak"      : '=' *166 + "\n\n",
                    }
 
 
@@ -221,7 +223,7 @@ class VanillaStatsParser:
     # print instruction count, stall count, execution cycles for the entire manycore for each tag
     def __print_manycore_stats_tag(self, stat_file):
         stat_file.write("Tag Stats\n")
-        self.__print_stat(stat_file, "tag_header", "tag", "instr", "stall", "cycle sum", "IPC", "cycle share(%)")
+        self.__print_stat(stat_file, "tag_header", "tag", "instr", "stall", "bubble", "cycle sum", "IPC", "cycle share(%)")
         self.__print_stat(stat_file, "start_lbreak")
 
         for tag in range (self.max_tags):
@@ -230,6 +232,7 @@ class VanillaStatsParser:
                                              ,tag
                                              ,self.manycore_stat[tag]["instr_total"]
                                              ,self.manycore_stat[tag]["stall_total"]
+                                             ,self.manycore_stat[tag]["bubble_total"]
                                              ,self.manycore_stat[tag]["global_ctr"]
                                              ,(np.float64(self.manycore_stat[tag]["instr_total"]) / self.manycore_stat[tag]["global_ctr"])
                                              ,(100 * self.manycore_stat[tag]["global_ctr"] / self.manycore_stat[BSG_PRINT_STAT_KERNEL_TAG]["global_ctr"]))
@@ -243,7 +246,7 @@ class VanillaStatsParser:
     # for each tile group in a separate file for each tag
     def __print_per_tile_group_stats_tag(self, tg_id, stat_file):
         stat_file.write("Tag Stats\n")
-        self.__print_stat(stat_file, "tag_header", "tag", "instr", "stall", "cycle sum", "IPC", "cycle share(%)")
+        self.__print_stat(stat_file, "tag_header", "tag", "instr", "stall", "bubble", "cycle sum", "IPC", "cycle share(%)")
         self.__print_stat(stat_file, "start_lbreak")
 
         for tag in range (self.max_tags):
@@ -252,6 +255,7 @@ class VanillaStatsParser:
                                              ,tag
                                              ,self.tile_group_stat[tag][tg_id]["instr_total"]
                                              ,self.tile_group_stat[tag][tg_id]["stall_total"]
+                                             ,self.tile_group_stat[tag][tg_id]["bubble_total"]
                                              ,self.tile_group_stat[tag][tg_id]["global_ctr"]
                                              ,(np.float64(self.tile_group_stat[tag][tg_id]["instr_total"]) / self.tile_group_stat[tag][tg_id]["global_ctr"])
                                              ,(100 * self.tile_group_stat[tag][tg_id]["global_ctr"] / self.tile_group_stat[BSG_PRINT_STAT_KERNEL_TAG][tg_id]["global_ctr"]))
@@ -265,7 +269,7 @@ class VanillaStatsParser:
     # for each tile in a separate file for each tag
     def __print_per_tile_stats_tag(self, y, x, stat_file):
         stat_file.write("Tag Stats\n")
-        self.__print_stat(stat_file, "tag_header", "tag", "instr", "stall", "cycle sum", "IPC", "cycle share(%)")
+        self.__print_stat(stat_file, "tag_header", "tag", "instr", "stall", "bubble", "cycle sum", "IPC", "cycle share(%)")
         self.__print_stat(stat_file, "start_lbreak")
 
         for tag in range (self.max_tags):
@@ -274,6 +278,7 @@ class VanillaStatsParser:
                                              ,tag
                                              ,self.tile_stat[tag][y][x]["instr_total"]
                                              ,self.tile_stat[tag][y][x]["stall_total"]
+                                             ,self.tile_stat[tag][y][x]["bubble_total"]
                                              ,self.tile_stat[tag][y][x]["global_ctr"]
                                              ,(np.float64(self.tile_stat[tag][y][x]["instr_total"]) / self.tile_stat[tag][y][x]["global_ctr"])
                                              ,(100 * self.tile_stat[tag][y][x]["global_ctr"] / self.tile_stat[BSG_PRINT_STAT_KERNEL_TAG][y][x]["global_ctr"]))
@@ -508,11 +513,13 @@ class VanillaStatsParser:
 
         # Print stall stats for manycore
         for stall in self.stalls:
-            self.__print_stat(stat_file, "stall_data", stall,
+            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
+            self.__print_stat(stat_file, stall_format, stall,
                                          self.manycore_stat[tag][stall],
                                          (100 * self.manycore_stat[tag][stall] / self.manycore_stat[tag]["stall_total"])
                                          ,(100 * self.manycore_stat[tag][stall] / self.manycore_stat[tag]["global_ctr"]))
 #                                         ,(100 * np.float64(self.manycore_stat[tag][stall]) / self.manycore_stat[BSG_PRINT_STAT_KERNEL_TAG][stall]))
+
         return
 
 
@@ -537,7 +544,8 @@ class VanillaStatsParser:
 
         # Print stall stats for manycore
         for stall in self.stalls:
-            self.__print_stat(stat_file, "stall_data"
+            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
+            self.__print_stat(stat_file, stall_format
                                          ,stall
                                          ,self.tile_group_stat[tag][tg_id][stall]
                                          ,(100 * self.tile_group_stat[tag][tg_id][stall] / self.tile_group_stat[tag][tg_id]["stall_total"])
@@ -567,7 +575,8 @@ class VanillaStatsParser:
 
         # Print stall stats for manycore
         for stall in self.stalls:
-            self.__print_stat(stat_file, "stall_data", stall,
+            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
+            self.__print_stat(stat_file, stall_format, stall,
                                          self.tile_stat[tag][y][x][stall],
                                          (100 * np.float64(self.tile_stat[tag][y][x][stall]) / self.tile_stat[tag][y][x]["stall_total"])
                                          ,(100 * np.float64(self.tile_stat[tag][y][x][stall]) / self.tile_stat[tag][y][x]["global_ctr"]))
@@ -922,7 +931,10 @@ class VanillaStatsParser:
                     for instr in self.instrs:
                         tile_stat[tag][y][x]["instr_total"] += tile_stat[tag][y][x][instr]
                     for stall in self.stalls:
-                        tile_stat[tag][y][x]["stall_total"] += tile_stat[tag][y][x][stall]
+                        # stall_depend count includes all stall_depend_ types, so all
+                        # stall_depend_ subcategories are excluded to avoid double-counting
+                        if (not stall.startswith('stall_depend_')):
+                            tile_stat[tag][y][x]["stall_total"] += tile_stat[tag][y][x][stall]
                     for bubble in self.bubbles:
                         tile_stat[tag][y][x]["bubble_total"] += tile_stat[tag][y][x][bubble]
                     for miss in self.misses:
@@ -934,7 +946,10 @@ class VanillaStatsParser:
                 for instr in self.instrs:
                     tile_group_stat[tag][tg_id]["instr_total"] += tile_group_stat[tag][tg_id][instr]
                 for stall in self.stalls:
-                    tile_group_stat[tag][tg_id]["stall_total"] += tile_group_stat[tag][tg_id][stall]
+                    # stall_depend count includes all stall_depend_ types, so all
+                    # stall_depend_ subcategories are excluded to avoid double-counting
+                    if (not stall.startswith('stall_depend_')):
+                        tile_group_stat[tag][tg_id]["stall_total"] += tile_group_stat[tag][tg_id][stall]
                 for bubble in self.bubbles:
                     tile_group_stat[tag][tg_id]["bubble_total"] += tile_group_stat[tag][tg_id][bubble]
                 for miss in self.misses:
