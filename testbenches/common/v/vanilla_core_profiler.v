@@ -498,11 +498,11 @@ module vanilla_core_profiler
     end
   end
 
-  wire stall_amo_aq_inc = ~stall & (exe_bubble_r == e_exe_stall_amo_aq); // TODO include me in logs
-  wire stall_amo_rl_inc = ~stall & (exe_bubble_r == e_exe_stall_amo_rl); // TODO include me in logs
-  wire icache_bubble_inc = ~stall & (exe_bubble_r == e_exe_icache_miss); // TODO include me in logs
-  wire branch_mispredict_bubble_inc = ~stall & (exe_bubble_r == e_exe_branch_mispredict); // TODO include me in logs
-  wire fp_op_bubble_inc = ~stall & (exe_bubble_r == e_exe_fp_op);
+  wire stall_amo_aq_inc = ~stall & (exe_bubble_r == e_exe_stall_amo_aq);
+  wire stall_amo_rl_inc = ~stall & (exe_bubble_r == e_exe_stall_amo_rl);
+  wire bubble_icache_inc = ~stall & (exe_bubble_r == e_exe_icache_miss); // TODO include me in logs
+  wire bubble_branch_mispredict_inc = ~stall & (exe_bubble_r == e_exe_branch_mispredict); // TODO include me in logs
+  wire bubble_fp_op_inc = ~stall & (exe_bubble_r == e_exe_fp_op); // TODO include me in logs
 
   wire stall_depend_inc = ~stall & (exe_bubble_r == e_exe_stall_depend); 
   wire stall_depend_local_load_inc = stall_depend_inc & exe_stall_depend_local_load_r;
@@ -641,6 +641,14 @@ module vanilla_core_profiler
     integer stall_md;             // stalled on muldiv
     integer stall_remote_req;     // stalled on waiting for the network to accept outgoing request.
     integer stall_local_flw;      // stalled because local_flw is blocked by remote_flw.
+
+    integer stall_amo_aq;         // stalled on TODO 
+    integer stall_amo_rl;         // stalled on TODO
+
+    integer bubble_icache;                    // Bubble in pipeline (exe stalled) after i-cache miss is handled 
+    integer bubble_branch_mispredict;         // Bubble in pipeline (exe stalled) after branch mispredict occurs
+    integer bubble_fp_op;                     // Bubble in floating point pipeline after TODO
+
   
   } vanilla_stat_s;
 
@@ -764,6 +772,14 @@ module vanilla_core_profiler
       if (stall_remote_req) stat.stall_remote_req++;
       if (stall_local_flw) stat.stall_local_flw++;
 
+      if (stall_amo_aq_inc) stat.stall_amo_aq++;
+      if (stall_amo_rl_inc) stat.stall_amo_rl++;
+
+      if (bubble_icache_inc) stat.bubble_icache++;
+      if (bubble_branch_mispredict_inc) stat.bubble_branch_mispredict++;
+      if (bubble_fp_op_inc) stat.bubble_fp_op++;
+
+
     end
   end 
 
@@ -811,7 +827,9 @@ module vanilla_core_profiler
       $fwrite(fd, "stall_depend_remote_load_group,");
       $fwrite(fd, "stall_depend_local_load,");
       $fwrite(fd, "stall_force_wb,stall_ifetch_wait,stall_icache_store,");
-      $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw");
+      $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw,");
+      $fwrite(fd, "stall_amo_aq,stall_amo_rl,");
+      $fwrite(fd, "bubble_icache,bubble_branch_mispredict,bubble_fp_op");
       $fwrite(fd, "\n");
       $fclose(fd);
   
@@ -874,6 +892,10 @@ module vanilla_core_profiler
             print_operation_trace(fd2, "stall_remote_req");
           else if (stall_local_flw)
             print_operation_trace(fd2, "stall_local_flw");
+          else if (stall_amo_aq)
+            print_operation_trace(fd2, "stall_amo_aq");
+          else if (stall_amo_rl)
+            print_operation_trace(fd2, "stall_amo_rl");
           else
           begin
 
@@ -1054,11 +1076,20 @@ module vanilla_core_profiler
               print_operation_trace(fd2, "fmv_x_w");
 
 
-             else if (instr_inc | fp_instr_inc)
+            else if (instr_inc | fp_instr_inc)
               print_operation_trace(fd2, "unknown");
 
-             else 
-              print_operation_trace(fd2, "bubble");
+             else
+             begin
+                if (bubble_icache_inc)
+                  print_operation_trace(fd2, "bubble_icache");
+                else if (bubble_branch_mispredict_inc)
+                  print_operation_trace(fd2, "bubble_branch_mispredict");
+                else if (bubble_fp_op_inc)
+                  print_operation_trace(fd2, "bubble_fp_op");
+                else
+                  print_operation_trace(fd2, "bubble");
+             end 
           end
 
 
@@ -1200,7 +1231,7 @@ module vanilla_core_profiler
             stat.jalr_miss
           );
      
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d",
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             stat.stall_fp_remote_load,
             stat.stall_fp_local_load,
             stat.stall_depend,
@@ -1214,9 +1245,17 @@ module vanilla_core_profiler
             stat.stall_lr_aq,
             stat.stall_md,
             stat.stall_remote_req,
-            stat.stall_local_flw
+            stat.stall_local_flw,
+            stat.stall_amo_aq,
+            stat.stall_amo_rl
           );
-        
+
+           $fwrite(fd, "%0d,%0d,%0d",
+            stat.bubble_icache,
+            stat.bubble_branch_mispredict,
+            stat.bubble_fp_op
+          );
+       
       
           $fwrite(fd, "\n");
 
