@@ -210,6 +210,16 @@ class VanillaStatsParser:
 
         # Parse input file's header to generate a list of all types of operations
         self.stats, self.instrs, self.misses, self.stalls, self.bubbles = self.parse_header(input_file)
+
+        # bubble_fp_op is a bubble in the Integer pipeline "caused" by
+        # an FP instruction executing. Don't count it in the bubbles
+        # because the procesor is still doing "useful work". 
+        self.notbubbles = ['bubble_fp_op'] 
+
+        # Remove all notbubbles from the bubbles list
+        for nb in self.notbubbles:
+            self.bubbles.remove(nb)
+
         self.all_ops = self.stats + self.instrs + self.misses + self.stalls + self.bubbles
 
         # Parse stats file line by line, and append the trace line to traces list. 
