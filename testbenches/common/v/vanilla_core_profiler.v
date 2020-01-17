@@ -462,8 +462,6 @@ module vanilla_core_profiler
           exe_bubble_r <= e_exe_branch_mispredict;
         else if (id_bubble_r == e_id_branch_mispredict)
           exe_bubble_r <= e_exe_branch_mispredict;
-        else if (id_r.decode.is_fp_float_op)
-          exe_bubble_r <= e_exe_fp_op;
         else if (id_bubble_r == e_id_icache_miss)
           exe_bubble_r <= e_exe_icache_miss;
         else if (stall_amo_aq)
@@ -472,6 +470,8 @@ module vanilla_core_profiler
           exe_bubble_r <= e_exe_stall_amo_rl;
         else if (stall_depend_bubble)
           exe_bubble_r <= e_exe_stall_depend;
+        else if (id_r.decode.is_fp_float_op)
+          exe_bubble_r <= e_exe_fp_op;
         else
           exe_bubble_r <= e_exe_no_bubble;
       end
