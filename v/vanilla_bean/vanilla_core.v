@@ -324,7 +324,7 @@ module vanilla_core
         aq_r <= 1'b1;
         aq_rd_r <= id_r.instruction.rd;
       end
-      else begin
+      else if (aq_clear) begin
         aq_r <= 1'b0;
       end
     end
