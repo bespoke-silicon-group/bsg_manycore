@@ -101,7 +101,7 @@ module vanilla_core_profiler
 
   // task to print a line of operation trace
   task print_operation_trace(integer fd, string op);
-    $fwrite(fd, "%0t,%0d,%0d,%s", global_ctr_i, my_x_i, my_y_i, op);
+    $fwrite(fd, "%0t,%0d,%0d,%0h,%s", global_ctr_i, my_x_i, my_y_i, (exe_r.pc_plus4 - 'd4), op);
   endtask
 
   // event signals
@@ -848,7 +848,7 @@ module vanilla_core_profiler
 
       if (trace_en_i) begin
         fd2 = $fopen(tracefile_lp, "w");
-        $fwrite(fd2, "cycle,x,y,operation\n");
+        $fwrite(fd2, "cycle,x,y,pc,operation\n");
         $fclose(fd2);
       end
 
