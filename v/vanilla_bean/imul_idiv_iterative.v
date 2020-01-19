@@ -4,10 +4,10 @@
 //====================================================================
 //
 // The risc-v 32 bit mul and div instruction implementation module
-`include "parameters.vh"
 
 //should not change the width_p because idiv is not parameterizable
 module imul_idiv_iterative
+  import bsg_vanilla_pkg::*;
   #(parameter width_p= 32
   )
   (

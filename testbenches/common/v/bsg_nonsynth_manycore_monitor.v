@@ -14,7 +14,6 @@ module bsg_nonsynth_manycore_monitor
     , parameter y_cord_width_p="inv"
     , parameter addr_width_p="inv"
     , parameter data_width_p="inv"
-    , parameter load_id_width_p="inv"
 
     , parameter data_mask_width_lp=(data_width_p>>3)
     , parameter mem_els_p=2**18
@@ -31,6 +30,7 @@ module bsg_nonsynth_manycore_monitor
     , input we_i
     , input [x_cord_width_p-1:0] src_x_cord_i
     , input [y_cord_width_p-1:0] src_y_cord_i
+    , input bsg_manycore_load_info_s load_info_i
     , output logic yumi_o
 
     , output logic [data_width_p-1:0] data_o

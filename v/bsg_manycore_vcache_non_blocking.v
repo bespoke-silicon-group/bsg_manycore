@@ -11,7 +11,6 @@ module bsg_manycore_vcache_non_blocking
     , parameter data_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-    , parameter load_id_width_p="inv"
 
     , parameter sets_p="inv"
     , parameter ways_p="inv"
@@ -22,7 +21,7 @@ module bsg_manycore_vcache_non_blocking
     , parameter cache_addr_width_lp=(addr_width_p-1+byte_offset_width_lp)
 
     , parameter link_sif_width_lp=
-      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   
     , parameter cache_dma_pkt_width_lp=
       `bsg_cache_non_blocking_dma_pkt_width(cache_addr_width_lp)
@@ -51,7 +50,7 @@ module bsg_manycore_vcache_non_blocking
   );
 
 
-  localparam id_width_lp=(x_cord_width_p+y_cord_width_p+load_id_width_p+1);
+  localparam id_width_lp=(x_cord_width_p+y_cord_width_p+bsg_manycore_reg_id_width_gp+$bits(bsg_manycore_return_packet_type_e));
  
   // flop the reset signal, since vcache tile may be large. 
   logic reset_r;
@@ -95,7 +94,6 @@ module bsg_manycore_vcache_non_blocking
     ,.data_width_p(data_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.load_id_width_p(load_id_width_p)
 
     ,.sets_p(sets_p)
     ,.ways_p(ways_p)

@@ -3,12 +3,11 @@
  *
  */
 
-`include "definitions.vh"
-`include "parameters.vh"
+
 
 module vanilla_core
 
-  // Import address parameters
+  import bsg_vanilla_pkg::*;
   import bsg_manycore_addr_pkg::*;
 
   #(parameter data_width_p="inv"
@@ -291,19 +290,46 @@ module vanilla_core
 
   // calculate mem address offset
   //
-  logic is_amo_op;
-  logic [data_width_p-1:0] mem_addr_op2;
 
-  assign is_amo_op = id_r.decode.op_is_lr
+  wire is_amo_or_lr_op = id_r.decode.op_is_lr
     | id_r.decode.op_is_lr_aq
-    | id_r.decode.op_is_swap_aq
-    | id_r.decode.op_is_swap_rl;
+    | id_r.decode.is_amo_op;
 
-  assign mem_addr_op2 = is_amo_op
+  logic [data_width_p-1:0] mem_addr_op2;
+  assign mem_addr_op2 = is_amo_or_lr_op
     ? '0
     : (id_r.decode.is_store_op
       ? `RV32_signext_Simm(id_r.instruction)
       : `RV32_signext_Iimm(id_r.instruction));
+
+
+  // 'aq' register
+  // When amo_op with aq is issued to EXE, 'aq' register is set.
+  // While 'aq' is set, subsequent memory ops (e.g. load, store, lr, AMO) cannot be isssued, until 'aq' is cleared.
+  // When the amoswap result returns and clears the scoreboard, it also clears the 'aq'.
+  // Even if amoswap.w.aq has x0 as rd, 'aq' bit is set.
+  // Since AMO op is only supported for remote, only remote resp can clear the 'aq'.
+  logic aq_r;
+  logic aq_clear;
+  logic aq_set;
+  logic [reg_addr_width_lp-1:0] aq_rd_r;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      aq_r <= 1'b0;
+      aq_rd_r <= '0;
+    end
+    else begin
+      if (aq_set) begin
+        aq_r <= 1'b1;
+        aq_rd_r <= id_r.instruction.rd;
+      end
+      else if (aq_clear) begin
+        aq_r <= 1'b0;
+      end
+    end
+  end
+
 
 
   //                          //
@@ -490,7 +516,6 @@ module vanilla_core
   logic [dmem_addr_width_lp-1:0] lsu_dmem_addr_lo;
   logic [data_width_p-1:0] lsu_dmem_data_lo;
   logic [data_mask_width_lp-1:0] lsu_dmem_mask_lo;
-  load_info_s lsu_dmem_load_info_lo;
   logic lsu_reserve_lo;
   logic [data_width_p-1:0] lsu_mem_addr_sent_lo;
 
@@ -500,7 +525,9 @@ module vanilla_core
     ,.dmem_size_p(dmem_size_p)
     ,.branch_trace_en_p(branch_trace_en_p)
   ) lsu0 (
-    .exe_decode_i(exe_r.decode)
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.exe_decode_i(exe_r.decode)
     ,.exe_rs1_i(exe_rs1_final)
     ,.exe_rs2_i(exe_rs2_final)
     ,.exe_rd_i(exe_r.instruction.rd)
@@ -517,7 +544,6 @@ module vanilla_core
     ,.dmem_addr_o(lsu_dmem_addr_lo)
     ,.dmem_data_o(lsu_dmem_data_lo)
     ,.dmem_mask_o(lsu_dmem_mask_lo)
-    ,.dmem_load_info_o(lsu_dmem_load_info_lo)
 
     ,.reserve_o(lsu_reserve_lo)
     ,.mem_addr_sent_o(lsu_mem_addr_sent_lo)
@@ -526,10 +552,10 @@ module vanilla_core
   logic reserved_r;
   logic [dmem_addr_width_lp-1:0] reserved_addr_r;
 
+
   //                          //
   //        MEM STAGE         //
   //                          //
-
 
 
   bsg_dff_reset #(
@@ -692,6 +718,8 @@ module vanilla_core
   logic stall_force_wb;     // stall on force remote load wb 
   logic stall_remote_req;   // stall on sending remote request
   logic stall_local_flw;    // stall on local flw
+  logic stall_amo_aq;       // memory ops stalled in ID because of 'aq' register
+  logic stall_amo_rl;       // amoswap.w.rl stalled in ID because of pending remote requests.
 
   assign stall = stall_ifetch_wait
     | stall_icache_store
@@ -706,6 +734,9 @@ module vanilla_core
   assign stall_fence = exe_r.decode.is_fence_op & outstanding_req_i;
   assign stall_remote_req = remote_req_v_o & ~remote_req_yumi_i;
   assign stall_ifetch_wait = mem_r.icache_miss & ~ifetch_v_i;
+  assign stall_amo_aq = aq_r & ~aq_clear &
+    (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.decode.op_is_lr_aq | id_r.decode.op_is_lr);
+  assign stall_amo_rl = id_r.decode.is_amo_op & id_r.decode.is_amo_rl & outstanding_req_i;
 
   // flush condition
   //
@@ -772,7 +803,7 @@ module vanilla_core
     : 1'b1;
 
   assign icache_v_li = icache_v_i | ifetch_v_i 
-    | (~stall & ~stall_depend & ~stall_fp & read_icache);
+    | (~stall & ~stall_depend & ~stall_fp & read_icache & ~stall_amo_aq & ~stall_amo_rl);
 
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
@@ -792,8 +823,10 @@ module vanilla_core
  
   // IF -> ID
   //
+  wire stall_id = stall | stall_depend | stall_fp | stall_amo_aq | stall_amo_rl;
+
   always_comb begin
-    if (stall | stall_depend | stall_fp) begin
+    if (stall_id) begin
       id_n = id_r;
     end
     else begin
@@ -830,22 +863,23 @@ module vanilla_core
 
   // regfile read
   //
-  assign int_rf_read_rs1 = id_n.decode.op_reads_rf1 & ~(stall | stall_depend | stall_fp);
-  assign int_rf_read_rs2 = id_n.decode.op_reads_rf2 & ~(stall | stall_depend | stall_fp);
-  assign float_rf_read_rs1 = id_n.decode.op_reads_fp_rf1 & ~(stall | stall_depend | stall_fp);
-  assign float_rf_read_rs2 = id_n.decode.op_reads_fp_rf2 & ~(stall | stall_depend | stall_fp);
+  assign int_rf_read_rs1 = id_n.decode.op_reads_rf1 & ~stall_id;
+  assign int_rf_read_rs2 = id_n.decode.op_reads_rf2 & ~stall_id;
+  assign float_rf_read_rs1 = id_n.decode.op_reads_fp_rf1 & ~stall_id;
+  assign float_rf_read_rs2 = id_n.decode.op_reads_fp_rf2 & ~stall_id;
 
   // scoreboard
   //
-  assign int_sb_score = (id_r.decode.is_load_op & id_r.decode.op_writes_rf)
-    & ~(flush | stall | stall_depend | stall_fp); // LW
+  assign int_sb_score =
+    ((id_r.decode.is_load_op & id_r.decode.op_writes_rf) | id_r.decode.is_amo_op | id_r.decode.op_is_lr | id_r.decode.op_is_lr_aq)
+    & ~(flush | stall | stall_depend | stall_fp | stall_amo_rl | stall_amo_aq); // LW
 
   assign float_sb_score = (id_r.decode.op_writes_fp_rf)
-    & ~(flush | stall | stall_depend | stall_fp);
+    & ~(flush | stall | stall_depend | stall_fp | stall_amo_rl | stall_amo_aq);
 
   // int scoreboard clears when
-  // 1) force wb, insert in exe-mem
-  // 2) local load
+  // [1] force wb, insert in exe-mem
+  // [0] local load
   assign int_sb_clear[1] = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o);
   assign int_sb_clear[0] = (mem_r.local_load & mem_r.op_writes_rf & ~stall);
 
@@ -855,6 +889,7 @@ module vanilla_core
   assign float_sb_clear = fp_wb_r.valid;
   assign float_sb_clear_id = fp_wb_r.rd;
 
+  assign aq_clear = int_sb_clear[1] & (int_sb_clear_id[1] == aq_rd_r);
 
   // stall_depend logic
   // 1. Is it float or int pipeline instruction?
@@ -974,10 +1009,12 @@ module vanilla_core
   always_comb begin
     if (stall) begin
       exe_n = exe_r;
+      aq_set = 1'b0;
     end
     else begin
-      if (stall_depend | flush | id_r.decode.is_fp_float_op) begin
+      if (stall_depend | flush | id_r.decode.is_fp_float_op | stall_amo_aq | stall_amo_rl) begin
         exe_n = '0;
+        aq_set = 1'b0;
       end
       else begin
         exe_n = '{
@@ -995,6 +1032,8 @@ module vanilla_core
           icache_miss: id_r.icache_miss,
           fp_int_decode: id_r.fp_int_decode
         };
+
+        aq_set = id_r.decode.is_amo_op & id_r.decode.is_amo_aq;
       end
     end
   end
@@ -1069,15 +1108,11 @@ module vanilla_core
     end
   end
 
-  logic local_load_in_exe;
-  logic remote_load_in_exe;
-  logic exe_op_writes_rf;
-  logic exe_op_writes_fp_rf;
-
-  assign local_load_in_exe = exe_r.decode.is_load_op & lsu_dmem_v_lo & ~lsu_dmem_w_lo;  
-  assign remote_load_in_exe = exe_r.decode.is_load_op & lsu_remote_req_v_lo;
-  assign exe_op_writes_rf = exe_r.decode.op_writes_rf & ~remote_load_in_exe;
-  assign exe_op_writes_fp_rf = exe_r.decode.op_writes_fp_rf & ~remote_load_in_exe;
+  wire local_load_in_exe = lsu_dmem_v_lo & ~lsu_dmem_w_lo &
+    (exe_r.decode.is_load_op | exe_r.decode.op_is_lr | exe_r.decode.op_is_lr_aq) ;  
+  wire remote_load_in_exe = (exe_r.decode.is_load_op | exe_r.decode.is_amo_op) & lsu_remote_req_v_lo;
+  wire exe_op_writes_rf = exe_r.decode.op_writes_rf & ~remote_load_in_exe;
+  wire exe_op_writes_fp_rf = exe_r.decode.op_writes_fp_rf & ~remote_load_in_exe;
 
   always_comb begin
     if (stall_ifetch_wait | stall_icache_store | stall_lr_aq

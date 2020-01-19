@@ -18,7 +18,7 @@ module vcache_profiler
     , input v_o
     , input yumi_i
     , input miss_v
-    , input bsg_cache_pkt_decode_s decode_v_r
+    , input bsg_cache_decode_s decode_v_r
 
     , input [dma_pkt_width_lp-1:0] dma_pkt_o
     , input dma_pkt_v_o

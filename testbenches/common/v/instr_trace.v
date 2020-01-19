@@ -1,6 +1,6 @@
-`include "definitions.vh"
 
 module instr_trace
+  import bsg_vanilla_pkg::*;
   #(parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
   )

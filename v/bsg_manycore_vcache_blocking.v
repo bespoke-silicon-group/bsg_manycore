@@ -14,13 +14,12 @@ module bsg_manycore_vcache_blocking
     
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-    , parameter load_id_width_p="inv"
 
     , parameter byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
     , parameter cache_addr_width_lp=(addr_width_p-1+byte_offset_width_lp)
 
     , parameter link_sif_width_lp =
-      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
     , parameter cache_dma_pkt_width_lp =
       `bsg_cache_dma_pkt_width(cache_addr_width_lp)
   )
@@ -31,9 +30,6 @@ module bsg_manycore_vcache_blocking
     // manycore link
     , input [link_sif_width_lp-1:0] link_sif_i
     , output logic [link_sif_width_lp-1:0] link_sif_o
-
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
   
     // cache DMA
     , output logic [cache_dma_pkt_width_lp-1:0] dma_pkt_o
@@ -65,22 +61,19 @@ module bsg_manycore_vcache_blocking
   logic [data_width_p-1:0] cache_data_lo;
   logic cache_v_lo;
   logic cache_yumi_li;  
-
+  logic v_we_lo;
+  
   bsg_manycore_link_to_cache #(
     .link_addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.load_id_width_p(load_id_width_p)
     ,.sets_p(sets_p)
     ,.ways_p(ways_p)
     ,.block_size_in_words_p(block_size_in_words_p)
   ) link_to_cache (
     .clk_i(clk_i)
     ,.reset_i(reset_r)
-
-    ,.my_x_i((x_cord_width_p)'(my_x_i))
-    ,.my_y_i((y_cord_width_p)'(my_y_i))
 
     ,.link_sif_i(link_sif_i)
     ,.link_sif_o(link_sif_o)
@@ -92,6 +85,8 @@ module bsg_manycore_vcache_blocking
     ,.data_i(cache_data_lo)
     ,.v_i(cache_v_lo)
     ,.yumi_o(cache_yumi_li)
+
+    ,.v_we_i(v_we_lo)
   );
 
   
@@ -127,7 +122,7 @@ module bsg_manycore_vcache_blocking
     ,.dma_data_v_o(dma_data_v_o)
     ,.dma_data_yumi_i(dma_data_yumi_i)
 
-    ,.v_we_o()
+    ,.v_we_o(v_we_lo)
   );
   
 

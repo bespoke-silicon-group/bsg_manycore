@@ -17,10 +17,9 @@
  *
  */
 
-`include "parameters.vh"
-`include "definitions.vh"
 
 module fpu_float
+  import bsg_vanilla_pkg::*;
   #(parameter e_p=8
     , parameter m_p=23
     , parameter data_width_p = RV32_reg_data_width_gp

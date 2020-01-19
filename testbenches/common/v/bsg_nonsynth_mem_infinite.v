@@ -12,11 +12,10 @@ module bsg_nonsynth_mem_infinite
     , parameter addr_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-    , parameter load_id_width_p="inv"
 
     , parameter data_mask_width_lp=(data_width_p>>3)
     , parameter link_sif_width_lp=
-    `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+    `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   (
     input clk_i
@@ -37,6 +36,7 @@ module bsg_nonsynth_mem_infinite
   logic [data_mask_width_lp-1:0] in_mask_lo;
   logic [addr_width_p-1:0] in_addr_lo;
   logic in_we_lo;
+  bsg_manycore_load_info_s in_load_info_lo, in_load_info_r;
 
   logic returning_v_li;
   logic [data_width_p-1:0] returning_data_li;
@@ -46,7 +46,6 @@ module bsg_nonsynth_mem_infinite
     ,.y_cord_width_p(y_cord_width_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-    ,.load_id_width_p(load_id_width_p)
     ,.fifo_els_p(4)
     ,.max_out_credits_p(16)
   ) ep (
@@ -64,6 +63,7 @@ module bsg_nonsynth_mem_infinite
     ,.in_we_o(in_we_lo)
     ,.in_src_x_cord_o()
     ,.in_src_y_cord_o()
+    ,.in_load_info_o(in_load_info_lo)
 
     ,.returning_v_i(returning_v_li)
     ,.returning_data_i(returning_data_li)
@@ -73,7 +73,8 @@ module bsg_nonsynth_mem_infinite
     ,.out_ready_o()
 
     ,.returned_data_r_o()
-    ,.returned_load_id_r_o()
+    ,.returned_reg_id_r_o()
+    ,.returned_pkt_type_r_o()
     ,.returned_v_r_o()
     ,.returned_yumi_i(1'b0)
     ,.returned_fifo_full_o()
@@ -83,6 +84,7 @@ module bsg_nonsynth_mem_infinite
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
   );
+
 
   assign in_yumi_li = in_v_lo;
 
@@ -104,6 +106,16 @@ module bsg_nonsynth_mem_infinite
 
     ,.data_o(mem_data_lo) 
   );
+
+  logic [data_width_p-1:0] load_data_lo;
+  load_packer lp0 (
+    .mem_data_i(mem_data_lo)
+    ,.unsigned_load_i(in_load_info_r.is_unsigned_op)
+    ,.byte_load_i(in_load_info_r.is_byte_op)
+    ,.hex_load_i(in_load_info_r.is_hex_op)
+    ,.part_sel_i(in_load_info_r.part_sel)
+    ,.load_data_o(load_data_lo)
+  );
  
   logic returning_v_r;
   logic we_r;
@@ -112,16 +124,19 @@ module bsg_nonsynth_mem_infinite
     if (reset_i) begin
       returning_v_r <= 1'b0;
       we_r <= 1'b0;
+      in_load_info_r <= '0;
     end
     else begin
       returning_v_r <= in_v_lo;
       we_r <= in_we_lo;
+      if (in_v_lo & ~in_we_lo)
+        in_load_info_r <= in_load_info_lo;
     end
   end
 
   assign returning_v_li = returning_v_r;
   assign returning_data_li = we_r
     ? '0
-    : mem_data_lo;
+    : load_data_lo;
 
 endmodule

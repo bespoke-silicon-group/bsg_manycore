@@ -47,10 +47,11 @@ static int inline bsg_mutex_try_lock( bsg_mutex_ptr p_mutex ){
     bsg_mutex_status result = bsg_mutex_lock_fail;
 
     unsigned int mutex_addr = (unsigned int) ( p_mutex );
+    unsigned int swap_val = 1;
 
-    asm volatile ("amoswap.w.aq %[result], x0, 0(%[addr]);"  \
+    asm volatile ("amoswap.w.aq %[result], %[swap_val], 0(%[addr]);"  \
                       : [result] "=r"  (result             ) \
-                      : [addr]   "r"   (mutex_addr         ) \
+                      : [addr]   "r"   (mutex_addr         ), [swap_val] "r" (swap_val) \
                      );
 
     return result;

@@ -85,8 +85,6 @@ module bsg_manycore
   , parameter dram_ch_start_col_p  = 0
   // usually 32
   , parameter data_width_p = "inv"
-  // ID for load requests in the network
-  , parameter load_id_width_p = "inv"
   //The IO router row index
   , parameter IO_row_idx_p = 0
 
@@ -98,7 +96,7 @@ module bsg_manycore
   , localparam x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
   , localparam y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
   , localparam link_sif_width_lp =
-     `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
+     `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
    // snew * y * x bits
   , parameter repeater_output_p = 0
@@ -150,7 +148,7 @@ module bsg_manycore
    end
    // synopsys translate_on
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p);
+   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
 
 
    bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
@@ -187,7 +185,6 @@ module bsg_manycore
                 .y_cord_width_p(y_cord_width_lp),
                 .data_width_p(data_width_p),
                 .addr_width_p(addr_width_p),
-                .load_id_width_p(load_id_width_p),
                 .epa_byte_addr_width_p(epa_byte_addr_width_p),
                 .dram_ch_addr_width_p( dram_ch_addr_width_p),
                 .dram_ch_start_col_p ( dram_ch_start_col_p ),
@@ -216,8 +213,6 @@ for (c = 0; c < num_tiles_x_p; c=c+1) begin:io
         bsg_manycore_mesh_node #(
             .x_cord_width_p     (x_cord_width_lp )
            ,.y_cord_width_p     (y_cord_width_lp )
-           ,.load_id_width_p    (load_id_width_p )
-        
            ,.data_width_p       (data_width_p    )
            ,.addr_width_p       (addr_width_p    )
           ) io_router

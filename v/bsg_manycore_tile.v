@@ -16,7 +16,6 @@ module bsg_manycore_tile
     
     , parameter data_width_p = "inv"
     , parameter addr_width_p = "inv"
-    , parameter load_id_width_p = "inv"
     , parameter epa_byte_addr_width_p = "inv"
     , parameter dram_ch_addr_width_p = "inv"
 
@@ -33,9 +32,8 @@ module bsg_manycore_tile
 
     , parameter branch_trace_en_p = 0
 
-    , localparam link_sif_width_lp =
-    `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,
-      load_id_width_p)
+    , parameter link_sif_width_lp =
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   (
     input clk_i
@@ -66,7 +64,6 @@ module bsg_manycore_tile
     ,.y_cord_width_p(y_cord_width_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-    ,.load_id_width_p(load_id_width_p)
     ,.debug_p(debug_p)
     ,.repeater_output_p(repeater_output_p) // select buffer for this particular node
   ) rtr (
@@ -85,7 +82,6 @@ module bsg_manycore_tile
     ,.y_cord_width_p(y_cord_width_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-    ,.load_id_width_p(load_id_width_p)
 
     ,.dmem_size_p(dmem_size_p)
     ,.vcache_size_p(vcache_size_p)
