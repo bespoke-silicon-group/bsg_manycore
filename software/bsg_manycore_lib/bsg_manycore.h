@@ -138,9 +138,10 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 //------------------------------------------------------
 // Print stat parameters and operations
 //------------------------------------------------------
-#define BSG_CUDA_PRINT_STAT_ID_STAT         0
-#define BSG_CUDA_PRINT_STAT_ID_START        1
-#define BSG_CUDA_PRINT_STAT_ID_END          2
+#define BSG_CUDA_PRINT_STAT_ID_START        0
+#define BSG_CUDA_PRINT_STAT_ID_END          1
+#define BSG_CUDA_PRINT_STAT_ID_KERNEL_START 2
+#define BSG_CUDA_PRINT_STAT_ID_KERNEL_END   3
 
 #define BSG_CUDA_PRINT_STAT_TAG_WIDTH       4
 #define BSG_CUDA_PRINT_STAT_TG_ID_WIDTH     14
@@ -174,11 +175,11 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
     bsg_print_stat(val);                                                                                          \
 } while (0)
 
-#define bsg_cuda_print_stat(tag)          bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_STAT)
+//#define bsg_cuda_print_stat(tag)          bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_STAT)
 #define bsg_cuda_print_stat_start(tag)    bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_START)
 #define bsg_cuda_print_stat_end(tag)      bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_END)
-#define bsg_cuda_print_stat_kernel_start() bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_START)
-#define bsg_cuda_print_stat_kernel_end()   bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_END)
+#define bsg_cuda_print_stat_kernel_start() bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_KERNEL_START)
+#define bsg_cuda_print_stat_kernel_end()   bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_KERNEL_END)
 
 
 #endif
