@@ -62,6 +62,7 @@ class BloodGraph:
                               "stall_ifetch_wait",
                               "bubble_icache",
                               "bubble_branch_mispredict",
+                              "bubble_jalr_mispredict",
                               "bubble_fp_op",
                               "bubble",
                               "stall_md" ]
@@ -182,16 +183,17 @@ class BloodGraph:
                                              "stall_icache_store"                     : (0x00, 0x55, 0xff), ## dark blue
                                              "stall_remote_req"                       : (0xff, 0xff, 0x00), ## yellow
                                              "stall_local_flw"                        : (0xff, 0xff, 0x80), ## light yellow
-                                             "stall_amo_aq"                           : (0x00, 0x00, 0x00), ## black #
-                                             "stall_amo_rl"                           : (0x00, 0x00, 0x00), ## black #
+                                             "stall_amo_aq"                           : (0x00, 0x00, 0x00), ## black
+                                             "stall_amo_rl"                           : (0x00, 0x00, 0x00), ## black
 
                                              "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
                                              "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
                                              "bubble_icache"                          : (0x00, 0x00, 0xff), ## blue
 
-                                             "bubble_branch_mispredict"               : (0x00, 0x00, 0x00), ## black #
-                                             "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black #
-                                             "bubble"                                 : (0x00, 0x00, 0x00), ## black #
+                                             "bubble_branch_mispredict"               : (0x00, 0x00, 0x00), ## black
+                                             "bubble_jalr_mispredict"                 : (0x00, 0x00, 0x00), ## black
+                                             "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black
+                                             "bubble"                                 : (0x00, 0x00, 0x00), ## black
 
                                              "stall_md"                               : (0xff, 0xf0, 0xa0), ## light orange
                                            }
@@ -229,6 +231,7 @@ class BloodGraph:
                                              "bubble_icache"                          : (0x00, 0x00, 0xff), ## blue
 
                                              "bubble_branch_mispredict"               : (0x00, 0x00, 0x00), ## black
+                                             "bubble_jalr_mispredict"                 : (0x00, 0x00, 0x00), ## black
                                              "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black
                                              "bubble"                                 : (0x00, 0x00, 0x00), ## black
 
