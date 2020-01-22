@@ -20,7 +20,10 @@ all: main.run
 
 KERNEL_NAME ?=kernel
 RISCV_GXX_OPTS:-fno-inline-functions
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel.o 
+OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o $(KERNEL_NAME).o 
+
+BSG_MANYCORE_DIR ?= $(shell git rev-parse --show-toplevel)
+$(KERNEL_NAME).o:$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_algebra.hpp
 
 include ../../Makefile.include
 

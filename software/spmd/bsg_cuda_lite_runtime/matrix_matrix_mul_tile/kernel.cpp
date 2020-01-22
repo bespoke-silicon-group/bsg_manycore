@@ -12,7 +12,9 @@
 #include "bsg_tile_group_barrier.h"
 #include <cstdint>
 #include <cstring>
+#include <bsg_algebra.hpp>
 
+#ifndef BSG_ALGEBRA_HPP
 /*
  * This is a naive implementation of matrix multiplication that
  * multiplies the two matricies A and B and stores the result in C.
@@ -126,6 +128,7 @@ int __attribute__ ((noinline, aligned (2048))) kernel_matrix_multiply_transpose_
         return 0;
 }
 
+#endif //BSG_ALGERBA_HPP
 /*
  * These versions are hand-unrolled
  * 
