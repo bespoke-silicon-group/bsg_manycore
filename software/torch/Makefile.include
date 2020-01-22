@@ -1,0 +1,13 @@
+export BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
+
+include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
+
+vpath %.c ..
+
+COMMON_OBJECTS += main.o bsg_set_tile_x_y.o
+
+%.riscv: $(OBJECT_FILES) $(COMMON_OBJECTS) crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) $(COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
+
+clean:
+	rm *.o *.riscv *.log
