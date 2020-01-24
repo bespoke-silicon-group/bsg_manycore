@@ -11,7 +11,7 @@ int hello () {
     if (bsg_id == 0) {
         bsg_printf("hello from tile %d\n", bsg_id);
     }
-
+    // sync
     bsg_tile_group_barrier(&r_barrier, &c_barrier);
-    
+    return 0;
 }
