@@ -1,7 +1,16 @@
-all:
+SUBDIRS-WITH-MAKE = $(patsubst %/Makefile,%,$(wildcard */Makefile))
 
-%.riscv:
-	$(MAKE) -C $* $@
+.PHONY: all build/%.riscv %-clean clean
 
-clean:
-	rm *.log
+all: $(foreach dir, $(SUBDIRS-WITH-MAKE), build/$(dir).riscv)
+
+build/%.riscv:
+	$(MAKE) -C $* $*.riscv
+	cp $*/$*.riscv $@
+	$(MAKE) $*-clean
+
+%-clean:
+	$(MAKE) -C $* clean
+
+clean: $(foreach dir,$(SUBDIRS-WITH-MAKE),$(dir)-clean)
+	-rm build/*.riscv
