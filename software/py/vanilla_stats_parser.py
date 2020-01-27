@@ -193,7 +193,6 @@ class VanillaStatsParser:
         self.num_tile_groups = []
 
         self.max_tags = 1 << CudaStatTag._TAG_WIDTH
-        self.num_tags = 0
 
         tags = list(range(self.max_tags)) + ["kernel"]
         self.tile_stat = {tag:Counter() for tag in tags}
@@ -242,7 +241,7 @@ class VanillaStatsParser:
         self.active.sort()
 
         # generate timing stats for each tile and tile group 
-        self.num_tags, self.num_tile_groups, self.tile_group_stat, self.tile_stat = self.__generate_tile_stats(self.traces, self.active)
+        self.num_tile_groups, self.tile_group_stat, self.tile_stat = self.__generate_tile_stats(self.traces, self.active)
 
         # Calculate total aggregate stats for manycore
         # By summing up per_tile stat counts
@@ -891,7 +890,6 @@ class VanillaStatsParser:
     # in practice, this excludes the time in between executions,
     # i.e. when tiles are waiting to be loaded by the host.
     def __generate_tile_stats(self, traces, tiles):
-        num_tags = 0
         tags = list(range(self.max_tags)) + ["kernel"]
         num_tile_groups = {tag:0 for tag in tags}
 
@@ -910,72 +908,60 @@ class VanillaStatsParser:
             x = trace["x"]
             relative_y = y - self._BSG_ORIGIN_Y
             relative_x = x - self._BSG_ORIGIN_X
+            cur_tile = (relative_y, relative_x)
 
             # instantiate a CudaStatTag object with the tag value
             cst = CudaStatTag(trace["tag"])
 
-            # extract tile group id from the print stat's tag value 
-            # see CudaStatTag class comments for more detail
-
             # Separate depending on stat type (start or end)
             if(cst.isStart):
-                if(tag_seen[cst.tag][(relative_y,relative_x)]):
-                    print ("Warning: missing start stat for tag {}, tile {},{}.".format(cst.tag, relative_x, relative_y))                    
-                tag_seen[cst.tag][(relative_y,relative_x)] = True;
-
-                # Only increase number of tags if haven't seen a trace from this tag before 
-                if (not tile_group_stat_start[cst.tag]):
-                    num_tags += 1
+                if(tag_seen[cst.tag][cur_tile]):
+                    print ("Warning: missing end stat for tag {}, tile {},{}.".format(cst.tag, relative_x, relative_y))                    
+                tag_seen[cst.tag][cur_tile] = True;
 
                 # Only increase number of tile groups if haven't seen a trace from this tile group before
                 if(not tile_group_stat_start[cst.tag][cst.tg_id]):
-                    num_tile_groups[cst.tag] += 1
+                    num_tile_groups[cst.tag] += 1 
 
                 for op in self.all_ops:
-                    tile_stat_start[cst.tag][(relative_y,relative_x)][op] = trace[op]
+                    tile_stat_start[cst.tag][cur_tile][op] = trace[op]
                     tile_group_stat_start[cst.tag][cst.tg_id][op] += trace[op]
 
             elif (cst.isEnd):
-                if(not tag_seen[cst.tag][(relative_y,relative_x)]):
+                if(not tag_seen[cst.tag][cur_tile]):
                     print ("Warning: missing start stat for tag {}, tile {},{}.".format(cst.tag, relative_x, relative_y))
-                tag_seen[cst.tag][(relative_y,relative_x)] = False;
+                tag_seen[cst.tag][cur_tile] = False;
 
                 for op in self.all_ops:
-                    tile_stat_end[cst.tag][(relative_y,relative_x)][op] = trace[op]
+                    tile_stat_end[cst.tag][cur_tile][op] = trace[op]
                     tile_group_stat_end[cst.tag][cst.tg_id][op] += trace[op]
 
-            if(cst.isKernelStart):
-                if(tag_seen["kernel"][(relative_y,relative_x)]):
-                    print ("Warning: missing Kernel End stat for tag {}, tile {},{}.".format("Kernel", relative_x, relative_y))                    
-                tag_seen["kernel"][(relative_y,relative_x)] = True;
+                tile_stat[cst.tag][cur_tile] += tile_stat_end[cst.tag][cur_tile] - tile_stat_start[cst.tag][cur_tile]
 
-                # Only increase number of tags if haven't seen a trace from this tag before 
-                if (not tile_group_stat_start["kernel"]):
-                    num_tags += 1
+            # And depending on kernel start/end
+            if(cst.isKernelStart):
+                if(tag_seen["kernel"][cur_tile]):
+                    print ("Warning: missing Kernel End, tile: {}.".format(cur_tile))
+                tag_seen["kernel"][cur_tile] = True;
 
                 # Only increase number of tile groups if haven't seen a trace from this tile group before
                 if(not tile_group_stat_start["kernel"][cst.tg_id]):
                     num_tile_groups["kernel"] += 1
 
                 for op in self.all_ops:
-                    tile_stat_start["kernel"][(relative_y,relative_x)][op] = trace[op]
+                    tile_stat_start["kernel"][cur_tile][op] = trace[op]
                     tile_group_stat_start["kernel"][cst.tg_id][op] += trace[op]
 
             elif (cst.isKernelEnd):
-                if(not tag_seen["kernel"][(relative_y,relative_x)]):
-                    print ("Warning: missing start stat for tag {}, tile {},{}.".format(cst.tag, relative_x, relative_y))
-                tag_seen["kernel"][(relative_y,relative_x)] = False;
+                if(not tag_seen["kernel"][cur_tile]):
+                    print ("Warning: missing Kernel Start, tile {}.".format(cur_tile))
+                tag_seen["kernel"][cur_tile] = False;
 
                 for op in self.all_ops:
-                    tile_stat_end["kernel"][(relative_y,relative_x)][op] = trace[op]
+                    tile_stat_end["kernel"][cur_tile][op] = trace[op]
                     tile_group_stat_end["kernel"][cst.tg_id][op] += trace[op]
 
-        # Generate all tile stats by subtracting start time from end time
-        for tag in tags:
-            for tile in tiles:
-                tile_stat[tag][tile] = tile_stat_end[tag][tile] - tile_stat_start[tag][tile]
-                if(tag_seen[tag][tile]):
-                    print ("Warning: {} missing end stat(s) for tag {}, tile {},{}.".format(tag_seen[tag][tile], tag, x, y))
+                tile_stat["kernel"][cur_tile] += tile_stat_end["kernel"][cur_tile] - tile_stat_start["kernel"][cur_tile]
 
         # Generate all tile group stats by subtracting start time from end time
         for tag in tags:
@@ -1016,9 +1002,9 @@ class VanillaStatsParser:
         self.stalls  += ["stall_total"]
         self.bubbles += ["bubble_total"]
         self.misses  += ["miss_total"]
-        self.all_ops += ["instr_total", "stall_total", "bubble_total","miss_total"]
+        self.all_ops += ["instr_total", "stall_total", "bubble_total", "miss_total"]
 
-        return num_tags, num_tile_groups, tile_group_stat, tile_stat
+        return num_tile_groups, tile_group_stat, tile_stat
 
     # Calculate aggregate manycore stats dictionary by summing 
     # all per tile stats dictionaries
