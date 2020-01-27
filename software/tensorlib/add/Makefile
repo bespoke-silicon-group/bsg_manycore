@@ -1,4 +1,4 @@
-OBJECT_FILES := add.o
+OBJECT_FILES := add.o bsg_printf.o
 
 include ../Makefile.include
 

@@ -1,10 +1,13 @@
 export BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
+export TENSOR_LIB_DIR   := $(BSG_MANYCORE_DIR)/software/tensorlib
 
-include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
-
-vpath %.c ..
+vpath %.c $(TENSOR_LIB_DIR)
+vpath %.c $(TENSOR_LIB_DIR)/common
 
 COMMON_OBJECTS += main.o bsg_set_tile_x_y.o
+RISCV_GCC_EXTRA_OPTS += -I$(TENSOR_LIB_DIR)/common
+
+include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 
 %.riscv: $(OBJECT_FILES) $(COMMON_OBJECTS) crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) $(COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
