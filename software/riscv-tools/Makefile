@@ -63,6 +63,9 @@ export SED=sed
 export PATH
 export SHELL:=$(SHELL)
 
+# Git version
+# Usage: $(call git-version,<1 (major), 2 (minor), 3(patch)>)
+git-version = $(shell git --version | awk '{print $$3}' | awk -F. '{print $$$(1)}')
 
 help:
 	@cat README.md
@@ -83,7 +86,15 @@ checkout-repos:
 	@rm -rf $(TOOLCHAIN_REPO);
 	git clone $(TOOLCHAIN_URL);
 	cd $(TOOLCHAIN_REPO) && git checkout $(TOOLCHAIN_VERSION);
+
+# Checks if git > 2.8
+ifeq ($(shell [ $(call git-version,1) -gt 1 ] && \
+              [ $(call git-version,1) -gt 2 -o $(call git-version,2) -gt 8 ] && \
+              echo 1), 1)
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive -j 16;
+else
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
+endif
 
 	# This patch is necessary if target abi is ilp32f because of the issue
 	# https://github.com/riscv/riscv-gnu-toolchain/issues/530
