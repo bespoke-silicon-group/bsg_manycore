@@ -2,11 +2,11 @@ SUBDIRS-WITH-MAKE = $(patsubst %/Makefile,%,$(wildcard */Makefile))
 
 .PHONY: all build/%.riscv %-clean clean
 
-all: $(foreach dir, $(SUBDIRS-WITH-MAKE), build/$(dir).riscv)
+all: $(foreach dir, $(SUBDIRS-WITH-MAKE), build-$(dir))
 
-build/%.riscv:
-	$(MAKE) -C $* $*.riscv
-	cp $*/$*.riscv $@
+build-%:
+	$(MAKE) -C $*
+	cp $*/*.riscv build/
 	$(MAKE) $*-clean
 
 %-clean:
