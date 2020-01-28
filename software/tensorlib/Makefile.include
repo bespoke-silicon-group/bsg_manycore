@@ -8,9 +8,3 @@ COMMON_OBJECTS += main.o bsg_set_tile_x_y.o
 RISCV_GCC_EXTRA_OPTS += -I$(TENSOR_LIB_DIR)/common
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
-
-%.riscv: $(OBJECT_FILES) $(COMMON_OBJECTS) crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) $(COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
-
-clean:
-	rm *.o *.riscv *.log
