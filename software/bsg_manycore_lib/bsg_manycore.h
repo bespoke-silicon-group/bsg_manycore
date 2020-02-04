@@ -9,6 +9,10 @@ extern "C"{
 
 int bsg_printf(const char *fmt, ...);
 
+#ifdef __cplusplus
+}
+#endif
+
 typedef volatile int   *bsg_remote_int_ptr;
 typedef volatile float   *bsg_remote_float_ptr;
 typedef volatile unsigned char  *bsg_remote_uint8_ptr;
@@ -184,9 +188,5 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 #define bsg_cuda_print_stat_end(tag)      bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_END)
 #define bsg_cuda_print_stat_kernel_start() bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_KERNEL_START)
 #define bsg_cuda_print_stat_kernel_end()   bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_KERNEL_END)
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
