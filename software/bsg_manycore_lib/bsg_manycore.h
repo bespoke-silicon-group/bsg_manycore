@@ -3,6 +3,10 @@
 
 #include "bsg_manycore_arch.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 int bsg_printf(const char *fmt, ...);
 
 typedef volatile int   *bsg_remote_int_ptr;
@@ -181,5 +185,8 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 #define bsg_cuda_print_stat_kernel_start() bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_KERNEL_START)
 #define bsg_cuda_print_stat_kernel_end()   bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_KERNEL_END)
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
