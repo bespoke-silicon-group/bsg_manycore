@@ -552,8 +552,8 @@ class VanillaStatsParser:
             stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
             self.__print_stat(stat_file, stall_format, stall,
                                          self.manycore_stat[tag][stall],
-                                         (100 * self.manycore_stat[tag][stall] / self.manycore_stat[tag]["stall_total"])
-                                         ,(100 * self.manycore_stat[tag][stall] / self.manycore_stat[tag]["global_ctr"]))
+                                         (100 * np.float64(self.manycore_stat[tag][stall]) / self.manycore_stat[tag]["stall_total"])
+                                         ,(100 * np.float64(self.manycore_stat[tag][stall]) / self.manycore_stat[tag]["global_ctr"]))
 
         return
 
@@ -583,8 +583,8 @@ class VanillaStatsParser:
             self.__print_stat(stat_file, stall_format
                                          ,stall
                                          ,self.tile_group_stat[tag][tg_id][stall]
-                                         ,(100 * self.tile_group_stat[tag][tg_id][stall] / self.tile_group_stat[tag][tg_id]["stall_total"])
-                                         ,(100 * self.tile_group_stat[tag][tg_id][stall] / self.tile_group_stat[tag][tg_id]["global_ctr"]))
+                                         ,(100 * np.float64(self.tile_group_stat[tag][tg_id][stall]) / self.tile_group_stat[tag][tg_id]["stall_total"])
+                                         ,(100 * np.float64(self.tile_group_stat[tag][tg_id][stall]) / self.tile_group_stat[tag][tg_id]["global_ctr"]))
         return
 
 
