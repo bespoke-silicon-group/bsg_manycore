@@ -1,5 +1,3 @@
-//This is an empty kernel 
-
 #include "threading/local_range.h"
 #include "threading/num_threads.h"
 #include "threading/thread_id.h"
@@ -18,9 +16,9 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 using namespace formats;
 
 extern "C" int bfs_dense_pull_dense_frontier_in_dense_frontier_out(
-    csr_blob_header_t *CSR,
+    const csr_blob_header_t *CSR,
     int *visited,
-    int *dense_frontier_in,
+    const int *dense_frontier_in,
     int *dense_frontier_out) {
 
     csr_setup_graph_data(CSR);
@@ -33,13 +31,14 @@ extern "C" int bfs_dense_pull_dense_frontier_in_dense_frontier_out(
 
     for (int dst = dst_s; dst < dst_e; dst++) {
         if (visited[dst] == 0) {        
-            int32_t *neigh = B_NEIGH[dst];
+            const int32_t *neigh = B_NEIGH[dst];
             int degree = B_DEGREE[dst];
             for (int i = 0; i < degree; i++) {
                 int src = neigh[i];
                 if (dense_frontier_in[src]) {
                     dense_frontier_out[dst] = 1;
                     visited[dst] = 1;
+                    break;
                 }
             }
         }
@@ -52,9 +51,9 @@ extern "C" int bfs_dense_pull_dense_frontier_in_dense_frontier_out(
 }
 
 extern "C" int bfs_sparse_push_sparse_frontier_in_dense_frontier_out(
-    csr_blob_header_t *CSR,
+    const csr_blob_header_t *CSR,
     int *visited,
-    int *sparse_frontier_in,
+    const int *sparse_frontier_in,
     int *dense_frontier_out) {
 
     //setup_graph_data(CSR);
@@ -65,10 +64,10 @@ extern "C" int bfs_sparse_push_sparse_frontier_in_dense_frontier_out(
         int src = sparse_frontier_in[i];
         if (src == -1) break;
 
-        int32_t *neigh = F_NEIGH[src];
+        const int32_t *neigh = F_NEIGH[src];
         int degree = F_DEGREE[src];
-        for (int i = 0; i < degree; i++) {
-            int dst = neigh[i];
+        for (int j = 0; j < degree; j++) {
+            int dst = neigh[j];
             if (visited[dst] == 0) {
                 dense_frontier_out[dst] = 1;
                 visited[dst] = 1;
