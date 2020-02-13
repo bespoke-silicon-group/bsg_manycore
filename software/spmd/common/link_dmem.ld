@@ -183,6 +183,7 @@ SECTIONS
 
     _dram_dram = .;
     *(.dram)
+    . = ALIGN(4);
   } >DRAM_D_VMA 
 
   _bsg_dram_d_end_addr = . ;
