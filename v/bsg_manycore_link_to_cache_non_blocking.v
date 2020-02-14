@@ -196,6 +196,14 @@ module bsg_manycore_link_to_cache_non_blocking
           if (packet_lo.op == e_remote_store) begin
             cache_pkt.opcode = SM;
           end
+          else if (packet_lo.op == e_cache_op) begin
+            case (packet_lo.op_ex.cache_op_type)
+              e_afl: cache_pkt.opcode = AFL;
+              e_aflinv: cache_pkt.opcode = AFLINV;
+              e_ainv: cache_pkt.opcode = AINV;
+              default: cache_pkt.opcode = AINV; // (what should the default be? shouldn't happen)
+            endcase
+          end
           else begin
             if (load_info.is_byte_op)
               cache_pkt.opcode = load_info.is_unsigned_op
@@ -214,14 +222,14 @@ module bsg_manycore_link_to_cache_non_blocking
         cache_pkt.data = packet_lo.payload;
         cache_pkt.addr = {
           packet_lo.addr[0+:addr_width_p-1],
-          (packet_lo.op == e_remote_store) ? 2'b00 : load_info.part_sel
+          (packet_lo.op == e_remote_store) | (packet_lo.op == e_cache_op) ? 2'b00 : load_info.part_sel
         };
         cache_pkt.mask = packet_lo.op_ex;
 
         cache_pkt_id.src_x = packet_lo.src_x_cord;
         cache_pkt_id.src_y = packet_lo.src_y_cord;
         cache_pkt_id.reg_id = packet_lo.reg_id; 
-        cache_pkt_id.pkt_type = (packet_lo.op == e_remote_store)
+        cache_pkt_id.pkt_type = (packet_lo.op == e_remote_store) | (packet_lo.op == e_cache_op)
           ? e_return_credit
           : (load_info.icache_fetch
             ? e_return_ifetch

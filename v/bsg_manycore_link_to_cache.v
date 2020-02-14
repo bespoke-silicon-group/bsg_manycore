@@ -142,6 +142,9 @@ module bsg_manycore_link_to_cache
     else if (packet_lo.op == e_remote_amo) begin
         return_pkt_type = e_return_int_wb;
     end
+    else if (packet_lo.op == e_cache_op) begin
+        return_pkt_type = e_return_credit;
+    end
     else begin
       if (load_info.icache_fetch)
         return_pkt_type = e_return_ifetch;
@@ -243,6 +246,14 @@ module bsg_manycore_link_to_cache
               default: cache_pkt.opcode = AMOSWAP_W; // this should never happen!
             endcase
           end
+          else if (packet_lo.op == e_cache_op) begin
+            case (packet_lo.op_ex.cache_op_type)
+              e_afl: cache_pkt.opcode = AFL;
+              e_aflinv: cache_pkt.opcode = AFLINV;
+              e_ainv: cache_pkt.opcode = AINV;
+              default: cache_pkt.opcode = AINV; // (what should the default be? shouldn't happen)
+            endcase
+          end
           else begin
             if (load_info.is_byte_op)
               cache_pkt.opcode = load_info.is_unsigned_op
@@ -262,7 +273,7 @@ module bsg_manycore_link_to_cache
         cache_pkt.mask = packet_lo.op_ex;
         cache_pkt.addr = {
           packet_lo.addr[0+:link_addr_width_p-1],
-          (packet_lo.op == e_remote_store | packet_lo.op == e_remote_amo)
+          (packet_lo.op == e_remote_store | packet_lo.op == e_remote_amo | packet_lo.op == e_cache_op)
             ? 2'b00
             : load_info.part_sel
         };
