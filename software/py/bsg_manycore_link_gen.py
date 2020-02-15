@@ -35,17 +35,6 @@ Bandhav Veluri
 """
 
 class bsg_manycore_link_gen:
-  # Address constants:
-  #
-  # LMA (Load Memory Address)    => NPA used by loader
-  # VMA (Virtual Memory Address) => Logical address used by linker for 
-  #                                 address resolutions
-  _DMEM_START     = 0x1000
-  _DMEM_SIZE      = 0x1000
-  _TEXT_LMA_START = 0x80000000
-  _TEXT_VMA_START = 0x0
-  _SHARED_START   = 0x81000000
-
   _opening_comment = \
     "/**********************************\n" \
     + " BSG Manycore Linker Script \n\n"
@@ -58,30 +47,126 @@ class bsg_manycore_link_gen:
       + " shared memory: " + shared_mem + "\n" \
       + "***********************************/\n"
 
+  # Format:
+  # <mem region name> : [<access>, <start address>, <size>]
+  def _memory_regions(self, mem_regions):
+    script = 'MEMORY {\n'
+
+    for m in mem_regions.keys():
+      access, origin, size = mem_regions[m]
+      script += "{0} ({1}) : ORIGIN = 0x{2:08x}, LENGTH = 0x{3:08x}\n".format(
+          m, access, origin, size)
+
+    script += '}\n'
+
+    return script
+
+  def _sections(self, sections):
+    script = 'SECTIONS {\n'
+
+    for sec in sections.keys():
+      load_address = ""
+      script += '\n  ' + sec + ' :' + ' AT (' + load_address + ' ) {\n'
+      script += sections[sec][0] # content
+      script += '}'+ ' >{0}\n'.format(sections[sec][1])
+
+    script += '}\n'
+
+    return script
+
+  def script(self):
+    # Address constants:
+    #
+    # LMA (Load Memory Address)    => NPA used by loader
+    # VMA (Virtual Memory Address) => Logical address used by linker for 
+    #                                 symbol resolutions
+    #
+    #
+    # Note on program memory:
+    #
+    # BSG Manycore's PC width is 24-bit, addressing a total of 16MB program 
+    # space. Since the 31:25 MBSs are assumed to be 0s, linking should also be
+    # done assuming 0x0-0x01000000 as the valid program space. This means that
+    # .text section VMAs lie in 0x0-0x01000000. On the other hand, .text section
+    # is loaded to DRAM and as result, it's LMAs shouls be >0x80000000. So,
+    # .text section is loaded in the region 0x80000000-0x81000000.
+    _DMEM_START      = 0x1000
+    _DMEM_SIZE       = 0x1000
+    _TEXT_VMA_START  = 0x0
+    _TEXT_VMA_SIZE   = 0x1000000
+    _TEXT_LMA_START  = 0x80000000
+    _DRAM_DATA_START = 0x80000000 + _TEXT_VMA_SIZE
+
+    mem_regions = {
+      # Format:
+      # <mem region name> : [<access>, <start address>, <size>]
+      'DMEM_VMA'     : ['rw', _DMEM_START, _DMEM_SIZE],
+      'DRAM_TEXT_VMA': ['rx', _TEXT_VMA_START, _TEXT_VMA_SIZE],
+      'DRAM_DATA_VMA': ['rw', _DRAM_DATA_START, self._dram_size - _TEXT_VMA_SIZE]
+    }
+
+    sections = {
+      # Format:
+      # <section name> : [<content>, <mem_region>]
+      '.data.dmem' : [
+        """
+          *(.data) 
+          *(.data*) 
+        """,
+        'DMEM_VMA'
+      ],
+
+      '.sdata.dmem': [
+        """ 
+          _gp = . + 0x800; 
+          *(.srodata.cst16)  
+          *(.srodata.cst8) 
+          *(.srodata.cst4) 
+          *(.srodata.cst2) 
+          *(.srodata*) 
+          *(.sdata .sdata.* .gnu.linkonce.s.*) 
+        """,
+        'DMEM_VMA'
+      ]
+    }
+
+    script = self._opening_comment + '\n'
+    script += self._memory_regions(mem_regions) + '\n'
+    script += self._sections(sections)
+    return script
+
+
 if __name__ == '__main__':
   # Parse arguments
   parser = argparse.ArgumentParser()
   parser.add_argument('--default_data_loc', 
-                     help='Default data location (private|shared)')
+    help='Default data location (private|shared)')
   parser.add_argument('--shared_mem', 
-                     help='Shared memory type (onchip|offchip)')
+    help='Shared memory type (onchip|offchip)')
+  parser.add_argument('--dram_size', 
+    help='DRAM size',
+    default=0x80000000,
+    type=int)
   parser.add_argument('--vcache_size', 
-                     help='Total size of vcache')
+    help='Total size of vcaches',
+    type=int)
   args = parser.parse_args()
 
 
-  # Compute memory sizes
-  dram_size = 0x80000000
-
+  # Check vcache size
   if args.shared_mem == 'onchip':
     assert args.vcache_size != None, \
       "--vcache_size should be set when shared memory is onchip only."
-    assert args.vcache_size > 0 and args.vcache_size < dram_size, \
-      "--vcache_size: invalid value (%d)" % args.vcache_size
+    assert args.vcache_size > 0, \
+      "Invalid vcache size (%d): expected a positive integer" % args.vcache_size
+    assert args.vcache_size < args.dram_size, \
+      "Invalid vcache size (%d): should be less than dram size (%d)" \
+        % (args.vcache_size, args.dram_size)
 
   vcache_size = 0 if args.vcache_size == None else int(args.vcache_size)
 
 
   # Generate linker script
-  bsg_manycore_link_gen(args.default_data_loc, args.shared_mem,
-      dram_size, vcache_size).gen()
+  link_gen = bsg_manycore_link_gen(args.default_data_loc, args.shared_mem, \
+    args.dram_size, vcache_size)
+  print(link_gen.script())
