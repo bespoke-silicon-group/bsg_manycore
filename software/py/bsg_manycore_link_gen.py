@@ -52,8 +52,7 @@ class bsg_manycore_link_gen:
   def _memory_regions(self, mem_regions):
     script = 'MEMORY {\n'
 
-    for m in mem_regions.keys():
-      access, origin, size = mem_regions[m]
+    for m, access, origin, size in mem_regions:
       script += "{0} ({1}) : ORIGIN = 0x{2:08x}, LENGTH = 0x{3:08x}\n".format(
           m, access, origin, size)
 
@@ -64,11 +63,18 @@ class bsg_manycore_link_gen:
   def _sections(self, sections):
     script = 'SECTIONS {\n'
 
-    for sec in sections.keys():
-      load_address = ""
-      script += '\n  ' + sec + ' :' + ' AT (' + load_address + ' ) {\n'
-      script += sections[sec][0] # content
-      script += '}'+ ' >{0}\n'.format(sections[sec][1])
+    for i, (sec, content, load_address, mem_region) in enumerate(sections):
+      if load_address == None:
+        assert i > 0, "Load address of first section cannot be None."
+        prev_sec = sections[i-1][0]
+        load_address = "LOADADDR({0}) + ADDR({1}) - ADDR({2})".format(prev_sec,
+            sec, prev_sec)
+      else:
+        load_address = "0x{0:08x}".format(load_address)
+
+      script += "\n {0} : AT ({1}) {{\n".format(sec, load_address)
+      script += content
+      script += "}} >{0}\n".format(mem_region)
 
     script += '}\n'
 
@@ -97,26 +103,29 @@ class bsg_manycore_link_gen:
     _TEXT_LMA_START  = 0x80000000
     _DRAM_DATA_START = 0x80000000 + _TEXT_VMA_SIZE
 
-    mem_regions = {
+    mem_regions = [
       # Format:
-      # <mem region name> : [<access>, <start address>, <size>]
-      'DMEM_VMA'     : ['rw', _DMEM_START, _DMEM_SIZE],
-      'DRAM_TEXT_VMA': ['rx', _TEXT_VMA_START, _TEXT_VMA_SIZE],
-      'DRAM_DATA_VMA': ['rw', _DRAM_DATA_START, self._dram_size - _TEXT_VMA_SIZE]
-    }
+      # [<mem region name>, <access>, <start address>, <size>]
+      ['DMEM_VMA', 'rw', _DMEM_START, _DMEM_SIZE],
+      ['DRAM_TEXT_VMA', 'rx', _TEXT_VMA_START, _TEXT_VMA_SIZE],
+      ['DRAM_DATA_VMA', 'rw', _DRAM_DATA_START, self._dram_size - _TEXT_VMA_SIZE]
+    ]
 
-    sections = {
+    sections = [
       # Format:
-      # <section name> : [<content>, <mem_region>]
-      '.data.dmem' : [
+      # [<section name>, <content>, <load_address>, <mem_region>]
+      #
+      # `load_address = None` means the section could be placed after the
+      # the previous section
+      ['.data.dmem',
         """
-          *(.data) 
-          *(.data*) 
+          *(.data)
+          *(.data*)
         """,
-        'DMEM_VMA'
-      ],
+        0x1000,
+        'DMEM_VMA'],
 
-      '.sdata.dmem': [
+      ['.sdata.dmem',
         """ 
           _gp = . + 0x800; 
           *(.srodata.cst16)  
@@ -126,9 +135,9 @@ class bsg_manycore_link_gen:
           *(.srodata*) 
           *(.sdata .sdata.* .gnu.linkonce.s.*) 
         """,
-        'DMEM_VMA'
-      ]
-    }
+        None,
+        'DMEM_VMA']
+    ]
 
     script = self._opening_comment + '\n'
     script += self._memory_regions(mem_regions) + '\n'
