@@ -16,16 +16,16 @@ class bsg_manycore_link_gen:
   A configurable linker command file generator for linking BSG Manycore
   kernels. Kernel memory has private and shared regions backed by 4KB
   on-tile sram (DMEM) and off-chip DRAM, respectively. Configuration options
-  include default location of data (private or shared), stack pointer and
-  shared memory size. These options won't affect the following:
+  include default location of data (dmem or dram), stack pointer and
+  dram memory size. These options won't affect the following:
 
   1. Data attributed to .dmem* and .dram* sections. Following decalaration
 
      int foo __attribute__((section (".dram")));
 
-     would place foo in shared region irrespective of default data location.
+     would place foo in dram region irrespective of default data location.
 
-  2. Data in bsg_manycore_lib would always be placed in private region.
+  2. Data in bsg_manycore_lib would always be placed in dmem region.
 
   
   Note on program memory:
@@ -43,13 +43,13 @@ class bsg_manycore_link_gen:
     "/**********************************\n" \
     + " BSG Manycore Linker Script \n\n"
 
-  def __init__(self, default_data_loc, shared_mem_size, sp):
+  def __init__(self, default_data_loc, dram_mem_size, sp):
     self._default_data_loc = default_data_loc
-    self._shared_mem_size = shared_mem_size
+    self._dram_mem_size = dram_mem_size
     self._sp = sp
     self._opening_comment += \
         " data default: {0}\n".format(default_data_loc) \
-        + " shared memory size: 0x{0:08x}\n".format(shared_mem_size) \
+        + " dram memory size: 0x{0:08x}\n".format(dram_mem_size) \
       + "***********************************/\n"
 
   # Format:
@@ -110,24 +110,24 @@ class bsg_manycore_link_gen:
     # LMA (Load Memory Address)    => NPA used by loader
     # VMA (Virtual Memory Address) => Logical address used by linker for 
     #                                 symbol resolutions
-    _PRIVATE_VMA_START = 0x1000
-    _PRIVATE_VMA_SIZE  = 0x1000
-    _SHARED_LMA_START  = 0x80000000
-    _SHARED_LMA_SIZE   = self._shared_mem_size
+    _DMEM_VMA_START = 0x1000
+    _DMEM_VMA_SIZE  = 0x1000
+    _DRAM_LMA_START  = 0x80000000
+    _DRAM_LMA_SIZE   = self._dram_mem_size
 
     mem_regions = [
       # Format:
       # [<mem region name>, <access>, <start address>, <size>]
       #
-      # .text section VMAs and private memory VMAs overlap with the
+      # .text section VMAs and dmem memory VMAs overlap with the
       # current memory layout (both start at address 0x0). This makes
       # manycore essentially a Harvard architecture. But linker doesn't
       # allow overlapping VMAs by not letting location couter not move 
       # backwards. To overcome this, we use combination of VMA and LMA
       # "memory regions" to be able to never move location counter
       # backward.
-      ['PRIVATE_VMA', 'rw', _PRIVATE_VMA_START, _PRIVATE_VMA_SIZE],
-      ['SHARED_LMA', 'rw', _SHARED_LMA_START, _SHARED_LMA_SIZE],
+      ['DMEM_VMA', 'rw', _DMEM_VMA_START, _DMEM_VMA_SIZE],
+      ['DRAM_LMA', 'rw', _DRAM_LMA_START, _DRAM_LMA_SIZE],
       ]
 
     section_map = [
@@ -156,7 +156,7 @@ class bsg_manycore_link_gen:
       sec = m[0]
       laddr = '0x1000'
       in_sections = m[1]
-      in_objects = '*' if self._default_data_loc == 'private' \
+      in_objects = '*' if self._default_data_loc == 'dmem' \
                           else '*bsg_manycore_lib.a'
 
       if re.search(".dram$", sec) != None:
@@ -171,7 +171,7 @@ class bsg_manycore_link_gen:
       else:
         sec += '.dmem'
       
-      sections += self._section(sec, laddr, 'PRIVATE_VMA', None,
+      sections += self._section(sec, laddr, 'DMEM_VMA', None,
           in_sections, in_objects)
 
     # DRAM sections
@@ -187,24 +187,24 @@ class bsg_manycore_link_gen:
       if sec == ".text.dram":
         vaddr = "0x0"
 
-      if re.search(".dram$", sec) == None and self._default_data_loc == 'shared':
+      if re.search(".dram$", sec) == None and self._default_data_loc == 'dram':
         sec += '.dram'
 
-      if self._default_data_loc == 'shared' or re.search(".dram$", sec) != None:
-        sections += self._section(sec, vaddr, None, 'SHARED_LMA',
+      if self._default_data_loc == 'dram' or re.search(".dram$", sec) != None:
+        sections += self._section(sec, vaddr, None, 'DRAM_LMA',
             in_sections, in_objects)
 
       if sec == '.text.dram':
         sections += ". = . + 0x80000000;\n\n"
 
     # Symbols
-    if self._default_data_loc == 'private':
+    if self._default_data_loc == 'dmem':
       sections += "_gp = {0};\n".format('ADDR(.sdata.dmem) + 0x800')
     else:
       sections += "_gp = {0};\n".format('ADDR(.sdata.dram) + 0x800')
     sections += "_sp = 0x{0:08x};\n".format(self._sp)
     sections += "_end = {0};\n".format("ADDR(.dram) + SIZEOF(.dram)")
-    sections += "_bsg_data_start_addr = 0x{0:08x};\n".format(_PRIVATE_VMA_START)
+    sections += "_bsg_data_start_addr = 0x{0:08x};\n".format(_DMEM_VMA_START)
     sections += "_bsg_data_end_addr = ADDR(striped.data.dmem) + " \
       "SIZEOF(striped.data.dmem);\n"
 
@@ -223,10 +223,10 @@ if __name__ == '__main__':
       description = bsg_manycore_link_gen.__doc__)
   parser.add_argument('--default_data_loc', 
     help = 'Default data location',
-    default = 'private',
-    choices = ['private', 'shared'])
-  parser.add_argument('--shared_mem_size', 
-    help = 'Shared memory size',
+    default = 'dmem',
+    choices = ['dmem', 'dram'])
+  parser.add_argument('--dram_mem_size', 
+    help = 'DRAM memory size',
     default = 0x80000000,
     type = int)
   parser.add_argument('--sp', 
@@ -237,6 +237,6 @@ if __name__ == '__main__':
 
 
   # Generate linker script
-  link_gen = bsg_manycore_link_gen(args.default_data_loc, args.shared_mem_size,
+  link_gen = bsg_manycore_link_gen(args.default_data_loc, args.dram_mem_size,
       args.sp)
   print(link_gen.script())
