@@ -74,6 +74,7 @@ package bsg_manycore_pkg;
     e_afl
     ,e_ainv
     ,e_aflinv
+    ,e_tagfl
   } bsg_manycore_cache_op_type_e;
 
   typedef union packed {

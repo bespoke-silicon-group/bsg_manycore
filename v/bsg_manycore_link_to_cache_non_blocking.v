@@ -188,9 +188,12 @@ module bsg_manycore_link_to_cache_non_blocking
         packet_yumi_li = packet_v_lo & ready_i;
         
         if (packet_lo.addr[addr_width_p-1]) begin
-          cache_pkt.opcode = (packet_lo.op == e_remote_store)
-            ? TAGST
-            : TAGLA;
+	   case (packet_lo.op)
+	      e_remote_store: cache_pkt.opcode = TAGST;
+	      e_remote_load:  cache_pkt.opcode = TAGLA;
+	      e_cache_op:     cache_pkt.opcode = TAGFL;
+	      default:        cache_pkt.opcode = TAGLA; // should never happen
+	   endcase
         end
         else begin
           if (packet_lo.op == e_remote_store) begin
