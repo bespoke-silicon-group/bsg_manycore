@@ -3,7 +3,7 @@
 #
 #   vanilla core stats extractor
 # 
-#   input: vanilla_stats.log
+#   input: vanilla_stats.csv
 #   output: stats/manycore_stats.log
 #   output: stats/tile/tile_<x>_<y>_stats.log for all tiles 
 #   output: stats/tile_group/tile_group_<tg_id>_stats.log for all tile groups
@@ -11,16 +11,15 @@
 #   @author Borna Dustin
 #
 #   How to use:
-#   python3 vanilla_stats_parser.py --dim-y {manycore_dim_y}  --dim-x {manycore_dim_x} 
-#                             --tile (optional) --tile_group (optional)
-#                             --input {vanilla_stats.csv}
+#   python3 vanilla_stats_parser.py 
+#                       --tile (optional) --tile_group (optional)
+#                        --input {vanilla_stats.csv}
 #
-#   ex) python3 --input vanilla_stats_parser.py --dim-y 4 --dim-x 4 --tile --tile_group --input vanilla_stats.csv
+#   ex) python3 --input vanilla_stats_parser.py --tile --tile_group --input vanilla_stats.csv
 #
-#   {manycore_dim_y}  Mesh Y dimension of manycore 
-#   {manycore_dim_x}  Mesh X dimension of manycore 
-#   {per_tile}        Generate separate stats file for each tile default = False
-#   {input}           Vanilla stats input file     default = vanilla_stats.log
+#   {tile}            Generate separate stats file for each tile default = False
+#   {tile_group}      Generate separate stats file for each tile group default = False
+#   {input}           Vanilla stats input file     default = vanilla_stats.csv
 
 import sys
 import argparse
@@ -152,7 +151,7 @@ class VanillaStatsParser:
                 "float"     : "{:>20.4f}",
                 "percent"   : "{:>20.2f}",
                 "cord"      : "{:<2}, {:<31}",
-                "tag"       : "Tag {:<2}",
+                "tag"       : "Tag {:<8}",
                }
 
 
@@ -171,9 +170,9 @@ class VanillaStatsParser:
                     "miss_data"       : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["percent"]   + "\n",
                     "tag_header"      : type_fmt["name-short"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"] + type_fmt["type"]  + type_fmt["type"] + "\n",
                     "tag_data"        : type_fmt["name-short"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]  + type_fmt["float"] + type_fmt["percent"] + "\n",
-                    "tag_separator"   : '-' * 75 + ' ' * 2     + type_fmt["tag"]  + ' ' * 2 + '-' * 75 + "\n",
-                    "start_lbreak"    : '=' *166 + "\n",
-                    "end_lbreak"      : '=' *166 + "\n\n",
+                    "tag_separator"   : '-' * 83 + ' ' * 2     + type_fmt["tag"]  + ' ' * 2 + '-' * 83 + "\n",
+                    "start_lbreak"    : '=' *182 + "\n",
+                    "end_lbreak"      : '=' *182 + "\n\n",
                    }
 
 
@@ -200,7 +199,7 @@ class VanillaStatsParser:
         self.manycore_stat = {tag:Counter() for tag in tags}
         self.manycore_cycle_parallel_cnt = {tag: 0 for tag in tags}
 
-        # list of instructions, operations and events parsed from vanilla_stats.log
+        # list of instructions, operations and events parsed from vanilla_stats.csv
         # populated by reading the header of input file 
         self.stats_list = []
         self.instrs = []
@@ -261,7 +260,16 @@ class VanillaStatsParser:
     # print instruction count, stall count, execution cycles for the entire manycore for each tag
     def __print_manycore_stats_tag(self, stat_file):
         stat_file.write("Per-Tag Stats\n")
-        self.__print_stat(stat_file, "tag_header", "Tag ID", "Instructions", "I$ Misses", "Stall Cycles", "Bubble Cycles", "Total Cycles", "Abs Cycles", "IPC", "    % of Kernel Cycles")
+        self.__print_stat(stat_file, "tag_header"
+                                     ,"Tag ID"
+                                     ,"Aggr Instructions"
+                                     ,"Aggr I$ Misses"
+                                     ,"Aggr Stall Cycles"
+                                     ,"Aggr Bubble Cycles"
+                                     ,"Aggr Total Cycles"
+                                     ,"Abs Total Cycles"
+                                     ,"IPC"
+                                     ,"    % of Kernel Cycles")
         self.__print_stat(stat_file, "start_lbreak")
 
         for tag in self.manycore_stat.keys():
@@ -286,7 +294,16 @@ class VanillaStatsParser:
     # for each tile group in a separate file for each tag
     def __print_per_tile_group_stats_tag(self, tg_id, stat_file):
         stat_file.write("Per-Tile-Group Tag Stats\n")
-        self.__print_stat(stat_file, "tag_header", "TG ID", "Instructions", "I$ Misses", "Stall Cycles", "Bubble Cycles", "Total Cycles", "Abs Cycles", "IPC", "    % of Kernel Cycles")
+        self.__print_stat(stat_file, "tag_header"
+                                     ,"Tag ID"
+                                     ,"Aggr Instructions"
+                                     ,"Aggr I$ Misses"
+                                     ,"Aggr Stall Cycles"
+                                     ,"Aggr Bubble Cycles"
+                                     ,"Aggr Total Cycles"
+                                     ,"Abs Total Cycles"
+                                     ,"IPC"
+                                     ,"    % of Kernel Cycles")
         self.__print_stat(stat_file, "start_lbreak")
 
         for tag in self.tile_group_stat.keys():
@@ -311,7 +328,16 @@ class VanillaStatsParser:
     # for each tile in a separate file for each tag
     def __print_per_tile_stats_tag(self, tile, stat_file):
         stat_file.write("Per-Tile Stats\n")
-        self.__print_stat(stat_file, "tag_header", "Tile ID", "Instructions", "I$ Misses", "Stall Cycles", "Bubble Cycles", "Total Cycles", "Abs Cycle", "IPC", "    % of Kernel Cycles")
+        self.__print_stat(stat_file, "tag_header"
+                                     ,"Tag ID"
+                                     ,"Aggr Instructions"
+                                     ,"Aggr I$ Misses"
+                                     ,"Aggr Stall Cycles"
+                                     ,"Aggr Bubble Cycles"
+                                     ,"Aggr Total Cycles"
+                                     ,"Abs Total Cycles"
+                                     ,"IPC"
+                                     ,"    % of Kernel Cycles")
         self.__print_stat(stat_file, "start_lbreak")
 
         for tag in self.tile_stat.keys():
@@ -360,7 +386,14 @@ class VanillaStatsParser:
     # Prints manycore timing stats per tile group for all tags 
     def __print_manycore_stats_tile_group_timing(self, stat_file):
         stat_file.write("Per-Tile-Group Timing Stats\n")
-        self.__print_stat(stat_file, "tg_timing_header", "Tile Group ID", "Instructions", "Cycles", "Abs Cycle", "IPC", "   TG / Tag-Total (%)", "   TG / Kernel-Total(%)")
+        self.__print_stat(stat_file, "tg_timing_header"
+                                     ,"Tile Group ID"
+                                     ,"Aggr Instructions"
+                                     ,"Aggr Total Cycles"
+                                     ,"Abs Total Cycle"
+                                     ,"IPC"
+                                     ,"   TG / Tag-Total (%)"
+                                     ,"   TG / Kernel-Total(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in self.manycore_stat.keys():
             if(self.manycore_stat[tag]["global_ctr"]):
@@ -429,7 +462,14 @@ class VanillaStatsParser:
     # Print timing stat for each tile group in separate file for all tags 
     def __print_per_tile_group_stats_timing(self, tg_id, stat_file):
         stat_file.write("Per-Tile-Group Timing Stats\n")
-        self.__print_stat(stat_file, "tg_timing_header", "Tile Group ID ", "Instructions", "Cycles", "Abs Cycle", "IPC", "    TG / Tag-Total (%)", "    TG / Kernel-Total(%)")
+        self.__print_stat(stat_file, "tg_timing_header"
+                                     ,"Tile Group ID"
+                                     ,"Aggr Instructions"
+                                     ,"Aggr Total Cycles"
+                                     ,"Abs Total Cycle"
+                                     ,"IPC"
+                                     ,"   TG / Tag-Total (%)"
+                                     ,"   TG / Kernel-Total(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in self.tile_group_stat.keys():
             if(self.tile_group_stat[tag][tg_id]["global_ctr"]):
