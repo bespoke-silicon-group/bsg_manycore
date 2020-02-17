@@ -1,32 +1,9 @@
 #!/usr/bin/python3
 
-import argparse
+import argparse, re
 
 """
 BSG Manycore linker command file generator.
-
-This script provides two settings with two options each, and
-as a result can generate four command files:
-
-1. default_data_loc: Default data location
-     - "private": data is placed in the local memory (DMEM) by default.
-     - "shared" : data is placed in the shared memory (DRAM) by default.
-
-     Note: Data attributed to ".dmem" section is placed in DMEM and data 
-     attributed to ".dram" and ".rodata" sections is placed DRAM, 
-     irrespective of the chosen option. For example,
-     
-     int foo __attribute__ ((section (".dram")));
-
-     would force "foo" to be placed in DRAM no matter what default data
-     behaviour is.
-
-2. shared_mem: Shared memory type
-     - "onchip" : Assumes DRAM is absent in the system and all the shared
-                  memory is provided by vcaches. This reduces the size of
-                  shared address space to the total size of vcaches.
-     - "offchip": Assumes DRAM is presnet in the system.
-
 
 Usage: ./bsg_manycore_link_gen.py -h
 
@@ -35,16 +12,44 @@ Bandhav Veluri
 """
 
 class bsg_manycore_link_gen:
+  """
+  A configurable linker command file generator for linking BSG Manycore
+  kernels. Kernel memory has private and shared regions backed by 4KB
+  on-tile sram (DMEM) and off-chip DRAM, respectively. Configuration options
+  include default location of data (private or shared), stack pointer and
+  shared memory size. These options won't affect the following:
+
+  1. Data attributed to .dmem* and .dram* sections. Following decalaration
+
+     int foo __attribute__((section (".dram")));
+
+     would place foo in shared region irrespective of default data location.
+
+  2. Data in bsg_manycore_lib would always be placed in private region.
+
+  
+  Note on program memory:
+  
+  Manycore's PC width is 24-bit, addressing a total of 16MB program space.
+  Since the 31:25 MBSs are assumed to be 0s, linking should also assume
+  0x0-0x01000000 as the valid program space. This means that .text section VMAs
+  lie in 0x0-0x01000000. On the other hand, .text section is loaded to DRAM and
+  as result, it's LMAs shouls be >0x80000000. So, .text section is loaded in the
+  region 0x80000000-0x81000000. Consequently, VMA's 0x80000000-0x81000000 are
+  are reserved for .text section as well.
+  """
+
   _opening_comment = \
     "/**********************************\n" \
     + " BSG Manycore Linker Script \n\n"
 
-  def __init__(self, default_data_loc, shared_mem, dram_size, vcache_size):
-    self._dram_size = dram_size
-    self._vcache_size = vcache_size
+  def __init__(self, default_data_loc, shared_mem_size, sp):
+    self._default_data_loc = default_data_loc
+    self._shared_mem_size = shared_mem_size
+    self._sp = sp
     self._opening_comment += \
-        " data: " + default_data_loc + "\n" \
-      + " shared memory: " + shared_mem + "\n" \
+        " data default: {0}\n".format(default_data_loc) \
+        + " shared memory size: 0x{0:08x}\n".format(shared_mem_size) \
       + "***********************************/\n"
 
   # Format:
@@ -60,23 +65,42 @@ class bsg_manycore_link_gen:
 
     return script
 
-  def _sections(self, sections):
-    script = 'SECTIONS {\n'
+  def _section(self, name, address, vma_region, lma_region,
+      in_sections, in_objects):
+    """
+    Forms an LD section.
+    
+    Arguments:
+    name         -- name of the section.
+    address      -- if `vma_region` is null, `address` is assumed to
+                    be section's logical address. If `lma_region` is null,
+                    `address` is assumed to be sections load address.
+    vma_region   -- name of the VMA region if the section is to be directed to
+                    a VMA region, else None.
+    lma_region   -- name of the LMA region if the section is to be directed to
+                    a VMA region, else None.
+    in_sections  -- list of input sections.
+    in_objects   -- list of input objects to consider.
+    """
+    vaddr        = "" # virtual address
+    laddr        = "" # logical address
+    vma_redirect = ""
+    lma_redirect = ""
 
-    for i, (sec, content, load_address, mem_region) in enumerate(sections):
-      if load_address == None:
-        assert i > 0, "Load address of first section cannot be None."
-        prev_sec = sections[i-1][0]
-        load_address = "LOADADDR({0}) + ADDR({1}) - ADDR({2})".format(prev_sec,
-            sec, prev_sec)
-      else:
-        load_address = "0x{0:08x}".format(load_address)
+    if lma_region == None:
+      laddr = "AT({0})".format(address)
+      vma_redirect = ">{0}".format(vma_region)
+    else:
+      vaddr = address
+      lma_redirect = "AT>{0}".format(lma_region)
 
-      script += "\n {0} : AT ({1}) {{\n".format(sec, load_address)
-      script += content
-      script += "}} >{0}\n".format(mem_region)
+    script = "{0} {1} :\n{2} {{".format(name, vaddr, laddr)
 
-    script += '}\n'
+    for sec in in_sections:
+      script += "\n  {0}({1})".format(in_objects, sec)
+
+    script += "\n  ALIGN(8);\n"
+    script += "\n}} {0} {1}\n\n".format(vma_redirect, lma_redirect)
 
     return script
 
@@ -86,96 +110,133 @@ class bsg_manycore_link_gen:
     # LMA (Load Memory Address)    => NPA used by loader
     # VMA (Virtual Memory Address) => Logical address used by linker for 
     #                                 symbol resolutions
-    #
-    #
-    # Note on program memory:
-    #
-    # BSG Manycore's PC width is 24-bit, addressing a total of 16MB program 
-    # space. Since the 31:25 MBSs are assumed to be 0s, linking should also be
-    # done assuming 0x0-0x01000000 as the valid program space. This means that
-    # .text section VMAs lie in 0x0-0x01000000. On the other hand, .text section
-    # is loaded to DRAM and as result, it's LMAs shouls be >0x80000000. So,
-    # .text section is loaded in the region 0x80000000-0x81000000.
-    _DMEM_START      = 0x1000
-    _DMEM_SIZE       = 0x1000
-    _TEXT_VMA_START  = 0x0
-    _TEXT_VMA_SIZE   = 0x1000000
-    _TEXT_LMA_START  = 0x80000000
-    _DRAM_DATA_START = 0x80000000 + _TEXT_VMA_SIZE
+    _PRIVATE_VMA_START = 0x1000
+    _PRIVATE_VMA_SIZE  = 0x1000
+    _SHARED_LMA_START  = 0x80000000
+    _SHARED_LMA_SIZE   = self._shared_mem_size
 
     mem_regions = [
       # Format:
       # [<mem region name>, <access>, <start address>, <size>]
-      ['DMEM_VMA', 'rw', _DMEM_START, _DMEM_SIZE],
-      ['DRAM_TEXT_VMA', 'rx', _TEXT_VMA_START, _TEXT_VMA_SIZE],
-      ['DRAM_DATA_VMA', 'rw', _DRAM_DATA_START, self._dram_size - _TEXT_VMA_SIZE]
-    ]
-
-    sections = [
-      # Format:
-      # [<section name>, <content>, <load_address>, <mem_region>]
       #
-      # `load_address = None` means the section could be placed after the
-      # the previous section
-      ['.data.dmem',
-        """
-          *(.data)
-          *(.data*)
-        """,
-        0x1000,
-        'DMEM_VMA'],
+      # .text section VMAs and private memory VMAs overlap with the
+      # current memory layout (both start at address 0x0). This makes
+      # manycore essentially a Harvard architecture. But linker doesn't
+      # allow overlapping VMAs by not letting location couter not move 
+      # backwards. To overcome this, we use combination of VMA and LMA
+      # "memory regions" to be able to never move location counter
+      # backward.
+      ['PRIVATE_VMA', 'rw', _PRIVATE_VMA_START, _PRIVATE_VMA_SIZE],
+      ['SHARED_LMA', 'rw', _SHARED_LMA_START, _SHARED_LMA_SIZE],
+      ]
 
-      ['.sdata.dmem',
-        """ 
-          _gp = . + 0x800; 
-          *(.srodata.cst16)  
-          *(.srodata.cst8) 
-          *(.srodata.cst4) 
-          *(.srodata.cst2) 
-          *(.srodata*) 
-          *(.sdata .sdata.* .gnu.linkonce.s.*) 
-        """,
-        None,
-        'DMEM_VMA']
-    ]
+    section_map = [
+      # Format:
+      # <output section>: [<input sections>]
+      ['.text.dram'        , ['.crtbegin','.text.startup','.text','.text.*']],
+      ['.dmem'             , ['.dmem','.dmem.*']],
+      ['.data'             , ['.data','.data*']],
+      ['.sdata'            , ['.srodata.cst16','.srodata.cst8','.srodata.cst4',
+                              '.srodata.cst2','.srodata*','.sdata','.sdata.*',
+                              '.gnu.linkonce.s.*']],
+      ['.sbss'             , ['.sbss','.sbss.*','.gnu.linkonce.sb.*','.scommon']],
+      ['.bss'              , ['.bss','.bss*']],
+      ['.tdata'            , ['.tdata','.tdata*']],
+      ['.tbss'             , ['.tbss','.tbss*']],
+      ['.eh_frame'         , ['.eh_frame','.eh_frame*']],
+      ['.striped.data.dmem', ['.striped.data']],
+      ['.rodata.dram'      , ['.rodata','.rodata*']],
+      ['.dram'             , ['.dram','.dram.*']],
+      ]
+
+    sections = "SECTIONS {\n\n"
+
+    # DMEM sections
+    for i, m in enumerate(section_map):
+      sec = m[0]
+      laddr = '0x1000'
+      in_sections = m[1]
+      in_objects = '*' if self._default_data_loc == 'private' \
+                          else '*bsg_manycore_lib.a'
+
+      if re.search(".dram$", sec) != None:
+        continue
+
+      if sec != ".dmem":
+        laddr = "LOADADDR({0}) + ADDR({1}) - ADDR({0})".format(
+            section_map[i-1][0], sec)
+
+      if re.search(".dmem$", sec):
+        in_objects = '*'
+      else:
+        sec += '.dmem'
+      
+      sections += self._section(sec, laddr, 'PRIVATE_VMA', None,
+          in_sections, in_objects)
+
+    # DRAM sections
+    for i,m in enumerate(section_map):
+      sec = m[0]
+      vaddr = ""
+      in_sections = m[1]
+      in_objects = '*'
+
+      if re.search(".dmem$", sec) != None:
+        continue
+
+      if sec == ".text.dram":
+        vaddr = "0x0"
+
+      if re.search(".dram$", sec) == None and self._default_data_loc == 'shared':
+        sec += '.dram'
+
+      if self._default_data_loc == 'shared' or re.search(".dram$", sec) != None:
+        sections += self._section(sec, vaddr, None, 'SHARED_LMA',
+            in_sections, in_objects)
+
+      if sec == '.text.dram':
+        sections += ". = . + 0x80000000;\n\n"
+
+    # Symbols
+    if self._default_data_loc == 'private':
+      sections += "_gp = {0};\n".format('ADDR(.sdata.dmem) + 0x800')
+    else:
+      sections += "_gp = {0};\n".format('ADDR(.sdata.dram) + 0x800')
+    sections += "_sp = 0x{0:08x};\n".format(self._sp)
+    sections += "_end = {0};\n".format("ADDR(.dram) + SIZEOF(.dram)")
+    sections += "_bsg_data_start_addr = 0x{0:08x};\n".format(_PRIVATE_VMA_START)
+    sections += "_bsg_data_end_addr = ADDR(striped.data.dmem) + " \
+      "SIZEOF(striped.data.dmem);\n"
+
+    sections += "\n}\n"
 
     script = self._opening_comment + '\n'
     script += self._memory_regions(mem_regions) + '\n'
-    script += self._sections(sections)
+    script += sections
     return script
 
 
 if __name__ == '__main__':
   # Parse arguments
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(prog = 'bsg_manycore_link_gen.py',
+      formatter_class = argparse.RawDescriptionHelpFormatter,
+      description = bsg_manycore_link_gen.__doc__)
   parser.add_argument('--default_data_loc', 
-    help='Default data location (private|shared)')
-  parser.add_argument('--shared_mem', 
-    help='Shared memory type (onchip|offchip)')
-  parser.add_argument('--dram_size', 
-    help='DRAM size',
-    default=0x80000000,
-    type=int)
-  parser.add_argument('--vcache_size', 
-    help='Total size of vcaches',
-    type=int)
+    help = 'Default data location',
+    default = 'private',
+    choices = ['private', 'shared'])
+  parser.add_argument('--shared_mem_size', 
+    help = 'Shared memory size',
+    default = 0x80000000,
+    type = int)
+  parser.add_argument('--sp', 
+    help = 'Stack pointer',
+    default = 0x1000,
+    type = int)
   args = parser.parse_args()
 
 
-  # Check vcache size
-  if args.shared_mem == 'onchip':
-    assert args.vcache_size != None, \
-      "--vcache_size should be set when shared memory is onchip only."
-    assert args.vcache_size > 0, \
-      "Invalid vcache size (%d): expected a positive integer" % args.vcache_size
-    assert args.vcache_size < args.dram_size, \
-      "Invalid vcache size (%d): should be less than dram size (%d)" \
-        % (args.vcache_size, args.dram_size)
-
-  vcache_size = 0 if args.vcache_size == None else int(args.vcache_size)
-
-
   # Generate linker script
-  link_gen = bsg_manycore_link_gen(args.default_data_loc, args.shared_mem, \
-    args.dram_size, vcache_size)
+  link_gen = bsg_manycore_link_gen(args.default_data_loc, args.shared_mem_size,
+      args.sp)
   print(link_gen.script())
