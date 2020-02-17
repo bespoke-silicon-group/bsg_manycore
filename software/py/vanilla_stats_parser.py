@@ -156,8 +156,8 @@ class VanillaStatsParser:
                }
 
 
-    print_format = {"tg_timing_header": type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "tg_timing_data"  : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+    print_format = {"tg_timing_header": type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                    "tg_timing_data"  : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "timing_header"   : type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
                     "timing_data"     : type_fmt["cord"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "instr_header"    : type_fmt["name"]       + type_fmt["int"]  + type_fmt["type"]    + "\n",
@@ -198,7 +198,7 @@ class VanillaStatsParser:
         self.tile_stat = {tag:Counter() for tag in tags}
         self.tile_group_stat = {tag:Counter() for tag in tags}
         self.manycore_stat = {tag:Counter() for tag in tags}
-        self.cycle_parallel_cnt = {tag: 0 for tag in tags}
+        self.manycore_cycle_parallel_cnt = {tag: 0 for tag in tags}
 
         # list of instructions, operations and events parsed from vanilla_stats.log
         # populated by reading the header of input file 
@@ -242,11 +242,11 @@ class VanillaStatsParser:
         self.active.sort()
 
         # generate timing stats for each tile and tile group 
-        self.num_tile_groups, self.tile_group_stat, self.tile_stat, self.cycle_parallel_cnt = self.__generate_tile_stats(self.traces, self.active)
+        self.num_tile_groups, self.tile_group_stat, self.tile_stat, self.manycore_cycle_parallel_cnt = self.__generate_tile_stats(self.traces, self.active)
 
         # Calculate total aggregate stats for manycore
         # By summing up per_tile stat counts
-        self.manycore_stat = self.__generate_manycore_stats_all(self.tile_stat, self.cycle_parallel_cnt)
+        self.manycore_stat = self.__generate_manycore_stats_all(self.tile_stat, self.manycore_cycle_parallel_cnt)
 
         return
 
@@ -273,7 +273,7 @@ class VanillaStatsParser:
                                              ,self.manycore_stat[tag]["stall_total"]
                                              ,self.manycore_stat[tag]["bubble_total"]
                                              ,self.manycore_stat[tag]["global_ctr"]
-                                             ,self.manycore_stat[tag]["cycle_parallel"]
+                                             ,self.manycore_stat[tag]["cycle_parallel_cnt"]
                                              ,(np.float64(self.manycore_stat[tag]["instr_total"]) / self.manycore_stat[tag]["global_ctr"])
                                              ,np.float64(100 * self.manycore_stat[tag]["global_ctr"]) / self.manycore_stat["kernel"]["global_ctr"])
         self.__print_stat(stat_file, "end_lbreak")
@@ -298,7 +298,7 @@ class VanillaStatsParser:
                                              ,self.tile_group_stat[tag][tg_id]["stall_total"]
                                              ,self.tile_group_stat[tag][tg_id]["bubble_total"]
                                              ,self.tile_group_stat[tag][tg_id]["global_ctr"]
-                                             ,0
+                                             ,self.tile_group_stat[tag][tg_id]["cycle_parallel_cnt"]
                                              ,(np.float64(self.tile_group_stat[tag][tg_id]["instr_total"]) / self.tile_group_stat[tag][tg_id]["global_ctr"])
                                              ,(np.float64(100 * self.tile_group_stat[tag][tg_id]["global_ctr"]) / self.tile_group_stat["kernel"][tg_id]["global_ctr"]))
         self.__print_stat(stat_file, "end_lbreak")
@@ -323,7 +323,7 @@ class VanillaStatsParser:
                                              ,self.tile_stat[tag][tile]["stall_total"]
                                              ,self.tile_stat[tag][tile]["bubble_total"]
                                              ,self.tile_stat[tag][tile]["global_ctr"]
-                                             ,0
+                                             ,self.tile_stat[tag][tile]["global_ctr"]
                                              ,(np.float64(self.tile_stat[tag][tile]["instr_total"]) / self.tile_stat[tag][tile]["global_ctr"])
                                              ,(np.float64(100 * self.tile_stat[tag][tile]["global_ctr"]) / self.tile_stat["kernel"][tile]["global_ctr"]))
         self.__print_stat(stat_file, "end_lbreak")
@@ -341,6 +341,7 @@ class VanillaStatsParser:
                                          ,tg_id
                                          ,(self.tile_group_stat[tag][tg_id]["instr_total"])
                                          ,(self.tile_group_stat[tag][tg_id]["global_ctr"])
+                                         ,(self.tile_group_stat[tag][tg_id]["cycle_parallel_cnt"])
                                          ,(np.float64(self.tile_group_stat[tag][tg_id]["instr_total"]) / self.tile_group_stat[tag][tg_id]["global_ctr"])
                                          ,(np.float64(100.0 * self.tile_group_stat[tag][tg_id]["global_ctr"]) / self.manycore_stat[tag]["global_ctr"])
                                          ,(np.float64(100.0 * self.tile_group_stat[tag][tg_id]["global_ctr"]) / self.tile_group_stat["kernel"][tg_id]["global_ctr"]))
@@ -349,6 +350,7 @@ class VanillaStatsParser:
                                      ,"total"
                                      ,(self.manycore_stat[tag]["instr_total"])
                                      ,(self.manycore_stat[tag]["global_ctr"])
+                                     ,(self.manycore_stat[tag]["cycle_parallel_cnt"])
                                      ,(self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["global_ctr"])
                                      ,(100 * self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["instr_total"])
                                      ,(np.float64(100 * self.manycore_stat[tag]["global_ctr"]) / self.manycore_stat["kernel"]["global_ctr"]))
@@ -358,7 +360,7 @@ class VanillaStatsParser:
     # Prints manycore timing stats per tile group for all tags 
     def __print_manycore_stats_tile_group_timing(self, stat_file):
         stat_file.write("Per-Tile-Group Timing Stats\n")
-        self.__print_stat(stat_file, "tg_timing_header", "Tile Group ID", "Instructions", "Cycles", "IPC", "   TG / Tag-Total (%)", "   TG / Kernel-Total(%)")
+        self.__print_stat(stat_file, "tg_timing_header", "Tile Group ID", "Instructions", "Cycles", "Abs Cycle", "IPC", "   TG / Tag-Total (%)", "   TG / Kernel-Total(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in self.manycore_stat.keys():
             if(self.manycore_stat[tag]["global_ctr"]):
@@ -387,6 +389,7 @@ class VanillaStatsParser:
                                      ,"total"
                                      ,(self.manycore_stat[tag]["instr_total"])
                                      ,(self.manycore_stat[tag]["global_ctr"])
+                                     ,0
                                      ,(self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["global_ctr"])
                                      ,(np.float64(100 * self.manycore_stat[tag]["global_ctr"]) / self.manycore_stat[tag]["global_ctr"])
                                      ,(np.float64(100 * self.manycore_stat[tag]["global_ctr"]) / self.manycore_stat["kernel"]["global_ctr"]))
@@ -416,6 +419,7 @@ class VanillaStatsParser:
                                      ,tg_id
                                      ,(self.tile_group_stat[tag][tg_id]["instr_total"])
                                      ,(self.tile_group_stat[tag][tg_id]["global_ctr"])
+                                     ,(self.tile_group_stat[tag][tg_id]["cycle_parallel_cnt"])
                                      ,(np.float64(self.tile_group_stat[tag][tg_id]["instr_total"]) / self.tile_group_stat[tag][tg_id]["global_ctr"])
                                      ,(100 * self.tile_group_stat[tag][tg_id]["global_ctr"] / self.manycore_stat[tag]["global_ctr"])
                                      ,(100 * np.float64(self.tile_group_stat[tag][tg_id]["instr_total"]) / self.tile_group_stat["kernel"][tg_id]["instr_total"]))
@@ -425,7 +429,7 @@ class VanillaStatsParser:
     # Print timing stat for each tile group in separate file for all tags 
     def __print_per_tile_group_stats_timing(self, tg_id, stat_file):
         stat_file.write("Per-Tile-Group Timing Stats\n")
-        self.__print_stat(stat_file, "tg_timing_header", "Tile Group ID ", "Instructions", "Cycles", "IPC", "    TG / Tag-Total (%)", "    TG / Kernel-Total(%)")
+        self.__print_stat(stat_file, "tg_timing_header", "Tile Group ID ", "Instructions", "Cycles", "Abs Cycle", "IPC", "    TG / Tag-Total (%)", "    TG / Kernel-Total(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in self.tile_group_stat.keys():
             if(self.tile_group_stat[tag][tg_id]["global_ctr"]):
@@ -914,14 +918,20 @@ class VanillaStatsParser:
         # calculates the absolute cycle count. In other words, if multiple tiles run a
         # kernel or a tile group in `parallel`, this structure calculates the interval from
         # when the earliest tile starts running, until when the latest tile stops running
-        # cycle_parallel_earliest_start: minimum start cycle among all tiles involved in a tag
+        # manycore_cycle_parallel_earliest_start: minimum start cycle among all tiles involved in a tag
         # cycle_parallel_latest_test   : maximum end cycle among all tiles involved in a tag
-        # cycle_parlalel_interval      : cycle_parallel_latest_end - cycle_parallel_earliest_start
+        # cycle_parlalel_interval      : manycore_cycle_parallel_latest_end - manycore_cycle_parallel_earliest_start
         # For calculating manycore stats, all tiles are considerd to be involved
         # For calculating tile group stats, only tiles inside the tile group are considered
-        cycle_parallel_earliest_start = {tag: 0 for tag in tags}
-        cycle_parallel_latest_end     = {tag: 0 for tag in tags}
-        cycle_parallel_cnt       = {tag: 0 for tag in tags}
+        # For manycore (all tiles that participate in tag are included)
+        manycore_cycle_parallel_earliest_start = {tag: 0 for tag in tags}
+        manycore_cycle_parallel_latest_end     = {tag: 0 for tag in tags}
+        manycore_cycle_parallel_cnt       = {tag: 0 for tag in tags}
+
+        # For each tile group (only tiles in a tile group that participate in a tag are included)
+        tile_group_cycle_parallel_earliest_start = {tag: [10000000 for tg_id in range(self.max_tile_groups)] for tag in tags}
+        tile_group_cycle_parallel_latest_end     = {tag: [0 for tg_id in range(self.max_tile_groups)] for tag in tags}
+        tile_group_cycle_parallel_cnt            = {tag: [0 for tg_id in range(self.max_tile_groups)] for tag in tags}
 
 
         tag_seen = {tag: {tile:False for tile in tiles} for tag in tags}
@@ -951,6 +961,11 @@ class VanillaStatsParser:
                     tile_stat_start[cst.tag][cur_tile][op] = trace[op]
                     tile_group_stat_start[cst.tag][cst.tg_id][op] += trace[op]
 
+                    # if op is cycle, find the earliest start cycle in tag among tiles in a tile group for parallel cycle stats
+                    if (op == "global_ctr"):
+                        tile_group_cycle_parallel_earliest_start[cst.tag][cst.tg_id] = min (trace[op], tile_group_cycle_parallel_earliest_start[cst.tag][cst.tg_id])
+
+
             elif (cst.isEnd):
                 if(not tag_seen[cst.tag][cur_tile]):
                     print ("Warning: missing start stat for tag {}, tile {},{}.".format(cst.tag, relative_x, relative_y))
@@ -959,6 +974,11 @@ class VanillaStatsParser:
                 for op in self.all_ops:
                     tile_stat_end[cst.tag][cur_tile][op] = trace[op]
                     tile_group_stat_end[cst.tag][cst.tg_id][op] += trace[op]
+
+                    # if op is cycle, find the latest end cycle in tag among tiles in a tile group for parallel cycle stats
+                    if (op == "global_ctr"):
+                        tile_group_cycle_parallel_latest_end[cst.tag][cst.tg_id] = max (trace[op], tile_group_cycle_parallel_latest_end[cst.tag][cst.tg_id])
+
 
                 tile_stat[cst.tag][cur_tile] += tile_stat_end[cst.tag][cur_tile] - tile_stat_start[cst.tag][cur_tile]
 
@@ -976,6 +996,10 @@ class VanillaStatsParser:
                     tile_stat_start["kernel"][cur_tile][op] = trace[op]
                     tile_group_stat_start["kernel"][cst.tg_id][op] += trace[op]
 
+                    # if op is cycle, find the earliest start cycle in kernel among tiles in a tile group for parallel cycle stats
+                    if (op == "global_ctr"):
+                        tile_group_cycle_parallel_earliest_start["kernel"][cst.tg_id] = min (trace[op], tile_group_cycle_parallel_earliest_start["kernel"][cst.tg_id])
+
 
             elif (cst.isKernelEnd):
                 if(not tag_seen["kernel"][cur_tile]):
@@ -985,6 +1009,11 @@ class VanillaStatsParser:
                 for op in self.all_ops:
                     tile_stat_end["kernel"][cur_tile][op] = trace[op]
                     tile_group_stat_end["kernel"][cst.tg_id][op] += trace[op]
+
+                    # if op is cycle, find the latest end cycle in kernel among tiles in a tile group for parallel cycle stats
+                    if (op == "global_ctr"):
+                        tile_group_cycle_parallel_latest_end["kernel"][cst.tg_id] = max (trace[op], tile_group_cycle_parallel_latest_end["kernel"][cst.tg_id])
+
 
                 tile_stat["kernel"][cur_tile] += tile_stat_end["kernel"][cur_tile] - tile_stat_start["kernel"][cur_tile]
 
@@ -997,19 +1026,23 @@ class VanillaStatsParser:
         # tile finishes that section. Contrary to the manycore or tile group stats
         # that calculate the aggregate cycle count, this structure calcualtes the 
         # absolute cycle count it takes to execute a tagged section in parallel
-        # cycle_parallel_earliest_start: minimum start cycle among all tiles involved in a tag
+        # manycore_cycle_parallel_earliest_start: minimum start cycle among all tiles involved in a tag
         # cycle_parallel_latest_test   : maximum end cycle among all tiles involved in a tag
-        # cycle_parlalel_interval      : cycle_parallel_latest_end - cycle_parallel_earliest_start
+        # cycle_parlalel_interval      : manycore_cycle_parallel_latest_end - manycore_cycle_parallel_earliest_start
         for tag in tags:
-            cycle_parallel_earliest_start[tag] = min ([tile_stat_start[tag][tile]["global_ctr"] for tile in tiles])
-            cycle_parallel_latest_end[tag]     = max ([tile_stat_end  [tag][tile]["global_ctr"] for tile in tiles])
-            cycle_parallel_cnt[tag]       = cycle_parallel_latest_end[tag] - cycle_parallel_earliest_start[tag]
+            manycore_cycle_parallel_earliest_start[tag] = min ([tile_stat_start[tag][tile]["global_ctr"] for tile in tiles])
+            manycore_cycle_parallel_latest_end[tag]     = max ([tile_stat_end  [tag][tile]["global_ctr"] for tile in tiles])
+            manycore_cycle_parallel_cnt[tag]       = manycore_cycle_parallel_latest_end[tag] - manycore_cycle_parallel_earliest_start[tag]
 
 
         # Generate all tile group stats by subtracting start time from end time
         for tag in tags:
             for tg_id in range(num_tile_groups[tag]):
                 tile_group_stat[tag][tg_id] = tile_group_stat_end[tag][tg_id] - tile_group_stat_start[tag][tg_id]
+
+                # also generate parallel cycle count (not aggregate, but the longest parallel interval) 
+                # for each tile group by subtracting the earliest start cycle from the latest end cycle 
+                tile_group_cycle_parallel_cnt[tag][tg_id] = tile_group_cycle_parallel_latest_end[tag][tg_id] - tile_group_cycle_parallel_earliest_start[tag][tg_id]
 
         # Generate total stats for each tile by summing all stats 
         for tag in tags:
@@ -1041,17 +1074,21 @@ class VanillaStatsParser:
                 for miss in self.misses:
                     tile_group_stat[tag][tg_id]["miss_total"] += tile_group_stat[tag][tg_id][miss]
 
+                # Add the parallel cycle stats (not the aggregate, i.e. the longest parallel interval)
+                # to the tile group stats manually
+                tile_group_stat[tag][tg_id]["cycle_parallel_cnt"] = tile_group_cycle_parallel_cnt[tag][tg_id]
+
         self.instrs  += ["instr_total"]
         self.stalls  += ["stall_total"]
         self.bubbles += ["bubble_total"]
         self.misses  += ["miss_total"]
         self.all_ops += ["instr_total", "stall_total", "bubble_total", "miss_total"]
 
-        return num_tile_groups, tile_group_stat, tile_stat, cycle_parallel_cnt
+        return num_tile_groups, tile_group_stat, tile_stat, manycore_cycle_parallel_cnt
 
     # Calculate aggregate manycore stats dictionary by summing 
     # all per tile stats dictionaries
-    def __generate_manycore_stats_all(self, tile_stat, cycle_parallel_cnt):
+    def __generate_manycore_stats_all(self, tile_stat, manycore_cycle_parallel_cnt):
         # Create a dictionary and initialize elements to zero
         tags = list(range(self.max_tags)) + ["kernel"]
         manycore_stat = {tag: Counter() for tag in tags}
@@ -1062,8 +1099,8 @@ class VanillaStatsParser:
             # The parallel cycle count (not aggregate), i.e. the longest 
             # interval among tiles that participate in a tag in parallel 
             # is generated in __generate_tile_stats and passed to this function
-            # and is added as a new entry "cycle_parallel" to the manycore_stats
-            manycore_stat[tag]["cycle_parallel"] = cycle_parallel_cnt[tag]
+            # and is added as a new entry "cycle_parallel_cnt" to the manycore_stats
+            manycore_stat[tag]["cycle_parallel_cnt"] = manycore_cycle_parallel_cnt[tag]
 
         return manycore_stat
  
