@@ -26,7 +26,7 @@ package bsg_manycore_pkg;
     e_remote_load
     , e_remote_store
     , e_remote_amo
-    , e_cache_op // AFL, AFLINV, AINV
+    , e_cache_op // AFL, AFLINV, AINV for DRAM addresses - TAGFL for tag memory
   } bsg_manycore_packet_op_e;
 
 
