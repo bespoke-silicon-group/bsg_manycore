@@ -43,13 +43,13 @@ class bsg_manycore_link_gen:
     "/**********************************\n" \
     + " BSG Manycore Linker Script \n\n"
 
-  def __init__(self, default_data_loc, dram_mem_size, sp):
+  def __init__(self, default_data_loc, dram_size, sp):
     self._default_data_loc = default_data_loc
-    self._dram_mem_size = dram_mem_size
+    self._dram_size = dram_size
     self._sp = sp
     self._opening_comment += \
         " data default: {0}\n".format(default_data_loc) \
-        + " dram memory size: 0x{0:08x}\n".format(dram_mem_size) \
+        + " dram memory size: 0x{0:08x}\n".format(dram_size) \
       + "***********************************/\n"
 
   # Format:
@@ -99,7 +99,7 @@ class bsg_manycore_link_gen:
     for sec in in_sections:
       script += "\n  {0}({1})".format(in_objects, sec)
 
-    script += "\n  ALIGN(8);\n"
+    script += "\n  . = ALIGN(8);\n"
     script += "\n}} {0} {1}\n\n".format(vma_redirect, lma_redirect)
 
     return script
@@ -113,7 +113,7 @@ class bsg_manycore_link_gen:
     _DMEM_VMA_START = 0x1000
     _DMEM_VMA_SIZE  = 0x1000
     _DRAM_LMA_START  = 0x80000000
-    _DRAM_LMA_SIZE   = self._dram_mem_size
+    _DRAM_LMA_SIZE   = self._dram_size
 
     mem_regions = [
       # Format:
@@ -133,7 +133,7 @@ class bsg_manycore_link_gen:
     section_map = [
       # Format:
       # <output section>: [<input sections>]
-      ['.text.dram'        , ['.crtbegin','.text.startup','.text','.text.*']],
+      ['.text.dram'        , ['.crtbegin','.text','.text.startup','.text.*']],
       ['.dmem'             , ['.dmem','.dmem.*']],
       ['.data'             , ['.data','.data*']],
       ['.sdata'            , ['.srodata.cst16','.srodata.cst8','.srodata.cst4',
@@ -146,7 +146,7 @@ class bsg_manycore_link_gen:
       ['.eh_frame'         , ['.eh_frame','.eh_frame*']],
       ['.striped.data.dmem', ['.striped.data']],
       ['.rodata.dram'      , ['.rodata','.rodata*']],
-      ['.dram'             , ['.dram','.dram.*']],
+      ['.dram'             , ['.dram','.dram.*', '.*']],
       ]
 
     sections = "SECTIONS {\n\n"
@@ -157,20 +157,25 @@ class bsg_manycore_link_gen:
       laddr = '0x1000'
       in_sections = m[1]
       in_objects = '*' if self._default_data_loc == 'dmem' \
-                          else '*bsg_manycore_lib.a'
+          else '*bsg_manycore_lib.a:'
 
       if re.search(".dram$", sec) != None:
         continue
-
-      if sec != ".dmem":
-        laddr = "LOADADDR({0}) + ADDR({1}) - ADDR({0})".format(
-            section_map[i-1][0], sec)
 
       if re.search(".dmem$", sec):
         in_objects = '*'
       else:
         sec += '.dmem'
       
+      if sec != ".dmem":
+        prev_sec = section_map[i-1][0]
+
+        if re.search(".dmem$", prev_sec) == None:
+          prev_sec += '.dmem'
+
+        laddr = "LOADADDR({0}) + ADDR({1}) - ADDR({0})".format(
+            prev_sec, sec)
+
       sections += self._section(sec, laddr, 'DMEM_VMA', None,
           in_sections, in_objects)
 
@@ -199,14 +204,19 @@ class bsg_manycore_link_gen:
 
     # Symbols
     if self._default_data_loc == 'dmem':
-      sections += "_gp = {0};\n".format('ADDR(.sdata.dmem) + 0x800')
+      sections += "_gp = ADDR(.sdata.dmem) + 0x800;\n"
     else:
-      sections += "_gp = {0};\n".format('ADDR(.sdata.dram) + 0x800')
+      sections += "_gp = ADDR(.sdata.dram) + 0x800;\n"
     sections += "_sp = 0x{0:08x};\n".format(self._sp)
-    sections += "_end = {0};\n".format("ADDR(.dram) + SIZEOF(.dram)")
     sections += "_bsg_data_start_addr = 0x{0:08x};\n".format(_DMEM_VMA_START)
-    sections += "_bsg_data_end_addr = ADDR(striped.data.dmem) + " \
-      "SIZEOF(striped.data.dmem);\n"
+    sections += "_bsg_data_end_addr = ADDR(.striped.data.dmem) + " \
+                "SIZEOF(.striped.data.dmem);\n"
+    sections += "_bsg_striped_data_start = ADDR(.striped.data.dmem)\n;"
+    sections += "_bsg_dram_t_start_addr = LOADADDR(.text.dram)\n;"
+    sections += "_bsg_dram_d_start_addr = LOADADDR(.text.dram) + SIZEOF(.text.dram)\n;"
+    sections += "_bsg_dram_d_end_addr = LOADADDR(.dram) + SIZEOF(.dram)\n;"
+    sections += "_bsg_dram_end_addr = _bsg_dram_d_end_addr\n;"
+    sections += "_end = _bsg_dram_end_addr\n;"
 
     sections += "\n}\n"
 
@@ -225,18 +235,18 @@ if __name__ == '__main__':
     help = 'Default data location',
     default = 'dmem',
     choices = ['dmem', 'dram'])
-  parser.add_argument('--dram_mem_size', 
-    help = 'DRAM memory size',
+  parser.add_argument('--dram_size', 
+    help = 'DRAM size',
     default = 0x80000000,
     type = int)
   parser.add_argument('--sp', 
     help = 'Stack pointer',
     default = 0x1000,
-    type = int)
+    type = lambda x: int(x, 0))
   args = parser.parse_args()
 
 
   # Generate linker script
-  link_gen = bsg_manycore_link_gen(args.default_data_loc, args.dram_mem_size,
+  link_gen = bsg_manycore_link_gen(args.default_data_loc, args.dram_size,
       args.sp)
   print(link_gen.script())
