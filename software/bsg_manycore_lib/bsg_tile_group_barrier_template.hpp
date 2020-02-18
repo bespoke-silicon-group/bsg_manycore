@@ -40,6 +40,52 @@
 #include "bsg_set_tile_x_y.h"
 #include "bsg_manycore.h"
 
+template <int BARRIER_X_DIM>
+class tmp_bsg_row_barrier {
+public:
+    unsigned char    _x_cord_start;
+    unsigned char    _x_cord_end;
+    unsigned char    _done_list[ BARRIER_X_DIM ] = {0};
+    unsigned int     _local_alert;
+    tmp_bsg_row_barrier (unsigned char x_cord_start ,unsigned char x_cord_end) {
+        _x_cord_start = x_cord_start;
+        _x_cord_end = x_cord_end;
+//        _done_list.fill(0);
+        _local_alert = 0;
+    }; 
+};
+
+
+template <int BARRIER_Y_DIM>
+class tmp_bsg_col_barrier {
+public:
+    unsigned char    _y_cord_start;
+    unsigned char    _y_cord_end;
+    unsigned char    _done_list[ BARRIER_Y_DIM ] = {0};
+    unsigned int     _local_alert ;
+    tmp_bsg_col_barrier (unsigned char y_cord_start ,unsigned char y_cord_end) {
+        _y_cord_start = y_cord_start;
+        _y_cord_end = y_cord_end;
+//        _done_list.fill(0);
+        _local_alert = 0;
+    };
+};
+ 
+
+//initial value of the bsg_barrier
+#define TMP_INIT_TILE_GROUP_BARRIER( ROW_BARRIER_NAME, COL_BARRIER_NAME, x_cord_start, x_cord_end, y_cord_start, y_cord_end)\
+tmp_bsg_row_barrier<BSG_TILE_GROUP_X_DIM> ROW_BARRIER_NAME (x_cord_start, x_cord_end); \
+tmp_bsg_col_barrier<BSG_TILE_GROUP_Y_DIM> COL_BARRIER_NAME (y_cord_start, y_cord_end);
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+
+
 typedef struct _bsg_row_barrier_ {                      
     unsigned char    _x_cord_start;                     
     unsigned char    _x_cord_end  ;                     
