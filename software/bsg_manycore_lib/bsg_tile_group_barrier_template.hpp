@@ -32,6 +32,22 @@
 #include "bsg_set_tile_x_y.h"
 #include "bsg_manycore.h"
 
+
+
+
+//------------------------------------------------------------------
+// check if the char array are all non-zeros
+void inline poll_range( int range, unsigned char *p);
+//------------------------------------------------------------------
+// wait a address to be writen by others with specific value 
+inline int bsg_wait_local_int(int * ptr,  int cond );
+
+
+
+
+
+
+
 template <int BARRIER_X_DIM>
 class bsg_row_barrier {
 public:
@@ -81,6 +97,16 @@ public:
     }
 
 
+    // wait on local alert to be set to the given value
+    bsg_row_barrier& wait_on_alert (){
+        // wait until _local_alert flag is set to 1
+        bsg_wait_local_int( (int *) &(this->_local_alert), 1);
+        //re-initilized the flag to 0
+        this->_local_alert = 0;
+        return *this;
+    }
+
+
 
 };
 
@@ -120,6 +146,18 @@ public:
         }
         return *this;
     }
+
+
+    // wait on local alert to be set to the given value
+    bsg_col_barrier& wait_on_alert (){
+        // wait until _local_alert flag is set to 1
+        bsg_wait_local_int( (int *) &(this->_local_alert), 1);
+        //re-initilized the flag to 0
+        this->_local_alert = 0;
+        return *this;
+    }
+
+
 
 };
  
@@ -197,7 +235,7 @@ public:
         if( bsg_x == center_x_cord)
                 bsg_row_barrier_alert( &(this->r_barrier), &(this->c_barrier) );
         //5. wait the row alert signal
-        bsg_tile_wait( &(this->r_barrier) );
+        this->r_barrier.wait_on_alert();
         #ifdef BSG_BARRIER_DEBUG
                 if( bsg_x == center_x_cord && bsg_y == center_y_cord ){
                         bsg_print_time();
@@ -213,13 +251,6 @@ public:
 
 
 
-
-//------------------------------------------------------------------
-//a. check if the char array are all non-zeros
-void inline poll_range( int range, unsigned char *p);
-//------------------------------------------------------------------
-//d. wait a address to be writen by others with specific value 
-inline int bsg_wait_local_int(int * ptr,  int cond );
 
 
 
@@ -308,16 +339,7 @@ void inline bsg_row_barrier_alert( bsg_row_barrier<BARRIER_X_DIM> *  p_row_b
 }
 
 
-//------------------------------------------------------------------
-//5. wait the row alert signal 
-//   execute by all tiles in the group
-//------------------------------------------------------------------
-template <int BARRIER_X_DIM>
-void inline bsg_tile_wait( bsg_row_barrier<BARRIER_X_DIM> * p_row_b){
-        bsg_wait_local_int( (int *) &(p_row_b->_local_alert), 1);
-        //re-initilized the flag.
-        p_row_b->_local_alert = 0;
-}
+
 
 
 
