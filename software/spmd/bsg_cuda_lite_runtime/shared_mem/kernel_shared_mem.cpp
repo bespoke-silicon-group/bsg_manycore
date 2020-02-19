@@ -3,16 +3,12 @@
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
+#include "bsg_tile_group_barrier_template.hpp"
 
 
-#define BSG_TILE_GROUP_X_DIM bsg_tiles_X
-#define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
-#include "bsg_tile_group_barrier.h"
+extern "C" int  __attribute__ ((noinline)) kernel_shared_mem (int *A, int N) {
 
-INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
-
-
-int  __attribute__ ((noinline)) kernel_shared_mem (int *A, int N) {
+	bsg_barrier<2,2> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 
 	bsg_tile_group_shared_mem (int, sh_arr, N); 
 
@@ -21,16 +17,15 @@ int  __attribute__ ((noinline)) kernel_shared_mem (int *A, int N) {
 	}
 
 
-	bsg_tile_group_barrier(&r_barrier, &c_barrier);
-
+	my_barrier.sync();
 
 	int block_size = N / (bsg_tiles_X * bsg_tiles_Y);
 	for (int iter_x = __bsg_id * block_size; iter_x < (__bsg_id + 1) * block_size; iter_x ++) { 
 		bsg_tile_group_shared_load(int, sh_arr, iter_x, A[iter_x]);
 	}
 
+	my_barrier.sync();
 
-	bsg_tile_group_barrier(&r_barrier, &c_barrier); 
 
   return 0;
 }
