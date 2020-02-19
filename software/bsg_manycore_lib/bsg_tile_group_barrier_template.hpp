@@ -94,17 +94,47 @@ public:
 
 
 
+
+
+template <int BARRIER_SIZE>
+class bsg_barrier_array {
+public:
+    unsigned char    _cord_start;
+    unsigned char    _cord_end;
+    unsigned char    _done_list[ BARRIER_SIZE ] = {0};
+    unsigned int     _local_alert ;
+
+    bsg_barrier_array (){};
+
+    bsg_barrier_array (unsigned char cord_start ,unsigned char cord_end) {
+        _cord_start = cord_start;
+        _cord_end = cord_end;
+        _local_alert = 0;
+    };
+
+    bsg_barrier_array& init (unsigned char cord_start ,unsigned char cord_end) {
+        _cord_start = cord_start;
+        _cord_end = cord_end;
+        _local_alert = 0;
+        return *this;
+    };
+
+};
+ 
+
+
+
+
+
 template <int BARRIER_Y_DIM, int BARRIER_X_DIM>
 class bsg_barrier {
 public:
-    bsg_row_barrier<BARRIER_X_DIM> r_barrier;
-    bsg_col_barrier<BARRIER_Y_DIM> c_barrier;
+    bsg_barrier_array<BARRIER_X_DIM> r_barrier;
+    bsg_barrier_array<BARRIER_Y_DIM> c_barrier;
 
 
-    bsg_barrier ( unsigned char x_cord_start
-                 ,unsigned char x_cord_end
-                 ,unsigned char y_cord_start
-                 ,unsigned char y_cord_end) {
+    bsg_barrier ( unsigned char x_cord_start, unsigned char x_cord_end,
+                  unsigned char y_cord_start, unsigned char y_cord_end) {
         r_barrier.init (x_cord_start, x_cord_end);
         c_barrier.init (y_cord_start, y_cord_end);
         return;
