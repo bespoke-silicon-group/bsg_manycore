@@ -20,7 +20,7 @@ extern "C" int  __attribute__ ((noinline)) kernel_barrier_template() {
 		bsg_print_int(0);
 	}
 
-        //my_barrier.sync();
+        my_barrier.sync();
 
 	return 0;
 }
