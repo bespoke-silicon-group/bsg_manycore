@@ -132,6 +132,11 @@ public:
         return;
     };
 
+    bsg_barrier& sync () {
+        bsg_tile_group_barrier(&(this->r_barrier), &(this->c_barrier));
+        return *this;
+    };
+
 };
 
 

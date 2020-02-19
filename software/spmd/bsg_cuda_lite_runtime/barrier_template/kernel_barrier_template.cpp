@@ -10,7 +10,17 @@ extern "C" int  __attribute__ ((noinline)) kernel_barrier_template() {
 
         bsg_barrier<2,2> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 
-	bsg_tile_group_barrier (&(my_barrier.r_barrier), &(my_barrier.c_barrier));
+	if (__bsg_id == 3) {
+		bsg_print_int(3);
+	}
+
+        my_barrier.sync();
+
+	if (__bsg_id == 0) {
+		bsg_print_int(0);
+	}
+
+        //my_barrier.sync();
 
 	return 0;
 }
