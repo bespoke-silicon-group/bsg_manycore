@@ -242,6 +242,14 @@ public:
     bsg_col_barrier<BARRIER_Y_DIM> c_barrier;
 
 
+    // Initializer with default x/y start and end coordinates
+    bsg_barrier () {
+        r_barrier.init (0, BARRIER_X_DIM -1);
+        c_barrier.init (0, BARRIER_Y_DIM -1);
+        return;
+    };
+
+    // Initializer with custom x/y start and end coordinates
     bsg_barrier ( unsigned char x_cord_start, unsigned char x_cord_end,
                   unsigned char y_cord_start, unsigned char y_cord_end) {
         r_barrier.init (x_cord_start, x_cord_end);
