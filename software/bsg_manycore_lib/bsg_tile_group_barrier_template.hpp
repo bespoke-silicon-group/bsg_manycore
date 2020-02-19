@@ -28,14 +28,6 @@
 #ifndef  BSG_TILE_GROUP_BARRIER_TEMPLATE_H_
 #define  BSG_TILE_GROUP_BARRIER_TEMPLATE_H_
 
-#ifndef  BSG_TILE_GROUP_X_DIM
-#error   Please define BSG_TILE_GROUP_X_DIM before including bsg_tile_group_barrier.h
-#endif
-
-#ifndef  BSG_TILE_GROUP_Y_DIM
-#error   Please define BSG_TILE_GROUP_Y_DIM before including bsg_tile_group_barrier.h
-#endif
-
 //we need the global bsg_x,bsg_y value.
 #include "bsg_set_tile_x_y.h"
 #include "bsg_manycore.h"
@@ -129,8 +121,8 @@ public:
 template <int BARRIER_Y_DIM, int BARRIER_X_DIM>
 class bsg_barrier {
 public:
-    bsg_barrier_array<BARRIER_X_DIM> r_barrier;
-    bsg_barrier_array<BARRIER_Y_DIM> c_barrier;
+    bsg_row_barrier<BARRIER_X_DIM> r_barrier;
+    bsg_col_barrier<BARRIER_Y_DIM> c_barrier;
 
 
     bsg_barrier ( unsigned char x_cord_start, unsigned char x_cord_end,
