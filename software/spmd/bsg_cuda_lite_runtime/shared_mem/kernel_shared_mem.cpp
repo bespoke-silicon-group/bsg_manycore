@@ -8,7 +8,8 @@
 
 extern "C" int  __attribute__ ((noinline)) kernel_shared_mem (int *A, int N) {
 
-	bsg_barrier<2,2> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
+	// bsg_barrier<2,2> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
+	bsg_barrier<2,2> my_barrier;
 
 	bsg_tile_group_shared_mem (int, sh_arr, N); 
 

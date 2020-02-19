@@ -95,7 +95,8 @@ void __attribute__ ((noinline)) subblock_shmem_matrix_mul_xposed (int *sh_A, int
 extern "C" int  __attribute__ ((noinline)) kernel_matrix_mul_shared_mem(int *A, int *B, int *C, int M, int N, int P, int block_size_y, int block_size_x) {
 
 
-	bsg_barrier<2,2> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);	
+	// bsg_barrier<2,2> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
+	bsg_barrier<2,2> my_barrier;
 
 	
 	// declare tile-group shared memory

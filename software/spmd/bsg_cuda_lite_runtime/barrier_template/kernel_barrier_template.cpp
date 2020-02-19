@@ -8,7 +8,7 @@
 
 extern "C" int  __attribute__ ((noinline)) kernel_barrier_template() {
 
-        //bsg_barrier<2,2> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
+        //bsg_barrier<4,4> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
         bsg_barrier<2,2> my_barrier; 
 
 	if (__bsg_id == 3) {
