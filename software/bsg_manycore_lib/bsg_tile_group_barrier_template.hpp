@@ -108,6 +108,19 @@ public:
         return *this;
     };
 
+
+    // send alert to all of the tiles in the column 
+    bsg_col_barrier& alert (){
+        bsg_col_barrier<BARRIER_Y_DIM> * p_remote_barrier;
+        for( int i = this->_y_cord_start; i <= this->_y_cord_end; i ++) {
+               p_remote_barrier = (bsg_col_barrier<BARRIER_Y_DIM> *) bsg_remote_ptr( bsg_x,    \
+                                                                                     i,        \
+                                                                                     this);
+               p_remote_barrier->_local_alert = 1;
+        }
+        return *this;
+    }
+
 };
  
 
@@ -205,11 +218,6 @@ public:
 //a. check if the char array are all non-zeros
 void inline poll_range( int range, unsigned char *p);
 //------------------------------------------------------------------
-//c. send alert to all of the tiles in the col 
-template <int BARRIER_Y_DIM>
-void inline alert_col ( bsg_col_barrier<BARRIER_Y_DIM> * p_col_b);
-
-//------------------------------------------------------------------
 //d. wait a address to be writen by others with specific value 
 inline int bsg_wait_local_int(int * ptr,  int cond );
 
@@ -265,7 +273,7 @@ void inline bsg_col_barrier_alert(  bsg_col_barrier<BARRIER_Y_DIM> *  p_col_b ) 
                bsg_remote_ptr_io_store( IO_X_INDEX, 0x4, bsg_y);
         #endif
         //write alert signal to all tiles in the column
-        alert_col( p_col_b );
+        p_col_b->alert();
         //re-initilized the local column sync array.
         for( i= 0; i <= y_range; i++) {
               p_col_b->_done_list[ i ] = 0;
@@ -325,18 +333,6 @@ void inline poll_range( int range, unsigned char *p){
                         if ( p[ i ] == 0) break;
                 }
         }while ( i <= range);
-}
-
-template <int BARRIER_Y_DIM>
-void inline alert_col( bsg_col_barrier<BARRIER_Y_DIM> * p_col_b){
-        int i;
-        bsg_col_barrier<BARRIER_Y_DIM> * p_remote_barrier;
-        for( i= p_col_b-> _y_cord_start; i <= p_col_b-> _y_cord_end; i++) {
-               p_remote_barrier = (bsg_col_barrier<BARRIER_Y_DIM> *) bsg_remote_ptr( bsg_x,    \
-                                                                                     i,        \
-                                                                                     p_col_b);
-               p_remote_barrier->_local_alert = 1;
-        }
 }
 
 // wait until the specified memory address was written with specific value
