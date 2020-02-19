@@ -1,6 +1,7 @@
 //====================================================================
 // bsg_tile_group_barrier.h
 // 02/14/2019, shawnless.xie@gmail.com
+// 02/19/2020, behsani@cs.washington.edu
 //====================================================================
 // The barrier implementation for tile group in manycore
 // Usage:
@@ -28,22 +29,43 @@
 #ifndef  BSG_TILE_GROUP_BARRIER_TEMPLATE_H_
 #define  BSG_TILE_GROUP_BARRIER_TEMPLATE_H_
 
-//we need the global bsg_x,bsg_y value.
+// We need the global bsg_x,bsg_y value.
 #include "bsg_set_tile_x_y.h"
 #include "bsg_manycore.h"
 
 
 
 
+
+
 //------------------------------------------------------------------
+//  Helper funcitons.
 // check if the char array are all non-zeros
-void inline poll_range( int range, unsigned char *p);
 //------------------------------------------------------------------
-// wait a address to be writen by others with specific value 
-inline int bsg_wait_local_int(int * ptr,  int cond );
+void inline poll_range( int range, unsigned char *p){
+        int i;
+        do{
+                for( i= 0; i <= range; i++) {
+                        if ( p[ i ] == 0) break;
+                }
+        }while ( i <= range);
+}
 
-
-
+//------------------------------------------------------------------
+// Wait until the specified memory address is written by other tiles
+// with specific value
+//------------------------------------------------------------------
+inline int bsg_wait_local_int(int * ptr,  int cond ) {
+    int tmp;
+    while(1){
+        tmp = bsg_lr( ptr );
+        if( tmp == cond ) return tmp;  //the data is ready
+        else{
+            tmp = bsg_lr_aq( ptr );    //stall until somebody clear the reservation
+            if( tmp == cond ) return tmp; //return if data is expected, otherwise retry
+        }
+    }
+}
 
 
 
@@ -84,8 +106,7 @@ public:
     // send the sync singal to the center tile of the row
     // executed by all tiles in the group.
     // TODO: set center_x_cord and bsg_y as input arguments
-    bsg_row_barrier& sync () {
-        int center_x_cord = (this->_x_cord_start + this->_x_cord_end) / 2;
+    bsg_row_barrier& sync (unsigned char center_x_cord) {
         bsg_row_barrier<BARRIER_X_DIM> * p_remote_barrier = (bsg_row_barrier<BARRIER_X_DIM> *) bsg_remote_ptr( center_x_cord,    \
                                                                                                                bsg_y        ,    \
                                                                                                                this);
@@ -163,7 +184,7 @@ public:
 
     // send the sync singal to the center tile of the column
     // executed by all tiles in the center row
-    bsg_col_barrier& sync(int center_y_cord, int center_x_cord ){
+    bsg_col_barrier& sync(unsigned char center_x_cord, unsigned char center_y_cord ){
         bsg_col_barrier<BARRIER_Y_DIM> * p_remote_barrier = (bsg_col_barrier<BARRIER_Y_DIM> *) bsg_remote_ptr( center_x_cord,    \
                                                                                                                center_y_cord,    \
                                                                                                                this);
@@ -240,31 +261,42 @@ public:
                 }
         #endif
 
-        //1. send sync signals to center of the row 
-        r_barrier.sync();
+        // Send sync signals to the center tile of each row 
+        r_barrier.sync(center_x_cord);
 
-        //2. send sync signals to the center of the col
+        // Wait on sync signals from all tiles in the row to be received
+        // Send sync signals to the center tile of the center col
+        // Only performed by tiles in the center column
         if( bsg_x == center_x_cord) {
                 this->r_barrier.wait_on_sync();
-                this->c_barrier.sync(center_y_cord, center_x_cord);
+                this->c_barrier.sync(center_x_cord, center_y_cord);
         }
 
-        //3. send alert to all tiles of the col
+        // Send alert to all tiles of the col
+        // Wait on sync signals from all tiles in the center column to be received
+        // Send alert signals from the center tile of the center column to all
+        // tiles in the cetner column
+        // Reset the local done list of the bsg_col_barrier class
+        // Only performed by the center tile of the center column
         if( bsg_x == center_x_cord && bsg_y == center_y_cord) { 
                 this->c_barrier.wait_on_sync();
                 this->c_barrier.alert();
                 this->c_barrier.reset();
         }
 
-        //4. send alert to all tiles of the row
+        // Wait on alert signals from center tile of the center column to be received
+        // Send alert signals from center tile of the row to all tiles in the row
+        // Reset the local done list of the bsg_row_barrier class
+        // Performed by all tiles in the center column 
         if( bsg_x == center_x_cord) {
-                //bsg_row_barrier_alert( &(this->r_barrier), &(this->c_barrier) );
                 this->c_barrier.wait_on_alert();
                 this->r_barrier.alert();
                 this->r_barrier.reset();
         }
 
-        //5. wait the row alert signal
+        // Wait on alert signal from the center tile in each row 
+        // Once the alert signal is received, all tiles are syncrhonized
+        // and can carry on
         this->r_barrier.wait_on_alert();
 
         #ifdef BSG_BARRIER_DEBUG
@@ -276,35 +308,5 @@ public:
     };
 };
 
-
-
-
-
-
-
-//------------------------------------------------------------------
-//  Helper funcitons.
-//------------------------------------------------------------------
-void inline poll_range( int range, unsigned char *p){
-        int i;
-        do{
-                for( i= 0; i <= range; i++) {
-                        if ( p[ i ] == 0) break;
-                }
-        }while ( i <= range);
-}
-
-// wait until the specified memory address was written with specific value
-inline int bsg_wait_local_int(int * ptr,  int cond ) {
-    int tmp;
-    while(1){
-        tmp = bsg_lr( ptr );
-        if( tmp == cond ) return tmp;  //the data is ready
-        else{
-            tmp = bsg_lr_aq( ptr );    //stall until somebody clear the reservation
-            if( tmp == cond ) return tmp; //return if data is expected, otherwise retry
-        }
-    }
-}
 
 #endif

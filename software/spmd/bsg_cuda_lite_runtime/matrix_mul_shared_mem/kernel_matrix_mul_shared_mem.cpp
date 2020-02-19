@@ -4,14 +4,10 @@
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
+#include "bsg_tile_group_barrier_template.hpp"
 
-#define BSG_TILE_GROUP_X_DIM bsg_tiles_X
-#define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
-#include "bsg_tile_group_barrier.h"
-INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 
 #define BLOCK_WIDTH 4
-
 
 
 void __attribute__ ((noinline)) subblock2shmem (int *A, int *sh_dest, int M, int N, int block_size_y, int block_size_x, int sub_block_y, int sub_block_x) { 
@@ -96,7 +92,10 @@ void __attribute__ ((noinline)) subblock_shmem_matrix_mul_xposed (int *sh_A, int
 
 
 
-int  __attribute__ ((noinline)) kernel_matrix_mul_shared_mem(int *A, int *B, int *C, int M, int N, int P, int block_size_y, int block_size_x) {
+extern "C" int  __attribute__ ((noinline)) kernel_matrix_mul_shared_mem(int *A, int *B, int *C, int M, int N, int P, int block_size_y, int block_size_x) {
+
+
+	bsg_barrier<2,2> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);	
 
 	
 	// declare tile-group shared memory
@@ -113,16 +112,16 @@ int  __attribute__ ((noinline)) kernel_matrix_mul_shared_mem(int *A, int *B, int
  
 		subblock2shmem_xposed (B, sh_B, N, P, BLOCK_WIDTH, block_size_x, block_num, __bsg_tile_group_id_x);
 
-		bsg_tile_group_barrier (&r_barrier, &c_barrier);
+		my_barrier.sync();
 		
 		subblock_shmem_matrix_mul_xposed (sh_A, sh_B, sh_C, M, N, P, block_size_y, block_size_x, block_num);
 		
-		bsg_tile_group_barrier (&r_barrier, &c_barrier); 
+		my_barrier.sync();
 	}
 
 	shmem2subblock (C, sh_C, M, P, block_size_y, block_size_x, __bsg_tile_group_id_y, __bsg_tile_group_id_x); 
 
-	bsg_tile_group_barrier (&r_barrier, &c_barrier) ;
+	my_barrier.sync();
 
 	return 0;
 }
