@@ -47,12 +47,22 @@ public:
     unsigned char    _x_cord_end;
     unsigned char    _done_list[ BARRIER_X_DIM ] = {0};
     unsigned int     _local_alert;
+
+    bsg_row_barrier (){};
+
     bsg_row_barrier (unsigned char x_cord_start ,unsigned char x_cord_end) {
         _x_cord_start = x_cord_start;
         _x_cord_end = x_cord_end;
-//        _done_list.fill(0);
         _local_alert = 0;
     }; 
+
+    bsg_row_barrier& init (unsigned char x_cord_start ,unsigned char x_cord_end) {
+        _x_cord_start = x_cord_start;
+        _x_cord_end = x_cord_end;
+        _local_alert = 0;
+        return *this;
+    }; 
+
 };
 
 
@@ -63,14 +73,53 @@ public:
     unsigned char    _y_cord_end;
     unsigned char    _done_list[ BARRIER_Y_DIM ] = {0};
     unsigned int     _local_alert ;
+
+    bsg_col_barrier (){};
+
     bsg_col_barrier (unsigned char y_cord_start ,unsigned char y_cord_end) {
         _y_cord_start = y_cord_start;
         _y_cord_end = y_cord_end;
-//        _done_list.fill(0);
         _local_alert = 0;
     };
+
+    bsg_col_barrier& init (unsigned char y_cord_start ,unsigned char y_cord_end) {
+        _y_cord_start = y_cord_start;
+        _y_cord_end = y_cord_end;
+        _local_alert = 0;
+        return *this;
+    };
+
 };
  
+
+
+
+template <int BARRIER_Y_DIM, int BARRIER_X_DIM>
+class bsg_barrier {
+public:
+    bsg_row_barrier<BARRIER_X_DIM> r_barrier;
+    bsg_col_barrier<BARRIER_Y_DIM> c_barrier;
+
+
+    bsg_barrier ( unsigned char x_cord_start
+                 ,unsigned char x_cord_end
+                 ,unsigned char y_cord_start
+                 ,unsigned char y_cord_end) {
+        r_barrier.init (x_cord_start, x_cord_end);
+        c_barrier.init (y_cord_start, y_cord_end);
+        return;
+    };
+
+};
+
+
+
+
+
+
+
+
+
 
 //initial value of the bsg_barrier
 #define INIT_TILE_GROUP_BARRIER( ROW_BARRIER_NAME, COL_BARRIER_NAME, x_cord_start, x_cord_end, y_cord_start, y_cord_end)\
@@ -114,7 +163,7 @@ void inline bsg_row_barrier_sync(bsg_row_barrier<BARRIER_X_DIM> * p_row_b, int c
 //------------------------------------------------------------------
 //2. wait row sync'ed and send sync singal to center tile of the column
 //   executed only by the tiles at the center of the row 
-template <int BARRIER_X_DIM, int BARRIER_Y_DIM>
+template <int BARRIER_Y_DIM, int BARRIER_X_DIM>
 void inline bsg_col_barrier_sync( bsg_row_barrier<BARRIER_X_DIM> * p_row_b
                                      ,bsg_col_barrier<BARRIER_Y_DIM> * p_col_b
                                      ,int center_x_cord, int center_y_cord ){
@@ -159,9 +208,9 @@ void inline bsg_col_barrier_alert(  bsg_col_barrier<BARRIER_Y_DIM> *  p_col_b ) 
 //------------------------------------------------------------------
 //4. wait column alert signal and send alert singal back to all tiles of the row
 //   executed only by the tiles at the center of the row
-template <int BARRIER_X_DIM, int BARRIER_Y_DIM>
+template <int BARRIER_Y_DIM, int BARRIER_X_DIM>
 void inline bsg_row_barrier_alert( bsg_row_barrier<BARRIER_X_DIM> *  p_row_b
-                                      ,bsg_col_barrier<BARRIER_Y_DIM> * p_col_b ){
+                                  ,bsg_col_barrier<BARRIER_Y_DIM> * p_col_b ){
         int i;
         int x_range = p_row_b-> _x_cord_end - p_row_b->_x_cord_start;
         
@@ -197,9 +246,9 @@ void inline bsg_tile_wait( bsg_row_barrier<BARRIER_X_DIM> * p_row_b){
 //------------------------------------------------------------------
 //  The main sync funciton
 //------------------------------------------------------------------
-template <int BARRIER_X_DIM, int BARRIER_Y_DIM>
+template <int BARRIER_Y_DIM, int BARRIER_X_DIM>
 void bsg_tile_group_barrier( bsg_row_barrier<BARRIER_X_DIM> *p_row_b
-                                ,bsg_col_barrier<BARRIER_Y_DIM> * p_col_b) {
+                            ,bsg_col_barrier<BARRIER_Y_DIM> * p_col_b) {
         int center_x_cord = (p_row_b->_x_cord_start + p_row_b->_x_cord_end)/2;
 
         int center_y_cord = (p_col_b->_y_cord_start + p_col_b->_y_cord_end)/2;

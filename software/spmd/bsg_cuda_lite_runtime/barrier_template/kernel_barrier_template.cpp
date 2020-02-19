@@ -13,6 +13,8 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 
 extern "C" int  __attribute__ ((noinline)) kernel_barrier_template() {
 
+        bsg_barrier<4,4> my_bar (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
+
 	bsg_tile_group_barrier(&r_barrier, &c_barrier);
 
 	return 0;
