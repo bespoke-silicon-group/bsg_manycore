@@ -132,26 +132,45 @@ public:
         return;
     };
 
-    bsg_barrier& sync () {
-        bsg_tile_group_barrier(&(this->r_barrier), &(this->c_barrier));
+
+    bsg_barrier& sync() {
+
+        int center_x_cord = (this->r_barrier._x_cord_start + this->r_barrier._x_cord_end) / 2;
+
+        int center_y_cord = (this->c_barrier._y_cord_start + this->c_barrier._y_cord_end) / 2;
+
+        #ifdef BSG_BARRIER_DEBUG
+                if( bsg_x == center_x_cord && bsg_y == center_y_cord ){
+                        bsg_print_time();
+                }
+        #endif
+        //1. send sync signals to center of the row 
+        bsg_row_barrier_sync( &(this->r_barrier), center_x_cord );
+
+        //2. send sync signals to the center of the col
+        if( bsg_x == center_x_cord) 
+                bsg_col_barrier_sync( &(this->r_barrier), &(this->c_barrier), center_x_cord, center_y_cord );
+        //3. send alert to all tiles of the col
+        if( bsg_x == center_x_cord && bsg_y == center_y_cord) 
+                bsg_col_barrier_alert( &(this->c_barrier) );
+        //4. send alert to all tiles of the row
+        if( bsg_x == center_x_cord)
+                bsg_row_barrier_alert( &(this->r_barrier), &(this->c_barrier) );
+        //5. wait the row alert signal
+        bsg_tile_wait( &(this->r_barrier) );
+        #ifdef BSG_BARRIER_DEBUG
+                if( bsg_x == center_x_cord && bsg_y == center_y_cord ){
+                        bsg_print_time();
+                }
+        #endif
         return *this;
     };
-
 };
 
 
 
 
 
-
-
-
-
-
-//initial value of the bsg_barrier
-#define INIT_TILE_GROUP_BARRIER( ROW_BARRIER_NAME, COL_BARRIER_NAME, x_cord_start, x_cord_end, y_cord_start, y_cord_end)\
-bsg_row_barrier<BSG_TILE_GROUP_X_DIM> ROW_BARRIER_NAME (x_cord_start, x_cord_end); \
-bsg_col_barrier<BSG_TILE_GROUP_Y_DIM> COL_BARRIER_NAME (y_cord_start, y_cord_end);
 
 
 
