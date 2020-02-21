@@ -26,6 +26,7 @@ package bsg_manycore_pkg;
     e_remote_load
     , e_remote_store
     , e_remote_amo
+    , e_cache_op // AFL, AFLINV, AINV for DRAM addresses - TAGFL for tag memory
   } bsg_manycore_packet_op_e;
 
 
@@ -35,7 +36,7 @@ package bsg_manycore_pkg;
   //  1) if icache_fetch=1 in load_info, e_return_ifetch should be returned.
   //  2) if float_wb=1 in load_info, e_return_float_wb should be returned.
   //  3) otherwise, e_return_int_wb is returned.
-  //  For e_remote_store, e_return_credit should be returned.
+  //  For e_remote_store or e_cache_op, e_return_credit should be returned.
   //  For e_remote_amo, e_return_int_wb should be returned. 
   typedef enum logic [1:0] {
     e_return_credit
@@ -69,7 +70,15 @@ package bsg_manycore_pkg;
     ,e_amo_maxu
   } bsg_manycore_amo_type_e;
 
+  typedef enum logic [3:0] {
+    e_afl
+    ,e_ainv
+    ,e_aflinv
+    ,e_tagfl
+  } bsg_manycore_cache_op_type_e;
+
   typedef union packed {
+    bsg_manycore_cache_op_type_e cache_op_type; // for operations applied to victim cache
     bsg_manycore_amo_type_e amo_type; // for remote atomic packet
     logic [3:0] store_mask;           // for remote store packet
   } bsg_manycore_packet_op_ex_u;
@@ -80,7 +89,7 @@ package bsg_manycore_pkg;
   //  Request Packet (fwd)
   //  addr         :  EPA (word address)
   //  op           :  packet opcode 
-  //  op_ex        :  opcode extension; for store, this is store mask. for amo, this is amo type.
+  //  op_ex        :  opcode extension; for store, this is store mask. for amo, this is amo type. for cache_op, this is the cache op type.
   //  reg_id       :  for amo and int/float load, this is the rd. for store, this should be zero.
   //  payload      :  for store and amo, this is the store data. for load, it contains load info.
   //  src_y_cord   :  y-cord, origin of this packet
