@@ -146,5 +146,118 @@ int write_finish_signal ()
 
 //           bsg_tile_group_barrier(&main_r_barrier, &main_c_barrier);         \
 
+static inline void cuda_tile_group_set_runtime_values(int x, int y)
+{
+	// set argc
+	uint32_t *rmt_argc_ptr =
+		(uint32_t*) bsg_remote_ptr(&cuda_argc);
+
+	*rmt_argc_ptr = cuda_argc;
+
+	// set argv
+	uint32_t *rmt_argv_ptr =
+		(uint32_t*) bsg_remote_ptr(&cuda_argv_ptr);
+
+	*rmt_argv_ptr = cuda_argv_ptr;
+
+	// set the finish signal addr
+	uint32_t *rmt_finish_signal_addr_ptr =
+		(uint32_t*) bsg_remote_ptr(&cuda_finish_signal_addr);
+
+	*rmt_finish_signal_addr_ptr = cuda_finish_signal_addr;
+
+
+	// set cuda kernel ptr
+	int32_t *rmt_kernel_ptr =
+		(int32_t*) bsg_remote_ptr(&cuda_kernel_ptr);
+
+	*rmt_kernel_ptr = cuda_kernel_ptr;
+}
+
+
+static inline void cuda_tile_group_set_config_values(int x, int y)
+{
+	// set group org x
+	int *grp_org_x_rmt = (int*)bsg_remote_ptr(x,y, &_&bsg_grp_org_x);
+	*grp_org_x_rmt = _bsg_grp_org_x;
+
+	// set group org y
+	int *grp_org_y_rmt = (int*)bsg_remote_ptr(x,y,&_&bsg_grp_org_y);
+	*grp_org_y_rmt = _bsg_grp_org_y;
+
+	// set coordinate x
+	int *x_rmt = (int*)bsg_remote_ptr(x,y,&__bsg_x);
+	*x_rmt = x;
+
+	// set coordinate y
+	int *y_rmt = (int*)bsg_remote_ptr(x,y,&__bsg_y);
+	*y_rmt = y;
+
+	// set id
+	int *id_rmt = (int*)bsg_remote_ptr(x,y,&__bsg_id);
+	*id_rmt = bsg_x_y_to_id(x,y);
+
+	// set tile group id x
+	int *group_id_x_rmt = (int*)bsg_remote_ptr(x,y,&__bsg_tile_group_id_x);
+	*group_id_x_rmt = __bsg_tile_group_id_x;
+
+	// set tile group id y
+	int *group_id_y_rmt = (int*)bsg_remote_ptr(x,y,&__bsg_tile_group_id_y);
+	*group_id_y_rmt = __bsg_tile_group_id_y;
+
+	// set tile group id
+	int *group_id_rmt = (int*)bsg_remote_ptr(x,y,&__bsg_tile_group_id);
+	*group_id_rmt = __bsg_tile_group_id;
+
+	// set grid dim x
+	int *grid_dim_x = (int*)bsg_remote_ptr(x,y,&__bsg_grid_dim_x);
+	*grid_dim_x = __bsg_grid_dim_x;
+
+	// set grid dim y
+	int *grid_dim_y = (int*)bsg_remote_ptr(x,y,&__bsg_grid_dim_y);
+	*grid_dim_y = __bsg_grid_dim_y;
+
+
+	// set the finish signal value
+	uint32_t *rmt_finish_signal_val_ptr =
+		(uint32_t*) bsg_remote_ptr(&cuda_finish_signal_val);
+
+	*rmt_finish_signal_val_ptr = cuda_finish_signal_val;
+
+	// set the not loaded value
+	uint32_t *rmt_kernel_not_loaded_val_ptr =
+		(uint32_t*) bsg_remote_ptr(&cuda_kernel_not_loaded_val);
+
+	*rmt_kernel_not_loaded_val_ptr = cuda_kernel_not_loaded_val;
+
+}
+
+static inline void cuda_tile_group_set_values(int x, int y)
+{
+	// set someone else's stuff
+	tile_group_set_tiles_tg_values(x, y);
+	tile_group_set_tiles_cuda_values(x, y);
+}
+
+static inline void cuda_tile_group_row_origin_task(int y)
+{
+	// set everyone else's stuff in this row
+	for (int x = 0; x < bsg_tiles_X; x++)
+		cuda_tile_group_set_values(x, y);
+}
+
+static inline void cuda_tile_group_col_origin_task(int x)
+{
+	// set everyone else's stuff in this column
+	for (int y = 0; y < bsg_tiles_Y; y++)
+		cuda_tile_group_set_values(x, y);
+}
+
+static inline void cuda_tile_group_origin_task()
+{
+        // set everyone else's stuff
+        for (int y = 0; x < bsg_tiles_Y; y++)
+		cuda_tile_group_row_origin_task(y);
+}
 
 #endif
