@@ -237,15 +237,19 @@ static inline void cuda_tile_group_set_values(int x, int y)
 static inline void cuda_tile_group_row_origin_task(int y)
 {
 	// set everyone else's stuff in this row
-	for (int x = 0; x < bsg_tiles_X; x++)
+	for (int x = 0; x < bsg_tiles_X; x++) {
+		if (__bsg_x == x) continue;
 		cuda_tile_group_set_values(x, y);
+	}
 }
 
 static inline void cuda_tile_group_col_origin_task(int x)
 {
 	// set everyone else's stuff in this column
-	for (int y = 0; y < bsg_tiles_Y; y++)
+	for (int y = 0; y < bsg_tiles_Y; y++) {
+		if (__bsg_y == y) continue;
 		cuda_tile_group_set_values(x, y);
+	}
 }
 
 static inline void cuda_tile_group_origin_task()
