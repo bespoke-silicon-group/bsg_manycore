@@ -230,7 +230,7 @@ static inline void cuda_tile_group_set_config_values(int x, int y)
 static inline void cuda_tile_group_set_values(int x, int y)
 {
 	// set someone else's stuff
-	//cuda_tile_group_set_config_values(x, y);
+	cuda_tile_group_set_config_values(x, y);
 	cuda_tile_group_set_runtime_values(x, y);
 }
 
