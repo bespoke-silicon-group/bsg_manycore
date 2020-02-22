@@ -21,23 +21,23 @@
 
 // These symbols are set by the host interface, once a kernel is dispatched to execute on tiles
 // Function pointer to the location of kernel in memory
-int32_t cuda_kernel_ptr = 0;
+volatile __attribute__((weak)) int32_t cuda_kernel_ptr = 0;
 // Argument count of the kernel function
-uint32_t cuda_argc = 0;	
+volatile __attribute__((weak)) uint32_t cuda_argc = 0;
  // Pointer to the list of kernel's arguments in memory
-uint32_t cuda_argv_ptr = 0;
+volatile __attribute__((weak)) uint32_t cuda_argv_ptr = 0;
  // Location kernel writes it's finish signal into
-uint32_t cuda_finish_signal_addr = 0;
+volatile __attribute__((weak)) uint32_t cuda_finish_signal_addr = 0;
 // The value that kernel writes in cuda_finish_signal_addr when it is finished
-uint32_t cuda_finish_signal_val = 0;
-// When cuda_kernel_ptr equals this value means the kernel is not loaded 
-uint32_t cuda_kernel_not_loaded_val = 0;
+volatile __attribute__((weak)) uint32_t cuda_finish_signal_val = 0;
+// When cuda_kernel_ptr equals this value means the kernel is not loaded
+volatile __attribute__((weak)) uint32_t cuda_kernel_not_loaded_val = 0;
 
 
 
 //The RISCV ABI Paramters
 //The maximum number of parameters passed via regsiter
-#define CUDAL_REG_ARGS_NUM      8       
+#define CUDAL_REG_ARGS_NUM      8
 
 
 //According to RISC-V ABI, the 's' register should be saved by Callee
@@ -59,13 +59,7 @@ INIT_TILE_GROUP_BARRIER(main_r_barrier, main_c_barrier, 0, bsg_tiles_X-1, 0, bsg
 */
 
 
-
-
-
-
-
-
-int write_finish_signal () 
+static int write_finish_signal () 
 {
   if (__bsg_id == 0) 
   {
@@ -150,26 +144,27 @@ static inline void cuda_tile_group_set_runtime_values(int x, int y)
 {
 	// set argc
 	uint32_t *rmt_argc_ptr =
-		(uint32_t*) bsg_remote_ptr(&cuda_argc);
+		(uint32_t*) bsg_remote_ptr(x,y,&cuda_argc);
 
 	*rmt_argc_ptr = cuda_argc;
 
 	// set argv
 	uint32_t *rmt_argv_ptr =
-		(uint32_t*) bsg_remote_ptr(&cuda_argv_ptr);
+		(uint32_t*) bsg_remote_ptr(x,y,&cuda_argv_ptr);
 
 	*rmt_argv_ptr = cuda_argv_ptr;
 
 	// set the finish signal addr
 	uint32_t *rmt_finish_signal_addr_ptr =
-		(uint32_t*) bsg_remote_ptr(&cuda_finish_signal_addr);
+		(uint32_t*) bsg_remote_ptr(x,y,&cuda_finish_signal_addr);
 
 	*rmt_finish_signal_addr_ptr = cuda_finish_signal_addr;
 
+	asm volatile ( "fence" ::: "memory" );
 
 	// set cuda kernel ptr
 	int32_t *rmt_kernel_ptr =
-		(int32_t*) bsg_remote_ptr(&cuda_kernel_ptr);
+		(int32_t*) bsg_remote_ptr(x,y,&cuda_kernel_ptr);
 
 	*rmt_kernel_ptr = cuda_kernel_ptr;
 }
@@ -178,12 +173,12 @@ static inline void cuda_tile_group_set_runtime_values(int x, int y)
 static inline void cuda_tile_group_set_config_values(int x, int y)
 {
 	// set group org x
-	int *grp_org_x_rmt = (int*)bsg_remote_ptr(x,y, &_&bsg_grp_org_x);
-	*grp_org_x_rmt = _bsg_grp_org_x;
+	int *grp_org_x_rmt = (int*)bsg_remote_ptr(x,y, &__bsg_grp_org_x);
+	*grp_org_x_rmt = __bsg_grp_org_x;
 
 	// set group org y
-	int *grp_org_y_rmt = (int*)bsg_remote_ptr(x,y,&_&bsg_grp_org_y);
-	*grp_org_y_rmt = _bsg_grp_org_y;
+	int *grp_org_y_rmt = (int*)bsg_remote_ptr(x,y,&__bsg_grp_org_y);
+	*grp_org_y_rmt = __bsg_grp_org_y;
 
 	// set coordinate x
 	int *x_rmt = (int*)bsg_remote_ptr(x,y,&__bsg_x);
@@ -220,13 +215,13 @@ static inline void cuda_tile_group_set_config_values(int x, int y)
 
 	// set the finish signal value
 	uint32_t *rmt_finish_signal_val_ptr =
-		(uint32_t*) bsg_remote_ptr(&cuda_finish_signal_val);
+		(uint32_t*) bsg_remote_ptr(x,y,&cuda_finish_signal_val);
 
 	*rmt_finish_signal_val_ptr = cuda_finish_signal_val;
 
-	// set the not loaded value
+	/* // set the not loaded value */
 	uint32_t *rmt_kernel_not_loaded_val_ptr =
-		(uint32_t*) bsg_remote_ptr(&cuda_kernel_not_loaded_val);
+		(uint32_t*) bsg_remote_ptr(x,y,&cuda_kernel_not_loaded_val);
 
 	*rmt_kernel_not_loaded_val_ptr = cuda_kernel_not_loaded_val;
 
@@ -235,8 +230,8 @@ static inline void cuda_tile_group_set_config_values(int x, int y)
 static inline void cuda_tile_group_set_values(int x, int y)
 {
 	// set someone else's stuff
-	tile_group_set_tiles_tg_values(x, y);
-	tile_group_set_tiles_cuda_values(x, y);
+	//cuda_tile_group_set_config_values(x, y);
+	cuda_tile_group_set_runtime_values(x, y);
 }
 
 static inline void cuda_tile_group_row_origin_task(int y)
@@ -256,8 +251,12 @@ static inline void cuda_tile_group_col_origin_task(int x)
 static inline void cuda_tile_group_origin_task()
 {
         // set everyone else's stuff
-        for (int y = 0; x < bsg_tiles_Y; y++)
-		cuda_tile_group_row_origin_task(y);
+        for (int y = 0; y < bsg_tiles_Y; y++) {
+		for (int x = 0; x < bsg_tiles_X; x++) {
+			if (__bsg_x == x && __bsg_y == y) continue;
+			cuda_tile_group_set_values(x,y);
+		}
+	}
 }
 
 #endif
