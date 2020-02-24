@@ -24,6 +24,7 @@ int main()
 
   bsg_set_tile_x_y();
   int my_id = __bsg_grp_org_x + ((__bsg_grp_org_y-1)*bsg_global_X);
+  int my_int;
 
   for (int x = 0; x < bsg_global_X; x++)
   {
@@ -34,7 +35,7 @@ int main()
       if (id != my_id) 
       {
         remote_tile_store_val[id] = 0xdead+x+y;
-        bsg_global_store(x, y+1, 0x1000, remote_tile_store_val[id]);
+        bsg_global_store(x, y+2, &my_int, remote_tile_store_val[id]);
       }
     }
   }
@@ -47,7 +48,7 @@ int main()
 
       if (id != my_id) 
       {
-        bsg_global_load(x, y+1, 0x1000, remote_tile_load_val[id]);
+        bsg_global_load(x, y+2, &my_int, remote_tile_load_val[id]);
       }
     }
   }
@@ -74,22 +75,22 @@ int main()
 
   float vcache_store_val[bsg_global_X];
   float vcache_load_val[bsg_global_X];
-
+  
   for (int x = 0; x < bsg_global_X; x++)
   {
     float a = 1.1;
     float b = (float) x;
     float c = -0.32;
     vcache_store_val[x] = (a*b)+c;
-    bsg_global_float_store(x,bsg_global_Y,0,vcache_store_val[x]);
+    bsg_global_float_store(x,bsg_global_Y+1,0,vcache_store_val[x]);
   }
 
 
   for (int x = 0; x < bsg_global_X; x++)
   {
     float temp;
-    bsg_global_float_load(x,bsg_global_Y,0,temp);
-    vcache_load_val[x] =temp;
+    bsg_global_float_load(x,bsg_global_Y+1,0,temp);
+    vcache_load_val[x] = temp;
   }
 
 

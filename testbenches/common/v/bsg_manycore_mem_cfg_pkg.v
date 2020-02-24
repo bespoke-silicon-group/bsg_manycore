@@ -54,13 +54,13 @@ package bsg_manycore_mem_cfg_pkg;
 
     // LEVEL 1) bsg_manycore_vcache (blocking)
     // LEVEL 2) bsg_cache_to_dram_ctrl
-    // LEVEL 3) bsg_dmc (lpddr4) (512 MB)
-    , e_vcache_blocking_dmc_lpddr4
+    // LEVEL 3) bsg_dmc (lpddr) (512 MB)
+    , e_vcache_blocking_dmc_lpddr
 
     // LEVEL 1) bsg_manycore_vcache (non-blocking)
     // LEVEL 2) bsg_cache_to_dram_ctrl
-    // LEVEL 3) bsg_dmc (lpddr4) (512 MB)
-    , e_vcache_non_blocking_dmc_lpddr4
+    // LEVEL 3) bsg_dmc (lpddr) (512 MB)
+    , e_vcache_non_blocking_dmc_lpddr
 
     // LEVEL 1) bsg_manycore_vcache (blocking)
     // LEVEL 2) bsg_cache_to_test_dram

@@ -60,9 +60,8 @@ class NBF:
     self.enable_dram = config["enable_dram"]
 
     # derived params
-    self.cache_size = self.cache_way * self.cache_set * self.cache_block_size
+    self.cache_size = self.cache_way * self.cache_set * self.cache_block_size # in words
     self.x_cord_width = self.safe_clog2(self.num_tiles_x)
-    self.dram_ch_size = self.dram_size / (2**self.x_cord_width)
 
     # process riscv
     self.get_data_end_addr()
@@ -243,42 +242,45 @@ class NBF:
  
   # init DRAM
   def init_dram(self, enable_dram): 
-    y = self.num_tiles_y
-    dram_ch_size = self.dram_ch_size
+    #y = self.num_tiles_y
     cache_size = self.cache_size
     lg_x = self.safe_clog2(self.num_tiles_x)
     lg_block_size = self.safe_clog2(self.cache_block_size)
     lg_set = self.safe_clog2(self.cache_set)
-    index_width = self.addr_width-1-lg_block_size
+    index_width = self.addr_width-1-lg_block_size-1
 
     if enable_dram == 1:
-      if self.num_tiles_x == 9:      
-        # hashing for 9 banks
-        for k in sorted(self.dram_data.keys()):
-          addr = k - 0x20000000
-          bit_2_0 = (addr >> lg_block_size) & 0b111
-          bit_5_4 = (addr >> (3+lg_block_size)) & 0b110
-          bit_3 = (addr >> (3+lg_block_size)) & 0b001
-          bit_12 = (addr >> (3+lg_block_size+lg_set)) & 0b1
+      #if self.num_tiles_x == 9:      
+        # hashing for 9 banks (deprecated)
+      #  for k in sorted(self.dram_data.keys()):
+      #    addr = k - 0x20000000
+      #    bit_2_0 = (addr >> lg_block_size) & 0b111
+      #    bit_5_4 = (addr >> (3+lg_block_size)) & 0b110
+      #    bit_3 = (addr >> (3+lg_block_size)) & 0b001
+      #    bit_12 = (addr >> (3+lg_block_size+lg_set)) & 0b1
 
-          if bit_2_0 == (bit_5_4 | (bit_3 ^ bit_12)):
-            x = 8
-          else:
-            x = bit_2_0
+      #    if bit_2_0 == (bit_5_4 | (bit_3 ^ bit_12)):
+      #      x = 8
+      #    else:
+      #      x = bit_2_0
     
-          block_offset = self.select_bits(addr, 0, lg_block_size-1)
-          index = self.select_bits(addr, lg_block_size+3, lg_block_size+3+index_width-1) << lg_block_size
-          epa = block_offset | index
-          self.print_nbf(x, y, epa, self.dram_data[k])
+      #    block_offset = self.select_bits(addr, 0, lg_block_size-1)
+      #    index = self.select_bits(addr, lg_block_size+3, lg_block_size+3+index_width-1) << lg_block_size
+      #    epa = block_offset | index
+      #    self.print_nbf(x, y, epa, self.dram_data[k])
 
-      elif self.num_tiles_x & (self.num_tiles_x-1) == 0:
+      if self.num_tiles_x & (self.num_tiles_x-1) == 0:
         # hashing for power of 2 banks
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
           x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1)
-          index = self.select_bits(addr, lg_block_size+lg_x, lg_block_size+lg_x+index_width-1)
+          y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x)
+          index = self.select_bits(addr, lg_block_size+lg_x+1, lg_block_size+lg_x+1+index_width-1)
           epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
-          self.print_nbf(x, y, epa, self.dram_data[k])
+          if y == 0:
+            self.print_nbf(x, 0, epa, self.dram_data[k])
+          else:
+            self.print_nbf(x, self.num_tiles_y+1, epa, self.dram_data[k])
           
       else:
         print("hash function not supported for x={0}.")
@@ -290,7 +292,9 @@ class NBF:
         x = addr / cache_size
         epa = addr % cache_size
         if (x < self.num_tiles_x):
-          self.print_nbf(x, y, epa, self.dram_data[k])
+          self.print_nbf(x, 0, epa, self.dram_data[k])
+        elif (x < self.num_tiles_x*2):
+          self.print_nbf(x, self.num_tiles_y+1, epa, self.dram_data[k])
         else:
           print("## WARNING: NO DRAM MODE, DRAM DATA OUT OF RANGE!!!")
 

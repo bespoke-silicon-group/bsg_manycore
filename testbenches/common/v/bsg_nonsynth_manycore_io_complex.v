@@ -17,7 +17,7 @@ module bsg_nonsynth_manycore_io_complex
     , parameter num_tiles_y_p="inv"
 
     , parameter io_x_cord_p=0 
-    , parameter io_y_cord_p=0
+    , parameter io_y_cord_p=1
 
     , parameter max_out_credits_p=200
     , parameter credit_counter_width_lp=`BSG_SAFE_CLOG2(max_out_credits_p+1)
