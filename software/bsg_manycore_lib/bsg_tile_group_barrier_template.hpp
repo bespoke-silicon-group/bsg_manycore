@@ -86,38 +86,37 @@ public:
         _local_alert = 0;
     }; 
 
-    bsg_row_barrier& init (unsigned char x_cord_start ,unsigned char x_cord_end) {
+    void init (unsigned char x_cord_start ,unsigned char x_cord_end) {
         _x_cord_start = x_cord_start;
         _x_cord_end = x_cord_end;
         _local_alert = 0;
-        return *this;
+        return;
     }; 
 
 
     // Reinitializes the done_list to zero
-    bsg_row_barrier& reset() {
+    void reset() {
         for (int i = 0; i < BARRIER_X_DIM; i ++) {
             this->_done_list[i] = 0;
         }
-        return *this;
+        return;
     };
 
 
     // send the sync singal to the center tile of the row
     // executed by all tiles in the group.
-    // TODO: set center_x_cord and bsg_y as input arguments
-    bsg_row_barrier& sync (unsigned char center_x_cord) {
+    void sync (unsigned char center_x_cord) {
         bsg_row_barrier<BARRIER_X_DIM> * p_remote_barrier = (bsg_row_barrier<BARRIER_X_DIM> *) bsg_remote_ptr( center_x_cord,    \
                                                                                                                bsg_y        ,    \
                                                                                                                this);
         //write to the corresponding done
         p_remote_barrier->_done_list[ bsg_x - this->_x_cord_start] = 1; 
-        return *this;
+        return;
     };
 
 
     // send alert to all of the tiles in the row 
-    bsg_row_barrier& alert (){
+    void alert (){
         bsg_row_barrier<BARRIER_X_DIM> * p_remote_barrier;
         for( int i = this->_x_cord_start; i <= this->_x_cord_end; i ++) {
                p_remote_barrier = (bsg_row_barrier<BARRIER_X_DIM> *) bsg_remote_ptr( i,        \
@@ -125,27 +124,27 @@ public:
                                                                                      this);
                p_remote_barrier->_local_alert = 1;
         }
-        return *this;
+        return;
     };
 
 
     // Poll the entire row barrier done_list until
     // all tiles in row have sent their sync signal
     // Executed by center tile in the row
-    bsg_row_barrier& wait_on_sync() {
+    void wait_on_sync() {
         int range = this->_x_cord_end - this->_x_cord_start;
         poll_range( range, this->_done_list);
-        return *this;
+        return;
     };
 
 
     // wait on local alert to be set to the given value
-    bsg_row_barrier& wait_on_alert (){
+    void wait_on_alert (){
         // wait until _local_alert flag is set to 1
         bsg_wait_local_int( (int *) &(this->_local_alert), 1);
         //re-initilized the flag to 0
         this->_local_alert = 0;
-        return *this;
+        return;
     };
 };
 
@@ -166,25 +165,25 @@ public:
         _local_alert = 0;
     };
 
-    bsg_col_barrier& init (unsigned char y_cord_start ,unsigned char y_cord_end) {
+    void init (unsigned char y_cord_start ,unsigned char y_cord_end) {
         _y_cord_start = y_cord_start;
         _y_cord_end = y_cord_end;
         _local_alert = 0;
-        return *this;
+        return;
     };
 
 
     // Reinitializes the done_list to zero
-    bsg_col_barrier& reset() {
+    void reset() {
         for (int i = 0; i < BARRIER_Y_DIM; i ++) {
             this->_done_list[i] = 0;
         }
-        return *this;
+        return;
     };
 
     // send the sync singal to the center tile of the column
     // executed by all tiles in the center row
-    bsg_col_barrier& sync(unsigned char center_x_cord, unsigned char center_y_cord ){
+    void sync(unsigned char center_x_cord, unsigned char center_y_cord ){
         bsg_col_barrier<BARRIER_Y_DIM> * p_remote_barrier = (bsg_col_barrier<BARRIER_Y_DIM> *) bsg_remote_ptr( center_x_cord,    \
                                                                                                                center_y_cord,    \
                                                                                                                this);
@@ -194,12 +193,12 @@ public:
                //addr 0x0: row sync'ed
                bsg_remote_ptr_io_store( IO_X_INDEX, 0x0, bsg_y);
         #endif
-        return *this;
+        return;
     };
 
 
     // send alert to all of the tiles in the column 
-    bsg_col_barrier& alert (){
+    void alert (){
         bsg_col_barrier<BARRIER_Y_DIM> * p_remote_barrier;
         for( int i = this->_y_cord_start; i <= this->_y_cord_end; i ++) {
                p_remote_barrier = (bsg_col_barrier<BARRIER_Y_DIM> *) bsg_remote_ptr( bsg_x,    \
@@ -207,27 +206,27 @@ public:
                                                                                      this);
                p_remote_barrier->_local_alert = 1;
         }
-        return *this;
+        return;
     };
 
 
     // Poll the entire col barrier done_list until
     // all tiles in row have sent their sync signal
     // Executed by center tile in column
-    bsg_col_barrier& wait_on_sync() {
+    void wait_on_sync() {
         int range = this->_y_cord_end - this->_y_cord_start;
         poll_range( range, this->_done_list);
-        return *this;
+        return;
     };
 
 
     // wait on local alert to be set to the given value
-    bsg_col_barrier& wait_on_alert (){
+    void wait_on_alert (){
         // wait until _local_alert flag is set to 1
         bsg_wait_local_int( (int *) &(this->_local_alert), 1);
         //re-initilized the flag to 0
         this->_local_alert = 0;
-        return *this;
+        return;
     };
 };
  
@@ -259,7 +258,7 @@ public:
 
 
     //  The main sync funciton
-    bsg_barrier& sync() {
+    void sync() {
         int center_x_cord = (this->r_barrier._x_cord_start + this->r_barrier._x_cord_end) / 2;
         int center_y_cord = (this->c_barrier._y_cord_start + this->c_barrier._y_cord_end) / 2;
 
@@ -312,7 +311,7 @@ public:
                         bsg_print_time();
                 }
         #endif
-        return *this;
+        return;
     };
 };
 
