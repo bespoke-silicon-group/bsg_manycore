@@ -91,12 +91,12 @@ void __attribute__ ((noinline)) subblock_shmem_matrix_mul_xposed (int *sh_A, int
 
 
 
-
-extern "C" int  __attribute__ ((noinline)) kernel_matrix_mul_shared_mem(int *A, int *B, int *C, int M, int N, int P, int block_size_y, int block_size_x) {
+template <int TG_DIM_X, int TG_DIM_Y>
+int  __attribute__ ((noinline)) kernel_matrix_mul_shared_mem(int *A, int *B, int *C, int M, int N, int P, int block_size_y, int block_size_x) {
 
 
 	// bsg_barrier<2,2> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
-	bsg_barrier<2,2> my_barrier;
+	bsg_barrier<TG_DIM_X, TG_DIM_Y> my_barrier;
 
 	
 	// declare tile-group shared memory
@@ -126,3 +126,13 @@ extern "C" int  __attribute__ ((noinline)) kernel_matrix_mul_shared_mem(int *A, 
 
 	return 0;
 }
+
+
+
+extern "C" int __attribute__ ((noinline)) kernel_matrix_mul_shared_mem_2_2 (int *A, int *B, int *C, int M, int N, int P, int block_size_y, int block_size_x) {
+	return kernel_matrix_mul_shared_mem<2,2> (A, B, C, M, N, P, block_size_y, block_size_x);
+}
+
+
+
+//extern "C" const auto& kernel_matrix_mul_shared_mem_2_2 = kernel_matrix_mul_shared_mem<2,2>;
