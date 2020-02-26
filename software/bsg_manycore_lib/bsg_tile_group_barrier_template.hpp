@@ -259,6 +259,11 @@ public:
 
     //  The main sync funciton
     void sync() {
+        // If barrier dimensions is 1x1, i.e. only a single tile is 
+        // participating, there is nothing to be done
+        if (BARRIER_Y_DIM == 1 && BARRIER_X_DIM == 1)
+                return;
+
         int center_x_cord = (this->r_barrier._x_cord_start + this->r_barrier._x_cord_end) / 2;
         int center_y_cord = (this->c_barrier._y_cord_start + this->c_barrier._y_cord_end) / 2;
 
