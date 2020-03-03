@@ -1,6 +1,3 @@
-# If not configured, Will use default Values
-#	bsg_tiles_X ?= 2
-#	bsg_tiles_Y ?= 2
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 

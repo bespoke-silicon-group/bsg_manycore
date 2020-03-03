@@ -38,5 +38,3 @@ RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles
 
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
-
-proc_exe_logs: X0_Y0.pelog X0_Y1.pelog X1_Y0.pelog X1_Y1.pelog
