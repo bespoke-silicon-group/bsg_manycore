@@ -1,7 +1,9 @@
 # Beebs benchmark list
 #
 # Total: 85
-# Excluded: crc32 ctl matmult sglib-arraysort trio
+# Excluded: crc32 ctl matmult sglib-arraysort trio st nbody
+# st excluded because the test itself came with a bug.
+# nbody excluded because of rounding mode bug.
 
 BMARK_LIST  = aha-compress          \
               aha-mont64            \
@@ -38,7 +40,6 @@ BMARK_LIST  = aha-compress          \
               mergesort             \
               miniz                 \
               minver                \
-              nbody                 \
               ndes                  \
               nettle-aes            \
               nettle-arcfour        \
@@ -71,7 +72,6 @@ BMARK_LIST  = aha-compress          \
               sglib-rbtree          \
               slre                  \
               sqrt                  \
-              st                    \
               statemate             \
               stb_perlin            \
               stringsearch1         \
