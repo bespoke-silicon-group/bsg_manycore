@@ -1,11 +1,6 @@
 override bsg_tiles_X=4
 override bsg_tiles_Y=4
 
-#########################################################
-#each bytes defines the core type
-# 00: vanilla core
-# 01  vscale  core
-#TYPE_VEC="64'h01_01_01_01"
 
 all: main.run
 
