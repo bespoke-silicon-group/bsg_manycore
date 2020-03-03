@@ -2,6 +2,7 @@
 #
 # Total: 85
 # Excluded: crc32 ctl matmult sglib-arraysort trio st nbody
+# st excluded because the test itself came with a bug.
 # nbody excluded because of rounding mode bug.
 
 BMARK_LIST  = aha-compress          \
