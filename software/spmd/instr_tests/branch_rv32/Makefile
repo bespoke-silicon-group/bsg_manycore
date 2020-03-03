@@ -1,6 +1,3 @@
-bsg_tiles_X= 4 
-bsg_tiles_Y= 4 
-
 NUM_CODE_SECTIONS = 2
 CODE_LABELS = _code_section_1 _code_section_2
 
