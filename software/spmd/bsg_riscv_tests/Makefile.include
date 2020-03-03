@@ -8,10 +8,6 @@ $(warning $(BSG_MANYCORE_DIR))
 
 bsg_tiles_X= 1
 bsg_tiles_Y= 1
-bsg_global_X = 4
-bsg_global_Y = 5
-bsg_tiles_org_X = 0
-bsg_tiles_org_Y = 1
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 
@@ -42,5 +38,3 @@ RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles
 
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
-
-proc_exe_logs: X0_Y0.pelog X0_Y1.pelog X1_Y0.pelog X1_Y1.pelog

@@ -1,6 +1,3 @@
-bsg_tiles_X= 1
-bsg_tiles_Y= 1 
-
 all: main.run
 
 include ../../Makefile.include

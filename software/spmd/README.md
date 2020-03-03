@@ -2,6 +2,12 @@ SPMD Directory
 ==============
 
 
+Writing your own spmd program
+-----------------------------
+Refer to 'hello/' as an example.
+In spmd, the default tile group dimension is the full array. The test should be written so that it works for any size of array.
+If not, (i.e. it runs only on a single tile), then specify bsg_tiles_X and bsg_tiles_Y in makefile.
+
 Running single spmd program
 ---------------------------
 
