@@ -242,7 +242,6 @@ class NBF:
  
   # init DRAM
   def init_dram(self, enable_dram): 
-    #y = self.num_tiles_y
     cache_size = self.cache_size
     lg_x = self.safe_clog2(self.num_tiles_x)
     lg_block_size = self.safe_clog2(self.cache_block_size)
@@ -250,25 +249,8 @@ class NBF:
     index_width = self.addr_width-1-lg_block_size-1
 
     if enable_dram == 1:
-      #if self.num_tiles_x == 9:      
-        # hashing for 9 banks (deprecated)
-      #  for k in sorted(self.dram_data.keys()):
-      #    addr = k - 0x20000000
-      #    bit_2_0 = (addr >> lg_block_size) & 0b111
-      #    bit_5_4 = (addr >> (3+lg_block_size)) & 0b110
-      #    bit_3 = (addr >> (3+lg_block_size)) & 0b001
-      #    bit_12 = (addr >> (3+lg_block_size+lg_set)) & 0b1
-
-      #    if bit_2_0 == (bit_5_4 | (bit_3 ^ bit_12)):
-      #      x = 8
-      #    else:
-      #      x = bit_2_0
-    
-      #    block_offset = self.select_bits(addr, 0, lg_block_size-1)
-      #    index = self.select_bits(addr, lg_block_size+3, lg_block_size+3+index_width-1) << lg_block_size
-      #    epa = block_offset | index
-      #    self.print_nbf(x, y, epa, self.dram_data[k])
-
+      # dram enabled:
+      # EVA space is striped across top and bottom vcaches.
       if self.num_tiles_x & (self.num_tiles_x-1) == 0:
         # hashing for power of 2 banks
         for k in sorted(self.dram_data.keys()):
@@ -278,15 +260,15 @@ class NBF:
           index = self.select_bits(addr, lg_block_size+lg_x+1, lg_block_size+lg_x+1+index_width-1)
           epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
           if y == 0:
-            self.print_nbf(x, 0, epa, self.dram_data[k])
+            self.print_nbf(x, 0, epa, self.dram_data[k]) #top
           else:
-            self.print_nbf(x, self.num_tiles_y+1, epa, self.dram_data[k])
-          
+            self.print_nbf(x, self.num_tiles_y+1, epa, self.dram_data[k]) #bot
       else:
         print("hash function not supported for x={0}.")
         sys.exit()
-
     else:
+      # dram disabled:
+      # using vcache as block mem
       for k in sorted(self.dram_data.keys()):
         addr = k - 0x20000000
         x = addr / cache_size
@@ -317,6 +299,7 @@ class NBF:
     self.print_nbf(0xff, 0xff, 0xffffffff, 0xffffffff)
 
   # fence
+  # spmd_loader will not send another packet, until all the pending packets are completed.
   def fence(self):
     self.print_nbf(0xff, 0xff, 0x0, 0x0)
 
@@ -339,6 +322,26 @@ class NBF:
 
     self.print_finish()
 
+
+  # hash logic for 9 bank situation. saved for posterity.
+      #if self.num_tiles_x == 9:      
+        # hashing for 9 banks (deprecated)
+      #  for k in sorted(self.dram_data.keys()):
+      #    addr = k - 0x20000000
+      #    bit_2_0 = (addr >> lg_block_size) & 0b111
+      #    bit_5_4 = (addr >> (3+lg_block_size)) & 0b110
+      #    bit_3 = (addr >> (3+lg_block_size)) & 0b001
+      #    bit_12 = (addr >> (3+lg_block_size+lg_set)) & 0b1
+
+      #    if bit_2_0 == (bit_5_4 | (bit_3 ^ bit_12)):
+      #      x = 8
+      #    else:
+      #      x = bit_2_0
+    
+      #    block_offset = self.select_bits(addr, 0, lg_block_size-1)
+      #    index = self.select_bits(addr, lg_block_size+3, lg_block_size+3+index_width-1) << lg_block_size
+      #    epa = block_offset | index
+      #    self.print_nbf(x, y, epa, self.dram_data[k])
 
 #
 #   main()
