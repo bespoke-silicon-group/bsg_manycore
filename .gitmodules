@@ -12,6 +12,3 @@
 [submodule "imports/beebs"]
 	path = imports/beebs
 	url = https://github.com/bespoke-silicon-group/beebs
-[submodule "imports/ramulator"]
-	path = imports/ramulator
-	url = https://github.com/bespoke-silicon-group/ramulator

@@ -15,16 +15,18 @@ VCS_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
 VCS_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
 VCS_SOURCES  += $(VHEADERS) $(VSOURCES) 
 VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
-	 	+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS
+	 	+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS -top spmd_testbench
 
-VCS_CFLAGS   =  -cpp clang++
+VCS_CFLAGS   =  -cpp g++
 VCS_CFLAGS   += -CFLAGS "-std=c++11 -g -Wall"
 VCS_CFLAGS   += -CFLAGS "-fPIC"
-VCS_CFLAGS   += -CFLAGS "-I$(BSG_MANYCORE_DIR)/imports/ramulator/src"
-VCS_CFLAGS   += -CFLAGS "-DRAMULATOR"
-VCS_CFLAGS   += -CFLAGS "-DHBM_CONFIG_PATH=$(BSG_MANYCORE_DIR)/imports/ramulator/configs/HBM-config.cfg"
+VCS_CFLAGS 	 += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/src"
+VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/ext/headers"
+VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/ext/fmt/include"
+VCS_CFLAGS   += -CFLAGS "-DFMT_HEADER_ONLY=1"
+VCS_CFLAGS   += -CFLAGS "-DBASEJUMP_STL_DIR=$(BASEJUMP_STL_DIR)"
 
-DEFAULT_MACHINES = 9x15 4x4 4x4_dmc 8x8_hbm
+DEFAULT_MACHINES = 9x15 4x4 4x4_dmc
 
 .PHONY: all clean
 
@@ -43,6 +45,7 @@ define set_machine_variables
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_SET=${BSG_MACHINE_VCACHE_SET})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_WAY=${BSG_MACHINE_VCACHE_WAY})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_DMA_DATA_WIDTH=${BSG_MACHINE_VCACHE_DMA_DATA_WIDTH})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_MISS_FIFO_ELS=${BSG_MACHINE_VCACHE_MISS_FIFO_ELS})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_DRAM_SIZE_WORDS=${BSG_MACHINE_DRAM_SIZE_WORDS})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_DRAM_INCLUDED=${BSG_MACHINE_DRAM_INCLUDED})
