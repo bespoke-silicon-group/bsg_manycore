@@ -27,6 +27,7 @@ module bsg_manycore
    // type 0 is the standard core
    , parameter int hetero_type_vec_p [0:num_tiles_y_p-1][0:num_tiles_x_p-1]  ='{default:0}
 
+   // this is the addr width on the manycore network packet (word addr).
    , parameter addr_width_p = "inv"
 
    //the epa_addr_width_lp is the address bit used in C for remote access.
