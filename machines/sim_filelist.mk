@@ -22,6 +22,19 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_one_fifo.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/testing/bsg_dmc/lpddr_verilog_model/mobile_ddr.v
 
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_pkg.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_controller.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_phy.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl_rx.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl_tx.v
+
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/hash_function_reverse.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_cache_to_axi_hashed.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_rx.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_tx.v
+
 CSOURCES += $(BSG_MANYCORE_DIR)/imports/ramulator/src/HBM.cpp
 CSOURCES += $(BSG_MANYCORE_DIR)/imports/ramulator/src/Config.cpp
 CSOURCES += $(BSG_MANYCORE_DIR)/imports/ramulator/src/StatType.cpp
