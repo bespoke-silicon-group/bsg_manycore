@@ -5,6 +5,7 @@ VINCLUDES += $(BASEJUMP_STL_DIR)/testing/bsg_dmc/lpddr_verilog_model
 
 VHEADERS += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_mem_cfg_pkg.v
 VHEADERS += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_profile_pkg.v
+VHEADERS += $(BASEJUMP_STL_DIR)/bsg_test/bsg_dramsim3_pkg.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_axi_mem.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_mem_infinite.v
@@ -35,19 +36,28 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_cache_to_axi_hashed.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_rx.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_tx.v
 
-CSOURCES += $(BSG_MANYCORE_DIR)/imports/ramulator/src/HBM.cpp
-CSOURCES += $(BSG_MANYCORE_DIR)/imports/ramulator/src/Config.cpp
-CSOURCES += $(BSG_MANYCORE_DIR)/imports/ramulator/src/StatType.cpp
-CSOURCES += $(BSG_MANYCORE_DIR)/imports/ramulator/src/Controller.cpp
-CSOURCES += $(BSG_MANYCORE_DIR)/imports/ramulator/src/ALDRAM.cpp
-CSOURCES += $(BSG_MANYCORE_DIR)/imports/ramulator/src/TLDRAM.cpp
-CSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_ramulator_hbm.cpp
-
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_ramulator_hbm.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_test_dram_channel.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_ramulator_hbm.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_ramulator_hbm_rx.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_ramulator_hbm_tx.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_dramsim3.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_dramsim3_map.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_dramsim3_unmap.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_dramsim3.cpp
+CSOURCES +=  $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/bankstate.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/channel_state.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/command_queue.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/common.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/configuration.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/controller.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/dram_system.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/hmc.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/memory_system.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/refresh.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/simple_stats.cc
+CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/timing.cc
+
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram_tx.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram_rx.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram_rx_reorder.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/instr_trace.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vanilla_core_trace.v

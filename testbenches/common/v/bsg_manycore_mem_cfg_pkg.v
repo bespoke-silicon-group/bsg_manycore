@@ -63,14 +63,9 @@ package bsg_manycore_mem_cfg_pkg;
     , e_vcache_non_blocking_dmc_lpddr4
 
     // LEVEL 1) bsg_manycore_vcache (blocking)
-    // LEVEL 2) bsg_cache_to_ramulator_hbm
-    // LEVEL 3) bsg_nonsynth_ramulator_hbm
-    , e_vcache_blocking_ramulator_hbm
-
-    // LEVEL 1) bsg_manycore_vcache (blocking)
-    // LEVEL 2) bsg_cache_to_ramulator_hbm
-    // LEVEL 3) bsg_nonsynth_ramulator_hbm
-    , e_vcache_non_blocking_ramulator_hbm
+    // LEVEL 2) bsg_cache_to_test_dram
+    // LEVEL 3) bsg_nonsynth_dramsim3 (HBM2)
+    , e_vcache_blocking_dramsim3_hbm2
 
   } bsg_manycore_mem_cfg_e;
 

@@ -11,6 +11,7 @@ module bsg_manycore_vcache_blocking
     , parameter block_size_in_words_p="inv"
     , parameter sets_p = "inv"
     , parameter ways_p = "inv"
+    , parameter dma_data_width_p = "inv"
     
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
@@ -36,11 +37,11 @@ module bsg_manycore_vcache_blocking
     , output logic dma_pkt_v_o
     , input dma_pkt_yumi_i
 
-    , input [data_width_p-1:0] dma_data_i
+    , input [dma_data_width_p-1:0] dma_data_i
     , input dma_data_v_i
     , output logic dma_data_ready_o
 
-    , output logic [data_width_p-1:0] dma_data_o
+    , output logic [dma_data_width_p-1:0] dma_data_o
     , output logic dma_data_v_o
     , input dma_data_yumi_i
   );
@@ -98,6 +99,7 @@ module bsg_manycore_vcache_blocking
     ,.block_size_in_words_p(block_size_in_words_p)
     ,.sets_p(sets_p)
     ,.ways_p(ways_p)
+    ,.dma_data_width_p(dma_data_width_p)
   ) cache (
     .clk_i(clk_i)
     ,.reset_i(reset_r)
