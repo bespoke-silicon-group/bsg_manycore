@@ -22,19 +22,11 @@ module bsg_manycore
     , parameter num_tiles_x_p = -1
     , parameter num_tiles_y_p = -1
 
-   // array i/o params
-   , parameter stub_w_p = {num_tiles_y_p{1'b0}}
-   , parameter stub_e_p = {num_tiles_y_p{1'b0}}
-   , parameter stub_n_p = {num_tiles_x_p{1'b0}}
-   , parameter stub_s_p = {num_tiles_x_p{1'b0}}
-
    // for heterogeneous, this is a vector of num_tiles_x_p*num_tiles_y_p bytes;
    // each byte contains the type of core being instantiated
    // type 0 is the standard core
    , parameter int hetero_type_vec_p [0:num_tiles_y_p-1][0:num_tiles_x_p-1]  ='{default:0}
 
-   // enable debugging
-   , parameter debug_p = 0
 
    // this control how many extra IO rows are addressable in
    // the network outside of the manycore array
@@ -104,6 +96,9 @@ module bsg_manycore
   // The number of registers between the reset_i port and the reset sinks
   // Must be >= 1
   , parameter reset_depth_p = 3
+
+   // enable debugging
+  , parameter debug_p = 0
   )
   (
     input clk_i
@@ -186,8 +181,6 @@ module bsg_manycore
                 .data_width_p(data_width_p),
                 .addr_width_p(addr_width_p),
                 .epa_byte_addr_width_p(epa_byte_addr_width_p),
-                .dram_ch_addr_width_p( dram_ch_addr_width_p),
-                .dram_ch_start_col_p ( dram_ch_start_col_p ),
                 .hetero_type_p( hetero_type_vec_p[r][c] ),
                 .debug_p(debug_p)
                 ,.branch_trace_en_p(branch_trace_en_p)

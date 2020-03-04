@@ -12,7 +12,6 @@ module network_tx
     , parameter addr_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-    , parameter dram_ch_addr_width_p="inv"
     , parameter epa_byte_addr_width_p="inv"
     , parameter vcache_size_p="inv" 
     , parameter vcache_block_size_in_words_p="inv"
