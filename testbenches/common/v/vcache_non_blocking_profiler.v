@@ -144,7 +144,7 @@ module vcache_non_blocking_profiler
   
   // file logging
   //
-  localparam logfile_lp = "vcache_non_blocking_stats.log";
+  localparam logfile_lp = "vcache_stats.csv";
 
   string my_name;
   integer fd; 
