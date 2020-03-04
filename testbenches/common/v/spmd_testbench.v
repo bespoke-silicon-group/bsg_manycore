@@ -28,7 +28,6 @@ module spmd_testbench;
   parameter dmem_size_p = 1024;
   parameter icache_entries_p = 1024;
   parameter icache_tag_width_p = 12;
-  parameter epa_byte_addr_width_p = 18;
 
   parameter axi_id_width_p = 6;
   parameter axi_addr_width_p = 64;
@@ -126,7 +125,6 @@ module spmd_testbench;
     ,.addr_width_p(bsg_max_epa_width_p)
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
-    ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
     ,.branch_trace_en_p(bsg_branch_trace_en_p)
   ) DUT (
     .clk_i(core_clk)
@@ -410,6 +408,8 @@ module spmd_testbench;
     logic [S:N] axi_rready;
 
     for (genvar i = N; i <= S; i++) begin
+      // bsg_cache_to_axi_hashed does not support dma_data_width_p yet.
+      // For this configuration, we just expect dma_data_width_p to be 32.
       bsg_cache_to_axi_hashed #(
         .addr_width_p(cache_addr_width_lp)
         ,.block_size_in_words_p(vcache_block_size_in_words_p)
