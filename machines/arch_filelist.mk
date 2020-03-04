@@ -98,11 +98,6 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_f2i.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_clz.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_sticky.v
 
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_pkg.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_controller.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_phy.v
-
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_launch_sync_sync.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_sync_sync.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_async_fifo.v
@@ -114,11 +109,6 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_dma.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_miss.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_sbuf.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_sbuf_queue.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_rx.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_tx.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl_rx.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_dram_ctrl_tx.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_to_cache.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_vcache_blocking.v
 
@@ -150,8 +140,6 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/lsu.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/hash_function.v
-VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/hash_function_reverse.v
-VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_cache_to_axi_hashed.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile.v
