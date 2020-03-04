@@ -17,6 +17,9 @@ module bsg_nonsynth_manycore_spmd_loader
 
     , parameter max_nbf_p = 2**20
     , parameter nbf_addr_width_lp = `BSG_SAFE_CLOG2(max_nbf_p)
+
+    , parameter max_out_credits_p=200
+    , parameter credit_counter_width_lp=`BSG_SAFE_CLOG2(max_out_credits_p+1)
   )
   ( 
     input clk_i
@@ -29,6 +32,8 @@ module bsg_nonsynth_manycore_spmd_loader
 
     , input [y_cord_width_p-1:0] my_y_i
     , input [x_cord_width_p-1:0] my_x_i
+
+    , input [credit_counter_width_lp-1:0] out_credits_i
   );
 
   // manycore packet
@@ -75,6 +80,8 @@ module bsg_nonsynth_manycore_spmd_loader
 
   logic loader_done_r, loader_done_n;
   assign done_o = loader_done_r;
+
+  wire is_fence = (&curr_nbf.x_cord) & (&curr_nbf.y_cord) & (curr_nbf.epa == '0) & (curr_nbf.data == '0);
  
   always_comb begin
     if (reset_i) begin
@@ -87,6 +94,14 @@ module bsg_nonsynth_manycore_spmd_loader
         v_o = 1'b0;
         nbf_addr_n = nbf_addr_r;
         loader_done_n = 1'b1;
+      end
+      else if (is_fence) begin
+        // fence
+        v_o = 1'b0;
+        nbf_addr_n = out_credits_i == max_out_credits_p
+          ? nbf_addr_r + 1
+          : nbf_addr_r;
+        loader_done_n = 1'b0;
       end
       else begin
         v_o = 1'b1;
