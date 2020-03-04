@@ -24,6 +24,7 @@ localparam RV32_Simm_width_gp     = 12;
 localparam RV32_Bimm_width_gp     = 12;
 localparam RV32_Uimm_width_gp     = 20;
 localparam RV32_Jimm_width_gp     = 20;
+localparam epa_word_addr_width_gp = 16; // max EPA width on vanilla core. (word addr)
 
 
 // RV32 Instruction structure

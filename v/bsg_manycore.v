@@ -31,10 +31,6 @@ module bsg_manycore
    // also known as endpoint physical address (EPA).
    , parameter addr_width_p = "inv"
 
-   //the epa_addr_width_lp is the address bit used in C for remote access.
-   //the value should be set to EPA_ADDR_WIDTH-2, refer to bsg_manycore.h for EPA_ADDR_WDITH setting
-   , parameter epa_byte_addr_width_p =  "inv" 
-
    , parameter data_width_p = "inv" // 32
 
   // Enable branch/jalr trace
@@ -133,7 +129,6 @@ module bsg_manycore
                 .y_cord_width_p(y_cord_width_lp),
                 .data_width_p(data_width_p),
                 .addr_width_p(addr_width_p),
-                .epa_byte_addr_width_p(epa_byte_addr_width_p),
                 .hetero_type_p( hetero_type_vec_p[r][c] ),
                 .debug_p(debug_p)
                 ,.branch_trace_en_p(branch_trace_en_p)

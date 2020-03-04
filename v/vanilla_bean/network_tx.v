@@ -36,7 +36,7 @@ module network_tx
     , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , localparam pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
 
-    , localparam epa_word_addr_width_lp=(epa_byte_addr_width_p-2)
+    , localparam epa_word_addr_width_lp=epa_word_addr_width_gp
 
     , localparam reg_addr_width_lp=RV32_reg_addr_width_gp
 
