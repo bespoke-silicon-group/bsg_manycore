@@ -81,6 +81,10 @@ module bsg_nonsynth_manycore_spmd_loader
   logic loader_done_r, loader_done_n;
   assign done_o = loader_done_r;
 
+  // the last line in nbf should be "ff ff ffffffff ffffffff".
+  wire is_finish = &curr_nbf; 
+  // fence should be "ff ff 00000000 00000000"
+  // fence waits until the credits are fully restored.
   wire is_fence = (&curr_nbf.x_cord) & (&curr_nbf.y_cord) & (curr_nbf.epa == '0) & (curr_nbf.data == '0);
  
   always_comb begin
@@ -90,15 +94,14 @@ module bsg_nonsynth_manycore_spmd_loader
       loader_done_n = 1'b0;
     end
     else begin
-      if (&nbf[nbf_addr_r]) begin // the last line in nbf should be "ff ff ffffffff ffffffff".
+      if (is_finish) begin 
         v_o = 1'b0;
         nbf_addr_n = nbf_addr_r;
         loader_done_n = 1'b1;
       end
       else if (is_fence) begin
-        // fence
         v_o = 1'b0;
-        nbf_addr_n = out_credits_i == max_out_credits_p
+        nbf_addr_n = (out_credits_i == max_out_credits_p)
           ? nbf_addr_r + 1
           : nbf_addr_r;
         loader_done_n = 1'b0;
@@ -113,8 +116,7 @@ module bsg_nonsynth_manycore_spmd_loader
     end
   end
   
-  logic loader_done;
-  assign loader_done = ~loader_done_r & loader_done_n;
+  wire loader_done = ~loader_done_r & loader_done_n;
 
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
@@ -130,7 +132,6 @@ module bsg_nonsynth_manycore_spmd_loader
           $time
         );
     end
-      
   end
  
 
