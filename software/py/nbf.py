@@ -312,6 +312,10 @@ class NBF:
   def print_finish(self):
     self.print_nbf(0xff, 0xff, 0xffffffff, 0xffffffff)
 
+  # fence
+  def fence(self):
+    self.print_nbf(0xff, 0xff, 0x0, 0x0)
+
 
   ##### LOADER ROUTINES END  #####  
 
@@ -326,6 +330,7 @@ class NBF:
       self.init_vcache()
 
     self.init_dram(self.enable_dram)
+    self.fence()
     self.unfreeze_tiles()
 
     self.print_finish()

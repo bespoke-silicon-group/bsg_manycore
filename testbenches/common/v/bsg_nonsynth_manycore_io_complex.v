@@ -155,7 +155,7 @@ module bsg_nonsynth_manycore_io_complex
     ,.data_width_p(data_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-
+    ,.max_out_credits_p(max_out_credits_p)
   ) loader (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -167,6 +167,8 @@ module bsg_nonsynth_manycore_io_complex
 
     ,.my_x_i((x_cord_width_p)'(io_x_cord_p))
     ,.my_y_i((y_cord_width_p)'(io_y_cord_p))
+
+    ,.out_credits_i(out_credits_lo)
   );
 
   assign out_v_li = spmd_v_lo & (out_credits_lo > 1);
