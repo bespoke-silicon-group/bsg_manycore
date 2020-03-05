@@ -809,7 +809,7 @@ module vanilla_core_profiler
     #1; // we need to wait for one time unit so that my_x_i becomes a known value.
 
     // the first tile opens the logfile and writes the csv header.
-    if ((my_x_i == x_cord_width_p'(0)) & (my_y_i == y_cord_width_p'(1))) begin
+    if ((my_x_i == x_cord_width_p'(0)) & (my_y_i == y_cord_width_p'(2))) begin
       fd = $fopen(logfile_lp, "w");
       $fwrite(fd, "time,x,y,pc_r,pc_n,tag,global_ctr,cycle,");
       $fwrite(fd, "instr_total,instr_fadd,instr_fsub,instr_fmul,");
