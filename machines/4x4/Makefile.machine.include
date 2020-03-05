@@ -1,13 +1,22 @@
 BSG_MACHINE_GLOBAL_X                  = 4
 BSG_MACHINE_GLOBAL_Y                  = 5
+
 BSG_MACHINE_VCACHE_SET                = 128
 BSG_MACHINE_VCACHE_WAY                = 8
 BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS   = 8
 BSG_MACHINE_VCACHE_DMA_DATA_WIDTH     = 32
 BSG_MACHINE_VCACHE_MISS_FIFO_ELS      = 32
+
 BSG_MACHINE_DRAM_SIZE_WORDS           = 536870912  # 2^29 words (2GB)
-BSG_MACHINE_DRAM_BANK_SIZE_WORDS      = 134217728
+BSG_MACHINE_DRAM_BANK_SIZE_WORDS      = 67108864
 BSG_MACHINE_DRAM_INCLUDED             = 1
+
 BSG_MACHINE_MAX_EPA_WIDTH             = 28
-BSG_MACHINE_MEM_CFG                   = e_vcache_blocking_axi4_nonsynth_mem
+
+# supported memory cfg
+# e_infinite_mem
+# e_vcache_blocking_axi4_nonsynth_mem
+# e_vcache_non_blocking_axi4_nonsynth_mem
+BSG_MACHINE_MEM_CFG                   = e_infinite_mem
+
 BSG_MACHINE_BRANCH_TRACE_EN           = 0

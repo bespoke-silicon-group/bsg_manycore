@@ -16,7 +16,6 @@ module bsg_manycore_tile
     
     , parameter data_width_p = "inv"
     , parameter addr_width_p = "inv"
-    , parameter epa_byte_addr_width_p = "inv"
 
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p="inv"
@@ -85,7 +84,6 @@ module bsg_manycore_tile
     ,.vcache_size_p(vcache_size_p)
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
-    ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
     ,.hetero_type_p(hetero_type_p)
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)

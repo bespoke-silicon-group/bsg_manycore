@@ -13,7 +13,7 @@ module network_tx
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
     , parameter epa_byte_addr_width_p="inv"
-    , parameter vcache_size_p="inv" 
+    , parameter vcache_size_p="inv" // vcache capacity in words
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p="inv"
     
@@ -36,7 +36,7 @@ module network_tx
     , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , localparam pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
 
-    , localparam epa_word_addr_width_lp=(epa_byte_addr_width_p-2)
+    , localparam epa_word_addr_width_lp=epa_word_addr_width_gp
 
     , localparam reg_addr_width_lp=RV32_reg_addr_width_gp
 
@@ -119,14 +119,14 @@ module network_tx
   // hash bank
   //
   localparam hash_bank_input_width_lp=data_width_p-1-2-vcache_word_offset_width_lp;
-  localparam hash_bank_index_width_lp=$clog2((2**hash_bank_input_width_lp+num_tiles_x_p-1)/num_tiles_x_p);
+  localparam hash_bank_index_width_lp=$clog2((2**hash_bank_input_width_lp+num_tiles_x_p-1)/(num_tiles_x_p*2));
 
   logic [hash_bank_input_width_lp-1:0] hash_bank_input;
-  logic [x_cord_width_p-1:0] hash_bank_lo;  
+  logic [x_cord_width_p:0] hash_bank_lo;  // {top_not_bot, x_cord}
   logic [hash_bank_index_width_lp-1:0] hash_bank_index_lo;
 
   hash_function #(
-    .banks_p(num_tiles_x_p)
+    .banks_p(num_tiles_x_p*2) // vcache on top and bottom
     ,.width_p(hash_bank_input_width_lp)
     ,.vcache_sets_p(vcache_sets_p)
   ) hashb (
@@ -165,8 +165,10 @@ module network_tx
     // EVA Address Mapping.
     if (is_dram_addr) begin
       if (dram_enable_i) begin
-        out_packet.y_cord = {y_cord_width_p{1'b1}}; // send it to y-max
-        out_packet.x_cord = hash_bank_lo;
+        out_packet.y_cord = hash_bank_lo[x_cord_width_p]
+          ? {y_cord_width_p{1'b1}}
+          : (y_cord_width_p)'(0);
+        out_packet.x_cord = hash_bank_lo[0+:x_cord_width_p];
         out_packet.addr = {
           1'b0,
           {(addr_width_p-1-vcache_word_offset_width_lp-hash_bank_index_width_lp){1'b0}},
@@ -175,15 +177,22 @@ module network_tx
         };
       end
       else begin
+        // DRAM disabled.
         if (remote_req_i.addr[30]) begin
           out_packet.y_cord = '0;
           out_packet.x_cord = '0;
           out_packet.addr = {1'b1, remote_req_i.addr[2+:addr_width_p-1]}; // HOST DRAM address
         end
         else begin
-          out_packet.y_cord = {y_cord_width_p{1'b1}}; // send it to y-max
-          out_packet.x_cord = (x_cord_width_p)'(remote_req_i.addr[2+vcache_addr_width_lp+:x_cord_width_p]);
-          out_packet.addr = {1'b0, {(addr_width_p-1-vcache_addr_width_lp){1'b0}}, remote_req_i.addr[2+:vcache_addr_width_lp]};
+          out_packet.y_cord = remote_req_i.addr[2+vcache_addr_width_lp+x_cord_width_p+:1]
+            ? {y_cord_width_p{1'b1}}
+            : (y_cord_width_p)'(0);
+          out_packet.x_cord = remote_req_i.addr[2+vcache_addr_width_lp+:x_cord_width_p];
+          out_packet.addr = {
+            1'b0,
+            {(addr_width_p-1-vcache_addr_width_lp){1'b0}},
+            remote_req_i.addr[2+:vcache_addr_width_lp]
+          };
         end
       end
     end

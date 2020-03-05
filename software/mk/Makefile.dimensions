@@ -6,7 +6,7 @@
 #$(warning testing $(call bsg-plus-fn,3,2))
 
 bsg_tiles_org_X ?=0
-bsg_tiles_org_Y ?=1
+bsg_tiles_org_Y ?=2
 
 ifdef BSG_MACHINE_GLOBAL_X
 

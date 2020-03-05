@@ -7,11 +7,11 @@
 module bsg_manycore
   import bsg_manycore_pkg::*;
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }
-  #(parameter dmem_size_p = "inv"
+  #(parameter dmem_size_p = "inv" // number of words in DMEM
     , parameter icache_entries_p = "inv" // in words
     , parameter icache_tag_width_p = "inv"
 
-    , parameter vcache_size_p = "inv" // capacity of vcache in words
+    , parameter vcache_size_p = "inv" // capacity per vcache in words
     , parameter vcache_block_size_in_words_p ="inv"
     , parameter vcache_sets_p = "inv"
 
@@ -27,71 +27,23 @@ module bsg_manycore
    // type 0 is the standard core
    , parameter int hetero_type_vec_p [0:num_tiles_y_p-1][0:num_tiles_x_p-1]  ='{default:0}
 
-
-   // this control how many extra IO rows are addressable in
-   // the network outside of the manycore array
-
-   , parameter extra_io_rows_p = 1
-
-   // this parameter sets the size of addresses that are transmitted in the network
-   // and corresponds to the amount of physical words that are addressable by a remote
-   // tile. here are some various settings:
-   //
-   // 30: maximum value, i.e. 2^30 words.
-   // 20: maximum value to allow for traversal over a bsg_fsb
-   // 13: value for 8 banks of 1024 words of ram in each tile
-   //
-   // obviously smaller values take up less die area.
-   //
-
+   // this is the addr width on the manycore network packet (word addr).
+   // also known as endpoint physical address (EPA).
    , parameter addr_width_p = "inv"
 
-   //the epa_addr_width_lp is the address bit used in C for remote access.
-   //the value should be set to EPA_ADDR_WIDTH-2, refer to bsg_manycore.h for EPA_ADDR_WDITH setting
-   , parameter epa_byte_addr_width_p =  "inv" 
-
-    //------------------------------------------------------
-    //  DRAM Address Definition
-    //------------------------------------------------------
-    // DRAMs are located at the south of mesh, and are divided
-    // into different channels depending on which column the dram 
-    // is attached to. 
-    //
-    // Should be less or equal to addr_width_p
-    //
-    //      |       |       |       |
-    //-----------------------------------
-    //      |       |       |       |
-    //      |       |       |       |
-    //     CH0     CH1     CH2     CH3
-    //
-    //  LOW_ADDR     ----->         HIGH_ADDR
-    //
-    // This parameter is used to decode which DRAM channel should be 
-    // send to.
-    // 32 bits = {1'b1, CH0, network address}
-    
-   //  26 = 32M WORDS for each channel
-  , parameter dram_ch_addr_width_p = "inv"
-   //  Suppose the first channel is connected to column 0
-  , parameter dram_ch_start_col_p  = 0
-  // usually 32
-  , parameter data_width_p = "inv"
-  //The IO router row index
-  , parameter IO_row_idx_p = 0
-
-  // EPA parameter
+   , parameter data_width_p = "inv" // 32
 
   // Enable branch/jalr trace
   , parameter branch_trace_en_p = 0
 
-  , localparam x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
-  , localparam y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
-  , localparam link_sif_width_lp =
-     `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+  // y = 0                  top vcache
+  // y = 1                  IO routers
+  // y = num_tiles_y_p+1    bottom vcache
+  , parameter y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p+2)
+  , parameter x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
 
-   // snew * y * x bits
-  , parameter repeater_output_p = 0
+  , parameter link_sif_width_lp =
+     `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
   // The number of registers between the reset_i port and the reset sinks
   // Must be >= 1
@@ -112,13 +64,10 @@ module bsg_manycore
     , input [S:N][num_tiles_x_p-1:0][link_sif_width_lp-1:0] ver_link_sif_i
     , output [S:N][num_tiles_x_p-1:0][link_sif_width_lp-1:0] ver_link_sif_o
 
-    //IO
+    // IO-row p-ports
     , input [num_tiles_x_p-1:0][link_sif_width_lp-1:0] io_link_sif_i
     , output [num_tiles_x_p-1:0][link_sif_width_lp-1:0] io_link_sif_o
   );
-
-// Manycore is stubbed out when running synthesis on the top-level chip
-`ifndef SYNTHESIS_TOPLEVEL_STUB
 
    // synopsys translate_off
    initial
@@ -149,7 +98,7 @@ module bsg_manycore
    bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
    bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
 
-   genvar r,c;
+  genvar r,c;
 
   // Pipeline the reset. The bsg_manycore_tile has a single pipeline register
   // on reset already, so we only want to pipeline reset_depth_p-1 times.
@@ -166,7 +115,7 @@ module bsg_manycore
         end
     end
 
-   for (r = IO_row_idx_p+1; r < num_tiles_y_p; r = r+1)
+   for (r = 1; r < num_tiles_y_p; r = r+1)
      begin: y
         for (c = 0; c < num_tiles_x_p; c=c+1)
           begin: x
@@ -180,7 +129,6 @@ module bsg_manycore
                 .y_cord_width_p(y_cord_width_lp),
                 .data_width_p(data_width_p),
                 .addr_width_p(addr_width_p),
-                .epa_byte_addr_width_p(epa_byte_addr_width_p),
                 .hetero_type_p( hetero_type_vec_p[r][c] ),
                 .debug_p(debug_p)
                 ,.branch_trace_en_p(branch_trace_en_p)
@@ -197,37 +145,37 @@ module bsg_manycore
                 .link_out(link_out[r][c]),
 
                 .my_x_i(x_cord_width_lp'(c)),
-                .my_y_i(y_cord_width_lp'(r))
+                .my_y_i(y_cord_width_lp'(r+1))
               );
           end
      end
 
-for (c = 0; c < num_tiles_x_p; c=c+1) begin:io
-        bsg_manycore_mesh_node #(
-            .x_cord_width_p     (x_cord_width_lp )
-           ,.y_cord_width_p     (y_cord_width_lp )
-           ,.data_width_p       (data_width_p    )
-           ,.addr_width_p       (addr_width_p    )
-          ) io_router
-           (  .clk_i    (clk_i      )
-             ,.reset_i  (reset_i_r[reset_depth_p-1][0][c] )
+  for (c = 0; c < num_tiles_x_p; c=c+1) begin: io
+    bsg_manycore_mesh_node #(
+      .x_cord_width_p     (x_cord_width_lp )
+      ,.y_cord_width_p     (y_cord_width_lp )
+      ,.data_width_p       (data_width_p    )
+      ,.addr_width_p       (addr_width_p    )
+    ) io_router (
+      .clk_i    (clk_i      )
+      ,.reset_i  (reset_i_r[reset_depth_p-1][0][c] )
         
-             ,.links_sif_i      ( link_in [ IO_row_idx_p][ c ] )
-             ,.links_sif_o      ( link_out[ IO_row_idx_p][ c ] )
+      ,.links_sif_i      ( link_in [0][ c ] )
+      ,.links_sif_o      ( link_out[0][ c ] )
         
-             ,.proc_link_sif_i  ( io_link_sif_i [ c ])
-             ,.proc_link_sif_o  ( io_link_sif_o [ c ])
+      ,.proc_link_sif_i  ( io_link_sif_i [ c ])
+      ,.proc_link_sif_o  ( io_link_sif_o [ c ])
         
-             // tile coordinates
-             ,.my_x_i   ( x_cord_width_lp'(c              ))
-             ,.my_y_i   ( y_cord_width_lp'(IO_row_idx_p  ))
-             );
-        
-end
-    // stitch together all of the tiles into a mesh
+      // tile coordinates
+      ,.my_x_i   ( x_cord_width_lp'(c))
+      ,.my_y_i   ( y_cord_width_lp'(1))
+   );
+  end
 
-    bsg_mesh_stitch
-     #(.width_p(link_sif_width_lp)
+  // stitch together all of the tiles into a mesh
+
+  bsg_mesh_stitch
+    #(.width_p(link_sif_width_lp)
       ,.x_max_p(num_tiles_x_p)
       ,.y_max_p(num_tiles_y_p)
       )
@@ -240,5 +188,4 @@ end
       ,.ver_o(ver_link_sif_o)
       );
 
-`endif
 endmodule

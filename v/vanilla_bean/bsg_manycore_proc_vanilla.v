@@ -20,8 +20,6 @@ module bsg_manycore_proc_vanilla
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p = "inv"
 
-    , parameter epa_byte_addr_width_p = "inv"
-
     , parameter num_tiles_x_p="inv"
 
     , parameter max_out_credits_p = 32
@@ -159,7 +157,6 @@ module bsg_manycore_proc_vanilla
     ,.icache_entries_p(icache_entries_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
   ) rx (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -228,8 +225,6 @@ module bsg_manycore_proc_vanilla
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
-
-    ,.epa_byte_addr_width_p(epa_byte_addr_width_p)
 
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)

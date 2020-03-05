@@ -9,6 +9,9 @@ module vcache_profiler
   #(parameter data_width_p="inv"
     , parameter addr_width_p="inv"
 
+    // this string is matched against the name of the instance, and decides whether to print csv header or not.
+    , parameter header_print_p="y[3].x[0]"
+
     , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
   )
   (
@@ -85,7 +88,7 @@ module vcache_profiler
   initial begin
 
     my_name = $sformatf("%m");
-    if (str_match(my_name, "vcache[0]")) begin
+    if (str_match(my_name, header_print_p)) begin
       fd = $fopen(logfile_lp, "w");
       $fwrite(fd, "instance,global_ctr,tag,ld,st,ld_miss,st_miss,dma_read_req,dma_write_req\n");
       $fclose(fd);

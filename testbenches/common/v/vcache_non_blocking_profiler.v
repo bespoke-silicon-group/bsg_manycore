@@ -13,6 +13,9 @@ module vcache_non_blocking_profiler
     , parameter id_width_p="inv"
     , parameter block_size_in_words_p="inv"
 
+    // this string is matched against the name of the instance, and decides whether to print csv header or not.
+    , parameter header_print_p="y[3].x[0]"
+
     , parameter data_mem_pkt_width_lp =
       `bsg_cache_non_blocking_data_mem_pkt_width(ways_p,sets_p,block_size_in_words_p,data_width_p)
     , parameter miss_fifo_entry_width_lp = 
@@ -152,7 +155,7 @@ module vcache_non_blocking_profiler
   initial begin
  
     my_name = $sformatf("%m");
-    if (str_match(my_name, "vcache[0]")) begin
+    if (str_match(my_name, header_print_p)) begin
       fd = $fopen(logfile_lp, "w");
       $fwrite(fd, "instance,global_ctr,tag,ld_hit,st_hit,ld_hit_under_miss,st_hit_under_miss,ld_miss,st_miss,ld_mhu,st_mhu,dma_read_req,dma_write_req\n");
       $fclose(fd);
