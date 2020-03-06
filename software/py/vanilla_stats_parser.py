@@ -236,6 +236,10 @@ class VanillaStatsParser:
                 active_tiles.add((trace['y'], trace['x']))
 
 
+        # Raise exception and exit if there are no traces 
+        assert (self.traces), "vanilla_stats_parser: no stats found, nothing to do - use bsg_cuda_print_stat_kerenl_start/end macros to generate vanilla stats."
+
+
         # Save the active tiles in a list
         self.active = [(y - self._BSG_ORIGIN_Y, x - self._BSG_ORIGIN_X) for (y,x) in active_tiles]
         self.active.sort()

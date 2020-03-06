@@ -189,17 +189,17 @@ class BloodGraph:
                                              "stall_icache_store"                     : (0x00, 0x55, 0xff), ## dark blue
                                              "stall_remote_req"                       : (0xff, 0xff, 0x00), ## yellow
                                              "stall_local_flw"                        : (0xff, 0xff, 0x80), ## light yellow
-                                             "stall_amo_aq"                           : (0x00, 0x00, 0x00), ## black
-                                             "stall_amo_rl"                           : (0x00, 0x00, 0x00), ## black
+                                             "stall_amo_aq"                           : (0x8b, 0x45, 0x13), ## brown
+                                             "stall_amo_rl"                           : (0x8b, 0x45, 0x13), ## brown
 
                                              "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
                                              "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
                                              "bubble_icache"                          : (0x00, 0x00, 0xff), ## blue
 
-                                             "bubble_branch_mispredict"               : (0x00, 0x00, 0x00), ## black
-                                             "bubble_jalr_mispredict"                 : (0x00, 0x00, 0x00), ## black
+                                             "bubble_branch_mispredict"               : (0x80, 0x00, 0x80), ## purple
+                                             "bubble_jalr_mispredict"                 : (0xff, 0xa5, 0x00), ## orange
                                              "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black
-                                             "bubble"                                 : (0x00, 0x00, 0x00), ## black
+                                             "bubble"                                 : (0x80, 0x00, 0x00), ## maroon
 
                                              "stall_md"                               : (0xff, 0xf0, 0xa0), ## light orange
                                            }
