@@ -12,7 +12,9 @@ NO-RECURSE = \
 	go_viral \
 	bsg_remote_congestion memtest1 deprecated \
 	c++ fft memtest16 fhello_malloc striped_vector_sum striped_hello \
-	coremark coremark-top# run coremark separately.
+	coremark coremark-top \
+	beebs  # run coremark and beebs separately
+
 
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"

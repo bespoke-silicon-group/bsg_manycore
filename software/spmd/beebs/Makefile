@@ -94,11 +94,22 @@ beebs.configure.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 clean-build:
 	-rm *.a *.o *.log
 	-rm -rf $(BUILD_DIR);
-	-rm beebs.configure.touchfile
+	-rm -f beebs.configure.touchfile
 
 clean-runs:
 	-rm -rf *_run
 
 clean: clean-build clean-runs
 
+RUN_LOGS = $(addsuffix _run/run.log, $(BMARK_LIST))
 
+check_finish:
+	for log in $(RUN_LOGS); do \
+		if grep BSG_FINISH $$log; \
+		then \
+			echo $$log passed; \
+		else \
+			echo $$log failed; \
+			exit 1;	\
+		fi	\
+	done
