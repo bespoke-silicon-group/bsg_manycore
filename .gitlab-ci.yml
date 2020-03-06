@@ -51,6 +51,8 @@ build-toolchain:
     - echo "Building toolchain..."
     - make -C bsg_manycore/software/riscv-tools clean-all install-clean > toolchain.log
     - echo "Updating cache with latest toolchain"
+    - rm -rf cache/riscv-install
+    - rm -rf cache/llvm
     - cp -r bsg_manycore/software/riscv-tools/riscv-install cache/
     - cp -r bsg_manycore/software/riscv-tools/llvm cache/
   only:
