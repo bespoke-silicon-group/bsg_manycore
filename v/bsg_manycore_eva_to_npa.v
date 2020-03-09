@@ -1,7 +1,13 @@
 /**
  *    bsg_manycore_eva_to_npa.v
  *
- *    this modules converts Endpoint Virtual Address (EVA) to Network Physical Address (NPA).
+ *    This modules converts Endpoint Virtual Address (EVA) (32-bit) to Network Physical Address (NPA) (x,y-cord + EPA).
+ *    Some EVA space maps to endpoint-specific address space. For example, vanilla core maps some portion of its EVA to its own local DMEM.
+ *    It is very conceivable that different kinds of accelerators will map the portion of EVA differently to its local resources.
+ *    This converter handles the mapping of EVA that is universal to all endpoints connected to the mesh network.
+ *      1) DRAM
+ *      2) Global
+ *      3) Tile-Group
  *
  */
 
@@ -15,21 +21,28 @@ module bsg_manycore_eva_to_npa
     
     , parameter num_tiles_x_p="inv"
 
-    , parameter vcache_block_size_in_words_p="inv"
+    , parameter vcache_block_size_in_words_p="inv"  // block size in vcache
     , parameter vcache_size_p="inv" // vcache capacity in words
-    , parameter vcache_sets_p="inv"
+    , parameter vcache_sets_p="inv" // number of sets in vcache
 
   )
   (
+    // EVA 32-bit virtual address used by vanilla core
     input [data_width_p-1:0] eva_i  // byte addr
-    , input dram_enable_i
-    , input [x_cord_width_p-1:0] tgo_x_i
-    , input [y_cord_width_p-1:0] tgo_y_i 
+    , input [x_cord_width_p-1:0] tgo_x_i // tile-group origin x
+    , input [y_cord_width_p-1:0] tgo_y_i // tile-group origin y
 
-    , output logic [x_cord_width_p-1:0] x_cord_o
-    , output logic [y_cord_width_p-1:0] y_cord_o
-    , output logic [addr_width_p-1:0] epa_o   // word addr
+    // When DRAM mode is enabled, DRAM EVA space is striped across vcaches at a cache line granularity.
+    // When DRAM mode is disabled, vcaches are only used as block memory, and the striping is disabled,
+    // and some upper addresses are mapped to host-side memory.
+    , input dram_enable_i // DRAM MODE enable
 
+    // NPA (x,y,EPA)
+    , output logic [x_cord_width_p-1:0] x_cord_o  // destination x_cord
+    , output logic [y_cord_width_p-1:0] y_cord_o  // destination y_cord
+    , output logic [addr_width_p-1:0] epa_o       // endpoint physical address (word addr)
+
+    // EVA does not map to any valid remote NPA location.
     , output logic is_invalid_addr_o
   );
 
@@ -96,7 +109,7 @@ module bsg_manycore_eva_to_npa
       else begin
         // DRAM disabled.
         if (eva_i[30]) begin
-          y_cord_o = '0;
+          y_cord_o = (y_cord_width_p)'(1);
           x_cord_o = '0;
           epa_o = {1'b1, eva_i[2+:addr_width_p-1]}; // HOST DRAM address
         end
@@ -114,11 +127,15 @@ module bsg_manycore_eva_to_npa
       end
     end
     else if (is_global_addr) begin
+      // global-addr
+      // x,y-cord and EPA is directly encoded in EVA.
       y_cord_o = y_cord_width_p'(global_addr.y_cord);
       x_cord_o = x_cord_width_p'(global_addr.x_cord);
       epa_o = {{(addr_width_p-epa_word_addr_width_gp){1'b0}}, global_addr.addr};
     end
     else if (is_tile_group_addr) begin
+      // tile-group addr
+      // tile-coordinate in the EVA is added to the tile-group origin register.
       y_cord_o = y_cord_width_p'(tile_group_addr.y_cord + tgo_y_i);
       x_cord_o = x_cord_width_p'(tile_group_addr.x_cord + tgo_x_i);
       epa_o = {{(addr_width_p-epa_word_addr_width_gp){1'b0}}, tile_group_addr.addr};
@@ -130,7 +147,6 @@ module bsg_manycore_eva_to_npa
       epa_o = '0;
     end
   end
-
 
 
 endmodule
