@@ -23,6 +23,7 @@ VCS_CFLAGS   += -CFLAGS "-fPIC"
 VCS_CFLAGS 	 += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/src"
 VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/ext/headers"
 VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/ext/fmt/include"
+VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
 VCS_CFLAGS   += -CFLAGS "-DFMT_HEADER_ONLY=1"
 VCS_CFLAGS   += -CFLAGS "-DBASEJUMP_STL_DIR=$(BASEJUMP_STL_DIR)"
 
@@ -72,4 +73,5 @@ endef
 clean:
 	rm -rf csrc
 	rm -rf */*.log */*.daidir */simv */simv-debug
+	rm -rf stack.info.*
 	rm -f vc_hdrs.h
