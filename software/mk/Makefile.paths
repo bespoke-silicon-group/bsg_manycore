@@ -3,4 +3,4 @@ BSG_IP_CORES_DIR ?= $(BSG_MANYCORE_DIR)/../basejump_stl
 BERKELEY_HARDFLOAT_DIR ?= $(BSG_MANYCORE_DIR)/../berkeley-hardfloat
 RISCV_BIN_DIR ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install/bin
 CAD_DIR ?= $(BSG_MANYCORE_DIR)/../bsg_cadenv
-BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/4x4
+BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/16x8
