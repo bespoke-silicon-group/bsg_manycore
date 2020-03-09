@@ -15,7 +15,9 @@ build-repos:
     - echo "Cloning repos..."
     - rm -rf bsg_cadenv basejump_stl bsg_manycore
     - cp -r $BSG_CADENV_DIR bsg_cadenv
-    - git clone https://github.com/bespoke-silicon-group/basejump_stl.git
+    - git clone --recursive -b master https://github.com/bespoke-silicon-group/basejump_stl.git
+    - (cd basejump_stl/imports; git clone https://$CI_USERNAME:$ACCESS_TOKEN@github.com/bespoke-silicon-group/bsg_dramsim3 DRAMSim3 -b basejump-dramsim3-fix)
+    - ls basejump_stl/imports/DRAMSim3
     - git clone --recursive -b $CI_COMMIT_REF_NAME https://github.com/bespoke-silicon-group/bsg_manycore.git
     - >
       if [ -e cache/ ]; then
@@ -43,6 +45,27 @@ build-repos:
       - /^ci_.*$/
       - master
 
+build-machines:
+  stage: build
+  tags:
+    - bsg
+  script:
+    - echo "Building machines..."
+    - cd bsg_manycore/machines
+    - make clean
+    - make
+  cache:
+    paths:
+      - $CI_PROJECT_DIR/bsg_cadenv
+      - $CI_PROJECT_DIR/basejump_stl
+      - $CI_PROJECT_DIR/bsg_manycore
+      - $CI_PROJECT_DIR/bsg_bladerunner
+    policy: pull
+  only:
+    refs:
+      - /^ci_.*$/
+      - master
+
 build-toolchain:
   stage: build
   tags:
@@ -51,6 +74,8 @@ build-toolchain:
     - echo "Building toolchain..."
     - make -C bsg_manycore/software/riscv-tools clean-all install-clean > toolchain.log
     - echo "Updating cache with latest toolchain"
+    - rm -rf cache/riscv-install
+    - rm -rf cache/llvm
     - cp -r bsg_manycore/software/riscv-tools/riscv-install cache/
     - cp -r bsg_manycore/software/riscv-tools/llvm cache/
   only:
@@ -72,6 +97,7 @@ test-spmd:
   script:
     - echo "Running Manycore regression..."
     - cd bsg_manycore
+    - pwd
     - ./ci/regress.sh
   cache:
     paths:
@@ -85,28 +111,38 @@ test-spmd:
       - /^ci_.*$/
       - master
 
-test-cosim:
-  when: manual
+test-coremark:
   stage: test
   tags:
     - bsg
     - vcs
   script:
-    - echo "Configuring bsg_bladerunner..."
-    - rm -rf bsg_bladerunner
-    - git clone https://github.com/bespoke-silicon-group/bsg_bladerunner.git 
-    - cd bsg_bladerunner
-    - cp -r $BSG_CADENV_DIR bsg_cadenv
-    - make -f amibuild.mk setup-aws-fpga AWS_FPGA_REPO_DIR=$CI_PROJECT_DIR/bsg_bladerunner/aws-fpga
-    - git submodule update --init --recursive
-    - cd bsg_f1; git checkout master; cd ..
-    - cd bsg_manycore; git checkout $CI_COMMIT_REF_NAME
-    - cd software/riscv-tools
-    - ln -s ../../../../bsg_manycore/software/riscv-tools/riscv-install .
-    - ln -s ../../../../bsg_manycore/software/riscv-tools/llvm .
-    - echo "Running COSIM..."
-    - cd bsg_bladerunner/bsg_f1/testbenches
-    - make regression
+    - echo "Running CoreMark regression..."
+    - cd bsg_manycore
+    - pwd
+    - ./ci/coremark.sh
+  cache:
+    paths:
+      - $CI_PROJECT_DIR/bsg_cadenv
+      - $CI_PROJECT_DIR/basejump_stl
+      - $CI_PROJECT_DIR/bsg_manycore
+      - $CI_PROJECT_DIR/bsg_bladerunner
+    policy: pull
+  only:
+    refs:
+      - /^ci_.*$/
+      - master
+
+test-beebs:
+  stage: test
+  tags:
+    - bsg
+    - vcs
+  script:
+    - echo "Running BEEBS regression..."
+    - cd bsg_manycore
+    - pwd
+    - ./ci/beebs.sh
   cache:
     paths:
       - $CI_PROJECT_DIR/bsg_cadenv
