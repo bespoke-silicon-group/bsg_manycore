@@ -24,9 +24,6 @@ module network_tx
 
     , parameter max_out_credits_p="inv"
 
-    , parameter max_y_cord_width_p=6
-    , parameter max_x_cord_width_p=6
-
     , parameter vcache_addr_width_lp=`BSG_SAFE_CLOG2(vcache_size_p)
 
     , parameter vcache_word_offset_width_lp = `BSG_SAFE_CLOG2(vcache_block_size_in_words_p)
@@ -99,43 +96,33 @@ module network_tx
 
   // EVA -> NPA translation
   //
-  `declare_bsg_manycore_global_addr_s(epa_word_addr_width_lp,
-    max_x_cord_width_p,max_y_cord_width_p); // Global
-  `declare_bsg_manycore_addr_s(epa_word_addr_width_lp,
-    max_x_cord_width_p,max_y_cord_width_p); // In-group
+  logic is_invalid_addr_lo;
+  logic [x_cord_width_p-1:0] x_cord_lo;
+  logic [y_cord_width_p-1:0] y_cord_lo;
+  logic [addr_width_p-1:0] epa_lo;
 
-  bsg_manycore_global_addr_s global_addr;
-  bsg_manycore_addr_s in_group_addr;
-  assign global_addr = remote_req_i.addr; 
-  assign in_group_addr = remote_req_i.addr; 
-
-  wire is_dram_addr = (remote_req_i.addr ==? 32'b1???????_????????_????????_????????);
-  wire is_global_addr = global_addr.remote == 2'b01;
-  wire is_in_group_addr = in_group_addr.remote == 3'b001;
-
-  wire is_invalid_addr = ~(is_dram_addr | is_global_addr | is_in_group_addr);
-
-
-  // hash bank
-  //
-  localparam hash_bank_input_width_lp=data_width_p-1-2-vcache_word_offset_width_lp;
-  localparam hash_bank_index_width_lp=$clog2((2**hash_bank_input_width_lp+num_tiles_x_p-1)/(num_tiles_x_p*2));
-
-  logic [hash_bank_input_width_lp-1:0] hash_bank_input;
-  logic [x_cord_width_p:0] hash_bank_lo;  // {top_not_bot, x_cord}
-  logic [hash_bank_index_width_lp-1:0] hash_bank_index_lo;
-
-  hash_function #(
-    .banks_p(num_tiles_x_p*2) // vcache on top and bottom
-    ,.width_p(hash_bank_input_width_lp)
+  bsg_manycore_eva_to_npa #(
+    .data_width_p(data_width_p)
+    ,.addr_width_p(addr_width_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.num_tiles_x_p(num_tiles_x_p)
+    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+    ,.vcache_size_p(vcache_size_p)
     ,.vcache_sets_p(vcache_sets_p)
-  ) hashb (
-    .i(hash_bank_input)
-    ,.bank_o(hash_bank_lo)
-    ,.index_o(hash_bank_index_lo)
+  ) eva2npa (
+    .eva_i(remote_req_i.addr)
+    ,.dram_enable_i(dram_enable_i)
+    ,.tgo_x_i(tgo_x_i)
+    ,.tgo_y_i(tgo_y_i)
+
+    ,.x_cord_o(x_cord_lo)
+    ,.y_cord_o(y_cord_lo)
+    ,.epa_o(epa_lo)
+
+    ,.is_invalid_addr_o(is_invalid_addr_lo) 
   );
 
-  assign hash_bank_input = remote_req_i.addr[2+vcache_word_offset_width_lp+:hash_bank_input_width_lp];
 
   // Out Packet Builder.
   //
@@ -148,6 +135,10 @@ module network_tx
       out_packet.payload.load_info_s.load_info = remote_req_i.load_info;
       out_packet.payload.load_info_s.reserved  = '0;
     end
+
+    out_packet.y_cord = y_cord_lo;
+    out_packet.x_cord = x_cord_lo;
+    out_packet.addr = epa_lo;
 
     out_packet.reg_id = remote_req_i.reg_id;
     out_packet.op_ex = remote_req_i.is_amo_op
@@ -162,62 +153,12 @@ module network_tx
         ? e_remote_store
         : e_remote_load);
 
-    // EVA Address Mapping.
-    if (is_dram_addr) begin
-      if (dram_enable_i) begin
-        out_packet.y_cord = hash_bank_lo[x_cord_width_p]
-          ? {y_cord_width_p{1'b1}}
-          : (y_cord_width_p)'(0);
-        out_packet.x_cord = hash_bank_lo[0+:x_cord_width_p];
-        out_packet.addr = {
-          1'b0,
-          {(addr_width_p-1-vcache_word_offset_width_lp-hash_bank_index_width_lp){1'b0}},
-          hash_bank_index_lo,
-          remote_req_i.addr[2+:vcache_word_offset_width_lp]
-        };
-      end
-      else begin
-        // DRAM disabled.
-        if (remote_req_i.addr[30]) begin
-          out_packet.y_cord = '0;
-          out_packet.x_cord = '0;
-          out_packet.addr = {1'b1, remote_req_i.addr[2+:addr_width_p-1]}; // HOST DRAM address
-        end
-        else begin
-          out_packet.y_cord = remote_req_i.addr[2+vcache_addr_width_lp+x_cord_width_p+:1]
-            ? {y_cord_width_p{1'b1}}
-            : (y_cord_width_p)'(0);
-          out_packet.x_cord = remote_req_i.addr[2+vcache_addr_width_lp+:x_cord_width_p];
-          out_packet.addr = {
-            1'b0,
-            {(addr_width_p-1-vcache_addr_width_lp){1'b0}},
-            remote_req_i.addr[2+:vcache_addr_width_lp]
-          };
-        end
-      end
-    end
-    else if (is_global_addr) begin
-      out_packet.y_cord = y_cord_width_p'(global_addr.y_cord);
-      out_packet.x_cord = x_cord_width_p'(global_addr.x_cord);
-      out_packet.addr = {{(addr_width_p-epa_word_addr_width_lp){1'b0}}, global_addr.addr};
-    end
-    else if (is_in_group_addr) begin
-      out_packet.y_cord = y_cord_width_p'(global_addr.y_cord + tgo_y_i);
-      out_packet.x_cord = x_cord_width_p'(global_addr.x_cord + tgo_x_i);
-      out_packet.addr = {{(addr_width_p-epa_word_addr_width_lp){1'b0}}, in_group_addr.addr};
-    end
-    else begin
-      // should never happen
-      out_packet.y_cord = '0;
-      out_packet.x_cord = '0;
-      out_packet.addr = '0;
-    end
   end
 
   // handling outgoing requests
   //
-  assign out_v_o = remote_req_v_i & (|out_credits_i) & ~is_invalid_addr;
-  assign remote_req_yumi_o = (out_v_o & out_ready_i) | (remote_req_v_i & is_invalid_addr);
+  assign out_v_o = remote_req_v_i & (|out_credits_i) & ~is_invalid_addr_lo;
+  assign remote_req_yumi_o = (out_v_o & out_ready_i) | (remote_req_v_i & is_invalid_addr_lo);
 
 
   // handling response packets
@@ -258,7 +199,7 @@ module network_tx
 
   always_ff @ (negedge clk_i) begin
 
-    if (out_v_o & is_invalid_addr) begin
+    if (out_v_o & is_invalid_addr_lo) begin
       $display("[ERROR][TX] Invalid EVA access. t=%0t, x=%d, y=%d, addr=%h",
         $time, my_x_i, my_y_i, remote_req_i.addr);
     end 
