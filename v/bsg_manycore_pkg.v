@@ -166,24 +166,30 @@ package bsg_manycore_pkg;
 
   // EVA Address Format
 
+  localparam epa_word_addr_width_gp = 16; // max EPA width on vanilla core. (word addr)
+  localparam max_x_cord_width_gp = 6;
+  localparam max_y_cord_width_gp = 6;
+
   // global
-  `define declare_bsg_manycore_global_addr_s(epa_addr_width, max_x_cord_width, max_y_cord_width) \
-    typedef struct packed {                                      \
-      logic [1:0]       remote;                                 \
-      logic [max_y_cord_width-1:0]       y_cord;                \
-      logic [max_x_cord_width-1:0]       x_cord;                \
-      logic [epa_addr_width-1:0]          addr;                  \
-      logic [1:0]                        low_bits;              \
+  `define declare_bsg_manycore_global_addr_s \
+    typedef struct packed {                  \
+      logic [1:0]       remote;              \
+      logic [max_y_cord_width_gp-1:0]       y_cord;                \
+      logic [max_x_cord_width_gp-1:0]       x_cord;                \
+      logic [epa_word_addr_width_gp-1:0]    addr;                  \
+      logic [1:0]                           low_bits;              \
     } bsg_manycore_global_addr_s;
 
   // tile-group
-  `define declare_bsg_manycore_addr_s(epa_addr_width, max_x_cord_width, max_y_cord_width) \
-    typedef struct packed {                                      \
-      logic [2:0]       remote;                                 \
-      logic [max_y_cord_width-2:0]       y_cord;                \
-      logic [max_x_cord_width-1:0]       x_cord;                \
-      logic [epa_addr_width-1:0]          addr;                  \
-      logic [1:0]                        low_bits;              \
-    } bsg_manycore_addr_s;
+  `define declare_bsg_manycore_tile_group_addr_s \
+    typedef struct packed {                      \
+      logic [2:0]       remote;                  \
+      logic [max_y_cord_width_gp-2:0]       y_cord;                \
+      logic [max_x_cord_width_gp-1:0]       x_cord;                \
+      logic [epa_word_addr_width_gp-1:0]    addr;                  \
+      logic [1:0]                           low_bits;              \
+    } bsg_manycore_tile_group_addr_s;
+
+
 
 endpackage
