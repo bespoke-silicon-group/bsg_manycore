@@ -96,7 +96,7 @@ all:
 coverage-debug:
 	$(VCS_BIN)/dve -full64 -dir *.vdb &
 
-clean:
+clean: recurse-clean
 	rm -rf run.log cov.log coverage* DVEfiles/ common/crt.o
 	rm -rf recurse-results
 

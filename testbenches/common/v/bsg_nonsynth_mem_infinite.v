@@ -253,6 +253,10 @@ module bsg_nonsynth_mem_infinite
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
 
+      if (packet_v_lo) begin
+        assert(packet_lo.op != e_cache_op) else $error("infinite mem does not support cache mgmt op.");
+      end
+
     end
   end
 
