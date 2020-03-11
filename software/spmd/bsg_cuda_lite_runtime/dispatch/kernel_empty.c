@@ -10,14 +10,18 @@
 
 INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X - 1, 0, bsg_tiles_Y - 1);
 
+//#define HOST_DISPATCH
+#ifndef HOST_DISPATCH
 #define ORIGIN_ONLY
+#endif
 
 int kernel_dispatch() {
 
     volatile unsigned long *ptr = (volatile unsigned long*) bsg_remote_ptr_io(IO_X_INDEX, 0xFFF0);
     *ptr = 1;
 
-#ifdef ORIGIN_ONLY
+#ifndef HOST_DISPATCH    
+#ifdef  ORIGIN_ONLY
     /* origin wakes everyone else up */
     if (__bsg_id == 0) cuda_tile_group_origin_task();
 #else
@@ -26,6 +30,8 @@ int kernel_dispatch() {
     /* first column in each row wakes the rest of the row */
     if (__bsg_x  == 0) cuda_tile_group_row_origin_task(__bsg_y);
 #endif
+#endif
+    
     bsg_tile_group_barrier(&r_barrier, &c_barrier);
 
     return 0;
