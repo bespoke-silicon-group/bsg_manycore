@@ -25,7 +25,7 @@ module bsg_manycore
    // for heterogeneous, this is a vector of num_tiles_x_p*num_tiles_y_p bytes;
    // each byte contains the type of core being instantiated
    // type 0 is the standard core
-   , parameter int hetero_type_vec_p [0:num_tiles_y_p-1][0:num_tiles_x_p-1]  ='{default:0}
+   , parameter int hetero_type_vec_p [0:num_tiles_y_p-2][0:num_tiles_x_p-1]  ='{default:0}
 
    // this is the addr width on the manycore network packet (word addr).
    // also known as endpoint physical address (EPA).
@@ -78,13 +78,10 @@ module bsg_manycore
         $display("## ----------------------------------------------------------------");
         $display("## MANYCORE HETERO TYPE CONFIGUREATIONS");
         $display("## ----------------------------------------------------------------");
-        for(i=0; i < num_tiles_y_p; i ++) begin
+        for(i=0; i < num_tiles_y_p-1; i++) begin
                 $write("## ");
                 for(j=0; j< num_tiles_x_p; j++) begin
                         $write("%0d,", hetero_type_vec_p[i][j]);
-                end
-                if( i==0 ) begin
-                $write(" //Ignored, Set to IO Router");
                 end
                 $write("\n");
         end
@@ -129,7 +126,7 @@ module bsg_manycore
                 .y_cord_width_p(y_cord_width_lp),
                 .data_width_p(data_width_p),
                 .addr_width_p(addr_width_p),
-                .hetero_type_p( hetero_type_vec_p[r][c] ),
+                .hetero_type_p( hetero_type_vec_p[r-1][c] ),
                 .debug_p(debug_p)
                 ,.branch_trace_en_p(branch_trace_en_p)
                 ,.num_tiles_x_p(num_tiles_x_p)
