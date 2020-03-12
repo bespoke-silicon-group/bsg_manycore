@@ -142,24 +142,11 @@ module bsg_nonsynth_mem_infinite
     case (state_r) 
 
       READY: begin
-  
-        packet_yumi_li = return_v_r
-          ? (packet_v_lo & return_packet_ready_lo)
-          : packet_v_lo;
 
-        mem_v_li = return_v_r
-          ? (packet_v_lo & return_packet_ready_lo)
-          : packet_v_lo;
         mem_w_li = (packet_lo.op == e_remote_store);
         mem_addr_li = packet_lo.addr;
         mem_data_li = packet_lo.payload;
         mem_mask_li = packet_lo.op_ex.store_mask;
-
-        packet_n = return_v_r
-          ? ((packet_v_lo & return_packet_ready_lo) ? packet_lo : packet_r)
-          : (packet_v_lo ? packet_lo : packet_r);
-
-        return_packet_v_li = return_v_r;
 
         if (packet_r.op == e_remote_store) begin
           return_packet_li.pkt_type = e_return_credit;
@@ -181,20 +168,35 @@ module bsg_nonsynth_mem_infinite
           : '0;
         return_packet_li.y_cord = packet_r.src_y_cord;
         return_packet_li.x_cord = packet_r.src_x_cord;
-        
-        return_v_n = return_v_r
-          ? (return_packet_ready_lo
-            ? (packet_v_lo & (packet_lo.op != e_remote_amo))
-            : return_v_r)
-          : (packet_v_lo & (packet_lo.op != e_remote_amo));
 
-        state_n = return_v_r
-          ? ((return_packet_ready_lo & packet_v_lo & (packet_lo.op == e_remote_amo))
+        // return_v_r means there is a response to be sent out.
+        if (return_v_r) begin
+          packet_yumi_li = packet_v_lo & return_packet_ready_lo;
+          mem_v_li = packet_v_lo & return_packet_ready_lo;
+          packet_n = (packet_v_lo & return_packet_ready_lo)
+            ? packet_lo
+            : packet_r;
+          return_packet_v_li = 1'b1;
+          return_v_n = return_packet_ready_lo
+            ? (packet_v_lo & (packet_lo.op != e_remote_amo))
+            : return_v_r;
+          state_n =  (return_packet_ready_lo & packet_v_lo & (packet_lo.op == e_remote_amo))
             ? ATOMIC
-            : READY)
-          : ((packet_v_lo & (packet_lo.op == e_remote_amo))
+            : READY;
+        end
+        else begin
+          packet_yumi_li = packet_v_lo;
+          mem_v_li = packet_v_lo;
+          packet_n = packet_v_lo
+            ? packet_lo
+            : packet_r;
+          return_packet_v_li = 1'b0;
+          return_v_n = packet_v_lo & (packet_lo.op != e_remote_amo);
+          state_n = (packet_v_lo & (packet_lo.op == e_remote_amo))
             ? ATOMIC
-            : READY);
+            : READY;
+        end
+        
       end
 
       ATOMIC: begin
