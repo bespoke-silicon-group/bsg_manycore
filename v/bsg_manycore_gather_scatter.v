@@ -308,8 +308,6 @@ module bsg_manycore_gather_scatter
   );
 
   // gather logic
- 
-  // scatter logic
   // It needs a scoreboard to keep track of how many remote load requests are outstanding,
   // and when the responses return (possibly out of order), it's able to track where in DMEM it needs to be written.
   logic [reg_els_lp-1:0] scoreboard_r;
