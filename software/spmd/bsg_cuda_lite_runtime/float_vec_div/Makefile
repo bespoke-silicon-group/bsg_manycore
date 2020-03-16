@@ -20,7 +20,7 @@ all: main.run
 
 KERNEL_NAME ?=kernel_float_vec_div
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_float_vec_div.o
+OBJECT_FILES=main.o bsg_tile_config_vars.o bsg_set_tile_x_y.o bsg_printf.o kernel_float_vec_div.o
 
 include ../../Makefile.include
 

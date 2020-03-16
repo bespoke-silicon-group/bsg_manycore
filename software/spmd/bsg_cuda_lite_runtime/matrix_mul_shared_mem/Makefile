@@ -20,7 +20,7 @@ all: main.run
 
 KERNEL_NAME ?=kernel_matrix_mul_shared_mem
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_matrix_mul_shared_mem.o
+OBJECT_FILES=main.o bsg_tile_config_vars.o bsg_set_tile_x_y.o bsg_printf.o kernel_matrix_mul_shared_mem.o
 
 include ../../Makefile.include
 

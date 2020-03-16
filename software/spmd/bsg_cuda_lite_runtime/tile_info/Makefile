@@ -20,7 +20,7 @@ all: main.run
 
 KERNEL_NAME ?=kernel_tile_info
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_tile_info.o
+OBJECT_FILES=main.o bsg_tile_config_vars.o bsg_set_tile_x_y.o bsg_printf.o kernel_tile_info.o
 
 include ../../Makefile.include
 

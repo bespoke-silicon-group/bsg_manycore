@@ -20,7 +20,7 @@ all: main.run
 
 KERNEL_NAME ?=kernel_binary_load_buffer
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_binary_load_buffer.o
+OBJECT_FILES=main.o bsg_tile_config_vars.o bsg_set_tile_x_y.o bsg_printf.o kernel_binary_load_buffer.o
 
 include ../../Makefile.include
 

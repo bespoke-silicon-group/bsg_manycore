@@ -20,7 +20,7 @@ all: main.run
 
 KERNEL_NAME ?=kernel_dram_host_allocated
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_dram_host_allocated.o
+OBJECT_FILES=main.o bsg_tile_config_vars.o bsg_set_tile_x_y.o bsg_printf.o kernel_dram_host_allocated.o
 
 include ../../Makefile.include
 

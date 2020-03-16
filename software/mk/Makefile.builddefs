@@ -112,6 +112,7 @@ lfs.c: $(IN_FILES)
 endif
 
 # Manycore C library archiving rule
+BSG_MANYCORE_LIB_OBJS+= bsg_tile_config_vars.o
 BSG_MANYCORE_LIB_OBJS+= bsg_set_tile_x_y.o
 BSG_MANYCORE_LIB_OBJS+= bsg_printf.o
 

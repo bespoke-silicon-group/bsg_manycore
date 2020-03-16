@@ -20,7 +20,7 @@ all: main.run
 
 KERNEL_NAME ?=kernel_vcache_atomic_histogram
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o kernel_vcache_atomic_histogram.o bsg_printf.o
+OBJECT_FILES=main.o bsg_tile_config_vars.o bsg_set_tile_x_y.o kernel_vcache_atomic_histogram.o bsg_printf.o
 
 include ../../Makefile.include
 
