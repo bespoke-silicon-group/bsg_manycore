@@ -70,6 +70,10 @@ class PCHistogram:
         self.min_pc_val = self._BSG_PC_MIN
         self.max_pc_val = self._BSG_PC_MAX
 
+        # The origin is parsed from the upper-left tile of the active
+        # tiles. This assumption only works if that tile executes. If
+        # it does not, caveat emptor. We initialize to a non-sensical
+        # tile.
         self.origin_x = manycore_dim_x + 1
         self.origin_y = manycore_dim_y + 1
 
