@@ -20,14 +20,14 @@ all: main.run
 
 KERNEL_NAME ?=kernel_empty
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_striped.o
+OBJECT_FILES=main.o bsg_tile_config_vars.o bsg_set_tile_x_y.o bsg_printf.o kernel_striped.o
 OPT_LEVEL := -O3
 
 include ../../Makefile.include
 
 
-main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../../common/crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../../common/crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 
 main.o: Makefile

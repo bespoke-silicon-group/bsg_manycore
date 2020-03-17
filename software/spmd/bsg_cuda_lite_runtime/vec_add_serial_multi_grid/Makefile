@@ -20,13 +20,13 @@ all: main.run
 
 KERNEL_NAME ?=kernel_vec_add_serial_multi_grid
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_vec_add_serial_multi_grid.o
+OBJECT_FILES=main.o kernel_vec_add_serial_multi_grid.o
 
 include ../../Makefile.include
 
 
-main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../../common/crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../../common/crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 
 main.o: Makefile

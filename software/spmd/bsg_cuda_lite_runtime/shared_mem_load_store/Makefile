@@ -20,13 +20,13 @@ all: main.run
 
 KERNEL_NAME ?=kernel_shared_mem_load_store
 
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o kernel_shared_mem_load_store.o
+OBJECT_FILES=main.o kernel_shared_mem_load_store.o
 
 include ../../Makefile.include
 
 
-main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../../common/crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -o $@ $(RISCV_LINK_OPTS)
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../../common/crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 
 main.o: Makefile

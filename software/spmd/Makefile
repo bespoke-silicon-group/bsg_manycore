@@ -44,7 +44,7 @@ all:
 	@echo "Usage:"
 	@echo "  make -j <numthreads> recurse-clean # clean up after regression"
 	@echo "  make -j <numthreads> recurse-all   # run tests in all subdirs"
-	@echo "  make summarize                     # summarize results of tests"
+	@echo "  make watch-summary                 # summarize results of tests"
 	@echo ""
 	@echo -n " Hyperthreads detected: "; cat /proc/cpuinfo | grep processor | wc -l
 	@echo " Run 'top' to see what else is running to decided how many threads to run"

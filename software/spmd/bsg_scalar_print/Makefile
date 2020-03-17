@@ -5,13 +5,13 @@ ROM_NAME = bsg_manycore_io_complex_rom
 
 RISCV_GCC_EXTRA_OPTS += -O2 #-DBSG_TOKEN_QUEUE_SHORT
 # -funroll-loops
-OBJECT_FILES=main.o bsg_set_tile_x_y.o
+OBJECT_FILES=main.o
 include ../Makefile.include
 
 all: main.run
 
-main.riscv:  $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) -o $@ $(RISCV_LINK_OPTS) 
+main.riscv:  $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../common/crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 main.o: Makefile
 

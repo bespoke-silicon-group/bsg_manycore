@@ -1,3 +1,3 @@
-OBJECT_FILES=main.o bsg_set_tile_x_y.o
+OBJECT_FILES=main.o
 
 include ../Makefile.common

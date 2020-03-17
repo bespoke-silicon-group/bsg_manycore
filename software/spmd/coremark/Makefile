@@ -27,4 +27,3 @@ dis:
 	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all \
 		../../../imports/coremark/coremark.riscv > coremark.dis
 
-	
