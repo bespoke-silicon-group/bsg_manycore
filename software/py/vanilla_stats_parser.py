@@ -139,8 +139,6 @@ class CudaStatTag:
  
 class VanillaStatsParser:
     # Default coordinates of origin tile in the manycore array.
-    _BSG_ORIGIN_X = 0
-    _BSG_ORIGIN_Y = 2
 
     # formatting parameters for aligned printing
     type_fmt = {"name"      : "{:<35}",
@@ -235,13 +233,14 @@ class VanillaStatsParser:
                 self.traces.append(trace)
                 active_tiles.add((trace['y'], trace['x']))
 
+        self.origin = min(active_tiles)
 
         # Raise exception and exit if there are no traces 
         assert (self.traces), "vanilla_stats_parser: no stats found, nothing to do - use bsg_cuda_print_stat_kerenl_start/end macros to generate vanilla stats."
 
 
         # Save the active tiles in a list
-        self.active = [(y - self._BSG_ORIGIN_Y, x - self._BSG_ORIGIN_X) for (y,x) in active_tiles]
+        self.active = [(y - self.origin[0], x - self.origin[1]) for (y,x) in active_tiles]
         self.active.sort()
 
         # generate timing stats for each tile and tile group 
@@ -984,8 +983,8 @@ class VanillaStatsParser:
         for trace in traces:
             y = trace["y"]
             x = trace["x"]
-            relative_y = y - self._BSG_ORIGIN_Y
-            relative_x = x - self._BSG_ORIGIN_X
+            relative_y = y - self.origin[0]
+            relative_x = x - self.origin[1]
             cur_tile = (relative_y, relative_x)
 
             # instantiate a CudaStatTag object with the tag value
