@@ -120,7 +120,7 @@ class PCHistogram:
 
             # Only add to pc count if at this cycle the processor is not stalled
             if(not (trace["operation"].startswith('stall_') or trace["operation"].endswith('_miss') or trace["operation"] == 'bubble')):
-                    tile_pc_cnt[relative_y][relative_x][trace["pc"]] += 1
+                tile_pc_cnt[relative_y][relative_x][trace["pc"]] += 1
         return tile_pc_cnt
 
 
