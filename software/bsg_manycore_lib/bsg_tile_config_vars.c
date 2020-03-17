@@ -15,13 +15,13 @@
 // __bsg_tile_group_id: Unique ID for each tile group
 //          (__bsg_tile_group_id = __bsg_tile_group_id_y * __bsg_grid_dim_x + __bsg_tile_group_id_x)
 
-int __bsg_x __attribute__ ((section (".dmem"))) = -1;
-int __bsg_y __attribute__ ((section (".dmem"))) = -1;
-int __bsg_id __attribute__ ((section (".dmem"))) = -1;
-int __bsg_grp_org_x __attribute__ ((section (".dmem"))) = -1;
-int __bsg_grp_org_y __attribute__ ((section (".dmem"))) = -1;
-int __bsg_grid_dim_x __attribute__ ((section (".dmem"))) = -1;
-int __bsg_grid_dim_y __attribute__ ((section (".dmem"))) = -1;
-int __bsg_tile_group_id_x __attribute__ ((section (".dmem"))) = -1;
-int __bsg_tile_group_id_y __attribute__ ((section (".dmem"))) = -1;
-int __bsg_tile_group_id __attribute__ ((section (".dmem"))) = -1;
+int __bsg_x = -1;
+int __bsg_y = -1;
+int __bsg_id = -1;
+int __bsg_grp_org_x = -1;
+int __bsg_grp_org_y = -1;
+int __bsg_grid_dim_x = -1;
+int __bsg_grid_dim_y = -1;
+int __bsg_tile_group_id_x = -1;
+int __bsg_tile_group_id_y = -1;
+int __bsg_tile_group_id = -1;
