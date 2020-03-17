@@ -12,7 +12,7 @@ include ../Makefile.include
 all: main.run
 
 main.riscv:  $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) -L. -l:$(BSG_MANYCORE_LIB) -o $@ $(RISCV_LINK_OPTS)
+	$(RISCV_LINK) $(OBJECT_FILES) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 
 main.o: Makefile

@@ -8,13 +8,13 @@ DVE = 0
 CLANG=1
 
 all: main.run
-OBJECT_FILES=main.o bsg_set_tile_x_y.o bsg_printf.o
+OBJECT_FILES=main.o
 
 include ../Makefile.include
 
 
-main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) ../common/crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -lm -o $@ $(RISCV_LINK_OPTS)
+main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../common/crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -lm -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 main.o: Makefile
 
