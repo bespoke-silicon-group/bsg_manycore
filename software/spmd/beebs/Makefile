@@ -92,7 +92,7 @@ beebs.configure.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 	touch beebs.configure.touchfile
 
 clean-build:
-	-rm *.a *.o *.log
+	-rm -f *.a *.o *.log
 	-rm -rf $(BUILD_DIR);
 	-rm -f beebs.configure.touchfile
 
