@@ -310,66 +310,46 @@ module bsg_manycore_gather_scatter
   // gather logic
   // It needs a scoreboard to keep track of how many remote load requests are outstanding,
   // and when the responses return (possibly out of order), it's able to track where in DMEM it needs to be written.
-  logic [reg_els_lp-1:0] scoreboard_r;
-  logic [reg_els_lp-1:0][dmem_addr_width_lp-1:0] dest_dmem_addr_r; 
-  logic [dmem_addr_width_lp-1:0] dest_dmem_addr_n;
+  logic [reg_id_width_lp-1:0] alloc_id_lo;
+  logic alloc_v_lo;
+  logic alloc_yumi_li;
 
-  logic sb_set;
-  logic sb_clear;
-  logic [reg_id_width_lp-1:0] sb_set_id;
-  logic [reg_id_width_lp-1:0] sb_clear_id;
-  logic [reg_els_lp-1:0] sb_set_decode;
-  logic [reg_els_lp-1:0] sb_clear_decode;
+  logic dealloc_v_li;
+  logic [reg_id_width_lp-1:0] dealloc_id_li;
 
-  bsg_decode_with_v #(
-    .num_out_p(reg_els_lp)
-  ) set_demux0 (
-    .i(sb_set_id)
-    ,.v_i(sb_set)
-    ,.o(sb_set_decode)
+  bsg_id_pool #(
+    .els_p(reg_els_lp)
+  ) pool0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.alloc_id_o(alloc_id_lo)
+    ,.alloc_v_o(alloc_v_lo)
+    ,.alloc_yumi_i(alloc_yumi_li)
+
+    ,.dealloc_v_i(dealloc_v_li)
+    ,.dealloc_id_i(dealloc_id_li)
   );
 
-  bsg_decode_with_v #(
-    .num_out_p(reg_els_lp)
-  ) clear_demux0 (
-    .i(sb_clear_id)
-    ,.v_i(sb_clear)
-    ,.o(sb_clear_decode)
+  logic [dmem_addr_width_lp-1:0] dest_dmem_addr;
+  bsg_mem_1r1w #(
+    .width_p(dmem_addr_width_lp)
+    ,.els_p(reg_els_lp)
+    ,.read_write_same_addr_p(1)
+  ) mem0 (
+    .w_clk_i(clk_i)
+    ,.w_reset_i(reset_i)
+
+    ,.w_v_i(alloc_yumi_li)
+    ,.w_addr_i(alloc_id_lo)
+    ,.w_data_i(count_lo[0+:dmem_addr_width_lp])
+
+    ,.r_v_i() // unused
+    ,.r_addr_i(returned_reg_id_lo)
+    ,.r_data_o(dest_dmem_addr)
   );
-  
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      scoreboard_r <= '0;
-      dest_dmem_addr_r <= '0;
-    end
-    else begin
-      for (integer i = 0; i < reg_els_lp; i++) begin
 
-        // clear has higher priority then set, but clear and set should not occur at the same time.
-        if (sb_clear_decode[i]) begin
-          scoreboard_r[i] <= 1'b0;
-        end
-        else if (sb_set_decode[i]) begin
-          scoreboard_r[i] <= 1'b1;
-          dest_dmem_addr_r[i] <= dest_dmem_addr_n;
-        end
 
-      end  
-    end
-  end
-
-  logic [reg_id_width_lp-1:0] next_reg_id; // find the next available reg_id.
-  logic next_reg_id_valid;
-  
-  bsg_priority_encode #(
-    .width_p(reg_els_lp)
-    ,.lo_to_hi_p(1)
-  ) pe0 (
-    .i(~scoreboard_r)
-    ,.addr_o(next_reg_id)
-    ,.v_o(next_reg_id_valid)
-  );
-  
 
   // FSM comb logic
   wire scatter_not_gather = in_data_lo[data_width_p-1];
@@ -409,13 +389,11 @@ module bsg_manycore_gather_scatter
 
     eva_li = '0;
 
-    sb_set = 1'b0;
-    sb_clear = 1'b0;
-    sb_set_id = '0;
-    sb_clear_id = '0;
-    dest_dmem_addr_n = '0;
-
     returned_yumi_li = 1'b0;
+
+    alloc_yumi_li = 1'b0;
+    dealloc_v_li = 1'b0;
+    dealloc_id_li = '0;
 
     case (gs_state_r)
 
@@ -501,29 +479,27 @@ module bsg_manycore_gather_scatter
       GATHER: begin
         eva_li = eva_base_r + ((count_lo*stride_r) << 2);
 
-        out_v_li = next_reg_id_valid & (out_credits_lo != '0);
+        out_v_li = alloc_v_lo & (out_credits_lo != '0);
         out_packet_li.addr = epa_lo;
         out_packet_li.op = e_remote_load;
-        out_packet_li.reg_id = next_reg_id;
+        out_packet_li.reg_id = alloc_id_lo;
         out_packet_li.payload = '0; // normal integer load.
         out_packet_li.y_cord = y_cord_lo;
         out_packet_li.x_cord = x_cord_lo;
 
-        sb_set = out_v_li & out_ready_lo & next_reg_id_valid;
-        sb_set_id = next_reg_id;
-        dest_dmem_addr_n = count_lo;
+        alloc_yumi_li = out_v_li & out_ready_lo & alloc_v_lo;
 
-        counter_up = out_v_li & out_ready_lo & next_reg_id_valid & (count_lo != access_len_r-1);
-        counter_clear = out_v_li & out_ready_lo & next_reg_id_valid & (count_lo == access_len_r-1);
+        counter_up = out_v_li & out_ready_lo & alloc_v_lo & (count_lo != access_len_r-1);
+        counter_clear = out_v_li & out_ready_lo & alloc_v_lo & (count_lo == access_len_r-1);
 
         returned_yumi_li = returned_v_lo;
         dmem_v_li = returned_v_lo;
         dmem_w_li = 1'b1;
-        dmem_addr_li = dest_dmem_addr_r[returned_reg_id_lo];
+        dmem_addr_li = dest_dmem_addr;
         dmem_mask_li = {data_mask_width_lp{1'b1}};
         dmem_data_li = returned_data_lo;
-        sb_clear = returned_v_lo;
-        sb_clear_id = returned_reg_id_lo;
+        dealloc_v_li = returned_v_lo;
+        dealloc_id_li = returned_reg_id_lo;
 
         gs_state_n = (out_ready_lo & out_v_li & (count_lo == access_len_r-1))
           ? WAKEUP
@@ -572,11 +548,12 @@ module bsg_manycore_gather_scatter
         returned_yumi_li = returned_v_lo;
         dmem_v_li = returned_v_lo; 
         dmem_w_li = 1'b1;
-        dmem_addr_li = dest_dmem_addr_r[returned_reg_id_lo];
+        dmem_addr_li = dest_dmem_addr;
         dmem_mask_li = {data_mask_width_lp{1'b1}};
         dmem_data_li = returned_data_lo;
-        sb_clear = returned_v_lo;
-        sb_clear_id = returned_reg_id_lo;
+
+        dealloc_v_li = returned_v_lo;
+        dealloc_id_li = returned_reg_id_lo;
 
         gs_state_n = (out_v_li & out_ready_lo)
           ? IDLE
