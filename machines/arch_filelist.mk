@@ -57,6 +57,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_lru_pseudo_tree_decode.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_lru_pseudo_tree_encode.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_lru_pseudo_tree_backup.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_thermometer_count.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_id_pool.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1r1w_large.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1rw_large.v
@@ -151,3 +152,4 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_lock_ctrl.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_1hold.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_eva_to_npa.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_tieoff.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_gather_scatter.v

@@ -27,6 +27,8 @@ module vanilla_core
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter data_mask_width_lp=(data_width_p>>3)
+
+    , parameter debug_p=0
   )
   (
     input clk_i
@@ -1179,14 +1181,16 @@ module vanilla_core
         reserved_r <= 1'b1;
         reserved_addr_r <= dmem_addr_li;
         // synopsys translate_off
-        //$display("[INFO][VCORE] making reservation. t=%0t, addr=%x", $time, dmem_addr_li);
+        if (debug_p)
+          $display("[INFO][VCORE] making reservation. t=%0t, addr=%x", $time, dmem_addr_li);
         // synopsys translate_on
       end
       else if ((reserved_r == 1'b1)
         & dmem_v_li & dmem_w_li & (dmem_addr_li == reserved_addr_r)) begin
         reserved_r <= 1'b0;
         // synopsys translate_off
-        //$display("[INFO][VCORE] breaking reservation. t=%0t.", $time);
+        if (debug_p)
+          $display("[INFO][VCORE] breaking reservation. t=%0t.", $time);
         // synopsys translate_on
       end
     end

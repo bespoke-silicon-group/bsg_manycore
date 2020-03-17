@@ -22,6 +22,7 @@ module spmd_testbench;
   parameter bsg_manycore_mem_cfg_e bsg_manycore_mem_cfg_p = `BSG_MACHINE_MEM_CFG;
   parameter bsg_branch_trace_en_p = `BSG_MACHINE_BRANCH_TRACE_EN;
   parameter vcache_miss_fifo_els_p = `BSG_MACHINE_VCACHE_MISS_FIFO_ELS;
+  parameter int hetero_type_vec_p [0:num_tiles_y_p-2][0:num_tiles_x_p-1] = '{`BSG_MACHINE_HETERO_TYPE_VEC};
 
   // constant params
   parameter data_width_p = 32;
@@ -126,6 +127,7 @@ module spmd_testbench;
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
     ,.branch_trace_en_p(bsg_branch_trace_en_p)
+    ,.hetero_type_vec_p(hetero_type_vec_p)
   ) DUT (
     .clk_i(core_clk)
     ,.reset_i(reset)
