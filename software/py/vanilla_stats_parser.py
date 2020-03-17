@@ -138,8 +138,6 @@ class CudaStatTag:
 
  
 class VanillaStatsParser:
-    # Default coordinates of origin tile in the manycore array.
-
     # formatting parameters for aligned printing
     type_fmt = {"name"      : "{:<35}",
                 "name-short": "{:<20}",
@@ -233,6 +231,9 @@ class VanillaStatsParser:
                 self.traces.append(trace)
                 active_tiles.add((trace['y'], trace['x']))
 
+        # The origin is parsed from the upper-left tile of the active
+        # tiles. This assumption only works if that tile executes. If
+        # it does not, caveat emptor.
         self.origin = min(active_tiles)
 
         # Raise exception and exit if there are no traces 
