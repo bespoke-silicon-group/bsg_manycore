@@ -33,7 +33,7 @@ class PCHistogram:
 
     # Default coordinates of origin tile
     _BSG_ORIGIN_X = 0
-    _BSG_ORIGIN_Y = 1
+    _BSG_ORIGIN_Y = 2
 
     _BSG_PC_MIN = 0x0000
     _BSG_PC_MAX = 0x2000
@@ -120,7 +120,7 @@ class PCHistogram:
 
             # Only add to pc count if at this cycle the processor is not stalled
             if(not (trace["operation"].startswith('stall_') or trace["operation"].endswith('_miss') or trace["operation"] == 'bubble')):
-                tile_pc_cnt[relative_y][relative_x][trace["pc"]] += 1
+                    tile_pc_cnt[relative_y][relative_x][trace["pc"]] += 1
         return tile_pc_cnt
 
 
