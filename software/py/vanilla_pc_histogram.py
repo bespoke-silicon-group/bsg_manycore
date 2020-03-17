@@ -31,10 +31,6 @@ class PCHistogram:
     _DEFAULT_START_CYCLE = 0 
     _DEFAULT_END_CYCLE   = 500000
 
-    # Default coordinates of origin tile
-    _BSG_ORIGIN_X = 0
-    _BSG_ORIGIN_Y = 2
-
     _BSG_PC_MIN = 0x0000
     _BSG_PC_MAX = 0x2000
 
@@ -74,14 +70,18 @@ class PCHistogram:
         self.min_pc_val = self._BSG_PC_MIN
         self.max_pc_val = self._BSG_PC_MAX
 
+        self.origin_x = manycore_dim_x + 1
+        self.origin_y = manycore_dim_y + 1
 
        # parse vanilla_operation_trace.log
         with open(input_file) as f:
             csv_reader = csv.DictReader(f, delimiter=",")
             for row in csv_reader:
                 trace = {}
-                trace["x"] = int(row["x"])  
+                trace["x"] = int(row["x"])
+                self.origin_x = min(trace["x"], self.origin_x)
                 trace["y"] = int(row["y"])  
+                self.origin_y = min(trace["y"], self.origin_y)
                 trace["operation"] = row["operation"]
                 trace["cycle"] = int(row["cycle"])
                 trace["pc"] = int(row["pc"], 16)
@@ -115,8 +115,8 @@ class PCHistogram:
    
         tile_pc_cnt = [[Counter() for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)]
         for trace in traces:
-            relative_x = trace["x"] - self._BSG_ORIGIN_X
-            relative_y = trace["y"] - self._BSG_ORIGIN_Y
+            relative_x = trace["x"] - self.origin_x
+            relative_y = trace["y"] - self.origin_y
 
             # Only add to pc count if at this cycle the processor is not stalled
             if(not (trace["operation"].startswith('stall_') or trace["operation"].endswith('_miss') or trace["operation"] == 'bubble')):
