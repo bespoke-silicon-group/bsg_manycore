@@ -140,7 +140,7 @@ class CudaStatTag:
 class VanillaStatsParser:
     # Default coordinates of origin tile in the manycore array.
     _BSG_ORIGIN_X = 0
-    _BSG_ORIGIN_Y = 1
+    _BSG_ORIGIN_Y = 2
 
     # formatting parameters for aligned printing
     type_fmt = {"name"      : "{:<35}",
