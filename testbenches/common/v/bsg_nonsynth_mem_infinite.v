@@ -72,7 +72,7 @@ module bsg_nonsynth_mem_infinite
   );
 
 
-  // assoc mem
+  // mem
   logic mem_v_li;
   logic mem_w_li;
   logic [addr_width_p-1:0] mem_addr_li;
