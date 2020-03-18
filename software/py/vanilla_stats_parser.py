@@ -231,14 +231,14 @@ class VanillaStatsParser:
                 self.traces.append(trace)
                 active_tiles.add((trace['y'], trace['x']))
 
+        # Raise exception and exit if there are no traces 
+        if not self.traces:
+            raise IOError("No Stats Found: Use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics")
+
         # The origin is parsed from the upper-left tile of the active
         # tiles. This assumption only works if that tile executes. If
         # it does not, caveat emptor.
         self.origin = min(active_tiles)
-
-        # Raise exception and exit if there are no traces 
-        assert (self.traces), "vanilla_stats_parser: no stats found, nothing to do - use bsg_cuda_print_stat_kerenl_start/end macros to generate vanilla stats."
-
 
         # Save the active tiles in a list
         self.active = [(y - self.origin[0], x - self.origin[1]) for (y,x) in active_tiles]
