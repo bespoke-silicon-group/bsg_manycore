@@ -217,6 +217,7 @@ module spmd_testbench;
           ,.addr_width_p(bsg_max_epa_width_p)
           ,.x_cord_width_p(x_cord_width_lp)
           ,.y_cord_width_p(y_cord_width_lp)
+          ,.id_p(num_tiles_x_p*j + i)
         ) mem_infty (
           .clk_i(core_clk)
           ,.reset_i(reset_r[2])
