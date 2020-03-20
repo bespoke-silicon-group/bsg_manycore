@@ -36,6 +36,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_dff_en_bypass.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_dff_en.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_dff_reset.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_dff_reset_en.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_dff_reset_set_clear.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_transpose.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_crossbar_o_by_i.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_decode_with_v.v
