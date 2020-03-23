@@ -9,7 +9,7 @@ module infinite_mem_profiler
     , parameter addr_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-    
+    , parameter string logfile_p="infinite_mem_stats.log"
     , parameter manycore_packet_width_lp=
       `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
@@ -61,7 +61,6 @@ module infinite_mem_profiler
 
   // file logging
   //
-  localparam logfile_lp = "infinite_mem_stats.log";
 
   integer fd;
 
@@ -70,7 +69,7 @@ module infinite_mem_profiler
     #1; // we need to wait for one time unit so that my_x_i becomes a known value.
 
     if (my_x_i == '0) begin
-      fd = $fopen(logfile_lp, "w");
+      fd = $fopen(logfile_p, "w");
       $fwrite(fd, "x,y,global_ctr,tag,ld,st,amoswap,amoor\n");
       $fclose(fd);
     end
@@ -78,7 +77,7 @@ module infinite_mem_profiler
     forever begin
       @(negedge clk_i) begin
         if (~reset_i & print_stat_v_i) begin
-          fd = $fopen(logfile_lp, "a");
+          fd = $fopen(logfile_p, "a");
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
             my_x_i, my_y_i, global_ctr_i, print_stat_tag_i, ld_count_r, st_count_r,
             amoswap_count_r,amoor_count_r);   

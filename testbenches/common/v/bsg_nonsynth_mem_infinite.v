@@ -12,7 +12,7 @@ module bsg_nonsynth_mem_infinite
     , parameter addr_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-
+    , parameter id_p="inv"
     , parameter data_mask_width_lp=(data_width_p>>3)
     , parameter link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
@@ -72,17 +72,18 @@ module bsg_nonsynth_mem_infinite
   );
 
 
-  // assoc mem
+  // mem
   logic mem_v_li;
   logic mem_w_li;
   logic [addr_width_p-1:0] mem_addr_li;
   logic [data_width_p-1:0] mem_data_li;
   logic [data_mask_width_lp-1:0] mem_mask_li; 
   logic [data_width_p-1:0] mem_data_lo; 
- 
-  bsg_nonsynth_mem_1rw_sync_mask_write_byte_assoc #(
-    .data_width_p(data_width_p)
-    ,.addr_width_p(addr_width_p)
+
+  bsg_nonsynth_mem_1rw_sync_mask_write_byte_dma #(
+    .width_p(data_width_p)
+    ,.els_p(1<<addr_width_p)
+    ,.id_p(id_p)
   ) assoc_mem (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -92,7 +93,7 @@ module bsg_nonsynth_mem_infinite
     
     ,.addr_i(mem_addr_li)
     ,.data_i(mem_data_li)
-    ,.write_mask_i(mem_mask_li)
+    ,.w_mask_i(mem_mask_li)
 
     ,.data_o(mem_data_lo) 
   );
