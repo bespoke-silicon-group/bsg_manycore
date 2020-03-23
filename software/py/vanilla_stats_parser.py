@@ -225,23 +225,16 @@ class VanillaStatsParser:
         with open(input_file) as f:
             csv_reader = csv.DictReader (f, delimiter=",")
             for row in csv_reader:
-                trace = {}
-                for op in self.all_ops:
-                    trace[op] = int(row[op])
-                self.traces.append(trace)
+                trace = {op:int(row[op]) for op in self.all_ops}
                 active_tiles.add((trace['y'], trace['x']))
+                self.traces.append(trace)
 
         # Raise exception and exit if there are no traces 
         if not self.traces:
             raise IOError("No Stats Found: Use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics")
 
-        # The origin is parsed from the upper-left tile of the active
-        # tiles. This assumption only works if that tile executes. If
-        # it does not, caveat emptor.
-        self.origin = min(active_tiles)
-
         # Save the active tiles in a list
-        self.active = [(y - self.origin[0], x - self.origin[1]) for (y,x) in active_tiles]
+        self.active = list(active_tiles)
         self.active.sort()
 
         # generate timing stats for each tile and tile group 
@@ -982,11 +975,7 @@ class VanillaStatsParser:
 
 
         for trace in traces:
-            y = trace["y"]
-            x = trace["x"]
-            relative_y = y - self.origin[0]
-            relative_x = x - self.origin[1]
-            cur_tile = (relative_y, relative_x)
+            cur_tile = (trace['y'], trace['x'])
 
             # instantiate a CudaStatTag object with the tag value
             cst = CudaStatTag(trace["tag"])
