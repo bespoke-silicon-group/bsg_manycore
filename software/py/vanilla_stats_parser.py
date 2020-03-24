@@ -139,10 +139,6 @@ class CudaStatTag:
 
  
 class VanillaStatsParser:
-    # Default coordinates of origin tile in the manycore array.
-    _BSG_ORIGIN_X = 0
-    _BSG_ORIGIN_Y = 1
-
     # formatting parameters for aligned printing
     type_fmt = {"name"      : "{:<35}",
                 "name-short": "{:<20}",
@@ -230,15 +226,16 @@ class VanillaStatsParser:
         with open(input_file) as f:
             csv_reader = csv.DictReader (f, delimiter=",")
             for row in csv_reader:
-                trace = {}
-                for op in self.all_ops:
-                    trace[op] = int(row[op])
-                self.traces.append(trace)
+                trace = {op:int(row[op]) for op in self.all_ops}
                 active_tiles.add((trace['y'], trace['x']))
+                self.traces.append(trace)
 
+        # Raise exception and exit if there are no traces 
+        if not self.traces:
+            raise IOError("No Stats Found: Use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics")
 
         # Save the active tiles in a list
-        self.active = [(y - self._BSG_ORIGIN_Y, x - self._BSG_ORIGIN_X) for (y,x) in active_tiles]
+        self.active = list(active_tiles)
         self.active.sort()
 
         # generate timing stats for each tile and tile group 
@@ -906,10 +903,7 @@ class VanillaStatsParser:
         tag_seen = {tag: {tile:False for tile in tiles} for tag in tags}
 
         for trace in traces:
-            y = trace["y"]
-            x = trace["x"]
-            relative_y = y - self._BSG_ORIGIN_Y
-            relative_x = x - self._BSG_ORIGIN_X
+            cur_tile = (trace['y'], trace['x'])
 
             # instantiate a CudaStatTag object with the tag value
             cst = CudaStatTag(trace["tag"])
