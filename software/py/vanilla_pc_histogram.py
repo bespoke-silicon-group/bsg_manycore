@@ -31,10 +31,6 @@ class PCHistogram:
     _DEFAULT_START_CYCLE = 0 
     _DEFAULT_END_CYCLE   = 500000
 
-    # Default coordinates of origin tile
-    _BSG_ORIGIN_X = 0
-    _BSG_ORIGIN_Y = 1
-
     _BSG_PC_MIN = 0x0000
     _BSG_PC_MAX = 0x2000
 
@@ -61,11 +57,8 @@ class PCHistogram:
 
 
     # default constructor
-    def __init__(self, manycore_dim_y, manycore_dim_x, per_tile_stat, input_file):
+    def __init__(self, per_tile_stat, input_file):
 
-        self.manycore_dim_y = manycore_dim_y
-        self.manycore_dim_x = manycore_dim_x
-        self.manycore_dim = manycore_dim_y * manycore_dim_x
         self.per_tile_stat = per_tile_stat
 
         self.traces = []
@@ -74,17 +67,19 @@ class PCHistogram:
         self.min_pc_val = self._BSG_PC_MIN
         self.max_pc_val = self._BSG_PC_MAX
 
+        unorigin = (0,0)
 
-       # parse vanilla_operation_trace.log
+        # parse vanilla_operation_trace.log
         with open(input_file) as f:
             csv_reader = csv.DictReader(f, delimiter=",")
             for row in csv_reader:
                 trace = {}
-                trace["x"] = int(row["x"])  
+                trace["x"] = int(row["x"])
                 trace["y"] = int(row["y"])  
                 trace["operation"] = row["operation"]
                 trace["cycle"] = int(row["cycle"])
                 trace["pc"] = int(row["pc"], 16)
+                unorigin = max((trace['y'], trace['x']), unorigin)
 
                 # update min and max pc read from traces 
                 #self.max_pc_val = max(self.max_pc_val, trace["pc"])
@@ -92,6 +87,9 @@ class PCHistogram:
 
                 if (trace["pc"] >= self._BSG_PC_MIN and trace["pc"] <= self._BSG_PC_MAX):
                     self.traces.append(trace)
+
+        self.manycore_dim_y = unorigin[0] + 1
+        self.manycore_dim_x = unorigin[1] + 1
 
         self.tile_pc_cnt = self.__generate_tile_pc_cnt(self.traces)
         self.manycore_pc_cnt = self.__generate_manycore_pc_cnt(self.tile_pc_cnt)
@@ -115,12 +113,12 @@ class PCHistogram:
    
         tile_pc_cnt = [[Counter() for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)]
         for trace in traces:
-            relative_x = trace["x"] - self._BSG_ORIGIN_X
-            relative_y = trace["y"] - self._BSG_ORIGIN_Y
+            x = trace["x"]
+            y = trace["y"]
 
             # Only add to pc count if at this cycle the processor is not stalled
             if(not (trace["operation"].startswith('stall_') or trace["operation"].endswith('_miss') or trace["operation"] == 'bubble')):
-                tile_pc_cnt[relative_y][relative_x][trace["pc"]] += 1
+                tile_pc_cnt[y][x][trace["pc"]] += 1
         return tile_pc_cnt
 
 
@@ -268,10 +266,6 @@ def parse_args():
                         help="Vanilla operation log file")
     parser.add_argument("--tile", default=False, action='store_true',
                         help="Also generate separate pc histogram files for each tile.")
-    parser.add_argument("--dim-y", required=1, type=int,
-                        help="Manycore Y dimension")
-    parser.add_argument("--dim-x", required=1, type=int,
-                        help="Manycore X dimension")
 
     args = parser.parse_args()
     return args
@@ -280,4 +274,4 @@ def parse_args():
 # main()
 if __name__ == "__main__":
     args = parse_args()
-    pch = PCHistogram(args.dim_y, args.dim_x, args.tile, args.input)
+    pch = PCHistogram(args.tile, args.input)
