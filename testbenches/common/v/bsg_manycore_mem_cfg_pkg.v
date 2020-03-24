@@ -67,6 +67,9 @@ package bsg_manycore_mem_cfg_pkg;
     // LEVEL 3) bsg_nonsynth_dramsim3 (HBM2)
     , e_vcache_blocking_dramsim3_hbm2
 
+    // placeholder for max enum val
+    , e_max_val
+
   } bsg_manycore_mem_cfg_e;
 
 
