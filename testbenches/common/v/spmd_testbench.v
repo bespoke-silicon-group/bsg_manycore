@@ -181,11 +181,13 @@ module spmd_testbench;
   //                              //
   // Configurable Memory System   //
   //                              //
-  if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem)
-      |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_axi4_nonsynth_mem)
-      |(bsg_manycore_mem_cfg_p == e_vcache_blocking_dmc_lpddr)
-      |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_dmc_lpddr)
-      |(bsg_manycore_mem_cfg_p == e_vcache_blocking_dramsim3_hbm2)
+  localparam logic [e_max_val-1:0] mem_cfg_lp = (1 << bsg_manycore_mem_cfg_p);
+
+  if (mem_cfg_lp[e_vcache_blocking_axi4_nonsynth_mem]
+      | mem_cfg_lp[e_vcache_non_blocking_axi4_nonsynth_mem]
+      | mem_cfg_lp[e_vcache_blocking_dmc_lpddr]
+      | mem_cfg_lp[e_vcache_non_blocking_dmc_lpddr]
+      | mem_cfg_lp[e_vcache_blocking_dramsim3_hbm2]
       ) begin: lv1_dma
 
     // for now blocking and non-blocking shares the same wire, since interface is
@@ -208,7 +210,7 @@ module spmd_testbench;
   end
 
   // LEVEL 1
-  if (bsg_manycore_mem_cfg_p == e_infinite_mem) begin: lv1_infty
+  if (mem_cfg_lp[e_infinite_mem]) begin: lv1_infty
 
     for (genvar j = N; j <= S; j++) begin: y
       for (genvar i = 0; i < num_tiles_x_p; i++) begin: x
@@ -245,9 +247,9 @@ module spmd_testbench;
     );
 
   end
-  else if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem)
-          |(bsg_manycore_mem_cfg_p == e_vcache_blocking_dmc_lpddr)
-          |(bsg_manycore_mem_cfg_p == e_vcache_blocking_dramsim3_hbm2)
+  else if (mem_cfg_lp[e_vcache_blocking_axi4_nonsynth_mem]
+          | mem_cfg_lp[e_vcache_blocking_dmc_lpddr]
+          | mem_cfg_lp[e_vcache_blocking_dramsim3_hbm2]
           ) begin: lv1_vcache
 
     for (genvar j = N; j <= S; j++) begin: y
@@ -295,8 +297,8 @@ module spmd_testbench;
     );
 
   end
-  else if ((bsg_manycore_mem_cfg_p == e_vcache_non_blocking_axi4_nonsynth_mem)
-          |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_dmc_lpddr)) begin: lv1_vcache_nb
+  else if (mem_cfg_lp[e_vcache_non_blocking_axi4_nonsynth_mem]
+          |mem_cfg_lp[e_vcache_non_blocking_dmc_lpddr]) begin: lv1_vcache_nb
 
     for (genvar j = N; j <= S; j++) begin: y
       for (genvar i = 0; i < num_tiles_x_p; i++) begin: x
@@ -370,8 +372,8 @@ module spmd_testbench;
   
   // LEVEL 2
   //
-  if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem)
-      |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_axi4_nonsynth_mem)) begin: lv2_axi4
+  if (mem_cfg_lp[e_vcache_blocking_axi4_nonsynth_mem]
+      | mem_cfg_lp[e_vcache_non_blocking_axi4_nonsynth_mem]) begin: lv2_axi4
 
     logic [S:N][axi_id_width_p-1:0] axi_awid;
     logic [S:N][axi_addr_width_p-1:0] axi_awaddr;
@@ -484,8 +486,8 @@ module spmd_testbench;
       );
     end
   end
-  else if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_dmc_lpddr)
-          |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_dmc_lpddr)) begin: lv2_dmc
+  else if (mem_cfg_lp[e_vcache_blocking_dmc_lpddr]
+          | mem_cfg_lp[e_vcache_non_blocking_dmc_lpddr]) begin: lv2_dmc
 
     logic [S:N] app_en;
     logic [S:N] app_rdy;
@@ -545,7 +547,7 @@ module spmd_testbench;
       );
     end
   end
-  else if (bsg_manycore_mem_cfg_p == e_vcache_blocking_dramsim3_hbm2) begin: lv2_hbm2
+  else if (mem_cfg_lp[e_vcache_blocking_dramsim3_hbm2]) begin: lv2_hbm2
 
     
     typedef struct packed {
@@ -619,8 +621,8 @@ module spmd_testbench;
 
   // LEVEL 3
   //
-  if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_axi4_nonsynth_mem)
-     |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_axi4_nonsynth_mem)) begin: lv3_axi_mem
+  if (mem_cfg_lp[e_vcache_blocking_axi4_nonsynth_mem]
+     | mem_cfg_lp[e_vcache_non_blocking_axi4_nonsynth_mem]) begin: lv3_axi_mem
 
     for (genvar i = N; i <= S; i++) begin
       bsg_nonsynth_manycore_axi_mem #(
@@ -664,8 +666,8 @@ module spmd_testbench;
       );
     end
   end
-  else if ((bsg_manycore_mem_cfg_p == e_vcache_blocking_dmc_lpddr)
-          |(bsg_manycore_mem_cfg_p == e_vcache_non_blocking_dmc_lpddr)) begin: lv3_dmc
+  else if (mem_cfg_lp[e_vcache_blocking_dmc_lpddr]
+          | mem_cfg_lp[e_vcache_non_blocking_dmc_lpddr]) begin: lv3_dmc
 
     import bsg_dmc_pkg::*;
 
@@ -841,7 +843,7 @@ module spmd_testbench;
       end
     end
   end
-  else if (bsg_manycore_mem_cfg_p == e_vcache_blocking_dramsim3_hbm2) begin: lv3_hbm2
+  else if (mem_cfg_lp[e_vcache_blocking_dramsim3_hbm2]) begin: lv3_hbm2
 
     typedef struct packed {
       logic [14:0] ro;
