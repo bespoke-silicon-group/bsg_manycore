@@ -15,8 +15,6 @@ else
 
 all: main.run
 
-LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
-
 endif
 
 OBJECT_FILES=main.o varfunc.o

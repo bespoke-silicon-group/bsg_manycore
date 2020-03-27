@@ -23,8 +23,6 @@ SPMD_COMMON_OBJECTS += spike.o
 
 endif # SPIKE
 
-LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
-
 all: $(PROG_NAME).run
 
 $(PROG_NAME).riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) $(CRT_OBJ)
