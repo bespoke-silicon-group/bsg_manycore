@@ -30,7 +30,7 @@ RVTEST_INCS = -I.. -I$(RVTEST_DIR)/macros/scalar
 INCS += $(RVTEST_INCS)
 RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles
 
-%.riscv:  %.o
+%.riscv: $(LINK_SCRIPT)  %.o
 	$(RISCV_LINK) $< -o $@ $(RISCV_LINK_OPTS)
 
 # Set a separate program run for each run

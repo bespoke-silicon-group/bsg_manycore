@@ -13,9 +13,9 @@ SUBDIRS_MAIN  := $(foreach subdir, $(SUBDIRS), $(subdir)/main.riscv)
 
 all:        $(SUBDIRS_ALL)
 clean:      $(SUBDIRS_CLEAN)
-main.riscv: $(SUBDIRS_MAIN)
+main.riscv: $(LINK_SCRIPT) $(SUBDIRS_MAIN)
 
-$(SUBDIRS_MAIN): %/main.riscv: %
+$(SUBDIRS_MAIN): %/main.riscv: $(LINK_SCRIPT) %
 	$(MAKE) -C $< main.riscv
 
 $(SUBDIRS_CLEAN): %-clean: %
