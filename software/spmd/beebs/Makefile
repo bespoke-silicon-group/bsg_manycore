@@ -42,7 +42,7 @@ all: beebs.configure.touchfile
 	make -C  $*_run -f ../Makefile PROG_NAME=$* $*.run MAX_CYCLES=$(MAX_CYCLES) | tee $*_run/$*-run.log
 
 # Just copy the installed binary
-%.riscv:  $(COMMON_SRCS) $(BSG_MANYCORE_LIB) $(wildcard $(BEEBS_DIR)/src/%/*)
+%.riscv: $(LINK_SCRIPT)  $(COMMON_SRCS) $(BSG_MANYCORE_LIB) $(wildcard $(BEEBS_DIR)/src/%/*)
 	make -C $(BUILD_DIR)/src/$* clean
 	make -C $(BUILD_DIR)/src/$* install V=1
 	cp $(BUILD_DIR)/bin/$* $@
