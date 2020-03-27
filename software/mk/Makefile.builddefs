@@ -147,6 +147,9 @@ LINK_SCRIPT ?= bsg_link.ld
 bsg_link.ld: $(LINK_GEN)
 	$(LINK_GEN) $(LINK_GEN_OPTS) > $@
 
+%/bsg_link.ld: $(LINK_GEN)
+	$(LINK_GEN) $(LINK_GEN_OPTS) > $@
+
 RISCV_LINK_OPTS ?= 
 
 ifneq ($(BSG_NEWLIB), 1)
