@@ -17,15 +17,4 @@ clean:
 
 main.o: Makefile
 
-dve64:
-	$(VCS_BIN)/dve -full64
-
-
-
-
-
-
-
-
-
-
+include ../../mk/Makefile.tail_rules

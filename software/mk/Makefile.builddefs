@@ -142,9 +142,9 @@ else
   $(error Invalid BSG_ELF_OFF_CHIP_MEM = $(BSG_ELF_OFF_CHIP_MEM); Only 0 and 1 are valid)
 endif
 
-LINK_SCRIPT ?= link.ld
+LINK_SCRIPT ?= bsg_link.ld
 
-$(LINK_SCRIPT): $(LINK_GEN)
+bsg_link.ld: $(LINK_GEN)
 	$(LINK_GEN) $(LINK_GEN_OPTS) > $@
 
 RISCV_LINK_OPTS ?= 
