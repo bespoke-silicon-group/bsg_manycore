@@ -165,11 +165,17 @@ SECTIONS
 
   .data.dram _bsg_dram_d_start_addr :
   {
+    _dram_rodata = .;
+    *(.rodata*) 
+
+    _dram_dram = .;
+    *(.dram)
+
     _dram_data = .;
     *(.data*)
 
     _dram_sdata = .;
-    _gp = . + 0x800;
+    _gp = .;
     *(.sdata .sdata.* .gnu.linkonce.s.* .srodata.cst16 .srodata.cst8 .srodata.cst4 .srodata.cst2 .srodata*)
 
     _dram_sbss = .;
@@ -183,12 +189,6 @@ SECTIONS
 
     _dram_eh_frame = .;
     *(.eh_frame)
-
-    _dram_rodata = .;
-    *(.rodata*) 
-
-    _dram_dram = .;
-    *(.dram)
 
     _dram_misc = .;
     *(.*)
