@@ -1,29 +1,24 @@
+bsg_tiles_X = 1
+bsg_tiles_Y = 1
 
 include ../Makefile.include
 
+COREMARK_DIR = $(BSG_MANYCORE_DIR)/imports/coremark
 
+$(info $(COREMARK_DIR))
 
-COREMARK_TOP=../coremark-top
-COREMARK_SRC=../../imports/coremark/
-MANYCORE_PORT_SRC=$(BSG_MANYCORE_DIR)/software/spmd/coremark/
-MANYCORE_PORT_DST=$(COREMARK_TOP)/manycore
+vpath %.c $(COREMARK_DIR)
 
-all:
-	ln -sf $(COREMARK_SRC) $(COREMARK_TOP)
-	ln -sf $(MANYCORE_PORT_SRC) $(MANYCORE_PORT_DST)
-	make coremark.run PORT_DIR=manycore ITERATIONS=1 -C $(COREMARK_TOP) bsg_tiles_X=1 bsg_tiles_Y=1
-clean:
-	make clean PORT_DIR=manycore -C $(COREMARK_TOP)
-	rm -rf $(MANYCORE_PORT_DST)
-	rm -rf $(COREMARK_TOP)
-	rm -rf *.o *.log
-	rm -rf coremark.dis
+SRCS = core_list_join.c core_main.c core_matrix.c core_state.c \
+       core_util.c core_portme.c cvt.c ee_printf.c
 
+OBJECT_FILES = $(patsubst %.c,%.o,$(SRCS))
 
-dve:
-	dve -full64 -vpd ../../../imports/coremark/vcdplus.vpd &
+RISCV_GCC_EXTRA_OPTS += -I$(COREMARK_DIR) -I. -DITERATIONS=1 -DFLAGS_STR=\"$(OPT_LEVEL)\"
 
-dis:
-	$(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump -M numeric --disassemble-all \
-		../../../imports/coremark/coremark.riscv > coremark.dis
+all: main.run
 
+main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
+
+include ../../mk/Makefile.tail_rules
