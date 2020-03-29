@@ -76,8 +76,25 @@ module vcache_profiler
   typedef struct packed {
     integer ld_count;
     integer st_count;
+    integer mask_count; 
+    integer sigext_count; 
+    integer tagst_count;   
+    integer tagfl_count;   
+    integer taglv_count;   
+    integer tagla_count;   
+    integer afl_count;     
+    integer aflinv_count;  
+    integer ainv_count;    
+    integer alock_count;   
+    integer aunlock_count; 
+    integer tag_read_count;
+    integer atomic_count;  
+    integer amoswap_count; 
+    integer amoor_count;   
+
     integer ld_miss_count;
     integer st_miss_count;
+
     integer dma_read_req;
     integer dma_write_req;
   } vcache_stat_s;
@@ -90,11 +107,28 @@ module vcache_profiler
       stat_r <= '0;
     end
     else begin
-      if (inc_ld) stat_r.ld_count++;
-      if (inc_st) stat_r.st_count++;
-      if (inc_ld_miss) stat_r.ld_miss_count++;
-      if (inc_st_miss) stat_r.st_miss_count++;
-      if (inc_dma_read_req) stat_r.dma_read_req++;
+      if (inc_ld)            stat_r.ld_count++;
+      if (inc_st)            stat_r.st_count++;
+      if (inc_mask)          stat_r.mask_count++;      
+      if (inc_sigext)        stat_r.sigext_count++; 
+      if (inc_tagst)         stat_r.tagst_count++;   
+      if (inc_tagfl)         stat_r.tagfl_count++;   
+      if (inc_taglv)         stat_r.taglv_count++;   
+      if (inc_tagla)         stat_r.tagla_count++;   
+      if (inc_afl)           stat_r.afl_count++;     
+      if (inc_aflinv)        stat_r.aflinv_count++;  
+      if (inc_ainv)          stat_r.ainv_count++;    
+      if (inc_alock)         stat_r.alock_count++;   
+      if (inc_aunlock)       stat_r.aunlock_count++; 
+      if (inc_tag_read)      stat_r.tag_read_count++;
+      if (inc_atomic)        stat_r.atomic_count++;  
+      if (inc_amoswap)       stat_r.amoswap_count++; 
+      if (inc_amoor)         stat_r.amoor_count++;   
+
+      if (inc_ld_miss)       stat_r.ld_miss_count++;
+      if (inc_st_miss)       stat_r.st_miss_count++;
+
+      if (inc_dma_read_req)  stat_r.dma_read_req++;
       if (inc_dma_write_req) stat_r.dma_write_req++;
     end
 
@@ -114,7 +148,9 @@ module vcache_profiler
     my_name = $sformatf("%m");
     if (str_match(my_name, header_print_p)) begin
       log_fd = $fopen(logfile_lp, "w");
-      $fwrite(log_fd, "instance,global_ctr,tag,ld,st,ld_miss,st_miss,dma_read_req,dma_write_req\n");
+      $fwrite(log_fd, "instance,global_ctr,tag,ld,st,mask,sigext,tagst,tagfl,taglv,");
+      $fwrite(log_fd, "afl,aflinv,ainv,alock,aunlock,tag_read,atomic,amoswap,amoor,");
+      $fwrite(log_fd, "miss_ld,miss_st,dma_read_req,dma_write_req\n");
       $fclose(log_fd);
 
       trace_fd = $fopen(tracefile_lp, "w");
@@ -131,14 +167,45 @@ module vcache_profiler
           $display("[BSG_INFO][VCACHE_PROFILER] %s t=%0t printing stats.", my_name, $time);
 
           log_fd = $fopen(logfile_lp, "a");
-          $fwrite(log_fd, "%s,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
-            my_name, global_ctr_i, print_stat_tag_i,
-            stat_r.ld_count, stat_r.st_count,
-            stat_r.ld_miss_count, stat_r.st_miss_count,
-            stat_r.dma_read_req, stat_r.dma_write_req 
-          );   
+          $fwrite(log_fd, "%s,%0d,%0d,",
+            my_name,
+            global_ctr_i,
+            print_stat_tag_i
+          );
+
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+            stat_r.ld_count,
+            stat_r.st_count,
+            stat_r.mask_count,
+            stat_r.sigext_count,
+            stat_r.tagst_count,
+            stat_r.tagfl_count,
+            stat_r.taglv_count,
+            stat_r.tagla_count
+          );
+
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+            stat_r.afl_count,
+            stat_r.aflinv_count,
+            stat_r.ainv_count,
+            stat_r.alock_count,
+            stat_r.aunlock_count,
+            stat_r.tag_read_count,
+            stat_r.atomic_count,
+            stat_r.amoswap_count,
+            stat_r.amoor_count
+          );
+
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d\n",
+            stat_r.ld_miss_count,
+            stat_r.st_miss_count,
+            stat_r.dma_read_req,
+            stat_r.dma_write_req
+          );
+
           $fclose(log_fd);
         end
+
 
 
         if (~reset_i) begin
