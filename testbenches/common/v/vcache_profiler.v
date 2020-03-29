@@ -46,10 +46,27 @@ module vcache_profiler
   // event signals
   //
 
-  wire inc_ld = v_o & yumi_i & decode_v_r.ld_op;
-  wire inc_st = v_o & yumi_i & decode_v_r.st_op;
-  wire inc_ld_miss = v_o & yumi_i & decode_v_r.ld_op & miss_v;
-  wire inc_st_miss = v_o & yumi_i & decode_v_r.st_op & miss_v;
+  wire inc_ld       = v_o & yumi_i & decode_v_r.ld_op;
+  wire inc_st       = v_o & yumi_i & decode_v_r.st_op;
+  wire inc_mask     = v_o & yumi_i & decode_v_r.mask_op;
+  wire inc_sigext   = v_o & yumi_i & decode_v_r.sigext_op;
+  wire inc_tagst    = v_o & yumi_i & decode_v_r.tagst_op;
+  wire inc_tagfl    = v_o & yumi_i & decode_v_r.tagfl_op;
+  wire inc_taglv    = v_o & yumi_i & decode_v_r.taglv_op;
+  wire inc_tagla    = v_o & yumi_i & decode_v_r.tagla_op;
+  wire inc_afl      = v_o & yumi_i & decode_v_r.afl_op;
+  wire inc_aflinv   = v_o & yumi_i & decode_v_r.aflinv_op;
+  wire inc_ainv     = v_o & yumi_i & decode_v_r.ainv_op;
+  wire inc_alock    = v_o & yumi_i & decode_v_r.alock_op;
+  wire inc_aunlock  = v_o & yumi_i & decode_v_r.aunlock_op;
+  wire inc_tag_read = v_o & yumi_i & decode_v_r.tag_read_op;
+  wire inc_atomic   = v_o & yumi_i & decode_v_r.atomic_op;
+  wire inc_amoswap  = v_o & yumi_i & decode_v_r.amoswap_op;
+  wire inc_amoor    = v_o & yumi_i & decode_v_r.amoor_op;
+
+  wire inc_ld_miss  = v_o & yumi_i & decode_v_r.ld_op & miss_v;
+  wire inc_st_miss  = v_o & yumi_i & decode_v_r.st_op & miss_v;
+
   wire inc_dma_read_req = dma_pkt_v_o & dma_pkt_yumi_i & ~dma_pkt.write_not_read;
   wire inc_dma_write_req = dma_pkt_v_o & dma_pkt_yumi_i & dma_pkt.write_not_read;
 
@@ -126,18 +143,57 @@ module vcache_profiler
 
         if (~reset_i) begin
           trace_fd = $fopen(tracefile_lp, "a");
-          if (miss_v) begin
-            if (inc_ld_miss)
-              print_operation_trace(trace_fd, my_name, "miss_ld");
-            else if (inc_st_miss)
-              print_operation_trace(trace_fd, my_name, "miss_st");
+
+          // If miss handler has finished the dma request and result is ready
+          // for a missed request
+          if (inc_ld_miss)
+            print_operation_trace(trace_fd, my_name, "miss_ld");
+          else if (inc_st_miss)
+            print_operation_trace(trace_fd, my_name, "miss_st");
+
+
+          // If miss handler is still busy on a request
+          else if (miss_v) begin
+            print_operation_trace(trace_fd, my_name, "miss");
           end 
+
         
+          // If response is ready for a hit request
           else begin
             if (inc_ld)
               print_operation_trace(trace_fd, my_name, "ld");
             else if (inc_st)
               print_operation_trace(trace_fd, my_name, "st");
+            else if (inc_mask)
+              print_operation_trace(trace_fd, my_name, "mask");
+            else if (inc_sigext)
+              print_operation_trace(trace_fd, my_name, "sigext");
+            else if (inc_tagst)
+              print_operation_trace(trace_fd, my_name, "tagst");
+            else if (inc_tagfl)
+              print_operation_trace(trace_fd, my_name, "tagfl");
+            else if (inc_taglv)
+              print_operation_trace(trace_fd, my_name, "taglv");
+            else if (inc_tagla)
+              print_operation_trace(trace_fd, my_name, "tagla");
+            else if (inc_afl)
+              print_operation_trace(trace_fd, my_name, "afl");
+            else if (inc_aflinv)
+              print_operation_trace(trace_fd, my_name, "aflinv");
+            else if (inc_ainv)
+              print_operation_trace(trace_fd, my_name, "ainv");
+            else if (inc_alock)
+              print_operation_trace(trace_fd, my_name, "alock");
+            else if (inc_aunlock)
+              print_operation_trace(trace_fd, my_name, "aunlock");
+            else if (inc_tag_read)
+              print_operation_trace(trace_fd, my_name, "tag_read");
+            else if (inc_atomic)
+              print_operation_trace(trace_fd, my_name, "atomic");
+            else if (inc_amoswap)
+              print_operation_trace(trace_fd, my_name, "amoswap");
+            else if (inc_amoor)
+              print_operation_trace(trace_fd, my_name, "amoor");
             else
               print_operation_trace(trace_fd, my_name, "idle");
           end
