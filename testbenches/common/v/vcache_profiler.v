@@ -32,6 +32,12 @@ module vcache_profiler
     , input [data_width_p-1:0] print_stat_tag_i
   );
 
+  // task to print a line of operation trace
+  task print_operation_trace(integer fd, string vcache_name, string op);
+    $fwrite(fd, "%0t,%0s,%0s\n", global_ctr_i, vcache_name, op);
+  endtask
+
+
   `declare_bsg_cache_dma_pkt_s(addr_width_p);
   bsg_cache_dma_pkt_s dma_pkt;
   assign dma_pkt = dma_pkt_o;
@@ -81,18 +87,25 @@ module vcache_profiler
   // file logging
   //
   localparam logfile_lp = "vcache_stats.csv";
+  localparam tracefile_lp = "vcache_operation_trace.csv";
 
   string my_name;
-  integer fd;
+  integer log_fd, trace_fd;
 
   initial begin
 
     my_name = $sformatf("%m");
     if (str_match(my_name, header_print_p)) begin
-      fd = $fopen(logfile_lp, "w");
-      $fwrite(fd, "instance,global_ctr,tag,ld,st,ld_miss,st_miss,dma_read_req,dma_write_req\n");
-      $fclose(fd);
+      log_fd = $fopen(logfile_lp, "w");
+      $fwrite(log_fd, "instance,global_ctr,tag,ld,st,ld_miss,st_miss,dma_read_req,dma_write_req\n");
+      $fclose(log_fd);
+
+      trace_fd = $fopen(tracefile_lp, "w");
+      $fwrite(trace_fd, "instance,global_ctr,op\n");
+      $fclose(trace_fd);
     end
+
+
 
     forever begin
       @(negedge clk_i) begin
@@ -100,15 +113,38 @@ module vcache_profiler
 
           $display("[BSG_INFO][VCACHE_PROFILER] %s t=%0t printing stats.", my_name, $time);
 
-          fd = $fopen(logfile_lp, "a");
-          $fwrite(fd, "%s,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
+          log_fd = $fopen(logfile_lp, "a");
+          $fwrite(log_fd, "%s,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
             my_name, global_ctr_i, print_stat_tag_i,
             stat_r.ld_count, stat_r.st_count,
             stat_r.ld_miss_count, stat_r.st_miss_count,
             stat_r.dma_read_req, stat_r.dma_write_req 
           );   
-          $fclose(fd);
+          $fclose(log_fd);
         end
+
+
+        if (~reset_i) begin
+          trace_fd = $fopen(tracefile_lp, "a");
+          if (miss_v) begin
+            if (inc_ld_miss)
+              print_operation_trace(trace_fd, my_name, "miss_ld");
+            else if (inc_st_miss)
+              print_operation_trace(trace_fd, my_name, "miss_st");
+          end 
+        
+          else begin
+            if (inc_ld)
+              print_operation_trace(trace_fd, my_name, "ld");
+            else if (inc_st)
+              print_operation_trace(trace_fd, my_name, "st");
+            else
+              print_operation_trace(trace_fd, my_name, "idle");
+          end
+
+          $fclose(trace_fd);
+        end
+
       end
     end
   end
