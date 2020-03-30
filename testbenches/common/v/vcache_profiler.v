@@ -30,6 +30,8 @@ module vcache_profiler
     , input [31:0] global_ctr_i
     , input print_stat_v_i
     , input [data_width_p-1:0] print_stat_tag_i
+
+    , input trace_en_i // from toplevel testbench
   );
 
   // task to print a line of operation trace
@@ -148,14 +150,16 @@ module vcache_profiler
     my_name = $sformatf("%m");
     if (str_match(my_name, header_print_p)) begin
       log_fd = $fopen(logfile_lp, "w");
-      $fwrite(log_fd, "instance,global_ctr,tag,ld,st,mask,sigext,tagst,tagfl,taglv,");
+      $fwrite(log_fd, "time,vcache,global_ctr,tag,ld,st,mask,sigext,tagst,tagfl,taglv,");
       $fwrite(log_fd, "afl,aflinv,ainv,alock,aunlock,tag_read,atomic,amoswap,amoor,");
       $fwrite(log_fd, "miss_ld,miss_st,dma_read_req,dma_write_req\n");
       $fclose(log_fd);
 
-      trace_fd = $fopen(tracefile_lp, "w");
-      $fwrite(trace_fd, "instance,global_ctr,op\n");
-      $fclose(trace_fd);
+      if (trace_en_i) begin
+        trace_fd = $fopen(tracefile_lp, "w");
+        $fwrite(trace_fd, "cycle,vcache,operation\n");
+        $fclose(trace_fd);
+      end
     end
 
 
@@ -167,7 +171,8 @@ module vcache_profiler
           $display("[BSG_INFO][VCACHE_PROFILER] %s t=%0t printing stats.", my_name, $time);
 
           log_fd = $fopen(logfile_lp, "a");
-          $fwrite(log_fd, "%s,%0d,%0d,",
+          $fwrite(log_fd, "%0d,%s,%0d,%0d,",
+            $time,
             my_name,
             global_ctr_i,
             print_stat_tag_i
@@ -208,7 +213,7 @@ module vcache_profiler
 
 
 
-        if (~reset_i) begin
+        if (~reset_i & trace_en_i) begin
           trace_fd = $fopen(tracefile_lp, "a");
 
           // If miss handler has finished the dma request and result is ready
