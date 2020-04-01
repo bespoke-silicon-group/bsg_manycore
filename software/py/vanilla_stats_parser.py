@@ -183,6 +183,7 @@ class VanillaStatsParser:
         self.per_tile_group_stat = per_tile_group_stat
 
         self.traces = []
+        self.vcache_traces = []
 
         self.max_tile_groups = 1 << CudaStatTag._TG_ID_WIDTH
         self.num_tile_groups = []
@@ -222,8 +223,9 @@ class VanillaStatsParser:
         self.all_ops = self.stats + self.instrs + self.misses + self.stalls + self.bubbles
         self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
 
-        # Use sets to determine the active tiles (without duplicates)
+        # Use sets to determine the active tiles and vcache banks (without duplicates)
         active_tiles = set()
+        active_vcaches = set()
 
         # Parse stats file line by line, and append the trace line to traces list. 
         with open(vanilla_input_file) as f:
@@ -233,16 +235,42 @@ class VanillaStatsParser:
                 active_tiles.add((trace['y'], trace['x']))
                 self.traces.append(trace)
 
+
+        # Parse vcahe stats file line by line, and append the trace line to traces list. 
+        with open(vcache_input_file) as f:
+            csv_reader = csv.DictReader (f, delimiter=",")
+            for row in csv_reader:
+                # Vcache bank name is a string that contains the vcache bank number 
+                # The vcache bank number is extracted separate from other stats 
+                # and manually added 
+                trace = {op:int(row[op]) for op in self.vcache_all_ops if op != 'vcache'}
+                vcache_name = row['vcache']
+                vcache_bank = int (vcache_name[vcache_name.find("[")+1: vcache_name.find("]")])
+                trace['vcache'] = vcache_bank
+                active_vcaches.add((vcache_bank))
+                self.vcache_traces.append(trace)
+
+
+
         # Raise exception and exit if there are no traces 
-        if not self.traces:
-            raise IOError("No Stats Found: Use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics")
+        if not self.traces or not self.vcache_traces:
+            raise IOError("No Vanilla Stats Found: Use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics")
+
 
         # Save the active tiles in a list
         self.active = list(active_tiles)
         self.active.sort()
 
+        self.vcaches = list(active_vcaches)
+        self.vcaches.sort()
+
+
         # generate timing stats for each tile and tile group 
         self.num_tile_groups, self.tile_group_stat, self.tile_stat, self.manycore_cycle_parallel_cnt = self.__generate_tile_stats(self.traces, self.active)
+
+        # generate timing stats for each vcache bank 
+        self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.vcaches)
+
 
         # Calculate total aggregate stats for manycore
         # By summing up per_tile stat counts
@@ -931,7 +959,6 @@ class VanillaStatsParser:
 
 
 
-
     # go though the input traces and extract start and end stats  
     # for each tile, and each tile group 
     # return number of tile groups, tile group timing stats, tile stats, and cycle parallel cnt
@@ -1123,6 +1150,113 @@ class VanillaStatsParser:
 
         return num_tile_groups, tile_group_stat, tile_stat, manycore_cycle_parallel_cnt
 
+
+
+
+
+
+
+    # go though the input traces and extract start and end stats for each vcache bank 
+    # return vcache stats 
+    # this function only counts the portion between two print_stat_start and end messages
+    # in practice, this excludes the time in between executions,
+    # i.e. when tiles are waiting to be loaded by the host.
+    # contrary to vanilla stats, vcache stats can be printed multiple times, every time
+    # a tile invokes print_stat, the stat for all vcache banks is printed 
+    # Therefore, if multiple stats of the same vcache bank and the same tag are seen,
+    # the earliest (latest) stat is chosen if it is a start (end) stat.
+    def __generate_vcache_stats(self, traces, vcaches):
+        tags = list(range(self.max_tags)) + ["kernel"]
+        num_tile_groups = {tag:0 for tag in tags}
+
+        vcache_stat_start = {tag: {vcache:Counter() for vcache in vcaches} for tag in tags}
+        vcache_stat_end   = {tag: {vcache:Counter() for vcache in vcaches} for tag in tags}
+        vcache_stat       = {tag: {vcache:Counter() for vcache in vcaches} for tag in tags}
+
+
+        tag_seen = {tag: {vcache:False for vcache in vcaches} for tag in tags}
+
+
+        for trace in traces:
+            cur_vcache = (trace['vcache'])
+
+            # instantiate a CudaStatTag object with the tag value
+            cst = CudaStatTag(trace["tag"])
+
+            # Separate depending on stat type (start or end)
+            if(cst.isStart):
+                # If there already is a start stat for this vcache and this tag
+                if (vcache_stat_start[cst.tag][cur_vcache]):
+                    # And if the new start stat is an earlier version, replace with the existing one
+                    if (vcahe_stat_start[cst.tag][cur_vache]['global_ctr'] > trace['global_ctr']):
+                        for op in self.vcache_all_ops:
+                            vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
+
+
+            elif (cst.isEnd):
+                # If there already is a end stat for this vcache and this tag
+                if (vcache_stat_end[cst.tag][cur_vcache]):
+                    # And if the new end stat is a later version, replace with the existing one
+                    if (vcahe_stat_end[cst.tag][cur_vache]['global_ctr'] < trace['global_ctr']):
+                        for op in self.vcache_all_ops:
+                            vcache_stat_end[cst.tag][cur_vcache][op] = trace[op]
+
+
+                vcache_stat[cst.tag][cur_vcache] += vcache_stat_end[cst.tag][cur_vcache] - vcache_stat_start[cst.tag][cur_vcache]
+
+
+            # And depending on kernel start/end
+            if(cst.isKernelStart):
+                # If there already is a start stat for this vcache and the kernel tag
+                if (vcache_stat_start["kernel"][cur_vcache]):
+                     # And if the new start stat is an earlier version, replace with the existing one
+                    if (vcahe_stat_start["kernel"][cur_vache]['global_ctr'] > trace['global_ctr']):
+                        for op in self.vcache_all_ops:
+                            vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
+
+
+            elif (cst.isKernelEnd):
+                # If there already is a end stat for this vcache and the kernel tag
+                if (vcache_stat_end["kernel"][cur_vcache]):
+                    # And if the new end stat is a later version, replace with the existing one
+                    if (vcahe_stat_end["kernel"][cur_vache]['global_ctr'] < trace['global_ctr']):
+                        vcache_stat_end["kernel"][cur_vcache][op] = trace[op]
+
+
+                vcache_stat["kernel"][cur_vcache] += vcache_stat_end["kernel"][cur_vcache] - vcache_stat_start["kernel"][cur_vcache]
+
+
+
+        # Generate total stats for entire vcache by summing all stats for all vcache banks
+        for tag in tags:
+            for vcache in vcaches:
+                for instr in self.instrs:
+                    vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
+                for stall in self.stalls:
+                    # stall_depend count includes all stall_depend_ types, so all
+                    # stall_depend_ subcategories are excluded to avoid double-counting
+                    if (not stall.startswith('stall_depend_')):
+                        vcache_stat[tag][vcache]["stall_total"] += vcache_stat[tag][vcache][stall]
+                for bubble in self.bubbles:
+                    vcache_stat[tag][vcache]["bubble_total"] += vcache_stat[tag][vcache][bubble]
+                for miss in self.misses:
+                    vcache_stat[tag][vcache]["miss_total"] += vcache_stat[tag][vcache][miss]
+
+
+        self.vcache_instrs  += ["instr_total"]
+        self.vcache_stalls  += ["stall_total"]
+        self.vcache_bubbles += ["bubble_total"]
+        self.vcache_misses  += ["miss_total"]
+        self.vcache_all_ops += ["instr_total", "stall_total", "bubble_total", "miss_total"]
+
+        return vcache_stat
+
+
+
+
+
+
+
     # Calculate aggregate manycore stats dictionary by summing 
     # all per tile stats dictionaries
     def __generate_manycore_stats_all(self, tile_stat, manycore_cycle_parallel_cnt):
@@ -1168,6 +1302,7 @@ class VanillaStatsParser:
                     bubbles += [item]
                 else:
                     stats += [item]
+
         return (stats, instrs, misses, stalls, bubbles)
 
 
