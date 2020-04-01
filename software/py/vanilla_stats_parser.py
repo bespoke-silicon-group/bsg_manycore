@@ -174,7 +174,7 @@ class VanillaStatsParser:
 
 
     # default constructor
-    def __init__(self, per_tile_stat, per_tile_group_stat, input_file):
+    def __init__(self, per_tile_stat, per_tile_group_stat, vanilla_input_file, vcache_input_file):
 
         #self.manycore_dim_y = manycore_dim_y
         #self.manycore_dim_x = manycore_dim_x
@@ -205,7 +205,10 @@ class VanillaStatsParser:
         self.all_ops = []
 
         # Parse input file's header to generate a list of all types of operations
-        self.stats, self.instrs, self.misses, self.stalls, self.bubbles = self.parse_header(input_file)
+        self.stats, self.instrs, self.misses, self.stalls, self.bubbles = self.parse_header(vanilla_input_file)
+
+        # Parse vcahe input file's header to generate a list of all types of operations
+        self.vcache_stats, self.vcache_instrs, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
 
         # bubble_fp_op is a bubble in the Integer pipeline "caused" by
         # an FP instruction executing. Don't count it in the bubbles
@@ -217,12 +220,13 @@ class VanillaStatsParser:
             self.bubbles.remove(nb)
 
         self.all_ops = self.stats + self.instrs + self.misses + self.stalls + self.bubbles
+        self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
 
         # Use sets to determine the active tiles (without duplicates)
         active_tiles = set()
 
         # Parse stats file line by line, and append the trace line to traces list. 
-        with open(input_file) as f:
+        with open(vanilla_input_file) as f:
             csv_reader = csv.DictReader (f, delimiter=",")
             for row in csv_reader:
                 trace = {op:int(row[op]) for op in self.all_ops}
@@ -1170,8 +1174,10 @@ class VanillaStatsParser:
 # parses input arguments
 def parse_args():
     parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
-    parser.add_argument("--input", default="vanilla_stats.csv", type=str,
+    parser.add_argument("--vanilla", default="vanilla_stats.csv", type=str,
                         help="Vanilla stats log file")
+    parser.add_argument("--vcache", default="vcache_stats.csv", type=str,
+                        help="Vcache stats log file")
     parser.add_argument("--tile", default=False, action='store_true',
                         help="Also generate separate stats files for each tile.")
     parser.add_argument("--tile_group", default=False, action='store_true',
@@ -1185,7 +1191,7 @@ if __name__ == "__main__":
     np.seterr(divide='ignore', invalid='ignore')
     args = parse_args()
   
-    st = VanillaStatsParser(args.tile, args.tile_group, args.input)
+    st = VanillaStatsParser(args.tile, args.tile_group, args.vanilla, args.vcache)
     st.print_manycore_stats_all()
     if(st.per_tile_stat):
         st.print_per_tile_stats_all()
