@@ -996,6 +996,32 @@ class VanillaStatsParser:
 
 
 
+    # print stall stats for each vcache in a separate file
+    def __print_per_vcache_tag_stats_stall(self, vcache, stat_file, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        # Print stall stats for manycore
+        for stall in self.vcache_stalls:
+            stall_format = "stall_data"
+            self.__print_stat(stat_file, stall_format, stall,
+                                         self.vcache_stat[tag][vcache][stall],
+                                         (100 * np.float64(self.vcache_stat[tag][vcache][stall]) / self.vcache_stat[tag][vcache]["stall_total"])
+                                         ,(100 * np.float64(self.vcache_stat[tag][vcache][stall]) / self.vcache_stat[tag][vcache]["global_ctr"]))
+        return
+
+
+    # print stall stats for each vcache in a separate file for all tags 
+    def __print_per_vcache_stats_stall(self, vcache, stat_file):
+        stat_file.write("Per-Tile Stall Stats\n")
+        self.__print_stat(stat_file, "stall_header", "Stall Type", "Cycles", "% of Stall Cycles", "% of Total Cycles")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in self.vcache_stat.keys():
+            if(self.vcache_stat[tag][vcache]["global_ctr"]):
+                self.__print_per_vcache_tag_stats_stall(vcache, stat_file, tag)
+        self.__print_stat(stat_file, "start_lbreak")
+        return   
+
+
 
 
 
@@ -1107,7 +1133,7 @@ class VanillaStatsParser:
         for vcache in self.active_vcaches:
             stat_file = open( (stats_path + "vcache_bank_" + str(vcache) + "_stats.log"), "w")
             self.__print_per_vcache_stats_miss(vcache, stat_file)
-            #self.__print_per_tile_stats_stall(tile, stat_file)
+            self.__print_per_vcache_stats_stall(vcache, stat_file)
             #self.__print_per_tile_stats_bubble(tile, stat_file)
             self.__print_per_vcache_stats_instr(vcache, stat_file)
             stat_file.close()
