@@ -273,9 +273,12 @@ class VanillaStatsParser:
         self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
 
 
-        # Calculate total aggregate stats for manycore
-        # By summing up per_tile stat counts
+        # Calculate total aggregate stats for manycore by summing up per_tile stat counts
         self.manycore_stat = self.__generate_manycore_stats_all(self.tile_stat, self.manycore_cycle_parallel_cnt)
+
+        # Calculate total aggregate stats for manycore vcahe  by summing up per vcache bank stat counts
+        self.manycore_vcache_stat = self.__generate_manycore_vcache_stats_all(self.vcache_stat)
+
 
         return
 
@@ -910,15 +913,13 @@ class VanillaStatsParser:
         self.__print_stat(stat_file, "tag_separator", tag)
 
         for miss in self.vcache_misses:
-            operation = miss.replace("miss_", "")
-            operation_cnt = self.vcache_stat[tag][operation]
-            miss_cnt = self.vcache_stat[tag][miss]
+            operation = miss.replace("miss_", "instr_")
+            operation_cnt = self.manycore_vcache_stat[tag][operation]
+            miss_cnt = self.manycore_vcache_stat[tag][miss]
             hit_rate = 100.0 if operation_cnt == 0 else 100.0*(1 - miss_cnt/operation_cnt)
          
             self.__print_stat(stat_file, "miss_data", miss, miss_cnt, operation_cnt, hit_rate )
         return   
-
-
 
 
 
@@ -928,14 +929,11 @@ class VanillaStatsParser:
         stat_file.write("Per-Tag Vcache Miss Stats\n")
         self.__print_stat(stat_file, "miss_header", "Miss Type", "Misses", "Accesses", "Hit Rate (%)")
         self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.manycore_stat.keys():
-            #if(self.vcache_stat[tag]["global_ctr"]):
-            self.__print_manycore_vcache_tag_stats_miss(stat_file, tag)
+        for tag in self.manycore_vcache_stat.keys():
+            if(self.manycore_vcache_stat[tag]["global_ctr"]):
+                self.__print_manycore_vcache_tag_stats_miss(stat_file, tag)
         self.__print_stat(stat_file, "end_lbreak")
         return   
-
-
-
 
 
 
@@ -956,10 +954,10 @@ class VanillaStatsParser:
         self.__print_manycore_stats_miss(manycore_stats_file)
         self.__print_manycore_stats_stall(manycore_stats_file)
         self.__print_manycore_stats_bubble(manycore_stats_file)
-        self.__print_manycore_stats_instr(manycore_stats_file)
-        self.__print_manycore_stats_tile_timing(manycore_stats_file, self.active_tiles)
         self.__print_manycore_vcache_stats_miss(manycore_stats_file)
         #self.__print_manycore_vcache_stats_instr(manycore_stats_file)
+        self.__print_manycore_stats_instr(manycore_stats_file)
+        self.__print_manycore_stats_tile_timing(manycore_stats_file, self.active_tiles)
         manycore_stats_file.close()
         return
 
@@ -1239,6 +1237,7 @@ class VanillaStatsParser:
                 else:
                     for op in self.vcache_all_ops:
                         vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
+                tag_seen[cst.tag][cur_vcache] = True
 
 
 
@@ -1269,6 +1268,7 @@ class VanillaStatsParser:
                 else:
                     for op in self.vcache_all_ops:
                         vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
+                tag_seen["kernel"][cur_vcache] = True
 
 
 
@@ -1288,20 +1288,19 @@ class VanillaStatsParser:
 
 
 
+
         # Generate total stats for entire vcache by summing all stats for all vcache banks
         for tag in tags:
             for vcache in vcaches:
-                for instr in self.instrs:
-                    vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
-                for stall in self.stalls:
-                    # stall_depend count includes all stall_depend_ types, so all
-                    # stall_depend_ subcategories are excluded to avoid double-counting
-                    if (not stall.startswith('stall_depend_')):
+                if (tag_seen[tag][vcache]):
+                    for instr in self.vcache_instrs:
+                        vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
+                    for stall in self.vcache_stalls:
                         vcache_stat[tag][vcache]["stall_total"] += vcache_stat[tag][vcache][stall]
-                for bubble in self.bubbles:
-                    vcache_stat[tag][vcache]["bubble_total"] += vcache_stat[tag][vcache][bubble]
-                for miss in self.misses:
-                    vcache_stat[tag][vcache]["miss_total"] += vcache_stat[tag][vcache][miss]
+                    for bubble in self.vcache_bubbles:
+                        vcache_stat[tag][vcache]["bubble_total"] += vcache_stat[tag][vcache][bubble]
+                    for miss in self.vcache_misses:
+                        vcache_stat[tag][vcache]["miss_total"] += vcache_stat[tag][vcache][miss]
 
 
         self.vcache_instrs  += ["instr_total"]
@@ -1335,6 +1334,22 @@ class VanillaStatsParser:
             manycore_stat[tag]["cycle_parallel_cnt"] = manycore_cycle_parallel_cnt[tag]
 
         return manycore_stat
+
+
+    # Calculate aggregate vcache stats dictionary by summing 
+    # all per vcache bank dictionaries
+    def __generate_manycore_vcache_stats_all(self, vcache_stat):
+        # Create a dictionary and initialize elements to zero
+        tags = list(range(self.max_tags)) + ["kernel"]
+        manycore_vcache_stat = {tag: Counter() for tag in tags}
+        for tag in tags:
+            for vcache in self.active_vcaches:
+                for op in self.vcache_all_ops:
+                    manycore_vcache_stat[tag][op] += vcache_stat[tag][vcache][op]
+
+        return manycore_vcache_stat
+
+
  
 
 
