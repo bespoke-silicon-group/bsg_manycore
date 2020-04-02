@@ -970,6 +970,36 @@ class VanillaStatsParser:
 
 
 
+    # print instruction stats for each vcache in a separate file 
+    def __print_per_vcache_tag_stats_instr(self, vcache, stat_file, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        # Print instruction stats for vache
+        for instr in self.vcache_instrs:
+            self.__print_stat(stat_file, "instr_data", instr,
+                                         self.vcache_stat[tag][vcache][instr]
+                                         ,(100 * np.float64(self.vcache_stat[tag][vcache][instr]) / self.vcache_stat[tag][vcache]["instr_total"]))
+        return
+
+
+    # print instr stats for each vcache in a separate file for all tags 
+    def __print_per_vcache_stats_instr(self, vcache, stat_file):
+        stat_file.write("Vcache Instruction Stats\n")
+        self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in self.vcache_stat.keys():
+            if(self.vcache_stat[tag][vcache]["global_ctr"]):
+                self.__print_per_vcache_tag_stats_instr(vcache, stat_file, tag)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+
+
+
+
     # print miss stats for each vcache in a separate file
     # vcache is the victim cache bank number
     def __print_per_vcache_tag_stats_miss(self, vcache, stat_file, tag):
@@ -1079,7 +1109,7 @@ class VanillaStatsParser:
             self.__print_per_vcache_stats_miss(vcache, stat_file)
             #self.__print_per_tile_stats_stall(tile, stat_file)
             #self.__print_per_tile_stats_bubble(tile, stat_file)
-            #self.__print_per_tile_stats_instr(tile, stat_file)
+            self.__print_per_vcache_stats_instr(vcache, stat_file)
             stat_file.close()
 
 
