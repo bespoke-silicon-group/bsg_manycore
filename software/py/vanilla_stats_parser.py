@@ -906,11 +906,6 @@ class VanillaStatsParser:
 
 
 
-
-
-
-
-
     # print victim cache instruction stats for the entire manycore
     def __print_manycore_vcache_tag_stats_instr(self, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
@@ -925,7 +920,7 @@ class VanillaStatsParser:
 
     # Prints victim cahe manycore instruction stats for all tags  
     def __print_manycore_vcache_stats_instr(self, stat_file):
-        stat_file.write("Per-Tag Vcache Instruction Stats\n")
+        stat_file.write("Vcache Per-Tag Instruction Stats\n")
         self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in self.manycore_vcache_stat.keys():
@@ -934,6 +929,34 @@ class VanillaStatsParser:
         self.__print_stat(stat_file, "end_lbreak")
         return   
 
+
+
+
+    # print stall stats for the entire vcache
+    def __print_manycore_vcache_tag_stats_stall(self, stat_file, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        # Print stall stats for manycore vcache
+        for stall in self.vcache_stalls:
+            stall_format = "stall_data"
+            self.__print_stat(stat_file, stall_format, stall,
+                                         self.manycore_vcache_stat[tag][stall],
+                                         (100 * np.float64(self.manycore_vcache_stat[tag][stall]) / self.manycore_vcache_stat[tag]["stall_total"])
+                                         ,(100 * np.float64(self.manycore_vcache_stat[tag][stall]) / self.manycore_vcache_stat[tag]["global_ctr"]))
+
+        return
+
+
+    # Prints manycore stall stats per vcache for all tags 
+    def __print_manycore_vcache_stats_stall(self, stat_file):
+        stat_file.write("Vcache Per-Tag Stall Stats\n")
+        self.__print_stat(stat_file, "stall_header", "Stall Type", "Cycles", " % Stall Cycles", " % Total Cycles")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in self.manycore_vcache_stat.keys():
+            if(self.manycore_vcache_stat[tag]["global_ctr"]):
+                self.__print_manycore_vcache_tag_stats_stall(stat_file, tag)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
 
 
 
@@ -956,7 +979,7 @@ class VanillaStatsParser:
     # Prints manycore victim cache miss stats for all tags 
     # The sum of all vcache bank stats are shown in this file
     def __print_manycore_vcache_stats_miss(self, stat_file):
-        stat_file.write("Per-Tag Vcache Miss Stats\n")
+        stat_file.write("Vcache Per-Tag Miss Stats\n")
         self.__print_stat(stat_file, "miss_header", "Miss Type", "Misses", "Accesses", "Hit Rate (%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in self.manycore_vcache_stat.keys():
@@ -964,8 +987,6 @@ class VanillaStatsParser:
                 self.__print_manycore_vcache_tag_stats_miss(stat_file, tag)
         self.__print_stat(stat_file, "end_lbreak")
         return   
-
-
 
 
 
@@ -1024,8 +1045,6 @@ class VanillaStatsParser:
 
 
 
-
-
     # print miss stats for each vcache in a separate file
     # vcache is the victim cache bank number
     def __print_per_vcache_tag_stats_miss(self, vcache, stat_file, tag):
@@ -1059,14 +1078,6 @@ class VanillaStatsParser:
 
 
 
-
-
-
-
-
-
-
-
     # prints all four types of stats, timing, instruction,
     # miss and stall for the entire manycore 
     def print_manycore_stats_all(self):
@@ -1079,10 +1090,11 @@ class VanillaStatsParser:
         self.__print_manycore_stats_miss(manycore_stats_file)
         self.__print_manycore_stats_stall(manycore_stats_file)
         self.__print_manycore_stats_bubble(manycore_stats_file)
-        self.__print_manycore_vcache_stats_miss(manycore_stats_file)
-        self.__print_manycore_vcache_stats_instr(manycore_stats_file)
         self.__print_manycore_stats_instr(manycore_stats_file)
         self.__print_manycore_stats_tile_timing(manycore_stats_file, self.active_tiles)
+        self.__print_manycore_vcache_stats_miss(manycore_stats_file)
+        self.__print_manycore_vcache_stats_stall(manycore_stats_file)
+        self.__print_manycore_vcache_stats_instr(manycore_stats_file)
         manycore_stats_file.close()
         return
 
@@ -1137,9 +1149,6 @@ class VanillaStatsParser:
             #self.__print_per_tile_stats_bubble(tile, stat_file)
             self.__print_per_vcache_stats_instr(vcache, stat_file)
             stat_file.close()
-
-
-
 
 
 
