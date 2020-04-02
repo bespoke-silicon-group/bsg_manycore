@@ -174,13 +174,14 @@ class VanillaStatsParser:
 
 
     # default constructor
-    def __init__(self, per_tile_stat, per_tile_group_stat, vanilla_input_file, vcache_input_file):
+    def __init__(self, per_tile_stat, per_tile_group_stat, per_vcache_stat, vanilla_input_file, vcache_input_file):
 
         #self.manycore_dim_y = manycore_dim_y
         #self.manycore_dim_x = manycore_dim_x
         #self.manycore_dim = manycore_dim_y * manycore_dim_x
         self.per_tile_stat = per_tile_stat
         self.per_tile_group_stat = per_tile_group_stat
+        self.per_vcache_stat = per_vcache_stat
 
         self.traces = []
         self.vcache_traces = []
@@ -968,6 +969,48 @@ class VanillaStatsParser:
 
 
 
+
+    # print miss stats for each vcache in a separate file
+    # vcache is the victim cache bank number
+    def __print_per_vcache_tag_stats_miss(self, vcache, stat_file, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        for miss in self.vcache_misses:
+            # Find total number of operations for that miss
+            operation = miss.replace("miss_", "instr_")
+            operation_cnt = self.vcache_stat[tag][vcache][operation]
+            miss_cnt = self.vcache_stat[tag][vcache][miss]
+            hit_rate = 1 if operation_cnt == 0 else (1 - miss_cnt/operation_cnt)
+         
+            self.__print_stat(stat_file, "miss_data", miss, miss_cnt, operation_cnt, hit_rate )
+
+        return
+
+
+    # print miss for each vcache in a separate file for all tags 
+    def __print_per_vcache_stats_miss(self, vcache, stat_file):
+        stat_file.write("Per-Vcache Miss Stats\n")
+        self.__print_stat(stat_file, "miss_header", "Miss Type", "miss", "total", "hit rate")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in self.vcache_stat.keys():
+            if(self.vcache_stat[tag][vcache]["global_ctr"]):
+                self.__print_per_vcache_tag_stats_miss(vcache, stat_file, tag)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     # prints all four types of stats, timing, instruction,
     # miss and stall for the entire manycore 
     def print_manycore_stats_all(self):
@@ -1022,6 +1065,24 @@ class VanillaStatsParser:
             self.__print_per_tile_stats_bubble(tile, stat_file)
             self.__print_per_tile_stats_instr(tile, stat_file)
             stat_file.close()
+
+
+
+    # prints all four types of stats, timing, instruction,
+    # miss and stall for each vcache in a separate file  
+    def print_per_vcache_stats_all(self):
+        stats_path = os.getcwd() + "/stats/vcache/"
+        if not os.path.exists(stats_path):
+            os.mkdir(stats_path)
+        for vcache in self.active_vcaches:
+            stat_file = open( (stats_path + "vcache_bank_" + str(vcache) + "_stats.log"), "w")
+            self.__print_per_vcache_stats_miss(vcache, stat_file)
+            #self.__print_per_tile_stats_stall(tile, stat_file)
+            #self.__print_per_tile_stats_bubble(tile, stat_file)
+            #self.__print_per_tile_stats_instr(tile, stat_file)
+            stat_file.close()
+
+
 
 
 
@@ -1419,6 +1480,8 @@ def parse_args():
                         help="Also generate separate stats files for each tile.")
     parser.add_argument("--tile_group", default=False, action='store_true',
                         help="Also generate separate stats files for each tile group.")
+    parser.add_argument("--per_vcache", default=False, action='store_true',
+                        help="Also generate separate stats files for each victim cache bank.")
     args = parser.parse_args()
     return args
 
@@ -1428,12 +1491,15 @@ if __name__ == "__main__":
     np.seterr(divide='ignore', invalid='ignore')
     args = parse_args()
   
-    st = VanillaStatsParser(args.tile, args.tile_group, args.vanilla, args.vcache)
+    st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.vanilla, args.vcache)
     st.print_manycore_stats_all()
     if(st.per_tile_stat):
         st.print_per_tile_stats_all()
     if(st.per_tile_group_stat):
         st.print_per_tile_group_stats_all()
+    if(st.per_vcache_stat):
+        st.print_per_vcache_stats_all()
+
 
   
 
