@@ -208,7 +208,7 @@ class VanillaStatsParser:
         # Parse input file's header to generate a list of all types of operations
         self.stats, self.instrs, self.misses, self.stalls, self.bubbles = self.parse_header(vanilla_input_file)
 
-        # Parse vcahe input file's header to generate a list of all types of operations
+        # Parse vcache input file's header to generate a list of all types of operations
         self.vcache_stats, self.vcache_instrs, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
 
         # bubble_fp_op is a bubble in the Integer pipeline "caused" by
@@ -220,6 +220,7 @@ class VanillaStatsParser:
         for nb in self.notbubbles:
             self.bubbles.remove(nb)
 
+        # Create a list of all types of opertaions for iteration
         self.all_ops = self.stats + self.instrs + self.misses + self.stalls + self.bubbles
         self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
 
@@ -236,12 +237,12 @@ class VanillaStatsParser:
                 self.traces.append(trace)
 
 
-        # Parse vcahe stats file line by line, and append the trace line to traces list. 
+        # Parse vcache stats file line by line, and append the trace line to traces list. 
         with open(vcache_input_file) as f:
             csv_reader = csv.DictReader (f, delimiter=",")
             for row in csv_reader:
                 # Vcache bank name is a string that contains the vcache bank number 
-                # The vcache bank number is extracted separate from other stats 
+                # The vcache bank number is extracted separately from other stats 
                 # and manually added 
                 trace = {op:int(row[op]) for op in self.vcache_all_ops if op != 'vcache'}
                 vcache_name = row['vcache']
@@ -258,18 +259,18 @@ class VanillaStatsParser:
 
 
         # Save the active tiles in a list
-        self.active = list(active_tiles)
-        self.active.sort()
+        self.active_tiles = list(active_tiles)
+        self.active_tiles.sort()
 
-        self.vcaches = list(active_vcaches)
-        self.vcaches.sort()
+        self.active_vcaches = list(active_vcaches)
+        self.active_vcaches.sort()
 
 
         # generate timing stats for each tile and tile group 
-        self.num_tile_groups, self.tile_group_stat, self.tile_stat, self.manycore_cycle_parallel_cnt = self.__generate_tile_stats(self.traces, self.active)
+        self.num_tile_groups, self.tile_group_stat, self.tile_stat, self.manycore_cycle_parallel_cnt = self.__generate_tile_stats(self.traces, self.active_tiles)
 
         # generate timing stats for each vcache bank 
-        self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.vcaches)
+        self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
 
 
         # Calculate total aggregate stats for manycore
@@ -901,6 +902,48 @@ class VanillaStatsParser:
 
 
 
+
+
+
+    # print miss vcache stats for the entire manycore
+    def __print_manycore_vcache_tag_stats_miss(self, stat_file, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        for miss in self.vcache_misses:
+            operation = miss.replace("miss_", "")
+            operation_cnt = self.vcache_stat[tag][operation]
+            miss_cnt = self.vcache_stat[tag][miss]
+            hit_rate = 100.0 if operation_cnt == 0 else 100.0*(1 - miss_cnt/operation_cnt)
+         
+            self.__print_stat(stat_file, "miss_data", miss, miss_cnt, operation_cnt, hit_rate )
+        return   
+
+
+
+
+
+    # Prints manycore victim cache miss stats for all tags 
+    # The sum of all vcache bank stats are shown in this file
+    def __print_manycore_vcache_stats_miss(self, stat_file):
+        stat_file.write("Per-Tag Vcache Miss Stats\n")
+        self.__print_stat(stat_file, "miss_header", "Miss Type", "Misses", "Accesses", "Hit Rate (%)")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in self.manycore_stat.keys():
+            #if(self.vcache_stat[tag]["global_ctr"]):
+            self.__print_manycore_vcache_tag_stats_miss(stat_file, tag)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+
+
+
+
+
+
+
     # prints all four types of stats, timing, instruction,
     # miss and stall for the entire manycore 
     def print_manycore_stats_all(self):
@@ -914,7 +957,9 @@ class VanillaStatsParser:
         self.__print_manycore_stats_stall(manycore_stats_file)
         self.__print_manycore_stats_bubble(manycore_stats_file)
         self.__print_manycore_stats_instr(manycore_stats_file)
-        self.__print_manycore_stats_tile_timing(manycore_stats_file, self.active)
+        self.__print_manycore_stats_tile_timing(manycore_stats_file, self.active_tiles)
+        self.__print_manycore_vcache_stats_miss(manycore_stats_file)
+        #self.__print_manycore_vcache_stats_instr(manycore_stats_file)
         manycore_stats_file.close()
         return
 
@@ -944,7 +989,7 @@ class VanillaStatsParser:
         stats_path = os.getcwd() + "/stats/tile/"
         if not os.path.exists(stats_path):
             os.mkdir(stats_path)
-        for tile in self.active:
+        for tile in self.active_tiles:
             stat_file = open( (stats_path + "tile_" + str(tile[0]) + "_" + str(tile[1]) + "_stats.log"), "w")
             self.__print_per_tile_stats_tag(tile, stat_file)
             self.__print_per_tile_stats_timing(tile, stat_file)
@@ -1188,21 +1233,29 @@ class VanillaStatsParser:
                 # If there already is a start stat for this vcache and this tag
                 if (vcache_stat_start[cst.tag][cur_vcache]):
                     # And if the new start stat is an earlier version, replace with the existing one
-                    if (vcahe_stat_start[cst.tag][cur_vache]['global_ctr'] > trace['global_ctr']):
+                    if (vcache_stat_start[cst.tag][cur_vcache]['global_ctr'] > trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
+                else:
+                    for op in self.vcache_all_ops:
+                        vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
+
 
 
             elif (cst.isEnd):
                 # If there already is a end stat for this vcache and this tag
                 if (vcache_stat_end[cst.tag][cur_vcache]):
                     # And if the new end stat is a later version, replace with the existing one
-                    if (vcahe_stat_end[cst.tag][cur_vache]['global_ctr'] < trace['global_ctr']):
+                    if (vcache_stat_end[cst.tag][cur_vcache]['global_ctr'] < trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_end[cst.tag][cur_vcache][op] = trace[op]
+                else:
+                    for op in self.vcache_all_ops:
+                        vcache_stat_end[cst.tag][cur_vcache][op] = trace[op]
 
 
                 vcache_stat[cst.tag][cur_vcache] += vcache_stat_end[cst.tag][cur_vcache] - vcache_stat_start[cst.tag][cur_vcache]
+
 
 
             # And depending on kernel start/end
@@ -1210,16 +1263,24 @@ class VanillaStatsParser:
                 # If there already is a start stat for this vcache and the kernel tag
                 if (vcache_stat_start["kernel"][cur_vcache]):
                      # And if the new start stat is an earlier version, replace with the existing one
-                    if (vcahe_stat_start["kernel"][cur_vache]['global_ctr'] > trace['global_ctr']):
+                    if (vcache_stat_start["kernel"][cur_vcache]['global_ctr'] > trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
+                else:
+                    for op in self.vcache_all_ops:
+                        vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
+
 
 
             elif (cst.isKernelEnd):
                 # If there already is a end stat for this vcache and the kernel tag
                 if (vcache_stat_end["kernel"][cur_vcache]):
                     # And if the new end stat is a later version, replace with the existing one
-                    if (vcahe_stat_end["kernel"][cur_vache]['global_ctr'] < trace['global_ctr']):
+                    if (vcache_stat_end["kernel"][cur_vcache]['global_ctr'] < trace['global_ctr']):
+                        for op in self.vcache_all_ops:
+                            vcache_stat_end["kernel"][cur_vcache][op] = trace[op]
+                else:
+                    for op in self.vcache_all_ops:
                         vcache_stat_end["kernel"][cur_vcache][op] = trace[op]
 
 
@@ -1264,7 +1325,7 @@ class VanillaStatsParser:
         tags = list(range(self.max_tags)) + ["kernel"]
         manycore_stat = {tag: Counter() for tag in tags}
         for tag in tags:
-            for tile in self.active:
+            for tile in self.active_tiles:
                 for op in self.all_ops:
                     manycore_stat[tag][op] += tile_stat[tag][tile][op]
             # The parallel cycle count (not aggregate), i.e. the longest 
