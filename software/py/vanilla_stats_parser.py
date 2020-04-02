@@ -908,6 +908,35 @@ class VanillaStatsParser:
 
 
 
+
+
+    # print victim cache instruction stats for the entire manycore
+    def __print_manycore_vcache_tag_stats_instr(self, stat_file, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+   
+        # Print instruction stats for manycore
+        for instr in self.vcache_instrs:
+            self.__print_stat(stat_file, "instr_data", instr,
+                                         self.manycore_vcache_stat[tag][instr]
+                                         ,(100 * self.manycore_vcache_stat[tag][instr] / self.manycore_vcache_stat[tag]["instr_total"]))
+        return
+
+
+    # Prints victim cahe manycore instruction stats for all tags  
+    def __print_manycore_vcache_stats_instr(self, stat_file):
+        stat_file.write("Per-Tag Vcache Instruction Stats\n")
+        self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in self.manycore_vcache_stat.keys():
+            if(self.manycore_vcache_stat[tag]["global_ctr"]):
+                self.__print_manycore_vcache_tag_stats_instr(stat_file, tag)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+
     # print miss vcache stats for the entire manycore
     def __print_manycore_vcache_tag_stats_miss(self, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
@@ -939,9 +968,6 @@ class VanillaStatsParser:
 
 
 
-
-
-
     # prints all four types of stats, timing, instruction,
     # miss and stall for the entire manycore 
     def print_manycore_stats_all(self):
@@ -955,7 +981,7 @@ class VanillaStatsParser:
         self.__print_manycore_stats_stall(manycore_stats_file)
         self.__print_manycore_stats_bubble(manycore_stats_file)
         self.__print_manycore_vcache_stats_miss(manycore_stats_file)
-        #self.__print_manycore_vcache_stats_instr(manycore_stats_file)
+        self.__print_manycore_vcache_stats_instr(manycore_stats_file)
         self.__print_manycore_stats_instr(manycore_stats_file)
         self.__print_manycore_stats_tile_timing(manycore_stats_file, self.active_tiles)
         manycore_stats_file.close()
