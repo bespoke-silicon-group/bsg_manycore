@@ -627,9 +627,43 @@ class VanillaStatsParser:
 
 
 
+    # print instruction stat for a single item (tile or vcache bank) in its given stat file
+    # item: entity id (tile x,y cooryydinates, or vcache bank number, etc.)
+    # stat: data structure containing manycore stats
+    # instrs: list of all instruction operations
+    def __print_tag_stats_instr(self, stat_file, item, tag, stat, instrs):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        # Print instruction stats for manycore
+        for instr in self.instrs:
+            self.__print_stat(stat_file, "instr_data", instr,
+                                         stat[tag][item][instr]
+                                         ,(100 * np.float64(stat[tag][item][instr]) / stat[tag][item]["instr_total"]))
+        return
+
+
+    # print instruction stat for a single item (tile or vcache bank) in its given stat file
+    # header - name of stats in the output stats file 
+    # item: entity id (tile x,y coordinates, or vcache bank number, etc.)
+    # stat: data structure containing manycore stats
+    # instrs: list of all instruction operations
+    def __print_stats_instr(self, stat_file, header, item, stat, instrs):
+        stat_file.write("Instruction Stats\n")
+        self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in stat.keys():
+            if(stat[tag][item]["global_ctr"]):
+                self.__print_tag_stats_instr(stat_file, item, tag, stat, instrs)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+    # DEPRECATED
     # print instruction stats for each tile in a separate file 
     # y,x are tile coordinates 
-    def __print_per_tile_tag_stats_instr(self, tile, stat_file, tag):
+    def __print_per_tile_tag_stats_instr_dep(self, tile, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
 
         # Print instruction stats for manycore
@@ -640,8 +674,9 @@ class VanillaStatsParser:
         return
 
 
+    # DEPRECATED
     # print instr stats for each tile in a separate file for all tags 
-    def __print_per_tile_stats_instr(self, tile, stat_file):
+    def __print_per_tile_stats_instr_dep(self, tile, stat_file):
         stat_file.write("Instruction Stats\n")
         self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
         self.__print_stat(stat_file, "start_lbreak")
@@ -750,9 +785,44 @@ class VanillaStatsParser:
 
 
 
+    # print stall stat for a single item (tile or vcache bank) in its given stat file
+    # item: entity id (tile x,y cooryydinates, or vcache bank number, etc.)
+    # stat: data structure containing manycore stats
+    # stalls: list of all stall operations
+    def __print_tag_stats_stall(self, stat_file, item, tag, stat, stalls):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        # Print stall stats for manycore
+        for stall in stalls:
+            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
+            self.__print_stat(stat_file, stall_format, stall,
+                                         stat[tag][item][stall],
+                                         (100 * np.float64(stat[tag][item][stall]) / stat[tag][item]["stall_total"])
+                                         ,(100 * np.float64(stat[tag][item][stall]) / stat[tag][item]["global_ctr"]))
+        return
+
+
+    # print stall stat for a single item (tile or vcache bank) in its given stat file
+    # header - name of stats in the output stats file 
+    # item: entity id (tile x,y coordinates, or vcache bank number, etc.)
+    # stat: data structure containing manycore stats
+    # stalls: list of all stall operations
+    def __print_stats_stall(self, stat_file, header, item, stat, stalls):
+        stat_file.write(header + "\n")
+        self.__print_stat(stat_file, "stall_header", "Stall Type", "Cycles", "% of Stall Cycles", "% of Total Cycles")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in stat.keys():
+            if(stat[tag][item]["global_ctr"]):
+                self.__print_tag_stats_stall(stat_file, item, tag, stat, stalls)
+        self.__print_stat(stat_file, "start_lbreak")
+        return   
+
+
+
+    # DEPRECATED
     # print stall stats for each tile in a separate file
     # y,x are tile coordinates 
-    def __print_per_tile_tag_stats_stall(self, tile, stat_file, tag):
+    def __print_per_tile_tag_stats_stall_dep(self, tile, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
 
         # Print stall stats for manycore
@@ -765,8 +835,9 @@ class VanillaStatsParser:
         return
 
 
+    # DEPRECATED
     # print stall stats for each tile in a separate file for all tags 
-    def __print_per_tile_stats_stall(self, tile, stat_file):
+    def __print_per_tile_stats_stall_dep(self, tile, stat_file):
         stat_file.write("Per-Tile Stall Stats\n")
         self.__print_stat(stat_file, "stall_header", "Stall Type", "Cycles", "% of Stall Cycles", "% of Total Cycles")
         self.__print_stat(stat_file, "start_lbreak")
@@ -869,9 +940,45 @@ class VanillaStatsParser:
 
 
 
+    # print stall stat for a single item (tile or vcache bank) in its given stat file
+    # item: entity id (tile x,y cooryydinates, or vcache bank number, etc.)
+    # stat: data structure containing manycore stats
+    # bubbles: list of all bubble operations
+    def __print_tag_stats_bubble(self, stat_file, item, tag, stat, bubbles):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        # Print bubble stats for manycore
+        for bubble in bubbles:
+            self.__print_stat(stat_file, "bubble_data", bubble,
+                                         stat[tag][item][bubble],
+                                         (100 * np.float64(stat[tag][item][bubble]) / stat[tag][item]["bubble_total"])
+                                         ,(100 * np.float64(stat[tag][item][bubble]) / stat[tag][item]["global_ctr"]))
+        return
+
+
+    # print bubble stat for a single item (tile or vcache bank) in its given stat file
+    # header - name of stats in the output stats file 
+    # item: entity id (tile x,y coordinates, or vcache bank number, etc.)
+    # stat: data structure containing manycore stats
+    # bubbles: list of all bubble operations
+    def __print_stats_bubble(self, stat_file, header, item, stat, bubbles):
+        stat_file.write(header+ "\n")
+        self.__print_stat(stat_file, "bubble_header", "Bubble Type", "Cycles", "% of Bubbles", "% of Total Cycles")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in stat.keys():
+            if(stat[tag][item]["global_ctr"]):
+                self.__print_tag_stats_bubble(stat_file, item, tag, stat, bubbles)
+        self.__print_stat(stat_file, "start_lbreak")
+        return   
+
+
+
+
+
+    # DEPRECATED
     # print bubble stats for each tile in a separate file
     # y,x are tile coordinates 
-    def __print_per_tile_tag_stats_bubble(self, tile, stat_file, tag):
+    def __print_per_tile_tag_stats_bubble_dep(self, tile, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
 
         # Print bubble stats for manycore
@@ -883,8 +990,9 @@ class VanillaStatsParser:
         return
 
 
+    # DEPRECATED
     # print bubble stats for each tile in a separate file for all tags 
-    def __print_per_tile_stats_bubble(self, tile, stat_file):
+    def __print_per_tile_stats_bubble_dep(self, tile, stat_file):
         stat_file.write("Per-Tile Bubble Stats\n")
         self.__print_stat(stat_file, "bubble_header", "Bubble Type", "Cycles", "% of Bubbles", "% of Total Cycles")
         self.__print_stat(stat_file, "start_lbreak")
@@ -1013,9 +1121,54 @@ class VanillaStatsParser:
 
 
 
+    # print miss stat for a single item (tile or vcache bank) in its given stat file
+    # item: entity id (tile x,y cooryydinates, or vcache bank number, etc.)
+    # stat: data structure containing manycore stats
+    # misses: list of all miss operations
+    def __print_tag_stats_miss(self, stat_file, item, tag, stat, misses):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        for miss in misses:
+            # Find total number of operations for that miss
+            # If operation is icache, the total is total # of instruction
+            # otherwise, search for the specific instruction
+            if (miss == "miss_icache"):
+                operation = "icache"
+                operation_cnt = stat[tag][item]["instr_total"]
+            else:
+                operation = miss.replace("miss_", "instr_")
+                operation_cnt = stat[tag][item][operation]
+            miss_cnt = stat[tag][item][miss]
+            hit_rate = 1 if operation_cnt == 0 else (1 - miss_cnt/operation_cnt)
+         
+            self.__print_stat(stat_file, "miss_data", miss, miss_cnt, operation_cnt, hit_rate )
+
+        return
+
+
+    # print miss stat for a single item (tile or vcache bank) in its given stat file
+    # header - name of stats in the output stats file 
+    # item: entity id (tile x,y coordinates, or vcache bank number, etc.)
+    # stat: data structure containing manycore stats
+    # misses: list of all miss operations
+    def __print_stats_miss(self, stat_file, header, item, stat, misses):
+        stat_file.write(header + "\n")
+        self.__print_stat(stat_file, "miss_header", "Miss Type", "miss", "total", "hit rate")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in stat.keys():
+            if(stat[tag][item]["global_ctr"]):
+                self.__print_tag_stats_miss(stat_file, item, tag, stat, misses)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+
+    # DEPRECATED - TODO: REMOVE
     # print miss stats for each tile in a separate file
     # y,x are tile coordinates 
-    def __print_per_tile_tag_stats_miss(self, tile, stat_file, tag):
+    def __print_per_tile_tag_stats_miss_dep(self, tile, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
 
         for miss in self.misses:
@@ -1036,8 +1189,9 @@ class VanillaStatsParser:
         return
 
 
+    # DEPRECATED - TODO: REMOVE
     # print stall miss for each tile in a separate file for all tags 
-    def __print_per_tile_stats_miss(self, tile, stat_file):
+    def __print_per_tile_stats_miss_dep(self, tile, stat_file):
         stat_file.write("Per-Tile Miss Stats\n")
         self.__print_stat(stat_file, "miss_header", "Miss Type", "miss", "total", "hit rate")
         self.__print_stat(stat_file, "start_lbreak")
@@ -1274,10 +1428,14 @@ class VanillaStatsParser:
             stat_file = open( (stats_path + "tile_" + str(tile[0]) + "_" + str(tile[1]) + "_stats.log"), "w")
             self.__print_per_tile_stats_tag(tile, stat_file)
             self.__print_per_tile_stats_timing(tile, stat_file)
-            self.__print_per_tile_stats_miss(tile, stat_file)
-            self.__print_per_tile_stats_stall(tile, stat_file)
-            self.__print_per_tile_stats_bubble(tile, stat_file)
-            self.__print_per_tile_stats_instr(tile, stat_file)
+            #self.__print_per_tile_stats_miss(tile, stat_file)
+            self.__print_stats_miss(stat_file, "Per-Tile Miss Stats", tile, self.tile_stat, self.misses)
+            #self.__print_per_tile_stats_stall(tile, stat_file)
+            self.__print_stats_stall(stat_file, "Per-Tile Stall Stats", tile, self.tile_stat, self.stalls)
+            #self.__print_per_tile_stats_bubble(tile, stat_file)
+            self.__print_stats_bubble(stat_file, "Per-Tile Bubble Stats", tile, self.tile_stat, self.bubbles)
+            #self.__print_per_tile_stats_instr(tile, stat_file)
+            self.__print_stats_instr(stat_file, "Per-Tile Instr Stats", tile, self.tile_stat, self.instrs)
             stat_file.close()
 
 
@@ -1292,7 +1450,6 @@ class VanillaStatsParser:
             stat_file = open( (stats_path + "vcache_bank_" + str(vcache) + "_stats.log"), "w")
             self.__print_per_vcache_stats_miss(vcache, stat_file)
             self.__print_per_vcache_stats_stall(vcache, stat_file)
-            #self.__print_per_tile_stats_bubble(tile, stat_file)
             self.__print_per_vcache_stats_instr(vcache, stat_file)
             stat_file.close()
 
