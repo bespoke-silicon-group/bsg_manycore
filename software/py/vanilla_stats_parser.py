@@ -546,7 +546,35 @@ class VanillaStatsParser:
 
 
     # print instruction stats for the entire manycore
-    def __print_manycore_tag_stats_instr(self, stat_file, tag):
+    def __print_manycore_tag_stats_instr(self, stat_file, stat, instrs, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+   
+        # Print instruction stats for manycore
+        for instr in instrs:
+            self.__print_stat(stat_file, "instr_data", instr,
+                                         stat[tag][instr]
+                                         ,(100 * stat[tag][instr] / stat[tag]["instr_total"]))
+        return
+
+
+    # Prints manycore instruction stats per tile group for all tags 
+    def __print_manycore_stats_instr(self, stat_file, header, stat, instrs):
+        stat_file.write(header + "\n")
+        self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in stat.keys():
+            if(stat[tag]["global_ctr"]):
+                self.__print_manycore_tag_stats_instr(stat_file, stat, instrs, tag)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+
+    # DEPRECATED - TODO: REMOVE
+    # print instruction stats for the entire manycore
+    def __print_manycore_tag_stats_instr_dep(self, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
    
         # Print instruction stats for manycore
@@ -557,8 +585,9 @@ class VanillaStatsParser:
         return
 
 
+    # DEPRECATED - TODO: REMOVE
     # Prints manycore instruction stats per tile group for all tags 
-    def __print_manycore_stats_instr(self, stat_file):
+    def __print_manycore_stats_instr_dep(self, stat_file):
         stat_file.write("Per-Tag Instruction Stats\n")
         self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
         self.__print_stat(stat_file, "start_lbreak")
@@ -751,7 +780,40 @@ class VanillaStatsParser:
 
 
     # print bubble stats for the entire manycore
-    def __print_manycore_tag_stats_bubble(self, stat_file, tag):
+    # stat: data structure containing manycore stats
+    # bubbles: list of all bubble operations
+    def __print_manycore_tag_stats_bubble(self, stat_file, stat, bubbles, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        # Print bubble stats for manycore
+        for bubble in bubbles:
+            self.__print_stat(stat_file, "bubble_data", bubble,
+                                         stat[tag][bubble],
+                                         (100 * np.float64(stat[tag][bubble]) / stat[tag]["bubble_total"])
+                                         ,(100 * stat[tag][bubble] / stat[tag]["global_ctr"]))
+        return
+
+
+    # Prints manycore bubble stats per tile group for all tags 
+    # header - name of stats in the output stats file 
+    # stat: data structure containing manycore stats
+    # bubbles: list of all bubble operations
+    def __print_manycore_stats_bubble(self, stat_file, header, stat, bubbles):
+        stat_file.write(header + "\n")
+        self.__print_stat(stat_file, "bubble_header", "Bubble Type", "Cycles", "% of Bubbles", "% of Total Cycles")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in stat.keys():
+            if(stat[tag]["global_ctr"]):
+                self.__print_manycore_tag_stats_bubble(stat_file, stat, bubbles, tag)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+    # DEPRECATED - TODO: REMOVE
+    # print bubble stats for the entire manycore
+    def __print_manycore_tag_stats_bubble_dep(self, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
 
         # Print bubble stats for manycore
@@ -763,8 +825,9 @@ class VanillaStatsParser:
         return
 
 
+    # DEPRECATED - TODO: REMOVE
     # Prints manycore bubble stats per tile group for all tags 
-    def __print_manycore_stats_bubble(self, stat_file):
+    def __print_manycore_stats_bubble_dep(self, stat_file):
         stat_file.write("Per-Tag Bubble Stats\n")
         self.__print_stat(stat_file, "bubble_header", "Bubble Type", "Cycles", "% of Bubbles", "% of Total Cycles")
         self.__print_stat(stat_file, "start_lbreak")
@@ -1172,12 +1235,12 @@ class VanillaStatsParser:
         self.__print_manycore_stats_tile_group_timing(manycore_stats_file)
         self.__print_manycore_stats_miss(manycore_stats_file, "Per-Tag Miss Stats", self.manycore_stat, self.misses)
         self.__print_manycore_stats_stall(manycore_stats_file, "Per-Tag Stall Stats", self.manycore_stat, self.stalls)
-        self.__print_manycore_stats_bubble(manycore_stats_file)
-        self.__print_manycore_stats_instr(manycore_stats_file)
+        self.__print_manycore_stats_bubble(manycore_stats_file, "Per-Tag Bubble Stats", self.manycore_stat, self.bubbles)
+        self.__print_manycore_stats_instr(manycore_stats_file, "Per-Tag Instruction Stats", self.manycore_stat, self.instrs)
         self.__print_manycore_stats_tile_timing(manycore_stats_file, self.active_tiles)
         self.__print_manycore_stats_miss(manycore_stats_file, "VCache Per-Tag Miss Stats", self.manycore_vcache_stat, self.vcache_misses)
         self.__print_manycore_stats_stall(manycore_stats_file, "VCache Per-Tag Stall Stats", self.manycore_vcache_stat, self.vcache_stalls)
-        self.__print_manycore_vcache_stats_instr(manycore_stats_file)
+        self.__print_manycore_stats_instr(manycore_stats_file, "VCache Per-Tag Instruction Stats", self.manycore_vcache_stat, self.vcache_instrs)
         manycore_stats_file.close()
         return
 
