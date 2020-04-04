@@ -798,8 +798,9 @@ class VanillaStatsParser:
 
 
 
+    # DEPRECATED - TODO: REMOVE
     # print miss stats for the entire manycore
-    def __print_manycore_tag_stats_miss(self, stat_file, tag):
+    def __print_manycore_tag_stats_miss_dep(self, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
 
         for miss in self.misses:
@@ -820,7 +821,7 @@ class VanillaStatsParser:
 
 
     # Prints manycore miss stats per tile group for all tags 
-    def __print_manycore_stats_miss(self, stat_file):
+    def __print_manycore_stats_miss_dep(self, stat_file):
         stat_file.write("Per-Tag Miss Stats\n")
         self.__print_stat(stat_file, "miss_header", "Miss Type", "Misses", "Accesses", "Hit Rate (%)")
         self.__print_stat(stat_file, "start_lbreak")
@@ -829,6 +830,46 @@ class VanillaStatsParser:
                 self.__print_manycore_tag_stats_miss(stat_file, tag)
         self.__print_stat(stat_file, "end_lbreak")
         return   
+
+
+
+
+
+    # print miss stats for the entire manycore
+    # stat: data structure containing manycore stats
+    # misses: list of all miss operations
+    def __print_manycore_tag_stats_miss(self, stat_file, stat, misses, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        for miss in misses:
+            # Find total number of operations for that miss If
+            # operation is icache, the total is total # of instruction
+            # otherwise, search for the specific instruction
+            if (miss == "miss_icache"):
+                operation = "icache"
+                operation_cnt = stat[tag]["instr_total"]
+            else:
+                operation = miss.replace("miss_", "instr_")
+                operation_cnt = stat[tag][operation]
+            miss_cnt = stat[tag][miss]
+            hit_rate = 100.0 if operation_cnt == 0 else 100.0*(1 - miss_cnt/operation_cnt)
+         
+            self.__print_stat(stat_file, "miss_data", miss, miss_cnt, operation_cnt, hit_rate )
+        return
+
+
+    # Prints manycore miss stats per tile group for all tags 
+    def __print_manycore_stats_miss(self, stat_file, header, stat, misses):
+        stat_file.write(header + "\n")
+        self.__print_stat(stat_file, "miss_header", "Miss Type", "Misses", "Accesses", "Hit Rate (%)")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in stat.keys():
+            if(stat[tag]["global_ctr"]):
+                self.__print_manycore_tag_stats_miss(stat_file, stat, misses, tag)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
 
 
 
@@ -961,6 +1002,7 @@ class VanillaStatsParser:
 
 
 
+    # DEPRECATED - TODO: REMOVE
     # print miss vcache stats for the entire manycore
     def __print_manycore_vcache_tag_stats_miss(self, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
@@ -976,6 +1018,7 @@ class VanillaStatsParser:
 
 
 
+    # DEPRECATED - TODO: REMOVE
     # Prints manycore victim cache miss stats for all tags 
     # The sum of all vcache bank stats are shown in this file
     def __print_manycore_vcache_stats_miss(self, stat_file):
@@ -1087,12 +1130,12 @@ class VanillaStatsParser:
         manycore_stats_file = open( (stats_path + "manycore_stats.log"), "w")
         self.__print_manycore_stats_tag(manycore_stats_file)
         self.__print_manycore_stats_tile_group_timing(manycore_stats_file)
-        self.__print_manycore_stats_miss(manycore_stats_file)
+        self.__print_manycore_stats_miss(manycore_stats_file, "Per-Tag Miss Stats", self.manycore_stat, self.misses)
         self.__print_manycore_stats_stall(manycore_stats_file)
         self.__print_manycore_stats_bubble(manycore_stats_file)
         self.__print_manycore_stats_instr(manycore_stats_file)
         self.__print_manycore_stats_tile_timing(manycore_stats_file, self.active_tiles)
-        self.__print_manycore_vcache_stats_miss(manycore_stats_file)
+        self.__print_manycore_stats_miss(manycore_stats_file, "VCache Per-Tag Miss Stats", self.manycore_vcache_stat, self.vcache_misses)
         self.__print_manycore_vcache_stats_stall(manycore_stats_file)
         self.__print_manycore_vcache_stats_instr(manycore_stats_file)
         manycore_stats_file.close()
