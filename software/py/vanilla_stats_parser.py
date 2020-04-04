@@ -635,7 +635,7 @@ class VanillaStatsParser:
         self.__print_stat(stat_file, "tag_separator", tag)
 
         # Print instruction stats for manycore
-        for instr in self.instrs:
+        for instr in instrs:
             self.__print_stat(stat_file, "instr_data", instr,
                                          stat[tag][item][instr]
                                          ,(100 * np.float64(stat[tag][item][instr]) / stat[tag][item]["instr_total"]))
@@ -1428,13 +1428,9 @@ class VanillaStatsParser:
             stat_file = open( (stats_path + "tile_" + str(tile[0]) + "_" + str(tile[1]) + "_stats.log"), "w")
             self.__print_per_tile_stats_tag(tile, stat_file)
             self.__print_per_tile_stats_timing(tile, stat_file)
-            #self.__print_per_tile_stats_miss(tile, stat_file)
             self.__print_stats_miss(stat_file, "Per-Tile Miss Stats", tile, self.tile_stat, self.misses)
-            #self.__print_per_tile_stats_stall(tile, stat_file)
             self.__print_stats_stall(stat_file, "Per-Tile Stall Stats", tile, self.tile_stat, self.stalls)
-            #self.__print_per_tile_stats_bubble(tile, stat_file)
             self.__print_stats_bubble(stat_file, "Per-Tile Bubble Stats", tile, self.tile_stat, self.bubbles)
-            #self.__print_per_tile_stats_instr(tile, stat_file)
             self.__print_stats_instr(stat_file, "Per-Tile Instr Stats", tile, self.tile_stat, self.instrs)
             stat_file.close()
 
@@ -1448,9 +1444,9 @@ class VanillaStatsParser:
             os.mkdir(stats_path)
         for vcache in self.active_vcaches:
             stat_file = open( (stats_path + "vcache_bank_" + str(vcache) + "_stats.log"), "w")
-            self.__print_per_vcache_stats_miss(vcache, stat_file)
-            self.__print_per_vcache_stats_stall(vcache, stat_file)
-            self.__print_per_vcache_stats_instr(vcache, stat_file)
+            self.__print_stats_miss(stat_file, "Per-VCache Miss Stats", vcache, self.vcache_stat, self.vcache_misses)
+            self.__print_stats_stall(stat_file, "Per-VCache Stall Stats", vcache, self.vcache_stat, self.vcache_stalls)
+            self.__print_stats_instr(stat_file, "Per-VCache Instr Stats", vcache, self.vcache_stat, self.vcache_instrs)
             stat_file.close()
 
 
