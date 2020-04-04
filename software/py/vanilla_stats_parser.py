@@ -626,7 +626,43 @@ class VanillaStatsParser:
 
 
     # print stall stats for the entire manycore
-    def __print_manycore_tag_stats_stall(self, stat_file, tag):
+    # stat: data structure containing manycore stats
+    # stalls: list of all stall operations
+    def __print_manycore_tag_stats_stall(self, stat_file, stat, stalls, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        # Print stall stats for manycore
+        for stall in stalls:
+            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
+            self.__print_stat(stat_file, stall_format, stall,
+                                         stat[tag][stall],
+                                         (100 * np.float64(stat[tag][stall]) / stat[tag]["stall_total"])
+                                         ,(100 * np.float64(stat[tag][stall]) / stat[tag]["global_ctr"]))
+
+        return
+
+
+    # Prints manycore stall stats per tile group for all tags
+    # header - name of stats in the output stats file 
+    # stat: data structure containing manycore stats
+    # stalls: list of all stall operations
+    def __print_manycore_stats_stall(self, stat_file, header, stat, stalls):
+        stat_file.write(header + "\n")
+        self.__print_stat(stat_file, "stall_header", "Stall Type", "Cycles", " % Stall Cycles", " % Total Cycles")
+        self.__print_stat(stat_file, "start_lbreak")
+        for tag in stat.keys():
+            if(stat[tag]["global_ctr"]):
+                self.__print_manycore_tag_stats_stall(stat_file, stat, stalls, tag)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+
+    # DEPRECATED - TODO: REMOVE
+    # print stall stats for the entire manycore
+    def __print_manycore_tag_stats_stall_dep(self, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
 
         # Print stall stats for manycore
@@ -640,8 +676,9 @@ class VanillaStatsParser:
         return
 
 
+    # DEPRECATED - TODO: REMOVE
     # Prints manycore stall stats per tile group for all tags 
-    def __print_manycore_stats_stall(self, stat_file):
+    def __print_manycore_stats_stall_dep(self, stat_file):
         stat_file.write("Per-Tag Stall Stats\n")
         self.__print_stat(stat_file, "stall_header", "Stall Type", "Cycles", " % Stall Cycles", " % Total Cycles")
         self.__print_stat(stat_file, "start_lbreak")
@@ -858,7 +895,10 @@ class VanillaStatsParser:
         return
 
 
-    # Prints manycore miss stats per tile group for all tags 
+    # Prints manycore miss stats per tile group for all tags
+    # header - name of stats in the output stats file 
+    # stat: data structure containing manycore stats
+    # misses: list of all miss operations
     def __print_manycore_stats_miss(self, stat_file, header, stat, misses):
         stat_file.write(header + "\n")
         self.__print_stat(stat_file, "miss_header", "Miss Type", "Misses", "Accesses", "Hit Rate (%)")
@@ -1131,12 +1171,12 @@ class VanillaStatsParser:
         self.__print_manycore_stats_tag(manycore_stats_file)
         self.__print_manycore_stats_tile_group_timing(manycore_stats_file)
         self.__print_manycore_stats_miss(manycore_stats_file, "Per-Tag Miss Stats", self.manycore_stat, self.misses)
-        self.__print_manycore_stats_stall(manycore_stats_file)
+        self.__print_manycore_stats_stall(manycore_stats_file, "Per-Tag Stall Stats", self.manycore_stat, self.stalls)
         self.__print_manycore_stats_bubble(manycore_stats_file)
         self.__print_manycore_stats_instr(manycore_stats_file)
         self.__print_manycore_stats_tile_timing(manycore_stats_file, self.active_tiles)
         self.__print_manycore_stats_miss(manycore_stats_file, "VCache Per-Tag Miss Stats", self.manycore_vcache_stat, self.vcache_misses)
-        self.__print_manycore_vcache_stats_stall(manycore_stats_file)
+        self.__print_manycore_stats_stall(manycore_stats_file, "VCache Per-Tag Stall Stats", self.manycore_vcache_stat, self.vcache_stalls)
         self.__print_manycore_vcache_stats_instr(manycore_stats_file)
         manycore_stats_file.close()
         return
