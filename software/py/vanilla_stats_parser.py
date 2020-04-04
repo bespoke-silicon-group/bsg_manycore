@@ -572,34 +572,6 @@ class VanillaStatsParser:
 
 
 
-    # DEPRECATED - TODO: REMOVE
-    # print instruction stats for the entire manycore
-    def __print_manycore_tag_stats_instr_dep(self, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-   
-        # Print instruction stats for manycore
-        for instr in self.instrs:
-            self.__print_stat(stat_file, "instr_data", instr,
-                                         self.manycore_stat[tag][instr]
-                                         ,(100 * self.manycore_stat[tag][instr] / self.manycore_stat[tag]["instr_total"]))
-        return
-
-
-    # DEPRECATED - TODO: REMOVE
-    # Prints manycore instruction stats per tile group for all tags 
-    def __print_manycore_stats_instr_dep(self, stat_file):
-        stat_file.write("Per-Tag Instruction Stats\n")
-        self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.manycore_stat.keys():
-            if(self.manycore_stat[tag]["global_ctr"]):
-                self.__print_manycore_tag_stats_instr(stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
-
-
     # print instruction stats for each tile group in a separate file 
     # tg_id is tile group id 
     def __print_per_tile_group_tag_stats_instr(self, tg_id, stat_file, tag):
@@ -660,35 +632,6 @@ class VanillaStatsParser:
 
 
 
-    # DEPRECATED
-    # print instruction stats for each tile in a separate file 
-    # y,x are tile coordinates 
-    def __print_per_tile_tag_stats_instr_dep(self, tile, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        # Print instruction stats for manycore
-        for instr in self.instrs:
-            self.__print_stat(stat_file, "instr_data", instr,
-                                         self.tile_stat[tag][tile][instr]
-                                         ,(100 * np.float64(self.tile_stat[tag][tile][instr]) / self.tile_stat[tag][tile]["instr_total"]))
-        return
-
-
-    # DEPRECATED
-    # print instr stats for each tile in a separate file for all tags 
-    def __print_per_tile_stats_instr_dep(self, tile, stat_file):
-        stat_file.write("Instruction Stats\n")
-        self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.tile_stat.keys():
-            if(self.tile_stat[tag][tile]["global_ctr"]):
-                self.__print_per_tile_tag_stats_instr(tile, stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
-
-
     # print stall stats for the entire manycore
     # stat: data structure containing manycore stats
     # stalls: list of all stall operations
@@ -720,37 +663,6 @@ class VanillaStatsParser:
         self.__print_stat(stat_file, "end_lbreak")
         return   
 
-
-
-
-
-    # DEPRECATED - TODO: REMOVE
-    # print stall stats for the entire manycore
-    def __print_manycore_tag_stats_stall_dep(self, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        # Print stall stats for manycore
-        for stall in self.stalls:
-            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
-            self.__print_stat(stat_file, stall_format, stall,
-                                         self.manycore_stat[tag][stall],
-                                         (100 * np.float64(self.manycore_stat[tag][stall]) / self.manycore_stat[tag]["stall_total"])
-                                         ,(100 * np.float64(self.manycore_stat[tag][stall]) / self.manycore_stat[tag]["global_ctr"]))
-
-        return
-
-
-    # DEPRECATED - TODO: REMOVE
-    # Prints manycore stall stats per tile group for all tags 
-    def __print_manycore_stats_stall_dep(self, stat_file):
-        stat_file.write("Per-Tag Stall Stats\n")
-        self.__print_stat(stat_file, "stall_header", "Stall Type", "Cycles", " % Stall Cycles", " % Total Cycles")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.manycore_stat.keys():
-            if(self.manycore_stat[tag]["global_ctr"]):
-                self.__print_manycore_tag_stats_stall(stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
 
 
 
@@ -819,36 +731,6 @@ class VanillaStatsParser:
 
 
 
-    # DEPRECATED
-    # print stall stats for each tile in a separate file
-    # y,x are tile coordinates 
-    def __print_per_tile_tag_stats_stall_dep(self, tile, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        # Print stall stats for manycore
-        for stall in self.stalls:
-            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
-            self.__print_stat(stat_file, stall_format, stall,
-                                         self.tile_stat[tag][tile][stall],
-                                         (100 * np.float64(self.tile_stat[tag][tile][stall]) / self.tile_stat[tag][tile]["stall_total"])
-                                         ,(100 * np.float64(self.tile_stat[tag][tile][stall]) / self.tile_stat[tag][tile]["global_ctr"]))
-        return
-
-
-    # DEPRECATED
-    # print stall stats for each tile in a separate file for all tags 
-    def __print_per_tile_stats_stall_dep(self, tile, stat_file):
-        stat_file.write("Per-Tile Stall Stats\n")
-        self.__print_stat(stat_file, "stall_header", "Stall Type", "Cycles", "% of Stall Cycles", "% of Total Cycles")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.tile_stat.keys():
-            if(self.tile_stat[tag][tile]["global_ctr"]):
-                self.__print_per_tile_tag_stats_stall(tile, stat_file, tag)
-        self.__print_stat(stat_file, "start_lbreak")
-        return   
-
-
-
 
     # print bubble stats for the entire manycore
     # stat: data structure containing manycore stats
@@ -876,35 +758,6 @@ class VanillaStatsParser:
         for tag in stat.keys():
             if(stat[tag]["global_ctr"]):
                 self.__print_manycore_tag_stats_bubble(stat_file, stat, bubbles, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
-
-
-    # DEPRECATED - TODO: REMOVE
-    # print bubble stats for the entire manycore
-    def __print_manycore_tag_stats_bubble_dep(self, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        # Print bubble stats for manycore
-        for bubble in self.bubbles:
-            self.__print_stat(stat_file, "bubble_data", bubble,
-                                         self.manycore_stat[tag][bubble],
-                                         (100 * np.float64(self.manycore_stat[tag][bubble]) / self.manycore_stat[tag]["bubble_total"])
-                                         ,(100 * self.manycore_stat[tag][bubble] / self.manycore_stat[tag]["global_ctr"]))
-        return
-
-
-    # DEPRECATED - TODO: REMOVE
-    # Prints manycore bubble stats per tile group for all tags 
-    def __print_manycore_stats_bubble_dep(self, stat_file):
-        stat_file.write("Per-Tag Bubble Stats\n")
-        self.__print_stat(stat_file, "bubble_header", "Bubble Type", "Cycles", "% of Bubbles", "% of Total Cycles")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.manycore_stat.keys():
-            if(self.manycore_stat[tag]["global_ctr"]):
-                self.__print_manycore_tag_stats_bubble(stat_file, tag)
         self.__print_stat(stat_file, "end_lbreak")
         return   
 
@@ -969,74 +822,6 @@ class VanillaStatsParser:
             if(stat[tag][item]["global_ctr"]):
                 self.__print_tag_stats_bubble(stat_file, item, tag, stat, bubbles)
         self.__print_stat(stat_file, "start_lbreak")
-        return   
-
-
-
-
-
-    # DEPRECATED
-    # print bubble stats for each tile in a separate file
-    # y,x are tile coordinates 
-    def __print_per_tile_tag_stats_bubble_dep(self, tile, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        # Print bubble stats for manycore
-        for bubble in self.bubbles:
-            self.__print_stat(stat_file, "bubble_data", bubble,
-                                         self.tile_stat[tag][tile][bubble],
-                                         (100 * np.float64(self.tile_stat[tag][tile][bubble]) / self.tile_stat[tag][tile]["bubble_total"])
-                                         ,(100 * np.float64(self.tile_stat[tag][tile][bubble]) / self.tile_stat[tag][tile]["global_ctr"]))
-        return
-
-
-    # DEPRECATED
-    # print bubble stats for each tile in a separate file for all tags 
-    def __print_per_tile_stats_bubble_dep(self, tile, stat_file):
-        stat_file.write("Per-Tile Bubble Stats\n")
-        self.__print_stat(stat_file, "bubble_header", "Bubble Type", "Cycles", "% of Bubbles", "% of Total Cycles")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.tile_stat.keys():
-            if(self.tile_stat[tag][tile]["global_ctr"]):
-                self.__print_per_tile_tag_stats_bubble(tile, stat_file, tag)
-        self.__print_stat(stat_file, "start_lbreak")
-        return   
-
-
-
-
-
-    # DEPRECATED - TODO: REMOVE
-    # print miss stats for the entire manycore
-    def __print_manycore_tag_stats_miss_dep(self, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        for miss in self.misses:
-            # Find total number of operations for that miss If
-            # operation is icache, the total is total # of instruction
-            # otherwise, search for the specific instruction
-            if (miss == "miss_icache"):
-                operation = "icache"
-                operation_cnt = self.manycore_stat[tag]["instr_total"]
-            else:
-                operation = miss.replace("miss_", "instr_")
-                operation_cnt = self.manycore_stat[tag][operation]
-            miss_cnt = self.manycore_stat[tag][miss]
-            hit_rate = 100.0 if operation_cnt == 0 else 100.0*(1 - miss_cnt/operation_cnt)
-         
-            self.__print_stat(stat_file, "miss_data", miss, miss_cnt, operation_cnt, hit_rate )
-        return
-
-
-    # Prints manycore miss stats per tile group for all tags 
-    def __print_manycore_stats_miss_dep(self, stat_file):
-        stat_file.write("Per-Tag Miss Stats\n")
-        self.__print_stat(stat_file, "miss_header", "Miss Type", "Misses", "Accesses", "Hit Rate (%)")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.manycore_stat.keys():
-            if(self.manycore_stat[tag]["global_ctr"]):
-                self.__print_manycore_tag_stats_miss(stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
         return   
 
 
@@ -1165,45 +950,6 @@ class VanillaStatsParser:
 
 
 
-    # DEPRECATED - TODO: REMOVE
-    # print miss stats for each tile in a separate file
-    # y,x are tile coordinates 
-    def __print_per_tile_tag_stats_miss_dep(self, tile, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        for miss in self.misses:
-            # Find total number of operations for that miss
-            # If operation is icache, the total is total # of instruction
-            # otherwise, search for the specific instruction
-            if (miss == "miss_icache"):
-                operation = "icache"
-                operation_cnt = self.tile_stat[tag][tile]["instr_total"]
-            else:
-                operation = miss.replace("miss_", "instr_")
-                operation_cnt = self.tile_stat[tag][tile][operation]
-            miss_cnt = self.tile_stat[tag][tile][miss]
-            hit_rate = 1 if operation_cnt == 0 else (1 - miss_cnt/operation_cnt)
-         
-            self.__print_stat(stat_file, "miss_data", miss, miss_cnt, operation_cnt, hit_rate )
-
-        return
-
-
-    # DEPRECATED - TODO: REMOVE
-    # print stall miss for each tile in a separate file for all tags 
-    def __print_per_tile_stats_miss_dep(self, tile, stat_file):
-        stat_file.write("Per-Tile Miss Stats\n")
-        self.__print_stat(stat_file, "miss_header", "Miss Type", "miss", "total", "hit rate")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.tile_stat.keys():
-            if(self.tile_stat[tag][tile]["global_ctr"]):
-                self.__print_per_tile_tag_stats_miss(tile, stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
-
-
     # print victim cache instruction stats for the entire manycore
     def __print_manycore_vcache_tag_stats_instr(self, stat_file, tag):
         self.__print_stat(stat_file, "tag_separator", tag)
@@ -1253,38 +999,6 @@ class VanillaStatsParser:
         for tag in self.manycore_vcache_stat.keys():
             if(self.manycore_vcache_stat[tag]["global_ctr"]):
                 self.__print_manycore_vcache_tag_stats_stall(stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
-
-
-    # DEPRECATED - TODO: REMOVE
-    # print miss vcache stats for the entire manycore
-    def __print_manycore_vcache_tag_stats_miss(self, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        for miss in self.vcache_misses:
-            operation = miss.replace("miss_", "instr_")
-            operation_cnt = self.manycore_vcache_stat[tag][operation]
-            miss_cnt = self.manycore_vcache_stat[tag][miss]
-            hit_rate = 100.0 if operation_cnt == 0 else 100.0*(1 - miss_cnt/operation_cnt)
-         
-            self.__print_stat(stat_file, "miss_data", miss, miss_cnt, operation_cnt, hit_rate )
-        return   
-
-
-
-    # DEPRECATED - TODO: REMOVE
-    # Prints manycore victim cache miss stats for all tags 
-    # The sum of all vcache bank stats are shown in this file
-    def __print_manycore_vcache_stats_miss(self, stat_file):
-        stat_file.write("Vcache Per-Tag Miss Stats\n")
-        self.__print_stat(stat_file, "miss_header", "Miss Type", "Misses", "Accesses", "Hit Rate (%)")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.manycore_vcache_stat.keys():
-            if(self.manycore_vcache_stat[tag]["global_ctr"]):
-                self.__print_manycore_vcache_tag_stats_miss(stat_file, tag)
         self.__print_stat(stat_file, "end_lbreak")
         return   
 
