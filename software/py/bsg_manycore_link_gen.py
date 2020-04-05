@@ -44,13 +44,15 @@ class bsg_manycore_link_gen:
     "/*********************************************************\n" \
     + " BSG Manycore Linker Script \n\n"
 
-  def __init__(self, default_data_loc, dram_size, sp):
+  def __init__(self, default_data_loc, dram_size, imem_size, sp):
     self._default_data_loc = default_data_loc
     self._dram_size = dram_size
+    self._imem_size = imem_size
     self._sp = sp
     self._opening_comment += \
         " data default: {0}\n".format(default_data_loc) \
         + " dram memory size: 0x{0:08x}\n".format(dram_size) \
+        + " imem allocated size: 0x{0:08x}\n".format(imem_size) \
         + " stack pointer init: 0x{0:08x}\n".format(sp) \
         + "\n" \
         + " Generated at " + str(datetime.now()) + "\n" \
@@ -70,7 +72,7 @@ class bsg_manycore_link_gen:
     return script
 
   def _section(self, name, address, vma_region, lma_region,
-      in_sections, in_objects):
+      in_sections, in_objects, boundary=None):
     """
     Forms an LD section.
 
@@ -85,6 +87,8 @@ class bsg_manycore_link_gen:
                     a VMA region, else None.
     in_sections  -- list of input sections.
     in_objects   -- list of input objects to consider.
+    boundary     -- if not None, section includes a boundary check to ensure
+                    section can fit within the vma=`boundary`.
     """
     vaddr        = "" # virtual address
     laddr        = "" # logical address
@@ -102,6 +106,11 @@ class bsg_manycore_link_gen:
 
     for sec in in_sections:
       script += "\n  {0}({1})".format(in_objects, sec)
+
+    if boundary is not None:
+        script += "\n  PROVIDE (__{}_end = .);\n".format(name)
+        script += "  ASSERT((__{0}_end < 0x{1:08x}), " \
+                  "\"Error: {0} section exceeded limit 0x{1:08x}\");".format(name, boundary)
 
     script += "\n  . = ALIGN(8);\n"
     script += "\n}} {0} {1}\n\n".format(vma_redirect, lma_redirect)
@@ -187,6 +196,13 @@ class bsg_manycore_link_gen:
       sections += self._section(sec, laddr, 'DMEM_VMA', None,
           in_sections, in_objects)
 
+    # DMEM boundary check
+    # Note on a linker quirk: no ';' after the assert when it's not within a section.
+    sections += "__dmem_end = .;\n"
+    sections += "ASSERT((__dmem_end < 0x{0:08x}), " \
+                "\"Error: dmem size limit exceeded\")\n\n".format(
+                        _DMEM_VMA_START + _DMEM_VMA_SIZE);
+
     # DRAM sections
     for i,m in enumerate(section_map):
       sec = m[0]
@@ -204,11 +220,16 @@ class bsg_manycore_link_gen:
         sec += '.dram'
 
       if self._default_data_loc == 'dram' or re.search(".dram$", sec) != None:
+        boundary = None
+
+        if sec == '.text.dram':
+            boundary = self._imem_size
+
         sections += self._section(sec, vaddr, None, 'DRAM_LMA',
-            in_sections, in_objects)
+            in_sections, in_objects, boundary)
 
       if sec == '.text.dram':
-        sections += ". = . + 0x80000000;\n\n"
+          sections += ". = 0x80000000 + 0x{0:08x};\n\n".format(self._imem_size)
 
     # Symbols
     if self._default_data_loc == 'dmem':
@@ -244,6 +265,10 @@ if __name__ == '__main__':
     help = 'DRAM size',
     default = 0x80000000,
     type = int)
+  parser.add_argument('--imem_size',
+    help = 'IMEM size',
+    default = 0x01000000, # 16MB
+    type = int)
   parser.add_argument('--sp',
     help = 'Stack pointer',
     default = 0x1000,
@@ -256,7 +281,7 @@ if __name__ == '__main__':
 
   # Generate linker script
   link_gen = bsg_manycore_link_gen(args.default_data_loc, args.dram_size,
-      args.sp)
+      args.imem_size, args.sp)
 
   if args.out is None:
     print(link_gen.script())
