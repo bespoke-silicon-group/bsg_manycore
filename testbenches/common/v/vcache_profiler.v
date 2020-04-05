@@ -217,18 +217,18 @@ module vcache_profiler
       $fwrite(log_fd, "time,vcache,global_ctr,tag,");
       $fwrite(log_fd, "instr_ld,instr_ld_ld,instr_ld_ldu,instr_ld_lw,instr_ld_lwu,");
       $fwrite(log_fd, "instr_ld_lh,instr_ld_lhu,instr_ld_lb,instr_ld_lbu,");
-      $fwrite(log_fd, "instr_st,instr_st_sd,instr_st_sw,instr_st_sh,instr_st_sb");
-      $fwrite(log_fd, "instr_mask,instr_sigext,instr_tagst,instr_tagfl,instr_taglv,");
+      $fwrite(log_fd, "instr_st,instr_st_sd,instr_st_sw,instr_st_sh,instr_st_sb,");
+      $fwrite(log_fd, "instr_mask,instr_sigext,instr_tagst,instr_tagfl,instr_taglv,instr_tagla");
       $fwrite(log_fd, "instr_afl,instr_aflinv,instr_ainv,instr_alock,instr_aunlock,");
       $fwrite(log_fd, "instr_tag_read,instr_atomic,instr_amoswap,instr_amoor,");
       $fwrite(log_fd, "miss_ld,miss_st,stall_miss,stall_idle,dma_read_req,dma_write_req\n");
       $fclose(log_fd);
 
-      if (trace_en_i) begin
+      //if (trace_en_i) begin
         trace_fd = $fopen(tracefile_lp, "w");
         $fwrite(trace_fd, "cycle,vcache,operation\n");
         $fclose(trace_fd);
-      end
+      //end
     end
 
 
@@ -294,7 +294,7 @@ module vcache_profiler
             stat_r.miss_count,
             stat_r.idle_count,
             stat_r.dma_read_req,
-            stat_r.dma_write_req,
+            stat_r.dma_write_req
           );
 
           $fclose(log_fd);
