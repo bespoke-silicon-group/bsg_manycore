@@ -145,7 +145,7 @@ endif
 LINK_SCRIPT ?= bsg_link.ld
 
 bsg_link.ld: $(LINK_GEN)
-	$(LINK_GEN) $(LINK_GEN_OPTS) > $@
+	$(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
 
 RISCV_LINK_OPTS ?= 
 

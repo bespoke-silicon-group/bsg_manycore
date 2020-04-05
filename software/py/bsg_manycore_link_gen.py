@@ -19,7 +19,7 @@ class bsg_manycore_link_gen:
   include default location of data (dmem or dram), stack pointer and
   dram memory size. These options won't affect the following:
 
-  1. Data attributed to .dmem* and .dram* sections. Following decalaration
+  1. Data attributed to .dmem* and .dram* sections. Following declaration
 
      int foo __attribute__((section (".dram")));
 
@@ -247,10 +247,18 @@ if __name__ == '__main__':
     help = 'Stack pointer',
     default = 0x1000,
     type = lambda x: int(x, 0))
+  parser.add_argument('--out',
+    help = 'Output file name',
+    default = None)
   args = parser.parse_args()
 
 
   # Generate linker script
   link_gen = bsg_manycore_link_gen(args.default_data_loc, args.dram_size,
       args.sp)
-  print(link_gen.script())
+
+  if args.out is None:
+    print(link_gen.script())
+  else:
+    with open(args.out, 'w') as f:
+        f.write(link_gen.script())
