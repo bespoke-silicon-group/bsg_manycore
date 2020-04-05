@@ -130,6 +130,8 @@ ifeq ($(BSG_ELF_OFF_CHIP_MEM), 1)
   else
     $(error Invalid BSG_ELF_DEFAULT_DATA_LOC = $(BSG_ELF_DEFAULT_DATA_LOC); Only LOCAL and SHARED are valid)
   endif
+
+  LINK_GEN_OPTS += --imem_size=0x01000000 # 16MB
 else ifeq ($(BSG_ELF_OFF_CHIP_MEM), 0)
   ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), LOCAL)
     LINK_GEN_OPTS ?= --default_data_loc=dmem --dram_size=$(BSG_ELF_VCACHE_SIZE) --sp=$(BSG_ELF_STACK_PTR)
@@ -138,6 +140,8 @@ else ifeq ($(BSG_ELF_OFF_CHIP_MEM), 0)
   else
     $(error Invalid BSG_ELF_DEFAULT_DATA_LOC = $(BSG_ELF_DEFAULT_DATA_LOC); Only LOCAL and SHARED are valid)
   endif
+
+  LINK_GEN_OPTS += --imem_size=0x00100000 # 1MB
 else
   $(error Invalid BSG_ELF_OFF_CHIP_MEM = $(BSG_ELF_OFF_CHIP_MEM); Only 0 and 1 are valid)
 endif
