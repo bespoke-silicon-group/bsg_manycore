@@ -219,12 +219,9 @@ class bsg_manycore_link_gen:
     sections += "_bsg_data_start_addr = 0x{0:08x};\n".format(_DMEM_VMA_START)
     sections += "_bsg_data_end_addr = ADDR(.striped.data.dmem) + " \
                 "SIZEOF(.striped.data.dmem);\n"
-    sections += "_bsg_striped_data_start = ADDR(.striped.data.dmem)\n;"
-    sections += "_bsg_dram_t_start_addr = LOADADDR(.text.dram)\n;"
-    sections += "_bsg_dram_d_start_addr = LOADADDR(.text.dram) + SIZEOF(.text.dram)\n;"
-    sections += "_bsg_dram_d_end_addr = LOADADDR(.dram) + SIZEOF(.dram)\n;"
-    sections += "_bsg_dram_end_addr = _bsg_dram_d_end_addr\n;"
-    sections += "_end = _bsg_dram_end_addr\n;"
+    sections += "_bsg_striped_data_start = ADDR(.striped.data.dmem);\n"
+    sections += "_bsg_dram_end_addr = LOADADDR(.dram) + SIZEOF(.dram);\n"
+    sections += "_end = _bsg_dram_end_addr;\n"
 
     sections += "\n}\n"
 
