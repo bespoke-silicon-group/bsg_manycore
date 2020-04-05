@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import argparse, re
+from datetime import datetime
 
 """
 BSG Manycore linker command file generator.
@@ -40,7 +41,7 @@ class bsg_manycore_link_gen:
   """
 
   _opening_comment = \
-    "/**********************************\n" \
+    "/*********************************************************\n" \
     + " BSG Manycore Linker Script \n\n"
 
   def __init__(self, default_data_loc, dram_size, sp):
@@ -51,7 +52,9 @@ class bsg_manycore_link_gen:
         " data default: {0}\n".format(default_data_loc) \
         + " dram memory size: 0x{0:08x}\n".format(dram_size) \
         + " stack pointer init: 0x{0:08x}\n".format(sp) \
-      + "***********************************/\n"
+        + "\n" \
+        + " Generated at " + str(datetime.now()) + "\n" \
+      + "**********************************************************/\n"
 
   # Format:
   # <mem region name> : [<access>, <start address>, <size>]
