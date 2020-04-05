@@ -27,9 +27,9 @@ class bsg_manycore_link_gen:
 
   2. Data in bsg_manycore_lib would always be placed in dmem region.
 
-  
+
   Note on program memory:
-  
+
   Manycore's PC width is 24-bit, addressing a total of 16MB program space.
   Since the 31:25 MBSs are assumed to be 0s, linking should also assume
   0x0-0x01000000 as the valid program space. This means that .text section VMAs
@@ -69,7 +69,7 @@ class bsg_manycore_link_gen:
       in_sections, in_objects):
     """
     Forms an LD section.
-    
+
     Arguments:
     name         -- name of the section.
     address      -- if `vma_region` is null, `address` is assumed to
@@ -105,10 +105,22 @@ class bsg_manycore_link_gen:
     return script
 
   def script(self):
+    """
+    This generates the link script by linking in two memory regions,
+    DMEM_VMA and DRAM_LMA.
+
+    We use the combination of VMA and LMA because `.text` section VMAs and
+    dmem memory VMAs overlap with the current memory layout (both start at
+    address 0x0). This makes manycore essentially a Harvard architecture.
+    But linker doesn't allow overlapping VMAs and doesn't allow location
+    couter to move backwards. To overcome this, we use a combination of VMA
+    and LMA "memory regions" to be able to never move location counter
+    backward.
+    """
     # Address constants:
     #
     # LMA (Load Memory Address)    => NPA used by loader
-    # VMA (Virtual Memory Address) => Logical address used by linker for 
+    # VMA (Virtual Memory Address) => Logical address used by linker for
     #                                 symbol resolutions
     _DMEM_VMA_START = 0x1000
     _DMEM_VMA_SIZE  = 0x1000
@@ -118,14 +130,6 @@ class bsg_manycore_link_gen:
     mem_regions = [
       # Format:
       # [<mem region name>, <access>, <start address>, <size>]
-      #
-      # .text section VMAs and dmem memory VMAs overlap with the
-      # current memory layout (both start at address 0x0). This makes
-      # manycore essentially a Harvard architecture. But linker doesn't
-      # allow overlapping VMAs by not letting location couter not move 
-      # backwards. To overcome this, we use combination of VMA and LMA
-      # "memory regions" to be able to never move location counter
-      # backward.
       ['DMEM_VMA', 'rw', _DMEM_VMA_START, _DMEM_VMA_SIZE],
       ['DRAM_LMA', 'rw', _DRAM_LMA_START, _DRAM_LMA_SIZE],
       ]
@@ -166,7 +170,7 @@ class bsg_manycore_link_gen:
         in_objects = '*'
       else:
         sec += '.dmem'
-      
+
       if sec != ".dmem":
         prev_sec = section_map[i-1][0]
 
@@ -231,15 +235,15 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(prog = 'bsg_manycore_link_gen.py',
       formatter_class = argparse.RawDescriptionHelpFormatter,
       description = bsg_manycore_link_gen.__doc__)
-  parser.add_argument('--default_data_loc', 
+  parser.add_argument('--default_data_loc',
     help = 'Default data location',
     default = 'dmem',
     choices = ['dmem', 'dram'])
-  parser.add_argument('--dram_size', 
+  parser.add_argument('--dram_size',
     help = 'DRAM size',
     default = 0x80000000,
     type = int)
-  parser.add_argument('--sp', 
+  parser.add_argument('--sp',
     help = 'Stack pointer',
     default = 0x1000,
     type = lambda x: int(x, 0))
