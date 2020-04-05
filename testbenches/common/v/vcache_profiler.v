@@ -13,6 +13,8 @@ module vcache_profiler
     , parameter header_print_p="y[3].x[0]"
 
     , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
+
+    , parameter bsg_cache_pkt_width_lp=`bsg_cache_pkt_width(addr_width_p,data_width_p) 
   )
   (
     input clk_i
@@ -22,6 +24,8 @@ module vcache_profiler
     , input yumi_i
     , input miss_v
     , input bsg_cache_decode_s decode_v_r
+
+    , input [bsg_cache_pkt_width_lp-1:0] cache_pkt_i
 
     , input [dma_pkt_width_lp-1:0] dma_pkt_o
     , input dma_pkt_v_o
@@ -45,12 +49,35 @@ module vcache_profiler
   assign dma_pkt = dma_pkt_o;
 
 
+  `declare_bsg_cache_pkt_s(addr_width_p,data_width_p);
+  bsg_cache_pkt_s cache_pkt;
+  assign cache_pkt = cache_pkt_i;
+
+
+
+
+
   // event signals
   //
 
   wire inc_miss     = miss_v;
+
   wire inc_ld       = v_o & yumi_i & decode_v_r.ld_op;
+  wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LD);
+  wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LDU);
+  wire inc_ld_lw    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LW);
+  wire inc_ld_lwu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LWU);
+  wire inc_ld_lh    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LH);
+  wire inc_ld_lhu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LHU);
+  wire inc_ld_lb    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LB);
+  wire inc_ld_lbu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LBU);
+
   wire inc_st       = v_o & yumi_i & decode_v_r.st_op;
+  wire inc_st_sd    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SD);
+  wire inc_st_sw    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SW);
+  wire inc_st_sh    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SH);
+  wire inc_st_sb    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SB);
+
   wire inc_mask     = v_o & yumi_i & decode_v_r.mask_op;
   wire inc_sigext   = v_o & yumi_i & decode_v_r.sigext_op;
   wire inc_tagst    = v_o & yumi_i & decode_v_r.tagst_op;
@@ -79,7 +106,21 @@ module vcache_profiler
   //
   typedef struct packed {
     integer ld_count;
+    integer ld_ld_count;
+    integer ld_ldu_count;
+    integer ld_lw_count;
+    integer ld_lwu_count;
+    integer ld_lh_count;
+    integer ld_lhu_count;
+    integer ld_lb_count;
+    integer ld_lbu_count;
+
     integer st_count;
+    integer st_sd_count;
+    integer st_sw_count;
+    integer st_sh_count;
+    integer st_sb_count;
+
     integer mask_count; 
     integer sigext_count; 
     integer tagst_count;   
@@ -114,8 +155,23 @@ module vcache_profiler
       stat_r <= '0;
     end
     else begin
+
       if (inc_ld)            stat_r.ld_count++;
-      if (inc_st)            stat_r.st_count++;
+      if (inc_ld_ld)         stat_r.ld_ld_count++;
+      if (inc_ld_ldu)        stat_r.ld_ldu_count++;
+      if (inc_ld_lw)         stat_r.ld_lw_count++;
+      if (inc_ld_lwu)        stat_r.ld_lwu_count++;
+      if (inc_ld_lh)         stat_r.ld_lh_count++;
+      if (inc_ld_lhu)        stat_r.ld_lhu_count++;
+      if (inc_ld_lb)         stat_r.ld_lb_count++;
+      if (inc_ld_lbu)        stat_r.ld_lbu_count++;
+
+      if (inc_st)            stat_r.st_count++; 
+      if (inc_st_sd)         stat_r.st_sd_count++;
+      if (inc_st_sw)         stat_r.st_sw_count++;
+      if (inc_st_sh)         stat_r.st_sh_count++;
+      if (inc_st_sb)         stat_r.st_sb_count++;
+
       if (inc_mask)          stat_r.mask_count++;      
       if (inc_sigext)        stat_r.sigext_count++; 
       if (inc_tagst)         stat_r.tagst_count++;   
@@ -158,8 +214,11 @@ module vcache_profiler
     my_name = $sformatf("%m");
     if (str_match(my_name, header_print_p)) begin
       log_fd = $fopen(logfile_lp, "w");
-      $fwrite(log_fd, "time,vcache,global_ctr,tag,instr_ld,instr_st,instr_mask,");
-      $fwrite(log_fd, "instr_sigext,instr_tagst,instr_tagfl,instr_taglv,");
+      $fwrite(log_fd, "time,vcache,global_ctr,tag,");
+      $fwrite(log_fd, "instr_ld,instr_ld_ld,instr_ld_ldu,instr_ld_lw,instr_ld_lwu,");
+      $fwrite(log_fd, "instr_ld_lh,instr_ld_lhu,instr_ld_lb,instr_ld_lbu,");
+      $fwrite(log_fd, "instr_st,instr_st_sd,instr_st_sw,instr_st_sh,instr_st_sb");
+      $fwrite(log_fd, "instr_mask,instr_sigext,instr_tagst,instr_tagfl,instr_taglv,");
       $fwrite(log_fd, "instr_afl,instr_aflinv,instr_ainv,instr_alock,instr_aunlock,");
       $fwrite(log_fd, "instr_tag_read,instr_atomic,instr_amoswap,instr_amoor,");
       $fwrite(log_fd, "miss_ld,miss_st,stall_miss,stall_idle,dma_read_req,dma_write_req\n");
@@ -188,15 +247,33 @@ module vcache_profiler
             print_stat_tag_i
           );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             stat_r.ld_count,
+            stat_r.ld_ld_count,
+            stat_r.ld_ldu_count,
+            stat_r.ld_lw_count,
+            stat_r.ld_lwu_count,
+            stat_r.ld_lh_count,
+            stat_r.ld_lhu_count,
+            stat_r.ld_lb_count,
+            stat_r.ld_lbu_count, 
+          );
+
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,",
             stat_r.st_count,
+            stat_r.st_sd_count,
+            stat_r.st_sw_count,
+            stat_r.st_sh_count,
+            stat_r.st_sb_count,
+          );
+
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
             stat_r.mask_count,
             stat_r.sigext_count,
             stat_r.tagst_count,
             stat_r.tagfl_count,
             stat_r.taglv_count,
-            stat_r.tagla_count
+            stat_r.tagla_count,
           );
 
           $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
@@ -208,7 +285,7 @@ module vcache_profiler
             stat_r.tag_read_count,
             stat_r.atomic_count,
             stat_r.amoswap_count,
-            stat_r.amoor_count
+            stat_r.amoor_count,
           );
 
           $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d\n",
@@ -217,7 +294,7 @@ module vcache_profiler
             stat_r.miss_count,
             stat_r.idle_count,
             stat_r.dma_read_req,
-            stat_r.dma_write_req
+            stat_r.dma_write_req,
           );
 
           $fclose(log_fd);
@@ -244,10 +321,43 @@ module vcache_profiler
         
           // If response is ready for a hit request
           else begin
-            if (inc_ld)
-              print_operation_trace(trace_fd, my_name, "ld");
-            else if (inc_st)
-              print_operation_trace(trace_fd, my_name, "st");
+
+            if (inc_ld) begin
+              if (inc_ld_ld) 
+                print_operation_trace(trace_fd, my_name, "ld_ld");
+              else if (inc_ld_ldu)
+                print_operation_trace(trace_fd, my_name, "ld_ldu");
+              else if (inc_ld_lw)
+                print_operation_trace(trace_fd, my_name, "ld_lw");
+              else if (inc_ld_lwu)
+                print_operation_trace(trace_fd, my_name, "ld_lwu");
+              else if (inc_ld_lh)
+                print_operation_trace(trace_fd, my_name, "ld_lh");
+              else if (inc_ld_lhu)
+                print_operation_trace(trace_fd, my_name, "ld_lhu");
+              else if (inc_ld_lb) 
+                print_operation_trace(trace_fd, my_name, "ld_lb");
+              else if (inc_ld_lbu)
+                print_operation_trace(trace_fd, my_name, "ld_lbu");
+              else
+                print_operation_trace(trace_fd, my_name, "ld");
+            end
+
+
+            else if (inc_st) begin
+              if (inc_st_sd)
+                print_operation_trace(trace_fd, my_name, "st_sd");  
+              else if (inc_st_sw)
+                print_operation_trace(trace_fd, my_name, "st_sw");  
+              else if (inc_st_sh)
+                print_operation_trace(trace_fd, my_name, "st_sh");  
+              else if (inc_st_sb)
+                print_operation_trace(trace_fd, my_name, "st_sb");  
+              else
+                print_operation_trace(trace_fd, my_name, "st");
+            end
+
+
             else if (inc_mask)
               print_operation_trace(trace_fd, my_name, "mask");
             else if (inc_sigext)
