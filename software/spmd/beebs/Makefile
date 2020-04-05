@@ -71,7 +71,7 @@ BEEBS_LDFLAGS = "-t -T $(LINK_SCRIPT) -march=$(ARCH_OP) -nostartfiles -ffast-mat
 
 configure: beebs.configure.touchfile
 
-beebs.configure.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
+beebs.configure.touchfile: $(LINK_SCRIPT) $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 	rm -rf $(BUILD_DIR);
 	mkdir -p $(BUILD_DIR);
 
