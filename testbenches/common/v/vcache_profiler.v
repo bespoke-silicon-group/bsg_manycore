@@ -13,6 +13,8 @@ module vcache_profiler
     , parameter header_print_p="y[3].x[0]"
 
     , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
+
+    , parameter bsg_cache_pkt_width_lp=`bsg_cache_pkt_width(addr_width_p,data_width_p) 
   )
   (
     input clk_i
@@ -22,6 +24,8 @@ module vcache_profiler
     , input yumi_i
     , input miss_v
     , input bsg_cache_decode_s decode_v_r
+
+    , input [bsg_cache_pkt_width_lp-1:0] cache_pkt_i
 
     , input [dma_pkt_width_lp-1:0] dma_pkt_o
     , input dma_pkt_v_o
@@ -45,12 +49,35 @@ module vcache_profiler
   assign dma_pkt = dma_pkt_o;
 
 
+  `declare_bsg_cache_pkt_s(addr_width_p,data_width_p);
+  bsg_cache_pkt_s cache_pkt;
+  assign cache_pkt = cache_pkt_i;
+
+
+
+
+
   // event signals
   //
 
   wire inc_miss     = miss_v;
+
   wire inc_ld       = v_o & yumi_i & decode_v_r.ld_op;
+  wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LD);
+  wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LDU);
+  wire inc_ld_lw    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LW);
+  wire inc_ld_lwu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LWU);
+  wire inc_ld_lh    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LH);
+  wire inc_ld_lhu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LHU);
+  wire inc_ld_lb    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LB);
+  wire inc_ld_lbu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LBU);
+
   wire inc_st       = v_o & yumi_i & decode_v_r.st_op;
+  wire inc_st_sd    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SD);
+  wire inc_st_sw    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SW);
+  wire inc_st_sh    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SH);
+  wire inc_st_sb    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SB);
+
   wire inc_mask     = v_o & yumi_i & decode_v_r.mask_op;
   wire inc_sigext   = v_o & yumi_i & decode_v_r.sigext_op;
   wire inc_tagst    = v_o & yumi_i & decode_v_r.tagst_op;
@@ -244,10 +271,43 @@ module vcache_profiler
         
           // If response is ready for a hit request
           else begin
-            if (inc_ld)
-              print_operation_trace(trace_fd, my_name, "ld");
-            else if (inc_st)
-              print_operation_trace(trace_fd, my_name, "st");
+
+            if (inc_ld) begin
+              if (inc_ld_ld) 
+                print_operation_trace(trace_fd, my_name, "ld_ld");
+              else if (inc_ld_ldu)
+                print_operation_trace(trace_fd, my_name, "ld_ldu");
+              else if (inc_ld_lw)
+                print_operation_trace(trace_fd, my_name, "ld_lw");
+              else if (inc_ld_lwu)
+                print_operation_trace(trace_fd, my_name, "ld_lwu");
+              else if (inc_ld_lh)
+                print_operation_trace(trace_fd, my_name, "ld_lh");
+              else if (inc_ld_lhu)
+                print_operation_trace(trace_fd, my_name, "ld_lhu");
+              else if (inc_ld_lb) 
+                print_operation_trace(trace_fd, my_name, "ld_lb");
+              else if (inc_ld_lbu)
+                print_operation_trace(trace_fd, my_name, "ld_lbu");
+              else
+                print_operation_trace(trace_fd, my_name, "ld");
+            end
+
+
+            else if (inc_st) begin
+              if (inc_st_sd)
+                print_operation_trace(trace_fd, my_name, "st_sd");  
+              else if (inc_st_sw)
+                print_operation_trace(trace_fd, my_name, "st_sw");  
+              else if (inc_st_sh)
+                print_operation_trace(trace_fd, my_name, "st_sh");  
+              else if (inc_st_sb)
+                print_operation_trace(trace_fd, my_name, "st_sb");  
+              else
+                print_operation_trace(trace_fd, my_name, "st");
+            end
+
+
             else if (inc_mask)
               print_operation_trace(trace_fd, my_name, "mask");
             else if (inc_sigext)
