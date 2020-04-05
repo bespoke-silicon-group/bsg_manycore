@@ -34,7 +34,7 @@ class bsg_manycore_link_gen:
   Since the 31:25 MSBs are assumed to be 0s, linking should also assume
   0x0-0x01000000 as the valid program space. This means that .text section VMAs
   lie in 0x0-0x01000000. On the other hand, .text section is loaded to DRAM and
-  as result, it's LMAs shouls be >0x80000000. So, .text section is loaded in the
+  as result, it's LMAs should be >0x80000000. So, .text section is loaded in the
   region 0x80000000-0x81000000. Consequently, VMA's 0x80000000-0x81000000 are
   are reserved for .text section as well.
   """
