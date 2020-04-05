@@ -106,7 +106,21 @@ module vcache_profiler
   //
   typedef struct packed {
     integer ld_count;
+    integer ld_ld_count;
+    integer ld_ldu_count;
+    integer ld_lw_count;
+    integer ld_lwu_count;
+    integer ld_lh_count;
+    integer ld_lhu_count;
+    integer ld_lb_count;
+    integer ld_lbu_count;
+
     integer st_count;
+    integer st_sd_count;
+    integer st_sw_count;
+    integer st_sh_count;
+    integer st_sb_count;
+
     integer mask_count; 
     integer sigext_count; 
     integer tagst_count;   
@@ -141,8 +155,23 @@ module vcache_profiler
       stat_r <= '0;
     end
     else begin
+
       if (inc_ld)            stat_r.ld_count++;
-      if (inc_st)            stat_r.st_count++;
+      if (inc_ld_ld)         stat_r.ld_ld_count++;
+      if (inc_ld_ldu)        stat_r.ld_ldu_count++;
+      if (inc_ld_lw)         stat_r.ld_lw_count++;
+      if (inc_ld_lwu)        stat_r.ld_lwu_count++;
+      if (inc_ld_lh)         stat_r.ld_lh_count++;
+      if (inc_ld_lhu)        stat_r.ld_lhu_count++;
+      if (inc_ld_lb)         stat_r.ld_lb_count++;
+      if (inc_ld_lbu)        stat_r.ld_lbu_count++;
+
+      if (inc_st)            stat_r.st_count++; 
+      if (inc_st_sd)         stat_r.st_sd_count++;
+      if (inc_st_sw)         stat_r.st_sw_count++;
+      if (inc_st_sh)         stat_r.st_sh_count++;
+      if (inc_st_sb)         stat_r.st_sb_count++;
+
       if (inc_mask)          stat_r.mask_count++;      
       if (inc_sigext)        stat_r.sigext_count++; 
       if (inc_tagst)         stat_r.tagst_count++;   
@@ -185,8 +214,11 @@ module vcache_profiler
     my_name = $sformatf("%m");
     if (str_match(my_name, header_print_p)) begin
       log_fd = $fopen(logfile_lp, "w");
-      $fwrite(log_fd, "time,vcache,global_ctr,tag,instr_ld,instr_st,instr_mask,");
-      $fwrite(log_fd, "instr_sigext,instr_tagst,instr_tagfl,instr_taglv,");
+      $fwrite(log_fd, "time,vcache,global_ctr,tag,");
+      $fwrite(log_fd, "instr_ld,instr_ld_ld,instr_ld_ldu,instr_ld_lw,instr_ld_lwu,");
+      $fwrite(log_fd, "instr_ld_lh,instr_ld_lhu,instr_ld_lb,instr_ld_lbu,");
+      $fwrite(log_fd, "instr_st,instr_st_sd,instr_st_sw,instr_st_sh,instr_st_sb");
+      $fwrite(log_fd, "instr_mask,instr_sigext,instr_tagst,instr_tagfl,instr_taglv,");
       $fwrite(log_fd, "instr_afl,instr_aflinv,instr_ainv,instr_alock,instr_aunlock,");
       $fwrite(log_fd, "instr_tag_read,instr_atomic,instr_amoswap,instr_amoor,");
       $fwrite(log_fd, "miss_ld,miss_st,stall_miss,stall_idle,dma_read_req,dma_write_req\n");
@@ -215,15 +247,33 @@ module vcache_profiler
             print_stat_tag_i
           );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             stat_r.ld_count,
+            stat_r.ld_ld_count,
+            stat_r.ld_ldu_count,
+            stat_r.ld_lw_count,
+            stat_r.ld_lwu_count,
+            stat_r.ld_lh_count,
+            stat_r.ld_lhu_count,
+            stat_r.ld_lb_count,
+            stat_r.ld_lbu_count, 
+          );
+
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,",
             stat_r.st_count,
+            stat_r.st_sd_count,
+            stat_r.st_sw_count,
+            stat_r.st_sh_count,
+            stat_r.st_sb_count,
+          );
+
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
             stat_r.mask_count,
             stat_r.sigext_count,
             stat_r.tagst_count,
             stat_r.tagfl_count,
             stat_r.taglv_count,
-            stat_r.tagla_count
+            stat_r.tagla_count,
           );
 
           $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
@@ -235,7 +285,7 @@ module vcache_profiler
             stat_r.tag_read_count,
             stat_r.atomic_count,
             stat_r.amoswap_count,
-            stat_r.amoor_count
+            stat_r.amoor_count,
           );
 
           $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d\n",
@@ -244,7 +294,7 @@ module vcache_profiler
             stat_r.miss_count,
             stat_r.idle_count,
             stat_r.dma_read_req,
-            stat_r.dma_write_req
+            stat_r.dma_write_req,
           );
 
           $fclose(log_fd);
