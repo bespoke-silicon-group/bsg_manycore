@@ -31,7 +31,7 @@ class bsg_manycore_link_gen:
   Note on program memory:
 
   Manycore's PC width is 24-bit, addressing a total of 16MB program space.
-  Since the 31:25 MBSs are assumed to be 0s, linking should also assume
+  Since the 31:25 MSBs are assumed to be 0s, linking should also assume
   0x0-0x01000000 as the valid program space. This means that .text section VMAs
   lie in 0x0-0x01000000. On the other hand, .text section is loaded to DRAM and
   as result, it's LMAs shouls be >0x80000000. So, .text section is loaded in the
