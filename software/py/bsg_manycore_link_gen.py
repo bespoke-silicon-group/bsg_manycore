@@ -50,6 +50,7 @@ class bsg_manycore_link_gen:
     self._opening_comment += \
         " data default: {0}\n".format(default_data_loc) \
         + " dram memory size: 0x{0:08x}\n".format(dram_size) \
+        + " stack pointer init: 0x{0:08x}\n".format(sp) \
       + "***********************************/\n"
 
   # Format:
