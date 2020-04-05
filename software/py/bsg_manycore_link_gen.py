@@ -269,11 +269,11 @@ if __name__ == '__main__':
   parser.add_argument('--dram_size',
     help = 'DRAM size',
     default = 0x80000000,
-    type = int)
+    type = lambda x: int(x, 0))
   parser.add_argument('--imem_size',
     help = 'IMEM size',
     default = 0x01000000, # 16MB
-    type = int)
+    type = lambda x: int(x, 0))
   parser.add_argument('--sp',
     help = 'Stack pointer',
     default = 0x1000,
