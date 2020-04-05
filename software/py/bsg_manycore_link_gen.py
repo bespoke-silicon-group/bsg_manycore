@@ -25,7 +25,7 @@ class bsg_manycore_link_gen:
 
      would place foo in dram region irrespective of default data location.
 
-  2. Data in bsg_manycore_lib would always be placed in dmem region.
+  2. Data in bsg_manycore_lib will always be placed in dmem region.
 
 
   Note on program memory:
