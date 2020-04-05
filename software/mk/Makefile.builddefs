@@ -71,6 +71,8 @@ LINK_GEN        = $(BSG_MANYCORE_DIR)/software/py/bsg_manycore_link_gen.py
 COMMON_SRC_DIRS = $(BSG_MANYCORE_DIR)/software/spmd/common \
                   $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 
+CURR_DIR := $(shell pwd)
+
 vpath %.cpp $(COMMON_SRC_DIRS)
 vpath %.c $(COMMON_SRC_DIRS)
 vpath %.S $(COMMON_SRC_DIRS)
@@ -146,9 +148,9 @@ else
   $(error Invalid BSG_ELF_OFF_CHIP_MEM = $(BSG_ELF_OFF_CHIP_MEM); Only 0 and 1 are valid)
 endif
 
-LINK_SCRIPT ?= bsg_link.ld
+LINK_SCRIPT ?= $(CURR_DIR)/bsg_link.ld
 
-bsg_link.ld: $(LINK_GEN)
+$(CURR_DIR)/bsg_link.ld: $(LINK_GEN)
 	$(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
 
 RISCV_LINK_OPTS ?= 
