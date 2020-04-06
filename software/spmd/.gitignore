@@ -8,3 +8,4 @@ coremark/coremark
 lfs.c
 *.touchfile
 dramsim3epoch.json
+*.ld
