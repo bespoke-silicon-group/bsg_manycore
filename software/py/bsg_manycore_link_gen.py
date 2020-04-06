@@ -176,17 +176,32 @@ class bsg_manycore_link_gen:
       sec = m[0]
       laddr = '0x1000'
       in_sections = m[1]
-      in_objects = '*' if self._default_data_loc == 'dmem' \
-          else '*bsg_manycore_lib.a:'
 
+      # Place objects into dmem if default data loc is dmem
+      # else only objects from bsg_manycore_lib.a
+      if self._default_data_loc == 'dmem':
+        in_objects = '*'
+      else:
+        in_objects = '*bsg_manycore_lib.a:'
+
+      # Skip if the section .dram
       if re.search(".dram$", sec) != None:
         continue
 
+      # All objects from *.dmem go to dmem irrepsective of
+      # what self._default_data_loc is
       if re.search(".dmem$", sec):
         in_objects = '*'
       else:
+        # Append .dmem to output section name
         sec += '.dmem'
 
+      # This block forms a linker expression that calculates load
+      # address of this section.
+      #
+      # laddr = "laddr of previous section" +
+      #           ("virtual address" -
+      #              "virtual address of previous section")
       if sec != ".dmem":
         prev_sec = section_map[i-1][0]
 
@@ -216,12 +231,17 @@ class bsg_manycore_link_gen:
       if re.search(".dmem$", sec) != None:
         continue
 
+      # .text section virtual address starts at 0x0 but
+      # loaded at 0x80000000
       if sec == ".text.dram":
         vaddr = "0x0"
 
+      # Append .dram to output section name
       if re.search(".dram$", sec) == None and self._default_data_loc == 'dram':
         sec += '.dram'
 
+      # Place section in DRAM if the section is *.dram or if the default data
+      # location is set to dram.
       if self._default_data_loc == 'dram' or re.search(".dram$", sec) != None:
         boundary = None
         lma_region = 'DRAM_D_LMA'
@@ -233,20 +253,33 @@ class bsg_manycore_link_gen:
         sections += self._section(sec, vaddr, None, lma_region,
             in_sections, in_objects, boundary)
 
+      # Skip the size allocated for imem
       if sec == '.text.dram':
           sections += ". = 0x80000000 + 0x{0:08x};\n\n".format(self._imem_size)
 
     # Symbols
+
+    # global pointer
     if self._default_data_loc == 'dmem':
       sections += "_gp = ADDR(.sdata.dmem) + 0x800;\n"
     else:
       sections += "_gp = ADDR(.sdata.dram) + 0x800;\n"
+
+    # stack pointer
     sections += "_sp = 0x{0:08x};\n".format(self._sp)
+
+    # dmem boundaries
     sections += "_bsg_data_start_addr = 0x{0:08x};\n".format(_DMEM_VMA_START)
     sections += "_bsg_data_end_addr = ADDR(.striped.data.dmem) + " \
                 "SIZEOF(.striped.data.dmem);\n"
+
+    # striped data start pointer
     sections += "_bsg_striped_data_start = ADDR(.striped.data.dmem);\n"
+
+    # dram end address
     sections += "_bsg_dram_end_addr = LOADADDR(.dram) + SIZEOF(.dram);\n"
+
+    # heap start point: newlib's malloc uses this symbol
     sections += "_end = _bsg_dram_end_addr;\n"
 
     sections += "\n}\n"
