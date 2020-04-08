@@ -239,7 +239,7 @@ class VCacheStallGraph:
 
     # public method to generate key for vcache stall graph
     # called if --generate-key argument is true
-    def generate_key(self, key_image_fname = "key"):
+    def generate_key(self, key_image_fname = "vcache_key"):
         img  = Image.new("RGB", (self._KEY_WIDTH, self._KEY_HEIGHT), "black")
         draw = ImageDraw.Draw(img)
         font = ImageFont.load_default()
