@@ -269,7 +269,7 @@ class VanillaStatsParser:
         self.num_tile_groups, self.tile_group_stat, self.tile_stat, self.manycore_cycle_parallel_cnt = self.__generate_tile_stats(self.traces, self.active_tiles)
 
         # generate timing stats for each vcache bank 
-        self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
+        self.vcache_tile_group_stat, self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
 
 
         # Calculate total aggregate stats for manycore by summing up per_tile stat counts
@@ -1394,6 +1394,12 @@ class VanillaStatsParser:
         vcache_stat       = {tag: {vcache:Counter() for vcache in vcaches} for tag in tags}
 
 
+        vcache_tile_group_stat_start = {tag: [Counter() for tg_id in range(self.max_tile_groups)] for tag in tags}
+        vcache_tile_group_stat_end   = {tag: [Counter() for tg_id in range(self.max_tile_groups)] for tag in tags}
+        vcache_tile_group_stat       = {tag: [Counter() for tg_id in range(self.max_tile_groups)] for tag in tags}
+
+
+
         tag_seen = {tag: {vcache:False for vcache in vcaches} for tag in tags}
 
 
@@ -1411,9 +1417,11 @@ class VanillaStatsParser:
                     if (vcache_stat_start[cst.tag][cur_vcache]['global_ctr'] > trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
+                            vcache_tile_group_stat_start[cst.tag][cst.tg_id][op] += trace[op]
                 else:
                     for op in self.vcache_all_ops:
                         vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
+                        vcache_tile_group_stat_start[cst.tag][cst.tg_id][op] += trace[op]
                 tag_seen[cst.tag][cur_vcache] = True
 
 
@@ -1425,9 +1433,11 @@ class VanillaStatsParser:
                     if (vcache_stat_end[cst.tag][cur_vcache]['global_ctr'] < trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_end[cst.tag][cur_vcache][op] = trace[op]
+                            vcache_tile_group_stat_end[cst.tag][cst.tg_id][op] += trace[op]
                 else:
                     for op in self.vcache_all_ops:
                         vcache_stat_end[cst.tag][cur_vcache][op] = trace[op]
+                        vcache_tile_group_stat_end[cst.tag][cst.tg_id][op] += trace[op]
 
 
                 vcache_stat[cst.tag][cur_vcache] += vcache_stat_end[cst.tag][cur_vcache] - vcache_stat_start[cst.tag][cur_vcache]
@@ -1442,9 +1452,11 @@ class VanillaStatsParser:
                     if (vcache_stat_start["kernel"][cur_vcache]['global_ctr'] > trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
+                            vcache_tile_group_stat_start["kernel"][cst.tg_id][op] += trace[op]
                 else:
                     for op in self.vcache_all_ops:
                         vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
+                        vcache_tile_group_stat_start["kernel"][cst.tg_id][op] += trace[op]
                 tag_seen["kernel"][cur_vcache] = True
 
 
@@ -1456,9 +1468,11 @@ class VanillaStatsParser:
                     if (vcache_stat_end["kernel"][cur_vcache]['global_ctr'] < trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_end["kernel"][cur_vcache][op] = trace[op]
+                            vcache_tile_group_stat_end["kernel"][cst.tg_id][op] += trace[op]
                 else:
                     for op in self.vcache_all_ops:
                         vcache_stat_end["kernel"][cur_vcache][op] = trace[op]
+                        vcache_tile_group_stat_end["kernel"][cst.tg_id][op] += trace[op]
 
 
                 vcache_stat["kernel"][cur_vcache] += vcache_stat_end["kernel"][cur_vcache] - vcache_stat_start["kernel"][cur_vcache]
@@ -1484,13 +1498,30 @@ class VanillaStatsParser:
 
 
 
+        # Generate total stats for each tile group by summing all vcache stats 
+        for tag in tags:
+            for tg_id in range(num_tile_groups[tag]):
+                for instr in self.vcache_instrs:
+                    vcache_tile_group_stat[tag][tg_id]["instr_total"] += vcache_tile_group_stat[tag][tg_id][instr]
+                for stall in self.vcache_stalls:
+                    vcache_tile_group_stat[tag][tg_id]["stall_total"] += vcache_tile_group_stat[tag][tg_id][stall]
+                for bubble in self.vcache_bubbles:
+                    vcache_tile_group_stat[tag][tg_id]["bubble_total"] += vcache_tile_group_stat[tag][tg_id][bubble]
+                for miss in self.vcache_misses:
+                    vcache_tile_group_stat[tag][tg_id]["miss_total"] += vcache_tile_group_stat[tag][tg_id][miss]
+                    hit = miss.replace("miss_", "instr_")
+                    vcache_tile_group_stat[tag][tg_id]["hit_total"] += vcache_tile_group_stat[tag][tg_id][hit]
+
+
+
+
         self.vcache_instrs  += ["instr_total"]
         self.vcache_stalls  += ["stall_total"]
         self.vcache_bubbles += ["bubble_total"]
         self.vcache_misses  += ["miss_total"]
         self.vcache_all_ops += ["instr_total", "stall_total", "bubble_total", "miss_total", "hit_total"]
 
-        return vcache_stat
+        return vcache_tile_group_stat, vcache_stat
 
 
 
