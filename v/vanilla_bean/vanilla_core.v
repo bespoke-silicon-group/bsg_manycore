@@ -1346,4 +1346,25 @@ module vanilla_core
   assign float_rf_wdata = fp_wb_r.wb_data;
 
 
+
+  // synopsys translate_off
+    
+  // stall_force_wb WAW hazard check.
+  always_ff @ (negedge clk_i) begin
+    if (int_remote_load_resp_v_i & int_remote_load_resp_force_i) begin
+      if (mem_r.op_writes_rf) begin
+        assert(int_remote_load_resp_rd_i != mem_r.rd_addr)
+          else $error("[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD WITH MEM_R!!! t=%t, exe_pc=%x", $time, exe_pc);
+      end
+      if (wb_r.op_writes_rf) begin
+        assert(int_remote_load_resp_rd_i != wb_r.rd_addr)
+          else $error("[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD with WB_R!!! t=%t, exe_pc=%x", $time, exe_pc);
+      end
+
+    end
+  end
+
+  // synopsys translate_on
+
+
 endmodule
