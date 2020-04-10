@@ -37,9 +37,8 @@ module hash_function
   end
   else if (`BSG_IS_POW2(banks_p)) begin: p2
 
-    assign bank_o = i[0+:lg_banks_lp];
-    assign index_o = i[index_width_lp-1:lg_banks_lp];
-
+    assign bank_o  = i[0+:lg_banks_lp];
+    assign index_o = i[lg_banks_lp+:index_width_lp];
   end
   else begin: unhandled
     initial assert("banks_p" == "unhandled") else $error("unhandled case for %m");
