@@ -23,7 +23,7 @@
   lw x30, 0(x3) /* this loads 0. this has to be done by stall_force_wb. */
   mul x5, x0, x0 /* this mul creates a long stall, which keeps the first load to x30 in the pipeline. */
 
-  /* if everything when correctly, x30 should have 0.*/
+  /* if everything went correctly, x30 should have 0.*/
   bne x0, x30, fail
 
   bsg_asm_finish(IO_X_INDEX, 0)
