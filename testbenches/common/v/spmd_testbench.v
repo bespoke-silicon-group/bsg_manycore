@@ -211,12 +211,13 @@ module spmd_testbench;
 
   // LEVEL 1
   if (mem_cfg_lp[e_infinite_mem]) begin: lv1_infty
-
+    localparam infmem_els_lp = 1<<(bsg_max_epa_width_p-x_cord_width_lp-1);
     for (genvar j = N; j <= S; j++) begin: y
       for (genvar i = 0; i < num_tiles_x_p; i++) begin: x
         bsg_nonsynth_mem_infinite #(
           .data_width_p(data_width_p)
           ,.addr_width_p(bsg_max_epa_width_p)
+          ,.mem_els_p(infmem_els_lp)
           ,.x_cord_width_p(x_cord_width_lp)
           ,.y_cord_width_p(y_cord_width_lp)
           ,.id_p(num_tiles_x_p*j + i)
