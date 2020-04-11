@@ -24,7 +24,11 @@
 #   {timing-stat}  used for extracting the timing window for blood graph
 #   {abstract}     used for abstract simplifed bloodgraph
 #   {generate-key} also generates a color key for the blood graph
-
+#
+#
+#   Note: You can use the "Digital Color Meter" in MacOS in order to compare
+#   the values from the color key to the values in the bloodgraph, if you are
+#   having trouble distinguishing a color.
 
 import sys
 import csv
