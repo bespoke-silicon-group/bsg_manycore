@@ -77,7 +77,7 @@ module bsg_nonsynth_mem_infinite
   // mem
   logic mem_v_li;
   logic mem_w_li;
-  logic [mem_addr_width_p-1:0] mem_addr_li;
+  logic [mem_addr_width_lp-1:0] mem_addr_li;
   logic [data_width_p-1:0] mem_data_li;
   logic [data_mask_width_lp-1:0] mem_mask_li; 
   logic [data_width_p-1:0] mem_data_lo; 
