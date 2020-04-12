@@ -71,12 +71,14 @@ module vcache_profiler
   wire inc_ld_lhu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LHU);
   wire inc_ld_lb    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LB);
   wire inc_ld_lbu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LBU);
+  wire inc_ld_lm    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LM);
 
   wire inc_st       = v_o & yumi_i & decode_v_r.st_op;
   wire inc_st_sd    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SD);
   wire inc_st_sw    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SW);
   wire inc_st_sh    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SH);
   wire inc_st_sb    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SB);
+  wire inc_st_sm    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SM);
 
   wire inc_mask     = v_o & yumi_i & decode_v_r.mask_op;
   wire inc_sigext   = v_o & yumi_i & decode_v_r.sigext_op;
@@ -114,12 +116,14 @@ module vcache_profiler
     integer ld_lhu_count;
     integer ld_lb_count;
     integer ld_lbu_count;
+    integer ld_lm_count;
 
     integer st_count;
     integer st_sd_count;
     integer st_sw_count;
     integer st_sh_count;
     integer st_sb_count;
+    integer st_sm_count;
 
     integer mask_count; 
     integer sigext_count; 
@@ -165,12 +169,14 @@ module vcache_profiler
       if (inc_ld_lhu)        stat_r.ld_lhu_count++;
       if (inc_ld_lb)         stat_r.ld_lb_count++;
       if (inc_ld_lbu)        stat_r.ld_lbu_count++;
+      if (inc_ld_lm)         stat_r.ld_lm_count++;
 
       if (inc_st)            stat_r.st_count++; 
       if (inc_st_sd)         stat_r.st_sd_count++;
       if (inc_st_sw)         stat_r.st_sw_count++;
       if (inc_st_sh)         stat_r.st_sh_count++;
       if (inc_st_sb)         stat_r.st_sb_count++;
+      if (inc_st_sm)         stat_r.st_sm_count++;
 
       if (inc_mask)          stat_r.mask_count++;      
       if (inc_sigext)        stat_r.sigext_count++; 
@@ -216,8 +222,8 @@ module vcache_profiler
       log_fd = $fopen(logfile_lp, "w");
       $fwrite(log_fd, "time,vcache,global_ctr,tag,");
       $fwrite(log_fd, "instr_ld,instr_ld_ld,instr_ld_ldu,instr_ld_lw,instr_ld_lwu,");
-      $fwrite(log_fd, "instr_ld_lh,instr_ld_lhu,instr_ld_lb,instr_ld_lbu,");
-      $fwrite(log_fd, "instr_st,instr_st_sd,instr_st_sw,instr_st_sh,instr_st_sb,");
+      $fwrite(log_fd, "instr_ld_lh,instr_ld_lhu,instr_ld_lb,instr_ld_lbu,instr_ld_lm,");
+      $fwrite(log_fd, "instr_st,instr_st_sd,instr_st_sw,instr_st_sh,instr_st_sb,instr_st_sm,");
       $fwrite(log_fd, "instr_mask,instr_sigext,instr_tagst,instr_tagfl,instr_taglv,instr_tagla,");
       $fwrite(log_fd, "instr_afl,instr_aflinv,instr_ainv,instr_alock,instr_aunlock,");
       $fwrite(log_fd, "instr_tag_read,instr_atomic,instr_amoswap,instr_amoor,");
@@ -247,7 +253,7 @@ module vcache_profiler
             print_stat_tag_i
           );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             stat_r.ld_count,
             stat_r.ld_ld_count,
             stat_r.ld_ldu_count,
@@ -257,14 +263,16 @@ module vcache_profiler
             stat_r.ld_lhu_count,
             stat_r.ld_lb_count,
             stat_r.ld_lbu_count, 
+            stat_r.ld_lm_count, 
           );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
             stat_r.st_count,
             stat_r.st_sd_count,
             stat_r.st_sw_count,
             stat_r.st_sh_count,
             stat_r.st_sb_count,
+            stat_r.st_sm_count,
           );
 
           $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
@@ -339,6 +347,8 @@ module vcache_profiler
                 print_operation_trace(trace_fd, my_name, "ld_lb");
               else if (inc_ld_lbu)
                 print_operation_trace(trace_fd, my_name, "ld_lbu");
+              else if (inc_ld_lm)
+                print_operation_trace(trace_fd, my_name, "ld_lm");
               else
                 print_operation_trace(trace_fd, my_name, "ld");
             end
@@ -353,6 +363,8 @@ module vcache_profiler
                 print_operation_trace(trace_fd, my_name, "st_sh");  
               else if (inc_st_sb)
                 print_operation_trace(trace_fd, my_name, "st_sb");  
+              else if (inc_st_sm)
+                print_operation_trace(trace_fd, my_name, "st_sm"); 
               else
                 print_operation_trace(trace_fd, my_name, "st");
             end

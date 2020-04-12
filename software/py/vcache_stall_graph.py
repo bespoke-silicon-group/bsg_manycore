@@ -57,12 +57,14 @@ class VCacheStallGraph:
                                "ld_lhu",
                                "ld_lb",
                                "ld_lbu",
+                               "ld_ml",
 
                                "st",     
                                "st_sd",
                                "st_sw",
                                "st_sh",
                                "st_sb",
+                               "st_sm",
 
                                "mask",   
                                "sigext", 
@@ -99,11 +101,13 @@ class VCacheStallGraph:
                                          "ld_lhu"          : (0x00, 0xff, 0x00) , ## green
                                          "ld_lb"           : (0x00, 0xff, 0x00) , ## green
                                          "ld_lbu"          : (0x00, 0xff, 0x00) , ## green
+                                         "ld_lm"           : (0x00, 0xff, 0x00) , ## green
                                          "st"              : (0x00, 0x00, 0xff) , ## blue
                                          "st_sd"           : (0x00, 0x00, 0xff) , ## blue
                                          "st_sw"           : (0x00, 0x00, 0xff) , ## blue
                                          "st_sh"           : (0x00, 0x00, 0xff) , ## blue
                                          "st_sb"           : (0x00, 0x00, 0xff) , ## blue
+                                         "st_sm"           : (0x00, 0x00, 0xff) , ## blue
                                          "mask"            : (0x00, 0x00, 0x00) , ## white 
                                          "sigext"          : (0x00, 0x00, 0x00) , ## white 
                                          "tagst"           : (0x00, 0x00, 0x00) , ## white 
@@ -139,11 +143,13 @@ class VCacheStallGraph:
                                          "ld_lhu"          : (0x00, 0xff, 0x00) , ## green
                                          "ld_lb"           : (0x00, 0xff, 0x00) , ## green
                                          "ld_lbu"          : (0x00, 0xff, 0x00) , ## green
+                                         "ld_lm"           : (0x00, 0xff, 0x00) , ## green
                                          "st"              : (0x00, 0x00, 0xff) , ## blue
                                          "st_sd"           : (0x00, 0x00, 0xff) , ## blue
                                          "st_sw"           : (0x00, 0x00, 0xff) , ## blue
                                          "st_sh"           : (0x00, 0x00, 0xff) , ## blue
                                          "st_sb"           : (0x00, 0x00, 0xff) , ## blue
+                                         "st_sm"           : (0x00, 0x00, 0xff) , ## blue
                                          "mask"            : (0x00, 0x00, 0x00) , ## white 
                                          "sigext"          : (0x00, 0x00, 0x00) , ## white 
                                          "tagst"           : (0x00, 0x00, 0x00) , ## white 
