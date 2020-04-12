@@ -1,6 +1,8 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
+#define N 5 // < 20
+
 volatile int load_buf[4] __attribute__((section(".dram"))) = {1, 2, 3, 0};
 volatile int store_buf[20];
 volatile int* long_remote = bsg_remote_ptr(4, 4, 0x1200);
@@ -27,8 +29,8 @@ int main()
 
     // This models the delay of transistion to different
     // section of the program.
-    #pragma GCC unroll 5
-    for(int i=0; i<5; ++i)
+    #pragma GCC unroll 20
+    for(int i=0; i<N; ++i)
       store_buf[i] = 0;
 
     // Long remote to fill up the buffer causing force write back
