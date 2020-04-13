@@ -42,7 +42,7 @@
 //  Helper funcitons.
 // check if the char array are all non-zeros
 //------------------------------------------------------------------
-void inline poll_range( int range, const unsigned int *p){
+void inline poll_range( int range, volatile const unsigned int *p){
         int i;
         do{
                 for( i= 0; i <= range; i++) {
@@ -75,8 +75,8 @@ class bsg_row_barrier {
 public:
     static constexpr unsigned char    _x_cord_start = 0;
     static constexpr unsigned char    _x_cord_end = BARRIER_X_DIM - 1;
-    unsigned int     _local_alert = 0;
-    unsigned int     _done_list[ BARRIER_X_DIM ] = {0};
+    volatile unsigned int     _local_alert = 0;
+    volatile unsigned int     _done_list[ BARRIER_X_DIM ] = {0};
 
 
     bsg_row_barrier (){};
@@ -139,8 +139,8 @@ class bsg_col_barrier {
 public:
     static constexpr unsigned char    _y_cord_start = 0;
     static constexpr unsigned char    _y_cord_end = BARRIER_Y_DIM - 1;
-    unsigned int      _local_alert = 0;
-    unsigned int      _done_list[ BARRIER_Y_DIM ] = {0};
+    volatile unsigned int      _local_alert = 0;
+    volatile unsigned int      _done_list[ BARRIER_Y_DIM ] = {0};
 
 
     bsg_col_barrier (){};
