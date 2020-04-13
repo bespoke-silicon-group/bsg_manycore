@@ -1,3 +1,4 @@
+BSG_ELF_DEFAULT_DATA_LOC = SHARED
 BSG_NEWLIB = 1
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
@@ -10,8 +11,6 @@ RISCV_GCC_EXTRA_OPTS += -D__spike__
 SPMD_COMMON_OBJECTS += spike.o
 
 endif
-
-LINK_SCRIPT = $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
 
 all: main.run
 
@@ -27,7 +26,7 @@ endif
 
 include ../Makefile.include
 
-main.riscv: $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) $(CRT_OBJ)
+main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) $(CRT_OBJ)
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 main.o: Makefile

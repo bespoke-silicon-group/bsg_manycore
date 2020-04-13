@@ -8,7 +8,7 @@ include ../Makefile.include
 
 all: main.run
 
-main.riscv:  $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../common/crt.o
+main.riscv: $(LINK_SCRIPT)  $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../common/crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 clean:
@@ -17,15 +17,4 @@ clean:
 
 main.o: Makefile
 
-dve64:
-	$(VCS_BIN)/dve -full64
-
-
-
-
-
-
-
-
-
-
+include ../../mk/Makefile.tail_rules

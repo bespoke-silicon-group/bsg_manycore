@@ -34,7 +34,7 @@ spike_call_log: pp_spike_trace
 CLEAN_ITEMS ?=
 
 clean:
-	-rm -rf *.o *.a *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex
+	-rm -rf *.o *.a *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex *.ld
 	-rm -rf xsim.dir *.mem stack.info.*
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd *.vdb coverage* constfile.txt
 	-rm -rf build/ *.bc*

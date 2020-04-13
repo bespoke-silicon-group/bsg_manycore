@@ -7,8 +7,8 @@ include ../Makefile.include
 
 RISCV_LINK_OPTS =  -march=rv32ima -nostdlib -nostartfiles 
 
-main.riscv:  main.o 
-	$(RISCV_LINK) $< -o $@ $(RISCV_LINK_OPTS)
+main.riscv: $(LINK_SCRIPT)  main.o 
+	$(RISCV_LINK) main.o -o $@ $(RISCV_LINK_OPTS)
 
 
 clean:

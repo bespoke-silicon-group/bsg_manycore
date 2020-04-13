@@ -66,9 +66,12 @@ BSG_ROM_GEN     = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN         = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
 NBF_PY 			    = $(BSG_MANYCORE_DIR)/software/py/nbf.py
 TRACE_PP_SCRIPT = $(BSG_MANYCORE_DIR)/software/py/post_process_trace.py
+LINK_GEN        = $(BSG_MANYCORE_DIR)/software/py/bsg_manycore_link_gen.py
 
 COMMON_SRC_DIRS = $(BSG_MANYCORE_DIR)/software/spmd/common \
                   $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+
+CURR_DIR := $(shell pwd)
 
 vpath %.cpp $(COMMON_SRC_DIRS)
 vpath %.c $(COMMON_SRC_DIRS)
@@ -123,23 +126,32 @@ CRT_OBJ ?= crt.o
 
 ifeq ($(BSG_ELF_OFF_CHIP_MEM), 1)
   ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), LOCAL)
-    LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem.ld
+    LINK_GEN_OPTS ?= --default_data_loc=dmem --dram_size=$(BSG_ELF_DRAM_SIZE) --sp=$(BSG_ELF_STACK_PTR)
   else ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), SHARED)
-    LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram.ld
+    LINK_GEN_OPTS ?= --default_data_loc=dram --dram_size=$(BSG_ELF_DRAM_SIZE) --sp=$(BSG_ELF_STACK_PTR)
   else
     $(error Invalid BSG_ELF_DEFAULT_DATA_LOC = $(BSG_ELF_DEFAULT_DATA_LOC); Only LOCAL and SHARED are valid)
   endif
+
+  LINK_GEN_OPTS += --imem_size=0x01000000 # 16MB
 else ifeq ($(BSG_ELF_OFF_CHIP_MEM), 0)
   ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), LOCAL)
-    LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dmem2.ld
+    LINK_GEN_OPTS ?= --default_data_loc=dmem --dram_size=$(BSG_ELF_VCACHE_SIZE) --sp=$(BSG_ELF_STACK_PTR)
   else ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), SHARED)
-    LINK_SCRIPT ?= $(BSG_MANYCORE_DIR)/software/spmd/common/link_dram2.ld
+    LINK_GEN_OPTS ?= --default_data_loc=dram --dram_size=$(BSG_ELF_VCACHE_SIZE) --sp=$(BSG_ELF_STACK_PTR)
   else
     $(error Invalid BSG_ELF_DEFAULT_DATA_LOC = $(BSG_ELF_DEFAULT_DATA_LOC); Only LOCAL and SHARED are valid)
   endif
+
+  LINK_GEN_OPTS += --imem_size=0x00100000 # 1MB
 else
   $(error Invalid BSG_ELF_OFF_CHIP_MEM = $(BSG_ELF_OFF_CHIP_MEM); Only 0 and 1 are valid)
 endif
+
+LINK_SCRIPT ?= $(CURR_DIR)/bsg_link.ld
+
+$(CURR_DIR)/bsg_link.ld: $(LINK_GEN)
+	$(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
 
 RISCV_LINK_OPTS ?= 
 

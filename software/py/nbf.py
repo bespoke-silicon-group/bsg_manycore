@@ -99,7 +99,7 @@ class NBF:
       print("install riscv-tools first...")
       sys.exit()
 
-    cmd = [objcopy_path, "-O", "verilog", "-j", section, self.riscv_file, output_file]
+    cmd = [objcopy_path, "-O", "verilog", "-j", section, "--set-section-flags", "*bss*=alloc,load,contents", self.riscv_file, output_file]
     result = subprocess.call(cmd)
   
     addr_val = {}

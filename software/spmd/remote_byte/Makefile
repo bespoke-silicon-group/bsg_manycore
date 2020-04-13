@@ -6,8 +6,8 @@ include ../Makefile.include
 
 all: main.run
 
-main.riscv:  main.o $(SPMD_COMMON_OBJECTS) ../common/crt.o
-	$(RISCV_LINK) $< -o $@ $(RISCV_LINK_OPTS)
+main.riscv: $(LINK_SCRIPT)  main.o $(SPMD_COMMON_OBJECTS) ../common/crt.o
+	$(RISCV_LINK) main.o -o $@ $(RISCV_LINK_OPTS)
 
 
 main.o: Makefile

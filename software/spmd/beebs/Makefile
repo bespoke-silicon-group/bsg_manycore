@@ -42,7 +42,7 @@ all: beebs.configure.touchfile
 	make -C  $*_run -f ../Makefile PROG_NAME=$* $*.run MAX_CYCLES=$(MAX_CYCLES) | tee $*_run/$*-run.log
 
 # Just copy the installed binary
-%.riscv:  $(COMMON_SRCS) $(BSG_MANYCORE_LIB) $(wildcard $(BEEBS_DIR)/src/%/*)
+%.riscv: $(LINK_SCRIPT)  $(COMMON_SRCS) $(BSG_MANYCORE_LIB) $(wildcard $(BEEBS_DIR)/src/%/*)
 	make -C $(BUILD_DIR)/src/$* clean
 	make -C $(BUILD_DIR)/src/$* install V=1
 	cp $(BUILD_DIR)/bin/$* $@
@@ -71,7 +71,7 @@ BEEBS_LDFLAGS = "-t -T $(LINK_SCRIPT) -march=$(ARCH_OP) -nostartfiles -ffast-mat
 
 configure: beebs.configure.touchfile
 
-beebs.configure.touchfile: $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
+beebs.configure.touchfile: $(LINK_SCRIPT) $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
 	rm -rf $(BUILD_DIR);
 	mkdir -p $(BUILD_DIR);
 
