@@ -258,8 +258,8 @@ public:
         // Only performed by the center tile of the center column
         if( bsg_x == center_x_cord && bsg_y == center_y_cord) { 
                 this->c_barrier.wait_on_sync();
-                this->c_barrier.alert();
                 this->c_barrier.reset();
+                this->c_barrier.alert();
         }
 
         // Wait on alert signals from center tile of the center column to be received
@@ -268,8 +268,8 @@ public:
         // Performed by all tiles in the center column 
         if( bsg_x == center_x_cord) {
                 this->c_barrier.wait_on_alert();
-                this->r_barrier.alert();
                 this->r_barrier.reset();
+                this->r_barrier.alert();
         }
 
         // Wait on alert signal from the center tile in each row 
