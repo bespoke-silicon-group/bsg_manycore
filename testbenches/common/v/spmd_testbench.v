@@ -1002,6 +1002,15 @@ module spmd_testbench;
     ,.trace_en_i($root.spmd_testbench.trace_en)
   );
 
+  // nb WAW detector
+  bind vanilla_core nb_waw_detector #(
+    .data_width_p(data_width_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+  ) waw0 (
+    .*
+  );
+
   // tieoffs
   //
   for (genvar i = 0; i < num_tiles_y_p; i++) begin: we_tieoff
