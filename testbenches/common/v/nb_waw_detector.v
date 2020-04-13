@@ -51,7 +51,7 @@ module nb_waw_detector
     end
   end
 
-  logic [instr_width_lp-1:0] victim_pc_r;
+  logic [reg_els_lp-1:0][instr_width_lp-1:0] victim_pc_r;
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
@@ -61,7 +61,7 @@ module nb_waw_detector
       if (~(stall_ifetch_wait | stall_icache_store | stall_lr_aq | stall_fence | stall_md | stall_remote_req | stall_local_flw)) begin
         if (~(exe_op_writes_rf | exe_op_writes_fp_rf)) begin
           if (int_remote_load_resp_v_i) begin
-            victim_pc_r <= pc_r[int_remote_load_resp_rd_i];
+            victim_pc_r[int_remote_load_resp_rd_i] <= pc_r[int_remote_load_resp_rd_i];
           end
         end
       end
@@ -76,13 +76,13 @@ module nb_waw_detector
       if (mem_r.op_writes_rf) begin
         assert(int_remote_load_resp_rd_i != mem_r.rd_addr)
           else $error("[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD WITH MEM_R!!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x",
-            $time, my_x_i, my_y_i, mem_r.rd_addr, pc_r[mem_r.rd_addr], victim_pc_r);
+            $time, my_x_i, my_y_i, mem_r.rd_addr, pc_r[mem_r.rd_addr], victim_pc_r[mem_r.rd_addr]);
       end
 
       if (wb_r.op_writes_rf) begin
         assert(int_remote_load_resp_rd_i != wb_r.rd_addr)
           else $error("[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD with WB_R!!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x",
-            $time, my_x_i, my_y_i, wb_r.rd_addr, pc_r[wb_r.rd_addr], victim_pc_r);
+            $time, my_x_i, my_y_i, wb_r.rd_addr, pc_r[wb_r.rd_addr], victim_pc_r[wb_r.rd_addr]);
       end
 
     end
