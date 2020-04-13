@@ -1,7 +1,7 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-#define N 5 // < 20
+#define N 5 // <= 20
 
 volatile int load_buf[4] __attribute__((section(".dram"))) = {1, 2, 3, 0};
 volatile int store_buf[20];
