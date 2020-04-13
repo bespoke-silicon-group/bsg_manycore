@@ -42,7 +42,7 @@
 //  Helper funcitons.
 // check if the char array are all non-zeros
 //------------------------------------------------------------------
-void inline poll_range( int range, unsigned char *p){
+void inline poll_range( int range, const unsigned int *p){
         int i;
         do{
                 for( i= 0; i <= range; i++) {
@@ -73,31 +73,20 @@ inline int bsg_wait_local_int(int * ptr,  int cond ) {
 template <int BARRIER_X_DIM>
 class bsg_row_barrier {
 public:
-    unsigned char    _x_cord_start;
-    unsigned char    _x_cord_end;
-    unsigned char    _done_list[ BARRIER_X_DIM ] = {0};
-    unsigned int     _local_alert;
+    static constexpr unsigned char    _x_cord_start = 0;
+    static constexpr unsigned char    _x_cord_end = BARRIER_X_DIM - 1;
+    unsigned int     _local_alert = 0;
+    unsigned int     _done_list[ BARRIER_X_DIM ] = {0};
+
 
     bsg_row_barrier (){};
-
-    bsg_row_barrier (unsigned char x_cord_start ,unsigned char x_cord_end) {
-        _x_cord_start = x_cord_start;
-        _x_cord_end = x_cord_end;
-        _local_alert = 0;
-    }; 
-
-    void init (unsigned char x_cord_start ,unsigned char x_cord_end) {
-        _x_cord_start = x_cord_start;
-        _x_cord_end = x_cord_end;
-        _local_alert = 0;
-        return;
-    }; 
 
 
     // Reinitializes the done_list to zero
     void reset() {
         for (int i = 0; i < BARRIER_X_DIM; i ++) {
-            this->_done_list[i] = 0;
+            unsigned int* done_list_ptr = const_cast<unsigned int*> (&_done_list[i]);
+            *done_list_ptr = 0;
         }
         return;
     };
@@ -106,23 +95,18 @@ public:
     // send the sync singal to the center tile of the row
     // executed by all tiles in the group.
     void sync (unsigned char center_x_cord) {
-        bsg_row_barrier<BARRIER_X_DIM> * p_remote_barrier = (bsg_row_barrier<BARRIER_X_DIM> *) bsg_remote_ptr( center_x_cord,    \
-                                                                                                               bsg_y        ,    \
-                                                                                                               this);
         //write to the corresponding done
-        p_remote_barrier->_done_list[ bsg_x - this->_x_cord_start] = 1; 
+        volatile unsigned int *done_list_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> bsg_remote_ptr(center_x_cord, bsg_y, &_done_list[bsg_x - _x_cord_start]));
+        *done_list_ptr = 1;
         return;
     };
 
 
     // send alert to all of the tiles in the row 
     void alert (){
-        bsg_row_barrier<BARRIER_X_DIM> * p_remote_barrier;
         for( int i = this->_x_cord_start; i <= this->_x_cord_end; i ++) {
-               p_remote_barrier = (bsg_row_barrier<BARRIER_X_DIM> *) bsg_remote_ptr( i,        \
-                                                                                     bsg_y,    \
-                                                                                     this);
-               p_remote_barrier->_local_alert = 1;
+               volatile unsigned int *alert_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> bsg_remote_ptr(i, bsg_y, &_local_alert));
+               *alert_ptr = 1;
         }
         return;
     };
@@ -143,7 +127,8 @@ public:
         // wait until _local_alert flag is set to 1
         bsg_wait_local_int( (int *) &(this->_local_alert), 1);
         //re-initilized the flag to 0
-        this->_local_alert = 0;
+        unsigned int* alert_ptr = const_cast<unsigned int*> (&_local_alert);
+        *alert_ptr = 0;
         return;
     };
 };
@@ -152,31 +137,20 @@ public:
 template <int BARRIER_Y_DIM>
 class bsg_col_barrier {
 public:
-    unsigned char    _y_cord_start;
-    unsigned char    _y_cord_end;
-    unsigned char    _done_list[ BARRIER_Y_DIM ] = {0};
-    unsigned int     _local_alert ;
+    static constexpr unsigned char    _y_cord_start = 0;
+    static constexpr unsigned char    _y_cord_end = BARRIER_Y_DIM - 1;
+    unsigned int      _local_alert = 0;
+    unsigned int      _done_list[ BARRIER_Y_DIM ] = {0};
+
 
     bsg_col_barrier (){};
-
-    bsg_col_barrier (unsigned char y_cord_start ,unsigned char y_cord_end) {
-        _y_cord_start = y_cord_start;
-        _y_cord_end = y_cord_end;
-        _local_alert = 0;
-    };
-
-    void init (unsigned char y_cord_start ,unsigned char y_cord_end) {
-        _y_cord_start = y_cord_start;
-        _y_cord_end = y_cord_end;
-        _local_alert = 0;
-        return;
-    };
 
 
     // Reinitializes the done_list to zero
     void reset() {
         for (int i = 0; i < BARRIER_Y_DIM; i ++) {
-            this->_done_list[i] = 0;
+            unsigned int* done_list_ptr = const_cast<unsigned int*> (&_done_list[i]);
+            *done_list_ptr = 0;
         }
         return;
     };
@@ -184,11 +158,10 @@ public:
     // send the sync singal to the center tile of the column
     // executed by all tiles in the center row
     void sync(unsigned char center_x_cord, unsigned char center_y_cord ){
-        bsg_col_barrier<BARRIER_Y_DIM> * p_remote_barrier = (bsg_col_barrier<BARRIER_Y_DIM> *) bsg_remote_ptr( center_x_cord,    \
-                                                                                                               center_y_cord,    \
-                                                                                                               this);
         //write to the corresponding done
-        p_remote_barrier->_done_list[ bsg_y - this->_y_cord_start] = 1; 
+        volatile unsigned int *done_list_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> bsg_remote_ptr(center_x_cord, center_y_cord, &_done_list[bsg_y - _y_cord_start]));
+        *done_list_ptr = 1;
+
         #ifdef BSG_BARRIER_DEBUG
                //addr 0x0: row sync'ed
                bsg_remote_ptr_io_store( IO_X_INDEX, 0x0, bsg_y);
@@ -199,12 +172,9 @@ public:
 
     // send alert to all of the tiles in the column 
     void alert (){
-        bsg_col_barrier<BARRIER_Y_DIM> * p_remote_barrier;
         for( int i = this->_y_cord_start; i <= this->_y_cord_end; i ++) {
-               p_remote_barrier = (bsg_col_barrier<BARRIER_Y_DIM> *) bsg_remote_ptr( bsg_x,    \
-                                                                                     i,        \
-                                                                                     this);
-               p_remote_barrier->_local_alert = 1;
+               volatile unsigned int *alert_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> bsg_remote_ptr(bsg_x, i, &_local_alert));
+               *alert_ptr = 1;
         }
         return;
     };
@@ -225,7 +195,8 @@ public:
         // wait until _local_alert flag is set to 1
         bsg_wait_local_int( (int *) &(this->_local_alert), 1);
         //re-initilized the flag to 0
-        this->_local_alert = 0;
+        unsigned int* alert_ptr = const_cast<unsigned int*> (&_local_alert);
+        *alert_ptr = 0;
         return;
     };
 };
@@ -241,12 +212,7 @@ public:
     bsg_col_barrier<BARRIER_Y_DIM> c_barrier;
 
 
-    // Initializer with default x/y start and end coordinates
-    bsg_barrier () {
-        r_barrier.init (0, BARRIER_X_DIM -1);
-        c_barrier.init (0, BARRIER_Y_DIM -1);
-        return;
-    };
+    bsg_barrier () {}
 
     // Initializer with custom x/y start and end coordinates
     bsg_barrier ( unsigned char x_cord_start, unsigned char x_cord_end,
