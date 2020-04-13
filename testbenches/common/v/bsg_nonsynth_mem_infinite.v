@@ -13,6 +13,8 @@ module bsg_nonsynth_mem_infinite
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
     , parameter id_p="inv"
+    , parameter mem_els_p="inv"
+    , parameter mem_addr_width_lp=`BSG_SAFE_CLOG2(mem_els_p)
     , parameter data_mask_width_lp=(data_width_p>>3)
     , parameter link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
@@ -75,14 +77,14 @@ module bsg_nonsynth_mem_infinite
   // mem
   logic mem_v_li;
   logic mem_w_li;
-  logic [addr_width_p-1:0] mem_addr_li;
+  logic [mem_addr_width_lp-1:0] mem_addr_li;
   logic [data_width_p-1:0] mem_data_li;
   logic [data_mask_width_lp-1:0] mem_mask_li; 
   logic [data_width_p-1:0] mem_data_lo; 
 
   bsg_nonsynth_mem_1rw_sync_mask_write_byte_dma #(
     .width_p(data_width_p)
-    ,.els_p(1<<addr_width_p)
+    ,.els_p(mem_els_p)
     ,.id_p(id_p)
   ) assoc_mem (
     .clk_i(clk_i)
@@ -145,7 +147,7 @@ module bsg_nonsynth_mem_infinite
       READY: begin
 
         mem_w_li = (packet_lo.op == e_remote_store);
-        mem_addr_li = packet_lo.addr;
+        mem_addr_li = packet_lo.addr[0+:mem_addr_width_lp];
         mem_data_li = packet_lo.payload;
         mem_mask_li = packet_lo.op_ex.store_mask;
 
@@ -203,7 +205,7 @@ module bsg_nonsynth_mem_infinite
       ATOMIC: begin
         mem_v_li = return_packet_ready_lo;
         mem_w_li = return_packet_ready_lo;
-        mem_addr_li = packet_r.addr;
+        mem_addr_li = packet_r.addr[0+:mem_addr_width_lp];
         case (packet_r.op_ex.amo_type)
           e_amo_swap: mem_data_li = packet_r.payload;
           e_amo_or:  mem_data_li = packet_r.payload | mem_data_lo;
