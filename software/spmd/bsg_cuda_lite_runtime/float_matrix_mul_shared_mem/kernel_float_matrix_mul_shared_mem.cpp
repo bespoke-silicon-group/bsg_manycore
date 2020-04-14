@@ -4,6 +4,7 @@
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
+
 #include "bsg_tile_group_barrier_template.hpp"
 
 bsg_barrier<bsg_tiles_X, bsg_tiles_Y> barrier;
@@ -11,7 +12,8 @@ bsg_barrier<bsg_tiles_X, bsg_tiles_Y> barrier;
 #define BLOCK_WIDTH 4
 
 
-void __attribute__ ((noinline)) subblock2shmem (int *A, int *sh_dest, int M, int N, int block_size_y, int block_size_x, int sub_block_y, int sub_block_x) { 
+
+void __attribute__ ((noinline)) subblock2shmem (float *A, float *sh_dest, int M, int N, int block_size_y, int block_size_x, int sub_block_y, int sub_block_x) { 
 
 	int start_y = sub_block_y * block_size_y;
 	int start_x = sub_block_x * block_size_x;
@@ -19,14 +21,14 @@ void __attribute__ ((noinline)) subblock2shmem (int *A, int *sh_dest, int M, int
 	for (int iter_y = __bsg_y; iter_y < block_size_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = __bsg_x; iter_x < block_size_x; iter_x += bsg_tiles_X) { 
 			// sh_dest[iter_y][iter_x] <-- A[iter_y + start_y][iter_x + start_x]
-			bsg_tile_group_shared_store (int, sh_dest, (iter_y * block_size_x + iter_x), A[((iter_y + start_y) * N + iter_x + start_x)]);
+			bsg_tile_group_shared_store (float, sh_dest, (iter_y * block_size_x + iter_x), A[((iter_y + start_y) * N + iter_x + start_x)]);
 		}
 	}
 	return; 
 }
 
 
-void __attribute__ ((noinline)) subblock2shmem_xposed (int *A, int *sh_dest, int M, int N, int block_size_y, int block_size_x, int sub_block_y, int sub_block_x) { 
+void __attribute__ ((noinline)) subblock2shmem_xposed (float *A, float *sh_dest, int M, int N, int block_size_y, int block_size_x, int sub_block_y, int sub_block_x) { 
 
 	int start_y = sub_block_y * block_size_y;
 	int start_x = sub_block_x * block_size_x;
@@ -34,14 +36,14 @@ void __attribute__ ((noinline)) subblock2shmem_xposed (int *A, int *sh_dest, int
 	for (int iter_y = __bsg_y; iter_y < block_size_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = __bsg_x; iter_x < block_size_x; iter_x += bsg_tiles_X) { 
 			// sh_dest[iter_x][iter_y] <-- A[iter_y + start_y][iter_x + start_x]
-			bsg_tile_group_shared_store (int, sh_dest, (iter_x * block_size_y + iter_y), A[((iter_y + start_y) * N + iter_x + start_x)]);
+			bsg_tile_group_shared_store (float, sh_dest, (iter_x * block_size_y + iter_y), A[((iter_y + start_y) * N + iter_x + start_x)]);
 		}
 	}
 	return; 
 }
 
 
-void __attribute__ ((noinline)) shmem2subblock (int *A, int *sh_src, int M, int N, int block_size_y, int block_size_x, int sub_block_y, int sub_block_x) { 
+void __attribute__ ((noinline)) shmem2subblock (float *A, float *sh_src, int M, int N, int block_size_y, int block_size_x, int sub_block_y, int sub_block_x) { 
 
 	int start_y = sub_block_y * block_size_y;
 	int start_x = sub_block_x * block_size_x;
@@ -49,38 +51,38 @@ void __attribute__ ((noinline)) shmem2subblock (int *A, int *sh_src, int M, int 
 	for (int iter_y = __bsg_y; iter_y < block_size_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = __bsg_x; iter_x < block_size_x; iter_x += bsg_tiles_X) { 
 			// A[iter_y + start_y][iter_x + start_x] <-- sh_src[iter_y][iter_x]
-			bsg_tile_group_shared_load (int, sh_src, (iter_y * block_size_x + iter_x), A[((iter_y + start_y) * N + iter_x + start_x)]);
+			bsg_tile_group_shared_load (float, sh_src, (iter_y * block_size_x + iter_x), A[((iter_y + start_y) * N + iter_x + start_x)]);
 		}
 	}
 	return; 
 }
 
 
-void __attribute__ ((noinline)) subblock_shmem_matrix_mul_xposed (int *sh_A, int *sh_B, int *sh_C, int M, int N, int P, int block_size_y, int block_size_x, int block_num) { 
+void __attribute__ ((noinline)) subblock_shmem_matrix_mul_xposed (float *sh_A, float *sh_B, float *sh_C, int M, int N, int P, int block_size_y, int block_size_x, int block_num) { 
 
 	
 	for (int iter_y = __bsg_y; iter_y < block_size_y; iter_y += bsg_tiles_Y) { 
 		for (int iter_x = __bsg_x; iter_x < block_size_x; iter_x += bsg_tiles_X) { 
 
-			int sum = 0; 
-			int lc_A, lc_B;
+			float sum = 0; 
+			float lc_A, lc_B;
 			for (int k = 0; k < BLOCK_WIDTH; k ++) { 
 				// lc_A <-- sh_A[iter_y][iter_x]
-				bsg_tile_group_shared_load (int, sh_A, (iter_y * BLOCK_WIDTH + k), lc_A); 
+				bsg_tile_group_shared_load (float, sh_A, (iter_y * BLOCK_WIDTH + k), lc_A); 
 				// lc_B <-- sh_B[iter_y][iter_x]	remember B is transposed
-				bsg_tile_group_shared_load (int, sh_B, (iter_x * BLOCK_WIDTH + k), lc_B);
+				bsg_tile_group_shared_load (float, sh_B, (iter_x * BLOCK_WIDTH + k), lc_B);
 				sum += lc_A * lc_B;
 			}
 
 			if (!block_num) { 
 				// sh_C[iter_y][iter_x] <-- sum
-				bsg_tile_group_shared_store (int, sh_C, (iter_y * block_size_x + iter_x), sum);
+				bsg_tile_group_shared_store (float, sh_C, (iter_y * block_size_x + iter_x), sum);
 			}
 			else { 
-				int lc_C;
+				float lc_C;
 				// sh_C[iter_y][iter_x] += sum
-				bsg_tile_group_shared_load (int, sh_C, (iter_y * block_size_x + iter_x), lc_C);
-				bsg_tile_group_shared_store (int, sh_C, (iter_y * block_size_x + iter_x), lc_C + sum);
+				bsg_tile_group_shared_load (float, sh_C, (iter_y * block_size_x + iter_x), lc_C);
+				bsg_tile_group_shared_store (float, sh_C, (iter_y * block_size_x + iter_x), lc_C + sum);
 			} 
 		}
 	}
@@ -89,14 +91,18 @@ void __attribute__ ((noinline)) subblock_shmem_matrix_mul_xposed (int *sh_A, int
 
 
 
+
+
+
+
 extern "C" __attribute__ ((noinline))
-int kernel_matrix_mul_shared_mem(int *A, int *B, int *C, int M, int N, int P, int block_size_y, int block_size_x) {
+int kernel_float_matrix_mul_shared_mem(float *A, float *B, float *C, int M, int N, int P, int block_size_y, int block_size_x) {
 
-
+	
 	// declare tile-group shared memory
-	bsg_tile_group_shared_mem (int, sh_A, (block_size_y * BLOCK_WIDTH));
-	bsg_tile_group_shared_mem (int, sh_B, (BLOCK_WIDTH * block_size_x));
-	bsg_tile_group_shared_mem (int, sh_C, (block_size_y * block_size_x));
+	bsg_tile_group_shared_mem (float, sh_A, (block_size_y * BLOCK_WIDTH));
+	bsg_tile_group_shared_mem (float, sh_B, (BLOCK_WIDTH * block_size_x));
+	bsg_tile_group_shared_mem (float, sh_C, (block_size_y * block_size_x));
 
 
 	int num_blocks = N / BLOCK_WIDTH;	// *** Must divide evenly
@@ -120,5 +126,3 @@ int kernel_matrix_mul_shared_mem(int *A, int *B, int *C, int M, int N, int P, in
 
 	return 0;
 }
-
-

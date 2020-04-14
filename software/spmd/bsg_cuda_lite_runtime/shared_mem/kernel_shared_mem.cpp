@@ -5,11 +5,11 @@
 #include "bsg_set_tile_x_y.h"
 #include "bsg_tile_group_barrier_template.hpp"
 
+bsg_barrier<bsg_tiles_X, bsg_tiles_Y> barrier;
 
-extern "C" int  __attribute__ ((noinline)) kernel_shared_mem (int *A, int N) {
+extern "C" __attribute__ ((noinline))
+int kernel_shared_mem (int *A, int N) {
 
-	// bsg_barrier<2,2> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
-	bsg_barrier<2,2> my_barrier;
 
 	bsg_tile_group_shared_mem (int, sh_arr, N); 
 
@@ -18,14 +18,14 @@ extern "C" int  __attribute__ ((noinline)) kernel_shared_mem (int *A, int N) {
 	}
 
 
-	my_barrier.sync();
+	barrier.sync();
 
 	int block_size = N / (bsg_tiles_X * bsg_tiles_Y);
 	for (int iter_x = __bsg_id * block_size; iter_x < (__bsg_id + 1) * block_size; iter_x ++) { 
 		bsg_tile_group_shared_load(int, sh_arr, iter_x, A[iter_x]);
 	}
 
-	my_barrier.sync();
+	barrier.sync();
 
 
   return 0;

@@ -7,7 +7,7 @@
 
 #define bsg_n (bsg_tiles_X * bsg_tiles_Y)
 
-extern "C"
+extern "C" __attribute__ ((noinline)) 
 int kernel_eva_range(
     // in
     const unsigned * ptr,
