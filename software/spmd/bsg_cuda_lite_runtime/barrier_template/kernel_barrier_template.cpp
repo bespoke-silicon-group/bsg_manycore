@@ -5,23 +5,13 @@
 #include "bsg_set_tile_x_y.h"
 #include "bsg_tile_group_barrier_template.hpp"
 
+bsg_barrier<bsg_tiles_X, bsg_tiles_Y> my_barrier;
 
 extern "C" int  __attribute__ ((noinline)) kernel_barrier_template() {
 
-        //bsg_barrier<4,4> my_barrier (0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
-        bsg_barrier<2,2> my_barrier; 
-
-	if (__bsg_id == 3) {
-		bsg_print_int(3);
+	for (int i = 0; i < 16; i ++) {
+	        my_barrier.sync();
 	}
-
-        my_barrier.sync();
-
-	if (__bsg_id == 0) {
-		bsg_print_int(0);
-	}
-
-        my_barrier.sync();
 
 	return 0;
 }
