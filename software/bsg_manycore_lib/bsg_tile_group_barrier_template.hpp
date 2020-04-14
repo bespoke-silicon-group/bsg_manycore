@@ -203,7 +203,7 @@ public:
 
 
 
-template <int BARRIER_Y_DIM, int BARRIER_X_DIM>
+template <int BARRIER_X_DIM, int BARRIER_Y_DIM>
 class bsg_barrier {
 public:
     bsg_row_barrier<BARRIER_X_DIM> r_barrier;
