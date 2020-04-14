@@ -38,8 +38,6 @@
 #ifndef _BSG_HW_PATCH_HPP
 #define _BSG_HW_PATCH_HPP
 
-#ifndef BSG_EMUL
-
 // Fixes WAW violations in HW
 //
 // WAW violations are seen in cosimulation as errors starting with:
@@ -52,11 +50,5 @@
         : "r" ((var))          \
         );                     \
   } while(0)
-
-#else
-
-#define BSG_FIX_WAW_HAZARD(var)
-
-#endif // ifndef BSG_EMUL
 
 #endif // _BSG_HW_PATCH_HPP
