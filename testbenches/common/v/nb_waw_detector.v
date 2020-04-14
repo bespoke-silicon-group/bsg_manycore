@@ -70,23 +70,44 @@ module nb_waw_detector
   end
 
 
-  always_ff @ (negedge clk_i) begin
+  logic                    stall_force_wb_error;
+  logic [data_width_p-1:0] rd_addr;
+  logic [data_width_p-1:0] aggressor_pc;
+  logic [data_width_p-1:0] victim_pc;
+
+  always_comb begin
+    stall_force_wb_error = 1'b0;
+    rd_addr              = '0;
+    aggressor_pc         = '0;
+    victim_pc            = '0;
+
     if (int_remote_load_resp_v_i & int_remote_load_resp_force_i) begin
-
       if (mem_r.op_writes_rf) begin
-        assert(int_remote_load_resp_rd_i != mem_r.rd_addr)
-          else $error("[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD WITH MEM_R!!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x. This condition will trigger a hardware bug, please include a WAW software patch to avoid this scenario at the victim pc.",
-            $time, my_x_i, my_y_i, mem_r.rd_addr, pc_r[mem_r.rd_addr], victim_pc_r[mem_r.rd_addr]);
+        if (int_remote_load_resp_rd_i == mem_r.rd_addr) begin
+          stall_force_wb_error = 1'b1;
+          rd_addr              = mem_r.rd_addr;
+          aggressor_pc         = pc_r[mem_r.rd_addr];
+          victim_pc            = victim_pc_r[mem_r.rd_addr];
+        end
+      end else begin
+        if (int_remote_load_resp_rd_i == wb_r.rd_addr) begin
+          stall_force_wb_error = 1'b1;
+          rd_addr              = wb_r.rd_addr;
+          aggressor_pc         = pc_r[wb_r.rd_addr];
+          victim_pc            = victim_pc_r[wb_r.rd_addr];
+        end
       end
-
-      if (wb_r.op_writes_rf) begin
-        assert(int_remote_load_resp_rd_i != wb_r.rd_addr)
-          else $error("[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD with WB_R!!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x. This condition will trigger a hardware bug, please include a WAW software patch to avoid this scenario at the victim pc.",
-            $time, my_x_i, my_y_i, wb_r.rd_addr, pc_r[wb_r.rd_addr], victim_pc_r[wb_r.rd_addr]);
-      end
-
     end
   end
 
+  always_ff @ (negedge clk_i) begin
+    assert(~stall_force_wb_error)
+    else $error(
+      "[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD !!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x.\n",
+      $time, my_x_i, my_y_i, rd_addr, aggressor_pc, victim_pc,
+      "This condition will trigger a hardware bug, please include a WAW software patch to avoid this scenario at the victim pc.",
+      " Please refer to BSG_FIX_WAW_HAZARD macro in bsg_manycore/software/bsg_manycore_lib/bsg_manycore_patch.h for details."
+    );
+  end
 
 endmodule
