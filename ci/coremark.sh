@@ -1,9 +1,6 @@
 #~/bin/bash
 
-cd software/spmd
-make crt.o
-mv crt.o common/
-cd coremark
+cd software/spmd/coremark
 
 make clean
 make | tee temp.log
