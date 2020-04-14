@@ -75,13 +75,13 @@ module nb_waw_detector
 
       if (mem_r.op_writes_rf) begin
         assert(int_remote_load_resp_rd_i != mem_r.rd_addr)
-          else $error("[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD WITH MEM_R!!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x",
+          else $error("[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD WITH MEM_R!!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x. This condition will trigger a hardware bug, please include a WAW software patch to avoid this scenario at the victim pc.",
             $time, my_x_i, my_y_i, mem_r.rd_addr, pc_r[mem_r.rd_addr], victim_pc_r[mem_r.rd_addr]);
       end
 
       if (wb_r.op_writes_rf) begin
         assert(int_remote_load_resp_rd_i != wb_r.rd_addr)
-          else $error("[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD with WB_R!!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x",
+          else $error("[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD with WB_R!!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x. This condition will trigger a hardware bug, please include a WAW software patch to avoid this scenario at the victim pc.",
             $time, my_x_i, my_y_i, wb_r.rd_addr, pc_r[wb_r.rd_addr], victim_pc_r[wb_r.rd_addr]);
       end
 
