@@ -110,6 +110,7 @@ test-spmd:
     refs:
       - /^ci_.*$/
       - master
+  retry: 2
 
 test-coremark:
   stage: test
@@ -132,6 +133,7 @@ test-coremark:
     refs:
       - /^ci_.*$/
       - master
+  retry: 2
 
 test-beebs:
   stage: test
@@ -154,3 +156,4 @@ test-beebs:
     refs:
       - /^ci_.*$/
       - master
+  retry: 2
