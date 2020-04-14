@@ -5,12 +5,9 @@
 //====================================================================
 // The barrier implementation for tile group in manycore
 // Usage:
-//      1. #define  BSG_TILE_GROUP_X_DIM           <X dimension>
-//      2. #define  BSG_TILE_GROUP_Y_DIM           <Y dimension> 
-//      3. #include "bsg_tile_group_barrier.h"
-//      4. INIT_TILE_GROUP_BARRIER (<row_barrier_name>, <col_barrier_name>, \
-//                               BARRIER_X_START, BARRIER_X_END, BARRIER_Y_START, BARRIER_Y_END);
-//      5. bsg_tile_group_barrier( &<row_brrier_name>,  &<col_barrier_name>);
+//      1. #include "bsg_tile_group_barrier_template.hpp"
+//      1. bsg_barrier<Y dimension, X dimension> my_barrier;
+//      3. my_barrier.sync(); 
 //
 //Memory Overhead
 //       (2 + X_DIM + 4) + (2 + Y_DIM +4) 
@@ -26,13 +23,14 @@
 //      -----------------------------------------------
 //                        5*( X_DIM + Y_DIM)
 //      For 3x3 group,  cycles = 181, heavy looping/checking overhead for small groups.
-#ifndef  BSG_TILE_GROUP_BARRIER_TEMPLATE_H_
-#define  BSG_TILE_GROUP_BARRIER_TEMPLATE_H_
+
+#ifndef  BSG_TILE_GROUP_BARRIER_TEMPLATE_HPP_
+#define  BSG_TILE_GROUP_BARRIER_TEMPLATE_HPP_
 
 // We need the global bsg_x,bsg_y value.
 #include "bsg_set_tile_x_y.h"
 #include "bsg_manycore.h"
-
+#include "bsg_manycore.hpp"
 
 
 
@@ -96,7 +94,7 @@ public:
     // executed by all tiles in the group.
     void sync (unsigned char center_x_cord) {
         //write to the corresponding done
-        volatile unsigned int *done_list_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> bsg_remote_ptr(center_x_cord, bsg_y, &_done_list[bsg_x - _x_cord_start]));
+        volatile unsigned int *done_list_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> (bsg_remote_pointer(center_x_cord, bsg_y, &_done_list[bsg_x - _x_cord_start])));
         *done_list_ptr = 1;
         return;
     };
@@ -105,7 +103,7 @@ public:
     // send alert to all of the tiles in the row 
     void alert (){
         for( int i = this->_x_cord_start; i <= this->_x_cord_end; i ++) {
-               volatile unsigned int *alert_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> bsg_remote_ptr(i, bsg_y, &_local_alert));
+               volatile unsigned int *alert_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> (bsg_remote_pointer(i, bsg_y, &_local_alert)));
                *alert_ptr = 1;
         }
         return;
@@ -159,7 +157,7 @@ public:
     // executed by all tiles in the center row
     void sync(unsigned char center_x_cord, unsigned char center_y_cord ){
         //write to the corresponding done
-        volatile unsigned int *done_list_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> bsg_remote_ptr(center_x_cord, center_y_cord, &_done_list[bsg_y - _y_cord_start]));
+        volatile unsigned int *done_list_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> (bsg_remote_pointer(center_x_cord, center_y_cord, &_done_list[bsg_y - _y_cord_start])));
         *done_list_ptr = 1;
 
         #ifdef BSG_BARRIER_DEBUG
@@ -173,7 +171,7 @@ public:
     // send alert to all of the tiles in the column 
     void alert (){
         for( int i = this->_y_cord_start; i <= this->_y_cord_end; i ++) {
-               volatile unsigned int *alert_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> bsg_remote_ptr(bsg_x, i, &_local_alert));
+               volatile unsigned int *alert_ptr = const_cast<unsigned int*> (reinterpret_cast<volatile unsigned int*> (bsg_remote_pointer(bsg_x, i, &_local_alert)));
                *alert_ptr = 1;
         }
         return;
@@ -287,4 +285,5 @@ public:
 };
 
 
-#endif
+#endif // BSG_TILE_GROUP_BARRIER_TEMPLATE_HPP_
+
