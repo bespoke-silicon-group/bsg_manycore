@@ -85,7 +85,7 @@ void inline alert_col ( bsg_col_barrier * p_col_b);
 inline int bsg_wait_local_int(int * ptr,  int cond );
 
 //------------------------------------------------------------------
-// 1. send the sync singal to the center tile of the row
+// 1. send the sync signal to the center tile of the row
 //    executed by all tiles in the group.
 void inline bsg_row_barrier_sync(bsg_row_barrier * p_row_b, int center_x_cord ){
         int  i;
@@ -96,7 +96,7 @@ void inline bsg_row_barrier_sync(bsg_row_barrier * p_row_b, int center_x_cord ){
         p_remote_barrier->_done_list[ bsg_x - p_row_b-> _x_cord_start] = 1; 
 }
 //------------------------------------------------------------------
-//2. wait row sync'ed and send sync singal to center tile of the column
+//2. wait row sync'ed and send sync signal to center tile of the column
 //   executed only by the tiles at the center of the row 
 void inline bsg_col_barrier_sync(bsg_row_barrier * p_row_b, bsg_col_barrier * p_col_b, int center_x_cord, int center_y_cord ){
         int i;
@@ -114,7 +114,7 @@ void inline bsg_col_barrier_sync(bsg_row_barrier * p_row_b, bsg_col_barrier * p_
 }
 
 //------------------------------------------------------------------
-//3. wait column sync'ed and send alert singal back to tiles in the column
+//3. wait column sync'ed and send alert signal back to tiles in the column
 //   execute only by the center tile of the group
 void inline bsg_col_barrier_alert(  bsg_col_barrier *  p_col_b ) {
         //the center tile needs to check the status
@@ -135,7 +135,7 @@ void inline bsg_col_barrier_alert(  bsg_col_barrier *  p_col_b ) {
 }
 
 //------------------------------------------------------------------
-//4. wait column alert signal and send alert singal back to all tiles of the row
+//4. wait column alert signal and send alert signal back to all tiles of the row
 //   executed only by the tiles at the center of the row
 void inline bsg_row_barrier_alert(  bsg_row_barrier *  p_row_b, bsg_col_barrier * p_col_b ){
         int i;

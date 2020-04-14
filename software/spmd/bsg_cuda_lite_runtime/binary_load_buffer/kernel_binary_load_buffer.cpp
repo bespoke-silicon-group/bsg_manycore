@@ -3,6 +3,7 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-int  __attribute__ ((noinline)) kernel_binary_load_buffer() {
+extern "C" __attribute__ ((noinline))
+int kernel_binary_load_buffer() {
   return 0;
 }

@@ -8,7 +8,7 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-#include "bsg_tile_group_barrier_template.hpp"
+#include "bsg_tile_group_barrier.hpp"
 
 bsg_barrier<bsg_tiles_X, bsg_tiles_Y> barrier;
 

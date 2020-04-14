@@ -18,9 +18,9 @@
 all: main.run
 
 
-KERNEL_NAME ?=kernel_barrier_template
+KERNEL_NAME ?=kernel_barrier_deprecated
 
-OBJECT_FILES=main.o kernel_barrier_template.o
+OBJECT_FILES=main.o kernel_barrier_deprecated.o
 
 include ../../Makefile.include
 
