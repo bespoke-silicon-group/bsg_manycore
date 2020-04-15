@@ -242,7 +242,7 @@ class BloodGraph:
 
 
     # default constructor
-    def __init__(self, trace_file, stats_file, start_cycle, end_cycle, abstract):
+    def __init__(self, trace_file, stats_file, cycle, abstract):
 
         self.abstract = abstract
 
@@ -267,9 +267,7 @@ class BloodGraph:
         self.__get_tile_group_dim(self.traces)
 
         # get the timing window (start and end cycle) for blood graph
-        self.start_cycle, self.end_cycle = self.__get_timing_window(self.traces, self.stats, start_cycle, end_cycle)
-        print(self.start_cycle)
-        print(self.end_cycle)
+        self.start_cycle, self.end_cycle = self.__get_timing_window(self.traces, self.stats, cycle)
 
 
     # parses vanilla_operation_trace.csv to generate operation traces
@@ -317,26 +315,29 @@ class BloodGraph:
 
 
     # Determine the timing window (start and end) cycle of graph 
-    def __get_timing_window(self, traces, stats, start_cycle, end_cycle):
-        start = 0
-        end = 0
-        # If custom cycles are given by using the --cycle argument
-        if (False):
-            start = start_cycle
-            end = end_cycle
-        # Else if timing stats are given as optional input argument
+    # The timing window will be calculated using:
+    # Custom input: if custom start cycle is given by using the --cycle argument
+    # Vanilla stats file: otherwise if vanilla stats file is given as input
+    # Traces: otherwise the entire course of simulation 
+    def __get_timing_window(self, traces, stats, cycle):
+        custom_start, custom_end = cycle.split('@')
+
+        if (custom_start):
+            start = int(custom_start)
         elif (stats):
             start = stats[0]["global_ctr"]
-            end = stats[-1]["global_ctr"]
-        # Otherwise use the first and last trace 
-        # i.e. draw the graph for the entire course of simulation
         else:
             start = traces[0]["cycle"]
+
+
+        if (custom_end):
+            end = int(custom_end)
+        elif (stats):
+            end = stats[-1]["global_ctr"]
+        else:
             end = traces[-1]["cycle"]
 
         return start, end
-
-
 
 
   
@@ -424,42 +425,15 @@ class BloodGraph:
         return
 
 
-# Deprecated: We no longer pass in the cycles by hand 
-# The appliation parses the start/end cycles from vanilla_stats.csv file
-# The action to take in two input arguments for start and 
-# end cycle of execution in the form of start_cycle@end_cycle
-class CycleAction(argparse.Action):
-    def __call__(self, parser, namespace, cycle, option_string=None):
-        start_str,end_str = cycle.split("@")
-
-        # Check if start cycle is given as input
-        if(not start_str):
-            start_cycle = -1
-        else:
-            start_cycle = int(start_str)
-
-        # Check if end cycle is given as input
-        if(not end_str):
-            end_cycle = -1
-        else:
-            end_cycle = int(end_str)
-
-        # check if start cycle is before end cycle
-        if(start_cycle > end_cycle):
-            raise ValueError("start cycle {} cannot be larger than end cycle {}.".format(start_cycle, end_cycle))
-
-        setattr(namespace, "start", start_cycle)
-        setattr(namespace, "end", end_cycle)
  
 # Parse input arguments and options 
 def parse_args():  
     parser = argparse.ArgumentParser(description="Argument parser for blood_graph.py")
-    parser.add_argument("--input", default="vanilla_operation_trace.csv", type=str,
+    parser.add_argument("--trace", default="vanilla_operation_trace.csv", type=str,
                         help="Vanilla operation log file")
-    parser.add_argument("--timing-stats", default=None, type=str,
+    parser.add_argument("--stats", default=None, type=str,
                         help="Vanilla stats log file")
-    parser.add_argument("--cycle", nargs='?', required=0, action=CycleAction, 
-                        const = "-1@-1",
+    parser.add_argument("--cycle", default="@", type=str,
                         help="Cycle window of bloodgraph as start_cycle@end_cycle.")
     parser.add_argument("--abstract", default=False, action='store_true',
                         help="Type of bloodgraph - abstract / detailed")
@@ -476,7 +450,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
   
-    bg = BloodGraph(args.input, args.timing_stats, args.start, args.end, args.abstract)
+    bg = BloodGraph(args.trace, args.stats, args.cycle, args.abstract)
     if not args.no_blood_graph:
         bg.generate()
     if args.generate_key:
