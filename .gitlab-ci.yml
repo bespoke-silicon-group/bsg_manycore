@@ -44,6 +44,7 @@ build-repos:
     refs:
       - /^ci_.*$/
       - master
+  retry: 2
 
 build-machines:
   stage: build
@@ -65,6 +66,7 @@ build-machines:
     refs:
       - /^ci_.*$/
       - master
+  retry: 2
 
 build-toolchain:
   stage: build
@@ -88,6 +90,7 @@ build-toolchain:
     when: always
     paths:
       - "*.log"
+  retry: 2
 
 test-spmd:
   stage: test
