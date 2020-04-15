@@ -14,7 +14,6 @@ module vcache_profiler
 
     , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
 
-    , parameter bsg_cache_pkt_width_lp=`bsg_cache_pkt_width(addr_width_p,data_width_p) 
   )
   (
     input clk_i
@@ -24,8 +23,6 @@ module vcache_profiler
     , input yumi_i
     , input miss_v
     , input bsg_cache_decode_s decode_v_r
-
-    , input [bsg_cache_pkt_width_lp-1:0] cache_pkt_i
 
     , input [dma_pkt_width_lp-1:0] dma_pkt_o
     , input dma_pkt_v_o
@@ -49,13 +46,6 @@ module vcache_profiler
   assign dma_pkt = dma_pkt_o;
 
 
-  `declare_bsg_cache_pkt_s(addr_width_p,data_width_p);
-  bsg_cache_pkt_s cache_pkt;
-  assign cache_pkt = cache_pkt_i;
-
-
-
-
 
   // event signals
   //
@@ -63,22 +53,22 @@ module vcache_profiler
   wire inc_miss     = miss_v;
 
   wire inc_ld       = v_o & yumi_i & decode_v_r.ld_op;
-  wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LD);
-  wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LDU);
-  wire inc_ld_lw    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LW);
-  wire inc_ld_lwu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LWU);
-  wire inc_ld_lh    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LH);
-  wire inc_ld_lhu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LHU);
-  wire inc_ld_lb    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LB);
-  wire inc_ld_lbu   = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LBU);
-  wire inc_ld_lm    = v_o & yumi_i & decode_v_r.ld_op & (cache_pkt.opcode == LM);
+  wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & decode_v_r.sigext_op;
+  wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & ~decode_v_r.sigext_op;
+  wire inc_ld_lw    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & decode_v_r.sigext_op; 
+  wire inc_ld_lwu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & ~decode_v_r.sigext_op;
+  wire inc_ld_lh    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & decode_v_r.sigext_op;
+  wire inc_ld_lhu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & ~decode_v_r.sigext_op;
+  wire inc_ld_lb    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & decode_v_r.sigext_op;
+  wire inc_ld_lbu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & ~decode_v_r.sigext_op;
+  wire inc_ld_lm    = v_o & yumi_i & decode_v_r.ld_op & decode_v_r.mask_op;
 
   wire inc_st       = v_o & yumi_i & decode_v_r.st_op;
-  wire inc_st_sd    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SD);
-  wire inc_st_sw    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SW);
-  wire inc_st_sh    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SH);
-  wire inc_st_sb    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SB);
-  wire inc_st_sm    = v_o & yumi_i & decode_v_r.st_op & (cache_pkt.opcode == SM);
+  wire inc_st_sd    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11; 
+  wire inc_st_sw    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10;
+  wire inc_st_sh    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01;
+  wire inc_st_sb    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00;
+  wire inc_st_sm    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op;
 
   wire inc_mask     = v_o & yumi_i & decode_v_r.mask_op;
   wire inc_sigext   = v_o & yumi_i & decode_v_r.sigext_op;
