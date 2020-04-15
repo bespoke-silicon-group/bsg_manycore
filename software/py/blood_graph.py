@@ -29,6 +29,8 @@
 import sys
 import csv
 import argparse
+import warnings
+import os.path
 from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
 
@@ -290,20 +292,23 @@ class BloodGraph:
     def __parse_stats(self, stats_file):
         stats = []
         if(stats_file):
-            with open(stats_file) as f:
-                csv_reader = csv.DictReader(f, delimiter=",")
-                for row in csv_reader:
-                    stat = {}
-                    stat["global_ctr"] = int(row["global_ctr"])
-                    stat["time"] = int(row["time"])
-                    stats.append(stat)
+            if (os.path.isfile(stats_file)):
+                with open(stats_file) as f:
+                    csv_reader = csv.DictReader(f, delimiter=",")
+                    for row in csv_reader:
+                        stat = {}
+                        stat["global_ctr"] = int(row["global_ctr"])
+                        stat["time"] = int(row["time"])
+                        stats.append(stat)
+            else:
+                warnings.warn("Stats file not found, overriding blood graph's start/end cycle with traces.")
         return stats
 
 
     # look through the input file to get the tile group dimension (x,y)
     def __get_tile_group_dim(self, traces):
-        xs = list(map(lambda t: t["x"], traces))
-        ys = list(map(lambda t: t["y"], traces))
+        xs = [t["x"] for t in traces]
+        ys = [t["y"] for t in traces]
         self.xmin = min(xs)
         self.xmax = max(xs)
         self.ymin = min(ys)
