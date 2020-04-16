@@ -14,6 +14,7 @@ module vcache_profiler
 
     , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
 
+    , parameter data_mask_width_lp=(data_width_p>>3)
   )
   (
     input clk_i
@@ -23,6 +24,7 @@ module vcache_profiler
     , input yumi_i
     , input miss_v
     , input bsg_cache_decode_s decode_v_r
+    , input [data_mask_width_lp-1:0] mask_v_r
 
     , input [dma_pkt_width_lp-1:0] dma_pkt_o
     , input dma_pkt_v_o
@@ -35,9 +37,10 @@ module vcache_profiler
     , input trace_en_i // from toplevel testbench
   );
 
+
   // task to print a line of operation trace
   task print_operation_trace(integer fd, string vcache_name, string op);
-    $fwrite(fd, "%0t,%0s,%0s\n", global_ctr_i, vcache_name, op);
+    $fwrite(fd, "%0d,%0s,%0s\n", global_ctr_i, vcache_name, op);
   endtask
 
 
@@ -53,8 +56,8 @@ module vcache_profiler
   wire inc_miss     = miss_v;
 
   wire inc_ld       = v_o & yumi_i & decode_v_r.ld_op;
-  wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & decode_v_r.sigext_op;
-  wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & ~decode_v_r.sigext_op;
+  wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & decode_v_r.sigext_op;  // Current system is 32-bit so this never happens
+  wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & ~decode_v_r.sigext_op; // Current system is 32-bit so this never happens
   wire inc_ld_lw    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & decode_v_r.sigext_op; 
   wire inc_ld_lwu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & ~decode_v_r.sigext_op;
   wire inc_ld_lh    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & decode_v_r.sigext_op;
@@ -64,10 +67,10 @@ module vcache_profiler
   wire inc_ld_lm    = v_o & yumi_i & decode_v_r.ld_op & decode_v_r.mask_op;
 
   wire inc_st       = v_o & yumi_i & decode_v_r.st_op;
-  wire inc_st_sd    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11; 
-  wire inc_st_sw    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10;
-  wire inc_st_sh    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01;
-  wire inc_st_sb    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00;
+  wire inc_st_sd    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 8); // Current system is 32-bit so this never happens
+  wire inc_st_sw    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 4); 
+  wire inc_st_sh    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 2); 
+  wire inc_st_sb    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 1); 
   wire inc_st_sm    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op;
 
   wire inc_mask     = v_o & yumi_i & decode_v_r.mask_op;
