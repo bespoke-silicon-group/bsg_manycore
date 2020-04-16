@@ -271,7 +271,6 @@ class VanillaStatsParser:
         # generate timing stats for each vcache bank 
         self.vcache_tile_group_stat, self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
 
-
         # Calculate total aggregate stats for manycore by summing up per_tile stat counts
         self.manycore_stat = self.__generate_manycore_stats_all(self.tile_stat, self.manycore_cycle_parallel_cnt)
 
@@ -560,7 +559,7 @@ class VanillaStatsParser:
         # Print instruction stats for manycore
         for instr in instrs:
          
-            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_st_') or instr.startswith('instr_amo')) else "instr_data"
+            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_') or instr.startswith('instr_amo')) else "instr_data"
             self.__print_stat(stat_file, instr_format, instr,
                                          stat[tag][instr]
                                          ,(100 * stat[tag][instr] / stat[tag]["instr_total"]))
@@ -595,7 +594,8 @@ class VanillaStatsParser:
 
         # Print instruction stats for manycore
         for instr in instrs:
-            self.__print_stat(stat_file, "instr_data", instr,
+            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_') or instr.startswith('instr_amo')) else "instr_data"
+            self.__print_stat(stat_file, instr_format, instr,
                                          tile_group_stat[tag][tg_id][instr]
                                          ,(100 * np.float64(tile_group_stat[tag][tg_id][instr]) / tile_group_stat[tag][tg_id]["instr_total"]))
         return
@@ -1553,7 +1553,7 @@ class VanillaStatsParser:
                         # different types of load/store/atomic instructions are already counted
                         # under the umbrella of instr_ld/st/atomic, so they are not summed to 
                         # to avoid double counting
-                        if (not instr.startswith('instr_ld_') and not instr.startswith('instr_st_') and not instr.startswith('instr_amo')):
+                        if (not instr.startswith('instr_ld_') and not instr.startswith('instr_sm_') and not instr.startswith('instr_amo')):
                             vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
                     for stall in self.vcache_stalls:
                         vcache_stat[tag][vcache]["stall_total"] += vcache_stat[tag][vcache][stall]
@@ -1574,7 +1574,7 @@ class VanillaStatsParser:
                     # different types of load/store/atomic instructions are already counted
                     # under the umbrella of instr_ld/st/atomic, so they are not summed to 
                     # to avoid double counting
-                    if (not instr.startswith('instr_ld_') and not instr.startswith('instr_st_') and not instr.startswith('instr_amo')):
+                    if (not instr.startswith('instr_ld_') and not instr.startswith('instr_sm_') and not instr.startswith('instr_amo')):
                         vcache_tile_group_stat[tag][tg_id]["instr_total"] += vcache_tile_group_stat[tag][tg_id][instr]
                 for stall in self.vcache_stalls:
                     vcache_tile_group_stat[tag][tg_id]["stall_total"] += vcache_tile_group_stat[tag][tg_id][stall]

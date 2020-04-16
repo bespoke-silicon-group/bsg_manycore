@@ -1,215 +1,195 @@
 #
 #   vcache_stall_graph.py
 #
-#   victim cache execution visualizer.
+#   vcache execution visualizer.
 # 
-#   input: vcache_operation_trace.csv.log
-#          vcache_stats.csv (for timing)
+#   input:  vcache_operation_trace.csv
+#           vcache_stats.csv (for timing)
 #   output: stall graph file (vcache_stall_abstrat/detailed.png)
 #           stall graph key  (vcache_key_abstract/detailed.png)
 #
-#   @author Borna Tommy
+#   @author Tommy, Borna
 #
 #   How to use:
-#   python vcache_stallgraph.py --input {vcache_operation_trace.csv}
-#                               --timing-stat {vcache_stats.csv}
-#                               --abstract {optional}
-#                               --generate-key {optional}
+#   python vcache_stall_graph.py --trace {vcache_operation_trace.csv}
+#                                --stats {vcache_stats.csv}
+#                                --abstract {optional}
+#                                --generate-key {optional}
+#                                --cycle {start_cycle@end_cycle} (deprecated)
 #
-#   ex) python vcache_stall_graph.py --input vcache_operation_trace.csv
-#                                    --timing-stat vcache_stats.csv
+#   ex) python vcache_stall_graph.py --trace vcache_operation_trace.csv
+#                                    --stats vcache_stats.csv
 #                                    --abstract --generate-key
+       #                             --cycle 10000@20000
 #
 #   {timing-stat}  used for extracting the timing window for stall graph
-#   {abstract}     used for abstract simplifed stall graph
+#   {abstract}     used for abstract simplifed stallgraph
 #   {generate-key} also generates a color key for the stall graph
-
+#   {cycle}        used for user-specified custom timing window 
+#
+#
+#   Note: You can use the "Digital Color Meter" in MacOS in order to compare
+#   the values from the color key to the values in the stallgraph, if you are
+#   having trouble distinguishing a color.
 
 import sys
 import csv
 import argparse
+import warnings
+import os.path
 from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
 
 
-
-
-class VCacheStallGraph:
+class VcacheStallGraph:
     # for generating the key
     _KEY_WIDTH  = 512
     _KEY_HEIGHT = 512
-    _DEFAULT_START_CYCLE = 0 
-    _DEFAULT_END_CYCLE   = 200000
+
+
+    # List of operations performed by vcache
+    _OPERATION_LIST   = ["ld",
+                         "ld_ld",
+                         "ld_ldu",
+                         "ld_lw",
+                         "ld_lwu",
+                         "ld_lh",
+                         "ld_lhu",
+                         "ld_lb",
+                         "ld_lbu",
+                                          
+                         "st",     
+                         "sm_sd",
+                         "sm_sw",
+                         "sm_sh",
+                         "sm_sb",
+                                          
+                         "tagst",  
+                         "tagfl",  
+                         "taglv",  
+                         "tagla",  
+                         "afl",    
+                         "aflinv", 
+                         "ainv",   
+                         "alock",  
+                         "aunlock",
+                         "atomic", 
+                         "amoswap",
+                         "amoor",  
+                         "miss_ld",
+                         "miss_st",
+                         "dma_read_req",
+                         "dma_write_req",
+                         "idle",
+                         "miss"]
+
+
+
+    # coloring scheme for different types of operations
+    # For abstract mode
+    _ABSTRACT_OPERATION_COLOR = {"ld"              : (0x00, 0xff, 0x00) , ## green
+                                 "ld_ld"           : (0x00, 0xff, 0x00) , ## green
+                                 "ld_ldu"          : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lw"           : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lwu"          : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lh"           : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lhu"          : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lb"           : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lbu"          : (0x00, 0xff, 0x00) , ## green
+                                 "st"              : (0x00, 0x00, 0xff) , ## blue
+                                 "sm_sd"           : (0x00, 0x00, 0xff) , ## blue
+                                 "sm_sw"           : (0x00, 0x00, 0xff) , ## blue
+                                 "sm_sh"           : (0x00, 0x00, 0xff) , ## blue
+                                 "sm_sb"           : (0x00, 0x00, 0xff) , ## blue
+                                 "tagst"           : (0x00, 0x00, 0x00) , ## white 
+                                 "tagfl"           : (0x00, 0x00, 0x00) , ## white 
+                                 "taglv"           : (0x00, 0x00, 0x00) , ## white 
+                                 "tagla"           : (0x00, 0x00, 0x00) , ## white 
+                                 "afl"             : (0x00, 0x00, 0x00) , ## white 
+                                 "aflinv"          : (0x00, 0x00, 0x00) , ## white 
+                                 "ainv"            : (0x00, 0x00, 0x00) , ## white 
+                                 "alock"           : (0x00, 0x00, 0x00) , ## white 
+                                 "aunlock"         : (0x00, 0x00, 0x00) , ## white 
+                                 "atomic"          : (0x00, 0x00, 0x00) , ## white 
+                                 "amoswap"         : (0x00, 0x00, 0x00) , ## white 
+                                 "amoor"           : (0x00, 0x00, 0x00) , ## white 
+                                 "miss_ld"         : (0x00, 0xff, 0x00) , ## green
+                                 "miss_st"         : (0x00, 0x00, 0xff) , ## blue 
+                                 "dma_read_req"    : (0xff, 0xff, 0xff) , ## white 
+                                 "dma_write_req"   : (0xff, 0xff, 0xff) , ## white 
+                                 "idle"            : (0x40, 0x40, 0x40) , ## gray
+                                 "miss"            : (0xff, 0x00, 0x00) , ## red
+                                }
+
+
+
+    # coloring scheme for different types of operations
+    # For abstract mode
+    _DETAILED_OPERATION_COLOR = {"ld"              : (0x00, 0xff, 0x00) , ## green
+                                 "ld_ld"           : (0x00, 0xff, 0x00) , ## green
+                                 "ld_ldu"          : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lw"           : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lwu"          : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lh"           : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lhu"          : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lb"           : (0x00, 0xff, 0x00) , ## green
+                                 "ld_lbu"          : (0x00, 0xff, 0x00) , ## green
+                                 "st"              : (0x00, 0x00, 0xff) , ## blue
+                                 "sm_sd"           : (0x00, 0x00, 0xff) , ## blue
+                                 "sm_sw"           : (0x00, 0x00, 0xff) , ## blue
+                                 "sm_sh"           : (0x00, 0x00, 0xff) , ## blue
+                                 "sm_sb"           : (0x00, 0x00, 0xff) , ## blue
+                                 "tagst"           : (0x00, 0x00, 0x00) , ## white 
+                                 "tagfl"           : (0x00, 0x00, 0x00) , ## white 
+                                 "taglv"           : (0x00, 0x00, 0x00) , ## white 
+                                 "tagla"           : (0x00, 0x00, 0x00) , ## white 
+                                 "afl"             : (0x00, 0x00, 0x00) , ## white 
+                                 "aflinv"          : (0x00, 0x00, 0x00) , ## white 
+                                 "ainv"            : (0x00, 0x00, 0x00) , ## white 
+                                 "alock"           : (0x00, 0x00, 0x00) , ## white 
+                                 "aunlock"         : (0x00, 0x00, 0x00) , ## white 
+                                 "atomic"          : (0x00, 0x00, 0x00) , ## white 
+                                 "amoswap"         : (0x00, 0x00, 0x00) , ## white 
+                                 "amoor"           : (0x00, 0x00, 0x00) , ## white 
+                                 "miss_ld"         : (0x00, 0xff, 0x00) , ## green
+                                 "miss_st"         : (0x00, 0x00, 0xff) , ## blue 
+                                 "dma_read_req"    : (0xff, 0xff, 0xff) , ## white 
+                                 "dma_write_req"   : (0xff, 0xff, 0xff) , ## white 
+                                 "idle"            : (0x40, 0x40, 0x40) , ## gray
+                                 "miss"            : (0xff, 0x00, 0x00) , ## red
+                                } 
+
+
 
     # default constructor
-    def __init__(self, timing_stats_file, abstract):
+    def __init__(self, trace_file, stats_file, cycle, abstract):
 
-        self.timing_stats_file = timing_stats_file
         self.abstract = abstract
-
-        # List of operations performed
-        self.operation_list = ["ld",
-                               "ld_ld",
-                               "ld_ldu",
-                               "ld_lw",
-                               "ld_lwu",
-                               "ld_lh",
-                               "ld_lhu",
-                               "ld_lb",
-                               "ld_lbu",
-                               "ld_ml",
-
-                               "st",     
-                               "st_sd",
-                               "st_sw",
-                               "st_sh",
-                               "st_sb",
-                               "st_sm",
-
-                               "tagst",  
-                               "tagfl",  
-                               "taglv",  
-                               "tagla",  
-                               "afl",    
-                               "aflinv", 
-                               "ainv",   
-                               "alock",  
-                               "aunlock",
-                               "atomic", 
-                               "amoswap",
-                               "amoor",  
-                               "miss_ld",
-                               "miss_st",
-                               "dma_read_req",
-                               "dma_write_req",
-                               "idle",
-                               "miss"]
-
-
-
-        # coloring scheme for different types of operations
-        # For abstract mode
-        self.abstract_operation_color = {"ld"              : (0x00, 0xff, 0x00) , ## green
-                                         "ld_ld"           : (0x00, 0xff, 0x00) , ## green
-                                         "ld_ldu"          : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lw"           : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lwu"          : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lh"           : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lhu"          : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lb"           : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lbu"          : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lm"           : (0x00, 0xff, 0x00) , ## green
-                                         "st"              : (0x00, 0x00, 0xff) , ## blue
-                                         "st_sd"           : (0x00, 0x00, 0xff) , ## blue
-                                         "st_sw"           : (0x00, 0x00, 0xff) , ## blue
-                                         "st_sh"           : (0x00, 0x00, 0xff) , ## blue
-                                         "st_sb"           : (0x00, 0x00, 0xff) , ## blue
-                                         "st_sm"           : (0x00, 0x00, 0xff) , ## blue
-                                         "tagst"           : (0x00, 0x00, 0x00) , ## white 
-                                         "tagfl"           : (0x00, 0x00, 0x00) , ## white 
-                                         "taglv"           : (0x00, 0x00, 0x00) , ## white 
-                                         "tagla"           : (0x00, 0x00, 0x00) , ## white 
-                                         "afl"             : (0x00, 0x00, 0x00) , ## white 
-                                         "aflinv"          : (0x00, 0x00, 0x00) , ## white 
-                                         "ainv"            : (0x00, 0x00, 0x00) , ## white 
-                                         "alock"           : (0x00, 0x00, 0x00) , ## white 
-                                         "aunlock"         : (0x00, 0x00, 0x00) , ## white 
-                                         "atomic"          : (0x00, 0x00, 0x00) , ## white 
-                                         "amoswap"         : (0x00, 0x00, 0x00) , ## white 
-                                         "amoor"           : (0x00, 0x00, 0x00) , ## white 
-                                         "miss_ld"         : (0x00, 0xff, 0x00) , ## green
-                                         "miss_st"         : (0x00, 0x00, 0xff) , ## blue 
-                                         "dma_read_req"    : (0xff, 0xff, 0xff) , ## white 
-                                         "dma_write_req"   : (0xff, 0xff, 0xff) , ## white 
-                                         "idle"            : (0x40, 0x40, 0x40) , ## gray
-                                         "miss"            : (0xff, 0x00, 0x00) , ## red
-                                         } 
-
-
-        # coloring scheme for different types of operations
-        # For detailed mode
-        self.detailed_operation_color = {"ld"              : (0x00, 0xff, 0x00) , ## green
-                                         "ld_ld"           : (0x00, 0xff, 0x00) , ## green
-                                         "ld_ldu"          : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lw"           : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lwu"          : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lh"           : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lhu"          : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lb"           : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lbu"          : (0x00, 0xff, 0x00) , ## green
-                                         "ld_lm"           : (0x00, 0xff, 0x00) , ## green
-                                         "st"              : (0x00, 0x00, 0xff) , ## blue
-                                         "st_sd"           : (0x00, 0x00, 0xff) , ## blue
-                                         "st_sw"           : (0x00, 0x00, 0xff) , ## blue
-                                         "st_sh"           : (0x00, 0x00, 0xff) , ## blue
-                                         "st_sb"           : (0x00, 0x00, 0xff) , ## blue
-                                         "st_sm"           : (0x00, 0x00, 0xff) , ## blue
-                                         "tagst"           : (0x00, 0x00, 0x00) , ## white 
-                                         "tagfl"           : (0x00, 0x00, 0x00) , ## white 
-                                         "taglv"           : (0x00, 0x00, 0x00) , ## white 
-                                         "tagla"           : (0x00, 0x00, 0x00) , ## white 
-                                         "afl"             : (0x00, 0x00, 0x00) , ## white 
-                                         "aflinv"          : (0x00, 0x00, 0x00) , ## white 
-                                         "ainv"            : (0x00, 0x00, 0x00) , ## white 
-                                         "alock"           : (0x00, 0x00, 0x00) , ## white 
-                                         "aunlock"         : (0x00, 0x00, 0x00) , ## white 
-                                         "atomic"          : (0x00, 0x00, 0x00) , ## white 
-                                         "amoswap"         : (0x00, 0x00, 0x00) , ## white 
-                                         "amoor"           : (0x00, 0x00, 0x00) , ## white 
-                                         "miss_ld"         : (0x00, 0xff, 0x00) , ## green
-                                         "miss_st"         : (0x00, 0x00, 0xff) , ## blue 
-                                         "dma_read_req"    : (0xff, 0xff, 0xff) , ## white 
-                                         "dma_write_req"   : (0xff, 0xff, 0xff) , ## white 
-                                         "idle"            : (0x40, 0x40, 0x40) , ## gray
-                                         "miss"            : (0xff, 0x00, 0x00) , ## red
-                                         } 
-
-
-
 
         # Determine coloring rules based on mode {abstract / detailed}
         if (self.abstract):
-            self.operation_color     = self.abstract_operation_color
+            self.operation_color     = self._ABSTRACT_OPERATION_COLOR
         else:
-            self.operation_color     = self.detailed_operation_color
+            self.operation_color     = self._DETAILED_OPERATION_COLOR
 
 
-        # Parse timing stat file vcache_stats.csv
-        # to gather start and end cycle of entire graph
-        self.timing_stats = []
-        try:
-            with open(self.timing_stats_file) as f:
-                csv_reader = csv.DictReader(f, delimiter=",")
-                for row in csv_reader:
-                    timing_stat = {}
-                    timing_stat["global_ctr"] = int(row["global_ctr"])
-                    self.timing_stats.append(timing_stat)
+        # Parse vcache operation trace file to generate traces
+        self.traces = self.__parse_traces(trace_file)
 
-            # If there are at least two stats recovered from vcache_stats.csv for start and end cycle
-            if (len(self.timing_stats) >= 2):
-                self.start_cycle = self.timing_stats[0]["global_ctr"]
-                self.end_cycle = self.timing_stats[-1]["global_ctr"]
-            else:
-                self.start_cycle = self._DEFAULT_START_CYCLE
-                self.end_cycle = self._DEFAULT_END_CYCLE
-            return
+        # Parse vcache stats file to generate timing stats 
+        self.stats = self.__parse_stats(stats_file)
 
-        # If the vcache_stats.csv file has not been given as input
-        # Use the default values for start and end cycles
-        except IOError as e:
-            self.start_cycle = self._DEFAULT_START_CYCLE
-            self.end_cycle = self._DEFAULT_END_CYCLE
+        # get number of victim cache banks
+        self.__get_vcache_dim(self.traces)
 
-        return
+        # get the timing window (start and end cycle) for stall graph
+        self.start_cycle, self.end_cycle = self.__get_timing_window(self.traces, self.stats, cycle)
 
 
-
-  
-    # main public method
-    def generate(self, input_file):
-        # parse vcache_operation_trace.csv
+    # parses vcache_operation_trace.csv to generate operation traces
+    def __parse_traces(self, trace_file):
         traces = []
-        with open(input_file) as f:
+        with open(trace_file) as f:
             csv_reader = csv.DictReader(f, delimiter=",")
             for row in csv_reader:
                 trace = {}
@@ -218,15 +198,72 @@ class VCacheStallGraph:
                 trace["operation"] = row["operation"]
                 trace["cycle"] = int(row["cycle"])
                 traces.append(trace)
+        return traces
+
+
+    # Parses vcache_stats.csv to generate timing stats 
+    # to gather start and end cycle of entire graph
+    def __parse_stats(self, stats_file):
+        stats = []
+        if(stats_file):
+            if (os.path.isfile(stats_file)):
+                with open(stats_file) as f:
+                    csv_reader = csv.DictReader(f, delimiter=",")
+                    for row in csv_reader:
+                        stat = {}
+                        stat["global_ctr"] = int(row["global_ctr"])
+                        stat["time"] = int(row["time"])
+                        stats.append(stat)
+            else:
+                warnings.warn("Stats file not found, overriding stall graph's start/end cycle with traces.")
+        return stats
+
+
+    # look through the input file to get the number of vcache banks
+    def __get_vcache_dim(self, traces):
+        vcaches = [t["vcache"] for t in traces]
+        self.vcache_max = max(vcaches)
+        self.vcache_min = min(vcaches)
+        self.vcache_dim = self.vcache_max - self.vcache_min +1
+        return
+
+
+    # Determine the timing window (start and end) cycle of graph 
+    # The timing window will be calculated using:
+    # Custom input: if custom start cycle is given by using the --cycle argument
+    # Vcache stats file: otherwise if vcache stats file is given as input
+    # Traces: otherwise the entire course of simulation 
+    def __get_timing_window(self, traces, stats, cycle):
+        custom_start, custom_end = cycle.split('@')
+
+        if (custom_start):
+            start = int(custom_start)
+        elif (stats):
+            start = stats[0]["global_ctr"]
+        else:
+            start = traces[0]["cycle"]
+
+
+        if (custom_end):
+            end = int(custom_end)
+        elif (stats):
+            end = stats[-1]["global_ctr"]
+        else:
+            end = traces[-1]["cycle"]
+
+        return start, end
+
+
   
-        # get number of victim cache banks
-        self.__get_vcache_dim(traces)
+    # main public method
+    def generate(self):
+  
 
         # init image
         self.__init_image()
 
         # create image
-        for trace in traces:
+        for trace in self.traces:
             self.__mark_trace(trace)
 
         #self.img.show()
@@ -263,15 +300,6 @@ class VCacheStallGraph:
         img.save("{}.png".format(key_image_fname + "_" + mode))
         return
 
-    # look through the input file to get the number of vcache banks
-    def __get_vcache_dim(self, traces):
-        vcaches = list(map(lambda t: t["vcache"], traces))
-        self.vcache_max = max(vcaches)
-        self.vcache_min = min(vcaches)
-        self.vcache_dim = self.vcache_max - self.vcache_min +1
-        return
-
-
     # initialize image
     def __init_image(self):
         self.img_width = 2048   # default
@@ -279,7 +307,8 @@ class VCacheStallGraph:
         self.img = Image.new("RGB", (self.img_width, self.img_height), "black")
         self.pixel = self.img.load()
         return  
-  
+
+
     # mark the trace on output image
     def __mark_trace(self, trace):
 
@@ -302,46 +331,18 @@ class VCacheStallGraph:
             raise Exception('Invalid operation in vcache operation trace log {}'.format(trace["operation"]))
         return
 
-
-# Deprecated: We no longer pass in the cycles by hand 
-# The appliation parses the start/end cycles from vcache_stats.csv file
-# The action to take in two input arguments for start and 
-# end cycle of execution in the form of start_cycle@end_cycle
-class CycleAction(argparse.Action):
-    def __call__(self, parser, namespace, cycle, option_string=None):
-        start_str,end_str = cycle.split("@")
-
-        # Check if start cycle is given as input
-        if(not start_str):
-            start_cycle = BloodGraph._DEFAULT_START_CYCLE
-        else:
-            start_cycle = int(start_str)
-
-        # Check if end cycle is given as input
-        if(not end_str):
-            end_cycle = BloodGraph._DEFAULT_END_CYCLE
-        else:
-            end_cycle = int(end_str)
-
-        # check if start cycle is before end cycle
-        if(start_cycle > end_cycle):
-            raise ValueError("start cycle {} cannot be larger than end cycle {}.".format(start_cycle, end_cycle))
-
-        setattr(namespace, "start", start_cycle)
-        setattr(namespace, "end", end_cycle)
  
 # Parse input arguments and options 
 def parse_args():  
-    parser = argparse.ArgumentParser(description="Argument parser for vcache_stall_graph.py")
-    parser.add_argument("--input", default="vcache_operation_trace.csv", type=str,
-                        help="VCache operation log file")
-    parser.add_argument("--timing-stats", default="vcache_stats.csv", type=str,
-                        help="VCache stats log file")
-    parser.add_argument("--cycle", nargs='?', required=0, action=CycleAction, 
-                        const = (str(VCacheStallGraph._DEFAULT_START_CYCLE)+"@"+str(VCacheStallGraph._DEFAULT_END_CYCLE)),
-                        help="Cycle window of stall graph as start_cycle@end_cycle.")
+    parser = argparse.ArgumentParser(description="Argument parser for stall_graph.py")
+    parser.add_argument("--trace", default="vcache_operation_trace.csv", type=str,
+                        help="Vcache operation log file")
+    parser.add_argument("--stats", default=None, type=str,
+                        help="Vcache stats log file")
+    parser.add_argument("--cycle", default="@", type=str,
+                        help="Cycle window of stallgraph as start_cycle@end_cycle.")
     parser.add_argument("--abstract", default=False, action='store_true',
-                        help="Type of stall graph - abstract / detailed")
+                        help="Type of stallgraph - abstract / detailed")
     parser.add_argument("--generate-key", default=False, action='store_true',
                         help="Generate a key image")
     parser.add_argument("--no-stall-graph", default=False, action='store_true',
@@ -355,9 +356,9 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
   
-    bg = VCacheStallGraph(args.timing_stats, args.abstract)
+    bg = VcacheStallGraph(args.trace, args.stats, args.cycle, args.abstract)
     if not args.no_stall_graph:
-        bg.generate(args.input)
+        bg.generate()
     if args.generate_key:
         bg.generate_key()
 

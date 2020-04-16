@@ -55,6 +55,9 @@ module vcache_profiler
 
   wire inc_miss     = miss_v;
 
+  // Manycore performs all types of stores operations using the SM, therefore
+  // mask_op should be hight while evaluating the store signals, but not for
+  // load signals 
   wire inc_ld       = v_o & yumi_i & decode_v_r.ld_op;
   wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & decode_v_r.sigext_op;  // load double (reserved for 64-bit)
   wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & ~decode_v_r.sigext_op; // load double unsigned (reserved for 64-bit) 
@@ -64,14 +67,13 @@ module vcache_profiler
   wire inc_ld_lhu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & ~decode_v_r.sigext_op; // load half unsigned
   wire inc_ld_lb    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & decode_v_r.sigext_op;  // load byte
   wire inc_ld_lbu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & ~decode_v_r.sigext_op; // load byte unsigned
-  wire inc_ld_lm    = v_o & yumi_i & decode_v_r.ld_op & decode_v_r.mask_op; // load mask
 
+  // All store operations from bsg_manycore are performed with the store mask op
   wire inc_st       = v_o & yumi_i & decode_v_r.st_op;
-  wire inc_st_sd    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 8); // store double (reserved for 64-bit)
-  wire inc_st_sw    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 4); // store word
-  wire inc_st_sh    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 2); // store half
-  wire inc_st_sb    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 1); // store byte
-  wire inc_st_sm    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op; // store mask
+  wire inc_sm_sd    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op & ($countones(mask_v_r) == 8); // store double (reserved for 64-bit)
+  wire inc_sm_sw    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op & ($countones(mask_v_r) == 4); // store word
+  wire inc_sm_sh    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op & ($countones(mask_v_r) == 2); // store half
+  wire inc_sm_sb    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op & ($countones(mask_v_r) == 1); // store byte
 
   wire inc_tagst    = v_o & yumi_i & decode_v_r.tagst_op;   // tag store                
   wire inc_tagfl    = v_o & yumi_i & decode_v_r.tagfl_op;   // tag flush
@@ -106,14 +108,12 @@ module vcache_profiler
     integer ld_lhu_count;
     integer ld_lb_count;
     integer ld_lbu_count;
-    integer ld_lm_count;
 
     integer st_count;
-    integer st_sd_count;
-    integer st_sw_count;
-    integer st_sh_count;
-    integer st_sb_count;
-    integer st_sm_count;
+    integer sm_sd_count;
+    integer sm_sw_count;
+    integer sm_sh_count;
+    integer sm_sb_count;
 
     integer tagst_count;   
     integer tagfl_count;   
@@ -156,14 +156,12 @@ module vcache_profiler
       if (inc_ld_lhu)        stat_r.ld_lhu_count++;
       if (inc_ld_lb)         stat_r.ld_lb_count++;
       if (inc_ld_lbu)        stat_r.ld_lbu_count++;
-      if (inc_ld_lm)         stat_r.ld_lm_count++;
 
       if (inc_st)            stat_r.st_count++; 
-      if (inc_st_sd)         stat_r.st_sd_count++;
-      if (inc_st_sw)         stat_r.st_sw_count++;
-      if (inc_st_sh)         stat_r.st_sh_count++;
-      if (inc_st_sb)         stat_r.st_sb_count++;
-      if (inc_st_sm)         stat_r.st_sm_count++;
+      if (inc_sm_sd)         stat_r.sm_sd_count++;
+      if (inc_sm_sw)         stat_r.sm_sw_count++;
+      if (inc_sm_sh)         stat_r.sm_sh_count++;
+      if (inc_sm_sb)         stat_r.sm_sb_count++;
 
       if (inc_tagst)         stat_r.tagst_count++;   
       if (inc_tagfl)         stat_r.tagfl_count++;   
@@ -206,8 +204,8 @@ module vcache_profiler
       log_fd = $fopen(logfile_lp, "w");
       $fwrite(log_fd, "time,vcache,global_ctr,tag,");
       $fwrite(log_fd, "instr_ld,instr_ld_ld,instr_ld_ldu,instr_ld_lw,instr_ld_lwu,");
-      $fwrite(log_fd, "instr_ld_lh,instr_ld_lhu,instr_ld_lb,instr_ld_lbu,instr_ld_lm,");
-      $fwrite(log_fd, "instr_st,instr_st_sd,instr_st_sw,instr_st_sh,instr_st_sb,instr_st_sm,");
+      $fwrite(log_fd, "instr_ld_lh,instr_ld_lhu,instr_ld_lb,instr_ld_lbu,");
+      $fwrite(log_fd, "instr_st,instr_sm_sd,instr_sm_sw,instr_sm_sh,instr_sm_sb,");
       $fwrite(log_fd, "instr_tagst,instr_tagfl,instr_taglv,instr_tagla,");
       $fwrite(log_fd, "instr_afl,instr_aflinv,instr_ainv,instr_alock,instr_aunlock,");
       $fwrite(log_fd, "instr_atomic,instr_amoswap,instr_amoor,");
@@ -237,7 +235,7 @@ module vcache_profiler
             print_stat_tag_i
           );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
             stat_r.ld_count,
             stat_r.ld_ld_count,
             stat_r.ld_ldu_count,
@@ -247,16 +245,14 @@ module vcache_profiler
             stat_r.ld_lhu_count,
             stat_r.ld_lb_count,
             stat_r.ld_lbu_count, 
-            stat_r.ld_lm_count, 
           );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,",
             stat_r.st_count,
-            stat_r.st_sd_count,
-            stat_r.st_sw_count,
-            stat_r.st_sh_count,
-            stat_r.st_sb_count,
-            stat_r.st_sm_count,
+            stat_r.sm_sd_count,
+            stat_r.sm_sw_count,
+            stat_r.sm_sh_count,
+            stat_r.sm_sb_count,
           );
 
           $fwrite(log_fd, "%0d,%0d,%0d,%0d,",
@@ -331,24 +327,20 @@ module vcache_profiler
                 print_operation_trace(trace_fd, my_name, "ld_lb");
               else if (inc_ld_lbu)
                 print_operation_trace(trace_fd, my_name, "ld_lbu");
-              else if (inc_ld_lm)
-                print_operation_trace(trace_fd, my_name, "ld_lm");
               else
                 print_operation_trace(trace_fd, my_name, "ld");
             end
 
 
             else if (inc_st) begin
-              if (inc_st_sd)
-                print_operation_trace(trace_fd, my_name, "st_sd");  
-              else if (inc_st_sw)
-                print_operation_trace(trace_fd, my_name, "st_sw");  
-              else if (inc_st_sh)
-                print_operation_trace(trace_fd, my_name, "st_sh");  
-              else if (inc_st_sb)
-                print_operation_trace(trace_fd, my_name, "st_sb");  
-              else if (inc_st_sm)
-                print_operation_trace(trace_fd, my_name, "st_sm"); 
+              if (inc_sm_sd)
+                print_operation_trace(trace_fd, my_name, "sm_sd");  
+              else if (inc_sm_sw)
+                print_operation_trace(trace_fd, my_name, "sm_sw");  
+              else if (inc_sm_sh)
+                print_operation_trace(trace_fd, my_name, "sm_sh");  
+              else if (inc_sm_sb)
+                print_operation_trace(trace_fd, my_name, "sm_sb");  
               else
                 print_operation_trace(trace_fd, my_name, "st");
             end
