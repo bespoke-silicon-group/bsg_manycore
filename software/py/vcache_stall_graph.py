@@ -66,8 +66,6 @@ class VCacheStallGraph:
                                "st_sb",
                                "st_sm",
 
-                               "mask",   
-                               "sigext", 
                                "tagst",  
                                "tagfl",  
                                "taglv",  
@@ -77,7 +75,6 @@ class VCacheStallGraph:
                                "ainv",   
                                "alock",  
                                "aunlock",
-                               "tag_read",
                                "atomic", 
                                "amoswap",
                                "amoor",  
@@ -108,8 +105,6 @@ class VCacheStallGraph:
                                          "st_sh"           : (0x00, 0x00, 0xff) , ## blue
                                          "st_sb"           : (0x00, 0x00, 0xff) , ## blue
                                          "st_sm"           : (0x00, 0x00, 0xff) , ## blue
-                                         "mask"            : (0x00, 0x00, 0x00) , ## white 
-                                         "sigext"          : (0x00, 0x00, 0x00) , ## white 
                                          "tagst"           : (0x00, 0x00, 0x00) , ## white 
                                          "tagfl"           : (0x00, 0x00, 0x00) , ## white 
                                          "taglv"           : (0x00, 0x00, 0x00) , ## white 
@@ -119,7 +114,6 @@ class VCacheStallGraph:
                                          "ainv"            : (0x00, 0x00, 0x00) , ## white 
                                          "alock"           : (0x00, 0x00, 0x00) , ## white 
                                          "aunlock"         : (0x00, 0x00, 0x00) , ## white 
-                                         "tag_read"        : (0x00, 0x00, 0x00) , ## white 
                                          "atomic"          : (0x00, 0x00, 0x00) , ## white 
                                          "amoswap"         : (0x00, 0x00, 0x00) , ## white 
                                          "amoor"           : (0x00, 0x00, 0x00) , ## white 
@@ -150,8 +144,6 @@ class VCacheStallGraph:
                                          "st_sh"           : (0x00, 0x00, 0xff) , ## blue
                                          "st_sb"           : (0x00, 0x00, 0xff) , ## blue
                                          "st_sm"           : (0x00, 0x00, 0xff) , ## blue
-                                         "mask"            : (0x00, 0x00, 0x00) , ## white 
-                                         "sigext"          : (0x00, 0x00, 0x00) , ## white 
                                          "tagst"           : (0x00, 0x00, 0x00) , ## white 
                                          "tagfl"           : (0x00, 0x00, 0x00) , ## white 
                                          "taglv"           : (0x00, 0x00, 0x00) , ## white 
@@ -161,7 +153,6 @@ class VCacheStallGraph:
                                          "ainv"            : (0x00, 0x00, 0x00) , ## white 
                                          "alock"           : (0x00, 0x00, 0x00) , ## white 
                                          "aunlock"         : (0x00, 0x00, 0x00) , ## white 
-                                         "tag_read"        : (0x00, 0x00, 0x00) , ## white 
                                          "atomic"          : (0x00, 0x00, 0x00) , ## white 
                                          "amoswap"         : (0x00, 0x00, 0x00) , ## white 
                                          "amoor"           : (0x00, 0x00, 0x00) , ## white 

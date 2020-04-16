@@ -56,44 +56,41 @@ module vcache_profiler
   wire inc_miss     = miss_v;
 
   wire inc_ld       = v_o & yumi_i & decode_v_r.ld_op;
-  wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & decode_v_r.sigext_op;  // Current system is 32-bit so this never happens
-  wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & ~decode_v_r.sigext_op; // Current system is 32-bit so this never happens
-  wire inc_ld_lw    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & decode_v_r.sigext_op; 
-  wire inc_ld_lwu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & ~decode_v_r.sigext_op;
-  wire inc_ld_lh    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & decode_v_r.sigext_op;
-  wire inc_ld_lhu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & ~decode_v_r.sigext_op;
-  wire inc_ld_lb    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & decode_v_r.sigext_op;
-  wire inc_ld_lbu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & ~decode_v_r.sigext_op;
-  wire inc_ld_lm    = v_o & yumi_i & decode_v_r.ld_op & decode_v_r.mask_op;
+  wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & decode_v_r.sigext_op;  // load double (reserved for 64-bit)
+  wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & ~decode_v_r.sigext_op; // load double unsigned (reserved for 64-bit) 
+  wire inc_ld_lw    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & decode_v_r.sigext_op;  // load word
+  wire inc_ld_lwu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & ~decode_v_r.sigext_op; // load word unsigned
+  wire inc_ld_lh    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & decode_v_r.sigext_op;  // load half
+  wire inc_ld_lhu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & ~decode_v_r.sigext_op; // load half unsigned
+  wire inc_ld_lb    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & decode_v_r.sigext_op;  // load byte
+  wire inc_ld_lbu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & ~decode_v_r.sigext_op; // load byte unsigned
+  wire inc_ld_lm    = v_o & yumi_i & decode_v_r.ld_op & decode_v_r.mask_op; // load mask
 
   wire inc_st       = v_o & yumi_i & decode_v_r.st_op;
-  wire inc_st_sd    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 8); // Current system is 32-bit so this never happens
-  wire inc_st_sw    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 4); 
-  wire inc_st_sh    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 2); 
-  wire inc_st_sb    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 1); 
-  wire inc_st_sm    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op;
+  wire inc_st_sd    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 8); // store double (reserved for 64-bit)
+  wire inc_st_sw    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 4); // store word
+  wire inc_st_sh    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 2); // store half
+  wire inc_st_sb    = v_o & yumi_i & decode_v_r.st_op & ~decode_v_r.mask_op & ($countones(mask_v_r) == 1); // store byte
+  wire inc_st_sm    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op; // store mask
 
-  wire inc_mask     = v_o & yumi_i & decode_v_r.mask_op;
-  wire inc_sigext   = v_o & yumi_i & decode_v_r.sigext_op;
-  wire inc_tagst    = v_o & yumi_i & decode_v_r.tagst_op;
-  wire inc_tagfl    = v_o & yumi_i & decode_v_r.tagfl_op;
-  wire inc_taglv    = v_o & yumi_i & decode_v_r.taglv_op;
-  wire inc_tagla    = v_o & yumi_i & decode_v_r.tagla_op;
-  wire inc_afl      = v_o & yumi_i & decode_v_r.afl_op;
-  wire inc_aflinv   = v_o & yumi_i & decode_v_r.aflinv_op;
-  wire inc_ainv     = v_o & yumi_i & decode_v_r.ainv_op;
-  wire inc_alock    = v_o & yumi_i & decode_v_r.alock_op;
-  wire inc_aunlock  = v_o & yumi_i & decode_v_r.aunlock_op;
-  wire inc_tag_read = v_o & yumi_i & decode_v_r.tag_read_op;
-  wire inc_atomic   = v_o & yumi_i & decode_v_r.atomic_op;
-  wire inc_amoswap  = v_o & yumi_i & decode_v_r.amoswap_op;
-  wire inc_amoor    = v_o & yumi_i & decode_v_r.amoor_op;
+  wire inc_tagst    = v_o & yumi_i & decode_v_r.tagst_op;   // tag store                
+  wire inc_tagfl    = v_o & yumi_i & decode_v_r.tagfl_op;   // tag flush
+  wire inc_taglv    = v_o & yumi_i & decode_v_r.taglv_op;   // tag load valid
+  wire inc_tagla    = v_o & yumi_i & decode_v_r.tagla_op;   // tag load address
+  wire inc_afl      = v_o & yumi_i & decode_v_r.afl_op;     // address flush                                        
+  wire inc_aflinv   = v_o & yumi_i & decode_v_r.aflinv_op;  // address flush invalidate
+  wire inc_ainv     = v_o & yumi_i & decode_v_r.ainv_op;    // address invalidate
+  wire inc_alock    = v_o & yumi_i & decode_v_r.alock_op;   // address lock                              
+  wire inc_aunlock  = v_o & yumi_i & decode_v_r.aunlock_op; // address unlock
+  wire inc_atomic   = v_o & yumi_i & decode_v_r.atomic_op;  // atomic
+  wire inc_amoswap  = v_o & yumi_i & decode_v_r.amoswap_op; // atomic swap
+  wire inc_amoor    = v_o & yumi_i & decode_v_r.amoor_op;   // atomic or
 
-  wire inc_ld_miss  = v_o & yumi_i & decode_v_r.ld_op & miss_v;
-  wire inc_st_miss  = v_o & yumi_i & decode_v_r.st_op & miss_v;
+  wire inc_miss_ld  = v_o & yumi_i & decode_v_r.ld_op & miss_v; // miss on load
+  wire inc_miss_st  = v_o & yumi_i & decode_v_r.st_op & miss_v; // miss on store
 
-  wire inc_dma_read_req = dma_pkt_v_o & dma_pkt_yumi_i & ~dma_pkt.write_not_read;
-  wire inc_dma_write_req = dma_pkt_v_o & dma_pkt_yumi_i & dma_pkt.write_not_read;
+  wire inc_dma_read_req = dma_pkt_v_o & dma_pkt_yumi_i & ~dma_pkt.write_not_read; // DMA read request
+  wire inc_dma_write_req = dma_pkt_v_o & dma_pkt_yumi_i & dma_pkt.write_not_read; // DMA write request
 
   wire inc_idle     = ~(v_o & yumi_i) & ~(miss_v);
 
@@ -118,8 +115,6 @@ module vcache_profiler
     integer st_sb_count;
     integer st_sm_count;
 
-    integer mask_count; 
-    integer sigext_count; 
     integer tagst_count;   
     integer tagfl_count;   
     integer taglv_count;   
@@ -129,13 +124,12 @@ module vcache_profiler
     integer ainv_count;    
     integer alock_count;   
     integer aunlock_count; 
-    integer tag_read_count;
     integer atomic_count;  
     integer amoswap_count; 
     integer amoor_count;   
 
-    integer ld_miss_count;
-    integer st_miss_count;
+    integer miss_ld_count;
+    integer miss_st_count;
 
     integer miss_count;   // Number of cycles miss handler is active
     integer idle_count;   // Number of cycles vcache is idle
@@ -171,8 +165,6 @@ module vcache_profiler
       if (inc_st_sb)         stat_r.st_sb_count++;
       if (inc_st_sm)         stat_r.st_sm_count++;
 
-      if (inc_mask)          stat_r.mask_count++;      
-      if (inc_sigext)        stat_r.sigext_count++; 
       if (inc_tagst)         stat_r.tagst_count++;   
       if (inc_tagfl)         stat_r.tagfl_count++;   
       if (inc_taglv)         stat_r.taglv_count++;   
@@ -182,13 +174,12 @@ module vcache_profiler
       if (inc_ainv)          stat_r.ainv_count++;    
       if (inc_alock)         stat_r.alock_count++;   
       if (inc_aunlock)       stat_r.aunlock_count++; 
-      if (inc_tag_read)      stat_r.tag_read_count++;
       if (inc_atomic)        stat_r.atomic_count++;  
       if (inc_amoswap)       stat_r.amoswap_count++; 
       if (inc_amoor)         stat_r.amoor_count++;   
 
-      if (inc_ld_miss)       stat_r.ld_miss_count++;
-      if (inc_st_miss)       stat_r.st_miss_count++;
+      if (inc_miss_ld)       stat_r.miss_ld_count++;
+      if (inc_miss_st)       stat_r.miss_st_count++;
 
       if (inc_miss)          stat_r.miss_count++;
       if (inc_idle)          stat_r.idle_count++;
@@ -217,9 +208,9 @@ module vcache_profiler
       $fwrite(log_fd, "instr_ld,instr_ld_ld,instr_ld_ldu,instr_ld_lw,instr_ld_lwu,");
       $fwrite(log_fd, "instr_ld_lh,instr_ld_lhu,instr_ld_lb,instr_ld_lbu,instr_ld_lm,");
       $fwrite(log_fd, "instr_st,instr_st_sd,instr_st_sw,instr_st_sh,instr_st_sb,instr_st_sm,");
-      $fwrite(log_fd, "instr_mask,instr_sigext,instr_tagst,instr_tagfl,instr_taglv,instr_tagla,");
+      $fwrite(log_fd, "instr_tagst,instr_tagfl,instr_taglv,instr_tagla,");
       $fwrite(log_fd, "instr_afl,instr_aflinv,instr_ainv,instr_alock,instr_aunlock,");
-      $fwrite(log_fd, "instr_tag_read,instr_atomic,instr_amoswap,instr_amoor,");
+      $fwrite(log_fd, "instr_atomic,instr_amoswap,instr_amoor,");
       $fwrite(log_fd, "miss_ld,miss_st,stall_miss,stall_idle,dma_read_req,dma_write_req\n");
       $fclose(log_fd);
 
@@ -268,30 +259,30 @@ module vcache_profiler
             stat_r.st_sm_count,
           );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat_r.mask_count,
-            stat_r.sigext_count,
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,",
             stat_r.tagst_count,
             stat_r.tagfl_count,
             stat_r.taglv_count,
             stat_r.tagla_count,
           );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,",
             stat_r.afl_count,
             stat_r.aflinv_count,
             stat_r.ainv_count,
             stat_r.alock_count,
             stat_r.aunlock_count,
-            stat_r.tag_read_count,
+           );
+
+          $fwrite(log_fd, "%0d,%0d,%0d,",
             stat_r.atomic_count,
             stat_r.amoswap_count,
             stat_r.amoor_count,
           );
 
           $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d\n",
-            stat_r.ld_miss_count,
-            stat_r.st_miss_count,
+            stat_r.miss_ld_count,
+            stat_r.miss_st_count,
             stat_r.miss_count,
             stat_r.idle_count,
             stat_r.dma_read_req,
@@ -308,9 +299,9 @@ module vcache_profiler
 
           // If miss handler has finished the dma request and result is ready
           // for a missed request
-          if (inc_ld_miss)
+          if (inc_miss_ld)
             print_operation_trace(trace_fd, my_name, "miss_ld");
-          else if (inc_st_miss)
+          else if (inc_miss_st)
             print_operation_trace(trace_fd, my_name, "miss_st");
 
 
@@ -363,10 +354,6 @@ module vcache_profiler
             end
 
 
-            else if (inc_mask)
-              print_operation_trace(trace_fd, my_name, "mask");
-            else if (inc_sigext)
-              print_operation_trace(trace_fd, my_name, "sigext");
             else if (inc_tagst)
               print_operation_trace(trace_fd, my_name, "tagst");
             else if (inc_tagfl)
@@ -385,8 +372,6 @@ module vcache_profiler
               print_operation_trace(trace_fd, my_name, "alock");
             else if (inc_aunlock)
               print_operation_trace(trace_fd, my_name, "aunlock");
-            else if (inc_tag_read)
-              print_operation_trace(trace_fd, my_name, "tag_read");
             else if (inc_atomic)
               print_operation_trace(trace_fd, my_name, "atomic");
             else if (inc_amoswap)
