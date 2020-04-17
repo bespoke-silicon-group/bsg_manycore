@@ -73,7 +73,7 @@ module bsg_manycore_link_sif_tieoff
              if (link_sif_i_cast.fwd.v)
                begin
                   $write("BSG_ERROR errant packet:");
-                  $write("op=2'b%b, op_ex=4'b%b, addr=%-d'h%h data=%-d'h%h (x,y)=(%-d'b%b,%-d'b%b), return (x,y)=(%-d'b%b,%-d'b%b)"
+                  $write("op=2'b%b, op_ex=4'b%b, addr=%0d'h%h data=%0d'h%h (x,y)=(%0d'b%b,%0d'b%b), return (x,y)=(%0d'b%b,%0d'b%b)"
                     ,temp.op, temp.op_ex
                     ,$bits(temp.addr), temp.addr
                     ,$bits(temp.payload), temp.payload
