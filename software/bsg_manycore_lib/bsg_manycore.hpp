@@ -7,6 +7,13 @@
 
 
 
+/* 
+ * Remote EVA poitner to a local address in a tile within tile group
+ * param[in]  x             X coordinate of destination tile
+ * param[in]  y             Y coordinate of destination tile
+ * param[in]  local_addr    address of varialbe in tile's local dmem
+ * @return    EVA address of remote variable
+ */ 
 template<typename T>
 T *bsg_tile_group_remote_pointer(unsigned char x, unsigned char y, T* local_addr) {
         uintptr_t remote_prefix = (REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS);
