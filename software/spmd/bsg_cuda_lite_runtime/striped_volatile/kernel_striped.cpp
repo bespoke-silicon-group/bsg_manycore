@@ -4,10 +4,9 @@
 #include "bsg_set_tile_x_y.h"
 #include "bsg_striped_array.hpp"
 
-#define BSG_TILE_GROUP_X_DIM bsg_tiles_X
-#define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
-#include "bsg_tile_group_barrier.h"
-INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
+#include "bsg_tile_group_barrier.hpp"
+
+bsg_barrier<bsg_tiles_X, bsg_tiles_Y> barrier;
 
 using namespace bsg_manycore;
 
@@ -18,7 +17,8 @@ using namespace bsg_manycore;
 // tiles may modify the array's contents
 using Array = VolatileTileGroupStripedArray<int, 4, bsg_tiles_X, bsg_tiles_Y, 1>;
 
-extern "C" int  __attribute__ ((noinline)) kernel_striped_volatile() {
+extern "C" __attribute__ ((noinline))
+int kernel_striped_volatile() {
     Array data;
 
     if (bsg_id == 0)
@@ -26,7 +26,7 @@ extern "C" int  __attribute__ ((noinline)) kernel_striped_volatile() {
 
     while (data[0] != 0xDEADBEEF);
 
-    bsg_tile_group_barrier(&r_barrier, &c_barrier);
+    barrier.sync();
 
     return 0;
 }
