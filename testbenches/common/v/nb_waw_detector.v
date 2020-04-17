@@ -101,13 +101,15 @@ module nb_waw_detector
   end
 
   always_ff @ (negedge clk_i) begin
-    assert(~stall_force_wb_error)
-    else $error(
-      "[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD !!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x.\n",
-      $time, my_x_i, my_y_i, rd_addr, aggressor_pc, victim_pc,
-      "This condition will trigger a hardware bug, please include a WAW software patch to avoid this scenario at the victim pc.",
-      " Please refer to BSG_FIX_WAW_HAZARD macro in bsg_manycore/software/bsg_manycore_lib/bsg_manycore_patch.h for details."
-    );
+    if (~reset_i) begin
+      assert(~stall_force_wb_error)
+      else $error(
+        "[ERROR][VCORE] STALL_FORCE_WB WAW HAZARD !!! time=%0t, x=%0d, y=%0d, rd=x%0d, aggressor_pc=%x, victim_pc=%x.\n",
+        $time, my_x_i, my_y_i, rd_addr, aggressor_pc, victim_pc,
+        "This condition will trigger a hardware bug, please include a WAW software patch to avoid this scenario at the victim pc.",
+        " Please refer to BSG_FIX_WAW_HAZARD macro in bsg_manycore/software/bsg_manycore_lib/bsg_manycore_patch.h for details."
+      );
+    end
   end
 
 endmodule
