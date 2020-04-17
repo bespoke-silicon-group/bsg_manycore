@@ -100,17 +100,20 @@ module bsg_manycore
   // Pipeline the reset. The bsg_manycore_tile has a single pipeline register
   // on reset already, so we only want to pipeline reset_depth_p-1 times.
   logic [reset_depth_p-1:0][num_tiles_y_p-1:0][num_tiles_x_p-1:0] reset_i_r;
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0]                    reset_i_lo;
+   
+  assign reset_i_lo = {(num_tiles_y_p*num_tiles_x_p){reset_i}};
 
-  assign reset_i_r[0] = {(num_tiles_y_p*num_tiles_x_p){reset_i}};
-
+   always_ff @(posedge clk_i) begin
+      reset_i_r[0] <= reset_i_lo;
+   end
   genvar k;
-  for (k = 1; k < reset_depth_p; k++)
+  for (k = 1; k < reset_depth_p - 1; k++)
     begin
-      always_ff @(posedge clk_i)
-        begin
+       always_ff @(posedge clk_i) begin
           reset_i_r[k] <= reset_i_r[k-1];
-        end
     end
+   end
 
    for (r = 1; r < num_tiles_y_p; r = r+1)
      begin: y
