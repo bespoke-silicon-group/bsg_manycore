@@ -108,7 +108,7 @@ module bsg_manycore
       reset_i_r[0] <= reset_i_lo;
    end
   genvar k;
-  for (k = 1; k < reset_depth_p - 1; k++)
+  for (k = 1; k < reset_depth_p; k++)
     begin
        always_ff @(posedge clk_i) begin
           reset_i_r[k] <= reset_i_r[k-1];
