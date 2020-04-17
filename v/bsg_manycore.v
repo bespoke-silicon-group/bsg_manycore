@@ -115,8 +115,6 @@ module bsg_manycore
    for (r = 1; r < num_tiles_y_p; r = r+1)
      begin: y
         for (c = 0; c < num_tiles_x_p; c=c+1)
-          localparam int hetero_type_lp = hetero_type_vec_p[r-1][c];
-        
           begin: x
             bsg_manycore_tile
               #(
@@ -128,7 +126,7 @@ module bsg_manycore
                 .y_cord_width_p(y_cord_width_lp),
                 .data_width_p(data_width_p),
                 .addr_width_p(addr_width_p),
-                .hetero_type_p( hetero_type_lp ),
+                .hetero_type_p( hetero_type_vec_p[r-1][c] ),
                 .debug_p(debug_p)
                 ,.branch_trace_en_p(branch_trace_en_p)
                 ,.num_tiles_x_p(num_tiles_x_p)
