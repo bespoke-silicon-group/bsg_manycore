@@ -19,13 +19,14 @@ module bsg_manycore
     // since num_tiles_x_p and num_tiles_y_p will be used to define the size of 2D array
     // hetero_type_vec_p, they should be integer by default to avoid tool crash during
     // synthesis (DC versions at least up to 2018.06)
-    , parameter num_tiles_x_p = -1
-    , parameter num_tiles_y_p = -1
+    , parameter int num_tiles_x_p = -1
+    , parameter int num_tiles_y_p = -1
 
-   // for heterogeneous, this is a vector of num_tiles_x_p*num_tiles_y_p bytes;
-   // each byte contains the type of core being instantiated
-   // type 0 is the standard core
-   , parameter int hetero_type_vec_p [0:num_tiles_y_p-2][0:num_tiles_x_p-1]  ='{default:0}
+   // This is used to define heterogeneous arrays. Each index defines
+   // the type of an X/Y coordinate in the array. This is a vector of
+   // num_tiles_x_p*num_tiles_y_p integers; type "0" is the
+   // default. See bsg_manycore_hetero_socket.v for more types.
+   , parameter integer hetero_type_vec_p [0:((num_tiles_y_p-1)*num_tiles_x_p) - 1]  = '{default:0}
 
    // this is the addr width on the manycore network packet (word addr).
    // also known as endpoint physical address (EPA).
@@ -68,6 +69,7 @@ module bsg_manycore
     , input [num_tiles_x_p-1:0][link_sif_width_lp-1:0] io_link_sif_i
     , output [num_tiles_x_p-1:0][link_sif_width_lp-1:0] io_link_sif_o
   );
+//'{default:0}
 
    // synopsys translate_off
    initial
@@ -81,7 +83,7 @@ module bsg_manycore
         for(i=0; i < num_tiles_y_p-1; i++) begin
                 $write("## ");
                 for(j=0; j< num_tiles_x_p; j++) begin
-                        $write("%0d,", hetero_type_vec_p[i][j]);
+                        $write("%0d,", hetero_type_vec_p[i * num_tiles_x_p + j]);
                 end
                 $write("\n");
         end
@@ -126,7 +128,7 @@ module bsg_manycore
                 .y_cord_width_p(y_cord_width_lp),
                 .data_width_p(data_width_p),
                 .addr_width_p(addr_width_p),
-                .hetero_type_p( hetero_type_vec_p[r-1][c] ),
+                .hetero_type_p( hetero_type_vec_p[(r-1) * num_tiles_x_p + c] ),
                 .debug_p(debug_p)
                 ,.branch_trace_en_p(branch_trace_en_p)
                 ,.num_tiles_x_p(num_tiles_x_p)
