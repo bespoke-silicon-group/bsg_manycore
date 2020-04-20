@@ -104,14 +104,13 @@ module bsg_manycore
    
   assign reset_i_lo = {(num_tiles_y_p*num_tiles_x_p){reset_i}};
 
-   always_ff @(posedge clk_i) begin
-      reset_i_r[0] <= reset_i_lo;
-   end
   genvar k;
-  for (k = 1; k < reset_depth_p; k++)
+  for (k = 0; k < reset_depth_p; k++)
     begin
-       always_ff @(posedge clk_i) begin
-          reset_i_r[k] <= reset_i_r[k-1];
+      always_ff @(posedge clk_i)
+        begin
+          reset_i_r[k] <= (k == 0) ? {(num_tiles_y_p*num_tiles_x_p){reset_i}} : reset_i_r[k-1];
+        end
     end
    end
 
