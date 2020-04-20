@@ -19,4 +19,4 @@ BSG_MACHINE_MEM_CFG                   = e_vcache_blocking_dramsim3_hbm2
 
 BSG_MACHINE_BRANCH_TRACE_EN           = 0
 
-BSG_MACHINE_HETERO_TYPE_VEC 				  = default:0
+BSG_MACHINE_HETERO_TYPE_VEC           = default:0
