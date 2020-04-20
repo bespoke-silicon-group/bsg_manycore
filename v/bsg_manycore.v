@@ -111,7 +111,6 @@ module bsg_manycore
         begin
           reset_i_r[k] <= (k == 0) ? {(num_tiles_y_p*num_tiles_x_p){reset_i}} : reset_i_r[k-1];
         end
-    end
    end
 
    for (r = 1; r < num_tiles_y_p; r = r+1)
