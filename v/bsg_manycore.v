@@ -101,16 +101,14 @@ module bsg_manycore
   // on reset already, so we only want to pipeline reset_depth_p-1 times.
   logic [reset_depth_p-1:0][num_tiles_y_p-1:0][num_tiles_x_p-1:0] reset_i_r;
 
-  assign reset_i_r[0] = {(num_tiles_y_p*num_tiles_x_p){reset_i}};
-
   genvar k;
   for (k = 1; k < reset_depth_p; k++)
     begin
       always_ff @(posedge clk_i)
         begin
-          reset_i_r[k] <= reset_i_r[k-1];
+          reset_i_r[k] <= (k == 1) ? {(num_tiles_y_p*num_tiles_x_p){reset_i}} : reset_i_r[k-1];
         end
-    end
+   end
 
    for (r = 1; r < num_tiles_y_p; r = r+1)
      begin: y
