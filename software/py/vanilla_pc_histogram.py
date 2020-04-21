@@ -31,12 +31,8 @@ class PCHistogram:
     _DEFAULT_START_CYCLE = 0 
     _DEFAULT_END_CYCLE   = 500000
 
-    _BSG_PC_MIN = 0x0000
-    _BSG_PC_MAX = 0x2000
-
     _BSG_PC_ADDR_SHIFT = 2
     _BSG_PC_ADDR_STEP = 1 << _BSG_PC_ADDR_SHIFT
-
 
 
     # formatting parameters for aligned printing
@@ -64,8 +60,6 @@ class PCHistogram:
         self.traces = []
         self.manycore_pc_cnt = Counter()
         self.tile_pc_cnt = Counter()
-        self.min_pc_val = self._BSG_PC_MIN
-        self.max_pc_val = self._BSG_PC_MAX
 
         unorigin = (0,0)
 
@@ -85,8 +79,11 @@ class PCHistogram:
                 #self.max_pc_val = max(self.max_pc_val, trace["pc"])
                 #self.min_pc_val = min(self.min_pc_val, trace["pc"])
 
-                if (trace["pc"] >= self._BSG_PC_MIN and trace["pc"] <= self._BSG_PC_MAX):
-                    self.traces.append(trace)
+                self.traces.append(trace)
+
+        self.min_pc_val = min (trace["pc"] for trace in self.traces)
+        self.max_pc_val = max (trace["pc"] for trace in self.traces)
+
 
         self.manycore_dim_y = unorigin[0] + 1
         self.manycore_dim_x = unorigin[1] + 1
@@ -201,48 +198,55 @@ class PCHistogram:
     # Traverse the pc counter in order for the entire manycore
     # and prints number of executions for every range
     def __print_manycore_pc_histogram(self, stat_file, manycore_pc_cnt):
-        pc_start = self.min_pc_val 
-        pc_end   = self.min_pc_val
 
         self.__print_stat(stat_file, "pc_header", "PC Block", "Exe Cnt", "Block Size", "Total Intrs Exe Cnt");
         self.__print_stat(stat_file, "lbreak");
 
-        while (pc_start <= self.max_pc_val and pc_end <= self.max_pc_val):
-            if (manycore_pc_cnt[pc_start] == 0):
-                pc_start += self._BSG_PC_ADDR_STEP
-                pc_end += self._BSG_PC_ADDR_STEP
-            elif (manycore_pc_cnt[pc_start] == manycore_pc_cnt[pc_end]):
-                 pc_end += self._BSG_PC_ADDR_STEP
-            else:
-                 start = pc_start
-                 end = pc_end - self._BSG_PC_ADDR_STEP
-                 pc_cnt = manycore_pc_cnt[start]
-                 block_size = ((end - start) >> self._BSG_PC_ADDR_SHIFT) + 1
-                 exe_cnt = pc_cnt * block_size
+        # Create a sorted list of all PC's executed 
+        pc_list = sorted(manycore_pc_cnt.keys())
 
-                 self.__print_stat(stat_file, "pc_data"
-                                            , start
-                                            , end
-                                            , pc_cnt
-                                            , block_size
-                                            , exe_cnt);
-                 pc_start = pc_end
 
-        if(pc_start < self.max_pc_val - self._BSG_PC_ADDR_STEP):
-            if (manycore_pc_cnt[pc_start] > 0):
-                 start = pc_start
-                 end = pc_end - self._BSG_PC_ADDR_STEP
-                 pc_cnt = manycore_pc_cnt[start]
-                 block_size = ((end - start) >> self._BSG_PC_ADDR_SHIFT) + 1
-                 exe_cnt = pc_cnt * block_size
+        start = 0
+        end = 1
 
-                 self.__print_stat(stat_file, "pc_data"
-                                            , start
-                                            , end
-                                            , pc_cnt
-                                            , block_size
-                                            , exe_cnt);
+        # Sliding Window
+        # Iterate over all PC's in order
+        # Continue adding to a basic block as long as the current PC is immediately after 
+        # the previous one, and the number of times current PC has been executed is 
+        # equal to that of previous PC
+        # Once this condition no longer holds, print the basic block and repeat
+        while (end < len(pc_list)):
+            if (not (manycore_pc_cnt[pc_list[start]] == manycore_pc_cnt[pc_list[end]]
+                     and pc_list[end] - pc_list[end-1] == self._BSG_PC_ADDR_STEP) ):
+                
+                pc_cnt = manycore_pc_cnt[pc_list[start]]
+                block_size = ((pc_list[end-1] - pc_list[start]) >> self._BSG_PC_ADDR_SHIFT) + 1
+                exe_cnt = pc_cnt * block_size
+
+                self.__print_stat(stat_file, "pc_data"
+                                           , pc_list[start]
+                                           , pc_list[end-1]
+                                           , pc_cnt
+                                           , block_size
+                                           , exe_cnt);
+                start = end
+
+            end += 1
+
+
+        # Print once more for the last basic block 
+        pc_cnt = manycore_pc_cnt[pc_list[start]]
+        block_size = ((pc_list[end-1] - pc_list[start]) >> self._BSG_PC_ADDR_SHIFT) + 1
+        exe_cnt = pc_cnt * block_size
+
+        self.__print_stat(stat_file, "pc_data"
+                                   , pc_list[start]
+                                   , pc_list[end-1]
+                                   , pc_cnt
+                                   , block_size
+                                   , exe_cnt);
         return
+
 
 
     # Prints the pc histogram for the entire manycore 
