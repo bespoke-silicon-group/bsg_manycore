@@ -24,10 +24,10 @@
                           ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p) \
                           ,.vcache_sets_p(vcache_sets_p)                               \
                           ,.debug_p(debug_p)                                           \
-                          ,.branch_trace_en_p(branch_trace_en_p)                                 \
-			                    ,.icache_entries_p(icache_entries_p)                         \
+                          ,.branch_trace_en_p(branch_trace_en_p)                       \
+                          ,.icache_entries_p(icache_entries_p)                         \
                           ,.icache_tag_width_p (icache_tag_width_p)                    \
-            		          ,.max_out_credits_p(max_out_credits_p)                       \
+                          ,.max_out_credits_p(max_out_credits_p)                       \
                           ,.num_tiles_x_p(num_tiles_x_p)                               \
                           ) z                                                          \
           (.clk_i                                                                      \
@@ -46,13 +46,13 @@ module bsg_manycore_hetero_socket
     , parameter data_width_p = "inv"
     , parameter addr_width_p = "inv"
     , parameter dmem_size_p = "inv"
-		, parameter icache_entries_p = "inv" // in words
+    , parameter icache_entries_p = "inv" // in words
     , parameter icache_tag_width_p = "inv"
     , parameter vcache_size_p = "inv"
     , parameter debug_p = 0
     , parameter branch_trace_en_p = 0
     , parameter max_out_credits_p = 200
-    , parameter hetero_type_p = 0
+    , parameter int hetero_type_p = 0
     , parameter num_tiles_x_p="inv"
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p="inv"
@@ -84,7 +84,7 @@ module bsg_manycore_hetero_socket
   `HETERO_TYPE_MACRO(7,bsg_manycore_accel_default) else
   `HETERO_TYPE_MACRO(8,bsg_manycore_accel_default) else
   begin : nh
-	  // synopsys translate_off
+  // synopsys translate_off
     initial begin
       $error("## unidentified hetero core type ",hetero_type_p);
       $finish();

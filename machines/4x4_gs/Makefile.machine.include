@@ -22,7 +22,7 @@ BSG_MACHINE_MEM_CFG                   = e_vcache_blocking_axi4_nonsynth_mem
 BSG_MACHINE_BRANCH_TRACE_EN           = 0
 
 # it has a gather-scatterer at the bottom-right corner.
-BSG_MACHINE_HETERO_TYPE_VEC 				  = {0,0,0,0},\
-																				{0,0,0,0},\
-																				{0,0,0,0},\
-																				{0,0,0,1}
+BSG_MACHINE_HETERO_TYPE_VEC           = 0,0,0,0,\
+                                        0,0,0,0,\
+                                        0,0,0,0,\
+                                        0,0,0,1

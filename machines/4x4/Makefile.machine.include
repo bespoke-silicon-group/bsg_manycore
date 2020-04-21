@@ -15,8 +15,8 @@ BSG_MACHINE_MAX_EPA_WIDTH             = 28
 
 # supported memory cfg
 BSG_MACHINE_MEM_CFG                   = e_vcache_blocking_axi4_nonsynth_mem
-#BSG_MACHINE_MEM_CFG                   = e_vcache_non_blocking_axi4_nonsynth_mem
+#BSG_MACHINE_MEM_CFG                  = e_vcache_non_blocking_axi4_nonsynth_mem
 
 BSG_MACHINE_BRANCH_TRACE_EN           = 0
 
-BSG_MACHINE_HETERO_TYPE_VEC 				  = default:0
+BSG_MACHINE_HETERO_TYPE_VEC           = default:0
