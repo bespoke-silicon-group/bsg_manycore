@@ -8,20 +8,18 @@
 #   output: blood graph file (blood_abstrat/detailed.png)
 #           blood graph key  (key_abstract/detailed.png)
 #
-#   @author tommy and borna
+#   @author Tommy and Borna
 #
 #   How to use:
-#   python blood_graph.py --input {vanilla_operation_trace.csv}
-#                         --timing-stat {vanilla_stats.csv}
+#   python blood_graph.py --trace {vanilla_operation_trace.csv}
+#                         --stats {vanilla_stats.csv}
+#                         --cycle {start_cycle@end_cycle}
 #                         --abstract {optional}
 #                         --generate-key {optional}
-#                         --cycle {start_cycle@end_cycle} (deprecated)
 #
-#   ex) python blood_graph.py --input vanilla_operation_trace.csv
-#                             --timing-stat vanilla_stats.csv
-#                             --abstract --generate-key
 #
-#   {timing-stat}  used for extracting the timing window for blood graph
+#
+#   {stats}        used for extracting the timing window for blood graph
 #   {abstract}     used for abstract simplifed bloodgraph
 #   {generate-key} also generates a color key for the blood graph
 #
@@ -29,6 +27,7 @@
 #   Note: You can use the "Digital Color Meter" in MacOS in order to compare
 #   the values from the color key to the values in the bloodgraph, if you are
 #   having trouble distinguishing a color.
+
 
 import sys
 import csv
