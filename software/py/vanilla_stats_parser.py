@@ -180,6 +180,7 @@ class VanillaStatsParser:
         self.per_tile_stat = per_tile_stat
         self.per_tile_group_stat = per_tile_group_stat
         self.per_vcache_stat = per_vcache_stat
+        self.vcache = True if vcache_input_file else False
 
         self.traces = []
         self.vcache_traces = []
@@ -207,8 +208,6 @@ class VanillaStatsParser:
         # Parse input file's header to generate a list of all types of operations
         self.stats, self.instrs, self.misses, self.stalls, self.bubbles = self.parse_header(vanilla_input_file)
 
-        # Parse vcache input file's header to generate a list of all types of operations
-        self.vcache_stats, self.vcache_instrs, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
 
         # bubble_fp_op is a bubble in the Integer pipeline "caused" by
         # an FP instruction executing. Don't count it in the bubbles
@@ -221,11 +220,9 @@ class VanillaStatsParser:
 
         # Create a list of all types of opertaions for iteration
         self.all_ops = self.stats + self.instrs + self.misses + self.stalls + self.bubbles
-        self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
 
-        # Use sets to determine the active tiles and vcache banks (without duplicates)
+        # Use sets to determine the active tiles (without duplicates)
         active_tiles = set()
-        active_vcaches = set()
 
         # Parse stats file line by line, and append the trace line to traces list. 
         with open(vanilla_input_file) as f:
@@ -236,24 +233,10 @@ class VanillaStatsParser:
                 self.traces.append(trace)
 
 
-        # Parse vcache stats file line by line, and append the trace line to traces list. 
-        with open(vcache_input_file) as f:
-            csv_reader = csv.DictReader (f, delimiter=",")
-            for row in csv_reader:
-                # Vcache bank name is a string that contains the vcache bank number 
-                # The vcache bank number is extracted separately from other stats 
-                # and manually added 
-                trace = {op:int(row[op]) for op in self.vcache_all_ops if op != 'vcache'}
-                vcache_name = row['vcache']
-                vcache_bank = int (vcache_name[vcache_name.find("[")+1: vcache_name.find("]")])
-                trace['vcache'] = vcache_bank
-                active_vcaches.add((vcache_bank))
-                self.vcache_traces.append(trace)
-
 
 
         # Raise exception and exit if there are no traces 
-        if not self.traces or not self.vcache_traces:
+        if not self.traces:
             raise IOError("No Vanilla Stats Found: Use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics")
 
 
@@ -261,21 +244,54 @@ class VanillaStatsParser:
         self.active_tiles = list(active_tiles)
         self.active_tiles.sort()
 
-        self.active_vcaches = list(active_vcaches)
-        self.active_vcaches.sort()
-
-
         # generate timing stats for each tile and tile group 
         self.num_tile_groups, self.tile_group_stat, self.tile_stat, self.manycore_cycle_parallel_cnt = self.__generate_tile_stats(self.traces, self.active_tiles)
-
-        # generate timing stats for each vcache bank 
-        self.vcache_tile_group_stat, self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
 
         # Calculate total aggregate stats for manycore by summing up per_tile stat counts
         self.manycore_stat = self.__generate_manycore_stats_all(self.tile_stat, self.manycore_cycle_parallel_cnt)
 
-        # Calculate total aggregate stats for manycore vcahe  by summing up per vcache bank stat counts
-        self.manycore_vcache_stat = self.__generate_manycore_vcache_stats_all(self.vcache_stat)
+
+
+
+        # Generate VCache Stats
+        # If vcache stats file is given as input, also generate vcache stats 
+        if (self.vcache):
+            # Parse vcache input file's header to generate a list of all types of operations
+            self.vcache_stats, self.vcache_instrs, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
+    
+            # Create a list of all types of opertaions for iteration
+            self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
+    
+            # Use sets to determine the active vcache banks (without duplicates)
+            active_vcaches = set()
+    
+            # Parse vcache stats file line by line, and append the trace line to traces list. 
+            with open(vcache_input_file) as f:
+                csv_reader = csv.DictReader (f, delimiter=",")
+                for row in csv_reader:
+                    # Vcache bank name is a string that contains the vcache bank number 
+                    # The vcache bank number is extracted separately from other stats 
+                    # and manually added 
+                    trace = {op:int(row[op]) for op in self.vcache_all_ops if op != 'vcache'}
+                    vcache_name = row['vcache']
+                    vcache_bank = int (vcache_name[vcache_name.find("[")+1: vcache_name.find("]")])
+                    trace['vcache'] = vcache_bank
+                    active_vcaches.add((vcache_bank))
+                    self.vcache_traces.append(trace)
+    
+            self.active_vcaches = list(active_vcaches)
+            self.active_vcaches.sort()
+    
+            # generate timing stats for each vcache bank 
+            self.vcache_tile_group_stat, self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
+    
+            # Calculate total aggregate stats for manycore vcahe  by summing up per vcache bank stat counts
+            self.manycore_vcache_stat = self.__generate_manycore_vcache_stats_all(self.vcache_stat)
+
+
+
+
+
 
 
         return
@@ -1160,9 +1176,12 @@ class VanillaStatsParser:
         self.__print_manycore_stats_bubble(manycore_stats_file, "Per-Tag Bubble Stats", self.manycore_stat, self.bubbles)
         self.__print_manycore_stats_instr(manycore_stats_file, "Per-Tag Instruction Stats", self.manycore_stat, self.instrs)
         self.__print_manycore_stats_tile_timing(manycore_stats_file, "Per-Tile Timing Stats", self.active_tiles, self.manycore_stat, self.tile_stat)
-        self.__print_manycore_stats_miss(manycore_stats_file, "VCache Per-Tag Miss Stats", self.manycore_vcache_stat, self.vcache_misses)
-        self.__print_manycore_stats_stall(manycore_stats_file, "VCache Per-Tag Stall Stats", self.manycore_vcache_stat, self.vcache_stalls)
-        self.__print_manycore_stats_instr(manycore_stats_file, "VCache Per-Tag Instruction Stats", self.manycore_vcache_stat, self.vcache_instrs)
+
+        # If vcache stats is given as input, also print vcache stats
+        if (self.vcache):
+            self.__print_manycore_stats_miss(manycore_stats_file, "VCache Per-Tag Miss Stats", self.manycore_vcache_stat, self.vcache_misses)
+            self.__print_manycore_stats_stall(manycore_stats_file, "VCache Per-Tag Stall Stats", self.manycore_vcache_stat, self.vcache_stalls)
+            self.__print_manycore_stats_instr(manycore_stats_file, "VCache Per-Tag Instruction Stats", self.manycore_vcache_stat, self.vcache_instrs)
         manycore_stats_file.close()
         return
 
@@ -1181,9 +1200,12 @@ class VanillaStatsParser:
             self.__print_per_tile_group_stats_stall(stat_file, "Per-Tile-Group Stall Stats", tg_id, self.tile_group_stat, self.stalls)
             self.__print_per_tile_group_stats_bubble(stat_file, "Per-Tile-Group Bubble Stats", tg_id, self.tile_group_stat, self.bubbles)
             self.__print_per_tile_group_stats_instr(stat_file, "Per-Tile-Group Instruction Stats", tg_id, self.tile_group_stat, self.instrs)
-            self.__print_per_tile_group_stats_miss(stat_file, "VCache Per-Tile-Group Miss Stats", tg_id, self.vcache_tile_group_stat, self.vcache_misses)
-            self.__print_per_tile_group_stats_stall(stat_file, "VCache Per-Tile-Group Stall Stats", tg_id, self.vcache_tile_group_stat, self.vcache_stalls)
-            self.__print_per_tile_group_stats_instr(stat_file, "VCache Per-Tile-Group Instruction Stats", tg_id, self.vcache_tile_group_stat, self.vcache_instrs)
+
+            # If vcache stats is given as input 
+            if (self.vcache):
+                self.__print_per_tile_group_stats_miss(stat_file, "VCache Per-Tile-Group Miss Stats", tg_id, self.vcache_tile_group_stat, self.vcache_misses)
+                self.__print_per_tile_group_stats_stall(stat_file, "VCache Per-Tile-Group Stall Stats", tg_id, self.vcache_tile_group_stat, self.vcache_stalls)
+                self.__print_per_tile_group_stats_instr(stat_file, "VCache Per-Tile-Group Instruction Stats", tg_id, self.vcache_tile_group_stat, self.vcache_instrs)
 
             stat_file.close()
         return
@@ -1211,16 +1233,18 @@ class VanillaStatsParser:
     # prints all four types of stats, timing, instruction,
     # miss and stall for each vcache in a separate file  
     def print_per_vcache_stats_all(self):
-        stats_path = os.getcwd() + "/stats/vcache/"
-        if not os.path.exists(stats_path):
-            os.mkdir(stats_path)
-        for vcache in self.active_vcaches:
-            stat_file = open( (stats_path + "vcache_bank_" + str(vcache) + "_stats.log"), "w")
-            self.__print_stats_miss(stat_file, "Per-VCache Miss Stats", vcache, self.vcache_stat, self.vcache_misses)
-            self.__print_stats_stall(stat_file, "Per-VCache Stall Stats", vcache, self.vcache_stat, self.vcache_stalls)
-            self.__print_stats_instr(stat_file, "Per-VCache Instr Stats", vcache, self.vcache_stat, self.vcache_instrs)
-            stat_file.close()
-
+        # if Vcache stats is given as input
+        if (self.vcache):
+            stats_path = os.getcwd() + "/stats/vcache/"
+            if not os.path.exists(stats_path):
+                os.mkdir(stats_path)
+            for vcache in self.active_vcaches:
+                stat_file = open( (stats_path + "vcache_bank_" + str(vcache) + "_stats.log"), "w")
+                self.__print_stats_miss(stat_file, "Per-VCache Miss Stats", vcache, self.vcache_stat, self.vcache_misses)
+                self.__print_stats_stall(stat_file, "Per-VCache Stall Stats", vcache, self.vcache_stat, self.vcache_stalls)
+                self.__print_stats_instr(stat_file, "Per-VCache Instr Stats", vcache, self.vcache_stat, self.vcache_instrs)
+                stat_file.close()
+        return
 
 
 
@@ -1672,7 +1696,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
     parser.add_argument("--vanilla", default="vanilla_stats.csv", type=str,
                         help="Vanilla stats log file")
-    parser.add_argument("--vcache", default="vcache_stats.csv", type=str,
+    parser.add_argument("--vcache", type=str,
                         help="Vcache stats log file")
     parser.add_argument("--tile", default=False, action='store_true',
                         help="Also generate separate stats files for each tile.")
