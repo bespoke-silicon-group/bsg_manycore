@@ -9,14 +9,12 @@
 //
 //
 
-`include "bsg_manycore_packet.vh"
-
 module bsg_manycore_link_async_to_wormhole
+ import bsg_manycore_pkg::*;
 
  #(// Manycore link parameters
    parameter addr_width_p="inv"
   ,parameter data_width_p="inv"
-  ,parameter load_id_width_p = "inv"
   ,parameter x_cord_width_p="inv"
   ,parameter y_cord_width_p="inv"
   
@@ -30,7 +28,7 @@ module bsg_manycore_link_async_to_wormhole
   ,parameter mc_reset_depth_p = 3
   
   ,localparam num_nets_lp = 2
-  ,localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
+  ,localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   ,localparam bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(flit_width_p)
   
   ,localparam cord_width_lp = cord_markers_pos_p[dims_p]
@@ -64,8 +62,8 @@ module bsg_manycore_link_async_to_wormhole
   genvar i;
   
   // Define manycore link, fwd and rev packets
-  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
-  `declare_bsg_manycore_packet_s  (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p);
+  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+  `declare_bsg_manycore_packet_s  (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   
   // Manycore packet width
   localparam manycore_fwd_packet_width_lp = $bits(bsg_manycore_packet_s);
