@@ -57,8 +57,14 @@ class PCHistogram:
         # Generate per tile PC count dictionary
         self.tile_pc_cnt = self.__generate_tile_pc_cnt(self.traces)
 
+        # Generate per tile PC histogram by parsing the per tile PC execution count
+        self.tile_pc_histogram = self.__generate_tile_pc_histogram(self.tile_pc_cnt)
+
         # Generate PC count dictionary for the entire network
         self.manycore_pc_cnt = self.__generate_manycore_pc_cnt(self.tile_pc_cnt)
+
+        # Generate PC histogram for the entire network by traversing total PC execution count
+        self.manycore_pc_histogram = self.__generate_pc_histogram(self.manycore_pc_cnt)
 
         return
 
@@ -121,16 +127,30 @@ class PCHistogram:
 
 
 
-    # Traverse the PC's in the give PC counter in order
-    # and print number of executions for every basic block
-    def __print_pc_histogram(self, stat_file, pc_cnt):
+    # For each tile x,y in the manycore 
+    # Iterate over it's PC count dictionary and generate
+    # PC histogram by calling self.__generate_pc_histogram
+    def __generate_tile_pc_histogram(self, tile_pc_cnt):
+        tile_pc_histogram = [[Counter() for x in range(self.manycore_dim_x)] for y in range(self.manycore_dim_y)]
 
-        self.__print_stat(stat_file, "pc_header", "PC Block", "Exe Cnt", "Block Size", "Total Intrs Exe Cnt");
-        self.__print_stat(stat_file, "lbreak");
+        for y in range(self.manycore_dim_y):
+            for x in range(self.manycore_dim_x):
+                tile_pc_histogram[y][x] = self.__generate_pc_histogram(tile_pc_cnt[y][x])
 
+        return tile_pc_histogram
+
+
+        
+
+
+    # Iterate over the dictionary of {PC : # of execution}
+    # and create basic blocks of adjacent PC's with the 
+    # same number of execution 
+    # Return a dictionary of {(start PC, end PC): # of execution}
+    def __generate_pc_histogram(self, pc_cnt):
         # Create a sorted list of all PC's executed 
         pc_list = sorted(pc_cnt.keys())
-
+        histogram = Counter()
 
         start = 0
         end = 1
@@ -140,40 +160,50 @@ class PCHistogram:
         # Continue adding to a basic block as long as the current PC is immediately after 
         # the previous one, and the number of times current PC has been executed is 
         # equal to that of previous PC
-        # Once this condition no longer holds, print the basic block and repeat
+        # Once this condition no longer holds, add basic block to histogram and repeat
         while (end < len(pc_list)):
             if (not (pc_cnt[pc_list[start]] == pc_cnt[pc_list[end]]
                      and pc_list[end] - pc_list[end-1] == self._BSG_PC_ADDR_STEP) ):
                 
                 block_pc_cnt = pc_cnt[pc_list[start]]
-                block_size = ((pc_list[end-1] - pc_list[start]) >> self._BSG_PC_ADDR_SHIFT) + 1
-                exe_cnt = block_pc_cnt * block_size
-
-                self.__print_stat(stat_file, "pc_data"
-                                           , pc_list[start]
-                                           , pc_list[end-1]
-                                           , block_pc_cnt
-                                           , block_size
-                                           , exe_cnt);
+                histogram[(pc_list[start], pc_list[end-1])] = block_pc_cnt
                 start = end
-
             end += 1
 
+        # Repeat once more for the last basic block 
+        block_pc_cnt = pc_cnt[pc_list[start]]
+        histogram[(pc_list[start], pc_list[end-1])] = block_pc_cnt
 
-        # Print once more for the last basic block 
-        pc_cnt = pc_cnt[pc_list[start]]
-        block_size = ((pc_list[end-1] - pc_list[start]) >> self._BSG_PC_ADDR_SHIFT) + 1
-        exe_cnt = pc_cnt * block_size
+        return histogram
 
-        self.__print_stat(stat_file, "pc_data"
-                                   , pc_list[start]
-                                   , pc_list[end-1]
-                                   , pc_cnt
-                                   , block_size
-                                   , exe_cnt);
+
+
+    # Given a PC histogram dictionary and an output file,
+    # traverse the dictionary and print out every range of PC 
+    # and it's number of execution in order 
+    def __print_pc_histogram(self, stat_file, pc_histogram):
+
+        self.__print_stat(stat_file, "pc_header", "PC Block", "Exe Cnt", "Block Size", "Total Intrs Exe Cnt");
+        self.__print_stat(stat_file, "lbreak");
+       
+        range_list = sorted(pc_histogram.keys())
+
+        for range in range_list:
+            # Print once more for the last basic block 
+            start = range[0]
+            end = range[1]
+            pc_cnt = pc_histogram[range]
+            block_size = ((end - start) >> self._BSG_PC_ADDR_SHIFT) + 1
+            exe_cnt = pc_cnt * block_size
+    
+            self.__print_stat(stat_file, "pc_data"
+                                       , start
+                                       , end
+                                       , pc_cnt
+                                       , block_size
+                                       , exe_cnt);
         return
-
-
+   
 
 
     # Prints the pc histogram for each tile in a separate file
@@ -184,7 +214,7 @@ class PCHistogram:
         for y in range(self.manycore_dim_y):
             for x in range(self.manycore_dim_x):
                 stat_file = open( (stats_path + "tile_" + str(y) + "_" + str(x) + "_pc_histogram.log"), "w")
-                self.__print_pc_histogram(stat_file, self.tile_pc_cnt[y][x]);
+                self.__print_pc_histogram(stat_file, self.tile_pc_histogram[y][x]);
                 stat_file.close()
         return
 
@@ -196,7 +226,7 @@ class PCHistogram:
         if not os.path.exists(stats_path):
             os.mkdir(stats_path)
         stats_file = open( (stats_path + "manycore_pc_histogram.log"), "w")
-        self.__print_pc_histogram(stats_file, self.manycore_pc_cnt);
+        self.__print_pc_histogram(stats_file, self.manycore_pc_histogram);
         stats_file.close()
         return
 
