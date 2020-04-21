@@ -343,8 +343,7 @@ module network_rx
   assign is_invalid_addr = ~(is_dmem_addr | is_icache_addr | is_valid_csr_addr);
 
   always_ff @ (negedge clk_i) begin
-
-    if (v_i & is_invalid_addr) begin
+    if (~reset_i & v_i & is_invalid_addr) begin
       $display("[ERROR][RX] Invalid EPA Access. t=%0t, x=%d, y=%d, we=%d, addr=%h, data=%h",
         $time, my_x_i, my_y_i, w_i, addr_i, data_i);
     end
