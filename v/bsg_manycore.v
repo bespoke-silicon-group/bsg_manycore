@@ -69,7 +69,6 @@ module bsg_manycore
     , input [num_tiles_x_p-1:0][link_sif_width_lp-1:0] io_link_sif_i
     , output [num_tiles_x_p-1:0][link_sif_width_lp-1:0] io_link_sif_o
   );
-//'{default:0}
 
    // synopsys translate_off
    initial
