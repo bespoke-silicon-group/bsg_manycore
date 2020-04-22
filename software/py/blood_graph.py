@@ -3,25 +3,30 @@
 #
 #   vanilla_core execution visualizer.
 # 
-#   input: vanilla_operation_trace.csv.log
-#          vanilla_stats.csv (for timing)
+#   input:  vanilla_operation_trace.csv
+#           vanilla_stats.csv (for timing)
 #   output: blood graph file (blood_abstrat/detailed.png)
 #           blood graph key  (key_abstract/detailed.png)
 #
-#   @author Tommy and Borna
+#   @author Tommy, Borna
 #
 #   How to use:
 #   python blood_graph.py --trace {vanilla_operation_trace.csv}
 #                         --stats {vanilla_stats.csv}
-#                         --cycle {start_cycle@end_cycle}
 #                         --abstract {optional}
 #                         --generate-key {optional}
+#                         --cycle {start_cycle@end_cycle}
 #
+#   ex) python blood_graph.py --trace vanilla_operation_trace.csv
+#                             --stats vanilla_stats.csv
+#                             --abstract --generate-key
+#                             --cycle 10000@20000
 #
 #
 #   {stats}        used for extracting the timing window for blood graph
 #   {abstract}     used for abstract simplifed bloodgraph
 #   {generate-key} also generates a color key for the blood graph
+#   {cycle}        used for user-specified custom timing window 
 #
 #
 #   Note: You can use the "Digital Color Meter" in MacOS in order to compare
