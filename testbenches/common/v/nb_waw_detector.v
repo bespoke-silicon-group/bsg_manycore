@@ -89,8 +89,9 @@ module nb_waw_detector
           aggressor_pc         = pc_r[mem_r.rd_addr];
           victim_pc            = victim_pc_r[mem_r.rd_addr];
         end
-      end 
-      else if (wb_r.op_writes_rf) begin
+      end
+
+      if (wb_r.op_writes_rf) begin
         if (int_remote_load_resp_rd_i == wb_r.rd_addr) begin
           stall_force_wb_error = 1'b1;
           rd_addr              = wb_r.rd_addr;
