@@ -578,7 +578,7 @@ class VanillaStatsParser:
             instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_') or instr.startswith('instr_amo')) else "instr_data"
             self.__print_stat(stat_file, instr_format, instr,
                                          stat[tag][instr]
-                                         ,(100 * stat[tag][instr] / stat[tag]["instr_total"]))
+                                         ,(100 * np.float64(stat[tag][instr]) / stat[tag]["instr_total"]))
         return
 
 
@@ -1572,21 +1572,20 @@ class VanillaStatsParser:
         # Generate total stats for entire vcache by summing all stats for all vcache banks
         for tag in tags:
             for vcache in vcaches:
-                if (tag_seen[tag][vcache]):
-                    for instr in self.vcache_instrs:
-                        # different types of load/store/atomic instructions are already counted
-                        # under the umbrella of instr_ld/st/atomic, so they are not summed to 
-                        # to avoid double counting
-                        if (not instr.startswith('instr_ld_') and not instr.startswith('instr_sm_') and not instr.startswith('instr_amo')):
-                            vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
-                    for stall in self.vcache_stalls:
-                        vcache_stat[tag][vcache]["stall_total"] += vcache_stat[tag][vcache][stall]
-                    for bubble in self.vcache_bubbles:
-                        vcache_stat[tag][vcache]["bubble_total"] += vcache_stat[tag][vcache][bubble]
-                    for miss in self.vcache_misses:
-                        vcache_stat[tag][vcache]["miss_total"] += vcache_stat[tag][vcache][miss]
-                        hit = miss.replace("miss_", "instr_")
-                        vcache_stat[tag][vcache]["hit_total"] += vcache_stat[tag][vcache][hit]
+                for instr in self.vcache_instrs:
+                    # different types of load/store/atomic instructions are already counted
+                    # under the umbrella of instr_ld/st/atomic, so they are not summed to 
+                    # to avoid double counting
+                    if (not instr.startswith('instr_ld_') and not instr.startswith('instr_sm_') and not instr.startswith('instr_amo')):
+                        vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
+                for stall in self.vcache_stalls:
+                    vcache_stat[tag][vcache]["stall_total"] += vcache_stat[tag][vcache][stall]
+                for bubble in self.vcache_bubbles:
+                    vcache_stat[tag][vcache]["bubble_total"] += vcache_stat[tag][vcache][bubble]
+                for miss in self.vcache_misses:
+                    vcache_stat[tag][vcache]["miss_total"] += vcache_stat[tag][vcache][miss]
+                    hit = miss.replace("miss_", "instr_")
+                    vcache_stat[tag][vcache]["hit_total"] += vcache_stat[tag][vcache][hit]
 
 
 
