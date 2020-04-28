@@ -2,6 +2,7 @@
 #define __BSG_NONSYNTH_DPI_MANYCORE
 #include <bsg_nonsynth_dpi.hpp>
 #include <bsg_nonsynth_dpi_fifo.hpp>
+#include <bsg_nonsynth_dpi_errno.hpp>
 #include <bsg_nonsynth_dpi_rom.hpp>
 #include <svdpi.h>
 #include <cstring>
@@ -35,46 +36,48 @@ namespace bsg_nonsynth_dpi{
                         svSetScope(prev);
                 }
 
-                bool try_get_credits(int& credits){
+                int get_credits(int& credits){
                         prev = svSetScope(scope);
-                        if(!bsg_dpi_credits_is_window())
-                                return false;
+                        if(!bsg_dpi_credits_is_window()){
+                                svSetScope(prev);
+                                return BSG_NONSYNTH_DPI_NOT_WINDOW;
+                        }
 
                         credits = bsg_dpi_credits_get_cur();
                         svSetScope(prev);
-                        return true;
+                        return BSG_NONSYNTH_DPI_SUCCESS;
                 }
 
-                bool try_tx_req(const __m128i &data){
-                        bool res = false;
-                        if(!d2f_req.is_window()){
+                int tx_req(const __m128i &data){
+                        int res = BSG_NONSYNTH_DPI_SUCCESS;
+                        // Get credits checks for window
+                        if(!cur_credits)
+                                res = get_credits(cur_credits);
+
+                        if(res != BSG_NONSYNTH_DPI_SUCCESS)
                                 return res;
-                        }
-                        if(!cur_credits){
-                                prev = svSetScope(scope);
-                                cur_credits = bsg_dpi_credits_get_cur();
-                                svSetScope(prev);
-                        } 
-                        if(cur_credits){
-                                res = d2f_req.tx(data);
-                                if(res)
-                                        cur_credits--;
-                        }
+
+                        if(cur_credits == 0)
+                                return BSG_NONSYNTH_DPI_NO_CREDITS;
+
+                        if(cur_credits < 0)
+                                return BSG_NONSYNTH_DPI_INVALID;
+
+                        if(cur_credits)
+                                res = d2f_req.try_tx(data);
+
+                        if(res == BSG_NONSYNTH_DPI_SUCCESS)
+                                cur_credits--;
+
                         return res;
                 }
 
-                bool try_rx_rsp(__m128i &data){
-                        if(!f2d_rsp.is_window())
-                                return false;
-
-                        return f2d_rsp.rx(data);
+                int rx_rsp(__m128i &data){
+                        return f2d_rsp.try_rx(data);
                 }
 
-                bool try_rx_req(__m128i &data){ 
-                       if(!f2d_req.is_window())
-                                return false;
-
-                        return f2d_req.rx(data);
+                bool rx_req(__m128i &data){ 
+                        return f2d_req.try_rx(data);
                 }
 
         };
