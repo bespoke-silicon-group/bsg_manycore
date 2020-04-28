@@ -1,20 +1,21 @@
 module bsg_nonsynth_dpi_manycore
   import bsg_manycore_pkg::*;
-  #(
-    // these are endpoint parameters
-    parameter x_cord_width_p = "inv"
-    ,parameter y_cord_width_p = "inv"
-    ,parameter addr_width_p = "inv"
-    ,parameter data_width_p = "inv"
-    ,parameter max_out_credits_p = "inv"
-    ,parameter ep_fifo_els_p = "inv"
-    ,parameter rom_els_p = "inv"
-    ,parameter rom_width_p = "inv"
-    ,parameter bit [rom_width_p-1:0] rom_arr_p [rom_els_p-1:0] = "inv"
-    ,localparam link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+   #(
+     // these are endpoint parameters
+     parameter x_cord_width_p = "inv"
+     ,parameter y_cord_width_p = "inv"
+     ,parameter addr_width_p = "inv"
+     ,parameter data_width_p = "inv"
+     ,parameter max_out_credits_p = "inv"
+     ,parameter ep_fifo_els_p = "inv"
+     ,parameter dpi_fifo_els_p = "inv"
+     ,parameter rom_els_p = "inv"
+     ,parameter rom_width_p = "inv"
+     ,parameter bit [rom_width_p-1:0] rom_arr_p [rom_els_p-1:0] = "inv"
+     ,localparam link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
-    ,parameter bit debug_p = 0
-    ) 
+     ,parameter bit debug_p = 0
+     ) 
    (
     input clk_i
     ,input reset_i
@@ -30,8 +31,6 @@ module bsg_nonsynth_dpi_manycore
 
    //TODO: Compute width from something...
    localparam fifo_width_lp = 128;
-   localparam fifo_els_lp = 16;
-
    
    logic [`BSG_WIDTH(max_out_credits_p)-1:0] ep_out_credits_lo;
    
@@ -77,7 +76,7 @@ module bsg_nonsynth_dpi_manycore
 
    bsg_fifo_1r1w_small_unhardened
      #(
-       .els_p(fifo_els_lp)
+       .els_p(dpi_fifo_els_p)
        ,.width_p(fifo_width_lp)
        )
    fifo_f2d_req_i
@@ -112,7 +111,7 @@ module bsg_nonsynth_dpi_manycore
 
    bsg_fifo_1r1w_small_unhardened
      #(
-       .els_p(fifo_els_lp)
+       .els_p(dpi_fifo_els_p)
        ,.width_p(fifo_width_lp)
        )
    fifo_f2d_rsp_i
@@ -212,6 +211,7 @@ module bsg_nonsynth_dpi_manycore
       $display("BSG INFO:     data_width_p:      %d", data_width_p);
       $display("BSG INFO:     max_out_credits_p: %d", max_out_credits_p);
       $display("BSG INFO:     ep_fifo_els_p:     %d", ep_fifo_els_p);
+      $display("BSG INFO:     dpi_fifo_els_p:    %d", dpi_fifo_els_p);
       $display("BSG INFO:     debug_p:           %d", debug_o);
    end
 

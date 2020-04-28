@@ -76,7 +76,7 @@ namespace bsg_nonsynth_dpi{
                         return f2d_rsp.try_rx(data);
                 }
 
-                bool rx_req(__m128i &data){ 
+                int rx_req(__m128i &data){ 
                         return f2d_req.try_rx(data);
                 }
 
