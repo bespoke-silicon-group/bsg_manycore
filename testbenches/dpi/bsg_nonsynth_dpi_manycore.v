@@ -1,5 +1,4 @@
 module bsg_nonsynth_dpi_manycore
-  import bsg_bladerunner_rom_pkg::*;
   import bsg_manycore_pkg::*;
   #(
     // these are endpoint parameters
@@ -9,6 +8,9 @@ module bsg_nonsynth_dpi_manycore
     ,parameter data_width_p = "inv"
     ,parameter max_out_credits_p = "inv"
     ,parameter ep_fifo_els_p = "inv"
+    ,parameter rom_els_p = "inv"
+    ,parameter rom_width_p = "inv"
+    ,parameter bit [rom_width_p-1:0] rom_arr_p [rom_els_p-1:0] = "inv"
     ,localparam link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
     ,parameter bit debug_p = 0
@@ -180,11 +182,11 @@ module bsg_nonsynth_dpi_manycore
       );
 
    bsg_nonsynth_dpi_rom
-     #(.els_p(rom_els_gp)
-       ,.width_p(rom_width_gp)
-       ,.arr_p(rom_arr_gp))
+     #(.els_p(rom_els_p)
+       ,.width_p(rom_width_p)
+       ,.arr_p(rom_arr_p))
    rom
-   ();
+     ();
 
    // We track the polarity of the current edge so that we can call
    // $fatal when credits_get_cur is called during the wrong phase
