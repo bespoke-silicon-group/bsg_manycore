@@ -49,6 +49,10 @@ module bsg_manycore_accel_default
     , output logic freeze_o
     );
 
+   initial
+     $fatal(1, "This module has not been recently tested, only updated syntactically. Caveat Emptor");
+   
+
    wire freeze_r;
    assign freeze_o = freeze_r;
 
