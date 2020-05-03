@@ -678,11 +678,16 @@ class VanillaStatsParser:
         # Print stall stats for manycore
         for stall in stalls:
             stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
-            self.__print_stat(stat_file, stall_format, stall,
-                                         stat[tag][stall],
-                                         (100 * np.float64(stat[tag][stall]) / stat[tag]["stall_total"])
+            self.__print_stat(stat_file, stall_format, stall
+                                         ,stat[tag][stall]
+                                         ,(100 * np.float64(stat[tag][stall]) / stat[tag]["stall_total"])
                                          ,(100 * np.float64(stat[tag][stall]) / stat[tag]["global_ctr"]))
 
+        not_stall = stat[tag]["global_ctr"] - stat[tag]["stall_total"]
+        self.__print_stat(stat_file, "stall_data", "not_stall"
+                                     ,not_stall
+                                     ,(100 * np.float64(not_stall) / stat[tag]["stall_total"])
+                                     ,(100 * np.float64(not_stall) / stat[tag]["global_ctr"]))
         return
 
 
