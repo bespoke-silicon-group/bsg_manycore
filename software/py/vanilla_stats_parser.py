@@ -154,7 +154,8 @@ class VanillaStatsParser:
     print_format = {"tg_timing_header": type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
                     "tg_timing_data"  : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "timing_header"   : type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "timing_data"     : type_fmt["cord"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "tile_timing_data": type_fmt["cord"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "timing_data"     : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "instr_header"    : type_fmt["name"]       + type_fmt["int"]  + type_fmt["type"]    + "\n",
                     "instr_data"      : type_fmt["name"]       + type_fmt["int"]  + type_fmt["percent"] + "\n",
                     "instr_data_indt" : type_fmt["name_indt"]  + type_fmt["int"]  + type_fmt["percent"] + "\n",
@@ -459,7 +460,7 @@ class VanillaStatsParser:
         self.__print_stat(stat_file, "tag_separator", tag)
 
         for tile in tiles:
-            self.__print_stat(stat_file, "timing_data"
+            self.__print_stat(stat_file, "tile_timing_data"
                               ,tile[0]
                               ,tile[1]
                               ,(tile_stat[tag][tile]["instr_total"])
@@ -468,11 +469,10 @@ class VanillaStatsParser:
                               ,(100 * tile_stat[tag][tile]["global_ctr"] / manycore_stat[tag]["global_ctr"])
                               ,(100 * np.float64(tile_stat[tag][tile]["global_ctr"]) / tile_stat["kernel"][tile]["global_ctr"]))
 
-        self.__print_stat(stat_file, "tg_timing_data"
+        self.__print_stat(stat_file, "timing_data"
                                      ,"total"
                                      ,(manycore_stat[tag]["instr_total"])
                                      ,(manycore_stat[tag]["global_ctr"])
-                                     ,0
                                      ,(manycore_stat[tag]["instr_total"] / manycore_stat[tag]["global_ctr"])
                                      ,(np.float64(100 * manycore_stat[tag]["global_ctr"]) / manycore_stat[tag]["global_ctr"])
                                      ,(np.float64(100 * manycore_stat[tag]["global_ctr"]) / manycore_stat["kernel"]["global_ctr"]))
@@ -539,7 +539,7 @@ class VanillaStatsParser:
     def __print_per_tile_tag_stats_timing(self, stat_file, tile, tag, manycore_stat, tile_stat):
         self.__print_stat(stat_file, "tag_separator", tag)
 
-        self.__print_stat(stat_file, "timing_data"
+        self.__print_stat(stat_file, "tile_timing_data"
                                      ,tile[0]
                                      ,tile[1]
                                      ,(tile_stat[tag][tile]["instr_total"])
