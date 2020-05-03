@@ -156,6 +156,10 @@ class VanillaStatsParser:
                     "timing_header"   : type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
                     "tile_timing_data": type_fmt["cord"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "timing_data"     : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+
+                "vcache_timing_header": type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                "vcache_timing_data"  : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     +"\n",
+
                     "instr_header"    : type_fmt["name"]       + type_fmt["int"]  + type_fmt["type"]    + "\n",
                     "instr_data"      : type_fmt["name"]       + type_fmt["int"]  + type_fmt["percent"] + "\n",
                     "instr_data_indt" : type_fmt["name_indt"]  + type_fmt["int"]  + type_fmt["percent"] + "\n",
@@ -487,6 +491,47 @@ class VanillaStatsParser:
         for tag in manycore_stat.keys():
             if(manycore_stat[tag]["global_ctr"]):
                 self.__print_manycore_tag_stats_tile_timing(stat_file, tag, tiles, manycore_stat, tile_stat)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+    # print execution timing for the entire manycoree per vcache bank for a certain tag
+    def __print_manycore_tag_stats_vcache_timing(self, stat_file, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        for vcache in self.active_vcaches:
+            self.__print_stat(stat_file, "vcache_timing_data"
+                                         ,vcache
+                                         ,(self.vcache_stat[tag][vcache]["instr_total"])
+                                         ,(self.vcache_stat[tag][vcache]["miss_total"])
+                                         ,(self.vcache_stat[tag][vcache]["stall_total"])
+                                         ,(self.vcache_stat[tag][vcache]["global_ctr"]))
+
+        self.__print_stat(stat_file, "vcache_timing_data"
+                                     ,"total"
+                                     ,(self.manycore_vcache_stat[tag]["instr_total"])
+                                     ,(self.manycore_vcache_stat[tag]["miss_total"])
+                                     ,(self.manycore_vcache_stat[tag]["stall_total"])
+                                     ,(self.manycore_vcache_stat[tag]["global_ctr"]))
+        return
+
+
+    # Prints manycore timing stats per vcache bank for all tags 
+    def __print_manycore_stats_vcache_timing(self, stat_file):
+        stat_file.write("Per-Vcache-Bank Timing Stats\n")
+        self.__print_stat(stat_file, "vcache_timing_header"
+                                     ,"Vcache Bank No."
+                                     ,"Aggr Hit Requests"
+                                     ,"Aggr Misse Requests"
+                                     ,"Aggr Stall Cycles"
+                                     ,"Aggr Total Cycles")
+        self.__print_stat(stat_file, "start_lbreak")
+
+        for tag in self.manycore_vcache_stat.keys():
+            if(self.manycore_vcache_stat[tag]["global_ctr"]):
+                self.__print_manycore_tag_stats_vcache_timing(stat_file, tag)
         self.__print_stat(stat_file, "end_lbreak")
         return   
 
@@ -1184,6 +1229,7 @@ class VanillaStatsParser:
 
         # If vcache stats is given as input, also print vcache stats
         if (self.vcache):
+            self.__print_manycore_stats_vcache_timing(manycore_stats_file)
             self.__print_manycore_stats_miss(manycore_stats_file, "VCache Per-Tag Miss Stats", self.manycore_vcache_stat, self.vcache_misses)
             self.__print_manycore_stats_stall(manycore_stats_file, "VCache Per-Tag Stall Stats", self.manycore_vcache_stat, self.vcache_stalls)
             self.__print_manycore_stats_instr(manycore_stats_file, "VCache Per-Tag Instruction Stats", self.manycore_vcache_stat, self.vcache_instrs)
