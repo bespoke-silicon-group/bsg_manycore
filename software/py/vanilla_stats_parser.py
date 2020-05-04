@@ -157,8 +157,8 @@ class VanillaStatsParser:
                     "tile_timing_data": type_fmt["cord"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "timing_data"     : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
 
-                "vcache_timing_header": type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                "vcache_timing_data"  : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     +"\n",
+                    "vcache_timing_header": type_fmt["name"]   + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]   + "\n",
+                    "vcache_timing_data"  : type_fmt["name"]   + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + "\n",
 
                     "instr_header"    : type_fmt["name"]       + type_fmt["int"]  + type_fmt["type"]    + "\n",
                     "instr_data"      : type_fmt["name"]       + type_fmt["int"]  + type_fmt["percent"] + "\n",
@@ -502,19 +502,35 @@ class VanillaStatsParser:
         self.__print_stat(stat_file, "tag_separator", tag)
 
         for vcache in self.active_vcaches:
+
+            hit_cnt = self.vcache_stat[tag][vcache]["instr_total"]
+            miss_cnt = self.vcache_stat[tag][vcache]["miss_total"]
+            stall_cnt = self.vcache_stat[tag][vcache]["stall_total"]
+            cycle_cnt = self.vcache_stat[tag][vcache]["global_ctr"]
+            utilization = np.float64(hit_cnt + miss_cnt) / cycle_cnt
+
             self.__print_stat(stat_file, "vcache_timing_data"
                                          ,vcache
-                                         ,(self.vcache_stat[tag][vcache]["instr_total"])
-                                         ,(self.vcache_stat[tag][vcache]["miss_total"])
-                                         ,(self.vcache_stat[tag][vcache]["stall_total"])
-                                         ,(self.vcache_stat[tag][vcache]["global_ctr"]))
+                                         ,hit_cnt
+                                         ,miss_cnt
+                                         ,stall_cnt
+                                         ,cycle_cnt
+                                         ,utilization)
+
+
+        hit_cnt = self.manycore_vcache_stat[tag]["instr_total"]
+        miss_cnt = self.manycore_vcache_stat[tag]["miss_total"]
+        stall_cnt = self.manycore_vcache_stat[tag]["stall_total"]
+        cycle_cnt = self.manycore_vcache_stat[tag]["global_ctr"]
+        utilization = np.float64(hit_cnt + miss_cnt) / cycle_cnt
 
         self.__print_stat(stat_file, "vcache_timing_data"
                                      ,"total"
-                                     ,(self.manycore_vcache_stat[tag]["instr_total"])
-                                     ,(self.manycore_vcache_stat[tag]["miss_total"])
-                                     ,(self.manycore_vcache_stat[tag]["stall_total"])
-                                     ,(self.manycore_vcache_stat[tag]["global_ctr"]))
+                                     ,hit_cnt
+                                     ,miss_cnt
+                                     ,stall_cnt
+                                     ,cycle_cnt
+                                     ,utilization)
         return
 
 
@@ -526,7 +542,8 @@ class VanillaStatsParser:
                                      ,"Aggr Hit Requests"
                                      ,"Aggr Misse Requests"
                                      ,"Aggr Stall Cycles"
-                                     ,"Aggr Total Cycles")
+                                     ,"Aggr Total Cycles"
+                                     ,"Utilization")
         self.__print_stat(stat_file, "start_lbreak")
 
         for tag in self.manycore_vcache_stat.keys():
