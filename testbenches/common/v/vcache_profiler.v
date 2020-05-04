@@ -58,22 +58,22 @@ module vcache_profiler
   // Manycore performs all types of stores operations using the SM, therefore
   // mask_op should be hight while evaluating the store signals, but not for
   // load signals 
-  wire inc_ld       = v_o & yumi_i & decode_v_r.ld_op;
-  wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & decode_v_r.sigext_op;  // load double (reserved for 64-bit)
-  wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & ~decode_v_r.sigext_op; // load double unsigned (reserved for 64-bit) 
-  wire inc_ld_lw    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & decode_v_r.sigext_op;  // load word
-  wire inc_ld_lwu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & ~decode_v_r.sigext_op; // load word unsigned
-  wire inc_ld_lh    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & decode_v_r.sigext_op;  // load half
-  wire inc_ld_lhu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & ~decode_v_r.sigext_op; // load half unsigned
-  wire inc_ld_lb    = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & decode_v_r.sigext_op;  // load byte
-  wire inc_ld_lbu   = v_o & yumi_i & decode_v_r.ld_op & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & ~decode_v_r.sigext_op; // load byte unsigned
+  wire inc_ld       = v_o & yumi_i & decode_v_r.ld_op & ~miss_v;
+  wire inc_ld_ld    = v_o & yumi_i & decode_v_r.ld_op & ~miss_v & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & decode_v_r.sigext_op;  // load double (reserved for 64-bit)
+  wire inc_ld_ldu   = v_o & yumi_i & decode_v_r.ld_op & ~miss_v & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b11 & ~decode_v_r.sigext_op; // load double unsigned (reserved for 64-bit) 
+  wire inc_ld_lw    = v_o & yumi_i & decode_v_r.ld_op & ~miss_v & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & decode_v_r.sigext_op;  // load word
+  wire inc_ld_lwu   = v_o & yumi_i & decode_v_r.ld_op & ~miss_v & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b10 & ~decode_v_r.sigext_op; // load word unsigned
+  wire inc_ld_lh    = v_o & yumi_i & decode_v_r.ld_op & ~miss_v & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & decode_v_r.sigext_op;  // load half
+  wire inc_ld_lhu   = v_o & yumi_i & decode_v_r.ld_op & ~miss_v & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b01 & ~decode_v_r.sigext_op; // load half unsigned
+  wire inc_ld_lb    = v_o & yumi_i & decode_v_r.ld_op & ~miss_v & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & decode_v_r.sigext_op;  // load byte
+  wire inc_ld_lbu   = v_o & yumi_i & decode_v_r.ld_op & ~miss_v & ~decode_v_r.mask_op & decode_v_r.data_size_op == 2'b00 & ~decode_v_r.sigext_op; // load byte unsigned
 
   // All store operations from bsg_manycore are performed with the store mask op
-  wire inc_st       = v_o & yumi_i & decode_v_r.st_op;
-  wire inc_sm_sd    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op & ($countones(mask_v_r) == 8); // store double (reserved for 64-bit)
-  wire inc_sm_sw    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op & ($countones(mask_v_r) == 4); // store word
-  wire inc_sm_sh    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op & ($countones(mask_v_r) == 2); // store half
-  wire inc_sm_sb    = v_o & yumi_i & decode_v_r.st_op & decode_v_r.mask_op & ($countones(mask_v_r) == 1); // store byte
+  wire inc_st       = v_o & yumi_i & decode_v_r.st_op & ~miss_v;
+  wire inc_sm_sd    = v_o & yumi_i & decode_v_r.st_op & ~miss_v & decode_v_r.mask_op & ($countones(mask_v_r) == 8); // store double (reserved for 64-bit)
+  wire inc_sm_sw    = v_o & yumi_i & decode_v_r.st_op & ~miss_v & decode_v_r.mask_op & ($countones(mask_v_r) == 4); // store word
+  wire inc_sm_sh    = v_o & yumi_i & decode_v_r.st_op & ~miss_v & decode_v_r.mask_op & ($countones(mask_v_r) == 2); // store half
+  wire inc_sm_sb    = v_o & yumi_i & decode_v_r.st_op & ~miss_v & decode_v_r.mask_op & ($countones(mask_v_r) == 1); // store byte
 
   wire inc_tagst    = v_o & yumi_i & decode_v_r.tagst_op;   // tag store                
   wire inc_tagfl    = v_o & yumi_i & decode_v_r.tagfl_op;   // tag flush
