@@ -261,42 +261,45 @@ class VanillaStatsParser:
         # Generate VCache Stats
         # If vcache stats file is given as input, also generate vcache stats 
         if (self.vcache):
-            # Parse vcache input file's header to generate a list of all types of operations
-            self.vcache_stats, self.vcache_instrs, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
-    
-            # Create a list of all types of opertaions for iteration
-            self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
-    
-            # Use sets to determine the active vcache banks (without duplicates)
-            active_vcaches = set()
-    
-            # Parse vcache stats file line by line, and append the trace line to traces list. 
-            with open(vcache_input_file) as f:
-                csv_reader = csv.DictReader (f, delimiter=",")
-                for row in csv_reader:
-                    # Vcache bank name is a string that contains the vcache bank number 
-                    # The vcache bank number is extracted separately from other stats 
-                    # and manually added 
-                    trace = {op:int(row[op]) for op in self.vcache_all_ops if op != 'vcache'}
-                    vcache_name = row['vcache']
-                    vcache_bank = int (vcache_name[vcache_name.find("[")+1: vcache_name.find("]")])
-                    trace['vcache'] = vcache_bank
-                    active_vcaches.add((vcache_bank))
-                    self.vcache_traces.append(trace)
-    
-            self.active_vcaches = list(active_vcaches)
-            self.active_vcaches.sort()
-    
-            # generate timing stats for each vcache bank 
-            self.vcache_tile_group_stat, self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
-    
-            # Calculate total aggregate stats for manycore vcahe  by summing up per vcache bank stat counts
-            self.manycore_vcache_stat = self.__generate_manycore_vcache_stats_all(self.vcache_stat)
+            # If the victim cache stats file is found 
+            if os.path.exists(vcache_input_file):
+                # Parse vcache input file's header to generate a list of all types of operations
+                self.vcache_stats, self.vcache_instrs, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
+        
+                # Create a list of all types of opertaions for iteration
+                self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
+        
+                # Use sets to determine the active vcache banks (without duplicates)
+                active_vcaches = set()
+        
+                # Parse vcache stats file line by line, and append the trace line to traces list. 
+                with open(vcache_input_file) as f:
+                    csv_reader = csv.DictReader (f, delimiter=",")
+                    for row in csv_reader:
+                        # Vcache bank name is a string that contains the vcache bank number 
+                        # The vcache bank number is extracted separately from other stats 
+                        # and manually added 
+                        trace = {op:int(row[op]) for op in self.vcache_all_ops if op != 'vcache'}
+                        vcache_name = row['vcache']
+                        vcache_bank = int (vcache_name[vcache_name.find("[")+1: vcache_name.find("]")])
+                        trace['vcache'] = vcache_bank
+                        active_vcaches.add((vcache_bank))
+                        self.vcache_traces.append(trace)
+        
+                self.active_vcaches = list(active_vcaches)
+                self.active_vcaches.sort()
+        
+                # generate timing stats for each vcache bank 
+                self.vcache_tile_group_stat, self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
+        
+                # Calculate total aggregate stats for manycore vcahe  by summing up per vcache bank stat counts
+                self.manycore_vcache_stat = self.__generate_manycore_vcache_stats_all(self.vcache_stat)
 
-
-
-
-
+            # Victim cache stats is optional, if it's not found we throw a warning and skip
+            # vcache stats generation, but do not hault the vanilla stats generation
+            else:
+                self.vcache = False
+                print("Warning: vcache stats file not found, skipping victim cache stats generation.")
 
 
         return
