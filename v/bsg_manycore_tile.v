@@ -55,6 +55,8 @@ module bsg_manycore_tile
     reset_r <= reset_i;
   end
 
+  logic proc_credit_lo;
+
   bsg_manycore_mesh_node #(
     .stub_p(stub_p)
     ,.x_cord_width_p(x_cord_width_p)
@@ -68,8 +70,10 @@ module bsg_manycore_tile
     ,.reset_i(reset_r)
     ,.links_sif_i(link_in)
     ,.links_sif_o(link_out)
+    ,.links_credit_o()
     ,.proc_link_sif_i(proc_link_sif_li)
     ,.proc_link_sif_o(proc_link_sif_lo)
+    ,.proc_credit_o(proc_credit_lo)
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
   );
@@ -98,6 +102,7 @@ module bsg_manycore_tile
 
     ,.link_sif_i(proc_link_sif_lo)
     ,.link_sif_o(proc_link_sif_li)
+    ,.link_credit_i(proc_credit_lo)
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)

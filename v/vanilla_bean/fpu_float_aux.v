@@ -1,105 +1,132 @@
 /**
- *  fpu_float_aux.v
+ *    fpu_float_aux.v
  *
  */
 
 
-module fpu_float_aux
+module fpu_float_aux 
   import bsg_vanilla_pkg::*;
-  #(parameter e_p=8
-    , parameter m_p=23
+  #(parameter sig_width_p=fpu_recoded_sig_width_gp
+    , parameter exp_width_p=fpu_recoded_exp_width_gp
     , parameter data_width_p=RV32_reg_data_width_gp
+
+    , parameter recoded_data_width_lp=(1+sig_width_p+exp_width_p)
   )
   (
-    input clk_i
-    ,input reset_i
-    ,input en_i
+    input fp_v_i
+    , input fpu_float_op_e fpu_float_op_i
+    , input [recoded_data_width_lp-1:0] fp_rs1_i
+    , input [recoded_data_width_lp-1:0] fp_rs2_i
+    , input frm_e fp_rm_i 
+    
+    , output logic v_o
+    , output logic [recoded_data_width_lp-1:0] result_o
+    , output fflags_s fflags_o
+  );
+  
+  // fpu_float_op decode
+  wire is_fmin = fpu_float_op_i == eFMIN;
+  wire is_fcvt_s_w = fpu_float_op_i == eFCVT_S_W;
 
-    ,input v_i
-    ,input [data_width_p-1:0] a_i
-    ,input [data_width_p-1:0] b_i
-    ,input fp_float_decode_s fp_float_decode_i
-    ,output logic ready_o
+  // i2f
+  logic [recoded_data_width_lp-1:0] i2f_result_lo;
+  fflags_s i2f_fflags_lo;
 
-    ,output logic v_o
-    ,output logic [data_width_p-1:0] z_o
-    ,input yumi_i
-
+  iNToRecFN #(
+    .intWidth(data_width_p)
+    ,.expWidth(exp_width_p)
+    ,.sigWidth(sig_width_p)
+  ) i2f (
+    .control(1'b1)
+    ,.signedIn(is_fcvt_s_w)
+    ,.in(fp_rs1_i[0+:data_width_p])
+    ,.roundingMode(fp_rm_i)
+    ,.out(i2f_result_lo)
+    ,.exceptionFlags(i2f_fflags_lo)
   );
 
+  // FMIN/FMAX
+  logic fmin_fmax_invalid_lo;
+  logic [recoded_data_width_lp-1:0] fmin_fmax_result_lo;
 
-  // min_max, sign inject, FMV, datapath
-  //
-  logic [data_width_p-1:0] min_lo;
-  logic [data_width_p-1:0] max_lo;
-  logic [data_width_p-1:0] aux_result;
-
-  bsg_fpu_cmp #(
-    .e_p(e_p)
-    ,.m_p(m_p)
-  ) min_max (
-    .a_i(a_i)
-    ,.b_i(b_i)
-
-    ,.eq_o()
-    ,.lt_o()
-    ,.le_o()
-
-    ,.lt_le_invalid_o()
-    ,.eq_invalid_o()
-
-    ,.min_o(min_lo)
-    ,.max_o(max_lo)
-    ,.min_max_invalid_o()
+  fpu_fmin_fmax #(
+    .exp_width_p(exp_width_p)
+    ,.sig_width_p(sig_width_p)
+  ) minmax0 (
+    .fp_rs1_i(fp_rs1_i)
+    ,.fp_rs2_i(fp_rs2_i)
+    ,.fmin_i(is_fmin)
+    ,.invalid_o(fmin_fmax_invalid_lo)
+    ,.result_o(fmin_fmax_result_lo)
   );
+ 
+
+  // SIGN INJECT / FMV
+  logic [recoded_data_width_lp-1:0] fsgnj_result;
 
   always_comb begin
-    if (fp_float_decode_i.fmin_op) begin
-      aux_result = min_lo;
-    end
-    else if (fp_float_decode_i.fmax_op) begin
-      aux_result = max_lo;
-    end
-    else if (fp_float_decode_i.fsgnj_op) begin
-      aux_result = {b_i[data_width_p-1], a_i[0+:data_width_p-1]};
-    end
-    else if (fp_float_decode_i.fsgnjn_op) begin
-      aux_result = {~b_i[data_width_p-1], a_i[0+:data_width_p-1]};
-    end
-    else if (fp_float_decode_i.fsgnjx_op) begin
-      aux_result = {a_i[data_width_p-1] ^ b_i[data_width_p-1], a_i[0+:data_width_p-1]};
-    end
-    else begin
-      aux_result = a_i; // this covers FMV
-    end
-  end
+    fsgnj_result[recoded_data_width_lp-2:0] = fp_rs1_i[recoded_data_width_lp-2:0];
 
-  // pipeline ctrl
-  //
-  logic stall;
-  logic v_r;
-  logic [data_width_p-1:0] aux_result_r;
-
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      v_r <= 1'b0;
-    end
-    else begin
-      if (~stall & en_i) begin
-        v_r <= v_i;
-        if (v_i) begin
-          aux_result_r <= aux_result;
-        end
+    case (fpu_float_op_i)
+      eFSGNJ: begin
+        fsgnj_result[recoded_data_width_lp-1] = fp_rs2_i[recoded_data_width_lp-1];
+      end
+    
+      eFSGNJN: begin
+        fsgnj_result[recoded_data_width_lp-1] = ~fp_rs2_i[recoded_data_width_lp-1];
       end
 
-    end
+      eFSGNJX: begin
+        fsgnj_result[recoded_data_width_lp-1] = fp_rs1_i[recoded_data_width_lp-1] ^ fp_rs2_i[recoded_data_width_lp-1];
+      end
+
+      eFMV_W_X: begin
+        fsgnj_result[recoded_data_width_lp-1] = fp_rs1_i[recoded_data_width_lp-1];
+      end
+
+      default: begin
+        fsgnj_result[recoded_data_width_lp-1] = fp_rs1_i[recoded_data_width_lp-1];
+      end
+    endcase
   end
 
 
-  assign v_o = v_r;
-  assign stall = v_r & ~yumi_i;
-  assign ready_o = ~stall & en_i;
-  assign z_o = aux_result_r;
+
+  always_comb begin
+
+    case (fpu_float_op_i)
+      eFMIN, eFMAX: begin
+        v_o = fp_v_i;
+        result_o = fmin_fmax_result_lo;
+        fflags_o = '{
+          invalid: fmin_fmax_invalid_lo,
+          div_zero: 1'b0,
+          overflow: 1'b0,
+          underflow: 1'b0,
+          inexact: 1'b0
+        };
+      end
+    
+      eFCVT_S_W, eFCVT_S_WU: begin
+        v_o = fp_v_i;
+        result_o = i2f_result_lo;
+        fflags_o = i2f_fflags_lo;
+      end
+    
+      eFSGNJ, eFSGNJN, eFSGNJX, eFMV_W_X: begin
+        v_o = fp_v_i;
+        result_o = fsgnj_result;
+        fflags_o = '0;
+      end
+
+      default: begin
+        v_o = 1'b0;
+        result_o = i2f_result_lo;
+        fflags_o = i2f_fflags_lo;
+      end
+    endcase
+
+  end
 
 
 endmodule

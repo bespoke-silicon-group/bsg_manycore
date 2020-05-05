@@ -34,6 +34,7 @@
            ,.reset_i                                                                   \
            ,.link_sif_i                                                                \
            ,.link_sif_o                                                                \
+           ,.link_credit_i                                                             \
            ,.my_x_i                                                                    \
            ,.my_y_i                                                                    \
            );                                                                          \
@@ -51,7 +52,7 @@ module bsg_manycore_hetero_socket
     , parameter vcache_size_p = "inv"
     , parameter debug_p = 0
     , parameter branch_trace_en_p = 0
-    , parameter max_out_credits_p = 200
+    , parameter max_out_credits_p = 32
     , parameter int hetero_type_p = 0
     , parameter num_tiles_x_p="inv"
     , parameter vcache_block_size_in_words_p="inv"
@@ -67,6 +68,7 @@ module bsg_manycore_hetero_socket
     // input and output links
     , input [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
     , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
+    , input link_credit_i
 
     // tile coordinates
     , input [x_cord_width_p-1:0] my_x_i

@@ -4,13 +4,15 @@
 
 extern int input[N];
 
-#define NUM_RES  8
+#define NUM_RES  5
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //    mul div  core
 int  mul_div_output[N]  = {0};
 
 // in C , 3%(-2) = 1, while in Python,  3%(-2) = -1
-int  mul_div_expect[N]  = {0xfffffffa, 0xffffffff, 0x00000002, 0xffffffff, \
+//int  mul_div_expect[N]  = {0xfffffffa, 0xffffffff, 0x00000002, 0xffffffff, \
+//                           0xffffffff, 0x0,        0x1, 0x00000003};
+int  mul_div_expect[N]  = {0xfffffffa,  \
                            0xffffffff, 0x0,        0x1, 0x00000003};
 
 int mul_div(int *src, int *dst){
@@ -18,9 +20,9 @@ int mul_div(int *src, int *dst){
   __asm__ __volatile__ ("lw t0, 4(%0)"::"r"(src) );  //-2
   __asm__ __volatile__ ("lw t1, 8(%0)"::"r"(src) );  //3 
   __asm__ __volatile__ ("mul    t4,     t0, t1" );   //-6
-  __asm__ __volatile__ ("mulh   t5,     t0, t1" );   //-6
-  __asm__ __volatile__ ("mulhu  t6,     t0, t1" );   //0000_0002
-  __asm__ __volatile__ ("mulhsu s11,    t0, t1" );   //FFFF_FFFF
+//  __asm__ __volatile__ ("mulh   t5,     t0, t1" );   //-6
+//  __asm__ __volatile__ ("mulhu  t6,     t0, t1" );   //0000_0002
+//  __asm__ __volatile__ ("mulhsu s11,    t0, t1" );   //FFFF_FFFF
 
   __asm__ __volatile__ ("div    s10,    t1, t0" );   //3/(-2) = -1 
   __asm__ __volatile__ ("divu   s9 ,    t1, t0" );   //3/FFFF_FFFE = 0 
@@ -30,14 +32,14 @@ int mul_div(int *src, int *dst){
 
 
   __asm__ __volatile__ ("sw t4, 0(%0)" : :"r"(dst) ); 
-  __asm__ __volatile__ ("sw t5, 4(%0)" : :"r"(dst) ); 
-  __asm__ __volatile__ ("sw t6, 8(%0)" : :"r"(dst) ); 
-  __asm__ __volatile__ ("sw s11, 12(%0)" : :"r"(dst) ); 
+//  __asm__ __volatile__ ("sw t5, 4(%0)" : :"r"(dst) ); 
+//  __asm__ __volatile__ ("sw t6, 8(%0)" : :"r"(dst) ); 
+//  __asm__ __volatile__ ("sw s11, 12(%0)" : :"r"(dst) ); 
 
-  __asm__ __volatile__ ("sw s10, 16(%0)" : :"r"(dst) ); 
-  __asm__ __volatile__ ("sw s9 , 20(%0)" : :"r"(dst) ); 
-  __asm__ __volatile__ ("sw s8 , 24(%0)" : :"r"(dst) ); 
-  __asm__ __volatile__ ("sw s7 , 28(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("sw s10, 4(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("sw s9 , 8(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("sw s8 , 12(%0)" : :"r"(dst) ); 
+  __asm__ __volatile__ ("sw s7 , 16(%0)" : :"r"(dst) ); 
 }
 
 void mul_div_test(int  *input){

@@ -36,6 +36,7 @@ module icache
     , output [pc_width_lp-1:0] pred_or_jump_addr_o
     , output [pc_width_lp-1:0] pc_r_o
     , output icache_miss_o
+    , output icache_flush_r_o
   );
 
   // localparam
@@ -65,13 +66,12 @@ module icache
   //
   icache_format_s icache_data_li;
   icache_format_s icache_data_lo;
-  icache_format_s icache_data_r;
-  icache_format_s icache_data_buf;
   logic [icache_addr_width_lp-1:0] icache_addr_li;
 
   bsg_mem_1rw_sync #(
     .width_p(icache_format_width_lp)
     ,.els_p(icache_entries_p)
+    ,.latch_last_read_p(1)
   ) imem_0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -149,41 +149,34 @@ module icache
   };
                              
   logic [pc_width_lp-1:0] pc_r; 
-
+  logic icache_flush_r;
   // Since imem has one cycle delay and we send next cycle's address, pc_n,
   // if the PC is not written, the instruction must not change.
-  logic icache_read_r;
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       pc_r <= '0;
-      icache_data_r <= '0;
-      icache_read_r <= 1'b0;
+      icache_flush_r <= 1'b0;
     end
     else begin
 
-      icache_read_r <= v_i & ~w_i;
       if (v_i & ~w_i) begin
         pc_r <= pc_i;
-      end
-
-      if (flush_i) begin
-        icache_data_r <= '0;
+        icache_flush_r <= 1'b0;
       end
       else begin
-        icache_data_r <= icache_data_buf;
+        icache_flush_r <= flush_i;
       end
     end
   end
 
-  assign icache_data_buf = icache_read_r
-    ? icache_data_lo
-    : icache_data_r;
+  assign icache_flush_r_o = icache_flush_r;
+
 
   // Merge the PC lower part and high part
   // BYTE operations
-  wire sel_pc    = ~(icache_data_buf.lower_sign ^ icache_data_buf.lower_cout); 
-  wire sel_pc_p1 = (~icache_data_buf.lower_sign) & icache_data_buf.lower_cout; 
+  wire sel_pc    = ~(icache_data_lo.lower_sign ^ icache_data_lo.lower_cout); 
+  wire sel_pc_p1 = (~icache_data_lo.lower_sign) & icache_data_lo.lower_cout; 
 
   logic [branch_pc_high_width_lp-1:0] branch_pc_high;
   logic [jal_pc_high_width_lp-1:0] jal_pc_high;
@@ -224,18 +217,18 @@ module icache
     end
   end
 
-  wire is_jal_instr = icache_data_buf.instr.op == `RV32_JAL_OP;
-  wire is_jalr_instr = icache_data_buf.instr.op == `RV32_JALR_OP;
+  wire is_jal_instr = icache_data_lo.instr.op == `RV32_JAL_OP;
+  wire is_jalr_instr = icache_data_lo.instr.op == `RV32_JALR_OP;
 
   // these are bytes address
   logic [pc_width_lp+2-1:0] jal_pc;
   logic [pc_width_lp+2-1:0] branch_pc;
    
-  assign branch_pc = {branch_pc_high_out, `RV32_Bimm_13extract(icache_data_buf.instr)};
-  assign jal_pc = {jal_pc_high_out, `RV32_Jimm_21extract(icache_data_buf.instr)};
+  assign branch_pc = {branch_pc_high_out, `RV32_Bimm_13extract(icache_data_lo.instr)};
+  assign jal_pc = {jal_pc_high_out, `RV32_Jimm_21extract(icache_data_lo.instr)};
 
   // assign outputs.
-  assign instr_o = icache_data_buf.instr;
+  assign instr_o = icache_data_lo.instr;
   assign pc_r_o = pc_r;
 
   // this is word addr.
@@ -246,6 +239,6 @@ module icache
       : branch_pc[2+:pc_width_lp]);
 
   // the icache miss logic
-  assign icache_miss_o = icache_data_buf.tag != pc_r[icache_addr_width_lp+:icache_tag_width_p];
+  assign icache_miss_o = icache_data_lo.tag != pc_r[icache_addr_width_lp+:icache_tag_width_p];
   
 endmodule

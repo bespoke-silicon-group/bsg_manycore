@@ -18,171 +18,192 @@ import bsg_manycore_pkg::*;
 (
   input instruction_s instruction_i
   , output decode_s decode_o
-  , output fp_float_decode_s fp_float_decode_o
-  , output fp_int_decode_s fp_int_decode_o
+  , output fp_decode_s fp_decode_o
 );
 
 
 // Op Writes RF -- register file write operation
 always_comb begin
   if (instruction_i.rd == 0) begin
-    decode_o.op_writes_rf = 1'b0; // reg 0 is always 0
+    decode_o.write_rd = 1'b0; // reg 0 is always 0
   end
   else begin
     unique casez (instruction_i.op)
-        `RV32_LUI_OP, `RV32_AUIPC_OP, `RV32_JAL_OP, `RV32_JALR_OP,
-        `RV32_LOAD,   `RV32_OP,       `RV32_OP_IMM, `RV32_AMO:
-            decode_o.op_writes_rf = 1'b1;
-
-        `RV32_OP_FP: begin
-            decode_o.op_writes_rf = 
-              (instruction_i.funct7 == `RV32_FCMP_S_FUN7) // FEQ, FLT, FLE
-              | ((instruction_i.funct7 == `RV32_FCLASS_S_FUN7) & (instruction_i.rs2 == 5'b00000)) // FCLASS, FMV.X.W
-              | ((instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
-        end
-
-        default:
-            decode_o.op_writes_rf = 1'b0;
+      `RV32_LUI_OP, `RV32_AUIPC_OP,
+      `RV32_JAL_OP, `RV32_JALR_OP,
+      `RV32_LOAD, `RV32_OP,
+      `RV32_OP_IMM, `RV32_AMO_OP: begin
+        decode_o.write_rd = 1'b1;
+      end
+      `RV32_OP_FP: begin
+        decode_o.write_rd = 
+          (instruction_i.funct7 == `RV32_FCMP_S_FUN7) // FEQ, FLT, FLE
+          | ((instruction_i.funct7 == `RV32_FCLASS_S_FUN7) & (instruction_i.rs2 == 5'b00000)) // FCLASS, FMV.X.W
+          | ((instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
+      end
+      `RV32_SYSTEM: begin
+        decode_o.write_rd = 1'b1; // CSRRW, CSRRS
+      end
+      default: begin
+        decode_o.write_rd = 1'b0;
+      end
     endcase
   end
 end
 
-// Is byte Op -- byte ld/st operation
+// declares if OP reads from first port of register file
+always_comb begin
+  unique casez (instruction_i.op)
+    `RV32_JALR_OP, `RV32_BRANCH,
+    `RV32_LOAD, `RV32_STORE,
+    `RV32_OP, `RV32_OP_IMM,
+    `RV32_AMO_OP: begin
+      decode_o.read_rs1 = 1'b1;
+    end
+   `RV32_OP_FP: begin
+     decode_o.read_rs1 = 
+       (instruction_i.funct7 == `RV32_FCVT_S_I2F_FUN7) // FCVT.S.W, FCVT.S.WU
+       | (instruction_i.funct7 == `RV32_FMV_W_X_FUN7); // FMV.W.X
+    end
+    `RV32_LOAD_FP, `RV32_STORE_FP: begin // FLW, FSW
+      decode_o.read_rs1 = 1'b1;
+     end
+    `RV32_SYSTEM: begin
+      case (instruction_i.funct3)
+        `RV32_CSRRW_FUN3, `RV32_CSRRS_FUN3, `RV32_CSRRC_FUN3: begin
+          decode_o.read_rs1 = 1'b1;
+        end
+        default: begin
+          decode_o.read_rs1 = 1'b0;
+        end
+      endcase
+    end
+    default: begin
+      decode_o.read_rs1 = 1'b0;
+    end
+  endcase
+end
+
+// declares if Op reads from second port of register file
+always_comb begin
+  unique casez (instruction_i.op)
+    `RV32_BRANCH, `RV32_STORE, `RV32_OP: begin
+      decode_o.read_rs2 = 1'b1;
+    end
+    `RV32_AMO_OP: begin
+      // According the ISA, LR instruction don't read rs2
+      decode_o.read_rs2 = (instruction_i.funct7 ==? 7'b00001??)   // amoswap
+                            | (instruction_i.funct7 ==? 7'b01000??);  // amoor
+    end
+    default: begin
+      decode_o.read_rs2 = 1'b0;
+    end
+  endcase
+end
+
+// Load & Store
+assign decode_o.is_load_op = (instruction_i.op == `RV32_LOAD) | (instruction_i.op == `RV32_LOAD_FP);
+assign decode_o.is_store_op = (instruction_i.op == `RV32_STORE) | (instruction_i.op == `RV32_STORE_FP);
+
 assign decode_o.is_byte_op =
   ((instruction_i.op == `RV32_LOAD) & (instruction_i.funct3 ==? 3'b?00)) |
   ((instruction_i.op == `RV32_STORE) & (instruction_i.funct3 == 3'b000));
-
-// Is hex Op -- hex ld/st operation (half)
 assign decode_o.is_hex_op =
   ((instruction_i.op == `RV32_LOAD) & (instruction_i.funct3 ==? 3'b?01)) |
   ((instruction_i.op == `RV32_STORE) & (instruction_i.funct3 == 3'b001));
-
-// Is Load Op -- data memory load operation
-assign decode_o.is_load_op = 
-  (instruction_i.op == `RV32_LOAD) |
-  (instruction_i.op == `RV32_LOAD_FP);
-
-// Is load unsigned
 assign decode_o.is_load_unsigned =
-  (instruction_i.op == `RV32_LOAD) &
-  (instruction_i.funct3 ==? 3'b10?);
+  (instruction_i.op == `RV32_LOAD) & (instruction_i.funct3 ==? 3'b10?);
 
-
-// Is Store Op -- data memory store operation
-assign decode_o.is_store_op =
-  (instruction_i.op == `RV32_STORE) |
-  (instruction_i.op == `RV32_STORE_FP);
-  
-
-// Is Branch Op -- pc branching operation
-// `kBL is actually like jump since there is
-// no condition for it
-always_comb
-    unique casez (instruction_i.op)
-        `RV32_BRANCH:
-            decode_o.is_branch_op = 1'b1;
-        default:
-            decode_o.is_branch_op = 1'b0;
-    endcase
-
-// Is Jump Op -- pc jumping operation
+// Branch & Jump
+assign decode_o.is_branch_op = instruction_i.op ==? `RV32_BRANCH;
 assign decode_o.is_jal_op = instruction_i.op == `RV32_JAL_OP;
 assign decode_o.is_jalr_op = instruction_i.op == `RV32_JALR_OP;
 
+// MEMORY FENCE
+assign decode_o.is_fence_op = (instruction_i ==? `RV32_FENCE);
 
-// declares if OP reads from first port of register file
-always_comb
-    unique casez (instruction_i.op)
-        `RV32_JALR_OP, `RV32_BRANCH, `RV32_LOAD, `RV32_STORE,
-        `RV32_OP,      `RV32_OP_IMM, `RV32_AMO:
-            decode_o.op_reads_rf1 = 1'b1;
-        `RV32_OP_FP: begin
-            decode_o.op_reads_rf1 = 
-              (instruction_i.funct7 == `RV32_FCVT_S_I2F_FUN7) // FCVT.S.W, FCVT.S.WU
-              | (instruction_i.funct7 == `RV32_FMV_W_X_FUN7); // FMV.W.X
-        end
-        `RV32_LOAD_FP, `RV32_STORE_FP: begin // FLW, FSW
-            decode_o.op_reads_rf1 = 1'b1;
-        end
-        default:
-            decode_o.op_reads_rf1 = 1'b0;
+// CSR
+always_comb begin
+  if (instruction_i.op == `RV32_SYSTEM) begin
+    case (instruction_i.funct3)
+      `RV32_CSRRW_FUN3,
+      `RV32_CSRRS_FUN3,
+      `RV32_CSRRC_FUN3,
+      `RV32_CSRRWI_FUN3,
+      `RV32_CSRRSI_FUN3,
+      `RV32_CSRRCI_FUN3: begin
+        decode_o.is_csr_op = 1'b1;
+      end
+      default: begin
+        decode_o.is_csr_op = 1'b0;
+      end
     endcase
-
-// declares if Op reads from second port of register file
-// According the ISA, LR instruction don't read rs2
-always_comb
-    unique casez (instruction_i.op)
-        `RV32_BRANCH, `RV32_STORE, `RV32_OP:
-            decode_o.op_reads_rf2 = 1'b1;
-        `RV32_AMO: // if it's not LR
-            decode_o.op_reads_rf2 = (instruction_i.funct7 ==? 7'b00001??)
-                                  | (instruction_i.funct7 ==? 7'b01000??);
-        default:
-            decode_o.op_reads_rf2 = 1'b0;
-    endcase
-
-// RISC-V edit: declares if Op is AUIPC
-always_comb
-  unique casez (instruction_i.op)
-    `RV32_AUIPC_OP:
-      decode_o.op_is_auipc = 1'b1;
-    default:
-      decode_o.op_is_auipc = 1'b0;
-  endcase
+  end
+  else begin
+    decode_o.is_csr_op = 1'b0;
+  end
+end
 
 //+----------------------------------------------
 //|
 //|     RISC-V edit: "M" STANDARD EXTENSION
 //|
 //+----------------------------------------------
-assign decode_o.is_md_op  = (instruction_i.op == `RV32_OP)
-                             & (instruction_i.funct7 == 7'b0000001);
 
-//memory order related instructions.
-
-assign decode_o.op_is_lr = (instruction_i ==? `RV32_LR_W)
-  & ~instruction_i[26]
-  & ~instruction_i[25];
-
-assign decode_o.op_is_lr_aq = (instruction_i ==? `RV32_LR_W)
-  & instruction_i[26]
-  & ~instruction_i[25];
-
-assign decode_o.is_fence_op  =  ( instruction_i.op       == `RV32_MISC_MEM  )
-                              &&( instruction_i.funct3   == `RV32_FENCE_FUN3)
-                              &&( instruction_i.rs1      == 5'b0            )
-                              &&( instruction_i.rd       == 5'b0            )
-                              &&( instruction_i[31:28]   == 4'b0            );
-
-assign decode_o.is_fence_i_op = ( instruction_i.op       == `RV32_MISC_MEM    )
-                              &&( instruction_i.funct3   == `RV32_FENCE_I_FUN3)
-                              &&( instruction_i.rs1      == 5'b0              )
-                              &&( instruction_i.rd       == 5'b0              )
-                              &&( instruction_i[31:20]   == 12'b0             );
+assign decode_o.is_imul_op = (instruction_i ==? `RV32_MUL);
 
 always_comb begin
-  if ((instruction_i.op == `RV32_AMO) & (instruction_i.funct3 == 3'b010)) begin
-    casez (instruction_i.funct7)
-      // amoswap
-      7'b00001??: begin
-        decode_o.is_amo_op = 1'b1;
-        decode_o.amo_type = e_amo_swap;
-      end
-      // amoor
-      7'b01000??: begin
-        decode_o.is_amo_op = 1'b1;
-        decode_o.amo_type = e_amo_or;
-      end
-      default: begin
-        decode_o.is_amo_op = 1'b0;
-        decode_o.amo_type = e_amo_swap;
-      end
-    endcase
-  end
-  else begin
-    decode_o.is_amo_op = 1'b0;
-    decode_o.amo_type = e_amo_swap;
-  end
+  unique casez (instruction_i)
+    `RV32_DIV: begin
+      decode_o.is_idiv_op = 1'b1;
+      decode_o.idiv_op = eDIV;
+    end    
+    `RV32_DIVU: begin
+      decode_o.is_idiv_op = 1'b1;
+      decode_o.idiv_op = eDIVU;
+    end    
+    `RV32_REM: begin
+      decode_o.is_idiv_op = 1'b1;
+      decode_o.idiv_op = eREM;
+    end    
+    `RV32_REMU: begin
+      decode_o.is_idiv_op = 1'b1;
+      decode_o.idiv_op = eREMU;
+    end
+    default: begin
+      decode_o.is_idiv_op = 1'b0;
+      decode_o.idiv_op = eDIV;
+    end
+  endcase
+end
+
+
+//+----------------------------------------------
+//|
+//|     RISC-V edit: "A" STANDARD EXTENSION
+//|
+//+----------------------------------------------
+
+// LOAD RESERVATION
+assign decode_o.is_lr_op = (instruction_i ==? `RV32_LR_W);
+assign decode_o.is_lr_aq_op = (instruction_i ==? `RV32_LR_W_AQ);
+
+// ATOMICS
+always_comb begin
+  unique casez (instruction_i)
+    `RV32_AMOSWAP_W: begin
+      decode_o.is_amo_op = 1'b1;
+      decode_o.amo_type = e_amo_swap;
+    end    
+    `RV32_AMOOR_W: begin
+      decode_o.is_amo_op = 1'b1;
+      decode_o.amo_type = e_amo_or;
+    end
+    default: begin
+      decode_o.is_amo_op = 1'b0;
+      decode_o.amo_type = e_amo_swap;
+    end
+  endcase
 end
 
 assign decode_o.is_amo_aq = instruction_i[26];
@@ -196,140 +217,245 @@ assign decode_o.is_amo_rl = instruction_i[25];
 //+----------------------------------------------
 
 always_comb begin
-
+  decode_o.read_frs1 = 1'b0;
+  decode_o.read_frs2 = 1'b0;
+  decode_o.read_frs3 = 1'b0;
+  decode_o.write_frd = 1'b0;
+  decode_o.is_fp_op = 1'b0;
   unique casez (instruction_i)
-
     // Rtype float instr
     `RV32_FADD_S,  `RV32_FSUB_S,   `RV32_FMUL_S,
     `RV32_FSGNJ_S, `RV32_FSGNJN_S, `RV32_FSGNJX_S,
     `RV32_FMIN_S,  `RV32_FMAX_S: begin
-      decode_o.op_reads_fp_rf1 = 1'b1;
-      decode_o.op_reads_fp_rf2 = 1'b1;
-      decode_o.op_writes_fp_rf = 1'b1;
-      decode_o.is_fp_float_op = 1'b1;
-      decode_o.is_fp_int_op = 1'b0;
+      decode_o.read_frs1 = 1'b1;
+      decode_o.read_frs2 = 1'b1;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b1;
+      decode_o.is_fp_op = 1'b1;
     end
-
     // compare
     `RV32_FEQ_S, `RV32_FLT_S, `RV32_FLE_S: begin
-      decode_o.op_reads_fp_rf1 = 1'b1;
-      decode_o.op_reads_fp_rf2 = 1'b1;
-      decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_float_op = 1'b0;
-      decode_o.is_fp_int_op = 1'b1;
+      decode_o.read_frs1 = 1'b1;
+      decode_o.read_frs2 = 1'b1;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b0;
+      decode_o.is_fp_op = 1'b1;
     end
-
     // classify
     `RV32_FCLASS_S: begin
-      decode_o.op_reads_fp_rf1 = 1'b1;
-      decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_float_op = 1'b0;
-      decode_o.is_fp_int_op = 1'b1;
+      decode_o.read_frs1 = 1'b1;
+      decode_o.read_frs2 = 1'b0;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b0;
+      decode_o.is_fp_op = 1'b1;
     end
- 
     // i2f (signed int)
-    `RV32_FCVT_S_W: begin
-      decode_o.op_reads_fp_rf1 = 1'b0;
-      decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.op_writes_fp_rf = 1'b1;
-      decode_o.is_fp_float_op = 1'b1;
-      decode_o.is_fp_int_op = 1'b0;
+    `RV32_FCVT_S_W, `RV32_FCVT_S_WU: begin
+      decode_o.read_frs1 = 1'b0;
+      decode_o.read_frs2 = 1'b0;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b1;
+      decode_o.is_fp_op = 1'b1;
     end
-
-    // i2f (unsigned int)
-    `RV32_FCVT_S_WU: begin
-      decode_o.op_reads_fp_rf1 = 1'b0;
-      decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.op_writes_fp_rf = 1'b1;
-      decode_o.is_fp_float_op = 1'b1;
-      decode_o.is_fp_int_op = 1'b0;
+    // f2i
+    `RV32_FCVT_W_S, `RV32_FCVT_WU_S: begin
+      decode_o.read_frs1 = 1'b1;
+      decode_o.read_frs2 = 1'b0;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b0;
+      decode_o.is_fp_op = 1'b1;
     end
-   
-    // f2i (signed int)
-    `RV32_FCVT_W_S: begin
-      decode_o.op_reads_fp_rf1 = 1'b1;
-      decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_float_op = 1'b0;
-      decode_o.is_fp_int_op = 1'b1;
-    end
-
-    // f2i (unsigned int)
-    `RV32_FCVT_WU_S: begin
-      decode_o.op_reads_fp_rf1 = 1'b1;
-      decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_float_op = 1'b0;
-      decode_o.is_fp_int_op = 1'b1;
-    end
-
     // FMV (fp -> int)
     `RV32_FMV_X_W: begin
-      decode_o.op_reads_fp_rf1 = 1'b1;
-      decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_float_op = 1'b0;
-      decode_o.is_fp_int_op = 1'b1;
+      decode_o.read_frs1 = 1'b1;
+      decode_o.read_frs2 = 1'b0;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b0;
+      decode_o.is_fp_op = 1'b1;
     end
-
     // FMV (int -> fp)
     `RV32_FMV_W_X: begin
-      decode_o.op_reads_fp_rf1 = 1'b0;
-      decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.op_writes_fp_rf = 1'b1;
-      decode_o.is_fp_float_op = 1'b1;
-      decode_o.is_fp_int_op = 1'b0;
+      decode_o.read_frs1 = 1'b0;
+      decode_o.read_frs2 = 1'b0;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b1;
+      decode_o.is_fp_op = 1'b1;
     end
-
     // Float load
     `RV32_FLW_S: begin
-      decode_o.op_reads_fp_rf1 = 1'b0;
-      decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.op_writes_fp_rf = 1'b1;
-      decode_o.is_fp_float_op = 1'b0;
-      decode_o.is_fp_int_op = 1'b0;
+      decode_o.read_frs1 = 1'b0;
+      decode_o.read_frs2 = 1'b0;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b1;
+      decode_o.is_fp_op = 1'b0;
     end
-
     // Float store
     `RV32_FSW_S: begin
-      decode_o.op_reads_fp_rf1 = 1'b0;
-      decode_o.op_reads_fp_rf2 = 1'b1;
-      decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_float_op = 1'b0;
-      decode_o.is_fp_int_op = 1'b0;
+      decode_o.read_frs1 = 1'b0;
+      decode_o.read_frs2 = 1'b1;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b0;
+      decode_o.is_fp_op = 1'b0;
     end
-
+    // FMA
+    `RV32_FMADD_S, `RV32_FMSUB_S, `RV32_FNMSUB_S, `RV32_FNMADD_S: begin
+      decode_o.read_frs1 = 1'b1;
+      decode_o.read_frs2 = 1'b1;
+      decode_o.read_frs3 = 1'b1;
+      decode_o.write_frd = 1'b1;
+      decode_o.is_fp_op = 1'b1;
+    end
+    // FDIV, SQRT
+    `RV32_FDIV_S, `RV32_FSQRT_S: begin
+      decode_o.read_frs1 = 1'b1;
+      decode_o.read_frs2 = 1'b1;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b1;
+      decode_o.is_fp_op = 1'b1;
+    end
     default: begin
-      decode_o.op_reads_fp_rf1 = 1'b0;
-      decode_o.op_reads_fp_rf2 = 1'b0;
-      decode_o.op_writes_fp_rf = 1'b0;
-      decode_o.is_fp_float_op = 1'b0;
-      decode_o.is_fp_int_op = 1'b0;
+      decode_o.read_frs1 = 1'b0;
+      decode_o.read_frs2 = 1'b0;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b0;
+      decode_o.is_fp_op = 1'b0;
     end
-
   endcase
 end
 
-// fp_decode_s
-assign fp_float_decode_o.fadd_op        = instruction_i ==? `RV32_FADD_S;
-assign fp_float_decode_o.fsub_op        = instruction_i ==? `RV32_FSUB_S;
-assign fp_float_decode_o.fmul_op        = instruction_i ==? `RV32_FMUL_S;
-assign fp_float_decode_o.fsgnj_op       = instruction_i ==? `RV32_FSGNJ_S;
-assign fp_float_decode_o.fsgnjn_op      = instruction_i ==? `RV32_FSGNJN_S;
-assign fp_float_decode_o.fsgnjx_op      = instruction_i ==? `RV32_FSGNJX_S;
-assign fp_float_decode_o.fmin_op        = instruction_i ==? `RV32_FMIN_S;
-assign fp_float_decode_o.fmax_op        = instruction_i ==? `RV32_FMAX_S;
-assign fp_float_decode_o.fcvt_s_w_op    = instruction_i ==? `RV32_FCVT_S_W;
-assign fp_float_decode_o.fcvt_s_wu_op   = instruction_i ==? `RV32_FCVT_S_WU;
-assign fp_float_decode_o.fmv_w_x_op     = instruction_i ==? `RV32_FMV_W_X;
 
-assign fp_int_decode_o.feq_op         = instruction_i ==? `RV32_FEQ_S;
-assign fp_int_decode_o.fle_op         = instruction_i ==? `RV32_FLE_S;
-assign fp_int_decode_o.flt_op         = instruction_i ==? `RV32_FLT_S;
-assign fp_int_decode_o.fcvt_w_s_op    = instruction_i ==? `RV32_FCVT_W_S;
-assign fp_int_decode_o.fcvt_wu_s_op   = instruction_i ==? `RV32_FCVT_WU_S;
-assign fp_int_decode_o.fclass_op      = instruction_i ==? `RV32_FCLASS_S;
-assign fp_int_decode_o.fmv_x_w_op     = instruction_i ==? `RV32_FMV_X_W;
+// fp_decode_s
+always_comb begin
+  fp_decode_o.is_fpu_float_op = 1'b0;
+  fp_decode_o.is_fpu_int_op = 1'b0;
+  fp_decode_o.is_fdiv_op = 1'b0;
+  fp_decode_o.is_fsqrt_op = 1'b0;
+  fp_decode_o.fpu_float_op = eFADD;
+  fp_decode_o.fpu_int_op = eFEQ;
+
+  unique casez (instruction_i)
+    `RV32_FADD_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFADD;
+    end
+    `RV32_FSUB_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFSUB;
+    end
+    `RV32_FMUL_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFMUL;
+    end
+    `RV32_FSGNJ_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFSGNJ;
+    end
+    `RV32_FSGNJN_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFSGNJN;
+    end
+    `RV32_FSGNJX_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFSGNJX;
+    end
+    `RV32_FMIN_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFMIN;
+    end
+    `RV32_FMAX_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFMAX;
+    end
+    // i2f signed
+    `RV32_FCVT_S_W: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFCVT_S_W;
+    end
+    // i2f unsigned
+    `RV32_FCVT_S_WU: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFCVT_S_WU;
+    end
+    // move i->f
+    `RV32_FMV_W_X: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFMV_W_X;
+    end
+    `RV32_FMADD_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFMADD;
+    end
+    `RV32_FMSUB_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFMSUB;
+    end
+    `RV32_FNMSUB_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFNMSUB;
+    end
+    `RV32_FNMADD_S: begin
+      fp_decode_o.is_fpu_float_op = 1'b1;
+      fp_decode_o.fpu_float_op = eFNMADD;
+    end
+    `RV32_FDIV_S: begin
+      fp_decode_o.is_fdiv_op = 1'b1;
+    end
+    `RV32_FSQRT_S: begin
+      fp_decode_o.is_fsqrt_op = 1'b1;
+    end
+    `RV32_FEQ_S: begin
+      fp_decode_o.is_fpu_int_op = 1'b1;
+      fp_decode_o.fpu_int_op = eFEQ;
+    end
+    `RV32_FLE_S: begin
+      fp_decode_o.is_fpu_int_op = 1'b1;
+      fp_decode_o.fpu_int_op = eFLE;
+    end
+    `RV32_FLT_S: begin
+      fp_decode_o.is_fpu_int_op = 1'b1;
+      fp_decode_o.fpu_int_op = eFLT;
+    end
+    // f2i signed
+    `RV32_FCVT_W_S: begin
+      fp_decode_o.is_fpu_int_op = 1'b1;
+      fp_decode_o.fpu_int_op = eFCVT_W_S;
+    end
+    // f2i unsigned
+    `RV32_FCVT_WU_S: begin
+      fp_decode_o.is_fpu_int_op = 1'b1;
+      fp_decode_o.fpu_int_op = eFCVT_WU_S;
+    end
+    `RV32_FCLASS_S: begin
+      fp_decode_o.is_fpu_int_op = 1'b1;
+      fp_decode_o.fpu_int_op = eFCLASS;
+    end
+    // move f->i
+    `RV32_FMV_X_W: begin
+      fp_decode_o.is_fpu_int_op = 1'b1;
+      fp_decode_o.fpu_int_op = eFMV_X_W;
+    end
+    default: begin
+      fp_decode_o.is_fpu_float_op = 1'b0;
+      fp_decode_o.is_fpu_int_op = 1'b0;
+      fp_decode_o.is_fdiv_op = 1'b0;
+      fp_decode_o.is_fsqrt_op = 1'b0;
+      fp_decode_o.fpu_float_op = eFADD;
+      fp_decode_o.fpu_int_op = eFEQ;
+    end
+  endcase
+end
+
+// Unsupported ops:
+// mulh, mulhsu, mulhu
+always_comb begin
+  unique casez (instruction_i)
+    `RV32_MULH, `RV32_MULHSU, `RV32_MULHU: begin
+      decode_o.unsupported = 1'b1;
+    end
+    default: begin
+      decode_o.unsupported = 1'b0;
+    end
+  endcase
+end
 
 endmodule

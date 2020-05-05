@@ -29,8 +29,7 @@
 
 TARGET_ARCH       := rv32imaf
 TARGET_ABI        := ilp32f
-TARGET_CFLAGS     := '-fno-common -ffp-contract=off -mno-fdiv' # Turn off fma, fdiv and fexp instructions
-                                                               # as manycore's FPU doesn't support them.
+TARGET_CFLAGS     := '-fno-common'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
 TOOLCHAIN_URL     := https://github.com/riscv/$(TOOLCHAIN_REPO)
