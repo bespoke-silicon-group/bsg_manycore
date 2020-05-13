@@ -12,5 +12,8 @@ def add_args(parser):
                         help="Vanilla stats log file")
     parser.add_argument("--log", default="vanilla.log", type=str,
                         help="Vanilla log file")
+    parser.add_argument("--tile", default=False, type=str,
+                        help="Vanilla log file")
 
 def main(args):
+    pass
