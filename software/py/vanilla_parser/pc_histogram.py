@@ -272,22 +272,21 @@ class PCHistogram:
 
 
 # Parse input arguments and options 
-def parse_args():  
-    parser = argparse.ArgumentParser(description="Argument parser for vanilla_pc_histogram.py")
+def add_args():  
     parser.add_argument("--trace", default="vanilla_operation_trace.csv.log", type=str,
                         help="Vanilla operation log file")
     parser.add_argument("--tile", default=False, action='store_true',
                         help="Also generate separate pc histogram files for each tile.")
-
-    args = parser.parse_args()
-    return args
 
 
 
 
 # main()
 if __name__ == "__main__":
-    args = parse_args()
+    parser = argparse.ArgumentParser(description="Argument parser for vanilla_pc_histogram.py")
+    add_args(parser)
+    args = parser.parse_args()
+
     pch = PCHistogram(args.tile, args.trace)
 
     # Print PC histogram for the entire network

@@ -1762,8 +1762,7 @@ class VanillaStatsParser:
 
 
 # parses input arguments
-def parse_args():
-    parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
+def add_args():
     parser.add_argument("--vanilla", default="vanilla_stats.csv", type=str,
                         help="Vanilla stats log file")
     parser.add_argument("--vcache", type=str,
@@ -1774,14 +1773,14 @@ def parse_args():
                         help="Also generate separate stats files for each tile group.")
     parser.add_argument("--per_vcache", default=False, action='store_true',
                         help="Also generate separate stats files for each victim cache bank.")
-    args = parser.parse_args()
-    return args
 
 
 # main()
 if __name__ == "__main__":
     np.seterr(divide='ignore', invalid='ignore')
-    args = parse_args()
+    parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
+    add_args(parser)
+    args = parser.parse_args()
   
     st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.vanilla, args.vcache)
     st.print_manycore_stats_all()

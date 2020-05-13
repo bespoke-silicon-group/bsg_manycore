@@ -341,8 +341,7 @@ class VcacheStallGraph:
 
  
 # Parse input arguments and options 
-def parse_args():  
-    parser = argparse.ArgumentParser(description="Argument parser for stall_graph.py")
+def add_args():  
     parser.add_argument("--trace", default="vcache_operation_trace.csv", type=str,
                         help="Vcache operation log file")
     parser.add_argument("--stats", default=None, type=str,
@@ -356,13 +355,12 @@ def parse_args():
     parser.add_argument("--no-stall-graph", default=False, action='store_true',
                         help="Skip stall graph generation")
 
-    args = parser.parse_args()
-    return args
-
 
 # main()
 if __name__ == "__main__":
-    args = parse_args()
+    parser = argparse.ArgumentParser(description="Argument parser for stall_graph.py")
+    add_args(parser)
+    args = parser.parse_args()
   
     bg = VcacheStallGraph(args.trace, args.stats, args.cycle, args.abstract, args.no_stall_graph)
     if not bg.no_stall_graph:
