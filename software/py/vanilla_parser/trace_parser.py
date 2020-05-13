@@ -98,12 +98,12 @@ class VanillaTraceParser:
 
     return trace
 
-
-    
-
-# main() is just for testing purpose.
-if __name__ == "__main__":
+def main(args):
   parser = VanillaTraceParser()
-  traces = parser.parse(sys.argv[1])
+  traces = parser.parse(args)
   for trace in traces:
     print(trace)
+    
+# main() is just for testing purpose.
+if __name__ == "__main__":
+    main(sys.argv[1])

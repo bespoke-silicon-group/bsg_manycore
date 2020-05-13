@@ -454,16 +454,17 @@ def add_args(parser):
     parser.add_argument("--no-blood-graph", default=False, action='store_true',
                         help="Skip blood graph generation")
 
-
-# main()
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Argument parser for blood_graph.py")
-    add_args(parser)
-    args = parser.parse_args()
-
+def main(args):
     bg = BloodGraph(args.trace, args.stats, args.cycle, args.abstract)
     if not args.no_blood_graph:
         bg.generate()
     if args.generate_key:
         bg.generate_key()
 
+# main()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Argument parser for blood_graph.py")
+    add_args(parser)
+    args = parser.parse_args()
+    main(args)
