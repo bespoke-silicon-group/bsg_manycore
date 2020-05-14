@@ -39,6 +39,7 @@ import warnings
 import os.path
 from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
+import common_args
 
 
 class VcacheStallGraph:
@@ -342,16 +343,6 @@ class VcacheStallGraph:
  
 # Parse input arguments and options 
 def add_args(parser):  
-    parser.add_argument("--trace", default="vcache_operation_trace.csv", type=str,
-                        help="Vcache operation log file")
-    parser.add_argument("--stats", default=None, type=str,
-                        help="Vcache stats log file")
-    parser.add_argument("--cycle", default="@", type=str,
-                        help="Cycle window of stallgraph as start_cycle@end_cycle.")
-    parser.add_argument("--abstract", default=False, action='store_true',
-                        help="Type of stallgraph - abstract / detailed")
-    parser.add_argument("--generate-key", default=False, action='store_true',
-                        help="Generate a key image")
     parser.add_argument("--no-stall-graph", default=False, action='store_true',
                         help="Skip stall graph generation")
 
@@ -365,6 +356,7 @@ def main(args):
 # main()
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Argument parser for stall_graph.py")
+    common_args.add_args(parser)
     add_args(parser)
     args = parser.parse_args()
     main(args)

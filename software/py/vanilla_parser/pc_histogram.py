@@ -21,6 +21,7 @@ import csv
 import argparse
 from itertools import chain
 from collections import Counter
+import common_args
 
 
 class PCHistogram:
@@ -268,16 +269,9 @@ class PCHistogram:
         stats_file.close()
         return
 
-
-
-
 # Parse input arguments and options 
 def add_args(parser):  
-    parser.add_argument("--trace", default="vanilla_operation_trace.csv.log", type=str,
-                        help="Vanilla operation log file")
-    parser.add_argument("--tile", default=False, action='store_true',
-                        help="Also generate separate pc histogram files for each tile.")
-
+    pass
 
 def main(args):
     pch = PCHistogram(args.tile, args.trace)
@@ -292,6 +286,7 @@ def main(args):
 # main()
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Argument parser for vanilla_pc_histogram.py")
+    common_args.add_args(parser)
     add_args(parser)
     args = parser.parse_args()
     main(args)

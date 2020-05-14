@@ -15,3 +15,5 @@ def add_args(parser):
                         help="Type of graphs - abstract / detailed")
     parser.add_argument("--generate-key", default=False, action='store_true',
                         help="Generate a key image with graphs")
+    parser.add_argument("--cycle", default="@", type=str,
+                        help="Cycle window of bloodgraph/stallgraph as start_cycle@end_cycle.")

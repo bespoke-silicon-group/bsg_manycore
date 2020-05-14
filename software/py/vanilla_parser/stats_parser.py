@@ -29,6 +29,7 @@ import csv
 import numpy as np
 from enum import Enum
 from collections import Counter
+import common_args
 
 # CudaStatTag class 
 # Is instantiated by a packet tag value that is recieved from a 
@@ -1763,19 +1764,13 @@ class VanillaStatsParser:
 
 # parses input arguments
 def add_args(parser):
-    parser.add_argument("--vanilla", default="vanilla_stats.csv", type=str,
-                        help="Vanilla stats log file")
     parser.add_argument("--vcache", type=str,
                         help="Vcache stats log file")
-    parser.add_argument("--tile", default=False, action='store_true',
-                        help="Also generate separate stats files for each tile.")
-    parser.add_argument("--tile_group", default=False, action='store_true',
-                        help="Also generate separate stats files for each tile group.")
     parser.add_argument("--per_vcache", default=False, action='store_true',
                         help="Also generate separate stats files for each victim cache bank.")
 
 def main(args): 
-    st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.vanilla, args.vcache)
+    st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.stats, args.vcache)
     st.print_manycore_stats_all()
     if(st.per_tile_stat):
         st.print_per_tile_stats_all()
@@ -1788,6 +1783,7 @@ def main(args):
 if __name__ == "__main__":
     np.seterr(divide='ignore', invalid='ignore')
     parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
+    common_args.add_args(parser)
     add_args(parser)
     args = parser.parse_args()
     main(args)

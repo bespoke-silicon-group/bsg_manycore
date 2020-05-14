@@ -41,6 +41,7 @@ import warnings
 import os.path
 from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
+import common_args
 
 
 class BloodGraph:
@@ -441,16 +442,6 @@ class BloodGraph:
 
 # Parse input arguments and options
 def add_args(parser):
-    parser.add_argument("--trace", default="vanilla_operation_trace.csv", type=str,
-                        help="Vanilla operation log file")
-    parser.add_argument("--stats", default=None, type=str,
-                        help="Vanilla stats log file")
-    parser.add_argument("--cycle", default="@", type=str,
-                        help="Cycle window of bloodgraph as start_cycle@end_cycle.")
-    parser.add_argument("--abstract", default=False, action='store_true',
-                        help="Type of bloodgraph - abstract / detailed")
-    parser.add_argument("--generate-key", default=False, action='store_true',
-                        help="Generate a key image")
     parser.add_argument("--no-blood-graph", default=False, action='store_true',
                         help="Skip blood graph generation")
 
@@ -465,6 +456,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Argument parser for blood_graph.py")
+    common_args.add_args(parser)
     add_args(parser)
     args = parser.parse_args()
     main(args)
