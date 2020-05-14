@@ -1764,13 +1764,11 @@ class VanillaStatsParser:
 
 # parses input arguments
 def add_args(parser):
-    parser.add_argument("--vcache", type=str,
-                        help="Vcache stats log file")
     parser.add_argument("--per_vcache", default=False, action='store_true',
                         help="Also generate separate stats files for each victim cache bank.")
 
 def main(args): 
-    st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.stats, args.vcache)
+    st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.stats, args.vcache_stats)
     st.print_manycore_stats_all()
     if(st.per_tile_stat):
         st.print_per_tile_stats_all()

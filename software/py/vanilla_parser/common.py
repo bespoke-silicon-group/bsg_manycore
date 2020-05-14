@@ -7,6 +7,10 @@ def add_args(parser):
                         help="Vanilla stats log file")
     parser.add_argument("--log", default="vanilla.log", type=str,
                         help="Vanilla log file")
+    parser.add_argument("--vcache-trace", default="vcache_operation_trace.csv", type=str,
+                        help="Vanilla operation log file")
+    parser.add_argument("--vcache-stats", default="vcache_stats.csv", type=str,
+                        help="Vanilla stats log file")
     parser.add_argument("--tile", default=False, type=str,
                         help="Also generate per tile stats")
     parser.add_argument("--tile-group", default=False, type=str,
@@ -24,8 +28,8 @@ def check_exists_and_run(filelist, func, *args):
     """
     for f in filelist:
         if f is None or not path.isfile(f):
-            print("Skipping {} as input is missing...".format(
-                  func.__module__))
+            print("Skipping {} as some of {} is missing...".format(
+                  func.__module__, filelist))
             return
 
     print("Running {}...".format(func.__module__))

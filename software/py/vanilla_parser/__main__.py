@@ -31,6 +31,6 @@ common.check_exists_and_run(
 common.check_exists_and_run(
     [args.trace], pc_histogram.main, args)
 common.check_exists_and_run(
-    [args.stats, args.vcache], stats_parser.main, args)
+    [args.stats], stats_parser.main, args)
 common.check_exists_and_run(
-    [args.trace, args.stats], vcache_stall_graph.main, args)
+    [args.vcache_trace, args.vcache_stats], vcache_stall_graph.main, args)
