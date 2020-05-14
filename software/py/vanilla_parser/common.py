@@ -23,10 +23,10 @@ def check_exists_and_run(filelist, func, *args):
     Checks if files in filelist exists and executes the func
     """
     for f in filelist:
-        if not path.isfile(f):
-            print("Skipping {} as {} is missing...".format(
-                  func, f))
+        if f is None or not path.isfile(f):
+            print("Skipping {} as input is missing...".format(
+                  func.__module__))
             return
 
-    print("Running {}...".format(func))
+    print("Running {}...".format(func.__module__))
     func(*args)
