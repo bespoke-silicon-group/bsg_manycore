@@ -1,4 +1,4 @@
-import argparse
+from os import path
 
 def add_args(parser):
     parser.add_argument("--trace", default="vanilla_operation_trace.csv", type=str,
@@ -17,3 +17,17 @@ def add_args(parser):
                         help="Generate a key image with graphs")
     parser.add_argument("--cycle", default="@", type=str,
                         help="Cycle window of bloodgraph/stallgraph as start_cycle@end_cycle.")
+
+def check_exists_and_run(filelist, func, *args):
+    """
+    Checks if files in filelist exists and executes the func
+    """
+    for f in filelist:
+        if not path.isfile(f):
+            print(
+                "Skipping {} as {} is missing...",
+                func.__module__, f)
+            return
+
+    print("Running {}...", func.__module__)
+    func(*args)

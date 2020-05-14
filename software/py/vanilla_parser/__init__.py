@@ -1,4 +1,3 @@
-import argparse
 import blood_graph
 import stats_parser
 import pc_histogram

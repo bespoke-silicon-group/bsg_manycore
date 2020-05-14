@@ -1,9 +1,13 @@
+import argparse
 import common
-from os import path
 from __init__ import *
 
+msg = """
+Argument parser for vanilla_parser
+"""
+
 parser = argparse.ArgumentParser(
-    description="Argument parser for vanilla_parser",
+    description=msg,
     prog="vanilla_parser",
     conflict_handler='error')
 
@@ -22,4 +26,11 @@ vcache_stall_graph.add_args(
 # Parse arguments
 args = parser.parse_args()
 
-main(args)
+common.check_exists_and_run(
+    args.trace, args.stats, blood_graph.main, args)
+common.check_exists_and_run(
+    args.trace, pc_histogram.main, args)
+common.check_exists_and_run(
+    args.stats, args.vcache, stats_parser.main, args)
+common.check_exists_and_run(
+    args.trace, args.stats, vcache_stall_graph.main, args)
