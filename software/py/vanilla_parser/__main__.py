@@ -1,5 +1,6 @@
-from __init__ import *
 import common_args
+from os import path
+from __init__ import *
 
 parser = argparse.ArgumentParser(
     description="Argument parser for vanilla_parser",
