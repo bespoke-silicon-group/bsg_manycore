@@ -1,4 +1,4 @@
-import common_args
+import common
 from os import path
 from __init__ import *
 
@@ -7,7 +7,7 @@ parser = argparse.ArgumentParser(
     prog="vanilla_parser",
     conflict_handler='error')
 
-common_args.add_args(parser)
+common.add_args(parser)
 
 # Load command line options of all parser submodules
 blood_graph.add_args(

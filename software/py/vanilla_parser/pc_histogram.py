@@ -21,7 +21,7 @@ import csv
 import argparse
 from itertools import chain
 from collections import Counter
-import common_args
+import common
 
 
 class PCHistogram:
@@ -286,7 +286,7 @@ def main(args):
 # main()
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Argument parser for vanilla_pc_histogram.py")
-    common_args.add_args(parser)
+    common.add_args(parser)
     add_args(parser)
     args = parser.parse_args()
     main(args)

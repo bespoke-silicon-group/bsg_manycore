@@ -39,7 +39,7 @@ import warnings
 import os.path
 from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
-import common_args
+import common
 
 
 class VcacheStallGraph:
@@ -356,7 +356,7 @@ def main(args):
 # main()
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Argument parser for stall_graph.py")
-    common_args.add_args(parser)
+    common.add_args(parser)
     add_args(parser)
     args = parser.parse_args()
     main(args)

@@ -10,7 +10,7 @@
 import sys
 import os
 import re
-import common_args
+import common
 
 
 class VanillaTraceParser:
@@ -111,6 +111,6 @@ def main(args):
 # main() is just for testing purpose.
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Vanilla log Parser")
-    common_args.add_args(parser)
+    common.add_args(parser)
     args = parser.parse_args()
     main(args.log)

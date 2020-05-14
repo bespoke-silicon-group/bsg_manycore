@@ -29,7 +29,7 @@ import csv
 import numpy as np
 from enum import Enum
 from collections import Counter
-import common_args
+import common
 
 # CudaStatTag class 
 # Is instantiated by a packet tag value that is recieved from a 
@@ -1783,7 +1783,7 @@ def main(args):
 if __name__ == "__main__":
     np.seterr(divide='ignore', invalid='ignore')
     parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
-    common_args.add_args(parser)
+    common.add_args(parser)
     add_args(parser)
     args = parser.parse_args()
     main(args)
