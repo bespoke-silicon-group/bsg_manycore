@@ -11,6 +11,7 @@ import sys
 import os
 import re
 import common
+import argparse
 
 
 class VanillaTraceParser:
