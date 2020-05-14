@@ -24,10 +24,9 @@ def check_exists_and_run(filelist, func, *args):
     """
     for f in filelist:
         if not path.isfile(f):
-            print(
-                "Skipping {} as {} is missing...",
-                func.__module__, f)
+            print("Skipping {} as {} is missing...".format(
+                  func, f))
             return
 
-    print("Running {}...", func.__module__)
+    print("Running {}...".format(func))
     func(*args)

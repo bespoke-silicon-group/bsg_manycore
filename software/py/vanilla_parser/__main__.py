@@ -27,10 +27,10 @@ vcache_stall_graph.add_args(
 args = parser.parse_args()
 
 common.check_exists_and_run(
-    args.trace, args.stats, blood_graph.main, args)
+    [args.trace, args.stats], blood_graph.main, args)
 common.check_exists_and_run(
-    args.trace, pc_histogram.main, args)
+    [args.trace], pc_histogram.main, args)
 common.check_exists_and_run(
-    args.stats, args.vcache, stats_parser.main, args)
+    [args.stats, args.vcache], stats_parser.main, args)
 common.check_exists_and_run(
-    args.trace, args.stats, vcache_stall_graph.main, args)
+    [args.trace, args.stats], vcache_stall_graph.main, args)
