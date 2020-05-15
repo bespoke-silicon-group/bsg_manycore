@@ -23,7 +23,14 @@ parser = argparse.ArgumentParser(
     prog="vanilla_parser",
     conflict_handler='error')
 
+# Add common arguments
 common.add_args(parser)
+
+# Add package specific options
+parser.add_argument("--only", nargs='*', default=None, type=str,
+                    choices=["blood_graph", "stats_parser", "pc_histogram",
+                             "trace_parser", "vcache_stall_graph"],
+                    help="List of tools to run")
 
 # Load command line options of all parser submodules
 blood_graph.add_args(
@@ -38,16 +45,21 @@ vcache_stall_graph.add_args(
 # Parse arguments
 args = parser.parse_args()
 
-common.check_exists_and_run(
-    [args.trace, args.stats], blood_graph.main, args)
-common.check_exists_and_run(
-    [args.trace], pc_histogram.main, args)
-common.check_exists_and_run(
-    [args.stats], stats_parser.main, args)
+# Default set
+if args.only is None or "blood_graph" in args.only:
+    common.check_exists_and_run(
+        [args.trace, args.stats], blood_graph.main, args)
+if args.only is None or "pc_histogram" in args.only:
+    common.check_exists_and_run(
+        [args.trace], pc_histogram.main, args)
+if args.only is None or "stats_parser" in args.only:
+    common.check_exists_and_run(
+        [args.stats], stats_parser.main, args)
 
-# Currently vcache stall graph prints to std out, we can enable this if the output is
-# directed to standard set of file and decide that what the default input is going to
-# be.
-#
-#common.check_exists_and_run(
-#    [args.vcache_trace, args.vcache_stats], vcache_stall_graph.main, args)
+# Only run these tools only when mentioned explicitly
+if "vcache_stall_graph" in args.only:
+    common.check_exists_and_run(
+        [args.vcache_trace, args.vcache_stats], vcache_stall_graph.main, args)
+if "trace_parser" in args.only:
+    common.check_exists_and_run(
+        [args.log], trace_parser.main, args)
