@@ -30,10 +30,12 @@ common.add_args(parser)
 parser.add_argument("--only", nargs='*', default=[], type=str,
                     choices=["blood_graph", "stats_parser", "pc_histogram",
                              "trace_parser", "vcache_stall_graph"],
+                    metavar="SUBMODULE",
                     help="List of tools to run instead of the default set")
 parser.add_argument("--also", nargs='*', default=[], type=str,
                     choices=["blood_graph", "stats_parser", "pc_histogram",
                              "trace_parser", "vcache_stall_graph"],
+                    metavar="SUBMODULE",
                     help="List of tools to run in addition to the default set")
 
 # Load command line options of all parser submodules
