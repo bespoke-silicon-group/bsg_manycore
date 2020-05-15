@@ -105,7 +105,7 @@ def add_args(parser):
 
 def main(args):
   parser = VanillaTraceParser()
-  traces = parser.parse(args)
+  traces = parser.parse(args.log)
   for trace in traces:
     print(trace)
     
@@ -114,4 +114,4 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Vanilla log Parser")
     common.add_args(parser)
     args = parser.parse_args()
-    main(args.log)
+    main(args)
