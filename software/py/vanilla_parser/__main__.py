@@ -27,11 +27,11 @@ parser = argparse.ArgumentParser(
 common.add_args(parser)
 
 # Add package specific options
-parser.add_argument("--only", nargs='*', default=None, type=str,
+parser.add_argument("--only", nargs='*', default=[], type=str,
                     choices=["blood_graph", "stats_parser", "pc_histogram",
                              "trace_parser", "vcache_stall_graph"],
                     help="List of tools to run instead of the default set")
-parser.add_argument("--also", nargs='*', default=None, type=str,
+parser.add_argument("--also", nargs='*', default=[], type=str,
                     choices=["blood_graph", "stats_parser", "pc_histogram",
                              "trace_parser", "vcache_stall_graph"],
                     help="List of tools to run in addition to the default set")
@@ -50,20 +50,20 @@ vcache_stall_graph.add_args(
 args = parser.parse_args()
 
 # Default set
-if args.only is None or "blood_graph" in zip(args.only, arg.also):
+if (len(args.only) == 0) or ("blood_graph" in args.only) or ("blood_graph" in args.also):
     common.check_exists_and_run(
         [args.trace, args.stats], blood_graph.main, args)
-if args.only is None or "pc_histogram" in zip(args.only, arg.also):
+if (len(args.only) == 0) or ("pc_histogram" in args.only) or ("pc_histogram" in args.also):
     common.check_exists_and_run(
         [args.trace], pc_histogram.main, args)
-if args.only is None or "stats_parser" in zip(args.only, arg.also):
+if (len(args.only) == 0) or ("stats_parser" in args.only) or ("stats_parser" in args.also):
     common.check_exists_and_run(
         [args.stats], stats_parser.main, args)
 
-# Only run these tools only when mentioned explicitly
-if "vcache_stall_graph" in zip(args.only, arg.also):
+# Run these tools only when mentioned explicitly
+if ("vcache_stall_graph" in args.only) or ("vcache_stall_graph" in args.also):
     common.check_exists_and_run(
         [args.vcache_trace, args.vcache_stats], vcache_stall_graph.main, args)
-if "trace_parser" in zip(args.only, arg.also):
+if ("trace_parser" in args.only) or ("trace_parser" in args.also):
     common.check_exists_and_run(
         [args.log], trace_parser.main, args)

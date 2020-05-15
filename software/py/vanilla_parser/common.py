@@ -9,7 +9,7 @@ def add_args(parser):
                         help="Vanilla log file")
     parser.add_argument("--vcache-trace", default="vcache_operation_trace.csv", type=str,
                         help="Vanilla operation log file")
-    parser.add_argument("--vcache-stats", default="vcache_stats.csv", type=str,
+    parser.add_argument("--vcache-stats", default=None, type=str,
                         help="Vanilla stats log file")
     parser.add_argument("--tile", default=False, type=str,
                         help="Also generate per tile stats")
