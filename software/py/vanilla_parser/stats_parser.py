@@ -29,7 +29,7 @@ import csv
 import numpy as np
 from enum import Enum
 from collections import Counter
-import common
+from . import common
 
 # CudaStatTag class 
 # Is instantiated by a packet tag value that is recieved from a 

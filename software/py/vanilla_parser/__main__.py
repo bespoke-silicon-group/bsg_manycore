@@ -1,6 +1,6 @@
 import argparse
-import common
-from __init__ import *
+from . import common
+from .__init__ import *
 
 msg = """
 The interface for parsing COSIM output logs. This parser comprises

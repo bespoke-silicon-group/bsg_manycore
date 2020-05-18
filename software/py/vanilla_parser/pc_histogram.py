@@ -21,7 +21,7 @@ import csv
 import argparse
 from itertools import chain
 from collections import Counter
-import common
+from . import common
 
 
 class PCHistogram:

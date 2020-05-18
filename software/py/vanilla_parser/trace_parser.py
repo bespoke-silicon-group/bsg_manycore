@@ -10,7 +10,7 @@
 import sys
 import os
 import re
-import common
+from . import common
 import argparse
 
 

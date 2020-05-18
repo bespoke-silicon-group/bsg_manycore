@@ -41,7 +41,7 @@ import warnings
 import os.path
 from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
-import common
+from . import common
 
 
 class BloodGraph:
