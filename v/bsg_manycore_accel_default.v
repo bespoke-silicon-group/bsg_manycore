@@ -1,46 +1,46 @@
-`include "bsg_manycore_packet.vh"
+module bsg_manycore_accel_default 
+  import bsg_manycore_pkg::*;
+   #(parameter x_cord_width_p   = "inv"
+     , parameter y_cord_width_p = "inv"
+     , parameter data_width_p   = 32
+     , parameter addr_width_p   = "inv"
 
-module bsg_manycore_accel_default #(
-                                    // this number describes the type of the accelerator
-                                    // see bsg_manycore_hetero_socket for dispatch
-                                    // to add new types
+     , parameter icache_entries_p = "inv"
+     , parameter icache_tag_width_p = "inv"
 
-                                    hetero_type_p   = 1
-                                    , x_cord_width_p   = "inv"
-                                    , y_cord_width_p = "inv"
-                                    , data_width_p   = 32
-                                    , addr_width_p   = "inv"
-                                    , load_id_width_p = 5
-                                    , debug_p        = 0
-                                    , freeze_init_p  = 1'b1
-                                    // this credit counter is more for implementing memory fences
-                                    // than containing the number of outstanding remote stores
-                                    // but we use it for the later for now
+     , parameter dmem_size_p = "inv" 
+     , parameter vcache_size_p = "inv"
+     , parameter vcache_block_size_in_words_p = "inv"
+     , parameter vcache_sets_p = "inv"
 
-                                    // number of  packets we can have outstanding
-                                    , max_out_credits_p = 4
+     , parameter num_tiles_x_p = "inv"
 
-                                    // this is the size of the receive FIFO
-                                    // generally should be the same as max_out_credits_p
-                                    // for whoever is sending us data
+     // number of  packets we can have outstanding
+     , parameter max_out_credits_p = 4
 
-                                    , proc_fifo_els_p = 4
+     // this is the size of the receive FIFO
+     // generally should be the same as max_out_credits_p
+     // for whoever is sending us data
+     , parameter ep_fifo_els_p = 4
 
-                                    , num_nets_lp     = 2
+     , parameter freeze_init_p  = 1'b1
+     // this credit counter is more for implementing memory fences
+     // than containing the number of outstanding remote stores
+     // but we use it for the later for now
 
-                                    , bank_size_p    = "inv" // in words
-                                    , num_banks_p    = "inv"
+     , parameter link_sif_width_lp =
+       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
-                                    , packet_width_lp                = `bsg_manycore_packet_width       (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-                                    , return_packet_width_lp         = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p, data_width_p,load_id_width_p)
-                                    , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width     (addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
-                                    )
+     , parameter branch_trace_en_p = 0
+
+     , parameter debug_p        = 0
+     )
    (input   clk_i
     , input reset_i
 
     // input and output links
-    , input  [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
-    , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
+    , input  [link_sif_width_lp-1:0] link_sif_i
+    , output [link_sif_width_lp-1:0] link_sif_o
 
     // tile coordinates
     , input   [x_cord_width_p-1:0]                my_x_i
@@ -49,10 +49,14 @@ module bsg_manycore_accel_default #(
     , output logic freeze_o
     );
 
+   initial
+     $fatal(1, "This module has not been recently tested, only updated syntactically. Caveat Emptor");
+   
+
    wire freeze_r;
    assign freeze_o = freeze_r;
 
-   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p, load_id_width_p);
+   `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
    bsg_manycore_packet_s                   out_packet_li;
    logic                                   out_v_li;
@@ -64,19 +68,17 @@ module bsg_manycore_accel_default #(
    logic [addr_width_p-1:0]                in_addr_lo;
    logic                                   in_v_lo, in_yumi_li;
 
-   bsg_manycore_endpoint_standard #(.x_cord_width_p (x_cord_width_p)
-                                    ,.y_cord_width_p(y_cord_width_p)
+   bsg_manycore_endpoint_standard 
+     #(.x_cord_width_p (x_cord_width_p)
+       ,.y_cord_width_p(y_cord_width_p)
 
-                                    // how big the fifo is this node
-                                    ,.fifo_els_p    (proc_fifo_els_p)
-                                    ,.data_width_p  (data_width_p)
-                                    ,.addr_width_p  (addr_width_p)
-                                    ,.load_id_width_p (load_id_width_p)
-                                    ,.freeze_init_p (freeze_init_p)
-                                    // how big the fifo is at the next node
-                                    ,.max_out_credits_p(max_out_credits_p)
-                                    ,.debug_p(debug_p)
-                                    ) endp
+       // how big the fifo is this node
+       ,.fifo_els_p    (proc_fifo_els_p)
+       ,.data_width_p  (data_width_p)
+       ,.addr_width_p  (addr_width_p)
+       // how big the fifo is at the next node
+       ,.max_out_credits_p(max_out_credits_p)
+       ) endp
      (.clk_i
       ,.reset_i
 
@@ -100,7 +102,6 @@ module bsg_manycore_accel_default #(
 
       ,.my_x_i
       ,.my_y_i
-      ,.freeze_r_o(freeze_r)
       );
 
    // ADDRESS DECODER
@@ -117,7 +118,7 @@ module bsg_manycore_accel_default #(
 
    bsg_decode_with_v #(.num_out_p(num_endpoints_lp)) decoder
    (
-    .v (in_v_lo                           )
+    .v_i (in_v_lo                           )
     ,.i(in_addr_lo[0+:lg_num_endpoints_lp])
     ,.o(endpoint_en_vec_lo                   )
     );
@@ -138,7 +139,7 @@ module bsg_manycore_accel_default #(
       .data_i  (out_pkt_addr_n    )
       ,.en_i   (endpoint_en_vec_lo[0])  // located at address 0
       ,.reset_i(reset_i           )
-      ,.clock_i(clk_i             )
+      ,.clk_i(clk_i             )
       ,.data_o (out_pkt_addr_r    )
       );
 
@@ -157,7 +158,7 @@ module bsg_manycore_accel_default #(
      (.data_i   (in_data_lo[0+:yx_width_lp])
       ,.en_i    (endpoint_en_vec_lo[1])
       ,.reset_i
-      ,.clock_i(clk_i)
+      ,.clk_i(clk_i)
       ,.data_o (out_pkt_dest_r)
       );
 
@@ -189,7 +190,7 @@ module bsg_manycore_accel_default #(
 
    localparam accel_debug_p=1;
 
-   // synopsys_translate_off
+   /* synopsys translate_off*/
    if (accel_debug_p)
    always @(negedge clk_i)
      begin
@@ -199,7 +200,7 @@ module bsg_manycore_accel_default #(
                  , out_v_li, out_packet_li, out_ready_lo
                  );
      end
-   // synopsys_translate_on
+   /* synopsys translate_on */
 
    // ****************************************************************
    // * CUSTOMIZE BELOW (and above, if you need to)
