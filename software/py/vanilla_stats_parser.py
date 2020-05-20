@@ -154,7 +154,12 @@ class VanillaStatsParser:
     print_format = {"tg_timing_header": type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
                     "tg_timing_data"  : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "timing_header"   : type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "timing_data"     : type_fmt["cord"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "tile_timing_data": type_fmt["cord"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "timing_data"     : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+
+                    "vcache_timing_header": type_fmt["name"]   + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]   + "\n",
+                    "vcache_timing_data"  : type_fmt["name"]   + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + "\n",
+
                     "instr_header"    : type_fmt["name"]       + type_fmt["int"]  + type_fmt["type"]    + "\n",
                     "instr_data"      : type_fmt["name"]       + type_fmt["int"]  + type_fmt["percent"] + "\n",
                     "instr_data_indt" : type_fmt["name_indt"]  + type_fmt["int"]  + type_fmt["percent"] + "\n",
@@ -256,42 +261,45 @@ class VanillaStatsParser:
         # Generate VCache Stats
         # If vcache stats file is given as input, also generate vcache stats 
         if (self.vcache):
-            # Parse vcache input file's header to generate a list of all types of operations
-            self.vcache_stats, self.vcache_instrs, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
-    
-            # Create a list of all types of opertaions for iteration
-            self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
-    
-            # Use sets to determine the active vcache banks (without duplicates)
-            active_vcaches = set()
-    
-            # Parse vcache stats file line by line, and append the trace line to traces list. 
-            with open(vcache_input_file) as f:
-                csv_reader = csv.DictReader (f, delimiter=",")
-                for row in csv_reader:
-                    # Vcache bank name is a string that contains the vcache bank number 
-                    # The vcache bank number is extracted separately from other stats 
-                    # and manually added 
-                    trace = {op:int(row[op]) for op in self.vcache_all_ops if op != 'vcache'}
-                    vcache_name = row['vcache']
-                    vcache_bank = int (vcache_name[vcache_name.find("[")+1: vcache_name.find("]")])
-                    trace['vcache'] = vcache_bank
-                    active_vcaches.add((vcache_bank))
-                    self.vcache_traces.append(trace)
-    
-            self.active_vcaches = list(active_vcaches)
-            self.active_vcaches.sort()
-    
-            # generate timing stats for each vcache bank 
-            self.vcache_tile_group_stat, self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
-    
-            # Calculate total aggregate stats for manycore vcahe  by summing up per vcache bank stat counts
-            self.manycore_vcache_stat = self.__generate_manycore_vcache_stats_all(self.vcache_stat)
+            # If the victim cache stats file is found 
+            if os.path.exists(vcache_input_file):
+                # Parse vcache input file's header to generate a list of all types of operations
+                self.vcache_stats, self.vcache_instrs, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
+        
+                # Create a list of all types of opertaions for iteration
+                self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
+        
+                # Use sets to determine the active vcache banks (without duplicates)
+                active_vcaches = set()
+        
+                # Parse vcache stats file line by line, and append the trace line to traces list. 
+                with open(vcache_input_file) as f:
+                    csv_reader = csv.DictReader (f, delimiter=",")
+                    for row in csv_reader:
+                        # Vcache bank name is a string that contains the vcache bank number 
+                        # The vcache bank number is extracted separately from other stats 
+                        # and manually added 
+                        trace = {op:int(row[op]) for op in self.vcache_all_ops if op != 'vcache'}
+                        vcache_name = row['vcache']
+                        vcache_bank = int (vcache_name[vcache_name.find("[")+1: vcache_name.find("]")])
+                        trace['vcache'] = vcache_bank
+                        active_vcaches.add((vcache_bank))
+                        self.vcache_traces.append(trace)
+        
+                self.active_vcaches = list(active_vcaches)
+                self.active_vcaches.sort()
+        
+                # generate timing stats for each vcache bank 
+                self.vcache_tile_group_stat, self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
+        
+                # Calculate total aggregate stats for manycore vcahe  by summing up per vcache bank stat counts
+                self.manycore_vcache_stat = self.__generate_manycore_vcache_stats_all(self.vcache_stat)
 
-
-
-
-
+            # Victim cache stats is optional, if it's not found we throw a warning and skip
+            # vcache stats generation, but do not hault the vanilla stats generation
+            else:
+                self.vcache = False
+                print("Warning: vcache stats file not found, skipping victim cache stats generation.")
 
 
         return
@@ -459,7 +467,7 @@ class VanillaStatsParser:
         self.__print_stat(stat_file, "tag_separator", tag)
 
         for tile in tiles:
-            self.__print_stat(stat_file, "timing_data"
+            self.__print_stat(stat_file, "tile_timing_data"
                               ,tile[0]
                               ,tile[1]
                               ,(tile_stat[tag][tile]["instr_total"])
@@ -468,11 +476,10 @@ class VanillaStatsParser:
                               ,(100 * tile_stat[tag][tile]["global_ctr"] / manycore_stat[tag]["global_ctr"])
                               ,(100 * np.float64(tile_stat[tag][tile]["global_ctr"]) / tile_stat["kernel"][tile]["global_ctr"]))
 
-        self.__print_stat(stat_file, "tg_timing_data"
+        self.__print_stat(stat_file, "timing_data"
                                      ,"total"
                                      ,(manycore_stat[tag]["instr_total"])
                                      ,(manycore_stat[tag]["global_ctr"])
-                                     ,0
                                      ,(manycore_stat[tag]["instr_total"] / manycore_stat[tag]["global_ctr"])
                                      ,(np.float64(100 * manycore_stat[tag]["global_ctr"]) / manycore_stat[tag]["global_ctr"])
                                      ,(np.float64(100 * manycore_stat[tag]["global_ctr"]) / manycore_stat["kernel"]["global_ctr"]))
@@ -487,6 +494,64 @@ class VanillaStatsParser:
         for tag in manycore_stat.keys():
             if(manycore_stat[tag]["global_ctr"]):
                 self.__print_manycore_tag_stats_tile_timing(stat_file, tag, tiles, manycore_stat, tile_stat)
+        self.__print_stat(stat_file, "end_lbreak")
+        return   
+
+
+
+
+    # print execution timing for the entire manycoree per vcache bank for a certain tag
+    def __print_manycore_tag_stats_vcache_timing(self, stat_file, tag):
+        self.__print_stat(stat_file, "tag_separator", tag)
+
+        for vcache in self.active_vcaches:
+
+            hit_cnt = self.vcache_stat[tag][vcache]["instr_total"]
+            miss_cnt = self.vcache_stat[tag][vcache]["miss_total"]
+            stall_cnt = self.vcache_stat[tag][vcache]["stall_total"]
+            cycle_cnt = self.vcache_stat[tag][vcache]["global_ctr"]
+            utilization = np.float64(hit_cnt + miss_cnt) / cycle_cnt
+
+            self.__print_stat(stat_file, "vcache_timing_data"
+                                         ,vcache
+                                         ,hit_cnt
+                                         ,miss_cnt
+                                         ,stall_cnt
+                                         ,cycle_cnt
+                                         ,utilization)
+
+
+        hit_cnt = self.manycore_vcache_stat[tag]["instr_total"]
+        miss_cnt = self.manycore_vcache_stat[tag]["miss_total"]
+        stall_cnt = self.manycore_vcache_stat[tag]["stall_total"]
+        cycle_cnt = self.manycore_vcache_stat[tag]["global_ctr"]
+        utilization = np.float64(hit_cnt + miss_cnt) / cycle_cnt
+
+        self.__print_stat(stat_file, "vcache_timing_data"
+                                     ,"total"
+                                     ,hit_cnt
+                                     ,miss_cnt
+                                     ,stall_cnt
+                                     ,cycle_cnt
+                                     ,utilization)
+        return
+
+
+    # Prints manycore timing stats per vcache bank for all tags 
+    def __print_manycore_stats_vcache_timing(self, stat_file):
+        stat_file.write("Per-Vcache-Bank Timing Stats\n")
+        self.__print_stat(stat_file, "vcache_timing_header"
+                                     ,"Vcache Bank No."
+                                     ,"Aggr Hit Requests"
+                                     ,"Aggr Misse Requests"
+                                     ,"Aggr Stall Cycles"
+                                     ,"Aggr Total Cycles"
+                                     ,"Utilization")
+        self.__print_stat(stat_file, "start_lbreak")
+
+        for tag in self.manycore_vcache_stat.keys():
+            if(self.manycore_vcache_stat[tag]["global_ctr"]):
+                self.__print_manycore_tag_stats_vcache_timing(stat_file, tag)
         self.__print_stat(stat_file, "end_lbreak")
         return   
 
@@ -539,7 +604,7 @@ class VanillaStatsParser:
     def __print_per_tile_tag_stats_timing(self, stat_file, tile, tag, manycore_stat, tile_stat):
         self.__print_stat(stat_file, "tag_separator", tag)
 
-        self.__print_stat(stat_file, "timing_data"
+        self.__print_stat(stat_file, "tile_timing_data"
                                      ,tile[0]
                                      ,tile[1]
                                      ,(tile_stat[tag][tile]["instr_total"])
@@ -678,11 +743,16 @@ class VanillaStatsParser:
         # Print stall stats for manycore
         for stall in stalls:
             stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
-            self.__print_stat(stat_file, stall_format, stall,
-                                         stat[tag][stall],
-                                         (100 * np.float64(stat[tag][stall]) / stat[tag]["stall_total"])
+            self.__print_stat(stat_file, stall_format, stall
+                                         ,stat[tag][stall]
+                                         ,(100 * np.float64(stat[tag][stall]) / stat[tag]["stall_total"])
                                          ,(100 * np.float64(stat[tag][stall]) / stat[tag]["global_ctr"]))
 
+        not_stall = stat[tag]["global_ctr"] - stat[tag]["stall_total"]
+        self.__print_stat(stat_file, "stall_data", "not_stall"
+                                     ,not_stall
+                                     ,(100 * np.float64(not_stall) / stat[tag]["stall_total"])
+                                     ,(100 * np.float64(not_stall) / stat[tag]["global_ctr"]))
         return
 
 
@@ -1179,6 +1249,7 @@ class VanillaStatsParser:
 
         # If vcache stats is given as input, also print vcache stats
         if (self.vcache):
+            self.__print_manycore_stats_vcache_timing(manycore_stats_file)
             self.__print_manycore_stats_miss(manycore_stats_file, "VCache Per-Tag Miss Stats", self.manycore_vcache_stat, self.vcache_misses)
             self.__print_manycore_stats_stall(manycore_stats_file, "VCache Per-Tag Stall Stats", self.manycore_vcache_stat, self.vcache_stalls)
             self.__print_manycore_stats_instr(manycore_stats_file, "VCache Per-Tag Instruction Stats", self.manycore_vcache_stat, self.vcache_instrs)

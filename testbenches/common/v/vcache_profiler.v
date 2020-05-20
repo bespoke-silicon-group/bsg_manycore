@@ -60,18 +60,18 @@ module vcache_profiler
   // mask_op should be hight while evaluating the store signals, but not for
   // load signals 
   wire inc_ld       = v_o & yumi_i & ld_op_v_r;
-  wire inc_ld_lw    = v_o & yumi_i & ld_op_v_r & ~mask_op_v_r & word_op_v_r &  sigext_op_v_r;  // load word
-  wire inc_ld_lwu   = v_o & yumi_i & ld_op_v_r & ~mask_op_v_r & word_op_v_r & ~sigext_op_v_r; // load word unsigned
-  wire inc_ld_lh    = v_o & yumi_i & ld_op_v_r & ~mask_op_v_r & half_op_v_r &  sigext_op_v_r;  // load half
-  wire inc_ld_lhu   = v_o & yumi_i & ld_op_v_r & ~mask_op_v_r & half_op_v_r & ~sigext_op_v_r; // load half unsigned
-  wire inc_ld_lb    = v_o & yumi_i & ld_op_v_r & ~mask_op_v_r & byte_op_v_r &  sigext_op_v_r;  // load byte
-  wire inc_ld_lbu   = v_o & yumi_i & ld_op_v_r & ~mask_op_v_r & byte_op_v_r & ~sigext_op_v_r; // load byte unsigned
+  wire inc_ld_lw    = inc_ld & ~mask_op_v_r & word_op_v_r &  sigext_op_v_r;  // load word
+  wire inc_ld_lwu   = inc_ld & ~mask_op_v_r & word_op_v_r & ~sigext_op_v_r; // load word unsigned
+  wire inc_ld_lh    = inc_ld & ~mask_op_v_r & half_op_v_r &  sigext_op_v_r;  // load half
+  wire inc_ld_lhu   = inc_ld & ~mask_op_v_r & half_op_v_r & ~sigext_op_v_r; // load half unsigned
+  wire inc_ld_lb    = inc_ld & ~mask_op_v_r & byte_op_v_r &  sigext_op_v_r;  // load byte
+  wire inc_ld_lbu   = inc_ld & ~mask_op_v_r & byte_op_v_r & ~sigext_op_v_r; // load byte unsigned
 
   // All store operations from bsg_manycore are performed with the store mask op
   wire inc_st       = v_o & yumi_i & st_op_v_r;
-  wire inc_sm_sw    = v_o & yumi_i & st_op_v_r & mask_op_v_r & ($countones(mask_v_r) == 4); // store word
-  wire inc_sm_sh    = v_o & yumi_i & st_op_v_r & mask_op_v_r & ($countones(mask_v_r) == 2); // store half
-  wire inc_sm_sb    = v_o & yumi_i & st_op_v_r & mask_op_v_r & ($countones(mask_v_r) == 1); // store byte
+  wire inc_sm_sw    = inc_st & mask_op_v_r & ($countones(mask_v_r) == 4); // store word
+  wire inc_sm_sh    = inc_st & mask_op_v_r & ($countones(mask_v_r) == 2); // store half
+  wire inc_sm_sb    = inc_st & mask_op_v_r & ($countones(mask_v_r) == 1); // store byte
 
   wire inc_tagst    = v_o & yumi_i & tagst_op_v_r;   // tag store                
   wire inc_tagfl    = v_o & yumi_i & tagfl_op_v_r;   // tag flush

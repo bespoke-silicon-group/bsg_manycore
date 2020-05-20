@@ -162,15 +162,23 @@ class VcacheStallGraph:
 
 
     # default constructor
-    def __init__(self, trace_file, stats_file, cycle, abstract):
+    def __init__(self, trace_file, stats_file, cycle, abstract, no_stall_graph):
 
         self.abstract = abstract
+        self.no_stall_graph = no_stall_graph
 
         # Determine coloring rules based on mode {abstract / detailed}
         if (self.abstract):
             self.operation_color     = self._ABSTRACT_OPERATION_COLOR
         else:
             self.operation_color     = self._DETAILED_OPERATION_COLOR
+
+
+        # If trace file is missing exit with warning
+        if not os.path.exists(trace_file):
+            print("Warning: vcache trace file not found, skipping victim cache stall graph generation.")
+            self.no_stall_graph = True
+            return
 
 
         # Parse vcache operation trace file to generate traces
@@ -356,8 +364,8 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
   
-    bg = VcacheStallGraph(args.trace, args.stats, args.cycle, args.abstract)
-    if not args.no_stall_graph:
+    bg = VcacheStallGraph(args.trace, args.stats, args.cycle, args.abstract, args.no_stall_graph)
+    if not bg.no_stall_graph:
         bg.generate()
     if args.generate_key:
         bg.generate_key()
