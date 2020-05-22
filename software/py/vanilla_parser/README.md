@@ -8,7 +8,7 @@
  
  If default Python search path doesn't include this directory, you might have to run:
  ```
- $ PYTHONPATH=/path/to/this/dir python3 -m vanilla_parser
+ $ PYTHONPATH=<path to this dir>/.. python3 -m vanilla_parser
  ```
  
  
