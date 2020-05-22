@@ -29,6 +29,7 @@ import csv
 import numpy as np
 from enum import Enum
 from collections import Counter
+from . import common
 
 # CudaStatTag class 
 # Is instantiated by a packet tag value that is recieved from a 
@@ -1762,28 +1763,12 @@ class VanillaStatsParser:
 
 
 # parses input arguments
-def parse_args():
-    parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
-    parser.add_argument("--vanilla", default="vanilla_stats.csv", type=str,
-                        help="Vanilla stats log file")
-    parser.add_argument("--vcache", type=str,
-                        help="Vcache stats log file")
-    parser.add_argument("--tile", default=False, action='store_true',
-                        help="Also generate separate stats files for each tile.")
-    parser.add_argument("--tile_group", default=False, action='store_true',
-                        help="Also generate separate stats files for each tile group.")
+def add_args(parser):
     parser.add_argument("--per_vcache", default=False, action='store_true',
                         help="Also generate separate stats files for each victim cache bank.")
-    args = parser.parse_args()
-    return args
 
-
-# main()
-if __name__ == "__main__":
-    np.seterr(divide='ignore', invalid='ignore')
-    args = parse_args()
-  
-    st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.vanilla, args.vcache)
+def main(args): 
+    st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.stats, args.vcache_stats)
     st.print_manycore_stats_all()
     if(st.per_tile_stat):
         st.print_per_tile_stats_all()
@@ -1792,6 +1777,11 @@ if __name__ == "__main__":
     if(st.per_vcache_stat):
         st.print_per_vcache_stats_all()
 
-
-  
-
+# main()
+if __name__ == "__main__":
+    np.seterr(divide='ignore', invalid='ignore')
+    parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
+    common.add_args(parser)
+    add_args(parser)
+    args = parser.parse_args()
+    main(args)

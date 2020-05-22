@@ -2,7 +2,7 @@
 #   blood_graph.py
 #
 #   vanilla_core execution visualizer.
-# 
+#
 #   input:  vanilla_operation_trace.csv
 #           vanilla_stats.csv (for timing)
 #   output: blood graph file (blood_abstrat/detailed.png)
@@ -26,7 +26,7 @@
 #   {stats}        used for extracting the timing window for blood graph
 #   {abstract}     used for abstract simplifed bloodgraph
 #   {generate-key} also generates a color key for the blood graph
-#   {cycle}        used for user-specified custom timing window 
+#   {cycle}        used for user-specified custom timing window
 #
 #
 #   Note: You can use the "Digital Color Meter" in MacOS in order to compare
@@ -41,6 +41,7 @@ import warnings
 import os.path
 from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
+from . import common
 
 
 class BloodGraph:
@@ -49,7 +50,7 @@ class BloodGraph:
     _KEY_HEIGHT = 512
 
 
-    # List of types of stalls incurred by the core 
+    # List of types of stalls incurred by the core
     _STALLS_LIST   = ["stall_depend_remote_load_dram",
                       "stall_depend_local_remote_load_dram",
                       "stall_depend_remote_load_global",
@@ -78,7 +79,7 @@ class BloodGraph:
 
 
 
-    # List of types of integer instructions executed by the core 
+    # List of types of integer instructions executed by the core
     _INSTRS_LIST    = ["local_ld",
                        "local_st",
                        "remote_ld_dram",
@@ -169,41 +170,41 @@ class BloodGraph:
 
 
     # Coloring scheme for different types of operations
-    # For detailed mode 
+    # For detailed mode
     # i_cache miss is treated the same is stall_ifetch_wait
     _DETAILED_STALL_BUBBLE_COLOR = {
-                                     "stall_depend_remote_load_dram"          : (0xff, 0x00, 0x00), ## red 
-                                     "stall_depend_local_remote_load_dram"    : (0xaa, 0x00, 0x00), ## dark red 
- 
-                                     "stall_depend_remote_load_global"        : (0x00, 0xff, 0x00), ## green 
-                                     "stall_depend_remote_load_group"         : (0x00, 0xff, 0x00), ## green 
-                                     "stall_depend_local_remote_load_global"  : (0x00, 0x55, 0x00), ## dark green 
-                                     "stall_depend_local_remote_load_group"   : (0x00, 0x55, 0x00), ## dark green 
- 
-                                     "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray 
- 
-                                     "stall_depend"                           : (0x00, 0x00, 0x80), ## navy blue 
-                                     "stall_depend_local_load"                : (0x00, 0xff, 0xff), ## cyan 
- 
+                                     "stall_depend_remote_load_dram"          : (0xff, 0x00, 0x00), ## red
+                                     "stall_depend_local_remote_load_dram"    : (0xaa, 0x00, 0x00), ## dark red
+
+                                     "stall_depend_remote_load_global"        : (0x00, 0xff, 0x00), ## green
+                                     "stall_depend_remote_load_group"         : (0x00, 0xff, 0x00), ## green
+                                     "stall_depend_local_remote_load_global"  : (0x00, 0x55, 0x00), ## dark green
+                                     "stall_depend_local_remote_load_group"   : (0x00, 0x55, 0x00), ## dark green
+
+                                     "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray
+
+                                     "stall_depend"                           : (0x00, 0x00, 0x80), ## navy blue
+                                     "stall_depend_local_load"                : (0x00, 0xff, 0xff), ## cyan
+
                                      "stall_fp_local_load"                    : (0x00, 0xaa, 0xff), ## dark cyan
                                      "stall_fp_remote_load"                   : (0x00, 0xaa, 0xff), ## dark cyan
- 
+
                                      "stall_force_wb"                         : (0xff, 0x00, 0xff), ## pink
                                      "stall_icache_store"                     : (0x00, 0x55, 0xff), ## dark blue
                                      "stall_remote_req"                       : (0xff, 0xff, 0x00), ## yellow
                                      "stall_local_flw"                        : (0xff, 0xff, 0x80), ## light yellow
                                      "stall_amo_aq"                           : (0x8b, 0x45, 0x13), ## brown
                                      "stall_amo_rl"                           : (0x8b, 0x45, 0x13), ## brown
- 
+
                                      "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
                                      "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
                                      "bubble_icache"                          : (0x00, 0x00, 0xff), ## blue
- 
+
                                      "bubble_branch_mispredict"               : (0x80, 0x00, 0x80), ## purple
                                      "bubble_jalr_mispredict"                 : (0xff, 0xa5, 0x00), ## orange
                                      "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black
                                      "bubble"                                 : (0x80, 0x00, 0x00), ## maroon
- 
+
                                      "stall_md"                               : (0xff, 0xf0, 0xa0), ## light orange
                                   }
     _DETAILED_UNIFIED_INSTR_COLOR        =                                      (0xff, 0xff, 0xff)  ## white
@@ -211,19 +212,19 @@ class BloodGraph:
 
 
     # Coloring scheme for different types of operations
-    # For abstract mode 
+    # For abstract mode
     # i_cache miss is treated the same is stall_ifetch_wait
-    _ABSTRACT_STALL_BUBBLE_COLOR = {   
+    _ABSTRACT_STALL_BUBBLE_COLOR = {
                                          "stall_depend_remote_load_dram"          : (0xff, 0x00, 0x00), ## red
                                          "stall_depend_local_remote_load_dram"    : (0xff, 0x00, 0x00), ## red
-      
+
                                          "stall_depend_remote_load_global"        : (0x00, 0xff, 0x00), ## green
                                          "stall_depend_remote_load_group"         : (0x00, 0xff, 0x00), ## green
                                          "stall_depend_local_remote_load_global"  : (0x00, 0xff, 0x00), ## green
                                          "stall_depend_local_remote_load_group"   : (0x00, 0xff, 0x00), ## green
-      
+
                                          "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray
-      
+
                                          "stall_depend"                           : (0x00, 0x00, 0x00), ## black
                                          "stall_depend_local_load"                : (0x00, 0x00, 0x00), ## black
                                          "stall_fp_local_load"                    : (0x00, 0x00, 0x00), ## black
@@ -234,16 +235,16 @@ class BloodGraph:
                                          "stall_local_flw"                        : (0x00, 0x00, 0x00), ## black
                                          "stall_amo_aq"                           : (0x00, 0x00, 0x00), ## black
                                          "stall_amo_rl"                           : (0x00, 0x00, 0x00), ## black
-      
+
                                          "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
                                          "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
                                          "bubble_icache"                          : (0x00, 0x00, 0xff), ## blue
-      
+
                                          "bubble_branch_mispredict"               : (0x00, 0x00, 0x00), ## black
                                          "bubble_jalr_mispredict"                 : (0x00, 0x00, 0x00), ## black
                                          "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black
                                          "bubble"                                 : (0x00, 0x00, 0x00), ## black
-      
+
                                          "stall_md"                               : (0xff, 0xff, 0xff), ## white
                                    }
     _ABSTRACT_UNIFIED_INSTR_COLOR        =                                          (0xff, 0xff, 0xff)  ## white
@@ -270,9 +271,9 @@ class BloodGraph:
         # Parse vanilla operation trace file to generate traces
         self.traces = self.__parse_traces(trace_file)
 
-        # Parse vanilla stats file to generate timing stats 
+        # Parse vanilla stats file to generate timing stats
         self.stats = self.__parse_stats(stats_file)
-       
+
         # get tile group diemsnions
         self.__get_tile_group_dim(self.traces)
 
@@ -287,15 +288,15 @@ class BloodGraph:
             csv_reader = csv.DictReader(f, delimiter=",")
             for row in csv_reader:
                 trace = {}
-                trace["x"] = int(row["x"])  
-                trace["y"] = int(row["y"])  
+                trace["x"] = int(row["x"])
+                trace["y"] = int(row["y"])
                 trace["operation"] = row["operation"]
                 trace["cycle"] = int(row["cycle"])
                 traces.append(trace)
         return traces
 
 
-    # Parses vanilla_stats.csv to generate timing stats 
+    # Parses vanilla_stats.csv to generate timing stats
     # to gather start and end cycle of entire graph
     def __parse_stats(self, stats_file):
         stats = []
@@ -321,17 +322,17 @@ class BloodGraph:
         self.xmax = max(xs)
         self.ymin = min(ys)
         self.ymax = max(ys)
-    
+
         self.xdim = self.xmax-self.xmin+1
         self.ydim = self.ymax-self.ymin+1
         return
 
 
-    # Determine the timing window (start and end) cycle of graph 
+    # Determine the timing window (start and end) cycle of graph
     # The timing window will be calculated using:
     # Custom input: if custom start cycle is given by using the --cycle argument
     # Vanilla stats file: otherwise if vanilla stats file is given as input
-    # Traces: otherwise the entire course of simulation 
+    # Traces: otherwise the entire course of simulation
     def __get_timing_window(self, traces, stats, cycle):
         custom_start, custom_end = cycle.split('@')
 
@@ -353,10 +354,10 @@ class BloodGraph:
         return start, end
 
 
-  
+
     # main public method
     def generate(self):
-  
+
 
         # init image
         self.__init_image()
@@ -408,8 +409,8 @@ class BloodGraph:
         self.img_height = (((self.end_cycle-self.start_cycle)+self.img_width)//self.img_width)*(2+(self.xdim*self.ydim))
         self.img = Image.new("RGB", (self.img_width, self.img_height), "black")
         self.pixel = self.img.load()
-        return  
-  
+        return
+
     # mark the trace on output image
     def __mark_trace(self, trace):
 
@@ -421,7 +422,7 @@ class BloodGraph:
         cycle = (trace["cycle"] - self.start_cycle)
         col = cycle % self.img_width
         floor = cycle // self.img_width
-        tg_x = trace["x"] - self.xmin 
+        tg_x = trace["x"] - self.xmin
         tg_y = trace["y"] - self.ymin
         row = floor*(2+(self.xdim*self.ydim)) + (tg_x+(tg_y*self.xdim))
 
@@ -438,34 +439,24 @@ class BloodGraph:
         return
 
 
- 
-# Parse input arguments and options 
-def parse_args():  
-    parser = argparse.ArgumentParser(description="Argument parser for blood_graph.py")
-    parser.add_argument("--trace", default="vanilla_operation_trace.csv", type=str,
-                        help="Vanilla operation log file")
-    parser.add_argument("--stats", default=None, type=str,
-                        help="Vanilla stats log file")
-    parser.add_argument("--cycle", default="@", type=str,
-                        help="Cycle window of bloodgraph as start_cycle@end_cycle.")
-    parser.add_argument("--abstract", default=False, action='store_true',
-                        help="Type of bloodgraph - abstract / detailed")
-    parser.add_argument("--generate-key", default=False, action='store_true',
-                        help="Generate a key image")
+
+# Parse input arguments and options
+def add_args(parser):
     parser.add_argument("--no-blood-graph", default=False, action='store_true',
                         help="Skip blood graph generation")
 
-    args = parser.parse_args()
-    return args
-
-
-# main()
-if __name__ == "__main__":
-    args = parse_args()
-  
+def main(args):
     bg = BloodGraph(args.trace, args.stats, args.cycle, args.abstract)
     if not args.no_blood_graph:
         bg.generate()
     if args.generate_key:
         bg.generate_key()
 
+# main()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Argument parser for blood_graph.py")
+    common.add_args(parser)
+    add_args(parser)
+    args = parser.parse_args()
+    main(args)

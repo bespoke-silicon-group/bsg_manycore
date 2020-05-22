@@ -39,6 +39,7 @@ import warnings
 import os.path
 from PIL import Image, ImageDraw, ImageFont
 from itertools import chain
+from . import common
 
 
 class VcacheStallGraph:
@@ -341,32 +342,21 @@ class VcacheStallGraph:
 
  
 # Parse input arguments and options 
-def parse_args():  
-    parser = argparse.ArgumentParser(description="Argument parser for stall_graph.py")
-    parser.add_argument("--trace", default="vcache_operation_trace.csv", type=str,
-                        help="Vcache operation log file")
-    parser.add_argument("--stats", default=None, type=str,
-                        help="Vcache stats log file")
-    parser.add_argument("--cycle", default="@", type=str,
-                        help="Cycle window of stallgraph as start_cycle@end_cycle.")
-    parser.add_argument("--abstract", default=False, action='store_true',
-                        help="Type of stallgraph - abstract / detailed")
-    parser.add_argument("--generate-key", default=False, action='store_true',
-                        help="Generate a key image")
+def add_args(parser):  
     parser.add_argument("--no-stall-graph", default=False, action='store_true',
                         help="Skip stall graph generation")
 
-    args = parser.parse_args()
-    return args
-
-
-# main()
-if __name__ == "__main__":
-    args = parse_args()
-  
-    bg = VcacheStallGraph(args.trace, args.stats, args.cycle, args.abstract, args.no_stall_graph)
-    if not bg.no_stall_graph:
+def main(args): 
+    bg = VcacheStallGraph(args.vcache_trace, args.vcache_stats, args.cycle, args.abstract)
+    if not args.no_stall_graph:
         bg.generate()
     if args.generate_key:
         bg.generate_key()
 
+# main()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Argument parser for stall_graph.py")
+    common.add_args(parser)
+    add_args(parser)
+    args = parser.parse_args()
+    main(args)
