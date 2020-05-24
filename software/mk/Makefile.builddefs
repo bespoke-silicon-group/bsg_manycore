@@ -192,13 +192,12 @@ LLVM_CLANG        ?= $(LLVM_DIR)/bin/clang
 LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
 LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
 LLVM_LLC          ?= $(LLVM_DIR)/bin/llc
-RUNTIME_FNS       ?= $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_tilegroup.h
 CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
-
 ifdef LLVM_PASS
-PASS_DIR         ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
-PASS_LIB         ?= build/manycore/libManycorePass.so
+PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
+PASS_LIB          ?= build/manycore/libManycorePass.so
 endif
+RUNTIME_FNS       ?= $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_tilegroup.h
 
 $(LLVM_DIR):
 	@echo "LLVM is not installed! Follow build instructions in the TRM and \
@@ -219,6 +218,8 @@ $(LLVM_DIR):
 %.bc: %.cpp $(LLVM_DIR) $(RUNTIME_FNS)
 	$(LLVM_CLANGPP) $(CLANG_TARGET_OPTS) $(RISCV_GXX_OPTS) \
 		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
+		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0 \
+		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0/riscv32-unknown-elf-dramfs \
 		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
 ifdef LLVM_PASS
