@@ -188,6 +188,7 @@ spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 ifdef CLANG
 LLVM_DIR         ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/llvm/llvm-install
 LLVM_CLANG       ?= $(LLVM_DIR)/bin/clang
+LLVM_CLANGPP     ?= $(LLVM_DIR)/bin/clang++
 LLVM_OPT         ?= $(LLVM_DIR)/bin/opt
 LLVM_LLC         ?= $(LLVM_DIR)/bin/llc
 PASS_DIR         ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
@@ -209,7 +210,7 @@ $(LLVM_DIR):
 
 # do the same for C++ sources
 %.bc: %.cpp $(PASS_LIB) $(LLVM_DIR) $(RUNTIME_FNS)
-	$(LLVM_CLANG) $(RISCV_GXX_OPTS) $(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
+	$(LLVM_CLANGPP) $(RISCV_GXX_OPTS) $(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
 %.bc.pass: %.bc
 	$(LLVM_OPT) -load $(PASS_LIB) -manycore $(OPT_LEVEL) $< -o $@
