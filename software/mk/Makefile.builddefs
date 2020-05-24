@@ -209,7 +209,7 @@ $(LLVM_DIR):
 # Emit -O0 so that loads to consecutive memory locations aren't combined
 # Opt can run optimizations in any order, so it doesn't matter
 %.bc: %.c $(LLVM_DIR) $(RUNTIME_FNS)
-	$(LLVM_CLANG) $(filter-out -march=%, $(RISCV_GCC_OPTS)) --target=riscv32 \
+	$(LLVM_CLANG) --target=riscv32 $(RISCV_GCC_OPTS) -mabi=ilp32f \
 		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
 		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
@@ -224,7 +224,7 @@ endif
 	$(LLVM_OPT) $(PASS_OPTS) $(OPT_LEVEL) $< -o $@
 
 %.bc.s: %.bc.pass
-	$(LLVM_LLC) -march=riscv32 $< -o $@
+	$(LLVM_LLC) $< -o $@
 
 %.o: %.bc.s
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) -c $< -o $@
