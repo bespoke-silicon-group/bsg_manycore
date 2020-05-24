@@ -2,6 +2,7 @@
 # Chip Architecture
 
 ARCH_OP=rv32imaf
+ABI=ilp32f
 
 
 #######################################################
@@ -186,12 +187,13 @@ RISCV_GXX_OPTS += $(RISCV_GXX_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 ifdef CLANG
-LLVM_DIR         ?= $(BSG_MANYCORE_DIR)/../bsg-llvm-project/build
-LLVM_CLANG       ?= $(LLVM_DIR)/bin/clang
-LLVM_CLANGPP     ?= $(LLVM_DIR)/bin/clang++
-LLVM_OPT         ?= $(LLVM_DIR)/bin/opt
-LLVM_LLC         ?= $(LLVM_DIR)/bin/llc
-RUNTIME_FNS      ?= $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_tilegroup.h
+LLVM_DIR          ?= $(BSG_MANYCORE_DIR)/../bsg-llvm-project/build
+LLVM_CLANG        ?= $(LLVM_DIR)/bin/clang
+LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
+LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
+LLVM_LLC          ?= $(LLVM_DIR)/bin/llc
+RUNTIME_FNS       ?= $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_tilegroup.h
+CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
 
 ifdef LLVM_PASS
 PASS_DIR         ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
@@ -209,13 +211,15 @@ $(LLVM_DIR):
 # Emit -O0 so that loads to consecutive memory locations aren't combined
 # Opt can run optimizations in any order, so it doesn't matter
 %.bc: %.c $(LLVM_DIR) $(RUNTIME_FNS)
-	$(LLVM_CLANG) --target=riscv32 $(RISCV_GCC_OPTS) -mabi=ilp32f \
+	$(LLVM_CLANG) $(CLANG_TARGET_OPTS) $(RISCV_GCC_OPTS) \
 		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
 		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
 # do the same for C++ sources
 %.bc: %.cpp $(LLVM_DIR) $(RUNTIME_FNS)
-	$(LLVM_CLANGPP) $(RISCV_GXX_OPTS) $(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
+	$(LLVM_CLANGPP) $(CLANG_TARGET_OPTS) $(RISCV_GXX_OPTS) \
+		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
+		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
 ifdef LLVM_PASS
 PASS_OPTS = -load $(PASS_LIB) -manycore
