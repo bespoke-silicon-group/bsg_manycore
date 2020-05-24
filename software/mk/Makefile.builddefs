@@ -186,7 +186,7 @@ RISCV_GXX_OPTS += $(RISCV_GXX_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 ifdef CLANG
-LLVM_DIR         ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/llvm/llvm-install
+LLVM_DIR         ?= $(BSG_MANYCORE_DIR)/../bsg-llvm-project/build
 LLVM_CLANG       ?= $(LLVM_DIR)/bin/clang
 LLVM_CLANGPP     ?= $(LLVM_DIR)/bin/clang++
 LLVM_OPT         ?= $(LLVM_DIR)/bin/opt
@@ -209,7 +209,7 @@ $(LLVM_DIR):
 # Emit -O0 so that loads to consecutive memory locations aren't combined
 # Opt can run optimizations in any order, so it doesn't matter
 %.bc: %.c $(LLVM_DIR) $(RUNTIME_FNS)
-	$(LLVM_CLANG) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
+	$(LLVM_CLANG) $(filter-out -march=%, $(RISCV_GCC_OPTS)) --target=riscv32 $(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
 # do the same for C++ sources
 %.bc: %.cpp $(LLVM_DIR) $(RUNTIME_FNS)
@@ -222,7 +222,7 @@ endif
 	$(LLVM_OPT) $(PASS_OPTS) $(OPT_LEVEL) $< -o $@
 
 %.bc.s: %.bc.pass
-	$(LLVM_LLC) $< -o $@
+	$(LLVM_LLC) -march=riscv32 $< -o $@
 
 %.o: %.bc.s
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) -c $< -o $@
