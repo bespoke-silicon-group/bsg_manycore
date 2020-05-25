@@ -193,7 +193,7 @@ LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
 LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
 LLVM_LLC          ?= $(LLVM_DIR)/bin/llc
 CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
-ifdef LLVM_PASS
+ifdef ENABLE_LLVM_PASSES
 PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
 PASS_LIB          ?= build/manycore/libManycorePass.so
 endif
@@ -222,7 +222,7 @@ $(LLVM_DIR):
 		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0/riscv32-unknown-elf-dramfs \
 		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
-ifdef LLVM_PASS
+ifdef ENABLE_LLVM_PASSES
 PASS_OPTS = -load $(PASS_LIB) -manycore
 endif
 %.bc.pass: %.bc $(PASS_LIB)
@@ -234,7 +234,7 @@ endif
 %.o: %.bc.s
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) -c $< -o $@
 
-ifdef LLVM_PASS
+ifdef ENABLE_LLVM_PASSES
 $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
 	mkdir -p build
 	cd build && LLVM_DIR=$(LLVM_DIR) cmake3 $(PASS_DIR) -Dbsg_group_size:INTEGER=$(bsg_group_size) && make
