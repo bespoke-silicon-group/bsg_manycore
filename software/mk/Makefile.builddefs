@@ -2,6 +2,7 @@
 # Chip Architecture
 
 ARCH_OP=rv32imaf
+ABI=ilp32f
 
 
 #######################################################
@@ -186,13 +187,17 @@ RISCV_GXX_OPTS += $(RISCV_GXX_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 ifdef CLANG
-LLVM_DIR         ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/llvm/llvm-install
-LLVM_CLANG       ?= $(LLVM_DIR)/bin/clang
-LLVM_OPT         ?= $(LLVM_DIR)/bin/opt
-LLVM_LLC         ?= $(LLVM_DIR)/bin/llc
-PASS_DIR         ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
-PASS_LIB         ?= build/manycore/libManycorePass.so
-RUNTIME_FNS      ?= $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_tilegroup.h
+LLVM_DIR          ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/llvm/llvm-install
+LLVM_CLANG        ?= $(LLVM_DIR)/bin/clang
+LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
+LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
+LLVM_LLC          ?= $(LLVM_DIR)/bin/llc
+CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
+ifdef ENABLE_LLVM_PASSES
+PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
+PASS_LIB          ?= build/manycore/libManycorePass.so
+endif
+RUNTIME_FNS       ?= $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_tilegroup.h
 
 $(LLVM_DIR):
 	@echo "LLVM is not installed! Follow build instructions in the TRM and \
@@ -204,15 +209,24 @@ $(LLVM_DIR):
 
 # Emit -O0 so that loads to consecutive memory locations aren't combined
 # Opt can run optimizations in any order, so it doesn't matter
-%.bc: %.c $(PASS_LIB) $(LLVM_DIR) $(RUNTIME_FNS)
-	$(LLVM_CLANG) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
+%.bc: %.c $(LLVM_DIR) $(RUNTIME_FNS)
+	$(LLVM_CLANG) $(CLANG_TARGET_OPTS) $(RISCV_GCC_OPTS) \
+		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
+		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
 # do the same for C++ sources
-%.bc: %.cpp $(PASS_LIB) $(LLVM_DIR) $(RUNTIME_FNS)
-	$(LLVM_CLANG) $(RISCV_GXX_OPTS) $(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
+%.bc: %.cpp $(LLVM_DIR) $(RUNTIME_FNS)
+	$(LLVM_CLANGPP) $(CLANG_TARGET_OPTS) $(RISCV_GXX_OPTS) \
+		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
+		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0 \
+		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0/riscv32-unknown-elf-dramfs \
+		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
 
-%.bc.pass: %.bc
-	$(LLVM_OPT) -load $(PASS_LIB) -manycore $(OPT_LEVEL) $< -o $@
+ifdef ENABLE_LLVM_PASSES
+PASS_OPTS = -load $(PASS_LIB) -manycore
+endif
+%.bc.pass: %.bc $(PASS_LIB)
+	$(LLVM_OPT) $(PASS_OPTS) $(OPT_LEVEL) $< -o $@
 
 %.bc.s: %.bc.pass
 	$(LLVM_LLC) $< -o $@
@@ -220,10 +234,11 @@ $(LLVM_DIR):
 %.o: %.bc.s
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) -c $< -o $@
 
-
+ifdef ENABLE_LLVM_PASSES
 $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
 	mkdir -p build
 	cd build && LLVM_DIR=$(LLVM_DIR) cmake3 $(PASS_DIR) -Dbsg_group_size:INTEGER=$(bsg_group_size) && make
+endif
 
 else
 %.o: %.c

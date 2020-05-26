@@ -27,7 +27,9 @@ endif
 
 ENABLE_VCACHE=1
 
-export LLVM_DIR=/mnt/bsg/diskbits/neilryan/llvm/llvm-install
+ifdef CLANG
+  export CLANG=1
+endif
 
 ###############################################
 # VCS Unified Coverage Report Generator options
