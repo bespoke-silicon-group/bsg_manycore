@@ -2,7 +2,6 @@
  *  
  *    main.c
  *    
- *    naive k-means
  */
 
 
