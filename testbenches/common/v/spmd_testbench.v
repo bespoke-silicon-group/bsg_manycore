@@ -975,7 +975,6 @@ module spmd_testbench;
     ,.trace_en_i($root.spmd_testbench.trace_en)
   );
 
-/*
   bind vanilla_core instr_trace #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -983,7 +982,7 @@ module spmd_testbench;
     .*
     ,.trace_en_i($root.spmd_testbench.trace_en)
   );
-*/
+
   // profiler
   //
   bind vanilla_core vanilla_core_profiler #(
