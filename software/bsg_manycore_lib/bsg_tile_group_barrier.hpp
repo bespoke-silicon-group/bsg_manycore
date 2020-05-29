@@ -230,6 +230,13 @@ public:
         this->c_barrier.reset();
     }
 
+    // Reset row and column barrier objects
+    void reset() {
+        this->r_barrier.reset();
+        this->c_barrier.reset();
+    }
+
+
     //  The main sync funciton
     void sync() {
         // If barrier dimensions is 1x1, i.e. only a single tile is 
