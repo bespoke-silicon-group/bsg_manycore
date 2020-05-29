@@ -209,29 +209,29 @@ $(LLVM_DIR):
 
 # Emit -O0 so that loads to consecutive memory locations aren't combined
 # Opt can run optimizations in any order, so it doesn't matter
-%.bc: %.c $(LLVM_DIR) $(RUNTIME_FNS)
+%.ll: %.c $(LLVM_DIR) $(RUNTIME_FNS)
 	$(LLVM_CLANG) $(CLANG_TARGET_OPTS) $(RISCV_GCC_OPTS) \
 		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
-		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
+		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm -S $(INCS) $< -o $@
 
 # do the same for C++ sources
-%.bc: %.cpp $(LLVM_DIR) $(RUNTIME_FNS)
+%.ll: %.cpp $(LLVM_DIR) $(RUNTIME_FNS)
 	$(LLVM_CLANGPP) $(CLANG_TARGET_OPTS) $(RISCV_GXX_OPTS) \
 		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
 		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0 \
 		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0/riscv32-unknown-elf-dramfs \
-		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm $(INCS) $< -o $@
+		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm -S $(INCS) $< -o $@
 
 ifdef ENABLE_LLVM_PASSES
 PASS_OPTS = -load $(PASS_LIB) -manycore
 endif
-%.bc.pass: %.bc $(PASS_LIB)
-	$(LLVM_OPT) $(PASS_OPTS) $(OPT_LEVEL) $< -o $@
+%.ll.pass: %.ll $(PASS_LIB)
+	$(LLVM_OPT) $(PASS_OPTS) $(OPT_LEVEL) -S $< -o $@
 
-%.bc.s: %.bc.pass
+%.ll.s: %.ll.pass
 	$(LLVM_LLC) $< -o $@
 
-%.o: %.bc.s
+%.o: %.ll.s
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) -c $< -o $@
 
 ifdef ENABLE_LLVM_PASSES
