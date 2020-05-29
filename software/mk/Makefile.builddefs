@@ -33,7 +33,7 @@ BSG_ELF_DRAM_SIZE ?= $(shell echo \
 
 # Total addressable vcache size
 BSG_ELF_VCACHE_SIZE ?= $(shell echo \
-                         $(BSG_MACHINE_GLOBAL_X)*$(BSG_MACHINE_VCACHE_SET)*$(BSG_MACHINE_VCACHE_WAY)*$(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS)*4 \
+                         $(BSG_MACHINE_GLOBAL_X)*$(BSG_MACHINE_VCACHE_SET)*$(BSG_MACHINE_VCACHE_WAY)*$(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS)*4*2 \
                          | bc)
 
 # EVA of stack pointer
@@ -144,7 +144,7 @@ else ifeq ($(BSG_ELF_OFF_CHIP_MEM), 0)
     $(error Invalid BSG_ELF_DEFAULT_DATA_LOC = $(BSG_ELF_DEFAULT_DATA_LOC); Only LOCAL and SHARED are valid)
   endif
 
-  LINK_GEN_OPTS += --imem_size=0x00100000 # 1MB
+  LINK_GEN_OPTS += --imem_size=0x00008000 # 32KB
 else
   $(error Invalid BSG_ELF_OFF_CHIP_MEM = $(BSG_ELF_OFF_CHIP_MEM); Only 0 and 1 are valid)
 endif

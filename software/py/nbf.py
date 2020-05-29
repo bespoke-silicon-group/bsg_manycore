@@ -230,14 +230,14 @@ class NBF:
   # initialize vcache in no DRAM mode
   def init_vcache(self):
 
-    y = self.num_tiles_y
     t_shift = self.safe_clog2(self.cache_block_size)
 
     for x in range(self.num_tiles_x):
       for t in range(self.cache_way * self.cache_set):
         epa = (t << t_shift) | (1 << (self.addr_width-1))
         data = (1 << (self.data_width-1)) | (t / self.cache_set)
-        self.print_nbf(x, y, epa, data)
+        self.print_nbf(x, 0, epa, data)
+        self.print_nbf(x, self.num_tiles_y+1, epa, data)
          
  
   # init DRAM
