@@ -1354,14 +1354,14 @@ class VanillaStatsParser:
         # For calculating manycore stats, all tiles are considerd to be involved
         # For calculating tile group stats, only tiles inside the tile group are considered
         # For manycore (all tiles that participate in tag are included)
-        manycore_cycle_parallel_earliest_start = {tag: 0 for tag in tags}
-        manycore_cycle_parallel_latest_end     = {tag: 0 for tag in tags}
+        manycore_cycle_parallel_earliest_start = {tag: traces[0]["global_ctr"] for tag in tags}
+        manycore_cycle_parallel_latest_end     = {tag: traces[0]["global_ctr"] for tag in tags}
         manycore_cycle_parallel_cnt       = {tag: 0 for tag in tags}
 
         # For each tile group (only tiles in a tile group that participate in a tag are included)
-        tile_group_cycle_parallel_earliest_start = {tag: [10000000 for tg_id in range(self.max_tile_groups)] for tag in tags}
-        tile_group_cycle_parallel_latest_end     = {tag: [0 for tg_id in range(self.max_tile_groups)] for tag in tags}
-        tile_group_cycle_parallel_cnt            = {tag: [0 for tg_id in range(self.max_tile_groups)] for tag in tags}
+        tile_group_cycle_parallel_earliest_start = {tag: [traces[0]["global_ctr"] for tg_id in range(self.max_tile_groups)] for tag in tags}
+        tile_group_cycle_parallel_latest_end     = {tag: [traces[0]["global_ctr"] for tg_id in range(self.max_tile_groups)] for tag in tags}
+        tile_group_cycle_parallel_cnt            = {tag: [traces[0]["global_ctr"] for tg_id in range(self.max_tile_groups)] for tag in tags}
 
 
         tag_seen = {tag: {tile:False for tile in tiles} for tag in tags}
@@ -1390,6 +1390,7 @@ class VanillaStatsParser:
                     # if op is cycle, find the earliest start cycle in tag among tiles in a tile group for parallel cycle stats
                     if (op == "global_ctr"):
                         tile_group_cycle_parallel_earliest_start[cst.tag][cst.tg_id] = min (trace[op], tile_group_cycle_parallel_earliest_start[cst.tag][cst.tg_id])
+                        manycore_cycle_parallel_earliest_start[cst.tag] = min (trace[op], manycore_cycle_parallel_earliest_start[cst.tag])
 
 
             elif (cst.isEnd):
@@ -1404,6 +1405,7 @@ class VanillaStatsParser:
                     # if op is cycle, find the latest end cycle in tag among tiles in a tile group for parallel cycle stats
                     if (op == "global_ctr"):
                         tile_group_cycle_parallel_latest_end[cst.tag][cst.tg_id] = max (trace[op], tile_group_cycle_parallel_latest_end[cst.tag][cst.tg_id])
+                        manycore_cycle_parallel_latest_end[cst.tag] = max (trace[op], manycore_cycle_parallel_latest_end[cst.tag])
 
 
                 tile_stat[cst.tag][cur_tile] += tile_stat_end[cst.tag][cur_tile] - tile_stat_start[cst.tag][cur_tile]
@@ -1425,6 +1427,7 @@ class VanillaStatsParser:
                     # if op is cycle, find the earliest start cycle in kernel among tiles in a tile group for parallel cycle stats
                     if (op == "global_ctr"):
                         tile_group_cycle_parallel_earliest_start["kernel"][cst.tg_id] = min (trace[op], tile_group_cycle_parallel_earliest_start["kernel"][cst.tg_id])
+                        manycore_cycle_parallel_earliest_start["kernel"] = min (trace[op], manycore_cycle_parallel_earliest_start["kernel"])
 
 
             elif (cst.isKernelEnd):
@@ -1439,25 +1442,19 @@ class VanillaStatsParser:
                     # if op is cycle, find the latest end cycle in kernel among tiles in a tile group for parallel cycle stats
                     if (op == "global_ctr"):
                         tile_group_cycle_parallel_latest_end["kernel"][cst.tg_id] = max (trace[op], tile_group_cycle_parallel_latest_end["kernel"][cst.tg_id])
+                        manycore_cycle_parallel_latest_end["kernel"] = max (trace[op], manycore_cycle_parallel_latest_end["kernel"])
 
 
                 tile_stat["kernel"][cur_tile] += tile_stat_end["kernel"][cur_tile] - tile_stat_start["kernel"][cur_tile]
 
 
 
-        # Calculates the longest parallel cycle interval among all tiles that have
-        # called print_stat with a certain tag, in other words, for all tiles that
-        # run in parallel in a certain tag section, we calculate the parallel inteval
-        # between when the earliest tile starts that section, until when the latest
-        # tile finishes that section. Contrary to the manycore or tile group stats
-        # that calculate the aggregate cycle count, this structure calcualtes the 
-        # absolute cycle count it takes to execute a tagged section in parallel
+        # Generate parallel cycle count (not aggregate, but the longest parallel interval) 
+        # for the entire manycore by subtracting the earliest start cycle from the latest end cycle 
         # manycore_cycle_parallel_earliest_start: minimum start cycle among all tiles involved in a tag
-        # cycle_parallel_latest_test   : maximum end cycle among all tiles involved in a tag
-        # cycle_parlalel_interval      : manycore_cycle_parallel_latest_end - manycore_cycle_parallel_earliest_start
+        # manycore_cycle_parallel_latest_test   : maximum end cycle among all tiles involved in a tag
+        # manycore_cycle_parlalel_cnt    l      : manycore_cycle_parallel_latest_end - manycore_cycle_parallel_earliest_start
         for tag in tags:
-            manycore_cycle_parallel_earliest_start[tag] = min ([tile_stat_start[tag][tile]["global_ctr"] for tile in tiles])
-            manycore_cycle_parallel_latest_end[tag]     = max ([tile_stat_end  [tag][tile]["global_ctr"] for tile in tiles])
             manycore_cycle_parallel_cnt[tag]       = manycore_cycle_parallel_latest_end[tag] - manycore_cycle_parallel_earliest_start[tag]
 
 
