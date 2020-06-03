@@ -1,6 +1,9 @@
 /**
  *    vanilla_core.v
  *
+ *    Link to schematic:
+ *    https://docs.google.com/presentation/d/1ZeRHYhqMHJQ0mRgDTilLuWQrZF7On-Be_KNNosgeW0c/edit?usp=sharing
+ *
  */
 
 
