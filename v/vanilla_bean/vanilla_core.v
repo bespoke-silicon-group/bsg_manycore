@@ -1120,7 +1120,7 @@ module vanilla_core
     : stall_bypass_int_frs2;
 
   // stall_lr_aq
-  assign stall_lr_aq = id_r.decode.is_lr_aq_op & (reserved_r | lsu_reserve_lo); // TODO check if the reservation is being broken.
+  assign stall_lr_aq = id_r.decode.is_lr_aq_op & (reserved_r | lsu_reserve_lo) & ~break_reserve;
 
   // stall_fence
   assign stall_fence = id_r.decode.is_fence_op & (out_credits_i != max_out_credits_p);
