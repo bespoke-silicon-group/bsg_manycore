@@ -1,0 +1,23 @@
+// This kernel performs tests hardware tile group shared memory.
+
+#include "bsg_manycore.h"
+#include "bsg_set_tile_x_y.h"
+#include "bsg_tile_group_barrier.hpp"
+#include "bsg_shared_mem.hpp"
+
+using namespace bsg_manycore;
+
+bsg_barrier<bsg_tiles_X, bsg_tiles_Y> barrier;
+
+extern "C" int  __attribute__ ((noinline)) kernel_hard_shared() {
+
+
+    TileGroupSharedMem<int, 16, bsg_tiles_X, bsg_tiles_Y, 8> A;
+
+    bsg_print_hexadecimal(A._local_addr);
+    bsg_print_hexadecimal(A._addr);
+
+
+    barrier.sync();
+    return 0;
+}
