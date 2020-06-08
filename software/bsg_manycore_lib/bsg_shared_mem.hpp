@@ -14,8 +14,8 @@ namespace bsg_manycore {
      *                             ADDR         Stripe 
      *
      *   
-     *   PREFIX    -    HASH (STRIPE SIZE)    -    ADDR    -    Y    -    X    -    Stripe    -    00
-     *    <5>                  <4>            -  <12 - n>  -   <5>   -   <6>   -    <n-2>     -    <2>
+     *   PREFIX    -    HASH (STRIPE SIZE)    -    UNUSED    -    ADDR    -    Y    -    X    -    Stripe    -    00
+     *    <5>                  <4>            -   <11-x-y>   -  <12 - n>  -   <y>   -   <x>   -    <n-2>     -    <2>
      *
      * Stripe is lowest bits of offset from local dmem
      *
@@ -38,15 +38,19 @@ namespace bsg_manycore {
 
         static constexpr uint32_t WORD_ADDR_BITS = 2;                                        // Word addresable bits
         static constexpr uint32_t STRIPE_BITS = ceil(log2(STRIPE_SIZE)) + WORD_ADDR_BITS;    // Number of bits used for STRIPE 
-        static constexpr uint32_t MAX_X_BITS = 6;                                            // Destination tile's X bits
-        static constexpr uint32_t MAX_Y_BITS = 5;                                            // Destination tile's Y bits
+        static constexpr uint32_t MAX_X_BITS = 6;                                            // Maximum bits needed for X coordinate
+        static constexpr uint32_t X_CORD_BITS = ceil(log2(TG_DIM_X));                        // Destination tile's X bits
+        static constexpr uint32_t MAX_Y_BITS = 5;                                            // Maximum bits needed for X coordinate
+        static constexpr uint32_t Y_CORD_BITS = ceil(log2(TG_DIM_Y));                        // Destination tile's Y bits
+        static constexpr uint32_t UNUSED_BITS = MAX_X_BITS - X_CORD_BITS +                   // Unused bits of x/y coordinates
+                                                MAX_Y_BITS - Y_CORD_BITS;                    
         static constexpr uint32_t LOCAL_ADDR_BITS = 12 - STRIPE_BITS;                        // Local offset from Dmem[0] bits
         static constexpr uint32_t HASH_BITS = 4;                                             // Hash function bits
         static constexpr uint32_t PREFIX_BITS = 5;                                           // Tile group shared memory prefix bits
 
         static constexpr uint32_t X_SHIFT = STRIPE_BITS;                   
-        static constexpr uint32_t Y_SHIFT = X_SHIFT + MAX_X_BITS;                         
-        static constexpr uint32_t LOCAL_ADDR_SHIFT = Y_SHIFT + MAX_Y_BITS;                
+        static constexpr uint32_t Y_SHIFT = X_SHIFT + X_CORD_BITS;                         
+        static constexpr uint32_t LOCAL_ADDR_SHIFT = Y_SHIFT + Y_CORD_BITS;                
         static constexpr uint32_t HASH_SHIFT = LOCAL_ADDR_SHIFT + LOCAL_ADDR_BITS;        
         static constexpr uint32_t SHARED_PREFIX_SHIFT = HASH_SHIFT + HASH_BITS;           
 
