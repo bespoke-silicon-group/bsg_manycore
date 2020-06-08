@@ -10,8 +10,10 @@ namespace bsg_manycore {
      *
      *
      *   Offset from DMEM[0] = local address - DMEM beginning address (0x1000)
-     *                       =    <LSB>      -   <MSB>    -    00
+     *                       =    <12-n>      -   <n-2>    -    00
      *                             ADDR         Stripe 
+     *
+     *   n = log2(Stripe Size)
      *
      *   
      *   PREFIX    -    HASH (STRIPE SIZE)    -    UNUSED    -    ADDR    -    Y    -    X    -    Stripe    -    00
