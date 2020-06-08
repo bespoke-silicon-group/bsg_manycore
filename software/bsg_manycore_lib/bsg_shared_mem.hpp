@@ -37,24 +37,22 @@ namespace bsg_manycore {
         static constexpr std::size_t STRIPES = SIZE/STRIPE_SIZE + SIZE%STRIPE_SIZE;
         static constexpr std::size_t STRIPES_PER_TILE = (STRIPES/TILES) + (STRIPES%TILES == 0 ? 0 : 1);
         static constexpr std::size_t ELEMENTS_PER_TILE = STRIPES_PER_TILE * STRIPE_SIZE;
+        static constexpr std::size_t HASH = STRIPE_SIZE;
+
+        static constexpr uint32_t DMEM_START_ADDR = 0x1000;                                  // Beginning of DMEM
+
+        static constexpr uint32_t SHARED_PREFIX = 0x1;                                       // Tile group shared EVA prefix
+
+        static constexpr uint32_t WORD_ADDR_BITS = 2;                                        // Word addresable bits
+        static constexpr uint32_t STRIPE_BITS = ceil(log2(STRIPE_SIZE)) + WORD_ADDR_BITS;    // Number of bits used for STRIPE 
+        static constexpr uint32_t MAX_X_BITS = 6;                                            // Destination tile's X bits
+        static constexpr uint32_t MAX_Y_BITS = 5;                                            // Destination tile's Y bits
+        static constexpr uint32_t LOCAL_ADDR_BITS = 12 - STRIPE_BITS;                        // Local offset from Dmem[0] bits
+        static constexpr uint32_t HASH_BITS = 4;                                             // Hash function bits
+        static constexpr uint32_t PREFIX_BITS = 5;                                           // Tile group shared memory prefix bits
 
 
-        static constexpr uint32_t DMEM_START_ADDR = 0x1000;                               // Beginning of DMEM
-
-        static constexpr uint32_t SHARED_PREFIX = 0x1;                                    // Tile group shared EVA prefix
-
-        static constexpr uint32_t WORD_ADDR_BITS = 2;                                     // Word addresable bits
-        static constexpr uint32_t STRIPE_BITS = ceil(log2(STRIPE_SIZE));                  // Number of bits used for STRIPE 
-        static constexpr uint32_t MAX_X_BITS = 6;                                         // Destination tile's X bits
-        static constexpr uint32_t MAX_Y_BITS = 5;                                         // Destination tile's Y bits
-        static constexpr uint32_t LOCAL_ADDR_BITS = 12 - WORD_ADDR_BITS - STRIPE_BITS;    // Local offset from Dmem[0] bits
-        static constexpr uint32_t HASH_BITS = 4;                                          // Hash function bits
-        static constexpr uint32_t PREFIX_BITS = 5;                                        // Tile group shared memory prefix bits
-
-
-        static constexpr uint32_t WORD_ADDR_SHIFT = WORD_ADDR_BITS;                       
-        static constexpr uint32_t STRIPE_SHIFT = WORD_ADDR_SHIFT;                         
-        static constexpr uint32_t X_SHIFT = STRIPE_SHIFT + STRIPE_BITS;                   
+        static constexpr uint32_t X_SHIFT = STRIPE_BITS;                   
         static constexpr uint32_t Y_SHIFT = X_SHIFT + MAX_X_BITS;                         
         static constexpr uint32_t LOCAL_ADDR_SHIFT = Y_SHIFT + MAX_Y_BITS;                
         static constexpr uint32_t HASH_SHIFT = LOCAL_ADDR_SHIFT + LOCAL_ADDR_BITS;        
@@ -70,12 +68,12 @@ namespace bsg_manycore {
         // TODO: return error if address is larger than 12 bits
 
         TileGroupSharedMem() {
-            _local_addr = reinterpret_cast<TYPE> (_data);
-            TYPE _local_offset = _local_addr - DMEM_START_ADDR;
-            TYPE _local_byte_offset = _local_offset >> WORD_ADDR_SHIFT;
-            _addr = ( ((_local_byte_offset & STRIPE_MASK) << WORD_ADDR_SHIFT)                            |
-                      (((_local_byte_offset >> STRIPE_BITS) & LOCAL_ADDR_MASK) << LOCAL_ADDR_SHIFT)      |
-                      (STRIPE_SIZE << HASH_SHIFT)                                                        |
+            _local_addr = reinterpret_cast<TYPE> (_data);                  // Local address of array
+            TYPE _local_offset = _local_addr - DMEM_START_ADDR;            // Offset from DMEM[0]
+
+            _addr = ( ((_local_offset & STRIPE_MASK))                                             |
+                      (((_local_offset >> STRIPE_BITS) & LOCAL_ADDR_MASK) << LOCAL_ADDR_SHIFT)    |
+                      (HASH << HASH_SHIFT)                                                             |
                       (SHARED_PREFIX << SHARED_PREFIX_SHIFT) );
         };
 
