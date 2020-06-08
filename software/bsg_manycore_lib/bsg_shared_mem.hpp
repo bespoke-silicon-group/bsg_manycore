@@ -77,15 +77,15 @@ namespace bsg_manycore {
                       (SHARED_PREFIX << SHARED_PREFIX_SHIFT) );
         };
 
-//        std::size_t size() const { return SIZE; }
-//        std::size_t stripe_size() const { return STRIPE_SIZE; }
-//
+        std::size_t size() const { return SIZE; }
+        std::size_t stripe_size() const { return STRIPE_SIZE; }
+
 //        TYPE operator[](std::size_t i) const {
-//            return *_address(i);
+//            return *_addr(i);
 //        }
 //
 //        TYPE & operator[](std::size_t i) {
-//            return *_address(i);
+//            return *_addr(i);
 //        }
 //
 //        TYPE at_local(std::size_t i) const {
