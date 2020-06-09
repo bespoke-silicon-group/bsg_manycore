@@ -201,6 +201,13 @@ typedef struct packed {
 } fflags_s;
 
 
+// FPU FCSR
+typedef struct packed {
+  frm_e frm;
+  fflags_s fflag;
+} fcsr_s;
+
+
 // Instruction decode stage signals
 typedef struct packed
 {
@@ -224,7 +231,7 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] mem_addr_op2;      // the second operands to compute
                                                           // memory address
     logic                              icache_miss;
-    logic [7:0] fcsr_data;
+    fcsr_s fcsr_data;
 } exe_signals_s;
 
 

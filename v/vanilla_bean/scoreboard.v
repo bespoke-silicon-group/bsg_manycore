@@ -11,7 +11,7 @@ module scoreboard
   #(parameter els_p = RV32_reg_els_gp
     , parameter num_src_port_p="inv"
     , parameter num_clear_port_p=1
-    , parameter is_float_p = 0
+    , parameter x0_tied_to_zero_p = 0
     , parameter id_width_lp = `BSG_SAFE_CLOG2(els_p)
   )
   (
@@ -77,7 +77,7 @@ module scoreboard
   end
   // synopsys translate_on
 
-  wire allow_zero = (is_float_p != 0) | (score_id_i != '0);
+  wire allow_zero = (x0_tied_to_zero_p == 0) | (score_id_i != '0);
 
   logic [els_p-1:0] score_bits;
   bsg_decode_with_v #(

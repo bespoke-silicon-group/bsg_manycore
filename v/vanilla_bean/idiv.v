@@ -35,19 +35,19 @@ module idiv
   wire signed_div_li = (op_i == eREM) | (op_i == eDIV);
  
   bsg_idiv_iterative idiv0 (
-	  .clk_i(clk_i)
-	  ,.reset_i(reset_i)
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
 
-	  ,.v_i(v_i)
+    ,.v_i(v_i)
     ,.ready_o(ready_o)
 
     ,.dividend_i(rs1_i)
-	  ,.divisor_i(rs2_i)
-	  ,.signed_div_i(signed_div_li)
+    ,.divisor_i(rs2_i)
+    ,.signed_div_i(signed_div_li)
 
-	  ,.v_o(v_o)
-	  ,.quotient_o(quotient_lo)
-	  ,.remainder_o(remainder_lo)
+    ,.v_o(v_o)
+    ,.quotient_o(quotient_lo)
+    ,.remainder_o(remainder_lo)
     ,.yumi_i(yumi_i)
   );
 

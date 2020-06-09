@@ -6,8 +6,8 @@
 
 module fcsr
   import bsg_vanilla_pkg::*;
-  #(parameter fflags_width_p=$bits(fflags_s)
-    , parameter frm_width_p=$bits(frm_e)
+  #(parameter fflags_width_lp=$bits(fflags_s)
+    , parameter frm_width_lp=$bits(frm_e)
     , parameter reg_addr_width_lp=RV32_reg_addr_width_gp
   )
   (
@@ -18,19 +18,19 @@ module fcsr
     , input v_i
     , input [2:0] funct3_i
     , input [reg_addr_width_lp-1:0] rs1_i
-    , input [7:0] data_i
+    , input fcsr_s data_i
     , input [11:0] addr_i
-    , output logic [7:0] data_o // data that goes to rd.
+    , output fcsr_s data_o // data that goes to rd.
   
     // exception accrue interface
     , input [1:0] fflags_v_i
-    , input [1:0][fflags_width_p-1:0] fflags_i
+    , input [1:0][fflags_width_lp-1:0] fflags_i
     
     , output frm_e frm_o // for dynamic rounding mode
   );
 
-  logic [frm_width_p-1:0] frm_r;
-  logic [fflags_width_p-1:0] fflags_r;
+  logic [frm_width_lp-1:0] frm_r;
+  logic [fflags_width_lp-1:0] fflags_r;
 
   logic [7:0] write_mask;
   logic [7:0] write_data;
@@ -74,10 +74,10 @@ module fcsr
     end
   end
 
-  logic [frm_width_p-1:0] frm_write_mask;
-  logic [frm_width_p-1:0] frm_write_data;
-  logic [fflags_width_p-1:0] fflags_write_mask;
-  logic [fflags_width_p-1:0] fflags_write_data;
+  logic [frm_width_lp-1:0] frm_write_mask;
+  logic [frm_width_lp-1:0] frm_write_data;
+  logic [fflags_width_lp-1:0] fflags_write_mask;
+  logic [fflags_width_lp-1:0] fflags_write_data;
 
 
   // FRM
@@ -85,13 +85,13 @@ module fcsr
     case (addr_i)
       // frm
       `RV32_CSR_FRM_ADDR: begin
-        frm_write_mask = write_mask[0+:frm_width_p];
-        frm_write_data = write_data[0+:frm_width_p];
+        frm_write_mask = write_mask[0+:frm_width_lp];
+        frm_write_data = write_data[0+:frm_width_lp];
       end
       // fcsr
       `RV32_CSR_FCSR_ADDR: begin
-        frm_write_mask = write_mask[fflags_width_p+:frm_width_p];
-        frm_write_data = write_data[fflags_width_p+:frm_width_p];
+        frm_write_mask = write_mask[fflags_width_lp+:frm_width_lp];
+        frm_write_data = write_data[fflags_width_lp+:frm_width_lp];
       end
       default: begin
         frm_write_mask = '0;
@@ -102,25 +102,25 @@ module fcsr
 
 
   // FFLAGS accrue logic
-  logic [1:0][fflags_width_p-1:0] filtered_fflags;
+  logic [1:0][fflags_width_lp-1:0] filtered_fflags;
   always_comb begin
     for (integer i = 0; i < 2; i++) begin
-      filtered_fflags[i] = {fflags_width_p{fflags_v_i[i]}} & fflags_i[i];
+      filtered_fflags[i] = {fflags_width_lp{fflags_v_i[i]}} & fflags_i[i];
     end
   end
 
-  logic [fflags_width_p-1:0][1:0] fflags_t;
+  logic [fflags_width_lp-1:0][1:0] fflags_t;
   bsg_transpose #(
-    .width_p(fflags_width_p)
+    .width_p(fflags_width_lp)
     ,.els_p(2)
   ) trans0 (
     .i(filtered_fflags)
     ,.o(fflags_t)
   );
 
-  logic [fflags_width_p-1:0] combined_fflags;
+  logic [fflags_width_lp-1:0] combined_fflags;
   always_comb begin
-    for (integer i = 0; i < fflags_width_p; i++) begin
+    for (integer i = 0; i < fflags_width_lp; i++) begin
       combined_fflags[i] = |fflags_t[i];
     end
   end
@@ -133,8 +133,8 @@ module fcsr
         // fflags, fcsr
         `RV32_CSR_FFLAGS_ADDR,
         `RV32_CSR_FCSR_ADDR: begin
-          fflags_write_mask = write_mask[0+:fflags_width_p];
-          fflags_write_data = write_data[0+:fflags_width_p];
+          fflags_write_mask = write_mask[0+:fflags_width_lp];
+          fflags_write_data = write_data[0+:fflags_width_lp];
         end
         default: begin
           fflags_write_mask = '0;
@@ -155,11 +155,11 @@ module fcsr
       fflags_r <= '0;
     end
     else begin
-      for (integer i = 0; i < frm_width_p; i++) begin
+      for (integer i = 0; i < frm_width_lp; i++) begin
         if (frm_write_mask[i])
           frm_r[i] <= frm_write_data[i];
       end
-      for (integer i = 0; i < fflags_width_p; i++) begin
+      for (integer i = 0; i < fflags_width_lp; i++) begin
         if (fflags_write_mask[i])
           fflags_r[i] <= fflags_write_data[i];
       end

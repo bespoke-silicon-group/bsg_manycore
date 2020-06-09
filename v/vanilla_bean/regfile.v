@@ -12,7 +12,7 @@ module regfile
   #(parameter width_p = "inv"
     , parameter els_p = "inv"
     , parameter num_rs_p ="inv" // number of read ports. only supports 2 and 3.
-    , parameter is_float_p = 0 // if it's FP regfile, then x0 is not tied to zero.
+    , parameter x0_tied_to_zero_p=0
     , localparam addr_width_lp = `BSG_SAFE_CLOG2(els_p)
   )
   ( 
@@ -28,6 +28,14 @@ module regfile
     , output logic [num_rs_p-1:0][width_p-1:0] r_data_o
   );
 
+  // synopsys translate_off
+  initial begin
+    assert(num_rs_p == 2 || num_rs_p == 3)
+      else $error("num_rs_p can be either 2 or 3 only.");
+  end
+  // synopsys translate_on
+
+
   // if we are reading and writing to the same register, we want to read the
   // value being written and prevent reading from rf_mem..
   // if we are reading or writing x0, then we don't want to do anything.
@@ -41,16 +49,16 @@ module regfile
     assign rw_same_addr[i] = w_v_i & r_v_i[i] & (w_addr_i == r_addr_i[i]);
     assign r_v_li[i] = rw_same_addr[i]
       ? 1'b0
-      : r_v_i[i] & ((is_float_p == 1) | r_addr_i[i] != '0);
+      : r_v_i[i] & ((x0_tied_to_zero_p == 0) | r_addr_i[i] != '0);
   end
 
-  assign w_v_li = w_v_i & ((is_float_p == 1) | w_addr_i != '0);
+  assign w_v_li = w_v_i & ((x0_tied_to_zero_p == 0) | w_addr_i != '0);
 
   if (num_rs_p == 2) begin: rf2
     bsg_mem_2r1w_sync #(
       .width_p(width_p)
       ,.els_p(els_p)
-      ,.read_write_same_addr_p(1'b1)
+      //,.read_write_same_addr_p(1'b1)
     ) rf_mem2 (
       .clk_i(clk_i)
       ,.reset_i(reset_i)
@@ -72,7 +80,7 @@ module regfile
     bsg_mem_3r1w_sync #(
       .width_p(width_p)
       ,.els_p(els_p)
-      ,.read_write_same_addr_p(1'b1)
+      //,.read_write_same_addr_p(1'b1)
     ) rf_mem3 (
       .clk_i(clk_i)
       ,.reset_i(reset_i)
@@ -122,7 +130,7 @@ module regfile
       ? w_data_i
       : (r_v_r[i] ? r_safe_data[i] : r_data_r[i]);
 
-    assign r_data_o[i] = ((r_addr_r[i] == '0) & (is_float_p == 0))
+    assign r_data_o[i] = ((r_addr_r[i] == '0) & (x0_tied_to_zero_p == 1))
       ? '0
       : (r_v_r[i] ? r_safe_data[i] : r_data_r[i]);
   end

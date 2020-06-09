@@ -185,7 +185,7 @@ module vanilla_core
     .width_p(data_width_p)
     ,.els_p(RV32_reg_els_gp)
     ,.num_rs_p(2)
-    ,.is_float_p(0)
+    ,.x0_tied_to_zero_p(1)
   ) int_rf (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -212,7 +212,7 @@ module vanilla_core
     .els_p(RV32_reg_els_gp)
     ,.num_src_port_p(2)
     ,.num_clear_port_p(1)
-    ,.is_float_p(0)
+    ,.x0_tied_to_zero_p(1)
   ) int_sb (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -246,7 +246,7 @@ module vanilla_core
     .width_p(fpu_recoded_data_width_gp)
     ,.els_p(RV32_reg_els_gp)
     ,.num_rs_p(3)
-    ,.is_float_p(1)
+    ,.x0_tied_to_zero_p(0)
   ) float_rf (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -271,7 +271,7 @@ module vanilla_core
 
   scoreboard #(
     .els_p(RV32_reg_els_gp)
-    ,.is_float_p(1)
+    ,.x0_tied_to_zero_p(0)
     ,.num_src_port_p(3)
     ,.num_clear_port_p(1)
   ) float_sb (
@@ -298,9 +298,9 @@ module vanilla_core
   logic fcsr_v_li;
   logic [2:0] fcsr_funct3_li;
   logic [reg_addr_width_lp-1:0] fcsr_rs1_li;
-  logic [7:0] fcsr_data_li;
+  fcsr_s fcsr_data_li;
   logic [11:0] fcsr_addr_li;
-  logic [7:0] fcsr_data_lo;
+  fcsr_s fcsr_data_lo;
   logic [1:0] fcsr_fflags_v_li;
   fflags_s [1:0] fcsr_fflags_li;
   frm_e frm_r;
