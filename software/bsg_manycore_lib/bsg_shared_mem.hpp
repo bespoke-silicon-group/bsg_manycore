@@ -55,7 +55,7 @@ namespace bsg_manycore {
 
         TileGroupSharedMem() {
             _local_addr = reinterpret_cast<uint32_t> (_data);              // Local address of array
-            uint32_t _local_offset = _local_addr - DMEM_START_ADDR;            // Offset from DMEM[0]
+            uint32_t _local_offset = _local_addr - DMEM_START_ADDR;        // Offset from DMEM[0]
 
             uint32_t _address = ( (_local_offset << (X_BITS + Y_BITS)) |
                               (HASH << HASH_SHIFT)                 |
@@ -68,24 +68,24 @@ namespace bsg_manycore {
         std::size_t size() const { return SIZE; }
         std::size_t stripe_size() const { return STRIPE_SIZE; }
 
-        TYPE* operator[](std::size_t i) const {
-            return &(_addr[i]);
-        }
-
-        TYPE* operator[](std::size_t i) {
-            return &(_addr[i]);
-        }
+//        TYPE* operator[](std::size_t i) const {
+//            return &(_addr[i]);
+//        }
+//
+//        TYPE* operator[](std::size_t i) {
+//            return &(_addr[i]);
+//        }
 
 
         // Correct code
         // To replace the above code when hardware is added
-//        TYPE operator[](std::size_t i) const {
-//            return _addr[i];
-//        }
-//
-//        TYPE operator[](std::size_t i) {
-//            return _addr[i];
-//        }
+        TYPE operator[](std::size_t i) const {
+            return _addr[i];
+        }
+
+        TYPE & operator[](std::size_t i) {
+            return _addr[i];
+        }
 
        
 //        constexpr bool is_powerof2(int v) {
