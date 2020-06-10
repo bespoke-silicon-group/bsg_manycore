@@ -59,7 +59,7 @@ module bsg_manycore_eva_to_npa
   localparam y_tg_dim_lp = 4;                                      // tile group y dimension
   localparam x_cord_width_lp = `BSG_SAFE_CLOG2(x_tg_dim_lp);       // width of x cord bits in shared address
   localparam y_cord_width_lp = `BSG_SAFE_CLOG2(y_tg_dim_lp);       // width of x cord bits in shared address
-  localparam stripe_length_lp = 1;                                 // stripe length in words
+  localparam stripe_length_lp = 8;                                 // stripe length in words
   localparam stripe_width_lp = `BSG_SAFE_CLOG2(stripe_length_lp);  // width of stripe bits in shared address
   localparam dmem_start_addr_lp = 16'h1000;                        // Address of DMEM[0] 
 
@@ -159,9 +159,12 @@ module bsg_manycore_eva_to_npa
     else if (is_shared_addr) begin
       y_cord_o = y_cord_width_p'(shared_addr.y_cord + tgo_y_i);
       x_cord_o = x_cord_width_p'(shared_addr.x_cord + tgo_x_i);
-      epa_o = {{(addr_width_p-epa_word_addr_width_gp){1'b0}},
-               {(epa_word_addr_width_gp-stripe_width_lp){shared_addr.addr + dmem_start_addr_lp}}, 
-               {stripe_width_lp'(shared_addr.stripe)}};
+      epa_o = { {(addr_width_p-epa_word_addr_width_gp){1'b0}} ,
+                {{shared_addr.addr, shared_addr.stripe} + dmem_start_addr_lp} };
+
+      // $display("Address: 0x%x", shared_addr);
+      // $display("PRE: 0x%h\tHash: 0x%h\tUnused: 0x%h\tAddr: 0x%h\tY: 0x%h\tX: 0x%h\tStripe: 0x%h", shared_addr.remote, shared_addr.hash, shared_addr.unused, shared_addr.addr, shared_addr.y_cord, shared_addr.x_cord, shared_addr.stripe);
+      // $display("x_cord_o: %d\ty_cord_o: %d\tepa_o: 0x%h", x_cord_o, y_cord_o, epa_o);
     end
     else begin
       // should never happen
