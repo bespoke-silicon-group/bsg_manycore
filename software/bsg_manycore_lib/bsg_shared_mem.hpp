@@ -22,7 +22,6 @@ namespace bsg_manycore {
      * Stripe is lowest bits of offset from local dmem
      *
      *
-     * TODO: type of addresses should be int or uint32_t not TYPE
      * TODO: return error if address is larger than 12 bits
      * TODO: return error if index is larger than array size
      * TODO: Assert tile group dimensions are power of two
@@ -55,10 +54,10 @@ namespace bsg_manycore {
 
 
         TileGroupSharedMem() {
-            _local_addr = reinterpret_cast<TYPE> (_data);                  // Local address of array
-            TYPE _local_offset = _local_addr - DMEM_START_ADDR;            // Offset from DMEM[0]
+            _local_addr = reinterpret_cast<uint32_t> (_data);              // Local address of array
+            uint32_t _local_offset = _local_addr - DMEM_START_ADDR;            // Offset from DMEM[0]
 
-            TYPE _address = ( (_local_offset << (X_BITS + Y_BITS)) |
+            uint32_t _address = ( (_local_offset << (X_BITS + Y_BITS)) |
                               (HASH << HASH_SHIFT)                 |
                               (SHARED_PREFIX << SHARED_PREFIX_SHIFT) );
 
@@ -96,7 +95,7 @@ namespace bsg_manycore {
 //    private:
         // Local address should be aligned by a factor of data type times stripe size
         TYPE _data [ELEMENTS_PER_TILE] __attribute__ ((aligned (1 << ALIGNMENT)));
-        TYPE _local_addr;
+        uint32_t _local_addr;
         TYPE *_addr;
     };
 }
