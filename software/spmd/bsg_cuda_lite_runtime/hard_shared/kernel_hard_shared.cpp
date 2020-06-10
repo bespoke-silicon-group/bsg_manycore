@@ -12,7 +12,7 @@ bsg_barrier<bsg_tiles_X, bsg_tiles_Y> barrier;
 extern "C" int  __attribute__ ((noinline)) kernel_hard_shared() {
 
 
-    TileGroupSharedMem<int, 16, bsg_tiles_X, bsg_tiles_Y, 8> A;
+    TileGroupSharedMem<int, 64, bsg_tiles_X, bsg_tiles_Y, 1> A;
 
     bsg_print_hexadecimal(A._local_addr);
     bsg_print_hexadecimal(reinterpret_cast<int> (A._addr));
