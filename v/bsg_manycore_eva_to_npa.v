@@ -54,11 +54,20 @@ module bsg_manycore_eva_to_npa
   localparam lg_vcache_size_lp = `BSG_SAFE_CLOG2(vcache_size_p);
 
 
+  // TODO borna: Use input signals instead of local params below
+  localparam x_tg_dim_lp = 4;                                      // tile group x dimension
+  localparam y_tg_dim_lp = 4;                                      // tile group y dimension
+  localparam x_cord_width_lp = `BSG_SAFE_CLOG2(x_tg_dim_lp);       // width of x cord bits in shared address
+  localparam y_cord_width_lp = `BSG_SAFE_CLOG2(y_tg_dim_lp);       // width of x cord bits in shared address
+  localparam stripe_length_lp = 1;                                 // stripe length in words
+  localparam stripe_width_lp = `BSG_SAFE_CLOG2(stripe_length_lp);  // width of stripe bits in shared address
+  localparam dmem_start_addr_lp = 16'h1000;                        // Address of DMEM[0] 
+
+
   // figure out what type of EVA this is.
   `declare_bsg_manycore_global_addr_s;
   `declare_bsg_manycore_tile_group_addr_s;
-  // TODO borna: Get x/y_cord_width_p and stripe_width_p parameters
-  `declare_bsg_manycore_shared_addr_s(2,2,0);
+  `declare_bsg_manycore_shared_addr_s(x_cord_width_lp,y_cord_width_lp,stripe_width_lp);
 
   bsg_manycore_global_addr_s global_addr;
   bsg_manycore_tile_group_addr_s tile_group_addr;
@@ -146,6 +155,13 @@ module bsg_manycore_eva_to_npa
       y_cord_o = y_cord_width_p'(tile_group_addr.y_cord + tgo_y_i);
       x_cord_o = x_cord_width_p'(tile_group_addr.x_cord + tgo_x_i);
       epa_o = {{(addr_width_p-epa_word_addr_width_gp){1'b0}}, tile_group_addr.addr};
+    end
+    else if (is_shared_addr) begin
+      y_cord_o = y_cord_width_p'(shared_addr.y_cord + tgo_y_i);
+      x_cord_o = x_cord_width_p'(shared_addr.x_cord + tgo_x_i);
+      epa_o = {{(addr_width_p-epa_word_addr_width_gp){1'b0}},
+               {(epa_word_addr_width_gp-stripe_width_lp){shared_addr.addr + dmem_start_addr_lp}}, 
+               {stripe_width_lp'(shared_addr.stripe)}};
     end
     else begin
       // should never happen
