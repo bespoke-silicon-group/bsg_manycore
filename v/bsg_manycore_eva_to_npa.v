@@ -8,6 +8,7 @@
  *      1) DRAM
  *      2) Global
  *      3) Tile-Group
+ *      4) Tile-Group-Shared Memory
  *
  */
 
@@ -56,18 +57,23 @@ module bsg_manycore_eva_to_npa
   // figure out what type of EVA this is.
   `declare_bsg_manycore_global_addr_s;
   `declare_bsg_manycore_tile_group_addr_s;
+  // TODO borna: Get x/y_cord_width_p and stripe_width_p parameters
+  `declare_bsg_manycore_shared_addr_s(2,2,0);
 
   bsg_manycore_global_addr_s global_addr;
   bsg_manycore_tile_group_addr_s tile_group_addr;
+  bsg_manycore_shared_addr_s shared_addr;
 
   assign global_addr = eva_i;
   assign tile_group_addr = eva_i;
+  assign shared_addr = eva_i;
 
   wire is_dram_addr = eva_i[31];
   wire is_global_addr = global_addr.remote == 2'b01;
   wire is_tile_group_addr = tile_group_addr.remote == 3'b001;
+  wire is_shared_addr = shared_addr.remote == 5'b00001;
 
-  assign is_invalid_addr_o = ~(is_dram_addr | is_global_addr | is_tile_group_addr);
+  assign is_invalid_addr_o = ~(is_dram_addr | is_global_addr | is_tile_group_addr | is_shared_addr);
 
   
   // DRAM hash function
