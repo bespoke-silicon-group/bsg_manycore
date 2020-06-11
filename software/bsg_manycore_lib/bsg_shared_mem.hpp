@@ -7,23 +7,17 @@ extern "C" {
 
 namespace bsg_manycore {
     /**
-     *
-     *
-     *   Offset from DMEM[0] = local address - DMEM beginning address (0x1000)
-     *                       =    <12-n>      -   <n-2>    -    00
+     * Offset from DMEM[0] = local address - DMEM beginning address (0x1000)
+     *                       =    <12-s>      -   <s-2>    -    00
      *                             ADDR         Stripe 
+     * s = log2(Stripe Length)
      *
-     *   n = log2(Stripe Size)
-     *
-     *   
-     *   PREFIX    -    HASH (STRIPE SIZE)    -    UNUSED    -    ADDR    -    Y    -    X    -    Stripe    -    00
-     *    <5>                  <4>            -   <11-x-y>   -  <12 - n>  -   <y>   -   <x>   -    <n-2>     -    <2>
-     *
+     * PREFIX    -    HASH (STRIPE SIZE)    -    UNUSED    -    ADDR    -    Y    -    X    -    Stripe    -    00
+     *  <5>                  <4>            -   <11-x-y>   -  <12 - s>  -   <y>   -   <x>   -    <s-2>     -    <2>
      * Stripe is lowest bits of offset from local dmem
      *
-     *
-     * TODO: return error if address is larger than 12 bits
-     * TODO: return error if index is larger than array size
+     * TODO: Assert local offset fits in 12 bits
+     * TODO: Asser index < array size
      * TODO: Assert tile group dimensions are power of two
      */
     template <typename TYPE, std::size_t SIZE, std::size_t TG_DIM_X, std::size_t TG_DIM_Y, std::size_t STRIPE_SIZE=1>
@@ -54,12 +48,11 @@ namespace bsg_manycore {
 
 
         TileGroupSharedMem() {
-            _local_addr = reinterpret_cast<uint32_t> (_data);              // Local address of array
-            uint32_t _local_offset = _local_addr - DMEM_START_ADDR;        // Offset from DMEM[0]
+            uint32_t local_offset = this->local_addr() - DMEM_START_ADDR; // Local address of array
 
-            uint32_t _address = ( (_local_offset << (X_BITS + Y_BITS)) |
-                              (HASH << HASH_SHIFT)                 |
-                              (SHARED_PREFIX << SHARED_PREFIX_SHIFT) );
+            uint32_t _address = ( (local_offset << (X_BITS + Y_BITS))  |
+                                  (HASH << HASH_SHIFT)                 |
+                                  (SHARED_PREFIX << SHARED_PREFIX_SHIFT) );
 
             _addr = reinterpret_cast<TYPE*> (_address);
         };
@@ -68,17 +61,6 @@ namespace bsg_manycore {
         std::size_t size() const { return SIZE; }
         std::size_t stripe_size() const { return STRIPE_SIZE; }
 
-//        TYPE* operator[](std::size_t i) const {
-//            return &(_addr[i]);
-//        }
-//
-//        TYPE* operator[](std::size_t i) {
-//            return &(_addr[i]);
-//        }
-
-
-        // Correct code
-        // To replace the above code when hardware is added
         TYPE operator[](std::size_t i) const {
             return _addr[i];
         }
@@ -87,15 +69,21 @@ namespace bsg_manycore {
             return _addr[i];
         }
 
+        uint32_t local_addr() {
+            return reinterpret_cast<uint32_t> (_data);
+        } 
        
+    private:
+        // Local address should be aligned by a factor of data type times stripe size
+        TYPE _data [ELEMENTS_PER_TILE] __attribute__ ((aligned (1 << ALIGNMENT)));
+        TYPE *_addr;
+    };
+}
+
+
+
 //        constexpr bool is_powerof2(int v) {
 //            return v && ((v & (v - 1)) == 0);
 //        }
 
-//    private:
-        // Local address should be aligned by a factor of data type times stripe size
-        TYPE _data [ELEMENTS_PER_TILE] __attribute__ ((aligned (1 << ALIGNMENT)));
-        uint32_t _local_addr;
-        TYPE *_addr;
-    };
-}
+
