@@ -161,10 +161,6 @@ module bsg_manycore_eva_to_npa
       x_cord_o = x_cord_width_p'(shared_addr.x_cord + tgo_x_i);
       epa_o = { {(addr_width_p-epa_word_addr_width_gp){1'b0}} ,
                 {{shared_addr.addr, shared_addr.stripe} + dmem_start_addr_lp} };
-
-       //$display("Address: 0x%x", shared_addr);
-       //$display("PRE: 0x%h\tHash: 0x%h\tUnused: 0x%h\tAddr: 0x%h\tY: 0x%h\tX: 0x%h\tStripe: 0x%h", shared_addr.remote, shared_addr.hash, shared_addr.unused, shared_addr.addr, shared_addr.y_cord, shared_addr.x_cord, shared_addr.stripe);
-       //$display("x_cord_o: %d\ty_cord_o: %d\tepa_o: 0x%h", x_cord_o, y_cord_o, epa_o);
     end
     else begin
       // should never happen
