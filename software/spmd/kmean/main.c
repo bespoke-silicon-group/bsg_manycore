@@ -155,6 +155,9 @@ void reassign()
 
 int main()
 {
+  bsg_set_tile_x_y();
+
+  bsg_cuda_print_stat_start(0);
   for (int i = 0; i < NPOINT; i++)
   {
     cluster[i] = i % 3;
@@ -166,15 +169,16 @@ int main()
     calculate_mean();
     reassign();
 
-    bsg_printf("Iteration = %d\n", iter);
+    //bsg_printf("Iteration = %d\n", iter);
     for (int i = 0; i < NCLUSTER; i++)
     {
-      bsg_printf("cluster %d = %x,%x\n", i, hex(mean_x[i]), hex(mean_y[i]));
+      //bsg_printf("cluster %d = %x,%x\n", i, hex(mean_x[i]), hex(mean_y[i]));
       //bsg_print_float(mean_x[i]);
       //bsg_print_float(mean_y[i]);
     }
     iter++;
   }
+  bsg_cuda_print_stat_end(0);
 
   // expected answer
   // cluster 0 = (3f7e843b, 3ffe8a61)
