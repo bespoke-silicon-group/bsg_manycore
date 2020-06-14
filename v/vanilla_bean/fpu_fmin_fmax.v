@@ -21,7 +21,7 @@ module fpu_fmin_fmax
     input [recoded_data_width_lp-1:0] fp_rs1_i
     , input [recoded_data_width_lp-1:0] fp_rs2_i
 
-    , input fmin_i // 1=FMIN, 0=FMAX
+    , input fmin_not_fmax_i // 1=FMIN, 0=FMAX
 
     , output logic invalid_o  // invalid exception
     , output logic [recoded_data_width_lp-1:0] result_o 
@@ -59,7 +59,7 @@ module fpu_fmin_fmax
 
   always_comb begin
     if (rs1_is_nan & rs2_is_nan) begin
-      result_o = 33'h0e0400000; // recoded canonical NaN
+      result_o = `FPU_RECODED_CANONICAL_NAN;
     end
     else if (rs1_is_nan & ~rs2_is_nan) begin
       result_o = fp_rs2_i;
@@ -74,7 +74,7 @@ module fpu_fmin_fmax
       //   0        1         0         rs2
       //   1        0         1         rs2
       //   1        1         0         rs1
-      result_o = (fmin_i ^ rs1_sign)
+      result_o = (fmin_not_fmax_i ^ rs1_sign)
         ? fp_rs2_i
         : fp_rs1_i;
     end
@@ -85,7 +85,7 @@ module fpu_fmin_fmax
       //  0      1      b
       //  1      0      b
       //  1      1      a
-      result_o = (cmp_lt_lo ^ fmin_i)
+      result_o = (cmp_lt_lo ^ fmin_not_fmax_i)
         ? fp_rs2_i
         : fp_rs1_i;
     end

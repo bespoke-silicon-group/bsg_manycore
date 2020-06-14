@@ -56,7 +56,7 @@ module fpu_float_aux
   ) minmax0 (
     .fp_rs1_i(fp_rs1_i)
     ,.fp_rs2_i(fp_rs2_i)
-    ,.fmin_i(is_fmin)
+    ,.fmin_not_fmax_i(is_fmin)
     ,.invalid_o(fmin_fmax_invalid_lo)
     ,.result_o(fmin_fmax_result_lo)
   );

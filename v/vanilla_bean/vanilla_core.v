@@ -834,9 +834,17 @@ module vanilla_core
       if (make_reserve) begin
         reserved_r <= 1'b1;
         reserved_addr_r <= dmem_addr_li;
+        // synopsys translate_off
+        if (debug_p)
+          $display("[INFO][VCORE] making reservation. t=%0t, addr=%x, x=%0d, y=%0d", $time, dmem_addr_li, my_x_i, my_y_i);
+        // synopsys translate_on
       end
       else if (break_reserve) begin
         reserved_r <= 1'b0;
+        // synopsys translate_off
+        if (debug_p)
+          $display("[INFO][VCORE] breaking reservation. t=%0t, x=%0d, y=%0d.", $time, my_x_i, my_y_i);
+        // synopsys translate_on
       end
     end
   end
@@ -1601,7 +1609,8 @@ module vanilla_core
       if (fdiv_fsqrt_v_li) begin
         assert(fdiv_fsqrt_ready_lo) else $error("fdiv_fsqrt_op issued, when fdiv_fsqrt is not ready.");
       end
-
+  
+      // this counter can be only 0, 1, or 2.
       assert(remote_req_counter_r != 2'b11) else $error("remote_req_counter_r cannot be 3.");
 
       if (remote_req_v_o) begin

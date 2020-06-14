@@ -211,6 +211,7 @@ typedef struct packed {
 // FPU recoded Constants
 `define FPU_RECODED_ONE   33'h080000000
 `define FPU_RECODED_ZERO  33'h0
+`define FPU_RECODED_CANONICAL_NAN 33'h0e0400000
 
 
 // Instruction decode stage signals
