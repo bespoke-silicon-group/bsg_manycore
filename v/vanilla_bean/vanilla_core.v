@@ -1419,6 +1419,9 @@ module vanilla_core
   end
 
   // reservation logic
+  // lr creates a reservation on DMEM address.
+  // Any store to this address breaks the reservation.
+  // When the reservation is valid, lr.aq stalls until the reservation is broken. 
   assign make_reserve = lsu_reserve_lo & ~stall;
   assign break_reserve = reserved_r & (reserved_addr_r == dmem_addr_li) & dmem_v_li & dmem_w_li;
 

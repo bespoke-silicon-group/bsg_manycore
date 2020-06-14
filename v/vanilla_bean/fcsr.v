@@ -109,21 +109,7 @@ module fcsr
     end
   end
 
-  logic [fflags_width_lp-1:0][1:0] fflags_t;
-  bsg_transpose #(
-    .width_p(fflags_width_lp)
-    ,.els_p(2)
-  ) trans0 (
-    .i(filtered_fflags)
-    ,.o(fflags_t)
-  );
-
-  logic [fflags_width_lp-1:0] combined_fflags;
-  always_comb begin
-    for (integer i = 0; i < fflags_width_lp; i++) begin
-      combined_fflags[i] = |fflags_t[i];
-    end
-  end
+  wire [fflags_width_lp-1:0] combined_fflags = filtered_fflags[0] | filtered_fflags[1];
   
   // fflags cannot be modified by fcsr instruction, when there are pending float ops that could modify fflags.
   always_comb begin
