@@ -208,6 +208,11 @@ typedef struct packed {
 } fcsr_s;
 
 
+// FPU recoded Constants
+`define FPU_RECODED_ONE   33'h080000000
+`define FPU_RECODED_ZERO  33'h0
+
+
 // Instruction decode stage signals
 typedef struct packed
 {
