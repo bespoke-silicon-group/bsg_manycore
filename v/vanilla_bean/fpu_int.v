@@ -9,6 +9,8 @@
  */
 
 
+`include "HardFloat_consts.vi"
+
 module fpu_int
   import bsg_vanilla_pkg::*;
   #(parameter exp_width_p=fpu_recoded_exp_width_gp
@@ -96,7 +98,7 @@ module fpu_int
     ,.sigWidth(sig_width_p)
     ,.intWidth(data_width_p)
   ) f2i (
-    .control(1'b1)
+    .control(`flControl_default)
     ,.in(fp_rs1_i)
     ,.roundingMode(fp_rm_i)
     ,.signedOut(is_fcvt_w_s)

@@ -3,6 +3,7 @@
  *
  */
 
+`include "HardFloat_consts.vi"
 
 module fpu_float_fma_round
   import bsg_vanilla_pkg::*;
@@ -42,7 +43,7 @@ module fpu_float_fma_round
     .expWidth(exp_width_p)
     ,.sigWidth(sig_width_p)
   ) round0 (
-    .control(1'b1)
+    .control(`flControl_default)
     ,.invalidExc(invalidExc_i)
     ,.infiniteExc(1'b0)
     ,.in_isNaN(in_isNaN_i)

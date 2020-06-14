@@ -3,6 +3,7 @@
  *
  */
 
+`include "HardFloat_consts.vi"
 
 module fpu_float_aux 
   import bsg_vanilla_pkg::*;
@@ -37,7 +38,7 @@ module fpu_float_aux
     ,.expWidth(exp_width_p)
     ,.sigWidth(sig_width_p)
   ) i2f (
-    .control(1'b1)
+    .control(`flControl_default)
     ,.signedIn(is_fcvt_s_w)
     ,.in(fp_rs1_i[0+:data_width_p])
     ,.roundingMode(fp_rm_i)

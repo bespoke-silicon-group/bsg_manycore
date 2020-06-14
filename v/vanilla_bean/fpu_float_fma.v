@@ -4,6 +4,7 @@
  */
 
 
+`include "HardFloat_consts.vi"
 
 module fpu_float_fma
   import bsg_vanilla_pkg::*;
@@ -143,7 +144,7 @@ module fpu_float_fma
     .expWidth(exp_width_p)
     ,.sigWidth(sig_width_p)
   ) mulAdd0 (
-    .control(1'b1)
+    .control(`flControl_default)
     ,.op(fma_op_li)
     ,.a(fma_a_li)
     ,.b(fma_b_li)

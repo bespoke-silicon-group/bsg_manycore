@@ -5,6 +5,7 @@
  *
  */
 
+`include "HardFloat_consts.vi"
 
 module fpu_fdiv_fsqrt 
   import bsg_vanilla_pkg::*;
@@ -43,7 +44,7 @@ module fpu_fdiv_fsqrt
   ) ds0 (
     .nReset(~reset_i)
     ,.clock(clk_i)
-    ,.control(1'b1)
+    ,.control(`flControl_default)
     ,.inReady(ready_lo)
     ,.inValid(v_li)
     ,.sqrtOp(fsqrt_i)
