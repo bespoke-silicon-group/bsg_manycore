@@ -41,6 +41,8 @@ module lsu
     , input icache_miss_i
     , input [pc_width_p-1:0] pc_target_i 
 
+    // from FP_EXE
+
     // to network TX
     , output remote_req_s remote_req_o
     , output logic remote_req_v_o
@@ -115,7 +117,7 @@ module lsu
 
   assign dmem_v_o = is_local_dmem_addr &
     (exe_decode_i.is_load_op | exe_decode_i.is_store_op |
-     exe_decode_i.op_is_lr | exe_decode_i.op_is_lr_aq);
+     exe_decode_i.is_lr_op | exe_decode_i.is_lr_aq_op);
   assign dmem_w_o = exe_decode_i.is_store_op;
   assign dmem_addr_o = mem_addr[2+:dmem_addr_width_lp]; 
   assign dmem_data_o = store_data;
@@ -146,7 +148,7 @@ module lsu
     end
     else begin
       load_info = '{
-        float_wb: exe_decode_i.op_writes_fp_rf,
+        float_wb: exe_decode_i.write_frd,
         icache_fetch: 1'b0,
         is_unsigned_op: exe_decode_i.is_load_unsigned,
         is_byte_op: exe_decode_i.is_byte_op,
@@ -176,7 +178,7 @@ module lsu
 
   // reserve
   // only valid on local DMEM
-  assign reserve_o = exe_decode_i.op_is_lr & is_local_dmem_addr;
+  assign reserve_o = exe_decode_i.is_lr_op & is_local_dmem_addr;
 
 
 
@@ -188,7 +190,7 @@ module lsu
       if (exe_decode_i.is_amo_op)
         assert(~is_local_dmem_addr) else $error("[BSG_ERROR] atomic operations cannot be made on local DMEM address space.");
 
-      if (exe_decode_i.op_is_lr | exe_decode_i.op_is_lr_aq)
+      if (exe_decode_i.is_lr_op | exe_decode_i.is_lr_aq_op)
         assert(is_local_dmem_addr) else $error("[BSG_ERROR] LR operation can only be made on local DMEM address space.");
 
     end

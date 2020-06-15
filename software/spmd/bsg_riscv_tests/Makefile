@@ -7,7 +7,8 @@ endif
 RVTEST_DIR=$(BSG_MANYCORE_DIR)/imports/riscv-tests/isa
 RVTEST_PATCHES=test_macros.patch rv32uf.move.patch
 
-NO-RECURSE = fence_i amoadd_w amo amoadd_w amoand_w amomax_w amomaxu_w amomin_w amominu_w amoor_w amoxor_w amoswap_w lrsc
+NO-RECURSE = fence_i amoadd_w amo amoadd_w amoand_w amomax_w amomaxu_w amomin_w amominu_w amoor_w amoxor_w amoswap_w lrsc \
+	mulh mulhsu mulhu	
 
 # not selected rv32mi rv32si rv32ua rv32uc rv32ud rv64mi rv64si rv64ua rv64uc rv64ud rv64uf rv64ui rv64um
 export RVTEST_ISA_VARIANTS = rv32ui rv32uf rv32um
@@ -32,6 +33,9 @@ patch_riscv_tests.touchfile: $(RVTEST_PATCHES)
 
 %.dve:
 	cd $*_run; make -f ../Makefile.include dve
+
+%.dis:
+	$(MAKE) -C $*_run -f ../Makefile.include $*.dis > dis
 
 clean:
 	-rm -rf *_run

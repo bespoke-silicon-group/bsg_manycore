@@ -1,35 +1,21 @@
-/**
- *  vanilla_core_profiler.v
- *
- *  This profiler keeps track of what instructions/bubbles are in EXE and FP_EXE stage.
- *  When these instructions/bubbles moves out of EXE and FP_EXE stage, the corresponding counters are incremented.
- *  If EXE or FP_EXE stage is stalled for some reason, the corresponding stall counters are also incremented.
- *
- */
-
-
 module vanilla_core_profiler
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
   import bsg_manycore_profile_pkg::*;
   #(parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
+    , parameter data_width_p="inv"
 
     , parameter icache_tag_width_p="inv"
     , parameter icache_entries_p="inv"
+    , parameter origin_x_cord_p="inv"
+    , parameter origin_y_cord_p="inv"
+
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
 
-    , parameter data_width_p="inv"
-    , parameter dmem_size_p="inv"
-    , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
-
-    , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter reg_els_lp = RV32_reg_els_gp
-
-    // determines who prints the csv header.
-    , parameter origin_x_cord_p="inv"
-    , parameter origin_y_cord_p="inv"
+    , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
   )
   (
     input clk_i
@@ -38,53 +24,46 @@ module vanilla_core_profiler
     , input [pc_width_lp-1:0] pc_r
     , input [pc_width_lp-1:0] pc_n
 
+    , input flush
+    , input icache_miss_in_pipe
     , input stall
-    , input stall_depend
-    , input stall_fp
-    , input stall_ifetch_wait
-    , input stall_icache_store
+    , input stall_id
+    , input stall_depend_long_op
+    , input stall_depend_local_load
+    , input stall_depend_imul
+    , input stall_bypass
     , input stall_lr_aq
     , input stall_fence
-    , input stall_md
-    , input stall_force_wb
-    , input stall_remote_req
-    , input stall_local_flw
     , input stall_amo_aq
     , input stall_amo_rl
-  
-    , input stall_id
+    , input stall_fdiv_busy
+    , input stall_idiv_busy
+    , input stall_fcsr
+    , input stall_remote_req
+    , input stall_remote_credit
+
+    , input stall_remote_ld_wb
+    , input stall_ifetch_wait
+    , input stall_remote_flw_wb
+
+
     , input branch_mispredict
     , input jalr_mispredict
-    , input icache_miss_in_pipe
+    , input lsu_dmem_v_lo
+    , input lsu_remote_req_v_lo
+    , input remote_req_s remote_req_o
+
+    , input [data_width_p-1:0] rs1_val_to_exe
+    , input [data_width_p-1:0] mem_addr_op2
+
+    , input int_sb_clear
+    , input float_sb_clear
+    , input [reg_addr_width_lp-1:0] int_sb_clear_id
+    , input [reg_addr_width_lp-1:0] float_sb_clear_id
 
     , input id_signals_s id_r
     , input exe_signals_s exe_r
-    , input exe_signals_s exe_n
-    , input mem_signals_s mem_n
-    , input wb_signals_s wb_n
     , input fp_exe_signals_s fp_exe_r
-    , input fpu_float_ready_lo
-    
-    , input [data_width_p-1:0] mem_addr_op2
-    , input [data_width_p-1:0] rs1_to_exe
-
-    , input int_sb_score
-    , input [1:0] int_sb_clear
-    , input [1:0][reg_addr_width_lp-1:0] int_sb_clear_id
-
-    , input float_sb_score
-    , input float_sb_clear
-    , input [reg_addr_width_lp-1:0] float_sb_clear_id 
-
-    , input lsu_dmem_v_lo
-    , input lsu_dmem_w_lo
-  
-    , input remote_req_s remote_req_o
-    , input remote_req_v_o
-    , input remote_req_yumi_i
-
-    , input float_remote_load_resp_v_i
-    , input local_flw_valid
 
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
@@ -93,101 +72,105 @@ module vanilla_core_profiler
     , input print_stat_v_i
     , input [data_width_p-1:0] print_stat_tag_i
 
-    , input trace_en_i // from toplevel testbench
+    , input trace_en_i 
   );
-
 
   // bsg_manycore_profile_pkg for the packed print_stat_tag_i signal
   // <stat type>  -  <y cord>  -  <x cord>  -  <tile group id>  -  <tag>
   bsg_manycore_vanilla_core_stat_tag_s print_stat_tag;
   assign print_stat_tag = print_stat_tag_i;
 
-
   // task to print a line of operation trace
   task print_operation_trace(integer fd, string op);
-    $fwrite(fd, "%0d,%0d,%0d,%0h,%s", global_ctr_i, my_x_i - origin_x_cord_p, my_y_i - origin_y_cord_p, (exe_r.pc_plus4 - 'd4), op);
+    $fwrite(fd, "%0d,%0d,%0d,%0h,%s\n", global_ctr_i, my_x_i - origin_x_cord_p, my_y_i - origin_y_cord_p, (exe_r.pc_plus4 - 'd4), op);
   endtask
+
 
   // event signals
   //
   wire instr_inc = (~stall) & (exe_r.instruction != '0) & ~exe_r.icache_miss;
-  wire fp_instr_inc = fp_exe_r.valid & fpu_float_ready_lo;
+  wire fp_instr_inc = (fp_exe_r.fp_decode.is_fpu_float_op
+    | fp_exe_r.fp_decode.is_fpu_int_op
+    | fp_exe_r.fp_decode.is_fdiv_op
+    | fp_exe_r.fp_decode.is_fsqrt_op) & ~stall;
 
-  // fp_float
-  //
-  wire fadd_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fadd_op;
-  wire fsub_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsub_op;
-  wire fmul_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmul_op;
-  wire fsgnj_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsgnj_op;
-  wire fsgnjn_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsgnjn_op;
-  wire fsgnjx_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fsgnjx_op;
-  wire fmin_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmin_op;
-  wire fmax_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmax_op;
-  wire fcvt_s_w_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fcvt_s_w_op;
-  wire fcvt_s_wu_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fcvt_s_wu_op;
-  wire fmv_w_x_inc = fp_instr_inc & fp_exe_r.fp_float_decode.fmv_w_x_op; 
+  // fpu_float
+  wire fpu_float_inc = fp_exe_r.fp_decode.is_fpu_float_op & ~stall;
+  wire fadd_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFADD);
+  wire fsub_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSUB);
+  wire fmul_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMUL);
+  wire fsgnj_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSGNJ);
+  wire fsgnjn_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSGNJN);
+  wire fsgnjx_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSGNJX);
+  wire fmin_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMIN);
+  wire fmax_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMAX);
+  wire fcvt_s_w_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFCVT_S_W);
+  wire fcvt_s_wu_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFCVT_S_WU);
+  wire fmv_w_x_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMV_W_X);
+  wire fmadd_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMADD);
+  wire fmsub_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMSUB);
+  wire fnmsub_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFNMSUB);
+  wire fnmadd_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFNMADD);
+ 
+  // fpu_int
+  wire fpu_int_inc = fp_exe_r.fp_decode.is_fpu_int_op & ~stall;
+  wire feq_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFEQ);
+  wire fle_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFLE);
+  wire flt_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFLT);
+  wire fcvt_w_s_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFCVT_W_S);
+  wire fcvt_wu_s_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFCVT_WU_S);
+  wire fclass_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFCLASS);
+  wire fmv_x_w_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFMV_X_W);
 
-  // fp_int
-  //
-  wire fp_int_inc = instr_inc & exe_r.decode.is_fp_int_op;
-  wire feq_inc = fp_int_inc & exe_r.fp_int_decode.feq_op;
-  wire flt_inc = fp_int_inc & exe_r.fp_int_decode.flt_op;
-  wire fle_inc = fp_int_inc & exe_r.fp_int_decode.fle_op;
-  wire fcvt_w_s_inc = fp_int_inc & exe_r.fp_int_decode.fcvt_w_s_op;
-  wire fcvt_wu_s_inc = fp_int_inc & exe_r.fp_int_decode.fcvt_wu_s_op;
-  wire fclass_inc = fp_int_inc & exe_r.fp_int_decode.fclass_op;
-  wire fmv_x_w_inc = fp_int_inc & exe_r.fp_int_decode.fmv_x_w_op;
+  // fdiv/fsqrt
+  wire fdiv_inc = fp_exe_r.fp_decode.is_fdiv_op & ~stall;
+  wire fsqrt_inc = fp_exe_r.fp_decode.is_fsqrt_op & ~stall;
 
   // LSU
-  //
-  wire local_ld_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_rf;
-  wire local_st_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_rf2;
-  wire remote_ld_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
-    & ~remote_req_o.load_info.icache_fetch
-    & exe_r.decode.op_writes_rf;
-  wire remote_ld_dram_inc   = remote_ld_inc & (remote_req_o.addr[data_width_p-1]);
-  wire remote_ld_global_inc = remote_ld_inc & ~remote_ld_dram_inc 
-                              & (remote_req_o.addr[data_width_p-2]);
-  wire remote_ld_group_inc  = remote_ld_inc & ~remote_ld_dram_inc & ~remote_ld_global_inc
-                              & (remote_req_o.addr[data_width_p-3]);
+  wire local_ld_inc = exe_r.decode.is_load_op & lsu_dmem_v_lo & exe_r.decode.write_rd & ~stall;
+  wire local_st_inc = exe_r.decode.is_store_op & lsu_dmem_v_lo & exe_r.decode.read_rs2 & ~stall;
 
-  wire remote_st_inc = remote_req_v_o & remote_req_yumi_i & remote_req_o.write_not_read
-    & exe_r.decode.op_reads_rf2;
-  wire remote_st_dram_inc   = remote_st_inc & (remote_req_o.addr[data_width_p-1]);
-  wire remote_st_global_inc = remote_st_inc & ~remote_st_dram_inc 
-                              & (remote_req_o.addr[data_width_p-2]);
-  wire remote_st_group_inc  = remote_st_inc & ~remote_st_dram_inc & ~remote_st_global_inc
-                              & (remote_req_o.addr[data_width_p-3]);
+  wire remote_ld_inc = exe_r.decode.is_load_op & lsu_remote_req_v_lo & exe_r.decode.write_rd & ~stall;
+  wire remote_ld_dram_inc = remote_ld_inc & remote_req_o.addr[data_width_p-1]; 
+  wire remote_ld_global_inc = remote_ld_inc & (remote_req_o.addr[data_width_p-1-:2] == 2'b01);
+  wire remote_ld_group_inc = remote_ld_inc & (remote_req_o.addr[data_width_p-1-:3] == 3'b001);
 
-  wire local_flw_inc = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~stall & exe_r.decode.op_writes_fp_rf;
-  wire local_fsw_inc = lsu_dmem_v_lo & lsu_dmem_w_lo & ~stall & exe_r.decode.op_reads_fp_rf2;
-  wire remote_flw_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
-    & ~remote_req_o.load_info.icache_fetch
-    & exe_r.decode.op_writes_fp_rf;
-  wire remote_fsw_inc = remote_req_v_o & remote_req_yumi_i & remote_req_o.write_not_read
-    & exe_r.decode.op_reads_fp_rf2;
+  wire remote_st_inc = exe_r.decode.is_store_op & lsu_remote_req_v_lo & exe_r.decode.read_rs2 & ~stall;
+  wire remote_st_dram_inc = remote_st_inc & remote_req_o.addr[data_width_p-1];
+  wire remote_st_global_inc = remote_st_inc & (remote_req_o.addr[data_width_p-1-:2] == 2'b01);
+  wire remote_st_group_inc = remote_st_inc & (remote_req_o.addr[data_width_p-1-:3] == 3'b001);
 
-  wire icache_miss_inc = remote_req_v_o & remote_req_yumi_i & ~remote_req_o.write_not_read
-    & remote_req_o.load_info.icache_fetch;
+  wire local_flw_inc = exe_r.decode.is_load_op & lsu_dmem_v_lo & exe_r.decode.write_frd & ~stall;
+  wire local_fsw_inc = exe_r.decode.is_store_op & lsu_dmem_v_lo & exe_r.decode.read_frs2 & ~stall;
 
-  wire lr_inc = instr_inc & exe_r.decode.op_is_lr;
-  wire lr_aq_inc = instr_inc & exe_r.decode.op_is_lr_aq;
-  wire amoswap_inc = instr_inc & exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_swap);
-  wire amoor_inc = instr_inc & exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_or);
+  wire remote_flw_inc = exe_r.decode.is_load_op & lsu_remote_req_v_lo & exe_r.decode.write_frd & ~stall;
+  wire remote_flw_dram_inc = remote_flw_inc & remote_req_o.addr[data_width_p-1];
+  wire remote_flw_global_inc = remote_flw_inc & (remote_req_o.addr[data_width_p-1-:2] == 2'b01);
+  wire remote_flw_group_inc = remote_flw_inc & (remote_req_o.addr[data_width_p-1-:3] == 3'b001);
 
+  wire remote_fsw_inc = exe_r.decode.is_store_op & lsu_remote_req_v_lo & exe_r.decode.read_frs2 & ~stall;
+  wire remote_fsw_dram_inc = remote_fsw_inc & remote_req_o.addr[data_width_p-1];
+  wire remote_fsw_global_inc = remote_fsw_inc & (remote_req_o.addr[data_width_p-1-:2] == 2'b01);
+  wire remote_fsw_group_inc = remote_fsw_inc & (remote_req_o.addr[data_width_p-1-:3] == 3'b001);
+
+  wire icache_miss_inc = exe_r.icache_miss & ~stall;
+
+  wire lr_inc = exe_r.decode.is_lr_op & ~stall;
+  wire lr_aq_inc = exe_r.decode.is_lr_aq_op & ~stall;
+  wire amoswap_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_swap) & ~stall;
+  wire amoor_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_or) & ~stall;
 
   // branch & jump
-  //
-  wire beq_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BEQ);
-  wire bne_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BNE);
-  wire blt_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLT);
-  wire bge_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGE);
-  wire bltu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLTU);
-  wire bgeu_inc = instr_inc & exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGEU);
+  wire beq_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BEQ) & ~stall;
+  wire bne_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BNE) & ~stall;
+  wire blt_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLT) & ~stall;
+  wire bge_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGE) & ~stall;
+  wire bltu_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLTU) & ~stall;
+  wire bgeu_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGEU) & ~stall;
 
-  wire jalr_inc = instr_inc & exe_r.decode.is_jalr_op;
-  wire jal_inc = instr_inc & exe_r.decode.is_jal_op;
-  
+  wire jal_inc = exe_r.decode.is_jal_op & ~stall;
+  wire jalr_inc = exe_r.decode.is_jalr_op & ~stall;
+
   wire beq_miss_inc = beq_inc & branch_mispredict;
   wire bne_miss_inc = bne_inc & branch_mispredict;
   wire blt_miss_inc = blt_inc & branch_mispredict;
@@ -196,225 +179,166 @@ module vanilla_core_profiler
   wire bgeu_miss_inc = bgeu_inc & branch_mispredict;
 
   wire jalr_miss_inc = jalr_inc & jalr_mispredict;
-  
+
   // ALU
-  //
-  wire sll_inc = instr_inc & (exe_r.instruction ==? `RV32_SLL);
-  wire slli_inc = instr_inc & (exe_r.instruction ==? `RV32_SLLI);
-  wire srl_inc = instr_inc & (exe_r.instruction ==? `RV32_SRL);
-  wire srli_inc = instr_inc & (exe_r.instruction ==? `RV32_SRLI);
-  wire sra_inc = instr_inc & (exe_r.instruction ==? `RV32_SRA);
-  wire srai_inc = instr_inc & (exe_r.instruction ==? `RV32_SRAI);
+  wire sll_inc = ~stall & (exe_r.instruction ==? `RV32_SLL);
+  wire slli_inc = ~stall & (exe_r.instruction ==? `RV32_SLLI);
+  wire srl_inc = ~stall & (exe_r.instruction ==? `RV32_SRL);
+  wire srli_inc = ~stall & (exe_r.instruction ==? `RV32_SRLI);
+  wire sra_inc = ~stall & (exe_r.instruction ==? `RV32_SRA);
+  wire srai_inc = ~stall & (exe_r.instruction ==? `RV32_SRAI);
 
-  wire add_inc = instr_inc & (exe_r.instruction ==? `RV32_ADD);
-  wire addi_inc = instr_inc & (exe_r.instruction ==? `RV32_ADDI);
-  wire sub_inc = instr_inc & (exe_r.instruction ==? `RV32_SUB);
-  wire lui_inc = instr_inc & (exe_r.instruction ==? `RV32_LUI);
-  wire auipc_inc = instr_inc & (exe_r.instruction ==? `RV32_AUIPC);
-  wire xor_inc = instr_inc & (exe_r.instruction ==? `RV32_XOR);
-  wire xori_inc = instr_inc & (exe_r.instruction ==? `RV32_XORI);
-  wire or_inc = instr_inc & (exe_r.instruction ==? `RV32_OR);
-  wire ori_inc = instr_inc & (exe_r.instruction ==? `RV32_ORI);
-  wire and_inc = instr_inc & (exe_r.instruction ==? `RV32_AND);
-  wire andi_inc = instr_inc & (exe_r.instruction ==? `RV32_ANDI);
+  wire add_inc = ~stall & (exe_r.instruction ==? `RV32_ADD);
+  wire addi_inc = ~stall & (exe_r.instruction ==? `RV32_ADDI);
+  wire sub_inc = ~stall & (exe_r.instruction ==? `RV32_SUB);
+  wire lui_inc = ~stall & (exe_r.instruction ==? `RV32_LUI);
+  wire auipc_inc = ~stall & (exe_r.instruction ==? `RV32_AUIPC);
+  wire xor_inc = ~stall & (exe_r.instruction ==? `RV32_XOR);
+  wire xori_inc = ~stall & (exe_r.instruction ==? `RV32_XORI);
+  wire or_inc = ~stall & (exe_r.instruction ==? `RV32_OR);
+  wire ori_inc = ~stall & (exe_r.instruction ==? `RV32_ORI);
+  wire and_inc = ~stall & (exe_r.instruction ==? `RV32_AND);
+  wire andi_inc = ~stall & (exe_r.instruction ==? `RV32_ANDI);
 
-  wire slt_inc = instr_inc & (exe_r.instruction ==? `RV32_SLT);
-  wire slti_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTI);
-  wire sltu_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTU);
-  wire sltiu_inc = instr_inc & (exe_r.instruction ==? `RV32_SLTIU);
+  wire slt_inc = ~stall & (exe_r.instruction ==? `RV32_SLT);
+  wire slti_inc = ~stall & (exe_r.instruction ==? `RV32_SLTI);
+  wire sltu_inc = ~stall & (exe_r.instruction ==? `RV32_SLTU);
+  wire sltiu_inc = ~stall & (exe_r.instruction ==? `RV32_SLTIU);
+ 
+  // IDIV
+  wire div_inc = exe_r.decode.is_idiv_op & (exe_r.decode.idiv_op == eDIV) & ~stall;
+  wire divu_inc = exe_r.decode.is_idiv_op & (exe_r.decode.idiv_op == eDIVU) & ~stall;
+  wire rem_inc = exe_r.decode.is_idiv_op & (exe_r.decode.idiv_op == eREM) & ~stall;
+  wire remu_inc = exe_r.decode.is_idiv_op & (exe_r.decode.idiv_op == eREMU) & ~stall;
 
+  // MUL
+  wire mul_inc = exe_r.decode.is_imul_op & ~stall;
 
-  // MULDIV
-  //
-  wire mul_inc = instr_inc & (exe_r.instruction ==? `RV32_MUL);
-  wire mulh_inc = instr_inc & (exe_r.instruction ==? `RV32_MULH);
-  wire mulhsu_inc = instr_inc & (exe_r.instruction ==? `RV32_MULHSU);
-  wire mulhu_inc = instr_inc & (exe_r.instruction ==? `RV32_MULHU);
-  wire div_inc = instr_inc & (exe_r.instruction ==? `RV32_DIV);
-  wire divu_inc = instr_inc & (exe_r.instruction ==? `RV32_DIVU);
-  wire rem_inc = instr_inc & (exe_r.instruction ==? `RV32_REM);
-  wire remu_inc = instr_inc & (exe_r.instruction ==? `RV32_REMU);
+  // FENCE
+  wire fence_inc = exe_r.decode.is_fence_op & ~stall;
 
-  // fence
-  //
-  wire fence_inc = instr_inc & exe_r.decode.is_fence_op;
+  // CSR
+  wire csrrw_inc = (exe_r.instruction ==? `RV32_CSRRW) & ~stall;
+  wire csrrs_inc = (exe_r.instruction ==? `RV32_CSRRS) & ~stall;
+  wire csrrc_inc = (exe_r.instruction ==? `RV32_CSRRC) & ~stall;
+  wire csrrwi_inc = (exe_r.instruction ==? `RV32_CSRRWI) & ~stall;
+  wire csrrsi_inc = (exe_r.instruction ==? `RV32_CSRRSI) & ~stall;
+  wire csrrci_inc = (exe_r.instruction ==? `RV32_CSRRCI) & ~stall;
 
   // remote/local scoreboard tracking 
   //
-  // int_sb[3]: remote dram load
-  // int_sb[2]: remote global load
-  // int_sb[1]: remote group load
-  // int_sb[0]: local load
+  // int_sb[3]: idiv
+  // int_sb[2]: remote dram load
+  // int_sb[1]: remote global load
+  // int_sb[0]: remote group load
   //
-  // float_sb[3]: remote dram load
-  // float_sb[2]: remote global load
-  // float_sb[1]: remote group load
-  // float_sb[0]: local_load
-  //
+  // float_sb[3]: fdiv / fsqrt
+  // float_sb[2]: remote dram load
+  // float_sb[1]: remote global load
+  // float_sb[0]: remote group load
   logic [reg_els_lp-1:0][3:0] int_sb_r;
   logic [reg_els_lp-1:0][3:0] float_sb_r;
-  
-  logic remote_load_in_id;
-  logic remote_load_dram_in_id;
-  logic remote_load_global_in_id;
-  logic remote_load_group_in_id;
-  logic local_load_in_id;
 
-  logic [data_width_p-1:0] load_addr;
-  assign load_addr = mem_addr_op2 +
-    (exe_n.rs1_in_mem
-      ? mem_n.exe_result
-      : (exe_n.rs1_in_wb
-        ? wb_n.rf_data
-        : rs1_to_exe));
+  wire [data_width_p-1:0] id_mem_addr = rs1_val_to_exe + mem_addr_op2;
+  wire remote_ld_dram_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & id_mem_addr[data_width_p-1];
+  wire remote_ld_global_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & (id_mem_addr[data_width_p-1-:2] == 2'b01);
+  wire remote_ld_group_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & (id_mem_addr[data_width_p-1-:3] == 3'b001);
 
-  assign local_load_in_id = (load_addr ==? 32'b00000000_00000000_0001????_????????);
+  wire remote_flw_dram_in_id = (id_r.decode.is_load_op & id_r.decode.write_frd) & id_mem_addr[data_width_p-1];
+  wire remote_flw_global_in_id = (id_r.decode.is_load_op & id_r.decode.write_frd) & (id_mem_addr[data_width_p-1-:2] == 2'b01);
+  wire remote_flw_group_in_id = (id_r.decode.is_load_op & id_r.decode.write_frd) & (id_mem_addr[data_width_p-1-:3] == 3'b001);
 
-  assign remote_load_in_id = ~local_load_in_id;
-  assign remote_load_dram_in_id = remote_load_in_id 
-    & (load_addr[data_width_p-1]);
-  assign remote_load_global_in_id = remote_load_in_id 
-    & ~remote_load_dram_in_id
-    & (load_addr[data_width_p-2]);
-  assign remote_load_group_in_id = remote_load_in_id
-    & ~remote_load_dram_in_id
-    & ~remote_load_global_in_id
-    & (load_addr[data_width_p-3]);
+  wire [reg_addr_width_lp-1:0] id_rd = id_r.instruction.rd;
 
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       int_sb_r <= '0;
-    end
-    else begin
-
-      if (int_sb_score & remote_load_dram_in_id) begin
-        int_sb_r[id_r.instruction.rd][3] <= 1'b1;
-      end
-      else if (int_sb_clear[1]) begin
-        int_sb_r[int_sb_clear_id[1]][3] <= 1'b0;
-      end
-
-      if (int_sb_score & remote_load_global_in_id) begin
-        int_sb_r[id_r.instruction.rd][2] <= 1'b1;
-      end
-      else if (int_sb_clear[1]) begin
-        int_sb_r[int_sb_clear_id[1]][2] <= 1'b0;
-      end
-
-      if (int_sb_score & remote_load_group_in_id) begin
-        int_sb_r[id_r.instruction.rd][1] <= 1'b1;
-      end
-      else if (int_sb_clear[1]) begin
-        int_sb_r[int_sb_clear_id[1]][1] <= 1'b0;
-      end
-
-      if (int_sb_score & local_load_in_id) begin
-        int_sb_r[id_r.instruction.rd][0] <= 1'b1;
-      end
-      else if (int_sb_clear[0]) begin
-        int_sb_r[int_sb_clear_id[0]][0] <= 1'b0;
-      end
-
-    end
-  end
-
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
       float_sb_r <= '0;
     end
     else begin
-
-      if (float_sb_score & id_r.decode.is_load_op & remote_load_dram_in_id) begin
-        float_sb_r[id_r.instruction.rd][3] <= 1'b1;
+      // int sb
+      if (~stall_id & ~stall & ~flush) begin
+        if (id_r.decode.is_idiv_op) begin
+          int_sb_r[id_r.instruction.rd][3] <= 1'b1;
+        end
+        else if (remote_ld_dram_in_id) begin
+          int_sb_r[id_r.instruction.rd][2] <= 1'b1;
+        end
+        else if (remote_ld_global_in_id) begin
+          int_sb_r[id_r.instruction.rd][1] <= 1'b1;
+        end
+        else if (remote_ld_group_in_id) begin
+          int_sb_r[id_r.instruction.rd][0] <= 1'b1;
+        end
+      end
+      else if (int_sb_clear) begin
+        int_sb_r[int_sb_clear_id] <= '0;
+      end
+      
+      // float sb
+      if (~stall_id & ~stall & ~flush) begin
+        if (id_r.decode.is_fp_op & (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op)) begin
+          float_sb_r[id_r.instruction.rd][3] <= 1'b1;
+        end
+        else if (remote_flw_dram_in_id) begin
+          float_sb_r[id_r.instruction.rd][2] <= 1'b1;
+        end
+        else if (remote_flw_global_in_id) begin
+          float_sb_r[id_r.instruction.rd][1] <= 1'b1;
+        end
+        else if (remote_flw_group_in_id) begin
+          float_sb_r[id_r.instruction.rd][0] <= 1'b1;
+        end
       end
       else if (float_sb_clear) begin
-        float_sb_r[float_sb_clear_id][3] <= 1'b0;
+        float_sb_r[float_sb_clear_id] <= '0;
       end
-
-      if (float_sb_score & id_r.decode.is_load_op & remote_load_global_in_id) begin
-        float_sb_r[id_r.instruction.rd][2] <= 1'b1;
-      end
-      else if (float_sb_clear) begin
-        float_sb_r[float_sb_clear_id][2] <= 1'b0;
-      end
-
-      if (float_sb_score & id_r.decode.is_load_op & remote_load_group_in_id) begin
-        float_sb_r[id_r.instruction.rd][1] <= 1'b1;
-      end
-      else if (float_sb_clear) begin
-        float_sb_r[float_sb_clear_id][1] <= 1'b0;
-      end
-
-      if (float_sb_score & id_r.decode.is_load_op & local_load_in_id) begin
-        float_sb_r[id_r.instruction.rd][0] <= 1'b1;
-      end
-      else if (float_sb_clear) begin
-        float_sb_r[float_sb_clear_id][0] <= 1'b0;
-      end
-
     end
   end
 
-  // stall depend bubble
-  //
-  logic stall_depend_bubble;
-  logic stall_depend_local_load_bubble;
-  //logic stall_depend_remote_load_bubble;
-  logic stall_depend_remote_load_dram_bubble;
-  logic stall_depend_remote_load_global_bubble;
-  logic stall_depend_remote_load_group_bubble;
+  wire stall_depend_group_load = stall_depend_long_op
+    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][0]) |
+       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][0]) |
+       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][0]) |
+       (id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][0]) |
+       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][0]) |
+       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][0]));
 
-  assign stall_depend_bubble = stall_depend & ~(stall | stall_fp);
+  wire stall_depend_global_load = stall_depend_long_op
+    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][1]) |
+       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][1]) |
+       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][1]) |
+       (id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][1]) |
+       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][1]) |
+       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][1]));
 
-  assign stall_depend_local_load_bubble = stall_depend_bubble
-    & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][0]) |
-       (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][0]) |
-       (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][0]) |
-       (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][0]));
-    
-  assign stall_depend_remote_load_dram_bubble = stall_depend_bubble
-    & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][3]) |
-       (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][3]) |
-       (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][3]) |
-       (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][3]));
-    
-  assign stall_depend_remote_load_global_bubble = stall_depend_bubble
-    & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][2]) |
-       (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][2]) |
-       (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][2]) |
-       (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][2]));
-    
-  assign stall_depend_remote_load_group_bubble = stall_depend_bubble
-    & ((id_r.decode.op_reads_rf1 & int_sb_r[id_r.instruction.rs1][1]) |
-       (id_r.decode.op_reads_rf2 & int_sb_r[id_r.instruction.rs2][1]) |
-       (id_r.decode.op_reads_fp_rf1 & float_sb_r[id_r.instruction.rs1][1]) |
-       (id_r.decode.op_reads_fp_rf2 & float_sb_r[id_r.instruction.rs2][1]));
-    
-  //assign stall_depend_remote_load_bubble = stall_depend_remote_load_dram_bubble |
-  //                                         stall_depend_remote_load_global_bubble |
-  //                                         stall_depend_remote_load_group_bubble;
+  wire stall_depend_dram_load = stall_depend_long_op
+    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][2]) |
+       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][2]) |
+       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][2]) |
+       (id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][2]) |
+       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][2]) |
+       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][2]));
 
-  wire stall_fp_remote_load_inc = stall_fp & ~(stall | stall_depend) & float_remote_load_resp_v_i;
-  wire stall_fp_local_load_inc = stall_fp & ~(stall | stall_depend) & local_flw_valid;
+  wire stall_depend_idiv = stall_depend_long_op
+    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][3]) |
+       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][3]) |
+       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][3]));
 
-  wire stall_force_wb_inc = stall_force_wb
-    & ~(stall_ifetch_wait | stall_icache_store | stall_lr_aq
-        | stall_fence | stall_md | stall_remote_req | stall_local_flw);
+  wire stall_depend_fdiv = stall_depend_long_op
+    & ((id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][3]) |
+       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][3]) |
+       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][3]));
 
-  // Keep track of what type of "bubble" is inserted in ID, EXE stage.
-
-  // ID stage
-  // [0] branch_mispredict bubble
-  // [1] jalr_mispredict bubble
-  // [2] icache_miss bubble
+  // ID stage bubble
   typedef enum logic [1:0] {
-    e_id_branch_mispredict,
-    e_id_jalr_mispredict,
-    e_id_icache_miss,
+    e_id_bubble_branch_miss,
+    e_id_bubble_jalr_miss,
+    e_id_bubble_icache_miss,
     e_id_no_bubble
   } id_bubble_type_e;
-
+  
   id_bubble_type_e id_bubble_r;
 
   always_ff @ (posedge clk_i) begin
@@ -422,40 +346,48 @@ module vanilla_core_profiler
       id_bubble_r <= e_id_no_bubble;
     end
     else begin
-      if (~stall_id) begin
+      if (~stall) begin
         if (branch_mispredict)
-          id_bubble_r <= e_id_branch_mispredict;
+          id_bubble_r <= e_id_bubble_branch_miss;
         else if (jalr_mispredict)
-          id_bubble_r <= e_id_jalr_mispredict;
+          id_bubble_r <= e_id_bubble_jalr_miss;
         else if (icache_miss_in_pipe)
-          id_bubble_r <= e_id_icache_miss;
+          id_bubble_r <= e_id_bubble_icache_miss;
         else
           id_bubble_r <= e_id_no_bubble;
       end
     end
   end
 
-  // EXE stage
-  // [0]  branch mispredict bubble
-  // [1]  jalr mispredict bubble
-  // [2]  icache miss bubble
-  // [3]  stall_amo_aq
-  // [4]  stall_amo_rl
-  // [5]  fp_op bubble
-  // [6]  stall_depend bubble
-  //      - local_load
-  //      - remote_load_dram
-  //      - remote_load_global
-  //      - remote_load_group
-  //      - fpu
-  typedef enum logic [2:0] {
-    e_exe_branch_mispredict,
-    e_exe_jalr_mispredict,
-    e_exe_icache_miss,
-    e_exe_fp_op,
-    e_exe_stall_amo_aq,
-    e_exe_stall_amo_rl,
-    e_exe_stall_depend,
+  // EXE stage bubble
+  typedef enum logic [5:0] {
+    e_exe_bubble_branch_miss,
+    e_exe_bubble_jalr_miss,
+    e_exe_bubble_icache_miss,
+    
+    e_exe_bubble_stall_depend_dram,
+    e_exe_bubble_stall_depend_global,
+    e_exe_bubble_stall_depend_group,
+    e_exe_bubble_stall_depend_fdiv,
+    e_exe_bubble_stall_depend_idiv,
+
+    e_exe_bubble_stall_depend_local_load,
+    e_exe_bubble_stall_depend_imul,
+
+    e_exe_bubble_stall_amo_aq,
+    e_exe_bubble_stall_amo_rl,
+
+    e_exe_bubble_stall_bypass,
+    e_exe_bubble_stall_lr_aq,
+    e_exe_bubble_stall_fence,
+
+    e_exe_bubble_stall_remote_req,
+    e_exe_bubble_stall_remote_credit,
+    
+    e_exe_bubble_stall_fdiv_busy,
+    e_exe_bubble_stall_idiv_busy,
+    e_exe_bubble_stall_fcsr,
+    
     e_exe_no_bubble
   } exe_bubble_type_e;
 
@@ -468,71 +400,83 @@ module vanilla_core_profiler
     else begin
       if (~stall) begin
         if (branch_mispredict)
-          exe_bubble_r <= e_exe_branch_mispredict;
+          exe_bubble_r <= e_exe_bubble_branch_miss;
         else if (jalr_mispredict)
-          exe_bubble_r <= e_exe_jalr_mispredict;
-        else if (id_bubble_r == e_id_branch_mispredict)
-          exe_bubble_r <= e_exe_branch_mispredict;
-        else if (id_bubble_r == e_id_jalr_mispredict)
-          exe_bubble_r <= e_exe_jalr_mispredict;
-        else if (id_bubble_r == e_id_icache_miss)
-          exe_bubble_r <= e_exe_icache_miss;
+          exe_bubble_r <= e_exe_bubble_jalr_miss;
+        else if (id_bubble_r == e_id_bubble_branch_miss)
+          exe_bubble_r <= e_exe_bubble_branch_miss;
+        else if (id_bubble_r == e_id_bubble_jalr_miss)
+          exe_bubble_r <= e_exe_bubble_jalr_miss;
+        else if (id_bubble_r == e_id_bubble_icache_miss)
+          exe_bubble_r <= e_exe_bubble_icache_miss;
+        else if (stall_depend_dram_load)
+          exe_bubble_r <= e_exe_bubble_stall_depend_dram;
+        else if (stall_depend_group_load)
+          exe_bubble_r <= e_exe_bubble_stall_depend_group;
+        else if (stall_depend_global_load)
+          exe_bubble_r <= e_exe_bubble_stall_depend_global;
+        else if (stall_depend_idiv)
+          exe_bubble_r <= e_exe_bubble_stall_depend_idiv;
+        else if (stall_depend_fdiv)
+          exe_bubble_r <= e_exe_bubble_stall_depend_fdiv;
+        else if (stall_depend_local_load)
+          exe_bubble_r <= e_exe_bubble_stall_depend_local_load;
+        else if (stall_depend_imul)
+          exe_bubble_r <= e_exe_bubble_stall_depend_imul;
         else if (stall_amo_aq)
-          exe_bubble_r <= e_exe_stall_amo_aq;
+          exe_bubble_r <= e_exe_bubble_stall_amo_aq;
         else if (stall_amo_rl)
-          exe_bubble_r <= e_exe_stall_amo_rl;
-        else if (stall_depend_bubble)
-          exe_bubble_r <= e_exe_stall_depend;
-        else if (id_r.decode.is_fp_float_op)
-          exe_bubble_r <= e_exe_fp_op;
+          exe_bubble_r <= e_exe_bubble_stall_amo_rl;
+        else if (stall_bypass)
+          exe_bubble_r <= e_exe_bubble_stall_bypass;
+        else if (stall_lr_aq)
+          exe_bubble_r <= e_exe_bubble_stall_lr_aq;
+        else if (stall_fence)
+          exe_bubble_r <= e_exe_bubble_stall_fence;
+        else if (stall_remote_req)
+          exe_bubble_r <= e_exe_bubble_stall_remote_req;
+        else if (stall_remote_credit)
+          exe_bubble_r <= e_exe_bubble_stall_remote_credit;
+        else if (stall_fdiv_busy)
+          exe_bubble_r <= e_exe_bubble_stall_fdiv_busy;
+        else if (stall_idiv_busy)
+          exe_bubble_r <= e_exe_bubble_stall_idiv_busy;
+        else if (stall_fcsr)
+          exe_bubble_r <= e_exe_bubble_stall_fcsr;
         else
           exe_bubble_r <= e_exe_no_bubble;
       end
     end
   end
 
-  logic exe_stall_depend_local_load_r;
-  logic exe_stall_depend_remote_load_dram_r;
-  logic exe_stall_depend_remote_load_global_r;
-  logic exe_stall_depend_remote_load_group_r;
 
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      exe_stall_depend_local_load_r <= 1'b0;
-      exe_stall_depend_remote_load_dram_r <= 1'b0;
-      exe_stall_depend_remote_load_global_r <= 1'b0;
-      exe_stall_depend_remote_load_group_r <= 1'b0;
-    end
-    else begin
-      exe_stall_depend_local_load_r <= stall_depend_local_load_bubble;
-      exe_stall_depend_remote_load_dram_r <= stall_depend_remote_load_dram_bubble;
-      exe_stall_depend_remote_load_global_r <= stall_depend_remote_load_global_bubble;
-      exe_stall_depend_remote_load_group_r <= stall_depend_remote_load_group_bubble;
-    end
-  end
-
-  wire stall_amo_aq_inc = ~stall & (exe_bubble_r == e_exe_stall_amo_aq);
-  wire stall_amo_rl_inc = ~stall & (exe_bubble_r == e_exe_stall_amo_rl);
-  wire bubble_icache_inc = ~stall & (exe_bubble_r == e_exe_icache_miss); // TODO include me in logs
-  wire bubble_branch_mispredict_inc = ~stall & (exe_bubble_r == e_exe_branch_mispredict); // TODO include me in logs
-  wire bubble_jalr_mispredict_inc = ~stall & (exe_bubble_r == e_exe_jalr_mispredict); // TODO include me in logs
-  wire bubble_fp_op_inc = ~stall & (exe_bubble_r == e_exe_fp_op); // TODO include me in logs
-
-  wire stall_depend_inc = ~stall & (exe_bubble_r == e_exe_stall_depend); 
-  wire stall_depend_local_load_inc = stall_depend_inc & exe_stall_depend_local_load_r;
-  wire stall_depend_remote_load_dram_inc = stall_depend_inc & exe_stall_depend_remote_load_dram_r;
-  wire stall_depend_remote_load_global_inc = stall_depend_inc & exe_stall_depend_remote_load_global_r;
-  wire stall_depend_remote_load_group_inc = stall_depend_inc & exe_stall_depend_remote_load_group_r;
-  wire stall_depend_remote_load_inc = stall_depend_remote_load_dram_inc |
-                                      stall_depend_remote_load_global_inc |
-                                      stall_depend_remote_load_group_inc;
-
-  //  profiling counters
-  //
+  wire branch_miss_bubble_inc = (exe_bubble_r == e_exe_bubble_branch_miss) & ~stall;
+  wire jalr_miss_bubble_inc = (exe_bubble_r == e_exe_bubble_jalr_miss) & ~stall;
+  wire icache_miss_bubble_inc = (exe_bubble_r == e_exe_bubble_icache_miss) & ~stall;
+  wire stall_depend_dram_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_dram) & ~stall;
+  wire stall_depend_group_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_group) & ~stall;
+  wire stall_depend_global_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_global) & ~stall;
+  wire stall_depend_idiv_inc = (exe_bubble_r == e_exe_bubble_stall_depend_idiv) & ~stall;
+  wire stall_depend_fdiv_inc = (exe_bubble_r == e_exe_bubble_stall_depend_fdiv) & ~stall;
+  wire stall_depend_local_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_local_load) & ~stall;
+  wire stall_depend_imul_inc = (exe_bubble_r == e_exe_bubble_stall_depend_imul) & ~stall;
+  wire stall_amo_aq_inc = (exe_bubble_r == e_exe_bubble_stall_amo_aq) & ~stall;
+  wire stall_amo_rl_inc = (exe_bubble_r == e_exe_bubble_stall_amo_rl) & ~stall;
+  wire stall_bypass_inc = (exe_bubble_r == e_exe_bubble_stall_bypass) & ~stall;
+  wire stall_lr_aq_inc = (exe_bubble_r == e_exe_bubble_stall_lr_aq) & ~stall;
+  wire stall_fence_inc = (exe_bubble_r == e_exe_bubble_stall_fence) & ~stall;
+  wire stall_remote_req_inc = (exe_bubble_r == e_exe_bubble_stall_remote_req) & ~stall;
+  wire stall_remote_credit_inc = (exe_bubble_r == e_exe_bubble_stall_remote_credit) & ~stall;
+  wire stall_fdiv_busy_inc = (exe_bubble_r == e_exe_bubble_stall_fdiv_busy) & ~stall;
+  wire stall_idiv_busy_inc = (exe_bubble_r == e_exe_bubble_stall_idiv_busy) & ~stall;
+  wire stall_fcsr_inc = (exe_bubble_r == e_exe_bubble_stall_fcsr) & ~stall;
+  
+  
+  // profiling counters
   typedef struct packed {
     integer cycle; // total number of cycles since the reset went down (unfrozen).
     integer instr; // total number of instruction executed.
-
+    
     // these are the counts of instructions executed for each type.
     integer fadd;
     integer fsub;
@@ -545,6 +489,10 @@ module vanilla_core_profiler
     integer fcvt_s_w;
     integer fcvt_s_wu;
     integer fmv_w_x;
+    integer fmadd;
+    integer fmsub;
+    integer fnmsub;
+    integer fnmadd;
 
     integer feq;
     integer flt;
@@ -553,44 +501,43 @@ module vanilla_core_profiler
     integer fcvt_wu_s;
     integer fclass;
     integer fmv_x_w;
+    
+    integer fdiv;
+    integer fsqrt;
 
-    integer ld;                // local_load count
-    integer st;                // local_store count
-    integer remote_ld;         // remote_load count
-    integer remote_ld_dram;    // remote_load to dram count
-    integer remote_ld_global;  // remote_load to global tile count
-    integer remote_ld_group;   // remote_load to group tile count
-    integer remote_st;         // remote_store count
-    integer remote_st_dram;    // remote_store to dram count
-    integer remote_st_global;  // remote_store to global tile count
-    integer remote_st_group;   // remote_store to group tile count
-    integer local_flw;         // local_flw count
-    integer local_fsw;         // local_fsw count
-    integer remote_flw;        // remote_flw count
-    integer remote_fsw;        // remote_fsw count
+    integer local_ld;
+    integer local_st;
+    integer remote_ld_dram;
+    integer remote_ld_global;
+    integer remote_ld_group;
+    integer remote_st_dram;
+    integer remote_st_global;
+    integer remote_st_group;
 
-    // icache miss rate can be calculated by the expression:
-    // icache_miss_rate = icache_miss / (icache_miss + instr)
-    integer icache_miss;  // total number of icache miss request sent out
+    integer local_flw;
+    integer local_fsw;
+    integer remote_flw_dram;
+    integer remote_flw_global;
+    integer remote_flw_group;
+    integer remote_fsw_dram;
+    integer remote_fsw_global;
+    integer remote_fsw_group;
 
+    integer icache_miss;
     integer lr;
     integer lr_aq;
     integer amoswap;
     integer amoor;
 
-    // number of branch count (both correct and incorrect prediction)
     integer beq;
     integer bne;
     integer blt;
     integer bge;
     integer bltu;
     integer bgeu;
-    integer jalr;
     integer jal;
-
-    // number of incorrect branch prediction among all branch executed.
-    // branch mispredict rate = {beq_miss+bne_miss+...+bgeu_miss}/{beq+bne+...+bgeu}
-    // Similarly, jalr_mispredict_rate = {jalr_miss/jalr}
+    integer jalr;
+    
     integer beq_miss;
     integer bne_miss;
     integer blt_miss;
@@ -617,191 +564,201 @@ module vanilla_core_profiler
     integer ori;
     integer and_;
     integer andi;
+
     integer slt;
     integer slti;
     integer sltu;
     integer sltiu;
-
-    integer mul;
-    integer mulh;
-    integer mulhsu;
-    integer mulhu;
+    
     integer div;
     integer divu;
     integer rem;
     integer remu;
+    integer mul;
 
     integer fence;
-
-    integer stall_fp_remote_load;     // FPU is stalled because of remote_load_response
-    integer stall_fp_local_load;      // FPU is stalled because of local_load_response
-
-    // total number of cycle stalled, because there is some data dependency that has not been resolved.
-    // this can be a combination of:
-    // 1) FPU result
-    // 2) local load
-    // 3) remote load
-    integer stall_depend;             
-    integer stall_depend_local_load; // among stall_depend count, ones that include local_load dependency.
-    integer stall_depend_remote_load; // among stall_depend count, one that include remote_load dependency.
-    integer stall_depend_remote_load_dram; // among stall_depend count, one that include remote_load to dram dependency.
-    integer stall_depend_remote_load_global; // among stall_depend count, one that include remote_load to global tile dependency.
-    integer stall_depend_remote_load_group; // among stall_depend count, one that include remote_load to group tile dependency.
-
-    integer stall_force_wb;       // stalled because of remote_load_response forcing a writeback
-    integer stall_ifetch_wait;    // stalled because of waiting for instruction fetch.
-    integer stall_icache_store;   // stalled because of icache store 
-    integer stall_lr_aq;          // stalled on lr_aq
-    integer stall_md;             // stalled on muldiv
-    integer stall_remote_req;     // stalled on waiting for the network to accept outgoing request.
-    integer stall_local_flw;      // stalled because local_flw is blocked by remote_flw.
-
-    integer stall_amo_aq;         // stalled on TODO 
-    integer stall_amo_rl;         // stalled on TODO
-
-    integer bubble_icache;                    // Bubble in pipeline (exe stalled) after i-cache miss is handled 
-    integer bubble_branch_mispredict;         // Bubble in pipeline (exe stalled) after branch mispredict occurs
-    integer bubble_jalr_mispredict;
-    integer bubble_fp_op;                     // Bubble in floating point pipeline after TODO
-
   
+    integer csrrw;
+    integer csrrs;
+    integer csrrc;
+    integer csrrwi;
+    integer csrrsi;
+    integer csrrci;
+  
+    integer branch_miss_bubble;
+    integer jalr_miss_bubble;
+    integer icache_miss_bubble;
+    integer stall_depend_dram_load;
+    integer stall_depend_group_load;
+    integer stall_depend_global_load;
+    integer stall_depend_idiv;
+    integer stall_depend_fdiv;
+    integer stall_depend_local_load;
+    integer stall_depend_imul;
+    integer stall_amo_aq;
+    integer stall_amo_rl;
+    integer stall_bypass;
+    integer stall_lr_aq;
+    integer stall_fence;
+    integer stall_remote_req;
+    integer stall_remote_credit;
+    integer stall_fdiv_busy;
+    integer stall_idiv_busy;
+    integer stall_fcsr;
+
+    integer stall_remote_ld_wb;
+    integer stall_ifetch_wait;
+    integer stall_remote_flw_wb;
+
   } vanilla_stat_s;
 
-  vanilla_stat_s stat;
+  vanilla_stat_s stat_r;
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
-      stat <= '0;
+      stat_r <= '0;
     end
     else begin
-      stat.cycle++;
-      stat.instr <= stat.instr + instr_inc + fp_instr_inc;
+      stat_r.cycle++;
+      stat_r.instr <= stat_r.instr + instr_inc + fp_instr_inc;
 
-      if (fadd_inc) stat.fadd++;
-      if (fsub_inc) stat.fsub++;
-      if (fmul_inc) stat.fmul++;
-      if (fsgnj_inc) stat.fsgnj++;
-      if (fsgnjn_inc) stat.fsgnjn++;
-      if (fsgnjx_inc) stat.fsgnjx++;
-      if (fmin_inc) stat.fmin++;
-      if (fmax_inc) stat.fmax++;
-      if (fcvt_s_w_inc) stat.fcvt_s_w++;
-      if (fcvt_s_wu_inc) stat.fcvt_s_wu++;
-      if (fmv_w_x_inc) stat.fmv_w_x++;
+      if (fadd_inc) stat_r.fadd++;
+      else if (fsub_inc) stat_r.fsub++;
+      else if (fmul_inc) stat_r.fmul++;
+      else if (fsgnj_inc) stat_r.fsgnj++;
+      else if (fsgnjn_inc) stat_r.fsgnjn++;
+      else if (fsgnjx_inc) stat_r.fsgnjx++;
+      else if (fmin_inc) stat_r.fmin++;
+      else if (fmax_inc) stat_r.fmax++;
+      else if (fcvt_s_w_inc) stat_r.fcvt_s_w++;
+      else if (fcvt_s_wu_inc) stat_r.fcvt_s_wu++;
+      else if (fmv_w_x_inc) stat_r.fmv_w_x++;
+      else if (fmadd_inc) stat_r.fmadd++;
+      else if (fmsub_inc) stat_r.fmsub++;
+      else if (fnmsub_inc) stat_r.fnmsub++;
+      else if (fnmadd_inc) stat_r.fnmadd++;
+      
+      else if (feq_inc) stat_r.feq++;
+      else if (flt_inc) stat_r.flt++;
+      else if (fle_inc) stat_r.fle++;
+      else if (fcvt_w_s_inc) stat_r.fcvt_w_s++;
+      else if (fcvt_wu_s_inc) stat_r.fcvt_wu_s++;
+      else if (fclass_inc) stat_r.fclass++;
+      else if (fmv_x_w_inc) stat_r.fmv_x_w++;
 
-      if (feq_inc) stat.feq++;
-      if (flt_inc) stat.flt++;
-      if (fle_inc) stat.fle++;
-      if (fcvt_w_s_inc) stat.fcvt_w_s++;
-      if (fcvt_wu_s_inc) stat.fcvt_wu_s++;
-      if (fclass_inc) stat.fclass++;
-      if (fmv_x_w_inc) stat.fmv_x_w++;
+      else if (fdiv_inc) stat_r.fdiv++;
+      else if (fsqrt_inc) stat_r.fsqrt++;
 
-      if (local_ld_inc) stat.ld++;
-      if (local_st_inc) stat.st++;
-      if (remote_ld_inc) stat.remote_ld++;
-      if (remote_ld_dram_inc) stat.remote_ld_dram++;
-      if (remote_ld_global_inc) stat.remote_ld_global++;
-      if (remote_ld_group_inc) stat.remote_ld_group++;
-      if (remote_st_inc) stat.remote_st++;
-      if (remote_st_dram_inc) stat.remote_st_dram++;
-      if (remote_st_global_inc) stat.remote_st_global++;
-      if (remote_st_group_inc) stat.remote_st_group++;
-      if (local_flw_inc) stat.local_flw++;
-      if (local_fsw_inc) stat.local_fsw++;
-      if (remote_flw_inc) stat.remote_flw++;
-      if (remote_fsw_inc) stat.remote_fsw++;
-      if (icache_miss_inc) stat.icache_miss++;
+      else if (local_ld_inc) stat_r.local_ld++;
+      else if (local_st_inc) stat_r.local_st++;
+      else if (remote_ld_dram_inc) stat_r.remote_ld_dram++;
+      else if (remote_ld_global_inc) stat_r.remote_ld_global++;
+      else if (remote_ld_group_inc) stat_r.remote_ld_group++;
+      else if (remote_st_dram_inc) stat_r.remote_st_dram++;
+      else if (remote_st_global_inc) stat_r.remote_st_global++;
+      else if (remote_st_group_inc) stat_r.remote_st_group++;
 
-      if (lr_inc) stat.lr++;
-      if (lr_aq_inc) stat.lr_aq++;
-      if (amoswap_inc) stat.amoswap++;
-      if (amoor_inc) stat.amoor++;
+      else if (local_flw_inc) stat_r.local_flw++;
+      else if (local_fsw_inc) stat_r.local_fsw++;
+      else if (remote_flw_dram_inc) stat_r.remote_flw_dram++;
+      else if (remote_flw_global_inc) stat_r.remote_flw_global++;
+      else if (remote_flw_group_inc) stat_r.remote_flw_group++;
+      else if (remote_fsw_dram_inc) stat_r.remote_fsw_dram++;
+      else if (remote_fsw_global_inc) stat_r.remote_fsw_global++;
+      else if (remote_fsw_group_inc) stat_r.remote_fsw_group++;
+
+      else if (icache_miss_inc) stat_r.icache_miss++;
+      else if (lr_inc) stat_r.lr++;
+      else if (lr_aq_inc) stat_r.lr_aq++;
+      else if (amoswap_inc) stat_r.amoswap++;
+      else if (amoor_inc) stat_r.amoor++; 
+
+      else if (beq_inc) stat_r.beq++;
+      else if (bne_inc) stat_r.bne++;
+      else if (blt_inc) stat_r.blt++;
+      else if (bge_inc) stat_r.bge++;
+      else if (bltu_inc) stat_r.bltu++;
+      else if (bgeu_inc) stat_r.bgeu++;
+      else if (jal_inc) stat_r.jal++;
+      else if (jalr_inc) stat_r.jalr++;
+
+      else if (beq_miss_inc) stat_r.beq_miss++;
+      else if (bne_miss_inc) stat_r.bne_miss++;
+      else if (blt_miss_inc) stat_r.blt_miss++;
+      else if (bge_miss_inc) stat_r.bge_miss++;
+      else if (bltu_miss_inc) stat_r.bltu_miss++;
+      else if (bgeu_miss_inc) stat_r.bgeu_miss++;
+      else if (jalr_miss_inc) stat_r.jalr_miss++;
      
-      if (beq_inc) stat.beq++; 
-      if (bne_inc) stat.bne++; 
-      if (blt_inc) stat.blt++; 
-      if (bge_inc) stat.bge++; 
-      if (bltu_inc) stat.bltu++; 
-      if (bgeu_inc) stat.bgeu++; 
-      if (jalr_inc) stat.jalr++; 
-      if (jal_inc) stat.jal++; 
+      else if (sll_inc) stat_r.sll++; 
+      else if (slli_inc) stat_r.slli++; 
+      else if (srl_inc) stat_r.srl++; 
+      else if (srli_inc) stat_r.srli++; 
+      else if (sra_inc) stat_r.sra++; 
+      else if (srai_inc) stat_r.srai++; 
 
-      if (beq_miss_inc) stat.beq_miss++; 
-      if (bne_miss_inc) stat.bne_miss++; 
-      if (blt_miss_inc) stat.blt_miss++; 
-      if (bge_miss_inc) stat.bge_miss++; 
-      if (bltu_miss_inc) stat.bltu_miss++; 
-      if (bgeu_miss_inc) stat.bgeu_miss++; 
-      if (jalr_miss_inc) stat.jalr_miss++; 
-     
-      if (sll_inc) stat.sll++; 
-      if (slli_inc) stat.slli++; 
-      if (srl_inc) stat.srl++; 
-      if (srli_inc) stat.srli++; 
-      if (sra_inc) stat.sra++; 
-      if (srai_inc) stat.srai++; 
+      else if (add_inc) stat_r.add++;
+      else if (addi_inc) stat_r.addi++;
+      else if (sub_inc) stat_r.sub++;
+      else if (lui_inc) stat_r.lui++;
+      else if (auipc_inc) stat_r.auipc++;
+      else if (xor_inc) stat_r.xor_++;
+      else if (xori_inc) stat_r.xori++;
+      else if (or_inc) stat_r.or_++;
+      else if (ori_inc) stat_r.ori++;
+      else if (and_inc) stat_r.and_++;
+      else if (andi_inc) stat_r.andi++;
+      else if (slt_inc) stat_r.slt++;
+      else if (slti_inc) stat_r.slti++;
+      else if (sltu_inc) stat_r.sltu++;
+      else if (sltiu_inc) stat_r.sltiu++;
 
-      if (add_inc) stat.add++;
-      if (addi_inc) stat.addi++;
-      if (sub_inc) stat.sub++;
-      if (lui_inc) stat.lui++;
-      if (auipc_inc) stat.auipc++;
-      if (xor_inc) stat.xor_++;
-      if (xori_inc) stat.xori++;
-      if (or_inc) stat.or_++;
-      if (ori_inc) stat.ori++;
-      if (and_inc) stat.and_++;
-      if (andi_inc) stat.andi++;
-      if (slt_inc) stat.slt++;
-      if (slti_inc) stat.slti++;
-      if (sltu_inc) stat.sltu++;
-      if (sltiu_inc) stat.sltiu++;
+      else if (div_inc) stat_r.div++;
+      else if (divu_inc) stat_r.divu++;
+      else if (rem_inc) stat_r.rem++;
+      else if (remu_inc) stat_r.remu++;
+      else if (mul_inc) stat_r.mul++;
 
-      if (mul_inc) stat.mul++;
-      if (mulh_inc) stat.mulh++;
-      if (mulhsu_inc) stat.mulhsu++;
-      if (mulhu_inc) stat.mulhu++;
-      if (div_inc) stat.div++;
-      if (divu_inc) stat.divu++;
-      if (rem_inc) stat.rem++;
-      if (remu_inc) stat.remu++;
+      else if (fence_inc) stat_r.fence++;
 
-      if (fence_inc) stat.fence++;
+      else if (csrrw_inc) stat_r.csrrw++;
+      else if (csrrs_inc) stat_r.csrrs++;
+      else if (csrrc_inc) stat_r.csrrc++;
+      else if (csrrwi_inc) stat_r.csrrwi++;
+      else if (csrrsi_inc) stat_r.csrrsi++;
+      else if (csrrci_inc) stat_r.csrrci++;
 
-      if (stall_fp_remote_load_inc) stat.stall_fp_remote_load++;
-      if (stall_fp_local_load_inc) stat.stall_fp_local_load++;
+      else if (branch_miss_bubble_inc) stat_r.branch_miss_bubble++;
+      else if (jalr_miss_bubble_inc) stat_r.jalr_miss_bubble++;
+      else if (icache_miss_bubble_inc) stat_r.icache_miss_bubble++;
+      else if (stall_depend_dram_load_inc) stat_r.stall_depend_dram_load++;
+      else if (stall_depend_group_load_inc) stat_r.stall_depend_group_load++;
+      else if (stall_depend_global_load_inc) stat_r.stall_depend_global_load++;
+      else if (stall_depend_idiv_inc) stat_r.stall_depend_idiv++;
+      else if (stall_depend_fdiv_inc) stat_r.stall_depend_fdiv++;
+      else if (stall_depend_local_load_inc) stat_r.stall_depend_local_load++;
+      else if (stall_depend_imul_inc) stat_r.stall_depend_imul++;
+      else if (stall_amo_aq_inc) stat_r.stall_amo_aq++;
+      else if (stall_amo_rl_inc) stat_r.stall_amo_rl++;
+      else if (stall_bypass_inc) stat_r.stall_bypass++;
+      else if (stall_lr_aq_inc) stat_r.stall_lr_aq++;
+      else if (stall_fence_inc) stat_r.stall_fence++;
+      else if (stall_remote_req_inc) stat_r.stall_remote_req++;
+      else if (stall_remote_credit_inc) stat_r.stall_remote_credit++;
+      else if (stall_fdiv_busy_inc) stat_r.stall_fdiv_busy++;
+      else if (stall_idiv_busy_inc) stat_r.stall_idiv_busy++;
+      else if (stall_fcsr_inc) stat_r.stall_fcsr++;
 
-      if (stall_depend_inc) stat.stall_depend++;
-      if (stall_depend_local_load_inc) stat.stall_depend_local_load++;
-      if (stall_depend_remote_load_inc) stat.stall_depend_remote_load++;
-      if (stall_depend_remote_load_dram_inc) stat.stall_depend_remote_load_dram++;
-      if (stall_depend_remote_load_global_inc) stat.stall_depend_remote_load_global++;
-      if (stall_depend_remote_load_group_inc) stat.stall_depend_remote_load_group++;
-
-      if (stall_force_wb_inc) stat.stall_force_wb++;
-      if (stall_ifetch_wait) stat.stall_ifetch_wait++;
-      if (stall_icache_store) stat.stall_icache_store++;
-      if (stall_lr_aq) stat.stall_lr_aq++;
-      if (stall_md) stat.stall_md++;
-      if (stall_remote_req) stat.stall_remote_req++;
-      if (stall_local_flw) stat.stall_local_flw++;
-
-      if (stall_amo_aq_inc) stat.stall_amo_aq++;
-      if (stall_amo_rl_inc) stat.stall_amo_rl++;
-
-      if (bubble_icache_inc) stat.bubble_icache++;
-      if (bubble_branch_mispredict_inc) stat.bubble_branch_mispredict++;
-      if (bubble_jalr_mispredict_inc) stat.bubble_jalr_mispredict++;
-      if (bubble_fp_op_inc) stat.bubble_fp_op++;
-
+      else if (stall_remote_ld_wb) stat_r.stall_remote_ld_wb++;
+      else if (stall_ifetch_wait) stat_r.stall_ifetch_wait++;
+      else if (stall_remote_flw_wb) stat_r.stall_remote_flw_wb++;
 
     end
-  end 
+  end
+
 
 
   // file logging
-  //
   localparam logfile_lp = "vanilla_stats.csv";
   localparam tracefile_lp = "vanilla_operation_trace.csv";
 
@@ -809,481 +766,466 @@ module vanilla_core_profiler
   string header;
 
   initial begin
-
+  
     #1; // we need to wait for one time unit so that my_x_i and my_y_i becomes a known value.
 
     // the origin tile opens the logfile and writes the csv header.
     if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p))) begin
       fd = $fopen(logfile_lp, "w");
-      $fwrite(fd, "time,x,y,pc_r,pc_n,tag,global_ctr,cycle,");
-      $fwrite(fd, "instr_total,instr_fadd,instr_fsub,instr_fmul,");
-      $fwrite(fd, "instr_fsgnj,instr_fsgnjn,instr_fsgnjx,");
-      $fwrite(fd, "instr_fmin,instr_fmax,instr_fcvt_s_w,instr_fcvt_s_wu,instr_fmv_w_x,");
-      $fwrite(fd, "instr_feq,instr_flt,instr_fle,");
-      $fwrite(fd, "instr_fcvt_w_s,instr_fcvt_wu_s,instr_fclass,instr_fmv_x_w,");
-      $fwrite(fd, "instr_local_ld,instr_local_st,");
-      $fwrite(fd, "instr_remote_ld_dram,instr_remote_ld_global,instr_remote_ld_group,");
-      $fwrite(fd, "instr_remote_st_dram,instr_remote_st_global,instr_remote_st_group,");
-      $fwrite(fd, "instr_local_flw,instr_local_fsw,");
-      $fwrite(fd, "instr_remote_flw,instr_remote_fsw,");
-      $fwrite(fd, "instr_lr,instr_lr_aq,instr_amoswap,instr_amoor,");
-      $fwrite(fd, "instr_beq,instr_bne,instr_blt,instr_bge,");
-      $fwrite(fd, "instr_bltu,instr_bgeu,instr_jalr,instr_jal,");
-      $fwrite(fd, "instr_sll,instr_slli,instr_srl,instr_srli,instr_sra,instr_srai,");
-      $fwrite(fd, "instr_add,instr_addi,instr_sub,instr_lui,instr_auipc,");
-      $fwrite(fd, "instr_xor,instr_xori,instr_or,instr_ori,");
-      $fwrite(fd, "instr_and,instr_andi,instr_slt,instr_slti,instr_sltu,instr_sltiu,");
-      $fwrite(fd, "instr_mul,instr_mulh,instr_mulhsu,instr_mulhu,");
-      $fwrite(fd, "instr_div,instr_divu,instr_rem,instr_remu,");
-      $fwrite(fd, "instr_fence,");
-      $fwrite(fd, "miss_icache,miss_beq,miss_bne,miss_blt,miss_bge,miss_bltu,miss_bgeu,miss_jalr,");
-      $fwrite(fd, "stall_fp_remote_load,stall_fp_local_load,stall_depend,");
-      $fwrite(fd, "stall_depend_remote_load_dram,");
-      $fwrite(fd, "stall_depend_remote_load_global,");
-      $fwrite(fd, "stall_depend_remote_load_group,");
+      $fwrite(fd, "time,");
+      $fwrite(fd, "x,");
+      $fwrite(fd, "y,");
+      $fwrite(fd, "pc_r,");
+      $fwrite(fd, "pc_n,");
+      $fwrite(fd, "tag,");
+      $fwrite(fd, "global_ctr,");
+      $fwrite(fd, "cycle,");
+      $fwrite(fd, "instr_total,");
+
+      $fwrite(fd, "fadd,");
+      $fwrite(fd, "fsub,");
+      $fwrite(fd, "fmul,");
+      $fwrite(fd, "fsgnj,");
+      $fwrite(fd, "fsgnjn,");
+      $fwrite(fd, "fsgnjx,");
+      $fwrite(fd, "fmin,");
+      $fwrite(fd, "fmax,");
+      $fwrite(fd, "fcvt_s_w,");
+      $fwrite(fd, "fcvt_s_wu,");
+      $fwrite(fd, "fmv_w_x,");
+      $fwrite(fd, "fmadd,");
+      $fwrite(fd, "fmsub,");
+      $fwrite(fd, "fnmsub,");
+      $fwrite(fd, "fnmadd,");
+
+      $fwrite(fd, "feq,");
+      $fwrite(fd, "flt,");
+      $fwrite(fd, "fle,");
+      $fwrite(fd, "fcvt_w_s,");
+      $fwrite(fd, "fcvt_wu_s,");
+      $fwrite(fd, "fclass,");
+      $fwrite(fd, "fmv_x_w,");
+
+      $fwrite(fd, "fdiv,");
+      $fwrite(fd, "fsqrt,");
+
+      $fwrite(fd, "local_ld,");
+      $fwrite(fd, "local_st,");
+      $fwrite(fd, "remote_ld_dram,");
+      $fwrite(fd, "remote_ld_global,");
+      $fwrite(fd, "remote_ld_group,");
+      $fwrite(fd, "remote_st_dram,");
+      $fwrite(fd, "remote_st_global,");
+      $fwrite(fd, "remote_st_group,");
+    
+      $fwrite(fd, "local_flw,");
+      $fwrite(fd, "local_fsw,");
+      $fwrite(fd, "remote_flw_dram,");
+      $fwrite(fd, "remote_flw_global,");
+      $fwrite(fd, "remote_flw_group,");
+      $fwrite(fd, "remote_fsw_dram,");
+      $fwrite(fd, "remote_fsw_global,");
+      $fwrite(fd, "remote_fsw_group,");
+
+      $fwrite(fd, "icache_miss,");
+      $fwrite(fd, "lr,");
+      $fwrite(fd, "lr_aq,");
+      $fwrite(fd, "amoswap,");
+      $fwrite(fd, "amoor,");
+
+      $fwrite(fd, "beq,");
+      $fwrite(fd, "bne,");
+      $fwrite(fd, "blt,");
+      $fwrite(fd, "bge,");
+      $fwrite(fd, "bltu,");
+      $fwrite(fd, "bgeu,");
+      $fwrite(fd, "jal,");
+      $fwrite(fd, "jalr,");
+
+      $fwrite(fd, "beq_miss,");
+      $fwrite(fd, "bne_miss,");
+      $fwrite(fd, "blt_miss,");
+      $fwrite(fd, "bge_miss,");
+      $fwrite(fd, "bltu_miss,");
+      $fwrite(fd, "bgeu_miss,");
+      $fwrite(fd, "jalr_miss,");
+
+      $fwrite(fd, "sll,");
+      $fwrite(fd, "slli,");
+      $fwrite(fd, "srl,");
+      $fwrite(fd, "srli,");
+      $fwrite(fd, "sra,");
+      $fwrite(fd, "srai,");
+
+      $fwrite(fd, "add,");
+      $fwrite(fd, "addi,");
+      $fwrite(fd, "sub,");
+      $fwrite(fd, "lui,");
+      $fwrite(fd, "auipc,");
+      $fwrite(fd, "xor,");
+      $fwrite(fd, "xori,");
+      $fwrite(fd, "or,");
+      $fwrite(fd, "ori,");
+      $fwrite(fd, "and,");
+      $fwrite(fd, "andi,");
+
+      $fwrite(fd, "slt,");
+      $fwrite(fd, "slti,");
+      $fwrite(fd, "sltu,");
+      $fwrite(fd, "sltiu,");
+
+      $fwrite(fd, "div,");
+      $fwrite(fd, "divu,");
+      $fwrite(fd, "rem,");
+      $fwrite(fd, "remu,");
+      $fwrite(fd, "mul,");
+
+      $fwrite(fd, "fence,");
+
+      $fwrite(fd, "csrrw,");
+      $fwrite(fd, "csrrs,");
+      $fwrite(fd, "csrrc,");
+      $fwrite(fd, "csrrwi,");
+      $fwrite(fd, "csrrsi,");
+      $fwrite(fd, "csrrci,");
+
+      $fwrite(fd, "branch_miss_bubble,");
+      $fwrite(fd, "jalr_miss_bubble,");
+      $fwrite(fd, "icache_miss_bubble,");
+      $fwrite(fd, "stall_depend_dram_load,");
+      $fwrite(fd, "stall_depend_group_load,");
+      $fwrite(fd, "stall_depend_global_load,");
+      $fwrite(fd, "stall_depend_idiv,");
+      $fwrite(fd, "stall_depend_fdiv,");
       $fwrite(fd, "stall_depend_local_load,");
-      $fwrite(fd, "stall_force_wb,stall_ifetch_wait,stall_icache_store,");
-      $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw,");
-      $fwrite(fd, "stall_amo_aq,stall_amo_rl,");
-      $fwrite(fd, "bubble_icache,bubble_branch_mispredict,bubble_jalr_mispredict,bubble_fp_op");
+      $fwrite(fd, "stall_depend_imul,");
+      $fwrite(fd, "stall_amo_aq,");
+      $fwrite(fd, "stall_amo_rl,");
+      $fwrite(fd, "stall_bypass,");
+      $fwrite(fd, "stall_lr_aq,");
+      $fwrite(fd, "stall_fence,");
+      $fwrite(fd, "stall_remote_req,");
+      $fwrite(fd, "stall_remote_credit,");
+      $fwrite(fd, "stall_fdiv_busy,");
+      $fwrite(fd, "stall_idiv_busy,");
+      $fwrite(fd, "stall_fcsr,");
+
+      $fwrite(fd, "stall_remote_ld_wb,");
+      $fwrite(fd, "stall_ifetch_wait,");
+      $fwrite(fd, "stall_remote_flw_wb");
       $fwrite(fd, "\n");
       $fclose(fd);
-  
 
       if (trace_en_i) begin
         fd2 = $fopen(tracefile_lp, "w");
         $fwrite(fd2, "cycle,x,y,pc,operation\n");
         $fclose(fd2);
       end
-
-
     end
 
-
-
     forever begin
-      @(negedge clk_i) begin
-
-        if (~reset_i & trace_en_i) begin
-          fd2= $fopen(tracefile_lp, "a");
-          if (stall_depend_inc & ~stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
-            print_operation_trace(fd2, "stall_depend");
-          else if (stall_depend_inc & stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
-            print_operation_trace(fd2, "stall_depend_local_load");
-          else if (stall_depend_inc & ~stall_depend_local_load_inc & stall_depend_remote_load_inc) 
-            // stall_depend_remote_load has 3 types of dram, global, group
-            begin
-              if (stall_depend_remote_load_dram_inc)
-                print_operation_trace(fd2, "stall_depend_remote_load_dram");
-              else if (stall_depend_remote_load_global_inc)
-                print_operation_trace(fd2, "stall_depend_remote_load_global");
-              else if (stall_depend_remote_load_group_inc)
-                print_operation_trace(fd2, "stall_depend_remote_load_group");
-            end
-          else if (stall_depend_inc & stall_depend_local_load_inc & stall_depend_remote_load_inc)
-            // stall_depend_local_remote_load, the remote request has 3 types of dram, global, group
-            begin
-              if (stall_depend_remote_load_dram_inc)
-                print_operation_trace(fd2, "stall_depend_local_remote_load_dram");
-              else if (stall_depend_remote_load_global_inc)
-                print_operation_trace(fd2, "stall_depend_local_remote_load_global");
-              else if (stall_depend_remote_load_group_inc)
-                print_operation_trace(fd2, "stall_depend_local_remote_load_group");
-            end
-          else if (stall_fp_remote_load_inc)
-            print_operation_trace(fd2, "stall_fp_remote_load");
-          else if (stall_fp_local_load_inc)
-            print_operation_trace(fd2, "stall_fp_local_load");
-          else if (stall_force_wb_inc)
-            print_operation_trace(fd2, "stall_force_wb");
-          else if (stall_ifetch_wait)
-            print_operation_trace(fd2, "stall_ifetch_wait");
-          else if (stall_icache_store)
-            print_operation_trace(fd2, "stall_icache_store");
-          else if (stall_lr_aq)
-            print_operation_trace(fd2, "stall_lr_aq");
-          else if (stall_md)
-            print_operation_trace(fd2, "stall_md");
-          else if (stall_remote_req)
-            print_operation_trace(fd2, "stall_remote_req");
-          else if (stall_local_flw)
-            print_operation_trace(fd2, "stall_local_flw");
-          else if (stall_amo_aq)
-            print_operation_trace(fd2, "stall_amo_aq");
-          else if (stall_amo_rl)
-            print_operation_trace(fd2, "stall_amo_rl");
-          else
-          begin
-
-            if (local_ld_inc)
-              print_operation_trace(fd2, "local_ld");
-            else if (local_st_inc)
-              print_operation_trace(fd2, "local_st");
-            else if (remote_ld_inc)
-            begin
-              if (remote_ld_dram_inc)
-                print_operation_trace(fd2, "remote_ld_dram");
-              else if (remote_ld_global_inc)
-                print_operation_trace(fd2, "remote_ld_global");
-              else if (remote_ld_group_inc)
-                print_operation_trace(fd2, "remote_ld_group");
-            end
-            else if (remote_st_inc)
-            begin
-              if (remote_st_dram_inc)
-                print_operation_trace(fd2, "remote_st_dram");
-              else if (remote_st_global_inc)
-                print_operation_trace(fd2, "remote_st_global");
-              else if (remote_st_group_inc)
-                print_operation_trace(fd2, "remote_st_group");
-            end
-            else if (local_flw_inc)
-              print_operation_trace(fd2, "local_flw");
-            else if (local_fsw_inc)
-              print_operation_trace(fd2, "local_fsw");
-            else if (remote_flw_inc)
-              print_operation_trace(fd2, "remote_flw");
-            else if (remote_fsw_inc)
-              print_operation_trace(fd2, "remote_fsw");
-            else if (icache_miss_inc)
-              print_operation_trace(fd2, "icache_miss");
-
-            else if (lr_inc)
-              print_operation_trace(fd2, "lr");
-            else if (lr_aq_inc)
-              print_operation_trace(fd2, "lr_aq");
-            else if (amoswap_inc)
-              print_operation_trace(fd2, "amoswap");
-            else if (amoor_inc)
-              print_operation_trace(fd2, "amoor");
-
-            else if (beq_inc)
-              print_operation_trace(fd2, "beq");
-            else if (bne_inc)
-              print_operation_trace(fd2, "bne");
-            else if (blt_inc)
-              print_operation_trace(fd2, "blt");
-            else if (bge_inc)
-              print_operation_trace(fd2, "bge");
-            else if (bltu_inc)
-              print_operation_trace(fd2, "bltu");
-            else if (bgeu_inc)
-              print_operation_trace(fd2, "bgeu");
-            else if (jalr_inc)
-              print_operation_trace(fd2, "jalr");
-            else if (jal_inc)
-              print_operation_trace(fd2, "jal");
-
-            else if (beq_miss_inc)
-              print_operation_trace(fd2, "beq_miss");
-            else if (bne_miss_inc)
-              print_operation_trace(fd2, "bne_miss");
-            else if (blt_miss_inc)
-              print_operation_trace(fd2, "blt_miss");
-            else if (bge_miss_inc)
-              print_operation_trace(fd2, "bge_miss");
-            else if (bltu_miss_inc)
-              print_operation_trace(fd2, "bltu_miss");
-            else if (bgeu_miss_inc)
-              print_operation_trace(fd2, "bgeu_miss");
-            else if (jalr_miss_inc)
-              print_operation_trace(fd2, "jalr_miss");
-
-            else if (sll_inc)
-              print_operation_trace(fd2, "sll");
-            else if (slli_inc)
-              print_operation_trace(fd2, "slli");
-            else if (srl_inc)
-              print_operation_trace(fd2, "srl");
-            else if (srli_inc)
-              print_operation_trace(fd2, "srli");
-            else if (sra_inc)
-              print_operation_trace(fd2, "sra");
-            else if (srai_inc)
-              print_operation_trace(fd2, "srai");
-
-            else if (add_inc)
-              print_operation_trace(fd2, "add");
-            else if (addi_inc)
-              print_operation_trace(fd2, "addi");
-            else if (sub_inc)
-              print_operation_trace(fd2, "sub");
-            else if (lui_inc)
-              print_operation_trace(fd2, "lui");
-            else if (auipc_inc)
-              print_operation_trace(fd2, "auipc");
-            else if (xor_inc)
-              print_operation_trace(fd2, "xor");
-            else if (xori_inc)
-              print_operation_trace(fd2, "xori");
-            else if (or_inc)
-              print_operation_trace(fd2, "or");
-            else if (ori_inc)
-              print_operation_trace(fd2, "ori");
-            else if (and_inc)
-              print_operation_trace(fd2, "and");
-            else if (andi_inc)
-              print_operation_trace(fd2, "andi");
-            else if (slt_inc)
-              print_operation_trace(fd2, "slt");
-            else if (slti_inc)
-              print_operation_trace(fd2, "slti");
-            else if (sltu_inc)
-              print_operation_trace(fd2, "sltu");
-            else if (sltiu_inc)
-              print_operation_trace(fd2, "sltiu");
-
-            else if (mul_inc)
-              print_operation_trace(fd2, "mul");
-            else if (mulh_inc)
-              print_operation_trace(fd2, "mulh");
-            else if (mulhsu_inc)
-              print_operation_trace(fd2, "mulhsu");
-            else if (mulhu_inc)
-              print_operation_trace(fd2, "mulhu");
-            else if (div_inc)
-              print_operation_trace(fd2, "div");
-            else if (divu_inc)
-              print_operation_trace(fd2, "divu");
-            else if (rem_inc)
-              print_operation_trace(fd2, "rem");
-            else if (remu_inc)
-              print_operation_trace(fd2, "remu");
-
-            else if (fence_inc)
-              print_operation_trace(fd2, "fence");
-
-            else if (fadd_inc)
-              print_operation_trace(fd2, "fadd");
-            else if (fsub_inc)
-              print_operation_trace(fd2, "fsub");
-            else if (fmul_inc)
-              print_operation_trace(fd2, "fmul");
-            else if (fsgnj_inc)
-              print_operation_trace(fd2, "fsgnj");
-            else if (fsgnjn_inc)
-              print_operation_trace(fd2, "fsgnjn");
-            else if (fsgnjx_inc)
-              print_operation_trace(fd2, "fsgnjx");
-            else if (fmin_inc)
-              print_operation_trace(fd2, "fmin");
-            else if (fmax_inc)
-              print_operation_trace(fd2, "fmax");
-            else if (fcvt_s_w_inc)
-              print_operation_trace(fd2, "fcvt_s_w");
-            else if (fcvt_s_wu_inc)
-              print_operation_trace(fd2, "fcvt_s_wu");
-            else if (fmv_w_x_inc)
-              print_operation_trace(fd2, "fmv_w_x");
-
-            else if (feq_inc)
-              print_operation_trace(fd2, "feq");
-            else if (flt_inc)
-              print_operation_trace(fd2, "flt");
-            else if (fle_inc)
-              print_operation_trace(fd2, "fle");
-            else if (fcvt_w_s_inc)
-              print_operation_trace(fd2, "fcvt_w_s");
-            else if (fcvt_wu_s_inc)
-              print_operation_trace(fd2, "fcvt_wu_s");
-            else if (fclass_inc)
-              print_operation_trace(fd2, "fclass");
-            else if (fmv_x_w_inc)
-              print_operation_trace(fd2, "fmv_x_w");
-
-
-            else if (instr_inc | fp_instr_inc)
-              print_operation_trace(fd2, "unknown");
-
-             else
-             begin
-                if (bubble_icache_inc)
-                  print_operation_trace(fd2, "bubble_icache");
-                else if (bubble_branch_mispredict_inc)
-                  print_operation_trace(fd2, "bubble_branch_mispredict");
-                else if (bubble_jalr_mispredict_inc)
-                  print_operation_trace(fd2, "bubble_jalr_mispredict");
-                else if (bubble_fp_op_inc)
-                  print_operation_trace(fd2, "bubble_fp_op");
-                else
-                  print_operation_trace(fd2, "bubble");
-             end 
-          end
-
-
-          $fwrite(fd2, "\n"); 
-          $fclose(fd2);
-        end
-    
-        // The bsg_cuda_print_stat intrinsic sends a tag value to be printed 
-        // along with the stats message. Inside the tag value, the x,y
-        // coordinates of the tile calling the bsg_print_stats, along with its 
-        // tile group id is incorporated in the following form"
-        // <stat type>  -  <y cord>  -  <x cord>  -  <tile group id>  -  <tag>
-        // A core's profiler only prints the stat if core's x,y coordinates 
-        // matches the ones incorporated in the print_stat_tag_i
+      @(negedge clk_i)  begin
+        // stat printing
         if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == my_y_i & print_stat_tag.x_cord == my_x_i) begin
-
-          $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.",
-            $time, my_x_i, my_y_i);
+          $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, my_x_i, my_y_i);
 
           fd = $fopen(logfile_lp, "a");
+          $fwrite(fd, "%0d,", $time);
+          $fwrite(fd, "%0d,", my_x_i - origin_x_cord_p);
+          $fwrite(fd, "%0d,", my_y_i - origin_y_cord_p);
+          $fwrite(fd, "%0d,", pc_r);
+          $fwrite(fd, "%0d,", pc_n);
+          $fwrite(fd, "%0d,", print_stat_tag_i);
+          $fwrite(fd, "%0d,", global_ctr_i);
+          $fwrite(fd, "%0d,", stat_r.cycle );
+          $fwrite(fd, "%0d,", stat_r.instr);
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            $time,
-            my_x_i - origin_x_cord_p,
-            my_y_i - origin_y_cord_p,
-            pc_r,
-            pc_n,
-            print_stat_tag_i,
-            global_ctr_i,
-            stat.cycle
-          );
+          $fwrite(fd, "%0d,", stat_r.fadd);
+          $fwrite(fd, "%0d,", stat_r.fsub);
+          $fwrite(fd, "%0d,", stat_r.fmul);
+          $fwrite(fd, "%0d,", stat_r.fsgnj);
+          $fwrite(fd, "%0d,", stat_r.fsgnjn);
+          $fwrite(fd, "%0d,", stat_r.fsgnjx);
+          $fwrite(fd, "%0d,", stat_r.fmin);
+          $fwrite(fd, "%0d,", stat_r.fmax);
+          $fwrite(fd, "%0d,", stat_r.fcvt_s_w);
+          $fwrite(fd, "%0d,", stat_r.fcvt_s_wu);
+          $fwrite(fd, "%0d,", stat_r.fmv_w_x);
+          $fwrite(fd, "%0d,", stat_r.fmadd);
+          $fwrite(fd, "%0d,", stat_r.fmsub);
+          $fwrite(fd, "%0d,", stat_r.fnmsub);
+          $fwrite(fd, "%0d,", stat_r.fnmadd);
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.instr,
-            stat.fadd,
-            stat.fsub,
-            stat.fmul,
-            stat.fsgnj,
-            stat.fsgnjn,
-            stat.fsgnjx,
-            stat.fmin,
-            stat.fmax,
-            stat.fcvt_s_w,
-            stat.fcvt_s_wu,
-            stat.fmv_w_x
-          );
+          $fwrite(fd, "%0d,", stat_r.feq);
+          $fwrite(fd, "%0d,", stat_r.flt);
+          $fwrite(fd, "%0d,", stat_r.fle);
+          $fwrite(fd, "%0d,", stat_r.fcvt_w_s);
+          $fwrite(fd, "%0d,", stat_r.fcvt_wu_s);
+          $fwrite(fd, "%0d,", stat_r.fclass);
+          $fwrite(fd, "%0d,", stat_r.fmv_x_w);
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.feq,
-            stat.flt,
-            stat.fle,
-            stat.fcvt_w_s,
-            stat.fcvt_wu_s,
-            stat.fclass,
-            stat.fmv_x_w
-          );
+          $fwrite(fd, "%0d,", stat_r.fdiv);
+          $fwrite(fd, "%0d,", stat_r.fsqrt);
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.ld,
-            stat.st,
-            stat.remote_ld_dram,
-            stat.remote_ld_global,
-            stat.remote_ld_group,
-            stat.remote_st_dram,
-            stat.remote_st_global,
-            stat.remote_st_group,
-            stat.local_flw,
-            stat.local_fsw,
-            stat.remote_flw,
-            stat.remote_fsw
-          );
+          $fwrite(fd, "%0d,", stat_r.local_ld);
+          $fwrite(fd, "%0d,", stat_r.local_st);
+          $fwrite(fd, "%0d,", stat_r.remote_ld_dram);
+          $fwrite(fd, "%0d,", stat_r.remote_ld_global);
+          $fwrite(fd, "%0d,", stat_r.remote_ld_group);
+          $fwrite(fd, "%0d,", stat_r.remote_st_dram);
+          $fwrite(fd, "%0d,", stat_r.remote_st_global);
+          $fwrite(fd, "%0d,", stat_r.remote_st_group);
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,",
-            stat.lr,
-            stat.lr_aq,
-            stat.amoswap,
-            stat.amoor
-          );
-        
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.beq,
-            stat.bne,
-            stat.blt,
-            stat.bge,
-            stat.bltu,
-            stat.bgeu,
-            stat.jalr,
-            stat.jal
-          );
+          $fwrite(fd, "%0d,", stat_r.local_flw);
+          $fwrite(fd, "%0d,", stat_r.local_fsw);
+          $fwrite(fd, "%0d,", stat_r.remote_flw_dram);
+          $fwrite(fd, "%0d,", stat_r.remote_flw_global);
+          $fwrite(fd, "%0d,", stat_r.remote_flw_group);
+          $fwrite(fd, "%0d,", stat_r.remote_fsw_dram);
+          $fwrite(fd, "%0d,", stat_r.remote_fsw_global);
+          $fwrite(fd, "%0d,", stat_r.remote_fsw_group);
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.sll,
-            stat.slli,
-            stat.srl,
-            stat.srli,
-            stat.sra,
-            stat.srai
-          );
+          $fwrite(fd, "%0d,", stat_r.icache_miss);
+          $fwrite(fd, "%0d,", stat_r.lr);
+          $fwrite(fd, "%0d,", stat_r.lr_aq);
+          $fwrite(fd, "%0d,", stat_r.amoswap);
+          $fwrite(fd, "%0d,", stat_r.amoor);
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.add,
-            stat.addi,
-            stat.sub,
-            stat.lui,
-            stat.auipc,
-            stat.xor_,
-            stat.xori,
-            stat.or_,
-            stat.ori, 
-            stat.and_,
-            stat.andi,
-            stat.slt,
-            stat.slti, 
-            stat.sltu,
-            stat.sltiu
-          );
+          $fwrite(fd, "%0d,", stat_r.beq);
+          $fwrite(fd, "%0d,", stat_r.bne);
+          $fwrite(fd, "%0d,", stat_r.blt);
+          $fwrite(fd, "%0d,", stat_r.bge);
+          $fwrite(fd, "%0d,", stat_r.bltu);
+          $fwrite(fd, "%0d,", stat_r.bgeu);
+          $fwrite(fd, "%0d,", stat_r.jal);
+          $fwrite(fd, "%0d,", stat_r.jalr);
+          
+          $fwrite(fd, "%0d,", stat_r.beq_miss);
+          $fwrite(fd, "%0d,", stat_r.bne_miss);
+          $fwrite(fd, "%0d,", stat_r.blt_miss);
+          $fwrite(fd, "%0d,", stat_r.bge_miss);
+          $fwrite(fd, "%0d,", stat_r.bltu_miss);
+          $fwrite(fd, "%0d,", stat_r.bgeu_miss);
+          $fwrite(fd, "%0d,", stat_r.jalr_miss);
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.mul,
-            stat.mulh,
-            stat.mulhsu,
-            stat.mulhu,
-            stat.div,
-            stat.divu,
-            stat.rem,
-            stat.remu
-          );
+          $fwrite(fd, "%0d,", stat_r.sll);
+          $fwrite(fd, "%0d,", stat_r.slli);
+          $fwrite(fd, "%0d,", stat_r.srl);
+          $fwrite(fd, "%0d,", stat_r.srli);
+          $fwrite(fd, "%0d,", stat_r.sra);
+          $fwrite(fd, "%0d,", stat_r.srai);
 
-          $fwrite(fd, "%0d,", stat.fence);
+          $fwrite(fd, "%0d,", stat_r.add);
+          $fwrite(fd, "%0d,", stat_r.addi);
+          $fwrite(fd, "%0d,", stat_r.sub);
+          $fwrite(fd, "%0d,", stat_r.lui);
+          $fwrite(fd, "%0d,", stat_r.auipc);
+          $fwrite(fd, "%0d,", stat_r.xor_);
+          $fwrite(fd, "%0d,", stat_r.xori);
+          $fwrite(fd, "%0d,", stat_r.or_);
+          $fwrite(fd, "%0d,", stat_r.ori);
+          $fwrite(fd, "%0d,", stat_r.and_);
+          $fwrite(fd, "%0d,", stat_r.andi);
 
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.icache_miss,
-            stat.beq_miss,
-            stat.bne_miss,
-            stat.blt_miss,
-            stat.bge_miss,
-            stat.bltu_miss,
-            stat.bgeu_miss,
-            stat.jalr_miss
-          );
-     
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.stall_fp_remote_load,
-            stat.stall_fp_local_load,
-            stat.stall_depend,
-            stat.stall_depend_remote_load_dram,
-            stat.stall_depend_remote_load_global,
-            stat.stall_depend_remote_load_group,
-            stat.stall_depend_local_load,
-            stat.stall_force_wb,
-            stat.stall_ifetch_wait,
-            stat.stall_icache_store,
-            stat.stall_lr_aq,
-            stat.stall_md,
-            stat.stall_remote_req,
-            stat.stall_local_flw,
-            stat.stall_amo_aq,
-            stat.stall_amo_rl
-          );
+          $fwrite(fd, "%0d,", stat_r.slt);
+          $fwrite(fd, "%0d,", stat_r.slti);
+          $fwrite(fd, "%0d,", stat_r.sltu);
+          $fwrite(fd, "%0d,", stat_r.sltiu);
 
-           $fwrite(fd, "%0d,%0d,%0d,%0d",
-            stat.bubble_icache,
-            stat.bubble_branch_mispredict,
-            stat.bubble_jalr_mispredict,
-            stat.bubble_fp_op
-          );
-       
+          $fwrite(fd, "%0d,", stat_r.div);
+          $fwrite(fd, "%0d,", stat_r.divu);
+          $fwrite(fd, "%0d,", stat_r.rem);
+          $fwrite(fd, "%0d,", stat_r.remu);
+          $fwrite(fd, "%0d,", stat_r.mul);
+
+          $fwrite(fd, "%0d,", stat_r.fence);
+
+          $fwrite(fd, "%0d,", stat_r.csrrw);
+          $fwrite(fd, "%0d,", stat_r.csrrs);
+          $fwrite(fd, "%0d,", stat_r.csrrc);
+          $fwrite(fd, "%0d,", stat_r.csrrwi);
+          $fwrite(fd, "%0d,", stat_r.csrrsi);
+          $fwrite(fd, "%0d,", stat_r.csrrci);
+   
+          $fwrite(fd, "%0d,", stat_r.branch_miss_bubble);   
+          $fwrite(fd, "%0d,", stat_r.jalr_miss_bubble);   
+          $fwrite(fd, "%0d,", stat_r.icache_miss_bubble);   
+          $fwrite(fd, "%0d,", stat_r.stall_depend_dram_load);   
+          $fwrite(fd, "%0d,", stat_r.stall_depend_group_load);   
+          $fwrite(fd, "%0d,", stat_r.stall_depend_global_load);   
+          $fwrite(fd, "%0d,", stat_r.stall_depend_idiv);
+          $fwrite(fd, "%0d,", stat_r.stall_depend_fdiv);
+          $fwrite(fd, "%0d,", stat_r.stall_depend_local_load);
+          $fwrite(fd, "%0d,", stat_r.stall_depend_imul);
+          $fwrite(fd, "%0d,", stat_r.stall_amo_aq);
+          $fwrite(fd, "%0d,", stat_r.stall_amo_rl);
+          $fwrite(fd, "%0d,", stat_r.stall_bypass);
+          $fwrite(fd, "%0d,", stat_r.stall_lr_aq);
+          $fwrite(fd, "%0d,", stat_r.stall_fence);
+          $fwrite(fd, "%0d,", stat_r.stall_remote_req);
+          $fwrite(fd, "%0d,", stat_r.stall_remote_credit);
+          $fwrite(fd, "%0d,", stat_r.stall_fdiv_busy);
+          $fwrite(fd, "%0d,", stat_r.stall_idiv_busy);
+          $fwrite(fd, "%0d,", stat_r.stall_fcsr);
+    
+          $fwrite(fd, "%0d,", stat_r.stall_remote_ld_wb);
+          $fwrite(fd, "%0d,", stat_r.stall_ifetch_wait);
+          $fwrite(fd, "%0d\n", stat_r.stall_remote_flw_wb);
+
+          $fclose(fd);
+
+        end
       
-          $fwrite(fd, "\n");
+      
+        // trace logging
+        if (~reset_i & trace_en_i) begin
+          fd2 = $fopen(tracefile_lp, "a");
+             
+          if (fadd_inc) print_operation_trace(fd2, "fadd");
+          else if (fsub_inc) print_operation_trace(fd2, "fsub");
+          else if (fmul_inc) print_operation_trace(fd2, "fmul");
+          else if (fsgnj_inc) print_operation_trace(fd2, "fsgnj");
+          else if (fsgnjn_inc) print_operation_trace(fd2, "fsgnjn");
+          else if (fsgnjx_inc) print_operation_trace(fd2, "fsgnjx");
+          else if (fmin_inc) print_operation_trace(fd2, "fmin");
+          else if (fmax_inc) print_operation_trace(fd2, "fmax");
+          else if (fcvt_s_w_inc) print_operation_trace(fd2, "fcvt_s_w");
+          else if (fcvt_s_wu_inc) print_operation_trace(fd2, "fcvt_s_wu");
+          else if (fmv_w_x_inc) print_operation_trace(fd2, "fmv_w_x");
+          else if (fmadd_inc) print_operation_trace(fd2, "fmadd");
+          else if (fmsub_inc) print_operation_trace(fd2, "fmsub");
+          else if (fnmsub_inc) print_operation_trace(fd2, "fnmsub");
+          else if (fnmadd_inc) print_operation_trace(fd2, "fnmadd");
 
-          $fclose(fd);          
+          else if (feq_inc) print_operation_trace(fd2, "feq");
+          else if (flt_inc) print_operation_trace(fd2, "flt");
+          else if (fle_inc) print_operation_trace(fd2, "fle");
+          else if (fcvt_w_s_inc) print_operation_trace(fd2, "fcvt_w_s");
+          else if (fcvt_wu_s_inc) print_operation_trace(fd2, "fcvt_wu_s");
+          else if (fclass_inc) print_operation_trace(fd2, "fclass");
+          else if (fmv_x_w_inc) print_operation_trace(fd2, "fmv_x_w");
 
+          else if (fdiv_inc) print_operation_trace(fd2, "fdiv");
+          else if (fsqrt_inc) print_operation_trace(fd2, "fsqrt");
+
+          else if (local_ld_inc) print_operation_trace(fd2, "local_ld");
+          else if (local_st_inc) print_operation_trace(fd2, "local_st");
+          else if (remote_ld_dram_inc) print_operation_trace(fd2, "remote_ld_dram");
+          else if (remote_ld_global_inc) print_operation_trace(fd2, "remote_ld_global");
+          else if (remote_ld_group_inc) print_operation_trace(fd2, "remote_ld_group");
+          else if (remote_st_dram_inc) print_operation_trace(fd2, "remote_st_dram");
+          else if (remote_st_global_inc) print_operation_trace(fd2, "remote_st_global");
+          else if (remote_st_group_inc) print_operation_trace(fd2, "remote_st_group");
+
+          else if (local_flw_inc) print_operation_trace(fd2, "local_flw");
+          else if (local_fsw_inc) print_operation_trace(fd2, "local_fsw");
+          else if (remote_flw_dram_inc) print_operation_trace(fd2, "remote_flw_dram");
+          else if (remote_flw_global_inc) print_operation_trace(fd2, "remote_flw_global");
+          else if (remote_flw_group_inc) print_operation_trace(fd2, "remote_flw_group");
+          else if (remote_fsw_dram_inc) print_operation_trace(fd2, "remote_fsw_dram");
+          else if (remote_fsw_global_inc) print_operation_trace(fd2, "remote_fsw_global");
+          else if (remote_fsw_group_inc) print_operation_trace(fd2, "remote_fsw_group");
+
+          else if (icache_miss_inc) print_operation_trace(fd2, "icache_miss");
+          else if (lr_inc) print_operation_trace(fd2, "lr");
+          else if (lr_aq_inc) print_operation_trace(fd2, "lr_aq");
+          else if (amoswap_inc) print_operation_trace(fd2, "amoswap");
+          else if (amoor_inc) print_operation_trace(fd2, "amoor"); 
+
+          else if (beq_inc) print_operation_trace(fd2, "beq");
+          else if (bne_inc) print_operation_trace(fd2, "bne");
+          else if (blt_inc) print_operation_trace(fd2, "blt");
+          else if (bge_inc) print_operation_trace(fd2, "bge");
+          else if (bltu_inc) print_operation_trace(fd2, "bltu");
+          else if (bgeu_inc) print_operation_trace(fd2, "bgeu");
+          else if (jal_inc) print_operation_trace(fd2, "jal");
+          else if (jalr_inc) print_operation_trace(fd2, "jalr");
+
+          else if (beq_miss_inc) print_operation_trace(fd2, "beq_miss");
+          else if (bne_miss_inc) print_operation_trace(fd2, "bne_miss");
+          else if (blt_miss_inc) print_operation_trace(fd2, "blt_miss");
+          else if (bge_miss_inc) print_operation_trace(fd2, "bge_miss");
+          else if (bltu_miss_inc) print_operation_trace(fd2, "bltu_miss");
+          else if (bgeu_miss_inc) print_operation_trace(fd2, "bgeu_miss");
+          else if (jalr_miss_inc) print_operation_trace(fd2, "jalr_miss");
+     
+          else if (sll_inc) print_operation_trace(fd2, "sll"); 
+          else if (slli_inc) print_operation_trace(fd2, "slli"); 
+          else if (srl_inc) print_operation_trace(fd2, "srl"); 
+          else if (srli_inc) print_operation_trace(fd2, "srli"); 
+          else if (sra_inc) print_operation_trace(fd2, "sra"); 
+          else if (srai_inc) print_operation_trace(fd2, "srai"); 
+
+          else if (add_inc) print_operation_trace(fd2, "add");
+          else if (addi_inc) print_operation_trace(fd2, "addi");
+          else if (sub_inc) print_operation_trace(fd2, "sub");
+          else if (lui_inc) print_operation_trace(fd2, "lui");
+          else if (auipc_inc) print_operation_trace(fd2, "auipc");
+          else if (xor_inc) print_operation_trace(fd2, "xor");
+          else if (xori_inc) print_operation_trace(fd2, "xori");
+          else if (or_inc) print_operation_trace(fd2, "or");
+          else if (ori_inc) print_operation_trace(fd2, "ori");
+          else if (and_inc) print_operation_trace(fd2, "and");
+          else if (andi_inc) print_operation_trace(fd2, "andi");
+          else if (slt_inc) print_operation_trace(fd2, "slt");
+          else if (slti_inc) print_operation_trace(fd2, "slti");
+          else if (sltu_inc) print_operation_trace(fd2, "sltu");
+          else if (sltiu_inc) print_operation_trace(fd2, "sltiu");
+
+          else if (div_inc) print_operation_trace(fd2, "div");
+          else if (divu_inc) print_operation_trace(fd2, "divu");
+          else if (rem_inc) print_operation_trace(fd2, "rem");
+          else if (remu_inc) print_operation_trace(fd2, "remu");
+          else if (mul_inc) print_operation_trace(fd2, "mul");
+
+          else if (fence_inc) print_operation_trace(fd2, "fence");
+
+          else if (csrrw_inc) print_operation_trace(fd2, "csrrw");
+          else if (csrrs_inc) print_operation_trace(fd2, "csrrs");
+          else if (csrrc_inc) print_operation_trace(fd2, "csrrc");
+          else if (csrrwi_inc) print_operation_trace(fd2, "csrrwi");
+          else if (csrrsi_inc) print_operation_trace(fd2, "csrrsi");
+          else if (csrrci_inc) print_operation_trace(fd2, "csrrci");
+
+          else if (branch_miss_bubble_inc) print_operation_trace(fd2, "branch_miss_bubble");
+          else if (jalr_miss_bubble_inc) print_operation_trace(fd2, "jalr_miss_bubble");
+          else if (icache_miss_bubble_inc) print_operation_trace(fd2, "icache_miss_bubble");
+          else if (stall_depend_dram_load_inc) print_operation_trace(fd2, "stall_depend_dram_load");
+          else if (stall_depend_group_load_inc) print_operation_trace(fd2, "stall_depend_group_load");
+          else if (stall_depend_global_load_inc) print_operation_trace(fd2, "stall_depend_global_load");
+          else if (stall_depend_idiv_inc) print_operation_trace(fd2, "stall_depend_idiv");
+          else if (stall_depend_fdiv_inc) print_operation_trace(fd2, "stall_depend_fdiv");
+          else if (stall_depend_local_load_inc) print_operation_trace(fd2, "stall_depend_local_load");
+          else if (stall_depend_imul_inc) print_operation_trace(fd2, "stall_depend_imul");
+          else if (stall_amo_aq_inc) print_operation_trace(fd2, "stall_amo_aq");
+          else if (stall_amo_rl_inc) print_operation_trace(fd2, "stall_amo_rl");
+          else if (stall_bypass_inc) print_operation_trace(fd2, "stall_bypass");
+          else if (stall_lr_aq_inc) print_operation_trace(fd2, "stall_lr_aq");
+          else if (stall_fence_inc) print_operation_trace(fd2, "stall_fence");
+          else if (stall_remote_req_inc) print_operation_trace(fd2, "stall_remote_req");
+          else if (stall_remote_credit_inc) print_operation_trace(fd2, "stall_remote_credit");
+          else if (stall_fdiv_busy_inc) print_operation_trace(fd2, "stall_fdiv_busy");
+          else if (stall_idiv_busy_inc) print_operation_trace(fd2, "stall_idiv_busy");
+          else if (stall_fcsr_inc) print_operation_trace(fd2, "stall_fcsr");
+
+          else if (stall_remote_ld_wb) print_operation_trace(fd2, "stall_remote_ld");
+          else if (stall_ifetch_wait) print_operation_trace(fd2, "stall_ifetch_wait");
+          else if (stall_remote_flw_wb) print_operation_trace(fd2, "stall_remote_flw_wb");
+          else print_operation_trace(fd2, "unknown");
+
+          $fclose(fd2);
         end
       end
     end
+
+
   end
+
+
+
+
+
+
 
 
 

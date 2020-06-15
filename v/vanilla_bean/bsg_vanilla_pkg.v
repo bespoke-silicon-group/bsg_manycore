@@ -25,6 +25,9 @@ localparam RV32_Bimm_width_gp     = 12;
 localparam RV32_Uimm_width_gp     = 20;
 localparam RV32_Jimm_width_gp     = 20;
 
+localparam fpu_recoded_exp_width_gp    = 8;
+localparam fpu_recoded_sig_width_gp    = 24;
+localparam fpu_recoded_data_width_gp   = (1+fpu_recoded_exp_width_gp+fpu_recoded_sig_width_gp);
 
 // RV32 Instruction structure
 // Ideally represents a R-type instruction; these fields if
@@ -79,80 +82,137 @@ typedef struct packed
 
 
 // Decode control signals structures
+typedef enum logic [1:0] {
+  eDIV
+  ,eDIVU
+  ,eREM
+  ,eREMU
+} idiv_op_e;
 
 
-typedef struct packed
-{
-    logic op_writes_rf;     // Op writes to the register file
+typedef struct packed {
+  // int regfile
+  logic read_rs1;
+  logic read_rs2;
+  logic write_rd;
 
-    logic is_load_op;       // Op loads data from memory
-    logic is_store_op;      // Op stores data to memory
-    logic is_byte_op;       // Op is byte load/store
-    logic is_hex_op;        // Op is hex load/store
-    logic is_load_unsigned; // Op is unsigned load
+  // Load & Store
+  logic is_load_op;       // Op loads data from memory
+  logic is_store_op;      // Op stores data to memory
+  logic is_byte_op;       // Op is byte load/store
+  logic is_hex_op;        // Op is hex load/store
+  logic is_load_unsigned; // Op is unsigned load
 
-    logic is_branch_op;     // Op is a branch operation
-    logic is_jal_op;        // jal
-    logic is_jalr_op;       // jalr
+  // Branch & Jump
+  logic is_branch_op;
+  logic is_jal_op;
+  logic is_jalr_op;
 
-    logic op_reads_rf1;     // OP reads from first port of register file
-    logic op_reads_rf2;     // OP reads from second port of register file
-    logic op_is_auipc;
+  // MUL DIV
+  logic is_imul_op;
+  logic is_idiv_op;
+  idiv_op_e idiv_op;
 
-    //for M extension;
-    logic is_md_op;      // indicates is md insruciton
+  // FENCE
+  logic is_fence_op;
 
-    //for FENCE instruction
-    logic is_fence_op;
-    logic is_fence_i_op;
+  // Load Reserve
+  logic is_lr_aq_op;
+  logic is_lr_op;
 
-    //for load reservation and load reservation acquire
-    logic op_is_lr_aq;
-    logic op_is_lr;
+  // Atomic
+  logic is_amo_op;
+  logic is_amo_aq;
+  logic is_amo_rl;
+  bsg_manycore_amo_type_e amo_type;
 
-    //for atomic swap
-    logic is_amo_op;
-    logic is_amo_aq;
-    logic is_amo_rl;
-    bsg_manycore_amo_type_e amo_type;
-    
+  // FPU
+  logic is_fp_op;           // goes into FP_EXE
+  logic read_frs1;          // reads rs1 of FP regfile
+  logic read_frs2;          // reads rs2 of FP regfile
+  logic read_frs3;          // reads rs3 of FP regfile
+  logic write_frd;    // writes back to FP regfile
 
-    //for F extension
-    logic op_reads_fp_rf1;  // reads rf1 of FP regfile
-    logic op_reads_fp_rf2;  // reads rf1 of FP regfile
-    logic op_writes_fp_rf;      // writes back to FP regfile
-    logic is_fp_float_op;    // goes into FP float pipeline
-    logic is_fp_int_op;      // goes into FP int pipeline
+  // CSR
+  logic is_csr_op;
 
+  // This signal is for debugging only.
+  // It shouldn't be used to synthesize any actual circuits.
+  logic unsupported;
+  
 } decode_s;
 
+
+typedef enum logic [3:0] {
+  eFADD
+  ,eFSUB
+  ,eFMUL
+  ,eFSGNJ
+  ,eFSGNJN
+  ,eFSGNJX
+  ,eFMIN
+  ,eFMAX
+  ,eFCVT_S_W
+  ,eFCVT_S_WU
+  ,eFMV_W_X
+  ,eFMADD
+  ,eFMSUB
+  ,eFNMSUB
+  ,eFNMADD
+} fpu_float_op_e;
+
+typedef enum logic [2:0] {
+  eFEQ
+  ,eFLE
+  ,eFLT
+  ,eFCVT_W_S
+  ,eFCVT_WU_S
+  ,eFCLASS
+  ,eFMV_X_W
+} fpu_int_op_e;
+
 typedef struct packed {
+  logic is_fpu_float_op;
+  logic is_fpu_int_op;
+  logic is_fdiv_op;
+  logic is_fsqrt_op;
+  fpu_float_op_e fpu_float_op;
+  fpu_int_op_e   fpu_int_op;
+} fp_decode_s;
 
-  logic fadd_op;
-  logic fsub_op;
-  logic fmul_op;
-  logic fsgnj_op;
-  logic fsgnjn_op;
-  logic fsgnjx_op;
-  logic fmin_op;
-  logic fmax_op;
-  logic fcvt_s_w_op;
-  logic fcvt_s_wu_op;
-  logic fmv_w_x_op;
+// FPU ROUNDING MODE
+typedef enum logic [2:0] {
+  eRNE = 3'b000,    // Round to Nearest, ties to Even
+  eRTZ = 3'b001,    // Round towards Zero
+  eRDN = 3'b010,    // Round Down (towards -oo)
+  eRUP = 3'b011,    // Round Up (towards +oo)
+  eRMM = 3'b100,    // Round to Nearest, ties to Max magnitude
+  eDYN = 3'b111    // dynamic rounding mode
+} frm_e;
 
-} fp_float_decode_s;
 
+// FPU EXCEPTION FLAGS
 typedef struct packed {
+  logic invalid;
+  logic div_zero;
+  logic overflow;
+  logic underflow;
+  logic inexact;
+} fflags_s;
 
-  logic feq_op;
-  logic fle_op;
-  logic flt_op;
-  logic fcvt_w_s_op;
-  logic fcvt_wu_s_op;
-  logic fclass_op;
-  logic fmv_x_w_op;
 
-} fp_int_decode_s;
+// FPU FCSR
+typedef struct packed {
+  frm_e frm;
+  fflags_s fflag;
+} fcsr_s;
+
+
+// FPU recoded Constants
+`define FPU_RECODED_ONE   33'h080000000
+`define FPU_RECODED_ZERO  33'h0
+`define FPU_RECODED_CANONICAL_NAN 33'h0e0400000
+
 
 // Instruction decode stage signals
 typedef struct packed
@@ -161,9 +221,8 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] pred_or_jump_addr; // Jump target PC
     instruction_s                      instruction;       // Instruction being executed
     decode_s                           decode;            // Decode signals
+    fp_decode_s                        fp_decode;
     logic                              icache_miss;
-    fp_int_decode_s                    fp_int_decode;
-    fp_float_decode_s                  fp_float_decode; 
 } id_signals_s;
 
 // Execute stage signals
@@ -175,62 +234,60 @@ typedef struct packed
     decode_s                           decode;            // Decode signals
     logic [RV32_reg_data_width_gp-1:0] rs1_val;           // RF output data from RS1 address
     logic [RV32_reg_data_width_gp-1:0] rs2_val;           // RF output data from RS2 address
-
     logic [RV32_reg_data_width_gp-1:0] mem_addr_op2;      // the second operands to compute
                                                           // memory address
-
-    logic                              rs1_in_mem;        // pre-computed forwarding signal
-    logic                              rs1_in_wb ;        // pre-computed forwarding signal
-    logic                              rs2_in_mem;        // pre-computed forwarding signal
-    logic                              rs2_in_wb ;        // pre-computed forwarding signal
     logic                              icache_miss;
-    fp_int_decode_s                    fp_int_decode;
+    fcsr_s fcsr_data;
 } exe_signals_s;
 
 
 // Memory stage signals
 typedef struct packed
 {
-    logic [RV32_reg_addr_width_gp-1:0] rd_addr;       // Destination address
-    logic [RV32_reg_data_width_gp-1:0] exe_result;    // Execution result
-    logic [RV32_reg_data_width_gp-1:0] mem_addr_sent; //the address sent to memory
-    logic op_writes_rf;
-    logic op_writes_fp_rf;
+    logic [RV32_reg_addr_width_gp-1:0] rd_addr;
+    logic [RV32_reg_data_width_gp-1:0] exe_result;
+    logic write_rd;
+    logic write_frd;
     logic is_byte_op;
     logic is_hex_op;
     logic is_load_unsigned;
     logic local_load;
+    logic [RV32_reg_data_width_gp-1:0] mem_addr_sent;
     logic icache_miss;
-    
 } mem_signals_s;
 
 // RF write back stage signals
 typedef struct packed
 {
-    logic                              op_writes_rf; // Op writes to the register file
-    logic [RV32_reg_addr_width_gp-1:0] rd_addr;      // Register file write address
-    logic [RV32_reg_data_width_gp-1:0] rf_data;      // Register file write data
+    logic                              write_rd;
+    logic [RV32_reg_addr_width_gp-1:0] rd_addr;
+    logic [RV32_reg_data_width_gp-1:0] rf_data;
     logic                              icache_miss;
     logic [RV32_reg_data_width_gp-1:0] icache_miss_pc;
+    logic clear_sb;
 } wb_signals_s;
+
 
 // FP Execute stage signals
 typedef struct packed
 {
-  logic [RV32_reg_data_width_gp-1:0] rs1_val;
-  logic [RV32_reg_data_width_gp-1:0] rs2_val;
+  logic [fpu_recoded_data_width_gp-1:0] rs1_val;
+  logic [fpu_recoded_data_width_gp-1:0] rs2_val;
+  logic [fpu_recoded_data_width_gp-1:0] rs3_val;
   logic [RV32_reg_addr_width_gp-1:0] rd;
-  fp_float_decode_s fp_float_decode;
-  logic valid;
+  fp_decode_s fp_decode;
+  frm_e rm;
 } fp_exe_signals_s;
 
-// FP writeback stage signals
+
+// FLW write back stage signals
 typedef struct packed
 {
-  logic [RV32_reg_data_width_gp-1:0] wb_data;
-  logic [RV32_reg_addr_width_gp-1:0] rd;
-  logic valid;
-} fp_wb_signals_s;
+    logic valid;
+    logic [RV32_reg_addr_width_gp-1:0] rd_addr;
+    logic [RV32_reg_data_width_gp-1:0] rf_data;
+} flw_wb_signals_s;
+
 
 
 
@@ -241,62 +298,24 @@ typedef struct packed
 //                            //
 
 
-
-
 // RV32 Opcodes
 `define RV32_LOAD     7'b0000011
 `define RV32_STORE    7'b0100011
-`define RV32_MADD     7'b1000011
 
-// we have branch instructions ignore the low bit so that we can place the prediction bit there
-// RISC-V by default has the low bits set to 11 in the icache, so we can use those creatively
+// we have branch instructions ignore the low bit so that we can place the prediction bit there.
+// RISC-V by default has the low bits set to 11 in the icache, so we can use those creatively.
 // note this relies on all code using ==? and casez.
-
 `define RV32_BRANCH   7'b110001?
 
-`define RV32_MSUB     7'b1000111
-`define RV32_JALR_OP  7'b1100111
-`define RV32_CUSTOM_0 7'b0001011
-`define RV32_CUSTOM_1 7'b0101011
-`define RV32_NMSUB    7'b1001011
-//                    7'b1101011 is reserved
-`define RV32_MISC_MEM 7'b0001111
-`define RV32_AMO      7'b0101111
-`define RV32_NMADD    7'b1001111
-`define RV32_JAL_OP   7'b1101111
-`define RV32_OP_IMM   7'b0010011
-`define RV32_OP       7'b0110011
-`define RV32_SYSTEM   7'b1110011
-`define RV32_AUIPC_OP 7'b0010111
-`define RV32_LUI_OP   7'b0110111
-//                    7'b1010111 is reserved
-//                    7'b1110111 is reserved
-//                    7'b0011011 is RV64-specific
-//                    7'b0111011 is RV64-specific
-`define RV32_CUSTOM_2 7'b1011011
-`define RV32_CUSTOM_3 7'b1111011
-
-`define RV32_CSRRW_FUN3 3'b001
-`define RV32_CSRRS_FUN3 3'b010
-`define RV32_CSRRC_FUN3 3'b011
-
-`define RV32_CSRRWI_FUN3 3'b101
-`define RV32_CSRRSI_FUN3 3'b110
-`define RV32_CSRRCI_FUN3 3'b111
-
-//MUL_DIV defines
-`define MD_MUL_FUN3       3'b000
-`define MD_MULH_FUN3      3'b001
-`define MD_MULHSU_FUN3    3'b010
-`define MD_MULHU_FUN3     3'b011
-`define MD_DIV_FUN3       3'b100
-`define MD_DIVU_FUN3      3'b101
-`define MD_REM_FUN3       3'b110
-`define MD_REMU_FUN3      3'b111
-
-//FENCE defines
-`define RV32_FENCE_FUN3   3'b000
-`define RV32_FENCE_I_FUN3 3'b001
+`define RV32_JALR_OP    7'b1100111
+`define RV32_MISC_MEM   7'b0001111
+`define RV32_AMO_OP     7'b0101111
+`define RV32_JAL_OP     7'b1101111
+`define RV32_OP_IMM     7'b0010011
+`define RV32_OP         7'b0110011
+`define RV32_SYSTEM     7'b1110011
+`define RV32_AUIPC_OP   7'b0010111
+`define RV32_LUI_OP     7'b0110111
 
 
 // Some useful RV32 instruction macros
@@ -305,7 +324,28 @@ typedef struct packed
 `define RV32_Stype(op, funct3)         {{7{1'b?}},{5{1'b?}},{5{1'b?}},``funct3``,{5{1'b?}},``op``}
 `define RV32_Utype(op)                 {{20{1'b?}},{5{1'b?}},``op``}
 
-// RV32IM Instruction encodings
+// RV32 Immediate sign extension macros
+`define RV32_signext_Iimm(instr) {{21{``instr``[31]}},``instr``[30:20]}
+`define RV32_signext_Simm(instr) {{21{``instr``[31]}},``instr[30:25],``instr``[11:7]}
+`define RV32_signext_Bimm(instr) {{20{``instr``[31]}},``instr``[7],``instr``[30:25],``instr``[11:8], {1'b0}}
+`define RV32_signext_Uimm(instr) {``instr``[31:12], {12{1'b0}}}
+`define RV32_signext_Jimm(instr) {{12{``instr``[31]}},``instr``[19:12],``instr``[20],``instr``[30:21], {1'b0}}
+
+// RV32 12bit Immediate injection/extraction, replace the Imm content with specified value
+// for injection, input immediate value index starting from 1
+// * store the sign bit (bit 31) of branches into bit of the stored instruction for use as prediction bit
+
+`define RV32_Bimm_12inject1(instr,value) {``value``[12], ``value``[10:5], ``instr``[24:12],\
+                                          ``value``[4:1],``value``[11],``instr``[6:1],``instr``[31]}
+`define RV32_Jimm_20inject1(instr,value) {``value``[20], ``value``[10:1], ``value``[11],``value``[19:12], ``instr``[11:0]}
+
+// Both JAL and BRANCH use 2-byte address, we need to pad 1'b0 at MSB to get
+// the real byte address
+`define RV32_Bimm_13extract(instr) {``instr``[31], ``instr``[7], ``instr``[30:25], ``instr``[11:8], 1'b0}
+`define RV32_Jimm_21extract(instr) {``instr``[31], ``instr``[19:12],``instr``[20],``instr``[30:21], 1'b0}
+
+
+// RV32I Instruction encodings
 // We have to delete the white space in macro definition,
 // otherwise Design Compiler would issue warings.
 `define RV32_LUI       `RV32_Utype(`RV32_LUI_OP)
@@ -345,6 +385,39 @@ typedef struct packed
 `define RV32_SRA       `RV32_Rtype(`RV32_OP, 3'b101, 7'b0100000)
 `define RV32_OR        `RV32_Rtype(`RV32_OP, 3'b110, 7'b0000000)
 `define RV32_AND       `RV32_Rtype(`RV32_OP, 3'b111, 7'b0000000)
+
+// FENCE defines
+`define RV32_FENCE_FUN3   3'b000
+`define RV32_FENCE   {4'b0000,4'b????,4'b????,5'b00000,`RV32_FENCE_FUN3,5'b00000,`RV32_MISC_MEM}
+
+// CSR encoding
+`define RV32_CSRRW_FUN3  3'b001
+`define RV32_CSRRS_FUN3  3'b010
+`define RV32_CSRRC_FUN3  3'b011
+`define RV32_CSRRWI_FUN3 3'b101
+`define RV32_CSRRSI_FUN3 3'b110
+`define RV32_CSRRCI_FUN3 3'b111
+
+`define RV32_CSRRW      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRW_FUN3)
+`define RV32_CSRRS      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRS_FUN3)
+`define RV32_CSRRC      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRC_FUN3)
+`define RV32_CSRRWI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRWI_FUN3)
+`define RV32_CSRRSI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRSI_FUN3)
+`define RV32_CSRRCI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRCI_FUN3)
+
+`define RV32_CSR_FFLAGS_ADDR  12'h001
+`define RV32_CSR_FRM_ADDR     12'h002  
+`define RV32_CSR_FCSR_ADDR    12'h003
+
+// RV32M Instruction Encodings
+`define MD_MUL_FUN3       3'b000
+`define MD_MULH_FUN3      3'b001
+`define MD_MULHSU_FUN3    3'b010
+`define MD_MULHU_FUN3     3'b011
+`define MD_DIV_FUN3       3'b100
+`define MD_DIVU_FUN3      3'b101
+`define MD_REM_FUN3       3'b110
+`define MD_REMU_FUN3      3'b111
 `define RV32_MUL       `RV32_Rtype(`RV32_OP, `MD_MUL_FUN3   , 7'b0000001)
 `define RV32_MULH      `RV32_Rtype(`RV32_OP, `MD_MULH_FUN3  , 7'b0000001)
 `define RV32_MULHSU    `RV32_Rtype(`RV32_OP, `MD_MULHSU_FUN3, 7'b0000001)
@@ -353,19 +426,14 @@ typedef struct packed
 `define RV32_DIVU      `RV32_Rtype(`RV32_OP, `MD_DIVU_FUN3  , 7'b0000001)
 `define RV32_REM       `RV32_Rtype(`RV32_OP, `MD_REM_FUN3   , 7'b0000001)
 `define RV32_REMU      `RV32_Rtype(`RV32_OP, `MD_REMU_FUN3  , 7'b0000001)
-`define RV32_LR_W      `RV32_Rtype(`RV32_AMO, 3'b010, 7'b00010??)
 
-
-`define RV32_CSRRW      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRW_FUN3)
-`define RV32_CSRRS      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRS_FUN3)
-`define RV32_CSRRC      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRC_FUN3)
-
-`define RV32_CSRRWI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRWI_FUN3)
-`define RV32_CSRRSI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRSI_FUN3)
-`define RV32_CSRRCI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRCI_FUN3)
+// RV32A Instruction Encodings
+`define RV32_LR_W       {5'b00010,2'b00,5'b00000,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
+`define RV32_LR_W_AQ    {5'b00010,2'b10,5'b00000,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
+`define RV32_AMOSWAP_W  {5'b00001,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
+`define RV32_AMOOR_W    {5'b01000,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
 
 // RV32F Instruction Encodings
-
 `define RV32_OP_FP            7'b1010011
 `define RV32_LOAD_FP          7'b0000111
 `define RV32_STORE_FP         7'b0100111
@@ -411,86 +479,13 @@ typedef struct packed
 `define RV32_FLW_S `RV32_Itype(`RV32_LOAD_FP, 3'b010)
 `define RV32_FSW_S `RV32_Stype(`RV32_STORE_FP, 3'b010)
 
-// RV32 Immediate sign extension macros
-`define RV32_signext_Iimm(instr) {{21{``instr``[31]}},``instr``[30:20]}
-`define RV32_signext_Simm(instr) {{21{``instr``[31]}},``instr[30:25],``instr``[11:7]}
-`define RV32_signext_Bimm(instr) {{20{``instr``[31]}},``instr``[7],``instr``[30:25],``instr``[11:8], {1'b0}}
-`define RV32_signext_Uimm(instr) {``instr``[31:12], {12{1'b0}}}
-`define RV32_signext_Jimm(instr) {{12{``instr``[31]}},``instr``[19:12],``instr``[20],``instr``[30:21], {1'b0}}
+`define RV32_FMADD_S   {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b1000011}
+`define RV32_FMSUB_S   {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b1000111}
+`define RV32_FNMSUB_S  {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b1001011}
+`define RV32_FNMADD_S  {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b1001111}
 
-// RV32 12bit Immediate injection/extraction, replace the Imm content with specified value
-// for injection, input immediate value index starting from 1
-// * store the sign bit (bit 31) of branches into bit of the stored instruction for use as prediction bit
+`define RV32_FDIV_S   `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0001100)
+`define RV32_FSQRT_S  {7'b0101100, 5'b00000, 5'b?????, 3'b???, 5'b?????, 7'b1010011}
 
-`define RV32_Bimm_12inject1(instr,value) {``value``[12], ``value``[10:5], ``instr``[24:12],\
-                                          ``value``[4:1],``value``[11],``instr``[6:1],``instr``[31]}
-`define RV32_Jimm_20inject1(instr,value) {``value``[20], ``value``[10:1], ``value``[11],``value``[19:12], ``instr``[11:0]}
-
-// Both JAL and BRANCH use 2-byte address, we need to pad 1'b0 at MSB to get
-// the real byte address
-`define RV32_Bimm_13extract(instr) {``instr``[31], ``instr``[7], ``instr``[30:25], ``instr``[11:8], 1'b0}
-`define RV32_Jimm_21extract(instr) {``instr``[31], ``instr``[19:12],``instr``[20],``instr``[30:21], 1'b0}
-
-
-//                      //
-//  DEBUG INTERFACE     //
-//                      //
-
-typedef struct packed
-{
-  logic [RV32_reg_data_width_gp-1:0] pc;
-  logic [RV32_instr_width_gp-1:0] instr;
-  logic branch_or_jump;
-  logic [RV32_instr_width_gp-1:0] btarget;
-  logic is_local_load;
-  logic is_local_store;
-  logic [9:0] local_dmem_addr; // hard-coded for now...
-  logic [RV32_reg_data_width_gp-1:0] local_store_data;
-  logic is_remote_load;
-  logic is_remote_store;
-  logic [RV32_reg_data_width_gp-1:0] remote_addr;
-  logic [RV32_reg_data_width_gp-1:0] remote_store_data;
-} exe_debug_s;
-
-typedef struct packed
-{
-  logic [RV32_reg_data_width_gp-1:0] pc;
-  logic [RV32_instr_width_gp-1:0] instr;
-  logic branch_or_jump;
-  logic [RV32_instr_width_gp-1:0] btarget;
-  logic is_local_load;
-  logic is_local_store;
-  logic [9:0] local_dmem_addr;
-  logic [RV32_reg_data_width_gp-1:0] local_store_data;
-  logic is_remote_load;
-  logic is_remote_store;
-  logic [RV32_reg_data_width_gp-1:0] remote_addr;
-  logic [RV32_reg_data_width_gp-1:0] remote_store_data;
-} mem_debug_s;
-
-typedef struct packed
-{
-  logic [RV32_reg_data_width_gp-1:0] pc;
-  logic [RV32_instr_width_gp-1:0] instr;
-  logic branch_or_jump;
-  logic [RV32_instr_width_gp-1:0] btarget;
-  logic is_local_load;
-  logic is_local_store;
-  logic [9:0] local_dmem_addr;
-  logic [RV32_reg_data_width_gp-1:0] local_load_data;
-  logic [RV32_reg_data_width_gp-1:0] local_store_data;
-  logic is_remote_load;
-  logic is_remote_store;
-  logic [RV32_reg_data_width_gp-1:0] remote_addr;
-  logic [RV32_reg_data_width_gp-1:0] remote_store_data;
-} wb_debug_s;
-
-
-typedef struct packed
-{
-  logic [RV32_reg_data_width_gp-1:0] pc;
-  logic [RV32_instr_width_gp-1:0] instr;
-  logic valid;
-} fp_debug_s;
 
 endpackage

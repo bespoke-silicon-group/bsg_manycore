@@ -47,6 +47,8 @@ all: beebs.configure.touchfile
 	make -C $(BUILD_DIR)/src/$* install V=1
 	cp $(BUILD_DIR)/bin/$* $@
 
+%.dve:
+	make -C $*_run -f ../Makefile dve
 
 $(RUN_DIR)/lfs.c: lfs.c
 

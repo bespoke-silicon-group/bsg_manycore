@@ -1,29 +1,32 @@
 /**
  *  scoreboard.v
  *
+ *  2020-05-08:  Tommy J - adding FMA support.
+ *
  */
 
 
 module scoreboard
   import bsg_vanilla_pkg::*;
   #(parameter els_p = RV32_reg_els_gp
-    , parameter is_float_p = 0
+    , parameter num_src_port_p="inv"
     , parameter num_clear_port_p=1
+    , parameter x0_tied_to_zero_p = 0
     , parameter id_width_lp = `BSG_SAFE_CLOG2(els_p)
   )
   (
     input clk_i
     , input reset_i
 
-    , input [id_width_lp-1:0] src1_id_i
-    , input [id_width_lp-1:0] src2_id_i
+    , input [num_src_port_p-1:0][id_width_lp-1:0] src_id_i
     , input [id_width_lp-1:0] dest_id_i
 
-    , input op_reads_rf1_i
-    , input op_reads_rf2_i
+    , input [num_src_port_p-1:0] op_reads_rf_i
     , input op_writes_rf_i
 
     , input score_i
+    , input [id_width_lp-1:0] score_id_i
+
     , input [num_clear_port_p-1:0] clear_i
     , input [num_clear_port_p-1:0][id_width_lp-1:0] clear_id_i
 
@@ -74,6 +77,16 @@ module scoreboard
   end
   // synopsys translate_on
 
+  wire allow_zero = (x0_tied_to_zero_p == 0) | (score_id_i != '0);
+
+  logic [els_p-1:0] score_bits;
+  bsg_decode_with_v #(
+    .num_out_p(els_p)
+  ) score_demux (
+    .i(score_id_i)
+    ,.v_i(score_i & allow_zero)
+    ,.o(score_bits)
+  );
 
   always_ff @ (posedge clk_i) begin
     for (integer i = 0; i < els_p; i++) begin
@@ -87,7 +100,7 @@ module scoreboard
         // the pipeline should not allow a new dependency
         // on a register until the old dependency on that 
         // register is cleared.
-        if(score_i && dest_id_i==i && ((is_float_p != 0) | (dest_id_i!='0))) begin
+        if(score_bits[i]) begin
           scoreboard_r[i] <= 1'b1;
         end
         else if (clear_combined[i]) begin
@@ -97,19 +110,35 @@ module scoreboard
     end
   end
 
-  logic depend_on_rs1;
-  logic depend_on_rs2;
+  logic [els_p-1:0] score_combined;
+  assign score_combined = score_bits | scoreboard_r;
+
+  logic [num_src_port_p-1:0] depend_on_rs;
   logic depend_on_rd;
 
-  assign depend_on_rs1 =
-    scoreboard_r[src1_id_i] & ~(clear_combined[src1_id_i]) & op_reads_rf1_i;
+  for (genvar i = 0; i < num_src_port_p; i++) begin
+    assign depend_on_rs[i] = score_combined[src_id_i[i]] & ~(clear_combined[src_id_i[i]]) & op_reads_rf_i[i];
+  end
 
-  assign depend_on_rs2 = 
-    scoreboard_r[src2_id_i] & ~(clear_combined[src2_id_i]) & op_reads_rf2_i;
+  assign depend_on_rd = score_combined[dest_id_i] & ~(clear_combined[dest_id_i]) & op_writes_rf_i;
 
-  assign depend_on_rd = 
-    scoreboard_r[dest_id_i] & ~(clear_combined[dest_id_i]) & op_writes_rf_i;
+  assign dependency_o = (|depend_on_rs) | depend_on_rd;
 
-  assign dependency_o = depend_on_rs1 | depend_on_rs2 | depend_on_rd;
+
+
+
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+      for (integer i = 0; i < num_clear_port_p; i++) begin
+        if (score_i & clear_i[i]) begin
+          assert(score_id_i != clear_id_i[i])
+            else $error("score and clear on the same id cannot happen.");
+        end
+      end
+    end
+  end
+  // synopsys translate_on
+
 
 endmodule

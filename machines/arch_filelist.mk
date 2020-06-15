@@ -5,9 +5,10 @@
 VINCLUDES += $(BASEJUMP_STL_DIR)/bsg_misc
 VINCLUDES += $(BASEJUMP_STL_DIR)/bsg_cache
 VINCLUDES += $(BASEJUMP_STL_DIR)/bsg_noc
-VINCLUDES += $(BASEJUMP_STL_DIR)/bsg_fpu
 VINCLUDES += $(BSG_MANYCORE_DIR)/v
 VINCLUDES += $(BSG_MANYCORE_DIR)/v/vanilla_bean
+VINCLUDES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source
+VINCLUDES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/RISCV
 
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_defines.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_pkg.v
@@ -18,6 +19,7 @@ VHEADERS += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_defines.vh
 VHEADERS += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkg.v
 VHEADERS += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_vanilla_pkg.v
 VHEADERS += $(BSG_MANYCORE_DIR)/v/bsg_manycore_addr_pkg.v
+VHEADERS += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/bsg_hardfloat_pkg.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_less_than.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_reduce.v
@@ -80,6 +82,8 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_synth.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_2r1w_sync.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_2r1w_sync_synth.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_3r1w_sync.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_3r1w_sync_synth.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_byte_synth.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.v
@@ -88,16 +92,6 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_bit_synth.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_stitch.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_router.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_router_buffered.v
-
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_classify.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_preprocess.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_add_sub.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_mul.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_cmp.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_i2f.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_f2i.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_clz.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_sticky.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_launch_sync_sync.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_sync_sync.v
@@ -125,6 +119,19 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_non_blocking_tl_stage.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_to_cache_non_blocking.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_vcache_non_blocking.v
 
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/fNToRecFN.v
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/compareRecFN.v
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/divSqrtRecFN_small.v
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/iNToRecFN.v
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/mulAddRecFN.v
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/recFNToFN.v
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/HardFloat_rawFN.v
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/HardFloat_primitives.v
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/isSigNaNRecFN.v
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/recFNToIN.v
+VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/RISCV/HardFloat_specialize.v
+
+
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_manycore_proc_vanilla.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/network_rx.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/network_tx.v
@@ -132,10 +139,16 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/vanilla_core.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/alu.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/cl_decode.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_float.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_float_fma.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_float_fma_round.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_float_aux.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_int.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_int_fclass.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fcsr.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_fdiv_fsqrt.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_fmin_fmax.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/icache.v
-VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/imul_idiv_iterative.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/idiv.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/load_packer.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/lsu.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile.v

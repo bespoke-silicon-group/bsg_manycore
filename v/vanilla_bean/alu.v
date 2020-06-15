@@ -41,10 +41,10 @@ assign or_out      = rs1_i | op2;
 
 always_comb
   begin
-    result_o        = 32'dx;
-    jalr_addr_o     = 32'dx;
-    sub_not_add     = 1'bx;
-    sign_ex_or_zero = 1'bx;
+    result_o        = 32'd0;
+    jalr_addr_o     = 32'd0;
+    sub_not_add     = 1'b0;
+    sign_ex_or_zero = 1'b0;
 
     unique casez (op_i)
       `RV32_LUI:
@@ -57,11 +57,6 @@ always_comb
         begin
           result_o = sum[31:0];
           sub_not_add = 1'b0;
-        end
-
-      `RV32_LR_W:
-        begin
-          result_o = rs1_i[31:0];
         end
 
       `RV32_SLTI, `RV32_SLT:

@@ -963,7 +963,6 @@ module spmd_testbench;
     status = $value$plusargs("vanilla_trace_en=%d", trace_arg);
     assign trace_en = (trace_arg == 1);
   end
-
   bind vanilla_core vanilla_core_trace #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -992,7 +991,6 @@ module spmd_testbench;
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.icache_entries_p(icache_entries_p)
     ,.data_width_p(data_width_p)
-    ,.dmem_size_p(dmem_size_p)
     ,.origin_x_cord_p(0)
     ,.origin_y_cord_p(2)
   ) vcore_prof (
@@ -1001,15 +999,6 @@ module spmd_testbench;
     ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
     ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
     ,.trace_en_i($root.spmd_testbench.trace_en)
-  );
-
-  // nb WAW detector
-  bind vanilla_core nb_waw_detector #(
-    .data_width_p(data_width_p)
-    ,.x_cord_width_p(x_cord_width_p)
-    ,.y_cord_width_p(y_cord_width_p)
-  ) waw0 (
-    .*
   );
 
   // tieoffs

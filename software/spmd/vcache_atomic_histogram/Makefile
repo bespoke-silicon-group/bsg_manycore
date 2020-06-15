@@ -2,6 +2,8 @@ all: main.run
 
 OBJECT_FILES=main.o
 
+MAX_CYCLES = 100000000
+
 include ../Makefile.include
 
 main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o

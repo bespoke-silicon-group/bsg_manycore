@@ -1,12 +1,11 @@
 # Beebs benchmark list
 #
 # Total: 85
-# Excluded: crc32 ctl matmult sglib-arraysort trio st nbody
+# Excluded: crc32 ctl matmult sglib-arraysort trio st
 # st excluded because the test itself came with a bug.
-# nbody excluded because of rounding mode bug.
+# aha-mont64, trio-sscanf, dtoa, levenstein contains mulh, which is not supported.
 
 BMARK_LIST  = aha-compress          \
-              aha-mont64            \
               bs                    \
               bubblesort            \
               cnt                   \
@@ -18,7 +17,6 @@ BMARK_LIST  = aha-compress          \
               ctl-vector            \
               cubic                 \
               dijkstra              \
-              dtoa                  \
               duff                  \
               edn                   \
               expint                \
@@ -33,7 +31,6 @@ BMARK_LIST  = aha-compress          \
               janne_complex         \
               jfdctint              \
               lcdnum                \
-              levenshtein           \
               ludcmp                \
               matmult-float         \
               matmult-int           \
@@ -79,7 +76,7 @@ BMARK_LIST  = aha-compress          \
               tarai                 \
               template              \
               trio-snprintf         \
-              trio-sscanf           \
               ud                    \
               whetstone             \
-              wikisort
+              wikisort							\
+							nbody

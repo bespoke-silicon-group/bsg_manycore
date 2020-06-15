@@ -221,7 +221,7 @@ _test11:
 
 _test12:
   li t0, 0x4138e148
-  li t1, 11
+  li t1, 12
   fmv.s.x f15, t0
   fcvt.wu.s t2, f15
   bne t2, t1, fail
@@ -379,5 +379,11 @@ _test27_end:
 pass:
   bsg_asm_finish(IO_X_INDEX, 0)
 
+pass_loop:
+  beq x0, x0, pass_loop
+
 fail:
   bsg_asm_fail(IO_X_INDEX, 0)
+
+fail_loop:
+  beq x0, x0, fail_loop

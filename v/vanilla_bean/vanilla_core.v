@@ -1,15 +1,15 @@
 /**
  *    vanilla_core.v
  *
+ *    Link to schematic:
+ *    https://docs.google.com/presentation/d/1ZeRHYhqMHJQ0mRgDTilLuWQrZF7On-Be_KNNosgeW0c/edit?usp=sharing
+ *
  */
 
 
-
 module vanilla_core
-
   import bsg_vanilla_pkg::*;
   import bsg_manycore_addr_pkg::*;
-
   #(parameter data_width_p="inv"
     , parameter dmem_size_p="inv"
     
@@ -19,6 +19,8 @@ module vanilla_core
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
 
+    , parameter max_out_credits_p="inv"
+
     // Enables branch & jalr target-addr stream on stderr
     , parameter branch_trace_en_p=0
 
@@ -27,6 +29,8 @@ module vanilla_core
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter data_mask_width_lp=(data_width_p>>3)
+
+    , parameter credit_counter_width_lp=$clog2(max_out_credits_p+1)
 
     , parameter debug_p=0
   )
@@ -40,6 +44,7 @@ module vanilla_core
     , output remote_req_s remote_req_o
     , output logic remote_req_v_o
     , input remote_req_yumi_i
+    , input remote_req_credit_i
 
     // from network
     , input icache_v_i
@@ -61,6 +66,8 @@ module vanilla_core
     , input [reg_addr_width_lp-1:0] float_remote_load_resp_rd_i
     , input [data_width_p-1:0] float_remote_load_resp_data_i
     , input float_remote_load_resp_v_i
+    , input float_remote_load_resp_force_i
+    , output logic float_remote_load_resp_yumi_o
 
     , input [reg_addr_width_lp-1:0] int_remote_load_resp_rd_i
     , input [data_width_p-1:0] int_remote_load_resp_data_i
@@ -68,8 +75,12 @@ module vanilla_core
     , input int_remote_load_resp_force_i
     , output logic int_remote_load_resp_yumi_o
 
-    , input outstanding_req_i
+    , input invalid_eva_access_i
 
+    // remaining credits
+    , input [credit_counter_width_lp-1:0] out_credits_i    
+
+    // For debugging
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
   );
@@ -81,8 +92,7 @@ module vanilla_core
   mem_signals_s mem_r, mem_n;
   wb_signals_s wb_r, wb_n;
   fp_exe_signals_s fp_exe_n, fp_exe_r;
-  fp_wb_signals_s fp_wb_n, fp_wb_r;
-
+  flw_wb_signals_s flw_wb_n, flw_wb_r;
 
   // icache
   //
@@ -96,6 +106,7 @@ module vanilla_core
   instruction_s instruction;
   logic icache_miss;
   logic icache_flush;
+  logic icache_flush_r_lo;
 
   logic [pc_width_lp-1:0] jalr_prediction; 
   logic [pc_width_lp-1:0] pred_or_jump_addr; 
@@ -122,34 +133,35 @@ module vanilla_core
     ,.pred_or_jump_addr_o(pred_or_jump_addr)
     ,.pc_r_o(pc_r)
     ,.icache_miss_o(icache_miss)
+    ,.icache_flush_r_o(icache_flush_r_lo)
   );
 
-  logic [pc_width_lp-1:0] pc_plus4;
-  assign pc_plus4 = pc_r + 1'b1;
+  wire [pc_width_lp-1:0] pc_plus4 = pc_r + 1'b1;
+
+  // debug pc
   // synopsys translate_off
-  logic [data_width_p-1:0] pc_00;
-  assign pc_00 = {1'b1,{(data_width_p-pc_width_lp-3){1'b0}}, pc_r, 2'b00};
+  wire [data_width_p-1:0] pc_00 = {1'b1,{(data_width_p-pc_width_lp-3){1'b0}}, pc_r, 2'b00};
+  wire [data_width_p-1:0] id_pc = (id_r.pc_plus4 - 'd4) | bsg_dram_npa_prefix_gp;
+  wire [data_width_p-1:0] exe_pc = (exe_r.pc_plus4 - 'd4) | bsg_dram_npa_prefix_gp;
   // synopsys translate_on
-  
 
   // instruction decode
   //
   decode_s decode;
-  fp_float_decode_s fp_float_decode;
-  fp_int_decode_s fp_int_decode;
+  fp_decode_s fp_decode;
 
   cl_decode decode0 (
     .instruction_i(instruction)
     ,.decode_o(decode)
-    ,.fp_float_decode_o(fp_float_decode)
-    ,.fp_int_decode_o(fp_int_decode)
+    ,.fp_decode_o(fp_decode)
   ); 
 
 
+  //////////////////////////////
   //                          //
   //        ID STAGE          //
   //                          //
-
+  //////////////////////////////
 
   bsg_dff_reset #(
     .width_p($bits(id_signals_s))
@@ -166,16 +178,14 @@ module vanilla_core
   logic [reg_addr_width_lp-1:0] int_rf_waddr;
   logic [data_width_p-1:0] int_rf_wdata;
  
-  logic int_rf_read_rs1;
-  logic [data_width_p-1:0] int_rf_rs1_data;; 
-
-  logic int_rf_read_rs2;
-  logic [data_width_p-1:0] int_rf_rs2_data;; 
+  logic [1:0] int_rf_read;
+  logic [1:0][data_width_p-1:0] int_rf_rdata;
 
   regfile #(
     .width_p(data_width_p)
-    ,.els_p(32)
-    ,.is_float_p(0)
+    ,.els_p(RV32_reg_els_gp)
+    ,.num_rs_p(2)
+    ,.x0_tied_to_zero_p(1)
   ) int_rf (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -184,65 +194,59 @@ module vanilla_core
     ,.w_addr_i(int_rf_waddr)
     ,.w_data_i(int_rf_wdata)
 
-    ,.r0_v_i(int_rf_read_rs1)
-    ,.r0_addr_i(instruction.rs1)
-    ,.r0_data_o(int_rf_rs1_data)
-
-    ,.r1_v_i(int_rf_read_rs2)
-    ,.r1_addr_i(instruction.rs2)
-    ,.r1_data_o(int_rf_rs2_data)
+    ,.r_v_i(int_rf_read)
+    ,.r_addr_i({instruction.rs2, instruction.rs1})
+    ,.r_data_o(int_rf_rdata)
   );
   
 
-  // int scoreboard
+  //  int scoreboard
   //
-  // this has two clear ports:
-  // [1] remote load clear
-  // [0] local load clear
   logic int_dependency;
   logic int_sb_score;
-  logic [1:0] int_sb_clear;
-  logic [1:0][reg_addr_width_lp-1:0] int_sb_clear_id;
+  logic [reg_addr_width_lp-1:0] int_sb_score_id;
+  logic int_sb_clear;
+  logic [reg_addr_width_lp-1:0] int_sb_clear_id;
 
   scoreboard #(
-    .els_p(32)
-    ,.is_float_p(0)
-    ,.num_clear_port_p(2)
+    .els_p(RV32_reg_els_gp)
+    ,.num_src_port_p(2)
+    ,.num_clear_port_p(1)
+    ,.x0_tied_to_zero_p(1)
   ) int_sb (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
   
-    ,.src1_id_i(id_r.instruction.rs1)
-    ,.src2_id_i(id_r.instruction.rs2)
+    ,.src_id_i({id_r.instruction.rs2, id_r.instruction.rs1})
     ,.dest_id_i(id_r.instruction.rd)
 
-    ,.op_reads_rf1_i(id_r.decode.op_reads_rf1)
-    ,.op_reads_rf2_i(id_r.decode.op_reads_rf2)
-    ,.op_writes_rf_i(id_r.decode.op_writes_rf)
+    ,.op_reads_rf_i({id_r.decode.read_rs2, id_r.decode.read_rs1})
+    ,.op_writes_rf_i(id_r.decode.write_rd)
 
     ,.score_i(int_sb_score)
+    ,.score_id_i(int_sb_score_id)
+
     ,.clear_i(int_sb_clear)
     ,.clear_id_i(int_sb_clear_id)
 
     ,.dependency_o(int_dependency)
   );
 
+
   // FP regfile
-  // f0 is not tied to zero.
+  //
   logic float_rf_wen;
   logic [reg_addr_width_lp-1:0] float_rf_waddr;
-  logic [data_width_p-1:0] float_rf_wdata;
+  logic [fpu_recoded_data_width_gp-1:0] float_rf_wdata;
  
-  logic float_rf_read_rs1;
-  logic [data_width_p-1:0] float_rf_rs1_data;; 
-
-  logic float_rf_read_rs2;
-  logic [data_width_p-1:0] float_rf_rs2_data;; 
+  logic [2:0] float_rf_read;
+  logic [2:0][fpu_recoded_data_width_gp-1:0] float_rf_rdata;
 
   regfile #(
-    .width_p(data_width_p)
-    ,.els_p(32)
-    ,.is_float_p(1)
+    .width_p(fpu_recoded_data_width_gp)
+    ,.els_p(RV32_reg_els_gp)
+    ,.num_rs_p(3)
+    ,.x0_tied_to_zero_p(0)
   ) float_rf (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -251,54 +255,81 @@ module vanilla_core
     ,.w_addr_i(float_rf_waddr)
     ,.w_data_i(float_rf_wdata)
 
-    ,.r0_v_i(float_rf_read_rs1)
-    ,.r0_addr_i(instruction.rs1)
-    ,.r0_data_o(float_rf_rs1_data)
-
-    ,.r1_v_i(float_rf_read_rs2)
-    ,.r1_addr_i(instruction.rs2)
-    ,.r1_data_o(float_rf_rs2_data)
+    ,.r_v_i(float_rf_read)
+    ,.r_addr_i({instruction[31:27], instruction.rs2, instruction.rs1})
+    ,.r_data_o(float_rf_rdata)
   );
+
 
   // FP scoreboard
   //
   logic float_dependency;
   logic float_sb_score;
+  logic [reg_addr_width_lp-1:0] float_sb_score_id;
   logic float_sb_clear;
   logic [reg_addr_width_lp-1:0] float_sb_clear_id;
 
   scoreboard #(
-    .els_p(32)
-    ,.is_float_p(1)
+    .els_p(RV32_reg_els_gp)
+    ,.x0_tied_to_zero_p(0)
+    ,.num_src_port_p(3)
     ,.num_clear_port_p(1)
   ) float_sb (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
   
-    ,.src1_id_i(id_r.instruction.rs1)
-    ,.src2_id_i(id_r.instruction.rs2)
+    ,.src_id_i({id_r.instruction[31:27], id_r.instruction.rs2, id_r.instruction.rs1})
     ,.dest_id_i(id_r.instruction.rd)
 
-    ,.op_reads_rf1_i(id_r.decode.op_reads_fp_rf1)
-    ,.op_reads_rf2_i(id_r.decode.op_reads_fp_rf2)
-    ,.op_writes_rf_i(id_r.decode.op_writes_fp_rf)
+    ,.op_reads_rf_i({id_r.decode.read_frs3, id_r.decode.read_frs2, id_r.decode.read_frs1})
+    ,.op_writes_rf_i(id_r.decode.write_frd)
 
     ,.score_i(float_sb_score)
+    ,.score_id_i(float_sb_score_id)
+
     ,.clear_i(float_sb_clear)
     ,.clear_id_i(float_sb_clear_id)
 
     ,.dependency_o(float_dependency)
   );
 
+  // FCSR
+  //
+  logic fcsr_v_li;
+  logic [2:0] fcsr_funct3_li;
+  logic [reg_addr_width_lp-1:0] fcsr_rs1_li;
+  fcsr_s fcsr_data_li;
+  logic [11:0] fcsr_addr_li;
+  fcsr_s fcsr_data_lo;
+  logic [1:0] fcsr_fflags_v_li;
+  fflags_s [1:0] fcsr_fflags_li;
+  frm_e frm_r;
+
+  fcsr fcsr0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    
+    ,.v_i(fcsr_v_li)
+    ,.funct3_i(fcsr_funct3_li)
+    ,.rs1_i(fcsr_rs1_li)
+    ,.data_i(fcsr_data_li)
+    ,.addr_i(fcsr_addr_li)
+    ,.data_o(fcsr_data_lo)
+    // [0] fpu_int -> MEM
+    // [1] fpu_float, fdiv -> FP_WB
+    ,.fflags_v_i(fcsr_fflags_v_li)
+    ,.fflags_i(fcsr_fflags_li)
+    ,.frm_o(frm_r)
+  );
+
+
   // calculate mem address offset
   //
-
-  wire is_amo_or_lr_op = id_r.decode.op_is_lr
-    | id_r.decode.op_is_lr_aq
+  wire is_amo_or_lr_op = id_r.decode.is_lr_op
+    | id_r.decode.is_lr_aq_op
     | id_r.decode.is_amo_op;
 
-  logic [data_width_p-1:0] mem_addr_op2;
-  assign mem_addr_op2 = is_amo_or_lr_op
+  wire [data_width_p-1:0] mem_addr_op2 = is_amo_or_lr_op
     ? '0
     : (id_r.decode.is_store_op
       ? `RV32_signext_Simm(id_r.instruction)
@@ -333,12 +364,133 @@ module vanilla_core
   end
 
 
+  // FP_EXE forwarding muxes
+  //
+  logic [fpu_recoded_data_width_gp-1:0] rs1_recoded_val;
+  fNToRecFN #(
+    .expWidth(fpu_recoded_exp_width_gp)
+    ,.sigWidth(fpu_recoded_sig_width_gp)
+  ) recFN_rs1 (
+    .in(int_rf_rdata[0])
+    ,.out(rs1_recoded_val)
+  );
 
+  // select between fmv and i2f
+  logic select_recoded_rs1;
+  logic [fpu_recoded_data_width_gp-1:0] rs1_to_fp_exe;
+  bsg_mux #(
+    .els_p(2)
+    ,.width_p(fpu_recoded_data_width_gp)
+  ) rs1_select_mux (
+    .data_i({rs1_recoded_val, {1'b0, int_rf_rdata[0]}})
+    ,.sel_i(select_recoded_rs1)
+    ,.data_o(rs1_to_fp_exe)
+  );
+  
+  // select between rs1 and frs1
+  logic [fpu_recoded_data_width_gp-1:0] frs1_select_val;
+  logic select_rs1_to_fp_exe;
+
+  bsg_mux #(
+    .els_p(2)
+    ,.width_p(fpu_recoded_data_width_gp)
+  ) frs1_select_mux (
+    .data_i({rs1_to_fp_exe, float_rf_rdata[0]})
+    ,.sel_i(select_rs1_to_fp_exe)
+    ,.data_o(frs1_select_val)
+  );
+  
+  logic frs1_forward_v;
+  logic frs2_forward_v;
+  logic frs3_forward_v;
+  logic [fpu_recoded_data_width_gp-1:0] frs1_to_fp_exe;
+  logic [fpu_recoded_data_width_gp-1:0] frs2_to_fp_exe;
+  logic [fpu_recoded_data_width_gp-1:0] frs3_to_fp_exe;
+
+  bsg_mux #(
+    .els_p(2)
+    ,.width_p(fpu_recoded_data_width_gp)
+  ) frs1_fwd_mux (
+    .data_i({float_rf_wdata, frs1_select_val})
+    ,.sel_i(frs1_forward_v)
+    ,.data_o(frs1_to_fp_exe)
+  );
+
+  bsg_mux #(
+    .els_p(2)
+    ,.width_p(fpu_recoded_data_width_gp)
+  ) frs2_fwd_mux (
+    .data_i({float_rf_wdata, float_rf_rdata[1]})
+    ,.sel_i(frs2_forward_v)
+    ,.data_o(frs2_to_fp_exe)
+  );
+
+  bsg_mux #(
+    .els_p(2)
+    ,.width_p(fpu_recoded_data_width_gp)
+  ) frs3_fwd_mux (
+    .data_i({float_rf_wdata, float_rf_rdata[2]})
+    ,.sel_i(frs3_forward_v)
+    ,.data_o(frs3_to_fp_exe)
+  );
+
+
+  // EXE FORWARDING MUX
+  logic [data_width_p-1:0] fsw_data;
+  recFNToFN #(
+    .expWidth(fpu_recoded_exp_width_gp)
+    ,.sigWidth(fpu_recoded_sig_width_gp) 
+  ) frs2_to_fn (
+    .in(float_rf_rdata[1])
+    ,.out(fsw_data)
+  );
+
+  logic [data_width_p-1:0] exe_result;
+  logic [data_width_p-1:0] mem_result;
+  logic [1:0] rs1_forward_sel;
+  logic [1:0] rs2_forward_sel;
+  logic [data_width_p-1:0] rs1_forward_val;
+  logic [data_width_p-1:0] rs2_forward_val;
+  logic rs1_forward_v;
+  logic rs2_forward_v;
+
+  bsg_mux #(
+    .els_p(3)
+    ,.width_p(data_width_p)
+  ) exe_rs1_fwd_mux (
+    .data_i({wb_r.rf_data, mem_result, exe_result})
+    ,.sel_i(rs1_forward_sel)
+    ,.data_o(rs1_forward_val)
+  );
+  
+  bsg_mux #(
+    .els_p(3)
+    ,.width_p(data_width_p)
+  ) exe_rs2_fwd_mux (
+    .data_i({wb_r.rf_data, mem_result, exe_result})
+    ,.sel_i(rs2_forward_sel)
+    ,.data_o(rs2_forward_val)
+  );
+
+  logic [data_width_p-1:0] rs1_val_to_exe;
+  logic [data_width_p-1:0] rs2_val_to_exe;
+
+  assign rs1_val_to_exe = rs1_forward_v
+    ? rs1_forward_val
+    : int_rf_rdata[0];
+  
+  assign rs2_val_to_exe = id_r.decode.read_frs2
+    ? fsw_data
+    : (rs2_forward_v
+      ? rs2_forward_val
+      : int_rf_rdata[1]);
+
+
+  //////////////////////////////
   //                          //
   //        EXE STAGE         //
   //                          //
-
-
+  //////////////////////////////
 
   bsg_dff_reset #(
     .width_p($bits(exe_signals_s))
@@ -349,58 +501,6 @@ module vanilla_core
     ,.data_o(exe_r)
   );
 
-  // synopsys translate_off
-  logic [data_width_p-1:0] exe_pc;
-  assign exe_pc = (exe_r.pc_plus4 - 'd4) | bsg_dram_npa_prefix_gp;
-  // synopsys translate_on
-
-  // EXE forwarding muxes
-  //
-  logic exe_rs1_forward;
-  logic exe_rs2_forward;
-  logic [data_width_p-1:0] exe_rs1_forward_val;
-  logic [data_width_p-1:0] exe_rs2_forward_val;
-  logic [data_width_p-1:0] exe_rs1_final; // post-forward rs1
-  logic [data_width_p-1:0] exe_rs2_final; // post-forward rs2
-
-  assign exe_rs1_forward = exe_r.rs1_in_mem | exe_r.rs1_in_wb;
-  assign exe_rs2_forward = exe_r.rs2_in_mem | exe_r.rs2_in_wb;
-
-  bsg_mux #(
-    .width_p(data_width_p) 
-    ,.els_p(2)
-  ) exe_rs1_forward_val_mux (
-    .data_i({mem_r.exe_result, wb_r.rf_data})
-    ,.sel_i(exe_r.rs1_in_mem)
-    ,.data_o(exe_rs1_forward_val)
-  );
-
-  bsg_mux #(
-    .width_p(data_width_p)
-    ,.els_p(2)
-  ) exe_rs1_final_mux (
-    .data_i({exe_rs1_forward_val, exe_r.rs1_val})
-    ,.sel_i(exe_rs1_forward)
-    ,.data_o(exe_rs1_final)
-  );
-
-  bsg_mux #(
-    .width_p(data_width_p) 
-    ,.els_p(2)
-  ) exe_rs2_forward_val_mux (
-    .data_i({mem_r.exe_result, wb_r.rf_data})
-    ,.sel_i(exe_r.rs2_in_mem)
-    ,.data_o(exe_rs2_forward_val)
-  );
-
-  bsg_mux #(
-    .width_p(data_width_p)
-    ,.els_p(2)
-  ) exe_rs2_final_mux (
-    .data_i({exe_rs2_forward_val, exe_r.rs2_val})
-    ,.sel_i(exe_rs2_forward)
-    ,.data_o(exe_rs2_final)
-  );
 
   // ALU
   //
@@ -411,8 +511,8 @@ module vanilla_core
   alu #(
     .pc_width_p(pc_width_lp)
   ) alu0 (
-    .rs1_i(exe_rs1_final)
-    ,.rs2_i(exe_rs2_final)
+    .rs1_i(exe_r.rs1_val)
+    ,.rs2_i(exe_r.rs2_val)
     ,.pc_plus4_i(exe_r.pc_plus4)
     ,.op_i(exe_r.instruction)
     ,.result_o(alu_result)
@@ -420,28 +520,23 @@ module vanilla_core
     ,.jump_now_o(alu_jump_now)
   );
 
-  logic branch_under_predict;
-  logic branch_over_predict;
-  logic branch_mispredict;
-  logic jalr_mispredict;
-
-  assign branch_under_predict = alu_jump_now & ~exe_r.instruction[0]; 
-  assign branch_over_predict = ~alu_jump_now & exe_r.instruction[0]; 
-  assign branch_mispredict = exe_r.decode.is_branch_op & (branch_under_predict | branch_over_predict);
-  assign jalr_mispredict = exe_r.decode.is_jalr_op &
-    (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
+  wire branch_under_predict = alu_jump_now & ~exe_r.instruction[0]; 
+  wire branch_over_predict = ~alu_jump_now & exe_r.instruction[0]; 
+  wire branch_mispredict = exe_r.decode.is_branch_op & (branch_under_predict | branch_over_predict);
+  wire jalr_mispredict = exe_r.decode.is_jalr_op & (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
 
   // Compute branch/jalr target address
   logic [pc_width_lp-1:0] exe_pc_target;
 
-  always_comb
-  begin
+  always_comb begin
     if (exe_r.decode.is_branch_op) begin
       exe_pc_target = branch_under_predict
         ? exe_r.pred_or_jump_addr[2+:pc_width_lp]
         : exe_r.pc_plus4[2+:pc_width_lp];
-    end else
+    end
+    else begin
       exe_pc_target = alu_jalr_addr;
+    end
   end
 
   // save pc+4 of jalr/jal for predicting jalr branch target
@@ -460,55 +555,38 @@ module vanilla_core
     ,.data_o(jalr_prediction_r)
   ); 
 
+  // alu/csr result mux
+  wire [data_width_p-1:0] alu_or_csr_result = exe_r.decode.is_csr_op
+    ? {24'b0, exe_r.fcsr_data}
+    : alu_result;
 
-  // FPU int
+
+  // IDIV
   //
+  logic idiv_v_li;
+  logic idiv_ready_lo;
+  logic idiv_v_lo;
+  logic [reg_addr_width_lp-1:0] idiv_rd_lo;
+  logic [data_width_p-1:0] idiv_result_lo;
+  logic idiv_yumi_li;
 
-  logic [data_width_p-1:0] fpu_int_result;
-
-  fpu_int fpu_int0 (
-    .a_i(exe_rs1_final)
-    ,.b_i(exe_rs2_final)
-    ,.fp_int_decode_i(exe_r.fp_int_decode)
-    ,.result_o(fpu_int_result)
-  );
-
-
-  // MULDIV
-  //
-  logic md_v_li;
-  logic md_ready_lo;
-  logic md_v_lo;
-  logic [data_width_p-1:0] md_result;
-  logic md_yumi_li;
-
-  imul_idiv_iterative #(
-    .width_p(data_width_p)
-  ) muldiv (
+  idiv idiv0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
 
-    ,.v_i(md_v_li)
-    ,.ready_o(md_ready_lo)
-
-    ,.opA_i(exe_rs1_final)
-    ,.opB_i(exe_rs2_final)
-    ,.funct3(exe_r.instruction.funct3)
-
-    ,.v_o(md_v_lo)
-    ,.result_o(md_result)
-    ,.yumi_i(md_yumi_li)
+    ,.v_i(idiv_v_li)
+    ,.rs1_i(exe_r.rs1_val)
+    ,.rs2_i(exe_r.rs2_val)
+    ,.rd_i(exe_r.instruction.rd)
+    ,.op_i(exe_r.decode.idiv_op)
+    ,.ready_o(idiv_ready_lo)
+  
+    ,.v_o(idiv_v_lo)
+    ,.rd_o(idiv_rd_lo)
+    ,.result_o(idiv_result_lo)
+    ,.yumi_i(idiv_yumi_li)
   );
-
-  // exe result (outputs from either ALU, FPU_int, or MD)
-  //
-  logic [data_width_p-1:0] exe_result;
-
-  assign exe_result = exe_r.decode.is_md_op
-    ? md_result
-    : (exe_r.decode.is_fp_int_op
-      ? fpu_int_result
-      : alu_result);
+  
 
   // LSU
   //
@@ -530,8 +608,8 @@ module vanilla_core
     .clk_i(clk_i)
     ,.reset_i(reset_i)
     ,.exe_decode_i(exe_r.decode)
-    ,.exe_rs1_i(exe_rs1_final)
-    ,.exe_rs2_i(exe_rs2_final)
+    ,.exe_rs1_i(exe_r.rs1_val)
+    ,.exe_rs2_i(exe_r.rs2_val)
     ,.exe_rd_i(exe_r.instruction.rd)
     ,.mem_offset_i(exe_r.mem_addr_op2)
     ,.pc_plus4_i(exe_r.pc_plus4)
@@ -548,17 +626,126 @@ module vanilla_core
     ,.dmem_mask_o(lsu_dmem_mask_lo)
 
     ,.reserve_o(lsu_reserve_lo)
+
     ,.mem_addr_sent_o(lsu_mem_addr_sent_lo)
   );
 
-  logic reserved_r;
-  logic [dmem_addr_width_lp-1:0] reserved_addr_r;
+
+  //////////////////////////////
+  //                          //
+  //      FP EXE STAGE        //
+  //                          //
+  //////////////////////////////
+
+  bsg_dff_reset #(
+    .width_p($bits(fp_exe_signals_s))
+  ) fp_exe_pipeline (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.data_i(fp_exe_n)
+    ,.data_o(fp_exe_r)
+  );
+
+  // FPU FLOAT
+  //
+  logic stall_fpu1_li;
+  logic stall_fpu2_li;
+
+  logic imul_v_lo;
+  logic [data_width_p-1:0] imul_result_lo;
+  logic [reg_addr_width_lp-1:0] imul_rd_lo;
+
+  logic fpu_float_v_lo;
+  logic [fpu_recoded_data_width_gp-1:0] fpu_float_result_lo;
+  fflags_s fpu_float_fflags_lo;
+  logic [reg_addr_width_lp-1:0] fpu_float_rd_lo;
+
+  logic fpu1_v_r;
+  logic [reg_addr_width_lp-1:0] fpu1_rd_r;
+
+  fpu_float fpu_float0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.stall_fpu1_i(stall_fpu1_li)
+    ,.stall_fpu2_i(stall_fpu2_li)
+
+    ,.imul_v_i(exe_r.decode.is_imul_op)
+    ,.imul_rs1_i(exe_r.rs1_val)
+    ,.imul_rs2_i(exe_r.rs2_val)
+    ,.imul_rd_i(exe_r.instruction.rd)
+
+    ,.fp_v_i(fp_exe_r.fp_decode.is_fpu_float_op)
+    ,.fpu_float_op_i(fp_exe_r.fp_decode.fpu_float_op)
+    ,.fp_rs1_i(fp_exe_r.rs1_val)
+    ,.fp_rs2_i(fp_exe_r.rs2_val)
+    ,.fp_rs3_i(fp_exe_r.rs3_val)
+    ,.fp_rd_i(fp_exe_r.rd)
+    ,.fp_rm_i(fp_exe_r.rm)
+
+    ,.imul_v_o(imul_v_lo)
+    ,.imul_result_o(imul_result_lo)
+    ,.imul_rd_o(imul_rd_lo)
+
+    ,.fp_v_o(fpu_float_v_lo)
+    ,.fp_result_o(fpu_float_result_lo)
+    ,.fp_fflags_o(fpu_float_fflags_lo)
+    ,.fp_rd_o(fpu_float_rd_lo)
+  
+    ,.fpu1_v_r_o(fpu1_v_r)
+    ,.fpu1_rd_o(fpu1_rd_r)
+  );
+ 
+  // FPU INT - computes float op that writes back to INT regfile. 
+  logic [data_width_p-1:0] fpu_int_result_lo;
+  fflags_s fpu_int_fflags_lo;
+
+  fpu_int fpu_int0(
+    .fp_rs1_i(fp_exe_r.rs1_val)
+    ,.fp_rs2_i(fp_exe_r.rs2_val)
+    ,.fpu_int_op_i(fp_exe_r.fp_decode.fpu_int_op)
+    ,.fp_rm_i(fp_exe_r.rm)
+
+    ,.result_o(fpu_int_result_lo)
+    ,.fflags_o(fpu_int_fflags_lo)
+  );
+
+  // FPU div sqrt - this writes back to FP regfile.
+  logic fdiv_fsqrt_v_li;
+  logic fdiv_fsqrt_ready_lo;
+  logic fdiv_fsqrt_v_lo;
+  logic [fpu_recoded_data_width_gp-1:0] fdiv_fsqrt_result_lo;
+  fflags_s fdiv_fsqrt_fflags_lo;
+  logic [reg_addr_width_lp-1:0] fdiv_fsqrt_rd_lo;
+  logic fdiv_fsqrt_yumi_li;
+
+  fpu_fdiv_fsqrt fpu_fdiv_fsqrt0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.v_i(fdiv_fsqrt_v_li)
+    ,.rd_i(fp_exe_r.rd)
+    ,.rm_i(fp_exe_r.rm)
+    ,.fp_rs1_i(fp_exe_r.rs1_val)
+    ,.fp_rs2_i(fp_exe_r.rs2_val)
+    ,.fsqrt_i(fp_exe_r.fp_decode.is_fsqrt_op)
+    ,.ready_o(fdiv_fsqrt_ready_lo)
+
+    ,.v_o(fdiv_fsqrt_v_lo)
+    ,.result_o(fdiv_fsqrt_result_lo)
+    ,.fflags_o(fdiv_fsqrt_fflags_lo)
+    ,.rd_o(fdiv_fsqrt_rd_lo)
+    ,.yumi_i(fdiv_fsqrt_yumi_li)
+  );
 
 
+  
+
+  //////////////////////////////
   //                          //
   //        MEM STAGE         //
   //                          //
-
+  //////////////////////////////
 
   bsg_dff_reset #(
     .width_p($bits(mem_signals_s))
@@ -583,14 +770,11 @@ module vanilla_core
   ) dmem (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-
     ,.v_i(dmem_v_li)
     ,.w_i(dmem_w_li)
-
     ,.addr_i(dmem_addr_li)
     ,.data_i(dmem_data_li)
     ,.write_mask_i(dmem_mask_li)
-
     ,.data_o(dmem_data_lo)
   );
 
@@ -633,12 +817,45 @@ module vanilla_core
     ,.load_data_o(local_load_packed_data) 
   );
 
+  // load reservation registers
+  logic reserved_r;
+  logic [dmem_addr_width_lp-1:0] reserved_addr_r;
 
+  logic make_reserve;
+  logic break_reserve;
+
+  // synopsys sync_set_reset "reset_i"
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      reserved_r <= 1'b0;
+      reserved_addr_r <= '0;
+    end
+    else begin
+      if (make_reserve) begin
+        reserved_r <= 1'b1;
+        reserved_addr_r <= dmem_addr_li;
+        // synopsys translate_off
+        if (debug_p)
+          $display("[INFO][VCORE] making reservation. t=%0t, addr=%x, x=%0d, y=%0d", $time, dmem_addr_li, my_x_i, my_y_i);
+        // synopsys translate_on
+      end
+      else if (break_reserve) begin
+        reserved_r <= 1'b0;
+        // synopsys translate_off
+        if (debug_p)
+          $display("[INFO][VCORE] breaking reservation. t=%0t, x=%0d, y=%0d.", $time, my_x_i, my_y_i);
+        // synopsys translate_on
+      end
+    end
+  end
+
+
+  //////////////////////////////
   //                          //
   //        WB STAGE          //
   //                          //
+  //////////////////////////////
 
-  
   bsg_dff_reset #(
     .width_p($bits(wb_signals_s))
   ) wb_pipeline (
@@ -649,125 +866,117 @@ module vanilla_core
   );
 
 
+  //////////////////////////////
   //                          //
-  //      FP EXE STAGE        //
+  //    FLW WB STAGE          //
   //                          //
-
+  //////////////////////////////
 
   bsg_dff_reset #(
-    .width_p($bits(fp_exe_signals_s))
-  ) fp_exe_pipeline (
+    .width_p($bits(flw_wb_signals_s))
+  ) flw_wb_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.data_i(fp_exe_n)
-    ,.data_o(fp_exe_r)
+    ,.data_i(flw_wb_n)
+    ,.data_o(flw_wb_r)
   );
 
-  logic fpu_float_ready_lo;
-  logic fpu_float_v_lo;
-  logic [data_width_p-1:0] fpu_float_result_lo;
-  logic [reg_addr_width_lp-1:0] fpu_float_rd_lo;
-  logic fpu_float_yumi_li;
+  logic select_remote_flw;
+  logic [data_width_p-1:0] flw_data;
+  bsg_mux #(
+    .width_p(data_width_p)
+    ,.els_p(2)
+  ) flw_recFN_mux (
+    .data_i({float_remote_load_resp_data_i, flw_wb_r.rf_data})
+    ,.sel_i(select_remote_flw)
+    ,.data_o(flw_data)
+  );
 
-  fpu_float fpu_float0 (
-    .clk_i(clk_i)
-    ,.reset_i(reset_i)
-
-    ,.v_i(fp_exe_r.valid)
-    ,.fp_float_decode_i(fp_exe_r.fp_float_decode)
-    ,.a_i(fp_exe_r.rs1_val)
-    ,.b_i(fp_exe_r.rs2_val)
-    ,.rd_i(fp_exe_r.rd)
-    ,.ready_o(fpu_float_ready_lo)
-
-    ,.v_o(fpu_float_v_lo)
-    ,.result_o(fpu_float_result_lo)
-    ,.rd_o(fpu_float_rd_lo)
-    ,.yumi_i(fpu_float_yumi_li)
+  logic [fpu_recoded_data_width_gp-1:0] flw_recoded_data;
+  fNToRecFN #(
+    .expWidth(fpu_recoded_exp_width_gp)
+    ,.sigWidth(fpu_recoded_sig_width_gp)
+  ) flw_to_RecFN (
+    .in(flw_data)
+    ,.out(flw_recoded_data)
   );
 
 
-  //                          //
-  //      FP WB  STAGE        //
-  //                          //
-
-
-  bsg_dff_reset #(
-    .width_p($bits(fp_wb_signals_s))
-  ) fp_wb_pipeline (
-    .clk_i(clk_i)
-    ,.reset_i(reset_i)
-    ,.data_i(fp_wb_n)
-    ,.data_o(fp_wb_r)
-  );
-
-
+  //////////////////////////////
   //                          //
   //      CONTROL LOGIC       //
   //                          //
+  //////////////////////////////
 
+  // IF stall signals
+  logic stall_icache_store;
 
-  // stall conditions
-  //
-  logic stall;
-  logic stall_fp;           // stall on float pipeline
-  logic stall_depend;       // stall on issuing instr to either EXE or FP_EXE
-  logic stall_ifetch_wait;  // stall on ifetch in MEM
-  logic stall_icache_store; // stall on icache remote store
-  logic stall_lr_aq;        // stall on lrw reservation
-  logic stall_fence;        // stall on fence in EXE
-  logic stall_md;           // stall on muldiv in EXE
-  logic stall_force_wb;     // stall on force remote load wb 
-  logic stall_remote_req;   // stall on sending remote request
-  logic stall_local_flw;    // stall on local flw
-  logic stall_amo_aq;       // memory ops stalled in ID because of 'aq' register
-  logic stall_amo_rl;       // amoswap.w.rl stalled in ID because of pending remote requests.
+  // ID stall signals
+  logic stall_depend_long_op;
+  logic stall_depend_local_load;
+  logic stall_depend_imul;
+  logic stall_bypass;
+  logic stall_lr_aq;
+  logic stall_fence;
+  logic stall_amo_aq;
+  logic stall_amo_rl;
+  logic stall_remote_req;
+  logic stall_remote_credit;
+  logic stall_fdiv_busy;
+  logic stall_idiv_busy;
+  logic stall_fcsr;
 
-  assign stall = stall_ifetch_wait
-    | stall_icache_store
+  // MEM stall signals
+  logic stall_idiv_wb;
+  logic stall_remote_ld_wb;
+  logic stall_ifetch_wait;
+  
+  // FP_WB stall signals
+  logic stall_fdiv_wb;
+  logic stall_remote_flw_wb;
+
+  wire stall_id = stall_depend_long_op
+    | stall_depend_local_load
+    | stall_depend_imul
+    | stall_bypass
     | stall_lr_aq
     | stall_fence
-    | stall_md
-    | stall_force_wb
+    | stall_amo_aq
+    | stall_amo_rl
     | stall_remote_req
-    | stall_local_flw;
+    | stall_remote_credit
+    | stall_fdiv_busy
+    | stall_idiv_busy
+    | stall_fcsr;
 
-  assign stall_lr_aq = exe_r.decode.op_is_lr_aq & reserved_r;
-  assign stall_fence = exe_r.decode.is_fence_op & outstanding_req_i;
-  assign stall_remote_req = remote_req_v_o & ~remote_req_yumi_i;
-  assign stall_ifetch_wait = mem_r.icache_miss & ~ifetch_v_i;
-  assign stall_amo_aq = aq_r & ~aq_clear &
-    (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.decode.op_is_lr_aq | id_r.decode.op_is_lr);
-  assign stall_amo_rl = id_r.decode.is_amo_op & id_r.decode.is_amo_rl & outstanding_req_i;
+  wire stall = stall_icache_store
+    | stall_idiv_wb
+    | stall_remote_ld_wb
+    | stall_ifetch_wait
+    | stall_fdiv_wb
+    | stall_remote_flw_wb;
+
 
   // flush condition
-  //
-  logic flush;
-  logic icache_miss_in_pipe;
+  wire flush = (branch_mispredict | jalr_mispredict);
+  wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_r.icache_miss | wb_r.icache_miss;
 
-  assign flush = (branch_mispredict | jalr_mispredict);
-  assign icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss
-      | mem_r.icache_miss | wb_r.icache_miss;
-
-  // next pc logic
-  //
+  // reset edge down detect
   logic reset_r;
-  logic reset_down;
-
   bsg_dff #(.width_p(1)) reset_dff (
     .clk_i(clk_i)
     ,.data_i(reset_i)
     ,.data_o(reset_r)
-  );
+  );  
 
-  assign reset_down = reset_r & ~reset_i;
-  
+  wire reset_down = reset_r & ~reset_i;
+
   always_comb begin
     if (reset_down)
       pc_n = pc_init_val_i;
     else if (wb_r.icache_miss)
       pc_n = wb_r.icache_miss_pc[2+:pc_width_lp];
-    else if (branch_mispredict | jalr_mispredict)
+    else if (flush)
       pc_n = exe_pc_target;
     else if (decode.is_branch_op & instruction[0])
       pc_n = pred_or_jump_addr;
@@ -776,247 +985,293 @@ module vanilla_core
     else
       pc_n = pc_plus4;
   end
+  
 
-
-  //  icache ctrl logic
-  //
-  //  icache can be written by:
-  //  1) remote store from host or another tile.
-  //  2) icache miss response.
-  //
-  //  icache fetch gets higher priority than icache remote store.
-  //  
-  //  when there is an incoming icache remote store, the pipeline stalls, and
-  //  allows writing into the icache.
-  //
-  //  PC update and icache read happen together.
-  //
-  //  icache can be flushed when:
-  //  1) there is branch/jump mispredict.
-  //  2) icache bubble in the pipeline.
-  //
-  //  icache can be flushed and read at the same time, and it will output the
-  //  read value.
-  //
-  logic read_icache;
-
-  assign read_icache = (icache_miss_in_pipe & ~flush)
-    ? wb_r.icache_miss 
+  // icache logic
+  wire read_icache = (icache_miss_in_pipe & ~flush)
+    ? wb_r.icache_miss
     : 1'b1;
 
-  assign icache_v_li = icache_v_i | ifetch_v_i 
-    | (~stall & ~stall_depend & ~stall_fp & read_icache & ~stall_amo_aq & ~stall_amo_rl);
+  assign icache_v_li = icache_v_i | ifetch_v_i
+    | (read_icache & ~stall & ~(stall_id & ~flush));
 
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
   assign icache_w_pc = ifetch_v_i
     ? mem_r.mem_addr_sent[2+:pc_width_lp]
-    : icache_pc_i[0+:pc_width_lp];
+    : icache_pc_i;
 
   assign icache_winstr = ifetch_v_i
     ? ifetch_instr_i
     : icache_instr_i;
 
-  assign icache_yumi_o = icache_v_i & (~ifetch_v_i);
+  assign icache_yumi_o = icache_v_i & ~ifetch_v_i;
 
   assign icache_flush = flush | icache_miss_in_pipe;
-
+  
   assign stall_icache_store = icache_v_i & icache_yumi_o;
- 
+
+
   // IF -> ID
   //
-  wire stall_id = stall | stall_depend | stall_fp | stall_amo_aq | stall_amo_rl;
-
   always_comb begin
-    if (stall_id) begin
+    if (stall) begin
       id_n = id_r;
     end
     else begin
-      if (flush | icache_miss_in_pipe) begin
-        id_n.pc_plus4 = '0;
-        id_n.pred_or_jump_addr = '0;
-        id_n.instruction = '0;
-        id_n.decode = '0;
-        id_n.fp_int_decode = '0;
-        id_n.fp_float_decode = '0;
-        id_n.icache_miss = 1'b0;
+      if (reset_down | flush | icache_miss_in_pipe | icache_flush_r_lo) begin
+        id_n = '0;
+      end    
+      else if (stall_id) begin
+        id_n = id_r;
       end
       else if (icache_miss) begin
-        // insert "icache bubble"
-        id_n.pc_plus4 = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0};
-        id_n.pred_or_jump_addr = '0;
-        id_n.instruction = '0;
-        id_n.decode = '0;
-        id_n.fp_int_decode = '0;
-        id_n.fp_float_decode = '0;
-        id_n.icache_miss = 1'b1;
+        id_n = '{
+          pc_plus4: {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0},
+          pred_or_jump_addr: '0,
+          instruction: '0,
+          decode: '0,
+          fp_decode: '0,
+          icache_miss: 1'b1
+        };
       end
       else begin
-        id_n.pc_plus4 = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0};
-        id_n.pred_or_jump_addr = {{(data_width_p-pc_width_lp-2){1'b0}}, pred_or_jump_addr, 2'b0};
-        id_n.instruction = instruction;
-        id_n.decode = decode;
-        id_n.fp_int_decode = fp_int_decode;
-        id_n.fp_float_decode = fp_float_decode;
-        id_n.icache_miss = 1'b0;
+        id_n = '{
+          pc_plus4: {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0},
+          pred_or_jump_addr: {{(data_width_p-pc_width_lp-2){1'b0}}, pred_or_jump_addr, 2'b0},
+          instruction: instruction,
+          decode: decode,
+          fp_decode: fp_decode,
+          icache_miss: 1'b0
+        };
       end
     end
   end
 
+
   // regfile read
-  //
-  assign int_rf_read_rs1 = id_n.decode.op_reads_rf1 & ~stall_id;
-  assign int_rf_read_rs2 = id_n.decode.op_reads_rf2 & ~stall_id;
-  assign float_rf_read_rs1 = id_n.decode.op_reads_fp_rf1 & ~stall_id;
-  assign float_rf_read_rs2 = id_n.decode.op_reads_fp_rf2 & ~stall_id;
+  assign int_rf_read[0] = id_n.decode.read_rs1 & ~(stall_id | stall);
+  assign int_rf_read[1] = id_n.decode.read_rs2 & ~(stall_id | stall);
+  assign float_rf_read[0] = id_n.decode.read_frs1 & ~(stall_id | stall);
+  assign float_rf_read[1] = id_n.decode.read_frs2 & ~(stall_id | stall);
+  assign float_rf_read[2] = id_n.decode.read_frs3 & ~(stall_id | stall);
 
-  // scoreboard
-  //
-  assign int_sb_score =
-    ((id_r.decode.is_load_op & id_r.decode.op_writes_rf) | id_r.decode.is_amo_op | id_r.decode.op_is_lr | id_r.decode.op_is_lr_aq)
-    & ~(flush | stall | stall_depend | stall_fp | stall_amo_rl | stall_amo_aq); // LW
+  // helpful control signals;
+  wire [reg_addr_width_lp-1:0] id_rs1 = id_r.instruction.rs1;
+  wire [reg_addr_width_lp-1:0] id_rs2 = id_r.instruction.rs2;
+  wire [reg_addr_width_lp-1:0] id_rs3 = id_r.instruction[31:27];
+  wire [reg_addr_width_lp-1:0] id_rd = id_r.instruction.rd;
+  wire remote_req_in_exe = lsu_remote_req_v_lo;
+  wire local_load_in_exe = lsu_dmem_v_lo & ~lsu_dmem_w_lo;
+  wire id_rs1_non_zero = id_rs1 != '0;
+  wire id_rs2_non_zero = id_rs2 != '0;
+  wire id_rd_non_zero = id_rd != '0;
+  wire int_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_rd;
+  wire float_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_frd;
+  wire fdiv_fsqrt_in_fp_exe = fp_exe_r.fp_decode.is_fdiv_op | fp_exe_r.fp_decode.is_fsqrt_op;
 
-  assign float_sb_score = (id_r.decode.op_writes_fp_rf)
-    & ~(flush | stall | stall_depend | stall_fp | stall_amo_rl | stall_amo_aq);
+  // stall_depend_long_op (idiv, fdiv, remote_load, atomic)
+  wire rs1_sb_clear_now = id_r.decode.read_rs1 & (id_rs1 == int_sb_clear_id) & int_sb_clear & id_rs1_non_zero; 
+  wire frs2_sb_clear_now = id_r.decode.read_frs2 & (id_rs2 == float_sb_clear_id) & float_sb_clear;
 
-  // int scoreboard clears when
-  // [1] force wb, insert in exe-mem
-  // [0] local load
-  assign int_sb_clear[1] = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o);
-  assign int_sb_clear[0] = (mem_r.local_load & mem_r.op_writes_rf & ~stall);
-
-  assign int_sb_clear_id[1] = int_remote_load_resp_rd_i;
-  assign int_sb_clear_id[0] = mem_r.rd_addr;
-
-  assign float_sb_clear = fp_wb_r.valid;
-  assign float_sb_clear_id = fp_wb_r.rd;
-
-  assign aq_clear = int_sb_clear[1] & (int_sb_clear_id[1] == aq_rd_r);
-
-  // stall_depend logic
-  // 1. Is it float or int pipeline instruction?
-  // 2. If it's float instruction, check float and integer scoreboard for dependency.
-  //    If it reads integer regfile (rs1), check that rs1 does not match
-  //    rd in EXE, MEM, WB, and rs1 not being cleared in integer scoreboard now. 
-  // 3. If it's int instruction, check integer and float scoreboard for dependency.
-  //    If it reads float regfile (rs1 or rs2), check that rs1 or rs2 does not match
-  //    rd in FP_WB, and rs1 or rs2 is not being cleared in float scoreboard
-  //    now.
-
-  logic stall_depend_float;
-  logic stall_depend_int;
-
-  logic fp_float_int_rs1_in_exe;
-  logic fp_float_int_rs1_in_mem;
-  logic fp_float_int_rs1_in_wb;
-  logic fp_float_int_rs1_clear_now;
+  assign stall_depend_long_op = (int_dependency | float_dependency)
+    | (id_r.decode.is_fp_op
+        ? rs1_sb_clear_now
+        : frs2_sb_clear_now);
   
-  assign fp_float_int_rs1_in_exe = (id_r.instruction.rs1 == exe_r.instruction.rd)
-    & exe_r.decode.op_writes_rf;
 
-  assign fp_float_int_rs1_in_mem = (id_r.instruction.rs1 == mem_r.rd_addr)
-    & mem_r.op_writes_rf;
-
-  assign fp_float_int_rs1_in_wb = (id_r.instruction.rs1 == wb_r.rd_addr)
-    & wb_r.op_writes_rf;
-
-  assign fp_float_int_rs1_clear_now =
-    ((id_r.instruction.rs1 == int_sb_clear_id[1]) & int_sb_clear[1])
-    | ((id_r.instruction.rs1 == int_sb_clear_id[0]) & int_sb_clear[0]);
-
-  assign stall_depend_float = (int_dependency | float_dependency)
-    | (id_r.decode.op_reads_rf1 & (id_r.instruction.rs1 != '0)
-      & (fp_float_int_rs1_in_exe
-        | fp_float_int_rs1_in_mem
-        | fp_float_int_rs1_in_wb
-        | fp_float_int_rs1_clear_now));
-
-  logic float_rs1_clear_now;
-  logic float_rs2_clear_now;
-
-  assign float_rs1_clear_now = id_r.decode.op_reads_fp_rf1
-    & (id_r.instruction.rs1 == float_sb_clear_id)
-    & float_sb_clear;
-  assign float_rs2_clear_now = id_r.decode.op_reads_fp_rf2
-    & (id_r.instruction.rs2 == float_sb_clear_id)
-    & float_sb_clear;
-
-  assign stall_depend_int = int_dependency | float_dependency
-    | float_rs1_clear_now | float_rs2_clear_now;
-
-  assign stall_depend = (id_r.decode.is_fp_float_op
-    ? stall_depend_float
-    : stall_depend_int) & ~(branch_mispredict | jalr_mispredict);
+  // stall_depend_local_load (lw, flw, lr, lr.aq)
+  assign stall_depend_local_load = local_load_in_exe &
+    ((id_r.decode.read_rs1 & (id_rs1 == exe_r.instruction.rd) & exe_r.decode.write_rd & id_rs1_non_zero)
+    |(id_r.decode.read_rs2 & (id_rs2 == exe_r.instruction.rd) & exe_r.decode.write_rd & id_rs2_non_zero)
+    |(id_r.decode.read_frs1 & (id_rs1 == exe_r.instruction.rd) & exe_r.decode.write_frd)
+    |(id_r.decode.read_frs2 & (id_rs2 == exe_r.instruction.rd) & exe_r.decode.write_frd)
+    |(id_r.decode.read_frs3 & (id_rs3 == exe_r.instruction.rd) & exe_r.decode.write_frd));
 
 
-  // ID int forwarding
+  // stall_depend_imul
+  assign stall_depend_imul = exe_r.decode.is_imul_op &
+    ((id_r.decode.read_rs1 & (id_rs1 == exe_r.instruction.rd) & id_rs1_non_zero)
+    |(id_r.decode.read_rs2 & (id_rs2 == exe_r.instruction.rd) & id_rs2_non_zero));
+
+
+  // stall_bypass
+  wire stall_bypass_fp_frs = 
+    (id_r.decode.read_frs1 & (id_rs1 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_float_op)
+    |(id_r.decode.read_frs2 & (id_rs2 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_float_op)
+    |(id_r.decode.read_frs3 & (id_rs3 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_float_op)
+    |(id_r.decode.read_frs1 & (id_rs1 == fpu1_rd_r) & fpu1_v_r)
+    |(id_r.decode.read_frs2 & (id_rs2 == fpu1_rd_r) & fpu1_v_r)
+    |(id_r.decode.read_frs3 & (id_rs3 == fpu1_rd_r) & fpu1_v_r)
+    |(id_r.decode.read_frs1 & (id_rs1 == mem_r.rd_addr) & mem_r.write_frd)
+    |(id_r.decode.read_frs2 & (id_rs2 == mem_r.rd_addr) & mem_r.write_frd)
+    |(id_r.decode.read_frs3 & (id_rs3 == mem_r.rd_addr) & mem_r.write_frd);
+
+  wire stall_bypass_fp_rs1 = (id_r.decode.read_rs1 & id_rs1_non_zero) &
+    (((id_rs1 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_int_op)
+    |((id_rs1 == imul_rd_lo) & imul_v_lo)
+    |((id_rs1 == exe_r.instruction.rd) & exe_r.decode.write_rd)
+    |((id_rs1 == mem_r.rd_addr) & mem_r.write_rd)
+    |((id_rs1 == wb_r.rd_addr) & wb_r.write_rd));
+  
+
+  wire stall_bypass_int_frs2 = id_r.decode.read_frs2 &
+    (((id_rs2 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_float_op)
+    |((id_rs2 == fpu1_rd_r) & fpu1_v_r)
+    |((id_rs2 == fpu_float_rd_lo) & fpu_float_v_lo)
+    |((id_rs2 == mem_r.rd_addr) & mem_r.write_frd)
+    |((id_rs2 == flw_wb_r.rd_addr) & flw_wb_r.valid));
+    
+
+  assign stall_bypass = id_r.decode.is_fp_op
+    ? (stall_bypass_fp_frs | stall_bypass_fp_rs1)
+    : stall_bypass_int_frs2;
+
+  // stall_lr_aq
+  assign stall_lr_aq = id_r.decode.is_lr_aq_op & (reserved_r | lsu_reserve_lo) & ~break_reserve;
+
+  // stall_fence
+  assign stall_fence = id_r.decode.is_fence_op & (out_credits_i != max_out_credits_p);
+  
+  // stall_amo_aq
+  assign stall_amo_aq = aq_r & ~aq_clear &
+    (id_r.decode.is_load_op
+    |id_r.decode.is_store_op
+    |id_r.decode.is_amo_op
+    |id_r.decode.is_lr_aq_op
+    |id_r.decode.is_lr_op);
+
+  // stall_amo_rl
+  assign stall_amo_rl = id_r.decode.is_amo_op & id_r.decode.is_amo_rl
+    & (out_credits_i != max_out_credits_p) & remote_req_in_exe;
+
+
+  // stall_remote_req
+  logic [1:0] remote_req_counter_r;
+  wire local_mem_op_restore = (lsu_dmem_v_lo & ~exe_r.decode.is_lr_op & ~exe_r.decode.is_lr_aq_op) & ~stall;
+  wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.icache_miss);
+  wire memory_op_issued = id_remote_req_op & ~flush & ~stall_id & ~stall;
+  wire [1:0] remote_req_available =
+    remote_req_counter_r +
+    remote_req_credit_i +
+    local_mem_op_restore +
+    invalid_eva_access_i;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i)
+      remote_req_counter_r <= 2'd2;
+    else
+      remote_req_counter_r <= remote_req_available - memory_op_issued;
+  end 
+
+  assign stall_remote_req = id_remote_req_op & (remote_req_available == '0);
+  
+  // stall_remote_credit
+  assign stall_remote_credit = id_remote_req_op & ((out_credits_i - remote_req_in_exe) < 2);
+
+  // stall_fdiv_busy
+  assign stall_fdiv_busy = (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op) & (fdiv_fsqrt_ready_lo
+    ? (fp_exe_r.fp_decode.is_fdiv_op | fp_exe_r.fp_decode.is_fsqrt_op)
+    : 1'b1);
+
+  // stall_idiv_busy
+  assign stall_idiv_busy = id_r.decode.is_idiv_op & (idiv_ready_lo
+    ? exe_r.decode.is_idiv_op
+    : 1'b1);
+
+  // stall_fcsr
+  assign stall_fcsr = (id_r.decode.is_csr_op)
+    & ((id_r.instruction[31:20] == `RV32_CSR_FFLAGS_ADDR)
+      |(id_r.instruction[31:20] == `RV32_CSR_FCSR_ADDR))
+    & (fp_exe_r.fp_decode.is_fpu_float_op
+      |fp_exe_r.fp_decode.is_fpu_int_op
+      |fp_exe_r.fp_decode.is_fdiv_op
+      |fp_exe_r.fp_decode.is_fsqrt_op
+      |(~fdiv_fsqrt_ready_lo)
+      |fdiv_fsqrt_v_lo
+      |fpu1_v_r
+      |fpu_float_v_lo);
+
+
+  // FP_EXE forwarding mux control logic
   //
-  logic id_rs1_forward_wb;
-  logic id_rs2_forward_wb;
+  assign select_recoded_rs1 = (id_r.fp_decode.fpu_float_op == eFMV_W_X);
+  assign select_rs1_to_fp_exe = id_r.decode.read_rs1;
+  assign frs1_forward_v = id_r.decode.read_frs1 & (id_rs1 == float_rf_waddr) & float_rf_wen;
+  assign frs2_forward_v = id_r.decode.read_frs2 & (id_rs2 == float_rf_waddr) & float_rf_wen;
+  assign frs3_forward_v = id_r.decode.read_frs3 & (id_rs3 == float_rf_waddr) & float_rf_wen;
 
-  assign id_rs1_forward_wb = id_r.decode.op_reads_rf1
-    & (id_r.instruction.rs1 == wb_r.rd_addr)
-    & wb_r.op_writes_rf
-    & (id_r.instruction.rs1 != '0);
+  // EXE forwarding mux control logic
+  // [0] = exe
+  // [1] = mem
+  // [2] = wb
+  logic [2:0] has_forward_data_rs1;
+  logic [2:0] has_forward_data_rs2;
 
-  assign id_rs2_forward_wb = id_r.decode.op_reads_rf2
-    & (id_r.instruction.rs2 == wb_r.rd_addr)
-    & wb_r.op_writes_rf
-    & (id_r.instruction.rs2 != '0);
+  assign has_forward_data_rs1[0] =
+    ((exe_r.decode.write_rd & (exe_r.instruction.rd == id_rs1))
+    |(fp_exe_r.fp_decode.is_fpu_int_op & (fp_exe_r.rd == id_rs1)))
+    & id_rs1_non_zero;
+  assign has_forward_data_rs1[1] =
+    ((mem_r.write_rd & (mem_r.rd_addr == id_rs1))
+    |(imul_v_lo & (imul_rd_lo == id_rs1)))
+    & id_rs1_non_zero;
+  assign has_forward_data_rs1[2] =
+    wb_r.write_rd & (wb_r.rd_addr == id_rs1)
+    & id_rs1_non_zero;
 
-  logic [data_width_p-1:0] rs1_to_exe;
-  logic [data_width_p-1:0] rs2_to_exe;
+  bsg_priority_encode #(
+    .width_p(3)
+    ,.lo_to_hi_p(1)
+  ) rs1_forward_pe0 (
+    .i(has_forward_data_rs1)
+    ,.addr_o(rs1_forward_sel)
+    ,.v_o(rs1_forward_v)
+  );
 
-  assign rs1_to_exe = id_r.decode.op_reads_fp_rf1
-    ? float_rf_rs1_data
-    : (id_rs1_forward_wb
-      ? wb_r.rf_data
-      : int_rf_rs1_data);
+  assign has_forward_data_rs2[0] =
+    ((exe_r.decode.write_rd & (exe_r.instruction.rd == id_rs2))
+    |(fp_exe_r.fp_decode.is_fpu_int_op & (fp_exe_r.rd == id_rs2)))
+    & id_rs2_non_zero;
+  assign has_forward_data_rs2[1] =
+    ((mem_r.write_rd & (mem_r.rd_addr == id_rs2))
+    |(imul_v_lo & (imul_rd_lo == id_rs2)))
+    & id_rs2_non_zero;
+  assign has_forward_data_rs2[2] =
+    wb_r.write_rd & (wb_r.rd_addr == id_rs2)
+    & id_rs2_non_zero;
 
-  assign rs2_to_exe = id_r.decode.op_reads_fp_rf2
-    ? float_rf_rs2_data
-    : (id_rs2_forward_wb
-      ? wb_r.rf_data
-      : int_rf_rs2_data);
+  bsg_priority_encode #(
+    .width_p(3)
+    ,.lo_to_hi_p(1)
+  ) rs2_forward_pe0 (
+    .i(has_forward_data_rs2)
+    ,.addr_o(rs2_forward_sel)
+    ,.v_o(rs2_forward_v)
+  );
+
+
+  // AMO aq control
+  assign aq_set = (id_r.decode.is_amo_op & id_r.decode.is_amo_aq) & ~flush & ~stall & ~stall_id;
+  assign aq_clear = int_rf_wen & (int_rf_waddr == aq_rd_r);
+
+
+  // FCSR control
+  assign fcsr_v_li = (id_r.decode.is_csr_op) & ~flush & ~stall & ~stall_id; 
+  assign fcsr_funct3_li = id_r.instruction.funct3;
+  assign fcsr_rs1_li = id_r.instruction.rs1;
+  assign fcsr_data_li = rs1_val_to_exe[7:0];
+  assign fcsr_addr_li = id_r.instruction[31:20];
 
 
   // ID -> EXE
-  //
-  
-  logic exe_rs1_in_mem; // pre-compute EXE forwarding
-  logic exe_rs2_in_mem;
-  logic exe_rs1_in_wb;
-  logic exe_rs2_in_wb;
-
-  assign exe_rs1_in_mem = id_r.decode.op_reads_rf1
-    & mem_n.op_writes_rf
-    & (mem_n.rd_addr == id_r.instruction.rs1)
-    & (mem_n.rd_addr != '0);
-
-  assign exe_rs2_in_mem = id_r.decode.op_reads_rf2
-    & mem_n.op_writes_rf
-    & (mem_n.rd_addr == id_r.instruction.rs2)
-    & (mem_n.rd_addr != '0);
-
-  assign exe_rs1_in_wb = id_r.decode.op_reads_rf1
-    & wb_n.op_writes_rf
-    & (wb_n.rd_addr == id_r.instruction.rs1)
-    & (wb_n.rd_addr != '0);
-
-  assign exe_rs2_in_wb = id_r.decode.op_reads_rf2
-    & wb_n.op_writes_rf
-    & (wb_n.rd_addr == id_r.instruction.rs2)
-    & (wb_n.rd_addr != '0);
-
   always_comb begin
     if (stall) begin
       exe_n = exe_r;
-      aq_set = 1'b0;
     end
     else begin
-      if (stall_depend | flush | id_r.decode.is_fp_float_op | stall_amo_aq | stall_amo_rl) begin
+      if (flush | stall_id | id_r.decode.is_fp_op) begin
         exe_n = '0;
-        aq_set = 1'b0;
       end
       else begin
         exe_n = '{
@@ -1024,65 +1279,118 @@ module vanilla_core
           pred_or_jump_addr: id_r.pred_or_jump_addr,
           instruction: id_r.instruction,
           decode: id_r.decode,
-          rs1_val: rs1_to_exe,
-          rs2_val: rs2_to_exe,
+          rs1_val: rs1_val_to_exe,
+          rs2_val: rs2_val_to_exe,
           mem_addr_op2: mem_addr_op2,
-          rs1_in_mem: exe_rs1_in_mem,
-          rs1_in_wb: exe_rs1_in_wb,
-          rs2_in_mem: exe_rs2_in_mem,
-          rs2_in_wb: exe_rs2_in_wb,
           icache_miss: id_r.icache_miss,
-          fp_int_decode: id_r.fp_int_decode
+          fcsr_data: fcsr_data_lo
         };
-
-        aq_set = id_r.decode.is_amo_op & id_r.decode.is_amo_aq;
       end
     end
   end
 
-  // MULDIV logic
-  //
-  logic md_sent_r, md_sent_n;
+  // idiv input control
+  assign idiv_v_li = exe_r.decode.is_idiv_op & ~stall;
 
-  assign stall_md = exe_r.decode.is_md_op & ~md_v_lo;
-  assign md_v_li = exe_r.decode.is_md_op & ~md_sent_r;
-  assign md_yumi_li = md_v_lo & ~stall;
+  // int scoreboard set logic
+  assign int_sb_score = ~stall & (exe_r.decode.is_idiv_op | exe_r.decode.is_amo_op | int_remote_load_in_exe);
+  assign int_sb_score_id = exe_r.instruction.rd;  
 
-  // making sure that md_op does not use muldiv twice.
+  // exe_result
+  assign exe_result = fp_exe_r.fp_decode.is_fpu_int_op
+    ? fpu_int_result_lo
+    : alu_or_csr_result;
+
+  // remote request control
+  assign remote_req_v_o = lsu_remote_req_v_lo & ~stall;
+
+  // ID -> FP_EXE
+  frm_e fpu_rm;
+  assign fpu_rm = (id_r.instruction.funct3 == eDYN)
+    ? frm_r
+    : frm_e'(id_r.instruction.funct3);
+
   always_comb begin
-    if (md_sent_r) begin
-      md_sent_n = ~md_yumi_li;
+    if (stall) begin
+      fp_exe_n = fp_exe_r;
     end
     else begin
-      md_sent_n = md_v_li & md_ready_lo;
+      if (flush | stall_id | ~id_r.decode.is_fp_op) begin
+        fp_exe_n = '0;
+      end
+      else begin
+        fp_exe_n = '{
+          rs1_val: frs1_to_fp_exe,
+          rs2_val: frs2_to_fp_exe,
+          rs3_val: frs3_to_fp_exe,
+          rd: id_r.instruction.rd,
+          fp_decode: id_r.fp_decode,
+          rm: fpu_rm
+        };
+      end
     end
-  end
- 
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      md_sent_r <= 1'b0;
+  end  
+
+  // fdiv control 
+  assign fdiv_fsqrt_v_li = fdiv_fsqrt_in_fp_exe & ~stall;
+
+  // FP scoreboard set logic
+  assign float_sb_score = ~stall & (fdiv_fsqrt_in_fp_exe | float_remote_load_in_exe);
+  assign float_sb_score_id = fdiv_fsqrt_in_fp_exe
+    ? fp_exe_r.rd
+    : exe_r.instruction.rd;
+
+
+  // EXE,FP_EXE -> MEM
+  always_comb begin
+
+    fcsr_fflags_v_li[0] = 1'b0;
+    fcsr_fflags_li[0] = fpu_int_fflags_lo;
+
+    if (stall) begin
+      mem_n = mem_r;
+    end
+    else if (exe_r.decode.is_idiv_op | (remote_req_in_exe & ~exe_r.icache_miss)) begin
+      mem_n = '0;
+    end
+    else if (fp_exe_r.fp_decode.is_fpu_int_op) begin
+      fcsr_fflags_v_li[0] = 1'b1;
+      mem_n = '{
+        rd_addr: fp_exe_r.rd,
+        exe_result: fpu_int_result_lo,
+        write_rd: 1'b1,
+        write_frd: 1'b0,
+        is_byte_op: 1'b0,
+        is_hex_op: 1'b0,
+        is_load_unsigned: 1'b0,
+        local_load: 1'b0,
+        mem_addr_sent: '0,
+        icache_miss: 1'b0
+      };      
     end
     else begin
-      md_sent_r <= md_sent_n;
+      mem_n = '{
+        rd_addr: exe_r.instruction.rd,
+        exe_result: alu_or_csr_result,
+        write_rd: exe_r.decode.write_rd,
+        write_frd: exe_r.decode.write_frd,
+        is_byte_op: exe_r.decode.is_byte_op,
+        is_hex_op: exe_r.decode.is_hex_op,
+        is_load_unsigned: exe_r.decode.is_load_unsigned,
+        local_load: local_load_in_exe,
+        mem_addr_sent: lsu_mem_addr_sent_lo,
+        icache_miss: exe_r.icache_miss
+      };      
     end
-  end
+  end  
 
-  // remote_req_o logic
-  //
-  assign remote_req_v_o = lsu_remote_req_v_lo & ~(stall_local_flw | stall_icache_store);
  
-
-  // EXE -> MEM
-  //
-
-  // DMEM access arbiter
-  //
+  // DMEM ctrl logic
   always_comb begin
-    // if the pipeline is stalled, remote DMEM gets the way.
     if (stall) begin
       dmem_v_li = remote_dmem_v_i;
       dmem_w_li = remote_dmem_w_i;
-      dmem_addr_li = remote_dmem_addr_i; 
+      dmem_addr_li = remote_dmem_addr_i;
       dmem_data_li = remote_dmem_data_i;
       dmem_mask_li = remote_dmem_mask_i;
       remote_dmem_yumi_o = remote_dmem_v_i;
@@ -1092,7 +1400,7 @@ module vanilla_core
       if (lsu_dmem_v_lo) begin
         dmem_v_li = 1'b1;
         dmem_w_li = lsu_dmem_w_lo;
-        dmem_addr_li = lsu_dmem_addr_lo; 
+        dmem_addr_li = lsu_dmem_addr_lo;
         dmem_data_li = lsu_dmem_data_lo;
         dmem_mask_li = lsu_dmem_mask_lo;
         remote_dmem_yumi_o = 1'b0;
@@ -1101,7 +1409,7 @@ module vanilla_core
       else begin
         dmem_v_li = remote_dmem_v_i;
         dmem_w_li = remote_dmem_w_i;
-        dmem_addr_li = remote_dmem_addr_i; 
+        dmem_addr_li = remote_dmem_addr_i;
         dmem_data_li = remote_dmem_data_i;
         dmem_mask_li = remote_dmem_mask_i;
         remote_dmem_yumi_o = remote_dmem_v_i;
@@ -1110,240 +1418,213 @@ module vanilla_core
     end
   end
 
-  wire local_load_in_exe = lsu_dmem_v_lo & ~lsu_dmem_w_lo &
-    (exe_r.decode.is_load_op | exe_r.decode.op_is_lr | exe_r.decode.op_is_lr_aq) ;  
-  wire remote_load_in_exe = (exe_r.decode.is_load_op | exe_r.decode.is_amo_op) & lsu_remote_req_v_lo;
-  wire exe_op_writes_rf = exe_r.decode.op_writes_rf & ~remote_load_in_exe;
-  wire exe_op_writes_fp_rf = exe_r.decode.op_writes_fp_rf & ~remote_load_in_exe;
+  // reservation logic
+  // lr creates a reservation on DMEM address.
+  // Any store to this address breaks the reservation.
+  // When the reservation is valid, lr.aq stalls until the reservation is broken. 
+  assign make_reserve = lsu_reserve_lo & ~stall;
+  assign break_reserve = reserved_r & (reserved_addr_r == dmem_addr_li) & dmem_v_li & dmem_w_li;
 
+  // stall_ifetch_wait
+  assign stall_ifetch_wait = mem_r.icache_miss & ~ifetch_v_i;
+
+  // mem_result
+  assign mem_result = imul_v_lo
+    ? imul_result_lo
+    : (mem_r.local_load
+      ? local_load_packed_data
+      : mem_r.exe_result);
+
+  wire mem_result_valid = imul_v_lo | mem_r.write_rd | mem_r.write_frd;
+ 
+ 
+  // MEM -> WB
   always_comb begin
-    if (stall_ifetch_wait | stall_icache_store | stall_lr_aq
-      | stall_fence | stall_md | stall_remote_req | stall_local_flw) begin
-      // cannot insert here
-      mem_n = mem_r;
-      int_remote_load_resp_yumi_o = int_remote_load_resp_v_i & int_remote_load_resp_force_i;
-      stall_force_wb = int_remote_load_resp_v_i & int_remote_load_resp_force_i;
+    wb_n.write_rd = 1'b0;
+    wb_n.rd_addr = '0;
+    wb_n.rf_data = '0;
+    wb_n.icache_miss = 1'b0;
+    wb_n.icache_miss_pc = '0;
+    wb_n.clear_sb = 1'b0;
+    int_remote_load_resp_yumi_o = 1'b0;
+    idiv_yumi_li = 1'b0;
+    stall_idiv_wb = 1'b0;
+    stall_remote_ld_wb = 1'b0;
+
+    if (int_remote_load_resp_v_i & int_remote_load_resp_force_i) begin
+      wb_n.write_rd = 1'b1;
+      wb_n.rd_addr = int_remote_load_resp_rd_i;
+      wb_n.rf_data = int_remote_load_resp_data_i;
+      wb_n.clear_sb = 1'b1;
+      stall_remote_ld_wb = mem_result_valid | mem_r.icache_miss;
+      int_remote_load_resp_yumi_o = 1'b1;
+    end
+    else if (mem_r.icache_miss & ifetch_v_i) begin
+      wb_n.icache_miss = 1'b1;
+      wb_n.icache_miss_pc = mem_r.mem_addr_sent;
     end
     else begin
-      // remote_load insertable, if exe_r is not writeback.
-      if (exe_op_writes_rf | exe_op_writes_fp_rf) begin
-        // not insertable
-        if (int_remote_load_resp_v_i & int_remote_load_resp_force_i) begin
-          stall_force_wb = 1'b1;
+      if (imul_v_lo) begin
+        wb_n.write_rd = 1'b1;
+        wb_n.rd_addr = imul_rd_lo;
+        wb_n.rf_data = imul_result_lo;
+      end
+      else if (mem_r.write_rd) begin
+        wb_n.write_rd = 1'b1;
+        wb_n.rd_addr = mem_r.rd_addr;
+        wb_n.rf_data = mem_r.local_load
+          ? local_load_packed_data
+          : mem_r.exe_result;
+      end
+      else begin
+        if (int_remote_load_resp_v_i) begin
+          wb_n.write_rd = 1'b1;
+          wb_n.rd_addr = int_remote_load_resp_rd_i;
+          wb_n.rf_data = int_remote_load_resp_data_i;
+          wb_n.clear_sb = 1'b1;
           int_remote_load_resp_yumi_o = 1'b1;
-          mem_n = mem_r;
-        end 
-        else begin
-          mem_n = '{
-            rd_addr: exe_r.instruction.rd,
-            exe_result: exe_result,
-            mem_addr_sent: lsu_mem_addr_sent_lo,
-            op_writes_rf: exe_op_writes_rf,
-            op_writes_fp_rf: exe_op_writes_fp_rf,
-            is_byte_op: exe_r.decode.is_byte_op,
-            is_hex_op: exe_r.decode.is_hex_op,
-            is_load_unsigned: exe_r.decode.is_load_unsigned,
-            local_load: local_load_in_exe,
-            icache_miss: exe_r.icache_miss
-          };
-          int_remote_load_resp_yumi_o = 1'b0;
-          stall_force_wb = 1'b0;
+        end
+        else if (idiv_v_lo) begin
+          wb_n.write_rd = 1'b1;
+          wb_n.rd_addr = idiv_rd_lo;
+          wb_n.rf_data = idiv_result_lo;
+          wb_n.clear_sb = 1'b1;
+          idiv_yumi_li = 1'b1;
         end
       end
-      else begin
-        // insertable
-        mem_n = '{
-          rd_addr: int_remote_load_resp_v_i ? int_remote_load_resp_rd_i : '0,
-          exe_result: int_remote_load_resp_v_i ? int_remote_load_resp_data_i : '0,
-          op_writes_rf: int_remote_load_resp_v_i,
-          op_writes_fp_rf: 1'b0,
-          mem_addr_sent: lsu_mem_addr_sent_lo,
-          is_byte_op: 1'b0,
-          is_hex_op: 1'b0,
-          is_load_unsigned: 1'b0,
-          local_load: 1'b0,
-          icache_miss: exe_r.icache_miss
-        };
-        int_remote_load_resp_yumi_o = int_remote_load_resp_v_i;
-        stall_force_wb = 1'b0;
-      end
-    end
-  end
-
-  // synopsys sync_set_reset "reset_i"
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      reserved_r <= 1'b0;
-      reserved_addr_r <= '0;
-    end
-    else begin
-      if (dmem_v_li & ~dmem_w_li & lsu_reserve_lo & ~stall) begin
-        reserved_r <= 1'b1;
-        reserved_addr_r <= dmem_addr_li;
-        // synopsys translate_off
-        if (debug_p)
-          $display("[INFO][VCORE] making reservation. t=%0t, addr=%x", $time, dmem_addr_li);
-        // synopsys translate_on
-      end
-      else if ((reserved_r == 1'b1)
-        & dmem_v_li & dmem_w_li & (dmem_addr_li == reserved_addr_r)) begin
-        reserved_r <= 1'b0;
-        // synopsys translate_off
-        if (debug_p)
-          $display("[INFO][VCORE] breaking reservation. t=%0t.", $time);
-        // synopsys translate_on
-      end
     end
   end
 
 
-  // MEM -> WB
-  //
+  // WB 
+  assign int_rf_wdata = wb_r.rf_data;
+  assign int_rf_waddr = wb_r.rd_addr;
+  assign int_rf_wen = wb_r.write_rd;
+
+  // int scoreboard clear logic
+  assign int_sb_clear = wb_r.write_rd & wb_r.clear_sb;
+  assign int_sb_clear_id = wb_r.rd_addr;
+
+
+  // MEM -> FLW_WB
   always_comb begin
     if (stall) begin
-      wb_n = wb_r;
+      flw_wb_n = flw_wb_r;
     end
     else begin
-      wb_n = '{
-        op_writes_rf: mem_r.op_writes_rf,
+      flw_wb_n = '{
+        valid: mem_r.write_frd,
         rd_addr: mem_r.rd_addr,
-        rf_data: mem_r.local_load ? local_load_packed_data : mem_r.exe_result,
-        icache_miss: mem_r.icache_miss,
-        icache_miss_pc: mem_r.mem_addr_sent
+        rf_data: local_load_data_r
       };
     end
   end
 
   
-  // int regfile writeback logic
-  //
+  // FP_WB
+  // fcsr exception handling
+  // float scoreboard clear logic
   always_comb begin
-    if (stall_force_wb) begin
-      int_rf_wen = 1'b1;
-      int_rf_waddr = int_remote_load_resp_rd_i;
-      int_rf_wdata = int_remote_load_resp_data_i;
+    stall_remote_flw_wb = 1'b0;
+    stall_fdiv_wb = 1'b0;
+
+    float_remote_load_resp_yumi_o = 1'b0;
+    fdiv_fsqrt_yumi_li = 1'b0;
+
+    float_rf_wen = 1'b0;
+    float_rf_waddr = '0;
+    float_rf_wdata = '0;
+    select_remote_flw = 1'b0;
+
+    float_sb_clear = 1'b0;
+    float_sb_clear_id = float_remote_load_resp_rd_i;
+
+    fcsr_fflags_v_li[1] = 1'b0;
+    fcsr_fflags_li[1] = fpu_float_fflags_lo;
+    
+
+    if (float_remote_load_resp_v_i & float_remote_load_resp_force_i) begin
+      select_remote_flw = 1'b1;
+      float_rf_wen = 1'b1;
+      float_rf_waddr = float_remote_load_resp_rd_i;
+      float_rf_wdata = flw_recoded_data;
+      float_remote_load_resp_yumi_o = 1'b1;
+      stall_remote_flw_wb = flw_wb_r.valid | fpu_float_v_lo;
+
+      float_sb_clear = 1'b1;
+      float_sb_clear_id = float_remote_load_resp_rd_i;
     end
-    else begin
-      int_rf_wen = wb_r.op_writes_rf & (~stall);
-      int_rf_waddr = wb_r.rd_addr;
-      int_rf_wdata = wb_r.rf_data;
-    end
-  end 
-
-
-  // FP EXE forwarding
-  //
-  logic [data_width_p-1:0] rs1_to_fp_exe;
-  logic [data_width_p-1:0] rs2_to_fp_exe;
-  logic fp_exe_rs1_forward;
-  logic fp_exe_rs2_forward;
-
-  assign fp_exe_rs1_forward = fp_wb_r.valid 
-    & (fp_wb_r.rd == id_r.instruction.rs1);
-
-  assign fp_exe_rs2_forward = fp_wb_r.valid 
-    & (fp_wb_r.rd == id_r.instruction.rs2);
-
-  assign rs1_to_fp_exe = id_r.decode.op_reads_rf1
-    ? int_rf_rs1_data
-    : (fp_exe_rs1_forward 
-      ? fp_wb_r.wb_data
-      : float_rf_rs1_data);
-
-  assign rs2_to_fp_exe = fp_exe_rs2_forward
-    ? fp_wb_r.wb_data
-    : float_rf_rs2_data;
-
-
-  // ID -> FP_EXE
-  //
-  logic fp_exe_valid;
-  assign fp_exe_valid = id_r.decode.is_fp_float_op & ~(flush | stall_depend | stall);  
-
-  always_comb begin
-    if (fp_exe_r.valid) begin
-      if (fpu_float_ready_lo) begin
-        stall_fp = 1'b0;
-        fp_exe_n = '{
-          rs1_val: rs1_to_fp_exe,
-          rs2_val: rs2_to_fp_exe,
-          rd: id_r.instruction.rd,
-          fp_float_decode: id_r.fp_float_decode,
-          valid: fp_exe_valid
-        };
-      end
-      else begin
-        fp_exe_n = fp_exe_r;
-        stall_fp = fp_exe_valid;
-      end
-    end
-    else begin
-      stall_fp = 1'b0;
-      fp_exe_n = '{
-        rs1_val: rs1_to_fp_exe,
-        rs2_val: rs2_to_fp_exe,
-        rd: id_r.instruction.rd,
-        fp_float_decode: id_r.fp_float_decode,
-        valid: fp_exe_valid
-      };
-    end
-  end
-  
-
-  // FPU -> FP_WB
-  //
-  logic local_flw_valid;
-  assign local_flw_valid = mem_r.op_writes_fp_rf & mem_r.local_load;
-
-  always_comb begin
-    if (float_remote_load_resp_v_i) begin
-      // remote load resp
-      stall_local_flw = local_flw_valid;
-      fpu_float_yumi_li = 1'b0;
-      fp_wb_n = '{
-        wb_data: float_remote_load_resp_data_i,
-        rd: float_remote_load_resp_rd_i,
-        valid: 1'b1
-      };
-    end
-    else if (local_flw_valid) begin
-      // local load resp
-      stall_local_flw = 1'b0;
-      fpu_float_yumi_li = 1'b0;
-      fp_wb_n = '{
-        wb_data: local_load_data_r,
-        rd: mem_r.rd_addr,
-        valid: 1'b1
-      };
+    else if (flw_wb_r.valid) begin
+      select_remote_flw = 1'b0;
+      float_rf_wen = 1'b1;
+      float_rf_waddr = flw_wb_r.rd_addr;
+      float_rf_wdata = flw_recoded_data; 
     end
     else if (fpu_float_v_lo) begin
-      // fpu_float
-      stall_local_flw = 1'b0;
-      fpu_float_yumi_li = 1'b1;
-      fp_wb_n = '{
-        wb_data: fpu_float_result_lo,
-        rd: fpu_float_rd_lo,
-        valid: 1'b1
-      };
+      float_rf_wen = 1'b1;
+      float_rf_waddr = fpu_float_rd_lo;
+      float_rf_wdata = fpu_float_result_lo;
+      fcsr_fflags_v_li[1] = 1'b1;
+      fcsr_fflags_li[1] = fpu_float_fflags_lo;
     end
     else begin
-      // none
-      stall_local_flw = 1'b0;
-      fpu_float_yumi_li = 1'b0;
-      fp_wb_n = '{
-        wb_data: '0,
-        rd: '0,
-        valid: '0
-      };
+      if (fdiv_fsqrt_v_lo) begin
+        fdiv_fsqrt_yumi_li = 1'b1;
+        float_rf_wen = 1'b1;
+        float_rf_waddr = fdiv_fsqrt_rd_lo;
+        float_rf_wdata = fdiv_fsqrt_result_lo;
+
+        float_sb_clear = 1'b1;
+        float_sb_clear_id = fdiv_fsqrt_rd_lo;
+
+        fcsr_fflags_v_li[1] = 1'b1;
+        fcsr_fflags_li[1] = fdiv_fsqrt_fflags_lo;
+      end
+      else if (float_remote_load_resp_v_i) begin
+        select_remote_flw = 1'b1;
+        float_rf_wen = 1'b1;
+        float_rf_waddr = float_remote_load_resp_rd_i;
+        float_rf_wdata = flw_recoded_data;
+        float_remote_load_resp_yumi_o = 1'b1;
+
+        float_sb_clear = 1'b1;
+        float_sb_clear_id = float_remote_load_resp_rd_i;
+      end
     end
   end
 
+  // fpu_float stall control
+  assign stall_fpu1_li = stall;
+  assign stall_fpu2_li = stall_fdiv_wb | stall_remote_flw_wb;
 
-  // float regfile writeback logic (this never stalls)
-  //
-  assign float_rf_wen = fp_wb_r.valid;
-  assign float_rf_waddr = fp_wb_r.rd;
-  assign float_rf_wdata = fp_wb_r.wb_data;
+
+
+
+
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+
+      if (idiv_v_li) begin
+        assert(idiv_ready_lo) else $error("idiv_op issued when idiv is not ready.");
+      end
+
+      if (fdiv_fsqrt_v_li) begin
+        assert(fdiv_fsqrt_ready_lo) else $error("fdiv_fsqrt_op issued, when fdiv_fsqrt is not ready.");
+      end
+  
+      // this counter can be only 0, 1, or 2.
+      assert(remote_req_counter_r != 2'b11) else $error("remote_req_counter_r cannot be 3.");
+
+      if (remote_req_v_o) begin
+        assert(remote_req_yumi_i) else $error("There has to be a guaranteed space for outgoing request.");
+      end
+
+      assert(~id_r.decode.unsupported) else $error("Unsupported instruction: %8x", id_r.instruction);
+    end
+  end
+  // synopsys translate_on
+
 
 
 endmodule

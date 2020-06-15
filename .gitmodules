@@ -12,3 +12,6 @@
 [submodule "imports/beebs"]
 	path = imports/beebs
 	url = https://github.com/bespoke-silicon-group/beebs
+[submodule "imports/HardFloat"]
+	path = imports/HardFloat
+	url = https://github.com/bsg-external/HardFloat
