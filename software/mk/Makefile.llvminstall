@@ -2,10 +2,6 @@ ifndef LLVM_DIR
     $(error Need to define LLVM_DIR)
 endif
 
-ifndef RISCV_INSTALL_DIR
-    $(error Need to define RISCV_INSTALL_DIR)
-endif
-
 # devtoolset-8
 HOST_TOOLCHAIN ?= /opt/rh/devtoolset-8/root/usr/bin
 
@@ -13,22 +9,18 @@ llvm-install:
 	mkdir -p $(LLVM_DIR)/llvm-build && mkdir -p $(LLVM_DIR)/llvm-install
 	# Get LLVM sources
 	cd $(LLVM_DIR) && \
-	  wget https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/llvm-10.0.0.src.tar.xz \
-	    && tar -xf llvm-10.0.0.src.tar.xz && mv llvm-10.0.0.src llvm-src && rm llvm-10.0.0.src.tar.xz
-	# Get Clang sources
-	cd $(LLVM_DIR)/llvm-src/tools && \
-	  wget https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang-10.0.0.src.tar.xz \
-	    && tar -xf clang-10.0.0.src.tar.xz && mv clang-10.0.0.src clang && rm clang-10.0.0.src.tar.xz
+    git clone https://github.com/bespoke-silicon-group/llvm-project.git ./llvm-src
 	# Install only X86 and RISCV targets
 	cd $(LLVM_DIR)/llvm-build \
 	    && cmake3 -DCMAKE_BUILD_TYPE="Debug" \
+      -DLLVM_ENABLE_PROJECTS="clang" \
+	    -DCMAKE_INSTALL_PREFIX="$(LLVM_DIR)/llvm-install" \
 	    -DCMAKE_C_COMPILER=$(HOST_TOOLCHAIN)/gcc \
 	    -DCMAKE_CXX_COMPILER=$(HOST_TOOLCHAIN)/g++ \
 	    -DLLVM_TARGETS_TO_BUILD="X86;RISCV" \
 	    -DBUILD_SHARED_LIBS=True \
 	    -DLLVM_USE_SPLIT_DWARF=True \
 	    -DLLVM_OPTIMIZED_TABLEGEN=True \
-	    -DCMAKE_INSTALL_PREFIX="$(LLVM_DIR)/llvm-install" \
-	    ../llvm-src
+	    ../llvm-src/llvm
 	cd  $(LLVM_DIR)/llvm-build && cmake3 --build . -- -j12 && make install
 	rm -rf $(LLVM_DIR)/llvm-build $(LLVM_DIR)/llvm-src
