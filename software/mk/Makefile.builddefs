@@ -175,7 +175,7 @@ RISCV_LINK = $(RISCV_GCC) -t -T $(LINK_SCRIPT) $(RISCV_LINK_SYMS)
 
 ifndef CLANG
   RISCV_GCC_OPTS += -mno-fdiv
-  RISCV_GCC_OPTS += -fweb -frename-registers -frerun-cse-after-loops
+  RISCV_GCC_OPTS += -fweb -frename-registers -frerun-cse-after-loop
 endif
 
 # Construct C++ flags from C flags
