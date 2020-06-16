@@ -9,7 +9,8 @@ llvm-install:
 	mkdir -p $(LLVM_DIR)/llvm-build && mkdir -p $(LLVM_DIR)/llvm-install
 	# Get LLVM sources
 	cd $(LLVM_DIR) && \
-    git clone https://github.com/bespoke-silicon-group/llvm-project.git ./llvm-src
+    git clone https://github.com/bespoke-silicon-group/llvm-project.git ./llvm-src && \
+    cd ./llvm-src && git fetch && git checkout hb-dev
 	# Install only X86 and RISCV targets
 	cd $(LLVM_DIR)/llvm-build \
 	    && cmake3 -DCMAKE_BUILD_TYPE="Debug" \
@@ -23,4 +24,3 @@ llvm-install:
 	    -DLLVM_OPTIMIZED_TABLEGEN=True \
 	    ../llvm-src/llvm
 	cd  $(LLVM_DIR)/llvm-build && cmake3 --build . -- -j12 && make install
-	rm -rf $(LLVM_DIR)/llvm-build $(LLVM_DIR)/llvm-src
