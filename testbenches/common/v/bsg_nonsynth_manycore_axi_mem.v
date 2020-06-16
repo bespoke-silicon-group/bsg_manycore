@@ -177,6 +177,10 @@ module bsg_nonsynth_manycore_axi_mem
           ? RD_WAIT_ADDR
           : RD_SEND_DATA;
       
+        araddr_n = axi_rready_i
+          ? araddr_r + (1 << `BSG_SAFE_CLOG2(axi_data_width_p>>3))
+          : araddr_r;
+
       end
     endcase
   end 
