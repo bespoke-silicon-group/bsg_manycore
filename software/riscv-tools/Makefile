@@ -179,7 +179,11 @@ install-clean:
 	$(MAKE) clean-builds
 
 clean-builds:
-	rm -rf $(DEPENDS_DIR) $(TOOLCHAIN_REPO) $(SPIKE_REPO)
+	rm -rf $(DEPENDS_DIR) $(TOOLCHAIN_REPO) $(SPIKE_REPO) && \
+	$(MAKE) clean-llvm
+
+clean-llvm:
+	rm -rf $(LLVM_DIR)/llvm-src $(LLVM_DIR)/llvm-build
 
 clean-install:
 	rm -rf riscv-install
