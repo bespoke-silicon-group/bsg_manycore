@@ -72,6 +72,10 @@ namespace bsg_manycore {
         uint32_t local_addr() {
             return reinterpret_cast<uint32_t> (_data);
         } 
+
+        TYPE* addr() {
+            return _addr;
+        }
        
     private:
         // Local address should be aligned by a factor of data type times stripe size
