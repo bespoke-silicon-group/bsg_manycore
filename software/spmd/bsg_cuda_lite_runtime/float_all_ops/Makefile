@@ -24,6 +24,8 @@ OBJECT_FILES=main.o kernel_float_all_ops.o
 
 include ../../Makefile.include
 
+RISCV_GCC_EXTRA_OPTS = -fno-fast-math
+RISCV_GXX_EXTRA_OPTS = -fno-fast-math
 
 main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../../common/crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
