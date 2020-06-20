@@ -197,7 +197,7 @@ CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
 # Ideally LLC should infer targets option provided to Clang. But LLC 11.0.0 fails
 # to infer the architecture extensions correctly. Hence the information is repeated
 # in LLC target options below.
-LLC_TARGET_OPTS   ?= -march=riscv32 -mattr=+m,+a,+f
+LLC_TARGET_OPTS   ?= -march=riscv32 -mcpu=hb-rv32 -mattr=+m,+a,+f
 
 ifdef ENABLE_LLVM_PASSES
 PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
