@@ -5,6 +5,14 @@ endif
 # devtoolset-8
 HOST_TOOLCHAIN ?= /opt/rh/devtoolset-8/root/usr/bin
 
+# Build tool: Pick ninja over make if available
+ifndef GENERATOR
+  GENERATOR = 'Unix Makefiles'
+  ifneq (,$(shell which ninja))
+    GENERATOR = 'Ninja'
+  endif
+endif
+
 llvm-install:
 	mkdir -p $(LLVM_DIR)/llvm-build && mkdir -p $(LLVM_DIR)/llvm-install
 	# Get LLVM sources
@@ -13,7 +21,7 @@ llvm-install:
     cd ./llvm-src && git fetch && git checkout hb-dev
 	# Install only X86 and RISCV targets
 	cd $(LLVM_DIR)/llvm-build \
-	    && cmake3 -DCMAKE_BUILD_TYPE="Debug" \
+	    && cmake3 -G $(GENERATOR) -DCMAKE_BUILD_TYPE="Debug" \
       -DLLVM_ENABLE_PROJECTS="clang" \
 	    -DCMAKE_INSTALL_PREFIX="$(LLVM_DIR)/llvm-install" \
 	    -DCMAKE_C_COMPILER=$(HOST_TOOLCHAIN)/gcc \
@@ -23,4 +31,4 @@ llvm-install:
 	    -DLLVM_USE_SPLIT_DWARF=True \
 	    -DLLVM_OPTIMIZED_TABLEGEN=True \
 	    ../llvm-src/llvm
-	cd  $(LLVM_DIR)/llvm-build && cmake3 --build . -- -j12 && make install
+	cd  $(LLVM_DIR)/llvm-build && cmake3 --build . --target install -- -j 12
