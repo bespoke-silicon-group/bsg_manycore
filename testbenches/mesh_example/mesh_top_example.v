@@ -2,7 +2,7 @@
 // mesh_top_example.v
 // 04/10/2018, shawnless.xie@gmail.com
 //====================================================================
-// This module instantiate an mesh router, a slave and master
+// This module instantiate an mesh router, a client and master
 //
 //  MASTER(0,0)   TIED          TIED       TIED      (Y, X)
 //        \        |               \        |
