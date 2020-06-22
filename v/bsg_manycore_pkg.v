@@ -193,19 +193,17 @@ package bsg_manycore_pkg;
     } bsg_manycore_tile_group_addr_s;
 
   // shared
-  `define declare_bsg_manycore_shared_addr_s(x_cord_width_mp,y_cord_width_mp,stripe_width_mp) \
+  `define declare_bsg_manycore_shared_addr_s(x_cord_width_mp,y_cord_width_mp) \
     typedef struct packed {                      \
       logic [4:0]       remote;                  \
       logic [3:0]       hash;                    \
-      logic [max_x_cord_width_gp+max_y_cord_width_gp-x_cord_width_mp-y_cord_width_mp-2:0] unused; \
-      logic [max_local_offset_width_gp-stripe_width_mp-1:0] addr; \
-      logic [y_cord_width_mp-1:0]           y_cord;               \
-      logic [x_cord_width_mp-1:0]           x_cord;               \
-      logic [stripe_width_mp-1:0]           stripe;               \
-      logic [1:0]                           low_bits;             \
+      logic [max_local_offset_width_gp+max_x_cord_width_gp+max_y_cord_width_gp-2:0]    addr; \
+      logic [1:0]       low_bits;                \
     } bsg_manycore_shared_addr_s;
 
 
 
 
 endpackage
+
+
