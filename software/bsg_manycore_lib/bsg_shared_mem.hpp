@@ -28,14 +28,14 @@ namespace bsg_manycore {
         static constexpr std::size_t STRIPES_PER_TILE = (STRIPES/TILES) + (STRIPES%TILES == 0 ? 0 : 1);
         static constexpr std::size_t ELEMENTS_PER_TILE = STRIPES_PER_TILE * STRIPE_SIZE;
 
-        static constexpr uint32_t DMEM_START_ADDR = 0x1000;    // Beginning of DMEM
-        static constexpr uint32_t SHARED_PREFIX = 0x1;         // Tile group shared memory EVA prefix
-        static constexpr uint32_t HASH = 0x0;                  // Hash code representing the stripe size
+        static constexpr uint32_t DMEM_START_ADDR = 0x1000;       // Beginning of DMEM
+        static constexpr uint32_t SHARED_PREFIX = 0x1;            // Tile group shared memory EVA prefix
+        static constexpr uint32_t HASH = ceil(log2(STRIPE_SIZE)); // Hash code representing the stripe size
 
-        static constexpr uint32_t LOCAL_OFFSET_BITS = 12;      // # of Bits used for 
-        static constexpr uint32_t MAX_X_BITS = 6;              // Maximum bits needed for X coordinate
-        static constexpr uint32_t MAX_Y_BITS = 5;              // Maximum bits needed for X coordinate
-        static constexpr uint32_t HASH_BITS = 4;               // Bits used for EVA to NPA hash
+        static constexpr uint32_t LOCAL_OFFSET_BITS = 12;         // # of Bits used for 
+        static constexpr uint32_t MAX_X_BITS = 6;                 // Maximum bits needed for X coordinate
+        static constexpr uint32_t MAX_Y_BITS = 5;                 // Maximum bits needed for X coordinate
+        static constexpr uint32_t HASH_BITS = 4;                  // Bits used for EVA to NPA hash
 
         static constexpr uint32_t HASH_SHIFT = LOCAL_OFFSET_BITS + MAX_X_BITS + MAX_Y_BITS;
         static constexpr uint32_t SHARED_PREFIX_SHIFT = HASH_SHIFT + HASH_BITS;
