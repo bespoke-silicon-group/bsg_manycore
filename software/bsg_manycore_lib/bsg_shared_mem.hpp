@@ -43,7 +43,10 @@ namespace bsg_manycore {
         static constexpr uint32_t X_BITS = ceil(log2(TG_DIM_X));
         static constexpr uint32_t Y_BITS = ceil(log2(TG_DIM_Y));
 
-        static constexpr uint32_t ALIGNMENT = ceil(log2(sizeof(TYPE) * STRIPE_SIZE));
+        // For stripe sizes of 2 and 4, GCC doesn't comply for some reason
+        // So we temporarily set alignment to 8 for these stripe sizes
+        static constexpr uint32_t ALIGN_STRIPE = ((STRIPE_SIZE == 2 || STRIPE_SIZE == 4) ? 8 : STRIPE_SIZE);
+        static constexpr uint32_t ALIGNMENT = ceil(log2(sizeof(TYPE) * ALIGN_STRIPE));
 
 
 
