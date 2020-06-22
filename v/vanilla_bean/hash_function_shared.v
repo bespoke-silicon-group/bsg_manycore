@@ -4,6 +4,9 @@
  *  destination tile's X/Y coordinates, as well as the 
  *  local offset within that tile.
  *
+ *  The input hash indicates the stripe size of the tile 
+ *  group shared array. Stripe bits are selected accordingly.
+ *
  */
 
 module hash_function_shared
