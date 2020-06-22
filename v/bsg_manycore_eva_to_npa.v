@@ -107,6 +107,24 @@ module bsg_manycore_eva_to_npa
   assign hash_bank_input = eva_i[2+vcache_word_offset_width_lp+:hash_bank_input_width_lp];
 
 
+  logic [x_cord_width_lp-1:0] shared_x_lo;
+  logic [y_cord_width_lp-1:0] shared_y_lo;
+  logic [epa_word_addr_width_gp-1:0] shared_epa_lo;
+
+  hash_function_shared #(
+    .width_p(max_local_offset_width_gp+max_x_cord_width_gp+max_y_cord_width_gp-1)
+    ,.x_cord_width_lp(x_cord_width_lp)
+    ,.y_cord_width_lp(y_cord_width_lp)
+    ,.hash_width_lp(4)
+  ) hashb_shared (
+    .i({shared_addr.unused, shared_addr.addr, shared_addr.y_cord, shared_addr.x_cord, shared_addr.stripe})
+    ,.hash(shared_addr.hash)
+    ,.x_o(shared_x_lo)
+    ,.y_o(shared_y_lo)
+    ,.addr_o(shared_epa_lo)
+  );
+
+
   always_comb begin
     if (is_dram_addr) begin
       if (dram_enable_i) begin
@@ -157,11 +175,20 @@ module bsg_manycore_eva_to_npa
       epa_o = {{(addr_width_p-epa_word_addr_width_gp){1'b0}}, tile_group_addr.addr};
     end
     else if (is_shared_addr) begin
-      y_cord_o = y_cord_width_p'(shared_addr.y_cord + tgo_y_i);
-      x_cord_o = x_cord_width_p'(shared_addr.x_cord + tgo_x_i);
-      epa_o = { {(addr_width_p-epa_word_addr_width_gp){1'b0}} ,
-                {{shared_addr.addr, shared_addr.stripe} + dmem_start_addr_lp} };
-    end
+      // tile-group shared addr
+      // tile-coordinate in the EVA is added to the tile-group origin register.
+      // Dmem start address is added to the local offset extracted from eva
+      
+      // y_cord_o = y_cord_width_p'(shared_addr.y_cord + tgo_y_i);
+      // x_cord_o = x_cord_width_p'(shared_addr.x_cord + tgo_x_i);
+      // epa_o = { {(addr_width_p-epa_word_addr_width_gp){1'b0}} ,
+      //           {{shared_addr.addr, shared_addr.stripe} + dmem_start_addr_lp} };
+      
+      y_cord_o = y_cord_width_p'(shared_y_lo + tgo_y_i);
+      x_cord_o = x_cord_width_p'(shared_x_lo + tgo_x_i);
+      epa_o = { {(addr_width_p-epa_word_addr_width_gp){1'b0}},
+                {{shared_epa_lo + dmem_start_addr_lp}} };
+   end
     else begin
       // should never happen
       y_cord_o = '0;
