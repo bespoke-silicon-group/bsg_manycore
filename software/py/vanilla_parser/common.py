@@ -11,9 +11,9 @@ def add_args(parser):
                         help="Vanilla operation log file")
     parser.add_argument("--vcache-stats", default=None, type=str,
                         help="Vanilla stats log file")
-    parser.add_argument("--tile", default=False, type=str,
+    parser.add_argument("--tile", default=False, action='store_true',
                         help="Also generate per tile stats")
-    parser.add_argument("--tile-group", default=False, type=str,
+    parser.add_argument("--tile-group", default=False, action='store_true',
                         help="Also generate per tile group stats")
     parser.add_argument("--abstract", default=False, action='store_true',
                         help="Type of graphs - abstract / detailed")
