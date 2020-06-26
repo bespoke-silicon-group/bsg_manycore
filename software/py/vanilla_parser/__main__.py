@@ -54,7 +54,7 @@ args = parser.parse_args()
 # Default set
 if (len(args.only) == 0) or ("blood_graph" in args.only) or ("blood_graph" in args.also):
     common.check_exists_and_run(
-        [args.trace, args.stats], blood_graph.main, args)
+        [args.trace], blood_graph.main, args)
 if (len(args.only) == 0) or ("pc_histogram" in args.only) or ("pc_histogram" in args.also):
     common.check_exists_and_run(
         [args.trace], pc_histogram.main, args)

@@ -215,10 +215,10 @@ class VanillaStatsParser:
         self.stats, self.instrs, self.misses, self.stalls, self.bubbles = self.parse_header(vanilla_input_file)
 
 
-        # bubble_fp_op is a bubble in the Integer pipeline "caused" by
+        # bubbles that are  a bubble in the Integer pipeline "caused" by
         # an FP instruction executing. Don't count it in the bubbles
         # because the procesor is still doing "useful work". 
-        self.notbubbles = ['bubble_fp_op'] 
+        self.notbubbles = [] 
 
         # Remove all notbubbles from the bubbles list
         for nb in self.notbubbles:
@@ -437,7 +437,7 @@ class VanillaStatsParser:
                                      ,(self.manycore_stat[tag]["global_ctr"])
                                      ,(self.manycore_stat[tag]["cycle_parallel_cnt"])
                                      ,(self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["global_ctr"])
-                                     ,(100 * self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["instr_total"])
+                                     ,(np.float64(100 * self.manycore_stat[tag]["instr_total"]) / self.manycore_stat[tag]["instr_total"])
                                      ,(np.float64(100 * self.manycore_stat[tag]["global_ctr"]) / self.manycore_stat["kernel"]["global_ctr"]))
         return
 
@@ -640,8 +640,7 @@ class VanillaStatsParser:
    
         # Print instruction stats for manycore
         for instr in instrs:
-         
-            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_') or instr.startswith('instr_amo')) else "instr_data"
+            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_')) else "instr_data"
             self.__print_stat(stat_file, instr_format, instr,
                                          stat[tag][instr]
                                          ,(100 * np.float64(stat[tag][instr]) / stat[tag]["instr_total"]))
@@ -676,7 +675,7 @@ class VanillaStatsParser:
 
         # Print instruction stats for manycore
         for instr in instrs:
-            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_') or instr.startswith('instr_amo')) else "instr_data"
+            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_')) else "instr_data"
             self.__print_stat(stat_file, instr_format, instr,
                                          tile_group_stat[tag][tg_id][instr]
                                          ,(100 * np.float64(tile_group_stat[tag][tg_id][instr]) / tile_group_stat[tag][tg_id]["instr_total"]))
@@ -743,8 +742,7 @@ class VanillaStatsParser:
 
         # Print stall stats for manycore
         for stall in stalls:
-            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
-            self.__print_stat(stat_file, stall_format, stall
+            self.__print_stat(stat_file, "stall_data", stall
                                          ,stat[tag][stall]
                                          ,(100 * np.float64(stat[tag][stall]) / stat[tag]["stall_total"])
                                          ,(100 * np.float64(stat[tag][stall]) / stat[tag]["global_ctr"]))
@@ -785,8 +783,7 @@ class VanillaStatsParser:
 
         # Print stall stats for manycore
         for stall in stalls:
-            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
-            self.__print_stat(stat_file, stall_format
+            self.__print_stat(stat_file, "stall_data"
                                          ,stall
                                          ,tile_group_stat[tag][tg_id][stall]
                                          ,(100 * np.float64(tile_group_stat[tag][tg_id][stall]) / tile_group_stat[tag][tg_id]["stall_total"])
@@ -821,8 +818,7 @@ class VanillaStatsParser:
 
         # Print stall stats for manycore
         for stall in stalls:
-            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
-            self.__print_stat(stat_file, stall_format, stall,
+            self.__print_stat(stat_file, "stall_data", stall,
                                          stat[tag][item][stall],
                                          (100 * np.float64(stat[tag][item][stall]) / stat[tag][item]["stall_total"])
                                          ,(100 * np.float64(stat[tag][item][stall]) / stat[tag][item]["global_ctr"]))
@@ -1473,10 +1469,7 @@ class VanillaStatsParser:
                 for instr in self.instrs:
                     tile_stat[tag][tile]["instr_total"] += tile_stat[tag][tile][instr]
                 for stall in self.stalls:
-                    # stall_depend count includes all stall_depend_ types, so all
-                    # stall_depend_ subcategories are excluded to avoid double-counting
-                    if (not stall.startswith('stall_depend_')):
-                        tile_stat[tag][tile]["stall_total"] += tile_stat[tag][tile][stall]
+                    tile_stat[tag][tile]["stall_total"] += tile_stat[tag][tile][stall]
                 for bubble in self.bubbles:
                     tile_stat[tag][tile]["bubble_total"] += tile_stat[tag][tile][bubble]
                 for miss in self.misses:
@@ -1490,10 +1483,7 @@ class VanillaStatsParser:
                 for instr in self.instrs:
                     tile_group_stat[tag][tg_id]["instr_total"] += tile_group_stat[tag][tg_id][instr]
                 for stall in self.stalls:
-                    # stall_depend count includes all stall_depend_ types, so all
-                    # stall_depend_ subcategories are excluded to avoid double-counting
-                    if (not stall.startswith('stall_depend_')):
-                        tile_group_stat[tag][tg_id]["stall_total"] += tile_group_stat[tag][tg_id][stall]
+                    tile_group_stat[tag][tg_id]["stall_total"] += tile_group_stat[tag][tg_id][stall]
                 for bubble in self.bubbles:
                     tile_group_stat[tag][tg_id]["bubble_total"] += tile_group_stat[tag][tg_id][bubble]
                 for miss in self.misses:
@@ -1663,11 +1653,7 @@ class VanillaStatsParser:
         for tag in tags:
             for tg_id in range(num_tile_groups[tag]):
                 for instr in self.vcache_instrs:
-                    # different types of load/store/atomic instructions are already counted
-                    # under the umbrella of instr_ld/st/atomic, so they are not summed to 
-                    # to avoid double counting
-                    if (not instr.startswith('instr_ld_') and not instr.startswith('instr_sm_') and not instr.startswith('instr_amo')):
-                        vcache_tile_group_stat[tag][tg_id]["instr_total"] += vcache_tile_group_stat[tag][tg_id][instr]
+                    vcache_tile_group_stat[tag][tg_id]["instr_total"] += vcache_tile_group_stat[tag][tg_id][instr]
                 for stall in self.vcache_stalls:
                     vcache_tile_group_stat[tag][tg_id]["stall_total"] += vcache_tile_group_stat[tag][tg_id][stall]
                 for bubble in self.vcache_bubbles:
@@ -1761,7 +1747,7 @@ class VanillaStatsParser:
 
 # parses input arguments
 def add_args(parser):
-    parser.add_argument("--per_vcache", default=False, action='store_true',
+    parser.add_argument("--per-vcache", default=False, action='store_true',
                         help="Also generate separate stats files for each victim cache bank.")
 
 def main(args): 

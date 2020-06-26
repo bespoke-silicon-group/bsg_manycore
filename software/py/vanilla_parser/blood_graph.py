@@ -51,36 +51,34 @@ class BloodGraph:
 
 
     # List of types of stalls incurred by the core
-    _STALLS_LIST   = ["stall_depend_remote_load_dram",
-                      "stall_depend_local_remote_load_dram",
-                      "stall_depend_remote_load_global",
-                      "stall_depend_remote_load_group",
-                      "stall_depend_local_remote_load_global",
-                      "stall_depend_local_remote_load_group",
-                      "stall_lr_aq",
-                      "stall_depend",
+    _STALLS_LIST   = ["stall_depend_dram_load",
+                      "stall_depend_group_load",
+                      "stall_depend_global_load",
+                      "stall_depend_idiv",
+                      "stall_depend_fdiv",
                       "stall_depend_local_load",
-                      "stall_fp_local_load",
-                      "stall_fp_remote_load",
-                      "stall_force_wb",
-                      "stall_icache_store",
-                      "stall_remote_req",
-                      "stall_local_flw",
+                      "stall_depend_imul",
                       "stall_amo_aq",
                       "stall_amo_rl",
-                      "icache_miss",
+                      "stall_bypass",
+                      "stall_lr_aq",
+                      "stall_fence",
+                      "stall_remote_req",
+                      "stall_remote_credit",
+                      "stall_fdiv_busy",
+                      "stall_idiv_busy",
+                      "stall_fcsr",
+                      "stall_remote_ld",
                       "stall_ifetch_wait",
-                      "bubble_icache",
-                      "bubble_branch_mispredict",
-                      "bubble_jalr_mispredict",
-                      "bubble_fp_op",
-                      "bubble",
-                      "stall_md" ]
-
+                      "stall_remote_flw_wb",
+                      "bubble_branch_miss",
+                      "bubble_jalr_miss",
+                      "bubble_icache_miss"]
 
 
     # List of types of integer instructions executed by the core
-    _INSTRS_LIST    = ["local_ld",
+    _INSTRS_LIST    = [
+                       "local_ld",
                        "local_st",
                        "remote_ld_dram",
                        "remote_ld_global",
@@ -90,23 +88,27 @@ class BloodGraph:
                        "remote_st_group",
                        "local_flw",
                        "local_fsw",
-                       "remote_flw",
-                       "remote_fsw",
+                       "remote_flw_dram",
+                       "remote_flw_global",
+                       "remote_flw_group",
+                       "remote_fsw_dram",
+                       "remote_fsw_global",
+                       "remote_fsw_group",
                        # icache_miss is no longer treated as an instruction
                        # but treated the same as stall_ifetch_wait
-                       #"icache_miss",
+                       # "icache_miss",
                        "lr",
                        "lr_aq",
-                       "swap_aq",
-                       "swap_rl",
+                       "amoswap",
+                       "amoor", 
                        "beq",
                        "bne",
                        "blt",
                        "bge",
                        "bltu",
                        "bgeu",
-                       "jalr",
                        "jal",
+                       "jalr",
                        "beq_miss",
                        "bne_miss",
                        "blt_miss",
@@ -114,141 +116,150 @@ class BloodGraph:
                        "bltu_miss",
                        "bgeu_miss",
                        "jalr_miss",
-                       "sll",
-                       "slli",
-                       "srl",
-                       "srli",
-                       "sra",
-                       "srai",
-                       "add",
-                       "addi",
-                       "sub",
-                       "lui",
-                       "auipc",
-                       "xor",
-                       "xori",
-                       "or",
-                       "ori",
-                       "and",
-                       "andi",
-                       "slt",
-                       "slti",
-                       "sltu",
-                       "sltiu",
-                       "mul",
-                       "mulh",
-                       "mulhsu",
-                       "mulhu",
-                       "div",
-                       "divu",
-                       "rem",
-                       "remu",
-                       "fence",
-                       "amoswap",
-                       "amoor",
-                       "unknown" ]
+                       "sll", 
+                       "slli", 
+                       "srl", 
+                       "srli", 
+                       "sra", 
+                       "srai",          
+                       "add",      
+                       "addi",    
+                       "sub",      
+                       "lui",      
+                       "auipc",  
+                       "xor",      
+                       "xori",    
+                       "or",        
+                       "ori",      
+                       "and",      
+                       "andi",    
+                       "slt",      
+                       "slti",    
+                       "sltu",    
+                       "sltiu",  
+                       "div",      
+                       "divu",    
+                       "rem",      
+                       "remu",    
+                       "mul",      
+                       "fence",  
+                       "csrrw",  
+                       "csrrs",  
+                       "csrrc",  
+                       "csrrwi",
+                       "csrrsi",
+                       "csrrci",
+                       "unknown"]
+
 
     # List of types of floating point instructions executed by the core
     _FP_INSTRS_LIST = ["fadd",
-                      "fsub",
-                      "fmul",
-                      "fsgnj",
-                      "fsgnjn",
-                      "fsgnjx",
-                      "fmin",
-                      "fmax",
-                      "fcvt_s_w",
-                      "fcvt_s_wu",
-                      "fmv_w_x",
-                      "feq",
-                      "flt",
-                      "fle",
-                      "fcvt_w_s",
-                      "fcvt_wu_s",
-                      "fclass",
-                      "fmv_x_w" ]
+                       "fsub",
+                       "fmul",
+                       "fsgnj",
+                       "fsgnjn",
+                       "fsgnjx",
+                       "fmin",
+                       "fmax",
+                       "fcvt_s_w",
+                       "fcvt_s_wu",
+                       "fmv_w_x",
+                       "fmadd",
+                       "fmsub",
+                       "fnmsub",
+                       "fnmadd",
+                       "feq",
+                       "flt",
+                       "fle",
+                       "fcvt_w_s",
+                       "fcvt_wu_s",
+                       "fclass",
+                       "fmv_x_w",
+                       "fdiv",
+                       "fsqrt"]
 
 
     # Coloring scheme for different types of operations
     # For detailed mode
     # i_cache miss is treated the same is stall_ifetch_wait
     _DETAILED_STALL_BUBBLE_COLOR = {
-                                     "stall_depend_remote_load_dram"          : (0xff, 0x00, 0x00), ## red
-                                     "stall_depend_local_remote_load_dram"    : (0xaa, 0x00, 0x00), ## dark red
+                                     "stall_depend_dram_load"    : (0xff, 0x00, 0x00), ## red
+                                     "stall_depend_group_load"   : (0x00, 0xff, 0x00), ## green
+                                     "stall_depend_global_load"  : (0x00, 0x55, 0x00), ## dark green
+                                     "stall_depend_local_load"   : (0x00, 0xff, 0xff), ## cyan
+                                     
+                                     "stall_depend_idiv"         : (0xff, 0xf0, 0xa0), ## light orange
+                                     "stall_depend_fdiv"         : (0xff, 0xf0, 0xa0), ## light orange
+                                     "stall_depend_imul"         : (0xff, 0xf0, 0xa0), ## light orange
+                                     
+                                     "stall_fdiv_busy"           : (0x00, 0xaa, 0xff), ## dark cyan
+                                     "stall_idiv_busy"           : (0x00, 0xaa, 0xff), ## dark cyan
 
-                                     "stall_depend_remote_load_global"        : (0x00, 0xff, 0x00), ## green
-                                     "stall_depend_remote_load_group"         : (0x00, 0xff, 0x00), ## green
-                                     "stall_depend_local_remote_load_global"  : (0x00, 0x55, 0x00), ## dark green
-                                     "stall_depend_local_remote_load_group"   : (0x00, 0x55, 0x00), ## dark green
+                                     "stall_amo_aq"              : (0x8b, 0x45, 0x13), ## brown
+                                     "stall_amo_rl"              : (0x8b, 0x45, 0x13), ## brown
+                                     
+                                     "stall_bypass"              : (0xff, 0x00, 0xff), ## pink
+                                     "stall_lr_aq"               : (0x40, 0x40, 0x40), ## dark gray
+                                     "stall_fence"               : (0x00, 0x00, 0x80), ## navy blue
+                                     "stall_remote_req"          : (0xff, 0xff, 0x00), ## yellow
+                                     "stall_remote_credit"       : (0x80, 0x00, 0x00), ## maroon
+                                     
+                                     
+                                     "stall_fcsr"                : (0x00, 0x55, 0xff), ## dark blue
+                                     "stall_remote_ld"           : (0xaa, 0x00, 0x00), ## dark red
 
-                                     "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray
+                                     "stall_remote_flw_wb"       : (0xff, 0xff, 0x80), ## light yellow
+                                     
+                                     "bubble_branch_miss"        : (0x80, 0x00, 0x80), ## purple
+                                     "bubble_jalr_miss"          : (0xff, 0xa5, 0x00), ## orange
 
-                                     "stall_depend"                           : (0x00, 0x00, 0x80), ## navy blue
-                                     "stall_depend_local_load"                : (0x00, 0xff, 0xff), ## cyan
-
-                                     "stall_fp_local_load"                    : (0x00, 0xaa, 0xff), ## dark cyan
-                                     "stall_fp_remote_load"                   : (0x00, 0xaa, 0xff), ## dark cyan
-
-                                     "stall_force_wb"                         : (0xff, 0x00, 0xff), ## pink
-                                     "stall_icache_store"                     : (0x00, 0x55, 0xff), ## dark blue
-                                     "stall_remote_req"                       : (0xff, 0xff, 0x00), ## yellow
-                                     "stall_local_flw"                        : (0xff, 0xff, 0x80), ## light yellow
-                                     "stall_amo_aq"                           : (0x8b, 0x45, 0x13), ## brown
-                                     "stall_amo_rl"                           : (0x8b, 0x45, 0x13), ## brown
-
-                                     "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
-                                     "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
-                                     "bubble_icache"                          : (0x00, 0x00, 0xff), ## blue
-
-                                     "bubble_branch_mispredict"               : (0x80, 0x00, 0x80), ## purple
-                                     "bubble_jalr_mispredict"                 : (0xff, 0xa5, 0x00), ## orange
-                                     "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black
-                                     "bubble"                                 : (0x80, 0x00, 0x00), ## maroon
-
-                                     "stall_md"                               : (0xff, 0xf0, 0xa0), ## light orange
+                                     "icache_miss"               : (0x00, 0x00, 0xff), ## blue
+                                     "bubble_icache_miss"        : (0x00, 0x00, 0xff), ## blue
+                                     "stall_ifetch_wait"         : (0x00, 0x00, 0xff), ## blue
                                   }
-    _DETAILED_UNIFIED_INSTR_COLOR        =                                      (0xff, 0xff, 0xff)  ## white
-    _DETAILED_UNIFIED_FP_INSTR_COLOR     =                                      (0xff, 0xaa, 0xff)  ## light pink
+    _DETAILED_UNIFIED_INSTR_COLOR    =                             (0xff, 0xff, 0xff)  ## white
+    _DETAILED_UNIFIED_FP_INSTR_COLOR =                             (0xff, 0xaa, 0xff)  ## light pink
 
 
     # Coloring scheme for different types of operations
     # For abstract mode
     # i_cache miss is treated the same is stall_ifetch_wait
     _ABSTRACT_STALL_BUBBLE_COLOR = {
-                                         "stall_depend_remote_load_dram"          : (0xff, 0x00, 0x00), ## red
-                                         "stall_depend_local_remote_load_dram"    : (0xff, 0x00, 0x00), ## red
+                                     "stall_depend_dram_load"    : (0xff, 0x00, 0x00), ## red
+                                     "stall_depend_group_load"   : (0x00, 0xff, 0x00), ## green
+                                     "stall_depend_global_load"  : (0x00, 0xff, 0x00), ## green
+                                     "stall_depend_local_load"   : (0x00, 0xff, 0xff), ## cyan
+                                     
+                                     "stall_depend_idiv"         : (0xff, 0xff, 0xff), ## white
+                                     "stall_depend_fdiv"         : (0xff, 0xff, 0xff), ## white
+                                     "stall_depend_imul"         : (0xff, 0xff, 0xff), ## white
 
-                                         "stall_depend_remote_load_global"        : (0x00, 0xff, 0x00), ## green
-                                         "stall_depend_remote_load_group"         : (0x00, 0xff, 0x00), ## green
-                                         "stall_depend_local_remote_load_global"  : (0x00, 0xff, 0x00), ## green
-                                         "stall_depend_local_remote_load_group"   : (0x00, 0xff, 0x00), ## green
+                                     "stall_fdiv_busy"           : (0xff, 0xff, 0xff), ## white
+                                     "stall_idiv_busy"           : (0xff, 0xff, 0xff), ## white
+                                     
+                                     "stall_amo_aq"              : (0x00, 0x00, 0x00), ## black
+                                     "stall_amo_rl"              : (0x00, 0x00, 0x00), ## black
+                                     
+                                     "stall_bypass"              : (0x00, 0x00, 0x00), ## black
+                                     "stall_lr_aq"               : (0x40, 0x40, 0x40), ## dark gray
+                                     "stall_fence"               : (0x00, 0x00, 0x00), ## black
+                                     "stall_remote_req"          : (0x00, 0x00, 0x00), ## black
+                                     "stall_remote_credit"       : (0x00, 0x00, 0x00), ## black
+                                     
+                                     "stall_fcsr"                : (0x00, 0x00, 0x00), ## black
+                                     "stall_remote_ld"           : (0x00, 0x00, 0x00), ## black
 
-                                         "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray
+                                     "stall_remote_flw_wb"       : (0x00, 0x00, 0x00), ## black
+                                     
+                                     "bubble_branch_miss"        : (0x00, 0x00, 0x00), ## black
+                                     "bubble_jalr_miss"          : (0x00, 0x00, 0x00), ## black
 
-                                         "stall_depend"                           : (0x00, 0x00, 0x00), ## black
-                                         "stall_depend_local_load"                : (0x00, 0x00, 0x00), ## black
-                                         "stall_fp_local_load"                    : (0x00, 0x00, 0x00), ## black
-                                         "stall_fp_remote_load"                   : (0x00, 0x00, 0x00), ## black
-                                         "stall_force_wb"                         : (0x00, 0x00, 0x00), ## black
-                                         "stall_icache_store"                     : (0x00, 0x00, 0x00), ## black
-                                         "stall_remote_req"                       : (0x00, 0x00, 0x00), ## black
-                                         "stall_local_flw"                        : (0x00, 0x00, 0x00), ## black
-                                         "stall_amo_aq"                           : (0x00, 0x00, 0x00), ## black
-                                         "stall_amo_rl"                           : (0x00, 0x00, 0x00), ## black
-
-                                         "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
-                                         "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
-                                         "bubble_icache"                          : (0x00, 0x00, 0xff), ## blue
-
-                                         "bubble_branch_mispredict"               : (0x00, 0x00, 0x00), ## black
-                                         "bubble_jalr_mispredict"                 : (0x00, 0x00, 0x00), ## black
-                                         "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black
-                                         "bubble"                                 : (0x00, 0x00, 0x00), ## black
-
-                                         "stall_md"                               : (0xff, 0xff, 0xff), ## white
+                                     "icache_miss"               : (0x00, 0x00, 0xff), ## blue
+                                     "bubble_icache_miss"        : (0x00, 0x00, 0xff), ## blue
+                                     "stall_ifetch_wait"         : (0x00, 0x00, 0xff), ## blue
                                    }
-    _ABSTRACT_UNIFIED_INSTR_COLOR        =                                          (0xff, 0xff, 0xff)  ## white
-    _ABSTRACT_UNIFIED_FP_INSTR_COLOR     =                                          (0xff, 0xff, 0xff)  ## white
+    _ABSTRACT_UNIFIED_INSTR_COLOR    =                             (0xff, 0xff, 0xff)  ## white
+    _ABSTRACT_UNIFIED_FP_INSTR_COLOR =                             (0xff, 0xff, 0xff)  ## white
 
 
 
