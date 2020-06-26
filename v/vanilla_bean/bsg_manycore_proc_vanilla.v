@@ -21,6 +21,7 @@ module bsg_manycore_proc_vanilla
     , parameter vcache_sets_p = "inv"
 
     , parameter num_tiles_x_p="inv"
+    , parameter num_tiles_y_p="inv"
 
     , parameter max_out_credits_p = 32
     , parameter proc_fifo_els_p = 4
@@ -236,6 +237,7 @@ module bsg_manycore_proc_vanilla
     ,.max_out_credits_p(max_out_credits_p)
 
     ,.num_tiles_x_p(num_tiles_x_p)
+    ,.num_tiles_y_p(num_tiles_y_p)
   ) tx (
     .clk_i(clk_i)
     ,.reset_i(reset_i)

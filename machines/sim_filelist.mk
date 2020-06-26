@@ -70,3 +70,9 @@ VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_io_co
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_spmd_loader.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_monitor.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/spmd_testbench.v
+
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_ideal_network.v
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_crossbar_network.v
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_noc_crossbar.v
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_decode_with_v_2d.v
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_round_robin_n_to_1_2d.v

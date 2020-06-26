@@ -26,3 +26,5 @@ BSG_MACHINE_HETERO_TYPE_VEC           = 0,0,0,0,\
                                         0,0,0,0,\
                                         0,0,0,0,\
                                         0,0,0,1
+
+BSG_MACHINE_IDEAL_NETWORK             = 0
