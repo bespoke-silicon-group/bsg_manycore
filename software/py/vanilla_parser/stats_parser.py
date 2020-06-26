@@ -215,10 +215,10 @@ class VanillaStatsParser:
         self.stats, self.instrs, self.misses, self.stalls, self.bubbles = self.parse_header(vanilla_input_file)
 
 
-        # bubble_fp_op is a bubble in the Integer pipeline "caused" by
+        # bubbles that are  a bubble in the Integer pipeline "caused" by
         # an FP instruction executing. Don't count it in the bubbles
         # because the procesor is still doing "useful work". 
-        self.notbubbles = ['bubble_fp_op'] 
+        self.notbubbles = [] 
 
         # Remove all notbubbles from the bubbles list
         for nb in self.notbubbles:
@@ -437,7 +437,7 @@ class VanillaStatsParser:
                                      ,(self.manycore_stat[tag]["global_ctr"])
                                      ,(self.manycore_stat[tag]["cycle_parallel_cnt"])
                                      ,(self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["global_ctr"])
-                                     ,(100 * self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["instr_total"])
+                                     ,(np.float64(100 * self.manycore_stat[tag]["instr_total"]) / self.manycore_stat[tag]["instr_total"])
                                      ,(np.float64(100 * self.manycore_stat[tag]["global_ctr"]) / self.manycore_stat["kernel"]["global_ctr"]))
         return
 
