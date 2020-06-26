@@ -616,11 +616,11 @@ module vanilla_core_profiler
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
-      stat_r <= '0;
+         stat_r = '0;
     end
     else begin
       stat_r.cycle++;
-      stat_r.instr <= stat_r.instr + instr_inc + fp_instr_inc;
+         stat_r.instr = stat_r.instr + instr_inc + fp_instr_inc;
 
       if (stall_all) begin
         if (stall_remote_ld_wb) stat_r.stall_remote_ld_wb++;
@@ -770,14 +770,15 @@ module vanilla_core_profiler
 
   integer fd, fd2;
   string header;
+   initial begin
+      fd = $fopen(logfile_lp, "w");
+      $fwrite(fd,"");
+   end
 
-  initial begin
-  
-    #1; // we need to wait for one time unit so that my_x_i and my_y_i becomes a known value.
-
+   always @(negedge reset_i) begin      
     // the origin tile opens the logfile and writes the csv header.
     if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p))) begin
-      fd = $fopen(logfile_lp, "w");
+      fd = $fopen(logfile_lp, "a");
       $fwrite(fd, "time,");
       $fwrite(fd, "x,");
       $fwrite(fd, "y,");
@@ -927,10 +928,11 @@ module vanilla_core_profiler
         $fwrite(fd2, "cycle,x,y,pc,operation\n");
         $fclose(fd2);
       end
-    end
+    end // if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p)))
+   end // always @ (my_x_i)
+   
 
-    forever begin
-      @(negedge clk_i)  begin
+   always @(negedge clk_i)  begin
         // stat printing
         if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == my_y_i & print_stat_tag.x_cord == my_x_i) begin
           $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, my_x_i, my_y_i);
@@ -1221,19 +1223,7 @@ module vanilla_core_profiler
 
           $fclose(fd2);
         end
-      end
-    end
-
-
-  end
-
-
-
-
-
-
-
-
+   end // always @ (negedge clk_i)
 
    // DPI Profiler interface. See interface comments below.
    export "DPI-C" function bsg_dpi_init;

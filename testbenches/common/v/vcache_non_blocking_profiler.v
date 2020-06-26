@@ -128,7 +128,7 @@ module vcache_non_blocking_profiler
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
-      stat_r <= '0;
+      stat_r = '0;
     end
     else begin
       if (ld_hit_inc) stat_r.ld_hit++;
@@ -160,9 +160,10 @@ module vcache_non_blocking_profiler
       $fwrite(fd, "instance,global_ctr,tag,ld_hit,st_hit,ld_hit_under_miss,st_hit_under_miss,ld_miss,st_miss,ld_mhu,st_mhu,dma_read_req,dma_write_req\n");
       $fclose(fd);
     end
+  end
+   
   
-    forever begin
-      @(negedge clk_i) begin
+   always @(negedge clk_i) begin
         if (~reset_i & print_stat_v_i) begin
 
           $display("[BSG_INFO][VCACHE_PROFILER] %s t=%0t printing stats.", my_name, $time);
@@ -178,10 +179,8 @@ module vcache_non_blocking_profiler
           );   
           $fclose(fd);
         end
-      end
-    end
-
-  end 
+   end
+   
 
 
   // string match helper
