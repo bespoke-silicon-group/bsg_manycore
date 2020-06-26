@@ -347,7 +347,7 @@ def add_args(parser):
                         help="Skip stall graph generation")
 
 def main(args): 
-    bg = VcacheStallGraph(args.vcache_trace, args.vcache_stats, args.cycle, args.abstract)
+    bg = VcacheStallGraph(args.vcache_trace, args.vcache_stats, args.cycle, args.abstract, args.no_stall_graph)
     if not args.no_stall_graph:
         bg.generate()
     if args.generate_key:

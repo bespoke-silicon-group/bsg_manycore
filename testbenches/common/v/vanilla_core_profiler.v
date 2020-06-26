@@ -1187,9 +1187,9 @@ module vanilla_core_profiler
           else if (csrrsi_inc) print_operation_trace(fd2, "csrrsi");
           else if (csrrci_inc) print_operation_trace(fd2, "csrrci");
 
-          else if (branch_miss_bubble_inc) print_operation_trace(fd2, "branch_miss_bubble");
-          else if (jalr_miss_bubble_inc) print_operation_trace(fd2, "jalr_miss_bubble");
-          else if (icache_miss_bubble_inc) print_operation_trace(fd2, "icache_miss_bubble");
+          else if (branch_miss_bubble_inc) print_operation_trace(fd2, "bubble_branch_miss");
+          else if (jalr_miss_bubble_inc) print_operation_trace(fd2, "bubble_jalr_miss");
+          else if (icache_miss_bubble_inc) print_operation_trace(fd2, "bubble_icache_miss");
           else if (stall_depend_dram_load_inc) print_operation_trace(fd2, "stall_depend_dram_load");
           else if (stall_depend_group_load_inc) print_operation_trace(fd2, "stall_depend_group_load");
           else if (stall_depend_global_load_inc) print_operation_trace(fd2, "stall_depend_global_load");
