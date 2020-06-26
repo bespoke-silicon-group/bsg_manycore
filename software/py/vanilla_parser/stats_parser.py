@@ -640,7 +640,8 @@ class VanillaStatsParser:
    
         # Print instruction stats for manycore
         for instr in instrs:
-            self.__print_stat(stat_file, "instr_data", instr,
+            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_')) else "instr_data"
+            self.__print_stat(stat_file, instr_format, instr,
                                          stat[tag][instr]
                                          ,(100 * np.float64(stat[tag][instr]) / stat[tag]["instr_total"]))
         return
@@ -674,7 +675,8 @@ class VanillaStatsParser:
 
         # Print instruction stats for manycore
         for instr in instrs:
-            self.__print_stat(stat_file, "instr_data", instr,
+            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_')) else "instr_data"
+            self.__print_stat(stat_file, instr_format, instr,
                                          tile_group_stat[tag][tg_id][instr]
                                          ,(100 * np.float64(tile_group_stat[tag][tg_id][instr]) / tile_group_stat[tag][tg_id]["instr_total"]))
         return
@@ -1630,7 +1632,11 @@ class VanillaStatsParser:
         for tag in tags:
             for vcache in vcaches:
                 for instr in self.vcache_instrs:
-                    vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
+                    # different types of load/store/atomic instructions are already counted
+                    # under the umbrella of instr_ld/st/atomic, so they are not summed to 
+                    # to avoid double counting
+                    if (not instr.startswith('instr_ld_') and not instr.startswith('instr_sm_') and not instr.startswith('instr_amo')):
+                        vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
                 for stall in self.vcache_stalls:
                     vcache_stat[tag][vcache]["stall_total"] += vcache_stat[tag][vcache][stall]
                 for bubble in self.vcache_bubbles:
@@ -1741,7 +1747,7 @@ class VanillaStatsParser:
 
 # parses input arguments
 def add_args(parser):
-    parser.add_argument("--per_vcache", default=False, action='store_true',
+    parser.add_argument("--per-vcache", default=False, action='store_true',
                         help="Also generate separate stats files for each victim cache bank.")
 
 def main(args): 

@@ -41,7 +41,7 @@
                        [--tile-group TILE_GROUP] [--abstract] [--generate-key]
                        [--cycle CYCLE] [--only [SUBMODULE [SUBMODULE ...]]]
                        [--also [SUBMODULE [SUBMODULE ...]]] [--no-blood-graph]
-                       [--per_vcache] [--no-stall-graph]
+                       [--per-vcache] [--no-stall-graph]
 
  The interface for parsing COSIM output logs. This parser comprises
  of following five tools:
@@ -81,7 +81,7 @@
    --no-blood-graph      Skip blood graph generation
 
  Stats parser specific options:
-   --per_vcache          Also generate separate stats files for each victim
+   --per-vcache          Also generate separate stats files for each victim
                          cache bank.
 
  Vcache stall graph specific options:
