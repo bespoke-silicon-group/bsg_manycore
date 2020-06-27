@@ -8,89 +8,81 @@
 `include "bsg_noc_links.vh"
 
 module bsg_noc_crossbar 
-  #(parameter num_in_x_p="inv"
-    , parameter num_in_y_p="inv"
+  #(parameter num_in_p="inv"
     , parameter width_p="inv"
-    
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
 
-    , parameter lg_num_in_x_lp = `BSG_SAFE_CLOG2(num_in_x_p)
-    , parameter lg_num_in_y_lp = `BSG_SAFE_CLOG2(num_in_y_p)
-
+    , parameter lg_num_in_lp = `BSG_SAFE_CLOG2(num_in_p)
     , parameter link_sif_width_lp=`bsg_ready_and_link_sif_width(width_p)
   )
   (
     input clk_i
     , input reset_i
 
-    , input  [num_in_y_p-1:0][num_in_x_p-1:0][link_sif_width_lp-1:0] links_sif_i
-    , output [num_in_y_p-1:0][num_in_x_p-1:0][link_sif_width_lp-1:0] links_sif_o
+    , input  [num_in_p-1:0][link_sif_width_lp-1:0] links_sif_i
+    , output [num_in_p-1:0][link_sif_width_lp-1:0] links_sif_o
 
-    , input  [num_in_y_p-1:0][num_in_x_p-1:0] links_credit_o
+    , output [num_in_p-1:0] links_credit_o
   );
 
 
   `declare_bsg_ready_and_link_sif_s(width_p, bsg_ready_and_link_sif_s);
-  bsg_ready_and_link_sif_s [num_in_y_p-1:0][num_in_x_p-1:0] links_sif_in;
-  bsg_ready_and_link_sif_s [num_in_y_p-1:0][num_in_x_p-1:0] links_sif_out;
+  bsg_ready_and_link_sif_s [num_in_p-1:0] links_sif_in;
+  bsg_ready_and_link_sif_s [num_in_p-1:0] links_sif_out;
 
   assign links_sif_in = links_sif_i;
   assign links_sif_o = links_sif_out;
 
 
   // input buffer
-  logic [num_in_y_p-1:0][num_in_x_p-1:0] fifo_v_lo;
-  logic [num_in_y_p-1:0][num_in_x_p-1:0][width_p-1:0] fifo_data_lo;
-  logic [num_in_y_p-1:0][num_in_x_p-1:0] fifo_yumi_li;
+  logic [num_in_p-1:0] fifo_v_lo;
+  logic [num_in_p-1:0][width_p-1:0] fifo_data_lo;
+  logic [num_in_p-1:0] fifo_yumi_li;
 
-  for (genvar i = 0; i < num_in_y_p; i++) begin: fy
-    for (genvar j = 0; j < num_in_x_p; j++) begin: fx
+  for (genvar i = 0; i < num_in_p; i++) begin: fi
 
-      bsg_two_fifo #(
-        .width_p(width_p)
-      ) fifo (
-        .clk_i(clk_i)
-        ,.reset_i(reset_i)
+    bsg_two_fifo #(
+      .width_p(width_p)
+    ) fifo (
+      .clk_i(clk_i)
+      ,.reset_i(reset_i)
 
-        ,.v_i     (links_sif_in[i][j].v)
-        ,.data_i  (links_sif_in[i][j].data)
-        ,.ready_o (links_sif_out[i][j].ready_and_rev)
+      ,.v_i     (links_sif_in[i].v)
+      ,.data_i  (links_sif_in[i].data)
+      ,.ready_o (links_sif_out[i].ready_and_rev)
 
-        ,.v_o     (fifo_v_lo[i][j])
-        ,.data_o  (fifo_data_lo[i][j])
-        ,.yumi_i  (fifo_yumi_li[i][j])
-      );
+      ,.v_o     (fifo_v_lo[i])
+      ,.data_o  (fifo_data_lo[i])
+      ,.yumi_i  (fifo_yumi_li[i])
+    );
       
-      assign links_credit_o[i][j] = fifo_yumi_li[i][j];
+    assign links_credit_o[i] = fifo_yumi_li[i];
 
-    end
   end
 
  
   // crossbar demux
-  // [src_y][src_x][dest_y][dest_x]
-  logic [num_in_y_p-1:0][num_in_x_p-1:0][num_in_y_p-1:0][num_in_x_p-1:0] dest_select, dest_select_t;
+  // [src][dest]
+  logic [num_in_p-1:0][lg_num_in_lp-1:0] coords;
+  logic [num_in_p-1:0][num_in_p-1:0] dest_select, dest_select_t;
  
-  for (genvar i = 0; i < num_in_y_p; i++) begin: dy
-    for (genvar j = 0; j < num_in_x_p; j++) begin: dx
-      bsg_decode_with_v_2d #(
-        .num_out_x_p(num_in_x_p)
-        ,.num_out_y_p(num_in_y_p)
-      ) demux0 (
-        .v_i(fifo_v_lo[i][j])
-        ,.x_i(fifo_data_lo[i][j][0+:lg_num_in_x_lp])
-        ,.y_i(fifo_data_lo[i][j][x_cord_width_p+:lg_num_in_y_lp])
-        ,.o(dest_select[i][j]) 
-      );
-    end
+  for (genvar i = 0; i < num_in_p; i++) begin: dx
+
+    assign coords[i] = fifo_data_lo[i][0+:lg_num_in_lp];
+
+    bsg_decode_with_v #(
+      .num_out_p(num_in_p)
+    ) demux0 (
+      .v_i(fifo_v_lo[i])
+      ,.i(coords[i])
+      ,.o(dest_select[i]) 
+    );
   end 
  
 
   // transpose
   bsg_transpose #(
-    .width_p(num_in_x_p*num_in_y_p)
-    ,.els_p(num_in_x_p*num_in_y_p)
+    .width_p(num_in_p)
+    ,.els_p(num_in_p)
   ) trans0 (
     .i(dest_select)
     ,.o(dest_select_t)
@@ -99,48 +91,61 @@ module bsg_noc_crossbar
  
  
   // crossbar round robin
-  logic [num_in_y_p-1:0][num_in_x_p-1:0][num_in_y_p-1:0][num_in_x_p-1:0] rr_yumi_lo, rr_yumi_lo_t;
+  logic [num_in_p-1:0][num_in_p-1:0] rr_yumi_lo, rr_yumi_lo_t;
 
-  for (genvar i = 0; i < num_in_y_p; i++) begin: rry
-    for (genvar j = 0; j < num_in_x_p; j++) begin: rrx
+  for (genvar i = 0; i < num_in_p; i++) begin: rr
 
-      bsg_round_robin_n_to_1_2d #(
-        .width_p(width_p)
-        ,.num_in_x_p(num_in_x_p)
-        ,.num_in_y_p(num_in_y_p)
-      ) rr2d (
-        .clk_i(clk_i)
-        ,.reset_i(reset_i)
+    bsg_arb_round_robin #(
+      .width_p(num_in_p)
+    ) arr (
+      .clk_i(clk_i)
+      ,.reset_i(reset_i)
+      ,.reqs_i(dest_select_t[i])
+      ,.grants_o(rr_yumi_lo[i])
+      ,.yumi_i(links_sif_out[i].v & links_sif_in[i].ready_and_rev)
+    );
 
-        ,.data_i(fifo_data_lo)
-        ,.v_i(dest_select_t[i][j])
-        ,.yumi_o(rr_yumi_lo[i][j])
+    bsg_mux_one_hot #(
+      .width_p(width_p)
+      ,.els_p(num_in_p)
+    ) mx0 (
+      .data_i(fifo_data_lo)
+      ,.sel_one_hot_i(rr_yumi_lo[i])
+      ,.data_o(links_sif_out[i].data)
+    );
 
-        ,.v_o(links_sif_out[i][j].v)
-        ,.data_o(links_sif_out[i][j].data)
-        ,.tag_y_o()
-        ,.tag_x_o()
-        ,.yumi_i(links_sif_out[i][j].v & links_sif_in[i][j].ready_and_rev)
-      );
+    assign links_sif_out[i].v = |dest_select_t[i];
 
-    end
   end
 
 
   // transpose
   bsg_transpose #(
-    .width_p(num_in_x_p*num_in_y_p)
-    ,.els_p(num_in_x_p*num_in_y_p)
+    .width_p(num_in_p)
+    ,.els_p(num_in_p)
   ) trans1 (
     .i(rr_yumi_lo)
     ,.o(rr_yumi_lo_t)
   );
 
 
-  for (genvar i = 0; i < num_in_y_p; i++)
-    for (genvar j = 0; j < num_in_x_p; j++)
-      assign fifo_yumi_li[i][j] = |rr_yumi_lo_t[i][j];
+  for (genvar i = 0; i < num_in_p; i++)
+    assign fifo_yumi_li[i] = |rr_yumi_lo_t[i];
 
+
+
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+      for (integer i = 0; i < num_in_p; i++) begin
+        if (fifo_v_lo[i]) begin
+          assert(coords[i] < num_in_p)
+            else $error("index out of range. num_in_p=%d, idx=%d", num_in_p, coords[i]);
+        end
+      end
+    end
+  end
+  // synopsys translate_on
 
 
 

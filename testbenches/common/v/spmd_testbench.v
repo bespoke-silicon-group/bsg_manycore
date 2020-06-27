@@ -118,7 +118,7 @@ module spmd_testbench;
   bsg_manycore_link_sif_s [num_tiles_x_p-1:0] io_link_li, io_link_lo;
 
   if (ideal_network_p) begin: inet
-    bsg_manycore_ideal_network #(
+    bsg_manycore_top_crossbar #(
       .dmem_size_p(dmem_size_p)
       ,.icache_entries_p(icache_entries_p)
       ,.icache_tag_width_p(icache_tag_width_p)

@@ -55,6 +55,8 @@ CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/refresh.cc
 CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/simple_stats.cc
 CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/timing.cc
 
+CSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_arb_round_robin.v
+
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram_tx.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram_rx.v
@@ -71,8 +73,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_spmd_
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_monitor.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/spmd_testbench.v
 
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_ideal_network.v
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_crossbar_network.v
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_top_crossbar.v
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_crossbar.v
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_link_to_crossbar.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_noc_crossbar.v
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_decode_with_v_2d.v
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_round_robin_n_to_1_2d.v

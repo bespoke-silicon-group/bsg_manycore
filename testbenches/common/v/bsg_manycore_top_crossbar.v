@@ -1,11 +1,11 @@
 /**
- *    bsg_manycore_ideal_network.v
+ *    bsg_manycore_top_crossbar.v
  *
  */
 
 
 
-module bsg_manycore_ideal_network
+module bsg_manycore_top_crossbar
   import bsg_noc_pkg::*;
   import bsg_manycore_pkg::*;
   #(parameter dmem_size_p="inv"
@@ -58,7 +58,7 @@ module bsg_manycore_ideal_network
   bsg_manycore_link_sif_s [(num_tiles_y_p+2)-1:0][num_tiles_x_p-1:0] link_out;
   logic [(num_tiles_y_p+2)-1:0][num_tiles_x_p-1:0] links_credit_lo;
 
-  bsg_manycore_crossbar_network #(
+  bsg_manycore_crossbar #(
     .num_in_x_p(num_tiles_x_p)
     ,.num_in_y_p(num_tiles_y_p+2)
 
