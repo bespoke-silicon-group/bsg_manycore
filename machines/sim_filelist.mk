@@ -76,4 +76,4 @@ VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/spmd_testbench.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_top_crossbar.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_crossbar.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_link_to_crossbar.v
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_noc_crossbar.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_crossbar.v
