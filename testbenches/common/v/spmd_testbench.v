@@ -22,7 +22,7 @@ module spmd_testbench;
   parameter bsg_manycore_mem_cfg_e bsg_manycore_mem_cfg_p = `BSG_MACHINE_MEM_CFG;
   parameter bsg_branch_trace_en_p = `BSG_MACHINE_BRANCH_TRACE_EN;
   parameter vcache_miss_fifo_els_p = `BSG_MACHINE_VCACHE_MISS_FIFO_ELS;
-  parameter ideal_network_p = `BSG_MACHINE_IDEAL_NETWORK;
+  parameter crossbar_network_p = `BSG_MACHINE_CROSSBAR_NETWORK;
   parameter int hetero_type_vec_p [0:((num_tiles_y_p-1)*num_tiles_x_p) - 1]  = '{`BSG_MACHINE_HETERO_TYPE_VEC};
 
   // constant params
@@ -70,7 +70,7 @@ module spmd_testbench;
     $display("[INFO][TESTBENCH] BSG_MACHINE_DRAM_INCLUDED            = %d", bsg_dram_included_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_MAX_EPA_WIDTH            = %d", bsg_max_epa_width_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = %s", bsg_manycore_mem_cfg_p.name());
-    $display("[INFO][TESTBENCH] BSG_MACHINE_IDEAL_NETWORK            = %d", ideal_network_p);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_CROSSBAR_NETWORK         = %d", crossbar_network_p);
   end
 
 
@@ -117,7 +117,7 @@ module spmd_testbench;
   bsg_manycore_link_sif_s [E:W][num_tiles_y_p-1:0] hor_link_li, hor_link_lo;
   bsg_manycore_link_sif_s [num_tiles_x_p-1:0] io_link_li, io_link_lo;
 
-  if (ideal_network_p) begin: inet
+  if (crossbar_network_p) begin: inet
     bsg_manycore_top_crossbar #(
       .dmem_size_p(dmem_size_p)
       ,.icache_entries_p(icache_entries_p)
