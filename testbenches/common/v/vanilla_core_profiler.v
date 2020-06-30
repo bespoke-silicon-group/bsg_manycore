@@ -1229,4 +1229,122 @@ module vanilla_core_profiler
 
 
 
+   // DPI Profiler interface. See interface comments below.
+   export "DPI-C" function bsg_dpi_init;
+   export "DPI-C" function bsg_dpi_fini;
+   export "DPI-C" function bsg_dpi_vanilla_core_profiler_is_window;
+   export "DPI-C" function bsg_dpi_vanilla_core_profiler_get_instr_count;
+
+   // We track the polarity of the current edge so that we can call
+   // $fatal when credits_get_cur is called during the wrong phase
+   // of clk_i.
+   logic edgepol_l;
+   always @(posedge clk_i or negedge clk_i) begin
+      edgepol_l <= clk_i;
+   end
+
+   // We use init_l to track whether the module has been
+   // initialized by C/C++.
+   logic init_l;
+   initial begin
+      init_l = 0;
+   end
+
+   // Initialize this Manycore DPI Interface
+   function void bsg_dpi_init();
+      if(init_l)
+        $fatal(1, "BSG ERROR (%M): init() already called");
+
+      init_l = 1;
+   endfunction
+
+   // Terminate this Manycore DPI Interface
+   function void bsg_dpi_fini();
+      if(~init_l)
+        $fatal(1, "BSG ERROR (%M): fini() already called");
+
+      init_l = 0;
+   endfunction
+
+   // The function vanilla_core_profiler_is_window returns true if the
+   // interface is in a valid time-window to call
+   // vanilla_core_profiler_* functions
+   function bit bsg_dpi_vanilla_core_profiler_is_window();
+      if(reset_i)
+        $display("BSG_WARN: bsg_dpi_vanilla_core_profiler called while tile is in reset");
+
+      return (clk_i & edgepol_l & ~reset_i);
+   endfunction
+
+   // Instruction class queries that are supported by the
+   // get_instr_count method
+   typedef enum int {
+        e_instr_float = 0
+        ,e_instr_int = 1
+        ,e_instr_all = 2
+    } dpi_instr_type_e;
+
+   // Return the number of instructions executed for a particular
+   // class of instructions. The supported classes of instructions are
+   // indicated in dpi_instr_type_e.
+   function void bsg_dpi_vanilla_core_profiler_get_instr_count(input dpi_instr_type_e itype, output int count);
+      if(init_l === 0) begin
+         $fatal(1, "BSG ERROR (%M): get_instr_count() called before init()");
+      end
+
+      if(reset_i === 1) begin
+         $fatal(1, "BSG ERROR (%M): get_instr_count() called while reset_i === 1");
+      end
+
+      if(clk_i === 0) begin
+         $fatal(1, "BSG ERROR (%M): get_instr_count() must be called when clk_i == 1");
+      end
+
+      if(edgepol_l === 0) begin
+         $fatal(1, "BSG ERROR (%M): get_instr_count() must be called after the positive edge of clk_i has been evaluated");
+      end
+
+      case (itype)
+        e_instr_float: begin
+           // Return the total number of floating point operations
+           // performed to this point.
+           count = stat_r.fadd + stat_r.fsub + stat_r.fmul + stat_r.fdiv +
+                   stat_r.fsgnj + stat_r.fsgnjn + stat_r.fsgnjx +
+                   stat_r.fmin + stat_r.fmax +
+                   stat_r.fcvt_s_w + stat_r.fcvt_s_wu +
+                   stat_r.fcvt_w_s + stat_r.fcvt_wu_s +
+                   stat_r.fmv_w_x + stat_r.fmv_x_w +
+                   2 * stat_r.fmadd +
+                   stat_r.fmsub + stat_r.fnmsub + stat_r.fnmadd +
+                   stat_r.feq + stat_r.flt + stat_r.fle +
+                   stat_r.fclass +
+                   stat_r.fsqrt;
+        end
+        e_instr_int: begin
+           // Return the total number of integer operations performed
+           // to this point
+           count = stat_r.sll + stat_r.slli + stat_r.srl + stat_r.srli + stat_r.sra + stat_r.srai +
+                   stat_r.add + stat_r.addi + stat_r.sub +
+                   stat_r.lui + stat_r.auipc +
+                   stat_r.xor_ + stat_r.xori +
+                   stat_r.or_ + stat_r.ori +
+                   stat_r.and_ + stat_r.andi +
+                   stat_r.slt + stat_r.slti + stat_r.sltu + stat_r.sltiu +
+                   stat_r.div + stat_r.divu + stat_r.rem + stat_r.remu + stat_r.mul;
+        end
+        e_instr_all: begin
+           // Return the total number of instructions executed to this
+           // point. "all" != "float" + "integer", since neither
+           // "float" nor "integer" includes overhead and control
+           // instructions like jumps and branches.
+           count = stat_r.instr;
+        end
+
+        default:
+          $fatal(1, "BSG ERROR (%M%t): Unrecongnized instruction count type: %d", $time, itype);
+      endcase
+
+      return;
+   endfunction
+
 endmodule
