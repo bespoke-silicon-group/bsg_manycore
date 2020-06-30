@@ -1323,7 +1323,7 @@ module vanilla_core_profiler
                    stat_r.fcvt_s_w + stat_r.fcvt_s_wu +
                    stat_r.fcvt_w_s + stat_r.fcvt_wu_s +
                    stat_r.fmv_w_x + stat_r.fmv_x_w +
-                   2 * stat_r.fmadd +
+                   2 * stat_r.fmadd + // Fused multiply-add counts as two instructions in FLOP statistics
                    stat_r.fmsub + stat_r.fnmsub + stat_r.fnmadd +
                    stat_r.feq + stat_r.flt + stat_r.fle +
                    stat_r.fclass +
