@@ -43,7 +43,7 @@ module vanilla_core
     // to network
     , output remote_req_s remote_req_o
     , output logic remote_req_v_o
-    , input remote_req_yumi_i
+    //, input remote_req_yumi_i
     , input remote_req_credit_i
 
     // from network
@@ -1019,11 +1019,14 @@ module vanilla_core
       id_n = id_r;
     end
     else begin
-      if (reset_down | flush | icache_miss_in_pipe | icache_flush_r_lo) begin
+      if (reset_down | flush) begin
         id_n = '0;
       end    
       else if (stall_id) begin
         id_n = id_r;
+      end
+      else if (icache_miss_in_pipe | icache_flush_r_lo) begin
+        id_n = '0;
       end
       else if (icache_miss) begin
         id_n = '{
@@ -1159,7 +1162,7 @@ module vanilla_core
 
   always_ff @ (posedge clk_i) begin
     if (reset_i)
-      remote_req_counter_r <= 2'd2;
+      remote_req_counter_r <= 2'd3;
     else
       remote_req_counter_r <= remote_req_available - memory_op_issued;
   end 
@@ -1614,11 +1617,11 @@ module vanilla_core
       end
   
       // this counter can be only 0, 1, or 2.
-      assert(remote_req_counter_r != 2'b11) else $error("remote_req_counter_r cannot be 3.");
+      //assert(remote_req_counter_r != 2'b11) else $error("remote_req_counter_r cannot be 3.");
 
-      if (remote_req_v_o) begin
-        assert(remote_req_yumi_i) else $error("There has to be a guaranteed space for outgoing request.");
-      end
+      //if (remote_req_v_o) begin
+      //  assert(remote_req_yumi_i) else $error("There has to be a guaranteed space for outgoing request.");
+      //end
 
       assert(~id_r.decode.unsupported) else $error("Unsupported instruction: %8x", id_r.instruction);
     end

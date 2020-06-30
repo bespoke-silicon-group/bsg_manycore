@@ -46,7 +46,6 @@ module bsg_manycore_proc_vanilla
 
     , input [link_sif_width_lp-1:0] link_sif_i
     , output logic [link_sif_width_lp-1:0] link_sif_o
-    , input link_credit_i
 
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
@@ -90,6 +89,8 @@ module bsg_manycore_proc_vanilla
     ,.fifo_els_p(proc_fifo_els_p)
     ,.max_out_credits_p(max_out_credits_p)
     ,.debug_p(debug_p)
+
+    ,.use_credits_p(1)
   ) endp (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -202,7 +203,7 @@ module bsg_manycore_proc_vanilla
   //
   remote_req_s remote_req;
   logic remote_req_v;
-  logic remote_req_yumi;
+  logic remote_req_credit;
 
   logic ifetch_v_lo;
   logic [data_width_p-1:0] ifetch_instr_lo;
@@ -260,7 +261,7 @@ module bsg_manycore_proc_vanilla
 
     ,.remote_req_i(remote_req)
     ,.remote_req_v_i(remote_req_v)
-    ,.remote_req_yumi_o(remote_req_yumi)
+    ,.remote_req_credit_o(remote_req_credit)
 
     ,.ifetch_v_o(ifetch_v_lo)
     ,.ifetch_instr_o(ifetch_instr_lo)
@@ -300,8 +301,8 @@ module bsg_manycore_proc_vanilla
     
     ,.remote_req_o(remote_req)
     ,.remote_req_v_o(remote_req_v)
-    ,.remote_req_yumi_i(remote_req_yumi)
-    ,.remote_req_credit_i(link_credit_i)
+    //,.remote_req_yumi_i(remote_req_yumi)
+    ,.remote_req_credit_i(remote_req_credit)
 
     ,.icache_v_i(icache_v_lo)
     ,.icache_pc_i(icache_pc_lo)

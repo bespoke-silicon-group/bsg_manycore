@@ -34,7 +34,6 @@
            ,.reset_i                                                                   \
            ,.link_sif_i                                                                \
            ,.link_sif_o                                                                \
-           ,.link_credit_i                                                             \
            ,.my_x_i                                                                    \
            ,.my_y_i                                                                    \
            );                                                                          \
@@ -68,7 +67,6 @@ module bsg_manycore_hetero_socket
     // input and output links
     , input [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
     , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
-    , input link_credit_i
 
     // tile coordinates
     , input [x_cord_width_p-1:0] my_x_i

@@ -37,6 +37,8 @@ module bsg_manycore_endpoint_standard
     , parameter warn_out_of_credits_p  = 1
     , parameter debug_p                = 0
 
+    , parameter use_credits_p = 0
+
     , parameter packet_width_lp =
       `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
     , parameter return_packet_width_lp =
@@ -298,7 +300,13 @@ module bsg_manycore_endpoint_standard
   // ----------------------------------------------------------------------------------------
   // Handle returned credit & data
   // ----------------------------------------------------------------------------------------
-  wire launching_out   = out_v_i & out_ready_o;
+  wire launching_out;//   = out_v_i & out_ready_o;
+  if (use_credits_p) begin
+    assign launching_out = out_v_i;
+  end
+  else begin
+    assign launching_out = out_v_i & out_ready_o;
+  end
   wire returned_credit = returned_packet_v_lo & returned_yumi_li;
 
   bsg_counter_up_down #(
