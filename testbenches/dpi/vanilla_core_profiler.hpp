@@ -68,7 +68,6 @@ namespace bsg_nonsynth_dpi{
                                 return BSG_NONSYNTH_DPI_NOT_WINDOW;
                         }
 
-                        //TOP.manycore_tb_top.manycore.y[1].x[0].tile.proc.h.z.vcore.vcore_prof
                         bsg_dpi_vanilla_core_profiler_get_instr_count(itype, count);
 
                         svSetScope(prev);
