@@ -1248,6 +1248,8 @@ module vanilla_core_profiler
    logic init_l;
    initial begin
       init_l = 0;
+      $display("BSG INFO: Profiler %M");
+      
    end
 
    // Initialize this Manycore DPI Interface
@@ -1273,7 +1275,13 @@ module vanilla_core_profiler
       if(reset_i)
         $display("BSG_WARN: bsg_dpi_vanilla_core_profiler called while tile is in reset");
 
-      return (clk_i & edgepol_l & ~reset_i);
+      // Originally, this was : 
+      //     return (clk_i & edgepol_l & ~reset_i);
+      //
+      // However, in delay based simulation environments (i.e. VCS)
+      // where # is supported, it is possible to call this method at
+      // strange times.
+      return (~reset_i);
    endfunction
 
    // Instruction class queries that are supported by the
@@ -1296,6 +1304,7 @@ module vanilla_core_profiler
          $fatal(1, "BSG ERROR (%M): get_instr_count() called while reset_i === 1");
       end
 
+      /* See comment in is_window, above. Keeping for posterity.
       if(clk_i === 0) begin
          $fatal(1, "BSG ERROR (%M): get_instr_count() must be called when clk_i == 1");
       end
@@ -1303,7 +1312,7 @@ module vanilla_core_profiler
       if(edgepol_l === 0) begin
          $fatal(1, "BSG ERROR (%M): get_instr_count() must be called after the positive edge of clk_i has been evaluated");
       end
-
+       */
       case (itype)
         e_instr_float: begin
            // Return the total number of floating point operations

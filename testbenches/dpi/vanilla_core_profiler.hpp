@@ -40,7 +40,7 @@ namespace bsg_nonsynth_dpi{
                  * @return a valid instance of dpi_vanilla_core_profiler
                  */
                 dpi_vanilla_core_profiler(const std::string &hierarchy)
-                        : dpi_base("TOP.manycore_tb_top.manycore.y[1].x[0].tile.proc.h.z.vcore.vcore_prof")
+                        : dpi_base(hierarchy)
                 {
                 }
                 
