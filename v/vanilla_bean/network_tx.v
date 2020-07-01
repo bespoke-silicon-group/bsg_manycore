@@ -64,6 +64,7 @@ module network_tx
     , input [y_cord_width_p-1:0] my_y_i
 
     // core side
+    // vanilla core uses valid-credit interface for outgoing requests.
     , input remote_req_s remote_req_i
     , input remote_req_v_i
     , output logic remote_req_credit_o

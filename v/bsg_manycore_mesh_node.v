@@ -14,12 +14,14 @@ module bsg_manycore_mesh_node
     , parameter stub_p            = {dirs_lp{1'b0}} // {s,n,e,w}
     , parameter repeater_output_p = {dirs_lp{1'b0}} // {s,n,e,w}
 
+    // bit vector to choose which direction in the router to use credit interface.
     , parameter fwd_use_credits_p = {5{1'b0}}
     , parameter rev_use_credits_p = {5{1'b0}}
+
+    // number of elements in the input FIFO for each direction.
     , parameter int fwd_num_credits_p[dirs_lp:0] = '{2,2,2,2,2}
     , parameter int rev_num_credits_p[dirs_lp:0] = '{2,2,2,2,2}
 
-    , parameter num_nets_lp = 2 // 1=return network, 0=data network
     , parameter debug_p = 0
 
     , parameter packet_width_lp =

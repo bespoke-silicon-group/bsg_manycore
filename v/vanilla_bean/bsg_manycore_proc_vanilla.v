@@ -90,7 +90,7 @@ module bsg_manycore_proc_vanilla
     ,.max_out_credits_p(max_out_credits_p)
     ,.debug_p(debug_p)
 
-    ,.use_credits_p(1)
+    ,.use_credits_for_local_fifo_p(1)
   ) endp (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -301,7 +301,6 @@ module bsg_manycore_proc_vanilla
     
     ,.remote_req_o(remote_req)
     ,.remote_req_v_o(remote_req_v)
-    //,.remote_req_yumi_i(remote_req_yumi)
     ,.remote_req_credit_i(remote_req_credit)
 
     ,.icache_v_i(icache_v_lo)
