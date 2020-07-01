@@ -15,9 +15,9 @@ module bsg_manycore_mesh_node
     , parameter repeater_output_p = {dirs_lp{1'b0}} // {s,n,e,w}
 
     , parameter fwd_use_credits_p = {5{1'b0}}
-    , parameter fwd_num_credits_p = 2
     , parameter rev_use_credits_p = {5{1'b0}}
-    , parameter rev_num_credits_p = 2
+    , parameter int fwd_num_credits_p[dirs_lp:0] = '{2,2,2,2,2}
+    , parameter int rev_num_credits_p[dirs_lp:0] = '{2,2,2,2,2}
 
     , parameter num_nets_lp = 2 // 1=return network, 0=data network
     , parameter debug_p = 0
@@ -76,45 +76,47 @@ module bsg_manycore_mesh_node
     assign links_sif_o_cast[k-1].rev = link_rev_sif_o_cast[k];
   end
 
+  bsg_mesh_router_buffered #(
+    .width_p(packet_width_lp)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.debug_p(debug_p)
+    ,.stub_p({stub_p, 1'b0})
+    ,.XY_order_p(1)
+    ,.repeater_output_p({repeater_output_p,1'b0})
+    ,.use_credits_p(fwd_use_credits_p)
+    ,.num_credits_p(fwd_num_credits_p)
+  ) fwd (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
 
-  for (genvar i = 0; i < num_nets_lp; i=i+1) begin: rof
-    logic [4:0] [(i ? $bits(bsg_manycore_rev_link_sif_s) : $bits (bsg_manycore_fwd_link_sif_s))-1:0] link_li;
-    logic [4:0] [(i ? $bits(bsg_manycore_rev_link_sif_s) : $bits (bsg_manycore_fwd_link_sif_s))-1:0] link_lo;
+    ,.link_i(link_fwd_sif_i_cast)
+    ,.link_o(link_fwd_sif_o_cast)
 
-    // i = 1 -> return packet
-    if (i) begin
-      assign link_li             = link_rev_sif_i_cast;
-      assign link_rev_sif_o_cast = link_lo;
-    end
-    else begin
-      assign link_li             = link_fwd_sif_i_cast;
-      assign link_fwd_sif_o_cast = link_lo;
-    end
+    ,.my_x_i(my_x_i)
+    ,.my_y_i(my_y_i)
+   );
 
-    bsg_mesh_router_buffered #(
-      .width_p(i ? return_packet_width_lp : packet_width_lp)
-      ,.x_cord_width_p(x_cord_width_p)
-      ,.y_cord_width_p(y_cord_width_p)
-      ,.debug_p(debug_p)
-      // adding proc into stub
-      ,.stub_p({stub_p, 1'b0})
-      //forward router:  X/Y routing
-      //reverse router:  Y/X routing
-      ,.XY_order_p(!i)
-      ,.repeater_output_p({repeater_output_p,1'b0})
-      ,.use_credits_p(i ? rev_use_credits_p : fwd_use_credits_p)
-      ,.num_credits_p(i ? rev_num_credits_p : fwd_num_credits_p)
-    ) bmrb (
-      .clk_i(clk_i)
-      ,.reset_i(reset_i)
+  bsg_mesh_router_buffered #(
+    .width_p(return_packet_width_lp)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.debug_p(debug_p)
+    ,.stub_p({stub_p, 1'b0})
+    ,.XY_order_p(0)
+    ,.repeater_output_p({repeater_output_p,1'b0})
+    ,.use_credits_p(rev_use_credits_p)
+    ,.num_credits_p(rev_num_credits_p)
+  ) rev (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
 
-      ,.link_i(link_li)
-      ,.link_o(link_lo)
+    ,.link_i(link_rev_sif_i_cast)
+    ,.link_o(link_rev_sif_o_cast)
 
-      ,.my_x_i(my_x_i)
-      ,.my_y_i(my_y_i)
-    );
-  end
+    ,.my_x_i(my_x_i)
+    ,.my_y_i(my_y_i)
+   );
 
 
 endmodule

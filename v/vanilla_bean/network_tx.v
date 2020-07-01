@@ -160,7 +160,6 @@ module network_tx
   // handling outgoing requests
   //
   assign out_v_o = remote_req_v_i & ~is_invalid_addr_lo;
-  //assign remote_req_yumi_o = (out_v_o & out_ready_i) | (remote_req_v_i & is_invalid_addr_lo);
   assign remote_req_credit_o = out_ready_i;
   assign invalid_eva_access_o = remote_req_v_i & is_invalid_addr_lo;
 

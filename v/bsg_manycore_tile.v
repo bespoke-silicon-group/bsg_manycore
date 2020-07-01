@@ -66,7 +66,7 @@ module bsg_manycore_tile
     ,.debug_p(debug_p)
     ,.repeater_output_p(repeater_output_p) // select buffer for this particular node
     ,.fwd_use_credits_p(5'b00001)
-    ,.fwd_num_credits_p(2)
+    ,.fwd_num_credits_p('{2,2,2,2,3})
   ) rtr (
     .clk_i(clk_i)
     ,.reset_i(reset_r)

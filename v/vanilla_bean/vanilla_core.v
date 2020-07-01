@@ -43,7 +43,6 @@ module vanilla_core
     // to network
     , output remote_req_s remote_req_o
     , output logic remote_req_v_o
-    //, input remote_req_yumi_i
     , input remote_req_credit_i
 
     // from network
@@ -1615,13 +1614,6 @@ module vanilla_core
       if (fdiv_fsqrt_v_li) begin
         assert(fdiv_fsqrt_ready_lo) else $error("fdiv_fsqrt_op issued, when fdiv_fsqrt is not ready.");
       end
-  
-      // this counter can be only 0, 1, or 2.
-      //assert(remote_req_counter_r != 2'b11) else $error("remote_req_counter_r cannot be 3.");
-
-      //if (remote_req_v_o) begin
-      //  assert(remote_req_yumi_i) else $error("There has to be a guaranteed space for outgoing request.");
-      //end
 
       assert(~id_r.decode.unsupported) else $error("Unsupported instruction: %8x", id_r.instruction);
     end
