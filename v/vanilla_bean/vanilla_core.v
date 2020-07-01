@@ -1012,7 +1012,6 @@ module vanilla_core
 
 
   // IF -> ID
-  //
   always_comb begin
     if (stall) begin
       id_n = id_r;
@@ -1024,6 +1023,7 @@ module vanilla_core
       else if (stall_id) begin
         id_n = id_r;
       end
+      // If stall_id is high, icache miss should not be flushing ID.
       else if (icache_miss_in_pipe | icache_flush_r_lo) begin
         id_n = '0;
       end
