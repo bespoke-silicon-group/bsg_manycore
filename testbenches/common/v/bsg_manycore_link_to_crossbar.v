@@ -28,7 +28,7 @@ module bsg_manycore_link_to_crossbar
 
     , output [num_in_lp-1:0] valid_o
     , output [num_in_lp-1:0][xbar_width_lp-1:0] data_o
-    , input  [num_in_lp-1:0] ready_i
+    , input  [num_in_lp-1:0] credit_or_ready_i
     
     , input  [num_in_lp-1:0] valid_i
     , input  [num_in_lp-1:0][xbar_width_lp-1:0] data_i
@@ -59,7 +59,7 @@ module bsg_manycore_link_to_crossbar
       };
 
       assign valid_o[(i*num_in_x_p)+j] = links_sif_in[i][j].v;
-      assign links_sif_out[i][j].ready_and_rev = ready_i[(i*num_in_x_p)+j];
+      assign links_sif_out[i][j].ready_and_rev = credit_or_ready_i[(i*num_in_x_p)+j];
     end
   end
 
