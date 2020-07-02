@@ -1017,15 +1017,11 @@ module vanilla_core
       id_n = id_r;
     end
     else begin
-      if (reset_down | flush) begin
+      if (reset_down | flush | icache_miss_in_pipe | icache_flush_r_lo) begin
         id_n = '0;
       end    
       else if (stall_id) begin
         id_n = id_r;
-      end
-      // If stall_id is high, icache miss should not be flushing ID.
-      else if (icache_miss_in_pipe | icache_flush_r_lo) begin
-        id_n = '0;
       end
       else if (icache_miss) begin
         id_n = '{
@@ -1162,6 +1158,7 @@ module vanilla_core
   always_ff @ (posedge clk_i) begin
     if (reset_i)
       // 3 credits are needed, because the round trip to get the credit back takes three cycles.
+      // ID->EXE->FIFO->CREDIT.
       remote_req_counter_r <= 2'd3;
     else
       remote_req_counter_r <= remote_req_available - memory_op_issued;
