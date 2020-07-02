@@ -1019,11 +1019,15 @@ module vanilla_core
       id_n = id_r;
     end
     else begin
-      if (reset_down | flush | icache_miss_in_pipe | icache_flush_r_lo) begin
+      if (reset_down | flush) begin
         id_n = '0;
       end    
       else if (stall_id) begin
         id_n = id_r;
+      end
+      // When stall_id is high, icache miss should not be flushing ID.
+      else if (icache_miss_in_pipe | icache_flush_r_lo) begin
+        id_n = '0;
       end
       else if (icache_miss) begin
         id_n = '{
