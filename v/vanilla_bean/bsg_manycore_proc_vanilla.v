@@ -150,6 +150,9 @@ module bsg_manycore_proc_vanilla
   logic freeze;
   logic [x_cord_width_p-1:0] tgo_x;
   logic [y_cord_width_p-1:0] tgo_y;
+  logic [x_cord_width_p-1:0] tg_dim_x;
+  logic [y_cord_width_p-1:0] tg_dim_y;
+
   logic [pc_width_lp-1:0] pc_init_val;
   logic dram_enable;
 
@@ -194,6 +197,8 @@ module bsg_manycore_proc_vanilla
     ,.tgo_y_o(tgo_y)
     ,.pc_init_val_o(pc_init_val)
     ,.dram_enable_o(dram_enable)
+    ,.tg_dim_x_o(tg_dim_x)
+    ,.tg_dim_y_o(tg_dim_y)
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
@@ -257,6 +262,8 @@ module bsg_manycore_proc_vanilla
     ,.tgo_x_i(tgo_x)
     ,.tgo_y_i(tgo_y) 
     ,.dram_enable_i(dram_enable)
+    ,.tg_dim_x_i(tg_dim_x)
+    ,.tg_dim_y_i(tg_dim_y) 
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)

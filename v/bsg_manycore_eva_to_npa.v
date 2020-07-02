@@ -33,6 +33,8 @@ module bsg_manycore_eva_to_npa
     input [data_width_p-1:0] eva_i  // byte addr
     , input [x_cord_width_p-1:0] tgo_x_i // tile-group origin x
     , input [y_cord_width_p-1:0] tgo_y_i // tile-group origin y
+    , input [x_cord_width_p-1:0] tg_dim_x_i // tile-group dimension x
+    , input [y_cord_width_p-1:0] tg_dim_y_i // tile-group dimension y
 
     // When DRAM mode is enabled, DRAM EVA space is striped across vcaches at a cache line granularity.
     // When DRAM mode is disabled, vcaches are only used as block memory, and the striping is disabled,
