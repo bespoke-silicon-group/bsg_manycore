@@ -26,3 +26,7 @@ BSG_MACHINE_HETERO_TYPE_VEC           = 0,0,0,0,\
                                         0,0,0,0,\
                                         0,0,0,0,\
                                         0,0,0,1
+
+
+
+BSG_CROSSBAR_NETWORK = 0
