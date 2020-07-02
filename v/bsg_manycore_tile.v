@@ -13,6 +13,7 @@ module bsg_manycore_tile
     , parameter x_cord_width_p = "inv"
     , parameter y_cord_width_p = "inv"
     , parameter num_tiles_x_p="inv"
+    , parameter num_tiles_y_p="inv"
     
     , parameter data_width_p = "inv"
     , parameter addr_width_p = "inv"
@@ -102,6 +103,7 @@ module bsg_manycore_tile
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.hetero_type_p(hetero_type_p)
     ,.num_tiles_x_p(num_tiles_x_p)
+    ,.num_tiles_y_p(num_tiles_y_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
 
