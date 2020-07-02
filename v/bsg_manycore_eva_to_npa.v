@@ -67,7 +67,7 @@ module bsg_manycore_eva_to_npa
   // figure out what type of EVA this is.
   `declare_bsg_manycore_global_addr_s;
   `declare_bsg_manycore_tile_group_addr_s;
-  `declare_bsg_manycore_shared_addr_s(x_cord_width_lp,y_cord_width_lp);
+  `declare_bsg_manycore_shared_addr_s;
 
   bsg_manycore_global_addr_s global_addr;
   bsg_manycore_tile_group_addr_s tile_group_addr;
@@ -108,8 +108,8 @@ module bsg_manycore_eva_to_npa
 
 
   // Tile Group Shared Memory Hash Function
-  logic [x_cord_width_lp-1:0] shared_x_lo;
-  logic [y_cord_width_lp-1:0] shared_y_lo;
+  logic [x_cord_width_p-1:0] shared_x_lo;
+  logic [y_cord_width_p-1:0] shared_y_lo;
   logic [epa_word_addr_width_gp-1:0] shared_epa_lo;
 
   hash_function_shared #(

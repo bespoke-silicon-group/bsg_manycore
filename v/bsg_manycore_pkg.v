@@ -193,7 +193,7 @@ package bsg_manycore_pkg;
     } bsg_manycore_tile_group_addr_s;
 
   // shared
-  `define declare_bsg_manycore_shared_addr_s(x_cord_width_mp,y_cord_width_mp) \
+  `define declare_bsg_manycore_shared_addr_s     \
     typedef struct packed {                      \
       logic [4:0]       remote;                  \
       logic [3:0]       hash;                    \
