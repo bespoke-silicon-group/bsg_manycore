@@ -12,44 +12,48 @@
 module hash_function_shared
   import bsg_manycore_pkg::*;
   #(parameter width_p="inv"
+    ,parameter x_cord_width_p
+    ,parameter y_cord_width_p
     ,parameter x_cord_width_lp
     ,parameter y_cord_width_lp
-    ,parameter hash_width_lp
+    ,parameter hash_width_p
   )
   (
-    input [width_p-1:0] i
-    ,input [hash_width_lp-1:0] hash
-    ,output logic [x_cord_width_lp-1:0] x_o
-    ,output logic [y_cord_width_lp-1:0] y_o
+    input [width_p-1:0] shared_eva_i
+    ,input [hash_width_p-1:0] hash
+    ,output logic [x_cord_width_p-1:0] x_o
+    ,output logic [y_cord_width_p-1:0] y_o
     ,output logic [epa_word_addr_width_gp-1:0] addr_o
   );
 
 
   always_comb begin
-    if (hash == 0) begin: s0
-      x_o = i[x_cord_width_lp-1:0];
-      y_o = i[y_cord_width_lp+x_cord_width_lp-1:x_cord_width_lp];
-      addr_o = i[width_p-1:y_cord_width_lp+x_cord_width_lp];
-    end
-    else if (hash == 1) begin: s1
-      x_o = i[x_cord_width_lp+1-1:1];
-      y_o = i[y_cord_width_lp+x_cord_width_lp+1-1:x_cord_width_lp+1];
-      addr_o = {i[width_p-1:y_cord_width_lp+x_cord_width_lp+1], i[0]};
-    end
-    else if (hash == 2) begin: s2
-      x_o = i[x_cord_width_lp+2-1:2];
-      y_o = i[y_cord_width_lp+x_cord_width_lp+2-1:x_cord_width_lp+2];
-      addr_o = {i[width_p-1:y_cord_width_lp+x_cord_width_lp+2], i[1:0]};
-    end
-    else if (hash == 3) begin: s3
-      x_o = i[x_cord_width_lp+3-1:3];
-      y_o = i[y_cord_width_lp+x_cord_width_lp+3-1:x_cord_width_lp+3];
-      addr_o = {i[width_p-1:y_cord_width_lp+x_cord_width_lp+3], i[2:0]};
-    end
-    else begin: unhandled
+    // Hash bits cannot be larger than the entire address bits
+    // TODO: add an assert
+    if (hash > max_local_offset_width_gp) begin
       x_o = 0;
       y_o = 0;
       addr_o = 0;
+    end
+   
+    else begin
+      for (integer i = 0; i < x_cord_width_lp; i = i + 1) begin
+        x_o[i] = shared_eva_i[i+hash];
+      end
+
+      for (integer i = 0; i < y_cord_width_lp; i = i + 1) begin
+        y_o[i] = shared_eva_i[i+x_cord_width_lp+hash];
+      end
+
+      // The LSB bits of address are stripe
+      for (integer i = 0; i < hash; i = i + 1) begin
+          addr_o[i] = shared_eva_i[i];
+      end
+
+      // The MSB bits of address are the local offset
+      for (integer i = hash; i < epa_word_addr_width_gp; i = i + 1) begin
+          addr_o[i] = shared_eva_i[i+y_cord_width_lp+x_cord_width_lp];
+      end
     end
   end
 

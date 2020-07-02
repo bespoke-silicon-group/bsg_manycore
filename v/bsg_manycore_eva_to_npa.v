@@ -114,11 +114,13 @@ module bsg_manycore_eva_to_npa
 
   hash_function_shared #(
     .width_p(max_local_offset_width_gp+max_x_cord_width_gp+max_y_cord_width_gp-1)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
     ,.x_cord_width_lp(x_cord_width_lp)
     ,.y_cord_width_lp(y_cord_width_lp)
-    ,.hash_width_lp(4)
+    ,.hash_width_p(4)
   ) hashb_shared (
-    .i(shared_addr.addr)
+    .shared_eva_i(shared_addr.addr)
     ,.hash(shared_addr.hash)
     ,.x_o(shared_x_lo)
     ,.y_o(shared_y_lo)
