@@ -19,8 +19,9 @@ module hash_function_shared
     ,parameter hash_width_p
   )
   (
-    input [width_p-1:0] shared_eva_i
-    ,input [hash_width_p-1:0] hash
+    input en_i
+    ,input [width_p-1:0] shared_eva_i
+    ,input [hash_width_p-1:0] hash_i
     ,output logic [x_cord_width_p-1:0] x_o
     ,output logic [y_cord_width_p-1:0] y_o
     ,output logic [epa_word_addr_width_gp-1:0] addr_o
@@ -30,28 +31,28 @@ module hash_function_shared
   always_comb begin
     // Hash bits cannot be larger than the entire address bits
     // TODO: add an assert
-    if (hash > max_local_offset_width_gp) begin
-      x_o = 0;
-      y_o = 0;
-      addr_o = 0;
+    if (~en_i | (hash_i > max_local_offset_width_gp)) begin
+      x_o = '0;
+      y_o = '0;
+      addr_o = '0;
     end
    
     else begin
       for (integer i = 0; i < x_cord_width_lp; i = i + 1) begin
-        x_o[i] = shared_eva_i[i+hash];
+        x_o[i] = shared_eva_i[i+hash_i];
       end
 
       for (integer i = 0; i < y_cord_width_lp; i = i + 1) begin
-        y_o[i] = shared_eva_i[i+x_cord_width_lp+hash];
+        y_o[i] = shared_eva_i[i+x_cord_width_lp+hash_i];
       end
 
       // The LSB bits of address are stripe
-      for (integer i = 0; i < hash; i = i + 1) begin
+      for (integer i = 0; i < hash_i; i = i + 1) begin
           addr_o[i] = shared_eva_i[i];
       end
 
       // The MSB bits of address are the local offset
-      for (integer i = hash; i < epa_word_addr_width_gp; i = i + 1) begin
+      for (integer i = hash_i; i < epa_word_addr_width_gp; i = i + 1) begin
           addr_o[i] = shared_eva_i[i+y_cord_width_lp+x_cord_width_lp];
       end
     end
