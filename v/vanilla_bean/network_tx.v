@@ -59,6 +59,8 @@ module network_tx
     , input [x_cord_width_p-1:0] tgo_x_i
     , input [y_cord_width_p-1:0] tgo_y_i
     , input dram_enable_i
+    , input [x_cord_width_p-1:0] tg_dim_x_i
+    , input [y_cord_width_p-1:0] tg_dim_y_i
 
     , input [credit_counter_width_lp-1:0] out_credits_i
 
@@ -115,6 +117,8 @@ module network_tx
     ,.dram_enable_i(dram_enable_i)
     ,.tgo_x_i(tgo_x_i)
     ,.tgo_y_i(tgo_y_i)
+    ,.tg_dim_x_i(tg_dim_x_i)
+    ,.tg_dim_y_i(tg_dim_y_i)
 
     ,.x_cord_o(x_cord_lo)
     ,.y_cord_o(y_cord_lo)
