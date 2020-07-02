@@ -107,8 +107,8 @@ module bsg_manycore_eva_to_npa
 
 
   // Tile Group Shared Memory Hash Function
-  logic [x_cord_width_lp-1:0] shared_x_lo;
-  logic [y_cord_width_lp-1:0] shared_y_lo;
+  logic [x_cord_width_p-1:0] shared_x_lo;
+  logic [y_cord_width_p-1:0] shared_y_lo;
   logic [epa_word_addr_width_gp-1:0] shared_epa_lo;
 
   hash_function_shared #(
