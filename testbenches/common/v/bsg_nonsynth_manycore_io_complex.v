@@ -102,7 +102,7 @@ module bsg_nonsynth_manycore_io_complex
     // loader
     ,.out_v_i(out_v_li)
     ,.out_packet_i(out_packet_li)
-    ,.out_ready_o(out_ready_lo)
+    ,.out_credit_or_ready_o(out_ready_lo)
 
     ,.returned_data_r_o()
     ,.returned_reg_id_r_o()

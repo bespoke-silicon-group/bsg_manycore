@@ -47,7 +47,7 @@ module network_tx
     // network side
     , output logic [packet_width_lp-1:0] out_packet_o
     , output logic out_v_o
-    , input out_ready_i
+    , input out_credit_or_ready_i
 
     , input returned_v_i
     , input [data_width_p-1:0] returned_data_i
@@ -161,7 +161,7 @@ module network_tx
   // handling outgoing requests
   //
   assign out_v_o = remote_req_v_i & ~is_invalid_addr_lo;
-  assign remote_req_credit_o = out_ready_i;
+  assign remote_req_credit_o = out_credit_or_ready_i;
   assign invalid_eva_access_o = remote_req_v_i & is_invalid_addr_lo;
 
 

@@ -65,14 +65,12 @@ module bsg_manycore_gather_scatter
     // mesh network
     , input [link_sif_width_lp-1:0] link_sif_i
     , output [link_sif_width_lp-1:0] link_sif_o
-    , input link_credit_i
 
     // my coords
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
   );
 
-  wire unused  = link_credit_i;
 
   // localparam
   localparam data_mask_width_lp = (data_width_p>>3);
@@ -138,7 +136,7 @@ module bsg_manycore_gather_scatter
 
     ,.out_v_i(out_v_li)
     ,.out_packet_i(out_packet_li)
-    ,.out_ready_o(out_ready_lo)
+    ,.out_credit_or_ready_o(out_ready_lo)
 
     ,.returned_data_r_o(returned_data_lo)
     ,.returned_reg_id_r_o(returned_reg_id_lo)

@@ -68,7 +68,7 @@ module bsg_manycore_proc_vanilla
 
   bsg_manycore_packet_s out_packet_li;
   logic out_v_li;
-  logic out_ready_lo;
+  logic out_credit_or_ready_lo;
   logic link_credit_lo;
 
   logic returned_v_r_lo;
@@ -115,7 +115,7 @@ module bsg_manycore_proc_vanilla
     // tx
     ,.out_packet_i(out_packet_li)
     ,.out_v_i(out_v_li)
-    ,.out_ready_o(out_ready_lo)
+    ,.out_credit_or_ready_o(out_credit_or_ready_lo)
 
     ,.returned_v_r_o(returned_v_r_lo)
     ,.returned_data_r_o(returned_data_r_lo)
@@ -243,7 +243,7 @@ module bsg_manycore_proc_vanilla
 
     ,.out_packet_o(out_packet_li)
     ,.out_v_o(out_v_li)
-    ,.out_ready_i(out_ready_lo)
+    ,.out_credit_or_ready_i(out_credit_or_ready_lo)
 
     ,.returned_v_i(returned_v_r_lo)
     ,.returned_data_i(returned_data_r_lo)
