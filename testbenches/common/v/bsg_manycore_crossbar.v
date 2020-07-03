@@ -68,7 +68,7 @@ module bsg_manycore_crossbar
 
   logic [num_in_lp-1:0] fwd_valid_li;
   logic [num_in_lp-1:0][xbar_fwd_pkt_width_lp-1:0] fwd_data_li;
-  logic [num_in_lp-1:0] fwd_ready_lo;
+  logic [num_in_lp-1:0] fwd_ready_and_lo;
 
   bsg_manycore_link_to_crossbar #(
     .width_p(packet_width_lp)
@@ -86,7 +86,7 @@ module bsg_manycore_crossbar
 
     ,.valid_i(fwd_valid_li) 
     ,.data_i(fwd_data_li)
-    ,.ready_o(fwd_ready_lo)
+    ,.ready_and_o(fwd_ready_and_lo)
   );
 
   bsg_router_crossbar_o_by_i #(
@@ -106,7 +106,7 @@ module bsg_manycore_crossbar
 
     ,.valid_o(fwd_valid_li)
     ,.data_o(fwd_data_li)
-    ,.ready_and_i(fwd_ready_lo)
+    ,.ready_and_i(fwd_ready_and_lo)
   );
 
 
@@ -128,7 +128,7 @@ module bsg_manycore_crossbar
 
   logic [num_in_lp-1:0] rev_valid_li;
   logic [num_in_lp-1:0][xbar_rev_pkt_width_lp-1:0] rev_data_li;
-  logic [num_in_lp-1:0] rev_ready_lo;
+  logic [num_in_lp-1:0] rev_ready_and_lo;
 
   bsg_manycore_link_to_crossbar #(
     .width_p(return_packet_width_lp)
@@ -146,7 +146,7 @@ module bsg_manycore_crossbar
 
     ,.valid_i(rev_valid_li) 
     ,.data_i(rev_data_li)
-    ,.ready_o(rev_ready_lo)
+    ,.ready_and_o(rev_ready_and_lo)
   );
 
 
@@ -167,7 +167,7 @@ module bsg_manycore_crossbar
 
     ,.valid_o(rev_valid_li)
     ,.data_o(rev_data_li)
-    ,.ready_and_i(rev_ready_lo)
+    ,.ready_and_i(rev_ready_and_lo)
   );
 
 
