@@ -57,7 +57,7 @@ module bsg_manycore_top_crossbar
 
 
   // Crossbar Network
-  typedef int num_credit_arr_t[num_in_lp-1:0];
+  typedef int fifo_els_arr_t[num_in_lp-1:0];
 
   function logic [num_in_lp-1:0] get_fwd_use_credits();
     logic [num_in_lp-1:0] retval;
@@ -71,8 +71,8 @@ module bsg_manycore_top_crossbar
     return retval;
   endfunction
 
-  function num_credit_arr_t get_fwd_num_credits();
-    num_credit_arr_t retval;
+  function fifo_els_arr_t get_fwd_fifo_els();
+    fifo_els_arr_t retval;
 
     for (int i = 0; i < num_in_y_lp; i++) begin
       for (int j = 0; j < num_in_x_lp; j++) begin
@@ -99,8 +99,8 @@ module bsg_manycore_top_crossbar
     return retval;
   endfunction
 
-  function num_credit_arr_t get_rev_num_credits();
-    num_credit_arr_t retval;
+  function fifo_els_arr_t get_rev_fifo_els();
+    fifo_els_arr_t retval;
 
     for (int i = 0; i < num_in_y_lp; i++) begin
       for (int j = 0; j < num_in_x_lp; j++) begin
@@ -125,9 +125,9 @@ module bsg_manycore_top_crossbar
     ,.y_cord_width_p(y_cord_width_lp)
 
     ,.fwd_use_credits_p(get_fwd_use_credits())
-    ,.fwd_num_credits_p(get_fwd_num_credits())
+    ,.fwd_fifo_els_p(get_fwd_fifo_els())
     ,.rev_use_credits_p(get_rev_use_credits())
-    ,.rev_num_credits_p(get_rev_num_credits())
+    ,.rev_fifo_els_p(get_rev_fifo_els())
   ) network (
     .clk_i(clk_i)
     ,.reset_i(reset_r[reset_depth_p-2])
