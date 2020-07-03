@@ -339,7 +339,7 @@ module bsg_manycore_endpoint_standard
         $display("## return packet received by (x,y)=%x,%x",my_x_i,my_y_i);
 
       if (out_v_i)
-        $display("## attempting remote store send of data %x, ready_i = %x (%m)",out_packet_i,out_credit_or_ready_o);
+        $display("## attempting remote store send of data %x, out_credit_or_ready_o = %x (%m)",out_packet_i,out_credit_or_ready_o);
     end
   end
 
