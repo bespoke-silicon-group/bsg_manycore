@@ -158,11 +158,9 @@ module bsg_manycore
         
       ,.links_sif_i      ( link_in [0][ c ] )
       ,.links_sif_o      ( link_out[0][ c ] )
-      ,.links_credit_o()        
 
       ,.proc_link_sif_i  ( io_link_sif_i [ c ])
       ,.proc_link_sif_o  ( io_link_sif_o [ c ])
-      ,.proc_credit_o()
         
       // tile coordinates
       ,.my_x_i   ( x_cord_width_lp'(c))

@@ -37,6 +37,8 @@ module bsg_manycore_endpoint_standard
     , parameter warn_out_of_credits_p  = 1
     , parameter debug_p                = 0
 
+    , parameter use_credits_for_local_fifo_p = 0
+
     , parameter packet_width_lp =
       `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
     , parameter return_packet_width_lp =
@@ -75,7 +77,7 @@ module bsg_manycore_endpoint_standard
     //    request that will send to the network
     , input                                  out_v_i
     , input  [packet_width_lp-1:0]           out_packet_i
-    , output                                 out_ready_o
+    , output                                 out_credit_or_ready_o
 
     //--------------------------------------------------------
     // 4. in_response signal group
@@ -131,7 +133,7 @@ module bsg_manycore_endpoint_standard
 
     ,.packet_i(out_packet_i)
     ,.packet_v_i(out_v_i)
-    ,.packet_ready_o(out_ready_o)
+    ,.packet_credit_or_ready_o(out_credit_or_ready_o)
 
     ,.return_packet_o(returned_packet_lo)
     ,.return_packet_v_o(returned_packet_v_lo)
@@ -298,7 +300,13 @@ module bsg_manycore_endpoint_standard
   // ----------------------------------------------------------------------------------------
   // Handle returned credit & data
   // ----------------------------------------------------------------------------------------
-  wire launching_out   = out_v_i & out_ready_o;
+  wire launching_out;
+  if (use_credits_for_local_fifo_p) begin
+    assign launching_out = out_v_i;
+  end
+  else begin
+    assign launching_out = out_v_i & out_credit_or_ready_o;
+  end
   wire returned_credit = returned_packet_v_lo & returned_yumi_li;
 
   bsg_counter_up_down #(
@@ -331,7 +339,7 @@ module bsg_manycore_endpoint_standard
         $display("## return packet received by (x,y)=%x,%x",my_x_i,my_y_i);
 
       if (out_v_i)
-        $display("## attempting remote store send of data %x, ready_i = %x (%m)",out_packet_i,out_ready_o);
+        $display("## attempting remote store send of data %x, out_credit_or_ready_o = %x (%m)",out_packet_i,out_credit_or_ready_o);
     end
   end
 

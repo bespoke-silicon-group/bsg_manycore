@@ -55,7 +55,17 @@ module bsg_manycore_tile
     reset_r <= reset_i;
   end
 
-  logic proc_credit_lo;
+  // For vanilla core (hetero type = 0), it uses credit interface for the P ports,
+  // which has three-element fifo because the credit returns with one extra cycle delay.
+  localparam fwd_use_credits_lp = (hetero_type_p == 0)
+    ? 5'b00001
+    : 5'b00000;
+  localparam int fwd_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0)
+    ? '{2,2,2,2,3}
+    : '{2,2,2,2,2};
+  localparam rev_use_credits_lp = 5'b00000;
+  localparam int rev_fifo_els_lp[dirs_lp:0] = '{2,2,2,2,2};
+    
 
   bsg_manycore_mesh_node #(
     .stub_p(stub_p)
@@ -65,15 +75,17 @@ module bsg_manycore_tile
     ,.addr_width_p(addr_width_p)
     ,.debug_p(debug_p)
     ,.repeater_output_p(repeater_output_p) // select buffer for this particular node
+    ,.fwd_use_credits_p(fwd_use_credits_lp)
+    ,.fwd_fifo_els_p(fwd_fifo_els_lp)
+    ,.rev_use_credits_p(rev_use_credits_lp)
+    ,.rev_fifo_els_p(rev_fifo_els_lp)
   ) rtr (
     .clk_i(clk_i)
     ,.reset_i(reset_r)
     ,.links_sif_i(link_in)
     ,.links_sif_o(link_out)
-    ,.links_credit_o()
     ,.proc_link_sif_i(proc_link_sif_li)
     ,.proc_link_sif_o(proc_link_sif_lo)
-    ,.proc_credit_o(proc_credit_lo)
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
   );
@@ -102,7 +114,6 @@ module bsg_manycore_tile
 
     ,.link_sif_i(proc_link_sif_lo)
     ,.link_sif_o(proc_link_sif_li)
-    ,.link_credit_i(proc_credit_lo)
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)

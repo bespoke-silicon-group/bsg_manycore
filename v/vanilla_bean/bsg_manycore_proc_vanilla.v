@@ -46,7 +46,6 @@ module bsg_manycore_proc_vanilla
 
     , input [link_sif_width_lp-1:0] link_sif_i
     , output logic [link_sif_width_lp-1:0] link_sif_o
-    , input link_credit_i
 
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
@@ -69,7 +68,7 @@ module bsg_manycore_proc_vanilla
 
   bsg_manycore_packet_s out_packet_li;
   logic out_v_li;
-  logic out_ready_lo;
+  logic out_credit_or_ready_lo;
   logic link_credit_lo;
 
   logic returned_v_r_lo;
@@ -90,6 +89,8 @@ module bsg_manycore_proc_vanilla
     ,.fifo_els_p(proc_fifo_els_p)
     ,.max_out_credits_p(max_out_credits_p)
     ,.debug_p(debug_p)
+
+    ,.use_credits_for_local_fifo_p(1)
   ) endp (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -114,7 +115,7 @@ module bsg_manycore_proc_vanilla
     // tx
     ,.out_packet_i(out_packet_li)
     ,.out_v_i(out_v_li)
-    ,.out_ready_o(out_ready_lo)
+    ,.out_credit_or_ready_o(out_credit_or_ready_lo)
 
     ,.returned_v_r_o(returned_v_r_lo)
     ,.returned_data_r_o(returned_data_r_lo)
@@ -202,7 +203,7 @@ module bsg_manycore_proc_vanilla
   //
   remote_req_s remote_req;
   logic remote_req_v;
-  logic remote_req_yumi;
+  logic remote_req_credit;
 
   logic ifetch_v_lo;
   logic [data_width_p-1:0] ifetch_instr_lo;
@@ -242,7 +243,7 @@ module bsg_manycore_proc_vanilla
 
     ,.out_packet_o(out_packet_li)
     ,.out_v_o(out_v_li)
-    ,.out_ready_i(out_ready_lo)
+    ,.out_credit_or_ready_i(out_credit_or_ready_lo)
 
     ,.returned_v_i(returned_v_r_lo)
     ,.returned_data_i(returned_data_r_lo)
@@ -260,7 +261,7 @@ module bsg_manycore_proc_vanilla
 
     ,.remote_req_i(remote_req)
     ,.remote_req_v_i(remote_req_v)
-    ,.remote_req_yumi_o(remote_req_yumi)
+    ,.remote_req_credit_o(remote_req_credit)
 
     ,.ifetch_v_o(ifetch_v_lo)
     ,.ifetch_instr_o(ifetch_instr_lo)
@@ -300,8 +301,7 @@ module bsg_manycore_proc_vanilla
     
     ,.remote_req_o(remote_req)
     ,.remote_req_v_o(remote_req_v)
-    ,.remote_req_yumi_i(remote_req_yumi)
-    ,.remote_req_credit_i(link_credit_i)
+    ,.remote_req_credit_i(remote_req_credit)
 
     ,.icache_v_i(icache_v_lo)
     ,.icache_pc_i(icache_pc_lo)

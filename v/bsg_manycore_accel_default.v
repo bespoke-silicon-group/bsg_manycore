@@ -98,7 +98,7 @@ module bsg_manycore_accel_default
 
       ,.out_packet_i (out_packet_li )
       ,.out_v_i    (out_v_li    )
-      ,.out_ready_o(out_ready_lo)
+      ,.out_credit_or_ready_o(out_ready_lo)
 
       ,.out_credits_o(out_credits_lo)
 

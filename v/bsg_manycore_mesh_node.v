@@ -14,7 +14,14 @@ module bsg_manycore_mesh_node
     , parameter stub_p            = {dirs_lp{1'b0}} // {s,n,e,w}
     , parameter repeater_output_p = {dirs_lp{1'b0}} // {s,n,e,w}
 
-    , parameter num_nets_lp = 2 // 1=return network, 0=data network
+    // bit vector to choose which direction in the router to use credit interface.
+    , parameter fwd_use_credits_p = {5{1'b0}}
+    , parameter rev_use_credits_p = {5{1'b0}}
+
+    // number of elements in the input FIFO for each direction.
+    , parameter int fwd_fifo_els_p[dirs_lp:0] = '{2,2,2,2,2}
+    , parameter int rev_fifo_els_p[dirs_lp:0] = '{2,2,2,2,2}
+
     , parameter debug_p = 0
 
     , parameter packet_width_lp =
@@ -31,11 +38,9 @@ module bsg_manycore_mesh_node
     // input and output links
     , input  [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_i
     , output [dirs_lp-1:0][bsg_manycore_link_sif_width_lp-1:0] links_sif_o
-    , output [dirs_lp-1:0] links_credit_o 
 
     , input  [bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_i
     , output [bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_o
-    , output proc_credit_o
 
     // tile coordinates
     , input  [x_cord_width_p-1:0] my_x_i
@@ -73,54 +78,48 @@ module bsg_manycore_mesh_node
     assign links_sif_o_cast[k-1].rev = link_rev_sif_o_cast[k];
   end
 
-  logic [4:0] fwd_credit_lo;
-  logic [4:0] rev_credit_lo;
+  bsg_mesh_router_buffered #(
+    .width_p(packet_width_lp)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.debug_p(debug_p)
+    ,.stub_p({stub_p, 1'b0})
+    ,.XY_order_p(1)
+    ,.repeater_output_p({repeater_output_p,1'b0})
+    ,.use_credits_p(fwd_use_credits_p)
+    ,.fifo_els_p(fwd_fifo_els_p)
+  ) fwd (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
 
-  for (genvar i = 0; i < num_nets_lp; i=i+1) begin: rof
-    logic [4:0] [(i ? $bits(bsg_manycore_rev_link_sif_s) : $bits (bsg_manycore_fwd_link_sif_s))-1:0] link_li;
-    logic [4:0] [(i ? $bits(bsg_manycore_rev_link_sif_s) : $bits (bsg_manycore_fwd_link_sif_s))-1:0] link_lo;
+    ,.link_i(link_fwd_sif_i_cast)
+    ,.link_o(link_fwd_sif_o_cast)
 
-    logic [4:0] credit_lo;
+    ,.my_x_i(my_x_i)
+    ,.my_y_i(my_y_i)
+   );
 
-    // i = 1 -> return packet
-    if (i) begin
-      assign link_li             = link_rev_sif_i_cast;
-      assign link_rev_sif_o_cast = link_lo;
-      assign rev_credit_lo       = credit_lo;
-    end
-    else begin
-      assign link_li             = link_fwd_sif_i_cast;
-      assign link_fwd_sif_o_cast = link_lo;
-      assign fwd_credit_lo       = credit_lo;
-    end
+  bsg_mesh_router_buffered #(
+    .width_p(return_packet_width_lp)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.debug_p(debug_p)
+    ,.stub_p({stub_p, 1'b0})
+    ,.XY_order_p(0)
+    ,.repeater_output_p({repeater_output_p,1'b0})
+    ,.use_credits_p(rev_use_credits_p)
+    ,.fifo_els_p(rev_fifo_els_p)
+  ) rev (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
 
-    bsg_mesh_router_buffered #(
-      .width_p(i ? return_packet_width_lp : packet_width_lp)
-      ,.x_cord_width_p(x_cord_width_p)
-      ,.y_cord_width_p(y_cord_width_p)
-      ,.debug_p(debug_p)
-      // adding proc into stub
-      ,.stub_p({stub_p, 1'b0})
-      //forward router:  X/Y routing
-      //reverse router:  Y/X routing
-      ,.XY_order_p(!i)
-      ,.repeater_output_p({repeater_output_p,1'b0})
-    ) bmrb (
-      .clk_i(clk_i)
-      ,.reset_i(reset_i)
+    ,.link_i(link_rev_sif_i_cast)
+    ,.link_o(link_rev_sif_o_cast)
 
-      ,.link_i(link_li)
-      ,.link_o(link_lo)
+    ,.my_x_i(my_x_i)
+    ,.my_y_i(my_y_i)
+   );
 
-      ,.credit_o(credit_lo)
-
-      ,.my_x_i(my_x_i)
-      ,.my_y_i(my_y_i)
-    );
-  end
-
-  assign links_credit_o = fwd_credit_lo[4:1];
-  assign proc_credit_o = fwd_credit_lo[0];
 
 endmodule
 

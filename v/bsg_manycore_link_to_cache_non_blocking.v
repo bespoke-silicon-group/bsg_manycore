@@ -88,7 +88,7 @@ module bsg_manycore_link_to_cache_non_blocking
 
     ,.packet_i('0)
     ,.packet_v_i(1'b0)
-    ,.packet_ready_o()
+    ,.packet_credit_or_ready_o()
 
     ,.return_packet_o()
     ,.return_packet_v_o()
