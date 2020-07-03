@@ -18,6 +18,7 @@ module network_tx
     , parameter vcache_sets_p="inv"
     
     , parameter num_tiles_x_p="inv"
+    , parameter num_tiles_y_p="inv"
   
     , parameter icache_entries_p="inv"
     , parameter icache_tag_width_p="inv"
@@ -110,6 +111,7 @@ module network_tx
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
     ,.num_tiles_x_p(num_tiles_x_p)
+    ,.num_tiles_y_p(num_tiles_y_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_sets_p(vcache_sets_p)

@@ -20,6 +20,7 @@ module bsg_manycore_eva_to_npa
     , parameter y_cord_width_p="inv"
     
     , parameter num_tiles_x_p="inv"
+    , parameter num_tiles_y_p="inv"
 
     , parameter vcache_block_size_in_words_p="inv"  // block size in vcache
     , parameter vcache_size_p="inv" // vcache capacity in words
@@ -95,7 +96,7 @@ module bsg_manycore_eva_to_npa
     if (is_dram_addr) begin
       if (dram_enable_i) begin
         y_cord_o = hash_bank_lo[x_cord_width_p]
-          ? {y_cord_width_p{1'b1}}  // y-max
+          ? (y_cord_width_p)'(num_tiles_y_p+1) // DRAM ports are directly below the manycore tiles.
           : {y_cord_width_p{1'b0}};
         x_cord_o = hash_bank_lo[0+:x_cord_width_p];
         epa_o = {
@@ -115,7 +116,7 @@ module bsg_manycore_eva_to_npa
         end
         else begin
           y_cord_o = eva_i[2+lg_vcache_size_lp+x_cord_width_p]
-            ? {y_cord_width_p{1'b1}}  // y-max
+            ? (y_cord_width_p)'(num_tiles_y_p+1)  // DRAM ports are directly below the manycore tiles.
             : {y_cord_width_p{1'b0}};
           x_cord_o = eva_i[2+lg_vcache_size_lp+:x_cord_width_p];
           epa_o = {
