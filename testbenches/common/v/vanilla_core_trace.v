@@ -18,7 +18,7 @@ module vanilla_core_trace
     , input reset_i
     , input trace_en_i
 
-    , input stall
+    , input stall_all
     , input stall_idiv_wb
     , input stall_remote_ld_wb
     , input stall_ifetch_wait
@@ -132,7 +132,7 @@ module vanilla_core_trace
       wb_debug <= '0;
     end
     else begin
-      if (~stall) begin
+      if (~stall_all) begin
         mem_debug <= {
           pc: exe_debug.pc,
           instr: exe_debug.instr,

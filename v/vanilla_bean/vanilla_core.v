@@ -948,7 +948,7 @@ module vanilla_core
     | stall_idiv_busy
     | stall_fcsr;
 
-  wire stall = stall_icache_store
+  wire stall_all = stall_icache_store
     | stall_idiv_wb
     | stall_remote_ld_wb
     | stall_ifetch_wait
@@ -992,7 +992,7 @@ module vanilla_core
     : 1'b1;
 
   assign icache_v_li = icache_v_i | ifetch_v_i
-    | (read_icache & ~stall & ~(stall_id & ~flush));
+    | (read_icache & ~stall_all & ~(stall_id & ~flush));
 
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
@@ -1013,7 +1013,7 @@ module vanilla_core
 
   // IF -> ID
   always_comb begin
-    if (stall) begin
+    if (stall_all) begin
       id_n = id_r;
     end
     else begin
@@ -1052,11 +1052,11 @@ module vanilla_core
 
 
   // regfile read
-  assign int_rf_read[0] = id_n.decode.read_rs1 & ~(stall_id | stall);
-  assign int_rf_read[1] = id_n.decode.read_rs2 & ~(stall_id | stall);
-  assign float_rf_read[0] = id_n.decode.read_frs1 & ~(stall_id | stall);
-  assign float_rf_read[1] = id_n.decode.read_frs2 & ~(stall_id | stall);
-  assign float_rf_read[2] = id_n.decode.read_frs3 & ~(stall_id | stall);
+  assign int_rf_read[0] = id_n.decode.read_rs1 & ~(stall_id | stall_all);
+  assign int_rf_read[1] = id_n.decode.read_rs2 & ~(stall_id | stall_all);
+  assign float_rf_read[0] = id_n.decode.read_frs1 & ~(stall_id | stall_all);
+  assign float_rf_read[1] = id_n.decode.read_frs2 & ~(stall_id | stall_all);
+  assign float_rf_read[2] = id_n.decode.read_frs3 & ~(stall_id | stall_all);
 
   // helpful control signals;
   wire [reg_addr_width_lp-1:0] id_rs1 = id_r.instruction.rs1;
@@ -1150,9 +1150,9 @@ module vanilla_core
 
   // stall_remote_req
   logic [1:0] remote_req_counter_r;
-  wire local_mem_op_restore = (lsu_dmem_v_lo & ~exe_r.decode.is_lr_op & ~exe_r.decode.is_lr_aq_op) & ~stall;
+  wire local_mem_op_restore = (lsu_dmem_v_lo & ~exe_r.decode.is_lr_op & ~exe_r.decode.is_lr_aq_op) & ~stall_all;
   wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.icache_miss);
-  wire memory_op_issued = id_remote_req_op & ~flush & ~stall_id & ~stall;
+  wire memory_op_issued = id_remote_req_op & ~flush & ~stall_id & ~stall_all;
   wire [1:0] remote_req_available =
     remote_req_counter_r +
     remote_req_credit_i +
@@ -1256,12 +1256,12 @@ module vanilla_core
 
 
   // AMO aq control
-  assign aq_set = (id_r.decode.is_amo_op & id_r.decode.is_amo_aq) & ~flush & ~stall & ~stall_id;
+  assign aq_set = (id_r.decode.is_amo_op & id_r.decode.is_amo_aq) & ~flush & ~stall_all & ~stall_id;
   assign aq_clear = int_rf_wen & (int_rf_waddr == aq_rd_r);
 
 
   // FCSR control
-  assign fcsr_v_li = (id_r.decode.is_csr_op) & ~flush & ~stall & ~stall_id; 
+  assign fcsr_v_li = (id_r.decode.is_csr_op) & ~flush & ~stall_all & ~stall_id; 
   assign fcsr_funct3_li = id_r.instruction.funct3;
   assign fcsr_rs1_li = id_r.instruction.rs1;
   assign fcsr_data_li = rs1_val_to_exe[7:0];
@@ -1270,7 +1270,7 @@ module vanilla_core
 
   // ID -> EXE
   always_comb begin
-    if (stall) begin
+    if (stall_all) begin
       exe_n = exe_r;
     end
     else begin
@@ -1294,10 +1294,10 @@ module vanilla_core
   end
 
   // idiv input control
-  assign idiv_v_li = exe_r.decode.is_idiv_op & ~stall;
+  assign idiv_v_li = exe_r.decode.is_idiv_op & ~stall_all;
 
   // int scoreboard set logic
-  assign int_sb_score = ~stall & (exe_r.decode.is_idiv_op | exe_r.decode.is_amo_op | int_remote_load_in_exe);
+  assign int_sb_score = ~stall_all & (exe_r.decode.is_idiv_op | exe_r.decode.is_amo_op | int_remote_load_in_exe);
   assign int_sb_score_id = exe_r.instruction.rd;  
 
   // exe_result
@@ -1306,7 +1306,7 @@ module vanilla_core
     : alu_or_csr_result;
 
   // remote request control
-  assign remote_req_v_o = lsu_remote_req_v_lo & ~stall;
+  assign remote_req_v_o = lsu_remote_req_v_lo & ~stall_all;
 
   // ID -> FP_EXE
   frm_e fpu_rm;
@@ -1315,7 +1315,7 @@ module vanilla_core
     : frm_e'(id_r.instruction.funct3);
 
   always_comb begin
-    if (stall) begin
+    if (stall_all) begin
       fp_exe_n = fp_exe_r;
     end
     else begin
@@ -1336,10 +1336,10 @@ module vanilla_core
   end  
 
   // fdiv control 
-  assign fdiv_fsqrt_v_li = fdiv_fsqrt_in_fp_exe & ~stall;
+  assign fdiv_fsqrt_v_li = fdiv_fsqrt_in_fp_exe & ~stall_all;
 
   // FP scoreboard set logic
-  assign float_sb_score = ~stall & (fdiv_fsqrt_in_fp_exe | float_remote_load_in_exe);
+  assign float_sb_score = ~stall_all & (fdiv_fsqrt_in_fp_exe | float_remote_load_in_exe);
   assign float_sb_score_id = fdiv_fsqrt_in_fp_exe
     ? fp_exe_r.rd
     : exe_r.instruction.rd;
@@ -1351,7 +1351,7 @@ module vanilla_core
     fcsr_fflags_v_li[0] = 1'b0;
     fcsr_fflags_li[0] = fpu_int_fflags_lo;
 
-    if (stall) begin
+    if (stall_all) begin
       mem_n = mem_r;
     end
     else if (exe_r.decode.is_idiv_op | (remote_req_in_exe & ~exe_r.icache_miss)) begin
@@ -1391,7 +1391,7 @@ module vanilla_core
  
   // DMEM ctrl logic
   always_comb begin
-    if (stall) begin
+    if (stall_all) begin
       dmem_v_li = remote_dmem_v_i;
       dmem_w_li = remote_dmem_w_i;
       dmem_addr_li = remote_dmem_addr_i;
@@ -1426,7 +1426,7 @@ module vanilla_core
   // lr creates a reservation on DMEM address.
   // Any store to this address breaks the reservation.
   // When the reservation is valid, lr.aq stalls until the reservation is broken. 
-  assign make_reserve = lsu_reserve_lo & ~stall;
+  assign make_reserve = lsu_reserve_lo & ~stall_all;
   assign break_reserve = reserved_r & (reserved_addr_r == dmem_addr_li) & dmem_v_li & dmem_w_li;
 
   // stall_ifetch_wait
@@ -1512,7 +1512,7 @@ module vanilla_core
 
   // MEM -> FLW_WB
   always_comb begin
-    if (stall) begin
+    if (stall_all) begin
       flw_wb_n = flw_wb_r;
     end
     else begin
@@ -1598,7 +1598,7 @@ module vanilla_core
   end
 
   // fpu_float stall control
-  assign stall_fpu1_li = stall;
+  assign stall_fpu1_li = stall_all;
   assign stall_fpu2_li = stall_fdiv_wb | stall_remote_flw_wb;
 
 
