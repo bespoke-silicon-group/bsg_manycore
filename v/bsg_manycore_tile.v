@@ -60,11 +60,11 @@ module bsg_manycore_tile
   localparam fwd_use_credits_lp = (hetero_type_p == 0)
     ? 5'b00001
     : 5'b00000;
-  localparam int fwd_num_credits_lp[dirs_lp:0] = (hetero_type_p == 0)
+  localparam int fwd_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0)
     ? '{2,2,2,2,3}
     : '{2,2,2,2,2};
   localparam rev_use_credits_lp = 5'b00000;
-  localparam int rev_num_credits_lp[dirs_lp:0] = '{2,2,2,2,2};
+  localparam int rev_fifo_els_lp[dirs_lp:0] = '{2,2,2,2,2};
     
 
   bsg_manycore_mesh_node #(
@@ -76,9 +76,9 @@ module bsg_manycore_tile
     ,.debug_p(debug_p)
     ,.repeater_output_p(repeater_output_p) // select buffer for this particular node
     ,.fwd_use_credits_p(fwd_use_credits_lp)
-    ,.fwd_num_credits_p(fwd_num_credits_lp)
+    ,.fwd_fifo_els_p(fwd_fifo_els_lp)
     ,.rev_use_credits_p(rev_use_credits_lp)
-    ,.rev_num_credits_p(rev_num_credits_lp)
+    ,.rev_fifo_els_p(rev_fifo_els_lp)
   ) rtr (
     .clk_i(clk_i)
     ,.reset_i(reset_r)

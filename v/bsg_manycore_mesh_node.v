@@ -19,8 +19,8 @@ module bsg_manycore_mesh_node
     , parameter rev_use_credits_p = {5{1'b0}}
 
     // number of elements in the input FIFO for each direction.
-    , parameter int fwd_num_credits_p[dirs_lp:0] = '{2,2,2,2,2}
-    , parameter int rev_num_credits_p[dirs_lp:0] = '{2,2,2,2,2}
+    , parameter int fwd_fifo_els_p[dirs_lp:0] = '{2,2,2,2,2}
+    , parameter int rev_fifo_els_p[dirs_lp:0] = '{2,2,2,2,2}
 
     , parameter debug_p = 0
 
@@ -87,7 +87,7 @@ module bsg_manycore_mesh_node
     ,.XY_order_p(1)
     ,.repeater_output_p({repeater_output_p,1'b0})
     ,.use_credits_p(fwd_use_credits_p)
-    ,.num_credits_p(fwd_num_credits_p)
+    ,.fifo_els_p(fwd_fifo_els_p)
   ) fwd (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -108,7 +108,7 @@ module bsg_manycore_mesh_node
     ,.XY_order_p(0)
     ,.repeater_output_p({repeater_output_p,1'b0})
     ,.use_credits_p(rev_use_credits_p)
-    ,.num_credits_p(rev_num_credits_p)
+    ,.fifo_els_p(rev_fifo_els_p)
   ) rev (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
