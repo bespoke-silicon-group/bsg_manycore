@@ -82,7 +82,7 @@ vpath %.S $(COMMON_SRC_DIRS)
 # flags
 OPT_LEVEL ?= -O2
 RISCV_GCC_EXTRA_OPTS ?=
-RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -mno-fdiv -ffp-contract=off -fno-common
+RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -ffp-contract=off -fno-common
 
 RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
@@ -174,7 +174,7 @@ RISCV_LINK = $(RISCV_GCC) -t -T $(LINK_SCRIPT) $(RISCV_LINK_SYMS)
 
 
 ifndef CLANG
-  RISCV_GCC_OPTS += -fweb -frename-registers -frerun-cse-after-loop
+  RISCV_GCC_OPTS += -fweb -frename-registers -frerun-cse-after-loop -mno-fdiv
 endif
 
 # Construct C++ flags from C flags
@@ -197,7 +197,7 @@ CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
 # Ideally LLC should infer targets option provided to Clang. But LLC 11.0.0 fails
 # to infer the architecture extensions correctly. Hence the information is repeated
 # in LLC target options below.
-LLC_TARGET_OPTS   ?= -march=riscv32 -mcpu=hb-rv32 -mattr=+m,+a,+f
+LLC_TARGET_OPTS   ?= -march=riscv32 -mcpu=hb-rv32 -mattr=+m,+a,+f,+no-fdiv
 
 ifdef ENABLE_LLVM_PASSES
 PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
