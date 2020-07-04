@@ -81,10 +81,6 @@ module fpu_float_aux
         fsgnj_result[recoded_data_width_lp-1] = fp_rs1_i[recoded_data_width_lp-1] ^ fp_rs2_i[recoded_data_width_lp-1];
       end
 
-      //eFMV_W_X: begin
-      //  fsgnj_result[recoded_data_width_lp-1] = fp_rs1_i[recoded_data_width_lp-1];
-      //end
-
       default: begin
         fsgnj_result[recoded_data_width_lp-1] = fp_rs1_i[recoded_data_width_lp-1];
       end
