@@ -29,7 +29,7 @@
 
 TARGET_ARCH       := rv32imaf
 TARGET_ABI        := ilp32f
-TARGET_CFLAGS     := '-fno-common'
+TARGET_CFLAGS     := '-fno-common -mno-fdiv -ffp-contract=off'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
 TOOLCHAIN_URL     := https://github.com/riscv/$(TOOLCHAIN_REPO)
