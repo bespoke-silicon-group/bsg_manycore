@@ -1179,7 +1179,6 @@ module vanilla_core
 
   // FP_EXE forwarding mux control logic
   //
-  //assign select_recoded_rs1 = (id_r.fp_decode.fpu_float_op == eFMV_W_X);
   assign select_rs1_to_fp_exe = id_r.decode.read_rs1;
   assign frs1_forward_v = id_r.decode.read_frs1 & (id_rs1 == float_rf_waddr) & float_rf_wen;
   assign frs2_forward_v = id_r.decode.read_frs2 & (id_rs2 == float_rf_waddr) & float_rf_wen;
