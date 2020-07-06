@@ -16,6 +16,9 @@ extern "C" {
         extern void bsg_dpi_fini();
         extern unsigned char bsg_dpi_vanilla_core_profiler_is_window();
         extern void bsg_dpi_vanilla_core_profiler_get_instr_count(int itype, int *count);
+        extern void bsg_dpi_vanilla_core_profiler_trace_disable();
+        extern void bsg_dpi_vanilla_core_profiler_trace_enable();
+
 }
 
 namespace bsg_nonsynth_dpi{
@@ -74,6 +77,19 @@ namespace bsg_nonsynth_dpi{
                         return BSG_NONSYNTH_DPI_SUCCESS;
                 }
 
+                // Enable Tracefile Generation
+                void trace_enable(){
+                        prev = svSetScope(scope);
+                        bsg_dpi_vanilla_core_profiler_trace_enable();
+                        svSetScope(prev);
+                }
+                
+                // Disable Tracefile Generation
+                void trace_disable(){
+                        prev = svSetScope(scope);
+                        bsg_dpi_vanilla_core_profiler_trace_disable();
+                        svSetScope(prev);
+                }
         };
 }
 

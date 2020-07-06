@@ -75,6 +75,9 @@ module vanilla_core_profiler
     , input trace_en_i 
   );
 
+  // DPI logic
+  logic                   trace_en_dpi_l;
+
   // bsg_manycore_profile_pkg for the packed print_stat_tag_i signal
   // <stat type>  -  <y cord>  -  <x cord>  -  <tile group id>  -  <tag>
   bsg_manycore_vanilla_core_stat_tag_s print_stat_tag;
@@ -1078,7 +1081,7 @@ module vanilla_core_profiler
       
       
         // trace logging
-        if (~reset_i & trace_en_i) begin
+        if (~reset_i & (trace_en_i | trace_en_dpi_l)) begin
           fd2 = $fopen(tracefile_lp, "a");
              
           if (fadd_inc) print_operation_trace(fd2, "fadd");
@@ -1234,6 +1237,8 @@ module vanilla_core_profiler
    export "DPI-C" function bsg_dpi_fini;
    export "DPI-C" function bsg_dpi_vanilla_core_profiler_is_window;
    export "DPI-C" function bsg_dpi_vanilla_core_profiler_get_instr_count;
+   export "DPI-C" function bsg_dpi_vanilla_core_profiler_trace_enable;
+   export "DPI-C" function bsg_dpi_vanilla_core_profiler_trace_disable;
 
    // We track the polarity of the current edge so that we can call
    // $fatal when credits_get_cur is called during the wrong phase
@@ -1254,6 +1259,12 @@ module vanilla_core_profiler
 
    // Initialize this Manycore DPI Interface
    function void bsg_dpi_init();
+      if(~trace_en_i) begin
+         fd2 = $fopen(tracefile_lp, "w");
+         $fwrite(fd2, "cycle,x,y,pc,operation\n");
+         $fclose(fd2);
+      end
+
       if(init_l)
         $fatal(1, "BSG ERROR (%M): init() already called");
 
@@ -1354,6 +1365,20 @@ module vanilla_core_profiler
       endcase
 
       return;
+   endfunction
+
+   function void bsg_dpi_vanilla_core_profiler_trace_enable();
+      // TODO CHeck init
+      if(trace_en_dpi_l)
+        $display(1, "BSG WARNING (%M): trace_enable() already called");
+      trace_en_dpi_l = 1;
+   endfunction
+
+   function void bsg_dpi_vanilla_core_profiler_trace_disable();
+      // TODO Check init
+      if(~trace_en_dpi_l)
+        $display(1, "BSG WARNING (%M): trace_disable() already called");
+      trace_en_dpi_l = 0;
    endfunction
 
 endmodule
