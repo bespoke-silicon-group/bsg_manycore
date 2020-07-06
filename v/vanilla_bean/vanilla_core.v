@@ -365,26 +365,6 @@ module vanilla_core
 
   // FP_EXE forwarding muxes
   //
-  logic [fpu_recoded_data_width_gp-1:0] rs1_recoded_val;
-  fNToRecFN #(
-    .expWidth(fpu_recoded_exp_width_gp)
-    ,.sigWidth(fpu_recoded_sig_width_gp)
-  ) recFN_rs1 (
-    .in(int_rf_rdata[0])
-    ,.out(rs1_recoded_val)
-  );
-
-  // select between fmv and i2f
-  logic select_recoded_rs1;
-  logic [fpu_recoded_data_width_gp-1:0] rs1_to_fp_exe;
-  bsg_mux #(
-    .els_p(2)
-    ,.width_p(fpu_recoded_data_width_gp)
-  ) rs1_select_mux (
-    .data_i({rs1_recoded_val, {1'b0, int_rf_rdata[0]}})
-    ,.sel_i(select_recoded_rs1)
-    ,.data_o(rs1_to_fp_exe)
-  );
   
   // select between rs1 and frs1
   logic [fpu_recoded_data_width_gp-1:0] frs1_select_val;
@@ -394,7 +374,7 @@ module vanilla_core
     .els_p(2)
     ,.width_p(fpu_recoded_data_width_gp)
   ) frs1_select_mux (
-    .data_i({rs1_to_fp_exe, float_rf_rdata[0]})
+    .data_i({{1'b0, int_rf_rdata[0]}, float_rf_rdata[0]})
     ,.sel_i(select_rs1_to_fp_exe)
     ,.data_o(frs1_select_val)
   );
@@ -1199,7 +1179,6 @@ module vanilla_core
 
   // FP_EXE forwarding mux control logic
   //
-  assign select_recoded_rs1 = (id_r.fp_decode.fpu_float_op == eFMV_W_X);
   assign select_rs1_to_fp_exe = id_r.decode.read_rs1;
   assign frs1_forward_v = id_r.decode.read_frs1 & (id_rs1 == float_rf_waddr) & float_rf_wen;
   assign frs2_forward_v = id_r.decode.read_frs2 & (id_rs2 == float_rf_waddr) & float_rf_wen;

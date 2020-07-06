@@ -62,7 +62,7 @@ module fpu_float_aux
   );
  
 
-  // SIGN INJECT / FMV
+  // SIGN INJECT
   logic [recoded_data_width_lp-1:0] fsgnj_result;
 
   always_comb begin
@@ -81,16 +81,22 @@ module fpu_float_aux
         fsgnj_result[recoded_data_width_lp-1] = fp_rs1_i[recoded_data_width_lp-1] ^ fp_rs2_i[recoded_data_width_lp-1];
       end
 
-      eFMV_W_X: begin
-        fsgnj_result[recoded_data_width_lp-1] = fp_rs1_i[recoded_data_width_lp-1];
-      end
-
       default: begin
         fsgnj_result[recoded_data_width_lp-1] = fp_rs1_i[recoded_data_width_lp-1];
       end
     endcase
   end
 
+
+  // FMV
+  logic [recoded_data_width_lp-1:0] rs1_recoded_val;
+  fNToRecFN #(
+    .expWidth(exp_width_p)
+    ,.sigWidth(sig_width_p)
+  ) recFN_rs1 (
+    .in(fp_rs1_i[0+:data_width_p])
+    ,.out(rs1_recoded_val)
+  );
 
 
   always_comb begin
@@ -114,9 +120,15 @@ module fpu_float_aux
         fflags_o = i2f_fflags_lo;
       end
     
-      eFSGNJ, eFSGNJN, eFSGNJX, eFMV_W_X: begin
+      eFSGNJ, eFSGNJN, eFSGNJX: begin
         v_o = fp_v_i;
         result_o = fsgnj_result;
+        fflags_o = '0;
+      end
+
+      eFMV_W_X: begin
+        v_o = fp_v_i;
+        result_o = rs1_recoded_val;
         fflags_o = '0;
       end
 
