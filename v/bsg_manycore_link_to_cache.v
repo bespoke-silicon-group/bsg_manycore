@@ -230,12 +230,12 @@ module bsg_manycore_link_to_cache
         // we want to expose read/write access to tag_mem on NPA
         // for extra debugging capability.
         if (packet_lo.addr[link_addr_width_p-1]) begin
-	   case (packet_lo.op)
-	     e_remote_store: cache_pkt.opcode = TAGST;
-	     e_remote_load:  cache_pkt.opcode = TAGLA;
-	     e_cache_op:     cache_pkt.opcode = TAGFL;
-	     default:        cache_pkt.opcode = TAGLA;
-	   endcase
+          case (packet_lo.op)
+            e_remote_store: cache_pkt.opcode = TAGST;
+            e_remote_load:  cache_pkt.opcode = TAGLA;
+            e_cache_op:     cache_pkt.opcode = TAGFL;
+            default:        cache_pkt.opcode = TAGLA;
+          endcase
         end
         else begin
           if (packet_lo.op == e_remote_store) begin
