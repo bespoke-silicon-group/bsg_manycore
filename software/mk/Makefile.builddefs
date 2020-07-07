@@ -193,10 +193,17 @@ LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
 LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
 LLVM_LLC          ?= $(LLVM_DIR)/bin/llc
 CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
+
+# Ideally LLC should infer targets option provided to Clang. But LLC 11.0.0 fails
+# to infer the architecture extensions correctly. Hence the information is repeated
+# in LLC target options below.
+LLC_TARGET_OPTS   ?= -march=riscv32 -mcpu=hb-rv32 -mattr=+m,+a,+f
+
 ifdef ENABLE_LLVM_PASSES
 PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
 PASS_LIB          ?= build/manycore/libManycorePass.so
 endif
+
 RUNTIME_FNS       ?= $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib/bsg_tilegroup.h
 
 $(LLVM_DIR):
@@ -229,7 +236,7 @@ endif
 	$(LLVM_OPT) $(PASS_OPTS) $(OPT_LEVEL) -S $< -o $@
 
 %.ll.s: %.ll.pass
-	$(LLVM_LLC) $< -o $@
+	$(LLVM_LLC) $(LLC_TARGET_OPTS) $< -o $@
 
 %.o: %.ll.s
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) -c $< -o $@
