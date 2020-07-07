@@ -185,7 +185,6 @@ module bsg_manycore_link_to_cache
     state_n = state_r;
 
     packet_yumi_li = 1'b0;
-    return_packet_li = '0;
     return_packet_v_li = 1'b0;  
 
     case (state_r)
@@ -284,13 +283,6 @@ module bsg_manycore_link_to_cache
         // return pkt
         return_packet_v_li = v_i;
         yumi_o = v_i & return_packet_ready_lo;
-        return_packet_li = '{
-          pkt_type : tv_info_r.pkt_type,
-          data   : data_i,
-          reg_id : tv_info_r.reg_id,
-          y_cord : tv_info_r.y_cord,
-          x_cord : tv_info_r.x_cord
-        };
 
         state_n = READY;
       end
@@ -301,6 +293,15 @@ module bsg_manycore_link_to_cache
       end
     endcase
   end
+
+  // return packet
+  assign return_packet_li = '{
+    pkt_type : tv_info_r.pkt_type,
+    data   : data_i,
+    reg_id : tv_info_r.reg_id,
+    y_cord : tv_info_r.y_cord,
+    x_cord : tv_info_r.x_cord
+  };
 
   // synopsys sync_set_reset "reset_i"
   always_ff @ (posedge clk_i) begin
