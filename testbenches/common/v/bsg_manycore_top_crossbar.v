@@ -149,10 +149,9 @@ module bsg_manycore_top_crossbar
     assign link_in[1][i] = io_link_sif_i[i];
   end
 
-
   // Instantiate Vanilla Cores
-  for (genvar i = 2; i <= num_tiles_y_p; i++) begin: py
-    for (genvar j = 0; j < num_tiles_x_p; j++) begin: px
+  for (genvar i = 1; i < num_tiles_y_p; i++) begin: y
+    for (genvar j = 0; j < num_tiles_x_p; j++) begin: x
       bsg_manycore_proc_vanilla #(
         .x_cord_width_p(x_cord_width_lp)
         ,.y_cord_width_p(y_cord_width_lp)
@@ -175,11 +174,11 @@ module bsg_manycore_top_crossbar
         .clk_i(clk_i)
         ,.reset_i(reset_r[reset_depth_p-1])
       
-        ,.link_sif_i(link_out[i][j])
-        ,.link_sif_o(link_in[i][j])
+        ,.link_sif_i(link_out[i+1][j])
+        ,.link_sif_o(link_in[i+1][j])
 
         ,.my_x_i((x_cord_width_lp)'(j))
-        ,.my_y_i((y_cord_width_lp)'(i))
+        ,.my_y_i((y_cord_width_lp)'(i+1))
       );
 
     end
