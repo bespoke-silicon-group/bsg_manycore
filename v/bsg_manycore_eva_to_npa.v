@@ -32,8 +32,8 @@ module bsg_manycore_eva_to_npa
     input [data_width_p-1:0] eva_i  // byte addr
     , input [x_cord_width_p-1:0] tgo_x_i // tile-group origin x
     , input [y_cord_width_p-1:0] tgo_y_i // tile-group origin y
-    , input [x_cord_width_p-1:0] tg_dim_x_i // tile-group dimension x
-    , input [y_cord_width_p-1:0] tg_dim_y_i // tile-group dimension y
+    , input [x_cord_width_p-1:0] tg_dim_x_width_i // number of bits representing tile-group dimension x = clog2(tg_dim_x)
+    , input [y_cord_width_p-1:0] tg_dim_y_width_i // number of bits representing tile-group dimension y = clog2(tg_dim_y)
 
     // When DRAM mode is enabled, DRAM EVA space is striped across vcaches at a cache line granularity.
     // When DRAM mode is disabled, vcaches are only used as block memory, and the striping is disabled,
@@ -115,13 +115,13 @@ module bsg_manycore_eva_to_npa
     .width_p(max_local_offset_width_gp+max_x_cord_width_gp+max_y_cord_width_gp-1)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.x_cord_width_lp(x_cord_width_lp)
-    ,.y_cord_width_lp(y_cord_width_lp)
     ,.hash_width_p(4)
   ) hashb_shared (
     .en_i(is_shared_addr)
     ,.shared_eva_i(shared_addr.addr)
     ,.hash_i(shared_addr.hash)
+    ,.tg_dim_x_width_i(tg_dim_x_width_i)
+    ,.tg_dim_y_width_i(tg_dim_y_width_i)
     ,.x_o(shared_x_lo)
     ,.y_o(shared_y_lo)
     ,.addr_o(shared_epa_lo)

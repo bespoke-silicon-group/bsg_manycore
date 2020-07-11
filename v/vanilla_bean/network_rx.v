@@ -20,8 +20,8 @@ module network_rx
     , parameter tgo_y_init_val_p = 1
     , parameter freeze_init_val_p = 1
     , parameter default_pc_init_val_p = 0
-    , parameter tg_dim_x_init_val_p = 1
-    , parameter tg_dim_y_init_val_p = 1
+    , parameter tg_dim_x_width_init_val_p = 1
+    , parameter tg_dim_y_width_init_val_p = 1
 
     , localparam epa_word_addr_width_lp=epa_word_addr_width_gp
     , localparam data_mask_width_lp=(data_width_p>>3)
@@ -64,8 +64,8 @@ module network_rx
     , output logic [y_cord_width_p-1:0] tgo_y_o 
     , output logic [pc_width_lp-1:0] pc_init_val_o
     , output logic dram_enable_o
-    , output logic [x_cord_width_p-1:0] tg_dim_x_o
-    , output logic [y_cord_width_p-1:0] tg_dim_y_o 
+    , output logic [x_cord_width_p-1:0] tg_dim_x_width_o
+    , output logic [y_cord_width_p-1:0] tg_dim_y_width_o 
 
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
@@ -84,8 +84,8 @@ module network_rx
   logic is_tgo_y_addr;
   logic is_pc_init_val_addr;
   logic is_dram_enable_addr;
-  logic is_tg_dim_x_addr;
-  logic is_tg_dim_y_addr;
+  logic is_tg_dim_x_width_addr;
+  logic is_tg_dim_y_width_addr;
   
   assign is_dmem_addr = addr_i[dmem_addr_width_lp] & (addr_i[addr_width_p-1:dmem_addr_width_lp+1] == '0);
   assign is_icache_addr = addr_i[pc_width_lp] & (addr_i[addr_width_p-1:pc_width_lp+1] == '0);
@@ -97,8 +97,8 @@ module network_rx
   assign is_tgo_y_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-3:0] == 'd2);
   assign is_pc_init_val_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-3:0] == 'd3);
   assign is_dram_enable_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-3:0] == 'd4);
-  assign is_tg_dim_x_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-3:0] == 'd5);
-  assign is_tg_dim_y_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-3:0] == 'd6);
+  assign is_tg_dim_x_width_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-3:0] == 'd5);
+  assign is_tg_dim_y_width_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-3:0] == 'd6);
 
 
   // CSR registers
@@ -108,16 +108,16 @@ module network_rx
   logic [y_cord_width_p-1:0] tgo_y_r;
   logic [pc_width_lp-1:0] pc_init_val_r;
   logic dram_enable_r;
-  logic [x_cord_width_p-1:0] tg_dim_x_r;
-  logic [y_cord_width_p-1:0] tg_dim_y_r;
+  logic [x_cord_width_p-1:0] tg_dim_x_width_r;
+  logic [y_cord_width_p-1:0] tg_dim_y_width_r;
 
   assign freeze_o = freeze_r;
   assign tgo_x_o = tgo_x_r;
   assign tgo_y_o = tgo_y_r;
   assign pc_init_val_o = pc_init_val_r;
   assign dram_enable_o = dram_enable_r;
-  assign tg_dim_x_o = tg_dim_x_r;
-  assign tg_dim_y_o = tg_dim_y_r;
+  assign tg_dim_x_width_o = tg_dim_x_width_r;
+  assign tg_dim_y_width_o = tg_dim_y_width_r;
 
   // incoming request handling logic
   //
@@ -126,8 +126,8 @@ module network_rx
   logic [y_cord_width_p-1:0] tgo_y_n;
   logic [pc_width_lp-1:0] pc_init_val_n;
   logic dram_enable_n;
-  logic [x_cord_width_p-1:0] tg_dim_x_n;
-  logic [y_cord_width_p-1:0] tg_dim_y_n;
+  logic [x_cord_width_p-1:0] tg_dim_x_width_n;
+  logic [y_cord_width_p-1:0] tg_dim_y_width_n;
 
   logic send_dmem_data_r, send_dmem_data_n;
   logic send_freeze_r, send_freeze_n;
@@ -137,8 +137,8 @@ module network_rx
   logic send_invalid_r, send_invalid_n;
   logic send_zero_r, send_zero_n;
   logic send_dram_enable_r, send_dram_enable_n; 
-  logic send_tg_dim_x_r, send_tg_dim_x_n;
-  logic send_tg_dim_y_r, send_tg_dim_y_n;
+  logic send_tg_dim_x_width_r, send_tg_dim_x_width_n;
+  logic send_tg_dim_y_width_r, send_tg_dim_y_width_n;
 
 
   bsg_manycore_load_info_s load_info_r, load_info_n;
@@ -150,8 +150,8 @@ module network_rx
     tgo_y_n = tgo_y_r;
     pc_init_val_n = pc_init_val_r;
     dram_enable_n = dram_enable_r;
-    tg_dim_x_n = tg_dim_x_r;
-    tg_dim_y_n = tg_dim_y_r;
+    tg_dim_x_width_n = tg_dim_x_width_r;
+    tg_dim_y_width_n = tg_dim_y_width_r;
 
     send_dmem_data_n = 1'b0;
     send_freeze_n = 1'b0;
@@ -161,8 +161,8 @@ module network_rx
     send_invalid_n = 1'b0;
     send_zero_n = 1'b0;
     send_dram_enable_n = 1'b0;
-    send_tg_dim_x_n = 1'b0;
-    send_tg_dim_y_n = 1'b0;
+    send_tg_dim_x_width_n = 1'b0;
+    send_tg_dim_y_width_n = 1'b0;
 
     remote_dmem_v_o = 1'b0;
     remote_dmem_w_o = 1'b0;
@@ -217,13 +217,13 @@ module network_rx
           yumi_o = 1'b1;
           send_zero_n = 1'b1;
         end
-        else if (is_tg_dim_x_addr) begin
-          tg_dim_x_n = data_i[0+:x_cord_width_p];
+        else if (is_tg_dim_x_width_addr) begin
+          tg_dim_x_width_n = data_i[0+:x_cord_width_p];
           yumi_o = 1'b1;
           send_zero_n = 1'b1;
         end
-        else if (is_tg_dim_y_addr) begin
-          tg_dim_y_n = data_i[0+:y_cord_width_p];
+        else if (is_tg_dim_y_width_addr) begin
+          tg_dim_y_width_n = data_i[0+:y_cord_width_p];
           yumi_o = 1'b1;
           send_zero_n = 1'b1;
         end
@@ -262,13 +262,13 @@ module network_rx
           yumi_o = 1'b1;
           send_dram_enable_n = 1'b1;
         end
-        else if (is_tg_dim_x_addr) begin
+        else if (is_tg_dim_x_width_addr) begin
           yumi_o = 1'b1;
-          send_tg_dim_x_n = 1'b1;
+          send_tg_dim_x_width_n = 1'b1;
         end
-        else if (is_tg_dim_y_addr) begin
+        else if (is_tg_dim_y_width_addr) begin
           yumi_o = 1'b1;
-          send_tg_dim_y_n = 1'b1;
+          send_tg_dim_y_width_n = 1'b1;
         end
         else begin
           yumi_o = 1'b1;
@@ -298,8 +298,8 @@ module network_rx
       | send_tgo_y_r
       | send_pc_init_val_r
       | send_dram_enable_r
-      | send_tg_dim_x_r
-      | send_tg_dim_y_r
+      | send_tg_dim_x_width_r
+      | send_tg_dim_y_width_r
       | send_invalid_r
       | send_zero_r;
       
@@ -321,11 +321,11 @@ module network_rx
     else if (send_dram_enable_r) begin
       returning_data_o = {{(data_width_p-1){1'b0}}, dram_enable_r};
     end
-    else if (send_tg_dim_x_r) begin
-      returning_data_o = {{(data_width_p-x_cord_width_p){1'b0}}, tg_dim_x_r};
+    else if (send_tg_dim_x_width_r) begin
+      returning_data_o = {{(data_width_p-x_cord_width_p){1'b0}}, tg_dim_x_width_r};
     end
-    else if (send_tg_dim_y_r) begin
-      returning_data_o = {{(data_width_p-y_cord_width_p){1'b0}}, tg_dim_y_r};
+    else if (send_tg_dim_y_width_r) begin
+      returning_data_o = {{(data_width_p-y_cord_width_p){1'b0}}, tg_dim_y_width_r};
     end
     else if (send_zero_r) begin
       returning_data_o = '0;
@@ -348,8 +348,8 @@ module network_rx
       tgo_y_r <= (y_cord_width_p)'(tgo_y_init_val_p);
       pc_init_val_r <= (pc_width_lp)'(default_pc_init_val_p);
       dram_enable_r <= 1'b1; // DRAM is enabled by default.
-      tg_dim_x_r <= (x_cord_width_p)'(tg_dim_x_init_val_p);
-      tg_dim_y_r <= (y_cord_width_p)'(tg_dim_y_init_val_p);
+      tg_dim_x_width_r <= (x_cord_width_p)'(tg_dim_x_width_init_val_p);
+      tg_dim_y_width_r <= (y_cord_width_p)'(tg_dim_y_width_init_val_p);
 
       send_dmem_data_r <= 1'b0;
       send_freeze_r <= 1'b0;
@@ -359,8 +359,8 @@ module network_rx
       send_invalid_r <= 1'b0;
       send_zero_r <= 1'b0;
       send_dram_enable_r <= 1'b0;
-      send_tg_dim_x_r <= 1'b0;
-      send_tg_dim_y_r <= 1'b0;
+      send_tg_dim_x_width_r <= 1'b0;
+      send_tg_dim_y_width_r <= 1'b0;
       load_info_r <= '0;
     end
     else begin
@@ -369,8 +369,8 @@ module network_rx
       tgo_y_r <= tgo_y_n;
       pc_init_val_r <= pc_init_val_n;
       dram_enable_r <= dram_enable_n;
-      tg_dim_x_r <= tg_dim_x_n;
-      tg_dim_y_r <= tg_dim_y_n;
+      tg_dim_x_width_r <= tg_dim_x_width_n;
+      tg_dim_y_width_r <= tg_dim_y_width_n;
 
       send_dmem_data_r <= send_dmem_data_n;
       send_freeze_r <= send_freeze_n;
@@ -380,8 +380,8 @@ module network_rx
       send_invalid_r <= send_invalid_n;
       send_zero_r <= send_zero_n;
       send_dram_enable_r <= send_dram_enable_n;
-      send_tg_dim_x_r <= send_tg_dim_x_n;
-      send_tg_dim_y_r <= send_tg_dim_y_n;
+      send_tg_dim_x_width_r <= send_tg_dim_x_width_n;
+      send_tg_dim_y_width_r <= send_tg_dim_y_width_n;
       load_info_r <= load_info_n;
     end
   end
@@ -393,7 +393,7 @@ module network_rx
   logic is_invalid_addr;
 
   assign is_valid_csr_addr = is_csr_addr & 
-    (is_freeze_addr | is_tgo_x_addr | is_tgo_y_addr | is_pc_init_val_addr | is_dram_enable_addr | is_tg_dim_x_addr | is_tg_dim_y_addr);
+    (is_freeze_addr | is_tgo_x_addr | is_tgo_y_addr | is_pc_init_val_addr | is_dram_enable_addr | is_tg_dim_x_width_addr | is_tg_dim_y_width_addr);
   assign is_invalid_addr = ~(is_dmem_addr | is_icache_addr | is_valid_csr_addr);
 
   always_ff @ (negedge clk_i) begin
