@@ -7,21 +7,25 @@
  *  The input hash indicates the stripe size of the tile 
  *  group shared array. Stripe bits are selected accordingly.
  *
+ *  Input address shared_eva_i format: 
+ *   UNUSED    -    ADDR    -              Y             -               X            -    Stripe    -    00
+ *  <11-x-y>   -  <12 - s>  -   <y = tg_dim_y_width_i>   -   <x = tg_dim_x_width_i>   -   <hash_i>   -    <2>
+ *  Stripe is lowest bits of offset from local dmem
  */
 
 module hash_function_shared
   import bsg_manycore_pkg::*;
   #(parameter width_p="inv"
-    ,parameter x_cord_width_p
-    ,parameter y_cord_width_p
-    ,parameter x_cord_width_lp
-    ,parameter y_cord_width_lp
-    ,parameter hash_width_p
+    ,parameter x_cord_width_p="inv"
+    ,parameter y_cord_width_p="inv"
+    ,parameter hash_width_p="inv"
   )
   (
     input en_i
     ,input [width_p-1:0] shared_eva_i
     ,input [hash_width_p-1:0] hash_i
+    ,input [x_cord_width_p-1:0] tg_dim_x_width_i
+    ,input [y_cord_width_p-1:0] tg_dim_y_width_i
     ,output logic [x_cord_width_p-1:0] x_o
     ,output logic [y_cord_width_p-1:0] y_o
     ,output logic [epa_word_addr_width_gp-1:0] addr_o
@@ -38,12 +42,12 @@ module hash_function_shared
     end
    
     else begin
-      for (integer i = 0; i < x_cord_width_lp; i = i + 1) begin
+      for (integer i = 0; i < tg_dim_x_width_i; i = i + 1) begin
         x_o[i] = shared_eva_i[i+hash_i];
       end
 
-      for (integer i = 0; i < y_cord_width_lp; i = i + 1) begin
-        y_o[i] = shared_eva_i[i+x_cord_width_lp+hash_i];
+      for (integer i = 0; i < tg_dim_y_width_i; i = i + 1) begin
+        y_o[i] = shared_eva_i[i+tg_dim_x_width_i+hash_i];
       end
 
       // The LSB bits of address are stripe
@@ -53,7 +57,7 @@ module hash_function_shared
 
       // The MSB bits of address are the local offset
       for (integer i = hash_i; i < epa_word_addr_width_gp; i = i + 1) begin
-          addr_o[i] = shared_eva_i[i+y_cord_width_lp+x_cord_width_lp];
+          addr_o[i] = shared_eva_i[i+tg_dim_y_width_i+tg_dim_x_width_i];
       end
     end
   end
