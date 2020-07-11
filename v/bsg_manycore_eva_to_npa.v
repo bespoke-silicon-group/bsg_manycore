@@ -53,13 +53,6 @@ module bsg_manycore_eva_to_npa
   //
   localparam vcache_word_offset_width_lp = `BSG_SAFE_CLOG2(vcache_block_size_in_words_p);
   localparam lg_vcache_size_lp = `BSG_SAFE_CLOG2(vcache_size_p);
-
-
-  // TODO borna: Use input signals instead of local params below
-  localparam x_tg_dim_lp = 4;                                      // tile group x dimension
-  localparam y_tg_dim_lp = 4;                                      // tile group y dimension
-  localparam x_cord_width_lp = `BSG_SAFE_CLOG2(x_tg_dim_lp);       // width of x cord bits in shared address
-  localparam y_cord_width_lp = `BSG_SAFE_CLOG2(y_tg_dim_lp);       // width of x cord bits in shared address
   localparam dmem_start_addr_lp = 16'h400;                         // Address of DMEM[0] 
 
 
