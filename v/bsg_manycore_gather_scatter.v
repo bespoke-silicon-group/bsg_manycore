@@ -46,6 +46,8 @@ module bsg_manycore_gather_scatter
 
     , parameter num_tiles_x_p = "inv"
     , parameter num_tiles_y_p = "inv"
+    
+    , parameter y_max_cord_p = "inv"
 
     , parameter max_out_credits_p = 32 // this is fixed.
     , parameter ep_fifo_els_p = 16
@@ -296,6 +298,8 @@ module bsg_manycore_gather_scatter
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_sets_p(vcache_sets_p)
+
+    ,.y_max_cord_p(y_max_cord_p)
   ) eva2npa (
     .eva_i(eva_li)
     ,.tgo_x_i((x_cord_width_p)'(0))  // TODO: enable tile-group addressing?

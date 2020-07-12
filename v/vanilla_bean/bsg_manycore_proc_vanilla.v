@@ -27,6 +27,7 @@ module bsg_manycore_proc_vanilla
     , parameter proc_fifo_els_p = 4
     , parameter debug_p = 1
 
+    , parameter y_max_cord_p = "inv"
     
     , parameter branch_trace_en_p = 0
 
@@ -239,6 +240,8 @@ module bsg_manycore_proc_vanilla
 
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
+
+    ,.y_max_cord_p(y_max_cord_p)
   ) tx (
     .clk_i(clk_i)
     ,.reset_i(reset_i)

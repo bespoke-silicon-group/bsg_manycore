@@ -24,6 +24,8 @@ module network_tx
     , parameter icache_tag_width_p="inv"
 
     , parameter max_out_credits_p="inv"
+    
+    , parameter y_max_cord_p = "inv"
 
     , parameter vcache_addr_width_lp=`BSG_SAFE_CLOG2(vcache_size_p)
 
@@ -115,6 +117,7 @@ module network_tx
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_sets_p(vcache_sets_p)
+    ,.y_max_cord_p(y_max_cord_p)
   ) eva2npa (
     .eva_i(remote_req_i.addr)
     ,.dram_enable_i(dram_enable_i)

@@ -119,6 +119,8 @@ module spmd_testbench;
 
   if (crossbar_network_p) begin: cnet
 
+    localparam y_max_cord_lp = num_tiles_y_p+1;
+
     bsg_manycore_top_crossbar #(
       .dmem_size_p(dmem_size_p)
       ,.icache_entries_p(icache_entries_p)
@@ -130,6 +132,7 @@ module spmd_testbench;
       ,.addr_width_p(bsg_max_epa_width_p)
       ,.num_tiles_x_p(num_tiles_x_p)
       ,.num_tiles_y_p(num_tiles_y_p)
+      ,.y_max_cord_p(y_max_cord_lp)
     ) DUT (
       .clk_i(core_clk)
       ,.reset_i(reset)
@@ -142,7 +145,7 @@ module spmd_testbench;
     );
 
   end
-  else begin: nnet
+  else begin: mnet
 
     bsg_manycore #(
       .dmem_size_p(dmem_size_p)

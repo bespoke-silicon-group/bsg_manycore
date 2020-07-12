@@ -20,6 +20,8 @@ module bsg_manycore_tile
 
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p="inv"
+    
+    , parameter y_max_cord_p="inv"
 
     , localparam dirs_lp = 4
 
@@ -106,6 +108,7 @@ module bsg_manycore_tile
     ,.num_tiles_y_p(num_tiles_y_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
+    ,.y_max_cord_p(y_max_cord_p)
 
     ,.branch_trace_en_p(branch_trace_en_p)
 

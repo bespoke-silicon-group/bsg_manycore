@@ -43,6 +43,10 @@ module bsg_manycore
   , parameter y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p+2)
   , parameter x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
 
+  // Maximum y-cord as seen by eva-2-npa mapping.
+  // By default, this is set to the maximum possible value for given y-cord width.
+  , parameter y_max_cord_p =  {y_cord_width_lp{1'b1}}
+
   , parameter link_sif_width_lp =
      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
@@ -132,6 +136,7 @@ module bsg_manycore
                 ,.num_tiles_y_p(num_tiles_y_p)
                 ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
                 ,.vcache_sets_p(vcache_sets_p)
+                ,.y_max_cord_p(y_max_cord_p)
               )
             tile
               (
