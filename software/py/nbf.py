@@ -51,7 +51,9 @@ class NBF:
     self.cache_block_size = config["cache_block_size"]
     self.dram_size = config["dram_size"]
     self.addr_width = config["addr_width"]
-  
+    self.is_crossbar = config["is_crossbar"]  
+
+
     # software setting
     self.tgo_x = config["tgo_x"]
     self.tgo_y = config["tgo_y"]
@@ -59,9 +61,12 @@ class NBF:
     self.tg_dim_y = config["tg_dim_y"]
     self.enable_dram = config["enable_dram"]
 
+    
+
     # derived params
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size # in words
     self.x_cord_width = self.safe_clog2(self.num_tiles_x)
+    self.y_cord_width = self.safe_clog2(self.num_tiles_y+2)
 
     # process riscv
     self.get_data_end_addr()
@@ -171,6 +176,17 @@ class NBF:
 
     return (retval >> start)
 
+
+  # Get y-max-cord.
+  # crossbar -> num_tiles_y+1
+  # mesh -> {y_cord_width{1'b1}}
+  def get_y_max_cord(self):
+    if (self.is_crossbar):
+      return self.num_tiles_y + 1
+    else:
+      return (2**self.y_cord_width)-1
+      
+
   ##### END UTIL FUNCTIONS #####
 
   ##### LOADER ROUTINES #####  
@@ -237,7 +253,7 @@ class NBF:
         epa = (t << t_shift) | (1 << (self.addr_width-1))
         data = (1 << (self.data_width-1)) | (t / self.cache_set)
         self.print_nbf(x, 0, epa, data)
-        self.print_nbf(x, self.num_tiles_y+1, epa, data)
+        self.print_nbf(x, self.get_y_max_cord(), epa, data)
          
  
   # init DRAM
@@ -262,7 +278,7 @@ class NBF:
           if y == 0:
             self.print_nbf(x, 0, epa, self.dram_data[k]) #top
           else:
-            self.print_nbf(x, self.num_tiles_y+1, epa, self.dram_data[k]) #bot
+            self.print_nbf(x, self.get_y_max_cord(), epa, self.dram_data[k]) #bot
       else:
         print("hash function not supported for x={0}.")
         sys.exit()
@@ -276,7 +292,7 @@ class NBF:
         if (x < self.num_tiles_x):
           self.print_nbf(x, 0, epa, self.dram_data[k])
         elif (x < self.num_tiles_x*2):
-          self.print_nbf(x, self.num_tiles_y+1, epa, self.dram_data[k])
+          self.print_nbf(x, self.get_y_max_cord(), epa, self.dram_data[k])
         else:
           print("## WARNING: NO DRAM MODE, DRAM DATA OUT OF RANGE!!!")
 
@@ -348,7 +364,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 14:
+  if len(sys.argv) == 15:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -365,6 +381,7 @@ if __name__ == "__main__":
       "tg_dim_x" : int(sys.argv[11]),
       "tg_dim_y" : int(sys.argv[12]),
       "enable_dram" : int(sys.argv[13]),
+      "is_crossbar" : int(sys.argv[14])
     }
 
     converter = NBF(config)
@@ -375,5 +392,6 @@ if __name__ == "__main__":
     command += "{num_tiles_x} {num_tiles_y} "
     command += "{cache_way} {cache_set} {cache_block_size} {dram_size} {max_epa_width}"
     command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram}"
+    command += "{is_crossbar}"
     print(command)
 
