@@ -110,21 +110,22 @@ module scoreboard
     end
   end
 
-  logic [els_p-1:0] score_combined;
-  assign score_combined = score_bits | scoreboard_r;
-
+ 
+  // dependency logic
   logic [num_src_port_p-1:0] depend_on_rs;
   logic depend_on_rd;
 
   for (genvar i = 0; i < num_src_port_p; i++) begin
-    assign depend_on_rs[i] = score_combined[src_id_i[i]] & ~(clear_combined[src_id_i[i]]) & op_reads_rf_i[i];
+    assign depend_on_rs[i] = (scoreboard_r[src_id_i[i]] | ((score_id_i == src_id_i[i]) & score_i))
+                           & ~((clear_id_i == src_id_i[i]) & clear_i)
+                           & op_reads_rf_i[i];
   end
 
-  assign depend_on_rd = score_combined[dest_id_i] & ~(clear_combined[dest_id_i]) & op_writes_rf_i;
+  assign depend_on_rd = (scoreboard_r[dest_id_i] | ((score_id_i == dest_id_i) & score_i))
+                      & ~((clear_id_i == dest_id_i) & clear_i)
+                      & op_writes_rf_i;
 
   assign dependency_o = (|depend_on_rs) | depend_on_rd;
-
-
 
 
   // synopsys translate_off
