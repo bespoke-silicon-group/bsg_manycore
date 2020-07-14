@@ -40,15 +40,16 @@ module bsg_manycore_link_to_cache_tracer
 
   integer fd;
 
-  initial begin
-    #1;
+   always @(negedge reset_i)
     if (trace_en_i) begin
       fd = $fopen("vcache.log", "w");
       $fwrite(fd, "");
       $fclose(fd);
+    end
+   
+   always @(negedge clk_i) begin
+      if (trace_en_i) begin
 
-      forever begin
-        @(negedge clk_i) begin
           if (~reset_i) begin
             if (v_o & ready_i) begin
               fd = $fopen("vcache.log", "a");
@@ -69,11 +70,7 @@ module bsg_manycore_link_to_cache_tracer
 
               $fclose(fd);
             end
-          end
-        end
-      end
-    end
-  end
-
-
+          end // if (~reset_i)
+      end // if (trace_en_i)
+   end // always @ (negedge clk_i)
 endmodule

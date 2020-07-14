@@ -46,10 +46,10 @@ module infinite_mem_profiler
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
-      ld_count_r <= '0;
-      st_count_r <= '0;
-      amoswap_count_r <= 0;
-      amoor_count_r <= 0;
+      ld_count_r = '0;
+      st_count_r = '0;
+      amoswap_count_r = 0;
+      amoor_count_r = 0;
     end
     else begin
       if (inc_ld) ld_count_r++;
@@ -63,19 +63,21 @@ module infinite_mem_profiler
   //
 
   integer fd;
-
-  initial begin
-  
-    #1; // we need to wait for one time unit so that my_x_i becomes a known value.
-
-    if (my_x_i == '0) begin
+  string header;
+   initial begin
       fd = $fopen(logfile_p, "w");
+      $fwrite(fd,"");
+   end
+
+  always @(negedge reset_i) begin
+     if (my_x_i == '0) begin
+      fd = $fopen(logfile_p, "a");
       $fwrite(fd, "x,y,global_ctr,tag,ld,st,amoswap,amoor\n");
       $fclose(fd);
     end
+  end
 
-    forever begin
-      @(negedge clk_i) begin
+   always @(negedge clk_i) begin
         if (~reset_i & print_stat_v_i) begin
           fd = $fopen(logfile_p, "a");
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
@@ -83,9 +85,8 @@ module infinite_mem_profiler
             amoswap_count_r,amoor_count_r);   
           $fclose(fd);
         end
-      end
-    end
-  end
+   end
+   
 
 
 endmodule

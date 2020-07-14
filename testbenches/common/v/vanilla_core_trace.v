@@ -150,7 +150,7 @@ module vanilla_core_trace
           remote_store_data: exe_debug.remote_store_data
         };
 
-        wb_debug <= {
+        wb_debug <= '{
           pc: mem_debug.pc,
           instr: mem_debug.instr,
           branch_or_jump: mem_debug.branch_or_jump,
@@ -198,10 +198,9 @@ module vanilla_core_trace
     fd = $fopen("vanilla.log","w");
     $fwrite(fd, "");
     $fclose(fd);
+  end
 
-    forever begin
-
-      @(negedge clk_i) begin
+  always @(negedge clk_i) begin
         stamp = "";
         pc_instr = "";
         fp_pc_instr = "";
@@ -295,12 +294,9 @@ module vanilla_core_trace
 
           $fclose(fd);
 
-
-
-        end
-      end
-    end
-  end
+        end // if (~reset_i & (trace_en_i == 1))     
+  end // always @ (negedge clk_i)
+   
  
 
 
