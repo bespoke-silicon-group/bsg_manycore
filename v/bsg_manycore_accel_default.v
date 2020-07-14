@@ -14,6 +14,7 @@ module bsg_manycore_accel_default
      , parameter vcache_sets_p = "inv"
 
      , parameter num_tiles_x_p = "inv"
+     , parameter num_tiles_y_p = "inv"
 
      // number of  packets we can have outstanding
      , parameter max_out_credits_p = 4
