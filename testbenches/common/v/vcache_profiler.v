@@ -85,8 +85,8 @@ module vcache_profiler
   wire inc_alock    = v_o & yumi_i & decode_v_r.alock_op;   // address lock                              
   wire inc_aunlock  = v_o & yumi_i & decode_v_r.aunlock_op; // address unlock
   wire inc_atomic   = v_o & yumi_i & decode_v_r.atomic_op;  // atomic
-  wire inc_amoswap  = v_o & yumi_i & decode_v_r.amoswap_op; // atomic swap
-  wire inc_amoor    = v_o & yumi_i & decode_v_r.amoor_op;   // atomic or
+  wire inc_amoswap  = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_swap); // atomic swap
+  wire inc_amoor    = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_or);   // atomic or
 
   wire inc_miss_ld  = v_o & yumi_i & decode_v_r.ld_op & miss_v; // miss on load
   wire inc_miss_st  = v_o & yumi_i & decode_v_r.st_op & miss_v; // miss on store
