@@ -112,6 +112,8 @@ module scoreboard
 
  
   // dependency logic
+  // As the register is scored (in EXE), the instruction in ID that has WAW or RAW dependency on this register stalls.
+  // The register that is being cleared does not stall ID. 
   logic [num_src_port_p-1:0] depend_on_rs;
   logic depend_on_rd;
 
