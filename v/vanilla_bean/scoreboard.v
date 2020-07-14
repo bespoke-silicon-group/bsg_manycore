@@ -114,20 +114,64 @@ module scoreboard
   // dependency logic
   // As the register is scored (in EXE), the instruction in ID that has WAW or RAW dependency on this register stalls.
   // The register that is being cleared does not stall ID. 
-  logic [num_src_port_p-1:0] depend_on_rs;
-  logic depend_on_rd;
+
+  // find dependency on scoreboard.
+  logic [num_src_port_p-1:0] rs_depend_on_sb;
+  logic rd_depend_on_sb;
 
   for (genvar i = 0; i < num_src_port_p; i++) begin
-    assign depend_on_rs[i] = (scoreboard_r[src_id_i[i]] | ((score_id_i == src_id_i[i]) & score_i))
-                           & ~((clear_id_i == src_id_i[i]) & clear_i)
-                           & op_reads_rf_i[i];
+    assign rs_depend_on_sb[i] = scoreboard_r[src_id_i[i]] & op_reads_rf_i[i];
+  end
+  
+  assign rd_depend_on_sb = scoreboard_r[dest_id_i] & op_writes_rf_i;
+
+  // find which matches on clear_id.
+  logic [num_clear_port_p-1:0][num_src_port_p-1:0] rs_on_clear;
+  logic [num_src_port_p-1:0][num_clear_port_p-1:0] rs_on_clear_t;
+  logic [num_clear_port_p-1:0] rd_on_clear;
+  
+  for (genvar i = 0; i < num_clear_port_p; i++) begin
+    for (genvar j = 0; j < num_src_port_p; j++) begin
+      assign rs_on_clear[i][j] = clear_i[i] & (clear_id_i[i] == src_id_i[j]);
+    end
+
+    assign rd_on_clear[i] = clear_i[i] & (clear_id_i[i] == dest_id_i);
   end
 
-  assign depend_on_rd = (scoreboard_r[dest_id_i] | ((score_id_i == dest_id_i) & score_i))
-                      & ~((clear_id_i == dest_id_i) & clear_i)
-                      & op_writes_rf_i;
+  bsg_transpose #(
+    .els_p(num_clear_port_p)
+    ,.width_p(num_src_port_p)
+  ) trans1 (
+    .i(rs_on_clear)
+    ,.o(rs_on_clear_t)
+  );
 
-  assign dependency_o = (|depend_on_rs) | depend_on_rd;
+  logic [num_src_port_p-1:0] rs_on_clear_combined;
+  logic rd_on_clear_combined;
+
+  for (genvar i = 0; i < num_src_port_p; i++) begin
+    assign rs_on_clear_combined[i] = |rs_on_clear_t[i];
+  end
+
+  assign rd_on_clear_combined = |rd_on_clear;
+
+  // find which could depend on score.
+  logic [num_src_port_p-1:0] rs_depend_on_score;
+  logic rd_depend_on_score;
+
+  for (genvar i = 0; i < num_src_port_p; i++) begin
+    assign rs_depend_on_score[i] = (src_id_i[i] == score_id_i) & op_reads_rf_i[i];
+  end
+
+  assign rd_depend_on_score = (dest_id_i == score_id_i) & op_writes_rf_i;
+
+
+  // score_i arrives later than other signals, so we want to remove it from the long path.
+  wire depend_on_sb = |({rd_depend_on_sb, rs_depend_on_sb} & ~{rd_on_clear_combined, rs_on_clear_combined});
+  wire depend_on_score = |{rd_depend_on_score, rs_depend_on_score};
+
+  assign dependency_o = depend_on_sb | (depend_on_score & score_i & allow_zero);
+
 
 
   // synopsys translate_off
