@@ -48,8 +48,8 @@ module bsg_manycore_top_crossbar
   // reset_r
   logic [reset_depth_p-1:0] reset_r;
   always_ff @ (posedge clk_i) begin
-    for (integer k = 1; k < reset_depth_p; k++) begin
-      reset_r[k] <= (k == 1)
+    for (integer k = 0; k < reset_depth_p; k++) begin
+      reset_r[k] <= (k == 0)
         ? reset_i
         : reset_r[k-1];
     end
@@ -147,7 +147,7 @@ module bsg_manycore_top_crossbar
     ,.rev_fifo_els_p(get_rev_fifo_els())
   ) network (
     .clk_i(clk_i)
-    ,.reset_i(reset_r[reset_depth_p-2])
+    ,.reset_i(reset_r[reset_depth_p-1])
     
     ,.links_sif_i(link_in)
     ,.links_sif_o(link_out)
