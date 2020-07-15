@@ -103,11 +103,11 @@ module bsg_manycore
   logic [reset_depth_p-1:0][num_tiles_y_p-1:0][num_tiles_x_p-1:0] reset_i_r;
 
   genvar k;
-  for (k = 1; k < reset_depth_p; k++)
+  for (k = 0; k < reset_depth_p; k++)
     begin
       always_ff @(posedge clk_i)
         begin
-          reset_i_r[k] <= (k == 1) ? {(num_tiles_y_p*num_tiles_x_p){reset_i}} : reset_i_r[k-1];
+          reset_i_r[k] <= (k == 0) ? {(num_tiles_y_p*num_tiles_x_p){reset_i}} : reset_i_r[k-1];
         end
    end
 
