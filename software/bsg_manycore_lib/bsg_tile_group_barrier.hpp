@@ -239,6 +239,11 @@ public:
 
     //  The main sync funciton
     void sync() {
+
+        // First perform memory operation fence to ensure in-order 
+        // memory operation execution
+        bsg_fence();
+
         // If barrier dimensions is 1x1, i.e. only a single tile is 
         // participating, there is nothing to be done
         if (BARRIER_Y_DIM == 1 && BARRIER_X_DIM == 1)
@@ -288,10 +293,6 @@ public:
         // Once the alert signal is received, all tiles are syncrhonized
         // and can carry on
         this->r_barrier.wait_on_alert();
-
-        // Also perform memory operation fence to ensure in-order 
-        // memroy operation execution
-        bsg_fence();
 
         #ifdef BSG_BARRIER_DEBUG
                 if( bsg_x == _center_x_cord && bsg_y == _center_y_cord ){
