@@ -132,10 +132,10 @@ module scoreboard
   
   for (genvar i = 0; i < num_clear_port_p; i++) begin
     for (genvar j = 0; j < num_src_port_p; j++) begin
-      assign rs_on_clear[i][j] = clear_i[i] & (clear_id_i[i] == src_id_i[j]);
+      assign rs_on_clear[i][j] = clear_i[i] && (clear_id_i[i] == src_id_i[j]);
     end
 
-    assign rd_on_clear[i] = clear_i[i] & (clear_id_i[i] == dest_id_i);
+    assign rd_on_clear[i] = clear_i[i] && (clear_id_i[i] == dest_id_i);
   end
 
   bsg_transpose #(
@@ -160,10 +160,10 @@ module scoreboard
   logic rd_depend_on_score;
 
   for (genvar i = 0; i < num_src_port_p; i++) begin
-    assign rs_depend_on_score[i] = (src_id_i[i] == score_id_i) & op_reads_rf_i[i];
+    assign rs_depend_on_score[i] = (src_id_i[i] == score_id_i) && op_reads_rf_i[i];
   end
 
-  assign rd_depend_on_score = (dest_id_i == score_id_i) & op_writes_rf_i;
+  assign rd_depend_on_score = (dest_id_i == score_id_i) && op_writes_rf_i;
 
 
   // score_i arrives later than other signals, so we want to remove it from the long path.
