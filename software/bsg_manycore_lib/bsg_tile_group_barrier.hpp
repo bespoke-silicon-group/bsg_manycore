@@ -289,6 +289,10 @@ public:
         // and can carry on
         this->r_barrier.wait_on_alert();
 
+        // Also perform memory operation fence to ensure in-order 
+        // memroy operation execution
+        bsg_fence();
+
         #ifdef BSG_BARRIER_DEBUG
                 if( bsg_x == _center_x_cord && bsg_y == _center_y_cord ){
                         bsg_print_time();
