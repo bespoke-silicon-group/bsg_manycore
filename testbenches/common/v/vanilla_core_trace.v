@@ -133,7 +133,7 @@ module vanilla_core_trace
     end
     else begin
       if (~stall_all) begin
-        mem_debug <= {
+        mem_debug <= '{
           pc: exe_debug.pc,
           instr: exe_debug.instr,
           branch_or_jump: exe_debug.branch_or_jump,
