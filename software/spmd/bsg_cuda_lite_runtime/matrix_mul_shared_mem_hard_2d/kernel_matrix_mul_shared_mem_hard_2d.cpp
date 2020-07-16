@@ -6,6 +6,10 @@
 //   latency DRAM.
 // * This code uses the hardware tile group shared memory 
 //   in conjunction with it's library bsg_shared_mem.hpp
+// * This version converts tile group shared memory and 
+//   input vector pointers into two dimensional matrix 
+//   references for better understanding of the code and
+//   easier programming.
 // * Tile group dimensions are fixed at 4x4.
 
 // TEMPLATE_TG_DIM_X/Y must be defined before bsg_manycore.h is
@@ -23,7 +27,7 @@
 #define bsg_tiles_Y TEMPLATE_TG_DIM_Y
 
 #include <bsg_manycore.h>
-#include "kernel_matrix_mul_shared_mem_hard.hpp"
+#include "kernel_matrix_mul_shared_mem_hard_2d.hpp"
 #include <bsg_tile_group_barrier.hpp>
 #include "bsg_shared_mem.hpp"
 
@@ -49,10 +53,14 @@ template <int TG_DIM_X, int TG_DIM_Y,
         uint32_t start_y = sub_block_y * BLOCK_SIZE_Y;
         uint32_t start_x = sub_block_x * BLOCK_SIZE_X;
 
+        // Create a 2D reference to the source MxN matrix from the 1D input pointer 
+        T (&src_2d)[M][N] = *reinterpret_cast<T (*)[M][N]> (src);
+        // Offset the 2D pointer to start from the beginning of the sub-matrix to be accessed
+        T (&A)[M][N] = *reinterpret_cast<T (*)[M][N]> (&(src_2d[start_y][start_x]));
+        
         for (uint32_t iter_y = __bsg_y; iter_y < BLOCK_SIZE_Y; iter_y += TG_DIM_Y) { 
             for (uint32_t iter_x = __bsg_x; iter_x < BLOCK_SIZE_X; iter_x += TG_DIM_X) { 
-                // dst[iter_y][iter_x] <-- src[iter_y + start_y][iter_x + start_x]
-                dst[iter_y][iter_x] = src[((iter_y + start_y) * N + iter_x + start_x)];
+                dst[iter_y][iter_x] = A[iter_y][iter_x];
             }
         }
         return; 
@@ -75,10 +83,14 @@ template <int TG_DIM_X, int TG_DIM_Y,
         uint32_t start_y = sub_block_y * BLOCK_SIZE_Y;
         uint32_t start_x = sub_block_x * BLOCK_SIZE_X;
 
+        // Create a 2D reference to the source MxN matrix from the 1D input pointer 
+        T (&src_2d)[M][N] = *reinterpret_cast<T (*)[M][N]> (src);
+        // Offset the 2D pointer to start from the beginning of the sub-matrix to be accessed
+        T (&A)[M][N] = *reinterpret_cast<T (*)[M][N]> (&(src_2d[start_y][start_x]));
+
         for (uint32_t iter_y = __bsg_y; iter_y < BLOCK_SIZE_Y; iter_y += TG_DIM_Y) { 
             for (uint32_t iter_x = __bsg_x; iter_x < BLOCK_SIZE_X; iter_x += TG_DIM_X) { 
-                // dst[iter_x][iter_y] <-- src[iter_y + start_y][iter_x + start_x]
-                dst[iter_x][iter_y] = src[((iter_y + start_y) * N + iter_x + start_x)];
+                dst[iter_x][iter_y] = A[iter_y][iter_x];
             }
         }
         return; 
@@ -101,10 +113,15 @@ template <int TG_DIM_X, int TG_DIM_Y,
         uint32_t start_y = sub_block_y * BLOCK_SIZE_Y;
         uint32_t start_x = sub_block_x * BLOCK_SIZE_X;
 
+        // Create a 2D reference to an MxN destination matrix from the 1D input pointer 
+        T (&dst_2d)[M][N] = *reinterpret_cast<T (*)[M][N]> (dst);
+        // Offset the 2D pointer to start from the beginning of the sub-matrix to be accessed
+        T (&A)[M][N] = *reinterpret_cast<T (*)[M][N]> (&(dst_2d[start_y][start_x]));
+
+        
         for (uint32_t iter_y = __bsg_y; iter_y < BLOCK_SIZE_Y; iter_y += TG_DIM_Y) { 
             for (uint32_t iter_x = __bsg_x; iter_x < BLOCK_SIZE_X; iter_x += TG_DIM_X) { 
-                // A[iter_y + start_y][iter_x + start_x] <-- src[iter_y][iter_x]
-                dst[((iter_y + start_y) * N + iter_x + start_x)] = src[iter_y][iter_x];
+                A[iter_y][iter_x] = src[iter_y][iter_x];
             }
         }
         return; 
@@ -216,12 +233,12 @@ template <int TG_DIM_X, int TG_DIM_Y,
 
 
 extern "C" {
-    int  __attribute__ ((noinline)) kernel_matrix_mul_shared_mem_hard(float *A, float *B, float *C,
-                                                                      uint32_t A_HEIGHT,
-                                                                      uint32_t A_WIDTH,
-                                                                      uint32_t B_WIDTH,
-                                                                      uint32_t block_size_y,
-                                                                      uint32_t block_size_x) {
+    int  __attribute__ ((noinline)) kernel_matrix_mul_shared_mem_hard_2d(float *A, float *B, float *C,
+                                                                         uint32_t A_HEIGHT,
+                                                                         uint32_t A_WIDTH,
+                                                                         uint32_t B_WIDTH,
+                                                                         uint32_t block_size_y,
+                                                                         uint32_t block_size_x) {
         int rc;
         bsg_cuda_print_stat_kernel_start();
 
