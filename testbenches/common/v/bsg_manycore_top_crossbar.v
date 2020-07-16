@@ -61,7 +61,18 @@ module bsg_manycore_top_crossbar
 
   function logic [num_in_lp-1:0] get_fwd_use_credits();
     logic [num_in_lp-1:0] retval;
-    retval = '0;
+    for (int i = 0; i < 2; i++) begin
+      for (int j = 0; j < num_in_x_lp; j++) begin
+        retval[(i*num_in_x_lp)+j] = 1'b0;
+      end
+    end
+
+    for (int i = num_in_y_lp-1; i < num_in_y_lp; i++) begin
+      for (int j = 0; j < num_in_x_lp; j++) begin
+        retval[(i*num_in_x_lp)+j] = 1'b0;
+      end
+    end
+
     // vanilla core uses credit interface for fwd P-port.
     for (int i = 2; i < num_in_y_lp-1; i++) begin
       for (int j = 0; j < num_in_x_lp; j++) begin
@@ -74,7 +85,13 @@ module bsg_manycore_top_crossbar
   function fifo_els_arr_t get_fwd_fifo_els();
     fifo_els_arr_t retval;
 
-    for (int i = 0; i < num_in_y_lp; i++) begin
+    for (int i = 0; i < 2; i++) begin
+      for (int j = 0; j < num_in_x_lp; j++) begin
+        retval[(i*num_in_x_lp)+j] = 2;
+      end
+    end
+
+    for (int i = num_in_y_lp-1; i < num_in_y_lp; i++) begin
       for (int j = 0; j < num_in_x_lp; j++) begin
         retval[(i*num_in_x_lp)+j] = 2;
       end
