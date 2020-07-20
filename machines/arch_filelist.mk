@@ -34,6 +34,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mux_one_hot.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mux_segmented.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mux_bitwise.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_dff.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_dff_chain.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_dff_en_bypass.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_dff_en.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_dff_reset.v
