@@ -96,56 +96,62 @@ module bsg_manycore
    bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
    bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
 
-  genvar r,c;
 
   // Pipeline the reset. The bsg_manycore_tile has a single pipeline register
   // on reset already, so we only want to pipeline reset_depth_p-1 times.
-  logic [reset_depth_p-1:0][num_tiles_y_p-1:0][num_tiles_x_p-1:0] reset_i_r;
+  logic [num_tiles_y_p-2:0][num_tiles_x_p-1:0] tile_reset_r;
+  logic [num_tiles_x_p-1:0] io_reset_r;
 
-  genvar k;
-  for (k = 1; k < reset_depth_p; k++)
-    begin
-      always_ff @(posedge clk_i)
-        begin
-          reset_i_r[k] <= (k == 1) ? {(num_tiles_y_p*num_tiles_x_p){reset_i}} : reset_i_r[k-1];
-        end
-   end
+  bsg_dff_chain #(
+    .width_p(num_tiles_x_p*(num_tiles_y_p-1))
+    ,.num_stages_p(reset_depth_p-1)
+  ) tile_reset (
+    .clk_i(clk_i)
+    ,.data_i({(num_tiles_x_p*(num_tiles_y_p-1)){reset_i}})
+    ,.data_o(tile_reset_r)
+  );
+  
+  bsg_dff_chain #(
+    .width_p(num_tiles_x_p)
+    ,.num_stages_p(reset_depth_p)
+  ) io_reset (
+    .clk_i(clk_i)
+    ,.data_i({num_tiles_x_p{reset_i}})
+    ,.data_o(io_reset_r)
+  );
 
-   for (r = 1; r < num_tiles_y_p; r = r+1)
-     begin: y
-        for (c = 0; c < num_tiles_x_p; c=c+1)
-          begin: x
-            bsg_manycore_tile
-              #(
-                .dmem_size_p     (dmem_size_p),
-                .vcache_size_p (vcache_size_p),
-                .icache_entries_p(icache_entries_p),
-                .icache_tag_width_p(icache_tag_width_p),
-                .x_cord_width_p(x_cord_width_lp),
-                .y_cord_width_p(y_cord_width_lp),
-                .data_width_p(data_width_p),
-                .addr_width_p(addr_width_p),
-                .hetero_type_p( hetero_type_vec_p[(r-1) * num_tiles_x_p + c] ),
-                .debug_p(debug_p)
-                ,.branch_trace_en_p(branch_trace_en_p)
-                ,.num_tiles_x_p(num_tiles_x_p)
-                ,.num_tiles_y_p(num_tiles_y_p)
-                ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
-                ,.vcache_sets_p(vcache_sets_p)
-              )
-            tile
-              (
-                .clk_i(clk_i),
-                .reset_i(reset_i_r[reset_depth_p-1][r][c]),
+  genvar r,c;
 
-                .link_in(link_in[r][c]),
-                .link_out(link_out[r][c]),
+  for (r = 1; r < num_tiles_y_p; r = r+1) begin: y
+    for (c = 0; c < num_tiles_x_p; c=c+1) begin: x
+      bsg_manycore_tile #(
+        .dmem_size_p     (dmem_size_p)
+        ,.vcache_size_p (vcache_size_p)
+        ,.icache_entries_p(icache_entries_p)
+        ,.icache_tag_width_p(icache_tag_width_p)
+        ,.x_cord_width_p(x_cord_width_lp)
+        ,.y_cord_width_p(y_cord_width_lp)
+        ,.data_width_p(data_width_p)
+        ,.addr_width_p(addr_width_p)
+        ,.hetero_type_p( hetero_type_vec_p[(r-1) * num_tiles_x_p + c] )
+        ,.debug_p(debug_p)
+        ,.branch_trace_en_p(branch_trace_en_p)
+        ,.num_tiles_x_p(num_tiles_x_p)
+        ,.num_tiles_y_p(num_tiles_y_p)
+        ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+        ,.vcache_sets_p(vcache_sets_p)
+      ) tile (
+        .clk_i(clk_i)
+        ,.reset_i(tile_reset_r[r-1][c])
 
-                .my_x_i(x_cord_width_lp'(c)),
-                .my_y_i(y_cord_width_lp'(r+1))
-              );
-          end
-     end
+        ,.link_in(link_in[r][c])
+        ,.link_out(link_out[r][c])
+
+        ,.my_x_i(x_cord_width_lp'(c))
+        ,.my_y_i(y_cord_width_lp'(r+1))
+      );
+    end
+  end
 
   for (c = 0; c < num_tiles_x_p; c=c+1) begin: io
     bsg_manycore_mesh_node #(
@@ -155,7 +161,7 @@ module bsg_manycore
       ,.addr_width_p       (addr_width_p    )
     ) io_router (
       .clk_i    (clk_i      )
-      ,.reset_i  (reset_i_r[reset_depth_p-1][0][c] )
+      ,.reset_i  (io_reset_r[c])
         
       ,.links_sif_i      ( link_in [0][ c ] )
       ,.links_sif_o      ( link_out[0][ c ] )

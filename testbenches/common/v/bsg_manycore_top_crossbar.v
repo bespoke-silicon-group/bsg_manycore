@@ -32,7 +32,7 @@ module bsg_manycore_top_crossbar
     , parameter link_sif_width_lp = 
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
-    , parameter reset_depth_p = 5
+    , parameter reset_depth_p = 3
   )
   (
     input clk_i
@@ -46,15 +46,15 @@ module bsg_manycore_top_crossbar
   );
 
   // reset_r
-  logic [reset_depth_p-1:0] reset_r;
-  always_ff @ (posedge clk_i) begin
-    for (integer k = 1; k < reset_depth_p; k++) begin
-      reset_r[k] <= (k == 1)
-        ? reset_i
-        : reset_r[k-1];
-    end
-  end
-
+  logic reset_r;
+  bsg_dff_chain #(
+    .width_p(1)
+    ,.num_stages_p(reset_depth_p)
+  ) dff_reset (
+    .clk_i(clk_i)
+    ,.data_i(reset_i)
+    ,.data_o(reset_r)
+  );
 
   // Crossbar Network
   typedef int fifo_els_arr_t[num_in_lp-1:0];
@@ -147,7 +147,7 @@ module bsg_manycore_top_crossbar
     ,.rev_fifo_els_p(get_rev_fifo_els())
   ) network (
     .clk_i(clk_i)
-    ,.reset_i(reset_r[reset_depth_p-2])
+    ,.reset_i(reset_r)
     
     ,.links_sif_i(link_in)
     ,.links_sif_o(link_out)
@@ -189,7 +189,7 @@ module bsg_manycore_top_crossbar
         ,.debug_p(0)
       ) proc (
         .clk_i(clk_i)
-        ,.reset_i(reset_r[reset_depth_p-1])
+        ,.reset_i(reset_r)
       
         ,.link_sif_i(link_out[i+1][j])
         ,.link_sif_o(link_in[i+1][j])
