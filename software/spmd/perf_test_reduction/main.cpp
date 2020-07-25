@@ -10,16 +10,6 @@ float dram_data[N] __attribute__ ((section (".dram"))) = {0.0f};
 float local_data[N] = {0.0f};
 
 
-#define bsg_shared_flt_ptr(x,y,local_addr) ((bsg_remote_float_ptr) (   (REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS) \
-                                                               | ((y) << Y_CORD_SHIFTS )                     \
-                                                               | ((x) << X_CORD_SHIFTS )                     \
-                                                               | ((int) (local_addr)   )                     \
-                                                             )                                               \
-                                        )
-
-
-#define bsg_shared_flt_store(x,y,local_addr,val) do { *(bsg_shared_flt_ptr((x),(y),(local_addr))) = (float) (val); } while (0)
-#define bsg_shared_flt_load(x,y,local_addr,val)  do { val = *(bsg_shared_flt_ptr((x),(y),(local_addr))) ; } while (0)
 
 bsg_barrier<bsg_tiles_X, bsg_tiles_Y> barrier;
 
@@ -44,7 +34,7 @@ int main()
     for (int x = 0; x < bsg_tiles_X; x++)
     {
       float val;
-      bsg_shared_flt_load(x, y, &local_data[__bsg_id], val);
+      bsg_remote_flt_load(x, y, &local_data[__bsg_id], val);
       sum += val;
     }
   }
