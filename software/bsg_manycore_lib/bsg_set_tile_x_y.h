@@ -6,4 +6,15 @@
 #define bsg_y __bsg_y
 #define bsg_id __bsg_id
 
+
+
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 void bsg_set_tile_x_y();
+
+#ifdef __cplusplus
+}
+#endif
