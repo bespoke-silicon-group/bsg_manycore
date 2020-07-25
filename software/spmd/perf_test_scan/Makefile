@@ -1,3 +1,5 @@
+export BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/16x8
+
 bsg_tiles_X = 16
 bsg_tiles_Y = 1
 

@@ -1,3 +1,5 @@
+export BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/16x8
+
 all: main.run
 
 OBJECT_FILES := main.o

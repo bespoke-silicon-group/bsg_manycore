@@ -8,10 +8,7 @@
 
 // activation
 float dram_data[bsg_tiles_X*bsg_tiles_Y][N] __attribute__ ((section (".dram"))) = {0.0f};
-//  0.0f, 3.0f, 4.0f,
-//  2.0f, 2.0f, 0.0f,
-//  2.0f, 2.0f, 7.0f
-//};
+
 // weights
 float local_data[N] = {0.0f};
 
@@ -55,32 +52,42 @@ int main()
 {
   bsg_set_tile_x_y();
 
-  // init local data
   // init activation
+  if (__bsg_id == 0) 
+  {
+    for (int id = 0; id < bsg_tiles_X*bsg_tiles_Y; id++)
+    {
+      dram_data[id][0] = 0.0f;
+      dram_data[id][1] = 3.0f;
+      dram_data[id][2] = 4.0f;
+      dram_data[id][3] = 2.0f;
+      dram_data[id][4] = 2.0f;
+      dram_data[id][5] = 0.0f;
+      dram_data[id][6] = 2.0f;
+      dram_data[id][7] = 2.0f;
+      dram_data[id][8] = 7.0f;
+    }
+
+    bsg_fence();
+  }
+  
+  // init local weights
   float mydata = (float) __bsg_id;
   for (int i = 0; i < N; i++)
   {
     local_data[i] = mydata;
   }
-  dram_data[__bsg_id][0] = 0.0f;
-  dram_data[__bsg_id][1] = 3.0f;
-  dram_data[__bsg_id][2] = 4.0f;
-  dram_data[__bsg_id][3] = 2.0f;
-  dram_data[__bsg_id][4] = 2.0f;
-  dram_data[__bsg_id][5] = 0.0f;
-  dram_data[__bsg_id][6] = 2.0f;
-  dram_data[__bsg_id][7] = 2.0f;
-  dram_data[__bsg_id][8] = 7.0f;
-  bsg_fence();
 
   if (__bsg_id == 0) bsg_cuda_print_stat_start(0);
   barrier.sync(); 
 
+  // run conv3x3
   float sum = conv3x3();
 
   barrier.sync(); 
   if (__bsg_id == 0) bsg_cuda_print_stat_start(0);
 
+  // validate
   #define hex(x) (*(int*)&x)
   if (sum != mydata*22.0f) {
     bsg_printf("%x\n", hex(sum));
