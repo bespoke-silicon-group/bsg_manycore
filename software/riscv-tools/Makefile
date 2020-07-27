@@ -32,8 +32,8 @@ TARGET_ABI        := ilp32f
 TARGET_CFLAGS     := '-fno-common'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
-TOOLCHAIN_URL     := https://github.com/riscv/$(TOOLCHAIN_REPO)
-TOOLCHAIN_VERSION := a03290eab661e2aa58288ad164f908bbbcc2169c
+TOOLCHAIN_URL     := https://github.com/bespoke-silicon-group/$(TOOLCHAIN_REPO)
+TOOLCHAIN_VERSION := 83f1b3d1d076e3407337f18e14d2b3599173be2e
 
 DEPENDS_DIR       := $(CURDIR)/depends
 
