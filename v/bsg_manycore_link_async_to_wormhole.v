@@ -75,19 +75,6 @@ module bsg_manycore_link_async_to_wormhole
   assign mc_links_sif_i_cast = mc_links_sif_i;
   assign mc_links_sif_o      = mc_links_sif_o_cast;
 
-  // Pipeline the reset
-  logic [mc_reset_depth_p:0] mc_reset_i_r;
-
-  assign mc_reset_i_r[0] = mc_reset_i;
-
-  genvar k;
-  for (k = 1; k <= mc_reset_depth_p; k++)
-    begin
-      always_ff @(posedge mc_clk_i)
-        begin
-          mc_reset_i_r[k] <= mc_reset_i_r[k-1];
-        end
-    end
   
   // Fwd link
   bsg_ready_and_link_async_to_wormhole
@@ -98,7 +85,7 @@ module bsg_manycore_link_async_to_wormhole
   ,.len_width_p       (len_width_p       )
   ) fwd
   (.ral_clk_i      (mc_clk_i      )
-  ,.ral_reset_i    (mc_reset_i_r[mc_reset_depth_p]    )
+  ,.ral_reset_i    (mc_reset_i    )
   ,.ral_link_i     (mc_links_sif_i_cast.fwd)
   ,.ral_link_o     (mc_links_sif_o_cast.fwd)
   ,.ral_dest_cord_i(mc_dest_cord_i)
@@ -118,7 +105,7 @@ module bsg_manycore_link_async_to_wormhole
   ,.len_width_p       (len_width_p       )
   ) rev
   (.ral_clk_i      (mc_clk_i      )
-  ,.ral_reset_i    (mc_reset_i_r[mc_reset_depth_p]    )
+  ,.ral_reset_i    (mc_reset_i    )
   ,.ral_link_i     (mc_links_sif_i_cast.rev)
   ,.ral_link_o     (mc_links_sif_o_cast.rev)
   ,.ral_dest_cord_i(mc_dest_cord_i)
