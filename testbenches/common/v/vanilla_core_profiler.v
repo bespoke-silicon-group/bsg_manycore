@@ -770,14 +770,18 @@ module vanilla_core_profiler
 
   integer fd, fd2;
   string header;
+  logic written;
+   
    initial begin
       fd = $fopen(logfile_lp, "w");
       $fwrite(fd,"");
+      written = 0;
    end
 
    always @(negedge reset_i) begin      
     // the origin tile opens the logfile and writes the csv header.
-    if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p))) begin
+    if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p)) & ~written) begin
+      written = 1;
       fd = $fopen(logfile_lp, "a");
       $fwrite(fd, "time,");
       $fwrite(fd, "x,");
