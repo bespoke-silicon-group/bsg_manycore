@@ -83,17 +83,21 @@ class BloodGraph:
                        "remote_ld_dram",
                        "remote_ld_global",
                        "remote_ld_group",
+                       "remote_ld_shared",
                        "remote_st_dram",
                        "remote_st_global",
                        "remote_st_group",
+                       "remote_st_shared",
                        "local_flw",
                        "local_fsw",
                        "remote_flw_dram",
                        "remote_flw_global",
                        "remote_flw_group",
+                       "remote_flw_shared",
                        "remote_fsw_dram",
                        "remote_fsw_global",
                        "remote_fsw_group",
+                       "remote_fsw_shared",
                        # icache_miss is no longer treated as an instruction
                        # but treated the same as stall_ifetch_wait
                        # "icache_miss",
@@ -185,6 +189,7 @@ class BloodGraph:
     _DETAILED_STALL_BUBBLE_COLOR = {
                                      "stall_depend_dram_load"    : (0xff, 0x00, 0x00), ## red
                                      "stall_depend_group_load"   : (0x00, 0xff, 0x00), ## green
+                                     "stall_depend_shared_load"  : (0x00, 0xff, 0x00), ## green
                                      "stall_depend_global_load"  : (0x00, 0x55, 0x00), ## dark green
                                      "stall_depend_local_load"   : (0x00, 0xff, 0xff), ## cyan
                                      
@@ -227,6 +232,7 @@ class BloodGraph:
     _ABSTRACT_STALL_BUBBLE_COLOR = {
                                      "stall_depend_dram_load"    : (0xff, 0x00, 0x00), ## red
                                      "stall_depend_group_load"   : (0x00, 0xff, 0x00), ## green
+                                     "stall_depend_shared_load"  : (0x00, 0xff, 0x00), ## green
                                      "stall_depend_global_load"  : (0x00, 0xff, 0x00), ## green
                                      "stall_depend_local_load"   : (0x00, 0xff, 0xff), ## cyan
                                      

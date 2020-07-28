@@ -134,11 +134,13 @@ module vanilla_core_profiler
   wire remote_ld_dram_inc = remote_ld_inc & remote_req_o.addr[data_width_p-1]; 
   wire remote_ld_global_inc = remote_ld_inc & (remote_req_o.addr[data_width_p-1-:2] == 2'b01);
   wire remote_ld_group_inc = remote_ld_inc & (remote_req_o.addr[data_width_p-1-:3] == 3'b001);
+  wire remote_ld_shared_inc = remote_ld_inc & (remote_req_o.addr[data_width_p-1-:5] == 5'b00001);
 
   wire remote_st_inc = exe_r.decode.is_store_op & lsu_remote_req_v_lo & exe_r.decode.read_rs2;
   wire remote_st_dram_inc = remote_st_inc & remote_req_o.addr[data_width_p-1];
   wire remote_st_global_inc = remote_st_inc & (remote_req_o.addr[data_width_p-1-:2] == 2'b01);
   wire remote_st_group_inc = remote_st_inc & (remote_req_o.addr[data_width_p-1-:3] == 3'b001);
+  wire remote_st_shared_inc = remote_st_inc & (remote_req_o.addr[data_width_p-1-:5] == 5'b00001);
 
   wire local_flw_inc = exe_r.decode.is_load_op & lsu_dmem_v_lo & exe_r.decode.write_frd;
   wire local_fsw_inc = exe_r.decode.is_store_op & lsu_dmem_v_lo & exe_r.decode.read_frs2;
@@ -147,11 +149,13 @@ module vanilla_core_profiler
   wire remote_flw_dram_inc = remote_flw_inc & remote_req_o.addr[data_width_p-1];
   wire remote_flw_global_inc = remote_flw_inc & (remote_req_o.addr[data_width_p-1-:2] == 2'b01);
   wire remote_flw_group_inc = remote_flw_inc & (remote_req_o.addr[data_width_p-1-:3] == 3'b001);
+  wire remote_flw_shared_inc = remote_flw_inc & (remote_req_o.addr[data_width_p-1-:5] == 5'b00001);
 
   wire remote_fsw_inc = exe_r.decode.is_store_op & lsu_remote_req_v_lo & exe_r.decode.read_frs2;
   wire remote_fsw_dram_inc = remote_fsw_inc & remote_req_o.addr[data_width_p-1];
   wire remote_fsw_global_inc = remote_fsw_inc & (remote_req_o.addr[data_width_p-1-:2] == 2'b01);
   wire remote_fsw_group_inc = remote_fsw_inc & (remote_req_o.addr[data_width_p-1-:3] == 3'b001);
+  wire remote_fsw_shared_inc = remote_fsw_inc & (remote_req_o.addr[data_width_p-1-:5] == 5'b00001);
 
   wire icache_miss_inc = exe_r.icache_miss;
 
@@ -227,26 +231,31 @@ module vanilla_core_profiler
 
   // remote/local scoreboard tracking 
   //
-  // int_sb[3]: idiv
-  // int_sb[2]: remote dram load
-  // int_sb[1]: remote global load
-  // int_sb[0]: remote group load
+  // int_sb[4]: idiv
+  // int_sb[3]: remote dram load
+  // int_sb[2]: remote global load
+  // int_sb[1]: remote group load
+  // int_sb[0]: remote shared load
   //
-  // float_sb[3]: fdiv / fsqrt
-  // float_sb[2]: remote dram load
-  // float_sb[1]: remote global load
-  // float_sb[0]: remote group load
-  logic [reg_els_lp-1:0][3:0] int_sb_r;
-  logic [reg_els_lp-1:0][3:0] float_sb_r;
+  // float_sb[4]: fdiv / fsqrt
+  // float_sb[3]: remote dram load
+  // float_sb[2]: remote global load
+  // float_sb[1]: remote group load
+  // float_sb[0]: remote shared load
+  //
+  logic [reg_els_lp-1:0][4:0] int_sb_r;
+  logic [reg_els_lp-1:0][4:0] float_sb_r;
 
   wire [data_width_p-1:0] id_mem_addr = rs1_val_to_exe + mem_addr_op2;
   wire remote_ld_dram_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & id_mem_addr[data_width_p-1];
   wire remote_ld_global_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & (id_mem_addr[data_width_p-1-:2] == 2'b01);
   wire remote_ld_group_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & (id_mem_addr[data_width_p-1-:3] == 3'b001);
+  wire remote_ld_shared_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & (id_mem_addr[data_width_p-1-:5] == 5'b00001);
 
   wire remote_flw_dram_in_id = (id_r.decode.is_load_op & id_r.decode.write_frd) & id_mem_addr[data_width_p-1];
   wire remote_flw_global_in_id = (id_r.decode.is_load_op & id_r.decode.write_frd) & (id_mem_addr[data_width_p-1-:2] == 2'b01);
   wire remote_flw_group_in_id = (id_r.decode.is_load_op & id_r.decode.write_frd) & (id_mem_addr[data_width_p-1-:3] == 3'b001);
+  wire remote_flw_shared_in_id = (id_r.decode.is_load_op & id_r.decode.write_frd) & (id_mem_addr[data_width_p-1-:5] == 5'b00001);
 
   wire [reg_addr_width_lp-1:0] id_rd = id_r.instruction.rd;
 
@@ -260,15 +269,18 @@ module vanilla_core_profiler
       // int sb
       if (~stall_id & ~stall_all & ~flush) begin
         if (id_r.decode.is_idiv_op) begin
-          int_sb_r[id_r.instruction.rd][3] <= 1'b1;
+          int_sb_r[id_r.instruction.rd][4] <= 1'b1;
         end
         else if (remote_ld_dram_in_id) begin
-          int_sb_r[id_r.instruction.rd][2] <= 1'b1;
+          int_sb_r[id_r.instruction.rd][3] <= 1'b1;
         end
         else if (remote_ld_global_in_id) begin
-          int_sb_r[id_r.instruction.rd][1] <= 1'b1;
+          int_sb_r[id_r.instruction.rd][2] <= 1'b1;
         end
         else if (remote_ld_group_in_id) begin
+          int_sb_r[id_r.instruction.rd][1] <= 1'b1;
+        end
+        else if (remote_ld_shared_in_id) begin
           int_sb_r[id_r.instruction.rd][0] <= 1'b1;
         end
       end
@@ -279,15 +291,18 @@ module vanilla_core_profiler
       // float sb
       if (~stall_id & ~stall_all & ~flush) begin
         if (id_r.decode.is_fp_op & (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op)) begin
-          float_sb_r[id_r.instruction.rd][3] <= 1'b1;
+          float_sb_r[id_r.instruction.rd][4] <= 1'b1;
         end
         else if (remote_flw_dram_in_id) begin
-          float_sb_r[id_r.instruction.rd][2] <= 1'b1;
+          float_sb_r[id_r.instruction.rd][3] <= 1'b1;
         end
         else if (remote_flw_global_in_id) begin
-          float_sb_r[id_r.instruction.rd][1] <= 1'b1;
+          float_sb_r[id_r.instruction.rd][2] <= 1'b1;
         end
         else if (remote_flw_group_in_id) begin
+          float_sb_r[id_r.instruction.rd][1] <= 1'b1;
+        end
+        else if (remote_flw_shared_in_id) begin
           float_sb_r[id_r.instruction.rd][0] <= 1'b1;
         end
       end
@@ -297,7 +312,7 @@ module vanilla_core_profiler
     end
   end
 
-  wire stall_depend_group_load = stall_depend_long_op
+  wire stall_depend_shared_load = stall_depend_long_op
     & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][0]) |
        (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][0]) |
        (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][0]) |
@@ -305,7 +320,7 @@ module vanilla_core_profiler
        (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][0]) |
        (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][0]));
 
-  wire stall_depend_global_load = stall_depend_long_op
+  wire stall_depend_group_load = stall_depend_long_op
     & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][1]) |
        (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][1]) |
        (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][1]) |
@@ -313,7 +328,7 @@ module vanilla_core_profiler
        (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][1]) |
        (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][1]));
 
-  wire stall_depend_dram_load = stall_depend_long_op
+  wire stall_depend_global_load = stall_depend_long_op
     & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][2]) |
        (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][2]) |
        (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][2]) |
@@ -321,15 +336,23 @@ module vanilla_core_profiler
        (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][2]) |
        (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][2]));
 
-  wire stall_depend_idiv = stall_depend_long_op
+  wire stall_depend_dram_load = stall_depend_long_op
     & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][3]) |
        (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][3]) |
-       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][3]));
-
-  wire stall_depend_fdiv = stall_depend_long_op
-    & ((id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][3]) |
+       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][3]) |
+       (id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][3]) |
        (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][3]) |
        (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][3]));
+
+  wire stall_depend_idiv = stall_depend_long_op
+    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][4]) |
+       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][4]) |
+       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][4]));
+
+  wire stall_depend_fdiv = stall_depend_long_op
+    & ((id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][4]) |
+       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][4]) |
+       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][4]));
 
   // ID stage bubble
   typedef enum logic [1:0] {
@@ -368,6 +391,7 @@ module vanilla_core_profiler
     e_exe_bubble_stall_depend_dram,
     e_exe_bubble_stall_depend_global,
     e_exe_bubble_stall_depend_group,
+    e_exe_bubble_stall_depend_shared,
     e_exe_bubble_stall_depend_fdiv,
     e_exe_bubble_stall_depend_idiv,
 
@@ -413,6 +437,8 @@ module vanilla_core_profiler
           exe_bubble_r <= e_exe_bubble_stall_depend_dram;
         else if (stall_depend_group_load)
           exe_bubble_r <= e_exe_bubble_stall_depend_group;
+        else if (stall_depend_shared_load)
+          exe_bubble_r <= e_exe_bubble_stall_depend_shared;
         else if (stall_depend_global_load)
           exe_bubble_r <= e_exe_bubble_stall_depend_global;
         else if (stall_depend_idiv)
@@ -455,6 +481,7 @@ module vanilla_core_profiler
   wire icache_miss_bubble_inc = (exe_bubble_r == e_exe_bubble_icache_miss);
   wire stall_depend_dram_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_dram);
   wire stall_depend_group_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_group);
+  wire stall_depend_shared_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_shared);
   wire stall_depend_global_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_global);
   wire stall_depend_idiv_inc = (exe_bubble_r == e_exe_bubble_stall_depend_idiv);
   wire stall_depend_fdiv_inc = (exe_bubble_r == e_exe_bubble_stall_depend_fdiv);
@@ -510,18 +537,22 @@ module vanilla_core_profiler
     integer remote_ld_dram;
     integer remote_ld_global;
     integer remote_ld_group;
+    integer remote_ld_shared;
     integer remote_st_dram;
     integer remote_st_global;
     integer remote_st_group;
+    integer remote_st_shared;
 
     integer local_flw;
     integer local_fsw;
     integer remote_flw_dram;
     integer remote_flw_global;
     integer remote_flw_group;
+    integer remote_flw_shared;
     integer remote_fsw_dram;
     integer remote_fsw_global;
     integer remote_fsw_group;
+    integer remote_fsw_shared;
 
     integer icache_miss;
     integer lr;
@@ -590,6 +621,7 @@ module vanilla_core_profiler
     integer icache_miss_bubble;
     integer stall_depend_dram_load;
     integer stall_depend_group_load;
+    integer stall_depend_shared_load;
     integer stall_depend_global_load;
     integer stall_depend_idiv;
     integer stall_depend_fdiv;
@@ -660,18 +692,22 @@ module vanilla_core_profiler
         else if (remote_ld_dram_inc) stat_r.remote_ld_dram++;
         else if (remote_ld_global_inc) stat_r.remote_ld_global++;
         else if (remote_ld_group_inc) stat_r.remote_ld_group++;
+        else if (remote_ld_shared_inc) stat_r.remote_ld_shared++;
         else if (remote_st_dram_inc) stat_r.remote_st_dram++;
         else if (remote_st_global_inc) stat_r.remote_st_global++;
         else if (remote_st_group_inc) stat_r.remote_st_group++;
+        else if (remote_st_shared_inc) stat_r.remote_st_shared++;
 
         else if (local_flw_inc) stat_r.local_flw++;
         else if (local_fsw_inc) stat_r.local_fsw++;
         else if (remote_flw_dram_inc) stat_r.remote_flw_dram++;
         else if (remote_flw_global_inc) stat_r.remote_flw_global++;
         else if (remote_flw_group_inc) stat_r.remote_flw_group++;
+        else if (remote_flw_shared_inc) stat_r.remote_flw_shared++;
         else if (remote_fsw_dram_inc) stat_r.remote_fsw_dram++;
         else if (remote_fsw_global_inc) stat_r.remote_fsw_global++;
         else if (remote_fsw_group_inc) stat_r.remote_fsw_group++;
+        else if (remote_fsw_shared_inc) stat_r.remote_fsw_shared++;
 
         else if (icache_miss_inc) stat_r.icache_miss++;
         else if (lr_inc) stat_r.lr++;
@@ -739,6 +775,7 @@ module vanilla_core_profiler
         else if (icache_miss_bubble_inc) stat_r.icache_miss_bubble++;
         else if (stall_depend_dram_load_inc) stat_r.stall_depend_dram_load++;
         else if (stall_depend_group_load_inc) stat_r.stall_depend_group_load++;
+        else if (stall_depend_shared_load_inc) stat_r.stall_depend_shared_load++;
         else if (stall_depend_global_load_inc) stat_r.stall_depend_global_load++;
         else if (stall_depend_idiv_inc) stat_r.stall_depend_idiv++;
         else if (stall_depend_fdiv_inc) stat_r.stall_depend_fdiv++;
@@ -821,18 +858,22 @@ module vanilla_core_profiler
       $fwrite(fd, "instr_remote_ld_dram,");
       $fwrite(fd, "instr_remote_ld_global,");
       $fwrite(fd, "instr_remote_ld_group,");
+      $fwrite(fd, "instr_remote_ld_shared,");
       $fwrite(fd, "instr_remote_st_dram,");
       $fwrite(fd, "instr_remote_st_global,");
       $fwrite(fd, "instr_remote_st_group,");
+      $fwrite(fd, "instr_remote_st_shared,");
     
       $fwrite(fd, "instr_local_flw,");
       $fwrite(fd, "instr_local_fsw,");
       $fwrite(fd, "instr_remote_flw_dram,");
       $fwrite(fd, "instr_remote_flw_global,");
       $fwrite(fd, "instr_remote_flw_group,");
+      $fwrite(fd, "instr_remote_flw_shared,");
       $fwrite(fd, "instr_remote_fsw_dram,");
       $fwrite(fd, "instr_remote_fsw_global,");
       $fwrite(fd, "instr_remote_fsw_group,");
+      $fwrite(fd, "instr_remote_fsw_shared,");
 
       $fwrite(fd, "miss_icache,");
       $fwrite(fd, "instr_lr,");
@@ -901,6 +942,7 @@ module vanilla_core_profiler
       $fwrite(fd, "bubble_icache_miss,");
       $fwrite(fd, "stall_depend_dram_load,");
       $fwrite(fd, "stall_depend_group_load,");
+      $fwrite(fd, "stall_depend_shared_load,");
       $fwrite(fd, "stall_depend_global_load,");
       $fwrite(fd, "stall_depend_idiv,");
       $fwrite(fd, "stall_depend_fdiv,");
@@ -980,18 +1022,22 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.remote_ld_dram);
           $fwrite(fd, "%0d,", stat_r.remote_ld_global);
           $fwrite(fd, "%0d,", stat_r.remote_ld_group);
+          $fwrite(fd, "%0d,", stat_r.remote_ld_shared);
           $fwrite(fd, "%0d,", stat_r.remote_st_dram);
           $fwrite(fd, "%0d,", stat_r.remote_st_global);
           $fwrite(fd, "%0d,", stat_r.remote_st_group);
+          $fwrite(fd, "%0d,", stat_r.remote_st_shared);
 
           $fwrite(fd, "%0d,", stat_r.local_flw);
           $fwrite(fd, "%0d,", stat_r.local_fsw);
           $fwrite(fd, "%0d,", stat_r.remote_flw_dram);
           $fwrite(fd, "%0d,", stat_r.remote_flw_global);
           $fwrite(fd, "%0d,", stat_r.remote_flw_group);
+          $fwrite(fd, "%0d,", stat_r.remote_flw_shared);
           $fwrite(fd, "%0d,", stat_r.remote_fsw_dram);
           $fwrite(fd, "%0d,", stat_r.remote_fsw_global);
           $fwrite(fd, "%0d,", stat_r.remote_fsw_group);
+          $fwrite(fd, "%0d,", stat_r.remote_fsw_shared);
 
           $fwrite(fd, "%0d,", stat_r.icache_miss);
           $fwrite(fd, "%0d,", stat_r.lr);
@@ -1060,6 +1106,7 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.icache_miss_bubble);   
           $fwrite(fd, "%0d,", stat_r.stall_depend_dram_load);   
           $fwrite(fd, "%0d,", stat_r.stall_depend_group_load);   
+          $fwrite(fd, "%0d,", stat_r.stall_depend_shared_load);   
           $fwrite(fd, "%0d,", stat_r.stall_depend_global_load);   
           $fwrite(fd, "%0d,", stat_r.stall_depend_idiv);
           $fwrite(fd, "%0d,", stat_r.stall_depend_fdiv);
@@ -1121,18 +1168,22 @@ module vanilla_core_profiler
           else if (remote_ld_dram_inc) print_operation_trace(fd2, "remote_ld_dram");
           else if (remote_ld_global_inc) print_operation_trace(fd2, "remote_ld_global");
           else if (remote_ld_group_inc) print_operation_trace(fd2, "remote_ld_group");
+          else if (remote_ld_shared_inc) print_operation_trace(fd2, "remote_ld_shared");
           else if (remote_st_dram_inc) print_operation_trace(fd2, "remote_st_dram");
           else if (remote_st_global_inc) print_operation_trace(fd2, "remote_st_global");
           else if (remote_st_group_inc) print_operation_trace(fd2, "remote_st_group");
+          else if (remote_st_shared_inc) print_operation_trace(fd2, "remote_st_shared");
 
           else if (local_flw_inc) print_operation_trace(fd2, "local_flw");
           else if (local_fsw_inc) print_operation_trace(fd2, "local_fsw");
           else if (remote_flw_dram_inc) print_operation_trace(fd2, "remote_flw_dram");
           else if (remote_flw_global_inc) print_operation_trace(fd2, "remote_flw_global");
           else if (remote_flw_group_inc) print_operation_trace(fd2, "remote_flw_group");
+          else if (remote_flw_shared_inc) print_operation_trace(fd2, "remote_flw_shared");
           else if (remote_fsw_dram_inc) print_operation_trace(fd2, "remote_fsw_dram");
           else if (remote_fsw_global_inc) print_operation_trace(fd2, "remote_fsw_global");
           else if (remote_fsw_group_inc) print_operation_trace(fd2, "remote_fsw_group");
+          else if (remote_fsw_shared_inc) print_operation_trace(fd2, "remote_fsw_shared");
 
           else if (icache_miss_inc) print_operation_trace(fd2, "icache_miss");
           else if (lr_inc) print_operation_trace(fd2, "lr");
@@ -1200,6 +1251,7 @@ module vanilla_core_profiler
           else if (icache_miss_bubble_inc) print_operation_trace(fd2, "bubble_icache_miss");
           else if (stall_depend_dram_load_inc) print_operation_trace(fd2, "stall_depend_dram_load");
           else if (stall_depend_group_load_inc) print_operation_trace(fd2, "stall_depend_group_load");
+          else if (stall_depend_shared_load_inc) print_operation_trace(fd2, "stall_depend_shared_load");
           else if (stall_depend_global_load_inc) print_operation_trace(fd2, "stall_depend_global_load");
           else if (stall_depend_idiv_inc) print_operation_trace(fd2, "stall_depend_idiv");
           else if (stall_depend_fdiv_inc) print_operation_trace(fd2, "stall_depend_fdiv");
