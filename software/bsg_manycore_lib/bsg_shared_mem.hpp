@@ -1,6 +1,8 @@
 #pragma once
+
 extern "C" {
 #include "bsg_manycore.h"
+#include "bsg_tile_group_barrier.hpp"
 }
 #include <cstdlib>
 #include <cmath>
@@ -96,6 +98,49 @@ namespace bsg_manycore {
         }
 
 
+        // Reduce (sum) all elements in tile group shared memory
+        // and store in first element. We perform reduction in this loop,
+        // starting from an offset of 1 and a multiplicand of 2:
+        // For every element with index multiplicand of 2: A[i] <-- A[i] + A[i+1]
+        // For every element with index multiplicand of 4: A[i] <-- A[i] + 2
+        // For every element with index multiplicand of 8: A[i] <-- A[i] + 4
+        // .... Continue until offset is larger that array size ....
+        // Example
+        // |1|1|1|1|1|1|1|1|   Offset: 1  - Mult: 2
+        //  |/  |/  |/  |/
+        // |2|1|2|1|2|1|2|1|   Offset: 2  - Mult: 4
+        //  |  /   |  /  
+        //  | /    | /
+        //  |/     |/
+        // |4|1|2|1|4|1|2|1|   Offset: 4  - Mult: 8
+        //  |       /
+        //  |      /
+        //  |     /
+        //  |    /
+        //  |   /
+        //  |  /
+        //  | /
+        //  |/
+        // |8|1|2|1|4|1|2|1|
+        void reduce(bsg_barrier<TG_DIM_X, TG_DIM_Y> &barrier) {
+
+            int offset = 1;
+            int mult = 2;
+
+            while (offset < SIZE) {
+                for (int iter_x = bsg_id; iter_x < SIZE; iter_x += TILES) {
+                    if (!(iter_x % mult)){
+                        (*this)[iter_x] += (*this)[iter_x + offset];
+                    }
+                }
+                
+                barrier.sync();
+               
+                mult <<= 1;
+                offset <<= 1;
+            }
+            return;
+        }
 
        
     private:
