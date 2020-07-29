@@ -316,4 +316,20 @@ module bsg_nonsynth_dpi_manycore
       debug_o = switch_i;
    endfunction
 
+`ifndef VERILATOR
+   // Evaluate the simulation, until the next clk_i positive edge.
+   //
+   // Call bsg_dpi_next in simulators where the C testbench does not
+   // control the progression of time (i.e. NOT Verilator).
+   //
+   // The #1 statement guarantees that the positive edge has been
+   // evaluated, which is necessary for ordering in all of the DPI
+   // functions.
+   export "DPI-C" task bsg_dpi_next;
+   task bsg_dpi_next();
+      @(posedge clk_i);
+      #1;
+   endtask // bsg_dpi_next
+`endif
+
 endmodule
