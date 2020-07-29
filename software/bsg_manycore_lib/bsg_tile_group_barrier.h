@@ -125,12 +125,12 @@ void inline bsg_col_barrier_alert(  bsg_col_barrier *  p_col_b ) {
                //addr 0x4: column sync'ed
                bsg_remote_ptr_io_store( IO_X_INDEX, 0x4, bsg_y);
         #endif
-        //write alert signal to all tiles in the column
-        alert_col( p_col_b );
         //re-initilized the local column sync array.
         for( i= 0; i <= y_range; i++) {
               p_col_b->_done_list[ i ] = 0;
         }
+        //write alert signal to all tiles in the column
+        alert_col( p_col_b );
 
 }
 
@@ -147,14 +147,14 @@ void inline bsg_row_barrier_alert(  bsg_row_barrier *  p_row_b, bsg_col_barrier 
                //addr 0x8: column alerted. Starting to alter tiles in the row
                bsg_remote_ptr_io_store( IO_X_INDEX, 0x8, bsg_y);
         #endif
-        //write alert signal to all tiles in the row
-        alert_row( p_row_b);
         //re-initilized the local row sync array.
         for( i= 0; i <= x_range; i++) {
               p_row_b->_done_list[ i ] = 0;
         }
         //clear the column alert signal
         p_col_b -> _local_alert = 0;
+        //write alert signal to all tiles in the row
+        alert_row( p_row_b);
 }
 //------------------------------------------------------------------
 //5. wait the row alert signal 
