@@ -16,9 +16,6 @@ namespace bsg_manycore {
      *  <5>                  <4>            -   <11-x-y>   -  <12 - s>  -   <y>   -   <x>   -    <s-2>     -    <2>
      * Stripe is lowest bits of offset from local dmem
      *
-     * TODO: Assert local offset fits in 12 bits
-     * TODO: Asser index < array size
-     * TODO: Assert tile group dimensions are power of two
      */
 
     // log2 is non-constexpr in llvm so we define a custom
@@ -27,9 +24,19 @@ namespace bsg_manycore {
         return val ? 1 + cilog2(val >> 1) : -1;
     }
 
+    constexpr bool is_powerof2(std::size_t v) {
+        return v && ((v & (v - 1)) == 0);
+    }
+
+
     template <typename TYPE, std::size_t SIZE, std::size_t TG_DIM_X, std::size_t TG_DIM_Y, std::size_t STRIPE_SIZE=1>
     class TileGroupSharedMem {
     public:
+
+        // Harware tile group shared memory is only supported in tile groups 
+        // with power of 2 x,y dimensions
+        static_assert (is_powerof2(TG_DIM_X), "While using hardware shared memory, tile group X dimension should be power of 2");
+        static_assert (is_powerof2(TG_DIM_Y), "While using hardware shared memory, tile group Y dimension should be power of 2");
 
         static constexpr std::size_t TILES = TG_DIM_X * TG_DIM_Y;
         static constexpr std::size_t STRIPES = SIZE/STRIPE_SIZE + SIZE%STRIPE_SIZE;
@@ -97,11 +104,4 @@ namespace bsg_manycore {
         TYPE *_addr;
     };
 }
-
-
-
-//        constexpr bool is_powerof2(int v) {
-//            return v && ((v & (v - 1)) == 0);
-//        }
-
 
