@@ -34,7 +34,6 @@ module hash_function_shared
 
   always_comb begin
     // Hash bits cannot be larger than the entire address bits
-    // TODO: add an assert
     if (~en_i | (hash_i > max_local_offset_width_gp)) begin
       x_o = '0;
       y_o = '0;
@@ -42,10 +41,12 @@ module hash_function_shared
     end
    
     else begin
+      // X coordinate
       for (integer i = 0; i < tg_dim_x_width_i; i = i + 1) begin
         x_o[i] = shared_eva_i[i+hash_i];
       end
 
+      // Y coordinate
       for (integer i = 0; i < tg_dim_y_width_i; i = i + 1) begin
         y_o[i] = shared_eva_i[i+tg_dim_x_width_i+hash_i];
       end
