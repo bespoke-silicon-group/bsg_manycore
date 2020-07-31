@@ -23,8 +23,8 @@ KERNEL_NAME ?=kernel_dram_latency
 OBJECT_FILES=main.o kernel_dram_latency.o
 
 RISCV_GXX_EXTRA_OPTS = -DVCACHE_SET=$(BSG_MACHINE_VCACHE_SET) \
-											 -DVCACHE_WAY=$(BSG_MACHINE_VCACHE_WAY) \
-											 -DVCACHE_BLOCK_SIZE_WORDS=$(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS)
+                       -DVCACHE_WAY=$(BSG_MACHINE_VCACHE_WAY) \
+                       -DVCACHE_BLOCK_SIZE_WORDS=$(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS)
 
 include ../../Makefile.include
 

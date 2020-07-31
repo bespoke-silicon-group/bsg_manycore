@@ -10,16 +10,39 @@ const size_t VCACHE_SIZE_WORDS = VCACHE_NUM_BLOCKS * VCACHE_BLOCK_SIZE_WORDS;
 
 const size_t NUM_BANKS = 2 * bsg_tiles_Y;
 
-const uint32_t DRAM_START_ADDR = 0x80000000;
+const uint32_t DRAM_ADDR_PREFIX = 0x80000000;
 
-// Returns the eva we should write to given the index in
-// the Vcache.
+// Returns the eva we should write to given the block index and bank.
 //
 // Inverse of bsg_manycore/v/vanilla_bean/hash_function.v
 // Based on bsg_manycore/v/vanilla_bean/hash_function_reverse.v
 uint32_t vcache_inverse_hash_function(size_t block_index,
                                       size_t bank) {
-  return 0x80000000;
+  uint32_t bank_shift = 0;
+  uint32_t num_banks = NUM_BANKS;
+  while(num_banks >>= 1)
+    bank_shift++;
+
+  uint32_t block_shift = 2; // byte offset
+  uint32_t vcache_block_size_words = VCACHE_BLOCK_SIZE_WORDS;
+  while(vcache_block_size_words >>= 1)
+    block_shift++;
+
+  uint32_t eva;
+
+  if(NUM_BANKS != 9) {
+    eva = (block_index << bank_shift) | bank;
+  } else {
+    if (bank != 8) {
+      eva = (block_index << bank_shift) | (bank & 7);
+    } else {
+      eva = (block_index << bank_shift) | (block_index & 6) |
+              ((block_index ^ (block_index >> 9)) & 1);
+    }
+  }
+
+  eva = DRAM_ADDR_PREFIX | (eva << block_shift);
+  return eva;
 }
 
 // Issues a load to given vcache block index and bank
@@ -57,9 +80,11 @@ int kernel_dram_latency(int dummy) {
 
   bsg_cuda_print_stat_kernel_start();
   size_t offset = VCACHE_NUM_BLOCKS + 1;
-  // Issue loads to 64 blocks in the opened page
-  for(size_t i = offset; i < offset + 64; ++i)
+  // Issue loads to 32 blocks in the opened page
+  for(size_t i = offset; i < offset + 32; ++i) {
     load_vcache_index(i, 0);
+    bsg_fence();
+  }
   bsg_cuda_print_stat_kernel_end();
 
   return 0;
