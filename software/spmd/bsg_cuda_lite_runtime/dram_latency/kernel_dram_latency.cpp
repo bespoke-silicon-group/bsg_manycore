@@ -79,11 +79,13 @@ int kernel_dram_latency(int dummy) {
   load_vcache_index(VCACHE_NUM_BLOCKS, 0);
 
   bsg_cuda_print_stat_kernel_start();
-  size_t offset = VCACHE_NUM_BLOCKS + 1;
-  // Issue loads to 32 blocks in the opened page
-  for(size_t i = offset; i < offset + 32; ++i) {
-    load_vcache_index(i, 0);
-    bsg_fence();
+  if(__bsg_id == 0) {
+    size_t offset = VCACHE_NUM_BLOCKS + 1;
+    // Issue loads to 32 blocks in the opened page
+    for(size_t i = offset; i < offset + 32; ++i) {
+      load_vcache_index(i, 0);
+      bsg_fence();
+    }
   }
   bsg_cuda_print_stat_kernel_end();
 
