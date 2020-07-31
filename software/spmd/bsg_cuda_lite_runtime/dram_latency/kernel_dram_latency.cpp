@@ -59,10 +59,10 @@ inline void load_vcache_index(size_t i, size_t bank) {
 // Flushes the vcache associated with a given bank
 void flush_vcache(size_t bank) {
   // Distribute vcache block indices among all tiles
-  size_t len_per_tile = VCACHE_SIZE_WORDS / (bsg_tiles_X * bsg_tiles_Y) + 1;
+  size_t len_per_tile = VCACHE_NUM_BLOCKS / (bsg_tiles_X * bsg_tiles_Y) + 1;
   size_t start = __bsg_id * len_per_tile;
   size_t end = start + len_per_tile;
-  end = (end > VCACHE_SIZE_WORDS) ? VCACHE_SIZE_WORDS : end;
+  end = (end > VCACHE_NUM_BLOCKS) ? VCACHE_NUM_BLOCKS : end;
 
   // Issue load to each block index
   for(size_t i = start; i < end; ++i)
