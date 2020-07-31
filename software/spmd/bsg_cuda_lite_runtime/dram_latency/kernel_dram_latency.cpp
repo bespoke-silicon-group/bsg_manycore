@@ -5,6 +5,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "bsg_tile_group_barrier.hpp"
+
+bsg_barrier<bsg_tiles_X, bsg_tiles_Y> barrier;
+
 const size_t VCACHE_NUM_BLOCKS = VCACHE_SET * VCACHE_WAY;
 const size_t VCACHE_SIZE_WORDS = VCACHE_NUM_BLOCKS * VCACHE_BLOCK_SIZE_WORDS;
 
@@ -76,7 +80,7 @@ int kernel_dram_latency(int dummy) {
 
   // Opens a new page assuming vcache size would be
   // a page boundary.
-  load_vcache_index(VCACHE_NUM_BLOCKS, 0);
+  if(__bsg_id == 0) load_vcache_index(VCACHE_NUM_BLOCKS, 0);
 
   bsg_cuda_print_stat_kernel_start();
   if(__bsg_id == 0) {
@@ -88,6 +92,8 @@ int kernel_dram_latency(int dummy) {
     }
   }
   bsg_cuda_print_stat_kernel_end();
+
+  barrier.sync();
 
   return 0;
 }
