@@ -33,7 +33,7 @@ TARGET_CFLAGS     := '-fno-common'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
 TOOLCHAIN_URL     := https://github.com/bespoke-silicon-group/$(TOOLCHAIN_REPO)
-TOOLCHAIN_VERSION := 7305a41
+TOOLCHAIN_VERSION := 5245929
 
 DEPENDS_DIR       := $(CURDIR)/depends
 
@@ -89,10 +89,12 @@ ifeq ($(shell [ $(call git-version,1) -gt 1 ] && \
 else
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
 endif
-
+	# **** This patch is no longer necessary. Its changes have
+	#      been applied in the bsg_manycore_gcc branch of
+	#      riscv-gcc.
 	# This patch is necessary if target abi is ilp32f because of the issue
 	# https://github.com/riscv/riscv-gnu-toolchain/issues/530
-	cd $(TOOLCHAIN_REPO)/riscv-gcc && git apply $(CURDIR)/riscv-gcc.patch
+	# cd $(TOOLCHAIN_REPO)/riscv-gcc && git apply $(CURDIR)/riscv-gcc.patch
 
 
 checkout-spike:
