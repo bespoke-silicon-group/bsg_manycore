@@ -32,15 +32,10 @@ TARGET_ABI        := ilp32f
 TARGET_CFLAGS     := '-fno-common'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
-TOOLCHAIN_URL     := https://github.com/riscv/$(TOOLCHAIN_REPO)
-TOOLCHAIN_VERSION := a03290eab661e2aa58288ad164f908bbbcc2169c
+TOOLCHAIN_URL     := https://github.com/bespoke-silicon-group/$(TOOLCHAIN_REPO)
+TOOLCHAIN_VERSION := 7305a41
 
 DEPENDS_DIR       := $(CURDIR)/depends
-
-NEWLIB_URL        := https://github.com/bespoke-silicon-group/bsg_newlib_dramfs.git
-NEWLIB_BRANCH     := dramfs
-NEWLIB_VERSION    := 7f0037ac3ac5068524d8e34c9b0fb5553bc55be1
-NEWLIB_PATCH      := newlib.patch
 
 SPIKE_REPO        := riscv-isa-sim
 SPIKE_URL         := https://github.com/riscv/riscv-isa-sim.git
@@ -99,12 +94,6 @@ endif
 	# https://github.com/riscv/riscv-gnu-toolchain/issues/530
 	cd $(TOOLCHAIN_REPO)/riscv-gcc && git apply $(CURDIR)/riscv-gcc.patch
 
-replace-newlib:
-	cd $(TOOLCHAIN_REPO) && git apply $(CURDIR)/$(NEWLIB_PATCH)
-	cd $(TOOLCHAIN_REPO) && git submodule sync
-	cd $(TOOLCHAIN_REPO) && git submodule update --remote riscv-newlib
-	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout $(NEWLIB_BRANCH)
-	cd $(TOOLCHAIN_REPO)/riscv-newlib && git checkout $(NEWLIB_VERSION)
 
 checkout-spike:
 	@echo "====================================="
@@ -117,7 +106,6 @@ checkout-spike:
 
 checkout-all: 
 	$(MAKE) checkout-repos 
-	$(MAKE) replace-newlib 
 	$(MAKE) checkout-spike
 
 build-deps:
