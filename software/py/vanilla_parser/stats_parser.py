@@ -543,10 +543,10 @@ class VanillaStatsParser:
         stat_file.write("Per-Vcache-Bank Timing Stats\n")
         self.__print_stat(stat_file, "vcache_timing_header"
                                      ,"Vcache Bank No."
-                                     ,"Aggr Hit Requests"
-                                     ,"Aggr Misse Requests"
-                                     ,"Aggr Stall Cycles"
-                                     ,"Aggr Total Cycles"
+                                     ,"Hit Requests"
+                                     ,"Miss Requests"
+                                     ,"Stall Cycles"
+                                     ,"Total Cycles"
                                      ,"Utilization")
         self.__print_stat(stat_file, "start_lbreak")
 
@@ -1554,7 +1554,7 @@ class VanillaStatsParser:
                     if (vcache_stat_start[cst.tag][cur_vcache]['global_ctr'] > trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
-                            vcache_tile_group_stat_start[cst.tag][cst.tg_id][op] += trace[op]
+                            vcache_tile_group_stat_start[cst.tag][cst.tg_id][op] = trace[op]
                 else:
                     for op in self.vcache_all_ops:
                         vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
@@ -1570,15 +1570,12 @@ class VanillaStatsParser:
                     if (vcache_stat_end[cst.tag][cur_vcache]['global_ctr'] < trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_end[cst.tag][cur_vcache][op] = trace[op]
-                            vcache_tile_group_stat_end[cst.tag][cst.tg_id][op] += trace[op]
+                            vcache_tile_group_stat_end[cst.tag][cst.tg_id][op] = trace[op]
                 else:
                     for op in self.vcache_all_ops:
                         vcache_stat_end[cst.tag][cur_vcache][op] = trace[op]
                         vcache_tile_group_stat_end[cst.tag][cst.tg_id][op] = trace[op]
                 tag_seen[cst.tag][cur_vcache] = False;
-
-
-                vcache_stat[cst.tag][cur_vcache] += vcache_stat_end[cst.tag][cur_vcache] - vcache_stat_start[cst.tag][cur_vcache]
 
 
 
@@ -1594,7 +1591,7 @@ class VanillaStatsParser:
                     if (vcache_stat_start["kernel"][cur_vcache]['global_ctr'] > trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
-                            vcache_tile_group_stat_start["kernel"][cst.tg_id][op] += trace[op]
+                            vcache_tile_group_stat_start["kernel"][cst.tg_id][op] = trace[op]
                 else:
                     for op in self.vcache_all_ops:
                         vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
@@ -1610,7 +1607,7 @@ class VanillaStatsParser:
                     if (vcache_stat_end["kernel"][cur_vcache]['global_ctr'] < trace['global_ctr']):
                         for op in self.vcache_all_ops:
                             vcache_stat_end["kernel"][cur_vcache][op] = trace[op]
-                            vcache_tile_group_stat_end["kernel"][cst.tg_id][op] += trace[op]
+                            vcache_tile_group_stat_end["kernel"][cst.tg_id][op] = trace[op]
                 else:
                     for op in self.vcache_all_ops:
                         vcache_stat_end["kernel"][cur_vcache][op] = trace[op]
@@ -1618,8 +1615,15 @@ class VanillaStatsParser:
                 tag_seen[cst.tag][cur_vcache] = False;
 
 
-                vcache_stat["kernel"][cur_vcache] += vcache_stat_end["kernel"][cur_vcache] - vcache_stat_start["kernel"][cur_vcache]
-                
+
+        # Generate vcache stats for every tag and every 
+        # vcache bank by subtracting the start stat from
+        # the end stat of that vcache bank and that tag
+        for tag in tags:
+            for vcache in vcaches:
+                vcache_stat[tag][vcache] = vcache_stat_end[tag][vcache] - vcache_stat_start[tag][vcache]
+
+
 
         # Generate all tile group vcache stats by subtracting start time from end time
         for tag in tags:
