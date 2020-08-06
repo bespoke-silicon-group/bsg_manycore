@@ -40,6 +40,22 @@ template <int BARRIER_X_DIM>
 class bsg_row_barrier {
 private:
 
+        // The initialization assignments here have no effect if the
+        // barrier is instantiated at global scope (as is recommended
+        // practice)
+
+        // When the barrier is declared at global scope _local_alert
+        // and _done_list are located in the .bss.dmem section.
+        
+        // These are initialized to 0 by the bsg_manycore_loader,
+        // which sets all data in the bss section to 0 (as per ELF
+        // specification
+        // refspecs.linuxbase.org/LSB_3.0.0/LSB-PDA/LSB-PDA/specialsections.html)
+
+        // IF the location of _local_alsert and _done_list changes in
+        // the linker sections (e.g. to DRAM, for some reason) they
+        // MUST be initialized to 0 to work correctly.
+        
     volatile unsigned int  _local_alert = 0;
     volatile unsigned char _done_list[ BARRIER_X_DIM ] = {0};
 
