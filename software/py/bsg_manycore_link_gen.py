@@ -166,7 +166,7 @@ class bsg_manycore_link_gen:
       ['.eh_frame'         , ['.eh_frame','.eh_frame*']],
       ['.striped.data.dmem', ['.striped.data']],
       ['.rodata.dram'      , ['.rodata','.rodata*']],
-      ['.dram'             , ['.dram','.dram.*', '.*']],
+      ['.dram'             , ['.dram','.dram.*']],
       ]
 
     sections = "SECTIONS {\n\n"
