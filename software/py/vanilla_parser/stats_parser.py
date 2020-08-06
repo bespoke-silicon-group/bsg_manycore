@@ -152,10 +152,10 @@ class VanillaStatsParser:
                }
 
 
-    print_format = {"tg_timing_header": type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "tg_timing_data"  : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
-                    "timing_header"   : type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
-                    "tile_timing_data": type_fmt["cord"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+    print_format = {"tg_timing_header": type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                    "tg_timing_data"  : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
+                    "timing_header"   : type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + "\n",
+                    "tile_timing_data": type_fmt["cord"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "timing_data"     : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
 
                     "vcache_timing_header": type_fmt["name"]   + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]   + "\n",
@@ -171,11 +171,11 @@ class VanillaStatsParser:
                     "bubble_data"     : type_fmt["name"]       + type_fmt["int"]  + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "miss_header"     : type_fmt["name"]       + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + "\n",
                     "miss_data"       : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["percent"]   + "\n",
-                    "tag_header"      : type_fmt["name-short"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"] + type_fmt["type"]  + type_fmt["type"] + "\n",
-                    "tag_data"        : type_fmt["name-short"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]  + type_fmt["float"] + type_fmt["percent"] + "\n",
-                    "tag_separator"   : '-' * 83 + ' ' * 2     + type_fmt["tag"]  + ' ' * 2 + '-' * 83 + "\n",
-                    "start_lbreak"    : '=' *182 + "\n",
-                    "end_lbreak"      : '=' *182 + "\n\n",
+                    "tag_header"      : type_fmt["name-short"] + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"] + type_fmt["type"]  + type_fmt["type"]  + type_fmt["type"]    + "\n",
+                    "tag_data"        : type_fmt["name-short"] + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]  + type_fmt["float"] + type_fmt["float"] + type_fmt["percent"] + "\n",
+                    "tag_separator"   : '-' * 93 + ' ' * 2     + type_fmt["tag"]  + ' ' * 2 + '-' * 93 + "\n",
+                    "start_lbreak"    : '=' *202 + "\n",
+                    "end_lbreak"      : '=' *202 + "\n\n",
                    }
 
 
@@ -212,7 +212,7 @@ class VanillaStatsParser:
         self.all_ops = []
 
         # Parse input file's header to generate a list of all types of operations
-        self.stats, self.instrs, self.misses, self.stalls, self.bubbles = self.parse_header(vanilla_input_file)
+        self.stats, self.instrs, self.flops, self.misses, self.stalls, self.bubbles = self.parse_header(vanilla_input_file)
 
 
         # bubbles that are  a bubble in the Integer pipeline "caused" by
@@ -265,7 +265,7 @@ class VanillaStatsParser:
             # If the victim cache stats file is found 
             if os.path.exists(vcache_input_file):
                 # Parse vcache input file's header to generate a list of all types of operations
-                self.vcache_stats, self.vcache_instrs, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
+                self.vcache_stats, self.vcache_instrs, self.vcache_flops, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
         
                 # Create a list of all types of opertaions for iteration
                 self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
@@ -328,6 +328,7 @@ class VanillaStatsParser:
                                      ,"Aggr Total Cycles"
                                      ,"Abs Total Cycles"
                                      ,"IPC"
+                                     ,"FLOPS/Cycle"
                                      ,"    % of Kernel Cycles")
         self.__print_stat(stat_file, "start_lbreak")
 
@@ -342,6 +343,7 @@ class VanillaStatsParser:
                                              ,self.manycore_stat[tag]["global_ctr"]
                                              ,self.manycore_stat[tag]["cycle_parallel_cnt"]
                                              ,(np.float64(self.manycore_stat[tag]["instr_total"]) / self.manycore_stat[tag]["global_ctr"])
+                                             ,(np.float64(self.manycore_stat[tag]["flop_total"]) / self.manycore_stat[tag]["global_ctr"])
                                              ,np.float64(100 * self.manycore_stat[tag]["global_ctr"]) / self.manycore_stat["kernel"]["global_ctr"])
         self.__print_stat(stat_file, "end_lbreak")
         return
@@ -365,6 +367,7 @@ class VanillaStatsParser:
                                      ,"Aggr Total Cycles"
                                      ,"Abs Total Cycles"
                                      ,"IPC"
+                                     ,"FLOPS/Cycle"
                                      ,"    % of Kernel Cycles")
         self.__print_stat(stat_file, "start_lbreak")
 
@@ -379,6 +382,7 @@ class VanillaStatsParser:
                                              ,tile_group_stat[tag][tg_id]["global_ctr"]
                                              ,tile_group_stat[tag][tg_id]["cycle_parallel_cnt"]
                                              ,(np.float64(tile_group_stat[tag][tg_id]["instr_total"]) / tile_group_stat[tag][tg_id]["global_ctr"])
+                                             ,(np.float64(tile_group_stat[tag][tg_id]["flop_total"]) / tile_group_stat[tag][tg_id]["global_ctr"])
                                              ,(np.float64(100 * tile_group_stat[tag][tg_id]["global_ctr"]) / tile_group_stat["kernel"][tg_id]["global_ctr"]))
         self.__print_stat(stat_file, "end_lbreak")
         return
@@ -399,6 +403,7 @@ class VanillaStatsParser:
                                      ,"Aggr Total Cycles"
                                      ,"Abs Total Cycles"
                                      ,"IPC"
+                                     ,"FLOPS/Cycle"
                                      ,"    % of Kernel Cycles")
         self.__print_stat(stat_file, "start_lbreak")
 
@@ -413,6 +418,7 @@ class VanillaStatsParser:
                                              ,tile_stat[tag][tile]["global_ctr"]
                                              ,tile_stat[tag][tile]["global_ctr"]
                                              ,(np.float64(tile_stat[tag][tile]["instr_total"]) / tile_stat[tag][tile]["global_ctr"])
+                                             ,(np.float64(tile_stat[tag][tile]["flop_total"]) / tile_stat[tag][tile]["global_ctr"])
                                              ,(np.float64(100 * tile_stat[tag][tile]["global_ctr"]) / tile_stat["kernel"][tile]["global_ctr"]))
         self.__print_stat(stat_file, "end_lbreak")
         return
@@ -431,6 +437,7 @@ class VanillaStatsParser:
                                          ,(self.tile_group_stat[tag][tg_id]["global_ctr"])
                                          ,(self.tile_group_stat[tag][tg_id]["cycle_parallel_cnt"])
                                          ,(np.float64(self.tile_group_stat[tag][tg_id]["instr_total"]) / self.tile_group_stat[tag][tg_id]["global_ctr"])
+                                         ,(np.float64(self.tile_group_stat[tag][tg_id]["flop_total"]) / self.tile_group_stat[tag][tg_id]["global_ctr"])
                                          ,(np.float64(100.0 * self.tile_group_stat[tag][tg_id]["global_ctr"]) / self.manycore_stat[tag]["global_ctr"])
                                          ,(np.float64(100.0 * self.tile_group_stat[tag][tg_id]["global_ctr"]) / self.tile_group_stat["kernel"][tg_id]["global_ctr"]))
 
@@ -439,7 +446,8 @@ class VanillaStatsParser:
                                      ,(self.manycore_stat[tag]["instr_total"])
                                      ,(self.manycore_stat[tag]["global_ctr"])
                                      ,(self.manycore_stat[tag]["cycle_parallel_cnt"])
-                                     ,(self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["global_ctr"])
+                                     ,(np.float64(self.manycore_stat[tag]["instr_total"]) / self.manycore_stat[tag]["global_ctr"])
+                                     ,(np.float64(self.manycore_stat[tag]["flop_total"]) / self.manycore_stat[tag]["global_ctr"])
                                      ,(np.float64(100 * self.manycore_stat[tag]["instr_total"]) / self.manycore_stat[tag]["instr_total"])
                                      ,(np.float64(100 * self.manycore_stat[tag]["global_ctr"]) / self.manycore_stat["kernel"]["global_ctr"]))
         return
@@ -454,6 +462,7 @@ class VanillaStatsParser:
                                      ,"Aggr Total Cycles"
                                      ,"Abs Total Cycle"
                                      ,"IPC"
+                                     ,"FLOPS/Cycle"
                                      ,"   TG / Tag-Total (%)"
                                      ,"   TG / Kernel-Total(%)")
         self.__print_stat(stat_file, "start_lbreak")
@@ -477,6 +486,7 @@ class VanillaStatsParser:
                               ,(tile_stat[tag][tile]["instr_total"])
                               ,(tile_stat[tag][tile]["global_ctr"])
                               ,(np.float64(tile_stat[tag][tile]["instr_total"]) / tile_stat[tag][tile]["global_ctr"])
+                              ,(np.float64(tile_stat[tag][tile]["flop_total"]) / tile_stat[tag][tile]["global_ctr"])
                               ,(100 * tile_stat[tag][tile]["global_ctr"] / manycore_stat[tag]["global_ctr"])
                               ,(100 * np.float64(tile_stat[tag][tile]["global_ctr"]) / tile_stat["kernel"][tile]["global_ctr"]))
 
@@ -493,7 +503,14 @@ class VanillaStatsParser:
     # Prints manycore timing stats per tile group for all tags 
     def __print_manycore_stats_tile_timing(self, stat_file, header, tiles, manycore_stat, tile_stat):
         stat_file.write(header + "\n")
-        self.__print_stat(stat_file, "timing_header", "Relative Tile Coordinate (Y,X)", "Instructions", "Cycles", "IPC", "   Tile / Tag-Total (%)", "   Tile / Kernel-Total(%)")
+        self.__print_stat(stat_file, "timing_header"
+                                     ,"Relative Tile Coordinate (Y,X)"
+                                     ,"Instructions"
+                                     ,"Cycles"
+                                     ,"IPC"
+                                     ,"FLOPS/Cycle"
+                                     ,"   Tile / Tag-Total (%)"
+                                     ,"   Tile / Kernel-Total(%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in manycore_stat.keys():
             if(manycore_stat[tag]["global_ctr"]):
@@ -573,6 +590,7 @@ class VanillaStatsParser:
                                      ,(tile_group_stat[tag][tg_id]["global_ctr"])
                                      ,(tile_group_stat[tag][tg_id]["cycle_parallel_cnt"])
                                      ,(np.float64(tile_group_stat[tag][tg_id]["instr_total"]) / tile_group_stat[tag][tg_id]["global_ctr"])
+                                     ,(np.float64(tile_group_stat[tag][tg_id]["flop_total"]) / tile_group_stat[tag][tg_id]["global_ctr"])
                                      ,(100 * tile_group_stat[tag][tg_id]["global_ctr"] / manycore_stat[tag]["global_ctr"])
                                      ,(100 * np.float64(tile_group_stat[tag][tg_id]["instr_total"]) / tile_group_stat["kernel"][tg_id]["instr_total"]))
         return
@@ -591,6 +609,7 @@ class VanillaStatsParser:
                                      ,"Aggr Total Cycles"
                                      ,"Abs Total Cycle"
                                      ,"IPC"
+                                     ,"FLOPS/Cycle"
                                      ,"   TG / Tag-Total (%)"
                                      ,"   TG / Kernel-Total(%)")
         self.__print_stat(stat_file, "start_lbreak")
@@ -614,6 +633,7 @@ class VanillaStatsParser:
                                      ,(tile_stat[tag][tile]["instr_total"])
                                      ,(tile_stat[tag][tile]["global_ctr"])
                                      ,(np.float64(tile_stat[tag][tile]["instr_total"]) / tile_stat[tag][tile]["global_ctr"])
+                                     ,(np.float64(tile_stat[tag][tile]["flop_total"]) / tile_stat[tag][tile]["global_ctr"])
                                      ,(np.float64(100 * tile_stat[tag][tile]["global_ctr"]) / manycore_stat[tag]["global_ctr"])
                                      ,(np.float64(100 * tile_stat[tag][tile]["global_ctr"]) / tile_stat["kernel"][tile]["global_ctr"]))
 
@@ -623,7 +643,14 @@ class VanillaStatsParser:
     # print timing stats for each tile in a separate file for all tags 
     def __print_per_tile_stats_timing(self, stat_file, header, tile, manycore_stat, tile_stat):
         stat_file.write(header + "\n")
-        self.__print_stat(stat_file, "timing_header", "Relative Tile Coordinate (Y,X)", "instr", "cycle", "IPC", "    Tile / Tag-Total (%)", "    Tile / Kernel-Total (%)")
+        self.__print_stat(stat_file, "timing_header"
+                                     ,"Relative Tile Coordinate (Y,X)"
+                                     ,"instr"
+                                     ,"cycle"
+                                     ,"IPC"
+                                     ,"FLOPS/Cycle"
+                                     ,"    Tile / Tag-Total (%)"
+                                     ,"    Tile / Kernel-Total (%)")
         self.__print_stat(stat_file, "start_lbreak")
         for tag in tile_stat.keys():
             if(tile_stat[tag][tile]["global_ctr"]):
@@ -1466,11 +1493,15 @@ class VanillaStatsParser:
                 # for each tile group by subtracting the earliest start cycle from the latest end cycle 
                 tile_group_cycle_parallel_cnt[tag][tg_id] = tile_group_cycle_parallel_latest_end[tag][tg_id] - tile_group_cycle_parallel_earliest_start[tag][tg_id]
 
-       # Generate total stats for each tile by summing all stats 
+        # Generate total stats for each tile by summing all stats 
         for tag in tags:
             for tile in tiles:
                 for instr in self.instrs:
                     tile_stat[tag][tile]["instr_total"] += tile_stat[tag][tile][instr]
+                for flop in self.flops:
+                    tile_stat[tag][tile]["flop_total"] += tile_stat[tag][tile][flop]
+                # Count fused multiply add twice as it is two instructions
+                tile_stat[tag][tile]["flop_total"] += tile_stat[tag][tile]["instr_fmadd"]
                 for stall in self.stalls:
                     tile_stat[tag][tile]["stall_total"] += tile_stat[tag][tile][stall]
                 for bubble in self.bubbles:
@@ -1485,6 +1516,10 @@ class VanillaStatsParser:
             for tg_id in range(num_tile_groups[tag]):
                 for instr in self.instrs:
                     tile_group_stat[tag][tg_id]["instr_total"] += tile_group_stat[tag][tg_id][instr]
+                for flop in self.flops:
+                    tile_group_stat[tag][tg_id]["flop_total"] += tile_group_stat[tag][tg_id][flop]
+                # Count fused multiply add twice as it is two instructions
+                tile_group_stat[tag][tg_id]["flop_total"] += tile_group_stat[tag][tg_id]["instr_fmadd"]
                 for stall in self.stalls:
                     tile_group_stat[tag][tg_id]["stall_total"] += tile_group_stat[tag][tg_id][stall]
                 for bubble in self.bubbles:
@@ -1503,7 +1538,7 @@ class VanillaStatsParser:
         self.stalls  += ["stall_total"]
         self.bubbles += ["bubble_total"]
         self.misses  += ["miss_total"]
-        self.all_ops += ["instr_total", "stall_total", "bubble_total", "miss_total", "hit_total"]
+        self.all_ops += ["instr_total", "flop_total", "stall_total", "bubble_total", "miss_total", "hit_total"]
 
         return num_tile_groups, tile_group_stat, tile_stat, manycore_cycle_parallel_cnt
 
@@ -1743,6 +1778,7 @@ class VanillaStatsParser:
     def parse_header(self, f):
         # Generate lists of stats/instruction/miss/stall names
         instrs  = []
+        flops   = []
         misses  = []
         stalls  = []
         bubbles = []
@@ -1752,6 +1788,8 @@ class VanillaStatsParser:
       
             header = rdr.fieldnames
             for item in header:
+                if (item.startswith('instr_f')):
+                    flops += [item]
                 if (item.startswith('instr_')):
                     if (not item == 'instr_total'):
                         instrs += [item]
@@ -1764,7 +1802,7 @@ class VanillaStatsParser:
                 else:
                     stats += [item]
 
-        return (stats, instrs, misses, stalls, bubbles)
+        return (stats, instrs, flops, misses, stalls, bubbles)
 
 
 # parses input arguments
