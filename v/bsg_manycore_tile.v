@@ -6,20 +6,20 @@
 module bsg_manycore_tile
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }
   import bsg_manycore_pkg::*;
-  #(parameter dmem_size_p = "inv"
-    , parameter vcache_size_p ="inv"
-    , parameter icache_entries_p = "inv"
-    , parameter icache_tag_width_p = "inv"
-    , parameter x_cord_width_p = "inv"
-    , parameter y_cord_width_p = "inv"
-    , parameter num_tiles_x_p="inv"
-    , parameter num_tiles_y_p="inv"
+  #(parameter dmem_size_p = 1024
+    , parameter vcache_size_p =2048
+    , parameter icache_entries_p = 1024
+    , parameter icache_tag_width_p = 12
+    , parameter x_cord_width_p = 4
+    , parameter y_cord_width_p = 4
+    , parameter num_tiles_x_p= 16
+    , parameter num_tiles_y_p= 9
     
-    , parameter data_width_p = "inv"
-    , parameter addr_width_p = "inv"
+    , parameter data_width_p = 32
+    , parameter addr_width_p = 28
 
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_sets_p="inv"
+    , parameter vcache_block_size_in_words_p=8
+    , parameter vcache_sets_p=64
 
     , localparam dirs_lp = 4
 
@@ -32,6 +32,9 @@ module bsg_manycore_tile
 
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+
+    , parameter fwd_packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , parameter rev_packet_width_lp = `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
   )
   (
     input clk_i
@@ -40,8 +43,48 @@ module bsg_manycore_tile
     , input  [link_sif_width_lp-1:0][S:W] link_in
     , output [link_sif_width_lp-1:0][S:W] link_out
 
+    // tile coordinate
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
+
+
+    // FAST LINK
+    // { E2, E1, E0, W2, W1, W0 }
+
+
+    // fast link fwd
+    , input  [2:0][fwd_packet_width_lp-1:0] fast_link_fwd_east_data_i
+    , input  [2:0]                          fast_link_fwd_east_v_i
+    , output [2:0]                          fast_link_fwd_east_ready_o
+
+    , output [2:0][fwd_packet_width_lp-1:0] fast_link_fwd_east_data_o
+    , output [2:0]                          fast_link_fwd_east_v_o
+    , input  [2:0]                          fast_link_fwd_east_ready_i
+
+    , input  [2:0][fwd_packet_width_lp-1:0] fast_link_fwd_west_data_i
+    , input  [2:0]                          fast_link_fwd_west_v_i
+    , output [2:0]                          fast_link_fwd_west_ready_o
+
+    , output [2:0][fwd_packet_width_lp-1:0] fast_link_fwd_west_data_o
+    , output [2:0]                          fast_link_fwd_west_v_o
+    , input  [2:0]                          fast_link_fwd_west_ready_i
+
+    // fast link rev
+    , input  [2:0][rev_packet_width_lp-1:0] fast_link_rev_east_data_i
+    , input  [2:0]                          fast_link_rev_east_v_i
+    , output [2:0]                          fast_link_rev_east_ready_o
+
+    , output [2:0][rev_packet_width_lp-1:0] fast_link_rev_east_data_o
+    , output [2:0]                          fast_link_rev_east_v_o
+    , input  [2:0]                          fast_link_rev_east_ready_i
+
+    , input  [2:0][rev_packet_width_lp-1:0] fast_link_rev_west_data_i
+    , input  [2:0]                          fast_link_rev_west_v_i
+    , output [2:0]                          fast_link_rev_west_ready_o
+
+    , output [2:0][rev_packet_width_lp-1:0] fast_link_rev_west_data_o
+    , output [2:0]                          fast_link_rev_west_v_o
+    , input  [2:0]                          fast_link_rev_west_ready_i
   );
 
   logic [link_sif_width_lp-1:0] proc_link_sif_li;
@@ -120,5 +163,62 @@ module bsg_manycore_tile
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
   );
+
+
+
+  // fast link fwd
+  assign fast_link_fwd_west_v_o[0]      =   fast_link_fwd_east_v_i[2];
+  assign fast_link_fwd_west_data_o[0]   =   fast_link_fwd_east_data_i[2];
+  assign fast_link_fwd_east_ready_o[2]  =   fast_link_fwd_west_ready_i[0];
+
+  assign fast_link_fwd_west_v_o[1]      =   fast_link_fwd_east_v_i[0];
+  assign fast_link_fwd_west_data_o[1]   =   fast_link_fwd_east_data_i[0];
+  assign fast_link_fwd_east_ready_o[0]  =   fast_link_fwd_west_ready_i[1];
+
+  assign fast_link_fwd_west_v_o[2]      =   fast_link_fwd_east_v_i[1];
+  assign fast_link_fwd_west_data_o[2]   =   fast_link_fwd_east_data_i[1];
+  assign fast_link_fwd_east_ready_o[1]  =   fast_link_fwd_west_ready_i[2];
+
+  assign fast_link_fwd_east_v_o[2]      =   fast_link_fwd_west_v_i[1];
+  assign fast_link_fwd_east_data_o[2]   =   fast_link_fwd_west_data_i[1];
+  assign fast_link_fwd_west_ready_o[1]  =   fast_link_fwd_east_ready_i[2];
+
+  assign fast_link_fwd_east_v_o[1]      =   fast_link_fwd_west_v_i[0];
+  assign fast_link_fwd_east_data_o[1]   =   fast_link_fwd_west_data_i[0];
+  assign fast_link_fwd_west_ready_o[0]  =   fast_link_fwd_east_ready_i[1];
+
+  assign fast_link_fwd_east_v_o[0]      =   fast_link_fwd_west_v_i[2];
+  assign fast_link_fwd_east_data_o[0]   =   fast_link_fwd_west_data_i[2];
+  assign fast_link_fwd_west_ready_o[2]  =   fast_link_fwd_east_ready_i[0];
+
+
+
+  // fast link rev
+  assign fast_link_rev_west_v_o[0]      =   fast_link_rev_east_v_i[2];
+  assign fast_link_rev_west_data_o[0]   =   fast_link_rev_east_data_i[2];
+  assign fast_link_rev_east_ready_o[2]  =   fast_link_rev_west_ready_i[0];
+
+  assign fast_link_rev_west_v_o[1]      =   fast_link_rev_east_v_i[0];
+  assign fast_link_rev_west_data_o[1]   =   fast_link_rev_east_data_i[0];
+  assign fast_link_rev_east_ready_o[0]  =   fast_link_rev_west_ready_i[1];
+
+  assign fast_link_rev_west_v_o[2]      =   fast_link_rev_east_v_i[1];
+  assign fast_link_rev_west_data_o[2]   =   fast_link_rev_east_data_i[1];
+  assign fast_link_rev_east_ready_o[1]  =   fast_link_rev_west_ready_i[2];
+
+  assign fast_link_rev_east_v_o[2]      =   fast_link_rev_west_v_i[1];
+  assign fast_link_rev_east_data_o[2]   =   fast_link_rev_west_data_i[1];
+  assign fast_link_rev_west_ready_o[1]  =   fast_link_rev_east_ready_i[2];
+
+  assign fast_link_rev_east_v_o[1]      =   fast_link_rev_west_v_i[0];
+  assign fast_link_rev_east_data_o[1]   =   fast_link_rev_west_data_i[0];
+  assign fast_link_rev_west_ready_o[0]  =   fast_link_rev_east_ready_i[1];
+
+  assign fast_link_rev_east_v_o[0]      =   fast_link_rev_west_v_i[2];
+  assign fast_link_rev_east_data_o[0]   =   fast_link_rev_west_data_i[2];
+  assign fast_link_rev_west_ready_o[2]  =   fast_link_rev_east_ready_i[0];
+
+
+
 
 endmodule
