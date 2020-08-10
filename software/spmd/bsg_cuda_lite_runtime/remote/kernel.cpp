@@ -1,6 +1,21 @@
-// This kernel adds 2 vectors to demonstrate how the placement of
-// __restrict affects code generation. 
+// This kernel performs saxpy to demonstrate how the placement of
+// __remote affects code generation.
 
+// NOTE: 
+
+// __remote is NOT SUPPORTED in C++ WITH GCC.
+
+// Our goal is to optimize saxpy (Scalar * X Plus Y) by unrolling it
+// by a factor of 4 to increase performance. Performance gains can be
+// attributed to two effects: 
+
+// 1) Increasing the distance between load and use instructions to
+// hide DRAM latency, by informing the compiler about the latency of
+// (remote) loads
+
+// 2) Reduce loop control overhead.
+
+// In this set of examples we will use the __remote annotation 
 // Our goal is to optimize vector add, and unroll it by a factor of 4
 // to improve performance by 1) Issuing blocks of loads to hide latency
 // 2) Reduce loop control overhead.
@@ -15,7 +30,7 @@
 
 #include <bsg_manycore.h>
 
-void vec_add(float  *  A, float  *  B, float *C, float alpha) {
+void vec_add(float  *A, float  *B, float *C, float alpha) {
         float s = 0;
         UNROLL(4)
         for(int i = 0;  i < 16; ++i) {
