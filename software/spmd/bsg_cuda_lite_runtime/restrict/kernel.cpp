@@ -1,9 +1,9 @@
 // This kernel performs saxpy to demonstrate how the placement of
-// __restrict affects code generation.
+// bsg_attr_noalias affects code generation.
 
 // NOTE: 
 
-// __restrict is NOT FULLY SUPPORTED IN LLVM. It works for 1D array
+// bsg_attr_noalias is NOT FULLY SUPPORTED IN LLVM. It works for 1D array
 // accesses, but your mileage may vary with anything more complex.
 
 
@@ -30,7 +30,7 @@
 // previous iteration to increase the instruction distance between
 // load and use.
 
-// Using __restrict is one of TWO critical steps to utilizing
+// Using bsg_attr_noalias is one of TWO critical steps to utilizing
 // non-blocking loads effectively in the manycore architecture.
 
 // For the second critical step see kernel.cpp in the remote
@@ -42,7 +42,7 @@
 
 extern "C"
 void saxpy(float  *  A, float  *  B, float *C, float alpha) {
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * A[i] + B[i];
         }
@@ -57,7 +57,7 @@ and B, so loop iterations are not overlapped
 
 void saxpy(float  *  A, float  *  B, float *C, float alpha) {
  250:	00000693          	li	x13,0
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
  254:	00860893          	addi	x17,x12,8
  258:	00c58593          	addi	x11,x11,12
@@ -99,7 +99,7 @@ void saxpy(float  *  A, float  *  B, float *C, float alpha) {
 
 extern "C"
 void saxpy_const(float const * const A, float const * const B, float * const C, float alpha) {
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * A[i] + B[i];
         }
@@ -113,7 +113,7 @@ Result: This produces the same assembly as saxpy
 
 void saxpy_const(float const * const A, float const * const B, float * const C, float alpha) {
  2cc:	00000693          	li	x13,0
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
  2d0:	00860893          	addi	x17,x12,8
  2d4:	00c58593          	addi	x11,x11,12
@@ -154,8 +154,8 @@ void saxpy_const(float const * const A, float const * const B, float * const C, 
 */
 
 extern "C"
-void saxpy_restrict(float * __restrict A, float * __restrict B, float * __restrict C, float alpha) {
-        UNROLL(4)
+void saxpy_noalias(float * bsg_attr_noalias A, float * bsg_attr_noalias B, float * bsg_attr_noalias C, float alpha) {
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * A[i] + B[i];
         }
@@ -167,9 +167,9 @@ Flags: -O2 --target=riscv32 -march=rv32imaf -mabi=ilp32f -ffast-math -ffp-contra
 
 Result: The compiler can now overlap iterations, because the pointers do not alias
 
-void saxpy_restrict(float * __restrict A, float * __restrict B, float * __restrict C, float alpha) {
+void saxpy_noalias(float * bsg_attr_noalias A, float * bsg_attr_noalias B, float * bsg_attr_noalias C, float alpha) {
  348:	00000693          	li	x13,0
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
  34c:	00860893          	addi	x17,x12,8
  350:	00c58593          	addi	x11,x11,12
@@ -203,14 +203,14 @@ void saxpy_restrict(float * __restrict A, float * __restrict B, float * __restri
                 C[i] = alpha * A[i] + B[i];
  3b8:	00062227          	fsw	f0,4(x12) // End of Iteration 3
         for(int i = 0;  i < 16; ++i) {
- 3bc:	fb0690e3          	bne	x13,x16,35c <saxpy_restrict+0x14>
+ 3bc:	fb0690e3          	bne	x13,x16,35c <saxpy_noalias+0x14>
         }
 }
  3c0:	00008067          	ret
 */
 
 
-// Use caution when applying __restrict to multi-dimensional
+// Use caution when applying bsg_attr_noalias to multi-dimensional
 // arrays. The code generation can vary between compiler. In this
 // example LLVM produces worse code than GCC.
 
@@ -221,37 +221,37 @@ void saxpy_restrict(float * __restrict A, float * __restrict B, float * __restri
 // In this example, A is a 2x16 array. We will perform saxpy using
 // A[0] as x and A[1] as y.
 
-// In saxpy_restrict_A, below, __restrict is only applied to the first
+// In saxpy_noalias_A, below, bsg_attr_noalias is only applied to the first
 // dimension of A. The compiler still believes that writes to C affect
 // data in the second dimension of A and cannot reorder instructions.
 
-// In saxpy_A_restrict, below, __restrict is only applied to the
-// second dimension of A. similar to saxpy_restrict_A, the compiler
+// In saxpy_A_noalias, below, bsg_attr_noalias is only applied to the
+// second dimension of A. similar to saxpy_noalias_A, the compiler
 // sill believes that writes to C can affect the pointer in the first
 // dimension of A and cannot reorder instructions
 
-// __restrict must be applied to each pointer to be inferred
+// bsg_attr_noalias must be applied to each pointer to be inferred
 // correctly. 
 
 extern "C"
-void saxpy_restrict_A(float * __restrict * A, float * __restrict C, float alpha) {
-        UNROLL(4)
+void saxpy_noalias_A(float * bsg_attr_noalias * A, float * bsg_attr_noalias C, float alpha) {
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * A[0][i] + A[1][i];
         }
 }
 
 extern "C"
-void saxpy_A_restrict(float ** __restrict A, float * __restrict C, float alpha) {
-        UNROLL(4)
+void saxpy_A_noalias(float ** bsg_attr_noalias A, float * bsg_attr_noalias C, float alpha) {
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * A[0][i] + A[1][i];
         }
 }
 
 extern "C"
-void saxpy_restrict_restrict(float * __restrict * __restrict A, float * __restrict C, float alpha) {
-        UNROLL(4)
+void saxpy_noalias_noalias(float * bsg_attr_noalias * bsg_attr_noalias A, float * bsg_attr_noalias C, float alpha) {
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * A[0][i] + A[1][i];
         }
@@ -263,22 +263,22 @@ void saxpy_restrict_restrict(float * __restrict * __restrict A, float * __restri
 Compiler: LLVM
 Flags: -O2 --target=riscv32 -march=rv32imaf -mabi=ilp32f -ffast-math -ffp-contract=fast -march=rv32imaf -fno-common
 
-Result (saxpy_restrict_A): The compiler cannot guarantee that stores
+Result (saxpy_noalias_A): The compiler cannot guarantee that stores
 to C do not affect the second dimension of A, so loop iterations are
 not overlapped
 
-Result (saxpy_A_restrict): The compiler cannot guarantee that stores
+Result (saxpy_A_noalias): The compiler cannot guarantee that stores
 to C do not affect the first dimension of A, so loop iterations are
 not overlapped
 
-Result (saxpy_restrict_restrict): In LLVM, the compiler does not infer
+Result (saxpy_noalias_noalias): In LLVM, the compiler does not infer
 correct aliasing. GCC does (see below)
 
-void saxpy_restrict_A(float * __restrict * A, float * __restrict C, float alpha) {
+void saxpy_noalias_A(float * bsg_attr_noalias * A, float * bsg_attr_noalias C, float alpha) {
  3c4:	00000613          	li	x12,0
  3c8:	00052683          	lw	x13,0(x10)
  3cc:	00452703          	lw	x14,4(x10)
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
  3d0:	00858893          	addi	x17,x11,8
  3d4:	00c70593          	addi	x11,x14,12
@@ -312,16 +312,16 @@ void saxpy_restrict_A(float * __restrict * A, float * __restrict C, float alpha)
                 C[i] = alpha * A[0][i] + A[1][i];
  43c:	00052227          	fsw	f0,4(x10) // End of Iteration 3
         for(int i = 0;  i < 16; ++i) {
- 440:	fb0610e3          	bne	x12,x16,3e0 <saxpy_restrict_A+0x1c>
+ 440:	fb0610e3          	bne	x12,x16,3e0 <saxpy_noalias_A+0x1c>
         }
 }
  444:	00008067          	ret
 
-void saxpy_A_restrict(float ** __restrict A, float * __restrict C, float alpha) {
+void saxpy_A_noalias(float ** bsg_attr_noalias A, float * bsg_attr_noalias C, float alpha) {
  448:	00000613          	li	x12,0
  44c:	00052683          	lw	x13,0(x10)
  450:	00452703          	lw	x14,4(x10)
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
  454:	00858893          	addi	x17,x11,8
  458:	00c70593          	addi	x11,x14,12
@@ -355,7 +355,7 @@ void saxpy_A_restrict(float ** __restrict A, float * __restrict C, float alpha) 
                 C[i] = alpha * A[0][i] + A[1][i];
  4c0:	00052227          	fsw	f0,4(x10) // End of Iteration 3
         for(int i = 0;  i < 16; ++i) {
- 4c4:	fb0610e3          	bne	x12,x16,464 <saxpy_A_restrict+0x1c>
+ 4c4:	fb0610e3          	bne	x12,x16,464 <saxpy_A_noalias+0x1c>
         }
 }
  4c8:	00008067          	ret
@@ -364,11 +364,11 @@ void saxpy_A_restrict(float ** __restrict A, float * __restrict C, float alpha) 
 /*
 
 
-void saxpy_restrict_restrict(float const * __restrict * __restrict A, float * __restrict C, float alpha) {
+void saxpy_noalias_noalias(float const * bsg_attr_noalias * bsg_attr_noalias A, float * bsg_attr_noalias C, float alpha) {
  4cc:	00000613          	li	x12,0
  4d0:	00052683          	lw	x13,0(x10)
  4d4:	00452703          	lw	x14,4(x10)
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
  4d8:	00858893          	addi	x17,x11,8
  4dc:	00c70593          	addi	x11,x14,12
@@ -402,15 +402,15 @@ void saxpy_restrict_restrict(float const * __restrict * __restrict A, float * __
                 C[i] = alpha * A[0][i] + A[1][i];
  544:	00052227          	fsw	f0,4(x10) // End of Iteration 3
         for(int i = 0;  i < 16; ++i) {
- 548:	fb0610e3          	bne	x12,x16,4e8 <saxpy_restrict_restrict+0x1c>
+ 548:	fb0610e3          	bne	x12,x16,4e8 <saxpy_noalias_noalias+0x1c>
         }
 }
  54c:	00008067          	ret
 
 Compiler: GCC
 
-void saxpy_restrict_restrict(float * __restrict * __restrict A, float * __restrict C, float alpha) {
-        UNROLL(4)
+void saxpy_noalias_noalias(float * bsg_attr_noalias * bsg_attr_noalias A, float * bsg_attr_noalias C, float alpha) {
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * A[0][i] + A[1][i];
  530:	00052803          	lw	x16,0(x10)
@@ -452,7 +452,7 @@ void saxpy_restrict_restrict(float * __restrict * __restrict A, float * __restri
  5b8:	00632027          	fsw	f6,0(x6) // End of Iteration 3
         for(int i = 0;  i < 16; ++i) {
  5bc:	01078793          	addi	x15,x15,16
- 5c0:	f9c790e3          	bne	x15,x28,540 <saxpy_restrict_restrict+0x10>
+ 5c0:	f9c790e3          	bne	x15,x28,540 <saxpy_noalias_noalias+0x10>
         }
 }
  5c4:	00008067          	ret
@@ -465,8 +465,8 @@ void saxpy_restrict_restrict(float * __restrict * __restrict A, float * __restri
 // elements long.
 
 extern "C"
-void saxpy_restrict_flat(float * __restrict A, float * __restrict C, float alpha) {
-        UNROLL(4)
+void saxpy_noalias_flat(float * bsg_attr_noalias A, float * bsg_attr_noalias C, float alpha) {
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * A[i] + A[i + 16];
         }
@@ -478,8 +478,8 @@ Flags: -O2 --target=riscv32 -march=rv32imaf -mabi=ilp32f -ffast-math -ffp-contra
 
 Result: Loads and stores are reordered correctly. 
 
-void saxpy_restrict_flat(float * __restrict A, float * __restrict C, float alpha) {
-        UNROLL(4)
+void saxpy_noalias_flat(float * bsg_attr_noalias A, float * bsg_attr_noalias C, float alpha) {
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
  550:	04050513          	addi	x10,x10,64
  554:	00800613          	li	x12,8
@@ -511,7 +511,7 @@ void saxpy_restrict_flat(float * __restrict A, float * __restrict C, float alpha
                 C[i] = alpha * A[i] + A[i + 16];
  5b4:	0007a227          	fsw	f0,4(x15)  /// End of Iteration 3
         for(int i = 0;  i < 16; ++i) {
- 5b8:	fad612e3          	bne	x12,x13,55c <saxpy_restrict_flat+0xc>
+ 5b8:	fad612e3          	bne	x12,x13,55c <saxpy_noalias_flat+0xc>
         }
 }
  5bc:	00008067          	ret
@@ -520,26 +520,26 @@ void saxpy_restrict_flat(float * __restrict A, float * __restrict C, float alpha
 
 
 // Care should also be taken when functions could be inlined. In the
-// example below, saxpy_inline calls saxpy_restrict (above), but
-// saxpy_restrict is small enough that it is inlined. 
+// example below, saxpy_inline calls saxpy_noalias (above), but
+// saxpy_noalias is small enough that it is inlined. 
 
-// Inlining saxpy_restrict discards __restrict qualifiers. The
+// Inlining saxpy_noalias discards bsg_attr_noalias qualifiers. The
 // assembly generated does not reorder loads and stores. 
 
 // To prevent inlining, use __attribute__ ((noinline)) on functions
-// that you do not want to be inlined (saxpy_restrict in this example)
+// that you do not want to be inlined (saxpy_noalias in this example)
 
 extern "C"
 void saxpy_inline(float * A, float * B, float * C, float alpha) {
-        saxpy_restrict(A, B, C, alpha);
+        saxpy_noalias(A, B, C, alpha);
 }
 
 /*
 Compiler: LLVM
 Flags: -O2 --target=riscv32 -march=rv32imaf -mabi=ilp32f -ffast-math -ffp-contract=fast -march=rv32imaf -fno-common
 
-Result: Inlining discards __restrict qualifiers, if the caller does
-not have __restrict qualifiers.
+Result: Inlining discards bsg_attr_noalias qualifiers, if the caller does
+not have bsg_attr_noalias qualifiers.
 
 extern "C"
 void saxpy_inline(float * A, float * B, float * C, float alpha) {
@@ -581,20 +581,20 @@ void saxpy_inline(float * A, float * B, float * C, float alpha) {
  614:   00c32027                fsw     f12,0(x6)
         for(int i = 0;  i < 16; ++i) {
  618:   f9e790e3                bne     x15,x30,598 <saxpy_inline+0x8>
-        saxpy_restrict(A, B, C, alpha);
+        saxpy_noalias(A, B, C, alpha);
 }
  61c:   00008067                ret
  */
 
 
-// The example below also works in both LLVM and GCC, as long as A has the __restrict qualifier
+// The example below also works in both LLVM and GCC, as long as A has the bsg_attr_noalias qualifier
 // extern "C"
 
 extern "C"
-void saxpy_cast(float * __restrict A, float * __restrict C, float alpha) {
+void saxpy_cast(float * bsg_attr_noalias A, float * bsg_attr_noalias C, float alpha) {
 
         float (&xy)[2][16] = *reinterpret_cast<float (*)[2][16]> (A);
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * xy[0][i] + xy[1][i];
         }
@@ -605,15 +605,15 @@ void saxpy_cast(float * __restrict A, float * __restrict C, float alpha) {
 Compiler: LLVM
 Flags: -O2 --target=riscv32 -march=rv32imaf -mabi=ilp32f -ffast-math -ffp-contract=fast -march=rv32imaf -fno-common
 
-Result: The compiler keeps the __restrict qualifier through casts, if
+Result: The compiler keeps the bsg_attr_noalias qualifier through casts, if
 used in the same method.
 
 
-void saxpy_cast(float * __restrict A, float * __restrict C, float alpha) {
+void saxpy_cast(float * bsg_attr_noalias A, float * bsg_attr_noalias C, float alpha) {
  63c:   00000613                li      x12,0
 
         float (&xy)[2][16] = *reinterpret_cast<float (*)[2][16]> (A);
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
  640:   00858593                addi    x11,x11,8
  644:   04c50513                addi    x10,x10,76
