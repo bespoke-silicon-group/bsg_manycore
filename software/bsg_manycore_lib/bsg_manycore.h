@@ -155,7 +155,7 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 // on average.
 #ifdef __clang__
 #define bsg_attr_remote __attribute__((address_space(1)))
-#elif defined(__GNUC__) && defined(__cplusplus)
+#elif defined(__GNUC__) && !defined(__cplusplus)
 #define bsg_attr_remote remote
 #else
 #define bsg_attr_remote
