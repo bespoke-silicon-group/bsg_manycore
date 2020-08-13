@@ -1,3 +1,13 @@
+/**
+ * Sanity test to verify non-blocking load keywords:
+ *
+ *   - bsg_attr_remote : Declares pointers as remote pointers.
+ *   - bsg_attr_noalias: Hints compiler that data pointed by the pointer
+ *                       will not be aliased by other pointers within the
+ *                       pointer's scope.
+ *   - bsg_unroll      : Applies compiler specific unroll pragma.
+ */
+
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
