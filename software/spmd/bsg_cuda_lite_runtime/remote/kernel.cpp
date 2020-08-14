@@ -1,9 +1,9 @@
 // This kernel performs saxpy to demonstrate how the placement of
-// __remote affects code generation.
+// bsg_attr_remote affects code generation.
 
 // NOTE: 
 
-// __remote is NOT SUPPORTED in C++ WITH GCC.
+// bsg_attr_remote is NOT SUPPORTED in C++ WITH GCC.
 
 // Our goal is to optimize saxpy (Scalar * X Plus Y) by unrolling it
 // by a factor of 4 to increase performance. Performance gains can be
@@ -15,7 +15,7 @@
 
 // 2) Reduce loop control overhead.
 
-// In this set of examples we will use the __remote annotation 
+// In this set of examples we will use the bsg_attr_remote annotation 
 // Our goal is to optimize vector add, and unroll it by a factor of 4
 // to improve performance by 1) Issuing blocks of loads to hide latency
 // 2) Reduce loop control overhead.
@@ -32,7 +32,7 @@
 
 void vec_add(float  *A, float  *B, float *C, float alpha) {
         float s = 0;
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * A[i] + B[i];
         }
@@ -49,7 +49,7 @@ correct cost model for the data in DRAM.
 void vec_add(float  *  A, float  *  B, float *C, float alpha) {
  250:   00000693                li      x13,0
         float s = 0;
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
  254:   00860893                addi    x17,x12,8
  258:   00c58593                addi    x11,x11,12
@@ -90,9 +90,9 @@ void vec_add(float  *  A, float  *  B, float *C, float alpha) {
 */
 
 
-void vec_add_remote(float __remote * A, float __remote * B, float __remote * C, float alpha) {
+void vec_add_remote(float bsg_attr_remote * A, float bsg_attr_remote * B, float bsg_attr_remote * C, float alpha) {
         float s = 0;
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] = alpha * A[i] + B[i];
         }
@@ -105,10 +105,10 @@ Flags: -O2 --target=riscv32 -march=rv32imaf -mabi=ilp32f -ffast-math -ffp-contra
 Result: The aggregates blocks of load instructions far from their use
 sitebut cannot reorder them to create larger blocks.
 
-void vec_add_remote(float __remote * A, float __remote * B, float __remote * C, float alpha) {
+void vec_add_remote(float bsg_attr_remote * A, float bsg_attr_remote * B, float bsg_attr_remote * C, float alpha) {
  2cc:   00000693                li      x13,0
         float s = 0;
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
  2d0:   00860893                addi    x17,x12,8
  2d4:   00c58593                addi    x11,x11,12
@@ -149,18 +149,18 @@ void vec_add_remote(float __remote * A, float __remote * B, float __remote * C, 
 */
 
 
-void vec_add_remote_restrict(float __remote * __restrict A, float __remote * __restrict B, float __remote * __restrict C, float alpha) {
+void vec_add_remote_restrict(float bsg_attr_remote * __restrict A, float bsg_attr_remote * __restrict B, float bsg_attr_remote * __restrict C, float alpha) {
         float s = 0;
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] += alpha * A[i] + B[i];
         }
 }
 
 
-void vec_add_remote_restrict_const(float __remote const * __restrict const A, float __remote const * __restrict const B, float __remote * __restrict const C, float alpha) {
+void vec_add_remote_restrict_const(float bsg_attr_remote const * __restrict const A, float bsg_attr_remote const * __restrict const B, float bsg_attr_remote * __restrict const C, float alpha) {
         float s = 0;
-        UNROLL(4)
+        bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
                 C[i] += alpha * A[i] + B[i];
         }
