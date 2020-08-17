@@ -5,7 +5,7 @@ bsg_tiles_Y = 1
 all: main.run
 
 
-OBJECT_FILES=main.o
+OBJECT_FILES=main.o vec_add.o vec_sub.o
 
 include ../Makefile.include
 
