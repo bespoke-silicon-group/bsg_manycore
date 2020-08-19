@@ -771,8 +771,10 @@ module vanilla_core
   
   // IF -> ID
   //
+  wire stall_id = stall | stall_depend | stall_fp ;
+
   always_comb begin
-    if (stall | stall_depend | stall_fp) begin
+    if (stall_id) begin
       id_n = id_r;
     end
     else begin
@@ -809,10 +811,10 @@ module vanilla_core
 
   // regfile read
   //
-  assign int_rf_read_rs1 = id_n.decode.op_reads_rf1 & ~(stall | stall_depend | stall_fp);
-  assign int_rf_read_rs2 = id_n.decode.op_reads_rf2 & ~(stall | stall_depend | stall_fp);
-  assign float_rf_read_rs1 = id_n.decode.op_reads_fp_rf1 & ~(stall | stall_depend | stall_fp);
-  assign float_rf_read_rs2 = id_n.decode.op_reads_fp_rf2 & ~(stall | stall_depend | stall_fp);
+  assign int_rf_read_rs1 = id_n.decode.op_reads_rf1 & ~stall_id;
+  assign int_rf_read_rs2 = id_n.decode.op_reads_rf2 & ~stall_id;
+  assign float_rf_read_rs1 = id_n.decode.op_reads_fp_rf1 & ~stall_id;
+  assign float_rf_read_rs2 = id_n.decode.op_reads_fp_rf2 & ~stall_id;
 
   // scoreboard
   //

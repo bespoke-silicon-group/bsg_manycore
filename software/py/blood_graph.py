@@ -28,8 +28,8 @@ from itertools import chain
 
 class BloodGraph:
     # for generating the key
-    _KEY_WIDTH  = 256
-    _KEY_HEIGHT = 256
+    _KEY_WIDTH  = 512
+    _KEY_HEIGHT = 512
     _DEFAULT_START_CYCLE = 0 
     _DEFAULT_END_CYCLE   = 500000
 
@@ -41,26 +41,35 @@ class BloodGraph:
         self.abstract = abstract
 
         # List of types of stalls incurred by the core 
-        self.stalls_list   = {"stall_depend",
-                              "stall_depend_local_load",
-                              "stall_depend_remote_load_dram",
+        self.stalls_list   = ["stall_depend_remote_load_dram",
+                              "stall_depend_local_remote_load_dram",
                               "stall_depend_remote_load_global",
                               "stall_depend_remote_load_group",
-                              "stall_depend_local_remote_load_dram",
                               "stall_depend_local_remote_load_global",
                               "stall_depend_local_remote_load_group",
+                              "stall_lr_aq",
+                              "stall_depend",
+                              "stall_depend_local_load",
                               "stall_fp_local_load",
                               "stall_fp_remote_load",
                               "stall_force_wb",
-                              "stall_ifetch_wait",
                               "stall_icache_store",
-                              "stall_lr_aq",
-                              "stall_md",
                               "stall_remote_req",
-                              "stall_local_flw" }
+                              "stall_local_flw",
+                              "stall_amo_aq",
+                              "stall_amo_rl",
+                              "icache_miss",
+                              "stall_ifetch_wait",
+                              "bubble_icache",
+                              "bubble_branch_mispredict",
+                              "bubble_fp_op",
+                              "bubble",
+                              "stall_md" ]
+ 
+
 
         # List of types of integer instructions executed by the core 
-        self.instr_list    = {"local_ld",
+        self.instr_list    = ["local_ld",
                               "local_st",
                               "remote_ld_dram",
                               "remote_ld_global",
@@ -123,10 +132,13 @@ class BloodGraph:
                               "divu",
                               "rem",
                               "remu",
-                              "fence" }
+                              "fence",
+                              "amoswap",
+                              "amoor",
+                              "unknown" ]
 
         # List of types of floating point instructions executed by the core
-        self.fp_instr_list = {"fadd",
+        self.fp_instr_list = ["fadd",
                               "fsub",
                               "fmul",
                               "fsgnj",
@@ -143,66 +155,87 @@ class BloodGraph:
                               "fcvt_w_s",
                               "fcvt_wu_s",
                               "fclass",
-                              "fmv_x_w" }
-
-        # List of unknown operation by the core 
-        self.unknown_list  = {"unknown"}
+                              "fmv_x_w" ]
 
 
         # Coloring scheme for different types of operations
         # For detailed mode 
         # i_cache miss is treated the same is stall_ifetch_wait
-        self.detailed_stall_bubble_color = { "stall_depend"                           : (0x00, 0x00, 0x80), ## navy blue
-                                             "stall_depend_local_load"                : (0x00, 0xff, 0xff), ## cyan
-                                             "stall_depend_remote_load_dram"          : (0xff, 0x00, 0x00), ## red
-                                             "stall_depend_remote_load_global"        : (0x00, 0xff, 0x00), ## green
-                                             "stall_depend_remote_load_group"         : (0x00, 0xff, 0x00), ## green
-                                             "stall_depend_local_remote_load_dram"    : (0xaa, 0x00, 0x00), ## dark red
-                                             "stall_depend_local_remote_load_global"  : (0x00, 0x55, 0x00), ## dark green
-                                             "stall_depend_local_remote_load_group"   : (0x00, 0x55, 0x00), ## dark green
+        self.detailed_stall_bubble_color = {
+                                             "stall_depend_remote_load_dram"          : (0xff, 0x00, 0x00), ## red 
+                                             "stall_depend_local_remote_load_dram"    : (0xaa, 0x00, 0x00), ## dark red 
+
+                                             "stall_depend_remote_load_global"        : (0x00, 0xff, 0x00), ## green 
+                                             "stall_depend_remote_load_group"         : (0x00, 0xff, 0x00), ## green 
+                                             "stall_depend_local_remote_load_global"  : (0x00, 0x55, 0x00), ## dark green 
+                                             "stall_depend_local_remote_load_group"   : (0x00, 0x55, 0x00), ## dark green 
+ 
+                                             "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray 
+
+                                             "stall_depend"                           : (0x00, 0x00, 0x80), ## navy blue 
+                                             "stall_depend_local_load"                : (0x00, 0xff, 0xff), ## cyan 
+
                                              "stall_fp_local_load"                    : (0x00, 0xaa, 0xff), ## dark cyan
                                              "stall_fp_remote_load"                   : (0x00, 0xaa, 0xff), ## dark cyan
+
                                              "stall_force_wb"                         : (0xff, 0x00, 0xff), ## pink
-                                             "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
-                                             "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
                                              "stall_icache_store"                     : (0x00, 0x55, 0xff), ## dark blue
-                                             "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray
-                                             "stall_md"                               : (0xff, 0xf0, 0xa0), ## light orange
                                              "stall_remote_req"                       : (0xff, 0xff, 0x00), ## yellow
                                              "stall_local_flw"                        : (0xff, 0xff, 0x80), ## light yellow
-                                             "bubble"                                 : (0x00, 0x00, 0x00)  ## black
+                                             "stall_amo_aq"                           : (0x00, 0x00, 0x00), ## black #
+                                             "stall_amo_rl"                           : (0x00, 0x00, 0x00), ## black #
+
+                                             "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
+                                             "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
+                                             "bubble_icache"                          : (0x00, 0x00, 0xff), ## blue
+
+                                             "bubble_branch_mispredict"               : (0x00, 0x00, 0x00), ## black #
+                                             "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black #
+                                             "bubble"                                 : (0x00, 0x00, 0x00), ## black #
+
+                                             "stall_md"                               : (0xff, 0xf0, 0xa0), ## light orange
                                            }
         self.detailed_unified_instr_color    =                                          (0xff, 0xff, 0xff)  ## white
         self.detailed_unified_fp_instr_color =                                          (0xff, 0xaa, 0xff)  ## light pink
-        self.detailed_unknown_color  =                                                  (0xff, 0x55, 0x00)  ## orange
 
 
         # Coloring scheme for different types of operations
         # For abstract mode 
         # i_cache miss is treated the same is stall_ifetch_wait
-        self.abstract_stall_bubble_color = { "stall_depend"                           : (0x00, 0x00, 0x00), ## black
-                                             "stall_depend_local_load"                : (0x00, 0xff, 0xff), ## cyan
+        self.abstract_stall_bubble_color = { 
                                              "stall_depend_remote_load_dram"          : (0xff, 0x00, 0x00), ## red
+                                             "stall_depend_local_remote_load_dram"    : (0xff, 0x00, 0x00), ## red
+
                                              "stall_depend_remote_load_global"        : (0x00, 0xff, 0x00), ## green
                                              "stall_depend_remote_load_group"         : (0x00, 0xff, 0x00), ## green
-                                             "stall_depend_local_remote_load_dram"    : (0xff, 0x00, 0x00), ## red
                                              "stall_depend_local_remote_load_global"  : (0x00, 0xff, 0x00), ## green
                                              "stall_depend_local_remote_load_group"   : (0x00, 0xff, 0x00), ## green
+
+                                             "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray
+
+                                             "stall_depend"                           : (0x00, 0x00, 0x00), ## black
+                                             "stall_depend_local_load"                : (0x00, 0x00, 0x00), ## black
                                              "stall_fp_local_load"                    : (0x00, 0x00, 0x00), ## black
                                              "stall_fp_remote_load"                   : (0x00, 0x00, 0x00), ## black
                                              "stall_force_wb"                         : (0x00, 0x00, 0x00), ## black
+                                             "stall_icache_store"                     : (0x00, 0x00, 0x00), ## black
+                                             "stall_remote_req"                       : (0x00, 0x00, 0x00), ## black
+                                             "stall_local_flw"                        : (0x00, 0x00, 0x00), ## black
+                                             "stall_amo_aq"                           : (0x00, 0x00, 0x00), ## black
+                                             "stall_amo_rl"                           : (0x00, 0x00, 0x00), ## black
+
                                              "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
                                              "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
-                                             "stall_icache_store"                     : (0x00, 0x00, 0x00), ## black
-                                             "stall_lr_aq"                            : (0x40, 0x40, 0x40), ## dark gray
+                                             "bubble_icache"                          : (0x00, 0x00, 0xff), ## blue
+
+                                             "bubble_branch_mispredict"               : (0x00, 0x00, 0x00), ## black
+                                             "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black
+                                             "bubble"                                 : (0x00, 0x00, 0x00), ## black
+
                                              "stall_md"                               : (0xff, 0xff, 0xff), ## white
-                                             "stall_remote_req"                       : (0xff, 0xff, 0x00), ## yellow
-                                             "stall_local_flw"                        : (0x00, 0x00, 0x00), ## black
-                                             "bubble"                                 : (0x00, 0x00, 0x00)  ## black
                                            }
         self.abstract_unified_instr_color    =                                          (0xff, 0xff, 0xff)  ## white
         self.abstract_unified_fp_instr_color =                                          (0xff, 0xff, 0xff)  ## white
-        self.abstract_unknown_color  =                                                  (0xff, 0xff, 0xff)  ## white
 
 
 
@@ -211,12 +244,10 @@ class BloodGraph:
             self.stall_bubble_color     = self.abstract_stall_bubble_color
             self.unified_instr_color    = self.abstract_unified_instr_color
             self.unified_fp_instr_color = self.abstract_unified_instr_color
-            self.unknown_color          = self.abstract_unknown_color
         else:
             self.stall_bubble_color     = self.detailed_stall_bubble_color
             self.unified_instr_color    = self.detailed_unified_instr_color
             self.unified_fp_instr_color = self.detailed_unified_instr_color
-            self.unknown_color          = self.detailed_unknown_color
         return
 
   
@@ -258,10 +289,10 @@ class BloodGraph:
         # the current row position of our key
         yt = 0
         # for each color in stalls...
-        for (operation,color) in chain(self.stall_bubble_color.iteritems(),
+        for (operation,color) in chain([(stall_bubble, self.stall_bubble_color[stall_bubble]) for stall_bubble in self.stalls_list],
                                  [("unified_instr"    ,self.unified_instr_color),
-                                  ("unified_fp_instr" ,self.unified_fp_instr_color),
-                                  ("unknown"          ,self.unknown_color)]):
+                                  ("unified_fp_instr" ,self.unified_fp_instr_color)]):
+
             # get the font size
             (font_height,font_width) = font.getsize(operation)
             # draw a rectangle with color fill
@@ -325,8 +356,6 @@ class BloodGraph:
             self.pixel[col,row] = self.unified_instr_color
         elif trace["operation"] in self.fp_instr_list:
             self.pixel[col,row] = self.unified_fp_instr_color
-        elif trace["operation"] in self.unknown_list:
-            self.pixel[col,row] = self.unknown_color
         else:
             raise Exception('Invalid operation in vanilla operation trace log {}'.format(trace["operation"]))
         return
