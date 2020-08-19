@@ -323,16 +323,16 @@ module spmd_testbench;
   // vanilla core tracer
   //
   if (1) begin
-    bind vanilla_core vanilla_core_trace #(
-      .x_cord_width_p(x_cord_width_p)
-      ,.y_cord_width_p(y_cord_width_p)
-      ,.icache_tag_width_p(icache_tag_width_p)
-      ,.icache_entries_p(icache_entries_p)
-      ,.data_width_p(data_width_p)
-      ,.dmem_size_p(dmem_size_p)
-    ) vtrace (
-      .*
-    );
+    // bind vanilla_core vanilla_core_trace #(
+    //   .x_cord_width_p(x_cord_width_p)
+    //   ,.y_cord_width_p(y_cord_width_p)
+    //   ,.icache_tag_width_p(icache_tag_width_p)
+    //   ,.icache_entries_p(icache_entries_p)
+    //   ,.data_width_p(data_width_p)
+    //   ,.dmem_size_p(dmem_size_p)
+    // ) vtrace (
+    //   .*
+    // );
 
     bind vanilla_core instr_trace #(
       .x_cord_width_p(x_cord_width_p)
