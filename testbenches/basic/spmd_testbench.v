@@ -365,6 +365,16 @@ module spmd_testbench;
   );
 
 
+  int status;
+  int trace_arg;
+  logic trace_en;
+
+  initial begin
+    status = $value$plusargs("vanilla_trace_en=%d", trace_arg);
+    assign trace_en = (trace_arg == 1);
+  end
+
+
   bind vanilla_core vanilla_core_profiler #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -375,6 +385,7 @@ module spmd_testbench;
     ,.global_ctr_i($root.spmd_testbench.global_ctr)
     ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
     ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
+    ,.trace_en_i($root.spmd_testbench.trace_en)
   );
   
   bind bsg_cache vcache_profiler #(
