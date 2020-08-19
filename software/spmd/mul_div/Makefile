@@ -1,7 +1,7 @@
 
 bsg_tiles_X = 4
 bsg_tiles_Y = 4
-
+TRACE=1
 #########################################################
 #each bytes defines the core type
 # 00: vanilla core

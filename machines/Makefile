@@ -43,6 +43,8 @@ all: $(SIMV)
 		-f sv.include $(VCS_INCDIR) $(VCS_DEFINE) | tee -i $*/build-debug.log
 
 clean:
-	rm -rf csrc $(SIMV_DAIDIR)
-	rm -f $(SIMV) $(SIMV_DEBUG)
-	rm $(wildcard */*.log)
+	rm -rf csrc
+	rm -rf */*.log */*.daidir */simv */simv-debug
+	rm -rf stack.info.*
+	rm -f vc_hdrs.h
+
