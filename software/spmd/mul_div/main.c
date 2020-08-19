@@ -19,12 +19,15 @@ int print_value( unsigned int *p){
 int main()
 {
   bsg_set_tile_x_y();
+  bsg_cuda_print_stat_kernel_start();
 
   if(bsg_x == 0 && bsg_y == 0){
 
     mul_div_test(input);
     bsg_finish();
   }
+
+  bsg_cuda_print_stat_kernel_end();
 
   bsg_wait_while(1);
 }

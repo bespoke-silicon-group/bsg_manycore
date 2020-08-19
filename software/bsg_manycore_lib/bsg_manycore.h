@@ -103,7 +103,50 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 #define bsg_VAR_NAME_VALUE(var) "MANYCORE_EXPORT #define " #var " "  bsg_VALUE(var)
 
 
+//------------------------------------------------------
+// Print stat parameters and operations
+//------------------------------------------------------
+#define BSG_CUDA_PRINT_STAT_ID_STAT         0
+#define BSG_CUDA_PRINT_STAT_ID_START        1
+#define BSG_CUDA_PRINT_STAT_ID_END          2
+
+#define BSG_CUDA_PRINT_STAT_TAG_WIDTH       4
+#define BSG_CUDA_PRINT_STAT_TG_ID_WIDTH     14
+#define BSG_CUDA_PRINT_STAT_X_WIDTH         6
+#define BSG_CUDA_PRINT_STAT_Y_WIDTH         6
+#define BSG_CUDA_PRINT_STAT_TYPE_WIDTH      2
+
+#define BSG_CUDA_PRINT_STAT_TAG_TOTAL       0x0
+
+#define BSG_CUDA_PRINT_STAT_TAG_SHIFT       (0)                                                                 // 0
+#define BSG_CUDA_PRINT_STAT_TG_ID_SHIFT     (BSG_CUDA_PRINT_STAT_TAG_SHIFT   + BSG_CUDA_PRINT_STAT_TAG_WIDTH)   // 4
+#define BSG_CUDA_PRINT_STAT_X_SHIFT         (BSG_CUDA_PRINT_STAT_TG_ID_SHIFT + BSG_CUDA_PRINT_STAT_TG_ID_WIDTH) // 18
+#define BSG_CUDA_PRINT_STAT_Y_SHIFT         (BSG_CUDA_PRINT_STAT_X_SHIFT     + BSG_CUDA_PRINT_STAT_X_WIDTH)     // 24
+#define BSG_CUDA_PRINT_STAT_TYPE_SHIFT      (BSG_CUDA_PRINT_STAT_Y_SHIFT     + BSG_CUDA_PRINT_STAT_Y_WIDTH)     // 30
+
+#define BSG_CUDA_PRINT_STAT_TAG_MASK        ((1 << BSG_CUDA_PRINT_STAT_TAG_WIDTH) - 1)    // 0xF
+#define BSG_CUDA_PRINT_STAT_TG_ID_MASK      ((1 << BSG_CUDA_PRINT_STAT_TG_ID_WIDTH) - 1)  // 0x3FFF
+#define BSG_CUDA_PRINT_STAT_X_MASK          ((1 << BSG_CUDA_PRINT_STAT_X_WIDTH) - 1)      // 0x3F
+#define BSG_CUDA_PRINT_STAT_Y_MASK          ((1 << BSG_CUDA_PRINT_STAT_Y_WIDTH) - 1)      // 0x3F
+
+
 #define bsg_print_stat(tag) do { bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xd0c); *ptr = tag; } while (0)
+
+
+#define bsg_cuda_print_stat_type(tag,stat_type) do {                                                              \
+    int val = ( (stat_type << BSG_CUDA_PRINT_STAT_TYPE_SHIFT)                                                |    \
+                (((__bsg_grp_org_y + __bsg_y) & BSG_CUDA_PRINT_STAT_Y_MASK) << BSG_CUDA_PRINT_STAT_Y_SHIFT)  |    \
+                (((__bsg_grp_org_x + __bsg_x) & BSG_CUDA_PRINT_STAT_X_MASK) << BSG_CUDA_PRINT_STAT_X_SHIFT)  |    \
+                ((__bsg_tile_group_id & BSG_CUDA_PRINT_STAT_TG_ID_MASK) << BSG_CUDA_PRINT_STAT_TG_ID_SHIFT)  |    \
+                ((tag & BSG_CUDA_PRINT_STAT_TAG_MASK) << BSG_CUDA_PRINT_STAT_TAG_SHIFT) );                        \
+    bsg_print_stat(val);                                                                                          \
+} while (0)
+
+#define bsg_cuda_print_stat(tag)          bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_STAT)
+#define bsg_cuda_print_stat_start(tag)    bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_START)
+#define bsg_cuda_print_stat_end(tag)      bsg_cuda_print_stat_type(tag,BSG_CUDA_PRINT_STAT_ID_END)
+#define bsg_cuda_print_stat_kernel_start() bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_START)
+#define bsg_cuda_print_stat_kernel_end()   bsg_cuda_print_stat_type(BSG_CUDA_PRINT_STAT_TAG_TOTAL,BSG_CUDA_PRINT_STAT_ID_END)
 
 
 #endif

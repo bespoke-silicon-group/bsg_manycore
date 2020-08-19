@@ -14,6 +14,7 @@ int __bsg_grid_dim_x = -1;
 int __bsg_grid_dim_y = -1;
 int __bsg_tile_group_id_x = -1;
 int __bsg_tile_group_id_y = -1;
+int __bsg_tile_group_id = -1;
 
 void bsg_set_tile_x_y()
 {
@@ -48,4 +49,5 @@ void bsg_set_tile_x_y()
   __bsg_grid_dim_y = 1;
   __bsg_tile_group_id_x = 0;
   __bsg_tile_group_id_y = 0;
+  __bsg_tile_group_id = 0;
 }
