@@ -27,6 +27,10 @@ module vanilla_core_profiler
 
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter reg_els_lp = RV32_reg_els_gp
+
+    // determines who prints the csv header.
+    , parameter header_print_x_cord_p="inv"
+    , parameter header_print_y_cord_p="inv"
   )
   (
     input clk_i
@@ -792,7 +796,7 @@ module vanilla_core_profiler
     #1; // we need to wait for one time unit so that my_x_i becomes a known value.
 
     // the first tile opens the logfile and writes the csv header.
-    if ((my_x_i == x_cord_width_p'(0)) & (my_y_i == y_cord_width_p'(1))) begin
+    if ((my_x_i == x_cord_width_p'(header_print_x_cord_p)) & (my_y_i == y_cord_width_p'(header_print_y_cord_p))) begin
       fd = $fopen(logfile_lp, "w");
       $fwrite(fd, "time,x,y,pc_r,pc_n,tag,global_ctr,cycle,");
       $fwrite(fd, "instr_total,instr_fadd,instr_fsub,instr_fmul,");

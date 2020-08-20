@@ -382,6 +382,8 @@ module spmd_testbench;
     ,.icache_entries_p(icache_entries_p)
     ,.data_width_p(data_width_p)
     ,.dmem_size_p(dmem_size_p)
+    ,.header_print_x_cord_p(0)
+    ,.header_print_y_cord_p(1)
   ) vcore_prof (
     .*
     ,.global_ctr_i($root.spmd_testbench.global_ctr)
@@ -392,6 +394,8 @@ module spmd_testbench;
   
   bind bsg_cache vcache_profiler #(
     .data_width_p(data_width_p)
+    ,.addr_width_p(addr_width_p)
+    ,.header_print_p("vcache[0]")
   ) vcache_prof (
     .*
     ,.global_ctr_i($root.spmd_testbench.global_ctr)
