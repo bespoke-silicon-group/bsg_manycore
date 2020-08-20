@@ -147,38 +147,41 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 //------------------------------------------------------
 
 // Pointers to remote locations (non-scratchpad) could be qualified
-// with __remote. Doing so would tell compiler to assign a different
-// address space to the contents of those pointers and latencies of
-// memory accesses would be considered as 20 cycles. For example,
-// `__remote float* foo;` essentially declares foo as `__remote float*`
-// type, and the compiler assumes loads from `foo` to take 20 cycles
-// on average.
+// with bsg_attr_remote to tell the compiler to assign a remote
+// address space to the data pointed by those pointers. Latencies of
+// memory accesses from those pointers would be considered as 20 cycles.
+// `bsg_attr_remote` acts as a type qualifier for pointers and globals,
+// and `bsg_attr_remote float* foo;` essentially declares foo as
+// `bsg_attr_remote float*` type. Compiler assumes that loads from `foo`
+// would have 20 cycle latency on average.
 #ifdef __clang__
-#define __remote __attribute__((address_space(1)))
+#define bsg_attr_remote __attribute__((address_space(1)))
+#elif defined(__GNUC__) && !defined(__cplusplus)
+#define bsg_attr_remote __remote
 #else
-#define __remote
+#define bsg_attr_remote
 #endif
 
 // This macro is to protect the code from uncertainity with
 // restrict/__restrict/__restrict__. Apparently some Newlib headers
-// define __restrict as nothing, but __restrict__ seems to work. So,
-// we can use NOALIAS as our main way to resolve pointer alaising
-// and possibly in future we could have `#ifdef`s here to make sure
-// we use the right one in each circumstance.
-#define NOALIAS __restrict__
+// define __restrict as nothing, but __restrict__ seems to work. Hence,
+// we use bsg_attr_noalias as our main way to resolve pointer alaising
+// and possibly in the future, we could have `#ifdef`s here to make sure
+// we use the right one under each circumstance.
+#define bsg_attr_noalias __restrict__
 
-// Unrolling pragma is slightly different for GCC and Clang. So, this
-// defines a wrapper macro UNROLL to automatically select the right 
-// pragma. Using this, a loop can be unrolled like this:
+// Unrolling pragma is slightly different for GCC and Clang. We define
+// the wrapper macro `bsg_unroll` to automatically select the right pragma.
+// Using this, a loop can be unrolled like this:
 //
-// UNROLL(16) for(size_t idx = start; idx < end; idx++) { 
+// bsg_unroll(16) for(size_t idx = start; idx < end; idx++) {
 //   ...
 // }
 #define PRAGMA(x) _Pragma(#x)
 #ifdef __clang__
-#define UNROLL(n) PRAGMA(unroll n)
+#define bsg_unroll(n) PRAGMA(unroll n)
 #else
-#define UNROLL(n) PRAGMA(GCC unroll n)
+#define bsg_unroll(n) PRAGMA(GCC unroll n)
 #endif
 
 
