@@ -4,19 +4,26 @@
 #   vanilla_core execution visualizer.
 # 
 #   input: vanilla_operation_trace.csv.log
-#   output: bitmap file (blood.bmp)
+#          vanilla_stats.csv (for timing)
+#   output: blood graph file (blood_abstrat/detailed.png)
+#           blood graph key  (key_abstract/detailed.png)
 #
 #   @author tommy and borna
 #
 #   How to use:
-#   python blood_graph.py --cycle {start_cycle@end_cycle}  
-#                         --abstract {optional} --input {vanilla_operation_trace.csv.log}
+#   python blood_graph.py --input {vanilla_operation_trace.csv}
+#                         --timing-stat {vanilla_stats.csv}
+#                         --abstract {optional}
+#                         --generate-key {optional}
+#                         --cycle {start_cycle@end_cycle} (deprecated)
 #
-#   ex) python blood_graph.py --cycle 6000000@15000000  
-#                             --abstract --input vanilla_operation_trace.csv.log
+#   ex) python blood_graph.py --input vanilla_operation_trace.csv
+#                             --timing-stat vanilla_stats.csv
+#                             --abstract --generate-key
 #
-#   {cycle}       start_cycle@end_cycle of execution
-#   {abstract}    used for abstract simplifed bloodgraph
+#   {timing-stat}  used for extracting the timing window for blood graph
+#   {abstract}     used for abstract simplifed bloodgraph
+#   {generate-key} also generates a color key for the blood graph
 
 
 import sys
@@ -30,14 +37,13 @@ class BloodGraph:
     # for generating the key
     _KEY_WIDTH  = 512
     _KEY_HEIGHT = 512
-    _DEFAULT_START_CYCLE = 0 
-    _DEFAULT_END_CYCLE   = 500000
+    _DEFAULT_START_CYCLE = 50000 
+    _DEFAULT_END_CYCLE   = 250000
 
     # default constructor
-    def __init__(self, start_cycle, end_cycle, abstract):
+    def __init__(self, timing_stats_file, abstract):
 
-        self.start_cycle = start_cycle
-        self.end_cycle = end_cycle
+        self.timing_stats_file = timing_stats_file
         self.abstract = abstract
 
         # List of types of stalls incurred by the core 
@@ -183,17 +189,17 @@ class BloodGraph:
                                              "stall_icache_store"                     : (0x00, 0x55, 0xff), ## dark blue
                                              "stall_remote_req"                       : (0xff, 0xff, 0x00), ## yellow
                                              "stall_local_flw"                        : (0xff, 0xff, 0x80), ## light yellow
-                                             "stall_amo_aq"                           : (0x00, 0x00, 0x00), ## black
-                                             "stall_amo_rl"                           : (0x00, 0x00, 0x00), ## black
+                                             "stall_amo_aq"                           : (0x8b, 0x45, 0x13), ## brown
+                                             "stall_amo_rl"                           : (0x8b, 0x45, 0x13), ## brown
 
                                              "icache_miss"                            : (0x00, 0x00, 0xff), ## blue
                                              "stall_ifetch_wait"                      : (0x00, 0x00, 0xff), ## blue
                                              "bubble_icache"                          : (0x00, 0x00, 0xff), ## blue
 
-                                             "bubble_branch_mispredict"               : (0x00, 0x00, 0x00), ## black
-                                             "bubble_jalr_mispredict"                 : (0x00, 0x00, 0x00), ## black
+                                             "bubble_branch_mispredict"               : (0x80, 0x00, 0x80), ## purple
+                                             "bubble_jalr_mispredict"                 : (0xff, 0xa5, 0x00), ## orange
                                              "bubble_fp_op"                           : (0x00, 0x00, 0x00), ## black
-                                             "bubble"                                 : (0x00, 0x00, 0x00), ## black
+                                             "bubble"                                 : (0x80, 0x00, 0x00), ## maroon
 
                                              "stall_md"                               : (0xff, 0xf0, 0xa0), ## light orange
                                            }
@@ -251,12 +257,43 @@ class BloodGraph:
             self.stall_bubble_color     = self.detailed_stall_bubble_color
             self.unified_instr_color    = self.detailed_unified_instr_color
             self.unified_fp_instr_color = self.detailed_unified_instr_color
+
+
+        # Parse timing stat file vanilla_stats.csv
+        # to gather start and end cycle of entire graph
+        self.timing_stats = []
+        try:
+            with open(self.timing_stats_file) as f:
+                csv_reader = csv.DictReader(f, delimiter=",")
+                for row in csv_reader:
+                    timing_stat = {}
+                    timing_stat["global_ctr"] = int(row["global_ctr"])
+                    timing_stat["time"] = int(row["time"])
+                    self.timing_stats.append(timing_stat)
+
+            # If there are at least two stats recovered from vanilla_stats.csv for start and end cycle
+            if (len(self.timing_stats) >= 2):
+                self.start_cycle = self.timing_stats[0]["global_ctr"]
+                self.end_cycle = self.timing_stats[-1]["global_ctr"]
+            else:
+                self.start_cycle = self._DEFAULT_START_CYCLE
+                self.end_cycle = self._DEFAULT_END_CYCLE
+            return
+
+        # If the vanilla_stats.csv file has not been given as input
+        # Use the default values for start and end cycles
+        except IOError as e:
+            self.start_cycle = self._DEFAULT_START_CYCLE
+            self.end_cycle = self._DEFAULT_END_CYCLE
+
         return
+
+
 
   
     # main public method
     def generate(self, input_file):
-        # parse vanilla_operation_trace.log
+        # parse vanilla_operation_trace.csv
         traces = []
         with open(input_file) as f:
             csv_reader = csv.DictReader(f, delimiter=",")
@@ -364,6 +401,8 @@ class BloodGraph:
         return
 
 
+# Deprecated: We no longer pass in the cycles by hand 
+# The appliation parses the start/end cycles from vanilla_stats.csv file
 # The action to take in two input arguments for start and 
 # end cycle of execution in the form of start_cycle@end_cycle
 class CycleAction(argparse.Action):
@@ -392,9 +431,11 @@ class CycleAction(argparse.Action):
 # Parse input arguments and options 
 def parse_args():  
     parser = argparse.ArgumentParser(description="Argument parser for blood_graph.py")
-    parser.add_argument("--input", default="vanilla_operation_trace.csv.log", type=str,
+    parser.add_argument("--input", default="vanilla_operation_trace.csv", type=str,
                         help="Vanilla operation log file")
-    parser.add_argument("--cycle", nargs='?', required=1, action=CycleAction, 
+    parser.add_argument("--timing-stats", default="vanilla_stats.csv", type=str,
+                        help="Vanilla stats log file")
+    parser.add_argument("--cycle", nargs='?', required=0, action=CycleAction, 
                         const = (str(BloodGraph._DEFAULT_START_CYCLE)+"@"+str(BloodGraph._DEFAULT_END_CYCLE)),
                         help="Cycle window of bloodgraph as start_cycle@end_cycle.")
     parser.add_argument("--abstract", default=False, action='store_true',
@@ -412,7 +453,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
   
-    bg = BloodGraph(args.start, args.end, args.abstract)
+    bg = BloodGraph(args.timing_stats, args.abstract)
     if not args.no_blood_graph:
         bg.generate(args.input)
     if args.generate_key:
