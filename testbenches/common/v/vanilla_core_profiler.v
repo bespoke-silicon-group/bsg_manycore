@@ -657,11 +657,11 @@ module vanilla_core_profiler
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
-      stat <= '0;
+      stat = '0;
     end
     else begin
       stat.cycle++;
-      stat.instr <= stat.instr + instr_inc + fp_instr_inc;
+      stat.instr = stat.instr + instr_inc + fp_instr_inc;
 
       if (fadd_inc) stat.fadd++;
       if (fsub_inc) stat.fsub++;
@@ -784,482 +784,559 @@ module vanilla_core_profiler
 
 
   // file logging
-  //
   localparam logfile_lp = "vanilla_stats.csv";
   localparam tracefile_lp = "vanilla_operation_trace.csv";
 
   integer fd, fd2;
   string header;
-
   initial begin
+     fd = $fopen(logfile_lp, "w");
+     $fwrite(fd,"");
+  end
 
-    #1; // we need to wait for one time unit so that my_x_i becomes a known value.
-
+  // stat printing
+  always @(negedge reset_i) begin      
     // the origin tile opens the logfile and writes the csv header.
     if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p))) begin
-      fd = $fopen(logfile_lp, "w");
-      $fwrite(fd, "time,x,y,pc_r,pc_n,tag,global_ctr,cycle,");
-      $fwrite(fd, "instr_total,instr_fadd,instr_fsub,instr_fmul,");
-      $fwrite(fd, "instr_fsgnj,instr_fsgnjn,instr_fsgnjx,");
-      $fwrite(fd, "instr_fmin,instr_fmax,instr_fcvt_s_w,instr_fcvt_s_wu,instr_fmv_w_x,");
-      $fwrite(fd, "instr_feq,instr_flt,instr_fle,");
-      $fwrite(fd, "instr_fcvt_w_s,instr_fcvt_wu_s,instr_fclass,instr_fmv_x_w,");
-      $fwrite(fd, "instr_local_ld,instr_local_st,");
-      $fwrite(fd, "instr_remote_ld_dram,instr_remote_ld_global,instr_remote_ld_group,");
-      $fwrite(fd, "instr_remote_st_dram,instr_remote_st_global,instr_remote_st_group,");
-      $fwrite(fd, "instr_local_flw,instr_local_fsw,");
-      $fwrite(fd, "instr_remote_flw,instr_remote_fsw,");
-      $fwrite(fd, "instr_lr,instr_lr_aq,instr_amoswap,instr_amoor,");
-      $fwrite(fd, "instr_beq,instr_bne,instr_blt,instr_bge,");
-      $fwrite(fd, "instr_bltu,instr_bgeu,instr_jalr,instr_jal,");
-      $fwrite(fd, "instr_sll,instr_slli,instr_srl,instr_srli,instr_sra,instr_srai,");
-      $fwrite(fd, "instr_add,instr_addi,instr_sub,instr_lui,instr_auipc,");
-      $fwrite(fd, "instr_xor,instr_xori,instr_or,instr_ori,");
-      $fwrite(fd, "instr_and,instr_andi,instr_slt,instr_slti,instr_sltu,instr_sltiu,");
-      $fwrite(fd, "instr_mul,instr_mulh,instr_mulhsu,instr_mulhu,");
-      $fwrite(fd, "instr_div,instr_divu,instr_rem,instr_remu,");
+      fd = $fopen(logfile_lp, "a");
+
+      $fwrite(fd, "time,");
+      $fwrite(fd, "x,");
+      $fwrite(fd, "y,");
+      $fwrite(fd, "pc_r,");
+      $fwrite(fd, "pc_n,");
+      $fwrite(fd, "tag,");
+      $fwrite(fd, "global_ctr,");
+      $fwrite(fd, "cycle,");
+
+      $fwrite(fd, "instr_total,");
+      $fwrite(fd, "instr_fadd,");
+      $fwrite(fd, "instr_fsub,");
+      $fwrite(fd, "instr_fmul,");
+
+      $fwrite(fd, "instr_fsgnj,");
+      $fwrite(fd, "instr_fsgnjn,");
+      $fwrite(fd, "instr_fsgnjx,");
+
+      $fwrite(fd, "instr_fmin,");
+      $fwrite(fd, "instr_fmax,");
+      $fwrite(fd, "instr_fcvt_s_w,");
+      $fwrite(fd, "instr_fcvt_s_wu,");
+      $fwrite(fd, "instr_fmv_w_x,");
+
+      $fwrite(fd, "instr_feq,");
+      $fwrite(fd, "instr_flt,");
+      $fwrite(fd, "instr_fle,");
+
+      $fwrite(fd, "instr_fcvt_w_s,");
+      $fwrite(fd, "instr_fcvt_wu_s,");
+      $fwrite(fd, "instr_fclass,");
+      $fwrite(fd, "instr_fmv_x_w,");
+
+      $fwrite(fd, "instr_local_ld,");
+      $fwrite(fd, "instr_local_st,");
+
+      $fwrite(fd, "instr_remote_ld_dram,");
+      $fwrite(fd, "instr_remote_ld_global,");
+      $fwrite(fd, "instr_remote_ld_group,");
+
+      $fwrite(fd, "instr_remote_st_dram,");
+      $fwrite(fd, "instr_remote_st_global,");
+      $fwrite(fd, "instr_remote_st_group,");
+
+      $fwrite(fd, "instr_local_flw,");
+      $fwrite(fd, "instr_local_fsw,");
+
+      $fwrite(fd, "instr_remote_flw,");
+      $fwrite(fd, "instr_remote_fsw,");
+
+      $fwrite(fd, "instr_lr,");
+      $fwrite(fd, "instr_lr_aq,");
+      $fwrite(fd, "instr_amoswap,");
+      $fwrite(fd, "instr_amoor,");
+
+      $fwrite(fd, "instr_beq,");
+      $fwrite(fd, "instr_bne,");
+      $fwrite(fd, "instr_blt,");
+      $fwrite(fd, "instr_bge,");
+
+      $fwrite(fd, "instr_bltu,");
+      $fwrite(fd, "instr_bgeu,");
+      $fwrite(fd, "instr_jalr,");
+      $fwrite(fd, "instr_jal,");
+
+      $fwrite(fd, "instr_sll,");
+      $fwrite(fd, "instr_slli,");
+      $fwrite(fd, "instr_srl,");
+      $fwrite(fd, "instr_srli,");
+      $fwrite(fd, "instr_sra,");
+      $fwrite(fd, "instr_srai,");
+
+      $fwrite(fd, "instr_add,");
+      $fwrite(fd, "instr_addi,");
+      $fwrite(fd, "instr_sub,");
+      $fwrite(fd, "instr_lui,");
+      $fwrite(fd, "instr_auipc,");
+
+      $fwrite(fd, "instr_xor,");
+      $fwrite(fd, "instr_xori,");
+      $fwrite(fd, "instr_or,");
+      $fwrite(fd, "instr_ori,");
+
+      $fwrite(fd, "instr_and,");
+      $fwrite(fd, "instr_andi,");
+      $fwrite(fd, "instr_slt,");
+      $fwrite(fd, "instr_slti,");
+      $fwrite(fd, "instr_sltu,");
+      $fwrite(fd, "instr_sltiu,");
+
+      $fwrite(fd, "instr_mul,");
+      $fwrite(fd, "instr_mulh,");
+      $fwrite(fd, "instr_mulhsu,");
+      $fwrite(fd, "instr_mulhu,");
+
+      $fwrite(fd, "instr_div,");
+      $fwrite(fd, "instr_divu,");
+      $fwrite(fd, "instr_rem,");
+      $fwrite(fd, "instr_remu,");
+
       $fwrite(fd, "instr_fence,");
-      $fwrite(fd, "miss_icache,miss_beq,miss_bne,miss_blt,miss_bge,miss_bltu,miss_bgeu,miss_jalr,");
-      $fwrite(fd, "stall_fp_remote_load,stall_fp_local_load,stall_depend,");
+
+      $fwrite(fd, "miss_icache,");
+      $fwrite(fd, "miss_beq,");
+      $fwrite(fd, "miss_bne,");
+      $fwrite(fd, "miss_blt,");
+      $fwrite(fd, "miss_bge,");
+      $fwrite(fd, "miss_bltu,");
+      $fwrite(fd, "miss_bgeu,");
+      $fwrite(fd, "miss_jalr,");
+
+      $fwrite(fd, "stall_fp_remote_load,");
+      $fwrite(fd, "stall_fp_local_load,");
+      $fwrite(fd, "stall_depend,");
+
       $fwrite(fd, "stall_depend_remote_load_dram,");
       $fwrite(fd, "stall_depend_remote_load_global,");
       $fwrite(fd, "stall_depend_remote_load_group,");
       $fwrite(fd, "stall_depend_local_load,");
-      $fwrite(fd, "stall_force_wb,stall_ifetch_wait,stall_icache_store,");
-      $fwrite(fd, "stall_lr_aq,stall_md,stall_remote_req,stall_local_flw,");
-      $fwrite(fd, "bubble_icache,bubble_branch_mispredict,bubble_jalr_mispredict,bubble_fp_op");
+
+      $fwrite(fd, "stall_force_wb,");
+      $fwrite(fd, "stall_ifetch_wait,");
+      $fwrite(fd, "stall_icache_store,");
+
+      $fwrite(fd, "stall_lr_aq,");
+      $fwrite(fd, "stall_md,");
+      $fwrite(fd, "stall_remote_req,");
+      $fwrite(fd, "stall_local_flw,");
+
+      $fwrite(fd, "bubble_icache,");
+      $fwrite(fd, "bubble_branch_mispredict,");
+      $fwrite(fd, "bubble_jalr_mispredict,");
+      $fwrite(fd, "bubble_fp_op");
+
       $fwrite(fd, "\n");
       $fclose(fd);
   
-
       if (trace_en_i) begin
         fd2 = $fopen(tracefile_lp, "w");
         $fwrite(fd2, "cycle,x,y,pc,operation\n");
         $fclose(fd2);
       end
 
+    end // if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p)))
+  end // always @ (my_x_i)
 
-    end
 
 
 
-    forever begin
-      @(negedge clk_i) begin
+  always @(negedge clk_i)  begin
 
-        if (~reset_i & trace_en_i) begin
-          fd2= $fopen(tracefile_lp, "a");
-          if (stall_depend_inc & ~stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
-            print_operation_trace(fd2, "stall_depend");
-          else if (stall_depend_inc & stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
-            print_operation_trace(fd2, "stall_depend_local_load");
-          else if (stall_depend_inc & ~stall_depend_local_load_inc & stall_depend_remote_load_inc) 
-            // stall_depend_remote_load has 3 types of dram, global, group
-            begin
-              if (stall_depend_remote_load_dram_inc)
-                print_operation_trace(fd2, "stall_depend_remote_load_dram");
-              else if (stall_depend_remote_load_global_inc)
-                print_operation_trace(fd2, "stall_depend_remote_load_global");
-              else if (stall_depend_remote_load_group_inc)
-                print_operation_trace(fd2, "stall_depend_remote_load_group");
-            end
-          else if (stall_depend_inc & stall_depend_local_load_inc & stall_depend_remote_load_inc)
-            // stall_depend_local_remote_load, the remote request has 3 types of dram, global, group
-            begin
-              if (stall_depend_remote_load_dram_inc)
-                print_operation_trace(fd2, "stall_depend_local_remote_load_dram");
-              else if (stall_depend_remote_load_global_inc)
-                print_operation_trace(fd2, "stall_depend_local_remote_load_global");
-              else if (stall_depend_remote_load_group_inc)
-                print_operation_trace(fd2, "stall_depend_local_remote_load_group");
-            end
-          else if (stall_fp_remote_load_inc)
-            print_operation_trace(fd2, "stall_fp_remote_load");
-          else if (stall_fp_local_load_inc)
-            print_operation_trace(fd2, "stall_fp_local_load");
-          else if (stall_force_wb_inc)
-            print_operation_trace(fd2, "stall_force_wb");
-          else if (stall_ifetch_wait)
-            print_operation_trace(fd2, "stall_ifetch_wait");
-          else if (stall_icache_store)
-            print_operation_trace(fd2, "stall_icache_store");
-          else if (stall_lr_aq)
-            print_operation_trace(fd2, "stall_lr_aq");
-          else if (stall_md)
-            print_operation_trace(fd2, "stall_md");
-          else if (stall_remote_req)
-            print_operation_trace(fd2, "stall_remote_req");
-          else if (stall_local_flw)
-            print_operation_trace(fd2, "stall_local_flw");
+    // trace logging
+    if (~reset_i & trace_en_i) begin
+      fd2 = $fopen(tracefile_lp, "a");
+
+      if (stall_depend_inc & ~stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
+        print_operation_trace(fd2, "stall_depend");
+      else if (stall_depend_inc & stall_depend_local_load_inc & ~stall_depend_remote_load_inc)
+        print_operation_trace(fd2, "stall_depend_local_load");
+      else if (stall_depend_inc & ~stall_depend_local_load_inc & stall_depend_remote_load_inc) 
+        // stall_depend_remote_load has 3 types of dram, global, group
+        begin
+          if (stall_depend_remote_load_dram_inc)
+            print_operation_trace(fd2, "stall_depend_remote_load_dram");
+          else if (stall_depend_remote_load_global_inc)
+            print_operation_trace(fd2, "stall_depend_remote_load_global");
+          else if (stall_depend_remote_load_group_inc)
+            print_operation_trace(fd2, "stall_depend_remote_load_group");
+        end
+      else if (stall_depend_inc & stall_depend_local_load_inc & stall_depend_remote_load_inc)
+        // stall_depend_local_remote_load, the remote request has 3 types of dram, global, group
+        begin
+          if (stall_depend_remote_load_dram_inc)
+            print_operation_trace(fd2, "stall_depend_local_remote_load_dram");
+          else if (stall_depend_remote_load_global_inc)
+            print_operation_trace(fd2, "stall_depend_local_remote_load_global");
+          else if (stall_depend_remote_load_group_inc)
+            print_operation_trace(fd2, "stall_depend_local_remote_load_group");
+        end
+      else if (stall_fp_remote_load_inc)
+        print_operation_trace(fd2, "stall_fp_remote_load");
+      else if (stall_fp_local_load_inc)
+        print_operation_trace(fd2, "stall_fp_local_load");
+      else if (stall_force_wb_inc)
+        print_operation_trace(fd2, "stall_force_wb");
+      else if (stall_ifetch_wait)
+        print_operation_trace(fd2, "stall_ifetch_wait");
+      else if (stall_icache_store)
+        print_operation_trace(fd2, "stall_icache_store");
+      else if (stall_lr_aq)
+        print_operation_trace(fd2, "stall_lr_aq");
+      else if (stall_md)
+        print_operation_trace(fd2, "stall_md");
+      else if (stall_remote_req)
+        print_operation_trace(fd2, "stall_remote_req");
+      else if (stall_local_flw)
+        print_operation_trace(fd2, "stall_local_flw");
+      else
+      begin
+
+        if (local_ld_inc)
+          print_operation_trace(fd2, "local_ld");
+        else if (local_st_inc)
+          print_operation_trace(fd2, "local_st");
+        else if (remote_ld_inc)
+        begin
+          if (remote_ld_dram_inc)
+            print_operation_trace(fd2, "remote_ld_dram");
+          else if (remote_ld_global_inc)
+            print_operation_trace(fd2, "remote_ld_global");
+          else if (remote_ld_group_inc)
+            print_operation_trace(fd2, "remote_ld_group");
+        end
+        else if (remote_st_inc)
+        begin
+          if (remote_st_dram_inc)
+            print_operation_trace(fd2, "remote_st_dram");
+          else if (remote_st_global_inc)
+            print_operation_trace(fd2, "remote_st_global");
+          else if (remote_st_group_inc)
+            print_operation_trace(fd2, "remote_st_group");
+        end
+        else if (local_flw_inc)
+          print_operation_trace(fd2, "local_flw");
+        else if (local_fsw_inc)
+          print_operation_trace(fd2, "local_fsw");
+        else if (remote_flw_inc)
+          print_operation_trace(fd2, "remote_flw");
+        else if (remote_fsw_inc)
+          print_operation_trace(fd2, "remote_fsw");
+        else if (icache_miss_inc)
+          print_operation_trace(fd2, "icache_miss");
+
+        else if (lr_inc)
+          print_operation_trace(fd2, "lr");
+        else if (lr_aq_inc)
+          print_operation_trace(fd2, "lr_aq");
+        else if (amoswap_inc)
+          print_operation_trace(fd2, "amoswap");
+        else if (amoor_inc)
+          print_operation_trace(fd2, "amoor");
+
+        else if (beq_inc)
+          print_operation_trace(fd2, "beq");
+        else if (bne_inc)
+          print_operation_trace(fd2, "bne");
+        else if (blt_inc)
+          print_operation_trace(fd2, "blt");
+        else if (bge_inc)
+          print_operation_trace(fd2, "bge");
+        else if (bltu_inc)
+          print_operation_trace(fd2, "bltu");
+        else if (bgeu_inc)
+          print_operation_trace(fd2, "bgeu");
+        else if (jalr_inc)
+          print_operation_trace(fd2, "jalr");
+        else if (jal_inc)
+          print_operation_trace(fd2, "jal");
+
+        else if (beq_miss_inc)
+          print_operation_trace(fd2, "beq_miss");
+        else if (bne_miss_inc)
+          print_operation_trace(fd2, "bne_miss");
+        else if (blt_miss_inc)
+          print_operation_trace(fd2, "blt_miss");
+        else if (bge_miss_inc)
+          print_operation_trace(fd2, "bge_miss");
+        else if (bltu_miss_inc)
+          print_operation_trace(fd2, "bltu_miss");
+        else if (bgeu_miss_inc)
+          print_operation_trace(fd2, "bgeu_miss");
+        else if (jalr_miss_inc)
+          print_operation_trace(fd2, "jalr_miss");
+
+        else if (sll_inc)
+          print_operation_trace(fd2, "sll");
+        else if (slli_inc)
+          print_operation_trace(fd2, "slli");
+        else if (srl_inc)
+          print_operation_trace(fd2, "srl");
+        else if (srli_inc)
+          print_operation_trace(fd2, "srli");
+        else if (sra_inc)
+          print_operation_trace(fd2, "sra");
+        else if (srai_inc)
+          print_operation_trace(fd2, "srai");
+
+        else if (add_inc)
+          print_operation_trace(fd2, "add");
+        else if (addi_inc)
+          print_operation_trace(fd2, "addi");
+        else if (sub_inc)
+          print_operation_trace(fd2, "sub");
+        else if (lui_inc)
+          print_operation_trace(fd2, "lui");
+        else if (auipc_inc)
+          print_operation_trace(fd2, "auipc");
+        else if (xor_inc)
+          print_operation_trace(fd2, "xor");
+        else if (xori_inc)
+          print_operation_trace(fd2, "xori");
+        else if (or_inc)
+          print_operation_trace(fd2, "or");
+        else if (ori_inc)
+          print_operation_trace(fd2, "ori");
+        else if (and_inc)
+          print_operation_trace(fd2, "and");
+        else if (andi_inc)
+          print_operation_trace(fd2, "andi");
+        else if (slt_inc)
+          print_operation_trace(fd2, "slt");
+        else if (slti_inc)
+          print_operation_trace(fd2, "slti");
+        else if (sltu_inc)
+          print_operation_trace(fd2, "sltu");
+        else if (sltiu_inc)
+          print_operation_trace(fd2, "sltiu");
+
+        else if (mul_inc)
+          print_operation_trace(fd2, "mul");
+        else if (mulh_inc)
+          print_operation_trace(fd2, "mulh");
+        else if (mulhsu_inc)
+          print_operation_trace(fd2, "mulhsu");
+        else if (mulhu_inc)
+          print_operation_trace(fd2, "mulhu");
+        else if (div_inc)
+          print_operation_trace(fd2, "div");
+        else if (divu_inc)
+          print_operation_trace(fd2, "divu");
+        else if (rem_inc)
+          print_operation_trace(fd2, "rem");
+        else if (remu_inc)
+          print_operation_trace(fd2, "remu");
+
+        else if (fence_inc)
+          print_operation_trace(fd2, "fence");
+
+        else if (fadd_inc)
+          print_operation_trace(fd2, "fadd");
+        else if (fsub_inc)
+          print_operation_trace(fd2, "fsub");
+        else if (fmul_inc)
+          print_operation_trace(fd2, "fmul");
+        else if (fsgnj_inc)
+          print_operation_trace(fd2, "fsgnj");
+        else if (fsgnjn_inc)
+          print_operation_trace(fd2, "fsgnjn");
+        else if (fsgnjx_inc)
+          print_operation_trace(fd2, "fsgnjx");
+        else if (fmin_inc)
+          print_operation_trace(fd2, "fmin");
+        else if (fmax_inc)
+          print_operation_trace(fd2, "fmax");
+        else if (fcvt_s_w_inc)
+          print_operation_trace(fd2, "fcvt_s_w");
+        else if (fcvt_s_wu_inc)
+          print_operation_trace(fd2, "fcvt_s_wu");
+        else if (fmv_w_x_inc)
+          print_operation_trace(fd2, "fmv_w_x");
+
+        else if (feq_inc)
+          print_operation_trace(fd2, "feq");
+        else if (flt_inc)
+          print_operation_trace(fd2, "flt");
+        else if (fle_inc)
+          print_operation_trace(fd2, "fle");
+        else if (fcvt_w_s_inc)
+          print_operation_trace(fd2, "fcvt_w_s");
+        else if (fcvt_wu_s_inc)
+          print_operation_trace(fd2, "fcvt_wu_s");
+        else if (fclass_inc)
+          print_operation_trace(fd2, "fclass");
+        else if (fmv_x_w_inc)
+          print_operation_trace(fd2, "fmv_x_w");
+
+
+        else if (instr_inc | fp_instr_inc)
+          print_operation_trace(fd2, "unknown");
+
+        else
+        begin
+          if (bubble_icache_inc)
+            print_operation_trace(fd2, "bubble_icache");
+          else if (bubble_branch_mispredict_inc)
+            print_operation_trace(fd2, "bubble_branch_mispredict");
+          else if (bubble_jalr_mispredict_inc)
+            print_operation_trace(fd2, "bubble_jalr_mispredict");
+          else if (bubble_fp_op_inc)
+            print_operation_trace(fd2, "bubble_fp_op");
           else
-          begin
-
-            if (local_ld_inc)
-              print_operation_trace(fd2, "local_ld");
-            else if (local_st_inc)
-              print_operation_trace(fd2, "local_st");
-            else if (remote_ld_inc)
-            begin
-              if (remote_ld_dram_inc)
-                print_operation_trace(fd2, "remote_ld_dram");
-              else if (remote_ld_global_inc)
-                print_operation_trace(fd2, "remote_ld_global");
-              else if (remote_ld_group_inc)
-                print_operation_trace(fd2, "remote_ld_group");
-            end
-            else if (remote_st_inc)
-            begin
-              if (remote_st_dram_inc)
-                print_operation_trace(fd2, "remote_st_dram");
-              else if (remote_st_global_inc)
-                print_operation_trace(fd2, "remote_st_global");
-              else if (remote_st_group_inc)
-                print_operation_trace(fd2, "remote_st_group");
-            end
-            else if (local_flw_inc)
-              print_operation_trace(fd2, "local_flw");
-            else if (local_fsw_inc)
-              print_operation_trace(fd2, "local_fsw");
-            else if (remote_flw_inc)
-              print_operation_trace(fd2, "remote_flw");
-            else if (remote_fsw_inc)
-              print_operation_trace(fd2, "remote_fsw");
-            else if (icache_miss_inc)
-              print_operation_trace(fd2, "icache_miss");
-
-            else if (lr_inc)
-              print_operation_trace(fd2, "lr");
-            else if (lr_aq_inc)
-              print_operation_trace(fd2, "lr_aq");
-            else if (amoswap_inc)
-              print_operation_trace(fd2, "amoswap");
-            else if (amoor_inc)
-              print_operation_trace(fd2, "amoor");
-
-            else if (beq_inc)
-              print_operation_trace(fd2, "beq");
-            else if (bne_inc)
-              print_operation_trace(fd2, "bne");
-            else if (blt_inc)
-              print_operation_trace(fd2, "blt");
-            else if (bge_inc)
-              print_operation_trace(fd2, "bge");
-            else if (bltu_inc)
-              print_operation_trace(fd2, "bltu");
-            else if (bgeu_inc)
-              print_operation_trace(fd2, "bgeu");
-            else if (jalr_inc)
-              print_operation_trace(fd2, "jalr");
-            else if (jal_inc)
-              print_operation_trace(fd2, "jal");
-
-            else if (beq_miss_inc)
-              print_operation_trace(fd2, "beq_miss");
-            else if (bne_miss_inc)
-              print_operation_trace(fd2, "bne_miss");
-            else if (blt_miss_inc)
-              print_operation_trace(fd2, "blt_miss");
-            else if (bge_miss_inc)
-              print_operation_trace(fd2, "bge_miss");
-            else if (bltu_miss_inc)
-              print_operation_trace(fd2, "bltu_miss");
-            else if (bgeu_miss_inc)
-              print_operation_trace(fd2, "bgeu_miss");
-            else if (jalr_miss_inc)
-              print_operation_trace(fd2, "jalr_miss");
-
-            else if (sll_inc)
-              print_operation_trace(fd2, "sll");
-            else if (slli_inc)
-              print_operation_trace(fd2, "slli");
-            else if (srl_inc)
-              print_operation_trace(fd2, "srl");
-            else if (srli_inc)
-              print_operation_trace(fd2, "srli");
-            else if (sra_inc)
-              print_operation_trace(fd2, "sra");
-            else if (srai_inc)
-              print_operation_trace(fd2, "srai");
-
-            else if (add_inc)
-              print_operation_trace(fd2, "add");
-            else if (addi_inc)
-              print_operation_trace(fd2, "addi");
-            else if (sub_inc)
-              print_operation_trace(fd2, "sub");
-            else if (lui_inc)
-              print_operation_trace(fd2, "lui");
-            else if (auipc_inc)
-              print_operation_trace(fd2, "auipc");
-            else if (xor_inc)
-              print_operation_trace(fd2, "xor");
-            else if (xori_inc)
-              print_operation_trace(fd2, "xori");
-            else if (or_inc)
-              print_operation_trace(fd2, "or");
-            else if (ori_inc)
-              print_operation_trace(fd2, "ori");
-            else if (and_inc)
-              print_operation_trace(fd2, "and");
-            else if (andi_inc)
-              print_operation_trace(fd2, "andi");
-            else if (slt_inc)
-              print_operation_trace(fd2, "slt");
-            else if (slti_inc)
-              print_operation_trace(fd2, "slti");
-            else if (sltu_inc)
-              print_operation_trace(fd2, "sltu");
-            else if (sltiu_inc)
-              print_operation_trace(fd2, "sltiu");
-
-            else if (mul_inc)
-              print_operation_trace(fd2, "mul");
-            else if (mulh_inc)
-              print_operation_trace(fd2, "mulh");
-            else if (mulhsu_inc)
-              print_operation_trace(fd2, "mulhsu");
-            else if (mulhu_inc)
-              print_operation_trace(fd2, "mulhu");
-            else if (div_inc)
-              print_operation_trace(fd2, "div");
-            else if (divu_inc)
-              print_operation_trace(fd2, "divu");
-            else if (rem_inc)
-              print_operation_trace(fd2, "rem");
-            else if (remu_inc)
-              print_operation_trace(fd2, "remu");
-
-            else if (fence_inc)
-              print_operation_trace(fd2, "fence");
-
-            else if (fadd_inc)
-              print_operation_trace(fd2, "fadd");
-            else if (fsub_inc)
-              print_operation_trace(fd2, "fsub");
-            else if (fmul_inc)
-              print_operation_trace(fd2, "fmul");
-            else if (fsgnj_inc)
-              print_operation_trace(fd2, "fsgnj");
-            else if (fsgnjn_inc)
-              print_operation_trace(fd2, "fsgnjn");
-            else if (fsgnjx_inc)
-              print_operation_trace(fd2, "fsgnjx");
-            else if (fmin_inc)
-              print_operation_trace(fd2, "fmin");
-            else if (fmax_inc)
-              print_operation_trace(fd2, "fmax");
-            else if (fcvt_s_w_inc)
-              print_operation_trace(fd2, "fcvt_s_w");
-            else if (fcvt_s_wu_inc)
-              print_operation_trace(fd2, "fcvt_s_wu");
-            else if (fmv_w_x_inc)
-              print_operation_trace(fd2, "fmv_w_x");
-
-            else if (feq_inc)
-              print_operation_trace(fd2, "feq");
-            else if (flt_inc)
-              print_operation_trace(fd2, "flt");
-            else if (fle_inc)
-              print_operation_trace(fd2, "fle");
-            else if (fcvt_w_s_inc)
-              print_operation_trace(fd2, "fcvt_w_s");
-            else if (fcvt_wu_s_inc)
-              print_operation_trace(fd2, "fcvt_wu_s");
-            else if (fclass_inc)
-              print_operation_trace(fd2, "fclass");
-            else if (fmv_x_w_inc)
-              print_operation_trace(fd2, "fmv_x_w");
-
-
-            else if (instr_inc | fp_instr_inc)
-              print_operation_trace(fd2, "unknown");
-
-             else
-             begin
-                if (bubble_icache_inc)
-                  print_operation_trace(fd2, "bubble_icache");
-                else if (bubble_branch_mispredict_inc)
-                  print_operation_trace(fd2, "bubble_branch_mispredict");
-                else if (bubble_jalr_mispredict_inc)
-                  print_operation_trace(fd2, "bubble_jalr_mispredict");
-                else if (bubble_fp_op_inc)
-                  print_operation_trace(fd2, "bubble_fp_op");
-                else
-                  print_operation_trace(fd2, "bubble");
-             end 
-          end
-
-
-          $fwrite(fd2, "\n"); 
-          $fclose(fd2);
-        end
-    
-        // The bsg_cuda_print_stat intrinsic sends a tag value to be printed 
-        // along with the stats message. Inside the tag value, the x,y
-        // coordinates of the tile calling the bsg_print_stats, along with its 
-        // tile group id is incorporated in the following form"
-        // <stat type>  -  <y cord>  -  <x cord>  -  <tile group id>  -  <tag>
-        // A core's profiler only prints the stat if core's x,y coordinates 
-        // matches the ones incorporated in the print_stat_tag_i
-        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == my_y_i & print_stat_tag.x_cord == my_x_i) begin
-
-          $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.",
-            $time, my_x_i, my_y_i);
-
-          fd = $fopen(logfile_lp, "a");
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            $time,
-            my_x_i - origin_x_cord_p,
-            my_y_i - origin_y_cord_p,
-            pc_r,
-            pc_n,
-            print_stat_tag_i,
-            global_ctr_i,
-            stat.cycle
-          );
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.instr,
-            stat.fadd,
-            stat.fsub,
-            stat.fmul,
-            stat.fsgnj,
-            stat.fsgnjn,
-            stat.fsgnjx,
-            stat.fmin,
-            stat.fmax,
-            stat.fcvt_s_w,
-            stat.fcvt_s_wu,
-            stat.fmv_w_x
-          );
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.feq,
-            stat.flt,
-            stat.fle,
-            stat.fcvt_w_s,
-            stat.fcvt_wu_s,
-            stat.fclass,
-            stat.fmv_x_w
-          );
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.ld,
-            stat.st,
-            stat.remote_ld_dram,
-            stat.remote_ld_global,
-            stat.remote_ld_group,
-            stat.remote_st_dram,
-            stat.remote_st_global,
-            stat.remote_st_group,
-            stat.local_flw,
-            stat.local_fsw,
-            stat.remote_flw,
-            stat.remote_fsw
-          );
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,",
-            stat.lr,
-            stat.lr_aq,
-            stat.amoswap,
-            stat.amoor
-          );
-        
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.beq,
-            stat.bne,
-            stat.blt,
-            stat.bge,
-            stat.bltu,
-            stat.bgeu,
-            stat.jalr,
-            stat.jal
-          );
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.sll,
-            stat.slli,
-            stat.srl,
-            stat.srli,
-            stat.sra,
-            stat.srai
-          );
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.add,
-            stat.addi,
-            stat.sub,
-            stat.lui,
-            stat.auipc,
-            stat.xor_,
-            stat.xori,
-            stat.or_,
-            stat.ori, 
-            stat.and_,
-            stat.andi,
-            stat.slt,
-            stat.slti, 
-            stat.sltu,
-            stat.sltiu
-          );
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.mul,
-            stat.mulh,
-            stat.mulhsu,
-            stat.mulhu,
-            stat.div,
-            stat.divu,
-            stat.rem,
-            stat.remu
-          );
-
-          $fwrite(fd, "%0d,", stat.fence);
-
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.icache_miss,
-            stat.beq_miss,
-            stat.bne_miss,
-            stat.blt_miss,
-            stat.bge_miss,
-            stat.bltu_miss,
-            stat.bgeu_miss,
-            stat.jalr_miss
-          );
-     
-          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
-            stat.stall_fp_remote_load,
-            stat.stall_fp_local_load,
-            stat.stall_depend,
-            stat.stall_depend_remote_load_dram,
-            stat.stall_depend_remote_load_global,
-            stat.stall_depend_remote_load_group,
-            stat.stall_depend_local_load,
-            stat.stall_force_wb,
-            stat.stall_ifetch_wait,
-            stat.stall_icache_store,
-            stat.stall_lr_aq,
-            stat.stall_md,
-            stat.stall_remote_req,
-            stat.stall_local_flw
-          );
-
-           $fwrite(fd, "%0d,%0d,%0d,%0d",
-            stat.bubble_icache,
-            stat.bubble_branch_mispredict,
-            stat.bubble_jalr_mispredict,
-            stat.bubble_fp_op
-          );
-       
-      
-          $fwrite(fd, "\n");
-
-          $fclose(fd);          
-
-        end
+            print_operation_trace(fd2, "bubble");
+        end 
       end
-    end
-  end
+      $fwrite(fd2, "\n"); 
+      $fclose(fd2);
+    end // if (~reset_i & trace_en_i) begin
+    
+
+    // The bsg_cuda_print_stat intrinsic sends a tag value to be printed 
+    // along with the stats message. Inside the tag value, the x,y
+    // coordinates of the tile calling the bsg_print_stats, along with its 
+    // tile group id is incorporated in the following form"
+    // <stat type>  -  <y cord>  -  <x cord>  -  <tile group id>  -  <tag>
+    // A core's profiler only prints the stat if core's x,y coordinates 
+    // matches the ones incorporated in the print_stat_tag_i
+    if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == my_y_i & print_stat_tag.x_cord == my_x_i) begin
+      $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, my_x_i, my_y_i);
+
+      fd = $fopen(logfile_lp, "a");
+
+      $fwrite(fd, "%0d,", $time);
+      $fwrite(fd, "%0d,", my_x_i - origin_x_cord_p);
+      $fwrite(fd, "%0d,", my_y_i - origin_y_cord_p);
+      $fwrite(fd, "%0d,", pc_r);
+      $fwrite(fd, "%0d,", pc_n);
+      $fwrite(fd, "%0d,", print_stat_tag_i);
+      $fwrite(fd, "%0d,", global_ctr_i);
+      $fwrite(fd, "%0d,", stat.cycle );
+      $fwrite(fd, "%0d,", stat.instr);
+
+      $fwrite(fd, "%0d,", stat.fadd);
+      $fwrite(fd, "%0d,", stat.fsub);
+      $fwrite(fd, "%0d,", stat.fmul);
+      $fwrite(fd, "%0d,", stat.fsgnj);
+      $fwrite(fd, "%0d,", stat.fsgnjn);
+      $fwrite(fd, "%0d,", stat.fsgnjx);
+      $fwrite(fd, "%0d,", stat.fmin);
+      $fwrite(fd, "%0d,", stat.fmax);
+      $fwrite(fd, "%0d,", stat.fcvt_s_w);
+      $fwrite(fd, "%0d,", stat.fcvt_s_wu);
+      $fwrite(fd, "%0d,", stat.fmv_w_x);
+
+      $fwrite(fd, "%0d,", stat.feq);
+      $fwrite(fd, "%0d,", stat.flt);
+      $fwrite(fd, "%0d,", stat.fle);
+      $fwrite(fd, "%0d,", stat.fcvt_w_s);
+      $fwrite(fd, "%0d,", stat.fcvt_wu_s);
+      $fwrite(fd, "%0d,", stat.fclass);
+      $fwrite(fd, "%0d,", stat.fmv_x_w);
+
+      $fwrite(fd, "%0d,", stat.ld);
+      $fwrite(fd, "%0d,", stat.st);
+      $fwrite(fd, "%0d,", stat.remote_ld_dram);
+      $fwrite(fd, "%0d,", stat.remote_ld_global);
+      $fwrite(fd, "%0d,", stat.remote_ld_group);
+      $fwrite(fd, "%0d,", stat.remote_st_dram);
+      $fwrite(fd, "%0d,", stat.remote_st_global);
+      $fwrite(fd, "%0d,", stat.remote_st_group);
+      $fwrite(fd, "%0d,", stat.local_flw);
+      $fwrite(fd, "%0d,", stat.local_fsw);
+      $fwrite(fd, "%0d,", stat.remote_flw);
+      $fwrite(fd, "%0d,", stat.remote_fsw);
+
+      $fwrite(fd, "%0d,", stat.lr);
+      $fwrite(fd, "%0d,", stat.lr_aq);
+      $fwrite(fd, "%0d,", stat.amoswap);
+      $fwrite(fd, "%0d,", stat.amoor);
+    
+      $fwrite(fd, "%0d,", stat.beq);
+      $fwrite(fd, "%0d,", stat.bne);
+      $fwrite(fd, "%0d,", stat.blt);
+      $fwrite(fd, "%0d,", stat.bge);
+      $fwrite(fd, "%0d,", stat.bltu);
+      $fwrite(fd, "%0d,", stat.bgeu);
+      $fwrite(fd, "%0d,", stat.jalr);
+      $fwrite(fd, "%0d,", stat.jal);
+
+      $fwrite(fd, "%0d,", stat.sll);
+      $fwrite(fd, "%0d,", stat.slli);
+      $fwrite(fd, "%0d,", stat.srl);
+      $fwrite(fd, "%0d,", stat.srli);
+      $fwrite(fd, "%0d,", stat.sra);
+      $fwrite(fd, "%0d,", stat.srai);
+
+      $fwrite(fd, "%0d,", stat.add);
+      $fwrite(fd, "%0d,", stat.addi);
+      $fwrite(fd, "%0d,", stat.sub);
+      $fwrite(fd, "%0d,", stat.lui);
+      $fwrite(fd, "%0d,", stat.auipc);
+      $fwrite(fd, "%0d,", stat.xor_);
+      $fwrite(fd, "%0d,", stat.xori);
+      $fwrite(fd, "%0d,", stat.or_);
+      $fwrite(fd, "%0d,", stat.ori);
+      $fwrite(fd, "%0d,", stat.and_);
+      $fwrite(fd, "%0d,", stat.andi);
+      $fwrite(fd, "%0d,", stat.slt);
+      $fwrite(fd, "%0d,", stat.slti); 
+      $fwrite(fd, "%0d,", stat.sltu);
+      $fwrite(fd, "%0d,", stat.sltiu);
+
+      $fwrite(fd, "%0d,", stat.mul);
+      $fwrite(fd, "%0d,", stat.mulh);
+      $fwrite(fd, "%0d,", stat.mulhsu);
+      $fwrite(fd, "%0d,", stat.mulhu);
+      $fwrite(fd, "%0d,", stat.div);
+      $fwrite(fd, "%0d,", stat.divu);
+      $fwrite(fd, "%0d,", stat.rem);
+      $fwrite(fd, "%0d,", stat.remu);
+
+      $fwrite(fd, "%0d,", stat.fence);
+
+      $fwrite(fd, "%0d,", stat.icache_miss);
+      $fwrite(fd, "%0d,", stat.beq_miss);
+      $fwrite(fd, "%0d,", stat.bne_miss);
+      $fwrite(fd, "%0d,", stat.blt_miss);
+      $fwrite(fd, "%0d,", stat.bge_miss);
+      $fwrite(fd, "%0d,", stat.bltu_miss);
+      $fwrite(fd, "%0d,", stat.bgeu_miss);
+      $fwrite(fd, "%0d,", stat.jalr_miss);
+    
+      $fwrite(fd, "%0d,", stat.stall_fp_remote_load);
+      $fwrite(fd, "%0d,", stat.stall_fp_local_load);
+      $fwrite(fd, "%0d,", stat.stall_depend);
+      $fwrite(fd, "%0d,", stat.stall_depend_remote_load_dram);
+      $fwrite(fd, "%0d,", stat.stall_depend_remote_load_global);
+      $fwrite(fd, "%0d,", stat.stall_depend_remote_load_group);
+      $fwrite(fd, "%0d,", stat.stall_depend_local_load);
+      $fwrite(fd, "%0d,", stat.stall_force_wb);
+      $fwrite(fd, "%0d,", stat.stall_ifetch_wait);
+      $fwrite(fd, "%0d,", stat.stall_icache_store);
+      $fwrite(fd, "%0d,", stat.stall_lr_aq);
+      $fwrite(fd, "%0d,", stat.stall_md);
+      $fwrite(fd, "%0d,", stat.stall_remote_req);
+      $fwrite(fd, "%0d,", stat.stall_local_flw);
+
+      $fwrite(fd, "%0d,", stat.bubble_icache);
+      $fwrite(fd, "%0d,", stat.bubble_branch_mispredict);
+      $fwrite(fd, "%0d,", stat.bubble_jalr_mispredict);
+      $fwrite(fd, "%0d,", stat.bubble_fp_op);
+    
+      $fwrite(fd, "\n");
+
+      $fclose(fd);          
+
+    end // if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == my_y_i & print_stat_tag.x_cord == my_x_i) begin
+  end // always @(negedge clk_i)  begin
 
 
 

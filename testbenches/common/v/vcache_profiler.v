@@ -123,7 +123,7 @@ module vcache_profiler
   always_ff @ (posedge clk_i) begin
 
     if (reset_i) begin
-      stat_r <= '0;
+      stat_r = '0;
     end
     else begin
       if (inc_ld)            stat_r.ld_count++;
@@ -184,11 +184,10 @@ module vcache_profiler
         $fclose(trace_fd);
       //end
     end
+  end
 
 
-
-    forever begin
-      @(negedge clk_i) begin
+    always @(negedge clk_i) begin
         if (~reset_i & print_stat_v_i) begin
 
           $display("[BSG_INFO][VCACHE_PROFILER] %s t=%0t printing stats.", my_name, $time);
@@ -239,7 +238,7 @@ module vcache_profiler
           );
 
           $fclose(log_fd);
-        end
+        end // if (~reset_i & print_stat_v_i) begin
 
 
 
@@ -312,11 +311,10 @@ module vcache_profiler
           end
 
           $fclose(trace_fd);
-        end
+        end // if (~reset_i & trace_en_i) begin
+      end // always @(negedge clk_i) begin
 
-      end
-    end
-  end
+
 
   // string match helper
   //
