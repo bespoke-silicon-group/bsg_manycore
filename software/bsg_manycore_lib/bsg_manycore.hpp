@@ -23,6 +23,16 @@ T *bsg_tile_group_remote_pointer(unsigned char x, unsigned char y, T* local_addr
         return reinterpret_cast<T *>(remote_prefix | y_bits | x_bits | local_bits);
 }
 
+// log2 is non-constexpr in llvm so we define a custom
+// constexpr ceil(log2()) function 
+constexpr uint32_t cilog2(unsigned val) {
+    return val ? 1 + cilog2(val >> 1) : -1;
+}
+
+constexpr bool is_powerof2(std::size_t v) {
+    return v && ((v & (v - 1)) == 0);
+}
+
 
 
 #endif // _BSG_MANYCORE_HPP_
