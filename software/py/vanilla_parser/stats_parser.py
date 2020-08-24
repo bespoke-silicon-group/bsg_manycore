@@ -29,6 +29,7 @@ import csv
 import numpy as np
 from enum import Enum
 from collections import Counter
+from . import common
 
 # CudaStatTag class 
 # Is instantiated by a packet tag value that is recieved from a 
@@ -214,10 +215,10 @@ class VanillaStatsParser:
         self.stats, self.instrs, self.misses, self.stalls, self.bubbles = self.parse_header(vanilla_input_file)
 
 
-        # bubble_fp_op is a bubble in the Integer pipeline "caused" by
+        # bubbles that are  a bubble in the Integer pipeline "caused" by
         # an FP instruction executing. Don't count it in the bubbles
         # because the procesor is still doing "useful work". 
-        self.notbubbles = ['bubble_fp_op'] 
+        self.notbubbles = [] 
 
         # Remove all notbubbles from the bubbles list
         for nb in self.notbubbles:
@@ -436,7 +437,7 @@ class VanillaStatsParser:
                                      ,(self.manycore_stat[tag]["global_ctr"])
                                      ,(self.manycore_stat[tag]["cycle_parallel_cnt"])
                                      ,(self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["global_ctr"])
-                                     ,(100 * self.manycore_stat[tag]["instr_total"] / self.manycore_stat[tag]["instr_total"])
+                                     ,(np.float64(100 * self.manycore_stat[tag]["instr_total"]) / self.manycore_stat[tag]["instr_total"])
                                      ,(np.float64(100 * self.manycore_stat[tag]["global_ctr"]) / self.manycore_stat["kernel"]["global_ctr"]))
         return
 
@@ -639,11 +640,10 @@ class VanillaStatsParser:
    
         # Print instruction stats for manycore
         for instr in instrs:
-         
-            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_') or instr.startswith('instr_amo')) else "instr_data"
+            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_')) else "instr_data"
             self.__print_stat(stat_file, instr_format, instr,
                                          stat[tag][instr]
-                                         ,(100 * stat[tag][instr] / stat[tag]["instr_total"]))
+                                         ,(100 * np.float64(stat[tag][instr]) / stat[tag]["instr_total"]))
         return
 
 
@@ -675,7 +675,7 @@ class VanillaStatsParser:
 
         # Print instruction stats for manycore
         for instr in instrs:
-            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_') or instr.startswith('instr_amo')) else "instr_data"
+            instr_format = "instr_data_indt" if (instr.startswith('instr_ld_') or instr.startswith('instr_sm_')) else "instr_data"
             self.__print_stat(stat_file, instr_format, instr,
                                          tile_group_stat[tag][tg_id][instr]
                                          ,(100 * np.float64(tile_group_stat[tag][tg_id][instr]) / tile_group_stat[tag][tg_id]["instr_total"]))
@@ -742,8 +742,7 @@ class VanillaStatsParser:
 
         # Print stall stats for manycore
         for stall in stalls:
-            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
-            self.__print_stat(stat_file, stall_format, stall
+            self.__print_stat(stat_file, "stall_data", stall
                                          ,stat[tag][stall]
                                          ,(100 * np.float64(stat[tag][stall]) / stat[tag]["stall_total"])
                                          ,(100 * np.float64(stat[tag][stall]) / stat[tag]["global_ctr"]))
@@ -784,8 +783,7 @@ class VanillaStatsParser:
 
         # Print stall stats for manycore
         for stall in stalls:
-            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
-            self.__print_stat(stat_file, stall_format
+            self.__print_stat(stat_file, "stall_data"
                                          ,stall
                                          ,tile_group_stat[tag][tg_id][stall]
                                          ,(100 * np.float64(tile_group_stat[tag][tg_id][stall]) / tile_group_stat[tag][tg_id]["stall_total"])
@@ -820,8 +818,7 @@ class VanillaStatsParser:
 
         # Print stall stats for manycore
         for stall in stalls:
-            stall_format = "stall_data_indt" if stall.startswith('stall_depend_') else "stall_data"
-            self.__print_stat(stat_file, stall_format, stall,
+            self.__print_stat(stat_file, "stall_data", stall,
                                          stat[tag][item][stall],
                                          (100 * np.float64(stat[tag][item][stall]) / stat[tag][item]["stall_total"])
                                          ,(100 * np.float64(stat[tag][item][stall]) / stat[tag][item]["global_ctr"]))
@@ -1353,14 +1350,14 @@ class VanillaStatsParser:
         # For calculating manycore stats, all tiles are considerd to be involved
         # For calculating tile group stats, only tiles inside the tile group are considered
         # For manycore (all tiles that participate in tag are included)
-        manycore_cycle_parallel_earliest_start = {tag: 0 for tag in tags}
-        manycore_cycle_parallel_latest_end     = {tag: 0 for tag in tags}
+        manycore_cycle_parallel_earliest_start = {tag: traces[0]["global_ctr"] for tag in tags}
+        manycore_cycle_parallel_latest_end     = {tag: traces[0]["global_ctr"] for tag in tags}
         manycore_cycle_parallel_cnt       = {tag: 0 for tag in tags}
 
         # For each tile group (only tiles in a tile group that participate in a tag are included)
-        tile_group_cycle_parallel_earliest_start = {tag: [10000000 for tg_id in range(self.max_tile_groups)] for tag in tags}
-        tile_group_cycle_parallel_latest_end     = {tag: [0 for tg_id in range(self.max_tile_groups)] for tag in tags}
-        tile_group_cycle_parallel_cnt            = {tag: [0 for tg_id in range(self.max_tile_groups)] for tag in tags}
+        tile_group_cycle_parallel_earliest_start = {tag: [traces[0]["global_ctr"] for tg_id in range(self.max_tile_groups)] for tag in tags}
+        tile_group_cycle_parallel_latest_end     = {tag: [traces[0]["global_ctr"] for tg_id in range(self.max_tile_groups)] for tag in tags}
+        tile_group_cycle_parallel_cnt            = {tag: [traces[0]["global_ctr"] for tg_id in range(self.max_tile_groups)] for tag in tags}
 
 
         tag_seen = {tag: {tile:False for tile in tiles} for tag in tags}
@@ -1389,6 +1386,7 @@ class VanillaStatsParser:
                     # if op is cycle, find the earliest start cycle in tag among tiles in a tile group for parallel cycle stats
                     if (op == "global_ctr"):
                         tile_group_cycle_parallel_earliest_start[cst.tag][cst.tg_id] = min (trace[op], tile_group_cycle_parallel_earliest_start[cst.tag][cst.tg_id])
+                        manycore_cycle_parallel_earliest_start[cst.tag] = min (trace[op], manycore_cycle_parallel_earliest_start[cst.tag])
 
 
             elif (cst.isEnd):
@@ -1403,6 +1401,7 @@ class VanillaStatsParser:
                     # if op is cycle, find the latest end cycle in tag among tiles in a tile group for parallel cycle stats
                     if (op == "global_ctr"):
                         tile_group_cycle_parallel_latest_end[cst.tag][cst.tg_id] = max (trace[op], tile_group_cycle_parallel_latest_end[cst.tag][cst.tg_id])
+                        manycore_cycle_parallel_latest_end[cst.tag] = max (trace[op], manycore_cycle_parallel_latest_end[cst.tag])
 
 
                 tile_stat[cst.tag][cur_tile] += tile_stat_end[cst.tag][cur_tile] - tile_stat_start[cst.tag][cur_tile]
@@ -1424,6 +1423,7 @@ class VanillaStatsParser:
                     # if op is cycle, find the earliest start cycle in kernel among tiles in a tile group for parallel cycle stats
                     if (op == "global_ctr"):
                         tile_group_cycle_parallel_earliest_start["kernel"][cst.tg_id] = min (trace[op], tile_group_cycle_parallel_earliest_start["kernel"][cst.tg_id])
+                        manycore_cycle_parallel_earliest_start["kernel"] = min (trace[op], manycore_cycle_parallel_earliest_start["kernel"])
 
 
             elif (cst.isKernelEnd):
@@ -1438,25 +1438,19 @@ class VanillaStatsParser:
                     # if op is cycle, find the latest end cycle in kernel among tiles in a tile group for parallel cycle stats
                     if (op == "global_ctr"):
                         tile_group_cycle_parallel_latest_end["kernel"][cst.tg_id] = max (trace[op], tile_group_cycle_parallel_latest_end["kernel"][cst.tg_id])
+                        manycore_cycle_parallel_latest_end["kernel"] = max (trace[op], manycore_cycle_parallel_latest_end["kernel"])
 
 
                 tile_stat["kernel"][cur_tile] += tile_stat_end["kernel"][cur_tile] - tile_stat_start["kernel"][cur_tile]
 
 
 
-        # Calculates the longest parallel cycle interval among all tiles that have
-        # called print_stat with a certain tag, in other words, for all tiles that
-        # run in parallel in a certain tag section, we calculate the parallel inteval
-        # between when the earliest tile starts that section, until when the latest
-        # tile finishes that section. Contrary to the manycore or tile group stats
-        # that calculate the aggregate cycle count, this structure calcualtes the 
-        # absolute cycle count it takes to execute a tagged section in parallel
+        # Generate parallel cycle count (not aggregate, but the longest parallel interval) 
+        # for the entire manycore by subtracting the earliest start cycle from the latest end cycle 
         # manycore_cycle_parallel_earliest_start: minimum start cycle among all tiles involved in a tag
-        # cycle_parallel_latest_test   : maximum end cycle among all tiles involved in a tag
-        # cycle_parlalel_interval      : manycore_cycle_parallel_latest_end - manycore_cycle_parallel_earliest_start
+        # manycore_cycle_parallel_latest_test   : maximum end cycle among all tiles involved in a tag
+        # manycore_cycle_parlalel_cnt    l      : manycore_cycle_parallel_latest_end - manycore_cycle_parallel_earliest_start
         for tag in tags:
-            manycore_cycle_parallel_earliest_start[tag] = min ([tile_stat_start[tag][tile]["global_ctr"] for tile in tiles])
-            manycore_cycle_parallel_latest_end[tag]     = max ([tile_stat_end  [tag][tile]["global_ctr"] for tile in tiles])
             manycore_cycle_parallel_cnt[tag]       = manycore_cycle_parallel_latest_end[tag] - manycore_cycle_parallel_earliest_start[tag]
 
 
@@ -1475,10 +1469,7 @@ class VanillaStatsParser:
                 for instr in self.instrs:
                     tile_stat[tag][tile]["instr_total"] += tile_stat[tag][tile][instr]
                 for stall in self.stalls:
-                    # stall_depend count includes all stall_depend_ types, so all
-                    # stall_depend_ subcategories are excluded to avoid double-counting
-                    if (not stall.startswith('stall_depend_')):
-                        tile_stat[tag][tile]["stall_total"] += tile_stat[tag][tile][stall]
+                    tile_stat[tag][tile]["stall_total"] += tile_stat[tag][tile][stall]
                 for bubble in self.bubbles:
                     tile_stat[tag][tile]["bubble_total"] += tile_stat[tag][tile][bubble]
                 for miss in self.misses:
@@ -1492,10 +1483,7 @@ class VanillaStatsParser:
                 for instr in self.instrs:
                     tile_group_stat[tag][tg_id]["instr_total"] += tile_group_stat[tag][tg_id][instr]
                 for stall in self.stalls:
-                    # stall_depend count includes all stall_depend_ types, so all
-                    # stall_depend_ subcategories are excluded to avoid double-counting
-                    if (not stall.startswith('stall_depend_')):
-                        tile_group_stat[tag][tg_id]["stall_total"] += tile_group_stat[tag][tg_id][stall]
+                    tile_group_stat[tag][tg_id]["stall_total"] += tile_group_stat[tag][tg_id][stall]
                 for bubble in self.bubbles:
                     tile_group_stat[tag][tg_id]["bubble_total"] += tile_group_stat[tag][tg_id][bubble]
                 for miss in self.misses:
@@ -1643,21 +1631,20 @@ class VanillaStatsParser:
         # Generate total stats for entire vcache by summing all stats for all vcache banks
         for tag in tags:
             for vcache in vcaches:
-                if (tag_seen[tag][vcache]):
-                    for instr in self.vcache_instrs:
-                        # different types of load/store/atomic instructions are already counted
-                        # under the umbrella of instr_ld/st/atomic, so they are not summed to 
-                        # to avoid double counting
-                        if (not instr.startswith('instr_ld_') and not instr.startswith('instr_sm_') and not instr.startswith('instr_amo')):
-                            vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
-                    for stall in self.vcache_stalls:
-                        vcache_stat[tag][vcache]["stall_total"] += vcache_stat[tag][vcache][stall]
-                    for bubble in self.vcache_bubbles:
-                        vcache_stat[tag][vcache]["bubble_total"] += vcache_stat[tag][vcache][bubble]
-                    for miss in self.vcache_misses:
-                        vcache_stat[tag][vcache]["miss_total"] += vcache_stat[tag][vcache][miss]
-                        hit = miss.replace("miss_", "instr_")
-                        vcache_stat[tag][vcache]["hit_total"] += vcache_stat[tag][vcache][hit]
+                for instr in self.vcache_instrs:
+                    # different types of load/store/atomic instructions are already counted
+                    # under the umbrella of instr_ld/st/atomic, so they are not summed to 
+                    # to avoid double counting
+                    if (not instr.startswith('instr_ld_') and not instr.startswith('instr_sm_') and not instr.startswith('instr_amo')):
+                        vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
+                for stall in self.vcache_stalls:
+                    vcache_stat[tag][vcache]["stall_total"] += vcache_stat[tag][vcache][stall]
+                for bubble in self.vcache_bubbles:
+                    vcache_stat[tag][vcache]["bubble_total"] += vcache_stat[tag][vcache][bubble]
+                for miss in self.vcache_misses:
+                    vcache_stat[tag][vcache]["miss_total"] += vcache_stat[tag][vcache][miss]
+                    hit = miss.replace("miss_", "instr_")
+                    vcache_stat[tag][vcache]["hit_total"] += vcache_stat[tag][vcache][hit]
 
 
 
@@ -1666,11 +1653,7 @@ class VanillaStatsParser:
         for tag in tags:
             for tg_id in range(num_tile_groups[tag]):
                 for instr in self.vcache_instrs:
-                    # different types of load/store/atomic instructions are already counted
-                    # under the umbrella of instr_ld/st/atomic, so they are not summed to 
-                    # to avoid double counting
-                    if (not instr.startswith('instr_ld_') and not instr.startswith('instr_sm_') and not instr.startswith('instr_amo')):
-                        vcache_tile_group_stat[tag][tg_id]["instr_total"] += vcache_tile_group_stat[tag][tg_id][instr]
+                    vcache_tile_group_stat[tag][tg_id]["instr_total"] += vcache_tile_group_stat[tag][tg_id][instr]
                 for stall in self.vcache_stalls:
                     vcache_tile_group_stat[tag][tg_id]["stall_total"] += vcache_tile_group_stat[tag][tg_id][stall]
                 for bubble in self.vcache_bubbles:
@@ -1763,28 +1746,12 @@ class VanillaStatsParser:
 
 
 # parses input arguments
-def parse_args():
-    parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
-    parser.add_argument("--vanilla", default="vanilla_stats.csv", type=str,
-                        help="Vanilla stats log file")
-    parser.add_argument("--vcache", type=str,
-                        help="Vcache stats log file")
-    parser.add_argument("--tile", default=False, action='store_true',
-                        help="Also generate separate stats files for each tile.")
-    parser.add_argument("--tile_group", default=False, action='store_true',
-                        help="Also generate separate stats files for each tile group.")
-    parser.add_argument("--per_vcache", default=False, action='store_true',
+def add_args(parser):
+    parser.add_argument("--per-vcache", default=False, action='store_true',
                         help="Also generate separate stats files for each victim cache bank.")
-    args = parser.parse_args()
-    return args
 
-
-# main()
-if __name__ == "__main__":
-    np.seterr(divide='ignore', invalid='ignore')
-    args = parse_args()
-  
-    st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.vanilla, args.vcache)
+def main(args): 
+    st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.stats, args.vcache_stats)
     st.print_manycore_stats_all()
     if(st.per_tile_stat):
         st.print_per_tile_stats_all()
@@ -1793,6 +1760,11 @@ if __name__ == "__main__":
     if(st.per_vcache_stat):
         st.print_per_vcache_stats_all()
 
-
-  
-
+# main()
+if __name__ == "__main__":
+    np.seterr(divide='ignore', invalid='ignore')
+    parser = argparse.ArgumentParser(description="Vanilla Stats Parser")
+    common.add_args(parser)
+    add_args(parser)
+    args = parser.parse_args()
+    main(args)

@@ -10,6 +10,8 @@
 import sys
 import os
 import re
+from . import common
+import argparse
 
 
 class VanillaTraceParser:
@@ -98,12 +100,18 @@ class VanillaTraceParser:
 
     return trace
 
+def add_args(parser):
+    pass
 
-    
-
-# main() is just for testing purpose.
-if __name__ == "__main__":
+def main(args):
   parser = VanillaTraceParser()
-  traces = parser.parse(sys.argv[1])
+  traces = parser.parse(args.log)
   for trace in traces:
     print(trace)
+    
+# main() is just for testing purpose.
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Vanilla log Parser")
+    common.add_args(parser)
+    args = parser.parse_args()
+    main(args)
