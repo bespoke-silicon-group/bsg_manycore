@@ -1329,7 +1329,7 @@ module vanilla_core_profiler
       $fwrite(fd, "%0d,", stat.bubble_icache);
       $fwrite(fd, "%0d,", stat.bubble_branch_mispredict);
       $fwrite(fd, "%0d,", stat.bubble_jalr_mispredict);
-      $fwrite(fd, "%0d,", stat.bubble_fp_op);
+      $fwrite(fd, "%0d", stat.bubble_fp_op);
     
       $fwrite(fd, "\n");
 
