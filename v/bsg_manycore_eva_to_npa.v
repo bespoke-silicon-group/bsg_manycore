@@ -109,7 +109,7 @@ module bsg_manycore_eva_to_npa
     .width_p(max_local_offset_width_gp+max_x_cord_width_gp+max_y_cord_width_gp-1)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.hash_width_p(4)
+    ,.hash_width_p(shared_eva_hash_width_gp)
   ) hashb_shared (
     .en_i(is_shared_addr)
     ,.shared_eva_i(shared_addr.addr)

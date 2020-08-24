@@ -170,6 +170,7 @@ package bsg_manycore_pkg;
   localparam max_local_offset_width_gp = 10;  // max width of local offset from DMEM[0] in vanilla core. (word addr)
   localparam max_x_cord_width_gp = 6;
   localparam max_y_cord_width_gp = 6;
+  localparam shared_eva_hash_width_gp = 4;    // Width of hash bits inside a shared EVA
 
 
   // global
