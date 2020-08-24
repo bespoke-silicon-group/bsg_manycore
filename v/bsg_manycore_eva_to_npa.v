@@ -106,13 +106,11 @@ module bsg_manycore_eva_to_npa
   logic [epa_word_addr_width_gp-1:0] shared_epa_lo;
 
   hash_function_shared #(
-    .width_p(max_local_offset_width_gp+max_x_cord_width_gp+max_y_cord_width_gp-1)
+    .data_width_p(data_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.hash_width_p(shared_eva_hash_width_gp)
   ) hashb_shared (
-    .shared_eva_i(shared_addr.addr)
-    ,.hash_i(shared_addr.hash)
+    .eva_i(eva_i)
     ,.tg_dim_x_width_i(tg_dim_x_width_i)
     ,.tg_dim_y_width_i(tg_dim_y_width_i)
     ,.x_o(shared_x_lo)
