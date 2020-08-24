@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __BSG_SHARED_MEM_HPP_
+#define __BSG_SHARED_MEM_HPP_
 
 extern "C" {
 #include <bsg_manycore.h>
@@ -140,3 +141,4 @@ namespace bsg_manycore {
     };
 }
 
+#endif // __BSG_SHARED_MEM_HPP_
