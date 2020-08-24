@@ -111,8 +111,7 @@ module bsg_manycore_eva_to_npa
     ,.y_cord_width_p(y_cord_width_p)
     ,.hash_width_p(shared_eva_hash_width_gp)
   ) hashb_shared (
-    .en_i(is_shared_addr)
-    ,.shared_eva_i(shared_addr.addr)
+    .shared_eva_i(shared_addr.addr)
     ,.hash_i(shared_addr.hash)
     ,.tg_dim_x_width_i(tg_dim_x_width_i)
     ,.tg_dim_y_width_i(tg_dim_y_width_i)

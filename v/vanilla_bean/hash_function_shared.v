@@ -21,8 +21,7 @@ module hash_function_shared
     ,parameter hash_width_p="inv"
   )
   (
-    input en_i
-    ,input [width_p-1:0] shared_eva_i
+    input [width_p-1:0] shared_eva_i
     ,input [hash_width_p-1:0] hash_i
     ,input [x_cord_width_p-1:0] tg_dim_x_width_i
     ,input [y_cord_width_p-1:0] tg_dim_y_width_i
@@ -34,7 +33,7 @@ module hash_function_shared
 
   always_comb begin
     // Hash bits cannot be larger than the entire address bits
-    if (~en_i | (hash_i > max_local_offset_width_gp)) begin
+    if (hash_i > max_local_offset_width_gp) begin
       x_o = '0;
       y_o = '0;
       addr_o = '0;
