@@ -23,9 +23,9 @@
 #define bsg_tiles_Y TEMPLATE_TG_DIM_Y
 
 #include <bsg_manycore.h>
-#include "kernel_matrix_mul_shared_mem_hard.hpp"
 #include <bsg_tile_group_barrier.hpp>
-#include "bsg_shared_mem.hpp"
+#include <bsg_shared_mem.hpp>
+#include "kernel_matrix_mul_shared_mem_hard.hpp"
 
 using namespace bsg_manycore;
 
