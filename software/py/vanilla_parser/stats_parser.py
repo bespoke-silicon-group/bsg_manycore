@@ -224,6 +224,25 @@ class VanillaStatsParser:
         for nb in self.notbubbles:
             self.bubbles.remove(nb)
 
+
+        # Floating point operations that should not count 
+        # towards calculations FLOPS/sec
+        self.notflops = ["instr_fsgnj"
+                         ,"instr_fsgnjn"
+                         ,"instr_fsgnjx"
+                         ,"instr_fcvt_s_w"
+                         ,"instr_fcvt_s_wu"
+                         ,"instr_fcvt_w_s"
+                         ,"instr_fcvt_wu_s"
+                         ,"instr_fmv_w_x"
+                         ,"instr_fmv_x_w"
+                         ,"instr_fclass"]
+
+        # Remove all notflops from the flops list
+        for nf in self.notflops:
+            self.flops.remove(nf)
+
+
         # Create a list of all types of opertaions for iteration
         self.all_ops = self.stats + self.instrs + self.misses + self.stalls + self.bubbles
 
