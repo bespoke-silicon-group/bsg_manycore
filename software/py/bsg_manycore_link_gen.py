@@ -163,8 +163,8 @@ class bsg_manycore_link_gen:
       ['.bss'              , ['.bss','.bss*']],
       ['.tdata'            , ['.tdata','.tdata*']],
       ['.tbss'             , ['.tbss','.tbss*']],
-      ['.eh_frame'         , ['.eh_frame','.eh_frame*']],
       ['.striped.data.dmem', ['.striped.data']],
+      ['.eh_frame.dram'    , ['.eh_frame','.eh_frame*']],
       ['.rodata.dram'      , ['.rodata','.rodata*']],
       ['.dram'             , ['.dram','.dram.*']],
       ]
