@@ -29,7 +29,7 @@
 
 TARGET_ARCH       := rv32imaf
 TARGET_ABI        := ilp32f
-TARGET_CFLAGS     := '-fno-common -fdata-sections'
+TARGET_CFLAGS     := '-fno-common'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
 TOOLCHAIN_URL     := https://github.com/bespoke-silicon-group/$(TOOLCHAIN_REPO)

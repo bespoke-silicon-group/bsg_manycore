@@ -156,8 +156,7 @@ class bsg_manycore_link_gen:
       ['.text.dram'        , ['.crtbegin','.text','.text.startup','.text.*']],
       ['.dmem'             , ['.dmem','.dmem.*']],
       ['.data'             , ['.data','.data*']],
-      ['.sdata'            , ['.srodata.cst16','.srodata.cst8','.srodata.cst4',
-                              '.srodata.cst2','.srodata*','.sdata','.sdata.*',
+      ['.sdata'            , ['.sdata','.sdata.*','.sdata*','.sdata*.*'
                               '.gnu.linkonce.s.*']],
       ['.sbss'             , ['.sbss','.sbss.*','.gnu.linkonce.sb.*','.scommon']],
       ['.bss'              , ['.bss','.bss*']],
@@ -165,7 +164,8 @@ class bsg_manycore_link_gen:
       ['.tbss'             , ['.tbss','.tbss*']],
       ['.striped.data.dmem', ['.striped.data']],
       ['.eh_frame.dram'    , ['.eh_frame','.eh_frame*']],
-      ['.rodata.dram'      , ['.rodata','.rodata*']],
+      ['.rodata.dram'      , ['.rodata','.rodata*','.srodata.cst16','.srodata.cst8',
+                              '.srodata.cst4', '.srodata.cst2','.srodata*']],
       ['.dram'             , ['.dram','.dram.*']],
       ]
 
