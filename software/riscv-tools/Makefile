@@ -33,7 +33,7 @@ TARGET_CFLAGS     := '-fno-common'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
 TOOLCHAIN_URL     := https://github.com/bespoke-silicon-group/$(TOOLCHAIN_REPO)
-TOOLCHAIN_VERSION := be83c980001ace76fe9ee5543db19c111570c3b8
+TOOLCHAIN_VERSION := 656708846d723936eb5ba2648f6f919608a8ccaf
 
 DEPENDS_DIR       := $(CURDIR)/depends
 
