@@ -3,9 +3,10 @@ bsg_tiles_Y= 1
 bsg_tiles_org_X =0
 bsg_tiles_org_Y =2
 
+export BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/8x4
+
 all: main.run
 
-export BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/4x4
 
 include ../Makefile.include
 

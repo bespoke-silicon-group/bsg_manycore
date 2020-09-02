@@ -164,6 +164,25 @@ package bsg_manycore_pkg;
     } bsg_manycore_link_sif_s
 
 
+
+  //  Ruche X link struct
+  //  We can take advantage of the dimension-ordered depopulated routing,
+  //  and optimize out some of the coordinate bits to save wiring tracks.
+  //  For request packet, src_y cord can be optimized out.
+  //  For response packet, dest_y cord can be optimized out.
+
+  `define bsg_manycore_ruche_x_link_sif_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
+    (`bsg_manycore_link_sif_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp)-(2*y_cord_width_mp))
+
+  `define declare_bsg_manycore_ruche_x_link_sif_s(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
+    `declare_bsg_ready_and_link_sif_s(`bsg_manycore_packet_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp)-y_cord_width_mp,bsg_manycore_fwd_ruche_x_link_s); \
+    `declare_bsg_ready_and_link_sif_s(`bsg_manycore_return_packet_width(x_cord_width_mp,y_cord_width_mp,data_width_mp)-y_cord_width_mp,bsg_manycore_rev_ruche_x_link_s); \
+    typedef struct packed { \
+      bsg_manycore_fwd_ruche_x_link_s fwd; \
+      bsg_manycore_rev_ruche_x_link_s rev; \
+    } bsg_manycore_ruche_x_link_sif_s
+    
+
   // EVA Address Format
 
   localparam epa_word_addr_width_gp = 16; // max EPA width on vanilla core. (word addr)

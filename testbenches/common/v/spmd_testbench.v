@@ -7,6 +7,7 @@ module spmd_testbench;
   import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
+  import bsg_manycore_network_cfg_pkg::*;
 
   // defines from VCS
   // rename it to something more familiar.
@@ -22,7 +23,10 @@ module spmd_testbench;
   parameter bsg_manycore_mem_cfg_e bsg_manycore_mem_cfg_p = `BSG_MACHINE_MEM_CFG;
   parameter bsg_branch_trace_en_p = `BSG_MACHINE_BRANCH_TRACE_EN;
   parameter vcache_miss_fifo_els_p = `BSG_MACHINE_VCACHE_MISS_FIFO_ELS;
-  parameter crossbar_network_p = `BSG_MACHINE_CROSSBAR_NETWORK;
+
+  parameter ruche_factor_X_p    = `BSG_MACHINE_RUCHE_FACTOR_X;
+  parameter bsg_manycore_network_cfg_e bsg_manycore_network_cfg_p = `BSG_MACHINE_NETWORK_CFG;
+
   parameter int hetero_type_vec_p [0:((num_tiles_y_p-1)*num_tiles_x_p) - 1]  = '{`BSG_MACHINE_HETERO_TYPE_VEC};
 
   // constant params
@@ -36,6 +40,7 @@ module spmd_testbench;
   parameter axi_data_width_p = 256;
   parameter axi_burst_len_p = 1;
 
+
   // dmc param
   parameter dram_ctrl_addr_width_p = 29; // 512 MB
 
@@ -44,6 +49,8 @@ module spmd_testbench;
   parameter hbm2_data_width_p = `dram_pkg::data_width_p;
   parameter hbm2_channel_addr_width_p = `dram_pkg::channel_addr_width_p;
   parameter hbm2_num_channels_p = `dram_pkg::num_channels_p;
+  parameter hbm2_num_cache_per_channel_p = 16;
+  parameter hbm2_num_channel_per_side_p = (num_tiles_x_p/hbm2_num_cache_per_channel_p);
 
   // derived param
   parameter axi_strb_width_lp = (axi_data_width_p>>3);
@@ -55,7 +62,7 @@ module spmd_testbench;
   parameter cache_addr_width_lp=(bsg_max_epa_width_p-1+byte_offset_width_lp);
   parameter data_mask_width_lp=(data_width_p>>3);
 
-  parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p)*4);
+  parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p)*4); // byte addr
 
   // print machine settings
   initial begin
@@ -70,7 +77,8 @@ module spmd_testbench;
     $display("[INFO][TESTBENCH] BSG_MACHINE_DRAM_INCLUDED            = %d", bsg_dram_included_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_MAX_EPA_WIDTH            = %d", bsg_max_epa_width_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = %s", bsg_manycore_mem_cfg_p.name());
-    $display("[INFO][TESTBENCH] BSG_MACHINE_CROSSBAR_NETWORK         = %d", crossbar_network_p);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_NETWORK_CFG              = %s", bsg_manycore_network_cfg_p.name());
+    $display("[INFO][TESTBENCH] BSG_MACHINE_RUCHE_FACTOR_X           = %d", ruche_factor_X_p);
   end
 
 
@@ -109,7 +117,6 @@ module spmd_testbench;
 
 
   // instantiate manycore
-  //
   `declare_bsg_manycore_link_sif_s(bsg_max_epa_width_p,data_width_p,
     x_cord_width_lp,y_cord_width_lp);
 
@@ -117,7 +124,11 @@ module spmd_testbench;
   bsg_manycore_link_sif_s [E:W][num_tiles_y_p-1:0] hor_link_li, hor_link_lo;
   bsg_manycore_link_sif_s [num_tiles_x_p-1:0] io_link_li, io_link_lo;
 
-  if (crossbar_network_p) begin: cnet
+
+  // Configurable Network
+  localparam logic [e_network_max_val-1:0] network_cfg_lp = (1 << bsg_manycore_network_cfg_p);
+
+  if (network_cfg_lp[e_network_crossbar]) begin: cnet
 
     bsg_manycore_top_crossbar #(
       .dmem_size_p(dmem_size_p)
@@ -142,9 +153,9 @@ module spmd_testbench;
     );
 
   end
-  else begin: nnet
+  else if (network_cfg_lp[e_network_mesh]) begin: mnet
 
-    bsg_manycore #(
+    bsg_manycore_top_mesh #(
       .dmem_size_p(dmem_size_p)
       ,.icache_entries_p(icache_entries_p)
       ,.icache_tag_width_p(icache_tag_width_p)
@@ -172,6 +183,78 @@ module spmd_testbench;
     );
 
   end
+  else if (network_cfg_lp[e_network_half_ruche_x]) begin: rnet
+
+    `declare_bsg_manycore_ruche_x_link_sif_s(bsg_max_epa_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
+    bsg_manycore_ruche_x_link_sif_s [E:W][num_tiles_y_p-2:0][ruche_factor_X_p-1:0] ruche_link_li, ruche_link_lo;
+
+    bsg_manycore_top_ruche #(
+      .dmem_size_p(dmem_size_p)
+      ,.icache_entries_p(icache_entries_p)
+      ,.icache_tag_width_p(icache_tag_width_p)
+      ,.vcache_size_p(vcache_size_p)
+      ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+      ,.vcache_sets_p(vcache_sets_p)
+      ,.data_width_p(data_width_p)
+      ,.addr_width_p(bsg_max_epa_width_p)
+      ,.num_tiles_x_p(num_tiles_x_p)
+      ,.num_tiles_y_p(num_tiles_y_p)
+      ,.branch_trace_en_p(bsg_branch_trace_en_p)
+      ,.hetero_type_vec_p(hetero_type_vec_p)
+      ,.ruche_factor_X_p(ruche_factor_X_p)
+    ) DUT (
+      .clk_i(core_clk)
+      ,.reset_i(reset)
+
+      ,.hor_link_sif_i(hor_link_li)
+      ,.hor_link_sif_o(hor_link_lo)
+
+      ,.ver_link_sif_i(ver_link_li)
+      ,.ver_link_sif_o(ver_link_lo)
+
+      ,.io_link_sif_i(io_link_li)
+      ,.io_link_sif_o(io_link_lo)
+
+      ,.ruche_link_i(ruche_link_li)
+      ,.ruche_link_o(ruche_link_lo)
+    );
+
+
+    // tieoff ruche links
+    for (genvar i = 0; i < num_tiles_y_p-1; i++) begin: y
+      for (genvar j = 0; j < ruche_factor_X_p; j++) begin: r
+
+        bsg_manycore_ruche_x_link_sif_tieoff #(
+          .addr_width_p(bsg_max_epa_width_p)
+          ,.data_width_p(data_width_p)
+          ,.x_cord_width_p(x_cord_width_lp)
+          ,.y_cord_width_p(y_cord_width_lp)
+          ,.ruche_factor_X_p(ruche_factor_X_p)
+          ,.ruche_stage_p(j)
+        ) tieoff_re (
+          .clk_i(core_clk)
+          ,.reset_i(reset_r[2])
+          ,.ruche_link_i(ruche_link_lo[E][i][j])
+          ,.ruche_link_o(ruche_link_li[E][i][j])
+        );
+
+        bsg_manycore_ruche_x_link_sif_tieoff #(
+          .addr_width_p(bsg_max_epa_width_p)
+          ,.data_width_p(data_width_p)
+          ,.x_cord_width_p(x_cord_width_lp)
+          ,.y_cord_width_p(y_cord_width_lp)
+          ,.ruche_factor_X_p(ruche_factor_X_p)
+          ,.ruche_stage_p(j)
+        ) tieoff_rw (
+          .clk_i(core_clk)
+          ,.reset_i(reset_r[2])
+          ,.ruche_link_i(ruche_link_lo[W][i][j])
+          ,.ruche_link_o(ruche_link_li[W][i][j])
+        );
+      end
+    end
+  end
+
 
 
   // instantiate the loader and moniter
@@ -328,6 +411,7 @@ module spmd_testbench;
       ,.print_stat_tag_i($root.spmd_testbench.print_stat_tag)
       ,.trace_en_i($root.spmd_testbench.trace_en)
     );
+
 
   end
   else if (mem_cfg_lp[e_vcache_non_blocking_axi4_nonsynth_mem]
@@ -591,63 +675,65 @@ module spmd_testbench;
       logic [4:0] byte_offset;
     } dram_ch_addr_s; 
   
-    logic [S:N] dram_req_v_lo;
-    logic [S:N] dram_write_not_read_lo;
-    dram_ch_addr_s [S:N] dram_ch_addr_lo;
-    logic [S:N] dram_req_yumi_li;
+    logic [S:N][hbm2_num_channel_per_side_p-1:0] dram_req_v_lo;
+    logic [S:N][hbm2_num_channel_per_side_p-1:0] dram_write_not_read_lo;
+    dram_ch_addr_s [S:N][hbm2_num_channel_per_side_p-1:0] dram_ch_addr_lo;
+    logic [S:N][hbm2_num_channel_per_side_p-1:0] dram_req_yumi_li;
 
-    logic [S:N] dram_data_v_lo;
-    logic [S:N][hbm2_data_width_p-1:0] dram_data_lo;
-    logic [S:N] dram_data_yumi_li;
+    logic [S:N][hbm2_num_channel_per_side_p-1:0] dram_data_v_lo;
+    logic [S:N][hbm2_num_channel_per_side_p-1:0][hbm2_data_width_p-1:0] dram_data_lo;
+    logic [S:N][hbm2_num_channel_per_side_p-1:0] dram_data_yumi_li;
     
-    logic [S:N] dram_data_v_li;
-    logic [S:N][hbm2_data_width_p-1:0] dram_data_li;
-    dram_ch_addr_s [S:N] dram_ch_addr_li;
+    logic [S:N][hbm2_num_channel_per_side_p-1:0] dram_data_v_li;
+    logic [S:N][hbm2_num_channel_per_side_p-1:0][hbm2_data_width_p-1:0] dram_data_li;
+    dram_ch_addr_s [S:N][hbm2_num_channel_per_side_p-1:0] dram_ch_addr_li;
     
  
     for (genvar i = N; i <= S; i++) begin
-      bsg_cache_to_test_dram #(
-        .num_cache_p(num_tiles_x_p)
-        ,.addr_width_p(cache_addr_width_lp)
-        ,.data_width_p(data_width_p)
-        ,.block_size_in_words_p(vcache_block_size_in_words_p)
-        ,.cache_bank_addr_width_p(cache_bank_addr_width_lp)
-        ,.dma_data_width_p(vcache_dma_data_width_p)
+      for (genvar j = 0; j < hbm2_num_channel_per_side_p; j++) begin
+        bsg_cache_to_test_dram #(
+          .num_cache_p(hbm2_num_cache_per_channel_p)
+          ,.addr_width_p(cache_addr_width_lp)
+          ,.data_width_p(data_width_p)
+          ,.block_size_in_words_p(vcache_block_size_in_words_p)
+          ,.cache_bank_addr_width_p(cache_bank_addr_width_lp) // byte addr
+          ,.dma_data_width_p(vcache_dma_data_width_p)
 
-        ,.dram_channel_addr_width_p(hbm2_channel_addr_width_p)
-        ,.dram_data_width_p(hbm2_data_width_p)
-      ) cache_to_test_dram0 (
-        .core_clk_i(core_clk)
-        ,.core_reset_i(reset_r[2])
+          ,.dram_channel_addr_width_p(hbm2_channel_addr_width_p)
+          ,.dram_data_width_p(hbm2_data_width_p)
+        ) cache_to_test_dram0 (
+          .core_clk_i(core_clk)
+          ,.core_reset_i(reset_r[2])
       
-        ,.dma_pkt_i(lv1_dma.dma_pkt[i])
-        ,.dma_pkt_v_i(lv1_dma.dma_pkt_v_lo[i])
-        ,.dma_pkt_yumi_o(lv1_dma.dma_pkt_yumi_li[i])
+          ,.dma_pkt_i(lv1_dma.dma_pkt[i][j*hbm2_num_cache_per_channel_p+:hbm2_num_cache_per_channel_p])
+          ,.dma_pkt_v_i(lv1_dma.dma_pkt_v_lo[i][j*hbm2_num_cache_per_channel_p+:hbm2_num_cache_per_channel_p])
+          ,.dma_pkt_yumi_o(lv1_dma.dma_pkt_yumi_li[i][j*hbm2_num_cache_per_channel_p+:hbm2_num_cache_per_channel_p])
 
-        ,.dma_data_o(lv1_dma.dma_data_li[i])
-        ,.dma_data_v_o(lv1_dma.dma_data_v_li[i])
-        ,.dma_data_ready_i(lv1_dma.dma_data_ready_lo[i])
+          ,.dma_data_o(lv1_dma.dma_data_li[i][j*hbm2_num_cache_per_channel_p+:hbm2_num_cache_per_channel_p])
+          ,.dma_data_v_o(lv1_dma.dma_data_v_li[i][j*hbm2_num_cache_per_channel_p+:hbm2_num_cache_per_channel_p])
+          ,.dma_data_ready_i(lv1_dma.dma_data_ready_lo[i][j*hbm2_num_cache_per_channel_p+:hbm2_num_cache_per_channel_p])
 
-        ,.dma_data_i(lv1_dma.dma_data_lo[i])
-        ,.dma_data_v_i(lv1_dma.dma_data_v_lo[i])
-        ,.dma_data_yumi_o(lv1_dma.dma_data_yumi_li[i])
+          ,.dma_data_i(lv1_dma.dma_data_lo[i][j*hbm2_num_cache_per_channel_p+:hbm2_num_cache_per_channel_p])
+          ,.dma_data_v_i(lv1_dma.dma_data_v_lo[i][j*hbm2_num_cache_per_channel_p+:hbm2_num_cache_per_channel_p])
+          ,.dma_data_yumi_o(lv1_dma.dma_data_yumi_li[i][j*hbm2_num_cache_per_channel_p+:hbm2_num_cache_per_channel_p])
 
-        ,.dram_clk_i(core_clk)
-        ,.dram_reset_i(reset_r[2])
+          ,.dram_clk_i(core_clk)
+          ,.dram_reset_i(reset_r[2])
     
-        ,.dram_req_v_o(dram_req_v_lo[i])
-        ,.dram_write_not_read_o(dram_write_not_read_lo[i])
-        ,.dram_ch_addr_o(dram_ch_addr_lo[i])
-        ,.dram_req_yumi_i(dram_req_yumi_li[i])
+          ,.dram_req_v_o(dram_req_v_lo[i][j])
+          ,.dram_write_not_read_o(dram_write_not_read_lo[i][j])
+          ,.dram_ch_addr_o(dram_ch_addr_lo[i][j])
+          ,.dram_req_yumi_i(dram_req_yumi_li[i][j])
 
-        ,.dram_data_v_o(dram_data_v_lo[i])
-        ,.dram_data_o(dram_data_lo[i])
-        ,.dram_data_yumi_i(dram_data_yumi_li[i])
+          ,.dram_data_v_o(dram_data_v_lo[i][j])
+          ,.dram_data_o(dram_data_lo[i][j])
+          ,.dram_data_yumi_i(dram_data_yumi_li[i][j])
 
-        ,.dram_data_v_i(dram_data_v_li[i])
-        ,.dram_data_i(dram_data_li[i])
-        ,.dram_ch_addr_i(dram_ch_addr_li[i])
-      );    
+          ,.dram_data_v_i(dram_data_v_li[i][j])
+          ,.dram_data_i(dram_data_li[i][j])
+          ,.dram_ch_addr_i(dram_ch_addr_li[i][j])
+        );
+      end
     end
   end
 
@@ -919,6 +1005,7 @@ module spmd_testbench;
       ,.v_i(dramsim3_v_li)
       ,.write_not_read_i(dramsim3_write_not_read_li)
       ,.ch_addr_i(dramsim3_ch_addr_li)
+      ,.mask_i('1)
       ,.yumi_o(dramsim3_yumi_lo)
 
       ,.data_v_i(dramsim3_data_v_li)
@@ -933,59 +1020,38 @@ module spmd_testbench;
       ,.write_done_ch_addr_o()
     );
 
-    // north = channel0
-    assign dramsim3_v_li[0] = lv2_hbm2.dram_req_v_lo[N];
-    assign dramsim3_write_not_read_li[0] = lv2_hbm2.dram_write_not_read_lo[N];
-    assign dramsim3_ch_addr_li[0] = {
-      lv2_hbm2.dram_ch_addr_lo[N].ro,
-      lv2_hbm2.dram_ch_addr_lo[N].bg,
-      lv2_hbm2.dram_ch_addr_lo[N].ba,
-      lv2_hbm2.dram_ch_addr_lo[N].co,
-      lv2_hbm2.dram_ch_addr_lo[N].byte_offset
-    };
-    assign lv2_hbm2.dram_req_yumi_li[N] = dramsim3_yumi_lo[0];
+    for (genvar i = N; i <= S; i++) begin
+      for (genvar j = 0; j < hbm2_num_channel_per_side_p; j++) begin
+        localparam ch_idx_lp = j+(hbm2_num_channel_per_side_p*(i-N));
 
-    assign dramsim3_data_v_li[0] = lv2_hbm2.dram_data_v_lo[N];
-    assign dramsim3_data_li[0] = lv2_hbm2.dram_data_lo[N];
-    assign lv2_hbm2.dram_data_yumi_li[N] = dramsim3_data_yumi_lo[0];
+        assign dramsim3_v_li[ch_idx_lp] = lv2_hbm2.dram_req_v_lo[i][j];
+        assign dramsim3_write_not_read_li[ch_idx_lp] = lv2_hbm2.dram_write_not_read_lo[i][j];
+        assign dramsim3_ch_addr_li[ch_idx_lp] = {
+          lv2_hbm2.dram_ch_addr_lo[i][j].ro,
+          lv2_hbm2.dram_ch_addr_lo[i][j].bg,
+          lv2_hbm2.dram_ch_addr_lo[i][j].ba,
+          lv2_hbm2.dram_ch_addr_lo[i][j].co,
+          lv2_hbm2.dram_ch_addr_lo[i][j].byte_offset
+        };
+        assign lv2_hbm2.dram_req_yumi_li[i][j] = dramsim3_yumi_lo[ch_idx_lp];
 
-    assign lv2_hbm2.dram_data_v_li[N] = dramsim3_data_v_lo[0];
-    assign lv2_hbm2.dram_data_li[N] = dramsim3_data_lo[0];
-    assign lv2_hbm2.dram_ch_addr_li[N] = {
-      dramsim3_ch_addr_lo[0].bg,
-      dramsim3_ch_addr_lo[0].ba,
-      dramsim3_ch_addr_lo[0].ro,
-      dramsim3_ch_addr_lo[0].co,
-      dramsim3_ch_addr_lo[0].byte_offset
-    };
+        assign dramsim3_data_v_li[ch_idx_lp] = lv2_hbm2.dram_data_v_lo[i][j];
+        assign dramsim3_data_li[ch_idx_lp] = lv2_hbm2.dram_data_lo[i][j];
+        assign lv2_hbm2.dram_data_yumi_li[i][j] = dramsim3_data_yumi_lo[ch_idx_lp];
 
-    // south = channel1
-    assign dramsim3_v_li[1] = lv2_hbm2.dram_req_v_lo[S];
-    assign dramsim3_write_not_read_li[1] = lv2_hbm2.dram_write_not_read_lo[S];
-    assign dramsim3_ch_addr_li[1] = {
-      lv2_hbm2.dram_ch_addr_lo[S].ro,
-      lv2_hbm2.dram_ch_addr_lo[S].bg,
-      lv2_hbm2.dram_ch_addr_lo[S].ba,
-      lv2_hbm2.dram_ch_addr_lo[S].co,
-      lv2_hbm2.dram_ch_addr_lo[S].byte_offset
-    };
-    assign lv2_hbm2.dram_req_yumi_li[S] = dramsim3_yumi_lo[1];
-
-    assign dramsim3_data_v_li[1] = lv2_hbm2.dram_data_v_lo[S];
-    assign dramsim3_data_li[1] = lv2_hbm2.dram_data_lo[S];
-    assign lv2_hbm2.dram_data_yumi_li[S] = dramsim3_data_yumi_lo[1];
-
-    assign lv2_hbm2.dram_data_v_li[S] = dramsim3_data_v_lo[1];
-    assign lv2_hbm2.dram_data_li[S] = dramsim3_data_lo[1];
-    assign lv2_hbm2.dram_ch_addr_li[S] = {
-      dramsim3_ch_addr_lo[1].bg,
-      dramsim3_ch_addr_lo[1].ba,
-      dramsim3_ch_addr_lo[1].ro,
-      dramsim3_ch_addr_lo[1].co,
-      dramsim3_ch_addr_lo[1].byte_offset
-    };
-
+        assign lv2_hbm2.dram_data_v_li[i][j] = dramsim3_data_v_lo[ch_idx_lp];
+        assign lv2_hbm2.dram_data_li[i][j] = dramsim3_data_lo[ch_idx_lp];
+        assign lv2_hbm2.dram_ch_addr_li[i][j] = {
+          dramsim3_ch_addr_lo[ch_idx_lp].bg,
+          dramsim3_ch_addr_lo[ch_idx_lp].ba,
+          dramsim3_ch_addr_lo[ch_idx_lp].ro,
+          dramsim3_ch_addr_lo[ch_idx_lp].co,
+          dramsim3_ch_addr_lo[ch_idx_lp].byte_offset
+        };
+      end
+    end
   end
+
 
  
   // vanilla core tracer
@@ -1036,6 +1102,26 @@ module spmd_testbench;
     ,.trace_en_i($root.spmd_testbench.trace_en)
   );
 
+
+
+  // router profiler
+  if (network_cfg_lp[e_network_mesh] | network_cfg_lp[e_network_half_ruche_x]) begin
+    bind bsg_mesh_router router_profiler #(
+      .x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.dims_p(dims_p)
+      ,.XY_order_p(XY_order_p)
+      ,.origin_x_cord_p(0)
+      ,.origin_y_cord_p(2)
+    ) rp0 (
+      .*
+      ,.global_ctr_i($root.spmd_testbench.global_ctr)
+      ,.trace_en_i($root.spmd_testbench.trace_en)
+      ,.print_stat_v_i($root.spmd_testbench.print_stat_v)
+    );
+
+  end
+
   // tieoffs
   //
   for (genvar i = 0; i < num_tiles_y_p; i++) begin: we_tieoff
@@ -1078,6 +1164,9 @@ module spmd_testbench;
       ,.link_sif_o(io_link_li[i])
     );
   end
+
+
+
 
 endmodule
 

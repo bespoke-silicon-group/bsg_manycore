@@ -20,4 +20,7 @@ Machine.machine.include parameters
 - BSG_MACHINE_HETERO_TYPE_VEC           =   Hetero type vector. Default configuration is 'default:0'.
                                             Use this to instantiate custom accelerator instead of vanilla core.
 
+- BSG_MACHINE_NETWORK_CFG               =   Manycore Network configuration (look at bsg_manycore_network_cfg_pkg.v)
+- BSG_MACHINE_RUCHE_FACTOR_X            =   Ruche Factor X. Only valid if network config is ruche.
+
 ```

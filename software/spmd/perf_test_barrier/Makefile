@@ -1,4 +1,4 @@
-export BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/16x8
+export BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/8x4
 
 
 all: main.run
