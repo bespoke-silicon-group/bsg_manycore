@@ -7,10 +7,11 @@
 #include <kernel_common.hpp>
 #include <kernel_mm_opt.hpp>
 
-extern "C" __attribute__ ((noinline))  int kernel_mm_opt(
-                                              hb_tensor_t* _result,
-                                              hb_tensor_t* _mat1,
-                                              hb_tensor_t* _mat2) {
+extern "C" __attribute__ ((noinline))  
+int kernel_mm_opt(
+                  hb_tensor_t* _result,
+                  hb_tensor_t* _mat1,
+                  hb_tensor_t* _mat2) {
 
         auto mat1 = HBTensor<float, 2>(_mat1);
         auto mat2 = HBTensor<float, 2>(_mat2);
@@ -25,7 +26,7 @@ extern "C" __attribute__ ((noinline))  int kernel_mm_opt(
         int c1 = mat1.dim(1);
         int r2 = mat2.dim(0);
         int c2 = mat2.dim(1);
-        hb_assert(c1 == r2);
+        //hb_assert(c1 == r2);
 
         // calculate number of row and col blocks in each matrix
         int m1_num_blk_per_row = (r1 + BLOCK_DIM - 1) / BLOCK_DIM; // how many blocks in m1 per row
@@ -39,19 +40,40 @@ extern "C" __attribute__ ((noinline))  int kernel_mm_opt(
         int m2_last_blk_dim_x = c2 % BLOCK_DIM == 0 ? BLOCK_DIM : c2 % BLOCK_DIM; // x dimension of last block of mat2
         int m2_last_blk_dim_y = r2 % BLOCK_DIM == 0 ? BLOCK_DIM : r2 % BLOCK_DIM; // y dimension of last block of mat2
 
-        // iterate over result blocks
-        hb_tiled_for(m1_num_blk_per_row * m2_num_blk_per_col, [&](size_t ridx) {
-                        int rr = ridx / m2_num_blk_per_col;
-                        // rc is index of col block in result matrix
-                        int rc = ridx % m2_num_blk_per_col;
-                        // calculate current result block dimensions
+        float sp_mat1[BLOCK_DIM * BLOCK_DIM];
+        float sp_mat2[BLOCK_DIM * BLOCK_DIM];
+        float sp_result[BLOCK_DIM * BLOCK_DIM];
+
+        // std::cout << "m1_num_blk_per_row = " << m1_num_blk_per_row << " m2_num_blk_per_col = " << m2_num_blk_per_col << std::endl;
+        // std::cout << "result.dim(0) = " << result.dim(0) << " result.dim(1) = " << result.dim(1) << std::endl;
+        for (int i = 0; i < m1_num_blk_per_row; i += BSG_TILE_GROUP_Y_DIM) {
+                for (int j = 0; j < m2_num_blk_per_col; j += BSG_TILE_GROUP_X_DIM) {
+                        int rr = i + __bsg_y;
+                        int rc = j + __bsg_x;
                         int res_dim_y = rr == m1_num_blk_per_row - 1 ? m1_last_blk_dim_y : BLOCK_DIM;
                         int res_dim_x = rc == m2_num_blk_per_col - 1 ? m2_last_blk_dim_x : BLOCK_DIM;
                         int partial_block = (res_dim_y != BLOCK_DIM) || (res_dim_x != BLOCK_DIM);
 
                         // initialize scratchpad result (init to 0's)
-                        float sp_result[res_dim_y * res_dim_x];
-                        memset(sp_result, 0, res_dim_y * res_dim_x * sizeof(float));
+                        // memset(sp_result, 0, res_dim_y * res_dim_x * sizeof(float));
+                        for (int sp = 0; sp < BLOCK_DIM * BLOCK_DIM; sp += 16) {
+                                sp_result[sp +  0] = 0;
+                                sp_result[sp +  1] = 0;
+                                sp_result[sp +  2] = 0;
+                                sp_result[sp +  3] = 0;
+                                sp_result[sp +  4] = 0;
+                                sp_result[sp +  5] = 0;
+                                sp_result[sp +  6] = 0;
+                                sp_result[sp +  7] = 0;
+                                sp_result[sp +  8] = 0;
+                                sp_result[sp +  9] = 0;
+                                sp_result[sp + 10] = 0;
+                                sp_result[sp + 11] = 0;
+                                sp_result[sp + 12] = 0;
+                                sp_result[sp + 13] = 0;
+                                sp_result[sp + 14] = 0;
+                                sp_result[sp + 15] = 0;
+                        }
 
                         // process mat1 and mat2 for this result block
                         // only care about blocks of mat1 in row rr
@@ -64,16 +86,14 @@ extern "C" __attribute__ ((noinline))  int kernel_mm_opt(
                                 // load mat1 and mat2 into scratchpad
 
                                 // unrolled version
-                                float sp_mat1[res_dim_y * mid_dim];
-                                float sp_mat2[mid_dim * res_dim_x];
                                 if (partial_block) { // general case
                                         dram_to_sp(sp_mat1, mat1, res_dim_y, mid_dim, rr, mat1x);
                                         dram_to_sp(sp_mat2, mat2, mid_dim, res_dim_x, mat2y, rc);
                                         compute(sp_result, sp_mat1, sp_mat2, res_dim_y, res_dim_x, mid_dim);
                                 } else {
-                                        dram_to_sp_simple(sp_mat1, mat1, res_dim_y, mid_dim, rr, mat1x);
-                                        dram_to_sp_simple(sp_mat2, mat2, mid_dim, res_dim_x, mat2y, rc);
-                                        compute_simple(sp_result, sp_mat1, sp_mat2, res_dim_y, res_dim_x, mid_dim);
+                                        dram_to_sp_simple(sp_mat1, mat1, rr, mat1x);
+                                        dram_to_sp_simple(sp_mat2, mat2, mat2y, rc);
+                                        compute_simple(sp_result, sp_mat1, sp_mat2);
                                 }
                                 // end: unrolled version
 
@@ -87,12 +107,12 @@ extern "C" __attribute__ ((noinline))  int kernel_mm_opt(
                                         // end: unrolled version
                                 }
                         }
-                });
+                }
+        }
         //   End profiling
         bsg_cuda_print_stat_kernel_end();
 
         g_barrier.sync();
         return 0;
 }
-
 

@@ -483,4 +483,14 @@ inline void hb_tiled_range(size_t numel, FetchFunctor functor) {
 }
 
 
+template <class FetchFunctor>
+inline void hb_tiled_for_hack(size_t numel, FetchFunctor functor) {
+  //--------------------------------------
+  // calculate start and end for this tile
+  //--------------------------------------
+  for (size_t i = __bsg_id; i < numel; i += (bsg_tiles_X * bsg_tiles_Y)) {
+    functor(i);
+  }
+}
+
 #endif

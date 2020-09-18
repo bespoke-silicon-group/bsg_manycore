@@ -69,9 +69,9 @@ inline void binary_reduction_simple(HBTensor<scalar_t> out,
                                     F1 reduce, F2 project) {
   hb_assert_msg(out.numel() == 1, "reduction_simple only handles trivial case");
 
-  bsg_attr_remote scalar_t* data[2];
-  data[0] = (bsg_attr_remote scalar_t*)out.data_ptr();
-  data[1] = (bsg_attr_remote scalar_t*)in.data_ptr();
+  __remote scalar_t* data[2];
+  data[0] = (__remote scalar_t*)out.data_ptr();
+  data[1] = (__remote scalar_t*)in.data_ptr();
   scalar_t* buffer = (scalar_t*)g_reduction_buffer;
 
   //-----------------------------
@@ -92,7 +92,7 @@ inline void binary_reduction_simple(HBTensor<scalar_t> out,
     // iterating over all elementes
     //-----------------------------
     hb_tiled_range(in.numel(), [&](size_t start, size_t end) {
-      bsg_attr_remote scalar_t* in_dp = (data[1] + strides[1] * start);
+      __remote scalar_t* in_dp = (data[1] + strides[1] * start);
       for(size_t i = start; i < end; i++) {
         reduce(result, *in_dp);
         in_dp += strides[1];
@@ -103,7 +103,7 @@ inline void binary_reduction_simple(HBTensor<scalar_t> out,
     // iterating over all elementes
     //-----------------------------
     hb_tiled_for(in.numel(), [&](size_t idx) {
-      bsg_attr_remote scalar_t* in_dp = (bsg_attr_remote scalar_t*)(data[1] + offset_calc(idx, in));
+      __remote scalar_t* in_dp = (__remote scalar_t*)(data[1] + offset_calc(idx, in));
       reduce(result, *in_dp);
     });
   }
@@ -116,7 +116,7 @@ inline void binary_reduction_simple(HBTensor<scalar_t> out,
       result += buffer[idx];
     }
     // produce final result
-    bsg_attr_remote scalar_t* out_dp = (bsg_attr_remote scalar_t*)(data[0]);
+    __remote scalar_t* out_dp = (__remote scalar_t*)(data[0]);
     *out_dp = project(result);
   }
 

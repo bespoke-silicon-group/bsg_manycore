@@ -84,7 +84,7 @@ class HBTensorImpl {
         // WAW HW bug seems to be triggered on a non-bloacking load to
         // the register holding `sizes` in various kernels. This fix
         // adds a RAW dependedncy on that register, blocking the load.
-        //HB_FIX_WAW_HAZARD(sizes);
+        HB_FIX_WAW_HAZARD(sizes);
       }
 
     bsg_attr_remote char* data_ptr() {
@@ -104,9 +104,9 @@ class HBTensorImpl {
     }
 
     uint32_t dim(uint32_t d) {
-      hb_assert_msg(d < dims,
-                    "error: dimesnion must be less than %d\n",
-                    dims);
+      //hb_assert_msg(d < dims,
+      //              "error: dimesnion must be less than %d\n",
+      //              dims);
       return sizes[d];
     }
 
@@ -133,9 +133,9 @@ class HBTensorImpl {
     // XXX: The tensor has to be contiguous if
     // it's >1-d tensor.
     DT& operator()(uint32_t index) {
-      hb_assert_msg(index < N,
-                    "error: N=%d but accessed %d\n",
-                    N, index);
+      //hb_assert_msg(index < N,
+      //              "error: N=%d but accessed %d\n",
+      //              N, index);
       if(dims != 1) {
         return data[index];
       } else {
@@ -179,9 +179,9 @@ class HBTensor : public HBTensorImpl<bsg_attr_remote DT, uint32_t> {
         sizes,
         (bsg_attr_remote DT*) ((intptr_t) t->data)
       ) {
-        hb_assert_msg(
-          t->dims == dims,
-          "error: HBTensor dims don't match offloaed tensor dims");
+        //hb_assert_msg(
+        //  t->dims == dims,
+        //  "error: HBTensor dims don't match offloaed tensor dims");
 
         uint32_t* strides_remote = (uint32_t*) ((intptr_t) t->strides);
         uint32_t* sizes_remote = (uint32_t*) ((intptr_t) t->sizes);
@@ -209,9 +209,9 @@ class HBTensor<DT, -1> : public HBTensorImpl<bsg_attr_remote DT, uint32_t> {
         sizes,
         (bsg_attr_remote DT*) ((intptr_t) t->data)
       ) {
-        hb_assert_msg(
-          t->dims <= DEFAULT_STRIDES,
-          "error: tensor dims is too large");
+        //hb_assert_msg(
+        //  t->dims <= DEFAULT_STRIDES,
+        //  "error: tensor dims is too large");
 
         uint32_t* strides_remote = (uint32_t*) ((intptr_t) t->strides);
         uint32_t* sizes_remote = (uint32_t*) ((intptr_t) t->sizes);
