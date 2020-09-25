@@ -7,7 +7,6 @@
 // accesses, but your mileage may vary with anything more complex.
 
 
-
 // Our goal is to optimize saxpy (Scalar * X Plus Y) by unrolling it
 // by a factor of 4 to increase performance. Performance gains can be
 // attributed to two effects: 

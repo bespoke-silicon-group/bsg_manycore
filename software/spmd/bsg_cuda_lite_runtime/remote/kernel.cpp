@@ -20,7 +20,7 @@
 // to improve performance by 1) Issuing blocks of loads to hide latency
 // 2) Reduce loop control overhead.
 
-// Using __restrict is one of TWO critical steps to utilizing
+// Using bsg_attr_remote is one of TWO critical steps to utilizing
 // non-blocking loads effectively in the manycore architecture.
 
 // For the other critical step see kernel.cpp in the restrict
@@ -30,7 +30,7 @@
 
 #include <bsg_manycore.h>
 
-void vec_add(float  *A, float  *B, float *C, float alpha) {
+void saxpy(float  *A, float  *B, float *C, float alpha) {
         float s = 0;
         bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
@@ -46,7 +46,7 @@ Result: The compiler does not aggregate blocks of load instructions
 and the load-use distance is small. The compiler does not have a
 correct cost model for the data in DRAM.
 
-void vec_add(float  *  A, float  *  B, float *C, float alpha) {
+void saxpy(float  *  A, float  *  B, float *C, float alpha) {
  250:   00000693                li      x13,0
         float s = 0;
         bsg_unroll(4)
@@ -83,14 +83,14 @@ void vec_add(float  *  A, float  *  B, float *C, float alpha) {
                 C[i] = alpha * A[i] + B[i];
  2c0:   00062227                fsw     f0,4(x12)
         for(int i = 0;  i < 16; ++i) {
- 2c4:   fb0690e3                bne     x13,x16,264 <_Z7vec_addPfS_S_f+0x14>
+ 2c4:   fb0690e3                bne     x13,x16,264 <_Z7saxpyPfS_S_f+0x14>
         }
 }
  2c8:   00008067                ret
 */
 
 
-void vec_add_remote(float bsg_attr_remote * A, float bsg_attr_remote * B, float bsg_attr_remote * C, float alpha) {
+void saxpy_remote(float bsg_attr_remote * A, float bsg_attr_remote * B, float bsg_attr_remote * C, float alpha) {
         float s = 0;
         bsg_unroll(4)
         for(int i = 0;  i < 16; ++i) {
@@ -105,7 +105,7 @@ Flags: -O2 --target=riscv32 -march=rv32imaf -mabi=ilp32f -ffast-math -ffp-contra
 Result: The aggregates blocks of load instructions far from their use
 sitebut cannot reorder them to create larger blocks.
 
-void vec_add_remote(float bsg_attr_remote * A, float bsg_attr_remote * B, float bsg_attr_remote * C, float alpha) {
+void saxpy_remote(float bsg_attr_remote * A, float bsg_attr_remote * B, float bsg_attr_remote * C, float alpha) {
  2cc:   00000693                li      x13,0
         float s = 0;
         bsg_unroll(4)
@@ -142,26 +142,9 @@ void vec_add_remote(float bsg_attr_remote * A, float bsg_attr_remote * B, float 
                 C[i] = alpha * A[i] + B[i];
  33c:   00062227                fsw     f0,4(x12)
         for(int i = 0;  i < 16; ++i) {
- 340:   fb0690e3                bne     x13,x16,2e0 <_Z14vec_add_remotePU3AS1fS0_S0_f+0x14>
+ 340:   fb0690e3                bne     x13,x16,2e0 <_Z14saxpy_remotePU3AS1fS0_S0_f+0x14>
         }
 }
  344:   00008067                ret
 */
 
-
-void vec_add_remote_restrict(float bsg_attr_remote * __restrict A, float bsg_attr_remote * __restrict B, float bsg_attr_remote * __restrict C, float alpha) {
-        float s = 0;
-        bsg_unroll(4)
-        for(int i = 0;  i < 16; ++i) {
-                C[i] += alpha * A[i] + B[i];
-        }
-}
-
-
-void vec_add_remote_restrict_const(float bsg_attr_remote const * __restrict const A, float bsg_attr_remote const * __restrict const B, float bsg_attr_remote * __restrict const C, float alpha) {
-        float s = 0;
-        bsg_unroll(4)
-        for(int i = 0;  i < 16; ++i) {
-                C[i] += alpha * A[i] + B[i];
-        }
-}
