@@ -20,6 +20,8 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_one_fifo.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/testing/bsg_dmc/lpddr_verilog_model/mobile_ddr.v
 
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_pkg.v
+
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_pkg.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dmc/bsg_dmc_controller.v
