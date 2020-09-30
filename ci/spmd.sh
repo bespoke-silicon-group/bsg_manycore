@@ -3,8 +3,7 @@
 NUM_CORES=${CI_NUM_CORES:-5}
 
 cd software/spmd/
-make clean
-make -j $NUM_CORES recurse-clean > /dev/null 2>&1
+make clean > /dev/null 2>&1
 make -j $NUM_CORES recurse-all > /dev/null 2>&1
 echo ""
 echo "=========================================="

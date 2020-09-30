@@ -12,7 +12,7 @@ NO-RECURSE = \
 	go_viral \
 	bsg_remote_congestion memtest1 deprecated \
 	c++ fft memtest16 fhello_malloc striped_vector_sum striped_hello \
-	coremark coremark-top \
+	coremark-top \
 	deprecated \
 	beebs
 
