@@ -72,6 +72,13 @@
                                                              )                                               \
                                         )
 
+#define bsg_remote_flt_ptr(x,y,local_addr) ((bsg_remote_float_ptr) (   (REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS) \
+                                                               | ((y) << Y_CORD_SHIFTS )                     \
+                                                               | ((x) << X_CORD_SHIFTS )                     \
+                                                               | ((int) (local_addr)   )                     \
+                                                             )                                               \
+                                        )
+
 #define CREATE_POINTER_BY_TYPE(type) bsg_remote_ ## type ## _ptr
 
 #define bsg_tile_group_remote_ptr(type,x,y,local_addr) ( (CREATE_POINTER_BY_TYPE(type)) (   (REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS)  \

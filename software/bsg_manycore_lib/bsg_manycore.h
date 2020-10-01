@@ -20,6 +20,11 @@ typedef volatile unsigned short  *bsg_remote_uint16_ptr;
 typedef volatile unsigned *bsg_remote_uint32_ptr;
 typedef volatile void *bsg_remote_void_ptr;
 
+
+
+#define bsg_remote_flt_store(x,y,local_addr,val) do { *(bsg_remote_flt_ptr((x),(y),(local_addr))) = (float) (val); } while (0)
+#define bsg_remote_flt_load(x,y,local_addr,val)  do { val = *(bsg_remote_flt_ptr((x),(y),(local_addr))) ; } while (0)
+
 #define bsg_remote_store(x,y,local_addr,val) do { *(bsg_remote_ptr((x),(y),(local_addr))) = (int) (val); } while (0)
 #define bsg_remote_load(x,y,local_addr,val)  do { val = *(bsg_remote_ptr((x),(y),(local_addr))) ; } while (0)
 
