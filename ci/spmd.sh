@@ -27,4 +27,5 @@ for file in recurse-results/*.log; do
     exit 1
   fi
 done
+make check_finish
 exit 0
