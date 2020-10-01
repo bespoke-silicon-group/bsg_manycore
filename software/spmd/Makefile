@@ -12,7 +12,7 @@ NO-RECURSE = \
 	go_viral \
 	bsg_remote_congestion memtest1 deprecated \
 	c++ fft memtest16 fhello_malloc striped_vector_sum striped_hello \
-	coremark coremark-top \
+	coremark-top \
 	deprecated \
 	beebs
 
@@ -155,3 +155,14 @@ summarize-bad:
 #	-@grep -m 1 --color "FAIL\|I/O"  $(LOG_FILES)
 	-@grep -m 1 -C 2 --color "FAIL\|ERROR\|^[Ee]rror"  $(LOG_FILES)
 
+
+check_finish:
+	for log in $(LOG_FILES); do \
+		if grep BSG_FINISH $$log; \
+		then \
+			echo $$log passed; \
+		else \
+			echo $$log failed; \
+			exit 1;	\
+		fi	\
+	done
