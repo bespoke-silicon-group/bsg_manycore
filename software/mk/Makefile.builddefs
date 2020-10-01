@@ -65,8 +65,8 @@ BSG_ROM_GEN = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN     = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
 NBF_PY 			= $(BSG_MANYCORE_DIR)/software/py/nbf.py
 
-COMMON_SRC_DIRS = $(BSG_MANYCORE_DIR)/software/spmd/common \
-                  $(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+COMMON_SRC_DIRS = $(BSG_MANYCORE_3_6_0)/software/spmd/common \
+                  $(BSG_MANYCORE_3_6_0)/software/bsg_manycore_lib
 
 vpath %.c $(COMMON_SRC_DIRS)
 vpath %.S $(COMMON_SRC_DIRS)
@@ -77,7 +77,9 @@ OPT_LEVEL ?= -O2
 RISCV_GCC_EXTRA_OPTS ?=
 RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -ffp-contract=off
 
-RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
+RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) \
+								 -I$(BSG_MANYCORE_3_6_0)/software/spmd/common/ \
+								 -I$(BSG_MANYCORE_3_6_0)/software/bsg_manycore_lib
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
@@ -144,7 +146,7 @@ ifneq ($(BSG_NEWLIB), 1)
 endif
 
 RISCV_LINK_OPTS += -march=$(ARCH_OP) -nostartfiles -ffast-math -lc -lm -lgcc -l:$(CRT_OBJ)\
-                   -L $(BSG_MANYCORE_DIR)/software/spmd/common $(RISCV_LINK_EXTRA_OPTS)
+                   -L $(BSG_MANYCORE_3_6_0)/software/spmd/common -L. $(RISCV_LINK_EXTRA_OPTS)
 
 RISCV_LINK_SYMS += -Wl,--defsym,bsg_group_size=$(bsg_group_size) \
                    -Wl,--defsym,_bsg_elf_dram_size=$(BSG_ELF_DRAM_SIZE) \
