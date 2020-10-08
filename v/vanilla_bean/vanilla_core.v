@@ -1125,6 +1125,7 @@ module vanilla_core
     |id_r.decode.is_lr_op);
 
   // stall_amo_rl
+  // If there is a remote request in EXE, there is a technically remote request pending, even if the credit counter has not yet been decremented.
   assign stall_amo_rl = id_r.decode.is_amo_op & id_r.decode.is_amo_rl
     & (remote_credit_pending | remote_req_in_exe);
 
