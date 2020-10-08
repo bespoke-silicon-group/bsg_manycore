@@ -85,24 +85,12 @@ module bsg_manycore_top_crossbar
   function fifo_els_arr_t get_fwd_fifo_els();
     fifo_els_arr_t retval;
 
-    for (int i = 0; i < 2; i++) begin
+    for (int i = 0; i < num_in_y_lp; i++) begin
       for (int j = 0; j < num_in_x_lp; j++) begin
-        retval[(i*num_in_x_lp)+j] = 2;
+        retval[(i*num_in_x_lp)+j] = 32;
       end
     end
 
-    for (int i = num_in_y_lp-1; i < num_in_y_lp; i++) begin
-      for (int j = 0; j < num_in_x_lp; j++) begin
-        retval[(i*num_in_x_lp)+j] = 2;
-      end
-    end
-
-    // vanilla core use credit interface with 3-element FIFO.
-    for (int i = 2; i < num_in_y_lp-1; i++) begin
-      for (int j = 0; j < num_in_x_lp; j++) begin
-        retval[(i*num_in_x_lp)+j] = 3;
-      end
-    end
     return retval;
   endfunction
 
@@ -121,7 +109,7 @@ module bsg_manycore_top_crossbar
 
     for (int i = 0; i < num_in_y_lp; i++) begin
       for (int j = 0; j < num_in_x_lp; j++) begin
-        retval[(i*num_in_x_lp)+j] = 2;
+        retval[(i*num_in_x_lp)+j] = 32;
       end
     end
 

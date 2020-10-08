@@ -28,7 +28,7 @@ module vanilla_core
       // By default, 3 credits are needed, because the round trip to get the credit back takes three cycles.
       // ID->EXE->FIFO->CREDIT.
     , parameter fwd_fifo_els_p="inv"
-    , parameter lg_fwd_fifo_els_lp=`BSG_SAFE_CLOG2(fwd_fifo_els_p)
+    , parameter lg_fwd_fifo_els_lp=`BSG_WIDTH(fwd_fifo_els_p)
 
     , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
