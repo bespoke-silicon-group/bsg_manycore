@@ -128,6 +128,8 @@ module bsg_manycore_top_crossbar
     return retval;
   endfunction
 
+  localparam int fwd_fifo_els_lp[num_in_lp-1:0] = get_fwd_fifo_els();
+
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
   bsg_manycore_link_sif_s [num_in_y_lp-1:0][num_in_x_lp-1:0] link_in;
   bsg_manycore_link_sif_s [num_in_y_lp-1:0][num_in_x_lp-1:0] link_out;
@@ -185,6 +187,8 @@ module bsg_manycore_top_crossbar
 
         ,.num_tiles_x_p(num_tiles_x_p)
         ,.num_tiles_y_p(num_tiles_y_p)
+
+        ,.fwd_fifo_els_p(fwd_fifo_els_lp[num_tiles_x_p*2])
 
         ,.debug_p(0)
       ) proc (
