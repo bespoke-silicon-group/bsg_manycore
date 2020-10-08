@@ -108,6 +108,7 @@ module bsg_manycore_tile
     ,.vcache_sets_p(vcache_sets_p)
 
     ,.branch_trace_en_p(branch_trace_en_p)
+    ,.fwd_fifo_els_p(fwd_fifo_els_lp[0]) // number of fifo elements for the fwd network P-port input
 
     ,.debug_p(debug_p)
   ) proc (

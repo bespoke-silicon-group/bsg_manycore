@@ -23,6 +23,8 @@ module bsg_manycore_proc_vanilla
     , parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
 
+    , parameter fwd_fifo_els_p="inv" // for FIFO credit counting.
+  
     , parameter max_out_credits_p = 32
     , parameter proc_fifo_els_p = 4
     , parameter debug_p = 1
@@ -295,6 +297,7 @@ module bsg_manycore_proc_vanilla
     ,.y_cord_width_p(y_cord_width_p)
     ,.branch_trace_en_p(branch_trace_en_p)
     ,.max_out_credits_p(max_out_credits_p)
+    ,.fwd_fifo_els_p(fwd_fifo_els_p)
   ) vcore (
     .clk_i(clk_i)
     ,.reset_i(reset_i | freeze)
