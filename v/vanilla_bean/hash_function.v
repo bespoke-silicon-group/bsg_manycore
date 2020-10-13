@@ -41,7 +41,9 @@ module hash_function
     assign index_o = i[lg_banks_lp+:index_width_lp];
   end
   else begin: unhandled
+    // synopsys translate_off
     initial assert("banks_p" == "unhandled") else $error("unhandled case for %m");
+    // synopsys translate_on
   end
 
 
