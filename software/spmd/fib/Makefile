@@ -1,6 +1,7 @@
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 
+BSG_MACHINE_PATH=$(BSG_MANYCORE_DIR)/machines/4x4_fast_fake
 
 all: main.run
 
