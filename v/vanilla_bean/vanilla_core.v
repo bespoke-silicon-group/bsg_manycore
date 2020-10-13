@@ -1051,6 +1051,7 @@ module vanilla_core
   wire int_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_rd;
   wire float_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_frd;
   wire fdiv_fsqrt_in_fp_exe = fp_exe_r.fp_decode.is_fdiv_op | fp_exe_r.fp_decode.is_fsqrt_op;
+  wire remote_credit_pending = (out_credits_i != max_out_credits_p);
 
   // stall_depend_long_op (idiv, fdiv, remote_load, atomic)
   wire rs1_sb_clear_now = id_r.decode.read_rs1 & (id_rs1 == int_sb_clear_id) & int_sb_clear & id_rs1_non_zero; 
@@ -1113,7 +1114,7 @@ module vanilla_core
   assign stall_lr_aq = id_r.decode.is_lr_aq_op & (reserved_r | lsu_reserve_lo) & ~break_reserve;
 
   // stall_fence
-  assign stall_fence = id_r.decode.is_fence_op & (out_credits_i != max_out_credits_p);
+  assign stall_fence = id_r.decode.is_fence_op & (remote_credit_pending | remote_req_in_exe);
   
   // stall_amo_aq
   assign stall_amo_aq = aq_r & ~aq_clear &
@@ -1124,8 +1125,9 @@ module vanilla_core
     |id_r.decode.is_lr_op);
 
   // stall_amo_rl
+  // If there is a remote request in EXE, there is a technically remote request pending, even if the credit counter has not yet been decremented.
   assign stall_amo_rl = id_r.decode.is_amo_op & id_r.decode.is_amo_rl
-    & (out_credits_i != max_out_credits_p) & remote_req_in_exe;
+    & (remote_credit_pending | remote_req_in_exe);
 
 
   // stall_remote_req
