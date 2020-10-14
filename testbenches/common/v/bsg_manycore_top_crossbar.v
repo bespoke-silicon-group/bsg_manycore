@@ -33,6 +33,9 @@ module bsg_manycore_top_crossbar
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
     , parameter reset_depth_p = 3
+
+    , parameter fwd_fifo_els_p = 32
+    , parameter rev_fifo_els_p = 32
   )
   (
     input clk_i
@@ -85,24 +88,12 @@ module bsg_manycore_top_crossbar
   function fifo_els_arr_t get_fwd_fifo_els();
     fifo_els_arr_t retval;
 
-    for (int i = 0; i < 2; i++) begin
+    for (int i = 0; i < num_in_y_lp; i++) begin
       for (int j = 0; j < num_in_x_lp; j++) begin
-        retval[(i*num_in_x_lp)+j] = 2;
+        retval[(i*num_in_x_lp)+j] = fwd_fifo_els_p;
       end
     end
 
-    for (int i = num_in_y_lp-1; i < num_in_y_lp; i++) begin
-      for (int j = 0; j < num_in_x_lp; j++) begin
-        retval[(i*num_in_x_lp)+j] = 2;
-      end
-    end
-
-    // vanilla core use credit interface with 3-element FIFO.
-    for (int i = 2; i < num_in_y_lp-1; i++) begin
-      for (int j = 0; j < num_in_x_lp; j++) begin
-        retval[(i*num_in_x_lp)+j] = 3;
-      end
-    end
     return retval;
   endfunction
 
@@ -121,12 +112,14 @@ module bsg_manycore_top_crossbar
 
     for (int i = 0; i < num_in_y_lp; i++) begin
       for (int j = 0; j < num_in_x_lp; j++) begin
-        retval[(i*num_in_x_lp)+j] = 2;
+        retval[(i*num_in_x_lp)+j] = rev_fifo_els_p;
       end
     end
 
     return retval;
   endfunction
+
+  localparam int fwd_fifo_els_lp[num_in_lp-1:0] = get_fwd_fifo_els();
 
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
   bsg_manycore_link_sif_s [num_in_y_lp-1:0][num_in_x_lp-1:0] link_in;
@@ -185,6 +178,8 @@ module bsg_manycore_top_crossbar
 
         ,.num_tiles_x_p(num_tiles_x_p)
         ,.num_tiles_y_p(num_tiles_y_p)
+
+        ,.fwd_fifo_els_p(fwd_fifo_els_lp[num_tiles_x_p*2])
 
         ,.debug_p(0)
       ) proc (

@@ -24,6 +24,8 @@ module bsg_manycore_accel_default
      // for whoever is sending us data
      , parameter ep_fifo_els_p = 4
 
+     , parameter fwd_fifo_els_p = "inv"
+
      , parameter freeze_init_p  = 1'b1
      // this credit counter is more for implementing memory fences
      // than containing the number of outstanding remote stores

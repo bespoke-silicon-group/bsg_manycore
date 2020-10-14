@@ -24,6 +24,12 @@ module vanilla_core
     // Enables branch & jalr target-addr stream on stderr
     , parameter branch_trace_en_p=0
 
+    // For network input FIFO credit counting
+      // By default, 3 credits are needed, because the round trip to get the credit back takes three cycles.
+      // ID->EXE->FIFO->CREDIT.
+    , parameter fwd_fifo_els_p="inv"
+    , parameter lg_fwd_fifo_els_lp=`BSG_WIDTH(fwd_fifo_els_p)
+
     , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
@@ -1131,11 +1137,11 @@ module vanilla_core
 
 
   // stall_remote_req
-  logic [1:0] remote_req_counter_r;
+  logic [lg_fwd_fifo_els_lp-1:0] remote_req_counter_r;
   wire local_mem_op_restore = (lsu_dmem_v_lo & ~exe_r.decode.is_lr_op & ~exe_r.decode.is_lr_aq_op) & ~stall_all;
   wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.icache_miss);
   wire memory_op_issued = id_remote_req_op & ~flush & ~stall_id & ~stall_all;
-  wire [1:0] remote_req_available =
+  wire [lg_fwd_fifo_els_lp-1:0] remote_req_available =
     remote_req_counter_r +
     remote_req_credit_i +
     local_mem_op_restore +
@@ -1143,9 +1149,7 @@ module vanilla_core
 
   always_ff @ (posedge clk_i) begin
     if (reset_i)
-      // 3 credits are needed, because the round trip to get the credit back takes three cycles.
-      // ID->EXE->FIFO->CREDIT.
-      remote_req_counter_r <= 2'd3;
+      remote_req_counter_r <= (lg_fwd_fifo_els_lp)'(fwd_fifo_els_p);
     else
       remote_req_counter_r <= remote_req_available - memory_op_issued;
   end 
