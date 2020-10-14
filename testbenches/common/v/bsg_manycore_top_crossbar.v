@@ -33,6 +33,9 @@ module bsg_manycore_top_crossbar
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
     , parameter reset_depth_p = 3
+
+    , parameter fwd_fifo_els_p = 32
+    , parameter rev_fifo_els_p = 32
   )
   (
     input clk_i
@@ -87,7 +90,7 @@ module bsg_manycore_top_crossbar
 
     for (int i = 0; i < num_in_y_lp; i++) begin
       for (int j = 0; j < num_in_x_lp; j++) begin
-        retval[(i*num_in_x_lp)+j] = 32;
+        retval[(i*num_in_x_lp)+j] = fwd_fifo_els_p;
       end
     end
 
@@ -109,7 +112,7 @@ module bsg_manycore_top_crossbar
 
     for (int i = 0; i < num_in_y_lp; i++) begin
       for (int j = 0; j < num_in_x_lp; j++) begin
-        retval[(i*num_in_x_lp)+j] = 32;
+        retval[(i*num_in_x_lp)+j] = rev_fifo_els_p;
       end
     end
 
