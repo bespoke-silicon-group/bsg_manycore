@@ -33,7 +33,7 @@ build-repos:
         cp -r bsg_manycore/software/riscv-tools/llvm cache/;
       fi;
   cache:
-    key: mykey
+    key: $CI_COMMIT_REF_NAME
     paths:
       - $CI_PROJECT_DIR/bsg_cadenv
       - $CI_PROJECT_DIR/basejump_stl
@@ -56,7 +56,7 @@ build-machines:
     - make clean
     - make
   cache:
-    key: mykey
+    key: $CI_COMMIT_REF_NAME
     paths:
       - $CI_PROJECT_DIR/bsg_cadenv
       - $CI_PROJECT_DIR/basejump_stl
@@ -87,7 +87,7 @@ build-toolchain:
       - /^ci_.*$/
       - master
   cache:
-    key: mykey
+    key: $CI_COMMIT_REF_NAME
     paths:
       - $CI_PROJECT_DIR/bsg_cadenv
       - $CI_PROJECT_DIR/basejump_stl
@@ -110,7 +110,7 @@ test-spmd:
     - pwd
     - ./ci/spmd.sh
   cache:
-    key: mykey
+    key: $CI_COMMIT_REF_NAME
     paths:
       - $CI_PROJECT_DIR/bsg_cadenv
       - $CI_PROJECT_DIR/basejump_stl
@@ -135,7 +135,7 @@ test-beebs:
     - pwd
     - ./ci/beebs.sh
   cache:
-    key: mykey
+    key: $CI_COMMIT_REF_NAME
     paths:
       - $CI_PROJECT_DIR/bsg_cadenv
       - $CI_PROJECT_DIR/basejump_stl
