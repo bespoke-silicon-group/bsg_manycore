@@ -679,22 +679,37 @@ module vanilla_core_profiler
         else if (amoswap_inc) stat_r.amoswap++;
         else if (amoor_inc) stat_r.amoor++; 
 
-        else if (beq_inc) stat_r.beq++;
-        else if (bne_inc) stat_r.bne++;
-        else if (blt_inc) stat_r.blt++;
-        else if (bge_inc) stat_r.bge++;
-        else if (bltu_inc) stat_r.bltu++;
-        else if (bgeu_inc) stat_r.bgeu++;
-        else if (jal_inc) stat_r.jal++;
-        else if (jalr_inc) stat_r.jalr++;
-
-        else if (beq_miss_inc) stat_r.beq_miss++;
-        else if (bne_miss_inc) stat_r.bne_miss++;
-        else if (blt_miss_inc) stat_r.blt_miss++;
-        else if (bge_miss_inc) stat_r.bge_miss++;
-        else if (bltu_miss_inc) stat_r.bltu_miss++;
-        else if (bgeu_miss_inc) stat_r.bgeu_miss++;
-        else if (jalr_miss_inc) stat_r.jalr_miss++;
+        else if (beq_inc) begin
+          stat_r.beq++;
+          if (beq_miss_inc) stat_r.beq_miss++;
+        end
+        else if (bne_inc) begin
+          stat_r.bne++;
+          if (bne_miss_inc) stat_r.bne_miss++;
+        end
+        else if (blt_inc) begin
+          stat_r.blt++;
+          if (blt_miss_inc) stat_r.blt_miss++;
+        end
+        else if (bge_inc) begin
+          stat_r.bge++;
+          if (bge_miss_inc) stat_r.bge_miss++;
+        end
+        else if (bltu_inc) begin
+          stat_r.bltu++;
+          if (bltu_miss_inc) stat_r.bltu_miss++;
+        end
+        else if (bgeu_inc) begin
+          stat_r.bgeu++;
+          if (bgeu_miss_inc) stat_r.bgeu_miss++;
+        end
+        else if (jal_inc) begin
+          stat_r.jal++;
+        end
+        else if (jalr_inc) begin
+          stat_r.jalr++;
+          if (jalr_miss_inc) stat_r.jalr_miss++;
+        end
      
         else if (sll_inc) stat_r.sll++; 
         else if (slli_inc) stat_r.slli++; 
