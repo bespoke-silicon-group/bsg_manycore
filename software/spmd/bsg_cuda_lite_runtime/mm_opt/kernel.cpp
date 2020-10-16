@@ -68,6 +68,7 @@ int kernel_mm_opt(
                   uint32_t host_block_dim) {
 
         hb_assert_msg(host_block_dim == BLOCK_DIM, "Host BLOCK_DIM does not match device BLOCK_DIM\n");
+        hb_assert_msg(BLOCK_DIM % 4 == 0, "BLOCK_DIM must be divisible by 4\n");
 
         auto mat1 = HBTensor<float, 2>(_mat1);
         auto mat2 = HBTensor<float, 2>(_mat2);
