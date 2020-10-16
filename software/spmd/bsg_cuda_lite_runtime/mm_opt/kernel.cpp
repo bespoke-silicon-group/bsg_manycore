@@ -65,9 +65,10 @@ int kernel_mm_opt(
                                 // calculate current block dimensions
                                 int mid_dim = mat1x == m1_num_blk_per_col - 1 ? m1_last_blk_dim_x : BLOCK_DIM;
 
-                                dram_to_spad_block(sp_mat1, mat1, rr, mat1x);
-                                dram_to_spad_block(sp_mat2, mat2, mat2y, rc);
-                                compute_block(sp_result, sp_mat1, sp_mat2);
+                                load_block<BLOCK_DIM, BLOCK_DIM>(sp_mat1, mat1, rr, mat1x);
+                                load_block<BLOCK_DIM, BLOCK_DIM>(sp_mat2, mat2, mat2y, rc);
+                                //compute_block(sp_result, sp_mat1, sp_mat2);
+                                compute_block<BLOCK_SIZE, BLOCK_SIZE/2, BLOCK_SIZE, BLOCK_SIZE/2>(sp_result, sp_mat1, sp_mat2);
 
                         }
 
