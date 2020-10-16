@@ -64,7 +64,10 @@ extern "C" __attribute__ ((noinline))
 int kernel_mm_opt(
                   hb_tensor_t* _result,
                   hb_tensor_t* _mat1,
-                  hb_tensor_t* _mat2) {
+                  hb_tensor_t* _mat2,
+                  uint32_t host_block_dim) {
+
+        hb_assert(host_block_dim == BLOCK_DIM);
 
         auto mat1 = HBTensor<float, 2>(_mat1);
         auto mat2 = HBTensor<float, 2>(_mat2);
