@@ -30,7 +30,7 @@
 //   .
 //   strides[1] = (input.get_strides())[0];
 //     3ac: 00092f03            lw  x30,0(x18)
-// 
+//
 // The error message by verilog assertion would start with:
 // [ERROR][VCORE] STALL_FORCE_WB WAW HAZARD
 //

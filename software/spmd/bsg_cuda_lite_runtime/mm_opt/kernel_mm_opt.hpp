@@ -3,14 +3,6 @@
 // 06/20/2020 Lin Cheng (lc873@cornell.edu)
 //====================================================================
 
-// XXX: this compute subroutine handles one row of 8 outputs at a time
-// to avoid dependency chains
-//
-// output row 1:
-//   iter 0 - mat1[0][0] * ( mat2[0][0], mat2[0][1], ..., mat2[0][7] )
-//   iter 1 - mat1[0][1] * ( mat2[1][0], mat2[1][1], ..., mat2[1][7] )
-//   iter 2 - mat1[0][2] * ( mat2[2][0], mat2[2][1], ..., mat2[2][7] )
-
 inline void compute_block(
           float* bsg_attr_noalias sp_dest,
           float* bsg_attr_noalias sp_mat1,
@@ -86,7 +78,7 @@ inline void compute_block(
 }
 
 template <unsigned int B>
-__attribute__ ((noinline))  
+__attribute__ ((noinline))
 void load_block( float * bsg_attr_noalias sp_dest,
                  const float bsg_attr_remote * bsg_attr_noalias src,
                  uint32_t stride){
@@ -98,7 +90,7 @@ void load_block( float * bsg_attr_noalias sp_dest,
     }
 }
 
-extern "C" 
+extern "C"
 void dram_to_spad_block(
           float * bsg_attr_noalias dest,
           HBTensor<float, 2> src,

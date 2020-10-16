@@ -179,9 +179,6 @@ class HBTensor : public HBTensorImpl<bsg_attr_remote DT, uint32_t> {
         sizes,
         (bsg_attr_remote DT*) ((intptr_t) t->data)
       ) {
-        //hb_assert_msg(
-        //  t->dims == dims,
-        //  "error: HBTensor dims don't match offloaed tensor dims");
 
         uint32_t* strides_remote = (uint32_t*) ((intptr_t) t->strides);
         uint32_t* sizes_remote = (uint32_t*) ((intptr_t) t->sizes);
@@ -209,9 +206,6 @@ class HBTensor<DT, -1> : public HBTensorImpl<bsg_attr_remote DT, uint32_t> {
         sizes,
         (bsg_attr_remote DT*) ((intptr_t) t->data)
       ) {
-        //hb_assert_msg(
-        //  t->dims <= DEFAULT_STRIDES,
-        //  "error: tensor dims is too large");
 
         uint32_t* strides_remote = (uint32_t*) ((intptr_t) t->strides);
         uint32_t* sizes_remote = (uint32_t*) ((intptr_t) t->sizes);
@@ -222,58 +216,6 @@ class HBTensor<DT, -1> : public HBTensorImpl<bsg_attr_remote DT, uint32_t> {
           sizes[i] = sizes_remote[i];
         }
       }
-};
-
-template <typename DT, uint32_t N, uint32_t C, uint32_t H, uint32_t W>
-class HBTensor4d {
-  private:
-    const uint32_t numel = N * C * H * W;
-    const uint32_t strides[4] = {
-      numel / N, numel / (N*C), numel / (N*C*H), 1
-    };
-    DT* data;
-
-  public:
-    HBTensor4d(hb_tensor_t* t) :
-      data((DT*) ((intptr_t) t->data)) {}
-
-    uint32_t offset(uint32_t n, uint32_t c, uint32_t h, uint32_t w) {
-      return strides[0]*n + strides[1]*c + strides[2]*h + w;
-    }
-
-    char* data_ptr() {
-      return (char*)data;
-    }
-
-    DT& operator()(uint32_t n, uint32_t c, uint32_t h, uint32_t w) {
-      uint32_t offset = strides[0]*n + strides[1]*c + strides[2]*h + w;
-      return data[offset];
-    }
-
-    void init(DT val) {
-      for(int i = 0; i < N; ++i) {
-        data[i] = val;
-      }
-    }
-};
-
-template<typename T>
-class HBVector {
-  private:
-    uint32_t N;
-    T* data;
-
-  public:
-    HBVector(hb_vector_t* v) :
-      N(v->N), data((T*) ((intptr_t) v->data)) {}
-
-    uint32_t numel() {
-      return N;
-    }
-
-    T& operator[](uint32_t i) {
-      return data[i];
-    }
 };
 
 #endif // _HB_TENSOR_HPP
