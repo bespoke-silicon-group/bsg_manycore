@@ -67,7 +67,7 @@ int kernel_mm_opt(
                   hb_tensor_t* _mat2,
                   uint32_t host_block_dim) {
 
-        hb_assert(host_block_dim == BLOCK_DIM);
+        hb_assert_msg(host_block_dim == BLOCK_DIM, "Host BLOCK_DIM does not match device BLOCK_DIM\n");
 
         auto mat1 = HBTensor<float, 2>(_mat1);
         auto mat2 = HBTensor<float, 2>(_mat2);
