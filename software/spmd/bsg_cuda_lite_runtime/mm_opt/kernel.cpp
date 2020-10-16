@@ -51,7 +51,7 @@ int kernel_mm_opt(
                         int res_dim_y = rr == m1_num_blk_per_row - 1 ? m1_last_blk_dim_y : BLOCK_DIM;
                         int res_dim_x = rc == m2_num_blk_per_col - 1 ? m2_last_blk_dim_x : BLOCK_DIM;
 
-                        // initialize scratchpad result (init to 0's)
+                        // Initialize the scratchpad for this particular sub-block
                         // Unroll by a factor of 16 to minimize control overhead
                         bsg_unroll(16)
                         for (int sp = 0; sp < BLOCK_DIM * BLOCK_DIM; sp += 1) {
@@ -67,9 +67,7 @@ int kernel_mm_opt(
 
                                 load_block<BLOCK_DIM, BLOCK_DIM>(sp_mat1, mat1, rr, mat1x);
                                 load_block<BLOCK_DIM, BLOCK_DIM>(sp_mat2, mat2, mat2y, rc);
-                                //compute_block(sp_result, sp_mat1, sp_mat2);
-                                compute_block<BLOCK_SIZE, BLOCK_SIZE/2, BLOCK_SIZE, BLOCK_SIZE/2>(sp_result, sp_mat1, sp_mat2);
-
+                                accum_block<BLOCK_DIM, BLOCK_DIM/2, BLOCK_DIM, BLOCK_DIM/2>(sp_result, sp_mat1, sp_mat2);
                         }
 
                         // copy this block back into DRAM
