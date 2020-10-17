@@ -90,7 +90,8 @@ inline void compute_block(
 // output matrix.
 // 
 // This is done by iteratively computing SBY-by-SBX sub-matrix
-// outputs, and adding (accumulating) those into the output matrix.
+// outputs, and individually accumulating those into the output
+// matrix.
 template<unsigned int BX, unsigned int SBX, unsigned int BY, unsigned int SBY>
 void accum_block(float* bsg_attr_noalias dest,
                  float* bsg_attr_noalias mat1,
