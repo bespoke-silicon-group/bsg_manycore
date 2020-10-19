@@ -68,6 +68,7 @@ int kernel_mm_opt(
                         }
 
                         // Copy this block back into DRAM
+                        // TODO: Create store_block method for unrolling. 
                         for (int sby_i = 0; sby_i < BY; ++sby_i) {
                                 for (int sbx_i = 0; sbx_i < BX; ++sbx_i) {
                                        result(by_i * BY + sby_i, bx_i * BX + sbx_i) = psum[sby_i * BX + sbx_i];
