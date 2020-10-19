@@ -132,7 +132,7 @@ int kernel_mm_opt(
         // to assign unique work.
         // Yes, this should be TGID
         for (int by_i = __bsg_y; by_i < r1/BY; by_i += BSG_TILE_GROUP_Y_DIM) {
-                for (int bx_i = __bsg_x; bx_i < c2/BX; by_i += BSG_TILE_GROUP_X_DIM) {
+                for (int bx_i = __bsg_x; bx_i < c2/BX; bx_i += BSG_TILE_GROUP_X_DIM) {
 
                         // Initialize the scratchpad for this particular sub-block
                         // Unroll by a factor of 16 to minimize control overhead
@@ -163,6 +163,7 @@ int kernel_mm_opt(
         return 0;
 }
 
+extern "C"
 int kernel_mm_opt_8x8(
                   hb_tensor_t* _result,
                   hb_tensor_t* _mat1,
