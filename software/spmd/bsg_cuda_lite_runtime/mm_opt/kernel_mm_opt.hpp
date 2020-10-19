@@ -3,13 +3,100 @@
 // 06/20/2020 Lin Cheng (lc873@cornell.edu)
 //====================================================================
 
+// NB: This is an interesting opportunity for optimization. Dual-loop
+// unrolling could allow loads to be spread across caches. Ideally the
+// inner loop is unrolled completely first (?), then the outer loop is
+// unrolled until maximum NB Loads are achieved.
+
+// If the unroll factor > B, it will unroll by factor B instead.
+
+template <unsigned int BY, unsigned int BX, bool TRANSPOSE>
+__attribute__ ((noinline))
+void load_block(float * bsg_attr_noalias sp_dest,
+                const float bsg_attr_remote * bsg_attr_noalias src,
+                uint32_t stride){
+        bsg_unroll(2)
+        for (int i = 0; i < BY; i++) {
+                bsg_unroll(16)
+                for (int j = 0 ; j < BX; j ++){
+                        if (!TRANSPOSE)
+                                sp_dest[BX * i + j] = src[i * stride + j];
+                        else
+                                sp_dest[i + BY * j] = src[i * stride + j];
+                }
+        }
+}
+
+template <unsigned int BY, unsigned int BX, bool TRANSPOSE>
+void load_block(float * bsg_attr_noalias dest,
+                HBTensor<float, 2> src,
+                int by_i, int bx_i) {
+
+        // Get the raw pointer
+        bsg_attr_remote float * bsg_attr_noalias src_ptr =
+                (float* bsg_attr_noalias) src.data_ptr();
+
+        uint32_t* src_strides = src.get_strides();
+
+        // Move the raw pointer to the row/column start.
+        src_ptr = src_ptr +
+                (by_i * BY * src_strides[0]) +
+                (bx_i * BX * src_strides[1]);
+
+        // Load from the source matrix, into the block.
+        load_block<BX, BY, TRANSPOSE>(dest, src_ptr, src_strides[0]);
+}
+
+template <unsigned int BY, unsigned int BX>
+__attribute__ ((noinline))
+void store_block_and_reset(float bsg_attr_remote * bsg_attr_noalias src,
+                           float * bsg_attr_noalias dest,
+                           uint32_t stride){
+
+        // TODO: In THEORY this can be more optimal. We should do
+        // stores and zeros at the same time by issuing all stores,
+        // then issuing all zeros, so that we have all available
+        // credits by the time we load.
+        for (int i = 0; i < BY; i++) {
+                bsg_unroll(8)
+                for (int j = 0 ; j < BX; j ++){
+                        dest[i * stride + j] = src[i * BX + j];
+                }
+                bsg_unroll(8)
+                for (int j = 0 ; j < BX; j ++){
+                        src[i * BX + j] = 0.0f;
+                }
+        }
+}
+
+template <unsigned int BY, unsigned int BX>
+void store_block_and_reset(HBTensor<float, 2> dest,
+                           float * bsg_attr_noalias src,
+                           int by_i, int bx_i) {
+
+        // Get the raw pointer
+        bsg_attr_remote float * bsg_attr_noalias dest_ptr =
+                (float* bsg_attr_noalias) dest.data_ptr();
+
+        uint32_t* dest_strides = dest.get_strides();
+
+        // Move the raw pointer to the row/column start.
+        dest_ptr = dest_ptr +
+                (by_i * BY * dest_strides[0]) +
+                (bx_i * BX * dest_strides[1]);
+
+        // Store from the source matrix, into the block.
+        store_block_and_reset<BY, BX>(src, dest_ptr, dest_strides[0]);
+}
+
+
 // Accumulate the product of two BY-by-BX input matrices into an
 // output matrix.
-// 
+//
 // This is done by iteratively computing SBY-by-SBX sub-matrix
 // outputs, and individually accumulating those into the output
 // matrix.
-template<unsigned int BX, unsigned int SBX, unsigned int BY, unsigned int SBY, bool M1_TRANSPOSE>
+template<unsigned int BY, unsigned int SBY, unsigned int BX, unsigned int SBX, bool M1_TRANSPOSE>
 void accum_block(float* bsg_attr_noalias dest,
                  float* bsg_attr_noalias mat1,
                  float* bsg_attr_noalias mat2) {
@@ -33,7 +120,9 @@ void accum_block(float* bsg_attr_noalias dest,
                         // upper-right corner at by_i, bx_i
                         float * bsg_attr_noalias sb_anchor = &(dest[sb_anchor_y * BX + sb_anchor_x]);
 
+                        bsg_unroll(16)
                         for(int sby_i = 0; sby_i < SBY; ++sby_i){
+                                bsg_unroll(16)
                                 for(int sbx_i = 0; sbx_i < SBX; ++sbx_i){
                                         psum[sby_i][sbx_i] = sb_anchor[sby_i * BX + sbx_i];
                                 }
@@ -51,19 +140,16 @@ void accum_block(float* bsg_attr_noalias dest,
                                 float col[SBY];
                                 float row[SBX];
 
-                                // NB: Ideally, mat1 would be loaded
-                                // transposed, so that this can be
-                                // simplified with a reused index and
-                                // unique offset.
-
                                 // Load an SBY-by-1 sub-column of mat1,
                                 if (!M1_TRANSPOSE) {
                                         float * bsg_attr_noalias col_anchor = &(mat1[sb_anchor_y * BX + sbx_i]);
+                                        bsg_unroll(16)
                                         for(int i = 0; i < SBY; ++i){
                                                 col[i] = col_anchor[i * BX];
                                         }
                                 } else {
                                         float * bsg_attr_noalias col_anchor = &(mat1[sb_anchor_y + sbx_i * BY]);
+                                        bsg_unroll(16)
                                         for(int i = 0; i < SBY; ++i){
                                                 col[i] = col_anchor[i];
                                         }
@@ -71,6 +157,7 @@ void accum_block(float* bsg_attr_noalias dest,
 
                                 // Load an SBX-by-1 sub-column of mat2
                                 float * bsg_attr_noalias row_anchor = &(mat2[sbx_i * BY + sb_anchor_x]);
+                                bsg_unroll(16)
                                 for(int i = 0; i < SBX; ++i){
                                     row[i] = row_anchor[i];
                                 }
@@ -78,12 +165,14 @@ void accum_block(float* bsg_attr_noalias dest,
                                 // Perform a SBY-by-1 x 1-by-SBX
                                 // vector-vector multiply to produce
                                 // an SBY-by-SBX output matrix
-                                
+
                                 // Add the result to the partial sum
                                 // This could be done in two steps,
                                 // but we do it in one to use FMA
                                 // instructions
+                                bsg_unroll(16)
                                 for(int sby_i = 0; sby_i < SBY; ++sby_i){
+                                        bsg_unroll(16)
                                         for(int sbx_i = 0; sbx_i < SBX; ++sbx_i){
                                                 psum[sby_i][sbx_i] += col[sby_i] * row[sbx_i];
                                         }
@@ -102,49 +191,3 @@ void accum_block(float* bsg_attr_noalias dest,
 }
 
 
-// NB: This is an interesting opportunity for optimization. Dual-loop
-// unrolling could allow loads to be spread across caches. Ideally the
-// inner loop is unrolled completely first (?), then the outer loop is
-// unrolled until maximum NB Loads are achieved.
-
-// If the unroll factor > B, it will unroll by factor B instead.
-
-template <unsigned int BX, unsigned int BY, bool TRANSPOSE>
-__attribute__ ((noinline))
-void load_block(
-                float * bsg_attr_noalias sp_dest,
-                const float bsg_attr_remote * bsg_attr_noalias src,
-                uint32_t stride){
-        bsg_unroll(2)
-        for (int i = 0; i < BX; i++) {
-                bsg_unroll(16)
-                for (int j = 0 ; j < BY; j ++){
-                        if (!TRANSPOSE)
-                                sp_dest[BX * i + j] = src[i * stride + j];
-                        else
-                                sp_dest[i + BY * j] = src[i * stride + j];
-                }
-        }
-}
-
-template <unsigned int BX, unsigned int BY, bool TRANSPOSE>
-void load_block(
-                float * bsg_attr_noalias dest,
-                HBTensor<float, 2> src,
-                int r_idx,
-                int c_idx) {
-
-        // Get the raw pointer
-        bsg_attr_remote float * bsg_attr_noalias src_ptr = 
-                (float* bsg_attr_noalias) src.data_ptr();
-
-        uint32_t* src_strides = src.get_strides();
-
-        // Move the raw pointer to the row/column start.
-        src_ptr = src_ptr + 
-                (r_idx * BX * src_strides[0]) +
-                (c_idx * BY * src_strides[1]);
-        
-        // Load from the source matrix, into the block.
-        load_block<BX, BY, TRANSPOSE>(dest, src_ptr, src_strides[0]);
-}
