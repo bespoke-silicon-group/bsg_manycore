@@ -65,9 +65,9 @@ int kernel_mm_opt(
                                 // calculate current block dimensions
                                 int mid_dim = mat1x == m1_num_blk_per_col - 1 ? m1_last_blk_dim_x : BLOCK_DIM;
 
-                                load_block<BLOCK_DIM, BLOCK_DIM>(sp_mat1, mat1, rr, mat1x);
-                                load_block<BLOCK_DIM, BLOCK_DIM>(sp_mat2, mat2, mat2y, rc);
-                                accum_block<BLOCK_DIM, BLOCK_DIM/2, BLOCK_DIM, BLOCK_DIM/2>(sp_result, sp_mat1, sp_mat2);
+                                load_block<BLOCK_DIM, BLOCK_DIM, false>(sp_mat1, mat1, rr, mat1x);
+                                load_block<BLOCK_DIM, BLOCK_DIM, false>(sp_mat2, mat2, mat2y, rc);
+                                accum_block<BLOCK_DIM, BLOCK_DIM/2, BLOCK_DIM, BLOCK_DIM/2, false>(sp_result, sp_mat1, sp_mat2);
                         }
 
                         // copy this block back into DRAM
@@ -87,7 +87,7 @@ int kernel_mm_opt(
         return 0;
 }
 
-template<unsigned int BX, unsigned int BY>
+template<unsigned int BX, unsigned int BY, bool LOAD_M1_TRANSPOSED>
 int kernel_mm_opt(
                   hb_tensor_t* _result,
                   hb_tensor_t* _mat1,
@@ -143,9 +143,9 @@ int kernel_mm_opt(
 
                         // Multiply the blocks, and accumulate into the result
                         for (int bz_i = 0; bz_i < blocks; bz_i++) {
-                                load_block<BY, BX>(block_row, mat1, by_i, bz_i);
-                                load_block<BY, BX>(block_col, mat2, bz_i, bx_i);
-                                accum_block<BY, BY/2, BX, BX/2>(psum, block_row, block_col);
+                                load_block<BY, BX, LOAD_M1_TRANSPOSED>(block_row, mat1, by_i, bz_i);
+                                load_block<BY, BX, false>(block_col, mat2, bz_i, bx_i);
+                                accum_block<BY, BY/2, BX, BX/2, LOAD_M1_TRANSPOSED>(psum, block_row, block_col);
                         }
 
                         // Copy this block back into DRAM
@@ -168,5 +168,5 @@ int kernel_mm_opt_8x8(
                   hb_tensor_t* _result,
                   hb_tensor_t* _mat1,
                   hb_tensor_t* _mat2) {
-        return kernel_mm_opt<8,8>(_result, _mat1, _mat2);
+        return kernel_mm_opt<8,8,false>(_result, _mat1, _mat2);
 }

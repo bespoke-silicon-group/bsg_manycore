@@ -9,7 +9,7 @@
 // This is done by iteratively computing SBY-by-SBX sub-matrix
 // outputs, and individually accumulating those into the output
 // matrix.
-template<unsigned int BX, unsigned int SBX, unsigned int BY, unsigned int SBY>
+template<unsigned int BX, unsigned int SBX, unsigned int BY, unsigned int SBY, bool M1_TRANSPOSE>
 void accum_block(float* bsg_attr_noalias dest,
                  float* bsg_attr_noalias mat1,
                  float* bsg_attr_noalias mat2) {
@@ -57,9 +57,16 @@ void accum_block(float* bsg_attr_noalias dest,
                                 // unique offset.
 
                                 // Load an SBY-by-1 sub-column of mat1,
-                                float * bsg_attr_noalias col_anchor = &(mat1[sb_anchor_y * BX + sbx_i]);
-                                for(int i = 0; i < SBY; ++i){
-                                    col[i] = col_anchor[i * BX];
+                                if (!M1_TRANSPOSE) {
+                                        float * bsg_attr_noalias col_anchor = &(mat1[sb_anchor_y * BX + sbx_i]);
+                                        for(int i = 0; i < SBY; ++i){
+                                                col[i] = col_anchor[i * BX];
+                                        }
+                                } else {
+                                        float * bsg_attr_noalias col_anchor = &(mat1[sb_anchor_y + sbx_i * BY]);
+                                        for(int i = 0; i < SBY; ++i){
+                                                col[i] = col_anchor[i];
+                                        }
                                 }
 
                                 // Load an SBX-by-1 sub-column of mat2
@@ -102,7 +109,7 @@ void accum_block(float* bsg_attr_noalias dest,
 
 // If the unroll factor > B, it will unroll by factor B instead.
 
-template <unsigned int BX, unsigned int BY>
+template <unsigned int BX, unsigned int BY, bool TRANSPOSE>
 __attribute__ ((noinline))
 void load_block(
                 float * bsg_attr_noalias sp_dest,
@@ -111,13 +118,16 @@ void load_block(
         bsg_unroll(2)
         for (int i = 0; i < BX; i++) {
                 bsg_unroll(16)
-                for(int j = 0 ; j < BY; j ++){
-                        sp_dest[BX * i + j] = src[i * stride + j];
+                for (int j = 0 ; j < BY; j ++){
+                        if (!TRANSPOSE)
+                                sp_dest[BX * i + j] = src[i * stride + j];
+                        else
+                                sp_dest[i + BY * j] = src[i * stride + j];
                 }
         }
 }
-p
-template <unsigned int BX, unsigned int BY>
+
+template <unsigned int BX, unsigned int BY, bool TRANSPOSE>
 void load_block(
                 float * bsg_attr_noalias dest,
                 HBTensor<float, 2> src,
@@ -126,7 +136,7 @@ void load_block(
 
         // Get the raw pointer
         bsg_attr_remote float * bsg_attr_noalias src_ptr = 
-                (float* bsg_attr_noalias ) src.data_ptr();
+                (float* bsg_attr_noalias) src.data_ptr();
 
         uint32_t* src_strides = src.get_strides();
 
@@ -136,5 +146,5 @@ void load_block(
                 (c_idx * BY * src_strides[1]);
         
         // Load from the source matrix, into the block.
-        load_block<BX, BY>(dest, src_ptr, src_strides[0]);
+        load_block<BX, BY, TRANSPOSE>(dest, src_ptr, src_strides[0]);
 }
