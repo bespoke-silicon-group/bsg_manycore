@@ -100,17 +100,21 @@ void accum_block(float* bsg_attr_noalias dest,
         static_assert((BX % SBX) == 0, "X Block-Dimension must be a multiple of the X Sub-Block Dimension");
         static_assert((BY % SBY) == 0, "Y Block-Dimension must be a multiple of the Y Sub-Block Dimension");
 
-        // Split the BY-by-BX output matrix into SBY-by-SBX
-        // sub-matrices.
-        for (int by_i = 0; by_i < BY; by_i += SBY) {
-                for (int bx_i = 0; bx_i < BX; bx_i += SBX) {
+        // Iterate through the SBY-by-SBX sub-blocks in the BY-by-BX block.
+        for (int by_i = 0; by_i < BY/SBY; ++by_i) {
+                for (int bx_i = 0; bx_i < BX/SBX; ++bx_i) {
+
+                        // Compute the y,x location of the sub-block corner
+                        int sb_anchor_y = (by_i * SBY);
+                        int sb_anchor_x = (bx_i * SBX);
+
                         // Load in a SBY-by-SBX sub-block of the
                         // output matrix into psum for accumulation.
                         float psum[SBY][SBX];
 
                         // The sub-block is "anchored" by the
                         // upper-right corner at by_i, bx_i
-                        float * bsg_attr_noalias sb_anchor = &(dest[by_i * BX + bx_i]);
+                        float * bsg_attr_noalias sb_anchor = &(dest[sb_anchor_y * BX + sb_anchor_x]);
 
                         for(int sby_i = 0; sby_i < SBY; ++sby_i){
                                 for(int sbx_i = 0; sbx_i < SBX; ++sbx_i){
@@ -136,13 +140,13 @@ void accum_block(float* bsg_attr_noalias dest,
                                 // unique offset.
 
                                 // Load an SBY-by-1 sub-column of mat1,
-                                float * bsg_attr_noalias col_anchor = &(mat1[sbx_i + by_i * BX]);
+                                float * bsg_attr_noalias col_anchor = &(mat1[sb_anchor_y * BX + sbx_i]);
                                 for(int i = 0; i < SBY; ++i){
                                     col[i] = col_anchor[i * BX];
                                 }
 
                                 // Load an SBX-by-1 sub-column of mat2
-                                float * bsg_attr_noalias row_anchor = &(mat2[sbx_i * BY + bx_i]);
+                                float * bsg_attr_noalias row_anchor = &(mat2[sbx_i * BY + sb_anchor_x]);
                                 for(int i = 0; i < SBX; ++i){
                                     row[i] = row_anchor[i];
                                 }
@@ -180,6 +184,7 @@ void accum_block(float* bsg_attr_noalias dest,
 // unrolled until maximum NB Loads are achieved.
 
 // If the unroll factor > B, it will unroll by factor B instead.
+
 template <unsigned int BX, unsigned int BY>
 __attribute__ ((noinline))
 void load_block(
