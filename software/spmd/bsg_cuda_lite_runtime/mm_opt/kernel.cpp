@@ -4,7 +4,6 @@
 //====================================================================
 
 #include <kernel_common.hpp>
-#include <kernel_mm_opt.hpp>
 
 // NB: This is an interesting opportunity for optimization. Dual-loop
 // unrolling could allow loads to be spread across caches. Ideally the
