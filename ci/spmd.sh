@@ -28,4 +28,3 @@ for file in recurse-results/*.log; do
   fi
 done
 make check_finish
-exit 0
