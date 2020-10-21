@@ -13,7 +13,6 @@
 // If the unroll factor > B, it will unroll by factor B instead.
 
 template <unsigned int BY, unsigned int BX, bool TRANSPOSE>
-__attribute__ ((noinline))
 void load_block(float * bsg_attr_noalias sp_dest,
                 const float bsg_attr_remote * bsg_attr_noalias src,
                 uint32_t stride){
@@ -31,28 +30,22 @@ void load_block(float * bsg_attr_noalias sp_dest,
 
 template <unsigned int BY, unsigned int BX, bool TRANSPOSE>
 void load_block(float * bsg_attr_noalias dest,
-                HBTensor<float, 2> src,
+                float bsg_attr_remote * bsg_attr_noalias src,
+                uint32_t  bsg_attr_remote * bsg_attr_noalias src_strides,
                 int by_i, int bx_i) {
 
-        // Get the raw pointer
-        bsg_attr_remote float * bsg_attr_noalias src_ptr =
-                (float* bsg_attr_noalias) src.data_ptr();
-
-        uint32_t* src_strides = src.get_strides();
-
         // Move the raw pointer to the row/column start.
-        src_ptr = src_ptr +
+        src = src +
                 (by_i * BY * src_strides[0]) +
                 (bx_i * BX * src_strides[1]);
 
         // Load from the source matrix, into the block.
-        load_block<BX, BY, TRANSPOSE>(dest, src_ptr, src_strides[0]);
+        load_block<BX, BY, TRANSPOSE>(dest, src, src_strides[0]);
 }
 
 template <unsigned int BY, unsigned int BX>
-__attribute__ ((noinline))
-void store_block_and_reset(float bsg_attr_remote * bsg_attr_noalias src,
-                           float * bsg_attr_noalias dest,
+void store_block_and_reset(float * bsg_attr_noalias src,
+                           float bsg_attr_remote * bsg_attr_noalias dest,
                            uint32_t stride){
 
         // TODO: In THEORY this can be more optimal. We should do
@@ -72,25 +65,18 @@ void store_block_and_reset(float bsg_attr_remote * bsg_attr_noalias src,
 }
 
 template <unsigned int BY, unsigned int BX>
-void store_block_and_reset(HBTensor<float, 2> dest,
-                           float * bsg_attr_noalias src,
+void store_block_and_reset(float * bsg_attr_noalias src,
+                           float bsg_attr_remote * bsg_attr_noalias dest,
+                           uint32_t  bsg_attr_remote * bsg_attr_noalias dest_strides,
                            int by_i, int bx_i) {
-
-        // Get the raw pointer
-        bsg_attr_remote float * bsg_attr_noalias dest_ptr =
-                (float* bsg_attr_noalias) dest.data_ptr();
-
-        uint32_t* dest_strides = dest.get_strides();
-
-        // Move the raw pointer to the row/column start.
-        dest_ptr = dest_ptr +
+       // Move the raw pointer to the row/column start.
+        dest = dest +
                 (by_i * BY * dest_strides[0]) +
                 (bx_i * BX * dest_strides[1]);
 
         // Store from the source matrix, into the block.
-        store_block_and_reset<BY, BX>(src, dest_ptr, dest_strides[0]);
+        store_block_and_reset<BY, BX>(src, dest, dest_strides[0]);
 }
-
 
 // Accumulate the product of two BY-by-BX input matrices into an
 // output matrix.
@@ -200,19 +186,16 @@ void accum_block(float* bsg_attr_noalias dest,
 // c1 % BX == 0, r2 % BX == 0
 // c2 % BY == 0, r1 % BY == 0
 template<unsigned int BX, unsigned int BY, bool LOAD_M1_TRANSPOSED>
-int kernel_mm_opt(hb_tensor_t* _result,
-                  hb_tensor_t* _mat1,
-                  hb_tensor_t* _mat2) {
-
-        auto mat1 = HBTensor<float, 2>(_mat1);
-        auto mat2 = HBTensor<float, 2>(_mat2);
-        auto result = HBTensor<float, 2>(_result);
-
-        int r1 = mat1.dim(0);
-        int c1 = mat1.dim(1);
-        int r2 = mat2.dim(0);
-        int c2 = mat2.dim(1);
-
+__attribute__ ((noinline))
+int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
+                  uint32_t *bsg_attr_noalias result_strides,
+                  float bsg_attr_remote * bsg_attr_noalias mat1,
+                  uint32_t * bsg_attr_noalias mat1_strides,
+                  int r1, int c1,
+                  float bsg_attr_remote * bsg_attr_noalias mat2,
+                  uint32_t * bsg_attr_noalias mat2_strides,
+                  int r2, int c2
+                  ) {
 
         // M1 columns must equal M2 Rows
         hb_assert(c1 == r2);
@@ -230,8 +213,6 @@ int kernel_mm_opt(hb_tensor_t* _result,
         // M2 columns must be divisible by the Block Y-dimension
         hb_assert(c2 % BY == 0);
 
-        // Compute the number of blocks, the loop bound of the
-        // inner-loop.
         int blocks = c1 / BX; // r2 / BX
 
         // Local Storage for input blocks
@@ -260,15 +241,15 @@ int kernel_mm_opt(hb_tensor_t* _result,
 
                         // Multiply the blocks, and accumulate into the result
                         for (int bz_i = 0; bz_i < blocks; bz_i++) {
-                                load_block<BY, BX, LOAD_M1_TRANSPOSED>(block_row, mat1, by_i, bz_i);
-                                load_block<BY, BX, false>(block_col, mat2, bz_i, bx_i);
+                                load_block<BY, BX, LOAD_M1_TRANSPOSED>(block_row, mat1, mat1_strides, by_i, bz_i);
+                                load_block<BY, BX, false>(block_col, mat2, mat2_strides, bz_i, bx_i);
                                 accum_block<BY, BY/2, BX, BX/2, LOAD_M1_TRANSPOSED>(psum, block_row, block_col);
                         }
 
                         // Store the result, AND zero the psum array
                         // to leverage parallel remote and local
                         // stores.
-                        store_block_and_reset<BY, BX>(result, psum, by_i, bx_i);
+                        store_block_and_reset<BY, BX>(psum, result, result_strides, by_i, bx_i);
                 }
         }
         //   End profiling
@@ -283,5 +264,20 @@ int kernel_mm_opt_8x8(
                   hb_tensor_t* _result,
                   hb_tensor_t* _mat1,
                   hb_tensor_t* _mat2) {
-        return kernel_mm_opt<8,8,false>(_result, _mat1, _mat2);
+
+        auto mat1 = HBTensor<float, 2>(_mat1);
+        auto mat2 = HBTensor<float, 2>(_mat2);
+        auto result = HBTensor<float, 2>(_result);
+        
+        // Strip the PyTorch structs, and get the raw pointers.
+        return kernel_mm_opt<8,8,false>((float* bsg_attr_noalias) result.data_ptr(),
+                                        result.get_strides(),
+                                        (float* bsg_attr_noalias) mat1.data_ptr(),
+                                        mat1.get_strides(),
+                                        mat1.dim(0), mat1.dim(1),
+                                        (float* bsg_attr_noalias) mat2.data_ptr(),
+                                        mat2.get_strides(),
+                                        mat2.dim(0), mat2.dim(1));
+
 }
+
