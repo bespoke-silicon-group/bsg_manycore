@@ -11,23 +11,6 @@
 // unrolled until maximum NB Loads are achieved.
 
 // If the unroll factor > B, it will unroll by factor B instead.
-
-template <unsigned int BY, unsigned int BX, bool TRANSPOSE>
-void load_block(float * bsg_attr_noalias sp_dest,
-                const float bsg_attr_remote * bsg_attr_noalias src,
-                uint32_t stride){
-        bsg_unroll(2)
-        for (int i = 0; i < BY; i++) {
-                bsg_unroll(16)
-                for (int j = 0 ; j < BX; j ++){
-                        if (!TRANSPOSE)
-                                sp_dest[BX * i + j] = src[i * stride + j];
-                        else
-                                sp_dest[i + BY * j] = src[i * stride + j];
-                }
-        }
-}
-
 template <unsigned int BY, unsigned int BX, bool TRANSPOSE>
 void load_block(float * bsg_attr_noalias dest,
                 float bsg_attr_remote * bsg_attr_noalias src,
@@ -39,27 +22,14 @@ void load_block(float * bsg_attr_noalias dest,
                 (by_i * BY * src_strides[0]) +
                 (bx_i * BX * src_strides[1]);
 
-        // Load from the source matrix, into the block.
-        load_block<BX, BY, TRANSPOSE>(dest, src, src_strides[0]);
-}
-
-template <unsigned int BY, unsigned int BX>
-void store_block_and_reset(float * bsg_attr_noalias src,
-                           float bsg_attr_remote * bsg_attr_noalias dest,
-                           uint32_t stride){
-
-        // TODO: In THEORY this can be more optimal. We should do
-        // stores and zeros at the same time by issuing all stores,
-        // then issuing all zeros, so that we have all available
-        // credits by the time we load.
+        bsg_unroll(2)
         for (int i = 0; i < BY; i++) {
-                bsg_unroll(8)
+                bsg_unroll(16)
                 for (int j = 0 ; j < BX; j ++){
-                        dest[i * stride + j] = src[i * BX + j];
-                }
-                bsg_unroll(8)
-                for (int j = 0 ; j < BX; j ++){
-                        src[i * BX + j] = 0.0f;
+                        if (!TRANSPOSE)
+                                dest[BX * i + j] = src[i * src_strides[0] + j];
+                        else
+                                dest[i + BY * j] = src[i * src_strides[0] + j];
                 }
         }
 }
@@ -69,13 +39,27 @@ void store_block_and_reset(float * bsg_attr_noalias src,
                            float bsg_attr_remote * bsg_attr_noalias dest,
                            uint32_t  bsg_attr_remote * bsg_attr_noalias dest_strides,
                            int by_i, int bx_i) {
+
        // Move the raw pointer to the row/column start.
         dest = dest +
                 (by_i * BY * dest_strides[0]) +
                 (bx_i * BX * dest_strides[1]);
 
         // Store from the source matrix, into the block.
-        store_block_and_reset<BY, BX>(src, dest, dest_strides[0]);
+        // TODO: In THEORY this can be more optimal. We should do
+        // stores and zeros at the same time by issuing all stores,
+        // then issuing all zeros, so that we have all available
+        // credits by the time we load.
+        for (int i = 0; i < BY; i++) {
+                bsg_unroll(8)
+                for (int j = 0 ; j < BX; j ++){
+                        dest[i * dest_strides[0] + j] = src[i * BX + j];
+                }
+                bsg_unroll(8)
+                for (int j = 0 ; j < BX; j ++){
+                        src[i * BX + j] = 0.0f;
+                }
+        }
 }
 
 // Accumulate the product of two BY-by-BX input matrices into an
@@ -252,7 +236,8 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
                         store_block_and_reset<BY, BX>(psum, result, result_strides, by_i, bx_i);
                 }
         }
-        //   End profiling
+
+        // End profiling
         bsg_cuda_print_stat_kernel_end();
 
         g_barrier.sync();
