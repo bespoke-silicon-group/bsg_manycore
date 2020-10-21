@@ -157,12 +157,9 @@ summarize-bad:
 
 
 check_finish:
-	for log in $(LOG_FILES); do \
-		if grep BSG_FINISH $$log; \
-		then \
-			echo $$log passed; \
-		else \
+	for log in `find recurse-results/ -iname *-run.log`; do \
+		if ! grep -q BSG_FINISH $$log; then \
 			echo $$log failed; \
 			exit 1;	\
-		fi	\
+		fi;	\
 	done
