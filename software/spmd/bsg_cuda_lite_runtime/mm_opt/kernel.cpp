@@ -2,7 +2,6 @@
 // addmml kernel
 // 03/09/2020 Kexin Zheng, Lin Cheng (kz73@cornell.edu, lc873@cornell.edu)
 //====================================================================
-
 #include <kernel_common.hpp>
 
 // NB: This is an interesting opportunity for optimization. Dual-loop
@@ -12,7 +11,7 @@
 
 // If the unroll factor > B, it will unroll by factor B instead.
 template <unsigned int BY, unsigned int BX, bool TRANSPOSE>
-void load_block(float * bsg_attr_noalias dest,
+inline void load_block(float * bsg_attr_noalias dest,
                 float bsg_attr_remote * bsg_attr_noalias src,
                 uint32_t  bsg_attr_remote * bsg_attr_noalias src_strides,
                 int by_i, int bx_i) {
@@ -35,7 +34,7 @@ void load_block(float * bsg_attr_noalias dest,
 }
 
 template <unsigned int BY, unsigned int BX>
-void store_block_and_reset(float * bsg_attr_noalias src,
+inline void store_block_and_reset(float * bsg_attr_noalias src,
                            float bsg_attr_remote * bsg_attr_noalias dest,
                            uint32_t  bsg_attr_remote * bsg_attr_noalias dest_strides,
                            int by_i, int bx_i) {
@@ -51,11 +50,11 @@ void store_block_and_reset(float * bsg_attr_noalias src,
         // then issuing all zeros, so that we have all available
         // credits by the time we load.
         for (int i = 0; i < BY; i++) {
-                bsg_unroll(8)
+                bsg_unroll(16)
                 for (int j = 0 ; j < BX; j ++){
                         dest[i * dest_strides[0] + j] = src[i * BX + j];
                 }
-                bsg_unroll(8)
+                bsg_unroll(16)
                 for (int j = 0 ; j < BX; j ++){
                         src[i * BX + j] = 0.0f;
                 }
@@ -69,7 +68,7 @@ void store_block_and_reset(float * bsg_attr_noalias src,
 // outputs, and individually accumulating those into the output
 // matrix.
 template<unsigned int BY, unsigned int SBY, unsigned int BX, unsigned int SBX, bool M1_TRANSPOSE>
-void accum_block(float* bsg_attr_noalias dest,
+inline void accum_block(float* bsg_attr_noalias dest,
                  float* bsg_attr_noalias mat1,
                  float* bsg_attr_noalias mat2) {
 
@@ -153,7 +152,9 @@ void accum_block(float* bsg_attr_noalias dest,
 
                         // Write the partial sum sub-block back into
                         // the result.
+                        bsg_unroll(16)
                         for(int sby_i = 0; sby_i < SBY; ++sby_i){
+                                bsg_unroll(16)
                                 for(int sbx_i = 0; sbx_i < SBX; ++sbx_i){
                                         sb_anchor[sby_i * BX + sbx_i] = psum[sby_i][sbx_i];
                                 }
