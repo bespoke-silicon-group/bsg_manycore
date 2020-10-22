@@ -24,7 +24,7 @@ include ../../Makefile.include
 
 # -fpeel-loops is necessary to remove the fsw instructions in the inner loop
 RISCV_GCC_OPTS += -I. -g
-RISCV_GCC_OPTS += -fpeel-loops
+RISCV_GCC_OPTS += -fpeel-loops -O3 -fno-schedule-insns -fira-algorithm=priority
 
 main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../../common/crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
