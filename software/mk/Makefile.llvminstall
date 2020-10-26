@@ -3,7 +3,6 @@ ifndef LLVM_DIR
 endif
 
 # devtoolset-8
-HOST_TOOLCHAIN ?= /opt/rh/devtoolset-8/root/usr/bin
 
 # Build tool: Pick ninja over make if available
 ifndef GENERATOR
@@ -21,14 +20,12 @@ llvm-install:
     cd ./llvm-src && git fetch && git checkout hb-dev
 	# Install only X86 and RISCV targets
 	cd $(LLVM_DIR)/llvm-build \
-	    && cmake3 -G $(GENERATOR) -DCMAKE_BUILD_TYPE="Debug" \
+	    && cmake -G $(GENERATOR) -DCMAKE_BUILD_TYPE="Debug" \
       -DLLVM_ENABLE_PROJECTS="clang" \
 	    -DCMAKE_INSTALL_PREFIX="$(LLVM_DIR)/llvm-install" \
-	    -DCMAKE_C_COMPILER=$(HOST_TOOLCHAIN)/gcc \
-	    -DCMAKE_CXX_COMPILER=$(HOST_TOOLCHAIN)/g++ \
 	    -DLLVM_TARGETS_TO_BUILD="X86;RISCV" \
 	    -DBUILD_SHARED_LIBS=True \
 	    -DLLVM_USE_SPLIT_DWARF=True \
 	    -DLLVM_OPTIMIZED_TABLEGEN=True \
 	    ../llvm-src/llvm
-	cd  $(LLVM_DIR)/llvm-build && cmake3 --build . --target install -- -j 12
+	cd  $(LLVM_DIR)/llvm-build && cmake --build . --target install -- -j 12
