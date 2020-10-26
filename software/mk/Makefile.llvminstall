@@ -5,10 +5,10 @@ endif
 # devtoolset-8
 HOST_TOOLCHAIN ?= /opt/rh/devtoolset-8/root/usr/bin
 
-# We need cmake3. On older RHEL systems, cmake is not cmake3, but on
-# newer systems cmake is cmake3. Default to cmake3 if it is available,
-# and backup to cmake. If cmake is NOT version 3, it will fail during
-# LLVM compilation with the appropriate warning.
+# We need cmake3. On older RHEL systems, cmake is version 2 and cmake3
+# is version 3. On newer systems cmake is version3. Default to cmake3
+# if it is available, and backup to cmake. If cmake is NOT version 3,
+# it will fail during LLVM compilation with the appropriate warning.
 ifneq (, $(shell which cmake3))
     CMAKE=$(shell which cmake3)
 else ifneq (, $(shell which cmake))
