@@ -5,6 +5,18 @@ endif
 # devtoolset-8
 HOST_TOOLCHAIN ?= /opt/rh/devtoolset-8/root/usr/bin
 
+# We need cmake3. On older RHEL systems, cmake is not cmake3, but on
+# newer systems cmake is cmake3. Default to cmake3 if it is available,
+# and backup to cmake. If cmake is NOT version 3, it will fail during
+# LLVM compilation with the appropriate warning.
+ifneq (, $(shell which cmake3))
+    CMAKE=$(shell which cmake3)
+else ifneq (, $(shell which cmake))
+    CMAKE=$(shell which cmake)
+else
+    $(error "Could not find cmake, or cmake3 in PATH. Please install cmake (Version 3)")
+endif
+
 # Build tool: Pick ninja over make if available
 ifndef GENERATOR
   GENERATOR = 'Unix Makefiles'
@@ -21,7 +33,7 @@ llvm-install:
     cd ./llvm-src && git fetch && git checkout hb-dev
 	# Install only X86 and RISCV targets
 	cd $(LLVM_DIR)/llvm-build \
-	    && cmake3 -G $(GENERATOR) -DCMAKE_BUILD_TYPE="Debug" \
+	    && $(CMAKE) -G $(GENERATOR) -DCMAKE_BUILD_TYPE="Debug" \
       -DLLVM_ENABLE_PROJECTS="clang" \
 	    -DCMAKE_INSTALL_PREFIX="$(LLVM_DIR)/llvm-install" \
 	    -DCMAKE_C_COMPILER=$(HOST_TOOLCHAIN)/gcc \
@@ -31,4 +43,4 @@ llvm-install:
 	    -DLLVM_USE_SPLIT_DWARF=True \
 	    -DLLVM_OPTIMIZED_TABLEGEN=True \
 	    ../llvm-src/llvm
-	cd  $(LLVM_DIR)/llvm-build && cmake3 --build . --target install -- -j 12
+	cd  $(LLVM_DIR)/llvm-build && $(CMAKE) --build . --target install -- -j 12
