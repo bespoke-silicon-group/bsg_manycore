@@ -1,8 +1,8 @@
-bsg-min-fn= $(shell echo "define min(a,b) { if (a>b) { return (a) } else { return (b) }} min ($(1),$(2))" | /usr/bin/bc)
-bsg-max-fn= $(shell echo "define max(a,b) { if (a>b) { return (a) } else { return (b) }} max ($(1),$(2))" | /usr/bin/bc)
-bsg-minus-fn = $(shell /bin/expr $(1) - $(2))
-bsg-plus-fn = $(shell /bin/expr $(1) + $(2))
-bsg-times-fn = $(shell /bin/expr $(1) \* $(2))
+bsg-min-fn= $(shell echo "define min(a,b) { if (a>b) { return (a) } else { return (b) }} min ($(1),$(2))" | env bc)
+bsg-max-fn= $(shell echo "define max(a,b) { if (a>b) { return (a) } else { return (b) }} max ($(1),$(2))" | env bc)
+bsg-minus-fn = $(shell env expr $(1) - $(2))
+bsg-plus-fn = $(shell env expr $(1) + $(2))
+bsg-times-fn = $(shell env expr $(1) \* $(2))
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.paths
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.builddefs
