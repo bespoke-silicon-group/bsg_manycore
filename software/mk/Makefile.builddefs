@@ -244,7 +244,7 @@ endif
 ifdef ENABLE_LLVM_PASSES
 $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
 	mkdir -p build
-	cd build && LLVM_DIR=$(LLVM_DIR) cmake3 $(PASS_DIR) -Dbsg_group_size:INTEGER=$(bsg_group_size) && make
+	cd build && LLVM_DIR=$(LLVM_DIR) cmake $(PASS_DIR) -Dbsg_group_size:INTEGER=$(bsg_group_size) && make
 endif
 
 else
