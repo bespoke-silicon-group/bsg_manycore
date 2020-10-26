@@ -9,7 +9,9 @@
 // inner loop is unrolled completely first (?), then the outer loop is
 // unrolled until maximum NB Loads are achieved.
 
-// If the unroll factor > B, it will unroll by factor B instead.
+// Locations:
+//     src should be in remote memory (DRAM)
+//     dest should be in local scratchpad
 template <unsigned int BY, unsigned int BX, bool TRANSPOSE>
 inline void load_block(float * bsg_attr_noalias dest,
                 float bsg_attr_remote * bsg_attr_noalias src,
@@ -23,6 +25,8 @@ inline void load_block(float * bsg_attr_noalias dest,
 
         bsg_unroll(2)
         for (int i = 0; i < BY; i++) {
+                // If the unroll factor > B, it will unroll by factor B
+                // instead.
                 bsg_unroll(16)
                 for (int j = 0 ; j < BX; j ++){
                         if (!TRANSPOSE)
@@ -33,6 +37,11 @@ inline void load_block(float * bsg_attr_noalias dest,
         }
 }
 
+// Store the result (psum) to remote memory and reset the psum array
+// in scratchpad.
+// Locations:
+//     src should be in local scratchpad
+//     dest should be in remote memory (DRAM)
 template <unsigned int BY, unsigned int BX>
 inline void store_block_and_reset(float * bsg_attr_noalias src,
                            float bsg_attr_remote * bsg_attr_noalias dest,
@@ -67,6 +76,10 @@ inline void store_block_and_reset(float * bsg_attr_noalias src,
 // This is done by iteratively computing SBY-by-SBX sub-matrix
 // outputs, and individually accumulating those into the output
 // matrix.
+// Locations:
+//     dest should be in local scratchpad
+//     mat1 should be in local scratchpad
+//     mat2 should be in local scratchpad
 template<unsigned int BY, unsigned int SBY, unsigned int BX, unsigned int SBX, bool M1_TRANSPOSE>
 inline void accum_block(float* bsg_attr_noalias dest,
                  float* bsg_attr_noalias mat1,
@@ -85,10 +98,12 @@ inline void accum_block(float* bsg_attr_noalias dest,
 
                         // Load in a SBY-by-SBX sub-block of the
                         // output matrix into psum for accumulation.
+                        // Location: Registers (for SBX == 4, SBY == 4)
                         float psum[SBY][SBX];
 
                         // The sub-block is "anchored" by the
                         // upper-right corner at by_i, bx_i
+                        // Location: (pointer to) Scratchpad
                         float * bsg_attr_noalias sb_anchor = &(dest[sb_anchor_y * BX + sb_anchor_x]);
 
                         bsg_unroll(16)
@@ -108,17 +123,22 @@ inline void accum_block(float* bsg_attr_noalias dest,
                                 // 1-by-SBX sub-row of mat2, and perform a
                                 // SBY-by-1 x 1-by-SBX vector-vector multiply
                                 // that produces an SBY-by-SBX output matrix.
+                                // Locations:
+                                //     col should be in registers (for SBY == 4)
+                                //     row should be in registers (for SBX == 4)
                                 float col[SBY];
                                 float row[SBX];
 
                                 // Load an SBY-by-1 sub-column of mat1,
                                 if (!M1_TRANSPOSE) {
+                                        // Location: (pointer to) Scratchpad
                                         float * bsg_attr_noalias col_anchor = &(mat1[sb_anchor_y * BX + sbx_i]);
                                         bsg_unroll(16)
                                         for(int i = 0; i < SBY; ++i){
                                                 col[i] = col_anchor[i * BX];
                                         }
                                 } else {
+                                        // Location: (pointer to) Scratchpad
                                         float * bsg_attr_noalias col_anchor = &(mat1[sb_anchor_y + sbx_i * BY]);
                                         bsg_unroll(16)
                                         for(int i = 0; i < SBY; ++i){
@@ -127,6 +147,7 @@ inline void accum_block(float* bsg_attr_noalias dest,
                                 }
 
                                 // Load an SBX-by-1 sub-column of mat2
+                                // Location: (pointer to) Scratchpad
                                 float * bsg_attr_noalias row_anchor = &(mat2[sbx_i * BY + sb_anchor_x]);
                                 bsg_unroll(16)
                                 for(int i = 0; i < SBX; ++i){
@@ -141,6 +162,12 @@ inline void accum_block(float* bsg_attr_noalias dest,
                                 // This could be done in two steps,
                                 // but we do it in one to use FMA
                                 // instructions
+
+                                // The code expects that psum, col,
+                                // and row are all allocated in
+                                // registers so that there are SBY *
+                                // SBX fused-multiply-add instructions
+                                // in a row.
                                 bsg_unroll(16)
                                 for(int sby_i = 0; sby_i < SBY; ++sby_i){
                                         bsg_unroll(16)
@@ -198,13 +225,22 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
         // M2 columns must be divisible by the Block Y-dimension
         hb_assert(c2 % BY == 0);
 
+
+        // TODO: The compiler doesn't know that c1 is always (or
+        // should always be) nonzero. This adds an extra BNE
+        // instruction in the inner-loop. There should be some way to
+        // signal to the compiler, perhaps with hb_assert?
         int blocks = c1 / BX; // r2 / BX
 
         // Local Storage for input blocks
+        // Locations:
+        //    block_row is in Local Scratchpad
+        //    block_col is in Local Scratchpad
         float block_row[BY * BX];
         float block_col[BX * BY];
 
         // Local storage for partial sums (output)
+        // Location: Local Scratchpad
         float psum[BY * BX];
 
         for (int i = 0; i < BY; i++) {
