@@ -10,3 +10,4 @@ lfs.c
 dramsim3epoch.json
 *.ld
 dis
+*.png

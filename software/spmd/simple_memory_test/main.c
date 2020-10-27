@@ -1,3 +1,7 @@
+// this is a simple program with a simple behaviour that can be used for analyzing/debugging vanilla profiler.
+//  a core simply writes to a vector in main memory and reads back .
+
+
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 #define N 1024
