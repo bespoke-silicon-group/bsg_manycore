@@ -145,9 +145,9 @@ module vanilla_core
 
   // debug pc
   // synopsys translate_off
-  wire [data_width_p-1:0] pc_00 = {1'b1,{(data_width_p-pc_width_lp-3){1'b0}}, pc_r, 2'b00};
-  wire [data_width_p-1:0] id_pc = (id_r.pc_plus4 - 'd4) | bsg_dram_npa_prefix_gp;
-  wire [data_width_p-1:0] exe_pc = (exe_r.pc_plus4 - 'd4) | bsg_dram_npa_prefix_gp;
+  wire [data_width_p-1:0] if_pc = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_r, 2'b00};
+  wire [data_width_p-1:0] id_pc = (id_r.pc_plus4 - 'd4);
+  wire [data_width_p-1:0] exe_pc = (exe_r.pc_plus4 - 'd4);
   // synopsys translate_on
 
   // instruction decode
