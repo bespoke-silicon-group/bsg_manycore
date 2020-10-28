@@ -197,19 +197,17 @@ class PCHistogram:
 
         # Repeat once more for the last basic block 
         # Number of times basic block is executed
-        block_pc_cnt = pc_cnt[pc_list[start]]
+        if pc_list:
+            block_pc_cnt = pc_cnt[pc_list[start]]
 
-        # Number of cycles spend on executing this basic block                
-        block_pc_cycle = 0
-        for idx in range(start, end):
-            block_pc_cycle += pc_cycle[pc_list[idx]] 
-
-
-        histogram_cnt[(pc_list[start], pc_list[end-1])] = block_pc_cnt
-        histogram_cycle[(pc_list[start], pc_list[end-1])] = block_pc_cycle
+            # Number of cycles spend on executing this basic block                
+            block_pc_cycle = 0
+            for idx in range(start, end):
+                block_pc_cycle += pc_cycle[pc_list[idx]] 
 
 
-
+            histogram_cnt[(pc_list[start], pc_list[end-1])] = block_pc_cnt
+            histogram_cycle[(pc_list[start], pc_list[end-1])] = block_pc_cycle
 
         return histogram_cnt, histogram_cycle
 
