@@ -23,6 +23,11 @@ inline void load_block(float * bsg_attr_noalias dest,
                 (by_i * BY * src_strides[0]) +
                 (bx_i * BX * src_strides[1]);
 
+        //        bsg_unroll(16)
+        //        for (int i = 0; i < BY; i++) {
+        //                asm("lw x0, %0": : "m" (src[i * src_strides[0]]));
+        //        }
+
         bsg_unroll(2)
         for (int i = 0; i < BY; i++) {
                 // If the unroll factor > B, it will unroll by factor B
@@ -197,7 +202,7 @@ inline void accum_block(float* bsg_attr_noalias dest,
 // c1 == r2
 // c1 % BX == 0, r2 % BX == 0
 // c2 % BY == 0, r1 % BY == 0
-template<unsigned int BX, unsigned int BY, bool LOAD_M1_TRANSPOSED>
+template<unsigned int BX, unsigned int BY, bool LOAD_M1_TRANSPOSED, bool PROFILE>
 __attribute__ ((noinline))
 int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
                   uint32_t *bsg_attr_noalias result_strides,
@@ -250,6 +255,7 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
                 }
         }
 
+        int id = 0;
         // Start profiling
         bsg_cuda_print_stat_kernel_start();
 
@@ -261,16 +267,39 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
                 for (int bx_i = __bsg_x; bx_i < c2/BX; bx_i += BSG_TILE_GROUP_X_DIM) {
 
                         // Multiply the blocks, and accumulate into the result
+
+                        if(PROFILE)
+                                bsg_cuda_print_stat_start(0);
                         for (int bz_i = 0; bz_i < blocks; bz_i++) {
+                                if(PROFILE)
+                                        bsg_cuda_print_stat_start(1);
                                 load_block<BY, BX, LOAD_M1_TRANSPOSED>(block_row, mat1, mat1_strides, by_i, bz_i);
+                                if(PROFILE){
+                                        bsg_cuda_print_stat_end(1);
+                                        bsg_cuda_print_stat_start(2);
+                                }
                                 load_block<BY, BX, false>(block_col, mat2, mat2_strides, bz_i, bx_i);
+                                if(PROFILE){
+                                        bsg_cuda_print_stat_end(2);
+                                        bsg_cuda_print_stat_start(3);
+                                }
                                 accum_block<BY, BY/2, BX, BX/2, LOAD_M1_TRANSPOSED>(psum, block_row, block_col);
+                                if(PROFILE)
+                                        bsg_cuda_print_stat_end(3);
                         }
+
+                        if(PROFILE)
+                                bsg_cuda_print_stat_start(4);
 
                         // Store the result, AND zero the psum array
                         // to leverage parallel remote and local
                         // stores.
                         store_block_and_reset<BY, BX>(psum, result, result_strides, by_i, bx_i);
+
+                        if(PROFILE){
+                                bsg_cuda_print_stat_end(4);
+                                bsg_cuda_print_stat_end(0);
+                        }
                 }
         }
 
@@ -292,14 +321,23 @@ int kernel_mm_opt_8x8(
         auto result = HBTensor<float, 2>(_result);
         
         // Strip the PyTorch structs, and get the raw pointers.
-        return kernel_mm_opt<8,8,false>((float* bsg_attr_noalias) result.data_ptr(),
-                                        result.get_strides(),
-                                        (float* bsg_attr_noalias) mat1.data_ptr(),
-                                        mat1.get_strides(),
-                                        mat1.dim(0), mat1.dim(1),
-                                        (float* bsg_attr_noalias) mat2.data_ptr(),
-                                        mat2.get_strides(),
-                                        mat2.dim(0), mat2.dim(1));
-
+        if(__bsg_y == 0 && __bsg_x == 0)
+                return kernel_mm_opt<8,8,false, true>((float* bsg_attr_noalias) result.data_ptr(),
+                                                      result.get_strides(),
+                                                      (float* bsg_attr_noalias) mat1.data_ptr(),
+                                                      mat1.get_strides(),
+                                                      mat1.dim(0), mat1.dim(1),
+                                                      (float* bsg_attr_noalias) mat2.data_ptr(),
+                                                      mat2.get_strides(),
+                                                      mat2.dim(0), mat2.dim(1));
+        else
+                return kernel_mm_opt<8,8,false, false>((float* bsg_attr_noalias) result.data_ptr(),
+                                                      result.get_strides(),
+                                                      (float* bsg_attr_noalias) mat1.data_ptr(),
+                                                      mat1.get_strides(),
+                                                      mat1.dim(0), mat1.dim(1),
+                                                      (float* bsg_attr_noalias) mat2.data_ptr(),
+                                                      mat2.get_strides(),
+                                                      mat2.dim(0), mat2.dim(1));
 }
 
