@@ -23,13 +23,24 @@
 
 import sys
 import argparse
+import functools
 import os
 import re
 import csv
 import numpy as np
+
+# Pandas must be at least version 1.0.0 and tabulate must be installed
+import pandas as pd
+import tabulate
+try:
+    pd.DataFrame.to_markdown
+except:
+    raise RuntimeError("Pandas version is not sufficient. Upgrade pandas to > 1.0.0")
+
 from enum import Enum
 from collections import Counter
 from . import common
+
 
 # CudaStatTag class 
 # Is instantiated by a packet tag value that is recieved from a 
@@ -93,9 +104,22 @@ class CudaStatTag:
         """ Get the tag associated with this object """
         return ((self.__s >> self._TAG_INDEX) & self._TAG_MASK)
 
+    @property
+    def getTag(self):
+        """ Get the tag associated with this object """
+        if(self.__type == self.StatType.KERNEL_START or
+           self.__type == self.StatType.KERNEL_END):
+            return "Kernel"
+        return ((self.__s >> self._TAG_INDEX) & self._TAG_MASK)
+
     @property 
     def tg_id(self):
-        """ Get the Tile-Group IP associated with this object """
+        """ Get the Tile-Group ID associated with this object """
+        return ((self.__s >> self._TG_ID_INDEX) & self._TG_ID_MASK)
+
+    @property 
+    def getTileGroupID(self):
+        """ Get the Tile-Group ID associated with this object """
         return ((self.__s >> self._TG_ID_INDEX) & self._TG_ID_MASK)
 
     @property 
@@ -107,6 +131,11 @@ class CudaStatTag:
     def y(self):
         """ Get the Y Coordinate associated with this object """
         return ((self.__s >> self._Y_INDEX) & self._Y_MASK)
+
+    @property 
+    def getAction(self):
+        """ Get the Action that this object defines"""
+        return "Start" if self.__type in {self.StatType.KERNEL_START, self.StatType.START} else "End"
 
     @property 
     def statType(self):
@@ -137,7 +166,767 @@ class CudaStatTag:
         bsg_cuda_print_stat_kernel_end """
         return (self.__type == self.StatType.KERNEL_END)
 
- 
+# Create the ManycoreCoordinate class, a surprisingly useful wrapper
+# for a tuple. Access the y and x fields using var.y and var.x
+from collections import namedtuple
+ManycoreCoordinate = namedtuple('ManycoreCoordinate', ['y', 'x'])
+
+# The challenge in the victim cache parser is order of
+# iterations. Simply described:
+# 
+# Each time a tile executes a start/end call with a
+# particular, it is an iteration of that tag.
+#
+# 0. Tiles iterate and can call start/end multiple times
+# 1. Cals to start/end define an iteration order for that tile
+# 2. Packets from a single tile arrive at the host in tile iteration order
+# 3. Packets from multiple tiles arrive interleaved
+# 4. The tile iteration number at the host is not necessarily monotonic
+#    (That is - the tiles are not necessarily executing the same iteration)
+# 
+# An iteration-consistent order must be reconstructed
+# so that start/end calls do not count operations
+# outside of the window defined by their tag.
+# 
+# The following lines enumerate an iteration order for
+# start/end calls from each tile.
+class CacheStatsParser:
+
+    # The field_is_* stall methods return true if a field from the CSV
+    # is of the type requested. Use these for filtering operations
+    @classmethod
+    def field_is_stall(cls, op):
+        return op.startswith("stall_")
+
+    @classmethod
+    def field_is_dma(cls, op):
+        return op.startswith("dma_")
+
+    @classmethod
+    def field_is_miss(cls, op):
+        return op.startswith("miss_")
+
+    @classmethod
+    def field_is_mgmt(cls, op):
+        return (op.startswith("instr_tag")
+                or (op.startswith("instr_a")
+                    and not cls.field_is_amo(op)))
+
+    @classmethod
+    def field_is_load(cls, op):
+        return op.startswith("instr_ld")
+
+    @classmethod
+    def field_is_store(cls, op):
+        return op.startswith("instr_s")
+
+    @classmethod
+    def field_is_amo(cls, op):
+        return op.startswith("instr_amo")
+
+    @classmethod
+    def field_is_event_counter(cls, op):
+        return (cls.field_is_dma(op) or op == "total_dma"
+                or cls.field_is_miss(op) or op == "total_miss")
+
+    @classmethod
+    def field_is_cycle_counter(cls, op):
+        return (cls.field_is_stall(op) or op == "total_stalls"
+                or cls.field_is_load(op) or op == "total_loads"
+                or cls.field_is_store(op) or op == "total_stores"
+                or cls.field_is_amo(op) or op == "total_atomics"
+                or cls.field_is_mgmt(op) or op == "total_mgmt"
+                or op == "global_ctr")
+
+    # Parse the raw tag column into Tag, Action, and Tile Coordinate columns
+    @classmethod
+    def parse_raw_tag(cls, df):
+        # Parse raw_tag data using CudaStatTag
+        cst = df.raw_tag.map(CudaStatTag)
+
+        p = pd.DataFrame()
+        # Update the table with information parsed from CudaStatTag
+        p["Tile Group ID"] = cst.map(lambda e: e.getTileGroupID)
+        p["Tag"] = cst.map(lambda e: e.getTag)
+        p["Action"] = cst.map(lambda e: e.getAction)
+        p["Tile Coordinate (Y,X)"] = cst.map(lambda e: ManycoreCoordinate(e.y, e.x))
+
+        return p
+
+    # Get device-level characteristics: dim, origin
+    @classmethod
+    def parse_dev_characteristics(cls, df):
+        dim = ManycoreCoordinate(
+            df["Tile Coordinate (Y,X)"].map(lambda l: l.y).max() + 1,
+            df["Tile Coordinate (Y,X)"].map(lambda l: l.x).max() + 1)
+
+        origin = ManycoreCoordinate(
+            df["Tile Coordinate (Y,X)"].map(lambda l: l.y).min(),
+            df["Tile Coordinate (Y,X)"].map(lambda l: l.x).min())
+
+        return (dim, origin)
+
+    # Use the vcache column (which contains indexes, embedded in
+    # strings) into ManycoreCoordinate objects, and return them as a
+    # new column
+    @classmethod
+    def parse_cache_coordinates(cls, df, dim, origin):
+        cache_names = df.vcache.unique()
+        ncaches = len(cache_names)
+        if(not ncaches == (dim.x * 2)):
+            raise RuntimeError("Number of caches in the cache stats file must "
+                               "be two times the X-Dimension of the manycore. "
+                               f"Got {ncaches}.")
+
+        # The CSV contains a string representing the cache's
+        # path in the hierarchy, not the (Y,X) location, so we
+        # map the string to a (Y,X) coordinate and create a
+        # new column in the table.
+        cache_ys = [0] * (ncaches//2) + [dim[0]] * (ncaches//2)
+        cache_xs = [*range(ncaches//2), *range(ncaches//2)]
+        cache_coords = zip(cache_ys, cache_xs)
+        cache_coord_map = {c:i for c, i in zip(cache_names,cache_coords)}
+        return df.vcache.map(cache_coord_map)
+
+    # Infer labels each line in the dataframe with the iteration
+    # number for that tile and tag.
+    #
+    # The way this is done is by hierarchical grouping in
+    # Pandas. We can think of each tile's iterations as a
+    # group of lines in the csv file, and we need to label
+    # each line with it's iteration. 
+    @classmethod
+    def parse_label_iterations(cls, df):
+        # We create a hierarchy with the following
+        # levels (top to bottom):
+        hierarchy = ["Action", "Tag", "Tile Coordinate (Y,X)", "Cache Coordinate (Y,X)"]
+
+        # At the bottom, the "Cache Coordinate (Y,X)" group
+        # will have n entries, where n is the number of times
+        # that action was called, with that tag, by the
+        # particular tile.
+        #
+        # Enumerating the n rows, produces a Tile-Tag
+        # Iteration number for each row.
+                
+        # We group the data hierarchically, as described above
+        groups = df.groupby(hierarchy)
+
+        # Then we enumerate the iterations using cumcount().
+        iterations = groups.cumcount()
+
+        return iterations
+        
+    def __init__(self, vcache_input_file):
+        d = pd.read_csv(vcache_input_file)
+
+        # Fail if the metadata is not in the header.
+        meta = ["vcache", "tag"]
+        if(not all(f in d.columns.values for f in meta)):
+            raise RuntimeError("Metadata fields not in header of CSV")
+
+        # Rename from tag, to raw_tag to avoid confusion. "tag" in
+        # this context is the unparsed data from the packet.
+        d = d.rename(columns={"tag": "raw_tag"})
+
+        # Rename columns with totals to avoid confusion
+        d = d.rename(columns={"instr_ld": "total_loads",
+                              "instr_st": "total_stores",
+                              "instr_atomic": "total_atomics"
+                          })
+
+        # Compute Stall, Mgmt, DMA, and Miss totals. These are not
+        # computed in Verilog, but Stores, Atomics, and load
+        # operations are.
+
+        # Parse out the operations we care about
+        header = d.columns.values
+        self._mgmt = [f for f in header if self.field_is_mgmt(f)]
+
+        self._stalls = [f for f in header if self.field_is_stall(f)]
+
+        self._misses = [f for f in header if self.field_is_miss(f)]
+        self._dmas = [f for f in header if self.field_is_dma(f)]
+
+        d['total_stalls'] = d[self._stalls].sum(axis="columns")
+        d['total_mgmt'] = d[self._mgmt].sum(axis="columns")
+        d['total_miss'] = d[self._misses].sum(axis="columns")
+        d['total_dma'] = d[self._dmas].sum(axis="columns")
+
+
+        # Parse raw tag data into Action, Tag, and Tile Coordinate (Y,X), 
+        # and Tile Group Columns
+        d = pd.concat([d, self.parse_raw_tag(d)], axis='columns')
+
+        # Parse the device dimension and origin from Tile Coordinate (Y,X)
+        (dim, origin) = self.parse_dev_characteristics(d)
+
+        # Use the vcache column (which contains indexes, embedded in
+        # strings) into ManycoreCoordinate objects, and put them in a
+        # new column
+        d["Cache Coordinate (Y,X)"] = self.parse_cache_coordinates(d, dim, origin)
+
+        # Create a column with the Tile-Tag iterations (see comment)
+        # All of the magic happens here.
+        d["Tile-Tag Iteration"] = self.parse_label_iterations(d)
+
+        # Drop the columns that no longer contain useful data.
+        d = d.drop(["raw_tag", "vcache", "time"], axis="columns")
+
+        # Parse the aggregate stats (for the device)
+        self.agg = AggregateCacheStats(d)
+        # Parse the aggregate stats (for each group)
+        self.group = GroupCacheStats(d)
+
+        # Finally, save d and parse the Tag, Bank, and Group data
+        self._origin = origin
+        self._dim = dim
+        self.d = d.copy();
+
+# Cache Stats is the parent class for CacheTagStats, CacheBankStats,
+# It contains reusable functionality, but doesn't actually do any
+# parsing or computation.
+class CacheStats:
+    def __init__(self, name, df):
+        self._name = name
+        self._df = df.copy()
+    
+        header = df.columns.values
+
+        # Classify operations in the header
+        self._loads = [f for f in header if CacheStatsParser.field_is_load(f)]
+        self._stores = [f for f in header if CacheStatsParser.field_is_store(f)]
+        self._atomics = [f for f in header if CacheStatsParser.field_is_amo(f)]
+        self._mgmt = [f for f in header if CacheStatsParser.field_is_mgmt(f)]
+
+        self._stalls = [f for f in header if CacheStatsParser.field_is_stall(f)]
+
+        self._misses = [f for f in header if CacheStatsParser.field_is_miss(f)]
+        self._dmas = [f for f in header if CacheStatsParser.field_is_dma(f)]
+
+        self._ops = [*self._mgmt, *self._atomics, *self._stores, *self._loads]
+
+        # Create a dictionary mapping operation to operation type
+        # global_ctr is just a cycle counter
+        self._op_type_map = dict({*[(l,"Load") for l in [*self._loads, "total_loads"]],
+                                  *[(s,"Store") for s in [*self._stores, "total_stores"]],
+                                  *[(t,"Management") for t in [*self._mgmt, "total_mgmt"]],
+                                  *[(a,"Atomic") for a in [*self._atomics, "total_atomics"]],
+                                  *[(s,"Stall") for s in [*self._stalls, "total_stalls"]],
+                                  *[(m,"Miss") for m in [*self._misses, "total_miss"]],
+                                  *[(d,"DMA") for d in [*self._dmas, "total_dma"]],
+                                  ("global_ctr", "Cycles")
+                              })
+
+    # Find mismatched calls to start/end
+    #
+    # Returns mismatches, a MultiIndex containing the list of
+    # mismatches.
+    def find_mismatches(self, s, e):
+        # Subtracting the start and end dataframes will match
+        # groups. If a group in the start or end dataframe is
+        # missing a row/index then it will insert a row of
+        # NaNs at the cooresponding index in the output that
+        # we can use to print an error.
+        diff = e.sort_index() - s.sort_index()
+        
+        # Find rows with NaNs
+        mismatches = diff[diff.isnull().any(axis="columns")].index
+                
+        # If mismatches is not empty, then there is a row of
+        # NaNs, described above.
+        return list(mismatches)
+
+    # Sort the tags so that "Kernel" is last, followed by the
+    # tags in sorted order.
+    @classmethod
+    def _sort_tags(cls, tags):
+        tags = list(tags)
+
+        if "Kernel" in tags:
+            tags.remove("Kernel")
+            tags.sort()
+            tags = tags + ["Kernel"]
+        else:
+            tags.sort()
+
+        return tags
+
+    def __str__(self):
+        return self._name
+
+    # Create a string of length l with n (name) centered in the
+    # middle, and padded by c (characters)
+    @classmethod
+    def _fill(cls, n, l, c):
+        if(len(c) != 1):
+            raise ValueError("Argument 'c' must be a character")
+        l -= len(n)
+        lpre = l // 2
+        lpost = (l + 1) // 2
+        s = (c * lpre) + n + (c * lpost)
+        return s
+    
+    # Create section separator, of length l with name n
+    @classmethod
+    def _make_sec_sep(cls, n, l):
+        return cls._fill(" " + n + " ", l, "#")
+
+    # Create tag separator, of length l with name tag
+    @classmethod
+    def _make_tag_sep(cls, tag, l):
+        t = f" Tag: {tag} "
+        return cls._fill(t, l, "=")
+        
+    # Create sub-separator, of length l with name n
+    @classmethod
+    def _make_sub_sep(cls, n, l):
+        return cls._fill(n, l, "-")
+
+
+
+class CacheTagStats(CacheStats):
+
+    def __init__(self, name, df):
+        super().__init__(name, df)
+        # Tag statistics are aggregated across banks. We use Tile-Tag
+        # Iteration at the bottom of the hierarchy so that lines that
+        # were printed by the same packet, i.e. different cache banks,
+        # are grouped together and can be aggregated.
+        #
+        # Then, for per-tag statistics we take the sum of the lowest
+        # group, to get aggregate the counters across all banks.
+        hierarchy = ["Action", "Tag", "Tile Coordinate (Y,X)", "Tile-Tag Iteration"]
+        banksums = df.groupby(hierarchy).sum()
+
+        # Split into Start/End 
+        starts = banksums.loc["Start"]
+        ends = banksums.loc["End"]
+        
+        # Find mismatched start and end pairs
+        mismatches = self.find_mismatches(starts, ends)
+        if(list(mismatches)):
+            raise RuntimeError("Unpaired calls to Start/End detected."
+                               f" Check the following: {tuple(mismatches.names)}:"
+                               f"{list(mismatches)}")
+
+        # For all tag iterations, find the minium arrival time
+        # for the start packet for that iteration
+
+        # We will use groups again to do this. Group together
+        # matching iterations at the bottom of the hierarchy,
+        # and find the earliest arrived packet (for Starts),
+        # and the latest arrived packet (for Ends).
+
+        # The getmin/getmax functions below are general. They
+        # will do what is described above. BUT, they are slow,
+        # and unnecessary
+
+        # getmin = lambda df: df.loc[df["global_ctr"].idxmin()]
+        # tag_starts = tag_starts.groupby(["tag", "Tile-Tag Iteration"]).apply(getmin)
+        # bank_starts = bank_starts.groupby(["tag", "Cache Coordinate (Y,X)", "Tile-Tag Iteration"]).apply(getmin)
+
+        # Instead: Groupby maintains the relative order of rows within
+        # a group, and the rows in the table were already in order
+        # because they were already printed in order!
+
+        # We use first() to get the first row, which
+        # is also the earliest. No need to search for min/max
+        # if an O(1) operation exists!
+        starts = starts.groupby(["Tag", "Tile-Tag Iteration"]).first()
+
+        # Same as above. Slow, unnecessary:
+        # getmax = lambda df: df.loc[df["global_ctr"].idxmax()]
+        # tag_ends = tag_ends.groupby(["tag", "Tile-Tag Iteration"]).apply(getmax)
+        # bank_ends = bank_ends.groupby(["tag", "Cache Coordinate (Y,X)", "Tile-Tag Iteration"]).apply(getmax)
+
+        # As above, groupby maintains order within groups so
+        # we can just use last().
+        ends = ends.groupby(["Tag", "Tile-Tag Iteration"]).last()
+
+        # Finally, subtract all ends from starts and sum.
+        results = (ends - starts).groupby("Tag").sum()
+        
+        # Save the result
+        self.df = results
+
+
+    # Parse the results into a pretty table
+    def __prettify(self, df):
+        doc = ""
+        # Transpose so that columns are tags. Then we can easily see sums
+        pretty = df.T
+
+        # Sort into Events and Cycles
+        counter_map = dict({*[(e,"Event") for e in pretty.index
+                              if CacheStatsParser.field_is_event_counter(e)],
+                            *[(c, "Cycle") for c in pretty.index
+                              if CacheStatsParser.field_is_cycle_counter(c)]})
+        pretty["Counter Type"] = pretty.index.map(counter_map)
+
+        # Classify operations by type
+        pretty['Operation Type'] = pretty.index.map(self._op_type_map)
+
+        # Rename the rows that contain totals to "Total"
+        istotal = lambda op: op.startswith("total") or op == "global_ctr"
+        totals_map = {op:"Total" for op in pretty.index.values if istotal(op)}
+        pretty = pretty.rename(mapper=totals_map)
+
+        # Re-index the table. This creates a hierarchical table where
+        # operations are grouped by Counter type (Event, or Cycle) and
+        # Operation type (e.g. Atomic).
+        pretty['Name'] = pretty.index
+        pretty = pretty.set_index(["Counter Type", "Operation Type", "Name"])
+        pretty = pretty.sort_index(level=[0, 1, 2], ascending=[True, True, False])
+
+        # Sort the columns so that "Kernel" is last.
+        srtd = self._sort_tags(pretty.columns)
+
+        pretty = pretty.reindex(srtd, axis=1)
+
+        doc += "Table Rows:\n"
+        doc += "\tLoad Operations:\n"
+        doc += "\t\t-instr_ld_l[wu,w,hu,h,du,d,bu,b]: Load [w]ord/[h]alf/[b]yte/[d]ouble [u]nsigned/[]signed\n"
+        doc += "\tStore Operations:\n"
+        doc += "\t\t-instr_sm_s[w,h,d,b]: Store [w]ord/[h]alf/[b]yte/[d]ouble\n"
+        doc += "\tCache Management Operations:\n"
+        doc += "\t\t-instr_tagst: Tag Store (Not caused by Vanilla Core)\n"
+        doc += "\t\t-instr_tagfl: Tag Flush (Not caused by Vanilla Core)\n"
+        doc += "\t\t-instr_taglv: Tag Load Valid (Not caused by Vanilla Core)\n"
+        doc += "\t\t-instr_tagla: Tag Load Address (Not caused by Vanilla Core)\n"
+        doc += "\t\t-instr_afl: Address Flush (Not caused by Vanilla Core)\n"
+        doc += "\t\t-instr_aflinv: Address Flush Invalidate (Not caused by Vanilla Core)\n"
+        doc += "\t\t-instr_ainv: Address Invalidate (Not caused by Vanilla Core)\n"
+        doc += "\t\t-instr_alock: Address Lock (Not caused by Vanilla Core)\n"
+        doc += "\t\t-instr_aunlock: Address Unlock (Not caused by Vanilla Core)\n"
+        doc += "\t RISC-V Atomic Operations:\n"
+        doc += "\t\t-instr_amoswap: Atomic Swap\n"
+        doc += "\t\t-instr_amoor: Atomic OR\n"
+        doc += "\t Cache Stall Operations:\n"
+        doc += "\t\t-stall_miss: Miss Operation (Stall)\n"
+        doc += "\t\t-stall_idle: Idle Operation (Stall)\n"
+        doc += "\t\t-stall_rsp: Response Network Congestion Stall\n"
+        doc += "\n"
+        doc += " *** All operations take one cycle. *** \n"
+
+        return (pretty, doc)
+
+
+    # Compute the breakdowns for an operation type. 
+    # Compute both intra group percentage, and total
+    @classmethod
+    def __cycle_breakdown(cls, tot_cyc, ds):
+        # Construct a new dataframe (the input is a series)
+        df = pd.DataFrame()
+        df["Count"] = ds
+        # Compute breakdowns. For anything that is NaN, just report 0
+        df["% of Type Cycles"] = (100 * ds / ds.loc[:,"Total"]).fillna(0)
+        df["% of Total Cycles"]   = 100 * ds / tot_cyc
+        return df
+
+    # Formatting method for table index.
+    @classmethod
+    def __index_tostr(cls, i):
+        if i[0] == "Cycles":
+            s =f"{i[1]} Cycles"
+            return s
+        if i[1] == "Total":
+            s =f"{i[0]} Operation {i[1]}"
+            return s + "\n" + "-" * len(s)
+        else:
+            return f"--{i[1]}"
+
+    # Format the cycles table (operations)
+    @classmethod
+    def __cycle_tostr(cls, df):
+        # Create columns for Type, and Group percentages
+        tot_cyc = df.loc[("Cycles", "Total")]
+        f = functools.partial(cls.__cycle_breakdown, tot_cyc)
+        df = df.groupby(level=[0]).apply(f)
+        
+        # Format the final table...
+
+        # Reorder the index
+        order = ["Load", "Store", "Atomic", "Management", "Stall", "Cycles"]
+        df = df.loc[(order),:]
+
+        # Then prettify the by applying index_tostr
+        i = list(df.index.map(cls.__index_tostr))
+
+        # Specify the float precision
+        fmt = [".0f", ".0f", ".2f", ".2f"]
+
+        # Finally, format the table with the pretty index
+        s = df.to_markdown(tablefmt="simple", floatfmt=fmt, index=i, numalign="right")
+
+        return s
+
+    # Format the events table (misses)
+    @classmethod
+    def __event_tostr(cls, ds, ld, st, atom):
+        # Construct a pretty dataframe to print
+        df = pd.DataFrame()
+
+        # We only care about misses, so throw away DMA operations
+        ds = ds.loc["Miss"]
+
+        # Create a column for miss counts
+        df["Misses"] = ds
+
+        # Set up a "Type" column, to use as a new index, replacing the
+        # one from the CSV
+        df["Type"] = ds.index.map({"miss_st": "Stores",
+                                   "miss_ld": "Loads",
+                                   "miss_amo": "Atomics",
+                                   "Total": "Total"})
+
+        # Set up a column for access counts
+        df["Accesses"] = pd.Series(index = ds.index.values,
+                                   data =  [st, ld, atom, atom + ld + st])
+
+        # Compute the miss rate by dividing the misses by the accesses
+        # Nans are expected -- 0/0. Just turn them into 0's
+        df["Miss Rate (%)"] = (100 * df["Misses"] / df["Accesses"]).fillna(0)
+
+        # Set index to the type
+        df = df.set_index(["Type"])
+
+        # Set the format for floats
+        fmt = [".0f"] * 3 + [".2f"]
+        s = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right")
+        return s
+
+    # Get a pretty formatted table representation for a tag
+    @classmethod
+    def __tag_tostr(cls, df):
+        # Get load and store totals for miss statistics
+        ld_total = df.loc[("Cycle", ["Load"], "Total")][0]
+        st_total = df.loc[("Cycle", ["Store"], "Total")][0]
+        at_total = df.loc[("Cycle", ["Atomic"], "Total")][0]
+
+        counts = cls.__cycle_tostr(df.loc["Cycle"]) + "\n"
+        l = len(counts.splitlines()[0])
+
+        events = cls.__event_tostr(df.loc["Event"], ld_total, st_total, at_total)
+
+        s = ""
+        s += ("Operation Cycle Counts" + " " * l)[:l] + "\n"
+        s += cls._make_sub_sep("", l) + "\n"
+        s += counts
+        s += cls._make_sub_sep("", l) + "\n"
+
+        # TODO: Bandwidth Utilization would go here:
+        s += "\n"
+        s += cls._make_sub_sep("", l) + "\n"
+        s += ("Miss Statistics" + " " * l)[:l] + "\n"
+        s += cls._make_sub_sep("", l) + "\n"
+        s += events
+        s += "\n"
+        s += cls._make_sub_sep("", l) + "\n"
+
+        return s
+
+    # Get a pretty formatted table representation for all tags
+    @classmethod
+    def __tostr(cls, df):
+        s = ""
+        for tag in df.columns:
+            tab= cls.__tag_tostr(df[tag])
+            l = tab.splitlines()[0]
+
+            s += cls._make_tag_sep(tag, len(l))
+            s += "\n"
+            s += tab
+            s += "\n"
+            s += "\n"
+        return s
+
+    # Define a string representation for Bank Statistics.
+    # Returns a pretty table and the doc header
+    def __str__(self):
+        # Get name, and add spaces
+        n = super().__str__()
+        n = " " + n + " "
+
+        # Get pretty dataframe, and documentation
+        df, doc = self.__prettify(self.df)
+
+        # Get string-formatted table for all tags
+        tab = self.__tostr(df)
+
+        # Get horizontal width of table 
+        w = len(tab.splitlines()[0])
+
+        # Build separators
+        sep = self._make_sec_sep(n, w) + "\n"
+        end = self._make_sec_sep("End " + n, w) + "\n"
+        return sep + doc + tab
+
+class CacheBankStats(CacheStats):
+    # This class is highly similar to CacheTagStats. Detailed comments
+    # are in that class.
+    def __init__(self, name, df):
+        super().__init__(name, df)
+        
+        # Create a table where we'll compute the per-bank tagsums. Do
+        # not take the sum, because we are not aggregating here.
+        hierarchy = ["Action", "Tag", "Cache Coordinate (Y,X)", "Tile-Tag Iteration"]
+        banks = df.set_index(hierarchy)
+
+        # Split into Start/End 
+        starts = banks.loc["Start"]
+        ends = banks.loc["End"]
+
+        # Find mismatched start and end pairs
+        mismatches = self.find_mismatches(starts, ends)
+        if(list(mismatches)):
+            raise RuntimeError("Unpaired calls to Start/End detected."
+                               f" Check the following: {tuple(mismatches.names)}:"
+                               f"{list(mismatches)}")
+
+        # For all tag iterations, find the minium arrival time
+        # for the start packet for that iteration
+        starts = starts.groupby(["Tag", "Cache Coordinate (Y,X)", "Tile-Tag Iteration"]).first()
+
+        # As above, groupby maintains order within groups so
+        # we can just use last().
+        ends = ends.groupby(["Tag", "Cache Coordinate (Y,X)", "Tile-Tag Iteration"]).last()
+
+        # Same for tags, except keep the cache coordinates
+        results = (ends - starts).groupby(["Tag", "Cache Coordinate (Y,X)"]).sum()
+
+        # Save the result
+        self.df = results
+
+
+    # Parse the results into a pretty table
+    def __prettify(self, df):
+
+        pretty = pd.DataFrame()
+        doc = ""
+        ops = self.df[self._ops].sum(axis="columns")
+
+        # Compute pretty table
+
+        # Fill nans as 0's where this is expected behaviour (i.e. 0/0) but leave infs.
+        doc += "Table Fields: \n"
+
+        doc += "\t- Cache Coordinate (Y,X): Cache Coordinate within HammerBlade Pod\n"
+
+        doc += "\t- Total Cycles: Total Cache Execution Cycles\n"
+        pretty["Total Cycles"] = self.df["global_ctr"]
+
+        doc += "\t- # Misses: Total Number of Cache Misses\n"
+        pretty["# Misses"] = self.df["total_miss"]
+
+        doc += "\t- Operations: Total Number of Cache Operations (Loads + Stores + Atomics + Management)\n"
+        pretty["# Operations"] = ops
+
+        doc += "\t- Miss Rate (%): 100 * (Number of Misses / Number of Ops)\n"
+        pretty["Miss Rate"] = 100 * self.df["total_miss"] / ops
+
+        doc += "\t- Memory Access Latency: Average Memory Access Latency for Misses (Total Miss Cycles / Number of Misses)\n"
+        pretty["Mem. Latency"] = (self.df["stall_miss"] / self.df["total_miss"]).fillna(0)
+
+        doc += "\t- Miss Percent: 100 * (Total Miss Cycles / Total Cycles)\n"
+        pretty["Miss Percent"] = 100 *(self.df["stall_miss"] / self.df["global_ctr"])
+
+        doc += "\t- Idle Percent: 100 * (Total Idle Cycles / Total Cycles)\n"
+        pretty["Idle Percent"] = 100 *(self.df["stall_idle"] / self.df["global_ctr"])
+
+        doc += "\t- Response Stall Percent: 100 * (Total Response Stall Cycles / Total Cycles)\n"
+        pretty["Stall Percent"] = 100 *(self.df["stall_rsp"] / self.df["global_ctr"])
+
+        doc += "\t- Operations Percent Cycles: 100 * (Total Operation Cycles / Total Cycles)\n"
+        pretty["Ops. Percent"] = 100 * (ops / self.df["global_ctr"])
+
+        doc += "\n"
+        doc += "Note: inf (Infinite) occurs when a tag window captures miss stall cycles that bleed into its window, but has no misses"
+        
+        doc += "\n"
+        
+
+        return (pretty, doc)
+
+    # Get a pretty formatted table representation for a tag
+    @classmethod
+    def __tag_tostr(cls, df):
+        # Dictate the format of floats to two decimal
+        # points. Everything else should be an integer. This isn't
+        # clean, but effective, and the only way
+        fmt = [".0f"] * 4 + [".2f"] * (len(df.columns) -3)
+        s = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right")
+        return s
+
+    # Get a pretty formatted table representation for all tags
+    @classmethod
+    def __tostr(cls, df):
+        s = ""
+        for tag, sub in df.groupby(level=[0]):
+            tab = cls.__tag_tostr(sub.loc[tag])
+            l = tab.splitlines()[0]
+
+            s += cls._make_tag_sep(tag, len(l))
+            s += "\n"
+            s += tab
+            s += "\n"
+            s += "\n"
+        return s
+
+    # Define a string representation for Bank Statistics.
+    # Returns a pretty table and the doc header
+    def __str__(self):
+        # Get name
+        n = super().__str__()
+
+        # Get pretty dataframe, and documentation
+        df, doc = self.__prettify(self.df)
+
+        # Get string-formatted table
+        tab = self.__tostr(df)
+
+        # Get horizontal width of table 
+        w = len(tab.splitlines()[0])
+
+        # Build separators
+        sep = self._make_sec_sep(n, w) + "\n"
+        end = self._make_sec_sep("End " + n, w) + "\n"
+        return sep + doc + tab + end
+        
+
+# Aggregate cache statistics for a particular dataframe. Can be reused
+# for the device, or for a particular tile group (via GroupCacheStats)
+class AggregateCacheStats():
+    def __init__(self, df):
+        # Create tables with data specific to the parser that will use it
+        # Per-Tag Cache Parsing doesn't care about Tile Group ID
+        tagdata = df.drop(["Tile Group ID"], axis="columns")
+
+        # Per-Bank Cache Parsing doesn't care about Tile Group ID, or Tile Coordinate
+        bankdata = df.drop(["Tile Group ID", "Tile Coordinate (Y,X)"], axis="columns")
+
+        self.tag = CacheTagStats("Per-Tag Victim Cache Stats", tagdata)
+        self.bank = CacheBankStats("Per-Bank Victim Cache Stats", bankdata)
+        
+    def __str__(self):
+        s = str(self.tag)
+        s += str(self.bank)
+        return s
+
+# Aggregate cache statistics for each tile group within a dataframe
+class GroupCacheStats():
+    def __init__(self, df):
+        self._agg = dict()
+
+        # Group the dataframe by Tile Group ID and then parse that
+        # group
+        for i, grp in df.groupby(["Tile Group ID"]):
+            self._agg[i] = AggregateCacheStats(grp)
+
+    def __getitem__(self, i):
+        return self._agg[i]
+
+
 class VanillaStatsParser:
     # formatting parameters for aligned printing
     type_fmt = {"name"      : "{:<35}",
@@ -275,56 +1064,11 @@ class VanillaStatsParser:
         # Calculate total aggregate stats for manycore by summing up per_tile stat counts
         self.manycore_stat = self.__generate_manycore_stats_all(self.tile_stat, self.manycore_cycle_parallel_cnt)
 
-
-
-
         # Generate VCache Stats
         # If vcache stats file is given as input, also generate vcache stats 
         if (self.vcache):
-            # If the victim cache stats file is found 
-            if os.path.exists(vcache_input_file):
-                # Parse vcache input file's header to generate a list of all types of operations
-                self.vcache_stats, self.vcache_instrs, self.vcache_flops, self.vcache_misses, self.vcache_stalls, self.vcache_bubbles = self.parse_header(vcache_input_file)
-        
-                # Create a list of all types of opertaions for iteration
-                self.vcache_all_ops = self.vcache_stats + self.vcache_instrs + self.vcache_misses + self.vcache_stalls + self.vcache_bubbles
-        
-                # Use sets to determine the active vcache banks (without duplicates)
-                active_vcaches = set()
-        
-                # Parse vcache stats file line by line, and append the trace line to traces list. 
-                with open(vcache_input_file) as f:
-                    csv_reader = csv.DictReader (f, delimiter=",")
-                    for row in csv_reader:
-                        # Vcache bank name is a string that contains the vcache bank number 
-                        # The vcache bank number is extracted separately from other stats 
-                        # and manually added 
-                        trace = {op:int(row[op]) for op in self.vcache_all_ops if op != 'vcache'}
-                        vcache_name = row['vcache']
-                        vcache_bank = int (vcache_name[vcache_name.find("[")+1: vcache_name.find("]")])
-                        trace['vcache'] = vcache_bank
-                        active_vcaches.add((vcache_bank))
-                        self.vcache_traces.append(trace)
-        
-                self.active_vcaches = list(active_vcaches)
-                self.active_vcaches.sort()
-        
-                # generate timing stats for each vcache bank 
-                self.vcache_tile_group_stat, self.vcache_stat = self.__generate_vcache_stats(self.vcache_traces, self.active_vcaches)
-        
-                # Calculate total aggregate vcache stats for manycore by summing up per vcache bank stat counts
-                self.manycore_vcache_stat = self.__generate_manycore_vcache_stats_all(self.vcache_stat)
-
-                # Calculate total aggregate vcache stats for each tile group in manycore by summing up per vcache bank stat counts
-                self.manycore_vcache_tile_group_stat = self.__generate_tile_group_vcache_stats_all(self.vcache_tile_group_stat)
-
-            # Victim cache stats is optional, if it's not found we throw a warning and skip
-            # vcache stats generation, but do not hault the vanilla stats generation
-            else:
-                self.vcache = False
-                print("Warning: vcache stats file not found, skipping victim cache stats generation.")
-
-
+            self.vparser = CacheStatsParser(vcache_input_file)
+            
         return
 
 
@@ -332,7 +1076,6 @@ class VanillaStatsParser:
     def __print_stat(self, stat_file, stat_type, *argv):
         stat_file.write(self.print_format[stat_type].format(*argv));
         return
-
 
 
     # print instruction count, stall count, execution cycles for the entire manycore for each tag
@@ -1295,10 +2038,8 @@ class VanillaStatsParser:
 
         # If vcache stats is given as input, also print vcache stats
         if (self.vcache):
-            self.__print_manycore_stats_vcache_timing(manycore_stats_file)
-            self.__print_manycore_stats_miss(manycore_stats_file, "VCache Per-Tag Miss Stats", self.manycore_vcache_stat, self.vcache_misses)
-            self.__print_manycore_stats_stall(manycore_stats_file, "VCache Per-Tag Stall Stats", self.manycore_vcache_stat, self.vcache_stalls)
-            self.__print_manycore_stats_instr(manycore_stats_file, "VCache Per-Tag Instruction Stats", self.manycore_vcache_stat, self.vcache_instrs)
+            s = str(self.vparser.agg)
+            manycore_stats_file.write(s)
         manycore_stats_file.close()
         return
 
@@ -1320,9 +2061,8 @@ class VanillaStatsParser:
 
             # If vcache stats is given as input 
             if (self.vcache):
-                self.__print_per_tile_group_stats_miss(stat_file, "VCache Per-Tile-Group Miss Stats", tg_id, self.manycore_vcache_tile_group_stat, self.vcache_misses)
-                self.__print_per_tile_group_stats_stall(stat_file, "VCache Per-Tile-Group Stall Stats", tg_id, self.manycore_vcache_tile_group_stat, self.vcache_stalls)
-                self.__print_per_tile_group_stats_instr(stat_file, "VCache Per-Tile-Group Instruction Stats", tg_id, self.manycore_vcache_tile_group_stat, self.vcache_instrs)
+                s = str(self.vparser.group[tg_id])
+                stat_file.write(s)
 
             stat_file.close()
         return
@@ -1609,30 +2349,32 @@ class VanillaStatsParser:
             # Separate depending on stat type (start or end)
             if(cst.isStart):
                 # If start stat for this tag is not already seen, or if it is an earlier start stat
-                if (not vcache_stat_start[cst.tag][cur_vcache] or vcache_stat_start[cst.tag][cur_vcache]['global_ctr'] > trace['global_ctr']):
+                if (not vcache_stat_start[cst.tag][cur_vcache] or (vcache_stat_start[cst.tag][cur_vcache]['global_ctr'] != trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
 
                 # If start stat for this tag and this tile group is not already seen,
                 # or if it is an earlier start stat
-                if (not vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache] or vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache]['global_ctr'] > trace['global_ctr']):
+                if (not vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache]['global_ctr'] > trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache][op] = trace[op]
-
                 tag_seen[cst.tag][cur_vcache] = True
 
 
 
             elif (cst.isEnd):
                 # If end stat for this tag is not already seen, or if it is a later end stat
-                if (not vcache_stat_end[cst.tag][cur_vcache] or vcache_stat_end[cst.tag][cur_vcache]['global_ctr'] < trace['global_ctr']):
+                if (not vcache_stat_end[cst.tag][cur_vcache] or (vcache_stat_end[cst.tag][cur_vcache]['global_ctr'] < trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_stat_end[cst.tag][cur_vcache][op] = trace[op]
+                    vcache_stat[cst.tag][cur_vcache] += (vcache_stat_end[cst.tag][cur_vcache] - vcache_stat_start[cst.tag][cur_vcache])
+
                 # If end stat for this tag and this tile group is not already seen,
                 # or if it is a later end stat
-                if (not vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache] or vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache]['global_ctr'] < trace['global_ctr']):
+                if (not vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache]['global_ctr'] < trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache][op] = trace[op]
+                    vcache_tile_group_stat[cst.tag][cst.tg_id][cur_vcache] += (vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache] - vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache])
                 tag_seen[cst.tag][cur_vcache] = False;
 
 
@@ -1640,13 +2382,13 @@ class VanillaStatsParser:
             # And depending on kernel start/end
             if(cst.isKernelStart):
                 # If start stat for this tag is not already seen, or if it is an earlier start stat
-                if (not vcache_stat_start["kernel"][cur_vcache] or vcache_stat_start["kernel"][cur_vcache]['global_ctr'] > trace['global_ctr']):
+                if (not vcache_stat_start["kernel"][cur_vcache] or (vcache_stat_start["kernel"][cur_vcache]['global_ctr'] > trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
 
                 # If start stat for this tag and this tile group is not already seen,
                 # or if it is an earlier start stat
-                if (not vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache] or vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache]['global_ctr'] > trace['global_ctr']):
+                if (not vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache]['global_ctr'] > trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache][op] = trace[op]
                 tag_seen["kernel"][cur_vcache] = True
@@ -1655,14 +2397,17 @@ class VanillaStatsParser:
 
             elif (cst.isKernelEnd):
                 # If end stat for this tag is not already seen, or if it is a later end stat
-                if (not vcache_stat_end["kernel"][cur_vcache] or vcache_stat_end["kernel"][cur_vcache]['global_ctr'] < trace['global_ctr']):
+                if (not vcache_stat_end["kernel"][cur_vcache] or (vcache_stat_end["kernel"][cur_vcache]['global_ctr'] < trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_stat_end["kernel"][cur_vcache][op] = trace[op]
+                    vcache_stat["kernel"][cur_vcache] += (vcache_stat_end["kernel"][cur_vcache] - vcache_stat_start["kernel"][cur_vcache])
                 # If end stat for this tag and this tile group is not already seen,
                 # or if it is a later end stat
-                if (not vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache] or vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache]['global_ctr'] < trace['global_ctr']):
+                if (not vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache]['global_ctr'] < trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache][op] = trace[op]
+                    # Subtract the start from the end
+                    vcache_tile_group_stat["kernel"][cst.tg_id][cur_vcache] += (vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache] - vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache])
                 tag_seen["kernel"][cur_vcache] = False;
 
 
@@ -1672,7 +2417,8 @@ class VanillaStatsParser:
         # the end stat of that vcache bank and that tag
         for tag in tags:
             for vcache in vcaches:
-                vcache_stat[tag][vcache] = vcache_stat_end[tag][vcache] - vcache_stat_start[tag][vcache]
+                pass
+                #vcache_stat[tag][vcache] += vcache_stat_end[tag][vcache] - vcache_stat_start[tag][vcache]
 
 
         # Generate all tile group vcache stats by
@@ -1680,10 +2426,11 @@ class VanillaStatsParser:
         for tag in tags:
             for tg_id in range(self.num_tile_groups[tag]): 
                 for vcache in vcaches:
-                    vcache_tile_group_stat[tag][tg_id][vcache] = vcache_tile_group_stat_end[tag][tg_id][vcache] - vcache_tile_group_stat_start[tag][tg_id][vcache]
+                    pass
+                    #vcache_tile_group_stat[tag][tg_id][vcache] = vcache_tile_group_stat_end[tag][tg_id][vcache] - vcache_tile_group_stat_start[tag][tg_id][vcache]
 
 
-        
+
         # Generate total stats for entire vcache by summing all stats for all vcache banks
         for tag in tags:
             for vcache in vcaches:
