@@ -1609,30 +1609,32 @@ class VanillaStatsParser:
             # Separate depending on stat type (start or end)
             if(cst.isStart):
                 # If start stat for this tag is not already seen, or if it is an earlier start stat
-                if (not vcache_stat_start[cst.tag][cur_vcache] or vcache_stat_start[cst.tag][cur_vcache]['global_ctr'] > trace['global_ctr']):
+                if (not vcache_stat_start[cst.tag][cur_vcache] or (vcache_stat_start[cst.tag][cur_vcache]['global_ctr'] != trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
 
                 # If start stat for this tag and this tile group is not already seen,
                 # or if it is an earlier start stat
-                if (not vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache] or vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache]['global_ctr'] > trace['global_ctr']):
+                if (not vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache]['global_ctr'] > trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache][op] = trace[op]
-
                 tag_seen[cst.tag][cur_vcache] = True
 
 
 
             elif (cst.isEnd):
                 # If end stat for this tag is not already seen, or if it is a later end stat
-                if (not vcache_stat_end[cst.tag][cur_vcache] or vcache_stat_end[cst.tag][cur_vcache]['global_ctr'] < trace['global_ctr']):
+                if (not vcache_stat_end[cst.tag][cur_vcache] or (vcache_stat_end[cst.tag][cur_vcache]['global_ctr'] < trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_stat_end[cst.tag][cur_vcache][op] = trace[op]
+                    vcache_stat[cst.tag][cur_vcache] += (vcache_stat_end[cst.tag][cur_vcache] - vcache_stat_start[cst.tag][cur_vcache])
+
                 # If end stat for this tag and this tile group is not already seen,
                 # or if it is a later end stat
-                if (not vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache] or vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache]['global_ctr'] < trace['global_ctr']):
+                if (not vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache]['global_ctr'] < trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache][op] = trace[op]
+                    vcache_tile_group_stat[cst.tag][cst.tg_id][cur_vcache] += (vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache] - vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache])
                 tag_seen[cst.tag][cur_vcache] = False;
 
 
@@ -1640,13 +1642,13 @@ class VanillaStatsParser:
             # And depending on kernel start/end
             if(cst.isKernelStart):
                 # If start stat for this tag is not already seen, or if it is an earlier start stat
-                if (not vcache_stat_start["kernel"][cur_vcache] or vcache_stat_start["kernel"][cur_vcache]['global_ctr'] > trace['global_ctr']):
+                if (not vcache_stat_start["kernel"][cur_vcache] or (vcache_stat_start["kernel"][cur_vcache]['global_ctr'] > trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
 
                 # If start stat for this tag and this tile group is not already seen,
                 # or if it is an earlier start stat
-                if (not vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache] or vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache]['global_ctr'] > trace['global_ctr']):
+                if (not vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache]['global_ctr'] > trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache][op] = trace[op]
                 tag_seen["kernel"][cur_vcache] = True
@@ -1655,14 +1657,16 @@ class VanillaStatsParser:
 
             elif (cst.isKernelEnd):
                 # If end stat for this tag is not already seen, or if it is a later end stat
-                if (not vcache_stat_end["kernel"][cur_vcache] or vcache_stat_end["kernel"][cur_vcache]['global_ctr'] < trace['global_ctr']):
+                if (not vcache_stat_end["kernel"][cur_vcache] or (vcache_stat_end["kernel"][cur_vcache]['global_ctr'] < trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_stat_end["kernel"][cur_vcache][op] = trace[op]
+                    vcache_stat["kernel"][cur_vcache] += (vcache_stat_end["kernel"][cur_vcache] - vcache_stat_start["kernel"][cur_vcache])
                 # If end stat for this tag and this tile group is not already seen,
                 # or if it is a later end stat
-                if (not vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache] or vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache]['global_ctr'] < trace['global_ctr']):
+                if (not vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache]['global_ctr'] < trace['global_ctr'])):
                     for op in self.vcache_all_ops:
                         vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache][op] = trace[op]
+                    vcache_tile_group_stat["kernel"][cst.tg_id][cur_vcache] += (vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache] - vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache])
                 tag_seen["kernel"][cur_vcache] = False;
 
 
@@ -1672,7 +1676,8 @@ class VanillaStatsParser:
         # the end stat of that vcache bank and that tag
         for tag in tags:
             for vcache in vcaches:
-                vcache_stat[tag][vcache] = vcache_stat_end[tag][vcache] - vcache_stat_start[tag][vcache]
+                pass
+                #vcache_stat[tag][vcache] += vcache_stat_end[tag][vcache] - vcache_stat_start[tag][vcache]
 
 
         # Generate all tile group vcache stats by
@@ -1680,10 +1685,11 @@ class VanillaStatsParser:
         for tag in tags:
             for tg_id in range(self.num_tile_groups[tag]): 
                 for vcache in vcaches:
-                    vcache_tile_group_stat[tag][tg_id][vcache] = vcache_tile_group_stat_end[tag][tg_id][vcache] - vcache_tile_group_stat_start[tag][tg_id][vcache]
+                    pass
+                    #vcache_tile_group_stat[tag][tg_id][vcache] = vcache_tile_group_stat_end[tag][tg_id][vcache] - vcache_tile_group_stat_start[tag][tg_id][vcache]
 
 
-        
+
         # Generate total stats for entire vcache by summing all stats for all vcache banks
         for tag in tags:
             for vcache in vcaches:
