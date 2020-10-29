@@ -40,6 +40,8 @@ module spmd_testbench;
   parameter axi_data_width_p = 256;
   parameter axi_burst_len_p = 1;
 
+  `define ORIGIN_X_CORD_P 0
+  `define ORIGIN_Y_CORD_P 2
 
   // dmc param
   parameter dram_ctrl_addr_width_p = 29; // 512 MB
@@ -1092,8 +1094,8 @@ module spmd_testbench;
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.icache_entries_p(icache_entries_p)
     ,.data_width_p(data_width_p)
-    ,.origin_x_cord_p(0)
-    ,.origin_y_cord_p(2)
+    ,.origin_x_cord_p(`ORIGIN_X_CORD_P)
+    ,.origin_y_cord_p(`ORIGIN_Y_CORD_P)
   ) vcore_prof (
     .*
     ,.global_ctr_i($root.spmd_testbench.global_ctr)
@@ -1110,8 +1112,8 @@ module spmd_testbench;
       ,.y_cord_width_p(y_cord_width_p)
       ,.dims_p(dims_p)
       ,.XY_order_p(XY_order_p)
-      ,.origin_x_cord_p(0)
-      ,.origin_y_cord_p(2)
+      ,.origin_x_cord_p(`ORIGIN_X_CORD_P)
+      ,.origin_y_cord_p(`ORIGIN_Y_CORD_P)
     ) rp0 (
       .*
       ,.global_ctr_i($root.spmd_testbench.global_ctr)
@@ -1128,8 +1130,8 @@ module spmd_testbench;
     ,.data_width_p(data_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.origin_x_cord_p(0)
-    ,.origin_y_cord_p(2)
+    ,.origin_x_cord_p(`ORIGIN_X_CORD_P)
+    ,.origin_y_cord_p(`ORIGIN_Y_CORD_P)
   ) rlt (
     .*
     ,.global_ctr_i($root.spmd_testbench.global_ctr)
