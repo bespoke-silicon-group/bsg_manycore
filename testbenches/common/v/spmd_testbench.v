@@ -1103,7 +1103,6 @@ module spmd_testbench;
   );
 
 
-
   // router profiler
   if (network_cfg_lp[e_network_mesh] | network_cfg_lp[e_network_half_ruche_x]) begin
     bind bsg_mesh_router router_profiler #(
@@ -1121,6 +1120,22 @@ module spmd_testbench;
     );
 
   end
+
+
+  // remote load tracer
+  bind network_tx remote_load_trace #(
+    .addr_width_p(addr_width_p)
+    ,.data_width_p(data_width_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.origin_x_cord_p(0)
+    ,.origin_y_cord_p(2)
+  ) rlt (
+    .*
+    ,.global_ctr_i($root.spmd_testbench.global_ctr)
+    ,.trace_en_i($root.spmd_testbench.trace_en)
+  );
+
 
   // tieoffs
   //
