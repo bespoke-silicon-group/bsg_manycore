@@ -69,11 +69,14 @@ void do_histogram_work()
   } while (lock_val != 0); 
 
   // critical region
-  //bsg_printf("updating histogram. x=%d y=%d\n", __bsg_x, __bsg_y);
   for (int i = 0; i < 32; i++)
   {
-    int local_hist = histogram[i];
-    histogram[i] = local_hist + local_histogram[i];
+    // No need to update histogram with zero count
+    if (local_histogram[i] != 0) 
+    {
+      int local_hist = histogram[i];
+      histogram[i] = local_hist + local_histogram[i];
+    }
   }
 
   // release
