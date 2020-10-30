@@ -163,7 +163,7 @@ module remote_load_trace
       & (my_y_i == y_cord_width_p'(origin_y_cord_p))) begin
 
       fd = $fopen(tracefile_p, "a");
-      $fwrite(fd,"timestamp,src_x,src_y,dest_x,dest_y,type,latency\n");
+      $fwrite(fd,"start_cycle,end_cycle,src_x,src_y,dest_x,dest_y,type,latency\n");
       $fclose(fd);
       
     end
