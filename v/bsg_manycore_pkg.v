@@ -174,32 +174,29 @@ package bsg_manycore_pkg;
 
 
   // global
-  `define declare_bsg_manycore_global_addr_s \
-    typedef struct packed {                  \
-      logic [1:0]       remote;              \
-      logic [max_y_cord_width_gp-1:0]       y_cord;                \
-      logic [max_x_cord_width_gp-1:0]       x_cord;                \
-      logic [epa_word_addr_width_gp-1:0]    addr;                  \
-      logic [1:0]                           low_bits;              \
+    typedef  struct packed {
+      logic [1:0]       remote;
+      logic [max_y_cord_width_gp-1:0]       y_cord;
+      logic [max_x_cord_width_gp-1:0]       x_cord;
+      logic [epa_word_addr_width_gp-1:0]    addr;
+      logic [1:0]                           low_bits;
     } bsg_manycore_global_addr_s;
 
   // tile-group
-  `define declare_bsg_manycore_tile_group_addr_s \
-    typedef struct packed {                      \
-      logic [2:0]       remote;                  \
-      logic [max_y_cord_width_gp-2:0]       y_cord;                \
-      logic [max_x_cord_width_gp-1:0]       x_cord;                \
-      logic [epa_word_addr_width_gp-1:0]    addr;                  \
-      logic [1:0]                           low_bits;              \
+    typedef struct packed {
+      logic [2:0]       remote;
+      logic [max_y_cord_width_gp-2:0]       y_cord;
+      logic [max_x_cord_width_gp-1:0]       x_cord;
+      logic [epa_word_addr_width_gp-1:0]    addr;
+      logic [1:0]                           low_bits;
     } bsg_manycore_tile_group_addr_s;
 
   // shared
-  `define declare_bsg_manycore_shared_addr_s     \
-    typedef struct packed {                      \
-      logic [4:0]       remote;                  \
-      logic [3:0]       hash;                    \
-      logic [max_local_offset_width_gp+max_x_cord_width_gp+max_y_cord_width_gp-2:0]    addr; \
-      logic [1:0]       low_bits;                \
+    typedef struct packed {
+      logic [4:0]       remote;
+      logic [3:0]       hash;
+      logic [max_local_offset_width_gp+max_x_cord_width_gp+max_y_cord_width_gp-2:0]    addr;
+      logic [1:0]       low_bits;
     } bsg_manycore_shared_addr_s;
 
 

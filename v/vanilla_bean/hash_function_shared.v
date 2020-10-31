@@ -25,7 +25,6 @@ module hash_function_shared
     ,output logic [epa_word_addr_width_gp-1:0] addr_o
   );
 
-  `declare_bsg_manycore_shared_addr_s;
 
   bsg_manycore_shared_addr_s shared_addr;
   assign shared_addr = eva_i;
