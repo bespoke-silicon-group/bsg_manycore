@@ -151,6 +151,10 @@ start:
 
 pass:
   bsg_asm_finish(IO_X_INDEX, 0)
+pass_loop:
+  j pass_loop
 
 fail:
   bsg_asm_fail(IO_X_INDEX, -1)
+fail_loop:
+  j fail_loop
