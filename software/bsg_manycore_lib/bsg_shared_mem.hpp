@@ -60,8 +60,10 @@ namespace bsg_manycore {
 
         TileGroupSharedMem() {
             uint32_t local_offset = this->local_addr() - DMEM_START_ADDR; // Local address of array
-
-            uint32_t _address = ( (local_offset << (X_BITS + Y_BITS))  |
+            uint32_t word = local_offset &  ~3;
+            uint32_t byte = local_offset &   3;
+            uint32_t _address = ( byte |
+                                  (word << (X_BITS + Y_BITS))  |
                                   (HASH << HASH_SHIFT)                 |
                                   (SHARED_PREFIX << SHARED_PREFIX_SHIFT) );
 
