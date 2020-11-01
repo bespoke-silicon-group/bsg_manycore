@@ -12,8 +12,8 @@
 #define TEMPLATE_TG_DIM_Y 4
 #define TEMPLATE_BLOCK_SIZE    1024
 #define TEMPLATE_STRIPE_SIZE   1
-#define bsg_tiles_X TEMPLATE_TG_DIM_X
-#define bsg_tiles_Y TEMPLATE_TG_DIM_Y
+//#define bsg_tiles_X TEMPLATE_TG_DIM_X
+//#define bsg_tiles_Y TEMPLATE_TG_DIM_Y
 
 #include <bsg_manycore.h>
 #include <bsg_tile_group_barrier.hpp>
@@ -23,7 +23,7 @@
 using namespace bsg_manycore;
 
 
-bsg_barrier<bsg_tiles_X, bsg_tiles_Y> barrier;
+bsg_barrier<TEMPLATE_TG_DIM_X, TEMPLATE_TG_DIM_Y> barrier;
 
 
 template <int TG_DIM_X,
@@ -54,18 +54,14 @@ template <int TG_DIM_X,
 
 
 extern "C" {
-    int  __attribute__ ((noinline)) kernel_hardware_shared_mem_load_store(float *A,
-                                                                          float *sum, 
-                                                                          uint32_t WIDTH, 
-                                                                          uint32_t block_size) {
+    int  __attribute__ ((noinline)) kernel_hardware_shared_mem_load_store(int *A, int *B) {
         int rc;
         bsg_cuda_print_stat_kernel_start();
 
         rc = hardware_shared_mem_load_store <TEMPLATE_TG_DIM_X,
                                              TEMPLATE_TG_DIM_Y,
                                              TEMPLATE_BLOCK_SIZE,
-                                             TEMPLATE_STRIPE_SIZE>  (A,
-                                                                     sum);
+                                             TEMPLATE_STRIPE_SIZE>  (A, B);
 
         barrier.sync();
 
