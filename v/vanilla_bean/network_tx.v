@@ -52,7 +52,7 @@ module network_tx
 
     , input returned_v_i
     , input [data_width_p-1:0] returned_data_i
-    , input [4:0] returned_reg_id_i
+    , input [bsg_manycore_reg_id_width_gp-1:0] returned_reg_id_i
     , input bsg_manycore_return_packet_type_e returned_pkt_type_i
     , input returned_fifo_full_i
     , output logic returned_yumi_o
