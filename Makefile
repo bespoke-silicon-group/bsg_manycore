@@ -1,5 +1,5 @@
 .DEFAULT_GOAL = nothing
-
+SHELL := $(shell which bash)
 nothing:
 
 all: checkout_submodules machines tools
