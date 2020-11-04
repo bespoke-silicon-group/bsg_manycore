@@ -95,8 +95,8 @@ module vcache_profiler
   wire inc_dma_read_req = dma_pkt_v_o & dma_pkt_yumi_i & ~dma_pkt.write_not_read; // DMA read request
   wire inc_dma_write_req = dma_pkt_v_o & dma_pkt_yumi_i & dma_pkt.write_not_read; // DMA write request
 
-  wire inc_idle     = ~(v_o & yumi_i) & ~(miss_v);
   wire inc_stall_rsp = v_o & ~yumi_i;
+  wire inc_idle     = ~(v_o & yumi_i) & ~(inc_miss) & ~(inc_stall_rsp);
 
   // stats counting
   //
@@ -188,7 +188,6 @@ module vcache_profiler
       if (inc_idle)          stat_r.idle_count++;
       if (inc_stall_rsp)     stat_r.stall_rsp_count++;
        
-       // inc_rsp
       if (inc_dma_read_req)  stat_r.dma_read_req++;
       if (inc_dma_write_req) stat_r.dma_write_req++;
     end
