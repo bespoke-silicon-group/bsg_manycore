@@ -30,6 +30,7 @@ import csv
 import numpy as np
 
 # Pandas must be at least version 1.0.0 and tabulate must be installed
+# This is not uncommon, but do this check to provide a better error message
 import pandas as pd
 import tabulate
 try:
@@ -947,9 +948,6 @@ class VanillaStatsParser:
                     "tile_timing_data": type_fmt["cord"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
                     "timing_data"     : type_fmt["name"]       + type_fmt["int"]  + type_fmt["int"]     + type_fmt["float"]   + type_fmt["percent"] + type_fmt["percent"] + "\n",
 
-                    "vcache_timing_header": type_fmt["name"]   + type_fmt["type"] + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]    + type_fmt["type"]   + "\n",
-                    "vcache_timing_data"  : type_fmt["name"]   + type_fmt["int"]  + type_fmt["int"]     + type_fmt["int"]     + type_fmt["int"]     + type_fmt["float"]   + "\n",
-
                     "instr_header"    : type_fmt["name"]       + type_fmt["int"]  + type_fmt["type"]    + "\n",
                     "instr_data"      : type_fmt["name"]       + type_fmt["int"]  + type_fmt["percent"] + "\n",
                     "instr_data_indt" : type_fmt["name_indt"]  + type_fmt["int"]  + type_fmt["percent"] + "\n",
@@ -970,11 +968,10 @@ class VanillaStatsParser:
 
 
     # default constructor
-    def __init__(self, per_tile_stat, per_tile_group_stat, per_vcache_stat, vanilla_input_file, vcache_input_file):
+    def __init__(self, per_tile_stat, per_tile_group_stat, vanilla_input_file, vcache_input_file):
 
         self.per_tile_stat = per_tile_stat
         self.per_tile_group_stat = per_tile_group_stat
-        self.per_vcache_stat = per_vcache_stat
         self.vcache = True if vcache_input_file else False
 
         self.traces = []
@@ -1279,66 +1276,6 @@ class VanillaStatsParser:
                 self.__print_manycore_tag_stats_tile_timing(stat_file, tag, tiles, manycore_stat, tile_stat)
         self.__print_stat(stat_file, "end_lbreak")
         return   
-
-
-
-
-    # print execution timing for the entire manycoree per vcache bank for a certain tag
-    def __print_manycore_tag_stats_vcache_timing(self, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        for vcache in self.active_vcaches:
-
-            hit_cnt = self.vcache_stat[tag][vcache]["instr_total"]
-            miss_cnt = self.vcache_stat[tag][vcache]["miss_total"]
-            stall_cnt = self.vcache_stat[tag][vcache]["stall_total"]
-            cycle_cnt = self.vcache_stat[tag][vcache]["global_ctr"]
-            utilization = np.float64(hit_cnt + miss_cnt) / cycle_cnt
-
-            self.__print_stat(stat_file, "vcache_timing_data"
-                                         ,vcache
-                                         ,hit_cnt
-                                         ,miss_cnt
-                                         ,stall_cnt
-                                         ,cycle_cnt
-                                         ,utilization)
-
-
-        hit_cnt = self.manycore_vcache_stat[tag]["instr_total"]
-        miss_cnt = self.manycore_vcache_stat[tag]["miss_total"]
-        stall_cnt = self.manycore_vcache_stat[tag]["stall_total"]
-        cycle_cnt = self.manycore_vcache_stat[tag]["global_ctr"]
-        utilization = np.float64(hit_cnt + miss_cnt) / cycle_cnt
-
-        self.__print_stat(stat_file, "vcache_timing_data"
-                                     ,"total"
-                                     ,hit_cnt
-                                     ,miss_cnt
-                                     ,stall_cnt
-                                     ,cycle_cnt
-                                     ,utilization)
-        return
-
-
-    # Prints manycore timing stats per vcache bank for all tags 
-    def __print_manycore_stats_vcache_timing(self, stat_file):
-        stat_file.write("Per-Vcache-Bank Timing Stats\n")
-        self.__print_stat(stat_file, "vcache_timing_header"
-                                     ,"Vcache Bank No."
-                                     ,"Hit Requests"
-                                     ,"Miss Requests"
-                                     ,"Stall Cycles"
-                                     ,"Total Cycles"
-                                     ,"Utilization")
-        self.__print_stat(stat_file, "start_lbreak")
-
-        for tag in self.manycore_vcache_stat.keys():
-            if(self.manycore_vcache_stat[tag]["global_ctr"]):
-                self.__print_manycore_tag_stats_vcache_timing(stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
 
 
     # print timing stats for each tile group in a separate file 
@@ -1873,152 +1810,7 @@ class VanillaStatsParser:
             if(stat[tag][item]["global_ctr"]):
                 self.__print_tag_stats_miss(stat_file, item, tag, stat, misses)
         self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
-
-
-
-    # print victim cache instruction stats for the entire manycore
-    def __print_manycore_vcache_tag_stats_instr(self, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-   
-        # Print instruction stats for manycore
-        for instr in self.vcache_instrs:
-            self.__print_stat(stat_file, "instr_data", instr,
-                                         self.manycore_vcache_stat[tag][instr]
-                                         ,(100 * self.manycore_vcache_stat[tag][instr] / self.manycore_vcache_stat[tag]["instr_total"]))
         return
-
-
-    # Prints victim cahe manycore instruction stats for all tags  
-    def __print_manycore_vcache_stats_instr(self, stat_file):
-        stat_file.write("Vcache Per-Tag Instruction Stats\n")
-        self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.manycore_vcache_stat.keys():
-            if(self.manycore_vcache_stat[tag]["global_ctr"]):
-                self.__print_manycore_vcache_tag_stats_instr(stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
-
-
-    # print stall stats for the entire vcache
-    def __print_manycore_vcache_tag_stats_stall(self, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        # Print stall stats for manycore vcache
-        for stall in self.vcache_stalls:
-            stall_format = "stall_data"
-            self.__print_stat(stat_file, stall_format, stall,
-                                         self.manycore_vcache_stat[tag][stall],
-                                         (100 * np.float64(self.manycore_vcache_stat[tag][stall]) / self.manycore_vcache_stat[tag]["stall_total"])
-                                         ,(100 * np.float64(self.manycore_vcache_stat[tag][stall]) / self.manycore_vcache_stat[tag]["global_ctr"]))
-
-        return
-
-
-    # Prints manycore stall stats per vcache for all tags 
-    def __print_manycore_vcache_stats_stall(self, stat_file):
-        stat_file.write("Vcache Per-Tag Stall Stats\n")
-        self.__print_stat(stat_file, "stall_header", "Stall Type", "Cycles", " % Stall Cycles", " % Total Cycles")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.manycore_vcache_stat.keys():
-            if(self.manycore_vcache_stat[tag]["global_ctr"]):
-                self.__print_manycore_vcache_tag_stats_stall(stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
-
-
-    # print instruction stats for each vcache in a separate file 
-    def __print_per_vcache_tag_stats_instr(self, vcache, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        # Print instruction stats for vache
-        for instr in self.vcache_instrs:
-            self.__print_stat(stat_file, "instr_data", instr,
-                                         self.vcache_stat[tag][vcache][instr]
-                                         ,(100 * np.float64(self.vcache_stat[tag][vcache][instr]) / self.vcache_stat[tag][vcache]["instr_total"]))
-        return
-
-
-    # print instr stats for each vcache in a separate file for all tags 
-    def __print_per_vcache_stats_instr(self, vcache, stat_file):
-        stat_file.write("Vcache Instruction Stats\n")
-        self.__print_stat(stat_file, "instr_header", "Instruction", "Count", "% of Instructions")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.vcache_stat.keys():
-            if(self.vcache_stat[tag][vcache]["global_ctr"]):
-                self.__print_per_vcache_tag_stats_instr(vcache, stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
-
-
-    # print stall stats for each vcache in a separate file
-    def __print_per_vcache_tag_stats_stall(self, vcache, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        # Print stall stats for manycore
-        for stall in self.vcache_stalls:
-            stall_format = "stall_data"
-            self.__print_stat(stat_file, stall_format, stall,
-                                         self.vcache_stat[tag][vcache][stall],
-                                         (100 * np.float64(self.vcache_stat[tag][vcache][stall]) / self.vcache_stat[tag][vcache]["stall_total"])
-                                         ,(100 * np.float64(self.vcache_stat[tag][vcache][stall]) / self.vcache_stat[tag][vcache]["global_ctr"]))
-        return
-
-
-    # print stall stats for each vcache in a separate file for all tags 
-    def __print_per_vcache_stats_stall(self, vcache, stat_file):
-        stat_file.write("Per-Tile Stall Stats\n")
-        self.__print_stat(stat_file, "stall_header", "Stall Type", "Cycles", "% of Stall Cycles", "% of Total Cycles")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.vcache_stat.keys():
-            if(self.vcache_stat[tag][vcache]["global_ctr"]):
-                self.__print_per_vcache_tag_stats_stall(vcache, stat_file, tag)
-        self.__print_stat(stat_file, "start_lbreak")
-        return   
-
-
-
-
-    # print miss stats for each vcache in a separate file
-    # vcache is the victim cache bank number
-    def __print_per_vcache_tag_stats_miss(self, vcache, stat_file, tag):
-        self.__print_stat(stat_file, "tag_separator", tag)
-
-        for miss in self.vcache_misses:
-            # Find total number of operations for that miss
-            operation = miss.replace("miss_", "instr_")
-            operation_cnt = self.vcache_stat[tag][vcache][operation]
-            miss_cnt = self.vcache_stat[tag][vcache][miss]
-            hit_rate = 1 if operation_cnt == 0 else (1 - miss_cnt/operation_cnt)
-         
-            self.__print_stat(stat_file, "miss_data", miss, miss_cnt, operation_cnt, hit_rate )
-
-        return
-
-
-    # print miss for each vcache in a separate file for all tags 
-    def __print_per_vcache_stats_miss(self, vcache, stat_file):
-        stat_file.write("Per-Vcache Miss Stats\n")
-        self.__print_stat(stat_file, "miss_header", "Miss Type", "miss", "total", "hit rate")
-        self.__print_stat(stat_file, "start_lbreak")
-        for tag in self.vcache_stat.keys():
-            if(self.vcache_stat[tag][vcache]["global_ctr"]):
-                self.__print_per_vcache_tag_stats_miss(vcache, stat_file, tag)
-        self.__print_stat(stat_file, "end_lbreak")
-        return   
-
-
-
-
 
 
     # prints all four types of stats, timing, instruction,
@@ -2084,26 +1876,6 @@ class VanillaStatsParser:
             self.__print_stats_bubble(stat_file, "Per-Tile Bubble Stats", tile, self.tile_stat, self.bubbles)
             self.__print_stats_instr(stat_file, "Per-Tile Instr Stats", tile, self.tile_stat, self.instrs)
             stat_file.close()
-
-
-
-    # prints all four types of stats, timing, instruction,
-    # miss and stall for each vcache in a separate file  
-    def print_per_vcache_stats_all(self):
-        # if Vcache stats is given as input
-        if (self.vcache):
-            stats_path = os.getcwd() + "/stats/vcache/"
-            if not os.path.exists(stats_path):
-                os.mkdir(stats_path)
-            for vcache in self.active_vcaches:
-                stat_file = open( (stats_path + "vcache_bank_" + str(vcache) + "_stats.log"), "w")
-                self.__print_stats_miss(stat_file, "Per-VCache Miss Stats", vcache, self.vcache_stat, self.vcache_misses)
-                self.__print_stats_stall(stat_file, "Per-VCache Stall Stats", vcache, self.vcache_stat, self.vcache_stalls)
-                self.__print_stats_instr(stat_file, "Per-VCache Instr Stats", vcache, self.vcache_stat, self.vcache_instrs)
-                stat_file.close()
-        return
-
-
 
 
     # go though the input traces and extract start and end stats  
@@ -2304,186 +2076,6 @@ class VanillaStatsParser:
 
 
 
-
-
-
-    # go though the input traces and extract start and end stats for each vcache bank 
-    # return vcache stats 
-    # this function only counts the portion between two print_stat_start and end messages
-    # in practice, this excludes the time in between executions,
-    # i.e. when tiles are waiting to be loaded by the host.
-    # contrary to vanilla stats, vcache stats can be printed multiple times, every time
-    # a tile invokes print_stat, the stat for all vcache banks is printed 
-    # Therefore, if multiple stats of the same vcache bank and the same tag are seen,
-    # or multiple stats of the same vcache bank, same tag and same tile group ID are seen,
-    # the earliest (latest) stat is chosen if it is a start (end) stat.
-    def __generate_vcache_stats(self, traces, vcaches):
-        tags = list(range(self.max_tags)) + ["kernel"]
-        num_tile_groups = {tag:0 for tag in tags}
-
-        # Dictionary to contain operation count for every tag and vcache bank
-        # For aggregate vcache stats of the manycore, the vcache dimension of 
-        # this dictionary is sum reduced in the generate_manycore_vcache_stats_all function
-        vcache_stat_start = {tag: {vcache:Counter() for vcache in vcaches} for tag in tags}
-        vcache_stat_end   = {tag: {vcache:Counter() for vcache in vcaches} for tag in tags}
-        vcache_stat       = {tag: {vcache:Counter() for vcache in vcaches} for tag in tags}
-
-        # Dictionary to contain operation count for every tag, vcache bank
-        # and tile group ID.
-        # For aggregate vcache stats of a tile group, the tile group id dimension of 
-        # this dictionary is sum reduced in the generate_tile_group_vcache_stats_all function
-        vcache_tile_group_stat_start = {tag: {tg_id: {vcache: Counter() for vcache in vcaches} for tg_id in range(max(self.num_tile_groups.values()))} for tag in tags}
-        vcache_tile_group_stat_end   = {tag: {tg_id: {vcache: Counter() for vcache in vcaches} for tg_id in range(max(self.num_tile_groups.values()))} for tag in tags}
-        vcache_tile_group_stat       = {tag: {tg_id: {vcache: Counter() for vcache in vcaches} for tg_id in range(max(self.num_tile_groups.values()))} for tag in tags}
-
-
-        tag_seen = {tag: {vcache:False for vcache in vcaches} for tag in tags}
-
-
-        for trace in traces:
-            cur_vcache = (trace['vcache'])
-
-            # instantiate a CudaStatTag object with the tag value
-            cst = CudaStatTag(trace["tag"])
-
-            # Separate depending on stat type (start or end)
-            if(cst.isStart):
-                # If start stat for this tag is not already seen, or if it is an earlier start stat
-                if (not vcache_stat_start[cst.tag][cur_vcache] or (vcache_stat_start[cst.tag][cur_vcache]['global_ctr'] != trace['global_ctr'])):
-                    for op in self.vcache_all_ops:
-                        vcache_stat_start[cst.tag][cur_vcache][op] = trace[op]
-
-                # If start stat for this tag and this tile group is not already seen,
-                # or if it is an earlier start stat
-                if (not vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache]['global_ctr'] > trace['global_ctr'])):
-                    for op in self.vcache_all_ops:
-                        vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache][op] = trace[op]
-                tag_seen[cst.tag][cur_vcache] = True
-
-
-
-            elif (cst.isEnd):
-                # If end stat for this tag is not already seen, or if it is a later end stat
-                if (not vcache_stat_end[cst.tag][cur_vcache] or (vcache_stat_end[cst.tag][cur_vcache]['global_ctr'] < trace['global_ctr'])):
-                    for op in self.vcache_all_ops:
-                        vcache_stat_end[cst.tag][cur_vcache][op] = trace[op]
-                    vcache_stat[cst.tag][cur_vcache] += (vcache_stat_end[cst.tag][cur_vcache] - vcache_stat_start[cst.tag][cur_vcache])
-
-                # If end stat for this tag and this tile group is not already seen,
-                # or if it is a later end stat
-                if (not vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache]['global_ctr'] < trace['global_ctr'])):
-                    for op in self.vcache_all_ops:
-                        vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache][op] = trace[op]
-                    vcache_tile_group_stat[cst.tag][cst.tg_id][cur_vcache] += (vcache_tile_group_stat_end[cst.tag][cst.tg_id][cur_vcache] - vcache_tile_group_stat_start[cst.tag][cst.tg_id][cur_vcache])
-                tag_seen[cst.tag][cur_vcache] = False;
-
-
-
-            # And depending on kernel start/end
-            if(cst.isKernelStart):
-                # If start stat for this tag is not already seen, or if it is an earlier start stat
-                if (not vcache_stat_start["kernel"][cur_vcache] or (vcache_stat_start["kernel"][cur_vcache]['global_ctr'] > trace['global_ctr'])):
-                    for op in self.vcache_all_ops:
-                        vcache_stat_start["kernel"][cur_vcache][op] = trace[op]
-
-                # If start stat for this tag and this tile group is not already seen,
-                # or if it is an earlier start stat
-                if (not vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache]['global_ctr'] > trace['global_ctr'])):
-                    for op in self.vcache_all_ops:
-                        vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache][op] = trace[op]
-                tag_seen["kernel"][cur_vcache] = True
-
-
-
-            elif (cst.isKernelEnd):
-                # If end stat for this tag is not already seen, or if it is a later end stat
-                if (not vcache_stat_end["kernel"][cur_vcache] or (vcache_stat_end["kernel"][cur_vcache]['global_ctr'] < trace['global_ctr'])):
-                    for op in self.vcache_all_ops:
-                        vcache_stat_end["kernel"][cur_vcache][op] = trace[op]
-                    vcache_stat["kernel"][cur_vcache] += (vcache_stat_end["kernel"][cur_vcache] - vcache_stat_start["kernel"][cur_vcache])
-                # If end stat for this tag and this tile group is not already seen,
-                # or if it is a later end stat
-                if (not vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache] or (vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache]['global_ctr'] < trace['global_ctr'])):
-                    for op in self.vcache_all_ops:
-                        vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache][op] = trace[op]
-                    # Subtract the start from the end
-                    vcache_tile_group_stat["kernel"][cst.tg_id][cur_vcache] += (vcache_tile_group_stat_end["kernel"][cst.tg_id][cur_vcache] - vcache_tile_group_stat_start["kernel"][cst.tg_id][cur_vcache])
-                tag_seen["kernel"][cur_vcache] = False;
-
-
-
-        # Generate vcache stats for every tag and every 
-        # vcache bank by subtracting the start stat from
-        # the end stat of that vcache bank and that tag
-        for tag in tags:
-            for vcache in vcaches:
-                pass
-                #vcache_stat[tag][vcache] += vcache_stat_end[tag][vcache] - vcache_stat_start[tag][vcache]
-
-
-        # Generate all tile group vcache stats by
-        #  subtracting start time from end time
-        for tag in tags:
-            for tg_id in range(self.num_tile_groups[tag]): 
-                for vcache in vcaches:
-                    pass
-                    #vcache_tile_group_stat[tag][tg_id][vcache] = vcache_tile_group_stat_end[tag][tg_id][vcache] - vcache_tile_group_stat_start[tag][tg_id][vcache]
-
-
-
-        # Generate total stats for entire vcache by summing all stats for all vcache banks
-        for tag in tags:
-            for vcache in vcaches:
-                for instr in self.vcache_instrs:
-                    # different types of load/store/atomic instructions are already counted
-                    # under the umbrella of instr_ld/st/atomic, so they are not summed to 
-                    # to avoid double counting
-                    if (not instr.startswith('instr_ld_') and not instr.startswith('instr_sm_') and not instr.startswith('instr_amo')):
-                        vcache_stat[tag][vcache]["instr_total"] += vcache_stat[tag][vcache][instr]
-                for stall in self.vcache_stalls:
-                    vcache_stat[tag][vcache]["stall_total"] += vcache_stat[tag][vcache][stall]
-                for bubble in self.vcache_bubbles:
-                    vcache_stat[tag][vcache]["bubble_total"] += vcache_stat[tag][vcache][bubble]
-                for miss in self.vcache_misses:
-                    vcache_stat[tag][vcache]["miss_total"] += vcache_stat[tag][vcache][miss]
-                    hit = miss.replace("miss_", "instr_")
-                    vcache_stat[tag][vcache]["hit_total"] += vcache_stat[tag][vcache][hit]
-
-
-
-
-        # Generate total stats for each tile group by summing all vcache stats 
-        for tag in tags:
-            for tg_id in range(self.num_tile_groups[tag]):
-                for vcache in vcaches:
-                    for instr in self.vcache_instrs:
-                        vcache_tile_group_stat[tag][tg_id][cur_vcache]["instr_total"] += vcache_tile_group_stat[tag][tg_id][cur_vcache][instr]
-                    for stall in self.vcache_stalls:
-                        vcache_tile_group_stat[tag][tg_id][cur_vcache]["stall_total"] += vcache_tile_group_stat[tag][tg_id][cur_vcache][stall]
-                    for bubble in self.vcache_bubbles:
-                        vcache_tile_group_stat[tag][tg_id][cur_vcache]["bubble_total"] += vcache_tile_group_stat[tag][tg_id][cur_vcache][bubble]
-                    for miss in self.vcache_misses:
-                        vcache_tile_group_stat[tag][tg_id][cur_vcache]["miss_total"] += vcache_tile_group_stat[tag][tg_id][cur_vcache][miss]
-                        hit = miss.replace("miss_", "instr_")
-                        vcache_tile_group_stat[tag][tg_id][cur_vcache]["hit_total"] += vcache_tile_group_stat[tag][tg_id][cur_vcache][hit]
-
-
-
-
-        self.vcache_instrs  += ["instr_total"]
-        self.vcache_stalls  += ["stall_total"]
-        self.vcache_bubbles += ["bubble_total"]
-        self.vcache_misses  += ["miss_total"]
-        self.vcache_all_ops += ["instr_total", "stall_total", "bubble_total", "miss_total", "hit_total"]
-
-        return vcache_tile_group_stat, vcache_stat
-
-
-
-
-
-
-
     # Calculate aggregate manycore stats dictionary by summing 
     # all per tile stats dictionaries
     def __generate_manycore_stats_all(self, tile_stat, manycore_cycle_parallel_cnt):
@@ -2502,42 +2094,6 @@ class VanillaStatsParser:
 
         return manycore_stat
 
-
-    # Calculate aggregate vcache stats dictionary by summing 
-    # all per vcache bank dictionaries
-    def __generate_manycore_vcache_stats_all(self, vcache_stat):
-        # Create a dictionary and initialize elements to zero
-        tags = list(range(self.max_tags)) + ["kernel"]
-        manycore_vcache_stat = {tag: Counter() for tag in tags}
-
-        for tag in tags:
-            for vcache in self.active_vcaches:
-                for op in self.vcache_all_ops:
-                    manycore_vcache_stat[tag][op] += vcache_stat[tag][vcache][op]
-
-        return manycore_vcache_stat
-
-
-
-
-    # Calculate aggregate vcache stats dictionary for every  
-    # tile group by summing all per vcache bank dictionaries
-    # for all tiles belonding to a certain tile group
-    def __generate_tile_group_vcache_stats_all(self,  vcache_tile_group_stat):
-        # Create a dictionary and initialize elements to zero
-        tags = list(range(self.max_tags)) + ["kernel"]
-        manycore_vcache_tile_group_stat = {tag: [Counter() for tg_id in range(max(self.num_tile_groups.values()))] for tag in tags}
-
-        for tag in tags:
-            for tg_id in range(self.num_tile_groups[tag]):
-                for vcache in self.active_vcaches:
-                    for op in self.vcache_all_ops:
-                        manycore_vcache_tile_group_stat[tag][tg_id][op] += vcache_tile_group_stat[tag][tg_id][vcache][op]
-
-        return manycore_vcache_tile_group_stat
-
-
- 
 
     # Parses stat file's header to generate list of all 
     # operations based on type (stat, instruction, miss, stall)
@@ -2573,18 +2129,15 @@ class VanillaStatsParser:
 
 # parses input arguments
 def add_args(parser):
-    parser.add_argument("--per-vcache", default=False, action='store_true',
-                        help="Also generate separate stats files for each victim cache bank.")
+    pass
 
 def main(args): 
-    st = VanillaStatsParser(args.tile, args.tile_group, args.per_vcache, args.stats, args.vcache_stats)
+    st = VanillaStatsParser(args.tile, args.tile_group, args.stats, args.vcache_stats)
     st.print_manycore_stats_all()
     if(st.per_tile_stat):
         st.print_per_tile_stats_all()
     if(st.per_tile_group_stat):
         st.print_per_tile_group_stats_all()
-    if(st.per_vcache_stat):
-        st.print_per_vcache_stats_all()
 
 # main()
 if __name__ == "__main__":
