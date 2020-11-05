@@ -90,11 +90,13 @@ module vcache_profiler
 
   wire inc_miss_ld  = v_o & yumi_i & decode_v_r.ld_op & miss_v; // miss on load
   wire inc_miss_st  = v_o & yumi_i & decode_v_r.st_op & miss_v; // miss on store
+  wire inc_miss_amo = v_o & yumi_i & decode_v_r.atomic_op & miss_v; // miss on atomic
 
   wire inc_dma_read_req = dma_pkt_v_o & dma_pkt_yumi_i & ~dma_pkt.write_not_read; // DMA read request
   wire inc_dma_write_req = dma_pkt_v_o & dma_pkt_yumi_i & dma_pkt.write_not_read; // DMA write request
 
-  wire inc_idle     = ~(v_o & yumi_i) & ~(miss_v);
+  wire inc_stall_rsp = v_o & ~yumi_i;
+  wire inc_idle     = ~v_o & ~miss_v; // Simplified From: ~(v_o & yumi_i) & ~(inc_miss) & ~(inc_stall_rsp);
 
   // stats counting
   //
@@ -130,9 +132,11 @@ module vcache_profiler
 
     integer miss_ld_count;
     integer miss_st_count;
+    integer miss_amo_count;
 
     integer miss_count;   // Number of cycles miss handler is active
     integer idle_count;   // Number of cycles vcache is idle
+    integer stall_rsp_count;   // Number of cycles vcache is stalled trying to inject a response into the network
 
     integer dma_read_req;
     integer dma_write_req;
@@ -178,10 +182,12 @@ module vcache_profiler
 
       if (inc_miss_ld)       stat_r.miss_ld_count++;
       if (inc_miss_st)       stat_r.miss_st_count++;
+      if (inc_miss_amo)      stat_r.miss_amo_count++;
 
       if (inc_miss)          stat_r.miss_count++;
       if (inc_idle)          stat_r.idle_count++;
-
+      if (inc_stall_rsp)     stat_r.stall_rsp_count++;
+       
       if (inc_dma_read_req)  stat_r.dma_read_req++;
       if (inc_dma_write_req) stat_r.dma_write_req++;
     end
@@ -209,7 +215,7 @@ module vcache_profiler
       $fwrite(log_fd, "instr_tagst,instr_tagfl,instr_taglv,instr_tagla,");
       $fwrite(log_fd, "instr_afl,instr_aflinv,instr_ainv,instr_alock,instr_aunlock,");
       $fwrite(log_fd, "instr_atomic,instr_amoswap,instr_amoor,");
-      $fwrite(log_fd, "miss_ld,miss_st,stall_miss,stall_idle,dma_read_req,dma_write_req\n");
+      $fwrite(log_fd, "miss_ld,miss_st,miss_amo,stall_miss,stall_idle,stall_rsp,dma_read_req,dma_write_req\n");
       $fclose(log_fd);
 
       //if (trace_en_i) begin
@@ -276,11 +282,13 @@ module vcache_profiler
             stat_r.amoor_count,
           );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d\n",
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
             stat_r.miss_ld_count,
             stat_r.miss_st_count,
+            stat_r.miss_amo_count,
             stat_r.miss_count,
             stat_r.idle_count,
+            stat_r.stall_rsp_count,
             stat_r.dma_read_req,
             stat_r.dma_write_req
           );
