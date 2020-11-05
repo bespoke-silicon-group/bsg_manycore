@@ -96,7 +96,7 @@ module vcache_profiler
   wire inc_dma_write_req = dma_pkt_v_o & dma_pkt_yumi_i & dma_pkt.write_not_read; // DMA write request
 
   wire inc_stall_rsp = v_o & ~yumi_i;
-  wire inc_idle     = ~(v_o & yumi_i) & ~(inc_miss) & ~(inc_stall_rsp);
+  wire inc_idle     = ~v_o & ~miss_v; // Simplified From: ~(v_o & yumi_i) & ~(inc_miss) & ~(inc_stall_rsp);
 
   // stats counting
   //
