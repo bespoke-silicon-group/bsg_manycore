@@ -163,53 +163,51 @@ class PCHistogram:
     # same number of execution 
     # Return a dictionary of {(start PC, end PC): # of execution}
     def __generate_pc_histogram(self, pc_cnt, pc_cycle):
-        # Create a sorted list of all PC's executed 
+        # Create a sorted list of all PC's executed
         pc_list = sorted(pc_cnt.keys())
         histogram_cnt = Counter()
         histogram_cycle = Counter()
 
-        start = 0
-        end = 1
-
-        # Sliding Window
-        # Iterate over all PC's in order
-        # Continue adding to a basic block as long as the current PC is immediately after 
-        # the previous one, and the number of times current PC has been executed is 
-        # equal to that of previous PC
-        # Once this condition no longer holds, add basic block to histogram and repeat
-        while (end < len(pc_list)):
-            if (not (pc_cnt[pc_list[start]] == pc_cnt[pc_list[end]]
-                     and pc_list[end] - pc_list[end-1] == self._BSG_PC_ADDR_STEP) ):
+        #If tile did not execute any PCs then return empty dictionary
+        if pc_list:
+            start = 0
+            end = 1
+            # Sliding Window
+            # Iterate over all PC's in order
+            # Continue adding to a basic block as long as the current PC is immediately after 
+            # the previous one, and the number of times current PC has been executed is 
+            # equal to that of previous PC
+            # Once this condition no longer holds, add basic block to histogram and repeat
+            while (end < len(pc_list)):
+                if (not (pc_cnt[pc_list[start]] == pc_cnt[pc_list[end]]
+                        and pc_list[end] - pc_list[end-1] == self._BSG_PC_ADDR_STEP) ):
                 
-                # Number of times basic block is executed
-                block_pc_cnt = pc_cnt[pc_list[start]]
+                    # Number of times basic block is executed
+                    block_pc_cnt = pc_cnt[pc_list[start]]
 
-                # Number of cycles spend on executing this basic block                
-                block_pc_cycle = 0
-                for idx in range(start, end):
-                    block_pc_cycle += pc_cycle[pc_list[idx]] 
-
-
-                histogram_cnt[(pc_list[start], pc_list[end-1])] = block_pc_cnt
-                histogram_cycle[(pc_list[start], pc_list[end-1])] = block_pc_cycle
-                start = end
-            end += 1
-
-        # Repeat once more for the last basic block 
-        # Number of times basic block is executed
-        block_pc_cnt = pc_cnt[pc_list[start]]
-
-        # Number of cycles spend on executing this basic block                
-        block_pc_cycle = 0
-        for idx in range(start, end):
-            block_pc_cycle += pc_cycle[pc_list[idx]] 
+                    # Number of cycles spend on executing this basic block                
+                    block_pc_cycle = 0
+                    for idx in range(start, end):
+                        block_pc_cycle += pc_cycle[pc_list[idx]] 
 
 
-        histogram_cnt[(pc_list[start], pc_list[end-1])] = block_pc_cnt
-        histogram_cycle[(pc_list[start], pc_list[end-1])] = block_pc_cycle
+                    histogram_cnt[(pc_list[start], pc_list[end-1])] = block_pc_cnt
+                    histogram_cycle[(pc_list[start], pc_list[end-1])] = block_pc_cycle
+                    start = end
+                end += 1
 
+            # Repeat once more for the last basic block 
+            # Number of times basic block is executed
+            
+            block_pc_cnt = pc_cnt[pc_list[start]]
 
+            # Number of cycles spend on executing this basic block                
+            block_pc_cycle = 0
+            for idx in range(start, end):
+                block_pc_cycle += pc_cycle[pc_list[idx]] 
 
+            histogram_cnt[(pc_list[start], pc_list[end-1])] = block_pc_cnt
+            histogram_cycle[(pc_list[start], pc_list[end-1])] = block_pc_cycle
 
         return histogram_cnt, histogram_cycle
 
