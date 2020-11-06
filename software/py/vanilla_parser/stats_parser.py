@@ -687,7 +687,7 @@ class CacheTagStats(CacheStats):
 
         # Compute the miss rate by dividing the misses by the accesses
         # Nans are expected -- 0/0. Just turn them into 0's
-        df["Miss Rate (%)"] = (100 * df["Misses"] / df["Accesses"]).fillna(0)
+        df["Miss Rate (%)"] = 100 * (df["Misses"] / df["Accesses"]).fillna(0)
 
         # Set index to the type
         df = df.set_index(["Type"])
@@ -823,23 +823,23 @@ class CacheBankStats(CacheStats):
         doc += "\t- Operations: Total Number of Cache Operations (Loads + Stores + Atomics + Management)\n"
         pretty["# Operations"] = ops
 
-        doc += "\t- Miss Rate (%): 100 * (Number of Misses / Number of Ops)\n"
-        pretty["Miss Rate"] = 100 * self.df["total_miss"] / ops
+        doc += "\t- Miss Rate: 100 * (Number of Misses / Number of Ops)\n"
+        pretty["Miss Rate (%)"] = 100 * (self.df["total_miss"] / ops)
 
         doc += "\t- Memory Access Latency: Average Memory Access Latency for Misses (Total Miss Cycles / Number of Misses)\n"
         pretty["Mem. Latency"] = (self.df["stall_miss"] / self.df["total_miss"]).fillna(0)
 
-        doc += "\t- Miss Percent: 100 * (Total Miss Cycles / Total Cycles)\n"
-        pretty["Miss Percent"] = 100 *(self.df["stall_miss"] / self.df["global_ctr"])
+        doc += "\t- Percent Miss Cycles: 100 * (Total Miss Cycles / Total Cycles)\n"
+        pretty["Percent Miss Cycles"] = 100 *(self.df["stall_miss"] / self.df["global_ctr"])
 
-        doc += "\t- Idle Percent: 100 * (Total Idle Cycles / Total Cycles)\n"
-        pretty["Idle Percent"] = 100 *(self.df["stall_idle"] / self.df["global_ctr"])
+        doc += "\t- Percent Idle Cycles: 100 * (Total Idle Cycles / Total Cycles)\n"
+        pretty["Percent Idle Cycles"] = 100 *(self.df["stall_idle"] / self.df["global_ctr"])
 
-        doc += "\t- Response Stall Percent: 100 * (Total Response Stall Cycles / Total Cycles)\n"
-        pretty["Stall Percent"] = 100 *(self.df["stall_rsp"] / self.df["global_ctr"])
+        doc += "\t- Percent Response Stall Cycles: 100 * (Total Response Stall Cycles / Total Cycles)\n"
+        pretty["Percent Stall Cycles"] = 100 *(self.df["stall_rsp"] / self.df["global_ctr"])
 
-        doc += "\t- Operations Percent Cycles: 100 * (Total Operation Cycles / Total Cycles)\n"
-        pretty["Ops. Percent"] = 100 * (ops / self.df["global_ctr"])
+        doc += "\t- Percent Operations Cycles: 100 * (Total Operation Cycles / Total Cycles)\n"
+        pretty["Percent Ops."] = 100 * (ops / self.df["global_ctr"])
 
         doc += "\n"
         doc += "Note: inf (Infinite) occurs when a tag window captures miss stall cycles that bleed into its window, but has no misses"
