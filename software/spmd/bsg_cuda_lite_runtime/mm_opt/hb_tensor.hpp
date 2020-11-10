@@ -6,9 +6,6 @@
 #ifndef _HB_TENSOR_HPP
 #define _HB_TENSOR_HPP
 
-#include <math.h>
-#include <initializer_list>
-#include <cstdint>
 #include <bsg_manycore.h>
 #include <hb_assert.hpp>
 #include <hb_common.hpp>

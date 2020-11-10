@@ -202,6 +202,8 @@ inline void accum_block(float* bsg_attr_noalias dest,
 // c1 == r2
 // c1 % BX == 0, r2 % BX == 0
 // c2 % BY == 0, r1 % BY == 0
+// Asserts use bsg_printf, which can pollute the icache
+//#define USE_ASSERT
 template<unsigned int BX, unsigned int BY, bool LOAD_M1_TRANSPOSED, bool PROFILE>
 __attribute__ ((noinline))
 int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
@@ -213,6 +215,7 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
                   uint32_t * bsg_attr_noalias mat2_strides,
                   int r2, int c2
                   ) {
+#ifdef USE_ASSERT
 
         // M1 columns must equal M2 Rows
         hb_assert(c1 == r2);
@@ -229,7 +232,7 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
         hb_assert(r1 % BY == 0);
         // M2 columns must be divisible by the Block Y-dimension
         hb_assert(c2 % BY == 0);
-
+#endif
 
         // TODO: The compiler doesn't know that c1 is always (or
         // should always be) nonzero. This adds an extra BNE

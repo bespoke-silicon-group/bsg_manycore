@@ -18,7 +18,7 @@
 all: main.run
 
 
-OBJECT_FILES=main.o kernel.o kernel_common.o
+OBJECT_FILES=kernel.o main.o bsg_tile_config_vars.o
 
 include ../../Makefile.include
 
@@ -26,8 +26,8 @@ include ../../Makefile.include
 RISCV_GCC_OPTS += -I. -g
 RISCV_GCC_OPTS += -fpeel-loops -O3 -fno-schedule-insns -fira-algorithm=priority
 
-main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../../common/crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
+main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) ../../common/crt.o
+	$(RISCV_LINK) $(OBJECT_FILES) -o $@ $(RISCV_LINK_OPTS)
 
 
 main.o: Makefile
