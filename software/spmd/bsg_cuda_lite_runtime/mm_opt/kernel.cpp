@@ -258,7 +258,21 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
                 }
         }
 
-        int id = 0;
+        // To maximize locality, each tile should compute a number of
+        // output blocks with spatially local data.
+        //
+        // This works best when the size (bytes) of the mat2 matrix
+        // row is a multiple of the number of bytes in a row of
+        // caches.
+        
+        // Split the work up into contiguous chunks, where each tile
+        // will compute on one chunk.
+        int bx_blocks = c2/BX;
+        int bx_each = bx_blocks / BSG_TILE_GROUP_X_DIM;
+        int bx_start = __bsg_x * (bx_each);
+        int bx_end = bx_start + bx_each;
+        // hb_assert(bx_each == 0);
+
         // Start profiling
         bsg_cuda_print_stat_kernel_start();
 
@@ -267,7 +281,7 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
         // to assign unique work.
         // Yes, this should be TGID
         for (int by_i = __bsg_y; by_i < r1/BY; by_i += BSG_TILE_GROUP_Y_DIM) {
-                for (int bx_i = __bsg_x; bx_i < c2/BX; bx_i += BSG_TILE_GROUP_X_DIM) {
+                for (int bx_i = bx_start; bx_i < bx_end ; bx_i ++) {
 
                         // Multiply the blocks, and accumulate into the result
 
@@ -287,8 +301,9 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
                                         bsg_cuda_print_stat_start(3);
                                 }
                                 accum_block<BY, BY/2, BX, BX/2, LOAD_M1_TRANSPOSED>(psum, block_row, block_col);
-                                if(PROFILE)
+                                if(PROFILE){
                                         bsg_cuda_print_stat_end(3);
+                                }
                         }
 
                         if(PROFILE)
@@ -324,7 +339,7 @@ int kernel_mm_opt_8x8(
         auto result = HBTensor<float, 2>(_result);
         
         // Strip the PyTorch structs, and get the raw pointers.
-        if(__bsg_y == 0 && __bsg_x == 0)
+        if(__bsg_y == (BSG_TILE_GROUP_Y_DIM - 1) && __bsg_x == (BSG_TILE_GROUP_X_DIM - 1))
                 return kernel_mm_opt<8,8,false, true>((float* bsg_attr_noalias) result.data_ptr(),
                                                       result.get_strides(),
                                                       (float* bsg_attr_noalias) mat1.data_ptr(),
