@@ -1,6 +1,9 @@
 /**
  *    regfile_synth.v
  *
+ *    synthesized register file
+ *
+ *    @author tommy
  */
 
 

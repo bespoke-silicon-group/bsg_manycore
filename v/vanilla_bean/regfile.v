@@ -1,5 +1,11 @@
 /**
  *    regfile.v
+ *
+ *    register file
+ *
+ *    use harden_p to choose between synthesized and hardened version.
+ *
+ *    @author tommy
  */
 
 
