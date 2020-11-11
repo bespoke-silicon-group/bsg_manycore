@@ -508,7 +508,7 @@ class CacheTagStats(CacheStats):
         mismatches = self.find_mismatches(starts, ends)
         if(list(mismatches)):
             raise RuntimeError("Unpaired calls to Start/End detected."
-                               f" Check the following: {tuple(mismatches.names)}:"
+                               f" Check the following: {tuple(mismatches)}:"
                                f"{list(mismatches)}")
 
         # For all tag iterations, find the minium arrival time
