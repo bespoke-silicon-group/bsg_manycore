@@ -1,10 +1,12 @@
 #include "bsg_manycore_arch.h"
 #include "bsg_manycore_asm.h"
-#define N 512
+#define N 1024
 
+// allocate 4KB in DMEM
 .data
   dmem_arr: .space (N*4)
 
+// allocate 4KB in DRAM
 .section .dram, "aw"
   dram_arr: .space (N*4)
 
