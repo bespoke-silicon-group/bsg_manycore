@@ -18,23 +18,34 @@ OBJECT_FILES += saxpy-c.o saxpy-cpp.o saxpy-cpp-2.o saxpy-c-2.o main.o
 saxpy.h:
 	./saxpy.py
 
+# All object files depend on saxpy.h
 $(OBJECT_FILES): saxpy.h
 
 main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
+# This target runs the profiler on the output. See the source code for
+# examples of calls to the profiler.
 stats/manycore_stats.log: main.run
 	PYTHONPATH=$(BSG_MANYCORE_DIR)/software/py/ python3 -m vanilla_parser --stats vanilla_stats.csv
 
 
-# Documentation Rules:
-
+# FUNCTIONS contains a list of functions that are defined in the
+# .h/.hpp header files. Each function will be disassembled into a
+# separate markdown file in the snippets directory.
 FUNCTIONS=$(shell grep -oh "saxpy_c[a-zA-Z_]*" saxpy-c.h saxpy-cpp.hpp)
+
+.PHONY: docs docs-diff
+
+# Build the documentation. This is a meta target for building all of
+# the snippets found by FUNCTIONS
 docs: snippets $(foreach f,$(FUNCTIONS),snippets/$f.md)
 
+# Show differences in the output using git diff
 docs-diff: docs
 	git diff snippets
 
+# Create the snippets directory
 snippets:
 	mkdir $@
 
@@ -42,7 +53,14 @@ snippets:
 REL=$(shell realpath . --relative-to $(BSG_MANYCORE_DIR))
 SED_CMD = "s/\(\/.*\/\)\(bsg_manycore\/.*\)/..\/..\/..\/..\/\2/"
 
-
+# Create a markdown file containing the disassembly of a particular
+# function that exists within the object files that were used to build
+# main.riscv.
+#
+# The disassembly is injected within backticks (```) so that it
+# renders nicely on git and other viewers.
+#
+# The output file also contains the compilation command line flags.
 %.md: main.riscv
 	@echo \`\`\` > $@
 	$(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-objdump -M numeric --disassemble=$(notdir $(@:.md=)) -S *.o | sed "/.*$(notdir $(@:.md=))(/,/ret$$/!d" >> $@
