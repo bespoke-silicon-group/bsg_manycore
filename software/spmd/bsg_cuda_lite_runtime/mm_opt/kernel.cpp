@@ -67,9 +67,6 @@ inline void store_block_and_reset(float * bsg_attr_noalias src,
                 bsg_unroll(16)
                 for (int j = 0 ; j < BX; j ++){
                         dest[i * dest_strides[0] + j] = src[i * BX + j];
-                }
-                bsg_unroll(16)
-                for (int j = 0 ; j < BX; j ++){
                         src[i * BX + j] = 0.0f;
                 }
         }
@@ -324,7 +321,6 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
         // End profiling
         bsg_cuda_print_stat_kernel_end();
 
-        g_barrier.sync();
         return 0;
 }
 
@@ -339,8 +335,8 @@ int kernel_mm_opt_8x8(
         auto result = HBTensor<float, 2>(_result);
         
         // Strip the PyTorch structs, and get the raw pointers.
-        if(__bsg_y == (BSG_TILE_GROUP_Y_DIM - 1) && __bsg_x == (BSG_TILE_GROUP_X_DIM - 1))
-                return kernel_mm_opt<8,8,false, true>((float* bsg_attr_noalias) result.data_ptr(),
+        if((__bsg_y == (BSG_TILE_GROUP_Y_DIM - 1)) && (__bsg_x == (BSG_TILE_GROUP_X_DIM - 1)))
+                kernel_mm_opt<8,8,false, true>((float* bsg_attr_noalias) result.data_ptr(),
                                                       result.get_strides(),
                                                       (float* bsg_attr_noalias) mat1.data_ptr(),
                                                       mat1.get_strides(),
@@ -348,8 +344,8 @@ int kernel_mm_opt_8x8(
                                                       (float* bsg_attr_noalias) mat2.data_ptr(),
                                                       mat2.get_strides(),
                                                       mat2.dim(0), mat2.dim(1));
-        else
-                return kernel_mm_opt<8,8,false, false>((float* bsg_attr_noalias) result.data_ptr(),
+        else {
+                kernel_mm_opt<8,8,false, false>((float* bsg_attr_noalias) result.data_ptr(),
                                                       result.get_strides(),
                                                       (float* bsg_attr_noalias) mat1.data_ptr(),
                                                       mat1.get_strides(),
@@ -357,5 +353,8 @@ int kernel_mm_opt_8x8(
                                                       (float* bsg_attr_noalias) mat2.data_ptr(),
                                                       mat2.get_strides(),
                                                       mat2.dim(0), mat2.dim(1));
+        }
+        g_barrier.sync();
+        return 0;
 }
 
