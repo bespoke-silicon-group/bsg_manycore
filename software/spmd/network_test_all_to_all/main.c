@@ -14,12 +14,12 @@
 INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 #define N (bsg_tiles_X*bsg_tiles_Y)
 
+// this array will be written by every tile with remote store.
+volatile int data[N] = {0};
 
 
 int main()
 {
-  // this array will be written by every tile with remote store.
-  volatile int data[N] = {0};
 
   bsg_set_tile_x_y();
   
