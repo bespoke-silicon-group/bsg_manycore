@@ -109,7 +109,7 @@ class bsg_manycore_link_gen:
 
     if boundary is not None:
         script += "\n  PROVIDE (__{}_end = .);\n".format(name)
-        script += "  ASSERT((__{0}_end < 0x{1:08x}), " \
+        script += "  ASSERT((__{0}_end <= 0x{1:08x}), " \
                   "\"Error: {0} section exceeded limit 0x{1:08x}\");".format(name, boundary)
 
     script += "\n  . = ALIGN(8);\n"
@@ -217,7 +217,7 @@ class bsg_manycore_link_gen:
     # DMEM boundary check
     # Note on a linker quirk: no ';' after the assert when it's not within a section.
     sections += "__dmem_end = .;\n"
-    sections += "ASSERT((__dmem_end < 0x{0:08x}), " \
+    sections += "ASSERT((__dmem_end <= 0x{0:08x}), " \
                 "\"Error: dmem size limit exceeded\")\n\n".format(
                         _DMEM_VMA_START + _DMEM_VMA_SIZE);
 
