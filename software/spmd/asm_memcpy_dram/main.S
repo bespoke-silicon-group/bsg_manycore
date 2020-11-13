@@ -1,3 +1,11 @@
+// This program copies data from DMEM to DRAM, and copies the data back from DRAM to DMEM.
+// 1. initialize DMEM with sample data
+// 2. copy from DMEM to DRAM
+// 3. clear the DMEM
+// 4. copy from DRAM to DMEM
+// 5. validate the data in DMEM
+
+
 #include "bsg_manycore_arch.h"
 #include "bsg_manycore_asm.h"
 #define N 1024
