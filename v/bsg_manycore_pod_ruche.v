@@ -44,6 +44,7 @@ module bsg_manycore_pod_ruche
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_size_p="inv"
     , parameter vcache_dma_data_width_p="inv"
+    , parameter vcache_rsp_fifo_els_p=2
 
     , parameter ruche_factor_X_p="inv"
   
@@ -162,6 +163,7 @@ module bsg_manycore_pod_ruche
       ,.vcache_sets_p(vcache_sets_p)
       ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
       ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_rsp_fifo_els_p(vcache_rsp_fifo_els_p)
 
       ,.wh_ruche_factor_p(wh_ruche_factor_p)
       ,.wh_cid_width_p(wh_cid_width_p)
@@ -247,7 +249,7 @@ module bsg_manycore_pod_ruche
   endfunction
 
   for (genvar y = 0; y < num_subarray_y_p; y++) begin: mc_y
-    for (genvar x = 0; x < num_subarray_x_p; x++) begin: mc_x
+    for (genvar x = 0; x < num_subarray_x_p; x++) begin: mc_x         
       bsg_manycore_tile_compute_array_ruche #(
         .dmem_size_p(dmem_size_p)
         ,.icache_entries_p(icache_entries_p)

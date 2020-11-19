@@ -32,6 +32,7 @@ module bsg_manycore_tile_vcache_array
     , parameter vcache_sets_p="inv"
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_dma_data_width_p="inv"
+    , parameter vcache_rsp_fifo_els_p=4
 
     , parameter wh_ruche_factor_p="inv"
     , parameter wh_cid_width_p="inv"
@@ -91,12 +92,14 @@ module bsg_manycore_tile_vcache_array
       ,.vcache_sets_p(vcache_sets_p)
       ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
       ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_rsp_fifo_els_p(vcache_rsp_fifo_els_p)
 
       ,.wh_ruche_factor_p(wh_ruche_factor_p)
       ,.wh_cid_width_p(wh_cid_width_p)
       ,.wh_flit_width_p(wh_flit_width_p)
       ,.wh_len_width_p(wh_len_width_p)
       ,.wh_cord_width_p(wh_cord_width_p)
+
     ) vc (
       .clk_i(clk_i)
       ,.reset_i(reset_i[i])
