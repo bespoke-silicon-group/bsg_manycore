@@ -24,6 +24,7 @@ module bsg_manycore_tile_vcache
     , parameter vcache_sets_p="inv"
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_dma_data_width_p="inv"
+    , parameter vcache_rsp_fifo_els_p=2
 
     // wh_ruche_factor_p supported only for 2^n, n>0.
     , parameter wh_ruche_factor_p="inv"
@@ -128,6 +129,7 @@ module bsg_manycore_tile_vcache
     // Because vcaches do not initiate packets, and there are no clients on the same Row,
     // horizontal manycore links are unnecessary.
     ,.stub_p(4'b0011) // stub E and W
+    ,.rev_fifo_els_p('{2, 2, 2, 2, vcache_rsp_fifo_els_p})
   ) rtr (
     .clk_i(clk_i)
     ,.reset_i(reset_r)

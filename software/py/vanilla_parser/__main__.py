@@ -65,7 +65,7 @@ if (len(args.only) == 0) or ("stats_parser" in args.only) or ("stats_parser" in 
 # Run these tools only when mentioned explicitly
 if ("vcache_stall_graph" in args.only) or ("vcache_stall_graph" in args.also):
     common.check_exists_and_run(
-        [args.vcache_trace, args.vcache_stats], vcache_stall_graph.main, args)
+        [args.vcache_trace], vcache_stall_graph.main, args)
 if ("trace_parser" in args.only) or ("trace_parser" in args.also):
     common.check_exists_and_run(
         [args.log], trace_parser.main, args)
