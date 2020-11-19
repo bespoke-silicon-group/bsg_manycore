@@ -1,6 +1,6 @@
-bsg_tiles_X = 4
-bsg_tiles_Y = 4
-
+bsg_tiles_X ?= 16
+bsg_tiles_Y ?= 8
+BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/16x8
 
 all: main.run
 

@@ -15,7 +15,6 @@ int main()
 {
   bsg_set_tile_x_y();
 
-  bsg_printf("%d", __bsg_id);
   // create a 1024KB int array
   int start = __bsg_id * WRITE_N;
   for (int i = start; i < start + WRITE_N; i++)
@@ -40,7 +39,7 @@ int main()
   for (int iter = 1; iter < 4; iter++) {
 
     bsg_cuda_print_stat_start(iter);
-    bsg_fence();
+    //bsg_fence();
 
     int buf_offset = 0;
     for (int idx = start; idx < start + N; idx++) {
@@ -49,13 +48,13 @@ int main()
     }
 
     bsg_cuda_print_stat_end(iter);
-    bsg_fence();
+    //bsg_fence();
 
     buf_offset = 0;
 
     int acc = 0;
-    for (int idx = start; idx < start + N; idx++) {
-      acc += buf[idx];
+    for (buf_offset = 0; buf_offset < N; buf_offset++) {
+      acc += buf[buf_offset];
     }
     if (acc != 42 * N) bsg_fail();
   }
