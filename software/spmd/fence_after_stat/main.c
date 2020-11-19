@@ -1,5 +1,10 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
+#define BSG_TILE_GROUP_X_DIM bsg_tiles_X
+#define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
+#include "bsg_tile_group_barrier.h"
+
+INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 
 #define WRITE_N 1024
 #define N 512
@@ -10,6 +15,7 @@ int main()
 {
   bsg_set_tile_x_y();
 
+  bsg_printf("%d", __bsg_id);
   // create a 1024KB int array
   int start = __bsg_id * WRITE_N;
   for (int i = start; i < start + WRITE_N; i++)
@@ -54,6 +60,7 @@ int main()
     if (acc != 42 * N) bsg_fail();
   }
 
+  bsg_tile_group_barrier(&r_barrier, &c_barrier);
   bsg_finish();
   bsg_wait_while(1);
 }
