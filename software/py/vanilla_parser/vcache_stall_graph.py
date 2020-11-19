@@ -82,6 +82,7 @@ class VcacheStallGraph:
                          "dma_read_req",
                          "dma_write_req",
                          "idle",
+                         "stall_rsp",
                          "miss"]
 
 
@@ -120,6 +121,7 @@ class VcacheStallGraph:
                                  "dma_write_req"   : (0xff, 0xff, 0xff) , ## white 
                                  "idle"            : (0x40, 0x40, 0x40) , ## gray
                                  "miss"            : (0xff, 0x00, 0x00) , ## red
+                                 "stall_rsp"       : (0xff, 165, 0x00) , ## orange
                                 }
 
 
@@ -158,6 +160,7 @@ class VcacheStallGraph:
                                  "dma_write_req"   : (0xff, 0xff, 0xff) , ## white 
                                  "idle"            : (0x40, 0x40, 0x40) , ## gray
                                  "miss"            : (0xff, 0x00, 0x00) , ## red
+                                 "stall_rsp"       : (0xff, 165, 0x00) , ## orange
                                 } 
 
 
