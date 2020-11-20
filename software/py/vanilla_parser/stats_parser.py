@@ -664,7 +664,7 @@ class CacheTagStats(CacheStats):
 
     # Format the events table (misses)
     @classmethod
-    def __event_tostr(cls, ds, ld, st, atom):
+    def __event_tostr(cls, ds, ld, st):
         # Construct a pretty dataframe to print
         df = pd.DataFrame()
 
@@ -678,12 +678,11 @@ class CacheTagStats(CacheStats):
         # one from the CSV
         df["Type"] = ds.index.map({"miss_st": "Stores",
                                    "miss_ld": "Loads",
-                                   "miss_amo": "Atomics",
                                    "Total": "Total"})
 
         # Set up a column for access counts
         df["Accesses"] = pd.Series(index = ds.index.values,
-                                   data =  [st, ld, atom, atom + ld + st])
+                                   data =  [st, ld, ld + st])
 
         # Compute the miss rate by dividing the misses by the accesses
         # Nans are expected -- 0/0. Just turn them into 0's
@@ -703,12 +702,11 @@ class CacheTagStats(CacheStats):
         # Get load and store totals for miss statistics
         ld_total = df.loc[("Cycle", ["Load"], "Total")][0]
         st_total = df.loc[("Cycle", ["Store"], "Total")][0]
-        at_total = df.loc[("Cycle", ["Atomic"], "Total")][0]
 
         counts = cls.__cycle_tostr(df.loc["Cycle"]) + "\n"
         l = len(counts.splitlines()[0])
 
-        events = cls.__event_tostr(df.loc["Event"], ld_total, st_total, at_total)
+        events = cls.__event_tostr(df.loc["Event"], ld_total, st_total)
 
         s = ""
         s += ("Operation Cycle Counts" + " " * l)[:l] + "\n"
@@ -806,7 +804,7 @@ class CacheBankStats(CacheStats):
         pretty = pd.DataFrame()
         doc = ""
         ops = self.df[self._ops].sum(axis="columns")
-
+        dmas = self.df[self._dmas].sum(axis="columns")
         # Compute pretty table
 
         # Fill nans as 0's where this is expected behaviour (i.e. 0/0) but leave infs.
@@ -836,10 +834,12 @@ class CacheBankStats(CacheStats):
         pretty["Percent Idle Cycles"] = 100 *(self.df["stall_idle"] / self.df["global_ctr"])
 
         doc += "\t- Percent Response Stall Cycles: 100 * (Total Response Stall Cycles / Total Cycles)\n"
-        pretty["Percent Stall Cycles"] = 100 *(self.df["stall_rsp"] / self.df["global_ctr"])
+        #pretty["Percent Stall Cycles"] = 100 *(self.df["stall_rsp"] / self.df["global_ctr"])
 
         doc += "\t- Percent Operations Cycles: 100 * (Total Operation Cycles / Total Cycles)\n"
         pretty["Percent Ops."] = 100 * (ops / self.df["global_ctr"])
+
+        pretty["Utilization"] = 100 * (dmas / self.df["global_ctr"])
 
         doc += "\n"
         doc += "Note: inf (Infinite) occurs when a tag window captures miss stall cycles that bleed into its window, but has no misses"
