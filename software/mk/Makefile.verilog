@@ -47,6 +47,7 @@ NBF_FILE = $(PROG_NAME).nbf
 BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
                +max_cycle=$(MAX_CYCLES) \
                +vanilla_trace_en=$(TRACE) \
+               -licqueue \
                -l run.log
 
 
