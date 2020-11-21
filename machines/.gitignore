@@ -2,3 +2,7 @@ simv-debug
 simv-debug.daidir
 vc_hdrs.h
 stack.info.*
+*/build-debug
+*/build
+*/csrc
+*/csrc-debug
