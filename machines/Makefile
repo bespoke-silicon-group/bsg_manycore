@@ -66,12 +66,12 @@ endef
 
 %/simv : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
 	$(call set_machine_variables,$<)
-	$(VCS) $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) | tee -i $(dir $@)/build.log
+	$(VCS) $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) -l $*/build.log -Mdir=$*/csrc
 
 %/simv-debug : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
 	$(call set_machine_variables,$<)
 	$(eval VCS_FLAGS += -debug_pp +vcs+vcdpluson) # Debug adds these two variables to generate waveforms
-	$(VCS) $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) | tee -i $(dir $@)/build_debug.log
+	$(VCS) $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ $(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) -l $*/build-debug.log -Mdir=$*/csrc-debug
 
 clean:
 	rm -rf csrc
