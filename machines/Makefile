@@ -15,7 +15,8 @@ VCS_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
 VCS_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
 VCS_SOURCES  += $(VHEADERS) $(VSOURCES) 
 VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
-	 	+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS -top spmd_testbench -licqueue
+	 	+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS -top spmd_testbench -licqueue \
+    -reportstats
 #VCS_FLAGS    += +vcs+loopreport
 
 VCS_CFLAGS   =  -cpp g++
