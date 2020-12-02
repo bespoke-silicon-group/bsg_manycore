@@ -84,6 +84,8 @@ void saxpy(float  *A, float  *B, float *C, float alpha) {
         }
 }
 
+// Same implementation as above, except with bsg_attr_remote to
+// satisfy LLVM type checking.
 void _saxpy(float  bsg_attr_remote *A, float  bsg_attr_remote *B, float bsg_attr_remote *C, float alpha) {
         float s = 0;
         for(int i = 0;  i < N_ELS; ++i) {
@@ -96,6 +98,8 @@ float B[N_ELS] __attribute__ ((section (".dram"))) = MACRO_B;
 float C[N_ELS] __attribute__ ((section (".dram"))) = {0};
 float gold[N_ELS] __attribute__ ((section (".dram")));
 
+// Variables and functions with an underscore indicate bsg_attr_remote
+// has been applied and are necessary to pass LLVM type checking.
 float bsg_attr_remote _A[N_ELS] __attribute__ ((section (".dram"))) = MACRO_A;
 float bsg_attr_remote _B[N_ELS] __attribute__ ((section (".dram"))) = MACRO_B;
 float bsg_attr_remote _C[N_ELS] __attribute__ ((section (".dram"))) = {0};
@@ -106,6 +110,8 @@ int main(){
         bsg_set_tile_x_y();
 
         if ((__bsg_x == 0) && (__bsg_y == 0)) {
+                // Produce "gold" (known good) outputs of the SAXPY
+                // function. 
                 saxpy(A, B, gold, MACRO_ALPHA); 
                 _saxpy(_A, _B, _gold, MACRO_ALPHA); 
  
@@ -174,7 +180,7 @@ int main(){
                 
 #ifndef __llvm__
                 // LLVM complains about memory intrinsics...
-                if (memcmp(_C, _gold, N_ELS * sizeof(*C)))
+                if (std::memcmp(_C, _gold, N_ELS * sizeof(*C)))
                         bsg_fail();
                 memset(_C, 0, N_ELS * sizeof(*C));
 #endif
@@ -192,7 +198,7 @@ int main(){
                 
 #ifndef __llvm__
                 // LLVM complains about memory intrinsics...
-                if (memcmp(_C, _gold, N_ELS * sizeof(*C)))
+                if (std::memcmp(_C, _gold, N_ELS * sizeof(*C)))
                         bsg_fail();
                 memset(_C, 0, N_ELS * sizeof(*C));
 #endif
