@@ -184,7 +184,7 @@ module bsg_manycore_tile_ruche
   };
 
   // For outgoing fwd, filter out src_y.
-  // For incoming rev, filter out dest_y.
+  // For outgoing rev, filter out dest_y.
   assign ruche_link_lo[0][E].fwd = {
     links_sif_lo[5].fwd[$bits(bsg_manycore_fwd_link_sif_s)-1:2*(x_cord_width_p+y_cord_width_p)],
     links_sif_lo[5].fwd[(2*x_cord_width_p)+y_cord_width_p-1:0]

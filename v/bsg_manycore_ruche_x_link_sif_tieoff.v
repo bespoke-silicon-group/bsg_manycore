@@ -44,14 +44,25 @@ module bsg_manycore_ruche_x_link_sif_tieoff
 
 
   // synopsys translate_off
+ 
+  // For debugging only
+  logic [x_cord_width_p-1:0] fwd_src_x;
+  logic [y_cord_width_p-1:0] fwd_dest_y;
+  logic [x_cord_width_p-1:0] fwd_dest_x;
+  assign {fwd_src_x, fwd_dest_y, fwd_dest_x} = ruche_link_in.fwd.data[0+:(2*x_cord_width_p)+y_cord_width_p];
+  
+  logic [x_cord_width_p-1:0] rev_dest_x;
+  assign rev_dest_x = ruche_link_in.rev.data[0+:x_cord_width_p];
+
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
       
       if (invert_lp ^ ruche_link_in.fwd.v)
-        $error("[BSG_ERROR] Errant fwd packet detected.");
+        $error("[BSG_ERROR] Errant fwd packet detected. src_x=%0d, dest_y=%0d, dest_x=%0d.",
+          fwd_src_x, fwd_dest_y, fwd_dest_x);
 
       if (invert_lp ^ ruche_link_in.rev.v)
-        $error("[BSG_ERROR] Errant rev packet detected.");
+        $error("[BSG_ERROR] Errant rev packet detected. dest_x=%0d.", rev_dest_x);
     end
   end
   // synopsys translate_on
