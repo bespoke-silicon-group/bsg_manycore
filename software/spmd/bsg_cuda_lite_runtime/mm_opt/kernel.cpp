@@ -334,26 +334,14 @@ int kernel_mm_opt_8x8(
         auto mat2 = HBTensor<float, 2>(_mat2);
         auto result = HBTensor<float, 2>(_result);
         
-        // Strip the PyTorch structs, and get the raw pointers.
-        if((__bsg_y == (BSG_TILE_GROUP_Y_DIM - 1)) && (__bsg_x == (BSG_TILE_GROUP_X_DIM - 1)))
-                kernel_mm_opt<8,8,false, true>((float* bsg_attr_noalias) result.data_ptr(),
-                                                      result.get_strides(),
-                                                      (float* bsg_attr_noalias) mat1.data_ptr(),
-                                                      mat1.get_strides(),
-                                                      mat1.dim(0), mat1.dim(1),
-                                                      (float* bsg_attr_noalias) mat2.data_ptr(),
-                                                      mat2.get_strides(),
-                                                      mat2.dim(0), mat2.dim(1));
-        else {
-                kernel_mm_opt<8,8,false, false>((float* bsg_attr_noalias) result.data_ptr(),
-                                                      result.get_strides(),
-                                                      (float* bsg_attr_noalias) mat1.data_ptr(),
-                                                      mat1.get_strides(),
-                                                      mat1.dim(0), mat1.dim(1),
-                                                      (float* bsg_attr_noalias) mat2.data_ptr(),
-                                                      mat2.get_strides(),
-                                                      mat2.dim(0), mat2.dim(1));
-        }
+        kernel_mm_opt<8,8,false, false>((float* bsg_attr_noalias) result.data_ptr(),
+                                        result.get_strides(),
+                                        (float* bsg_attr_noalias) mat1.data_ptr(),
+                                        mat1.get_strides(),
+                                        mat1.dim(0), mat1.dim(1),
+                                        (float* bsg_attr_noalias) mat2.data_ptr(),
+                                        mat2.get_strides(),
+                                        mat2.dim(0), mat2.dim(1));
         g_barrier.sync();
         return 0;
 }
