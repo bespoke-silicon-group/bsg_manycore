@@ -278,7 +278,8 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
         // to assign unique work.
         // Yes, this should be TGID
         for (int by_i = __bsg_y; by_i < r1/BY; by_i += BSG_TILE_GROUP_Y_DIM) {
-                for (int bx_i = bx_start; bx_i < bx_end ; bx_i ++) {
+                for (int bx_i = __bsg_x; bx_i < c2/BX; bx_i += BSG_TILE_GROUP_X_DIM) {
+                        //for (int bx_i = bx_start; bx_i < bx_end ; bx_i ++) {
 
                         // Multiply the blocks, and accumulate into the result
 
