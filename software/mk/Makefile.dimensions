@@ -6,12 +6,14 @@
 #$(warning testing $(call bsg-plus-fn,3,2))
 
 bsg_tiles_org_X ?=0
-bsg_tiles_org_Y ?=2
+bsg_tiles_org_Y ?=0
 
 ifdef BSG_MACHINE_GLOBAL_X
 
-bsg_tiles_X ?= $(call bsg-min-fn,2,$(BSG_MACHINE_GLOBAL_X))
-bsg_tiles_Y ?= $(call bsg-min-fn,2,$(call bsg-minus-fn,$(BSG_MACHINE_GLOBAL_Y),1))
+# tile group size
+# By default, the tile groups size is the full array.
+bsg_tiles_X ?= $(BSG_MACHINE_GLOBAL_X)
+bsg_tiles_Y ?= $(BSG_MACHINE_GLOBAL_Y)
 bsg_group_size ?= $(call bsg-times-fn,$(bsg_tiles_X),$(bsg_tiles_Y))
 
 bsg_global_X ?= $(BSG_MACHINE_GLOBAL_X)

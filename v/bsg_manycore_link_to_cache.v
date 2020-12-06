@@ -136,32 +136,46 @@ module bsg_manycore_link_to_cache
   bsg_manycore_return_packet_type_e return_pkt_type;
 
   always_comb begin
-    if (packet_lo.op == e_remote_store) begin
-      return_pkt_type = e_return_credit;
-    end
-    else if (packet_lo.op == e_remote_amo) begin
-        return_pkt_type = e_return_int_wb;
-    end
-    else if (packet_lo.op == e_cache_op) begin
+    unique case (packet_lo.op_v2)
+      e_remote_store: begin
         return_pkt_type = e_return_credit;
-    end
-    else begin
-      if (load_info.icache_fetch)
-        return_pkt_type = e_return_ifetch;
-      else if (load_info.float_wb)
-        return_pkt_type = e_return_float_wb;
-      else
+      end
+      e_remote_load: begin
+        if (load_info.icache_fetch)
+          return_pkt_type = e_return_ifetch;
+        else if (load_info.float_wb)
+          return_pkt_type = e_return_float_wb;
+        else
+          return_pkt_type = e_return_int_wb;
+      end
+      e_cache_op: begin
+        return_pkt_type = e_return_credit;
+      end
+      e_remote_amoswap, e_remote_amoor: begin
         return_pkt_type = e_return_int_wb;
-    end
+      end
+      // should never happen
+      default: begin
+        return_pkt_type = e_return_credit;
+      end
+    endcase
   end  
 
+  wire [bsg_manycore_reg_id_width_gp-1:0] payload_reg_id;
+  bsg_manycore_reg_id_decode pd0 (
+    .data_i(packet_lo.payload)
+    ,.mask_i(packet_lo.reg_id.store_mask_s.mask)
+    ,.reg_id_o(payload_reg_id)
+  );
 
   always_ff @ (posedge clk_i) begin
     if (state_r == READY) begin
       if (v_o & ready_i) begin
         tl_info_r <= '{
           pkt_type: return_pkt_type,
-          reg_id: packet_lo.reg_id,
+          reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
+              ? payload_reg_id
+              : packet_lo.reg_id,
           y_cord: packet_lo.src_y_cord,
           x_cord: packet_lo.src_x_cord
         };
@@ -171,6 +185,8 @@ module bsg_manycore_link_to_cache
       end
     end
   end
+
+
 
   always_comb begin
 
@@ -230,7 +246,7 @@ module bsg_manycore_link_to_cache
         // we want to expose read/write access to tag_mem on NPA
         // for extra debugging capability.
         if (packet_lo.addr[link_addr_width_p-1]) begin
-          case (packet_lo.op)
+          case (packet_lo.op_v2)
             e_remote_store: cache_pkt.opcode = TAGST;
             e_remote_load:  cache_pkt.opcode = TAGLA;
             e_cache_op:     cache_pkt.opcode = TAGFL;
@@ -238,46 +254,58 @@ module bsg_manycore_link_to_cache
           endcase
         end
         else begin
-          if (packet_lo.op == e_remote_store) begin
-            cache_pkt.opcode = SM;
-          end
-          else if (packet_lo.op == e_remote_amo) begin
-            case (packet_lo.op_ex.amo_type)
-              e_amo_swap: cache_pkt.opcode = AMOSWAP_W;
-              e_amo_or: cache_pkt.opcode = AMOOR_W;
-              default: cache_pkt.opcode = AMOSWAP_W; // this should never happen!
-            endcase
-          end
-          else if (packet_lo.op == e_cache_op) begin
-            case (packet_lo.op_ex.cache_op_type)
-              e_afl: cache_pkt.opcode = AFL;
-              e_aflinv: cache_pkt.opcode = AFLINV;
-              e_ainv: cache_pkt.opcode = AINV;
-              default: cache_pkt.opcode = AINV; // (what should the default be? shouldn't happen)
-            endcase
-          end
-          else begin
-            if (load_info.is_byte_op)
-              cache_pkt.opcode = load_info.is_unsigned_op
-                ? LBU
-                : LB;
-            else if (load_info.is_hex_op)
-              cache_pkt.opcode = load_info.is_unsigned_op
-                ? LHU
-                : LH;
-            else begin
-              cache_pkt.opcode = LW;
+          unique case (packet_lo.op_v2)
+            e_remote_store: begin
+              cache_pkt.opcode = SM;
             end
-          end
+
+            e_remote_amoswap: begin
+              cache_pkt.opcode = AMOSWAP_W;
+            end
+
+            e_remote_amoor: begin
+              cache_pkt.opcode = AMOOR_W;
+            end
+
+            e_cache_op: begin
+              case (packet_lo.reg_id.cache_op)
+                e_afl: cache_pkt.opcode = AFL;
+                e_aflinv: cache_pkt.opcode = AFLINV;
+                e_ainv: cache_pkt.opcode = AINV;
+                default: begin
+                  cache_pkt.opcode = AFL; // should never happen
+                end
+              endcase
+            end
+
+            e_remote_load: begin
+              if (load_info.is_byte_op)
+                cache_pkt.opcode = load_info.is_unsigned_op
+                  ? LBU
+                  : LB;
+              else if (load_info.is_hex_op)
+                cache_pkt.opcode = load_info.is_unsigned_op
+                  ? LHU
+                  : LH;
+              else begin
+                cache_pkt.opcode = LW;
+              end
+            end            
+            // this should never happen.
+            default: begin
+              cache_pkt.opcode = AFL;
+              // synopsys translate_off
+              assert final(reset_i !== 1'b0 | ~packet_v_lo) else $error("[BSG_ERROR] Invalid packet op: %b", packet_lo.op_v2);
+              // synopsys translate_on
+            end
+          endcase
         end
 
         cache_pkt.data = packet_lo.payload;
-        cache_pkt.mask = packet_lo.op_ex;
+        cache_pkt.mask = packet_lo.reg_id.store_mask_s.mask;
         cache_pkt.addr = {
           packet_lo.addr[0+:link_addr_width_p-1],
-          (packet_lo.op == e_remote_store | packet_lo.op == e_remote_amo | packet_lo.op == e_cache_op)
-            ? 2'b00
-            : load_info.part_sel
+          (packet_lo.op_v2 == e_remote_load) ? load_info.part_sel : 2'b00
         };
 
         // return pkt

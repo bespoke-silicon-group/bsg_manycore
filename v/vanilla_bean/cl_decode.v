@@ -193,15 +193,15 @@ always_comb begin
   unique casez (instruction_i)
     `RV32_AMOSWAP_W: begin
       decode_o.is_amo_op = 1'b1;
-      decode_o.amo_type = e_amo_swap;
+      decode_o.amo_type = e_vanilla_amoswap;
     end    
     `RV32_AMOOR_W: begin
       decode_o.is_amo_op = 1'b1;
-      decode_o.amo_type = e_amo_or;
+      decode_o.amo_type = e_vanilla_amoor;
     end
     default: begin
       decode_o.is_amo_op = 1'b0;
-      decode_o.amo_type = e_amo_swap;
+      decode_o.amo_type = e_vanilla_amoswap;
     end
   endcase
 end

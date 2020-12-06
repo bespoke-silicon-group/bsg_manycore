@@ -16,12 +16,14 @@ module network_rx
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
 
+    , parameter x_subcord_width_p="inv"
+    , parameter y_subcord_width_p="inv"
+
     , parameter tgo_x_init_val_p = 0
-    , parameter tgo_y_init_val_p = 1
+    , parameter tgo_y_init_val_p = 0
     , parameter freeze_init_val_p = 1
     , parameter default_pc_init_val_p = 0
 
-    , localparam epa_word_addr_width_lp=epa_word_addr_width_gp
     , localparam data_mask_width_lp=(data_width_p>>3)
     , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
@@ -58,13 +60,14 @@ module network_rx
     , input icache_yumi_i
 
     , output logic freeze_o
-    , output logic [x_cord_width_p-1:0] tgo_x_o
-    , output logic [y_cord_width_p-1:0] tgo_y_o 
+    , output logic [x_subcord_width_p-1:0] tgo_x_o
+    , output logic [y_subcord_width_p-1:0] tgo_y_o 
     , output logic [pc_width_lp-1:0] pc_init_val_o
     , output logic dram_enable_o
 
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
+    // for debugging
+    , input [x_cord_width_p-1:0] global_x_i
+    , input [y_cord_width_p-1:0] global_y_i
   );
 
   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
@@ -84,20 +87,20 @@ module network_rx
   assign is_dmem_addr = addr_i[dmem_addr_width_lp] & (addr_i[addr_width_p-1:dmem_addr_width_lp+1] == '0);
   assign is_icache_addr = addr_i[pc_width_lp] & (addr_i[addr_width_p-1:pc_width_lp+1] == '0);
 
-  assign is_csr_addr = addr_i[epa_word_addr_width_lp-1]
-    & (addr_i[addr_width_p-1:epa_word_addr_width_lp] == '0);
-  assign is_freeze_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-2:0] == 'd0);
-  assign is_tgo_x_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-2:0] == 'd1);
-  assign is_tgo_y_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-2:0] == 'd2);
-  assign is_pc_init_val_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-2:0] == 'd3);
-  assign is_dram_enable_addr = is_csr_addr & (addr_i[epa_word_addr_width_lp-2:0] == 'd4);
+  assign is_csr_addr = addr_i[epa_word_addr_width_gp-1]
+    & (addr_i[addr_width_p-1:epa_word_addr_width_gp] == '0);
+  assign is_freeze_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd0);
+  assign is_tgo_x_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd1);
+  assign is_tgo_y_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd2);
+  assign is_pc_init_val_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd3);
+  assign is_dram_enable_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd4);
 
 
   // CSR registers
   //
   logic freeze_r;
-  logic [x_cord_width_p-1:0] tgo_x_r;
-  logic [y_cord_width_p-1:0] tgo_y_r;
+  logic [x_subcord_width_p-1:0] tgo_x_r;
+  logic [y_subcord_width_p-1:0] tgo_y_r;
   logic [pc_width_lp-1:0] pc_init_val_r;
   logic dram_enable_r;
 
@@ -110,8 +113,8 @@ module network_rx
   // incoming request handling logic
   //
   logic freeze_n;
-  logic [x_cord_width_p-1:0] tgo_x_n;
-  logic [y_cord_width_p-1:0] tgo_y_n;
+  logic [x_subcord_width_p-1:0] tgo_x_n;
+  logic [y_subcord_width_p-1:0] tgo_y_n;
   logic [pc_width_lp-1:0] pc_init_val_n;
   logic dram_enable_n;
 
@@ -270,10 +273,10 @@ module network_rx
       returning_data_o = {{(data_width_p-1){1'b0}}, freeze_r};
     end
     else if (send_tgo_x_r) begin
-      returning_data_o = {{(data_width_p-x_cord_width_p){1'b0}}, tgo_x_r};
+      returning_data_o = {{(data_width_p-x_subcord_width_p){1'b0}}, tgo_x_r};
     end
     else if (send_tgo_y_r) begin
-      returning_data_o = {{(data_width_p-y_cord_width_p){1'b0}}, tgo_y_r};
+      returning_data_o = {{(data_width_p-y_subcord_width_p){1'b0}}, tgo_y_r};
     end
     else if (send_pc_init_val_r) begin
       returning_data_o = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_init_val_r, 2'b00};
@@ -298,8 +301,8 @@ module network_rx
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       freeze_r <= (1)'(freeze_init_val_p);
-      tgo_x_r <= (x_cord_width_p)'(tgo_x_init_val_p);
-      tgo_y_r <= (y_cord_width_p)'(tgo_y_init_val_p);
+      tgo_x_r <= (x_subcord_width_p)'(tgo_x_init_val_p);
+      tgo_y_r <= (y_subcord_width_p)'(tgo_y_init_val_p);
       pc_init_val_r <= (pc_width_lp)'(default_pc_init_val_p);
       dram_enable_r <= 1'b1; // DRAM is enabled by default.
 
@@ -345,17 +348,17 @@ module network_rx
   always_ff @ (negedge clk_i) begin
     if (~reset_i & v_i & is_invalid_addr) begin
       $display("[ERROR][RX] Invalid EPA Access. t=%0t, x=%d, y=%d, we=%d, addr=%h, data=%h",
-        $time, my_x_i, my_y_i, w_i, addr_i, data_i);
+        $time, global_x_i, global_y_i, w_i, addr_i, data_i);
     end
 
     // FREEZE / UNFREEZE 
     if (~reset_i) begin
       if (freeze_n & ~freeze_r)
-        $display("[INFO][RX] Freezing tile t=%0t, x=%d, y=%d", $time, my_x_i, my_y_i);
+        $display("[INFO][RX] Freezing tile t=%0t, x=%d, y=%d", $time, global_x_i, global_y_i);
       if (~freeze_n & freeze_r)
-        $display("[INFO][RX] Unfreezing tile t=%0t, x=%d, y=%d", $time, my_x_i, my_y_i);
+        $display("[INFO][RX] Unfreezing tile t=%0t, x=%d, y=%d", $time, global_x_i, global_y_i);
       if (dram_enable_r & ~dram_enable_n)
-        $display("[INFO][RX] Disabling DRAM ctrl t=%0t, x=%d, y=%d", $time, my_x_i, my_y_i);
+        $display("[INFO][RX] Disabling DRAM ctrl t=%0t, x=%d, y=%d", $time, global_x_i, global_y_i);
     end
 
 

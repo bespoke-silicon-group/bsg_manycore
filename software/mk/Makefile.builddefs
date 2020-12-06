@@ -88,6 +88,12 @@ RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/com
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
+
+# IO_X/Y_INDEX indicates global physical coordinate where the host interface is attached.
+# This macros are required by the program to know where to send the finish/fail packets to the host.
+RISCV_GCC_OPTS +=-DIO_X_INDEX=$(BSG_MACHINE_HOST_X_CORD)
+RISCV_GCC_OPTS +=-DIO_Y_INDEX=$(BSG_MACHINE_HOST_Y_CORD)
+
 ifeq ($(BSG_NEWLIB), 1)
   ARGC ?= 1
   ARGV ?= main
@@ -290,7 +296,8 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 		$(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS) \
 		$(BSG_MACHINE_DRAM_SIZE_WORDS) $(BSG_MACHINE_MAX_EPA_WIDTH) \
 		$(bsg_tiles_org_X) $(bsg_tiles_org_Y) \
-		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) > $*.nbf
+		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) \
+		$(BSG_MACHINE_ORIGIN_X_CORD) $(BSG_MACHINE_ORIGIN_Y_CORD) > $*.nbf
 
 
 %.bin:  %.hex

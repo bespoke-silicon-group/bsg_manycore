@@ -1,9 +1,9 @@
 bsg_tiles_X= 1
 bsg_tiles_Y= 1 
 bsg_tiles_org_X =0
-bsg_tiles_org_Y =2
+bsg_tiles_org_Y =0
 
-export BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/8x4
+#export BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/8x4
 
 all: main.run
 

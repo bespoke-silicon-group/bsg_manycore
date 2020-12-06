@@ -15,8 +15,10 @@ VCS_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
 VCS_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
 VCS_SOURCES  += $(VHEADERS) $(VSOURCES) 
 VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
-	 	+lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS -top spmd_testbench -licqueue \
-    -reportstats
+    +lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS -top spmd_testbench
+VCS_FLAGS    += -licqueue
+VCS_FLAGS    += -reportstats
+VCS_FLAGS    += -assert svaext  # needed for "assert final"
 #VCS_FLAGS    += +vcs+loopreport
 
 VCS_CFLAGS   =  -cpp g++
@@ -29,7 +31,7 @@ VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
 VCS_CFLAGS   += -CFLAGS "-DFMT_HEADER_ONLY=1"
 VCS_CFLAGS   += -CFLAGS "-DBASEJUMP_STL_DIR=$(BASEJUMP_STL_DIR)"
 
-DEFAULT_MACHINES = 16x8_ruche 16x8_mesh 16x8_crossbar 4x4_gs 4x4_no_dram 4x4_fast_fake 8x4
+DEFAULT_MACHINES = pod_1x1 pod_1x1_hbm2 pod_4x4
 
 .PHONY: all clean
 
@@ -43,8 +45,15 @@ all: $(DEFAULT_TARGETS) $(DEFAULT_DEBUG_TARGETS)
 # machine so that the *correct* Makfile.machine.include can be included
 define set_machine_variables
 	$(eval include $1)
-	$(eval VCS_DEFINES := +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
+	$(eval VCS_DEFINES := +define+BSG_MACHINE_PODS_X=${BSG_MACHINE_PODS_X})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_PODS_Y=${BSG_MACHINE_PODS_Y})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_ORIGIN_X_CORD=${BSG_MACHINE_ORIGIN_X_CORD})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_ORIGIN_Y_CORD=${BSG_MACHINE_ORIGIN_Y_CORD})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_GLOBAL_Y=${BSG_MACHINE_GLOBAL_Y})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_HOST_X_CORD=${BSG_MACHINE_HOST_X_CORD})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_HOST_Y_CORD=${BSG_MACHINE_HOST_Y_CORD})
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_ORIGIN_Y_CORD=${BSG_MACHINE_ORIGIN_Y_CORD})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_SET=${BSG_MACHINE_VCACHE_SET})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_WAY=${BSG_MACHINE_VCACHE_WAY})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS})
@@ -58,6 +67,9 @@ define set_machine_variables
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_HETERO_TYPE_VEC="${BSG_MACHINE_HETERO_TYPE_VEC}")
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_NETWORK_CFG="${BSG_MACHINE_NETWORK_CFG}")
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_RUCHE_FACTOR_X="${BSG_MACHINE_RUCHE_FACTOR_X}")
+	# specify where the host module is instantiated for profiler trigger (print_stat).
+	# relative to $root
+	$(eval VCS_DEFINES += +define+HOST_MODULE_PATH=spmd_testbench) 
 	# These define are required by mobile_ddr.v.
 	# density     	= 2048 Mbit
 	# speed grade 	= 5

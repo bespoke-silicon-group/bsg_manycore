@@ -12,13 +12,17 @@ module network_tx
     , parameter addr_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
+    , parameter pod_x_cord_width_p="inv"
+    , parameter pod_y_cord_width_p="inv"
     , parameter epa_byte_addr_width_p="inv"
     , parameter vcache_size_p="inv" // vcache capacity in words
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p="inv"
-    
+ 
     , parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
+    , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
   
     , parameter icache_entries_p="inv"
     , parameter icache_tag_width_p="inv"
@@ -33,8 +37,6 @@ module network_tx
 
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
-
-    , parameter epa_word_addr_width_lp=epa_word_addr_width_gp
 
     , parameter reg_addr_width_lp=RV32_reg_addr_width_gp
 
@@ -57,12 +59,14 @@ module network_tx
     , input returned_fifo_full_i
     , output logic returned_yumi_o
     
-    , input [x_cord_width_p-1:0] tgo_x_i
-    , input [y_cord_width_p-1:0] tgo_y_i
+    , input [x_subcord_width_lp-1:0] tgo_x_i
+    , input [y_subcord_width_lp-1:0] tgo_y_i
     , input dram_enable_i
 
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
+    , input [x_subcord_width_lp-1:0] my_x_i
+    , input [y_subcord_width_lp-1:0] my_y_i
+    , input [pod_x_cord_width_p-1:0] pod_x_i
+    , input [pod_y_cord_width_p-1:0] pod_y_i
 
     // core side
     // vanilla core uses valid-credit interface for outgoing requests.
@@ -115,6 +119,8 @@ module network_tx
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_sets_p(vcache_sets_p)
+    ,.pod_x_cord_width_p(pod_x_cord_width_p)
+    ,.pod_y_cord_width_p(pod_y_cord_width_p)
   ) eva2npa (
     .eva_i(remote_req_i.addr)
     ,.dram_enable_i(dram_enable_i)
@@ -126,6 +132,9 @@ module network_tx
     ,.epa_o(epa_lo)
 
     ,.is_invalid_addr_o(is_invalid_addr_lo) 
+
+    ,.pod_x_i(pod_x_i)
+    ,.pod_y_i(pod_y_i)
   );
 
 
@@ -145,18 +154,32 @@ module network_tx
     out_packet.x_cord = x_cord_lo;
     out_packet.addr = epa_lo;
 
-    out_packet.reg_id = remote_req_i.reg_id;
-    out_packet.op_ex = remote_req_i.is_amo_op
-      ? remote_req_i.amo_type
-      : remote_req_i.mask;
-    out_packet.src_y_cord = my_y_i;
-    out_packet.src_x_cord = my_x_i;
+    if (remote_req_i.write_not_read) begin
+      out_packet.reg_id.store_mask_s.mask = remote_req_i.mask;
+      out_packet.reg_id.store_mask_s.unused = 1'b0;
+    end
+    else begin
+      out_packet.reg_id = remote_req_i.reg_id;
+    end
+    
+    out_packet.src_y_cord = {pod_y_i, my_y_i};
+    out_packet.src_x_cord = {pod_x_i, my_x_i};
 
-    out_packet.op = remote_req_i.is_amo_op
-      ? e_remote_amo
-      : (remote_req_i.write_not_read
-        ? e_remote_store
-        : e_remote_load);
+    if (remote_req_i.is_amo_op) begin
+      case (remote_req_i.amo_type)
+        e_vanilla_amoswap:  out_packet.op_v2 = e_remote_amoswap;
+        e_vanilla_amoor:    out_packet.op_v2 = e_remote_amoor;
+        default:            out_packet.op_v2 = e_remote_amoswap;  // should never happen.
+      endcase
+    end
+    else begin
+      if (remote_req_i.write_not_read) begin
+        out_packet.op_v2 = e_remote_store;
+      end
+      else begin
+        out_packet.op_v2 = e_remote_load;
+      end
+    end
 
   end
 
@@ -204,7 +227,7 @@ module network_tx
 
     if (remote_req_v_i & is_invalid_addr_lo) begin
       $display("[ERROR][TX] Invalid EVA access. t=%0t, x=%d, y=%d, addr=%h",
-        $time, my_x_i, my_y_i, remote_req_i.addr);
+        $time, {pod_x_i, my_x_i}, {pod_y_i, my_y_i}, remote_req_i.addr);
     end 
 
     if (returned_v_i) begin

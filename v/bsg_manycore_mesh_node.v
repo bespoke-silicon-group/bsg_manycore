@@ -50,9 +50,9 @@ module bsg_manycore_mesh_node
     , input  [bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_i
     , output [bsg_manycore_link_sif_width_lp-1:0] proc_link_sif_o
 
-    // tile coordinates
-    , input  [x_cord_width_p-1:0] my_x_i
-    , input  [y_cord_width_p-1:0] my_y_i
+    // tile coordinates (relative to entire array of pods)
+    , input  [x_cord_width_p-1:0] global_x_i
+    , input  [y_cord_width_p-1:0] global_y_i
   );
 
 
@@ -93,8 +93,8 @@ module bsg_manycore_mesh_node
     ,.link_i(link_fwd_sif_li)
     ,.link_o(link_fwd_sif_lo)
 
-    ,.my_x_i(my_x_i)
-    ,.my_y_i(my_y_i)
+    ,.my_x_i(global_x_i)
+    ,.my_y_i(global_y_i)
    );
 
  
@@ -124,8 +124,8 @@ module bsg_manycore_mesh_node
     ,.link_i(link_rev_sif_li)
     ,.link_o(link_rev_sif_lo)
 
-    ,.my_x_i(my_x_i)
-    ,.my_y_i(my_y_i)
+    ,.my_x_i(global_x_i)
+    ,.my_y_i(global_y_i)
    );
 
   

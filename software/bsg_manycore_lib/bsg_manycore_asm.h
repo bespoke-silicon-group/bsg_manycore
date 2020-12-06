@@ -9,15 +9,15 @@
 // Loads and stores
 
 #define bsg_asm_remote_ptr(x,y,local_addr)         \
-    ((REMOTE_EPA_PREFIX << REMOTE_EPA_MASK_SHIFTS) \
-      | ((y) << Y_CORD_SHIFTS )                    \
-      | ((x) << X_CORD_SHIFTS )                    \
+    ((1 << REMOTE_PREFIX_SHIFT) \
+      | ((y) << REMOTE_Y_CORD_SHIFT )                    \
+      | ((x) << REMOTE_X_CORD_SHIFT )                    \
       | ( (local_addr)   )                         \
     )
 
-#define bsg_asm_global_ptr(x,y,local_addr)  ( (GLOBAL_EPA_PREFIX << GLOBAL_EPA_MASK_SHIFTS) \
-                                                               | ((y) << Y_CORD_SHIFTS )                     \
-                                                               | ((x) << X_CORD_SHIFTS )                     \
+#define bsg_asm_global_ptr(x,y,local_addr)  ( (1 << GLOBAL_PREFIX_SHIFT) \
+                                                               | ((y) << GLOBAL_Y_CORD_SHIFT )                     \
+                                                               | ((x) << GLOBAL_X_CORD_SHIFT )                     \
                                                                | ( local_addr          )                     \
                                             )                                               \
 

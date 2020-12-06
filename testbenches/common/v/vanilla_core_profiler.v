@@ -85,8 +85,8 @@ module vanilla_core_profiler
     , input exe_signals_s exe_r
     , input fp_exe_signals_s fp_exe_r
 
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
+    , input [x_cord_width_p-1:0] global_x_i
+    , input [y_cord_width_p-1:0] global_y_i
 
     , input [31:0] global_ctr_i
     , input print_stat_v_i
@@ -102,7 +102,7 @@ module vanilla_core_profiler
 
   // task to print a line of operation trace
   task print_operation_trace(integer fd, string op, logic [data_width_p-1:0] pc);
-    $fwrite(fd, "%0d,%0d,%0d,%0h,%s\n", global_ctr_i, my_x_i - origin_x_cord_p, my_y_i - origin_y_cord_p, pc, op);
+    $fwrite(fd, "%0d,%0d,%0d,%0h,%s\n", global_ctr_i, global_x_i - origin_x_cord_p, global_y_i - origin_y_cord_p, pc, op);
   endtask
 
 
@@ -177,8 +177,8 @@ module vanilla_core_profiler
 
   wire lr_inc = exe_r.decode.is_lr_op;
   wire lr_aq_inc = exe_r.decode.is_lr_aq_op;
-  wire amoswap_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_swap);
-  wire amoor_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_or);
+  wire amoswap_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoswap);
+  wire amoor_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoor);
 
   // branch & jump
   wire beq_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BEQ);
@@ -900,7 +900,7 @@ module vanilla_core_profiler
 
    always @(negedge reset_i) begin      
     // the origin tile opens the logfile and writes the csv header.
-    if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p))) begin
+    if ((global_x_i == x_cord_width_p'(origin_x_cord_p)) & (global_y_i == y_cord_width_p'(origin_y_cord_p))) begin
       fd = $fopen(logfile_lp, "a");
       $fwrite(fd, "time,");
       $fwrite(fd, "x,");
@@ -1057,13 +1057,13 @@ module vanilla_core_profiler
 
    always @(negedge clk_i)  begin
         // stat printing
-        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == my_y_i & print_stat_tag.x_cord == my_x_i) begin
-          $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, my_x_i, my_y_i);
+        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == global_y_i & print_stat_tag.x_cord == global_x_i) begin
+          $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, global_x_i, global_y_i);
 
           fd = $fopen(logfile_lp, "a");
           $fwrite(fd, "%0d,", $time);
-          $fwrite(fd, "%0d,", my_x_i - origin_x_cord_p);
-          $fwrite(fd, "%0d,", my_y_i - origin_y_cord_p);
+          $fwrite(fd, "%0d,", global_x_i - origin_x_cord_p);
+          $fwrite(fd, "%0d,", global_y_i - origin_y_cord_p);
           $fwrite(fd, "%0d,", pc_r);
           $fwrite(fd, "%0d,", pc_n);
           $fwrite(fd, "%0d,", print_stat_tag_i);

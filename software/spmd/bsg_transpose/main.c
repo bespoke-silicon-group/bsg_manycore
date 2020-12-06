@@ -75,7 +75,7 @@ void print_result( dest_array * p_dest ){
             int col_id = i % SUB_ROW_NUM ;
 
             unsigned int data = * ( bsg_remote_ptr( x_cord, y_cord, &( p_dest[row_id][col_id] ) ) );
-            bsg_remote_ptr_io_store( 0, 0, data);
+            bsg_remote_ptr_io_store(IO_X_INDEX, 0, data);
         }
     }
 }
@@ -83,7 +83,7 @@ void print_result1( dest_array * p_dest ){
     for( int i=0; i< SUB_COL_NUM  ;  i++){
         for( int j=0; j< SUB_ROW_NUM; j++){
             unsigned int data = * ( bsg_remote_ptr( 1, 0, &( p_dest[ i ][ j ] ) ) );
-            bsg_remote_ptr_io_store( 0, 0, data);
+            bsg_remote_ptr_io_store(IO_X_INDEX, 0, data);
         }
     }
 }
@@ -102,7 +102,7 @@ int main() {
    bsg_barrier_wait( &tile0_barrier, 0, 0);
 
    //start to transpose
-   if( id == 0) bsg_remote_ptr_io_store(0x0, 0x0, 0x0000cab0);
+   if( id == 0) bsg_remote_ptr_io_store(IO_X_INDEX, 0x0, 0x0000cab0);
 
    transpose( local_source, local_dest);
 
@@ -110,7 +110,7 @@ int main() {
    bsg_barrier_wait( &tile0_trans_barrier, 0, 0);
 
    if( id == 0) {
-       bsg_remote_ptr_io_store(0x0, 0x0, 0x0000cab1);
+       bsg_remote_ptr_io_store(IO_X_INDEX, 0x0, 0x0000cab1);
        print_result( local_dest );
        bsg_finish();
    }

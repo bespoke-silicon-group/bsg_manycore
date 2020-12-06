@@ -30,6 +30,8 @@
                           ,.max_out_credits_p(max_out_credits_p)                       \
                           ,.num_tiles_x_p(num_tiles_x_p)                               \
                           ,.num_tiles_y_p(num_tiles_y_p)                               \
+                          ,.pod_x_cord_width_p(pod_x_cord_width_p)                     \
+                          ,.pod_y_cord_width_p(pod_y_cord_width_p)                     \
                           ,.fwd_fifo_els_p(fwd_fifo_els_p)                             \
                           ) z                                                          \
           (.clk_i                                                                      \
@@ -38,6 +40,8 @@
            ,.link_sif_o                                                                \
            ,.my_x_i                                                                    \
            ,.my_y_i                                                                    \
+           ,.pod_x_i                                                                    \
+           ,.pod_y_i                                                                    \
            );                                                                          \
      end
 
@@ -55,8 +59,12 @@ module bsg_manycore_hetero_socket
     , parameter branch_trace_en_p = 0
     , parameter max_out_credits_p = 32
     , parameter int hetero_type_p = 0
+    , parameter pod_x_cord_width_p="inv"
+    , parameter pod_y_cord_width_p="inv"
     , parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
+    , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+    , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p="inv"
     , parameter fwd_fifo_els_p = "inv"
@@ -73,8 +81,11 @@ module bsg_manycore_hetero_socket
     , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
     // tile coordinates
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
+    , input [x_subcord_width_lp-1:0] my_x_i
+    , input [y_subcord_width_lp-1:0] my_y_i
+
+    , input [pod_x_cord_width_p-1:0] pod_x_i
+    , input [pod_y_cord_width_p-1:0] pod_y_i
   );
 
   // add as many types as you like...

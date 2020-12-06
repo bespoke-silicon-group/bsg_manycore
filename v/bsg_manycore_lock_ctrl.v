@@ -41,8 +41,7 @@ module bsg_manycore_lock_ctrl
     , input [(data_width_p>>3)-1:0] in_mask_i
     , input [addr_width_p-1:0]      in_addr_i
     , input                         in_we_i
-    , input                         in_amo_op_i
-    , input bsg_manycore_amo_type_e in_amo_type_i
+    , input                         in_amo_op_i  // amoswap is assumed
     , input [x_cord_width_p-1:0]    in_x_cord_i
     , input [y_cord_width_p-1:0]    in_y_cord_i
 
@@ -77,7 +76,7 @@ module bsg_manycore_lock_ctrl
     end
     else begin
       // only support amoswap
-      if (amo_op_yumi & (in_amo_type_i == e_amo_swap))
+      if (amo_op_yumi)
         amo_lock_r <= in_data_i[0];
     end
   end
