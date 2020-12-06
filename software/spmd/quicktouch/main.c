@@ -14,6 +14,11 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
+#define VCACHE_BLOCK_SIZE_IN_WORDS 8
+
+float data __attribute__ ((section (".dram"))) = {0};
+
+
 int main()
 {
 
@@ -59,27 +64,21 @@ int main()
   // store the float val to each vcache.
   float a = 1.1;
   float c = -0.32;
-  for (int x = 0; x < bsg_global_X; x++)
+
+  float *dram_ptr = &data;
+  for (int x = 0; x < 2*bsg_global_X; x++)
   {
     float b = (float) x;
-    // bot vcache
     vcache_store_val[x] = (a*b)+c;
-    bsg_global_float_store(x,bsg_global_Y+1,0,vcache_store_val[x]);
-    // top vcache
-    vcache_store_val[bsg_global_X+x] = (a*b)-c;
-    bsg_global_float_store(x,0,0,vcache_store_val[bsg_global_X+x]);
+    dram_ptr[VCACHE_BLOCK_SIZE_IN_WORDS*x] = vcache_store_val[x];
   }
 
   // load the float vals from the vcaches.
   float temp;
-  for (int x = 0; x < bsg_global_X; x++)
+  for (int x = 0; x < 2*bsg_global_X; x++)
   {
-    // bot vcache
-    bsg_global_float_load(x,bsg_global_Y+1,0,temp);
+    temp = dram_ptr[VCACHE_BLOCK_SIZE_IN_WORDS*x];
     vcache_load_val[x] = temp;
-    // top vcache
-    bsg_global_float_load(x,0,0,temp);
-    vcache_load_val[bsg_global_X+x] = temp;
   }
 
   // validate

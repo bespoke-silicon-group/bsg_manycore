@@ -13,9 +13,6 @@ module bsg_nonsynth_manycore_io_complex
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
 
-    , parameter num_tiles_x_p="inv"
-    , parameter num_tiles_y_p="inv"
-
     , parameter io_x_cord_p=0 
     , parameter io_y_cord_p=1
 
@@ -43,9 +40,8 @@ module bsg_nonsynth_manycore_io_complex
     , output logic [data_width_p-1:0] print_stat_tag_o
   );
 
-  initial begin
-    $display("## creating manycore io complex num_tiles.");
-  end
+
+
 
   // endpoint standard
   //
@@ -112,9 +108,12 @@ module bsg_nonsynth_manycore_io_complex
     ,.returned_yumi_i(returned_v_r_lo)
 
     // misc
+    ,.returned_credit_v_r_o()
+    ,.returned_credit_reg_id_r_o()
     ,.out_credits_o(out_credits_lo)
-    ,.my_x_i((x_cord_width_p)'(io_x_cord_p))
-    ,.my_y_i((y_cord_width_p)'(io_y_cord_p))
+
+    ,.global_x_i((x_cord_width_p)'(io_x_cord_p))
+    ,.global_y_i((y_cord_width_p)'(io_y_cord_p))
   );
 
   // monitor

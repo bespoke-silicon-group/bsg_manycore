@@ -29,6 +29,10 @@ localparam fpu_recoded_exp_width_gp    = 8;
 localparam fpu_recoded_sig_width_gp    = 24;
 localparam fpu_recoded_data_width_gp   = (1+fpu_recoded_exp_width_gp+fpu_recoded_sig_width_gp);
 
+// Maximum EPA width for vanilla core (word addr)
+localparam epa_word_addr_width_gp=16;
+
+
 // RV32 Instruction structure
 // Ideally represents a R-type instruction; these fields if
 // present in other types of instructions, appear at same positions
@@ -55,11 +59,17 @@ typedef struct packed {
 
 // remote request from vanilla core
 //
+
+typedef enum logic [0:0] {
+  e_vanilla_amoswap
+  , e_vanilla_amoor
+} bsg_vanilla_amo_type_e;
+
 typedef struct packed
 {
   logic write_not_read;
   logic is_amo_op;
-  bsg_manycore_amo_type_e amo_type;
+  bsg_vanilla_amo_type_e amo_type;
   logic [3:0] mask;
   bsg_manycore_load_info_s load_info;
   logic [bsg_manycore_reg_id_width_gp-1:0] reg_id;
@@ -124,7 +134,7 @@ typedef struct packed {
   logic is_amo_op;
   logic is_amo_aq;
   logic is_amo_rl;
-  bsg_manycore_amo_type_e amo_type;
+  bsg_vanilla_amo_type_e amo_type;
 
   // FPU
   logic is_fp_op;           // goes into FP_EXE

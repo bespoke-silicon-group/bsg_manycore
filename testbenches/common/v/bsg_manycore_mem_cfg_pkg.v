@@ -38,34 +38,40 @@ package bsg_manycore_mem_cfg_pkg;
 
   typedef enum bit [lg_max_cfgs-1:0] {
 
+
+    e_vcache_test_mem
+    
+    ,e_vcache_hbm2
+
+
     // LEVEL 1) zero-latency, infinite capacity block mem.
     //          (uses associative array)
-    e_infinite_mem
+    //e_infinite_mem
     
     // LEVEL 1) bsg_manycore_vcache (blocking)
     // LEVEL 2) bsg_cache_to_axi
     // LEVEL 3) bsg_nonsynth_manycore_axi_mem
-    , e_vcache_blocking_axi4_nonsynth_mem
+    //, e_vcache_blocking_axi4_nonsynth_mem
 
     // LEVEL 1) bsg_manycore_vcache (non-blocking)
     // LEVEL 2) bsg_cache_to_axi
     // LEVEL 3) bsg_nonsynth_manycore_axi_mem
-    , e_vcache_non_blocking_axi4_nonsynth_mem
+    //, e_vcache_non_blocking_axi4_nonsynth_mem
 
     // LEVEL 1) bsg_manycore_vcache (blocking)
     // LEVEL 2) bsg_cache_to_dram_ctrl
     // LEVEL 3) bsg_dmc (lpddr) (512 MB)
-    , e_vcache_blocking_dmc_lpddr
+    //, e_vcache_blocking_dmc_lpddr
 
     // LEVEL 1) bsg_manycore_vcache (non-blocking)
     // LEVEL 2) bsg_cache_to_dram_ctrl
     // LEVEL 3) bsg_dmc (lpddr) (512 MB)
-    , e_vcache_non_blocking_dmc_lpddr
+    //, e_vcache_non_blocking_dmc_lpddr
 
     // LEVEL 1) bsg_manycore_vcache (blocking)
     // LEVEL 2) bsg_cache_to_test_dram
     // LEVEL 3) bsg_nonsynth_dramsim3 (HBM2)
-    , e_vcache_blocking_dramsim3_hbm2
+    //, e_vcache_blocking_dramsim3_hbm2
 
     // placeholder for max enum val
     , e_max_val

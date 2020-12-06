@@ -84,18 +84,22 @@ module bsg_manycore_endpoint_standard
     //    responses that send back from the network
     //    the node shold always be ready to receive this response.
     , output [data_width_p-1:0]                 returned_data_r_o
-    , output [4:0]                              returned_reg_id_r_o
+    , output [bsg_manycore_reg_id_width_gp-1:0]  returned_reg_id_r_o
     , output                                    returned_v_r_o
     , output bsg_manycore_return_packet_type_e  returned_pkt_type_r_o
     , input                                     returned_yumi_i
     , output                                    returned_fifo_full_o
 
 
+    , output                                   returned_credit_v_r_o
+    , output [bsg_manycore_reg_id_width_gp-1:0]  returned_credit_reg_id_r_o
+
     , output [$clog2(max_out_credits_p+1)-1:0] out_credits_o
 
-     // tile coordinates
-    , input   [x_cord_width_p-1:0] my_x_i
-    , input   [y_cord_width_p-1:0] my_y_i
+    // tile coordinates (coordinate in a global array)
+    // currently, for debugging only
+    , input   [x_cord_width_p-1:0] global_x_i
+    , input   [y_cord_width_p-1:0] global_y_i
 
   );
 
@@ -149,18 +153,16 @@ module bsg_manycore_endpoint_standard
   // ----------------------------------------------------------------------------------------
   // Handle incoming request packets
   // ----------------------------------------------------------------------------------------
-  // singals between FIFO to lock_ctrl
+  // signals between FIFO to lock_ctrl
   wire in_yumi_lo, in_v_li;
 
   wire [data_width_p-1:0] in_data_lo = packet_lo.payload;
   wire [addr_width_p-1:0] in_addr_lo = packet_lo.addr;
-  wire[(data_width_p>>3)-1:0] in_mask_lo = packet_lo.op_ex;
-  bsg_manycore_amo_type_e in_amo_type;
-  assign in_amo_type = packet_lo.op_ex.amo_type;
+  wire[(data_width_p>>3)-1:0] in_mask_lo = packet_lo.reg_id.store_mask_s.mask;
 
-  wire pkt_remote_store   = packet_v_lo & (packet_lo.op == e_remote_store  );
-  wire pkt_remote_load    = packet_v_lo & (packet_lo.op == e_remote_load   );
-  wire pkt_remote_amo     = packet_v_lo & (packet_lo.op == e_remote_amo    );
+  wire pkt_remote_store   = packet_v_lo & (packet_lo.op_v2 == e_remote_store  );
+  wire pkt_remote_load    = packet_v_lo & (packet_lo.op_v2 == e_remote_load   );
+  wire pkt_remote_amo     = packet_v_lo & (packet_lo.op_v2 == e_remote_amoswap );
 
   bsg_manycore_load_info_s pkt_load_info;
   assign pkt_load_info = packet_lo.payload.load_info_s.load_info;
@@ -195,7 +197,6 @@ module bsg_manycore_endpoint_standard
     ,.in_addr_i    (in_addr_lo      )
     ,.in_we_i      (pkt_remote_store)
     ,.in_amo_op_i  (pkt_remote_amo  )
-    ,.in_amo_type_i(in_amo_type)
     ,.in_x_cord_i  (packet_lo.src_x_cord )
     ,.in_y_cord_i  (packet_lo.src_y_cord )
     // combined  incoming data interface
@@ -231,9 +232,17 @@ module bsg_manycore_endpoint_standard
 
    returning_credit_info  rc_fifo_li, rc_fifo_lo;
 
+  // AND-OR 5 LSBs of each byte of payload to get the payload hash and return it as reg_id for e_remote_store/e_cache_op.
+  wire [bsg_manycore_reg_id_width_gp-1:0] payload_reg_id;
+  bsg_manycore_reg_id_decode pd0 (
+    .data_i(packet_lo.payload)
+    ,.mask_i(packet_lo.reg_id.store_mask_s.mask)
+    ,.reg_id_o(payload_reg_id)
+  );
+    
 
   assign rc_fifo_li = '{
-    pkt_type : (packet_lo.op == e_remote_store)
+    pkt_type : (packet_lo.op_v2 == e_remote_store)
       ? e_return_credit
       : (pkt_load_info.icache_fetch
         ? e_return_ifetch 
@@ -242,7 +251,10 @@ module bsg_manycore_endpoint_standard
           : e_return_int_wb))
     ,y_cord : packet_lo.src_y_cord
     ,x_cord : packet_lo.src_x_cord
-    ,reg_id : packet_lo.reg_id
+    // e_cache_op uses reg_id field as cache sub op, so it also uses the reg_id encoded in the payload
+    ,reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
+              ? payload_reg_id
+              : packet_lo.reg_id
   };
 
 
@@ -328,6 +340,11 @@ module bsg_manycore_endpoint_standard
   assign returned_yumi_li      = returned_yumi_i | (returned_packet_v_lo & (returned_packet_lo.pkt_type == e_return_credit));
 
 
+
+  assign returned_credit_v_r_o      = returned_credit;
+  assign returned_credit_reg_id_r_o = returned_packet_lo.reg_id;
+
+
   //              //
   //  Assertions  //
   //              //
@@ -336,13 +353,29 @@ module bsg_manycore_endpoint_standard
   if (debug_p) begin
     always_ff @(negedge clk_i) begin
       if (returned_credit)
-        $display("## return packet received by (x,y)=%x,%x",my_x_i,my_y_i);
+        $display("## return packet received by (x,y)=%x,%x",global_x_i,global_y_i);
 
       if (out_v_i)
         $display("## attempting remote store send of data %x, out_credit_or_ready_o = %x (%m)",out_packet_i,out_credit_or_ready_o);
     end
   end
 
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+      if (packet_v_lo) begin
+        assert(
+          (packet_lo.op_v2 != e_remote_amoadd)
+          & (packet_lo.op_v2 != e_remote_amoxor)
+          & (packet_lo.op_v2 != e_remote_amoand)
+          & (packet_lo.op_v2 != e_remote_amoor)
+          & (packet_lo.op_v2 != e_remote_amomin)
+          & (packet_lo.op_v2 != e_remote_amomax)
+          & (packet_lo.op_v2 != e_remote_amominu)
+          & (packet_lo.op_v2 != e_remote_amomaxu)
+        ) else $error("[BSG_ERROR] Incoming packet has an unsupported amo type. op_v2=%d", packet_lo.op_v2);
+      end
+    end
+  end
 
 
   logic out_of_credits_warned = 0;
@@ -353,7 +386,7 @@ module bsg_manycore_endpoint_standard
         if ( ~(reset_i) & ~out_of_credits_warned)
         assert (out_credits_o === 'X || out_credits_o > 0) else
           begin
-             $display("## out of remote store credits(=%d) x,y=%d,%d displaying only once (%m)",out_credits_o,my_x_i,my_y_i);
+             $display("## out of remote store credits(=%d) x,y=%d,%d displaying only once (%m)",out_credits_o,global_x_i,global_y_i);
              $display("##   (this may be a performance problem; or normal behavior)");
              out_of_credits_warned = 1;
           end
@@ -370,19 +403,19 @@ module bsg_manycore_endpoint_standard
    always_ff @(posedge clk_i)  reset_r <= reset_i;
 
    always_ff @(negedge clk_i)
-     assert ( (reset_r!==0) | ~link_sif_i_cast.rev.v | ({return_packet.y_cord, return_packet.x_cord} == {my_y_i, my_x_i}))
+     assert ( (reset_r!==0) | ~link_sif_i_cast.rev.v | ({return_packet.y_cord, return_packet.x_cord} == {global_y_i, global_x_i}))
        else begin
          $error("## errant credit packet v=%b for YX=%d,%d landed at YX=%d,%d (%m)"
                 ,link_sif_i_cast.rev.v
                 ,link_sif_i_cast.rev.data[x_cord_width_p+:y_cord_width_p]
                 ,link_sif_i_cast.rev.data[0+:x_cord_width_p]
-                ,my_y_i,my_x_i);
+                ,global_y_i,global_x_i);
         $finish();
        end
 
    always_ff @(negedge clk_i) begin
         if( (returned_v_r_o === 1'b1) && ( returned_yumi_i != 1'b1) && returned_fifo_full_o ) begin
-                $display("## Returned response will be dropped at YX=%d, %d (%m)", my_y_i, my_x_i);
+                $display("## Returned response will be dropped at YX=%d, %d (%m)", global_y_i, global_x_i);
                 $finish();
         end
   end

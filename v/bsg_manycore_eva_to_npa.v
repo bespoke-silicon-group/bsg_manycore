@@ -18,20 +18,26 @@ module bsg_manycore_eva_to_npa
     , parameter addr_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-    
+    , parameter pod_x_cord_width_p="inv"
+    , parameter pod_y_cord_width_p="inv"
+ 
     , parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
+    , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
 
     , parameter vcache_block_size_in_words_p="inv"  // block size in vcache
     , parameter vcache_size_p="inv" // vcache capacity in words
     , parameter vcache_sets_p="inv" // number of sets in vcache
-
   )
   (
     // EVA 32-bit virtual address used by vanilla core
     input [data_width_p-1:0] eva_i  // byte addr
-    , input [x_cord_width_p-1:0] tgo_x_i // tile-group origin x
-    , input [y_cord_width_p-1:0] tgo_y_i // tile-group origin y
+    , input [x_subcord_width_lp-1:0] tgo_x_i // tile-group origin x
+    , input [y_subcord_width_lp-1:0] tgo_y_i // tile-group origin y
+
+    , input [pod_x_cord_width_p-1:0] pod_x_i
+    , input [pod_y_cord_width_p-1:0] pod_y_i
 
     // When DRAM mode is enabled, DRAM EVA space is striped across vcaches at a cache line granularity.
     // When DRAM mode is disabled, vcaches are only used as block memory, and the striping is disabled,
@@ -39,8 +45,8 @@ module bsg_manycore_eva_to_npa
     , input dram_enable_i // DRAM MODE enable
 
     // NPA (x,y,EPA)
-    , output logic [x_cord_width_p-1:0] x_cord_o  // destination x_cord
-    , output logic [y_cord_width_p-1:0] y_cord_o  // destination y_cord
+    , output logic [x_cord_width_p-1:0] x_cord_o  // destination x_cord (global)
+    , output logic [y_cord_width_p-1:0] y_cord_o  // destination y_cord (global)
     , output logic [addr_width_p-1:0] epa_o       // endpoint physical address (word addr)
 
     // EVA does not map to any valid remote NPA location.
@@ -54,9 +60,6 @@ module bsg_manycore_eva_to_npa
 
 
   // figure out what type of EVA this is.
-  `declare_bsg_manycore_global_addr_s;
-  `declare_bsg_manycore_tile_group_addr_s;
-
   bsg_manycore_global_addr_s global_addr;
   bsg_manycore_tile_group_addr_s tile_group_addr;
 
@@ -74,8 +77,10 @@ module bsg_manycore_eva_to_npa
   localparam hash_bank_input_width_lp = data_width_p-1-2-vcache_word_offset_width_lp;
   localparam hash_bank_index_width_lp = $clog2(((2**hash_bank_input_width_lp)+(2*num_tiles_x_p)-1)/(num_tiles_x_p*2));
 
-  logic [hash_bank_input_width_lp-1:0] hash_bank_input;
-  logic [x_cord_width_p:0] hash_bank_lo;  // {bot_not_top, x_cord}
+  wire [hash_bank_input_width_lp-1:0] hash_bank_input =
+    eva_i[2+vcache_word_offset_width_lp+:hash_bank_input_width_lp];
+
+  logic [x_subcord_width_lp:0] hash_bank_lo;  // {bot_not_top, x_cord}
   logic [hash_bank_index_width_lp-1:0] hash_bank_index_lo;
 
   hash_function #(
@@ -89,16 +94,16 @@ module bsg_manycore_eva_to_npa
   );
 
 
-  assign hash_bank_input = eva_i[2+vcache_word_offset_width_lp+:hash_bank_input_width_lp];
-
 
   always_comb begin
     if (is_dram_addr) begin
       if (dram_enable_i) begin
-        y_cord_o = hash_bank_lo[x_cord_width_p]
-          ? (y_cord_width_p)'(num_tiles_y_p+1) // DRAM ports are directly below the manycore tiles.
-          : {y_cord_width_p{1'b0}};
-        x_cord_o = hash_bank_lo[0+:x_cord_width_p];
+        // DRAM enabled
+        y_cord_o = hash_bank_lo[x_subcord_width_lp]
+          ? {pod_y_cord_width_p'(pod_y_i+1), {y_subcord_width_lp{1'b0}}}
+          : {pod_y_cord_width_p'(pod_y_i-1), {y_subcord_width_lp{1'b1}}};
+        x_cord_o = {pod_x_i, hash_bank_lo[0+:x_subcord_width_lp]};
+
         epa_o = {
           1'b0,
           {(addr_width_p-1-vcache_word_offset_width_lp-hash_bank_index_width_lp){1'b0}},
@@ -109,22 +114,28 @@ module bsg_manycore_eva_to_npa
       end
       else begin
         // DRAM disabled.
-        if (eva_i[30]) begin
-          y_cord_o = (y_cord_width_p)'(1);
-          x_cord_o = '0;
-          epa_o = {1'b1, eva_i[2+:addr_width_p-1]}; // HOST DRAM address
-        end
-        else begin
-          y_cord_o = eva_i[2+lg_vcache_size_lp+x_cord_width_p]
-            ? (y_cord_width_p)'(num_tiles_y_p+1)  // DRAM ports are directly below the manycore tiles.
-            : {y_cord_width_p{1'b0}};
-          x_cord_o = eva_i[2+lg_vcache_size_lp+:x_cord_width_p];
-          epa_o = {
-            1'b0,
-            {(addr_width_p-1-lg_vcache_size_lp){1'b0}},
-            eva_i[2+:lg_vcache_size_lp]
-          };
-        end
+        //if (eva_i[30]) begin
+        //  y_cord_o = (y_cord_width_p)'(1);
+        //  x_cord_o = '0;
+        //  epa_o = {1'b1, eva_i[2+:addr_width_p-1]}; // HOST DRAM address
+        //end
+        //else begin
+
+    
+        // DRAM disabled mode is used when vcaches are used as block RAMs,
+        // in which case the tags will be manually written in the vcaches
+        // to prevent cache miss.
+        // striping is disabled.
+        y_cord_o = eva_i[2+lg_vcache_size_lp+x_subcord_width_lp]
+          ? {pod_y_cord_width_p'(pod_y_i+1), {y_subcord_width_lp{1'b0}}}
+          : {pod_y_cord_width_p'(pod_y_i-1), {y_subcord_width_lp{1'b1}}};
+        x_cord_o = {pod_x_i, eva_i[2+lg_vcache_size_lp+:x_subcord_width_lp]};
+        epa_o = {
+          1'b0,
+          {(addr_width_p-1-lg_vcache_size_lp){1'b0}},
+          eva_i[2+:lg_vcache_size_lp]
+        };
+        //end
       end
     end
     else if (is_global_addr) begin
@@ -132,14 +143,14 @@ module bsg_manycore_eva_to_npa
       // x,y-cord and EPA is directly encoded in EVA.
       y_cord_o = y_cord_width_p'(global_addr.y_cord);
       x_cord_o = x_cord_width_p'(global_addr.x_cord);
-      epa_o = {{(addr_width_p-epa_word_addr_width_gp){1'b0}}, global_addr.addr};
+      epa_o = {{(addr_width_p-global_epa_word_addr_width_gp){1'b0}}, global_addr.addr};
     end
     else if (is_tile_group_addr) begin
       // tile-group addr
       // tile-coordinate in the EVA is added to the tile-group origin register.
-      y_cord_o = y_cord_width_p'(tile_group_addr.y_cord + tgo_y_i);
-      x_cord_o = x_cord_width_p'(tile_group_addr.x_cord + tgo_x_i);
-      epa_o = {{(addr_width_p-epa_word_addr_width_gp){1'b0}}, tile_group_addr.addr};
+      y_cord_o = {pod_y_i, y_subcord_width_lp'(tile_group_addr.y_cord + tgo_y_i)};
+      x_cord_o = {pod_x_i, x_subcord_width_lp'(tile_group_addr.x_cord + tgo_x_i)};
+      epa_o = {{(addr_width_p-tile_group_epa_word_addr_width_gp){1'b0}}, tile_group_addr.addr};
     end
     else begin
       // should never happen

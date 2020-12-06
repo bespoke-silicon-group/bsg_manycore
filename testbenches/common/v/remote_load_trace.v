@@ -28,10 +28,15 @@ module remote_load_trace
     , parameter data_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
+    , parameter pod_x_cord_width_p="inv"
+    , parameter pod_y_cord_width_p="inv"
+    , parameter num_tiles_x_p="inv"
+    , parameter num_tiles_y_p="inv"
+    , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
 
     , parameter origin_x_cord_p="inv"
     , parameter origin_y_cord_p="inv"
-
 
     , parameter tracefile_p = "remote_load_trace.csv"
 
@@ -56,14 +61,18 @@ module remote_load_trace
 
 
     // coord
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
-
+    , input [x_subcord_width_lp-1:0] my_x_i
+    , input [y_subcord_width_lp-1:0] my_y_i
+    , input [pod_x_cord_width_p-1:0] pod_x_i
+    , input [pod_y_cord_width_p-1:0] pod_y_i
 
     // ctrl signal
     , input trace_en_i
     , input [31:0] global_ctr_i
   );
+
+  wire [x_cord_width_p-1:0] global_x = {pod_x_i, my_x_i};
+  wire [y_cord_width_p-1:0] global_y = {pod_y_i, my_y_i};
 
   // manycore packet
   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
@@ -86,13 +95,13 @@ module remote_load_trace
   remote_load_status_s icache_status_r;
 
   wire int_rl_v    = out_v_o & (
-    ((out_packet.op == e_remote_load) & ~load_info.icache_fetch & ~load_info.float_wb)
-    | (out_packet.op == e_remote_amo));
+    ((out_packet.op_v2 == e_remote_load) & ~load_info.icache_fetch & ~load_info.float_wb)
+    | remote_req_i.is_amo_op);
   wire float_rl_v = out_v_o & (
-    (out_packet.op == e_remote_load) & load_info.float_wb); 
+    (out_packet.op_v2 == e_remote_load) & load_info.float_wb); 
 
   wire icache_rl_v = out_v_o & (
-    (out_packet.op == e_remote_load) & load_info.icache_fetch);
+    (out_packet.op_v2 == e_remote_load) & load_info.icache_fetch);
     
   logic [RV32_reg_els_gp-1:0] int_rl_we;
   logic [RV32_reg_els_gp-1:0] float_rl_we;
@@ -159,8 +168,8 @@ module remote_load_trace
 
   // origin tile writes the csv header.
   always @ (negedge reset_i) begin
-    if ((my_x_i == x_cord_width_p'(origin_x_cord_p))
-      & (my_y_i == y_cord_width_p'(origin_y_cord_p))) begin
+    if ((global_x == x_cord_width_p'(origin_x_cord_p))
+      & (global_y == y_cord_width_p'(origin_y_cord_p))) begin
 
       fd = $fopen(tracefile_p, "a");
       $fwrite(fd,"start_cycle,end_cycle,src_x,src_y,dest_x,dest_y,type,latency\n");
@@ -182,8 +191,8 @@ module remote_load_trace
             $fwrite(fd,"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n", 
               int_rl_status_r[returned_reg_id_i].start_cycle,
               global_ctr_i,
-              my_x_i,
-              my_y_i,
+              global_x,
+              global_y,
               int_rl_status_r[returned_reg_id_i].x_cord,
               int_rl_status_r[returned_reg_id_i].y_cord,
               "int",
@@ -197,8 +206,8 @@ module remote_load_trace
             $fwrite(fd,"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n", 
               float_rl_status_r[returned_reg_id_i].start_cycle,
               global_ctr_i,
-              my_x_i,
-              my_y_i,
+              global_x,
+              global_y,
               float_rl_status_r[returned_reg_id_i].x_cord,
               float_rl_status_r[returned_reg_id_i].y_cord,
               "float",
@@ -212,8 +221,8 @@ module remote_load_trace
             $fwrite(fd,"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n", 
               icache_status_r.start_cycle,
               global_ctr_i,
-              my_x_i,
-              my_y_i,
+              global_x,
+              global_y,
               icache_status_r.x_cord,
               icache_status_r.y_cord,
               "icache",

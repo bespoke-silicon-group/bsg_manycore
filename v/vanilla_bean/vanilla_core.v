@@ -86,8 +86,8 @@ module vanilla_core
     , input [credit_counter_width_lp-1:0] out_credits_i    
 
     // For debugging
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
+    , input [x_cord_width_p-1:0] global_x_i
+    , input [y_cord_width_p-1:0] global_y_i
   );
 
   // pipeline signals
@@ -821,14 +821,14 @@ module vanilla_core
         reserved_addr_r <= dmem_addr_li;
         // synopsys translate_off
         if (debug_p)
-          $display("[INFO][VCORE] making reservation. t=%0t, addr=%x, x=%0d, y=%0d", $time, dmem_addr_li, my_x_i, my_y_i);
+          $display("[INFO][VCORE] making reservation. t=%0t, addr=%x, x=%0d, y=%0d", $time, dmem_addr_li, global_x_i, global_y_i);
         // synopsys translate_on
       end
       else if (break_reserve) begin
         reserved_r <= 1'b0;
         // synopsys translate_off
         if (debug_p)
-          $display("[INFO][VCORE] breaking reservation. t=%0t, x=%0d, y=%0d.", $time, my_x_i, my_y_i);
+          $display("[INFO][VCORE] breaking reservation. t=%0t, x=%0d, y=%0d.", $time, global_x_i, global_y_i);
         // synopsys translate_on
       end
     end

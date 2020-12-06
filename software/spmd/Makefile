@@ -14,6 +14,9 @@ NO-RECURSE = \
 	c++ fft memtest16 fhello_malloc striped_vector_sum striped_hello \
 	coremark-top \
 	deprecated \
+	gather_scatter \
+	gather_scatter_multi \
+  striped_struct_vector	\
 	beebs
 
 # Define this variable on cmd line to run coverage analysis. Currently
