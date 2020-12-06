@@ -23,6 +23,7 @@ module spmd_testbench;
   parameter bsg_manycore_mem_cfg_e bsg_manycore_mem_cfg_p = `BSG_MACHINE_MEM_CFG;
   parameter bsg_branch_trace_en_p = `BSG_MACHINE_BRANCH_TRACE_EN;
   parameter vcache_miss_fifo_els_p = `BSG_MACHINE_VCACHE_MISS_FIFO_ELS;
+  parameter start_x_cord_p = `BSG_MACHINE_START_X_CORD;
 
   parameter ruche_factor_X_p    = `BSG_MACHINE_RUCHE_FACTOR_X;
   parameter bsg_manycore_network_cfg_e bsg_manycore_network_cfg_p = `BSG_MACHINE_NETWORK_CFG;
@@ -56,7 +57,7 @@ module spmd_testbench;
 
   // derived param
   parameter axi_strb_width_lp = (axi_data_width_p>>3);
-  parameter x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p);
+  parameter x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p+start_x_cord_p);
   parameter y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p + 2);
 
   parameter vcache_size_p = vcache_sets_p * vcache_ways_p * vcache_block_size_in_words_p;
@@ -168,6 +169,8 @@ module spmd_testbench;
       ,.addr_width_p(bsg_max_epa_width_p)
       ,.num_tiles_x_p(num_tiles_x_p)
       ,.num_tiles_y_p(num_tiles_y_p)
+      ,.x_cord_width_p(x_cord_width_lp)
+      ,.start_x_cord_p(start_x_cord_p)
       ,.branch_trace_en_p(bsg_branch_trace_en_p)
       ,.hetero_type_vec_p(hetero_type_vec_p)
     ) DUT (
@@ -201,6 +204,8 @@ module spmd_testbench;
       ,.addr_width_p(bsg_max_epa_width_p)
       ,.num_tiles_x_p(num_tiles_x_p)
       ,.num_tiles_y_p(num_tiles_y_p)
+      ,.x_cord_width_p(x_cord_width_lp)
+      ,.start_x_cord_p(start_x_cord_p)
       ,.branch_trace_en_p(bsg_branch_trace_en_p)
       ,.hetero_type_vec_p(hetero_type_vec_p)
       ,.ruche_factor_X_p(ruche_factor_X_p)
@@ -269,7 +274,8 @@ module spmd_testbench;
     ,.data_width_p(data_width_p)
     ,.x_cord_width_p(x_cord_width_lp)
     ,.y_cord_width_p(y_cord_width_lp)
-
+    ,.io_x_cord_p(start_x_cord_p)
+    ,.io_y_cord_p(1)
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
   ) io (

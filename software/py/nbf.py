@@ -51,6 +51,7 @@ class NBF:
     self.cache_block_size = config["cache_block_size"]
     self.dram_size = config["dram_size"]
     self.addr_width = config["addr_width"]
+    self.start_x_cord = config["start_x_cord"]
   
     # software setting
     self.tgo_x = config["tgo_x"]
@@ -58,6 +59,7 @@ class NBF:
     self.tg_dim_x = config["tg_dim_x"]
     self.tg_dim_y = config["tg_dim_y"]
     self.enable_dram = config["enable_dram"]
+
 
     # derived params
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size # in words
@@ -180,7 +182,7 @@ class NBF:
   def config_tile_group(self):
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
-        x_eff = self.tgo_x + x
+        x_eff = self.tgo_x + x + self.start_x_cord
         y_eff = self.tgo_y + y
         self.print_nbf(x_eff, y_eff, CSR_TGO_X, self.tgo_x)
         self.print_nbf(x_eff, y_eff, CSR_TGO_Y, self.tgo_y)
@@ -190,7 +192,7 @@ class NBF:
   def init_icache(self):
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
-        x_eff = self.tgo_x + x
+        x_eff = self.tgo_x + x + self.start_x_cord
         y_eff = self.tgo_y + y
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
@@ -208,7 +210,7 @@ class NBF:
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
 
-        x_eff = self.tgo_x + x
+        x_eff = self.tgo_x + x + self.start_x_cord
         y_eff = self.tgo_y + y
           
         for k in range(1024, self.bsg_data_end_addr):
@@ -222,7 +224,7 @@ class NBF:
   def disable_dram(self):
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
-        x_eff = self.tgo_x + x
+        x_eff = self.tgo_x + x + self.start_x_cord
         y_eff = self.tgo_y + y
         self.print_nbf(x_eff, y_eff, CSR_ENABLE_DRAM, 0)
    
@@ -236,8 +238,8 @@ class NBF:
       for t in range(self.cache_way * self.cache_set):
         epa = (t << t_shift) | (1 << (self.addr_width-1))
         data = (1 << (self.data_width-1)) | (t / self.cache_set)
-        self.print_nbf(x, 0, epa, data)
-        self.print_nbf(x, self.num_tiles_y+1, epa, data)
+        self.print_nbf(x+self.start_x_cord, 0, epa, data)
+        self.print_nbf(x+self.start_x_cord, self.num_tiles_y+1, epa, data)
          
  
   # init DRAM
@@ -255,7 +257,7 @@ class NBF:
         # hashing for power of 2 banks
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
-          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1)
+          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + self.start_x_cord
           y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x)
           index = self.select_bits(addr, lg_block_size+lg_x+1, lg_block_size+lg_x+1+index_width-1)
           epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
@@ -271,7 +273,7 @@ class NBF:
       # using vcache as block mem
       for k in sorted(self.dram_data.keys()):
         addr = k - 0x20000000
-        x = addr / cache_size
+        x = (addr / cache_size) + self.start_x_cord
         epa = addr % cache_size
         if (x < self.num_tiles_x):
           self.print_nbf(x, 0, epa, self.dram_data[k])
@@ -284,7 +286,7 @@ class NBF:
 
   # unfreeze tiles
   def unfreeze_tiles(self):
-    tgo_x = self.tgo_x
+    tgo_x = self.tgo_x + self.start_x_cord
     tgo_y = self.tgo_y
 
     for y in range(self.tg_dim_y):
@@ -348,7 +350,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 14:
+  if len(sys.argv) == 15:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -365,6 +367,7 @@ if __name__ == "__main__":
       "tg_dim_x" : int(sys.argv[11]),
       "tg_dim_y" : int(sys.argv[12]),
       "enable_dram" : int(sys.argv[13]),
+      "start_x_cord" : int(sys.argv[14])
     }
 
     converter = NBF(config)
@@ -374,6 +377,6 @@ if __name__ == "__main__":
     command = "python nbf.py {program.riscv} "
     command += "{num_tiles_x} {num_tiles_y} "
     command += "{cache_way} {cache_set} {cache_block_size} {dram_size} {max_epa_width}"
-    command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram}"
+    command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram} {start_x_cord}"
     print(command)
 

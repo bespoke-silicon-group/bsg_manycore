@@ -19,6 +19,7 @@
                           ,.y_cord_width_p(y_cord_width_p)                             \
                           ,.data_width_p(data_width_p)                                 \
                           ,.addr_width_p(addr_width_p)                                 \
+                          ,.start_x_cord_p(start_x_cord_p)                             \
                           ,.dmem_size_p (dmem_size_p )                                 \
                           ,.vcache_size_p(vcache_size_p)                               \
                           ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p) \
@@ -47,6 +48,7 @@ module bsg_manycore_hetero_socket
     , parameter y_cord_width_p = "inv"
     , parameter data_width_p = "inv"
     , parameter addr_width_p = "inv"
+    , parameter start_x_cord_p = "inv"
     , parameter dmem_size_p = "inv"
     , parameter icache_entries_p = "inv" // in words
     , parameter icache_tag_width_p = "inv"

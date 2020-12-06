@@ -18,7 +18,9 @@ module bsg_manycore_eva_to_npa
     , parameter addr_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
-    
+ 
+    , parameter start_x_cord_p="inv"
+   
     , parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
 
@@ -26,6 +28,7 @@ module bsg_manycore_eva_to_npa
     , parameter vcache_size_p="inv" // vcache capacity in words
     , parameter vcache_sets_p="inv" // number of sets in vcache
 
+    , parameter lg_num_tiles_x_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
   )
   (
     // EVA 32-bit virtual address used by vanilla core
@@ -75,7 +78,7 @@ module bsg_manycore_eva_to_npa
   localparam hash_bank_index_width_lp = $clog2(((2**hash_bank_input_width_lp)+(2*num_tiles_x_p)-1)/(num_tiles_x_p*2));
 
   logic [hash_bank_input_width_lp-1:0] hash_bank_input;
-  logic [x_cord_width_p:0] hash_bank_lo;  // {bot_not_top, x_cord}
+  logic [lg_num_tiles_x_lp:0] hash_bank_lo;  // {bot_not_top, x_cord}
   logic [hash_bank_index_width_lp-1:0] hash_bank_index_lo;
 
   hash_function #(
@@ -95,10 +98,10 @@ module bsg_manycore_eva_to_npa
   always_comb begin
     if (is_dram_addr) begin
       if (dram_enable_i) begin
-        y_cord_o = hash_bank_lo[x_cord_width_p]
+        y_cord_o = hash_bank_lo[lg_num_tiles_x_lp]
           ? (y_cord_width_p)'(num_tiles_y_p+1) // DRAM ports are directly below the manycore tiles.
           : {y_cord_width_p{1'b0}};
-        x_cord_o = hash_bank_lo[0+:x_cord_width_p];
+        x_cord_o = (x_cord_width_p)'(hash_bank_lo[0+:lg_num_tiles_x_lp]+start_x_cord_p);
         epa_o = {
           1'b0,
           {(addr_width_p-1-vcache_word_offset_width_lp-hash_bank_index_width_lp){1'b0}},
@@ -115,10 +118,10 @@ module bsg_manycore_eva_to_npa
           epa_o = {1'b1, eva_i[2+:addr_width_p-1]}; // HOST DRAM address
         end
         else begin
-          y_cord_o = eva_i[2+lg_vcache_size_lp+x_cord_width_p]
+          y_cord_o = eva_i[2+lg_vcache_size_lp+lg_num_tiles_x_lp]
             ? (y_cord_width_p)'(num_tiles_y_p+1)  // DRAM ports are directly below the manycore tiles.
             : {y_cord_width_p{1'b0}};
-          x_cord_o = eva_i[2+lg_vcache_size_lp+:x_cord_width_p];
+          x_cord_o = (x_cord_width_p)'(eva_i[2+lg_vcache_size_lp+:lg_num_tiles_x_lp]+start_x_cord_p);
           epa_o = {
             1'b0,
             {(addr_width_p-1-lg_vcache_size_lp){1'b0}},
@@ -137,8 +140,10 @@ module bsg_manycore_eva_to_npa
     else if (is_tile_group_addr) begin
       // tile-group addr
       // tile-coordinate in the EVA is added to the tile-group origin register.
+      // From the programmer's perspective, the tile-group origin is not offsetted by start_x_cord_p.
+      // The eva-to-npa module includes the start_x_cord_p when translating tile-group eva to npa.
       y_cord_o = y_cord_width_p'(tile_group_addr.y_cord + tgo_y_i);
-      x_cord_o = x_cord_width_p'(tile_group_addr.x_cord + tgo_x_i);
+      x_cord_o = x_cord_width_p'(tile_group_addr.x_cord + tgo_x_i + start_x_cord_p);
       epa_o = {{(addr_width_p-epa_word_addr_width_gp){1'b0}}, tile_group_addr.addr};
     end
     else begin

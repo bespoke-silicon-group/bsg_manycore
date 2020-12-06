@@ -30,3 +30,6 @@ BSG_MACHINE_HETERO_TYPE_VEC           = 0,0,0,0,\
 
 BSG_MACHINE_NETWORK_CFG = e_network_mesh
 BSG_MACHINE_RUCHE_FACTOR_X						= 0
+
+
+BSG_MACHINE_START_X_CORD              = 0

@@ -10,6 +10,7 @@ module bsg_manycore_tile_mesh
     , parameter vcache_size_p ="inv"
     , parameter icache_entries_p = "inv"
     , parameter icache_tag_width_p = "inv"
+    , parameter start_x_cord_p ="inv"
     , parameter x_cord_width_p = "inv"
     , parameter y_cord_width_p = "inv"
     , parameter num_tiles_x_p="inv"
@@ -111,6 +112,7 @@ module bsg_manycore_tile_mesh
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
 
+    ,.start_x_cord_p(start_x_cord_p)
     ,.dmem_size_p(dmem_size_p)
     ,.vcache_size_p(vcache_size_p)
     ,.icache_entries_p(icache_entries_p)

@@ -16,7 +16,9 @@ module network_tx
     , parameter vcache_size_p="inv" // vcache capacity in words
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p="inv"
-    
+ 
+    , parameter start_x_cord_p="inv"
+   
     , parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
   
@@ -108,6 +110,7 @@ module network_tx
   bsg_manycore_eva_to_npa #(
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
+    ,.start_x_cord_p(start_x_cord_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
     ,.num_tiles_x_p(num_tiles_x_p)

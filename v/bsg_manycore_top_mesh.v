@@ -36,14 +36,20 @@ module bsg_manycore_top_mesh
     // Enable branch/jalr trace
     , parameter branch_trace_en_p = 0
 
+    // x-coordinate of the leftmost tiles
+    // This can be set to 1 or greater to allow attaching accelerators on the left side.
+    , parameter start_x_cord_p = 0
+
     // y = 0                  top vcache
     // y = 1                  IO routers
     // y = num_tiles_y_p+1    bottom vcache
     , parameter y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p+2)
-    , parameter x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+
+    // By default, x-coordinate is clog2(num_tiles_x_p), but it can be set to greater value to allow attaching accelerators on the side.
+    , parameter x_cord_width_p = `BSG_SAFE_CLOG2(start_x_cord_p+num_tiles_x_p)
 
     , parameter link_sif_width_lp =
-      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_lp)
 
     // The number of registers between the reset_i port and the reset sinks
     // Must be >= 1
@@ -116,7 +122,7 @@ module bsg_manycore_top_mesh
 
 
   // Instantiate tiles.
-  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
+  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_lp);
   bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
   bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
  
@@ -128,7 +134,8 @@ module bsg_manycore_top_mesh
         ,.vcache_size_p (vcache_size_p)
         ,.icache_entries_p(icache_entries_p)
         ,.icache_tag_width_p(icache_tag_width_p)
-        ,.x_cord_width_p(x_cord_width_lp)
+        ,.start_x_cord_p(start_x_cord_p)
+        ,.x_cord_width_p(x_cord_width_p)
         ,.y_cord_width_p(y_cord_width_lp)
         ,.data_width_p(data_width_p)
         ,.addr_width_p(addr_width_p)
@@ -146,7 +153,7 @@ module bsg_manycore_top_mesh
         ,.link_i(link_in[r-1][c])
         ,.link_o(link_out[r-1][c])
 
-        ,.my_x_i(x_cord_width_lp'(c))
+        ,.my_x_i(x_cord_width_p'(c+start_x_cord_p))
         ,.my_y_i(y_cord_width_lp'(r))
       );
     end
@@ -156,7 +163,7 @@ module bsg_manycore_top_mesh
   // Instantiate IO routers.
   for (genvar c = 0; c < num_tiles_x_p; c=c+1) begin: io
     bsg_manycore_mesh_node #(
-      .x_cord_width_p     (x_cord_width_lp )
+      .x_cord_width_p     (x_cord_width_p )
       ,.y_cord_width_p     (y_cord_width_lp )
       ,.data_width_p       (data_width_p    )
       ,.addr_width_p       (addr_width_p    )
@@ -171,7 +178,7 @@ module bsg_manycore_top_mesh
       ,.proc_link_sif_o  ( io_link_sif_o [ c ])
         
       // tile coordinates
-      ,.my_x_i   ( x_cord_width_lp'(c))
+      ,.my_x_i   ( x_cord_width_p'(c+start_x_cord_p))
       ,.my_y_i   ( y_cord_width_lp'(1))
    );
   end

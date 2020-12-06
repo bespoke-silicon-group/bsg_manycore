@@ -15,7 +15,7 @@ Machine.machine.include parameters
                                             If this flag is set to zero, the manycore can only operate in NO-DRAM mode,
                                             meaning that the vcache is only used as block memory.
 - BSG_MACHINE_MAX_EPA_WIDTH             =   Width of word address on the mesh network.
-- BSG_MACHINE_MEM_CFG                   =   e_vcache_non_blocking_axi4_nonsynth_mem
+- BSG_MACHINE_MEM_CFG                   =   e_vcache_non_blocking_axi4_nonsynth_mem (look at bsg_manycore_mem_cfg_pkg.v)
 - BSG_MACHINE_BRANCH_TRACE_EN           =   Enable branch trace.
 - BSG_MACHINE_HETERO_TYPE_VEC           =   Hetero type vector. Default configuration is 'default:0'.
                                             Use this to instantiate custom accelerator instead of vanilla core.
@@ -23,4 +23,6 @@ Machine.machine.include parameters
 - BSG_MACHINE_NETWORK_CFG               =   Manycore Network configuration (look at bsg_manycore_network_cfg_pkg.v)
 - BSG_MACHINE_RUCHE_FACTOR_X            =   Ruche Factor X. Only valid if network config is ruche.
 
+
+- BSG_MACHINE_START_X_CORD              =   X-coordinate of the leftmost tile. (only valid for network config of ruche and mesh)
 ```

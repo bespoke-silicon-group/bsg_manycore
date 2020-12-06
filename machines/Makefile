@@ -29,7 +29,8 @@ VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
 VCS_CFLAGS   += -CFLAGS "-DFMT_HEADER_ONLY=1"
 VCS_CFLAGS   += -CFLAGS "-DBASEJUMP_STL_DIR=$(BASEJUMP_STL_DIR)"
 
-DEFAULT_MACHINES = 16x8_ruche 16x8_mesh 16x8_crossbar 4x4_gs 4x4_no_dram 4x4_fast_fake 8x4
+DEFAULT_MACHINES = 16x8_ruche 16x8_mesh 16x8_crossbar 4x4_gs 4x4_no_dram 4x4_fast_fake 8x4 32x16_ruche
+
 
 .PHONY: all clean
 
@@ -58,6 +59,7 @@ define set_machine_variables
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_HETERO_TYPE_VEC="${BSG_MACHINE_HETERO_TYPE_VEC}")
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_NETWORK_CFG="${BSG_MACHINE_NETWORK_CFG}")
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_RUCHE_FACTOR_X="${BSG_MACHINE_RUCHE_FACTOR_X}")
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_START_X_CORD="${BSG_MACHINE_START_X_CORD}")
 	# These define are required by mobile_ddr.v.
 	# density     	= 2048 Mbit
 	# speed grade 	= 5

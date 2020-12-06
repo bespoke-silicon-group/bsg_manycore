@@ -4,8 +4,8 @@
 //------------------------------------------------------
 // 0. basic SoC definitaion
 //------------------------------------------------------
-#define IO_X_INDEX     (0) 
-#define IO_Y_INDEX     (1) 
+//#define IO_X_INDEX     (0) 
+//#define IO_Y_INDEX     (1) 
 //in words.
 #define EPA_ADDR_BITS                   18
 
