@@ -28,7 +28,8 @@ module regfile_synth
     , output logic [num_rs_p-1:0][width_p-1:0] r_data_o
   );
 
-
+  wire unused = reset_i;
+  
   logic [num_rs_p-1:0][addr_width_lp-1:0] r_addr_r;
 
 
