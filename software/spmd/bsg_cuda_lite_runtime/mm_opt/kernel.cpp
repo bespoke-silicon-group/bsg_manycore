@@ -28,7 +28,7 @@ inline void load_block(float * bsg_attr_noalias dest,
         //                asm("lw x0, %0": : "m" (src[i * src_strides[0]]));
         //        }
 
-        bsg_unroll(2)
+        //bsg_unroll(2)
         for (int i = 0; i < BY; i++) {
                 // If the unroll factor > B, it will unroll by factor B
                 // instead.
@@ -298,7 +298,7 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
                                         bsg_cuda_print_stat_end(2);
                                         bsg_cuda_print_stat_start(3);
                                 }
-                                accum_block<BY, BY/2, BX, BX/2, LOAD_M1_TRANSPOSED>(psum, block_row, block_col);
+                                accum_block<BY, 4, BX, 4, LOAD_M1_TRANSPOSED>(psum, block_row, block_col);
                                 if(PROFILE){
                                         bsg_cuda_print_stat_end(3);
                                 }
@@ -324,7 +324,7 @@ int kernel_mm_opt(float bsg_attr_remote * bsg_attr_noalias result,
 
         return 0;
 }
-
+/*
 extern "C"
 int kernel_mm_opt_8x8(
                   hb_tensor_t* _result,
@@ -336,6 +336,28 @@ int kernel_mm_opt_8x8(
         auto result = HBTensor<float, 2>(_result);
         
         kernel_mm_opt<8,8,false, false>((float* bsg_attr_noalias) result.data_ptr(),
+                                        result.get_strides(),
+                                        (float* bsg_attr_noalias) mat1.data_ptr(),
+                                        mat1.get_strides(),
+                                        mat1.dim(0), mat1.dim(1),
+                                        (float* bsg_attr_noalias) mat2.data_ptr(),
+                                        mat2.get_strides(),
+                                        mat2.dim(0), mat2.dim(1));
+        g_barrier.sync();
+        return 0;
+}
+*/
+extern "C"
+int kernel_mm_opt_16x16(
+                  hb_tensor_t* _result,
+                  hb_tensor_t* _mat1,
+                  hb_tensor_t* _mat2) {
+
+        auto mat1 = HBTensor<float, 2>(_mat1);
+        auto mat2 = HBTensor<float, 2>(_mat2);
+        auto result = HBTensor<float, 2>(_result);
+        
+        kernel_mm_opt<16,16,false, false>((float* bsg_attr_noalias) result.data_ptr(),
                                         result.get_strides(),
                                         (float* bsg_attr_noalias) mat1.data_ptr(),
                                         mat1.get_strides(),
