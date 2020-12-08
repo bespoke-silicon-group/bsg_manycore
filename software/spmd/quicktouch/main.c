@@ -6,102 +6,87 @@
  *  this tile also computes some floating-point multiply-add value and store
  *  in the first word of each vcache, and it reads them back to validate.
  *
+ *  This is a quick smoke test for gate-level simulation.
+ *
  */
 
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-
-#define hex(X) (*(int*)&X)
-
-
 int main()
 {
-  
+
   int remote_tile_store_val[bsg_global_X*(bsg_global_Y-1)];
   int remote_tile_load_val[bsg_global_X*(bsg_global_Y-1)];
-
-  bsg_set_tile_x_y();
-  int my_id = __bsg_grp_org_x + ((__bsg_grp_org_y-1)*bsg_global_X);
   int my_int;
 
+  // store a calculated val in each tile's dmem
   for (int x = 0; x < bsg_global_X; x++)
   {
     for (int y = 0; y < bsg_global_Y-1; y++)
     {
       int id = x+(y*bsg_global_X);
+      remote_tile_store_val[id] = 0xdead+x+y;
+      bsg_remote_store(x, y, &my_int, remote_tile_store_val[id]);
 
-      if (id != my_id) 
-      {
-        remote_tile_store_val[id] = 0xdead+x+y;
-        bsg_global_store(x, y+2, &my_int, remote_tile_store_val[id]);
-      }
     }
   }
-
-  for (int x = 0; x < bsg_global_X; x++)
-  {
-    for (int y = 0; y < bsg_global_Y-1; y++)
-    {
-      int id = x+(y*bsg_global_X);
-
-      if (id != my_id) 
-      {
-        bsg_global_load(x, y+2, &my_int, remote_tile_load_val[id]);
-      }
-    }
-  }
-
-  for (int x = 0; x < bsg_global_X; x++)
-  {
-    for (int y = 0; y < bsg_global_Y-1; y++)
-    {
-      int id = x+(y*bsg_global_X);
-
-      if (id != my_id) 
-      {
-        if (remote_tile_load_val[id] != remote_tile_store_val[id])
-        {
-          bsg_printf("x,y: %d %d, expected: %x actual: %x\n",
-            x, y, remote_tile_store_val[id], remote_tile_load_val[id]
-          );
-
-          bsg_fail();
-        }
-      }
-    }
-  }
-
-  float vcache_store_val[bsg_global_X];
-  float vcache_load_val[bsg_global_X];
   
+  // load the stored vals from tiles and  put them in local dmem
   for (int x = 0; x < bsg_global_X; x++)
   {
-    float a = 1.1;
+    for (int y = 0; y < bsg_global_Y-1; y++)
+    {
+      int id = x+(y*bsg_global_X);
+      bsg_remote_load(x, y, &my_int, remote_tile_load_val[id]);
+    }
+  }
+
+  // validate
+  for (int id = 0; id < bsg_global_X*(bsg_global_Y-1); id++)
+  {
+    if (remote_tile_load_val[id] != remote_tile_store_val[id])
+      bsg_fail();
+  }
+
+
+  // first half of array = bot vcache
+  // second half of array = top vcache
+  float vcache_store_val[bsg_global_X*2];
+  float vcache_load_val[bsg_global_X*2];
+  
+  // store the float val to each vcache.
+  float a = 1.1;
+  float c = -0.32;
+  for (int x = 0; x < bsg_global_X; x++)
+  {
     float b = (float) x;
-    float c = -0.32;
+    // bot vcache
     vcache_store_val[x] = (a*b)+c;
     bsg_global_float_store(x,bsg_global_Y+1,0,vcache_store_val[x]);
+    // top vcache
+    vcache_store_val[bsg_global_X+x] = (a*b)-c;
+    bsg_global_float_store(x,0,0,vcache_store_val[bsg_global_X+x]);
   }
 
-
+  // load the float vals from the vcaches.
+  float temp;
   for (int x = 0; x < bsg_global_X; x++)
   {
-    float temp;
+    // bot vcache
     bsg_global_float_load(x,bsg_global_Y+1,0,temp);
     vcache_load_val[x] = temp;
+    // top vcache
+    bsg_global_float_load(x,0,0,temp);
+    vcache_load_val[bsg_global_X+x] = temp;
   }
 
-
-  for (int x = 0; x < bsg_global_X; x++)
+  // validate
+  for (int x = 0; x < bsg_global_X*2; x++)
   {
     if (vcache_load_val[x] != vcache_store_val[x])
-    {
-      bsg_printf("x: %d, expected: %x, actual: %x\n",
-        x, hex(vcache_store_val[x]), hex(vcache_load_val[x]));
       bsg_fail();
-    }
   }
 
   bsg_finish();
