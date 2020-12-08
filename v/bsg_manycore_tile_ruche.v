@@ -160,53 +160,36 @@ module bsg_manycore_tile_ruche
   assign ruche_link_li = ruche_link_i;
   assign ruche_link_o = ruche_link_lo;
 
+
   // For incoming fwd, inject my_y_i as src_y.
   // For incoming rev, inject my_y_i as dest_y.
-  assign links_sif_li[5].fwd = {
-    ruche_link_li[0][E].fwd[$bits(bsg_manycore_fwd_ruche_x_link_s)-1:(2*x_cord_width_p)+y_cord_width_p],
-    my_y_i,
-    ruche_link_li[0][E].fwd[(2*x_cord_width_p)+y_cord_width_p-1:0]
-  }; 
-  assign links_sif_li[5].rev = {
-    ruche_link_li[0][E].rev[$bits(bsg_manycore_rev_ruche_x_link_s)-1:x_cord_width_p],
-    my_y_i,
-    ruche_link_li[0][E].rev[x_cord_width_p-1:0]
-  };
-  assign links_sif_li[4].fwd = {
-    ruche_link_li[0][W].fwd[$bits(bsg_manycore_fwd_ruche_x_link_s)-1:(2*x_cord_width_p)+y_cord_width_p],
-    my_y_i,
-    ruche_link_li[0][W].fwd[(2*x_cord_width_p)+y_cord_width_p-1:0]
-  }; 
-  assign links_sif_li[4].rev = {
-    ruche_link_li[0][W].rev[$bits(bsg_manycore_rev_ruche_x_link_s)-1:x_cord_width_p],
-    my_y_i,
-    ruche_link_li[0][W].rev[x_cord_width_p-1:0]
-  };
+  assign links_sif_li[5].fwd =
+    `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][E].fwd,my_y_i);
+  assign links_sif_li[5].rev =
+    `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][E].rev,my_y_i);
+  assign links_sif_li[4].fwd =
+    `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][W].fwd,my_y_i);
+  assign links_sif_li[4].rev =
+    `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][W].rev,my_y_i);
+
 
   // For outgoing fwd, filter out src_y.
   // For outgoing rev, filter out dest_y.
-  assign ruche_link_lo[0][E].fwd = {
-    links_sif_lo[5].fwd[$bits(bsg_manycore_fwd_link_sif_s)-1:2*(x_cord_width_p+y_cord_width_p)],
-    links_sif_lo[5].fwd[(2*x_cord_width_p)+y_cord_width_p-1:0]
-  };
-  assign ruche_link_lo[0][E].rev = {
-    links_sif_lo[5].rev[$bits(bsg_manycore_rev_link_sif_s)-1:x_cord_width_p+y_cord_width_p],
-    links_sif_lo[5].rev[x_cord_width_p-1:0]
-  };
-  assign ruche_link_lo[0][W].fwd = {
-    links_sif_lo[4].fwd[$bits(bsg_manycore_fwd_link_sif_s)-1:2*(x_cord_width_p+y_cord_width_p)],
-    links_sif_lo[4].fwd[(2*x_cord_width_p)+y_cord_width_p-1:0]
-  };
-  assign ruche_link_lo[0][W].rev = {
-    links_sif_lo[4].rev[$bits(bsg_manycore_rev_link_sif_s)-1:x_cord_width_p+y_cord_width_p],
-    links_sif_lo[4].rev[x_cord_width_p-1:0]
-  };
+  assign ruche_link_lo[0][E].fwd =
+    `bsg_manycore_link_sif_fwd_filter_src_y(x_cord_width_p,y_cord_width_p,links_sif_lo[5].fwd);
+  assign ruche_link_lo[0][E].rev =
+    `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,links_sif_lo[5].rev);
+  assign ruche_link_lo[0][W].fwd =
+    `bsg_manycore_link_sif_fwd_filter_src_y(x_cord_width_p,y_cord_width_p,links_sif_lo[4].fwd);
+  assign ruche_link_lo[0][W].rev =
+    `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,links_sif_lo[4].rev);
 
+
+  // Connect feedthrough ruche links.
   for (genvar i = 1; i < ruche_factor_X_p; i++) begin
     assign ruche_link_lo[i][E] = ruche_link_li[i][W];
     assign ruche_link_lo[i][W] = ruche_link_li[i][E];
   end
-
 
 
 
