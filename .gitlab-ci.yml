@@ -1,6 +1,3 @@
-default:
-  timeout: 2h 20m
-
 variables:
   GIT_STRATEGY: none
   GIT_SUBMODULE_STRATEGY: none
