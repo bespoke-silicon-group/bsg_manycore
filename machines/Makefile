@@ -2,7 +2,7 @@
 
 BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
 # By convention, basejump_stl is in the same directory as $(BSG_MANYCORE_DIR)
-BASEJUMP_STL_DIR := $(BSG_MANYCORE_DIR)/../basejump_stl
+BASEJUMP_STL_DIR := $(abspath $(BSG_MANYCORE_DIR)/../basejump_stl)
 
 # Sets "VCS" variable
 include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
@@ -29,7 +29,7 @@ VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
 VCS_CFLAGS   += -CFLAGS "-DFMT_HEADER_ONLY=1"
 VCS_CFLAGS   += -CFLAGS "-DBASEJUMP_STL_DIR=$(BASEJUMP_STL_DIR)"
 
-DEFAULT_MACHINES = 4x4 16x8 4x4_fast_fake 4x4_gs
+DEFAULT_MACHINES = 16x8_ruche 16x8_mesh 16x8_crossbar 4x4_gs 4x4_no_dram 4x4_fast_fake 8x4
 
 .PHONY: all clean
 
@@ -56,7 +56,8 @@ define set_machine_variables
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_BRANCH_TRACE_EN=${BSG_MACHINE_BRANCH_TRACE_EN})
 	$(eval VCS_DEFINES += +define+BSG_MACHINE_HETERO_TYPE_VEC="${BSG_MACHINE_HETERO_TYPE_VEC}")
-	$(eval VCS_DEFINES += +define+BSG_MACHINE_CROSSBAR_NETWORK="${BSG_MACHINE_CROSSBAR_NETWORK}")
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_NETWORK_CFG="${BSG_MACHINE_NETWORK_CFG}")
+	$(eval VCS_DEFINES += +define+BSG_MACHINE_RUCHE_FACTOR_X="${BSG_MACHINE_RUCHE_FACTOR_X}")
 	# These define are required by mobile_ddr.v.
 	# density     	= 2048 Mbit
 	# speed grade 	= 5

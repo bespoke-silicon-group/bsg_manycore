@@ -164,6 +164,55 @@ package bsg_manycore_pkg;
     } bsg_manycore_link_sif_s
 
 
+
+  //  Ruche X link struct
+  //  We can take advantage of the dimension-ordered depopulated routing,
+  //  and optimize out some of the coordinate bits to save wiring tracks.
+  //  For request packet, src_y cord can be optimized out.
+  //  For response packet, dest_y cord can be optimized out.
+
+  `define bsg_manycore_ruche_x_link_sif_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
+    (`bsg_manycore_link_sif_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp)-(2*y_cord_width_mp))
+
+  `define declare_bsg_manycore_ruche_x_link_sif_s(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
+    `declare_bsg_ready_and_link_sif_s(`bsg_manycore_packet_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp)-y_cord_width_mp,bsg_manycore_fwd_ruche_x_link_s); \
+    `declare_bsg_ready_and_link_sif_s(`bsg_manycore_return_packet_width(x_cord_width_mp,y_cord_width_mp,data_width_mp)-y_cord_width_mp,bsg_manycore_rev_ruche_x_link_s); \
+    typedef struct packed {                 \
+      bsg_manycore_fwd_ruche_x_link_s fwd;  \
+      bsg_manycore_rev_ruche_x_link_s rev;  \
+    } bsg_manycore_ruche_x_link_sif_s
+
+
+  // Use these macros to convert between ruche links and local links.
+  `define bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_mp,y_cord_width_mp,ruche_link_fwd,my_y)       \
+    {                                                                                                           \
+      ruche_link_fwd[$bits(ruche_link_fwd)-1:(2*x_cord_width_mp)+y_cord_width_mp],                              \
+      my_y,                                                                                                     \
+      ruche_link_fwd[(2*x_cord_width_mp)+y_cord_width_mp-1:0]                                                   \
+    }
+  
+  `define bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_mp,y_cord_width_mp,ruche_link_rev,my_y)      \
+    {                                                                                                           \
+      ruche_link_rev[$bits(ruche_link_rev)-1:x_cord_width_mp],                                                  \
+      my_y,                                                                                                     \
+      ruche_link_rev[x_cord_width_mp-1:0]                                                                       \
+    }
+
+  `define bsg_manycore_link_sif_fwd_filter_src_y(x_cord_width_mp,y_cord_width_mp,link_fwd)                      \
+    {                                                                                                           \
+      link_fwd[$bits(link_fwd)-1:2*(x_cord_width_mp+y_cord_width_mp)],                                          \
+      link_fwd[(2*x_cord_width_mp)+y_cord_width_mp-1:0]                                                         \
+    }
+  
+  `define bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_mp,y_cord_width_mp,link_rev)                     \
+    {                                                                                                           \
+      link_rev[$bits(link_rev)-1:x_cord_width_mp+y_cord_width_mp],                                              \
+      link_rev[x_cord_width_mp-1:0]                                                                             \
+    }
+  
+
+
+
   // EVA Address Format
 
   localparam epa_word_addr_width_gp = 16; // max EPA width on vanilla core. (word addr)

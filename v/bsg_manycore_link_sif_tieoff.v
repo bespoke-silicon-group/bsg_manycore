@@ -1,92 +1,55 @@
-// bsg_manycore_link_sif_tieoff
-//
-// this is used to tie off manycore links
-//
-// NB: the manycore also contains "stub_p" parameters to tie off network links.
-// that one will result in lower area.
-//
-// However, if for physical design, we are trying to use a single replicated
-// design, this would be the module to use.
-//
-//
+/**
+ *    bsg_manycore_link_sif_tieoff.v
+ *
+ *    This is used to tie off manycore links on the edge.
+ *    If the tied off link receives a packet (request or return), it prints an error.
+ *
+ */
+
 
 module bsg_manycore_link_sif_tieoff
   import bsg_manycore_pkg::*;
-  #(  addr_width_p  = 32
-      , data_width_p  = 32
-      , x_cord_width_p = "inv"
-      , y_cord_width_p = "inv"
-      , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p)
-      )
-   (
+  #(parameter addr_width_p = "inv"
+    , parameter data_width_p = "inv"
+    , parameter x_cord_width_p = "inv"
+    , parameter y_cord_width_p = "inv"
+    , parameter link_sif_width_lp =
+    `bsg_manycore_link_sif_width(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p)
+  )
+  (
     // debug only
     input clk_i
     , input reset_i
 
-    , input [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
-    , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
-    );
+    , input [link_sif_width_lp-1:0] link_sif_i
+    , output [link_sif_width_lp-1:0] link_sif_o
+  );
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+  bsg_manycore_link_sif_s link_sif_in;
+  assign link_sif_in = link_sif_i;
+  assign link_sif_o  = '0;
 
-   bsg_manycore_link_sif_s link_sif_i_cast, link_sif_o_cast;
-   assign link_sif_i_cast = link_sif_i;
-   assign link_sif_o      = link_sif_o_cast;
+ `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+  bsg_manycore_packet_s fwd_packet = link_sif_in.fwd.data;
+  bsg_manycore_return_packet_s rev_packet = link_sif_in.rev.data;
 
-   wire   _unused1 = & (link_sif_i_cast.fwd.data); // mostly used; sometimes we use the return packet
-   wire   _unused2 = & (link_sif_i_cast.rev.data);
-   wire   _unused3 = link_sif_i_cast.rev.v;       // we ignore return packets coming in
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+      // handle errant fwd packet
+      if (link_sif_in.fwd.v) begin
+        $error("[BSG_ERROR] Errant fwd packet detected: src_x=%0d, src_y=%0d, dest_x=%0d, dest_y=%0d.",
+          fwd_packet.src_x_cord, fwd_packet.src_y_cord, fwd_packet.x_cord, fwd_packet.y_cord);
+      end
 
-   // we don't inject any non-return data into the array
-   assign link_sif_o_cast.fwd.v         = 1'b0;
-   assign link_sif_o_cast.fwd.data         = 0;
+      // handle errant rev packet
+      if (link_sif_in.rev.v) begin
+        $error("[BSG_ERROR] Errant rev packet detected: dest_x=%0d, dest_y=%0d.",
+          rev_packet.x_cord, rev_packet.y_cord);
+      end
+    end
+  end
+  // synopsys translate_on
 
-   // we will absorb incoming packets, but only if we can turn around and send back a credit
-   // on return channel
-
-   // do we have to zero this on reset; otherwise we don't come out of reset correctly?
-   assign link_sif_o_cast.fwd.ready_and_rev = link_sif_i_cast.rev.ready_and_rev;  // & ~reset_i;
-
-   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-
-   bsg_manycore_packet_s            temp;
-   assign temp = link_sif_i_cast.fwd.data;
-
-   // send a credit packet back; if they route a packet off the side of the chip
-   bsg_manycore_return_packet_s     return_pkt      ;
-   assign return_pkt.pkt_type          = e_return_credit ;
-   assign return_pkt.data              = data_width_p'(0)   ;
-   assign return_pkt.y_cord            = temp.src_y_cord    ;
-   assign return_pkt.x_cord            = temp.src_x_cord    ;
-
-   assign link_sif_o_cast.rev.v        = link_sif_i_cast.fwd.v;
-   assign link_sif_o_cast.rev.data     = return_pkt;
-
-   // absorb all outgoing return packets; they will disappear into the night
-   assign link_sif_o_cast.rev.ready_and_rev = 1'b1;
-
-   // synopsys translate_off
-   always_ff @(negedge clk_i)
-     begin
-        if (!reset_i)
-          begin
-             if (link_sif_i_cast.fwd.v)
-               begin
-                  $write("BSG_ERROR errant packet:");
-                  $write("op=2'b%b, op_ex=4'b%b, addr=%0d'h%h data=%0d'h%h (x,y)=(%0d'b%b,%0d'b%b), return (x,y)=(%0d'b%b,%0d'b%b)"
-                    ,temp.op, temp.op_ex
-                    ,$bits(temp.addr), temp.addr
-                    ,$bits(temp.payload), temp.payload
-                    ,$bits(temp.x_cord), temp.x_cord
-                    ,$bits(temp.y_cord), temp.y_cord
-                    ,$bits(temp.src_x_cord), temp.src_x_cord
-                    ,$bits(temp.src_y_cord), temp.src_y_cord);
-                  $error("%m unexpected data %x to tied off port; sending credit packet",link_sif_i_cast.fwd.data);
-               end
-             if (link_sif_i_cast.rev.v)
-               $error("%m unexpected return data %x to tied off port; absorbing",link_sif_i_cast.rev.data);
-          end
-     end
-   // synopsys translate_on
-
-endmodule // bsg_manycore_link_sif_tieoff
+endmodule

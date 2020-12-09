@@ -12,6 +12,7 @@ VINCLUDES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/RISCV
 
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_defines.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_pkg.v
+VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_router_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_links.vh
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_non_blocking_pkg.v
@@ -51,6 +52,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_circular_ptr.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_imul_iterative.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_idiv_iterative.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_idiv_iterative_controller.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_inv.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_buf.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_buf_ctrl.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_xnor.v
@@ -62,6 +64,9 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_lru_pseudo_tree_encode.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_lru_pseudo_tree_backup.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_thermometer_count.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_id_pool.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_concentrate_static.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_array_concentrate_static.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_unconcentrate_static.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1r1w_large.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1rw_large.v
@@ -93,6 +98,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_bit_synth.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_stitch.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_router.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_router_decoder_dor.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_router_buffered.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_launch_sync_sync.v
@@ -159,8 +165,10 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_hard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/hash_function.v
 
-VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore.v
-VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_top_ruche.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_top_mesh.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_ruche.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_mesh.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_hetero_socket.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint.v
@@ -169,4 +177,5 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_lock_ctrl.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_1hold.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_eva_to_npa.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_tieoff.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_ruche_x_link_sif_tieoff.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_gather_scatter.v

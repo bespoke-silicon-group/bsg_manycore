@@ -31,7 +31,6 @@ spike_call_log: pp_spike_trace
 	sed -n 's/.* 0x.\{8\}\(.\{8\}\) .*/\1/p' spike_pp.log | grep -n . > spike_pc.log
 	$(BSG_MANYCORE_DIR)/software/py/func_call_log.py spike_pc.log $(PROG_NAME).riscv > $@
 
-CLEAN_ITEMS ?=
 
 clean:
 	-rm -rf *.o *.a *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex *.ld
@@ -39,4 +38,5 @@ clean:
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd *.vdb coverage* constfile.txt
 	-rm -rf build/ *.bc* *.ll*
 	-rm -rf lfs.c *.nbf *.csv
-	-rm -rf $(CLEAN_ITEMS)
+	-rm -rf dramsim3epoch.json
+	-rm -rf dis

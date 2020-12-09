@@ -1,10 +1,10 @@
 /**
- *  bsg_manycore.v
+ *    bsg_manycore_top_mesh.v
  *
  */
 
 
-module bsg_manycore
+module bsg_manycore_top_mesh
   import bsg_manycore_pkg::*;
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }
   #(parameter dmem_size_p = "inv" // number of words in DMEM
@@ -22,36 +22,35 @@ module bsg_manycore
     , parameter int num_tiles_x_p = -1
     , parameter int num_tiles_y_p = -1
 
-   // This is used to define heterogeneous arrays. Each index defines
-   // the type of an X/Y coordinate in the array. This is a vector of
-   // num_tiles_x_p*num_tiles_y_p ints; type "0" is the
-   // default. See bsg_manycore_hetero_socket.v for more types.
-   , parameter int hetero_type_vec_p [0:((num_tiles_y_p-1)*num_tiles_x_p) - 1]  = '{default:0}
+    // This is used to define heterogeneous arrays. Each index defines
+    // the type of an X/Y coordinate in the array. This is a vector of
+    // num_tiles_x_p*num_tiles_y_p ints; type "0" is the
+    // default. See bsg_manycore_hetero_socket.v for more types.
+    , parameter int hetero_type_vec_p [0:((num_tiles_y_p-1)*num_tiles_x_p) - 1]  = '{default:0}
 
-   // this is the addr width on the manycore network packet (word addr).
-   // also known as endpoint physical address (EPA).
-   , parameter addr_width_p = "inv"
+    // this is the addr width on the manycore network packet (word addr).
+    // also known as endpoint physical address (EPA).
+    , parameter addr_width_p = "inv"
+    , parameter data_width_p = "inv" // 32
 
-   , parameter data_width_p = "inv" // 32
+    // Enable branch/jalr trace
+    , parameter branch_trace_en_p = 0
 
-  // Enable branch/jalr trace
-  , parameter branch_trace_en_p = 0
+    // y = 0                  top vcache
+    // y = 1                  IO routers
+    // y = num_tiles_y_p+1    bottom vcache
+    , parameter y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p+2)
+    , parameter x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
 
-  // y = 0                  top vcache
-  // y = 1                  IO routers
-  // y = num_tiles_y_p+1    bottom vcache
-  , parameter y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p+2)
-  , parameter x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+    , parameter link_sif_width_lp =
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
 
-  , parameter link_sif_width_lp =
-     `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+    // The number of registers between the reset_i port and the reset sinks
+    // Must be >= 1
+    , parameter reset_depth_p = 3
 
-  // The number of registers between the reset_i port and the reset sinks
-  // Must be >= 1
-  , parameter reset_depth_p = 3
-
-   // enable debugging
-  , parameter debug_p = 0
+    // enable debugging
+    , parameter debug_p = 0
   )
   (
     input clk_i
@@ -90,11 +89,6 @@ module bsg_manycore
    end
    // synopsys translate_on
 
-   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
-
-
-   bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
-   bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
 
 
   // Pipeline the reset. The bsg_manycore_tile has a single pipeline register
@@ -120,11 +114,16 @@ module bsg_manycore
     ,.data_o(io_reset_r)
   );
 
-  genvar r,c;
 
-  for (r = 1; r < num_tiles_y_p; r = r+1) begin: y
-    for (c = 0; c < num_tiles_x_p; c=c+1) begin: x
-      bsg_manycore_tile #(
+  // Instantiate tiles.
+  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp);
+  bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
+  bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
+ 
+
+  for (genvar r = 2; r <= num_tiles_y_p; r++) begin: y
+    for (genvar c = 0; c < num_tiles_x_p; c++) begin: x
+      bsg_manycore_tile_mesh #(
         .dmem_size_p     (dmem_size_p)
         ,.vcache_size_p (vcache_size_p)
         ,.icache_entries_p(icache_entries_p)
@@ -133,7 +132,7 @@ module bsg_manycore
         ,.y_cord_width_p(y_cord_width_lp)
         ,.data_width_p(data_width_p)
         ,.addr_width_p(addr_width_p)
-        ,.hetero_type_p( hetero_type_vec_p[(r-1) * num_tiles_x_p + c] )
+        ,.hetero_type_p( hetero_type_vec_p[(r-2) * num_tiles_x_p + c] )
         ,.debug_p(debug_p)
         ,.branch_trace_en_p(branch_trace_en_p)
         ,.num_tiles_x_p(num_tiles_x_p)
@@ -142,18 +141,20 @@ module bsg_manycore
         ,.vcache_sets_p(vcache_sets_p)
       ) tile (
         .clk_i(clk_i)
-        ,.reset_i(tile_reset_r[r-1][c])
+        ,.reset_i(tile_reset_r[r-2][c])
 
-        ,.link_in(link_in[r][c])
-        ,.link_out(link_out[r][c])
+        ,.link_i(link_in[r-1][c])
+        ,.link_o(link_out[r-1][c])
 
         ,.my_x_i(x_cord_width_lp'(c))
-        ,.my_y_i(y_cord_width_lp'(r+1))
+        ,.my_y_i(y_cord_width_lp'(r))
       );
     end
   end
 
-  for (c = 0; c < num_tiles_x_p; c=c+1) begin: io
+
+  // Instantiate IO routers.
+  for (genvar c = 0; c < num_tiles_x_p; c=c+1) begin: io
     bsg_manycore_mesh_node #(
       .x_cord_width_p     (x_cord_width_lp )
       ,.y_cord_width_p     (y_cord_width_lp )
@@ -175,20 +176,21 @@ module bsg_manycore
    );
   end
 
-  // stitch together all of the tiles into a mesh
 
-  bsg_mesh_stitch
-    #(.width_p(link_sif_width_lp)
-      ,.x_max_p(num_tiles_x_p)
-      ,.y_max_p(num_tiles_y_p)
-      )
-    link
-      (.outs_i(link_out)
-      ,.ins_o(link_in)
-      ,.hor_i(hor_link_sif_i)
-      ,.hor_o(hor_link_sif_o)
-      ,.ver_i(ver_link_sif_i)
-      ,.ver_o(ver_link_sif_o)
-      );
+
+  // stitch together all of the tiles into a mesh
+  bsg_mesh_stitch #(
+    .width_p(link_sif_width_lp)
+    ,.x_max_p(num_tiles_x_p)
+    ,.y_max_p(num_tiles_y_p)
+  ) link (
+    .outs_i(link_out)
+    ,.ins_o(link_in)
+    ,.hor_i(hor_link_sif_i)
+    ,.hor_o(hor_link_sif_o)
+    ,.ver_i(ver_link_sif_i)
+    ,.ver_o(ver_link_sif_o)
+  );
+
 
 endmodule
