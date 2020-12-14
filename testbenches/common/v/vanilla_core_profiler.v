@@ -177,8 +177,8 @@ module vanilla_core_profiler
 
   wire lr_inc = exe_r.decode.is_lr_op;
   wire lr_aq_inc = exe_r.decode.is_lr_aq_op;
-  wire amoswap_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_swap);
-  wire amoor_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_or);
+  wire amoswap_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoswap);
+  wire amoor_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoor);
 
   // branch & jump
   wire beq_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BEQ);

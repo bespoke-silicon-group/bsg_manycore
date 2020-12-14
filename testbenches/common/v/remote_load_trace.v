@@ -86,13 +86,13 @@ module remote_load_trace
   remote_load_status_s icache_status_r;
 
   wire int_rl_v    = out_v_o & (
-    ((out_packet.op == e_remote_load) & ~load_info.icache_fetch & ~load_info.float_wb)
-    | (out_packet.op == e_remote_amo));
+    ((out_packet.op_v2 == e_remote_load) & ~load_info.icache_fetch & ~load_info.float_wb)
+    | remote_req_i.is_amo_op);
   wire float_rl_v = out_v_o & (
-    (out_packet.op == e_remote_load) & load_info.float_wb); 
+    (out_packet.op_v2 == e_remote_load) & load_info.float_wb); 
 
   wire icache_rl_v = out_v_o & (
-    (out_packet.op == e_remote_load) & load_info.icache_fetch);
+    (out_packet.op_v2 == e_remote_load) & load_info.icache_fetch);
     
   logic [RV32_reg_els_gp-1:0] int_rl_we;
   logic [RV32_reg_els_gp-1:0] float_rl_we;

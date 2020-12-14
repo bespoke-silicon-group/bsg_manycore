@@ -36,8 +36,8 @@ module infinite_mem_profiler
   wire inc = packet_v_lo & packet_yumi_li; 
   wire inc_ld = inc & (packet_cast.op == e_remote_load);
   wire inc_st = inc & (packet_cast.op == e_remote_store);
-  wire inc_amoswap = inc & (packet_cast.op == e_remote_amo) & (packet_cast.op_ex.amo_type == e_amo_swap);
-  wire inc_amoor = inc & (packet_cast.op == e_remote_amo) & (packet_cast.op_ex.amo_type == e_amo_or);
+  wire inc_amoswap = inc & (packet_cast.op == e_remote_amoswap);
+  wire inc_amoor = inc & (packet_cast.op == e_remote_amoor);
   
   integer ld_count_r;
   integer st_count_r;

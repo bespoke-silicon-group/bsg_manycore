@@ -136,22 +136,23 @@ module bsg_manycore_link_to_cache
   bsg_manycore_return_packet_type_e return_pkt_type;
 
   always_comb begin
-    if (packet_lo.op == e_remote_store) begin
+    if (packet_lo.op_v2 == e_remote_store) begin
       return_pkt_type = e_return_credit;
     end
-    else if (packet_lo.op == e_remote_amo) begin
-        return_pkt_type = e_return_int_wb;
-    end
-    else if (packet_lo.op == e_cache_op) begin
-        return_pkt_type = e_return_credit;
-    end
-    else begin
+    else if (packet_lo.op_v2 == e_remote_load) begin
       if (load_info.icache_fetch)
         return_pkt_type = e_return_ifetch;
       else if (load_info.float_wb)
         return_pkt_type = e_return_float_wb;
       else
         return_pkt_type = e_return_int_wb;
+    end
+    else if (packet_lo.op_v2 == e_cache_op) begin
+        return_pkt_type = e_return_credit;
+    end
+    else begin
+      // atomic
+      return_pkt_type = e_return_int_wb;
     end
   end  
 
@@ -171,6 +172,8 @@ module bsg_manycore_link_to_cache
       end
     end
   end
+
+
 
   always_comb begin
 
@@ -230,7 +233,7 @@ module bsg_manycore_link_to_cache
         // we want to expose read/write access to tag_mem on NPA
         // for extra debugging capability.
         if (packet_lo.addr[link_addr_width_p-1]) begin
-          case (packet_lo.op)
+          case (packet_lo.op_v2)
             e_remote_store: cache_pkt.opcode = TAGST;
             e_remote_load:  cache_pkt.opcode = TAGLA;
             e_cache_op:     cache_pkt.opcode = TAGFL;
@@ -238,25 +241,25 @@ module bsg_manycore_link_to_cache
           endcase
         end
         else begin
-          if (packet_lo.op == e_remote_store) begin
+
+          if (packet_lo.op_v2 == e_remote_store) begin
             cache_pkt.opcode = SM;
           end
-          else if (packet_lo.op == e_remote_amo) begin
-            case (packet_lo.op_ex.amo_type)
-              e_amo_swap: cache_pkt.opcode = AMOSWAP_W;
-              e_amo_or: cache_pkt.opcode = AMOOR_W;
-              default: cache_pkt.opcode = AMOSWAP_W; // this should never happen!
-            endcase
+          else if (packet_lo.op_v2 == e_remote_amoswap) begin
+            cache_pkt.opcode = AMOSWAP_W;
           end
-          else if (packet_lo.op == e_cache_op) begin
-            case (packet_lo.op_ex.cache_op_type)
+          else if (packet_lo.op_v2 == e_remote_amoor) begin
+            cache_pkt.opcode = AMOOR_W;
+          end
+          else if (packet_lo.op_v2 == e_cache_op) begin
+            case (packet_lo.reg_id.cache_op)
               e_afl: cache_pkt.opcode = AFL;
               e_aflinv: cache_pkt.opcode = AFLINV;
               e_ainv: cache_pkt.opcode = AINV;
               default: cache_pkt.opcode = AINV; // (what should the default be? shouldn't happen)
             endcase
           end
-          else begin
+          else if (packet_lo.op_v2 == e_remote_load) begin
             if (load_info.is_byte_op)
               cache_pkt.opcode = load_info.is_unsigned_op
                 ? LBU
@@ -272,12 +275,10 @@ module bsg_manycore_link_to_cache
         end
 
         cache_pkt.data = packet_lo.payload;
-        cache_pkt.mask = packet_lo.op_ex;
+        cache_pkt.mask = packet_lo.reg_id.store_mask_s.mask;
         cache_pkt.addr = {
           packet_lo.addr[0+:link_addr_width_p-1],
-          (packet_lo.op == e_remote_store | packet_lo.op == e_remote_amo | packet_lo.op == e_cache_op)
-            ? 2'b00
-            : load_info.part_sel
+          (packet_lo.op_v2 == e_remote_load) ? load_info.part_sel : 2'b00
         };
 
         // return pkt

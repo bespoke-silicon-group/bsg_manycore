@@ -489,7 +489,7 @@ module bsg_manycore_gather_scatter
 
         out_v_li = alloc_v_lo & (out_credits_lo != '0);
         out_packet_li.addr = epa_lo;
-        out_packet_li.op = e_remote_load;
+        out_packet_li.op_v2 = e_remote_load;
         out_packet_li.reg_id = alloc_id_lo;
         out_packet_li.payload = '0; // normal integer load.
         out_packet_li.y_cord = y_cord_lo;
@@ -521,9 +521,8 @@ module bsg_manycore_gather_scatter
     
         out_v_li = (out_credits_lo != '0);
         out_packet_li.addr = epa_lo;
-        out_packet_li.op = e_remote_store;
-        out_packet_li.op_ex = 4'b1111;
-        out_packet_li.reg_id = '0;
+        out_packet_li.op_v2 = e_remote_store;
+        out_packet_li.reg_id = '1;
         out_packet_li.payload = dmem_data_lo;
         out_packet_li.y_cord = y_cord_lo;
         out_packet_li.x_cord = x_cord_lo;
@@ -545,9 +544,8 @@ module bsg_manycore_gather_scatter
       WAKEUP: begin
         out_v_li = (out_credits_lo == max_out_credits_p);
         out_packet_li.addr = {{(addr_width_p-epa_word_addr_width_gp){1'b0}}, wakeup_addr_r};
-        out_packet_li.op = e_remote_store;
-        out_packet_li.op_ex = 4'b1111;
-        out_packet_li.reg_id = '0;
+        out_packet_li.op_v2 = e_remote_store;
+        out_packet_li.reg_id = '1;
         out_packet_li.payload = 'd1; // wake up by storing 1.
         out_packet_li.y_cord = src_y_cord_r;
         out_packet_li.x_cord = src_x_cord_r;

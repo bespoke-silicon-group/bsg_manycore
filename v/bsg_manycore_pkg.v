@@ -122,7 +122,7 @@ package bsg_manycore_pkg;
                                                                         \
     typedef struct packed {                                             \
        logic [addr_width_mp-1:0] addr;                                  \
-       bsg_manycore_packet_op_e op;                                     \
+       bsg_manycore_packet_op_e op_v2;                                  \
        bsg_manycore_packet_reg_id_u reg_id;                             \
        bsg_manycore_packet_payload_u payload;                           \
        logic [y_cord_width_mp-1:0] src_y_cord;                          \
@@ -135,7 +135,7 @@ package bsg_manycore_pkg;
     ($bits(bsg_manycore_return_packet_type_e)+data_width_mp+bsg_manycore_reg_id_width_gp+x_cord_width_mp+y_cord_width_mp)
 
   `define bsg_manycore_packet_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
-    (addr_width_mp+$bits(bsg_manycore_packet_op_e)+$bits(bsg_manycore_packet_reg_id_u)+data_width_mp+(2*(y_cord_width_mp+x_cord_width_mp)))
+    (addr_width_mp+$bits(bsg_manycore_packet_op_e)+bsg_manycore_reg_id_width_gp+data_width_mp+(2*(y_cord_width_mp+x_cord_width_mp)))
 
 
 

@@ -62,14 +62,14 @@ module bsg_nonsynth_manycore_spmd_loader
   assign curr_nbf = nbf[nbf_addr_r];
 
   assign packet.addr = curr_nbf.epa[0+:addr_width_p];
-  assign packet.op = e_remote_store;
-  assign packet.op_ex = 4'b1111;
+  assign packet.op_v2 = e_remote_store;
   assign packet.payload = curr_nbf.data;
   assign packet.src_y_cord = my_y_i;
   assign packet.src_x_cord = my_x_i;
   assign packet.y_cord = curr_nbf.y_cord[0+:y_cord_width_p];
   assign packet.x_cord = curr_nbf.x_cord[0+:x_cord_width_p];
-  assign packet.reg_id = '0;
+  assign packet.reg_id.store_mask_s.mask = '1;
+  assign packet.reg_id.store_mask_s.unused = 1'b0;
 
   integer status;
   string nbf_file;

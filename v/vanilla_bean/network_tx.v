@@ -148,18 +148,32 @@ module network_tx
     out_packet.x_cord = x_cord_lo;
     out_packet.addr = epa_lo;
 
-    out_packet.reg_id = remote_req_i.reg_id;
-    out_packet.op_ex = remote_req_i.is_amo_op
-      ? remote_req_i.amo_type
-      : remote_req_i.mask;
+    if (remote_req_i.write_not_read) begin
+      out_packet.reg_id.store_mask_s.mask = remote_req_i.mask;
+      out_packet.reg_id.store_mask_s.unused = 1'b0;
+    end
+    else begin
+      out_packet.reg_id = remote_req_i.reg_id;
+    end
+    
     out_packet.src_y_cord = my_y_i;
     out_packet.src_x_cord = my_x_i;
 
-    out_packet.op = remote_req_i.is_amo_op
-      ? e_remote_amo
-      : (remote_req_i.write_not_read
-        ? e_remote_store
-        : e_remote_load);
+    if (remote_req_i.is_amo_op) begin
+      case (remote_req_i.amo_type)
+        e_vanilla_amoswap:  out_packet.op_v2 = e_remote_amoswap;
+        e_vanilla_amoor:    out_packet.op_v2 = e_remote_amoor;
+        default:            out_packet.op_v2 = e_remote_amoswap;  // should never happen.
+      endcase
+    end
+    else begin
+      if (remote_req_i.write_not_read) begin
+        out_packet.op_v2 = e_remote_store;
+      end
+      else begin
+        out_packet.op_v2 = e_remote_load;
+      end
+    end
 
   end
 

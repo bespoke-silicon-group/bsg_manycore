@@ -149,18 +149,16 @@ module bsg_manycore_endpoint_standard
   // ----------------------------------------------------------------------------------------
   // Handle incoming request packets
   // ----------------------------------------------------------------------------------------
-  // singals between FIFO to lock_ctrl
+  // signals between FIFO to lock_ctrl
   wire in_yumi_lo, in_v_li;
 
   wire [data_width_p-1:0] in_data_lo = packet_lo.payload;
   wire [addr_width_p-1:0] in_addr_lo = packet_lo.addr;
-  wire[(data_width_p>>3)-1:0] in_mask_lo = packet_lo.op_ex;
-  bsg_manycore_amo_type_e in_amo_type;
-  assign in_amo_type = packet_lo.op_ex.amo_type;
+  wire[(data_width_p>>3)-1:0] in_mask_lo = packet_lo.reg_id.store_mask_s.mask;
 
-  wire pkt_remote_store   = packet_v_lo & (packet_lo.op == e_remote_store  );
-  wire pkt_remote_load    = packet_v_lo & (packet_lo.op == e_remote_load   );
-  wire pkt_remote_amo     = packet_v_lo & (packet_lo.op == e_remote_amo    );
+  wire pkt_remote_store   = packet_v_lo & (packet_lo.op_v2 == e_remote_store  );
+  wire pkt_remote_load    = packet_v_lo & (packet_lo.op_v2 == e_remote_load   );
+  wire pkt_remote_amo     = packet_v_lo & (packet_lo.op_v2 == e_remote_amoswap );
 
   bsg_manycore_load_info_s pkt_load_info;
   assign pkt_load_info = packet_lo.payload.load_info_s.load_info;
@@ -195,7 +193,6 @@ module bsg_manycore_endpoint_standard
     ,.in_addr_i    (in_addr_lo      )
     ,.in_we_i      (pkt_remote_store)
     ,.in_amo_op_i  (pkt_remote_amo  )
-    ,.in_amo_type_i(in_amo_type)
     ,.in_x_cord_i  (packet_lo.src_x_cord )
     ,.in_y_cord_i  (packet_lo.src_y_cord )
     // combined  incoming data interface
@@ -233,7 +230,7 @@ module bsg_manycore_endpoint_standard
 
 
   assign rc_fifo_li = '{
-    pkt_type : (packet_lo.op == e_remote_store)
+    pkt_type : (packet_lo.op_v2 == e_remote_store)
       ? e_return_credit
       : (pkt_load_info.icache_fetch
         ? e_return_ifetch 
@@ -343,6 +340,22 @@ module bsg_manycore_endpoint_standard
     end
   end
 
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+      if (packet_v_lo) begin
+        assert(
+          (packet_lo.op_v2 != e_remote_amoadd)
+          & (packet_lo.op_v2 != e_remote_amoxor)
+          & (packet_lo.op_v2 != e_remote_amoand)
+          & (packet_lo.op_v2 != e_remote_amoor)
+          & (packet_lo.op_v2 != e_remote_amomin)
+          & (packet_lo.op_v2 != e_remote_amomax)
+          & (packet_lo.op_v2 != e_remote_amominu)
+          & (packet_lo.op_v2 != e_remote_amomaxu)
+        ) else $error("[BSG_ERROR] Incoming packet has an unsupported amo type. op_v2=%d", packet_lo.op_v2);
+      end
+    end
+  end
 
 
   logic out_of_credits_warned = 0;
