@@ -22,11 +22,19 @@ package bsg_manycore_pkg;
 
   //  request packet type
   //
-  typedef enum logic [1:0] {
+  typedef enum logic [3:0] {
     e_remote_load
     , e_remote_store
-    , e_remote_amo
     , e_cache_op // AFL, AFLINV, AINV for DRAM addresses - TAGFL for tag memory
+    , e_remote_amoswap
+    , e_remote_amoadd
+    , e_remote_amoxor
+    , e_remote_amoand
+    , e_remote_amoor
+    , e_remote_amomin
+    , e_remote_amomax
+    , e_remote_amominu
+    , e_remote_amomaxu
   } bsg_manycore_packet_op_e;
 
 
@@ -58,30 +66,13 @@ package bsg_manycore_pkg;
     logic [1:0] part_sel;
   } bsg_manycore_load_info_s;
  
-  typedef enum logic [3:0] {
-    e_amo_swap
-    ,e_amo_add
-    ,e_amo_xor
-    ,e_amo_and
-    ,e_amo_or
-    ,e_amo_min
-    ,e_amo_max
-    ,e_amo_minu
-    ,e_amo_maxu
-  } bsg_manycore_amo_type_e;
 
-  typedef enum logic [3:0] {
+  typedef enum logic [bsg_manycore_reg_id_width_gp-1:0] {
     e_afl
     ,e_ainv
     ,e_aflinv
     ,e_tagfl
   } bsg_manycore_cache_op_type_e;
-
-  typedef union packed {
-    bsg_manycore_cache_op_type_e cache_op_type; // for operations applied to victim cache
-    bsg_manycore_amo_type_e amo_type; // for remote atomic packet
-    logic [3:0] store_mask;           // for remote store packet
-  } bsg_manycore_packet_op_ex_u;
 
 
   //  Declare fwd and rev packet
@@ -119,12 +110,20 @@ package bsg_manycore_pkg;
         bsg_manycore_load_info_s load_info;                                              \
       } load_info_s;                                                                     \
     } bsg_manycore_packet_payload_u;                                                     \
+                                                                                \
+    typedef union packed {                                                      \
+      bsg_manycore_cache_op_type_e cache_op;                                    \
+      struct packed {                                                           \
+        logic [bsg_manycore_reg_id_width_gp-(data_width_mp>>3)-1:0] unused;     \
+        logic [(data_width_mp>>3)-1:0] mask;                                    \
+      } store_mask_s;                                                           \
+      logic [bsg_manycore_reg_id_width_gp-1:0] reg_id;                          \
+    } bsg_manycore_packet_reg_id_u;                                             \
                                                                         \
     typedef struct packed {                                             \
        logic [addr_width_mp-1:0] addr;                                  \
        bsg_manycore_packet_op_e op;                                     \
-       bsg_manycore_packet_op_ex_u op_ex;                               \
-       logic [bsg_manycore_reg_id_width_gp-1:0] reg_id;                 \
+       bsg_manycore_packet_reg_id_u reg_id;                             \
        bsg_manycore_packet_payload_u payload;                           \
        logic [y_cord_width_mp-1:0] src_y_cord;                          \
        logic [x_cord_width_mp-1:0] src_x_cord;                          \
@@ -136,7 +135,7 @@ package bsg_manycore_pkg;
     ($bits(bsg_manycore_return_packet_type_e)+data_width_mp+bsg_manycore_reg_id_width_gp+x_cord_width_mp+y_cord_width_mp)
 
   `define bsg_manycore_packet_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
-    (addr_width_mp+$bits(bsg_manycore_packet_op_e)+$bits(bsg_manycore_packet_op_ex_u)+bsg_manycore_reg_id_width_gp+data_width_mp+(2*(y_cord_width_mp+x_cord_width_mp)))
+    (addr_width_mp+$bits(bsg_manycore_packet_op_e)+$bits(bsg_manycore_packet_reg_id_u)+data_width_mp+(2*(y_cord_width_mp+x_cord_width_mp)))
 
 
 
