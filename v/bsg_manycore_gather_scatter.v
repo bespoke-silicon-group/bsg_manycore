@@ -47,6 +47,8 @@ module bsg_manycore_gather_scatter
     , parameter num_tiles_x_p = "inv"
     , parameter num_tiles_y_p = "inv"
 
+    , parameter start_x_cord_p = "inv"
+
     , parameter max_out_credits_p = 32 // this is fixed.
     , parameter ep_fifo_els_p = 16
 
@@ -291,6 +293,8 @@ module bsg_manycore_gather_scatter
     ,.addr_width_p(addr_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
+
+    ,.start_x_cord_p(start_x_cord_p)
 
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
