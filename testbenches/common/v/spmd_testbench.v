@@ -41,7 +41,7 @@ module spmd_testbench;
   parameter axi_data_width_p = 256;
   parameter axi_burst_len_p = 1;
 
-  `define ORIGIN_X_CORD_P 0
+  `define ORIGIN_X_CORD_P `BSG_MACHINE_START_X_CORD
   `define ORIGIN_Y_CORD_P 2
 
   // dmc param
