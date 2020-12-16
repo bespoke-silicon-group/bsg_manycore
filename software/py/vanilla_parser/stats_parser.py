@@ -254,9 +254,9 @@ class CacheStatsParser:
 
         return p
 
-    # Get device-level characteristics: dim, origin
+    # Get group-level characteristics: dim, origin
     @classmethod
-    def parse_dev_characteristics(cls, df):
+    def parse_group_characteristics(cls, df):
         dim = ManycoreCoordinate(
             df["Tile Coordinate (Y,X)"].map(lambda l: l.y).max() + 1,
             df["Tile Coordinate (Y,X)"].map(lambda l: l.x).max() + 1)
@@ -271,19 +271,19 @@ class CacheStatsParser:
     # strings) into ManycoreCoordinate objects, and return them as a
     # new column
     @classmethod
-    def parse_cache_coordinates(cls, df, dim, origin):
+    def parse_cache_coordinates(cls, df):
         cache_names = df.vcache.unique()
         ncaches = len(cache_names)
-        if(not ncaches == (dim.x * 2)):
-            raise RuntimeError("Number of caches in the cache stats file must "
-                               "be two times the X-Dimension of the manycore. "
+
+        if(ncaches % 2):
+            raise RuntimeError("Number of caches must be a multiple of two "
                                f"Got {ncaches}.")
 
         # The CSV contains a string representing the cache's
         # path in the hierarchy, not the (Y,X) location, so we
-        # map the string to a (Y,X) coordinate and create a
+        # map the string to a (Top/Bottom,X) coordinate and create a
         # new column in the table.
-        cache_ys = [0] * (ncaches//2) + [dim[0]] * (ncaches//2)
+        cache_ys = ["Top"] * (ncaches//2) + ["Bottom"] * (ncaches//2)
         cache_xs = [*range(ncaches//2), *range(ncaches//2)]
         cache_coords = zip(cache_ys, cache_xs)
         cache_coord_map = {c:i for c, i in zip(cache_names,cache_coords)}
@@ -359,13 +359,10 @@ class CacheStatsParser:
         # and Tile Group Columns
         d = pd.concat([d, self.parse_raw_tag(d)], axis='columns')
 
-        # Parse the device dimension and origin from Tile Coordinate (Y,X)
-        (dim, origin) = self.parse_dev_characteristics(d)
-
         # Use the vcache column (which contains indexes, embedded in
         # strings) into ManycoreCoordinate objects, and put them in a
         # new column
-        d["Cache Coordinate (Y,X)"] = self.parse_cache_coordinates(d, dim, origin)
+        d["Cache Coordinate (Y,X)"] = self.parse_cache_coordinates(d)
 
         # Create a column with the Tile-Tag iterations (see comment)
         # All of the magic happens here.
@@ -380,8 +377,6 @@ class CacheStatsParser:
         self.group = GroupCacheStats(d)
 
         # Finally, save d and parse the Tag, Bank, and Group data
-        self._origin = origin
-        self._dim = dim
         self.d = d.copy();
 
 # Cache Stats is the parent class for CacheTagStats, CacheBankStats,
@@ -846,7 +841,6 @@ class CacheBankStats(CacheStats):
         
         doc += "\n"
         
-
         return (pretty, doc)
 
     # Get a pretty formatted table representation for a tag
