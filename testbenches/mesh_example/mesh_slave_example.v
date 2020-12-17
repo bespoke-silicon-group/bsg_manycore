@@ -75,13 +75,14 @@ module mesh_slave_example #( x_cord_width_p         = "inv"
 
     // local incoming data interface
     ,.in_v_o     ( in_v_lo              )
-    ,.in_yumi_i  ( in_yumi_li           )
     ,.in_data_o  ( in_data_lo           )
     ,.in_mask_o  (                      )
     ,.in_addr_o  ( in_addr_lo           )
     ,.in_we_o    ( in_we_lo             )
+    ,.in_load_info_o (  )
     ,.in_src_x_cord_o(  )
     ,.in_src_y_cord_o(  )
+    ,.in_yumi_i  ( in_yumi_li           )
 
     // The memory read value
     ,.returning_data_i  ( read_data_r   )
@@ -89,19 +90,22 @@ module mesh_slave_example #( x_cord_width_p         = "inv"
 
     // local outgoing data interface (does not include credits)
     // Tied up all the outgoing signals
-    ,.out_v_i           ( 1'b0                          )
-    ,.out_packet_i      ( packet_width_lp'(0)           )
-    ,.out_ready_o       (                               )
+    ,.out_v_i               ( 1'b0                          )
+    ,.out_packet_i          ( packet_width_lp'(0)           )
+    ,.out_credit_or_ready_o (                               )
    // local returned data interface
    // Like the memory interface, processor should always ready be to
    // handle the returned data
-    ,.returned_data_r_o(                )
-    ,.returned_v_r_o   (                )
-    ,.returned_load_id_r_o(             )
-    ,.returned_fifo_full_o(             )
+    ,.returned_data_r_o    (             )
+    ,.returned_reg_id_r_o  (             )
+    ,.returned_v_r_o       (             )
+    ,.returned_pkt_type_r_o(             )
     ,.returned_yumi_i      (   1'b0      )
+    ,.returned_fifo_full_o (             )
 
-    ,.out_credits_o     (               )
+    ,.returned_credit_v_r_o      (          )
+    ,.returned_credit_reg_id_r_o (          )
+    ,.out_credits_o              (          )
     );
 
     ////////////////////////////////////////////////////////////////

@@ -112,6 +112,8 @@ module bsg_nonsynth_manycore_io_complex
     ,.returned_yumi_i(returned_v_r_lo)
 
     // misc
+    ,.returned_credit_v_r_o()
+    ,.returned_credit_reg_id_r_o()
     ,.out_credits_o(out_credits_lo)
     ,.my_x_i((x_cord_width_p)'(io_x_cord_p))
     ,.my_y_i((y_cord_width_p)'(io_y_cord_p))
