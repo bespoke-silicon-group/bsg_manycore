@@ -55,6 +55,7 @@ module  bsg_manycore_link_to_fifo
   logic [link_sif_num_lp-1:0] [data_width_p-1:0]            endpoint_data ;
   logic [link_sif_num_lp-1:0] [(data_width_p>>3)-1:0]       endpoint_mask ;
   logic [link_sif_num_lp-1:0] [addr_width_p-1:0]            endpoint_addr ;
+  logic returned_v_r_lo;
 
   genvar i;
 
@@ -77,31 +78,39 @@ module  bsg_manycore_link_to_fifo
 
         // local incoming data interface
         ,.in_v_o        ( endpoint_v    [ i ]   )
-        ,.in_yumi_i     ( endpoint_yumi [ i ]   )
         ,.in_data_o     ( endpoint_data [ i ]   )
         ,.in_mask_o     ( endpoint_mask [ i ]   )
         ,.in_addr_o     ( endpoint_addr [ i ]   )
         //TODO we suppose incoming data are all writes
-        ,.in_we_o       (                       )
-
-        // local outgoing data interface (does not include credits)
-        ,.out_v_i       ( 1'b0                          )
-        ,.out_packet_i  ( { packet_width_lp { 1'b0 } }  )
-        ,.out_ready_o   (                               )
-
-        // returned data for RoCC read command
-        ,.returned_data_r_o ( )
-        ,.returned_v_r_o    ( )
+        ,.in_we_o         (                       )
+        ,.in_load_info_o  (                       )
+        ,.in_src_x_cord_o (                       )
+        ,.in_src_y_cord_o (                       )
+        ,.in_yumi_i       ( endpoint_yumi [ i ]   )
 
         // The memory read value
         // TODO
         ,.returning_data_i (  data_width_p'(0)  )
         ,.returning_v_i    (  1'b0              )
 
+        // local outgoing data interface (does not include credits)
+        ,.out_v_i               ( 1'b0                         )
+        ,.out_packet_i          ( { packet_width_lp { 1'b0 } } )
+        ,.out_credit_or_ready_o (                              )
+
+        // returned data for RoCC read command
+        ,.returned_data_r_o     (                 )
+        ,.returned_reg_id_r_o   (                 )
+        ,.returned_v_r_o        ( returned_v_r_lo )
+        ,.returned_pkt_type_r_o (                 )
+        ,.returned_yumi_i       ( returned_v_r_lo )
+        ,.returned_fifo_full_o  (                 )
+
         // whether a credit was returned; not flow controlled
-        ,.out_credits_o (                       )
-        ,.freeze_r_o    (                       )
-        ,.reverse_arb_pr_o(                     )
+        ,.returned_credit_v_r_o      (              )
+        ,.returned_credit_reg_id_r_o (              )
+
+        ,.out_credits_o              (              )
 
         ,.my_x_i        ( my_x_i [ i ]          )
         ,.my_y_i        ( my_y_i [ i ]          )

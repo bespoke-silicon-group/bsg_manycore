@@ -90,20 +90,33 @@ module bsg_manycore_accel_default
       ,.link_sif_i
       ,.link_sif_o
 
-      ,.in_v_o   (in_v_lo)
-      ,.in_yumi_i(in_yumi_li)
-      ,.in_data_o(in_data_lo)
-      ,.in_mask_o(in_mask_lo)
-      ,.in_addr_o(in_addr_lo)
+      ,.in_v_o         (in_v_lo   )
+      ,.in_data_o      (in_data_lo)
+      ,.in_mask_o      (in_mask_lo)
+      ,.in_addr_o      (in_addr_lo)
+      ,.in_we_o        (          )
+      ,.in_load_info_o (          )
+      ,.in_src_x_cord_o(          )
+      ,.in_src_y_cord_o(          )
+      ,.in_yumi_i      (in_yumi_li)
 
       // we feed the endpoint with the data we want to send out
       // it will get inserted into the above link_sif
 
-      ,.out_packet_i (out_packet_li )
-      ,.out_v_i    (out_v_li    )
-      ,.out_credit_or_ready_o(out_ready_lo)
+      ,.out_packet_i         (out_packet_li)
+      ,.out_v_i              (out_v_li     )
+      ,.out_credit_or_ready_o(out_ready_lo )
 
-      ,.out_credits_o(out_credits_lo)
+      ,.returned_data_r_o    (      )
+      ,.returned_reg_id_r_o  (      )
+      ,.returned_v_r_o       (      )
+      ,.returned_pkt_type_r_o(      )
+      ,.returned_yumi_i      ( '0   )
+      ,.returned_fifo_full_o (      )
+
+      ,.returned_credit_v_r_o     (              )
+      ,.returned_credit_reg_id_r_o(              )
+      ,.out_credits_o             (out_credits_lo)
 
       ,.my_x_i
       ,.my_y_i
