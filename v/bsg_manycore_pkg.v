@@ -67,6 +67,7 @@ package bsg_manycore_pkg;
   } bsg_manycore_load_info_s;
  
 
+  // e_cache_op subop
   typedef enum logic [bsg_manycore_reg_id_width_gp-1:0] {
     e_afl
     ,e_ainv
@@ -80,8 +81,10 @@ package bsg_manycore_pkg;
   //  Request Packet (fwd)
   //  addr         :  EPA (word address)
   //  op           :  packet opcode 
-  //  op_ex        :  opcode extension; for store, this is store mask. for amo, this is amo type. for cache_op, this is the cache op type.
-  //  reg_id       :  for amo and int/float load, this is the rd. for store, this should be zero.
+  //  reg_id       :  This field is unionized with bsg_manycore_packet_reg_id_u.
+  //                  For remote load/atomic (e_remote_load/e_remote_amo*), this field contains reg_id (rd).
+  //                  For e_cache_op, this field contains bsg_manycore_cache_op_type_e.
+  //                  For e_remote_store, this field contains store mask.
   //  payload      :  for store and amo, this is the store data. for load, it contains load info.
   //  src_y_cord   :  y-cord, origin of this packet
   //  src_x_cord   :  x_cord, origin of this packet
@@ -91,7 +94,7 @@ package bsg_manycore_pkg;
   //  Return Packet (rev)
   //  pkt_type     :  return pkt type
   //  data         :  load data
-  //  reg_id       :  rd for int and float load/
+  //  reg_id       :  rd for int and float load.
   //  y_cord       :  y-cord of the destination
   //  x_cord       :  x-cord of the destination
   `define declare_bsg_manycore_packet_s(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
