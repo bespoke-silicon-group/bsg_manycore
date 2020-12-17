@@ -103,30 +103,37 @@ module  bsg_manycore_link_to_rocc
     ,.link_sif_o
 
     // local incoming data interface
-    ,.in_v_o        ( manycore2rocc_v       )
-    ,.in_yumi_i     ( manycore2rocc_yumi    )
-    ,.in_data_o     ( manycore2rocc_data    )
-    ,.in_mask_o     ( manycore2rocc_mask    )
-    ,.in_addr_o     ( manycore2rocc_addr    )
-    ,.in_we_o       ( manycore2rocc_we      )
-
-    // local outgoing data interface (does not include credits)
-    ,.out_v_i       ( rocc2manycore_v       )
-    ,.out_packet_i  ( rocc2manycore_packet  )
-    ,.out_ready_o   ( rocc2manycore_ready   )
-
-    // returned data for RoCC read command
-    ,.returned_data_r_o ( returned_data_r_lo    )
-    ,.returned_v_r_o    ( returned_v_r_lo       )
+    ,.in_v_o          ( manycore2rocc_v       )
+    ,.in_data_o       ( manycore2rocc_data    )
+    ,.in_mask_o       ( manycore2rocc_mask    )
+    ,.in_addr_o       ( manycore2rocc_addr    )
+    ,.in_we_o         ( manycore2rocc_we      )
+    ,.in_load_info_o  (                       )
+    ,.in_src_x_cord_o (                       )
+    ,.in_src_y_cord_o (                       )
+    ,.in_yumi_i       ( manycore2rocc_yumi    )
 
     // The memory read value
     ,.returning_data_i ( returning_data_li  )
     ,.returning_v_i    ( returning_v_li     )
 
+    // local outgoing data interface (does not include credits)
+    ,.out_v_i               ( rocc2manycore_v       )
+    ,.out_packet_i          ( rocc2manycore_packet  )
+    ,.out_credit_or_ready_o ( rocc2manycore_ready   )
+
+    // returned data for RoCC read command
+    ,.returned_data_r_o     ( returned_data_r_lo    )
+    ,.returned_reg_id_r_o   (                       )
+    ,.returned_v_r_o        ( returned_v_r_lo       )
+    ,.returned_pkt_type_r_o (                       )
+    ,.returned_yumi_i       ( returned_v_r_lo       )
+    ,.returned_fifo_full_o  (                       )
+
     // whether a credit was returned; not flow controlled
-    ,.out_credits_o ( out_credits           )
-    ,.freeze_r_o    (                       )
-    ,.reverse_arb_pr_o(                     )
+    ,.returned_credit_v_r_o      (             )
+    ,.returned_credit_reg_id_r_o (             )
+    ,.out_credits_o              ( out_credits )
 
     ,.my_x_i
     ,.my_y_i

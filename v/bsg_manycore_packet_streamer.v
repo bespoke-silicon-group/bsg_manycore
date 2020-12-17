@@ -54,23 +54,40 @@ module bsg_manycore_packet_streamer #(
                                     ) endp
      (.clk_i
       ,.reset_i
+
       ,.link_sif_i
       ,.link_sif_o
-      ,.in_v_o   (pkt_v)
-      ,.in_yumi_i(pkt_yumi)
-      ,.in_data_o(pkt_data)
-      ,.in_mask_o(pkt_mask)
-      ,.in_addr_o(pkt_addr)
 
-      ,.out_v_i      (out_v_li)
-      ,.out_packet_i (out_packet_li)
-      ,.out_ready_o  (out_ready_lo)
-      ,.out_credits_o(out_credits_lo)
+      ,.in_v_o         ( pkt_v    )
+      ,.in_data_o      ( pkt_data )
+      ,.in_mask_o      ( pkt_mask )
+      ,.in_addr_o      ( pkt_addr )
+      ,.in_we_o        (          )
+      ,.in_load_info_o (          )
+      ,.in_src_x_cord_o(          )
+      ,.in_src_y_cord_o(          )
+      ,.in_yumi_i      ( pkt_yumi )
+
+      ,.returning_data_i( '0      )
+      ,.returning_v_i   ( '0      )
+
+      ,.out_v_i              ( out_v_li       )
+      ,.out_packet_i         ( out_packet_li  )
+      ,.out_credit_or_ready_o( out_ready_lo   )
+
+      ,.returned_data_r_o    (      )
+      ,.returned_reg_id_r_o  (      )
+      ,.returned_v_r_o       (      )
+      ,.returned_pkt_type_r_o(      )
+      ,.returned_yumi_i      ( '0   )
+      ,.returned_fifo_full_o (      )
+
+      ,.returned_credit_v_r_o     (                )
+      ,.returned_credit_reg_id_r_o(                )
+      ,.out_credits_o             ( out_credits_lo )
 
       ,.my_x_i
       ,.my_y_i
-
-      ,.freeze_r_o(freeze_r)
       );
 
    wire data_transferred = out_v_li & out_ready_lo;
