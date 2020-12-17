@@ -129,6 +129,9 @@ module bsg_manycore_proc_vanilla
     ,.returned_fifo_full_o(returned_fifo_full_lo)
     ,.returned_yumi_i(returned_yumi_li)
 
+    ,.returned_credit_v_r_o()
+    ,.returned_credit_reg_id_r_o()
+
     ,.out_credits_o(out_credits_lo)
 
     ,.my_x_i(my_x_i)
