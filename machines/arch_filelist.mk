@@ -48,6 +48,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_decode.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_counter_clear_up.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_counter_up_down.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_round_robin_arb.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_arb_round_robin.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_circular_ptr.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_imul_iterative.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_idiv_iterative.v
