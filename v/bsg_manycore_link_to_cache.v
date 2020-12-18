@@ -156,13 +156,20 @@ module bsg_manycore_link_to_cache
     end
   end  
 
+  wire [bsg_manycore_reg_id_width_gp-1:0] payload_hash =
+    packet_lo.payload[4:0]
+    ^ packet_lo.payload[12:8]
+    ^ packet_lo.payload[20:16]
+    ^ packet_lo.payload[28:24];
 
   always_ff @ (posedge clk_i) begin
     if (state_r == READY) begin
       if (v_o & ready_i) begin
         tl_info_r <= '{
           pkt_type: return_pkt_type,
-          reg_id: packet_lo.reg_id,
+          reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
+              ? payload_hash
+              : packet_lo.reg_id,
           y_cord: packet_lo.src_y_cord,
           x_cord: packet_lo.src_x_cord
         };

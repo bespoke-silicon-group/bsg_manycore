@@ -24,7 +24,8 @@ package bsg_manycore_pkg;
   //
   typedef enum logic [3:0] {
     e_remote_load
-    , e_remote_store
+    , e_remote_store  // masked store (reg_id is used as store mask)
+    , e_remote_sw     // store word   (reg_id is used as a tracking id)
     , e_cache_op // AFL, AFLINV, AINV for DRAM addresses - TAGFL for tag memory
     , e_remote_amoswap
     , e_remote_amoadd
@@ -82,7 +83,7 @@ package bsg_manycore_pkg;
   //  addr         :  EPA (word address)
   //  op           :  packet opcode 
   //  reg_id       :  This field is unionized with bsg_manycore_packet_reg_id_u.
-  //                  For remote load/atomic (e_remote_load/e_remote_amo*), this field contains reg_id (rd).
+  //                  For remote load/atomic (e_remote_load/e_remote_amo*), this field contains reg_id (rd), which gets returned by the return packet.
   //                  For e_cache_op, this field contains bsg_manycore_cache_op_type_e.
   //                  For e_remote_store, this field contains store mask.
   //  payload      :  for store and amo, this is the store data. for load, it contains load info.
@@ -94,7 +95,10 @@ package bsg_manycore_pkg;
   //  Return Packet (rev)
   //  pkt_type     :  return pkt type
   //  data         :  load data
-  //  reg_id       :  rd for int and float load.
+  //  reg_id       :  reg_id in all responses should return the same reg_id in the request packet,
+  //                  except for e_remote_store and e_cache_op, where reg_id is used as store mask.
+  //                  For e_remote_store and e_cache_op, return the bitwise XOR of 5 LSBs on each byte of payload.
+  //                  e.g.) payload[28:24] ^ payload[20:16] ^ payload[12:8] ^ payload[4:0]
   //  y_cord       :  y-cord of the destination
   //  x_cord       :  x-cord of the destination
   `define declare_bsg_manycore_packet_s(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
