@@ -174,6 +174,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint_standard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_lock_ctrl.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_reg_id_parity_decode.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_1hold.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_eva_to_npa.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_tieoff.v

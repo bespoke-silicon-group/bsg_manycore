@@ -229,11 +229,11 @@ module bsg_manycore_endpoint_standard
    returning_credit_info  rc_fifo_li, rc_fifo_lo;
 
   // XOR 5 LSBs of each byte of payload to get the payload hash and return it as reg_id for e_remote_store/e_cache_op.
-  wire [bsg_manycore_reg_id_width_gp-1:0] payload_hash =
-    packet_lo.payload[4:0]
-    ^ packet_lo.payload[12:8]
-    ^ packet_lo.payload[20:16]
-    ^ packet_lo.payload[28:24];
+  wire [bsg_manycore_reg_id_width_gp-1:0] payload_reg_id;
+  bsg_manycore_reg_id_parity_decode pd0 (
+    .data_i(packet_lo.payload)
+    ,.reg_id_o(payload_reg_id)
+  );
     
 
   assign rc_fifo_li = '{
@@ -247,7 +247,7 @@ module bsg_manycore_endpoint_standard
     ,y_cord : packet_lo.src_y_cord
     ,x_cord : packet_lo.src_x_cord
     ,reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
-              ? payload_hash
+              ? payload_reg_id
               : packet_lo.reg_id
   };
 
