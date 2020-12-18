@@ -34,10 +34,10 @@ module infinite_mem_profiler
   assign packet_cast = packet_lo;
 
   wire inc = packet_v_lo & packet_yumi_li; 
-  wire inc_ld = inc & (packet_cast.op == e_remote_load);
-  wire inc_st = inc & (packet_cast.op == e_remote_store);
-  wire inc_amoswap = inc & (packet_cast.op == e_remote_amoswap);
-  wire inc_amoor = inc & (packet_cast.op == e_remote_amoor);
+  wire inc_ld = inc & (packet_cast.op_v2 == e_remote_load);
+  wire inc_st = inc & (packet_cast.op_v2 == e_remote_store);
+  wire inc_amoswap = inc & (packet_cast.op_v2 == e_remote_amoswap);
+  wire inc_amoor = inc & (packet_cast.op_v2 == e_remote_amoor);
   
   integer ld_count_r;
   integer st_count_r;
