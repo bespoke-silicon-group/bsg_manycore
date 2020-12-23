@@ -215,30 +215,42 @@ package bsg_manycore_pkg;
 
   // EVA Address Format
 
-  localparam epa_word_addr_width_gp = 16; // max EPA width on vanilla core. (word addr)
+  localparam epa_word_addr_width_gp = 16;     // max EPA width on vanilla core. (word addr)
+  localparam max_local_offset_width_gp = 10;  // max width of local offset from DMEM[0] in vanilla core. (word addr)
   localparam max_x_cord_width_gp = 6;
   localparam max_y_cord_width_gp = 6;
+  localparam shared_eva_hash_width_gp = 4;    // Width of hash bits inside a shared EVA
+
 
   // global
-  `define declare_bsg_manycore_global_addr_s \
-    typedef struct packed {                  \
-      logic [1:0]       remote;              \
-      logic [max_y_cord_width_gp-1:0]       y_cord;                \
-      logic [max_x_cord_width_gp-1:0]       x_cord;                \
-      logic [epa_word_addr_width_gp-1:0]    addr;                  \
-      logic [1:0]                           low_bits;              \
+    typedef  struct packed {
+      logic [1:0]       remote;
+      logic [max_y_cord_width_gp-1:0]       y_cord;
+      logic [max_x_cord_width_gp-1:0]       x_cord;
+      logic [epa_word_addr_width_gp-1:0]    addr;
+      logic [1:0]                           low_bits;
     } bsg_manycore_global_addr_s;
 
   // tile-group
-  `define declare_bsg_manycore_tile_group_addr_s \
-    typedef struct packed {                      \
-      logic [2:0]       remote;                  \
-      logic [max_y_cord_width_gp-2:0]       y_cord;                \
-      logic [max_x_cord_width_gp-1:0]       x_cord;                \
-      logic [epa_word_addr_width_gp-1:0]    addr;                  \
-      logic [1:0]                           low_bits;              \
+    typedef struct packed {
+      logic [2:0]       remote;
+      logic [max_y_cord_width_gp-2:0]       y_cord;
+      logic [max_x_cord_width_gp-1:0]       x_cord;
+      logic [epa_word_addr_width_gp-1:0]    addr;
+      logic [1:0]                           low_bits;
     } bsg_manycore_tile_group_addr_s;
+
+  // shared
+    typedef struct packed {
+      logic [4:0]       remote;
+      logic [3:0]       hash;
+      logic [max_local_offset_width_gp+max_x_cord_width_gp+max_y_cord_width_gp-2:0]    addr;
+      logic [1:0]       low_bits;
+    } bsg_manycore_shared_addr_s;
+
 
 
 
 endpackage
+
+

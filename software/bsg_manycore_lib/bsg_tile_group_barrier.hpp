@@ -28,10 +28,10 @@
 #define  BSG_TILE_GROUP_BARRIER_HPP_
 
 // We need the global bsg_x,bsg_y value.
-#include "bsg_set_tile_x_y.h"
-#include "bsg_manycore.h"
-#include "bsg_mutex.hpp"
-#include "bsg_manycore.hpp"
+#include <bsg_set_tile_x_y.h>
+#include <bsg_manycore.h>
+#include <bsg_mutex.hpp>
+#include <bsg_manycore.hpp>
 
 
 

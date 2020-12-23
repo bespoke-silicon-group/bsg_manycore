@@ -8,6 +8,7 @@
  *      1) DRAM
  *      2) Global
  *      3) Tile-Group
+ *      4) Tile-Group-Shared Memory
  *
  */
 
@@ -32,6 +33,8 @@ module bsg_manycore_eva_to_npa
     input [data_width_p-1:0] eva_i  // byte addr
     , input [x_cord_width_p-1:0] tgo_x_i // tile-group origin x
     , input [y_cord_width_p-1:0] tgo_y_i // tile-group origin y
+    , input [x_cord_width_p-1:0] tg_dim_x_width_i // number of bits representing tile-group dimension x = clog2(tg_dim_x)
+    , input [y_cord_width_p-1:0] tg_dim_y_width_i // number of bits representing tile-group dimension y = clog2(tg_dim_y)
 
     // When DRAM mode is enabled, DRAM EVA space is striped across vcaches at a cache line granularity.
     // When DRAM mode is disabled, vcaches are only used as block memory, and the striping is disabled,
@@ -51,23 +54,25 @@ module bsg_manycore_eva_to_npa
   //
   localparam vcache_word_offset_width_lp = `BSG_SAFE_CLOG2(vcache_block_size_in_words_p);
   localparam lg_vcache_size_lp = `BSG_SAFE_CLOG2(vcache_size_p);
+  localparam dmem_start_addr_lp = 16'h400;                         // Address of DMEM[0] 
 
 
   // figure out what type of EVA this is.
-  `declare_bsg_manycore_global_addr_s;
-  `declare_bsg_manycore_tile_group_addr_s;
-
+  //
   bsg_manycore_global_addr_s global_addr;
   bsg_manycore_tile_group_addr_s tile_group_addr;
+  bsg_manycore_shared_addr_s shared_addr;
 
   assign global_addr = eva_i;
   assign tile_group_addr = eva_i;
+  assign shared_addr = eva_i;
 
   wire is_dram_addr = eva_i[31];
   wire is_global_addr = global_addr.remote == 2'b01;
   wire is_tile_group_addr = tile_group_addr.remote == 3'b001;
+  wire is_shared_addr = shared_addr.remote == 5'b00001;
 
-  assign is_invalid_addr_o = ~(is_dram_addr | is_global_addr | is_tile_group_addr);
+  assign is_invalid_addr_o = ~(is_dram_addr | is_global_addr | is_tile_group_addr | is_shared_addr);
 
   
   // DRAM hash function
@@ -90,6 +95,25 @@ module bsg_manycore_eva_to_npa
 
 
   assign hash_bank_input = eva_i[2+vcache_word_offset_width_lp+:hash_bank_input_width_lp];
+
+
+  // Tile Group Shared Memory Hash Function
+  logic [x_cord_width_p-1:0] shared_x_lo;
+  logic [y_cord_width_p-1:0] shared_y_lo;
+  logic [epa_word_addr_width_gp-1:0] shared_epa_lo;
+
+  hash_function_shared #(
+    .data_width_p(data_width_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+  ) hashb_shared (
+    .eva_i(eva_i)
+    ,.tg_dim_x_width_i(tg_dim_x_width_i)
+    ,.tg_dim_y_width_i(tg_dim_y_width_i)
+    ,.x_o(shared_x_lo)
+    ,.y_o(shared_y_lo)
+    ,.addr_o(shared_epa_lo)
+  );
 
 
   always_comb begin
@@ -141,6 +165,15 @@ module bsg_manycore_eva_to_npa
       x_cord_o = x_cord_width_p'(tile_group_addr.x_cord + tgo_x_i);
       epa_o = {{(addr_width_p-epa_word_addr_width_gp){1'b0}}, tile_group_addr.addr};
     end
+    else if (is_shared_addr) begin
+      // tile-group shared addr
+      // tile-coordinate in the EVA is added to the tile-group origin register.
+      // Dmem start address is added to the local offset extracted from eva
+      y_cord_o = y_cord_width_p'(shared_y_lo + tgo_y_i);
+      x_cord_o = x_cord_width_p'(shared_x_lo + tgo_x_i);
+      epa_o = { {(addr_width_p-epa_word_addr_width_gp){1'b0}},
+                {{shared_epa_lo + dmem_start_addr_lp}} };
+   end
     else begin
       // should never happen
       y_cord_o = '0;

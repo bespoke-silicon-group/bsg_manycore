@@ -164,6 +164,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_synth.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_hard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/hash_function.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/hash_function_shared.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_top_ruche.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_top_mesh.v

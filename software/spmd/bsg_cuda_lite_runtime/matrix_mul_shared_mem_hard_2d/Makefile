@@ -18,9 +18,9 @@
 all: main.run
 
 
-KERNEL_NAME ?=kernel_matrix_mul
+KERNEL_NAME ?=kernel_matrix_mul_shared_mem_hard_2d
 
-OBJECT_FILES=main.o kernel_matrix_mul.o
+OBJECT_FILES=main.o kernel_matrix_mul_shared_mem_hard_2d.o
 
 include ../../Makefile.include
 
