@@ -90,6 +90,9 @@ module bsg_manycore_endpoint_standard
     , input                                     returned_yumi_i
     , output                                    returned_fifo_full_o
 
+    // Mutually exclusive with other in_responses
+    , output                                    returned_credit_v_r_o
+    , output [4:0]                              returned_credit_reg_id_r_o
 
     , output [$clog2(max_out_credits_p+1)-1:0] out_credits_o
 
@@ -327,6 +330,8 @@ module bsg_manycore_endpoint_standard
   assign returned_v_r_o        = returned_packet_v_lo & (returned_packet_lo.pkt_type != e_return_credit);
   assign returned_yumi_li      = returned_yumi_i | (returned_packet_v_lo & (returned_packet_lo.pkt_type == e_return_credit));
 
+  assign returned_credit_v_r_o      = returned_credit;
+  assign returned_credit_reg_id_r_o = returned_packet_lo.reg_id;
 
   //              //
   //  Assertions  //
