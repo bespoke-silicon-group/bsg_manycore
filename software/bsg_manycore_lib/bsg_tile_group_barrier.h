@@ -179,6 +179,11 @@ void bsg_tile_group_barrier(bsg_row_barrier *p_row_b, bsg_col_barrier * p_col_b)
                         bsg_print_time();
                 }
         #endif
+
+        // First perform memory operation fence to ensure in-order 
+        // memory operation execution
+        bsg_fence();
+
         //1. send sync signals to center of the row 
         bsg_row_barrier_sync(p_row_b, center_x_cord );
 
