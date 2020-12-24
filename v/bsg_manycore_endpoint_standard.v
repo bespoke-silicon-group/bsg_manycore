@@ -368,9 +368,9 @@ module bsg_manycore_endpoint_standard
 
    logic reset_r ;
    always_ff @(posedge clk_i)  reset_r <= reset_i;
-
+/*
    always_ff @(negedge clk_i)
-     assert ( (reset_r!==0) | ~link_sif_i_cast.rev.v | ({return_packet.y_cord, return_packet.x_cord} == {my_y_i, my_x_i}))
+     assert ( (reset_r!==0) | (link_sif_i_cast.rev.v !== 0) | ({return_packet.y_cord, return_packet.x_cord} == {my_y_i, my_x_i}))
        else begin
          $error("## errant credit packet v=%b for YX=%d,%d landed at YX=%d,%d (%m)"
                 ,link_sif_i_cast.rev.v
@@ -379,7 +379,7 @@ module bsg_manycore_endpoint_standard
                 ,my_y_i,my_x_i);
         $finish();
        end
-
+*/
    always_ff @(negedge clk_i) begin
         if( (returned_v_r_o === 1'b1) && ( returned_yumi_i != 1'b1) && returned_fifo_full_o ) begin
                 $display("## Returned response will be dropped at YX=%d, %d (%m)", my_y_i, my_x_i);
