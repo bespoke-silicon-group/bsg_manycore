@@ -87,8 +87,8 @@ module bsg_nonsynth_manycore_testbench
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_manycore_ruche_x_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
-  bsg_manycore_link_sif_s [S:N][(num_pods_x_p*num_tiles_x_p)-1:0] io_link_sif_li;
-  bsg_manycore_link_sif_s [S:N][(num_pods_x_p*num_tiles_x_p)-1:0] io_link_sif_lo;
+  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0] io_link_sif_li;
+  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0] io_link_sif_lo;
   wh_link_sif_s [E:W][2*num_pods_y_p-1:0] wh_link_sif_li;
   wh_link_sif_s [E:W][2*num_pods_y_p-1:0] wh_link_sif_lo;
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_li;
@@ -155,8 +155,8 @@ module bsg_nonsynth_manycore_testbench
 
   // Host link connection
   // connects to P-port of (x,y)=(0,1)
-  assign io_link_sif_li[N][0] = io_link_sif_i;
-  assign io_link_sif_o = io_link_sif_lo[N][0]; 
+  assign io_link_sif_li[0] = io_link_sif_i;
+  assign io_link_sif_o = io_link_sif_lo[0]; 
 
 
 
@@ -466,22 +466,8 @@ module bsg_nonsynth_manycore_testbench
     ) io_n_tieoff (
       .clk_i(clk_i)
       ,.reset_i(reset_r)
-      ,.link_sif_i(io_link_sif_lo[N][i])
-      ,.link_sif_o(io_link_sif_li[N][i])
-    );
-  end
-
-  for (genvar i = 0; i < num_pods_x_p*num_tiles_x_p; i++) begin
-    bsg_manycore_link_sif_tieoff #(
-      .addr_width_p(addr_width_p)
-      ,.data_width_p(data_width_p)
-      ,.x_cord_width_p(x_cord_width_p)
-      ,.y_cord_width_p(y_cord_width_p)
-    ) io_s_tieoff (
-      .clk_i(clk_i)
-      ,.reset_i(reset_r)
-      ,.link_sif_i(io_link_sif_lo[S][i])
-      ,.link_sif_o(io_link_sif_li[S][i])
+      ,.link_sif_i(io_link_sif_lo[i])
+      ,.link_sif_o(io_link_sif_li[i])
     );
   end
 

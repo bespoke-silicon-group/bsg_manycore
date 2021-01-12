@@ -61,9 +61,9 @@ module bsg_manycore_pod_ruche_array
     input clk_i
     , input reset_i
 
-    // IO router proc links (north and south)
-    , input  [S:N][num_pods_x_p-1:0][num_tiles_x_p-1:0][manycore_link_sif_width_lp-1:0] io_link_sif_i
-    , output [S:N][num_pods_x_p-1:0][num_tiles_x_p-1:0][manycore_link_sif_width_lp-1:0] io_link_sif_o
+    // IO router proc links (north)
+    , input  [(num_pods_x_p*num_tiles_x_p)-1:0][manycore_link_sif_width_lp-1:0] io_link_sif_i
+    , output [(num_pods_x_p*num_tiles_x_p)-1:0][manycore_link_sif_width_lp-1:0] io_link_sif_o
 
     // concentrated wormhole links
     , input  [E:W][2*num_pods_y_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_i
@@ -241,8 +241,8 @@ module bsg_manycore_pod_ruche_array
       ,.links_sif_i(north_io_link_sif_li[i])
       ,.links_sif_o(north_io_link_sif_lo[i])
 
-      ,.proc_link_sif_i(io_link_sif_i[N][i/num_tiles_x_p][i%num_tiles_x_p])
-      ,.proc_link_sif_o(io_link_sif_o[N][i/num_tiles_x_p][i%num_tiles_x_p])
+      ,.proc_link_sif_i(io_link_sif_i[i])
+      ,.proc_link_sif_o(io_link_sif_o[i])
 
       ,.global_x_i(x_cord_width_p'(num_tiles_x_p+i))
       ,.global_y_i(y_cord_width_p'(0))
@@ -283,80 +283,21 @@ module bsg_manycore_pod_ruche_array
     ,.link_sif_o(north_io_link_sif_li[(num_pods_x_p*num_tiles_x_p)-1][E])
   );
   
-
-  // instantiate io router rows (south)
-  logic [(num_pods_x_p*num_tiles_x_p)-1:0] south_io_reset_r;
-  bsg_dff_chain #(
-    .width_p(num_pods_x_p*num_tiles_x_p)
-    ,.num_stages_p(reset_depth_p)
-  ) south_io_reset_dff (
-    .clk_i(clk_i)
-    ,.data_i({(num_pods_x_p*num_tiles_x_p){reset_i}})
-    ,.data_o(south_io_reset_r)
-  );
-
-
-  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:W] south_io_link_sif_li;
-  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:W] south_io_link_sif_lo;
-
-  for (genvar i = 0; i < num_pods_x_p*num_tiles_x_p; i++) begin: south_io_x
-    bsg_manycore_mesh_node #(
-      .x_cord_width_p(x_cord_width_p)
-      ,.y_cord_width_p(y_cord_width_p)
-      ,.addr_width_p(addr_width_p)
+  // tie off south ver links
+  for (genvar i = 0; i < num_pods_x_p*num_tiles_x_p; i++) begin: stx
+    bsg_manycore_link_sif_tieoff #(
+      .addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
-      ,.stub_p(4'b1000) // stub south
-    ) io_rtr (
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+    ) south_ver_tieoff (
       .clk_i(clk_i)
-      ,.reset_i(south_io_reset_r[i])
-
-      ,.links_sif_i(south_io_link_sif_li[i])
-      ,.links_sif_o(south_io_link_sif_lo[i])
-
-      ,.proc_link_sif_i(io_link_sif_i[S][i/num_tiles_x_p][i%num_tiles_x_p])
-      ,.proc_link_sif_o(io_link_sif_o[S][i/num_tiles_x_p][i%num_tiles_x_p])
-
-      ,.global_x_i(x_cord_width_p'(num_tiles_x_p+i))
-      ,.global_y_i({y_cord_width_p{1'b1}})
+      ,.reset_i(north_io_reset_r[0])
+      ,.link_sif_i(ver_link_sif_lo[num_pods_y_p-1][i/num_tiles_x_p][S][i%num_tiles_x_p])
+      ,.link_sif_o(ver_link_sif_li[num_pods_y_p-1][i/num_tiles_x_p][S][i%num_tiles_x_p])
     );
-  
-    // connect north link to pods
-    assign ver_link_sif_li[num_pods_y_p-1][i/num_tiles_x_p][S][i%num_tiles_x_p] = south_io_link_sif_lo[i][N];
-    assign south_io_link_sif_li[i][N] = ver_link_sif_lo[num_pods_y_p-1][i/num_tiles_x_p][S][i%num_tiles_x_p];
-
-    if (i != (num_pods_x_p*num_tiles_x_p)-1) begin
-      assign south_io_link_sif_li[i+1][W] = south_io_link_sif_lo[i][E];
-      assign south_io_link_sif_li[i][E] = south_io_link_sif_lo[i+1][W];
-    end
   end
 
-  bsg_manycore_link_sif_tieoff #(
-    .addr_width_p(addr_width_p)
-    ,.data_width_p(data_width_p)
-    ,.x_cord_width_p(x_cord_width_p)
-    ,.y_cord_width_p(y_cord_width_p)
-  ) south_io_left_tieoff (
-    .clk_i(clk_i)
-    ,.reset_i(south_io_reset_r[0])
-    ,.link_sif_i(south_io_link_sif_lo[0][W])
-    ,.link_sif_o(south_io_link_sif_li[0][W])
-  );
-
-  bsg_manycore_link_sif_tieoff #(
-    .addr_width_p(addr_width_p)
-    ,.data_width_p(data_width_p)
-    ,.x_cord_width_p(x_cord_width_p)
-    ,.y_cord_width_p(y_cord_width_p)
-  ) south_io_right_tieoff (
-    .clk_i(clk_i)
-    ,.reset_i(south_io_reset_r[0])
-    ,.link_sif_i(south_io_link_sif_lo[(num_pods_x_p*num_tiles_x_p)-1][E])
-    ,.link_sif_o(south_io_link_sif_li[(num_pods_x_p*num_tiles_x_p)-1][E])
-  );
-
-
-
-  
 
   // connect ruche links between pods (with ruche buffers)
   for (genvar i = 0; i < num_pods_y_p; i++) begin: rb_py
