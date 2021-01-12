@@ -1,14 +1,16 @@
+# number of pods to deploy the SPMD programs
+bsg_pods_X ?= 1
+bsg_pods_Y ?= 1
+bsg_pods_size ?= $(call bsg-times-fn,$(bsg_pods_X),$(bsg_pods_Y))
 
-#$(warning testing $(call bsg-max-fn,2,3))
-#$(warning testing $(call bsg-minus-fn,3,2))
-#$(warning testing $(call bsg-min-fn,3,2))
-#$(warning testing $(call bsg-times-fn,3,2))
-#$(warning testing $(call bsg-plus-fn,3,2))
 
+# tile-group origin
+# relative to the top-left tile in a pod
 bsg_tiles_org_X ?=0
 bsg_tiles_org_Y ?=0
 
 ifdef BSG_MACHINE_GLOBAL_X
+
 
 # tile group size
 # By default, the tile groups size is the full array.
@@ -16,6 +18,8 @@ bsg_tiles_X ?= $(BSG_MACHINE_GLOBAL_X)
 bsg_tiles_Y ?= $(BSG_MACHINE_GLOBAL_Y)
 bsg_group_size ?= $(call bsg-times-fn,$(bsg_tiles_X),$(bsg_tiles_Y))
 
+
+# size of a pod
 bsg_global_X ?= $(BSG_MACHINE_GLOBAL_X)
 bsg_global_Y ?= $(BSG_MACHINE_GLOBAL_Y)
 

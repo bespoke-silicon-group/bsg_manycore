@@ -21,8 +21,8 @@ BSG_MACHINE_HETERO_TYPE_VEC           = default:0
 
 # possible origin Y = 8, 24,40,56
 # possible origin X = 16,32,48,64
-BSG_MACHINE_ORIGIN_Y_CORD             = 56
-BSG_MACHINE_ORIGIN_X_CORD             = 64
+BSG_MACHINE_ORIGIN_Y_CORD             = 8
+BSG_MACHINE_ORIGIN_X_CORD             = 16
 
 BSG_MACHINE_HOST_Y_CORD               = 0
 BSG_MACHINE_HOST_X_CORD               = 16
