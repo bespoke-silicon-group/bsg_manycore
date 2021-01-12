@@ -53,7 +53,9 @@ class NBF:
     self.addr_width = config["addr_width"]
     self.origin_x_cord = config["origin_x_cord"]
     self.origin_y_cord = config["origin_y_cord"]
-  
+    self.num_pods_x = config["num_pods_x"]  
+    self.num_pods_y = config["num_pods_y"]
+
     # software setting
     self.tgo_x = config["tgo_x"]
     self.tgo_y = config["tgo_y"]
@@ -180,21 +182,21 @@ class NBF:
 
 
   # set TGO x,y
-  def config_tile_group(self):
+  def config_tile_group(self, pod_origin_x, pod_origin_y):
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
-        x_eff = self.tgo_x + x + self.origin_x_cord
-        y_eff = self.tgo_y + y + self.origin_y_cord
+        x_eff = self.tgo_x + x + pod_origin_x
+        y_eff = self.tgo_y + y + pod_origin_y
         self.print_nbf(x_eff, y_eff, CSR_TGO_X, self.tgo_x)
         self.print_nbf(x_eff, y_eff, CSR_TGO_Y, self.tgo_y)
 
  
   # initialize icache
-  def init_icache(self):
+  def init_icache(self, pod_origin_x, pod_origin_y):
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
-        x_eff = self.tgo_x + x + self.origin_x_cord
-        y_eff = self.tgo_y + y + self.origin_y_cord
+        x_eff = self.tgo_x + x + pod_origin_x
+        y_eff = self.tgo_y + y + pod_origin_y
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
           if addr < self.icache_size:
@@ -203,7 +205,7 @@ class NBF:
         
  
   # initialize dmem
-  def init_dmem(self):
+  def init_dmem(self, pod_origin_x, pod_origin_y):
     # if there is nothing in dmem, just return.
     if len(self.dmem_data.keys()) == 0:
       return
@@ -211,8 +213,8 @@ class NBF:
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
 
-        x_eff = self.tgo_x + x + self.origin_x_cord
-        y_eff = self.tgo_y + y + self.origin_y_cord
+        x_eff = self.tgo_x + x + pod_origin_x
+        y_eff = self.tgo_y + y + pod_origin_y
           
         for k in range(1024, self.bsg_data_end_addr):
           if k in self.dmem_data.keys():
@@ -222,16 +224,16 @@ class NBF:
 
  
   # disable dram mode
-  def disable_dram(self):
+  def disable_dram(self, pod_origin_x, pod_origin_y):
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
-        x_eff = self.tgo_x + x + self.origin_x_cord
-        y_eff = self.tgo_y + y + self.origin_y_cord
+        x_eff = self.tgo_x + x + pod_origin_x
+        y_eff = self.tgo_y + y + pod_origin_y
         self.print_nbf(x_eff, y_eff, CSR_ENABLE_DRAM, 0)
    
  
   # initialize vcache in no DRAM mode
-  def init_vcache(self):
+  def init_vcache(self, pod_origin_x, pod_origin_y):
 
     t_shift = self.safe_clog2(self.cache_block_size)
 
@@ -240,13 +242,13 @@ class NBF:
         epa = (t << t_shift) | (1 << (self.addr_width-1))
         data = (1 << (self.data_width-1)) | (t / self.cache_set)
         # top vcache
-        self.print_nbf(x+self.origin_x_cord, self.origin_y_cord-1, epa, data)
+        self.print_nbf(x+pod_origin_x, pod_origin_y-1, epa, data)
         # bot vcache
-        self.print_nbf(x+self.origin_x_cord, self.origin_y_cord+self.num_tiles_y, epa, data)
+        self.print_nbf(x+pod_origin_x, pod_origin_y+self.num_tiles_y, epa, data)
          
  
   # init DRAM
-  def init_dram(self, enable_dram): 
+  def init_dram(self, pod_origin_x, pod_origin_y, enable_dram): 
     cache_size = self.cache_size
     lg_x = self.safe_clog2(self.num_tiles_x)
     lg_block_size = self.safe_clog2(self.cache_block_size)
@@ -260,14 +262,14 @@ class NBF:
         # hashing for power of 2 banks
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
-          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + self.origin_x_cord
+          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + pod_origin_x
           y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x)
           index = self.select_bits(addr, lg_block_size+lg_x+1, lg_block_size+lg_x+1+index_width-1)
           epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
           if y == 0:
-            self.print_nbf(x, self.origin_y_cord-1, epa, self.dram_data[k]) #top
+            self.print_nbf(x, pod_origin_y-1, epa, self.dram_data[k]) #top
           else:
-            self.print_nbf(x, self.origin_y_cord+self.num_tiles_y, epa, self.dram_data[k]) #bot
+            self.print_nbf(x, pod_origin_y+self.num_tiles_y, epa, self.dram_data[k]) #bot
       else:
         print("hash function not supported for x={0}.")
         sys.exit()
@@ -279,12 +281,12 @@ class NBF:
         x = (addr / cache_size)
         epa = addr % cache_size
         if (x < self.num_tiles_x):
-          x_eff = x + self.origin_x_cord
-          y_eff = self.origin_y_cord -1
+          x_eff = x + pod_origin_x
+          y_eff = pod_origin_y -1
           self.print_nbf(x_eff, y_eff, epa, self.dram_data[k])
         elif (x < self.num_tiles_x*2):
-          x_eff = (x % self.num_tiles_x) + self.origin_x_cord
-          y_eff = self.origin_y_cord + self.num_tiles_y
+          x_eff = (x % self.num_tiles_x) + pod_origin_x
+          y_eff = pod_origin_y + self.num_tiles_y
           self.print_nbf(x_eff, y_eff, epa, self.dram_data[k])
         else:
           print("## WARNING: NO DRAM MODE, DRAM DATA OUT OF RANGE!!!")
@@ -292,9 +294,9 @@ class NBF:
       
 
   # unfreeze tiles
-  def unfreeze_tiles(self):
-    tgo_x = self.tgo_x + self.origin_x_cord
-    tgo_y = self.tgo_y + self.origin_y_cord
+  def unfreeze_tiles(self, pod_origin_x, pod_origin_y):
+    tgo_x = self.tgo_x + pod_origin_x
+    tgo_y = self.tgo_y + pod_origin_y
 
     for y in range(self.tg_dim_y):
       for x in range(self.tg_dim_x):
@@ -315,20 +317,35 @@ class NBF:
 
   ##### LOADER ROUTINES END  #####  
 
+  # public main function
   # users only have to call this function.
   def dump(self):
-    self.config_tile_group()
-    self.init_icache()
-    self.init_dmem()
+    # initialize all pods
+    for px in range(self.num_pods_x):
+      for py in range(self.num_pods_y):
+        pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
+        pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
+        self.config_tile_group(pod_origin_x, pod_origin_y)
+        self.init_icache(pod_origin_x, pod_origin_y)
+        self.init_dmem(pod_origin_x, pod_origin_y)
 
-    if self.enable_dram != 1:
-      self.disable_dram()    
-      self.init_vcache()
+        if self.enable_dram != 1:
+          self.disable_dram(pod_origin_x, pod_origin_y)
+          self.init_vcache(pod_origin_x, pod_origin_y)
 
-    self.init_dram(self.enable_dram)
+        self.init_dram(pod_origin_x, pod_origin_y, self.enable_dram)
+
+    # wait for all store credits to return.
     self.fence()
-    self.unfreeze_tiles()
 
+    # unfreeze all pods
+    for px in range(self.num_pods_x):
+      for py in range(self.num_pods_y):
+        pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
+        pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
+        self.unfreeze_tiles(pod_origin_x, pod_origin_y)
+
+    # print finish nbf.
     self.print_finish()
 
 
@@ -357,7 +374,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 16:
+  if len(sys.argv) == 18:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -375,7 +392,9 @@ if __name__ == "__main__":
       "tg_dim_y" : int(sys.argv[12]),
       "enable_dram" : int(sys.argv[13]),
       "origin_x_cord" : int(sys.argv[14]),
-      "origin_y_cord" : int(sys.argv[15])
+      "origin_y_cord" : int(sys.argv[15]),
+      "num_pods_x" : int(sys.argv[16]),
+      "num_pods_y" : int(sys.argv[17])
     }
 
     converter = NBF(config)
@@ -387,5 +406,6 @@ if __name__ == "__main__":
     command += "{cache_way} {cache_set} {cache_block_size} {dram_size} {max_epa_width} "
     command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram} "
     command += "{origin_x_cord} {origin_y_cord}"
+    command += "{num_pods_x} {num_pods_y}"
     print(command)
 

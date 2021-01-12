@@ -297,7 +297,8 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 		$(BSG_MACHINE_DRAM_SIZE_WORDS) $(BSG_MACHINE_MAX_EPA_WIDTH) \
 		$(bsg_tiles_org_X) $(bsg_tiles_org_Y) \
 		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) \
-		$(BSG_MACHINE_ORIGIN_X_CORD) $(BSG_MACHINE_ORIGIN_Y_CORD) > $*.nbf
+		$(BSG_MACHINE_ORIGIN_X_CORD) $(BSG_MACHINE_ORIGIN_Y_CORD) \
+    $(bsg_pods_X) $(bsg_pods_Y) > $*.nbf
 
 
 %.bin:  %.hex

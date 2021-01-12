@@ -43,10 +43,23 @@ module bsg_nonsynth_manycore_monitor
 
   int status;
   int max_cycle;
+  int num_pods;   // number of pods running the SPMD program. The simulation can terminate if it has received finish packet from all the pods.
   initial begin
     status = $value$plusargs("max_cycle=%d", max_cycle);
+    status = $value$plusargs("num_pods=%d", num_pods);
     if (max_cycle == 0) begin
       max_cycle = 1000000; // default
+    end
+  end
+
+  // keep track of number of finish packets received.
+  integer finish_count;
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+      if (finish_count == num_pods) begin
+        $display("[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from all pods, time=%0t", $time);
+        $finish;
+      end
     end
   end
 
@@ -154,13 +167,16 @@ module bsg_nonsynth_manycore_monitor
 
 
   always_ff @ (negedge clk_i) begin
-    if (~reset_i) begin
+    if (reset_i) begin
+      finish_count <= 0;
+    end
+    else begin
       if (v_i & we_i) begin
         if (~addr_i[addr_width_p-1]) begin
           if (epa_addr == bsg_finish_epa_gp) begin
             $display("[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, $time);
-            $finish;
+            finish_count <= finish_count + 1;
           end
           else if (epa_addr == bsg_time_epa_gp) begin
             $display("[INFO][MONITOR] RECEIVED TIME BSG_PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
