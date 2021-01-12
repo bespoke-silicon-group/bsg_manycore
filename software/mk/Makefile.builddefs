@@ -88,6 +88,7 @@ RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/com
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
+RISCV_GCC_OPTS +=-Dbsg_pods_X=$(bsg_pods_X) -Dbsg_pods_Y=$(bsg_pods_Y)
 
 # IO_X/Y_INDEX indicates global physical coordinate where the host interface is attached.
 # This macros are required by the program to know where to send the finish/fail packets to the host.
