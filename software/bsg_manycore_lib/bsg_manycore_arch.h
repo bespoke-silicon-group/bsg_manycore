@@ -93,6 +93,18 @@
                           | ((int) local_addr)))
 
 
+// pod remote pointer
+// px = pod id x
+// py = pod id y
+// x = subcord x
+// y = subcord y
+#define bsg_global_pod_ptr(px,py,x,y,local_addr) \
+  ((bsg_remote_int_ptr) ( (1 << GLOBAL_PREFIX_SHIFT)    \
+                        | ((((1+(py*2))*bsg_global_Y)+y) << GLOBAL_Y_CORD_SHIFT)  \
+                        | ((((px+1)*bsg_global_X)+x) << GLOBAL_X_CORD_SHIFT)  \
+                        | ((int) local_addr)))
+
+
 // DRAM address pointer
 #define bsg_dram_ptr(local_addr) ((bsg_remote_int_ptr) ((1<<DRAM_PREFIX_SHIFT) | ((int) local_addr)))
 #define bsg_host_dram_ptr(addr)  ((bsg_remote_int_ptr) ((3<<30) | ((int) (addr))))

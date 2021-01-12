@@ -36,6 +36,9 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_global_float_store(x,y,local_addr,val) do { *(bsg_global_float_ptr((x),(y),(local_addr))) = (float) (val); } while (0)
 #define bsg_global_float_load(x,y,local_addr,val)  do { val = *(bsg_global_float_ptr((x),(y),(local_addr))) ; } while (0)
 
+#define bsg_global_pod_store(px,py,x,y,local_addr,val) do { *(bsg_global_pod_ptr(px,py,(x),(y),(local_addr))) = (int) (val); } while (0)
+#define bsg_global_pod_load(px,py,x,y,local_addr,val)  do { val = *(bsg_global_pod_ptr(px,py,(x),(y),(local_addr))) ; } while (0)
+
 #define bsg_dram_store(dram_addr,val) do { *(bsg_dram_ptr((dram_addr))) = (int) (val); } while (0)
 #define bsg_dram_load(dram_addr,val)  do { val = *(bsg_dram_ptr((dram_addr))) ; } while (0)
 
