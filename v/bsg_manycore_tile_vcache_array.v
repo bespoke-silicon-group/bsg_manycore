@@ -137,30 +137,51 @@ module bsg_manycore_tile_vcache_array
   end
 
   // connect wh ruche link
-  for (genvar c = 0; c < num_tiles_x_p-1; c++) begin: rc
+  for (genvar c = 0; c < num_tiles_x_p; c++) begin: rc
     for (genvar l = 0; l < wh_ruche_factor_p; l++) begin: rl // ruche stage
-      bsg_ruche_buffer #(
-        .width_p(wh_link_sif_width_lp)
-        ,.ruche_factor_p(wh_ruche_factor_p)
-        ,.ruche_stage_p(l)
-        ,.harden_p(1)
-      ) rb_w (
-        .i(wh_link_sif_lo[c+1][l][W])
-        ,.o(wh_link_sif_li[c][(l+wh_ruche_factor_p-1) % wh_ruche_factor_p][E])
-      );
+      if (c == num_tiles_x_p-1) begin: cl
+        bsg_ruche_buffer #(
+          .width_p(wh_link_sif_width_lp)
+          ,.ruche_factor_p(wh_ruche_factor_p)
+          ,.ruche_stage_p(l)
+          ,.harden_p(1)
+        ) rb_w (
+          .i(wh_link_sif_i[E][l])
+          ,.o(wh_link_sif_li[c][(l+wh_ruche_factor_p-1) % wh_ruche_factor_p][E])
+        );
 
-      bsg_ruche_buffer #(
-        .width_p(wh_link_sif_width_lp)
-        ,.ruche_factor_p(wh_ruche_factor_p)
-        ,.ruche_stage_p(l)
-        ,.harden_p(1)
-      ) rb_e (
-        .i(wh_link_sif_lo[c][l][E])
-        ,.o(wh_link_sif_li[c+1][(l+1) % wh_ruche_factor_p][W])
-      );
+        bsg_ruche_buffer #(
+          .width_p(wh_link_sif_width_lp)
+          ,.ruche_factor_p(wh_ruche_factor_p)
+          ,.ruche_stage_p(l)
+          ,.harden_p(1)
+        ) rb_e (
+          .i(wh_link_sif_lo[c][l][E])
+          ,.o(wh_link_sif_o[E][(l+1) % wh_ruche_factor_p])
+        );
+      end
+      else begin: cn
+        bsg_ruche_buffer #(
+          .width_p(wh_link_sif_width_lp)
+          ,.ruche_factor_p(wh_ruche_factor_p)
+          ,.ruche_stage_p(l)
+          ,.harden_p(1)
+        ) rb_w (
+          .i(wh_link_sif_lo[c+1][l][W])
+          ,.o(wh_link_sif_li[c][(l+wh_ruche_factor_p-1) % wh_ruche_factor_p][E])
+        );
 
+        bsg_ruche_buffer #(
+          .width_p(wh_link_sif_width_lp)
+          ,.ruche_factor_p(wh_ruche_factor_p)
+          ,.ruche_stage_p(l)
+          ,.harden_p(1)
+        ) rb_e (
+          .i(wh_link_sif_lo[c][l][E])
+          ,.o(wh_link_sif_li[c+1][(l+1) % wh_ruche_factor_p][W])
+        );
 
-
+      end
     end
   end
 
@@ -171,8 +192,8 @@ module bsg_manycore_tile_vcache_array
     assign wh_link_sif_o[W][l] = wh_link_sif_lo[0][l][W];
     assign wh_link_sif_li[0][l][W] = wh_link_sif_i[W][l];
     //  east
-    assign wh_link_sif_o[E][l] = wh_link_sif_lo[num_tiles_x_p-1][l][E];
-    assign wh_link_sif_li[num_tiles_x_p-1][l][E] = wh_link_sif_i[E][l];
+    //assign wh_link_sif_o[E][l] = wh_link_sif_lo[num_tiles_x_p-1][l][E];
+    //assign wh_link_sif_li[num_tiles_x_p-1][l][E] = wh_link_sif_i[E][l];
   end 
 
 
