@@ -2,6 +2,7 @@
 
 module bsg_manycore_pod_ruche
   import bsg_noc_pkg::*;
+  import bsg_tag_pkg::*;
   import bsg_manycore_pkg::*;
   #(parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
@@ -49,7 +50,7 @@ module bsg_manycore_pod_ruche
   (
     // manycore 
     input clk_i
-    , input reset_i
+    //, input reset_i
 
     , input  [E:W][num_tiles_y_p-1:0][manycore_link_sif_width_lp-1:0] hor_link_sif_i
     , output [E:W][num_tiles_y_p-1:0][manycore_link_sif_width_lp-1:0] hor_link_sif_o
@@ -62,20 +63,18 @@ module bsg_manycore_pod_ruche
 
 
     // vcache
-    //, input wh_clk_i
-    //, input wh_reset_i
     , input  [E:W][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] north_wh_link_sif_i
     , output [E:W][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] north_wh_link_sif_o
-    , input [wh_cord_width_p-1:0] north_dest_wh_cord_i 
     , input [pod_x_cord_width_p-1:0] north_vcache_pod_x_i
     , input [pod_y_cord_width_p-1:0] north_vcache_pod_y_i
+    , input bsg_tag_s north_bsg_tag_i
 
 
     , input  [E:W][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] south_wh_link_sif_i
     , output [E:W][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] south_wh_link_sif_o
-    , input [wh_cord_width_p-1:0] south_dest_wh_cord_i 
     , input [pod_x_cord_width_p-1:0] south_vcache_pod_x_i
     , input [pod_y_cord_width_p-1:0] south_vcache_pod_y_i
+    , input bsg_tag_s south_bsg_tag_i
 
     // pod cord
     , input [pod_x_cord_width_p-1:0] pod_x_i
@@ -85,6 +84,34 @@ module bsg_manycore_pod_ruche
 
 
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+  `declare_bsg_manycore_pod_tag_payload_s(wh_cord_width_p);
+
+
+  // bsg tag clients
+  bsg_manycore_pod_tag_payload_s north_tag_payload;
+  bsg_manycore_pod_tag_payload_s south_tag_payload;
+
+  bsg_tag_client #(
+    .width_p($bits(bsg_manycore_pod_tag_payload_s))
+  ) btc_n (
+    .bsg_tag_i(north_bsg_tag_i)
+    ,.recv_clk_i(clk_i)
+    ,.recv_reset_i(1'b0)
+    ,.recv_new_r_o()
+    ,.recv_data_r_o(north_tag_payload)
+  );
+
+  bsg_tag_client #(
+    .width_p($bits(bsg_manycore_pod_tag_payload_s))
+  ) btc_s (
+    .bsg_tag_i(south_bsg_tag_i)
+    ,.recv_clk_i(clk_i)
+    ,.recv_reset_i(1'b0)
+    ,.recv_new_r_o()
+    ,.recv_data_r_o(south_tag_payload)
+  );
+
+
 
   // manycore array
   bsg_manycore_link_sif_s [S:N][num_tiles_x_p-1:0] mc_ver_link_sif_li;
@@ -109,7 +136,7 @@ module bsg_manycore_pod_ruche
     ,.reset_depth_p(reset_depth_p)
   ) mc (
     .clk_i(clk_i)
-    ,.reset_i(reset_i)
+    ,.reset_i({south_tag_payload.reset, north_tag_payload.reset}) // {S,N}
     
     ,.hor_link_sif_i(hor_link_sif_i)
     ,.hor_link_sif_o(hor_link_sif_o)
@@ -156,7 +183,7 @@ module bsg_manycore_pod_ruche
     ,.reset_depth_p(reset_depth_p)
   ) north_vc_row (
     .clk_i(clk_i)
-    ,.reset_i(reset_i)
+    ,.reset_i(north_tag_payload.reset)
     
     ,.wh_link_sif_i(north_wh_link_sif_i)
     ,.wh_link_sif_o(north_wh_link_sif_o)
@@ -168,7 +195,7 @@ module bsg_manycore_pod_ruche
     ,.pod_y_i(north_vcache_pod_y_i)
     ,.my_y_i({y_subcord_width_lp{1'b1}})
 
-    ,.dest_wh_cord_i(north_dest_wh_cord_i)
+    ,.dest_wh_cord_i(north_tag_payload.dest_wh_cord)
   );
 
 
@@ -203,7 +230,7 @@ module bsg_manycore_pod_ruche
     ,.reset_depth_p(reset_depth_p)
   ) south_vc_row (
     .clk_i(clk_i)
-    ,.reset_i(reset_i)
+    ,.reset_i(south_tag_payload.reset)
     
     ,.wh_link_sif_i(south_wh_link_sif_i)
     ,.wh_link_sif_o(south_wh_link_sif_o)
@@ -215,7 +242,7 @@ module bsg_manycore_pod_ruche
     ,.pod_y_i(south_vcache_pod_y_i)
     ,.my_y_i({y_subcord_width_lp{1'b0}})
 
-    ,.dest_wh_cord_i(south_dest_wh_cord_i)
+    ,.dest_wh_cord_i(south_tag_payload.dest_wh_cord)
   );
 
 

@@ -46,7 +46,7 @@ module spmd_testbench();
   // clock and reset
   parameter core_clk_period_p = 1000; // 1000 ps == 1 GHz
   bit core_clk;
-  bit reset;
+  bit global_reset;
   bsg_nonsynth_clock_gen #(
     .cycle_time_p(core_clk_period_p)
   ) clock_gen (
@@ -58,23 +58,14 @@ module spmd_testbench();
     ,.reset_cycles_hi_p(16)
   ) reset_gen (
     .clk_i(core_clk)
-    ,.async_reset_o(reset)
+    ,.async_reset_o(global_reset)
   );
 
-  // reset dff
-  logic reset_r;
-  bsg_dff_chain #(
-    .width_p(1)
-    ,.num_stages_p(reset_depth_p)
-  ) reset_dff (
-    .clk_i(core_clk)
-    ,.data_i(reset)
-    ,.data_o(reset_r)
-  );
 
   // testbench
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   bsg_manycore_link_sif_s io_link_sif_li, io_link_sif_lo;
+  logic tag_done_lo;
 
   bsg_nonsynth_manycore_testbench #(
     .num_pods_x_p(num_pods_x_p)
@@ -112,10 +103,23 @@ module spmd_testbench();
     ,.reset_depth_p(reset_depth_p)
   ) tb (
     .clk_i(core_clk)
-    ,.reset_i(reset)
+    ,.reset_i(global_reset)
 
     ,.io_link_sif_i(io_link_sif_li)
     ,.io_link_sif_o(io_link_sif_lo)
+
+    ,.tag_done_o(tag_done_lo)
+  );
+
+  // reset is deasserted when tag programming is done.
+  logic reset_r;
+  bsg_dff_chain #(
+    .width_p(1)
+    ,.num_stages_p(reset_depth_p)
+  ) reset_dff (
+    .clk_i(core_clk)
+    ,.data_i(~tag_done_lo)
+    ,.data_o(reset_r)
   );
 
 
@@ -139,6 +143,7 @@ module spmd_testbench();
     ,.loader_done_o()
   );
 
+  // reset dff
 
 
   // trace enable

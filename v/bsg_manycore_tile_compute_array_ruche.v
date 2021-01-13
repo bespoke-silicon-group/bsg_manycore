@@ -70,7 +70,7 @@ module bsg_manycore_tile_compute_array_ruche
   )
   (
     input clk_i
-    , input reset_i
+    , input [S:N] reset_i   // the top-half of the array reset is driven by north reset pin, and the bot-half by south reset.
 
     // horizontal -- {E,W}
     , input [E:W][num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_i
@@ -111,15 +111,17 @@ module bsg_manycore_tile_compute_array_ruche
   // Pipeline the reset. The bsg_manycore_tile has a single pipeline register
   // on reset already, so we only want to pipeline reset_depth_p-1 times.
   logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0] tile_reset_r;
-
-  bsg_dff_chain #(
-    .width_p(num_tiles_x_p*(num_tiles_y_p))
-    ,.num_stages_p(reset_depth_p-1)
-  ) tile_reset (
-    .clk_i(clk_i)
-    ,.data_i({(num_tiles_x_p*(num_tiles_y_p)){reset_i}})
-    ,.data_o(tile_reset_r)
-  );
+  
+  for (genvar i = N; i <= S; i++) begin: rdff
+    bsg_dff_chain #(
+      .width_p(num_tiles_x_p*num_tiles_y_p/2)
+      ,.num_stages_p(reset_depth_p-1)
+    ) tile_reset (
+      .clk_i(clk_i)
+      ,.data_i({(num_tiles_x_p*num_tiles_y_p/2){reset_i[i]}})
+      ,.data_o(tile_reset_r[(i-N)*(num_tiles_y_p/2)+:(num_tiles_y_p/2)])
+    );
+  end
   
 
   // Instantiate tiles.

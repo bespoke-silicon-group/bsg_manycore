@@ -5,6 +5,7 @@
 VINCLUDES += $(BASEJUMP_STL_DIR)/bsg_misc
 VINCLUDES += $(BASEJUMP_STL_DIR)/bsg_cache
 VINCLUDES += $(BASEJUMP_STL_DIR)/bsg_noc
+VINCLUDES += $(BASEJUMP_STL_DIR)/bsg_tag
 VINCLUDES += $(BSG_MANYCORE_DIR)/v
 VINCLUDES += $(BSG_MANYCORE_DIR)/v/vanilla_bean
 VINCLUDES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source
@@ -15,6 +16,7 @@ VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_router_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_wormhole_router_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_links.vh
+VHEADERS += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_non_blocking_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_defines.vh
@@ -70,6 +72,10 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_id_pool.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_concentrate_static.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_array_concentrate_static.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_unconcentrate_static.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mux2_gatestack.v
+
+
+VHEADERS += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_client.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1r1w_large.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_fifo_1rw_large.v

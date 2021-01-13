@@ -6,3 +6,5 @@ stack.info.*
 */build
 */csrc
 */csrc-debug
+*/*.tr
+*/bsg_tag_boot_rom.v
