@@ -20,7 +20,7 @@ module bsg_manycore_pod_ruche_array
     , parameter y_cord_width_p="inv"
     , parameter addr_width_p="inv"
     , parameter data_width_p="inv"
-    , parameter ruche_factor_X_p="inv"
+    , parameter ruche_factor_X_p=3  // only support 3 for now
 
     , parameter dmem_size_p="inv"
     , parameter icache_entries_p="inv"
@@ -34,7 +34,7 @@ module bsg_manycore_pod_ruche_array
     , parameter vcache_size_p="inv"
     , parameter vcache_dma_data_width_p="inv"
 
-    , parameter wh_ruche_factor_p="inv"
+    , parameter wh_ruche_factor_p=2 // only support 2 for now
     , parameter wh_cid_width_p="inv"
     , parameter wh_flit_width_p="inv"
     , parameter wh_cord_width_p="inv"
@@ -93,10 +93,10 @@ module bsg_manycore_pod_ruche_array
   bsg_manycore_ruche_x_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_li;  
   bsg_manycore_ruche_x_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_lo;  
 
-  wh_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] north_wh_link_sif_li;
-  wh_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] north_wh_link_sif_lo;
-  wh_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] south_wh_link_sif_li;
-  wh_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] south_wh_link_sif_lo;
+  // even pod y = north wh link
+  // odd pod y  = south wh link
+  wh_link_sif_s [2*num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] wh_link_sif_li;
+  wh_link_sif_s [2*num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] wh_link_sif_lo;
 
 
   // Instantiate pods
@@ -155,14 +155,14 @@ module bsg_manycore_pod_ruche_array
         ,.ruche_link_i(ruche_link_li[y][x])
         ,.ruche_link_o(ruche_link_lo[y][x])
 
-        ,.north_wh_link_sif_i(north_wh_link_sif_li[y][x])
-        ,.north_wh_link_sif_o(north_wh_link_sif_lo[y][x])
+        ,.north_wh_link_sif_i(wh_link_sif_li[2*y][x])
+        ,.north_wh_link_sif_o(wh_link_sif_lo[2*y][x])
         ,.north_dest_wh_cord_i(dest_wh_cord)
         ,.north_vcache_pod_x_i(pod_x_cord_width_p'(x+1))
         ,.north_vcache_pod_y_i(pod_y_cord_width_p'(2*y))
 
-        ,.south_wh_link_sif_i(south_wh_link_sif_li[y][x])
-        ,.south_wh_link_sif_o(south_wh_link_sif_lo[y][x])
+        ,.south_wh_link_sif_i(wh_link_sif_li[(2*y)+1][x])
+        ,.south_wh_link_sif_o(wh_link_sif_lo[(2*y)+1][x])
         ,.south_dest_wh_cord_i(dest_wh_cord)
         ,.south_vcache_pod_x_i(pod_x_cord_width_p'(x+1))
         ,.south_vcache_pod_y_i(pod_y_cord_width_p'((2*y)+2))
@@ -299,32 +299,13 @@ module bsg_manycore_pod_ruche_array
   end
 
 
-  // connect ruche links between pods (with ruche buffers)
+  // connect ruche links between pods
   for (genvar i = 0; i < num_pods_y_p; i++) begin: rb_py
     for (genvar j = 0; j < num_pods_x_p-1; j++) begin: rb_px
       for (genvar k = 0; k < num_tiles_y_p; k++) begin: rb_y
         for (genvar l = 0; l < ruche_factor_X_p; l++) begin: rb_f
-
-          bsg_ruche_buffer #(
-            .width_p(ruche_x_link_sif_width_lp)
-            ,.ruche_factor_p(ruche_factor_X_p)
-            ,.ruche_stage_p(l)
-            ,.harden_p(1)
-          ) rb_w (
-            .i(ruche_link_lo[i][j+1][W][k][l])
-            ,.o(ruche_link_li[i][j][E][k][(l+ruche_factor_X_p-1)%ruche_factor_X_p])
-          );
-
-          bsg_ruche_buffer #(
-            .width_p(ruche_x_link_sif_width_lp)
-            ,.ruche_factor_p(ruche_factor_X_p)
-            ,.ruche_stage_p(l)
-            ,.harden_p(1)
-          ) rb_e (
-            .i(ruche_link_lo[i][j][E][k][l])
-            ,.o(ruche_link_li[i][j+1][W][k][(l+1)%ruche_factor_X_p])
-          );
-
+          assign ruche_link_li[i][j][E][k][l] = ruche_link_lo[i][j+1][W][k][l];
+          assign ruche_link_li[i][j+1][W][k][l] = ruche_link_lo[i][j][E][k][l];;
         end
       end
     end
@@ -332,52 +313,11 @@ module bsg_manycore_pod_ruche_array
 
 
   // connect wormhole ruche links between pods (with ruche buffers)
-  for (genvar i = 0; i < num_pods_y_p; i++) begin: wrb_y
+  for (genvar i = 0; i < 2*num_pods_y_p; i++) begin: wrb_y
     for (genvar j = 0; j < num_pods_x_p-1; j++) begin: wrb_x
       for (genvar l = 0; l < wh_ruche_factor_p; l++) begin: wrb_f
-        // north wh going west
-        bsg_ruche_buffer #(
-          .width_p(wh_link_sif_width_lp)
-          ,.ruche_factor_p(wh_ruche_factor_p)
-          ,.ruche_stage_p(l)
-          ,.harden_p(1)
-        ) north_wrb_w (
-          .i(north_wh_link_sif_lo[i][j+1][W][l])
-          ,.o(north_wh_link_sif_li[i][j][E][(l+wh_ruche_factor_p-1)%wh_ruche_factor_p])
-        );
-
-        // north wh going east
-        bsg_ruche_buffer #(
-          .width_p(wh_link_sif_width_lp)
-          ,.ruche_factor_p(wh_ruche_factor_p)
-          ,.ruche_stage_p(l)
-          ,.harden_p(1)
-        ) north_wrb_e (
-          .i(north_wh_link_sif_lo[i][j][E][l])
-          ,.o(north_wh_link_sif_li[i][j+1][W][(l+1)%wh_ruche_factor_p])
-        );
-
-        // south wh going west
-        bsg_ruche_buffer #(
-          .width_p(wh_link_sif_width_lp)
-          ,.ruche_factor_p(wh_ruche_factor_p)
-          ,.ruche_stage_p(l)
-          ,.harden_p(1)
-        ) south_wrb_w (
-          .i(south_wh_link_sif_lo[i][j+1][W][l])
-          ,.o(south_wh_link_sif_li[i][j][E][(l+wh_ruche_factor_p-1)%wh_ruche_factor_p])
-        );
-
-        // south wh going east
-        bsg_ruche_buffer #(
-          .width_p(wh_link_sif_width_lp)
-          ,.ruche_factor_p(wh_ruche_factor_p)
-          ,.ruche_stage_p(l)
-          ,.harden_p(1)
-        ) south_wrb_e (
-          .i(south_wh_link_sif_lo[i][j][E][l])
-          ,.o(south_wh_link_sif_li[i][j+1][W][(l+1)%wh_ruche_factor_p])
-        );
+        assign wh_link_sif_li[i][j][E][l] = wh_link_sif_lo[i][j+1][W][l];
+        assign wh_link_sif_li[i][j+1][W][l] = wh_link_sif_lo[i][j][E][l];
       end
     end
   end
@@ -421,115 +361,39 @@ module bsg_manycore_pod_ruche_array
 
 
   // connect wormhole ruche links to the wormhole concentrators
-  // (with bsg_ruche anti_buffers)
-  for (genvar i = 0; i < num_pods_y_p; i++) begin: conc_wrb_y
-    for (genvar l = 0; l < wh_ruche_factor_p; l++) begin: conc_wrb_f
+  // (hardcoded for wh ruche factor 2)
+  for (genvar i = 0; i < 2*num_pods_y_p; i++) begin: wrb_conc_y
+    // west out
+    assign unconc_links_li[W][i][0] = wh_link_sif_lo[i][0][W][0];
+    assign unconc_links_li[W][i][1] = ~wh_link_sif_lo[i][0][W][1];
+  /*
+    bsg_inv #(
+      .width_p(wh_link_sif_width_lp)
+      ,.harden_p(1)
+    ) west_out (
+      .i(wh_link_sif_lo[i][W][1])
+      ,.o(unconc_links_li[W][i][1])
+    );
+*/
+    // west in
+    assign wh_link_sif_li[i][0][W][0] = unconc_links_lo[W][i][0];
+    assign wh_link_sif_li[i][0][W][1] = ~unconc_links_lo[W][i][1];
+/*
+    bsg_inv #(
+      .width_p(wh_link_sif_width_lp)
+      ,.harden_p(1)
+    ) west_in (
+      .i(unconc_links_lo[W][i][1])
+      ,.o(wh_link_sif_li[i][W][1])
+    );
+*/
+    // east out
+    assign unconc_links_li[E][i][0] = wh_link_sif_lo[i][num_pods_x_p-1][E][0];
+    assign unconc_links_li[E][i][1] = ~wh_link_sif_lo[i][num_pods_x_p-1][E][1];
 
-      // north_wh west output
-      bsg_ruche_anti_buffer #(
-        .width_p(wh_link_sif_width_lp)
-        ,.ruche_factor_p(wh_ruche_factor_p)
-        ,.ruche_stage_p(l)
-        ,.west_not_east_p(1)
-        ,.input_not_output_p(0)
-        ,.harden_p(1)
-      ) north_abuf_west_out (
-        .i(north_wh_link_sif_lo[i][0][W][l])
-        ,.o(unconc_links_li[W][2*i][(wh_ruche_factor_p-l)%wh_ruche_factor_p])
-      );
-
-      // north wh west input
-      bsg_ruche_anti_buffer #(
-        .width_p(wh_link_sif_width_lp)
-        ,.ruche_factor_p(wh_ruche_factor_p)
-        ,.ruche_stage_p(l)
-        ,.west_not_east_p(1)
-        ,.input_not_output_p(1)
-        ,.harden_p(1)
-      ) north_abuf_west_in (
-        .i(unconc_links_lo[W][2*i][(wh_ruche_factor_p-l)%wh_ruche_factor_p])
-        ,.o(north_wh_link_sif_li[i][0][W][l])
-      );
-
-      // south wh west output
-      bsg_ruche_anti_buffer #(
-        .width_p(wh_link_sif_width_lp)
-        ,.ruche_factor_p(wh_ruche_factor_p)
-        ,.ruche_stage_p(l)
-        ,.west_not_east_p(1)
-        ,.input_not_output_p(0)
-        ,.harden_p(1)
-      ) south_abuf_west_out (
-        .i(south_wh_link_sif_lo[i][0][W][l])
-        ,.o(unconc_links_li[W][(2*i)+1][(wh_ruche_factor_p-l)%wh_ruche_factor_p])
-      );
-
-      // south wh_west input
-      bsg_ruche_anti_buffer #(
-        .width_p(wh_link_sif_width_lp)
-        ,.ruche_factor_p(wh_ruche_factor_p)
-        ,.ruche_stage_p(l)
-        ,.west_not_east_p(1)
-        ,.input_not_output_p(1)
-        ,.harden_p(1)
-      ) south_abuf_west_in (
-        .i(unconc_links_lo[W][(2*i)+1][(wh_ruche_factor_p-l)%wh_ruche_factor_p])
-        ,.o(south_wh_link_sif_li[i][0][W][l])
-      );
-
-      // north_wh east output
-      bsg_ruche_anti_buffer #(
-        .width_p(wh_link_sif_width_lp)
-        ,.ruche_factor_p(wh_ruche_factor_p)
-        ,.ruche_stage_p(l)
-        ,.west_not_east_p(0)
-        ,.input_not_output_p(0)
-        ,.harden_p(1)
-      ) north_abuf_east_out (
-        .i(north_wh_link_sif_lo[i][num_pods_x_p-1][E][l])
-        ,.o(unconc_links_li[E][2*i][(wh_ruche_factor_p+((num_pods_x_p*num_tiles_x_p)-1)-l)%wh_ruche_factor_p])
-      );
-
-      // north wh east input
-      bsg_ruche_anti_buffer #(
-        .width_p(wh_link_sif_width_lp)
-        ,.ruche_factor_p(wh_ruche_factor_p)
-        ,.ruche_stage_p(l)
-        ,.west_not_east_p(0)
-        ,.input_not_output_p(1)
-        ,.harden_p(1)
-      ) north_abuf_east_in (
-        .i(unconc_links_lo[E][2*i][(wh_ruche_factor_p+((num_pods_x_p*num_tiles_x_p)-1)-l)%wh_ruche_factor_p])
-        ,.o(north_wh_link_sif_li[i][num_pods_x_p-1][E][l])
-      );
-
-      // south_wh east output
-      bsg_ruche_anti_buffer #(
-        .width_p(wh_link_sif_width_lp)
-        ,.ruche_factor_p(wh_ruche_factor_p)
-        ,.ruche_stage_p(l)
-        ,.west_not_east_p(0)
-        ,.input_not_output_p(0)
-        ,.harden_p(1)
-      ) south_abuf_east_out (
-        .i(south_wh_link_sif_lo[i][num_pods_x_p-1][E][l])
-        ,.o(unconc_links_li[E][(2*i)+1][(wh_ruche_factor_p+((num_pods_x_p*num_tiles_x_p)-1)-l)%wh_ruche_factor_p])
-      );
-
-      // south wh east input
-      bsg_ruche_anti_buffer #(
-        .width_p(wh_link_sif_width_lp)
-        ,.ruche_factor_p(wh_ruche_factor_p)
-        ,.ruche_stage_p(l)
-        ,.west_not_east_p(0)
-        ,.input_not_output_p(1)
-        ,.harden_p(1)
-      ) south_abuf_east_in (
-        .i(unconc_links_lo[E][(2*i)+1][(wh_ruche_factor_p+((num_pods_x_p*num_tiles_x_p)-1)-l)%wh_ruche_factor_p])
-        ,.o(south_wh_link_sif_li[i][num_pods_x_p-1][E][l])
-      );
-
-    end
+    // east in
+    assign wh_link_sif_li[i][num_pods_x_p-1][E][0] = unconc_links_li[E][i][0];
+    assign wh_link_sif_li[i][num_pods_x_p-1][E][1] = ~unconc_links_li[E][i][1];
   end
 
 endmodule

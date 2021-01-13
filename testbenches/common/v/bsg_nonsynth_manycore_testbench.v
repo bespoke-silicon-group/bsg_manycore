@@ -472,7 +472,7 @@ module bsg_nonsynth_manycore_testbench
   end
 
 
-  // HOR TIEOFF
+  // HOR TIEOFF (local link)
   for (genvar i = W; i <= E; i++) begin
     for (genvar j = 0; j < num_pods_y_p; j++) begin
       for (genvar k = 0; k < num_tiles_y_p; k++) begin
@@ -492,30 +492,50 @@ module bsg_nonsynth_manycore_testbench
   end
 
 
-  // RUCHE LINK TIEOFF
-  for (genvar i = W; i <= E; i++) begin
-    for (genvar j = 0; j < num_pods_y_p; j++) begin
-      for (genvar k = 0; k < num_tiles_y_p; k++) begin
-        for (genvar l = 0; l < ruche_factor_X_p; l++) begin
-          bsg_manycore_ruche_x_link_sif_tieoff #(
-            .addr_width_p(addr_width_p)
-            ,.data_width_p(data_width_p)
-            ,.x_cord_width_p(x_cord_width_p)
-            ,.y_cord_width_p(y_cord_width_p)
-            ,.ruche_stage_p(l)
-            ,.ruche_factor_X_p(ruche_factor_X_p)
-            ,.west_not_east_p(i==W ? 1 : 0)
-          ) ruche_tieoff (
-            .clk_i(clk_i)
-            ,.reset_i(reset_r)
-            ,.ruche_link_i(ruche_link_lo[i][j][k][l])
-            ,.ruche_link_o(ruche_link_li[i][j][k][l])
-          );
-        end
+  // RUCHE LINK TIEOFF (west)
+  for (genvar j = 0; j < num_pods_y_p; j++) begin
+    for (genvar k = 0; k < num_tiles_y_p; k++) begin
+      for (genvar l = 0; l < ruche_factor_X_p; l++) begin
+        bsg_manycore_ruche_x_link_sif_tieoff #(
+          .addr_width_p(addr_width_p)
+          ,.data_width_p(data_width_p)
+          ,.x_cord_width_p(x_cord_width_p)
+          ,.y_cord_width_p(y_cord_width_p)
+          ,.ruche_stage_p(l)
+          ,.ruche_factor_X_p(ruche_factor_X_p)
+          ,.west_not_east_p(1)
+        ) rw_tieoff (
+          .clk_i(clk_i)
+          ,.reset_i(reset_r)
+          ,.ruche_link_i(ruche_link_lo[W][j][k][l])
+          ,.ruche_link_o(ruche_link_li[W][j][k][l])
+        );
       end
     end
   end
 
+  // RUCHE LINK TIEOFF (east)
+  for (genvar j = 0; j < num_pods_y_p; j++) begin
+    for (genvar k = 0; k < num_tiles_y_p; k++) begin
+      for (genvar l = 0; l < ruche_factor_X_p; l++) begin
+        bsg_manycore_ruche_x_link_sif_tieoff #(
+          .addr_width_p(addr_width_p)
+          ,.data_width_p(data_width_p)
+          ,.x_cord_width_p(x_cord_width_p)
+          ,.y_cord_width_p(y_cord_width_p)
+          ,.ruche_stage_p(l)
+          ,.ruche_factor_X_p(ruche_factor_X_p)
+          ,.west_not_east_p(0)
+        ) re_tieoff (
+          .clk_i(clk_i)
+          ,.reset_i(reset_r)
+          ,.ruche_link_i(ruche_link_lo[E][j][k][l])
+          ,.ruche_link_o(ruche_link_li[E][j][k][l])
+        );
+      end
+    end
+  end
+  
 
 
   // vanilla core profiler
