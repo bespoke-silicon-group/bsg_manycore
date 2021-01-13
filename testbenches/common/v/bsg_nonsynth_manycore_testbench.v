@@ -6,6 +6,7 @@
 
 module bsg_nonsynth_manycore_testbench
   import bsg_noc_pkg::*; // {P=0, W, E, N, S}
+  import bsg_tag_pkg::*;
   import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
   #(parameter num_pods_x_p  = "inv"
@@ -49,6 +50,8 @@ module bsg_nonsynth_manycore_testbench
     input clk_i
     , input reset_i
 
+    , output tag_done_o
+    
     , input  [link_sif_width_lp-1:0] io_link_sif_i
     , output [link_sif_width_lp-1:0] io_link_sif_o
   );
@@ -70,15 +73,33 @@ module bsg_nonsynth_manycore_testbench
   end
 
 
-  // bsg_manycore has 3 flops that reset signal needs to go through.
-  // So we are trying to match that here.
+  // BSG TAG MASTER
+  logic tag_done_lo;
+  bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0][S:N] pod_tags_lo;
+
+  bsg_nonsynth_manycore_tag_master #(
+    .num_pods_x_p(num_pods_x_p)
+    ,.num_pods_y_p(num_pods_y_p)
+    ,.wh_cord_width_p(wh_cord_width_p)
+  ) mtm (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    
+    ,.tag_done_o(tag_done_lo)
+    ,.pod_tags_o(pod_tags_lo)
+  );   
+  
+  assign tag_done_o = tag_done_lo;
+
+  // deassert reset when tag programming is done.
+  wire reset = ~tag_done_lo;
   logic reset_r;
   bsg_dff_chain #(
     .width_p(1)
     ,.num_stages_p(reset_depth_p)
   ) reset_dff (
     .clk_i(clk_i)
-    ,.data_i(reset_i)
+    ,.data_i(reset)
     ,.data_o(reset_r)
   );
 
@@ -95,10 +116,6 @@ module bsg_nonsynth_manycore_testbench
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_lo;
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_li;
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_lo;
-
-  logic [E:W][wh_cord_width_p-1:0] dest_wh_cord_li;
-  assign dest_wh_cord_li[W] = '0;
-  assign dest_wh_cord_li[E] = '1;
 
   bsg_manycore_pod_ruche_array #(
     .num_tiles_x_p(num_tiles_x_p)
@@ -135,7 +152,7 @@ module bsg_nonsynth_manycore_testbench
     ,.reset_depth_p(reset_depth_p)
   ) DUT (
     .clk_i(clk_i)
-    ,.reset_i(reset_i)
+    ,.reset_i(reset)
 
     ,.io_link_sif_i(io_link_sif_li)
     ,.io_link_sif_o(io_link_sif_lo)
@@ -149,7 +166,8 @@ module bsg_nonsynth_manycore_testbench
     ,.ruche_link_i(ruche_link_li)
     ,.ruche_link_o(ruche_link_lo)
 
-    ,.dest_wh_cord_i(dest_wh_cord_li)
+
+    ,.bsg_tag_i(pod_tags_lo) 
   );
 
 

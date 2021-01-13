@@ -11,6 +11,7 @@
 
 module bsg_manycore_pod_ruche_array
   import bsg_noc_pkg::*;
+  import bsg_tag_pkg::*;
   import bsg_manycore_pkg::*;
   #(parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
@@ -77,7 +78,11 @@ module bsg_manycore_pod_ruche_array
     , input  [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0][ruche_factor_X_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_i
     , output [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0][ruche_factor_X_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_o
     
-    , input [E:W][wh_cord_width_p-1:0] dest_wh_cord_i
+
+    // bsg_tag interface
+    // for each pod, there are two bsg_tag_clients (north and south)
+    // bsg_tag_clients carry {reset, dest_wh_cord}
+    , input bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0][S:N] bsg_tag_i
   );
 
 
@@ -102,15 +107,6 @@ module bsg_manycore_pod_ruche_array
   // Instantiate pods
   for (genvar y = 0; y < num_pods_y_p; y++) begin: py
     for (genvar x = 0; x < num_pods_x_p; x++) begin: px
-
-      // if num_pods_x_p = 1, all traffics go to west.
-      // if greater, the left half of the pod array traffic goes to west,
-      // and the right half to east.
-      wire [wh_cord_width_p-1:0] dest_wh_cord = (num_pods_x_p == 1)
-        ? dest_wh_cord_i[W]
-        : (x < (num_pods_x_p/2)
-          ? dest_wh_cord_i[W]
-          : dest_wh_cord_i[E]);
 
       bsg_manycore_pod_ruche #(
         .num_tiles_x_p(num_tiles_x_p)
@@ -144,28 +140,26 @@ module bsg_manycore_pod_ruche_array
         ,.reset_depth_p(reset_depth_p)
       ) pod (
         .clk_i(clk_i)
-        ,.reset_i(reset_i)
+        //,.reset_i(reset_i)
 
         ,.hor_link_sif_i(hor_link_sif_li[y][x])
         ,.hor_link_sif_o(hor_link_sif_lo[y][x])
-    
         ,.ver_link_sif_i(ver_link_sif_li[y][x])
         ,.ver_link_sif_o(ver_link_sif_lo[y][x])
-
         ,.ruche_link_i(ruche_link_li[y][x])
         ,.ruche_link_o(ruche_link_lo[y][x])
 
         ,.north_wh_link_sif_i(wh_link_sif_li[2*y][x])
         ,.north_wh_link_sif_o(wh_link_sif_lo[2*y][x])
-        ,.north_dest_wh_cord_i(dest_wh_cord)
         ,.north_vcache_pod_x_i(pod_x_cord_width_p'(x+1))
         ,.north_vcache_pod_y_i(pod_y_cord_width_p'(2*y))
+        ,.north_bsg_tag_i(bsg_tag_i[y][x][N])
 
         ,.south_wh_link_sif_i(wh_link_sif_li[(2*y)+1][x])
         ,.south_wh_link_sif_o(wh_link_sif_lo[(2*y)+1][x])
-        ,.south_dest_wh_cord_i(dest_wh_cord)
         ,.south_vcache_pod_x_i(pod_x_cord_width_p'(x+1))
         ,.south_vcache_pod_y_i(pod_y_cord_width_p'((2*y)+2))
+        ,.south_bsg_tag_i(bsg_tag_i[y][x][S])
 
         ,.pod_x_i(pod_x_cord_width_p'(x+1))
         ,.pod_y_i(pod_y_cord_width_p'((2*y)+1))
