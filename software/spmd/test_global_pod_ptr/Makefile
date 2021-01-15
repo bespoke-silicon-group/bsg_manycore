@@ -1,5 +1,5 @@
-bsg_pods_X = 1
-bsg_pods_Y = 1
+override bsg_pods_X = 1
+override bsg_pods_Y = 1
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 
