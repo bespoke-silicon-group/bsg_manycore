@@ -306,7 +306,7 @@ module bsg_manycore_pod_ruche_array
   end
 
 
-  // connect wormhole ruche links between pods (with ruche buffers)
+  // connect wormhole ruche links between pods
   for (genvar i = 0; i < 2*num_pods_y_p; i++) begin: wrb_y
     for (genvar j = 0; j < num_pods_x_p-1; j++) begin: wrb_x
       for (genvar l = 0; l < wh_ruche_factor_p; l++) begin: wrb_f
@@ -386,8 +386,8 @@ module bsg_manycore_pod_ruche_array
     assign unconc_links_li[E][i][1] = ~wh_link_sif_lo[i][num_pods_x_p-1][E][1];
 
     // east in
-    assign wh_link_sif_li[i][num_pods_x_p-1][E][0] = unconc_links_li[E][i][0];
-    assign wh_link_sif_li[i][num_pods_x_p-1][E][1] = ~unconc_links_li[E][i][1];
+    assign wh_link_sif_li[i][num_pods_x_p-1][E][0] = unconc_links_lo[E][i][0];
+    assign wh_link_sif_li[i][num_pods_x_p-1][E][1] = ~unconc_links_lo[E][i][1];
   end
 
 endmodule
