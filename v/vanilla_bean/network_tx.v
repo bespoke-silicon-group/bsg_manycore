@@ -211,13 +211,13 @@ module network_tx
     end
     else if (returned_pkt_type_i == e_return_float_wb) begin
       float_remote_load_resp_v_o = returned_v_i;
-      float_remote_load_resp_force_o = returned_fifo_full_i & returned_v_i;
-      returned_yumi_o = float_remote_load_resp_yumi_i | (returned_fifo_full_i & returned_v_i);
+      float_remote_load_resp_force_o = returned_fifo_full_i;
+      returned_yumi_o = float_remote_load_resp_yumi_i | (returned_fifo_full_i);
     end
     else begin
       int_remote_load_resp_v_o = returned_v_i;
-      int_remote_load_resp_force_o = returned_fifo_full_i & returned_v_i;
-      returned_yumi_o = int_remote_load_resp_yumi_i | (returned_fifo_full_i & returned_v_i);
+      int_remote_load_resp_force_o = returned_fifo_full_i;
+      returned_yumi_o = int_remote_load_resp_yumi_i | (returned_fifo_full_i);
     end
 
   end
@@ -233,6 +233,11 @@ module network_tx
     if (returned_v_i) begin
       assert(returned_pkt_type_i != e_return_credit)
         else $error("[ERROR][TX] Credit packet should not be given to vanilla core.");
+    end
+
+    // if the return fifo is full, the response has to be taken by the core at that cycle.
+    if (return_fifo_full_i) begin
+      assert(return_yumi_o) else $error("[ERROR][TX] Return fifo is full, but the response is not taken by the core.");
     end
 
   end
