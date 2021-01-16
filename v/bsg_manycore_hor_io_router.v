@@ -139,7 +139,7 @@ module bsg_manycore_hor_io_router
     assign ruche_link_out[W].fwd =
       `bsg_manycore_link_sif_fwd_filter_src_y(x_cord_width_p,y_cord_width_p,link_sif_lo[RW].fwd);
     assign ruche_link_out[W].rev =
-      `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,link_sif_lo[RW].fwd);
+      `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,link_sif_lo[RW].rev);
   end
 
 
