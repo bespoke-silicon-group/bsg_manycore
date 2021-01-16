@@ -1440,7 +1440,8 @@ module vanilla_core
     stall_idiv_wb = 1'b0;
     stall_remote_ld_wb = 1'b0;
 
-    if (int_remote_load_resp_v_i & int_remote_load_resp_force_i) begin
+    // int remote_load_resp and icache response are mutually exclusive events.
+    if (int_remote_load_resp_force_i) begin
       wb_n.write_rd = 1'b1;
       wb_n.rd_addr = int_remote_load_resp_rd_i;
       wb_n.rf_data = int_remote_load_resp_data_i;
@@ -1532,7 +1533,7 @@ module vanilla_core
     fcsr_fflags_li[1] = fpu_float_fflags_lo;
     
 
-    if (float_remote_load_resp_v_i & float_remote_load_resp_force_i) begin
+    if (float_remote_load_resp_force_i) begin
       select_remote_flw = 1'b1;
       float_rf_wen = 1'b1;
       float_rf_waddr = float_remote_load_resp_rd_i;
