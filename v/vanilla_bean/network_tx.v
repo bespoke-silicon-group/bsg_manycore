@@ -236,8 +236,8 @@ module network_tx
     end
 
     // if the return fifo is full, the response has to be taken by the core at that cycle.
-    if (return_fifo_full_i) begin
-      assert(return_yumi_o) else $error("[ERROR][TX] Return fifo is full, but the response is not taken by the core.");
+    if (returned_fifo_full_i) begin
+      assert(returned_yumi_o) else $error("[ERROR][TX] Return fifo is full, but the response is not taken by the core.");
     end
 
   end
