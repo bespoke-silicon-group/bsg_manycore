@@ -126,20 +126,23 @@ module bsg_manycore_hor_io_router
   if (tieoff_west_p) begin: tw
     assign link_sif_li[W] = '0;
     assign link_sif_li[RW] = '0;
+    assign ruche_link_out[W] = '0;
   end
   else begin: tnw
     // local
     assign link_sif_li[W] = link_sif_i[W];
     assign link_sif_o[W] = link_sif_lo[W];
     // ruche
-    assign link_sif_li[RW].fwd = 
-      `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_in[W].fwd, global_y_i);
+    assign link_sif_li[RW].fwd = tieoff_east_p
+      ? '{ready_and_rev: ruche_link_in[W].fwd.ready_and_rev, default: '0}
+      : `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_in[W].fwd, global_y_i);
     assign link_sif_li[RW].rev = 
       `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_in[W].rev, global_y_i);
     assign ruche_link_out[W].fwd =
       `bsg_manycore_link_sif_fwd_filter_src_y(x_cord_width_p,y_cord_width_p,link_sif_lo[RW].fwd);
-    assign ruche_link_out[W].rev =
-      `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,link_sif_lo[RW].rev);
+    assign ruche_link_out[W].rev = tieoff_east_p
+      ? '{ready_and_rev: link_sif_lo[RW].rev.ready_and_rev, default: '0}
+      : `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,link_sif_lo[RW].rev);
   end
 
 
@@ -148,20 +151,23 @@ module bsg_manycore_hor_io_router
   if (tieoff_east_p) begin
     assign link_sif_li[E] = '0;
     assign link_sif_li[RE] = '0;
+    assign ruche_link_out[E] = '0;
   end
   else begin
     // local
     assign link_sif_li[E] = link_sif_i[E];
     assign link_sif_o[E] = link_sif_lo[E];
     // ruche
-    assign link_sif_li[RE].fwd = 
-      `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_in[E].fwd, global_y_i);
+    assign link_sif_li[RE].fwd = tieoff_west_p
+      ? '{ready_and_rev: ruche_link_in[E].fwd.ready_and_rev, default: '0}
+      : `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_in[E].fwd, global_y_i);
     assign link_sif_li[RE].rev = 
       `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_in[E].rev, global_y_i);
     assign ruche_link_out[E].fwd =
       `bsg_manycore_link_sif_fwd_filter_src_y(x_cord_width_p,y_cord_width_p,link_sif_lo[RE].fwd);
-    assign ruche_link_out[E].rev =
-      `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,link_sif_lo[RE].rev);
+    assign ruche_link_out[E].rev = tieoff_west_p
+      ? '{ready_and_rev: link_sif_lo[RE].rev.ready_and_rev, default: '0}
+      : `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,link_sif_lo[RE].rev);
   end
 
 
