@@ -11,9 +11,10 @@ module bsg_nonsynth_wormhole_test_mem
     , parameter wh_flit_width_p="inv"
     , parameter wh_cord_width_p="inv"
     , parameter wh_len_width_p="inv"
+    , parameter wh_ruche_factor_p="inv"
 
     , parameter data_len_lp = (vcache_data_width_p*vcache_block_size_in_words_p/vcache_dma_data_width_p)
-    , parameter int unsigned mem_size_p = "inv"   // size of memory in bytes
+    , parameter longint unsigned mem_size_p = "inv"   // size of memory in bytes
     , parameter mem_els_lp = mem_size_p/(vcache_dma_data_width_p/8)
     , parameter mem_addr_width_lp = `BSG_SAFE_CLOG2(mem_els_lp)
 
@@ -115,13 +116,15 @@ module bsg_nonsynth_wormhole_test_mem
     mem_we = 1'b0;
     mem_w_data = wh_link_sif_in.data;
     mem_w_addr = {
-      src_cord_r[0+:lg_num_vcaches_lp],
+      (1)'(cid_r/wh_ruche_factor_p), // determine north or south vcache
+      src_cord_r[0+:(lg_num_vcaches_lp-1)],
       addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
       count_lo
     };
 
     mem_r_addr = {
-      src_cord_r[0+:lg_num_vcaches_lp],
+      (1)'(cid_r/wh_ruche_factor_p), // determine north or south vcache
+      src_cord_r[0+:(lg_num_vcaches_lp-1)],
       addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
       count_lo
     };
