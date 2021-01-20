@@ -79,6 +79,11 @@ module vanilla_core
 
     , input invalid_eva_access_i
 
+    // remote interrupt interface
+    , input remote_interrupt_set_i
+    , input remote_interrupt_clear_i
+    , output logic remote_interrupt_pending_bit_o
+
     // remaining credits
     , input [credit_counter_width_lp-1:0] out_credits_i    
 

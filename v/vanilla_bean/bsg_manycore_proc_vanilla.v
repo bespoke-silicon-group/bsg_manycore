@@ -165,6 +165,10 @@ module bsg_manycore_proc_vanilla
   logic [pc_width_lp-1:0] pc_init_val;
   logic dram_enable;
 
+  logic remote_interrupt_set_lo;
+  logic remote_interrupt_clear_lo;
+  logic remote_interrupt_pending_bit_li;
+
   network_rx #(
     .addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
@@ -208,6 +212,10 @@ module bsg_manycore_proc_vanilla
     ,.tgo_y_o(tgo_y)
     ,.pc_init_val_o(pc_init_val)
     ,.dram_enable_o(dram_enable)
+
+    ,.remote_interrupt_set_o(remote_interrupt_set_lo)
+    ,.remote_interrupt_clear_o(remote_interrupt_clear_lo)
+    ,.remote_interrupt_pending_bit_i(remote_interrupt_pending_bit_li)
 
     ,.global_x_i({pod_x_i, my_x_i})
     ,.global_y_i({pod_y_i, my_y_i})
@@ -353,6 +361,10 @@ module bsg_manycore_proc_vanilla
 
     ,.out_credits_i(out_credits_lo)
     ,.invalid_eva_access_i(invalid_eva_access_lo)
+  
+    ,.remote_interrupt_set_i(remote_interrupt_set_lo)
+    ,.remote_interrupt_clear_i(remote_interrupt_clear_lo)
+    ,.remote_interrupt_pending_bit_o(remote_interrupt_pending_bit_li)
 
     ,.global_x_i({pod_x_i, my_x_i})
     ,.global_y_i({pod_y_i, my_y_i})
