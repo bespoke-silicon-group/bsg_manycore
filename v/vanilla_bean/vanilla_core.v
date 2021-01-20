@@ -21,9 +21,6 @@ module vanilla_core
 
     , parameter max_out_credits_p="inv"
 
-    // Enables branch & jalr target-addr stream on stderr
-    , parameter branch_trace_en_p=0
-
     // For network input FIFO credit counting
       // By default, 3 credits are needed, because the round trip to get the credit back takes three cycles.
       // ID->EXE->FIFO->CREDIT.
@@ -505,6 +502,11 @@ module vanilla_core
     ,.jump_now_o(alu_jump_now)
   );
 
+
+  // In the icache, branch instruction has the direction of the branch encoded in the bit-0 of the instruction field.
+  // 'branch underpredict' means that branch was predicted to be "not taken", but actually needs to be taken.
+  // 'branch overpredict' means that branch was predicted to be "taken", but actually needs to be not taken.
+  // In either cases, the frontend should be flushed. 
   wire branch_under_predict = alu_jump_now & ~exe_r.instruction[0]; 
   wire branch_over_predict = ~alu_jump_now & exe_r.instruction[0]; 
   wire branch_mispredict = exe_r.decode.is_branch_op & (branch_under_predict | branch_over_predict);
@@ -588,7 +590,6 @@ module vanilla_core
     .data_width_p(data_width_p)
     ,.pc_width_p(pc_width_lp)
     ,.dmem_size_p(dmem_size_p)
-    ,.branch_trace_en_p(branch_trace_en_p)
   ) lsu0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -599,7 +600,6 @@ module vanilla_core
     ,.mem_offset_i(exe_r.mem_addr_op2)
     ,.pc_plus4_i(exe_r.pc_plus4)
     ,.icache_miss_i(exe_r.icache_miss)
-    ,.pc_target_i(exe_pc_target)
 
     ,.remote_req_o(remote_req_o)
     ,.remote_req_v_o(lsu_remote_req_v_lo)

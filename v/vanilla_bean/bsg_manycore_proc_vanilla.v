@@ -34,9 +34,6 @@ module bsg_manycore_proc_vanilla
     , parameter proc_fifo_els_p = 4
     , parameter debug_p = 1
 
-    
-    , parameter branch_trace_en_p = 0
-
     , parameter credit_counter_width_lp=$clog2(max_out_credits_p+1)
     , parameter icache_addr_width_lp = `BSG_SAFE_CLOG2(icache_entries_p)
     , parameter dmem_addr_width_lp = `BSG_SAFE_CLOG2(dmem_size_p)
@@ -314,7 +311,6 @@ module bsg_manycore_proc_vanilla
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.branch_trace_en_p(branch_trace_en_p)
     ,.max_out_credits_p(max_out_credits_p)
     ,.fwd_fifo_els_p(fwd_fifo_els_p)
   ) vcore (
