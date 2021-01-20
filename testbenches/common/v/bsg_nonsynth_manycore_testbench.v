@@ -110,8 +110,8 @@ module bsg_nonsynth_manycore_testbench
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0] io_link_sif_li;
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0] io_link_sif_lo;
-  wh_link_sif_s [E:W][2*num_pods_y_p-1:0] wh_link_sif_li;
-  wh_link_sif_s [E:W][2*num_pods_y_p-1:0] wh_link_sif_lo;
+  wh_link_sif_s [E:W][2*num_pods_y_p-1:0][wh_ruche_factor_p-1:0] wh_unconc_link_sif_li;
+  wh_link_sif_s [E:W][2*num_pods_y_p-1:0][wh_ruche_factor_p-1:0] wh_unconc_link_sif_lo;
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_li;
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_lo;
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_li;
@@ -157,8 +157,8 @@ module bsg_nonsynth_manycore_testbench
     ,.io_link_sif_i(io_link_sif_li)
     ,.io_link_sif_o(io_link_sif_lo)
 
-    ,.wh_link_sif_i(wh_link_sif_li)
-    ,.wh_link_sif_o(wh_link_sif_lo)
+    ,.wh_link_sif_i(wh_unconc_link_sif_li)
+    ,.wh_link_sif_o(wh_unconc_link_sif_lo)
 
     ,.hor_link_sif_i(hor_link_sif_li)
     ,.hor_link_sif_o(hor_link_sif_lo)
@@ -176,6 +176,31 @@ module bsg_nonsynth_manycore_testbench
   assign io_link_sif_li[0] = io_link_sif_i;
   assign io_link_sif_o = io_link_sif_lo[0]; 
 
+
+  // instantiate wormhole concentrators
+  wh_link_sif_s [E:W][2*num_pods_y_p-1:0] wh_link_sif_li;
+  wh_link_sif_s [E:W][2*num_pods_y_p-1:0] wh_link_sif_lo;
+
+  for (genvar i = W; i <= E; i++) begin: conc_s
+    for (genvar j = 0; j < num_pods_y_p*2; j++) begin: conc_y
+      bsg_wormhole_concentrator #(
+        .flit_width_p(wh_flit_width_p)
+        ,.len_width_p(wh_len_width_p)
+        ,.cid_width_p(wh_cid_width_p)
+        ,.cord_width_p(wh_cord_width_p)
+        ,.num_in_p(wh_ruche_factor_p)
+      ) conc0 (
+        .clk_i(clk_i)
+        ,.reset_i(reset_r)
+      
+        ,.links_i(wh_unconc_link_sif_lo[i][j])
+        ,.links_o(wh_unconc_link_sif_li[i][j])
+
+        ,.concentrated_link_i(wh_link_sif_li[i][j])
+        ,.concentrated_link_o(wh_link_sif_lo[i][j])
+      );
+    end
+  end
 
 
   //                              //
