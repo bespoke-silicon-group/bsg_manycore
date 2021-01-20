@@ -144,6 +144,10 @@ always_comb begin
   end
 end
 
+// MRET
+assign decode_o.is_mret_op = (instruction_i == `RV32_MRET);
+
+
 //+----------------------------------------------
 //|
 //|     RISC-V edit: "M" STANDARD EXTENSION

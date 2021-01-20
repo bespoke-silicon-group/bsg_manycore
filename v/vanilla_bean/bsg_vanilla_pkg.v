@@ -146,6 +146,9 @@ typedef struct packed {
   // CSR
   logic is_csr_op;
 
+  // MRET
+  logic is_mret_op;
+
   // This signal is for debugging only.
   // It shouldn't be used to synthesize any actual circuits.
   logic unsupported;
@@ -417,9 +420,20 @@ typedef struct packed
 `define RV32_CSRRSI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRSI_FUN3)
 `define RV32_CSRRCI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRCI_FUN3)
 
+// fcsr CSR addr
 `define RV32_CSR_FFLAGS_ADDR  12'h001
 `define RV32_CSR_FRM_ADDR     12'h002  
 `define RV32_CSR_FCSR_ADDR    12'h003
+// machine CSR addr
+`define RV32_CSR_MSTATUS_ADDR   12'h300
+`define RV32_CSR_MTVEC_ADDR     12'h305
+`define RV32_CSR_MIE_ADDR       12'h304
+`define RV32_CSR_MIP_ADDR       12'h344
+`define RV32_CSR_MEPC_ADDR      12'h341
+
+// mret
+// used for returning from the interrupt
+`define RV32_MRET     {7'b0011000, 5'b00010, 5'b00000, 3'b000, 5'b00000, `RV32_SYSTEM}
 
 // RV32M Instruction Encodings
 `define MD_MUL_FUN3       3'b000
