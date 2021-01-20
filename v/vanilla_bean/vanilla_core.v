@@ -489,6 +489,7 @@ module vanilla_core
   );
 
 
+
   // ALU
   //
   logic [data_width_p-1:0] alu_result;
@@ -508,28 +509,6 @@ module vanilla_core
   );
 
 
-  // In the icache, branch instruction has the direction of the branch encoded in the bit-0 of the instruction field.
-  // 'branch underpredict' means that branch was predicted to be "not taken", but actually needs to be taken.
-  // 'branch overpredict' means that branch was predicted to be "taken", but actually needs to be not taken.
-  // In either cases, the frontend should be flushed. 
-  wire branch_under_predict = alu_jump_now & ~exe_r.instruction[0]; 
-  wire branch_over_predict = ~alu_jump_now & exe_r.instruction[0]; 
-  wire branch_mispredict = exe_r.decode.is_branch_op & (branch_under_predict | branch_over_predict);
-  wire jalr_mispredict = exe_r.decode.is_jalr_op & (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
-
-  // Compute branch/jalr target address
-  logic [pc_width_lp-1:0] exe_pc_target;
-
-  always_comb begin
-    if (exe_r.decode.is_branch_op) begin
-      exe_pc_target = branch_under_predict
-        ? exe_r.pred_or_jump_addr[2+:pc_width_lp]
-        : exe_r.pc_plus4[2+:pc_width_lp];
-    end
-    else begin
-      exe_pc_target = alu_jalr_addr;
-    end
-  end
 
   // save pc+4 of jalr/jal for predicting jalr branch target
   logic [pc_width_lp-1:0] jalr_prediction_r;
@@ -619,6 +598,52 @@ module vanilla_core
 
     ,.mem_addr_sent_o(lsu_mem_addr_sent_lo)
   );
+
+
+  // npc_r ('true next pc')
+  // this keeps track of what should be the next PC of the instruction that was last in EXE (i.e. latest committed instruction).
+  // this is updated when a valid instruction moves out of EXE (or FP_EXE)
+  // For non-control instructions, this is pc+4.
+  // For control instructions, this is the branch/jump target. 
+  // This is used for setting mepc_r, when the interrupt is taken.
+  // this is different from pc_n in IF, which could have mispredicted pc.
+  logic npc_write_en;
+  logic [pc_width_lp-1:0] npc_n, npc_r; 
+
+  bsg_dff_en_bypass #(
+    .width_p(pc_width_lp)
+  ) npc_dff (
+    .clk_i(clk_i)
+    ,.en_i(npc_write_en)
+    ,.data_i(npc_n)
+    ,.data_o(npc_r)
+  );
+
+
+  // In the icache, branch instruction has the direction of the branch encoded in the bit-0 of the instruction.
+  // 0 = forward branch (always predict 'not taken')
+  // 1 = backward branch (always predict 'taken')
+  // 'branch underpredict' means that branch was predicted to be "not taken", but actually needs to be taken.
+  // 'branch overpredict' means that branch was predicted to be "taken", but actually needs to be not taken.
+  // In either cases, the frontend should be flushed. 
+  wire branch_under_predict = (alu_jump_now & ~exe_r.instruction[0]);
+  wire branch_over_predict  = (~alu_jump_now & exe_r.instruction[0]); 
+  wire branch_mispredict = (branch_under_predict | branch_over_predict) & exe_r.decode.is_branch_op;
+  wire jalr_mispredict = exe_r.decode.is_jalr_op & (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
+
+  always_comb begin
+    if (exe_r.decode.is_jalr_op) begin
+      npc_n = alu_jalr_addr;
+    end
+    else if (exe_r.decode.is_jal_op | (exe_r.decode.is_branch_op & alu_jump_now)) begin
+      npc_n = exe_r.pred_or_jump_addr[2+:pc_width_lp];
+    end
+    else begin
+      npc_n = exe_r.pc_plus4[2+:pc_width_lp];
+    end
+  end
+
+
 
 
   //////////////////////////////
@@ -961,13 +986,19 @@ module vanilla_core
 
   wire reset_down = reset_r & ~reset_i;
 
+
+  // Next PC logic
   always_comb begin
     if (reset_down)
       pc_n = pc_init_val_i;
     else if (wb_r.icache_miss)
       pc_n = wb_r.icache_miss_pc[2+:pc_width_lp];
-    else if (flush)
-      pc_n = exe_pc_target;
+    else if (branch_mispredict)
+      pc_n = alu_jump_now
+        ? exe_r.pred_or_jump_addr[2+:pc_width_lp]
+        : exe_r.pc_plus4[2+:pc_width_lp];
+    else if (jalr_mispredict)
+      pc_n = alu_jalr_addr;
     else if (decode.is_branch_op & instruction[0])
       pc_n = pred_or_jump_addr;
     else if (decode.is_jal_op | decode.is_jalr_op)
@@ -1025,7 +1056,8 @@ module vanilla_core
           instruction: '0,
           decode: '0,
           fp_decode: '0,
-          icache_miss: 1'b1
+          icache_miss: 1'b1,
+          valid: 1'b0
         };
       end
       else begin
@@ -1035,7 +1067,8 @@ module vanilla_core
           instruction: instruction,
           decode: decode,
           fp_decode: fp_decode,
-          icache_miss: 1'b0
+          icache_miss: 1'b0,
+          valid: 1'b1
         };
       end
     end
@@ -1259,17 +1292,37 @@ module vanilla_core
 
 
   // ID -> EXE
+  // update npc_r, when the pipeline is not stalled, and there is a valid instruction in EXE/FP_EXE;
   always_comb begin
     if (stall_all) begin
       exe_n = exe_r;
+      npc_write_en = 1'b0;
     end
     else begin
-      if (flush | stall_id | id_r.decode.is_fp_op) begin
+      npc_write_en = exe_r.valid;
+      if (flush | stall_id) begin
         exe_n = '0;
+      end
+      else if (id_r.decode.is_fp_op) begin
+        // for fp_op, we still want to keep track of npc_r.
+        // so we set the valid and pc_plus4.
+        exe_n = '{
+          pc_plus4: id_r.pc_plus4,
+          valid: id_r.valid,
+          pred_or_jump_addr: '0,
+          instruction: '0,
+          decode: '0,
+          rs1_val: '0,
+          rs2_val: '0,
+          mem_addr_op2: '0,
+          icache_miss: 1'b0,
+          fcsr_data: '0
+        };
       end
       else begin
         exe_n = '{
           pc_plus4: id_r.pc_plus4,
+          valid: id_r.valid,
           pred_or_jump_addr: id_r.pred_or_jump_addr,
           instruction: id_r.instruction,
           decode: id_r.decode,
