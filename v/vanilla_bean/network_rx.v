@@ -201,7 +201,7 @@ module network_rx
           send_zero_n = 1'b1;
         end
         else if (is_pc_init_val_addr) begin
-          pc_init_val_n = data_i[2+:pc_width_lp];
+          pc_init_val_n = data_i[0+:pc_width_lp];
           yumi_o = 1'b1;
           send_zero_n = 1'b1;
         end
@@ -300,7 +300,7 @@ module network_rx
       returning_data_o = {{(data_width_p-y_subcord_width_p){1'b0}}, tgo_y_r};
     end
     else if (send_pc_init_val_r) begin
-      returning_data_o = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_init_val_r, 2'b00};
+      returning_data_o = {{(data_width_p-pc_width_lp){1'b0}}, pc_init_val_r};
     end
     else if (send_dram_enable_r) begin
       returning_data_o = {{(data_width_p-1){1'b0}}, dram_enable_r};

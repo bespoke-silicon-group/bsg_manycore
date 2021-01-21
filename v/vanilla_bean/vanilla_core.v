@@ -1030,9 +1030,9 @@ module vanilla_core
 
   // flush condition
   // 1) branch/jalr mispredict
-  // 2) mret
+  // 2) mret in EXE
   // 3) interrupt taken
-  wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op);
+  wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op) | interrupt_ready;
   wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_r.icache_miss | wb_r.icache_miss;
 
   // reset edge down detect
