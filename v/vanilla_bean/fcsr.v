@@ -182,7 +182,7 @@ module fcsr
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
-      if (v_i) begin
+      if (v_i & data_v_o) begin
         assert(~(|fflags_v_i)) else $error("Exception cannot be accrued while being written by fcsr op.");
       end
     end

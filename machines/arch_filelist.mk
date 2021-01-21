@@ -158,6 +158,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_float_aux.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_int.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_int_fclass.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fcsr.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/mcsr.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_fdiv_fsqrt.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fpu_fmin_fmax.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/icache.v

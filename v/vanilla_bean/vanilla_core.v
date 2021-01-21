@@ -331,6 +331,60 @@ module vanilla_core
     ,.frm_o(frm_r)
   );
 
+  
+  // MCSR
+  logic mcsr_we_li;
+  logic [data_width_p-1:0] mcsr_data_li;
+  logic [data_width_p-1:0] mcsr_data_lo;
+
+  logic mcsr_instr_executed_li;
+  logic mcsr_interrupt_entered_li;
+  logic mcsr_mret_called_li;
+  logic [pc_width_lp-1:0] mcsr_npc_r_li;
+
+  csr_mstatus_s mstatus_r;
+  csr_interrupt_vector_s mip_r;
+  csr_interrupt_vector_s mie_r;
+  logic [pc_width_lp-1:0] mepc_r;
+
+  mcsr #(
+    .pc_width_p(pc_width_lp)
+  ) mcsr0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.remote_interrupt_set_i(remote_interrupt_set_i)
+    ,.remote_interrupt_clear_i(remote_interrupt_clear_i)
+
+    ,.we_i      (mcsr_we_li)
+    ,.addr_i    (id_r.instruction[31:20])
+    ,.funct3_i  (id_r.instruction.funct3)
+    ,.data_i    (mcsr_data_li)
+    ,.rs1_i     (id_r.instruction.rs1)
+    ,.data_o    (mcsr_data_lo)
+    
+    ,.instr_executed_i(mcsr_instr_executed_li)
+    ,.interrupt_entered_i(mcsr_interrupt_entered_li)
+    ,.mret_called_i(mcsr_mret_called_li)
+    ,.npc_r_i(mcsr_npc_r_li)
+
+    ,.mstatus_r_o(mstatus_r)
+    ,.mip_r_o(mip_r)
+    ,.mie_r_o(mie_r)
+    ,.mepc_r_o(mepc_r)
+  );
+
+  assign remote_interrupt_pending_bit_o = mip_r.remote; // make it accessible by remote packet.
+
+  // Interrupt can be taken when mstatus.mie=1 and enable and pending bits are both on for an interrupt source,
+  // When icache miss is not already in progress (e.g. no icache bubble in EXE, MEM or WB)
+  wire remote_interrupt_ready = mip_r.remote & mie_r.remote;
+  wire trace_interrupt_ready = mip_r.trace & mie_r.trace;
+  wire interrupt_ready = mstatus_r.mie
+                       & (remote_interrupt_ready | trace_interrupt_ready)
+                       & ~(exe_r.icache_miss | mem_r.icache_miss | wb_r.icache_miss);
+
+
 
   // calculate mem address offset
   //
@@ -975,7 +1029,10 @@ module vanilla_core
 
 
   // flush condition
-  wire flush = (branch_mispredict | jalr_mispredict);
+  // 1) branch/jalr mispredict
+  // 2) mret
+  // 3) interrupt taken
+  wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op);
   wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_r.icache_miss | wb_r.icache_miss;
 
   // reset edge down detect
@@ -995,6 +1052,13 @@ module vanilla_core
       pc_n = pc_init_val_i;
     else if (wb_r.icache_miss)
       pc_n = wb_r.icache_miss_pc[2+:pc_width_lp];
+    else if (interrupt_ready)
+      if (remote_interrupt_ready)
+        pc_n = `REMOTE_INTERRUPT_JUMP_ADDR;
+      else
+        pc_n = `TRACE_INTERRUPT_JUMP_ADDR;
+    else if (exe_r.decode.is_mret_op)
+      pc_n = mepc_r;
     else if (branch_mispredict)
       pc_n = alu_jump_now
         ? exe_r.pred_or_jump_addr[2+:pc_width_lp]
@@ -1293,6 +1357,17 @@ module vanilla_core
   assign fcsr_addr_li = id_r.instruction[31:20];
 
 
+  // interrupt / CSR control
+  assign mcsr_we_li = (id_r.decode.is_csr_op) & ~flush & ~stall_all & ~stall_id;
+  assign mcsr_data_li = rs1_val_to_exe;
+  assign mcsr_instr_executed_li = id_r.valid & ~flush & ~stall_all & ~stall_id & mstatus_r.mie; // trace interrupt pending can be set outside interrupt.
+  assign mcsr_interrupt_entered_li = interrupt_ready & ~stall_all;
+  assign mcsr_mret_called_li = exe_r.decode.is_mret_op & ~stall_all;
+  assign mcsr_npc_r_li = npc_r;
+  
+
+
+
   // ID -> EXE
   // update npc_r, when the pipeline is not stalled, and there is a valid instruction in EXE/FP_EXE;
   always_comb begin
@@ -1329,10 +1404,11 @@ module vanilla_core
           decode: id_r.decode,
           rs1_val: rs1_val_to_exe,
           // rs2_val carries csr load values
+          // if csr addr matches any of fcsr addr, then fcsr_data_v_lo will be asserted.
           rs2_val: (id_r.decode.is_csr_op
                     ? (fcsr_data_v_lo
                       ? (data_width_p)'(fcsr_data_lo)
-                      : '0)
+                      : mcsr_data_lo)
                     : rs2_val_to_exe),
           mem_addr_op2: mem_addr_op2,
           icache_miss: id_r.icache_miss
