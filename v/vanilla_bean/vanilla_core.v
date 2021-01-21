@@ -308,6 +308,7 @@ module vanilla_core
   fcsr_s fcsr_data_li;
   logic [11:0] fcsr_addr_li;
   fcsr_s fcsr_data_lo;
+  logic fcsr_data_v_lo;
   logic [1:0] fcsr_fflags_v_li;
   fflags_s [1:0] fcsr_fflags_li;
   frm_e frm_r;
@@ -322,6 +323,7 @@ module vanilla_core
     ,.data_i(fcsr_data_li)
     ,.addr_i(fcsr_addr_li)
     ,.data_o(fcsr_data_lo)
+    ,.data_v_o(fcsr_data_v_lo)
     // [0] fpu_int -> MEM
     // [1] fpu_float, fdiv -> FP_WB
     ,.fflags_v_i(fcsr_fflags_v_li)
@@ -528,7 +530,7 @@ module vanilla_core
 
   // alu/csr result mux
   wire [data_width_p-1:0] alu_or_csr_result = exe_r.decode.is_csr_op
-    ? {24'b0, exe_r.fcsr_data}
+    ? exe_r.rs2_val
     : alu_result;
 
 
@@ -1315,8 +1317,7 @@ module vanilla_core
           rs1_val: '0,
           rs2_val: '0,
           mem_addr_op2: '0,
-          icache_miss: 1'b0,
-          fcsr_data: '0
+          icache_miss: 1'b0
         };
       end
       else begin
@@ -1327,10 +1328,14 @@ module vanilla_core
           instruction: id_r.instruction,
           decode: id_r.decode,
           rs1_val: rs1_val_to_exe,
-          rs2_val: rs2_val_to_exe,
+          // rs2_val carries csr load values
+          rs2_val: (id_r.decode.is_csr_op
+                    ? (fcsr_data_v_lo
+                      ? (data_width_p)'(fcsr_data_lo)
+                      : '0)
+                    : rs2_val_to_exe),
           mem_addr_op2: mem_addr_op2,
-          icache_miss: id_r.icache_miss,
-          fcsr_data: fcsr_data_lo
+          icache_miss: id_r.icache_miss
         };
       end
     end

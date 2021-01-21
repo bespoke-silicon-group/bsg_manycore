@@ -59,7 +59,6 @@ typedef struct packed {
 
 // remote request from vanilla core
 //
-
 typedef enum logic [0:0] {
   e_vanilla_amoswap
   , e_vanilla_amoor
@@ -248,10 +247,10 @@ typedef struct packed
     decode_s                           decode;            // Decode signals
     logic [RV32_reg_data_width_gp-1:0] rs1_val;           // RF output data from RS1 address
     logic [RV32_reg_data_width_gp-1:0] rs2_val;           // RF output data from RS2 address
+                                                          // CSR instructions use this register for loading CSR vals
     logic [RV32_reg_data_width_gp-1:0] mem_addr_op2;      // the second operands to compute
                                                           // memory address
     logic                              icache_miss;
-    fcsr_s fcsr_data;
     logic                              valid;             // valid instruction in EXE
 } exe_signals_s;
 
@@ -304,6 +303,33 @@ typedef struct packed
 } flw_wb_signals_s;
 
 
+
+// MACHINE CSR structs, constants
+// mstatus
+typedef struct packed {
+  logic mpie;   //  machine previous interrupt enabler (using bit-7)
+  logic mie;    //  machine interrupt enable (using bit-3)
+} csr_mstatus_s;
+
+// machine interrupt pending
+typedef struct packed {
+  logic trace;  // bit-17
+  logic remote; // bit-16
+} csr_mip_s;
+
+// machine interrupt enable
+typedef struct packed {
+  logic trace;  // bit-17
+  logic remote; // bit-16
+} csr_mie_s;
+
+`define CSR_MTVEC_VAL 32'hffff_ffc1         // mtvec constant
+                                            // Mode == vectored
+                                            // BASE is chosen so that remote interrupt jumps to 0x0
+                                            // and trace interrupts jumps to 0x4
+`define CSR_REMOTE_INTERRUPT_JUMP_ADDR  0   // remote interrupt jump addr (word addr)
+`define CSR_TRACE_INTERRUPT_JUMP_ADDR   1   // trace interrupt jump addr (word addr)
+// remote 
 
 
 //                            //
