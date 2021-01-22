@@ -33,7 +33,7 @@ module spmd_testbench();
 
   parameter wh_flit_width_p = vcache_dma_data_width_p;
   parameter wh_ruche_factor_p = 2;
-  parameter wh_cid_width_p = `BSG_SAFE_CLOG2(wh_ruche_factor_p);
+  parameter wh_cid_width_p = `BSG_SAFE_CLOG2(2*wh_ruche_factor_p); // north + south row of vcaches
   parameter wh_len_width_p = `BSG_SAFE_CLOG2(1+(vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)); // header + addr + data
   parameter wh_cord_width_p = x_cord_width_p;
 
