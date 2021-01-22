@@ -57,6 +57,7 @@ module bsg_manycore_tile_vcache_array
     , input [pod_y_cord_width_p-1:0] pod_y_i
 
     , input [y_subcord_width_lp-1:0] my_y_i
+    , input                          my_cid_i
 
     // wormhole dest cord
     , input [wh_cord_width_p-1:0] dest_wh_cord_i
@@ -120,7 +121,7 @@ module bsg_manycore_tile_vcache_array
 
       ,.my_wh_cord_i({pod_x_i, x_subcord_width_lp'(i)})
       ,.dest_wh_cord_i(dest_wh_cord_i)
-      ,.my_wh_cid_i(wh_cid_width_p'(i%wh_ruche_factor_p))
+      ,.my_wh_cid_i(wh_cid_width_p'((i%wh_ruche_factor_p)+(my_cid_i*wh_ruche_factor_p)))
     );
   end
 

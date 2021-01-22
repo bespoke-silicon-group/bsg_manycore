@@ -194,6 +194,7 @@ module bsg_manycore_pod_ruche
     ,.pod_x_i(north_vcache_pod_x_i)
     ,.pod_y_i(north_vcache_pod_y_i)
     ,.my_y_i({y_subcord_width_lp{1'b1}})
+    ,.my_cid_i(1'b0) // north row local cid
 
     ,.dest_wh_cord_i(north_tag_payload.dest_wh_cord)
   );
@@ -241,6 +242,7 @@ module bsg_manycore_pod_ruche
     ,.pod_x_i(south_vcache_pod_x_i)
     ,.pod_y_i(south_vcache_pod_y_i)
     ,.my_y_i({y_subcord_width_lp{1'b0}})
+    ,.my_cid_i(1'b1) // south row local cid
 
     ,.dest_wh_cord_i(south_tag_payload.dest_wh_cord)
   );

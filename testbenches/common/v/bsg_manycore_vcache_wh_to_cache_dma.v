@@ -18,6 +18,7 @@ module bsg_manycore_vcache_wh_to_cache_dma
     , parameter wh_cid_width_p="inv"
     , parameter wh_len_width_p="inv"
     , parameter wh_cord_width_p="inv"
+    , parameter wh_ruche_factor_p="inv"
 
     , parameter num_vcaches_p="inv"
     , parameter vcache_addr_width_p="inv"
@@ -194,9 +195,11 @@ module bsg_manycore_vcache_wh_to_cache_dma
           write_not_read_n = header_flit_in.write_not_read;
           src_cord_n = header_flit_in.src_cord;
           cid_n = header_flit_in.cid;
-          table_w_addr = header_flit_in.src_cord[lg_num_vcaches_lp-1:0];
+          table_w_addr = {(1)'(header_flit_in.cid/wh_ruche_factor_p), // determine north or south vcache
+                        header_flit_in.src_cord[lg_num_vcaches_lp-1-1:0]};
           table_we = 1'b1;
-          send_cache_id_n = header_flit_in.src_cord[lg_num_vcaches_lp-1:0];
+          send_cache_id_n = {(1)'(header_flit_in.cid/wh_ruche_factor_p), // determine north or south vcache
+                        header_flit_in.src_cord[lg_num_vcaches_lp-1-1:0]};
           send_state_n = SEND_DMA_PKT;
         end
       end

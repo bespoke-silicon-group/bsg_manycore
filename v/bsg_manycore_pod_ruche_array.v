@@ -67,8 +67,8 @@ module bsg_manycore_pod_ruche_array
     , output [(num_pods_x_p*num_tiles_x_p)-1:0][manycore_link_sif_width_lp-1:0] io_link_sif_o
 
     // concentrated wormhole links
-    , input  [E:W][2*num_pods_y_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_i
-    , output [E:W][2*num_pods_y_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_o
+    , input  [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_i
+    , output [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_o
 
     // horizontal local links
     , input  [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0][manycore_link_sif_width_lp-1:0] hor_link_sif_i
@@ -98,10 +98,8 @@ module bsg_manycore_pod_ruche_array
   bsg_manycore_ruche_x_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_li;  
   bsg_manycore_ruche_x_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_lo;  
 
-  // even pod y = north wh link
-  // odd pod y  = south wh link
-  wh_link_sif_s [2*num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] wh_link_sif_li;
-  wh_link_sif_s [2*num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] wh_link_sif_lo;
+  wh_link_sif_s [num_pods_y_p-1:0][S:N][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] wh_link_sif_li;
+  wh_link_sif_s [num_pods_y_p-1:0][S:N][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] wh_link_sif_lo;
 
 
   // Instantiate pods
@@ -149,14 +147,14 @@ module bsg_manycore_pod_ruche_array
         ,.ruche_link_i(ruche_link_li[y][x])
         ,.ruche_link_o(ruche_link_lo[y][x])
 
-        ,.north_wh_link_sif_i(wh_link_sif_li[2*y][x])
-        ,.north_wh_link_sif_o(wh_link_sif_lo[2*y][x])
+        ,.north_wh_link_sif_i(wh_link_sif_li[y][N][x])
+        ,.north_wh_link_sif_o(wh_link_sif_lo[y][N][x])
         ,.north_vcache_pod_x_i(pod_x_cord_width_p'(x+1))
         ,.north_vcache_pod_y_i(pod_y_cord_width_p'(2*y))
         ,.north_bsg_tag_i(bsg_tag_i[y][x][N])
 
-        ,.south_wh_link_sif_i(wh_link_sif_li[(2*y)+1][x])
-        ,.south_wh_link_sif_o(wh_link_sif_lo[(2*y)+1][x])
+        ,.south_wh_link_sif_i(wh_link_sif_li[y][S][x])
+        ,.south_wh_link_sif_o(wh_link_sif_lo[y][S][x])
         ,.south_vcache_pod_x_i(pod_x_cord_width_p'(x+1))
         ,.south_vcache_pod_y_i(pod_y_cord_width_p'((2*y)+2))
         ,.south_bsg_tag_i(bsg_tag_i[y][x][S])
@@ -307,87 +305,35 @@ module bsg_manycore_pod_ruche_array
 
 
   // connect wormhole ruche links between pods
-  for (genvar i = 0; i < 2*num_pods_y_p; i++) begin: wrb_y
-    for (genvar j = 0; j < num_pods_x_p-1; j++) begin: wrb_x
-      for (genvar l = 0; l < wh_ruche_factor_p; l++) begin: wrb_f
-        assign wh_link_sif_li[i][j][E][l] = wh_link_sif_lo[i][j+1][W][l];
-        assign wh_link_sif_li[i][j+1][W][l] = wh_link_sif_lo[i][j][E][l];
+  for (genvar i = 0; i < num_pods_y_p; i++) begin: wrb_y
+    for (genvar m = N; m <= S; m++) begin: wrb_tb
+      for (genvar j = 0; j < num_pods_x_p-1; j++) begin: wrb_x
+        for (genvar l = 0; l < wh_ruche_factor_p; l++) begin: wrb_f
+          assign wh_link_sif_li[i][m][j][E][l] = wh_link_sif_lo[i][m][j+1][W][l];
+          assign wh_link_sif_li[i][m][j+1][W][l] = wh_link_sif_lo[i][m][j][E][l];
+        end
       end
     end
   end
 
 
-
-  // instantiate wormhole concentrators
-  logic [E:W][2*num_pods_y_p-1:0] wh_conc_reset_r;
-  bsg_dff_chain #(
-    .width_p(4*num_pods_y_p)
-    ,.num_stages_p(reset_depth_p)
-  ) wh_conc_reset_dff (
-    .clk_i(clk_i)
-    ,.data_i({(4*num_pods_y_p){reset_i}})
-    ,.data_o(wh_conc_reset_r)
-  );
-
-  wh_link_sif_s [E:W][(2*num_pods_y_p)-1:0][wh_ruche_factor_p-1:0] unconc_links_li;
-  wh_link_sif_s [E:W][(2*num_pods_y_p)-1:0][wh_ruche_factor_p-1:0] unconc_links_lo;
-
-  for (genvar i = W; i <= E; i++) begin: conc_s
-    for (genvar j = 0; j < num_pods_y_p*2; j++) begin: conc_y
-      bsg_wormhole_concentrator #(
-        .flit_width_p(wh_flit_width_p)
-        ,.len_width_p(wh_len_width_p)
-        ,.cid_width_p(wh_cid_width_p)
-        ,.cord_width_p(wh_cord_width_p)
-        ,.num_in_p(wh_ruche_factor_p)
-      ) conc0 (
-        .clk_i(clk_i)
-        ,.reset_i(wh_conc_reset_r[i][j])
-      
-        ,.links_i(unconc_links_li[i][j])
-        ,.links_o(unconc_links_lo[i][j])
-
-        ,.concentrated_link_i(wh_link_sif_i[i][j])
-        ,.concentrated_link_o(wh_link_sif_o[i][j])
-      );
-    end
-  end
-
-
-  // connect wormhole ruche links to the wormhole concentrators
+  // connect wormhole ruche links to the outside
   // (hardcoded for wh ruche factor 2)
-  for (genvar i = 0; i < 2*num_pods_y_p; i++) begin: wrb_conc_y
-    // west out
-    assign unconc_links_li[W][i][0] = wh_link_sif_lo[i][0][W][0];
-    assign unconc_links_li[W][i][1] = ~wh_link_sif_lo[i][0][W][1];
-  /*
-    bsg_inv #(
-      .width_p(wh_link_sif_width_lp)
-      ,.harden_p(1)
-    ) west_out (
-      .i(wh_link_sif_lo[i][W][1])
-      ,.o(unconc_links_li[W][i][1])
-    );
-*/
-    // west in
-    assign wh_link_sif_li[i][0][W][0] = unconc_links_lo[W][i][0];
-    assign wh_link_sif_li[i][0][W][1] = ~unconc_links_lo[W][i][1];
-/*
-    bsg_inv #(
-      .width_p(wh_link_sif_width_lp)
-      ,.harden_p(1)
-    ) west_in (
-      .i(unconc_links_lo[W][i][1])
-      ,.o(wh_link_sif_li[i][W][1])
-    );
-*/
-    // east out
-    assign unconc_links_li[E][i][0] = wh_link_sif_lo[i][num_pods_x_p-1][E][0];
-    assign unconc_links_li[E][i][1] = ~wh_link_sif_lo[i][num_pods_x_p-1][E][1];
-
-    // east in
-    assign wh_link_sif_li[i][num_pods_x_p-1][E][0] = unconc_links_lo[E][i][0];
-    assign wh_link_sif_li[i][num_pods_x_p-1][E][1] = ~unconc_links_lo[E][i][1];
+  for (genvar i = 0; i < num_pods_y_p; i++) begin: wrb_out_y
+    for (genvar m = N; m <= S; m++) begin: wrb_out_tb
+      // west out
+      assign wh_link_sif_o[W][i][m][0] =  wh_link_sif_lo[i][m][0][W][0];
+      assign wh_link_sif_o[W][i][m][1] = ~wh_link_sif_lo[i][m][0][W][1];
+      // west in
+      assign wh_link_sif_li[i][m][0][W][0] =  wh_link_sif_i[W][i][m][0];
+      assign wh_link_sif_li[i][m][0][W][1] = ~wh_link_sif_i[W][i][m][1];
+      // east out
+      assign wh_link_sif_o[E][i][m][0] =  wh_link_sif_lo[i][m][num_pods_x_p-1][E][0];
+      assign wh_link_sif_o[E][i][m][1] = ~wh_link_sif_lo[i][m][num_pods_x_p-1][E][1];
+      // east in
+      assign wh_link_sif_li[i][m][num_pods_x_p-1][E][0] =  wh_link_sif_i[E][i][m][0];
+      assign wh_link_sif_li[i][m][num_pods_x_p-1][E][1] = ~wh_link_sif_i[E][i][m][1];
+    end
   end
 
 endmodule
