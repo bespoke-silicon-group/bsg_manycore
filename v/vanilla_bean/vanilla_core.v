@@ -1084,6 +1084,23 @@ module vanilla_core
     end
   end
   
+  // debug printing for interrupt and mret
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i & ~stall_all & interrupt_ready) begin
+      if (remote_interrupt_ready) begin
+        $display("[INFO][VCORE] Remote interrupt taken. t=%t, x=%0d, y=%0d, mepc=%h",
+          $time, global_x_i, global_y_i, {npc_r, 2'b00});
+      end
+      else begin
+        $display("[INFO][VCORE] Trace interrupt taken. t=%t, x=%0d, y=%0d, mepc=%h",
+          $time, global_x_i, global_y_i, {npc_r, 2'b00});
+      end
+    end
+  end 
+  // synopsys translate_on
+
+
 
   // icache logic
   wire read_icache = (icache_miss_in_pipe & ~flush)
