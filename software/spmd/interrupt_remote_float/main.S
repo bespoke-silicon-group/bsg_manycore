@@ -1,15 +1,14 @@
-// testing entering remote interrupt and exiting..
+// taking remote interrupt while executing float instr.
 
 #include "bsg_manycore_arch.h"
 #include "bsg_manycore_asm.h"
 
+.globl _start
 _remote_interrupt:
-  // clear pending bit
+  // clear mip.remote
   li x1, 0x10000
   csrrc x0, mip, x1
-  li x31, 0xbeef 
   mret
-
 _trace_interrupt:
   j fail
 
@@ -79,41 +78,37 @@ _start:
   fcvt.s.w f30,x0
   fcvt.s.w f31,x0
 
-// enable mstatus.MIE
-li x1, 0x8
-csrrw x0, mstatus, x1
+  // enable mstatus.MIE
+  li x1, 0x8
+  csrrw x0, mstatus, x1
 
-// enable mie.remote
-li x1, 0x10000
-csrrw x0, mie, x1
+  // enable mie.remote
+  li x1, 0x10000
+  csrrw x0, mie, x1
 
-// send yourself remote interrupt
-li x1, bsg_tile_group_remote_interrupt_ptr(0,0)
-li x2, 1
-sw x2, 0(x1)
-
-
-// WAIT FOR INTERRUPT
-nop
-nop
-nop
-nop
-nop
-nop
-nop
-li x30, 0xbeef
-bne x30, x31, fail
+  // setup for fadd
+  li x2, 4
+  li x3, 5
+  fcvt.s.w f0, x2
+  fcvt.s.w f1, x3
+  // send yourself remote interrupt
+  li x1, bsg_tile_group_remote_interrupt_ptr(0,0)
+  li x2, 1
+  sw x2, 0(x1)
+  fadd.s f2, f0, f1
+  fcvt.w.s x4,f2
+  li x31, 9
+  bne x31, x4, fail
 
 
-// returning from interrupt
+
+
+
 pass:
   bsg_asm_finish(IO_X_INDEX, 0)
-
 pass_loop:
   beq x0, x0, pass_loop
-
 fail:
   bsg_asm_fail(IO_X_INDEX, 0)
-
 fail_loop:
   beq x0, x0, fail_loop

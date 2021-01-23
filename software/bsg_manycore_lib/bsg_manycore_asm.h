@@ -56,6 +56,11 @@
     li t0, local_addr;                     \
     lw reg, 0x0(t0);
 
+// Remote Interrupt address (global EVA)
+#define bsg_global_remote_interrupt_ptr(x,y) bsg_asm_global_ptr(x,y,0xfffc)
+// Remote Interrupt address (tile-group EVA)
+#define bsg_tile_group_remote_interrupt_ptr(x,y) bsg_asm_remote_ptr(x,y,0xfffc)
+
 
 // IO macros
 

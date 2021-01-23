@@ -101,7 +101,8 @@ module network_rx
   // This can be also read by the remote packet.
   // This bit can also be modified by the vanilla core using csr instructions.
   // When a remote packet and csr instr both tries to modify mip.remote, the remote packet has higher priority.
-  wire is_remote_interrupt_addr = is_csr_addr & (&addr_i[epa_word_addr_width_gp-2:0]);
+  // EPA (word) = 3fff
+  wire is_remote_interrupt_addr = (addr_i == 'h3fff);
 
 
   // CSR registers
@@ -370,8 +371,8 @@ module network_rx
   logic is_invalid_addr;
 
   assign is_valid_csr_addr = is_csr_addr & 
-    (is_freeze_addr | is_tgo_x_addr | is_tgo_y_addr | is_pc_init_val_addr | is_dram_enable_addr | is_remote_interrupt_addr);
-  assign is_invalid_addr = ~(is_dmem_addr | is_icache_addr | is_valid_csr_addr);
+    (is_freeze_addr | is_tgo_x_addr | is_tgo_y_addr | is_pc_init_val_addr | is_dram_enable_addr);
+  assign is_invalid_addr = ~(is_dmem_addr | is_icache_addr | is_valid_csr_addr | is_remote_interrupt_addr);
 
   always_ff @ (negedge clk_i) begin
     if (~reset_i & v_i & is_invalid_addr) begin

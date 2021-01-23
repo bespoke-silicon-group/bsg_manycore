@@ -1086,23 +1086,21 @@ module vanilla_core
   
   // debug printing for interrupt and mret
   // synopsys translate_off
-  if (debug_p) begin
-    always_ff @ (negedge clk_i) begin
-      if (~reset_i & ~stall_all & interrupt_ready) begin
-        if (remote_interrupt_ready) begin
-          $display("[INFO][VCORE] Remote interrupt taken. t=%0t, x=%0d, y=%0d, mepc=%h",
-            $time, global_x_i, global_y_i, {npc_r, 2'b00});
-        end
-        else begin
-          $display("[INFO][VCORE] Trace interrupt taken. t=%0t, x=%0d, y=%0d, mepc=%h",
-            $time, global_x_i, global_y_i, {npc_r, 2'b00});
-        end
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i & ~stall_all & interrupt_ready) begin
+      if (remote_interrupt_ready) begin
+        $display("[INFO][VCORE] Remote interrupt taken. t=%0t, x=%0d, y=%0d, mepc=%h",
+          $time, global_x_i, global_y_i, {npc_r, 2'b00});
       end
+      else begin
+        $display("[INFO][VCORE] Trace interrupt taken. t=%0t, x=%0d, y=%0d, mepc=%h",
+          $time, global_x_i, global_y_i, {npc_r, 2'b00});
+      end
+    end
 
-      if (~reset_i & ~stall_all & exe_r.decode.is_mret_op) begin
-        $display("[INFO][VCORE] mret called. t=%0t, x=%0d, y=%0d, mepc=%h",
-          $time, global_x_i, global_y_i, {mepc_r, 2'b00});
-      end
+    if (~reset_i & ~stall_all & exe_r.decode.is_mret_op) begin
+      $display("[INFO][VCORE] mret called. t=%0t, x=%0d, y=%0d, mepc=%h",
+        $time, global_x_i, global_y_i, {mepc_r, 2'b00});
     end
   end
   // synopsys translate_on

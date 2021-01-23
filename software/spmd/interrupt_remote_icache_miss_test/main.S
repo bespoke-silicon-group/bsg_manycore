@@ -90,7 +90,7 @@ li x1, 0x10000
 csrrw x0, mie, x1
 
 // send yourself remote interrupt
-li x1, 0x2003FFFC
+li x1, bsg_tile_group_remote_interrupt_ptr(0,0)
 li x2, 1
 sw x2, 0(x1)
 
