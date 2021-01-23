@@ -310,6 +310,8 @@ typedef struct packed {
   logic mpie;   //  machine previous interrupt enabler (using bit-7)
   logic mie;    //  machine interrupt enable (using bit-3)
 } csr_mstatus_s;
+`define RV32_MSTATUS_MIE_BIT_IDX  3
+`define RV32_MSTATUS_MPIE_BIT_IDX 7
 
 // machine interrupt pending/enable vector
 typedef struct packed {
@@ -318,10 +320,6 @@ typedef struct packed {
 } csr_interrupt_vector_s;
 
 
-`define CSR_MTVEC_VAL 32'hffff_ffc1         // mtvec constant
-                                            // Mode == vectored
-                                            // BASE is chosen so that remote interrupt jumps to 0x0
-                                            // and trace interrupts jumps to 0x4
 `define REMOTE_INTERRUPT_JUMP_ADDR  0   // remote interrupt jump addr (word addr)
 `define TRACE_INTERRUPT_JUMP_ADDR   1   // trace interrupt jump addr (word addr)
 // remote 

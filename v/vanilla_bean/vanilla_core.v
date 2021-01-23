@@ -1048,29 +1048,40 @@ module vanilla_core
 
   // Next PC logic
   always_comb begin
-    if (reset_down)
+    if (reset_down) begin
       pc_n = pc_init_val_i;
-    else if (wb_r.icache_miss)
+    end
+    else if (wb_r.icache_miss) begin
       pc_n = wb_r.icache_miss_pc[2+:pc_width_lp];
-    else if (interrupt_ready)
-      if (remote_interrupt_ready)
+    end
+    else if (interrupt_ready) begin
+      if (remote_interrupt_ready) begin
         pc_n = `REMOTE_INTERRUPT_JUMP_ADDR;
-      else
+      end
+      else begin
         pc_n = `TRACE_INTERRUPT_JUMP_ADDR;
-    else if (exe_r.decode.is_mret_op)
+      end
+    end
+    else if (exe_r.decode.is_mret_op) begin
       pc_n = mepc_r;
-    else if (branch_mispredict)
+    end
+    else if (branch_mispredict) begin
       pc_n = alu_jump_now
         ? exe_r.pred_or_jump_addr[2+:pc_width_lp]
         : exe_r.pc_plus4[2+:pc_width_lp];
-    else if (jalr_mispredict)
+    end
+    else if (jalr_mispredict) begin
       pc_n = alu_jalr_addr;
-    else if (decode.is_branch_op & instruction[0])
+    end
+    else if (decode.is_branch_op & instruction[0]) begin
       pc_n = pred_or_jump_addr;
-    else if (decode.is_jal_op | decode.is_jalr_op)
+    end
+    else if (decode.is_jal_op | decode.is_jalr_op) begin
       pc_n = pred_or_jump_addr;
-    else
+    end
+    else begin
       pc_n = pc_plus4;
+    end
   end
   
 

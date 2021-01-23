@@ -94,11 +94,13 @@ module network_rx
   wire is_dram_enable_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd4);
   
 
-  // remote interrupt pending bit (mip.remote)
+  // Remote interrupt pending bit (mip.remote)
   // For write, the write enable signal is sent to the core for one cycle.
   // writing 1 sets the mip.remote.
   // writing 0 clears the mip.remote.
   // This can be also read by the remote packet.
+  // This bit can also be modified by the vanilla core using csr instructions.
+  // When a remote packet and csr instr both tries to modify mip.remote, the remote packet has higher priority.
   wire is_remote_interrupt_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd5);
 
 

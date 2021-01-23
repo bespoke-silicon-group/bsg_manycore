@@ -79,35 +79,35 @@ module mcsr
     else if (we_i & (addr_i == `RV32_CSR_MSTATUS_ADDR)) begin
       case (funct3_i)
         `RV32_CSRRW_FUN3: begin
-          mstatus_n.mpie = data_i[7];
-          mstatus_n.mie = data_i[3];
+          mstatus_n.mpie = data_i[`RV32_MSTATUS_MPIE_BIT_IDX];
+          mstatus_n.mie = data_i[`RV32_MSTATUS_MIE_BIT_IDX];
         end
         `RV32_CSRRS_FUN3: begin
-          mstatus_n.mpie = data_i[7]
+          mstatus_n.mpie = data_i[`RV32_MSTATUS_MPIE_BIT_IDX]
             ? 1'b1
             : mstatus_r.mpie;
-          mstatus_n.mie = data_i[3]
+          mstatus_n.mie = data_i[`RV32_MSTATUS_MIE_BIT_IDX]
             ? 1'b1
             : mstatus_r.mie;
         end
         `RV32_CSRRC_FUN3: begin
-          mstatus_n.mpie = data_i[7]
+          mstatus_n.mpie = data_i[`RV32_MSTATUS_MPIE_BIT_IDX]
             ? 1'b0
             : mstatus_r.mpie;
-          mstatus_n.mie = data_i[3]
+          mstatus_n.mie = data_i[`RV32_MSTATUS_MIE_BIT_IDX]
             ? 1'b0
             : mstatus_r.mie;
         end
         `RV32_CSRRWI_FUN3: begin
-          mstatus_n.mie = rs1_i[3];
+          mstatus_n.mie = rs1_i[`RV32_MSTATUS_MIE_BIT_IDX];
         end
         `RV32_CSRRSI_FUN3: begin
-          mstatus_n.mie = rs1_i[3]
+          mstatus_n.mie = rs1_i[`RV32_MSTATUS_MIE_BIT_IDX]
             ? 1'b1
             : mstatus_r.mie;
         end
         `RV32_CSRRCI_FUN3: begin
-          mstatus_n.mie = rs1_i[3]
+          mstatus_n.mie = rs1_i[`RV32_MSTATUS_MIE_BIT_IDX]
             ? 1'b0
             : mstatus_r.mie;
         end
@@ -248,8 +248,8 @@ module mcsr
     data_o = '0;
     case (addr_i)
       `RV32_CSR_MSTATUS_ADDR: begin
-        data_o[7] = mstatus_r.mpie;
-        data_o[3] = mstatus_r.mie;
+        data_o[`RV32_MSTATUS_MPIE_BIT_IDX] = mstatus_r.mpie;
+        data_o[`RV32_MSTATUS_MIE_BIT_IDX] = mstatus_r.mie;
       end
       `RV32_CSR_MIE_ADDR: begin
         data_o[17:16] = mie_r;
