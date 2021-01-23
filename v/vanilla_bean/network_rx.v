@@ -101,7 +101,7 @@ module network_rx
   // This can be also read by the remote packet.
   // This bit can also be modified by the vanilla core using csr instructions.
   // When a remote packet and csr instr both tries to modify mip.remote, the remote packet has higher priority.
-  wire is_remote_interrupt_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd5);
+  wire is_remote_interrupt_addr = is_csr_addr & (&addr_i[epa_word_addr_width_gp-2:0]);
 
 
   // CSR registers
