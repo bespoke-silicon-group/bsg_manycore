@@ -88,16 +88,14 @@ _start:
 
   // count down from 10
   li x2, 10
+  li x3, 1
 
 .org 4096
 countdown_loop:
   beq x0, x2, pass
-  j loop1
-loop2:
-  j loop3
+  beq x0, x0, loop1             // forward branch (predict not taken, but actually taken)
 loop1:
-  j loop2
-loop3:
+  beq x0, x3, countdown_loop    // backward branch (predict taken, but not actually taken)
   addi x2, x2, -1
   j countdown_loop
 
