@@ -21,9 +21,6 @@ module vanilla_core
 
     , parameter max_out_credits_p="inv"
 
-    // Enables branch & jalr target-addr stream on stderr
-    , parameter branch_trace_en_p=0
-
     // For network input FIFO credit counting
       // By default, 3 credits are needed, because the round trip to get the credit back takes three cycles.
       // ID->EXE->FIFO->CREDIT.
@@ -81,6 +78,11 @@ module vanilla_core
     , output logic int_remote_load_resp_yumi_o
 
     , input invalid_eva_access_i
+
+    // remote interrupt interface
+    , input remote_interrupt_set_i
+    , input remote_interrupt_clear_i
+    , output logic remote_interrupt_pending_bit_o
 
     // remaining credits
     , input [credit_counter_width_lp-1:0] out_credits_i    
@@ -306,6 +308,7 @@ module vanilla_core
   fcsr_s fcsr_data_li;
   logic [11:0] fcsr_addr_li;
   fcsr_s fcsr_data_lo;
+  logic fcsr_data_v_lo;
   logic [1:0] fcsr_fflags_v_li;
   fflags_s [1:0] fcsr_fflags_li;
   frm_e frm_r;
@@ -320,12 +323,67 @@ module vanilla_core
     ,.data_i(fcsr_data_li)
     ,.addr_i(fcsr_addr_li)
     ,.data_o(fcsr_data_lo)
+    ,.data_v_o(fcsr_data_v_lo)
     // [0] fpu_int -> MEM
     // [1] fpu_float, fdiv -> FP_WB
     ,.fflags_v_i(fcsr_fflags_v_li)
     ,.fflags_i(fcsr_fflags_li)
     ,.frm_o(frm_r)
   );
+
+  
+  // MCSR
+  logic mcsr_we_li;
+  logic [data_width_p-1:0] mcsr_data_li;
+  logic [data_width_p-1:0] mcsr_data_lo;
+
+  logic mcsr_instr_executed_li;
+  logic mcsr_interrupt_entered_li;
+  logic mcsr_mret_called_li;
+  logic [pc_width_lp-1:0] mcsr_npc_r_li;
+
+  csr_mstatus_s mstatus_r;
+  csr_interrupt_vector_s mip_r;
+  csr_interrupt_vector_s mie_r;
+  logic [pc_width_lp-1:0] mepc_r;
+
+  mcsr #(
+    .pc_width_p(pc_width_lp)
+  ) mcsr0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.remote_interrupt_set_i(remote_interrupt_set_i)
+    ,.remote_interrupt_clear_i(remote_interrupt_clear_i)
+
+    ,.we_i      (mcsr_we_li)
+    ,.addr_i    (id_r.instruction[31:20])
+    ,.funct3_i  (id_r.instruction.funct3)
+    ,.data_i    (mcsr_data_li)
+    ,.rs1_i     (id_r.instruction.rs1)
+    ,.data_o    (mcsr_data_lo)
+    
+    ,.instr_executed_i(mcsr_instr_executed_li)
+    ,.interrupt_entered_i(mcsr_interrupt_entered_li)
+    ,.mret_called_i(mcsr_mret_called_li)
+    ,.npc_r_i(mcsr_npc_r_li)
+
+    ,.mstatus_r_o(mstatus_r)
+    ,.mip_r_o(mip_r)
+    ,.mie_r_o(mie_r)
+    ,.mepc_r_o(mepc_r)
+  );
+
+  assign remote_interrupt_pending_bit_o = mip_r.remote; // make it accessible by remote packet.
+
+  // Interrupt can be taken when mstatus.mie=1 and enable and pending bits are both on for an interrupt source,
+  // When icache miss is not already in progress (e.g. no icache bubble in EXE, MEM or WB)
+  wire remote_interrupt_ready = mip_r.remote & mie_r.remote;
+  wire trace_interrupt_ready = mip_r.trace & mie_r.trace;
+  wire interrupt_ready = mstatus_r.mie
+                       & (remote_interrupt_ready | trace_interrupt_ready)
+                       & ~(exe_r.icache_miss | mem_r.icache_miss | wb_r.icache_miss);
+
 
 
   // calculate mem address offset
@@ -487,6 +545,7 @@ module vanilla_core
   );
 
 
+
   // ALU
   //
   logic [data_width_p-1:0] alu_result;
@@ -505,24 +564,7 @@ module vanilla_core
     ,.jump_now_o(alu_jump_now)
   );
 
-  wire branch_under_predict = alu_jump_now & ~exe_r.instruction[0]; 
-  wire branch_over_predict = ~alu_jump_now & exe_r.instruction[0]; 
-  wire branch_mispredict = exe_r.decode.is_branch_op & (branch_under_predict | branch_over_predict);
-  wire jalr_mispredict = exe_r.decode.is_jalr_op & (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
 
-  // Compute branch/jalr target address
-  logic [pc_width_lp-1:0] exe_pc_target;
-
-  always_comb begin
-    if (exe_r.decode.is_branch_op) begin
-      exe_pc_target = branch_under_predict
-        ? exe_r.pred_or_jump_addr[2+:pc_width_lp]
-        : exe_r.pc_plus4[2+:pc_width_lp];
-    end
-    else begin
-      exe_pc_target = alu_jalr_addr;
-    end
-  end
 
   // save pc+4 of jalr/jal for predicting jalr branch target
   logic [pc_width_lp-1:0] jalr_prediction_r;
@@ -542,7 +584,7 @@ module vanilla_core
 
   // alu/csr result mux
   wire [data_width_p-1:0] alu_or_csr_result = exe_r.decode.is_csr_op
-    ? {24'b0, exe_r.fcsr_data}
+    ? exe_r.rs2_val
     : alu_result;
 
 
@@ -588,7 +630,6 @@ module vanilla_core
     .data_width_p(data_width_p)
     ,.pc_width_p(pc_width_lp)
     ,.dmem_size_p(dmem_size_p)
-    ,.branch_trace_en_p(branch_trace_en_p)
   ) lsu0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -599,7 +640,6 @@ module vanilla_core
     ,.mem_offset_i(exe_r.mem_addr_op2)
     ,.pc_plus4_i(exe_r.pc_plus4)
     ,.icache_miss_i(exe_r.icache_miss)
-    ,.pc_target_i(exe_pc_target)
 
     ,.remote_req_o(remote_req_o)
     ,.remote_req_v_o(lsu_remote_req_v_lo)
@@ -614,6 +654,52 @@ module vanilla_core
 
     ,.mem_addr_sent_o(lsu_mem_addr_sent_lo)
   );
+
+
+  // npc_r ('true next pc')
+  // this keeps track of what should be the next PC of the instruction that was last in EXE (i.e. latest committed instruction).
+  // this is updated when a valid instruction moves out of EXE (or FP_EXE)
+  // For non-control instructions, this is pc+4.
+  // For control instructions, this is the branch/jump target. 
+  // This is used for setting mepc_r, when the interrupt is taken.
+  // this is different from pc_n in IF, which could have mispredicted pc.
+  logic npc_write_en;
+  logic [pc_width_lp-1:0] npc_n, npc_r; 
+
+  bsg_dff_en_bypass #(
+    .width_p(pc_width_lp)
+  ) npc_dff (
+    .clk_i(clk_i)
+    ,.en_i(npc_write_en)
+    ,.data_i(npc_n)
+    ,.data_o(npc_r)
+  );
+
+
+  // In the icache, branch instruction has the direction of the branch encoded in the bit-0 of the instruction.
+  // 0 = forward branch (always predict 'not taken')
+  // 1 = backward branch (always predict 'taken')
+  // 'branch underpredict' means that branch was predicted to be "not taken", but actually needs to be taken.
+  // 'branch overpredict' means that branch was predicted to be "taken", but actually needs to be not taken.
+  // In either cases, the frontend should be flushed. 
+  wire branch_under_predict = (alu_jump_now & ~exe_r.instruction[0]);
+  wire branch_over_predict  = (~alu_jump_now & exe_r.instruction[0]); 
+  wire branch_mispredict = (branch_under_predict | branch_over_predict) & exe_r.decode.is_branch_op;
+  wire jalr_mispredict = exe_r.decode.is_jalr_op & (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
+
+  always_comb begin
+    if (exe_r.decode.is_jalr_op) begin
+      npc_n = alu_jalr_addr;
+    end
+    else if (exe_r.decode.is_jal_op | (exe_r.decode.is_branch_op & alu_jump_now)) begin
+      npc_n = exe_r.pred_or_jump_addr[2+:pc_width_lp];
+    end
+    else begin
+      npc_n = exe_r.pc_plus4[2+:pc_width_lp];
+    end
+  end
+
+
 
 
   //////////////////////////////
@@ -943,7 +1029,10 @@ module vanilla_core
 
 
   // flush condition
-  wire flush = (branch_mispredict | jalr_mispredict);
+  // 1) branch/jalr mispredict
+  // 2) mret in EXE
+  // 3) interrupt taken
+  wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op) | interrupt_ready;
   wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_r.icache_miss | wb_r.icache_miss;
 
   // reset edge down detect
@@ -956,21 +1045,67 @@ module vanilla_core
 
   wire reset_down = reset_r & ~reset_i;
 
+
+  // Next PC logic
   always_comb begin
-    if (reset_down)
+    if (reset_down) begin
       pc_n = pc_init_val_i;
-    else if (wb_r.icache_miss)
+    end
+    else if (wb_r.icache_miss) begin
       pc_n = wb_r.icache_miss_pc[2+:pc_width_lp];
-    else if (flush)
-      pc_n = exe_pc_target;
-    else if (decode.is_branch_op & instruction[0])
+    end
+    else if (interrupt_ready) begin
+      if (remote_interrupt_ready) begin
+        pc_n = `REMOTE_INTERRUPT_JUMP_ADDR;
+      end
+      else begin
+        pc_n = `TRACE_INTERRUPT_JUMP_ADDR;
+      end
+    end
+    else if (exe_r.decode.is_mret_op) begin
+      pc_n = mepc_r;
+    end
+    else if (branch_mispredict) begin
+      pc_n = alu_jump_now
+        ? exe_r.pred_or_jump_addr[2+:pc_width_lp]
+        : exe_r.pc_plus4[2+:pc_width_lp];
+    end
+    else if (jalr_mispredict) begin
+      pc_n = alu_jalr_addr;
+    end
+    else if (decode.is_branch_op & instruction[0]) begin
       pc_n = pred_or_jump_addr;
-    else if (decode.is_jal_op | decode.is_jalr_op)
+    end
+    else if (decode.is_jal_op | decode.is_jalr_op) begin
       pc_n = pred_or_jump_addr;
-    else
+    end
+    else begin
       pc_n = pc_plus4;
+    end
   end
   
+  // debug printing for interrupt and mret
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i & ~stall_all & interrupt_ready) begin
+      if (remote_interrupt_ready) begin
+        $display("[INFO][VCORE] Remote interrupt taken. t=%0t, x=%0d, y=%0d, mepc=%h",
+          $time, global_x_i, global_y_i, {npc_r, 2'b00});
+      end
+      else begin
+        $display("[INFO][VCORE] Trace interrupt taken. t=%0t, x=%0d, y=%0d, mepc=%h",
+          $time, global_x_i, global_y_i, {npc_r, 2'b00});
+      end
+    end
+
+    if (~reset_i & ~stall_all & exe_r.decode.is_mret_op) begin
+      $display("[INFO][VCORE] mret called. t=%0t, x=%0d, y=%0d, mepc=%h",
+        $time, global_x_i, global_y_i, {mepc_r, 2'b00});
+    end
+  end
+  // synopsys translate_on
+
+
 
   // icache logic
   wire read_icache = (icache_miss_in_pipe & ~flush)
@@ -1020,7 +1155,8 @@ module vanilla_core
           instruction: '0,
           decode: '0,
           fp_decode: '0,
-          icache_miss: 1'b1
+          icache_miss: 1'b1,
+          valid: 1'b0
         };
       end
       else begin
@@ -1030,7 +1166,8 @@ module vanilla_core
           instruction: instruction,
           decode: decode,
           fp_decode: fp_decode,
-          icache_miss: 1'b0
+          icache_miss: 1'b0,
+          valid: 1'b1
         };
       end
     end
@@ -1253,26 +1390,61 @@ module vanilla_core
   assign fcsr_addr_li = id_r.instruction[31:20];
 
 
+  // interrupt / CSR control
+  assign mcsr_we_li = (id_r.decode.is_csr_op) & ~flush & ~stall_all & ~stall_id;
+  assign mcsr_data_li = rs1_val_to_exe;
+  assign mcsr_instr_executed_li = id_r.valid & ~flush & ~stall_all & ~stall_id & mstatus_r.mie; // trace interrupt pending can be set outside interrupt.
+  assign mcsr_interrupt_entered_li = interrupt_ready & ~stall_all;
+  assign mcsr_mret_called_li = exe_r.decode.is_mret_op & ~stall_all;
+  assign mcsr_npc_r_li = npc_r;
+  
+
+
+
   // ID -> EXE
+  // update npc_r, when the pipeline is not stalled, and there is a valid instruction in EXE/FP_EXE;
   always_comb begin
     if (stall_all) begin
       exe_n = exe_r;
+      npc_write_en = 1'b0;
     end
     else begin
-      if (flush | stall_id | id_r.decode.is_fp_op) begin
+      npc_write_en = exe_r.valid;
+      if (flush | stall_id) begin
         exe_n = '0;
+      end
+      else if (id_r.decode.is_fp_op) begin
+        // for fp_op, we still want to keep track of npc_r.
+        // so we set the valid and pc_plus4.
+        exe_n = '{
+          pc_plus4: id_r.pc_plus4,
+          valid: id_r.valid,
+          pred_or_jump_addr: '0,
+          instruction: '0,
+          decode: '0,
+          rs1_val: '0,
+          rs2_val: '0,
+          mem_addr_op2: '0,
+          icache_miss: 1'b0
+        };
       end
       else begin
         exe_n = '{
           pc_plus4: id_r.pc_plus4,
+          valid: id_r.valid,
           pred_or_jump_addr: id_r.pred_or_jump_addr,
           instruction: id_r.instruction,
           decode: id_r.decode,
           rs1_val: rs1_val_to_exe,
-          rs2_val: rs2_val_to_exe,
+          // rs2_val carries csr load values
+          // if csr addr matches any of fcsr addr, then fcsr_data_v_lo will be asserted.
+          rs2_val: (id_r.decode.is_csr_op
+                    ? (fcsr_data_v_lo
+                      ? (data_width_p)'(fcsr_data_lo)
+                      : mcsr_data_lo)
+                    : rs2_val_to_exe),
           mem_addr_op2: mem_addr_op2,
-          icache_miss: id_r.icache_miss,
-          fcsr_data: fcsr_data_lo
+          icache_miss: id_r.icache_miss
         };
       end
     end

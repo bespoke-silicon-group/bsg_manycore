@@ -34,9 +34,6 @@ module bsg_manycore_proc_vanilla
     , parameter proc_fifo_els_p = 4
     , parameter debug_p = 1
 
-    
-    , parameter branch_trace_en_p = 0
-
     , parameter credit_counter_width_lp=$clog2(max_out_credits_p+1)
     , parameter icache_addr_width_lp = `BSG_SAFE_CLOG2(icache_entries_p)
     , parameter dmem_addr_width_lp = `BSG_SAFE_CLOG2(dmem_size_p)
@@ -168,6 +165,10 @@ module bsg_manycore_proc_vanilla
   logic [pc_width_lp-1:0] pc_init_val;
   logic dram_enable;
 
+  logic remote_interrupt_set_lo;
+  logic remote_interrupt_clear_lo;
+  logic remote_interrupt_pending_bit_li;
+
   network_rx #(
     .addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
@@ -211,6 +212,10 @@ module bsg_manycore_proc_vanilla
     ,.tgo_y_o(tgo_y)
     ,.pc_init_val_o(pc_init_val)
     ,.dram_enable_o(dram_enable)
+
+    ,.remote_interrupt_set_o(remote_interrupt_set_lo)
+    ,.remote_interrupt_clear_o(remote_interrupt_clear_lo)
+    ,.remote_interrupt_pending_bit_i(remote_interrupt_pending_bit_li)
 
     ,.global_x_i({pod_x_i, my_x_i})
     ,.global_y_i({pod_y_i, my_y_i})
@@ -314,7 +319,6 @@ module bsg_manycore_proc_vanilla
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.branch_trace_en_p(branch_trace_en_p)
     ,.max_out_credits_p(max_out_credits_p)
     ,.fwd_fifo_els_p(fwd_fifo_els_p)
   ) vcore (
@@ -357,6 +361,10 @@ module bsg_manycore_proc_vanilla
 
     ,.out_credits_i(out_credits_lo)
     ,.invalid_eva_access_i(invalid_eva_access_lo)
+  
+    ,.remote_interrupt_set_i(remote_interrupt_set_lo)
+    ,.remote_interrupt_clear_i(remote_interrupt_clear_lo)
+    ,.remote_interrupt_pending_bit_o(remote_interrupt_pending_bit_li)
 
     ,.global_x_i({pod_x_i, my_x_i})
     ,.global_y_i({pod_y_i, my_y_i})

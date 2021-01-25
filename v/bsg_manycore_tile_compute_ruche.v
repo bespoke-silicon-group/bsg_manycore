@@ -35,8 +35,6 @@ module bsg_manycore_tile_compute_ruche
     , parameter hetero_type_p = 0
     , parameter debug_p = 0
 
-    , parameter branch_trace_en_p = 0
-
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
     , parameter ruche_x_link_sif_width_lp =
@@ -138,7 +136,6 @@ module bsg_manycore_tile_compute_ruche
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
     ,.fwd_fifo_els_p(fwd_fifo_els_lp[0])
-    ,.branch_trace_en_p(branch_trace_en_p)
     ,.debug_p(debug_p)
   ) proc (
     .clk_i(clk_i)

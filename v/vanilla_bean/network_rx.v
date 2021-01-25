@@ -65,6 +65,13 @@ module network_rx
     , output logic [pc_width_lp-1:0] pc_init_val_o
     , output logic dram_enable_o
 
+    // remote interrupt to core
+    , output logic remote_interrupt_set_o
+    , output logic remote_interrupt_clear_o
+
+    // remote interrupt from core
+    , input remote_interrupt_pending_bit_i
+
     // for debugging
     , input [x_cord_width_p-1:0] global_x_i
     , input [y_cord_width_p-1:0] global_y_i
@@ -72,28 +79,30 @@ module network_rx
 
   `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
 
+
   // address decoding
   //
-  logic is_dmem_addr;
-  logic is_icache_addr;
+  wire is_dmem_addr = addr_i[dmem_addr_width_lp] & (addr_i[addr_width_p-1:dmem_addr_width_lp+1] == '0);
+  wire is_icache_addr = addr_i[pc_width_lp] & (addr_i[addr_width_p-1:pc_width_lp+1] == '0);
 
-  logic is_csr_addr;
-  logic is_freeze_addr;
-  logic is_tgo_x_addr;
-  logic is_tgo_y_addr;
-  logic is_pc_init_val_addr;
-  logic is_dram_enable_addr;
-  
-  assign is_dmem_addr = addr_i[dmem_addr_width_lp] & (addr_i[addr_width_p-1:dmem_addr_width_lp+1] == '0);
-  assign is_icache_addr = addr_i[pc_width_lp] & (addr_i[addr_width_p-1:pc_width_lp+1] == '0);
-
-  assign is_csr_addr = addr_i[epa_word_addr_width_gp-1]
+  wire is_csr_addr = addr_i[epa_word_addr_width_gp-1]
     & (addr_i[addr_width_p-1:epa_word_addr_width_gp] == '0);
-  assign is_freeze_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd0);
-  assign is_tgo_x_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd1);
-  assign is_tgo_y_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd2);
-  assign is_pc_init_val_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd3);
-  assign is_dram_enable_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd4);
+  wire is_freeze_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd0);
+  wire is_tgo_x_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd1);
+  wire is_tgo_y_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd2);
+  wire is_pc_init_val_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd3);
+  wire is_dram_enable_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd4);
+  
+
+  // Remote interrupt pending bit (mip.remote)
+  // For write, the write enable signal is sent to the core for one cycle.
+  // writing 1 sets the mip.remote.
+  // writing 0 clears the mip.remote.
+  // This can be also read by the remote packet.
+  // This bit can also be modified by the vanilla core using csr instructions.
+  // When a remote packet and csr instr both tries to modify mip.remote, the remote packet has higher priority.
+  // EPA (word) = 3fff
+  wire is_remote_interrupt_addr = (addr_i == 'h3fff);
 
 
   // CSR registers
@@ -126,6 +135,7 @@ module network_rx
   logic send_invalid_r, send_invalid_n;
   logic send_zero_r, send_zero_n;
   logic send_dram_enable_r, send_dram_enable_n; 
+  logic send_remote_interrupt_r, send_remote_interrupt_n;
 
 
   bsg_manycore_load_info_s load_info_r, load_info_n;
@@ -159,6 +169,9 @@ module network_rx
     icache_pc_o = addr_i[0+:pc_width_lp];
     icache_instr_o = data_i;
     
+    remote_interrupt_clear_o = 1'b0;
+    remote_interrupt_set_o = 1'b0;
+    send_remote_interrupt_n = 1'b0;
     yumi_o = 1'b0;
 
 
@@ -191,12 +204,18 @@ module network_rx
           send_zero_n = 1'b1;
         end
         else if (is_pc_init_val_addr) begin
-          pc_init_val_n = data_i[2+:pc_width_lp];
+          pc_init_val_n = data_i[0+:pc_width_lp];
           yumi_o = 1'b1;
           send_zero_n = 1'b1;
         end
         else if (is_dram_enable_addr) begin
           dram_enable_n = data_i[0];
+          yumi_o = 1'b1;
+          send_zero_n = 1'b1;
+        end
+        else if (is_remote_interrupt_addr) begin
+          remote_interrupt_clear_o = ~data_i[0];
+          remote_interrupt_set_o = data_i[0];
           yumi_o = 1'b1;
           send_zero_n = 1'b1;
         end
@@ -235,6 +254,10 @@ module network_rx
           yumi_o = 1'b1;
           send_dram_enable_n = 1'b1;
         end
+        else if (is_remote_interrupt_addr) begin
+          yumi_o = 1'b1;
+          send_remote_interrupt_n = 1'b1;
+        end
         else begin
           yumi_o = 1'b1;
           send_invalid_n = 1'b1;
@@ -264,7 +287,8 @@ module network_rx
       | send_pc_init_val_r
       | send_dram_enable_r
       | send_invalid_r
-      | send_zero_r;
+      | send_zero_r
+      | send_remote_interrupt_r;
       
     if (send_dmem_data_r) begin
       returning_data_o = load_data_lo;
@@ -279,7 +303,7 @@ module network_rx
       returning_data_o = {{(data_width_p-y_subcord_width_p){1'b0}}, tgo_y_r};
     end
     else if (send_pc_init_val_r) begin
-      returning_data_o = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_init_val_r, 2'b00};
+      returning_data_o = {{(data_width_p-pc_width_lp){1'b0}}, pc_init_val_r};
     end
     else if (send_dram_enable_r) begin
       returning_data_o = {{(data_width_p-1){1'b0}}, dram_enable_r};
@@ -289,6 +313,9 @@ module network_rx
     end
     else if (send_invalid_r) begin
       returning_data_o = 'hdead_beef;
+    end
+    else if (send_remote_interrupt_r) begin
+      returning_data_o = {{(data_width_p-1){1'b0}}, remote_interrupt_pending_bit_i};
     end
     else begin
       returning_data_o = '0;
@@ -314,6 +341,7 @@ module network_rx
       send_invalid_r <= 1'b0;
       send_zero_r <= 1'b0;
       send_dram_enable_r <= 1'b0;
+      send_remote_interrupt_r <= 1'b0;
       load_info_r <= '0;
     end
     else begin
@@ -331,6 +359,7 @@ module network_rx
       send_invalid_r <= send_invalid_n;
       send_zero_r <= send_zero_n;
       send_dram_enable_r <= send_dram_enable_n;
+      send_remote_interrupt_r <= send_remote_interrupt_n;
       load_info_r <= load_info_n;
     end
   end
@@ -343,7 +372,7 @@ module network_rx
 
   assign is_valid_csr_addr = is_csr_addr & 
     (is_freeze_addr | is_tgo_x_addr | is_tgo_y_addr | is_pc_init_val_addr | is_dram_enable_addr);
-  assign is_invalid_addr = ~(is_dmem_addr | is_icache_addr | is_valid_csr_addr);
+  assign is_invalid_addr = ~(is_dmem_addr | is_icache_addr | is_valid_csr_addr | is_remote_interrupt_addr);
 
   always_ff @ (negedge clk_i) begin
     if (~reset_i & v_i & is_invalid_addr) begin
