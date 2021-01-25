@@ -20,8 +20,10 @@ module fcsr
     , input [reg_addr_width_lp-1:0] rs1_i
     , input fcsr_s data_i
     , input [11:0] addr_i
+
     , output fcsr_s data_o // data that goes to rd.
-  
+    , output logic data_v_o      // 1, if addr_i matches fcsr addr.
+
     // exception accrue interface
     , input [1:0] fflags_v_i
     , input [1:0][fflags_width_lp-1:0] fflags_i
@@ -152,13 +154,25 @@ module fcsr
     end
   end
 
-
+  // output
   always_comb begin
     case (addr_i)
-      `RV32_CSR_FFLAGS_ADDR: data_o = {3'b0, fflags_r};
-      `RV32_CSR_FRM_ADDR: data_o = {5'b0, frm_r};
-      `RV32_CSR_FCSR_ADDR: data_o = {frm_r, fflags_r};
-      default: data_o = '0;
+      `RV32_CSR_FFLAGS_ADDR: begin
+        data_o = {3'b0, fflags_r};
+        data_v_o = 1'b1;
+      end
+      `RV32_CSR_FRM_ADDR: begin
+        data_o = {5'b0, frm_r};
+        data_v_o = 1'b1;
+      end
+      `RV32_CSR_FCSR_ADDR: begin
+         data_o = {frm_r, fflags_r};
+        data_v_o = 1'b1;
+      end
+      default: begin
+        data_o = '0;
+        data_v_o = 1'b0;
+      end
     endcase 
   end
 
@@ -168,7 +182,7 @@ module fcsr
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
-      if (v_i) begin
+      if (v_i & data_v_o) begin
         assert(~(|fflags_v_i)) else $error("Exception cannot be accrued while being written by fcsr op.");
       end
     end

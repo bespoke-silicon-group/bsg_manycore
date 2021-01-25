@@ -59,7 +59,6 @@ typedef struct packed {
 
 // remote request from vanilla core
 //
-
 typedef enum logic [0:0] {
   e_vanilla_amoswap
   , e_vanilla_amoor
@@ -145,6 +144,9 @@ typedef struct packed {
 
   // CSR
   logic is_csr_op;
+
+  // MRET
+  logic is_mret_op;
 
   // This signal is for debugging only.
   // It shouldn't be used to synthesize any actual circuits.
@@ -233,6 +235,7 @@ typedef struct packed
     decode_s                           decode;            // Decode signals
     fp_decode_s                        fp_decode;
     logic                              icache_miss;
+    logic                              valid;             // valid instruction in ID
 } id_signals_s;
 
 // Execute stage signals
@@ -244,10 +247,11 @@ typedef struct packed
     decode_s                           decode;            // Decode signals
     logic [RV32_reg_data_width_gp-1:0] rs1_val;           // RF output data from RS1 address
     logic [RV32_reg_data_width_gp-1:0] rs2_val;           // RF output data from RS2 address
+                                                          // CSR instructions use this register for loading CSR vals
     logic [RV32_reg_data_width_gp-1:0] mem_addr_op2;      // the second operands to compute
                                                           // memory address
     logic                              icache_miss;
-    fcsr_s fcsr_data;
+    logic                              valid;             // valid instruction in EXE
 } exe_signals_s;
 
 
@@ -299,6 +303,26 @@ typedef struct packed
 } flw_wb_signals_s;
 
 
+
+// MACHINE CSR structs, constants
+// mstatus
+typedef struct packed {
+  logic mpie;   //  machine previous interrupt enabler (using bit-7)
+  logic mie;    //  machine interrupt enable (using bit-3)
+} csr_mstatus_s;
+`define RV32_MSTATUS_MIE_BIT_IDX  3
+`define RV32_MSTATUS_MPIE_BIT_IDX 7
+
+// machine interrupt pending/enable vector
+typedef struct packed {
+  logic trace;  // bit-17
+  logic remote; // bit-16
+} csr_interrupt_vector_s;
+
+
+`define REMOTE_INTERRUPT_JUMP_ADDR  0   // remote interrupt jump addr (word addr)
+`define TRACE_INTERRUPT_JUMP_ADDR   1   // trace interrupt jump addr (word addr)
+// remote 
 
 
 //                            //
@@ -415,9 +439,20 @@ typedef struct packed
 `define RV32_CSRRSI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRSI_FUN3)
 `define RV32_CSRRCI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRCI_FUN3)
 
+// fcsr CSR addr
 `define RV32_CSR_FFLAGS_ADDR  12'h001
 `define RV32_CSR_FRM_ADDR     12'h002  
 `define RV32_CSR_FCSR_ADDR    12'h003
+// machine CSR addr
+`define RV32_CSR_MSTATUS_ADDR   12'h300
+`define RV32_CSR_MTVEC_ADDR     12'h305
+`define RV32_CSR_MIE_ADDR       12'h304
+`define RV32_CSR_MIP_ADDR       12'h344
+`define RV32_CSR_MEPC_ADDR      12'h341
+
+// mret
+// used for returning from the interrupt
+`define RV32_MRET     {7'b0011000, 5'b00010, 5'b00000, 3'b000, 5'b00000, `RV32_SYSTEM}
 
 // RV32M Instruction Encodings
 `define MD_MUL_FUN3       3'b000

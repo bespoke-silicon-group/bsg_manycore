@@ -35,10 +35,8 @@ module bsg_manycore_tile_compute_array_ruche
     , parameter addr_width_p = "inv"
     , parameter data_width_p = "inv" // 32
 
+    // default ruche factor
     , parameter ruche_factor_X_p=3
-
-    // Enable branch/jalr trace
-    , parameter branch_trace_en_p = 0
 
     // global coordinate width
     // global_x/y_i
@@ -149,7 +147,6 @@ module bsg_manycore_tile_compute_array_ruche
         ,.addr_width_p(addr_width_p)
         ,.hetero_type_p(hetero_type_vec_p[(r* num_tiles_x_p)+c])
         ,.debug_p(debug_p)
-        ,.branch_trace_en_p(branch_trace_en_p)
         ,.num_tiles_x_p(num_tiles_x_p)
         ,.num_tiles_y_p(num_tiles_y_p)
         ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
