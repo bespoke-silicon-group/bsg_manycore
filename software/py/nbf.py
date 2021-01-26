@@ -233,7 +233,7 @@ class NBF:
         x_eff = self.tgo_x + x + pod_origin_x
         y_eff = self.tgo_y + y + pod_origin_y
           
-        for k in range(1024, self.bsg_data_end_addr):
+        for k in range(0, self.bsg_data_end_addr):
           if k in self.dmem_data.keys():
             self.print_nbf(x_eff, y_eff, k, self.dmem_data[k])
           else:

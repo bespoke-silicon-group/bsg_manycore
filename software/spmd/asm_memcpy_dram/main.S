@@ -10,10 +10,6 @@
 #include "bsg_manycore_asm.h"
 #define N 1024
 
-// allocate 4KB in DMEM
-.data
-  dmem_arr: .space (N*4)
-
 // allocate 4KB in DRAM
 .section .dram, "aw"
   dram_arr: .space (N*4)
@@ -86,7 +82,7 @@ fcvt.s.w f30,x0
 fcvt.s.w f31,x0
 
 // initialize DMEM with 0.0~1023.0
-la t0, dmem_arr
+li t0, 0
 li t1, 0
 li t2, N
 init_loop:
@@ -98,7 +94,7 @@ init_loop:
 
 
 // copy from DMEM to DRAM
-la t0, dmem_arr
+li t0, 0
 la t1, dram_arr
 li t2, 0
 li t3, (N/32)
@@ -173,7 +169,7 @@ dmem_to_dram_loop:
   bne t2, t3, dmem_to_dram_loop
 
 // clear DMEM
-la t0, dmem_arr
+li t0, 0
 li t1, 0
 li t2, N
 fcvt.s.w f0, x0
@@ -184,7 +180,7 @@ clear_dmem_loop:
   bne t1, t2, clear_dmem_loop
 
 // copy from DRAM to DMEM
-la t0, dmem_arr
+li t0, 0
 la t1, dram_arr
 li t2, 0
 li t3, (N/32)
@@ -259,7 +255,7 @@ dram_to_dmem_loop:
   bne t2, t3, dram_to_dmem_loop
 
 // validate
-la t0, dmem_arr
+li t0, 0
 li t1, 0
 li t2, N
 validate_loop:
