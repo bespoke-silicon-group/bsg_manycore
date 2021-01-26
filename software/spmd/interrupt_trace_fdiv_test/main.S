@@ -101,7 +101,7 @@ _start:
   // divider busy stall; trace interrupt should bot fire until first division completes
   fdiv.s f6, f2, f3
 
-  // backend dependency stall; trace interrupt should not fire until divider completes
+  // decode dependency stall; trace interrupt should not fire until divider completes
   fcvt.w.s x7, f6
   li x31, 0x3
   bne x7, x31, fail

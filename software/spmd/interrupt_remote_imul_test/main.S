@@ -1,16 +1,17 @@
-// testing entering trace interrupts during iterative divider usage
+// testing entering remote interrupts during integer multiplier usage
 
 #include "bsg_manycore_arch.h"
 #include "bsg_manycore_asm.h"
 
 .globl _start
 _remote_interrupt:
-  j fail
-_trace_interrupt:
-  // clear mip.trace
-  li x1, 0x20000
+  // clear mip.remote
+  li x1, 0x10000
   csrrc x0, mip, x1
+  li x31, 0x2710
   mret
+_trace_interrupt:
+  j fail
 
 _start:
   li x1, 0
@@ -82,22 +83,23 @@ _start:
   li x1, 0x8
   csrrw x0, mstatus, x1
 
-  // enable mie.trace
-  li x1, 0x20000
+  // enable mie.remote
+  li x1, 0x10000
   csrrw x0, mie, x1
 
-  // use different operands because divider latches previous result
+  // setup for imul
   li x3, 0x3e8
   li x4, 0x5
-  li x5, 0x2
 
-  // issue a divide instruction (1000/5)
-  div x6, x3, x4
-  // divider busy stall; trace interrupt should not fire until first division completes
-  div x7, x3, x5
+  // send yourself remote interrupt
+  li x1, bsg_tile_group_remote_interrupt_ptr(0,0)
+  li x2, 1
+  sw x2, 0(x1)
 
-  // decode dependency stall; trace interrupt should not fire until divider completes
-  li x31, 0x1f4
+  // issue a multiplication instruction (1000 * 5)
+  mul x6, x3, x4
+
+  // will fail if the remote interrupt did not fire
   bne x7, x31, fail
 
 pass:
