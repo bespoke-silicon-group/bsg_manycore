@@ -160,7 +160,7 @@ module bsg_manycore_endpoint_standard
   wire [addr_width_p-1:0] in_addr_lo = packet_lo.addr;
   wire[(data_width_p>>3)-1:0] in_mask_lo = packet_lo.reg_id.store_mask_s.mask;
 
-  wire pkt_remote_store   = packet_v_lo & (packet_lo.op_v2 == e_remote_store  );
+  wire pkt_remote_store   = packet_v_lo & ((packet_lo.op_v2 == e_remote_store  ) | (packet_lo.op_v2 == e_remote_sw));
   wire pkt_remote_load    = packet_v_lo & (packet_lo.op_v2 == e_remote_load   );
   wire pkt_remote_amo     = packet_v_lo & (packet_lo.op_v2 == e_remote_amoswap );
 
@@ -232,7 +232,7 @@ module bsg_manycore_endpoint_standard
 
    returning_credit_info  rc_fifo_li, rc_fifo_lo;
 
-  // AND-OR 5 LSBs of each byte of payload to get the payload hash and return it as reg_id for e_remote_store/e_cache_op.
+  // AND-OR 5 LSBs of each byte of payload to get the payload hash and return it as reg_id for e_remote_store.
   wire [bsg_manycore_reg_id_width_gp-1:0] payload_reg_id;
   bsg_manycore_reg_id_decode pd0 (
     .data_i(packet_lo.payload)
@@ -241,21 +241,36 @@ module bsg_manycore_endpoint_standard
   );
     
 
-  assign rc_fifo_li = '{
-    pkt_type : (packet_lo.op_v2 == e_remote_store)
-      ? e_return_credit
-      : (pkt_load_info.icache_fetch
-        ? e_return_ifetch 
-        : (pkt_load_info.float_wb
+
+  always_comb begin
+    rc_fifo_li.y_cord = packet_lo.src_y_cord;
+    rc_fifo_li.x_cord = packet_lo.src_x_cord;
+
+    case (packet_lo.op_v2)
+      e_remote_store, e_remote_sw: begin
+        rc_fifo_li.pkt_type = e_return_credit;
+        rc_fifo_li.reg_id = payload_reg_id;
+      end
+    
+      e_remote_load: begin
+        rc_fifo_li.pkt_type = pkt_load_info.float_wb
           ? e_return_float_wb
-          : e_return_int_wb))
-    ,y_cord : packet_lo.src_y_cord
-    ,x_cord : packet_lo.src_x_cord
-    // e_cache_op uses reg_id field as cache sub op, so it also uses the reg_id encoded in the payload
-    ,reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
-              ? payload_reg_id
-              : packet_lo.reg_id
-  };
+          : e_return_int_wb;
+        rc_fifo_li.reg_id = packet_lo.reg_id;
+      end
+
+      e_remote_amoswap: begin
+        rc_fifo_li.pkt_type = e_return_int_wb;
+        rc_fifo_li.reg_id = packet_lo.reg_id;
+      end
+      
+      // should not happen.
+      default: begin
+        rc_fifo_li.pkt_type = e_return_int_wb;
+        rc_fifo_li.reg_id = packet_lo.reg_id;
+      end
+    endcase
+  end
 
 
   bsg_two_fifo #(
