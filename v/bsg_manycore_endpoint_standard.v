@@ -247,9 +247,14 @@ module bsg_manycore_endpoint_standard
     rc_fifo_li.x_cord = packet_lo.src_x_cord;
 
     case (packet_lo.op_v2)
-      e_remote_store, e_remote_sw: begin
+      e_remote_store: begin
         rc_fifo_li.pkt_type = e_return_credit;
         rc_fifo_li.reg_id = payload_reg_id;
+      end
+
+      e_remote_sw: begin
+        rc_fifo_li.pkt_type = e_return_credit;
+        rc_fifo_li.reg_id = packet_lo.reg_id;
       end
     
       e_remote_load: begin
