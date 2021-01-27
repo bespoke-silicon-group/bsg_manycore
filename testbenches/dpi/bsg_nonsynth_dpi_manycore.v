@@ -177,10 +177,8 @@ module bsg_nonsynth_dpi_manycore
       // manycore link
       .link_sif_i      (link_sif_i),
       .link_sif_o      (link_sif_o),
-      .my_x_i          (my_x_i[0+:4]),
-      .my_y_i          (my_y_i[0+:4]),
-      .pod_x_i         (my_x_i[4+:3]),
-      .pod_y_i         (my_y_i[4+:3]),
+      .my_x_i          (my_x_i),
+      .my_y_i          (my_y_i),
       .out_credits_o   (ep_out_credits_lo)
       );
 
