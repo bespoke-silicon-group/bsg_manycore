@@ -20,6 +20,7 @@ VCS_FLAGS    += -licqueue
 VCS_FLAGS    += -reportstats
 VCS_FLAGS    += -assert svaext  # needed for "assert final"
 #VCS_FLAGS    += +vcs+loopreport
+VCS_FLAGS    += -cm line+fsm+branch+cond+tgl
 
 VCS_CFLAGS   =  -cpp g++
 VCS_CFLAGS   += -CFLAGS "-std=c++11 -g -Wall"
