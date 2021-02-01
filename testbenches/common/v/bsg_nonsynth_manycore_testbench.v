@@ -42,6 +42,8 @@ module bsg_nonsynth_manycore_testbench
     , parameter bsg_dram_size_p ="inv" // in word
     , parameter reset_depth_p = 3
 
+    , parameter enable_profiling_p=0
+
     , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p)*4) // byte addr
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -76,6 +78,7 @@ module bsg_nonsynth_manycore_testbench
   // BSG TAG MASTER
   logic tag_done_lo;
   bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0][S:N] pod_tags_lo;
+  bsg_tag_s [num_pods_x_p-1:0] io_tags_lo;
 
   bsg_nonsynth_manycore_tag_master #(
     .num_pods_x_p(num_pods_x_p)
@@ -87,6 +90,7 @@ module bsg_nonsynth_manycore_testbench
     
     ,.tag_done_o(tag_done_lo)
     ,.pod_tags_o(pod_tags_lo)
+    ,.io_tags_o(io_tags_lo)
   );   
   
   assign tag_done_o = tag_done_lo;
@@ -152,7 +156,6 @@ module bsg_nonsynth_manycore_testbench
     ,.reset_depth_p(reset_depth_p)
   ) DUT (
     .clk_i(clk_i)
-    ,.reset_i(reset)
 
     ,.io_link_sif_i(io_link_sif_li)
     ,.io_link_sif_o(io_link_sif_lo)
@@ -167,7 +170,8 @@ module bsg_nonsynth_manycore_testbench
     ,.ruche_link_o(ruche_link_lo)
 
 
-    ,.bsg_tag_i(pod_tags_lo) 
+    ,.pod_tags_i(pod_tags_lo) 
+    ,.io_tags_i(io_tags_lo)
   );
 
 
@@ -586,7 +590,7 @@ module bsg_nonsynth_manycore_testbench
   end
   
 
-
+if (enable_profiling_p) begin
   // vanilla core profiler
    bind vanilla_core vanilla_core_profiler #(
     .x_cord_width_p(x_cord_width_p)
@@ -651,6 +655,6 @@ module bsg_nonsynth_manycore_testbench
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
-
+end
 
 endmodule
