@@ -755,7 +755,15 @@ if (enable_cache_profiling_p) begin
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
-end
+
+  // Functional Coverage
+  bind vanilla_core 
+    bsg_nonsynth_manycore_vanilla_core_pc_cov
+    #(.icache_tag_width_p(icache_tag_width_p)
+     ,.icache_entries_p(icache_entries_p)
+     )
+     pc_cov
+     (.*);
 
 if (enable_router_profiling_p) begin
   bind bsg_mesh_router router_profiler #(
