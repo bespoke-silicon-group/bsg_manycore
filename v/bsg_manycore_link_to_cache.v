@@ -137,7 +137,7 @@ module bsg_manycore_link_to_cache
 
   always_comb begin
     unique case (packet_lo.op_v2)
-      e_remote_store: begin
+      e_remote_store, e_remote_sw: begin
         return_pkt_type = e_return_credit;
       end
       e_remote_load: begin
@@ -255,7 +255,7 @@ module bsg_manycore_link_to_cache
         end
         else begin
           unique case (packet_lo.op_v2)
-            e_remote_store: begin
+            e_remote_store, e_remote_sw: begin
               cache_pkt.opcode = SM;
             end
 
@@ -302,7 +302,9 @@ module bsg_manycore_link_to_cache
         end
 
         cache_pkt.data = packet_lo.payload;
-        cache_pkt.mask = packet_lo.reg_id.store_mask_s.mask;
+        cache_pkt.mask = (packet_lo.op_v2 == e_remote_sw)
+          ? 4'b1111
+          : packet_lo.reg_id.store_mask_s.mask;
         cache_pkt.addr = {
           packet_lo.addr[0+:link_addr_width_p-1],
           (packet_lo.op_v2 == e_remote_load) ? load_info.part_sel : 2'b00
