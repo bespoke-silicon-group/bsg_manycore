@@ -158,7 +158,9 @@ module bsg_manycore_endpoint_standard
 
   wire [data_width_p-1:0] in_data_lo = packet_lo.payload;
   wire [addr_width_p-1:0] in_addr_lo = packet_lo.addr;
-  wire[(data_width_p>>3)-1:0] in_mask_lo = packet_lo.reg_id.store_mask_s.mask;
+  wire[(data_width_p>>3)-1:0] in_mask_lo = (packet_lo.op_v2 == e_remote_sw)
+    ? 4'b1111
+    : packet_lo.reg_id.store_mask_s.mask;
 
   wire pkt_remote_store   = packet_v_lo & ((packet_lo.op_v2 == e_remote_store  ) | (packet_lo.op_v2 == e_remote_sw));
   wire pkt_remote_load    = packet_v_lo & (packet_lo.op_v2 == e_remote_load   );
