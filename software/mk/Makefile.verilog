@@ -6,6 +6,8 @@ WAVE       ?= 0
 TRACE      ?= 0
 COVERAGE   ?= 0
 PROG_NAME  ?= main
+# Used for determining the coverage monitor file name
+TEST_NAME  ?= main
 
 
 ########################################
@@ -51,6 +53,9 @@ BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
                -licqueue -reportstats \
                -l run.log
 
+ifeq ($(COVERAGE), 1)
+  BSG_SIM_OPTS += -cm line+fsm+branch+cond+tgl -cm_name $(TEST_NAME) -cm_dir ../coverage/simv.vdb
+endif
 
 ########################################
 # Simulation Run Target
