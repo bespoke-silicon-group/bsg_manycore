@@ -50,7 +50,6 @@ module bsg_manycore_pod_ruche
   (
     // manycore 
     input clk_i
-    //, input reset_i
 
     , input  [E:W][num_tiles_y_p-1:0][manycore_link_sif_width_lp-1:0] hor_link_sif_i
     , output [E:W][num_tiles_y_p-1:0][manycore_link_sif_width_lp-1:0] hor_link_sif_o
@@ -93,6 +92,7 @@ module bsg_manycore_pod_ruche
 
   bsg_tag_client #(
     .width_p($bits(bsg_manycore_pod_tag_payload_s))
+    ,.default_p(0)
   ) btc_n (
     .bsg_tag_i(north_bsg_tag_i)
     ,.recv_clk_i(clk_i)
@@ -103,6 +103,7 @@ module bsg_manycore_pod_ruche
 
   bsg_tag_client #(
     .width_p($bits(bsg_manycore_pod_tag_payload_s))
+    ,.default_p(0)
   ) btc_s (
     .bsg_tag_i(south_bsg_tag_i)
     ,.recv_clk_i(clk_i)

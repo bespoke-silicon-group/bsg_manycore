@@ -60,7 +60,6 @@ module bsg_manycore_pod_ruche_array
   )
   (
     input clk_i
-    , input reset_i
 
     // IO router proc links (north)
     , input  [(num_pods_x_p*num_tiles_x_p)-1:0][manycore_link_sif_width_lp-1:0] io_link_sif_i
@@ -82,7 +81,10 @@ module bsg_manycore_pod_ruche_array
     // bsg_tag interface
     // for each pod, there are two bsg_tag_clients (north and south)
     // bsg_tag_clients carry {reset, dest_wh_cord}
-    , input bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0][S:N] bsg_tag_i
+    , input bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0][S:N] pod_tags_i
+
+    // io rtr reset tag for each pod column
+    , input bsg_tag_s [num_pods_x_p-1:0] io_tags_i
   );
 
 
@@ -138,7 +140,6 @@ module bsg_manycore_pod_ruche_array
         ,.reset_depth_p(reset_depth_p)
       ) pod (
         .clk_i(clk_i)
-        //,.reset_i(reset_i)
 
         ,.hor_link_sif_i(hor_link_sif_li[y][x])
         ,.hor_link_sif_o(hor_link_sif_lo[y][x])
@@ -151,13 +152,13 @@ module bsg_manycore_pod_ruche_array
         ,.north_wh_link_sif_o(wh_link_sif_lo[y][N][x])
         ,.north_vcache_pod_x_i(pod_x_cord_width_p'(x+1))
         ,.north_vcache_pod_y_i(pod_y_cord_width_p'(2*y))
-        ,.north_bsg_tag_i(bsg_tag_i[y][x][N])
+        ,.north_bsg_tag_i(pod_tags_i[y][x][N])
 
         ,.south_wh_link_sif_i(wh_link_sif_li[y][S][x])
         ,.south_wh_link_sif_o(wh_link_sif_lo[y][S][x])
         ,.south_vcache_pod_x_i(pod_x_cord_width_p'(x+1))
         ,.south_vcache_pod_y_i(pod_y_cord_width_p'((2*y)+2))
-        ,.south_bsg_tag_i(bsg_tag_i[y][x][S])
+        ,.south_bsg_tag_i(pod_tags_i[y][x][S])
 
         ,.pod_x_i(pod_x_cord_width_p'(x+1))
         ,.pod_y_i(pod_y_cord_width_p'((2*y)+1))
@@ -203,17 +204,33 @@ module bsg_manycore_pod_ruche_array
   end
 
 
+  // io router tag_client
+  logic [num_pods_x_p-1:0][1:0] io_rtr_reset;
+  for (genvar i = 0; i < num_pods_x_p; i++) begin: tag_io
+    bsg_tag_client #(
+      .width_p(2)
+      ,.default_p(0)
+    ) btc_io (
+      .bsg_tag_i(io_tags_i[i])
+      ,.recv_clk_i(clk_i)
+      ,.recv_reset_i(1'b0)
+      ,.recv_new_r_o()
+      ,.recv_data_r_o(io_rtr_reset[i])
+    );
+  end
 
   // instantiate io router rows (north)
   logic [(num_pods_x_p*num_tiles_x_p)-1:0] north_io_reset_r;
-  bsg_dff_chain #(
-    .width_p(num_pods_x_p*num_tiles_x_p)
-    ,.num_stages_p(reset_depth_p)
-  ) north_io_reset_dff (
-    .clk_i(clk_i)
-    ,.data_i({(num_pods_x_p*num_tiles_x_p){reset_i}})
-    ,.data_o(north_io_reset_r)
-  );
+  for (genvar i = 0; i < num_pods_x_p; i++) begin: reset_io
+    bsg_dff_chain #(
+      .width_p(num_tiles_x_p)
+      ,.num_stages_p(reset_depth_p)
+    ) north_io_reset_dff (
+      .clk_i(clk_i)
+      ,.data_i({num_tiles_x_p{io_rtr_reset[i][0]}})
+      ,.data_o(north_io_reset_r[i*num_tiles_x_p+:num_tiles_x_p])
+    );
+  end
 
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:W] north_io_link_sif_li;
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:W] north_io_link_sif_lo;
