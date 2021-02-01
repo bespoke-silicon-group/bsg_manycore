@@ -32,7 +32,7 @@ if __name__ == "__main__":
   # Assert reset on io rtr
   for i in range(num_pods_x):
     client_id = (num_pods_y*num_pods_x*2) + i
-    tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=2, data=1)
+    tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=1)
 
   # De-assert reset on all pods
   # set dest_wh_cord
@@ -67,7 +67,7 @@ if __name__ == "__main__":
   # De-Assert reset on io rtr
   for i in range(num_pods_x):
     client_id = (num_pods_y*num_pods_x*2) + i
-    tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=2, data=0)
+    tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=0)
 
 
   tg.wait(16)

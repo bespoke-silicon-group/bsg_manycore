@@ -205,10 +205,10 @@ module bsg_manycore_pod_ruche_array
 
 
   // io router tag_client
-  logic [num_pods_x_p-1:0][1:0] io_rtr_reset;
+  logic [num_pods_x_p-1:0] io_rtr_reset;
   for (genvar i = 0; i < num_pods_x_p; i++) begin: tag_io
     bsg_tag_client #(
-      .width_p(2)
+      .width_p(1)
       ,.default_p(0)
     ) btc_io (
       .bsg_tag_i(io_tags_i[i])
@@ -227,7 +227,7 @@ module bsg_manycore_pod_ruche_array
       ,.num_stages_p(reset_depth_p)
     ) north_io_reset_dff (
       .clk_i(clk_i)
-      ,.data_i({num_tiles_x_p{io_rtr_reset[i][0]}})
+      ,.data_i({num_tiles_x_p{io_rtr_reset[i]}})
       ,.data_o(north_io_reset_r[i*num_tiles_x_p+:num_tiles_x_p])
     );
   end
