@@ -700,6 +700,9 @@ module vanilla_core
     if (exe_r.decode.is_jalr_op) begin
       npc_n = alu_jalr_addr;
     end
+    else if (exe_r.decode.is_mret_op) begin
+      npc_n = mepc_r;
+    end
     else if (exe_r.decode.is_jal_op | (exe_r.decode.is_branch_op & alu_jump_now)) begin
       npc_n = exe_r.pred_or_jump_addr[2+:pc_width_lp];
     end
@@ -1418,7 +1421,7 @@ module vanilla_core
       npc_write_en = 1'b0;
     end
     else begin
-      npc_write_en = exe_r.valid & mstatus_r.mie;
+      npc_write_en = (exe_r.valid & mstatus_r.mie) | exe_r.decode.is_mret_op;
       if (flush | stall_id) begin
         exe_n = '0;
       end
