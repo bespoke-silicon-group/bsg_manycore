@@ -175,7 +175,7 @@ class bsg_manycore_link_gen:
     # DMEM sections
     for i, m in enumerate(section_map):
       sec = m[0]
-      laddr = '0x0008'
+      laddr = "0x" + "{:0X}".format(_DMEM_VMA_START)
       in_sections = m[1]
 
       # Place objects into dmem if default data loc is dmem
