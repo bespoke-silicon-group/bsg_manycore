@@ -83,7 +83,6 @@ module bsg_manycore_pod_ruche
 
 
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-  `declare_bsg_manycore_pod_tag_payload_s(wh_cord_width_p);
 
 
   // bsg tag clients
@@ -197,7 +196,7 @@ module bsg_manycore_pod_ruche
     ,.my_y_i({y_subcord_width_lp{1'b1}})
     ,.my_cid_i(1'b0) // north row local cid
 
-    ,.dest_wh_cord_i(north_tag_payload.dest_wh_cord)
+    ,.wh_dest_east_not_west_i(north_tag_payload.wh_dest_east_not_west)
   );
 
 
@@ -245,7 +244,7 @@ module bsg_manycore_pod_ruche
     ,.my_y_i({y_subcord_width_lp{1'b0}})
     ,.my_cid_i(1'b1) // south row local cid
 
-    ,.dest_wh_cord_i(south_tag_payload.dest_wh_cord)
+    ,.wh_dest_east_not_west_i(south_tag_payload.wh_dest_east_not_west)
   );
 
 

@@ -54,8 +54,8 @@ module bsg_manycore_tile_vcache
 
     // wormhole cord
     , input [wh_cord_width_p-1:0] my_wh_cord_i
-    , input [wh_cord_width_p-1:0] dest_wh_cord_i
     , input [wh_cid_width_p-1:0]  my_wh_cid_i
+    , input wh_dest_east_not_west_i
   );
 
 
@@ -236,7 +236,7 @@ module bsg_manycore_tile_vcache
     ,.wh_link_sif_o(cache_wh_link_lo)
 
     ,.my_wh_cord_i(my_wh_cord_i)
-    ,.dest_wh_cord_i(dest_wh_cord_i)
+    ,.dest_wh_cord_i({wh_cord_width_p{wh_dest_east_not_west_i}})
     ,.my_wh_cid_i(my_wh_cid_i)
   );
   

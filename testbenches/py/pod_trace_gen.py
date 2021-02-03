@@ -10,7 +10,7 @@ if __name__ == "__main__":
   # each pod has two clients
   # and one for io rtr.
   num_clients = (num_pods_x*num_pods_y*2) + num_pods_x
-  payload_width = 1+wh_cord_width # reset + dest_wh_cord
+  payload_width = 1+1 # reset + wh_dest_east_not_west
   lg_payload_width = int(math.ceil(math.log(payload_width+1,2)))
   max_payload_width = (1<<lg_payload_width)-1
   tg = TagTraceGen(1, num_clients, max_payload_width)
@@ -27,12 +27,12 @@ if __name__ == "__main__":
     
   # Assert reset on all pods
   for i in range(num_pods_y*num_pods_x*2):
-    tg.send(masters=0b1, client_id=i, data_not_reset=1, length=payload_width, data=1<<wh_cord_width)
+    tg.send(masters=0b1, client_id=i, data_not_reset=1, length=payload_width, data=0b11)
 
   # Assert reset on io rtr
   for i in range(num_pods_x):
     client_id = (num_pods_y*num_pods_x*2) + i
-    tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=1)
+    tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=0b1)
 
   # De-assert reset on all pods
   # set dest_wh_cord
@@ -53,12 +53,12 @@ if __name__ == "__main__":
         # split the traffic in half
         if x < num_pods_x/2:
           # going west
-          north_data = 0
-          south_data = 0
+          north_data = 0b00
+          south_data = 0b00
         else:
           # going east
-          north_data = ((2**wh_cord_width)-1)
-          south_data = ((2**wh_cord_width)-1)
+          north_data = 0b01
+          south_data = 0b01
           
       tg.send(masters=0b1, client_id=north_id, data_not_reset=1, length=payload_width, data=north_data)
       tg.send(masters=0b1, client_id=south_id, data_not_reset=1, length=payload_width, data=south_data)
@@ -67,7 +67,7 @@ if __name__ == "__main__":
   # De-Assert reset on io rtr
   for i in range(num_pods_x):
     client_id = (num_pods_y*num_pods_x*2) + i
-    tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=0)
+    tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=0b0)
 
 
   tg.wait(16)

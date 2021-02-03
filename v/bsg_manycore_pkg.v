@@ -232,11 +232,10 @@ package bsg_manycore_pkg;
 
   // manycore POD bsg_tag_client payload
   // contains reset, and dest_wh_cord
-  `define declare_bsg_manycore_pod_tag_payload_s(wh_cord_width_mp) \
-    typedef struct packed { \
-      logic reset;  \
-      logic [wh_cord_width_mp-1:0] dest_wh_cord;  \
-    } bsg_manycore_pod_tag_payload_s;
+  typedef struct packed {
+    logic reset;
+    logic wh_dest_east_not_west;
+  } bsg_manycore_pod_tag_payload_s;
 
 
   // EVA Address Format
