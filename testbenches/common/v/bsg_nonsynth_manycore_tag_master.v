@@ -27,7 +27,7 @@ module bsg_nonsynth_manycore_tag_master
   // each column of pod has one for io rtr reset
   localparam num_clients_lp = (num_pods_y_p*num_pods_x_p*2) + num_pods_x_p;
   localparam rom_addr_width_lp = 12;
-  localparam payload_width_lp = 1+wh_cord_width_p; // {reset, dest_wh_cord}
+  localparam payload_width_lp = 1+1; // {reset, wh_dest_east_not_west}
   localparam lg_payload_width_lp = `BSG_WIDTH(payload_width_lp); // number of bits used to represent the payload width
   localparam max_payload_width_lp = (1<<lg_payload_width_lp)-1; 
   localparam rom_data_width_lp = 4+1+`BSG_SAFE_CLOG2(num_clients_lp)+1+lg_payload_width_lp+max_payload_width_lp;
