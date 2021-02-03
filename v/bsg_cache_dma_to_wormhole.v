@@ -256,7 +256,7 @@ module bsg_cache_dma_to_wormhole
       end
       
       RECV_DATA: begin
-        return_fifo_yumi_li = dma_data_ready_i;
+        return_fifo_yumi_li = return_fifo_v_lo & dma_data_ready_i;
         dma_data_v_o = return_fifo_v_lo;
         recv_clear_li = return_fifo_v_lo & dma_data_ready_i & (recv_count_lo == data_len_lp-1);
         recv_up_li = return_fifo_v_lo & dma_data_ready_i & (recv_count_lo != data_len_lp-1);
