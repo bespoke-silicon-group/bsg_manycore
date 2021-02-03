@@ -135,7 +135,6 @@ class bsg_manycore_link_gen:
     # LMA (Load Memory Address)    => NPA used by loader
     # VMA (Virtual Memory Address) => Logical address used by linker for
     #                                 symbol resolutions
-    # bsg-tommy: we reserve the first two words of DMEM for interrupt handlers.
     _DMEM_VMA_START   = 0x0000
     _DMEM_VMA_SIZE    = 0x1000
     _DRAM_T_LMA_START = 0x80000000
@@ -155,6 +154,7 @@ class bsg_manycore_link_gen:
       # Format:
       # <output section>: [<input sections>]
       ['.text.dram'        , ['.crtbegin','.text','.text.startup','.text.*']],
+      # bsg-tommy: 8 bytes are allocated in.dmem.interrupt for interrupt handler to spill registers.
       ['.dmem'             , ['.dmem.interrupt', '.dmem','.dmem.*']],
       ['.data'             , ['.data','.data*']],
       ['.sdata'            , ['.sdata','.sdata.*','.sdata*','.sdata*.*'

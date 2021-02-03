@@ -1,9 +1,9 @@
 # See LICENSE for license details.
 # MBT modified for bsg_manycore
 
+# bsg-tommy: we reserve the first two words of DMEM for interrupt handlers.
 .section .dmem.interrupt,"a"
   .globl _interrupt_arr
-  .data
 _interrupt_arr:
   .space(8)
 
