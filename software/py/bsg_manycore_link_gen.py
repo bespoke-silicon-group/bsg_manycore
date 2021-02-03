@@ -136,8 +136,8 @@ class bsg_manycore_link_gen:
     # VMA (Virtual Memory Address) => Logical address used by linker for
     #                                 symbol resolutions
     # bsg-tommy: we reserve the first two words of DMEM for interrupt handlers.
-    _DMEM_VMA_START   = 0x0008
-    _DMEM_VMA_SIZE    = 0x0ff8
+    _DMEM_VMA_START   = 0x0000
+    _DMEM_VMA_SIZE    = 0x1000
     _DRAM_T_LMA_START = 0x80000000
     _DRAM_T_LMA_SIZE  = self._imem_size
     _DRAM_D_LMA_START = 0x80000000 + self._imem_size
@@ -155,7 +155,7 @@ class bsg_manycore_link_gen:
       # Format:
       # <output section>: [<input sections>]
       ['.text.dram'        , ['.crtbegin','.text','.text.startup','.text.*']],
-      ['.dmem'             , ['.dmem','.dmem.*']],
+      ['.dmem'             , ['.dmem.interrupt', '.dmem','.dmem.*']],
       ['.data'             , ['.data','.data*']],
       ['.sdata'            , ['.sdata','.sdata.*','.sdata*','.sdata*.*'
                               '.gnu.linkonce.s.*']],

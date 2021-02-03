@@ -6,6 +6,8 @@
  Declear an array in DRAM. 
 *************************************************************************/
 int data[4] __attribute__ ((section (".dram"))) = { -1, 1, 0xF, 0x80000000};
+extern int* _interrupt_arr;
+
 
 int main()
 {
@@ -50,6 +52,16 @@ int main()
        bsg_putchar_err(stderr_msg[i]);
        i++;
      }
+
+     // interrupt array addr
+     bsg_printf("Interrupt array at 0x%d\n", _interrupt_arr);
+      
+     _interrupt_arr[0] = 3;
+     _interrupt_arr[1] = 4;
+
+     int sum = _interrupt_arr[0] + _interrupt_arr[1];
+     if (sum != 7) bsg_fail();
+
 
   /************************************************************************
     Terminates the Simulation
