@@ -85,6 +85,27 @@ module bsg_cache_dma_to_wormhole
 
   assign dma_pkt_yumi_o = dma_pkt_ready_lo & dma_pkt_v_i;
 
+  // FIFO for wormhole flits coming back to vcache.
+  logic return_fifo_v_lo;
+  logic [wh_flit_width_p-1:0] return_fifo_data_lo;
+  logic return_fifo_yumi_li;
+
+  bsg_two_fifo #(
+    .width_p(wh_flit_width_p)
+  ) return_fifo (
+    .clk_i      (clk_i)
+    ,.reset_i   (reset_i)
+
+    ,.v_i       (wh_link_sif_in.v)
+    ,.data_i    (wh_link_sif_in.data)
+    ,.ready_o   (wh_link_sif_out.ready_and_rev)
+
+    ,.v_o       (return_fifo_v_lo)
+    ,.data_o    (return_fifo_data_lo)
+    ,.yumi_i    (return_fifo_yumi_li)
+  );
+
+
   // counter
   localparam count_width_lp = `BSG_SAFE_CLOG2(data_len_lp);
   logic send_clear_li;
@@ -213,16 +234,14 @@ module bsg_cache_dma_to_wormhole
 
   recv_state_e recv_state_r, recv_state_n;
 
-  logic wh_flit_in_ready;
-  assign wh_link_sif_out.ready_and_rev = wh_flit_in_ready;
 
   always_comb begin
     recv_state_n = recv_state_r;
     recv_clear_li = 1'b0;
     recv_up_li = 1'b0;
-    wh_flit_in_ready = 1'b0; 
+    return_fifo_yumi_li = 1'b0;
     dma_data_v_o = 1'b0;
-    dma_data_o = wh_link_sif_in.data;
+    dma_data_o = return_fifo_data_lo;
 
     case (recv_state_r) 
       RECV_RESET: begin
@@ -230,18 +249,18 @@ module bsg_cache_dma_to_wormhole
       end
     
       RECV_READY: begin
-        wh_flit_in_ready = 1'b1;
-        recv_state_n = wh_link_sif_in.v
+        return_fifo_yumi_li = return_fifo_v_lo;
+        recv_state_n = return_fifo_v_lo
           ? RECV_DATA
           : RECV_READY;
       end
       
       RECV_DATA: begin
-        wh_flit_in_ready = dma_data_ready_i;
-        dma_data_v_o = wh_link_sif_in.v;
-        recv_clear_li = wh_link_sif_in.v & dma_data_ready_i & (recv_count_lo == data_len_lp-1);
-        recv_up_li = wh_link_sif_in.v & dma_data_ready_i & (recv_count_lo != data_len_lp-1);
-        recv_state_n = wh_link_sif_in.v & dma_data_ready_i & (recv_count_lo == data_len_lp-1)
+        return_fifo_yumi_li = return_fifo_v_lo & dma_data_ready_i;
+        dma_data_v_o = return_fifo_v_lo;
+        recv_clear_li = return_fifo_v_lo & dma_data_ready_i & (recv_count_lo == data_len_lp-1);
+        recv_up_li = return_fifo_v_lo & dma_data_ready_i & (recv_count_lo != data_len_lp-1);
+        recv_state_n = return_fifo_v_lo & dma_data_ready_i & (recv_count_lo == data_len_lp-1)
           ? RECV_READY
           : RECV_DATA;
       end
