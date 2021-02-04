@@ -29,6 +29,8 @@ module bsg_nonsynth_dpi_manycore
       
     ,input [x_cord_width_p-1:0] my_x_i
     ,input [y_cord_width_p-1:0] my_y_i
+
+    ,input reset_done_i
       
     ,output bit debug_o);
    
@@ -220,7 +222,8 @@ module bsg_nonsynth_dpi_manycore
    export "DPI-C" function bsg_dpi_fini;
    export "DPI-C" function bsg_dpi_debug;
    export "DPI-C" function bsg_dpi_tx_is_vacant;
-   export "DPI-C" function bsg_dpi_credits_is_window;
+   export "DPI-C" function bsg_dpi_is_window;
+   export "DPI-C" function bsg_dpi_reset_is_done;
    export "DPI-C" function bsg_dpi_credits_get_cur;
    export "DPI-C" function bsg_dpi_credits_get_max;
 
@@ -241,6 +244,10 @@ module bsg_nonsynth_dpi_manycore
 
       if(reset_i === 1) begin
          $fatal(1, "BSG ERROR (%M): credits_get_cur() called while reset_i === 1");
+      end      
+
+      if(reset_done_i === 0) begin
+         $fatal(1, "BSG ERROR (%M): credits_get_cur() called while reset_done_i === 0");
       end      
 
       if(clk_i === 0) begin
@@ -266,6 +273,10 @@ module bsg_nonsynth_dpi_manycore
          $fatal(1, "BSG ERROR (%M): tx_is_vacant() called while reset_i === 1");
       end      
 
+      if(reset_done_i === 0) begin
+         $fatal(1, "BSG ERROR (%M): credits_get_cur() called while reset_done_i === 0");
+      end      
+
       if(clk_i === 0) begin
          $fatal(1, "BSG ERROR (%M): tx_is_vacant() must be called when clk_i == 1");
       end
@@ -281,10 +292,16 @@ module bsg_nonsynth_dpi_manycore
       return ~host_req_v_lo;
    endfunction 
 
-   // The function credits_is_window returns true if the interface is
+   // The function is_window returns true if the interface is
    // in a valid time-window to call read_credits()
-   function bit bsg_dpi_credits_is_window();
+   function bit bsg_dpi_is_window();
       return (clk_i & edgepol_l & ~reset_i);
+   endfunction
+
+   // The function is_reset_done returns true if the clock is high,
+   // and reset is done, and the module is no longer in reset.
+   function bit bsg_dpi_reset_is_done();
+      return (clk_i & edgepol_l & ~reset_i & reset_done_i);
    endfunction
 
    // Initialize this Manycore DPI Interface

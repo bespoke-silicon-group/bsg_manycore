@@ -18,7 +18,8 @@
 // corresponding function declarations in bsg_nonsynth_dpi_manycore.v
 // for additional information.
 extern "C" {
-        extern unsigned char bsg_dpi_credits_is_window();
+        extern unsigned char bsg_dpi_is_window();
+        extern unsigned char bsg_dpi_reset_is_done();
         extern unsigned char bsg_dpi_tx_is_vacant();
         extern int bsg_dpi_credits_get_cur();
         extern int bsg_dpi_credits_get_max();
@@ -52,6 +53,7 @@ namespace bsg_nonsynth_dpi{
                 int max_credits = -1;
                 // Current available credits (used for flow control, and fences)
                 int cur_credits = 0;
+                bool reset_done = false;
         public:
                 // Stores configuration data for the manycore DUT.
                 // Each entry is an unsigned 32-bit value
@@ -89,8 +91,17 @@ namespace bsg_nonsynth_dpi{
                  * window.
                  */
                 int get_credits(int& credits){
+                        int res = BSG_NONSYNTH_DPI_SUCCESS;
                         prev = svSetScope(scope);
-                        if(!bsg_dpi_credits_is_window()){
+                        if(!reset_done)
+                                res = reset_is_done(reset_done);
+
+                        if(res != BSG_NONSYNTH_DPI_SUCCESS){
+                                svSetScope(prev);
+                                return res;
+                        }
+
+                        if(!bsg_dpi_is_window()){
                                 svSetScope(prev);
                                 return BSG_NONSYNTH_DPI_NOT_WINDOW;
                         }
@@ -112,7 +123,7 @@ namespace bsg_nonsynth_dpi{
                  */
                 int tx_is_vacant(bool& vacant){
                         prev = svSetScope(scope);
-                        if(!bsg_dpi_credits_is_window()){
+                        if(!bsg_dpi_is_window()){
                                 svSetScope(prev);
                                 return BSG_NONSYNTH_DPI_NOT_WINDOW;
                         }
@@ -123,6 +134,34 @@ namespace bsg_nonsynth_dpi{
                 }
 
                 /**
+                 * Determines if reset is done
+                 *
+                 * @param[out] done Boolean value, true if reset is
+                 * done
+                 *
+                 * @return BSG_NONSYNTH_DPI_SUCCESS on success,
+                 * BSG_NONSYNTH_DPI_BUSY when not done
+                 * window.
+                 */
+                int reset_is_done(bool& done){
+                        prev = svSetScope(scope);
+                        if(!bsg_dpi_is_window()){
+                                svSetScope(prev);
+                                return BSG_NONSYNTH_DPI_NOT_WINDOW;
+                        }
+
+                        done = bsg_dpi_reset_is_done();
+                        if(!done){
+                                return BSG_NONSYNTH_DPI_BUSY;
+                                svSetScope(prev);
+                        }
+
+                        svSetScope(prev);
+                        return BSG_NONSYNTH_DPI_SUCCESS;
+                }
+
+
+                /**
                  * Transmit a request packet onto the manycore network
                  * using the DPI interface.
                  *
@@ -131,12 +170,19 @@ namespace bsg_nonsynth_dpi{
                  *
                  * @return BSG_NONSYNTH_DPI_SUCCESS on success
                  *         (Recoverable Errors)
+                 *         BSG_NONSYNTH_DPI_BUSY when reset is not done
                  *         BSG_NONSYNTH_DPI_NOT_WINDOW when not in valid clock window
                  *         BSG_NONSYNTH_DPI_NO_CREDITS when no transmit credits are available
                  *         BSG_NONSYNTH_DPI_NOT_READY when the packet was not transmitted (call again next cycle)
                  */
                 int tx_req(const __m128i &data){
                         int res = BSG_NONSYNTH_DPI_SUCCESS;
+
+                        if(!reset_done)
+                                res = reset_is_done(reset_done);
+
+                        if(res != BSG_NONSYNTH_DPI_SUCCESS)
+                                return res;
 
                         // Get credits checks for valid window
                         if(!cur_credits)
@@ -166,10 +212,18 @@ namespace bsg_nonsynth_dpi{
                  *
                  * @return BSG_NONSYNTH_DPI_SUCCESS on success
                  *         (Recoverable Errors)
+                 *         BSG_NONSYNTH_DPI_BUSY when reset is not done
                  *         BSG_NONSYNTH_DPI_NOT_WINDOW when not in valid clock window
                  *         BSG_NONSYNTH_DPI_NOT_VALID when no packet is available
                  */
                 int rx_rsp(__m128i &data){
+                        int res = BSG_NONSYNTH_DPI_SUCCESS;
+                        if(!reset_done)
+                                res = reset_is_done(reset_done);
+
+                        if(res != BSG_NONSYNTH_DPI_SUCCESS)
+                                return res;
+
                         return f2d_rsp.try_rx(data);
                 }
 
@@ -181,10 +235,18 @@ namespace bsg_nonsynth_dpi{
                  *
                  * @return BSG_NONSYNTH_DPI_SUCCESS on success
                  *         (Recoverable Errors)
+                 *         BSG_NONSYNTH_DPI_BUSY when reset is not done
                  *         BSG_NONSYNTH_DPI_NOT_WINDOW when not in valid clock window
                  *         BSG_NONSYNTH_DPI_NOT_VALID when no packet is available
                  */
                 int rx_req(__m128i &data){
+                        int res = BSG_NONSYNTH_DPI_SUCCESS;
+                        if(!reset_done)
+                                res = reset_is_done(reset_done);
+
+                        if(res != BSG_NONSYNTH_DPI_SUCCESS)
+                                return res;
+
                         return f2d_req.try_rx(data);
                 }
 
