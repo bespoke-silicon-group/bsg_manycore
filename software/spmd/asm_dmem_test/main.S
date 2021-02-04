@@ -5,10 +5,6 @@
 #include "bsg_manycore_asm.h"
 #define N 1024
 
-// allocate 4KB in DMEM
-.data
-  dmem_arr: .space (N*4)
-
 // initialize
 .text
 li x1, 0
@@ -76,7 +72,8 @@ fcvt.s.w f29,x0
 fcvt.s.w f30,x0
 fcvt.s.w f31,x0
 
-la t0, dmem_arr
+// write to DMEM
+li t0, 0
 li t1, 0
 li t2, N
 write_loop:
@@ -85,7 +82,8 @@ write_loop:
   addi t0, t0, 4
   bne t1, t2, write_loop
 
-la t0, dmem_arr
+// read from DMEM
+li t0, 0
 li t1, 0
 li t2, N
 read_loop:

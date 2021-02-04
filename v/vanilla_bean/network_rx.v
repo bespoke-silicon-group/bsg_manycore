@@ -81,8 +81,10 @@ module network_rx
 
 
   // address decoding
-  //
-  wire is_dmem_addr = addr_i[dmem_addr_width_lp] & (addr_i[addr_width_p-1:dmem_addr_width_lp+1] == '0);
+  // dmem addr space starts from EPA = 0
+  wire is_dmem_addr = (addr_i[addr_width_p-1:dmem_addr_width_lp] == '0);
+  // icache addr space (1024-entry, 12-bit tag):
+  // EPA = 0000_01tt_tttt_tttt_tt??_????_???? (word addr)
   wire is_icache_addr = addr_i[pc_width_lp] & (addr_i[addr_width_p-1:pc_width_lp+1] == '0);
 
   wire is_csr_addr = addr_i[epa_word_addr_width_gp-1]

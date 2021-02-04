@@ -4,11 +4,11 @@
 .text
   li x1, 0
   li x2, 1
-  li x3, 0x00001000
+  li x3, 0x00000000
   sw x1, 0(x3)
   sw x2, 4(x3)
-  li x3, 0x20001000 /* loading from the tile itself using remote load */
-  li x6, 0x230c1000 /* loading from the distant tile which takes some cycles */
+  li x3, bsg_asm_remote_ptr(0,0,0) /* loading from the tile itself using remote load */
+  li x6, bsg_asm_remote_ptr(3,3,0) /* loading from the distant tile which takes some cycles */
   add x0, x0, x0
   add x0, x0, x0
   add x0, x0, x0
