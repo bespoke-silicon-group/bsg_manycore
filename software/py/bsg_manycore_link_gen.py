@@ -58,6 +58,10 @@ class bsg_manycore_link_gen:
         + " Generated at " + str(datetime.now()) + "\n" \
       + "**********************************************************/\n"
 
+  def _entry(self, symbol_name):
+    script = "ENTRY({})\n".format(symbol_name)
+    return script
+
   # Format:
   # <mem region name> : [<access>, <start address>, <size>]
   def _memory_regions(self, mem_regions):
@@ -285,6 +289,7 @@ class bsg_manycore_link_gen:
     sections += "\n}\n"
 
     script = self._opening_comment + '\n'
+    script += self._entry("_start") + '\n'
     script += self._memory_regions(mem_regions) + '\n'
     script += sections
     return script
