@@ -41,6 +41,8 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   ,input                    branch_mispredict
   ,input                    jalr_mispredict
   ,input [pc_width_lp-1:0]  alu_jalr_addr
+
+  ,input coverage_en_i
   );
 
   covergroup cg_pc_reset @(negedge clk_i);
@@ -141,13 +143,15 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
 
   initial
    begin
-    cg_pc_reset pc_reset = new;
-    cg_pc_wb_icache_miss pc_icache_miss = new;
-    cg_pc_interrupt_ready pc_interrupt = new;
-    cg_pc_mret pc_mret = new;
-    cg_pc_branch_mispredict pc_branch_mispredict = new;
-    cg_pc_jalr_mispredict pc_jalr_mispredict = new;
-    cg_pc_take_jump pc_take_jump = new;
+     if (coverage_en_i) begin
+      cg_pc_reset pc_reset = new;
+      cg_pc_wb_icache_miss pc_icache_miss = new;
+      cg_pc_interrupt_ready pc_interrupt = new;
+      cg_pc_mret pc_mret = new;
+      cg_pc_branch_mispredict pc_branch_mispredict = new;
+      cg_pc_jalr_mispredict pc_jalr_mispredict = new;
+      cg_pc_take_jump pc_take_jump = new;
+     end
    end
 
 endmodule

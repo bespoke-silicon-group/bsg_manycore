@@ -44,6 +44,7 @@ ifeq ($(COVERAGE),0)
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-coverage
 endif
+else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-profile
 endif
 else
@@ -62,10 +63,11 @@ BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
                +max_cycle=$(MAX_CYCLES) \
                +num_finish=$(NUM_FINISH) \
                +vanilla_trace_en=$(TRACE) \
+               +vanilla_pc_cov_en=$(COVERAGE) \
                -licqueue -reportstats \
                -l run.log
 
-ifeq ($(COVERAGE), 1)
+ifneq ($(COVERAGE), 0)
   BSG_SIM_OPTS += -cm line+fsm+branch+cond+tgl -cm_name $(CM_NAME) -cm_dir ../coverage/simv.vdb
 endif
 
