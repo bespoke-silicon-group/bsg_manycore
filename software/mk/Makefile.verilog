@@ -39,7 +39,7 @@ endif
 
 ifneq ($(WAVE),0)
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-debug
-else ifeq($(COVERAGE),0)
+else ifneq ($(COVERAGE),0)
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-coverage
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv
@@ -52,6 +52,7 @@ BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
                +max_cycle=$(MAX_CYCLES) \
                +num_pods=$(bsg_pods_size) \
                +vanilla_trace_en=$(TRACE) \
+               +vanilla_pc_cov_en=$(COVERAGE) \
                -licqueue -reportstats \
                -l run.log
 
