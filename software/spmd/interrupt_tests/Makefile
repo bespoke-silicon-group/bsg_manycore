@@ -16,14 +16,18 @@ CM_NAME ?= csr_test
 
 RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles
 
+cov_setup:
+ifneq ($(COVERAGE), 0)
+	$(shell mkdir -p $(BSG_MANYCORE_DIR)/software/spmd/interrupt_tests/coverage)
+endif
+
 %.riscv: $(LINK_SCRIPT)  %.o 
 	$(RISCV_LINK)  $*.o -o $@ $(RISCV_LINK_OPTS)
 
-%_run:
+%_run: cov_setup
 	mkdir -p $@
-	mkdir -p coverage
 	cp $*.S $@/main.S
-	$(MAKE) -C $@ -f ../Makefile main.run COVERAGE=1 CM_NAME=$* 2>&1 | /usr/bin/tee $@/$@.log
+	$(MAKE) -C $@ -f ../Makefile main.run CM_NAME=$* 2>&1 | /usr/bin/tee $@/$@.log
 
 wave:
 	$(DVE) -full64 -vpd $@/vcdplus.vpd &
