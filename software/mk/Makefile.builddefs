@@ -39,7 +39,7 @@ BSG_ELF_VCACHE_SIZE ?= $(shell echo \
 # EVA of stack pointer
 BSG_ELF_DRAM_EVA_OFFSET = 0x80000000
 ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), LOCAL)
-BSG_ELF_STACK_PTR ?= 0x00001ffc
+BSG_ELF_STACK_PTR ?= 0x00000ffc
 else
   ifeq ($(BSG_ELF_OFF_CHIP_MEM), 1)
   BSG_ELF_STACK_PTR ?= $(shell echo $$(( $(BSG_ELF_DRAM_EVA_OFFSET) + $(BSG_ELF_DRAM_SIZE) - 4 )) )
