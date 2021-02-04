@@ -1,10 +1,14 @@
 simv-debug
 simv-debug.daidir
+simv-coverage
+simv-coverage.daidir
 vc_hdrs.h
 stack.info.*
 */build-debug
+*/build-coverage
 */build
 */csrc
 */csrc-debug
+*/csrc-coverage
 */*.tr
 */bsg_tag_boot_rom.v

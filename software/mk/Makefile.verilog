@@ -6,8 +6,8 @@ WAVE       ?= 0
 TRACE      ?= 0
 COVERAGE   ?= 0
 PROG_NAME  ?= main
-# Used for determining the coverage monitor file name
-TEST_NAME  ?= main
+# Used to gather per program coverage stats
+CM_NAME    ?= main
 
 
 ########################################
@@ -37,10 +37,12 @@ endif
 #######################################
 # Simulator setup
 
-ifeq ($(WAVE),0)
-  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv
-else
+ifneq ($(WAVE),0)
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-debug
+else ifeq($(COVERAGE),0)
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-coverage
+else
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv
 endif
 
 # Network boot format file
@@ -54,7 +56,7 @@ BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
                -l run.log
 
 ifeq ($(COVERAGE), 1)
-  BSG_SIM_OPTS += -cm line+fsm+branch+cond+tgl -cm_name $(TEST_NAME) -cm_dir ../coverage/simv.vdb
+  BSG_SIM_OPTS += -cm line+fsm+branch+cond+tgl -cm_name $(CM_NAME) -cm_dir ../coverage/simv.vdb
 endif
 
 ########################################

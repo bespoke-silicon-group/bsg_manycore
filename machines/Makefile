@@ -19,8 +19,7 @@ VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
 VCS_FLAGS    += -licqueue
 VCS_FLAGS    += -reportstats
 VCS_FLAGS    += -assert svaext  # needed for "assert final"
-#VCS_FLAGS    += +vcs+loopreport
-VCS_FLAGS    += -cm line+fsm+branch+cond+tgl
+#VCS_FLAGS    += +vcs+loopreport 
 
 VCS_CFLAGS   =  -cpp g++
 VCS_CFLAGS   += -CFLAGS "-std=c++11 -g -Wall"
@@ -103,9 +102,20 @@ ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py
 		$(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) $*/bsg_tag_boot_rom.v \
 		-l $*/build-debug.log -Mdir=$*/csrc-debug
 
+# build simv-coverage
+# with coverage options for code/functional coverage
+%/simv-coverage : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_machine_variables,$<)
+	python $(POD_TRACE_GEN_PY) $(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) $(BSG_MACHINE_X_CORD_WIDTH) > $*/pod_trace.tr
+	python $(ASCII_TO_ROM_PY) $*/pod_trace.tr bsg_tag_boot_rom > $*/bsg_tag_boot_rom.v
+	$(eval VCS_FLAGS += -cm line+fsm+branch+cond+tgl) # Required to enable coverage
+	$(VCS) $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ \
+		$(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) $*/bsg_tag_boot_rom.v \
+		-l $*/build-coverage.log -Mdir=$*/csrc-coverage
+
 clean:
 	rm -rf csrc
-	rm -rf */*.log */*.daidir */simv */simv-debug
+	rm -rf */*.log */*.daidir */simv */simv-debug */simv-coverage
 	rm -rf stack.info.*
 	rm -f vc_hdrs.h
 	rm -f */*.tr */bsg_tag_boot_rom.v
