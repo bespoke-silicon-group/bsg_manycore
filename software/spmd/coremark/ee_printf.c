@@ -15,9 +15,13 @@ limitations under the License.
 */
 
 #include "bsg_manycore.h"
+#include "bsg_mutex.h"
 
 #include <coremark.h>
 #include <stdarg.h>
+
+
+static bsg_remote_int_ptr io_mutex_ptr= bsg_io_mutex_ptr( 0 );
 
 #define ZEROPAD  	(1<<0)	/* Pad with zero */
 #define SIGN    	(1<<1)	/* Unsigned/signed long */
@@ -587,15 +591,21 @@ int ee_printf(const char *fmt, ...)
   va_list args;
   int n=0;
 
+
+
   va_start(args, fmt);
   ee_vsprintf(buf, fmt, args);
   va_end(args);
   p=buf;
+
+
+  bsg_mutex_lock( io_mutex_ptr );
   while (*p) {
 	uart_send_char(*p);
 	n++;
 	p++;
   }
+  bsg_mutex_unlock( io_mutex_ptr );
 
   return n;
 }
