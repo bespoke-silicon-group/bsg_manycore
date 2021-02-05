@@ -15,7 +15,7 @@ _trace_interrupt:
   j fail
 
 _start:
-  bsg_asm_start
+  bsg_asm_init_regfile
 
 .org 4096
 // enable mstatus.MIE

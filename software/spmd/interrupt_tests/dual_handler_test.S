@@ -20,7 +20,7 @@ _remote_interrupt_handler:
   j _count_remote_interrupt
 
 _start:
-  bsg_asm_start
+  bsg_asm_init_regfile
 
   // enable mstatus.MIE
   li x1, 0x8
