@@ -45,6 +45,9 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   ,input coverage_en_i
   );
 
+  wire take_br = decode.is_branch_op & instruction[0];
+  wire take_jalr = decode.is_jal_op | decode.is_jalr_op;
+
   covergroup cg_pc_reset @(negedge clk_i);
     coverpoint reset_down;
   endgroup
@@ -54,39 +57,34 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   endgroup
 
   covergroup cg_pc_interrupt_ready @(negedge clk_i iff ~reset_down & ~wb_r.icache_miss);
-    coverpoint mstatus_r.mie;
+    mstat: coverpoint mstatus_r.mie {
+      bins interrupt = {1'b1};
+    }
     
     // remote_interrupt_ready
-    coverpoint mie_r.remote;
-    coverpoint mip_r.remote;
-    cross mie_r.remote, mip_r.remote {
-      ignore_bins no_remote_interrupt = 
-        binsof(mie_r.remote) intersect {1'b0};
-      }
+    mie_rem: coverpoint mie_r.remote {
+      bins rem_enable = {1'b1};
+    }
+    mip_rem: coverpoint mip_r.remote;
+    cross mie_rem, mip_rem; 
     
     // trace_interrupt_ready
-    coverpoint mie_r.trace;
-    coverpoint mip_r.trace;
-    cross mie_r.trace, mip_r.trace {
-      ignore_bins no_trace_interrupt = 
-        binsof(mie_r.trace) intersect {1'b0};
-      }
+    mie_trac: coverpoint mie_r.trace {
+      bins trac_enable = {1'b1};
+    }
+    mip_trac: coverpoint mip_r.trace;
+    cross mie_trac, mip_trac;
 
     // interrupt_ready
     rem: coverpoint remote_interrupt_ready;
     trac: coverpoint trace_interrupt_ready;
-    exe_icache: coverpoint exe_r.icache_miss;
-    mem_icache: coverpoint mem_r.icache_miss;
-    wb_icache: coverpoint wb_r.icache_miss;
-    cross rem, trac, exe_icache, mem_icache, wb_icache, mstatus_r.mie {
-      ignore_bins no_interrupts = 
-        binsof(mstatus_r.mie) intersect {1'b0};
-      bins icache_miss = 
-        binsof(exe_icache) intersect {1'b1} && binsof(mem_icache) intersect {1'b0} && binsof(wb_icache) intersect {1'b0} ||
-        binsof(exe_icache) intersect {1'b0} && binsof(mem_icache) intersect {1'b1} && binsof(wb_icache) intersect {1'b0} ||
-        binsof(exe_icache) intersect {1'b0} && binsof(mem_icache) intersect {1'b0} && binsof(wb_icache) intersect {1'b1} ||
-        binsof(exe_icache) intersect {1'b0} && binsof(mem_icache) intersect {1'b0} && binsof(wb_icache) intersect {1'b0};
+    icache_miss: coverpoint {wb_r.icache_miss, mem_r.icache_miss, exe_r.icache_miss} {
+      bins wb_imiss = {3'b100};
+      bins mem_imiss = {3'b010};
+      bins exe_imiss = {3'b001};
+      bins no_imiss = {3'b000};
     }
+    cross rem, trac, icache_miss, mstat;
   
   endgroup
 
@@ -107,7 +105,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
     br_op: coverpoint exe_r.decode.is_branch_op;
     cross bup, bop, br_op {
       ignore_bins branch_cond = 
-        binsof(bup) intersect {1'b1} &&
+        binsof(bup) intersect {1'b1} && 
         binsof(bop) intersect {1'b1};
     }
   
@@ -141,6 +139,22 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   
   endgroup
 
+  covergroup cg_pc_conditions @(negedge clk_i);
+
+    all_cond: coverpoint {reset_down, wb_r.icache_miss, interrupt_ready, exe_r.decode.is_mret_op, branch_mispredict, jalr_mispredict, take_br, take_jalr} {
+      bins reset = {8'h80};
+      bins icache_miss = {8'h40};
+      bins intr = {8'h20};
+      bins mret = {8'h10};
+      bins br_mispredict = {8'h08};
+      bins jalr_mispredict = {8'h04};
+      bins br = {8'h02};
+      bins jalr = {8'h01};
+      bins pc_plus4 = {8'h00};
+    }
+
+  endgroup
+
   initial
    begin
      if (coverage_en_i) begin
@@ -151,6 +165,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
       cg_pc_branch_mispredict pc_branch_mispredict = new;
       cg_pc_jalr_mispredict pc_jalr_mispredict = new;
       cg_pc_take_jump pc_take_jump = new;
+      cg_pc_conditions pc_cond = new;
      end
    end
 
