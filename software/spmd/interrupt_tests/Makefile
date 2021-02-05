@@ -29,8 +29,8 @@ endif
 	cp $*.S $@/main.S
 	$(MAKE) -C $@ -f ../Makefile main.run CM_NAME=$* 2>&1 | /usr/bin/tee $@/$@.log
 
-wave:
-	$(DVE) -full64 -vpd $@/vcdplus.vpd &
+%_wave:
+	$(DVE) -full64 -vpd $*/vcdplus.vpd &
 
 cov:
 	$(DVE) -full64 -cov -covdir coverage/simv.vdb &
