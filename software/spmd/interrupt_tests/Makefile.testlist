@@ -1,6 +1,7 @@
 TESTS = csr_test \
         dual_handler_test \
         dual_source_test  \
+        dual_npc_mret_test \
         remote_test \
         remote_fdiv_test \
         remote_float_test \
