@@ -6,7 +6,7 @@
 .text
 .globl _start
 _start:
-  bsg_asm_start
+  bsg_asm_init_regfile
 
 
 // test mstatus

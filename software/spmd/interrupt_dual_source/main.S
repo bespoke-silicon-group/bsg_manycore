@@ -19,7 +19,7 @@ _remote_interrupt_handler:
   mret
 
 _start:
-  bsg_asm_start
+  bsg_asm_init_regfile
 
   // enable mstatus.MIE
   li x1, 0x8
