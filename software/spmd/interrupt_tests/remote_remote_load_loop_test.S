@@ -1,3 +1,4 @@
+// Author: Tommy
 // testing trace interrupt while remote load looping
 
 #include "bsg_manycore_arch.h"

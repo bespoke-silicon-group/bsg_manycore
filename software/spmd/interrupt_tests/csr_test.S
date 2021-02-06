@@ -1,3 +1,4 @@
+// Author: Tommy
 // testing accessing mcsr using csr instructions.
 
 #include "bsg_manycore_arch.h"
