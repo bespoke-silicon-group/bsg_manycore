@@ -17,7 +17,8 @@ NO-RECURSE = \
 	gather_scatter \
 	gather_scatter_multi \
   striped_struct_vector	\
-	beebs
+	beebs \
+	interrupt_tests
 
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
