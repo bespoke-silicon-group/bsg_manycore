@@ -174,7 +174,7 @@ module bsg_nonsynth_manycore_monitor
       if (v_i & we_i) begin
         if (~addr_i[addr_width_p-1]) begin
           if (epa_addr == bsg_finish_epa_gp) begin
-            $display("[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+            $display("[INFO][MONITOR] RECEIVED a finish packet from tile y,x=%2d,%2d, data=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, $time);
             finish_count <= finish_count + 1;
           end
