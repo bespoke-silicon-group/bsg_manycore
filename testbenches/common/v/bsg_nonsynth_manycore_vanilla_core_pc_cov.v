@@ -56,7 +56,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
     coverpoint wb_r.icache_miss;
   endgroup
 
-  covergroup cg_pc_interrupt_ready @(negedge clk_i iff ~reset_down & ~wb_r.icache_miss);
+  covergroup cg_pc_interrupt_ready @(negedge clk_i);
     mstat: coverpoint mstatus_r.mie {
       bins interrupt = {1'b1};
     }
@@ -66,14 +66,14 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
       bins rem_enable = {1'b1};
     }
     mip_rem: coverpoint mip_r.remote;
-    cross mie_rem, mip_rem; 
+    mie_rem_x_mip_rem: cross mie_rem, mip_rem; 
     
     // trace_interrupt_ready
     mie_trac: coverpoint mie_r.trace {
       bins trac_enable = {1'b1};
     }
     mip_trac: coverpoint mip_r.trace;
-    cross mie_trac, mip_trac;
+    mie_trac_x_mip_trac: cross mie_trac, mip_trac;
 
     // interrupt_ready
     rem: coverpoint remote_interrupt_ready;
@@ -84,26 +84,26 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
       bins exe_imiss = {3'b001};
       bins no_imiss = {3'b000};
     }
-    cross rem, trac, icache_miss, mstat;
+    rem_x_trac_x_icache_miss_x_mstat: cross rem, trac, icache_miss, mstat;
   
   endgroup
 
-  covergroup cg_pc_mret @(negedge clk_i iff ~reset_down & ~wb_r.icache_miss & ~interrupt_ready);
+  covergroup cg_pc_mret @(negedge clk_i iff ~reset_down);
     coverpoint exe_r.decode.is_mret_op;
   endgroup
    
-  covergroup cg_pc_branch_mispredict @(negedge clk_i iff ~reset_down & ~wb_r.icache_miss & ~interrupt_ready & exe_r.decode.is_mret_op);
+  covergroup cg_pc_branch_mispredict @(negedge clk_i iff ~reset_down);
      
     alu_jump: coverpoint alu_jump_now;
     exe_instr0: coverpoint exe_r.instruction[0];
 
     // Branch mispredicts (under and over)
-    cross alu_jump, exe_instr0;
+    alu_x_instr0: cross alu_jump, exe_instr0;
 
     bup: coverpoint branch_under_predict;
     bop: coverpoint branch_over_predict;
     br_op: coverpoint exe_r.decode.is_branch_op;
-    cross bup, bop, br_op {
+    bup_x_bop_x_br_op: cross bup, bop, br_op {
       ignore_bins branch_cond = 
         binsof(bup) intersect {1'b1} && 
         binsof(bop) intersect {1'b1};
@@ -111,30 +111,33 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   
   endgroup
 
-  covergroup cg_pc_jalr_mispredict @(negedge clk_i iff ~reset_down & ~wb_r.icache_miss & ~interrupt_ready & exe_r.decode.is_mret_op & ~branch_mispredict);
+  covergroup cg_pc_jalr_mispredict @(negedge clk_i iff ~reset_down);
 
     jalr_op: coverpoint exe_r.decode.is_jalr_op;
     addr: coverpoint (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
 
-    cross jalr_op, addr;
+    jalr_op_x_addr: cross jalr_op, addr;
 
   endgroup
 
-  covergroup cg_pc_take_jump @(negedge clk_i iff ~reset_down & ~wb_r.icache_miss & ~interrupt_ready & exe_r.decode.is_mret_op & ~branch_mispredict & ~jalr_mispredict);
+  covergroup cg_pc_take_jump @(negedge clk_i iff ~reset_down);
 
     br_op: coverpoint decode.is_branch_op;
     instr0: coverpoint instruction[0];
     jal_op: coverpoint decode.is_jal_op;
     jalr_op: coverpoint decode.is_jalr_op;
 
-    // Branch Op
-    cross br_op, instr0;
-
     // Jal/Jalr Op
-    cross jal_op, jalr_op, br_op, instr0 {
-      ignore_bins jump_not_branch = 
-        binsof(br_op) intersect {1'b1} &&
-        binsof(instr0) intersect {1'b1};
+    jal_op_x_jalr_op_x_br_op_x_instr0: cross jal_op, jalr_op, br_op, instr0 {
+      ignore_bins no_simul_jalr =  
+        binsof(jal_op) intersect {1'b1} &&
+        binsof(jalr_op) intersect {1'b1};
+      ignore_bins no_br_and_jal =  
+        binsof(jal_op) intersect {1'b1} &&
+        binsof(br_op) intersect {1'b1};
+      ignore_bins no_br_and_jalr =  
+        binsof(jalr_op) intersect {1'b1} &&
+        binsof(br_op) intersect {1'b1};
     }
   
   endgroup
