@@ -234,7 +234,8 @@ package bsg_manycore_pkg;
   // contains reset, and dest_wh_cord
   typedef struct packed {
     logic reset;
-    logic wh_dest_east_not_west;
+    logic [1:0] wh_dest_east_not_west; // [1] = right half
+                                       // [0] = left half
   } bsg_manycore_pod_tag_payload_s;
 
 

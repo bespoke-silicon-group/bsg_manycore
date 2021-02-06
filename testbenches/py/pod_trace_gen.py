@@ -10,7 +10,7 @@ if __name__ == "__main__":
   # each pod has two clients
   # and one for io rtr.
   num_clients = (num_pods_x*num_pods_y*2) + num_pods_x
-  payload_width = 1+1 # reset + wh_dest_east_not_west
+  payload_width = 1+2 # reset + wh_dest_east_not_west[1:0]
   lg_payload_width = int(math.ceil(math.log(payload_width+1,2)))
   max_payload_width = (1<<lg_payload_width)-1
   tg = TagTraceGen(1, num_clients, max_payload_width)
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     
   # Assert reset on all pods
   for i in range(num_pods_y*num_pods_x*2):
-    tg.send(masters=0b1, client_id=i, data_not_reset=1, length=payload_width, data=0b11)
+    tg.send(masters=0b1, client_id=i, data_not_reset=1, length=payload_width, data=0b111)
 
   # Assert reset on io rtr
   for i in range(num_pods_x):
@@ -46,19 +46,20 @@ if __name__ == "__main__":
       south_data = -1
 
       if num_pods_x == 1:
-        # all going west
-        north_data = 0
-        south_data = 0
+        # left half of a pod is going west
+        # right half of a pod is going east
+        north_data = 0b010
+        south_data = 0b010
       else:
         # split the traffic in half
         if x < num_pods_x/2:
           # going west
-          north_data = 0b00
-          south_data = 0b00
+          north_data = 0b000
+          south_data = 0b000
         else:
           # going east
-          north_data = 0b01
-          south_data = 0b01
+          north_data = 0b011
+          south_data = 0b011
           
       tg.send(masters=0b1, client_id=north_id, data_not_reset=1, length=payload_width, data=north_data)
       tg.send(masters=0b1, client_id=south_id, data_not_reset=1, length=payload_width, data=south_data)
