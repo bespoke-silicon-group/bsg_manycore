@@ -66,8 +66,10 @@ watch-summary:
 
 clean.run:
 	rm -rf *run/
+	rm -rf coverage/
 
 clean.build:
 	$(MAKE) -C $(BSG_MACHINE_PATH)/.. -f Makefile clean
 
 clean: clean.run
+
