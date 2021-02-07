@@ -1,8 +1,4 @@
-find-dir-with = $(shell /usr/bin/perl -e 'chomp($$_ = `pwd`); while ($$_ ne "" && ! -e "$$_/$(1)") { m:(.*)/[^/]+/??:; $$_ = $$1; } print;')
-
-ifndef BSG_MANYCORE_DIR
-  export BSG_MANYCORE_DIR := $(call find-dir-with,.BSG_MANYCORE_ROOT)
-endif
+export BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
 
 bsg_tiles_X= 1
 bsg_tiles_Y= 1
