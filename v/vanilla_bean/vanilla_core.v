@@ -374,6 +374,10 @@ module vanilla_core
     ,.mepc_r_o(mepc_r)
   );
 
+  // synopsys translate_off
+  wire [pc_width_lp+2-1:0] mepc_00 = {mepc_r, 2'b00};
+  // synopsys translate_on
+
   assign remote_interrupt_pending_bit_o = mip_r.remote; // make it accessible by remote packet.
 
   // Interrupt can be taken when mstatus.mie=1 and enable and pending bits are both on for an interrupt source,
@@ -674,6 +678,11 @@ module vanilla_core
     ,.data_i(npc_n)
     ,.data_o(npc_r)
   );
+
+
+  // synopsys translate_off
+  wire [pc_width_lp+2-1:0] npc_00 = {npc_r, 2'b00}; // for debugging
+  // synopsys translate_on
 
 
   // In the icache, branch instruction has the direction of the branch encoded in the bit-0 of the instruction.
@@ -1409,7 +1418,7 @@ module vanilla_core
       npc_write_en = 1'b0;
     end
     else begin
-      npc_write_en = exe_r.valid;
+      npc_write_en = exe_r.valid & mstatus_r.mie;
       if (flush | stall_id) begin
         exe_n = '0;
       end

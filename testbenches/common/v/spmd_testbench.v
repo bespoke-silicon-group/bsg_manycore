@@ -155,6 +155,14 @@ module spmd_testbench();
     assign trace_en = (trace_arg == 1);
   end
 
+  // coverage enable
+  int vanilla_pc_cov_arg;
+  logic vanilla_pc_cov_en;
+  initial begin
+    status = $value$plusargs("vanilla_pc_cov_en=%d", vanilla_pc_cov_arg);
+    assign vanilla_pc_cov_en = (vanilla_pc_cov_arg == 1);
+  end
+
   // global counter
   logic [31:0] global_ctr;
   bsg_cycle_counter global_cc (
