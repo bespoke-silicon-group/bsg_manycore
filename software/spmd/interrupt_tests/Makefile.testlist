@@ -1,0 +1,29 @@
+TESTS = csr_test \
+        dual_handler_test \
+        dual_source_test  \
+        dual_npc_mret_test \
+        dual_remote_no_trace_test \
+        dual_threading_test \
+        remote_test \
+        remote_fdiv_test \
+        remote_float_test \
+        remote_handler1_test \
+        remote_handler2_test \
+        remote_icache_miss_test \
+        remote_idiv_test \
+        remote_imul_test \
+        remote_multiple_test \
+        remote_remote_load_loop_test \
+        trace_test \
+        trace_fdiv_test \
+        trace_idiv_test \
+        trace_imul_test \
+        trace_float_test \
+        trace_icache_miss_test \
+        trace_countdown_test \
+        trace_branch_mispredict_loop_test \
+        trace_jump_loop_test \
+        trace_jump_loop_icache_test \
+        trace_remote_load_loop_test \
+        trace_handler1_test \
+        trace_handler2_test
