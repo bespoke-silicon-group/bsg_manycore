@@ -147,3 +147,28 @@ test-beebs:
       - /^ci_.*$/
       - master
   retry: 2
+
+
+test-interrupt:
+  stage: test
+  tags:
+    - bsg
+    - vcs
+  script:
+    - echo "Running interrupt regression..."
+    - cd bsg_manycore
+    - pwd
+    - ./ci/interrupt.sh
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - $CI_PROJECT_DIR/bsg_cadenv
+      - $CI_PROJECT_DIR/basejump_stl
+      - $CI_PROJECT_DIR/bsg_manycore
+      - $CI_PROJECT_DIR/bsg_bladerunner
+    policy: pull
+  only:
+    refs:
+      - /^ci_.*$/
+      - master
+  retry: 2
