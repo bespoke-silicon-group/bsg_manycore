@@ -10,7 +10,7 @@ include $(BSG_MANYCORE_DIR)/software/spmd/interrupt_tests/Makefile.testlist
 # Name useful for coverage
 CM_NAME ?= csr_test
 
-RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles
+RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles -mno-relax
 
 cov_setup:
 ifneq ($(COVERAGE), 0)
