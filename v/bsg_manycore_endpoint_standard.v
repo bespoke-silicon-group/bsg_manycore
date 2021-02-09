@@ -353,16 +353,14 @@ module bsg_manycore_endpoint_standard
     ,.count_o(out_credits_o)
   );
 
+  assign returned_credit_v_r_o      = returned_packet_v_lo & (returned_packet_lo.pkt_type == e_return_credit);
+  assign returned_credit_reg_id_r_o = returned_packet_lo.reg_id;
+
   assign returned_data_r_o     = returned_packet_lo.data;
   assign returned_reg_id_r_o   = returned_packet_lo.reg_id;
   assign returned_pkt_type_r_o = returned_packet_lo.pkt_type;
   assign returned_v_r_o        = returned_packet_v_lo & (returned_packet_lo.pkt_type != e_return_credit);
-  assign returned_yumi_li      = returned_yumi_i | (returned_packet_v_lo & (returned_packet_lo.pkt_type == e_return_credit));
-
-
-
-  assign returned_credit_v_r_o      = returned_credit;
-  assign returned_credit_reg_id_r_o = returned_packet_lo.reg_id;
+  assign returned_yumi_li      = returned_yumi_i | returned_credit_v_r_o;
 
 
   //              //
