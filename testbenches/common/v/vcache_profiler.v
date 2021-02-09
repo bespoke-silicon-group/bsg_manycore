@@ -385,6 +385,9 @@ module vcache_profiler
             end
 
 
+            else if (inc_stall_rsp)
+              print_operation_trace(trace_fd, my_name, "stall_rsp");
+
             else if (inc_tagst)
               print_operation_trace(trace_fd, my_name, "tagst");
             else if (inc_tagfl)
