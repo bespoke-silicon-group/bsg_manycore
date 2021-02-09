@@ -1,4 +1,4 @@
-// test to observe interaction between jalr mispredicts and trace interrupts
+// test to obsreve interactions between jalr and remote interrupts
 // A jalr mispredict happens when there is a call to a function. On a function return, the register (effectively a 1-entry RAS) correctly fetches the return address
 
 #include "bsg_manycore_arch.h"
@@ -6,14 +6,15 @@
 
 .globl _start
 _remote_interrupt:
-  j fail
-_trace_interrupt:
-  // clear mip.trace
-  li x8, 0x20000
+  // clear mip.remote
+  li x8, 0x10000
   csrrc x0, mip, x8
-  // increment trace counter
+  // increment remote counter
   addi x30, x30, 1
   mret
+
+_trace_interrupt:
+  j fail
 
 _start:
   bsg_asm_init_regfile
@@ -25,8 +26,12 @@ _start:
   // Setup
   li x5, 10 // Loop variable
 
-  // enable mie.trace
-  li x8, 0x20000
+  // Remote interrupt
+  li x9, bsg_tile_group_remote_interrupt_ptr(0,0)
+  li x10, 1
+
+  // enable mie.remote
+  li x8, 0x10000
   csrrw x0, mie, x8
   j loop
 
@@ -35,7 +40,10 @@ foo:
   addi sp, sp, -4
   sw x1, 0(sp)
 
-  // Call function bar (jalr mispredict)
+  // Send a interrupt
+  sw x10, 0(x9)
+
+  // Call function bar; remote interrupt arrives now, but taken next cycle
   call bar
 
   // Reload address from the stack
@@ -47,7 +55,11 @@ foo:
 loop:
   beq x5, x0, done
 
-  // Call function foo (jalr mispredict)
+  // Send a interrupt
+  sw x10, 0(x9)
+  nop
+
+  // Call function foo (jalr mispredict); remote interrupt is taken now
   call foo
 
   addi x5, x5, -1
@@ -55,9 +67,9 @@ loop:
 
 done:
   // Compare trace count
-  li x31, 143
+  li x31, 20
   bne x31, x30, fail
-  
+
   // Compare incremented variable count
   li x31, 10
   bne x31, x6, fail
