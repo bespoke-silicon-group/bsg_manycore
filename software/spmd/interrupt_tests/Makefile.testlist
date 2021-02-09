@@ -26,4 +26,5 @@ TESTS = csr_test \
         trace_jump_loop_icache_test \
         trace_remote_load_loop_test \
         trace_handler1_test \
-        trace_handler2_test
+        trace_handler2_test \
+        trace_jalr_mispredict_test
