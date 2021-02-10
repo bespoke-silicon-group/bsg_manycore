@@ -25,6 +25,8 @@ module bsg_nonsynth_dpi_manycore_tile
    import bsg_bladerunner_pkg::*;
    #(parameter x_cord_width_p = "inv"
      , parameter y_cord_width_p = "inv"
+     , parameter pod_x_cord_width_p = "inv"
+     , parameter pod_y_cord_width_p = "inv"
      , parameter data_width_p = "inv"
      , parameter addr_width_p = "inv"
 
@@ -38,6 +40,9 @@ module bsg_nonsynth_dpi_manycore_tile
 
      , parameter num_tiles_x_p="inv"
      , parameter num_tiles_y_p="inv"
+
+     , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+     , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
      , parameter fwd_fifo_els_p="inv" // for FIFO credit counting.
 
@@ -66,8 +71,13 @@ module bsg_nonsynth_dpi_manycore_tile
     , input [link_sif_width_lp-1:0] link_sif_i
     , output logic [link_sif_width_lp-1:0] link_sif_o
 
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
+    // subcord within a pod
+    , input [x_subcord_width_lp-1:0] my_x_i
+    , input [y_subcord_width_lp-1:0] my_y_i
+
+    // pod coordinate
+    , input [pod_x_cord_width_p-1:0] pod_x_i
+    , input [pod_y_cord_width_p-1:0] pod_y_i
     );
 
    localparam ep_fifo_els_lp = 1;
@@ -133,8 +143,8 @@ module bsg_nonsynth_dpi_manycore_tile
       // manycore link
       .link_sif_i(link_sif_i),
       .link_sif_o(link_sif_o),
-      .my_x_i(my_x_i),
-      .my_y_i(my_y_i),
+      .my_x_i({pod_x_i, my_x_i}),
+      .my_y_i({pod_y_i, my_y_i}),
       .out_credits_o(out_credits_lo)
       );
 
@@ -177,8 +187,8 @@ module bsg_nonsynth_dpi_manycore_tile
                            bsg_machine_io_coord_x_gp,
                            bsg_machine_io_coord_y_gp,
 
-                           my_x_i,
-                           my_y_i);
+                           {pod_x_i, my_x_i},
+                           {pod_y_i, my_y_i});
          init_r <= 1;
       end
 
@@ -191,8 +201,8 @@ module bsg_nonsynth_dpi_manycore_tile
 
       bsg_dpi_tile(
                    reset_i,
-                   my_x_i,
-                   my_y_i,
+                   {pod_x_i, my_x_i},
+                   {pod_y_i, my_y_i},
                    out_credits_lo,
                    mc_req_v_li,
                    mc_req_data_li,
@@ -259,7 +269,7 @@ module bsg_nonsynth_dpi_manycore_tile
 
 
    final begin
-      bsg_dpi_tile_finish(my_x_i, my_y_i);
+      bsg_dpi_tile_finish({pod_x_i, my_x_i}, {pod_y_i, my_y_i});
    end
 
 endmodule

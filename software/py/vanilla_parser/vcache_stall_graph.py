@@ -206,7 +206,9 @@ class VcacheStallGraph:
             for row in csv_reader:
                 trace = {}
                 vcache = row["vcache"]
-                trace["vcache"] = int (vcache[vcache.find("[")+1 : vcache.find("]")])
+                index = int (vcache[vcache.rfind("[")+1 : vcache.rfind("]")])
+                loc = 0 if "north" in vcache else 16
+                trace["vcache"] = loc + index
                 trace["operation"] = row["operation"]
                 trace["cycle"] = int(row["cycle"])
                 traces.append(trace)
