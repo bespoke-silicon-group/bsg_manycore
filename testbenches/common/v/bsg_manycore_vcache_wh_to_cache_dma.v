@@ -26,6 +26,13 @@ module bsg_manycore_vcache_wh_to_cache_dma
     , parameter vcache_dma_data_width_p="inv"
     , parameter vcache_block_size_in_words_p="inv"
 
+    
+    , parameter num_pods_x_p ="inv"
+    , parameter pod_start_x_p = 0
+    , parameter num_tiles_x_p = "inv"
+    , parameter lg_num_tiles_x_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , parameter lg_num_pods_x_lp = `BSG_SAFE_CLOG2(num_pods_x_p)
+
     // FIFO parameters
     , parameter in_fifo_els_p = 8
 
@@ -160,6 +167,43 @@ module bsg_manycore_vcache_wh_to_cache_dma
     ,.count_o(send_count_lo)
   );
 
+  wire [lg_num_vcaches_lp-1:0] send_cache_id;
+  if (num_pods_x_p == 1) begin
+    // For pod 1x1, there are 1 HBM on each side of west and east.
+    // Left half of top and bottom vcaches (16 total) maps to ch0 of HBM2 on west.
+    // Right half of top and bottom vcaches (16 total) maps to ch0 of HBM2 on east.
+    assign send_cache_id = {
+      (1)'(header_flit_in.cid/wh_ruche_factor_p),
+      header_flit_in.src_cord[lg_num_tiles_x_lp-2:0]
+    };
+  end
+  else begin
+    // For pod 4x4
+    //
+    // [dev0-ch0] [dev0-ch2] [dev0-ch0] [dev0-ch2] 
+    // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+    // [dev0-ch1] [dev0-ch3] [dev0-ch1] [dev0-ch3]
+    //
+    // [dev0-ch4] [dev0-ch6] [dev0-ch4] [dev0-ch6]
+    // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+    // [dev0-ch5] [dev0-ch7] [dev0-ch5] [dev0-ch7]
+    //
+    // [dev1-ch0] [dev1-ch2] [dev0-ch0] [dev0-ch2]
+    // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+    // [dev1-ch1] [dev0-ch3] [dev0-ch1] [dev0-ch3]
+    //
+    // [dev1-ch4] [dev1-ch6] [dev0-ch4] [dev0-ch6]
+    // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+    // [dev1-ch5] [dev1-ch7] [dev0-ch5] [dev0-ch7]
+    //
+    assign send_cache_id = {
+      (lg_num_pods_x_lp-1)'((header_flit_in.src_cord[wh_cord_width_p-1:lg_num_tiles_x_lp] - pod_start_x_p)%(num_pods_x_p/2)),
+      (1)'(header_flit_in.cid/wh_ruche_factor_p),
+      header_flit_in.src_cord[lg_num_tiles_x_lp-1:0]
+    };
+  end
+  
+  
 
   always_comb begin
     send_state_n = send_state_r;
