@@ -316,7 +316,7 @@ class VcacheStallGraph:
 
     # initialize image
     def __init_image(self):
-        self.img_width = 2048   # default
+        self.img_width = 1024   # default
         self.img_height = (((self.end_cycle-self.start_cycle)+self.img_width)//self.img_width)*(2+(self.vcache_dim))
         self.img = Image.new("RGB", (self.img_width, self.img_height), "black")
         self.pixel = self.img.load()
