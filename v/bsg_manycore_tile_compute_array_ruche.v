@@ -68,8 +68,10 @@ module bsg_manycore_tile_compute_array_ruche
   )
   (
     input clk_i
-    , input [S:N] reset_i   // the top-half of the array reset is driven by north reset pin, and the bot-half by south reset.
 
+    , input [num_tiles_x_p-1:0] reset_i
+    , output logic [num_tiles_x_p-1:0] reset_o
+  
     // horizontal -- {E,W}
     , input [E:W][num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_i
     , output [E:W][num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_o
@@ -82,8 +84,15 @@ module bsg_manycore_tile_compute_array_ruche
     , input [E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_i
     , output [E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_o
 
-    , input [pod_x_cord_width_p-1:0] pod_x_i
-    , input [pod_y_cord_width_p-1:0] pod_y_i
+    , input [num_tiles_x_p-1:0][pod_x_cord_width_p-1:0] pod_x_i
+    , input [num_tiles_x_p-1:0][pod_y_cord_width_p-1:0] pod_y_i
+    , output logic [num_tiles_x_p-1:0][pod_x_cord_width_p-1:0] pod_x_o
+    , output logic [num_tiles_x_p-1:0][pod_y_cord_width_p-1:0] pod_y_o
+
+    , input [num_tiles_x_p-1:0][x_subcord_width_lp-1:0] my_x_i
+    , input [num_tiles_x_p-1:0][y_subcord_width_lp-1:0] my_y_i
+    , output logic [num_tiles_x_p-1:0][x_subcord_width_lp-1:0] my_x_o
+    , output logic [num_tiles_x_p-1:0][y_subcord_width_lp-1:0] my_y_o
   );
 
   // synopsys translate_off
@@ -106,20 +115,6 @@ module bsg_manycore_tile_compute_array_ruche
 
 
 
-  // Pipeline the reset. The bsg_manycore_tile has a single pipeline register
-  // on reset already, so we only want to pipeline reset_depth_p-1 times.
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0] tile_reset_r;
-  
-  for (genvar i = N; i <= S; i++) begin: rdff
-    bsg_dff_chain #(
-      .width_p(num_tiles_x_p*num_tiles_y_p/2)
-      ,.num_stages_p(reset_depth_p-1)
-    ) tile_reset (
-      .clk_i(clk_i)
-      ,.data_i({(num_tiles_x_p*num_tiles_y_p/2){reset_i[i]}})
-      ,.data_o(tile_reset_r[(i-N)*(num_tiles_y_p/2)+:(num_tiles_y_p/2)])
-    );
-  end
   
 
   // Instantiate tiles.
@@ -131,6 +126,12 @@ module bsg_manycore_tile_compute_array_ruche
   bsg_manycore_ruche_x_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][ruche_factor_X_p-1:0][E:W] ruche_link_in;   
   bsg_manycore_ruche_x_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][ruche_factor_X_p-1:0][E:W] ruche_link_out;
  
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][x_cord_width_p-1:0] my_x_li, my_x_lo;
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][y_cord_width_p-1:0] my_y_li, my_y_lo;
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][pod_x_cord_width_p-1:0] pod_x_li, pod_x_lo;
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][pod_y_cord_width_p-1:0] pod_y_li, pod_y_lo;
+
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0] reset_li, reset_lo;
 
   for (genvar r = 0; r < num_tiles_y_p; r++) begin: y
     for (genvar c = 0; c < num_tiles_x_p; c++) begin: x
@@ -154,7 +155,9 @@ module bsg_manycore_tile_compute_array_ruche
         ,.ruche_factor_X_p(ruche_factor_X_p)
       ) tile (
         .clk_i(clk_i)
-        ,.reset_i(tile_reset_r[r][c])
+
+        ,.reset_i(reset_li[r][c])
+        ,.reset_o(reset_lo[r][c])
 
         ,.link_i(link_in[r][c])
         ,.link_o(link_out[r][c])
@@ -162,14 +165,41 @@ module bsg_manycore_tile_compute_array_ruche
         ,.ruche_link_i(ruche_link_in[r][c])
         ,.ruche_link_o(ruche_link_out[r][c])
 
-        ,.my_x_i(x_subcord_width_lp'(c))
-        ,.my_y_i(y_subcord_width_lp'(r))
+        ,.my_x_i(my_x_li)
+        ,.my_y_i(my_y_li)
+        ,.my_x_o(my_x_lo)
+        ,.my_y_o(my_y_lo)
 
-        ,.pod_x_i(pod_x_i)
-        ,.pod_y_i(pod_y_i)
+        ,.pod_x_i(pod_x_li)
+        ,.pod_y_i(pod_y_li)
+        ,.pod_x_o(pod_x_lo)
+        ,.pod_y_o(pod_y_lo)
       );
+
+      if (r == 0) begin
+        assign my_x_li[r][c] = my_x_i[c];
+        assign my_y_li[r][c] = my_y_i[c];
+
+        assign reset_li[r][c] = reset_i[c];
+      end
+
+      if (r == num_tiles_x_p-1) begin
+        assign my_x_o[c] = my_x_lo[r][c];
+        assign my_y_o[c] = my_y_lo[r][c];
+  
+        assign reset_o[c] = reset_lo[r][c];
+      end
+
+      if (r < num_tiles_x_p-1) begin
+        assign my_x_li[r+1][c] = my_x_lo[r][c];
+        assign my_y_li[r+1][c] = my_y_lo[r][c];
+
+        assign reset_li[r+1][c] = reset_lo[r][c];
+      end
+
     end
   end
+
 
   // stitch together all of the tiles into a mesh
   bsg_mesh_stitch #(

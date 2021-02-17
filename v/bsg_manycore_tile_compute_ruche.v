@@ -43,6 +43,7 @@ module bsg_manycore_tile_compute_ruche
   (
     input clk_i
     , input reset_i
+    , output logic reset_o
 
     // local links
     , input  [S:W][link_sif_width_lp-1:0] link_i
@@ -55,10 +56,14 @@ module bsg_manycore_tile_compute_ruche
     // tile sub-coordinates
     , input [x_subcord_width_lp-1:0] my_x_i
     , input [y_subcord_width_lp-1:0] my_y_i
+    , output logic [x_subcord_width_lp-1:0] my_x_o
+    , output logic [y_subcord_width_lp-1:0] my_y_o
 
     // pod id
     , input [pod_x_cord_width_p-1:0] pod_x_i
     , input [pod_y_cord_width_p-1:0] pod_y_i
+    , output logic [pod_x_cord_width_p-1:0] pod_x_o
+    , output logic [pod_y_cord_width_p-1:0] pod_y_o
   );
 
 
@@ -75,6 +80,36 @@ module bsg_manycore_tile_compute_ruche
     ,.data_i(reset_i)
     ,.data_o(reset_r)
   );
+
+  bsg_dff #(
+    .width_p(1)
+  ) dff_reset2 (
+    .clk_i(clk_i)
+    ,.data_i(reset_r)
+    ,.data_o(reset_o)
+  );
+
+  logic [x_cord_width_p-1:0] x_cord_r;
+  logic [y_cord_width_p-1:0] y_cord_r;
+
+  bsg_dff #(
+    .width_p(x_cord_width_p)
+  ) dff_x (
+    .clk_i(clk_i)
+    ,.data_i({pod_x_i, my_x_i})
+    ,.data_o(x_cord_r)
+  );
+
+  bsg_dff #(
+    .width_p(y_cord_width_p)
+  ) dff_y (
+    .clk_i(clk_i)
+    ,.data_i({pod_y_i, my_y_i})
+    ,.data_o(y_cord_r)
+  );
+
+  assign {pod_x_o, my_x_o} = x_cord_r;
+  assign {pod_y_o, my_y_o} = (y_cord_width_p)'(y_cord_r + 1);
 
 
   // For vanilla core (hetero type = 0), it uses credit interface for the P ports,
