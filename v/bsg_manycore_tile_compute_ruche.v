@@ -89,15 +89,18 @@ module bsg_manycore_tile_compute_ruche
     ,.data_o(reset_o)
   );
 
-  logic [x_cord_width_p-1:0] x_cord_r;
-  logic [y_cord_width_p-1:0] y_cord_r;
+  logic [x_subcord_width_lp-1:0] my_x_r;
+  logic [y_subcord_width_lp-1:0] my_y_r;
+  logic [pod_x_cord_width_p-1:0] pod_x_r;
+  logic [pod_y_cord_width_p-1:0] pod_y_r;
+
 
   bsg_dff #(
     .width_p(x_cord_width_p)
   ) dff_x (
     .clk_i(clk_i)
     ,.data_i({pod_x_i, my_x_i})
-    ,.data_o(x_cord_r)
+    ,.data_o({pod_x_r, my_x_r})
   );
 
   bsg_dff #(
@@ -105,11 +108,11 @@ module bsg_manycore_tile_compute_ruche
   ) dff_y (
     .clk_i(clk_i)
     ,.data_i({pod_y_i, my_y_i})
-    ,.data_o(y_cord_r)
+    ,.data_o({pod_y_r, my_y_r})
   );
 
-  assign {pod_x_o, my_x_o} = x_cord_r;
-  assign {pod_y_o, my_y_o} = (y_cord_width_p)'(y_cord_r + 1);
+  assign {pod_x_o, my_x_o} = {pod_x_r, my_x_r};
+  assign {pod_y_o, my_y_o} = (y_cord_width_p)'(({pod_y_r, my_y_r}) + 1);
 
 
   // For vanilla core (hetero type = 0), it uses credit interface for the P ports,
@@ -150,8 +153,8 @@ module bsg_manycore_tile_compute_ruche
     ,.links_sif_o(links_sif_lo)
     ,.proc_link_sif_i(proc_link_sif_li)
     ,.proc_link_sif_o(proc_link_sif_lo)
-    ,.global_x_i({pod_x_i, my_x_i})
-    ,.global_y_i({pod_y_i, my_y_i})
+    ,.global_x_i({pod_x_r, my_x_r})
+    ,.global_y_i({pod_y_r, my_y_r})
   );
 
   bsg_manycore_hetero_socket #(
@@ -179,11 +182,11 @@ module bsg_manycore_tile_compute_ruche
     ,.link_sif_i(proc_link_sif_lo)
     ,.link_sif_o(proc_link_sif_li)
 
-    ,.pod_x_i(pod_x_i)
-    ,.pod_y_i(pod_y_i)
+    ,.pod_x_i(pod_x_r)
+    ,.pod_y_i(pod_y_r)
 
-    ,.my_x_i(my_x_i)
-    ,.my_y_i(my_y_i)
+    ,.my_x_i(my_x_r)
+    ,.my_y_i(my_y_r)
   );
 
 
@@ -202,13 +205,13 @@ module bsg_manycore_tile_compute_ruche
   // For incoming fwd, inject my_y_i as src_y.
   // For incoming rev, inject my_y_i as dest_y.
   assign links_sif_li[5].fwd =
-    `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][E].fwd,{pod_y_i, my_y_i});
+    `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][E].fwd,{pod_y_r, my_y_r});
   assign links_sif_li[5].rev =
-    `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][E].rev,{pod_y_i, my_y_i});
+    `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][E].rev,{pod_y_r, my_y_r});
   assign links_sif_li[4].fwd =
-    `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][W].fwd,{pod_y_i, my_y_i});
+    `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][W].fwd,{pod_y_r, my_y_r});
   assign links_sif_li[4].rev =
-    `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][W].rev,{pod_y_i, my_y_i});
+    `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][W].rev,{pod_y_r, my_y_r});
 
 
   // For outgoing fwd, filter out src_y.
