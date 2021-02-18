@@ -18,6 +18,7 @@ module bsg_manycore_link_to_cache
     , parameter block_size_in_words_p="inv"
 
     , parameter fifo_els_p=4
+    , parameter rsp_fifo_els_p=4
 
     , parameter lg_sets_lp=`BSG_SAFE_CLOG2(sets_p)
     , parameter lg_ways_lp=`BSG_SAFE_CLOG2(ways_p)
@@ -33,6 +34,9 @@ module bsg_manycore_link_to_cache
       `bsg_cache_pkt_width(cache_addr_width_lp,data_width_p)
     , parameter manycore_packet_width_lp=
       `bsg_manycore_packet_width(link_addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , parameter return_packet_width_lp =
+      `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
+
   )
   (
     input clk_i
@@ -67,6 +71,28 @@ module bsg_manycore_link_to_cache
   logic return_packet_v_li;
   logic return_packet_ready_lo;
 
+  bsg_manycore_return_packet_s return_packet_lo;
+  logic return_packet_v_lo;
+  logic return_packet_ready_li;
+  logic return_packet_yumi_li;
+  assign return_packet_yumi_li = return_packet_ready_li & return_packet_v_lo;
+   
+  bsg_fifo_1r1w_small #(
+    .width_p(return_packet_width_lp)
+   ,.els_p (rsp_fifo_els_p)
+   ) returned_fifo
+   (.clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.v_i     (return_packet_v_li)
+    ,.data_i  (return_packet_li)
+    ,.ready_o (return_packet_ready_lo)
+
+    ,.v_o     (return_packet_v_lo)
+    ,.data_o  (return_packet_lo)
+    ,.yumi_i  (return_packet_yumi_li)
+  );
+
   bsg_manycore_endpoint #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -84,9 +110,9 @@ module bsg_manycore_link_to_cache
     ,.packet_v_o(packet_v_lo)
     ,.packet_yumi_i(packet_yumi_li)
 
-    ,.return_packet_i(return_packet_li)
-    ,.return_packet_v_i(return_packet_v_li)
-    ,.return_packet_ready_o(return_packet_ready_lo)
+    ,.return_packet_i(return_packet_lo)
+    ,.return_packet_v_i(return_packet_v_lo)
+    ,.return_packet_ready_o(return_packet_ready_li)
 
     ,.packet_i('0)
     ,.packet_v_i(1'b0)

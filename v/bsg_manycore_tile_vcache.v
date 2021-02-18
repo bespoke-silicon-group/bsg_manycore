@@ -31,6 +31,7 @@ module bsg_manycore_tile_vcache
     , parameter int wh_cord_markers_pos_lp[1:0] = '{wh_cord_width_p, 0}
 
     , parameter req_fifo_els_p=4
+    , parameter rsp_fifo_els_p=2
 
     , parameter manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -132,6 +133,7 @@ module bsg_manycore_tile_vcache
     ,.block_size_in_words_p(vcache_block_size_in_words_p)
     
     ,.fifo_els_p(req_fifo_els_p)
+    ,.rsp_fifo_els_p(rsp_fifo_els_p)
   ) link_to_cache (
     .clk_i(clk_i)
     ,.reset_i(reset_r)

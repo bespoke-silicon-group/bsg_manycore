@@ -31,6 +31,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter vcache_dma_data_width_p = "inv" // in bits
     , parameter vcache_size_p = "inv" // in words
     , parameter vcache_addr_width_p="inv" // byte addr
+    , parameter vcache_rsp_fifo_els_p=2
 
     , parameter wh_flit_width_p = "inv"
     , parameter wh_ruche_factor_p = 2
@@ -151,6 +152,7 @@ module bsg_nonsynth_manycore_testbench
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+    ,.vcache_rsp_fifo_els_p(vcache_rsp_fifo_els_p)
 
     ,.wh_ruche_factor_p(wh_ruche_factor_p)
     ,.wh_cid_width_p(wh_cid_width_p)
