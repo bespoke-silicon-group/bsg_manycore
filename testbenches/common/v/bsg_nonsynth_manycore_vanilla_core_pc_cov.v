@@ -104,9 +104,15 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
     bop: coverpoint branch_over_predict;
     br_op: coverpoint exe_r.decode.is_branch_op;
     bup_x_bop_x_br_op: cross bup, bop, br_op {
+      // Can't simultaneously be branch under and over predict
       ignore_bins branch_cond = 
         binsof(bup) intersect {1'b1} && 
         binsof(bop) intersect {1'b1};
+      // There is no meaning to branch under and over predict when it is not a branch op
+      ignore_bins no_branch = 
+        binsof(br_op) intersect {1'b0} &&
+        (binsof(bup) intersect {1'b1} || 
+        binsof(bop) intersect {1'b1});
     }
   
   endgroup
@@ -129,15 +135,23 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
 
     // Jal/Jalr Op
     jal_op_x_jalr_op_x_br_op_x_instr0: cross jal_op, jalr_op, br_op, instr0 {
+      // Jal and Jalr can't happen at the same time
       ignore_bins no_simul_jalr =  
         binsof(jal_op) intersect {1'b1} &&
         binsof(jalr_op) intersect {1'b1};
+      // Jal and Branch can't happen at the same time
       ignore_bins no_br_and_jal =  
         binsof(jal_op) intersect {1'b1} &&
         binsof(br_op) intersect {1'b1};
+      // Jalr and Branch can't happen at the same time
       ignore_bins no_br_and_jalr =  
         binsof(jalr_op) intersect {1'b1} &&
         binsof(br_op) intersect {1'b1};
+      // Jal and Jalr have their lower bits equal to 1 always
+      ignore_bins no_instr0_when_jal_jalr = 
+        (binsof(jalr_op) intersect {1'b1} || 
+        binsof(jal_op) intersect {1'b1}) && 
+        binsof(instr0) intersect {1'b0};
     }
   
   endgroup
