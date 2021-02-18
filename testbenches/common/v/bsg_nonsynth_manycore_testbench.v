@@ -286,6 +286,10 @@ module bsg_nonsynth_manycore_testbench
         ,.vcache_data_width_p(vcache_data_width_p)
         ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
         ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+
+        ,.num_pods_x_p(num_pods_x_p)
+        ,.pod_start_x_p(1)
+        ,.num_tiles_x_p(num_tiles_x_p)
       ) wh_to_dma (
         .clk_i(clk_i)
         ,.reset_i(reset_r)
@@ -320,6 +324,10 @@ module bsg_nonsynth_manycore_testbench
         ,.vcache_data_width_p(vcache_data_width_p)
         ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
         ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+
+        ,.num_pods_x_p(num_pods_x_p)
+        ,.pod_start_x_p(1 + (num_pods_x_p/2))
+        ,.num_tiles_x_p(num_tiles_x_p)
       ) wh_to_dma (
         .clk_i(clk_i)
         ,.reset_i(reset_r)
