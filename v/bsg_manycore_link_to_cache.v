@@ -151,7 +151,7 @@ module bsg_manycore_link_to_cache
       e_cache_op: begin
         return_pkt_type = e_return_credit;
       end
-      e_remote_amoswap, e_remote_amoor: begin
+      e_remote_amoswap, e_remote_amoor, e_remote_amoadd: begin
         return_pkt_type = e_return_int_wb;
       end
       // should never happen
@@ -265,6 +265,10 @@ module bsg_manycore_link_to_cache
 
             e_remote_amoor: begin
               cache_pkt.opcode = AMOOR_W;
+            end
+
+            e_remote_amoadd: begin
+              cache_pkt.opcode = AMOADD_W;
             end
 
             e_cache_op: begin

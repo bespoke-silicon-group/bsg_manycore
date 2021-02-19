@@ -93,7 +93,8 @@ always_comb begin
     `RV32_AMO_OP: begin
       // According the ISA, LR instruction don't read rs2
       decode_o.read_rs2 = (instruction_i.funct7 ==? 7'b00001??)   // amoswap
-                            | (instruction_i.funct7 ==? 7'b01000??);  // amoor
+                            | (instruction_i.funct7 ==? 7'b01000??)  // amoor
+                            | (instruction_i.funct7 ==? 7'b00000??); // amoadd
     end
     default: begin
       decode_o.read_rs2 = 1'b0;
@@ -202,6 +203,10 @@ always_comb begin
     `RV32_AMOOR_W: begin
       decode_o.is_amo_op = 1'b1;
       decode_o.amo_type = e_vanilla_amoor;
+    end
+    `RV32_AMOADD_W: begin
+      decode_o.is_amo_op = 1'b1;
+      decode_o.amo_type = e_vanilla_amoadd;
     end
     default: begin
       decode_o.is_amo_op = 1'b0;
