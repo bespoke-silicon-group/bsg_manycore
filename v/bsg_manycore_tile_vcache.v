@@ -91,6 +91,7 @@ module bsg_manycore_tile_vcache
     // Because vcaches do not initiate packets, and there are no clients on the same Row,
     // horizontal manycore links are unnecessary.
     ,.stub_p(4'b0011) // stub E and W
+    ,.rev_fifo_els_p('{2, 2, 2, 2, rsp_fifo_els_p})
   ) rtr (
     .clk_i(clk_i)
     ,.reset_i(reset_r)
@@ -133,7 +134,6 @@ module bsg_manycore_tile_vcache
     ,.block_size_in_words_p(vcache_block_size_in_words_p)
     
     ,.fifo_els_p(req_fifo_els_p)
-    ,.rsp_fifo_els_p(rsp_fifo_els_p)
   ) link_to_cache (
     .clk_i(clk_i)
     ,.reset_i(reset_r)
