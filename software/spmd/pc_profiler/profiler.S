@@ -44,6 +44,7 @@
   2. Base pointer in DRAM (for now it is mapped to start of DRAM) [Consider static assignment in linker]
 */
 .section .dram, "aw"
+.globl _histogram_arr
   _histogram_arr: .space HIST_SPACE, 0x0
 #endif
 
