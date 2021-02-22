@@ -3,11 +3,7 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-// Histogram location?
-// 1. Can histogram base address be accessed directly from symbol table?
-// 2. Should linker be modified so that histogram is statically assigned a region in memory?
-// Fixme: Histogram base address adjusted to the right value after looking at disassembly
-#define HISTOGRAM_BASE_ADDR 0x81000290
+extern int _histogram_arr;
 
 #ifndef HIST_SPACE
 #define HIST_SPACE 16777216
@@ -36,14 +32,13 @@ void fibonacci()
 
 void read_histogram()
 {
-  int val;
-  int count = 0;
   // Fixme: This array is populated statically by observing disassembly. Need to make it standalone
   int expectation[10] = {1 * NUM_TILES, 1 * NUM_TILES, 10 * NUM_TILES, 10 * NUM_TILES, 10 * NUM_TILES, 10 * NUM_TILES, 10 * NUM_TILES, 1 * NUM_TILES, 1 * NUM_TILES, 1 * NUM_TILES};
-  // Adjust start value based on disassembly since function is small and therefore inlined with O2 optimization
-  int *i;
 
-  for (i = (HISTOGRAM_BASE_ADDR); i < (HISTOGRAM_BASE_ADDR + HIST_SPACE); i++)
+  int *i;
+  int val;
+  int count = 0;
+  for (i = &_histogram_arr; i < (&_histogram_arr + (HIST_SPACE >> 2)); i++)
   {
     val = *i;
     if (val != 0)
@@ -52,8 +47,7 @@ void read_histogram()
       if (expectation[count] != val)
         bsg_fail();
       count++;
-    }
-      
+    }    
   }
 
   bsg_finish();
