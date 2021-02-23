@@ -1,7 +1,8 @@
 export BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
 
-bsg_tiles_X = 4
-bsg_tiles_Y = 4
+# Running tests on full manycore array. Uncomment and modify for a smaller array
+# bsg_tiles_X = 4
+# bsg_tiles_Y = 4
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules

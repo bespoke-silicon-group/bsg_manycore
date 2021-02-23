@@ -47,7 +47,15 @@ void atomic_add()
     bsg_printf("%d\n", data[0]);
     bsg_printf("%d\n", data[1]);
 
-    if ((data[0] == data[1]) && (data[0] == 36))
+    int expected = 0;
+    int sum = 0;
+    for (int i = 0; i < bsg_tiles_X; i++)
+      expected += i;
+    for (int i = 0; i < bsg_tiles_Y; i++)
+      sum += i;
+    expected *= sum;
+
+    if ((data[0] == data[1]) && (data[0] == expected))
       bsg_finish();
     else
       bsg_fail();
