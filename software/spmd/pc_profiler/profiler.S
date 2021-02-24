@@ -10,6 +10,7 @@
   The profiler uses the following registers - 
   t0 --> Base address of the histogram array (actual value stored in dmem[1])
   t1 --> Scratchpad (actual value stored in dmem[0])
+  t2 --> Scratchpad (actual value stored in dmem[2])
 */
 
 #include "bsg_manycore_arch.h"
@@ -31,9 +32,10 @@
   Defines a 2 element (8 byte) array to store the base pointer of the histogram array and for use by the interrupt handler to spill some registers
   dmem[0] = histogram base pointer, temporary storage
   dmem[1] = temporary storage
+  dmem[2] = temporary storage
 */
 .section .dmem.interrupt, "aw"
-  _interrupt_arr: .space 8, 0x0
+  _interrupt_arr: .space 12, 0x0
 
 /*
   DRAM section:
@@ -85,31 +87,30 @@ _trace_interrupt:
   lw t0, 0(zero)
   // Store another register to dmem[0]
   sw t1, 0(zero)
+  // Store a register to dmem[2]
+  sw t2, 8(zero)
 
   // read the mepc register
   csrr t1, mepc
   // find the correct index in the histogram array
-  add t0, t0, t1
+  add t1, t0, t1
 
   // atomically increment the value at the computed index
-  li t1, 1
+  li t2, 1
   // We don't care about the result hence assigned to zero register
-  amoadd.w.aq zero, t1, (t0)
-
-  // remap t0 to histogram array base address
-  csrr t1, mepc
-  sub t0, t0, t1
+  amoadd.w zero, t2, (t1)
 
   // Restore registers and store base ptr back to dmem[0]
   lw t1, 0(zero)
   sw t0, 0(zero)
   lw t0, 4(zero)
+  lw t2, 8(zero)
 
   mret
 
 _remote_interrupt_handler:
   // Add code here when using in actual programs, for now these are turned off
-  j fail
+  bsg_asm_fail(IO_X_INDEX, 0)
 #endif
 
 /*
@@ -226,7 +227,3 @@ _start:
 2:
   // Should never reach this point
   j 2b
-
-  // Must not come here
-fail:
-  j fail

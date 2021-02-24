@@ -1,7 +1,8 @@
 export BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
 
-bsg_tiles_X= 4
-bsg_tiles_Y= 4
+# Uncomment if you have want to work on a smaller subset of the entire array
+# bsg_tiles_X= 4
+# bsg_tiles_Y= 4
 MAX_CYCLES= 10000000
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
