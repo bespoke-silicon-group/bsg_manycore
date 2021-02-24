@@ -177,12 +177,8 @@ module scoreboard
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
-      for (integer i = 0; i < num_clear_port_p; i++) begin
-        if (score_i & clear_i[i]) begin
-          assert(score_id_i != clear_id_i[i])
-            else $error("score and clear on the same id cannot happen.");
-        end
-      end
+      assert((score_bits & clear_combined) == '0)
+        else $error("[BSG_ERROR] score and clear on the same id cannot happen.");
     end
   end
   // synopsys translate_on
