@@ -10,7 +10,7 @@ include $(BSG_MANYCORE_DIR)/software/spmd/interrupt_tests/Makefile.testlist
 # Name useful for coverage
 CM_NAME ?= csr_test
 
-RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles
+RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles -mno-relax
 
 cov_setup:
 ifneq ($(COVERAGE), 0)
@@ -35,11 +35,14 @@ regress: clean
 	$(MAKE) $(foreach test, $(TESTS), $(test)_run)
 
 summary:
-	$(foreach test, $(TESTS), grep -H --color -e "BSG_FINISH" -e "BSG_FATAL" -e "Error" -e \
-	"BSG_ERROR" $(test)_run/$(test)_run.log;)
+	@$(foreach test, $(TESTS), echo $(notdir $(test)); \
+			echo "--------------------------------------------------"; \
+	    grep --color -e "BSG_FINISH" -e "BSG_FATAL" -e "Error" -e "BSG_ERROR" -e "BSG_FAIL" -B 1 $(test)_run/$(test)_run.log; \
+			echo ;)
 
 clean.run:
 	rm -rf *run/
+	rm -rf coverage/
 
 clean.build:
 	$(MAKE) -C $(BSG_MACHINE_PATH)/.. -f Makefile clean

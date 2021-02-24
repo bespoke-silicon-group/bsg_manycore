@@ -5,10 +5,11 @@
 #include "bsg_manycore_asm.h"
 
 // Register usage
-// t0 - Scratch pad - useful for loading masks and other things into CSRs
+// x1 - Scratch pad - useful for loading masks and other things into CSRs
 // t1, t2 - Registers used for sending remote interrupts
 // t3, t4, t5, t6 - registers used for context switching
 // s2, s3, s4 - Registers used by thread 1 and 2
+// s5, s6, s7 - Registers used for maintaining trace counts for thread 1 (s6) and thread 2 (s7)
 
 .globl _start
 _remote_interrupt:
@@ -17,6 +18,13 @@ _trace_interrupt:
   // clear mip.trace
   li x1, 0x20000
   csrrc x0, mip, x1
+  beq s5, x0, t1
+t2:
+  addi s7, s7, 1
+  j exit
+t1:
+  addi s6, s6, 1
+exit:
   mret
 
 _remote_interrupt_handler:
@@ -38,6 +46,9 @@ _remote_interrupt_handler:
   // Restore next thread's state
   add s2, t3, x0
   add s3, t4, x0
+
+  // Switch tracer to point to the other thread
+  xori s5, s5, 1
 
   // Write new MEPC
   csrrw x0, mepc, t5
@@ -71,6 +82,10 @@ _start:
   li t1, bsg_tile_group_remote_interrupt_ptr(0,0)
   li t2, 1
 
+  // Initially thread 1 will be tracing
+  // The s5 register is used to identify the thread. 0 --> thread 1; 1 --> thread 2
+  li s5, 0
+
   // enable mie.remote and mie.trace
   li x1, 0x30000
   csrrw x0, mie, x1
@@ -80,12 +95,14 @@ t1_entry:
   beq x0, s2, t1_done
   addi s3, s3, 10
   addi s2, s2, -1
+  // Send remote interrupt
   sw t2, 0(t1)
-  nop
-  nop
   j t1_entry
 
 t1_done:
+  // 10 iterations * 5 instructions/iteration + 1 instruction (to jump out) + 1 (following load imm instruction)
+  li s4, 52
+  bne s4, s6, fail
   li s4, 100
   beq s4, s3, pass
   j fail
@@ -96,12 +113,14 @@ t2_entry:
   beq x0, s2, t2_done
   addi s3, s3, 20
   addi s2, s2, -1
+  // Send remote interrupt
   sw t2, 0(t1)
-  nop
-  nop
   j t2_entry
 
 t2_done:
+  // 10 iterations * 5 instructions/iteration + 1 instruction (to jump out) + 1 (following load imm instruction)
+  li s4, 52
+  bne s4, s7, fail
   li s4, 200
   beq s4, s3, pass
   j fail
