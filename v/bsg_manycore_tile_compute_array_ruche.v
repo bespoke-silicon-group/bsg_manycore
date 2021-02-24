@@ -1,7 +1,7 @@
 /**
  *    bsg_manycore_tile_compute_array_ruche.v
  *
- *  A compute tile with 2D mesh router with half ruche x.
+ *    A compute tile with 2D mesh router with half ruche x.
  *  
  */
 
@@ -40,7 +40,7 @@ module bsg_manycore_tile_compute_array_ruche
 
     // global coordinate width
     // global_x/y_i
-    // pod_*cord_width_p  and *_subcord_width_lp should sum up to *_cord_width_p.
+    // pod_*cord_width_p  and *_subcord_width_p should sum up to *_cord_width_p.
     , parameter y_cord_width_p = -1
     , parameter x_cord_width_p = -1
     // pod coordinate width
@@ -49,8 +49,9 @@ module bsg_manycore_tile_compute_array_ruche
     , parameter pod_x_cord_width_p = -1
     // coordinate within a pod
     // my_x/y_i
-    , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
-    , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    // A multiple of these modules can be instantiated within a pod as a subarray to form a larger array.
+    , parameter y_subcord_width_p="inv"
+    , parameter x_subcord_width_p="inv"
 
     
     , parameter link_sif_width_lp =
@@ -89,10 +90,10 @@ module bsg_manycore_tile_compute_array_ruche
     , output logic [num_tiles_x_p-1:0][pod_x_cord_width_p-1:0] pod_x_o
     , output logic [num_tiles_x_p-1:0][pod_y_cord_width_p-1:0] pod_y_o
 
-    , input [num_tiles_x_p-1:0][x_subcord_width_lp-1:0] my_x_i
-    , input [num_tiles_x_p-1:0][y_subcord_width_lp-1:0] my_y_i
-    , output logic [num_tiles_x_p-1:0][x_subcord_width_lp-1:0] my_x_o
-    , output logic [num_tiles_x_p-1:0][y_subcord_width_lp-1:0] my_y_o
+    , input [num_tiles_x_p-1:0][x_subcord_width_p-1:0] my_x_i
+    , input [num_tiles_x_p-1:0][y_subcord_width_p-1:0] my_y_i
+    , output logic [num_tiles_x_p-1:0][x_subcord_width_p-1:0] my_x_o
+    , output logic [num_tiles_x_p-1:0][y_subcord_width_p-1:0] my_y_o
   );
 
   // synopsys translate_off
@@ -126,8 +127,8 @@ module bsg_manycore_tile_compute_array_ruche
   bsg_manycore_ruche_x_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][ruche_factor_X_p-1:0][E:W] ruche_link_in;   
   bsg_manycore_ruche_x_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][ruche_factor_X_p-1:0][E:W] ruche_link_out;
  
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][x_cord_width_p-1:0] my_x_li, my_x_lo;
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][y_cord_width_p-1:0] my_y_li, my_y_lo;
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][x_subcord_width_p-1:0] my_x_li, my_x_lo;
+  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][y_subcord_width_p-1:0] my_y_li, my_y_lo;
   logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][pod_x_cord_width_p-1:0] pod_x_li, pod_x_lo;
   logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0][pod_y_cord_width_p-1:0] pod_y_li, pod_y_lo;
 
@@ -165,25 +166,32 @@ module bsg_manycore_tile_compute_array_ruche
         ,.ruche_link_i(ruche_link_in[r][c])
         ,.ruche_link_o(ruche_link_out[r][c])
 
-        ,.my_x_i(my_x_li)
-        ,.my_y_i(my_y_li)
-        ,.my_x_o(my_x_lo)
-        ,.my_y_o(my_y_lo)
+        ,.my_x_i(my_x_li[r][c])
+        ,.my_y_i(my_y_li[r][c])
+        ,.my_x_o(my_x_lo[r][c])
+        ,.my_y_o(my_y_lo[r][c])
 
-        ,.pod_x_i(pod_x_li)
-        ,.pod_y_i(pod_y_li)
-        ,.pod_x_o(pod_x_lo)
-        ,.pod_y_o(pod_y_lo)
+        ,.pod_x_i(pod_x_li[r][c])
+        ,.pod_y_i(pod_y_li[r][c])
+        ,.pod_x_o(pod_x_lo[r][c])
+        ,.pod_y_o(pod_y_lo[r][c])
       );
 
       if (r == 0) begin
+        assign pod_x_li[r][c] = pod_x_i[c];
+        assign pod_y_li[r][c] = pod_y_i[c];
+
         assign my_x_li[r][c] = my_x_i[c];
         assign my_y_li[r][c] = my_y_i[c];
 
         assign reset_li[r][c] = reset_i[c];
+
       end
 
       if (r == num_tiles_x_p-1) begin
+        assign pod_x_o[r][c] = pod_x_lo[r][c];
+        assign pod_y_o[r][c] = pod_y_lo[r][c];
+
         assign my_x_o[c] = my_x_lo[r][c];
         assign my_y_o[c] = my_y_lo[r][c];
   
@@ -191,6 +199,9 @@ module bsg_manycore_tile_compute_array_ruche
       end
 
       if (r < num_tiles_x_p-1) begin
+        assign pod_x_li[r+1][c] = pod_x_lo[r][c];
+        assign pod_y_li[r+1][c] = pod_y_lo[r][c];
+
         assign my_x_li[r+1][c] = my_x_lo[r][c];
         assign my_y_li[r+1][c] = my_y_lo[r][c];
 
