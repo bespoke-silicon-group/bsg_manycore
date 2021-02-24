@@ -60,19 +60,13 @@ void main()
 
 
   // Start profiling code, enable interrupts
-  int mie, mstatus;
-  mie = 0x20000;
-  mstatus = 0x8;
-  __asm__ __volatile__ ("csrw mie, %0": : "r" (mie));
-  __asm__ __volatile__ ("csrw mstatus, %0" : : "r" (mstatus));
+  bsg_pc_profiler_start();
 
   // Code to be profiled
   fibonacci();
 
   // Reading histogram, disable interrupts
-  mie = mstatus = 0;
-  __asm__ __volatile__ ("csrw mie, %0": : "r" (mie));
-  __asm__ __volatile__ ("csrw mstatus, %0" : : "r" (mstatus));
+  bsg_pc_profiler_end();
 
   if (__bsg_id == 0)
   {
