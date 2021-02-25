@@ -8,7 +8,7 @@ VHEADERS += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_network_cfg_pk
 VHEADERS += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_profile_pkg.v
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_test/bsg_dramsim3_pkg.v
 
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_axi_mem.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_axi_mem.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_mem_infinite.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_clock_gen.v

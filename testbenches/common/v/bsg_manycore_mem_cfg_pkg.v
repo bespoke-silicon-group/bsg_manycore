@@ -44,12 +44,12 @@ package bsg_manycore_mem_cfg_pkg;
     
     // LEVEL 1) bsg_manycore_vcache (blocking)
     // LEVEL 2) bsg_cache_to_axi
-    // LEVEL 3) bsg_nonsynth_manycore_axi_mem
+    // LEVEL 3) bsg_nonsynth_axi_mem
     , e_vcache_blocking_axi4_nonsynth_mem
 
     // LEVEL 1) bsg_manycore_vcache (non-blocking)
     // LEVEL 2) bsg_cache_to_axi
-    // LEVEL 3) bsg_nonsynth_manycore_axi_mem
+    // LEVEL 3) bsg_nonsynth_axi_mem
     , e_vcache_non_blocking_axi4_nonsynth_mem
 
     // LEVEL 1) bsg_manycore_vcache (blocking)

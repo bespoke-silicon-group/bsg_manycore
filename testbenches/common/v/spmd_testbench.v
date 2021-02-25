@@ -733,13 +733,12 @@ module spmd_testbench;
      | mem_cfg_lp[e_vcache_non_blocking_axi4_nonsynth_mem]) begin: lv3_axi_mem
 
     for (genvar i = N; i <= S; i++) begin
-      bsg_nonsynth_manycore_axi_mem #(
+      bsg_nonsynth_axi_mem #(
         .axi_id_width_p(axi_id_width_p)
         ,.axi_addr_width_p(axi_addr_width_p)
         ,.axi_data_width_p(axi_data_width_p)
         ,.axi_burst_len_p(axi_burst_len_p)
         ,.mem_els_p(bsg_dram_size_p/(2*axi_data_width_p/data_width_p))
-        ,.bsg_dram_included_p(bsg_dram_included_p)
       ) axi_mem0 (
         .clk_i(core_clk)
         ,.reset_i(reset_r[2])
@@ -772,6 +771,19 @@ module spmd_testbench;
         ,.axi_rvalid_o(lv2_axi4.axi_rvalid[i])
         ,.axi_rready_i(lv2_axi4.axi_rready[i])
       );
+
+      // synopsys translate_off
+      always_ff @ (negedge clk_i) begin
+        if (~reset_i) begin
+          if (bsg_dram_included_p == 0) begin
+            assert(lv2_axi4.axi_awvalid[i] !== 1'b1) else
+              $error("[BSG_ERROR][TESTBENCH] DRAM write detected in no DRAM mode!!!");
+            assert(lv2_axi4.axi_arvalid[i] !== 1'b1) else
+              $error("[BSG_ERROR][TESTBENCH] DRAM read detected in no DRAM mode!!!");
+          end
+        end
+      end
+      // synopsys translate_on
     end
   end
   else if (mem_cfg_lp[e_vcache_blocking_dmc_lpddr]
