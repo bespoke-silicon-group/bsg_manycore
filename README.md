@@ -24,6 +24,11 @@ aggregated [CoreMark](https://www.eembc.org/coremark/) score.
 
 # Initial Setup for running programs
 
+Above this directory:
+
+- Checkout `basejump_stl`; cd into imports directory and type `make DRAMSim3`
+- Checkout `bsg_cadenv`
+
 In this directory:
 
 - `make checkout_submodules`: To update all submodules in `imports/`.
