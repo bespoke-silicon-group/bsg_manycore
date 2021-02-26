@@ -66,7 +66,7 @@ void do_histogram_work()
   volatile int counter = 0;
 
   do {
-    // count to 100 before sending amoswap
+    // count to 100 before sending amoswap to prevent severe network congestion/lock contention.
     counter = 0;
     for (int j = 0; j < 100; j++) {
       counter++;
