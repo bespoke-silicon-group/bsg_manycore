@@ -422,10 +422,15 @@ module bsg_manycore_pod_ruche
     // connect reset
     assign south_vc_reset_li[x] = mc_reset_lo[num_subarray_y_p-1][x];
 
-    // connect to manycore to north
+    // connect ver link to manycore
     assign south_vc_ver_link_sif_li[x][N] = mc_ver_link_sif_lo[num_subarray_y_p-1][x][S];
     assign mc_ver_link_sif_li[num_subarray_y_p-1][x][S] = south_vc_ver_link_sif_lo[x][N];
-    
+ 
+    // connect ver link to south
+    assign ver_link_sif_o[S][x*subarray_num_tiles_x_lp+:subarray_num_tiles_x_lp] = south_vc_ver_link_sif_lo[x][S];
+    assign south_vc_ver_link_sif_li[x][S] = ver_link_sif_i[S][x*subarray_num_tiles_x_lp+:subarray_num_tiles_x_lp];
+   
+    // coordinate
     assign south_vc_global_x_li[x] = mc_global_x_lo[num_subarray_y_p-1][x];
     assign south_vc_global_y_li[x] = mc_global_y_lo[num_subarray_y_p-1][x];
 

@@ -105,7 +105,7 @@ module bsg_manycore_tile_vcache
   );
 
   assign global_x_o = global_x_r;
-  assign global_y_o = global_y_r;
+  assign global_y_o = y_cord_width_p'(global_y_r+1);
 
   // mesh router
   // vcache connects to P
