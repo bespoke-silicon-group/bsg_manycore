@@ -137,7 +137,7 @@ module bsg_manycore_tile_vcache_array
   // connect wh ruche link
   for (genvar c = 0; c < subarray_num_tiles_x_p; c++) begin: rc
     for (genvar l = 0; l < wh_ruche_factor_p; l++) begin: rl // ruche stage
-      if (c == num_tiles_x_p-1) begin: cl
+      if (c == subarray_num_tiles_x_p-1) begin: cl
         bsg_ruche_buffer #(
           .width_p(wh_link_sif_width_lp)
           ,.ruche_factor_p(wh_ruche_factor_p)
