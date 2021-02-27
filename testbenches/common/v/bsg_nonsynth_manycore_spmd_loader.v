@@ -20,6 +20,7 @@ module bsg_nonsynth_manycore_spmd_loader
 
     , parameter max_out_credits_p=200
     , parameter credit_counter_width_lp=`BSG_SAFE_CLOG2(max_out_credits_p+1)
+    , parameter verbose_p = 0
   )
   ( 
     input clk_i
@@ -123,7 +124,7 @@ module bsg_nonsynth_manycore_spmd_loader
       if (loader_done)
         $display("[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. t=%0t", $time);
   
-      if (v_o & ready_i)
+      if (v_o & ready_i & verbose_p)
         $display("[BSG_INFO][SPMD_LOADER] sending packet #%0d. x,y=%0d,%0d, addr=%x, data=%x, t=%0t",
           nbf_addr_r,
           packet.x_cord, packet.y_cord,
