@@ -35,6 +35,7 @@ In this directory:
 - `make tools`: To install software toolchain required running programs on BSG Manycore. (This build uses 12-16 threads by default.)
 - `make machines`: Compile simulation executables in `machines/`.
 - Edit `BSG_MACHINE_PATH` in `software/mk/Makefile.paths` to choose the machine to run somd programs on.
+- go into `software/spmd/bsg_barrier` and type `make` to run a test!
 
 # Contributions
 
