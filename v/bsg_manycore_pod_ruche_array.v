@@ -23,6 +23,9 @@ module bsg_manycore_pod_ruche_array
     , parameter data_width_p="inv"
     , parameter ruche_factor_X_p=3  // only support 3 for now
 
+    , parameter num_subarray_x_p=1
+    , parameter num_subarray_y_p=1
+
     , parameter dmem_size_p="inv"
     , parameter icache_entries_p="inv"
     , parameter icache_tag_width_p="inv"
@@ -103,6 +106,8 @@ module bsg_manycore_pod_ruche_array
   wh_link_sif_s [num_pods_y_p-1:0][S:N][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] wh_link_sif_li;
   wh_link_sif_s [num_pods_y_p-1:0][S:N][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] wh_link_sif_lo;
 
+  logic [num_pods_y_p-1:0][num_pods_x_p-1:0][num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_li;
+  logic [num_pods_y_p-1:0][num_pods_x_p-1:0][num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_li;
 
   // Instantiate pods
   for (genvar y = 0; y < num_pods_y_p; y++) begin: py
@@ -119,6 +124,9 @@ module bsg_manycore_pod_ruche_array
         ,.data_width_p(data_width_p)
         ,.ruche_factor_X_p(ruche_factor_X_p)
       
+        ,.num_subarray_x_p(num_subarray_x_p)
+        ,.num_subarray_y_p(num_subarray_y_p)
+
         ,.dmem_size_p(dmem_size_p)
         ,.icache_entries_p(icache_entries_p)
         ,.icache_tag_width_p(icache_tag_width_p)
@@ -150,19 +158,20 @@ module bsg_manycore_pod_ruche_array
 
         ,.north_wh_link_sif_i(wh_link_sif_li[y][N][x])
         ,.north_wh_link_sif_o(wh_link_sif_lo[y][N][x])
-        ,.north_vcache_pod_x_i(pod_x_cord_width_p'(x+1))
-        ,.north_vcache_pod_y_i(pod_y_cord_width_p'(2*y))
         ,.north_bsg_tag_i(pod_tags_i[y][x][N])
 
         ,.south_wh_link_sif_i(wh_link_sif_li[y][S][x])
         ,.south_wh_link_sif_o(wh_link_sif_lo[y][S][x])
-        ,.south_vcache_pod_x_i(pod_x_cord_width_p'(x+1))
-        ,.south_vcache_pod_y_i(pod_y_cord_width_p'((2*y)+2))
         ,.south_bsg_tag_i(pod_tags_i[y][x][S])
 
-        ,.pod_x_i(pod_x_cord_width_p'(x+1))
-        ,.pod_y_i(pod_y_cord_width_p'((2*y)+1))
+        ,.global_x_i(global_x_li[y][x])
+        ,.global_y_i(global_y_li[y][x])
       );
+
+      for (genvar i = 0; i < num_tiles_x_p; i++) begin
+        assign global_x_li[y][x][i] = {  (pod_x_cord_width_p)'(x+1), (x_subcord_width_lp)'(i)    };
+        assign global_y_li[y][x][i] = {  (pod_y_cord_width_p)'(y*2), {y_subcord_width_lp{1'b1}}  };
+      end
 
     end
   end

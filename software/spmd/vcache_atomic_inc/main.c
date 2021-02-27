@@ -13,14 +13,14 @@ void atomic_inc()
   do {
     lock_val = bsg_amoswap_aq(&lock, 1);
   } while (lock_val != 0); 
-  bsg_printf("I got the lock! x=%d y=%d\n", __bsg_x, __bsg_y);
+  //bsg_printf("I got the lock! x=%d y=%d\n", __bsg_x, __bsg_y);
 
   // critical region
   int local_data = data;
   data = local_data+1; 
   bsg_printf("%d\n",local_data);
 
-  bsg_printf("I'm releasing the lock... x=%d y=%d\n", __bsg_x, __bsg_y);
+  //bsg_printf("I'm releasing the lock... x=%d y=%d\n", __bsg_x, __bsg_y);
 
   // release
   bsg_amoswap_rl(&lock, 0);

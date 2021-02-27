@@ -1,7 +1,7 @@
 /**
  *    bsg_manycore_tile_compute_array_ruche.v
  *
- *  A compute tile with 2D mesh router with half ruche x.
+ *    A compute tile with 2D mesh router with half ruche x.
  *  
  */
 
@@ -21,14 +21,20 @@ module bsg_manycore_tile_compute_array_ruche
     // since num_tiles_x_p and num_tiles_y_p will be used to define the size of 2D array
     // hetero_type_vec_p, they should be int by default to avoid tool crash during
     // synthesis (DC versions at least up to 2018.06)
+
+    // Number of tiles in the entire pod
     , parameter int num_tiles_x_p = -1
     , parameter int num_tiles_y_p = -1
+
+    // Number of tiles in this subarray.
+    , parameter subarray_num_tiles_x_p = -1
+    , parameter subarray_num_tiles_y_p = -1
 
     // This is used to define heterogeneous arrays. Each index defines
     // the type of an X/Y coordinate in the array. This is a vector of
     // num_tiles_x_p*num_tiles_y_p ints; type "0" is the
     // default. See bsg_manycore_hetero_socket.v for more types.
-    , parameter int hetero_type_vec_p [0:(num_tiles_y_p*num_tiles_x_p) - 1]  = '{default:0}
+    , parameter int hetero_type_vec_p [0:(subarray_num_tiles_y_p*subarray_num_tiles_x_p) - 1]  = '{default:0}
 
     // this is the addr width on the manycore network packet (word addr).
     // also known as endpoint physical address (EPA).
@@ -40,15 +46,18 @@ module bsg_manycore_tile_compute_array_ruche
 
     // global coordinate width
     // global_x/y_i
-    // pod_*cord_width_p  and *_subcord_width_lp should sum up to *_cord_width_p.
+    // pod_*_cord_width_p  and *_subcord_width_p should sum up to *_cord_width_p.
     , parameter y_cord_width_p = -1
     , parameter x_cord_width_p = -1
+
     // pod coordinate width
     // pod_x/y_i
     , parameter pod_y_cord_width_p = -1
     , parameter pod_x_cord_width_p = -1
+
     // coordinate within a pod
     // my_x/y_i
+    // A multiple of these modules can be instantiated within a pod as a subarray to form a larger array.
     , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
     , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
 
@@ -68,35 +77,40 @@ module bsg_manycore_tile_compute_array_ruche
   )
   (
     input clk_i
-    , input [S:N] reset_i   // the top-half of the array reset is driven by north reset pin, and the bot-half by south reset.
 
+    , input [subarray_num_tiles_x_p-1:0] reset_i
+    , output logic [subarray_num_tiles_x_p-1:0] reset_o
+  
     // horizontal -- {E,W}
-    , input [E:W][num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_i
-    , output [E:W][num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_o
+    , input [E:W][subarray_num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_i
+    , output [E:W][subarray_num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_o
 
     // vertical -- {S,N}
-    , input [S:N][num_tiles_x_p-1:0][link_sif_width_lp-1:0] ver_link_sif_i
-    , output [S:N][num_tiles_x_p-1:0][link_sif_width_lp-1:0] ver_link_sif_o
+    , input [S:N][subarray_num_tiles_x_p-1:0][link_sif_width_lp-1:0] ver_link_sif_i
+    , output [S:N][subarray_num_tiles_x_p-1:0][link_sif_width_lp-1:0] ver_link_sif_o
 
     // ruche link
-    , input [E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_i
-    , output [E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_o
+    , input [E:W][subarray_num_tiles_y_p-1:0][ruche_factor_X_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_i
+    , output [E:W][subarray_num_tiles_y_p-1:0][ruche_factor_X_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_o
 
-    , input [pod_x_cord_width_p-1:0] pod_x_i
-    , input [pod_y_cord_width_p-1:0] pod_y_i
+
+    , input [subarray_num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_i
+    , input [subarray_num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_i
+    , output [subarray_num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_o
+    , output [subarray_num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_o
   );
 
   // synopsys translate_off
   initial begin
-    assert ((num_tiles_x_p > 0) && (num_tiles_y_p > 0))
+    assert ((subarray_num_tiles_x_p > 0) && (subarray_num_tiles_y_p > 0))
       else $error("num_tiles_x_p and num_tiles_y_p must be positive constants");
     $display("## ----------------------------------------------------------------");
     $display("## MANYCORE HETERO TYPE CONFIGURATIONS");
     $display("## ----------------------------------------------------------------");
-    for (integer i=0; i < num_tiles_y_p; i++) begin
+    for (integer i=0; i < subarray_num_tiles_y_p; i++) begin
       $write("## ");
-      for(integer j=0; j < num_tiles_x_p; j++) begin
-        $write("%0d,", hetero_type_vec_p[i * num_tiles_x_p + j]);
+      for(integer j=0; j < subarray_num_tiles_x_p; j++) begin
+        $write("%0d,", hetero_type_vec_p[i * subarray_num_tiles_x_p + j]);
       end
       $write("\n");
     end
@@ -106,34 +120,24 @@ module bsg_manycore_tile_compute_array_ruche
 
 
 
-  // Pipeline the reset. The bsg_manycore_tile has a single pipeline register
-  // on reset already, so we only want to pipeline reset_depth_p-1 times.
-  logic [num_tiles_y_p-1:0][num_tiles_x_p-1:0] tile_reset_r;
-  
-  for (genvar i = N; i <= S; i++) begin: rdff
-    bsg_dff_chain #(
-      .width_p(num_tiles_x_p*num_tiles_y_p/2)
-      ,.num_stages_p(reset_depth_p-1)
-    ) tile_reset (
-      .clk_i(clk_i)
-      ,.data_i({(num_tiles_x_p*num_tiles_y_p/2){reset_i[i]}})
-      ,.data_o(tile_reset_r[(i-N)*(num_tiles_y_p/2)+:(num_tiles_y_p/2)])
-    );
-  end
   
 
   // Instantiate tiles.
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-  bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in;
-  bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_out;
+  bsg_manycore_link_sif_s [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][S:W] link_in;
+  bsg_manycore_link_sif_s [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][S:W] link_out;
  
   `declare_bsg_manycore_ruche_x_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-  bsg_manycore_ruche_x_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][ruche_factor_X_p-1:0][E:W] ruche_link_in;   
-  bsg_manycore_ruche_x_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][ruche_factor_X_p-1:0][E:W] ruche_link_out;
+  bsg_manycore_ruche_x_link_sif_s [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][ruche_factor_X_p-1:0][E:W] ruche_link_in;   
+  bsg_manycore_ruche_x_link_sif_s [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][ruche_factor_X_p-1:0][E:W] ruche_link_out;
  
+  logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_li, global_x_lo;
+  logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_li, global_y_lo;
 
-  for (genvar r = 0; r < num_tiles_y_p; r++) begin: y
-    for (genvar c = 0; c < num_tiles_x_p; c++) begin: x
+  logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0] reset_li, reset_lo;
+
+  for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: y
+    for (genvar c = 0; c < subarray_num_tiles_x_p; c++) begin: x
       bsg_manycore_tile_compute_ruche #(
         .dmem_size_p(dmem_size_p)
         ,.vcache_size_p(vcache_size_p)
@@ -145,7 +149,7 @@ module bsg_manycore_tile_compute_array_ruche
         ,.pod_y_cord_width_p(pod_y_cord_width_p)
         ,.data_width_p(data_width_p)
         ,.addr_width_p(addr_width_p)
-        ,.hetero_type_p(hetero_type_vec_p[(r* num_tiles_x_p)+c])
+        ,.hetero_type_p(hetero_type_vec_p[(r*subarray_num_tiles_x_p)+c])
         ,.debug_p(debug_p)
         ,.num_tiles_x_p(num_tiles_x_p)
         ,.num_tiles_y_p(num_tiles_y_p)
@@ -154,7 +158,9 @@ module bsg_manycore_tile_compute_array_ruche
         ,.ruche_factor_X_p(ruche_factor_X_p)
       ) tile (
         .clk_i(clk_i)
-        ,.reset_i(tile_reset_r[r][c])
+
+        ,.reset_i(reset_li[r][c])
+        ,.reset_o(reset_lo[r][c])
 
         ,.link_i(link_in[r][c])
         ,.link_o(link_out[r][c])
@@ -162,20 +168,46 @@ module bsg_manycore_tile_compute_array_ruche
         ,.ruche_link_i(ruche_link_in[r][c])
         ,.ruche_link_o(ruche_link_out[r][c])
 
-        ,.my_x_i(x_subcord_width_lp'(c))
-        ,.my_y_i(y_subcord_width_lp'(r))
+        ,.global_x_i(global_x_li[r][c])
+        ,.global_y_i(global_y_li[r][c])
 
-        ,.pod_x_i(pod_x_i)
-        ,.pod_y_i(pod_y_i)
+        ,.global_x_o(global_x_lo[r][c])
+        ,.global_y_o(global_y_lo[r][c])
       );
+
+      // connect north
+      if (r == 0) begin
+        assign global_x_li[r][c] = global_x_i[c];
+        assign global_y_li[r][c] = global_y_i[c];
+
+        assign reset_li[r][c] = reset_i[c];
+      end
+
+      // connect south
+      if (r == subarray_num_tiles_y_p-1) begin
+        assign global_x_o[c] = global_x_lo[r][c];
+        assign global_y_o[c] = global_y_lo[r][c];
+  
+        assign reset_o[c] = reset_lo[r][c];
+      end
+
+      // connect between rows
+      if (r < subarray_num_tiles_y_p-1) begin
+        assign global_x_li[r+1][c] = global_x_lo[r][c];
+        assign global_y_li[r+1][c] = global_y_lo[r][c];
+
+        assign reset_li[r+1][c] = reset_lo[r][c];
+      end
+
     end
   end
+
 
   // stitch together all of the tiles into a mesh
   bsg_mesh_stitch #(
     .width_p(link_sif_width_lp)
-    ,.x_max_p(num_tiles_x_p)
-    ,.y_max_p(num_tiles_y_p)
+    ,.x_max_p(subarray_num_tiles_x_p)
+    ,.y_max_p(subarray_num_tiles_y_p)
   ) link (
     .outs_i(link_out)
     ,.ins_o(link_in)
@@ -187,10 +219,10 @@ module bsg_manycore_tile_compute_array_ruche
 
 
   // stitch ruche links
-  for (genvar r = 0; r < num_tiles_y_p; r++) begin: rr
-    for (genvar c = 0; c < num_tiles_x_p; c++) begin: rc
+  for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: rr
+    for (genvar c = 0; c < subarray_num_tiles_x_p; c++) begin: rc
       for (genvar l = 0; l < ruche_factor_X_p; l++) begin: rl    // ruche stage
-        if (c == num_tiles_x_p-1) begin: cl
+        if (c == subarray_num_tiles_x_p-1) begin: cl
           bsg_ruche_buffer #(
             .width_p(ruche_x_link_sif_width_lp)
             ,.ruche_factor_p(ruche_factor_X_p)
@@ -238,7 +270,7 @@ module bsg_manycore_tile_compute_array_ruche
 
 
   // edge ruche links
-  for (genvar r = 0; r < num_tiles_y_p; r++) begin: er
+  for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: er
     for (genvar l = 0; l < ruche_factor_X_p; l++) begin: el
       // west
       assign ruche_link_o[W][r][l] = ruche_link_out[r][0][l][W];
