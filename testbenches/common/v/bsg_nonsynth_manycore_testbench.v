@@ -24,6 +24,9 @@ module bsg_nonsynth_manycore_testbench
     , parameter icache_tag_width_p = "inv"
     , parameter ruche_factor_X_p  = "inv"
 
+    , parameter num_subarray_x_p = "inv"
+    , parameter num_subarray_y_p = "inv"
+
     , parameter vcache_data_width_p = "inv"
     , parameter vcache_sets_p = "inv"
     , parameter vcache_ways_p = "inv"
@@ -70,6 +73,8 @@ module bsg_nonsynth_manycore_testbench
     $display("[INFO][TESTBENCH] BSG_MACHINE_MAX_EPA_WIDTH            = %d", addr_width_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = %s", bsg_manycore_mem_cfg_p.name());
     $display("[INFO][TESTBENCH] BSG_MACHINE_RUCHE_FACTOR_X           = %d", ruche_factor_X_p);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_X               = %d", num_subarray_x_p);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_Y               = %d", num_subarray_y_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_X_CORD            = %d", `BSG_MACHINE_ORIGIN_X_CORD);
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_Y_CORD            = %d", `BSG_MACHINE_ORIGIN_Y_CORD);
   end
@@ -131,6 +136,9 @@ module bsg_nonsynth_manycore_testbench
     ,.addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
     ,.ruche_factor_X_p(ruche_factor_X_p)
+
+    ,.num_subarray_x_p(num_subarray_x_p)
+    ,.num_subarray_y_p(num_subarray_y_p)
 
     ,.dmem_size_p(dmem_size_p)
     ,.icache_entries_p(icache_entries_p)

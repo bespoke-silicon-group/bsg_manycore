@@ -29,3 +29,6 @@ BSG_MACHINE_HOST_Y_CORD               = 0
 BSG_MACHINE_HOST_X_CORD               = 16
 
 BSG_MACHINE_MEM_CFG                   = e_vcache_hbm2
+
+BSG_MACHINE_SUBARRAY_X                = 1
+BSG_MACHINE_SUBARRAY_Y                = 1

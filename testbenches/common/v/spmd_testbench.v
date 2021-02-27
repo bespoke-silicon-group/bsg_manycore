@@ -16,6 +16,8 @@ module spmd_testbench();
   parameter y_cord_width_p = 7;
   parameter pod_x_cord_width_p = 3;
   parameter pod_y_cord_width_p = 4;
+  parameter num_subarray_x_p = `BSG_MACHINE_SUBARRAY_X;
+  parameter num_subarray_y_p = `BSG_MACHINE_SUBARRAY_Y;
   parameter data_width_p = 32;
   parameter addr_width_p = `BSG_MACHINE_MAX_EPA_WIDTH; // word addr
   parameter dmem_size_p = 1024;
@@ -82,6 +84,9 @@ module spmd_testbench();
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.ruche_factor_X_p(ruche_factor_X_p)
+
+    ,.num_subarray_x_p(num_subarray_x_p)
+    ,.num_subarray_y_p(num_subarray_y_p)
 
     ,.vcache_data_width_p(vcache_data_width_p)
     ,.vcache_sets_p(vcache_sets_p)
