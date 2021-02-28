@@ -4,9 +4,12 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
+#define BSG_TILE_GROUP_X_DIM bsg_tiles_X
+#define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
+#include "bsg_tile_group_barrier.h"
+INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 #define N 32
-int data[N] __attribute__ ((section (".dram"))) = {0};
-extern int* _interrupt_arr;
+int data[N*bsg_tiles_X*bsg_tiles_Y] __attribute__ ((section (".dram"))) = {0};
 
 
 int main() {
@@ -17,11 +20,14 @@ int main() {
   int curr_limit;
   asm volatile ("csrr %[curr_limit], 0xfc0" : [curr_limit] "=r" (curr_limit));
   if (curr_limit != 32) bsg_fail();
-  bsg_printf("current credit limit = %d\n", curr_limit);
 
   // store data and check
-  int* data_ptr = data;
-  int curr_data = 1;
+  int* data_ptr = &data[__bsg_id*N];
+  int curr_data = 1+(__bsg_id*100);
+
+  if (__bsg_id == 0) {
+    bsg_print_time();
+  }
 
   int read_buffer[N];
 
@@ -74,10 +80,18 @@ int main() {
     curr_data++;
     asm volatile ("csrw 0xfc0, %[curr_limit]" : : [curr_limit] "r" (curr_limit));
     // print time
-    bsg_print_time();
+    if (__bsg_id == 0) {
+      bsg_print_time();
+    }
+    // join barrier
+    bsg_fence();
+    bsg_tile_group_barrier(&r_barrier, &c_barrier);  
   } while (curr_limit != 1);
   
 
+  if (__bsg_id == 0) {
+    bsg_print_time();
+  }
   // for each round, increment credit counter by 1
   do {
     // store curr data in burst
@@ -127,11 +141,17 @@ int main() {
     curr_data++;
     asm volatile ("csrw 0xfc0, %[curr_limit]" : : [curr_limit] "r" (curr_limit));
     // print time
-    bsg_print_time();
+    if (__bsg_id == 0) {
+      bsg_print_time();
+    }
+    // join barrier
+    bsg_fence();
+    bsg_tile_group_barrier(&r_barrier, &c_barrier);  
   } while (curr_limit != 32);
 
-  
-  bsg_finish();
+  if (__bsg_id == 0) {
+    bsg_finish();
+  }
   bsg_wait_while(1);
 }
 
