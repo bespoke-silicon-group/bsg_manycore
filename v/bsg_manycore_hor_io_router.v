@@ -75,8 +75,8 @@ module bsg_manycore_hor_io_router
 
   localparam fwd_use_credits_lp = 7'b0000000;
   localparam int fwd_fifo_els_lp[dims_lp*2:0] = '{2,2,2,2,2,2,2};
-  localparam rev_use_credits_lp = 7'b0000000;
-  localparam int rev_fifo_els_lp[dims_lp*2:0] = '{2,2,2,2,2,2,2};
+  localparam rev_use_credits_lp = 7'b0000001;
+  localparam int rev_fifo_els_lp[dims_lp*2:0] = '{2,2,2,2,2,2,3};
 
 
   bsg_manycore_mesh_node #(
