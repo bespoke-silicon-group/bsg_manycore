@@ -34,7 +34,7 @@ module bsg_manycore_endpoint
     // outgoing response
     , input  [return_packet_width_lp-1:0]   return_packet_i
     , input                                 return_packet_v_i
-    , output                                return_packet_ready_o
+    , output                                return_packet_credit_or_ready_o
 
     // outgoing request
     , input  [packet_width_lp-1:0]          packet_i
@@ -85,7 +85,7 @@ module bsg_manycore_endpoint
    // ----------------------------------------------------------------------------------------
    assign link_sif_out.rev.v             = return_packet_v_i;
    assign link_sif_out.rev.data          = return_packet_i;
-   assign return_packet_ready_o          = link_sif_in.rev.ready_and_rev ;
+   assign return_packet_credit_or_ready_o          = link_sif_in.rev.ready_and_rev ;
 
    // ----------------------------------------------------------------------------------------
    // Handle outgoing request packets

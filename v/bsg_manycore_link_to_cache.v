@@ -88,7 +88,7 @@ module bsg_manycore_link_to_cache
 
     ,.return_packet_i(return_packet_li)
     ,.return_packet_v_i(return_packet_v_li)
-    ,.return_packet_ready_o(return_packet_ready_lo)
+    ,.return_packet_credit_or_ready_o(return_packet_ready_lo)
 
     ,.packet_i('0)
     ,.packet_v_i(1'b0)

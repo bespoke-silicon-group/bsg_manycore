@@ -15,6 +15,8 @@ module mcsr
   #(parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter reg_data_width_lp = RV32_reg_data_width_gp
     , parameter pc_width_p="inv"
+    , parameter credit_limit_default_val_p = 32
+    , parameter credit_counter_width_p=`BSG_WIDTH(32)
   )
   (
     input clk_i
@@ -46,18 +48,20 @@ module mcsr
     , output csr_interrupt_vector_s mip_r_o
     , output csr_interrupt_vector_s mie_r_o
     , output logic [pc_width_p-1:0] mepc_r_o
+    , output logic [credit_counter_width_p-1:0] credit_limit_o
   );
 
   csr_mstatus_s mstatus_n, mstatus_r;
   csr_interrupt_vector_s mie_n, mie_r;
   csr_interrupt_vector_s mip_n, mip_r;
   logic [pc_width_p-1:0] mepc_r, mepc_n;
+  logic [credit_counter_width_p-1:0] credit_limit_r, credit_limit_n;
 
   assign mstatus_r_o = mstatus_r;
   assign mip_r_o = mip_r;
   assign mie_r_o = mie_r;
   assign mepc_r_o = mepc_r;
-
+  assign credit_limit_o = credit_limit_r;
 
   // mstatus
   // priority (high to low)
@@ -240,8 +244,18 @@ module mcsr
         default: mepc_n = mepc_r;
       endcase
     end
-
   end
+
+
+  // credit limit
+  always_comb begin
+    credit_limit_n = credit_limit_r;
+
+    if (we_i & (addr_i == `RV32_CSR_CREDIT_LIMIT_ADDR) & (funct3_i == `RV32_CSRRW_FUN3)) begin
+      credit_limit_n = data_i[0+:credit_counter_width_p];
+    end
+  end
+
 
   // reading CSR values
   always_comb begin
@@ -260,6 +274,9 @@ module mcsr
       `RV32_CSR_MEPC_ADDR: begin
         data_o[2+:pc_width_p] = mepc_r;
       end
+      `RV32_CSR_CREDIT_LIMIT_ADDR: begin
+        data_o[0+:credit_counter_width_p] = credit_limit_r;
+      end
       default: data_o = '0;
     endcase
   end
@@ -272,12 +289,14 @@ module mcsr
       mie_r <= '0;
       mip_r <= '0;
       mepc_r <= '0;
+      credit_limit_r <= (credit_counter_width_p)'(credit_limit_default_val_p);
     end
     else begin
       mstatus_r <= mstatus_n;
       mie_r <= mie_n;
       mip_r <= mip_n;
       mepc_r <= mepc_n;
+      credit_limit_r <= credit_limit_n;
     end
   end
 
