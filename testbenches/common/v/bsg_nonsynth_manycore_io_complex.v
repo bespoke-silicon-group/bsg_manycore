@@ -17,7 +17,7 @@ module bsg_nonsynth_manycore_io_complex
     , parameter io_y_cord_p=1
 
     , parameter max_out_credits_p=200
-    , parameter credit_counter_width_lp=`BSG_SAFE_CLOG2(max_out_credits_p+1)
+    , parameter credit_counter_width_lp=`BSG_WIDTH(max_out_credits_p)
  
     , parameter data_mask_width_lp=(data_width_p>>3)
 
@@ -72,7 +72,7 @@ module bsg_nonsynth_manycore_io_complex
     ,.y_cord_width_p(y_cord_width_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-    ,.max_out_credits_p(max_out_credits_p)
+    ,.credit_counter_width_p(credit_counter_width_lp)
     ,.fifo_els_p(16)
   ) endp (
     .clk_i(clk_i)
@@ -170,8 +170,8 @@ module bsg_nonsynth_manycore_io_complex
     ,.out_credits_i(out_credits_lo)
   );
 
-  assign out_v_li = spmd_v_lo & (out_credits_lo > 1);
-  assign spmd_ready_li = out_ready_lo & (out_credits_lo > 1);
+  assign out_v_li = spmd_v_lo & (out_credits_lo < max_out_credits_p );
+  assign spmd_ready_li = out_ready_lo & (out_credits_lo  < max_out_credits_p);
 
 
 endmodule

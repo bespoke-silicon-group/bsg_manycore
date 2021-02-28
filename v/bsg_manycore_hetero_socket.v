@@ -27,12 +27,12 @@
                           ,.debug_p(debug_p)                                           \
                           ,.icache_entries_p(icache_entries_p)                         \
                           ,.icache_tag_width_p (icache_tag_width_p)                    \
-                          ,.max_out_credits_p(max_out_credits_p)                       \
                           ,.num_tiles_x_p(num_tiles_x_p)                               \
                           ,.num_tiles_y_p(num_tiles_y_p)                               \
                           ,.pod_x_cord_width_p(pod_x_cord_width_p)                     \
                           ,.pod_y_cord_width_p(pod_y_cord_width_p)                     \
                           ,.fwd_fifo_els_p(fwd_fifo_els_p)                             \
+                          ,.rev_fifo_els_p(rev_fifo_els_p)                             \
                           ) z                                                          \
           (.clk_i                                                                      \
            ,.reset_i                                                                   \
@@ -57,7 +57,6 @@ module bsg_manycore_hetero_socket
     , parameter num_vcache_rows_p = "inv"
     , parameter vcache_size_p = "inv"
     , parameter debug_p = 0
-    , parameter max_out_credits_p = 32
     , parameter int hetero_type_p = 0
     , parameter pod_x_cord_width_p="inv"
     , parameter pod_y_cord_width_p="inv"
@@ -68,6 +67,7 @@ module bsg_manycore_hetero_socket
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p="inv"
     , parameter fwd_fifo_els_p = "inv"
+    , parameter rev_fifo_els_p = "inv"
 
     , parameter bsg_manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
