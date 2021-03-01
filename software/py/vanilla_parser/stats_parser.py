@@ -1905,12 +1905,12 @@ class VanillaStatsParser:
         # For calculating manycore stats, all tiles are considerd to be involved
         # For calculating tile group stats, only tiles inside the tile group are considered
         # For manycore (all tiles that participate in tag are included)
-        manycore_cycle_parallel_earliest_start = {tag: traces[0]["global_ctr"] for tag in tags}
+        manycore_cycle_parallel_earliest_start = {tag: traces[-1]["global_ctr"] for tag in tags}
         manycore_cycle_parallel_latest_end     = {tag: traces[0]["global_ctr"] for tag in tags}
         manycore_cycle_parallel_cnt       = {tag: 0 for tag in tags}
 
         # For each tile group (only tiles in a tile group that participate in a tag are included)
-        tile_group_cycle_parallel_earliest_start = {tag: [traces[0]["global_ctr"] for tg_id in range(self.max_tile_groups)] for tag in tags}
+        tile_group_cycle_parallel_earliest_start = {tag: [traces[-1]["global_ctr"] for tg_id in range(self.max_tile_groups)] for tag in tags}
         tile_group_cycle_parallel_latest_end     = {tag: [traces[0]["global_ctr"] for tg_id in range(self.max_tile_groups)] for tag in tags}
         tile_group_cycle_parallel_cnt            = {tag: [traces[0]["global_ctr"] for tg_id in range(self.max_tile_groups)] for tag in tags}
 
