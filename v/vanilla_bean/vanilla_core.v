@@ -571,19 +571,16 @@ module vanilla_core
 
 
   // save pc+4 of jalr/jal for predicting jalr branch target
-  logic [pc_width_lp-1:0] jalr_prediction_r;
+  wire jalr_prediction_write_en = (exe_r.decode.is_jal_op | exe_r.decode.is_jalr_op)
+    & ((exe_r.instruction.rd == 5'd1) | (exe_r.instruction.rd == 5'd5));
 
-  assign jalr_prediction = (exe_r.decode.is_jal_op | exe_r.decode.is_jalr_op)
-    ? exe_r.pc_plus4[2+:pc_width_lp]
-    : jalr_prediction_r;
-
-  bsg_dff_reset #(
+  bsg_dff_en_bypass #(
     .width_p(pc_width_lp)
   ) jalr_pred_dff (
     .clk_i(clk_i)
-    ,.reset_i(reset_i)
-    ,.data_i(jalr_prediction)
-    ,.data_o(jalr_prediction_r)
+    ,.en_i(jalr_prediction_write_en)
+    ,.data_i(exe_r.pc_plus4[2+:pc_width_lp])
+    ,.data_o(jalr_prediction)
   ); 
 
   // alu/csr result mux
