@@ -109,23 +109,39 @@ module bsg_cache_to_axi_hashed
     assign read_rr_v_li[i] = dma_pkt_v_i[i] & ~dma_pkt[i].write_not_read;
   end
 
-  bsg_round_robin_n_to_1 #(
-    .width_p(dma_pkt_width_lp)
-    ,.num_in_p(num_cache_p)
-    ,.strict_p(0)
+  
+  logic [num_cache_p-1:0] read_rr_grants_lo;
+  bsg_arb_round_robin #(
+    .width_p(num_cache_p)
   ) read_rr (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    
-    ,.data_i(dma_pkt)
-    ,.v_i(read_rr_v_li)
-    ,.yumi_o(read_rr_yumi_lo)
-    
-    ,.v_o(read_rr_v_lo)
-    ,.data_o(read_rr_dma_pkt)
-    ,.tag_o(read_rr_tag_lo)
+
+    ,.reqs_i(read_rr_v_li)
+    ,.grants_o(read_rr_grants_lo)
     ,.yumi_i(read_rr_yumi_li)
   );
+
+  assign read_rr_v_lo = |read_rr_v_li;
+  assign read_rr_yumi_lo = read_rr_grants_lo & {num_cache_p{read_rr_yumi_li}};
+
+  bsg_mux_one_hot #(
+    .width_p(dma_pkt_width_lp)
+    ,.els_p(num_cache_p)
+  ) read_rr_data_mux (
+    .data_i(dma_pkt)
+    ,.sel_one_hot_i(read_rr_grants_lo)
+    ,.data_o(read_rr_dma_pkt)
+  );
+
+  bsg_encode_one_hot #(
+    .width_p(num_cache_p)
+  ) read_rr_eoh (
+    .i(read_rr_yumi_lo)
+    ,.addr_o(read_rr_tag_lo)
+    ,.v_o()
+  );
+
 
   // writer round-robin
   //
@@ -140,23 +156,39 @@ module bsg_cache_to_axi_hashed
     assign write_rr_v_li[i] = dma_pkt_v_i[i] & dma_pkt[i].write_not_read;
   end
 
-  bsg_round_robin_n_to_1 #(
-    .width_p(dma_pkt_width_lp)
-    ,.num_in_p(num_cache_p)
-    ,.strict_p(0)
+  logic [num_cache_p-1:0] write_rr_grants_lo;
+  bsg_arb_round_robin #(
+    .width_p(num_cache_p)
   ) write_rr (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    
-    ,.data_i(dma_pkt)
-    ,.v_i(write_rr_v_li)
-    ,.yumi_o(write_rr_yumi_lo)
 
-    ,.v_o(write_rr_v_lo)
-    ,.data_o(write_rr_dma_pkt)
-    ,.tag_o(write_rr_tag_lo)
+    ,.reqs_i(write_rr_v_li)
+    ,.grants_o(write_rr_grants_lo)
     ,.yumi_i(write_rr_yumi_li)
   );
+
+  assign write_rr_v_lo = |write_rr_v_li;
+  assign write_rr_yumi_lo = write_rr_grants_lo & {num_cache_p{write_rr_yumi_li}};
+
+  bsg_mux_one_hot #(
+    .width_p(dma_pkt_width_lp)
+    ,.els_p(num_cache_p)
+  ) write_rr_data_mux (
+    .data_i(dma_pkt)
+    ,.sel_one_hot_i(write_rr_grants_lo)
+    ,.data_o(write_rr_dma_pkt)
+  );
+
+  bsg_encode_one_hot #(
+    .width_p(num_cache_p)
+  ) write_rr_eoh (
+    .i(write_rr_yumi_lo)
+    ,.addr_o(write_rr_tag_lo)
+    ,.v_o()
+  );
+  
+
 
   // address translation
   //
