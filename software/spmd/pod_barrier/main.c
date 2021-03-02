@@ -39,13 +39,14 @@ void bsg_pod_barrier_init()
 void bsg_pod_barrier()
 {
   int tmp_pod_barrier_sense = pod_barrier_sense;
+  int tmp_bsg_x = bsg_x;
   *pod_barrier_parent = tmp_pod_barrier_sense;
 
   int *tmp_pod_barrier_buddy = pod_barrier_buddy;
   int *pod_barrier_notify_ptr = &pod_barrier.notify;
   int tmp_pod_barrier_sense_inv = ~tmp_pod_barrier_sense;
-  int tmp_bsg_y = bsg_y, tmp_bsg_x = bsg_x;
-
+  int tmp_bsg_y = bsg_y;
+  int inc4;
   //  bsg_print_int(0x00BA0000+__bsg_id);
   if (tmp_bsg_x == kPodBarrier_CenterX)
     {
@@ -54,38 +55,10 @@ void bsg_pod_barrier()
       q = &q[tmp_bsg_y];
 
       bsg_remote_int_ptr foo = &pod_barrier.row;
-      if (tmp_pod_barrier_sense  < 0)
-	{
-	  int and_val;
-	  do {
-	    and_val = tmp_pod_barrier_sense;
-	    and_val &= foo[0];
-	    and_val &= foo[1];
-	    and_val &= foo[2];
-	  }  while (and_val != tmp_pod_barrier_sense);
-
-	  do { } while (foo[3] != tmp_pod_barrier_sense);
-	}
-      else
-	{
-	  int or_val;
-	  do {
-	    or_val = tmp_pod_barrier_sense;
-	    or_val |= foo[0];
-	    or_val |= foo[1];
-	    or_val |= foo[2];
-	  } while (or_val != tmp_pod_barrier_sense);
-
-	  do {} while (foo[3] != tmp_pod_barrier_sense);
-	}
-      
-      //      for (int x = 0; x < 4; x++)
-      //	bsg_wait_local_int(&pod_barrier.row[x],tmp_pod_barrier_sense);
-
-      *q = tmp_pod_barrier_sense;
+      bsg_join_widget(foo,tmp_pod_barrier_sense, q);
 
       // shift by 2 is because it is an int pointer
-      int inc4 = bsg_li((1 << REMOTE_X_CORD_SHIFT) >> 2)*4;
+      inc4 = bsg_li((1 << REMOTE_X_CORD_SHIFT) >> 2)*4;
       int *s = (int *) bsg_remote_ptr(0,tmp_bsg_y,pod_barrier_notify_ptr);
 
       if (tmp_bsg_y == kPodBarrier_CenterY)
@@ -94,13 +67,12 @@ void bsg_pod_barrier()
 	  int inc = bsg_li((1 << REMOTE_Y_CORD_SHIFT) >> 2);
 	  int *r = (int *) bsg_remote_ptr(kPodBarrier_CenterX,0,pod_barrier_notify_ptr);
 
-	  int *addr0 = &pod_barrier.col[0];
-	  bsg_wait_local_int(addr0,tmp_pod_barrier_sense);
-	  int *addr1 = &pod_barrier.col[1];
-	  bsg_wait_local_int(addr1,tmp_pod_barrier_sense);
+	  bsg_remote_int_ptr addr = &pod_barrier.col;
+	  while (addr[0] != tmp_pod_barrier_sense);
+	  while (addr[1] != tmp_pod_barrier_sense);
 	  
 	  // barrier has completed!!
-	  //bsg_print_int(0xFACADE);
+
 
 	  *r = tmp_pod_barrier_sense; r += inc; // 0
 	  *r = tmp_pod_barrier_sense; r += inc; // 1 
@@ -112,8 +84,7 @@ void bsg_pod_barrier()
 	  *r = tmp_pod_barrier_sense; r += inc; // 7 
 	}
       else
-	bsg_wait_local_int(pod_barrier_notify_ptr,tmp_pod_barrier_sense);
-      //      bsg_print_int(0xFEEB);
+	bsg_wait_local_int_asm_blind(pod_barrier_notify_ptr,tmp_pod_barrier_sense);
 
       *s = tmp_pod_barrier_sense; s += inc4; // 0
       *s = tmp_pod_barrier_sense; s += inc4; s+=inc4; // 4
@@ -123,7 +94,8 @@ void bsg_pod_barrier()
   else
     {
       // wait for broadcast to return!
-      bsg_wait_local_int(pod_barrier_notify_ptr,tmp_pod_barrier_sense);
+      bsg_wait_local_int_asm_blind(pod_barrier_notify_ptr,tmp_pod_barrier_sense);
+      //bsg_print_int(0xBEEB);
     }
   *tmp_pod_barrier_buddy = tmp_pod_barrier_sense;
   // bsg_print_int(0x10BA0000+__bsg_id);
@@ -162,7 +134,7 @@ int main()
     }
   else
     {
-#define STALL 1
+#define STALL 0
       bsg_pod_barrier();
       if (STALL) val += bsg_div(val,2);
       bsg_pod_barrier();

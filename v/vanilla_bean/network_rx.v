@@ -383,11 +383,12 @@ module network_rx
       $display("[ERROR][RX] Invalid EPA Access. t=%0t, x=%d, y=%d, src_x=%d, src_y=%d, we=%d, addr=%h, data=%h",
         $time, global_x_i, global_y_i, src_x_cord_debug_i, src_y_cord_debug_i, w_i, addr_i, data_i);
     end
+
      /*
-     // uncomment to trace packets between tiles 
+          // uncomment to trace packets between tiles 
     if (~reset_i & v_i & ~is_invalid_addr) begin
-      $display("[INFO][RX] EPA Access. t=%0t, x=%d, y=%d, src_x=%d, src_y=%d, we=%d, addr=%h, data=%h",
-        $time, global_x_i, global_y_i, src_x_cord_debug_i, src_y_cord_debug_i, w_i, addr_i, data_i);
+      $display("[INFO][RX] EPA Access. t=%0t, x=%d, y=%d, src_x=%d, src_y=%d, we=%d, addr=%h, data=%h mask=%h",
+        $time, global_x_i, global_y_i, src_x_cord_debug_i, src_y_cord_debug_i, w_i, addr_i, data_i, mask_i);
     end
      */
      
