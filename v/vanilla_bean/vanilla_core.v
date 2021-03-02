@@ -571,13 +571,16 @@ module vanilla_core
 
 
   // save pc+4 of jalr/jal for predicting jalr branch target
+  // For risc-v, hints for saving return address for jalr/jal are encoded implicitly in the rd used.
+  // For jalr/jal, save the pc+4 when rd = x1 or x5.
   wire jalr_prediction_write_en = (exe_r.decode.is_jal_op | exe_r.decode.is_jalr_op)
     & ((exe_r.instruction.rd == 5'd1) | (exe_r.instruction.rd == 5'd5));
 
-  bsg_dff_en_bypass #(
+  bsg_dff_reset_en_bypass #(
     .width_p(pc_width_lp)
   ) jalr_pred_dff (
     .clk_i(clk_i)
+    ,.reset_i(reset_i)
     ,.en_i(jalr_prediction_write_en)
     ,.data_i(exe_r.pc_plus4[2+:pc_width_lp])
     ,.data_o(jalr_prediction)
