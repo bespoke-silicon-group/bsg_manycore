@@ -89,7 +89,7 @@ module bsg_manycore_proc_vanilla
   logic [bsg_manycore_reg_id_width_gp-1:0] returned_reg_id_r_lo;
   logic returned_fifo_full_lo;
 
-  logic [credit_counter_width_lp-1:0] out_credits_lo;
+  logic [credit_counter_width_p-1:0] out_credits_lo;
   logic [x_cord_width_p-1:0] 	      src_x_cord_debug_lo;
   logic [y_cord_width_p-1:0] 	      src_y_cord_debug_lo;   
    
