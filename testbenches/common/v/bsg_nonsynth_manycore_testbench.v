@@ -52,12 +52,6 @@ module bsg_nonsynth_manycore_testbench
     , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p)*4) // byte addr
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-
-    // This is used to define heterogeneous arrays. Each index defines
-    // the type of an X/Y coordinate in the array. This is a vector of
-    // num_tiles_x_p*num_tiles_y_p ints; type "0" is the
-    // default. See bsg_manycore_hetero_socket.v for more types.
-    , parameter int hetero_type_vec_p [0:(num_tiles_y_p*num_tiles_x_p) - 1]  = '{default:0}
   )
   (
     input clk_i
@@ -173,7 +167,6 @@ module bsg_nonsynth_manycore_testbench
     ,.num_pods_x_p(num_pods_x_p)
 
     ,.reset_depth_p(reset_depth_p)
-    ,.hetero_type_vec_p(hetero_type_vec_p)
   ) DUT (
     .clk_i(clk_i)
 

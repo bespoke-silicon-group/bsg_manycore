@@ -63,12 +63,6 @@ module bsg_manycore_pod_ruche
 
     , parameter wh_link_sif_width_lp = 
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
-
-    // This is used to define heterogeneous arrays. Each index defines
-    // the type of an X/Y coordinate in the array. This is a vector of
-    // num_tiles_x_p*num_tiles_y_p ints; type "0" is the
-    // default. See bsg_manycore_hetero_socket.v for more types.
-    , parameter int hetero_type_vec_p [0:(num_tiles_y_p*num_tiles_x_p) - 1]  = '{default:0}
   )
   (
     // manycore 
@@ -278,7 +272,6 @@ module bsg_manycore_pod_ruche
         ,.addr_width_p(addr_width_p)
         ,.data_width_p(data_width_p)
         ,.ruche_factor_X_p(ruche_factor_X_p)
-        ,.hetero_type_vec_p(hetero_type_vec_p)
       ) mc (
         .clk_i(clk_i)
 
