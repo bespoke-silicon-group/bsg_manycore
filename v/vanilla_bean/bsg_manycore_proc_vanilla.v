@@ -89,7 +89,9 @@ module bsg_manycore_proc_vanilla
   logic returned_fifo_full_lo;
 
   logic [credit_counter_width_lp-1:0] out_credits_lo;
-
+  logic [x_cord_width_p-1:0] 	      src_x_cord_debug_lo;
+  logic [y_cord_width_p-1:0] 	      src_y_cord_debug_lo;   
+   
   bsg_manycore_endpoint_standard #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -116,8 +118,8 @@ module bsg_manycore_proc_vanilla
     ,.in_mask_o(in_mask_lo)
     ,.in_yumi_i(in_yumi_li)
     ,.in_load_info_o(in_load_info_lo)
-    ,.in_src_x_cord_o()
-    ,.in_src_y_cord_o()
+    ,.in_src_x_cord_o(src_x_cord_debug_lo)
+    ,.in_src_y_cord_o(src_y_cord_debug_lo)
 
     ,.returning_v_i(returning_data_v_li)
     ,.returning_data_i(returning_data_li)
@@ -190,7 +192,9 @@ module bsg_manycore_proc_vanilla
     ,.mask_i(in_mask_lo)
     ,.load_info_i(in_load_info_lo)
     ,.yumi_o(in_yumi_li)
-
+    ,.src_x_cord_debug_i(src_x_cord_debug_lo)
+    ,.src_y_cord_debug_i(src_y_cord_debug_lo)
+	
     ,.returning_data_o(returning_data_li)
     ,.returning_data_v_o(returning_data_v_li)
 

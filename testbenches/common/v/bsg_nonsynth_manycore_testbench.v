@@ -77,6 +77,8 @@ module bsg_nonsynth_manycore_testbench
     $display("[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_Y               = %d", num_subarray_y_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_X_CORD            = %d", `BSG_MACHINE_ORIGIN_X_CORD);
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_Y_CORD            = %d", `BSG_MACHINE_ORIGIN_Y_CORD);
+    $display("[INFO][TESTBENCH] enable_profiling_p                   = %d", enable_profiling_p);
+     
   end
 
 

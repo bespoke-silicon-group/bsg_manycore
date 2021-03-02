@@ -1,6 +1,7 @@
 
-bsg_tiles_X = 4 
-bsg_tiles_Y = 4
+
+bsg_tiles_X = 16 
+bsg_tiles_Y = 8
 
 RISCV_GCC_EXTRA_OPTS ?= -O2 -funroll-loops
 OBJECT_FILES=main.o

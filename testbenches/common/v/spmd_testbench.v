@@ -106,6 +106,10 @@ module spmd_testbench();
     ,.bsg_dram_size_p(bsg_dram_size_p)
 
     ,.reset_depth_p(reset_depth_p)
+
+`ifdef BSG_ENABLE_PROFILING
+    ,.enable_profiling_p(1)
+`endif				    
   ) tb (
     .clk_i(core_clk)
     ,.reset_i(global_reset)

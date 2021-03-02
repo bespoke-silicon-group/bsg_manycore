@@ -41,7 +41,9 @@ module network_rx
     , input [data_mask_width_lp-1:0] mask_i
     , input bsg_manycore_load_info_s load_info_i
     , output logic yumi_o
-
+    , input [x_cord_width_p-1:0] src_x_cord_debug_i
+    , input [y_cord_width_p-1:0] src_y_cord_debug_i   
+   
     , output logic [data_width_p-1:0] returning_data_o
     , output logic returning_data_v_o
 
@@ -378,10 +380,17 @@ module network_rx
 
   always_ff @ (negedge clk_i) begin
     if (~reset_i & v_i & is_invalid_addr) begin
-      $display("[ERROR][RX] Invalid EPA Access. t=%0t, x=%d, y=%d, we=%d, addr=%h, data=%h",
-        $time, global_x_i, global_y_i, w_i, addr_i, data_i);
+      $display("[ERROR][RX] Invalid EPA Access. t=%0t, x=%d, y=%d, src_x=%d, src_y=%d, we=%d, addr=%h, data=%h",
+        $time, global_x_i, global_y_i, src_x_cord_debug_i, src_y_cord_debug_i, w_i, addr_i, data_i);
     end
-
+     /*
+     // uncomment to trace packets between tiles 
+    if (~reset_i & v_i & ~is_invalid_addr) begin
+      $display("[INFO][RX] EPA Access. t=%0t, x=%d, y=%d, src_x=%d, src_y=%d, we=%d, addr=%h, data=%h",
+        $time, global_x_i, global_y_i, src_x_cord_debug_i, src_y_cord_debug_i, w_i, addr_i, data_i);
+    end
+     */
+     
     // FREEZE / UNFREEZE 
     if (~reset_i) begin
       if (freeze_n & ~freeze_r)
