@@ -1098,6 +1098,7 @@ module vanilla_core
   
   // debug printing for interrupt and mret
   // synopsys translate_off
+
   always_ff @ (negedge clk_i) begin
     if (~reset_i & ~stall_all & interrupt_ready) begin
       if (remote_interrupt_ready) begin
@@ -1114,6 +1115,14 @@ module vanilla_core
       $display("[INFO][VCORE] mret called. t=%0t, x=%0d, y=%0d, mepc=%h",
         $time, global_x_i, global_y_i, {mepc_r, 2'b00});
     end
+
+/*    if (jalr_mispredict)
+      $display("[INFO][VCORE] jalr_mispredict. t=%0t, x=%0d, y=%0d, true=%x pred=%x\n", 
+	       $time, global_x_i, global_y_i, 
+	       { alu_jalr_addr, 2'b00 },
+	       { exe_r.pred_or_jump_addr[2+:pc_width_lp], 2'b00 }
+	       );
+ */
   end
   // synopsys translate_on
 

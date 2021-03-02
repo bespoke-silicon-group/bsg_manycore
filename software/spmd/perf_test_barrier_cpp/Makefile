@@ -1,3 +1,5 @@
+TRACE=1
+
 all: main.run
 
 OBJECT_FILES := main.o

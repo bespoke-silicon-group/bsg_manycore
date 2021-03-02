@@ -262,7 +262,9 @@ class VanillaStatsParser:
 
         # Raise exception and exit if there are no traces 
         if not self.traces:
-            raise IOError("No Vanilla Stats Found: Use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics")
+            print("## Warning: No Vanilla Stats Found: you can use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics");
+            sys.exit(0)
+            #raise IOError("No Vanilla Stats Found: Use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics")
 
 
         # Save the active tiles in a list
