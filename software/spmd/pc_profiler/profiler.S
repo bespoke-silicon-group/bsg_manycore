@@ -9,8 +9,7 @@
   The program being profiled is free to use any registers within if there are no other imposed constraints.
   The profiler uses the following registers - 
   t0 --> Base address of the histogram array (actual value stored in dmem[1])
-  t1 --> Scratchpad (actual value stored in dmem[0])
-  t2 --> Scratchpad (actual value stored in dmem[2])
+  t1 --> Scratchpad (actual value stored in dmem[2])
 */
 
 #include "bsg_manycore_arch.h"
@@ -30,7 +29,7 @@
 /* 
   Data section:
   Defines a 2 element (8 byte) array to store the base pointer of the histogram array and for use by the interrupt handler to spill some registers
-  dmem[0] = histogram base pointer, temporary storage
+  dmem[0] = histogram base pointer
   dmem[1] = temporary storage
   dmem[2] = temporary storage
 */
@@ -71,9 +70,7 @@ _remote_interrupt:
   The bin index in the histogram can be found using the following equation index = base ptr + EPC
   (Although EPC is 4-byte aligned, we are assigning 4 bytes per bin, so we don't need to do EPC >> 2)
 
-  Lingering concerns:
-  Since we are using the MEPC, we don't have the PC of the first instruction in the program. 
-  (Probably does not matter because it's just 1 datapoint)
+  Since we are using the MEPC, we don't have the PC of the first instruction in the program (this is usually the call to the main function for non-inlined functions)
 */
 _trace_interrupt:
   // Save a register to dmem[1]
@@ -85,26 +82,22 @@ _trace_interrupt:
 
   // load address of histogram array
   lw t0, 0(zero)
-  // Store another register to dmem[0]
-  sw t1, 0(zero)
-  // Store a register to dmem[2]
-  sw t2, 8(zero)
+  // Store another register to dmem[2]
+  sw t1, 8(zero)
 
   // read the mepc register
   csrr t1, mepc
   // find the correct index in the histogram array
-  add t1, t0, t1
+  add t0, t0, t1
 
   // atomically increment the value at the computed index
-  li t2, 1
+  li t1, 1
   // We don't care about the result hence assigned to zero register
-  amoadd.w zero, t2, (t1)
+  amoadd.w zero, t1, (t0)
 
   // Restore registers and store base ptr back to dmem[0]
-  lw t1, 0(zero)
-  sw t0, 0(zero)
   lw t0, 4(zero)
-  lw t2, 8(zero)
+  lw t1, 8(zero)
 
   mret
 
