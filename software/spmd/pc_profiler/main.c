@@ -32,7 +32,6 @@ void fibonacci()
 
 void read_histogram()
 {
-  // Fixme: This array is populated statically by observing disassembly. Need to make it standalone
   int expectation[10] = {1 * NUM_TILES, 1 * NUM_TILES, 10 * NUM_TILES, 10 * NUM_TILES, 10 * NUM_TILES, 10 * NUM_TILES, 10 * NUM_TILES, 1 * NUM_TILES, 1 * NUM_TILES, 1 * NUM_TILES};
 
   int *i;
