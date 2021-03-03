@@ -119,8 +119,8 @@ ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py
 
 
 clean:
-	rm -rf csrc
-	rm -rf */*.log */*.daidir */simv */simv-debug
+	rm -rf */csrc*
+	rm -rf */*.log */*.daidir */simv */simv-debug */simv-profile
 	rm -rf stack.info.*
-	rm -f vc_hdrs.h
+	rm -f */vc_hdrs.h
 	rm -f */*.tr */bsg_tag_boot_rom.v

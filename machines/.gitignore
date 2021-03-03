@@ -1,5 +1,8 @@
 simv-debug
 simv-debug.daidir
+simv-profile
+simv-profile.daidir
+simv-debug
 vc_hdrs.h
 stack.info.*
 */build-debug
