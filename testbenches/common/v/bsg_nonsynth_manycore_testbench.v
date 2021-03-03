@@ -617,7 +617,7 @@ if (enable_cache_profiling_p) begin
   bind bsg_cache vcache_profiler #(
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-    ,.header_print_p("py[0].px[0].pod.north_vc_row.vc_x[0]")
+    ,.header_print_p("py[0].px[0].pod.north_vc_x[0].north_vc_row.vc_x[0].vc")
     ,.ways_p(ways_p)
   ) vcache_prof (
     // everything else
