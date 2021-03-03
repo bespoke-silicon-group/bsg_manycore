@@ -161,6 +161,10 @@ module bsg_manycore_endpoint_standard
   // Handle incoming request packets
   // ----------------------------------------------------------------------------------------
 
+  // When a request is dequeued, the return info (src coord, response type, etc) is stored in this module.
+  // accelerators can't dequeue another request without returning the response for the already dequeued request.
+  
+
   // credit counting on response fifo
   // By default, 3 credits are needed, because the round trip to get the credit back takes three cycles.
   // FWD_FIFO->CORE->REV_FIFO->CREDIT.
@@ -317,6 +321,23 @@ module bsg_manycore_endpoint_standard
         else $error("[BSG_ERROR] lock_v_r and returning_v_i both 1.");
     end
   end
+
+  logic [1:0] return_v_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      return_v_r <= '0;
+    end
+    else begin
+      return_v_r <= return_v_r + (packet_v_lo & packet_yumi_li) - return_packet_v_li;
+    end
+  end
+
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+      assert(return_v_r <= 2'b1) else $error("[BSG_ERROR] Can't have multiple requests pending responses.");
+    end
+  end
+
   // synopsys translate_on
 
 
@@ -327,6 +348,8 @@ module bsg_manycore_endpoint_standard
   // Handle outgoing request packets
   // ----------------------------------------------------------------------------------------
 
+  // credit counter starts from zero.
+  // sending out a request increments and receiving a response decrements.
 
   wire launching_out = out_v_i & ((use_credits_for_local_fifo_p == 1) | out_credit_or_ready_o);
   wire returned_credit = return_packet_v_lo & return_packet_yumi_li;
