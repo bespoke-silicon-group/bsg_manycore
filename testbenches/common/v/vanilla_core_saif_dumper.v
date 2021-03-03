@@ -2,9 +2,7 @@ module vanilla_core_saif_dumper
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
   import bsg_manycore_profile_pkg::*;
-  #(parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter data_width_p="inv"
+  #(parameter data_width_p="inv"
 
     , parameter icache_tag_width_p="inv"
     , parameter icache_entries_p="inv"
@@ -22,9 +20,6 @@ module vanilla_core_saif_dumper
     , input reset_i
     , input exe_signals_s exe_r
 
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
-
     , input  saif_en_i 
     , output saif_en_o 
   );
@@ -38,23 +33,23 @@ module vanilla_core_saif_dumper
   always_comb begin
     if(trigger_s) begin
       if(!saif_en_i) begin
-        $display("TRIGGER_ON(%d,%d)",my_x_i,my_y_i);
+        $display("TRIGGER_ON (%m)");
         $set_gate_level_monitoring("rtl_on");
-        $set_toggle_region(manycore_tb_top.network.manycore);
+        $set_toggle_region(`HOST_MODULE_PATH.testbench.DUT);
         $toggle_start();
       end
       out= 1'b1;
-      $display("TRIGGER_S: i=%b,o=%b(%d,%d)",saif_en_i,saif_en_o,my_x_i,my_y_i);
+      $display("TRIGGER_S: i=%b,o=%b (%m)",saif_en_i,saif_en_o);
     end
 
     if (trigger_e) begin
       out= 1'b0;
       if(!saif_en_i) begin
-        $display("TRIGGER_OFF(%d,%d)",my_x_i,my_y_i);
+        $display("TRIGGER_OFF(%m)");
         $toggle_stop();
-        $toggle_report("run.saif", 1.0e-12, manycore_tb_top.network.manycore);
+        $toggle_report("run.saif", 1.0e-12, `HOST_MODULE_PATH.testbench.DUT);
       end
-      $display("TRIGGER_E: i=%b,o=%b(%d,%d)",saif_en_i,saif_en_o,my_x_i,my_y_i);
+      $display("TRIGGER_E: i=%b,o=%b (%m)",saif_en_i,saif_en_o);
     end
   end
   
