@@ -45,7 +45,9 @@ module bsg_nonsynth_manycore_testbench
     , parameter bsg_dram_size_p ="inv" // in word
     , parameter reset_depth_p = 3
 
-    , parameter enable_profiling_p=0
+    , parameter enable_vcore_profiling_p=0
+    , parameter enable_router_profiling_p=0
+    , parameter enable_cache_profiling_p=0
 
     , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p)*4) // byte addr
     , parameter link_sif_width_lp =
@@ -77,8 +79,9 @@ module bsg_nonsynth_manycore_testbench
     $display("[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_Y               = %d", num_subarray_y_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_X_CORD            = %d", `BSG_MACHINE_ORIGIN_X_CORD);
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_Y_CORD            = %d", `BSG_MACHINE_ORIGIN_Y_CORD);
-    $display("[INFO][TESTBENCH] enable_profiling_p                   = %d", enable_profiling_p);
-     
+    $display("[INFO][TESTBENCH] enable_vcore_profiling_p             = %d", enable_vcore_profiling_p);
+    $display("[INFO][TESTBENCH] enable_router_profiling_p            = %d", enable_router_profiling_p);
+    $display("[INFO][TESTBENCH] enable_cache_profiling_p             = %d", enable_cache_profiling_p);
   end
 
 
@@ -573,7 +576,7 @@ module bsg_nonsynth_manycore_testbench
   end
   
 
-if (enable_profiling_p) begin
+if (enable_vcore_profiling_p) begin
   // vanilla core profiler
    bind vanilla_core vanilla_core_profiler #(
     .x_cord_width_p(x_cord_width_p)
@@ -589,20 +592,6 @@ if (enable_profiling_p) begin
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
-  ); 
-
-  bind bsg_mesh_router router_profiler #(
-    .x_cord_width_p(x_cord_width_p)
-    ,.y_cord_width_p(y_cord_width_p)
-    ,.dims_p(dims_p)
-    ,.XY_order_p(XY_order_p)
-    ,.origin_x_cord_p(`BSG_MACHINE_ORIGIN_X_CORD)
-    ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
-  ) rp0 (
-    .*
-    ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
-    ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
-    ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
   );
 
   bind network_tx remote_load_trace #(
@@ -622,6 +611,9 @@ if (enable_profiling_p) begin
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
 
+end
+
+if (enable_cache_profiling_p) begin
   bind bsg_cache vcache_profiler #(
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
@@ -639,5 +631,22 @@ if (enable_profiling_p) begin
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
 end
+
+if (enable_router_profiling_p) begin
+  bind bsg_mesh_router router_profiler #(
+    .x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.dims_p(dims_p)
+    ,.XY_order_p(XY_order_p)
+    ,.origin_x_cord_p(`BSG_MACHINE_ORIGIN_X_CORD)
+    ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
+  ) rp0 (
+    .*
+    ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
+    ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
+    ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
+  );
+end
+
 
 endmodule
