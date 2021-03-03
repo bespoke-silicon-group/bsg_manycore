@@ -74,5 +74,40 @@ inline int bsg_amoor_aqrl (int* p, int val)
   return result;
 }
 
+inline int bsg_amoadd (int* p, int val)
+{
+  int result;
+  asm volatile ("amoadd.w %[result], %[val], 0(%[p])" \
+                : [result] "=r" (result) \
+                : [p] "r" (p), [val] "r" (val));
+  return result;
+}
+
+inline int bsg_amoadd_aq (int* p, int val)
+{
+  int result;
+  asm volatile ("amoadd.w.aq %[result], %[val], 0(%[p])" \
+                : [result] "=r" (result) \
+                : [p] "r" (p), [val] "r" (val));
+  return result;
+}
+
+inline int bsg_amoadd_rl (int* p, int val)
+{
+  int result;
+  asm volatile ("amoadd.w.rl %[result], %[val], 0(%[p])" \
+                : [result] "=r" (result) \
+                : [p] "r" (p), [val] "r" (val));
+  return result;
+}
+
+inline int bsg_amoadd_aqrl (int* p, int val)
+{
+  int result;
+  asm volatile ("amoadd.w.aqrl %[result], %[val], 0(%[p])" \
+                : [result] "=r" (result) \
+                : [p] "r" (p), [val] "r" (val));
+  return result;
+}
 
 #endif
