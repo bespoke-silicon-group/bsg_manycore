@@ -108,7 +108,9 @@ module spmd_testbench();
     ,.reset_depth_p(reset_depth_p)
 
 `ifdef BSG_ENABLE_PROFILING
-    ,.enable_profiling_p(1)
+    ,.enable_vcore_profiling_p(1)
+    ,.enable_router_profiling_p(1)
+    ,.enable_cache_profiling_p(1)
 `endif				    
   ) tb (
     .clk_i(core_clk)
