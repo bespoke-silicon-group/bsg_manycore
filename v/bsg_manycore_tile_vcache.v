@@ -40,6 +40,10 @@ module bsg_manycore_tile_vcache
 
     , parameter wh_link_sif_width_lp = 
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
+
+    , parameter vcache_amo_support_p = (1 << e_cache_amo_swap)
+                                | (1 << e_cache_amo_or)
+                                | (1 << e_cache_amo_add)
   )
   (
     input clk_i
@@ -204,6 +208,7 @@ module bsg_manycore_tile_vcache
     ,.sets_p(vcache_sets_p)
     ,.ways_p(vcache_ways_p)
     ,.dma_data_width_p(vcache_dma_data_width_p)
+    ,.amo_support_p(vcache_amo_support_p)
   ) cache (
     .clk_i(clk_i)
     ,.reset_i(reset_r)

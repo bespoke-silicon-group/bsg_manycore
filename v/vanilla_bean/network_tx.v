@@ -169,6 +169,7 @@ module network_tx
       case (remote_req_i.amo_type)
         e_vanilla_amoswap:  out_packet.op_v2 = e_remote_amoswap;
         e_vanilla_amoor:    out_packet.op_v2 = e_remote_amoor;
+        e_vanilla_amoadd:   out_packet.op_v2 = e_remote_amoadd;
         default:            out_packet.op_v2 = e_remote_amoswap;  // should never happen.
       endcase
     end

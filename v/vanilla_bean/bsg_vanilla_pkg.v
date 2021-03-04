@@ -59,9 +59,10 @@ typedef struct packed {
 
 // remote request from vanilla core
 //
-typedef enum logic [0:0] {
+typedef enum logic [1:0] {
   e_vanilla_amoswap
   , e_vanilla_amoor
+  , e_vanilla_amoadd
 } bsg_vanilla_amo_type_e;
 
 typedef struct packed
@@ -477,6 +478,7 @@ typedef struct packed {
 `define RV32_LR_W_AQ    {5'b00010,2'b10,5'b00000,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
 `define RV32_AMOSWAP_W  {5'b00001,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
 `define RV32_AMOOR_W    {5'b01000,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
+`define RV32_AMOADD_W   {5'b00000,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
 
 // RV32F Instruction Encodings
 `define RV32_OP_FP            7'b1010011
