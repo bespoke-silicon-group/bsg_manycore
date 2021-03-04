@@ -92,7 +92,7 @@ init_loop:
   addi t0, t0, 4
   bne t1, t2, init_loop
 
-
+bsg_asm_print_time(IO_X_INDEX, 0)
 // copy from DMEM to DRAM
 li t0, 0
 la t1, dram_arr
@@ -167,7 +167,7 @@ dmem_to_dram_loop:
   addi t1, t1, 128
   addi t2, t2, 1
   bne t2, t3, dmem_to_dram_loop
-
+  bsg_asm_print_time(IO_X_INDEX, 1)
 // clear DMEM
 li t0, 0
 li t1, 0
@@ -179,6 +179,7 @@ clear_dmem_loop:
   addi t1, t1, 1
   bne t1, t2, clear_dmem_loop
 
+bsg_asm_print_time(IO_X_INDEX, 2)
 // copy from DRAM to DMEM
 li t0, 0
 la t1, dram_arr
@@ -253,7 +254,7 @@ dram_to_dmem_loop:
   addi t1, t1, 128
   addi t2, t2, 1
   bne t2, t3, dram_to_dmem_loop
-
+  bsg_asm_print_time(IO_X_INDEX, 3)
 // validate
 li t0, 0
 li t1, 0
