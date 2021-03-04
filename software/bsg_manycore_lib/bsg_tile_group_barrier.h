@@ -256,7 +256,7 @@ inline int bsg_wait_local_int_asm (int *ptr, int cond)
                                 "beq %0, %2, 1f\n\t"
                                 "lr.w.aq %0, %1\n\t"
                                 "bne %0, %2, 2b\n\t"
-                                "1:\n\t" : "=r" (tmp) : "A" (*ptr), "r" (cond)); 
+                                "1:\n\t" : "=&r" (tmp) : "A" (*ptr), "r" (cond)); 
   return tmp; 
 }
 
@@ -267,7 +267,7 @@ inline int bsg_wait_local_int_asm_blind (int *ptr, int cond)
 { int tmp; __asm__ __volatile__("lr.w %0, %1\n\t"
                                 "beq %0, %2, 1f\n\t"
                                 "lr.w.aq %0, %1\n\t"
-                                "1:\n\t" : "=r" (tmp) : "A" (*ptr), "r" (cond)); 
+                                "1:\n\t" : "=&r" (tmp) : "A" (*ptr), "r" (cond)); 
   return tmp; 
 }
 
@@ -281,7 +281,7 @@ inline int bsg_wait_local_int_asm_blind (int *ptr, int cond)
 // this code is polling so should only be used when you know the word is coming in
 // quickly; e.g. a barrier
 
-inline int bsg_join_widget  (volatile int *ptr_in, int cond, char *ptr_out)
+inline int bsg_join4_relay  (volatile int *ptr_in, int cond, char *ptr_out)
 { int tmp; int tmp2; __asm__ __volatile__(
 				"4:\n\t"
 				"lw %0, 0+%4\n\t"
@@ -300,6 +300,21 @@ inline int bsg_join_widget  (volatile int *ptr_in, int cond, char *ptr_out)
 					  : "=&r" (tmp), "=&r" (tmp2) : "r" (cond), "A" (*ptr_out), "A" (*ptr_in)); 
   return tmp; 
 }
+
+inline int bsg_join2  (volatile int *ptr_in, int cond)
+{ int tmp; int tmp2; __asm__ __volatile__(
+				"4:\n\t"
+				"lw %0, 0+%3\n\t"
+                                "lw %1, 4+%3\n\t"
+                                "bne %0, %2, 3f\n\t"        
+                                "bne %1, %2, 3f\n\t"
+                                "j 0f \n\t"
+				"3:j 4b\n\t"
+                                "0:\n\t"
+					  : "=&r" (tmp), "=&r" (tmp2) : "r" (cond), "A" (*ptr_in)); 
+  return tmp; 
+}
+
 
 
 #endif
