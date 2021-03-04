@@ -79,6 +79,11 @@
 #define bsg_asm_finish(x,val) \
     bsg_asm_global_store(x, IO_Y_INDEX,0xEAD0,val)
 
+// print out time
+#define bsg_asm_print_time(x,val) \
+    bsg_asm_global_store(x, IO_Y_INDEX,0xEAD4,val)
+
+
 // finish with value in a reg in IO #x
 #define bsg_asm_finish_reg(x,reg) \
     bsg_asm_global_store_reg(x,IO_Y_INDEX,0xEAD0,reg)
