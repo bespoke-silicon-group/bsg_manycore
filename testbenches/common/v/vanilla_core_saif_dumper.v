@@ -34,7 +34,7 @@ module vanilla_core_saif_dumper
     if(trigger_s) begin
       if(!saif_en_i) begin
         $display("TRIGGER_ON (%m)");
-        $set_gate_level_monitoring("rtl_on");
+        $set_gate_level_monitoring("rtl_on", "sv");
         $set_toggle_region(`HOST_MODULE_PATH.testbench.DUT);
         $toggle_start();
       end
