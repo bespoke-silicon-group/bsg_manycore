@@ -130,8 +130,8 @@ module bsg_nonsynth_manycore_testbench
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0] io_link_sif_li;
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0] io_link_sif_lo;
-  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0] wh_unconc_link_sif_li;
-  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0] wh_unconc_link_sif_lo;
+  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0] wh_link_sif_li;
+  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0] wh_link_sif_lo;
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_li;
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_lo;
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_li;
@@ -180,8 +180,8 @@ module bsg_nonsynth_manycore_testbench
     ,.io_link_sif_i(io_link_sif_li)
     ,.io_link_sif_o(io_link_sif_lo)
 
-    ,.wh_link_sif_i(wh_unconc_link_sif_li)
-    ,.wh_link_sif_o(wh_unconc_link_sif_lo)
+    ,.wh_link_sif_i(wh_link_sif_li)
+    ,.wh_link_sif_o(wh_link_sif_lo)
 
     ,.hor_link_sif_i(hor_link_sif_li)
     ,.hor_link_sif_o(hor_link_sif_lo)
@@ -201,68 +201,47 @@ module bsg_nonsynth_manycore_testbench
   assign io_link_sif_o = io_link_sif_lo[0]; 
 
 
-  // instantiate wormhole concentrators
-  wh_link_sif_s [E:W][num_pods_y_p-1:0] wh_link_sif_li;
-  wh_link_sif_s [E:W][num_pods_y_p-1:0] wh_link_sif_lo;
-
-  for (genvar i = W; i <= E; i++) begin: conc_s
-    for (genvar j = 0; j < num_pods_y_p; j++) begin: conc_y
-      bsg_wormhole_concentrator #(
-        .flit_width_p(wh_flit_width_p)
-        ,.len_width_p(wh_len_width_p)
-        ,.cid_width_p(wh_cid_width_p)
-        ,.cord_width_p(wh_cord_width_p)
-        ,.num_in_p(2*wh_ruche_factor_p)
-      ) conc0 (
-        .clk_i(clk_i)
-        ,.reset_i(reset_r)
-      
-        ,.links_i(wh_unconc_link_sif_lo[i][j])
-        ,.links_o(wh_unconc_link_sif_li[i][j])
-
-        ,.concentrated_link_i(wh_link_sif_li[i][j])
-        ,.concentrated_link_o(wh_link_sif_lo[i][j])
-      );
-    end
-  end
-
-
   //                              //
   // Configurable Memory System   //
   //                              //
   localparam logic [e_max_val-1:0] mem_cfg_lp = (1 << bsg_manycore_mem_cfg_p);
 
-  if (mem_cfg_lp[e_vcache_test_mem]) begin
+  if (mem_cfg_lp[e_vcache_test_mem]) begin: test_mem
     // in bytes
     // north + south row of vcache
-    localparam longint unsigned mem_size_lp = (num_pods_x_p == 1)
-      ? 1*(2**30)
-      : 2*(2**30)*(num_pods_x_p/2);
+    localparam longint unsigned mem_size_lp = (2**30)*num_pods_x_p/wh_ruche_factor_p/2;
+    localparam num_vcaches_per_test_mem_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2;
 
-    for (genvar i = W; i <= E; i++) begin
-      for (genvar j = 0; j < num_pods_y_p; j++) begin
-        bsg_nonsynth_wormhole_test_mem #(
-          .vcache_data_width_p(vcache_data_width_p)
-          ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
-          ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
-          ,.num_vcaches_p(num_tiles_x_p*num_pods_x_p) // north + south row of vcache
-          ,.wh_cid_width_p(wh_cid_width_p)
-          ,.wh_flit_width_p(wh_flit_width_p)
-          ,.wh_cord_width_p(wh_cord_width_p)
-          ,.wh_len_width_p(wh_len_width_p)
-          ,.wh_ruche_factor_p(wh_ruche_factor_p)
-          ,.mem_size_p(mem_size_lp)
-        ) test_mem (
-          .clk_i(clk_i)
-          ,.reset_i(reset_r)
-          ,.wh_link_sif_i(wh_link_sif_lo[i][j])
-          ,.wh_link_sif_o(wh_link_sif_li[i][j])
-        );
+    for (genvar i = W; i <= E; i++) begin: hs               // horizontal side
+      for (genvar j = 0; j < num_pods_y_p; j++) begin: py   // pod y
+        for (genvar k = N; k <= S; k++) begin: vs   // vertical side
+          for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf  // ruching
+            bsg_nonsynth_wormhole_test_mem #(
+              .vcache_data_width_p(vcache_data_width_p)
+              ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+              ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+              ,.num_vcaches_p(num_vcaches_per_test_mem_lp)
+              ,.wh_cid_width_p(wh_cid_width_p)
+              ,.wh_flit_width_p(wh_flit_width_p)
+              ,.wh_cord_width_p(wh_cord_width_p)
+              ,.wh_len_width_p(wh_len_width_p)
+              ,.wh_ruche_factor_p(wh_ruche_factor_p)
+              ,.no_concentration_p(1)
+              ,.mem_size_p(mem_size_lp)
+            ) test_mem (
+              .clk_i(clk_i)
+              ,.reset_i(reset_r)
+
+              ,.wh_link_sif_i(wh_link_sif_lo[i][j][k][r])
+              ,.wh_link_sif_o(wh_link_sif_li[i][j][k][r])
+            );
+          end
+        end
       end
     end
 
   end
-  else if (mem_cfg_lp[e_vcache_hbm2]) begin
+  else if (mem_cfg_lp[e_vcache_hbm2]) begin: hbm2
     
 
     `define dram_pkg bsg_dramsim3_hbm2_8gb_x128_pkg
