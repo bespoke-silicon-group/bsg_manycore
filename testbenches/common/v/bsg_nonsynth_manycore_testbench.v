@@ -212,9 +212,9 @@ module bsg_nonsynth_manycore_testbench
     localparam longint unsigned mem_size_lp = (2**30)*num_pods_x_p/wh_ruche_factor_p/2;
     localparam num_vcaches_per_test_mem_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2;
 
-    for (genvar i = W; i <= E; i++) begin: hs               // horizontal side
-      for (genvar j = 0; j < num_pods_y_p; j++) begin: py   // pod y
-        for (genvar k = N; k <= S; k++) begin: vs   // vertical side
+    for (genvar i = W; i <= E; i++) begin: hs                       // horizontal side
+      for (genvar j = 0; j < num_pods_y_p; j++) begin: py           // pod y
+        for (genvar k = N; k <= S; k++) begin: vs                   // vertical side
           for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf  // ruching
             bsg_nonsynth_wormhole_test_mem #(
               .vcache_data_width_p(vcache_data_width_p)
@@ -248,106 +248,167 @@ module bsg_nonsynth_manycore_testbench
     parameter hbm2_data_width_p = `dram_pkg::data_width_p;
     parameter hbm2_channel_addr_width_p = `dram_pkg::channel_addr_width_p;
     parameter hbm2_num_channels_p = `dram_pkg::num_channels_p;
+      
+    parameter num_total_vcaches_lp = (num_pods_x_p*num_pods_y_p*2*num_tiles_x_p);
+    parameter lg_num_total_vcaches_lp = `BSG_SAFE_CLOG2(num_total_vcaches_lp);
+    parameter num_vcaches_per_link_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2; // # of vcaches attached to each link
 
-    // north + south row of vcache
-    parameter num_vcaches_per_link_lp = num_tiles_x_p*num_pods_x_p; // # of vcaches connected to each concentrated link.
-    parameter num_wh_links_lp = (num_pods_y_p*2);
     parameter num_vcaches_per_channel_lp = 16;
-    parameter num_total_channels_lp = (num_wh_links_lp*num_vcaches_per_link_lp)/num_vcaches_per_channel_lp;
+    parameter num_total_channels_lp = num_total_vcaches_lp/num_vcaches_per_channel_lp;
     parameter num_dram_lp = `BSG_CDIV(num_total_channels_lp,hbm2_num_channels_p);
 
 
     // WH to cache dma
     `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p);
-    bsg_cache_dma_pkt_s [num_wh_links_lp*num_vcaches_per_link_lp-1:0] dma_pkt_lo;
-    logic [num_wh_links_lp*num_vcaches_per_link_lp-1:0] dma_pkt_v_lo;
-    logic [num_wh_links_lp*num_vcaches_per_link_lp-1:0] dma_pkt_yumi_li;
+    bsg_cache_dma_pkt_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_pkt_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_pkt_v_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_pkt_yumi_li;
 
-    logic [num_wh_links_lp*num_vcaches_per_link_lp-1:0][vcache_dma_data_width_p-1:0] dma_data_li;
-    logic [num_wh_links_lp*num_vcaches_per_link_lp-1:0] dma_data_v_li;
-    logic [num_wh_links_lp*num_vcaches_per_link_lp-1:0] dma_data_ready_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0][vcache_dma_data_width_p-1:0] dma_data_li;
+    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_data_v_li;
+    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_data_ready_lo;
 
-    logic [num_wh_links_lp*num_vcaches_per_link_lp-1:0][vcache_dma_data_width_p-1:0] dma_data_lo;
-    logic [num_wh_links_lp*num_vcaches_per_link_lp-1:0] dma_data_v_lo;
-    logic [num_wh_links_lp*num_vcaches_per_link_lp-1:0] dma_data_yumi_li;
+    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0][vcache_dma_data_width_p-1:0] dma_data_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_data_v_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_data_yumi_li;
 
 
-    for (genvar i = 0; i < num_pods_y_p; i++) begin
-      bsg_manycore_vcache_wh_to_cache_dma #(
-        .wh_flit_width_p(wh_flit_width_p)
-        ,.wh_cid_width_p(wh_cid_width_p)
-        ,.wh_len_width_p(wh_len_width_p)
-        ,.wh_cord_width_p(wh_cord_width_p)
-        ,.wh_ruche_factor_p(wh_ruche_factor_p)
+    for (genvar i = W; i <= E; i++) begin: hs
+      for (genvar j = 0; j < num_pods_y_p; j++) begin: py
+        for (genvar k = N; k <= S; k++) begin: py
+          for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf
+            bsg_manycore_vcache_wh_to_cache_dma #(
+              .wh_flit_width_p(wh_flit_width_p)
+              ,.wh_cid_width_p(wh_cid_width_p)
+              ,.wh_len_width_p(wh_len_width_p)
+              ,.wh_cord_width_p(wh_cord_width_p)
+              ,.wh_ruche_factor_p(wh_ruche_factor_p)
 
-        ,.num_vcaches_p(num_vcaches_per_link_lp)
-        ,.vcache_addr_width_p(vcache_addr_width_p)
-        ,.vcache_data_width_p(vcache_data_width_p)
-        ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
-        ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+              ,.num_vcaches_p(num_vcaches_per_link_lp)
+              ,.vcache_addr_width_p(vcache_addr_width_p)
+              ,.vcache_data_width_p(vcache_data_width_p)
+              ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+              ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
 
-        ,.num_pods_x_p(num_pods_x_p)
-        ,.pod_start_x_p(1)
-        ,.num_tiles_x_p(num_tiles_x_p)
-      ) wh_to_dma (
-        .clk_i(clk_i)
-        ,.reset_i(reset_r)
+              ,.no_concentration_p(1)
+              ,.num_pods_x_p(num_pods_x_p)
+              ,.pod_start_x_p(1)
+              ,.num_tiles_x_p(num_tiles_x_p)
+            ) wh_to_dma (
+              .clk_i(clk_i)
+              ,.reset_i(reset_r)
     
-        ,.wh_link_sif_i(wh_link_sif_lo[W][i])
-        ,.wh_link_sif_o(wh_link_sif_li[W][i])
+              ,.wh_link_sif_i     (wh_link_sif_lo[i][j][k][r])
+              ,.wh_link_sif_o     (wh_link_sif_li[i][j][k][r])
 
-        ,.dma_pkt_o         (dma_pkt_lo[num_vcaches_per_link_lp*i+:num_vcaches_per_link_lp])
-        ,.dma_pkt_v_o       (dma_pkt_v_lo[num_vcaches_per_link_lp*i+:num_vcaches_per_link_lp])
-        ,.dma_pkt_yumi_i    (dma_pkt_yumi_li[num_vcaches_per_link_lp*i+:num_vcaches_per_link_lp])
+              ,.dma_pkt_o         (dma_pkt_lo[i][j][k][r])
+              ,.dma_pkt_v_o       (dma_pkt_v_lo[i][j][k][r])
+              ,.dma_pkt_yumi_i    (dma_pkt_yumi_li[i][j][k][r])
 
-        ,.dma_data_i        (dma_data_li[num_vcaches_per_link_lp*i+:num_vcaches_per_link_lp])
-        ,.dma_data_v_i      (dma_data_v_li[num_vcaches_per_link_lp*i+:num_vcaches_per_link_lp])
-        ,.dma_data_ready_o  (dma_data_ready_lo[num_vcaches_per_link_lp*i+:num_vcaches_per_link_lp])
+              ,.dma_data_i        (dma_data_li[i][j][k][r])
+              ,.dma_data_v_i      (dma_data_v_li[i][j][k][r])
+              ,.dma_data_ready_o  (dma_data_ready_lo[i][j][k][r])
 
-        ,.dma_data_o        (dma_data_lo[num_vcaches_per_link_lp*i+:num_vcaches_per_link_lp])
-        ,.dma_data_v_o      (dma_data_v_lo[num_vcaches_per_link_lp*i+:num_vcaches_per_link_lp])
-        ,.dma_data_yumi_i   (dma_data_yumi_li[num_vcaches_per_link_lp*i+:num_vcaches_per_link_lp])
-      );
+              ,.dma_data_o        (dma_data_lo[i][j][k][r])
+              ,.dma_data_v_o      (dma_data_v_lo[i][j][k][r])
+              ,.dma_data_yumi_i   (dma_data_yumi_li[i][j][k][r])
+            );
+          end
+        end
+      end
     end
 
-    for (genvar i = 0; i < num_pods_y_p; i++) begin
-      bsg_manycore_vcache_wh_to_cache_dma #(
-        .wh_flit_width_p(wh_flit_width_p)
-        ,.wh_cid_width_p(wh_cid_width_p)
-        ,.wh_len_width_p(wh_len_width_p)
-        ,.wh_cord_width_p(wh_cord_width_p)
-        ,.wh_ruche_factor_p(wh_ruche_factor_p)
 
-        ,.num_vcaches_p(num_vcaches_per_link_lp)
-        ,.vcache_addr_width_p(vcache_addr_width_p)
-        ,.vcache_data_width_p(vcache_data_width_p)
-        ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
-        ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+    // cache dma unruched mapping
+    bsg_cache_dma_pkt_s [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0] unruched_dma_pkt_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0] unruched_dma_pkt_v_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0] unruched_dma_pkt_yumi_li;
 
-        ,.num_pods_x_p(num_pods_x_p)
-        ,.pod_start_x_p(1 + (num_pods_x_p/2))
-        ,.num_tiles_x_p(num_tiles_x_p)
-      ) wh_to_dma (
-        .clk_i(clk_i)
-        ,.reset_i(reset_r)
+    logic [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0][vcache_dma_data_width_p-1:0] unruched_dma_data_li;
+    logic [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0] unruched_dma_data_v_li;
+    logic [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0] unruched_dma_data_ready_lo;
     
-        ,.wh_link_sif_i(wh_link_sif_lo[E][i])
-        ,.wh_link_sif_o(wh_link_sif_li[E][i])
+    logic [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0][vcache_dma_data_width_p-1:0] unruched_dma_data_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0] unruched_dma_data_v_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0] unruched_dma_data_yumi_li;
 
-        ,.dma_pkt_o         (dma_pkt_lo[num_vcaches_per_link_lp*((num_pods_y_p)+i)+:num_vcaches_per_link_lp])
-        ,.dma_pkt_v_o       (dma_pkt_v_lo[num_vcaches_per_link_lp*((num_pods_y_p)+i)+:num_vcaches_per_link_lp])
-        ,.dma_pkt_yumi_i    (dma_pkt_yumi_li[num_vcaches_per_link_lp*((num_pods_y_p)+i)+:num_vcaches_per_link_lp])
 
-        ,.dma_data_i        (dma_data_li[num_vcaches_per_link_lp*((num_pods_y_p)+i)+:num_vcaches_per_link_lp])
-        ,.dma_data_v_i      (dma_data_v_li[num_vcaches_per_link_lp*((num_pods_y_p)+i)+:num_vcaches_per_link_lp])
-        ,.dma_data_ready_o  (dma_data_ready_lo[num_vcaches_per_link_lp*((num_pods_y_p)+i)+:num_vcaches_per_link_lp])
 
-        ,.dma_data_o        (dma_data_lo[num_vcaches_per_link_lp*((num_pods_y_p)+i)+:num_vcaches_per_link_lp])
-        ,.dma_data_v_o      (dma_data_v_lo[num_vcaches_per_link_lp*((num_pods_y_p)+i)+:num_vcaches_per_link_lp])
-        ,.dma_data_yumi_i   (dma_data_yumi_li[num_vcaches_per_link_lp*((num_pods_y_p)+i)+:num_vcaches_per_link_lp])
-      );
+    for (genvar i = W; i <= E; i++) begin
+      for (genvar j = 0; j < num_pods_y_p; j++) begin
+        for (genvar k = N; k <= S; k++) begin
+          for (genvar l = 0; l < (num_tiles_x_p*num_pods_x_p/2); l++) begin
+
+            assign unruched_dma_pkt_lo[i][j][k][l] = dma_pkt_lo[i][j][k][l%wh_ruche_factor_p][l/wh_ruche_factor_p];
+            assign unruched_dma_pkt_v_lo[i][j][k][l] = dma_pkt_v_lo[i][j][k][l%wh_ruche_factor_p][l/wh_ruche_factor_p];
+            assign dma_pkt_yumi_li[i][j][k][l%wh_ruche_factor_p][l/wh_ruche_factor_p] = unruched_dma_pkt_yumi_li[i][j][k][l];
+
+            assign dma_data_li[i][j][k][l%wh_ruche_factor_p][l/wh_ruche_factor_p] = unruched_dma_data_li[i][j][k][l];
+            assign dma_data_v_li[i][j][k][l%wh_ruche_factor_p][l/wh_ruche_factor_p] = unruched_dma_data_v_li[i][j][k][l];
+            assign unruched_dma_data_ready_lo[i][j][k][l] = dma_data_ready_lo[i][j][k][l%wh_ruche_factor_p][l/wh_ruche_factor_p];
+
+            assign unruched_dma_data_lo[i][j][k][l] = dma_data_lo[i][j][k][l%wh_ruche_factor_p][l/wh_ruche_factor_p];
+            assign unruched_dma_data_v_lo[i][j][k][l] = dma_data_v_lo[i][j][k][l%wh_ruche_factor_p][l/wh_ruche_factor_p];
+            assign dma_data_yumi_li[i][j][k][l%wh_ruche_factor_p][l/wh_ruche_factor_p] = unruched_dma_data_yumi_li[i][j][k][l];
+
+          end
+        end
+      end
     end
 
+
+    // cache DMA to DRAMSIM3
+    // assign vcache DMA to correct HBM2 channel / bank
+    bsg_cache_dma_pkt_s [num_total_vcaches_lp-1:0] remapped_dma_pkt_lo;
+    logic [num_total_vcaches_lp-1:0] remapped_dma_pkt_v_lo;
+    logic [num_total_vcaches_lp-1:0] remapped_dma_pkt_yumi_li;
+
+    logic [num_total_vcaches_lp-1:0][vcache_dma_data_width_p-1:0] remapped_dma_data_li;
+    logic [num_total_vcaches_lp-1:0] remapped_dma_data_v_li;
+    logic [num_total_vcaches_lp-1:0] remapped_dma_data_ready_lo;
+
+    logic [num_total_vcaches_lp-1:0][vcache_dma_data_width_p-1:0] remapped_dma_data_lo;
+    logic [num_total_vcaches_lp-1:0] remapped_dma_data_v_lo;
+    logic [num_total_vcaches_lp-1:0] remapped_dma_data_yumi_li;
+
+
+    for (genvar i = W; i <= E; i++) begin
+      for (genvar j = 0; j < num_pods_y_p; j++) begin
+        for (genvar k = N; k <= S; k++) begin
+          for (genvar l = 0; l < (num_tiles_x_p*num_pods_x_p/2); l++) begin
+
+            // 1x1
+            if ((num_pods_x_p == 1) && (num_pods_y_p == 1)) begin
+
+              localparam logic [lg_num_total_vcaches_lp-1:0] idx = {
+                (i == W) ? 1'b0 : 1'b1,
+                (k == N) ? 1'b0 : 1'b1,
+                (`BSG_SAFE_CLOG2(num_tiles_x_p*num_pods_x_p/2))'(l)  
+              };
+
+              assign remapped_dma_pkt_lo[idx] = unruched_dma_pkt_lo[i][j][k][l];
+              assign remapped_dma_pkt_v_lo[idx] = unruched_dma_pkt_v_lo[i][j][k][l];
+              assign unruched_dma_pkt_yumi_li[i][j][k][l] = remapped_dma_pkt_yumi_li[idx];
+              
+              assign unruched_dma_data_li[i][j][k][l] = remapped_dma_data_li[idx];
+              assign unruched_dma_data_v_li[i][j][k][l] = remapped_dma_data_v_li[idx];
+              assign remapped_dma_data_ready_lo[idx] = unruched_dma_data_ready_lo[i][j][k][l];
+              
+              assign remapped_dma_data_lo[idx] = unruched_dma_data_lo[i][j][k][l];
+              assign remapped_dma_data_v_lo[idx] = unruched_dma_data_v_lo[i][j][k][l];
+              assign unruched_dma_data_yumi_li[i][j][k][l] = remapped_dma_data_yumi_li[idx];
+
+            end
+            // 4x4
+            else begin
+              // TODO
+            end
+
+          end
+        end
+      end
+    end
+        
 
     // DRAMSIM3
     logic [(num_dram_lp*hbm2_num_channels_p)-1:0] dramsim3_v_li;
@@ -379,8 +440,8 @@ module bsg_nonsynth_manycore_testbench
         ,.init_mem_p          (1)
         ,.base_id_p           (i*hbm2_num_channels_p)
       ) hbm0 (
-        .clk_i(clk_i)
-        ,.reset_i(reset_r)
+        .clk_i                (clk_i)
+        ,.reset_i             (reset_r)
       
         ,.v_i                 (dramsim3_v_li[hbm2_num_channels_p*i+:hbm2_num_channels_p])
         ,.write_not_read_i    (dramsim3_write_not_read_li[hbm2_num_channels_p*i+:hbm2_num_channels_p])
@@ -405,8 +466,7 @@ module bsg_nonsynth_manycore_testbench
     end
 
 
-
-    // cache DMA to DRAMSIM3
+    // cache to test dram
     typedef struct packed {
       logic [1:0] bg;
       logic [1:0] ba;
@@ -434,17 +494,17 @@ module bsg_nonsynth_manycore_testbench
         .core_clk_i           (clk_i)
         ,.core_reset_i        (reset_r)
 
-        ,.dma_pkt_i           (dma_pkt_lo[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
-        ,.dma_pkt_v_i         (dma_pkt_v_lo[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
-        ,.dma_pkt_yumi_o      (dma_pkt_yumi_li[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
+        ,.dma_pkt_i           (remapped_dma_pkt_lo[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
+        ,.dma_pkt_v_i         (remapped_dma_pkt_v_lo[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
+        ,.dma_pkt_yumi_o      (remapped_dma_pkt_yumi_li[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
 
-        ,.dma_data_o          (dma_data_li[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
-        ,.dma_data_v_o        (dma_data_v_li[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
-        ,.dma_data_ready_i    (dma_data_ready_lo[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
+        ,.dma_data_o          (remapped_dma_data_li[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
+        ,.dma_data_v_o        (remapped_dma_data_v_li[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
+        ,.dma_data_ready_i    (remapped_dma_data_ready_lo[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
 
-        ,.dma_data_i          (dma_data_lo[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
-        ,.dma_data_v_i        (dma_data_v_lo[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
-        ,.dma_data_yumi_o     (dma_data_yumi_li[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
+        ,.dma_data_i          (remapped_dma_data_lo[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
+        ,.dma_data_v_i        (remapped_dma_data_v_lo[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
+        ,.dma_data_yumi_o     (remapped_dma_data_yumi_li[i*num_vcaches_per_channel_lp+:num_vcaches_per_channel_lp])
 
 
         ,.dram_clk_i              (clk_i)
@@ -482,6 +542,21 @@ module bsg_nonsynth_manycore_testbench
     end
   end
 
+
+
+
+
+
+
+
+
+
+
+
+
+  ////                        ////
+  ////      TIE OFF           ////
+  ////                        ////
 
 
   // IO TIE OFFS

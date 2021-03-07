@@ -33,6 +33,8 @@ module bsg_manycore_vcache_wh_to_cache_dma
     , parameter lg_num_tiles_x_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter lg_num_pods_x_lp = `BSG_SAFE_CLOG2(num_pods_x_p)
 
+    , parameter no_concentration_p = 0
+
     // FIFO parameters
     , parameter in_fifo_els_p = 8
 
@@ -43,7 +45,7 @@ module bsg_manycore_vcache_wh_to_cache_dma
     , parameter wh_link_sif_width_lp=`bsg_ready_and_link_sif_width(wh_flit_width_p)
     , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(vcache_addr_width_p)
 
-
+    , parameter lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
   )
   (
     input clk_i
@@ -168,45 +170,52 @@ module bsg_manycore_vcache_wh_to_cache_dma
   );
 
   wire [lg_num_vcaches_lp-1:0] send_cache_id;
-  if (num_pods_x_p == 1) begin
-    // For pod 1x1, there are 1 HBM on each side of west and east.
-    // Left half of top and bottom vcaches (16 total) maps to ch0 of HBM2 on west.
-    // Right half of top and bottom vcaches (16 total) maps to ch0 of HBM2 on east.
-    assign send_cache_id = {
-      (1)'(header_flit_in.cid/wh_ruche_factor_p),
-      header_flit_in.src_cord[lg_num_tiles_x_lp-2:0]
-    };
+
+  if (no_concentration_p) begin
+    assign send_cache_id = header_flit_in.src_cord[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp];
+
   end
   else begin
-    //  The left half of the pod array maps to HBM2 on the left side, and the right half on the right. 
-    //  HBM2 channels are allocated to pods starting from the top left corner.
-    //  Within a pod, a row of vcaches (16) is allocated to a channel, so that there is one-to-one mapping from
-    //  vcache to HBM2 bank.  
-    //  
-    //    
-    // For pod 4x4
-    //
-    // [dev0-ch0] [dev0-ch2] [dev2-ch0] [dev2-ch2] 
-    // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
-    // [dev0-ch1] [dev0-ch3] [dev2-ch1] [dev2-ch3]
-    //
-    // [dev0-ch4] [dev0-ch6] [dev2-ch4] [dev2-ch6]
-    // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
-    // [dev0-ch5] [dev0-ch7] [dev2-ch5] [dev2-ch7]
-    //
-    // [dev1-ch0] [dev1-ch2] [dev3-ch0] [dev3-ch2]
-    // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
-    // [dev1-ch1] [dev0-ch3] [dev3-ch1] [dev3-ch3]
-    //
-    // [dev1-ch4] [dev1-ch6] [dev3-ch4] [dev3-ch6]
-    // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
-    // [dev1-ch5] [dev1-ch7] [dev3-ch5] [dev3-ch7]
-    //
-    assign send_cache_id = {
-      (lg_num_pods_x_lp-1)'((header_flit_in.src_cord[wh_cord_width_p-1:lg_num_tiles_x_lp] - pod_start_x_p)%(num_pods_x_p/2)),
-      (1)'(header_flit_in.cid/wh_ruche_factor_p),
-      header_flit_in.src_cord[lg_num_tiles_x_lp-1:0]
-    };
+    if (num_pods_x_p == 1) begin
+      // For pod 1x1, there are 1 HBM on each side of west and east.
+      // Left half of top and bottom vcaches (16 total) maps to ch0 of HBM2 on west.
+      // Right half of top and bottom vcaches (16 total) maps to ch0 of HBM2 on east.
+      assign send_cache_id = {
+        (1)'(header_flit_in.cid/wh_ruche_factor_p),
+        header_flit_in.src_cord[lg_num_tiles_x_lp-2:0]
+      };
+    end
+    else begin
+      //  The left half of the pod array maps to HBM2 on the left side, and the right half on the right. 
+      //  HBM2 channels are allocated to pods starting from the top left corner.
+      //  Within a pod, a row of vcaches (16) is allocated to a channel, so that there is one-to-one mapping from
+      //  vcache to HBM2 bank.  
+      //  
+      //    
+      // For pod 4x4
+      //
+      // [dev0-ch0] [dev0-ch2] [dev2-ch0] [dev2-ch2] 
+      // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+      // [dev0-ch1] [dev0-ch3] [dev2-ch1] [dev2-ch3]
+      //
+      // [dev0-ch4] [dev0-ch6] [dev2-ch4] [dev2-ch6]
+      // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+      // [dev0-ch5] [dev0-ch7] [dev2-ch5] [dev2-ch7]
+      //
+      // [dev1-ch0] [dev1-ch2] [dev3-ch0] [dev3-ch2]
+      // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+      // [dev1-ch1] [dev0-ch3] [dev3-ch1] [dev3-ch3]
+      //
+      // [dev1-ch4] [dev1-ch6] [dev3-ch4] [dev3-ch6]
+      // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+      // [dev1-ch5] [dev1-ch7] [dev3-ch5] [dev3-ch7]
+      //
+      assign send_cache_id = {
+        (lg_num_pods_x_lp-1)'((header_flit_in.src_cord[wh_cord_width_p-1:lg_num_tiles_x_lp] - pod_start_x_p)%(num_pods_x_p/2)),
+        (1)'(header_flit_in.cid/wh_ruche_factor_p),
+        header_flit_in.src_cord[lg_num_tiles_x_lp-1:0]
+      };
+    end
   end
   
   
