@@ -3,16 +3,18 @@
 #
 #   ELF (.riscv) to Network Boot Format (.nbf)
 #
-
+#   When there is a EVA to NPA mapping change in bsg_manycore_eva_to_npa.v,
+#   this file should also be updated accordingly.
+#
+#   https://github.com/bespoke-silicon-group/bsg_manycore/blob/master/v/bsg_manycore_eva_to_npa.v
+#
+#
 
 import sys
 import math
 import os
 import subprocess
 
-#
-#   NBF
-#
 
 ################################
 # EPA Constants

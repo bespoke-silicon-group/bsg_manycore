@@ -9,6 +9,11 @@
  *      2) Global
  *      3) Tile-Group
  *
+ *    Modifying this mapping requires the same change in the following files.
+ *    - Cuda-lite
+ *    https://github.com/bespoke-silicon-group/bsg_replicant/blob/master/libraries/bsg_manycore_eva.cpp
+ *    - SPMD testbench
+ *    https://github.com/bespoke-silicon-group/bsg_manycore/blob/master/software/py/nbf.py
  */
 
 
