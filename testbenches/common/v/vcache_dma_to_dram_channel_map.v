@@ -101,9 +101,12 @@ module vcache_dma_to_dram_channel_map
     for (genvar j = 0; j < num_pods_y_p; j++) begin
       for (genvar k = N; k <= S; k++) begin
         for (genvar r = 0; r < num_vcache_rows_p; r++) begin
-          for (genvar l = 0; l < num_vcaches_per_slice_lp; l++) begin
+          for (genvar l = 0; l < (num_tiles_x_p*num_pods_x_p/2); l++) begin
 
-            localparam idx = l + ((k == S) ? num_vcaches_per_slice_lp : 0) + (2*r*num_vcaches_per_slice_lp);
+            localparam idx = (l % num_vcaches_per_slice_lp)
+              + ((k == S) ? num_vcaches_per_slice_lp : 0)
+              + (2*r*num_vcaches_per_slice_lp) 
+              + (l/num_vcaches_per_slice_lp)*(2*r*num_vcaches_per_slice_lp);
 
             assign flattened_dma_pkt_lo[i][j][idx]   = unruched_dma_pkt_lo[i][j][k][r][l];
             assign flattened_dma_pkt_v_lo[i][j][idx] = unruched_dma_pkt_v_lo[i][j][k][r][l];
