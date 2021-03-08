@@ -35,6 +35,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter vcache_dma_data_width_p = "inv" // in bits
     , parameter vcache_size_p = "inv" // in words
     , parameter vcache_addr_width_p="inv" // byte addr
+    , parameter num_vcaches_per_channel_p = "inv"
 
     , parameter wh_flit_width_p = "inv"
     , parameter wh_ruche_factor_p = 2
@@ -258,8 +259,7 @@ module bsg_nonsynth_manycore_testbench
     parameter lg_num_total_vcaches_lp = `BSG_SAFE_CLOG2(num_total_vcaches_lp);
     parameter num_vcaches_per_link_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2; // # of vcaches attached to each link
 
-    parameter num_vcaches_per_channel_lp = 16*num_vcache_rows_p;
-    parameter num_total_channels_lp = num_total_vcaches_lp/num_vcaches_per_channel_lp;
+    parameter num_total_channels_lp = num_total_vcaches_lp/num_vcaches_per_channel_p;
     parameter num_dram_lp = `BSG_CDIV(num_total_channels_lp,hbm2_num_channels_p);
 
 
@@ -328,17 +328,17 @@ module bsg_nonsynth_manycore_testbench
 
     // cache DMA to DRAMSIM3
     // assign vcache DMA to correct HBM2 channel / bank
-    bsg_cache_dma_pkt_s [num_total_channels_lp-1:0][num_vcaches_per_channel_lp-1:0] remapped_dma_pkt_lo;
-    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_lp-1:0] remapped_dma_pkt_v_lo;
-    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_lp-1:0] remapped_dma_pkt_yumi_li;
+    bsg_cache_dma_pkt_s [num_total_channels_lp-1:0][num_vcaches_per_channel_p-1:0] remapped_dma_pkt_lo;
+    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_p-1:0] remapped_dma_pkt_v_lo;
+    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_p-1:0] remapped_dma_pkt_yumi_li;
 
-    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_lp-1:0][vcache_dma_data_width_p-1:0] remapped_dma_data_li;
-    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_lp-1:0] remapped_dma_data_v_li;
-    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_lp-1:0] remapped_dma_data_ready_lo;
+    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_p-1:0][vcache_dma_data_width_p-1:0] remapped_dma_data_li;
+    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_p-1:0] remapped_dma_data_v_li;
+    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_p-1:0] remapped_dma_data_ready_lo;
 
-    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_lp-1:0][vcache_dma_data_width_p-1:0] remapped_dma_data_lo;
-    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_lp-1:0] remapped_dma_data_v_lo;
-    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_lp-1:0] remapped_dma_data_yumi_li;
+    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_p-1:0][vcache_dma_data_width_p-1:0] remapped_dma_data_lo;
+    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_p-1:0] remapped_dma_data_v_lo;
+    logic [num_total_channels_lp-1:0][num_vcaches_per_channel_p-1:0] remapped_dma_data_yumi_li;
 
 
     vcache_dma_to_dram_channel_map #(
@@ -451,7 +451,7 @@ module bsg_nonsynth_manycore_testbench
     for (genvar i = 0; i < num_total_channels_lp; i++) begin
 
       bsg_cache_to_test_dram #(
-        .num_cache_p(num_vcaches_per_channel_lp)
+        .num_cache_p(num_vcaches_per_channel_p)
         ,.addr_width_p(vcache_addr_width_p)
         ,.data_width_p(vcache_data_width_p)
         ,.block_size_in_words_p(vcache_block_size_in_words_p)
