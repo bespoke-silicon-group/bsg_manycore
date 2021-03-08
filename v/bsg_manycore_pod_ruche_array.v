@@ -30,6 +30,7 @@ module bsg_manycore_pod_ruche_array
     , parameter icache_entries_p="inv"
     , parameter icache_tag_width_p="inv"
 
+    , parameter num_vcache_rows_p="inv"
     , parameter vcache_addr_width_p="inv"
     , parameter vcache_data_width_p="inv"
     , parameter vcache_ways_p="inv"
@@ -75,8 +76,8 @@ module bsg_manycore_pod_ruche_array
     , output [(num_pods_x_p*num_tiles_x_p)-1:0][manycore_link_sif_width_lp-1:0] io_link_sif_o
 
     // concentrated wormhole links
-    , input  [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_i
-    , output [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_o
+    , input  [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_i
+    , output [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_o
 
     // horizontal local links
     , input  [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0][manycore_link_sif_width_lp-1:0] hor_link_sif_i
@@ -108,8 +109,8 @@ module bsg_manycore_pod_ruche_array
   bsg_manycore_ruche_x_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_li;  
   bsg_manycore_ruche_x_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_lo;  
 
-  wh_link_sif_s [num_pods_y_p-1:0][S:N][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] wh_link_sif_li;
-  wh_link_sif_s [num_pods_y_p-1:0][S:N][num_pods_x_p-1:0][E:W][wh_ruche_factor_p-1:0] wh_link_sif_lo;
+  wh_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][S:N][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_li;
+  wh_link_sif_s [num_pods_y_p-1:0][num_pods_x_p-1:0][S:N][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_lo;
 
   logic [num_pods_y_p-1:0][num_pods_x_p-1:0][num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_li;
   logic [num_pods_y_p-1:0][num_pods_x_p-1:0][num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_li;
@@ -136,6 +137,7 @@ module bsg_manycore_pod_ruche_array
         ,.icache_entries_p(icache_entries_p)
         ,.icache_tag_width_p(icache_tag_width_p)
 
+        ,.num_vcache_rows_p(num_vcache_rows_p)
         ,.vcache_addr_width_p(vcache_addr_width_p)
         ,.vcache_data_width_p(vcache_data_width_p)
         ,.vcache_ways_p(vcache_ways_p)
@@ -162,12 +164,12 @@ module bsg_manycore_pod_ruche_array
         ,.ruche_link_i(ruche_link_li[y][x])
         ,.ruche_link_o(ruche_link_lo[y][x])
 
-        ,.north_wh_link_sif_i(wh_link_sif_li[y][N][x])
-        ,.north_wh_link_sif_o(wh_link_sif_lo[y][N][x])
+        ,.north_wh_link_sif_i(wh_link_sif_li[y][x][N])
+        ,.north_wh_link_sif_o(wh_link_sif_lo[y][x][N])
         ,.north_bsg_tag_i(pod_tags_i[y][x])
 
-        ,.south_wh_link_sif_i(wh_link_sif_li[y][S][x])
-        ,.south_wh_link_sif_o(wh_link_sif_lo[y][S][x])
+        ,.south_wh_link_sif_i(wh_link_sif_li[y][x][S])
+        ,.south_wh_link_sif_o(wh_link_sif_lo[y][x][S])
 
         ,.global_x_i(global_x_li[y][x])
         ,.global_y_i(global_y_li[y][x])
@@ -175,7 +177,7 @@ module bsg_manycore_pod_ruche_array
 
       for (genvar i = 0; i < num_tiles_x_p; i++) begin
         assign global_x_li[y][x][i] = {  (pod_x_cord_width_p)'(x+1), (x_subcord_width_lp)'(i)    };
-        assign global_y_li[y][x][i] = {  (pod_y_cord_width_p)'(y*2), {y_subcord_width_lp{1'b1}}  };
+        assign global_y_li[y][x][i] = {  (pod_y_cord_width_p)'(y*2), (y_subcord_width_lp)'((1<<y_subcord_width_lp)-num_vcache_rows_p)  };
       end
 
     end
@@ -326,10 +328,8 @@ module bsg_manycore_pod_ruche_array
   for (genvar i = 0; i < num_pods_y_p; i++) begin: rb_py
     for (genvar j = 0; j < num_pods_x_p-1; j++) begin: rb_px
       for (genvar k = 0; k < num_tiles_y_p; k++) begin: rb_y
-        for (genvar l = 0; l < ruche_factor_X_p; l++) begin: rb_f
-          assign ruche_link_li[i][j][E][k][l] = ruche_link_lo[i][j+1][W][k][l];
-          assign ruche_link_li[i][j+1][W][k][l] = ruche_link_lo[i][j][E][k][l];;
-        end
+        assign ruche_link_li[i][j][E][k] = ruche_link_lo[i][j+1][W][k];
+        assign ruche_link_li[i][j+1][W][k] = ruche_link_lo[i][j][E][k];;
       end
     end
   end
@@ -337,12 +337,10 @@ module bsg_manycore_pod_ruche_array
 
   // connect wormhole ruche links between pods
   for (genvar i = 0; i < num_pods_y_p; i++) begin: wrb_y
-    for (genvar m = N; m <= S; m++) begin: wrb_tb
-      for (genvar j = 0; j < num_pods_x_p-1; j++) begin: wrb_x
-        for (genvar l = 0; l < wh_ruche_factor_p; l++) begin: wrb_f
-          assign wh_link_sif_li[i][m][j][E][l] = wh_link_sif_lo[i][m][j+1][W][l];
-          assign wh_link_sif_li[i][m][j+1][W][l] = wh_link_sif_lo[i][m][j][E][l];
-        end
+    for (genvar j = 0; j < num_pods_x_p-1; j++) begin: wrb_x
+      for (genvar m = N; m <= S; m++) begin: wrb_tb
+        assign wh_link_sif_li[i][j][m][E] = wh_link_sif_lo[i][j+1][m][W];
+        assign wh_link_sif_li[i][j+1][m][W] = wh_link_sif_lo[i][j][m][E];
       end
     end
   end
@@ -350,21 +348,46 @@ module bsg_manycore_pod_ruche_array
 
   // connect wormhole ruche links to the outside
   // (hardcoded for wh ruche factor 2)
-  for (genvar i = 0; i < num_pods_y_p; i++) begin: wrb_out_y
-    for (genvar m = N; m <= S; m++) begin: wrb_out_tb
+  // For north vcaches, the vcache row orders are reversed, so that the inner vcache layers appear at index 0.
+  for (genvar i = 0; i < num_pods_y_p; i++) begin
+    for (genvar j = 0; j < num_vcache_rows_p; j++) begin
       // west out
-      assign wh_link_sif_o[W][i][m][0] =  wh_link_sif_lo[i][m][0][W][0];
-      assign wh_link_sif_o[W][i][m][1] = ~wh_link_sif_lo[i][m][0][W][1];
+      assign wh_link_sif_o[W][i][N][j][0] =  wh_link_sif_lo[i][0][N][W][num_vcache_rows_p-1-j][0];
+      assign wh_link_sif_o[W][i][N][j][1] = ~wh_link_sif_lo[i][0][N][W][num_vcache_rows_p-1-j][1];
+
       // west in
-      assign wh_link_sif_li[i][m][0][W][0] =  wh_link_sif_i[W][i][m][0];
-      assign wh_link_sif_li[i][m][0][W][1] = ~wh_link_sif_i[W][i][m][1];
+      assign wh_link_sif_li[i][0][N][W][num_vcache_rows_p-1-j][0] =  wh_link_sif_i[W][i][N][j][0];
+      assign wh_link_sif_li[i][0][N][W][num_vcache_rows_p-1-j][1] = ~wh_link_sif_i[W][i][N][j][1];
+
       // east out
-      assign wh_link_sif_o[E][i][m][0] =  wh_link_sif_lo[i][m][num_pods_x_p-1][E][0];
-      assign wh_link_sif_o[E][i][m][1] = ~wh_link_sif_lo[i][m][num_pods_x_p-1][E][1];
+      assign wh_link_sif_o[E][i][N][j][0] =  wh_link_sif_lo[i][num_pods_x_p-1][N][E][num_vcache_rows_p-1-j][0];
+      assign wh_link_sif_o[E][i][N][j][1] = ~wh_link_sif_lo[i][num_pods_x_p-1][N][E][num_vcache_rows_p-1-j][1];
+
       // east in
-      assign wh_link_sif_li[i][m][num_pods_x_p-1][E][0] =  wh_link_sif_i[E][i][m][0];
-      assign wh_link_sif_li[i][m][num_pods_x_p-1][E][1] = ~wh_link_sif_i[E][i][m][1];
+      assign wh_link_sif_li[i][num_pods_x_p-1][N][E][num_vcache_rows_p-1-j][0] =  wh_link_sif_i[E][i][N][j][0];
+      assign wh_link_sif_li[i][num_pods_x_p-1][N][E][num_vcache_rows_p-1-j][1] = ~wh_link_sif_i[E][i][N][j][1];
     end
   end
+
+  for (genvar i = 0; i < num_pods_y_p; i++) begin
+    for (genvar j = 0; j < num_vcache_rows_p; j++) begin
+      // west out
+      assign wh_link_sif_o[W][i][S][j][0] =  wh_link_sif_lo[i][0][S][W][j][0];
+      assign wh_link_sif_o[W][i][S][j][1] = ~wh_link_sif_lo[i][0][S][W][j][1];
+
+      // west in
+      assign wh_link_sif_li[i][0][S][W][j][0] =  wh_link_sif_i[W][i][S][j][0];
+      assign wh_link_sif_li[i][0][S][W][j][1] = ~wh_link_sif_i[W][i][S][j][1];
+
+      // east out
+      assign wh_link_sif_o[E][i][S][j][0] =  wh_link_sif_lo[i][num_pods_x_p-1][S][E][j][0];
+      assign wh_link_sif_o[E][i][S][j][1] = ~wh_link_sif_lo[i][num_pods_x_p-1][S][E][j][1];
+
+      // east in
+      assign wh_link_sif_li[i][num_pods_x_p-1][S][E][j][0] =  wh_link_sif_i[E][i][S][j][0];
+      assign wh_link_sif_li[i][num_pods_x_p-1][S][E][j][1] = ~wh_link_sif_i[E][i][S][j][1];
+    end
+  end
+
 
 endmodule

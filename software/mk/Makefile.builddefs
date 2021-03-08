@@ -300,7 +300,8 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) \
 		$(BSG_MACHINE_ORIGIN_X_CORD) $(BSG_MACHINE_ORIGIN_Y_CORD) \
 		$(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) \
-    $(bsg_pods_X) $(bsg_pods_Y) > $*.nbf
+    $(bsg_pods_X) $(bsg_pods_Y) \
+    $(BSG_MACHINE_NUM_VCACHE_ROWS) > $*.nbf
 
 
 %.bin:  %.hex

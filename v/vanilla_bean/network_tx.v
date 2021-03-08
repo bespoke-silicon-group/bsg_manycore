@@ -15,6 +15,7 @@ module network_tx
     , parameter pod_x_cord_width_p="inv"
     , parameter pod_y_cord_width_p="inv"
     , parameter epa_byte_addr_width_p="inv"
+    , parameter num_vcache_rows_p="inv"
     , parameter vcache_size_p="inv" // vcache capacity in words
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p="inv"
@@ -116,6 +117,7 @@ module network_tx
     ,.y_cord_width_p(y_cord_width_p)
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
+    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_sets_p(vcache_sets_p)
