@@ -84,7 +84,7 @@ module vanilla_core
     , output logic remote_interrupt_pending_bit_o
 
     // remaining credits
-    , input [credit_counter_width_p-1:0] out_credits_i    
+    , input [credit_counter_width_p-1:0] out_credits_used_i    
 
     // For debugging
     , input [x_cord_width_p-1:0] global_x_i
@@ -1217,7 +1217,7 @@ module vanilla_core
   wire int_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_rd;
   wire float_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_frd;
   wire fdiv_fsqrt_in_fp_exe = fp_exe_r.fp_decode.is_fdiv_op | fp_exe_r.fp_decode.is_fsqrt_op;
-  wire remote_credit_pending = (out_credits_i != '0);
+  wire remote_credit_pending = (out_credits_used_i != '0);
 
   // stall_depend_long_op (idiv, fdiv, remote_load, atomic)
   wire rs1_sb_clear_now = id_r.decode.read_rs1 & (id_rs1 == int_sb_clear_id) & int_sb_clear & id_rs1_non_zero; 
@@ -1317,7 +1317,7 @@ module vanilla_core
   assign stall_remote_req = id_remote_req_op & (remote_req_available == '0);
   
   // stall_remote_credit
-  assign stall_remote_credit = id_remote_req_op & ((out_credits_i + remote_req_in_exe) >= credit_limit_r);
+  assign stall_remote_credit = id_remote_req_op & ((out_credits_used_i + remote_req_in_exe) >= credit_limit_r);
 
   // stall_fdiv_busy
   assign stall_fdiv_busy = (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op) & (fdiv_fsqrt_ready_lo

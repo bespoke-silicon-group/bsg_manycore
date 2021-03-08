@@ -97,7 +97,13 @@ module bsg_manycore_endpoint_standard
     , output                                   returned_credit_v_r_o
     , output [bsg_manycore_reg_id_width_gp-1:0]  returned_credit_reg_id_r_o
 
-    , output [credit_counter_width_p-1:0] out_credits_o
+
+
+    // This holds the number of credits that we are expecting to (eventually) come back to us.
+    // Note: Prior to March 2021, this used to hold the number of credits
+    // that were currently available to send. This change allows the clients to have more control
+    // over their credits.
+    , output [credit_counter_width_p-1:0] out_credits_used_o
 
     // tile coordinates (coordinate in a global array)
     // currently, for debugging only
@@ -166,6 +172,8 @@ module bsg_manycore_endpoint_standard
   
 
   // credit counting on response fifo
+  // By using credit interface, we are guaranteeing that any incoming request from FWD_FIFO will have a space in 
+  // REV_FIFO, guaranteeing that the transaction will always go through once it starts.
   // By default, 3 credits are needed, because the round trip to get the credit back takes three cycles.
   // FWD_FIFO->CORE->REV_FIFO->CREDIT.
   logic [lg_rev_fifo_els_lp-1:0] rev_fifo_credit_r;
@@ -323,14 +331,18 @@ module bsg_manycore_endpoint_standard
   end
 
   logic [1:0] return_v_r;
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      return_v_r <= '0;
-    end
-    else begin
-      return_v_r <= return_v_r + (packet_v_lo & packet_yumi_li) - return_packet_v_li;
-    end
-  end
+
+  bsg_counter_up_down #(
+    .max_val_p(2)
+    ,.init_val_p(0)
+    ,.max_step_p(1)
+  ) cud0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.up_i(packet_v_lo & packet_yumi_li)
+    ,.down_i(return_packet_v_li)
+    ,.count_o(return_v_r)
+  );
 
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
@@ -361,9 +373,9 @@ module bsg_manycore_endpoint_standard
   ) out_credit_ctr (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.down_i(returned_credit) // launch remote packet
-    ,.up_i(launching_out) // receive credit back
-    ,.count_o(out_credits_o)
+    ,.down_i(returned_credit) // receive credit back
+    ,.up_i(launching_out)     // launch remote packet
+    ,.count_o(out_credits_used_o)
   );
 
 
@@ -391,7 +403,7 @@ module bsg_manycore_endpoint_standard
     if (~reset_i & return_packet_v_lo) begin
       assert({return_packet_lo.y_cord, return_packet_lo.x_cord} == {global_y_i, global_x_i})
         else begin
-          $error("## errant credit packet v=%b for YX = %d,%d landed at YX=%d,%d (%m)",
+          $error("[BSG_ERROR] errant credit packet v=%b for YX = %d,%d landed at YX=%d,%d (%m)",
             return_packet_v_lo,
             return_packet_lo.y_cord,
             return_packet_lo.x_cord,
@@ -403,7 +415,8 @@ module bsg_manycore_endpoint_standard
 
   always_ff @ (negedge clk_i) begin
     if ((returned_v_r_o === 1'b1) && (returned_yumi_i != 1'b1) && returned_fifo_full_o) begin
-      $display("## Returned response will be dropped at YX=%d, %d (%m)", global_y_i, global_x_i);
+      $display("[BSG_ERROR] When the returned_fifo is full, the packet has to be taken, otherwise other incoming responses can be lost, YX=%d, %d (%m)",
+        global_y_i, global_x_i);
       $finish();
     end
   end
