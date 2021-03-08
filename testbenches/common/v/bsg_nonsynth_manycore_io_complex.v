@@ -65,7 +65,7 @@ module bsg_nonsynth_manycore_io_complex
 
   logic returned_v_r_lo;
 
-  logic [credit_counter_width_lp-1:0] out_credits_lo;
+  logic [credit_counter_width_lp-1:0] out_credits_used_lo;
   
   bsg_manycore_endpoint_standard #(
     .x_cord_width_p(x_cord_width_p)
@@ -110,7 +110,7 @@ module bsg_nonsynth_manycore_io_complex
     // misc
     ,.returned_credit_v_r_o()
     ,.returned_credit_reg_id_r_o()
-    ,.out_credits_o(out_credits_lo)
+    ,.out_credits_used_o(out_credits_used_lo)
 
     ,.global_x_i((x_cord_width_p)'(io_x_cord_p))
     ,.global_y_i((y_cord_width_p)'(io_y_cord_p))
@@ -167,11 +167,11 @@ module bsg_nonsynth_manycore_io_complex
     ,.my_x_i((x_cord_width_p)'(io_x_cord_p))
     ,.my_y_i((y_cord_width_p)'(io_y_cord_p))
 
-    ,.out_credits_i(out_credits_lo)
+    ,.out_credits_used_i(out_credits_used_lo)
   );
 
-  assign out_v_li = spmd_v_lo & (out_credits_lo < max_out_credits_p );
-  assign spmd_ready_li = out_ready_lo & (out_credits_lo  < max_out_credits_p);
+  assign out_v_li = spmd_v_lo & (out_credits_used_lo < max_out_credits_p );
+  assign spmd_ready_li = out_ready_lo & (out_credits_used_lo  < max_out_credits_p);
 
 
 endmodule

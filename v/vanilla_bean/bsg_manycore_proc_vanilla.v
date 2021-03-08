@@ -88,7 +88,7 @@ module bsg_manycore_proc_vanilla
   logic [bsg_manycore_reg_id_width_gp-1:0] returned_reg_id_r_lo;
   logic returned_fifo_full_lo;
 
-  logic [credit_counter_width_p-1:0] out_credits_lo;
+  logic [credit_counter_width_p-1:0] out_credits_used_lo;
   logic [x_cord_width_p-1:0] 	      src_x_cord_debug_lo;
   logic [y_cord_width_p-1:0] 	      src_y_cord_debug_lo;   
    
@@ -141,7 +141,7 @@ module bsg_manycore_proc_vanilla
     ,.returned_credit_v_r_o()
     ,.returned_credit_reg_id_r_o()
 
-    ,.out_credits_o(out_credits_lo)
+    ,.out_credits_used_o(out_credits_used_lo)
 
     ,.global_x_i({pod_x_i, my_x_i})
     ,.global_y_i({pod_y_i, my_y_i})
@@ -363,7 +363,7 @@ module bsg_manycore_proc_vanilla
     ,.int_remote_load_resp_force_i(int_remote_load_resp_force_lo)
     ,.int_remote_load_resp_yumi_o(int_remote_load_resp_yumi_li)
 
-    ,.out_credits_i(out_credits_lo)
+    ,.out_credits_used_i(out_credits_used_lo)
     ,.invalid_eva_access_i(invalid_eva_access_lo)
   
     ,.remote_interrupt_set_i(remote_interrupt_set_lo)
