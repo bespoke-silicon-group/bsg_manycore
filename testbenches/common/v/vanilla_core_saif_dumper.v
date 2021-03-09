@@ -28,14 +28,14 @@ module vanilla_core_saif_dumper
     , output saif_en_o 
     );
 
-   logic trigger_start_l = (exe_r.instruction ==? `SAIF_TRIGGER_START) & ~stall_all;
-   logic trigger_end_l = (exe_r.instruction ==? `SAIF_TRIGGER_END) & ~stall_all;
+   wire trigger_start = (exe_r.instruction ==? `SAIF_TRIGGER_START) & ~stall_all;
+   wire trigger_end = (exe_r.instruction ==? `SAIF_TRIGGER_END) & ~stall_all;
    
    logic out = 0;
    assign saif_en_o = out;
 
-   always_comb begin
-      if(trigger_start_l) begin
+   always_ff @ (negedge clk_i)
+      if(trigger_start) begin
          if(!saif_en_i) begin
             if(debug_p)
               $display("TRIGGER_ON (%m)");
@@ -48,7 +48,7 @@ module vanilla_core_saif_dumper
            $display("TRIGGER_S: i=%b,o=%b (%m)",saif_en_i,saif_en_o);
       end
 
-      if (trigger_end_l) begin
+      if (trigger_end) begin
          out = 1'b0;
          if(!saif_en_i) begin
             if(debug_p)
@@ -57,7 +57,7 @@ module vanilla_core_saif_dumper
             $toggle_report("run.saif", 1.0e-12, `HOST_MODULE_PATH.testbench.DUT);
          end
          if(debug_p)
-           $display("TRIGGER_E: i=%b,o=%b (%m)",saif_en_i,saif_en_o);
+           $display("TRIGGER_E: i=%b,o=%b (%m)", saif_en_i, saif_en_o);
       end
    end
    
