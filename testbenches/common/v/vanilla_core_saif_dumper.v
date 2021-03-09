@@ -19,50 +19,72 @@
  */
 module vanilla_core_saif_dumper
   import bsg_manycore_pkg::*;
-   import bsg_vanilla_pkg::*;
-   import bsg_manycore_profile_pkg::*;
-   #(parameter debug_p = 0 // Turns on display statments
-     )
-   (input clk_i
-    , input reset_i
-    , input stall_all
-    , input exe_signals_s exe_r
+  import bsg_vanilla_pkg::*;
+  #(parameter debug_p = 0 // Turns on display statments
+    )
+  (input clk_i
+   , input reset_i
+   , input stall_all
+   , input exe_signals_s exe_r
 
-    , input  saif_en_i 
-    , output saif_en_o 
-    );
+   , input  saif_en_i
+   , output logic saif_en_o
+   );
 
    wire trigger_start = (exe_r.instruction ==? `SAIF_TRIGGER_START) & ~stall_all;
    wire trigger_end = (exe_r.instruction ==? `SAIF_TRIGGER_END) & ~stall_all;
-   
-   logic out = 0;
-   assign saif_en_o = out;
 
-   always_comb begin
-      if(trigger_start) begin
-         if(!saif_en_i) begin
-            if(debug_p)
-              $display("TRIGGER_ON (%m)");
-            $set_gate_level_monitoring("rtl_on", "sv");
-            $set_toggle_region(`HOST_MODULE_PATH.testbench.DUT);
-            $toggle_start();
-         end
-         out = 1'b1;
-         if(debug_p)
-           $display("TRIGGER_START: i=%b,o=%b (%m)",saif_en_i,saif_en_o);
-      end
+   logic saif_en_r;
+   logic trigger_start_r;
+   logic trigger_end_r;
 
-      if (trigger_end) begin
-         out = 1'b0;
-         if(!saif_en_i) begin
-            if(debug_p)
-              $display("TRIGGER_OFF (%m)");
-            $toggle_stop();
-            $toggle_report("run.saif", 1.0e-12, `HOST_MODULE_PATH.testbench.DUT);
-         end
-         if(debug_p)
-           $display("TRIGGER_END: i=%b,o=%b (%m)", saif_en_i, saif_en_o);
+   always @ (posedge clk_i) begin
+      if (reset_i) begin
+         saif_en_o <= 1'b0;
+         trigger_end_r <= 1'b0;
+         trigger_start_r <= 1'b0;         
       end
-   end
-   
+      else begin
+         trigger_end_r <= trigger_end;
+         trigger_start_r <= trigger_start;
+
+         if(trigger_start) begin
+            saif_en_o <= 1'b1;
+            if(debug_p)
+              $display("TRIGGER_START: i=%b, o=%b, r=%b t=%t (%m)",saif_en_i,saif_en_o, saif_en_o, $time);
+         end
+
+         if (trigger_end) begin
+            saif_en_o <= 1'b0;
+            if(debug_p)
+              $display("TRIGGER_END: i=%b,o=%b t=%t (%m)", saif_en_i, saif_en_o, $time);
+         end
+
+      end
+   end // always @ (posedge clk_i)
+
+   always @(negedge clk_i) begin
+      if (reset_i)
+         saif_en_r <= 0;
+      else begin
+         saif_en_r <= saif_en_i;
+
+         if(saif_en_i ^ saif_en_r) begin
+            if(trigger_start_r) begin
+               if(debug_p)
+                 $display("TRIGGER_ON t=%t (%m)", $time);
+               $set_gate_level_monitoring("rtl_on", "sv");
+               $set_toggle_region(`HOST_MODULE_PATH.testbench.DUT);
+               $toggle_start();
+            end
+            if(trigger_end_r) begin
+               if(debug_p)
+                 $display("TRIGGER_OFF t=%t (%m)", $time);
+               $toggle_stop();
+               $toggle_report("run.saif", 1.0e-12, `HOST_MODULE_PATH.testbench.DUT);
+            end
+         end // if (saif_en_i ^ saif_en_r)
+      end
+   end // always @ (negedge clk_i)
+
 endmodule
