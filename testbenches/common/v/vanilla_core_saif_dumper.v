@@ -20,7 +20,7 @@
 module vanilla_core_saif_dumper
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
-  #(parameter debug_p = 0 // Turns on display statments
+  #(parameter debug_p = 1 // Turns on display statments
     )
   (input clk_i
    , input reset_i
@@ -35,18 +35,14 @@ module vanilla_core_saif_dumper
    wire trigger_end = (exe_r.instruction ==? `SAIF_TRIGGER_END) & ~stall_all;
 
    logic saif_en_r;
-   logic trigger_start_r;
-   logic trigger_end_r;
 
-   always @ (posedge clk_i) begin
+   always @ (negedge clk_i) begin
       if (reset_i) begin
          saif_en_o <= 1'b0;
-         trigger_end_r <= 1'b0;
-         trigger_start_r <= 1'b0;         
+         saif_en_r <= 1'b0;
       end
       else begin
-         trigger_end_r <= trigger_end;
-         trigger_start_r <= trigger_start;
+         saif_en_r <= saif_en_i;
 
          if(trigger_start) begin
             saif_en_o <= 1'b1;
@@ -63,28 +59,22 @@ module vanilla_core_saif_dumper
       end
    end // always @ (posedge clk_i)
 
-   always @(negedge clk_i) begin
-      if (reset_i)
-         saif_en_r <= 0;
-      else begin
-         saif_en_r <= saif_en_i;
-
-         if(saif_en_i ^ saif_en_r) begin
-            if(trigger_start_r) begin
-               if(debug_p)
-                 $display("TRIGGER_ON t=%t (%m)", $time);
-               $set_gate_level_monitoring("rtl_on", "sv");
-               $set_toggle_region(`HOST_MODULE_PATH.testbench.DUT);
-               $toggle_start();
-            end
-            if(trigger_end_r) begin
-               if(debug_p)
-                 $display("TRIGGER_OFF t=%t (%m)", $time);
-               $toggle_stop();
-               $toggle_report("run.saif", 1.0e-12, `HOST_MODULE_PATH.testbench.DUT);
-            end
-         end // if (saif_en_i ^ saif_en_r)
-      end
+   always @(posedge clk_i) begin
+      if(saif_en_i ^ saif_en_r) begin
+         if(trigger_start) begin
+            if(debug_p)
+              $display("TRIGGER_ON t=%t (%m)", $time);
+            $set_gate_level_monitoring("rtl_on", "sv");
+            $set_toggle_region(`HOST_MODULE_PATH.testbench.DUT);
+            $toggle_start();
+         end
+         if(trigger_end) begin
+            if(debug_p)
+              $display("TRIGGER_OFF t=%t (%m)", $time);
+            $toggle_stop();
+            $toggle_report("run.saif", 1.0e-12, `HOST_MODULE_PATH.testbench.DUT);
+         end
+      end // if (saif_en_i ^ saif_en_r)
    end // always @ (negedge clk_i)
 
 endmodule
