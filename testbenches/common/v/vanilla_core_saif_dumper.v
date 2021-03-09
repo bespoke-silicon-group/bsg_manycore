@@ -2,7 +2,7 @@
  * The vanilla_core_saif_dumper is a bind module that attaches to the
  * vanilla core. It observes instructions in the execution stage and
  * sets saif_en_o to 1 when SAIF_TRIGGER_START is executed (see
- * bsg_manycore_pkg.v for instruction definition) and sets
+ * v/vanilla_bean/bsg_vanilla_pkg.v for instruction definition) and sets
  * saif_en_o to 0 when SAIF_TRIGGER_END is executed.
  * 
  * If SAIF_TRIGGER_START is executed and saif_en_i is 0, then this
@@ -28,8 +28,8 @@ module vanilla_core_saif_dumper
     , output saif_en_o 
     );
 
-   logic trigger_start_l = (exe_r.instruction ==? `SAIF_TRIGGER_START);
-   logic trigger_end_l = (exe_r.instruction ==? `SAIF_TRIGGER_END);
+   logic trigger_start_l = (exe_r.instruction ==? `SAIF_TRIGGER_START) & ~stall_all;
+   logic trigger_end_l = (exe_r.instruction ==? `SAIF_TRIGGER_END) & ~stall_all;
    
    logic out = 0;
    assign saif_en_o = out;
