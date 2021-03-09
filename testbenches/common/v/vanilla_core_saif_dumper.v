@@ -5,6 +5,10 @@
  * v/vanilla_bean/bsg_vanilla_pkg.v for instruction definition) and sets
  * saif_en_o to 0 when SAIF_TRIGGER_END is executed.
  * 
+ * saif_en_i comes from the module that declares the bind statment. It
+ * should be 1 if any vanilla_core_saif_dumper module has saif_en_o
+ * set to 1 and 0 otherwise.
+ * 
  * If SAIF_TRIGGER_START is executed and saif_en_i is 0, then this
  * module calls functions to start tracking toggling for saif
  * generation.
@@ -34,7 +38,7 @@ module vanilla_core_saif_dumper
    logic out = 0;
    assign saif_en_o = out;
 
-   always_ff @ (negedge clk_i)
+   always_ff @ (negedge clk_i) begin
       if(trigger_start) begin
          if(!saif_en_i) begin
             if(debug_p)
