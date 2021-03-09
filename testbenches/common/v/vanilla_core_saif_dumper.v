@@ -21,7 +21,7 @@ module vanilla_core_saif_dumper
   import bsg_manycore_pkg::*;
    import bsg_vanilla_pkg::*;
    import bsg_manycore_profile_pkg::*;
-   #(parameter debug_p = 1 // Turns on display statments
+   #(parameter debug_p = 0 // Turns on display statments
      )
    (input clk_i
     , input reset_i
@@ -38,7 +38,7 @@ module vanilla_core_saif_dumper
    logic out = 0;
    assign saif_en_o = out;
 
-   always_ff @ (negedge clk_i) begin
+   always_comb begin
       if(trigger_start) begin
          if(!saif_en_i) begin
             if(debug_p)
@@ -49,19 +49,19 @@ module vanilla_core_saif_dumper
          end
          out = 1'b1;
          if(debug_p)
-           $display("TRIGGER_S: i=%b,o=%b (%m)",saif_en_i,saif_en_o);
+           $display("TRIGGER_START: i=%b,o=%b (%m)",saif_en_i,saif_en_o);
       end
 
       if (trigger_end) begin
          out = 1'b0;
          if(!saif_en_i) begin
             if(debug_p)
-              $display("TRIGGER_OFF(%m)");
+              $display("TRIGGER_OFF (%m)");
             $toggle_stop();
             $toggle_report("run.saif", 1.0e-12, `HOST_MODULE_PATH.testbench.DUT);
          end
          if(debug_p)
-           $display("TRIGGER_E: i=%b,o=%b (%m)", saif_en_i, saif_en_o);
+           $display("TRIGGER_END: i=%b,o=%b (%m)", saif_en_i, saif_en_o);
       end
    end
    
