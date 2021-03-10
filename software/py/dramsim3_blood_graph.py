@@ -14,31 +14,17 @@ from PIL import Image, ImageDraw
 
 class BloodGraph:
 
-  
-
-  # nop       = no request in this bank.
-  # closed    = there is a request in this bank, but the row is closed.
-  # act       = activate
-  # rd        = read
-  # wr        = write
-  # pre       = precharge
-  # row_miss  = there is a request but row miss. 
-  # arb       = there is a row hit, but other bank is accessing (arbitrated)
-  # ref       = refresh
-  # conf      = there is a row hit, but can't access due to various timing constraints (tWTR, tCCD_S, etc)
-
-
   palette = {
-    "act"       : (0xff,0xff,0x00),   ## yellow
-    "pre"       : (0xff,0xa5,0x00),   ## orage
-    "rd"        : (0x00,0xff,0x00),   ## green
-    "wr"        : (0x00,0x88,0x00),   ## dark green
-    "nop"       : (0xff,0xaa,0xff),   ## pink
-    "conf"      : (0xff,0x00,0x00),   ## red
-    "closed"    : (0x80,0x00,0x80),   ## purple
-    "ref"       : (0x60,0x60,0x60),   ## gray
-    "arb"       : (0x00,0xff,0xff),   ## cyan
-    "row_miss"  : (0xff,0x00,0xff)    ## fuchsia
+    "act"       : (0xff,0xff,0x00),   ## yellow       = activate
+    "pre"       : (0xff,0xa5,0x00),   ## orange       = precharge
+    "rd"        : (0x00,0xff,0x00),   ## green        = read
+    "wr"        : (0x00,0x88,0x00),   ## dark green   = write
+    "nop"       : (0xff,0xaa,0xff),   ## pink         = no request in this bank
+    "conf"      : (0xff,0x00,0x00),   ## red          = there is a row hit, but can't access due to various timing constraints (tWTR, tCCD_S, etc)
+    "closed"    : (0x80,0x00,0x80),   ## purple       = there is a request in this bank, but the row is closed.
+    "ref"       : (0x60,0x60,0x60),   ## gray         = refresh
+    "arb"       : (0x00,0xff,0xff),   ## cyan         = there is a row hit, but other bank is accessing (arbitrated)
+    "row_miss"  : (0xff,0x00,0xff)    ## fuchsia      = there is a request but row miss.
   }
 
   def generate(self, input_file, output_file):
