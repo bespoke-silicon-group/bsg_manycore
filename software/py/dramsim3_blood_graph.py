@@ -1,3 +1,13 @@
+#
+#   dramsim3_blood_graph.py
+#
+#   how to use
+#   python dramsim3_blood_graph.py {input.log}  {output.png}
+#
+#   Author: Tommy
+
+
+
 import sys
 import csv
 from PIL import Image, ImageDraw
