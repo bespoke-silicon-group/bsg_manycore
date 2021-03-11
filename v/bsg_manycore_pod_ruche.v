@@ -63,6 +63,12 @@ module bsg_manycore_pod_ruche
 
     , parameter wh_link_sif_width_lp = 
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
+
+    // This is used to define heterogeneous arrays. Each index defines
+    // the type of an X/Y coordinate in the array. This is a vector of
+    // num_tiles_x_p*num_tiles_y_p ints; type "0" is the
+    // default. See bsg_manycore_hetero_socket.v for more types.
+    , parameter int hetero_type_vec_p [0:(num_tiles_y_p*num_tiles_x_p) - 1]  = '{default:0}
   )
   (
     // manycore 
@@ -249,6 +255,17 @@ module bsg_manycore_pod_ruche
   logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] mc_reset_li;
   logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] mc_reset_lo;
 
+  // Split the hetero_type_vec_p array into sub-arrays.
+  typedef int hetero_type_sub_vec[0:(subarray_num_tiles_y_lp*subarray_num_tiles_x_lp) - 1];
+  function hetero_type_sub_vec get_subarray_hetero_type_vec(int y, int x);
+    hetero_type_sub_vec vec;
+    for (int sy_i = 0; sy_i < subarray_num_tiles_y_lp; sy_i++) begin
+      for (int sx_i = 0; sx_i < subarray_num_tiles_x_lp; sx_i++) begin
+        vec[sy_i*subarray_num_tiles_x_lp + sx_i] = hetero_type_vec_p[(sy_i + y * subarray_num_tiles_y_lp) * num_tiles_x_p + x * subarray_num_tiles_x_lp + sx_i];
+      end
+    end
+    return vec;
+  endfunction
 
   for (genvar y = 0; y < num_subarray_y_p; y++) begin: mc_y
     for (genvar x = 0; x < num_subarray_x_p; x++) begin: mc_x
@@ -264,7 +281,7 @@ module bsg_manycore_pod_ruche
 
         ,.subarray_num_tiles_x_p(subarray_num_tiles_x_lp)
         ,.subarray_num_tiles_y_p(subarray_num_tiles_y_lp)
-        
+
         ,.pod_x_cord_width_p(pod_x_cord_width_p)
         ,.pod_y_cord_width_p(pod_y_cord_width_p)
         ,.x_cord_width_p(x_cord_width_p)
@@ -272,6 +289,7 @@ module bsg_manycore_pod_ruche
         ,.addr_width_p(addr_width_p)
         ,.data_width_p(data_width_p)
         ,.ruche_factor_X_p(ruche_factor_X_p)
+        ,.hetero_type_vec_p(get_subarray_hetero_type_vec(y, x))
       ) mc (
         .clk_i(clk_i)
 
