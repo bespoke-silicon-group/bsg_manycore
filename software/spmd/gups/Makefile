@@ -11,6 +11,8 @@ OPT_LEVEL := -O3
 include ../Makefile.include
 RISCV_GCC_OPTS += -funroll-loops -ffast-math
 
+gups.o: RISCV_GCC_OPTS += -ffreestanding
+
 $(OBJECT_FILES): config.h
 spmd.riscv: spmd_tb_main.o
 main.riscv: cuda_tb_main.o
