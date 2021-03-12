@@ -250,7 +250,7 @@ module bsg_nonsynth_manycore_testbench
   else if (mem_cfg_lp[e_vcache_hbm2]) begin: hbm2
     
 
-    `define dram_pkg bsg_dramsim3_hbm2_8gb_x128_pkg
+    `define dram_pkg bsg_dramsim3_hbm2_8gb_x128_ps_32ba_pkg
     parameter hbm2_data_width_p = `dram_pkg::data_width_p;
     parameter hbm2_channel_addr_width_p = `dram_pkg::channel_addr_width_p;
     parameter hbm2_num_channels_p = `dram_pkg::num_channels_p;
@@ -439,8 +439,8 @@ module bsg_nonsynth_manycore_testbench
     // cache to test dram
     typedef struct packed {
       logic [1:0] bg;
-      logic [1:0] ba;
-      logic [14:0] ro;
+      logic [2:0] ba;
+      logic [13:0] ro;
       logic [5:0] co;
       logic [4:0] byte_offset;
     } dram_ch_addr_s; 

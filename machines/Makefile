@@ -119,7 +119,7 @@ ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py
 	$(eval VCS_CFLAGS   += -CFLAGS "-DBLOOD_GRAPH")
 	$(VCS) $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ \
 		$(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) $*/bsg_tag_boot_rom.v \
-		-l $*/build.log -Mdir=$*/csrc
+		-l $*/build-profile.log -Mdir=$*/csrc-profile
 
 
 clean:
