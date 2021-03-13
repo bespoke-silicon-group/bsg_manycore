@@ -150,12 +150,12 @@ module bsg_nonsynth_mem_infinite
 
       READY: begin
 
-        mem_w_li = (packet_lo.op_v2 == e_remote_store);
+        mem_w_li = packet_lo.op_v2 inside {e_remote_store, e_remote_sw};
         mem_addr_li = packet_lo.addr[0+:mem_addr_width_lp];
         mem_data_li = packet_lo.payload;
-        mem_mask_li = packet_lo.reg_id.store_mask_s.mask;
+        mem_mask_li = packet_lo.op_v2 == e_remote_store ? packet_lo.reg_id.store_mask_s.mask : 4'hf;
 
-        if (packet_r.op_v2 == e_remote_store) begin
+        if (packet_r.op_v2 inside {e_remote_store, e_remote_sw}) begin
           return_packet_li.pkt_type = e_return_credit;
         end
         else begin
@@ -170,7 +170,7 @@ module bsg_nonsynth_mem_infinite
         return_packet_li.data = (packet_r.op_v2 == e_remote_load)
           ? load_data_lo
           : '0;
-        return_packet_li.reg_id = (packet_r.op_v2 == e_remote_load)
+        return_packet_li.reg_id = (packet_r.op_v2 inside {e_remote_load, e_remote_sw})
           ? packet_r.reg_id
           : '0;
         return_packet_li.y_cord = packet_r.src_y_cord;
