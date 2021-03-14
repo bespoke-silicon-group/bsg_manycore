@@ -182,6 +182,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_cache_dma_to_wormhole.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_hetero_socket.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_mesh_node.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint_fc.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_endpoint_standard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_reg_id_decode.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_eva_to_npa.v

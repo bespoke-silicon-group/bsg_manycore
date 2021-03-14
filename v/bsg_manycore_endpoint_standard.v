@@ -33,7 +33,6 @@ module bsg_manycore_endpoint_standard
 
     , parameter credit_counter_width_p = `BSG_WIDTH(32)
     , parameter warn_out_of_credits_p  = 1
-    , parameter debug_p                = 0
 
     // size of outgoing response fifo
     , parameter rev_fifo_els_p         = 3
@@ -121,18 +120,23 @@ module bsg_manycore_endpoint_standard
 
   bsg_manycore_return_packet_s return_packet_li;
   logic return_packet_v_li;
-  logic return_packet_credit_or_ready_lo;
 
   bsg_manycore_return_packet_s return_packet_lo;
   logic return_packet_v_lo;
   logic return_packet_yumi_li;
 
-  bsg_manycore_endpoint #(
+  bsg_manycore_endpoint_fc #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
+    ,.fifo_els_p(fifo_els_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-    ,.fifo_els_p(fifo_els_p)
+
+    ,.credit_counter_width_p(credit_counter_width_p)
+    ,.warn_out_of_credits_p(warn_out_of_credits_p)
+
+    ,.rev_fifo_els_p(rev_fifo_els_p)
+    ,.use_credits_for_local_fifo_p(use_credits_for_local_fifo_p)
   ) bme (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -147,7 +151,6 @@ module bsg_manycore_endpoint_standard
 
     ,.return_packet_i(return_packet_li)
     ,.return_packet_v_i(return_packet_v_li)
-    ,.return_packet_credit_or_ready_o(return_packet_credit_or_ready_lo)
 
     // TX
     ,.packet_i(out_packet_i)
@@ -159,6 +162,7 @@ module bsg_manycore_endpoint_standard
     ,.return_packet_fifo_full_o(returned_fifo_full_o)
     ,.return_packet_yumi_i(return_packet_yumi_li)
 
+    ,.out_credits_used_o(out_credits_used_o)
   );
 
 
@@ -170,25 +174,6 @@ module bsg_manycore_endpoint_standard
   // When a request is dequeued, the return info (src coord, response type, etc) is stored in this module.
   // accelerators can't dequeue another request without returning the response for the already dequeued request.
   
-
-  // credit counting on response fifo
-  // By using credit interface, we are guaranteeing that any incoming request from FWD_FIFO will have a space in 
-  // REV_FIFO, guaranteeing that the transaction will always go through once it starts.
-  // By default, 3 credits are needed, because the round trip to get the credit back takes three cycles.
-  // FWD_FIFO->CORE->REV_FIFO->CREDIT.
-  logic [lg_rev_fifo_els_lp-1:0] rev_fifo_credit_r;
-  wire [lg_rev_fifo_els_lp-1:0] rev_fifo_credit_available = rev_fifo_credit_r + return_packet_credit_or_ready_lo;
-  wire rev_fifo_has_space = (rev_fifo_credit_available != '0);
-
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      rev_fifo_credit_r <= (lg_rev_fifo_els_lp)'(rev_fifo_els_p);
-    end
-    else begin
-      rev_fifo_credit_r <= rev_fifo_credit_available - (packet_v_lo & packet_yumi_li);
-    end
-  end
-
 
   // 1-bit lock for amoswap
   // any atomic op other than amoswap has no effect.
@@ -243,7 +228,7 @@ module bsg_manycore_endpoint_standard
 
     case (packet_lo.op_v2)
       e_remote_load: begin
-        in_v_o = packet_v_lo & rev_fifo_has_space;
+        in_v_o = packet_v_lo;
         packet_yumi_li = in_yumi_i;
         return_pkt_type = packet_lo.payload.load_info_s.load_info.float_wb
           ? e_return_float_wb
@@ -251,7 +236,7 @@ module bsg_manycore_endpoint_standard
       end
 
       e_remote_sw: begin
-        in_v_o = packet_v_lo & rev_fifo_has_space;
+        in_v_o = packet_v_lo;
         in_we_o = 1'b1;
         in_mask_o = 4'b1111;
         packet_yumi_li = in_yumi_i;
@@ -259,7 +244,7 @@ module bsg_manycore_endpoint_standard
       end
 
       e_remote_store: begin
-        in_v_o = packet_v_lo & rev_fifo_has_space;
+        in_v_o = packet_v_lo;
         in_we_o = 1'b1;
         in_mask_o = packet_lo.reg_id.store_mask_s.mask;
         packet_yumi_li = in_yumi_i;
@@ -268,9 +253,9 @@ module bsg_manycore_endpoint_standard
       end
 
       e_remote_amoswap: begin
-        packet_yumi_li = packet_v_lo & rev_fifo_has_space;
-        lock_v_n = packet_v_lo & rev_fifo_has_space;
-        lock_n = (packet_v_lo & rev_fifo_has_space)
+        packet_yumi_li = packet_v_lo;
+        lock_v_n = packet_v_lo;
+        lock_n = packet_v_lo
           ? packet_lo.payload[0]
           : lock_r;
         return_pkt_type = e_return_int_wb;
@@ -360,31 +345,13 @@ module bsg_manycore_endpoint_standard
   // Handle outgoing request packets
   // ----------------------------------------------------------------------------------------
 
-  // credit counter starts from zero.
-  // sending out a request increments and receiving a response decrements.
-
-  wire launching_out = out_v_i & ((use_credits_for_local_fifo_p == 1) | out_credit_or_ready_o);
-  wire returned_credit = return_packet_v_lo & return_packet_yumi_li;
-
-  bsg_counter_up_down #(
-    .max_val_p((1<<credit_counter_width_p)-1)
-    ,.init_val_p(0)
-    ,.max_step_p(1)
-  ) out_credit_ctr (
-    .clk_i(clk_i)
-    ,.reset_i(reset_i)
-    ,.down_i(returned_credit) // receive credit back
-    ,.up_i(launching_out)     // launch remote packet
-    ,.count_o(out_credits_used_o)
-  );
-
-
   assign returned_data_r_o     = return_packet_lo.data;
   assign returned_reg_id_r_o   = return_packet_lo.reg_id;
   assign returned_pkt_type_r_o = return_packet_lo.pkt_type;
   assign returned_v_r_o        = return_packet_v_lo & (return_packet_lo.pkt_type != e_return_credit);
   assign return_packet_yumi_li      = returned_yumi_i | (return_packet_v_lo & (return_packet_lo.pkt_type == e_return_credit));
 
+  wire returned_credit              = return_packet_v_lo & return_packet_yumi_li;
   assign returned_credit_v_r_o      = returned_credit;
   assign returned_credit_reg_id_r_o = return_packet_lo.reg_id;
 
