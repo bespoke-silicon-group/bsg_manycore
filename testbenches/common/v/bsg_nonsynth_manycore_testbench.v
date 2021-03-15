@@ -438,11 +438,11 @@ module bsg_nonsynth_manycore_testbench
 
     // cache to test dram
     typedef struct packed {
-      logic [1:0] bg;
-      logic [2:0] ba;
-      logic [13:0] ro;
-      logic [5:0] co;
-      logic [4:0] byte_offset;
+      logic [$clog2(`dram_pkg::num_ba_p)-1:0] ba;
+      logic [$clog2(`dram_pkg::num_bg_p)-1:0] bg;
+      logic [$clog2(`dram_pkg::num_rows_p)-1:0] ro;
+      logic [$clog2(`dram_pkg::num_columns_p)-1:0] co;
+      logic [$clog2(`dram_pkg::data_width_p>>3)-1:0] byte_offset;
     } dram_ch_addr_s; 
 
     dram_ch_addr_s [num_total_channels_lp-1:0] test_dram_ch_addr_lo;
@@ -503,8 +503,8 @@ module bsg_nonsynth_manycore_testbench
       };
 
       assign test_dram_ch_addr_li[i] = {
-        dramsim3_read_done_ch_addr_lo[i].bg,
         dramsim3_read_done_ch_addr_lo[i].ba,
+        dramsim3_read_done_ch_addr_lo[i].bg,
         dramsim3_read_done_ch_addr_lo[i].ro,
         dramsim3_read_done_ch_addr_lo[i].co,
         dramsim3_read_done_ch_addr_lo[i].byte_offset
