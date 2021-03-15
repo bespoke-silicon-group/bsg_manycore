@@ -114,6 +114,12 @@ module bsg_nonsynth_mem_infinite
     ,.load_data_o(load_data_lo)
   );
 
+  wire [bsg_manycore_reg_id_width_gp-1:0] store_reg_id;
+  bsg_manycore_reg_id_decode pd0 (
+    .data_i(packet_r.payload)
+    ,.mask_i(packet_r.reg_id.store_mask_s.mask)
+    ,.reg_id_o(store_reg_id)
+  );
 
   // FSM
   //
@@ -126,7 +132,8 @@ module bsg_nonsynth_mem_infinite
   logic return_v_r, return_v_n;
   
   wire is_amo = (packet_lo.op_v2 == e_remote_amoswap)
-              | (packet_lo.op_v2 == e_remote_amoor);
+              | (packet_lo.op_v2 == e_remote_amoor)
+              | (packet_lo.op_v2 == e_remote_amoadd);
 
 
   always_comb begin
@@ -150,12 +157,12 @@ module bsg_nonsynth_mem_infinite
 
       READY: begin
 
-        mem_w_li = (packet_lo.op_v2 == e_remote_store);
+        mem_w_li = packet_lo.op_v2 inside {e_remote_store, e_remote_sw};
         mem_addr_li = packet_lo.addr[0+:mem_addr_width_lp];
         mem_data_li = packet_lo.payload;
-        mem_mask_li = packet_lo.reg_id.store_mask_s.mask;
+        mem_mask_li = packet_lo.op_v2 == e_remote_store ? packet_lo.reg_id.store_mask_s.mask : 4'hf;
 
-        if (packet_r.op_v2 == e_remote_store) begin
+        if (packet_r.op_v2 inside {e_remote_store, e_remote_sw}) begin
           return_packet_li.pkt_type = e_return_credit;
         end
         else begin
@@ -170,9 +177,9 @@ module bsg_nonsynth_mem_infinite
         return_packet_li.data = (packet_r.op_v2 == e_remote_load)
           ? load_data_lo
           : '0;
-        return_packet_li.reg_id = (packet_r.op_v2 == e_remote_load)
+        return_packet_li.reg_id = (packet_r.op_v2 inside {e_remote_load, e_remote_sw})
           ? packet_r.reg_id
-          : '0;
+          : store_reg_id;
         return_packet_li.y_cord = packet_r.src_y_cord;
         return_packet_li.x_cord = packet_r.src_x_cord;
 
@@ -213,6 +220,7 @@ module bsg_nonsynth_mem_infinite
         case (packet_r.op_v2)
           e_remote_amoswap: mem_data_li = packet_r.payload;
           e_remote_amoor:  mem_data_li = packet_r.payload | mem_data_lo;
+          e_remote_amoadd: mem_data_li = packet_r.payload + mem_data_lo;
           default: mem_data_li = '0; // should never happen.
         endcase
         mem_mask_li = {data_mask_width_lp{1'b1}};
