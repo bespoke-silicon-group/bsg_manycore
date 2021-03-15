@@ -32,6 +32,12 @@ spike_call_log: pp_spike_trace
 	$(BSG_MANYCORE_DIR)/software/py/func_call_log.py spike_pc.log $(PROG_NAME).riscv > $@
 
 
+# DRAMsim3 blood graph
+dramsim3.%: blood_graph_%.log
+	python $(BSG_MANYCORE_DIR)/software/py/dramsim3_blood_graph.py $< dramsim3_$*.png
+
+
+
 clean:
 	-rm -rf *.o *.a *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex *.ld
 	-rm -rf xsim.dir *.mem stack.info.*
