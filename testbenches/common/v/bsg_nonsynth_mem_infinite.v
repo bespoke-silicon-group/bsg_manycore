@@ -114,6 +114,12 @@ module bsg_nonsynth_mem_infinite
     ,.load_data_o(load_data_lo)
   );
 
+  wire [bsg_manycore_reg_id_width_gp-1:0] store_reg_id;
+  bsg_manycore_reg_id_decode pd0 (
+    .data_i(packet_r.payload)
+    ,.mask_i(packet_r.reg_id.store_mask_s.mask)
+    ,.reg_id_o(store_reg_id)
+  );
 
   // FSM
   //
@@ -172,7 +178,7 @@ module bsg_nonsynth_mem_infinite
           : '0;
         return_packet_li.reg_id = (packet_r.op_v2 inside {e_remote_load, e_remote_sw})
           ? packet_r.reg_id
-          : '0;
+          : store_reg_id;
         return_packet_li.y_cord = packet_r.src_y_cord;
         return_packet_li.x_cord = packet_r.src_x_cord;
 
