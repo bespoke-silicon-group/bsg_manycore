@@ -132,7 +132,8 @@ module bsg_nonsynth_mem_infinite
   logic return_v_r, return_v_n;
   
   wire is_amo = (packet_lo.op_v2 == e_remote_amoswap)
-              | (packet_lo.op_v2 == e_remote_amoor);
+              | (packet_lo.op_v2 == e_remote_amoor)
+              | (packet_lo.op_v2 == e_remote_amoadd);
 
 
   always_comb begin
@@ -219,6 +220,7 @@ module bsg_nonsynth_mem_infinite
         case (packet_r.op_v2)
           e_remote_amoswap: mem_data_li = packet_r.payload;
           e_remote_amoor:  mem_data_li = packet_r.payload | mem_data_lo;
+          e_remote_amoadd: mem_data_li = packet_r.payload + mem_data_lo;
           default: mem_data_li = '0; // should never happen.
         endcase
         mem_mask_li = {data_mask_width_lp{1'b1}};
