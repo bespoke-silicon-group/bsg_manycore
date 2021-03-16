@@ -437,6 +437,7 @@ module bsg_nonsynth_manycore_testbench
 
 
     // cache to test dram
+    // This is the address format coming out of cache dma.
     typedef struct packed {
       logic [$clog2(`dram_pkg::num_ba_p)-1:0] ba;
       logic [$clog2(`dram_pkg::num_bg_p)-1:0] bg;
@@ -494,6 +495,8 @@ module bsg_nonsynth_manycore_testbench
         ,.dram_ch_addr_i          (test_dram_ch_addr_li[i])
       );
 
+      // manycore to dramsim3 address hashing
+      // dramsim3 uses ro-bg-ba-co-bo as address map, so we are changing the mapping here.
       assign dramsim3_ch_addr_li[i] = {
         test_dram_ch_addr_lo[i].ro,
         test_dram_ch_addr_lo[i].bg,
@@ -502,6 +505,8 @@ module bsg_nonsynth_manycore_testbench
         test_dram_ch_addr_lo[i].byte_offset
       };
 
+      // dramsim3 to manycore address hashing
+      // address coming out of dramsim3 is also ro-bg-ba-co-bo, so we are changing it back to the format that cache dma uses.
       assign test_dram_ch_addr_li[i] = {
         dramsim3_read_done_ch_addr_lo[i].ba,
         dramsim3_read_done_ch_addr_lo[i].bg,
