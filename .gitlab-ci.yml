@@ -5,7 +5,8 @@ variables:
 stages:
   - checkout
   - build
-  - test
+  - test_1x1
+  - test_1x1_hbm2
 
 build-repos:
   stage: checkout
@@ -100,7 +101,7 @@ build-toolchain:
   retry: 2
 
 test-spmd:
-  stage: test
+  stage: test_1x1
   tags:
     - bsg
     - vcs
@@ -125,7 +126,7 @@ test-spmd:
 
 
 test-beebs:
-  stage: test
+  stage: test_1x1
   tags:
     - bsg
     - vcs
@@ -150,11 +151,64 @@ test-beebs:
 
 
 test-interrupt:
-  stage: test
+  stage: test_1x1
   tags:
     - bsg
     - vcs
   script:
+    - echo "Running interrupt regression..."
+    - cd bsg_manycore
+    - pwd
+    - ./ci/interrupt.sh
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - $CI_PROJECT_DIR/bsg_cadenv
+      - $CI_PROJECT_DIR/basejump_stl
+      - $CI_PROJECT_DIR/bsg_manycore
+      - $CI_PROJECT_DIR/bsg_bladerunner
+    policy: pull
+  only:
+    refs:
+      - /^ci_.*$/
+      - master
+  retry: 2
+
+
+
+test-spmd-hbm2:
+  stage: test_1x1_hbm2
+  tags:
+    - bsg
+    - vcs
+  script:
+    - export BSG_MACHINE_PATH=$CI_PROJECT_DIR/bsg_manycore/machines/pod_1x1_hbm2
+    - echo "Running Manycore regression..."
+    - cd bsg_manycore
+    - pwd
+    - ./ci/spmd.sh
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - $CI_PROJECT_DIR/bsg_cadenv
+      - $CI_PROJECT_DIR/basejump_stl
+      - $CI_PROJECT_DIR/bsg_manycore
+      - $CI_PROJECT_DIR/bsg_bladerunner
+    policy: pull
+  only:
+    refs:
+      - /^ci_.*$/
+      - master
+  retry: 2
+
+
+test-interrupt-hbm2:
+  stage: test_1x1_hbm2
+  tags:
+    - bsg
+    - vcs
+  script:
+    - export BSG_MACHINE_PATH=$CI_PROJECT_DIR/bsg_manycore/machines/pod_1x1_hbm2
     - echo "Running interrupt regression..."
     - cd bsg_manycore
     - pwd
