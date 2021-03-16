@@ -35,7 +35,7 @@ regress: clean
 	$(MAKE) $(foreach test, $(TESTS), $(test)_run)
 
 summary:
-	$(foreach test, $(TESTS), grep -H --color -e "BSG_FINISH" -e "BSG_FATAL" -e "Error" -e \
+	@$(foreach test, $(TESTS), grep -H --color -e "BSG_FINISH" -e "BSG_FATAL" -e "Error" -e \
 	"BSG_ERROR" $(test)_run/$(test)_run.log;)
 
 clean.run:
@@ -44,4 +44,4 @@ clean.run:
 clean.build:
 	$(MAKE) -C $(BSG_MACHINE_PATH)/.. -f Makefile clean
 
-clean: clean.build clean.run
+clean: clean.run
