@@ -23,6 +23,7 @@ VCS_FLAGS    += -assert svaext  # needed for "assert final"
 
 VCS_CFLAGS   =  -cpp g++
 VCS_CFLAGS   += -CFLAGS "-std=c++11 -g -Wall"
+VCS_CFLAGS   += -CFLAGS "-O2"
 VCS_CFLAGS   += -CFLAGS "-fPIC"
 VCS_CFLAGS 	 += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/src"
 VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/ext/headers"
