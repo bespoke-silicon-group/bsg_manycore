@@ -250,7 +250,7 @@ module bsg_nonsynth_manycore_testbench
   else if (mem_cfg_lp[e_vcache_hbm2]) begin: hbm2
     
 
-    `define dram_pkg bsg_dramsim3_hbm2_8gb_x128_ps_32ba_pkg
+    `define dram_pkg `BSG_MACHINE_DRAMSIM3_PKG
     parameter hbm2_data_width_p = `dram_pkg::data_width_p;
     parameter hbm2_channel_addr_width_p = `dram_pkg::channel_addr_width_p;
     parameter hbm2_num_channels_p = `dram_pkg::num_channels_p;
