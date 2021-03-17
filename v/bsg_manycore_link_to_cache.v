@@ -52,6 +52,8 @@ module bsg_manycore_link_to_cache
     , output logic yumi_o
 
     , input v_we_i
+
+    , output logic wh_dest_east_not_west_o
   );
 
 
@@ -120,7 +122,8 @@ module bsg_manycore_link_to_cache
   state_e state_r, state_n;
   logic [lg_sets_lp+lg_ways_lp:0] tagst_sent_r, tagst_sent_n;
   logic [lg_sets_lp+lg_ways_lp:0] tagst_received_r, tagst_received_n;
-
+  logic wh_dest_east_not_west_r, wh_dest_east_not_west_n;
+  assign wh_dest_east_not_west_o = wh_dest_east_not_west_r;
 
   // cache pipeline tracker
   // 
@@ -196,6 +199,7 @@ module bsg_manycore_link_to_cache
     cache_pkt.opcode = TAGST;
     tagst_sent_n = tagst_sent_r;
     tagst_received_n = tagst_received_r;
+    wh_dest_east_not_west_n = wh_dest_east_not_west_r;
     v_o = 1'b0;
     yumi_o = 1'b0;
     state_n = state_r;
@@ -241,11 +245,32 @@ module bsg_manycore_link_to_cache
         v_o = packet_v_lo;
         packet_yumi_li = packet_v_lo & ready_i;
     
+
+        // if two MSBs are one, then it maps to wh_dest_east_not_west.
+        // store-only;
+        if (packet_lo.addr[link_addr_width_p-1-:2]) begin
+
+          case (packet_lo.op_v2)
+            e_remote_store: cache_pkt.opcode = TAGLA; // it injects TAGLA as noop;
+            default: begin
+              cache_pkt.opcode = TAGLA;
+              // synopsys translate_off
+              assert final(reset_i !== 1'b0 | ~packet_v_lo)
+                else $error("[BSG_ERROR] Invalid packet op for wh_dest_east_not_west EPA: %b", packet_lo.op_v2);
+              // synopsys translate_on
+            end
+          endcase
+
+          // updated when nop packet is taken by the cache.
+          wh_dest_east_not_west_n = (packet_v_lo & ready_i)
+            ? packet_lo.payload[0]
+            : wh_dest_east_not_west_r;
+        end
         // if MSB of addr is one, then it maps to tag_mem
         // otherwise it's regular access to data_mem.
         // we want to expose read/write access to tag_mem on NPA
         // for extra debugging capability.
-        if (packet_lo.addr[link_addr_width_p-1]) begin
+        else if (packet_lo.addr[link_addr_width_p-1]) begin
           case (packet_lo.op_v2)
             e_remote_store: cache_pkt.opcode = TAGST;
             e_remote_load:  cache_pkt.opcode = TAGLA;
@@ -343,11 +368,13 @@ module bsg_manycore_link_to_cache
       state_r          <= RESET;
       tagst_sent_r     <= '0;
       tagst_received_r <= '0;
+      wh_dest_east_not_west_r <= 1'b0;
     end
     else begin
       state_r          <= state_n;
       tagst_sent_r     <= tagst_sent_n;
       tagst_received_r <= tagst_received_n;
+      wh_dest_east_not_west_r <= wh_dest_east_not_west_n;
     end
   end
 

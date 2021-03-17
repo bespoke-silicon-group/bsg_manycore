@@ -82,9 +82,8 @@ module bsg_manycore_pod_ruche_array
     
 
     // bsg_tag interface
-    // for each pod, there are two bsg_tag_clients (north and south)
-    // bsg_tag_clients carry {reset, dest_wh_cord}
-    , input bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0][S:N] pod_tags_i
+    // Each pod has one tag client for reset.
+    , input bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0] pod_tags_i
 
     // io rtr reset tag for each pod column
     , input bsg_tag_s [num_pods_x_p-1:0] io_tags_i
@@ -158,11 +157,10 @@ module bsg_manycore_pod_ruche_array
 
         ,.north_wh_link_sif_i(wh_link_sif_li[y][N][x])
         ,.north_wh_link_sif_o(wh_link_sif_lo[y][N][x])
-        ,.north_bsg_tag_i(pod_tags_i[y][x][N])
+        ,.north_bsg_tag_i(pod_tags_i[y][x])
 
         ,.south_wh_link_sif_i(wh_link_sif_li[y][S][x])
         ,.south_wh_link_sif_o(wh_link_sif_lo[y][S][x])
-        ,.south_bsg_tag_i(pod_tags_i[y][x][S])
 
         ,.global_x_i(global_x_li[y][x])
         ,.global_y_i(global_y_li[y][x])
