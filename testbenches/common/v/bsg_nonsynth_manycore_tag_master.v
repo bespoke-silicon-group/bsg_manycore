@@ -19,15 +19,15 @@ module bsg_nonsynth_manycore_tag_master
 
     // done signal for peripherals
     , output logic tag_done_o
-    , output  bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0][S:N] pod_tags_o
+    , output  bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0] pod_tags_o
     , output  bsg_tag_s [num_pods_x_p-1:0]   io_tags_o
   );
 
   // two per pods
   // each column of pod has one for io rtr reset
-  localparam num_clients_lp = (num_pods_y_p*num_pods_x_p*2) + num_pods_x_p;
+  localparam num_clients_lp = (num_pods_y_p*num_pods_x_p) + num_pods_x_p;
   localparam rom_addr_width_lp = 12;
-  localparam payload_width_lp = 1+2; // {reset, wh_dest_east_not_west[1:0]}
+  localparam payload_width_lp = 1; // {reset}
   localparam lg_payload_width_lp = `BSG_WIDTH(payload_width_lp); // number of bits used to represent the payload width
   localparam max_payload_width_lp = (1<<lg_payload_width_lp)-1; 
   localparam rom_data_width_lp = 4+1+`BSG_SAFE_CLOG2(num_clients_lp)+1+lg_payload_width_lp+max_payload_width_lp;

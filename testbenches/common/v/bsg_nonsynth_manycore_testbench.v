@@ -93,7 +93,7 @@ module bsg_nonsynth_manycore_testbench
 
   // BSG TAG MASTER
   logic tag_done_lo;
-  bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0][S:N] pod_tags_lo;
+  bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0] pod_tags_lo;
   bsg_tag_s [num_pods_x_p-1:0] io_tags_lo;
 
   bsg_nonsynth_manycore_tag_master #(

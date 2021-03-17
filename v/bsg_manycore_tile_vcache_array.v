@@ -63,10 +63,6 @@ module bsg_manycore_tile_vcache_array
     , input [subarray_num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_i
     , output [subarray_num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_o
     , output [subarray_num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_o
-
-
-    // wormhole dest cord
-    , input [subarray_num_tiles_x_p-1:0] wh_dest_east_not_west_i
   );
 
 
@@ -117,8 +113,6 @@ module bsg_manycore_tile_vcache_array
 
       ,.global_x_o(global_x_o[i])
       ,.global_y_o(global_y_o[i])
-
-      ,.wh_dest_east_not_west_i(wh_dest_east_not_west_i[i])
     );
   end
 
