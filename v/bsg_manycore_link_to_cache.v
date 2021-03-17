@@ -246,9 +246,9 @@ module bsg_manycore_link_to_cache
         packet_yumi_li = packet_v_lo & ready_i;
     
 
-        // if two MSBs are one, then it maps to wh_dest_east_not_west.
+        // if two MSBs are ones, then it maps to wh_dest_east_not_west.
         // store-only;
-        if (packet_lo.addr[link_addr_width_p-1-:2]) begin
+        if (packet_lo.addr[link_addr_width_p-1-:2] == 2'b11) begin
 
           case (packet_lo.op_v2)
             e_remote_store: cache_pkt.opcode = TAGLA; // it injects TAGLA as noop;
