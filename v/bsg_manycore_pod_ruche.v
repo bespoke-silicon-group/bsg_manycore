@@ -92,7 +92,6 @@ module bsg_manycore_pod_ruche
 
     , input  [E:W][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] south_wh_link_sif_i
     , output [E:W][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] south_wh_link_sif_o
-    , input bsg_tag_s south_bsg_tag_i
 
     // pod cord (should be all same value for all columns)
     , input [num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_i
@@ -107,7 +106,6 @@ module bsg_manycore_pod_ruche
 
   // bsg tag clients
   bsg_manycore_pod_tag_payload_s north_tag_payload;
-  bsg_manycore_pod_tag_payload_s south_tag_payload;
 
   bsg_tag_client #(
     .width_p($bits(bsg_manycore_pod_tag_payload_s))
@@ -143,7 +141,6 @@ module bsg_manycore_pod_ruche
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][y_cord_width_p-1:0] north_vc_global_y_li;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][x_cord_width_p-1:0] north_vc_global_x_lo;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][y_cord_width_p-1:0] north_vc_global_y_lo;
-  logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] north_vc_wh_dest_east_not_west_li;
 
   for (genvar x = 0; x < num_subarray_x_p; x++) begin: north_vc_x
     bsg_manycore_tile_vcache_array #(
@@ -187,8 +184,6 @@ module bsg_manycore_pod_ruche
       ,.global_y_i(north_vc_global_y_li[x])
       ,.global_x_o(north_vc_global_x_lo[x])
       ,.global_y_o(north_vc_global_y_lo[x])
-
-      ,.wh_dest_east_not_west_i(north_vc_wh_dest_east_not_west_li[x])
     );
 
     // connect reset
@@ -219,22 +214,6 @@ module bsg_manycore_pod_ruche
       assign north_vc_wh_link_sif_li[x+1][W] = north_vc_wh_link_sif_lo[x][E];
       assign north_vc_wh_link_sif_li[x][E] = north_vc_wh_link_sif_lo[x+1][W];
     end
-
-    // connect wh dest coord
-    if (num_subarray_x_p == 1) begin
-      for (genvar i = 0; i < subarray_num_tiles_x_lp; i++) begin
-        assign north_vc_wh_dest_east_not_west_li[x][i] = (i < (subarray_num_tiles_x_lp/2))
-          ? north_tag_payload.wh_dest_east_not_west[0]
-          : north_tag_payload.wh_dest_east_not_west[1];
-      end
-    end
-    else begin
-      for (genvar i = 0; i < subarray_num_tiles_x_lp; i++) begin
-        assign north_vc_wh_dest_east_not_west_li[x][i] = (x < (num_subarray_x_p/2))
-          ? north_tag_payload.wh_dest_east_not_west[0]
-          : north_tag_payload.wh_dest_east_not_west[1];
-      end
-    end    
 
   end
 
@@ -368,19 +347,6 @@ module bsg_manycore_pod_ruche
     end
   end
 
-  
-
-  // south vc bsg_tag client
-  bsg_tag_client #(
-    .width_p($bits(bsg_manycore_pod_tag_payload_s))
-    ,.default_p(0)
-  ) btc_s (
-    .bsg_tag_i(south_bsg_tag_i)
-    ,.recv_clk_i(clk_i)
-    ,.recv_reset_i(1'b0)
-    ,.recv_new_r_o()
-    ,.recv_data_r_o(south_tag_payload)
-  );
 
   // vcache row (south)
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] south_vc_reset_li;
@@ -390,7 +356,6 @@ module bsg_manycore_pod_ruche
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] south_vc_ver_link_sif_lo;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][x_cord_width_p-1:0] south_vc_global_x_li;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][y_cord_width_p-1:0] south_vc_global_y_li;
-  logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] south_vc_wh_dest_east_not_west_li;
   
   for (genvar x = 0; x < num_subarray_x_p; x++) begin: south_vc_x
     bsg_manycore_tile_vcache_array #(
@@ -433,8 +398,6 @@ module bsg_manycore_pod_ruche
       ,.global_y_i(south_vc_global_y_li[x])
       ,.global_x_o()
       ,.global_y_o()
-
-      ,.wh_dest_east_not_west_i(south_vc_wh_dest_east_not_west_li[x])
     );
 
     // connect reset
@@ -469,25 +432,6 @@ module bsg_manycore_pod_ruche
       assign south_vc_wh_link_sif_li[x+1][W] = south_vc_wh_link_sif_lo[x][E];
       assign south_vc_wh_link_sif_li[x][E] = south_vc_wh_link_sif_lo[x+1][W];
     end
-
-
-    // connect wh dest coord
-    if (num_subarray_x_p == 1) begin
-      for (genvar i = 0; i < subarray_num_tiles_x_lp; i++) begin
-        assign south_vc_wh_dest_east_not_west_li[x][i] = (i < (subarray_num_tiles_x_lp/2))
-          ? south_tag_payload.wh_dest_east_not_west[0]
-          : south_tag_payload.wh_dest_east_not_west[1];
-      end
-    end
-    else begin
-      for (genvar i = 0; i < subarray_num_tiles_x_lp; i++) begin
-        assign south_vc_wh_dest_east_not_west_li[x][i] = (x < (num_subarray_x_p/2))
-          ? south_tag_payload.wh_dest_east_not_west[0]
-          : south_tag_payload.wh_dest_east_not_west[1];
-      end
-    end    
-
-
 
   end
 

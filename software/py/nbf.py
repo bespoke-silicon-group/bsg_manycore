@@ -51,6 +51,10 @@ class NBF:
     self.addr_width = config["addr_width"]
     self.origin_x_cord = config["origin_x_cord"]
     self.origin_y_cord = config["origin_y_cord"]
+    # physical number of pods
+    self.machine_pods_x = config["machine_pods_x"]
+    self.machine_pods_y = config["machine_pods_y"]
+    # number of pods to launch program.
     self.num_pods_x = config["num_pods_x"]  
     self.num_pods_y = config["num_pods_y"]
 
@@ -205,7 +209,39 @@ class NBF:
         self.print_nbf(x_eff, y_eff, CSR_TGO_X, self.tgo_x)
         self.print_nbf(x_eff, y_eff, CSR_TGO_Y, self.tgo_y)
 
- 
+
+  # initialize vcache wh dest cord
+  def init_vcache_wh_dest(self, pod_origin_x, pod_origin_y, px):
+    # top two MSBs are 1.
+    epa = 0b11 << (self.addr_width-2)
+
+    # if there is only one pod in x-direction, split the pod in half.
+    if self.machine_pods_x == 1:
+      for x in range(self.num_tiles_x):
+        east_not_west = 0 if x < (self.num_tiles_x/2) else 1
+        # north vcache
+        x_eff = pod_origin_x + x
+        y_eff = pod_origin_y - 1
+        self.print_nbf(x_eff, y_eff, epa, east_not_west)
+        # south vcache
+        x_eff = pod_origin_x + x
+        y_eff = pod_origin_y + self.num_tiles_y
+        self.print_nbf(x_eff, y_eff, epa, east_not_west)
+    # if there are more than one pod, then the left half of pods goes to west, and the right half to east.
+    else:
+      east_not_west = 0 if (px < (self.machine_pods_x/2)) else 1
+      for x in range(self.num_tiles_x):
+        # north vcache
+        x_eff = pod_origin_x + x
+        y_eff = pod_origin_y - 1
+        self.print_nbf(x_eff, y_eff, epa, east_not_west)
+        # south vcache
+        x_eff = pod_origin_x + x
+        y_eff = pod_origin_y + self.num_tiles_y
+        self.print_nbf(x_eff, y_eff, epa, east_not_west)
+
+
+
   # initialize icache
   def init_icache(self, pod_origin_x, pod_origin_y):
     for x in range(self.tg_dim_x):
@@ -362,6 +398,7 @@ class NBF:
         self.init_icache(pod_origin_x, pod_origin_y)
         self.init_dmem(pod_origin_x, pod_origin_y)
         self.set_pc_init_val(pod_origin_x, pod_origin_y)
+        self.init_vcache_wh_dest(pod_origin_x, pod_origin_y, px)
 
         if self.enable_dram != 1:
           self.disable_dram(pod_origin_x, pod_origin_y)
@@ -409,7 +446,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 18:
+  if len(sys.argv) == 20:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -428,8 +465,10 @@ if __name__ == "__main__":
       "enable_dram" : int(sys.argv[13]),
       "origin_x_cord" : int(sys.argv[14]),
       "origin_y_cord" : int(sys.argv[15]),
-      "num_pods_x" : int(sys.argv[16]),
-      "num_pods_y" : int(sys.argv[17])
+      "machine_pods_x" : int(sys.argv[16]),
+      "machine_pods_y" : int(sys.argv[17]),
+      "num_pods_x" : int(sys.argv[18]),
+      "num_pods_y" : int(sys.argv[19])
     }
 
     converter = NBF(config)
@@ -441,6 +480,7 @@ if __name__ == "__main__":
     command += "{cache_way} {cache_set} {cache_block_size} {dram_size} {max_epa_width} "
     command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram} "
     command += "{origin_x_cord} {origin_y_cord}"
+    command += "{machine_pods_x} {machine_pods_y}"
     command += "{num_pods_x} {num_pods_y}"
     print(command)
 
