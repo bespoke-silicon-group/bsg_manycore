@@ -44,5 +44,5 @@ clean:
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd *.vdb coverage* constfile.txt
 	-rm -rf build/ *.bc* *.ll*
 	-rm -rf lfs.c *.nbf *.csv *.png
-	-rm -rf dramsim3epoch.json pc_stats
+	-rm -rf dramsim3epoch.json pc_stats dramsim3.json dramsim3.txt dramsim3.tag.json
 	-rm -rf dis
