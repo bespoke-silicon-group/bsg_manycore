@@ -6,9 +6,8 @@ if __name__ == "__main__":
   num_pods_x = int(sys.argv[1])
   num_pods_y = int(sys.argv[2])
 
-  # each pod has two clients
-  # and one for io rtr.
-  num_clients = (num_pods_x*num_pods_y) + num_pods_x
+  # each pod has one client for reset
+  num_clients = (num_pods_x*num_pods_y)
   payload_width = 1 # reset
   lg_payload_width = int(math.ceil(math.log(payload_width+1,2)))
   max_payload_width = (1<<lg_payload_width)-1
@@ -29,9 +28,9 @@ if __name__ == "__main__":
     tg.send(masters=0b1, client_id=i, data_not_reset=1, length=payload_width, data=0b1)
 
   # Assert reset on io rtr
-  for i in range(num_pods_x):
-    client_id = (num_pods_y*num_pods_x) + i
-    tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=0b1)
+  #for i in range(num_pods_x):
+  #  client_id = (num_pods_y*num_pods_x) + i
+  #  tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=0b1)
 
   # De-assert reset on all pods
   for i in range(num_pods_y*num_pods_x):
@@ -39,9 +38,9 @@ if __name__ == "__main__":
 
 
   # De-Assert reset on io rtr
-  for i in range(num_pods_x):
-    client_id = (num_pods_y*num_pods_x) + i
-    tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=0b0)
+  #for i in range(num_pods_x):
+  #  client_id = (num_pods_y*num_pods_x) + i
+  #  tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=0b0)
 
 
   tg.wait(16)

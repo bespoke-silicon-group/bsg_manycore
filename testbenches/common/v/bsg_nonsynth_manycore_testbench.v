@@ -97,7 +97,6 @@ module bsg_nonsynth_manycore_testbench
   // BSG TAG MASTER
   logic tag_done_lo;
   bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0] pod_tags_lo;
-  bsg_tag_s [num_pods_x_p-1:0] io_tags_lo;
 
   bsg_nonsynth_manycore_tag_master #(
     .num_pods_x_p(num_pods_x_p)
@@ -109,7 +108,6 @@ module bsg_nonsynth_manycore_testbench
     
     ,.tag_done_o(tag_done_lo)
     ,.pod_tags_o(pod_tags_lo)
-    ,.io_tags_o(io_tags_lo)
   );   
   
   assign tag_done_o = tag_done_lo;
@@ -131,8 +129,8 @@ module bsg_nonsynth_manycore_testbench
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_manycore_ruche_x_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
-  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0] io_link_sif_li;
-  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0] io_link_sif_lo;
+  bsg_manycore_link_sif_s [S:N][(num_pods_x_p*num_tiles_x_p)-1:0] ver_link_sif_li;
+  bsg_manycore_link_sif_s [S:N][(num_pods_x_p*num_tiles_x_p)-1:0] ver_link_sif_lo;
   wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_li;
   wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_lo;
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_li;
@@ -181,8 +179,8 @@ module bsg_nonsynth_manycore_testbench
   ) DUT (
     .clk_i(clk_i)
 
-    ,.io_link_sif_i(io_link_sif_li)
-    ,.io_link_sif_o(io_link_sif_lo)
+    ,.ver_link_sif_i(ver_link_sif_li)
+    ,.ver_link_sif_o(ver_link_sif_lo)
 
     ,.wh_link_sif_i(wh_link_sif_li)
     ,.wh_link_sif_o(wh_link_sif_lo)
@@ -193,16 +191,53 @@ module bsg_nonsynth_manycore_testbench
     ,.ruche_link_i(ruche_link_li)
     ,.ruche_link_o(ruche_link_lo)
 
-
     ,.pod_tags_i(pod_tags_lo) 
-    ,.io_tags_i(io_tags_lo)
   );
 
 
+  // IO ROUTER
+  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_li;
+  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_lo;
+
+  for (genvar x = 0; x < num_pods_x_p*num_tiles_x_p; x++) begin: io_rtr_x
+    bsg_manycore_mesh_node #(
+      .x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.stub_p(4'b0100) // stub north
+    ) io_rtr (
+      .clk_i(clk_i)
+      ,.reset_i(reset_r)
+
+      ,.links_sif_i(io_link_sif_li[x][S:W])
+      ,.links_sif_o(io_link_sif_lo[x][S:W])
+
+      ,.proc_link_sif_i(io_link_sif_li[x][P])
+      ,.proc_link_sif_o(io_link_sif_lo[x][P])
+
+      ,.global_x_i(x_cord_width_p'(num_tiles_x_p+x))
+      ,.global_y_i(y_cord_width_p'(0))
+    );
+
+    // connect to pod array
+    assign ver_link_sif_li[N][x] = io_link_sif_lo[x][S];
+    assign io_link_sif_li[x][S] = ver_link_sif_lo[N][x];
+
+    // connect between io rtr
+    if (x < (num_pods_x_p*num_tiles_x_p)-1) begin
+      assign io_link_sif_li[x][E] = io_link_sif_lo[x+1][W];
+      assign io_link_sif_li[x+1][W] = io_link_sif_lo[x][E];
+    end
+  end
+
+
+
   // Host link connection
-  // connects to P-port of (x,y)=(0,1)
-  assign io_link_sif_li[0] = io_link_sif_i;
-  assign io_link_sif_o = io_link_sif_lo[0]; 
+  assign io_link_sif_li[0][P] = io_link_sif_i;
+  assign io_link_sif_o = io_link_sif_lo[0][P];
+
+
 
 
   //                              //
@@ -534,18 +569,60 @@ module bsg_nonsynth_manycore_testbench
   ////                        ////
 
 
-  // IO TIE OFFS
+  // IO P tie off
   for (genvar i = 1; i < num_pods_x_p*num_tiles_x_p; i++) begin
     bsg_manycore_link_sif_tieoff #(
       .addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
       ,.x_cord_width_p(x_cord_width_p)
       ,.y_cord_width_p(y_cord_width_p)
-    ) io_n_tieoff (
+    ) io_p_tieoff (
       .clk_i(clk_i)
       ,.reset_i(reset_r)
-      ,.link_sif_i(io_link_sif_lo[i])
-      ,.link_sif_o(io_link_sif_li[i])
+      ,.link_sif_i(io_link_sif_lo[i][P])
+      ,.link_sif_o(io_link_sif_li[i][P])
+    );
+  end
+
+  // IO west end tieoff
+  bsg_manycore_link_sif_tieoff #(
+    .addr_width_p(addr_width_p)
+    ,.data_width_p(data_width_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+  ) io_w_tieoff (
+    .clk_i(clk_i)
+    ,.reset_i(reset_r)
+    ,.link_sif_i(io_link_sif_lo[0][W])
+    ,.link_sif_o(io_link_sif_li[0][W])
+  );
+
+  // IO east end tieoff
+  bsg_manycore_link_sif_tieoff #(
+    .addr_width_p(addr_width_p)
+    ,.data_width_p(data_width_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+  ) io_e_tieoff (
+    .clk_i(clk_i)
+    ,.reset_i(reset_r)
+    ,.link_sif_i(io_link_sif_lo[(num_pods_x_p*num_tiles_x_p)-1][E])
+    ,.link_sif_o(io_link_sif_li[(num_pods_x_p*num_tiles_x_p)-1][E])
+  );
+
+
+  // SOUTH VER LINK TIE OFFS
+  for (genvar i = 0; i < num_pods_x_p*num_tiles_x_p; i++) begin
+    bsg_manycore_link_sif_tieoff #(
+      .addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+    ) ver_s_tieoff (
+      .clk_i(clk_i)
+      ,.reset_i(reset_r)
+      ,.link_sif_i(ver_link_sif_lo[S][i])
+      ,.link_sif_o(ver_link_sif_li[S][i])
     );
   end
 
@@ -614,6 +691,17 @@ module bsg_nonsynth_manycore_testbench
     end
   end
   
+
+
+
+
+
+
+
+
+//                  //
+//    PROFILERS     //
+//                  //
 
 if (enable_vcore_profiling_p) begin
   // vanilla core profiler
