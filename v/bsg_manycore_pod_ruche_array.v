@@ -30,7 +30,7 @@ module bsg_manycore_pod_ruche_array
     , parameter icache_entries_p="inv"
     , parameter icache_tag_width_p="inv"
 
-    , parameter num_vcache_rows_p="inv"
+    , parameter num_vcache_rows_p=1
     , parameter vcache_addr_width_p="inv"
     , parameter vcache_data_width_p="inv"
     , parameter vcache_ways_p="inv"
@@ -222,37 +222,29 @@ module bsg_manycore_pod_ruche_array
         assign ruche_link_li[y][x][E] = ruche_link_i[E][y];
       end
 
+      // connect ruche links between pods
+      if (x < num_pods_x_p-1) begin
+        // manycore
+        assign ruche_link_li[y][x][E] = ruche_link_lo[y][x+1][W];
+        assign ruche_link_li[y][x+1][W] = ruche_link_lo[y][x][E];;
 
-    end
-  end
-
-
-
-  // connect ruche links between pods
-  for (genvar i = 0; i < num_pods_y_p; i++) begin: rb_py
-    for (genvar j = 0; j < num_pods_x_p-1; j++) begin: rb_px
-      for (genvar k = 0; k < num_tiles_y_p; k++) begin: rb_y
-        assign ruche_link_li[i][j][E][k] = ruche_link_lo[i][j+1][W][k];
-        assign ruche_link_li[i][j+1][W][k] = ruche_link_lo[i][j][E][k];;
+        // vcache wh
+        for (genvar m = N; m <= S; m++) begin
+          assign wh_link_sif_li[y][x][m][E] = wh_link_sif_lo[y][x+1][m][W];
+          assign wh_link_sif_li[y][x+1][m][W] = wh_link_sif_lo[y][x][m][E];
+        end
       end
+
     end
   end
 
-
-  // connect wormhole ruche links between pods
-  for (genvar i = 0; i < num_pods_y_p; i++) begin: wrb_y
-    for (genvar j = 0; j < num_pods_x_p-1; j++) begin: wrb_x
-      for (genvar m = N; m <= S; m++) begin: wrb_tb
-        assign wh_link_sif_li[i][j][m][E] = wh_link_sif_lo[i][j+1][m][W];
-        assign wh_link_sif_li[i][j+1][m][W] = wh_link_sif_lo[i][j][m][E];
-      end
-    end
-  end
 
 
   // connect wormhole ruche links to the outside
   // (hardcoded for wh ruche factor 2)
   // For north vcaches, the vcache row orders are reversed, so that the inner vcache layers appear at index 0.
+
+  // north vc row
   for (genvar i = 0; i < num_pods_y_p; i++) begin
     for (genvar j = 0; j < num_vcache_rows_p; j++) begin
       // west out
@@ -273,6 +265,7 @@ module bsg_manycore_pod_ruche_array
     end
   end
 
+  // south vc row
   for (genvar i = 0; i < num_pods_y_p; i++) begin
     for (genvar j = 0; j < num_vcache_rows_p; j++) begin
       // west out
