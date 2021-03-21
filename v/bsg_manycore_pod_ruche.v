@@ -54,7 +54,7 @@ module bsg_manycore_pod_ruche
     , parameter wh_cord_width_p="inv"
     , parameter wh_len_width_p="inv"
     
-    , parameter reset_depth_p=2
+    , parameter reset_depth_p="inv"
 
     , parameter manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -124,7 +124,7 @@ module bsg_manycore_pod_ruche
   logic [num_subarray_x_p-1:0] reset_r;
   bsg_dff_chain #(
     .width_p(num_subarray_x_p)
-    ,.num_stages_p(reset_depth_p)
+    ,.num_stages_p(reset_depth_p-1)
   ) reset_dff (
     .clk_i(clk_i)
     ,.data_i({num_subarray_x_p{north_tag_payload.reset}})
