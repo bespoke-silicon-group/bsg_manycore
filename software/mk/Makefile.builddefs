@@ -89,6 +89,8 @@ RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
 RISCV_GCC_OPTS +=-Dbsg_pods_X=$(bsg_pods_X) -Dbsg_pods_Y=$(bsg_pods_Y)
+RISCV_GCC_OPTS +=-DVCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS}
+RISCV_GCC_OPTS +=-DVCACHE_CAPACITY_WORDS=$(shell expr $(BSG_MACHINE_GLOBAL_X) \* $(BSG_MACHINE_VCACHE_SET) \* $(BSG_MACHINE_VCACHE_WAY) \* $(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS) \* 2 \* $(BSG_MACHINE_NUM_VCACHE_ROWS))
 
 # IO_X/Y_INDEX indicates global physical coordinate where the host interface is attached.
 # This macros are required by the program to know where to send the finish/fail packets to the host.
@@ -300,7 +302,8 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) \
 		$(BSG_MACHINE_ORIGIN_X_CORD) $(BSG_MACHINE_ORIGIN_Y_CORD) \
 		$(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) \
-    $(bsg_pods_X) $(bsg_pods_Y) > $*.nbf
+    $(bsg_pods_X) $(bsg_pods_Y) \
+    $(BSG_MACHINE_NUM_VCACHE_ROWS) > $*.nbf
 
 
 %.bin:  %.hex

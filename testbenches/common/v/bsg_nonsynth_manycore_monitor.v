@@ -43,10 +43,14 @@ module bsg_nonsynth_manycore_monitor
 
   int status;
   int max_cycle;
-  int num_pods;   // number of pods running the SPMD program. The simulation can terminate if it has received finish packet from all the pods.
+  int num_finish;   // Number of finish packets needs to be received to end the simulation.
+                    // By default, number of pods running the SPMD program. Each pod sends one finish packet.
+                    // However, you can set a different number, depending on the nature of the spmd program.
+                    // For example, you can require a finish packet from each tile in 4x4 tile-group spmd program.
+                    // In  that case, you would set num_finish to 16. this helps with not requiring barrier to synchronize task completion of all tiles.
   initial begin
     status = $value$plusargs("max_cycle=%d", max_cycle);
-    status = $value$plusargs("num_pods=%d", num_pods);
+    status = $value$plusargs("num_finish=%d", num_finish);
     if (max_cycle == 0) begin
       max_cycle = 1000000; // default
     end
@@ -56,7 +60,7 @@ module bsg_nonsynth_manycore_monitor
   integer finish_count;
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
-      if (finish_count == num_pods) begin
+      if (finish_count == num_finish) begin
         $display("[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from all pods, time=%0t", $time);
         $finish;
       end

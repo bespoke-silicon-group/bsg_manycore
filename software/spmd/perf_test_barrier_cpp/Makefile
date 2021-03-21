@@ -1,4 +1,4 @@
-TRACE=1
+TRACE=0
 
 all: main.run
 

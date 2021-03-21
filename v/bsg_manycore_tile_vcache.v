@@ -16,6 +16,8 @@ module bsg_manycore_tile_vcache
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
 
+    , parameter num_tiles_y_p="inv"
+
     , parameter vcache_addr_width_p="inv"
     , parameter vcache_data_width_p="inv"
     , parameter vcache_ways_p="inv"
@@ -34,6 +36,8 @@ module bsg_manycore_tile_vcache
     , parameter req_fifo_els_p=4
 
     , parameter lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
+
+    , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
     , parameter manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -106,6 +110,8 @@ module bsg_manycore_tile_vcache
 
   assign global_x_o = global_x_r;
   assign global_y_o = y_cord_width_p'(global_y_r+1);
+
+
 
   // mesh router
   // vcache connects to P
@@ -276,7 +282,7 @@ module bsg_manycore_tile_vcache
     // concentrator id
     // lower bits come from lower bits of global_x
     // upper bits come from whether its north or south vc.
-    ,.my_wh_cid_i({~global_y_r[0], global_x_r[0+:lg_wh_ruche_factor_lp]})
+    ,.my_wh_cid_i({~global_y_r[y_subcord_width_lp-1], global_x_r[0+:lg_wh_ruche_factor_lp]})
   );
  
 

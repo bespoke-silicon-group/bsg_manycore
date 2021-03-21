@@ -18,6 +18,7 @@ module bsg_manycore_proc_vanilla
     , parameter icache_entries_p = "inv"
 
     , parameter dmem_size_p = "inv"
+    , parameter num_vcache_rows_p = "inv"
     , parameter vcache_size_p = "inv"
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p = "inv"
@@ -256,6 +257,7 @@ module bsg_manycore_proc_vanilla
     ,.y_cord_width_p(y_cord_width_p)
     ,.pod_x_cord_width_p(pod_x_cord_width_p)
     ,.pod_y_cord_width_p(pod_y_cord_width_p)
+    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)

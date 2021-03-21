@@ -170,7 +170,6 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_synth.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_hard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.v
-VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/hash_function.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_array.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche.v
