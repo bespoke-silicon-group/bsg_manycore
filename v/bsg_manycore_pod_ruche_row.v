@@ -86,8 +86,6 @@ module bsg_manycore_pod_ruche_row
     , input  [E:W][num_tiles_y_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_i
     , output [E:W][num_tiles_y_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_o
 
-    , input bsg_tag_s [num_pods_x_p-1:0] pod_tags_i
-
     , input [num_pods_x_p-1:0][num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_i
     , input [num_pods_x_p-1:0][num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_i
   );

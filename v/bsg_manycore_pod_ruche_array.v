@@ -192,7 +192,6 @@ module bsg_manycore_pod_ruche_array
 
       ,.wh_link_sif_i(wh_link_sif_li[y])
       ,.wh_link_sif_o(wh_link_sif_lo[y])
-      ,.pod_tags_i(pod_tags_i[y])
 
       ,.global_x_i(global_x_li[y])
       ,.global_y_i(global_y_li[y])
