@@ -4,8 +4,8 @@
 #include "bsg_barrier.h"
 //---------------------------------------------------------
 
-
-// MBT: This test performs 25 barriers in a row.
+#define N 10
+// MBT: This test performs N barriers in a row.
 //      It demonstrates that bsg_barrier_wait, while never very efficient
 //      is horribly inefficient for large numbers of tiles. This is because the internal
 //      implementation of bsg barrier essentially uses spinlocks
@@ -30,7 +30,7 @@ int main() {
 
         id = bsg_x_y_to_id(bsg_x, bsg_y);
 
-	for (int i = 0; i < 25; i++)
+	for (int i = 0; i < N; i++)
 	  {
 	    if (bsg_x+bsg_y == 0)
 	      bsg_print_time();

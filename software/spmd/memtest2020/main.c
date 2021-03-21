@@ -24,31 +24,35 @@ int main()
 
   int idx;
   int* dram_ptr = &data;
-  for (int n = 1; n < 21; n++)
+
+  for (int k = 0; k < 2; k++)
   {
-    int stride = get_stride(n);
+    for (int n = 1; n < 21; n++)
+    {
+      int stride = get_stride(n);
   
-    // store
-    idx = 0;
-    for (int i = 0; i < N; i++)
-    {
-      dram_ptr[idx] = i;
-      idx += stride;
-    }
+      // store
+      idx = 0;
+      for (int i = 0; i < N; i++)
+      {
+        dram_ptr[idx] = i;
+        idx += stride;
+      }
 
-    // load
-    int load_val[N];
-    idx = 0;
-    for (int i = 0; i < N; i++)
-    {
-      load_val[i] = dram_ptr[idx];
-      idx += stride;
-    }
+      // load
+      int load_val[N];
+      idx = 0;
+      for (int i = 0; i < N; i++)
+      {
+        load_val[i] = dram_ptr[idx];
+        idx += stride;
+      }
 
-    // validate
-    for (int i = 0; i < N; i++)
-    {
-      if (load_val[i] != i) bsg_fail();
+      // validate
+      for (int i = 0; i < N; i++)
+      {
+        if (load_val[i] != i) bsg_fail();
+      }
     }
   }
 

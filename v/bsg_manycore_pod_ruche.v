@@ -36,7 +36,8 @@ module bsg_manycore_pod_ruche
     , parameter dmem_size_p="inv"
     , parameter icache_entries_p="inv"
     , parameter icache_tag_width_p="inv"
-   
+ 
+    , parameter num_vcache_rows_p="inv"  
     , parameter vcache_addr_width_p="inv" 
     , parameter vcache_data_width_p="inv" 
     , parameter vcache_ways_p="inv"
@@ -85,13 +86,14 @@ module bsg_manycore_pod_ruche
 
 
     // vcache
-    , input  [E:W][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] north_wh_link_sif_i
-    , output [E:W][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] north_wh_link_sif_o
+    , input  [E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] north_wh_link_sif_i
+    , output [E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] north_wh_link_sif_o
     , input bsg_tag_s north_bsg_tag_i
 
 
-    , input  [E:W][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] south_wh_link_sif_i
-    , output [E:W][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] south_wh_link_sif_o
+    , input  [E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] south_wh_link_sif_i
+    , output [E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] south_wh_link_sif_o
+
 
     // pod cord (should be all same value for all columns)
     , input [num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_i
@@ -133,8 +135,8 @@ module bsg_manycore_pod_ruche
   // vcache row (north)
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] north_vc_reset_li;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] north_vc_reset_lo;
-  wh_link_sif_s [num_subarray_x_p-1:0][E:W][wh_ruche_factor_p-1:0] north_vc_wh_link_sif_li;
-  wh_link_sif_s [num_subarray_x_p-1:0][E:W][wh_ruche_factor_p-1:0] north_vc_wh_link_sif_lo;
+  wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] north_vc_wh_link_sif_li;
+  wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] north_vc_wh_link_sif_lo;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] north_vc_ver_link_sif_li;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] north_vc_ver_link_sif_lo;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][x_cord_width_p-1:0] north_vc_global_x_li;
@@ -156,6 +158,7 @@ module bsg_manycore_pod_ruche
 
       ,.subarray_num_tiles_x_p(subarray_num_tiles_x_lp)
 
+      ,.num_vcache_rows_p(num_vcache_rows_p)
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_data_width_p(vcache_data_width_p)
       ,.vcache_ways_p(vcache_ways_p)
@@ -252,6 +255,8 @@ module bsg_manycore_pod_ruche
         .dmem_size_p(dmem_size_p)
         ,.icache_entries_p(icache_entries_p)
         ,.icache_tag_width_p(icache_tag_width_p)
+
+        ,.num_vcache_rows_p(num_vcache_rows_p)
         ,.vcache_size_p(vcache_size_p)
         ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
         ,.vcache_sets_p(vcache_sets_p)
@@ -350,8 +355,8 @@ module bsg_manycore_pod_ruche
 
   // vcache row (south)
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] south_vc_reset_li;
-  wh_link_sif_s [num_subarray_x_p-1:0][E:W][wh_ruche_factor_p-1:0] south_vc_wh_link_sif_li;
-  wh_link_sif_s [num_subarray_x_p-1:0][E:W][wh_ruche_factor_p-1:0] south_vc_wh_link_sif_lo;
+  wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] south_vc_wh_link_sif_li;
+  wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] south_vc_wh_link_sif_lo;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] south_vc_ver_link_sif_li;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] south_vc_ver_link_sif_lo;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][x_cord_width_p-1:0] south_vc_global_x_li;
@@ -371,6 +376,7 @@ module bsg_manycore_pod_ruche
 
       ,.subarray_num_tiles_x_p(subarray_num_tiles_x_lp)
 
+      ,.num_vcache_rows_p(num_vcache_rows_p)
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_data_width_p(vcache_data_width_p)
       ,.vcache_ways_p(vcache_ways_p)

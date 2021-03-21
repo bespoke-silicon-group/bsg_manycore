@@ -25,6 +25,7 @@ module spmd_testbench();
   parameter icache_tag_width_p = 12;
   parameter ruche_factor_X_p    = `BSG_MACHINE_RUCHE_FACTOR_X;
 
+  parameter num_vcache_rows_p = `BSG_MACHINE_NUM_VCACHE_ROWS;
   parameter vcache_data_width_p = data_width_p;
   parameter vcache_sets_p = `BSG_MACHINE_VCACHE_SET;
   parameter vcache_ways_p = `BSG_MACHINE_VCACHE_WAY;
@@ -32,10 +33,12 @@ module spmd_testbench();
   parameter vcache_dma_data_width_p = `BSG_MACHINE_VCACHE_DMA_DATA_WIDTH; // in bits
   parameter vcache_size_p = vcache_sets_p*vcache_ways_p*vcache_block_size_in_words_p;
   parameter vcache_addr_width_p=(addr_width_p-1+`BSG_SAFE_CLOG2(data_width_p>>3));  // in bytes
+  parameter num_vcaches_per_channel_p = `BSG_MACHINE_NUM_VCACHES_PER_CHANNEL;  
+
 
   parameter wh_flit_width_p = vcache_dma_data_width_p;
   parameter wh_ruche_factor_p = 2;
-  parameter wh_cid_width_p = `BSG_SAFE_CLOG2(2*wh_ruche_factor_p); // north + south row of vcaches
+  parameter wh_cid_width_p = `BSG_SAFE_CLOG2(2*wh_ruche_factor_p); // no concentration in this testbench; cid is ignored.
   parameter wh_len_width_p = `BSG_SAFE_CLOG2(1+(vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)); // header + addr + data
   parameter wh_cord_width_p = x_cord_width_p;
 
@@ -88,6 +91,7 @@ module spmd_testbench();
     ,.num_subarray_x_p(num_subarray_x_p)
     ,.num_subarray_y_p(num_subarray_y_p)
 
+    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_data_width_p(vcache_data_width_p)
     ,.vcache_sets_p(vcache_sets_p)
     ,.vcache_ways_p(vcache_ways_p)
@@ -95,6 +99,7 @@ module spmd_testbench();
     ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_addr_width_p(vcache_addr_width_p)
+    ,.num_vcaches_per_channel_p(num_vcaches_per_channel_p)
 
     ,.wh_flit_width_p(wh_flit_width_p)
     ,.wh_ruche_factor_p(wh_ruche_factor_p)

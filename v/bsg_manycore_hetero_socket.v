@@ -20,6 +20,7 @@
                           ,.data_width_p(data_width_p)                                 \
                           ,.addr_width_p(addr_width_p)                                 \
                           ,.dmem_size_p (dmem_size_p )                                 \
+                          ,.num_vcache_rows_p(num_vcache_rows_p)                       \
                           ,.vcache_size_p(vcache_size_p)                               \
                           ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p) \
                           ,.vcache_sets_p(vcache_sets_p)                               \
@@ -53,6 +54,7 @@ module bsg_manycore_hetero_socket
     , parameter dmem_size_p = "inv"
     , parameter icache_entries_p = "inv" // in words
     , parameter icache_tag_width_p = "inv"
+    , parameter num_vcache_rows_p = "inv"
     , parameter vcache_size_p = "inv"
     , parameter debug_p = 0
     , parameter max_out_credits_p = 32

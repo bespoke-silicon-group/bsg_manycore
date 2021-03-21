@@ -9,6 +9,11 @@
  *      2) Global
  *      3) Tile-Group
  *
+ *    Modifying this mapping requires the same change in the following files.
+ *    - Cuda-lite
+ *    https://github.com/bespoke-silicon-group/bsg_replicant/blob/master/libraries/bsg_manycore_eva.cpp
+ *    - SPMD testbench
+ *    https://github.com/bespoke-silicon-group/bsg_manycore/blob/master/software/py/nbf.py
  */
 
 
@@ -26,6 +31,7 @@ module bsg_manycore_eva_to_npa
     , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
 
+    , parameter num_vcache_rows_p = "inv"
     , parameter vcache_block_size_in_words_p="inv"  // block size in vcache
     , parameter vcache_size_p="inv" // vcache capacity in words
     , parameter vcache_sets_p="inv" // number of sets in vcache
@@ -70,72 +76,89 @@ module bsg_manycore_eva_to_npa
   wire is_global_addr = global_addr.remote == 2'b01;
   wire is_tile_group_addr = tile_group_addr.remote == 3'b001;
 
-  assign is_invalid_addr_o = ~(is_dram_addr | is_global_addr | is_tile_group_addr);
 
   
   // DRAM hash function
-  localparam hash_bank_input_width_lp = data_width_p-1-2-vcache_word_offset_width_lp;
-  localparam hash_bank_index_width_lp = $clog2(((2**hash_bank_input_width_lp)+(2*num_tiles_x_p)-1)/(num_tiles_x_p*2));
+  // DRAM space is striped across vcaches at a cache line granularity.
+  // Striping starts from the north vcaches, and alternates between north and south from inner layers to outer layers.
+  localparam vcache_row_id_width_lp = `BSG_SAFE_CLOG2(2*num_vcache_rows_p);
+  localparam dram_index_width_lp = data_width_p-1-2-vcache_word_offset_width_lp-x_subcord_width_lp-vcache_row_id_width_lp;
 
-  wire [hash_bank_input_width_lp-1:0] hash_bank_input =
-    eva_i[2+vcache_word_offset_width_lp+:hash_bank_input_width_lp];
+  wire [vcache_row_id_width_lp-1:0] vcache_row_id = eva_i[2+vcache_word_offset_width_lp+x_subcord_width_lp+:vcache_row_id_width_lp];
+  wire [x_subcord_width_lp-1:0] dram_x_subcord = eva_i[2+vcache_word_offset_width_lp+:x_subcord_width_lp];
+  wire [y_subcord_width_lp-1:0] dram_y_subcord;
+  wire [pod_y_cord_width_p-1:0] dram_pod_y_cord = vcache_row_id[0]
+    ? pod_y_cord_width_p'(pod_y_i+1)
+    : pod_y_cord_width_p'(pod_y_i-1);
 
-  logic [x_subcord_width_lp:0] hash_bank_lo;  // {bot_not_top, x_cord}
-  logic [hash_bank_index_width_lp-1:0] hash_bank_index_lo;
+  if (num_vcache_rows_p == 1) begin
+    assign dram_y_subcord = {y_subcord_width_lp{~vcache_row_id[0]}};
+  end
+  else begin
+    assign dram_y_subcord = {
+      {(y_subcord_width_lp+1-vcache_row_id_width_lp){~vcache_row_id[0]}},
+      (vcache_row_id[0]
+        ?  vcache_row_id[vcache_row_id_width_lp-1:1]
+        : ~vcache_row_id[vcache_row_id_width_lp-1:1])
+    };
+  end
 
-  hash_function #(
-    .banks_p(num_tiles_x_p*2)
-    ,.width_p(hash_bank_input_width_lp)
-    ,.vcache_sets_p(vcache_sets_p)
-  ) hashb (
-    .i(hash_bank_input)
-    ,.bank_o(hash_bank_lo)
-    ,.index_o(hash_bank_index_lo)
-  );
+  wire [dram_index_width_lp-1:0] dram_index = eva_i[2+vcache_word_offset_width_lp+x_subcord_width_lp+vcache_row_id_width_lp+:dram_index_width_lp];
+
+
+  // NO DRAM mode hash function
+  wire [x_subcord_width_lp-1:0] no_dram_x_subcord = eva_i[2+lg_vcache_size_lp+:x_subcord_width_lp];
+  wire [vcache_row_id_width_lp-1:0] no_dram_vcache_row_id = eva_i[2+lg_vcache_size_lp+x_subcord_width_lp+:vcache_row_id_width_lp];
+  wire [y_subcord_width_lp-1:0] no_dram_y_subcord;
+  wire [pod_y_cord_width_p-1:0] no_dram_pod_y_cord = no_dram_vcache_row_id[0]
+    ? pod_y_cord_width_p'(pod_y_i+1)
+    : pod_y_cord_width_p'(pod_y_i-1);
+
+  if (num_vcache_rows_p == 1) begin
+    assign no_dram_y_subcord = {y_subcord_width_lp{~no_dram_vcache_row_id[0]}};
+  end
+  else begin
+    assign no_dram_y_subcord = {
+      {(y_subcord_width_lp+1-vcache_row_id_width_lp){~no_dram_vcache_row_id[0]}},
+      (no_dram_vcache_row_id[0]
+        ?  no_dram_vcache_row_id[vcache_row_id_width_lp-1:1]
+        : ~no_dram_vcache_row_id[vcache_row_id_width_lp-1:1])
+    };
+  end
 
 
 
+  // EVA->NPA table
   always_comb begin
+    is_invalid_addr_o = 1'b0;
+
     if (is_dram_addr) begin
       if (dram_enable_i) begin
         // DRAM enabled
-        y_cord_o = hash_bank_lo[x_subcord_width_lp]
-          ? {pod_y_cord_width_p'(pod_y_i+1), {y_subcord_width_lp{1'b0}}}
-          : {pod_y_cord_width_p'(pod_y_i-1), {y_subcord_width_lp{1'b1}}};
-        x_cord_o = {pod_x_i, hash_bank_lo[0+:x_subcord_width_lp]};
+        y_cord_o = {dram_pod_y_cord, dram_y_subcord};
+        x_cord_o = {pod_x_i, dram_x_subcord};
 
         epa_o = {
           1'b0,
-          {(addr_width_p-1-vcache_word_offset_width_lp-hash_bank_index_width_lp){1'b0}},
-          hash_bank_index_lo,
+          {(addr_width_p-1-dram_index_width_lp-vcache_word_offset_width_lp){1'b0}},
+          dram_index,
           eva_i[2+:vcache_word_offset_width_lp]
         };
 
       end
       else begin
-        // DRAM disabled.
-        //if (eva_i[30]) begin
-        //  y_cord_o = (y_cord_width_p)'(1);
-        //  x_cord_o = '0;
-        //  epa_o = {1'b1, eva_i[2+:addr_width_p-1]}; // HOST DRAM address
-        //end
-        //else begin
-
-    
         // DRAM disabled mode is used when vcaches are used as block RAMs,
         // in which case the tags will be manually written in the vcaches
         // to prevent cache miss.
         // striping is disabled.
-        y_cord_o = eva_i[2+lg_vcache_size_lp+x_subcord_width_lp]
-          ? {pod_y_cord_width_p'(pod_y_i+1), {y_subcord_width_lp{1'b0}}}
-          : {pod_y_cord_width_p'(pod_y_i-1), {y_subcord_width_lp{1'b1}}};
-        x_cord_o = {pod_x_i, eva_i[2+lg_vcache_size_lp+:x_subcord_width_lp]};
+        y_cord_o = {no_dram_pod_y_cord, no_dram_y_subcord};
+        x_cord_o = {pod_x_i, no_dram_x_subcord};
+
         epa_o = {
           1'b0,
           {(addr_width_p-1-lg_vcache_size_lp){1'b0}},
           eva_i[2+:lg_vcache_size_lp]
         };
-        //end
       end
     end
     else if (is_global_addr) begin
@@ -157,6 +180,7 @@ module bsg_manycore_eva_to_npa
       y_cord_o = '0;
       x_cord_o = '0;
       epa_o = '0;
+      is_invalid_addr_o = 1'b1;
     end
   end
 

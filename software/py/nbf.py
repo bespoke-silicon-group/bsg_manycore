@@ -3,16 +3,18 @@
 #
 #   ELF (.riscv) to Network Boot Format (.nbf)
 #
-
+#   When there is a EVA to NPA mapping change in bsg_manycore_eva_to_npa.v,
+#   this file should also be updated accordingly.
+#
+#   https://github.com/bespoke-silicon-group/bsg_manycore/blob/master/v/bsg_manycore_eva_to_npa.v
+#
+#
 
 import sys
 import math
 import os
 import subprocess
 
-#
-#   NBF
-#
 
 ################################
 # EPA Constants
@@ -57,6 +59,7 @@ class NBF:
     # number of pods to launch program.
     self.num_pods_x = config["num_pods_x"]  
     self.num_pods_y = config["num_pods_y"]
+    self.num_vcache_rows = config["num_vcache_rows"]
 
     # software setting
     self.tgo_x = config["tgo_x"]
@@ -217,28 +220,30 @@ class NBF:
 
     # if there is only one pod in x-direction, split the pod in half.
     if self.machine_pods_x == 1:
-      for x in range(self.num_tiles_x):
-        east_not_west = 0 if x < (self.num_tiles_x/2) else 1
-        # north vcache
-        x_eff = pod_origin_x + x
-        y_eff = pod_origin_y - 1
-        self.print_nbf(x_eff, y_eff, epa, east_not_west)
-        # south vcache
-        x_eff = pod_origin_x + x
-        y_eff = pod_origin_y + self.num_tiles_y
-        self.print_nbf(x_eff, y_eff, epa, east_not_west)
+      for r in range(self.num_vcache_rows):
+        for x in range(self.num_tiles_x):
+          east_not_west = 0 if x < (self.num_tiles_x/2) else 1
+          # north vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y - 1 - r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
+          # south vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y + self.num_tiles_y + r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
     # if there are more than one pod, then the left half of pods goes to west, and the right half to east.
     else:
       east_not_west = 0 if (px < (self.machine_pods_x/2)) else 1
-      for x in range(self.num_tiles_x):
-        # north vcache
-        x_eff = pod_origin_x + x
-        y_eff = pod_origin_y - 1
-        self.print_nbf(x_eff, y_eff, epa, east_not_west)
-        # south vcache
-        x_eff = pod_origin_x + x
-        y_eff = pod_origin_y + self.num_tiles_y
-        self.print_nbf(x_eff, y_eff, epa, east_not_west)
+      for r in range(self.num_vcache_rows):
+        for x in range(self.num_tiles_x):
+          # north vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y - 1 - r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
+          # south vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y + self.num_tiles_y + r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
 
 
 
@@ -299,14 +304,15 @@ class NBF:
          
  
   # init DRAM
-  def init_dram(self, pod_origin_x, pod_origin_y, enable_dram): 
+  def init_dram(self, pod_origin_x, pod_origin_y): 
     cache_size = self.cache_size
     lg_x = self.safe_clog2(self.num_tiles_x)
     lg_block_size = self.safe_clog2(self.cache_block_size)
     lg_set = self.safe_clog2(self.cache_set)
-    index_width = self.addr_width-1-lg_block_size-1
+    lg_y = self.safe_clog2(2*self.num_vcache_rows)
+    index_width = 32-1-2-lg_block_size-lg_x-lg_y
 
-    if enable_dram == 1:
+    if self.enable_dram == 1:
       # dram enabled:
       # EVA space is striped across top and bottom vcaches.
       if self.num_tiles_x & (self.num_tiles_x-1) == 0:
@@ -314,13 +320,13 @@ class NBF:
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
           x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + pod_origin_x
-          y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x)
-          index = self.select_bits(addr, lg_block_size+lg_x+1, lg_block_size+lg_x+1+index_width-1)
+          y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
+          index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
           epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
-          if y == 0:
-            self.print_nbf(x, pod_origin_y-1, epa, self.dram_data[k]) #top
+          if y % 2 == 0:
+            self.print_nbf(x, pod_origin_y-1-(y/2), epa, self.dram_data[k]) #top
           else:
-            self.print_nbf(x, pod_origin_y+self.num_tiles_y, epa, self.dram_data[k]) #bot
+            self.print_nbf(x, pod_origin_y+self.num_tiles_y+(y/2), epa, self.dram_data[k]) #bot
       else:
         print("hash function not supported for x={0}.")
         sys.exit()
@@ -404,7 +410,7 @@ class NBF:
           self.disable_dram(pod_origin_x, pod_origin_y)
           self.init_vcache(pod_origin_x, pod_origin_y)
 
-        self.init_dram(pod_origin_x, pod_origin_y, self.enable_dram)
+        self.init_dram(pod_origin_x, pod_origin_y)
 
 
     # wait for all store credits to return.
@@ -446,7 +452,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 20:
+  if len(sys.argv) == 21:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -468,7 +474,8 @@ if __name__ == "__main__":
       "machine_pods_x" : int(sys.argv[16]),
       "machine_pods_y" : int(sys.argv[17]),
       "num_pods_x" : int(sys.argv[18]),
-      "num_pods_y" : int(sys.argv[19])
+      "num_pods_y" : int(sys.argv[19]),
+      "num_vcache_rows" : int(sys.argv[20])
     }
 
     converter = NBF(config)
@@ -482,5 +489,6 @@ if __name__ == "__main__":
     command += "{origin_x_cord} {origin_y_cord}"
     command += "{machine_pods_x} {machine_pods_y}"
     command += "{num_pods_x} {num_pods_y}"
+    command += "{num_vcache_rows}"
     print(command)
 

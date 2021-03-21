@@ -3,6 +3,9 @@ bsg_pods_X ?= 1
 bsg_pods_Y ?= 1
 bsg_pods_size ?= $(call bsg-times-fn,$(bsg_pods_X),$(bsg_pods_Y))
 
+# By default, one tile-group running each pod sends exactly one finish packet to the host.
+# The host will wait for the total number of finish packets equal to the number of pods that has spmd programs launched.
+NUM_FINISH ?= $(bsg_pods_size)
 
 # tile-group origin
 # relative to the top-left tile in a pod

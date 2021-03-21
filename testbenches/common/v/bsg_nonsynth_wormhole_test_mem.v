@@ -3,20 +3,24 @@ module bsg_nonsynth_wormhole_test_mem
   #(parameter vcache_data_width_p = "inv"
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_dma_data_width_p="inv"
-    
     , parameter num_vcaches_p = "inv" // how many vcaches are mapped to this test mem?
     , parameter lg_num_vcaches_lp = `BSG_SAFE_CLOG2(num_vcaches_p)
-    
+   
     , parameter wh_cid_width_p="inv"
     , parameter wh_flit_width_p="inv"
     , parameter wh_cord_width_p="inv"
     , parameter wh_len_width_p="inv"
     , parameter wh_ruche_factor_p="inv"
 
+    // determines address hashing based on cid and src_cord
+    , parameter no_concentration_p=0
+
     , parameter data_len_lp = (vcache_data_width_p*vcache_block_size_in_words_p/vcache_dma_data_width_p)
     , parameter longint unsigned mem_size_p = "inv"   // size of memory in bytes
     , parameter mem_els_lp = mem_size_p/(vcache_dma_data_width_p/8)
     , parameter mem_addr_width_lp = `BSG_SAFE_CLOG2(mem_els_lp)
+
+    , parameter lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
 
     , parameter count_width_lp = `BSG_SAFE_CLOG2(data_len_lp)
 
@@ -36,19 +40,18 @@ module bsg_nonsynth_wormhole_test_mem
  
   // memory
   logic mem_we;
-  logic [mem_addr_width_lp-1:0] mem_w_addr;
-  logic [mem_addr_width_lp-1:0] mem_r_addr;
+  logic [mem_addr_width_lp-1:0] mem_addr;
   logic [vcache_dma_data_width_p-1:0] mem_w_data;
   logic [vcache_dma_data_width_p-1:0] mem_r_data;
   logic [vcache_dma_data_width_p-1:0] mem_r [mem_els_lp-1:0];
 
   always_ff @ (posedge clk_i) begin
     if (mem_we) begin
-      mem_r[mem_w_addr] <= mem_w_data;
+      mem_r[mem_addr] <= mem_w_data;
     end
   end
 
-  assign mem_r_data = mem_r[mem_r_addr];
+  assign mem_r_data = mem_r[mem_addr];
 
 
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
@@ -115,19 +118,6 @@ module bsg_nonsynth_wormhole_test_mem
  
     mem_we = 1'b0;
     mem_w_data = wh_link_sif_in.data;
-    mem_w_addr = {
-      (1)'(cid_r/wh_ruche_factor_p), // determine north or south vcache
-      src_cord_r[0+:(lg_num_vcaches_lp-1)],
-      addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
-      count_lo
-    };
-
-    mem_r_addr = {
-      (1)'(cid_r/wh_ruche_factor_p), // determine north or south vcache
-      src_cord_r[0+:(lg_num_vcaches_lp-1)],
-      addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
-      count_lo
-    };
 
    
     case (mem_state_r)
@@ -196,6 +186,27 @@ module bsg_nonsynth_wormhole_test_mem
 
 
   end
+
+  
+  // address hashing
+  if (no_concentration_p) begin
+    // no concentration. each wh ruche link gets a test_mem.
+    assign mem_addr = {
+      src_cord_r[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp],
+      addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
+      count_lo
+    };
+  end
+  else begin
+    // wh ruche links coming from top and bottom caches are concentrated into one link.
+    assign mem_addr = {
+      (1)'(cid_r/wh_ruche_factor_p), // determine north or south vcache
+      src_cord_r[0+:(lg_num_vcaches_lp-1)],
+      addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
+      count_lo
+    };
+  end
+
 
 
 

@@ -1,4 +1,10 @@
-TRACE=0
+MAX_CYCLES=100000000
+NUM_FINISH=32 # each tile sends a finish packet.
+
+bsg_tiles_org_X ?=0
+bsg_tiles_org_Y ?=3
+bsg_tiles_X=16
+bsg_tiles_Y=2
 
 all: main.run
 
