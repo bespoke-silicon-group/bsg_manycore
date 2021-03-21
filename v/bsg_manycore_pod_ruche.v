@@ -74,6 +74,7 @@ module bsg_manycore_pod_ruche
   (
     // manycore 
     input clk_i
+    , input [num_tiles_x_p-1:0] reset_i
 
     , input  [E:W][num_tiles_y_p-1:0][manycore_link_sif_width_lp-1:0] hor_link_sif_i
     , output [E:W][num_tiles_y_p-1:0][manycore_link_sif_width_lp-1:0] hor_link_sif_o
@@ -88,8 +89,6 @@ module bsg_manycore_pod_ruche
     // vcache
     , input  [E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] north_wh_link_sif_i
     , output [E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] north_wh_link_sif_o
-    , input bsg_tag_s north_bsg_tag_i
-
 
     , input  [E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] south_wh_link_sif_i
     , output [E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] south_wh_link_sif_o
@@ -106,34 +105,7 @@ module bsg_manycore_pod_ruche
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
 
 
-  // bsg tag clients
-  bsg_manycore_pod_tag_payload_s north_tag_payload;
-
-  bsg_tag_client #(
-    .width_p($bits(bsg_manycore_pod_tag_payload_s))
-    ,.default_p(0)
-  ) btc_n (
-    .bsg_tag_i(north_bsg_tag_i)
-    ,.recv_clk_i(clk_i)
-    ,.recv_reset_i(1'b0)
-    ,.recv_new_r_o()
-    ,.recv_data_r_o(north_tag_payload)
-  );
-
-  // flop north_tag_payload.reset for each column of subarray.
-  logic [num_subarray_x_p-1:0] reset_r;
-  bsg_dff_chain #(
-    .width_p(num_subarray_x_p)
-    ,.num_stages_p(reset_depth_p-1)
-  ) reset_dff (
-    .clk_i(clk_i)
-    ,.data_i({num_subarray_x_p{north_tag_payload.reset}})
-    ,.data_o(reset_r)
-  );
-
-
   // vcache row (north)
-  logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] north_vc_reset_li;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] north_vc_reset_lo;
   wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] north_vc_wh_link_sif_li;
   wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] north_vc_wh_link_sif_lo;
@@ -174,7 +146,7 @@ module bsg_manycore_pod_ruche
     ) north_vc_row (
       .clk_i(clk_i)
 
-      ,.reset_i({subarray_num_tiles_x_lp{reset_r[x]}})
+      ,.reset_i(reset_i[(subarray_num_tiles_x_lp*x)+:subarray_num_tiles_x_lp])
       ,.reset_o(north_vc_reset_lo[x])
 
       ,.wh_link_sif_i(north_vc_wh_link_sif_li[x])
@@ -189,8 +161,6 @@ module bsg_manycore_pod_ruche
       ,.global_y_o(north_vc_global_y_lo[x])
     );
 
-    // connect reset
-    assign north_vc_reset_li[x] = {subarray_num_tiles_x_lp{reset_r[x]}};
 
     // connect coordinates
     assign north_vc_global_x_li[x] = global_x_i[x*subarray_num_tiles_x_lp+:subarray_num_tiles_x_lp];

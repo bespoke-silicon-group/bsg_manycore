@@ -68,6 +68,7 @@ module bsg_manycore_pod_ruche_row
   )
   (
     input clk_i
+    , input [num_pods_x_p-1:0][num_tiles_x_p-1:0] reset_i
     
     // vertical router links 
     , input  [S:N][num_pods_x_p-1:0][num_tiles_x_p-1:0][manycore_link_sif_width_lp-1:0] ver_link_sif_i
@@ -147,7 +148,7 @@ module bsg_manycore_pod_ruche_row
       ,.hetero_type_vec_p(hetero_type_vec_p)
     ) pod (
       .clk_i(clk_i)
-      ,.north_bsg_tag_i(pod_tags_i[x])
+      ,.reset_i(reset_i[x])
 
       ,.hor_link_sif_i(hor_link_sif_li[x])
       ,.hor_link_sif_o(hor_link_sif_lo[x])

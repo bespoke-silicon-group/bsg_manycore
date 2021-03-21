@@ -94,6 +94,11 @@ module bsg_manycore_pod_ruche_array
   );
 
 
+
+  // flop north_tag_payload.reset for each column of subarray.
+
+
+
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_manycore_ruche_x_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
@@ -112,9 +117,31 @@ module bsg_manycore_pod_ruche_array
   logic [num_pods_y_p-1:0][(num_pods_x_p*num_tiles_x_p)-1:0][x_cord_width_p-1:0] global_x_li;
   logic [num_pods_y_p-1:0][(num_pods_x_p*num_tiles_x_p)-1:0][y_cord_width_p-1:0] global_y_li;
 
+  logic [num_pods_y_p-1:0][num_pods_x_p-1:0] reset_lo;
+  logic [num_pods_y_p-1:0][num_pods_x_p-1:0][num_tiles_x_p-1:0] reset_r;
 
   // Instantiate pod rows
   for (genvar y = 0; y < num_pods_y_p; y++) begin: py
+    for (genvar x = 0; x < num_pods_x_p; x++) begin: px
+      bsg_tag_client #(
+        .width_p($bits(bsg_manycore_pod_tag_payload_s))
+        ,.default_p(0)
+      ) btc (
+        .bsg_tag_i(pod_tags_i[y][x])
+        ,.recv_clk_i(clk_i)
+        ,.recv_reset_i(1'b0)
+        ,.recv_new_r_o()
+        ,.recv_data_r_o(reset_lo[y][x])
+      );
+      bsg_dff_chain #(
+        .width_p(num_tiles_x_p)
+        ,.num_stages_p(reset_depth_p-1)
+      ) reset_dff (
+        .clk_i(clk_i)
+        ,.data_i({num_tiles_x_p{reset_lo[y][x]}})
+        ,.data_o(reset_r[y][x])
+      );
+    end
 
     bsg_manycore_pod_ruche_row #(
       .num_tiles_x_p(num_tiles_x_p)
@@ -154,6 +181,7 @@ module bsg_manycore_pod_ruche_array
       ,.hetero_type_vec_p(hetero_type_vec_p)
     ) podrow (
       .clk_i(clk_i)
+      ,.reset_i(reset_r[y])
 
       ,.hor_link_sif_i(hor_link_sif_li[y])
       ,.hor_link_sif_o(hor_link_sif_lo[y])
