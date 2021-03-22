@@ -95,10 +95,6 @@ module bsg_manycore_pod_ruche_array
 
 
 
-  // flop north_tag_payload.reset for each column of subarray.
-
-
-
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_manycore_ruche_x_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
@@ -177,7 +173,6 @@ module bsg_manycore_pod_ruche_array
       ,.wh_cord_width_p(wh_cord_width_p)
       ,.wh_len_width_p(wh_len_width_p)
 
-      ,.reset_depth_p(reset_depth_p)
       ,.hetero_type_vec_p(hetero_type_vec_p)
     ) podrow (
       .clk_i(clk_i)

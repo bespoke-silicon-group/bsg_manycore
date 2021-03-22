@@ -47,8 +47,6 @@ module bsg_manycore_pod_ruche_row
     // number of pods to instantiate
     , parameter num_pods_x_p="inv"
 
-    , parameter reset_depth_p=3
-
     , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
 
@@ -142,7 +140,6 @@ module bsg_manycore_pod_ruche_row
       ,.wh_cord_width_p(wh_cord_width_p)
       ,.wh_len_width_p(wh_len_width_p)
 
-      ,.reset_depth_p(reset_depth_p)
       ,.hetero_type_vec_p(hetero_type_vec_p)
     ) pod (
       .clk_i(clk_i)
