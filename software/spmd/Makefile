@@ -17,7 +17,7 @@ NO-RECURSE = \
 	gather_scatter \
 	gather_scatter_multi \
   striped_struct_vector	\
-	beebs \
+	beebs saif \
 	interrupt_tests
 
 # Define this variable on cmd line to run coverage analysis. Currently
