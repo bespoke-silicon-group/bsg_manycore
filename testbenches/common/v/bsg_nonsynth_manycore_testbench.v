@@ -194,6 +194,28 @@ module bsg_nonsynth_manycore_testbench
     ,.pod_tags_i(pod_tags_lo) 
   );
 
+  // Invert WH ruche links
+  // hardcoded for ruche factor = 2
+  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] buffered_wh_link_sif_li;
+  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] buffered_wh_link_sif_lo;
+  for (genvar i = W; i <= E; i++) begin
+    for (genvar j = 0; j < num_pods_y_p; j++) begin
+      for (genvar k = N; k <= S; k++) begin
+        for (genvar v = 0; v < num_vcache_rows_p; v++) begin
+          for (genvar r = 0; r < wh_ruche_factor_p; r++) begin
+            if (r == 0) begin
+              assign wh_link_sif_li[i][j][k][v][r] = buffered_wh_link_sif_li[i][j][k][v][r];
+              assign buffered_wh_link_sif_lo[i][j][k][v][r] = wh_link_sif_lo[i][j][k][v][r];
+            end
+            else begin
+              assign wh_link_sif_li[i][j][k][v][r] = ~buffered_wh_link_sif_li[i][j][k][v][r];
+              assign buffered_wh_link_sif_lo[i][j][k][v][r] = ~wh_link_sif_lo[i][j][k][v][r];
+            end
+          end
+        end
+      end
+    end
+  end
 
   // IO ROUTER
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_li;
@@ -272,8 +294,8 @@ module bsg_nonsynth_manycore_testbench
                 .clk_i(clk_i)
                 ,.reset_i(reset_r)
 
-                ,.wh_link_sif_i(wh_link_sif_lo[i][j][k][v][r])
-                ,.wh_link_sif_o(wh_link_sif_li[i][j][k][v][r])
+                ,.wh_link_sif_i(buffered_wh_link_sif_lo[i][j][k][v][r])
+                ,.wh_link_sif_o(buffered_wh_link_sif_li[i][j][k][v][r])
               );
             end
           end
@@ -339,8 +361,8 @@ module bsg_nonsynth_manycore_testbench
                 .clk_i(clk_i)
                 ,.reset_i(reset_r)
     
-                ,.wh_link_sif_i     (wh_link_sif_lo[i][j][k][n][r])
-                ,.wh_link_sif_o     (wh_link_sif_li[i][j][k][n][r])
+                ,.wh_link_sif_i     (buffered_wh_link_sif_lo[i][j][k][n][r])
+                ,.wh_link_sif_o     (buffered_wh_link_sif_li[i][j][k][n][r])
 
                 ,.dma_pkt_o         (dma_pkt_lo[i][j][k][n][r])
                 ,.dma_pkt_v_o       (dma_pkt_v_lo[i][j][k][n][r])
