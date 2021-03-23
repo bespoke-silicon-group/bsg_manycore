@@ -209,26 +209,12 @@ module bsg_manycore_pod_ruche_row
   // hard-coded for ruche factor = 3
   for (genvar y = 0; y < num_tiles_y_p; y++) begin: ry
     // connect manycore ruche to west
-    bsg_buf #(
-      .width_p(ruche_x_link_sif_width_lp)
-      ,.harden_p(1)
-    ) buf0 (
-      .i(ruche_link_i[W][y])
-      ,.o(ruche_link_li[0][W][y][1])
-    ); 
-
-    bsg_inv #(
-      .width_p(ruche_x_link_sif_width_lp)
-      ,.harden_p(1)
-    ) inv0 (
-      .i(ruche_link_lo[0][W][y][1])
-      ,.o(ruche_link_o[W][y])
-    ); 
+    assign ruche_link_li[0][W][y][1] = ruche_link_i[W][y];
+    assign ruche_link_o[W][y] = ruche_link_lo[0][W][y][1];
 
     // tieoff west manycore ruche
     assign ruche_link_li[0][W][y][0] = '0; // tieoff
     assign ruche_link_li[0][W][y][2] = '1; // tieoff
-
 
     // connect manycore ruche to east
     assign ruche_link_li[num_pods_x_p-1][E][y][2] = ruche_link_i[E][y];
@@ -237,7 +223,6 @@ module bsg_manycore_pod_ruche_row
     // tieoff east manycore ruche
     assign ruche_link_li[num_pods_x_p-1][E][y][0] = '1;
     assign ruche_link_li[num_pods_x_p-1][E][y][1] = '0;
-
   end
 
   // connect wormhole ruche links to the outside

@@ -683,7 +683,7 @@ module bsg_nonsynth_manycore_testbench
       ) rw_tieoff (
         .clk_i(clk_i)
         ,.reset_i(reset_r)
-        ,.ruche_link_i(ruche_link_lo[W][j][k])
+        ,.ruche_link_i(~ruche_link_lo[W][j][k]) // put it in the correct phase.
         ,.ruche_link_o(ruche_link_li[W][j][k])
       );
     end
