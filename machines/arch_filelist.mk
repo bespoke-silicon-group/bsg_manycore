@@ -186,6 +186,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_lock_ctrl.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_reg_id_decode.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_1hold.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_eva_to_npa.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_dram_hash_function.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_tieoff.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_ruche_x_link_sif_tieoff.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_ruche_buffer.v
