@@ -26,11 +26,11 @@ module bsg_manycore_dram_hash_function
     , parameter vcache_block_size_in_words_p="inv"
   )
   (
-    input [data_width_p-1:0] eva_i
+    input [data_width_p-1:0] eva_i // 32-bit byte address
     , input [pod_x_cord_width_p-1:0] pod_x_i
     , input [pod_y_cord_width_p-1:0] pod_y_i
 
-    , output logic [addr_width_p-1:0] epa_o
+    , output logic [addr_width_p-1:0] epa_o // word address
     , output logic [x_cord_width_p-1:0] x_cord_o
     , output logic [y_cord_width_p-1:0] y_cord_o
   );
