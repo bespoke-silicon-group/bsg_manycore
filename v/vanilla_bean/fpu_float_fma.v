@@ -63,7 +63,17 @@ module fpu_float_fma
     fma_op_li = ePM_PB;
     is_fma_op = 1'b0;
 
-    if (fp_v_i) begin
+    // FPU gets imul inputs only when there is imul in EXE.
+    // so that it does not cause spurious toggles in FPU by normal integer ops.
+
+    // assumption: imul_v_i is coming straight of a register and does not glitch
+    if (imul_v_i) begin
+      fma_a_li = {1'b0, imul_rs1_i};
+      fma_b_li = {1'b0, imul_rs2_i};
+      fma_c_li = 33'h0;
+      fma_op_li = eIMUL;
+    end
+    else begin
       case (fpu_float_op_i)
         eFADD: begin
           fma_a_li = fp_rs1_i;
@@ -120,12 +130,6 @@ module fpu_float_fma
           is_fma_op = 1'b0;
         end
       endcase
-    end
-    else begin
-      fma_a_li = {1'b0, imul_rs1_i};
-      fma_b_li = {1'b0, imul_rs2_i};
-      fma_c_li = 33'h0;
-      fma_op_li = eIMUL;
     end
   end
 

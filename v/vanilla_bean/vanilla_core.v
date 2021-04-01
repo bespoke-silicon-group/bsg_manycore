@@ -1493,12 +1493,20 @@ module vanilla_core
     : frm_e'(id_r.instruction.funct3);
 
   always_comb begin
+    fp_exe_n = fp_exe_r;
     if (stall_all) begin
       fp_exe_n = fp_exe_r;
     end
     else begin
       if (flush | stall_id | ~id_r.decode.is_fp_op) begin
-        fp_exe_n = '0;
+        // put nop in fp_exe.
+        // we hold the data inputs steady in the case of a stall,
+        // or if there is not a floating point operation
+        // to avoid unnecessarily toggling of the FP unit
+        fp_exe_n.fp_decode.is_fpu_float_op = 1'b0;
+        fp_exe_n.fp_decode.is_fpu_int_op   = 1'b0;
+        fp_exe_n.fp_decode.is_fdiv_op  = 1'b0;
+        fp_exe_n.fp_decode.is_fsqrt_op = 1'b0;
       end
       else begin
         fp_exe_n = '{
