@@ -1500,6 +1500,9 @@ module vanilla_core
     else begin
       if (flush | stall_id | ~id_r.decode.is_fp_op) begin
         // put nop in fp_exe.
+        // we hold the data inputs steady in the case of a stall,
+        // or if there is not a floating point operation
+        // to avoid unnecessarily toggling of the FP unit
         fp_exe_n.fp_decode.is_fpu_float_op = 1'b0;
         fp_exe_n.fp_decode.is_fpu_int_op   = 1'b0;
         fp_exe_n.fp_decode.is_fdiv_op  = 1'b0;
