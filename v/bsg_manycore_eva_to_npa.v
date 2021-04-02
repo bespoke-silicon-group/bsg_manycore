@@ -63,6 +63,7 @@ module bsg_manycore_eva_to_npa
   //
   localparam vcache_word_offset_width_lp = `BSG_SAFE_CLOG2(vcache_block_size_in_words_p);
   localparam lg_vcache_size_lp = `BSG_SAFE_CLOG2(vcache_size_p);
+  localparam vcache_row_id_width_lp = `BSG_SAFE_CLOG2(2*num_vcache_rows_p);
 
 
   // figure out what type of EVA this is.
@@ -81,29 +82,31 @@ module bsg_manycore_eva_to_npa
   // DRAM hash function
   // DRAM space is striped across vcaches at a cache line granularity.
   // Striping starts from the north vcaches, and alternates between north and south from inner layers to outer layers.
-  localparam vcache_row_id_width_lp = `BSG_SAFE_CLOG2(2*num_vcache_rows_p);
-  localparam dram_index_width_lp = data_width_p-1-2-vcache_word_offset_width_lp-x_subcord_width_lp-vcache_row_id_width_lp;
+  
+  logic [x_cord_width_p-1:0] dram_x_cord_lo;
+  logic [y_cord_width_p-1:0] dram_y_cord_lo;
+  logic [addr_width_p-1:0] dram_epa_lo;
 
-  wire [vcache_row_id_width_lp-1:0] vcache_row_id = eva_i[2+vcache_word_offset_width_lp+x_subcord_width_lp+:vcache_row_id_width_lp];
-  wire [x_subcord_width_lp-1:0] dram_x_subcord = eva_i[2+vcache_word_offset_width_lp+:x_subcord_width_lp];
-  wire [y_subcord_width_lp-1:0] dram_y_subcord;
-  wire [pod_y_cord_width_p-1:0] dram_pod_y_cord = vcache_row_id[0]
-    ? pod_y_cord_width_p'(pod_y_i+1)
-    : pod_y_cord_width_p'(pod_y_i-1);
+  bsg_manycore_dram_hash_function #(
+    .data_width_p(data_width_p)
+    ,.addr_width_p(addr_width_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.pod_x_cord_width_p(pod_x_cord_width_p)
+    ,.pod_y_cord_width_p(pod_y_cord_width_p)
+    ,.x_subcord_width_p(x_subcord_width_lp)
+    ,.y_subcord_width_p(y_subcord_width_lp)
+    ,.num_vcache_rows_p(num_vcache_rows_p)
+    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+  ) dram_hash (
+    .eva_i(eva_i)
+    ,.pod_x_i(pod_x_i)
+    ,.pod_y_i(pod_y_i)
 
-  if (num_vcache_rows_p == 1) begin
-    assign dram_y_subcord = {y_subcord_width_lp{~vcache_row_id[0]}};
-  end
-  else begin
-    assign dram_y_subcord = {
-      {(y_subcord_width_lp+1-vcache_row_id_width_lp){~vcache_row_id[0]}},
-      (vcache_row_id[0]
-        ?  vcache_row_id[vcache_row_id_width_lp-1:1]
-        : ~vcache_row_id[vcache_row_id_width_lp-1:1])
-    };
-  end
-
-  wire [dram_index_width_lp-1:0] dram_index = eva_i[2+vcache_word_offset_width_lp+x_subcord_width_lp+vcache_row_id_width_lp+:dram_index_width_lp];
+    ,.x_cord_o(dram_x_cord_lo)
+    ,.y_cord_o(dram_y_cord_lo)
+    ,.epa_o(dram_epa_lo)
+  );
 
 
   // NO DRAM mode hash function
@@ -134,17 +137,9 @@ module bsg_manycore_eva_to_npa
 
     if (is_dram_addr) begin
       if (dram_enable_i) begin
-        // DRAM enabled
-        y_cord_o = {dram_pod_y_cord, dram_y_subcord};
-        x_cord_o = {pod_x_i, dram_x_subcord};
-
-        epa_o = {
-          1'b0,
-          {(addr_width_p-1-dram_index_width_lp-vcache_word_offset_width_lp){1'b0}},
-          dram_index,
-          eva_i[2+:vcache_word_offset_width_lp]
-        };
-
+        y_cord_o = dram_y_cord_lo;
+        x_cord_o = dram_x_cord_lo;
+        epa_o = dram_epa_lo;
       end
       else begin
         // DRAM disabled mode is used when vcaches are used as block RAMs,
