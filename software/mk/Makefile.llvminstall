@@ -3,7 +3,14 @@ ifndef LLVM_DIR
 endif
 
 # devtoolset-8
-HOST_TOOLCHAIN ?= /opt/rh/devtoolset-8/root/usr/bin
+GCCVERSION = $(shell gcc -dumpversion)
+ifeq ($(shell expr $(GCCVERSION) \> 7), 1)
+HOST_TOOLCHAIN ?=
+$(info Using default GCCVERSION $(GCCVERSION))
+else
+HOST_TOOLCHAIN ?= /opt/rh/devtoolset-8/root/usr/bin/
+$(info Default GCCVERSION $(GCCVERSION) is too old; using $(HOST_TOOLCHAIN))
+endif
 
 # We need cmake3. On older RHEL systems, cmake is version 2 and cmake3
 # is version 3. On newer systems cmake is version3. Default to cmake3
@@ -36,8 +43,8 @@ llvm-install:
 	    && $(CMAKE) -G $(GENERATOR) -DCMAKE_BUILD_TYPE="Debug" \
       -DLLVM_ENABLE_PROJECTS="clang" \
 	    -DCMAKE_INSTALL_PREFIX="$(LLVM_DIR)/llvm-install" \
-	    -DCMAKE_C_COMPILER=$(HOST_TOOLCHAIN)/gcc \
-	    -DCMAKE_CXX_COMPILER=$(HOST_TOOLCHAIN)/g++ \
+	    -DCMAKE_C_COMPILER=$(HOST_TOOLCHAIN)gcc \
+	    -DCMAKE_CXX_COMPILER=$(HOST_TOOLCHAIN)g++ \
 	    -DLLVM_TARGETS_TO_BUILD="X86;RISCV" \
 	    -DBUILD_SHARED_LIBS=True \
 	    -DLLVM_USE_SPLIT_DWARF=True \
