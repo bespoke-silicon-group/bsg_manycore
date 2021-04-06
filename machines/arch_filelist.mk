@@ -173,6 +173,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_array.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_row.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_compute_array_ruche.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_compute_ruche.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_vcache_array.v
