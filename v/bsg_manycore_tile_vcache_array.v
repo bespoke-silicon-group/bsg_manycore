@@ -40,6 +40,7 @@ module bsg_manycore_tile_vcache_array
     , parameter wh_len_width_p="inv"
     , parameter wh_cord_width_p="inv"
 
+    , parameter num_clk_ports_p=1
     //, parameter reset_depth_p = 3
 
     , parameter manycore_link_sif_width_lp =
@@ -49,7 +50,7 @@ module bsg_manycore_tile_vcache_array
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
   )
   (
-    input clk_i
+    input [num_clk_ports_p-1:0] clk_i
     , input [subarray_num_tiles_x_p-1:0] reset_i
     , output logic [subarray_num_tiles_x_p-1:0] reset_o
 
@@ -99,7 +100,7 @@ module bsg_manycore_tile_vcache_array
         ,.wh_len_width_p(wh_len_width_p)
         ,.wh_cord_width_p(wh_cord_width_p)
       ) vc (
-        .clk_i(clk_i)
+        .clk_i(clk_i[x/(subarray_num_tiles_x_p/num_clk_ports_p)])
         ,.reset_i(reset_li[y][x])
         ,.reset_o(reset_lo[y][x])
 
