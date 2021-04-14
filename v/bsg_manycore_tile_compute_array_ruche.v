@@ -79,7 +79,7 @@ module bsg_manycore_tile_compute_array_ruche
     , parameter debug_p = 0
   )
   (
-    input clk_i
+    input [num_clk_ports_p-1:0] clk_i
 
     , input [subarray_num_tiles_x_p-1:0] reset_i
     , output logic [subarray_num_tiles_x_p-1:0] reset_o
