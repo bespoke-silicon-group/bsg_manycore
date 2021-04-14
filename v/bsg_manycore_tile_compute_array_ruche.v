@@ -161,7 +161,7 @@ module bsg_manycore_tile_compute_array_ruche
         ,.vcache_sets_p(vcache_sets_p)
         ,.ruche_factor_X_p(ruche_factor_X_p)
       ) tile (
-        .clk_i(clk_i[x/(subarray_num_tiles_x_p/num_clk_ports_p)])
+        .clk_i(clk_i[c/(subarray_num_tiles_x_p/num_clk_ports_p)])
 
         ,.reset_i(reset_li[r][c])
         ,.reset_o(reset_lo[r][c])
