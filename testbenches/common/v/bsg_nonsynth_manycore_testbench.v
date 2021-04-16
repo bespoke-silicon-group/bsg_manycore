@@ -672,40 +672,16 @@ module bsg_nonsynth_manycore_testbench
   // RUCHE LINK TIEOFF (west)
   for (genvar j = 0; j < num_pods_y_p; j++) begin
     for (genvar k = 0; k < num_tiles_y_p; k++) begin
-      bsg_manycore_ruche_x_link_sif_tieoff #(
-        .addr_width_p(addr_width_p)
-        ,.data_width_p(data_width_p)
-        ,.x_cord_width_p(x_cord_width_p)
-        ,.y_cord_width_p(y_cord_width_p)
-        ,.ruche_stage_p(0)
-        ,.ruche_factor_X_p(ruche_factor_X_p)
-        ,.west_not_east_p(1)
-      ) rw_tieoff (
-        .clk_i(clk_i)
-        ,.reset_i(reset_r)
-        ,.ruche_link_i(~ruche_link_lo[W][j][k]) // put it in the correct phase.
-        ,.ruche_link_o(ruche_link_li[W][j][k])
-      );
+      // hard coded for ruche factor 3
+      assign ruche_link_li[W][j][k] = '0;
     end
   end
 
   // RUCHE LINK TIEOFF (east)
   for (genvar j = 0; j < num_pods_y_p; j++) begin
     for (genvar k = 0; k < num_tiles_y_p; k++) begin
-      bsg_manycore_ruche_x_link_sif_tieoff #(
-        .addr_width_p(addr_width_p)
-        ,.data_width_p(data_width_p)
-        ,.x_cord_width_p(x_cord_width_p)
-        ,.y_cord_width_p(y_cord_width_p)
-        ,.ruche_stage_p(2)
-        ,.ruche_factor_X_p(ruche_factor_X_p)
-        ,.west_not_east_p(0)
-      ) re_tieoff (
-        .clk_i(clk_i)
-        ,.reset_i(reset_r)
-        ,.ruche_link_i(ruche_link_lo[E][j][k])
-        ,.ruche_link_o(ruche_link_li[E][j][k])
-      );
+      // hard coded for ruche factor 3
+      assign ruche_link_li[E][j][k] = '0;
     end
   end
   
