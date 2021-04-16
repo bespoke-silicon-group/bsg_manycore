@@ -56,6 +56,8 @@ module bsg_manycore_tile_compute_array_ruche
     , parameter pod_y_cord_width_p = -1
     , parameter pod_x_cord_width_p = -1
 
+    , parameter num_clk_ports_p=1
+
     // coordinate within a pod
     // my_x/y_i
     // A multiple of these modules can be instantiated within a pod as a subarray to form a larger array.
@@ -77,7 +79,7 @@ module bsg_manycore_tile_compute_array_ruche
     , parameter debug_p = 0
   )
   (
-    input clk_i
+    input [num_clk_ports_p-1:0] clk_i
 
     , input [subarray_num_tiles_x_p-1:0] reset_i
     , output logic [subarray_num_tiles_x_p-1:0] reset_o
@@ -159,7 +161,7 @@ module bsg_manycore_tile_compute_array_ruche
         ,.vcache_sets_p(vcache_sets_p)
         ,.ruche_factor_X_p(ruche_factor_X_p)
       ) tile (
-        .clk_i(clk_i)
+        .clk_i(clk_i[c/(subarray_num_tiles_x_p/num_clk_ports_p)])
 
         ,.reset_i(reset_li[r][c])
         ,.reset_o(reset_lo[r][c])
