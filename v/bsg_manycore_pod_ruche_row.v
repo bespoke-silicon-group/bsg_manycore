@@ -225,12 +225,12 @@ module bsg_manycore_pod_ruche_row
     assign ruche_link_li[0][W][y][2] = '1; // tieoff
 
     // connect manycore ruche to east
-    assign ruche_link_li[num_pods_x_p-1][E][y][2] = ruche_link_i[E][y];
-    assign ruche_link_o[E][y] = ruche_link_lo[num_pods_x_p-1][E][y][2];
+    assign ruche_link_li[num_pods_x_p-1][E][y][0] = ruche_link_i[E][y];
+    assign ruche_link_o[E][y] = ruche_link_lo[num_pods_x_p-1][E][y][0];
 
     // tieoff east manycore ruche
-    assign ruche_link_li[num_pods_x_p-1][E][y][0] = '1;
-    assign ruche_link_li[num_pods_x_p-1][E][y][1] = '0;
+    assign ruche_link_li[num_pods_x_p-1][E][y][1] = '1;
+    assign ruche_link_li[num_pods_x_p-1][E][y][2] = '0;
   end
 
   // connect wormhole ruche links to the outside
