@@ -232,7 +232,7 @@ module bsg_manycore_tile_compute_array_ruche
     bsg_buf #(
       .width_p(link_sif_width_lp)
       ,.harden_p(1)
-    ) lb_w (
+    ) lb_e (
       .i(hor_link_sif_lo[E][r])
       ,.o(hor_link_sif_o[E][r])
     );
@@ -240,7 +240,7 @@ module bsg_manycore_tile_compute_array_ruche
     bsg_buf #(
       .width_p(link_sif_width_lp)
       ,.harden_p(1)
-    ) lb_e (
+    ) lb_w (
       .i(hor_link_sif_i[E][r])
       ,.o(hor_link_sif_li[E][r])
     );
