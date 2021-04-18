@@ -31,8 +31,11 @@
 
 module bsg_manycore_gather_scatter
   import bsg_manycore_pkg::*;
+  import bsg_vanilla_pkg::*;
   #(parameter x_cord_width_p = "inv"
     , parameter y_cord_width_p = "inv"
+    , parameter pod_x_cord_width_p = "inv"
+    , parameter pod_y_cord_width_p = "inv"
     , parameter data_width_p = "inv"
     , parameter addr_width_p = "inv"
 
@@ -40,6 +43,7 @@ module bsg_manycore_gather_scatter
     , parameter icache_tag_width_p = "inv"
 
     , parameter dmem_size_p = "inv" 
+    , parameter num_vcache_rows_p = "inv"
     , parameter vcache_size_p = "inv"
     , parameter vcache_block_size_in_words_p = "inv"
     , parameter vcache_sets_p = "inv"
@@ -47,19 +51,24 @@ module bsg_manycore_gather_scatter
     , parameter num_tiles_x_p = "inv"
     , parameter num_tiles_y_p = "inv"
 
-    , parameter max_out_credits_p = 32 // this is fixed.
-    , parameter ep_fifo_els_p = 16
+    , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+    , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
-    , parameter reg_id_width_lp = bsg_manycore_reg_id_width_gp
-    , parameter reg_els_lp = (2**bsg_manycore_reg_id_width_gp)
-  
-    , parameter fwd_fifo_els_p = "inv"
+    , parameter fwd_fifo_els_p="inv" // for FIFO credit counting.
+
+    , parameter max_out_credits_p = 32
+    , parameter proc_fifo_els_p = 4
+    , parameter debug_p = 1
+
+    , parameter credit_counter_width_lp=$clog2(max_out_credits_p+1)
+    , parameter icache_addr_width_lp = `BSG_SAFE_CLOG2(icache_entries_p)
+    , parameter dmem_addr_width_lp = `BSG_SAFE_CLOG2(dmem_size_p)
+    , parameter pc_width_lp=(icache_addr_width_lp+icache_tag_width_p)
+    , parameter data_mask_width_lp = (data_width_p>>3)
+    , parameter reg_addr_width_lp=RV32_reg_addr_width_gp
 
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-
-    , parameter debug_p = 1
-    , parameter branch_trace_en_p = 0
   )
   (
     input clk_i
@@ -69,16 +78,17 @@ module bsg_manycore_gather_scatter
     , input [link_sif_width_lp-1:0] link_sif_i
     , output [link_sif_width_lp-1:0] link_sif_o
 
-    // my coords
+    // subcord within a pod
     , input [x_cord_width_p-1:0] my_x_i
     , input [y_cord_width_p-1:0] my_y_i
+
+    // pod coordinate
+    , input [pod_x_cord_width_p-1:0] pod_x_i
+    , input [pod_y_cord_width_p-1:0] pod_y_i
   );
 
 
   // localparam
-  localparam data_mask_width_lp = (data_width_p>>3);
-  localparam credit_counter_width_lp= `BSG_SAFE_CLOG2(max_out_credits_p+1);
-  localparam dmem_addr_width_lp = `BSG_SAFE_CLOG2(dmem_size_p);
   localparam access_len_width_lp = `BSG_SAFE_CLOG2(dmem_size_p+1);
 
 
@@ -148,10 +158,13 @@ module bsg_manycore_gather_scatter
     ,.returned_yumi_i(returned_yumi_li)
     ,.returned_fifo_full_o()
 
+    ,.returned_credit_v_r_o()
+    ,.returned_credit_reg_id_r_o()
+
     ,.out_credits_o(out_credits_lo)
 
-    ,.my_x_i(my_x_i)
-    ,.my_y_i(my_y_i)
+    ,.global_x_i({pod_x_i, my_x_i})
+    ,.global_y_i({pod_y_i, my_y_i})
   );
 
 
@@ -198,11 +211,11 @@ module bsg_manycore_gather_scatter
   logic [data_width_p-1:0] eva_base_r, eva_base_n;
 
   // address decoding
-  wire is_csr_addr        = in_addr_lo[epa_word_addr_width_gp-1] & (in_addr_lo[addr_width_p-1:epa_word_addr_width_gp] == '0);
-  wire is_run_addr        = is_csr_addr & (in_addr_lo[0+:epa_word_addr_width_gp-1] == 'd0);
-  wire is_access_len_addr = is_csr_addr & (in_addr_lo[0+:epa_word_addr_width_gp-1] == 'd1);
-  wire is_stride_addr     = is_csr_addr & (in_addr_lo[0+:epa_word_addr_width_gp-1] == 'd2);
-  wire is_eva_base_addr   = is_csr_addr & (in_addr_lo[0+:epa_word_addr_width_gp-1] == 'd3);
+  wire is_csr_addr        = in_addr_lo[global_epa_word_addr_width_gp-1] & (in_addr_lo[addr_width_p-1:global_epa_word_addr_width_gp] == '0);
+  wire is_run_addr        = is_csr_addr & (in_addr_lo[0+:global_epa_word_addr_width_gp-1] == 'd0);
+  wire is_access_len_addr = is_csr_addr & (in_addr_lo[0+:global_epa_word_addr_width_gp-1] == 'd1);
+  wire is_stride_addr     = is_csr_addr & (in_addr_lo[0+:global_epa_word_addr_width_gp-1] == 'd2);
+  wire is_eva_base_addr   = is_csr_addr & (in_addr_lo[0+:global_epa_word_addr_width_gp-1] == 'd3);
 
   wire is_dmem_addr       = in_addr_lo[dmem_addr_width_lp] & (in_addr_lo[addr_width_p-1:dmem_addr_width_lp+1] == '0);
 
@@ -218,7 +231,7 @@ module bsg_manycore_gather_scatter
   gs_state_e gs_state_r, gs_state_n;
   logic [x_cord_width_p-1:0] src_x_cord_r, src_x_cord_n;
   logic [y_cord_width_p-1:0] src_y_cord_r, src_y_cord_n;
-  logic [epa_word_addr_width_gp-1:0] wakeup_addr_r, wakeup_addr_n;
+  logic [global_epa_word_addr_width_gp-1:0] wakeup_addr_r, wakeup_addr_n;
 
 
   // sending back response
@@ -313,12 +326,12 @@ module bsg_manycore_gather_scatter
   // gather logic
   // It needs a scoreboard to keep track of how many remote load requests are outstanding,
   // and when the responses return (possibly out of order), it's able to track where in DMEM it needs to be written.
-  logic [reg_id_width_lp-1:0] alloc_id_lo;
+  logic [reg_addr_width_lp-1:0] alloc_id_lo;
   logic alloc_v_lo;
   logic alloc_yumi_li;
 
   logic dealloc_v_li;
-  logic [reg_id_width_lp-1:0] dealloc_id_li;
+  logic [reg_addr_width_lp-1:0] dealloc_id_li;
 
   bsg_id_pool #(
     .els_p(reg_els_lp)
@@ -412,7 +425,7 @@ module bsg_manycore_gather_scatter
 
               src_x_cord_n = in_src_x_cord_lo;
               src_y_cord_n = in_src_y_cord_lo;
-              wakeup_addr_n = in_data_lo[2+:epa_word_addr_width_gp];
+              wakeup_addr_n = in_data_lo[2+:global_epa_word_addr_width_gp];
    
               // if it's scatter, read the first word as it switches the state.
               dmem_v_li = scatter_not_gather;
@@ -539,7 +552,7 @@ module bsg_manycore_gather_scatter
       // wakeup goes out after all the credits are restored.
       WAKEUP: begin
         out_v_li = (out_credits_lo == max_out_credits_p);
-        out_packet_li.addr = {{(addr_width_p-epa_word_addr_width_gp){1'b0}}, wakeup_addr_r};
+        out_packet_li.addr = {{(addr_width_p-global_epa_word_addr_width_gp){1'b0}}, wakeup_addr_r};
         out_packet_li.op = e_remote_store;
         out_packet_li.op_ex = 4'b1111;
         out_packet_li.reg_id = '0;

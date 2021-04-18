@@ -1,7 +1,10 @@
 module bsg_manycore_accel_default 
   import bsg_manycore_pkg::*;
+  import bsg_vanilla_pkg::*;
    #(parameter x_cord_width_p   = "inv"
      , parameter y_cord_width_p = "inv"
+     , parameter pod_x_cord_width_p = "inv"
+     , parameter pod_y_cord_width_p = "inv"
      , parameter data_width_p   = 32
      , parameter addr_width_p   = "inv"
 
@@ -9,6 +12,7 @@ module bsg_manycore_accel_default
      , parameter icache_tag_width_p = "inv"
 
      , parameter dmem_size_p = "inv" 
+     , parameter num_vcache_rows_p = "inv"
      , parameter vcache_size_p = "inv"
      , parameter vcache_block_size_in_words_p = "inv"
      , parameter vcache_sets_p = "inv"
@@ -16,27 +20,25 @@ module bsg_manycore_accel_default
      , parameter num_tiles_x_p = "inv"
      , parameter num_tiles_y_p = "inv"
 
-     // number of  packets we can have outstanding
-     , parameter max_out_credits_p = 4
+     , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+     , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
-     // this is the size of the receive FIFO
-     // generally should be the same as max_out_credits_p
-     // for whoever is sending us data
-     , parameter ep_fifo_els_p = 4
+     , parameter fwd_fifo_els_p="inv" // for FIFO credit counting.
 
-     , parameter fwd_fifo_els_p = "inv"
+     , parameter max_out_credits_p = 32
+     , parameter proc_fifo_els_p = 4
+     , parameter debug_p = 1
 
-     , parameter freeze_init_p  = 1'b1
-     // this credit counter is more for implementing memory fences
-     // than containing the number of outstanding remote stores
-     // but we use it for the later for now
+     , parameter credit_counter_width_lp=$clog2(max_out_credits_p+1)
+     , parameter icache_addr_width_lp = `BSG_SAFE_CLOG2(icache_entries_p)
+     , parameter dmem_addr_width_lp = `BSG_SAFE_CLOG2(dmem_size_p)
+     , parameter pc_width_lp=(icache_addr_width_lp+icache_tag_width_p)
+     , parameter data_mask_width_lp=(data_width_p>>3)
+     , parameter reg_addr_width_lp=RV32_reg_addr_width_gp
 
      , parameter link_sif_width_lp =
-       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+      `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
-     , parameter branch_trace_en_p = 0
-
-     , parameter debug_p        = 0
      )
    (input   clk_i
     , input reset_i
@@ -46,9 +48,13 @@ module bsg_manycore_accel_default
     , output [link_sif_width_lp-1:0] link_sif_o
     , input link_credit_i
 
-    // tile coordinates
-    , input   [x_cord_width_p-1:0]                my_x_i
-    , input   [y_cord_width_p-1:0]                my_y_i
+    // subcord within a pod
+    , input [x_subcord_width_lp-1:0] my_x_i
+    , input [y_subcord_width_lp-1:0] my_y_i
+
+    // pod coordinate
+    , input [pod_x_cord_width_p-1:0] pod_x_i
+    , input [pod_y_cord_width_p-1:0] pod_y_i
 
     , output logic freeze_o
     );
@@ -105,8 +111,8 @@ module bsg_manycore_accel_default
 
       ,.out_credits_o(out_credits_lo)
 
-      ,.my_x_i
-      ,.my_y_i
+      ,.global_x_i({pod_x_i, my_x_i})
+      ,.global_y_i({pod_y_i, my_y_i})
       );
 
    // ADDRESS DECODER
