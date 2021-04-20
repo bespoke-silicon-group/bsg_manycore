@@ -396,7 +396,7 @@ module vanilla_core
     | id_r.decode.is_lr_aq_op
     | id_r.decode.is_amo_op;
 
-  wire [data_width_p-1:0] mem_addr_op2 = is_amo_or_lr_op
+  wire [data_width_p-1:0] mem_addr_op2 = (is_amo_or_lr_op | id_r.decode.is_flwadd_op)
     ? '0
     : (id_r.decode.is_store_op
       ? `RV32_signext_Simm(id_r.instruction)
@@ -1213,7 +1213,7 @@ module vanilla_core
   wire id_rs2_non_zero = id_rs2 != '0;
   wire id_rd_non_zero = id_rd != '0;
   wire int_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_rd;
-  wire float_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_frd;
+  wire float_remote_load_in_exe = remote_req_in_exe & (exe_r.decode.is_load_op | exe_r.decode.is_flwadd_op) & exe_r.decode.write_frd;
   wire fdiv_fsqrt_in_fp_exe = fp_exe_r.fp_decode.is_fdiv_op | fp_exe_r.fp_decode.is_fsqrt_op;
   wire remote_credit_pending = (out_credits_i != max_out_credits_p);
 
@@ -1286,7 +1286,8 @@ module vanilla_core
     |id_r.decode.is_store_op
     |id_r.decode.is_amo_op
     |id_r.decode.is_lr_aq_op
-    |id_r.decode.is_lr_op);
+    |id_r.decode.is_lr_op
+    |id_r.decode.is_flwadd_op);
 
   // stall_amo_rl
   // If there is a remote request in EXE, there is a technically remote request pending, even if the credit counter has not yet been decremented.
@@ -1297,7 +1298,7 @@ module vanilla_core
   // stall_remote_req
   logic [lg_fwd_fifo_els_lp-1:0] remote_req_counter_r;
   wire local_mem_op_restore = (lsu_dmem_v_lo & ~exe_r.decode.is_lr_op & ~exe_r.decode.is_lr_aq_op) & ~stall_all;
-  wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.icache_miss);
+  wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.icache_miss | id_r.decode.is_flwadd_op);
   wire memory_op_issued = id_remote_req_op & ~flush & ~stall_id & ~stall_all;
   wire [lg_fwd_fifo_els_lp-1:0] remote_req_available =
     remote_req_counter_r +

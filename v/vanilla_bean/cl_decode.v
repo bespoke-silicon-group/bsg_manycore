@@ -32,7 +32,7 @@ always_comb begin
       `RV32_LUI_OP, `RV32_AUIPC_OP,
       `RV32_JAL_OP, `RV32_JALR_OP,
       `RV32_LOAD, `RV32_OP,
-      `RV32_OP_IMM, `RV32_AMO_OP: begin
+      `RV32_OP_IMM, `RV32_AMO_OP, `RV32_FLWADD_OP: begin
         decode_o.write_rd = 1'b1;
       end
       `RV32_OP_FP: begin
@@ -57,7 +57,7 @@ always_comb begin
     `RV32_JALR_OP, `RV32_BRANCH,
     `RV32_LOAD, `RV32_STORE,
     `RV32_OP, `RV32_OP_IMM,
-    `RV32_AMO_OP: begin
+    `RV32_AMO_OP, `RV32_FLWADD_OP: begin
       decode_o.read_rs1 = 1'b1;
     end
    `RV32_OP_FP: begin
@@ -87,7 +87,7 @@ end
 // declares if Op reads from second port of register file
 always_comb begin
   unique casez (instruction_i.op)
-    `RV32_BRANCH, `RV32_STORE, `RV32_OP: begin
+    `RV32_BRANCH, `RV32_STORE, `RV32_OP, `RV32_FLWADD_OP: begin
       decode_o.read_rs2 = 1'b1;
     end
     `RV32_AMO_OP: begin
@@ -103,6 +103,7 @@ always_comb begin
 end
 
 // Load & Store
+assign decode_o.is_flwadd_op = (instruction_i.op == `RV32_FLWADD_OP);
 assign decode_o.is_load_op = (instruction_i.op == `RV32_LOAD) | (instruction_i.op == `RV32_LOAD_FP);
 assign decode_o.is_store_op = (instruction_i.op == `RV32_STORE) | (instruction_i.op == `RV32_STORE_FP);
 
@@ -321,6 +322,14 @@ always_comb begin
       decode_o.read_frs3 = 1'b0;
       decode_o.write_frd = 1'b1;
       decode_o.is_fp_op = 1'b1;
+    end
+    // FLWADD
+    `RV32_FLWADD: begin
+      decode_o.read_frs1 = 1'b0;
+      decode_o.read_frs2 = 1'b0;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b1;
+      decode_o.is_fp_op = 1'b0;
     end
     default: begin
       decode_o.read_frs1 = 1'b0;

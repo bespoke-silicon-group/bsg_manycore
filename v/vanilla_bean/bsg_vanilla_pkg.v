@@ -112,6 +112,7 @@ typedef struct packed {
   logic is_byte_op;       // Op is byte load/store
   logic is_hex_op;        // Op is hex load/store
   logic is_load_unsigned; // Op is unsigned load
+  logic is_flwadd_op;     // flwadd
 
   // Branch & Jump
   logic is_branch_op;
@@ -537,6 +538,25 @@ typedef struct packed {
 
 `define RV32_FDIV_S   `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0001100)
 `define RV32_FSQRT_S  {7'b0101100, 5'b00000, 5'b?????, 3'b???, 5'b?????, 7'b1010011}
+
+
+
+// NON-STANDARD RISC-V Instructions
+
+//  [FLWADD]
+//
+//  Assembly format
+//  flwadd fd, rs2, 0(rs1)
+//
+//  Semantic:
+//  fd = *rs1; rs1 = rs1 + rs2;
+//
+//  Machine Format:
+//          rs1   rs2       rd    opcode
+//  0000000_?????_?????_111_?????_0000111
+`define RV32_FLWADD_OP     7'b0000100
+`define RV32_FLWADD {7'b0000000, 5'b?????, 5'b?????, 3'b111, 5'b?????, `RV32_FLWADD_OP}
+
 
 
 endpackage
