@@ -208,6 +208,9 @@ module bsg_manycore_tile_compute_array_ruche
 
 
   // stitch together all of the tiles into a mesh
+  logic [E:W][subarray_num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_li;
+  logic [E:W][subarray_num_tiles_y_p-1:0][link_sif_width_lp-1:0] hor_link_sif_lo;
+
   bsg_mesh_stitch #(
     .width_p(link_sif_width_lp)
     ,.x_max_p(subarray_num_tiles_x_p)
@@ -215,11 +218,34 @@ module bsg_manycore_tile_compute_array_ruche
   ) link (
     .outs_i(link_out)
     ,.ins_o(link_in)
-    ,.hor_i(hor_link_sif_i)
-    ,.hor_o(hor_link_sif_o)
+    ,.hor_i(hor_link_sif_li)
+    ,.hor_o(hor_link_sif_lo)
     ,.ver_i(ver_link_sif_i)
     ,.ver_o(ver_link_sif_o)
   );
+
+  assign hor_link_sif_li[W] = hor_link_sif_i[W];
+  assign hor_link_sif_o[W] = hor_link_sif_lo[W];
+  
+  
+  for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: lr
+    bsg_buf #(
+      .width_p(link_sif_width_lp)
+      ,.harden_p(1)
+    ) lb_e (
+      .i(hor_link_sif_lo[E][r])
+      ,.o(hor_link_sif_o[E][r])
+    );
+
+    bsg_buf #(
+      .width_p(link_sif_width_lp)
+      ,.harden_p(1)
+    ) lb_w (
+      .i(hor_link_sif_i[E][r])
+      ,.o(hor_link_sif_li[E][r])
+    );
+  end
+  
 
 
   // stitch ruche links
