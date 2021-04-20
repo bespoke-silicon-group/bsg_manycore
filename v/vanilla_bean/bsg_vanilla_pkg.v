@@ -102,13 +102,13 @@ typedef enum logic [1:0] {
 
 typedef struct packed {
   // int regfile
-  logic read_rs1;
-  logic read_rs2;
-  logic write_rd;
+  logic read_rs1;         // Op reads integer rs1
+  logic read_rs2;         // Op reads integer rs2
+  logic write_rd;         // Op writes to integer rd
 
   // Load & Store
-  logic is_load_op;       // Op loads data from memory
-  logic is_store_op;      // Op stores data to memory
+  logic is_load_op;       // Op is lw or flw
+  logic is_store_op;      // Op is sw or fsw 
   logic is_byte_op;       // Op is byte load/store
   logic is_hex_op;        // Op is hex load/store
   logic is_load_unsigned; // Op is unsigned load

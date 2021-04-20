@@ -1212,6 +1212,8 @@ module vanilla_core
   wire id_rs1_non_zero = id_rs1 != '0;
   wire id_rs2_non_zero = id_rs2 != '0;
   wire id_rd_non_zero = id_rd != '0;
+  // is_flwadd_op does not cause is_load_op to be set high, so the fact that
+  // is_flwadd_op has exe_r.decode.write_rd high will not trigger int_remote_load_in_exe
   wire int_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_rd;
   wire float_remote_load_in_exe = remote_req_in_exe & (exe_r.decode.is_load_op | exe_r.decode.is_flwadd_op) & exe_r.decode.write_frd;
   wire fdiv_fsqrt_in_fp_exe = fp_exe_r.fp_decode.is_fdiv_op | fp_exe_r.fp_decode.is_fsqrt_op;

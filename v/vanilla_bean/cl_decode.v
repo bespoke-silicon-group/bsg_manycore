@@ -22,7 +22,7 @@ import bsg_manycore_pkg::*;
 );
 
 
-// Op Writes RF -- register file write operation
+// Op Writes Integer RF -- register file write operation
 always_comb begin
   if (instruction_i.rd == 0) begin
     decode_o.write_rd = 1'b0; // reg 0 is always 0
@@ -51,7 +51,7 @@ always_comb begin
   end
 end
 
-// declares if OP reads from first port of register file
+// declares if OP reads from first port of integer register file
 always_comb begin
   unique casez (instruction_i.op)
     `RV32_JALR_OP, `RV32_BRANCH,
@@ -84,7 +84,7 @@ always_comb begin
   endcase
 end
 
-// declares if Op reads from second port of register file
+// declares if Op reads from second port of integer register file
 always_comb begin
   unique casez (instruction_i.op)
     `RV32_BRANCH, `RV32_STORE, `RV32_OP, `RV32_FLWADD_OP: begin
@@ -226,6 +226,8 @@ assign decode_o.is_amo_rl = instruction_i[25];
 //|
 //+----------------------------------------------
 
+
+// is_fp_op means that this instruction goes to FP_EXE stage.
 always_comb begin
   decode_o.read_frs1 = 1'b0;
   decode_o.read_frs2 = 1'b0;
