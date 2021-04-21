@@ -46,7 +46,6 @@ module bsg_manycore_accel_default
     // input and output links
     , input  [link_sif_width_lp-1:0] link_sif_i
     , output [link_sif_width_lp-1:0] link_sif_o
-    , input link_credit_i
 
     // subcord within a pod
     , input [x_subcord_width_lp-1:0] my_x_i
@@ -55,18 +54,11 @@ module bsg_manycore_accel_default
     // pod coordinate
     , input [pod_x_cord_width_p-1:0] pod_x_i
     , input [pod_y_cord_width_p-1:0] pod_y_i
-
-    , output logic freeze_o
     );
 
    initial
      $fatal(1, "This module has not been recently tested, only updated syntactically. Caveat Emptor");
    
-  wire unused = link_credit_i;
-
-   wire freeze_r;
-   assign freeze_o = freeze_r;
-
    `declare_bsg_manycore_packet_s(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p);
 
    bsg_manycore_packet_s                   out_packet_li;
@@ -96,11 +88,18 @@ module bsg_manycore_accel_default
       ,.link_sif_i
       ,.link_sif_o
 
-      ,.in_v_o   (in_v_lo)
-      ,.in_yumi_i(in_yumi_li)
+      ,.in_v_o(in_v_lo)
+      ,.in_we_o()
+      ,.in_addr_o(in_addr_lo)
       ,.in_data_o(in_data_lo)
       ,.in_mask_o(in_mask_lo)
-      ,.in_addr_o(in_addr_lo)
+      ,.in_yumi_i(in_yumi_li)
+      ,.in_load_info_o()
+      ,.in_src_x_cord_o()
+      ,.in_src_y_cord_o()
+
+      ,.returning_v_i('0)
+      ,.returning_data_i('0)
 
       // we feed the endpoint with the data we want to send out
       // it will get inserted into the above link_sif
@@ -108,6 +107,16 @@ module bsg_manycore_accel_default
       ,.out_packet_i (out_packet_li )
       ,.out_v_i    (out_v_li    )
       ,.out_credit_or_ready_o(out_ready_lo)
+
+      ,.returned_v_r_o()
+      ,.returned_data_r_o()
+      ,.returned_reg_id_r_o()
+      ,.returned_pkt_type_r_o()
+      ,.returned_fifo_full_o()
+      ,.returned_yumi_i('0)
+
+      ,.returned_credit_v_r_o()
+      ,.returned_credit_reg_id_r_o()
 
       ,.out_credits_o(out_credits_lo)
 
