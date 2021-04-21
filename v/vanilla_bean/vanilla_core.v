@@ -1552,7 +1552,7 @@ module vanilla_core
     if (stall_all) begin
       mem_n = mem_r;
     end
-    else if (exe_r.decode.is_idiv_op | (remote_req_in_exe & ~exe_r.icache_miss)) begin
+    else if (exe_r.decode.is_idiv_op | (remote_req_in_exe & ~exe_r.icache_miss & ~exe_r.decode.is_flwadd_op)) begin
       mem_n = '0;
     end
     else if (fp_exe_r.fp_decode.is_fpu_int_op) begin

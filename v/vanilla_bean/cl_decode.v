@@ -38,8 +38,7 @@ always_comb begin
         | ((instruction_i.funct7 == `RV32_FCLASS_S_FUN7) & (instruction_i.rs2 == 5'b00000)) // FCLASS, FMV.X.W
         | (instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
     end
-    `RV32_LOAD_FP: begin
-      // flwadd
+    `RV32_FLWADD_OP: begin
       decode_o.write_rd = (instruction_i.funct7 == 7'b0000000) & (instruction_i.funct3 == 3'b111) & (instruction_i.rs1 != '0);
     end
     `RV32_SYSTEM: begin
@@ -66,7 +65,7 @@ always_comb begin
        (instruction_i.funct7 == `RV32_FCVT_S_I2F_FUN7) // FCVT.S.W, FCVT.S.WU
        | (instruction_i.funct7 == `RV32_FMV_W_X_FUN7); // FMV.W.X
     end
-    `RV32_LOAD_FP, `RV32_STORE_FP: begin // FLW, FSW, FLWADD
+    `RV32_LOAD_FP, `RV32_STORE_FP, `RV32_FLWADD_OP: begin // FLW, FSW, FLWADD
       decode_o.read_rs1 = 1'b1;
      end
     `RV32_SYSTEM: begin
@@ -91,9 +90,8 @@ always_comb begin
     `RV32_BRANCH, `RV32_STORE, `RV32_OP: begin
       decode_o.read_rs2 = 1'b1;
     end
-    `RV32_LOAD_FP: begin
-      // flwadd
-      decode_o.read_rs2 = (instruction_i.funct7 == 7'b0000000) & (instruction_i.funct3 == 3'b111);
+    `RV32_FLWADD_OP: begin
+      decode_o.read_rs2 = 1'b1;
     end
     `RV32_AMO_OP: begin
       // According the ISA, LR instruction don't read rs2
