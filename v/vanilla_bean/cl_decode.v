@@ -32,7 +32,7 @@ always_comb begin
       `RV32_LUI_OP, `RV32_AUIPC_OP,
       `RV32_JAL_OP, `RV32_JALR_OP,
       `RV32_LOAD, `RV32_OP,
-      `RV32_OP_IMM, `RV32_AMO_OP, `RV32_FLWADD_OP: begin
+      `RV32_OP_IMM, `RV32_AMO_OP: begin
         decode_o.write_rd = 1'b1;
       end
       `RV32_OP_FP: begin
@@ -40,6 +40,10 @@ always_comb begin
           (instruction_i.funct7 == `RV32_FCMP_S_FUN7) // FEQ, FLT, FLE
           | ((instruction_i.funct7 == `RV32_FCLASS_S_FUN7) & (instruction_i.rs2 == 5'b00000)) // FCLASS, FMV.X.W
           | ((instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
+      end
+      `RV32_LOAD_FP: begin
+        // flwadd
+        decode_o.write_rd = (instruction_i.funct7 == 7'b0000000) & (instruction_i.funct3 == 3'b111);
       end
       `RV32_SYSTEM: begin
         decode_o.write_rd = 1'b1; // CSRRW, CSRRS
@@ -57,7 +61,7 @@ always_comb begin
     `RV32_JALR_OP, `RV32_BRANCH,
     `RV32_LOAD, `RV32_STORE,
     `RV32_OP, `RV32_OP_IMM,
-    `RV32_AMO_OP, `RV32_FLWADD_OP: begin
+    `RV32_AMO_OP: begin
       decode_o.read_rs1 = 1'b1;
     end
    `RV32_OP_FP: begin
@@ -65,7 +69,7 @@ always_comb begin
        (instruction_i.funct7 == `RV32_FCVT_S_I2F_FUN7) // FCVT.S.W, FCVT.S.WU
        | (instruction_i.funct7 == `RV32_FMV_W_X_FUN7); // FMV.W.X
     end
-    `RV32_LOAD_FP, `RV32_STORE_FP: begin // FLW, FSW
+    `RV32_LOAD_FP, `RV32_STORE_FP: begin // FLW, FSW, FLWADD
       decode_o.read_rs1 = 1'b1;
      end
     `RV32_SYSTEM: begin
@@ -87,8 +91,12 @@ end
 // declares if Op reads from second port of integer register file
 always_comb begin
   unique casez (instruction_i.op)
-    `RV32_BRANCH, `RV32_STORE, `RV32_OP, `RV32_FLWADD_OP: begin
+    `RV32_BRANCH, `RV32_STORE, `RV32_OP: begin
       decode_o.read_rs2 = 1'b1;
+    end
+    `RV32_LOAD_FP: begin
+      // flwadd
+      decode_o.read_rs2 = (instruction_i.funct7 == 7'b0000000) & (instruction_i.funct3 == 3'b111);
     end
     `RV32_AMO_OP: begin
       // According the ISA, LR instruction don't read rs2
@@ -103,7 +111,7 @@ always_comb begin
 end
 
 // Load & Store
-assign decode_o.is_flwadd_op = (instruction_i.op == `RV32_FLWADD_OP);
+assign decode_o.is_flwadd_op = (instruction_i ==? `RV32_FLWADD);
 assign decode_o.is_load_op = (instruction_i.op == `RV32_LOAD) | (instruction_i.op == `RV32_LOAD_FP);
 assign decode_o.is_store_op = (instruction_i.op == `RV32_STORE) | (instruction_i.op == `RV32_STORE_FP);
 

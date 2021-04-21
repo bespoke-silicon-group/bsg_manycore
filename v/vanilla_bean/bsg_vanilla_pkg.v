@@ -540,8 +540,10 @@ typedef struct packed {
 `define RV32_FSQRT_S  {7'b0101100, 5'b00000, 5'b?????, 3'b???, 5'b?????, 7'b1010011}
 
 
+//                                    //
+//  NON-STANDARD RISC-V Instructions  //
+//                                    //
 
-// NON-STANDARD RISC-V Instructions
 
 //  [FLWADD]
 //
@@ -554,8 +556,7 @@ typedef struct packed {
 //  Machine Format:
 //          rs1   rs2       rd    opcode
 //  0000000_?????_?????_111_?????_0000111
-`define RV32_FLWADD_OP     7'b0000100
-`define RV32_FLWADD {7'b0000000, 5'b?????, 5'b?????, 3'b111, 5'b?????, `RV32_FLWADD_OP}
+`define RV32_FLWADD {7'b0000000, 5'b?????, 5'b?????, 3'b111, 5'b?????, `RV32_LOAD_FP}
 
 
 
