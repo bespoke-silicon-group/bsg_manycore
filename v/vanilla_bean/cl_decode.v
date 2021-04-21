@@ -24,35 +24,32 @@ import bsg_manycore_pkg::*;
 
 // Op Writes Integer RF -- register file write operation
 always_comb begin
-  if (instruction_i.rd == 0) begin
-    decode_o.write_rd = 1'b0; // reg 0 is always 0
-  end
-  else begin
-    unique casez (instruction_i.op)
-      `RV32_LUI_OP, `RV32_AUIPC_OP,
-      `RV32_JAL_OP, `RV32_JALR_OP,
-      `RV32_LOAD, `RV32_OP,
-      `RV32_OP_IMM, `RV32_AMO_OP: begin
-        decode_o.write_rd = 1'b1;
-      end
-      `RV32_OP_FP: begin
-        decode_o.write_rd = 
-          (instruction_i.funct7 == `RV32_FCMP_S_FUN7) // FEQ, FLT, FLE
-          | ((instruction_i.funct7 == `RV32_FCLASS_S_FUN7) & (instruction_i.rs2 == 5'b00000)) // FCLASS, FMV.X.W
-          | ((instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
-      end
-      `RV32_LOAD_FP: begin
-        // flwadd
-        decode_o.write_rd = (instruction_i.funct7 == 7'b0000000) & (instruction_i.funct3 == 3'b111);
-      end
-      `RV32_SYSTEM: begin
-        decode_o.write_rd = 1'b1; // CSRRW, CSRRS
-      end
-      default: begin
-        decode_o.write_rd = 1'b0;
-      end
-    endcase
-  end
+
+  unique casez (instruction_i.op)
+    `RV32_LUI_OP, `RV32_AUIPC_OP,
+    `RV32_JAL_OP, `RV32_JALR_OP,
+    `RV32_LOAD, `RV32_OP,
+    `RV32_OP_IMM, `RV32_AMO_OP: begin
+      decode_o.write_rd = (instruction_i.rd != '0);
+    end
+    `RV32_OP_FP: begin
+      decode_o.write_rd = (instruction_i.rd != '0) & 
+        ((instruction_i.funct7 == `RV32_FCMP_S_FUN7) // FEQ, FLT, FLE
+        | ((instruction_i.funct7 == `RV32_FCLASS_S_FUN7) & (instruction_i.rs2 == 5'b00000)) // FCLASS, FMV.X.W
+        | (instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
+    end
+    `RV32_LOAD_FP: begin
+      // flwadd
+      decode_o.write_rd = (instruction_i.funct7 == 7'b0000000) & (instruction_i.funct3 == 3'b111) & (instruction_i.rs1 != '0);
+    end
+    `RV32_SYSTEM: begin
+      decode_o.write_rd = (instruction_i.rd != '0); // CSRRW, CSRRS
+    end
+    default: begin
+      decode_o.write_rd = 1'b0;
+    end
+  endcase
+
 end
 
 // declares if OP reads from first port of integer register file

@@ -261,6 +261,8 @@ typedef struct packed
 typedef struct packed
 {
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
+    logic [RV32_reg_addr_width_gp-1:0] frd_addr;
+
     logic [RV32_reg_data_width_gp-1:0] exe_result;
     logic write_rd;
     logic write_frd;
@@ -268,6 +270,7 @@ typedef struct packed
     logic is_hex_op;
     logic is_load_unsigned;
     logic local_load;
+    logic local_flwadd;
     logic [RV32_reg_data_width_gp-1:0] mem_addr_sent;
     logic icache_miss;
 } mem_signals_s;

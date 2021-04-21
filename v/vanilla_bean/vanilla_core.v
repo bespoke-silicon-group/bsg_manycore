@@ -997,6 +997,7 @@ module vanilla_core
   // ID stall signals
   logic stall_depend_long_op;
   logic stall_depend_local_load;
+  logic stall_depend_local_flwadd;
   logic stall_depend_imul;
   logic stall_bypass;
   logic stall_lr_aq;
@@ -1020,6 +1021,7 @@ module vanilla_core
 
   wire stall_id = stall_depend_long_op
     | stall_depend_local_load
+    | stall_depend_local_flwadd
     | stall_depend_imul
     | stall_bypass
     | stall_lr_aq
@@ -1208,7 +1210,8 @@ module vanilla_core
   wire [reg_addr_width_lp-1:0] id_rs3 = id_r.instruction[31:27];
   wire [reg_addr_width_lp-1:0] id_rd = id_r.instruction.rd;
   wire remote_req_in_exe = lsu_remote_req_v_lo;
-  wire local_load_in_exe = lsu_dmem_v_lo & ~lsu_dmem_w_lo;
+  wire local_load_in_exe = lsu_dmem_v_lo & ~lsu_dmem_w_lo & ~exe_r.decode.is_flwadd_op;       // local lw or flw
+  wire local_flwadd_in_exe = lsu_dmem_v_lo & ~lsu_dmem_w_lo & exe_r.decode.is_flwadd_op;   // local flwadd
   wire id_rs1_non_zero = id_rs1 != '0;
   wire id_rs2_non_zero = id_rs2 != '0;
   wire id_rd_non_zero = id_rd != '0;
@@ -1237,6 +1240,11 @@ module vanilla_core
     |(id_r.decode.read_frs2 & (id_rs2 == exe_r.instruction.rd) & exe_r.decode.write_frd)
     |(id_r.decode.read_frs3 & (id_rs3 == exe_r.instruction.rd) & exe_r.decode.write_frd));
 
+  assign stall_depend_local_flwadd = local_flwadd_in_exe & 
+    ((id_r.decode.read_frs1 & (id_rs1 == exe_r.instruction.rd) & exe_r.decode.write_frd)
+    |(id_r.decode.read_frs2 & (id_rs2 == exe_r.instruction.rd) & exe_r.decode.write_frd)
+    |(id_r.decode.read_frs3 & (id_rs3 == exe_r.instruction.rd) & exe_r.decode.write_frd));
+
 
   // stall_depend_imul
   assign stall_depend_imul = exe_r.decode.is_imul_op &
@@ -1245,6 +1253,7 @@ module vanilla_core
 
 
   // stall_bypass
+  // stalling because there is no forward path from FP_EXE, FPU1, MEM to ID for frs.
   wire stall_bypass_fp_frs = 
     (id_r.decode.read_frs1 & (id_rs1 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_float_op)
     |(id_r.decode.read_frs2 & (id_rs2 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_float_op)
@@ -1252,10 +1261,10 @@ module vanilla_core
     |(id_r.decode.read_frs1 & (id_rs1 == fpu1_rd_r) & fpu1_v_r)
     |(id_r.decode.read_frs2 & (id_rs2 == fpu1_rd_r) & fpu1_v_r)
     |(id_r.decode.read_frs3 & (id_rs3 == fpu1_rd_r) & fpu1_v_r)
-    |(id_r.decode.read_frs1 & (id_rs1 == mem_r.rd_addr) & mem_r.write_frd)
-    |(id_r.decode.read_frs2 & (id_rs2 == mem_r.rd_addr) & mem_r.write_frd)
-    |(id_r.decode.read_frs3 & (id_rs3 == mem_r.rd_addr) & mem_r.write_frd);
-
+    |(id_r.decode.read_frs1 & (id_rs1 == mem_r.frd_addr) & mem_r.write_frd)
+    |(id_r.decode.read_frs2 & (id_rs2 == mem_r.frd_addr) & mem_r.write_frd)
+    |(id_r.decode.read_frs3 & (id_rs3 == mem_r.frd_addr) & mem_r.write_frd);
+  
   wire stall_bypass_fp_rs1 = (id_r.decode.read_rs1 & id_rs1_non_zero) &
     (((id_rs1 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_int_op)
     |((id_rs1 == imul_rd_lo) & imul_v_lo)
@@ -1359,7 +1368,7 @@ module vanilla_core
   logic [2:0] has_forward_data_rs2;
 
   assign has_forward_data_rs1[0] =
-    ((exe_r.decode.write_rd & (exe_r.instruction.rd == id_rs1))
+    ((exe_r.decode.write_rd & ((exe_r.decode.is_flwadd_op ? exe_r.instruction.rs1 : exe_r.instruction.rd) == id_rs1))
     |(fp_exe_r.fp_decode.is_fpu_int_op & (fp_exe_r.rd == id_rs1)))
     & id_rs1_non_zero;
   assign has_forward_data_rs1[1] =
@@ -1380,7 +1389,7 @@ module vanilla_core
   );
 
   assign has_forward_data_rs2[0] =
-    ((exe_r.decode.write_rd & (exe_r.instruction.rd == id_rs2))
+    ((exe_r.decode.write_rd & ((exe_r.decode.is_flwadd_op ? exe_r.instruction.rs1 : exe_r.instruction.rd) == id_rs2))
     |(fp_exe_r.fp_decode.is_fpu_int_op & (fp_exe_r.rd == id_rs2)))
     & id_rs2_non_zero;
   assign has_forward_data_rs2[1] =
@@ -1549,6 +1558,7 @@ module vanilla_core
     else if (fp_exe_r.fp_decode.is_fpu_int_op) begin
       fcsr_fflags_v_li[0] = 1'b1;
       mem_n = '{
+        frd_addr: '0,
         rd_addr: fp_exe_r.rd,
         exe_result: fpu_int_result_lo,
         write_rd: 1'b1,
@@ -1557,13 +1567,15 @@ module vanilla_core
         is_hex_op: 1'b0,
         is_load_unsigned: 1'b0,
         local_load: 1'b0,
+        local_flwadd: 1'b0,
         mem_addr_sent: '0,
         icache_miss: 1'b0
       };      
     end
     else begin
       mem_n = '{
-        rd_addr: exe_r.instruction.rd,
+        rd_addr: (exe_r.decode.is_flwadd_op ? exe_r.instruction.rs1 : exe_r.instruction.rd),
+        frd_addr: exe_r.instruction.rd,
         exe_result: alu_or_csr_result,
         write_rd: exe_r.decode.write_rd,
         write_frd: exe_r.decode.write_frd,
@@ -1571,6 +1583,7 @@ module vanilla_core
         is_hex_op: exe_r.decode.is_hex_op,
         is_load_unsigned: exe_r.decode.is_load_unsigned,
         local_load: local_load_in_exe,
+        local_flwadd: local_flwadd_in_exe,
         mem_addr_sent: lsu_mem_addr_sent_lo,
         icache_miss: exe_r.icache_miss
       };      
@@ -1708,7 +1721,7 @@ module vanilla_core
     else begin
       flw_wb_n = '{
         valid: mem_r.write_frd,
-        rd_addr: mem_r.rd_addr,
+        rd_addr: mem_r.frd_addr,
         rf_data: local_load_data_r
       };
     end
