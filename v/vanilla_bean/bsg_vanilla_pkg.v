@@ -102,16 +102,17 @@ typedef enum logic [1:0] {
 
 typedef struct packed {
   // int regfile
-  logic read_rs1;
-  logic read_rs2;
-  logic write_rd;
+  logic read_rs1;         // Op reads integer rs1
+  logic read_rs2;         // Op reads integer rs2
+  logic write_rd;         // Op writes to integer rd
 
   // Load & Store
-  logic is_load_op;       // Op loads data from memory
-  logic is_store_op;      // Op stores data to memory
+  logic is_load_op;       // Op is lw or flw
+  logic is_store_op;      // Op is sw or fsw 
   logic is_byte_op;       // Op is byte load/store
   logic is_hex_op;        // Op is hex load/store
   logic is_load_unsigned; // Op is unsigned load
+  logic is_flwadd_op;     // flwadd
 
   // Branch & Jump
   logic is_branch_op;
@@ -260,6 +261,8 @@ typedef struct packed
 typedef struct packed
 {
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
+    logic [RV32_reg_addr_width_gp-1:0] frd_addr;
+
     logic [RV32_reg_data_width_gp-1:0] exe_result;
     logic write_rd;
     logic write_frd;
@@ -267,6 +270,7 @@ typedef struct packed
     logic is_hex_op;
     logic is_load_unsigned;
     logic local_load;
+    logic local_flwadd;
     logic [RV32_reg_data_width_gp-1:0] mem_addr_sent;
     logic icache_miss;
 } mem_signals_s;
@@ -537,6 +541,27 @@ typedef struct packed {
 
 `define RV32_FDIV_S   `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0001100)
 `define RV32_FSQRT_S  {7'b0101100, 5'b00000, 5'b?????, 3'b???, 5'b?????, 7'b1010011}
+
+
+//                                    //
+//  NON-STANDARD RISC-V Instructions  //
+//                                    //
+
+
+//  [FLWADD]
+//
+//  Assembly format
+//  flwadd fd, rs2, 0(rs1)
+//
+//  Semantic:
+//  fd = *rs1; rs1 = rs1 + rs2;
+//
+//  Machine Format:
+//          rs1   rs2       rd    opcode
+//  0000000_?????_?????_111_?????_0000100
+`define RV32_FLWADD_OP 7'b0000100
+`define RV32_FLWADD {7'b0000000, 5'b?????, 5'b?????, 3'b111, 5'b?????, `RV32_FLWADD_OP}
+
 
 
 endpackage

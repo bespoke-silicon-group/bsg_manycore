@@ -22,36 +22,36 @@ import bsg_manycore_pkg::*;
 );
 
 
-// Op Writes RF -- register file write operation
+// Op Writes Integer RF -- register file write operation
 always_comb begin
-  if (instruction_i.rd == 0) begin
-    decode_o.write_rd = 1'b0; // reg 0 is always 0
-  end
-  else begin
-    unique casez (instruction_i.op)
-      `RV32_LUI_OP, `RV32_AUIPC_OP,
-      `RV32_JAL_OP, `RV32_JALR_OP,
-      `RV32_LOAD, `RV32_OP,
-      `RV32_OP_IMM, `RV32_AMO_OP: begin
-        decode_o.write_rd = 1'b1;
-      end
-      `RV32_OP_FP: begin
-        decode_o.write_rd = 
-          (instruction_i.funct7 == `RV32_FCMP_S_FUN7) // FEQ, FLT, FLE
-          | ((instruction_i.funct7 == `RV32_FCLASS_S_FUN7) & (instruction_i.rs2 == 5'b00000)) // FCLASS, FMV.X.W
-          | ((instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
-      end
-      `RV32_SYSTEM: begin
-        decode_o.write_rd = 1'b1; // CSRRW, CSRRS
-      end
-      default: begin
-        decode_o.write_rd = 1'b0;
-      end
-    endcase
-  end
+
+  unique casez (instruction_i.op)
+    `RV32_LUI_OP, `RV32_AUIPC_OP,
+    `RV32_JAL_OP, `RV32_JALR_OP,
+    `RV32_LOAD, `RV32_OP,
+    `RV32_OP_IMM, `RV32_AMO_OP: begin
+      decode_o.write_rd = (instruction_i.rd != '0);
+    end
+    `RV32_OP_FP: begin
+      decode_o.write_rd = (instruction_i.rd != '0) & 
+        ((instruction_i.funct7 == `RV32_FCMP_S_FUN7) // FEQ, FLT, FLE
+        | ((instruction_i.funct7 == `RV32_FCLASS_S_FUN7) & (instruction_i.rs2 == 5'b00000)) // FCLASS, FMV.X.W
+        | (instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
+    end
+    `RV32_FLWADD_OP: begin
+      decode_o.write_rd = (instruction_i.funct7 == 7'b0000000) & (instruction_i.funct3 == 3'b111) & (instruction_i.rs1 != '0);
+    end
+    `RV32_SYSTEM: begin
+      decode_o.write_rd = (instruction_i.rd != '0); // CSRRW, CSRRS
+    end
+    default: begin
+      decode_o.write_rd = 1'b0;
+    end
+  endcase
+
 end
 
-// declares if OP reads from first port of register file
+// declares if OP reads from first port of integer register file
 always_comb begin
   unique casez (instruction_i.op)
     `RV32_JALR_OP, `RV32_BRANCH,
@@ -65,7 +65,7 @@ always_comb begin
        (instruction_i.funct7 == `RV32_FCVT_S_I2F_FUN7) // FCVT.S.W, FCVT.S.WU
        | (instruction_i.funct7 == `RV32_FMV_W_X_FUN7); // FMV.W.X
     end
-    `RV32_LOAD_FP, `RV32_STORE_FP: begin // FLW, FSW
+    `RV32_LOAD_FP, `RV32_STORE_FP, `RV32_FLWADD_OP: begin // FLW, FSW, FLWADD
       decode_o.read_rs1 = 1'b1;
      end
     `RV32_SYSTEM: begin
@@ -84,10 +84,13 @@ always_comb begin
   endcase
 end
 
-// declares if Op reads from second port of register file
+// declares if Op reads from second port of integer register file
 always_comb begin
   unique casez (instruction_i.op)
     `RV32_BRANCH, `RV32_STORE, `RV32_OP: begin
+      decode_o.read_rs2 = 1'b1;
+    end
+    `RV32_FLWADD_OP: begin
       decode_o.read_rs2 = 1'b1;
     end
     `RV32_AMO_OP: begin
@@ -103,6 +106,7 @@ always_comb begin
 end
 
 // Load & Store
+assign decode_o.is_flwadd_op = (instruction_i ==? `RV32_FLWADD);
 assign decode_o.is_load_op = (instruction_i.op == `RV32_LOAD) | (instruction_i.op == `RV32_LOAD_FP);
 assign decode_o.is_store_op = (instruction_i.op == `RV32_STORE) | (instruction_i.op == `RV32_STORE_FP);
 
@@ -225,6 +229,8 @@ assign decode_o.is_amo_rl = instruction_i[25];
 //|
 //+----------------------------------------------
 
+
+// is_fp_op means that this instruction goes to FP_EXE stage.
 always_comb begin
   decode_o.read_frs1 = 1'b0;
   decode_o.read_frs2 = 1'b0;
@@ -321,6 +327,14 @@ always_comb begin
       decode_o.read_frs3 = 1'b0;
       decode_o.write_frd = 1'b1;
       decode_o.is_fp_op = 1'b1;
+    end
+    // FLWADD
+    `RV32_FLWADD: begin
+      decode_o.read_frs1 = 1'b0;
+      decode_o.read_frs2 = 1'b0;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b1;
+      decode_o.is_fp_op = 1'b0;
     end
     default: begin
       decode_o.read_frs1 = 1'b0;

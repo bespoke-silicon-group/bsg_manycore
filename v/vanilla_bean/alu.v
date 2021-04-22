@@ -53,7 +53,7 @@ always_comb
       `RV32_AUIPC:
         result_o = `RV32_signext_Uimm(op_i) + pc_plus4_i - 3'b100;
 
-      `RV32_ADDI, `RV32_ADD:
+      `RV32_ADDI, `RV32_ADD, `RV32_FLWADD:
         begin
           result_o = sum[31:0];
           sub_not_add = 1'b0;

@@ -97,7 +97,7 @@ module lsu
 
   assign dmem_v_o = is_local_dmem_addr &
     (exe_decode_i.is_load_op | exe_decode_i.is_store_op |
-     exe_decode_i.is_lr_op | exe_decode_i.is_lr_aq_op);
+     exe_decode_i.is_lr_op | exe_decode_i.is_lr_aq_op | exe_decode_i.is_flwadd_op);
   assign dmem_w_o = exe_decode_i.is_store_op;
   assign dmem_addr_o = mem_addr[2+:dmem_addr_width_lp]; 
   assign dmem_data_o = store_data;
@@ -152,7 +152,7 @@ module lsu
 
 
   assign remote_req_v_o = icache_miss_i |
-    ((exe_decode_i.is_load_op | exe_decode_i.is_store_op | exe_decode_i.is_amo_op) & ~is_local_dmem_addr);
+    ((exe_decode_i.is_load_op | exe_decode_i.is_store_op | exe_decode_i.is_amo_op | exe_decode_i.is_flwadd_op) & ~is_local_dmem_addr);
 
   // reserve
   // only valid on local DMEM
