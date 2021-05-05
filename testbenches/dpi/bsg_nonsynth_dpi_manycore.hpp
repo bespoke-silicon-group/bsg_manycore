@@ -39,6 +39,7 @@ namespace bsg_nonsynth_dpi{
          *   dpi_manycore: Constructor
          *   get_credits_used: Get count of used transmit credits
          *   tx_req: Transmit a request packet
+         *   tx_rsp: Transmit a response packet
          *   rx_rsp: Receive a response packet
          *   rx_req: Receive a request packet
          */
@@ -195,6 +196,7 @@ namespace bsg_nonsynth_dpi{
                  *         BSG_NONSYNTH_DPI_BUSY when reset is not done
                  *         BSG_NONSYNTH_DPI_NOT_WINDOW when not in valid clock window
                  *         BSG_NONSYNTH_DPI_NO_CREDITS when no transmit credits are available
+                 *         BSG_NONSYNTH_DPI_NO_CAPACITY when there is no capacity in the response buffer
                  *         BSG_NONSYNTH_DPI_NOT_READY when the packet was not transmitted (call again next cycle)
                  */
                 int tx_req(const __m128i &data){
