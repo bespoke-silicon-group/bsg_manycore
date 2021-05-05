@@ -17,6 +17,7 @@ module bsg_nonsynth_manycore_io_complex
     , parameter io_y_cord_p=1
 
     , parameter max_out_credits_p=200
+    , parameter verbose_p=0
     , parameter credit_counter_width_lp=`BSG_SAFE_CLOG2(max_out_credits_p+1)
  
     , parameter data_mask_width_lp=(data_width_p>>3)
@@ -155,6 +156,7 @@ module bsg_nonsynth_manycore_io_complex
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
     ,.max_out_credits_p(max_out_credits_p)
+    ,.verbose_p(verbose_p)
   ) loader (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
