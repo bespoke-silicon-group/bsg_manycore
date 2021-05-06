@@ -89,8 +89,27 @@ module bsg_manycore_tile_vcache
 
 
   // feedthrough coordinate bits
-  assign global_x_o = global_x_i;
-  assign global_y_o = y_cord_width_p'(global_y_i+1);
+  logic [x_cord_width_p-1:0] global_x_lo;
+  logic [y_cord_width_p-1:0] global_y_lo;
+
+  bsg_buf #(
+    .width_p(x_cord_width_p)
+    ,.harden_p(0)
+  ) global_x_buf (
+    .i(global_x_i)
+    ,.o(global_x_lo)
+  );
+
+  bsg_buf #(
+    .width_p(y_cord_width_p)
+    ,.harden_p(0)
+  ) global_y_buf (
+    .i(global_y_i)
+    ,.o(global_y_lo)
+  );
+
+  assign global_x_o = global_x_lo;
+  assign global_y_o = y_cord_width_p'(global_y_lo+1);
 
 
 
@@ -119,8 +138,8 @@ module bsg_manycore_tile_vcache
     ,.proc_link_sif_i(proc_link_sif_li)
     ,.proc_link_sif_o(proc_link_sif_lo)
 
-    ,.global_x_i(global_x_i)
-    ,.global_y_i(global_y_i)
+    ,.global_x_i(global_x_lo)
+    ,.global_y_i(global_y_lo)
   );
 
   assign ver_link_sif_o[S] = link_sif_lo[S];
@@ -258,12 +277,12 @@ module bsg_manycore_tile_vcache
     ,.wh_link_sif_i(cache_wh_link_li)
     ,.wh_link_sif_o(cache_wh_link_lo)
 
-    ,.my_wh_cord_i(global_x_i)
+    ,.my_wh_cord_i(global_x_lo)
     ,.dest_wh_cord_i({wh_cord_width_p{wh_dest_east_not_west_lo}})
     // concentrator id
     // lower bits come from lower bits of global_x
     // upper bits come from whether its north or south vc.
-    ,.my_wh_cid_i({~global_y_i[y_subcord_width_lp-1], global_x_i[0+:lg_wh_ruche_factor_lp]})
+    ,.my_wh_cid_i({~global_y_lo[y_subcord_width_lp-1], global_x_lo[0+:lg_wh_ruche_factor_lp]})
   );
  
 
@@ -284,7 +303,7 @@ module bsg_manycore_tile_vcache
     ,.link_i(wh_link_li)
     ,.link_o(wh_link_lo)
 
-    ,.my_cord_i(global_x_i)
+    ,.my_cord_i(global_x_lo)
   );
 
   assign wh_link_li[P] = cache_wh_link_lo;

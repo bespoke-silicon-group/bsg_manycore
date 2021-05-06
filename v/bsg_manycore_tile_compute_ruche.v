@@ -81,8 +81,27 @@ module bsg_manycore_tile_compute_ruche
   assign reset_o = reset_r;
 
   // feedthrough coordinate bits
-  assign global_x_o = global_x_i;
-  assign global_y_o = (y_cord_width_p)'((global_y_i) + 1);
+  logic [x_cord_width_p-1:0] global_x_lo;
+  logic [y_cord_width_p-1:0] global_y_lo;
+
+  bsg_buf #(
+    .width_p(x_cord_width_p)
+    ,.harden_p(0)
+  ) global_x_buf (
+    .i(global_x_i)
+    ,.o(global_x_lo)
+  );
+
+  bsg_buf #(
+    .width_p(y_cord_width_p)
+    ,.harden_p(0)
+  ) global_y_buf (
+    .i(global_y_i)
+    ,.o(global_y_lo)
+  );
+
+  assign global_x_o = global_x_lo;
+  assign global_y_o = (y_cord_width_p)'((global_y_lo) + 1);
 
 
   // For vanilla core (hetero type = 0), it uses credit interface for the P ports,
@@ -123,8 +142,8 @@ module bsg_manycore_tile_compute_ruche
     ,.links_sif_o(links_sif_lo)
     ,.proc_link_sif_i(proc_link_sif_li)
     ,.proc_link_sif_o(proc_link_sif_lo)
-    ,.global_x_i(global_x_i)
-    ,.global_y_i(global_y_i)
+    ,.global_x_i(global_x_lo)
+    ,.global_y_i(global_y_lo)
   );
 
   bsg_manycore_hetero_socket #(
@@ -153,11 +172,11 @@ module bsg_manycore_tile_compute_ruche
     ,.link_sif_i(proc_link_sif_lo)
     ,.link_sif_o(proc_link_sif_li)
 
-    ,.pod_x_i(global_x_i[x_subcord_width_lp+:pod_x_cord_width_p])
-    ,.pod_y_i(global_y_i[y_subcord_width_lp+:pod_y_cord_width_p])
+    ,.pod_x_i(global_x_lo[x_subcord_width_lp+:pod_x_cord_width_p])
+    ,.pod_y_i(global_y_lo[y_subcord_width_lp+:pod_y_cord_width_p])
 
-    ,.my_x_i(global_x_i[0+:x_subcord_width_lp])
-    ,.my_y_i(global_y_i[0+:y_subcord_width_lp])
+    ,.my_x_i(global_x_lo[0+:x_subcord_width_lp])
+    ,.my_y_i(global_y_lo[0+:y_subcord_width_lp])
   );
 
 
