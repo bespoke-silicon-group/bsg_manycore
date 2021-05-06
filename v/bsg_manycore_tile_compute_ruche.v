@@ -115,8 +115,12 @@ module bsg_manycore_tile_compute_ruche
   localparam int fwd_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0)
     ? '{2,2,2,2,2,2,3}
     : '{2,2,2,2,2,2,2};
-  localparam rev_use_credits_lp = 7'b00000;
-  localparam int rev_fifo_els_lp[dirs_lp:0] = '{2,2,2,2,2,2,2};
+  localparam rev_use_credits_lp = (hetero_type_p == 0)
+    ? 7'b0000001
+    : 7'b0000000;
+  localparam int rev_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0)
+    ? '{2,2,2,2,2,2,3}
+    : '{2,2,2,2,2,2,2};
    
  
   // Instantiate router and the socket.
@@ -167,6 +171,7 @@ module bsg_manycore_tile_compute_ruche
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
     ,.fwd_fifo_els_p(fwd_fifo_els_lp[0])
+    ,.rev_fifo_els_p(rev_fifo_els_lp[0])
     ,.debug_p(debug_p)
   ) proc (
     .clk_i(clk_i)

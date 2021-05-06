@@ -323,7 +323,8 @@ typedef struct packed {
 
 `define REMOTE_INTERRUPT_JUMP_ADDR  0   // remote interrupt jump addr (word addr)
 `define TRACE_INTERRUPT_JUMP_ADDR   1   // trace interrupt jump addr (word addr)
-// remote 
+
+
 
 
 //                            //
@@ -454,6 +455,9 @@ typedef struct packed {
 `define RV32_CSR_MIE_ADDR       12'h304
 `define RV32_CSR_MIP_ADDR       12'h344
 `define RV32_CSR_MEPC_ADDR      12'h341
+
+// machine custom CSR addr
+`define RV32_CSR_CREDIT_LIMIT_ADDR 12'hfc0
 
 // mret
 // used for returning from the interrupt

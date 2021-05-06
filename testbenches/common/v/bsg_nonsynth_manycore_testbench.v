@@ -218,6 +218,8 @@ module bsg_nonsynth_manycore_testbench
   end
 
   // IO ROUTER
+  localparam rev_use_credits_lp = 5'b00001;
+  localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,3};
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_li;
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_lo;
 
@@ -228,6 +230,8 @@ module bsg_nonsynth_manycore_testbench
       ,.addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
       ,.stub_p(4'b0100) // stub north
+      ,.rev_use_credits_p(rev_use_credits_lp)
+      ,.rev_fifo_els_p(rev_fifo_els_lp)
     ) io_rtr (
       .clk_i(clk_i)
       ,.reset_i(reset_r)
