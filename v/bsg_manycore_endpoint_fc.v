@@ -95,6 +95,7 @@ module bsg_manycore_endpoint_fc
     ,.packet_v_o(packet_v_lo)
     ,.packet_yumi_i(packet_yumi_i)
 
+    // NB: endpoint standard uses this as credit-valid interface.
     ,.return_packet_i(return_packet_i)
     ,.return_packet_v_i(return_packet_v_i)
     ,.return_packet_credit_or_ready_o(return_packet_credit_or_ready_lo)
