@@ -89,27 +89,8 @@ module bsg_manycore_tile_vcache
 
 
   // feedthrough coordinate bits
-  logic [x_cord_width_p-1:0] global_x_r;
-  logic [y_cord_width_p-1:0] global_y_r;
-
-  bsg_dff #(
-    .width_p(x_cord_width_p)
-  ) x_dff (
-    .clk_i(clk_i)
-    ,.data_i(global_x_i)
-    ,.data_o(global_x_r)
-  );
-
-  bsg_dff #(
-    .width_p(y_cord_width_p)
-  ) y_dff (
-    .clk_i(clk_i)
-    ,.data_i(global_y_i)
-    ,.data_o(global_y_r)
-  );
-
-  assign global_x_o = global_x_r;
-  assign global_y_o = y_cord_width_p'(global_y_r+1);
+  assign global_x_o = global_x_i;
+  assign global_y_o = y_cord_width_p'(global_y_i+1);
 
 
 

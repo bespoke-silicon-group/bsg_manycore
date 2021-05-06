@@ -81,30 +81,8 @@ module bsg_manycore_tile_compute_ruche
   assign reset_o = reset_r;
 
   // feedthrough coordinate bits
-  logic [x_subcord_width_lp-1:0] my_x_r;
-  logic [y_subcord_width_lp-1:0] my_y_r;
-  logic [pod_x_cord_width_p-1:0] pod_x_r;
-  logic [pod_y_cord_width_p-1:0] pod_y_r;
-
-
-  bsg_dff #(
-    .width_p(x_cord_width_p)
-  ) dff_x (
-    .clk_i(clk_i)
-    ,.data_i(global_x_i)
-    ,.data_o({pod_x_r, my_x_r})
-  );
-
-  bsg_dff #(
-    .width_p(y_cord_width_p)
-  ) dff_y (
-    .clk_i(clk_i)
-    ,.data_i(global_y_i)
-    ,.data_o({pod_y_r, my_y_r})
-  );
-
-  assign global_x_o = {pod_x_r, my_x_r};
-  assign global_y_o = (y_cord_width_p)'(({pod_y_r, my_y_r}) + 1);
+  assign global_x_o = global_x_i;
+  assign global_y_o = (y_cord_width_p)'((global_y_i) + 1);
 
 
   // For vanilla core (hetero type = 0), it uses credit interface for the P ports,
