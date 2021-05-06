@@ -9,37 +9,43 @@ module bsg_nonsynth_dpi_manycore
      ,parameter y_cord_width_p = "inv"
      ,parameter addr_width_p = "inv"
      ,parameter data_width_p = "inv"
-     ,parameter max_out_credits_p = "inv"
+     ,parameter credit_counter_width_p = `BSG_WIDTH(32)
      ,parameter ep_fifo_els_p = "inv"
-     ,parameter dpi_fifo_els_p = "inv"
+     ,parameter dpi_fifo_els_p = "inv" // Response capacity
      ,parameter rom_els_p = "inv"
      ,parameter rom_width_p = "inv"
      ,parameter fifo_width_p = "inv"
      ,parameter bit [rom_width_p-1:0] rom_arr_p [rom_els_p-1:0] = "inv"
      ,localparam link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
      ,parameter bit debug_p = 0
-     ) 
+     )
    (
     input clk_i
     ,input reset_i
-      
+
     // manycore link
     ,input [link_sif_width_lp-1:0] link_sif_i
     ,output [link_sif_width_lp-1:0] link_sif_o
-      
-    ,input [x_cord_width_p-1:0] my_x_i
-    ,input [y_cord_width_p-1:0] my_y_i
 
     ,input reset_done_i
-      
+
     ,output bit debug_o);
-   
-   logic [`BSG_WIDTH(max_out_credits_p)-1:0] ep_out_credits_lo;
-   
+
+   logic [credit_counter_width_p-1:0] out_credits_used_lo;
+
    // Host -> Manycore Requests
    logic [fifo_width_p-1:0]                  host_req_data_lo;
    logic                                     host_req_v_lo;
    logic                                     host_req_ready_li;
+
+   // Host -> Manycore Responses
+   logic [fifo_width_p-1:0]                  host_rsp_data_lo;
+   logic                                     host_rsp_v_lo;
+   logic                                     host_rsp_ready_li;
+
+   logic [fifo_width_p-1:0]                  endpoint_rsp_data_lo;
+   logic                                     endpoint_rsp_v_lo;
+   logic                                     endpoint_rsp_ready_li;
 
    // Manycore -> Host Responses
    logic [fifo_width_p-1:0]                  mc_rsp_data_li;
@@ -146,40 +152,59 @@ module bsg_nonsynth_dpi_manycore
       ,.clk_i(clk_i)
       ,.reset_i(reset_i));
 
-   bsg_manycore_endpoint_to_fifos 
+   // ----------------------------------------------------------------------
+   // DPI - To - FIFO: Host (Responses) -> Manycore
+   // ----------------------------------------------------------------------
+   bsg_nonsynth_dpi_to_fifo
      #(
-       .fifo_width_p     (fifo_width_p),
-       .x_cord_width_p   (x_cord_width_p),
-       .y_cord_width_p   (y_cord_width_p),
-       .addr_width_p     (addr_width_p),
-       .data_width_p     (data_width_p),
-       .ep_fifo_els_p    (ep_fifo_els_p),
-       .max_out_credits_p(max_out_credits_p)
-       ) 
-   mc_ep_to_fifos 
+       .width_p(fifo_width_p)
+       ,.debug_p(debug_p))
+   d2f_rsp_i
      (
-      .clk_i           (clk_i),
-      .reset_i         (reset_i),
+      .debug_o()
+      ,.v_o(host_rsp_v_lo)
+      ,.data_o(host_rsp_data_lo)
+
+      ,.ready_i(host_rsp_ready_li)
+      ,.clk_i(clk_i)
+      ,.reset_i(reset_i));
+
+   bsg_manycore_endpoint_to_fifos
+     #(.fifo_width_p(fifo_width_p)
+       ,.x_cord_width_p(x_cord_width_p)
+       ,.y_cord_width_p(y_cord_width_p)
+       ,.addr_width_p(addr_width_p)
+       ,.data_width_p(data_width_p)
+       ,.ep_fifo_els_p(ep_fifo_els_p)
+       ,.credit_counter_width_p(credit_counter_width_p)
+       )
+   mc_ep_to_fifos
+     (
+      .clk_i(clk_i)
+      ,.reset_i(reset_i)
 
       // fifo interface
-      .mc_req_o        (mc_req_data_li),
-      .mc_req_v_o      (mc_req_v_li),
-      .mc_req_ready_i  (mc_req_ready_lo),
+      ,.mc_req_o(mc_req_data_li)
+      ,.mc_req_v_o(mc_req_v_li)
+      ,.mc_req_ready_i(mc_req_ready_lo)
 
-      .host_req_i      (host_req_data_lo),
-      .host_req_v_i    (host_req_v_lo),
-      .host_req_ready_o(host_req_ready_li),
+      ,.endpoint_req_i(host_req_data_lo)
+      ,.endpoint_req_v_i(host_req_v_lo)
+      ,.endpoint_req_ready_o(host_req_ready_li)
 
-      .mc_rsp_o        (mc_rsp_data_li),
-      .mc_rsp_v_o      (mc_rsp_v_li),
-      .mc_rsp_ready_i  (mc_rsp_ready_lo),
+      ,.endpoint_rsp_i(host_rsp_data_lo)
+      ,.endpoint_rsp_v_i(host_rsp_v_lo)
+      ,.endpoint_rsp_ready_o(host_rsp_ready_li)
+
+      ,.mc_rsp_o(mc_rsp_data_li)
+      ,.mc_rsp_v_o(mc_rsp_v_li)
+      ,.mc_rsp_ready_i(mc_rsp_ready_lo)
 
       // manycore link
-      .link_sif_i      (link_sif_i),
-      .link_sif_o      (link_sif_o),
-      .my_x_i          (my_x_i),
-      .my_y_i          (my_y_i),
-      .out_credits_o   (ep_out_credits_lo)
+      ,.link_sif_i(link_sif_i)
+      ,.link_sif_o(link_sif_o)
+
+      ,.out_credits_used_o(out_credits_used_lo)
       );
 
    // This module has DPI function calls, but no IO
@@ -191,8 +216,8 @@ module bsg_nonsynth_dpi_manycore
      ();
 
    // We track the polarity of the current edge so that we can call
-   // $fatal when credits_get_cur is called during the wrong phase
-   // of clk_i.
+   // $fatal when credits_get_used is called during the wrong phase of
+   // clk_i.
    logic                                     edgepol_l;
    always @(posedge clk_i or negedge clk_i) begin
       edgepol_l <= clk_i;
@@ -207,15 +232,15 @@ module bsg_nonsynth_dpi_manycore
       init_l = 0;
 
       $display("BSG INFO: bsg_nonsynth_dpi_manycore (initial begin)");
-      $display("BSG INFO:     Instantiation:     %M");
-      $display("BSG INFO:     x_cord_width_p:    %d", x_cord_width_p);
-      $display("BSG INFO:     y_cord_width_p:    %d", y_cord_width_p);
-      $display("BSG INFO:     addr_width_p:      %d", addr_width_p);
-      $display("BSG INFO:     data_width_p:      %d", data_width_p);
-      $display("BSG INFO:     max_out_credits_p: %d", max_out_credits_p);
-      $display("BSG INFO:     ep_fifo_els_p:     %d", ep_fifo_els_p);
-      $display("BSG INFO:     dpi_fifo_els_p:    %d", dpi_fifo_els_p);
-      $display("BSG INFO:     debug_p:           %d", debug_o);
+      $display("BSG INFO:     Instantiation:          %M");
+      $display("BSG INFO:     x_cord_width_p:         %d", x_cord_width_p);
+      $display("BSG INFO:     y_cord_width_p:         %d", y_cord_width_p);
+      $display("BSG INFO:     addr_width_p:           %d", addr_width_p);
+      $display("BSG INFO:     data_width_p:           %d", data_width_p);
+      $display("BSG INFO:     credit_counter_width_p: %d", credit_counter_width_p);
+      $display("BSG INFO:     ep_fifo_els_p:          %d", ep_fifo_els_p);
+      $display("BSG INFO:     dpi_fifo_els_p:         %d", dpi_fifo_els_p);
+      $display("BSG INFO:     debug_p:                %d", debug_o);
    end
 
    export "DPI-C" function bsg_dpi_init;
@@ -224,46 +249,49 @@ module bsg_nonsynth_dpi_manycore
    export "DPI-C" function bsg_dpi_tx_is_vacant;
    export "DPI-C" function bsg_dpi_is_window;
    export "DPI-C" function bsg_dpi_reset_is_done;
-   export "DPI-C" function bsg_dpi_credits_get_cur;
+   export "DPI-C" function bsg_dpi_credits_get_used;
    export "DPI-C" function bsg_dpi_credits_get_max;
-
+   export "DPI-C" function bsg_dpi_capacity_get_max;
 
    // Return true if the  number of credits available. This is used to
    // fence in the C++ API.
    function int bsg_dpi_credits_get_max();
-      return max_out_credits_p;
+      return (1 << credit_counter_width_p) - 1;
    endfunction
 
-   // Return the number of credits currently available for
-   // host-originated requests. This value is advertised by the
-   // endpoint.
-   function int bsg_dpi_credits_get_cur();
+   function int bsg_dpi_capacity_get_max();
+      return dpi_fifo_els_p;
+   endfunction
+
+   // Return the number of credits currently in use by the endpoint
+   // credit tracking mechanism
+   function int bsg_dpi_credits_get_used();
       if(init_l === 0) begin
-         $fatal(1, "BSG ERROR (%M): credits_get_cur() called before init()");
+         $fatal(1, "BSG ERROR (%M): credits_get_used() called before init()");
       end
 
       if(reset_i === 1) begin
-         $fatal(1, "BSG ERROR (%M): credits_get_cur() called while reset_i === 1");
-      end      
+         $fatal(1, "BSG ERROR (%M): credits_get_used() called while reset_i === 1");
+      end
 
       if(reset_done_i === 0) begin
-         $fatal(1, "BSG ERROR (%M): credits_get_cur() called while reset_done_i === 0");
-      end      
+         $fatal(1, "BSG ERROR (%M): credits_get_used() called while reset_done_i === 0");
+      end
 
       if(clk_i === 0) begin
-         $fatal(1, "BSG ERROR (%M): credits_get_cur() must be called when clk_i == 1");
+         $fatal(1, "BSG ERROR (%M): credits_get_used() must be called when clk_i == 1");
       end
 
       if(edgepol_l === 0) begin
-         $fatal(1, "BSG ERROR (%M): credits_get_cur() must be called after the positive edge of clk_i has been evaluated");
+         $fatal(1, "BSG ERROR (%M): credits_get_used() must be called after the positive edge of clk_i has been evaluated");
       end
-      
-      return ep_out_credits_lo;
-   endfunction 
 
-   // Return the number of credits currently available for
-   // host-originated requests. This value is advertised by the
-   // endpoint.
+      return out_credits_used_lo;
+   endfunction
+
+   // Returns whether the TX Fifo is Vacant. Use this when fencing to
+   // determine if there are additional packets in the Transmit FIFO
+   // that have not been seen by the endpoint
    function bit bsg_dpi_tx_is_vacant();
       if(init_l === 0) begin
          $fatal(1, "BSG ERROR (%M): tx_is_vacant() called before init()");
@@ -271,11 +299,11 @@ module bsg_nonsynth_dpi_manycore
 
       if(reset_i === 1) begin
          $fatal(1, "BSG ERROR (%M): tx_is_vacant() called while reset_i === 1");
-      end      
+      end
 
       if(reset_done_i === 0) begin
-         $fatal(1, "BSG ERROR (%M): credits_get_cur() called while reset_done_i === 0");
-      end      
+         $fatal(1, "BSG ERROR (%M): tx_is_vacant() called while reset_done_i === 0");
+      end
 
       if(clk_i === 0) begin
          $fatal(1, "BSG ERROR (%M): tx_is_vacant() must be called when clk_i == 1");
@@ -290,7 +318,7 @@ module bsg_nonsynth_dpi_manycore
       // ongoing transaction. IF THIS CHANGES, then check both
       // host_req_v_lo AND the v output of the FIFO.
       return ~host_req_v_lo;
-   endfunction 
+   endfunction
 
    // The function is_window returns true if the interface is
    // in a valid time-window to call read_credits()
@@ -327,11 +355,21 @@ module bsg_nonsynth_dpi_manycore
    function void bsg_dpi_debug(input bit switch_i);
       if(!debug_o & switch_i)
         $display("BSG DBGINFO (%M@%t): DEBUG ENABLED", $time);
-      else if (debug_o & !switch_i) 
+      else if (debug_o & !switch_i)
         $display("BSG DBGINFO (%M@%t): DEBUG DISABLED", $time);
 
       debug_o = switch_i;
-   endfunction
+   endfunction // bsg_dpi_debug
+
+   always_ff @(negedge clk_i)
+     if(reset_i === 0)
+       assert(!(
+               (host_req_v_lo === 1) && (host_req_ready_li === 1)
+                &&
+              (out_credits_used_lo == ((1 << credit_counter_width_p) - 1)))
+              )
+         else
+           $fatal(1, "BSG ERROR (%M): Packet transmitted, and all endpoint credits used: %b %b %d %d", host_req_v_lo, host_req_ready_li, out_credits_used_lo, ((1 << credit_counter_width_p) - 1));
 
 `ifndef VERILATOR
    // Evaluate the simulation, until the next clk_i positive edge.
