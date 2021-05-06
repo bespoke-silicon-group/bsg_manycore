@@ -148,6 +148,7 @@ module bsg_manycore_pod_ruche_array
       ,.y_cord_width_p(y_cord_width_p)
       ,.addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
+
       ,.ruche_factor_X_p(ruche_factor_X_p)
       ,.num_pods_x_p(num_pods_x_p)    
   

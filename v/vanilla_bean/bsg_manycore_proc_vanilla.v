@@ -29,13 +29,13 @@ module bsg_manycore_proc_vanilla
     , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
+    , parameter rev_fifo_els_p="inv" // for FIFO credit counting.
     , parameter fwd_fifo_els_p="inv" // for FIFO credit counting.
   
-    , parameter max_out_credits_p = 32
+    , parameter credit_counter_width_p = `BSG_WIDTH(32)
     , parameter proc_fifo_els_p = 4
     , parameter debug_p = 1
 
-    , parameter credit_counter_width_lp=$clog2(max_out_credits_p+1)
     , parameter icache_addr_width_lp = `BSG_SAFE_CLOG2(icache_entries_p)
     , parameter dmem_addr_width_lp = `BSG_SAFE_CLOG2(dmem_size_p)
     , parameter pc_width_lp=(icache_addr_width_lp+icache_tag_width_p)
@@ -86,10 +86,10 @@ module bsg_manycore_proc_vanilla
   logic returned_yumi_li;
   logic [data_width_p-1:0] returned_data_r_lo;
   bsg_manycore_return_packet_type_e returned_pkt_type_r_lo;
-  logic [4:0] returned_reg_id_r_lo;
+  logic [bsg_manycore_reg_id_width_gp-1:0] returned_reg_id_r_lo;
   logic returned_fifo_full_lo;
 
-  logic [credit_counter_width_lp-1:0] out_credits_lo;
+  logic [credit_counter_width_p-1:0] out_credits_used_lo;
   logic [x_cord_width_p-1:0] 	      src_x_cord_debug_lo;
   logic [y_cord_width_p-1:0] 	      src_y_cord_debug_lo;   
    
@@ -100,8 +100,10 @@ module bsg_manycore_proc_vanilla
     ,.addr_width_p(addr_width_p)
 
     ,.fifo_els_p(proc_fifo_els_p)
-    ,.max_out_credits_p(max_out_credits_p)
     ,.debug_p(debug_p)
+
+    ,.credit_counter_width_p(credit_counter_width_p)
+    ,.rev_fifo_els_p(rev_fifo_els_p)
 
     ,.use_credits_for_local_fifo_p(1)
   ) endp (
@@ -140,7 +142,7 @@ module bsg_manycore_proc_vanilla
     ,.returned_credit_v_r_o()
     ,.returned_credit_reg_id_r_o()
 
-    ,.out_credits_o(out_credits_lo)
+    ,.out_credits_used_o(out_credits_used_lo)
 
     ,.global_x_i({pod_x_i, my_x_i})
     ,.global_y_i({pod_y_i, my_y_i})
@@ -265,8 +267,6 @@ module bsg_manycore_proc_vanilla
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
 
-    ,.max_out_credits_p(max_out_credits_p)
-
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
   ) tx (
@@ -325,7 +325,7 @@ module bsg_manycore_proc_vanilla
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
-    ,.max_out_credits_p(max_out_credits_p)
+    ,.credit_counter_width_p(credit_counter_width_p)
     ,.fwd_fifo_els_p(fwd_fifo_els_p)
   ) vcore (
     .clk_i(clk_i)
@@ -365,7 +365,7 @@ module bsg_manycore_proc_vanilla
     ,.int_remote_load_resp_force_i(int_remote_load_resp_force_lo)
     ,.int_remote_load_resp_yumi_o(int_remote_load_resp_yumi_li)
 
-    ,.out_credits_i(out_credits_lo)
+    ,.out_credits_used_i(out_credits_used_lo)
     ,.invalid_eva_access_i(invalid_eva_access_lo)
   
     ,.remote_interrupt_set_i(remote_interrupt_set_lo)

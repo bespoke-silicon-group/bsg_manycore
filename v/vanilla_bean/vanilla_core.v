@@ -19,7 +19,7 @@ module vanilla_core
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
 
-    , parameter max_out_credits_p="inv"
+    , parameter credit_counter_width_p=`BSG_WIDTH(32)
 
     // For network input FIFO credit counting
       // By default, 3 credits are needed, because the round trip to get the credit back takes three cycles.
@@ -33,7 +33,6 @@ module vanilla_core
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter data_mask_width_lp=(data_width_p>>3)
 
-    , parameter credit_counter_width_lp=$clog2(max_out_credits_p+1)
 
     , parameter debug_p=0
   )
@@ -85,7 +84,7 @@ module vanilla_core
     , output logic remote_interrupt_pending_bit_o
 
     // remaining credits
-    , input [credit_counter_width_lp-1:0] out_credits_i    
+    , input [credit_counter_width_p-1:0] out_credits_used_i    
 
     // For debugging
     , input [x_cord_width_p-1:0] global_x_i
@@ -346,9 +345,11 @@ module vanilla_core
   csr_interrupt_vector_s mip_r;
   csr_interrupt_vector_s mie_r;
   logic [pc_width_lp-1:0] mepc_r;
+  logic [credit_counter_width_p-1:0] credit_limit_r;
 
   mcsr #(
     .pc_width_p(pc_width_lp)
+    ,.credit_counter_width_p(credit_counter_width_p)
   ) mcsr0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -372,6 +373,7 @@ module vanilla_core
     ,.mip_r_o(mip_r)
     ,.mie_r_o(mie_r)
     ,.mepc_r_o(mepc_r)
+    ,.credit_limit_o(credit_limit_r)
   );
 
   // synopsys translate_off
@@ -1215,7 +1217,7 @@ module vanilla_core
   wire int_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_rd;
   wire float_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_frd;
   wire fdiv_fsqrt_in_fp_exe = fp_exe_r.fp_decode.is_fdiv_op | fp_exe_r.fp_decode.is_fsqrt_op;
-  wire remote_credit_pending = (out_credits_i != max_out_credits_p);
+  wire remote_credit_pending = (out_credits_used_i != '0);
 
   // stall_depend_long_op (idiv, fdiv, remote_load, atomic)
   wire rs1_sb_clear_now = id_r.decode.read_rs1 & (id_rs1 == int_sb_clear_id) & int_sb_clear & id_rs1_non_zero; 
@@ -1315,7 +1317,7 @@ module vanilla_core
   assign stall_remote_req = id_remote_req_op & (remote_req_available == '0);
   
   // stall_remote_credit
-  assign stall_remote_credit = id_remote_req_op & ((out_credits_i - remote_req_in_exe) < 2);
+  assign stall_remote_credit = id_remote_req_op & ((out_credits_used_i + remote_req_in_exe) >= credit_limit_r);
 
   // stall_fdiv_busy
   assign stall_fdiv_busy = (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op) & (fdiv_fsqrt_ready_lo
