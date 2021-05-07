@@ -190,6 +190,9 @@ namespace bsg_nonsynth_dpi{
                  *
                  * @param[in] data   Padded packet data to
                  *   transmit. (The module will handle formatting)
+                 &
+                 * @param[in] response True if the packet produces a response
+                 *   that will be read by the host
                  *
                  * @return BSG_NONSYNTH_DPI_SUCCESS on success
                  *         (Recoverable Errors)
@@ -199,7 +202,7 @@ namespace bsg_nonsynth_dpi{
                  *         BSG_NONSYNTH_DPI_NO_CAPACITY when there is no capacity in the response buffer
                  *         BSG_NONSYNTH_DPI_NOT_READY when the packet was not transmitted (call again next cycle)
                  */
-                int tx_req(const __m128i &data){
+                int tx_req(const __m128i &data, bool response){
                         int res = BSG_NONSYNTH_DPI_SUCCESS;
 
                         // Current available credits (used for flow control, and fences)
@@ -225,7 +228,7 @@ namespace bsg_nonsynth_dpi{
                         // try_tx checks for valid window
                         res = d2f_req.try_tx(data);
 
-                        if(res == BSG_NONSYNTH_DPI_SUCCESS)
+                        if((res == BSG_NONSYNTH_DPI_SUCCESS) && response)
                                 capacity --;
 
                         return res;

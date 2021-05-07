@@ -29,6 +29,9 @@ module bsg_nonsynth_dpi_manycore
 
     ,input reset_done_i
 
+    ,input [x_cord_width_p-1:0] global_x_i
+    ,input [y_cord_width_p-1:0] global_y_i
+
     ,output bit debug_o);
 
    logic [credit_counter_width_p-1:0] out_credits_used_lo;
@@ -203,6 +206,9 @@ module bsg_nonsynth_dpi_manycore
       // manycore link
       ,.link_sif_i(link_sif_i)
       ,.link_sif_o(link_sif_o)
+
+      ,.global_y_i(global_y_i)
+      ,.global_x_i(global_x_i)
 
       ,.out_credits_used_o(out_credits_used_lo)
       );
