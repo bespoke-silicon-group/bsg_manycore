@@ -28,6 +28,11 @@ module bsg_manycore_hor_io_router
 
     , parameter dims_lp=3 // only support 3
 
+    , parameter fwd_use_credits_p = 7'b0000000
+    , parameter int fwd_fifo_els_p[dims_lp*2:0] = '{2,2,2,2,2,2,2}
+    , parameter rev_use_credits_p = 7'b0000000
+    , parameter int rev_fifo_els_p[dims_lp*2:0] = '{2,2,2,2,2,2,2}
+
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
     , parameter ruche_x_link_sif_width_lp =
@@ -73,11 +78,6 @@ module bsg_manycore_hor_io_router
   bsg_manycore_link_sif_s proc_link_sif_li;
   bsg_manycore_link_sif_s proc_link_sif_lo;
 
-  localparam fwd_use_credits_lp = 7'b0000000;
-  localparam int fwd_fifo_els_lp[dims_lp*2:0] = '{2,2,2,2,2,2,2};
-  localparam rev_use_credits_lp = 7'b0000001;
-  localparam int rev_fifo_els_lp[dims_lp*2:0] = '{2,2,2,2,2,2,3};
-
 
   bsg_manycore_mesh_node #(
     .x_cord_width_p(x_cord_width_p)
@@ -88,10 +88,10 @@ module bsg_manycore_hor_io_router
     ,.ruche_factor_X_p(ruche_factor_X_p)
     ,.stub_p(stub_lp) 
 
-    ,.fwd_use_credits_p(fwd_use_credits_lp)
-    ,.fwd_fifo_els_p(fwd_fifo_els_lp)
-    ,.rev_use_credits_p(rev_use_credits_lp)
-    ,.rev_fifo_els_p(rev_fifo_els_lp)
+    ,.fwd_use_credits_p(fwd_use_credits_p)
+    ,.fwd_fifo_els_p(fwd_fifo_els_p)
+    ,.rev_use_credits_p(rev_use_credits_p)
+    ,.rev_fifo_els_p(rev_fifo_els_p)
   ) rtr (
     .clk_i(clk_i)
     ,.reset_i(reset_i)

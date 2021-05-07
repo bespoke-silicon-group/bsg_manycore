@@ -100,7 +100,6 @@ module bsg_manycore_proc_vanilla
     ,.addr_width_p(addr_width_p)
 
     ,.fifo_els_p(proc_fifo_els_p)
-    ,.debug_p(debug_p)
 
     ,.credit_counter_width_p(credit_counter_width_p)
     ,.rev_fifo_els_p(rev_fifo_els_p)

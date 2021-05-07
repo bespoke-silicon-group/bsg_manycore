@@ -1,4 +1,5 @@
 BSG_IP_CORES_DIR ?= $(BSG_MANYCORE_DIR)/../basejump_stl
 RISCV_BIN_DIR ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install/bin
 CAD_DIR ?= $(BSG_MANYCORE_DIR)/../bsg_cadenv
-BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1
+#BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1
+BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/../testing/rtl/out
