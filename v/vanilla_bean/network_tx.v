@@ -62,7 +62,6 @@ module network_tx
     
     , input [x_subcord_width_lp-1:0] tgo_x_i
     , input [y_subcord_width_lp-1:0] tgo_y_i
-    , input dram_enable_i
 
     , input [x_subcord_width_lp-1:0] my_x_i
     , input [y_subcord_width_lp-1:0] my_y_i
@@ -125,7 +124,6 @@ module network_tx
     ,.pod_y_cord_width_p(pod_y_cord_width_p)
   ) eva2npa (
     .eva_i(remote_req_i.addr)
-    ,.dram_enable_i(dram_enable_i)
     ,.tgo_x_i(tgo_x_i)
     ,.tgo_y_i(tgo_y_i)
 
