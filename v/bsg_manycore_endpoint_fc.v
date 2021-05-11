@@ -69,6 +69,8 @@ module bsg_manycore_endpoint_fc
     // over their credits.
     , output [credit_counter_width_p-1:0] out_credits_used_o
 
+    , input   [x_cord_width_p-1:0] global_x_i
+    , input   [y_cord_width_p-1:0] global_y_i
   );
 
   // Instantiate the endpoint.
@@ -110,6 +112,8 @@ module bsg_manycore_endpoint_fc
     ,.return_packet_fifo_full_o(return_packet_fifo_full_o)
     ,.return_packet_yumi_i(return_packet_yumi_i)
 
+    ,.global_x_i(global_x_i)
+    ,.global_y_i(global_y_i)
   );
 
 

@@ -47,6 +47,9 @@ module bsg_manycore_endpoint
     , input                                 return_packet_yumi_i
     , output                                return_packet_fifo_full_o
 
+
+    , input   [x_cord_width_p-1:0] global_x_i
+    , input   [y_cord_width_p-1:0] global_y_i
   );
 
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
@@ -63,22 +66,28 @@ module bsg_manycore_endpoint
    // buffer incoming non-return data
    // we should buffer this incoming request because the local memory might
    // not be able to handle the read/write request
+
+   // we drop the destination coordinate bits, because they are not used.
+   logic [packet_width_lp-x_cord_width_p-y_cord_width_p-1:0] fwd_fifo_data_lo;
+
    bsg_fifo_1r1w_small #(
-    .width_p(packet_width_lp)
+    .width_p(packet_width_lp-x_cord_width_p-y_cord_width_p)
     ,.els_p (fifo_els_p)
-   ) fifo
+   ) fwd_fifo
      ( .clk_i(clk_i)
       ,.reset_i(reset_i)
 
       ,.v_i     (link_sif_in.fwd.v)
-      ,.data_i  (link_sif_in.fwd.data)
+      ,.data_i  (link_sif_in.fwd.data[packet_width_lp-1:x_cord_width_p+y_cord_width_p])
       ,.ready_o (link_sif_out.fwd.ready_and_rev)
 
 
       ,.v_o     (packet_v_o    )
-      ,.data_o  (packet_o )
+      ,.data_o  (fwd_fifo_data_lo )
       ,.yumi_i  (packet_yumi_i )
       );
+
+   assign packet_o = {fwd_fifo_data_lo, global_y_i, global_x_i};
 
    // ----------------------------------------------------------------------------------------
    // Handle outgoing response

@@ -163,6 +163,9 @@ module bsg_manycore_endpoint_standard
     ,.return_packet_yumi_i(return_packet_yumi_li)
 
     ,.out_credits_used_o(out_credits_used_o)
+  
+    ,.global_x_i(global_x_i)
+    ,.global_y_i(global_y_i)
   );
 
 
