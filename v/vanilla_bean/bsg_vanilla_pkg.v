@@ -257,10 +257,8 @@ typedef struct packed
 
 
 // Memory stage signals
-typedef struct packed
-{
+typedef struct packed {
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
-    logic [RV32_reg_data_width_gp-1:0] exe_result;
     logic write_rd;
     logic write_frd;
     logic is_byte_op;
@@ -269,19 +267,24 @@ typedef struct packed
     logic local_load;
     logic [RV32_reg_data_width_gp-1:0] mem_addr_sent;
     logic icache_miss;
-} mem_signals_s;
+} mem_ctrl_signals_s;
+
+typedef struct packed {
+    logic [RV32_reg_data_width_gp-1:0] exe_result;
+} mem_data_signals_s;
 
 // RF write back stage signals
-typedef struct packed
-{
+typedef struct packed {
     logic                              write_rd;
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
-    logic [RV32_reg_data_width_gp-1:0] rf_data;
     logic                              icache_miss;
     logic [RV32_reg_data_width_gp-1:0] icache_miss_pc;
     logic clear_sb;
-} wb_signals_s;
+} wb_ctrl_signals_s;
 
+typedef struct packed {
+    logic [RV32_reg_data_width_gp-1:0] rf_data;
+} wb_data_signals_s;
 
 // FP Execute stage signals
 typedef struct packed {
