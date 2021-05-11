@@ -284,25 +284,27 @@ typedef struct packed
 
 
 // FP Execute stage signals
-typedef struct packed
-{
-  logic [fpu_recoded_data_width_gp-1:0] rs1_val;
-  logic [fpu_recoded_data_width_gp-1:0] rs2_val;
-  logic [fpu_recoded_data_width_gp-1:0] rs3_val;
+typedef struct packed {
   logic [RV32_reg_addr_width_gp-1:0] rd;
   fp_decode_s fp_decode;
   frm_e rm;
-} fp_exe_signals_s;
+} fp_exe_ctrl_signals_s;
 
+typedef struct packed {
+  logic [fpu_recoded_data_width_gp-1:0] rs1_val;
+  logic [fpu_recoded_data_width_gp-1:0] rs2_val;
+  logic [fpu_recoded_data_width_gp-1:0] rs3_val;
+} fp_exe_data_signals_s;
 
 // FLW write back stage signals
-typedef struct packed
-{
+typedef struct packed {
     logic valid;
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
-    logic [RV32_reg_data_width_gp-1:0] rf_data;
-} flw_wb_signals_s;
+} flw_wb_ctrl_signals_s;
 
+typedef struct packed {
+    logic [RV32_reg_data_width_gp-1:0] rf_data;
+} flw_wb_data_signals_s;
 
 
 // MACHINE CSR structs, constants

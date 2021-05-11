@@ -83,7 +83,7 @@ module vanilla_core_profiler
 
     , input id_signals_s id_r
     , input exe_signals_s exe_r
-    , input fp_exe_signals_s fp_exe_r
+    , input fp_exe_ctrl_signals_s fp_exe_r
 
     , input [x_cord_width_p-1:0] global_x_i
     , input [y_cord_width_p-1:0] global_y_i
