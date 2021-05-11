@@ -854,7 +854,7 @@ module vanilla_core
     ,.data_o(mem_ctrl_r)
   );
 
-  bsg_dff_reset #(
+  bsg_dff #(
     .width_p($bits(mem_data_signals_s))
   ) mem_data_pipeline (
     .clk_i(clk_i)
