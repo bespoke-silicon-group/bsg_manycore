@@ -1277,7 +1277,7 @@ module vanilla_core
   
 
   wire stall_bypass_int_frs2 = id_r.decode.read_frs2 &
-    ((id_rs1_equal_fp_exe_rd & fp_exe_r.fp_decode.is_fpu_float_op)
+    ((id_rs2_equal_fp_exe_rd & fp_exe_r.fp_decode.is_fpu_float_op)
     |((id_rs2 == fpu1_rd_r) & fpu1_v_r)
     |((id_rs2 == fpu_float_rd_lo) & fpu_float_v_lo)
     |(id_rs2_equal_mem_rd & mem_r.write_frd)
