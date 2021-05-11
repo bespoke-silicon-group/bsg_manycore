@@ -1281,7 +1281,7 @@ module vanilla_core
     |((id_rs2 == fpu1_rd_r) & fpu1_v_r)
     |((id_rs2 == fpu_float_rd_lo) & fpu_float_v_lo)
     |(id_rs2_equal_mem_rd & mem_r.write_frd)
-    |(id_rs2_equal_wb_rd & flw_wb_r.valid));
+    |((id_rs2 == flw_wb_r.rd_addr) & flw_wb_r.valid));
     
 
   assign stall_bypass = id_r.decode.is_fp_op
