@@ -65,7 +65,6 @@ module network_rx
     , output logic [x_subcord_width_p-1:0] tgo_x_o
     , output logic [y_subcord_width_p-1:0] tgo_y_o 
     , output logic [pc_width_lp-1:0] pc_init_val_o
-    , output logic dram_enable_o
 
     // remote interrupt to core
     , output logic remote_interrupt_set_o
@@ -95,7 +94,6 @@ module network_rx
   wire is_tgo_x_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd1);
   wire is_tgo_y_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd2);
   wire is_pc_init_val_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd3);
-  wire is_dram_enable_addr = is_csr_addr & (addr_i[epa_word_addr_width_gp-2:0] == 'd4);
   
 
   // Remote interrupt pending bit (mip.remote)
@@ -115,13 +113,11 @@ module network_rx
   logic [x_subcord_width_p-1:0] tgo_x_r;
   logic [y_subcord_width_p-1:0] tgo_y_r;
   logic [pc_width_lp-1:0] pc_init_val_r;
-  logic dram_enable_r;
 
   assign freeze_o = freeze_r;
   assign tgo_x_o = tgo_x_r;
   assign tgo_y_o = tgo_y_r;
   assign pc_init_val_o = pc_init_val_r;
-  assign dram_enable_o = dram_enable_r;
 
   // incoming request handling logic
   //
@@ -129,7 +125,6 @@ module network_rx
   logic [x_subcord_width_p-1:0] tgo_x_n;
   logic [y_subcord_width_p-1:0] tgo_y_n;
   logic [pc_width_lp-1:0] pc_init_val_n;
-  logic dram_enable_n;
 
   logic send_dmem_data_r, send_dmem_data_n;
   logic send_freeze_r, send_freeze_n;
@@ -138,7 +133,6 @@ module network_rx
   logic send_pc_init_val_r, send_pc_init_val_n;
   logic send_invalid_r, send_invalid_n;
   logic send_zero_r, send_zero_n;
-  logic send_dram_enable_r, send_dram_enable_n; 
   logic send_remote_interrupt_r, send_remote_interrupt_n;
 
 
@@ -150,7 +144,6 @@ module network_rx
     tgo_x_n = tgo_x_r;
     tgo_y_n = tgo_y_r;
     pc_init_val_n = pc_init_val_r;
-    dram_enable_n = dram_enable_r;
 
     send_dmem_data_n = 1'b0;
     send_freeze_n = 1'b0;
@@ -159,7 +152,6 @@ module network_rx
     send_pc_init_val_n = 1'b0;
     send_invalid_n = 1'b0;
     send_zero_n = 1'b0;
-    send_dram_enable_n = 1'b0;
 
     remote_dmem_v_o = 1'b0;
     remote_dmem_w_o = 1'b0;
@@ -212,11 +204,6 @@ module network_rx
           yumi_o = 1'b1;
           send_zero_n = 1'b1;
         end
-        else if (is_dram_enable_addr) begin
-          dram_enable_n = data_i[0];
-          yumi_o = 1'b1;
-          send_zero_n = 1'b1;
-        end
         else if (is_remote_interrupt_addr) begin
           remote_interrupt_clear_o = ~data_i[0];
           remote_interrupt_set_o = data_i[0];
@@ -254,10 +241,6 @@ module network_rx
           yumi_o = 1'b1;
           send_pc_init_val_n = 1'b1;
         end
-        else if (is_dram_enable_addr) begin
-          yumi_o = 1'b1;
-          send_dram_enable_n = 1'b1;
-        end
         else if (is_remote_interrupt_addr) begin
           yumi_o = 1'b1;
           send_remote_interrupt_n = 1'b1;
@@ -289,7 +272,6 @@ module network_rx
       | send_tgo_x_r
       | send_tgo_y_r
       | send_pc_init_val_r
-      | send_dram_enable_r
       | send_invalid_r
       | send_zero_r
       | send_remote_interrupt_r;
@@ -308,9 +290,6 @@ module network_rx
     end
     else if (send_pc_init_val_r) begin
       returning_data_o = {{(data_width_p-pc_width_lp){1'b0}}, pc_init_val_r};
-    end
-    else if (send_dram_enable_r) begin
-      returning_data_o = {{(data_width_p-1){1'b0}}, dram_enable_r};
     end
     else if (send_zero_r) begin
       returning_data_o = '0;
@@ -335,7 +314,6 @@ module network_rx
       tgo_x_r <= (x_subcord_width_p)'(tgo_x_init_val_p);
       tgo_y_r <= (y_subcord_width_p)'(tgo_y_init_val_p);
       pc_init_val_r <= (pc_width_lp)'(default_pc_init_val_p);
-      dram_enable_r <= 1'b1; // DRAM is enabled by default.
 
       send_dmem_data_r <= 1'b0;
       send_freeze_r <= 1'b0;
@@ -344,7 +322,6 @@ module network_rx
       send_pc_init_val_r <= 1'b0;
       send_invalid_r <= 1'b0;
       send_zero_r <= 1'b0;
-      send_dram_enable_r <= 1'b0;
       send_remote_interrupt_r <= 1'b0;
       load_info_r <= '0;
     end
@@ -353,7 +330,6 @@ module network_rx
       tgo_x_r <= tgo_x_n;
       tgo_y_r <= tgo_y_n;
       pc_init_val_r <= pc_init_val_n;
-      dram_enable_r <= dram_enable_n;
 
       send_dmem_data_r <= send_dmem_data_n;
       send_freeze_r <= send_freeze_n;
@@ -362,7 +338,6 @@ module network_rx
       send_pc_init_val_r <= send_pc_init_val_n;
       send_invalid_r <= send_invalid_n;
       send_zero_r <= send_zero_n;
-      send_dram_enable_r <= send_dram_enable_n;
       send_remote_interrupt_r <= send_remote_interrupt_n;
       load_info_r <= load_info_n;
     end
@@ -375,7 +350,7 @@ module network_rx
   logic is_invalid_addr;
 
   assign is_valid_csr_addr = is_csr_addr & 
-    (is_freeze_addr | is_tgo_x_addr | is_tgo_y_addr | is_pc_init_val_addr | is_dram_enable_addr);
+    (is_freeze_addr | is_tgo_x_addr | is_tgo_y_addr | is_pc_init_val_addr);
   assign is_invalid_addr = ~(is_dmem_addr | is_icache_addr | is_valid_csr_addr | is_remote_interrupt_addr);
 
   always_ff @ (negedge clk_i) begin
@@ -398,8 +373,6 @@ module network_rx
         $display("[INFO][RX] Freezing tile t=%0t, x=%d, y=%d", $time, global_x_i, global_y_i);
       if (~freeze_n & freeze_r)
         $display("[INFO][RX] Unfreezing tile t=%0t, x=%d, y=%d", $time, global_x_i, global_y_i);
-      if (dram_enable_r & ~dram_enable_n)
-        $display("[INFO][RX] Disabling DRAM ctrl t=%0t, x=%d, y=%d", $time, global_x_i, global_y_i);
     end
 
 

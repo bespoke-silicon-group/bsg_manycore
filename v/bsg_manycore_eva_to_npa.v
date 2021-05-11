@@ -45,10 +45,6 @@ module bsg_manycore_eva_to_npa
     , input [pod_x_cord_width_p-1:0] pod_x_i
     , input [pod_y_cord_width_p-1:0] pod_y_i
 
-    // When DRAM mode is enabled, DRAM EVA space is striped across vcaches at a cache line granularity.
-    // When DRAM mode is disabled, vcaches are only used as block memory, and the striping is disabled,
-    // and some upper addresses are mapped to host-side memory.
-    , input dram_enable_i // DRAM MODE enable
 
     // NPA (x,y,EPA)
     , output logic [x_cord_width_p-1:0] x_cord_o  // destination x_cord (global)
@@ -109,52 +105,15 @@ module bsg_manycore_eva_to_npa
   );
 
 
-  // NO DRAM mode hash function
-  wire [x_subcord_width_lp-1:0] no_dram_x_subcord = eva_i[2+lg_vcache_size_lp+:x_subcord_width_lp];
-  wire [vcache_row_id_width_lp-1:0] no_dram_vcache_row_id = eva_i[2+lg_vcache_size_lp+x_subcord_width_lp+:vcache_row_id_width_lp];
-  wire [y_subcord_width_lp-1:0] no_dram_y_subcord;
-  wire [pod_y_cord_width_p-1:0] no_dram_pod_y_cord = no_dram_vcache_row_id[0]
-    ? pod_y_cord_width_p'(pod_y_i+1)
-    : pod_y_cord_width_p'(pod_y_i-1);
-
-  if (num_vcache_rows_p == 1) begin
-    assign no_dram_y_subcord = {y_subcord_width_lp{~no_dram_vcache_row_id[0]}};
-  end
-  else begin
-    assign no_dram_y_subcord = {
-      {(y_subcord_width_lp+1-vcache_row_id_width_lp){~no_dram_vcache_row_id[0]}},
-      (no_dram_vcache_row_id[0]
-        ?  no_dram_vcache_row_id[vcache_row_id_width_lp-1:1]
-        : ~no_dram_vcache_row_id[vcache_row_id_width_lp-1:1])
-    };
-  end
-
-
 
   // EVA->NPA table
   always_comb begin
     is_invalid_addr_o = 1'b0;
 
     if (is_dram_addr) begin
-      if (dram_enable_i) begin
-        y_cord_o = dram_y_cord_lo;
-        x_cord_o = dram_x_cord_lo;
-        epa_o = dram_epa_lo;
-      end
-      else begin
-        // DRAM disabled mode is used when vcaches are used as block RAMs,
-        // in which case the tags will be manually written in the vcaches
-        // to prevent cache miss.
-        // striping is disabled.
-        y_cord_o = {no_dram_pod_y_cord, no_dram_y_subcord};
-        x_cord_o = {pod_x_i, no_dram_x_subcord};
-
-        epa_o = {
-          1'b0,
-          {(addr_width_p-1-lg_vcache_size_lp){1'b0}},
-          eva_i[2+:lg_vcache_size_lp]
-        };
-      end
+      y_cord_o = dram_y_cord_lo;
+      x_cord_o = dram_x_cord_lo;
+      epa_o = dram_epa_lo;
     end
     else if (is_global_addr) begin
       // global-addr

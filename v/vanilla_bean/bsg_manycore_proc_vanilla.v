@@ -167,7 +167,6 @@ module bsg_manycore_proc_vanilla
   logic [x_subcord_width_lp-1:0] tgo_x;
   logic [y_subcord_width_lp-1:0] tgo_y;
   logic [pc_width_lp-1:0] pc_init_val;
-  logic dram_enable;
 
   logic remote_interrupt_set_lo;
   logic remote_interrupt_clear_lo;
@@ -217,7 +216,6 @@ module bsg_manycore_proc_vanilla
     ,.tgo_x_o(tgo_x)
     ,.tgo_y_o(tgo_y)
     ,.pc_init_val_o(pc_init_val)
-    ,.dram_enable_o(dram_enable)
 
     ,.remote_interrupt_set_o(remote_interrupt_set_lo)
     ,.remote_interrupt_clear_o(remote_interrupt_clear_lo)
@@ -285,7 +283,6 @@ module bsg_manycore_proc_vanilla
 
     ,.tgo_x_i(tgo_x)
     ,.tgo_y_i(tgo_y) 
-    ,.dram_enable_i(dram_enable)
 
     ,.pod_x_i(pod_x_i)
     ,.pod_y_i(pod_y_i)
