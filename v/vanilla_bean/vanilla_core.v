@@ -92,13 +92,18 @@ module vanilla_core
   );
 
   // pipeline signals
-  //
+  // ctrl signals set to zero when reset_i is high.
+  // data signals are not reset to zero.
   id_signals_s id_r, id_n;
   exe_signals_s exe_r, exe_n;
-  mem_signals_s mem_r, mem_n;
-  wb_signals_s wb_r, wb_n;
-  fp_exe_signals_s fp_exe_n, fp_exe_r;
-  flw_wb_signals_s flw_wb_n, flw_wb_r;
+  mem_ctrl_signals_s mem_ctrl_r, mem_ctrl_n;
+  mem_data_signals_s mem_data_r, mem_data_n;
+  wb_ctrl_signals_s wb_ctrl_r, wb_ctrl_n;
+  wb_data_signals_s wb_data_r, wb_data_n;
+  fp_exe_ctrl_signals_s fp_exe_ctrl_n, fp_exe_ctrl_r;
+  fp_exe_data_signals_s fp_exe_data_n, fp_exe_data_r;
+  flw_wb_ctrl_signals_s flw_wb_ctrl_n, flw_wb_ctrl_r;
+  flw_wb_data_signals_s flw_wb_data_n, flw_wb_data_r;
 
   // icache
   //
@@ -388,7 +393,7 @@ module vanilla_core
   wire trace_interrupt_ready = mip_r.trace & mie_r.trace;
   wire interrupt_ready = mstatus_r.mie
                        & (remote_interrupt_ready | trace_interrupt_ready)
-                       & ~(exe_r.icache_miss | mem_r.icache_miss | wb_r.icache_miss);
+                       & ~(exe_r.icache_miss | mem_ctrl_r.icache_miss | wb_ctrl_r.icache_miss);
 
 
 
@@ -507,7 +512,7 @@ module vanilla_core
     .els_p(3)
     ,.width_p(data_width_p)
   ) exe_rs1_fwd_mux (
-    .data_i({wb_r.rf_data, mem_result, exe_result})
+    .data_i({wb_data_r.rf_data, mem_result, exe_result})
     ,.sel_i(rs1_forward_sel)
     ,.data_o(rs1_forward_val)
   );
@@ -516,7 +521,7 @@ module vanilla_core
     .els_p(3)
     ,.width_p(data_width_p)
   ) exe_rs2_fwd_mux (
-    .data_i({wb_r.rf_data, mem_result, exe_result})
+    .data_i({wb_data_r.rf_data, mem_result, exe_result})
     ,.sel_i(rs2_forward_sel)
     ,.data_o(rs2_forward_val)
   );
@@ -723,12 +728,20 @@ module vanilla_core
   //////////////////////////////
 
   bsg_dff_reset #(
-    .width_p($bits(fp_exe_signals_s))
-  ) fp_exe_pipeline (
+    .width_p($bits(fp_exe_ctrl_signals_s))
+  ) fp_exe_ctrl_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.data_i(fp_exe_n)
-    ,.data_o(fp_exe_r)
+    ,.data_i(fp_exe_ctrl_n)
+    ,.data_o(fp_exe_ctrl_r)
+  );
+
+  bsg_dff #(
+    .width_p($bits(fp_exe_data_signals_s))
+  ) fp_exe_data_pipeline (
+    .clk_i(clk_i)
+    ,.data_i(fp_exe_data_n)
+    ,.data_o(fp_exe_data_r)
   );
 
   // FPU FLOAT
@@ -760,13 +773,13 @@ module vanilla_core
     ,.imul_rs2_i(exe_r.rs2_val)
     ,.imul_rd_i(exe_r.instruction.rd)
 
-    ,.fp_v_i(fp_exe_r.fp_decode.is_fpu_float_op)
-    ,.fpu_float_op_i(fp_exe_r.fp_decode.fpu_float_op)
-    ,.fp_rs1_i(fp_exe_r.rs1_val)
-    ,.fp_rs2_i(fp_exe_r.rs2_val)
-    ,.fp_rs3_i(fp_exe_r.rs3_val)
-    ,.fp_rd_i(fp_exe_r.rd)
-    ,.fp_rm_i(fp_exe_r.rm)
+    ,.fp_v_i(fp_exe_ctrl_r.fp_decode.is_fpu_float_op)
+    ,.fpu_float_op_i(fp_exe_ctrl_r.fp_decode.fpu_float_op)
+    ,.fp_rs1_i(fp_exe_data_r.rs1_val)
+    ,.fp_rs2_i(fp_exe_data_r.rs2_val)
+    ,.fp_rs3_i(fp_exe_data_r.rs3_val)
+    ,.fp_rd_i(fp_exe_ctrl_r.rd)
+    ,.fp_rm_i(fp_exe_ctrl_r.rm)
 
     ,.imul_v_o(imul_v_lo)
     ,.imul_result_o(imul_result_lo)
@@ -786,10 +799,10 @@ module vanilla_core
   fflags_s fpu_int_fflags_lo;
 
   fpu_int fpu_int0(
-    .fp_rs1_i(fp_exe_r.rs1_val)
-    ,.fp_rs2_i(fp_exe_r.rs2_val)
-    ,.fpu_int_op_i(fp_exe_r.fp_decode.fpu_int_op)
-    ,.fp_rm_i(fp_exe_r.rm)
+    .fp_rs1_i(fp_exe_data_r.rs1_val)
+    ,.fp_rs2_i(fp_exe_data_r.rs2_val)
+    ,.fpu_int_op_i(fp_exe_ctrl_r.fp_decode.fpu_int_op)
+    ,.fp_rm_i(fp_exe_ctrl_r.rm)
 
     ,.result_o(fpu_int_result_lo)
     ,.fflags_o(fpu_int_fflags_lo)
@@ -809,11 +822,11 @@ module vanilla_core
     ,.reset_i(reset_i)
 
     ,.v_i(fdiv_fsqrt_v_li)
-    ,.rd_i(fp_exe_r.rd)
-    ,.rm_i(fp_exe_r.rm)
-    ,.fp_rs1_i(fp_exe_r.rs1_val)
-    ,.fp_rs2_i(fp_exe_r.rs2_val)
-    ,.fsqrt_i(fp_exe_r.fp_decode.is_fsqrt_op)
+    ,.rd_i(fp_exe_ctrl_r.rd)
+    ,.rm_i(fp_exe_ctrl_r.rm)
+    ,.fp_rs1_i(fp_exe_data_r.rs1_val)
+    ,.fp_rs2_i(fp_exe_data_r.rs2_val)
+    ,.fsqrt_i(fp_exe_ctrl_r.fp_decode.is_fsqrt_op)
     ,.ready_o(fdiv_fsqrt_ready_lo)
 
     ,.v_o(fdiv_fsqrt_v_lo)
@@ -833,12 +846,20 @@ module vanilla_core
   //////////////////////////////
 
   bsg_dff_reset #(
-    .width_p($bits(mem_signals_s))
-  ) mem_pipeline (
+    .width_p($bits(mem_ctrl_signals_s))
+  ) mem_ctrl_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.data_i(mem_n)
-    ,.data_o(mem_r)
+    ,.data_i(mem_ctrl_n)
+    ,.data_o(mem_ctrl_r)
+  );
+
+  bsg_dff #(
+    .width_p($bits(mem_data_signals_s))
+  ) mem_data_pipeline (
+    .clk_i(clk_i)
+    ,.data_i(mem_data_n)
+    ,.data_o(mem_data_r)
   );
 
   logic dmem_v_li;
@@ -895,10 +916,10 @@ module vanilla_core
 
   load_packer local_lp (
     .mem_data_i(local_load_data_r)
-    ,.unsigned_load_i(mem_r.is_load_unsigned)
-    ,.byte_load_i(mem_r.is_byte_op)
-    ,.hex_load_i(mem_r.is_hex_op)
-    ,.part_sel_i(mem_r.mem_addr_sent[1:0])
+    ,.unsigned_load_i(mem_ctrl_r.is_load_unsigned)
+    ,.byte_load_i(mem_ctrl_r.is_byte_op)
+    ,.hex_load_i(mem_ctrl_r.is_hex_op)
+    ,.part_sel_i(mem_ctrl_r.mem_addr_sent[1:0])
     ,.load_data_o(local_load_packed_data) 
   );
 
@@ -942,14 +963,21 @@ module vanilla_core
   //////////////////////////////
 
   bsg_dff_reset #(
-    .width_p($bits(wb_signals_s))
-  ) wb_pipeline (
+    .width_p($bits(wb_ctrl_signals_s))
+  ) wb_ctrl_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.data_i(wb_n)
-    ,.data_o(wb_r)
+    ,.data_i(wb_ctrl_n)
+    ,.data_o(wb_ctrl_r)
   );
 
+  bsg_dff #(
+    .width_p($bits(wb_data_signals_s))
+  ) wb_data_pipeline (
+    .clk_i(clk_i)
+    ,.data_i(wb_data_n)
+    ,.data_o(wb_data_r)
+  );
 
   //////////////////////////////
   //                          //
@@ -958,12 +986,20 @@ module vanilla_core
   //////////////////////////////
 
   bsg_dff_reset #(
-    .width_p($bits(flw_wb_signals_s))
-  ) flw_wb_pipeline (
+    .width_p($bits(flw_wb_ctrl_signals_s))
+  ) flw_wb_ctrl_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.data_i(flw_wb_n)
-    ,.data_o(flw_wb_r)
+    ,.data_i(flw_wb_ctrl_n)
+    ,.data_o(flw_wb_ctrl_r)
+  );
+
+  bsg_dff #(
+    .width_p($bits(flw_wb_data_signals_s))
+  ) flw_wb_data_pipeline (
+    .clk_i(clk_i)
+    ,.data_i(flw_wb_data_n)
+    ,.data_o(flw_wb_data_r)
   );
 
   logic select_remote_flw;
@@ -972,7 +1008,7 @@ module vanilla_core
     .width_p(data_width_p)
     ,.els_p(2)
   ) flw_recFN_mux (
-    .data_i({float_remote_load_resp_data_i, flw_wb_r.rf_data})
+    .data_i({float_remote_load_resp_data_i, flw_wb_data_r.rf_data})
     ,.sel_i(select_remote_flw)
     ,.data_o(flw_data)
   );
@@ -1047,7 +1083,7 @@ module vanilla_core
   // 2) mret in EXE
   // 3) interrupt taken
   wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op) | interrupt_ready;
-  wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_r.icache_miss | wb_r.icache_miss;
+  wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_ctrl_r.icache_miss | wb_ctrl_r.icache_miss;
 
   // reset edge down detect
   logic reset_r;
@@ -1065,8 +1101,8 @@ module vanilla_core
     if (reset_down) begin
       pc_n = pc_init_val_i;
     end
-    else if (wb_r.icache_miss) begin
-      pc_n = wb_r.icache_miss_pc[2+:pc_width_lp];
+    else if (wb_ctrl_r.icache_miss) begin
+      pc_n = wb_ctrl_r.icache_miss_pc[2+:pc_width_lp];
     end
     else if (interrupt_ready) begin
       if (remote_interrupt_ready) begin
@@ -1132,7 +1168,7 @@ module vanilla_core
 
   // icache logic
   wire read_icache = (icache_miss_in_pipe & ~flush)
-    ? wb_r.icache_miss
+    ? wb_ctrl_r.icache_miss
     : 1'b1;
 
   assign icache_v_li = icache_v_i | ifetch_v_i
@@ -1141,7 +1177,7 @@ module vanilla_core
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
   assign icache_w_pc = ifetch_v_i
-    ? mem_r.mem_addr_sent[2+:pc_width_lp]
+    ? mem_ctrl_r.mem_addr_sent[2+:pc_width_lp]
     : icache_pc_i;
 
   assign icache_winstr = ifetch_v_i
@@ -1198,11 +1234,12 @@ module vanilla_core
 
 
   // regfile read
-  assign int_rf_read[0] = id_n.decode.read_rs1 & ~(stall_id | stall_all);
-  assign int_rf_read[1] = id_n.decode.read_rs2 & ~(stall_id | stall_all);
-  assign float_rf_read[0] = id_n.decode.read_frs1 & ~(stall_id | stall_all);
-  assign float_rf_read[1] = id_n.decode.read_frs2 & ~(stall_id | stall_all);
-  assign float_rf_read[2] = id_n.decode.read_frs3 & ~(stall_id | stall_all);
+  wire rf_read_en = ~(stall_id | stall_all);
+  assign int_rf_read[0] = id_n.decode.read_rs1 & rf_read_en;
+  assign int_rf_read[1] = id_n.decode.read_rs2 & rf_read_en;
+  assign float_rf_read[0] = id_n.decode.read_frs1 & rf_read_en;
+  assign float_rf_read[1] = id_n.decode.read_frs2 & rf_read_en;
+  assign float_rf_read[2] = id_n.decode.read_frs3 & rf_read_en;
 
   // helpful control signals;
   wire [reg_addr_width_lp-1:0] id_rs1 = id_r.instruction.rs1;
@@ -1216,8 +1253,19 @@ module vanilla_core
   wire id_rd_non_zero = id_rd != '0;
   wire int_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_rd;
   wire float_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_frd;
-  wire fdiv_fsqrt_in_fp_exe = fp_exe_r.fp_decode.is_fdiv_op | fp_exe_r.fp_decode.is_fsqrt_op;
+  wire fdiv_fsqrt_in_fp_exe = fp_exe_ctrl_r.fp_decode.is_fdiv_op | fp_exe_ctrl_r.fp_decode.is_fsqrt_op;
   wire remote_credit_pending = (out_credits_used_i != '0);
+  wire id_rs1_equal_exe_rd = (id_rs1 == exe_r.instruction.rd);
+  wire id_rs2_equal_exe_rd = (id_rs2 == exe_r.instruction.rd);
+  wire id_rs3_equal_exe_rd = (id_rs3 == exe_r.instruction.rd);
+  wire id_rs1_equal_fp_exe_rd = (id_rs1 == fp_exe_ctrl_r.rd);
+  wire id_rs2_equal_fp_exe_rd = (id_rs2 == fp_exe_ctrl_r.rd);
+  wire id_rs3_equal_fp_exe_rd = (id_rs3 == fp_exe_ctrl_r.rd);
+  wire id_rs1_equal_mem_rd = (id_rs1 == mem_ctrl_r.rd_addr);
+  wire id_rs2_equal_mem_rd = (id_rs2 == mem_ctrl_r.rd_addr);
+  wire id_rs3_equal_mem_rd = (id_rs3 == mem_ctrl_r.rd_addr);
+  wire id_rs1_equal_wb_rd = (id_rs1 == wb_ctrl_r.rd_addr);
+  wire id_rs2_equal_wb_rd = (id_rs2 == wb_ctrl_r.rd_addr);
 
   // stall_depend_long_op (idiv, fdiv, remote_load, atomic)
   wire rs1_sb_clear_now = id_r.decode.read_rs1 & (id_rs1 == int_sb_clear_id) & int_sb_clear & id_rs1_non_zero; 
@@ -1231,45 +1279,45 @@ module vanilla_core
 
   // stall_depend_local_load (lw, flw, lr, lr.aq)
   assign stall_depend_local_load = local_load_in_exe &
-    ((id_r.decode.read_rs1 & (id_rs1 == exe_r.instruction.rd) & exe_r.decode.write_rd & id_rs1_non_zero)
-    |(id_r.decode.read_rs2 & (id_rs2 == exe_r.instruction.rd) & exe_r.decode.write_rd & id_rs2_non_zero)
-    |(id_r.decode.read_frs1 & (id_rs1 == exe_r.instruction.rd) & exe_r.decode.write_frd)
-    |(id_r.decode.read_frs2 & (id_rs2 == exe_r.instruction.rd) & exe_r.decode.write_frd)
-    |(id_r.decode.read_frs3 & (id_rs3 == exe_r.instruction.rd) & exe_r.decode.write_frd));
+    ((id_r.decode.read_rs1  & id_rs1_equal_exe_rd & exe_r.decode.write_rd & id_rs1_non_zero)
+    |(id_r.decode.read_rs2  & id_rs2_equal_exe_rd & exe_r.decode.write_rd & id_rs2_non_zero)
+    |(id_r.decode.read_frs1 & id_rs1_equal_exe_rd & exe_r.decode.write_frd)
+    |(id_r.decode.read_frs2 & id_rs2_equal_exe_rd & exe_r.decode.write_frd)
+    |(id_r.decode.read_frs3 & id_rs3_equal_exe_rd & exe_r.decode.write_frd));
 
 
   // stall_depend_imul
   assign stall_depend_imul = exe_r.decode.is_imul_op &
-    ((id_r.decode.read_rs1 & (id_rs1 == exe_r.instruction.rd) & id_rs1_non_zero)
-    |(id_r.decode.read_rs2 & (id_rs2 == exe_r.instruction.rd) & id_rs2_non_zero));
+    ((id_r.decode.read_rs1 & id_rs1_equal_exe_rd & id_rs1_non_zero)
+    |(id_r.decode.read_rs2 & id_rs2_equal_exe_rd & id_rs2_non_zero));
 
 
   // stall_bypass
   wire stall_bypass_fp_frs = 
-    (id_r.decode.read_frs1 & (id_rs1 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_float_op)
-    |(id_r.decode.read_frs2 & (id_rs2 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_float_op)
-    |(id_r.decode.read_frs3 & (id_rs3 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_float_op)
+     (id_r.decode.read_frs1 & id_rs1_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_float_op)
+    |(id_r.decode.read_frs2 & id_rs2_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_float_op)
+    |(id_r.decode.read_frs3 & id_rs3_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_float_op)
     |(id_r.decode.read_frs1 & (id_rs1 == fpu1_rd_r) & fpu1_v_r)
     |(id_r.decode.read_frs2 & (id_rs2 == fpu1_rd_r) & fpu1_v_r)
     |(id_r.decode.read_frs3 & (id_rs3 == fpu1_rd_r) & fpu1_v_r)
-    |(id_r.decode.read_frs1 & (id_rs1 == mem_r.rd_addr) & mem_r.write_frd)
-    |(id_r.decode.read_frs2 & (id_rs2 == mem_r.rd_addr) & mem_r.write_frd)
-    |(id_r.decode.read_frs3 & (id_rs3 == mem_r.rd_addr) & mem_r.write_frd);
+    |(id_r.decode.read_frs1 & id_rs1_equal_mem_rd & mem_ctrl_r.write_frd)
+    |(id_r.decode.read_frs2 & id_rs2_equal_mem_rd & mem_ctrl_r.write_frd)
+    |(id_r.decode.read_frs3 & id_rs3_equal_mem_rd & mem_ctrl_r.write_frd);
 
   wire stall_bypass_fp_rs1 = (id_r.decode.read_rs1 & id_rs1_non_zero) &
-    (((id_rs1 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_int_op)
+    ((id_rs1_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_int_op)
     |((id_rs1 == imul_rd_lo) & imul_v_lo)
-    |((id_rs1 == exe_r.instruction.rd) & exe_r.decode.write_rd)
-    |((id_rs1 == mem_r.rd_addr) & mem_r.write_rd)
-    |((id_rs1 == wb_r.rd_addr) & wb_r.write_rd));
+    |(id_rs1_equal_exe_rd & exe_r.decode.write_rd)
+    |(id_rs1_equal_mem_rd & mem_ctrl_r.write_rd)
+    |(id_rs1_equal_wb_rd & wb_ctrl_r.write_rd));
   
 
   wire stall_bypass_int_frs2 = id_r.decode.read_frs2 &
-    (((id_rs2 == fp_exe_r.rd) & fp_exe_r.fp_decode.is_fpu_float_op)
+    ((id_rs2_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_float_op)
     |((id_rs2 == fpu1_rd_r) & fpu1_v_r)
     |((id_rs2 == fpu_float_rd_lo) & fpu_float_v_lo)
-    |((id_rs2 == mem_r.rd_addr) & mem_r.write_frd)
-    |((id_rs2 == flw_wb_r.rd_addr) & flw_wb_r.valid));
+    |(id_rs2_equal_mem_rd & mem_ctrl_r.write_frd)
+    |((id_rs2 == flw_wb_ctrl_r.rd_addr) & flw_wb_ctrl_r.valid));
     
 
   assign stall_bypass = id_r.decode.is_fp_op
@@ -1321,7 +1369,7 @@ module vanilla_core
 
   // stall_fdiv_busy
   assign stall_fdiv_busy = (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op) & (fdiv_fsqrt_ready_lo
-    ? (fp_exe_r.fp_decode.is_fdiv_op | fp_exe_r.fp_decode.is_fsqrt_op)
+    ? (fp_exe_ctrl_r.fp_decode.is_fdiv_op | fp_exe_ctrl_r.fp_decode.is_fsqrt_op)
     : 1'b1);
 
   // stall_idiv_busy
@@ -1333,10 +1381,10 @@ module vanilla_core
   assign stall_fcsr = (id_r.decode.is_csr_op)
     & ((id_r.instruction[31:20] == `RV32_CSR_FFLAGS_ADDR)
       |(id_r.instruction[31:20] == `RV32_CSR_FCSR_ADDR))
-    & (fp_exe_r.fp_decode.is_fpu_float_op
-      |fp_exe_r.fp_decode.is_fpu_int_op
-      |fp_exe_r.fp_decode.is_fdiv_op
-      |fp_exe_r.fp_decode.is_fsqrt_op
+    & (fp_exe_ctrl_r.fp_decode.is_fpu_float_op
+      |fp_exe_ctrl_r.fp_decode.is_fpu_int_op
+      |fp_exe_ctrl_r.fp_decode.is_fdiv_op
+      |fp_exe_ctrl_r.fp_decode.is_fsqrt_op
       |(~fdiv_fsqrt_ready_lo)
       |fdiv_fsqrt_v_lo
       |fpu1_v_r
@@ -1358,15 +1406,15 @@ module vanilla_core
   logic [2:0] has_forward_data_rs2;
 
   assign has_forward_data_rs1[0] =
-    ((exe_r.decode.write_rd & (exe_r.instruction.rd == id_rs1))
-    |(fp_exe_r.fp_decode.is_fpu_int_op & (fp_exe_r.rd == id_rs1)))
+    ((exe_r.decode.write_rd & id_rs1_equal_exe_rd)
+    |(fp_exe_ctrl_r.fp_decode.is_fpu_int_op & id_rs1_equal_fp_exe_rd))
     & id_rs1_non_zero;
   assign has_forward_data_rs1[1] =
-    ((mem_r.write_rd & (mem_r.rd_addr == id_rs1))
+    ((mem_ctrl_r.write_rd & id_rs1_equal_mem_rd)
     |(imul_v_lo & (imul_rd_lo == id_rs1)))
     & id_rs1_non_zero;
   assign has_forward_data_rs1[2] =
-    wb_r.write_rd & (wb_r.rd_addr == id_rs1)
+    wb_ctrl_r.write_rd & id_rs1_equal_wb_rd
     & id_rs1_non_zero;
 
   bsg_priority_encode #(
@@ -1379,15 +1427,15 @@ module vanilla_core
   );
 
   assign has_forward_data_rs2[0] =
-    ((exe_r.decode.write_rd & (exe_r.instruction.rd == id_rs2))
-    |(fp_exe_r.fp_decode.is_fpu_int_op & (fp_exe_r.rd == id_rs2)))
+    ((exe_r.decode.write_rd & id_rs2_equal_exe_rd)
+    |(fp_exe_ctrl_r.fp_decode.is_fpu_int_op & id_rs2_equal_fp_exe_rd))
     & id_rs2_non_zero;
   assign has_forward_data_rs2[1] =
-    ((mem_r.write_rd & (mem_r.rd_addr == id_rs2))
+    ((mem_ctrl_r.write_rd & id_rs2_equal_mem_rd)
     |(imul_v_lo & (imul_rd_lo == id_rs2)))
     & id_rs2_non_zero;
   assign has_forward_data_rs2[2] =
-    wb_r.write_rd & (wb_r.rd_addr == id_rs2)
+    wb_ctrl_r.write_rd & id_rs2_equal_wb_rd
     & id_rs2_non_zero;
 
   bsg_priority_encode #(
@@ -1481,7 +1529,7 @@ module vanilla_core
   assign int_sb_score_id = exe_r.instruction.rd;  
 
   // exe_result
-  assign exe_result = fp_exe_r.fp_decode.is_fpu_int_op
+  assign exe_result = fp_exe_ctrl_r.fp_decode.is_fpu_int_op
     ? fpu_int_result_lo
     : alu_or_csr_result;
 
@@ -1495,9 +1543,11 @@ module vanilla_core
     : frm_e'(id_r.instruction.funct3);
 
   always_comb begin
-    fp_exe_n = fp_exe_r;
+    fp_exe_ctrl_n = fp_exe_ctrl_r;
+    fp_exe_data_n = fp_exe_data_r;
     if (stall_all) begin
-      fp_exe_n = fp_exe_r;
+      fp_exe_ctrl_n = fp_exe_ctrl_r;
+      fp_exe_data_n = fp_exe_data_r;
     end
     else begin
       if (flush | stall_id | ~id_r.decode.is_fp_op) begin
@@ -1505,19 +1555,21 @@ module vanilla_core
         // we hold the data inputs steady in the case of a stall,
         // or if there is not a floating point operation
         // to avoid unnecessarily toggling of the FP unit
-        fp_exe_n.fp_decode.is_fpu_float_op = 1'b0;
-        fp_exe_n.fp_decode.is_fpu_int_op   = 1'b0;
-        fp_exe_n.fp_decode.is_fdiv_op  = 1'b0;
-        fp_exe_n.fp_decode.is_fsqrt_op = 1'b0;
+        fp_exe_ctrl_n.fp_decode.is_fpu_float_op = 1'b0;
+        fp_exe_ctrl_n.fp_decode.is_fpu_int_op   = 1'b0;
+        fp_exe_ctrl_n.fp_decode.is_fdiv_op  = 1'b0;
+        fp_exe_ctrl_n.fp_decode.is_fsqrt_op = 1'b0;
       end
       else begin
-        fp_exe_n = '{
-          rs1_val: frs1_to_fp_exe,
-          rs2_val: frs2_to_fp_exe,
-          rs3_val: frs3_to_fp_exe,
+        fp_exe_ctrl_n = '{
           rd: id_r.instruction.rd,
           fp_decode: id_r.fp_decode,
           rm: fpu_rm
+        };
+        fp_exe_data_n = '{
+          rs1_val: frs1_to_fp_exe,
+          rs2_val: frs2_to_fp_exe,
+          rs3_val: frs3_to_fp_exe
         };
       end
     end
@@ -1529,7 +1581,7 @@ module vanilla_core
   // FP scoreboard set logic
   assign float_sb_score = ~stall_all & (fdiv_fsqrt_in_fp_exe | float_remote_load_in_exe);
   assign float_sb_score_id = fdiv_fsqrt_in_fp_exe
-    ? fp_exe_r.rd
+    ? fp_exe_ctrl_r.rd
     : exe_r.instruction.rd;
 
 
@@ -1540,16 +1592,17 @@ module vanilla_core
     fcsr_fflags_li[0] = fpu_int_fflags_lo;
 
     if (stall_all) begin
-      mem_n = mem_r;
+      mem_ctrl_n = mem_ctrl_r;
+      mem_data_n = mem_data_r;
     end
     else if (exe_r.decode.is_idiv_op | (remote_req_in_exe & ~exe_r.icache_miss)) begin
-      mem_n = '0;
+      mem_ctrl_n = '0;
+      mem_data_n = '0;
     end
-    else if (fp_exe_r.fp_decode.is_fpu_int_op) begin
+    else if (fp_exe_ctrl_r.fp_decode.is_fpu_int_op) begin
       fcsr_fflags_v_li[0] = 1'b1;
-      mem_n = '{
-        rd_addr: fp_exe_r.rd,
-        exe_result: fpu_int_result_lo,
+      mem_ctrl_n = '{
+        rd_addr: fp_exe_ctrl_r.rd,
         write_rd: 1'b1,
         write_frd: 1'b0,
         is_byte_op: 1'b0,
@@ -1559,11 +1612,13 @@ module vanilla_core
         mem_addr_sent: '0,
         icache_miss: 1'b0
       };      
+      mem_data_n = '{
+        exe_result: fpu_int_result_lo
+      };
     end
     else begin
-      mem_n = '{
+      mem_ctrl_n = '{
         rd_addr: exe_r.instruction.rd,
-        exe_result: alu_or_csr_result,
         write_rd: exe_r.decode.write_rd,
         write_frd: exe_r.decode.write_frd,
         is_byte_op: exe_r.decode.is_byte_op,
@@ -1572,7 +1627,10 @@ module vanilla_core
         local_load: local_load_in_exe,
         mem_addr_sent: lsu_mem_addr_sent_lo,
         icache_miss: exe_r.icache_miss
-      };      
+      };
+      mem_data_n = '{
+        exe_result: alu_or_csr_result
+      };
     end
   end  
 
@@ -1618,26 +1676,26 @@ module vanilla_core
   assign break_reserve = reserved_r & (reserved_addr_r == dmem_addr_li) & dmem_v_li & dmem_w_li;
 
   // stall_ifetch_wait
-  assign stall_ifetch_wait = mem_r.icache_miss & ~ifetch_v_i;
+  assign stall_ifetch_wait = mem_ctrl_r.icache_miss & ~ifetch_v_i;
 
   // mem_result
   assign mem_result = imul_v_lo
     ? imul_result_lo
-    : (mem_r.local_load
+    : (mem_ctrl_r.local_load
       ? local_load_packed_data
-      : mem_r.exe_result);
+      : mem_data_r.exe_result);
 
-  wire mem_result_valid = imul_v_lo | mem_r.write_rd | mem_r.write_frd;
+  wire mem_result_valid = imul_v_lo | mem_ctrl_r.write_rd | mem_ctrl_r.write_frd;
  
  
   // MEM -> WB
   always_comb begin
-    wb_n.write_rd = 1'b0;
-    wb_n.rd_addr = '0;
-    wb_n.rf_data = '0;
-    wb_n.icache_miss = 1'b0;
-    wb_n.icache_miss_pc = '0;
-    wb_n.clear_sb = 1'b0;
+    wb_ctrl_n.write_rd = 1'b0;
+    wb_ctrl_n.rd_addr = '0;
+    wb_data_n.rf_data = '0;
+    wb_ctrl_n.icache_miss = 1'b0;
+    wb_ctrl_n.icache_miss_pc = '0;
+    wb_ctrl_n.clear_sb = 1'b0;
     int_remote_load_resp_yumi_o = 1'b0;
     idiv_yumi_li = 1'b0;
     stall_idiv_wb = 1'b0;
@@ -1645,43 +1703,43 @@ module vanilla_core
 
     // int remote_load_resp and icache response are mutually exclusive events.
     if (int_remote_load_resp_force_i) begin
-      wb_n.write_rd = 1'b1;
-      wb_n.rd_addr = int_remote_load_resp_rd_i;
-      wb_n.rf_data = int_remote_load_resp_data_i;
-      wb_n.clear_sb = 1'b1;
-      stall_remote_ld_wb = mem_result_valid | mem_r.icache_miss;
+      wb_ctrl_n.write_rd = 1'b1;
+      wb_ctrl_n.rd_addr = int_remote_load_resp_rd_i;
+      wb_data_n.rf_data = int_remote_load_resp_data_i;
+      wb_ctrl_n.clear_sb = 1'b1;
+      stall_remote_ld_wb = mem_result_valid | mem_ctrl_r.icache_miss;
       int_remote_load_resp_yumi_o = 1'b1;
     end
-    else if (mem_r.icache_miss & ifetch_v_i) begin
-      wb_n.icache_miss = 1'b1;
-      wb_n.icache_miss_pc = mem_r.mem_addr_sent;
+    else if (mem_ctrl_r.icache_miss & ifetch_v_i) begin
+      wb_ctrl_n.icache_miss = 1'b1;
+      wb_ctrl_n.icache_miss_pc = mem_ctrl_r.mem_addr_sent;
     end
     else begin
       if (imul_v_lo) begin
-        wb_n.write_rd = 1'b1;
-        wb_n.rd_addr = imul_rd_lo;
-        wb_n.rf_data = imul_result_lo;
+        wb_ctrl_n.write_rd = 1'b1;
+        wb_ctrl_n.rd_addr = imul_rd_lo;
+        wb_data_n.rf_data = imul_result_lo;
       end
-      else if (mem_r.write_rd) begin
-        wb_n.write_rd = 1'b1;
-        wb_n.rd_addr = mem_r.rd_addr;
-        wb_n.rf_data = mem_r.local_load
+      else if (mem_ctrl_r.write_rd) begin
+        wb_ctrl_n.write_rd = 1'b1;
+        wb_ctrl_n.rd_addr = mem_ctrl_r.rd_addr;
+        wb_data_n.rf_data = mem_ctrl_r.local_load
           ? local_load_packed_data
-          : mem_r.exe_result;
+          : mem_data_r.exe_result;
       end
       else begin
         if (int_remote_load_resp_v_i) begin
-          wb_n.write_rd = 1'b1;
-          wb_n.rd_addr = int_remote_load_resp_rd_i;
-          wb_n.rf_data = int_remote_load_resp_data_i;
-          wb_n.clear_sb = 1'b1;
+          wb_ctrl_n.write_rd = 1'b1;
+          wb_ctrl_n.rd_addr = int_remote_load_resp_rd_i;
+          wb_data_n.rf_data = int_remote_load_resp_data_i;
+          wb_ctrl_n.clear_sb = 1'b1;
           int_remote_load_resp_yumi_o = 1'b1;
         end
         else if (idiv_v_lo) begin
-          wb_n.write_rd = 1'b1;
-          wb_n.rd_addr = idiv_rd_lo;
-          wb_n.rf_data = idiv_result_lo;
-          wb_n.clear_sb = 1'b1;
+          wb_ctrl_n.write_rd = 1'b1;
+          wb_ctrl_n.rd_addr = idiv_rd_lo;
+          wb_data_n.rf_data = idiv_result_lo;
+          wb_ctrl_n.clear_sb = 1'b1;
           idiv_yumi_li = 1'b1;
         end
       end
@@ -1690,24 +1748,27 @@ module vanilla_core
 
 
   // WB 
-  assign int_rf_wdata = wb_r.rf_data;
-  assign int_rf_waddr = wb_r.rd_addr;
-  assign int_rf_wen = wb_r.write_rd;
+  assign int_rf_wdata = wb_data_r.rf_data;
+  assign int_rf_waddr = wb_ctrl_r.rd_addr;
+  assign int_rf_wen = wb_ctrl_r.write_rd;
 
   // int scoreboard clear logic
-  assign int_sb_clear = wb_r.write_rd & wb_r.clear_sb;
-  assign int_sb_clear_id = wb_r.rd_addr;
+  assign int_sb_clear = wb_ctrl_r.write_rd & wb_ctrl_r.clear_sb;
+  assign int_sb_clear_id = wb_ctrl_r.rd_addr;
 
 
   // MEM -> FLW_WB
   always_comb begin
     if (stall_all) begin
-      flw_wb_n = flw_wb_r;
+      flw_wb_ctrl_n = flw_wb_ctrl_r;
+      flw_wb_data_n = flw_wb_data_r;
     end
     else begin
-      flw_wb_n = '{
-        valid: mem_r.write_frd,
-        rd_addr: mem_r.rd_addr,
+      flw_wb_ctrl_n = '{
+        valid: mem_ctrl_r.write_frd,
+        rd_addr: mem_ctrl_r.rd_addr
+      };
+      flw_wb_data_n = '{
         rf_data: local_load_data_r
       };
     end
@@ -1742,15 +1803,15 @@ module vanilla_core
       float_rf_waddr = float_remote_load_resp_rd_i;
       float_rf_wdata = flw_recoded_data;
       float_remote_load_resp_yumi_o = 1'b1;
-      stall_remote_flw_wb = flw_wb_r.valid | fpu_float_v_lo;
+      stall_remote_flw_wb = flw_wb_ctrl_r.valid | fpu_float_v_lo;
 
       float_sb_clear = 1'b1;
       float_sb_clear_id = float_remote_load_resp_rd_i;
     end
-    else if (flw_wb_r.valid) begin
+    else if (flw_wb_ctrl_r.valid) begin
       select_remote_flw = 1'b0;
       float_rf_wen = 1'b1;
-      float_rf_waddr = flw_wb_r.rd_addr;
+      float_rf_waddr = flw_wb_ctrl_r.rd_addr;
       float_rf_wdata = flw_recoded_data; 
     end
     else if (fpu_float_v_lo) begin
