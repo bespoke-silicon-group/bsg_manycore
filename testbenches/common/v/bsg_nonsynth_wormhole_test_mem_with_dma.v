@@ -142,8 +142,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
      ,.data_o(wh_r_data)
      );  
 
-  assign dma_mem_r_data_v_n = dma_mem_v_r & ~dma_mem_w;
-
   // assert ~dma_mem_r_data_v_n | piso_ready_and_lo
 
   // flit counter
@@ -199,9 +197,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     cid_n = cid_r;
     mem_state_n = mem_state_r;
  
-    mem_we = 1'b0;
-    mem_w_data = wh_link_sif_in.data;
-    
     wh_r_data_ready_and_li = '0;
     dma_mem_v_n = '0;
     
@@ -235,7 +230,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
       RECV_EVICT_DATA: begin
         wh_link_sif_out.ready_and_rev = 1'b1;
         if (wh_link_sif_in.v) begin
-          mem_we = 1'b1;
           wh_w_data_v_li = 1'b1;          
           up_li = (count_lo != data_len_lp-1);
           clear_li = (count_lo == data_len_lp-1);
@@ -248,6 +242,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
       SEND_FILL_HEADER: begin
         wh_link_sif_out.v = 1'b1;
         wh_link_sif_out.data = header_flit_out;
+        dma_mem_r_data_v_n = '1;        
         if (wh_link_sif_in.ready_and_rev) begin
           mem_state_n = SEND_FILL_DATA;
         end
@@ -257,13 +252,15 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
         wh_link_sif_out.v = piso_v_lo;        
         wh_link_sif_out.data = wh_r_data;
         wh_r_data_ready_and_li = wh_link_sif_in.ready_and_rev;        
-
+        dma_mem_r_data_v_n = '1;        
         if (wh_link_sif_in.ready_and_rev) begin          
           clear_li = (count_lo == data_len_lp-1);
           up_li = (count_lo != data_len_lp-1);
           mem_state_n = (count_lo == data_len_lp-1)
             ? READY
             : SEND_FILL_DATA;
+
+          dma_mem_r_data_v_n = (count_lo == data_len_lp-1);          
         end
       end
 
@@ -280,12 +277,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   // address hashing
   if (no_concentration_p) begin
     // no concentration. each wh ruche link gets a test_mem.
-    assign mem_addr = {
-      src_cord_r[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp],
-      addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
-      count_lo
-    };
-
     assign dma_mem_addr = {
       src_cord_r[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp],
       addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp]
@@ -294,13 +285,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   end
   else begin
     // wh ruche links coming from top and bottom caches are concentrated into one link.
-    assign mem_addr = {
-      (1)'(cid_r/wh_ruche_factor_p), // determine north or south vcache
-      src_cord_r[0+:(lg_num_vcaches_lp-1)],
-      addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
-      count_lo
-    };
-
     assign dma_mem_addr = {
        (1)'(cid_r/wh_ruche_factor_p),
        src_cord_r[0+:(lg_num_vcaches_lp-1)],
@@ -348,8 +332,8 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
           $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, mem_addr = %08x, count_lo = %d, mem_we = %b", 
                    id_p, mem_state_r.name(), cid_r, addr_r, mem_addr, count_lo, mem_we);
           `else
-          $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, dma_mem_addr = %08x, count_lo = %d, dma_mem_v_r = %b, dma_mem_r_data_v_r = %b, mem_we = %b", 
-                   id_p, mem_state_r.name(), cid_r, addr_r, dma_mem_addr, count_lo, dma_mem_v_r, dma_mem_r_data_v_r, mem_we);
+          $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, dma_mem_addr = %08x, count_lo = %d, dma_mem_v_r = %b, dma_mem_r_data_v_r = %b", 
+                   id_p, mem_state_r.name(), cid_r, addr_r, dma_mem_addr, count_lo, dma_mem_v_r, dma_mem_r_data_v_r);
           `endif
         end
       endcase // case (mem_state_r)
