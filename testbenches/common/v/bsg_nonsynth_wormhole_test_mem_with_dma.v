@@ -112,7 +112,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
      ,.data_o(piso_data_lo)
      );
 
-
   // wormhole write data -> dma mem write data
   logic [vcache_dma_data_width_p-1:0] wh_data_n;
   logic [vcache_dma_data_width_p-1:0] wh_data_r;
@@ -120,6 +119,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   logic wh_data_v_n;  
 
   logic sipo_ready_lo;
+  // currently only used for debugging
   logic sipo_data_v_lo;
 
   bsg_serial_in_parallel_out_passthrough
@@ -138,9 +138,9 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
      ,.ready_and_i('1)
      );
 
-  // assert dma_mem_w_n => sipo_data_v_lo
-  // assert wh_data_v => sipo_ready_lo
-  // assert dma_mem_v_n => sipo_data_v_lo
+  always @(posedge clk_i)
+    // assert (dma_mem_w_r & dma_mem_v_r => sipo_data_v_lo)
+    assert(reset_i | (~(dma_mem_w_r & dma_mem_v_r) | sipo_data_v_lo));
 
   // flit counter
   logic clear_li;
@@ -158,6 +158,10 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     ,.count_o(count_lo)
   );
 
+  always @(posedge clk_i)
+    // assert (dma_data_v_r & count_lo == '1 => piso_ready_lo)
+    // this asserts that the piso is ready the cycle after we read from dma mem
+    assert(reset_i | (~(dma_data_v_r & count_lo == '1) | piso_ready_lo));
 
   typedef enum logic [2:0] {
     RESET
@@ -230,9 +234,12 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
       end
 
       RECV_EVICT_DATA: begin
-        wh_link_sif_out.ready_and_rev = 1'b1;
-        wh_data_n = wh_link_sif_in.data;        
-        if (wh_link_sif_in.v) begin
+        wh_link_sif_out.ready_and_rev = sipo_ready_lo;
+        wh_data_v_n = wh_link_sif_in.v;
+        wh_data_n = wh_link_sif_in.data;
+
+        if (wh_link_sif_in.v &
+            sipo_ready_lo) begin
           up_li = (count_lo != data_len_lp-1);
           clear_li = (count_lo == data_len_lp-1);
           mem_state_n = (count_lo == data_len_lp-1)
@@ -242,9 +249,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
           // do write if no more flits
           dma_mem_v_n = (count_lo == data_len_lp-1);
           dma_mem_w_n = (count_lo == data_len_lp-1);
-
-          // wormhole data valid
-          wh_data_v_n = '1;
         end
       end
 
@@ -282,9 +286,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
     endcase
 
-
   end
-
   
   // address hashing
   if (no_concentration_p) begin
