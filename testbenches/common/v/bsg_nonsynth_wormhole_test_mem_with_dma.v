@@ -113,14 +113,13 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
 
   // wormhole write data -> dma mem write data
-  logic [vcache_dma_data_width_p-1:0] wh_data;
-  logic [vcache_dma_data_width_p-1:0] wh_data;
+  logic [vcache_dma_data_width_p-1:0] wh_data_n;
+  logic [vcache_dma_data_width_p-1:0] wh_data_r;
   logic wh_data_v_r;
   logic wh_data_v_n;  
 
   logic sipo_ready_lo;
   logic sipo_data_v_lo;
-  logic sipo_ready_li;
 
   bsg_serial_in_parallel_out_passthrough
     #(.width_p(vcache_dma_data_width_p)
@@ -131,7 +130,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
      ,.v_i(wh_data_v_r)
      ,.ready_and_o(sipo_ready_lo)
-     ,.data_i(wh_data)
+     ,.data_i(wh_data_r)
 
      ,.data_o(dma_mem_w_data)
      ,.v_o(sipo_data_v_lo)
@@ -199,8 +198,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
     piso_ready_li = '0;    
 
-    sipo_ready_li = '0;
-    wh_data = '0;
+    wh_data_n = '0;
     wh_data_v_n = '0;
     
     case (mem_state_r)
@@ -232,7 +230,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
       RECV_EVICT_DATA: begin
         wh_link_sif_out.ready_and_rev = 1'b1;
-        wh_data = wh_link_sif_in.data;        
+        wh_data_n = wh_link_sif_in.data;        
         if (wh_link_sif_in.v) begin
           up_li = (count_lo != data_len_lp-1);
           clear_li = (count_lo == data_len_lp-1);
@@ -307,9 +305,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   end
 
 
-
-
-
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       mem_state_r <= RESET;
@@ -320,7 +315,8 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
       dma_mem_v_r <= '0;
       dma_mem_w_r <= '0;      
       dma_data_v_r <= '0;
-      wh_data_v_r <= '0;      
+      wh_data_v_r <= '0;
+      wh_data_r <= '0;      
     end
     else begin
       mem_state_r <= mem_state_n;
@@ -331,7 +327,8 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
       dma_mem_v_r <= dma_mem_v_n;
       dma_mem_w_r <= dma_mem_w_n;      
       dma_data_v_r <= dma_data_v_n;
-      wh_data_v_r <= wh_data_v_n;      
+      wh_data_v_r <= wh_data_v_n;
+      wh_data_r <= wh_data_n;      
     end
   end
 
@@ -343,12 +340,14 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
         end     
         READY: begin
           ;
-        end      
+        end
+        RECV_EVICT_DATA: begin
+          $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, dma_mem_addr = %08x, wh_data_n = %08x, count_lo = %d, wh_data_v_n = %b, wh_data_v_r = %08x",
+                   id_p, mem_state_r.name(), cid_r, addr_r, dma_mem_addr, wh_data_n, count_lo, wh_data_v_n, wh_data_v_r);          
+        end        
         default: begin          
           $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, dma_mem_addr = %08x, piso_data_lo = %08x, count_lo = %d, dma_mem_v_r = %b, dma_data_v_r = %b", 
                    id_p, mem_state_r.name(), cid_r, addr_r, dma_mem_addr, piso_data_lo, count_lo, dma_mem_v_r, dma_data_v_r);
-          $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, dma_mem_addr = %08x, wh_data = %08x, count_lo = %d, wh_data_v_n = %b, wh_data_v_r = %08x",
-                   id_p, mem_state_r.name(), cid_r, addr_r, dma_mem_addr, wh_data, count_lo, wh_data_v_n, wh_data_v_r);
         end
       endcase // case (mem_state_r)
     end // if (~reset_i)    
