@@ -83,7 +83,7 @@ module vanilla_core_profiler
 
     , input id_signals_s id_r
     , input exe_signals_s exe_r
-    , input fp_exe_signals_s fp_exe_r
+    , input fp_exe_ctrl_signals_s fp_exe_ctrl_r
 
     , input [x_cord_width_p-1:0] global_x_i
     , input [y_cord_width_p-1:0] global_y_i
@@ -109,42 +109,42 @@ module vanilla_core_profiler
   // event signals
   //
   wire instr_inc = (~stall_all) & (exe_r.instruction != '0) & ~exe_r.icache_miss;
-  wire fp_instr_inc = (fp_exe_r.fp_decode.is_fpu_float_op
-    | fp_exe_r.fp_decode.is_fpu_int_op
-    | fp_exe_r.fp_decode.is_fdiv_op
-    | fp_exe_r.fp_decode.is_fsqrt_op) & ~stall_all;
+  wire fp_instr_inc = (fp_exe_ctrl_r.fp_decode.is_fpu_float_op
+    | fp_exe_ctrl_r.fp_decode.is_fpu_int_op
+    | fp_exe_ctrl_r.fp_decode.is_fdiv_op
+    | fp_exe_ctrl_r.fp_decode.is_fsqrt_op) & ~stall_all;
 
   // fpu_float
-  wire fpu_float_inc = fp_exe_r.fp_decode.is_fpu_float_op;
-  wire fadd_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFADD);
-  wire fsub_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSUB);
-  wire fmul_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMUL);
-  wire fsgnj_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSGNJ);
-  wire fsgnjn_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSGNJN);
-  wire fsgnjx_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSGNJX);
-  wire fmin_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMIN);
-  wire fmax_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMAX);
-  wire fcvt_s_w_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFCVT_S_W);
-  wire fcvt_s_wu_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFCVT_S_WU);
-  wire fmv_w_x_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMV_W_X);
-  wire fmadd_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMADD);
-  wire fmsub_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMSUB);
-  wire fnmsub_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFNMSUB);
-  wire fnmadd_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFNMADD);
+  wire fpu_float_inc = fp_exe_ctrl_r.fp_decode.is_fpu_float_op;
+  wire fadd_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFADD);
+  wire fsub_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFSUB);
+  wire fmul_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMUL);
+  wire fsgnj_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFSGNJ);
+  wire fsgnjn_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFSGNJN);
+  wire fsgnjx_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFSGNJX);
+  wire fmin_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMIN);
+  wire fmax_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMAX);
+  wire fcvt_s_w_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFCVT_S_W);
+  wire fcvt_s_wu_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFCVT_S_WU);
+  wire fmv_w_x_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMV_W_X);
+  wire fmadd_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMADD);
+  wire fmsub_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMSUB);
+  wire fnmsub_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFNMSUB);
+  wire fnmadd_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFNMADD);
  
   // fpu_int
-  wire fpu_int_inc = fp_exe_r.fp_decode.is_fpu_int_op;
-  wire feq_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFEQ);
-  wire fle_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFLE);
-  wire flt_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFLT);
-  wire fcvt_w_s_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFCVT_W_S);
-  wire fcvt_wu_s_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFCVT_WU_S);
-  wire fclass_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFCLASS);
-  wire fmv_x_w_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFMV_X_W);
+  wire fpu_int_inc = fp_exe_ctrl_r.fp_decode.is_fpu_int_op;
+  wire feq_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFEQ);
+  wire fle_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFLE);
+  wire flt_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFLT);
+  wire fcvt_w_s_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFCVT_W_S);
+  wire fcvt_wu_s_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFCVT_WU_S);
+  wire fclass_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFCLASS);
+  wire fmv_x_w_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFMV_X_W);
 
   // fdiv/fsqrt
-  wire fdiv_inc = fp_exe_r.fp_decode.is_fdiv_op;
-  wire fsqrt_inc = fp_exe_r.fp_decode.is_fsqrt_op;
+  wire fdiv_inc = fp_exe_ctrl_r.fp_decode.is_fdiv_op;
+  wire fsqrt_inc = fp_exe_ctrl_r.fp_decode.is_fsqrt_op;
 
   // LSU
   wire local_ld_inc = exe_r.decode.is_load_op & lsu_dmem_v_lo & exe_r.decode.write_rd;
