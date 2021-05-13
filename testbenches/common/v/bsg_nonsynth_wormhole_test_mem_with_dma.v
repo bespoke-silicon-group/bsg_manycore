@@ -44,13 +44,16 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   localparam dma_mem_addr_width_lp = `BSG_SAFE_CLOG2(dma_mem_els_lp);  
   localparam dma_mem_data_width_lp = vcache_dma_data_width_p * data_len_lp;  
 
-  logic dma_mem_w;
+  logic dma_mem_w_n;
+  logic dma_mem_w_r;
   logic dma_mem_v_n;  
   logic dma_mem_v_r;
-  
+
   logic [dma_mem_addr_width_lp-1:0] dma_mem_addr;
   logic [dma_mem_data_width_lp-1:0] dma_mem_w_data;
   logic [dma_mem_data_width_lp-1:0] dma_mem_r_data;  
+  logic  dma_data_v_r;
+  logic  dma_data_v_n;
   
   bsg_nonsynth_mem_1rw_sync_mask_write_byte_dma
     #(.width_p(dma_mem_data_width_lp)
@@ -62,7 +65,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
      ,.reset_i(reset_i)
      
      ,.v_i(dma_mem_v_r)
-     ,.w_i(dma_mem_w)
+     ,.w_i(dma_mem_w_r)
 
      ,.addr_i(dma_mem_addr)
 
@@ -71,7 +74,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
      ,.data_i(dma_mem_w_data)
      ,.w_mask_i('1)
      );
-
 
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
   wh_link_sif_s wh_link_sif_in;
@@ -86,45 +88,12 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   assign header_flit_in = wh_link_sif_in.data;
 
 
-  // wormhole write data -> dma mem write data
-  logic wh_w_data_v_li;
-  logic sipo_ready_and_lo;  
-
-  logic sipo_v_lo;
-  logic wh_w_data_read_and_li;
-  
-  logic [vcache_dma_data_width_p-1:0] wh_w_data;
-
-  bsg_serial_in_parallel_out_passthrough
-    #(.width_p(vcache_dma_data_width_p)
-      ,.els_p(data_len_lp))
-  wh2dmamem
-    (.clk_i(clk_i)
-     ,.reset_i(reset_i)
-
-     ,.v_i(wh_w_data_v_li)
-     ,.ready_and_o(sipo_ready_and_lo)
-     ,.data_i(wh_w_data)
-     
-     ,.v_o(sipo_v_lo)
-     ,.ready_and_i('1)
-     ,.data_o(dma_mem_w_data)
-     );
-
-  assign dma_mem_w = sipo_v_lo;
-  assign wh_w_data = wh_link_sif_in.data;
-  
-  //assign dma_mem_v = dma_mem_r_data_v_r | sipo_v_lo;
-  // assert ~wh_w_data_v_li | sipo_ready_and_lo
-
   // dma mem read data -> wormhole read data
-  logic dma_mem_r_data_v_r;
-  logic dma_mem_r_data_v_n;  
-  logic piso_ready_and_lo;
-  
-  logic piso_v_lo;
-  logic wh_r_data_ready_and_li;
-  logic [vcache_dma_data_width_p-1:0] wh_r_data;
+
+  logic piso_ready_lo;
+  logic piso_data_v_lo;
+  logic [vcache_dma_data_width_p-1:0] piso_data_lo;
+  logic piso_ready_li;
   
   bsg_parallel_in_serial_out_passthrough
     #(.width_p(vcache_dma_data_width_p)
@@ -133,16 +102,45 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     (.clk_i(clk_i)
      ,.reset_i(reset_i)
 
-     ,.v_i(dma_mem_r_data_v_r)
-     ,.ready_and_o(piso_ready_and_lo)
+     ,.v_i(dma_data_v_r)
+     ,.ready_and_o(piso_ready_lo)
      ,.data_i(dma_mem_r_data)
 
-     ,.v_o(piso_v_lo)
-     ,.ready_and_i(wh_r_data_ready_and_li)
-     ,.data_o(wh_r_data)
-     );  
+     ,.v_o(piso_data_v_lo)
+     ,.ready_and_i(piso_ready_li)
+     ,.data_o(piso_data_lo)
+     );
 
-  // assert ~dma_mem_r_data_v_n | piso_ready_and_lo
+
+  // wormhole write data -> dma mem write data
+  logic [vcache_dma_data_width_p-1:0] wh_data;
+  logic [vcache_dma_data_width_p-1:0] wh_data;
+  logic wh_data_v_r;
+  logic wh_data_v_n;  
+
+  logic sipo_ready_lo;
+  logic sipo_data_v_lo;
+  logic sipo_ready_li;
+
+  bsg_serial_in_parallel_out_passthrough
+    #(.width_p(vcache_dma_data_width_p)
+      ,.els_p(data_len_lp))
+  wh2dmamem
+    (.clk_i(clk_i)
+     ,.reset_i(reset_i)
+
+     ,.v_i(wh_data_v_r)
+     ,.ready_and_o(sipo_ready_lo)
+     ,.data_i(wh_data)
+
+     ,.data_o(dma_mem_w_data)
+     ,.v_o(sipo_data_v_lo)
+     ,.ready_and_i('1)
+     );
+
+  // assert dma_mem_w_n => sipo_data_v_lo
+  // assert wh_data_v => sipo_ready_lo
+  // assert dma_mem_v_n => sipo_data_v_lo
 
   // flit counter
   logic clear_li;
@@ -189,16 +187,21 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     clear_li = 1'b0;
     up_li = 1'b0;
 
-    wh_w_data_v_li = '0;    
-    
     write_not_read_n = write_not_read_r;
     addr_n = addr_r;
     src_cord_n = src_cord_r;
     cid_n = cid_r;
     mem_state_n = mem_state_r;
  
-    wh_r_data_ready_and_li = '0;
     dma_mem_v_n = '0;
+    dma_mem_w_n = '0;    
+    dma_data_v_n = '0;    
+
+    piso_ready_li = '0;    
+
+    sipo_ready_li = '0;
+    wh_data = '0;
+    wh_data_v_n = '0;
     
     case (mem_state_r)
 
@@ -229,38 +232,48 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
       RECV_EVICT_DATA: begin
         wh_link_sif_out.ready_and_rev = 1'b1;
+        wh_data = wh_link_sif_in.data;        
         if (wh_link_sif_in.v) begin
-          wh_w_data_v_li = 1'b1;          
           up_li = (count_lo != data_len_lp-1);
           clear_li = (count_lo == data_len_lp-1);
           mem_state_n = (count_lo == data_len_lp-1)
             ? READY
-            : RECV_EVICT_DATA;          
+            : RECV_EVICT_DATA;         
+
+          // do write if no more flits
+          dma_mem_v_n = (count_lo == data_len_lp-1);
+          dma_mem_w_n = (count_lo == data_len_lp-1);
+
+          // wormhole data valid
+          wh_data_v_n = '1;
         end
       end
 
       SEND_FILL_HEADER: begin
         wh_link_sif_out.v = 1'b1;
         wh_link_sif_out.data = header_flit_out;
-        dma_mem_r_data_v_n = '1;        
+        dma_data_v_n = 1'b1;
         if (wh_link_sif_in.ready_and_rev) begin
           mem_state_n = SEND_FILL_DATA;
         end
       end
 
       SEND_FILL_DATA: begin
-        wh_link_sif_out.v = piso_v_lo;        
-        wh_link_sif_out.data = wh_r_data;
-        wh_r_data_ready_and_li = wh_link_sif_in.ready_and_rev;        
-        dma_mem_r_data_v_n = '1;        
-        if (wh_link_sif_in.ready_and_rev) begin          
+        wh_link_sif_out.v = piso_data_v_lo;        
+        wh_link_sif_out.data = piso_data_lo;
+        piso_ready_li = wh_link_sif_in.ready_and_rev;
+        
+        dma_data_v_n = '1;        
+        if (wh_link_sif_in.ready_and_rev &
+            piso_data_v_lo) begin          
           clear_li = (count_lo == data_len_lp-1);
           up_li = (count_lo != data_len_lp-1);
           mem_state_n = (count_lo == data_len_lp-1)
             ? READY
             : SEND_FILL_DATA;
 
-          dma_mem_r_data_v_n = (count_lo == data_len_lp-1);          
+          // stop after no more valid flits
+          dma_data_v_n = ~(count_lo == data_len_lp-1);          
         end
       end
 
@@ -304,8 +317,10 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
       src_cord_r <= '0;
       cid_r <= '0;
       addr_r <= '0;
-      dma_mem_r_data_v_r <= '0;
-      dma_mem_v_r <= '0;      
+      dma_mem_v_r <= '0;
+      dma_mem_w_r <= '0;      
+      dma_data_v_r <= '0;
+      wh_data_v_r <= '0;      
     end
     else begin
       mem_state_r <= mem_state_n;
@@ -313,8 +328,10 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
       src_cord_r <= src_cord_n;
       cid_r <= cid_n;
       addr_r <= addr_n;
-      dma_mem_r_data_v_r <= dma_mem_r_data_v_n;
-      dma_mem_v_r <= dma_mem_v_n;      
+      dma_mem_v_r <= dma_mem_v_n;
+      dma_mem_w_r <= dma_mem_w_n;      
+      dma_data_v_r <= dma_data_v_n;
+      wh_data_v_r <= wh_data_v_n;      
     end
   end
 
@@ -328,13 +345,10 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
           ;
         end      
         default: begin          
-          `ifdef NODMA
-          $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, mem_addr = %08x, count_lo = %d, mem_we = %b", 
-                   id_p, mem_state_r.name(), cid_r, addr_r, mem_addr, count_lo, mem_we);
-          `else
-          $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, dma_mem_addr = %08x, count_lo = %d, dma_mem_v_r = %b, dma_mem_r_data_v_r = %b", 
-                   id_p, mem_state_r.name(), cid_r, addr_r, dma_mem_addr, count_lo, dma_mem_v_r, dma_mem_r_data_v_r);
-          `endif
+          $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, dma_mem_addr = %08x, piso_data_lo = %08x, count_lo = %d, dma_mem_v_r = %b, dma_data_v_r = %b", 
+                   id_p, mem_state_r.name(), cid_r, addr_r, dma_mem_addr, piso_data_lo, count_lo, dma_mem_v_r, dma_data_v_r);
+          $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, dma_mem_addr = %08x, wh_data = %08x, count_lo = %d, wh_data_v_n = %b, wh_data_v_r = %08x",
+                   id_p, mem_state_r.name(), cid_r, addr_r, dma_mem_addr, wh_data, count_lo, wh_data_v_n, wh_data_v_r);
         end
       endcase // case (mem_state_r)
     end // if (~reset_i)    
