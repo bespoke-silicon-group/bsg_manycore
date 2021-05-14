@@ -5,12 +5,14 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     , parameter vcache_dma_data_width_p="inv"
     , parameter num_vcaches_p = "inv" // how many vcaches are mapped to this test mem?
     , parameter lg_num_vcaches_lp = `BSG_SAFE_CLOG2(num_vcaches_p)
-   
+
     , parameter wh_cid_width_p="inv"
     , parameter wh_flit_width_p="inv"
     , parameter wh_cord_width_p="inv"
     , parameter wh_len_width_p="inv"
     , parameter wh_ruche_factor_p="inv"
+    , parameter wh_subcord_width_p = "inv" // src subcoordinate in pod
+    , parameter wh_cord_offset_lp = (1<<wh_subcord_width_p)
 
     // determines address hashing based on cid and src_cord
     , parameter no_concentration_p=0
@@ -287,13 +289,16 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     endcase
 
   end
+
+  logic [wh_cord_width_p-1:0] cord;
+  assign cord = src_cord_r - wh_cord_width_p'(wh_cord_offset_lp);
   
   // address hashing
   if (no_concentration_p) begin
     // no concentration. each wh ruche link gets a test_mem.
     assign dma_mem_addr = {
-      src_cord_r[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp],
-      addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp]
+      cord[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp],
+      addr_r[block_offset_width_lp+:dma_mem_addr_width_lp-lg_num_vcaches_lp]
     };
     
   end
@@ -301,8 +306,8 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     // wh ruche links coming from top and bottom caches are concentrated into one link.
     assign dma_mem_addr = {
        (1)'(cid_r/wh_ruche_factor_p),
-       src_cord_r[0+:(lg_num_vcaches_lp-1)],
-       addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp]
+       cord[0+:(lg_num_vcaches_lp-1)],
+       addr_r[block_offset_width_lp+:dma_mem_addr_width_lp-lg_num_vcaches_lp]
     };
     
   end
@@ -346,17 +351,24 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
             ;
           end
           RECV_EVICT_DATA: begin
-            $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, src_cord_r = %04x, cid_r = %04x, dma_mem_addr = %08x, wh_data_n = %08x, count_lo = %d, wh_data_v_n = %b, wh_data_v_r = %08x",
-                     id_p, mem_state_r.name(), cid_r, addr_r, src_cord_r, cid_r, dma_mem_addr, wh_data_n, count_lo, wh_data_v_n, wh_data_v_r);
+            $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, src_cord_r = %04x, cord = %04x, dma_mem_addr = %08x, wh_data_n = %08x, count_lo = %d, wh_data_v_n = %b, wh_data_v_r = %08x", 
+                     id_p, mem_state_r.name(), cid_r, addr_r, src_cord_r, cord, dma_mem_addr, wh_data_n, count_lo, wh_data_v_n, wh_data_v_r);
           end
           default: begin
-            $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, src_cord_r = %04x, cid_r = %04x, dma_mem_addr = %08x, piso_data_lo = %08x, count_lo = %d, dma_mem_v_r = %b, dma_data_v_r = %b",
-                     id_p, mem_state_r.name(), cid_r, addr_r, src_cord_r, cid_r, dma_mem_addr, piso_data_lo, count_lo, dma_mem_v_r, dma_data_v_r);
+            $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, src_cord_r = %04x, cord = %04x, dma_mem_addr = %08x, piso_data_lo = %08x, count_lo = %d, dma_mem_v_r = %b, dma_data_v_r = %b",
+                     id_p, mem_state_r.name(), cid_r, addr_r, src_cord_r,cord, dma_mem_addr, piso_data_lo, count_lo, dma_mem_v_r, dma_data_v_r);
           end
         endcase // case (mem_state_r)
       end // if (~reset_i)
     end // if (debug_p)
   end
-  
+
+
+  initial begin
+    if (debug_p) begin
+      $display("%m: lg_wh_ruche_factor_lp=%d, lg_num_vcaches_lp=%d, block_offset_width_lp=%d, mem_addr_width_lp=%d, lg_num_vcaches_lp=%d, wh_cord_offset_lp=%d, dma_mem_addr_width_lp=%d",
+               lg_wh_ruche_factor_lp, lg_num_vcaches_lp, block_offset_width_lp, mem_addr_width_lp, lg_num_vcaches_lp, wh_cord_offset_lp, dma_mem_addr_width_lp);
+    end
+  end
   
 endmodule
