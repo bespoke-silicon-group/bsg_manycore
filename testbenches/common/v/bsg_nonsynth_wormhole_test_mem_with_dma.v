@@ -346,12 +346,12 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
             ;
           end
           RECV_EVICT_DATA: begin
-            $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, dma_mem_addr = %08x, wh_data_n = %08x, count_lo = %d, wh_data_v_n = %b, wh_data_v_r = %08x",
-                     id_p, mem_state_r.name(), cid_r, addr_r, dma_mem_addr, wh_data_n, count_lo, wh_data_v_n, wh_data_v_r);
+            $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, src_cord_r = %04x, cid_r = %04x, dma_mem_addr = %08x, wh_data_n = %08x, count_lo = %d, wh_data_v_n = %b, wh_data_v_r = %08x",
+                     id_p, mem_state_r.name(), cid_r, addr_r, src_cord_r, cid_r, dma_mem_addr, wh_data_n, count_lo, wh_data_v_n, wh_data_v_r);
           end
           default: begin
-            $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, dma_mem_addr = %08x, piso_data_lo = %08x, count_lo = %d, dma_mem_v_r = %b, dma_data_v_r = %b",
-                     id_p, mem_state_r.name(), cid_r, addr_r, dma_mem_addr, piso_data_lo, count_lo, dma_mem_v_r, dma_data_v_r);
+            $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, src_cord_r = %04x, cid_r = %04x, dma_mem_addr = %08x, piso_data_lo = %08x, count_lo = %d, dma_mem_v_r = %b, dma_data_v_r = %b",
+                     id_p, mem_state_r.name(), cid_r, addr_r, src_cord_r, cid_r, dma_mem_addr, piso_data_lo, count_lo, dma_mem_v_r, dma_data_v_r);
           end
         endcase // case (mem_state_r)
       end // if (~reset_i)
