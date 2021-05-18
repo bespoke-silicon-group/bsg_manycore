@@ -134,7 +134,7 @@ recurse-%: pre-recurse-%
 recurse-iterate@%:
 	-$(MAKE) $(firstword $(subst @, ,$*)) -C $(word 2,$(subst @, ,$*)) 2>&1 | /usr/bin/tee recurse-results/$(word 2,$(subst @, ,$*))-run.log
 
-LOG_FILES=`ls -t $(shell /usr/bin/find . -iname *-run.log)`
+LOG_FILES=`ls -t $(shell /usr/bin/find . -maxdepth 2 -iname *-run.log) $(shell /usr/bin/find bsg_riscv_tests -maxdepth 2 -iname *-run.log)`
 
 SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@-run.log@@g' | /usr/bin/column -c 160
 

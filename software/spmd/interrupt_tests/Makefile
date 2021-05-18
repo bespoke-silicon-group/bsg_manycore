@@ -34,9 +34,35 @@ cov:
 regress: clean
 	$(MAKE) $(foreach test, $(TESTS), $(test)_run)
 
-summary:
-	@$(foreach test, $(TESTS), grep -H --color -e "BSG_FINISH" -e "BSG_FATAL" -e "Error" -e \
-	"BSG_ERROR" $(test)_run/$(test)_run.log;)
+LOG_FILES=`ls -t $(shell /usr/bin/find . -maxdepth 2 -iname *_run.log)`
+
+check_finish:
+	for log in $(LOG_FILES); do \
+		if ! grep -q BSG_FINISH $$log; then \
+			echo $$log failed; \
+			exit 1;	\
+		fi;	\
+	done
+
+
+SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@_run.log@@g' | /usr/bin/column -c 160
+
+%.scrape:
+	@echo "Logs with $*---------------------------------------------------------------------------------->"
+	@-grep -i --files-with-matches --no-messages $* $(LOG_FILES) | $(SCRAPE-TAIL) || true
+	@echo;
+
+%.scrape.i:
+	@echo "Logs without $*---------------------------------------------------------------------------------->"
+	@-grep -i --files-without-match --no-messages $* $(LOG_FILES) | $(SCRAPE-TAIL) || true
+	@echo;
+
+summary: BSG_FINISH.scrape BSG_FINISH.scrape.i BSG_TIMEOUT.scrape BSG_FAIL.scrape BSG_ERROR.scrape
+	@echo -n "Free disk:"; df .
+	@echo -n "SIMVs running:"; /usr/bin/ps a | /usr/bin/grep simv
+
+watch-summary:
+	watch make summary
 
 clean.run:
 	rm -rf *run/
