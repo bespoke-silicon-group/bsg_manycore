@@ -97,9 +97,7 @@ module vanilla_core
   id_signals_s id_r, id_n;
   exe_signals_s exe_r, exe_n;
   mem_ctrl_signals_s mem_ctrl_r, mem_ctrl_n;
-  mem_data_signals_s mem_data_r, mem_data_n;
   wb_ctrl_signals_s wb_ctrl_r, wb_ctrl_n;
-  wb_data_signals_s wb_data_r, wb_data_n;
   fp_exe_ctrl_signals_s fp_exe_ctrl_n, fp_exe_ctrl_r;
   fp_exe_data_signals_s fp_exe_data_n, fp_exe_data_r;
   flw_wb_ctrl_signals_s flw_wb_ctrl_n, flw_wb_ctrl_r;
@@ -512,7 +510,7 @@ module vanilla_core
     .els_p(3)
     ,.width_p(data_width_p)
   ) exe_rs1_fwd_mux (
-    .data_i({wb_data_r.rf_data, mem_result, exe_result})
+    .data_i({wb_ctrl_r.rf_data, mem_result, exe_result})
     ,.sel_i(rs1_forward_sel)
     ,.data_o(rs1_forward_val)
   );
@@ -521,7 +519,7 @@ module vanilla_core
     .els_p(3)
     ,.width_p(data_width_p)
   ) exe_rs2_fwd_mux (
-    .data_i({wb_data_r.rf_data, mem_result, exe_result})
+    .data_i({wb_ctrl_r.rf_data, mem_result, exe_result})
     ,.sel_i(rs2_forward_sel)
     ,.data_o(rs2_forward_val)
   );
@@ -854,13 +852,6 @@ module vanilla_core
     ,.data_o(mem_ctrl_r)
   );
 
-  bsg_dff #(
-    .width_p($bits(mem_data_signals_s))
-  ) mem_data_pipeline (
-    .clk_i(clk_i)
-    ,.data_i(mem_data_n)
-    ,.data_o(mem_data_r)
-  );
 
   logic dmem_v_li;
   logic dmem_w_li;
@@ -969,14 +960,6 @@ module vanilla_core
     ,.reset_i(reset_i)
     ,.data_i(wb_ctrl_n)
     ,.data_o(wb_ctrl_r)
-  );
-
-  bsg_dff #(
-    .width_p($bits(wb_data_signals_s))
-  ) wb_data_pipeline (
-    .clk_i(clk_i)
-    ,.data_i(wb_data_n)
-    ,.data_o(wb_data_r)
   );
 
   //////////////////////////////
@@ -1593,11 +1576,9 @@ module vanilla_core
 
     if (stall_all) begin
       mem_ctrl_n = mem_ctrl_r;
-      mem_data_n = mem_data_r;
     end
     else if (exe_r.decode.is_idiv_op | (remote_req_in_exe & ~exe_r.icache_miss)) begin
       mem_ctrl_n = '0;
-      mem_data_n = '0;
     end
     else if (fp_exe_ctrl_r.fp_decode.is_fpu_int_op) begin
       fcsr_fflags_v_li[0] = 1'b1;
@@ -1610,11 +1591,9 @@ module vanilla_core
         is_load_unsigned: 1'b0,
         local_load: 1'b0,
         mem_addr_sent: '0,
-        icache_miss: 1'b0
-      };      
-      mem_data_n = '{
+        icache_miss: 1'b0,
         exe_result: fpu_int_result_lo
-      };
+      };      
     end
     else begin
       mem_ctrl_n = '{
@@ -1626,9 +1605,7 @@ module vanilla_core
         is_load_unsigned: exe_r.decode.is_load_unsigned,
         local_load: local_load_in_exe,
         mem_addr_sent: lsu_mem_addr_sent_lo,
-        icache_miss: exe_r.icache_miss
-      };
-      mem_data_n = '{
+        icache_miss: exe_r.icache_miss,
         exe_result: alu_or_csr_result
       };
     end
@@ -1683,7 +1660,7 @@ module vanilla_core
     ? imul_result_lo
     : (mem_ctrl_r.local_load
       ? local_load_packed_data
-      : mem_data_r.exe_result);
+      : mem_ctrl_r.exe_result);
 
   wire mem_result_valid = imul_v_lo | mem_ctrl_r.write_rd | mem_ctrl_r.write_frd;
  
@@ -1692,7 +1669,7 @@ module vanilla_core
   always_comb begin
     wb_ctrl_n.write_rd = 1'b0;
     wb_ctrl_n.rd_addr = '0;
-    wb_data_n.rf_data = '0;
+    wb_ctrl_n.rf_data = '0;
     wb_ctrl_n.icache_miss = 1'b0;
     wb_ctrl_n.icache_miss_pc = '0;
     wb_ctrl_n.clear_sb = 1'b0;
@@ -1705,7 +1682,7 @@ module vanilla_core
     if (int_remote_load_resp_force_i) begin
       wb_ctrl_n.write_rd = 1'b1;
       wb_ctrl_n.rd_addr = int_remote_load_resp_rd_i;
-      wb_data_n.rf_data = int_remote_load_resp_data_i;
+      wb_ctrl_n.rf_data = int_remote_load_resp_data_i;
       wb_ctrl_n.clear_sb = 1'b1;
       stall_remote_ld_wb = mem_result_valid | mem_ctrl_r.icache_miss;
       int_remote_load_resp_yumi_o = 1'b1;
@@ -1718,27 +1695,27 @@ module vanilla_core
       if (imul_v_lo) begin
         wb_ctrl_n.write_rd = 1'b1;
         wb_ctrl_n.rd_addr = imul_rd_lo;
-        wb_data_n.rf_data = imul_result_lo;
+        wb_ctrl_n.rf_data = imul_result_lo;
       end
       else if (mem_ctrl_r.write_rd) begin
         wb_ctrl_n.write_rd = 1'b1;
         wb_ctrl_n.rd_addr = mem_ctrl_r.rd_addr;
-        wb_data_n.rf_data = mem_ctrl_r.local_load
+        wb_ctrl_n.rf_data = mem_ctrl_r.local_load
           ? local_load_packed_data
-          : mem_data_r.exe_result;
+          : mem_ctrl_r.exe_result;
       end
       else begin
         if (int_remote_load_resp_v_i) begin
           wb_ctrl_n.write_rd = 1'b1;
           wb_ctrl_n.rd_addr = int_remote_load_resp_rd_i;
-          wb_data_n.rf_data = int_remote_load_resp_data_i;
+          wb_ctrl_n.rf_data = int_remote_load_resp_data_i;
           wb_ctrl_n.clear_sb = 1'b1;
           int_remote_load_resp_yumi_o = 1'b1;
         end
         else if (idiv_v_lo) begin
           wb_ctrl_n.write_rd = 1'b1;
           wb_ctrl_n.rd_addr = idiv_rd_lo;
-          wb_data_n.rf_data = idiv_result_lo;
+          wb_ctrl_n.rf_data = idiv_result_lo;
           wb_ctrl_n.clear_sb = 1'b1;
           idiv_yumi_li = 1'b1;
         end
@@ -1748,7 +1725,7 @@ module vanilla_core
 
 
   // WB 
-  assign int_rf_wdata = wb_data_r.rf_data;
+  assign int_rf_wdata = wb_ctrl_r.rf_data;
   assign int_rf_waddr = wb_ctrl_r.rd_addr;
   assign int_rf_wen = wb_ctrl_r.write_rd;
 
