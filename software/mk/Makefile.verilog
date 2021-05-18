@@ -1,7 +1,7 @@
 #######################################
 # Simulation run-time flags
 
-MAX_CYCLES ?= 1000000
+MAX_CYCLES ?= 100000000
 WAVE       ?= 0
 TRACE      ?= 0
 COVERAGE   ?= 0

@@ -7,7 +7,7 @@ endif
 BSG_ELF_DEFAULT_DATA_LOC = SHARED
 SPMD_COMMON_OBJECTS =
 BSG_NEWLIB = 1
-MAX_CYCLES = 100000000
+MAX_CYCLES = 1000000000
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 
@@ -19,7 +19,7 @@ include $(BSG_MANYCORE_DIR)/software/spmd/beebs/Makefile.bmarklist
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 
-REPEAT_FACTOR = 2 # Number of iterations each benchmark is run
+REPEAT_FACTOR = 1 # Number of iterations each benchmark is run
 
 BEEBS_DIR := $(BSG_MANYCORE_DIR)/imports/beebs
 RUN_DIR := $(BSG_MANYCORE_DIR)/software/spmd/beebs
