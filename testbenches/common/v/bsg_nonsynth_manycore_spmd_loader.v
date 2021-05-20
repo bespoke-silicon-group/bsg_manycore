@@ -15,7 +15,7 @@ module bsg_nonsynth_manycore_spmd_loader
       `bsg_manycore_packet_width(addr_width_p,data_width_p,
         x_cord_width_p,y_cord_width_p)
 
-    , parameter max_nbf_p = 2**20
+    , parameter max_nbf_p = 2**24
     , parameter nbf_addr_width_lp = `BSG_SAFE_CLOG2(max_nbf_p)
 
     , parameter max_out_credits_p=200
