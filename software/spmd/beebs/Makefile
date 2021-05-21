@@ -60,7 +60,7 @@ include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
 #########################
 
 BEEBS_CC      = "$(RISCV_GCC)"
-BEEBS_CFLAGS  = "$(RISCV_GCC_OPTS) -DBOARD_REPEAT_FACTOR=$(REPEAT_FACTOR) -D__bsg_argc=1 -D__bsg_argv=0"
+BEEBS_CFLAGS  = "$(RISCV_GCC_OPTS) -DBOARD_REPEAT_FACTOR=$(REPEAT_FACTOR) -D__bsg_argc=1 -D__bsg_argv=0 -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib"
 COMMON_SRCS   = $(RUN_DIR)/../common/args.c \
                 $(RUN_DIR)/../common/crt.S \
                 $(RUN_DIR)/../../bsg_manycore_lib/bsg_newlib_intf.c \

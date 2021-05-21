@@ -186,6 +186,18 @@ module bsg_nonsynth_manycore_monitor
             $display("[INFO][MONITOR] RECEIVED TIME BSG_PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, $time);
           end
+          else if (epa_addr == bsg_heartbeat_init_epa_gp) begin
+            $display("[INFO][MONITOR] RECEIVED HEARTBEAT START from tile y,x=%2d,%2d, data=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, $time);
+          end
+          else if (epa_addr == bsg_heartbeat_iter_epa_gp) begin
+            $display("[INFO][MONITOR] RECEIVED HEARTBEAT ITER from tile y,x=%2d,%2d, data=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, $time);
+          end
+          else if (epa_addr == bsg_heartbeat_end_epa_gp) begin
+            $display("[INFO][MONITOR] RECEIVED HEARTBEAT END from tile y,x=%2d,%2d, data=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, $time);
+          end
           else if (epa_addr == bsg_fail_epa_gp) begin
             $display("[INFO][MONITOR] RECEIVED BSG_FAIL PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, $time);
