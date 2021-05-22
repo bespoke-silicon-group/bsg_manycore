@@ -152,7 +152,7 @@ int main()
 
   if (sum == ANSWER)
   {
-    bsg_printf("sum: %d, [PASSED]\n", sum);
+          //bsg_printf("sum: %d, [PASSED]\n", sum);
   }
   else 
   {
