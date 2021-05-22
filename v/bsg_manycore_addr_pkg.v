@@ -23,10 +23,6 @@ package bsg_manycore_addr_pkg;
   parameter bsg_branch_trace_epa_gp = 16'heee4;
   parameter bsg_print_stat_epa_gp   = 16'h0d0c;
 
-  parameter bsg_heartbeat_init_npa_gp = bsg_io_npa_prefix_gp | 32'(bsg_heartbeat_init_epa_gp );
-  parameter bsg_heartbeat_iter_npa_gp = bsg_io_npa_prefix_gp | 32'(bsg_heartbeat_iter_epa_gp );
-  parameter bsg_heartbeat_end_npa_gp = bsg_io_npa_prefix_gp | 32'(bsg_heartbeat_end_epa_gp  );
-
   parameter bsg_finish_npa_gp       = bsg_io_npa_prefix_gp | 32'(bsg_finish_epa_gp      );
   parameter bsg_time_npa_gp         = bsg_io_npa_prefix_gp | 32'(bsg_time_epa_gp        );
   parameter bsg_fail_npa_gp         = bsg_io_npa_prefix_gp | 32'(bsg_fail_epa_gp        );
