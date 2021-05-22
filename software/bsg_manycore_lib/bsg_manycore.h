@@ -79,6 +79,10 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_putchar( c )       do {  bsg_remote_uint8_ptr ptr = (bsg_remote_uint8_ptr) bsg_remote_ptr_io(IO_X_INDEX,0xEADC); *ptr = c; } while(0)
 #define bsg_putchar_err( c )       do {  bsg_remote_uint8_ptr ptr = (bsg_remote_uint8_ptr) bsg_remote_ptr_io(IO_X_INDEX,0xEEE0); *ptr = c; } while(0)
 
+#define bsg_heartbeat_init()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xBEA0); *ptr = 0; } while(0)
+#define bsg_heartbeat_iter( itr )       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xBEA4); *ptr = itr; } while(0)
+#define bsg_heartbeat_end()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xBEA8); *ptr = 0; } while(0)
+
 static inline void bsg_print_int(int i)
 {
         bsg_remote_int_ptr ptr = (bsg_remote_int_ptr)bsg_remote_ptr_io(IO_X_INDEX,0xEAE0);
