@@ -54,7 +54,7 @@ void do_histogram_work()
   
   int work = N/(bsg_tiles_X * bsg_tiles_Y);
   int start_idx = __bsg_id * work;
-  bsg_printf("%d\n", start_idx);
+  bsg_print_int(start_idx);
   for (int i = 0; i < work; i++)
   {
     int local_data = data[start_idx+i];
