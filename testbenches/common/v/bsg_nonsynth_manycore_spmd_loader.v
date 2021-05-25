@@ -124,7 +124,7 @@ module bsg_nonsynth_manycore_spmd_loader
       if (loader_done)
         $display("[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. t=%0t", $time);
   
-      if (v_o & ready_i & verbose_p)
+      if (v_o & ready_i & (verbose_p | (nbf_addr_r[9:0] == '0)))
         $display("[BSG_INFO][SPMD_LOADER] sending packet #%0d. x,y=%0d,%0d, addr=%x, data=%x, t=%0t",
           nbf_addr_r,
           packet.x_cord, packet.y_cord,

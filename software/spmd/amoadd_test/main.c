@@ -44,8 +44,11 @@ void atomic_add()
 
   if (__bsg_id == 0)
   {
-    bsg_printf("%d\n", data[0]);
-    bsg_printf("%d\n", data[1]);
+    // bsg_printf("%d\n", data[0]);
+    // bsg_printf("%d\n", data[1]);
+    // Replaced to reduce runtime
+    bsg_print_int(data[0]);
+    bsg_print_int(data[1]);
 
     int expected = 0;
     int sum = 0;
