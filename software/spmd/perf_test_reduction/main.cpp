@@ -56,7 +56,9 @@ int main()
   if (__bsg_id == 0) bsg_cuda_print_stat_start(0);
 
   if (sum != 8128.0f) {
-    bsg_printf("%x\n", hex(sum));
+    // bsg_printf("%x\n", hex(sum));
+    // Replaced to reduce simulation runtime by removing printf from binary
+    bsg_print_hexadecimal(sum);
     bsg_fail();
   }
 

@@ -14,7 +14,9 @@ void proc (int id)
   {
     if (valid == 1) break;
   }
-  bsg_printf("I am awake. id=%d\n", id);
+  bsg_heartbeat_iter(id);
+  // Replaced to reduce simulation runtime and remove printf from binary
+  // bsg_printf("I am awake. id=%d\n", id);
 
   // copy from buf0 to buf1
   for (int i = 0; i < N; i++)
