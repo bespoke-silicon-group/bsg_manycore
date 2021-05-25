@@ -17,8 +17,10 @@ void atomic_inc()
 
   // critical region
   int local_data = data;
-  data = local_data+1; 
-  bsg_printf("%d\n",local_data);
+  data = local_data+1;
+  bsg_print_int(local_data);
+  // Replaced with printf to reduce runtime of simulation
+  // bsg_printf("%d\n",local_data);
 
   //bsg_printf("I'm releasing the lock... x=%d y=%d\n", __bsg_x, __bsg_y);
 
