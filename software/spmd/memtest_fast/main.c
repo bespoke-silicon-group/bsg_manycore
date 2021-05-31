@@ -6,14 +6,17 @@
 #define NUM_VCACHE 32
 int data __attribute__ ((section (".dram"))) = {0};
 
+#define N 8
+int cache_ids[N] = {0,1,14,15,16,17,30,31};
 
 int main()
 {
   // store
   int *dram_ptr = &data;
   for (int i = 0; i < 5; i++) {
-    for (int x = 0; x < NUM_VCACHE; x++) {
-      int addr = (x*VCACHE_BLOCK_SIZE_IN_WORDS) + (NUM_VCACHE*VCACHE_BLOCK_SIZE_IN_WORDS*VCACHE_SETS*i);
+    for (int x = 0; x < N; x++) {
+      int cache_id = cache_ids[x];
+      int addr = (cache_id*VCACHE_BLOCK_SIZE_IN_WORDS) + (NUM_VCACHE*VCACHE_BLOCK_SIZE_IN_WORDS*VCACHE_SETS*i);
       dram_ptr[addr] = addr;
     }
   }
@@ -22,17 +25,18 @@ int main()
 
   // load
   dram_ptr = &data;
-  int local_addr[NUM_VCACHE];
-  int load_data[NUM_VCACHE];
+  int local_addr[N];
+  int load_data[N];
   for (int i = 0; i < 5; i++) {
 
-    for (int x = 0; x < NUM_VCACHE; x++) {
-      int addr = (x*VCACHE_BLOCK_SIZE_IN_WORDS) + (NUM_VCACHE*VCACHE_BLOCK_SIZE_IN_WORDS*VCACHE_SETS*i);
+    for (int x = 0; x < N; x++) {
+      int cache_id = cache_ids[x];
+      int addr = (cache_id*VCACHE_BLOCK_SIZE_IN_WORDS) + (NUM_VCACHE*VCACHE_BLOCK_SIZE_IN_WORDS*VCACHE_SETS*i);
       local_addr[x] = addr;
       load_data[x] = dram_ptr[addr];
     }
 
-    for (int x = 0; x < NUM_VCACHE; x++) {
+    for (int x = 0; x < N; x++) {
       if (local_addr[x] != load_data[x]) {
         bsg_fail();
         bsg_wait_while(1);
