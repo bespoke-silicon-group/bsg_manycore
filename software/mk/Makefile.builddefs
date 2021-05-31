@@ -89,6 +89,7 @@ RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
 RISCV_GCC_OPTS +=-Dbsg_pods_X=$(bsg_pods_X) -Dbsg_pods_Y=$(bsg_pods_Y)
+RISCV_GCC_OPTS +=-Dnum_pods_X=$(BSG_MACHINE_PODS_X) -Dnum_pods_Y=$(BSG_MACHINE_PODS_Y)
 RISCV_GCC_OPTS +=-DVCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS}
 RISCV_GCC_OPTS +=-DVCACHE_CAPACITY_WORDS=$(shell expr $(BSG_MACHINE_GLOBAL_X) \* $(BSG_MACHINE_VCACHE_SET) \* $(BSG_MACHINE_VCACHE_WAY) \* $(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS) \* 2 \* $(BSG_MACHINE_NUM_VCACHE_ROWS))
 
