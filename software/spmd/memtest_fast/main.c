@@ -4,7 +4,7 @@
 #define VCACHE_BLOCK_SIZE_IN_WORDS 8
 #define VCACHE_SETS 64
 #define NUM_VCACHE 32
-int data __attribute__ ((section (".dram"))) = {0};
+volatile int data __attribute__ ((section (".dram"))) = {0};
 
 
 int main()
@@ -18,10 +18,12 @@ int main()
     }
   }
 
+  //bsg_fence();
+
   // load
-  *dram_ptr = &data;
-  int local_addr[NUM_VCACHE];
-  int load_data[NUM_VCACHE];
+  dram_ptr = &data;
+  volatile int local_addr[NUM_VCACHE];
+  volatile int load_data[NUM_VCACHE];
   for (int i = 0; i < 5; i++) {
 
     for (int x = 0; x < NUM_VCACHE; x++) {
