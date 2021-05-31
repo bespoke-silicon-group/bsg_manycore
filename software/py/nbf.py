@@ -67,6 +67,8 @@ class NBF:
     self.tg_dim_x = config["tg_dim_x"]
     self.tg_dim_y = config["tg_dim_y"]
     self.enable_dram = config["enable_dram"]
+    # if skip_dram_instruction_load == 1, skip loading instruction data to DRAM, if the binary fits in the icache.
+    self.skip_dram_instruction_load = config["skip_dram_instruction_load"]
 
 
     # derived params
@@ -173,6 +175,16 @@ class NBF:
       if words[2] == "_bsg_data_end_addr":
         self.bsg_data_end_addr = (int(words[0]) >> 2) # make it word address
 
+  # get the size of the spmd binary (text section) in unit of words.
+  def get_spmd_binary_size(self):
+    proc = subprocess.Popen(["nm", "--radix=d", self.riscv_file], stdout=subprocess.PIPE)
+    lines = proc.stdout.readlines()
+    for line in lines:
+      stripped = line.strip()
+      words = stripped.split()
+      if words[2] == "__.text.dram_end":
+        return (int(words[0])/4) -1
+    
 
   # grab address for _start symbol.
   # code earlier than that contains interrupt handler.
@@ -313,12 +325,19 @@ class NBF:
     index_width = 32-1-2-lg_block_size-lg_x-lg_y
 
     if self.enable_dram == 1:
+
+
+
       # dram enabled:
       # EVA space is striped across top and bottom vcaches.
       if self.num_tiles_x & (self.num_tiles_x-1) == 0:
         # hashing for power of 2 banks
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
+          # if the binary fits in icaches, skip loading instruction to DRAM, to speed up simulation
+          spmd_binary_size = self.get_spmd_binary_size()
+          if (self.skip_dram_instruction_load == 1) and (spmd_binary_size < self.icache_size) and (addr < spmd_binary_size):
+            continue
           x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + pod_origin_x
           y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
           index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
@@ -452,7 +471,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 21:
+  if len(sys.argv) == 22:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -475,7 +494,8 @@ if __name__ == "__main__":
       "machine_pods_y" : int(sys.argv[17]),
       "num_pods_x" : int(sys.argv[18]),
       "num_pods_y" : int(sys.argv[19]),
-      "num_vcache_rows" : int(sys.argv[20])
+      "num_vcache_rows" : int(sys.argv[20]),
+      "skip_dram_instruction_load": int(sys.argv[21])
     }
 
     converter = NBF(config)
@@ -490,5 +510,6 @@ if __name__ == "__main__":
     command += "{machine_pods_x} {machine_pods_y}"
     command += "{num_pods_x} {num_pods_y}"
     command += "{num_vcache_rows}"
+    command += "{skip_dram_instruction_load}"
     print(command)
 

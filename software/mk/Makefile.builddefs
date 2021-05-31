@@ -293,6 +293,8 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 	# 0x0, and converting to actual NPA is handled in the verilog loader.
 	sed -i 's/@8/@0/' $@
 
+
+SKIP_DRAM_INSTRUCTION_LOAD ?= 0
 %.nbf: %.riscv
 	python $(NBF_PY) $*.riscv \
 		$(BSG_MACHINE_GLOBAL_X) $(BSG_MACHINE_GLOBAL_Y) \
@@ -304,7 +306,8 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 		$(BSG_MACHINE_ORIGIN_X_CORD) $(BSG_MACHINE_ORIGIN_Y_CORD) \
 		$(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) \
     $(bsg_pods_X) $(bsg_pods_Y) \
-    $(BSG_MACHINE_NUM_VCACHE_ROWS) > $*.nbf
+    $(BSG_MACHINE_NUM_VCACHE_ROWS) \
+		$(SKIP_DRAM_INSTRUCTION_LOAD) > $*.nbf
 
 
 %.bin:  %.hex

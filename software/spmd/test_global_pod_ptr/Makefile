@@ -1,3 +1,6 @@
+
+SKIP_DRAM_INSTRUCTION_LOAD = 1
+
 override bsg_pods_X = 1
 override bsg_pods_Y = 1
 bsg_tiles_X = 1
