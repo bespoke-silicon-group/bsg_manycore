@@ -88,6 +88,14 @@ int main()
       bsg_fail();
   }
 
+
+
+  for (int i = 0; i < 32; i++) {
+    bsg_print_int(i);
+  } 
+
   bsg_finish();
+  
+  bsg_wait_while(1);
 }
 
