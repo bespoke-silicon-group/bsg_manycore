@@ -204,6 +204,23 @@ module bsg_manycore_endpoint_standard
   );
 
 
+  // need 1-bit reg to generate mask for in_v_o
+  // We mask off the in_v_o signal when there is a request in-flight
+  // and the return packet is yet to be sent out. Otherwise the pkt_type
+  // field of the response might be corrupted.
+  // Any valid design that talks to the endpoint only yumi's the incoming
+  // request when it is valid. By masking off the valid signal we keep
+  // the assumption of the endpoint (at most one request shall be in-flight)
+  // separated from designs that talk to an endpoint_standard.
+  logic req_in_flight_r;
+  logic req_in_flight_n;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i)
+      req_in_flight_r <= 1'b0;
+    else
+      req_in_flight_r <= req_in_flight_n;
+  end
 
   // present the incoming packet to the core, if there are credits left and  it is load or store.
   logic [bsg_manycore_reg_id_width_gp-1:0] return_reg_id;
@@ -228,7 +245,7 @@ module bsg_manycore_endpoint_standard
 
     case (packet_lo.op_v2)
       e_remote_load: begin
-        in_v_o = packet_v_lo;
+        in_v_o = packet_v_lo & ~req_in_flight_r;
         packet_yumi_li = in_yumi_i;
         return_pkt_type = packet_lo.payload.load_info_s.load_info.float_wb
           ? e_return_float_wb
@@ -236,7 +253,7 @@ module bsg_manycore_endpoint_standard
       end
 
       e_remote_sw: begin
-        in_v_o = packet_v_lo;
+        in_v_o = packet_v_lo & ~req_in_flight_r;
         in_we_o = 1'b1;
         in_mask_o = 4'b1111;
         packet_yumi_li = in_yumi_i;
@@ -244,7 +261,7 @@ module bsg_manycore_endpoint_standard
       end
 
       e_remote_store: begin
-        in_v_o = packet_v_lo;
+        in_v_o = packet_v_lo & ~req_in_flight_r;
         in_we_o = 1'b1;
         in_mask_o = packet_lo.reg_id.store_mask_s.mask;
         packet_yumi_li = in_yumi_i;
@@ -267,6 +284,12 @@ module bsg_manycore_endpoint_standard
           else $error("[BSG_ERROR] Unexpected op_v2 received at bsg_manycore_endpoint_standard: %b", packet_lo.op_v2);
       end
     endcase
+
+    req_in_flight_n = req_in_flight_r;
+    if (packet_yumi_li & ~return_packet_v_li)
+      req_in_flight_n = 1'b1;
+    if (~packet_yumi_li & return_packet_v_li)
+      req_in_flight_n = 1'b0;
 
   end
 
