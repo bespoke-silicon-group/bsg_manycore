@@ -46,8 +46,8 @@ int main()
   bsg_set_tile_x_y();
 
 
-  for (int px = 0; px < bsg_pods_X; px++) {
-    for (int py = 0; py < bsg_pods_X; py++) {
+  for (int px = 0; px < num_pods_X; px++) {
+    for (int py = 0; py < num_pods_Y; py++) {
       test_pod(px,py);
     }
   }
