@@ -295,6 +295,7 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 
 
 SKIP_DRAM_INSTRUCTION_LOAD ?= 0
+BP_PROG_MEM_IMAGE_FILE ?= bp_main.mem
 %.nbf: %.riscv
 	python $(NBF_PY) $*.riscv \
 		$(BSG_MACHINE_GLOBAL_X) $(BSG_MACHINE_GLOBAL_Y) \
@@ -307,7 +308,8 @@ SKIP_DRAM_INSTRUCTION_LOAD ?= 0
 		$(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) \
     $(bsg_pods_X) $(bsg_pods_Y) \
     $(BSG_MACHINE_NUM_VCACHE_ROWS) \
-		$(SKIP_DRAM_INSTRUCTION_LOAD) > $*.nbf
+		$(SKIP_DRAM_INSTRUCTION_LOAD) \
+		$(BP_PROG_MEM_IMAGE_FILE) > $*.nbf
 
 
 %.bin:  %.hex
