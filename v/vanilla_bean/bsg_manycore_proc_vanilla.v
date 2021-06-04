@@ -325,7 +325,7 @@ module bsg_manycore_proc_vanilla
     ,.fwd_fifo_els_p(fwd_fifo_els_p)
   ) vcore (
     .clk_i(clk_i)
-    ,.reset_i(reset_i | freeze)
+    ,.reset_i(freeze)
 
     ,.pc_init_val_i(pc_init_val)
     
