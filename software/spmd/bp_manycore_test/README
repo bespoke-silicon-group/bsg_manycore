@@ -10,3 +10,4 @@ make bsg_pods_X=1 bsg_pods_Y=1 HOST=bp
 To generate a waveform dump - 
 make bsg_pods_X=1 bsg_pods_Y=1 WAVE=1 HOST=bp
 
+To build the RTL, use the instructions given in the tapeout repository
