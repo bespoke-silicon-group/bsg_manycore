@@ -47,13 +47,13 @@ extern const uint64_t mc_host_fifo;
 extern const uint64_t mc_host_x_coord;
 extern const uint64_t mc_host_y_coord;
 
-extern uint64_t *mc_finish_addr;
-extern uint64_t *mc_time_addr;
-extern uint64_t *mc_fail_addr;
-extern uint64_t *mc_stdout_addr;
-extern uint64_t *mc_stderr_addr;
-extern uint64_t *mc_branch_trace_addr;
-extern uint64_t *mc_print_stat_addr;
+extern uint8_t *mc_finish_addr;
+extern uint8_t *mc_time_addr;
+extern uint8_t *mc_fail_addr;
+extern uint8_t *mc_stdout_addr;
+extern uint8_t *mc_stderr_addr;
+extern uint8_t *mc_branch_trace_addr;
+extern uint8_t *mc_print_stat_addr;
 
 // Bridge CSR addresses
 extern volatile uint64_t *mc_link_bp_req_fifo_addr;

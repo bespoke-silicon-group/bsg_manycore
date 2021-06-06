@@ -18,7 +18,8 @@
 
 int interrupt_taken;
 
-void trap_handler() {
+__attribute__((interrupt))
+void trap_handler(void) {
   // Disable interrupts
   uint64_t mstatus = 0;
    __asm__ __volatile__ ("csrw mstatus, %0" : : "r" (mstatus));
@@ -30,7 +31,7 @@ void main() {
    Interrupt setup
   **********************/
   // Enable only software interrupts
-  uint64_t mie = 1 << 4;
+  uint64_t mie = 1 << 3;
   // Enable M-mode interrupts
   uint64_t mstatus = 1 << 3;
   __asm__ __volatile__ ("csrw mie, %0": : "r" (mie));
@@ -50,11 +51,11 @@ void main() {
   /*******************************************
    Create 2 8x4 matrices and compute their sum
   ********************************************/
-  uint16_t matrix0[BSG_TOTAL_TILES][NUM_ELEMENTS], matrix1[BSG_TOTAL_TILES][NUM_ELEMENTS], matrix2[BSG_TOTAL_TILES][NUM_ELEMENTS];
-  for (uint16_t i = 0; i < BSG_TOTAL_TILES; i++) {
-    for (uint16_t j = 0; j < NUM_ELEMENTS; j++) {
-      matrix0[i][j] = i + j;
-      matrix1[i][j] = i - j;
+  uint32_t matrix0[BSG_TOTAL_TILES][NUM_ELEMENTS], matrix1[BSG_TOTAL_TILES][NUM_ELEMENTS], matrix2[BSG_TOTAL_TILES][NUM_ELEMENTS];
+  for (uint32_t i = 0; i < BSG_TOTAL_TILES; i++) {
+    for (uint32_t j = 0; j < NUM_ELEMENTS; j++) {
+      matrix0[i][j] = j + i;
+      matrix1[i][j] = j - i;
       matrix2[i][j] = matrix0[i][j] + matrix1[i][j];
     }
   }
@@ -64,20 +65,27 @@ void main() {
    | 0 | 1 |
    | 2 | 3 |
   *********************************************/
-  uint16_t *tile_addr0;
-  uint16_t *tile_addr1;
+  uint32_t *some_host_addr = (uint32_t *) (mc_tile_mmio | mc_host_y_coord | mc_host_x_coord | 0x8);
+  uint32_t *tile_addr0;
+  uint32_t *tile_addr1;
   uint64_t y_coord, x_coord, epa0, epa1;
   for (int i = 0; i < BSG_TOTAL_TILES; i++) {
     for(int j = 0; j < NUM_ELEMENTS; j++) {
-      epa0 = j << 2;
-      epa1 = (j + NUM_ELEMENTS) << 2;
+      epa0 = (j + 2) << 2;
+      epa1 = (j + 2 + NUM_ELEMENTS) << 2;
       x_coord = ((1 << HB_MC_POD_X_SUBCOORD_WIDTH) | (i % BSG_TILES_X)) << (2 + HB_MC_TILE_EPA_WIDTH);
       y_coord = ((1 << HB_MC_POD_Y_SUBCOORD_WIDTH) | (i / BSG_TILES_X)) << (2 + HB_MC_TILE_EPA_WIDTH + HB_MC_X_COORD_WIDTH);
-      tile_addr0 = (uint16_t *) (mc_tile_mmio | y_coord | x_coord | epa0);
-      tile_addr1 = (uint16_t *) (mc_tile_mmio | y_coord | x_coord | epa1);
+      tile_addr0 = (uint32_t *) (mc_tile_mmio | y_coord | x_coord | epa0);
+      tile_addr1 = (uint32_t *) (mc_tile_mmio | y_coord | x_coord | epa1);
       *tile_addr0 = matrix0[i][j];
       *tile_addr1 = matrix1[i][j];
     }
+  }
+
+  // Show some signs of life
+  char str0[] = "BP>>Hey there! I am BlackParrot!\nBP>>Manycore, Let's do matrix-matrix add!\n";
+  for(int c = 0; str0[c] != '\0'; c++) {
+    *mc_stdout_addr = str0[c];
   }
 
   /*********************************************
@@ -87,17 +95,23 @@ void main() {
     epa0 = 0x0 << 2;
     x_coord = ((1 << HB_MC_POD_X_SUBCOORD_WIDTH) | (i % BSG_TILES_X)) << (2 + HB_MC_TILE_EPA_WIDTH);
     y_coord = ((1 << HB_MC_POD_Y_SUBCOORD_WIDTH) | (i / BSG_TILES_X)) << (2 + HB_MC_TILE_EPA_WIDTH + HB_MC_X_COORD_WIDTH);
-    tile_addr0 = (uint16_t *) (mc_tile_mmio | y_coord | x_coord | epa0);
+    tile_addr0 = (uint32_t *) (mc_tile_mmio | y_coord | x_coord | epa0);
     *tile_addr0 = NUM_ELEMENTS;
   }
 
   /*********************************************
    Wait for an interrupt
   *********************************************/
-  // Dan: Use a while loop since wfi is not guaranteed
+  // Dan: Use a loop since wfi is not guaranteed
   // to break randomly
-  while (interrupt_taken == 0) {
+  do {
     __asm__ __volatile__ ("wfi"::);
+  } while (interrupt_taken == 0);
+
+  // Show some signs of life
+  char str1[] = "BP>>I am awake!\n";
+  for(int c = 0; str1[c] != '\0'; c++) {
+    *mc_stdout_addr = str1[c];
   }
 
   /*********************************************
@@ -106,17 +120,16 @@ void main() {
   *********************************************/
   hb_mc_packet_t req_pkt, resp_pkt;
 
-  // Unsigned 16-bit load
   req_pkt.request.op_v2 = 0;
   req_pkt.request.reg_id = 0xf;
-  req_pkt.request.data = 0x14;
-  req_pkt.request.x_src = (0 << HB_MC_POD_X_SUBCOORD_WIDTH) | 0;
+  req_pkt.request.data = 0x0;
+  req_pkt.request.x_src = (0 << HB_MC_POD_X_SUBCOORD_WIDTH) | 15;
   req_pkt.request.y_src = (1 << HB_MC_POD_Y_SUBCOORD_WIDTH) | 1;
   for (int i = 0; i < BSG_TOTAL_TILES; i++) {
     for (int j = 0; j < NUM_ELEMENTS; j++) {
       req_pkt.request.x_dst = ((1 << HB_MC_POD_X_SUBCOORD_WIDTH) | (i % BSG_TILES_X));
       req_pkt.request.y_dst = ((1 << HB_MC_POD_Y_SUBCOORD_WIDTH) | (i / BSG_TILES_X));
-      req_pkt.request.addr = (NUM_ELEMENTS << 1) + j;
+      req_pkt.request.addr = (j + 2 + 2*NUM_ELEMENTS) << 2;
 
       // Wait for credits
       while ((HB_MC_IO_MAX_EP_CREDITS - *mc_link_bp_req_credits_addr) == 0);
@@ -137,6 +150,12 @@ void main() {
         *mc_fail_addr = i + j;
       }
     }
+  }
+
+  // Show some signs of life
+  char str2[] = "BP>>Successfully completed matrix-matrix add!\nBP>>Bye!\n";
+  for(int c = 0; str2[c] != '\0'; c++) {
+    *mc_stdout_addr = str2[c];
   }
 
   // Terminate the simulation

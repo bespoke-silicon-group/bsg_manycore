@@ -15,21 +15,22 @@ RISCV64_OBJCOPY := $(BLACKPARROT_SDK_DIR)/install/bin/riscv64-unknown-elf-dramfs
 
 CURR_DIR = $(shell pwd)
 
+RISCV_GCC_OPTS += -fno-delete-null-pointer-checks
 RISCV64_GCC_OPTS = -march=rv64imafd -mabi=lp64 -mcmodel=medany -I$(CURR_DIR) -T$(BLACKPARROT_LINKER) -nostartfiles
 
 all: main.run
 
-bp_main.riscv64:
+prog.riscv64:
 	$(RISCV64_GCC) -o $@ $(BLACKPARROT_SRC_FILES) $(RISCV64_GCC_OPTS)
 
-bp_main.dis: bp_main.riscv64
+prog.dis: prog.riscv64
 	$(RISCV64_OBJDUMP) $^
 
-bp_main.mem: bp_main.riscv64
+prog.mem: prog.riscv64
 	$(RISCV64_OBJCOPY) $< $@
 
 # Compile binary with opt-level -O1 for results
-main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o bp_main.mem
+main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o prog.mem
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 main.o: Makefile
