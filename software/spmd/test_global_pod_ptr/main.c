@@ -35,7 +35,7 @@ void test_pod(int px, int py)
       load_val[5] = (int*) *pod_addr[y][curr_x++];
       load_val[6] = (int*) *pod_addr[y][curr_x++];
       load_val[7] = (int*) *pod_addr[y][curr_x++];
-       
+
       curr_x = 8*x;
       if (load_val[0] != pod_addr[y][curr_x++]) bsg_fail();
       if (load_val[1] != pod_addr[y][curr_x++]) bsg_fail();
@@ -54,7 +54,6 @@ void test_pod(int px, int py)
 int main()
 {
   bsg_set_tile_x_y();
-
 
   for (int px = 0; px < num_pods_X; px++) {
     for (int py = 0; py < num_pods_Y; py++) {
