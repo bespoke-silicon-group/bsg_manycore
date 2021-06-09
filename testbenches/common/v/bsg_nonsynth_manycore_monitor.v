@@ -56,6 +56,17 @@ module bsg_nonsynth_manycore_monitor
     end
   end
 
+  function reg [63:0] get_wall_time();
+    reg [63:0] t;
+    int fd;
+    t = 0;
+    $system("date +%s%3N > date.txt");
+    fd = $fopen("date.txt", "r");
+    $fscanf(fd, "%d", t);
+    $fclose(fd);
+    return t;
+  endfunction
+
   // keep track of number of finish packets received.
   integer finish_count;
   always_ff @ (negedge clk_i) begin
@@ -178,8 +189,8 @@ module bsg_nonsynth_manycore_monitor
       if (v_i & we_i) begin
         if (~addr_i[addr_width_p-1]) begin
           if (epa_addr == bsg_finish_epa_gp) begin
-            $display("[INFO][MONITOR] RECEIVED a finish packet from tile y,x=%2d,%2d, data=%x, time=%0t",
-              src_y_cord_i, src_x_cord_i, data_i, $time);
+            $display("[INFO][MONITOR] RECEIVED a finish packet from tile y,x=%2d,%2d, data=%x, sim_time=%0t, wall_time=%d",
+              src_y_cord_i, src_x_cord_i, data_i, $time, get_wall_time());
             finish_count <= finish_count + 1;
           end
           else if (epa_addr == bsg_time_epa_gp) begin
