@@ -28,19 +28,7 @@ CSR_PC_INIT = 3 | CSR_BASE
 CSR_ENABLE_DRAM = 4 | CSR_BASE
 ################################
 
-# BlackParrot config bus addresses
-cfg_base_addr          = 0x2000000
-cfg_reg_unused         = 0x0004
-cfg_reg_freeze         = 0x0008
-cfg_reg_hio_mask       = 0x001c
-cfg_reg_icache_id      = 0x0200
-cfg_reg_icache_mode    = 0x0204
-cfg_reg_dcache_id      = 0x0400
-cfg_reg_dcache_mode    = 0x0404
 
-dram_offset_base_addr  = 0x2000
-dram_base_addr_reg     = 0x0000
-dram_pod_offset_reg    = 0x0004
 
 class NBF:
 
@@ -82,13 +70,6 @@ class NBF:
     # if skip_dram_instruction_load == 1, skip loading instruction data to DRAM, if the binary fits in the icache.
     self.skip_dram_instruction_load = config["skip_dram_instruction_load"]
 
-    # BlackParrot-specific settings
-    self.host = config["host"]
-    self.mem_image = "prog.mem"
-    # This is the base address in the manycore DRAM space where BP code lives
-    self.mc_dram_base = 0x82000000
-    # 4-bit pod y, 3-bit pod x
-    self.mc_dram_pod_offset = 0b0001001
 
     # derived params
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size # in words
@@ -344,6 +325,9 @@ class NBF:
     index_width = 32-1-2-lg_block_size-lg_x-lg_y
 
     if self.enable_dram == 1:
+
+
+
       # dram enabled:
       # EVA space is striped across top and bottom vcaches.
       if self.num_tiles_x & (self.num_tiles_x-1) == 0:
@@ -422,120 +406,14 @@ class NBF:
   def fence(self):
     self.print_nbf(0xff, 0xff, 0x0, 0x0)
 
-  ########################## BP CONFIG FUNCTIONS ##########################
-  # Initialize BlackParrot specific registers
-  def init_bp_config(self):
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, cfg_base_addr + cfg_reg_hio_mask, 1)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, cfg_base_addr + cfg_reg_icache_mode, 1)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, cfg_base_addr + cfg_reg_dcache_mode, 1)
 
-    # The next few requests send acknowledgments immediately
-    # So get back all credits for previous requests before sending these out
-    # This will prevent multiple acks and there will be no overlap of acks
-    self.fence()
 
-    # Write to the DRAM offset registers in all the bridge modules
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, dram_offset_base_addr + dram_base_addr_reg, self.mc_dram_base)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 2, dram_offset_base_addr + dram_base_addr_reg, self.mc_dram_base)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 3, dram_offset_base_addr + dram_base_addr_reg, self.mc_dram_base)
-
-    self.fence()
-
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, dram_offset_base_addr + dram_pod_offset_reg, self.mc_dram_pod_offset)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 2, dram_offset_base_addr + dram_pod_offset_reg, self.mc_dram_pod_offset)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 3, dram_offset_base_addr + dram_pod_offset_reg, self.mc_dram_pod_offset)
-
-  # Read the memory image and create a dictionary of addresses and values
-  def get_bp_dram_data(self):
-    addr_val = dict()
-    curr_addr = 0
-    with open(self.mem_image, 'r') as f:
-      lines = f.readlines()
-      for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("@"):
-          addr = int(stripped.strip("@"), 16) - 0x80000000 + self.mc_dram_base
-          curr_addr = addr / 4
-        else:
-          words = stripped.split()
-          for word in words:
-            data = ""
-            for i in range(0, len(word), 2):
-              data = word[i:i+2] + data
-            addr_val[curr_addr] = int(data, 16)
-            curr_addr += 1
-    
-    return addr_val
-
-  # NBF statements to write to the DRAM memory
-  def init_bp_dram(self, dram_data, pod_origin_x, pod_origin_y):
-    cache_size = self.cache_size
-    lg_x = self.safe_clog2(self.num_tiles_x)
-    lg_block_size = self.safe_clog2(self.cache_block_size)
-    lg_set = self.safe_clog2(self.cache_set)
-    lg_y = self.safe_clog2(2*self.num_vcache_rows)
-    index_width = 32-1-2-lg_block_size-lg_x-lg_y
-
-    if self.enable_dram == 1:
-      # dram enabled:
-      # EVA space is striped across top and bottom vcaches.
-      if self.num_tiles_x & (self.num_tiles_x-1) == 0:
-        # hashing for power of 2 banks
-        for k in sorted(dram_data.keys()):
-          addr = k - 0x20000000
-          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + pod_origin_x
-          y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
-          index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
-          epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
-          if y % 2 == 0:
-            self.print_nbf(x, pod_origin_y-1-(y/2), epa, dram_data[k]) #top
-          else:
-            self.print_nbf(x, pod_origin_y+self.num_tiles_y+(y/2), epa, dram_data[k]) #bot
-      else:
-        print("hash function not supported for x={0}.")
-        sys.exit()
-    else:
-      # dram disabled:
-      # using vcache as block mem
-      for k in sorted(dram_data.keys()):
-        addr = k - 0x20000000
-        x = (addr / cache_size)
-        epa = addr % cache_size
-        if (x < self.num_tiles_x):
-          x_eff = x + pod_origin_x
-          y_eff = pod_origin_y -1
-          self.print_nbf(x_eff, y_eff, epa, dram_data[k])
-        elif (x < self.num_tiles_x*2):
-          x_eff = (x % self.num_tiles_x) + pod_origin_x
-          y_eff = pod_origin_y + self.num_tiles_y
-          self.print_nbf(x_eff, y_eff, epa, dram_data[k])
-        else:
-          print("## WARNING: NO DRAM MODE, DRAM DATA OUT OF RANGE!!!")
 
   ##### LOADER ROUTINES END  #####  
 
   # public main function
   # users only have to call this function.
   def dump(self):
-    # Initialize BlackParrot if enabled
-    if (self.host == "bp"):
-      bp_x_coord = (0 << 4) | 15
-      bp_y_coord = (1 << 3) | 1
-
-      self.print_nbf(bp_x_coord, bp_y_coord, cfg_base_addr + cfg_reg_freeze, 1)
-
-      self.init_bp_config()
-
-      self.fence()
-
-      dram_data = self.get_bp_dram_data()
-      # Fixme: Works only for single pod
-      pod_origin_x = self.origin_x_cord
-      pod_origin_y = self.origin_y_cord
-      self.init_bp_dram(dram_data, pod_origin_x, pod_origin_y)
-
-      self.fence()
-
     # initialize all pods
     for px in range(self.num_pods_x):
       for py in range(self.num_pods_y):
@@ -553,6 +431,7 @@ class NBF:
 
         self.init_dram(pod_origin_x, pod_origin_y)
 
+
     # wait for all store credits to return.
     self.fence()
 
@@ -562,10 +441,6 @@ class NBF:
         pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
         pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
         self.unfreeze_tiles(pod_origin_x, pod_origin_y)
-
-    # Unfreeze BlackParrot if enabled
-    if (self.host == "bp"):
-      self.print_nbf(bp_x_coord, bp_y_coord, cfg_base_addr + cfg_reg_freeze, 0)
 
     # print finish nbf.
     self.print_finish()
@@ -596,7 +471,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 23:
+  if len(sys.argv) == 22:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -620,8 +495,7 @@ if __name__ == "__main__":
       "num_pods_x" : int(sys.argv[18]),
       "num_pods_y" : int(sys.argv[19]),
       "num_vcache_rows" : int(sys.argv[20]),
-      "skip_dram_instruction_load": int(sys.argv[21]),
-      "host": sys.argv[22]
+      "skip_dram_instruction_load": int(sys.argv[21])
     }
 
     converter = NBF(config)
@@ -637,6 +511,5 @@ if __name__ == "__main__":
     command += "{num_pods_x} {num_pods_y}"
     command += "{num_vcache_rows}"
     command += "{skip_dram_instruction_load}"
-    command += "{host - bp or x86 (default)[bp needs a bp.mem file present in the simv path]}"
     print(command)
 
