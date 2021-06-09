@@ -29,7 +29,6 @@ prog.dis: prog.riscv64
 prog.mem: prog.riscv64
 	$(RISCV64_OBJCOPY) $< $@
 
-# Compile binary with opt-level -O1 for results
 main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o prog.mem
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
