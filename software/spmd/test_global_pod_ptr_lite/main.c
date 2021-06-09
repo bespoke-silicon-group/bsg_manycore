@@ -58,10 +58,11 @@ void test_pod(int px, int py)
 
 int main()
 {
-
+  int i = 0;
   for (int px = 0; px < num_pods_X; px++) {
     for (int py = 0; py < num_pods_Y; py++) {
       test_pod(px,py);
+      bsg_print_int(i++);
     }
   }
 
