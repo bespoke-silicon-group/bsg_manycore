@@ -11,7 +11,7 @@ volatile int data;
 
 void test_pod(int px, int py)
 {
-  volatile int* pod_addr[bsg_global_Y][bsg_global_X];
+  volatile int* pod_addr[2][bsg_global_X];
 
   // testing only the first and the last row of the pod.
   int ys[2] = {0,bsg_global_Y-1};
