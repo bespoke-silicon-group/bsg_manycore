@@ -119,10 +119,24 @@ module bsg_nonsynth_manycore_spmd_loader
   
   wire loader_done = ~loader_done_r & loader_done_n;
 
+
+  function reg [63:0] get_wall_time();
+    reg [63:0] t;
+    int fd;
+    t = 0;
+    $system("date +%s%3N > date.txt");
+    fd = $fopen("date.txt", "r");
+    $fscanf(fd, "%d", t);
+    $fclose(fd);
+    return t;
+  endfunction
+
+
+
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
       if (loader_done)
-        $display("[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. t=%0t", $time);
+        $display("[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. sim_time=%0t, wall_time=%d", $time, get_wall_time());
   
       if (v_o & ready_i & (verbose_p | (nbf_addr_r[9:0] == '0)))
         $display("[BSG_INFO][SPMD_LOADER] sending packet #%0d. x,y=%0d,%0d, addr=%x, data=%x, t=%0t",

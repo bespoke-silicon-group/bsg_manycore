@@ -2,6 +2,7 @@
 
 
 #include "bsg_manycore.h"
+#include "bsg_manycore_arch.h"
 #include "bsg_set_tile_x_y.h"
 
 
@@ -10,31 +11,40 @@ volatile int data;
 
 void test_pod(int px, int py)
 {
-  int load_val[bsg_global_X*bsg_global_Y];
-  int store_val[bsg_global_X*bsg_global_Y];
+  volatile int* pod_addr[bsg_global_Y][bsg_global_X];
 
   // store
-  for (int x = 0; x < bsg_global_X; x++) {
-    for (int y = 0; y < bsg_global_Y; y++) {
-      int id = x + (y*bsg_global_X);
-      store_val[id] = (px+(py*3)+x)-(y*2); // some hash val
-      bsg_global_pod_store(px,py,x,y,&data,store_val[id]);
+  for (int y = 0; y < bsg_global_Y; y++) {
+    for (int x = 0; x < bsg_global_X; x++) {
+      volatile int* ptr = bsg_global_pod_ptr(px,py,x,y,&data);
+      pod_addr[y][x] = ptr;
+      *ptr = (int) ptr;
     }
   }
 
   // load
-  for (int x = 0; x < bsg_global_X; x++) {
-    for (int y = 0; y < bsg_global_Y; y++) {
-      int id = x + (y*bsg_global_X);
-      bsg_global_pod_load(px,py,x,y,&data,load_val[id]);
-    }
-  }
+  for (int y = 0; y < bsg_global_Y; y++) {
+    for (int x = 0; x < bsg_global_X/8; x++) {
+      register int* load_val[8];
+      int curr_x = 8*x;
+      load_val[0] = (int*) *pod_addr[y][curr_x++];
+      load_val[1] = (int*) *pod_addr[y][curr_x++];
+      load_val[2] = (int*) *pod_addr[y][curr_x++];
+      load_val[3] = (int*) *pod_addr[y][curr_x++];
+      load_val[4] = (int*) *pod_addr[y][curr_x++];
+      load_val[5] = (int*) *pod_addr[y][curr_x++];
+      load_val[6] = (int*) *pod_addr[y][curr_x++];
+      load_val[7] = (int*) *pod_addr[y][curr_x++];
 
-  // validate
-  for (int i = 0; i < bsg_global_X*bsg_global_Y; i++) {
-    if (store_val[i] != load_val[i]) {
-      bsg_fail();
-      bsg_wait_while(1);
+      curr_x = 8*x;
+      if (load_val[0] != pod_addr[y][curr_x++]) bsg_fail();
+      if (load_val[1] != pod_addr[y][curr_x++]) bsg_fail();
+      if (load_val[2] != pod_addr[y][curr_x++]) bsg_fail();
+      if (load_val[3] != pod_addr[y][curr_x++]) bsg_fail();
+      if (load_val[4] != pod_addr[y][curr_x++]) bsg_fail();
+      if (load_val[5] != pod_addr[y][curr_x++]) bsg_fail();
+      if (load_val[6] != pod_addr[y][curr_x++]) bsg_fail();
+      if (load_val[7] != pod_addr[y][curr_x++]) bsg_fail();
     }
   }
 }
@@ -43,8 +53,6 @@ void test_pod(int px, int py)
 
 int main()
 {
-  bsg_set_tile_x_y();
-
 
   for (int px = 0; px < num_pods_X; px++) {
     for (int py = 0; py < num_pods_Y; py++) {
