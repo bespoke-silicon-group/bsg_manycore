@@ -18,6 +18,8 @@ int main()
   // for each vcache, we are storing five times (assume 4-way assoc) to the same set, but different tags, to cause fill and evict.
   int local_addr[N][5];
 
+  int i = 0;
+
   // store
   int *dram_ptr = &data;
   for (int x = 0; x < N; x++) {
@@ -43,6 +45,8 @@ int main()
 
     dram_ptr[addr] = addr;
     local_addr[x][4] = addr;
+
+    bsg_print_int(i++);
   }
 
   // load
@@ -69,6 +73,8 @@ int main()
     if (load_data[2] != local_addr[x][2]) bsg_fail();
     if (load_data[3] != local_addr[x][3]) bsg_fail();
     if (load_data[4] != local_addr[x][4]) bsg_fail();
+
+    bsg_print_int(i++);
   }
 
 
