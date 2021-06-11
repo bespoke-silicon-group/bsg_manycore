@@ -122,7 +122,8 @@ pre-recurse-clean:
 	rm -rf recurse-results
 	mkdir -p recurse-results
 
-SUBDIRS-WITH-MAKE = $(patsubst %/Makefile,%,$(wildcard */Makefile))
+# SUBDIRS-WITH-MAKE = $(patsubst %/Makefile,%,$(wildcard */Makefile))
+SUBDIRS-WITH-MAKE = test_global_pod_ptr_lite memtest_fast finish_asm
 
 # reinvokes make after the pre-curse dependencies are done, on each subdirectory
 recurse-%: pre-recurse-%
