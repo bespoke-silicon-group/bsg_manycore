@@ -1,5 +1,13 @@
-// this is a simple program with a simple behaviour that can be used for analyzing/debugging vanilla profiler.
-//  a core simply writes to a vector in main memory and reads back .
+// this tests the behavior of the pod csr
+//
+// it writes a small amount of data to every pod's memory space;
+// and reads it back and checks it.
+//
+// while it does this, with the CSR pointing somewhere else, it
+// does a bunch of recursion on the stack, and also writes to
+// an array on the stack.
+//
+//
 
 
 #define riscv_nop() __asm__ __volatile ("addi x0,x0,0" ::: "memory")
