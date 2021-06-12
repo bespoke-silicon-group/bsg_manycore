@@ -297,18 +297,16 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 
 SKIP_DRAM_INSTRUCTION_LOAD ?= 0
 HOST ?= x86
+NBF_PARAMS ?=
 
 # BlackParrot-specific arguments
 ifeq ($(HOST),bp)
-NBF_SCRIPT   ?= $(NBF_BP_PY)
-BP_MEM_IMAGE ?= prog.mem
-BP_DRAM_BASE ?= 0x82000000
-BP_DRAM_POD  ?= 0x09
+NBF_SCRIPT ?= $(NBF_BP_PY)
+NBF_PARAMS += prog.mem
+NBF_PARAMS += 0x82000000
+NBF_PARAMS += 0x09
 else
 NBF_SCRIPT   ?= $(NBF_PY)
-BP_MEM_IMAGE ?=
-BP_DRAM_BASE ?=
-BP_DRAM_POD  ?=
 endif
 
 %.nbf: %.riscv
@@ -325,8 +323,7 @@ endif
     $(bsg_pods_X) $(bsg_pods_Y) \
     $(BSG_MACHINE_NUM_VCACHE_ROWS) \
 		$(SKIP_DRAM_INSTRUCTION_LOAD) \
-		$(BP_MEM_IMAGE) \
-		$(BP_DRAM_BASE) $(BP_DRAM_POD) > $*.nbf
+		$(NBF_PARAMS) > $*.nbf
 
 %.bin:  %.hex
 	python $(HEX2BIN) $< 32 > $@

@@ -1,9 +1,6 @@
 Note 1: This test was run on the HB+BP toplevel in the tapeout repository
 Note 2: BP <--> HB interaction has been tested only for a single pod
 
-Commit ID: 
-tapeout repository: 2a92f08ebfdd5acfdd1ac97ba755200a5a002622
-
 To run this test, use - 
 make bsg_pods_X=1 bsg_pods_Y=1 HOST=bp
 
