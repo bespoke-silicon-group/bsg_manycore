@@ -66,6 +66,7 @@ RISCV_SIM     ?= $(RISCV_BIN_DIR)/spike
 BSG_ROM_GEN     = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN         = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
 NBF_PY 			    = $(BSG_MANYCORE_DIR)/software/py/nbf.py
+NBF_BP_PY 	    = $(BSG_MANYCORE_DIR)/software/py/nbf_blackparrot.py
 TRACE_PP_SCRIPT = $(BSG_MANYCORE_DIR)/software/py/post_process_trace.py
 LINK_GEN        = $(BSG_MANYCORE_DIR)/software/py/bsg_manycore_link_gen.py
 
@@ -295,8 +296,22 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 
 
 SKIP_DRAM_INSTRUCTION_LOAD ?= 0
+HOST ?= x86
+NBF_PARAMS ?=
+
+# BlackParrot-specific arguments
+ifeq ($(HOST),bp)
+NBF_SCRIPT ?= $(NBF_BP_PY)
+NBF_PARAMS += prog.mem
+NBF_PARAMS += 0x82000000
+NBF_PARAMS += 0x09
+else
+NBF_SCRIPT   ?= $(NBF_PY)
+endif
+
 %.nbf: %.riscv
-	python $(NBF_PY) $*.riscv \
+	python $(NBF_SCRIPT) \
+	  $*.riscv \
 		$(BSG_MACHINE_GLOBAL_X) $(BSG_MACHINE_GLOBAL_Y) \
 		$(BSG_MACHINE_VCACHE_WAY) $(BSG_MACHINE_VCACHE_SET) \
 		$(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS) \
@@ -307,8 +322,8 @@ SKIP_DRAM_INSTRUCTION_LOAD ?= 0
 		$(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) \
     $(bsg_pods_X) $(bsg_pods_Y) \
     $(BSG_MACHINE_NUM_VCACHE_ROWS) \
-		$(SKIP_DRAM_INSTRUCTION_LOAD) > $*.nbf
-
+		$(SKIP_DRAM_INSTRUCTION_LOAD) \
+		$(NBF_PARAMS) > $*.nbf
 
 %.bin:  %.hex
 	python $(HEX2BIN) $< 32 > $@
