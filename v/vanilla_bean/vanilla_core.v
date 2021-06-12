@@ -19,6 +19,9 @@ module vanilla_core
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
 
+    , parameter pod_x_cord_width_p="inv"
+    , parameter pod_y_cord_width_p="inv"
+    
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
 
     // For network input FIFO credit counting
@@ -86,7 +89,10 @@ module vanilla_core
     // remaining credits
     , input [credit_counter_width_p-1:0] out_credits_used_i    
 
-    // For debugging
+    , output [pod_x_cord_width_p-1:0] cfg_pod_x_o
+    , output [pod_y_cord_width_p-1:0] cfg_pod_y_o
+   
+    // For debugging + reset
     , input [x_cord_width_p-1:0] global_x_i
     , input [y_cord_width_p-1:0] global_y_i
   );
@@ -351,10 +357,11 @@ module vanilla_core
   csr_interrupt_vector_s mie_r;
   logic [pc_width_lp-1:0] mepc_r;
   logic [credit_counter_width_p-1:0] credit_limit_r;
-
+   
   mcsr #(
     .pc_width_p(pc_width_lp)
     ,.credit_counter_width_p(credit_counter_width_p)
+    ,.cfg_pod_width_p(pod_y_cord_width_p+pod_x_cord_width_p)
   ) mcsr0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -368,7 +375,11 @@ module vanilla_core
     ,.data_i    (mcsr_data_li)
     ,.rs1_i     (id_r.instruction.rs1)
     ,.data_o    (mcsr_data_lo)
-    
+
+    ,.cfg_pod_reset_val_i({global_y_i[y_cord_width_p-1-:pod_y_cord_width_p]
+			   ,global_x_i[x_cord_width_p-1-:pod_x_cord_width_p]}
+			  )
+    ,.cfg_pod_r_o({cfg_pod_y_o,cfg_pod_x_o})
     ,.instr_executed_i(mcsr_instr_executed_li)
     ,.interrupt_entered_i(mcsr_interrupt_entered_li)
     ,.mret_called_i(mcsr_mret_called_li)
@@ -381,6 +392,13 @@ module vanilla_core
     ,.credit_limit_o(credit_limit_r)
   );
 
+   always @ (cfg_pod_y_o or cfg_pod_x_o)
+     begin
+	$display("%m cfg_pod_r changing to y=%b x=%b"
+		 , cfg_pod_y_o
+		 , cfg_pod_x_o);
+     end
+   
   // synopsys translate_off
   wire [pc_width_lp+2-1:0] mepc_00 = {mepc_r, 2'b00};
   // synopsys translate_on

@@ -226,6 +226,9 @@ module bsg_manycore_proc_vanilla
   );
 
 
+   wire [pod_x_cord_width_p-1:0] cfg_pod_x_lo;
+   wire [pod_y_cord_width_p-1:0] cfg_pod_y_lo;
+   
   // TX unit
   //
   remote_req_s remote_req;
@@ -287,6 +290,9 @@ module bsg_manycore_proc_vanilla
     ,.pod_x_i(pod_x_i)
     ,.pod_y_i(pod_y_i)
 
+    ,.cfg_pod_x_i(cfg_pod_x_lo)
+    ,.cfg_pod_y_i(cfg_pod_y_lo)	
+
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
 
@@ -323,6 +329,8 @@ module bsg_manycore_proc_vanilla
     ,.y_cord_width_p(y_cord_width_p)
     ,.credit_counter_width_p(credit_counter_width_p)
     ,.fwd_fifo_els_p(fwd_fifo_els_p)
+    ,.pod_x_cord_width_p(pod_x_cord_width_p)
+    ,.pod_y_cord_width_p(pod_y_cord_width_p)		 		 
   ) vcore (
     .clk_i(clk_i)
     ,.reset_i(freeze)
@@ -368,6 +376,9 @@ module bsg_manycore_proc_vanilla
     ,.remote_interrupt_clear_i(remote_interrupt_clear_lo)
     ,.remote_interrupt_pending_bit_o(remote_interrupt_pending_bit_li)
 
+    ,.cfg_pod_x_o(cfg_pod_x_lo)
+    ,.cfg_pod_y_o(cfg_pod_y_lo)	
+	   
     ,.global_x_i({pod_x_i, my_x_i})
     ,.global_y_i({pod_y_i, my_y_i})
   );

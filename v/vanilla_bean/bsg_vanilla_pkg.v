@@ -460,6 +460,7 @@ typedef struct packed {
 `define RV32_CSR_MIE_ADDR       12'h304
 `define RV32_CSR_MIP_ADDR       12'h344
 `define RV32_CSR_MEPC_ADDR      12'h341
+`define RV32_CSR_CFG_POD_ADDR   12'h360				    
 
 // machine custom CSR addr
 `define RV32_CSR_CREDIT_LIMIT_ADDR 12'hfc0

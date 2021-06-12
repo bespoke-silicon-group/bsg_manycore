@@ -43,6 +43,7 @@ module bsg_nonsynth_manycore_tag_master
     ,.num_masters_p(1)
     ,.num_clients_p(num_clients_lp)
     ,.max_payload_width_p(max_payload_width_lp)
+    ,.uptime_p(0)
   ) tr (
     .clk_i(clk_i)
     ,.reset_i(reset_i)

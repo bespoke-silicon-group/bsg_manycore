@@ -17,6 +17,7 @@ module mcsr
     , parameter pc_width_p="inv"
     , parameter credit_limit_default_val_p = 32
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
+    , parameter cfg_pod_width_p=32
   )
   (
     input clk_i
@@ -35,6 +36,9 @@ module mcsr
     , input [reg_addr_width_lp-1:0] rs1_i   // for immediate val write
     , output logic [reg_data_width_lp-1:0] data_o
 
+    , input  [cfg_pod_width_p-1:0] cfg_pod_reset_val_i
+    , output [cfg_pod_width_p-1:0] cfg_pod_r_o
+   
     // from between ID and EXE
     , input instr_executed_i
 
@@ -57,12 +61,28 @@ module mcsr
   logic [pc_width_p-1:0] mepc_r, mepc_n;
   logic [credit_counter_width_p-1:0] credit_limit_r, credit_limit_n;
 
+   logic [cfg_pod_width_p-1:0] 	     cfg_pod_r;
+
+  assign cfg_pod_r_o = cfg_pod_r;
+
+   always_ff @(posedge clk_i)
+     if (reset_i)
+       begin
+	 cfg_pod_r <= cfg_pod_reset_val_i;
+       end
+     else
+       if (we_i 
+	   && (addr_i == `RV32_CSR_CFG_POD_ADDR)
+	   && (funct3_i == `RV32_CSRRW_FUN3)
+	   )
+	 cfg_pod_r <= data_i[0+:cfg_pod_width_p];
+   
   assign mstatus_r_o = mstatus_r;
   assign mip_r_o = mip_r;
   assign mie_r_o = mie_r;
   assign mepc_r_o = mepc_r;
   assign credit_limit_o = credit_limit_r;
-
+  
   // mstatus
   // priority (high to low)
   // 1) mret
@@ -277,6 +297,10 @@ module mcsr
       `RV32_CSR_CREDIT_LIMIT_ADDR: begin
         data_o[0+:credit_counter_width_p] = credit_limit_r;
       end
+      `RV32_CSR_CFG_POD_ADDR: begin
+	 data_o[0+:cfg_pod_width_p] = cfg_pod_r;
+      end
+
       default: data_o = '0;
     endcase
   end
