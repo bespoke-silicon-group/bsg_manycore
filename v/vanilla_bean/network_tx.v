@@ -68,6 +68,9 @@ module network_tx
     , input [pod_x_cord_width_p-1:0] pod_x_i
     , input [pod_y_cord_width_p-1:0] pod_y_i
 
+    , input [pod_x_cord_width_p-1:0] cfg_pod_x_i
+    , input [pod_y_cord_width_p-1:0] cfg_pod_y_i
+
     // core side
     // vanilla core uses valid-credit interface for outgoing requests.
     , input remote_req_s remote_req_i
@@ -133,10 +136,10 @@ module network_tx
 
     ,.is_invalid_addr_o(is_invalid_addr_lo) 
 
-    ,.pod_x_i(pod_x_i)
-    ,.pod_y_i(pod_y_i)
+    // the pod rehoming stuff should not affect instruction cache fetches	     
+    ,.pod_x_i(remote_req_i.load_info.icache_fetch ? pod_x_i : cfg_pod_x_i)
+    ,.pod_y_i(remote_req_i.load_info.icache_fetch ? pod_y_i : cfg_pod_y_i)
   );
-
 
   // Out Packet Builder.
   //
@@ -227,8 +230,8 @@ module network_tx
   always_ff @ (negedge clk_i) begin
 
     if (remote_req_v_i & is_invalid_addr_lo) begin
-      $display("[ERROR][TX] Invalid EVA access. t=%0t, x=%d, y=%d, addr=%h data=%h w=%b",
-        $time, {pod_x_i, my_x_i}, {pod_y_i, my_y_i}, remote_req_i.addr, remote_req_i.data, remote_req_i.write_not_read);
+      $display("[ERROR][TX] Invalid EVA access. t=%0t, x=%d, y=%d, cfg_pod_x_i=%d, cfg_pod_y_i=%d, addr=%h data=%h w=%b",
+        $time, {pod_x_i, my_x_i}, {pod_y_i, my_y_i}, cfg_pod_x_i, cfg_pod_y_i, remote_req_i.addr, remote_req_i.data, remote_req_i.write_not_read);
     end 
 
     if (returned_v_i) begin
