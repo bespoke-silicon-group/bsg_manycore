@@ -48,7 +48,12 @@ endif
 # Network boot format file
 NBF_FILE = $(PROG_NAME).nbf
 
+# Trace file is used for initialization / reset procedures
+# Using trace file is optional
+TRACE_FILE ?= $(BSG_MACHINE_PATH)/bsg_tag_boot.tr
+
 BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
+               +trace_file=$(TRACE_FILE) \
                +max_cycle=$(MAX_CYCLES) \
                +num_finish=$(NUM_FINISH) \
                +vanilla_trace_en=$(TRACE) \
