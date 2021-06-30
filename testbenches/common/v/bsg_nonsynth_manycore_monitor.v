@@ -18,6 +18,8 @@ module bsg_nonsynth_manycore_monitor
     , parameter data_mask_width_lp=(data_width_p>>3)
     , parameter mem_els_p=2**18
     , parameter mem_addr_width_lp=`BSG_SAFE_CLOG2(mem_els_p)
+
+    , parameter uptime_p = 1
   )
   (
     input clk_i
@@ -41,7 +43,6 @@ module bsg_nonsynth_manycore_monitor
     , output logic [data_width_p-1:0] print_stat_tag_o
   );
 
-  int status;
   int max_cycle;
   int num_finish;   // Number of finish packets needs to be received to end the simulation.
                     // By default, number of pods running the SPMD program. Each pod sends one finish packet.
@@ -49,23 +50,26 @@ module bsg_nonsynth_manycore_monitor
                     // For example, you can require a finish packet from each tile in 4x4 tile-group spmd program.
                     // In  that case, you would set num_finish to 16. this helps with not requiring barrier to synchronize task completion of all tiles.
   initial begin
-    status = $value$plusargs("max_cycle=%d", max_cycle);
-    status = $value$plusargs("num_finish=%d", num_finish);
+    void'($value$plusargs("max_cycle=%d", max_cycle));
+    void'($value$plusargs("num_finish=%d", num_finish));
     if (max_cycle == 0) begin
       max_cycle = 1000000; // default
     end
   end
 
-  function reg [63:0] get_wall_time();
-    reg [63:0] t;
-    int fd;
-    t = 0;
-    $system("date +%s%3N > date.txt");
-    fd = $fopen("date.txt", "r");
-    $fscanf(fd, "%d", t);
-    $fclose(fd);
-    return t;
+
+  // get uptime from proc uptime.
+  function string get_uptime();
+    string uptime;
+    if (uptime_p) begin
+      int fd;
+      fd = $fopen("/proc/uptime", "r");
+      void'($fscanf(fd, "%s", uptime));
+      $fclose(fd);
+    end
+    return uptime;
   endfunction
+
 
   // keep track of number of finish packets received.
   integer finish_count;
@@ -175,8 +179,7 @@ module bsg_nonsynth_manycore_monitor
 
   // monitoring logic
   //
-  logic [15:0] epa_addr;
-  assign epa_addr = {addr_i[13:0], 2'b00};
+  wire [15:0] epa_addr = {addr_i[13:0], 2'b00};
   integer out_fd;
 
 
@@ -189,8 +192,8 @@ module bsg_nonsynth_manycore_monitor
       if (v_i & we_i) begin
         if (~addr_i[addr_width_p-1]) begin
           if (epa_addr == bsg_finish_epa_gp) begin
-            $display("[INFO][MONITOR] RECEIVED a finish packet from tile y,x=%2d,%2d, data=%x, sim_time=%0t, wall_time=%d",
-              src_y_cord_i, src_x_cord_i, data_i, $time, get_wall_time());
+            $display("[INFO][MONITOR] RECEIVED a finish packet from tile y,x=%2d,%2d, data=%x, sim_time=%0t, wall_time=%s",
+              src_y_cord_i, src_x_cord_i, data_i, $time, get_uptime());
             finish_count <= finish_count + 1;
           end
           else if (epa_addr == bsg_time_epa_gp) begin

@@ -21,6 +21,8 @@ module bsg_nonsynth_manycore_spmd_loader
     , parameter max_out_credits_p=200
     , parameter credit_counter_width_lp=`BSG_WIDTH(max_out_credits_p)
     , parameter verbose_p = 0
+
+    , parameter uptime_p=1
   )
   ( 
     input clk_i
@@ -72,10 +74,9 @@ module bsg_nonsynth_manycore_spmd_loader
   assign packet.reg_id.store_mask_s.mask = '1;
   assign packet.reg_id.store_mask_s.unused = 1'b0;
 
-  integer status;
   string nbf_file;
   initial begin
-    status = $value$plusargs("nbf_file=%s", nbf_file);
+    void'($value$plusargs("nbf_file=%s", nbf_file));
     $readmemh(nbf_file, nbf);
   end
 
@@ -120,15 +121,16 @@ module bsg_nonsynth_manycore_spmd_loader
   wire loader_done = ~loader_done_r & loader_done_n;
 
 
-  function reg [63:0] get_wall_time();
-    reg [63:0] t;
-    int fd;
-    t = 0;
-    $system("date +%s%3N > date.txt");
-    fd = $fopen("date.txt", "r");
-    $fscanf(fd, "%d", t);
-    $fclose(fd);
-    return t;
+  // get uptime from /proc/uptime
+  function string get_uptime();
+    string uptime;
+    if (uptime_p) begin
+      int fd;
+      fd = $fopen("/proc/uptime", "r");
+      void'($fscanf(fd, "%s", uptime));
+      $fclose(fd);
+    end
+    return uptime;
   endfunction
 
 
@@ -136,7 +138,7 @@ module bsg_nonsynth_manycore_spmd_loader
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
       if (loader_done)
-        $display("[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. sim_time=%0t, wall_time=%d", $time, get_wall_time());
+        $display("[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. sim_time=%0t, wall_time=%s", $time, get_uptime());
   
       if (v_o & ready_i & (verbose_p | (nbf_addr_r[9:0] == '0)))
         $display("[BSG_INFO][SPMD_LOADER] sending packet #%0d. x,y=%0d,%0d, addr=%x, data=%x, t=%0t",
