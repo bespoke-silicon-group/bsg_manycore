@@ -17,7 +17,7 @@ int main()
   {
     int sum = 0;
 
-    bsg_print_stat(0);
+    bsg_cuda_print_stat_start(0);
 
     for (int i = 0; i < N; i++)
     {
@@ -36,7 +36,7 @@ int main()
       product = product * idata[i];
     } 
 
-    bsg_print_stat(1);
+    bsg_cuda_print_stat_end(0);
 
     if (sum == 30 && dp == 51.0f && product == 12096)
       bsg_finish();

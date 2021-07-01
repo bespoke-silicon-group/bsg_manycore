@@ -598,6 +598,7 @@ class CacheTagStats(CacheStats):
         doc += "\t RISC-V Atomic Operations:\n"
         doc += "\t\t-instr_amoswap: Atomic Swap\n"
         doc += "\t\t-instr_amoor: Atomic OR\n"
+        doc += "\t\t-instr_amoadd: Atomic ADD\n"
         doc += "\t Cache Stall Operations:\n"
         doc += "\t\t-stall_miss: Miss Operation (Stall)\n"
         doc += "\t\t-stall_idle: Idle Operation (Stall)\n"
