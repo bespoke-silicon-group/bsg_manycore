@@ -76,6 +76,19 @@ typedef volatile void *bsg_remote_void_ptr;
 #define bsg_fail_x(x)       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(x,0xEAD8); *ptr = ((bsg_y << 16) + bsg_x); while (1); } while(0)
 #define bsg_print_time()   do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xEAD4); *ptr = ((bsg_y << 16) + bsg_x); } while(0)
 
+// Static, inline functions for starting and stopping the PC profiler
+static inline void bsg_pc_profiler_start()
+{
+        __asm__ __volatile__ ("csrs mie, %0": : "r" (0x20000));
+        // Enable interrupts if not already enabled; One instruction overhead if interrupts were already enabled
+        __asm__ __volatile__ ("csrs mstatus, %0" : : "r" (0x8));
+}
+static inline void bsg_pc_profiler_end()
+{
+        // Disable trace interupts; Other interrupts might still be active so don't clear mstatus interrupt enable bit
+        __asm__ __volatile__ ("csrc mie, %0": : "r" (0x20000));
+}
+
 #define bsg_putchar( c )       do {  bsg_remote_uint8_ptr ptr = (bsg_remote_uint8_ptr) bsg_remote_ptr_io(IO_X_INDEX,0xEADC); *ptr = c; } while(0)
 #define bsg_putchar_err( c )       do {  bsg_remote_uint8_ptr ptr = (bsg_remote_uint8_ptr) bsg_remote_ptr_io(IO_X_INDEX,0xEEE0); *ptr = c; } while(0)
 
