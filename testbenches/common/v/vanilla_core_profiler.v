@@ -179,6 +179,7 @@ module vanilla_core_profiler
   wire lr_aq_inc = exe_r.decode.is_lr_aq_op;
   wire amoswap_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoswap);
   wire amoor_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoor);
+  wire amoadd_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoadd);
 
   // branch & jump
   wire beq_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BEQ);
@@ -636,6 +637,7 @@ module vanilla_core_profiler
     integer lr_aq;
     integer amoswap;
     integer amoor;
+    integer amoadd;
 
     integer beq;
     integer bne;
@@ -786,6 +788,7 @@ module vanilla_core_profiler
         else if (lr_aq_inc) stat_r.lr_aq++;
         else if (amoswap_inc) stat_r.amoswap++;
         else if (amoor_inc) stat_r.amoor++; 
+        else if (amoadd_inc) stat_r.amoadd++; 
 
         else if (beq_inc) begin
           stat_r.beq++;
@@ -962,6 +965,7 @@ module vanilla_core_profiler
       $fwrite(fd, "instr_lr_aq,");
       $fwrite(fd, "instr_amoswap,");
       $fwrite(fd, "instr_amoor,");
+      $fwrite(fd, "instr_amoadd,");
 
       $fwrite(fd, "instr_beq,");
       $fwrite(fd, "instr_bne,");
@@ -1121,6 +1125,7 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.lr_aq);
           $fwrite(fd, "%0d,", stat_r.amoswap);
           $fwrite(fd, "%0d,", stat_r.amoor);
+          $fwrite(fd, "%0d,", stat_r.amoadd);
 
           $fwrite(fd, "%0d,", stat_r.beq);
           $fwrite(fd, "%0d,", stat_r.bne);
@@ -1262,6 +1267,7 @@ module vanilla_core_profiler
           else if (lr_aq_inc) print_operation_trace(fd2, "lr_aq", exe_pc);
           else if (amoswap_inc) print_operation_trace(fd2, "amoswap", exe_pc);
           else if (amoor_inc) print_operation_trace(fd2, "amoor", exe_pc); 
+          else if (amoadd_inc) print_operation_trace(fd2, "amoadd", exe_pc); 
 
           else if (beq_inc) print_operation_trace(fd2, "beq", exe_pc);
           else if (bne_inc) print_operation_trace(fd2, "bne", exe_pc);

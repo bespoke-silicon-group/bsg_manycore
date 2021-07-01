@@ -97,6 +97,7 @@ module vcache_profiler
   wire inc_atomic   = v_o & yumi_i & decode_v_r.atomic_op;  // atomic
   wire inc_amoswap  = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_swap); // atomic swap
   wire inc_amoor    = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_or);   // atomic or
+  wire inc_amoadd   = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_add);   // atomic add
 
   wire inc_miss_ld  = v_o & yumi_i & decode_v_r.ld_op & miss_v; // miss on load
   wire inc_miss_st  = v_o & yumi_i & decode_v_r.st_op & miss_v; // miss on store
@@ -149,6 +150,7 @@ module vcache_profiler
     integer atomic_count;  
     integer amoswap_count; 
     integer amoor_count;   
+    integer amoadd_count;
 
     integer miss_ld_count;
     integer miss_st_count;
@@ -202,6 +204,7 @@ module vcache_profiler
       if (inc_atomic)        stat_r.atomic_count++;  
       if (inc_amoswap)       stat_r.amoswap_count++; 
       if (inc_amoor)         stat_r.amoor_count++;   
+      if (inc_amoadd)         stat_r.amoadd_count++;
 
       if (inc_miss_ld)       stat_r.miss_ld_count++;
       if (inc_miss_st)       stat_r.miss_st_count++;
@@ -240,7 +243,7 @@ module vcache_profiler
       $fwrite(log_fd, "instr_st,instr_sm_sd,instr_sm_sw,instr_sm_sh,instr_sm_sb,");
       $fwrite(log_fd, "instr_tagst,instr_tagfl,instr_taglv,instr_tagla,");
       $fwrite(log_fd, "instr_afl,instr_aflinv,instr_ainv,instr_alock,instr_aunlock,");
-      $fwrite(log_fd, "instr_atomic,instr_amoswap,instr_amoor,");
+      $fwrite(log_fd, "instr_atomic,instr_amoswap,instr_amoor,amoadd,");
       $fwrite(log_fd, "miss_ld,miss_st,miss_amo,stall_miss,stall_idle,stall_rsp,dma_read_req,dma_write_req,");
       $fwrite(log_fd, "replace_invalid,replace_valid,replace_dirty\n");
       $fclose(log_fd);
@@ -301,10 +304,11 @@ module vcache_profiler
             stat_r.aunlock_count,
            );
 
-          $fwrite(log_fd, "%0d,%0d,%0d,",
+          $fwrite(log_fd, "%0d,%0d,%0d,%0d,",
             stat_r.atomic_count,
             stat_r.amoswap_count,
             stat_r.amoor_count,
+            stat_r.amoadd_count,
           );
 
           $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,",
@@ -409,6 +413,8 @@ module vcache_profiler
               print_operation_trace(trace_fd, my_name, "amoswap");
             else if (inc_amoor)
               print_operation_trace(trace_fd, my_name, "amoor");
+            else if (inc_amoadd)
+              print_operation_trace(trace_fd, my_name, "amoadd");
             else
               print_operation_trace(trace_fd, my_name, "idle");
           end

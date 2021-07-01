@@ -101,6 +101,7 @@ class BloodGraph:
                        "lr_aq",
                        "amoswap",
                        "amoor", 
+                       "amoadd", 
                        "beq",
                        "bne",
                        "blt",
