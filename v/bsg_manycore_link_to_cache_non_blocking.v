@@ -188,19 +188,19 @@ module bsg_manycore_link_to_cache_non_blocking
         packet_yumi_li = packet_v_lo & ready_i;
         
         if (packet_lo.addr[addr_width_p-1]) begin
-	   case (packet_lo.op)
-	      e_remote_store: cache_pkt.opcode = TAGST;
-	      e_remote_load:  cache_pkt.opcode = TAGLA;
-	      e_cache_op:     cache_pkt.opcode = TAGFL;
-	      default:        cache_pkt.opcode = TAGLA; // should never happen
-	   endcase
+          case (packet_lo.op_v2)
+            e_remote_store: cache_pkt.opcode = TAGST;
+            e_remote_load:  cache_pkt.opcode = TAGLA;
+            e_cache_op:     cache_pkt.opcode = TAGFL;
+            default:        cache_pkt.opcode = TAGLA; // should never happen
+          endcase
         end
         else begin
-          if (packet_lo.op == e_remote_store) begin
+          if (packet_lo.op_v2 == e_remote_store) begin
             cache_pkt.opcode = SM;
           end
-          else if (packet_lo.op == e_cache_op) begin
-            case (packet_lo.op_ex.cache_op_type)
+          else if (packet_lo.op_v2 == e_cache_op) begin
+            case (packet_lo.reg_id.cache_op)
               e_afl: cache_pkt.opcode = AFL;
               e_aflinv: cache_pkt.opcode = AFLINV;
               e_ainv: cache_pkt.opcode = AINV;
@@ -227,7 +227,7 @@ module bsg_manycore_link_to_cache_non_blocking
           packet_lo.addr[0+:addr_width_p-1],
           (packet_lo.op == e_remote_store) | (packet_lo.op == e_cache_op) ? 2'b00 : load_info.part_sel
         };
-        cache_pkt.mask = packet_lo.op_ex;
+        cache_pkt.mask = packet_lo.store_mask_s.mask;
 
         cache_pkt_id.src_x = packet_lo.src_x_cord;
         cache_pkt_id.src_y = packet_lo.src_y_cord;

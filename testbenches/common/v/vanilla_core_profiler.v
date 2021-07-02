@@ -83,10 +83,10 @@ module vanilla_core_profiler
 
     , input id_signals_s id_r
     , input exe_signals_s exe_r
-    , input fp_exe_signals_s fp_exe_r
+    , input fp_exe_ctrl_signals_s fp_exe_ctrl_r
 
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
+    , input [x_cord_width_p-1:0] global_x_i
+    , input [y_cord_width_p-1:0] global_y_i
 
     , input [31:0] global_ctr_i
     , input print_stat_v_i
@@ -102,49 +102,49 @@ module vanilla_core_profiler
 
   // task to print a line of operation trace
   task print_operation_trace(integer fd, string op, logic [data_width_p-1:0] pc);
-    $fwrite(fd, "%0d,%0d,%0d,%0h,%s\n", global_ctr_i, my_x_i - origin_x_cord_p, my_y_i - origin_y_cord_p, pc, op);
+    $fwrite(fd, "%0d,%0d,%0d,%0h,%s\n", global_ctr_i, global_x_i - origin_x_cord_p, global_y_i - origin_y_cord_p, pc, op);
   endtask
 
 
   // event signals
   //
   wire instr_inc = (~stall_all) & (exe_r.instruction != '0) & ~exe_r.icache_miss;
-  wire fp_instr_inc = (fp_exe_r.fp_decode.is_fpu_float_op
-    | fp_exe_r.fp_decode.is_fpu_int_op
-    | fp_exe_r.fp_decode.is_fdiv_op
-    | fp_exe_r.fp_decode.is_fsqrt_op) & ~stall_all;
+  wire fp_instr_inc = (fp_exe_ctrl_r.fp_decode.is_fpu_float_op
+    | fp_exe_ctrl_r.fp_decode.is_fpu_int_op
+    | fp_exe_ctrl_r.fp_decode.is_fdiv_op
+    | fp_exe_ctrl_r.fp_decode.is_fsqrt_op) & ~stall_all;
 
   // fpu_float
-  wire fpu_float_inc = fp_exe_r.fp_decode.is_fpu_float_op;
-  wire fadd_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFADD);
-  wire fsub_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSUB);
-  wire fmul_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMUL);
-  wire fsgnj_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSGNJ);
-  wire fsgnjn_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSGNJN);
-  wire fsgnjx_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFSGNJX);
-  wire fmin_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMIN);
-  wire fmax_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMAX);
-  wire fcvt_s_w_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFCVT_S_W);
-  wire fcvt_s_wu_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFCVT_S_WU);
-  wire fmv_w_x_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMV_W_X);
-  wire fmadd_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMADD);
-  wire fmsub_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFMSUB);
-  wire fnmsub_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFNMSUB);
-  wire fnmadd_inc = fpu_float_inc & (fp_exe_r.fp_decode.fpu_float_op == eFNMADD);
+  wire fpu_float_inc = fp_exe_ctrl_r.fp_decode.is_fpu_float_op;
+  wire fadd_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFADD);
+  wire fsub_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFSUB);
+  wire fmul_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMUL);
+  wire fsgnj_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFSGNJ);
+  wire fsgnjn_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFSGNJN);
+  wire fsgnjx_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFSGNJX);
+  wire fmin_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMIN);
+  wire fmax_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMAX);
+  wire fcvt_s_w_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFCVT_S_W);
+  wire fcvt_s_wu_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFCVT_S_WU);
+  wire fmv_w_x_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMV_W_X);
+  wire fmadd_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMADD);
+  wire fmsub_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFMSUB);
+  wire fnmsub_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFNMSUB);
+  wire fnmadd_inc = fpu_float_inc & (fp_exe_ctrl_r.fp_decode.fpu_float_op == eFNMADD);
  
   // fpu_int
-  wire fpu_int_inc = fp_exe_r.fp_decode.is_fpu_int_op;
-  wire feq_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFEQ);
-  wire fle_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFLE);
-  wire flt_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFLT);
-  wire fcvt_w_s_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFCVT_W_S);
-  wire fcvt_wu_s_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFCVT_WU_S);
-  wire fclass_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFCLASS);
-  wire fmv_x_w_inc = fpu_int_inc & (fp_exe_r.fp_decode.fpu_int_op == eFMV_X_W);
+  wire fpu_int_inc = fp_exe_ctrl_r.fp_decode.is_fpu_int_op;
+  wire feq_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFEQ);
+  wire fle_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFLE);
+  wire flt_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFLT);
+  wire fcvt_w_s_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFCVT_W_S);
+  wire fcvt_wu_s_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFCVT_WU_S);
+  wire fclass_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFCLASS);
+  wire fmv_x_w_inc = fpu_int_inc & (fp_exe_ctrl_r.fp_decode.fpu_int_op == eFMV_X_W);
 
   // fdiv/fsqrt
-  wire fdiv_inc = fp_exe_r.fp_decode.is_fdiv_op;
-  wire fsqrt_inc = fp_exe_r.fp_decode.is_fsqrt_op;
+  wire fdiv_inc = fp_exe_ctrl_r.fp_decode.is_fdiv_op;
+  wire fsqrt_inc = fp_exe_ctrl_r.fp_decode.is_fsqrt_op;
 
   // LSU
   wire local_ld_inc = exe_r.decode.is_load_op & lsu_dmem_v_lo & exe_r.decode.write_rd;
@@ -177,8 +177,9 @@ module vanilla_core_profiler
 
   wire lr_inc = exe_r.decode.is_lr_op;
   wire lr_aq_inc = exe_r.decode.is_lr_aq_op;
-  wire amoswap_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_swap);
-  wire amoor_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_amo_or);
+  wire amoswap_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoswap);
+  wire amoor_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoor);
+  wire amoadd_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoadd);
 
   // branch & jump
   wire beq_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BEQ);
@@ -636,6 +637,7 @@ module vanilla_core_profiler
     integer lr_aq;
     integer amoswap;
     integer amoor;
+    integer amoadd;
 
     integer beq;
     integer bne;
@@ -786,6 +788,7 @@ module vanilla_core_profiler
         else if (lr_aq_inc) stat_r.lr_aq++;
         else if (amoswap_inc) stat_r.amoswap++;
         else if (amoor_inc) stat_r.amoor++; 
+        else if (amoadd_inc) stat_r.amoadd++; 
 
         else if (beq_inc) begin
           stat_r.beq++;
@@ -900,7 +903,7 @@ module vanilla_core_profiler
 
    always @(negedge reset_i) begin      
     // the origin tile opens the logfile and writes the csv header.
-    if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p))) begin
+    if ((global_x_i == x_cord_width_p'(origin_x_cord_p)) & (global_y_i == y_cord_width_p'(origin_y_cord_p))) begin
       fd = $fopen(logfile_lp, "a");
       $fwrite(fd, "time,");
       $fwrite(fd, "x,");
@@ -962,6 +965,7 @@ module vanilla_core_profiler
       $fwrite(fd, "instr_lr_aq,");
       $fwrite(fd, "instr_amoswap,");
       $fwrite(fd, "instr_amoor,");
+      $fwrite(fd, "instr_amoadd,");
 
       $fwrite(fd, "instr_beq,");
       $fwrite(fd, "instr_bne,");
@@ -1057,13 +1061,13 @@ module vanilla_core_profiler
 
    always @(negedge clk_i)  begin
         // stat printing
-        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == my_y_i & print_stat_tag.x_cord == my_x_i) begin
-          $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, my_x_i, my_y_i);
+        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == (global_y_i-origin_y_cord_p) & print_stat_tag.x_cord == (global_x_i-origin_x_cord_p)) begin
+          $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, global_x_i, global_y_i);
 
           fd = $fopen(logfile_lp, "a");
           $fwrite(fd, "%0d,", $time);
-          $fwrite(fd, "%0d,", my_x_i - origin_x_cord_p);
-          $fwrite(fd, "%0d,", my_y_i - origin_y_cord_p);
+          $fwrite(fd, "%0d,", global_x_i - origin_x_cord_p);
+          $fwrite(fd, "%0d,", global_y_i - origin_y_cord_p);
           $fwrite(fd, "%0d,", pc_r);
           $fwrite(fd, "%0d,", pc_n);
           $fwrite(fd, "%0d,", print_stat_tag_i);
@@ -1121,6 +1125,7 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.lr_aq);
           $fwrite(fd, "%0d,", stat_r.amoswap);
           $fwrite(fd, "%0d,", stat_r.amoor);
+          $fwrite(fd, "%0d,", stat_r.amoadd);
 
           $fwrite(fd, "%0d,", stat_r.beq);
           $fwrite(fd, "%0d,", stat_r.bne);
@@ -1262,6 +1267,7 @@ module vanilla_core_profiler
           else if (lr_aq_inc) print_operation_trace(fd2, "lr_aq", exe_pc);
           else if (amoswap_inc) print_operation_trace(fd2, "amoswap", exe_pc);
           else if (amoor_inc) print_operation_trace(fd2, "amoor", exe_pc); 
+          else if (amoadd_inc) print_operation_trace(fd2, "amoadd", exe_pc); 
 
           else if (beq_inc) print_operation_trace(fd2, "beq", exe_pc);
           else if (bne_inc) print_operation_trace(fd2, "bne", exe_pc);

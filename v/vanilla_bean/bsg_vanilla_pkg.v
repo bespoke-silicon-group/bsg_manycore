@@ -29,6 +29,10 @@ localparam fpu_recoded_exp_width_gp    = 8;
 localparam fpu_recoded_sig_width_gp    = 24;
 localparam fpu_recoded_data_width_gp   = (1+fpu_recoded_exp_width_gp+fpu_recoded_sig_width_gp);
 
+// Maximum EPA width for vanilla core (word addr)
+localparam epa_word_addr_width_gp=16;
+
+
 // RV32 Instruction structure
 // Ideally represents a R-type instruction; these fields if
 // present in other types of instructions, appear at same positions
@@ -55,11 +59,17 @@ typedef struct packed {
 
 // remote request from vanilla core
 //
+typedef enum logic [1:0] {
+  e_vanilla_amoswap
+  , e_vanilla_amoor
+  , e_vanilla_amoadd
+} bsg_vanilla_amo_type_e;
+
 typedef struct packed
 {
   logic write_not_read;
   logic is_amo_op;
-  bsg_manycore_amo_type_e amo_type;
+  bsg_vanilla_amo_type_e amo_type;
   logic [3:0] mask;
   bsg_manycore_load_info_s load_info;
   logic [bsg_manycore_reg_id_width_gp-1:0] reg_id;
@@ -124,7 +134,7 @@ typedef struct packed {
   logic is_amo_op;
   logic is_amo_aq;
   logic is_amo_rl;
-  bsg_manycore_amo_type_e amo_type;
+  bsg_vanilla_amo_type_e amo_type;
 
   // FPU
   logic is_fp_op;           // goes into FP_EXE
@@ -135,6 +145,9 @@ typedef struct packed {
 
   // CSR
   logic is_csr_op;
+
+  // MRET
+  logic is_mret_op;
 
   // This signal is for debugging only.
   // It shouldn't be used to synthesize any actual circuits.
@@ -223,6 +236,7 @@ typedef struct packed
     decode_s                           decode;            // Decode signals
     fp_decode_s                        fp_decode;
     logic                              icache_miss;
+    logic                              valid;             // valid instruction in ID
 } id_signals_s;
 
 // Execute stage signals
@@ -234,18 +248,17 @@ typedef struct packed
     decode_s                           decode;            // Decode signals
     logic [RV32_reg_data_width_gp-1:0] rs1_val;           // RF output data from RS1 address
     logic [RV32_reg_data_width_gp-1:0] rs2_val;           // RF output data from RS2 address
+                                                          // CSR instructions use this register for loading CSR vals
     logic [RV32_reg_data_width_gp-1:0] mem_addr_op2;      // the second operands to compute
                                                           // memory address
     logic                              icache_miss;
-    fcsr_s fcsr_data;
+    logic                              valid;             // valid instruction in EXE
 } exe_signals_s;
 
 
 // Memory stage signals
-typedef struct packed
-{
+typedef struct packed {
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
-    logic [RV32_reg_data_width_gp-1:0] exe_result;
     logic write_rd;
     logic write_frd;
     logic is_byte_op;
@@ -254,39 +267,67 @@ typedef struct packed
     logic local_load;
     logic [RV32_reg_data_width_gp-1:0] mem_addr_sent;
     logic icache_miss;
-} mem_signals_s;
+} mem_ctrl_signals_s;
+
+typedef struct packed {
+    logic [RV32_reg_data_width_gp-1:0] exe_result;
+} mem_data_signals_s;
 
 // RF write back stage signals
-typedef struct packed
-{
+typedef struct packed {
     logic                              write_rd;
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
-    logic [RV32_reg_data_width_gp-1:0] rf_data;
     logic                              icache_miss;
     logic [RV32_reg_data_width_gp-1:0] icache_miss_pc;
     logic clear_sb;
-} wb_signals_s;
+} wb_ctrl_signals_s;
 
+typedef struct packed {
+    logic [RV32_reg_data_width_gp-1:0] rf_data;
+} wb_data_signals_s;
 
 // FP Execute stage signals
-typedef struct packed
-{
-  logic [fpu_recoded_data_width_gp-1:0] rs1_val;
-  logic [fpu_recoded_data_width_gp-1:0] rs2_val;
-  logic [fpu_recoded_data_width_gp-1:0] rs3_val;
+typedef struct packed {
   logic [RV32_reg_addr_width_gp-1:0] rd;
   fp_decode_s fp_decode;
   frm_e rm;
-} fp_exe_signals_s;
+} fp_exe_ctrl_signals_s;
 
+typedef struct packed {
+  logic [fpu_recoded_data_width_gp-1:0] rs1_val;
+  logic [fpu_recoded_data_width_gp-1:0] rs2_val;
+  logic [fpu_recoded_data_width_gp-1:0] rs3_val;
+} fp_exe_data_signals_s;
 
 // FLW write back stage signals
-typedef struct packed
-{
+typedef struct packed {
     logic valid;
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
+} flw_wb_ctrl_signals_s;
+
+typedef struct packed {
     logic [RV32_reg_data_width_gp-1:0] rf_data;
-} flw_wb_signals_s;
+} flw_wb_data_signals_s;
+
+
+// MACHINE CSR structs, constants
+// mstatus
+typedef struct packed {
+  logic mpie;   //  machine previous interrupt enabler (using bit-7)
+  logic mie;    //  machine interrupt enable (using bit-3)
+} csr_mstatus_s;
+`define RV32_MSTATUS_MIE_BIT_IDX  3
+`define RV32_MSTATUS_MPIE_BIT_IDX 7
+
+// machine interrupt pending/enable vector
+typedef struct packed {
+  logic trace;  // bit-17
+  logic remote; // bit-16
+} csr_interrupt_vector_s;
+
+
+`define REMOTE_INTERRUPT_JUMP_ADDR  0   // remote interrupt jump addr (word addr)
+`define TRACE_INTERRUPT_JUMP_ADDR   1   // trace interrupt jump addr (word addr)
 
 
 
@@ -390,6 +431,10 @@ typedef struct packed
 `define RV32_FENCE_FUN3   3'b000
 `define RV32_FENCE   {4'b0000,4'b????,4'b????,5'b00000,`RV32_FENCE_FUN3,5'b00000,`RV32_MISC_MEM}
 
+//TRIGGER SAIF DUMP defines
+`define SAIF_TRIGGER_START {12'b000000000001,5'b00000,3'b000,5'b00000,`RV32_OP_IMM}
+`define SAIF_TRIGGER_END {12'b000000000010,5'b00000,3'b000,5'b00000,`RV32_OP_IMM}
+
 // CSR encoding
 `define RV32_CSRRW_FUN3  3'b001
 `define RV32_CSRRS_FUN3  3'b010
@@ -405,9 +450,24 @@ typedef struct packed
 `define RV32_CSRRSI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRSI_FUN3)
 `define RV32_CSRRCI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRCI_FUN3)
 
+// fcsr CSR addr
 `define RV32_CSR_FFLAGS_ADDR  12'h001
 `define RV32_CSR_FRM_ADDR     12'h002  
 `define RV32_CSR_FCSR_ADDR    12'h003
+// machine CSR addr
+`define RV32_CSR_MSTATUS_ADDR   12'h300
+`define RV32_CSR_MTVEC_ADDR     12'h305
+`define RV32_CSR_MIE_ADDR       12'h304
+`define RV32_CSR_MIP_ADDR       12'h344
+`define RV32_CSR_MEPC_ADDR      12'h341
+`define RV32_CSR_CFG_POD_ADDR   12'h360				    
+
+// machine custom CSR addr
+`define RV32_CSR_CREDIT_LIMIT_ADDR 12'hfc0
+
+// mret
+// used for returning from the interrupt
+`define RV32_MRET     {7'b0011000, 5'b00010, 5'b00000, 3'b000, 5'b00000, `RV32_SYSTEM}
 
 // RV32M Instruction Encodings
 `define MD_MUL_FUN3       3'b000
@@ -432,6 +492,7 @@ typedef struct packed
 `define RV32_LR_W_AQ    {5'b00010,2'b10,5'b00000,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
 `define RV32_AMOSWAP_W  {5'b00001,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
 `define RV32_AMOOR_W    {5'b01000,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
+`define RV32_AMOADD_W   {5'b00000,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
 
 // RV32F Instruction Encodings
 `define RV32_OP_FP            7'b1010011

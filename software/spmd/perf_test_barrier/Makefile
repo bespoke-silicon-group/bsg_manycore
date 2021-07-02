@@ -1,5 +1,4 @@
-export BSG_MACHINE_PATH = $(BSG_MANYCORE_DIR)/machines/8x4
-
+TRACE=0
 
 all: main.run
 

@@ -7,7 +7,7 @@ endif
 BSG_ELF_DEFAULT_DATA_LOC = SHARED
 SPMD_COMMON_OBJECTS =
 BSG_NEWLIB = 1
-MAX_CYCLES = 100000000
+MAX_CYCLES = 1000000000
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 
@@ -60,7 +60,7 @@ include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
 #########################
 
 BEEBS_CC      = "$(RISCV_GCC)"
-BEEBS_CFLAGS  = "$(RISCV_GCC_OPTS) -DBOARD_REPEAT_FACTOR=$(REPEAT_FACTOR) -D__bsg_argc=1 -D__bsg_argv=0"
+BEEBS_CFLAGS  = "$(RISCV_GCC_OPTS) -DBOARD_REPEAT_FACTOR=$(REPEAT_FACTOR) -D__bsg_argc=1 -D__bsg_argv=0 -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib"
 COMMON_SRCS   = $(RUN_DIR)/../common/args.c \
                 $(RUN_DIR)/../common/crt.S \
                 $(RUN_DIR)/../../bsg_manycore_lib/bsg_newlib_intf.c \
@@ -85,10 +85,10 @@ beebs.configure.touchfile: $(LINK_SCRIPT) $(COMMON_SRCS) $(BSG_MANYCORE_LIB)
   # process.
 	cd $(BUILD_DIR) && $(BEEBS_DIR)/configure --prefix=$(BUILD_DIR) \
 		                   --host=riscv64 \
-											 --with-chip=generic \
-											 CC=$(BEEBS_CC) \
-											 CFLAGS=$(BEEBS_CFLAGS) \
-											 LDFLAGS=$(BEEBS_LDFLAGS);
+		                   --with-chip=generic \
+		                   CC=$(BEEBS_CC) \
+		                   CFLAGS=$(BEEBS_CFLAGS) \
+		                   LDFLAGS=$(BEEBS_LDFLAGS);
 
 	$(MAKE) -C $(BUILD_DIR)/support install;
 	touch beebs.configure.touchfile
@@ -115,3 +115,24 @@ check_finish:
 			exit 1;	\
 		fi	\
 	done
+
+LOG_FILES=`ls -t $(shell /usr/bin/find . -maxdepth 2 -iname *-run.log)`
+
+SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@-run.log@@g' | /usr/bin/column -c 160
+
+%.scrape:
+	@echo "Logs with $*---------------------------------------------------------------------------------->"
+	@-grep -i --files-with-matches --no-messages $* $(LOG_FILES) | $(SCRAPE-TAIL) || true
+	@echo;
+
+%.scrape.i:
+	@echo "Logs without $*---------------------------------------------------------------------------------->"
+	@-grep -i --files-without-match --no-messages $* $(LOG_FILES) | $(SCRAPE-TAIL) || true
+	@echo;
+
+summary: BSG_FINISH.scrape BSG_FINISH.scrape.i BSG_TIMEOUT.scrape BSG_FAIL.scrape BSG_ERROR.scrape
+	@echo -n "Free disk:"; df .
+	@echo -n "SIMVs running:"; /usr/bin/ps a | /usr/bin/grep simv
+
+watch-summary:
+	watch make summary

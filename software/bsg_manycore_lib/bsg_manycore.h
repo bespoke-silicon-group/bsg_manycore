@@ -13,14 +13,16 @@ int bsg_printf(const char *fmt, ...);
 }
 #endif
 
+
+
+
+// remote pointer types
 typedef volatile int   *bsg_remote_int_ptr;
 typedef volatile float   *bsg_remote_float_ptr;
 typedef volatile unsigned char  *bsg_remote_uint8_ptr;
 typedef volatile unsigned short  *bsg_remote_uint16_ptr;
 typedef volatile unsigned *bsg_remote_uint32_ptr;
 typedef volatile void *bsg_remote_void_ptr;
-
-
 
 #define bsg_remote_flt_store(x,y,local_addr,val) do { *(bsg_remote_flt_ptr((x),(y),(local_addr))) = (float) (val); } while (0)
 #define bsg_remote_flt_load(x,y,local_addr,val)  do { val = *(bsg_remote_flt_ptr((x),(y),(local_addr))) ; } while (0)
@@ -33,6 +35,9 @@ typedef volatile void *bsg_remote_void_ptr;
 
 #define bsg_global_float_store(x,y,local_addr,val) do { *(bsg_global_float_ptr((x),(y),(local_addr))) = (float) (val); } while (0)
 #define bsg_global_float_load(x,y,local_addr,val)  do { val = *(bsg_global_float_ptr((x),(y),(local_addr))) ; } while (0)
+
+#define bsg_global_pod_store(px,py,x,y,local_addr,val) do { *(bsg_global_pod_ptr(px,py,(x),(y),(local_addr))) = (int) (val); } while (0)
+#define bsg_global_pod_load(px,py,x,y,local_addr,val)  do { val = *(bsg_global_pod_ptr(px,py,(x),(y),(local_addr))) ; } while (0)
 
 #define bsg_dram_store(dram_addr,val) do { *(bsg_dram_ptr((dram_addr))) = (int) (val); } while (0)
 #define bsg_dram_load(dram_addr,val)  do { val = *(bsg_dram_ptr((dram_addr))) ; } while (0)
@@ -73,6 +78,10 @@ typedef volatile void *bsg_remote_void_ptr;
 
 #define bsg_putchar( c )       do {  bsg_remote_uint8_ptr ptr = (bsg_remote_uint8_ptr) bsg_remote_ptr_io(IO_X_INDEX,0xEADC); *ptr = c; } while(0)
 #define bsg_putchar_err( c )       do {  bsg_remote_uint8_ptr ptr = (bsg_remote_uint8_ptr) bsg_remote_ptr_io(IO_X_INDEX,0xEEE0); *ptr = c; } while(0)
+
+#define bsg_heartbeat_init()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xBEA0); *ptr = 0; } while(0)
+#define bsg_heartbeat_iter( itr )       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xBEA4); *ptr = itr; } while(0)
+#define bsg_heartbeat_end()       do {  bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xBEA8); *ptr = 0; } while(0)
 
 static inline void bsg_print_int(int i)
 {
@@ -118,6 +127,12 @@ inline int bsg_lr_aq(int *p) { int tmp; __asm__ __volatile__("lr.w.aq %0,%1\n" :
 #elif defined(__GNUC__) || defined(__GNUG__)
 inline int bsg_lr(int *p)    { int tmp; __asm__ __volatile__("lr.w    %0,%1\n" : "=r" (tmp) : "A" (*p)); return tmp; }
 inline int bsg_lr_aq(int *p) { int tmp; __asm__ __volatile__("lr.w.aq %0,%1\n" : "=r" (tmp) : "A" (*p)); return tmp; }
+
+inline int bsg_li(int constant_val) { int result; asm("li %0, %1" : "=r"(result) : "i"(constant_val)); return result; }
+inline int bsg_div(int a, int b)  { int result; __asm__ __volatile__("divu %0,%1,%2" : "=r"(result) : "r" (a), "r" (b)); return result; }
+inline int bsg_mulu(int a, int b) { int result; __asm__ __volatile__("mul %0,%1,%2" : "=r"(result) : "r" (a), "r" (b)); return result; }
+
+
 #else
 #error Unsupported Compiler!
 #endif
@@ -216,6 +231,11 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 #define BSG_CUDA_PRINT_STAT_TG_ID_MASK      ((1 << BSG_CUDA_PRINT_STAT_TG_ID_WIDTH) - 1)  // 0x3FFF
 #define BSG_CUDA_PRINT_STAT_X_MASK          ((1 << BSG_CUDA_PRINT_STAT_X_WIDTH) - 1)      // 0x3F
 #define BSG_CUDA_PRINT_STAT_Y_MASK          ((1 << BSG_CUDA_PRINT_STAT_Y_WIDTH) - 1)      // 0x3F
+
+//Macros for triggering saif generation
+#define bsg_saif_start() asm volatile ("addi zero,zero,1")
+
+#define bsg_saif_end() asm volatile ("addi zero,zero,2")
 
 
 #define bsg_print_stat(tag) do { bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xd0c); *ptr = tag; } while (0)

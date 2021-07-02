@@ -122,7 +122,7 @@ void quicksort(int* lst, int n)
   }
   else
   {
-    bsg_fail_x(0);
+    bsg_fail();
   }
 }
 
@@ -146,24 +146,24 @@ int main()
 
     if (data_copy[bsg_x][bsg_y][i] > data_copy[bsg_x][bsg_y][i+1])
     {
-      bsg_fail_x(0);
+      bsg_fail();
     }
   }
 
   if (sum == ANSWER)
   {
-    bsg_printf("sum: %d, [PASSED]\n", sum);
+          //bsg_printf("sum: %d, [PASSED]\n", sum);
   }
   else 
   {
     bsg_printf("sum: %d, expected %d, [FAILED]\n", sum,ANSWER);
-    bsg_fail_x(0);
+    bsg_fail();
   }
 
   bsg_barrier_wait( &tile0_barrier, 0, 0);
 
   if( bsg_x == 0  && bsg_y == 0)
-    bsg_finish_x(0);
+    bsg_finish();
 
   bsg_wait_while(1);
 }

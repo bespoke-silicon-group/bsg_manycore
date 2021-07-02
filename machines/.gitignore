@@ -1,8 +1,15 @@
 simv-debug
 simv-debug.daidir
+simv-profile
+simv-profile.daidir
+simv-debug
 vc_hdrs.h
 stack.info.*
+*/build-profile
 */build-debug
 */build
 */csrc
 */csrc-debug
+*/csrc-profile
+*/*.tr
+*/bsg_tag_boot_rom.v

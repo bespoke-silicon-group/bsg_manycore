@@ -4,11 +4,11 @@ This repo contains the **bsg\_manycore** source code with contributions from the
 
 The tile based architecture is designed for computing efficiency, scalability and generality. The two main components are:
 
-* **Computing Node:** Purpose-designed RISC-V 32IM compatible core runs at 1.4GHz@16nm, but nodes also can be any other accelerators.
+* **Computing Node:** Purpose-designed RISC-V 32IMF compatible core runs at 1.4GHz@16nm, but nodes also can be any other accelerators.
 * **Mesh Network  :** Dimension ordered, single flit network with inter-nodes synchronization primitives (mutex, barrier etc.)
 
-Without any customized circuit, a 16nm prototype chip that holds 16x31 tiles on a 4.5x3.4 mm^2 die space achieves **812,350**
-aggregated [CoreMark](https://www.eembc.org/coremark/) score.
+Without any custom circuits, a 16nm prototype chip with 16x31 tiles on a 4.5x3.4 mm^2 die space achieves **812,350**
+aggregated [CoreMark](https://www.eembc.org/coremark/) score, a world record. Many improvements have been made since this previous version.
 
 # Documentation 
 
@@ -24,12 +24,18 @@ aggregated [CoreMark](https://www.eembc.org/coremark/) score.
 
 # Initial Setup for running programs
 
+Above this directory:
+
+- Checkout `basejump_stl`; cd into imports directory and type `make DRAMSim3`
+- Checkout `bsg_cadenv`
+
 In this directory:
 
 - `make checkout_submodules`: To update all submodules in `imports/`.
-- `make tools`: To install software toolchain required running programs on BSG Manycore.
+- `make tools`: To install software toolchain required running programs on BSG Manycore. (This build uses 12-16 threads by default.)
 - `make machines`: Compile simulation executables in `machines/`.
 - Edit `BSG_MACHINE_PATH` in `software/mk/Makefile.paths` to choose the machine to run somd programs on.
+- go into `software/spmd/bsg_barrier` and type `make` to run a test!
 
 # Contributions
 

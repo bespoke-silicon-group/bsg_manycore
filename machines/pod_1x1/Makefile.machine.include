@@ -1,0 +1,38 @@
+BSG_MACHINE_PODS_X									  = 1
+BSG_MACHINE_PODS_Y									  = 1
+
+BSG_MACHINE_GLOBAL_X                  = 16
+BSG_MACHINE_GLOBAL_Y                  = 8
+
+BSG_MACHINE_X_CORD_WIDTH              = 7
+BSG_MACHINE_Y_CORD_WIDTH              = 7
+
+BSG_MACHINE_RUCHE_FACTOR_X            = 3
+
+BSG_MACHINE_NUM_VCACHE_ROWS           = 1
+BSG_MACHINE_VCACHE_SET                = 64
+BSG_MACHINE_VCACHE_WAY                = 4
+BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS   = 8
+BSG_MACHINE_VCACHE_DMA_DATA_WIDTH     = 32
+BSG_MACHINE_NUM_VCACHES_PER_CHANNEL   = 16
+
+
+BSG_MACHINE_DRAM_SIZE_WORDS           = 536870912
+BSG_MACHINE_DRAM_BANK_SIZE_WORDS      = 16777216
+BSG_MACHINE_DRAM_INCLUDED             = 1
+
+BSG_MACHINE_MAX_EPA_WIDTH             = 28
+BSG_MACHINE_BRANCH_TRACE_EN           = 0
+BSG_MACHINE_HETERO_TYPE_VEC           = default:0
+
+BSG_MACHINE_ORIGIN_Y_CORD             = 8
+BSG_MACHINE_ORIGIN_X_CORD             = 16
+
+BSG_MACHINE_HOST_Y_CORD               = 0
+BSG_MACHINE_HOST_X_CORD               = 16
+
+BSG_MACHINE_MEM_CFG                   = e_vcache_test_mem
+BSG_MACHINE_DRAMSIM3_PKG              = bsg_dramsim3_hbm2_8gb_x128_pkg
+
+BSG_MACHINE_SUBARRAY_X                = 1
+BSG_MACHINE_SUBARRAY_Y                = 1

@@ -31,8 +31,10 @@ module bsg_manycore_link_sif_tieoff
   assign link_sif_o  = '0;
 
  `declare_bsg_manycore_packet_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-  bsg_manycore_packet_s fwd_packet = link_sif_in.fwd.data;
-  bsg_manycore_return_packet_s rev_packet = link_sif_in.rev.data;
+  bsg_manycore_packet_s fwd_packet;
+  bsg_manycore_return_packet_s rev_packet;
+  assign fwd_packet = link_sif_in.fwd.data;
+  assign rev_packet = link_sif_in.rev.data;
 
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin

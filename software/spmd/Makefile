@@ -14,7 +14,12 @@ NO-RECURSE = \
 	c++ fft memtest16 fhello_malloc striped_vector_sum striped_hello \
 	coremark-top \
 	deprecated \
-	beebs
+	gather_scatter \
+	gather_scatter_multi \
+  striped_struct_vector	\
+	beebs saif \
+	interrupt_tests \
+	bp_manycore_test
 
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
@@ -130,7 +135,7 @@ recurse-%: pre-recurse-%
 recurse-iterate@%:
 	-$(MAKE) $(firstword $(subst @, ,$*)) -C $(word 2,$(subst @, ,$*)) 2>&1 | /usr/bin/tee recurse-results/$(word 2,$(subst @, ,$*))-run.log
 
-LOG_FILES=`ls -t $(shell /usr/bin/find . -iname *-run.log)`
+LOG_FILES=`ls -t $(shell /usr/bin/find . -maxdepth 2 -iname *-run.log) $(shell /usr/bin/find bsg_riscv_tests -maxdepth 2 -iname *-run.log)`
 
 SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@-run.log@@g' | /usr/bin/column -c 160
 
@@ -146,7 +151,7 @@ SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@-run.log@@g' | /usr/bin/co
 
 summary: BSG_FINISH.scrape BSG_FINISH.scrape.i BSG_TIMEOUT.scrape BSG_FAIL.scrape BSG_ERROR.scrape
 	@echo -n "Free disk:"; df .
-	@echo -n "SIMVs running:"; /usr/bin/ps a | /usr/bin/grep simv
+	@echo  "SIMVs running:"; /usr/bin/ps a | /usr/bin/grep simv
 
 watch-summary:
 	watch make summary

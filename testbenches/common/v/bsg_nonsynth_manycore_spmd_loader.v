@@ -15,11 +15,14 @@ module bsg_nonsynth_manycore_spmd_loader
       `bsg_manycore_packet_width(addr_width_p,data_width_p,
         x_cord_width_p,y_cord_width_p)
 
-    , parameter max_nbf_p = 2**20
+    , parameter max_nbf_p = 2**24
     , parameter nbf_addr_width_lp = `BSG_SAFE_CLOG2(max_nbf_p)
 
     , parameter max_out_credits_p=200
-    , parameter credit_counter_width_lp=`BSG_SAFE_CLOG2(max_out_credits_p+1)
+    , parameter credit_counter_width_lp=`BSG_WIDTH(max_out_credits_p)
+    , parameter verbose_p = 0
+
+    , parameter uptime_p=1
   )
   ( 
     input clk_i
@@ -33,7 +36,7 @@ module bsg_nonsynth_manycore_spmd_loader
     , input [y_cord_width_p-1:0] my_y_i
     , input [x_cord_width_p-1:0] my_x_i
 
-    , input [credit_counter_width_lp-1:0] out_credits_i
+    , input [credit_counter_width_lp-1:0] out_credits_used_i
   );
 
   // manycore packet
@@ -62,19 +65,18 @@ module bsg_nonsynth_manycore_spmd_loader
   assign curr_nbf = nbf[nbf_addr_r];
 
   assign packet.addr = curr_nbf.epa[0+:addr_width_p];
-  assign packet.op = e_remote_store;
-  assign packet.op_ex = 4'b1111;
+  assign packet.op_v2 = e_remote_store;
   assign packet.payload = curr_nbf.data;
   assign packet.src_y_cord = my_y_i;
   assign packet.src_x_cord = my_x_i;
   assign packet.y_cord = curr_nbf.y_cord[0+:y_cord_width_p];
   assign packet.x_cord = curr_nbf.x_cord[0+:x_cord_width_p];
-  assign packet.reg_id = '0;
+  assign packet.reg_id.store_mask_s.mask = '1;
+  assign packet.reg_id.store_mask_s.unused = 1'b0;
 
-  integer status;
   string nbf_file;
   initial begin
-    status = $value$plusargs("nbf_file=%s", nbf_file);
+    void'($value$plusargs("nbf_file=%s", nbf_file));
     $readmemh(nbf_file, nbf);
   end
 
@@ -101,7 +103,7 @@ module bsg_nonsynth_manycore_spmd_loader
       end
       else if (is_fence) begin
         v_o = 1'b0;
-        nbf_addr_n = (out_credits_i == max_out_credits_p)
+        nbf_addr_n = (out_credits_used_i == '0)
           ? nbf_addr_r + 1
           : nbf_addr_r;
         loader_done_n = 1'b0;
@@ -118,12 +120,27 @@ module bsg_nonsynth_manycore_spmd_loader
   
   wire loader_done = ~loader_done_r & loader_done_n;
 
+
+  // get uptime from /proc/uptime
+  function string get_uptime();
+    string uptime;
+    if (uptime_p) begin
+      int fd;
+      fd = $fopen("/proc/uptime", "r");
+      void'($fscanf(fd, "%s", uptime));
+      $fclose(fd);
+    end
+    return uptime;
+  endfunction
+
+
+
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
       if (loader_done)
-        $display("[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. t=%0t", $time);
+        $display("[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. sim_time=%0t, wall_time=%s", $time, get_uptime());
   
-      if (v_o & ready_i)
+      if (v_o & ready_i & (verbose_p | (nbf_addr_r[9:0] == '0)))
         $display("[BSG_INFO][SPMD_LOADER] sending packet #%0d. x,y=%0d,%0d, addr=%x, data=%x, t=%0t",
           nbf_addr_r,
           packet.x_cord, packet.y_cord,

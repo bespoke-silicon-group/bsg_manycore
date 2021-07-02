@@ -1,3 +1,7 @@
+
+SKIP_DRAM_INSTRUCTION_LOAD = 1
+
+
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 

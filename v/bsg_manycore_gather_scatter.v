@@ -302,7 +302,6 @@ module bsg_manycore_gather_scatter
     .eva_i(eva_li)
     ,.tgo_x_i((x_cord_width_p)'(0))  // TODO: enable tile-group addressing?
     ,.tgo_y_i((y_cord_width_p)'(0))
-    ,.dram_enable_i(1'b1) // TODO: add dram enable csr?
 
     ,.x_cord_o(x_cord_lo)
     ,.y_cord_o(y_cord_lo)

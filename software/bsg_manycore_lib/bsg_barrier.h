@@ -49,7 +49,7 @@ static inline void bsg_barrier_wait(  bsg_barrier *  p_local_barrier, int barrie
 //------------------------------------------------------------------
 
 static inline void bsg_barrier_wait(  bsg_barrier *  p_local_barrier, int barrier_x_cord, int barrier_y_cord ){
-
+#warning bsg_barrier is a very slow barrier; use the tilegroup barrier instead
     bsg_barrier * p_remote_barrier = (bsg_barrier *) bsg_remote_ptr( barrier_x_cord,    \
                                                                      barrier_y_cord,    \
                                                                      p_local_barrier);

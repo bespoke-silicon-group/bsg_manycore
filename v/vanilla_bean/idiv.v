@@ -39,7 +39,7 @@ module idiv
     ,.reset_i(reset_i)
 
     ,.v_i(v_i)
-    ,.ready_o(ready_o)
+    ,.ready_and_o(ready_o)
 
     ,.dividend_i(rs1_i)
     ,.divisor_i(rs2_i)

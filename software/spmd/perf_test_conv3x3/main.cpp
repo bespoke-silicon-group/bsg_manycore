@@ -90,7 +90,9 @@ int main()
   // validate
   #define hex(x) (*(int*)&x)
   if (sum != mydata*22.0f) {
-    bsg_printf("%x\n", hex(sum));
+    // bsg_printf("%x\n", hex(sum));
+    // Replaced to reduce simulation runtime and remove printf from binary
+    bsg_print_hexadecimal(sum);
     bsg_fail();
   }
 

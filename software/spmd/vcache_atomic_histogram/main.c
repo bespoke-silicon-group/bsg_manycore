@@ -54,7 +54,7 @@ void do_histogram_work()
   
   int work = N/(bsg_tiles_X * bsg_tiles_Y);
   int start_idx = __bsg_id * work;
-  bsg_printf("%d\n", start_idx);
+  bsg_print_int(start_idx);
   for (int i = 0; i < work; i++)
   {
     int local_data = data[start_idx+i];
@@ -63,8 +63,15 @@ void do_histogram_work()
 
   // get the lock
   int lock_val = 1;
+  volatile int counter = 0;
 
   do {
+    // count to 100 before sending amoswap to prevent severe network congestion/lock contention.
+    counter = 0;
+    for (int j = 0; j < 100; j++) {
+      counter++;
+    }
+
     lock_val = bsg_amoswap_aq(&lock, 1);
   } while (lock_val != 0); 
 

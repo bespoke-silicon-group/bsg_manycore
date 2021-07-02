@@ -1,0 +1,10 @@
+Note 1: This test was run on the HB+BP toplevel in the tapeout repository
+Note 2: BP <--> HB interaction has been tested only for a single pod
+
+To run this test, use - 
+make bsg_pods_X=1 bsg_pods_Y=1 HOST=bp
+
+To generate a waveform dump - 
+make bsg_pods_X=1 bsg_pods_Y=1 WAVE=1 HOST=bp
+
+To build the RTL, use the instructions given in the tapeout repository

@@ -1,7 +1,7 @@
 #######################################
 # Simulation run-time flags
 
-MAX_CYCLES ?= 1000000
+MAX_CYCLES ?= 100000000
 WAVE       ?= 0
 TRACE      ?= 0
 COVERAGE   ?= 0
@@ -36,7 +36,11 @@ endif
 # Simulator setup
 
 ifeq ($(WAVE),0)
+ifeq ($(TRACE),0)
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv
+else
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-profile
+endif
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-debug
 endif
@@ -44,8 +48,14 @@ endif
 # Network boot format file
 NBF_FILE = $(PROG_NAME).nbf
 
+# Trace file is used for initialization / reset procedures
+# Using trace file is optional
+TRACE_FILE ?= $(BSG_MACHINE_PATH)/bsg_tag_boot.tr
+
 BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
+               +trace_file=$(TRACE_FILE) \
                +max_cycle=$(MAX_CYCLES) \
+               +num_finish=$(NUM_FINISH) \
                +vanilla_trace_en=$(TRACE) \
                -licqueue -reportstats \
                -l run.log
@@ -63,7 +73,9 @@ ifeq ($(abspath $(BSG_MACHINE_PATH)/..),$(abspath $(BSG_MANYCORE_DIR)/machines))
 	$(MAKE) -C $(BSG_MACHINE_PATH)/.. $(BSG_SIM_EXE)
 endif
 	$(BSG_SIM_EXE) $(BSG_SIM_OPTS)
-
+ifeq ($(TRACE),1)
+	PYTHONPATH=$(BSG_MANYCORE_DIR)/software/py/vanilla_parser/.. python3 -m vanilla_parser --generate-key
+endif
 
 ###################################################
 # Need to move below to machines directory

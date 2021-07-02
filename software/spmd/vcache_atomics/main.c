@@ -4,6 +4,7 @@
 
 int lock __attribute__ ((section (".dram"))) = {0};
 int lock2 __attribute__ ((section (".dram"))) = {0};
+int lock3 __attribute__ ((section (".dram"))) = {0};
 
 int main()
 {
@@ -47,6 +48,24 @@ int main()
     result2 = bsg_amoor_aqrl(&lock2,16);
     if (result2 != 15) bsg_fail();
     bsg_printf("%d\n", result2);
+
+
+    lock3= 10;
+    int result3 = bsg_amoadd(&lock3,10);
+    if (result3 != 10) bsg_fail();
+    bsg_printf("%d\n", result3);
+
+    result3 = bsg_amoadd_aq(&lock3,2);
+    if (result3 != 20) bsg_fail();
+    bsg_printf("%d\n", result3);
+
+    result3 = bsg_amoadd_rl(&lock3,18);
+    if (result3 != 22) bsg_fail();
+    bsg_printf("%d\n", result3);
+
+    result3 = bsg_amoadd_aqrl(&lock3,40);
+    if (result3 != 40) bsg_fail();
+    bsg_printf("%d\n", result3);
 
     bsg_finish();
   }

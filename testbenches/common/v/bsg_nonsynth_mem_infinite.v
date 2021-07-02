@@ -61,7 +61,7 @@ module bsg_nonsynth_mem_infinite
 
     ,.return_packet_i(return_packet_li)
     ,.return_packet_v_i(return_packet_v_li)
-    ,.return_packet_ready_o(return_packet_ready_lo)
+    ,.return_packet_credit_or_ready_o(return_packet_ready_lo)
 
     ,.packet_i('0)
     ,.packet_v_i(1'b0)
@@ -114,6 +114,12 @@ module bsg_nonsynth_mem_infinite
     ,.load_data_o(load_data_lo)
   );
 
+  wire [bsg_manycore_reg_id_width_gp-1:0] store_reg_id;
+  bsg_manycore_reg_id_decode pd0 (
+    .data_i(packet_r.payload)
+    ,.mask_i(packet_r.reg_id.store_mask_s.mask)
+    ,.reg_id_o(store_reg_id)
+  );
 
   // FSM
   //
@@ -125,6 +131,11 @@ module bsg_nonsynth_mem_infinite
   state_e state_r, state_n;
   logic return_v_r, return_v_n;
   
+  wire is_amo = (packet_lo.op_v2 == e_remote_amoswap)
+              | (packet_lo.op_v2 == e_remote_amoor)
+              | (packet_lo.op_v2 == e_remote_amoadd);
+
+
   always_comb begin
   
     packet_yumi_li = 1'b0;
@@ -146,12 +157,12 @@ module bsg_nonsynth_mem_infinite
 
       READY: begin
 
-        mem_w_li = (packet_lo.op == e_remote_store);
+        mem_w_li = packet_lo.op_v2 inside {e_remote_store, e_remote_sw};
         mem_addr_li = packet_lo.addr[0+:mem_addr_width_lp];
         mem_data_li = packet_lo.payload;
-        mem_mask_li = packet_lo.op_ex.store_mask;
+        mem_mask_li = packet_lo.op_v2 == e_remote_store ? packet_lo.reg_id.store_mask_s.mask : 4'hf;
 
-        if (packet_r.op == e_remote_store) begin
+        if (packet_r.op_v2 inside {e_remote_store, e_remote_sw}) begin
           return_packet_li.pkt_type = e_return_credit;
         end
         else begin
@@ -163,12 +174,12 @@ module bsg_nonsynth_mem_infinite
             return_packet_li.pkt_type = e_return_int_wb;
         end
     
-        return_packet_li.data = (packet_r.op == e_remote_load)
+        return_packet_li.data = (packet_r.op_v2 == e_remote_load)
           ? load_data_lo
           : '0;
-        return_packet_li.reg_id = (packet_r.op == e_remote_load)
+        return_packet_li.reg_id = (packet_r.op_v2 inside {e_remote_load, e_remote_sw})
           ? packet_r.reg_id
-          : '0;
+          : store_reg_id;
         return_packet_li.y_cord = packet_r.src_y_cord;
         return_packet_li.x_cord = packet_r.src_x_cord;
 
@@ -181,9 +192,9 @@ module bsg_nonsynth_mem_infinite
             : packet_r;
           return_packet_v_li = 1'b1;
           return_v_n = return_packet_ready_lo
-            ? (packet_v_lo & (packet_lo.op != e_remote_amo))
+            ? (packet_v_lo & ~is_amo)
             : return_v_r;
-          state_n =  (return_packet_ready_lo & packet_v_lo & (packet_lo.op == e_remote_amo))
+          state_n =  (return_packet_ready_lo & packet_v_lo & is_amo)
             ? ATOMIC
             : READY;
         end
@@ -194,8 +205,8 @@ module bsg_nonsynth_mem_infinite
             ? packet_lo
             : packet_r;
           return_packet_v_li = 1'b0;
-          return_v_n = packet_v_lo & (packet_lo.op != e_remote_amo);
-          state_n = (packet_v_lo & (packet_lo.op == e_remote_amo))
+          return_v_n = packet_v_lo & ~is_amo;
+          state_n = (packet_v_lo & is_amo)
             ? ATOMIC
             : READY;
         end
@@ -206,9 +217,10 @@ module bsg_nonsynth_mem_infinite
         mem_v_li = return_packet_ready_lo;
         mem_w_li = return_packet_ready_lo;
         mem_addr_li = packet_r.addr[0+:mem_addr_width_lp];
-        case (packet_r.op_ex.amo_type)
-          e_amo_swap: mem_data_li = packet_r.payload;
-          e_amo_or:  mem_data_li = packet_r.payload | mem_data_lo;
+        case (packet_r.op_v2)
+          e_remote_amoswap: mem_data_li = packet_r.payload;
+          e_remote_amoor:  mem_data_li = packet_r.payload | mem_data_lo;
+          e_remote_amoadd: mem_data_li = packet_r.payload + mem_data_lo;
           default: mem_data_li = '0; // should never happen.
         endcase
         mem_mask_li = {data_mask_width_lp{1'b1}};
@@ -259,7 +271,7 @@ module bsg_nonsynth_mem_infinite
     if (~reset_i) begin
 
       if (packet_v_lo) begin
-        assert(packet_lo.op != e_cache_op) else $error("infinite mem does not support cache mgmt op.");
+        assert(packet_lo.op_v2 != e_cache_op) else $error("infinite mem does not support cache mgmt op.");
       end
 
     end

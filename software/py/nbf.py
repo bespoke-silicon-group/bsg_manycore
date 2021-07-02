@@ -3,21 +3,21 @@
 #
 #   ELF (.riscv) to Network Boot Format (.nbf)
 #
-
+#   When there is a EVA to NPA mapping change in bsg_manycore_eva_to_npa.v,
+#   this file should also be updated accordingly.
+#
+#   https://github.com/bespoke-silicon-group/bsg_manycore/blob/master/v/bsg_manycore_eva_to_npa.v
+#
+#
 
 import sys
 import math
 import os
 import subprocess
 
-#
-#   NBF
-#
 
 ################################
 # EPA Constants
-DMEM_BASE_EPA = 0x400
-
 ICACHE_BASE_EPA = 0x400000
 
 CSR_BASE = 0x8000
@@ -51,13 +51,25 @@ class NBF:
     self.cache_block_size = config["cache_block_size"]
     self.dram_size = config["dram_size"]
     self.addr_width = config["addr_width"]
-  
+    self.origin_x_cord = config["origin_x_cord"]
+    self.origin_y_cord = config["origin_y_cord"]
+    # physical number of pods
+    self.machine_pods_x = config["machine_pods_x"]
+    self.machine_pods_y = config["machine_pods_y"]
+    # number of pods to launch program.
+    self.num_pods_x = config["num_pods_x"]  
+    self.num_pods_y = config["num_pods_y"]
+    self.num_vcache_rows = config["num_vcache_rows"]
+
     # software setting
     self.tgo_x = config["tgo_x"]
     self.tgo_y = config["tgo_y"]
     self.tg_dim_x = config["tg_dim_x"]
     self.tg_dim_y = config["tg_dim_y"]
     self.enable_dram = config["enable_dram"]
+    # if skip_dram_instruction_load == 1, skip loading instruction data to DRAM, if the binary fits in the icache.
+    self.skip_dram_instruction_load = config["skip_dram_instruction_load"]
+
 
     # derived params
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size # in words
@@ -65,6 +77,7 @@ class NBF:
 
     # process riscv
     self.get_data_end_addr()
+    self.get_start_addr()
     self.read_dmem()
     self.read_dram()
    
@@ -162,6 +175,32 @@ class NBF:
       if words[2] == "_bsg_data_end_addr":
         self.bsg_data_end_addr = (int(words[0]) >> 2) # make it word address
 
+  # get the size of the spmd binary (text section) in unit of words.
+  def get_spmd_binary_size(self):
+    proc = subprocess.Popen(["nm", "--radix=d", self.riscv_file], stdout=subprocess.PIPE)
+    lines = proc.stdout.readlines()
+    for line in lines:
+      stripped = line.strip()
+      words = stripped.split()
+      if words[2] == "__.text.dram_end":
+        return (int(words[0])/4) -1
+    
+
+  # grab address for _start symbol.
+  # code earlier than that contains interrupt handler.
+  # we want to set the tile pc_init val to this address.
+  # if _start is not found, which might be possible for some spmd assembly tests, just return 0
+  def get_start_addr(self):
+    proc = subprocess.Popen(["nm", "--radix=d", self.riscv_file], stdout=subprocess.PIPE)
+    lines = proc.stdout.readlines()
+    self.start_addr = 0
+    for line in lines:
+      stripped = line.strip()
+      words = stripped.split()
+      if words[2] == "_start":
+        self.start_addr = (int(words[0]) >> 2) # make it word address
+    
+
   def select_bits(self, num, start, end):
     retval = 0
 
@@ -177,21 +216,55 @@ class NBF:
 
 
   # set TGO x,y
-  def config_tile_group(self):
+  def config_tile_group(self, pod_origin_x, pod_origin_y):
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
-        x_eff = self.tgo_x + x
-        y_eff = self.tgo_y + y
+        x_eff = self.tgo_x + x + pod_origin_x
+        y_eff = self.tgo_y + y + pod_origin_y
         self.print_nbf(x_eff, y_eff, CSR_TGO_X, self.tgo_x)
         self.print_nbf(x_eff, y_eff, CSR_TGO_Y, self.tgo_y)
 
- 
+
+  # initialize vcache wh dest cord
+  def init_vcache_wh_dest(self, pod_origin_x, pod_origin_y, px):
+    # top two MSBs are 1.
+    epa = 0b11 << (self.addr_width-2)
+
+    # if there is only one pod in x-direction, split the pod in half.
+    if self.machine_pods_x == 1:
+      for r in range(self.num_vcache_rows):
+        for x in range(self.num_tiles_x):
+          east_not_west = 0 if x < (self.num_tiles_x/2) else 1
+          # north vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y - 1 - r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
+          # south vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y + self.num_tiles_y + r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
+    # if there are more than one pod, then the left half of pods goes to west, and the right half to east.
+    else:
+      east_not_west = 0 if (px < (self.machine_pods_x/2)) else 1
+      for r in range(self.num_vcache_rows):
+        for x in range(self.num_tiles_x):
+          # north vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y - 1 - r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
+          # south vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y + self.num_tiles_y + r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
+
+
+
   # initialize icache
-  def init_icache(self):
+  def init_icache(self, pod_origin_x, pod_origin_y):
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
-        x_eff = self.tgo_x + x
-        y_eff = self.tgo_y + y
+        x_eff = self.tgo_x + x + pod_origin_x
+        y_eff = self.tgo_y + y + pod_origin_y
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
           if addr < self.icache_size:
@@ -200,7 +273,7 @@ class NBF:
         
  
   # initialize dmem
-  def init_dmem(self):
+  def init_dmem(self, pod_origin_x, pod_origin_y):
     # if there is nothing in dmem, just return.
     if len(self.dmem_data.keys()) == 0:
       return
@@ -208,10 +281,10 @@ class NBF:
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
 
-        x_eff = self.tgo_x + x
-        y_eff = self.tgo_y + y
+        x_eff = self.tgo_x + x + pod_origin_x
+        y_eff = self.tgo_y + y + pod_origin_y
           
-        for k in range(1024, self.bsg_data_end_addr):
+        for k in range(self.bsg_data_end_addr):
           if k in self.dmem_data.keys():
             self.print_nbf(x_eff, y_eff, k, self.dmem_data[k])
           else:
@@ -219,16 +292,16 @@ class NBF:
 
  
   # disable dram mode
-  def disable_dram(self):
+  def disable_dram(self, pod_origin_x, pod_origin_y):
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
-        x_eff = self.tgo_x + x
-        y_eff = self.tgo_y + y
+        x_eff = self.tgo_x + x + pod_origin_x
+        y_eff = self.tgo_y + y + pod_origin_y
         self.print_nbf(x_eff, y_eff, CSR_ENABLE_DRAM, 0)
    
  
   # initialize vcache in no DRAM mode
-  def init_vcache(self):
+  def init_vcache(self, pod_origin_x, pod_origin_y):
 
     t_shift = self.safe_clog2(self.cache_block_size)
 
@@ -236,33 +309,43 @@ class NBF:
       for t in range(self.cache_way * self.cache_set):
         epa = (t << t_shift) | (1 << (self.addr_width-1))
         data = (1 << (self.data_width-1)) | (t / self.cache_set)
-        self.print_nbf(x, 0, epa, data)
-        self.print_nbf(x, self.num_tiles_y+1, epa, data)
+        # top vcache
+        self.print_nbf(x+pod_origin_x, pod_origin_y-1, epa, data)
+        # bot vcache
+        self.print_nbf(x+pod_origin_x, pod_origin_y+self.num_tiles_y, epa, data)
          
  
   # init DRAM
-  def init_dram(self, enable_dram): 
+  def init_dram(self, pod_origin_x, pod_origin_y): 
     cache_size = self.cache_size
     lg_x = self.safe_clog2(self.num_tiles_x)
     lg_block_size = self.safe_clog2(self.cache_block_size)
     lg_set = self.safe_clog2(self.cache_set)
-    index_width = self.addr_width-1-lg_block_size-1
+    lg_y = self.safe_clog2(2*self.num_vcache_rows)
+    index_width = 32-1-2-lg_block_size-lg_x-lg_y
 
-    if enable_dram == 1:
+    if self.enable_dram == 1:
+
+
+
       # dram enabled:
       # EVA space is striped across top and bottom vcaches.
       if self.num_tiles_x & (self.num_tiles_x-1) == 0:
         # hashing for power of 2 banks
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
-          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1)
-          y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x)
-          index = self.select_bits(addr, lg_block_size+lg_x+1, lg_block_size+lg_x+1+index_width-1)
+          # if the binary fits in icaches, skip loading instruction to DRAM, to speed up simulation
+          spmd_binary_size = self.get_spmd_binary_size()
+          if (self.skip_dram_instruction_load == 1) and (spmd_binary_size < self.icache_size) and (addr < spmd_binary_size):
+            continue
+          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + pod_origin_x
+          y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
+          index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
           epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
-          if y == 0:
-            self.print_nbf(x, 0, epa, self.dram_data[k]) #top
+          if y % 2 == 0:
+            self.print_nbf(x, pod_origin_y-1-(y/2), epa, self.dram_data[k]) #top
           else:
-            self.print_nbf(x, self.num_tiles_y+1, epa, self.dram_data[k]) #bot
+            self.print_nbf(x, pod_origin_y+self.num_tiles_y+(y/2), epa, self.dram_data[k]) #bot
       else:
         print("hash function not supported for x={0}.")
         sys.exit()
@@ -271,27 +354,47 @@ class NBF:
       # using vcache as block mem
       for k in sorted(self.dram_data.keys()):
         addr = k - 0x20000000
-        x = addr / cache_size
+        x = (addr / cache_size)
         epa = addr % cache_size
         if (x < self.num_tiles_x):
-          self.print_nbf(x, 0, epa, self.dram_data[k])
+          x_eff = x + pod_origin_x
+          y_eff = pod_origin_y -1
+          self.print_nbf(x_eff, y_eff, epa, self.dram_data[k])
         elif (x < self.num_tiles_x*2):
-          self.print_nbf(x, self.num_tiles_y+1, epa, self.dram_data[k])
+          x_eff = (x % self.num_tiles_x) + pod_origin_x
+          y_eff = pod_origin_y + self.num_tiles_y
+          self.print_nbf(x_eff, y_eff, epa, self.dram_data[k])
         else:
           print("## WARNING: NO DRAM MODE, DRAM DATA OUT OF RANGE!!!")
 
       
 
   # unfreeze tiles
-  def unfreeze_tiles(self):
-    tgo_x = self.tgo_x
-    tgo_y = self.tgo_y
+  def unfreeze_tiles(self, pod_origin_x, pod_origin_y):
+    tgo_x = self.tgo_x + pod_origin_x
+    tgo_y = self.tgo_y + pod_origin_y
 
     for y in range(self.tg_dim_y):
       for x in range(self.tg_dim_x):
         x_eff = tgo_x + x
         y_eff = tgo_y + y
         self.print_nbf(x_eff, y_eff, CSR_FREEZE, 0)
+
+
+  # set pc_init_val.
+  # if _start is not 0, then set the pc_init_val.
+  def set_pc_init_val(self, pod_origin_x, pod_origin_y):
+    if self.start_addr == 0:
+      return
+    tgo_x = self.tgo_x + pod_origin_x
+    tgo_y = self.tgo_y + pod_origin_y
+
+    for y in range(self.tg_dim_y):
+      for x in range(self.tg_dim_x):
+        x_eff = tgo_x + x
+        y_eff = tgo_y + y
+        self.print_nbf(x_eff, y_eff, CSR_PC_INIT, self.start_addr)
+
 
   # print finish
   # when spmd loader sees, this it stops sending packets.
@@ -304,22 +407,42 @@ class NBF:
     self.print_nbf(0xff, 0xff, 0x0, 0x0)
 
 
+
+
   ##### LOADER ROUTINES END  #####  
 
+  # public main function
   # users only have to call this function.
   def dump(self):
-    self.config_tile_group()
-    self.init_icache()
-    self.init_dmem()
+    # initialize all pods
+    for px in range(self.num_pods_x):
+      for py in range(self.num_pods_y):
+        pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
+        pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
+        self.config_tile_group(pod_origin_x, pod_origin_y)
+        self.init_icache(pod_origin_x, pod_origin_y)
+        self.init_dmem(pod_origin_x, pod_origin_y)
+        self.set_pc_init_val(pod_origin_x, pod_origin_y)
+        self.init_vcache_wh_dest(pod_origin_x, pod_origin_y, px)
 
-    if self.enable_dram != 1:
-      self.disable_dram()    
-      self.init_vcache()
+        if self.enable_dram != 1:
+          self.disable_dram(pod_origin_x, pod_origin_y)
+          self.init_vcache(pod_origin_x, pod_origin_y)
 
-    self.init_dram(self.enable_dram)
+        self.init_dram(pod_origin_x, pod_origin_y)
+
+
+    # wait for all store credits to return.
     self.fence()
-    self.unfreeze_tiles()
 
+    # unfreeze all pods
+    for px in range(self.num_pods_x):
+      for py in range(self.num_pods_y):
+        pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
+        pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
+        self.unfreeze_tiles(pod_origin_x, pod_origin_y)
+
+    # print finish nbf.
     self.print_finish()
 
 
@@ -348,7 +471,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 14:
+  if len(sys.argv) == 22:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -365,6 +488,14 @@ if __name__ == "__main__":
       "tg_dim_x" : int(sys.argv[11]),
       "tg_dim_y" : int(sys.argv[12]),
       "enable_dram" : int(sys.argv[13]),
+      "origin_x_cord" : int(sys.argv[14]),
+      "origin_y_cord" : int(sys.argv[15]),
+      "machine_pods_x" : int(sys.argv[16]),
+      "machine_pods_y" : int(sys.argv[17]),
+      "num_pods_x" : int(sys.argv[18]),
+      "num_pods_y" : int(sys.argv[19]),
+      "num_vcache_rows" : int(sys.argv[20]),
+      "skip_dram_instruction_load": int(sys.argv[21])
     }
 
     converter = NBF(config)
@@ -373,7 +504,12 @@ if __name__ == "__main__":
     print("USAGE:")
     command = "python nbf.py {program.riscv} "
     command += "{num_tiles_x} {num_tiles_y} "
-    command += "{cache_way} {cache_set} {cache_block_size} {dram_size} {max_epa_width}"
-    command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram}"
+    command += "{cache_way} {cache_set} {cache_block_size} {dram_size} {max_epa_width} "
+    command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram} "
+    command += "{origin_x_cord} {origin_y_cord}"
+    command += "{machine_pods_x} {machine_pods_y}"
+    command += "{num_pods_x} {num_pods_y}"
+    command += "{num_vcache_rows}"
+    command += "{skip_dram_instruction_load}"
     print(command)
 

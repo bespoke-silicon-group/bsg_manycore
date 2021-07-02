@@ -598,6 +598,7 @@ class CacheTagStats(CacheStats):
         doc += "\t RISC-V Atomic Operations:\n"
         doc += "\t\t-instr_amoswap: Atomic Swap\n"
         doc += "\t\t-instr_amoor: Atomic OR\n"
+        doc += "\t\t-instr_amoadd: Atomic ADD\n"
         doc += "\t Cache Stall Operations:\n"
         doc += "\t\t-stall_miss: Miss Operation (Stall)\n"
         doc += "\t\t-stall_idle: Idle Operation (Stall)\n"
@@ -1042,7 +1043,9 @@ class VanillaStatsParser:
 
         # Raise exception and exit if there are no traces 
         if not self.traces:
-            raise IOError("No Vanilla Stats Found: Use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics")
+            print("## Warning: No Vanilla Stats Found: you can use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics");
+            sys.exit(0)
+            #raise IOError("No Vanilla Stats Found: Use bsg_cuda_print_stat_kernel_start/end to generate runtime statistics")
 
 
         # Save the active tiles in a list

@@ -1,19 +1,28 @@
+# number of pods to deploy the SPMD programs
+bsg_pods_X ?= 1
+bsg_pods_Y ?= 1
+bsg_pods_size ?= $(call bsg-times-fn,$(bsg_pods_X),$(bsg_pods_Y))
 
-#$(warning testing $(call bsg-max-fn,2,3))
-#$(warning testing $(call bsg-minus-fn,3,2))
-#$(warning testing $(call bsg-min-fn,3,2))
-#$(warning testing $(call bsg-times-fn,3,2))
-#$(warning testing $(call bsg-plus-fn,3,2))
+# By default, one tile-group running each pod sends exactly one finish packet to the host.
+# The host will wait for the total number of finish packets equal to the number of pods that has spmd programs launched.
+NUM_FINISH ?= $(bsg_pods_size)
 
+# tile-group origin
+# relative to the top-left tile in a pod
 bsg_tiles_org_X ?=0
-bsg_tiles_org_Y ?=2
+bsg_tiles_org_Y ?=0
 
 ifdef BSG_MACHINE_GLOBAL_X
 
-bsg_tiles_X ?= $(call bsg-min-fn,2,$(BSG_MACHINE_GLOBAL_X))
-bsg_tiles_Y ?= $(call bsg-min-fn,2,$(call bsg-minus-fn,$(BSG_MACHINE_GLOBAL_Y),1))
+
+# tile group size
+# By default, the tile groups size is the full array.
+bsg_tiles_X ?= $(BSG_MACHINE_GLOBAL_X)
+bsg_tiles_Y ?= $(BSG_MACHINE_GLOBAL_Y)
 bsg_group_size ?= $(call bsg-times-fn,$(bsg_tiles_X),$(bsg_tiles_Y))
 
+
+# size of a pod
 bsg_global_X ?= $(BSG_MACHINE_GLOBAL_X)
 bsg_global_Y ?= $(BSG_MACHINE_GLOBAL_Y)
 

@@ -77,6 +77,7 @@ class VcacheStallGraph:
                          "atomic", 
                          "amoswap",
                          "amoor",  
+                         "amoadd",  
                          "miss_ld",
                          "miss_st",
                          "dma_read_req",
@@ -115,6 +116,7 @@ class VcacheStallGraph:
                                  "atomic"          : (0x00, 0x00, 0x00) , ## white 
                                  "amoswap"         : (0x00, 0x00, 0x00) , ## white 
                                  "amoor"           : (0x00, 0x00, 0x00) , ## white 
+                                 "amoadd"          : (0x00, 0x00, 0x00) , ## white 
                                  "miss_ld"         : (0x00, 0xff, 0x00) , ## green
                                  "miss_st"         : (0x00, 0x00, 0xff) , ## blue 
                                  "dma_read_req"    : (0xff, 0xff, 0xff) , ## white 
@@ -154,6 +156,7 @@ class VcacheStallGraph:
                                  "atomic"          : (0x00, 0x00, 0x00) , ## white 
                                  "amoswap"         : (0x00, 0x00, 0x00) , ## white 
                                  "amoor"           : (0x00, 0x00, 0x00) , ## white 
+                                 "amoadd"          : (0x00, 0x00, 0x00) , ## white 
                                  "miss_ld"         : (0x00, 0xff, 0x00) , ## green
                                  "miss_st"         : (0x00, 0x00, 0xff) , ## blue 
                                  "dma_read_req"    : (0xff, 0xff, 0xff) , ## white 

@@ -39,7 +39,7 @@ BSG_ELF_VCACHE_SIZE ?= $(shell echo \
 # EVA of stack pointer
 BSG_ELF_DRAM_EVA_OFFSET = 0x80000000
 ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), LOCAL)
-BSG_ELF_STACK_PTR ?= 0x00001ffc
+BSG_ELF_STACK_PTR ?= 0x00000ffc
 else
   ifeq ($(BSG_ELF_OFF_CHIP_MEM), 1)
   BSG_ELF_STACK_PTR ?= $(shell echo $$(( $(BSG_ELF_DRAM_EVA_OFFSET) + $(BSG_ELF_DRAM_SIZE) - 4 )) )
@@ -66,6 +66,7 @@ RISCV_SIM     ?= $(RISCV_BIN_DIR)/spike
 BSG_ROM_GEN     = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN         = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
 NBF_PY 			    = $(BSG_MANYCORE_DIR)/software/py/nbf.py
+NBF_BP_PY 	    = $(BSG_MANYCORE_DIR)/software/py/nbf_blackparrot.py
 TRACE_PP_SCRIPT = $(BSG_MANYCORE_DIR)/software/py/post_process_trace.py
 LINK_GEN        = $(BSG_MANYCORE_DIR)/software/py/bsg_manycore_link_gen.py
 
@@ -88,6 +89,16 @@ RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/com
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
 RISCV_GCC_OPTS +=-Dbsg_global_X=$(bsg_global_X) -Dbsg_global_Y=$(bsg_global_Y)
 RISCV_GCC_OPTS +=-Dbsg_group_size=$(bsg_group_size)
+RISCV_GCC_OPTS +=-Dbsg_pods_X=$(bsg_pods_X) -Dbsg_pods_Y=$(bsg_pods_Y)
+RISCV_GCC_OPTS +=-Dnum_pods_X=$(BSG_MACHINE_PODS_X) -Dnum_pods_Y=$(BSG_MACHINE_PODS_Y)
+RISCV_GCC_OPTS +=-DVCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS}
+RISCV_GCC_OPTS +=-DVCACHE_CAPACITY_WORDS=$(shell expr $(BSG_MACHINE_GLOBAL_X) \* $(BSG_MACHINE_VCACHE_SET) \* $(BSG_MACHINE_VCACHE_WAY) \* $(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS) \* 2 \* $(BSG_MACHINE_NUM_VCACHE_ROWS))
+
+# IO_X/Y_INDEX indicates global physical coordinate where the host interface is attached.
+# This macros are required by the program to know where to send the finish/fail packets to the host.
+RISCV_GCC_OPTS +=-DIO_X_INDEX=$(BSG_MACHINE_HOST_X_CORD)
+RISCV_GCC_OPTS +=-DIO_Y_INDEX=$(BSG_MACHINE_HOST_Y_CORD)
+
 ifeq ($(BSG_NEWLIB), 1)
   ARGC ?= 1
   ARGV ?= main
@@ -283,15 +294,36 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 	# 0x0, and converting to actual NPA is handled in the verilog loader.
 	sed -i 's/@8/@0/' $@
 
+
+SKIP_DRAM_INSTRUCTION_LOAD ?= 0
+HOST ?= x86
+NBF_PARAMS ?=
+
+# BlackParrot-specific arguments
+ifeq ($(HOST),bp)
+NBF_SCRIPT ?= $(NBF_BP_PY)
+NBF_PARAMS += prog.mem
+NBF_PARAMS += 0x82000000
+NBF_PARAMS += 0x09
+else
+NBF_SCRIPT   ?= $(NBF_PY)
+endif
+
 %.nbf: %.riscv
-	python $(NBF_PY) $*.riscv \
+	python $(NBF_SCRIPT) \
+	  $*.riscv \
 		$(BSG_MACHINE_GLOBAL_X) $(BSG_MACHINE_GLOBAL_Y) \
 		$(BSG_MACHINE_VCACHE_WAY) $(BSG_MACHINE_VCACHE_SET) \
 		$(BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS) \
 		$(BSG_MACHINE_DRAM_SIZE_WORDS) $(BSG_MACHINE_MAX_EPA_WIDTH) \
 		$(bsg_tiles_org_X) $(bsg_tiles_org_Y) \
-		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) > $*.nbf
-
+		$(bsg_tiles_X) $(bsg_tiles_Y) $(BSG_ELF_OFF_CHIP_MEM) \
+		$(BSG_MACHINE_ORIGIN_X_CORD) $(BSG_MACHINE_ORIGIN_Y_CORD) \
+		$(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) \
+    $(bsg_pods_X) $(bsg_pods_Y) \
+    $(BSG_MACHINE_NUM_VCACHE_ROWS) \
+		$(SKIP_DRAM_INSTRUCTION_LOAD) \
+		$(NBF_PARAMS) > $*.nbf
 
 %.bin:  %.hex
 	python $(HEX2BIN) $< 32 > $@

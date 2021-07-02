@@ -219,12 +219,12 @@ int main()
     if (crc == ANSWER)
     {
       bsg_printf("crc: %X [PASSED]\n", crc);
-      bsg_finish_x(0);
+      bsg_finish();
     }
     else
     {
       bsg_printf("crc: %X [FAILED]\n", crc);
-      bsg_fail_x(0);
+      bsg_fail();
     }
   }
 
