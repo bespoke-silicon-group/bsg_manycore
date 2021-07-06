@@ -7,21 +7,29 @@
 module bsg_manycore_tile_compute_mesh
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }
   import bsg_manycore_pkg::*;
-  #(parameter dmem_size_p = "inv"
-    , parameter vcache_size_p ="inv"
-    , parameter icache_entries_p = "inv"
-    , parameter icache_tag_width_p = "inv"
-    , parameter start_x_cord_p ="inv"
-    , parameter x_cord_width_p = "inv"
-    , parameter y_cord_width_p = "inv"
-    , parameter num_tiles_x_p="inv"
-    , parameter num_tiles_y_p="inv"
+  #(parameter dmem_size_p = 1024
+    , parameter vcache_size_p =2048
+    , parameter icache_entries_p = 1024
+    , parameter icache_tag_width_p = 12
+    , parameter x_cord_width_p = 7
+    , parameter y_cord_width_p = 7
+    , parameter pod_x_cord_width_p = 3
+    , parameter pod_y_cord_width_p = 4
 
-    , parameter data_width_p = "inv"
-    , parameter addr_width_p = "inv"
+    // Number of tiles in a pod
+    , parameter num_tiles_x_p=16
+    , parameter num_tiles_y_p=8
+    , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+    , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_sets_p="inv"
+
+
+    , parameter data_width_p = 32
+    , parameter addr_width_p = 28
+
+    , parameter num_vcache_rows_p = 1
+    , parameter vcache_block_size_in_words_p=8
+    , parameter vcache_sets_p=64
 
     , parameter dims_p = 2
     , parameter dirs_lp = (dims_p*2)
@@ -31,7 +39,7 @@ module bsg_manycore_tile_compute_mesh
     , parameter hetero_type_p = 0
     , parameter debug_p = 0
 
-    , parameter branch_trace_en_p = 0
+
 
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -39,15 +47,17 @@ module bsg_manycore_tile_compute_mesh
   (
     input clk_i
     , input reset_i
-
+    , output logic reset_o
 
     // local links
     , input  [S:W][link_sif_width_lp-1:0] link_i
     , output [S:W][link_sif_width_lp-1:0] link_o
 
     // tile coordinates
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
+    , input [x_cord_width_p-1:0] global_x_i
+    , input [y_cord_width_p-1:0] global_y_i
+    , output logic [x_cord_width_p-1:0] global_x_o
+    , output logic [y_cord_width_p-1:0] global_y_o
   );
 
 
@@ -64,6 +74,34 @@ module bsg_manycore_tile_compute_mesh
     ,.data_i(reset_i)
     ,.data_o(reset_r)
   );
+
+  // feedthrough coordinate bits
+  logic [x_subcord_width_lp-1:0] my_x_r;
+  logic [y_subcord_width_lp-1:0] my_y_r;
+  logic [pod_x_cord_width_p-1:0] pod_x_r;
+  logic [pod_y_cord_width_p-1:0] pod_y_r;
+
+  bsg_dff #(
+    .width_p(x_cord_width_p)
+  ) dff_x (
+    .clk_i(clk_i)
+    ,.data_i(global_x_i)
+    ,.data_o({pod_x_r, my_x_r})
+  );
+
+  bsg_dff #(
+    .width_p(y_cord_width_p)
+  ) dff_y (
+    .clk_i(clk_i)
+    ,.data_i(global_y_i)
+    ,.data_o({pod_y_r, my_y_r})
+  );
+
+  assign global_x_o = {pod_x_r, my_x_r};
+  assign global_y_o = (y_cord_width_p)'(({pod_y_r, my_y_r}) + 1);
+
+
+
 
 
   // For vanilla core (hetero type = 0), it uses credit interface for the P ports,
@@ -103,17 +141,17 @@ module bsg_manycore_tile_compute_mesh
     ,.links_sif_o(links_sif_lo)
     ,.proc_link_sif_i(proc_link_sif_li)
     ,.proc_link_sif_o(proc_link_sif_lo)
-    ,.my_x_i(my_x_i)
-    ,.my_y_i(my_y_i)
+    ,.global_x_i({pod_x_r, my_x_r})
+    ,.global_y_i({pod_y_r, my_y_r})
   );
 
   bsg_manycore_hetero_socket #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
+    ,.pod_x_cord_width_p(pod_x_cord_width_p)
+    ,.pod_y_cord_width_p(pod_y_cord_width_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-
-    ,.start_x_cord_p(start_x_cord_p)
     ,.dmem_size_p(dmem_size_p)
     ,.vcache_size_p(vcache_size_p)
     ,.icache_entries_p(icache_entries_p)
@@ -121,12 +159,11 @@ module bsg_manycore_tile_compute_mesh
     ,.hetero_type_p(hetero_type_p)
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
+    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
-
-    ,.branch_trace_en_p(branch_trace_en_p)
-    ,.fwd_fifo_els_p(fwd_fifo_els_lp[0]) // number of fifo elements for the fwd network P-port input
-
+    ,.fwd_fifo_els_p(fwd_fifo_els_lp[0])
+    ,.rev_fifo_els_p(rev_fifo_els_lp[0])
     ,.debug_p(debug_p)
   ) proc (
     .clk_i(clk_i)
@@ -135,8 +172,11 @@ module bsg_manycore_tile_compute_mesh
     ,.link_sif_i(proc_link_sif_lo)
     ,.link_sif_o(proc_link_sif_li)
 
-    ,.my_x_i(my_x_i)
-    ,.my_y_i(my_y_i)
+    ,.pod_x_i(pod_x_r)
+    ,.pod_y_i(pod_y_r)
+
+    ,.my_x_i(my_x_r)
+    ,.my_y_i(my_y_r)
   );
 
 
