@@ -169,6 +169,8 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/lsu.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_synth.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_hard.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_regfile_latch.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_icg.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_array.v

@@ -3,8 +3,9 @@
  *
  *    register file
  *
- *    use harden_p to choose between synthesized and hardened version.
- *
+ *    use harden_p to choose hardened 1r1w SRAM implementation.
+ *    use latch_p to choose latch-based implementation.
+ *    If neither options are chosen, it chooses the FF-based synth regfile.
  *    @author tommy
  */
 
@@ -16,6 +17,7 @@ module regfile
     , `BSG_INV_PARAM(num_rs_p)
     , `BSG_INV_PARAM(x0_tied_to_zero_p)
     , parameter harden_p=0
+    , parameter latch_p=0
 
     , parameter addr_width_lp=`BSG_SAFE_CLOG2(els_p)
   )
@@ -35,6 +37,14 @@ module regfile
 
   if (harden_p) begin: hard
     regfile_hard #(
+      .width_p(width_p)
+      ,.els_p(els_p)
+      ,.num_rs_p(num_rs_p)
+      ,.x0_tied_to_zero_p(x0_tied_to_zero_p)
+    ) rf (.*);
+  end
+  else if (latch_p) begin: latch
+    bsg_regfile_latch #(
       .width_p(width_p)
       ,.els_p(els_p)
       ,.num_rs_p(num_rs_p)
