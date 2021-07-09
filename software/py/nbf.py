@@ -331,11 +331,11 @@ class NBF:
       # dram enabled:
       # EVA space is striped across top and bottom vcaches.
       if self.num_tiles_x & (self.num_tiles_x-1) == 0:
+        spmd_binary_size = self.get_spmd_binary_size()
         # hashing for power of 2 banks
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
           # if the binary fits in icaches, skip loading instruction to DRAM, to speed up simulation
-          spmd_binary_size = self.get_spmd_binary_size()
           if (self.skip_dram_instruction_load == 1) and (spmd_binary_size < self.icache_size) and (addr < spmd_binary_size):
             continue
           x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + pod_origin_x
