@@ -180,7 +180,7 @@ int main(){
                 
 #ifndef __llvm__
                 // LLVM complains about memory intrinsics...
-                if (std::memcmp(_C, _gold, N_ELS * sizeof(*C)))
+                if (memcmp(_C, _gold, N_ELS * sizeof(*C)))
                         bsg_fail();
                 memset(_C, 0, N_ELS * sizeof(*C));
 #endif
@@ -198,7 +198,7 @@ int main(){
                 
 #ifndef __llvm__
                 // LLVM complains about memory intrinsics...
-                if (std::memcmp(_C, _gold, N_ELS * sizeof(*C)))
+                if (memcmp(_C, _gold, N_ELS * sizeof(*C)))
                         bsg_fail();
                 memset(_C, 0, N_ELS * sizeof(*C));
 #endif
