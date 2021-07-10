@@ -15,7 +15,7 @@ module bsg_nonsynth_dpi_manycore
      ,parameter rom_els_p = "inv"
      ,parameter rom_width_p = "inv"
      ,parameter fifo_width_p = "inv"
-     ,parameter bit [rom_width_p-1:0] rom_arr_p [rom_els_p-1:0] = "inv"
+     ,parameter bit [rom_width_p-1:0] rom_arr_p [0:rom_els_p-1] = '{default: '0}
      ,localparam link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
      ,parameter bit debug_p = 0
      )

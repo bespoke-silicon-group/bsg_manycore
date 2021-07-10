@@ -88,6 +88,7 @@ module bsg_manycore_vcache_blocking
     ,.yumi_o(cache_yumi_li)
 
     ,.v_we_i(v_we_lo)
+    ,.wh_dest_east_not_west_o()
   );
 
   
