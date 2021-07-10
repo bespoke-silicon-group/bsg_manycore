@@ -246,7 +246,9 @@ module bsg_manycore_tile_compute_array_ruche
     );
   end
   
-
+  // Ruche Connection Diagram:
+  // For ruche factor 3
+  // https://docs.google.com/presentation/d/1MdQODg7RtSm3qP2aIDhG5b7j58DfMFEDun-4yWoRzcw/edit#slide=id.p
 
   // stitch ruche links
   for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: rr
