@@ -107,7 +107,7 @@ module bsg_nonsynth_dpi_manycore_tile
    logic                               mc_req_v_li;
    logic                               mc_req_ready_lo;
 
-   bsg_manycore_endpoint_to_fifos
+   bsg_manycore_endpoint_to_fifos_full
      #(
        .fifo_width_p(fifo_width_lp)
        ,.x_cord_width_p(x_cord_width_p)
@@ -143,8 +143,8 @@ module bsg_nonsynth_dpi_manycore_tile
       // manycore link
       ,.link_sif_i(link_sif_i)
       ,.link_sif_o(link_sif_o)
-      ,.my_x_i({pod_x_i, my_x_i})
-      ,.my_y_i({pod_y_i, my_y_i})
+      ,.global_x_i({pod_x_i, my_x_i})
+      ,.global_y_i({pod_y_i, my_y_i})
       ,.out_credits_used_o(out_credits_used_lo)
       );
 
