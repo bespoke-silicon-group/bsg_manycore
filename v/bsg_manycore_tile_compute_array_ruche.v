@@ -61,8 +61,8 @@ module bsg_manycore_tile_compute_array_ruche
     // coordinate within a pod
     // my_x/y_i
     // A multiple of these modules can be instantiated within a pod as a subarray to form a larger array.
-    , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
-    , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , parameter y_subcord_width_lp=y_cord_width_p-pod_y_cord_width_p
+    , parameter x_subcord_width_lp=x_cord_width_p-pod_x_cord_width_p
 
     
     , parameter link_sif_width_lp =

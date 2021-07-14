@@ -47,8 +47,8 @@ module bsg_manycore_pod_ruche_row
     // number of pods to instantiate
     , parameter num_pods_x_p="inv"
 
-    , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
-    , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
+    , parameter x_subcord_width_lp=x_cord_width_p-pod_x_cord_width_p
+    , parameter y_subcord_width_lp=y_cord_width_p-pod_y_cord_width_p
 
     // subarray num clk ports
     , parameter num_clk_ports_p=1 

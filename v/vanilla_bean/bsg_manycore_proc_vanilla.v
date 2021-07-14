@@ -26,8 +26,8 @@ module bsg_manycore_proc_vanilla
     , parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
 
-    , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
-    , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
+    , parameter x_subcord_width_lp=x_cord_width_p-pod_x_cord_width_p
+    , parameter y_subcord_width_lp=y_cord_width_p-pod_y_cord_width_p
 
     , parameter rev_fifo_els_p="inv" // for FIFO credit counting.
     , parameter fwd_fifo_els_p="inv" // for FIFO credit counting.

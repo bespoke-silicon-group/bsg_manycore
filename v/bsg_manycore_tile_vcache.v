@@ -15,6 +15,8 @@ module bsg_manycore_tile_vcache
     , parameter data_width_p="inv"
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
+    , parameter pod_y_cord_width_p="inv"
+    , parameter pod_x_cord_width_p="inv"
 
     , parameter num_tiles_y_p="inv"
 
@@ -37,7 +39,7 @@ module bsg_manycore_tile_vcache
 
     , parameter lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
 
-    , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
+    , parameter y_subcord_width_lp=y_cord_width_p-pod_y_cord_width_p
 
     , parameter manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)

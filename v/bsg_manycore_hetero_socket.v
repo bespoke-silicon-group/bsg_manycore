@@ -62,8 +62,8 @@ module bsg_manycore_hetero_socket
     , parameter pod_y_cord_width_p="inv"
     , parameter num_tiles_x_p="inv"
     , parameter num_tiles_y_p="inv"
-    , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
-    , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
+    , parameter x_subcord_width_lp=x_cord_width_p-pod_x_cord_width_p
+    , parameter y_subcord_width_lp=y_cord_width_p-pod_y_cord_width_p
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_sets_p="inv"
     , parameter fwd_fifo_els_p = "inv"
