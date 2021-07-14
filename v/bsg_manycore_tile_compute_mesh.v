@@ -7,29 +7,29 @@
 module bsg_manycore_tile_compute_mesh
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }
   import bsg_manycore_pkg::*;
-  #(parameter dmem_size_p = 1024
-    , parameter vcache_size_p =2048
-    , parameter icache_entries_p = 1024
-    , parameter icache_tag_width_p = 12
-    , parameter x_cord_width_p = 7
-    , parameter y_cord_width_p = 7
-    , parameter pod_x_cord_width_p = 3
-    , parameter pod_y_cord_width_p = 4
+  #(parameter dmem_size_p = "inv"
+    , parameter vcache_size_p = "inv"
+    , parameter icache_entries_p = "inv"
+    , parameter icache_tag_width_p = "inv"
+    , parameter x_cord_width_p = "inv"
+    , parameter y_cord_width_p = "inv"
+    , parameter pod_x_cord_width_p = "inv"
+    , parameter pod_y_cord_width_p = "inv"
 
     // Number of tiles in a pod
-    , parameter num_tiles_x_p=16
-    , parameter num_tiles_y_p=8
+    , parameter num_tiles_x_p="inv"
+    , parameter num_tiles_y_p="inv"
     , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
 
 
-    , parameter data_width_p = 32
-    , parameter addr_width_p = 28
+    , parameter data_width_p = "inv"
+    , parameter addr_width_p = "inv"
 
-    , parameter num_vcache_rows_p = 1
-    , parameter vcache_block_size_in_words_p=8
-    , parameter vcache_sets_p=64
+    , parameter num_vcache_rows_p = "inv"
+    , parameter vcache_block_size_in_words_p="inv"
+    , parameter vcache_sets_p="inv"
 
     , parameter dims_p = 2
     , parameter dirs_lp = (dims_p*2)
