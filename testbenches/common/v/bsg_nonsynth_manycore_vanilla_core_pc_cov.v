@@ -19,8 +19,8 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   // Pipeline registers
   ,input id_signals_s  id_r
   ,input exe_signals_s exe_r
-  ,input mem_signals_s mem_r
-  ,input wb_signals_s  wb_r
+  ,input mem_ctrl_signals_s mem_ctrl_r
+  ,input wb_ctrl_signals_s  wb_ctrl_r
   // Decoder output
   ,input decode_s      decode
 
@@ -53,7 +53,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   endgroup
 
   covergroup cg_pc_wb_icache_miss @(negedge clk_i iff ~reset_down);
-    coverpoint wb_r.icache_miss;
+    coverpoint wb_ctrl_r.icache_miss;
   endgroup
 
   covergroup cg_pc_interrupt_ready @(negedge clk_i);
@@ -78,7 +78,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
     // interrupt_ready
     rem: coverpoint remote_interrupt_ready;
     trac: coverpoint trace_interrupt_ready;
-    icache_miss: coverpoint {wb_r.icache_miss, mem_r.icache_miss, exe_r.icache_miss} {
+    icache_miss: coverpoint {wb_ctrl_r.icache_miss, mem_ctrl_r.icache_miss, exe_r.icache_miss} {
       bins wb_imiss = {3'b100};
       bins mem_imiss = {3'b010};
       bins exe_imiss = {3'b001};
@@ -158,7 +158,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
 
   covergroup cg_pc_conditions @(negedge clk_i);
 
-    all_cond: coverpoint {reset_down, wb_r.icache_miss, interrupt_ready, exe_r.decode.is_mret_op, branch_mispredict, jalr_mispredict, take_br, take_jalr} {
+    all_cond: coverpoint {reset_down, wb_ctrl_r.icache_miss, interrupt_ready, exe_r.decode.is_mret_op, branch_mispredict, jalr_mispredict, take_br, take_jalr} {
       bins reset = {8'h80};
       bins icache_miss = {8'h40};
       bins intr = {8'h20};
