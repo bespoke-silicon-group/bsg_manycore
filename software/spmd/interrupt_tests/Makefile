@@ -23,13 +23,13 @@ endif
 %_run: cov_setup
 	mkdir -p $@
 	cp $*.S $@/main.S
-	$(MAKE) -C $@ -f ../Makefile main.run CM_NAME=$* 2>&1 | /usr/bin/tee $@/$@.log
+	$(MAKE) -C $@ -f ../Makefile main.run CM_NAME=$* COV_DIR=$(abspath ./coverage) 2>&1 | /usr/bin/tee $@/$*.run.log
 
 %_wave:
 	$(DVE) -full64 -vpd $*/vcdplus.vpd &
 
-cov:
-	$(DVE) -full64 -cov -covdir coverage/simv.vdb &
+cov_dve: COV_DIR := $(abspath ./coverage)
+cov_dve: COV_DB_NAME := simv
 
 regress: clean
 	$(MAKE) $(foreach test, $(TESTS), $(test)_run)

@@ -116,7 +116,10 @@ module spmd_testbench();
     ,.enable_vcore_profiling_p(1)
     ,.enable_router_profiling_p(1)
     ,.enable_cache_profiling_p(1)
-`endif				    
+`endif
+`ifdef BSG_ENABLE_COVERAGE
+    ,.enable_vcore_pc_coverage_p(1)
+`endif
   ) tb (
     .clk_i(core_clk)
     ,.reset_i(global_reset)
@@ -172,11 +175,11 @@ module spmd_testbench();
   end
 
   // coverage enable
-  int vanilla_pc_cov_arg;
-  logic vanilla_pc_cov_en;
+  int coverage_arg;
+  logic coverage_en;
   initial begin
-    status = $value$plusargs("vanilla_pc_cov_en=%d", vanilla_pc_cov_arg);
-    assign vanilla_pc_cov_en = (vanilla_pc_cov_arg == 1);
+    status = $value$plusargs("coverage_en=%d", coverage_arg);
+    assign coverage_en = (coverage_arg == 1);
   end
 
   // global counter

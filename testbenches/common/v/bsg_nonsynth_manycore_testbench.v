@@ -51,6 +51,8 @@ module bsg_nonsynth_manycore_testbench
     , parameter enable_router_profiling_p=0
     , parameter enable_cache_profiling_p=0
 
+    , parameter enable_vcore_pc_coverage_p=0
+
     , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p*num_vcache_rows_p)*4) // byte addr
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -91,6 +93,7 @@ module bsg_nonsynth_manycore_testbench
     $display("[INFO][TESTBENCH] enable_vcore_profiling_p             = %d", enable_vcore_profiling_p);
     $display("[INFO][TESTBENCH] enable_router_profiling_p            = %d", enable_router_profiling_p);
     $display("[INFO][TESTBENCH] enable_cache_profiling_p             = %d", enable_cache_profiling_p);
+    $display("[INFO][TESTBENCH] enable_vcore_pc_coverage_p           = %d", enable_vcore_pc_coverage_p);
   end
 
 
@@ -775,15 +778,16 @@ if (enable_router_profiling_p) begin
 end
 
 
-  // Functional Coverage
+if (enable_vcore_pc_coverage_p) begin
   bind vanilla_core bsg_nonsynth_manycore_vanilla_core_pc_cov #(
     .icache_tag_width_p(icache_tag_width_p)
     ,.icache_entries_p(icache_entries_p)
   )
   pc_cov (
     .*
-    ,.coverage_en_i($root.`HOST_MODULE_PATH.vanilla_pc_cov_en)
+    ,.coverage_en_i($root.`HOST_MODULE_PATH.coverage_en)
   );
+end
 
 endmodule
 

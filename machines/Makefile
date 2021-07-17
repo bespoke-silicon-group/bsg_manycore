@@ -128,7 +128,7 @@ ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py
 	$(call set_machine_variables,$<)
 	python $(POD_TRACE_GEN_PY) $(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) $(BSG_MACHINE_X_CORD_WIDTH) > $*/pod_trace.tr
 	python $(ASCII_TO_ROM_PY) $*/pod_trace.tr bsg_tag_boot_rom > $*/bsg_tag_boot_rom.v
-	$(eval VCS_FLAGS += -cm line+fsm+branch+cond+tgl) # Required to enable coverage
+	$(eval VCS_FLAGS += -cm line+fsm+branch+cond+tgl +define+BSG_ENABLE_COVERAGE) # Required to enable coverage
 	$(VCS) $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ \
 		$(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) $*/bsg_tag_boot_rom.v \
 		-l $*/build-coverage.log -Mdir=$*/csrc-coverage

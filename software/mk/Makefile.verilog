@@ -6,8 +6,11 @@ WAVE       ?= 0
 TRACE      ?= 0
 COVERAGE   ?= 0
 PROG_NAME  ?= main
-# Used to gather per program coverage stats
-CM_NAME    ?= main
+
+# Coverage Analysis
+CM_NAME     ?= $(notdir $(shell pwd))
+COV_DIR     ?= $(abspath ../coverage)
+COV_DB_NAME ?= simv
 
 
 ########################################
@@ -63,12 +66,12 @@ BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
                +max_cycle=$(MAX_CYCLES) \
                +num_finish=$(NUM_FINISH) \
                +vanilla_trace_en=$(TRACE) \
-               +vanilla_pc_cov_en=$(COVERAGE) \
+               +coverage_en=$(COVERAGE) \
                -licqueue -reportstats \
                -l run.log
 
 ifneq ($(COVERAGE), 0)
-  BSG_SIM_OPTS += -cm line+fsm+branch+cond+tgl -cm_name $(CM_NAME) -cm_dir ../coverage/simv.vdb
+  BSG_SIM_OPTS += -cm line+fsm+branch+cond+tgl -cm_name $(CM_NAME) -cm_dir $(COV_DIR)/$(COV_DB_NAME).vdb
 endif
 
 ########################################

@@ -8,7 +8,7 @@ include ./Makefile.regress.list
 # list of subdirectories that we don't recurse into
 NO-RECURSE = \
 	specint2000 bsg_hetero_nodes \
-  bsg_loader_suite \
+	bsg_loader_suite \
 	go_viral \
 	bsg_remote_congestion memtest1 deprecated \
 	c++ fft memtest16 fhello_malloc striped_vector_sum striped_hello \
@@ -16,7 +16,7 @@ NO-RECURSE = \
 	deprecated \
 	gather_scatter \
 	gather_scatter_multi \
-  striped_struct_vector	\
+	striped_struct_vector	\
 	beebs saif \
 	interrupt_tests \
 	bp_manycore_test
@@ -102,9 +102,6 @@ all:
 
 coverage-debug:
 	$(VCS_BIN)/dve -full64 -dir *.vdb &
-
-cov:
-	$(DVE) -full64 -cov -covdir coverage/simv.vdb &
 
 clean: recurse-clean
 	rm -rf run.log cov.log coverage* DVEfiles/ common/crt.o
