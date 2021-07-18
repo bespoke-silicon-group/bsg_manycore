@@ -25,6 +25,7 @@ VHEADERS += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_vanilla_pkg.v
 VHEADERS += $(BSG_MANYCORE_DIR)/v/bsg_manycore_addr_pkg.v
 VHEADERS += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/bsg_hardfloat_pkg.v
 
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_latch.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_less_than.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_reduce.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_abs.v
@@ -169,7 +170,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/lsu.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_synth.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_hard.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_regfile_latch.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_latch.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_icg.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.v
 

@@ -44,7 +44,7 @@ module regfile
     ) rf (.*);
   end
   else if (latch_p) begin: latch
-    bsg_regfile_latch #(
+    bsg_mem_multiport_latch #(
       .width_p(width_p)
       ,.els_p(els_p)
       ,.num_rs_p(num_rs_p)
