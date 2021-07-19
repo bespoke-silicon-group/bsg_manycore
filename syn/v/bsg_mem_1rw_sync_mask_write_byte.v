@@ -22,6 +22,7 @@ module bsg_mem_1rw_sync_mask_write_byte #( parameter `BSG_INV_PARAM(els_p )
 
   // TODO: Define more hardened macro configs here
   `bsg_mem_1rw_sync_mask_write_byte_macro(1024,32) else
+  `bsg_mem_1rw_sync_mask_write_byte_macro(512,128) else
 
   // no hardened version found
     begin : notmacro

@@ -12,11 +12,11 @@ clean:
 	@rm -rf *.log *.mr *.svf  *.pvl	 *.syn *.pvk *.tcl results/
 
 # Supported sv2v targets
-DESIGN_NAME ?= bsg_manycore_tile_compute_mesh
-#DESIGN_NAME ?= bsg_manycore_tile_compute_ruche
+#DESIGN_NAME ?= bsg_manycore_tile_compute_mesh
+DESIGN_NAME ?= bsg_manycore_tile_compute_ruche
 # Warning: bsg_manycore_pod_ruche takes upwards of 6 hours on a beefy machine
 #   to run through sv2v. Hierarchical sv2v (not currently supported) is recommended
-#DESIGN_NAME = bsg_manycore_pod_ruche
+#DESIGN_NAME ?= bsg_manycore_pod_ruche
 
 # Tile parameters
 VPARAMS += num_tiles_x_p=16
@@ -71,9 +71,11 @@ results/flist.vcs:
 	@# Remove old memories
 	@sed -i "/bsg_mem_1rw_sync.v/d"                                         $@
 	@sed -i "/bsg_mem_1rw_sync_mask_write_byte.v/d"                         $@
+	@sed -i "/bsg_mem_1rw_sync_mask_write_bit.v/d"                          $@
 	@# Swap new hardened wrappers
 	@echo "$(BSG_MANYCORE_DIR)/syn/v/bsg_mem_1rw_sync.v"                 >> $@
 	@echo "$(BSG_MANYCORE_DIR)/syn/v/bsg_mem_1rw_sync_mask_write_byte.v" >> $@
+	@echo "$(BSG_MANYCORE_DIR)/syn/v/bsg_mem_1rw_sync_mask_write_bit.v"  >> $@
 	@# Trim whitespace from beginning of lines
 	@sed -i "s/^ *//"                                                       $@
 
