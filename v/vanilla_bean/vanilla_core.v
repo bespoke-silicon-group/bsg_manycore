@@ -207,7 +207,6 @@ module vanilla_core
     ,.els_p(RV32_reg_els_gp)
     ,.num_rs_p(2)
     ,.x0_tied_to_zero_p(1)
-    ,.latch_p(1)
   ) int_rf (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -269,7 +268,6 @@ module vanilla_core
     ,.els_p(RV32_reg_els_gp)
     ,.num_rs_p(3)
     ,.x0_tied_to_zero_p(0)
-    ,.latch_p(1)
   ) float_rf (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
