@@ -103,17 +103,19 @@ always_comb begin
 end
 
 // Load & Store
-assign decode_o.is_load_op = (instruction_i.op == `RV32_LOAD) | (instruction_i.op == `RV32_LOAD_FP);
-assign decode_o.is_store_op = (instruction_i.op == `RV32_STORE) | (instruction_i.op == `RV32_STORE_FP);
+wire is_rv32_load = (instruction_i.op == `RV32_LOAD);
+wire is_rv32_store = (instruction_i.op == `RV32_STORE);
+assign decode_o.is_load_op = is_rv32_load | (instruction_i.op == `RV32_LOAD_FP);
+assign decode_o.is_store_op = is_rv32_store | (instruction_i.op == `RV32_STORE_FP);
 
 assign decode_o.is_byte_op =
-  ((instruction_i.op == `RV32_LOAD) & (instruction_i.funct3 ==? 3'b?00)) |
-  ((instruction_i.op == `RV32_STORE) & (instruction_i.funct3 == 3'b000));
+  (is_rv32_load & (instruction_i.funct3 ==? 3'b?00)) |
+  (is_rv32_store & (instruction_i.funct3 == 3'b000));
 assign decode_o.is_hex_op =
-  ((instruction_i.op == `RV32_LOAD) & (instruction_i.funct3 ==? 3'b?01)) |
-  ((instruction_i.op == `RV32_STORE) & (instruction_i.funct3 == 3'b001));
+  (is_rv32_load & (instruction_i.funct3 ==? 3'b?01)) |
+  (is_rv32_store & (instruction_i.funct3 == 3'b001));
 assign decode_o.is_load_unsigned =
-  (instruction_i.op == `RV32_LOAD) & (instruction_i.funct3 ==? 3'b10?);
+  is_rv32_load & (instruction_i.funct3 ==? 3'b10?);
 
 // Branch & Jump
 assign decode_o.is_branch_op = instruction_i.op ==? `RV32_BRANCH;
