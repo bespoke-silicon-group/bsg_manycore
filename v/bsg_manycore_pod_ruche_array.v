@@ -121,11 +121,9 @@ module bsg_manycore_pod_ruche_array
     for (genvar x = 0; x < num_pods_x_p; x++) begin: px
       bsg_tag_client #(
         .width_p($bits(bsg_manycore_pod_tag_payload_s))
-        ,.default_p(0)
       ) btc (
         .bsg_tag_i(pod_tags_i[y][x])
         ,.recv_clk_i(clk_i)
-        ,.recv_reset_i(1'b0)
         ,.recv_new_r_o()
         ,.recv_data_r_o(reset_lo[y][x])
       );
