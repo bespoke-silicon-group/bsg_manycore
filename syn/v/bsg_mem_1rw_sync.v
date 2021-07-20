@@ -3,10 +3,10 @@
 
 module bsg_mem_1rw_sync #( parameter `BSG_INV_PARAM(width_p )
                          , parameter `BSG_INV_PARAM(els_p )
+                         , parameter latch_last_read_p = 0
                          , parameter addr_width_lp = `BSG_SAFE_CLOG2(els_p)
-                         // whether to substitute a 1r1w
-                         , parameter substitute_1r1w_p = 1
-                         , parameter latch_last_read_p = 1
+                         // NOTE: unused
+                         , parameter substitute_1r1w_p = 0
                          )
   ( input                     clk_i
   , input                     reset_i
@@ -25,16 +25,18 @@ module bsg_mem_1rw_sync #( parameter `BSG_INV_PARAM(width_p )
   `bsg_mem_1rw_sync_macro(1024,46) else
 
   // no hardened version found
-    begin: notmacro
-      bsg_mem_1rw_sync_synth # (.width_p(width_p), .els_p(els_p), .latch_last_read_p(latch_last_read_p))
+    begin : notmacro
+      initial if (substitute_1r1w_p != 0) $warning("substitute_1r1w_p will have no effect");
+      bsg_mem_1rw_sync_synth #(.width_p(width_p), .els_p(els_p), .latch_last_read_p(latch_last_read_p))
         synth
           (.*);
     end // block: notmacro
 
+
   // synopsys translate_off
   initial
     begin
-      $display("## %L: instantiating width_p=%d, els_p=%d, substitute_1r1w_p=%d (%m)",width_p,els_p,substitute_1r1w_p);
+      $display("## %L: instantiating width_p=%d, els_p=%d, latch_last_read_p=%d (%m)",width_p,els_p,latch_last_read_p);
     end
   // synopsys translate_on
 
