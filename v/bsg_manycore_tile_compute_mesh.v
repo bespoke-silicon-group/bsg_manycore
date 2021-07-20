@@ -75,6 +75,8 @@ module bsg_manycore_tile_compute_mesh
     ,.data_o(reset_r)
   );
 
+  assign reset_o = reset_r;
+
   // feedthrough coordinate bits
   logic [x_subcord_width_lp-1:0] my_x_r;
   logic [y_subcord_width_lp-1:0] my_y_r;
