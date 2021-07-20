@@ -66,7 +66,9 @@ module bsg_manycore_pod_ruche_array
     // the type of an X/Y coordinate in the array. This is a vector of
     // num_tiles_x_p*num_tiles_y_p ints; type "0" is the
     // default. See bsg_manycore_hetero_socket.v for more types.
+    `ifndef SYNTHESIS
     , parameter int hetero_type_vec_p [0:(num_tiles_y_p*num_tiles_x_p) - 1]  = '{default:0}
+    `endif
   )
   (
     input clk_i
@@ -91,7 +93,7 @@ module bsg_manycore_pod_ruche_array
     // bsg_tag interface
     // Each pod has one tag client for reset.
     , input bsg_tag_s [num_pods_y_p-1:0][num_pods_x_p-1:0] pod_tags_i
-  );
+);
 
 
 
@@ -172,7 +174,9 @@ module bsg_manycore_pod_ruche_array
       ,.wh_cord_width_p(wh_cord_width_p)
       ,.wh_len_width_p(wh_len_width_p)
 
+      `ifndef SYNTHESIS
       ,.hetero_type_vec_p(hetero_type_vec_p)
+      `endif
     ) podrow (
       .clk_i(clk_i)
       ,.reset_i(reset_r[y])
