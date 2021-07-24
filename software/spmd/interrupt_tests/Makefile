@@ -34,7 +34,7 @@ cov_dve: COV_DB_NAME := simv
 regress: clean
 	$(MAKE) $(foreach test, $(TESTS), $(test)_run)
 
-LOG_FILES=`ls -t $(shell /usr/bin/find . -maxdepth 2 -iname *_run.log)`
+LOG_FILES=`ls -t $(shell /usr/bin/find . -maxdepth 2 -iname *.run.log)`
 
 check_finish:
 	for log in $(LOG_FILES); do \
@@ -45,7 +45,7 @@ check_finish:
 	done
 
 
-SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@_run.log@@g' | /usr/bin/column -c 160
+SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@.run.log@@g' | /usr/bin/column -c 160
 
 %.scrape:
 	@echo "Logs with $*---------------------------------------------------------------------------------->"
