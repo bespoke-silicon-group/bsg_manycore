@@ -8,10 +8,10 @@ dve:
 	cat pe.log | grep '^$@' | sed 's/$@ //' > $@
 
 cov_dve:
-	$(VCS_BIN)/dve -full64 -dir *.vdb &
+	$(VCS_BIN)/dve -full64 -cov -covdir $(COV_DIR)/$(COV_DB_NAME).vdb &
 
 cov_report:
-	$(VCS_BIN)/urg -full64 -map $(VCS_COV_MODULE_MAP) -report coverage/ -format both -dir *.vdb/ -log coverage.log
+	$(VCS_BIN)/urg -full64 -report $(COV_DIR) -format both -dir $(COV_DIR)/$(COV_DB_NAME).vdb -log coverage.log
 	cat coverage/modlist.txt
 
 query_vcs_licenses:

@@ -10,7 +10,7 @@ include $(BSG_MANYCORE_DIR)/software/spmd/interrupt_tests/Makefile.testlist
 # Name useful for coverage
 CM_NAME ?= csr_test
 
-RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles
+RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles -mno-relax
 
 cov_setup:
 ifneq ($(COVERAGE), 0)
@@ -23,18 +23,18 @@ endif
 %_run: cov_setup
 	mkdir -p $@
 	cp $*.S $@/main.S
-	$(MAKE) -C $@ -f ../Makefile main.run CM_NAME=$* 2>&1 | /usr/bin/tee $@/$@.log
+	$(MAKE) -C $@ -f ../Makefile main.run CM_NAME=$* COV_DIR=$(abspath ./coverage) 2>&1 | /usr/bin/tee $@/$*.run.log
 
 %_wave:
 	$(DVE) -full64 -vpd $*/vcdplus.vpd &
 
-cov:
-	$(DVE) -full64 -cov -covdir coverage/simv.vdb &
+cov_dve: COV_DIR := $(abspath ./coverage)
+cov_dve: COV_DB_NAME := simv
 
 regress: clean
 	$(MAKE) $(foreach test, $(TESTS), $(test)_run)
 
-LOG_FILES=`ls -t $(shell /usr/bin/find . -maxdepth 2 -iname *_run.log)`
+LOG_FILES=`ls -t $(shell /usr/bin/find . -maxdepth 2 -iname *.run.log)`
 
 check_finish:
 	for log in $(LOG_FILES); do \
@@ -45,7 +45,7 @@ check_finish:
 	done
 
 
-SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@_run.log@@g' | /usr/bin/column -c 160
+SCRAPE-TAIL=/usr/bin/sed 's@.*/@@g' | /usr/bin/sed 's@.run.log@@g' | /usr/bin/column -c 160
 
 %.scrape:
 	@echo "Logs with $*---------------------------------------------------------------------------------->"
@@ -66,8 +66,10 @@ watch-summary:
 
 clean.run:
 	rm -rf *run/
+	rm -rf coverage/
 
 clean.build:
 	$(MAKE) -C $(BSG_MACHINE_PATH)/.. -f Makefile clean
 
 clean: clean.run
+

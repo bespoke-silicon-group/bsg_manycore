@@ -15,6 +15,7 @@ In any of the sub-directories:
 - `make`: Run VCS simulation.
 - `make WAVE=1` Run VCS simulation with waveform dump.
 - `make main.riscv`: Generate ELF binary of that SPMD program.
+- `make COVERAGE=1` Run VCS simulation with coverage analysis.
 - `make main.dis`: Print disassembly to the terminal.
 - `vanilla.log`: Vanilla core trace dumped during the simulation.
 
@@ -22,7 +23,18 @@ Note: In directories containing multiple SPMD programs, `bsg_riscv_tests/` for i
 `main` has to be replaced by the program name. For example, to generate ELF binary of
 `add` riscv test, you have to run `make add.riscv`.
 
+Coverage Analysis
+------------------
 
+Running simulation with COVERAGE=1 will perform coverage analysis on the PC of the vanilla cores. The results of the analysis will be
+placed in a directory `coverage/` one-level above the test directory.
+
+Note: For directories with multiple SPMD programs, this behavior is dependent on the way tests are run. If every test is run in its own
+sub-directory, the `coverage/` directory is formed within the overall test directory. For example, the `interrupt_tests` directory
+creates a sub-directory for each test and therefore, the `coverage` directory will be generated at `interrupt_tests/coverage`.
+
+To view the coverage reports, currently only DVE is supported. Run `make cov_dve` in the same level as the `coverage` directory to
+open DVE and report the coverage results. Coverage reports using the URG tool is a work in progress.
 
 Manycore regression
 -------------------
