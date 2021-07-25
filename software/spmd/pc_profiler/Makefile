@@ -5,7 +5,7 @@ export BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
 # bsg_tiles_Y= 4
 MAX_CYCLES= 10000000
 
-include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
+include $(BSG_MANYCORE_DIR)/software/spmd/Makefile.include
 
 # Amount of space for the histogram
 HIST_SPACE ?= 16777216
@@ -17,7 +17,11 @@ RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles -mno-relax
 
 OBJECT_FILES = profiler.o main.o
 
+# Redefine the HIST_SPACE variable for a smaller histogram instead of the default which is 16MB
+all: main.run
+
 %.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB)
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
+
