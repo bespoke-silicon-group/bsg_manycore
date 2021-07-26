@@ -113,6 +113,8 @@ typedef struct packed {
 
   // FENCE
   logic is_fence_op;
+  logic is_barsend_op;
+  logic is_barrecv_op;
 
   // Load Reserve
   logic is_lr_aq_op;

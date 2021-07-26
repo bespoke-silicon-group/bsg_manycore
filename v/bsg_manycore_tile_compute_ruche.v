@@ -23,10 +23,11 @@ module bsg_manycore_tile_compute_ruche
     , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
-    , parameter ruche_factor_X_p = 3
-    
     , `BSG_INV_PARAM(data_width_p )
     , `BSG_INV_PARAM(addr_width_p )
+
+    , parameter ruche_factor_X_p = 3
+    , parameter barrier_ruche_factor_X_p = 3    
 
     , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
@@ -34,6 +35,9 @@ module bsg_manycore_tile_compute_ruche
 
     , parameter dims_p = 3
     , parameter dirs_lp = (dims_p*2)
+    // The topology of the barrier network is matched to the one of manycore links, so that we don't add any additional timing path complexity.
+    , parameter barrier_dirs_p=7
+    , parameter barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
 
     , parameter stub_p = {dirs_lp{1'b0}}           // {re,rw,s,n,e,w}
     , parameter repeater_output_p = {dirs_lp{1'b0}} // {re,rw,s,n,e,w}
@@ -57,6 +61,14 @@ module bsg_manycore_tile_compute_ruche
     // ruche links
     , input  [ruche_factor_X_p-1:0][E:W][ruche_x_link_sif_width_lp-1:0] ruche_link_i
     , output [ruche_factor_X_p-1:0][E:W][ruche_x_link_sif_width_lp-1:0] ruche_link_o
+
+    // barrier links
+    , input  [S:W] barrier_link_i
+    , output [S:W] barrier_link_o
+
+    // barrier ruche links
+    , input  [barrier_ruche_factor_X_p-1:0][E:W] barrier_ruche_link_i
+    , output [barrier_ruche_factor_X_p-1:0][E:W] barrier_ruche_link_o
 
     // tile coordinates
     , input [x_cord_width_p-1:0] global_x_i
@@ -155,6 +167,23 @@ module bsg_manycore_tile_compute_ruche
     ,.global_y_i({pod_y_r, my_y_r})
   );
 
+
+  logic [barrier_dirs_p-1:0] barr_data_li;
+  logic [barrier_dirs_p-1:0] barr_data_lo;
+  logic [barrier_dirs_p-1:0] barr_src_r_li;
+  logic [barrier_lg_dirs_lp-1:0] barr_dest_r_li;
+  bsg_barrier #(
+    .dirs_p(barrier_dirs_p)
+  ) barr (
+    .clk_i(clk_i)
+    ,.reset_i(reset_r)
+    ,.data_i(barr_data_li)
+    ,.data_o(barr_data_lo)
+    ,.src_r_i(barr_src_r_li)
+    ,.dest_r_i(barr_dest_r_li)
+  );
+
+
   bsg_manycore_hetero_socket #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -174,6 +203,7 @@ module bsg_manycore_tile_compute_ruche
     ,.vcache_sets_p(vcache_sets_p)
     ,.fwd_fifo_els_p(fwd_fifo_els_lp[0])
     ,.rev_fifo_els_p(rev_fifo_els_lp[0])
+    ,.barrier_dirs_p(barrier_dirs_p)
     ,.debug_p(debug_p)
   ) proc (
     .clk_i(clk_i)
@@ -181,6 +211,11 @@ module bsg_manycore_tile_compute_ruche
 
     ,.link_sif_i(proc_link_sif_lo)
     ,.link_sif_o(proc_link_sif_li)
+
+    ,.barrier_data_i(barr_data_lo[0])
+    ,.barrier_data_o(barr_data_li[0])
+    ,.barrier_src_r_o(barr_src_r_li)
+    ,.barrier_dest_r_o(barr_dest_r_li)
 
     ,.pod_x_i(pod_x_r)
     ,.pod_y_i(pod_y_r)
@@ -231,6 +266,20 @@ module bsg_manycore_tile_compute_ruche
     assign ruche_link_lo[i][E] = ruche_link_li[i][W];
     assign ruche_link_lo[i][W] = ruche_link_li[i][E];
   end
+
+  // connect barrier links
+  assign barr_data_li[4:1] = barrier_link_i;
+  assign barrier_link_o = barr_data_lo[4:1];
+  assign barr_data_li[5] = barrier_ruche_link_i[0][W];
+  assign barr_data_li[6] = barrier_ruche_link_i[0][E];
+  assign barrier_ruche_link_o[0][W] = barr_data_lo[5];
+  assign barrier_ruche_link_o[0][E] = barr_data_lo[6];
+  
+  for (genvar i = 1; i < barrier_ruche_factor_X_p; i++) begin
+    assign barrier_ruche_link_o[i][W] = barrier_ruche_link_i[i][E];
+    assign barrier_ruche_link_o[i][E] = barrier_ruche_link_i[i][W];
+  end
+
 
 
 

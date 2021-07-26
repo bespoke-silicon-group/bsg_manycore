@@ -16,6 +16,8 @@ module mcsr
   #(parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter reg_data_width_lp = RV32_reg_data_width_gp
     , `BSG_INV_PARAM(pc_width_p)
+    , `BSG_INV_PARAM(barrier_dirs_p)
+    , parameter barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
     , parameter credit_limit_default_val_p = 32
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
     , parameter cfg_pod_width_p=32
@@ -48,12 +50,20 @@ module mcsr
     , input mret_called_i
     , input [pc_width_p-1:0] npc_r_i
     
+    // barrier interface
+    , input barsend_i
+    , input barrier_data_i        // (Po)
+    , output logic barrier_data_o // (Pi)
+
     // output
     , output csr_mstatus_s mstatus_r_o
     , output csr_interrupt_vector_s mip_r_o
     , output csr_interrupt_vector_s mie_r_o
     , output logic [pc_width_p-1:0] mepc_r_o
     , output logic [credit_counter_width_p-1:0] credit_limit_o
+    , output logic [barrier_dirs_p-1:0] barrier_src_r_o
+    , output logic [barrier_lg_dirs_lp-1:0] barrier_dest_r_o
+    
   );
 
   csr_mstatus_s mstatus_n, mstatus_r;
@@ -61,29 +71,21 @@ module mcsr
   csr_interrupt_vector_s mip_n, mip_r;
   logic [pc_width_p-1:0] mepc_r, mepc_n;
   logic [credit_counter_width_p-1:0] credit_limit_r, credit_limit_n;
+  logic [cfg_pod_width_p-1:0] 	     cfg_pod_r;
+  logic [barrier_dirs_p-1:0] barrier_src_r;
+  logic [barrier_lg_dirs_lp-1:0] barrier_dest_r;
 
-   logic [cfg_pod_width_p-1:0] 	     cfg_pod_r;
 
-  assign cfg_pod_r_o = cfg_pod_r;
-
-   always_ff @(posedge clk_i)
-     if (reset_i)
-       begin
-	 cfg_pod_r <= cfg_pod_reset_val_i;
-       end
-     else
-       if (we_i 
-	   && (addr_i == `RV32_CSR_CFG_POD_ADDR)
-	   && (funct3_i == `RV32_CSRRW_FUN3)
-	   )
-	 cfg_pod_r <= data_i[0+:cfg_pod_width_p];
-   
   assign mstatus_r_o = mstatus_r;
   assign mip_r_o = mip_r;
   assign mie_r_o = mie_r;
   assign mepc_r_o = mepc_r;
   assign credit_limit_o = credit_limit_r;
-  
+  assign cfg_pod_r_o = cfg_pod_r;
+  assign barrier_src_r_o = barrier_src_r;
+  assign barrier_dest_r_o = barrier_dest_r;  
+
+
   // mstatus
   // priority (high to low)
   // 1) mret
@@ -278,6 +280,62 @@ module mcsr
   end
 
 
+  // pod config
+  always_ff @(posedge clk_i) begin
+    if (reset_i) begin
+	    cfg_pod_r <= cfg_pod_reset_val_i;
+    end
+    else begin
+      if (we_i && (addr_i == `RV32_CSR_CFG_POD_ADDR) && (funct3_i == `RV32_CSRRW_FUN3)) begin
+	      cfg_pod_r <= data_i[0+:cfg_pod_width_p];
+      end
+    end
+  end
+
+
+
+  // Barrier configuration register (barcfg)
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      {barrier_src_r, barrier_dest_r} <= '0;
+    end
+    else begin
+      if (we_i && (addr_i == `RV32_CSR_BARCFG_ADDR) && (funct3_i == `RV32_CSRRW_FUN3)) begin
+        barrier_src_r <= data_i[0+:barrier_dirs_p];
+        barrier_dest_r <= data_i[16+:barrier_lg_dirs_lp];
+      end
+    end
+  end
+
+  
+  // Barrier switch register (Pi)
+  // This can be modified by CSR instruction or barsend. They are mutually exclusive events.
+  logic barrier_data_r;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      barrier_data_r <= 1'b0;
+    end
+    else begin
+      if (we_i && (addr_i == `RV32_CSR_BAR_PI_ADDR)) begin
+        case (funct3_i)
+          `RV32_CSRRW_FUN3:   barrier_data_r <= data_i[0];
+          `RV32_CSRRS_FUN3:   barrier_data_r <= data_i[0] ? 1'b1 : barrier_data_r;
+          `RV32_CSRRC_FUN3:   barrier_data_r <= data_i[0] ? 1'b0 : barrier_data_r;
+          `RV32_CSRRWI_FUN3:  barrier_data_r <= rs1_i[0];
+          `RV32_CSRRSI_FUN3:  barrier_data_r <= rs1_i[0] ? 1'b1 : barrier_data_r;
+          `RV32_CSRRCI_FUN3:  barrier_data_r <= rs1_i[0] ? 1'b0 : barrier_data_r;
+        endcase
+      end
+      else if (barsend_i) begin
+        barrier_data_r <= ~barrier_data_r;
+      end
+    end
+  end
+  
+  assign barrier_data_o = barrier_data_r;
+
+
   // reading CSR values
   always_comb begin
     data_o = '0;
@@ -299,7 +357,17 @@ module mcsr
         data_o[0+:credit_counter_width_p] = credit_limit_r;
       end
       `RV32_CSR_CFG_POD_ADDR: begin
-	 data_o[0+:cfg_pod_width_p] = cfg_pod_r;
+	      data_o[0+:cfg_pod_width_p] = cfg_pod_r;
+      end
+      `RV32_CSR_BARCFG_ADDR: begin
+        data_o[0+:barrier_dirs_p] = barrier_src_r;
+        data_o[16+:barrier_lg_dirs_lp] = barrier_dest_r;
+      end
+      `RV32_CSR_BAR_PO_ADDR: begin
+        data_o[0] = barrier_data_i;
+      end
+      `RV32_CSR_BAR_PI_ADDR: begin
+        data_o[0] = barrier_data_r;
       end
 
       default: data_o = '0;
