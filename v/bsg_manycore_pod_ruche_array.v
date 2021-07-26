@@ -22,6 +22,7 @@ module bsg_manycore_pod_ruche_array
     , parameter addr_width_p="inv"
     , parameter data_width_p="inv"
     , parameter ruche_factor_X_p=3  // only support 3 for now
+    , parameter barrier_ruche_factor_X_p = 3
 
     , parameter num_subarray_x_p=1
     , parameter num_subarray_y_p=1
@@ -150,6 +151,7 @@ module bsg_manycore_pod_ruche_array
       ,.data_width_p(data_width_p)
 
       ,.ruche_factor_X_p(ruche_factor_X_p)
+      ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
       ,.num_pods_x_p(num_pods_x_p)    
   
       ,.num_subarray_x_p(num_subarray_x_p)

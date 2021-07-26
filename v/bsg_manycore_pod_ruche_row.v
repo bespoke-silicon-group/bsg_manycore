@@ -21,7 +21,7 @@ module bsg_manycore_pod_ruche_row
     , parameter addr_width_p="inv"
     , parameter data_width_p="inv"
     , parameter ruche_factor_X_p=3  // only support 3 for now
-
+    , parameter barrier_ruche_factor_X_p=3
     , parameter num_subarray_x_p=1
     , parameter num_subarray_y_p=1
 
@@ -88,6 +88,7 @@ module bsg_manycore_pod_ruche_row
     , input  [E:W][num_tiles_y_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_i
     , output [E:W][num_tiles_y_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_o
 
+    // global coordinates
     , input [num_pods_x_p-1:0][num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_i
     , input [num_pods_x_p-1:0][num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_i
   );
@@ -108,6 +109,8 @@ module bsg_manycore_pod_ruche_row
   bsg_manycore_ruche_x_link_sif_s [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_lo;  
   wh_link_sif_s [num_pods_x_p-1:0][S:N][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_li;
   wh_link_sif_s [num_pods_x_p-1:0][S:N][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_lo;
+  logic [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0] hor_barrier_link_li, hor_barrier_link_lo;
+  logic [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][barrier_ruche_factor_X_p-1:0] barrier_ruche_link_li, barrier_ruche_link_lo;
 
   for (genvar x = 0; x < num_pods_x_p; x++) begin: px
 
@@ -121,6 +124,7 @@ module bsg_manycore_pod_ruche_row
       ,.addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
       ,.ruche_factor_X_p(ruche_factor_X_p)
+      ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
       
       ,.num_subarray_x_p(num_subarray_x_p)
       ,.num_subarray_y_p(num_subarray_y_p)
@@ -159,6 +163,10 @@ module bsg_manycore_pod_ruche_row
       ,.ver_link_sif_o(ver_link_sif_lo[x])
       ,.ruche_link_i(ruche_link_li[x])
       ,.ruche_link_o(ruche_link_lo[x])
+      ,.hor_barrier_link_i(hor_barrier_link_li[x])
+      ,.hor_barrier_link_o(hor_barrier_link_lo[x])
+      ,.barrier_ruche_link_i(barrier_ruche_link_li[x])
+      ,.barrier_ruche_link_o(barrier_ruche_link_lo[x])
 
       ,.north_wh_link_sif_i(wh_link_sif_li[x][N])
       ,.north_wh_link_sif_o(wh_link_sif_lo[x][N])
@@ -180,8 +188,15 @@ module bsg_manycore_pod_ruche_row
 
     // connect horizontal local links between pods
     if (x < num_pods_x_p-1) begin
+      // hor local
       assign hor_link_sif_li[x][E] = hor_link_sif_lo[x+1][W];
       assign hor_link_sif_li[x+1][W] = hor_link_sif_lo[x][E];
+      // barrier hor
+      assign hor_barrier_link_li[x][E] = hor_barrier_link_lo[x+1][W];
+      assign hor_barrier_link_li[x+1][W] = hor_barrier_link_lo[x][E];
+      // barrier ruche
+      assign barrier_ruche_link_li[x][E] = barrier_ruche_link_lo[x+1][W];
+      assign barrier_ruche_link_li[x+1][W] = barrier_ruche_link_lo[x][E];
     end
 
     // connect horizontal links on the side to the west
@@ -202,7 +217,7 @@ module bsg_manycore_pod_ruche_row
     if (x < num_pods_x_p-1) begin
       // manycore
       assign ruche_link_li[x][E] = ruche_link_lo[x+1][W];
-      assign ruche_link_li[x+1][W] = ruche_link_lo[x][E];;
+      assign ruche_link_li[x+1][W] = ruche_link_lo[x][E];
 
       // vcache wh
       for (genvar m = N; m <= S; m++) begin
@@ -258,6 +273,21 @@ module bsg_manycore_pod_ruche_row
     // east in
     assign wh_link_sif_li[num_pods_x_p-1][S][E][j][r] =  wh_link_sif_i[E][S][j][r];
     end
+  end
+
+  // Tieoff barrier links
+  // (Hardcoded for ruche factor of 3 for now)
+  for (genvar y = 0; y < num_tiles_y_p; y++) begin
+    // local
+    assign hor_barrier_link_li[0][W][y] = 1'b0;
+    assign hor_barrier_link_li[num_pods_x_p-1][E][y] = 1'b0;
+    // ruche
+    assign barrier_ruche_link_li[0][W][y][0] = 1'b0;
+    assign barrier_ruche_link_li[0][W][y][1] = 1'b0;
+    assign barrier_ruche_link_li[0][W][y][2] = 1'b1;
+    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][0] = 1'b0;
+    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][1] = 1'b1;
+    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][2] = 1'b0;
   end
 
 endmodule

@@ -125,6 +125,8 @@ typedef struct packed {
 
   // FENCE
   logic is_fence_op;
+  logic is_barsend_op;
+  logic is_barrecv_op;
 
   // Load Reserve
   logic is_lr_aq_op;
@@ -429,7 +431,11 @@ typedef struct packed {
 
 // FENCE defines
 `define RV32_FENCE_FUN3   3'b000
-`define RV32_FENCE   {4'b0000,4'b????,4'b????,5'b00000,`RV32_FENCE_FUN3,5'b00000,`RV32_MISC_MEM}
+`define RV32_FENCE_OP   {4'b????,4'b????,4'b????,5'b00000,`RV32_FENCE_FUN3,5'b00000,`RV32_MISC_MEM}
+`define RV32_FENCE_FM     4'b0000
+`define RV32_BARSEND_FM   4'b0001
+`define RV32_BARRECV_FM   4'b0010
+
 
 //TRIGGER SAIF DUMP defines
 `define SAIF_TRIGGER_START {12'b000000000001,5'b00000,3'b000,5'b00000,`RV32_OP_IMM}
@@ -464,6 +470,9 @@ typedef struct packed {
 
 // machine custom CSR addr
 `define RV32_CSR_CREDIT_LIMIT_ADDR 12'hfc0
+`define RV32_CSR_BARCFG_ADDR       12'hfc1
+`define RV32_CSR_BAR_PI_ADDR       12'hfc2
+`define RV32_CSR_BAR_PO_ADDR       12'hfc3
 
 // mret
 // used for returning from the interrupt
