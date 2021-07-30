@@ -19,7 +19,8 @@ NO-RECURSE = \
 	striped_struct_vector	\
 	beebs saif \
 	interrupt_tests \
-	bp_manycore_test
+	bp_manycore_test \
+	energy_ubenchmark
 
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
