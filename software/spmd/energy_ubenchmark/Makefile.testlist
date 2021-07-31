@@ -1,4 +1,3 @@
 ENERGY_UBENCHMARK = \
 	add_random \
-	add_zeros \
-	add_ones
+	add_zeros
