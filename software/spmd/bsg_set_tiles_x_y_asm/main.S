@@ -4,6 +4,7 @@
 .globl bsg_set_tile_x_y
 .globl __bsg_id
 
+.text
 _start:
   bsg_asm_init_regfile
 
