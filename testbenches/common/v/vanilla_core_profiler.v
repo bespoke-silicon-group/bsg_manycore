@@ -1050,11 +1050,10 @@ module vanilla_core_profiler
       $fwrite(fd, "\n");
       $fclose(fd);
 
-      if (trace_en_i) begin
-        fd2 = $fopen(tracefile_lp, "w");
-        $fwrite(fd2, "cycle,x,y,pc,operation\n");
-        $fclose(fd2);
-      end
+      fd2 = $fopen(tracefile_lp, "w");
+      $fwrite(fd2, "cycle,x,y,pc,operation\n");
+      $fclose(fd2);
+
     end // if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p)))
    end // always @ (my_x_i)
    
