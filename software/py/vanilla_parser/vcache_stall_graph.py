@@ -204,12 +204,17 @@ class VcacheStallGraph:
     # parses vcache_operation_trace.csv to generate operation traces
     def __parse_traces(self, trace_file):
         traces = []
+        vcaches_found = {}
         with open(trace_file) as f:
             csv_reader = csv.DictReader(f, delimiter=",")
             for row in csv_reader:
                 trace = {}
                 vcache = row["vcache"]
-                trace["vcache"] = int (vcache[vcache.find("[")+1 : vcache.find("]")])
+                # assign an id if needed
+                if vcache not in vcaches_found:
+                    vcaches_found[vcache]=len(vcaches_found)
+                # map vcache to its id
+                trace["vcache"] = vcaches_found[vcache]
                 trace["operation"] = row["operation"]
                 trace["cycle"] = int(row["cycle"])
                 traces.append(trace)
