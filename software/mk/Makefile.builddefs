@@ -28,7 +28,7 @@ BSG_ELF_DEFAULT_DATA_LOC ?= LOCAL
 
 # Total addressable DRAM size
 BSG_ELF_DRAM_SIZE ?= $(shell echo \
-                       $(BSG_MACHINE_DRAM_BANK_SIZE_WORDS)*$(BSG_MACHINE_GLOBAL_X)*4 \
+                       $(BSG_MACHINE_DRAM_BANK_SIZE_WORDS)*$(BSG_MACHINE_GLOBAL_X)*4*2 \
                        | bc)
 
 # Total addressable vcache size
@@ -39,12 +39,12 @@ BSG_ELF_VCACHE_SIZE ?= $(shell echo \
 # EVA of stack pointer
 BSG_ELF_DRAM_EVA_OFFSET = 0x80000000
 ifeq ($(BSG_ELF_DEFAULT_DATA_LOC), LOCAL)
-BSG_ELF_STACK_PTR ?= 0x00000ffc
+BSG_ELF_STACK_PTR ?= 0x00001000
 else
   ifeq ($(BSG_ELF_OFF_CHIP_MEM), 1)
-  BSG_ELF_STACK_PTR ?= $(shell echo $$(( $(BSG_ELF_DRAM_EVA_OFFSET) + $(BSG_ELF_DRAM_SIZE) - 4 )) )
+  BSG_ELF_STACK_PTR ?= $(shell echo $$(( $(BSG_ELF_DRAM_EVA_OFFSET) + $(BSG_ELF_DRAM_SIZE) )) )
   else
-  BSG_ELF_STACK_PTR ?= $(shell echo $$(( $(BSG_ELF_DRAM_EVA_OFFSET) + $(BSG_ELF_VCACHE_SIZE) - 4 )) )
+  BSG_ELF_STACK_PTR ?= $(shell echo $$(( $(BSG_ELF_DRAM_EVA_OFFSET) + $(BSG_ELF_VCACHE_SIZE) )) )
   endif
 endif
 
