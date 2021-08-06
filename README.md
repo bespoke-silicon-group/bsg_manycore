@@ -5,7 +5,7 @@ This repo contains the **bsg\_manycore** source code with contributions from the
 The tile based architecture is designed for computing efficiency, scalability and generality. The two main components are:
 
 * **Computing Node:** Purpose-designed RISC-V 32IMF compatible core runs at 1.4GHz@16nm, but nodes also can be any other accelerators.
-* **Mesh Network  :** Dimension ordered, single flit network with inter-nodes synchronization primitives (mutex, barrier etc.)
+* **Mesh or Ruche Network  :** Dimension ordered, single flit network with inter-nodes synchronization primitives (mutex, barrier etc.)
 
 Without any custom circuits, a 16nm prototype chip with 16x31 tiles on a 4.5x3.4 mm^2 die space achieves **812,350**
 aggregated [CoreMark](https://www.eembc.org/coremark/) score, a world record. Many improvements have been made since this previous version.
