@@ -17,6 +17,8 @@ all: $(addsuffix _run, $(ENERGY_UBENCHMARK))
 	mkdir -p $@
 	cp $*.S $@/main.S
 	$(MAKE) -C $@ -f ../Makefile main.run
+%_dve:
+	$(DVE) -full64 -vpd $*_run/vcdplus.vpd &
 
 clean:
 	rm -rf *run bsg_link.ld

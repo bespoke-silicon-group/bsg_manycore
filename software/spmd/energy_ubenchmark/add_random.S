@@ -5,33 +5,33 @@
   // initialize
   bsg_asm_init_regfile
 
-  lui x5,0xe39c
-  lui x6,0x95e93
-  lui x7,0x896f8
-  lui x8,0x55f11
-  lui x9,0xe2161
-  lui x10,0x8813b
-  lui x11,0xb5c8b
-  lui x12,0xedcb2
-  lui x13,0x144dd
-  lui x14,0x72316
-  lui x15,0x2b181
-  lui x16,0x5e89a
-  lui x17,0xf0591
-  lui x18,0x687f
-  lui x19,0x976
-  lui x20,0x12cd3
-  lui x21,0x6233c
-  lui x22,0x6ebd9
-  lui x23,0xcf00
-  lui x24,0xf49fb
-  lui x25,0xe10b6
-  lui x26,0x2288f
-  lui x27,0xcfa37
-  lui x28,0xd7341
-  lui x29,0xcca30
-  lui x30,0xfd95d
-  lui x31,0x7c8e3
+  li x5 ,0x011fe39c
+  li x6 ,0x03295e93
+  li x7 ,0x312896f8
+  li x8 ,0x75455f11
+  li x9 ,0x2dee2161
+  li x10,0x7138813b
+  li x11,0x000b5c8b
+  li x12,0x011edcb2
+  li x13,0x144144dd
+  li x14,0xcfe72316
+  li x15,0x7552b181
+  li x16,0x5e89a000
+  li x17,0x234f0591
+  li x18,0x1234687f
+  li x19,0xaa123976
+  li x20,0x12cd3000
+  li x21,0x6233c888
+  li x22,0x6ebd9901
+  li x23,0xcf000011
+  li x24,0xf49fb666
+  li x25,0xe10b6334
+  li x26,0x2288f000
+  li x27,0xcfa37bb3
+  li x28,0xd7341635
+  li x29,0xcca30000
+  li x30,0xfd95d442
+  li x31,0x7c8e3113
   // saif start
   bsg_asm_saif_start
   add s6,s9,s10
