@@ -86,9 +86,17 @@ checkout-repos:
 ifeq ($(shell [ $(call git-version,1) -gt 1 ] && \
               [ $(call git-version,1) -gt 2 -o $(call git-version,2) -gt 8 ] && \
               echo 1), 1)
-	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive -j 16;
+	#cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive -j 16;
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-binutils
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-glibc
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-gcc
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-newlib
 else
-	cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
+	#cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-binutils
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-glibc
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-gcc
+	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-newlib
 endif
 	# **** This patch is no longer necessary. Its changes have
 	#      been applied in the bsg_manycore_gcc branch of
@@ -128,7 +136,7 @@ configure-riscv-gnu-tools:
 	@echo "Configuring toolchain..."
 	@echo "====================================="
 	cd riscv-gnu-toolchain && \
-		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI)
+		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI) --disable-gdb
 
 build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
