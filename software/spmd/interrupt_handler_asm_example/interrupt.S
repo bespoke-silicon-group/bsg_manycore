@@ -3,7 +3,7 @@
 
 .globl mydata
   
-.section .interrupt, "a"
+.section .text.interrupt, "a"
 _remote_interrupt:
   j _remote_interrupt_handler
 
