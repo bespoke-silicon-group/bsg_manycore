@@ -11,13 +11,11 @@ int main() {
   bsg_set_tile_x_y();
 
   // enable interrupt (mstatus.mie = 1)
-  int temp = 0x8;
-  asm volatile ("csrrs x0, mstatus, %[temp]" : : [temp] "r" (temp));
+  asm volatile ("csrrs x0, mstatus, %0" : : "r" (0x8));
 
 
   // enable remote interrupt (mie.remote = 1)
-  temp = 0x10000;
-  asm volatile("csrrs x0, mie, %[temp]" : : [temp] "r" (temp));
+  asm volatile("csrrs x0, mie, %0" : : "r" (0x10000));
 
 
   // If you are the last tile, send everyone a remote interrupt.
