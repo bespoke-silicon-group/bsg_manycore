@@ -27,13 +27,13 @@ aggregated [CoreMark](https://www.eembc.org/coremark/) score, a world record. Ma
 Above this directory:
 
 - Checkout `basejump_stl`; cd into imports directory and type `make DRAMSim3`
-- Checkout `bsg_cadenv`
+- Checkout `bsg_cadenv` if you are a BSG group member
 
 In this directory:
 
 - `make checkout_submodules`: To update all submodules in `imports/`.
 - `make tools`: To install software toolchain required running programs on BSG Manycore. (This build uses 12-16 threads by default.)
-- `make machines`: Compile simulation executables in `machines/`.
+- `make machines`: Compile simulation executables in `machines/`.  If you do not have bsg_cadenv, then you will have to set some VCS-related variables.
 - Edit `BSG_MACHINE_PATH` in `software/mk/Makefile.paths` to choose the machine to run somd programs on.
 - go into `software/spmd/bsg_barrier` and type `make` to run a test!
 
