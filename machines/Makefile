@@ -11,6 +11,10 @@ endif
 # Sets "VCS" variable
 include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
 
+ifeq ($(VCS),)
+$(error VCS must be set; probably need VCS_HOME, SNPSLMD_LICENSE_FILE too, maybe LM_LICENSE file)
+endif
+
 # Include source lists
 include arch_filelist.mk
 include sim_filelist.mk
