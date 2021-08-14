@@ -153,7 +153,7 @@ class bsg_manycore_link_gen:
     section_map = [
       # Format:
       # <output section>: [<input sections>]
-      ['.text.dram'        , ['.text.interrupt', '.crtbegin','.text','.text.startup','.text.*']],
+      ['.text.dram'        , ['.crtbegin','.text','.text.startup','.text.*']],
       # bsg-tommy: 8 bytes are allocated in.dmem.interrupt for interrupt handler to spill registers.
       ['.dmem'             , ['.dmem.interrupt', '.dmem','.dmem.*']],
       ['.data'             , ['.data','.data*']],
