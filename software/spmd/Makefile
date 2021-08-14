@@ -19,8 +19,7 @@ NO-RECURSE = \
 	striped_struct_vector	\
 	beebs saif \
 	interrupt_tests \
-	bp_manycore_test \
-	pc_profiler
+	bp_manycore_test
 
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
