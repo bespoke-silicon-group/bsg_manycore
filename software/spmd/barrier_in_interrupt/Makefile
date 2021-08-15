@@ -1,10 +1,10 @@
-bsg_tiles_X = 4
-bsg_tiles_Y = 4
+#bsg_tiles_X = 4
+#bsg_tiles_Y = 4
 
 
 all: main.run
 
-OBJECT_FILES=main.o interrupt.o
+OBJECT_FILES=main.o interrupt.o bsg_barrier_amoadd.o
 
 include ../Makefile.include
 

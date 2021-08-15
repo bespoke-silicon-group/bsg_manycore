@@ -2,9 +2,8 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-
 int amoadd_lock __attribute__ ((section (".dram"))) = 0;
-int amoadd_alarm = 0;
+int amoadd_alarm = 1;
 int myid[bsg_tiles_X*bsg_tiles_Y] __attribute__ ((section (".dram"))) = {0};
 
 int main() {
