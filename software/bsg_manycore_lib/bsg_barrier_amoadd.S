@@ -25,7 +25,7 @@ bsg_barrier_amoadd:
   blt x0, t0, bsg_barrier_amoadd_plus1
 
   // -1 case
-  li t2, (bsg_tiles_X*bsg_tiles_Y)-1
+  li t2, 1
   j bsg_barrier_amoadd_check
 
 bsg_barrier_amoadd_plus1:

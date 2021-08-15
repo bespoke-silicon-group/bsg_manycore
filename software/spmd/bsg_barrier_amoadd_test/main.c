@@ -3,7 +3,7 @@
 #include "bsg_manycore_atomic.h"
 
 
-#define N 10
+#define N 7
 
 // defined in bsg_barrier_amoadd.S
 extern void bsg_barrier_amoadd(int*, int*);
@@ -25,10 +25,14 @@ int main()
     // join barrier
     bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm);
     // check the result of your neighbor
-    if (data[__bsg_id % (bsg_tiles_X*bsg_tiles_Y)] != i+1) {
+    int neighbor_val = data[(__bsg_id+i) % (bsg_tiles_X*bsg_tiles_Y)]; 
+    if (neighbor_val != i+1) {
+      //bsg_printf("%d, %d \n", i+1 , neighbor_val);
       bsg_fail();
       bsg_wait_while(1);
     } 
+    // join barrier
+    bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm);
   }
 
   if (__bsg_id == 0) {
