@@ -1,20 +1,21 @@
-// a0 = amo lock addr (in DRAM). Initialized to 1
-// a1 = sense word addr (in DMEM).  Initialized to 0
-
-
+// a0 = amo lock addr (in DRAM). Initialized to 0
+// a1 = sense word addr (in DMEM).  Initialized to 1
 
 
 .text
+.globl bsg_barrier_amoadd
 bsg_barrier_amoadd:
   // t0 - sense val
   // t1 - amo result
+  // t2 - check val
+  // t3 - wakeup val
+  // t4 - y index
+  // t5 - x index
 
   // send amoadd
   lw t0, 0(a1)
   amoadd.w t1, t0, 0(a0)
 
-  // t2 - check val
-  // t3 - wakeup val
   
   // is sense -1 or +1?
   // set wakeup val
@@ -35,11 +36,9 @@ bsg_barrier_amoadd_check:
   bne t2, t1, bsg_barrier_amoadd_sleep
 
 bsg_barrier_amoadd_wakeup:
-  // t4 - y index
   li t4, bsg_tiles_Y-1
 
 bsg_barrier_amoadd_wakeup_loop_y:
-  // t5 - x index
   li t5, bsg_tiles_X-1
 
 bsg_barrier_amoadd_wakeup_loop_x:
