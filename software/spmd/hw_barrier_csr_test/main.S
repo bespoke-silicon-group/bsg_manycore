@@ -22,7 +22,7 @@
 
   // test3
   csrr x0, BARCFG_CSR_ADDR
-  bsg_barsend
+  bsg_asm_barsend
 
   csrr t0, BAR_PI_CSR_ADDR
   li t1, 1
@@ -33,7 +33,7 @@
   
 
   // test 4
-  bsg_barsend
+  bsg_asm_barsend
   csrr t0, BAR_PI_CSR_ADDR
   bne t0, x0, fail
 
