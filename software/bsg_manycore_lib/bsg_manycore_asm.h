@@ -107,7 +107,7 @@
 // start code
 #define bsg_asm_init_regfile  \
     li x1, 0;                 \
-    li x2, 4096-4;          \
+    li x2, 4096;              \
     li x3, 0;                 \
     li x4, 0;                 \
     li x5, 0;                 \
