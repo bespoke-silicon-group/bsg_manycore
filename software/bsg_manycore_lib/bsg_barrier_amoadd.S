@@ -1,6 +1,9 @@
-// a0 = amo lock addr (in DRAM). Initialized to 0
-// a1 = sense word addr (in DMEM).  Initialized to 1
+//  AMOADD barrier
 
+//  a0 = amo lock addr (in DRAM). Initialized to 0
+//  a1 = sense word addr (in DMEM).  Initialized to 1
+
+//  void bsg_barrier_amoadd(int*, int*);
 
 .text
 .globl bsg_barrier_amoadd
