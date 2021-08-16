@@ -132,8 +132,8 @@
 
 
 // Barrier Instruction
-#define bsg_barsend   .word 0x1000000f
-#define bsg_barrecv   .word 0x2000000f
+#define bsg_asm_barsend   .word 0x1000000f
+#define bsg_asm_barrecv   .word 0x2000000f
 
 
 
