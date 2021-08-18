@@ -1,0 +1,126 @@
+#include "bsg_manycore.h"
+#include "bsg_set_tile_x_y.h"
+#include "bsg_hw_barrier.h"
+#include "bsg_hw_barrier_config.h"
+
+//#define NUM_THREAD 2
+#define NUM_ITER 2
+#define NUM_WORD 8
+
+// thread id
+int __thread_id = 0;
+
+// thread data block
+int _thread_data_block[bsg_tiles_X*bsg_tiles_Y*NUM_THREAD*1024] __attribute__ ((section (".dram"))) = {0}; 
+
+// thread context block (64 words)
+// thread id [0]
+// x1~x31 [1:31]
+// barrier entered [32]
+// mepc [33]
+int _thread_context_block[bsg_tiles_X*bsg_tiles_Y*NUM_THREAD*64] __attribute__ ((section (".dram"))) = {0};
+
+
+// amoadd barrier
+int amoadd_lock __attribute__ ((section (".dram"))) = 0;
+int amoadd_alarm = 1;
+
+
+// private data
+int  mydata[NUM_WORD] = {0};
+
+
+void work() {
+  for (int i  = 0; i < NUM_ITER; i++) {
+  
+    // last tile interrupts everyone
+    if (__bsg_id == (bsg_tiles_X*bsg_tiles_Y)-1) {
+      for (int y = 0; y < bsg_tiles_Y; y++) {
+        for (int x = 0; x < bsg_tiles_X; x++) {
+          bsg_remote_store(x,y,0xfffc,1);
+        }
+      }     
+    }  
+
+
+    int temp[NUM_WORD];
+    int tx = (__bsg_x + i) % bsg_tiles_X;
+    int ty = (__bsg_y + i) % bsg_tiles_Y;
+
+    for (int j = 0; j < NUM_WORD; j++) {
+      bsg_remote_load(tx, ty, &mydata[j], temp[j]);
+    }
+
+    bsg_fence();
+    bsg_barsend();
+    bsg_barrecv();
+
+    for (int j = 0; j < NUM_WORD; j++) {
+      temp[j] = temp[j] + 1;
+      bsg_remote_store(tx, ty, &mydata[j], temp[j]);
+    }
+
+    bsg_fence();
+    bsg_barsend();
+    bsg_barrecv();
+  }
+
+
+  // validate
+  if (__bsg_id == 0) {
+    for (int y = 0; y < bsg_tiles_Y; y++) {
+      for (int x = 0; x < bsg_tiles_X; x++) {
+        for (int i = 0; i < NUM_WORD; i++) {
+          int temp = -1;
+          bsg_remote_load(x,y,&mydata[i],temp);
+          if (temp != NUM_ITER) {
+            bsg_fail();
+          }
+        }
+      }
+    }
+    
+    // send finish packet; don't get into while(1) after that...
+    //bsg_finish();
+    bsg_global_store(IO_X_INDEX, IO_Y_INDEX, 0xEAD0, 1);
+  }
+
+  while (1) {
+    bsg_remote_store(__bsg_x,__bsg_y,0xfffc,1);
+    bsg_fence();
+  }
+}
+
+int main()
+{
+  bsg_set_tile_x_y();
+
+  // enable remote_interrupt
+  asm volatile ("csrrs x0, mstatus, %0" : : "r" (0x8));
+  asm volatile ("csrrs x0, mie, %0" : : "r" (0x10000));
+
+  // config hw barrier
+  int barcfg = barcfg_4x4[__bsg_id];
+  asm volatile ("csrrw x0, 0xfc1, %0" : : "r" (barcfg));
+
+  // set up thread context block
+  int* myblock = &_thread_context_block[64*NUM_THREAD*__bsg_id];
+  for (int n = 0; n < NUM_THREAD; n++) {
+    myblock[(64*n)+0] = n;    // thread id
+    myblock[(64*n)+2] = 4096; // sp
+    myblock[(64*n)+33] = (int) work; // mepc
+  }
+  
+  // set up thread data block
+  int* my_datablock = &_thread_data_block[1024*NUM_THREAD*__bsg_id];
+  for (int n = 0; n < NUM_THREAD; n++) {
+    my_datablock[(1024*n)+(((int) &__bsg_id)/4)] = __bsg_id;
+    my_datablock[(1024*n)+(((int) &__bsg_x)/4)]  = __bsg_x;
+    my_datablock[(1024*n)+(((int) &__bsg_y)/4)]  = __bsg_y;
+  }
+
+  bsg_fence();
+
+  // start threads
+  work();
+}
