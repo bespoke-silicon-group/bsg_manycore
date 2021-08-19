@@ -4,7 +4,7 @@
 #include "bsg_hw_barrier_config.h"
 
 //#define NUM_THREAD 2
-#define NUM_ITER 2
+#define NUM_ITER 4
 #define NUM_WORD 8
 
 // thread id
