@@ -64,6 +64,7 @@ bsg_barrier_amoadd_sleep:
   lr.w t0, 0(a1)
   beq t3, t0, bsg_barrier_amoadd_end
   lr.w.aq t0, 0(a1)
+  beq t3, t0, bsg_barrier_amoadd_sleep
 
 
 bsg_barrier_amoadd_end:
