@@ -1,11 +1,12 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 #include "bsg_hw_barrier.h"
-#include "bsg_hw_barrier_config.h"
 
-//#define NUM_THREAD 2
 #define NUM_ITER 4
 #define NUM_WORD 8
+
+// barrier config
+int barcfg[bsg_tiles_X*bsg_tiles_Y] __attribute__ ((section (".dram"))) = {0};
 
 // thread id
 int __thread_id = 0;
@@ -22,8 +23,11 @@ int _thread_context_block[bsg_tiles_X*bsg_tiles_Y*NUM_THREAD*64] __attribute__ (
 
 
 // amoadd barrier
+extern void bsg_barrier_amoadd(int*, int*);
 int amoadd_lock __attribute__ ((section (".dram"))) = 0;
 int amoadd_alarm = 1;
+int amoadd_lock2 __attribute__ ((section (".dram"))) = 0;
+int amoadd_alarm2 = 1;
 
 
 // private data
@@ -80,8 +84,7 @@ void work() {
       }
     }
     
-    // send finish packet; don't get into while(1) after that...
-    //bsg_finish();
+    // send finish packet; and don't get into while(1) after that...
     bsg_global_store(IO_X_INDEX, IO_Y_INDEX, 0xEAD0, 1);
   }
 
@@ -95,13 +98,24 @@ int main()
 {
   bsg_set_tile_x_y();
 
+  // initialize barcfg
+  if (__bsg_id == 0) {
+    bsg_hw_barrier_config_init(barcfg, bsg_tiles_X, bsg_tiles_Y);
+    bsg_fence();
+  }
+  
+  bsg_barrier_amoadd(&amoadd_lock2, &amoadd_alarm2);
+
+
+  // config hw barrier
+  int cfg = barcfg[__bsg_id];
+  asm volatile ("csrrw x0, 0xfc1, %0" : : "r" (cfg));
+
+
   // enable remote_interrupt
   asm volatile ("csrrs x0, mstatus, %0" : : "r" (0x8));
   asm volatile ("csrrs x0, mie, %0" : : "r" (0x10000));
 
-  // config hw barrier
-  int barcfg = barcfg_4x4[__bsg_id];
-  asm volatile ("csrrw x0, 0xfc1, %0" : : "r" (barcfg));
 
   // set up thread context block
   int* myblock = &_thread_context_block[64*NUM_THREAD*__bsg_id];
@@ -119,7 +133,10 @@ int main()
     my_datablock[(1024*n)+(((int) &__bsg_y)/4)]  = __bsg_y;
   }
 
+  // make sure that everyone has set up threads, before allow sending interrupts.
   bsg_fence();
+  bsg_barsend();
+  bsg_barrecv();
 
   // start threads
   work();

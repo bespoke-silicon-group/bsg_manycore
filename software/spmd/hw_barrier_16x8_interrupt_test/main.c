@@ -3,34 +3,55 @@
 #include "bsg_set_tile_x_y.h"
 #include "bsg_manycore_atomic.h"
 #include "bsg_hw_barrier.h"
-#include "bsg_hw_barrier_config.h"
 
 #define N 4
+#define NUM_WORDS 16
 
+extern void bsg_barrier_amoadd(int*, int*);
 int amoadd_lock __attribute__ ((section (".dram"))) = 0;
 int amoadd_alarm = 1;
-int data[bsg_tiles_X*bsg_tiles_Y] __attribute__ ((section (".dram"))) = {0};
 int myid[bsg_tiles_X*bsg_tiles_Y] __attribute__ ((section (".dram"))) = {0};
+int barcfg[bsg_tiles_X*bsg_tiles_Y] __attribute__ ((section (".dram"))) = {0};
 
-
+int mydata[NUM_WORDS] = {0};
 
 int main()
 {
   bsg_set_tile_x_y();
 
+
+  // initialized barcfg
+  if (__bsg_id == 0) {
+    bsg_hw_barrier_config_init(barcfg, bsg_tiles_X, bsg_tiles_Y);
+    bsg_fence();
+  }
+
+  bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm);
+
+
+  // config hw barrier
+  int cfg = barcfg[__bsg_id];
+  asm volatile ("csrrw x0, 0xfc1, %0" : : "r" (cfg));
+
+  bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm);
+
   // enable remote interrupt
   asm volatile ("csrrs x0, mstatus, %0" : : "r" (0x8));
   asm volatile("csrrs x0, mie, %0" : : "r" (0x10000));
 
-  // config hw barrier
-  int barcfg = barcfg_16x8[__bsg_id];
-  asm volatile ("csrrw x0, 0xfc1, %0" : : "r" (barcfg));
 
 
   // barrier loop
-  for (int i = 0; i < N; i++) {
-    // do updates
-    bsg_amoadd(&data[(__bsg_id+i)%(bsg_tiles_X*bsg_tiles_Y)], 1);
+  int temp[NUM_WORDS];
+  for (int n = 0; n < N; n++) {
+    int tx = (__bsg_x + n) % bsg_tiles_X;
+    int ty = (__bsg_y + n) % bsg_tiles_Y;
+
+    // load from other tiles
+    for (int i = 0; i < NUM_WORDS; i++) {
+      bsg_remote_load(tx,ty,&mydata[i], temp[i]);
+    }
+
 
     // last tile sends remote interrupt to everyone.
     if (__bsg_id == (bsg_tiles_X*bsg_tiles_Y)-1) {
@@ -41,30 +62,45 @@ int main()
       }
     }
 
-    // fence before barrier
+    // HW Barrier
     bsg_fence();
-    // join barrier
     bsg_barsend();
-    // wait for barrier to complete
+    bsg_barrecv();
+
+
+    // increment and store back
+    for (int i = 0; i < NUM_WORDS; i++) {
+      temp[i]++;
+    }
+    for (int i = 0; i < NUM_WORDS; i++) {
+      bsg_remote_store(tx,ty,&mydata[i], temp[i]);
+    }
+
+    // HW Barrier
+    bsg_fence();
+    bsg_barsend();
     bsg_barrecv();
   }
+
+  // everyone validates mydata.
+  for (int i = 0; i < NUM_WORDS; i++) {
+    if (mydata[i] != N) {
+      bsg_fail();
+    }
+  }
+
+  // HW Barrier
+  bsg_fence();
+  bsg_barsend();
+  bsg_barrecv();
 
   // validate
   if (__bsg_id == 0) {
     for (int i = 0; i < bsg_tiles_X*bsg_tiles_Y; i++) {
-      if (data[i] != N) {
-        bsg_fail();
-        bsg_wait_while(1);
-      }
-    }
-
-    for (int i = 0; i < bsg_tiles_X*bsg_tiles_Y; i++) {
       if (myid[i] != N) {
         bsg_fail();
-        bsg_wait_while(1);
       }
     }
-
     bsg_finish();
   }
   
