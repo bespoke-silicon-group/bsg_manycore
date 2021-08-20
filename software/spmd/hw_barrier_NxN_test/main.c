@@ -5,9 +5,13 @@
 
 #define N 4
 #define NUM_WORDS 16
+// my private data in DMEM
 int mydata[NUM_WORDS] = {0};
+
+// HW barrier configuration
 int barcfg[bsg_tiles_X*bsg_tiles_Y] __attribute__ ((section (".dram"))) = {0};
 
+// AMOADD barrier
 extern void bsg_barrier_amoadd(int*, int*);
 int amoadd_lock __attribute__ ((section (".dram"))) = 0;
 int amoadd_alarm = 1;
@@ -19,8 +23,9 @@ int main()
 
   // calculate barcfg
   if (__bsg_id == 0) {
+    // calculate HW barrier config.
     bsg_hw_barrier_config_init(barcfg, bsg_tiles_X, bsg_tiles_Y);
-
+    // print the configuration matrix.
     for (int y = 0; y < bsg_tiles_Y; y++) {
       for (int x = 0; x < bsg_tiles_X; x++) {
         int id = (y*bsg_tiles_X) + x;
@@ -43,9 +48,11 @@ int main()
   int temp[NUM_WORDS];
 
   for (int n = 0; n < N; n++) {
+    // target coordinate
     int tx = (__bsg_x + n) % bsg_tiles_X;
     int ty = (__bsg_y + n) % bsg_tiles_Y;
 
+    // load data from other tiles.
     for (int i = 0; i < NUM_WORDS; i++) {
       bsg_remote_load(tx, ty, &mydata[i], temp[i]);
       temp[i]++;
@@ -56,6 +63,7 @@ int main()
     bsg_barsend();
     bsg_barrecv();
 
+    // increment the data and store back.
     for (int i = 0; i < NUM_WORDS; i++) {
       bsg_remote_store(tx, ty, &mydata[i], temp[i]);
     }
