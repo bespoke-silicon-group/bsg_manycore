@@ -4,4 +4,6 @@ ENERGY_UBENCHMARK = \
 	mul \
 	fma \
 	branch \
-	branch_miss
+	branch_miss \
+	lw \
+  sw
