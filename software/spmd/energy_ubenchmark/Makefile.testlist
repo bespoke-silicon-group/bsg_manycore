@@ -7,4 +7,5 @@ ENERGY_UBENCHMARK = \
 	branch \
 	branch_miss \
 	lw \
+	idiv \
   sw
