@@ -1,6 +1,7 @@
 ENERGY_UBENCHMARK = \
 	add_random \
 	add_zeros \
+	addi \
 	mul \
 	fma \
 	branch \
