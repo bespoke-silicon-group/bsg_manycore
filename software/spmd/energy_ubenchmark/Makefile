@@ -21,4 +21,4 @@ all: $(addsuffix _run, $(ENERGY_UBENCHMARK))
 	$(DVE) -full64 -vpd $*_run/vcdplus.vpd &
 
 clean:
-	rm -rf *run bsg_link.ld
+	rm -rf *run bsg_link.ld DVEfiles
