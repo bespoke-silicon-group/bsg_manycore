@@ -29,16 +29,16 @@
 #include <atomic>
 #include "bsg_manycore.h"
 
-typedef struct bsg_mutex_node {
-    volatile struct bsg_mutex_node* next;
+typedef struct bsg_mcs_mutex_node {
+    volatile struct bsg_mcs_mutex_node* next;
     volatile int                  locked;
-} bsg_mutex_node_t;
+} bsg_mcs_mutex_node_t;
 
 /**
  * This object must live in global memory (DRAM).
  */
 //typedef struct bsg_mutex_node* bsg_mutex2_t;
-typedef struct std::atomic<bsg_mutex_node*> bsg_mutex2_t;
+typedef struct std::atomic<bsg_mcs_mutex_node*> bsg_mcs_mutex_t;
 
 /**
  * Acquires the lock.
@@ -46,9 +46,9 @@ typedef struct std::atomic<bsg_mutex_node*> bsg_mutex2_t;
  * Attempts to acquire the lock from mtx with an amoswap and if that fails
  * this function adds lcl to the queue and waits to be woken up.
  */
-static void bsg_mutex2_acquire(bsg_mutex2_t *mtx, bsg_mutex_node_t *lcl)
+static void bsg_mcs_mutex_acquire(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lcl)
 {
-    bsg_mutex_node_t *pred; // who's before us
+    bsg_mcs_mutex_node_t *pred; // who's before us
 
     lcl->next = nullptr;
     lcl->locked = 1;
@@ -68,7 +68,7 @@ static void bsg_mutex2_acquire(bsg_mutex2_t *mtx, bsg_mutex_node_t *lcl)
  * Releases the lock by waking its successor. Also attempts to remove self from the global queue
  * if it has no successor.
  */
-static void bsg_mutex2_release(bsg_mutex2_t *mtx, bsg_mutex_node_t *lcl)
+static void bsg_mcs_mutex_release(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lcl)
 {
     // successor exists, unlock and return
     if (lcl->next != nullptr) {
@@ -80,7 +80,7 @@ static void bsg_mutex2_release(bsg_mutex2_t *mtx, bsg_mutex_node_t *lcl)
 
     // no successor, head still points to us
     // attempt to swap out head with null
-    bsg_mutex_node_t *vic_tail;
+    bsg_mcs_mutex_node_t *vic_tail;
     vic_tail = mtx->exchange(nullptr, std::memory_order_release);
     if (vic_tail == lcl) {
         // there's still no successor
@@ -92,7 +92,7 @@ static void bsg_mutex2_release(bsg_mutex2_t *mtx, bsg_mutex_node_t *lcl)
     // wait for next pointer to point to some head of our victims
     while (lcl->next == nullptr);
 
-    bsg_mutex_node_t *usurper;
+    bsg_mcs_mutex_node_t *usurper;
     usurper = mtx->exchange(vic_tail, std::memory_order_release);
 
     // did someone else get in line in the mean time?
