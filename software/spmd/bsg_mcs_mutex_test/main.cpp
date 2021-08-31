@@ -3,6 +3,10 @@
 #include "bsg_manycore_atomic.h"
 #include "bsg_mcs_mutex.hpp"
 
+#ifndef ITERS
+#error "define ITERS"
+#endif
+
 #define BSG_TILE_GROUP_X_DIM bsg_tiles_X
 #define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
 #include "bsg_tile_group_barrier.h"
@@ -20,7 +24,7 @@ int main()
   bsg_mcs_mutex_node_t lcl, *lclptr;
   lclptr = (bsg_mcs_mutex_node_t*)bsg_tile_group_remote_ptr(int, bsg_x, bsg_y, &lcl);
 
-  for (int i = 0; i < 16; i++) {
+  for (int i = 0; i < ITERS; i++) {
       bsg_mcs_mutex_acquire(&mtx, lclptr);
       data += 1;
       bsg_mcs_mutex_release(&mtx, lclptr);

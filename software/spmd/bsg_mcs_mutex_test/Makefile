@@ -4,7 +4,7 @@ export BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
 # bsg_tiles_X = 2
 # bsg_tiles_Y = 2
 
-RISCV_GCC_EXTRA_OPTS = -DITERS=16
+RISCV_GXX_EXTRA_OPTS += -DITERS=16
 
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
