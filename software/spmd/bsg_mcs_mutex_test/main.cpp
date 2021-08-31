@@ -33,7 +33,10 @@ int main()
   bsg_tile_group_barrier(&r_barrier, &c_barrier);
   if (bsg_x == 0 && bsg_y == 0) {
       bsg_print_int(data);
-      bsg_finish();
+      if (data != ITERS * bsg_tiles_X * bsg_tiles_Y)
+          bsg_fail();
+      else
+          bsg_finish();
   }
 
   bsg_wait_while(1);

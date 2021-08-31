@@ -14,18 +14,19 @@ INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1
 
 volatile int data __attribute__((section(".dram"))) = 0;
 
-int mtx __attribute__((section(".dram"))) = 1;
+int mtx __attribute__((section(".dram"))) = 0;
 
-static int acquire()
+static void acquire()
 {
-    int v;
-    do { v = bsg_amoswap_aq(&mtx, 0); } while (v != 1);
+    int v = 1;
+    do {
+        v = bsg_amoswap_aq(&mtx, 1);
+    } while (v != 0);
 }
 
 static void release()
 {
-    mtx = 1;
-    bsg_fence();
+    bsg_amoswap_rl(&mtx, 0);
 }
 
 int main()
@@ -33,7 +34,7 @@ int main()
 
   bsg_set_tile_x_y();
 
-  for (int i = 0; i < 16; i++) {
+  for (int i = 0; i < ITERS; i++) {
       acquire();
       data += 1;
       release();
@@ -42,7 +43,10 @@ int main()
   bsg_tile_group_barrier(&r_barrier, &c_barrier);
   if (bsg_x == 0 && bsg_y == 0) {
       bsg_print_int(data);
-      bsg_finish();
+      if (data != ITERS*bsg_tiles_X*bsg_tiles_Y)
+          bsg_fail();
+      else
+          bsg_finish();
   }
 
   bsg_wait_while(1);
