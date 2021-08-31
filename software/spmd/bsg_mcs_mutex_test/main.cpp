@@ -22,12 +22,12 @@ int main()
 
   bsg_set_tile_x_y();
 
-  bsg_mcs_mutex_node_t lcl;
+  bsg_mcs_mutex_node_t lcl, *lcl_as_glbl = (bsg_mcs_mutex_node_t*)bsg_tile_group_remote_ptr(int, bsg_x, bsg_y, &lcl);
 
   for (int i = 0; i < ITERS; i++) {
-      bsg_mcs_mutex_acquire(&mtx, &lcl);
+      bsg_mcs_mutex_acquire(&mtx, &lcl, lcl_as_glbl);
       data += 1;
-      bsg_mcs_mutex_release(&mtx, &lcl);
+      bsg_mcs_mutex_release(&mtx, &lcl, lcl_as_glbl);
   }
 
   bsg_tile_group_barrier(&r_barrier, &c_barrier);

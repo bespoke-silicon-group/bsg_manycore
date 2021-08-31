@@ -38,7 +38,7 @@ static T atomic_load(volatile T *ptr) {
 
 typedef struct bsg_mcs_mutex_node {
     struct bsg_mcs_mutex_node* next;
-    int                  locked;
+    int                  unlocked;
 } bsg_mcs_mutex_node_t;
 
 /**
@@ -53,21 +53,22 @@ typedef struct std::atomic<bsg_mcs_mutex_node*> bsg_mcs_mutex_t;
  * Attempts to acquire the lock from mtx with an amoswap and if that fails
  * this function adds lcl to the queue and waits to be woken up.
  */
-static void bsg_mcs_mutex_acquire(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lcl)
+static void bsg_mcs_mutex_acquire(bsg_mcs_mutex_t *mtx
+                                  , bsg_mcs_mutex_node_t *lcl
+                                  , bsg_mcs_mutex_node_t *lcl_as_glbl)
 {
     bsg_mcs_mutex_node_t *pred; // who's before us
 
     lcl->next = nullptr;
-    lcl->locked = 1;
+    lcl->unlocked = 0;
 
-    bsg_mcs_mutex_node_t *lcl_cast = (bsg_mcs_mutex_node_t*)bsg_tile_group_remote_ptr(int, __bsg_x, __bsg_y, lcl);
-    pred = mtx->exchange(lcl_cast, std::memory_order_acquire);
+    pred = mtx->exchange(lcl_as_glbl, std::memory_order_acquire);
     // was there someone before us in line?
     if (pred != nullptr) {
         // tell our predecessor to notify us when done
-        pred->next = lcl_cast;
+        pred->next = lcl_as_glbl;
         // wait on our locked variable
-        bsg_wait_local_int_asm_blind(&lcl->locked, 0);
+        bsg_wait_local_int_asm(&lcl->unlocked, 1);
     }
 }
 
@@ -77,14 +78,15 @@ static void bsg_mcs_mutex_acquire(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lc
  * Releases the lock by waking its successor. Also attempts to remove self from the global queue
  * if it has no successor.
  */
-static void bsg_mcs_mutex_release(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lcl)
+static void bsg_mcs_mutex_release(bsg_mcs_mutex_t *mtx
+                                  , bsg_mcs_mutex_node_t *lcl
+                                  , bsg_mcs_mutex_node_t *lcl_as_glbl)
 {
-    bsg_mcs_mutex_node_t *lcl_cast = (bsg_mcs_mutex_node_t*)bsg_tile_group_remote_ptr(int, __bsg_x, __bsg_y, lcl);
     // successor exists, unlock and return
     if (lcl->next != nullptr) {
         // fence and release
         bsg_fence();
-        lcl->next->locked = 0;
+        lcl->next->unlocked = 1;
         return;
     }
 
@@ -92,7 +94,7 @@ static void bsg_mcs_mutex_release(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lc
     // attempt to swap out head with null
     bsg_mcs_mutex_node_t *vic_tail;
     vic_tail = mtx->exchange(nullptr, std::memory_order_release);
-    if (vic_tail == lcl_cast) {
+    if (vic_tail == lcl_as_glbl) {
         // there's still no successor
         return;
     }
@@ -107,7 +109,7 @@ static void bsg_mcs_mutex_release(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lc
 
     // did someone else get in line in the mean time?
     if (usurper == nullptr) {
-        lcl->next->locked = 0;
+        lcl->next->unlocked = 1;
         return;
     }
 
