@@ -1,7 +1,6 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 #include "bsg_manycore_atomic.h"
-#include "bsg_mcs_mutex.hpp"
 
 #ifndef ITERS
 #error "define ITERS"

@@ -28,10 +28,12 @@
 #pragma once
 #include <atomic>
 #include "bsg_manycore.h"
+#include "bsg_tile_config_vars.h"
+#include "bsg_tile_group_barrier.h"
 
 typedef struct bsg_mcs_mutex_node {
     volatile struct bsg_mcs_mutex_node* next;
-    volatile int                  locked;
+    int                  locked;
 } bsg_mcs_mutex_node_t;
 
 /**
@@ -52,13 +54,15 @@ static void bsg_mcs_mutex_acquire(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lc
 
     lcl->next = nullptr;
     lcl->locked = 1;
-    pred = mtx->exchange(lcl, std::memory_order_acquire);
+
+    bsg_mcs_mutex_node_t *lcl_cast = (bsg_mcs_mutex_node_t*)bsg_tile_group_remote_ptr(int, __bsg_x, __bsg_y, lcl);
+    pred = mtx->exchange(lcl_cast, std::memory_order_acquire);
     // was there someone before us in line?
     if (pred != nullptr) {
         // tell our predecessor to notify us when done
-        pred->next = lcl;
-        // spin on our locked variable
-        while (lcl->locked);
+        pred->next = lcl_cast;
+        // wait on our locked variable
+        bsg_wait_local_int_asm_blind(&lcl->locked, 0);
     }
 }
 
@@ -70,6 +74,7 @@ static void bsg_mcs_mutex_acquire(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lc
  */
 static void bsg_mcs_mutex_release(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lcl)
 {
+    bsg_mcs_mutex_node_t *lcl_cast = (bsg_mcs_mutex_node_t*)bsg_tile_group_remote_ptr(int, __bsg_x, __bsg_y, lcl);
     // successor exists, unlock and return
     if (lcl->next != nullptr) {
         // fence and release
@@ -82,7 +87,7 @@ static void bsg_mcs_mutex_release(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lc
     // attempt to swap out head with null
     bsg_mcs_mutex_node_t *vic_tail;
     vic_tail = mtx->exchange(nullptr, std::memory_order_release);
-    if (vic_tail == lcl) {
+    if (vic_tail == lcl_cast) {
         // there's still no successor
         return;
     }
