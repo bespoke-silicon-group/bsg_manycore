@@ -22,7 +22,6 @@ int main()
 
   for (int i = 0; i < 16; i++) {
       bsg_mcs_mutex_acquire(&mtx, lclptr);
-      bsg_print_hexadecimal(0xdeadbeef);
       data += 1;
       bsg_mcs_mutex_release(&mtx, lclptr);
   }

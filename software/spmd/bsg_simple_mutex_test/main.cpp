@@ -35,7 +35,6 @@ int main()
 
   for (int i = 0; i < 16; i++) {
       acquire();
-      bsg_print_hexadecimal(0xdeadbeef);
       data += 1;
       release();
   }
