@@ -31,8 +31,13 @@
 #include "bsg_tile_config_vars.h"
 #include "bsg_tile_group_barrier.h"
 
+template <typename T>
+static T atomic_load(volatile T *ptr) {
+    return *ptr;
+}
+
 typedef struct bsg_mcs_mutex_node {
-    volatile struct bsg_mcs_mutex_node* next;
+    struct bsg_mcs_mutex_node* next;
     int                  locked;
 } bsg_mcs_mutex_node_t;
 
@@ -95,7 +100,7 @@ static void bsg_mcs_mutex_release(bsg_mcs_mutex_t *mtx, bsg_mcs_mutex_node_t *lc
     // a successor added itself to the queue
     // we have to put it back
     // wait for next pointer to point to some head of our victims
-    while (lcl->next == nullptr);
+    while (atomic_load(&lcl->next) == nullptr);
 
     bsg_mcs_mutex_node_t *usurper;
     usurper = mtx->exchange(vic_tail, std::memory_order_release);
