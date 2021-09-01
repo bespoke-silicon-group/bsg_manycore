@@ -3,13 +3,15 @@
 extern "C" {
 #endif    
 
-    // must live in tile's local memory (DMEM)
+    // Must live in tile's local memory (DMEM)
+    // Do not reorder the members in this struct
+    // The assembly code in bsg_mcs_mutex.S depends on this ordering.
     typedef struct bsg_mcs_mutex_node {
         int unlocked;
         struct bsg_mcs_mutex_node *next;
     } bsg_mcs_mutex_node_t;    
 
-    // must live in dram
+    // Must live in dram
     typedef bsg_mcs_mutex_node_t* bsg_mcs_mutex_t;
 
     void bsg_mcs_mutex_acquire(bsg_mcs_mutex_t *mtx                //!< An MCS mutex
