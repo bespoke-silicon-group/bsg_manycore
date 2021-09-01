@@ -100,6 +100,8 @@ module vanilla_core
   // pipeline signals
   // ctrl signals set to zero when reset_i is high.
   // data signals are not reset to zero.
+  logic id_en, exe_en, mem_ctrl_en, mem_data_en,
+        fp_exe_ctrl_en, fp_exe_data_en, flw_wb_ctrl_en, flw_wb_data_en;
   id_signals_s id_r, id_n;
   exe_signals_s exe_r, exe_n;
   mem_ctrl_signals_s mem_ctrl_r, mem_ctrl_n;
@@ -180,11 +182,12 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  bsg_dff_reset #(
+  bsg_dff_reset_en #(
     .width_p($bits(id_signals_s))
   ) id_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
+    ,.en_i(id_en)
     ,.data_i(id_n)
     ,.data_o(id_r)
   );
@@ -564,11 +567,12 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  bsg_dff_reset #(
+  bsg_dff_reset_en #(
     .width_p($bits(exe_signals_s))
   ) exe_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
+    ,.en_i(exe_en)
     ,.data_i(exe_n)
     ,.data_o(exe_r)
   );
@@ -745,19 +749,21 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  bsg_dff_reset #(
+  bsg_dff_reset_en #(
     .width_p($bits(fp_exe_ctrl_signals_s))
   ) fp_exe_ctrl_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
+    ,.en_i(fp_exe_ctrl_en)
     ,.data_i(fp_exe_ctrl_n)
     ,.data_o(fp_exe_ctrl_r)
   );
 
-  bsg_dff #(
+  bsg_dff_en #(
     .width_p($bits(fp_exe_data_signals_s))
   ) fp_exe_data_pipeline (
     .clk_i(clk_i)
+    ,.en_i(fp_exe_data_en)
     ,.data_i(fp_exe_data_n)
     ,.data_o(fp_exe_data_r)
   );
@@ -863,19 +869,21 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  bsg_dff_reset #(
+  bsg_dff_reset_en #(
     .width_p($bits(mem_ctrl_signals_s))
   ) mem_ctrl_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
+    ,.en_i(mem_ctrl_en)
     ,.data_i(mem_ctrl_n)
     ,.data_o(mem_ctrl_r)
   );
 
-  bsg_dff #(
+  bsg_dff_en #(
     .width_p($bits(mem_data_signals_s))
   ) mem_data_pipeline (
     .clk_i(clk_i)
+    ,.en_i(mem_data_en)
     ,.data_i(mem_data_n)
     ,.data_o(mem_data_r)
   );
@@ -1003,19 +1011,21 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  bsg_dff_reset #(
+  bsg_dff_reset_en #(
     .width_p($bits(flw_wb_ctrl_signals_s))
   ) flw_wb_ctrl_pipeline (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
+    ,.en_i(flw_wb_ctrl_en)
     ,.data_i(flw_wb_ctrl_n)
     ,.data_o(flw_wb_ctrl_r)
   );
 
-  bsg_dff #(
+  bsg_dff_en #(
     .width_p($bits(flw_wb_data_signals_s))
   ) flw_wb_data_pipeline (
     .clk_i(clk_i)
+    ,.en_i(flw_wb_data_en)
     ,.data_i(flw_wb_data_n)
     ,.data_o(flw_wb_data_r)
   );
@@ -1211,21 +1221,35 @@ module vanilla_core
 
   // IF -> ID
   always_comb begin
+    // common case
+    id_n = '{
+      pc_plus4: {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0},
+      pred_or_jump_addr: {{(data_width_p-pc_width_lp-2){1'b0}}, pred_or_jump_addr, 2'b0},
+      instruction: instruction,
+      decode: decode,
+      fp_decode: fp_decode,
+      icache_miss: 1'b0,
+      valid: 1'b1
+    };
+
     if (stall_all) begin
-      id_n = id_r;
+      id_en = 1'b0;
     end
     else begin
       if (reset_down | flush) begin
+        id_en = 1'b1;
         id_n = '0;
       end    
       else if (stall_id) begin
-        id_n = id_r;
+        id_en = 1'b0;
       end
       // When stall_id is high, icache miss should not be flushing ID.
       else if (icache_miss_in_pipe | icache_flush_r_lo) begin
+        id_en = 1'b1;
         id_n = '0;
       end
       else if (icache_miss) begin
+        id_en = 1'b1;
         id_n = '{
           pc_plus4: {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0},
           pred_or_jump_addr: '0,
@@ -1237,15 +1261,8 @@ module vanilla_core
         };
       end
       else begin
-        id_n = '{
-          pc_plus4: {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0},
-          pred_or_jump_addr: {{(data_width_p-pc_width_lp-2){1'b0}}, pred_or_jump_addr, 2'b0},
-          instruction: instruction,
-          decode: decode,
-          fp_decode: fp_decode,
-          icache_miss: 1'b0,
-          valid: 1'b1
-        };
+        // common case
+        id_en = 1'b1;
       end
     end
   end
@@ -1493,18 +1510,39 @@ module vanilla_core
   // ID -> EXE
   // update npc_r, when the pipeline is not stalled, and there is a valid instruction in EXE/FP_EXE;
   always_comb begin
+    // common case
+    exe_n = '{
+      pc_plus4: id_r.pc_plus4,
+      valid: id_r.valid,
+      pred_or_jump_addr: id_r.pred_or_jump_addr,
+      instruction: id_r.instruction,
+      decode: id_r.decode,
+      rs1_val: rs1_val_to_exe,
+      // rs2_val carries csr load values
+      // if csr addr matches any of fcsr addr, then fcsr_data_v_lo will be asserted.
+      rs2_val: (id_r.decode.is_csr_op
+                    ? (fcsr_data_v_lo
+                      ? (data_width_p)'(fcsr_data_lo)
+                      : mcsr_data_lo)
+                    : rs2_val_to_exe),
+      mem_addr_op2: mem_addr_op2,
+      icache_miss: id_r.icache_miss
+    };
+
     if (stall_all) begin
-      exe_n = exe_r;
+      exe_en = 1'b0;
       npc_write_en = 1'b0;
     end
     else begin
       npc_write_en = (exe_r.valid & mstatus_r.mie) | exe_r.decode.is_mret_op;
       if (flush | stall_id) begin
+        exe_en = 1'b1;
         exe_n = '0;
       end
       else if (id_r.decode.is_fp_op) begin
         // for fp_op, we still want to keep track of npc_r.
         // so we set the valid and pc_plus4.
+        exe_en = 1'b1;
         exe_n = '{
           pc_plus4: id_r.pc_plus4,
           valid: id_r.valid,
@@ -1518,23 +1556,7 @@ module vanilla_core
         };
       end
       else begin
-        exe_n = '{
-          pc_plus4: id_r.pc_plus4,
-          valid: id_r.valid,
-          pred_or_jump_addr: id_r.pred_or_jump_addr,
-          instruction: id_r.instruction,
-          decode: id_r.decode,
-          rs1_val: rs1_val_to_exe,
-          // rs2_val carries csr load values
-          // if csr addr matches any of fcsr addr, then fcsr_data_v_lo will be asserted.
-          rs2_val: (id_r.decode.is_csr_op
-                    ? (fcsr_data_v_lo
-                      ? (data_width_p)'(fcsr_data_lo)
-                      : mcsr_data_lo)
-                    : rs2_val_to_exe),
-          mem_addr_op2: mem_addr_op2,
-          icache_miss: id_r.icache_miss
-        };
+        exe_en = 1'b1;
       end
     end
   end
@@ -1561,11 +1583,20 @@ module vanilla_core
     : frm_e'(id_r.instruction.funct3);
 
   always_comb begin
-    fp_exe_ctrl_n = fp_exe_ctrl_r;
-    fp_exe_data_n = fp_exe_data_r;
+    fp_exe_ctrl_n = '{
+      rd: id_r.instruction.rd,
+      fp_decode: id_r.fp_decode,
+      rm: fpu_rm
+    };
+    fp_exe_data_n = '{
+      rs1_val: frs1_to_fp_exe,
+      rs2_val: frs2_to_fp_exe,
+      rs3_val: frs3_to_fp_exe
+    };
+
     if (stall_all) begin
-      fp_exe_ctrl_n = fp_exe_ctrl_r;
-      fp_exe_data_n = fp_exe_data_r;
+      fp_exe_ctrl_en = 1'b0;
+      fp_exe_data_en = 1'b0;
     end
     else begin
       if (flush | stall_id | ~id_r.decode.is_fp_op) begin
@@ -1573,22 +1604,15 @@ module vanilla_core
         // we hold the data inputs steady in the case of a stall,
         // or if there is not a floating point operation
         // to avoid unnecessarily toggling of the FP unit
+        fp_exe_ctrl_en = 1'b1;
         fp_exe_ctrl_n.fp_decode.is_fpu_float_op = 1'b0;
         fp_exe_ctrl_n.fp_decode.is_fpu_int_op   = 1'b0;
         fp_exe_ctrl_n.fp_decode.is_fdiv_op  = 1'b0;
         fp_exe_ctrl_n.fp_decode.is_fsqrt_op = 1'b0;
       end
       else begin
-        fp_exe_ctrl_n = '{
-          rd: id_r.instruction.rd,
-          fp_decode: id_r.fp_decode,
-          rm: fpu_rm
-        };
-        fp_exe_data_n = '{
-          rs1_val: frs1_to_fp_exe,
-          rs2_val: frs2_to_fp_exe,
-          rs3_val: frs3_to_fp_exe
-        };
+        fp_exe_ctrl_en = 1'b1;
+        fp_exe_data_en = 1'b1;
       end
     end
   end  
@@ -1605,20 +1629,39 @@ module vanilla_core
 
   // EXE,FP_EXE -> MEM
   always_comb begin
+    // common case
+    mem_ctrl_n = '{
+      rd_addr: exe_r.instruction.rd,
+      write_rd: exe_r.decode.write_rd,
+      write_frd: exe_r.decode.write_frd,
+      is_byte_op: exe_r.decode.is_byte_op,
+      is_hex_op: exe_r.decode.is_hex_op,
+      is_load_unsigned: exe_r.decode.is_load_unsigned,
+      local_load: local_load_in_exe,
+      mem_addr_sent: lsu_mem_addr_sent_lo,
+      icache_miss: exe_r.icache_miss
+    };
+    mem_data_n = '{
+      exe_result: alu_or_csr_result
+    };
 
     fcsr_fflags_v_li[0] = 1'b0;
     fcsr_fflags_li[0] = fpu_int_fflags_lo;
 
     if (stall_all) begin
-      mem_ctrl_n = mem_ctrl_r;
-      mem_data_n = mem_data_r;
+      mem_ctrl_en = 1'b0;
+      mem_data_en = 1'b0;
     end
     else if (exe_r.decode.is_idiv_op | (remote_req_in_exe & ~exe_r.icache_miss)) begin
+      mem_ctrl_en = 1'b1;
+      mem_data_en = 1'b1;
       mem_ctrl_n = '0;
       mem_data_n = '0;
     end
     else if (fp_exe_ctrl_r.fp_decode.is_fpu_int_op) begin
       fcsr_fflags_v_li[0] = 1'b1;
+      mem_ctrl_en = 1'b1;
+      mem_data_en = 1'b1;
       mem_ctrl_n = '{
         rd_addr: fp_exe_ctrl_r.rd,
         write_rd: 1'b1,
@@ -1635,20 +1678,8 @@ module vanilla_core
       };
     end
     else begin
-      mem_ctrl_n = '{
-        rd_addr: exe_r.instruction.rd,
-        write_rd: exe_r.decode.write_rd,
-        write_frd: exe_r.decode.write_frd,
-        is_byte_op: exe_r.decode.is_byte_op,
-        is_hex_op: exe_r.decode.is_hex_op,
-        is_load_unsigned: exe_r.decode.is_load_unsigned,
-        local_load: local_load_in_exe,
-        mem_addr_sent: lsu_mem_addr_sent_lo,
-        icache_miss: exe_r.icache_miss
-      };
-      mem_data_n = '{
-        exe_result: alu_or_csr_result
-      };
+      mem_ctrl_en = 1'b1;
+      mem_data_en = 1'b1;
     end
   end  
 
@@ -1777,19 +1808,15 @@ module vanilla_core
 
   // MEM -> FLW_WB
   always_comb begin
-    if (stall_all) begin
-      flw_wb_ctrl_n = flw_wb_ctrl_r;
-      flw_wb_data_n = flw_wb_data_r;
-    end
-    else begin
-      flw_wb_ctrl_n = '{
-        valid: mem_ctrl_r.write_frd,
-        rd_addr: mem_ctrl_r.rd_addr
-      };
-      flw_wb_data_n = '{
-        rf_data: local_load_data_r
-      };
-    end
+    flw_wb_ctrl_en = ~stall_all;
+    flw_wb_data_en = ~stall_all;
+    flw_wb_ctrl_n = '{
+      valid: mem_ctrl_r.write_frd,
+      rd_addr: mem_ctrl_r.rd_addr
+    };
+    flw_wb_data_n = '{
+      rf_data: local_load_data_r
+    };
   end
 
   
