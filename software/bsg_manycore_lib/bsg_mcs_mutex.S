@@ -50,8 +50,8 @@ bsg_mcs_mutex_release:
         // a0 = mtx         : bsg_mcs_mutex_t*
         // a1 = lcl         : bsg_mcs_mutex_node_t*
         // a2 = lcl_as_glbl : bsg_mcs_mutex_node_t*
-        li      t1, 1                                       // t1 = 1
         lw      t0, 0(a1)                                   // next = lcl->next
+        li      t1, 1                                       // t1 = 1
         beqz    t0, bsg_mcs_mutex_release_no_successor      // branch if no successor
         // this is the case where there is a successor
         // we need only unlock the successor and return
