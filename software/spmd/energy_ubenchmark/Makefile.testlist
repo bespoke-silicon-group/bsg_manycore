@@ -1,4 +1,4 @@
-ENERGY_UBENCHMARK = \
+export ENERGY_UBENCHMARK := \
 	add \
 	add_zeros \
 	addi \
