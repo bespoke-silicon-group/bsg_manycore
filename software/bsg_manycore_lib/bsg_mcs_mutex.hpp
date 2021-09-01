@@ -101,11 +101,11 @@ static void bsg_mcs_mutex_release(bsg_mcs_mutex_t *mtx
 
     // a successor added itself to the queue
     // we have to put it back
-    // wait for next pointer to point to some head of our victims
-    while (atomic_load(&lcl->next) == nullptr);
-
     bsg_mcs_mutex_node_t *usurper;
     usurper = mtx->exchange(vic_tail, std::memory_order_release);
+
+    // wait for next pointer to point to some head of our victims
+    while (atomic_load(&lcl->next) == nullptr);
 
     // did someone else get in line in the mean time?
     if (usurper == nullptr) {
