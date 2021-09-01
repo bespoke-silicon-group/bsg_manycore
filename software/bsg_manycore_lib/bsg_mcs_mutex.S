@@ -68,13 +68,13 @@ bsg_mcs_mutex_release_exists_victim:
         // we need to put them back
         amoswap.w t2, t2, 0(a0)                             // usurper = swap(&mtx, victim_tail)
 bsg_mcs_mutex_release_wait_on_successor:
-        lw      t3, 4(a1)                                   // next = lcl->next
-        bnez    t3, bsg_mcs_mutex_release_wait_on_successor // while (lcl->next != 0)
+        lw      t0, 4(a1)                                   // next = lcl->next
+        bnez    t0, bsg_mcs_mutex_release_wait_on_successor // while (lcl->next != 0)
         bnez    t2, bsg_mcs_mutex_release_exists_usurper    // was there an usurper?
         // no usurper exists -- unlock our successor
-        sw      t1, 0(t3)                                   // next->unlocked = 1
+        sw      t1, 0(t0)                                   // next->unlocked = 1
         ret
 bsg_mcs_mutex_release_exists_usurper:       
         // usurper exists, set victims as successor
-        sw      t3, 4(t2)                                   // usurper->next = next
+        sw      t0, 4(t2)                                   // usurper->next = next
         ret
