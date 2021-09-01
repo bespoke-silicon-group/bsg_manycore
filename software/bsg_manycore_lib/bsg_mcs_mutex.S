@@ -34,7 +34,6 @@ bsg_mcs_mutex_acquire:
         sw      x0, 4(a1)                      // lcl->next = 0
         sw      x0, 0(a1)                      // lcl->unlocked = 0
         amoswap.w.aq t0, a2, 0(a0)             // predecessor = swap (&mtx, lcl_as_glbl)
-        //addi    t1, a1, 4                      // t1 = &lcl->unlocked
         beqz    t0, bsg_mcs_mutex_acquire_ret  // return if predecessor = 0
         sw      a2, 4(t0)                      // predecessor->next = lcl_as_glbl
         lr.w    t0, (a1)                       // unlocked = lcl->unlocked
