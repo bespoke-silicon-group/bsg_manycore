@@ -31,16 +31,16 @@ bsg_mcs_mutex_acquire:
         // a0 = mtx         : bsg_mcs_mutex_t*
         // a1 = lcl         : bsg_mcs_mutex_node_t*
         // a2 = lcl_as_glbl : bsg_mcs_mutex_node_t*
-        sw      x0, 0(a1)                      // lcl->next = 0
-        sw      x0, 4(a1)                      // lcl->unlocked = 0
+        sw      x0, 4(a1)                      // lcl->next = 0
+        sw      x0, 0(a1)                      // lcl->unlocked = 0
         amoswap.w.aq t0, a2, 0(a0)             // predecessor = swap (&mtx, lcl_as_glbl)
-        addi    t1, a1, 4                      // t1 = &lcl->unlocked
+        //addi    t1, a1, 4                      // t1 = &lcl->unlocked
         beqz    t0, bsg_mcs_mutex_acquire_ret  // return if predecessor = 0
-        sw      a2, 0(t0)                      // predecessor->next = lcl_as_glbl
-        lr.w    t0, (t1)                       // unlocked = lcl->unlocked
+        sw      a2, 4(t0)                      // predecessor->next = lcl_as_glbl
+        lr.w    t0, (a1)                       // unlocked = lcl->unlocked
         bnez    t0, bsg_mcs_mutex_acquire_ret  // return if unlocked
 bsg_mcs_mutex_acquire_loop:
-        lr.w.aq t0, (t1)                       // unlocked = lcl->unlocked
+        lr.w.aq t0, (a1)                       // unlocked = lcl->unlocked
         beqz    t0, bsg_mcs_mutex_acquire_loop // while !unlocked
 bsg_mcs_mutex_acquire_ret:
         ret
@@ -50,13 +50,13 @@ bsg_mcs_mutex_release:
         // a0 = mtx         : bsg_mcs_mutex_t*
         // a1 = lcl         : bsg_mcs_mutex_node_t*
         // a2 = lcl_as_glbl : bsg_mcs_mutex_node_t*
-        lw      t0, 0(a1)                                   // next = lcl->next
+        lw      t0, 4(a1)                                   // next = lcl->next
         li      t1, 1                                       // t1 = 1
         beqz    t0, bsg_mcs_mutex_release_no_successor      // branch if no successor
         // this is the case where there is a successor
         // we need only unlock the successor and return
         fence                                               // fence to implement release semantics
-        sw      t1, 4(t0)                                   // successor->unlocked = 1
+        sw      t1, 0(t0)                                   // successor->unlocked = 1
         ret
 bsg_mcs_mutex_release_no_successor:
         // this is the case where there is no known successor
@@ -69,7 +69,7 @@ bsg_mcs_mutex_release_exists_victim:
         // we need to put them back
         amoswap.w t2, t2, 0(a0)                             // usurper = swap(&mtx, victim_tail)
 bsg_mcs_mutex_release_wait_on_successor:
-        lw      t3, 0(a1)                                   // next = lcl->next
+        lw      t3, 4(a1)                                   // next = lcl->next
         bnez    t3, bsg_mcs_mutex_release_wait_on_successor // while (lcl->next != 0)
         bnez    t2, bsg_mcs_mutex_release_exists_usurper    // was there an usurper?
         // no usurper exists -- unlock our successor
@@ -77,5 +77,5 @@ bsg_mcs_mutex_release_wait_on_successor:
         ret
 bsg_mcs_mutex_release_exists_usurper:       
         // usurper exists, set victims as successor
-        sw      t3, 0(t2)                                   // usurper->next = next
+        sw      t3, 4(t2)                                   // usurper->next = next
         ret

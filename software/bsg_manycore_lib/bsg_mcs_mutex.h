@@ -5,8 +5,8 @@ extern "C" {
 
     // must live in tile's local memory (DMEM)
     typedef struct bsg_mcs_mutex_node {
+        int unlocked;
         struct bsg_mcs_mutex_node *next;
-        int unlocked;        
     } bsg_mcs_mutex_node_t;    
 
     // must live in dram
