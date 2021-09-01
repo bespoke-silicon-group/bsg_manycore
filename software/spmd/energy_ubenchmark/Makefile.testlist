@@ -6,7 +6,7 @@ export ENERGY_UBENCHMARK := \
 	fma \
 	branch \
 	branch_miss \
+  sw \
 	lw \
 	idiv \
-	fdiv \
-  sw
+	fdiv
