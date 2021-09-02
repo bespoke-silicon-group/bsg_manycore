@@ -47,7 +47,7 @@ typedef struct bsg_mcs_mutex_node {
 /**
  * This object must live in global memory (DRAM).
  */
-typedef struct std::atomic<bsg_mcs_mutex_node*> bsg_mcs_mutex_t;
+typedef std::atomic<bsg_mcs_mutex_node*> bsg_mcs_mutex_t;
 
 /**
  * Acquire the mutex, returns when the lock has been acquired.
