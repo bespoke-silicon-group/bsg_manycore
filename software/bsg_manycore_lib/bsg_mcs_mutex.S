@@ -41,6 +41,7 @@ bsg_mcs_mutex_acquire:
         bnez    t0, bsg_mcs_mutex_acquire_ret  // return if unlocked
 bsg_mcs_mutex_acquire_loop:
         lr.w.aq t0, (a1)                       // unlocked = lcl->unlocked
+        // MBT: backwards predict not taken branch variant would be helpful here
         beqz    t0, bsg_mcs_mutex_acquire_loop // while !unlocked
 bsg_mcs_mutex_acquire_ret:
         ret
