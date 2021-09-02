@@ -1,7 +1,7 @@
 // MCS mutex
 // Author: Max
 //
-// This is an implementation of the MCS mutex described by Mellor-Crummey and Scott in their 1991 paper
+// This is an implementation of the MCS mutex inspired in part by Mellor-Crummey and Scott in their 1991 paper
 // “Algorithms for Scalable Synchronization on Shared-Memory Multiprocessors”
 //
 // This is a spinlock mutex, but unlike a simple spinlock in which all threads update and spin on
@@ -15,9 +15,9 @@
 //
 // The advantages of this mutex over a simple spin lock on the manycore are two fold:
 //
-// (1) It greatly reduces the number of memory reqeusts on the network and it mitigates the extent to which
+// (1) It greatly reduces the number of memory requests on the network and it mitigates the extent to which
 // a single memory bank becomes a hot-spot. The number of requests issued to a memory bank containing the
-// lock object is linear with the number of times an acquire operation is execution.
+// lock object is linear with the number of times an acquire operation is executed.
 //
 // (2) The lock approximates a FIFO-ish structure, which improves fairness. A simple spinlock on the manycore
 // will favor threads topologically closer to the memory bank in which the lock resides and can lead to
@@ -27,10 +27,11 @@
 
         .text
         .globl bsg_mcs_mutex_acquire
+        // Refer to bsg_mcs_mutex.h for detailed description of usage.
 bsg_mcs_mutex_acquire:
-        // a0 = mtx         : bsg_mcs_mutex_t*
-        // a1 = lcl         : bsg_mcs_mutex_node_t*
-        // a2 = lcl_as_glbl : bsg_mcs_mutex_node_t*
+        // a0 = mtx         : bsg_mcs_mutex_t*, points to DRAM
+        // a1 = lcl         : bsg_mcs_mutex_node_t*, local pointer that points to DMEM
+        // a2 = lcl_as_glbl : bsg_mcs_mutex_node_t*, global pointer to same location as 'lcl'
         sw      x0, 4(a1)                      // lcl->next = 0
         sw      x0, 0(a1)                      // lcl->unlocked = 0
         amoswap.w.aq t0, a2, 0(a0)             // predecessor = swap (&mtx, lcl_as_glbl)
@@ -45,10 +46,11 @@ bsg_mcs_mutex_acquire_ret:
         ret
 
         .globl bsg_mcs_mutex_release
+        // Refer to bsg_mcs_mutex.h for detailed description of usage.
 bsg_mcs_mutex_release:
-        // a0 = mtx         : bsg_mcs_mutex_t*
-        // a1 = lcl         : bsg_mcs_mutex_node_t*
-        // a2 = lcl_as_glbl : bsg_mcs_mutex_node_t*
+        // a0 = mtx         : bsg_mcs_mutex_t*, points to DRAM
+        // a1 = lcl         : bsg_mcs_mutex_node_t*, local pointer that points to DMEM
+        // a2 = lcl_as_glbl : bsg_mcs_mutex_node_t*, global pointer to same location as 'lcl'
         lw      t0, 4(a1)                                   // next = lcl->next
         li      t1, 1                                       // t1 = 1
         beqz    t0, bsg_mcs_mutex_release_no_successor      // branch if no successor
