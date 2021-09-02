@@ -40,8 +40,8 @@ static T atomic_load(volatile T *ptr) {
 // Do not reorder the members in this struct
 // The assembly code in bsg_mcs_mutex.S depends on this ordering.
 typedef struct bsg_mcs_mutex_node {
-    struct bsg_mcs_mutex_node* next;
     int                  unlocked;
+    struct bsg_mcs_mutex_node* next;
 } bsg_mcs_mutex_node_t;
 
 /**
