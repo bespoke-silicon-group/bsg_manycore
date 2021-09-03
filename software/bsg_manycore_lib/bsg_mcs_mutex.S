@@ -37,6 +37,7 @@ bsg_mcs_mutex_acquire:
         amoswap.w.aq t0, a2, 0(a0)             // predecessor = swap (&mtx, lcl_as_glbl)
         beqz    t0, bsg_mcs_mutex_acquire_ret  // return if predecessor = 0
         sw      a2, 4(t0)                      // predecessor->next = lcl_as_glbl
+bsg_mcs_mutex_acquire_loop:
         // Here we use the load-on-broken-reservation semantics to avoid
         // busy waiting. This reduces the dynamic energy of the core
         // and removes contention on our local memory from updates by
@@ -50,7 +51,6 @@ bsg_mcs_mutex_acquire:
         // case where there is low contention on the lock.
         lr.w    t0, (a1)                       // unlocked = lcl->unlocked
         bnez    t0, bsg_mcs_mutex_acquire_ret  // return if unlocked
-bsg_mcs_mutex_acquire_loop:
         lr.w.aq t0, (a1)                       // unlocked = lcl->unlocked
         // MBT: backwards predict not taken branch variant would be helpful here
         beqz    t0, bsg_mcs_mutex_acquire_loop // while !unlocked
