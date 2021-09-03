@@ -28,15 +28,26 @@
         .text
         .globl bsg_mcs_mutex_acquire
         // Refer to bsg_mcs_mutex.h for detailed description of usage.
-bsg_mcs_mutex_acquire:
         // a0 = mtx         : bsg_mcs_mutex_t*, points to DRAM
         // a1 = lcl         : bsg_mcs_mutex_node_t*, local pointer that points to DMEM
         // a2 = lcl_as_glbl : bsg_mcs_mutex_node_t*, global pointer to same location as 'lcl'
+bsg_mcs_mutex_acquire:
         sw      x0, 4(a1)                      // lcl->next = 0
         sw      x0, 0(a1)                      // lcl->unlocked = 0
         amoswap.w.aq t0, a2, 0(a0)             // predecessor = swap (&mtx, lcl_as_glbl)
         beqz    t0, bsg_mcs_mutex_acquire_ret  // return if predecessor = 0
         sw      a2, 4(t0)                      // predecessor->next = lcl_as_glbl
+        // Here we use the load-on-broken-reservation semantics to avoid
+        // busy waiting. This reduces the dynamic energy of the core
+        // and removes contention on our local memory from updates by
+        // other cores, including an update from our predecessor
+        // for when they release the lock to us.
+        //
+        // The expected wait time for this load is arbitrarily long as it depends
+        // on (1) the time it takes client code to complete the critical region
+        // and (2) the contention on this lock.
+        // We expect the wait time to be on the order of 20-100 cycles in the
+        // case where there is low contention on the lock.
         lr.w    t0, (a1)                       // unlocked = lcl->unlocked
         bnez    t0, bsg_mcs_mutex_acquire_ret  // return if unlocked
 bsg_mcs_mutex_acquire_loop:
@@ -48,10 +59,10 @@ bsg_mcs_mutex_acquire_ret:
 
         .globl bsg_mcs_mutex_release
         // Refer to bsg_mcs_mutex.h for detailed description of usage.
-bsg_mcs_mutex_release:
         // a0 = mtx         : bsg_mcs_mutex_t*, points to DRAM
         // a1 = lcl         : bsg_mcs_mutex_node_t*, local pointer that points to DMEM
-        // a2 = lcl_as_glbl : bsg_mcs_mutex_node_t*, global pointer to same location as 'lcl'
+        // a2 = lcl_as_glbl : bsg_mcs_mutex_node_t*, global pointer to same location as 'lcl'        
+bsg_mcs_mutex_release:
         lw      t0, 4(a1)                                   // next = lcl->next
         li      t1, 1                                       // t1 = 1
         beqz    t0, bsg_mcs_mutex_release_no_successor      // branch if no successor
@@ -71,6 +82,15 @@ bsg_mcs_mutex_release_exists_victim:
         // we need to put them back
         amoswap.w t2, t2, 0(a0)                             // usurper = swap(&mtx, victim_tail)
 bsg_mcs_mutex_release_wait_on_successor:
+        // Here we do not use the load-on-broken-reservation instructions
+        // because if we are executing this code then there is a successor
+        // that has executed the `amoswap.w.aq` instruction found in the acquire
+        // function, and is in the process of updating the 'next' pointer
+        // that we are polling.
+        // We expect the wait time here to be on the order of 10s of cycles at worst.
+        // Additionally, this is a corner case that we don't expect to execute often,
+        // and the use of the LBR semantics increases the instruction footprint by
+        // three ops.
         lw      t0, 4(a1)                                   // next = lcl->next
         bnez    t0, bsg_mcs_mutex_release_wait_on_successor // while (lcl->next != 0)
         bnez    t2, bsg_mcs_mutex_release_exists_usurper    // was there an usurper?
