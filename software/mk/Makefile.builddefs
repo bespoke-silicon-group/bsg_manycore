@@ -132,6 +132,7 @@ endif
 BSG_MANYCORE_LIB_OBJS+= bsg_tile_config_vars.o
 BSG_MANYCORE_LIB_OBJS+= bsg_set_tile_x_y.o
 BSG_MANYCORE_LIB_OBJS+= bsg_printf.o
+BSG_MANYCORE_LIB_OBJS+= bsg_mcs_mutex.o
 
 BSG_MANYCORE_LIB = bsg_manycore_lib.a
 
