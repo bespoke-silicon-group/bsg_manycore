@@ -592,15 +592,11 @@ int bsg_printf(const char *fmt, ...)
       // calculate global_x/y
       int global_x = __bsg_x + __bsg_grp_org_x;
       int global_y = __bsg_y + __bsg_grp_org_y;
-
-      // todo: calculate pod from origin register?
-      int px = 0;
-      int py = 0;
-
-      //__mtx_lcl_as_glbl_p = (bsg_mcs_mutex_node_t*)bsg_tile_group_remote_ptr(int, __bsg_x, __bsg_y, &__mtx_lcl);  
-      __mtx_lcl_as_glbl_p = (bsg_mcs_mutex_node_t*)bsg_global_pod_ptr(px,py,global_x,global_y,&__mtx_lcl);
-      //__mtx_lcl_as_glbl_p = (bsg_mcs_mutex_node_t*)bsg_global_ptr(global_x,global_y,&__mtx_lcl);
-      //__mtx_lcl_as_glbl_p = (bsg_mcs_mutex_node_t*)bsg_global_pod_ptr(px,py,__bsg_x,__bsg_y,&__mtx_lcl);  
+      __mtx_lcl_as_glbl_p = (bsg_mcs_mutex_node_t*)bsg_global_pod_ptr(__bsg_pod_x
+                                                                      ,__bsg_pod_y
+                                                                      ,global_x
+                                                                      ,global_y
+                                                                      ,&__mtx_lcl);
   }
 
   va_start(args, fmt);
