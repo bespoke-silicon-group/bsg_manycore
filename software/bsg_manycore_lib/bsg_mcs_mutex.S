@@ -92,7 +92,7 @@ bsg_mcs_mutex_release_wait_on_successor:
         // and the use of the LBR semantics increases the instruction footprint by
         // three ops.
         lw      t0, 4(a1)                                   // next = lcl->next
-        bnez    t0, bsg_mcs_mutex_release_wait_on_successor // while (lcl->next != 0)
+        beqz    t0, bsg_mcs_mutex_release_wait_on_successor // while (lcl->next == 0)
         bnez    t2, bsg_mcs_mutex_release_exists_usurper    // was there an usurper?
         // no usurper exists -- unlock our successor
         sw      t1, 0(t0)                                   // next->unlocked = 1
