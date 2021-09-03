@@ -53,6 +53,15 @@ bsg_mcs_mutex_acquire_loop:
         bnez    t0, bsg_mcs_mutex_acquire_ret  // return if unlocked
         lr.w.aq t0, (a1)                       // unlocked = lcl->unlocked
         // MBT: backwards predict not taken branch variant would be helpful here
+        //
+        // MBT: if we supported context switching the reservation register, then we would
+        // not even need this branch (i.e. a blind synchronization); but currently if there were
+        // a context switch, then the reservation would be cleared and we would need this
+        // to go back to the lr.w to reprime the reservation.
+        //
+        // MBT: if lr.w.aq re-primed the reservation AND for some reason we did need to examine
+        // the sentinel value AND we supported context switching the reservation register, then we could
+        // just jump back to the lr.w.aq instruction
         beqz    t0, bsg_mcs_mutex_acquire_loop // while !unlocked
 bsg_mcs_mutex_acquire_ret:
         ret
@@ -74,6 +83,24 @@ bsg_mcs_mutex_release:
 bsg_mcs_mutex_release_no_successor:
         // this is the case where there is no known successor
         // attempt to swap out the tail pointer with 0
+        //
+        // Max: the more common version of this mutex assumes a compare-and-swap (CAS)
+        // instruction is supported by the architecture. The semantics of CAS are as follows:
+        //
+        // CAS success, test_value, write_value, address
+        // atomically reads mem[address] and, only if it is equal to test_value, writes write_value
+        // to mem[address]. success is set to one if the swap occurred, and zero to indicate failure
+        //
+        // Here CAS can be used as follows: CAS pointed_to_me, lcl_as_glbl, nullptr, &mtx
+        // This would prevent us from accidentally removing victims from the queue
+        // and would allow us to just check the swap condition, if it failed set our successor's unlocked
+        // bit to one, and return.
+        //
+        // We don't support a CAS instruction now for a couple reasons. First, it's not
+        // part of the RISCV ISA, which instead specifies the lr-sc should be used instead.
+        // We don't believe lr-sc maps well to a manycore architecture.
+        // Second, a CAS instruction would require a big refactor of our network links
+        // because we would need to send an extra data word (the test value).
         amoswap.w.rl t2, x0, 0(a0)                          // victim_tail = swap(&mtx, 0)
         bne     t2, a2, bsg_mcs_mutex_release_exists_victim // victim_tail == lcl_as_glbl?
         ret                                                 // there really is no successor -- return
