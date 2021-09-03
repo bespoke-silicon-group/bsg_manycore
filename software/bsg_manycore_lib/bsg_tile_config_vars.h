@@ -15,6 +15,8 @@
 // __bsg_tile_group_id_y: Tile-Group Y ID (X-coordinate of current grid iteration)
 // __bsg_tile_group_id: Unique ID for each tile group
 //          (__bsg_tile_group_id = __bsg_tile_group_id_y * __bsg_grid_dim_x + __bsg_tile_group_id_x)
+// __bsg_pod_x: The pod X coordinate of this tile (lives in DRAM)
+// __bsg_pod_y: The pod Y coordinate of this tile (lives in DRAM)
 
 #ifndef __BSG_TILE_CONFIG_VARS_H
 #define __BSG_TILE_CONFIG_VARS_H
@@ -29,5 +31,6 @@ extern int __bsg_grid_dim_y;      //The Y Dimensions of the grid of tile groups
 extern int __bsg_tile_group_id_x; //The X Cord of the tile group within the grid
 extern int __bsg_tile_group_id_y; //The Y Cord of the tile group within the grid
 extern int __bsg_tile_group_id;   //The flat ID of the tile group within the grid
-
+extern int __bsg_pod_x;           //The X Cord of the tile's pod (lives in DRAM)
+extern int __bsg_pod_y;           //The Y cord of the tile's pod (lives in DRAM)
 #endif // __BSG_TILE_CONFIG_VARS_H

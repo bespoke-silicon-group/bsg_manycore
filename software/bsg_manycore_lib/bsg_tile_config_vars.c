@@ -14,6 +14,8 @@
 // __bsg_tile_group_id_y: Tile-Group Y ID (X-coordinate of current grid iteration)
 // __bsg_tile_group_id: Unique ID for each tile group
 //          (__bsg_tile_group_id = __bsg_tile_group_id_y * __bsg_grid_dim_x + __bsg_tile_group_id_x)
+// __bsg_pod_x: The pod X coordinate of this tile (lives in DRAM)
+// __bsg_pod_y: The pod Y coordinate of this tile (lives in DRAM)
 
 int __bsg_x = -1;
 int __bsg_y = -1;
@@ -25,3 +27,7 @@ int __bsg_grid_dim_y = -1;
 int __bsg_tile_group_id_x = -1;
 int __bsg_tile_group_id_y = -1;
 int __bsg_tile_group_id = -1;
+__attribute__((section(".dram")))
+int __bsg_pod_x = -1;
+__attribute__((section(".dram")))
+int __bsg_pod_y = -1;
