@@ -13,8 +13,8 @@
 `include "bsg_defines.v"
 
 module fpu_fmin_fmax 
-  #(parameter exp_width_p="inv"
-    , parameter sig_width_p="inv"
+  #(`BSG_INV_PARAM(exp_width_p)
+    , `BSG_INV_PARAM(sig_width_p)
 
     , parameter recoded_data_width_lp=(exp_width_p+sig_width_p+1)
   )
@@ -96,3 +96,5 @@ module fpu_fmin_fmax
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(fpu_fmin_fmax)

@@ -9,33 +9,28 @@
 module network_tx
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
-  #(parameter data_width_p="inv"
-    , parameter addr_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter pod_x_cord_width_p="inv"
-    , parameter pod_y_cord_width_p="inv"
-    , parameter epa_byte_addr_width_p="inv"
-    , parameter num_vcache_rows_p="inv"
-    , parameter vcache_size_p="inv" // vcache capacity in words
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_sets_p="inv"
+  #(`BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
+    , `BSG_INV_PARAM(pod_x_cord_width_p)
+    , `BSG_INV_PARAM(pod_y_cord_width_p)
+    , `BSG_INV_PARAM(num_vcache_rows_p)
+    , `BSG_INV_PARAM(vcache_size_p) // vcache capacity in words
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p)
+    , `BSG_INV_PARAM(vcache_sets_p)
  
-    , parameter num_tiles_x_p="inv"
-    , parameter num_tiles_y_p="inv"
+    , `BSG_INV_PARAM(num_tiles_x_p)
+    , `BSG_INV_PARAM(num_tiles_y_p)
     , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
   
-    , parameter icache_entries_p="inv"
-    , parameter icache_tag_width_p="inv"
-
-    , parameter max_out_credits_p="inv"
+    , `BSG_INV_PARAM(icache_entries_p)
+    , `BSG_INV_PARAM(icache_tag_width_p)
 
     , parameter vcache_addr_width_lp=`BSG_SAFE_CLOG2(vcache_size_p)
 
     , parameter vcache_word_offset_width_lp = `BSG_SAFE_CLOG2(vcache_block_size_in_words_p)
-
-    , parameter credit_counter_width_lp=$clog2(max_out_credits_p+1)
 
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
@@ -249,3 +244,5 @@ module network_tx
   // synopsys translate_on
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(network_tx)

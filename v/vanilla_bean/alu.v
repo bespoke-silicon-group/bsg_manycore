@@ -3,7 +3,7 @@
 
 module alu
   import bsg_vanilla_pkg::*;
-  #(pc_width_p = "inv")
+  #(`BSG_INV_PARAM(pc_width_p ))
            ( input [RV32_reg_data_width_gp-1:0] rs1_i
             ,input [RV32_reg_data_width_gp-1:0] rs2_i
             ,input [RV32_reg_data_width_gp-1:0] pc_plus4_i
@@ -140,3 +140,5 @@ begin
 end
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(alu)

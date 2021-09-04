@@ -19,8 +19,8 @@
 `include "bsg_rocc.v"
 
 module bsg_manycore_rocc_dma #(
-        addr_width_p = "inv"  //the data width for manycore data
-       ,data_width_p = "inv"  //the addr width for manycore address
+        `BSG_INV_PARAM(addr_width_p )  //the data width for manycore data
+       ,`BSG_INV_PARAM(data_width_p )  //the addr width for manycore address
        ,cfg_width_p  =  16    //the configuration register width
     )(
        input        clk_i
@@ -279,3 +279,5 @@ module bsg_manycore_rocc_dma #(
   assign core_resp_s_o            =  'b0;
   assign core_cmd_ready_o         = (curr_stat_e_r != eRoCC_dma_busy);
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_rocc_dma)

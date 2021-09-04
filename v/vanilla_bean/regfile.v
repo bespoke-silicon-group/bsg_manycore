@@ -11,10 +11,10 @@
 `include "bsg_defines.v"
 
 module regfile
-  #(parameter width_p="inv"
-    , parameter els_p="inv"
-    , parameter num_rs_p="inv"
-    , parameter x0_tied_to_zero_p="inv"
+  #(`BSG_INV_PARAM(width_p)
+    , `BSG_INV_PARAM(els_p)
+    , `BSG_INV_PARAM(num_rs_p)
+    , `BSG_INV_PARAM(x0_tied_to_zero_p)
     , parameter harden_p=0
 
     , parameter addr_width_lp=`BSG_SAFE_CLOG2(els_p)
@@ -53,3 +53,5 @@ module regfile
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(regfile)

@@ -13,19 +13,19 @@
 `include "bsg_defines.v"
 
 module bsg_manycore_dram_hash_function 
-  #(parameter data_width_p="inv"
-    , parameter addr_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+  #(`BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
 
-    , parameter pod_x_cord_width_p="inv"
-    , parameter pod_y_cord_width_p="inv"
+    , `BSG_INV_PARAM(pod_x_cord_width_p)
+    , `BSG_INV_PARAM(pod_y_cord_width_p)
 
-    , parameter x_subcord_width_p="inv"
-    , parameter y_subcord_width_p="inv"
+    , `BSG_INV_PARAM(x_subcord_width_p)
+    , `BSG_INV_PARAM(y_subcord_width_p)
 
-    , parameter num_vcache_rows_p="inv"
-    , parameter vcache_block_size_in_words_p="inv"
+    , `BSG_INV_PARAM(num_vcache_rows_p)
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p)
   )
   (
     input [data_width_p-1:0] eva_i // 32-bit byte address
@@ -76,3 +76,5 @@ module bsg_manycore_dram_hash_function
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_dram_hash_function)

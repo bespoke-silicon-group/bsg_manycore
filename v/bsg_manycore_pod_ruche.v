@@ -14,18 +14,18 @@ module bsg_manycore_pod_ruche
   import bsg_tag_pkg::*;
   import bsg_manycore_pkg::*;
   #(// number of tiles in a pod
-    parameter num_tiles_x_p="inv"
-    , parameter num_tiles_y_p="inv"
-    , parameter pod_x_cord_width_p="inv"
-    , parameter pod_y_cord_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
+    `BSG_INV_PARAM(num_tiles_x_p)
+    , `BSG_INV_PARAM(num_tiles_y_p)
+    , `BSG_INV_PARAM(pod_x_cord_width_p)
+    , `BSG_INV_PARAM(pod_y_cord_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
+    , `BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(data_width_p)
 
     // This determines how to divide the pod into smaller hierarchical blocks.
-    , parameter num_subarray_x_p="inv"
-    , parameter num_subarray_y_p="inv"
+    , `BSG_INV_PARAM(num_subarray_x_p)
+    , `BSG_INV_PARAM(num_subarray_y_p)
     // Number of tiles in a subarray
     , parameter subarray_num_tiles_x_lp = (num_tiles_x_p/num_subarray_x_p)
     , parameter subarray_num_tiles_y_lp = (num_tiles_y_p/num_subarray_y_p)
@@ -34,26 +34,26 @@ module bsg_manycore_pod_ruche
     , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
   
-    , parameter dmem_size_p="inv"
-    , parameter icache_entries_p="inv"
-    , parameter icache_tag_width_p="inv"
+    , `BSG_INV_PARAM(dmem_size_p)
+    , `BSG_INV_PARAM(icache_entries_p)
+    , `BSG_INV_PARAM(icache_tag_width_p)
  
-    , parameter num_vcache_rows_p="inv"  
-    , parameter vcache_addr_width_p="inv" 
-    , parameter vcache_data_width_p="inv" 
-    , parameter vcache_ways_p="inv"
-    , parameter vcache_sets_p="inv"
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_size_p="inv"
-    , parameter vcache_dma_data_width_p="inv"
+    , `BSG_INV_PARAM(num_vcache_rows_p)  
+    , `BSG_INV_PARAM(vcache_addr_width_p) 
+    , `BSG_INV_PARAM(vcache_data_width_p) 
+    , `BSG_INV_PARAM(vcache_ways_p)
+    , `BSG_INV_PARAM(vcache_sets_p)
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p)
+    , `BSG_INV_PARAM(vcache_size_p)
+    , `BSG_INV_PARAM(vcache_dma_data_width_p)
 
-    , parameter ruche_factor_X_p="inv"
+    , `BSG_INV_PARAM(ruche_factor_X_p)
   
-    , parameter wh_ruche_factor_p="inv"
-    , parameter wh_cid_width_p="inv"
-    , parameter wh_flit_width_p="inv"
-    , parameter wh_cord_width_p="inv"
-    , parameter wh_len_width_p="inv"
+    , `BSG_INV_PARAM(wh_ruche_factor_p)
+    , `BSG_INV_PARAM(wh_cid_width_p)
+    , `BSG_INV_PARAM(wh_flit_width_p)
+    , `BSG_INV_PARAM(wh_cord_width_p)
+    , `BSG_INV_PARAM(wh_len_width_p)
     
     // number of clock ports on vcache/tile subarray
     , parameter num_clk_ports_p=1
@@ -426,3 +426,5 @@ module bsg_manycore_pod_ruche
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_pod_ruche)

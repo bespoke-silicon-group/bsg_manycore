@@ -8,29 +8,29 @@
 module bsg_manycore_tile_compute_ruche
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }
   import bsg_manycore_pkg::*;
-  #(parameter dmem_size_p = "inv"
-    , parameter vcache_size_p ="inv"
-    , parameter icache_entries_p = "inv"
-    , parameter icache_tag_width_p = "inv"
-    , parameter x_cord_width_p = "inv"
-    , parameter y_cord_width_p = "inv"
-    , parameter pod_x_cord_width_p = "inv"
-    , parameter pod_y_cord_width_p = "inv"
+  #(`BSG_INV_PARAM(dmem_size_p )
+    , `BSG_INV_PARAM(vcache_size_p )
+    , `BSG_INV_PARAM(icache_entries_p )
+    , `BSG_INV_PARAM(icache_tag_width_p )
+    , `BSG_INV_PARAM(x_cord_width_p )
+    , `BSG_INV_PARAM(y_cord_width_p )
+    , `BSG_INV_PARAM(pod_x_cord_width_p )
+    , `BSG_INV_PARAM(pod_y_cord_width_p )
 
     // Number of tiles in a pod
-    , parameter num_tiles_x_p="inv"
-    , parameter num_tiles_y_p="inv"
+    , `BSG_INV_PARAM(num_tiles_x_p)
+    , `BSG_INV_PARAM(num_tiles_y_p)
     , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
     , parameter ruche_factor_X_p = 3
     
-    , parameter data_width_p = "inv"
-    , parameter addr_width_p = "inv"
+    , `BSG_INV_PARAM(data_width_p )
+    , `BSG_INV_PARAM(addr_width_p )
 
-    , parameter num_vcache_rows_p = "inv"
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_sets_p="inv"
+    , `BSG_INV_PARAM(num_vcache_rows_p )
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p)
+    , `BSG_INV_PARAM(vcache_sets_p)
 
     , parameter dims_p = 3
     , parameter dirs_lp = (dims_p*2)
@@ -235,3 +235,5 @@ module bsg_manycore_tile_compute_ruche
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_tile_compute_ruche)

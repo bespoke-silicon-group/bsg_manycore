@@ -7,11 +7,11 @@
 
 module bsg_manycore_endpoint
   import bsg_manycore_pkg::*;
-  #(parameter x_cord_width_p = "inv"
-    , parameter y_cord_width_p = "inv"
-    , parameter fifo_els_p = "inv"
+  #(`BSG_INV_PARAM(x_cord_width_p )
+    , `BSG_INV_PARAM(y_cord_width_p )
+    , `BSG_INV_PARAM(fifo_els_p )
     , parameter data_width_p = 32
-    , parameter addr_width_p = "inv"
+    , `BSG_INV_PARAM(addr_width_p )
     
     , parameter packet_width_lp = 
       `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -140,5 +140,7 @@ module bsg_manycore_endpoint
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_endpoint)
 
 

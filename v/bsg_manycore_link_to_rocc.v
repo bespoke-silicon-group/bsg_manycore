@@ -12,10 +12,10 @@
 `include "bsg_manycore_packet.vh"
 
 module  bsg_manycore_link_to_rocc
-  #(  parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+  #(  `BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
     , parameter load_id_width_p = 5
     , parameter fifo_els_p    = 4
     , parameter bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
@@ -403,4 +403,6 @@ bsg_manycore_rocc_dma #(
 
   assign    reset_manycore_r_o  = reset_manycore_r     ;
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_link_to_rocc)
 

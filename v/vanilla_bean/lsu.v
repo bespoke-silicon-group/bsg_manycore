@@ -17,9 +17,9 @@ module lsu
   import bsg_manycore_addr_pkg::*;
   import bsg_vanilla_pkg::*;
 
-  #(parameter data_width_p="inv"
-    , parameter pc_width_p="inv"
-    , parameter dmem_size_p="inv"
+  #(`BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(pc_width_p)
+    , `BSG_INV_PARAM(dmem_size_p)
 
     , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , localparam data_mask_width_lp=(data_width_p>>3)
@@ -181,3 +181,5 @@ module lsu
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(lsu)

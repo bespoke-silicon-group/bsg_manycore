@@ -10,15 +10,15 @@
 module bsg_manycore_hor_io_router_column
   import bsg_noc_pkg::*;
   import bsg_manycore_pkg::*;
-  #(parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter ruche_factor_X_p="inv"
+  #(`BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
+    , `BSG_INV_PARAM(ruche_factor_X_p)
     
-    , parameter num_row_p="inv"
-    , parameter bit [num_row_p-1:0] tieoff_west_p="inv"
-    , parameter bit [num_row_p-1:0] tieoff_east_p ="inv"
+    , `BSG_INV_PARAM(num_row_p)
+    , `BSG_INV_PARAM(bit [num_row_p-1:0] tieoff_west_p)
+    , `BSG_INV_PARAM(bit [num_row_p-1:0] tieoff_east_p )
 
 
     , parameter link_sif_width_lp =
@@ -104,3 +104,5 @@ module bsg_manycore_hor_io_router_column
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_hor_io_router_column)

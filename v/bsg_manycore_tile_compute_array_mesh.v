@@ -8,13 +8,13 @@
 module bsg_manycore_tile_compute_array_mesh
   import bsg_manycore_pkg::*;
   import bsg_noc_pkg::*; // {P=0, W,E,N,S }
-  #(parameter dmem_size_p = "inv" // number of words in DMEM
-    , parameter icache_entries_p = "inv" // in words
-    , parameter icache_tag_width_p = "inv"
+  #(`BSG_INV_PARAM(dmem_size_p ) // number of words in DMEM
+    , `BSG_INV_PARAM(icache_entries_p ) // in words
+    , `BSG_INV_PARAM(icache_tag_width_p )
 
-    , parameter vcache_size_p = "inv" // capacity per vcache in words
-    , parameter vcache_block_size_in_words_p ="inv"
-    , parameter vcache_sets_p = "inv"
+    , `BSG_INV_PARAM(vcache_size_p ) // capacity per vcache in words
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p )
+    , `BSG_INV_PARAM(vcache_sets_p )
 
     // change the default values from "inv" back to -1
     // since num_tiles_x_p and num_tiles_y_p will be used to define the size of 2D array
@@ -31,8 +31,8 @@ module bsg_manycore_tile_compute_array_mesh
 
     // this is the addr width on the manycore network packet (word addr).
     // also known as endpoint physical address (EPA).
-    , parameter addr_width_p = "inv"
-    , parameter data_width_p = "inv" // 32
+    , `BSG_INV_PARAM(addr_width_p )
+    , `BSG_INV_PARAM(data_width_p ) // 32
 
     // Enable branch/jalr trace
     , parameter branch_trace_en_p = 0
@@ -202,3 +202,5 @@ module bsg_manycore_tile_compute_array_mesh
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_tile_compute_array_mesh)

@@ -8,30 +8,30 @@
 module bsg_manycore_proc_vanilla
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
-  #(parameter x_cord_width_p = "inv"
-    , parameter y_cord_width_p = "inv"
-    , parameter pod_x_cord_width_p = "inv"
-    , parameter pod_y_cord_width_p = "inv"
-    , parameter data_width_p = "inv"
-    , parameter addr_width_p = "inv"
+  #(`BSG_INV_PARAM(x_cord_width_p )
+    , `BSG_INV_PARAM(y_cord_width_p )
+    , `BSG_INV_PARAM(pod_x_cord_width_p )
+    , `BSG_INV_PARAM(pod_y_cord_width_p )
+    , `BSG_INV_PARAM(data_width_p )
+    , `BSG_INV_PARAM(addr_width_p )
 
-    , parameter icache_tag_width_p = "inv"
-    , parameter icache_entries_p = "inv"
+    , `BSG_INV_PARAM(icache_tag_width_p )
+    , `BSG_INV_PARAM(icache_entries_p )
 
-    , parameter dmem_size_p = "inv"
-    , parameter num_vcache_rows_p = "inv"
-    , parameter vcache_size_p = "inv"
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_sets_p = "inv"
+    , `BSG_INV_PARAM(dmem_size_p )
+    , `BSG_INV_PARAM(num_vcache_rows_p )
+    , `BSG_INV_PARAM(vcache_size_p )
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p)
+    , `BSG_INV_PARAM(vcache_sets_p )
 
-    , parameter num_tiles_x_p="inv"
-    , parameter num_tiles_y_p="inv"
+    , `BSG_INV_PARAM(num_tiles_x_p)
+    , `BSG_INV_PARAM(num_tiles_y_p)
 
     , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
-    , parameter rev_fifo_els_p="inv" // for FIFO credit counting.
-    , parameter fwd_fifo_els_p="inv" // for FIFO credit counting.
+    , `BSG_INV_PARAM(rev_fifo_els_p) // for FIFO credit counting.
+    , `BSG_INV_PARAM(fwd_fifo_els_p) // for FIFO credit counting.
   
     , parameter credit_counter_width_p = `BSG_WIDTH(32)
     , parameter proc_fifo_els_p = 4
@@ -385,3 +385,5 @@ module bsg_manycore_proc_vanilla
   );
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_proc_vanilla)

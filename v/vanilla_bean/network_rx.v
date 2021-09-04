@@ -9,16 +9,16 @@
 module network_rx 
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
-  #(parameter data_width_p="inv"
-    , parameter addr_width_p="inv"
-    , parameter dmem_size_p="inv"
-    , parameter icache_tag_width_p="inv"
-    , parameter icache_entries_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+  #(`BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(dmem_size_p)
+    , `BSG_INV_PARAM(icache_tag_width_p)
+    , `BSG_INV_PARAM(icache_entries_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
 
-    , parameter x_subcord_width_p="inv"
-    , parameter y_subcord_width_p="inv"
+    , `BSG_INV_PARAM(x_subcord_width_p)
+    , `BSG_INV_PARAM(y_subcord_width_p)
 
     , parameter tgo_x_init_val_p = 0
     , parameter tgo_y_init_val_p = 0
@@ -381,3 +381,5 @@ module network_rx
   // synopsys translate_on
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(network_rx)

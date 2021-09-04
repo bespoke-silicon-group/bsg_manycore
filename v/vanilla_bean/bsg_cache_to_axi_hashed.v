@@ -7,15 +7,15 @@
 
 module bsg_cache_to_axi_hashed
   import bsg_cache_pkg::*;
-  #(parameter addr_width_p="inv"
-    ,parameter block_size_in_words_p="inv"
-    ,parameter data_width_p="inv"
-    ,parameter num_cache_p="inv"
+  #(`BSG_INV_PARAM(addr_width_p)
+    ,`BSG_INV_PARAM(block_size_in_words_p)
+    ,`BSG_INV_PARAM(data_width_p)
+    ,`BSG_INV_PARAM(num_cache_p)
 
-    ,parameter axi_id_width_p="inv" // 6
-    ,parameter axi_addr_width_p="inv"
-    ,parameter axi_data_width_p="inv"
-    ,parameter axi_burst_len_p="inv"
+    ,`BSG_INV_PARAM(axi_id_width_p) // 6
+    ,`BSG_INV_PARAM(axi_addr_width_p)
+    ,`BSG_INV_PARAM(axi_data_width_p)
+    ,`BSG_INV_PARAM(axi_burst_len_p)
 
     ,parameter data_mask_width_lp=(data_width_p>>3)
     ,parameter lg_data_mask_width_lp=`BSG_SAFE_CLOG2(data_mask_width_lp)
@@ -321,3 +321,5 @@ module bsg_cache_to_axi_hashed
   // synopsys translate_on
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_cache_to_axi_hashed)

@@ -15,16 +15,16 @@ module bsg_manycore_link_async_to_wormhole
  import bsg_manycore_pkg::*;
 
  #(// Manycore link parameters
-   parameter addr_width_p="inv"
-  ,parameter data_width_p="inv"
-  ,parameter x_cord_width_p="inv"
-  ,parameter y_cord_width_p="inv"
+   `BSG_INV_PARAM(addr_width_p)
+  ,`BSG_INV_PARAM(data_width_p)
+  ,`BSG_INV_PARAM(x_cord_width_p)
+  ,`BSG_INV_PARAM(y_cord_width_p)
   
   // Wormhole link parameters
-  ,parameter flit_width_p                     = "inv"
+  ,`BSG_INV_PARAM(flit_width_p                     )
   ,parameter dims_p                           = 2
   ,parameter int cord_markers_pos_p[dims_p:0] = '{5, 4, 0}
-  ,parameter len_width_p                      = "inv"
+  ,`BSG_INV_PARAM(len_width_p                      )
 
   // The number of registers between reset_i and reset sinks.
   ,parameter mc_reset_depth_p = 3
@@ -132,3 +132,5 @@ module bsg_manycore_link_async_to_wormhole
   );
   
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_link_async_to_wormhole)

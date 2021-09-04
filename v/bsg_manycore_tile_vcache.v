@@ -13,26 +13,26 @@ module bsg_manycore_tile_vcache
   import bsg_noc_pkg::*;
   import bsg_cache_pkg::*;
   import bsg_manycore_pkg::*;
-  #(parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+  #(`BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
 
-    , parameter num_tiles_y_p="inv"
+    , `BSG_INV_PARAM(num_tiles_y_p)
 
-    , parameter vcache_addr_width_p="inv"
-    , parameter vcache_data_width_p="inv"
-    , parameter vcache_ways_p="inv"
-    , parameter vcache_sets_p="inv"
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_dma_data_width_p="inv"
+    , `BSG_INV_PARAM(vcache_addr_width_p)
+    , `BSG_INV_PARAM(vcache_data_width_p)
+    , `BSG_INV_PARAM(vcache_ways_p)
+    , `BSG_INV_PARAM(vcache_sets_p)
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p)
+    , `BSG_INV_PARAM(vcache_dma_data_width_p)
 
     // wh_ruche_factor_p supported only for 2^n, n>0.
-    , parameter wh_ruche_factor_p="inv"
-    , parameter wh_cid_width_p="inv"
-    , parameter wh_flit_width_p="inv"
-    , parameter wh_len_width_p="inv"
-    , parameter wh_cord_width_p="inv"
+    , `BSG_INV_PARAM(wh_ruche_factor_p)
+    , `BSG_INV_PARAM(wh_cid_width_p)
+    , `BSG_INV_PARAM(wh_flit_width_p)
+    , `BSG_INV_PARAM(wh_len_width_p)
+    , `BSG_INV_PARAM(wh_cord_width_p)
     , parameter int wh_cord_markers_pos_lp[1:0] = '{wh_cord_width_p, 0}
 
     , parameter req_fifo_els_p=4
@@ -326,3 +326,5 @@ module bsg_manycore_tile_vcache
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_tile_vcache)

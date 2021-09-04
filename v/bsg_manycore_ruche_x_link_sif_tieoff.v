@@ -12,14 +12,14 @@
 
 module bsg_manycore_ruche_x_link_sif_tieoff
   import bsg_manycore_pkg::*;
-  #(parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+  #(`BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
 
-    , parameter ruche_factor_X_p="inv"
-    , parameter ruche_stage_p="inv"
-    , parameter bit west_not_east_p="inv" // 1'b0 or 1'b1
+    , `BSG_INV_PARAM(ruche_factor_X_p)
+    , `BSG_INV_PARAM(ruche_stage_p)
+    , `BSG_INV_PARAM(bit west_not_east_p) // 1'b0 or 1'b1
   
     , parameter bit ruche_factor_even_lp = (ruche_factor_X_p % 2 == 0)
     , parameter bit ruche_stage_even_lp = (ruche_stage_p % 2 == 0)
@@ -93,3 +93,5 @@ module bsg_manycore_ruche_x_link_sif_tieoff
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_ruche_x_link_sif_tieoff)

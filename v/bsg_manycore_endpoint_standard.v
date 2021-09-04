@@ -27,11 +27,11 @@
 
 module bsg_manycore_endpoint_standard 
   import bsg_manycore_pkg::*; 
-  #(parameter x_cord_width_p          = "inv"
-    , parameter y_cord_width_p         = "inv"
-    , parameter fifo_els_p             = "inv"
+  #(`BSG_INV_PARAM(x_cord_width_p          )
+    , `BSG_INV_PARAM(y_cord_width_p         )
+    , `BSG_INV_PARAM(fifo_els_p             )
     , parameter data_width_p           = 32
-    , parameter addr_width_p           = "inv"
+    , `BSG_INV_PARAM(addr_width_p           )
 
     , parameter credit_counter_width_p = `BSG_WIDTH(32)
     , parameter warn_out_of_credits_p  = 1
@@ -393,5 +393,7 @@ module bsg_manycore_endpoint_standard
   // synopsys translate_on
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_endpoint_standard)
 
 

@@ -3,13 +3,13 @@
 
 module bsg_manycore_packet_streamer #(
                                       // maximum number of outstanding words
-                                       max_out_credits_p="inv"
-                                      , rom_words_p="inv"
+                                       max_out_credits_p)
+                                      , rom_words_p)
                                       , freeze_init_p=1'b1
-                                      , x_cord_width_p ="inv"
-                                      , y_cord_width_p ="inv"
-                                      , addr_width_p   ="inv"
-                                      , data_width_p   ="inv"
+                                      , `BSG_INV_PARAM(x_cord_width_p )
+                                      , `BSG_INV_PARAM(y_cord_width_p )
+                                      , `BSG_INV_PARAM(addr_width_p   )
+                                      , `BSG_INV_PARAM(data_width_p   )
                                       , debug_p = 1
                                       , packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                       , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -111,3 +111,5 @@ module bsg_manycore_packet_streamer #(
 	    $display("## bsg_manycore_packet_streamer finished transmission (%m)");
        end
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_packet_streamer)

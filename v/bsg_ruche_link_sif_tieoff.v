@@ -8,10 +8,10 @@
 `include "bsg_noc_links.vh"
 
 module bsg_ruche_link_sif_tieoff
-  #(parameter link_data_width_p="inv"
-    , parameter ruche_factor_p="inv"
-    , parameter ruche_stage_p="inv"
-    , parameter bit west_not_east_p="inv" // tie-off on west or east side??
+  #(`BSG_INV_PARAM(link_data_width_p)
+    , `BSG_INV_PARAM(ruche_factor_p)
+    , `BSG_INV_PARAM(ruche_stage_p)
+    , `BSG_INV_PARAM(bit west_not_east_p) // tie-off on west or east side??
   
 
     , parameter bit ruche_factor_even_lp = (ruche_factor_p % 2 == 0)
@@ -67,3 +67,5 @@ module bsg_ruche_link_sif_tieoff
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_ruche_link_sif_tieoff)

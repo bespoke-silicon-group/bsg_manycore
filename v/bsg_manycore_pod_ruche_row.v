@@ -13,40 +13,40 @@ module bsg_manycore_pod_ruche_row
   import bsg_noc_pkg::*;
   import bsg_tag_pkg::*;
   import bsg_manycore_pkg::*;
-  #(parameter num_tiles_x_p="inv"
-    , parameter num_tiles_y_p="inv"
-    , parameter pod_x_cord_width_p="inv"
-    , parameter pod_y_cord_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
+  #(`BSG_INV_PARAM(num_tiles_x_p)
+    , `BSG_INV_PARAM(num_tiles_y_p)
+    , `BSG_INV_PARAM(pod_x_cord_width_p)
+    , `BSG_INV_PARAM(pod_y_cord_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
+    , `BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(data_width_p)
     , parameter ruche_factor_X_p=3  // only support 3 for now
 
     , parameter num_subarray_x_p=1
     , parameter num_subarray_y_p=1
 
-    , parameter dmem_size_p="inv"
-    , parameter icache_entries_p="inv"
-    , parameter icache_tag_width_p="inv"
+    , `BSG_INV_PARAM(dmem_size_p)
+    , `BSG_INV_PARAM(icache_entries_p)
+    , `BSG_INV_PARAM(icache_tag_width_p)
 
     , parameter num_vcache_rows_p=1
-    , parameter vcache_addr_width_p="inv"
-    , parameter vcache_data_width_p="inv"
-    , parameter vcache_ways_p="inv"
-    , parameter vcache_sets_p="inv"
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_size_p="inv"
-    , parameter vcache_dma_data_width_p="inv"
+    , `BSG_INV_PARAM(vcache_addr_width_p)
+    , `BSG_INV_PARAM(vcache_data_width_p)
+    , `BSG_INV_PARAM(vcache_ways_p)
+    , `BSG_INV_PARAM(vcache_sets_p)
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p)
+    , `BSG_INV_PARAM(vcache_size_p)
+    , `BSG_INV_PARAM(vcache_dma_data_width_p)
 
     , parameter wh_ruche_factor_p=2 // only support 2 for now
-    , parameter wh_cid_width_p="inv"
-    , parameter wh_flit_width_p="inv"
-    , parameter wh_cord_width_p="inv"
-    , parameter wh_len_width_p="inv"
+    , `BSG_INV_PARAM(wh_cid_width_p)
+    , `BSG_INV_PARAM(wh_flit_width_p)
+    , `BSG_INV_PARAM(wh_cord_width_p)
+    , `BSG_INV_PARAM(wh_len_width_p)
 
     // number of pods to instantiate
-    , parameter num_pods_x_p="inv"
+    , `BSG_INV_PARAM(num_pods_x_p)
 
     , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
@@ -262,3 +262,5 @@ module bsg_manycore_pod_ruche_row
   end
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_pod_ruche_row)

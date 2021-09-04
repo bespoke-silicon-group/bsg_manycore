@@ -20,22 +20,22 @@
 
 module bsg_manycore_eva_to_npa
   import bsg_manycore_pkg::*;
-  #(parameter data_width_p="inv" // 32
-    , parameter addr_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter pod_x_cord_width_p="inv"
-    , parameter pod_y_cord_width_p="inv"
+  #(`BSG_INV_PARAM(data_width_p) // 32
+    , `BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
+    , `BSG_INV_PARAM(pod_x_cord_width_p)
+    , `BSG_INV_PARAM(pod_y_cord_width_p)
  
-    , parameter num_tiles_x_p="inv"
-    , parameter num_tiles_y_p="inv"
+    , `BSG_INV_PARAM(num_tiles_x_p)
+    , `BSG_INV_PARAM(num_tiles_y_p)
     , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
 
-    , parameter num_vcache_rows_p = "inv"
-    , parameter vcache_block_size_in_words_p="inv"  // block size in vcache
-    , parameter vcache_size_p="inv" // vcache capacity in words
-    , parameter vcache_sets_p="inv" // number of sets in vcache
+    , `BSG_INV_PARAM(num_vcache_rows_p )
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p)  // block size in vcache
+    , `BSG_INV_PARAM(vcache_size_p) // vcache capacity in words
+    , `BSG_INV_PARAM(vcache_sets_p) // number of sets in vcache
   )
   (
     // EVA 32-bit virtual address used by vanilla core
@@ -141,3 +141,5 @@ module bsg_manycore_eva_to_npa
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_eva_to_npa)

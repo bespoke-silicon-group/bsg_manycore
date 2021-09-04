@@ -8,15 +8,15 @@
 module bsg_manycore_vcache_blocking
   import bsg_manycore_pkg::*;
   import bsg_cache_pkg::*;
-  #(parameter data_width_p="inv"
-    , parameter addr_width_p="inv"
-    , parameter block_size_in_words_p="inv"
-    , parameter sets_p = "inv"
-    , parameter ways_p = "inv"
-    , parameter dma_data_width_p = "inv"
+  #(`BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(block_size_in_words_p)
+    , `BSG_INV_PARAM(sets_p )
+    , `BSG_INV_PARAM(ways_p )
+    , `BSG_INV_PARAM(dma_data_width_p )
     
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
 
     , parameter byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
     , parameter cache_addr_width_lp=(addr_width_p-1+byte_offset_width_lp)
@@ -133,3 +133,5 @@ module bsg_manycore_vcache_blocking
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_vcache_blocking)

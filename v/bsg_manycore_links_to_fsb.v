@@ -9,20 +9,20 @@
 `include "bsg_fsb_pkg.v"
 
 module  bsg_manycore_links_to_fsb
-  #(parameter ring_width_p="inv"
-    , parameter id_width_p="inv"
-    , parameter dest_id_p="inv"
-    , parameter num_links_p="inv"
-    , parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
+  #(`BSG_INV_PARAM(ring_width_p)
+    , `BSG_INV_PARAM(id_width_p)
+    , `BSG_INV_PARAM(dest_id_p)
+    , `BSG_INV_PARAM(num_links_p)
+    , `BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(data_width_p)
     , parameter load_id_width_p = 5
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
 
     // how many remote credits we have; see bsg_channel_tunnel for how to do this calculation.
     // typically this number is fairly large
 
-    , parameter remote_credits_p="inv"
+    , `BSG_INV_PARAM(remote_credits_p)
 
     , parameter use_pseudo_large_fifo_p = 0
     , parameter bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p,load_id_width_p)
@@ -236,6 +236,8 @@ module  bsg_manycore_links_to_fsb
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_links_to_fsb)
 
 
 

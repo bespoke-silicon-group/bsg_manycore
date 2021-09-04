@@ -16,15 +16,15 @@ module bsg_manycore_hor_io_router
   import bsg_noc_pkg::*;
   import bsg_manycore_pkg::*;
   import bsg_mesh_router_pkg::*;
-  #(parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+  #(`BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
    
-    , parameter ruche_factor_X_p="inv"
+    , `BSG_INV_PARAM(ruche_factor_X_p)
  
-    , parameter tieoff_west_p="inv"
-    , parameter tieoff_east_p="inv"
+    , `BSG_INV_PARAM(tieoff_west_p)
+    , `BSG_INV_PARAM(tieoff_east_p)
     , parameter tieoff_proc_p=0
 
     , parameter dims_lp=3 // only support 3
@@ -173,3 +173,5 @@ module bsg_manycore_hor_io_router
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_hor_io_router)

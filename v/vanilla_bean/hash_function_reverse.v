@@ -2,8 +2,8 @@
 `include "bsg_defines.v"
 
 module hash_function_reverse
-  #(parameter width_p="inv"
-    ,parameter banks_p="inv"
+  #(`BSG_INV_PARAM(width_p)
+    ,`BSG_INV_PARAM(banks_p)
 
     , parameter lg_banks_lp=`BSG_SAFE_CLOG2(banks_p)
     , parameter index_width_lp=$clog2((2**width_p+banks_p-1)/banks_p)
@@ -45,3 +45,5 @@ module hash_function_reverse
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(hash_function_reverse)

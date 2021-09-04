@@ -17,7 +17,7 @@ module bsg_manycore_rocc_streambuf_wrapper
  #(
     //////////////////////////////////////////////////////
     //Parameters for RoCC interface
-    parameter               rocc_num_p      = "inv"
+    `BSG_INV_PARAM(              rocc_num_p      )
     //The distribution of the rocc interface.
     //1. Non-zero value is the index of the rocc interface,
     //   starting from 1.
@@ -28,7 +28,7 @@ module bsg_manycore_rocc_streambuf_wrapper
 
     //////////////////////////////////////////////////////
     //Parameters for out_fifo interface
-   ,parameter               out_fifo_num_p      = "inv"
+   ,`BSG_INV_PARAM(              out_fifo_num_p      )
     //The distribution of the out_fifo interface.
     //The same meaning with rocc_dist_vect_p
    ,parameter out_fifo_dist_vec_p = 0
@@ -39,9 +39,9 @@ module bsg_manycore_rocc_streambuf_wrapper
     //////////////////////////////////////////////////////
     //Parameters for manycore
     // tile params
-   ,parameter bank_size_p       = "inv"
-   ,parameter num_banks_p       = "inv"
-   ,parameter imem_size_p       = "inv" // in words
+   ,`BSG_INV_PARAM(bank_size_p       )
+   ,`BSG_INV_PARAM(num_banks_p       )
+   ,`BSG_INV_PARAM(imem_size_p       ) // in words
 
    // array params
    ,parameter num_tiles_x_p     = -1
@@ -51,7 +51,7 @@ module bsg_manycore_rocc_streambuf_wrapper
    // enable debugging
    ,parameter debug_p           = 0
    ,parameter extra_io_rows_p   = 1
-   ,parameter addr_width_p      = "inv"
+   ,`BSG_INV_PARAM(addr_width_p      )
 
    ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
    ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
@@ -381,3 +381,5 @@ module bsg_manycore_rocc_streambuf_wrapper
    end
    // synopsys translate_on
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_rocc_streambuf_wrapper)

@@ -10,14 +10,14 @@
 module bsg_manycore_link_to_cache
   import bsg_manycore_pkg::*;
   import bsg_cache_pkg::*;
-  #(parameter link_addr_width_p="inv"
-    , parameter data_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+  #(`BSG_INV_PARAM(link_addr_width_p)
+    , `BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
 
-    , parameter sets_p="inv"
-    , parameter ways_p="inv"
-    , parameter block_size_in_words_p="inv"
+    , `BSG_INV_PARAM(sets_p)
+    , `BSG_INV_PARAM(ways_p)
+    , `BSG_INV_PARAM(block_size_in_words_p)
 
     , parameter fifo_els_p=4
 
@@ -382,3 +382,5 @@ module bsg_manycore_link_to_cache
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_link_to_cache)

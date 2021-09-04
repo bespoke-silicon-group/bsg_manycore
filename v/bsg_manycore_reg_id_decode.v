@@ -21,3 +21,4 @@ module bsg_manycore_reg_id_decode
     | (data_i[24+:reg_id_width_p] & {reg_id_width_p{~mask_i[3]}});
 
 endmodule
+

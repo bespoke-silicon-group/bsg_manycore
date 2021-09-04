@@ -6,9 +6,9 @@
 `include "bsg_defines.v"
 
 module bsg_ruche_buffer
-  #(parameter width_p="inv"
-    , parameter ruche_factor_p="inv"
-    , parameter ruche_stage_p="inv"
+  #(`BSG_INV_PARAM(width_p)
+    , `BSG_INV_PARAM(ruche_factor_p)
+    , `BSG_INV_PARAM(ruche_stage_p)
 
     , parameter bit invert_lp = (ruche_stage_p == 0)
       ? (ruche_factor_p % 2 == 0)
@@ -48,3 +48,5 @@ module bsg_ruche_buffer
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_ruche_buffer)

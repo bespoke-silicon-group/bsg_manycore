@@ -11,24 +11,24 @@
 module vanilla_core
   import bsg_vanilla_pkg::*;
   import bsg_manycore_addr_pkg::*;
-  #(parameter data_width_p="inv"
-    , parameter dmem_size_p="inv"
+  #(`BSG_INV_PARAM(data_width_p)
+    , `BSG_INV_PARAM(dmem_size_p)
     
-    , parameter icache_entries_p="inv"
-    , parameter icache_tag_width_p="inv"
+    , `BSG_INV_PARAM(icache_entries_p)
+    , `BSG_INV_PARAM(icache_tag_width_p)
 
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
 
-    , parameter pod_x_cord_width_p="inv"
-    , parameter pod_y_cord_width_p="inv"
+    , `BSG_INV_PARAM(pod_x_cord_width_p)
+    , `BSG_INV_PARAM(pod_y_cord_width_p)
     
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
 
     // For network input FIFO credit counting
       // By default, 3 credits are needed, because the round trip to get the credit back takes three cycles.
       // ID->EXE->FIFO->CREDIT.
-    , parameter fwd_fifo_els_p="inv"
+    , `BSG_INV_PARAM(fwd_fifo_els_p)
     , parameter lg_fwd_fifo_els_lp=`BSG_WIDTH(fwd_fifo_els_p)
 
     , parameter dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
@@ -1921,3 +1921,5 @@ module vanilla_core
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(vanilla_core)
