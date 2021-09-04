@@ -8,7 +8,7 @@
  *  - F2I, FMV
  */
 
-
+`include "bsg_defines.v"
 `include "HardFloat_consts.vi"
 
 module fpu_int

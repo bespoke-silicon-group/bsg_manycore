@@ -1,3 +1,6 @@
+
+`include "bsg_defines.v"
+
 module bsg_manycore_packet_streamer #(
                                       // maximum number of outstanding words
                                        max_out_credits_p="inv"

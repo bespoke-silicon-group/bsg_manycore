@@ -1,3 +1,5 @@
+
+`include "bsg_defines.v"
 `include "bsg_manycore_packet.vh"
 
 module bsg_manycore_mesh

@@ -5,6 +5,7 @@
  *    such as wormhole concentrators.
  */
 
+`include "bsg_defines.v"
 
 module bsg_ruche_anti_buffer
   #(parameter width_p="inv"

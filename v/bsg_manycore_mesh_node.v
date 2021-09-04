@@ -3,6 +3,7 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module bsg_manycore_mesh_node
   import bsg_manycore_pkg::*;

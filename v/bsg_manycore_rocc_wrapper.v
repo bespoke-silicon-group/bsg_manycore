@@ -9,6 +9,7 @@
 //
 // Pleas contact Prof Taylor for the document.
 //
+`include "bsg_defines.v"
 `include "bsg_manycore_packet.vh"
 `include "bsg_rocc.v"
 

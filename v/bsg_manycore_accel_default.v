@@ -1,3 +1,6 @@
+
+`include "bsg_defines.v"
+
 module bsg_manycore_accel_default 
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;

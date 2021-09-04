@@ -10,6 +10,8 @@
 
   // ungroup this module for synthesis.
 
+`include "bsg_defines.v"
+
 module bsg_manycore_dram_hash_function 
   #(parameter data_width_p="inv"
     , parameter addr_width_p="inv"

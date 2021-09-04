@@ -16,6 +16,7 @@
  *    https://github.com/bespoke-silicon-group/bsg_manycore/blob/master/software/py/nbf.py
  */
 
+`include "bsg_defines.v"
 
 module bsg_manycore_eva_to_npa
   import bsg_manycore_pkg::*;

@@ -5,6 +5,7 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module scoreboard
   import bsg_vanilla_pkg::*;

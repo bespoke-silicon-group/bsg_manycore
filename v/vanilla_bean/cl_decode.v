@@ -11,6 +11,7 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module cl_decode
 import bsg_vanilla_pkg::*;

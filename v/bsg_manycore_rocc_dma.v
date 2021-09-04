@@ -15,6 +15,7 @@
 //    run_bytes register
 //    repeats   register
 //
+`include "bsg_defines.v"
 `include "bsg_rocc.v"
 
 module bsg_manycore_rocc_dma #(

@@ -9,6 +9,7 @@
 //  - mie and mip (read-write)
 //  - mepc (read-write)
 
+`include "bsg_defines.v"
 
 module mcsr
   import bsg_vanilla_pkg::*;

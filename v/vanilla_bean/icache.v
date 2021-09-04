@@ -7,6 +7,7 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module icache
   import bsg_vanilla_pkg::*;

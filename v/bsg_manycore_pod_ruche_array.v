@@ -6,6 +6,7 @@
  */
 
 
+`include "bsg_defines.v"
 `include "bsg_noc_links.vh"
 
 

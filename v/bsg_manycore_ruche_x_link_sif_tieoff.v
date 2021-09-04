@@ -8,6 +8,7 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module bsg_manycore_ruche_x_link_sif_tieoff
   import bsg_manycore_pkg::*;

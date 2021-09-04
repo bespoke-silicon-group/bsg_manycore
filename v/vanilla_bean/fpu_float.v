@@ -9,6 +9,7 @@
  *    Other float operations becomes available in the second stage.
  */
 
+`include "bsg_defines.v"
 
 module fpu_float
   import bsg_vanilla_pkg::*;

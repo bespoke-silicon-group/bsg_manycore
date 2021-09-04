@@ -28,6 +28,7 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module bsg_manycore_gather_scatter
   import bsg_manycore_pkg::*;

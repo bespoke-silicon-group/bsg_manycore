@@ -3,6 +3,7 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module bsg_manycore_vcache_non_blocking 
   import bsg_manycore_pkg::*;

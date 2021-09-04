@@ -10,6 +10,7 @@
  *    use tieoff_east_p, if this router is attaching to the east side of the pod.
  */
 
+`include "bsg_defines.v"
 
 module bsg_manycore_hor_io_router
   import bsg_noc_pkg::*;

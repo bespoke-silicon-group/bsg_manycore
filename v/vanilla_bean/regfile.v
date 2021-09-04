@@ -8,6 +8,7 @@
  *    @author tommy
  */
 
+`include "bsg_defines.v"
 
 module regfile
   #(parameter width_p="inv"

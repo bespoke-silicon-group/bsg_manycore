@@ -4,7 +4,7 @@
  *    This module instantiates vcaches and associated ruche buffers.
  */
 
-
+`include "bsg_defines.v"
 
 module bsg_manycore_tile_vcache_array
   import bsg_noc_pkg::*;

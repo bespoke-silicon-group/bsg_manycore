@@ -1,3 +1,6 @@
+
+`include "bsg_defines.v"
+
 module bsg_manycore_reg_id_decode
   import bsg_manycore_pkg::*;
   #(parameter data_width_p=32

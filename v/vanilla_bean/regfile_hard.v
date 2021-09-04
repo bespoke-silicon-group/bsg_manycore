@@ -8,6 +8,8 @@
 // register. When there is a write and read and the same time, it output
 // the newly written value, which is "write through"
 
+`include "bsg_defines.v"
+
 module regfile_hard
   #(parameter width_p = "inv"
     , parameter els_p = "inv"

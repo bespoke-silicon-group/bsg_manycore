@@ -10,6 +10,7 @@
 //   If only one operand is a NaN, the result is non-NaN operand.
 //  Signaling NaN inputs set the invalid exception flag, even when the result is not NaN.
 
+`include "bsg_defines.v"
 
 module fpu_fmin_fmax 
   #(parameter exp_width_p="inv"

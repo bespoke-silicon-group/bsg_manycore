@@ -8,6 +8,7 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module lsu
 

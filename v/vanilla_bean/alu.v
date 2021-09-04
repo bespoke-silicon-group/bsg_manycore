@@ -1,4 +1,6 @@
 
+`include "bsg_defines.v"
+
 module alu
   import bsg_vanilla_pkg::*;
   #(pc_width_p = "inv")

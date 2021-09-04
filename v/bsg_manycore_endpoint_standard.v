@@ -23,6 +23,8 @@
 //              |  <------------------- |               |          |         |
 //--------------                        |---------------|          |---------|
 
+`include "bsg_defines.v"
+
 module bsg_manycore_endpoint_standard 
   import bsg_manycore_pkg::*; 
   #(parameter x_cord_width_p          = "inv"

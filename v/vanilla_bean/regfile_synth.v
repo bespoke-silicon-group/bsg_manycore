@@ -6,6 +6,7 @@
  *    @author tommy
  */
 
+`include "bsg_defines.v"
 
 module regfile_synth
   #(parameter width_p="inv"

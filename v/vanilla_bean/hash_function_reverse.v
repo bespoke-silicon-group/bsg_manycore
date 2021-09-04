@@ -1,3 +1,6 @@
+
+`include "bsg_defines.v"
+
 module hash_function_reverse
   #(parameter width_p="inv"
     ,parameter banks_p="inv"

@@ -3,6 +3,8 @@
  *
  */
 
+`include "bsg_defines.v"
+
 module fpu_int_fclass
   import bsg_vanilla_pkg::*;
   #(parameter exp_width_p=fpu_recoded_exp_width_gp

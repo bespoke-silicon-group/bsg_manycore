@@ -3,6 +3,7 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module load_packer
   import bsg_vanilla_pkg::*;

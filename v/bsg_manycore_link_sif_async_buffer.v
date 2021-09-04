@@ -6,6 +6,8 @@
 //This module converts the bsg_manycore_link_sif signals between different
 //clock domains.
 
+`include "bsg_defines.v"
+
 module bsg_manycore_link_sif_async_buffer
   import bsg_manycore_pkg::*;
    #(   addr_width_p  = 32

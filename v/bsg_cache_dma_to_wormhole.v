@@ -7,6 +7,7 @@
  *    for read dma packets, it sends the read header flit, and receives the fill data asynchronously.
  */
 
+`include "bsg_defines.v"
 `include "bsg_noc_links.vh"
 
 
