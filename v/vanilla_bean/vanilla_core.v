@@ -1609,6 +1609,7 @@ module vanilla_core
         fp_exe_ctrl_n.fp_decode.is_fpu_int_op   = 1'b0;
         fp_exe_ctrl_n.fp_decode.is_fdiv_op  = 1'b0;
         fp_exe_ctrl_n.fp_decode.is_fsqrt_op = 1'b0;
+        fp_exe_data_en = 1'b0;
       end
       else begin
         fp_exe_ctrl_en = 1'b1;
