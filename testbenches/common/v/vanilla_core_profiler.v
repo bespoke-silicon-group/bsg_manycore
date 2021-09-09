@@ -1060,7 +1060,7 @@ module vanilla_core_profiler
 
    always @(negedge clk_i)  begin
         // stat printing
-        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == (global_y_i-origin_y_cord_p) & print_stat_tag.x_cord == (global_x_i-origin_x_cord_p)) begin
+        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == (global_y_i) & print_stat_tag.x_cord == (global_x_i)) begin
           $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, global_x_i, global_y_i);
 
           fd = $fopen(logfile_lp, "a");
