@@ -98,10 +98,12 @@
 
 // saif
 #define bsg_asm_saif_start \
-  addi zero, zero, 1
+  bsg_asm_global_store(IO_X_INDEX, IO_Y_INDEX,0xFFF0,0)
 
 #define bsg_asm_saif_end \
-  addi zero, zero, 2
+  bsg_asm_global_store(IO_X_INDEX, IO_Y_INDEX,0xFFF4,0)
+
+
 // Branch
 
 // branch immediate

@@ -19,6 +19,8 @@ module bsg_nonsynth_manycore_monitor
     , parameter mem_els_p=2**18
     , parameter mem_addr_width_lp=`BSG_SAFE_CLOG2(mem_els_p)
 
+    , parameter saif_toggle_scope_p="inv"
+  
     , parameter uptime_p = 1
   )
   (
@@ -238,10 +240,24 @@ module bsg_nonsynth_manycore_monitor
             $display("[INFO][MONITOR] RECEIVED PRINT_STAT PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, $time);      
           end
+`ifdef SAIF
+          else if (epa_addr == bsg_saif_start_addr_gp) begin
+            $display("[SAIF] saif on.  %m. t = %t", $time);
+            $set_gate_level_monitoring("rtl_on", "sv");
+            $set_toggle_region(saif_toggle_scope_p);
+            $toggle_start();
+          end
+          else if (epa_addr == bsg_saif_end_addr_gp) begin
+            $display("[SAIF] saif off. %m. t = %t", $time);
+            $toggle_stop();
+            $toggle_report("vanilla.saif", 1.0e-12, saif_toggle_scope_p);
+          end
+`endif
           else begin
             $display("[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x=%2d,%2d, data=%x, addr=%x, time=%0t",
               src_y_cord_i, src_x_cord_i, data_i, addr_i, $time);
           end
+          
         end
       end
       else if (v_i & ~we_i) begin
