@@ -57,12 +57,6 @@ module fpu_float_fma
   logic is_fma_op;
 
   always_comb begin
-    fma_a_li = fp_rs1_i;
-    fma_b_li = fp_rs2_i;
-    fma_c_li = fp_rs3_i;
-    fma_op_li = ePM_PB;
-    is_fma_op = 1'b0;
-
     // FPU gets imul inputs only when there is imul in EXE.
     // so that it does not cause spurious toggles in FPU by normal integer ops.
 
@@ -72,8 +66,9 @@ module fpu_float_fma
       fma_b_li = {1'b0, imul_rs2_i};
       fma_c_li = 33'h0;
       fma_op_li = eIMUL;
+      is_fma_op = 1'b0;
     end
-    else begin
+    else if (fp_v_i) begin
       case (fpu_float_op_i)
         eFADD: begin
           fma_a_li = fp_rs1_i;
@@ -127,9 +122,20 @@ module fpu_float_fma
           is_fma_op = 1'b1;
         end
         default: begin
+          fma_a_li = '0;
+          fma_b_li = '0;
+          fma_c_li = '0;
+          fma_op_li = ePM_PB;
           is_fma_op = 1'b0;
         end
       endcase
+    end
+    else begin
+      fma_a_li = '0;
+      fma_b_li = '0;
+      fma_c_li = '0;
+      fma_op_li = ePM_PB;
+      is_fma_op = 1'b0;
     end
   end
 
