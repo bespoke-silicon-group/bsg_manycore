@@ -249,8 +249,10 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] rs1_val;           // RF output data from RS1 address
     logic [RV32_reg_data_width_gp-1:0] rs2_val;           // RF output data from RS2 address
                                                           // CSR instructions use this register for loading CSR vals
-    logic [RV32_reg_data_width_gp-1:0] mem_addr_op2;      // the second operands to compute
+
+    logic [11:0]                       mem_addr_op2;      // the second operands to compute
                                                           // memory address
+
     logic                              icache_miss;
     logic                              valid;             // valid instruction in EXE
 } exe_signals_s;
