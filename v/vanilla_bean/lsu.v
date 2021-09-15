@@ -104,9 +104,14 @@ module lsu
   assign dmem_data_o = store_data;
   assign dmem_mask_o = store_mask;
 
-  assign mem_addr_sent_o = icache_miss_i
+
+  // used for icache miss handling, and byte selection for local load (only 2 LSB)
+  wire [data_width_p-1:0] mem_addr_sent = icache_miss_i
     ? miss_addr
     : mem_addr;
+
+  assign mem_addr_sent_o = mem_addr_sent;
+
 
   // remote request
   // 1) icache fetch
@@ -146,7 +151,7 @@ module lsu
       load_info : load_info,
       reg_id : exe_rd_i,
       data : store_data,
-      addr : (icache_miss_i ? miss_addr : mem_addr)
+      addr : mem_addr_sent
     }; 
 
   end
