@@ -14,7 +14,7 @@ module alu
            );
 
 logic        is_imm_op, sub_not_add,
-             carry, sum_is_zero, sign_ex_or_zero;
+             carry, sign_ex_or_zero;
 logic [4:0]  sh_amount;
 logic [31:0] op2;
 logic [32:0] sum;
@@ -34,7 +34,6 @@ assign adder_input  = sub_not_add ? (~op2) : op2;
 assign sh_amount    = is_imm_op ? op_i.rs2 : rs2_i[4:0];
 
 assign {carry,sum} = {rs1_i[31], rs1_i} + {adder_input[31], adder_input} + sub_not_add;
-assign sum_is_zero = ~(| sum[31:0]);
 assign shr_out     = $signed ({sign_ex_or_zero, rs1_i}) >>> sh_amount;
 assign shl_out     = rs1_i << sh_amount;
 assign xor_out     = rs1_i ^ op2;

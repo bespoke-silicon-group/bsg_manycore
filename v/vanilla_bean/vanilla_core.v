@@ -667,7 +667,7 @@ module vanilla_core
     ,.exe_rs2_i(exe_r.rs2_val)
     ,.exe_rd_i(exe_r.instruction.rd)
     ,.mem_offset_i(exe_r.mem_addr_op2)
-    ,.pc_plus4_i(exe_r.pc_plus4)
+    ,.pc_plus4_i(exe_r.pc_plus4[2+:pc_width_lp]) // word addr
     ,.icache_miss_i(exe_r.icache_miss)
 
     ,.remote_req_o(remote_req_o)
