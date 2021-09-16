@@ -53,13 +53,27 @@ module lsu
 
   );
 
+  // data gating
+  wire gate_exe_rs2 = (exe_decode_i.is_store_op | exe_decode_i.is_amo_op);
+  wire gate_exe_rs1 = (exe_decode_i.is_store_op | exe_decode_i.is_load_op | exe_decode_i.is_lr_aq_op | exe_decode_i.is_lr_op | exe_decode_i.is_amo_op);
+  wire gate_mem_offset = (exe_decode_i.is_store_op | exe_decode_i.is_load_op); // mem offset is zero for LR and AMO ops.
 
+  logic [11:0] mem_offset_gated;
+  logic [data_width_p-1:0] exe_rs2_gated, exe_rs1_gated;
+  logic [pc_width_p-1:0] pc_plus4_gated;
 
+  assign exe_rs1_gated = {data_width_p{gate_exe_rs1}} & exe_rs1_i;
+  assign exe_rs2_gated = {data_width_p{gate_exe_rs2}} & exe_rs2_i;
+  assign mem_offset_gated = {12{gate_mem_offset}} & mem_offset_i;
+  assign pc_plus4_gated = {pc_width_p{icache_miss_i}} & pc_plus4_i;
+  
+  // calculate memory address
   logic [data_width_p-1:0] mem_addr;
   logic [data_width_p-1:0] miss_addr;
 
-  assign mem_addr = exe_rs1_i + {{20{mem_offset_i[11]}}, mem_offset_i};
-  assign miss_addr = {1'b1, {(data_width_p-pc_width_p-3){1'b0}}, (pc_width_p)'(pc_plus4_i - 'h1), 2'b00}; // icache miss fetches instruction from DRAM, so that MSB is set to 1.
+  assign mem_addr = exe_rs1_gated + {{20{mem_offset_gated[11]}}, mem_offset_gated};
+  assign miss_addr = {1'b1, {(data_width_p-pc_width_p-3){1'b0}}, (pc_width_p)'(pc_plus4_gated - 'h1), 2'b00}; // icache miss fetches instruction from DRAM, so that MSB is set to 1.
+
 
   // store data mask
   //
@@ -68,7 +82,7 @@ module lsu
 
   always_comb begin
     if (exe_decode_i.is_byte_op) begin
-      store_data = {4{exe_rs2_i[7:0]}};
+      store_data = {4{exe_rs2_gated[7:0]}};
       store_mask = {
          mem_addr[1] &  mem_addr[0],
          mem_addr[1] & ~mem_addr[0],
@@ -77,7 +91,7 @@ module lsu
       };
     end
     else if (exe_decode_i.is_hex_op) begin
-      store_data = {2{exe_rs2_i[15:0]}};
+      store_data = {2{exe_rs2_gated[15:0]}};
       store_mask = {
         {2{mem_addr[1]}},
         {2{~mem_addr[1]}}
@@ -85,7 +99,7 @@ module lsu
     end
     else begin
       // also covers AMO op
-      store_data = exe_rs2_i;
+      store_data = exe_rs2_gated;
       store_mask = 4'b1111;
     end
   end
