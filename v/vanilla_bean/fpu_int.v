@@ -23,7 +23,8 @@ module fpu_int
     , input [recoded_data_width_lp-1:0] fp_rs2_i
     , input fpu_int_op_e fpu_int_op_i
     , input frm_e fp_rm_i
-    
+    , input is_fpu_int_op_i
+  
     , output logic [data_width_p-1:0] result_o
     , output fflags_s fflags_o
   );
@@ -35,6 +36,16 @@ module fpu_int
   wire is_fcvt_w_s = fpu_int_op_i == eFCVT_W_S;
   wire is_fcvt_wu_s = fpu_int_op_i == eFCVT_WU_S;
   wire is_fclass = fpu_int_op_i == eFCLASS;
+
+
+  // data gating
+  wire gate_fp_rs1 = is_fpu_int_op_i;
+  wire gate_fp_rs2 = is_fpu_int_op_i & (is_flt | is_fle | is_feq);
+  logic [recoded_data_width_lp-1:0] fp_rs1_gated, fp_rs2_gated;
+  
+  assign fp_rs1_gated = {recoded_data_width_lp{gate_fp_rs1}} & fp_rs1_i;
+  assign fp_rs2_gated = {recoded_data_width_lp{gate_fp_rs2}} & fp_rs2_i;
+
 
 
   // compare
@@ -53,8 +64,8 @@ module fpu_int
     .expWidth(exp_width_p)
     ,.sigWidth(sig_width_p)
   ) cmp0 (
-    .a(fp_rs1_i)
-    ,.b(fp_rs2_i)
+    .a(fp_rs1_gated)
+    ,.b(fp_rs2_gated)
     ,.signaling(cmp_signaling_li)
     ,.lt(cmp_lt_lo)
     ,.eq(cmp_eq_lo)
@@ -99,7 +110,7 @@ module fpu_int
     ,.intWidth(data_width_p)
   ) f2i (
     .control(`flControl_default)
-    ,.in(fp_rs1_i)
+    ,.in(fp_rs1_gated)
     ,.roundingMode(fp_rm_i)
     ,.signedOut(is_fcvt_w_s)
     ,.out(f2i_result_lo)
@@ -113,7 +124,7 @@ module fpu_int
     .exp_width_p(exp_width_p)
     ,.sig_width_p(sig_width_p)
   ) fclass0 (
-    .i(fp_rs1_i)
+    .i(fp_rs1_gated)
     ,.o(fclass_result_lo)
   );
 
@@ -125,7 +136,7 @@ module fpu_int
     .expWidth(exp_width_p)
     ,.sigWidth(sig_width_p)
   ) toFN0 (
-    .in(fp_rs1_i)
+    .in(fp_rs1_gated)
     ,.out(fp_rs1_fn)
   );
 

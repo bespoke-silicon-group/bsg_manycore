@@ -821,6 +821,7 @@ module vanilla_core
     ,.fp_rs2_i(fp_exe_data_r.rs2_val)
     ,.fpu_int_op_i(fp_exe_ctrl_r.fp_decode.fpu_int_op)
     ,.fp_rm_i(fp_exe_ctrl_r.rm)
+    ,.is_fpu_int_op_i(fp_exe_ctrl_r.fp_decode.is_fpu_int_op)
 
     ,.result_o(fpu_int_result_lo)
     ,.fflags_o(fpu_int_fflags_lo)
