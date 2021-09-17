@@ -74,10 +74,10 @@ bsg_mcs_mutex_acquire_ret:
 bsg_mcs_mutex_release:
         lw      t0, 4(a1)                                   // next = lcl->next
         li      t1, 1                                       // t1 = 1
+        fence                                               // fence to implement release semantics
         beqz    t0, bsg_mcs_mutex_release_no_successor      // branch if no successor
         // this is the case where there is a successor
         // we need only unlock the successor and return
-        fence                                               // fence to implement release semantics
         sw      t1, 0(t0)                                   // successor->unlocked = 1
         ret
 bsg_mcs_mutex_release_no_successor:
