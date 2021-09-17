@@ -56,17 +56,20 @@ module lsu
   // data gating
   wire gate_exe_rs2 = (exe_decode_i.is_store_op | exe_decode_i.is_amo_op);
   wire gate_exe_rs1 = (exe_decode_i.is_store_op | exe_decode_i.is_load_op | exe_decode_i.is_lr_aq_op | exe_decode_i.is_lr_op | exe_decode_i.is_amo_op);
+  wire gate_exe_rd  = (exe_decode_i.is_load_op | exe_decode_i.is_amo_op);
   wire gate_mem_offset = (exe_decode_i.is_store_op | exe_decode_i.is_load_op); // mem offset is zero for LR and AMO ops.
 
   logic [11:0] mem_offset_gated;
   logic [data_width_p-1:0] exe_rs2_gated, exe_rs1_gated;
+  logic [reg_addr_width_lp-1:0] exe_rd_gated;
   logic [pc_width_p-1:0] pc_plus4_gated;
 
   assign exe_rs1_gated = {data_width_p{gate_exe_rs1}} & exe_rs1_i;
   assign exe_rs2_gated = {data_width_p{gate_exe_rs2}} & exe_rs2_i;
+  assign exe_rd_gated  = {reg_addr_width_lp{gate_exe_rd}} & exe_rd_i;
   assign mem_offset_gated = {12{gate_mem_offset}} & mem_offset_i;
   assign pc_plus4_gated = {pc_width_p{icache_miss_i}} & pc_plus4_i;
-  
+
   // calculate memory address
   logic [data_width_p-1:0] mem_addr;
   logic [data_width_p-1:0] miss_addr;
@@ -162,7 +165,7 @@ module lsu
       amo_type : exe_decode_i.amo_type,
       mask: store_mask,
       load_info : load_info,
-      reg_id : exe_rd_i,
+      reg_id : exe_rd_gated,
       data : store_data,
       addr : mem_addr_sent
     }; 
