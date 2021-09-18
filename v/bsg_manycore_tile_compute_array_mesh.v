@@ -18,7 +18,7 @@ module bsg_manycore_tile_compute_array_mesh
     // change the default values from "inv" back to -1
     // since num_tiles_x_p and num_tiles_y_p will be used to define the size of 2D array
     // hetero_type_vec_p, they should be int by default to avoid tool crash during
-    // synthesis (DC versions at least up to 2018.06)
+    // DC synthesis (versions at least up to 2018.06)
     , parameter int num_tiles_x_p = -1
     , parameter int num_tiles_y_p = -1
 
