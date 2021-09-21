@@ -10,7 +10,7 @@
 /*                                                                                                                        */
 /* Additionally, we found the performance of the MCS mutex was little impacted by the number of cores.                    */
 /*                                                                                                                        */
-/* For the case where there is very low contention on the lock (i.e. maybe only on thread ever needs to acquire),         */
+/* For the case where there is very low contention on the lock (i.e. maybe only one thread ever needs to acquire),        */
 /* the simple spin-lock has slightly better performance. We may want to look for ways to improve the ultra low-contention */
 /* case.                                                                                                                  */
 /**************************************************************************************************************************/
