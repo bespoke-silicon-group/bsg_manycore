@@ -1,3 +1,19 @@
+/**************************************************************************************************************************/
+/* To test the effectiveness of this mutex we compared against a simple spin lock with exponential backoff.               */
+/* We performed a sweep from 1-128 cores and the length of the critical region / non-critical region                      */
+/* to 10, 100, and 1000 iteration busy wait loops. All cores contend for a single lock.                                   */
+/*                                                                                                                        */
+/* We found that the performance of the MCS mutex outperformed the spin lock for any number of cores greater              */
+/* than 1. We observed the greatest speedups when the critical-region was short (10s of cycles) which was                 */
+/* on the order of 20x. For longer critical-regions (100s - 1000s of cycles) the speedup was on the order of              */
+/* 3-7x.                                                                                                                  */
+/*                                                                                                                        */
+/* Additionally, we found the performance of the MCS mutex was little impacted by the number of cores.                    */
+/*                                                                                                                        */
+/* For the case where there is very low contention on the lock (i.e. maybe only one thread ever needs to acquire),        */
+/* the simple spin-lock has slightly better performance. We may want to look for ways to improve the ultra low-contention */
+/* case.                                                                                                                  */
+/**************************************************************************************************************************/
 #pragma once
 #ifdef __cplusplus
 extern "C" {
