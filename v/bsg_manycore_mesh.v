@@ -1,3 +1,5 @@
+
+`include "bsg_defines.v"
 `include "bsg_manycore_packet.vh"
 
 module bsg_manycore_mesh
@@ -34,7 +36,7 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
    // obviously smaller values take up less die area.
    //
 
-   ,parameter addr_width_p      = "inv"
+   ,`BSG_INV_PARAM(addr_width_p      )
 
    ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
    ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
@@ -136,3 +138,5 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
       );
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_mesh)

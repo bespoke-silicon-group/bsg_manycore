@@ -4,6 +4,8 @@
 //
 //
 
+`include "bsg_defines.v"
+
 module bsg_tq_receiver #(width_p       = 32
                        // the greatest amount that is processed at a time
                          , max_depth_p = 1
@@ -74,3 +76,4 @@ module bsg_tq_receiver #(width_p       = 32
        else $error("## release_i without confirm high! (%m)");
 
 endmodule
+

@@ -7,11 +7,12 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module icache
   import bsg_vanilla_pkg::*;
-  #(parameter icache_tag_width_p="inv"
-    , parameter icache_entries_p="inv"
+  #(`BSG_INV_PARAM(icache_tag_width_p)
+    , `BSG_INV_PARAM(icache_entries_p)
 
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
@@ -242,3 +243,5 @@ module icache
   assign icache_miss_o = icache_data_lo.tag != pc_r[icache_addr_width_lp+:icache_tag_width_p];
   
 endmodule
+
+`BSG_ABSTRACT_MODULE(icache)

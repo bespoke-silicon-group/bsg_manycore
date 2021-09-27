@@ -4,6 +4,8 @@
 //
 //
 
+`include "bsg_defines.v"
+
 module bsg_tq_sender #(width_p       = 32
                        // the largest buffer ever allowed
                        , max_els_p   = -1
@@ -102,3 +104,4 @@ module bsg_tq_sender #(width_p       = 32
        else $error("## release_i without confirm high! (%m)");
 
 endmodule
+

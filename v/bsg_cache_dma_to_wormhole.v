@@ -7,22 +7,23 @@
  *    for read dma packets, it sends the read header flit, and receives the fill data asynchronously.
  */
 
+`include "bsg_defines.v"
 `include "bsg_noc_links.vh"
 
 
 module bsg_cache_dma_to_wormhole
   import bsg_cache_pkg::*;
   import bsg_manycore_pkg::*;
-  #(parameter vcache_addr_width_p="inv"
-    , parameter vcache_data_width_p="inv"
-    , parameter vcache_dma_data_width_p="inv"
-    , parameter vcache_block_size_in_words_p="inv"
+  #(`BSG_INV_PARAM(vcache_addr_width_p)
+    , `BSG_INV_PARAM(vcache_data_width_p)
+    , `BSG_INV_PARAM(vcache_dma_data_width_p)
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     
     // flit width should match the vcache dma width.
-    , parameter wh_flit_width_p="inv"
-    , parameter wh_cid_width_p="inv"
-    , parameter wh_len_width_p="inv"
-    , parameter wh_cord_width_p = "inv"
+    , `BSG_INV_PARAM(wh_flit_width_p)
+    , `BSG_INV_PARAM(wh_cid_width_p)
+    , `BSG_INV_PARAM(wh_len_width_p)
+    , `BSG_INV_PARAM(wh_cord_width_p)
     
     , parameter data_len_lp = (vcache_data_width_p*vcache_block_size_in_words_p/vcache_dma_data_width_p)
 
@@ -288,3 +289,5 @@ module bsg_cache_dma_to_wormhole
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_cache_dma_to_wormhole)

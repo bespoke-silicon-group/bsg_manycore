@@ -8,10 +8,12 @@
 // register. When there is a write and read and the same time, it output
 // the newly written value, which is "write through"
 
+`include "bsg_defines.v"
+
 module regfile_hard
-  #(parameter width_p = "inv"
-    , parameter els_p = "inv"
-    , parameter num_rs_p ="inv" // number of read ports. only supports 2 and 3.
+  #(`BSG_INV_PARAM(width_p )
+    , `BSG_INV_PARAM(els_p )
+    , `BSG_INV_PARAM(num_rs_p ) // number of read ports. only supports 2 and 3.
     , parameter x0_tied_to_zero_p=0
     , localparam addr_width_lp = `BSG_SAFE_CLOG2(els_p)
   )
@@ -160,4 +162,6 @@ module regfile_hard
   end
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(regfile_hard)
 

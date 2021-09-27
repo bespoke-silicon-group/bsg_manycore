@@ -5,6 +5,7 @@
  *
  */
 
+`include "bsg_defines.v"
 
 module idiv 
   import bsg_vanilla_pkg::*;
@@ -76,3 +77,4 @@ module idiv
 
 
 endmodule
+

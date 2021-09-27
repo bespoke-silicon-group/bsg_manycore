@@ -9,12 +9,13 @@
 //  - mie and mip (read-write)
 //  - mepc (read-write)
 
+`include "bsg_defines.v"
 
 module mcsr
   import bsg_vanilla_pkg::*;
   #(parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter reg_data_width_lp = RV32_reg_data_width_gp
-    , parameter pc_width_p="inv"
+    , `BSG_INV_PARAM(pc_width_p)
     , parameter credit_limit_default_val_p = 32
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
     , parameter cfg_pod_width_p=32
@@ -326,3 +327,5 @@ module mcsr
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(mcsr)

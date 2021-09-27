@@ -4,6 +4,7 @@
  */
 
 
+`include "bsg_defines.v"
 `include "HardFloat_consts.vi"
 
 module fpu_float_fma
@@ -236,3 +237,4 @@ module fpu_float_fma
 
 
 endmodule
+
