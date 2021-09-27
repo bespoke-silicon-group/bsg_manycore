@@ -9,10 +9,10 @@ $(error DRAMSim3 has not been submoduled in basejump_stl, see top-level README.m
 endif
 
 # Sets "VCS" variable
-include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
+-include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
 
 ifeq ($(VCS),)
-$(error VCS must be set; probably need VCS_HOME, SNPSLMD_LICENSE_FILE too, maybe LM_LICENSE file)
+#$(error VCS must be set; probably need VCS_HOME, SNPSLMD_LICENSE_FILE too, maybe LM_LICENSE file)
 endif
 
 # Include source lists
@@ -22,16 +22,20 @@ include sim_filelist.mk
 VCS_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
 VCS_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
 VCS_SOURCES  += $(VHEADERS) $(VSOURCES) 
-VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
-    +lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS -top spmd_testbench
-VCS_FLAGS    += -licqueue
-VCS_FLAGS    += -reportstats
-VCS_FLAGS    += -assert svaext  # needed for "assert final"
+#VCS_FLAGS    += +v2k -sverilog -full64 -timescale=1ps/1ps \
+#    +lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS
+VCS_FLAGS +=--top-module spmd_testbench
+#VCS_FLAGS    += -licqueue
+#VCS_FLAGS    += -reportstats
+#VCS_FLAGS    += -assert svaext  # needed for "assert final"
+VCS_FLAGS    += --lint-only
+VCS_FLAGS    += --debug -gdbbt
+VCS_FLAGS    += -O1
 #VCS_FLAGS    += +vcs+loopreport 
 
-VCS_CFLAGS   =  -cpp g++
+#VCS_CFLAGS   =  -cpp g++
 VCS_CFLAGS   += -CFLAGS "-std=c++11 -g -Wall"
-VCS_CFLAGS   += -CFLAGS "-O2"
+#VCS_CFLAGS   += -CFLAGS "-O2"
 VCS_CFLAGS   += -CFLAGS "-fPIC"
 VCS_CFLAGS 	 += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/src"
 VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/ext/headers"
@@ -40,11 +44,12 @@ VCS_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
 VCS_CFLAGS   += -CFLAGS "-DFMT_HEADER_ONLY=1"
 VCS_CFLAGS   += -CFLAGS "-DBASEJUMP_STL_DIR=$(BASEJUMP_STL_DIR)"
 
-DEFAULT_MACHINES = pod_1x1 pod_1x1_hbm2 pod_4x4
+#DEFAULT_MACHINES = pod_1x1 pod_1x1_hbm2 pod_4x4
+DEFAULT_MACHINES = pod_1x1
 
 .PHONY: all clean
 
-DEFAULT_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simv)
+DEFAULT_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simsc)
 DEFAULT_DEBUG_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simv-debug)
 DEFAULT_PROFILE_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/simv-profile)
 
@@ -106,6 +111,14 @@ ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py
 	$(VCS) $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ \
 		$(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) $*/bsg_tag_boot_rom.v \
 		-l $*/build.log -Mdir=$*/csrc
+
+%/simsc : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS)
+	$(call set_machine_variables,$<)
+	python $(POD_TRACE_GEN_PY) $(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) > $*/pod_trace.tr
+	python $(ASCII_TO_ROM_PY) $*/pod_trace.tr bsg_tag_boot_rom > $*/bsg_tag_boot_rom.v
+	../../verilator/bin/verilator --build --exe $(VCS_FLAGS) $(VCS_CFLAGS) -o $@ \
+		$(VCS_INCLUDES) $(VCS_DEFINES) $(CSOURCES) $(VCS_SOURCES) $*/bsg_tag_boot_rom.v
+		
 
 # build simv-debug
 # with debug option for waveform generation.

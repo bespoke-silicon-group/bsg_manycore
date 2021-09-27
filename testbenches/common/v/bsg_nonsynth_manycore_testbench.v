@@ -761,6 +761,7 @@ if (enable_cache_profiling_p) begin
 
   end
 
+`ifndef VERILATOR
 if (enable_router_profiling_p) begin
   bind bsg_mesh_router router_profiler #(
     .x_cord_width_p(x_cord_width_p)
@@ -788,6 +789,7 @@ if (enable_vcore_pc_coverage_p) begin
     ,.coverage_en_i($root.`HOST_MODULE_PATH.coverage_en)
   );
 end
+`endif
 
 endmodule
 
