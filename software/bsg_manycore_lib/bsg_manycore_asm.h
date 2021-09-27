@@ -96,6 +96,13 @@
 #define bsg_asm_fail_reg(x,reg) \
     bsg_asm_global_store_reg(x, IO_Y_INDEX ,0xEAD8,reg)
 
+// saif
+#define bsg_asm_saif_start \
+  bsg_asm_global_store(IO_X_INDEX, IO_Y_INDEX,0xFFF0,0)
+
+#define bsg_asm_saif_end \
+  bsg_asm_global_store(IO_X_INDEX, IO_Y_INDEX,0xFFF4,0)
+
 
 // Branch
 

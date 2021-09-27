@@ -11,6 +11,10 @@ package bsg_manycore_addr_pkg;
   parameter bsg_io_npa_prefix_gp   = 32'h4000_0000;
 
   // IO EPA (word address)
+  parameter bsg_saif_start_addr_gp = 16'hfff0;
+  parameter bsg_saif_end_addr_gp = 16'hfff4;
+
+
   parameter bsg_heartbeat_init_epa_gp = 16'hbea0;
   parameter bsg_heartbeat_iter_epa_gp = 16'hbea4;
   parameter bsg_heartbeat_end_epa_gp = 16'hbea8;

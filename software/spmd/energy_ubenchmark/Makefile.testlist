@@ -1,0 +1,12 @@
+export ENERGY_UBENCHMARK := \
+	add \
+	add_zeros \
+	addi \
+	mul \
+	fma \
+	branch \
+	branch_miss \
+  sw \
+	lw \
+	idiv \
+	fdiv

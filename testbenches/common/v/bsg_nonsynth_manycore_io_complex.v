@@ -13,6 +13,8 @@ module bsg_nonsynth_manycore_io_complex
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
 
+    , parameter saif_toggle_scope_p="inv"
+
     , parameter io_x_cord_p=0 
     , parameter io_y_cord_p=1
 
@@ -124,6 +126,7 @@ module bsg_nonsynth_manycore_io_complex
     ,.y_cord_width_p(y_cord_width_p)
     ,.addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
+    ,.saif_toggle_scope_p(saif_toggle_scope_p)
   ) monitor (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
