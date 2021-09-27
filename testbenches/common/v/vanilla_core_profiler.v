@@ -248,6 +248,10 @@ module vanilla_core_profiler
   wire csrrsi_inc = (exe_r.instruction ==? `RV32_CSRRSI);
   wire csrrci_inc = (exe_r.instruction ==? `RV32_CSRRCI);
 
+  // Barrier Instruction
+  wire barsend_inc = (exe_r.instruction ==? `RV32_FENCE_OP) & (exe_r.instruction[31:28] == `RV32_BARSEND_FM);
+  wire barrecv_inc = (exe_r.instruction ==? `RV32_FENCE_OP) & (exe_r.instruction[31:28] == `RV32_BARRECV_FM);
+
   // remote/local scoreboard tracking 
   //
   // int_sb[3]: idiv
@@ -702,7 +706,10 @@ module vanilla_core_profiler
     integer csrrwi;
     integer csrrsi;
     integer csrrci;
-  
+      
+    integer barsend;
+    integer barrecv;
+
     integer branch_miss_bubble;
     integer jalr_miss_bubble;
     integer icache_miss_bubble;
@@ -869,6 +876,9 @@ module vanilla_core_profiler
         else if (csrrsi_inc) stat_r.csrrsi++;
         else if (csrrci_inc) stat_r.csrrci++;
 
+        else if (barsend_inc) stat_r.barsend++;
+        else if (barrecv_inc) stat_r.barrecv++;
+
         else if (branch_miss_bubble_inc) stat_r.branch_miss_bubble++;
         else if (jalr_miss_bubble_inc) stat_r.jalr_miss_bubble++;
         else if (icache_miss_bubble_inc) stat_r.icache_miss_bubble++;
@@ -1033,6 +1043,9 @@ module vanilla_core_profiler
       $fwrite(fd, "instr_csrrsi,");
       $fwrite(fd, "instr_csrrci,");
 
+      $fwrite(fd, "instr_barsend,");
+      $fwrite(fd, "instr_barrecv,");
+
       $fwrite(fd, "bubble_branch_miss,");
       $fwrite(fd, "bubble_jalr_miss,");
       $fwrite(fd, "bubble_icache_miss,");
@@ -1192,6 +1205,9 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.csrrwi);
           $fwrite(fd, "%0d,", stat_r.csrrsi);
           $fwrite(fd, "%0d,", stat_r.csrrci);
+
+          $fwrite(fd, "%0d,", stat_r.barsend);
+          $fwrite(fd, "%0d,", stat_r.barrecv);
    
           $fwrite(fd, "%0d,", stat_r.branch_miss_bubble);   
           $fwrite(fd, "%0d,", stat_r.jalr_miss_bubble);   
@@ -1334,6 +1350,9 @@ module vanilla_core_profiler
           else if (csrrwi_inc) print_operation_trace(fd2, "csrrwi", exe_pc);
           else if (csrrsi_inc) print_operation_trace(fd2, "csrrsi", exe_pc);
           else if (csrrci_inc) print_operation_trace(fd2, "csrrci", exe_pc);
+
+          else if (barsend_inc) print_operation_trace(fd2, "barsend", exe_pc);
+          else if (barrecv_inc) print_operation_trace(fd2, "barrecv", exe_pc);
 
           else if (branch_miss_bubble_inc) print_operation_trace(fd2, "bubble_branch_miss", exe_bubble_pc_r);
           else if (jalr_miss_bubble_inc) print_operation_trace(fd2, "bubble_jalr_miss", exe_bubble_pc_r);
