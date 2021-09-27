@@ -10,13 +10,13 @@
 
 
 // Barrier Send
-inline void bsg_barsend()
+static inline void bsg_barsend()
 {
   asm volatile (".word 0x1000000f");
 }
 
 // Barrier Receive
-inline void bsg_barrecv()
+static inline void bsg_barrecv()
 {
   asm volatile (".word 0x2000000f");
 }
@@ -29,10 +29,9 @@ inline void bsg_barrecv()
 // tx  =  x-dim of tile group
 // ty  =  y-dim of tile group
 
-#define RUCHE_FACTOR_X 3
 #define OUTDIR_OFFSET 16
 
-void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
+static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
 
   // center tile coordinate
   int center_x = (tx/2);
