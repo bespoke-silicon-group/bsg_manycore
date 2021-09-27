@@ -120,13 +120,47 @@ module network_rx
   assign tgo_y_o = tgo_y_r;
   assign pc_init_val_o = pc_init_val_r;
 
+  // clock gated CSR dff
+  logic pc_init_val_en;
+  logic tgo_x_en;
+  logic tgo_y_en;
+
+  bsg_dff_reset_en #(
+    .width_p(pc_width_lp)
+    ,.reset_val_p(default_pc_init_val_p)
+  ) pc_init_val_dff (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.en_i(pc_init_val_en)
+    ,.data_i(data_i[0+:pc_width_lp])
+    ,.data_o(pc_init_val_r)
+  );
+
+  bsg_dff_reset_en #(
+    .width_p(x_subcord_width_p)
+    ,.reset_val_p(tgo_x_init_val_p)
+  ) tgo_x_dff (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.en_i(tgo_x_en)
+    ,.data_i(data_i[0+:x_subcord_width_p])
+    ,.data_o(tgo_x_r)
+  );
+
+  bsg_dff_reset_en #(
+    .width_p(y_subcord_width_p)
+    ,.reset_val_p(tgo_y_init_val_p)
+  ) tgo_y_dff (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.en_i(tgo_y_en)
+    ,.data_i(data_i[0+:y_subcord_width_p])
+    ,.data_o(tgo_y_r)
+  );
+
   // incoming request handling logic
   //
   logic freeze_n;
-  logic [x_subcord_width_p-1:0] tgo_x_n;
-  logic [y_subcord_width_p-1:0] tgo_y_n;
-  logic [pc_width_lp-1:0] pc_init_val_n;
-
   logic send_dmem_data_r, send_dmem_data_n;
   logic send_freeze_r, send_freeze_n;
   logic send_tgo_x_r, send_tgo_x_n;
@@ -142,9 +176,6 @@ module network_rx
   always_comb begin
 
     freeze_n = freeze_r;
-    tgo_x_n = tgo_x_r;
-    tgo_y_n = tgo_y_r;
-    pc_init_val_n = pc_init_val_r;
 
     send_dmem_data_n = 1'b0;
     send_freeze_n = 1'b0;
@@ -171,6 +202,10 @@ module network_rx
     send_remote_interrupt_n = 1'b0;
     yumi_o = 1'b0;
 
+    pc_init_val_en = 1'b0;
+    tgo_x_en = 1'b0;
+    tgo_y_en = 1'b0;
+
 
     if (v_i) begin
       if (w_i) begin
@@ -191,17 +226,17 @@ module network_rx
           send_zero_n = 1'b1;
         end
         else if (is_tgo_x_addr) begin
-          tgo_x_n = data_i[0+:x_cord_width_p];
+          tgo_x_en = 1'b1;
           yumi_o = 1'b1;
           send_zero_n = 1'b1;
         end
         else if (is_tgo_y_addr) begin
-          tgo_y_n = data_i[0+:y_cord_width_p];
+          tgo_y_en = 1'b1;
           yumi_o = 1'b1;
           send_zero_n = 1'b1;
         end
         else if (is_pc_init_val_addr) begin
-          pc_init_val_n = data_i[0+:pc_width_lp];
+          pc_init_val_en = 1'b1;
           yumi_o = 1'b1;
           send_zero_n = 1'b1;
         end
@@ -312,9 +347,6 @@ module network_rx
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       freeze_r <= (1)'(freeze_init_val_p);
-      tgo_x_r <= (x_subcord_width_p)'(tgo_x_init_val_p);
-      tgo_y_r <= (y_subcord_width_p)'(tgo_y_init_val_p);
-      pc_init_val_r <= (pc_width_lp)'(default_pc_init_val_p);
 
       send_dmem_data_r <= 1'b0;
       send_freeze_r <= 1'b0;
@@ -328,9 +360,6 @@ module network_rx
     end
     else begin
       freeze_r <= freeze_n;
-      tgo_x_r <= tgo_x_n;
-      tgo_y_r <= tgo_y_n;
-      pc_init_val_r <= pc_init_val_n;
 
       send_dmem_data_r <= send_dmem_data_n;
       send_freeze_r <= send_freeze_n;
