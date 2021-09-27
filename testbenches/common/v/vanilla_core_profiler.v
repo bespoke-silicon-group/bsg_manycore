@@ -62,6 +62,7 @@ module vanilla_core_profiler
     , input stall_fcsr
     , input stall_remote_req
     , input stall_remote_credit
+    , input stall_barrier
 
     , input stall_remote_ld_wb
     , input stall_ifetch_wait
@@ -449,7 +450,8 @@ module vanilla_core_profiler
     e_exe_bubble_stall_fdiv_busy,
     e_exe_bubble_stall_idiv_busy,
     e_exe_bubble_stall_fcsr,
-    
+    e_exe_bubble_stall_barrier,    
+
     e_exe_no_bubble
   } exe_bubble_type_e;
 
@@ -551,6 +553,10 @@ module vanilla_core_profiler
           exe_bubble_r <= e_exe_bubble_stall_fcsr;
           exe_bubble_pc_r <= id_pc;
         end
+        else if (stall_barrier) begin
+          exe_bubble_r <= e_exe_bubble_stall_barrier;
+          exe_bubble_pc_r <= id_pc;
+        end
         else begin
           exe_bubble_r <= e_exe_no_bubble;
           exe_bubble_pc_r <= '0;
@@ -580,6 +586,7 @@ module vanilla_core_profiler
   wire stall_fdiv_busy_inc = (exe_bubble_r == e_exe_bubble_stall_fdiv_busy);
   wire stall_idiv_busy_inc = (exe_bubble_r == e_exe_bubble_stall_idiv_busy);
   wire stall_fcsr_inc = (exe_bubble_r == e_exe_bubble_stall_fcsr);
+  wire stall_barrier_inc = (exe_bubble_r == e_exe_bubble_stall_barrier);
   
   
   // profiling counters
@@ -716,6 +723,7 @@ module vanilla_core_profiler
     integer stall_fdiv_busy;
     integer stall_idiv_busy;
     integer stall_fcsr;
+    integer stall_barrier;
 
     integer stall_remote_ld_wb;
     integer stall_ifetch_wait;
@@ -881,6 +889,7 @@ module vanilla_core_profiler
         else if (stall_fdiv_busy_inc) stat_r.stall_fdiv_busy++;
         else if (stall_idiv_busy_inc) stat_r.stall_idiv_busy++;
         else if (stall_fcsr_inc) stat_r.stall_fcsr++;
+        else if (stall_barrier_inc) stat_r.stall_barrier++;
 
       end
 
@@ -1044,6 +1053,7 @@ module vanilla_core_profiler
       $fwrite(fd, "stall_fdiv_busy,");
       $fwrite(fd, "stall_idiv_busy,");
       $fwrite(fd, "stall_fcsr,");
+      $fwrite(fd, "stall_barrier,");
 
       $fwrite(fd, "stall_remote_ld_wb,");
       $fwrite(fd, "stall_ifetch_wait,");
@@ -1203,6 +1213,7 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.stall_fdiv_busy);
           $fwrite(fd, "%0d,", stat_r.stall_idiv_busy);
           $fwrite(fd, "%0d,", stat_r.stall_fcsr);
+          $fwrite(fd, "%0d,", stat_r.stall_barrier);
     
           $fwrite(fd, "%0d,", stat_r.stall_remote_ld_wb);
           $fwrite(fd, "%0d,", stat_r.stall_ifetch_wait);
@@ -1344,6 +1355,7 @@ module vanilla_core_profiler
           else if (stall_fdiv_busy_inc) print_operation_trace(fd2, "stall_fdiv_busy", exe_bubble_pc_r);
           else if (stall_idiv_busy_inc) print_operation_trace(fd2, "stall_idiv_busy", exe_bubble_pc_r);
           else if (stall_fcsr_inc) print_operation_trace(fd2, "stall_fcsr", exe_bubble_pc_r);
+          else if (stall_barrier_inc) print_operation_trace(fd2, "stall_barrier", exe_bubble_pc_r);
 
           else if (stall_remote_ld_wb) print_operation_trace(fd2, "stall_remote_ld", exe_pc);
           else if (stall_ifetch_wait) print_operation_trace(fd2, "stall_ifetch_wait", exe_pc);
