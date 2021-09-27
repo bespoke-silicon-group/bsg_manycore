@@ -51,7 +51,7 @@ typedef struct packed {
     logic lower_sign; \
     logic [tag_width_mp-1:0] tag; \
     instruction_s instr; \
-  } icache_format_s;
+  } icache_format_s
 
 `define icache_format_width(tag_width_mp) \
    (1+1+tag_width_mp+$bits(instruction_s))

@@ -202,7 +202,7 @@ module bsg_manycore_pod_ruche_row
     if (x < num_pods_x_p-1) begin
       // manycore
       assign ruche_link_li[x][E] = ruche_link_lo[x+1][W];
-      assign ruche_link_li[x+1][W] = ruche_link_lo[x][E];;
+      assign ruche_link_li[x+1][W] = ruche_link_lo[x][E];
 
       // vcache wh
       for (genvar m = N; m <= S; m++) begin
