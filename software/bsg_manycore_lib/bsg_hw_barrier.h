@@ -47,10 +47,10 @@ static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
       int val = 1;
 
       // setting output dir
-      if (x <= center_x - RUCHE_FACTOR_X) {
+      if (x <= center_x - BARRIER_RUCHE_FACTOR_X) {
         // output = RE
         val |= (6 << OUTDIR_OFFSET);
-      } else if ((x < center_x) && (x > (center_x - RUCHE_FACTOR_X))) {
+      } else if ((x < center_x) && (x > (center_x - BARRIER_RUCHE_FACTOR_X))) {
         // output = E
         val |= (2 << OUTDIR_OFFSET);
       } else if (x == center_x) {
@@ -64,7 +64,7 @@ static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
           // output = N
           val |= (3 << OUTDIR_OFFSET);
         }
-      } else if ((x > center_x) && (x < (center_x + RUCHE_FACTOR_X))) {
+      } else if ((x > center_x) && (x < (center_x + BARRIER_RUCHE_FACTOR_X))) {
         // output = W
         val |= (1 << OUTDIR_OFFSET);
       } else {
@@ -79,7 +79,7 @@ static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
       }
 
       // input = RW
-      if (((x - RUCHE_FACTOR_X) >= 0) && (x <= center_x)) {
+      if (((x - BARRIER_RUCHE_FACTOR_X) >= 0) && (x <= center_x)) {
         val |= (1 << 5);
       }
 
@@ -89,7 +89,7 @@ static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
       }
 
       // input = RE
-      if (((x+RUCHE_FACTOR_X) < tx) && (x >= center_x)) {
+      if (((x+BARRIER_RUCHE_FACTOR_X) < tx) && (x >= center_x)) {
         val |= (1 << 6);
       }
 
