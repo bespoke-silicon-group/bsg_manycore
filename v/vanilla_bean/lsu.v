@@ -60,6 +60,7 @@ module lsu
   logic [data_width_p-1:0] miss_addr;
 
   assign mem_addr = exe_rs1_i + {{20{mem_offset_i[11]}}, mem_offset_i};
+  // I-cache EVA to Pod Data-EVA translation
   assign miss_addr = {1'b1, {(data_width_p-pc_width_p-3){1'b0}}, (pc_width_p)'(pc_plus4_i - 'h1), 2'b00}; // icache miss fetches instruction from DRAM, so that MSB is set to 1.
 
   // store data mask

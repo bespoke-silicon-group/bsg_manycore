@@ -9,6 +9,8 @@
  *      2) Global
  *      3) Tile-Group
  *
+ *    Note: I-cache EVA to Pod Data-EVA translation occurse in lsu.v
+ *
  *    Modifying this mapping requires the same change in the following files.
  *    - Cuda-lite
  *    https://github.com/bespoke-silicon-group/bsg_replicant/blob/master/libraries/bsg_manycore_eva.cpp
