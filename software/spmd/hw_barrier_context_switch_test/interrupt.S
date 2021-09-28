@@ -1,3 +1,11 @@
+// each thread has a dedicated space in DRAM for thread context.
+// __thread_data_block stores the entire 4KB DMEM content. 
+// __thread_context_block stores the register file content, and other architectural states (barrier states).
+// There are arrays of these blocks in DRAM for each tile's threads, which can be indexed by a combination of __bsg_id and __thread_id.
+// When the tile receives a remote interrupt, it saves the current thread's context, and restores the next thread's context,
+// and resumes the execution of the next thread by calling mret.
+
+
 #include "bsg_manycore_arch.h"
 #include "bsg_manycore_asm.h"
 

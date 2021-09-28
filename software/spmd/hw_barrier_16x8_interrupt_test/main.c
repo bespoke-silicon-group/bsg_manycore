@@ -1,3 +1,8 @@
+//  Each tile loads words from neighboring tiles' DMEM and increment and store them back.
+//  Each time, the increment is done on different location, so that the barrier is required between load and store phases.
+//  After each load phase, the last tile interrupts every tile in the tile group.
+//  During the interrupt, all the tiles needs to synchronize using amoadd barrier before calling mret.
+//  In the end, all the words should be incremented to N, which is the number of iterations.
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"

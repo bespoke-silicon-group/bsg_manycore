@@ -1,3 +1,5 @@
+// remote interrupt handler saves the context info including whether the barrier has entered or not.
+
 #include "bsg_manycore_arch.h"
 #include "bsg_manycore_asm.h"
 

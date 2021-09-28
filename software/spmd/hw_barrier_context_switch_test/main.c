@@ -1,3 +1,9 @@
+// Each tile runs N (=NUM_THREAD) independing threads running work().
+// When the tile receives a remote interrupt, it context switches to the next thread.
+// Each thread has its own context including DMEM, register file contents, barrier states.
+// At the end of work, each thread sends a finish packet if every thing worked correctly.
+// The simulation terminates when the host has receives NUM_THREAD*NUM_TILES of finish packets.
+
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 #include "bsg_hw_barrier.h"

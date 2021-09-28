@@ -1,3 +1,8 @@
+//  Each tile loads words from neighboring tiles' DMEM and increment and store them back.
+//  Each time, the increment is done on different location, so that the barrier is required between load and store phases.
+//  In the end, all the words should be incremented to N, which is the number of iterations.
+
+
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 #include "bsg_hw_barrier.h"
