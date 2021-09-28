@@ -134,6 +134,11 @@ always_comb begin
       `RV32_FENCE_FM: decode_o.is_fence_op = 1'b1;
       `RV32_BARSEND_FM: decode_o.is_barsend_op = 1'b1;
       `RV32_BARRECV_FM: decode_o.is_barrecv_op = 1'b1;
+      default: begin
+        decode_o.is_fence_op = 1'b0;
+        decode_o.is_barsend_op = 1'b0;
+        decode_o.is_barrecv_op = 1'b0;
+      end
     endcase
   end
 end

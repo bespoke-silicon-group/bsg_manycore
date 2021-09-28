@@ -323,8 +323,8 @@ module bsg_manycore_tile_compute_array_ruche
 
 
   // edge ruche links
-  for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin
-    for (genvar l = 0; l < ruche_factor_X_p; l++) begin
+  for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: er
+    for (genvar l = 0; l < ruche_factor_X_p; l++) begin: el
       // west
       assign ruche_link_o[W][r][l] = ruche_link_out[r][0][l][W];
       assign ruche_link_in[r][0][l][W] = ruche_link_i[W][r][l];
