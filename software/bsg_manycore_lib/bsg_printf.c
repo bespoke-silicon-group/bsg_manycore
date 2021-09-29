@@ -22,6 +22,8 @@ limitations under the License.
 
 #include "bsg_manycore.h"
 #include "bsg_mutex.h"
+#include "bsg_mcs_mutex.h"
+#include "bsg_tile_config_vars.h"
 
 #include <stdarg.h>
 
@@ -575,6 +577,10 @@ void uart_send_char(char c) {
 bsg_putchar( c );
 
 }
+__attribute__((section(".dram")))
+static bsg_mcs_mutex_t __printf_mtx;
+static bsg_mcs_mutex_node_t  __mtx_lcl;
+static bsg_mcs_mutex_node_t *__mtx_lcl_as_glbl_p = 0;
 
 int bsg_printf(const char *fmt, ...)
 {
@@ -582,18 +588,29 @@ int bsg_printf(const char *fmt, ...)
   va_list args;
   int n=0;
 
+  if (!__mtx_lcl_as_glbl_p) {
+      // calculate global_x/y
+      int global_x = __bsg_x + __bsg_grp_org_x;
+      int global_y = __bsg_y + __bsg_grp_org_y;
+      __mtx_lcl_as_glbl_p = (bsg_mcs_mutex_node_t*)bsg_global_pod_ptr(__bsg_pod_x
+                                                                      ,__bsg_pod_y
+                                                                      ,global_x
+                                                                      ,global_y
+                                                                      ,&__mtx_lcl);
+  }
+
   va_start(args, fmt);
   ee_vsprintf(buf, fmt, args);
   va_end(args);
   p=buf;
- 
-  bsg_mutex_lock( io_mutex_ptr );
+
+  bsg_mcs_mutex_acquire(&__printf_mtx, &__mtx_lcl, __mtx_lcl_as_glbl_p);
   while (*p) {
 	uart_send_char(*p);
 	n++;
 	p++;
   }
-  bsg_mutex_unlock( io_mutex_ptr );
+  bsg_mcs_mutex_release(&__printf_mtx, &__mtx_lcl, __mtx_lcl_as_glbl_p);
 
   return n;
 }

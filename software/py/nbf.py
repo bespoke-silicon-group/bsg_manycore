@@ -199,7 +199,23 @@ class NBF:
       words = stripped.split()
       if words[2] == "_start":
         self.start_addr = (int(words[0]) >> 2) # make it word address
-    
+
+  # grab address for symbol 'symbol_name'
+  # returns the word address
+  def get_symbol_addr(self, symbol_name):
+    proc = subprocess.Popen(["nm", "--radix=d", self.riscv_file], stdout=subprocess.PIPE)
+    lines = proc.stdout.readlines()
+    for line in lines:
+      stripped = line.strip()
+      words = stripped.split()
+      if words[2] == symbol_name:
+        return (int(words[0]) >> 2) # make it word address
+
+  def get_bsg_pod_x_addr(self):
+    return self.get_symbol_addr('__bsg_pod_x')
+
+  def get_bsg_pod_y_addr(self):
+    return self.get_symbol_addr('__bsg_pod_y')
 
   def select_bits(self, num, start, end):
     retval = 0
@@ -210,10 +226,21 @@ class NBF:
 
     return (retval >> start)
 
+  def origin_x_from_pod_x(self, px):
+    return self.origin_x_cord + (px*self.num_tiles_x)
+
+  def origin_y_from_pod_y(self, py):
+    return self.origin_y_cord + (py*2*self.num_tiles_y)
+
+  def pod_x_from_origin_x(self, pod_origin_x):
+    return (pod_origin_x-self.origin_x_cord)/self.num_tiles_x
+
+  def pod_y_from_origin_y(self, pod_origin_y):
+    return (pod_origin_y-self.origin_y_cord)/self.num_tiles_y/2
+
   ##### END UTIL FUNCTIONS #####
 
-  ##### LOADER ROUTINES #####  
-
+  ##### LOADER ROUTINES #####
 
   # set TGO x,y
   def config_tile_group(self, pod_origin_x, pod_origin_y):
@@ -342,10 +369,16 @@ class NBF:
           y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
           index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
           epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
-          if y % 2 == 0:
-            self.print_nbf(x, pod_origin_y-1-(y/2), epa, self.dram_data[k]) #top
+          if k == self.get_bsg_pod_x_addr():
+            wdata = self.pod_x_from_origin_x(pod_origin_x)
+          elif k == self.get_bsg_pod_y_addr():
+            wdata = self.pod_y_from_origin_y(pod_origin_y)
           else:
-            self.print_nbf(x, pod_origin_y+self.num_tiles_y+(y/2), epa, self.dram_data[k]) #bot
+            wdata = self.dram_data[k]
+          if y % 2 == 0:
+            self.print_nbf(x, pod_origin_y-1-(y/2), epa, wdata) #top
+          else:
+            self.print_nbf(x, pod_origin_y+self.num_tiles_y+(y/2), epa, wdata) #bot
       else:
         print("hash function not supported for x={0}.")
         sys.exit()
