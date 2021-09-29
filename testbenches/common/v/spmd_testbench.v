@@ -4,9 +4,10 @@
  */ 
 
 
-module spmd_testbench();
+module spmd_testbench
   import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
+  (output bit reset_i);
 
   parameter num_pods_x_p  = `BSG_MACHINE_PODS_X;
   parameter num_pods_y_p  = `BSG_MACHINE_PODS_Y;
@@ -140,6 +141,7 @@ module spmd_testbench();
     ,.data_i(~tag_done_lo)
     ,.data_o(reset_r)
   );
+  assign reset_i = reset_r;
 
 
   // SPMD LOADER
@@ -189,6 +191,5 @@ module spmd_testbench();
     ,.reset_i(reset_r)
     ,.ctr_r_o(global_ctr)
   );
-
 
 endmodule
