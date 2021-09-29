@@ -183,8 +183,8 @@ module fcsr
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
-      if (v_i & data_v_o) begin
-        assert(~(|fflags_v_i)) else $error("Exception cannot be accrued while being written by fcsr op.");
+      if (v_i & ((addr_i == `RV32_CSR_FFLAGS_ADDR) || (addr_i == `RV32_CSR_FCSR_ADDR))) begin
+        assert(~(|fflags_v_i)) else $error("[BSG_ERROR] Exception cannot be accrued while being written by fcsr op.");
       end
     end
   end
