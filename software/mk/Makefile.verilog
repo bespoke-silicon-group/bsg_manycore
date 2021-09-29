@@ -43,7 +43,7 @@ endif
 ifeq ($(WAVE),0)
 ifeq ($(TRACE),0)
 ifeq ($(COVERAGE),0)
-  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simsc
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-coverage
 endif
