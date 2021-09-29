@@ -183,6 +183,8 @@ module fcsr
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
+      // this assertion checks that there are no fflags exception being accrued
+      // while fflags are being accessed by CSR instruction in ID.
       if (v_i & ((addr_i == `RV32_CSR_FFLAGS_ADDR) || (addr_i == `RV32_CSR_FCSR_ADDR))) begin
         assert(~(|fflags_v_i)) else $error("[BSG_ERROR] Exception cannot be accrued while being written by fcsr op.");
       end
