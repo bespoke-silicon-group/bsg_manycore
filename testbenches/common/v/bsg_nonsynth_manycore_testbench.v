@@ -761,6 +761,7 @@ if (enable_cache_profiling_p) begin
 
   end
 
+// Covergroups are not fully supported by Verilator 4.213
 `ifndef VERILATOR
 if (enable_router_profiling_p) begin
   bind bsg_mesh_router router_profiler #(
