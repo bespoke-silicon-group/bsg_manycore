@@ -11,32 +11,35 @@
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
-#include <cmath>
+#include <math.h>
 
 int main(){
         bsg_set_tile_x_y();
 
         if ((__bsg_x == 0) && (__bsg_y == 0)){
-                float data[4] = {-1.0f, -0.0f, 0.0f, 1.0f, 2.718282f};
+                float data[5] = {-1.0f, -0.0f, 0.0f, 1.0f, 2.718282f};
 
                 for (int i = 0; i < 5; i++){
                         data[i] = logf(data[i]);
-                        bsg_print_float(data[i]);
                 }
-
-                if(data[0] != NAN){
+                bsg_print_float(data[0]);
+                if(!isnan(data[0])){
                         bsg_fail();
                 }
-                if(data[1] != -INFINITY){
+                bsg_print_float(data[1]);
+                if(isfinite(data[1])){
                         bsg_fail();
                 }
-                if(data[2] != -INFINITY){
+                bsg_print_float(data[2]);
+                if(isfinite(data[2])){
                         bsg_fail();
                 }
+                bsg_print_float(data[3]);
                 if(data[3] != 0.0f){
                         bsg_fail();
                 }
-                if(data[4] != 1.0f){
+                bsg_print_float(data[4]);
+                if(data[4] != 1.00000f){
                         bsg_fail();
                 }
                 bsg_finish();
