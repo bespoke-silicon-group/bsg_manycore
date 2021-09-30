@@ -11,7 +11,7 @@
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
-#include <math.h>
+#include <cmath>
 
 int main(){
         bsg_set_tile_x_y();
@@ -23,15 +23,15 @@ int main(){
                         data[i] = logf(data[i]);
                 }
                 bsg_print_float(data[0]);
-                if(!isnan(data[0])){
+                if(!std::isnan(data[0])){
                         bsg_fail();
                 }
                 bsg_print_float(data[1]);
-                if(isfinite(data[1])){
+                if(std::isfinite(data[1])){
                         bsg_fail();
                 }
                 bsg_print_float(data[2]);
-                if(isfinite(data[2])){
+                if(std::isfinite(data[2])){
                         bsg_fail();
                 }
                 bsg_print_float(data[3]);
