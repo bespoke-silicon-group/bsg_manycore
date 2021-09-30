@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
   wf->open("dump.fst");
 #endif
 
-  while(tb->reset_i == 1) {
+  while(tb->reset_o == 1) {
     bsg_timekeeper::next();
     tb->eval();
     #if VM_TRACE_FST
