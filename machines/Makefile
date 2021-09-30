@@ -14,8 +14,10 @@ include sim_filelist.mk
 
 TOOL ?= VCS
 ifeq ($(TOOL),VCS)
-include Makefile.vcs
+  include Makefile.vcs
 else ifeq ($(TOOL),VERILATOR)
-include Makefile.verilator
+  include Makefile.verilator
+else
+  $(error Invalid TOOL $(TOOL) selected)
 endif
 
