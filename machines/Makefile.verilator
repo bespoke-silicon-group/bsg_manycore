@@ -24,6 +24,10 @@ VERILATOR_CFLAGS   += -CFLAGS "-I../../verilator/include"
 VERILATOR_CFLAGS   += -CFLAGS "-DFMT_HEADER_ONLY=1"
 VERILATOR_CFLAGS   += -CFLAGS "-DBASEJUMP_STL_DIR=$(BASEJUMP_STL_DIR)"
 
+# Extra files for verilator sim
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_dpi_clock_gen.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_dpi_clock_gen.cpp
+
 CSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/test.cpp
 
 DEFAULT_MACHINES = pod_1x1 pod_1x1_hbm2 pod_4x4
