@@ -40,13 +40,10 @@ endif
 #######################################
 # Simulator setup
 
-TOOL ?= VCS
-ifeq ($(TOOL),VCS)
+ifeq ($(BSG_PLATFORM),vcs)
   BSG_SIM_BASE = simv
-else ifeq ($(TOOL),VERILATOR)
+else ifeq ($(BSG_PLATFORM),verilator)
   BSG_SIM_BASE = simsc
-else
-  $(error Invalid TOOL $(TOOL) selected)
 endif
 
 ifeq ($(WAVE),0)
