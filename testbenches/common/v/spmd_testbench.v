@@ -192,15 +192,4 @@ module spmd_testbench
     ,.ctr_r_o(global_ctr)
   );
 
-  // Disable assertions until reset is lowered
-  `ifdef VCS
-    initial
-      begin
-        $assertoff();
-        @(posedge core_clk);
-        @(negedge reset_o);
-        $asserton();
-      end
-  `endif
-
 endmodule
