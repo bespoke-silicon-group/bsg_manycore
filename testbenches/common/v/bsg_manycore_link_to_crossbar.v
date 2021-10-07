@@ -4,15 +4,15 @@
  */
 
 
-`include "bsg_noc_links.vh"
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_link_to_crossbar
   import bsg_manycore_pkg::*;
-  #(parameter width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter num_in_x_p="inv"
-    , parameter num_in_y_p="inv"
+  #(parameter `BSG_INV_PARAM(width_p)
+    , parameter `BSG_INV_PARAM(x_cord_width_p)
+    , parameter `BSG_INV_PARAM(y_cord_width_p)
+    , parameter `BSG_INV_PARAM(num_in_x_p)
+    , parameter `BSG_INV_PARAM(num_in_y_p)
 
     , parameter link_sif_width_lp = `bsg_ready_and_link_sif_width(width_p)
 
@@ -88,3 +88,6 @@ module bsg_manycore_link_to_crossbar
   end
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_link_to_crossbar)
+

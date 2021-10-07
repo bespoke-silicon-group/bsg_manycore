@@ -5,7 +5,7 @@
  *  
  */
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_tile_compute_array_ruche
   import bsg_manycore_pkg::*;

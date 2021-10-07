@@ -10,6 +10,7 @@
 
 `include "bsg_defines.v"
 `include "HardFloat_consts.vi"
+`include "HardFloat_specialize.vi"
 
 module fpu_int
   import bsg_vanilla_pkg::*;

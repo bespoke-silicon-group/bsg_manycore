@@ -3,12 +3,14 @@
  *    
  */
 
+`include "bsg_defines.v"
+`include "bsg_cache.vh"
 
 module vcache_profiler
   import bsg_cache_pkg::*;
-  #(parameter data_width_p="inv"
-    , parameter addr_width_p="inv"
-    , parameter ways_p="inv"
+  #(parameter `BSG_INV_PARAM(data_width_p)
+    , parameter `BSG_INV_PARAM(addr_width_p)
+    , parameter `BSG_INV_PARAM(ways_p)
 
     // this string is matched against the name of the instance, and decides whether to print csv header or not.
     , parameter header_print_p="y[3].x[0]"
@@ -445,3 +447,6 @@ module vcache_profiler
   endfunction
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(vcache_profiler)
+

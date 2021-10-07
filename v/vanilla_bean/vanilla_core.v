@@ -6,7 +6,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
 
 module vanilla_core
   import bsg_vanilla_pkg::*;

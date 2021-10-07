@@ -3,6 +3,7 @@
  *
  */
 
+`include "bsg_manycore_defines.vh"
 
 module bsg_nonsynth_manycore_monitor
  
@@ -10,16 +11,16 @@ module bsg_nonsynth_manycore_monitor
   import bsg_manycore_pkg::*;
   import bsg_manycore_addr_pkg::*;
 
-  #(parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
+  #(parameter `BSG_INV_PARAM(x_cord_width_p)
+    , parameter `BSG_INV_PARAM(y_cord_width_p)
+    , parameter `BSG_INV_PARAM(addr_width_p)
+    , parameter `BSG_INV_PARAM(data_width_p)
 
     , parameter data_mask_width_lp=(data_width_p>>3)
     , parameter mem_els_p=2**18
     , parameter mem_addr_width_lp=`BSG_SAFE_CLOG2(mem_els_p)
 
-    , parameter saif_toggle_scope_p="inv"
+    , parameter `BSG_INV_PARAM(saif_toggle_scope_p)
   
     , parameter uptime_p = 1
   )
@@ -275,4 +276,6 @@ module bsg_nonsynth_manycore_monitor
   assign print_stat_tag_o = data_i;
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_monitor)
 

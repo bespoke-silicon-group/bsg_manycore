@@ -7,9 +7,8 @@
  *    for read dma packets, it sends the read header flit, and receives the fill data asynchronously.
  */
 
-`include "bsg_defines.v"
-`include "bsg_noc_links.vh"
-
+`include "bsg_manycore_defines.vh"
+`include "bsg_cache.vh"
 
 module bsg_cache_dma_to_wormhole
   import bsg_cache_pkg::*;

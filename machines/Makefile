@@ -25,14 +25,16 @@ include sim_filelist.mk
 
 include Makefile.vcs
 include Makefile.verilator
+include Makefile.surelog
 
 clean:
 	rm -rf */csrc*
 	rm -rf */*.log */*.daidir */simv */simv-debug */simv-profile */simv-coverage
 	rm -rf */*.log */*.daidir */simsc */simsc-debug */simsc-profile */simsc-coverage
-	rm -rf */obj_dir_* */simsc */simsc-debug */simsc-profile */simsc-coverage
+	rm -rf */obj_dir */simsc */simsc-debug */simsc-profile */simsc-coverage
 	rm -rf stack.info.*
 	rm -f */vc_hdrs.h
 	rm -f */*.tr */bsg_tag_boot_rom.v
+	rm -rf slpp_unit/
 
 

@@ -3,15 +3,15 @@
  *
  */
 
-
+`include "bsg_defines.v"
 
 module bsg_nonsynth_manycore_tag_master
   import bsg_tag_pkg::*;
   import bsg_noc_pkg::*;
-  #(parameter num_pods_x_p="inv"
-    , parameter num_pods_y_p="inv"
+  #(parameter `BSG_INV_PARAM(num_pods_x_p)
+    , parameter `BSG_INV_PARAM(num_pods_y_p)
 
-    , parameter wh_cord_width_p="inv"
+    , parameter `BSG_INV_PARAM(wh_cord_width_p)
   )
   (
     input clk_i
@@ -89,3 +89,6 @@ module bsg_nonsynth_manycore_tag_master
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_tag_master)
+

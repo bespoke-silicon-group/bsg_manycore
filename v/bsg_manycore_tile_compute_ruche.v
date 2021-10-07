@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_tile_compute_ruche
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }

@@ -4,27 +4,27 @@
  */
 
 
-`include "bsg_noc_links.vh"
+`include "bsg_manycore_defines.vh"
 
 
 module bsg_manycore_crossbar
   import bsg_manycore_pkg::*;
-  #(parameter num_in_x_p="inv"
-    , parameter num_in_y_p="inv"
+  #(parameter `BSG_INV_PARAM(num_in_x_p)
+    , parameter `BSG_INV_PARAM(num_in_y_p)
 
-    , parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+    , parameter `BSG_INV_PARAM(addr_width_p)
+    , parameter `BSG_INV_PARAM(data_width_p)
+    , parameter `BSG_INV_PARAM(x_cord_width_p)
+    , parameter `BSG_INV_PARAM(y_cord_width_p)
 
     , parameter num_in_lp=(num_in_x_p*num_in_y_p)
     , parameter lg_num_in_lp=`BSG_SAFE_CLOG2(num_in_lp)
 
     // set using the credit interface for the local FIFO for fwd and rev network.
-    , parameter fwd_use_credits_p="inv"
-    , parameter int fwd_fifo_els_p[num_in_lp-1:0]="inv"
-    , parameter rev_use_credits_p="inv"
-    , parameter int rev_fifo_els_p[num_in_lp-1:0]="inv"
+    , parameter `BSG_INV_PARAM(fwd_use_credits_p)
+    , parameter int fwd_fifo_els_p[num_in_lp-1:0] = -1
+    , parameter `BSG_INV_PARAM(rev_use_credits_p)
+    , parameter int rev_fifo_els_p[num_in_lp-1:0] = -1
 
     , parameter link_sif_width_lp=
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -172,3 +172,5 @@ module bsg_manycore_crossbar
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_crossbar)

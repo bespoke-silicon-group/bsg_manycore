@@ -1,5 +1,7 @@
 // Module defining functional coverage groups for the Next PC logic
 
+`include "bsg_defines.v"
+
 module bsg_nonsynth_manycore_vanilla_core_pc_cov
   import bsg_vanilla_pkg::*;
   import bsg_manycore_addr_pkg::*;

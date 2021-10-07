@@ -6,7 +6,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_link_sif_tieoff
   import bsg_manycore_pkg::*;

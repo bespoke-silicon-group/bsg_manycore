@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_endpoint
   import bsg_manycore_pkg::*;

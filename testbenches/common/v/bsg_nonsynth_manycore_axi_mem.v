@@ -2,12 +2,14 @@
  *  bsg_nonsynth_manycore_axi_mem.v
  */
 
+`include "bsg_defines.v"
+
 module bsg_nonsynth_manycore_axi_mem
-  #(parameter axi_id_width_p="inv"
-    , parameter axi_addr_width_p="inv"
-    , parameter axi_data_width_p="inv"
-    , parameter axi_burst_len_p="inv"
-    , parameter mem_els_p="inv"
+  #(parameter `BSG_INV_PARAM(axi_id_width_p)
+    , parameter `BSG_INV_PARAM(axi_addr_width_p)
+    , parameter `BSG_INV_PARAM(axi_data_width_p)
+    , parameter `BSG_INV_PARAM(axi_burst_len_p)
+    , parameter `BSG_INV_PARAM(mem_els_p)
 
     , parameter bsg_dram_included_p=1
 
@@ -235,3 +237,6 @@ module bsg_nonsynth_manycore_axi_mem
   
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_axi_mem)
+

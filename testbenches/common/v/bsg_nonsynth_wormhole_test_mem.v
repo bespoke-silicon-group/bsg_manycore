@@ -1,22 +1,25 @@
+
+`include "bsg_manycore_defines.vh"
+
 module bsg_nonsynth_wormhole_test_mem
   import bsg_manycore_pkg::*;
-  #(parameter vcache_data_width_p = "inv"
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_dma_data_width_p="inv"
-    , parameter num_vcaches_p = "inv" // how many vcaches are mapped to this test mem?
+  #(parameter `BSG_INV_PARAM(vcache_data_width_p)
+    , parameter `BSG_INV_PARAM(vcache_block_size_in_words_p)
+    , parameter `BSG_INV_PARAM(vcache_dma_data_width_p)
+    , parameter `BSG_INV_PARAM(num_vcaches_p) // how many vcaches are mapped to this test mem?
     , parameter lg_num_vcaches_lp = `BSG_SAFE_CLOG2(num_vcaches_p)
    
-    , parameter wh_cid_width_p="inv"
-    , parameter wh_flit_width_p="inv"
-    , parameter wh_cord_width_p="inv"
-    , parameter wh_len_width_p="inv"
-    , parameter wh_ruche_factor_p="inv"
+    , parameter `BSG_INV_PARAM(wh_cid_width_p)
+    , parameter `BSG_INV_PARAM(wh_flit_width_p)
+    , parameter `BSG_INV_PARAM(wh_cord_width_p)
+    , parameter `BSG_INV_PARAM(wh_len_width_p)
+    , parameter `BSG_INV_PARAM(wh_ruche_factor_p)
 
     // determines address hashing based on cid and src_cord
     , parameter no_concentration_p=0
 
     , parameter data_len_lp = (vcache_data_width_p*vcache_block_size_in_words_p/vcache_dma_data_width_p)
-    , parameter longint unsigned mem_size_p = "inv"   // size of memory in bytes
+    , parameter longint unsigned `BSG_INV_PARAM(mem_size_p)   // size of memory in bytes
     , parameter mem_els_lp = mem_size_p/(vcache_dma_data_width_p/8)
     , parameter mem_addr_width_lp = `BSG_SAFE_CLOG2(mem_els_lp)
 
@@ -229,3 +232,6 @@ module bsg_nonsynth_wormhole_test_mem
   end
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_nonsynth_wormhole_test_mem)
+

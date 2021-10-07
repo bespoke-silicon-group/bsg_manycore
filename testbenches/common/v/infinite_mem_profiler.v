@@ -3,6 +3,8 @@
  *
  */
 
+`include "bsg_manycore_defines.vh"
+
 module infinite_mem_profiler
   import bsg_manycore_pkg::*;
   #(parameter data_width_p="inv"
