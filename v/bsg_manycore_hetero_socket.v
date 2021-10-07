@@ -71,6 +71,7 @@ module bsg_manycore_hetero_socket
     , `BSG_INV_PARAM(fwd_fifo_els_p )
     , `BSG_INV_PARAM(rev_fifo_els_p )
 
+    , parameter num_links_p = 1
     , parameter bsg_manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
@@ -79,10 +80,11 @@ module bsg_manycore_hetero_socket
     , input reset_i
 
     // input and output links
-    , input [bsg_manycore_link_sif_width_lp-1:0] link_sif_i
-    , output [bsg_manycore_link_sif_width_lp-1:0] link_sif_o
+    , input [num_links_p-1:0][bsg_manycore_link_sif_width_lp-1:0] link_sif_i
+    , output [num_links_p-1:0][bsg_manycore_link_sif_width_lp-1:0] link_sif_o
 
     // tile coordinates
+    // Refers to the top left coordinate in the case of multi-link blocks
     , input [x_subcord_width_lp-1:0] my_x_i
     , input [y_subcord_width_lp-1:0] my_y_i
 
