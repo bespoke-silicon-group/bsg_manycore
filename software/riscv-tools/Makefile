@@ -136,7 +136,7 @@ configure-riscv-gnu-tools:
 	@echo "Configuring toolchain..."
 	@echo "====================================="
 	cd riscv-gnu-toolchain && \
-		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI) --disable-gdb
+		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI) --disable-gdb --with-tune=bsg_vanilla_2020
 
 build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
