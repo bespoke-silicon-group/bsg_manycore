@@ -3,7 +3,7 @@
 include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
 
 ifeq ($(VCS),)
-$(error VCS must be set; probably need VCS_HOME, SNPSLMD_LICENSE_FILE too, maybe LM_LICENSE file)
+$(warning VCS must be set; probably need VCS_HOME, SNPSLMD_LICENSE_FILE too, maybe LM_LICENSE file)
 endif
 
 VCS_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
