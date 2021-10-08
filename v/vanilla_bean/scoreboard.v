@@ -43,7 +43,7 @@ module scoreboard
 
   for (genvar j = 0 ; j < num_banks_p; j++) begin: clr_dv
     bsg_decode_with_v #(
-      .num_out_p(els_p)
+      .num_out_p(bank_els_lp)
     ) clear_decode_v (
       .i(clear_id_i[j])
       ,.v_i(clear_i[j])
@@ -115,11 +115,11 @@ module scoreboard
   logic rd_on_clear;
 
   for (genvar j = 0; j < num_src_port_p; j++) begin
-    wire [bank_id_width_lp-1:0] src_bank_id = (src_id_i[j] % num_banks_p);
+    wire [bank_id_width_lp-1:0] src_bank_id = bank_id_width_lp'(src_id_i[j] % num_banks_p);
     assign rs_on_clear[j] = clear_i[src_bank_id] & (clear_id_i[src_bank_id] == (src_id_i[j]/num_banks_p));
   end
 
-  wire [bank_id_width_lp-1:0] dest_bank_id = (dest_id_i % num_banks_p);
+  wire [bank_id_width_lp-1:0] dest_bank_id = bank_id_width_lp'(dest_id_i % num_banks_p);
   assign rd_on_clear = clear_i[dest_bank_id] & (clear_id_i[dest_bank_id] == (dest_id_i/num_banks_p));
   
 

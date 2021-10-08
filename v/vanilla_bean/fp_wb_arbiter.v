@@ -15,11 +15,8 @@ module fp_wb_arbiter
     , parameter lg_num_banks_lp=`BSG_SAFE_CLOG2(num_banks_p)
   )
   (
-    input clk_i
-    , input reset_i
-
     // from flw_wb stage (local)
-    , input flw_wb_v_i
+    input flw_wb_v_i
     , input [reg_addr_width_lp-1:0] flw_wb_rd_i
     , input [data_width_lp-1:0] flw_wb_data_i
 
@@ -72,15 +69,15 @@ module fp_wb_arbiter
   );
 
   logic [3:0][bank_reg_addr_width_lp-1:0] xbar_waddr_li;
-  assign xbar_waddr_li[3] = (fpu_float_rd_i / num_banks_p);
-  assign xbar_waddr_li[2] = (fdiv_fsqrt_rd_i / num_banks_p);
-  assign xbar_waddr_li[1] = (float_remote_load_resp_rd_i / num_banks_p);
-  assign xbar_waddr_li[0] = (flw_wb_rd_i / num_banks_p);
+  assign xbar_waddr_li[3] = bank_reg_addr_width_lp'(fpu_float_rd_i / num_banks_p);
+  assign xbar_waddr_li[2] = bank_reg_addr_width_lp'(fdiv_fsqrt_rd_i / num_banks_p);
+  assign xbar_waddr_li[1] = bank_reg_addr_width_lp'(float_remote_load_resp_rd_i / num_banks_p);
+  assign xbar_waddr_li[0] = bank_reg_addr_width_lp'(flw_wb_rd_i / num_banks_p);
 
   bsg_crossbar_o_by_i #(
     .i_els_p(4)
     ,.o_els_p(num_banks_p)
-    ,.width_p(data_width_lp)
+    ,.width_p(bank_reg_addr_width_lp)
   ) xbar_waddr (
     .i(xbar_waddr_li)
     ,.sel_oi_one_hot_i(xbar_sel)
@@ -89,10 +86,10 @@ module fp_wb_arbiter
 
   // arbitration logic
   logic [3:0][lg_num_banks_lp-1:0] target_bank_id;
-  assign target_bank_id[3] = (fpu_float_rd_i % num_banks_p);
-  assign target_bank_id[2] = (fdiv_fsqrt_rd_i % num_banks_p);
-  assign target_bank_id[1] = (float_remote_load_resp_rd_i % num_banks_p);
-  assign target_bank_id[0] = (flw_wb_rd_i % num_banks_p);
+  assign target_bank_id[3] = lg_num_banks_lp'(fpu_float_rd_i % num_banks_p);
+  assign target_bank_id[2] = lg_num_banks_lp'(fdiv_fsqrt_rd_i % num_banks_p);
+  assign target_bank_id[1] = lg_num_banks_lp'(float_remote_load_resp_rd_i % num_banks_p);
+  assign target_bank_id[0] = lg_num_banks_lp'(flw_wb_rd_i % num_banks_p);
 
   logic [3:0] requester_v;
   assign requester_v[3] = fpu_float_v_i;
@@ -155,6 +152,7 @@ module fp_wb_arbiter
       else begin
         if (target_bank_v[2][i]) begin
           // fdiv_fsqrt
+          float_rf_wen_o[i] = 1'b1;
           fdiv_fsqrt_yumi_bank[i] = 1'b1;
           xbar_sel[i] = 4'b0100;
           float_sb_clear_o[i] = 1'b1;
@@ -169,12 +167,6 @@ module fp_wb_arbiter
       end
     end
   end
-
-
-
-
-
-
 
 
 endmodule

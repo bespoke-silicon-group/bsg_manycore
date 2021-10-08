@@ -275,10 +275,10 @@ module vanilla_core
   logic [2:0][fpu_recoded_data_width_gp-1:0] float_rf_rdata;
 
 
-  bsg_mem_multiport_latch_write_banked_negphase #(
+  bsg_mem_multiport_latch_write_banked_bypassing #(
     .els_p(RV32_reg_els_gp)
     ,.width_p(fpu_recoded_data_width_gp)
-    ,.num_rs_p(3)  .
+    ,.num_rs_p(3)
     ,.num_banks_p(float_rf_num_banks_p)
   ) float_rf (
     .clk_i(clk_i)
@@ -501,41 +501,6 @@ module vanilla_core
     ,.data_o(frs1_select_val)
   );
   
-/*
-  logic frs1_forward_v;
-  logic frs2_forward_v;
-  logic frs3_forward_v;
-  logic [fpu_recoded_data_width_gp-1:0] frs1_to_fp_exe;
-  logic [fpu_recoded_data_width_gp-1:0] frs2_to_fp_exe;
-  logic [fpu_recoded_data_width_gp-1:0] frs3_to_fp_exe;
-
-  bsg_mux #(
-    .els_p(2)
-    ,.width_p(fpu_recoded_data_width_gp)
-  ) frs1_fwd_mux (
-    .data_i({float_rf_wdata, frs1_select_val})
-    ,.sel_i(frs1_forward_v)
-    ,.data_o(frs1_to_fp_exe)
-  );
-
-  bsg_mux #(
-    .els_p(2)
-    ,.width_p(fpu_recoded_data_width_gp)
-  ) frs2_fwd_mux (
-    .data_i({float_rf_wdata, float_rf_rdata[1]})
-    ,.sel_i(frs2_forward_v)
-    ,.data_o(frs2_to_fp_exe)
-  );
-
-  bsg_mux #(
-    .els_p(2)
-    ,.width_p(fpu_recoded_data_width_gp)
-  ) frs3_fwd_mux (
-    .data_i({float_rf_wdata, float_rf_rdata[2]})
-    ,.sel_i(frs3_forward_v)
-    ,.data_o(frs3_to_fp_exe)
-  );
-*/
 
   // EXE FORWARDING MUX
   logic [data_width_p-1:0] fsw_data;
@@ -1332,8 +1297,14 @@ module vanilla_core
   wire id_rs2_equal_wb_rd = (id_rs2 == wb_ctrl_r.rd_addr);
 
   // stall_depend_long_op (idiv, fdiv, remote_load, atomic)
+  logic [float_rf_num_banks_p-1:0] id_rs2_match_sb_clear;
+  always_comb begin
+    for (integer i = 0; i < float_rf_num_banks_p; i++) begin
+      id_rs2_match_sb_clear[i] = (id_rs2 == float_sb_clear_id[i]) & float_sb_clear[i];
+    end
+  end
   wire rs1_sb_clear_now = id_r.decode.read_rs1 & (id_rs1 == int_sb_clear_id) & int_sb_clear & id_rs1_non_zero; 
-  wire frs2_sb_clear_now = id_r.decode.read_frs2 & (id_rs2 == float_sb_clear_id) & float_sb_clear;
+  wire frs2_sb_clear_now = id_r.decode.read_frs2 & (|id_rs2_match_sb_clear);
 
   assign stall_depend_long_op = (int_dependency | float_dependency)
     | (id_r.decode.is_fp_op
@@ -1458,9 +1429,6 @@ module vanilla_core
   // FP_EXE forwarding mux control logic
   //
   assign select_rs1_to_fp_exe = id_r.decode.read_rs1;
-  assign frs1_forward_v = id_r.decode.read_frs1 & (id_rs1 == float_rf_waddr) & float_rf_wen;
-  assign frs2_forward_v = id_r.decode.read_frs2 & (id_rs2 == float_rf_waddr) & float_rf_wen;
-  assign frs3_forward_v = id_r.decode.read_frs3 & (id_rs3 == float_rf_waddr) & float_rf_wen;
 
   // EXE forwarding mux control logic
   // [0] = exe
@@ -1857,10 +1825,10 @@ module vanilla_core
   fp_wb_arbiter #(
     .num_banks_p(float_rf_num_banks_p)
   ) fp_wb_arb0 (
-    .clk_i(clk_i)
-    ,.reset_i(reset_i)
+    //.clk_i(clk_i)
+    //,.reset_i(reset_i)
 
-    ,.flw_wb_v_i(flw_wb_ctrl_r.valid)
+    .flw_wb_v_i(flw_wb_ctrl_r.valid)
     ,.flw_wb_rd_i(flw_wb_ctrl_r.rd_addr)
     ,.flw_wb_data_i(flw_wb_recoded_data)
 
