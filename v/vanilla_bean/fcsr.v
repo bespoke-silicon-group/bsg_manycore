@@ -26,8 +26,12 @@ module fcsr
     , output logic data_v_o      // 1, if addr_i matches fcsr addr.
 
     // exception accrue interface
-    , input [1:0] fflags_v_i
-    , input [1:0][fflags_width_lp-1:0] fflags_i
+    // exception sources:
+    // [2] fdiv_fsqrt
+    // [1] fpu_float
+    // [0] fpu_int
+    , input [2:0] fflags_v_i
+    , input [2:0][fflags_width_lp-1:0] fflags_i
     
     , output frm_e frm_o // for dynamic rounding mode
   );
@@ -105,14 +109,14 @@ module fcsr
 
 
   // FFLAGS accrue logic
-  logic [1:0][fflags_width_lp-1:0] filtered_fflags;
+  logic [2:0][fflags_width_lp-1:0] filtered_fflags;
   always_comb begin
-    for (integer i = 0; i < 2; i++) begin
+    for (integer i = 0; i < 3; i++) begin
       filtered_fflags[i] = {fflags_width_lp{fflags_v_i[i]}} & fflags_i[i];
     end
   end
 
-  wire [fflags_width_lp-1:0] combined_fflags = filtered_fflags[0] | filtered_fflags[1];
+  wire [fflags_width_lp-1:0] combined_fflags = filtered_fflags[0] | filtered_fflags[1] | filtered_fflags[2];
   
   // fflags cannot be modified by fcsr instruction, when there are pending float ops that could modify fflags.
   always_comb begin

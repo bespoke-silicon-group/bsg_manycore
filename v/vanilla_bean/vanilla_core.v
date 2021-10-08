@@ -26,6 +26,7 @@ module vanilla_core
     , `BSG_INV_PARAM(barrier_dirs_p)
     
     , parameter barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
+    , parameter float_rf_num_banks_p = 4
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
 
     // For network input FIFO credit counting
@@ -38,6 +39,7 @@ module vanilla_core
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
+    , parameter bank_reg_addr_width_lp = `BSG_SAFE_CLOG2(RV32_reg_els_gp/float_rf_num_banks_p)
     , parameter data_mask_width_lp=(data_width_p>>3)
 
     , parameter debug_p=0
@@ -241,8 +243,8 @@ module vanilla_core
   scoreboard #(
     .els_p(RV32_reg_els_gp)
     ,.num_src_port_p(2)
-    ,.num_clear_port_p(1)
     ,.x0_tied_to_zero_p(1)
+    ,.num_banks_p(1)
   ) int_sb (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -265,18 +267,19 @@ module vanilla_core
 
   // FP regfile
   //
-  logic float_rf_wen;
-  logic [reg_addr_width_lp-1:0] float_rf_waddr;
-  logic [fpu_recoded_data_width_gp-1:0] float_rf_wdata;
+  logic [float_rf_num_banks_p-1:0] float_rf_wen;
+  logic [float_rf_num_banks_p-1:0][bank_reg_addr_width_lp-1:0] float_rf_waddr;
+  logic [float_rf_num_banks_p-1:0][fpu_recoded_data_width_gp-1:0] float_rf_wdata;
  
   logic [2:0] float_rf_read;
   logic [2:0][fpu_recoded_data_width_gp-1:0] float_rf_rdata;
 
-  regfile #(
-    .width_p(fpu_recoded_data_width_gp)
-    ,.els_p(RV32_reg_els_gp)
-    ,.num_rs_p(3)
-    ,.x0_tied_to_zero_p(0)
+
+  bsg_mem_multiport_latch_write_banked_negphase #(
+    .els_p(RV32_reg_els_gp)
+    ,.width_p(fpu_recoded_data_width_gp)
+    ,.num_rs_p(3)  .
+    ,.num_banks_p(float_rf_num_banks_p)
   ) float_rf (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -296,14 +299,14 @@ module vanilla_core
   logic float_dependency;
   logic float_sb_score;
   logic [reg_addr_width_lp-1:0] float_sb_score_id;
-  logic float_sb_clear;
-  logic [reg_addr_width_lp-1:0] float_sb_clear_id;
+  logic [float_rf_num_banks_p-1:0] float_sb_clear;
+  logic [float_rf_num_banks_p-1:0][bank_reg_addr_width_lp-1:0] float_sb_clear_id;
 
   scoreboard #(
     .els_p(RV32_reg_els_gp)
     ,.x0_tied_to_zero_p(0)
     ,.num_src_port_p(3)
-    ,.num_clear_port_p(1)
+    ,.num_banks_p(float_rf_num_banks_p)
   ) float_sb (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -332,8 +335,8 @@ module vanilla_core
   logic [11:0] fcsr_addr_li;
   fcsr_s fcsr_data_lo;
   logic fcsr_data_v_lo;
-  logic [1:0] fcsr_fflags_v_li;
-  fflags_s [1:0] fcsr_fflags_li;
+  logic [2:0] fcsr_fflags_v_li;
+  fflags_s [2:0] fcsr_fflags_li;
   frm_e frm_r;
 
   fcsr fcsr0 (
@@ -348,7 +351,8 @@ module vanilla_core
     ,.data_o(fcsr_data_lo)
     ,.data_v_o(fcsr_data_v_lo)
     // [0] fpu_int -> MEM
-    // [1] fpu_float, fdiv -> FP_WB
+    // [1] fpu_float -> FP_WB
+    // [2] fdiv -> FP_WB
     ,.fflags_v_i(fcsr_fflags_v_li)
     ,.fflags_i(fcsr_fflags_li)
     ,.frm_o(frm_r)
@@ -497,6 +501,7 @@ module vanilla_core
     ,.data_o(frs1_select_val)
   );
   
+/*
   logic frs1_forward_v;
   logic frs2_forward_v;
   logic frs3_forward_v;
@@ -530,7 +535,7 @@ module vanilla_core
     ,.sel_i(frs3_forward_v)
     ,.data_o(frs3_to_fp_exe)
   );
-
+*/
 
   // EXE FORWARDING MUX
   logic [data_width_p-1:0] fsw_data;
@@ -1052,24 +1057,23 @@ module vanilla_core
     ,.data_o(flw_wb_data_r)
   );
 
-  logic select_remote_flw;
-  logic [data_width_p-1:0] flw_data;
-  bsg_mux #(
-    .width_p(data_width_p)
-    ,.els_p(2)
-  ) flw_recFN_mux (
-    .data_i({float_remote_load_resp_data_i, flw_wb_data_r.rf_data})
-    ,.sel_i(select_remote_flw)
-    ,.data_o(flw_data)
-  );
 
-  logic [fpu_recoded_data_width_gp-1:0] flw_recoded_data;
+  logic [fpu_recoded_data_width_gp-1:0] float_remote_load_recoded_data;
+  logic [fpu_recoded_data_width_gp-1:0] flw_wb_recoded_data;
+
   fNToRecFN #(
     .expWidth(fpu_recoded_exp_width_gp)
     ,.sigWidth(fpu_recoded_sig_width_gp)
-  ) flw_to_RecFN (
-    .in(flw_data)
-    ,.out(flw_recoded_data)
+  ) remote_flw_to_RecFN (
+    .in(float_remote_load_resp_data_i)
+    ,.out(float_remote_load_recoded_data)
+  );
+  fNToRecFN #(
+    .expWidth(fpu_recoded_exp_width_gp)
+    ,.sigWidth(fpu_recoded_sig_width_gp)
+  ) local_flw_to_RecFN (
+    .in(flw_wb_data_r.rf_data)
+    ,.out(flw_wb_recoded_data)
   );
 
 
@@ -1104,7 +1108,6 @@ module vanilla_core
   logic stall_ifetch_wait;
   
   // FP_WB stall signals
-  logic stall_fdiv_wb;
   logic stall_remote_flw_wb;
 
   wire stall_id = stall_depend_long_op
@@ -1126,7 +1129,6 @@ module vanilla_core
     | stall_idiv_wb
     | stall_remote_ld_wb
     | stall_ifetch_wait
-    | stall_fdiv_wb
     | stall_remote_flw_wb;
 
 
@@ -1617,9 +1619,9 @@ module vanilla_core
       rm: fpu_rm
     };
     fp_exe_data_n = '{
-      rs1_val: frs1_to_fp_exe,
-      rs2_val: frs2_to_fp_exe,
-      rs3_val: frs3_to_fp_exe
+      rs1_val: frs1_select_val,
+      rs2_val: float_rf_rdata[1],
+      rs3_val: float_rf_rdata[2]
     };
 
     if (stall_all) begin
@@ -1849,83 +1851,52 @@ module vanilla_core
   end
 
   
-  // FP_WB
+  // FP_WB_ARBITER
   // fcsr exception handling
   // float scoreboard clear logic
-  always_comb begin
-    stall_remote_flw_wb = 1'b0;
-    stall_fdiv_wb = 1'b0;
+  fp_wb_arbiter #(
+    .num_banks_p(float_rf_num_banks_p)
+  ) fp_wb_arb0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
 
-    float_remote_load_resp_yumi_o = 1'b0;
-    fdiv_fsqrt_yumi_li = 1'b0;
+    ,.flw_wb_v_i(flw_wb_ctrl_r.valid)
+    ,.flw_wb_rd_i(flw_wb_ctrl_r.rd_addr)
+    ,.flw_wb_data_i(flw_wb_recoded_data)
 
-    float_rf_wen = 1'b0;
-    float_rf_waddr = '0;
-    float_rf_wdata = '0;
-    select_remote_flw = 1'b0;
+    ,.float_remote_load_resp_rd_i(float_remote_load_resp_rd_i)
+    ,.float_remote_load_resp_data_i(float_remote_load_recoded_data)
+    ,.float_remote_load_resp_v_i(float_remote_load_resp_v_i)
+    ,.float_remote_load_resp_force_i(float_remote_load_resp_force_i)
+    ,.float_remote_load_resp_yumi_o(float_remote_load_resp_yumi_o)
 
-    float_sb_clear = 1'b0;
-    float_sb_clear_id = float_remote_load_resp_rd_i;
-
-    fcsr_fflags_v_li[1] = 1'b0;
-    fcsr_fflags_li[1] = fpu_float_fflags_lo;
+    ,.fdiv_fsqrt_v_i(fdiv_fsqrt_v_lo)
+    ,.fdiv_fsqrt_rd_i(fdiv_fsqrt_rd_lo)
+    ,.fdiv_fsqrt_data_i(fdiv_fsqrt_result_lo)
+    ,.fdiv_fsqrt_yumi_o(fdiv_fsqrt_yumi_li)
     
+    ,.fpu_float_v_i(fpu_float_v_lo)
+    ,.fpu_float_rd_i(fpu_float_rd_lo)
+    ,.fpu_float_data_i(fpu_float_result_lo)
 
-    if (float_remote_load_resp_force_i) begin
-      select_remote_flw = 1'b1;
-      float_rf_wen = 1'b1;
-      float_rf_waddr = float_remote_load_resp_rd_i;
-      float_rf_wdata = flw_recoded_data;
-      float_remote_load_resp_yumi_o = 1'b1;
-      stall_remote_flw_wb = flw_wb_ctrl_r.valid | fpu_float_v_lo;
+    ,.stall_remote_flw_wb_o(stall_remote_flw_wb)
 
-      float_sb_clear = 1'b1;
-      float_sb_clear_id = float_remote_load_resp_rd_i;
-    end
-    else if (flw_wb_ctrl_r.valid) begin
-      select_remote_flw = 1'b0;
-      float_rf_wen = 1'b1;
-      float_rf_waddr = flw_wb_ctrl_r.rd_addr;
-      float_rf_wdata = flw_recoded_data; 
-    end
-    else if (fpu_float_v_lo) begin
-      float_rf_wen = 1'b1;
-      float_rf_waddr = fpu_float_rd_lo;
-      float_rf_wdata = fpu_float_result_lo;
-      fcsr_fflags_v_li[1] = 1'b1;
-      fcsr_fflags_li[1] = fpu_float_fflags_lo;
-    end
-    else begin
-      if (fdiv_fsqrt_v_lo) begin
-        fdiv_fsqrt_yumi_li = 1'b1;
-        float_rf_wen = 1'b1;
-        float_rf_waddr = fdiv_fsqrt_rd_lo;
-        float_rf_wdata = fdiv_fsqrt_result_lo;
+    ,.float_sb_clear_o(float_sb_clear)
 
-        float_sb_clear = 1'b1;
-        float_sb_clear_id = fdiv_fsqrt_rd_lo;
-
-        fcsr_fflags_v_li[1] = 1'b1;
-        fcsr_fflags_li[1] = fdiv_fsqrt_fflags_lo;
-      end
-      else if (float_remote_load_resp_v_i) begin
-        select_remote_flw = 1'b1;
-        float_rf_wen = 1'b1;
-        float_rf_waddr = float_remote_load_resp_rd_i;
-        float_rf_wdata = flw_recoded_data;
-        float_remote_load_resp_yumi_o = 1'b1;
-
-        float_sb_clear = 1'b1;
-        float_sb_clear_id = float_remote_load_resp_rd_i;
-      end
-    end
-  end
+    ,.float_rf_wen_o(float_rf_wen)
+    ,.float_rf_waddr_o(float_rf_waddr)
+    ,.float_rf_wdata_o(float_rf_wdata)
+  );
+  
+  assign float_sb_clear_id = float_rf_waddr;
+  assign fcsr_fflags_v_li[1] = fpu_float_v_lo & ~stall_remote_flw_wb;
+  assign fcsr_fflags_li[1] = fpu_float_fflags_lo;
+  assign fcsr_fflags_v_li[2] = fdiv_fsqrt_v_lo & fdiv_fsqrt_yumi_li;
+  assign fcsr_fflags_li[2] = fdiv_fsqrt_fflags_lo;
 
   // fpu_float stall control
   assign stall_fpu1_li = stall_all;
-  assign stall_fpu2_li = stall_fdiv_wb | stall_remote_flw_wb;
-
-
+  assign stall_fpu2_li = stall_remote_flw_wb;
 
 
 
