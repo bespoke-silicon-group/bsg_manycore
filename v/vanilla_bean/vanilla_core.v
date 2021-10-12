@@ -503,15 +503,6 @@ module vanilla_core
   
 
   // EXE FORWARDING MUX
-  logic [data_width_p-1:0] fsw_data;
-  recFNToFN #(
-    .expWidth(fpu_recoded_exp_width_gp)
-    ,.sigWidth(fpu_recoded_sig_width_gp) 
-  ) frs2_to_fn (
-    .in(float_rf_rdata[1])
-    ,.out(fsw_data)
-  );
-
   logic [data_width_p-1:0] exe_result;
   logic [data_width_p-1:0] mem_result;
   logic [1:0] rs1_forward_sel;
@@ -540,17 +531,17 @@ module vanilla_core
   );
 
   logic [data_width_p-1:0] rs1_val_to_exe;
-  logic [data_width_p-1:0] rs2_val_to_exe;
+  logic [fpu_recoded_data_width_gp-1:0] rs2_val_to_exe;
 
   assign rs1_val_to_exe = rs1_forward_v
     ? rs1_forward_val
     : int_rf_rdata[0];
   
   assign rs2_val_to_exe = id_r.decode.read_frs2
-    ? fsw_data
+    ? float_rf_rdata[1]
     : (rs2_forward_v
-      ? rs2_forward_val
-      : int_rf_rdata[1]);
+      ? {1'b0, rs2_forward_val}
+      : {1'b0, int_rf_rdata[1]});
 
 
   //////////////////////////////
@@ -581,7 +572,7 @@ module vanilla_core
     .pc_width_p(pc_width_lp)
   ) alu0 (
     .rs1_i(exe_r.rs1_val)
-    ,.rs2_i(exe_r.rs2_val)
+    ,.rs2_i(exe_r.rs2_val[0+:data_width_p])
     ,.pc_plus4_i(exe_r.pc_plus4)
     ,.op_i(exe_r.instruction)
     ,.result_o(alu_result)
@@ -609,7 +600,7 @@ module vanilla_core
 
   // alu/csr result mux
   wire [data_width_p-1:0] alu_or_csr_result = exe_r.decode.is_csr_op
-    ? exe_r.rs2_val
+    ? exe_r.rs2_val[0+:data_width_p]
     : alu_result;
 
 
@@ -628,7 +619,7 @@ module vanilla_core
 
     ,.v_i(idiv_v_li)
     ,.rs1_i(exe_r.rs1_val)
-    ,.rs2_i(exe_r.rs2_val)
+    ,.rs2_i(exe_r.rs2_val[0+:data_width_p])
     ,.rd_i(exe_r.instruction.rd)
     ,.op_i(exe_r.decode.idiv_op)
     ,.ready_o(idiv_ready_lo)
@@ -786,7 +777,7 @@ module vanilla_core
 
     ,.imul_v_i(exe_r.decode.is_imul_op)
     ,.imul_rs1_i(exe_r.rs1_val)
-    ,.imul_rs2_i(exe_r.rs2_val)
+    ,.imul_rs2_i(exe_r.rs2_val[0+:data_width_p])
     ,.imul_rd_i(exe_r.instruction.rd)
 
     ,.fp_v_i(fp_exe_ctrl_r.fp_decode.is_fpu_float_op)
@@ -1297,19 +1288,19 @@ module vanilla_core
   wire id_rs2_equal_wb_rd = (id_rs2 == wb_ctrl_r.rd_addr);
 
   // stall_depend_long_op (idiv, fdiv, remote_load, atomic)
-  logic [float_rf_num_banks_p-1:0] id_rs2_match_sb_clear;
-  always_comb begin
-    for (integer i = 0; i < float_rf_num_banks_p; i++) begin
-      id_rs2_match_sb_clear[i] = (id_rs2 == float_sb_clear_id[i]) & float_sb_clear[i];
-    end
-  end
+  //logic [float_rf_num_banks_p-1:0] id_rs2_match_sb_clear;
+  //always_comb begin
+  //  for (integer i = 0; i < float_rf_num_banks_p; i++) begin
+  //    id_rs2_match_sb_clear[i] = (id_rs2 == float_sb_clear_id[i]) & float_sb_clear[i];
+  //  end
+  //end
   wire rs1_sb_clear_now = id_r.decode.read_rs1 & (id_rs1 == int_sb_clear_id) & int_sb_clear & id_rs1_non_zero; 
-  wire frs2_sb_clear_now = id_r.decode.read_frs2 & (|id_rs2_match_sb_clear);
+  //wire frs2_sb_clear_now = id_r.decode.read_frs2 & (|id_rs2_match_sb_clear);
 
   assign stall_depend_long_op = (int_dependency | float_dependency)
     | (id_r.decode.is_fp_op
         ? rs1_sb_clear_now
-        : frs2_sb_clear_now);
+        : 1'b0);
   
 
   // stall_depend_local_load (lw, flw, lr, lr.aq)
@@ -1350,9 +1341,7 @@ module vanilla_core
   wire stall_bypass_int_frs2 = id_r.decode.read_frs2 &
     ((id_rs2_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_float_op)
     |((id_rs2 == fpu1_rd_r) & fpu1_v_r)
-    |((id_rs2 == fpu_float_rd_lo) & fpu_float_v_lo)
-    |(id_rs2_equal_mem_rd & mem_ctrl_r.write_frd)
-    |((id_rs2 == flw_wb_ctrl_r.rd_addr) & flw_wb_ctrl_r.valid));
+    |(id_rs2_equal_mem_rd & mem_ctrl_r.write_frd));
     
 
   assign stall_bypass = id_r.decode.is_fp_op
@@ -1518,11 +1507,11 @@ module vanilla_core
       rs1_val: rs1_val_to_exe,
       // rs2_val carries csr load values
       // if csr addr matches any of fcsr addr, then fcsr_data_v_lo will be asserted.
-      rs2_val: (id_r.decode.is_csr_op
-                    ? (fcsr_data_v_lo
-                      ? (data_width_p)'(fcsr_data_lo)
-                      : mcsr_data_lo)
-                    : rs2_val_to_exe),
+      rs2_val: fpu_recoded_data_width_gp'(id_r.decode.is_csr_op
+                                          ? (fcsr_data_v_lo
+                                            ? fcsr_data_lo
+                                            : mcsr_data_lo)
+                                          : rs2_val_to_exe),
       mem_addr_op2: mem_addr_op2,
       icache_miss: id_r.icache_miss
     };
