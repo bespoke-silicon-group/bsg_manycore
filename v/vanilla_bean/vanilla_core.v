@@ -275,7 +275,7 @@ module vanilla_core
   logic [2:0][fpu_recoded_data_width_gp-1:0] float_rf_rdata;
 
 
-  bsg_mem_multiport_latch_write_banked_bypassing #(
+  bsg_mem_multiport_latch_write_banked_bypassing_sync #(
     .els_p(RV32_reg_els_gp)
     ,.width_p(fpu_recoded_data_width_gp)
     ,.num_rs_p(3)
