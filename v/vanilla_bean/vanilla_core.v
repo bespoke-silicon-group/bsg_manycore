@@ -396,6 +396,7 @@ module vanilla_core
     ,.credit_limit_o(credit_limit_r)
   );
 
+  // synopsys translate_off
   // Sensitivity list like this is disliked by Verilator 4.213
   `ifndef VERILATOR
    always @ (cfg_pod_y_o or cfg_pod_x_o)
@@ -406,7 +407,6 @@ module vanilla_core
      end
   `endif
    
-  // synopsys translate_off
   wire [pc_width_lp+2-1:0] mepc_00 = {mepc_r, 2'b00};
   // synopsys translate_on
 
