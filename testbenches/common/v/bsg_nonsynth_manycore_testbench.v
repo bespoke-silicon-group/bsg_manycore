@@ -706,6 +706,8 @@ module bsg_nonsynth_manycore_testbench
 //    PROFILERS     //
 //                  //
 
+// Exponential parsing from surelog: https://github.com/chipsalliance/Surelog/issues/2035
+`ifndef SURELOG
 if (enable_vcore_profiling_p) begin
   // vanilla core profiler
    bind vanilla_core vanilla_core_profiler #(
@@ -762,6 +764,7 @@ if (enable_cache_profiling_p) begin
   );
 
   end
+`endif
 
 // Covergroups are not fully supported by Verilator 4.213
 `ifndef VERILATOR
@@ -792,6 +795,7 @@ if (enable_vcore_pc_coverage_p) begin
     ,.coverage_en_i($root.`HOST_MODULE_PATH.coverage_en)
   );
 end
+`endif
 `endif
 
 endmodule
