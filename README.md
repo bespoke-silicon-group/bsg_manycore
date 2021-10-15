@@ -47,6 +47,9 @@ pod_1x1_4X2Y due to excessive compilation times for larger machines. Most likely
 enable larger machines with hierarchical Verilation. verilator must be on your path (or override
 the VERILATOR variable in machines/Makefile.verilator).
 
+On CentOS, you may need to use a modern GCC installation with `scl enable devtoolset-8 -- bash` or
+by putting `source scl_source enable devtoolset-8` in your .basrhc.
+
 ## Surelog (Beta Support)
 
 BSG Manycore has preliminary support for parsing with the open-source [Surelog](https://github.com/chipsalliance/SureLog) toolchain!
