@@ -102,6 +102,29 @@ build-toolchain:
       - "*.log"
   retry: 2
 
+parse:
+  stage: build
+  tags:
+    - bsg
+  script:
+    - echo "Parsing with Surelog"
+    - cd bsg_manycore
+    - pwd
+    - ./ci/surelog.sh
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - $CI_PROJECT_DIR/bsg_cadenv
+      - $CI_PROJECT_DIR/basejump_stl
+      - $CI_PROJECT_DIR/bsg_manycore
+      - $CI_PROJECT_DIR/bsg_bladerunner
+    policy: pull
+  only:
+    refs:
+      - /^ci_.*$/
+      - master
+  retry: 2
+
 test-spmd:
   stage: test_1x1
   tags:

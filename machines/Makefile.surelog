@@ -63,7 +63,7 @@ endef
 
 %/parse: %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
 	$(call set_surelog_machine_variables,$<)
-	$(SURELOG) $(SURELOG_OPTS) $(SURELOG_INCLUDES) $(SURELOG_DEFINES) $(VSOURCES) $(VHEADERS) | tee parse.log
+	$(SURELOG) $(SURELOG_OPTS) $(SURELOG_INCLUDES) $(SURELOG_DEFINES) $(VSOURCES) $(VHEADERS) | tee $(@D)/parse.log
 
 # Since we parse the whole tree regardless, this config is as good as any
 parse: pod_1x1_4X2Y/parse

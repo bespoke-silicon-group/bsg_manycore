@@ -764,7 +764,6 @@ if (enable_cache_profiling_p) begin
   );
 
   end
-`endif
 
 // Covergroups are not fully supported by Verilator 4.213
 `ifndef VERILATOR
