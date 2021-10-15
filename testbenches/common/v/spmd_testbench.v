@@ -155,6 +155,8 @@ module spmd_testbench
     ,.y_cord_width_p(y_cord_width_p)
     ,.io_x_cord_p(`BSG_MACHINE_HOST_X_CORD)
     ,.io_y_cord_p(`BSG_MACHINE_HOST_Y_CORD)
+    // TODO: What is the actual value?
+    ,.saif_toggle_scope_p(0)
   ) io (
     .clk_i(core_clk)
     ,.reset_i(reset_r)

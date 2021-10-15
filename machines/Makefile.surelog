@@ -19,7 +19,7 @@ SURELOG_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
 # SURELOG_DEFINES that define the architecture for a machine. This should be called
 # from inside of the rule that builds the machine-specific executable for a
 # machine so that the *correct* Makfile.machine.include can be included
-define set_vcs_machine_variables
+define set_surelog_machine_variables
     $(eval include $1)
     $(eval SURELOG_DEFINES := +define+BSG_MACHINE_PODS_X=${BSG_MACHINE_PODS_X})
     $(eval SURELOG_DEFINES += +define+BSG_MACHINE_PODS_Y=${BSG_MACHINE_PODS_Y})
