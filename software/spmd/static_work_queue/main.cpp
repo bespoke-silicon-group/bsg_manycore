@@ -28,7 +28,7 @@ struct when_done {
     int *done;
 };
 
-using queue = task_queue<decltype(when_done())>;
+using queue = task_queue<when_done>;
 
 __attribute__((section(".dram")))
 queue workq;
