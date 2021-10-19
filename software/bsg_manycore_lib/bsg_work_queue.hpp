@@ -1,94 +1,194 @@
 #pragma once
 #include <atomic>
-#include "bsg_mcs_mutex.h"
 #include "bsg_manycore.hpp"
+#include "bsg_manycore.h"
 
-struct task {
-    task *next;
-    void (*func)();
-};
-
-struct task_queue {
-    bsg_mcs_mutex_t    lock;
-    std::atomic<task*> head; // one worker can pop
-    std::atomic<task*> tail; // anyone can push
+// helpful
+template <typename T>
+static T atomic_load(volatile T *v)
+{
+    return *v;
 }
 
-struct worker {
-    worker *next_idle; // pointer to next idle worker
-    worker *self; // globally addressable pointer to self
-    task   *task; // set to next task to perform
+// Can live anywhere
+struct task {    
+    task  *next;
+    void (*call)(task*);
+    int   *done;
+    int    data_words;
+    int    data[1];
 };
 
-struct worker_queue {
-    bsg_mcs_mutex_t      lock;    
-    std::atomic<worker*> head; // one can pop
-    std::atomic<worker*> tail; // anyone can push
-};
-
-template <typename T>
-static T atomic_load(volatile T *p)
+/**
+ * Clear task of value
+ */
+static void task_clear(task *t)
 {
-    return *p;
+    t->done = nullptr;
+    t->call = nullptr;
+    t->next = nullptr;
+    t->data_words = 0;
+}
+
+// Must live in DMEM
+struct worker {
+    int     pending;    
+    worker *next;    
+    task    work;
+};
+
+struct task_queue;
+// Must live in DMEM
+struct manager {
+    // manager:
+    // 1. wait until not null
+    // 2. move head to ready queue
+    // 3. set head to null
+    // 4. amoswap null with tail, save tail as tail of ready
+    //
+    // worker:
+    // 1. old_tail = amoswap(&idle_tail, &self)
+    // 2. if (old_tail == nullptr), head = &self
+    // 3. wait until ready task
+    //
+    worker *idle_head;
+    worker *ready_head;
+    worker *ready_tail;
+    // enqueud tasks
+    // only manager reads/writes these
+    task *pending_head;
+    task *pending_tail;
+    // task queue object
+    task_queue *tq;
+};
+
+// Must live in DRAM
+struct task_queue {
+    std::atomic<worker*>  idle_tail; // only workers write this
+    std::atomic<worker**> idle_head; // only manager sets this, worker read once
+};
+
+/**
+ * Initialze a task queue, only the manager should call this function
+ */
+static void manager_init(manager *m, task_queue *tq)
+{
+    manager *self = bsg_tile_group_remote_pointer<manager>(__bsg_x, __bsg_y, m);
+    m->idle_head = nullptr;
+    m->ready_head = nullptr;
+    m->ready_tail = nullptr;
+    m->pending_head = nullptr;
+    m->pending_tail = nullptr;
+
+    tq->idle_head.store(&self->idle_head, std::memory_order_relaxed);
+    m->tq = tq;
+    return;
 }
 
 /**
-   Wait for work to become available
+ * Initialize a worker, enter main loop
  */
-static void worker_wait(worker_queue *wq
-                        , worker *w
-                        , task_queue *tq)
+static void worker_init(worker *w, task_queue *tq)
 {
-    // init
-    bsg_mcs_mutex_node_t me, *g_me = bsg_tile_group_remote_ptr(__bsg_x, __bsg_y, &me);    
-    worker *wg = bsg_tile_group_remote_ptr<worker>(__bsg_x, __bsg_y, w);
-    w->self = wg;
-    w->task = nullptr;
-    // event loop
+    worker *self = bsg_tile_group_remote_pointer<worker>(__bsg_x, __bsg_y, w);
+    worker **idle_head = tq->idle_head.load(std::memory_order_relaxed);
+    
     while (true) {
-        // acquire lock on worker queue
-        bsg_mcs_mutex_acquire(&wq->lock, &me, &g_me);
-        worker *old_tail = wq->tail.exchange(wg, std::memory_order_relaxed);
-        if (old_tail != nullptr) {
-            // update predecessor
-            old_tail->next_idle = wg;
+        // zero-out
+        task_clear(&w->work);
+        w->next = nullptr;
+        w->pending = 0;
+
+        // add self to queue
+        worker *tail = tq->idle_tail.exchange(self, std::memory_order_relaxed);
+
+        // am I the head?
+        if (tail == nullptr) {
+            // update the manager's idle head
+            *idle_head = self;
         } else {
-            // update head
-            wq->head.store(w, std::memory_order_relaxed);
+            tail->next = self;
         }
-        // release the lock
-        bsg_mcs_release(&wq->lock, &me, &g_me);
 
-        // wait for a task
-        while (atomic_load(&w->task));
+        // wait for work
+        // can use lbr here
+        while (atomic_load(&w->pending) != 1);
 
-        // wake up
-        bsg_mcs_mutex_acquire(&wq->lock, me, g_me);
-        task t = *(w->task);
-        // is there a successor?
-        if (w->next_idle != nullptr) {
-            // is there a next task?
-            if (task.next != nullptr) {
-                // wake them up
-                w->next_idle->task = task.next;
-            } else {
-                // update the head with your successor
-                tq->head.store(w->next_idle, std::memory_order_relaxed);
-            }
-        } else {
-            // set the head and tail to null
-            tq->head.store(nullptr, std::memory_order_relaxed);
-            tq->tail.store(nullptr, std::memory_order_relaxed);
-        }
-        bsg_mcs_mutex_release(&wq->lock, me, g_me);
-
-        // exec task
-        t.func();
+        // do task
+        w->work.call(&w->work);
+        // notify done
+        if (w->work.done != nullptr)
+            *(w->work.done) = 1;
     }
 }
 
-static void task_enqueue(task_queue *tq, task *t, worker_queue *wq)
+/**
+ * Enqueue a task as the manager
+ */
+static void manager_enqueue(manager *m, task *t)
 {
-    // add to tail    
-    
+    if (m->pending_tail != nullptr) {
+        m->pending_tail->next = t;
+        m->pending_tail = t;
+    } else {
+        m->pending_head = t;
+        m->pending_tail = t;
+    }
+}
+
+/**
+ * Dispatch a task as the manager
+ */
+__attribute__((noinline))
+static void manager_dispatch(manager *m)
+{
+    // return if nothing to do
+    if (m->pending_head != nullptr) {
+        // refill ready queue if necessary
+        if (m->ready_head == nullptr) {
+            bsg_print_hexadecimal(0xdead0000);
+            // if there's no ready workers
+            // wait for an idle worker to show up
+            while (atomic_load(&m->idle_head) == nullptr);
+            // move to ready queue
+            m->ready_head = m->idle_head;
+            m->idle_head = nullptr;
+            // amoswap idle_tail with null, save as tail of ready queue
+            // this will 'unlock' idle_head, after which the next idle worker will set it
+            m->ready_tail = m->tq->idle_tail.exchange(nullptr, std::memory_order_relaxed);            
+        }
+
+        // dispatch next task to first ready
+        task *t = m->pending_head;
+        m->pending_head = t->next;
+        worker *w = m->ready_head;
+        worker *wn = atomic_load(&w->next);
+        
+        // make sure the above load happens, as it is remote        
+        bsg_compiler_memory_barrier();
+
+        // dispatch task to w
+        w->work.call = t->call;
+        w->work.done = t->done;
+
+        // copy task data words
+        for (int i = 0; i < t->data_words; i++)
+            w->work.data[i] = t->data[i];
+
+        // check for race condition where there is idle worker
+        // adding themselves to ready queue, but ready_head
+        // not updated yet.
+        // hopefully this is very rare...
+        if (w != m->ready_tail && wn == nullptr) {
+            bsg_print_hexadecimal(0xdead0001);
+            do {
+                wn = atomic_load(&w->next);
+            } while (wn == nullptr);
+            
+        }
+
+        // notify task pending to worker
+        w->pending = 1;
+        m->ready_head = wn;
+    }
 }
