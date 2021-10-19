@@ -3,7 +3,7 @@
 #include "bsg_work_queue_static.hpp"
 #include "bsg_mcs_mutex.h"
 
-#define JOBS 100
+#define JOBS 256
 
 __attribute__((section(".dram")))
 int b_l = 0;
@@ -17,7 +17,18 @@ struct say_hi {
     }
 };
 
-using queue = task_queue<decltype(say_hi())>;
+
+struct when_done {
+    when_done() : done(nullptr) {}
+    when_done(int *_done) : done(_done) {}
+    void operator()() {
+        bsg_print_hexadecimal((unsigned)(done));
+        *done = 1;
+    }
+    int *done;
+};
+
+using queue = task_queue<decltype(when_done())>;
 
 __attribute__((section(".dram")))
 queue workq;
@@ -37,19 +48,20 @@ int main()
   
   if (__bsg_x == bsg_tiles_X/2
       && __bsg_y == bsg_tiles_Y/2) {
-      // jobs
-      queue::task job [JOBS];
-
-      // enqueue jobs
+      // dispatch jobs
+      int _sync[JOBS] = {};
+      int *syncp = bsg_tile_group_remote_pointer<int>(__bsg_x, __bsg_y, _sync);
+          
       for (int i = 0; i < JOBS; i++) {
-          job[i].clear();
-          m.dispatch_now(&job[i]);
+          queue::task job(&syncp[i]);
+          job.clear();
+          m.dispatch_now(&job);
       }
 
-      // dispatch all jobs
-      // manager_dispatch_all(&m);
-
-      for (volatile int i = 0; i < 100; i++);
+      for (int i = 0; i < JOBS; i++) {
+          while (atomic_load(&_sync[i]) != 1);
+          bsg_print_int(i);
+      }
       
       // finish
       bsg_finish();
