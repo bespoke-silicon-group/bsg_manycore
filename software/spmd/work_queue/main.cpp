@@ -37,7 +37,7 @@ int main()
       for (int i = 0; i < JOBS; i++) {
           task_clear(&job[i].t);
           // enqueue a job with sync
-          manager_enqueue_job_sync(
+          manager_dispatch_job_now_sync(
               &m, &job[i] , &sync[i]
               , [] (task *t) {
                   bsg_print_int(t->data[0]);
@@ -46,7 +46,7 @@ int main()
       }
 
       // dispatch all jobs
-      manager_dispatch_all(&m);
+      // manager_dispatch_all(&m);
 
       // wait for jobs to complete
       for (int i = 0; i < JOBS; i++) {

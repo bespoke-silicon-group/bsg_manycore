@@ -234,37 +234,73 @@ static void manager_enqueue_job_0(manager *m, job_type *j)
     manager_enqueue(m, &j->t);
 }
 
+
+template <typename job_type>
+static void manager_dispatch_job_now_0(manager *m, job_type *j)
+{
+    j->t.data_words = job_type::WORDS;
+    manager_dispatch_now(m, &j->t);
+}
+
 template <int I, typename job_type>
-static void manager_enqueue_job_unpack(manager *m, job_type *j)
+static void manager_job_unpack(manager *m, job_type *j)
 {
     return;
 }
 
 template <int I, typename job_type, typename arg_type>
-static void manager_enqueue_job_unpack(manager *m, job_type *j,  arg_type arg)
+static void manager_job_unpack(manager *m, job_type *j,  arg_type arg)
 {
     j->t.data[I] = reinterpret_cast<int&>(arg);
 }
 
 template <int I, typename job_type, typename arg_type, typename ... arg_types>
-static void manager_enqueue_job_unpack(manager *m, job_type *j, arg_type arg, arg_types ...args)
+static void manager_job_unpack(manager *m, job_type *j, arg_type arg, arg_types ...args)
 {
     j->t.data[I] = reinterpret_cast<int&>(arg);
-    manager_enqueue_job_unpack<I+1>(m, j, args...);
+    manager_job_unpack<I+1>(m, j, args...);
 }
 
+/**
+ * Enqueue a job
+ */
 template <typename job_type, typename ... arg_types>
 static void manager_enqueue_job(manager *m, job_type *j,  void (*call)(task*), arg_types ...args)
 {
     j->t.call = call;
-    manager_enqueue_job_unpack<0>(m, j, args...);
+    manager_job_unpack<0>(m, j, args...);
     manager_enqueue_job_0(m, j);
 }
 
-
+/**
+ * Enqueue a job with sync
+ */
 template <typename job_type, typename ... arg_types>
 static void manager_enqueue_job_sync(manager *m, job_type *j, int *sync, void (*call)(task*), arg_types ...args)
 {
     j->t.done = sync;
     manager_enqueue_job(m, j, call, args...);
 }
+
+/**
+ * Dispatch a job
+ */
+template <typename job_type, typename ... arg_types>
+static void manager_dispatch_job_now(manager *m, job_type *j,  void (*call)(task*), arg_types ...args)
+{
+    j->t.call = call;
+    manager_job_unpack<0>(m, j, args...);
+    manager_dispatch_job_now_0(m, j);
+}
+
+
+/**
+ * Dispatch a job with sync
+ */
+template <typename job_type, typename ... arg_types>
+static void manager_dispatch_job_now_sync(manager *m, job_type *j, int *sync, void (*call)(task*), arg_types ...args)
+{
+    j->t.done = sync;
+    manager_dispatch_job_now(m, j, call, args...);
+}
+
