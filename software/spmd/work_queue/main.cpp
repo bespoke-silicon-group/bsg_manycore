@@ -50,20 +50,23 @@ static void manager_enqueue_job_unpack(manager *m, job_type *j, arg_type arg, ar
 }
 
 template <typename job_type, typename ... arg_types>
-static void manager_enqueue_job(manager *m, job_type *j,  arg_types ...args)
+static void manager_enqueue_job(manager *m, job_type *j,  void (*call)(task*), arg_types ...args)
 {
+    j->t.call = call;
     manager_enqueue_job_unpack<0>(m, j, args...);
     manager_enqueue_job_0(m, j);
 }
 
+
+template <typename job_type, typename ... arg_types>
+static void manager_enqueue_job_sync(manager *m, job_type *j, int *sync, void (*call)(task*), arg_types ...args)
+{
+    j->t.done = sync;
+    manager_enqueue_job(m, j, call, args...);
+}
+
 __attribute__((section(".dram")))
 task_queue workq;
-
-void say_hi(task *t)
-{
-    bsg_print_int(t->data[0]);
-    bsg_print_float(reinterpret_cast<float&>(t->data[1]));
-}
 
 //#define DEBUG
 int main()
@@ -88,21 +91,29 @@ int main()
       // enqueue jobs
       for (int i = 0; i < JOBS; i++) {
           task_clear(&job[i].t);
-          job[i].t.call = say_hi;
-          job[i].t.done = &sync[i];
-          manager_enqueue_job(&m, &job[i], i, 3.14159f);
+          // enqueue a job with sync
+          manager_enqueue_job_sync(
+              &m
+              , &job[i]
+              , &sync[i]
+              , [] (task *t) {
+                  bsg_print_int(t->data[0]);
+                  bsg_print_float(reinterpret_cast<float&>(t->data[1]));
+              }
+              , 1
+              , 3.14159f);
       }
 
       // dispatch all jobs
-      for (int i = 0; i < JOBS; i++) {
-          manager_dispatch(&m);
-      }
+      manager_dispatch_all(&m);
 
       // wait for jobs to complete
       for (int i = 0; i < JOBS; i++) {
           int *sp = bsg_tile_group_remote_pointer(__bsg_x, __bsg_y, &_sync[i]);
           while (atomic_load(sp) != 1);
       }
+
+      // finish
       bsg_finish();
   } else {
       worker w;
