@@ -136,6 +136,56 @@ static void manager_enqueue(manager *m, task *t)
     }
 }
 
+
+/**
+ * Dispatch a task as the manager
+ */
+static void manager_dispatch_now(manager *m, task *t)
+{
+    // refill ready queue if necessary
+    if (m->ready_head == nullptr) {
+        // if there's no ready workers
+        // wait for an idle worker to show up
+        while (atomic_load(&m->idle_head) == nullptr);
+        // move to ready queue
+        m->ready_head = m->idle_head;
+        m->idle_head = nullptr;
+        // amoswap idle_tail with null, save as tail of ready queue
+        // this will 'unlock' idle_head, after which the next idle worker will set it
+        m->ready_tail = m->tq->idle_tail.exchange(nullptr, std::memory_order_relaxed);            
+    }
+
+    // dispatch next task to first ready
+    worker *w = m->ready_head;
+    worker *wn = atomic_load(&w->next);
+        
+    // make sure the above load happens, as it is remote        
+    bsg_compiler_memory_barrier();
+
+    // dispatch task to w
+    w->work.call = t->call;
+    w->work.done = t->done;
+
+    // copy task data words
+    for (int i = 0; i < t->data_words; i++)
+        w->work.data[i] = t->data[i];
+
+    // check for race condition where there is idle worker
+    // adding themselves to ready queue, but ready_head
+    // not updated yet.
+    // hopefully this is very rare...
+    if (w != m->ready_tail && wn == nullptr) {
+        do {
+            wn = atomic_load(&w->next);
+        } while (wn == nullptr);
+            
+    }
+
+    // notify task pending to worker
+    w->pending = 1;
+    m->ready_head = wn;
+}
+
 /**
  * Dispatch a task as the manager
  */
@@ -143,49 +193,20 @@ static void manager_dispatch(manager *m)
 {
     // return if nothing to do
     if (m->pending_head != nullptr) {
-        // refill ready queue if necessary
-        if (m->ready_head == nullptr) {
-            // if there's no ready workers
-            // wait for an idle worker to show up
-            while (atomic_load(&m->idle_head) == nullptr);
-            // move to ready queue
-            m->ready_head = m->idle_head;
-            m->idle_head = nullptr;
-            // amoswap idle_tail with null, save as tail of ready queue
-            // this will 'unlock' idle_head, after which the next idle worker will set it
-            m->ready_tail = m->tq->idle_tail.exchange(nullptr, std::memory_order_relaxed);            
-        }
-
-        // dispatch next task to first ready
         task *t = m->pending_head;
         m->pending_head = t->next;
-        worker *w = m->ready_head;
-        worker *wn = atomic_load(&w->next);
-        
-        // make sure the above load happens, as it is remote        
-        bsg_compiler_memory_barrier();
-
-        // dispatch task to w
-        w->work.call = t->call;
-        w->work.done = t->done;
-
-        // copy task data words
-        for (int i = 0; i < t->data_words; i++)
-            w->work.data[i] = t->data[i];
-
-        // check for race condition where there is idle worker
-        // adding themselves to ready queue, but ready_head
-        // not updated yet.
-        // hopefully this is very rare...
-        if (w != m->ready_tail && wn == nullptr) {
-            do {
-                wn = atomic_load(&w->next);
-            } while (wn == nullptr);
-            
-        }
-
-        // notify task pending to worker
-        w->pending = 1;
-        m->ready_head = wn;
+        manager_dispatch_now(m, t);
     }
 }
+
+
+/**
+ * Dispatch all enqueued tasks as the manager
+ */
+static void manager_dispatch_all(manager *m)
+{
+    while (m->pending_head != nullptr) {
+        manager_dispatch(m);
+    }
+}
+
