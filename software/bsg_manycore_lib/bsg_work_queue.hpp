@@ -139,14 +139,12 @@ static void manager_enqueue(manager *m, task *t)
 /**
  * Dispatch a task as the manager
  */
-__attribute__((noinline))
 static void manager_dispatch(manager *m)
 {
     // return if nothing to do
     if (m->pending_head != nullptr) {
         // refill ready queue if necessary
         if (m->ready_head == nullptr) {
-            bsg_print_hexadecimal(0xdead0000);
             // if there's no ready workers
             // wait for an idle worker to show up
             while (atomic_load(&m->idle_head) == nullptr);
@@ -180,7 +178,6 @@ static void manager_dispatch(manager *m)
         // not updated yet.
         // hopefully this is very rare...
         if (w != m->ready_tail && wn == nullptr) {
-            bsg_print_hexadecimal(0xdead0001);
             do {
                 wn = atomic_load(&w->next);
             } while (wn == nullptr);
