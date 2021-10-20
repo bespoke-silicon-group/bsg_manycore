@@ -8,8 +8,8 @@
  *
  */
 
+  `include "bsg_defines.v"
   `include "bsg_noc_links.vh"
-  `include "bsg_vanilla_defines.vh"
 
   //  Declare fwd and rev packet
   //

@@ -12,6 +12,7 @@
 
 
 `include "bsg_manycore_defines.vh"
+`include "bsg_vanilla_defines.vh"
 
 module vanilla_core_profiler
   import bsg_manycore_pkg::*;
