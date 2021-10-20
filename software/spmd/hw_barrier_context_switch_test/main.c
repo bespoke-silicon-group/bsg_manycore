@@ -7,6 +7,7 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 #include "bsg_hw_barrier.h"
+#include "bsg_hw_barrier_config_init.h"
 
 #define NUM_ITER 4
 #define NUM_WORD 8
