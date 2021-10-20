@@ -2,7 +2,7 @@
 GCCVERSION = $(shell gcc -dumpversion)
 ifeq ($(shell expr $(GCCVERSION) \> 7), 1)
 else
-	$(error Verilator requires > GCC 7)
+$(error Verilator requires > GCC 7)
 endif
 
 VERILATOR ?= verilator
