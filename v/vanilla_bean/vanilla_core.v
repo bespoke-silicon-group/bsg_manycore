@@ -6,7 +6,8 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
+`include "bsg_vanilla_defines.vh"
 
 module vanilla_core
   import bsg_vanilla_pkg::*;
@@ -396,12 +397,15 @@ module vanilla_core
     ,.credit_limit_o(credit_limit_r)
   );
 
+  // Sensitivity list like this is disliked by Verilator 4.213
+  `ifndef VERILATOR
    always @ (cfg_pod_y_o or cfg_pod_x_o)
      begin
 	$display("%m cfg_pod_r changing to y=%b x=%b"
 		 , cfg_pod_y_o
 		 , cfg_pod_x_o);
      end
+  `endif
    
   // synopsys translate_off
   wire [pc_width_lp+2-1:0] mepc_00 = {mepc_r, 2'b00};

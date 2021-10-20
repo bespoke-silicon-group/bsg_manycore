@@ -1,0 +1,70 @@
+
+SURELOG ?= surelog
+
+SURELOG_OPTS += -sverilog
+SURELOG_OPTS += -fileunit
+SURELOG_OPTS += -parse
+SURELOG_OPTS += -timescale=1ps/1ps
+SURELOG_OPTS += -d coveruhdm
+SURELOG_OPTS += -verbose
+SURELOG_OPTS += -lowmem
+SURELOG_OPTS += -nobuiltin
+SURELOG_OPTS += -parseonly
+# Takes forever. Possibly infinite loop?
+#SURELOG_OPTS += -elabuhdm
+SURELOG_OPTS += --top-module spmd_testbench
+
+SURELOG_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
+SURELOG_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
+
+# SURELOG_DEFINES that define the architecture for a machine. This should be called
+# from inside of the rule that builds the machine-specific executable for a
+# machine so that the *correct* Makfile.machine.include can be included
+define set_surelog_machine_variables
+    $(eval include $1)
+    $(eval SURELOG_DEFINES := +define+BSG_MACHINE_PODS_X=${BSG_MACHINE_PODS_X})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_PODS_Y=${BSG_MACHINE_PODS_Y})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_GLOBAL_Y=${BSG_MACHINE_GLOBAL_Y})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_X_CORD_WIDTH=${BSG_MACHINE_X_CORD_WIDTH})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_Y_CORD_WIDTH=${BSG_MACHINE_Y_CORD_WIDTH})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_RUCHE_FACTOR_X=${BSG_MACHINE_RUCHE_FACTOR_X})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_NUM_VCACHE_ROWS="${BSG_MACHINE_NUM_VCACHE_ROWS}")
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_VCACHE_SET=${BSG_MACHINE_VCACHE_SET})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_VCACHE_WAY=${BSG_MACHINE_VCACHE_WAY})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_VCACHE_DMA_DATA_WIDTH=${BSG_MACHINE_VCACHE_DMA_DATA_WIDTH})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_NUM_VCACHES_PER_CHANNEL="${BSG_MACHINE_NUM_VCACHES_PER_CHANNEL}")
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_DRAM_SIZE_WORDS=${BSG_MACHINE_DRAM_SIZE_WORDS})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_DRAM_BANK_SIZE_WORDS=${BSG_MACHINE_DRAM_BANK_SIZE_WORDS})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_DRAM_INCLUDED=${BSG_MACHINE_DRAM_INCLUDED})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_MAX_EPA_WIDTH=${BSG_MACHINE_MAX_EPA_WIDTH})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_BRANCH_TRACE_EN=${BSG_MACHINE_BRANCH_TRACE_EN})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_HETERO_TYPE_VEC="${BSG_MACHINE_HETERO_TYPE_VEC}")
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_ORIGIN_X_CORD=${BSG_MACHINE_ORIGIN_X_CORD})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_ORIGIN_Y_CORD=${BSG_MACHINE_ORIGIN_Y_CORD})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_HOST_X_CORD=${BSG_MACHINE_HOST_X_CORD})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_HOST_Y_CORD=${BSG_MACHINE_HOST_Y_CORD})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_DRAMSIM3_PKG="${BSG_MACHINE_DRAMSIM3_PKG}")
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_SUBARRAY_X="${BSG_MACHINE_SUBARRAY_X}")
+    $(eval SURELOG_DEFINES += +define+BSG_MACHINE_SUBARRAY_Y="${BSG_MACHINE_SUBARRAY_Y}")
+    # specify where the host module is instantiated for profiler trigger (print_stat).
+    # relative to $root
+    $(eval SURELOG_DEFINES += +define+HOST_MODULE_PATH=spmd_testbench)
+    # These define are required by mobile_ddr.v.
+    # density       = 2048 Mbit
+    # speed grade   = 5
+    # organization  = x16
+    # allocation    = FULL_MEM
+    $(eval SURELOG_DEFINES += +define+den2048Mb+sg5+x16+FULL_MEM)
+    $(eval SURELOG_DEFINES += +define+SURELOG)
+endef
+
+%/parse: %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_surelog_machine_variables,$<)
+	$(SURELOG) $(SURELOG_OPTS) $(SURELOG_INCLUDES) $(SURELOG_DEFINES) $(VSOURCES) $(VHEADERS) | tee $(@D)/parse.log
+
+# Since we parse the whole tree regardless, this config is as good as any
+parse: pod_1x1_4X2Y/parse
+

@@ -3,13 +3,14 @@
  *
  */
 
+`include "bsg_manycore_defines.vh"
 
 module bsg_nonsynth_manycore_spmd_loader
   import bsg_manycore_pkg::*;
-  #(parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter x_cord_width_p="inv"
+  #(parameter `BSG_INV_PARAM(addr_width_p)
+    , parameter `BSG_INV_PARAM(data_width_p)
+    , parameter `BSG_INV_PARAM(y_cord_width_p)
+    , parameter `BSG_INV_PARAM(x_cord_width_p)
 
     , parameter packet_width_lp =
       `bsg_manycore_packet_width(addr_width_p,data_width_p,
@@ -166,3 +167,6 @@ module bsg_nonsynth_manycore_spmd_loader
   end
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_spmd_loader)
+

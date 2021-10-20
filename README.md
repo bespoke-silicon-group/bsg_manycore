@@ -37,6 +37,27 @@ In this directory:
 - Edit `BSG_MACHINE_PATH` in `software/mk/Makefile.paths` to choose the machine to run somd programs on.
 - go into `software/spmd/bsg_barrier` and type `make` to run a test!
 
+## Verilator (Beta Support)
+
+BSG Manycore has preliminary support for simulating with the open-source [Verilator](https://github.com/verilator/verilator) toolchain!
+
+To test this feature, set BSG_PLATFORM=verilator in machines/bsg_platform.mk and then follow the
+above instructions to run tests normally. This platform only currently supports the machine
+pod_1x1_4X2Y due to excessive compilation times for larger machines. Most likely, future work can
+enable larger machines with hierarchical Verilation. verilator must be on your path (or override
+the VERILATOR variable in machines/Makefile.verilator).
+
+On CentOS, you may need to use a modern GCC installation with `scl enable devtoolset-8 -- bash` or
+by putting `source scl_source enable devtoolset-8` in your .basrhc.
+
+## Surelog (Beta Support)
+
+BSG Manycore has preliminary support for parsing with the open-source [Surelog](https://github.com/chipsalliance/SureLog) toolchain!
+
+To test this feature, run `make -C machines parse`. Parse-only module is supported, which verifies
+that each file in bsg_manycore can be parsed as an individual compilation unit, in order to provide
+the greatest tool compatibility. Future work will enable full UHDM generation.
+
 # Contributions
 
 If you're developing on a branch called `mybranch`, please pull a branch called `ci_mybranch` based

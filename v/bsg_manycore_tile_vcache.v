@@ -7,7 +7,8 @@
  *    the vcache DMA interface is connected to the horizontal 1D wormhole ruche network.
  */
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
+`include "bsg_cache.vh"
 
 module bsg_manycore_tile_vcache
   import bsg_noc_pkg::*;

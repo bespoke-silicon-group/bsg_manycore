@@ -1,4 +1,9 @@
 BSG_IP_CORES_DIR ?= $(BSG_MANYCORE_DIR)/../basejump_stl
 RISCV_BIN_DIR ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install/bin
 CAD_DIR ?= $(BSG_MANYCORE_DIR)/../bsg_cadenv
+ifeq ($(BSG_PLATFORM),verilator)
+BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1_4X2Y
+else ifeq ($(BSG_PLATFORM),vcs)
 BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1
+endif
+

@@ -4,6 +4,7 @@ bsg-minus-fn = $(shell env expr $(1) - $(2))
 bsg-plus-fn = $(shell env expr $(1) + $(2))
 bsg-times-fn = $(shell env expr $(1) \* $(2))
 
+include $(BSG_MANYCORE_DIR)/machines/platform.mk
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.paths
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.builddefs
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.verilog

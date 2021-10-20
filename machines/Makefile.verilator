@@ -1,0 +1,118 @@
+
+GCCVERSION = $(shell gcc -dumpversion)
+ifeq ($(shell expr $(GCCVERSION) \> 7), 1)
+else
+$(error Verilator requires > GCC 7)
+endif
+
+VERILATOR ?= verilator
+VERILATOR_THREADS ?= 4
+
+VERILATOR_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
+VERILATOR_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
+VERILATOR_SOURCES  += $(VHEADERS) $(VSOURCES) 
+VERILATOR_FLAGS    +=--top-module spmd_testbench
+VERILATOR_FLAGS    += --cc
+VERILATOR_FLAGS    += -Wno-fatal
+#VERILATOR_FLAGS    += --debug -gdbbt
+VERILATOR_FLAGS    += -O2
+VERILATOR_FLAGS    += --build --exe
+VERILATOR_FLAGS    += -j $(VERILATOR_THREADS)
+
+VERILATOR_CFLAGS   += -CFLAGS "-std=c++11 -g -Wall"
+VERILATOR_CFLAGS   += -CFLAGS "-O2"
+VERILATOR_CFLAGS   += -CFLAGS "-fPIC"
+VERILATOR_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/src"
+VERILATOR_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/ext/headers"
+VERILATOR_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/ext/fmt/include"
+VERILATOR_CFLAGS   += -CFLAGS "-I$(BASEJUMP_STL_DIR)/bsg_test"
+VERILATOR_CFLAGS   += -CFLAGS "-I../../verilator/include"
+VERILATOR_CFLAGS   += -CFLAGS "-DFMT_HEADER_ONLY=1"
+VERILATOR_CFLAGS   += -CFLAGS "-DBASEJUMP_STL_DIR=$(BASEJUMP_STL_DIR)"
+
+# set_verilator_machine_variables includes the Makefile.machine.include file and sets the
+# VERILATOR_DEFINES that define the architecture for a machine. This should be called
+# from inside of the rule that builds the machine-specific executable for a
+# machine so that the *correct* Makfile.machine.include can be included
+define set_verilator_machine_variables
+	$(eval include $1)
+	$(eval VERILATOR_DEFINES := +define+BSG_MACHINE_PODS_X=${BSG_MACHINE_PODS_X})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_PODS_Y=${BSG_MACHINE_PODS_Y})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_GLOBAL_Y=${BSG_MACHINE_GLOBAL_Y})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_X_CORD_WIDTH=${BSG_MACHINE_X_CORD_WIDTH})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_Y_CORD_WIDTH=${BSG_MACHINE_Y_CORD_WIDTH})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_RUCHE_FACTOR_X=${BSG_MACHINE_RUCHE_FACTOR_X})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_NUM_VCACHE_ROWS="${BSG_MACHINE_NUM_VCACHE_ROWS}")
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_VCACHE_SET=${BSG_MACHINE_VCACHE_SET})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_VCACHE_WAY=${BSG_MACHINE_VCACHE_WAY})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_VCACHE_DMA_DATA_WIDTH=${BSG_MACHINE_VCACHE_DMA_DATA_WIDTH})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_NUM_VCACHES_PER_CHANNEL="${BSG_MACHINE_NUM_VCACHES_PER_CHANNEL}")
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_DRAM_SIZE_WORDS=${BSG_MACHINE_DRAM_SIZE_WORDS})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_DRAM_BANK_SIZE_WORDS=${BSG_MACHINE_DRAM_BANK_SIZE_WORDS})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_DRAM_INCLUDED=${BSG_MACHINE_DRAM_INCLUDED})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_MAX_EPA_WIDTH=${BSG_MACHINE_MAX_EPA_WIDTH})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_BRANCH_TRACE_EN=${BSG_MACHINE_BRANCH_TRACE_EN})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_HETERO_TYPE_VEC="${BSG_MACHINE_HETERO_TYPE_VEC}")
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_ORIGIN_X_CORD=${BSG_MACHINE_ORIGIN_X_CORD})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_ORIGIN_Y_CORD=${BSG_MACHINE_ORIGIN_Y_CORD})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_HOST_X_CORD=${BSG_MACHINE_HOST_X_CORD})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_HOST_Y_CORD=${BSG_MACHINE_HOST_Y_CORD})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_DRAMSIM3_PKG="${BSG_MACHINE_DRAMSIM3_PKG}")
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_SUBARRAY_X="${BSG_MACHINE_SUBARRAY_X}")
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_SUBARRAY_Y="${BSG_MACHINE_SUBARRAY_Y}")
+	# specify where the host module is instantiated for profiler trigger (print_stat).
+	# relative to $root
+	$(eval VERILATOR_DEFINES += +define+HOST_MODULE_PATH=spmd_testbench) 
+	# These define are required by mobile_ddr.v.
+	# density     	= 2048 Mbit
+	# speed grade 	= 5
+	# organization 	= x16
+	# allocation    = FULL_MEM
+	$(eval VERILATOR_DEFINES += +define+den2048Mb+sg5+x16+FULL_MEM)
+endef
+
+# boot tag rom gen
+POD_TRACE_GEN_PY = $(BSG_MANYCORE_DIR)/testbenches/py/pod_trace_gen.py
+ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py 
+# build simsc
+# without debug option for faster simulation.
+%/simsc : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS)
+	$(call set_verilator_machine_variables,$<)
+	python $(POD_TRACE_GEN_PY) $(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) > $*/pod_trace.tr
+	python $(ASCII_TO_ROM_PY) $*/pod_trace.tr bsg_tag_boot_rom > $*/bsg_tag_boot_rom.v
+	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_CFLAGS) -Mdir $(@D)/obj_dir -o $(@F) \
+		$(VERILATOR_INCLUDES) $(VERILATOR_DEFINES) $(CSOURCES) $(VERILATOR_SOURCES) $*/bsg_tag_boot_rom.v
+	ln -s $(abspath $(@D))/obj_dir/simsc $@
+		
+
+# build simsc-debug
+# with debug option for waveform generation.
+%/simsc-debug : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_verilator_machine_variables,$<)
+	python $(POD_TRACE_GEN_PY) $(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) > $*/pod_trace.tr
+	python $(ASCII_TO_ROM_PY) $*/pod_trace.tr bsg_tag_boot_rom > $*/bsg_tag_boot_rom.v
+	$(eval VERILATOR_FLAGS += --trace-fst --trace-structs)
+	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_CFLAGS) -Mdir $(@D)/obj_dir_debug -o $(@F) \
+		$(VERILATOR_INCLUDES) $(VERILATOR_DEFINES) $(CSOURCES) $(VERILATOR_SOURCES) $*/bsg_tag_boot_rom.v
+	ln -s $(abspath $(@D))/obj_dir_debug/simsc $@
+
+# building simsc-profile
+# with trace-based profiler for bloodgraphs etc
+%/simsc-profile : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_verilator_machine_variables,$<)
+	python $(POD_TRACE_GEN_PY) $(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) > $*/pod_trace.tr
+	python $(ASCII_TO_ROM_PY) $*/pod_trace.tr bsg_tag_boot_rom > $*/bsg_tag_boot_rom.v
+	$(eval VERILATOR_FLAGS  += +define+BSG_ENABLE_PROFILING) # Debug adds these two variables to generate waveforms
+	$(eval VERILATOR_CFLAGS += -CFLAGS "-DBLOOD_GRAPH")
+	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_CFLAGS) -Mdir $(@D)/obj_dir_profile -o $(@F) \
+		$(VERILATOR_INCLUDES) $(VERILATOR_DEFINES) $(CSOURCES) $(VERILATOR_SOURCES) $*/bsg_tag_boot_rom.v
+	ln -s $(abspath $(@D))/obj_dir_profile/simsc $@
+
+# build simsc-coverage
+# with coverage options for code/functional coverage
+%/simsc-coverage : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(info Coverage is not currently supported for Verilator)
+

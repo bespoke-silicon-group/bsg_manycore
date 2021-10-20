@@ -6,7 +6,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_link_sif_tieoff
   import bsg_manycore_pkg::*;
@@ -41,16 +41,14 @@ module bsg_manycore_link_sif_tieoff
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
       // handle errant fwd packet
-      if (link_sif_in.fwd.v) begin
+      assert (~link_sif_in.fwd.v) else
         $error("[BSG_ERROR] Errant fwd packet detected: src_x=%0d, src_y=%0d, dest_x=%0d, dest_y=%0d.",
           fwd_packet.src_x_cord, fwd_packet.src_y_cord, fwd_packet.x_cord, fwd_packet.y_cord);
-      end
 
       // handle errant rev packet
-      if (link_sif_in.rev.v) begin
+      assert (~link_sif_in.rev.v) else
         $error("[BSG_ERROR] Errant rev packet detected: dest_x=%0d, dest_y=%0d.",
           rev_packet.x_cord, rev_packet.y_cord);
-      end
     end
   end
   // synopsys translate_on

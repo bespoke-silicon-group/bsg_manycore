@@ -5,6 +5,7 @@ variables:
 stages:
   - checkout
   - build
+  - check
   - test_1x1
   - test_1x1_hbm2
   - test_4x4
@@ -100,6 +101,54 @@ build-toolchain:
     when: always
     paths:
       - "*.log"
+  retry: 2
+
+surelog:
+  stage: check
+  allow_failure: true
+  tags:
+    - bsg
+  script:
+    - echo "Parsing with Surelog"
+    - cd bsg_manycore
+    - pwd
+    - ./ci/surelog.sh
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - $CI_PROJECT_DIR/bsg_cadenv
+      - $CI_PROJECT_DIR/basejump_stl
+      - $CI_PROJECT_DIR/bsg_manycore
+      - $CI_PROJECT_DIR/bsg_bladerunner
+    policy: pull
+  only:
+    refs:
+      - /^ci_.*$/
+      - master
+  retry: 2
+
+verilator:
+  stage: check
+  allow_failure: true
+  tags:
+    - bsg
+  script:
+    - echo "Verifying verilator build"
+    - cd bsg_manycore
+    - pwd
+    - ./ci/verilator.sh
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - $CI_PROJECT_DIR/bsg_cadenv
+      - $CI_PROJECT_DIR/basejump_stl
+      - $CI_PROJECT_DIR/bsg_manycore
+      - $CI_PROJECT_DIR/bsg_bladerunner
+    policy: pull
+  only:
+    refs:
+      - /^ci_.*$/
+      - master
   retry: 2
 
 test-spmd:

@@ -5,7 +5,8 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
+`include "bsg_cache.vh"
 
 module bsg_manycore_link_to_cache
   import bsg_manycore_pkg::*;

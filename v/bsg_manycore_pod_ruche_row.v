@@ -4,10 +4,7 @@
  */
 
 
-`include "bsg_defines.v"
-`include "bsg_noc_links.vh"
-
-
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_pod_ruche_row
   import bsg_noc_pkg::*;

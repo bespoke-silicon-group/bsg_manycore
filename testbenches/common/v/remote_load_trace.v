@@ -20,23 +20,24 @@
 // {type}         can be icache, float, or int (int includes atomic).
 // {latency}      # of cycles to complete remote load. (end_cycle - start_cycle)
 
+`include "bsg_manycore_defines.vh"
 
 module remote_load_trace
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
-  #(parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter pod_x_cord_width_p="inv"
-    , parameter pod_y_cord_width_p="inv"
-    , parameter num_tiles_x_p="inv"
-    , parameter num_tiles_y_p="inv"
+  #(parameter `BSG_INV_PARAM(addr_width_p)
+    , parameter `BSG_INV_PARAM(data_width_p)
+    , parameter `BSG_INV_PARAM(x_cord_width_p)
+    , parameter `BSG_INV_PARAM(y_cord_width_p)
+    , parameter `BSG_INV_PARAM(pod_x_cord_width_p)
+    , parameter `BSG_INV_PARAM(pod_y_cord_width_p)
+    , parameter `BSG_INV_PARAM(num_tiles_x_p)
+    , parameter `BSG_INV_PARAM(num_tiles_y_p)
     , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
 
-    , parameter origin_x_cord_p="inv"
-    , parameter origin_y_cord_p="inv"
+    , parameter `BSG_INV_PARAM(origin_x_cord_p)
+    , parameter `BSG_INV_PARAM(origin_y_cord_p)
 
     , parameter tracefile_p = "remote_load_trace.csv"
 
@@ -245,3 +246,6 @@ module remote_load_trace
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(remote_load_trace)
+

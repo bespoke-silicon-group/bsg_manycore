@@ -3,24 +3,24 @@
  *
  */
 
-
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_top_crossbar
   import bsg_noc_pkg::*;
   import bsg_manycore_pkg::*;
-  #(parameter dmem_size_p="inv"
-    , parameter icache_entries_p="inv"
-    , parameter icache_tag_width_p="inv"
+  #(parameter `BSG_INV_PARAM(dmem_size_p)
+    , parameter `BSG_INV_PARAM(icache_entries_p)
+    , parameter `BSG_INV_PARAM(icache_tag_width_p)
     
-    , parameter vcache_size_p="inv"
-    , parameter vcache_block_size_in_words_p="inv"
-    , parameter vcache_sets_p="inv"
+    , parameter `BSG_INV_PARAM(vcache_size_p)
+    , parameter `BSG_INV_PARAM(vcache_block_size_in_words_p)
+    , parameter `BSG_INV_PARAM(vcache_sets_p)
 
     , parameter int num_tiles_x_p=-1
     , parameter int num_tiles_y_p=-1
 
-    , parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
+    , parameter `BSG_INV_PARAM(addr_width_p)
+    , parameter `BSG_INV_PARAM(data_width_p)
 
     , parameter y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p+2)
     , parameter x_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
@@ -200,3 +200,5 @@ module bsg_manycore_top_crossbar
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_top_crossbar)

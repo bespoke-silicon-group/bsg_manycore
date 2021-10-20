@@ -5,6 +5,7 @@
 
 `include "bsg_defines.v"
 `include "HardFloat_consts.vi"
+`include "HardFloat_specialize.vi"
 
 module fpu_float_fma_round
   import bsg_vanilla_pkg::*;

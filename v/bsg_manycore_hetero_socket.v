@@ -45,7 +45,7 @@
            );                                                                          \
      end
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_hetero_socket
   import bsg_manycore_pkg::*;

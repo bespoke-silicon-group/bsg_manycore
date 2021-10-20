@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_vanilla_defines.vh"
 
 module fcsr
   import bsg_vanilla_pkg::*;

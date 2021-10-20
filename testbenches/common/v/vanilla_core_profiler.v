@@ -11,20 +11,21 @@
 //  If the pipeline gets stalled by incoming remote load response or idiv/fdiv, it will print out whatever PC is in the EXE stage.
 
 
-
+`include "bsg_manycore_defines.vh"
+`include "bsg_vanilla_defines.vh"
 
 module vanilla_core_profiler
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
   import bsg_manycore_profile_pkg::*;
-  #(parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter data_width_p="inv"
+  #(parameter `BSG_INV_PARAM(x_cord_width_p)
+    , parameter `BSG_INV_PARAM(y_cord_width_p)
+    , parameter `BSG_INV_PARAM(data_width_p)
 
-    , parameter icache_tag_width_p="inv"
-    , parameter icache_entries_p="inv"
-    , parameter origin_x_cord_p="inv"
-    , parameter origin_y_cord_p="inv"
+    , parameter `BSG_INV_PARAM(icache_tag_width_p)
+    , parameter `BSG_INV_PARAM(icache_entries_p)
+    , parameter `BSG_INV_PARAM(origin_x_cord_p)
+    , parameter `BSG_INV_PARAM(origin_y_cord_p)
 
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
@@ -1481,3 +1482,6 @@ module vanilla_core_profiler
    endfunction
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(vanilla_core_profiler)
+

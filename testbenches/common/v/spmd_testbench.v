@@ -3,10 +3,12 @@
  *
  */ 
 
+`include "bsg_manycore_defines.vh"
 
-module spmd_testbench();
+module spmd_testbench
   import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
+  (output bit reset_o);
 
   parameter num_pods_x_p  = `BSG_MACHINE_PODS_X;
   parameter num_pods_y_p  = `BSG_MACHINE_PODS_Y;
@@ -140,6 +142,7 @@ module spmd_testbench();
     ,.data_i(~tag_done_lo)
     ,.data_o(reset_r)
   );
+  assign reset_o = reset_r;
 
 
   // SPMD LOADER
@@ -152,6 +155,7 @@ module spmd_testbench();
     ,.y_cord_width_p(y_cord_width_p)
     ,.io_x_cord_p(`BSG_MACHINE_HOST_X_CORD)
     ,.io_y_cord_p(`BSG_MACHINE_HOST_Y_CORD)
+    ,.saif_toggle_scope_p("spmd_testbench.tb.DUT.podrow.px[0].pod.mc_y[0].mc_x[0].mc.y[0].x[0].tile")
   ) io (
     .clk_i(core_clk)
     ,.reset_i(reset_r)
@@ -189,6 +193,5 @@ module spmd_testbench();
     ,.reset_i(reset_r)
     ,.ctr_r_o(global_ctr)
   );
-
 
 endmodule

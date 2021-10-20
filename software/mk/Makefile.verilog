@@ -40,18 +40,24 @@ endif
 #######################################
 # Simulator setup
 
+ifeq ($(BSG_PLATFORM),vcs)
+  BSG_SIM_BASE = simv
+else ifeq ($(BSG_PLATFORM),verilator)
+  BSG_SIM_BASE = simsc
+endif
+
 ifeq ($(WAVE),0)
 ifeq ($(TRACE),0)
 ifeq ($(COVERAGE),0)
-  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)
 else
-  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-coverage
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-coverage
 endif
 else
-  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-profile
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-profile
 endif
 else
-  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/simv-debug
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-debug
 endif
 
 # Network boot format file

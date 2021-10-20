@@ -3,20 +3,22 @@
  *
  */ 
 
-
+`include "bsg_defines.v"
+`include "bsg_cache.vh"
+`include "bsg_noc_links.vh"
 
 module vcache_dma_to_dram_channel_map 
   import bsg_cache_pkg::*;
   import bsg_noc_pkg::*;
-  #(parameter num_pods_y_p="inv"
-    , parameter num_pods_x_p="inv"
-    , parameter num_tiles_x_p="inv"
+  #(parameter `BSG_INV_PARAM(num_pods_y_p)
+    , parameter `BSG_INV_PARAM(num_pods_x_p)
+    , parameter `BSG_INV_PARAM(num_tiles_x_p)
 
-    , parameter wh_ruche_factor_p="inv"
+    , parameter `BSG_INV_PARAM(wh_ruche_factor_p)
 
-    , parameter num_vcache_rows_p="inv"
-    , parameter vcache_addr_width_p="inv"
-    , parameter vcache_dma_data_width_p="inv"
+    , parameter `BSG_INV_PARAM(num_vcache_rows_p)
+    , parameter `BSG_INV_PARAM(vcache_addr_width_p)
+    , parameter `BSG_INV_PARAM(vcache_dma_data_width_p)
 
     , parameter num_vcaches_per_link_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2
     , parameter num_total_vcaches_lp = (num_pods_x_p*num_pods_y_p*2*num_tiles_x_p*num_vcache_rows_p)
@@ -144,3 +146,6 @@ module vcache_dma_to_dram_channel_map
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(vcache_dma_to_dram_channel_map)
+

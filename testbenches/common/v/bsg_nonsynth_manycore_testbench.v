@@ -3,48 +3,50 @@
  *
  */
 
+`include "bsg_manycore_defines.vh"
+`include "bsg_cache.vh"
 
 module bsg_nonsynth_manycore_testbench
   import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   import bsg_tag_pkg::*;
   import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
-  #(parameter num_pods_x_p  = "inv"
-    , parameter num_pods_y_p  = "inv"
-    , parameter num_tiles_x_p = "inv"
-    , parameter num_tiles_y_p = "inv"
-    , parameter x_cord_width_p = "inv"
-    , parameter y_cord_width_p = "inv"
-    , parameter pod_x_cord_width_p = "inv"
-    , parameter pod_y_cord_width_p = "inv"
-    , parameter addr_width_p = "inv"
-    , parameter data_width_p = "inv"
-    , parameter dmem_size_p = "inv"
-    , parameter icache_entries_p = "inv"
-    , parameter icache_tag_width_p = "inv"
-    , parameter ruche_factor_X_p  = "inv"
+  #(parameter `BSG_INV_PARAM(num_pods_x_p)
+    , parameter `BSG_INV_PARAM(num_pods_y_p)
+    , parameter `BSG_INV_PARAM(num_tiles_x_p)
+    , parameter `BSG_INV_PARAM(num_tiles_y_p)
+    , parameter `BSG_INV_PARAM(x_cord_width_p)
+    , parameter `BSG_INV_PARAM(y_cord_width_p)
+    , parameter `BSG_INV_PARAM(pod_x_cord_width_p)
+    , parameter `BSG_INV_PARAM(pod_y_cord_width_p)
+    , parameter `BSG_INV_PARAM(addr_width_p)
+    , parameter `BSG_INV_PARAM(data_width_p)
+    , parameter `BSG_INV_PARAM(dmem_size_p)
+    , parameter `BSG_INV_PARAM(icache_entries_p)
+    , parameter `BSG_INV_PARAM(icache_tag_width_p)
+    , parameter `BSG_INV_PARAM(ruche_factor_X_p)
 
-    , parameter num_subarray_x_p = "inv"
-    , parameter num_subarray_y_p = "inv"
+    , parameter `BSG_INV_PARAM(num_subarray_x_p)
+    , parameter `BSG_INV_PARAM(num_subarray_y_p)
 
-    , parameter num_vcache_rows_p = "inv"
-    , parameter vcache_data_width_p = "inv"
-    , parameter vcache_sets_p = "inv"
-    , parameter vcache_ways_p = "inv"
-    , parameter vcache_block_size_in_words_p = "inv" // in words
-    , parameter vcache_dma_data_width_p = "inv" // in bits
-    , parameter vcache_size_p = "inv" // in words
-    , parameter vcache_addr_width_p="inv" // byte addr
-    , parameter num_vcaches_per_channel_p = "inv"
+    , parameter `BSG_INV_PARAM(num_vcache_rows_p)
+    , parameter `BSG_INV_PARAM(vcache_data_width_p)
+    , parameter `BSG_INV_PARAM(vcache_sets_p)
+    , parameter `BSG_INV_PARAM(vcache_ways_p)
+    , parameter `BSG_INV_PARAM(vcache_block_size_in_words_p) // in words
+    , parameter `BSG_INV_PARAM(vcache_dma_data_width_p) // in bits
+    , parameter `BSG_INV_PARAM(vcache_size_p) // in words
+    , parameter `BSG_INV_PARAM(vcache_addr_width_p) // byte addr
+    , parameter `BSG_INV_PARAM(num_vcaches_per_channel_p)
 
-    , parameter wh_flit_width_p = "inv"
+    , parameter `BSG_INV_PARAM(wh_flit_width_p)
     , parameter wh_ruche_factor_p = 2
-    , parameter wh_cid_width_p = "inv"
-    , parameter wh_len_width_p = "inv"
-    , parameter wh_cord_width_p = "inv"
+    , parameter `BSG_INV_PARAM(wh_cid_width_p)
+    , parameter `BSG_INV_PARAM(wh_len_width_p)
+    , parameter `BSG_INV_PARAM(wh_cord_width_p)
 
     , parameter bsg_manycore_mem_cfg_e bsg_manycore_mem_cfg_p = e_vcache_test_mem
-    , parameter bsg_dram_size_p ="inv" // in word
+    , parameter `BSG_INV_PARAM(bsg_dram_size_p) // in word
     , parameter reset_depth_p = 3
 
     , parameter enable_vcore_profiling_p=0
@@ -704,6 +706,8 @@ module bsg_nonsynth_manycore_testbench
 //    PROFILERS     //
 //                  //
 
+// Exponential parsing from surelog: https://github.com/chipsalliance/Surelog/issues/2035
+`ifndef SURELOG
 if (enable_vcore_profiling_p) begin
   // vanilla core profiler
    bind vanilla_core vanilla_core_profiler #(
@@ -761,6 +765,8 @@ if (enable_cache_profiling_p) begin
 
   end
 
+// Covergroups are not fully supported by Verilator 4.213
+`ifndef VERILATOR
 if (enable_router_profiling_p) begin
   bind bsg_mesh_router router_profiler #(
     .x_cord_width_p(x_cord_width_p)
@@ -788,6 +794,10 @@ if (enable_vcore_pc_coverage_p) begin
     ,.coverage_en_i($root.`HOST_MODULE_PATH.coverage_en)
   );
 end
+`endif
+`endif
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_testbench)
 

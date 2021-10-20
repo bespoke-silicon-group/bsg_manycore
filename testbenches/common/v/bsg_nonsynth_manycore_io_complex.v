@@ -5,15 +5,16 @@
  *
  */
 
+`include "bsg_manycore_defines.vh"
 
 module bsg_nonsynth_manycore_io_complex
   import bsg_manycore_pkg::*;
-  #(parameter addr_width_p="inv"
-    , parameter data_width_p="inv"
-    , parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
+  #(parameter `BSG_INV_PARAM(addr_width_p)
+    , parameter `BSG_INV_PARAM(data_width_p)
+    , parameter `BSG_INV_PARAM(x_cord_width_p)
+    , parameter `BSG_INV_PARAM(y_cord_width_p)
 
-    , parameter saif_toggle_scope_p="inv"
+    , parameter `BSG_INV_PARAM(saif_toggle_scope_p)
 
     , parameter io_x_cord_p=0 
     , parameter io_y_cord_p=1
@@ -180,3 +181,6 @@ module bsg_nonsynth_manycore_io_complex
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_io_complex)
+

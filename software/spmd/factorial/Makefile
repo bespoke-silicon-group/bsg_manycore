@@ -15,6 +15,7 @@ clean:
 	-rm -rf *.o *.jou *.log *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex *.vec
 	-rm -rf xsim.dir *.mem
 	-rm -rf ./simv csrc simv.daidir ucli.key DVEfiles *.vpd
+	-rm -rf *.fst *.fst.hier
 
 
 include ../../mk/Makefile.tail_rules

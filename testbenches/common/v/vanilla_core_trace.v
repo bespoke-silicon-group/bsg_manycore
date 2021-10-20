@@ -1,11 +1,14 @@
+
+`include "bsg_vanilla_defines.vh"
+
 module vanilla_core_trace
   import bsg_vanilla_pkg::*;
-  #(parameter x_cord_width_p="inv"
-    , parameter y_cord_width_p="inv"
-    , parameter icache_tag_width_p="inv"
-    , parameter icache_entries_p="inv"
-    , parameter data_width_p="inv"
-    , parameter dmem_size_p="inv"
+  #(parameter `BSG_INV_PARAM(x_cord_width_p)
+    , parameter `BSG_INV_PARAM(y_cord_width_p)
+    , parameter `BSG_INV_PARAM(icache_tag_width_p)
+    , parameter `BSG_INV_PARAM(icache_entries_p)
+    , parameter `BSG_INV_PARAM(data_width_p)
+    , parameter `BSG_INV_PARAM(dmem_size_p)
 
     , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
@@ -301,3 +304,6 @@ module vanilla_core_trace
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(vanilla_core_trace)
+

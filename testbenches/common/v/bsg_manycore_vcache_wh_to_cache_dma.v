@@ -7,29 +7,28 @@
  *    Intended to be used for simulation only.
  */
 
-
-`include "bsg_noc_links.vh"
-
+`include "bsg_manycore_defines.vh"
+`include "bsg_cache.vh"
 
 module bsg_manycore_vcache_wh_to_cache_dma
   import bsg_cache_pkg::*;
   import bsg_manycore_pkg::*;
-  #(parameter wh_flit_width_p="inv"
-    , parameter wh_cid_width_p="inv"
-    , parameter wh_len_width_p="inv"
-    , parameter wh_cord_width_p="inv"
-    , parameter wh_ruche_factor_p="inv"
+  #(parameter `BSG_INV_PARAM(wh_flit_width_p)
+    , parameter `BSG_INV_PARAM(wh_cid_width_p)
+    , parameter `BSG_INV_PARAM(wh_len_width_p)
+    , parameter `BSG_INV_PARAM(wh_cord_width_p)
+    , parameter `BSG_INV_PARAM(wh_ruche_factor_p)
 
-    , parameter num_vcaches_p="inv"
-    , parameter vcache_addr_width_p="inv"
-    , parameter vcache_data_width_p="inv"
-    , parameter vcache_dma_data_width_p="inv"
-    , parameter vcache_block_size_in_words_p="inv"
+    , parameter `BSG_INV_PARAM(num_vcaches_p)
+    , parameter `BSG_INV_PARAM(vcache_addr_width_p)
+    , parameter `BSG_INV_PARAM(vcache_data_width_p)
+    , parameter `BSG_INV_PARAM(vcache_dma_data_width_p)
+    , parameter `BSG_INV_PARAM(vcache_block_size_in_words_p)
 
     
-    , parameter num_pods_x_p ="inv"
+    , parameter `BSG_INV_PARAM(num_pods_x_p)
     , parameter pod_start_x_p = 0
-    , parameter num_tiles_x_p = "inv"
+    , parameter `BSG_INV_PARAM(num_tiles_x_p)
     , parameter lg_num_tiles_x_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , parameter lg_num_pods_x_lp = `BSG_SAFE_CLOG2(num_pods_x_p)
 
@@ -444,3 +443,6 @@ module bsg_manycore_vcache_wh_to_cache_dma
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_vcache_wh_to_cache_dma)
+

@@ -35,3 +35,9 @@ software/spmd/*/build/
 software/spmd/*/link_script.ld
 
 syn/results/
+
+dump.fst
+dump.fst.hier
+obj_dir/
+simsc
+slpp_unit/

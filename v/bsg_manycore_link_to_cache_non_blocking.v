@@ -5,7 +5,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_cache_non_blocking.vh"
 
 module bsg_manycore_link_to_cache_non_blocking 
   import bsg_manycore_pkg::*;
