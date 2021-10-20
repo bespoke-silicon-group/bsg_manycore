@@ -60,14 +60,17 @@ int main()
 
       for (int i = 0; i < JOBS; i++) {
           while (atomic_load(&_sync[i]) != 1);
-          bsg_print_int(i);
       }
+
+      for (int i = 0; i < bsg_tiles_X * bsg_tiles_Y - 1; i++)
+          m.release_now();
       
       // finish
       bsg_finish();
   } else {
       queue::worker w;
       w.init(&workq);
+      bsg_print_int(__bsg_id);
   }
   
   bsg_wait_while(1);
