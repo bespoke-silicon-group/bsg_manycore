@@ -10,6 +10,18 @@ static T atomic_load(volatile T *v)
     return *v;
 }
 
+template <typename T>
+static void wait_local_not_zero_asm(T *ptr)
+{
+    T tmp;
+    __asm__ __volatile__("2: lr.w %0, %1\n\t"
+                         "bnez    %0, 1f\n\t"
+                         "lr.w.aq %0, %1\n\t"
+                         "bnez    %0, 2b\n\t"
+                         "1:\n\t" : "=r" (tmp) : "A" (*ptr)); 
+    return;
+}
+
 /**
  * This must live in DRAM
  */
@@ -58,7 +70,7 @@ public:
 
                 // wait for work
                 // can use lbr here
-                while (atomic_load(&this->pending) != 1);
+                wait_local_not_zero_asm(&this->pending);
 
                 // do task
                 this->work.lambda();                
@@ -93,13 +105,15 @@ public:
             this->tq = tq;
             return;            
         }
-        // dispatch a task
-        void dispatch_now(task *t) {
+
+        // dispatch a task now, do not block on idle worker
+        int try_dispatch_now(task *t) {
             // refill ready queue if necessary
             if (this->ready_head == nullptr) {
-                // if there's no ready workers
-                // wait for an idle worker to show up
-                while (atomic_load(&this->idle_head) == nullptr);
+                // return if there's no idle
+                if (this->idle_head == nullptr)
+                    return 0;
+
                 // move to ready queue
                 this->ready_head = this->idle_head;
                 this->idle_head = nullptr;
@@ -122,7 +136,7 @@ public:
             // adding themselves to ready queue, but ready_head
             // not updated yet.
             // hopefully this is very rare...
-            if (w != this->ready_tail && wn == nullptr) {
+            if (w != this->ready_tail && wn == nullptr) {                
                 do {
                     wn = atomic_load(&w->next);
                 } while (wn == nullptr);
@@ -132,7 +146,19 @@ public:
             // notify task pending to worker
             w->pending = 1;
             this->ready_head = wn;
-        }        
+            return 1;
+        }
+
+        // dispatch a task now, block until worker available
+        void dispatch_now(task *t) {
+            // refill ready queue if necessary
+            if (this->ready_head == nullptr) {
+                // if there's no ready workers
+                // wait for an idle worker to show up
+                wait_local_not_zero_asm(&this->idle_head);                
+            }
+            try_dispatch_now(t);
+        }
     };
     std::atomic<worker*>  idle_tail; // only workers write this
     std::atomic<worker**> idle_head; // only manager sets this, worker read once
