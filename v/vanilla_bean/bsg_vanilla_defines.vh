@@ -123,7 +123,7 @@
 
 // FENCE defines
 `define RV32_FENCE_FUN3   3'b000
-`define RV32_FENCE   {4'b0000,4'b????,4'b????,5'b00000,`RV32_FENCE_FUN3,5'b00000,`RV32_MISC_MEM}
+`define RV32_FENCE_OP   {4'b????,4'b????,4'b????,5'b00000,`RV32_FENCE_FUN3,5'b00000,`RV32_MISC_MEM}
 `define RV32_FENCE_FM     4'b0000
 `define RV32_BARSEND_FM   4'b0001
 `define RV32_BARRECV_FM   4'b0010
