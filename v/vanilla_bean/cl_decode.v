@@ -124,7 +124,24 @@ assign decode_o.is_jal_op = instruction_i.op == `RV32_JAL_OP;
 assign decode_o.is_jalr_op = instruction_i.op == `RV32_JALR_OP;
 
 // MEMORY FENCE
-assign decode_o.is_fence_op = (instruction_i ==? `RV32_FENCE);
+always_comb begin
+  decode_o.is_fence_op = 1'b0;
+  decode_o.is_barsend_op = 1'b0;
+  decode_o.is_barrecv_op = 1'b0;
+  if (instruction_i ==? `RV32_FENCE_OP) begin
+    // fence FM
+    unique casez (instruction_i[31:28])
+      `RV32_FENCE_FM: decode_o.is_fence_op = 1'b1;
+      `RV32_BARSEND_FM: decode_o.is_barsend_op = 1'b1;
+      `RV32_BARRECV_FM: decode_o.is_barrecv_op = 1'b1;
+      default: begin
+        decode_o.is_fence_op = 1'b0;
+        decode_o.is_barsend_op = 1'b0;
+        decode_o.is_barrecv_op = 1'b0;
+      end
+    endcase
+  end
+end
 
 // CSR
 always_comb begin

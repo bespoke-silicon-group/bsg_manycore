@@ -117,6 +117,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_wormhole_router_output_control.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_wormhole_concentrator.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_wormhole_concentrator_in.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_wormhole_concentrator_out.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_barrier.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_launch_sync_sync.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_sync_sync.v

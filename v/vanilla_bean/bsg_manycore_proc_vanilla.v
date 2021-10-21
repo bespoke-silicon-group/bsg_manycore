@@ -43,6 +43,9 @@ module bsg_manycore_proc_vanilla
     , parameter data_mask_width_lp=(data_width_p>>3)
     , parameter reg_addr_width_lp=RV32_reg_addr_width_gp
 
+    , parameter barrier_dirs_p = "inv"
+    , parameter barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
+
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
@@ -53,6 +56,11 @@ module bsg_manycore_proc_vanilla
 
     , input [link_sif_width_lp-1:0] link_sif_i
     , output logic [link_sif_width_lp-1:0] link_sif_o
+
+    , input barrier_data_i
+    , output barrier_data_o
+    , output [barrier_dirs_p-1:0]     barrier_src_r_o
+    , output [barrier_lg_dirs_lp-1:0] barrier_dest_r_o
 
     // subcord within a pod
     , input [x_subcord_width_lp-1:0] my_x_i
@@ -332,6 +340,7 @@ module bsg_manycore_proc_vanilla
     ,.fwd_fifo_els_p(fwd_fifo_els_p)
     ,.pod_x_cord_width_p(pod_x_cord_width_p)
     ,.pod_y_cord_width_p(pod_y_cord_width_p)		 		 
+    ,.barrier_dirs_p(barrier_dirs_p)
   ) vcore (
     .clk_i(clk_i)
     ,.reset_i(freeze)
@@ -376,6 +385,11 @@ module bsg_manycore_proc_vanilla
     ,.remote_interrupt_set_i(remote_interrupt_set_lo)
     ,.remote_interrupt_clear_i(remote_interrupt_clear_lo)
     ,.remote_interrupt_pending_bit_o(remote_interrupt_pending_bit_li)
+
+    ,.barrier_data_i(barrier_data_i)
+    ,.barrier_data_o(barrier_data_o)
+    ,.barrier_src_r_o(barrier_src_r_o)
+    ,.barrier_dest_r_o(barrier_dest_r_o)
 
     ,.cfg_pod_x_o(cfg_pod_x_lo)
     ,.cfg_pod_y_o(cfg_pod_y_lo)	

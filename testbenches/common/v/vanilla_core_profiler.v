@@ -62,6 +62,7 @@ module vanilla_core_profiler
     , input stall_fcsr
     , input stall_remote_req
     , input stall_remote_credit
+    , input stall_barrier
 
     , input stall_remote_ld_wb
     , input stall_ifetch_wait
@@ -246,6 +247,10 @@ module vanilla_core_profiler
   wire csrrwi_inc = (exe_r.instruction ==? `RV32_CSRRWI);
   wire csrrsi_inc = (exe_r.instruction ==? `RV32_CSRRSI);
   wire csrrci_inc = (exe_r.instruction ==? `RV32_CSRRCI);
+
+  // Barrier Instruction
+  wire barsend_inc = (exe_r.instruction ==? `RV32_FENCE_OP) & (exe_r.instruction[31:28] == `RV32_BARSEND_FM);
+  wire barrecv_inc = (exe_r.instruction ==? `RV32_FENCE_OP) & (exe_r.instruction[31:28] == `RV32_BARRECV_FM);
 
   // remote/local scoreboard tracking 
   //
@@ -449,7 +454,8 @@ module vanilla_core_profiler
     e_exe_bubble_stall_fdiv_busy,
     e_exe_bubble_stall_idiv_busy,
     e_exe_bubble_stall_fcsr,
-    
+    e_exe_bubble_stall_barrier,    
+
     e_exe_no_bubble
   } exe_bubble_type_e;
 
@@ -551,6 +557,10 @@ module vanilla_core_profiler
           exe_bubble_r <= e_exe_bubble_stall_fcsr;
           exe_bubble_pc_r <= id_pc;
         end
+        else if (stall_barrier) begin
+          exe_bubble_r <= e_exe_bubble_stall_barrier;
+          exe_bubble_pc_r <= id_pc;
+        end
         else begin
           exe_bubble_r <= e_exe_no_bubble;
           exe_bubble_pc_r <= '0;
@@ -580,6 +590,7 @@ module vanilla_core_profiler
   wire stall_fdiv_busy_inc = (exe_bubble_r == e_exe_bubble_stall_fdiv_busy);
   wire stall_idiv_busy_inc = (exe_bubble_r == e_exe_bubble_stall_idiv_busy);
   wire stall_fcsr_inc = (exe_bubble_r == e_exe_bubble_stall_fcsr);
+  wire stall_barrier_inc = (exe_bubble_r == e_exe_bubble_stall_barrier);
   
   
   // profiling counters
@@ -695,7 +706,10 @@ module vanilla_core_profiler
     integer csrrwi;
     integer csrrsi;
     integer csrrci;
-  
+      
+    integer barsend;
+    integer barrecv;
+
     integer branch_miss_bubble;
     integer jalr_miss_bubble;
     integer icache_miss_bubble;
@@ -716,6 +730,7 @@ module vanilla_core_profiler
     integer stall_fdiv_busy;
     integer stall_idiv_busy;
     integer stall_fcsr;
+    integer stall_barrier;
 
     integer stall_remote_ld_wb;
     integer stall_ifetch_wait;
@@ -861,6 +876,9 @@ module vanilla_core_profiler
         else if (csrrsi_inc) stat_r.csrrsi++;
         else if (csrrci_inc) stat_r.csrrci++;
 
+        else if (barsend_inc) stat_r.barsend++;
+        else if (barrecv_inc) stat_r.barrecv++;
+
         else if (branch_miss_bubble_inc) stat_r.branch_miss_bubble++;
         else if (jalr_miss_bubble_inc) stat_r.jalr_miss_bubble++;
         else if (icache_miss_bubble_inc) stat_r.icache_miss_bubble++;
@@ -881,6 +899,7 @@ module vanilla_core_profiler
         else if (stall_fdiv_busy_inc) stat_r.stall_fdiv_busy++;
         else if (stall_idiv_busy_inc) stat_r.stall_idiv_busy++;
         else if (stall_fcsr_inc) stat_r.stall_fcsr++;
+        else if (stall_barrier_inc) stat_r.stall_barrier++;
 
       end
 
@@ -1024,6 +1043,9 @@ module vanilla_core_profiler
       $fwrite(fd, "instr_csrrsi,");
       $fwrite(fd, "instr_csrrci,");
 
+      $fwrite(fd, "instr_barsend,");
+      $fwrite(fd, "instr_barrecv,");
+
       $fwrite(fd, "bubble_branch_miss,");
       $fwrite(fd, "bubble_jalr_miss,");
       $fwrite(fd, "bubble_icache_miss,");
@@ -1044,6 +1066,7 @@ module vanilla_core_profiler
       $fwrite(fd, "stall_fdiv_busy,");
       $fwrite(fd, "stall_idiv_busy,");
       $fwrite(fd, "stall_fcsr,");
+      $fwrite(fd, "stall_barrier,");
 
       $fwrite(fd, "stall_remote_ld_wb,");
       $fwrite(fd, "stall_ifetch_wait,");
@@ -1182,6 +1205,9 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.csrrwi);
           $fwrite(fd, "%0d,", stat_r.csrrsi);
           $fwrite(fd, "%0d,", stat_r.csrrci);
+
+          $fwrite(fd, "%0d,", stat_r.barsend);
+          $fwrite(fd, "%0d,", stat_r.barrecv);
    
           $fwrite(fd, "%0d,", stat_r.branch_miss_bubble);   
           $fwrite(fd, "%0d,", stat_r.jalr_miss_bubble);   
@@ -1203,6 +1229,7 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.stall_fdiv_busy);
           $fwrite(fd, "%0d,", stat_r.stall_idiv_busy);
           $fwrite(fd, "%0d,", stat_r.stall_fcsr);
+          $fwrite(fd, "%0d,", stat_r.stall_barrier);
     
           $fwrite(fd, "%0d,", stat_r.stall_remote_ld_wb);
           $fwrite(fd, "%0d,", stat_r.stall_ifetch_wait);
@@ -1324,6 +1351,9 @@ module vanilla_core_profiler
           else if (csrrsi_inc) print_operation_trace(fd2, "csrrsi", exe_pc);
           else if (csrrci_inc) print_operation_trace(fd2, "csrrci", exe_pc);
 
+          else if (barsend_inc) print_operation_trace(fd2, "barsend", exe_pc);
+          else if (barrecv_inc) print_operation_trace(fd2, "barrecv", exe_pc);
+
           else if (branch_miss_bubble_inc) print_operation_trace(fd2, "bubble_branch_miss", exe_bubble_pc_r);
           else if (jalr_miss_bubble_inc) print_operation_trace(fd2, "bubble_jalr_miss", exe_bubble_pc_r);
           else if (icache_miss_bubble_inc) print_operation_trace(fd2, "bubble_icache_miss", exe_bubble_pc_r);
@@ -1344,6 +1374,7 @@ module vanilla_core_profiler
           else if (stall_fdiv_busy_inc) print_operation_trace(fd2, "stall_fdiv_busy", exe_bubble_pc_r);
           else if (stall_idiv_busy_inc) print_operation_trace(fd2, "stall_idiv_busy", exe_bubble_pc_r);
           else if (stall_fcsr_inc) print_operation_trace(fd2, "stall_fcsr", exe_bubble_pc_r);
+          else if (stall_barrier_inc) print_operation_trace(fd2, "stall_barrier", exe_bubble_pc_r);
 
           else if (stall_remote_ld_wb) print_operation_trace(fd2, "stall_remote_ld", exe_pc);
           else if (stall_ifetch_wait) print_operation_trace(fd2, "stall_ifetch_wait", exe_pc);

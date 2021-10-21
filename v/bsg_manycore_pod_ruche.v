@@ -47,6 +47,7 @@ module bsg_manycore_pod_ruche
     , `BSG_INV_PARAM(vcache_dma_data_width_p)
 
     , `BSG_INV_PARAM(ruche_factor_X_p)
+    , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
   
     , `BSG_INV_PARAM(wh_ruche_factor_p)
     , `BSG_INV_PARAM(wh_cid_width_p)
@@ -88,6 +89,11 @@ module bsg_manycore_pod_ruche
     , input  [E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0][manycore_ruche_link_sif_width_lp-1:0] ruche_link_i
     , output [E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0][manycore_ruche_link_sif_width_lp-1:0] ruche_link_o
 
+    , input  [E:W][num_tiles_y_p-1:0] hor_barrier_link_i
+    , output [E:W][num_tiles_y_p-1:0] hor_barrier_link_o
+
+    , input  [E:W][num_tiles_y_p-1:0][barrier_ruche_factor_X_p-1:0] barrier_ruche_link_i
+    , output [E:W][num_tiles_y_p-1:0][barrier_ruche_factor_X_p-1:0] barrier_ruche_link_o
 
     // vcache
     , input  [E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] north_wh_link_sif_i
@@ -212,6 +218,11 @@ module bsg_manycore_pod_ruche
   logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] mc_reset_li;
   logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] mc_reset_lo;
 
+  logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] mc_ver_barrier_link_li, mc_ver_barrier_link_lo;
+  logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][E:W][subarray_num_tiles_y_lp-1:0] mc_hor_barrier_link_li, mc_hor_barrier_link_lo;
+  logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][E:W][subarray_num_tiles_y_lp-1:0][barrier_ruche_factor_X_p-1:0] mc_barrier_ruche_link_li, mc_barrier_ruche_link_lo;
+  
+
   // Split the hetero_type_vec_p array into sub-arrays.
   `ifndef SYNTHESIS
   typedef int hetero_type_sub_vec[0:(subarray_num_tiles_y_lp*subarray_num_tiles_x_lp) - 1];
@@ -250,6 +261,7 @@ module bsg_manycore_pod_ruche
         ,.addr_width_p(addr_width_p)
         ,.data_width_p(data_width_p)
         ,.ruche_factor_X_p(ruche_factor_X_p)
+        ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
           `ifndef SYNTHESIS
         ,.hetero_type_vec_p(get_subarray_hetero_type_vec(y, x))
           `endif
@@ -269,6 +281,13 @@ module bsg_manycore_pod_ruche
         ,.ruche_link_i(mc_ruche_link_li[y][x])
         ,.ruche_link_o(mc_ruche_link_lo[y][x])
 
+        ,.ver_barrier_link_i(mc_ver_barrier_link_li[y][x])
+        ,.ver_barrier_link_o(mc_ver_barrier_link_lo[y][x])
+        ,.hor_barrier_link_i(mc_hor_barrier_link_li[y][x])
+        ,.hor_barrier_link_o(mc_hor_barrier_link_lo[y][x])
+        ,.barrier_ruche_link_i(mc_barrier_ruche_link_li[y][x])
+        ,.barrier_ruche_link_o(mc_barrier_ruche_link_lo[y][x])
+
         ,.global_x_i(mc_global_x_li[y][x])
         ,.global_y_i(mc_global_y_li[y][x])
         ,.global_x_o(mc_global_x_lo[y][x])
@@ -285,6 +304,8 @@ module bsg_manycore_pod_ruche
         assign mc_global_y_li[y][x] = north_vc_global_y_lo[x];
         // reset
         assign mc_reset_li[y][x] = north_vc_reset_lo[x];
+        // tieoff ver barrier
+        assign mc_ver_barrier_link_li[y][x][N] = '0;
       end
   
       // connect ver links to the next row
@@ -297,6 +318,15 @@ module bsg_manycore_pod_ruche
         assign mc_global_y_li[y+1][x] = mc_global_y_lo[y][x];
         // reset
         assign mc_reset_li[y+1][x] = mc_reset_lo[y][x];
+        // ver barrier
+        assign mc_ver_barrier_link_li[y+1][x][N] = mc_ver_barrier_link_lo[y][x][S];
+        assign mc_ver_barrier_link_li[y][x][S] = mc_ver_barrier_link_lo[y+1][x][N];
+      end
+    
+      // last row
+      if (y == num_subarray_y_p-1) begin
+        // tieoff ver barrier
+        assign mc_ver_barrier_link_li[y][x][S] = '0;
       end
 
       // connect to west
@@ -307,6 +337,12 @@ module bsg_manycore_pod_ruche
         // ruche link
         assign ruche_link_o[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_ruche_link_lo[y][x][W];
         assign mc_ruche_link_li[y][x][W] = ruche_link_i[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
+        // hor barrier
+        assign hor_barrier_link_o[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_hor_barrier_link_lo[y][x][W];
+        assign mc_hor_barrier_link_li[y][x][W] = hor_barrier_link_i[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
+        // barrier ruche
+        assign barrier_ruche_link_o[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_barrier_ruche_link_lo[y][x][W];
+        assign mc_barrier_ruche_link_li[y][x][W] = barrier_ruche_link_i[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
       end
 
       // connect hor links to the next col
@@ -317,6 +353,12 @@ module bsg_manycore_pod_ruche
         // ruche
         assign mc_ruche_link_li[y][x+1][W] = mc_ruche_link_lo[y][x][E];
         assign mc_ruche_link_li[y][x][E] = mc_ruche_link_lo[y][x+1][W];
+        // hor barrier
+        assign mc_hor_barrier_link_li[y][x+1][W] = mc_hor_barrier_link_lo[y][x][E];
+        assign mc_hor_barrier_link_li[y][x][E] = mc_hor_barrier_link_lo[y][x+1][W];
+        // barrier ruche
+        assign mc_barrier_ruche_link_li[y][x+1][W] = mc_barrier_ruche_link_lo[y][x][E];
+        assign mc_barrier_ruche_link_li[y][x][E] = mc_barrier_ruche_link_lo[y][x+1][W];
       end
 
       // connect to east
@@ -327,11 +369,16 @@ module bsg_manycore_pod_ruche
         // ruche
         assign ruche_link_o[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_ruche_link_lo[y][x][E];
         assign mc_ruche_link_li[y][x][E] = ruche_link_i[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
+        // hor barrier
+        assign hor_barrier_link_o[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_hor_barrier_link_lo[y][x][E];
+        assign mc_hor_barrier_link_li[y][x][E] = hor_barrier_link_i[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
+        // barrier ruche
+        assign barrier_ruche_link_o[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_barrier_ruche_link_lo[y][x][E];
+        assign mc_barrier_ruche_link_li[y][x][E] = barrier_ruche_link_i[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
       end
 
     end
   end
-
 
   // vcache row (south)
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] south_vc_reset_li;

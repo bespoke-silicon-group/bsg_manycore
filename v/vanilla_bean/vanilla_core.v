@@ -23,7 +23,9 @@ module vanilla_core
 
     , `BSG_INV_PARAM(pod_x_cord_width_p)
     , `BSG_INV_PARAM(pod_y_cord_width_p)
+    , `BSG_INV_PARAM(barrier_dirs_p)
     
+    , parameter barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
 
     // For network input FIFO credit counting
@@ -37,7 +39,6 @@ module vanilla_core
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
     , parameter data_mask_width_lp=(data_width_p>>3)
-
 
     , parameter debug_p=0
   )
@@ -91,6 +92,13 @@ module vanilla_core
     // remaining credits
     , input [credit_counter_width_p-1:0] out_credits_used_i    
 
+    // barrier interface
+    , input barrier_data_i
+    , output barrier_data_o
+    , output [barrier_dirs_p-1:0] barrier_src_r_o
+    , output [barrier_lg_dirs_lp-1:0] barrier_dest_r_o
+
+    // pod csr coord.
     , output [pod_x_cord_width_p-1:0] cfg_pod_x_o
     , output [pod_y_cord_width_p-1:0] cfg_pod_y_o
    
@@ -363,10 +371,13 @@ module vanilla_core
   logic [pc_width_lp-1:0] mepc_r;
   logic [credit_counter_width_p-1:0] credit_limit_r;
    
+  logic mcsr_barsend_li;
+
   mcsr #(
     .pc_width_p(pc_width_lp)
     ,.credit_counter_width_p(credit_counter_width_p)
     ,.cfg_pod_width_p(pod_y_cord_width_p+pod_x_cord_width_p)
+    ,.barrier_dirs_p(barrier_dirs_p)
   ) mcsr0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -390,11 +401,17 @@ module vanilla_core
     ,.mret_called_i(mcsr_mret_called_li)
     ,.npc_r_i(mcsr_npc_r_li)
 
+    ,.barsend_i(mcsr_barsend_li)
+    ,.barrier_data_i(barrier_data_i)
+    ,.barrier_data_o(barrier_data_o)
+
     ,.mstatus_r_o(mstatus_r)
     ,.mip_r_o(mip_r)
     ,.mie_r_o(mie_r)
     ,.mepc_r_o(mepc_r)
     ,.credit_limit_o(credit_limit_r)
+    ,.barrier_src_r_o(barrier_src_r_o)
+    ,.barrier_dest_r_o(barrier_dest_r_o)
   );
 
   // Sensitivity list like this is disliked by Verilator 4.213
@@ -1079,6 +1096,7 @@ module vanilla_core
   logic stall_fdiv_busy;
   logic stall_idiv_busy;
   logic stall_fcsr;
+  logic stall_barrier;
 
   // MEM stall signals
   logic stall_idiv_wb;
@@ -1101,7 +1119,8 @@ module vanilla_core
     | stall_remote_credit
     | stall_fdiv_busy
     | stall_idiv_busy
-    | stall_fcsr;
+    | stall_fcsr
+    | stall_barrier;
 
   wire stall_all = stall_icache_store
     | stall_idiv_wb
@@ -1117,6 +1136,9 @@ module vanilla_core
   // 3) interrupt taken
   wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op) | interrupt_ready;
   wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_ctrl_r.icache_miss | wb_ctrl_r.icache_miss;
+
+  // ID stage is not stalled and not flushed.
+  wire id_issue = ~stall_id & ~stall_all & ~flush;
 
   // reset edge down detect
   logic reset_r;
@@ -1388,7 +1410,7 @@ module vanilla_core
   logic [lg_fwd_fifo_els_lp-1:0] remote_req_counter_r;
   wire local_mem_op_restore = (lsu_dmem_v_lo & ~exe_r.decode.is_lr_op & ~exe_r.decode.is_lr_aq_op) & ~stall_all;
   wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.icache_miss);
-  wire memory_op_issued = id_remote_req_op & ~flush & ~stall_id & ~stall_all;
+  wire memory_op_issued = id_remote_req_op & id_issue;
   wire [lg_fwd_fifo_els_lp-1:0] remote_req_available =
     remote_req_counter_r +
     remote_req_credit_i +
@@ -1489,12 +1511,12 @@ module vanilla_core
 
 
   // AMO aq control
-  assign aq_set = (id_r.decode.is_amo_op & id_r.decode.is_amo_aq) & ~flush & ~stall_all & ~stall_id;
+  assign aq_set = (id_r.decode.is_amo_op & id_r.decode.is_amo_aq) & id_issue;
   assign aq_clear = int_rf_wen & (int_rf_waddr == aq_rd_r);
 
 
   // FCSR control
-  assign fcsr_v_li = (id_r.decode.is_csr_op) & ~flush & ~stall_all & ~stall_id; 
+  assign fcsr_v_li = (id_r.decode.is_csr_op) & id_issue; 
   assign fcsr_funct3_li = id_r.instruction.funct3;
   assign fcsr_rs1_li = id_r.instruction.rs1;
   assign fcsr_data_li = rs1_val_to_exe[7:0];
@@ -1502,15 +1524,16 @@ module vanilla_core
 
 
   // interrupt / CSR control
-  assign mcsr_we_li = (id_r.decode.is_csr_op) & ~flush & ~stall_all & ~stall_id;
+  assign mcsr_we_li = (id_r.decode.is_csr_op) & id_issue;
   assign mcsr_data_li = rs1_val_to_exe;
-  assign mcsr_instr_executed_li = id_r.valid & ~flush & ~stall_all & ~stall_id & mstatus_r.mie; // trace interrupt pending can be set outside interrupt.
+  assign mcsr_instr_executed_li = id_r.valid & id_issue & mstatus_r.mie; // trace interrupt pending can be set outside interrupt.
   assign mcsr_interrupt_entered_li = interrupt_ready & ~stall_all;
   assign mcsr_mret_called_li = exe_r.decode.is_mret_op & ~stall_all;
   assign mcsr_npc_r_li = npc_r;
   
-
-
+  // barrier control
+  assign mcsr_barsend_li = id_r.decode.is_barsend_op & id_issue;
+  assign stall_barrier = id_r.decode.is_barrecv_op & (barrier_data_i != barrier_data_o);
 
   // ID -> EXE
   // update npc_r, when the pipeline is not stalled, and there is a valid instruction in EXE/FP_EXE;

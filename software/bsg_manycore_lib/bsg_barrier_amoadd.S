@@ -63,7 +63,10 @@ bsg_barrier_amoadd_wakeup_loop_x:
 bsg_barrier_amoadd_sleep:
   lr.w t0, 0(a1)
   beq t3, t0, bsg_barrier_amoadd_end
+  // we need to check this, in order to support the reservation
+  // being cleared by a context switch
   lr.w.aq t0, 0(a1)
+  beq t3, t0, bsg_barrier_amoadd_sleep
 
 
 bsg_barrier_amoadd_end:
