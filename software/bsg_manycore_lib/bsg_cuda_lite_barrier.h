@@ -18,6 +18,8 @@ static inline void bsg_barrier_hw_tile_group_init()
     // initalize csr
     int cfg = __cuda_barrier_cfg[1+__bsg_id];
     asm volatile ("csrrw x0, 0xfc1, %0" : : "r" (cfg));
+    // reset Pi
+    asm volatile ("csrrw x0, 0xfc2, x0");
     // sync with amoadd barrier
     bsg_barrier_amoadd(&__cuda_barrier_cfg[0], &sense);
 }
