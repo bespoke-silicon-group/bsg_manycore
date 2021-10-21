@@ -8,6 +8,10 @@ extern "C" {
 #endif
 extern int *__cuda_barrier_cfg;
 
+/**
+ * Initialize the tile-group barrier.
+ * This function should only be called once for the lifetime of the tile-group.
+ */
 static inline void bsg_barrier_hw_tile_group_init()
 {
     int sense = 1;
@@ -18,6 +22,9 @@ static inline void bsg_barrier_hw_tile_group_init()
     bsg_barrier_amoadd(&__cuda_barrier_cfg[0], &sense);
 }
 
+/**
+ * Invoke the tile-group barrier.
+ */
 static inline void bsg_barrier_hw_tile_group_sync()
 {
     bsg_barsend();
