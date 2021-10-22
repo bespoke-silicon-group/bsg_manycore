@@ -504,6 +504,9 @@ module bsg_nonsynth_manycore_testbench
         ,.data_o              (dramsim3_data_lo[hbm2_num_channels_p*i+:hbm2_num_channels_p])
         ,.read_done_ch_addr_o (dramsim3_read_done_ch_addr_lo[hbm2_num_channels_p*i+:hbm2_num_channels_p])
 
+
+        ,.print_stat_clk_i    (clk_i)
+        ,.print_stat_reset_i  (reset_r)
         ,.print_stat_v_i      ($root.`HOST_MODULE_PATH.print_stat_v)
         ,.print_stat_tag_i    ($root.`HOST_MODULE_PATH.print_stat_tag)
 
