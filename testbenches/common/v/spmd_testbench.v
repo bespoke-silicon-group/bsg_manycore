@@ -52,7 +52,7 @@ module spmd_testbench
 
 
   // clock and reset
-  parameter core_clk_period_p = 1200; // 1000 ps == 1 GHz
+  parameter core_clk_period_p = 1000; // 1000 ps == 1 GHz
   parameter dram_clk_period_p = 1000; // 1000 ps == 1 GHz
   bit core_clk;
   bit global_reset;
