@@ -3,63 +3,65 @@
 #include "bsg_work_queue.hpp"
 #include "bsg_mcs_mutex.h"
 
-#define JOBS 100
-
 __attribute__((section(".dram")))
 int b_l = 0;
 int b_s = 1;
 extern "C" void bsg_barrier_amoadd(int *l, int *s);
 
+struct QueueW {
+    struct Queue q;
+    char padding [VCACHE_BLOCK_SIZE_WORDS*4-sizeof(Queue)];
+};
+
+__attribute__((section(".dram"), aligned(VCACHE_BLOCK_SIZE_WORDS*4 * bsg_tiles_X * 2)))
+QueueW queue [bsg_tiles_X * bsg_tiles_Y];
+
+int q_select;
+
 __attribute__((section(".dram")))
-task_queue workq;
+Job jobs[bsg_tiles_X * bsg_tiles_Y];
+
+static void job_first();
+static void say_hi()
+{
+    bsg_print_int(__bsg_id);
+    if (__bsg_id == 0)
+        bsg_finish();
+    
+    Job *j = &jobs[__bsg_id];
+    j->func = (Job::Function)say_hi;
+    Queue *q = &queue[(q_select+1)%(bsg_tiles_X*bsg_tiles_Y)].q;
+    q->enqueue(j);
+}        
+
+static void start()
+{
+    Job *j = &jobs[__bsg_id];
+    j->func = (Job::Function)say_hi;
+    Queue *q = &queue[(q_select+1)%(bsg_tiles_X*bsg_tiles_Y)].q;
+    q->enqueue(j);
+}
 
 //#define DEBUG
 int main()
-{
-
-  bsg_set_tile_x_y();
-
-  manager m;
-  if (__bsg_x == bsg_tiles_X/2
-      && __bsg_y == bsg_tiles_Y/2)
-      manager_init(&m, &workq);
-
-  bsg_barrier_amoadd(&b_l, &b_s);
-  
-  if (__bsg_x == bsg_tiles_X/2
-      && __bsg_y == bsg_tiles_Y/2) {
-      // jobs
-      job<1> job [JOBS];
-      int  _sync [JOBS] = {};
-      int *sync = bsg_tile_group_remote_pointer(__bsg_x, __bsg_y, _sync);
-
-      // enqueue jobs
-      for (int i = 0; i < JOBS; i++) {
-          task_clear(&job[i].t);
-          // enqueue a job with sync
-          manager_dispatch_job_now_sync(
-              &m, &job[i] , &sync[i]
-              , [] (task *t) {
-                  bsg_print_int(t->data[0]);
-              }
-              , i);
-      }
-
-      // dispatch all jobs
-      // manager_dispatch_all(&m);
-
-      // wait for jobs to complete
-      for (int i = 0; i < JOBS; i++) {
-          int *sp = bsg_tile_group_remote_pointer(__bsg_x, __bsg_y, &_sync[i]);
-          while (atomic_load(sp) != 1);
-      }
-
-      // finish
-      bsg_finish();
-  } else {
-      worker w;
-      worker_init(&w, &workq);
-  }
-  
-  bsg_wait_while(1);
+{    
+    bsg_set_tile_x_y();
+    Worker w;
+    int south_not_north = __bsg_y/(bsg_tiles_Y/2);
+    int grp_y = (__bsg_y % (bsg_tiles_Y/2));
+    q_select = (grp_y << 5) | (south_not_north << 4) |__bsg_x;
+    //q_select = __bsg_id;
+    w.init(&queue[q_select].q);
+    bsg_barrier_amoadd(&b_l, &b_s);
+    /*
+     * Enqueue first job onto your work queue
+     */
+    if (__bsg_x == bsg_tiles_X/2 &&
+        __bsg_y == bsg_tiles_Y/2) {
+        Job *j = &jobs[__bsg_id];
+        Queue *q = &queue[q_select].q;        
+        j->func = (Job::Function)start;
+        q->enqueue(j);        
+    }
+    w.loop();
 }
