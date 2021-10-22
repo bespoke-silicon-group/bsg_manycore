@@ -149,8 +149,10 @@ module fpu_float_fma
   mulAddRecFNToRaw #(
     .expWidth(exp_width_p)
     ,.sigWidth(sig_width_p)
+    ,.pipelineStages(0)
   ) mulAdd0 (
-    .control(`flControl_default)
+    .clock(1'b0) // not used
+    ,.control(`flControl_default)
     ,.op(fma_op_li)
     ,.a(fma_a_li)
     ,.b(fma_b_li)
