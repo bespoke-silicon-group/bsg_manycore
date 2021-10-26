@@ -53,6 +53,7 @@ module spmd_testbench
 
   // clock and reset
   parameter core_clk_period_p = 1000; // 1000 ps == 1 GHz
+  parameter dram_clk_period_p = 1000; // 1000 ps == 1 GHz
   bit core_clk;
   bit global_reset;
   bsg_nonsynth_clock_gen #(
@@ -69,6 +70,13 @@ module spmd_testbench
     ,.async_reset_o(global_reset)
   );
 
+  bit dram_clk;
+  bsg_nonsynth_clock_gen #(
+    .cycle_time_p(core_clk_period_p)
+  ) dram_cg (
+    .o(dram_clk)
+  );
+  
 
   // testbench
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
@@ -127,6 +135,8 @@ module spmd_testbench
   ) tb (
     .clk_i(core_clk)
     ,.reset_i(global_reset)
+
+    ,.dram_clk_i(dram_clk)
 
     ,.io_link_sif_i(io_link_sif_li)
     ,.io_link_sif_o(io_link_sif_lo)

@@ -70,6 +70,8 @@ module bsg_nonsynth_manycore_testbench
     input clk_i
     , input reset_i
 
+    , input dram_clk_i
+
     , output tag_done_o
     
     , input  [link_sif_width_lp-1:0] io_link_sif_i
@@ -129,6 +131,13 @@ module bsg_nonsynth_manycore_testbench
     .clk_i(clk_i)
     ,.data_i(reset)
     ,.data_o(reset_r)
+  );
+
+  logic dram_reset_r;
+  bsg_sync_sync #(.width_p(1)) dram_reset_bss (
+    .oclk_i(dram_clk_i)
+    ,.iclk_data_i(reset_r)
+    ,.oclk_data_o(dram_reset_r)
   );
 
 
@@ -478,8 +487,8 @@ module bsg_nonsynth_manycore_testbench
         ,.init_mem_p          (1)
         ,.base_id_p           (i*hbm2_num_channels_p)
       ) hbm0 (
-        .clk_i                (clk_i)
-        ,.reset_i             (reset_r)
+        .clk_i                (dram_clk_i)
+        ,.reset_i             (dram_reset_r)
       
         ,.v_i                 (dramsim3_v_li[hbm2_num_channels_p*i+:hbm2_num_channels_p])
         ,.write_not_read_i    (dramsim3_write_not_read_li[hbm2_num_channels_p*i+:hbm2_num_channels_p])
@@ -495,6 +504,9 @@ module bsg_nonsynth_manycore_testbench
         ,.data_o              (dramsim3_data_lo[hbm2_num_channels_p*i+:hbm2_num_channels_p])
         ,.read_done_ch_addr_o (dramsim3_read_done_ch_addr_lo[hbm2_num_channels_p*i+:hbm2_num_channels_p])
 
+
+        ,.print_stat_clk_i    (clk_i)
+        ,.print_stat_reset_i  (reset_r)
         ,.print_stat_v_i      ($root.`HOST_MODULE_PATH.print_stat_v)
         ,.print_stat_tag_i    ($root.`HOST_MODULE_PATH.print_stat_tag)
 
@@ -546,8 +558,8 @@ module bsg_nonsynth_manycore_testbench
         ,.dma_data_yumi_o     (remapped_dma_data_yumi_li[i])
 
 
-        ,.dram_clk_i              (clk_i)
-        ,.dram_reset_i            (reset_r)
+        ,.dram_clk_i              (dram_clk_i)
+        ,.dram_reset_i            (dram_reset_r)
     
         ,.dram_req_v_o            (dramsim3_v_li[i])
         ,.dram_write_not_read_o   (dramsim3_write_not_read_li[i])
