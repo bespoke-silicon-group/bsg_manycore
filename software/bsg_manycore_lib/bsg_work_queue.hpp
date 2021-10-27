@@ -25,10 +25,11 @@ struct Job {
 struct JobQueue {
     std::atomic<Job*> ready_tail;
     Job **            ready_head;
+
     /**
      * Enqueue a job
      */
-    void enqueue(Job *j) {        
+    void enqueue(Job *j) {
         Job *old_tail = this->ready_tail.exchange(j, std::memory_order_relaxed);
         Job **rh = this->ready_head;
         bsg_compiler_memory_barrier();
