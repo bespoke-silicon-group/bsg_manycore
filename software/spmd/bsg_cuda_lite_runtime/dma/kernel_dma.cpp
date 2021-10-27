@@ -7,8 +7,10 @@ extern "C" __attribute__ ((noinline))
 int kernel_dma(int *A, int *B, int n) {
 
     if (__bsg_id == 0) {
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < n; i++) {
+            bsg_print_int(A[i]);
             B[i] = A[i];
+        }
     }
 
     return 0;

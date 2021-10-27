@@ -20,7 +20,7 @@ struct Job {
 /**
  * Must live in DRAM
  */
-struct Queue {
+struct JobQueue {
     std::atomic<Job*> ready_tail;
     Job **            ready_head;
     /**
@@ -36,6 +36,40 @@ struct Queue {
             old_tail->next = j;
         }
     }
+
+    /**
+     * Enqueue a list of jobs
+     */
+    void enqueue_jobl(Job *h, Job *t) {
+        Job *old_tail = this->ready_tail.exchange(t, std::memory_order_relaxed);
+        Job **rh = this->ready_head;
+        bsg_compiler_memory_barrier();
+        if (old_tail == nullptr) {
+            *rh = h;
+        } else {
+            old_tail->next = h;
+        }
+    }
+    /**
+     * Enqueue a vector of jobs
+     */
+    void enqueue_jobv(Job *begin, Job *end) {
+        int n = end-begin;
+        int i = 0;
+        // vectorize
+        for (; i + 8 < n-1; i += 8) {
+            bsg_unroll(8)
+            for (int j = 0; j < 8; j++) {
+                begin[i+j].next = &begin[i+j+1];
+            }
+        }
+        // strip mine
+        for (; i < n-1; i++) {
+            begin[i].next = &begin[i+1];
+        }
+        begin[n-1].next = nullptr;
+        enqueue_jobl(&begin[0], &begin[n-1]);
+    }
 };
 
 
@@ -47,8 +81,8 @@ struct Worker {
     Job   *pending_head;
     Job   *pending_tail;
     Job    job;
-    Queue *queue;
-    void init(Queue *q) {
+    JobQueue *queue;
+    void init(JobQueue *q) {
         this->queue = q;
         Worker *self = bsg_tile_group_remote_pointer<Worker>(__bsg_x, __bsg_y, this);
         this->queue->ready_head = &(self->ready_head);

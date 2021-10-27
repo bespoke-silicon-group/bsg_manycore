@@ -29,7 +29,15 @@
 #include <atomic>
 #include "bsg_manycore.h"
 #include "bsg_tile_config_vars.h"
-#include "bsg_tile_group_barrier.h"
+
+static int bsg_wait_local_int_asm (int *ptr, int cond)
+{ int tmp; __asm__ __volatile__("2: lr.w %0, %1\n\t"
+                                "beq %0, %2, 1f\n\t"
+                                "lr.w.aq %0, %1\n\t"
+                                "bne %0, %2, 2b\n\t"
+                                "1:\n\t" : "=&r" (tmp) : "A" (*ptr), "r" (cond)); 
+  return tmp; 
+}
 
 template <typename T>
 static T atomic_load(volatile T *ptr) {
