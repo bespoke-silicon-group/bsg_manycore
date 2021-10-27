@@ -2,6 +2,8 @@
 #include "bsg_set_tile_x_y.h"
 #include "bsg_work_queue.hpp"
 #include "bsg_mcs_mutex.h"
+#include "bsg_malloc_amoadd.h"
+#include "string.h"
 
 __attribute__((section(".dram")))
 int b_l = 0;
@@ -18,29 +20,31 @@ QueueW queue [bsg_tiles_X * bsg_tiles_Y];
 
 int q_select;
 
-__attribute__((section(".dram")))
-Job jobs[bsg_tiles_X * bsg_tiles_Y];
+#define JOBS 1024
 
-static void job_first();
-static void say_hi()
+static void finish(int x)
 {
-    bsg_print_int(__bsg_id);
-    if (__bsg_id == 0)
+    static int count = 0;
+    count += x;
+    bsg_print_int(count);
+    if (count == JOBS)
         bsg_finish();
-    
-    Job *j = &jobs[__bsg_id];
-    j->func = (Job::Function)say_hi;
-    JobQueue *q = &queue[(q_select+1)%(bsg_tiles_X*bsg_tiles_Y)].q;
-    q->enqueue(j);
-}        
-
-static void start()
-{
-    Job *j = &jobs[__bsg_id];
-    j->func = (Job::Function)say_hi;
-    JobQueue *q = &queue[(q_select+1)%(bsg_tiles_X*bsg_tiles_Y)].q;
-    q->enqueue(j);
 }
+
+static void update()
+{
+    static int count = 0;
+    count++;
+    bsg_print_int(count);
+    if (count == JOBS/(bsg_tiles_X*bsg_tiles_Y)) {
+        Job *j = (Job*)bsg_malloc_amoadd(sizeof(Job));
+        memset(j, 0, sizeof(*j));
+        j->func = (Job::Function)finish;
+        j->argv[0] = count;
+        JobQueue *q = &queue[bsg_x_y_to_id(bsg_tiles_X/2,bsg_tiles_Y/2)].q;
+        q->enqueue(j);
+    }
+}        
 
 //#define DEBUG
 int main()
@@ -58,10 +62,20 @@ int main()
      */
     if (__bsg_x == bsg_tiles_X/2 &&
         __bsg_y == bsg_tiles_Y/2) {
-        Job *j = &jobs[__bsg_id];
-        JobQueue *q = &queue[q_select].q;
-        j->func = (Job::Function)start;
-        q->enqueue(j);        
+
+        Job *jobs = (Job*)bsg_malloc_amoadd(sizeof(Job) * JOBS);
+        memset(jobs,0,sizeof(Job) * JOBS);
+
+        int n = JOBS/(bsg_tiles_X*bsg_tiles_Y);
+        for (int i = 0; i < JOBS; i++) {
+            jobs[i].func = (Job::Function)update;
+        }
+
+        for (int t = 0; t < bsg_tiles_X*bsg_tiles_Y; t++) {
+            JobQueue *q = &queue[t].q;
+            Job *j = &jobs[t*n];
+            q->enqueue_jobv(j,j+n);            
+        }
     }
     w.loop();
 }
