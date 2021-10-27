@@ -9,8 +9,8 @@ int b_s = 1;
 extern "C" void bsg_barrier_amoadd(int *l, int *s);
 
 struct QueueW {
-    struct Queue q;
-    char padding [VCACHE_BLOCK_SIZE_WORDS*4-sizeof(Queue)];
+    struct JobQueue q;
+    char padding [VCACHE_BLOCK_SIZE_WORDS*4-sizeof(JobQueue)];
 };
 
 __attribute__((section(".dram"), aligned(VCACHE_BLOCK_SIZE_WORDS*4 * bsg_tiles_X * 2)))
@@ -30,7 +30,7 @@ static void say_hi()
     
     Job *j = &jobs[__bsg_id];
     j->func = (Job::Function)say_hi;
-    Queue *q = &queue[(q_select+1)%(bsg_tiles_X*bsg_tiles_Y)].q;
+    JobQueue *q = &queue[(q_select+1)%(bsg_tiles_X*bsg_tiles_Y)].q;
     q->enqueue(j);
 }        
 
@@ -38,7 +38,7 @@ static void start()
 {
     Job *j = &jobs[__bsg_id];
     j->func = (Job::Function)say_hi;
-    Queue *q = &queue[(q_select+1)%(bsg_tiles_X*bsg_tiles_Y)].q;
+    JobQueue *q = &queue[(q_select+1)%(bsg_tiles_X*bsg_tiles_Y)].q;
     q->enqueue(j);
 }
 
@@ -59,7 +59,7 @@ int main()
     if (__bsg_x == bsg_tiles_X/2 &&
         __bsg_y == bsg_tiles_Y/2) {
         Job *j = &jobs[__bsg_id];
-        Queue *q = &queue[q_select].q;        
+        JobQueue *q = &queue[q_select].q;
         j->func = (Job::Function)start;
         q->enqueue(j);        
     }

@@ -2,12 +2,14 @@
 #include <atomic>
 #include "bsg_manycore.hpp"
 #include "bsg_manycore.h"
+#include "bsg_mcs_mutex.h"
 
 template <typename T>
 static T atomic_load(volatile T *v)
 {
     return *v;
 }
+
 struct Job {
     typedef void (*Function)(int,int,int,int,int,int);
     static constexpr int MAX_ARGS = 6;
@@ -129,3 +131,4 @@ struct Worker {
         }
     }
 };
+
