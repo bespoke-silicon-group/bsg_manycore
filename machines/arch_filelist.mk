@@ -74,9 +74,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_concentrate_static.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_array_concentrate_static.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_unconcentrate_static.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mux2_gatestack.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_icg_neg.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_latch.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_counting_leading_zeros.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mul_add_unsigned.v
 
 
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_client.v
@@ -108,8 +106,6 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_byte_synth.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_bit_synth.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_latch_write_banked_bypassing.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_latch_write_banked_bypassing_sync.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_stitch.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_router.v
@@ -176,7 +172,6 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_synth.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_hard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.v
-VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/fp_wb_arbiter.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_array.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche.v
