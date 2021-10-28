@@ -1,6 +1,6 @@
 //  Test description:
-//  This test exercises tests the fp_wb_arbiter module by maximizing the fp writeback bandwidth.
-
+//  This test exercises tests the fp_wb_arbiter module by maximizing the fp writeback bandwidth
+//  by overlapping remote and local flw, fdiv and fma writeback.
 
 
 
