@@ -50,6 +50,12 @@ module fp_wb_arbiter
     , output logic [num_banks_p-1:0][data_width_lp-1:0] float_rf_wdata_o
   );
 
+  // synopsys translate_off
+  initial begin 
+    assert(`BSG_IS_POW2(num_banks_p)) else $error("Non power-of-2 banks not supported."); // but could be using bsg_hash_bank.
+  end
+  // synopsys translate_on
+
 
   //    crossbar inputs order
   //    [3] fpu_float
