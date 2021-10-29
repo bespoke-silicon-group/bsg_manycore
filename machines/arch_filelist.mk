@@ -77,6 +77,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mux2_gatestack.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mul_add_unsigned.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_counting_leading_zeros.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_icg_neg.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_icg_pos.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_latch.v
 
 
@@ -111,6 +112,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_bit_synth.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_latch_write_banked_bypassing_sync.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_latch_write_banked_bypassing.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_latch.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_stitch.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_router.v
