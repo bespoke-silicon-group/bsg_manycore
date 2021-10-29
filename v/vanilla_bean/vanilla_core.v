@@ -1059,7 +1059,6 @@ module vanilla_core
   logic stall_barrier;
 
   // MEM stall signals
-  logic stall_idiv_wb;
   logic stall_remote_ld_wb;
   logic stall_ifetch_wait;
   
@@ -1082,7 +1081,6 @@ module vanilla_core
     | stall_barrier;
 
   wire stall_all = stall_icache_store
-    | stall_idiv_wb
     | stall_remote_ld_wb
     | stall_ifetch_wait
     | stall_remote_flw_wb;
@@ -1732,7 +1730,6 @@ module vanilla_core
     wb_ctrl_n.clear_sb = 1'b0;
     int_remote_load_resp_yumi_o = 1'b0;
     idiv_yumi_li = 1'b0;
-    stall_idiv_wb = 1'b0;
     stall_remote_ld_wb = 1'b0;
 
     // int remote_load_resp and icache response are mutually exclusive events.
