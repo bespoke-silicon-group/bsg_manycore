@@ -1354,6 +1354,13 @@ module vanilla_core_profiler
           else if (barsend_inc) print_operation_trace(fd2, "barsend", exe_pc);
           else if (barrecv_inc) print_operation_trace(fd2, "barrecv", exe_pc);
 
+          // Traces that can be attributed to stall_all should have higher priority of being printed
+          // than stall_id, flush traces.
+          else if (stall_remote_ld_wb) print_operation_trace(fd2, "stall_remote_ld_wb", exe_pc);
+          else if (stall_ifetch_wait) print_operation_trace(fd2, "stall_ifetch_wait", exe_pc);
+          else if (stall_remote_flw_wb) print_operation_trace(fd2, "stall_remote_flw_wb", exe_pc);
+
+          // flush/bubble, stall_id traces
           else if (branch_miss_bubble_inc) print_operation_trace(fd2, "bubble_branch_miss", exe_bubble_pc_r);
           else if (jalr_miss_bubble_inc) print_operation_trace(fd2, "bubble_jalr_miss", exe_bubble_pc_r);
           else if (icache_miss_bubble_inc) print_operation_trace(fd2, "bubble_icache_miss", exe_bubble_pc_r);
@@ -1375,10 +1382,6 @@ module vanilla_core_profiler
           else if (stall_idiv_busy_inc) print_operation_trace(fd2, "stall_idiv_busy", exe_bubble_pc_r);
           else if (stall_fcsr_inc) print_operation_trace(fd2, "stall_fcsr", exe_bubble_pc_r);
           else if (stall_barrier_inc) print_operation_trace(fd2, "stall_barrier", exe_bubble_pc_r);
-
-          else if (stall_remote_ld_wb) print_operation_trace(fd2, "stall_remote_ld", exe_pc);
-          else if (stall_ifetch_wait) print_operation_trace(fd2, "stall_ifetch_wait", exe_pc);
-          else if (stall_remote_flw_wb) print_operation_trace(fd2, "stall_remote_flw_wb", exe_pc);
           else print_operation_trace(fd2, "unknown", 0);
 
           $fclose(fd2);
