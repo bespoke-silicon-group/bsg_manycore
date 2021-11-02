@@ -42,6 +42,9 @@ always_comb begin
           | ((instruction_i.funct7 == `RV32_FCLASS_S_FUN7) & (instruction_i.rs2 == 5'b00000)) // FCLASS, FMV.X.W
           | ((instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
       end
+      `RV32_CUSTOM_OP: begin
+        decode_o.write_rd = (instruction_i.funct7 == 3'b0) & (instruction_i.funct3 == 3'b0);  // FLWADD
+      end
       `RV32_SYSTEM: begin
         decode_o.write_rd = 1'b1; // CSRRW, CSRRS
       end
@@ -79,6 +82,9 @@ always_comb begin
         end
       endcase
     end
+    `RV32_CUSTOM_OP: begin
+      decode_o.read_rs1 = (instruction_i.funct7 == 7'b0) & (instruction_i.funct3 == 3'b0); // FLWADD
+    end
     default: begin
       decode_o.read_rs1 = 1'b0;
     end
@@ -97,6 +103,9 @@ always_comb begin
                             | (instruction_i.funct7 ==? 7'b01000??)  // amoor
                             | (instruction_i.funct7 ==? 7'b00000??); // amoadd
     end
+    `RV32_CUSTOM_OP: begin
+      decode_o.read_rs2 = (instruction_i.funct7 == 7'b0) & (instruction_i.funct3 == 3'b0); // FLWADD
+    end
     default: begin
       decode_o.read_rs2 = 1'b0;
     end
@@ -106,7 +115,8 @@ end
 // Load & Store
 wire is_rv32_load = (instruction_i.op == `RV32_LOAD);
 wire is_rv32_store = (instruction_i.op == `RV32_STORE);
-assign decode_o.is_load_op = is_rv32_load | (instruction_i.op == `RV32_LOAD_FP);
+wire is_flwadd_op = (instruction_i ==? `RV32_FLWADD);
+assign decode_o.is_load_op = is_rv32_load | (instruction_i.op == `RV32_LOAD_FP) | is_flwadd_op;
 assign decode_o.is_store_op = is_rv32_store | (instruction_i.op == `RV32_STORE_FP);
 
 assign decode_o.is_byte_op =
@@ -117,6 +127,9 @@ assign decode_o.is_hex_op =
   (is_rv32_store & (instruction_i.funct3 == 3'b001));
 assign decode_o.is_load_unsigned =
   is_rv32_load & (instruction_i.funct3 ==? 3'b10?);
+
+// CUSTOM OPs
+assign decode_o.is_flwadd_op = is_flwadd_op;
 
 // Branch & Jump
 assign decode_o.is_branch_op = instruction_i.op ==? `RV32_BRANCH;
@@ -341,6 +354,14 @@ always_comb begin
       decode_o.read_frs3 = 1'b0;
       decode_o.write_frd = 1'b1;
       decode_o.is_fp_op = 1'b1;
+    end
+    // FLWADD
+    `RV32_FLWADD: begin
+      decode_o.read_frs1 = 1'b0;
+      decode_o.read_frs2 = 1'b0;
+      decode_o.read_frs3 = 1'b0;
+      decode_o.write_frd = 1'b1;
+      decode_o.is_fp_op = 1'b0;
     end
     default: begin
       decode_o.read_frs1 = 1'b0;

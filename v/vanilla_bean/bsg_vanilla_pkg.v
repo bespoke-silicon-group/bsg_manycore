@@ -100,6 +100,9 @@ typedef struct packed {
   logic is_byte_op;       // Op is byte load/store
   logic is_hex_op;        // Op is hex load/store
   logic is_load_unsigned; // Op is unsigned load
+  // FLWADD stores ALU result in rs1, and loads float in rd.
+  logic is_flwadd_op;
+
 
   // Branch & Jump
   logic is_branch_op;
@@ -138,7 +141,7 @@ typedef struct packed {
 
   // MRET
   logic is_mret_op;
-
+    
   // This signal is for debugging only.
   // It shouldn't be used to synthesize any actual circuits.
   logic unsupported;
@@ -221,6 +224,9 @@ typedef struct packed
     fp_decode_s                        fp_decode;
     logic                              icache_miss;
     logic                              valid;             // valid instruction in ID
+    // expand op
+    logic is_expand_head;
+    logic is_expand_tail;
 } id_signals_s;
 
 // Execute stage signals

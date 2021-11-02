@@ -104,7 +104,7 @@ module vanilla_core
     , output [pod_x_cord_width_p-1:0] cfg_pod_x_o
     , output [pod_y_cord_width_p-1:0] cfg_pod_y_o
    
-    // For debugging + reset
+    // global coordinate
     , input [x_cord_width_p-1:0] global_x_i
     , input [y_cord_width_p-1:0] global_y_i
   );
@@ -169,6 +169,28 @@ module vanilla_core
 
   wire [pc_width_lp-1:0] pc_plus4 = pc_r + 1'b1;
 
+  // instruction expander
+  instruction_s exp_instr;
+  logic instr_exp_stall_li, instr_exp_flush_li;
+  logic stall_instr_exp;
+  logic is_expand_head_lo, is_expand_tail_lo;
+
+  instr_expander instr_exp0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+  
+    ,.stall_i(instr_exp_stall_li)
+    ,.flush_i(instr_exp_flush_li)
+    
+    ,.instr_i(instruction)
+    ,.exp_instr_o(exp_instr)
+
+    ,.stall_instr_exp_o(stall_instr_exp)
+    ,.is_expand_head_o(is_expand_head_lo)
+    ,.is_expand_tail_o(is_expand_tail_lo)
+  );
+
+
   // debug pc
   // synopsys translate_off
   wire [data_width_p-1:0] if_pc = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_r, 2'b00};
@@ -182,7 +204,7 @@ module vanilla_core
   fp_decode_s fp_decode;
 
   cl_decode decode0 (
-    .instruction_i(instruction)
+    .instruction_i(exp_instr)
     ,.decode_o(decode)
     ,.fp_decode_o(fp_decode)
   ); 
@@ -724,6 +746,25 @@ module vanilla_core
   end
 
 
+  // expanding_r is set to 1, when the first instruction of expanded instruction (is_expand_head==1) reaches EXE.
+  // expanding_r is cleared, when the last instruction (is_expand_tail==1) reaches EXE.
+  // When expanding_r is high, the interrupt needs to wait for the tail instruction to finish, before flushing and taking interrupt.
+  logic expanding_r;
+  logic expanding_clear, expanding_set;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      expanding_r <= 1'b0;
+    end
+    else begin
+      if (expanding_set) begin
+        expanding_r <= 1'b1;
+      end
+      else if (expanding_clear) begin
+        expanding_r <= 1'b0;
+      end
+    end
+  end
 
 
   //////////////////////////////
@@ -1039,7 +1080,7 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  // IF stall signals
+  // stall all signals
   logic stall_icache_store;
 
   // ID stall signals
@@ -1064,6 +1105,8 @@ module vanilla_core
   
   // FP_WB stall signals
   logic stall_remote_flw_wb;
+
+  wire stall_if = stall_instr_exp | (interrupt_ready & expanding_r);
 
   wire stall_id = stall_depend_long_op
     | stall_depend_local_load
@@ -1090,7 +1133,7 @@ module vanilla_core
   // 1) branch/jalr mispredict
   // 2) mret in EXE
   // 3) interrupt taken
-  wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op) | interrupt_ready;
+  wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op) | (interrupt_ready & ~expanding_r);
   wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_ctrl_r.icache_miss | wb_ctrl_r.icache_miss;
 
   // ID stage is not stalled and not flushed.
@@ -1183,7 +1226,7 @@ module vanilla_core
     : 1'b1;
 
   assign icache_v_li = icache_v_i | ifetch_v_i
-    | (read_icache & ~stall_all & ~(stall_id & ~flush));
+    | (read_icache & ~stall_if & ~stall_all & ~(stall_id & ~flush));
 
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
@@ -1201,6 +1244,10 @@ module vanilla_core
   
   assign stall_icache_store = icache_v_i & icache_yumi_o;
 
+  // instr exp logic
+  assign instr_exp_stall_li = stall_id & stall_all;
+  assign instr_exp_flush_li = flush;
+
 
   // IF -> ID
   always_comb begin
@@ -1212,7 +1259,9 @@ module vanilla_core
       decode: decode,
       fp_decode: fp_decode,
       icache_miss: 1'b0,
-      valid: 1'b1
+      valid: 1'b1,
+      is_expand_head: is_expand_head_lo,
+      is_expand_tail: is_expand_tail_lo
     };
 
     if (stall_all) begin
@@ -1240,7 +1289,9 @@ module vanilla_core
           decode: '0,
           fp_decode: '0,
           icache_miss: 1'b1,
-          valid: 1'b0
+          valid: 1'b0,
+          is_expand_head: 1'b0,
+          is_expand_tail: 1'b0 
         };
       end
       else begin
@@ -1269,7 +1320,7 @@ module vanilla_core
   wire id_rs1_non_zero = id_rs1 != '0;
   wire id_rs2_non_zero = id_rs2 != '0;
   wire id_rd_non_zero = id_rd != '0;
-  wire int_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_rd;
+  wire int_remote_load_in_exe = remote_req_in_exe & (exe_r.decode.is_load_op & ~exe_r.decode.is_flwadd_op) & exe_r.decode.write_rd;
   wire float_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_frd;
   wire fdiv_fsqrt_in_fp_exe = fp_exe_ctrl_r.fp_decode.is_fdiv_op | fp_exe_ctrl_r.fp_decode.is_fsqrt_op;
   wire remote_credit_pending = (out_credits_used_i != '0);
@@ -1284,16 +1335,11 @@ module vanilla_core
   wire id_rs3_equal_mem_rd = (id_rs3 == mem_ctrl_r.rd_addr);
   wire id_rs1_equal_wb_rd = (id_rs1 == wb_ctrl_r.rd_addr);
   wire id_rs2_equal_wb_rd = (id_rs2 == wb_ctrl_r.rd_addr);
+  wire id_rs1_equal_exe_rs1 = (id_rs1 == exe_r.instruction.rs1);
+  wire id_rs2_equal_exe_rs1 = (id_rs2 == exe_r.instruction.rs1);
 
   // stall_depend_long_op (idiv, fdiv, remote_load, atomic)
-  //logic [float_rf_num_banks_p-1:0] id_rs2_match_sb_clear;
-  //always_comb begin
-  //  for (integer i = 0; i < float_rf_num_banks_p; i++) begin
-  //    id_rs2_match_sb_clear[i] = (id_rs2 == float_sb_clear_id[i]) & float_sb_clear[i];
-  //  end
-  //end
   wire rs1_sb_clear_now = id_r.decode.read_rs1 & (id_rs1 == int_sb_clear_id) & int_sb_clear & id_rs1_non_zero; 
-  //wire frs2_sb_clear_now = id_r.decode.read_frs2 & (|id_rs2_match_sb_clear);
 
   assign stall_depend_long_op = (int_dependency | float_dependency)
     | (id_r.decode.is_fp_op
@@ -1303,8 +1349,8 @@ module vanilla_core
 
   // stall_depend_local_load (lw, flw, lr, lr.aq)
   assign stall_depend_local_load = local_load_in_exe &
-    ((id_r.decode.read_rs1  & id_rs1_equal_exe_rd & exe_r.decode.write_rd & id_rs1_non_zero)
-    |(id_r.decode.read_rs2  & id_rs2_equal_exe_rd & exe_r.decode.write_rd & id_rs2_non_zero)
+    ((id_r.decode.read_rs1  & id_rs1_equal_exe_rd & (exe_r.decode.write_rd & ~exe_r.decode.is_flwadd_op) & id_rs1_non_zero)
+    |(id_r.decode.read_rs2  & id_rs2_equal_exe_rd & (exe_r.decode.write_rd & ~exe_r.decode.is_flwadd_op) & id_rs2_non_zero)
     |(id_r.decode.read_frs1 & id_rs1_equal_exe_rd & exe_r.decode.write_frd)
     |(id_r.decode.read_frs2 & id_rs2_equal_exe_rd & exe_r.decode.write_frd)
     |(id_r.decode.read_frs3 & id_rs3_equal_exe_rd & exe_r.decode.write_frd));
@@ -1331,7 +1377,7 @@ module vanilla_core
   wire stall_bypass_fp_rs1 = (id_r.decode.read_rs1 & id_rs1_non_zero) &
     ((id_rs1_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_int_op)
     |((id_rs1 == imul_rd_lo) & imul_v_lo)
-    |(id_rs1_equal_exe_rd & exe_r.decode.write_rd)
+    |((exe_r.decode.is_flwadd_op ? id_rs1_equal_exe_rs1 : id_rs1_equal_exe_rd) & exe_r.decode.write_rd)
     |(id_rs1_equal_mem_rd & mem_ctrl_r.write_rd)
     |(id_rs1_equal_wb_rd & wb_ctrl_r.write_rd));
   
@@ -1377,6 +1423,7 @@ module vanilla_core
     local_mem_op_restore +
     invalid_eva_access_i;
 
+  // synopsys sync_set_reset "reset_i"
   always_ff @ (posedge clk_i) begin
     if (reset_i)
       remote_req_counter_r <= (lg_fwd_fifo_els_lp)'(fwd_fifo_els_p);
@@ -1413,7 +1460,7 @@ module vanilla_core
       |fpu_float_v_lo);
 
 
-  // FP_EXE forwarding mux control logic
+  // fp_exe.rs1 select mux
   //
   assign select_rs1_to_fp_exe = id_r.decode.read_rs1;
 
@@ -1425,7 +1472,7 @@ module vanilla_core
   logic [2:0] has_forward_data_rs2;
 
   assign has_forward_data_rs1[0] =
-    ((exe_r.decode.write_rd & id_rs1_equal_exe_rd)
+    ((exe_r.decode.write_rd & (exe_r.decode.is_flwadd_op ? id_rs1_equal_exe_rs1 : id_rs1_equal_exe_rd))
     |(fp_exe_ctrl_r.fp_decode.is_fpu_int_op & id_rs1_equal_fp_exe_rd))
     & id_rs1_non_zero;
   assign has_forward_data_rs1[1] =
@@ -1446,7 +1493,7 @@ module vanilla_core
   );
 
   assign has_forward_data_rs2[0] =
-    ((exe_r.decode.write_rd & id_rs2_equal_exe_rd)
+    ((exe_r.decode.write_rd & (exe_r.decode.is_flwadd_op ? id_rs2_equal_exe_rs1 : id_rs2_equal_exe_rd))
     |(fp_exe_ctrl_r.fp_decode.is_fpu_int_op & id_rs2_equal_fp_exe_rd))
     & id_rs2_non_zero;
   assign has_forward_data_rs2[1] =
@@ -1542,6 +1589,8 @@ module vanilla_core
       end
       else begin
         exe_en = 1'b1;
+        expanding_set = id_r.is_expand_head;
+        expanding_clear = id_r.is_expand_tail;
       end
     end
   end
@@ -1617,7 +1666,9 @@ module vanilla_core
   always_comb begin
     // common case
     mem_ctrl_n = '{
-      rd_addr: exe_r.instruction.rd,
+      rd_addr: (exe_r.decode.is_flwadd_op
+                ? exe_r.instruction.rs1
+                : exe_r.instruction.rd),
       write_rd: exe_r.decode.write_rd,
       write_frd: exe_r.decode.write_frd,
       is_byte_op: exe_r.decode.is_byte_op,
@@ -1754,7 +1805,7 @@ module vanilla_core
       else if (mem_ctrl_r.write_rd) begin
         wb_ctrl_n.write_rd = 1'b1;
         wb_ctrl_n.rd_addr = mem_ctrl_r.rd_addr;
-        wb_data_n.rf_data = mem_ctrl_r.local_load
+        wb_data_n.rf_data = (mem_ctrl_r.local_load & ~mem_ctrl_r.write_frd) 
           ? local_load_packed_data
           : mem_data_r.exe_result;
       end
@@ -1791,7 +1842,7 @@ module vanilla_core
   // MEM -> FLW_WB
   always_comb begin
     flw_wb_ctrl_en = ~stall_all;
-    flw_wb_data_en = ~stall_all;
+    flw_wb_data_en = ~stall_all & mem_ctrl_r.write_frd;
     flw_wb_ctrl_n = '{
       valid: mem_ctrl_r.write_frd,
       rd_addr: mem_ctrl_r.rd_addr
