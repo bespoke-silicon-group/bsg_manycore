@@ -26,7 +26,8 @@ test0:
   la t0, float_dmem_arr
   li t1, 4
   li t2, -1
-  bsg_asm_flwadd(0, 5, 6)   // rd=f0, rs1=x5 (t0), rs2=x6 (t1)
+  //bsg_asm_flwadd(0, 5, 6)   // rd=f0, rs1=x5 (t0), rs2=x6 (t1)
+  flwadd f0, t0, t1
   
   // validate f0
   fcvt.w.s t2, f0
