@@ -249,6 +249,7 @@ typedef struct packed
 // Memory stage signals
 typedef struct packed {
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
+    logic [RV32_reg_addr_width_gp-1:0] frd_addr;
     logic write_rd;
     logic write_frd;
     logic is_byte_op;

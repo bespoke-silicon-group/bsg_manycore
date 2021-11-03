@@ -25,7 +25,10 @@ import bsg_manycore_pkg::*;
 
 // Op Writes RF -- register file write operation
 always_comb begin
-  if (instruction_i.rd == 0) begin
+  if (instruction_i ==? `RV32_FLWADD) begin
+    decode_o.write_rd = 1'b1; // FLWADD
+  end
+  else if (instruction_i.rd == 0) begin
     decode_o.write_rd = 1'b0; // reg 0 is always 0
   end
   else begin
@@ -41,9 +44,6 @@ always_comb begin
           (instruction_i.funct7 == `RV32_FCMP_S_FUN7) // FEQ, FLT, FLE
           | ((instruction_i.funct7 == `RV32_FCLASS_S_FUN7) & (instruction_i.rs2 == 5'b00000)) // FCLASS, FMV.X.W
           | ((instruction_i.funct7 == `RV32_FCVT_S_F2I_FUN7)); // FCVT.W.S, FCVT.WU.S
-      end
-      `RV32_CUSTOM_OP: begin
-        decode_o.write_rd = (instruction_i.funct7 == 3'b0) & (instruction_i.funct3 == 3'b0);  // FLWADD
       end
       `RV32_SYSTEM: begin
         decode_o.write_rd = 1'b1; // CSRRW, CSRRS

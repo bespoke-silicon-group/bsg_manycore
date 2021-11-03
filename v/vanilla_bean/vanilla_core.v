@@ -472,7 +472,7 @@ module vanilla_core
     | id_r.decode.is_lr_aq_op
     | id_r.decode.is_amo_op;
 
-  wire [data_width_p-1:0] mem_addr_op2 = is_amo_or_lr_op
+  wire [data_width_p-1:0] mem_addr_op2 = (is_amo_or_lr_op | id_r.decode.is_flwadd_op)
     ? '0
     : (id_r.decode.is_store_op
       ? `RV32_signext_Simm(id_r.instruction)
@@ -1333,6 +1333,9 @@ module vanilla_core
   wire id_rs1_equal_mem_rd = (id_rs1 == mem_ctrl_r.rd_addr);
   wire id_rs2_equal_mem_rd = (id_rs2 == mem_ctrl_r.rd_addr);
   wire id_rs3_equal_mem_rd = (id_rs3 == mem_ctrl_r.rd_addr);
+  wire id_rs1_equal_mem_frd = (id_rs1 == mem_ctrl_r.frd_addr);
+  wire id_rs2_equal_mem_frd = (id_rs2 == mem_ctrl_r.frd_addr);
+  wire id_rs3_equal_mem_frd = (id_rs3 == mem_ctrl_r.frd_addr);
   wire id_rs1_equal_wb_rd = (id_rs1 == wb_ctrl_r.rd_addr);
   wire id_rs2_equal_wb_rd = (id_rs2 == wb_ctrl_r.rd_addr);
   wire id_rs1_equal_exe_rs1 = (id_rs1 == exe_r.instruction.rs1);
@@ -1370,9 +1373,9 @@ module vanilla_core
     |(id_r.decode.read_frs1 & (id_rs1 == fpu1_rd_r) & fpu1_v_r)
     |(id_r.decode.read_frs2 & (id_rs2 == fpu1_rd_r) & fpu1_v_r)
     |(id_r.decode.read_frs3 & (id_rs3 == fpu1_rd_r) & fpu1_v_r)
-    |(id_r.decode.read_frs1 & id_rs1_equal_mem_rd & mem_ctrl_r.write_frd)
-    |(id_r.decode.read_frs2 & id_rs2_equal_mem_rd & mem_ctrl_r.write_frd)
-    |(id_r.decode.read_frs3 & id_rs3_equal_mem_rd & mem_ctrl_r.write_frd);
+    |(id_r.decode.read_frs1 & id_rs1_equal_mem_frd & mem_ctrl_r.write_frd)
+    |(id_r.decode.read_frs2 & id_rs2_equal_mem_frd & mem_ctrl_r.write_frd)
+    |(id_r.decode.read_frs3 & id_rs3_equal_mem_frd & mem_ctrl_r.write_frd);
 
   wire stall_bypass_fp_rs1 = (id_r.decode.read_rs1 & id_rs1_non_zero) &
     ((id_rs1_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_int_op)
@@ -1385,7 +1388,7 @@ module vanilla_core
   wire stall_bypass_int_frs2 = id_r.decode.read_frs2 &
     ((id_rs2_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_float_op)
     |((id_rs2 == fpu1_rd_r) & fpu1_v_r)
-    |(id_rs2_equal_mem_rd & mem_ctrl_r.write_frd));
+    |(id_rs2_equal_mem_frd & mem_ctrl_r.write_frd));
     
 
   assign stall_bypass = id_r.decode.is_fp_op
@@ -1669,6 +1672,7 @@ module vanilla_core
       rd_addr: (exe_r.decode.is_flwadd_op
                 ? exe_r.instruction.rs1
                 : exe_r.instruction.rd),
+      frd_addr: exe_r.instruction.rd,
       write_rd: exe_r.decode.write_rd,
       write_frd: exe_r.decode.write_frd,
       is_byte_op: exe_r.decode.is_byte_op,
@@ -1701,6 +1705,7 @@ module vanilla_core
       mem_data_en = 1'b1;
       mem_ctrl_n = '{
         rd_addr: fp_exe_ctrl_r.rd,
+        frd_addr: 5'b0,
         write_rd: 1'b1,
         write_frd: 1'b0,
         is_byte_op: 1'b0,
@@ -1845,7 +1850,7 @@ module vanilla_core
     flw_wb_data_en = ~stall_all & mem_ctrl_r.write_frd;
     flw_wb_ctrl_n = '{
       valid: mem_ctrl_r.write_frd,
-      rd_addr: mem_ctrl_r.rd_addr
+      rd_addr: mem_ctrl_r.frd_addr
     };
     flw_wb_data_n = '{
       rf_data: local_load_data_r

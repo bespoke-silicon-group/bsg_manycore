@@ -178,4 +178,9 @@
     fcvt.s.w f30,x0;          \
     fcvt.s.w f31,x0;       
     
+
+// FLWADD
+#define bsg_asm_flwadd(rd, rs1, rs2) \
+  .word (0xb + (rd<<7) + (rs1<<15) + (rs2<<20))
+
 #endif
