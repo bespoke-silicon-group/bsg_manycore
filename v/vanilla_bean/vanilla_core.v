@@ -1674,7 +1674,9 @@ module vanilla_core
                 : exe_r.instruction.rd),
       frd_addr: exe_r.instruction.rd,
       write_rd: exe_r.decode.write_rd,
-      write_frd: exe_r.decode.write_frd,
+      write_frd: (exe_r.decode.is_flwadd_op
+                  ? ~remote_req_in_exe
+                  : exe_r.decode.write_frd),
       is_byte_op: exe_r.decode.is_byte_op,
       is_hex_op: exe_r.decode.is_hex_op,
       is_load_unsigned: exe_r.decode.is_load_unsigned,
@@ -1693,11 +1695,11 @@ module vanilla_core
       mem_ctrl_en = 1'b0;
       mem_data_en = 1'b0;
     end
-    else if (exe_r.decode.is_idiv_op | (remote_req_in_exe & ~exe_r.icache_miss)) begin
+    else if (exe_r.decode.is_idiv_op | (remote_req_in_exe & ~exe_r.icache_miss & ~exe_r.decode.is_flwadd_op)) begin
       mem_ctrl_en = 1'b1;
-      mem_data_en = 1'b1;
+      mem_data_en = 1'b0;
       mem_ctrl_n = '0;
-      mem_data_n = '0;
+      //mem_data_n = '0;
     end
     else if (fp_exe_ctrl_r.fp_decode.is_fpu_int_op) begin
       fcsr_fflags_v_li[0] = 1'b1;
