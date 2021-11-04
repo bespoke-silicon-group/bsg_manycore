@@ -111,7 +111,7 @@ module instr_expander
       eSTART: begin
         if (is_flwadd4_op) begin
           // Expand the first FLWADD
-          exp_instr_o = {7'b0, instr_i.rs2, instr_i.rs1, 3'b000, instr_i.rd, `RV32_LOAD_FP};
+          exp_instr_o = {7'b0, instr_i.rs2, instr_i.rs1, 3'b000, instr_i.rd, `RV32_CUSTOM_OP};
           exp_state_n = freeze
             ? eSTART
             : eFLWADD4;
@@ -131,8 +131,11 @@ module instr_expander
 
       // Expanding FLWADD4
       eFLWADD4: begin
-        stall_instr_exp_o = ~flush_i;
-        exp_instr_o = {7'b0, rs2_r, rs1_r, 3'b000, rd_r, `RV32_LOAD_FP};
+        //stall_instr_exp_o = ~flush_i | ~counter_max_val;
+        stall_instr_exp_o = flush_i
+          ? 1'b0
+          : ~counter_max_val;
+        exp_instr_o = {7'b0, rs2_r, rs1_r, 3'b000, rd_r, `RV32_CUSTOM_OP};
         exp_state_n = stall_i
           ? eFLWADD4
           : (flush_i 

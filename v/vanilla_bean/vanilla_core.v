@@ -1255,7 +1255,7 @@ module vanilla_core
     id_n = '{
       pc_plus4: {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0},
       pred_or_jump_addr: {{(data_width_p-pc_width_lp-2){1'b0}}, pred_or_jump_addr, 2'b0},
-      instruction: instruction,
+      instruction: exp_instr,
       decode: decode,
       fp_decode: fp_decode,
       icache_miss: 1'b0,
