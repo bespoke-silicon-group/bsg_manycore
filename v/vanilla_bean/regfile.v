@@ -18,7 +18,7 @@ module regfile
     // FF-based = 0
     // Latch-based = 1
     // SRAM-based = 2
-    , parameter sel_sram_latch_rf_p=1
+    , parameter sel_sram_latch_rf_p=0
 
     , parameter addr_width_lp=`BSG_SAFE_CLOG2(els_p)
   )
