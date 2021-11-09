@@ -1,3 +1,6 @@
+
+`include "bsg_manycore_defines.vh"
+
 module bsg_manycore_link_to_sdr_south_row
   import bsg_manycore_pkg::*;
   #(parameter `BSG_INV_PARAM(num_tiles_x_p)

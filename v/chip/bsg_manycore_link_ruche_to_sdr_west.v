@@ -1,5 +1,4 @@
 
-`include "bsg_defines.v"
 `include "bsg_manycore_defines.vh"
 
 module bsg_manycore_link_ruche_to_sdr_west

@@ -3,16 +3,16 @@
  import bsg_tag_pkg::*;
  import bsg_manycore_pkg::*;
 
- #(parameter lg_fifo_depth_p                 = "inv"
-  ,parameter lg_credit_to_token_decimation_p = "inv"
+ #(parameter `BSG_INV_PARAM(lg_fifo_depth_p)
+  ,parameter `BSG_INV_PARAM(lg_credit_to_token_decimation_p)
 
-  ,parameter addr_width_p      = "inv"
-  ,parameter data_width_p      = "inv"
-  ,parameter x_cord_width_p    = "inv"
-  ,parameter y_cord_width_p    = "inv"
+  ,parameter `BSG_INV_PARAM(addr_width_p)
+  ,parameter `BSG_INV_PARAM(data_width_p)
+  ,parameter `BSG_INV_PARAM(x_cord_width_p)
+  ,parameter `BSG_INV_PARAM(y_cord_width_p)
 
-  ,parameter wh_ruche_factor_p = "inv"
-  ,parameter wh_flit_width_p   = "inv"
+  ,parameter `BSG_INV_PARAM(wh_ruche_factor_p)
+  ,parameter `BSG_INV_PARAM(wh_flit_width_p)
 
   ,parameter tag_els_p=1024
   ,parameter tag_local_els_p=4*2

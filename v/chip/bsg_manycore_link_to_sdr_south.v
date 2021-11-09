@@ -1,16 +1,17 @@
+
+`include "bsg_manycore_defines.vh"
+
 module bsg_manycore_link_to_sdr_south
-
-
 
  import bsg_manycore_pkg::*;
 
- #(parameter lg_fifo_depth_p                 = "inv"
-  ,parameter lg_credit_to_token_decimation_p = "inv"
+ #(parameter `BSG_INV_PARAM(lg_fifo_depth_p)
+  ,parameter `BSG_INV_PARAM(lg_credit_to_token_decimation_p)
 
-  ,parameter addr_width_p     = "inv"
-  ,parameter data_width_p     = "inv"
-  ,parameter x_cord_width_p   = "inv"
-  ,parameter y_cord_width_p   = "inv"
+  ,parameter `BSG_INV_PARAM(addr_width_p)
+  ,parameter `BSG_INV_PARAM(data_width_p)
+  ,parameter `BSG_INV_PARAM(x_cord_width_p)
+  ,parameter `BSG_INV_PARAM(y_cord_width_p)
 
   ,parameter link_sif_width_lp =
     `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -155,3 +156,6 @@ module bsg_manycore_link_to_sdr_south
   );
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_link_to_sdr_south)
+
