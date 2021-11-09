@@ -3,18 +3,54 @@
  *
  */
 
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_pod_row_sdr
   import bsg_manycore_pkg::*;
   import bsg_noc_pkg::*;
   import bsg_tag_pkg::*;
-  import bsg_chip_pkg::*;
-  #(parameter fwd_width_lp =
-      `bsg_manycore_packet_width(hb_addr_width_gp,hb_data_width_gp,hb_x_cord_width_gp,hb_y_cord_width_gp)
-    , parameter rev_width_lp =
-      `bsg_manycore_return_packet_width(hb_x_cord_width_gp,hb_y_cord_width_gp,hb_data_width_gp)
+      
+  #(`BSG_INV_PARAM(num_tiles_x_p)
+    , `BSG_INV_PARAM(num_tiles_y_p)
+    , `BSG_INV_PARAM(pod_x_cord_width_p)
+    , `BSG_INV_PARAM(pod_y_cord_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
+    , `BSG_INV_PARAM(addr_width_p)
+    , `BSG_INV_PARAM(data_width_p)
+    , parameter ruche_factor_X_p=3  // only support 3 for now
+    , parameter barrier_ruche_factor_X_p=3
+    , parameter num_subarray_x_p=1
+    , parameter num_subarray_y_p=1
 
-    ,  parameter total_num_tiles_x_lp=(hb_num_pods_x_gp*hb_num_tiles_x_gp)
+    , `BSG_INV_PARAM(dmem_size_p)
+    , `BSG_INV_PARAM(icache_entries_p)
+    , `BSG_INV_PARAM(icache_tag_width_p)
+
+    , parameter num_vcache_rows_p=1
+    , `BSG_INV_PARAM(vcache_addr_width_p)
+    , `BSG_INV_PARAM(vcache_data_width_p)
+    , `BSG_INV_PARAM(vcache_ways_p)
+    , `BSG_INV_PARAM(vcache_sets_p)
+    , `BSG_INV_PARAM(vcache_block_size_in_words_p)
+    , `BSG_INV_PARAM(vcache_size_p)
+    , `BSG_INV_PARAM(vcache_dma_data_width_p)
+
+    , parameter wh_ruche_factor_p=2 // only support 2 for now
+    , `BSG_INV_PARAM(wh_cid_width_p)
+    , `BSG_INV_PARAM(wh_flit_width_p)
+    , `BSG_INV_PARAM(wh_cord_width_p)
+    , `BSG_INV_PARAM(wh_len_width_p)
+
+    // number of pods to instantiate
+    , `BSG_INV_PARAM(num_pods_x_p)
+
+    , parameter fwd_width_lp =
+      `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , parameter rev_width_lp =
+      `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
+
+    ,  parameter total_num_tiles_x_lp=(num_pods_x_p*num_tiles_x_p)
 
     , parameter num_clk_ports_p=1
 
@@ -26,9 +62,9 @@ module bsg_manycore_pod_row_sdr
     input ext_clk_i
 
     // pod tag
-    , input [hb_num_pods_x_gp-1:0] pod_tag_clk_i
-    , input [hb_num_pods_x_gp-1:0] pod_tag_data_i
-    , input [hb_num_pods_x_gp-1:0][tag_lg_els_lp-1:0] pod_tag_node_id_offset_i
+    , input [num_pods_x_p-1:0] pod_tag_clk_i
+    , input [num_pods_x_p-1:0] pod_tag_data_i
+    , input [num_pods_x_p-1:0][tag_lg_els_lp-1:0] pod_tag_node_id_offset_i
 
 
     , input [S:N][E:W] async_reset_tag_clk_i
@@ -36,8 +72,8 @@ module bsg_manycore_pod_row_sdr
     , input [S:N][E:W][tag_lg_els_lp-1:0] async_reset_tag_node_id_offset_i
 
     // global coordinates
-    , input [2+total_num_tiles_x_lp-1:0][hb_x_cord_width_gp-1:0] global_x_i
-    , input [2+total_num_tiles_x_lp-1:0][hb_y_cord_width_gp-1:0] global_y_i
+    , input [2+total_num_tiles_x_lp-1:0][x_cord_width_p-1:0] global_x_i
+    , input [2+total_num_tiles_x_lp-1:0][y_cord_width_p-1:0] global_y_i
 
     // ver IO
     , input  [S:N][2+total_num_tiles_x_lp-1:0] async_ver_fwd_link_i_disable_i
@@ -66,30 +102,30 @@ module bsg_manycore_pod_row_sdr
     , output [S:N][2+total_num_tiles_x_lp-1:0]                    ver_io_rev_link_token_o
 
     // hor manycore IO
-    , input  [E:W][hb_num_tiles_y_gp-1:0] async_hor_fwd_link_i_disable_i
-    , input  [E:W][hb_num_tiles_y_gp-1:0] async_hor_fwd_link_o_disable_i
-    , input  [E:W][hb_num_tiles_y_gp-1:0] async_hor_rev_link_i_disable_i
-    , input  [E:W][hb_num_tiles_y_gp-1:0] async_hor_rev_link_o_disable_i
+    , input  [E:W][num_tiles_y_p-1:0] async_hor_fwd_link_i_disable_i
+    , input  [E:W][num_tiles_y_p-1:0] async_hor_fwd_link_o_disable_i
+    , input  [E:W][num_tiles_y_p-1:0] async_hor_rev_link_i_disable_i
+    , input  [E:W][num_tiles_y_p-1:0] async_hor_rev_link_o_disable_i
 
-    , output [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_fwd_link_clk_o
-    , output [E:W][hb_num_tiles_y_gp-1:0][fwd_width_lp-1:0]       hor_io_fwd_link_data_o
-    , output [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_fwd_link_v_o
-    , input  [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_fwd_link_token_i
+    , output [E:W][num_tiles_y_p-1:0]                         hor_io_fwd_link_clk_o
+    , output [E:W][num_tiles_y_p-1:0][fwd_width_lp-1:0]       hor_io_fwd_link_data_o
+    , output [E:W][num_tiles_y_p-1:0]                         hor_io_fwd_link_v_o
+    , input  [E:W][num_tiles_y_p-1:0]                         hor_io_fwd_link_token_i
 
-    , input  [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_fwd_link_clk_i
-    , input  [E:W][hb_num_tiles_y_gp-1:0][fwd_width_lp-1:0]       hor_io_fwd_link_data_i
-    , input  [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_fwd_link_v_i
-    , output [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_fwd_link_token_o
+    , input  [E:W][num_tiles_y_p-1:0]                         hor_io_fwd_link_clk_i
+    , input  [E:W][num_tiles_y_p-1:0][fwd_width_lp-1:0]       hor_io_fwd_link_data_i
+    , input  [E:W][num_tiles_y_p-1:0]                         hor_io_fwd_link_v_i
+    , output [E:W][num_tiles_y_p-1:0]                         hor_io_fwd_link_token_o
 
-    , output [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_rev_link_clk_o
-    , output [E:W][hb_num_tiles_y_gp-1:0][rev_width_lp-1:0]       hor_io_rev_link_data_o
-    , output [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_rev_link_v_o
-    , input  [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_rev_link_token_i
+    , output [E:W][num_tiles_y_p-1:0]                         hor_io_rev_link_clk_o
+    , output [E:W][num_tiles_y_p-1:0][rev_width_lp-1:0]       hor_io_rev_link_data_o
+    , output [E:W][num_tiles_y_p-1:0]                         hor_io_rev_link_v_o
+    , input  [E:W][num_tiles_y_p-1:0]                         hor_io_rev_link_token_i
 
-    , input  [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_rev_link_clk_i
-    , input  [E:W][hb_num_tiles_y_gp-1:0][rev_width_lp-1:0]       hor_io_rev_link_data_i
-    , input  [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_rev_link_v_i
-    , output [E:W][hb_num_tiles_y_gp-1:0]                         hor_io_rev_link_token_o
+    , input  [E:W][num_tiles_y_p-1:0]                         hor_io_rev_link_clk_i
+    , input  [E:W][num_tiles_y_p-1:0][rev_width_lp-1:0]       hor_io_rev_link_data_i
+    , input  [E:W][num_tiles_y_p-1:0]                         hor_io_rev_link_v_i
+    , output [E:W][num_tiles_y_p-1:0]                         hor_io_rev_link_token_o
 
     // wh IO
     , output [E:W][S:N][wh_ruche_factor_gp-1:0]                           io_wh_link_clk_o
@@ -105,8 +141,8 @@ module bsg_manycore_pod_row_sdr
 
 
   // link structs
-  `declare_bsg_manycore_link_sif_s(hb_addr_width_gp,hb_data_width_gp,hb_x_cord_width_gp,hb_y_cord_width_gp);
-  `declare_bsg_manycore_ruche_x_link_sif_s(hb_addr_width_gp,hb_data_width_gp,hb_x_cord_width_gp,hb_y_cord_width_gp);
+  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+  `declare_bsg_manycore_ruche_x_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_gp, wh_link_sif_s);
 
 
@@ -116,49 +152,49 @@ module bsg_manycore_pod_row_sdr
 
 
   // POD array
-  logic [hb_num_pods_x_gp-1:0][hb_num_tiles_x_gp-1:0] pod_reset_li;
-  logic [hb_num_pods_x_gp-1:0][hb_num_tiles_x_gp-1:0][hb_x_cord_width_gp-1:0] pod_global_x_li;
-  logic [hb_num_pods_x_gp-1:0][hb_num_tiles_x_gp-1:0][hb_y_cord_width_gp-1:0] pod_global_y_li;
+  logic [num_pods_x_p-1:0][num_tiles_x_p-1:0] pod_reset_li;
+  logic [num_pods_x_p-1:0][num_tiles_x_p-1:0][x_cord_width_p-1:0] pod_global_x_li;
+  logic [num_pods_x_p-1:0][num_tiles_x_p-1:0][y_cord_width_p-1:0] pod_global_y_li;
 
-  bsg_manycore_link_sif_s [S:N][hb_num_pods_x_gp-1:0][hb_num_tiles_x_gp-1:0] pod_ver_link_sif_li, pod_ver_link_sif_lo;
+  bsg_manycore_link_sif_s [S:N][num_pods_x_p-1:0][num_tiles_x_p-1:0] pod_ver_link_sif_li, pod_ver_link_sif_lo;
   wh_link_sif_s [E:W][S:N][wh_ruche_factor_gp-1:0] pod_wh_link_sif_li, pod_wh_link_sif_lo;
-  bsg_manycore_link_sif_s [E:W][hb_num_tiles_y_gp-1:0] pod_hor_link_sif_li, pod_hor_link_sif_lo;
-  bsg_manycore_ruche_x_link_sif_s [E:W][hb_num_tiles_y_gp-1:0] pod_ruche_link_li, pod_ruche_link_lo;
+  bsg_manycore_link_sif_s [E:W][num_tiles_y_p-1:0] pod_hor_link_sif_li, pod_hor_link_sif_lo;
+  bsg_manycore_ruche_x_link_sif_s [E:W][num_tiles_y_p-1:0] pod_ruche_link_li, pod_ruche_link_lo;
 
   bsg_manycore_pod_ruche_row #(
-    .num_tiles_x_p        (hb_num_tiles_x_gp)
-    ,.num_tiles_y_p       (hb_num_tiles_y_gp)
-    ,.pod_x_cord_width_p  (hb_pod_x_cord_width_gp)
-    ,.pod_y_cord_width_p  (hb_pod_y_cord_width_gp)
-    ,.x_cord_width_p      (hb_x_cord_width_gp)
-    ,.y_cord_width_p      (hb_y_cord_width_gp)
-    ,.addr_width_p        (hb_addr_width_gp)
-    ,.data_width_p        (hb_data_width_gp)
-    ,.ruche_factor_X_p    (hb_ruche_factor_X_gp)
+    .num_tiles_x_p        (num_tiles_x_p)
+    ,.num_tiles_y_p       (num_tiles_y_p)
+    ,.pod_x_cord_width_p  (pod_x_cord_width_p)
+    ,.pod_y_cord_width_p  (pod_y_cord_width_p)
+    ,.x_cord_width_p      (x_cord_width_p)
+    ,.y_cord_width_p      (y_cord_width_p)
+    ,.addr_width_p        (addr_width_p)
+    ,.data_width_p        (data_width_p)
+    ,.ruche_factor_X_p    (ruche_factor_X_p)
 
-    ,.num_subarray_x_p    (hb_num_subarray_x_gp)
-    ,.num_subarray_y_p    (hb_num_subarray_y_gp)
+    ,.num_subarray_x_p    (num_subarray_x_p)
+    ,.num_subarray_y_p    (num_subarray_y_p)
 
-    ,.dmem_size_p         (hb_dmem_size_gp)
-    ,.icache_entries_p    (hb_icache_entries_gp)
-    ,.icache_tag_width_p  (hb_icache_tag_width_gp)
+    ,.dmem_size_p         (dmem_size_p)
+    ,.icache_entries_p    (icache_entries_p)
+    ,.icache_tag_width_p  (icache_tag_width_p)
 
-    ,.num_vcache_rows_p   (num_vcache_rows_gp)
-    ,.vcache_addr_width_p (vcache_addr_width_gp)
-    ,.vcache_data_width_p (vcache_data_width_gp)
-    ,.vcache_ways_p       (vcache_ways_gp)
-    ,.vcache_sets_p       (vcache_sets_gp)
-    ,.vcache_block_size_in_words_p  (vcache_block_size_in_words_gp)
-    ,.vcache_size_p                 (vcache_size_gp)
-    ,.vcache_dma_data_width_p       (vcache_dma_data_width_gp)
+    ,.num_vcache_rows_p   (num_vcache_rows_p)
+    ,.vcache_addr_width_p (vcache_addr_width_p)
+    ,.vcache_data_width_p (vcache_data_width_p)
+    ,.vcache_ways_p       (vcache_ways_p)
+    ,.vcache_sets_p       (vcache_sets_p)
+    ,.vcache_block_size_in_words_p  (vcache_block_size_in_words_p)
+    ,.vcache_size_p                 (vcache_size_p)
+    ,.vcache_dma_data_width_p       (vcache_dma_data_width_p)
 
-    ,.wh_ruche_factor_p   (wh_ruche_factor_gp)
-    ,.wh_cid_width_p      (wh_cid_width_gp)
-    ,.wh_flit_width_p     (wh_flit_width_gp)
-    ,.wh_cord_width_p     (wh_cord_width_gp)
-    ,.wh_len_width_p      (wh_len_width_gp)
+    ,.wh_ruche_factor_p   (wh_ruche_factor_p)
+    ,.wh_cid_width_p      (wh_cid_width_p)
+    ,.wh_flit_width_p     (wh_flit_width_p)
+    ,.wh_cord_width_p     (wh_cord_width_p)
+    ,.wh_len_width_p      (wh_len_width_p)
 
-    ,.num_pods_x_p        (hb_num_pods_x_gp)
+    ,.num_pods_x_p        (num_pods_x_p)
 
     ,.num_clk_ports_p     (num_clk_ports_p)
   ) podrow (
@@ -183,24 +219,24 @@ module bsg_manycore_pod_row_sdr
 
 
   // NORTH SDR
-  logic [hb_num_pods_x_gp-1:0][hb_num_tiles_x_gp-1:0] sdr_n_core_reset_ver_lo;
-  logic [hb_num_pods_x_gp-1:0][E:W] sdr_n_core_reset_lo;
-  logic [hb_num_pods_x_gp-1:0][hb_num_tiles_x_gp-1:0][hb_x_cord_width_gp-1:0] sdr_n_core_global_x_li, sdr_n_core_global_x_lo;
-  logic [hb_num_pods_x_gp-1:0][hb_num_tiles_x_gp-1:0][hb_y_cord_width_gp-1:0] sdr_n_core_global_y_li, sdr_n_core_global_y_lo;
-  logic [hb_num_pods_x_gp-1:0] sdr_n_async_uplink_reset_li,     sdr_n_async_uplink_reset_lo;
-  logic [hb_num_pods_x_gp-1:0] sdr_n_async_downlink_reset_li,   sdr_n_async_downlink_reset_lo;
-  logic [hb_num_pods_x_gp-1:0] sdr_n_async_downstream_reset_li, sdr_n_async_downstream_reset_lo;
-  logic [hb_num_pods_x_gp-1:0] sdr_n_async_token_reset_li,      sdr_n_async_token_reset_lo;
+  logic [num_pods_x_p-1:0][num_tiles_x_p-1:0] sdr_n_core_reset_ver_lo;
+  logic [num_pods_x_p-1:0][E:W] sdr_n_core_reset_lo;
+  logic [num_pods_x_p-1:0][num_tiles_x_p-1:0][x_cord_width_p-1:0] sdr_n_core_global_x_li, sdr_n_core_global_x_lo;
+  logic [num_pods_x_p-1:0][num_tiles_x_p-1:0][y_cord_width_p-1:0] sdr_n_core_global_y_li, sdr_n_core_global_y_lo;
+  logic [num_pods_x_p-1:0] sdr_n_async_uplink_reset_li,     sdr_n_async_uplink_reset_lo;
+  logic [num_pods_x_p-1:0] sdr_n_async_downlink_reset_li,   sdr_n_async_downlink_reset_lo;
+  logic [num_pods_x_p-1:0] sdr_n_async_downstream_reset_li, sdr_n_async_downstream_reset_lo;
+  logic [num_pods_x_p-1:0] sdr_n_async_token_reset_li,      sdr_n_async_token_reset_lo;
 
-  for (genvar x = 0; x < hb_num_pods_x_gp; x++) begin: sdr_n_x
+  for (genvar x = 0; x < num_pods_x_p; x++) begin: sdr_n_x
     bsg_manycore_link_to_sdr_north_row #(
       .lg_fifo_depth_p                  (sdr_lg_fifo_depth_gp)
       ,.lg_credit_to_token_decimation_p (sdr_lg_credit_to_token_decimation_gp)
-      ,.num_tiles_x_p                   (hb_num_tiles_x_gp)
-      ,.x_cord_width_p                  (hb_x_cord_width_gp)
-      ,.y_cord_width_p                  (hb_y_cord_width_gp)
-      ,.addr_width_p                    (hb_addr_width_gp)
-      ,.data_width_p                    (hb_data_width_gp)
+      ,.num_tiles_x_p                   (num_tiles_x_p)
+      ,.x_cord_width_p                  (x_cord_width_p)
+      ,.y_cord_width_p                  (y_cord_width_p)
+      ,.addr_width_p                    (addr_width_p)
+      ,.data_width_p                    (data_width_p)
       ,.num_clk_ports_p(num_clk_ports_p)
     ) sdr_n (
       .core_clk_i                 ({num_clk_ports_p{core_clk}})
@@ -225,30 +261,30 @@ module bsg_manycore_pod_row_sdr
       ,.async_downstream_reset_o  (sdr_n_async_downstream_reset_lo[x])
       ,.async_token_reset_o       (sdr_n_async_token_reset_lo[x])
 
-      ,.async_fwd_link_i_disable_i(async_ver_fwd_link_i_disable_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.async_fwd_link_o_disable_i(async_ver_fwd_link_o_disable_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.async_rev_link_i_disable_i(async_ver_rev_link_i_disable_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.async_rev_link_o_disable_i(async_ver_rev_link_o_disable_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
+      ,.async_fwd_link_i_disable_i(async_ver_fwd_link_i_disable_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.async_fwd_link_o_disable_i(async_ver_fwd_link_o_disable_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.async_rev_link_i_disable_i(async_ver_rev_link_i_disable_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.async_rev_link_o_disable_i(async_ver_rev_link_o_disable_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
 
-      ,.io_fwd_link_clk_o         (ver_io_fwd_link_clk_o[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_data_o        (ver_io_fwd_link_data_o[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_v_o           (ver_io_fwd_link_v_o[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_token_i       (ver_io_fwd_link_token_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
+      ,.io_fwd_link_clk_o         (ver_io_fwd_link_clk_o[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_data_o        (ver_io_fwd_link_data_o[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_v_o           (ver_io_fwd_link_v_o[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_token_i       (ver_io_fwd_link_token_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
 
-      ,.io_fwd_link_clk_i         (ver_io_fwd_link_clk_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_data_i        (ver_io_fwd_link_data_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_v_i           (ver_io_fwd_link_v_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_token_o       (ver_io_fwd_link_token_o[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
+      ,.io_fwd_link_clk_i         (ver_io_fwd_link_clk_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_data_i        (ver_io_fwd_link_data_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_v_i           (ver_io_fwd_link_v_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_token_o       (ver_io_fwd_link_token_o[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
 
-      ,.io_rev_link_clk_o         (ver_io_rev_link_clk_o[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_data_o        (ver_io_rev_link_data_o[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_v_o           (ver_io_rev_link_v_o[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_token_i       (ver_io_rev_link_token_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
+      ,.io_rev_link_clk_o         (ver_io_rev_link_clk_o[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_data_o        (ver_io_rev_link_data_o[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_v_o           (ver_io_rev_link_v_o[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_token_i       (ver_io_rev_link_token_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
 
-      ,.io_rev_link_clk_i         (ver_io_rev_link_clk_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_data_i        (ver_io_rev_link_data_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_v_i           (ver_io_rev_link_v_i[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_token_o       (ver_io_rev_link_token_o[N][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
+      ,.io_rev_link_clk_i         (ver_io_rev_link_clk_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_data_i        (ver_io_rev_link_data_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_v_i           (ver_io_rev_link_v_i[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_token_o       (ver_io_rev_link_token_o[N][(x*num_tiles_x_p)+1+:num_tiles_x_p])
 
       ,.tag_clk_i         (pod_tag_clk_i[x])
       ,.tag_data_i        (pod_tag_data_i[x])
@@ -274,20 +310,20 @@ module bsg_manycore_pod_row_sdr
 
 
   // SOUTH SDR
-  logic [hb_num_pods_x_gp-1:0] sdr_s_async_uplink_reset_li,     sdr_s_async_uplink_reset_lo;
-  logic [hb_num_pods_x_gp-1:0] sdr_s_async_downlink_reset_li,   sdr_s_async_downlink_reset_lo;
-  logic [hb_num_pods_x_gp-1:0] sdr_s_async_downstream_reset_li, sdr_s_async_downstream_reset_lo;
-  logic [hb_num_pods_x_gp-1:0] sdr_s_async_token_reset_li,      sdr_s_async_token_reset_lo;
+  logic [num_pods_x_p-1:0] sdr_s_async_uplink_reset_li,     sdr_s_async_uplink_reset_lo;
+  logic [num_pods_x_p-1:0] sdr_s_async_downlink_reset_li,   sdr_s_async_downlink_reset_lo;
+  logic [num_pods_x_p-1:0] sdr_s_async_downstream_reset_li, sdr_s_async_downstream_reset_lo;
+  logic [num_pods_x_p-1:0] sdr_s_async_token_reset_li,      sdr_s_async_token_reset_lo;
 
-  for (genvar x = 0; x < hb_num_pods_x_gp; x++) begin: sdr_s_x
+  for (genvar x = 0; x < num_pods_x_p; x++) begin: sdr_s_x
     bsg_manycore_link_to_sdr_south_row #(
       .lg_fifo_depth_p                  (sdr_lg_fifo_depth_gp)
       ,.lg_credit_to_token_decimation_p (sdr_lg_credit_to_token_decimation_gp)
-      ,.num_tiles_x_p       (hb_num_tiles_x_gp)
-      ,.x_cord_width_p      (hb_x_cord_width_gp)
-      ,.y_cord_width_p      (hb_y_cord_width_gp)
-      ,.addr_width_p        (hb_addr_width_gp)
-      ,.data_width_p        (hb_data_width_gp)
+      ,.num_tiles_x_p       (num_tiles_x_p)
+      ,.x_cord_width_p      (x_cord_width_p)
+      ,.y_cord_width_p      (y_cord_width_p)
+      ,.addr_width_p        (addr_width_p)
+      ,.data_width_p        (data_width_p)
       ,.num_clk_ports_p(num_clk_ports_p)
     ) sdr_s (
       .core_clk_i({num_clk_ports_p{core_clk}})
@@ -305,30 +341,30 @@ module bsg_manycore_pod_row_sdr
       ,.async_downstream_reset_o  (sdr_s_async_downstream_reset_lo[x])
       ,.async_token_reset_o       (sdr_s_async_token_reset_lo[x])
 
-      ,.async_fwd_link_i_disable_i(async_ver_fwd_link_i_disable_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.async_fwd_link_o_disable_i(async_ver_fwd_link_o_disable_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.async_rev_link_i_disable_i(async_ver_rev_link_i_disable_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.async_rev_link_o_disable_i(async_ver_rev_link_o_disable_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
+      ,.async_fwd_link_i_disable_i(async_ver_fwd_link_i_disable_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.async_fwd_link_o_disable_i(async_ver_fwd_link_o_disable_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.async_rev_link_i_disable_i(async_ver_rev_link_i_disable_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.async_rev_link_o_disable_i(async_ver_rev_link_o_disable_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
 
-      ,.io_fwd_link_clk_o         (ver_io_fwd_link_clk_o[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_data_o        (ver_io_fwd_link_data_o[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_v_o           (ver_io_fwd_link_v_o[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_token_i       (ver_io_fwd_link_token_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
+      ,.io_fwd_link_clk_o         (ver_io_fwd_link_clk_o[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_data_o        (ver_io_fwd_link_data_o[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_v_o           (ver_io_fwd_link_v_o[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_token_i       (ver_io_fwd_link_token_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
 
-      ,.io_fwd_link_clk_i         (ver_io_fwd_link_clk_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_data_i        (ver_io_fwd_link_data_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_v_i           (ver_io_fwd_link_v_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_fwd_link_token_o       (ver_io_fwd_link_token_o[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
+      ,.io_fwd_link_clk_i         (ver_io_fwd_link_clk_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_data_i        (ver_io_fwd_link_data_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_v_i           (ver_io_fwd_link_v_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_fwd_link_token_o       (ver_io_fwd_link_token_o[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
 
-      ,.io_rev_link_clk_o         (ver_io_rev_link_clk_o[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_data_o        (ver_io_rev_link_data_o[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_v_o           (ver_io_rev_link_v_o[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_token_i       (ver_io_rev_link_token_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
+      ,.io_rev_link_clk_o         (ver_io_rev_link_clk_o[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_data_o        (ver_io_rev_link_data_o[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_v_o           (ver_io_rev_link_v_o[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_token_i       (ver_io_rev_link_token_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
 
-      ,.io_rev_link_clk_i         (ver_io_rev_link_clk_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_data_i        (ver_io_rev_link_data_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_v_i           (ver_io_rev_link_v_i[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
-      ,.io_rev_link_token_o       (ver_io_rev_link_token_o[S][(x*hb_num_tiles_x_gp)+1+:hb_num_tiles_x_gp])
+      ,.io_rev_link_clk_i         (ver_io_rev_link_clk_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_data_i        (ver_io_rev_link_data_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_v_i           (ver_io_rev_link_v_i[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
+      ,.io_rev_link_token_o       (ver_io_rev_link_token_o[S][(x*num_tiles_x_p)+1+:num_tiles_x_p])
     );
 
     // connect async_reset between sdr
@@ -342,27 +378,27 @@ module bsg_manycore_pod_row_sdr
 
 
   // WEST SDR
-  logic [hb_num_tiles_y_gp-1:0] sdr_w_core_reset_li, sdr_w_core_reset_lo;
-  logic [hb_num_tiles_y_gp-1:0][hb_x_cord_width_gp-1:0] sdr_w_core_global_x_li, sdr_w_core_global_x_lo;
-  logic [hb_num_tiles_y_gp-1:0][hb_y_cord_width_gp-1:0] sdr_w_core_global_y_li, sdr_w_core_global_y_lo;
+  logic [num_tiles_y_p-1:0] sdr_w_core_reset_li, sdr_w_core_reset_lo;
+  logic [num_tiles_y_p-1:0][x_cord_width_p-1:0] sdr_w_core_global_x_li, sdr_w_core_global_x_lo;
+  logic [num_tiles_y_p-1:0][y_cord_width_p-1:0] sdr_w_core_global_y_li, sdr_w_core_global_y_lo;
 
 
-  bsg_manycore_link_sif_s [hb_num_tiles_y_gp-1:0][S:N] sdr_w_ver_link_sif_li, sdr_w_ver_link_sif_lo;
-  logic [hb_num_tiles_y_gp-1:0] sdr_w_async_uplink_reset_li,     sdr_w_async_uplink_reset_lo;
-  logic [hb_num_tiles_y_gp-1:0] sdr_w_async_downlink_reset_li,   sdr_w_async_downlink_reset_lo;
-  logic [hb_num_tiles_y_gp-1:0] sdr_w_async_downstream_reset_li, sdr_w_async_downstream_reset_lo;
-  logic [hb_num_tiles_y_gp-1:0] sdr_w_async_token_reset_li,      sdr_w_async_token_reset_lo;
+  bsg_manycore_link_sif_s [num_tiles_y_p-1:0][S:N] sdr_w_ver_link_sif_li, sdr_w_ver_link_sif_lo;
+  logic [num_tiles_y_p-1:0] sdr_w_async_uplink_reset_li,     sdr_w_async_uplink_reset_lo;
+  logic [num_tiles_y_p-1:0] sdr_w_async_downlink_reset_li,   sdr_w_async_downlink_reset_lo;
+  logic [num_tiles_y_p-1:0] sdr_w_async_downstream_reset_li, sdr_w_async_downstream_reset_lo;
+  logic [num_tiles_y_p-1:0] sdr_w_async_token_reset_li,      sdr_w_async_token_reset_lo;
 
-  for (genvar y = 0; y < hb_num_tiles_y_gp; y++) begin: sdr_w_y
+  for (genvar y = 0; y < num_tiles_y_p; y++) begin: sdr_w_y
     bsg_manycore_link_ruche_to_sdr_west #(
       .lg_fifo_depth_p                  (sdr_lg_fifo_depth_gp)
       ,.lg_credit_to_token_decimation_p (sdr_lg_credit_to_token_decimation_gp)
 
-      ,.x_cord_width_p      (hb_x_cord_width_gp)
-      ,.y_cord_width_p      (hb_y_cord_width_gp)
-      ,.addr_width_p        (hb_addr_width_gp)
-      ,.data_width_p        (hb_data_width_gp)
-      ,.ruche_factor_X_p    (hb_ruche_factor_X_gp)
+      ,.x_cord_width_p      (x_cord_width_p)
+      ,.y_cord_width_p      (y_cord_width_p)
+      ,.addr_width_p        (addr_width_p)
+      ,.data_width_p        (data_width_p)
+      ,.ruche_factor_X_p    (ruche_factor_X_p)
     ) sdr_w (
       .core_clk_i       (core_clk)
       ,.core_reset_i    (sdr_w_core_reset_li[y])
@@ -419,7 +455,7 @@ module bsg_manycore_pod_row_sdr
     );
 
     // connect between sdr west
-    if (y < hb_num_tiles_y_gp-1) begin
+    if (y < num_tiles_y_p-1) begin
       // ver link
       assign sdr_w_ver_link_sif_li[y][S] = sdr_w_ver_link_sif_lo[y+1][N];
       assign sdr_w_ver_link_sif_li[y+1][N] = sdr_w_ver_link_sif_lo[y][S];
@@ -438,26 +474,26 @@ module bsg_manycore_pod_row_sdr
   end
 
   // EAST SDR
-  logic [hb_num_tiles_y_gp-1:0] sdr_e_core_reset_li, sdr_e_core_reset_lo;
-  logic [hb_num_tiles_y_gp-1:0][hb_x_cord_width_gp-1:0] sdr_e_core_global_x_li, sdr_e_core_global_x_lo;
-  logic [hb_num_tiles_y_gp-1:0][hb_y_cord_width_gp-1:0] sdr_e_core_global_y_li, sdr_e_core_global_y_lo;
+  logic [num_tiles_y_p-1:0] sdr_e_core_reset_li, sdr_e_core_reset_lo;
+  logic [num_tiles_y_p-1:0][x_cord_width_p-1:0] sdr_e_core_global_x_li, sdr_e_core_global_x_lo;
+  logic [num_tiles_y_p-1:0][y_cord_width_p-1:0] sdr_e_core_global_y_li, sdr_e_core_global_y_lo;
 
-  bsg_manycore_link_sif_s [hb_num_tiles_y_gp-1:0][S:N] sdr_e_ver_link_sif_li, sdr_e_ver_link_sif_lo;
-  logic [hb_num_tiles_y_gp-1:0] sdr_e_async_uplink_reset_li,     sdr_e_async_uplink_reset_lo;
-  logic [hb_num_tiles_y_gp-1:0] sdr_e_async_downlink_reset_li,   sdr_e_async_downlink_reset_lo;
-  logic [hb_num_tiles_y_gp-1:0] sdr_e_async_downstream_reset_li, sdr_e_async_downstream_reset_lo;
-  logic [hb_num_tiles_y_gp-1:0] sdr_e_async_token_reset_li,      sdr_e_async_token_reset_lo;
+  bsg_manycore_link_sif_s [num_tiles_y_p-1:0][S:N] sdr_e_ver_link_sif_li, sdr_e_ver_link_sif_lo;
+  logic [num_tiles_y_p-1:0] sdr_e_async_uplink_reset_li,     sdr_e_async_uplink_reset_lo;
+  logic [num_tiles_y_p-1:0] sdr_e_async_downlink_reset_li,   sdr_e_async_downlink_reset_lo;
+  logic [num_tiles_y_p-1:0] sdr_e_async_downstream_reset_li, sdr_e_async_downstream_reset_lo;
+  logic [num_tiles_y_p-1:0] sdr_e_async_token_reset_li,      sdr_e_async_token_reset_lo;
 
-  for (genvar y = 0; y < hb_num_tiles_y_gp; y++) begin: sdr_e_y
+  for (genvar y = 0; y < num_tiles_y_p; y++) begin: sdr_e_y
     bsg_manycore_link_ruche_to_sdr_east #(
       .lg_fifo_depth_p                  (sdr_lg_fifo_depth_gp)
       ,.lg_credit_to_token_decimation_p (sdr_lg_credit_to_token_decimation_gp)
 
-      ,.x_cord_width_p      (hb_x_cord_width_gp)
-      ,.y_cord_width_p      (hb_y_cord_width_gp)
-      ,.addr_width_p        (hb_addr_width_gp)
-      ,.data_width_p        (hb_data_width_gp)
-      ,.ruche_factor_X_p    (hb_ruche_factor_X_gp)
+      ,.x_cord_width_p      (x_cord_width_p)
+      ,.y_cord_width_p      (y_cord_width_p)
+      ,.addr_width_p        (addr_width_p)
+      ,.data_width_p        (data_width_p)
+      ,.ruche_factor_X_p    (ruche_factor_X_p)
     ) sdr_e (
       .core_clk_i       (core_clk)
       ,.core_reset_i    (sdr_e_core_reset_li[y])
@@ -514,7 +550,7 @@ module bsg_manycore_pod_row_sdr
     );
 
     // connect between sdr east
-    if (y < hb_num_tiles_y_gp-1) begin
+    if (y < num_tiles_y_p-1) begin
       // ver link
       assign sdr_e_ver_link_sif_li[y][S] = sdr_e_ver_link_sif_lo[y+1][N];
       assign sdr_e_ver_link_sif_li[y+1][N] = sdr_e_ver_link_sif_lo[y][S];
@@ -538,10 +574,10 @@ module bsg_manycore_pod_row_sdr
     .lg_fifo_depth_p(sdr_lg_fifo_depth_gp)
     ,.lg_credit_to_token_decimation_p(sdr_lg_credit_to_token_decimation_gp)
 
-    ,.x_cord_width_p      (hb_x_cord_width_gp)
-    ,.y_cord_width_p      (hb_y_cord_width_gp)
-    ,.addr_width_p        (hb_addr_width_gp)
-    ,.data_width_p        (hb_data_width_gp)
+    ,.x_cord_width_p      (x_cord_width_p)
+    ,.y_cord_width_p      (y_cord_width_p)
+    ,.addr_width_p        (addr_width_p)
+    ,.data_width_p        (data_width_p)
 
     ,.wh_ruche_factor_p   (wh_ruche_factor_gp)
     ,.wh_flit_width_p     (wh_flit_width_gp)
@@ -611,16 +647,16 @@ module bsg_manycore_pod_row_sdr
     .lg_fifo_depth_p(sdr_lg_fifo_depth_gp)
     ,.lg_credit_to_token_decimation_p(sdr_lg_credit_to_token_decimation_gp)
 
-    ,.x_cord_width_p      (hb_x_cord_width_gp)
-    ,.y_cord_width_p      (hb_y_cord_width_gp)
-    ,.addr_width_p        (hb_addr_width_gp)
-    ,.data_width_p        (hb_data_width_gp)
+    ,.x_cord_width_p      (x_cord_width_p)
+    ,.y_cord_width_p      (y_cord_width_p)
+    ,.addr_width_p        (addr_width_p)
+    ,.data_width_p        (data_width_p)
 
     ,.wh_ruche_factor_p   (wh_ruche_factor_gp)
     ,.wh_flit_width_p     (wh_flit_width_gp)
   ) sdr_ne (
     .core_clk_i         (core_clk)
-    ,.core_reset_i      (sdr_n_core_reset_lo[hb_num_pods_x_gp-1][E])
+    ,.core_reset_i      (sdr_n_core_reset_lo[num_pods_x_p-1][E])
     ,.core_reset_o      (sdr_e_core_reset_li[0])
 
     ,.core_global_x_i   (global_x_i[2+total_num_tiles_x_lp-1])
@@ -684,16 +720,16 @@ module bsg_manycore_pod_row_sdr
     .lg_fifo_depth_p(sdr_lg_fifo_depth_gp)
     ,.lg_credit_to_token_decimation_p(sdr_lg_credit_to_token_decimation_gp)
 
-    ,.x_cord_width_p      (hb_x_cord_width_gp)
-    ,.y_cord_width_p      (hb_y_cord_width_gp)
-    ,.addr_width_p        (hb_addr_width_gp)
-    ,.data_width_p        (hb_data_width_gp)
+    ,.x_cord_width_p      (x_cord_width_p)
+    ,.y_cord_width_p      (y_cord_width_p)
+    ,.addr_width_p        (addr_width_p)
+    ,.data_width_p        (data_width_p)
 
     ,.wh_ruche_factor_p   (wh_ruche_factor_gp)
     ,.wh_flit_width_p     (wh_flit_width_gp)
   ) sdr_sw (
     .core_clk_i         (core_clk)
-    ,.core_reset_i      (sdr_w_core_reset_lo[hb_num_tiles_y_gp-1])
+    ,.core_reset_i      (sdr_w_core_reset_lo[num_tiles_y_p-1])
     ,.core_reset_o      ()
 
     ,.core_global_x_i   ('0)
@@ -701,8 +737,8 @@ module bsg_manycore_pod_row_sdr
     ,.core_global_x_o   ()
     ,.core_global_y_o   ()
 
-    ,.core_ver_link_sif_i         (sdr_w_ver_link_sif_lo[hb_num_tiles_y_gp-1][S])
-    ,.core_ver_link_sif_o         (sdr_w_ver_link_sif_li[hb_num_tiles_y_gp-1][S])
+    ,.core_ver_link_sif_i         (sdr_w_ver_link_sif_lo[num_tiles_y_p-1][S])
+    ,.core_ver_link_sif_o         (sdr_w_ver_link_sif_li[num_tiles_y_p-1][S])
 
     ,.core_wh_link_sif_i          (pod_wh_link_sif_lo[W][S])
     ,.core_wh_link_sif_o          (pod_wh_link_sif_li[W][S])
@@ -710,10 +746,10 @@ module bsg_manycore_pod_row_sdr
     ,.tag_clk_i               (async_reset_tag_clk_i[S][W])
     ,.tag_data_i              (async_reset_tag_data_i[S][W])
     ,.tag_node_id_offset_i    (async_reset_tag_node_id_offset_i[S][W])
-    ,.async_uplink_reset_o        (sdr_w_async_uplink_reset_li[hb_num_tiles_y_gp-1])
-    ,.async_downlink_reset_o      (sdr_w_async_downlink_reset_li[hb_num_tiles_y_gp-1])
-    ,.async_downstream_reset_o    (sdr_w_async_downstream_reset_li[hb_num_tiles_y_gp-1])
-    ,.async_token_reset_o         (sdr_w_async_token_reset_li[hb_num_tiles_y_gp-1])
+    ,.async_uplink_reset_o        (sdr_w_async_uplink_reset_li[num_tiles_y_p-1])
+    ,.async_downlink_reset_o      (sdr_w_async_downlink_reset_li[num_tiles_y_p-1])
+    ,.async_downstream_reset_o    (sdr_w_async_downstream_reset_li[num_tiles_y_p-1])
+    ,.async_token_reset_o         (sdr_w_async_token_reset_li[num_tiles_y_p-1])
 
     ,.async_fwd_link_i_disable_i  (async_ver_fwd_link_i_disable_i[S][0])
     ,.async_fwd_link_o_disable_i  (async_ver_fwd_link_o_disable_i[S][0])
@@ -757,16 +793,16 @@ module bsg_manycore_pod_row_sdr
     .lg_fifo_depth_p(sdr_lg_fifo_depth_gp)
     ,.lg_credit_to_token_decimation_p(sdr_lg_credit_to_token_decimation_gp)
 
-    ,.x_cord_width_p      (hb_x_cord_width_gp)
-    ,.y_cord_width_p      (hb_y_cord_width_gp)
-    ,.addr_width_p        (hb_addr_width_gp)
-    ,.data_width_p        (hb_data_width_gp)
+    ,.x_cord_width_p      (x_cord_width_p)
+    ,.y_cord_width_p      (y_cord_width_p)
+    ,.addr_width_p        (addr_width_p)
+    ,.data_width_p        (data_width_p)
 
     ,.wh_ruche_factor_p   (wh_ruche_factor_gp)
     ,.wh_flit_width_p     (wh_flit_width_gp)
   ) sdr_se (
     .core_clk_i         (core_clk)
-    ,.core_reset_i      (sdr_e_core_reset_lo[hb_num_tiles_y_gp-1])
+    ,.core_reset_i      (sdr_e_core_reset_lo[num_tiles_y_p-1])
     ,.core_reset_o      ()
 
     ,.core_global_x_i   ('0)
@@ -774,8 +810,8 @@ module bsg_manycore_pod_row_sdr
     ,.core_global_x_o   ()
     ,.core_global_y_o   ()
 
-    ,.core_ver_link_sif_i         (sdr_e_ver_link_sif_lo[hb_num_tiles_y_gp-1][S])
-    ,.core_ver_link_sif_o         (sdr_e_ver_link_sif_li[hb_num_tiles_y_gp-1][S])
+    ,.core_ver_link_sif_i         (sdr_e_ver_link_sif_lo[num_tiles_y_p-1][S])
+    ,.core_ver_link_sif_o         (sdr_e_ver_link_sif_li[num_tiles_y_p-1][S])
 
     ,.core_wh_link_sif_i          (pod_wh_link_sif_lo[E][S])
     ,.core_wh_link_sif_o          (pod_wh_link_sif_li[E][S])
@@ -784,10 +820,10 @@ module bsg_manycore_pod_row_sdr
     ,.tag_clk_i               (async_reset_tag_clk_i[S][E])
     ,.tag_data_i              (async_reset_tag_data_i[S][E])
     ,.tag_node_id_offset_i    (async_reset_tag_node_id_offset_i[S][E])
-    ,.async_uplink_reset_o      (sdr_s_async_uplink_reset_li[hb_num_pods_x_gp-1])
-    ,.async_downlink_reset_o    (sdr_s_async_downlink_reset_li[hb_num_pods_x_gp-1])
-    ,.async_downstream_reset_o  (sdr_s_async_downstream_reset_li[hb_num_pods_x_gp-1])
-    ,.async_token_reset_o       (sdr_s_async_token_reset_li[hb_num_pods_x_gp-1])
+    ,.async_uplink_reset_o      (sdr_s_async_uplink_reset_li[num_pods_x_p-1])
+    ,.async_downlink_reset_o    (sdr_s_async_downlink_reset_li[num_pods_x_p-1])
+    ,.async_downstream_reset_o  (sdr_s_async_downstream_reset_li[num_pods_x_p-1])
+    ,.async_token_reset_o       (sdr_s_async_token_reset_li[num_pods_x_p-1])
 
     ,.async_fwd_link_i_disable_i  (async_ver_fwd_link_i_disable_i[S][2+total_num_tiles_x_lp-1])
     ,.async_fwd_link_o_disable_i  (async_ver_fwd_link_o_disable_i[S][2+total_num_tiles_x_lp-1])
@@ -830,3 +866,6 @@ module bsg_manycore_pod_row_sdr
 
 
 endmodule
+
+`BSG_ABSTRACT_MODULE(bsg_manycore_pod_row_sdr)
+
