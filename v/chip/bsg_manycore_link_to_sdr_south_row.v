@@ -88,7 +88,7 @@ module bsg_manycore_link_to_sdr_south_row
       ,.addr_width_p                    (addr_width_p)
       ,.data_width_p                    (data_width_p)
 
-    ) sdr_n (
+    ) sdr_s (
       .core_clk_i                 (core_clk_i[x/(num_tiles_x_p/num_clk_ports_p)])
 
       ,.core_link_sif_i           (core_link_sif_i[x])
