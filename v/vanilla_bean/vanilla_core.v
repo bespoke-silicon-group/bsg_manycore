@@ -109,6 +109,18 @@ module vanilla_core
     , input [y_cord_width_p-1:0] global_y_i
   );
 
+
+  // reset edge down detect
+  logic reset_r;
+  bsg_dff #(.width_p(1)) reset_dff (
+    .clk_i(clk_i)
+    ,.data_i(reset_i)
+    ,.data_o(reset_r)
+  );  
+
+  wire reset_down = reset_r & ~reset_i;
+
+
   // pipeline signals
   // ctrl signals set to zero when reset_i is high.
   // data signals are not reset to zero.
@@ -178,6 +190,8 @@ module vanilla_core
   instr_expander instr_exp0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
+
+    ,.reset_down_i(reset_down)
   
     ,.stall_i(instr_exp_stall_li)
     ,.flush_i(instr_exp_flush_li)
@@ -1139,15 +1153,6 @@ module vanilla_core
   // ID stage is not stalled and not flushed.
   wire id_issue = ~stall_id & ~stall_all & ~flush;
 
-  // reset edge down detect
-  logic reset_r;
-  bsg_dff #(.width_p(1)) reset_dff (
-    .clk_i(clk_i)
-    ,.data_i(reset_i)
-    ,.data_o(reset_r)
-  );  
-
-  wire reset_down = reset_r & ~reset_i;
 
 
   // Next PC logic

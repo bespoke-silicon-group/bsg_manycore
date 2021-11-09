@@ -12,6 +12,10 @@ module instr_expander
   (
     input clk_i
     , input reset_i
+    // when the chip comes out of reset, the output of icache SRAM will be X, which will turn is_flwadd4_op to X.
+    // The X will propagate to stall_instr_exp_o and exp_instr_o, and the core won't be able to start, when the reset goes down.
+    // So we want to guard the X from propagating with reset_down_i signal. 
+    , input reset_down_i
 
     , input stall_i
     , input flush_i
@@ -84,7 +88,7 @@ module instr_expander
 
   // check if flwadd4
   wire freeze = (stall_i | flush_i);
-  wire is_flwadd4_op = (instr_i ==? `RV32_FLWADD4);
+  wire is_flwadd4_op = (instr_i ==? `RV32_FLWADD4) & ~reset_down_i;
   wire counter_max_val = (2'b11 == counter_lo);
 
 
