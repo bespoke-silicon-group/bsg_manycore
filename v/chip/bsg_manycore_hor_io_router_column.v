@@ -18,7 +18,7 @@ module bsg_manycore_hor_io_router_column
     
     , `BSG_INV_PARAM(num_row_p)
     , `BSG_INV_PARAM(bit [num_row_p-1:0] tieoff_west_p)
-    , `BSG_INV_PARAM(bit [num_row_p-1:0] tieoff_east_p )
+    , `BSG_INV_PARAM(bit [num_row_p-1:0] tieoff_east_p)
 
 
     , localparam link_sif_width_lp =
