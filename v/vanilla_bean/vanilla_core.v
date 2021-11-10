@@ -1227,7 +1227,7 @@ module vanilla_core
     : 1'b1;
 
   assign icache_v_li = icache_v_i | ifetch_v_i
-    | (read_icache & ~stall_all & ~(stall_id & ~flush));
+    | (~reset_i & read_icache & ~stall_all & ~(stall_id & ~flush));
 
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
