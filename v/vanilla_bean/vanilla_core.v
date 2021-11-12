@@ -1072,24 +1072,6 @@ module vanilla_core
   );
 
 
-  logic [fpu_recoded_data_width_gp-1:0] float_remote_load_recoded_data;
-  logic [fpu_recoded_data_width_gp-1:0] flw_wb_recoded_data;
-
-  fNToRecFN #(
-    .expWidth(fpu_recoded_exp_width_gp)
-    ,.sigWidth(fpu_recoded_sig_width_gp)
-  ) remote_flw_to_RecFN (
-    .in(float_remote_load_resp_data_i)
-    ,.out(float_remote_load_recoded_data)
-  );
-  fNToRecFN #(
-    .expWidth(fpu_recoded_exp_width_gp)
-    ,.sigWidth(fpu_recoded_sig_width_gp)
-  ) local_flw_to_RecFN (
-    .in(flw_wb_data_r.rf_data)
-    ,.out(flw_wb_recoded_data)
-  );
-
 
   //////////////////////////////
   //                          //
@@ -1876,16 +1858,15 @@ module vanilla_core
   // float scoreboard clear logic
   fp_wb_arbiter #(
     .num_banks_p(float_rf_num_banks_p)
+    ,.data_width_p(data_width_p)
   ) fp_wb_arb0 (
-    //.clk_i(clk_i)
-    //,.reset_i(reset_i)
 
     .flw_wb_v_i(flw_wb_ctrl_r.valid)
     ,.flw_wb_rd_i(flw_wb_ctrl_r.rd_addr)
-    ,.flw_wb_data_i(flw_wb_recoded_data)
+    ,.flw_wb_data_i(flw_wb_data_r.rf_data)
 
     ,.float_remote_load_resp_rd_i(float_remote_load_resp_rd_i)
-    ,.float_remote_load_resp_data_i(float_remote_load_recoded_data)
+    ,.float_remote_load_resp_data_i(float_remote_load_resp_data_i)
     ,.float_remote_load_resp_v_i(float_remote_load_resp_v_i)
     ,.float_remote_load_resp_force_i(float_remote_load_resp_force_i)
     ,.float_remote_load_resp_yumi_o(float_remote_load_resp_yumi_o)

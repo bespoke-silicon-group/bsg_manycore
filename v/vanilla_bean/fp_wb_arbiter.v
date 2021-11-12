@@ -9,7 +9,8 @@
 module fp_wb_arbiter
   import bsg_vanilla_pkg::*;
   #(`BSG_INV_PARAM(num_banks_p)
-    , parameter data_width_lp=fpu_recoded_data_width_gp
+    , `BSG_INV_PARAM(data_width_p)
+    , parameter recoded_data_width_lp=fpu_recoded_data_width_gp
     , parameter reg_addr_width_lp=RV32_reg_addr_width_gp
     , parameter bank_reg_addr_width_lp=`BSG_SAFE_CLOG2(RV32_reg_els_gp/num_banks_p)
     , parameter lg_num_banks_lp=`BSG_SAFE_CLOG2(num_banks_p)
@@ -18,11 +19,11 @@ module fp_wb_arbiter
     // from flw_wb stage (local)
     input flw_wb_v_i
     , input [reg_addr_width_lp-1:0] flw_wb_rd_i
-    , input [data_width_lp-1:0] flw_wb_data_i
+    , input [data_width_p-1:0] flw_wb_data_i
 
     // from float remote response
     , input [reg_addr_width_lp-1:0] float_remote_load_resp_rd_i
-    , input [data_width_lp-1:0] float_remote_load_resp_data_i
+    , input [data_width_p-1:0] float_remote_load_resp_data_i
     , input float_remote_load_resp_v_i
     , input float_remote_load_resp_force_i
     , output logic float_remote_load_resp_yumi_o
@@ -30,13 +31,13 @@ module fp_wb_arbiter
     // from fdiv_fsqrt
     , input fdiv_fsqrt_v_i
     , input [reg_addr_width_lp-1:0] fdiv_fsqrt_rd_i
-    , input [data_width_lp-1:0] fdiv_fsqrt_data_i
+    , input [recoded_data_width_lp-1:0] fdiv_fsqrt_data_i
     , output logic fdiv_fsqrt_yumi_o
 
     // from fpu_float
     , input fpu_float_v_i
     , input [reg_addr_width_lp-1:0] fpu_float_rd_i
-    , input [data_width_lp-1:0] fpu_float_data_i
+    , input [recoded_data_width_lp-1:0] fpu_float_data_i
 
     // to pipeline
     , output logic stall_remote_flw_wb_o
@@ -47,7 +48,7 @@ module fp_wb_arbiter
     // to float_rf
     , output logic [num_banks_p-1:0] float_rf_wen_o
     , output logic [num_banks_p-1:0][bank_reg_addr_width_lp-1:0] float_rf_waddr_o
-    , output logic [num_banks_p-1:0][data_width_lp-1:0] float_rf_wdata_o
+    , output logic [num_banks_p-1:0][recoded_data_width_lp-1:0] float_rf_wdata_o
   );
 
   // synopsys translate_off
@@ -55,6 +56,24 @@ module fp_wb_arbiter
     assert(`BSG_IS_POW2(num_banks_p)) else $error("Non power-of-2 banks not supported."); // but could be using bsg_hash_bank.
   end
   // synopsys translate_on
+
+  // FP recoder
+  logic [fpu_recoded_data_width_gp-1:0] flw_local_data, flw_remote_data;
+  fNToRecFN #(
+    .expWidth(fpu_recoded_exp_width_gp)
+    ,.sigWidth(fpu_recoded_sig_width_gp)
+  ) local_flw_to_RecFN (
+    .in(flw_wb_data_i)
+    ,.out(flw_local_data)
+  );
+  fNToRecFN #(
+    .expWidth(fpu_recoded_exp_width_gp)
+    ,.sigWidth(fpu_recoded_sig_width_gp)
+  ) remote_flw_to_RecFN (
+    .in(float_remote_load_resp_data_i)
+    ,.out(flw_remote_data)
+  );
+
 
 
   //    crossbar inputs order
@@ -67,9 +86,9 @@ module fp_wb_arbiter
   bsg_crossbar_o_by_i #(
     .i_els_p(4)
     ,.o_els_p(num_banks_p)
-    ,.width_p(data_width_lp)
+    ,.width_p(recoded_data_width_lp)
   ) xbar_data (
-    .i({fpu_float_data_i, fdiv_fsqrt_data_i, float_remote_load_resp_data_i, flw_wb_data_i})
+    .i({fpu_float_data_i, fdiv_fsqrt_data_i, flw_remote_data, flw_local_data})
     ,.sel_oi_one_hot_i(xbar_sel)
     ,.o(float_rf_wdata_o)
   );
