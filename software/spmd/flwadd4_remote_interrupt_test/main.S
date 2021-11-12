@@ -1,11 +1,16 @@
+// tests remote interrupt while flwadd4 being expanded.
+
+
 #include "bsg_manycore_arch.h"
 #include "bsg_manycore_asm.h"
 
 #define N 16
 
 .section .dram, "aw"
-  float_arr: .space (N*4)
-
+  float_dram_arr: .space (N*4)
+.data // DMEM
+  buffer: .space 8 // for spilling registers
+  float_dmem_arr: .space (N*4)
 
 
 .text
@@ -40,13 +45,16 @@ _start:
 init_start:
   li t0, 0
   li t1, N
-  la t2, float_arr
+  la t2, float_dram_arr
+  la t3, float_dmem_arr
 
 // initilize float_arr with 0,1,2...N-1
 init_loop:
   fcvt.s.w f0, t0
   fsw f0, 0(t2)
+  fsw f0, 0(t3)
   addi t2, t2, 4
+  addi t3, t3, 4
   addi t0, t0, 1
   bne t0, t1, init_loop
  
@@ -54,7 +62,7 @@ init_loop:
   
   
 test0:
-  la t0, float_arr
+  la t0, float_dram_arr
   li t1, 4
   li t2, bsg_tile_group_remote_interrupt_ptr(0,0)
   li t3, 1
@@ -65,8 +73,7 @@ test0:
   flwadd4 f8, t0, t1
   flwadd4 f12, t0, t1
 
-
-validate:
+validate0:
   fcvt.w.s t0, f0
   fcvt.w.s t1, f1
   fcvt.w.s t2, f2
@@ -118,6 +125,37 @@ validate:
   bne t1, s1, fail
   bne t2, s2, fail
   bne t3, s3, fail
+
+
+test1:
+  la t0, float_dmem_arr
+  li t1, 4
+  li t2, bsg_tile_group_remote_interrupt_ptr(0,0)
+  li t3, 1
+  flwadd4 f16, t0, t1
+  sw t3, 0(t2) // send remote interrupt to self.
+  flwadd4 f20, t0, t1
+  sw t3, 0(t2) // send remote interrupt to self.
+  flwadd4 f24, t0, t1
+  flwadd4 f28, t0, t1
+
+
+validate1:
+  fcvt.w.s t0, f16 
+  fcvt.w.s t1, f17
+  fcvt.w.s t2, f18
+  fcvt.w.s t3, f19 
+  li s0, 0
+  li s1, 1
+  li s2, 2
+  li s3, 3
+  bne t0, s0, fail
+  bne t1, s1, fail
+  bne t2, s2, fail
+  bne t3, s3, fail
+
+
+
 
 
 pass:
