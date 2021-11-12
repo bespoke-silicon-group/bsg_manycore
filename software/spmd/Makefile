@@ -20,7 +20,8 @@ NO-RECURSE = \
 	beebs saif \
 	interrupt_tests \
 	bp_manycore_test \
-	energy_ubenchmark
+	energy_ubenchmark \
+	factorial
 
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
