@@ -145,7 +145,7 @@ module vanilla_core
   logic [pc_width_lp-1:0] icache_w_pc;
   logic [data_width_p-1:0] icache_winstr;
 
-  logic [pc_width_lp-1:0] pc_n, pc_r;
+  logic [pc_width_lp-1:0] pc_plus4, pc_n;
   instruction_s instruction;
   logic icache_miss;
   logic icache_flush;
@@ -174,12 +174,11 @@ module vanilla_core
 
     ,.instr_o(instruction)
     ,.pred_or_jump_addr_o(pred_or_jump_addr)
-    ,.pc_r_o(pc_r)
+    ,.pc_plus4_o(pc_plus4)
     ,.icache_miss_o(icache_miss)
     ,.icache_flush_r_o(icache_flush_r_lo)
   );
 
-  wire [pc_width_lp-1:0] pc_plus4 = pc_r + 1'b1;
 
   // instruction expander
   instruction_s exp_instr;
@@ -207,7 +206,7 @@ module vanilla_core
 
   // debug pc
   // synopsys translate_off
-  wire [data_width_p-1:0] if_pc = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_r, 2'b00};
+  wire [data_width_p-1:0] if_pc = {{(data_width_p-pc_width_lp-2){1'b0}}, (pc_plus4-1'b1), 2'b00};
   wire [data_width_p-1:0] id_pc = (id_r.pc_plus4 - 'd4);
   wire [data_width_p-1:0] exe_pc = (exe_r.pc_plus4 - 'd4);
   // synopsys translate_on
