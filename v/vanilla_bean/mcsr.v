@@ -17,6 +17,8 @@ module mcsr
     , parameter reg_data_width_lp = RV32_reg_data_width_gp
     , `BSG_INV_PARAM(pc_width_p)
     , `BSG_INV_PARAM(barrier_dirs_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
+    , `BSG_INV_PARAM(y_cord_width_p)
     , parameter barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
     , parameter credit_limit_default_val_p = 32
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
@@ -48,7 +50,8 @@ module mcsr
     // from EXE
     , input interrupt_entered_i
     , input mret_called_i
-    , input [pc_width_p-1:0] npc_r_i
+    , input npc_we_i
+    , input [pc_width_p-1:0] npc_n_i
     
     // barrier interface
     , input barsend_i
@@ -64,6 +67,9 @@ module mcsr
     , output logic [barrier_dirs_p-1:0] barrier_src_r_o
     , output logic [barrier_lg_dirs_lp-1:0] barrier_dest_r_o
     
+    // for debugging
+    , input [x_cord_width_p-1:0] global_x_i
+    , input [y_cord_width_p-1:0] global_y_i
   );
 
   csr_mstatus_s mstatus_n, mstatus_r;
@@ -235,7 +241,42 @@ module mcsr
     end
   end
 
+
+  // npc_r ('true next pc')
+  // this keeps track of what should be the next PC of the instruction that was last in EXE (i.e. latest committed instruction).
+  // this is updated when a valid instruction moves out of EXE (or FP_EXE)
+  // For non-control instructions, this is pc+4.
+  // For control instructions, this is the branch/jump target. 
+  // This is used for setting mepc_r, when the interrupt is taken.
+  // this is different from pc_n in IF, which could have mispredicted pc.
+  logic npc_write_en;
+  logic [pc_width_p-1:0] npc_n, npc_r; 
+
+  bsg_dff_en_bypass #(
+    .width_p(pc_width_p)
+  ) npc_dff (
+    .clk_i(clk_i)
+    ,.en_i(npc_we_i)
+    ,.data_i(npc_n_i)
+    ,.data_o(npc_r)
+  );
+
+  // synopsys translate_off
+  wire [pc_width_p+2-1:0] npc_00 = {npc_r, 2'b00}; // for debugging
+  // synopsys translate_on
   
+
+  // debug printing for interrupt and mret
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if ((reset_i === 1'b0) & interrupt_entered_i) begin
+      $display("[INFO][VCORE] Interrupt taken. t=%0t, x=%0d, y=%0d, mepc=%h",
+        $time, global_x_i, global_y_i, {npc_r, 2'b00});
+    end
+  end
+  // synopsys translate_on
+
+
   // mepc
   // mepc is set when the interrupt is taken.
   // when the interrupt is taken, ID stage will be flushed, so CSR instr in ID will not get a chance to modify.
@@ -243,7 +284,7 @@ module mcsr
     mepc_n = mepc_r;
     
     if (interrupt_entered_i) begin
-      mepc_n = npc_r_i;
+      mepc_n = npc_r;
     end
     else if (we_i & (addr_i == `RV32_CSR_MEPC_ADDR)) begin
       case (funct3_i)

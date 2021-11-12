@@ -369,19 +369,16 @@ module vanilla_core
   logic expanding_r;
   logic expanding_clear, expanding_set;
 
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      expanding_r <= 1'b0;
-    end
-    else begin
-      if (expanding_set) begin
-        expanding_r <= 1'b1;
-      end
-      else if (expanding_clear) begin
-        expanding_r <= 1'b0;
-      end
-    end
-  end
+  bsg_dff_reset_set_clear #(
+    .width_p(1)
+    ,.clear_over_set_p(0)
+  ) expanding_dff (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.set_i(expanding_set)
+    ,.clear_i(expanding_clear)
+    ,.data_o(expanding_r)
+  );
 
 
   // FCSR
@@ -425,7 +422,8 @@ module vanilla_core
   logic mcsr_instr_executed_li;
   logic mcsr_interrupt_entered_li;
   logic mcsr_mret_called_li;
-  logic [pc_width_lp-1:0] mcsr_npc_r_li;
+  logic npc_write_en;
+  logic [pc_width_lp-1:0] npc_n;
 
   csr_mstatus_s mstatus_r;
   csr_interrupt_vector_s mip_r;
@@ -440,6 +438,8 @@ module vanilla_core
     ,.credit_counter_width_p(credit_counter_width_p)
     ,.cfg_pod_width_p(pod_y_cord_width_p+pod_x_cord_width_p)
     ,.barrier_dirs_p(barrier_dirs_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
   ) mcsr0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -461,7 +461,8 @@ module vanilla_core
     ,.instr_executed_i(mcsr_instr_executed_li)
     ,.interrupt_entered_i(mcsr_interrupt_entered_li)
     ,.mret_called_i(mcsr_mret_called_li)
-    ,.npc_r_i(mcsr_npc_r_li)
+    ,.npc_we_i(npc_write_en)
+    ,.npc_n_i(npc_n)
 
     ,.barsend_i(mcsr_barsend_li)
     ,.barrier_data_i(barrier_data_i)
@@ -474,6 +475,9 @@ module vanilla_core
     ,.credit_limit_o(credit_limit_r)
     ,.barrier_src_r_o(barrier_src_r_o)
     ,.barrier_dest_r_o(barrier_dest_r_o)
+
+    ,.global_x_i(global_x_i)
+    ,.global_y_i(global_y_i)
   );
 
   // Sensitivity list like this is disliked by Verilator 4.213
@@ -730,30 +734,6 @@ module vanilla_core
     ,.mem_addr_sent_o(lsu_mem_addr_sent_lo)
   );
 
-
-  // npc_r ('true next pc')
-  // this keeps track of what should be the next PC of the instruction that was last in EXE (i.e. latest committed instruction).
-  // this is updated when a valid instruction moves out of EXE (or FP_EXE)
-  // For non-control instructions, this is pc+4.
-  // For control instructions, this is the branch/jump target. 
-  // This is used for setting mepc_r, when the interrupt is taken.
-  // this is different from pc_n in IF, which could have mispredicted pc.
-  logic npc_write_en;
-  logic [pc_width_lp-1:0] npc_n, npc_r; 
-
-  bsg_dff_en_bypass #(
-    .width_p(pc_width_lp)
-  ) npc_dff (
-    .clk_i(clk_i)
-    ,.en_i(npc_write_en)
-    ,.data_i(npc_n)
-    ,.data_o(npc_r)
-  );
-
-
-  // synopsys translate_off
-  wire [pc_width_lp+2-1:0] npc_00 = {npc_r, 2'b00}; // for debugging
-  // synopsys translate_on
 
 
   // In the icache, branch instruction has the direction of the branch encoded in the bit-0 of the instruction.
@@ -1178,33 +1158,13 @@ module vanilla_core
     end
   end
   
-  // debug printing for interrupt and mret
+  // debug printing for mret
   // synopsys translate_off
-
   always_ff @ (negedge clk_i) begin
-    if (~reset_i & ~stall_all & interrupt_ready) begin
-      if (remote_interrupt_ready) begin
-        $display("[INFO][VCORE] Remote interrupt taken. t=%0t, x=%0d, y=%0d, mepc=%h",
-          $time, global_x_i, global_y_i, {npc_r, 2'b00});
-      end
-      else begin
-        $display("[INFO][VCORE] Trace interrupt taken. t=%0t, x=%0d, y=%0d, mepc=%h",
-          $time, global_x_i, global_y_i, {npc_r, 2'b00});
-      end
-    end
-
-    if (~reset_i & ~stall_all & exe_r.decode.is_mret_op) begin
+    if ((reset_i === 1'b0) & ~stall_all & exe_r.decode.is_mret_op) begin
       $display("[INFO][VCORE] mret called. t=%0t, x=%0d, y=%0d, mepc=%h",
         $time, global_x_i, global_y_i, {mepc_r, 2'b00});
     end
-
-/*    if (jalr_mispredict)
-      $display("[INFO][VCORE] jalr_mispredict. t=%0t, x=%0d, y=%0d, true=%x pred=%x\n", 
-	       $time, global_x_i, global_y_i, 
-	       { alu_jalr_addr, 2'b00 },
-	       { exe_r.pred_or_jump_addr[2+:pc_width_lp], 2'b00 }
-	       );
- */
   end
   // synopsys translate_on
 
@@ -1526,7 +1486,6 @@ module vanilla_core
   assign mcsr_instr_executed_li = id_r.valid & id_issue & mstatus_r.mie; // trace interrupt pending can be set outside interrupt.
   assign mcsr_interrupt_entered_li = interrupt_ready & ~stall_all;
   assign mcsr_mret_called_li = exe_r.decode.is_mret_op & ~stall_all;
-  assign mcsr_npc_r_li = npc_r;
   
   // barrier control
   assign mcsr_barsend_li = id_r.decode.is_barsend_op & id_issue;
