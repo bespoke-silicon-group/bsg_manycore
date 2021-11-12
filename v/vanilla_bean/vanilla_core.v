@@ -1783,7 +1783,7 @@ module vanilla_core
   // mem_result
   assign mem_result = imul_v_lo
     ? imul_result_lo
-    : (mem_ctrl_r.local_load
+    : ((mem_ctrl_r.local_load & ~mem_ctrl_r.write_frd)
       ? local_load_packed_data
       : mem_data_r.exe_result);
 
