@@ -34,7 +34,7 @@ module lsu
     , input [data_width_p-1:0] exe_rs1_i
     , input [fpu_recoded_data_width_gp-1:0] exe_rs2_i
     , input [reg_addr_width_lp-1:0] exe_rd_i
-    , input [data_width_p-1:0] mem_offset_i
+    , input [11:0] mem_offset_i
     , input [data_width_p-1:0] pc_plus4_i
     , input icache_miss_i
 
@@ -59,7 +59,7 @@ module lsu
   logic [data_width_p-1:0] mem_addr;
   logic [data_width_p-1:0] miss_addr;
 
-  assign mem_addr = exe_rs1_i + mem_offset_i;
+  assign mem_addr = exe_rs1_i + {{20{mem_offset_i[11]}}, mem_offset_i};
   assign miss_addr = (pc_plus4_i - 'h4) | bsg_dram_npa_prefix_gp;
 
   // store data mask
