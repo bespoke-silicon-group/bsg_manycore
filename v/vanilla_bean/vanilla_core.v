@@ -362,6 +362,29 @@ module vanilla_core
     ,.dependency_o(float_dependency)
   );
 
+
+
+  // expanding_r is set to 1, when the first instruction of expanded instruction (is_expand_head==1) reaches EXE.
+  // expanding_r is cleared, when the last instruction (is_expand_tail==1) reaches EXE.
+  // When expanding_r is high, the interrupt needs to wait for the tail instruction to finish, before flushing and taking interrupt.
+  logic expanding_r;
+  logic expanding_clear, expanding_set;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      expanding_r <= 1'b0;
+    end
+    else begin
+      if (expanding_set) begin
+        expanding_r <= 1'b1;
+      end
+      else if (expanding_clear) begin
+        expanding_r <= 1'b0;
+      end
+    end
+  end
+
+
   // FCSR
   //
   logic fcsr_v_li;
@@ -476,7 +499,8 @@ module vanilla_core
   wire trace_interrupt_ready = mip_r.trace & mie_r.trace;
   wire interrupt_ready = mstatus_r.mie
                        & (remote_interrupt_ready | trace_interrupt_ready)
-                       & ~(exe_r.icache_miss | mem_ctrl_r.icache_miss | wb_ctrl_r.icache_miss);
+                       & ~(exe_r.icache_miss | mem_ctrl_r.icache_miss | wb_ctrl_r.icache_miss)
+                       & ~expanding_r;
 
 
 
@@ -759,26 +783,6 @@ module vanilla_core
     end
   end
 
-
-  // expanding_r is set to 1, when the first instruction of expanded instruction (is_expand_head==1) reaches EXE.
-  // expanding_r is cleared, when the last instruction (is_expand_tail==1) reaches EXE.
-  // When expanding_r is high, the interrupt needs to wait for the tail instruction to finish, before flushing and taking interrupt.
-  logic expanding_r;
-  logic expanding_clear, expanding_set;
-
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      expanding_r <= 1'b0;
-    end
-    else begin
-      if (expanding_set) begin
-        expanding_r <= 1'b1;
-      end
-      else if (expanding_clear) begin
-        expanding_r <= 1'b0;
-      end
-    end
-  end
 
 
   //////////////////////////////
@@ -1120,7 +1124,7 @@ module vanilla_core
   // FP_WB stall signals
   logic stall_remote_flw_wb;
 
-  wire stall_if = stall_instr_exp | (interrupt_ready & expanding_r);
+  wire stall_if = stall_instr_exp;
 
   wire stall_id = stall_depend_long_op
     | stall_depend_local_load
@@ -1147,7 +1151,7 @@ module vanilla_core
   // 1) branch/jalr mispredict
   // 2) mret in EXE
   // 3) interrupt taken
-  wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op) | (interrupt_ready & ~expanding_r);
+  wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op) | interrupt_ready;
   wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_ctrl_r.icache_miss | wb_ctrl_r.icache_miss;
 
   // ID stage is not stalled and not flushed.
@@ -1568,6 +1572,9 @@ module vanilla_core
       mem_addr_op2: mem_addr_op2,
       icache_miss: id_r.icache_miss
     };
+
+    expanding_set = 1'b0;
+    expanding_clear = 1'b0;
 
     if (stall_all) begin
       exe_en = 1'b0;

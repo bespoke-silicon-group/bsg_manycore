@@ -135,7 +135,6 @@ module instr_expander
 
       // Expanding FLWADD4
       eFLWADD4: begin
-        //stall_instr_exp_o = ~flush_i | ~counter_max_val;
         stall_instr_exp_o = flush_i
           ? 1'b0
           : ~counter_max_val;
