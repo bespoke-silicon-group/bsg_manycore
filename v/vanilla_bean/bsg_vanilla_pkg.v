@@ -65,19 +65,6 @@ typedef struct packed
   logic [31:0] addr;
 } remote_req_s;
 
-// remote load response from network
-//
-typedef struct packed
-{
-  logic float_wb;
-  logic [bsg_manycore_reg_id_width_gp-1:0] reg_id;
-  logic is_unsigned_op;
-  logic is_byte_op;
-  logic is_hex_op;
-  logic [1:0] part_sel;
-  logic [31:0] data;
-} remote_load_resp_s;
-
 
 // Decode control signals structures
 typedef enum logic [1:0] {
