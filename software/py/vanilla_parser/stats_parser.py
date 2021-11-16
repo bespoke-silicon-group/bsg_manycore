@@ -73,15 +73,12 @@ class CudaStatTag:
     # and also the type of stat (stand-alone stat, start, or end)
     # the value of these paramters should match their counterpart inside 
     # bsg_manycore/software/bsg_manycore_lib/bsg_manycore.h
-    _TAG_WIDTH   = 4
+    _TAG_WIDTH   = 18
     _TAG_INDEX   = 0
     _TAG_MASK   = ((1 << _TAG_WIDTH) - 1)
-    _TG_ID_WIDTH = 14
-    _TG_ID_INDEX = _TAG_WIDTH + _TAG_INDEX
-    _TG_ID_MASK = ((1 << _TG_ID_WIDTH) - 1)
     _X_WIDTH     = 6
     _X_MASK     = ((1 << _X_WIDTH) - 1)
-    _X_INDEX     = _TG_ID_WIDTH + _TG_ID_INDEX
+    _X_INDEX     = _TAG_WIDTH + _TAG_INDEX
     _Y_WIDTH     = 6
     _Y_INDEX     = _X_WIDTH + _X_INDEX
     _Y_MASK     = ((1 << _Y_WIDTH) - 1)
@@ -116,7 +113,8 @@ class CudaStatTag:
     @property 
     def tg_id(self):
         """ Get the Tile-Group ID associated with this object """
-        return ((self.__s >> self._TG_ID_INDEX) & self._TG_ID_MASK)
+        #return ((self.__s >> self._TG_ID_INDEX) & self._TG_ID_MASK)
+        return 0
 
     @property 
     def getTileGroupID(self):

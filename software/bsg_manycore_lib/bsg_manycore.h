@@ -226,8 +226,7 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 #define BSG_CUDA_PRINT_STAT_ID_KERNEL_START 2
 #define BSG_CUDA_PRINT_STAT_ID_KERNEL_END   3
 
-#define BSG_CUDA_PRINT_STAT_TAG_WIDTH       4
-#define BSG_CUDA_PRINT_STAT_TG_ID_WIDTH     14
+#define BSG_CUDA_PRINT_STAT_TAG_WIDTH       18
 #define BSG_CUDA_PRINT_STAT_X_WIDTH         6
 #define BSG_CUDA_PRINT_STAT_Y_WIDTH         6
 #define BSG_CUDA_PRINT_STAT_TYPE_WIDTH      2
@@ -235,13 +234,11 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 #define BSG_CUDA_PRINT_STAT_TAG_TOTAL       0x0
 
 #define BSG_CUDA_PRINT_STAT_TAG_SHIFT       (0)                                                                 // 0
-#define BSG_CUDA_PRINT_STAT_TG_ID_SHIFT     (BSG_CUDA_PRINT_STAT_TAG_SHIFT   + BSG_CUDA_PRINT_STAT_TAG_WIDTH)   // 4
-#define BSG_CUDA_PRINT_STAT_X_SHIFT         (BSG_CUDA_PRINT_STAT_TG_ID_SHIFT + BSG_CUDA_PRINT_STAT_TG_ID_WIDTH) // 18
+#define BSG_CUDA_PRINT_STAT_X_SHIFT         (BSG_CUDA_PRINT_STAT_TAG_SHIFT   + BSG_CUDA_PRINT_STAT_TAG_WIDTH)   // 18
 #define BSG_CUDA_PRINT_STAT_Y_SHIFT         (BSG_CUDA_PRINT_STAT_X_SHIFT     + BSG_CUDA_PRINT_STAT_X_WIDTH)     // 24
 #define BSG_CUDA_PRINT_STAT_TYPE_SHIFT      (BSG_CUDA_PRINT_STAT_Y_SHIFT     + BSG_CUDA_PRINT_STAT_Y_WIDTH)     // 30
 
 #define BSG_CUDA_PRINT_STAT_TAG_MASK        ((1 << BSG_CUDA_PRINT_STAT_TAG_WIDTH) - 1)    // 0xF
-#define BSG_CUDA_PRINT_STAT_TG_ID_MASK      ((1 << BSG_CUDA_PRINT_STAT_TG_ID_WIDTH) - 1)  // 0x3FFF
 #define BSG_CUDA_PRINT_STAT_X_MASK          ((1 << BSG_CUDA_PRINT_STAT_X_WIDTH) - 1)      // 0x3F
 #define BSG_CUDA_PRINT_STAT_Y_MASK          ((1 << BSG_CUDA_PRINT_STAT_Y_WIDTH) - 1)      // 0x3F
 
@@ -258,7 +255,6 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
     int val = ( (stat_type << BSG_CUDA_PRINT_STAT_TYPE_SHIFT)                                                |    \
                 (((__bsg_grp_org_y + __bsg_y) & BSG_CUDA_PRINT_STAT_Y_MASK) << BSG_CUDA_PRINT_STAT_Y_SHIFT)  |    \
                 (((__bsg_grp_org_x + __bsg_x) & BSG_CUDA_PRINT_STAT_X_MASK) << BSG_CUDA_PRINT_STAT_X_SHIFT)  |    \
-                ((__bsg_tile_group_id & BSG_CUDA_PRINT_STAT_TG_ID_MASK) << BSG_CUDA_PRINT_STAT_TG_ID_SHIFT)  |    \
                 ((tag & BSG_CUDA_PRINT_STAT_TAG_MASK) << BSG_CUDA_PRINT_STAT_TAG_SHIFT) );                        \
     bsg_print_stat(val);                                                                                          \
 } while (0)
