@@ -81,6 +81,23 @@ typedef struct packed {
   logic read_rs2;
   logic write_rd;
 
+  // FP regfile
+  logic read_frs1;          // reads rs1 of FP regfile
+  logic read_frs2;          // reads rs2 of FP regfile
+  logic read_frs3;          // reads rs3 of FP regfile
+  logic write_frd;          // writes back to FP regfile
+
+  logic is_fp_op;                     // goes into FP_EXE
+  logic is_flwadd4_op;
+  logic is_fp_dual_issue_op;          // this can be dual-issued while FLWADD4 is being expanded.
+
+  // This signal is for debugging only.
+  // It shouldn't be used to synthesize any actual circuits.
+  logic unsupported;
+  
+} decode_s;
+
+typedef struct packed {
   // Load & Store
   logic is_load_op;       // Op loads data from memory
   logic is_store_op;      // Op stores data to memory
@@ -90,6 +107,15 @@ typedef struct packed {
   // FLWADD stores ALU result in rs1, and loads float in rd.
   logic is_flwadd_op;
 
+  // Load Reserve
+  logic is_lr_aq_op;
+  logic is_lr_op;
+
+  // Atomic
+  logic is_amo_op;
+  logic is_amo_aq;
+  logic is_amo_rl;
+  bsg_vanilla_amo_type_e amo_type;
 
   // Branch & Jump
   logic is_branch_op;
@@ -106,34 +132,14 @@ typedef struct packed {
   logic is_barsend_op;
   logic is_barrecv_op;
 
-  // Load Reserve
-  logic is_lr_aq_op;
-  logic is_lr_op;
-
-  // Atomic
-  logic is_amo_op;
-  logic is_amo_aq;
-  logic is_amo_rl;
-  bsg_vanilla_amo_type_e amo_type;
-
-  // FPU
-  logic is_fp_op;           // goes into FP_EXE
-  logic read_frs1;          // reads rs1 of FP regfile
-  logic read_frs2;          // reads rs2 of FP regfile
-  logic read_frs3;          // reads rs3 of FP regfile
-  logic write_frd;    // writes back to FP regfile
-
   // CSR
   logic is_csr_op;
 
   // MRET
   logic is_mret_op;
-    
-  // This signal is for debugging only.
-  // It shouldn't be used to synthesize any actual circuits.
-  logic unsupported;
-  
-} decode_s;
+
+} int_decode_s;
+
 
 
 typedef enum logic [3:0] {
@@ -207,14 +213,20 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] pc_plus4;          // PC + 4
     logic [RV32_reg_data_width_gp-1:0] pred_or_jump_addr; // Jump target PC
     instruction_s                      instruction;       // Instruction being executed
-    decode_s                           decode;            // Decode signals
-    fp_decode_s                        fp_decode;
+    int_decode_s                       decode;            // Decode signals
     logic                              icache_miss;
     logic                              valid;             // valid instruction in ID
     // expand op
     logic is_expand_head;
     logic is_expand_tail;
-} id_signals_s;
+} int_id_signals_s;
+
+
+typedef struct packed
+{
+  fp_decode_s                        fp_decode;
+} fp_id_signals_s;
+
 
 // Execute stage signals
 typedef struct packed
@@ -222,7 +234,7 @@ typedef struct packed
     logic [RV32_reg_data_width_gp-1:0] pc_plus4;          // PC + 4
     logic [RV32_reg_data_width_gp-1:0] pred_or_jump_addr; // Jump target PC
     instruction_s                      instruction;       // Instruction being executed
-    decode_s                           decode;            // Decode signals
+    int_decode_s                           decode;            // Decode signals
     logic [RV32_reg_data_width_gp-1:0]    rs1_val;           // RF output data from RS1 address
     logic [fpu_recoded_data_width_gp-1:0] rs2_val;           // RF output data from RS2 address. This could also contain frs2 for fsw.
                                                           // CSR instructions use this register for loading CSR vals

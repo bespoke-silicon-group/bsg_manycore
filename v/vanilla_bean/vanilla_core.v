@@ -211,17 +211,6 @@ module vanilla_core
   wire [data_width_p-1:0] exe_pc = (exe_r.pc_plus4 - 'd4);
   // synopsys translate_on
 
-  // instruction decode
-  //
-  decode_s decode;
-  fp_decode_s fp_decode;
-
-  cl_decode decode0 (
-    .instruction_i(exp_instr)
-    ,.decode_o(decode)
-    ,.fp_decode_o(fp_decode)
-  ); 
-
 
   //////////////////////////////
   //                          //
@@ -743,6 +732,7 @@ module vanilla_core
   wire branch_mispredict = (branch_under_predict | branch_over_predict) & exe_r.decode.is_branch_op;
   wire jalr_mispredict = exe_r.decode.is_jalr_op & (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
 
+  // True next PC
   always_comb begin
     if (exe_r.decode.is_jalr_op) begin
       npc_n = alu_jalr_addr;
@@ -757,7 +747,6 @@ module vanilla_core
       npc_n = exe_r.pc_plus4[2+:pc_width_lp];
     end
   end
-
 
 
   //////////////////////////////

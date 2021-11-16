@@ -19,15 +19,34 @@ module instr_expander
 
     , input stall_i
     , input flush_i
+    , output logic stall_instr_exp_o
 
     , input  instruction_s instr_i
-    , output instruction_s exp_instr_o
 
-    , output logic stall_instr_exp_o
+    // going to ID stages
+    , output decode_s decode_o
+    , output instruction_s exp_instr_o
+    , output int_decode_s int_decode_o
+    , output fp_decode_s fp_decode_o
     , output logic is_expand_head_o
     , output logic is_expand_tail_o
   );
 
+
+  // instruction decode
+  //
+  decode_s decode;
+  int_decode_s int_decode;
+  fp_decode_s fp_decode;
+
+  cl_decode decode0 (
+    .instruction_i(instr_i)
+    ,.decode_o(decode)
+    ,.int_decode_o(int_decode)
+    ,.fp_decode_o(fp_decode)
+  ); 
+  
+  assign fp_decode_o = fp_decode;
 
   // Expander states
   typedef enum logic {
@@ -37,6 +56,7 @@ module instr_expander
 
   exp_state_e exp_state_r, exp_state_n;
 
+  // synopsys sync_set_reset "reset_i"
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       exp_state_r <= eSTART;
@@ -71,6 +91,7 @@ module instr_expander
     ,.data_o(rs2_r)
   );
 
+
   // Counter to track how many FLWADD has been generated.
   logic counter_clear, counter_up;
   logic [1:0] counter_lo;
@@ -85,12 +106,34 @@ module instr_expander
     ,.count_o(counter_lo)
   );
 
-
-  // check if flwadd4
   wire freeze = (stall_i | flush_i);
-  wire is_flwadd4_op = (instr_i ==? `RV32_FLWADD4) & ~reset_down_i;
   wire counter_max_val = (2'b11 == counter_lo);
 
+
+
+  // Next state logic
+  always_comb begin
+    exp_instr_o = instr_i;
+    stall_instr_exp_o = 1'b0;
+    is_expand_head_o = 1'b0;
+    is_expand_tail_o = 1'b0;
+
+    rd_wen = 1'b0;
+    rs1_wen = 1'b0;
+    rs2_wen = 1'b0;
+    rd_n = instr_i.rd + 1'b1;
+    rs1_n = instr_i.rs1;
+    rs2_n = instr_i.rs2;
+    
+    counter_clear = 1'b0;
+    counter_up = 1'b0;
+
+  end
+
+
+
+
+//////////////////////////////////////////////////////////////
 
   // Next state logic
   always_comb begin
