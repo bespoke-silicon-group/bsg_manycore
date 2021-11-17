@@ -1286,14 +1286,7 @@ module vanilla_core
   wire id_rs2_equal_wb_rd = (id_rs2 == wb_ctrl_r.rd_addr);
 
   // stall_depend_long_op (idiv, fdiv, remote_load, atomic)
-  //logic [float_rf_num_banks_p-1:0] id_rs2_match_sb_clear;
-  //always_comb begin
-  //  for (integer i = 0; i < float_rf_num_banks_p; i++) begin
-  //    id_rs2_match_sb_clear[i] = (id_rs2 == float_sb_clear_id[i]) & float_sb_clear[i];
-  //  end
-  //end
   wire rs1_sb_clear_now = id_r.decode.read_rs1 & (id_rs1 == int_sb_clear_id) & int_sb_clear & id_rs1_non_zero; 
-  //wire frs2_sb_clear_now = id_r.decode.read_frs2 & (|id_rs2_match_sb_clear);
 
   assign stall_depend_long_op = (int_dependency | float_dependency)
     | (id_r.decode.is_fp_op
