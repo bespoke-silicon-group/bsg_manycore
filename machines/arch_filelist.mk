@@ -110,8 +110,10 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_byte.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_byte_synth.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_bit.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_1rw_sync_mask_write_bit_synth.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_latch_write_banked_bypassing_sync.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_latch_write_banked_bypassing.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_write_banked_bypassing_sync.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_write_banked_bypassing.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_write_banked_bypassing_latch.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_write_banked_bypassing_ff.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_mem_multiport_latch.v
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_stitch.v
