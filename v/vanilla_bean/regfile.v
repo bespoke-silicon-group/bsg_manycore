@@ -2,9 +2,9 @@
  *    regfile.v
  *
  *    register file
- *
- *    use harden_p to choose between synthesized and hardened version.
- *
+ *    
+ *    Use sel_sram_latch_rf_p to pick an implementation.
+ *    
  *    @author tommy
  */
 
@@ -15,7 +15,10 @@ module regfile
     , `BSG_INV_PARAM(els_p)
     , `BSG_INV_PARAM(num_rs_p)
     , `BSG_INV_PARAM(x0_tied_to_zero_p)
-    , parameter harden_p=0
+    // FF-based = 0
+    // Latch-based = 1
+    // SRAM-based = 2
+    , parameter sel_sram_latch_rf_p=1
 
     , parameter addr_width_lp=`BSG_SAFE_CLOG2(els_p)
   )
@@ -33,7 +36,7 @@ module regfile
   );
 
 
-  if (harden_p) begin: hard
+  if (sel_sram_latch_rf_p == 2) begin: sram
     regfile_hard #(
       .width_p(width_p)
       ,.els_p(els_p)
@@ -41,7 +44,15 @@ module regfile
       ,.x0_tied_to_zero_p(x0_tied_to_zero_p)
     ) rf (.*);
   end
-  else begin: synth
+  else if (sel_sram_latch_rf_p == 1) begin: latch
+    bsg_mem_multiport_latch #(
+      .width_p(width_p)
+      ,.els_p(els_p)
+      ,.num_rs_p(num_rs_p)
+      ,.x0_tied_to_zero_p(x0_tied_to_zero_p)
+    ) rf (.*);
+  end
+  else if (sel_sram_latch_rf_p == 0) begin: ff
     regfile_synth #(
       .width_p(width_p)
       ,.els_p(els_p)
@@ -49,6 +60,11 @@ module regfile
       ,.x0_tied_to_zero_p(x0_tied_to_zero_p)
     ) rf (.*);
   end
+  // synopsys translate_off
+  else begin
+    $error("[BSG_ERROR] Invalid configuration.");
+  end
+  // synopsys translate_on
 
 
 

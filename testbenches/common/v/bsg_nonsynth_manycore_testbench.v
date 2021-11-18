@@ -732,6 +732,7 @@ if (enable_vcore_profiling_p) begin
     ,.data_width_p(data_width_p)
     ,.origin_x_cord_p(`BSG_MACHINE_ORIGIN_X_CORD)
     ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
+    ,.float_rf_num_banks_p(float_rf_num_banks_p)
   ) vcore_prof (
     .*
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)

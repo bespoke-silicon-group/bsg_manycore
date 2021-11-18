@@ -11,76 +11,55 @@ module scoreboard
   import bsg_vanilla_pkg::*;
   #(parameter els_p = RV32_reg_els_gp
     , `BSG_INV_PARAM(num_src_port_p)
-    , parameter num_clear_port_p=1
+    , `BSG_INV_PARAM(num_banks_p)
     , parameter x0_tied_to_zero_p = 0
-    , parameter id_width_lp = `BSG_SAFE_CLOG2(els_p)
+    , parameter reg_addr_width_lp = `BSG_SAFE_CLOG2(els_p)
+    , parameter bank_reg_addr_width_lp = `BSG_SAFE_CLOG2(els_p/num_banks_p)
+    , parameter bank_els_lp = (els_p/num_banks_p)
+    , parameter bank_id_width_lp = `BSG_SAFE_CLOG2(num_banks_p)
   )
   (
     input clk_i
     , input reset_i
 
-    , input [num_src_port_p-1:0][id_width_lp-1:0] src_id_i
-    , input [id_width_lp-1:0] dest_id_i
+    , input [num_src_port_p-1:0][reg_addr_width_lp-1:0] src_id_i
+    , input [reg_addr_width_lp-1:0] dest_id_i
 
     , input [num_src_port_p-1:0] op_reads_rf_i
     , input op_writes_rf_i
 
     , input score_i
-    , input [id_width_lp-1:0] score_id_i
+    , input [reg_addr_width_lp-1:0] score_id_i
 
-    , input [num_clear_port_p-1:0] clear_i
-    , input [num_clear_port_p-1:0][id_width_lp-1:0] clear_id_i
+    , input [num_banks_p-1:0] clear_i
+    , input [num_banks_p-1:0][bank_reg_addr_width_lp-1:0] clear_id_i
 
     , output logic dependency_o
   );
 
-  logic [els_p-1:0] scoreboard_r;
-
-  // multi-port clear logic
-  //
-  logic [num_clear_port_p-1:0][els_p-1:0] clear_by_port;
-  logic [els_p-1:0][num_clear_port_p-1:0] clear_by_port_t; // transposed
+  // clear id decoder
+  logic [num_banks_p-1:0][bank_els_lp-1:0] clear_decoded;
   logic [els_p-1:0] clear_combined;
 
-  bsg_transpose #(
-    .els_p(num_clear_port_p)
-    ,.width_p(els_p)
-  ) tranposer (
-    .i(clear_by_port)
-    ,.o(clear_by_port_t)
-  );
-
-  for (genvar j = 0 ; j < num_clear_port_p; j++) begin: clr_dcode_v
+  for (genvar j = 0 ; j < num_banks_p; j++) begin: clr_dv
     bsg_decode_with_v #(
-      .num_out_p(els_p)
+      .num_out_p(bank_els_lp)
     ) clear_decode_v (
       .i(clear_id_i[j])
       ,.v_i(clear_i[j])
-      ,.o(clear_by_port[j])
+      ,.o(clear_decoded[j])
     );
   end
 
-  always_comb begin
-    for (integer i = 0; i < els_p; i++) begin
-      clear_combined[i] = |clear_by_port_t[i];
-    end
+  for (genvar i = 0; i < els_p; i++) begin
+    assign clear_combined[i] = clear_decoded[i%num_banks_p][i/num_banks_p];
   end
 
 
-  // synopsys translate_off
-  always_ff @ (negedge clk_i) begin
-    if (~reset_i) begin
-      for (integer i = 0; i < els_p; i++) begin
-        assert($countones(clear_by_port_t[i]) <= 1) else
-          $error("[ERROR][SCOREBOARD] multiple clear on the same id. t=%0t", $time);
-      end
-    end
-  end
-  // synopsys translate_on
-
+  // score id decoder
   wire allow_zero = (x0_tied_to_zero_p == 0) | (score_id_i != '0);
-
   logic [els_p-1:0] score_bits;
+
   bsg_decode_with_v #(
     .num_out_p(els_p)
   ) score_demux (
@@ -88,6 +67,10 @@ module scoreboard
     ,.v_i(score_i & allow_zero)
     ,.o(score_bits)
   );
+  
+
+  // Scoreboard registers
+  logic [els_p-1:0] scoreboard_r;
 
   always_ff @ (posedge clk_i) begin
     for (integer i = 0; i < els_p; i++) begin
@@ -126,35 +109,19 @@ module scoreboard
   
   assign rd_depend_on_sb = scoreboard_r[dest_id_i] & op_writes_rf_i;
 
+
   // find which matches on clear_id.
-  logic [num_clear_port_p-1:0][num_src_port_p-1:0] rs_on_clear;
-  logic [num_src_port_p-1:0][num_clear_port_p-1:0] rs_on_clear_t;
-  logic [num_clear_port_p-1:0] rd_on_clear;
+  logic [num_src_port_p-1:0] rs_on_clear;
+  logic rd_on_clear;
+
+  for (genvar j = 0; j < num_src_port_p; j++) begin
+    wire [bank_id_width_lp-1:0] src_bank_id = bank_id_width_lp'(src_id_i[j] % num_banks_p);
+    assign rs_on_clear[j] = clear_i[src_bank_id] & (clear_id_i[src_bank_id] == (src_id_i[j]/num_banks_p));
+  end
+
+  wire [bank_id_width_lp-1:0] dest_bank_id = bank_id_width_lp'(dest_id_i % num_banks_p);
+  assign rd_on_clear = clear_i[dest_bank_id] & (clear_id_i[dest_bank_id] == (dest_id_i/num_banks_p));
   
-  for (genvar i = 0; i < num_clear_port_p; i++) begin
-    for (genvar j = 0; j < num_src_port_p; j++) begin
-      assign rs_on_clear[i][j] = clear_i[i] && (clear_id_i[i] == src_id_i[j]);
-    end
-
-    assign rd_on_clear[i] = clear_i[i] && (clear_id_i[i] == dest_id_i);
-  end
-
-  bsg_transpose #(
-    .els_p(num_clear_port_p)
-    ,.width_p(num_src_port_p)
-  ) trans1 (
-    .i(rs_on_clear)
-    ,.o(rs_on_clear_t)
-  );
-
-  logic [num_src_port_p-1:0] rs_on_clear_combined;
-  logic rd_on_clear_combined;
-
-  for (genvar i = 0; i < num_src_port_p; i++) begin
-    assign rs_on_clear_combined[i] = |rs_on_clear_t[i];
-  end
-
-  assign rd_on_clear_combined = |rd_on_clear;
 
   // find which could depend on score.
   logic [num_src_port_p-1:0] rs_depend_on_score;
@@ -168,11 +135,10 @@ module scoreboard
 
 
   // score_i arrives later than other signals, so we want to remove it from the long path.
-  wire depend_on_sb = |({rd_depend_on_sb, rs_depend_on_sb} & ~{rd_on_clear_combined, rs_on_clear_combined});
+  wire depend_on_sb = |({rd_depend_on_sb, rs_depend_on_sb} & ~{rd_on_clear, rs_on_clear});
   wire depend_on_score = |{rd_depend_on_score, rs_depend_on_score};
 
   assign dependency_o = depend_on_sb | (depend_on_score & score_i & allow_zero);
-
 
 
   // synopsys translate_off

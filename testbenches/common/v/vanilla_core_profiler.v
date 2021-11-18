@@ -26,12 +26,16 @@ module vanilla_core_profiler
     , parameter `BSG_INV_PARAM(icache_entries_p)
     , parameter `BSG_INV_PARAM(origin_x_cord_p)
     , parameter `BSG_INV_PARAM(origin_y_cord_p)
+    
+    , parameter `BSG_INV_PARAM(float_rf_num_banks_p)
 
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
 
     , parameter reg_els_lp = RV32_reg_els_gp
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
+    , parameter bank_reg_els_lp = (reg_els_lp/float_rf_num_banks_p)
+    , parameter bank_reg_addr_width_lp = `BSG_SAFE_CLOG2(reg_els_lp/float_rf_num_banks_p)
   )
   (
     input clk_i
@@ -79,9 +83,10 @@ module vanilla_core_profiler
     , input [data_width_p-1:0] mem_addr_op2
 
     , input int_sb_clear
-    , input float_sb_clear
     , input [reg_addr_width_lp-1:0] int_sb_clear_id
-    , input [reg_addr_width_lp-1:0] float_sb_clear_id
+
+    , input [float_rf_num_banks_p-1:0] float_sb_clear
+    , input [float_rf_num_banks_p-1:0][bank_reg_addr_width_lp-1:0] float_sb_clear_id
 
     , input id_signals_s id_r
     , input exe_signals_s exe_r
@@ -281,48 +286,58 @@ module vanilla_core_profiler
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       int_sb_r <= '0;
-      float_sb_r <= '0;
     end
     else begin
-      // int sb
-      if (~stall_id & ~stall_all & ~flush) begin
-        if (id_r.decode.is_idiv_op) begin
-          int_sb_r[id_r.instruction.rd][3] <= 1'b1;
+      for (integer i = 0; i < reg_els_lp; i++) begin
+        if (~stall_id & ~stall_all & ~flush & (i == id_r.instruction.rd)) begin
+          if (id_r.decode.is_idiv_op) begin
+            int_sb_r[i][3] <= 1'b1;
+          end
+          else if (remote_ld_dram_in_id) begin
+            int_sb_r[i][2] <= 1'b1;
+          end
+          else if (remote_ld_global_in_id) begin
+            int_sb_r[i][1] <= 1'b1;
+          end
+          else if (remote_ld_group_in_id) begin
+            int_sb_r[i][0] <= 1'b1;
+          end
         end
-        else if (remote_ld_dram_in_id) begin
-          int_sb_r[id_r.instruction.rd][2] <= 1'b1;
+        else if (int_sb_clear & (i == int_sb_clear_id)) begin
+          int_sb_r[i] <= '0;
         end
-        else if (remote_ld_global_in_id) begin
-          int_sb_r[id_r.instruction.rd][1] <= 1'b1;
-        end
-        else if (remote_ld_group_in_id) begin
-          int_sb_r[id_r.instruction.rd][0] <= 1'b1;
-        end
-      end
-      else if (int_sb_clear) begin
-        int_sb_r[int_sb_clear_id] <= '0;
-      end
-      
-      // float sb
-      if (~stall_id & ~stall_all & ~flush) begin
-        if (id_r.decode.is_fp_op & (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op)) begin
-          float_sb_r[id_r.instruction.rd][3] <= 1'b1;
-        end
-        else if (remote_flw_dram_in_id) begin
-          float_sb_r[id_r.instruction.rd][2] <= 1'b1;
-        end
-        else if (remote_flw_global_in_id) begin
-          float_sb_r[id_r.instruction.rd][1] <= 1'b1;
-        end
-        else if (remote_flw_group_in_id) begin
-          float_sb_r[id_r.instruction.rd][0] <= 1'b1;
-        end
-      end
-      else if (float_sb_clear) begin
-        float_sb_r[float_sb_clear_id] <= '0;
       end
     end
   end
+
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      float_sb_r <= '0;
+    end
+    else begin
+      for (integer i = 0; i < reg_els_lp; i++) begin
+        if (~stall_id & ~stall_all & ~flush & (i == id_r.instruction.rd)) begin
+          if (id_r.decode.is_fp_op & (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op)) begin
+            float_sb_r[i][3] <= 1'b1;
+          end
+          else if (remote_flw_dram_in_id) begin
+            float_sb_r[i][2] <= 1'b1;
+          end
+          else if (remote_flw_global_in_id) begin
+            float_sb_r[i][1] <= 1'b1;
+          end
+          else if (remote_flw_group_in_id) begin
+            float_sb_r[i][0] <= 1'b1;
+          end
+        end
+        else if (float_sb_clear[i%float_rf_num_banks_p] & ((i/float_rf_num_banks_p)==float_sb_clear_id[i%float_rf_num_banks_p])) begin
+          float_sb_r[i] <= '0;
+        end
+      end
+    end
+  end
+
 
   wire stall_depend_group_load = stall_depend_long_op
     & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][0]) |
