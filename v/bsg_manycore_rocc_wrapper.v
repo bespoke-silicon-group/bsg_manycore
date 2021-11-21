@@ -44,14 +44,14 @@ module bsg_manycore_rocc_wrapper
    ,parameter extra_io_rows_p   = 1
    ,`BSG_INV_PARAM(addr_width_p      )
 
-   ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
-   ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
+   ,localparam x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
+   ,localparam y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
 
    // changing this parameter is untested
    ,parameter data_width_p      = 32
 
    ,parameter load_id_width_p   = 5
-   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
+   ,localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
    // snew * y * x bits
    ,parameter repeater_output_p = 0
 

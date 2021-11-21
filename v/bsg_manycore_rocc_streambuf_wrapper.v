@@ -34,7 +34,7 @@ module bsg_manycore_rocc_streambuf_wrapper
    ,parameter out_fifo_dist_vec_p = 0
     //The output fifo width must be multiple times of data_width_p
    ,parameter out_fifo_width_scale_p  = 2
-   ,parameter out_fifo_in_channel_num_lp = out_fifo_num_p / out_fifo_width_scale_p 
+   ,localparam out_fifo_in_channel_num_lp = out_fifo_num_p / out_fifo_width_scale_p 
 
     //////////////////////////////////////////////////////
     //Parameters for manycore
@@ -53,18 +53,18 @@ module bsg_manycore_rocc_streambuf_wrapper
    ,parameter extra_io_rows_p   = 1
    ,`BSG_INV_PARAM(addr_width_p      )
 
-   ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
-   ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
+   ,localparam x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
+   ,localparam y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
 
    // changing this parameter is untested
    ,parameter data_width_p      = 32
-   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+   ,localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
    // snew * y * x bits
    ,parameter repeater_output_p = 0
    //the async FIFO depth
    ,parameter async_fifo_els_p  = 8
 
-   ,parameter out_fifo_width_lp   = data_width_p       * out_fifo_width_scale_p 
+   ,localparam out_fifo_width_lp   = data_width_p       * out_fifo_width_scale_p 
   )
   ( input clk_i
    ,input manycore_clk_i

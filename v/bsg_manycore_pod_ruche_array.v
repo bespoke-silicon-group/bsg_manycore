@@ -52,15 +52,15 @@ module bsg_manycore_pod_ruche_array
 
     , parameter reset_depth_p=3
 
-    , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
-    , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
+    , localparam x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , localparam y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
 
 
-    , parameter manycore_link_sif_width_lp =
+    , localparam manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , parameter wh_link_sif_width_lp = 
+    , localparam wh_link_sif_width_lp = 
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
-    , parameter ruche_x_link_sif_width_lp = 
+    , localparam ruche_x_link_sif_width_lp = 
       `bsg_manycore_ruche_x_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
     // This is used to define heterogeneous arrays. Each index defines

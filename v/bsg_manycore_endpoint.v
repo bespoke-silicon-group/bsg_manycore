@@ -13,11 +13,11 @@ module bsg_manycore_endpoint
     , parameter data_width_p = 32
     , `BSG_INV_PARAM(addr_width_p )
     
-    , parameter packet_width_lp = 
+    , localparam packet_width_lp = 
       `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , parameter return_packet_width_lp =
+    , localparam return_packet_width_lp =
       `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
-    , parameter bsg_manycore_link_sif_width_lp =
+    , localparam bsg_manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   (

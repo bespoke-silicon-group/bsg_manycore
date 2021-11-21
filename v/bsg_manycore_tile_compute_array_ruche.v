@@ -64,14 +64,14 @@ module bsg_manycore_tile_compute_array_ruche
     // coordinate within a pod
     // my_x/y_i
     // A multiple of these modules can be instantiated within a pod as a subarray to form a larger array.
-    , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
-    , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , localparam y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
+    , localparam x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
 
     
-    , parameter link_sif_width_lp =
+    , localparam link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
-    , parameter ruche_x_link_sif_width_lp =
+    , localparam ruche_x_link_sif_width_lp =
       `bsg_manycore_ruche_x_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
     // The number of registers between the reset_i port and the reset sinks

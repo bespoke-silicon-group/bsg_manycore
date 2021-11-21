@@ -15,7 +15,7 @@ module bsg_manycore_link_to_cache_non_blocking
     , `BSG_INV_PARAM(x_cord_width_p)
     , `BSG_INV_PARAM(y_cord_width_p)
 
-    , parameter link_sif_width_lp=
+    , localparam link_sif_width_lp=
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
     // cache parmeters
@@ -24,11 +24,11 @@ module bsg_manycore_link_to_cache_non_blocking
     , `BSG_INV_PARAM(block_size_in_words_p)
     , `BSG_INV_PARAM(miss_fifo_els_p)
 
-    , parameter byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
-    , parameter cache_addr_width_lp=(addr_width_p-1+byte_offset_width_lp)
+    , localparam byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
+    , localparam cache_addr_width_lp=(addr_width_p-1+byte_offset_width_lp)
     
-    , parameter id_width_lp=(x_cord_width_p+y_cord_width_p+5+2)
-    , parameter cache_pkt_width_lp=
+    , localparam id_width_lp=(x_cord_width_p+y_cord_width_p+5+2)
+    , localparam cache_pkt_width_lp=
       `bsg_cache_non_blocking_pkt_width(id_width_lp,cache_addr_width_lp,data_width_p)
   )
   (

@@ -16,7 +16,7 @@ module fpu_fmin_fmax
   #(`BSG_INV_PARAM(exp_width_p)
     , `BSG_INV_PARAM(sig_width_p)
 
-    , parameter recoded_data_width_lp=(exp_width_p+sig_width_p+1)
+    , localparam recoded_data_width_lp=(exp_width_p+sig_width_p+1)
   )
   (
     input [recoded_data_width_lp-1:0] fp_rs1_i

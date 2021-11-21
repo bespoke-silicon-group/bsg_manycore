@@ -44,12 +44,12 @@ module bsg_manycore_tile_compute_array_mesh
     // y = 0                  top vcache
     // y = 1                  IO routers
     // y = num_tiles_y_p+1    bottom vcache
-    , parameter y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p+2)
+    , localparam y_cord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p+2)
 
     // By default, x-coordinate is clog2(num_tiles_x_p), but it can be set to greater value to allow attaching accelerators on the side.
     , parameter x_cord_width_p = `BSG_SAFE_CLOG2(start_x_cord_p+num_tiles_x_p)
 
-    , parameter link_sif_width_lp =
+    , localparam link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_lp)
 
     // The number of registers between the reset_i port and the reset sinks

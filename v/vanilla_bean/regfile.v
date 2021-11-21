@@ -17,7 +17,7 @@ module regfile
     , `BSG_INV_PARAM(x0_tied_to_zero_p)
     , parameter harden_p=0
 
-    , parameter addr_width_lp=`BSG_SAFE_CLOG2(els_p)
+    , localparam addr_width_lp=`BSG_SAFE_CLOG2(els_p)
   )
   (
     input clk_i

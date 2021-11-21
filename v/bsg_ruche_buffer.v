@@ -10,7 +10,7 @@ module bsg_ruche_buffer
     , `BSG_INV_PARAM(ruche_factor_p)
     , `BSG_INV_PARAM(ruche_stage_p)
 
-    , parameter bit invert_lp = (ruche_stage_p == 0)
+    , localparam bit invert_lp = (ruche_stage_p == 0)
       ? (ruche_factor_p % 2 == 0)
       : 1'b1
 
