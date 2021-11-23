@@ -27,8 +27,8 @@ module bsg_manycore_mesh_node
     , parameter rev_use_credits_p = {dirs_lp{1'b0}}
 
     // number of elements in the input FIFO for each direction.
-    , localparam int fwd_fifo_els_p[dirs_lp-1:0] = '{2,2,2,2,2}
-    , localparam int rev_fifo_els_p[dirs_lp-1:0] = '{2,2,2,2,2}
+    , parameter int fwd_fifo_els_p[dirs_lp-1:0] = '{2,2,2,2,2}
+    , parameter int rev_fifo_els_p[dirs_lp-1:0] = '{2,2,2,2,2}
 
     , parameter debug_p = 0
 

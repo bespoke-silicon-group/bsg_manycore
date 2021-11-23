@@ -4,11 +4,11 @@
 module bsg_manycore_accel_default 
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
-   #(`BSG_INV_PARAM(x_cord_width_p   )
+   #(parameter `BSG_INV_PARAM(x_cord_width_p   )
      , `BSG_INV_PARAM(y_cord_width_p )
      , `BSG_INV_PARAM(pod_x_cord_width_p )
      , `BSG_INV_PARAM(pod_y_cord_width_p )
-     , parameter data_width_p   = 32
+     , `BSG_INV_PARAM(data_width_p   )
      , `BSG_INV_PARAM(addr_width_p   )
 
      , `BSG_INV_PARAM(icache_entries_p )

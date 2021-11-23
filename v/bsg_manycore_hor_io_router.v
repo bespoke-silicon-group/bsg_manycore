@@ -30,9 +30,9 @@ module bsg_manycore_hor_io_router
     , localparam dims_lp=3 // only support 3
 
     , parameter fwd_use_credits_p = 7'b0000000
-    , localparam int fwd_fifo_els_p[dims_lp*2:0] = '{2,2,2,2,2,2,2}
+    , parameter int fwd_fifo_els_p[dims_lp*2:0] = '{2,2,2,2,2,2,2}
     , parameter rev_use_credits_p = 7'b0000000
-    , localparam int rev_fifo_els_p[dims_lp*2:0] = '{2,2,2,2,2,2,2}
+    , parameter int rev_fifo_els_p[dims_lp*2:0] = '{2,2,2,2,2,2,2}
 
     , localparam link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)

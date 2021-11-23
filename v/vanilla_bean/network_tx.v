@@ -25,7 +25,7 @@ module network_tx
     , localparam x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , localparam y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
   
-    , `BSG_INV_PARAM(icache_entries_p)
+    , parameter `BSG_INV_PARAM(icache_entries_p)
     , `BSG_INV_PARAM(icache_tag_width_p)
 
     , localparam vcache_addr_width_lp=`BSG_SAFE_CLOG2(vcache_size_p)

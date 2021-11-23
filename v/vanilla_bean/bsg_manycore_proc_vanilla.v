@@ -30,7 +30,7 @@ module bsg_manycore_proc_vanilla
     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , localparam y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
-    , `BSG_INV_PARAM(rev_fifo_els_p) // for FIFO credit counting.
+    , parameter `BSG_INV_PARAM(rev_fifo_els_p) // for FIFO credit counting.
     , `BSG_INV_PARAM(fwd_fifo_els_p) // for FIFO credit counting.
   
     , parameter credit_counter_width_p = `BSG_WIDTH(32)
@@ -43,7 +43,7 @@ module bsg_manycore_proc_vanilla
     , localparam data_mask_width_lp=(data_width_p>>3)
     , localparam reg_addr_width_lp=RV32_reg_addr_width_gp
 
-    , parameter barrier_dirs_p = "inv"
+    , parameter `BSG_INV_PARAM(barrier_dirs_p)
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
 
     , localparam link_sif_width_lp =

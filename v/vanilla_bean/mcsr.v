@@ -15,7 +15,7 @@ module mcsr
   import bsg_vanilla_pkg::*;
   #(localparam reg_addr_width_lp = RV32_reg_addr_width_gp
     , localparam reg_data_width_lp = RV32_reg_data_width_gp
-    , `BSG_INV_PARAM(pc_width_p)
+    , parameter `BSG_INV_PARAM(pc_width_p)
     , `BSG_INV_PARAM(barrier_dirs_p)
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
     , parameter credit_limit_default_val_p = 32
