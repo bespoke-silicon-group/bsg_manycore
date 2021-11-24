@@ -32,7 +32,7 @@ module bsg_manycore_eva_to_npa
     , localparam x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , localparam y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
 
-    , `BSG_INV_PARAM(num_vcache_rows_p )
+    , parameter `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)  // block size in vcache
     , `BSG_INV_PARAM(vcache_size_p) // vcache capacity in words
     , `BSG_INV_PARAM(vcache_sets_p) // number of sets in vcache

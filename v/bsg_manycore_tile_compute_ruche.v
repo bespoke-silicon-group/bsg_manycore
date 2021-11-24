@@ -23,7 +23,7 @@ module bsg_manycore_tile_compute_ruche
     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , localparam y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
-    , `BSG_INV_PARAM(data_width_p )
+    , parameter `BSG_INV_PARAM(data_width_p )
     , `BSG_INV_PARAM(addr_width_p )
 
     , parameter ruche_factor_X_p = 3

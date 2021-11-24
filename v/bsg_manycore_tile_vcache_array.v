@@ -24,7 +24,7 @@ module bsg_manycore_tile_vcache_array
     , localparam y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
 
     // Number of tiles in a subarray 
-    , `BSG_INV_PARAM(subarray_num_tiles_x_p)
+    , parameter `BSG_INV_PARAM(subarray_num_tiles_x_p)
 
     , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_addr_width_p )

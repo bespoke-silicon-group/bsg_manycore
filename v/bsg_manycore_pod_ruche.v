@@ -33,7 +33,7 @@ module bsg_manycore_pod_ruche
     , localparam x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , localparam y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
   
-    , `BSG_INV_PARAM(dmem_size_p)
+    , parameter `BSG_INV_PARAM(dmem_size_p)
     , `BSG_INV_PARAM(icache_entries_p)
     , `BSG_INV_PARAM(icache_tag_width_p)
  
