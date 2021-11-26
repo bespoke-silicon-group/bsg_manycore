@@ -31,7 +31,7 @@ module bsg_ruche_link_sif_tieoff
             : ruche_stage_even_lp))
 
 
-    , localparam link_width_lp=`bsg_ready_and_link_sif_width(link_data_width_p)
+    , link_width_lp=`bsg_ready_and_link_sif_width(link_data_width_p)
   )
   (
     // debug only

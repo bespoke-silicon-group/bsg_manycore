@@ -22,7 +22,7 @@ module bsg_manycore_tile_compute_mesh
     , `BSG_INV_PARAM(num_tiles_x_p)
     , `BSG_INV_PARAM(num_tiles_y_p)
     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
-    , localparam y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
+    , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
 
 
@@ -37,9 +37,9 @@ module bsg_manycore_tile_compute_mesh
     , localparam dirs_lp = (dims_p*2)
 
     , parameter stub_p = {dirs_lp{1'b0}}           // {re,rw,s,n,e,w}
-    , parameter repeater_output_p = {dirs_lp{1'b0}} // {re,rw,s,n,e,w}
-    , parameter hetero_type_p = 0
-    , parameter debug_p = 0
+    , repeater_output_p = {dirs_lp{1'b0}} // {re,rw,s,n,e,w}
+    , hetero_type_p = 0
+    , debug_p = 0
 
 
 

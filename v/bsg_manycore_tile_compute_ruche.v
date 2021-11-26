@@ -21,13 +21,13 @@ module bsg_manycore_tile_compute_ruche
     , `BSG_INV_PARAM(num_tiles_x_p)
     , `BSG_INV_PARAM(num_tiles_y_p)
     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
-    , localparam y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
+    , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
     , parameter `BSG_INV_PARAM(data_width_p )
     , `BSG_INV_PARAM(addr_width_p )
 
-    , parameter ruche_factor_X_p = 3
-    , parameter barrier_ruche_factor_X_p = 3    
+    , ruche_factor_X_p = 3
+    , barrier_ruche_factor_X_p = 3    
 
     , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
@@ -40,13 +40,13 @@ module bsg_manycore_tile_compute_ruche
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
 
     , parameter stub_p = {dirs_lp{1'b0}}           // {re,rw,s,n,e,w}
-    , parameter repeater_output_p = {dirs_lp{1'b0}} // {re,rw,s,n,e,w}
-    , parameter hetero_type_p = 0
-    , parameter debug_p = 0
+    , repeater_output_p = {dirs_lp{1'b0}} // {re,rw,s,n,e,w}
+    , hetero_type_p = 0
+    , debug_p = 0
 
     , localparam link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , localparam ruche_x_link_sif_width_lp =
+    , ruche_x_link_sif_width_lp =
       `bsg_manycore_ruche_x_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   (

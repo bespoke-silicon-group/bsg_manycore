@@ -20,10 +20,10 @@ module network_rx
     , `BSG_INV_PARAM(x_subcord_width_p)
     , `BSG_INV_PARAM(y_subcord_width_p)
 
-    , parameter tgo_x_init_val_p = 0
-    , parameter tgo_y_init_val_p = 0
-    , parameter freeze_init_val_p = 1
-    , parameter default_pc_init_val_p = 0
+    , tgo_x_init_val_p = 0
+    , tgo_y_init_val_p = 0
+    , freeze_init_val_p = 1
+    , default_pc_init_val_p = 0
 
     , localparam data_mask_width_lp=(data_width_p>>3)
     , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)

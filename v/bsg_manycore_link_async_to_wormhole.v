@@ -22,18 +22,18 @@ module bsg_manycore_link_async_to_wormhole
   
   // Wormhole link parameters
   ,`BSG_INV_PARAM(flit_width_p                     )
-  ,parameter dims_p                           = 2
-  ,parameter int cord_markers_pos_p[dims_p:0] = '{5, 4, 0}
+  ,dims_p                           = 2
+  ,int cord_markers_pos_p[dims_p:0] = '{5, 4, 0}
   ,`BSG_INV_PARAM(len_width_p                      )
 
   // The number of registers between reset_i and reset sinks.
-  ,parameter mc_reset_depth_p = 3
+  ,mc_reset_depth_p = 3
   
   ,localparam num_nets_lp = 2
-  ,localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-  ,localparam bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(flit_width_p)
+  ,bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+  ,bsg_ready_and_link_sif_width_lp = `bsg_ready_and_link_sif_width(flit_width_p)
   
-  ,localparam cord_width_lp = cord_markers_pos_p[dims_p]
+  ,cord_width_lp = cord_markers_pos_p[dims_p]
   )
 
   (// Manycore side

@@ -34,11 +34,11 @@ module vanilla_core
     , `BSG_INV_PARAM(fwd_fifo_els_p)
     , localparam lg_fwd_fifo_els_lp=`BSG_WIDTH(fwd_fifo_els_p)
 
-    , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
-    , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
-    , localparam pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
-    , localparam reg_addr_width_lp = RV32_reg_addr_width_gp
-    , localparam data_mask_width_lp=(data_width_p>>3)
+    , dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
+    , icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
+    , pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
+    , reg_addr_width_lp = RV32_reg_addr_width_gp
+    , data_mask_width_lp=(data_width_p>>3)
 
     , parameter debug_p=0
   )

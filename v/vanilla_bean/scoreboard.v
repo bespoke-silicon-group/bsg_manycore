@@ -9,10 +9,10 @@
 
 module scoreboard
   import bsg_vanilla_pkg::*;
-  #(parameter els_p = RV32_reg_els_gp
+  #(els_p = RV32_reg_els_gp
     , `BSG_INV_PARAM(num_src_port_p)
-    , parameter num_clear_port_p=1
-    , parameter x0_tied_to_zero_p = 0
+    , num_clear_port_p=1
+    , x0_tied_to_zero_p = 0
     , localparam id_width_lp = `BSG_SAFE_CLOG2(els_p)
   )
   (

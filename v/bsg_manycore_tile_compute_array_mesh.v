@@ -20,8 +20,8 @@ module bsg_manycore_tile_compute_array_mesh
     // since num_tiles_x_p and num_tiles_y_p will be used to define the size of 2D array
     // hetero_type_vec_p, they should be int by default to avoid tool crash during
     // DC synthesis (versions at least up to 2018.06)
-    , parameter int num_tiles_x_p = -1
-    , parameter int num_tiles_y_p = -1
+    , `BSG_INV_PARAM(parameter int num_tiles_x_p)
+    , `BSG_INV_PARAM(parameter int num_tiles_y_p)
 
     // This is used to define heterogeneous arrays. Each index defines
     // the type of an X/Y coordinate in the array. This is a vector of
@@ -35,11 +35,11 @@ module bsg_manycore_tile_compute_array_mesh
     , `BSG_INV_PARAM(data_width_p ) // 32
 
     // Enable branch/jalr trace
-    , parameter branch_trace_en_p = 0
+    , branch_trace_en_p = 0
 
     // x-coordinate of the leftmost tiles
     // This can be set to 1 or greater to allow attaching accelerators on the left side.
-    , parameter start_x_cord_p = 0
+    , start_x_cord_p = 0
 
     // y = 0                  top vcache
     // y = 1                  IO routers
@@ -57,7 +57,7 @@ module bsg_manycore_tile_compute_array_mesh
     , parameter reset_depth_p = 3
 
     // enable debugging
-    , parameter debug_p = 0
+    , debug_p = 0
   )
   (
     input clk_i

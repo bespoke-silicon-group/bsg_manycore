@@ -15,7 +15,7 @@ module icache
     , `BSG_INV_PARAM(icache_entries_p)
 
     , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
-    , localparam pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
+    , pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
   )
   (
     input clk_i
