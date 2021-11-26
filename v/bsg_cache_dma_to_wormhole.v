@@ -26,8 +26,8 @@ module bsg_cache_dma_to_wormhole
     
     , localparam data_len_lp = (vcache_data_width_p*vcache_block_size_in_words_p/vcache_dma_data_width_p)
 
-    , localparam dma_pkt_width_lp=`bsg_cache_dma_pkt_width(vcache_addr_width_p)
-    , localparam wh_link_sif_width_lp = 
+    , dma_pkt_width_lp=`bsg_cache_dma_pkt_width(vcache_addr_width_p)
+    , wh_link_sif_width_lp = 
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
   )
   (

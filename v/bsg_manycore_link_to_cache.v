@@ -20,21 +20,21 @@ module bsg_manycore_link_to_cache
     , `BSG_INV_PARAM(ways_p)
     , `BSG_INV_PARAM(block_size_in_words_p)
 
-    , parameter fifo_els_p=4
+    , fifo_els_p=4
 
     , localparam lg_sets_lp=`BSG_SAFE_CLOG2(sets_p)
-    , localparam lg_ways_lp=`BSG_SAFE_CLOG2(ways_p)
-    , localparam word_offset_width_lp=`BSG_SAFE_CLOG2(block_size_in_words_p)
-    , localparam data_mask_width_lp=(data_width_p>>3)
-    , localparam byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
-    , localparam cache_addr_width_lp=(link_addr_width_p-1+byte_offset_width_lp) 
-    , localparam block_offset_width_lp=(word_offset_width_lp+byte_offset_width_lp)
+    , lg_ways_lp=`BSG_SAFE_CLOG2(ways_p)
+    , word_offset_width_lp=`BSG_SAFE_CLOG2(block_size_in_words_p)
+    , data_mask_width_lp=(data_width_p>>3)
+    , byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
+    , cache_addr_width_lp=(link_addr_width_p-1+byte_offset_width_lp) 
+    , block_offset_width_lp=(word_offset_width_lp+byte_offset_width_lp)
   
-    , localparam link_sif_width_lp=
+    , link_sif_width_lp=
       `bsg_manycore_link_sif_width(link_addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , localparam bsg_cache_pkt_width_lp=
+    , bsg_cache_pkt_width_lp=
       `bsg_cache_pkt_width(cache_addr_width_lp,data_width_p)
-    , localparam manycore_packet_width_lp=
+    , manycore_packet_width_lp=
       `bsg_manycore_packet_width(link_addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   (

@@ -14,7 +14,7 @@ module regfile_hard
   #(`BSG_INV_PARAM(width_p )
     , `BSG_INV_PARAM(els_p )
     , `BSG_INV_PARAM(num_rs_p ) // number of read ports. only supports 2 and 3.
-    , parameter x0_tied_to_zero_p=0
+    , x0_tied_to_zero_p=0
     , localparam addr_width_lp = `BSG_SAFE_CLOG2(els_p)
   )
   ( 

@@ -10,12 +10,12 @@
 
 module bsg_manycore_link_sif_async_buffer
   import bsg_manycore_pkg::*;
-   #(   addr_width_p  = 32
-      , data_width_p  = 32
+   #(   `BSG_INV_PARAM(addr_width_p  )
+      , `BSG_INV_PARAM(data_width_p  )
       , `BSG_INV_PARAM(x_cord_width_p)
       , `BSG_INV_PARAM(y_cord_width_p)
       , fifo_els_p    = 2
-      , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p)
+      , localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p)
     )(
     //the left side signal
     input                                       L_clk_i

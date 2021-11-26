@@ -25,12 +25,12 @@ module bsg_manycore_tile_compute_array_ruche
     // DC synthesis (versions at least up to 2018.06)
 
     // Number of tiles in the entire pod
-    , parameter int num_tiles_x_p = -1
-    , parameter int num_tiles_y_p = -1
+    , `BSG_INV_PARAM(parameter int num_tiles_x_p)
+    , `BSG_INV_PARAM(parameter int num_tiles_y_p)
 
     // Number of tiles in this subarray.
-    , parameter subarray_num_tiles_x_p = -1
-    , parameter subarray_num_tiles_y_p = -1
+    , `BSG_INV_PARAM(subarray_num_tiles_x_p)
+    , `BSG_INV_PARAM(subarray_num_tiles_y_p)
 
     // This is used to define heterogeneous arrays. Each index defines
     // the type of an X/Y coordinate in the array. This is a vector of
