@@ -25,7 +25,7 @@ module bsg_manycore_rocc_wrapper
     //2. for example, {32'h0000_2010}
     //   indicates there are two rocc interface, their x_cords are 1 and 3.
     //3. rocc_num_p must not bigger than tiles_x
-   ,rocc_dist_vec_p = 0
+   ,parameter rocc_dist_vec_p = 0
 
     //////////////////////////////////////////////////////
     //Parameters for manycore
@@ -35,23 +35,23 @@ module bsg_manycore_rocc_wrapper
    ,`BSG_INV_PARAM(imem_size_p       ) // in words
 
    // array params
-   ,`BSG_INV_PARAM(num_tiles_x_p)
-   ,`BSG_INV_PARAM(num_tiles_y_p)
+   ,parameter num_tiles_x_p     = -1
+   ,parameter num_tiles_y_p     = -1
 
-   ,hetero_type_vec_p = 0
+   ,parameter hetero_type_vec_p = 0
    // enable debugging
-   ,debug_p           = 0
-   ,extra_io_rows_p   = 1
+   ,parameter debug_p           = 0
+   ,parameter extra_io_rows_p   = 1
    ,`BSG_INV_PARAM(addr_width_p      )
 
-   ,localparam x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
-   ,y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
+   ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
+   ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
 
    // changing this parameter is untested
    ,parameter data_width_p      = 32
 
-   ,load_id_width_p   = 5
-   ,localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
+   ,parameter load_id_width_p   = 5
+   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
    // snew * y * x bits
    ,parameter repeater_output_p = 0
 

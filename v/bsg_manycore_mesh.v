@@ -8,22 +8,22 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
  #(
    // array params
-   `BSG_INV_PARAM(num_tiles_x_p) 
-   ,`BSG_INV_PARAM(num_tiles_y_p)
+   parameter num_tiles_x_p      = -1
+   ,parameter num_tiles_y_p     = -1
 
    // array i/o params
-   ,stub_w_p          = {num_tiles_y_p{1'b0}}
-   ,stub_e_p          = {num_tiles_y_p{1'b0}}
-   ,stub_n_p          = {num_tiles_x_p{1'b0}}
-   ,stub_s_p          = {num_tiles_x_p{1'b0}}
+   ,parameter stub_w_p          = {num_tiles_y_p{1'b0}}
+   ,parameter stub_e_p          = {num_tiles_y_p{1'b0}}
+   ,parameter stub_n_p          = {num_tiles_x_p{1'b0}}
+   ,parameter stub_s_p          = {num_tiles_x_p{1'b0}}
 
    // enable debugging
-   ,debug_p           = 0
+   ,parameter debug_p           = 0
 
    // this control how many extra IO rows are addressable in
    // the network outside of the manycore array
 
-   ,extra_io_rows_p   = 1
+   ,parameter extra_io_rows_p   = 1
 
    // this parameter sets the size of addresses that are transmitted in the network
    // and corresponds to the amount of physical words that are addressable by a remote
@@ -38,17 +38,17 @@ import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
    ,`BSG_INV_PARAM(addr_width_p      )
 
-   ,localparam x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
-   ,y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
+   ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
+   ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
 
 
    // changing this parameter is untested
 
    ,parameter data_width_p      = 32
 
-   ,load_id_width_p   = 5
+   ,parameter load_id_width_p   = 5
 
-   ,localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
+   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp,load_id_width_p)
 
    // insert bufx8's on outputs
    ,parameter repeater_output_p  = 0 //   snew * x * y bits.

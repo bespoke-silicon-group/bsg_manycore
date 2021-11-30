@@ -15,23 +15,23 @@ module bsg_ruche_anti_buffer
     , `BSG_INV_PARAM(bit west_not_east_p)
     , `BSG_INV_PARAM(bit input_not_output_p)
 
-    , localparam bit ruche_factor_even_lp = (ruche_factor_p % 2 == 0)
-    , localparam bit ruche_stage_even_lp = (ruche_stage_p % 2 == 0)
+    , parameter bit ruche_factor_even_lp = (ruche_factor_p % 2 == 0)
+    , parameter bit ruche_stage_even_lp = (ruche_stage_p % 2 == 0)
 
-    , localparam bit invert_input_lp = (ruche_stage_p > 0)
+    , parameter bit invert_input_lp = (ruche_stage_p > 0)
         & (ruche_factor_even_lp
           ? ~ruche_stage_even_lp
           : (west_not_east_p
             ? ruche_stage_even_lp
             : ~ruche_stage_even_lp))
-    , localparam bit invert_output_lp = (ruche_stage_p > 0)
+    , parameter bit invert_output_lp = (ruche_stage_p > 0)
         & (ruche_factor_even_lp
           ? ~ruche_stage_even_lp
           : (west_not_east_p
             ? ~ruche_stage_even_lp
             : ruche_stage_even_lp))
 
-    , localparam bit invert_lp = input_not_output_p
+    , parameter bit invert_lp = input_not_output_p
       ? invert_input_lp
       : invert_output_lp
 

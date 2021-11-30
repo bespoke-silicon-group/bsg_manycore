@@ -3,15 +3,15 @@
 
 module bsg_manycore_packet_streamer #(
                                       // maximum number of outstanding words
-                                       `BSG_INV_PARAM(max_out_credits_p)
-                                      , `BSG_INV_PARAM(rom_words_p)
+                                       max_out_credits_p)
+                                      , rom_words_p)
                                       , freeze_init_p=1'b1
                                       , `BSG_INV_PARAM(x_cord_width_p )
                                       , `BSG_INV_PARAM(y_cord_width_p )
                                       , `BSG_INV_PARAM(addr_width_p   )
                                       , `BSG_INV_PARAM(data_width_p   )
                                       , debug_p = 1
-                                      , localparam packet_width_lp = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+                                      , packet_width_lp                = `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                       , bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
                                       )
    (input clk_i

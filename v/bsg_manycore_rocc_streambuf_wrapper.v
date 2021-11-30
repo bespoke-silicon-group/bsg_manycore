@@ -24,47 +24,47 @@ module bsg_manycore_rocc_streambuf_wrapper
     //2. for example, {32'h0000_2010}
     //   indicates there are two rocc interface, their x_cords are 1 and 3.
     //3. rocc_num_p must not bigger than tiles_x
-   ,rocc_dist_vec_p = 0
+   ,parameter rocc_dist_vec_p = 0
 
     //////////////////////////////////////////////////////
     //Parameters for out_fifo interface
    ,`BSG_INV_PARAM(              out_fifo_num_p      )
     //The distribution of the out_fifo interface.
     //The same meaning with rocc_dist_vect_p
-   ,out_fifo_dist_vec_p = 0
+   ,parameter out_fifo_dist_vec_p = 0
     //The output fifo width must be multiple times of data_width_p
-   ,out_fifo_width_scale_p  = 2
-   ,localparam out_fifo_in_channel_num_lp = out_fifo_num_p / out_fifo_width_scale_p 
+   ,parameter out_fifo_width_scale_p  = 2
+   ,parameter out_fifo_in_channel_num_lp = out_fifo_num_p / out_fifo_width_scale_p 
 
     //////////////////////////////////////////////////////
     //Parameters for manycore
     // tile params
-   ,parameter `BSG_INV_PARAM(bank_size_p       )
+   ,`BSG_INV_PARAM(bank_size_p       )
    ,`BSG_INV_PARAM(num_banks_p       )
    ,`BSG_INV_PARAM(imem_size_p       ) // in words
 
    // array params
-   ,`BSG_INV_PARAM(num_tiles_x_p)
-   ,`BSG_INV_PARAM(num_tiles_y_p)
+   ,parameter num_tiles_x_p     = -1
+   ,parameter num_tiles_y_p     = -1
 
-   ,hetero_type_vec_p = 0
+   ,parameter hetero_type_vec_p = 0
    // enable debugging
-   ,debug_p           = 0
-   ,extra_io_rows_p   = 1
+   ,parameter debug_p           = 0
+   ,parameter extra_io_rows_p   = 1
    ,`BSG_INV_PARAM(addr_width_p      )
 
-   ,localparam x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
-   ,y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
+   ,parameter x_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_x_p)
+   ,parameter y_cord_width_lp   = `BSG_SAFE_CLOG2(num_tiles_y_p + extra_io_rows_p) // extra row for I/O at bottom of chip
 
    // changing this parameter is untested
    ,parameter data_width_p      = 32
-   ,localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
+   ,parameter bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_lp,y_cord_width_lp)
    // snew * y * x bits
    ,parameter repeater_output_p = 0
    //the async FIFO depth
-   ,async_fifo_els_p  = 8
+   ,parameter async_fifo_els_p  = 8
 
-   ,localparam out_fifo_width_lp   = data_width_p       * out_fifo_width_scale_p 
+   ,parameter out_fifo_width_lp   = data_width_p       * out_fifo_width_scale_p 
   )
   ( input clk_i
    ,input manycore_clk_i
