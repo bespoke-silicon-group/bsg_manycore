@@ -17,17 +17,17 @@ module bsg_cache_to_axi_hashed
     ,`BSG_INV_PARAM(axi_data_width_p)
     ,`BSG_INV_PARAM(axi_burst_len_p)
 
-    ,parameter data_mask_width_lp=(data_width_p>>3)
-    ,parameter lg_data_mask_width_lp=`BSG_SAFE_CLOG2(data_mask_width_lp)
-    ,parameter lg_block_size_in_words_lp=`BSG_SAFE_CLOG2(block_size_in_words_p)
+    ,localparam data_mask_width_lp=(data_width_p>>3)
+    ,lg_data_mask_width_lp=`BSG_SAFE_CLOG2(data_mask_width_lp)
+    ,lg_block_size_in_words_lp=`BSG_SAFE_CLOG2(block_size_in_words_p)
 
-    ,parameter lg_num_cache_lp=`BSG_SAFE_CLOG2(num_cache_p)
-    ,parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
+    ,lg_num_cache_lp=`BSG_SAFE_CLOG2(num_cache_p)
+    ,dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
 
-    ,parameter axi_strb_width_lp=(axi_data_width_p>>3)
+    ,axi_strb_width_lp=(axi_data_width_p>>3)
 
     ,parameter dram_size_in_words_p=2**29
-    ,parameter block_number_width_lp=`BSG_SAFE_CLOG2(dram_size_in_words_p)-lg_block_size_in_words_lp
+    ,localparam block_number_width_lp=`BSG_SAFE_CLOG2(dram_size_in_words_p)-lg_block_size_in_words_lp
   )
   (
     input clk_i

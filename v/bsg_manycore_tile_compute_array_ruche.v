@@ -25,12 +25,12 @@ module bsg_manycore_tile_compute_array_ruche
     // DC synthesis (versions at least up to 2018.06)
 
     // Number of tiles in the entire pod
-    , parameter int num_tiles_x_p = -1
-    , parameter int num_tiles_y_p = -1
+    , `BSG_INV_PARAM(parameter int num_tiles_x_p)
+    , `BSG_INV_PARAM(parameter int num_tiles_y_p)
 
     // Number of tiles in this subarray.
-    , parameter subarray_num_tiles_x_p = -1
-    , parameter subarray_num_tiles_y_p = -1
+    , `BSG_INV_PARAM(subarray_num_tiles_x_p)
+    , `BSG_INV_PARAM(subarray_num_tiles_y_p)
 
     // This is used to define heterogeneous arrays. Each index defines
     // the type of an X/Y coordinate in the array. This is a vector of
@@ -44,34 +44,34 @@ module bsg_manycore_tile_compute_array_ruche
     , `BSG_INV_PARAM(data_width_p ) // 32
 
     // default ruche factor
-    , parameter ruche_factor_X_p=3
+    , ruche_factor_X_p=3
     // barrier ruche factor
-    , parameter barrier_ruche_factor_X_p=3
+    , barrier_ruche_factor_X_p=3
 
     // global coordinate width
     // global_x/y_i
     // pod_*_cord_width_p  and *_subcord_width_p should sum up to *_cord_width_p.
-    , parameter y_cord_width_p = -1
-    , parameter x_cord_width_p = -1
+    , `BSG_INV_PARAM(y_cord_width_p)
+    , `BSG_INV_PARAM(x_cord_width_p)
 
     // pod coordinate width
     // pod_x/y_i
-    , parameter pod_y_cord_width_p = -1
-    , parameter pod_x_cord_width_p = -1
+    , `BSG_INV_PARAM(pod_y_cord_width_p)
+    , `BSG_INV_PARAM(pod_x_cord_width_p)
 
-    , parameter num_clk_ports_p=1
+    , num_clk_ports_p=1
 
     // coordinate within a pod
     // my_x/y_i
     // A multiple of these modules can be instantiated within a pod as a subarray to form a larger array.
-    , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
-    , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , localparam y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
+    , x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
 
     
-    , parameter link_sif_width_lp =
+    , link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
-    , parameter ruche_x_link_sif_width_lp =
+    , ruche_x_link_sif_width_lp =
       `bsg_manycore_ruche_x_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
     // The number of registers between the reset_i port and the reset sinks
@@ -79,7 +79,7 @@ module bsg_manycore_tile_compute_array_ruche
     , parameter reset_depth_p = 3
 
     // enable debugging
-    , parameter debug_p = 0
+    , debug_p = 0
   )
   (
     input [num_clk_ports_p-1:0] clk_i

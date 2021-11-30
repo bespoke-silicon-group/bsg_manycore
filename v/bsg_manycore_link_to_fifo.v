@@ -17,15 +17,15 @@ module  bsg_manycore_link_to_fifo
     , `BSG_INV_PARAM(y_cord_width_p)
 
     //The output fifo width must be multiple times of data_width_p
-    , parameter out_fifo_width_scale_p  = 2
+    , out_fifo_width_scale_p  = 2
     //multiple channel are merged to increase the output bandwidth
-    , parameter in_channel_scale_p      = 2
-    , parameter fifo_els_p              = 4
+    , in_channel_scale_p      = 2
+    , fifo_els_p              = 4
 
-    , parameter bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , parameter link_sif_num_lp     = in_channel_scale_p * out_fifo_width_scale_p
-    , parameter out_fifo_width_lp   = data_width_p       * out_fifo_width_scale_p
-    , parameter debug_lp            = 0
+    , localparam bsg_manycore_link_sif_width_lp=`bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , link_sif_num_lp     = in_channel_scale_p * out_fifo_width_scale_p
+    , out_fifo_width_lp   = data_width_p       * out_fifo_width_scale_p
+    , debug_lp            = 0
     )
   (
 

@@ -14,16 +14,16 @@ module bsg_ruche_link_sif_tieoff
     , `BSG_INV_PARAM(bit west_not_east_p) // tie-off on west or east side??
   
 
-    , parameter bit ruche_factor_even_lp = (ruche_factor_p % 2 == 0)
-    , parameter bit ruche_stage_even_lp = (ruche_stage_p % 2 == 0)
+    , localparam bit ruche_factor_even_lp = (ruche_factor_p % 2 == 0)
+    , localparam bit ruche_stage_even_lp = (ruche_stage_p % 2 == 0)
 
-    , parameter bit invert_output_lp = (ruche_stage_p > 0)
+    , localparam bit invert_output_lp = (ruche_stage_p > 0)
         & (ruche_factor_even_lp
           ? ~ruche_stage_even_lp
           : (west_not_east_p
             ? ruche_stage_even_lp
             : ~ruche_stage_even_lp))
-    , parameter bit invert_input_lp = (ruche_stage_p > 0)
+    , localparam bit invert_input_lp = (ruche_stage_p > 0)
         & (ruche_factor_even_lp
           ? ~ruche_stage_even_lp
           : (west_not_east_p
@@ -31,7 +31,7 @@ module bsg_ruche_link_sif_tieoff
             : ruche_stage_even_lp))
 
 
-    , parameter link_width_lp=`bsg_ready_and_link_sif_width(link_data_width_p)
+    , link_width_lp=`bsg_ready_and_link_sif_width(link_data_width_p)
   )
   (
     // debug only

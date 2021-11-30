@@ -22,8 +22,8 @@ module lsu
     , `BSG_INV_PARAM(dmem_size_p)
 
     , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
-    , localparam data_mask_width_lp=(data_width_p>>3)
-    , localparam reg_addr_width_lp=RV32_reg_addr_width_gp
+    , data_mask_width_lp=(data_width_p>>3)
+    , reg_addr_width_lp=RV32_reg_addr_width_gp
   )
   (
     input clk_i

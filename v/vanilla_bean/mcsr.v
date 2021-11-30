@@ -13,14 +13,14 @@
 
 module mcsr
   import bsg_vanilla_pkg::*;
-  #(parameter reg_addr_width_lp = RV32_reg_addr_width_gp
-    , parameter reg_data_width_lp = RV32_reg_data_width_gp
-    , `BSG_INV_PARAM(pc_width_p)
+  #(localparam reg_addr_width_lp = RV32_reg_addr_width_gp
+    , reg_data_width_lp = RV32_reg_data_width_gp
+    , parameter `BSG_INV_PARAM(pc_width_p)
     , `BSG_INV_PARAM(barrier_dirs_p)
-    , parameter barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
+    , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
     , parameter credit_limit_default_val_p = 32
-    , parameter credit_counter_width_p=`BSG_WIDTH(32)
-    , parameter cfg_pod_width_p=32
+    , credit_counter_width_p=`BSG_WIDTH(32)
+    , cfg_pod_width_p=32
   )
   (
     input clk_i

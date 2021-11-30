@@ -10,9 +10,9 @@
 module fpu_float_fma_round
   import bsg_vanilla_pkg::*;
   #(parameter exp_width_p = fpu_recoded_exp_width_gp
-    , parameter sig_width_p = fpu_recoded_sig_width_gp
+    , sig_width_p = fpu_recoded_sig_width_gp
 
-    , parameter recoded_data_width_lp=(1+exp_width_p+sig_width_p)
+    , localparam recoded_data_width_lp=(1+exp_width_p+sig_width_p)
   )
   (
     input clk_i

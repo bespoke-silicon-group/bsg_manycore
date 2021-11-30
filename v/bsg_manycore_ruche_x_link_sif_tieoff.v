@@ -21,32 +21,32 @@ module bsg_manycore_ruche_x_link_sif_tieoff
     , `BSG_INV_PARAM(ruche_stage_p)
     , `BSG_INV_PARAM(bit west_not_east_p) // 1'b0 or 1'b1
   
-    , parameter bit ruche_factor_even_lp = (ruche_factor_X_p % 2 == 0)
-    , parameter bit ruche_stage_even_lp = (ruche_stage_p % 2 == 0)
+    , localparam bit ruche_factor_even_lp = (ruche_factor_X_p % 2 == 0)
+    , localparam bit ruche_stage_even_lp = (ruche_stage_p % 2 == 0)
 
-    , parameter bit invert_output_lp = (ruche_stage_p > 0)
+    , localparam bit invert_output_lp = (ruche_stage_p > 0)
         & (ruche_factor_even_lp
           ? ~ruche_stage_even_lp
           : (west_not_east_p
             ? ruche_stage_even_lp
             : ~ruche_stage_even_lp))
-    , parameter bit invert_input_lp = (ruche_stage_p > 0)
+    , localparam bit invert_input_lp = (ruche_stage_p > 0)
         & (ruche_factor_even_lp
           ? ~ruche_stage_even_lp
           : (west_not_east_p
             ? ~ruche_stage_even_lp
             : ruche_stage_even_lp))
 /*
-    , parameter bit invert_output_lp = (ruche_stage_p > 0)
+    , localparam bit invert_output_lp = (ruche_stage_p > 0)
         & (west_not_east_p
           ? (ruche_factor_X_even_lp ^ ruche_stage_even_lp)
           : (ruche_factor_X_even_lp ^ ~ruche_stage_even_lp))
-    , parameter bit invert_input_lp = (ruche_stage_p > 0)
+    , localparam bit invert_input_lp = (ruche_stage_p > 0)
         & (west_not_east_p
           ? (ruche_factor_X_even_lp ^ ~ruche_stage_even_lp)
           : (ruche_factor_X_even_lp ^ ruche_stage_even_lp))
 */
-    , parameter ruche_x_link_sif_width_lp=
+    , ruche_x_link_sif_width_lp=
       `bsg_manycore_ruche_x_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   (

@@ -63,22 +63,22 @@ module bsg_manycore_hetero_socket
     , `BSG_INV_PARAM(icache_tag_width_p )
     , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_size_p )
-    , parameter debug_p = 0
-    , parameter int hetero_type_p = 0
+    , debug_p = 0
+    , int hetero_type_p = 0
     , `BSG_INV_PARAM(pod_x_cord_width_p)
     , `BSG_INV_PARAM(pod_y_cord_width_p)
     , `BSG_INV_PARAM(num_tiles_x_p)
     , `BSG_INV_PARAM(num_tiles_y_p)
-    , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
-    , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
-    , `BSG_INV_PARAM(vcache_block_size_in_words_p)
+    , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+    , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
+    , parameter `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_sets_p)
     , `BSG_INV_PARAM(fwd_fifo_els_p )
     , `BSG_INV_PARAM(rev_fifo_els_p )
     , `BSG_INV_PARAM(barrier_dirs_p )
-    , parameter barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
+    , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
 
-    , parameter bsg_manycore_link_sif_width_lp =
+    , bsg_manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   (

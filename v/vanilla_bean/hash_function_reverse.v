@@ -5,8 +5,8 @@ module hash_function_reverse
   #(`BSG_INV_PARAM(width_p)
     ,`BSG_INV_PARAM(banks_p)
 
-    , parameter lg_banks_lp=`BSG_SAFE_CLOG2(banks_p)
-    , parameter index_width_lp=$clog2((2**width_p+banks_p-1)/banks_p)
+    , localparam lg_banks_lp=`BSG_SAFE_CLOG2(banks_p)
+    , index_width_lp=$clog2((2**width_p+banks_p-1)/banks_p)
   )
   (
     input [index_width_lp-1:0] index_i

@@ -21,17 +21,17 @@ module bsg_manycore_pod_ruche_array
     , `BSG_INV_PARAM(y_cord_width_p)
     , `BSG_INV_PARAM(addr_width_p)
     , `BSG_INV_PARAM(data_width_p)
-    , parameter ruche_factor_X_p=3  // only support 3 for now
-    , parameter barrier_ruche_factor_X_p = 3
+    , ruche_factor_X_p=3  // only support 3 for now
+    , barrier_ruche_factor_X_p = 3
 
-    , parameter num_subarray_x_p=1
-    , parameter num_subarray_y_p=1
+    , num_subarray_x_p=1
+    , num_subarray_y_p=1
 
     , `BSG_INV_PARAM(dmem_size_p)
     , `BSG_INV_PARAM(icache_entries_p)
     , `BSG_INV_PARAM(icache_tag_width_p)
 
-    , parameter num_vcache_rows_p=1
+    , num_vcache_rows_p=1
     , `BSG_INV_PARAM(vcache_addr_width_p)
     , `BSG_INV_PARAM(vcache_data_width_p)
     , `BSG_INV_PARAM(vcache_ways_p)
@@ -40,7 +40,7 @@ module bsg_manycore_pod_ruche_array
     , `BSG_INV_PARAM(vcache_size_p)
     , `BSG_INV_PARAM(vcache_dma_data_width_p)
 
-    , parameter wh_ruche_factor_p=2 // only support 2 for now
+    , wh_ruche_factor_p=2 // only support 2 for now
     , `BSG_INV_PARAM(wh_cid_width_p)
     , `BSG_INV_PARAM(wh_flit_width_p)
     , `BSG_INV_PARAM(wh_cord_width_p)
@@ -50,17 +50,17 @@ module bsg_manycore_pod_ruche_array
     , `BSG_INV_PARAM(num_pods_y_p)
     , `BSG_INV_PARAM(num_pods_x_p)
 
-    , parameter reset_depth_p=3
+    , reset_depth_p=3
 
-    , parameter x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
-    , parameter y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
+    , localparam x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
 
 
-    , parameter manycore_link_sif_width_lp =
+    , manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , parameter wh_link_sif_width_lp = 
+    , wh_link_sif_width_lp = 
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
-    , parameter ruche_x_link_sif_width_lp = 
+    , ruche_x_link_sif_width_lp = 
       `bsg_manycore_ruche_x_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
     // This is used to define heterogeneous arrays. Each index defines

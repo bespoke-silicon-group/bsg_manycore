@@ -4,7 +4,7 @@
 module bsg_manycore_reg_id_decode
   import bsg_manycore_pkg::*;
   #(parameter data_width_p=32
-    , parameter data_mask_width_lp=data_width_p>>3
+    , localparam data_mask_width_lp=data_width_p>>3
     , parameter reg_id_width_p=bsg_manycore_reg_id_width_gp
   )
   (

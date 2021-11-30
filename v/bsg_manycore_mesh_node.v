@@ -13,30 +13,30 @@ module bsg_manycore_mesh_node
     , `BSG_INV_PARAM(data_width_p)
     , `BSG_INV_PARAM(addr_width_p)
 
-    , parameter dims_p=2
-    , parameter dirs_lp=(dims_p*2)+1
+    , dims_p=2
+    , localparam dirs_lp=(dims_p*2)+1
 
     , parameter ruche_factor_X_p=0
-    , parameter ruche_factor_Y_p=0
+    , ruche_factor_Y_p=0
 
-    , parameter stub_p            = {(dirs_lp-1){1'b0}} // {s,n,e,w}
-    , parameter repeater_output_p = {(dirs_lp-1){1'b0}} // {s,n,e,w}
+    , stub_p            = {(dirs_lp-1){1'b0}} // {s,n,e,w}
+    , repeater_output_p = {(dirs_lp-1){1'b0}} // {s,n,e,w}
 
     // bit vector to choose which direction in the router to use credit interface.
-    , parameter fwd_use_credits_p = {dirs_lp{1'b0}}
-    , parameter rev_use_credits_p = {dirs_lp{1'b0}}
+    , fwd_use_credits_p = {dirs_lp{1'b0}}
+    , rev_use_credits_p = {dirs_lp{1'b0}}
 
     // number of elements in the input FIFO for each direction.
     , parameter int fwd_fifo_els_p[dirs_lp-1:0] = '{2,2,2,2,2}
     , parameter int rev_fifo_els_p[dirs_lp-1:0] = '{2,2,2,2,2}
 
-    , parameter debug_p = 0
+    , debug_p = 0
 
-    , parameter packet_width_lp =
+    , localparam packet_width_lp =
       `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , parameter return_packet_width_lp =
+    , return_packet_width_lp =
       `bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p)
-    , parameter bsg_manycore_link_sif_width_lp =
+    , bsg_manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   ( 

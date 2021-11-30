@@ -7,9 +7,9 @@
 
 module fcsr
   import bsg_vanilla_pkg::*;
-  #(parameter fflags_width_lp=$bits(fflags_s)
-    , parameter frm_width_lp=$bits(frm_e)
-    , parameter reg_addr_width_lp=RV32_reg_addr_width_gp
+  #(localparam fflags_width_lp=$bits(fflags_s)
+    , frm_width_lp=$bits(frm_e)
+    , reg_addr_width_lp=RV32_reg_addr_width_gp
   )
   (
     input clk_i

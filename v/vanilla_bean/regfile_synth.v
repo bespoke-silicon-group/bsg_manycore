@@ -14,7 +14,7 @@ module regfile_synth
     , `BSG_INV_PARAM(num_rs_p)
     , `BSG_INV_PARAM(x0_tied_to_zero_p)
 
-    , parameter addr_width_lp=`BSG_SAFE_CLOG2(els_p)
+    , localparam addr_width_lp=`BSG_SAFE_CLOG2(els_p)
   )
   (
     input clk_i

@@ -12,9 +12,9 @@ module fpu_float_fma
   import bsg_vanilla_pkg::*;
   import bsg_hardfloat_pkg::*;
   #(parameter exp_width_p=fpu_recoded_exp_width_gp
-    , parameter sig_width_p=fpu_recoded_sig_width_gp
-    , parameter data_width_p=RV32_reg_data_width_gp
-    , parameter recoded_data_width_lp=(1+exp_width_p+sig_width_p)
+    , sig_width_p=fpu_recoded_sig_width_gp
+    , data_width_p=RV32_reg_data_width_gp
+    , localparam recoded_data_width_lp=(1+exp_width_p+sig_width_p)
   )
   (
     input clk_i

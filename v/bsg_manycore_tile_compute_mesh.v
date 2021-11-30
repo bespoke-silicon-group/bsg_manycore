@@ -21,8 +21,8 @@ module bsg_manycore_tile_compute_mesh
     // Number of tiles in a pod
     , `BSG_INV_PARAM(num_tiles_x_p)
     , `BSG_INV_PARAM(num_tiles_y_p)
-    , parameter x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
-    , parameter y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
+    , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+    , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
 
 
@@ -34,16 +34,16 @@ module bsg_manycore_tile_compute_mesh
     , `BSG_INV_PARAM(vcache_sets_p)
 
     , parameter dims_p = 2
-    , parameter dirs_lp = (dims_p*2)
+    , localparam dirs_lp = (dims_p*2)
 
     , parameter stub_p = {dirs_lp{1'b0}}           // {re,rw,s,n,e,w}
-    , parameter repeater_output_p = {dirs_lp{1'b0}} // {re,rw,s,n,e,w}
-    , parameter hetero_type_p = 0
-    , parameter debug_p = 0
+    , repeater_output_p = {dirs_lp{1'b0}} // {re,rw,s,n,e,w}
+    , hetero_type_p = 0
+    , debug_p = 0
 
 
 
-    , parameter link_sif_width_lp =
+    , localparam link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   (

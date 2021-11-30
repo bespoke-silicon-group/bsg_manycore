@@ -25,18 +25,18 @@ module bsg_manycore_hor_io_router
  
     , `BSG_INV_PARAM(tieoff_west_p)
     , `BSG_INV_PARAM(tieoff_east_p)
-    , parameter tieoff_proc_p=0
+    , tieoff_proc_p=0
 
-    , parameter dims_lp=3 // only support 3
+    , localparam dims_lp=3 // only support 3
 
     , parameter fwd_use_credits_p = 7'b0000000
-    , parameter int fwd_fifo_els_p[dims_lp*2:0] = '{2,2,2,2,2,2,2}
-    , parameter rev_use_credits_p = 7'b0000000
-    , parameter int rev_fifo_els_p[dims_lp*2:0] = '{2,2,2,2,2,2,2}
+    , int fwd_fifo_els_p[dims_lp*2:0] = '{2,2,2,2,2,2,2}
+    , rev_use_credits_p = 7'b0000000
+    , int rev_fifo_els_p[dims_lp*2:0] = '{2,2,2,2,2,2,2}
 
-    , parameter link_sif_width_lp =
+    , localparam link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-    , parameter ruche_x_link_sif_width_lp =
+    , ruche_x_link_sif_width_lp =
       `bsg_manycore_ruche_x_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   ( 
