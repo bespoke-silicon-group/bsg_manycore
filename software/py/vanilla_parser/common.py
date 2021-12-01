@@ -4,13 +4,13 @@ def add_args(parser):
     parser.add_argument("--trace", default="vanilla_operation_trace.csv", type=str,
                         help="Vanilla operation log file")
     parser.add_argument("--stats", default="vanilla_stats.csv", type=str,
-                        help="Vanilla stats log file")
+                        help="Vanilla stats profiler file")
     parser.add_argument("--log", default="vanilla.log", type=str,
                         help="Vanilla log file")
     parser.add_argument("--vcache-trace", default="vcache_operation_trace.csv", type=str,
                         help="Vanilla operation log file")
     parser.add_argument("--vcache-stats", default=None, type=str,
-                        help="Vanilla stats log file")
+                        help="Vanilla cache stats profiler file")
     parser.add_argument("--tile", default=False, action='store_true',
                         help="Also generate per tile stats")
     parser.add_argument("--tile-group", default=False, action='store_true',
