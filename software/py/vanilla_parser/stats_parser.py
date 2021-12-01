@@ -223,15 +223,15 @@ class CacheStatsParser:
 
     @classmethod
     def field_is_load(cls, op):
-        return op.startswith("instr_ld")
+        return op.startswith("instr_ld") or op == "bytes_ld"
 
     @classmethod
     def field_is_store(cls, op):
-        return op.startswith("instr_s")
+        return op.startswith("instr_s") or op == "bytes_st"
 
     @classmethod
     def field_is_amo(cls, op):
-        return op.startswith("instr_amo")
+        return op.startswith("instr_amo") or op == "bytes_amo"
 
     @classmethod
     def field_is_replace(cls, op):
@@ -254,7 +254,7 @@ class CacheStatsParser:
                 or cls.field_is_store(op) or op == "total_stores"
                 or cls.field_is_amo(op) or op == "total_atomics"
                 or cls.field_is_mgmt(op) or op == "total_mgmt"
-                or op == "global_ctr")
+                or op == "global_ctr") and not cls.field_is_bytes(op)
 
     # Parse the raw tag column into Tag, Action, and Tile Coordinate columns
     @classmethod
@@ -394,7 +394,6 @@ class CacheStatsParser:
         d["bytes_st"] = d[szmap.keys()].multiply(szmap).sum(axis="columns")
 
         d["bytes_amo"] = d["total_atomics"].multiply(4)
-        d["total_bytes"] = d["bytes_ld"] + d["bytes_amo"] + d["bytes_st"]
 
         # Parse raw tag data into Action, Tag, and Tile Coordinate (Y,X), 
         # and Tile Group Columns
@@ -404,6 +403,7 @@ class CacheStatsParser:
         # strings) into ManycoreCoordinate objects, and put them in a
         # new column
         d["Cache Coordinate (Y,X)"] = self.parse_cache_coordinates(d)
+        ncaches = len(d["Cache Coordinate (Y,X)"])
 
         # Create a column with the Tile-Tag iterations (see comment)
         # All of the magic happens here.
@@ -424,10 +424,13 @@ class CacheStatsParser:
 # It contains reusable functionality, but doesn't actually do any
 # parsing or computation.
 class CacheStats:
+    # Data bytes per packet on the network
+    network_bytes = 4
+
     def __init__(self, name, df):
         self._name = name
         self._df = df.copy()
-    
+
         header = df.columns.values
 
         # Classify operations in the header
@@ -440,7 +443,7 @@ class CacheStats:
 
         self._misses = [f for f in header if CacheStatsParser.field_is_miss(f)]
         self._dmas = [f for f in header if CacheStatsParser.field_is_dma(f)]
-        self._bytes = [f for f in header if CacheStatsParser.field_is_bytes(f)]
+        #self._bytes = [f for f in header if CacheStatsParser.field_is_bytes(f)]
         self._replace = [f for f in header if CacheStatsParser.field_is_replace(f)]
 
         self._ops = [*self._mgmt, *self._atomics, *self._stores, *self._loads]
@@ -453,7 +456,6 @@ class CacheStats:
                                   *[(s,"Stall") for s in [*self._stalls, "total_stalls"]],
                                   *[(m,"Miss") for m in [*self._misses, "total_miss"]],
                                   *[(d,"DMA") for d in [*self._dmas, "total_dma"]],
-                                  *[(d,"Bytes") for d in [*self._bytes, "total_bytes"]],
                                   *[(d,"Replace") for d in [*self._replace, "total_replace"]],
                                   ("global_ctr", "Cycles")
                               })
@@ -527,8 +529,11 @@ class CacheStats:
 
 class CacheTagStats(CacheStats):
 
-    def __init__(self, name, df):
+    def __init__(self, name, df, cache_line_words):
         super().__init__(name, df)
+        self.__cache_line_words = cache_line_words
+        self._ncaches = len(df["Cache Coordinate (Y,X)"].unique())
+
         # Tag statistics are aggregated across banks. We use Tile-Tag
         # Iteration at the bottom of the hierarchy so that lines that
         # were printed by the same packet, i.e. different cache banks,
@@ -590,6 +595,8 @@ class CacheTagStats(CacheStats):
         # Save the result
         self.df = results
 
+    def _cache_line_bytes(self):
+        return self.__cache_line_words * 4
 
     # Parse the results into a pretty table
     def __prettify(self, df):
@@ -718,9 +725,9 @@ class CacheTagStats(CacheStats):
 
         # Set up a "Type" column, to use as a new index, replacing the
         # one from the CSV
-        df["Type"] = ds.index.map({"miss_st": "Stores",
-                                   "miss_ld": "Loads",
-                                   "miss_amo": "Atomics",
+        df["Type"] = ds.index.map({"miss_st": "Store",
+                                   "miss_ld": "Load",
+                                   "miss_amo": "Atomic",
                                    "Total": "Total"})
 
         # Set up a column for access counts
@@ -739,52 +746,125 @@ class CacheTagStats(CacheStats):
 
         # Set the format for floats
         fmt = [".0f"] * 4 + [".2f"] * 3
-        s = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right")
+        s = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right", stralign="right")
+        return s
+
+    # Format the Bandwidth Stats table
+    def __bw_tostr(self, ds):
+        # Construct a pretty dataframe to print
+        df = pd.DataFrame()
+
+        # Compute the DRAM Read/Write bandwidth in Bytes/Cycle. Since we
+        # don't know the frequency of the manycore this is the best we
+        # can do.
+        df["DRAM Rd BW (B/Cyc)"] = ds["Event"]["Miss"] * self._cache_line_bytes() / ds["Cycle"]["Cycles"]["Total"]
+        df.index = df.index.map({"miss_st": "Store",
+                                 "miss_ld": "Load",
+                                 "miss_amo": "Atomic",
+                                 "Total": "Total"})
+
+        # Repeat for DRAM write bandwidth
+        wr_bw = float(ds["Event"]["Replace"]["replace_dirty"] * self._cache_line_bytes()) / ds["Cycle"]["Cycles"]["Total"]
+        df["DRAM Wr BW (B/Cyc)"] = pd.Series({"Store": np.nan,
+                                              "Atomic": np.nan,
+                                              "Load": 0.0,
+                                              "Total": wr_bw})
+
+        # We don't know the peak read/write bandwidth of DRAM, so we
+        # can't compute it for the stats table.
+
+        # Compute the Cache Read/Write bandwidth in Bytes/Cycle. Since we
+        # don't know the frequency of the manycore this is the best we
+        # can do.
+        dolla_rd_bw = ds["Bytes"].droplevel(1) 
+        dolla_rd_bw["Store"] = 0.0
+        dolla_rd_bw["Total"] = dolla_rd_bw.sum()
+        dolla_rd_bw = dolla_rd_bw / ds["Cycle"]["Cycles"]["Total"]
+        #dolla_rd_bw["Store"] = "N/A"
+        df["$ Rd BW (B/Cyc)"] = dolla_rd_bw
+
+        # But we can compute the cache bandwidth utilization by taking
+        # the total number of bytes loaded from cache and dividing by
+        # the total number of bytes we could have loaded.
+        dolla_rd_util = ds["Bytes"].droplevel(1) 
+        dolla_rd_util["Store"] = 0.0
+        dolla_rd_util["Total"] = dolla_rd_util.sum()
+        dolla_rd_util = 100.0 * dolla_rd_util / (self._ncaches * self.network_bytes * ds["Cycle"]["Cycles"]["Total"])
+        #dolla_rd_util["Store"] = "N/A"
+        df["$ Rd Util. (%)"] = dolla_rd_util
+
+        # Repeat for cache write bandwidth
+        dolla_wr_bw = ds["Bytes"].droplevel(1) 
+        dolla_wr_bw["Load"] = 0.0
+        dolla_wr_bw["Total"] = dolla_wr_bw.sum()
+        dolla_wr_bw = dolla_wr_bw / ds["Cycle"]["Cycles"]["Total"]
+        #dolla_wr_bw["Load"] = "N/A"
+        df["$ Wr BW (B/Cyc)"] = dolla_wr_bw
+
+        dolla_wr_util = ds["Bytes"].droplevel(1) 
+        dolla_wr_util["Load"] = 0.0
+        dolla_wr_util["Total"] = dolla_wr_util.sum()
+        dolla_wr_util = 100.0 * dolla_wr_util / (self._ncaches * self.network_bytes * ds["Cycle"]["Cycles"]["Total"])
+        #dolla_wr_util["Load"] = "N/A"
+        df["$ Wr Util. (%)"] = dolla_wr_util
+
+        # Name --> Type for the index column
+        df.index.name = "Type"
+
+        # Set the format for floats
+        fmt = [".2f"] * 7
+        s = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right", stralign="right")
         return s
 
     # Get a pretty formatted table representation for a tag
-    @classmethod
-    def __tag_tostr(cls, df):
+    def __tag_tostr(self, df):
         # Get load and store totals for miss statistics
         ld_total = df.loc[("Cycle", ["Load"], "Total")][0]
-        ldb_total = df.loc[("Bytes", ["Bytes"], "bytes_ld")][0]
+        ldb_total = df.loc[("Bytes", ["Load"], "bytes_ld")][0]
         st_total = df.loc[("Cycle", ["Store"], "Total")][0]
-        stb_total = df.loc[("Bytes", ["Bytes"], "bytes_st")][0]
+        stb_total = df.loc[("Bytes", ["Store"], "bytes_st")][0]
         at_total = df.loc[("Cycle", ["Atomic"], "Total")][0]
-        atb_total = df.loc[("Bytes", ["Bytes"], "bytes_amo")][0]
+        atb_total = df.loc[("Bytes", ["Atomic"], "bytes_amo")][0]
 
-        counts = cls.__cycle_tostr(df.loc["Cycle"]) + "\n"
+        counts = self.__cycle_tostr(df.loc["Cycle"]) + "\n"
         l = len(counts.splitlines()[0])
-
-        events = cls.__event_tostr(df.loc["Event"], ld_total, ldb_total, st_total, stb_total, at_total, atb_total)
 
         s = ""
         s += ("Operation Cycle Counts" + " " * l)[:l] + "\n"
-        s += cls._make_sub_sep("", l) + "\n"
+        s += self._make_sub_sep("", l) + "\n"
         s += counts
-        s += cls._make_sub_sep("", l) + "\n"
+        s += self._make_sub_sep("", l) + "\n"
 
-        # TODO: Bandwidth Utilization would go here:
+        events = self.__event_tostr(df.loc["Event"], ld_total, ldb_total, st_total, stb_total, at_total, atb_total)
         l = len(events.splitlines()[0])        
         s += "\n"
-        s += cls._make_sub_sep("", l) + "\n"
+        s += self._make_sub_sep("", l) + "\n"
         s += ("Miss Statistics" + " " * l)[:l] + "\n"
-        s += cls._make_sub_sep("", l) + "\n"
+        s += self._make_sub_sep("", l) + "\n"
         s += events
         s += "\n"
-        s += cls._make_sub_sep("", l) + "\n"
+        s += self._make_sub_sep("", l) + "\n"
+
+        events = self.__bw_tostr(df)
+        l = len(events.splitlines()[0])        
+        s += "\n"
+        s += self._make_sub_sep("", l) + "\n"
+        s += ("DRAM and Cache ($) Bandwidth Statistics" + " " * l)[:l] + "\n"
+        s += self._make_sub_sep("", l) + "\n"
+        s += events
+        s += "\n"
+        s += self._make_sub_sep("", l) + "\n"
 
         return s
 
     # Get a pretty formatted table representation for all tags
-    @classmethod
-    def __tostr(cls, df):
+    def __tostr(self, df):
         s = ""
         for tag in df.columns:
-            tab= cls.__tag_tostr(df[tag])
+            tab= self.__tag_tostr(df[tag])
             l = tab.splitlines()[0]
 
-            s += cls._make_tag_sep(tag, len(l))
+            s += self._make_tag_sep(tag, len(l))
             s += "\n"
             s += tab
             s += "\n"
@@ -818,6 +898,7 @@ class CacheBankStats(CacheStats):
     def __init__(self, name, df, cache_line_words):
         super().__init__(name, df)
         self.__cache_line_words = cache_line_words
+        self._ncaches = len(df["Cache Coordinate (Y,X)"].unique())
         
         # Create a table where we'll compute the per-bank tagsums. Do
         # not take the sum, because we are not aggregating here.
@@ -886,7 +967,7 @@ class CacheBankStats(CacheStats):
         pretty["Bytes Atomic'd Ratio"] = (self.df["bytes_amo"] / (self.df["miss_amo"] * self.__cache_line_words * 4))
 
         doc += "\t- Bytes Used Ratio: (Bytes Stored to Cache + Bytes Loaded from Cache) / Bytes Loaded to Cache via Miss)\n"
-        pretty["Bytes Used Ratio"] =  ((self.df["total_bytes"]) / (self.df["total_miss"] * 64))
+        pretty["Bytes Used Ratio"] =  ((self.df[["bytes_ld", "bytes_st", "bytes_amo"]].sum(axis="columns")) / (self.df["total_miss"] * 64))
 
         doc += "\t- Memory Access Latency: Average Memory Access Latency for Misses (Total Miss Cycles / Number of Misses)\n"
         pretty["Mem. Latency"] = (self.df["stall_miss"] / self.df["total_miss"]).fillna(0)
@@ -970,7 +1051,7 @@ class AggregateCacheStats():
         # Per-Bank Cache Parsing doesn't care about Tile Group ID, or Tile Coordinate
         bankdata = df.drop(["Tile Group ID", "Tile Coordinate (Y,X)"], axis="columns")
 
-        self.tag = CacheTagStats("Per-Tag Victim Cache Stats", tagdata)
+        self.tag = CacheTagStats("Per-Tag Victim Cache Stats", tagdata, cache_line_words)
         self.bank = CacheBankStats("Per-Bank Victim Cache Stats", bankdata, cache_line_words)
         
     def __str__(self):
