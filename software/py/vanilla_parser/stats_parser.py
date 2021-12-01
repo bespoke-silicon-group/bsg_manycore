@@ -882,7 +882,7 @@ class CacheBankStats(CacheStats):
         doc += "\t- Bytes Stored Ratio: Bytes Stored to Cache / Bytes Loded to Cache via Store Miss\n"
         pretty["Bytes Stored Ratio"] = (self.df["bytes_st"] / (self.df["miss_st"] * self.__cache_line_words * 4))
 
-        doc += "\t- Bytes Stored Ratio: Bytes Stored to Cache / Bytes Loded to Cache via Store Miss\n"
+        doc += "\t- Bytes Atomic'd Ratio: Bytes Atomic'd in Cache / Bytes Loded to Cache via Atomic Miss\n"
         pretty["Bytes Atomic'd Ratio"] = (self.df["bytes_amo"] / (self.df["miss_amo"] * self.__cache_line_words * 4))
 
         doc += "\t- Bytes Used Ratio: (Bytes Stored to Cache + Bytes Loaded from Cache) / Bytes Loaded to Cache via Miss)\n"
