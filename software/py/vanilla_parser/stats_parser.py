@@ -193,6 +193,28 @@ ManycoreCoordinate = namedtuple('ManycoreCoordinate', ['y', 'x'])
 # start/end calls from each tile.
 class CacheStatsParser:
 
+    @classmethod
+    def get_ld_op_bytes(cls, op):
+        szmap = {
+            "instr_ld_ldu": 8,
+            "instr_ld_ld": 8,
+            "instr_ld_lwu": 4,
+            "instr_ld_lw": 4,
+            "instr_ld_lhu": 2,
+            "instr_ld_lh": 2,
+            "instr_ld_lbu": 1,
+            "instr_ld_lb": 1}
+        return szmap[op]
+
+    @classmethod
+    def get_st_op_bytes(cls, op):
+        szmap = {
+            "instr_sm_sd": 8,
+            "instr_sm_sw": 4,
+            "instr_sm_sh": 2,
+            "instr_sm_sb": 1}
+        return szmap[op]
+
     # The field_is_* stall methods return true if a field from the CSV
     # is of the type requested. Use these for filtering operations
     @classmethod
@@ -366,6 +388,9 @@ class CacheStatsParser:
         self._misses = [f for f in header if self.field_is_miss(f)]
         self._dmas = [f for f in header if self.field_is_dma(f)]
         self._replace = [f for f in header if self.field_is_replace(f)]
+        self._loads = [f for f in header if CacheStatsParser.field_is_load(f)]
+        self._stores = [f for f in header if CacheStatsParser.field_is_store(f)]
+        self._atomics = [f for f in header if CacheStatsParser.field_is_amo(f)]
 
         d['total_stalls'] = d[self._stalls].sum(axis="columns")
         d['total_mgmt'] = d[self._mgmt].sum(axis="columns")
@@ -373,26 +398,8 @@ class CacheStatsParser:
         d['total_dma'] = d[self._dmas].sum(axis="columns")
         d['total_replace'] = d[self._replace].sum(axis="columns")
 
-        szmap = {
-            "instr_ld_ldu": 8,
-            "instr_ld_ld": 8,
-            "instr_ld_lwu": 4,
-            "instr_ld_lw": 4,
-            "instr_ld_lhu": 2,
-            "instr_ld_lh": 2,
-            "instr_ld_lbu": 1,
-            "instr_ld_lb": 1}
-
-        d["bytes_ld"] = d[szmap.keys()].multiply(szmap).sum(axis="columns")
-
-        szmap = {
-            "instr_sm_sd": 8,
-            "instr_sm_sw": 4,
-            "instr_sm_sh": 2,
-            "instr_sm_sb": 1}
-
-        d["bytes_st"] = d[szmap.keys()].multiply(szmap).sum(axis="columns")
-
+        d["bytes_ld"] = d[self._loads].apply(lambda x: self.get_ld_op_bytes(x.name) * x).sum(axis="columns")
+        d["bytes_st"] = d[self._stores].apply(lambda x: self.get_st_op_bytes(x.name) * x).sum(axis="columns")
         d["bytes_amo"] = d["total_atomics"].multiply(4)
 
         # Parse raw tag data into Action, Tag, and Tile Coordinate (Y,X), 
@@ -446,7 +453,8 @@ class CacheStats:
         #self._bytes = [f for f in header if CacheStatsParser.field_is_bytes(f)]
         self._replace = [f for f in header if CacheStatsParser.field_is_replace(f)]
 
-        self._ops = [*self._mgmt, *self._atomics, *self._stores, *self._loads]
+        # Classify ops, but remove any that are just byte counters.
+        self._ops = [x for x in [*self._mgmt, *self._atomics, *self._stores, *self._loads] if not CacheStatsParser.field_is_bytes(x)]
         # Create a dictionary mapping operation to operation type
         # global_ctr is just a cycle counter
         self._op_type_map = dict({*[(l,"Load") for l in [*self._loads, "total_loads"]],
@@ -931,6 +939,9 @@ class CacheBankStats(CacheStats):
         self.df = results
 
 
+    def _cache_line_bytes(self):
+        return self.__cache_line_words * 4
+
     # Parse the results into a pretty table
     def __prettify(self, df):
 
@@ -958,31 +969,43 @@ class CacheBankStats(CacheStats):
         pretty["Miss Rate (%)"] = 100 * (self.df["total_miss"] / ops)
 
         doc += "\t- Bytes Loaded Ratio: Bytes Loaded from Cache / Bytes Loaded to Cache via Load Miss\n"
-        pretty["Bytes Loaded Ratio"] = (self.df["bytes_ld"] / (self.df["miss_ld"] * self.__cache_line_words * 4))
+        pretty["Bytes Loaded Ratio"] = (self.df["bytes_ld"] / (self.df["miss_ld"] * self._cache_line_bytes()))
 
         doc += "\t- Bytes Stored Ratio: Bytes Stored to Cache / Bytes Loded to Cache via Store Miss\n"
-        pretty["Bytes Stored Ratio"] = (self.df["bytes_st"] / (self.df["miss_st"] * self.__cache_line_words * 4))
+        pretty["Bytes Stored Ratio"] = (self.df["bytes_st"] / (self.df["miss_st"] * self._cache_line_bytes()))
 
         doc += "\t- Bytes Atomic'd Ratio: Bytes Atomic'd in Cache / Bytes Loaded to Cache via Atomic Miss\n"
-        pretty["Bytes Atomic'd Ratio"] = (self.df["bytes_amo"] / (self.df["miss_amo"] * self.__cache_line_words * 4))
+        pretty["Bytes Atomic'd Ratio"] = (self.df["bytes_amo"] / (self.df["miss_amo"] * self._cache_line_bytes()))
 
         doc += "\t- Bytes Used Ratio: (Bytes Stored to Cache + Bytes Loaded from Cache) / Bytes Loaded to Cache via Miss)\n"
-        pretty["Bytes Used Ratio"] =  ((self.df[["bytes_ld", "bytes_st", "bytes_amo"]].sum(axis="columns")) / (self.df["total_miss"] * 64))
+        pretty["Bytes Used Ratio"] =  ((self.df[["bytes_ld", "bytes_st", "bytes_amo"]].sum(axis="columns")) / (self.df["total_miss"] * self._cache_line_bytes()))
+
+        doc += "\t- DRAM Read BW (Bytes/Cycle): Bytes Loaded from DRAM via Misses / Total Cycles\n"
+        pretty["DRAM Read Bytes/Cycle"] = (self.df["total_miss"] * self._cache_line_bytes()) / (self.df["global_ctr"])
+
+        doc += "\t- DRAM Write BW (Bytes/Cycle): 100 * (Bytes Written to DRAM via Evictions) / (Total Cycles)\n"
+        pretty["DRAM Write Bytes/Cycle"] = (self.df["replace_dirty"] * self._cache_line_bytes()) / (self.df["global_ctr"])
 
         doc += "\t- Memory Access Latency: Average Memory Access Latency for Misses (Total Miss Cycles / Number of Misses)\n"
         pretty["Mem. Latency"] = (self.df["stall_miss"] / self.df["total_miss"]).fillna(0)
 
-        doc += "\t- Percent Miss Cycles: 100 * (Total Miss Cycles / Total Cycles)\n"
-        pretty["Percent Miss Cycles"] = 100 *(self.df["stall_miss"] / self.df["global_ctr"])
-
         doc += "\t- Percent Idle Cycles: 100 * (Total Idle Cycles / Total Cycles)\n"
-        pretty["Percent Idle Cycles"] = 100 *(self.df["stall_idle"] / self.df["global_ctr"])
+        pretty["% $ Idle"] = 100 *(self.df["stall_idle"] / self.df["global_ctr"])
+
+        doc += "\t- Percent Miss Cycles: 100 * (Total Miss Cycles / Total Cycles)\n"
+        pretty["% $ Misses"] = 100 *(self.df["stall_miss"] / self.df["global_ctr"])
 
         doc += "\t- Percent Response Stall Cycles: 100 * (Total Response Stall Cycles / Total Cycles)\n"
-        pretty["Percent Stall Cycles"] = 100 *(self.df["stall_rsp"] / self.df["global_ctr"])
+        pretty["% $ Stalls"] = 100 *(self.df["stall_rsp"] / self.df["global_ctr"])
 
         doc += "\t- Percent Operations Cycles: 100 * (Total Operation Cycles / Total Cycles)\n"
-        pretty["Percent Ops."] = 100 * (ops / self.df["global_ctr"])
+        pretty["% $ Ops."] = 100 * (ops / self.df["global_ctr"])
+
+        doc += "\t- Percent Cache Network Read BW Utilization: 100 * (Total Load Bytes + Total Atomic Bytes) / (Total Cycles * Network Data Width)\n"
+        pretty["% $ Read BW"] = 100 * (self.df["bytes_ld"] + self.df["bytes_amo"]) / (self.df["global_ctr"] * self.network_bytes)
+
+        doc += "\t- Percent Cache Network Write BW Utilization: 100 * (Total Store Bytes + Total Atomic Bytes) / (Total Cycles * Network Data Width)\n"
+        pretty["% $ Write BW"] = 100 * (self.df["bytes_st"] + self.df["bytes_amo"]) / (self.df["global_ctr"] * self.network_bytes)
 
         doc += "\n"
         doc += "Note: inf (Infinite) occurs when a tag window captures miss stall cycles that bleed into its window, but has no misses"
