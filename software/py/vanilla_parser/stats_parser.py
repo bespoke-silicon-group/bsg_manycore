@@ -680,6 +680,8 @@ class CacheTagStats(CacheStats):
         doc += "\t Type: Operations grouped by type (Store, Load, Atomic) -- see Operation Types above\n"
         doc += "\t DRAM Rd BW (Bytes / **Cache** Cycle): DRAM Read Bandwidth in Bytes/**Cache** Cycle, (Total Misses * Cache Line Size) / Total Cycles\n"
         doc += "\t DRAM Wr BW (Bytes / **Cache** Cycle): DRAM Write Bandwidth in Bytes/**Cache** Cycle, (Total Dirty Evictions * Cache Line Size) / Total Cycles\n"
+        doc += "\t DRAM Rd BW (GB/s): DRAM Read Bandwidth in GB/s\n"
+        doc += "\t DRAM Wr BW (GB/s): DRAM Write Bandwidth in GB/s\n"
         doc += "\t $ Rd BW (Bytes / Cycle): Cache Read Bandwidth to Network in Bytes/**Cache** Cycle, Total Bytes (Loaded + Atomic'd) / Total Cycles\n"
         doc += "\t $ Wr BW (Bytes / Cycle): Cache Write Bandwidth to Network in Bytes/**Cache** Cycle, Total Bytes (Stored + Atomic'd) / Total Cycles\n"
         doc += "\t % $ Rd BW: Cache Read Bandwidth Percent, Total Bytes (Loaded + Atomic'd) / (Total Cycles * Network Width)\n"
@@ -772,7 +774,7 @@ class CacheTagStats(CacheStats):
                                    data =  [bst, bld, batom, batom + bld + bst])
         # Compute the miss rate by dividing the misses by the accesses
         # Nans are expected -- 0/0. Just turn them into 0's
-        df["Miss Rate (%)"] = 100 * (df["Misses"] / (df["Misses"] + df["Operations"])).fillna(0)
+        df["Miss Rate (%)"] = 100 * (df["Misses"] / (df["Operations"])).fillna(0)
         df["Operations / Miss"] = (df["Operations"] / (df["Misses"])).fillna(0)
         df["Bytes / Miss"] = (df["Bytes"] / (df["Misses"])).fillna(0)
 
@@ -807,6 +809,8 @@ class CacheTagStats(CacheStats):
                                  "miss_ld": "Load",
                                  "miss_amo": "Atomic",
                                  "Total": "Total"})
+        df["DRAM Rd BW (GB/s)"] = df["DRAM Rd BW (B/$-Cyc)"].map(lambda x: f"{x:.2f} * F_cache (GHz)")
+        
 
         # Repeat for DRAM write bandwidth
         wr_bw = float(ds["Event"]["Replace"]["replace_dirty"] * self._cache_line_bytes()) / (ds["Cycle"]["Cycles"]["Total"] / self._ncaches)
@@ -814,6 +818,7 @@ class CacheTagStats(CacheStats):
                                               "Atomic": np.nan,
                                               "Load": 0.0,
                                               "Total": wr_bw})
+        df["DRAM Wr BW (GB/s)"] = df["DRAM Wr BW (B/$-Cyc)"].map(lambda x: f"{x:.2f} * F_cache (GHz)")
 
         # We don't know the peak read/write bandwidth of DRAM, so we
         # can't compute it for the stats table.
@@ -1001,8 +1006,8 @@ class CacheBankStats(CacheStats):
         doc += "\t- Percent Operations Cycles: 100 * (Total Bank Operation Cycles / Total Bank Cycles)\n"
         pretty["% $ Ops."] = 100 * (ops / self.df["global_ctr"])
 
-        doc += "\t- Miss Rate: (Number of Misses / Number of Ops + Misses)\n"
-        pretty["Miss Rate"] =  (self.df["total_miss"] / (ops + self.df["total_miss"]))
+        doc += "\t- Miss Rate: (Number of Misses / Number of Ops)\n"
+        pretty["Miss Rate"] =  (self.df["total_miss"] / (ops))
 
         doc += "\t- Load Ratio: Bytes Loaded from Cache Bank / Bytes Loaded to Cache Bank via Load Op. Miss             (NOTE: nan if no misses caused by load operations)\n"
         pretty["Load Ratio"] = (self.df["bytes_ld"] / (self.df["miss_ld"] * self._cache_line_bytes()))
