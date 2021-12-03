@@ -641,7 +641,7 @@ class CacheTagStats(CacheStats):
 
         pretty = pretty.reindex(srtd, axis=1)
 
-        doc += "Table Rows:\n"
+        doc += "Operation Types Documentation (1 Cycle per Operation):\n"
         doc += "\tLoad Operations:\n"
         doc += "\t\t-instr_ld_l[wu,w,hu,h,du,d,bu,b]: Load [w]ord/[h]alf/[b]yte/[d]ouble [u]nsigned/[]signed\n"
         doc += "\tStore Operations:\n"
@@ -665,7 +665,26 @@ class CacheTagStats(CacheStats):
         doc += "\t\t-stall_idle: Idle Operation (Stall)\n"
         doc += "\t\t-stall_rsp: Response Network Congestion Stall\n"
         doc += "\n"
-        doc += " *** All operations take one cycle. *** \n"
+
+        doc += "Miss Statistics Columns Documentation:\n"
+        doc += "\t Type: Operations grouped by type (Store, Load, Atomic) -- see Operation Types above\n"
+        doc += "\t Misses: Misses caused by operation type\n"
+        doc += "\t Operations: Count of operations executed by operation type\n"
+        doc += "\t Bytes: Total Bytes (Loaded, Stored, Atomically Modified) by operation type\n"
+        doc += "\t Miss Rate (%): 100 * Misses / (Misses + Operations)\n"
+        doc += "\t Operations / Miss: Average number of operations executed between misses                     (NOTE: nan if no misses)\n"
+        doc += "\t Bytes / Miss: Average number of bytes (Loaded, Stored, Atomically Modified) between misses  (NOTE: nan if no misses)\n"
+        doc += "\n"
+
+        doc += "Miss Statistics Columns Documentation:\n"
+        doc += "\t Type: Operations grouped by type (Store, Load, Atomic) -- see Operation Types above\n"
+        doc += "\t DRAM Rd BW (Bytes / Cycle): DRAM Read Bandwidth in Bytes/**Manycore** Cycle, (Total Misses * Cache Line Size) / Total Cycles\n"
+        doc += "\t DRAM Wr BW (Bytes / Cycle): DRAM Write Bandwidth in Bytes/**Manycore** Cycle, (Total Dirty Evictions * Cache Line Size) / Total Cycles\n"
+        doc += "\t $ Rd BW (Bytes / Cycle): Cache Read Bandwidth to Network in Bytes/**Manycore** Cycle, Total Bytes (Loaded + Atomic'd) / Total Cycles\n"
+        doc += "\t $ Wr BW (Bytes / Cycle): Cache Write Bandwidth to Network in Bytes/**Manycore** Cycle, Total Bytes (Stored + Atomic'd) / Total Cycles\n"
+        doc += "\t % $ Rd BW: Cache Read Bandwidth Percent, Total Bytes (Loaded + Atomic'd) / (Total Cycles * Network Width)\n"
+        doc += "\t % $ Wr BW: Cache Read Bandwidth Percent, Total Bytes (Stored + Atomic'd) / (Total Cycles * Network Width)\n"
+        doc += "\n"
 
         return (pretty, doc)
 
@@ -676,10 +695,10 @@ class CacheTagStats(CacheStats):
     def __cycle_breakdown(cls, tot_cyc, ds):
         # Construct a new dataframe (the input is a series)
         df = pd.DataFrame()
-        df["Count"] = ds
+        df["Cycles"] = ds
         # Compute breakdowns. For anything that is NaN, just report 0
-        df["% of Type Cycles"] = (100 * ds / ds.loc[:,"Total"]).fillna(0)
-        df["% of Total Cycles"]   = 100 * ds / tot_cyc
+        df["% of Type"] = (100 * ds / ds.loc[:,"Total"]).fillna(0)
+        df["% of Total"]   = 100 * ds / tot_cyc
         return df
 
     # Formatting method for table index.
@@ -715,7 +734,15 @@ class CacheTagStats(CacheStats):
         fmt = [".0f", ".0f", ".2f", ".2f"]
 
         # Finally, format the table with the pretty index
-        s = df.to_markdown(tablefmt="simple", floatfmt=fmt, index=i, numalign="right")
+        tab = df.to_markdown(tablefmt="simple", floatfmt=fmt, index=i, numalign="right")
+
+        l = len(tab.splitlines()[0])
+
+        s = ""
+        s += ("Cycle Counts" + " " * l)[:l] + "\n"
+        s += cls._make_sub_sep("", l) + "\n"
+        s += tab + "\n"
+        s += cls._make_sub_sep("", l) + "\n"
 
         return s
 
@@ -739,14 +766,14 @@ class CacheTagStats(CacheStats):
                                    "Total": "Total"})
 
         # Set up a column for access counts
-        df["Accesses"] = pd.Series(index = ds.index.values,
+        df["Operations"] = pd.Series(index = ds.index.values,
                                    data =  [st, ld, atom, atom + ld + st])
         df["Bytes"] = pd.Series(index = ds.index.values,
                                    data =  [bst, bld, batom, batom + bld + bst])
         # Compute the miss rate by dividing the misses by the accesses
         # Nans are expected -- 0/0. Just turn them into 0's
-        df["Miss Rate (%)"] = 100 * (df["Misses"] / (df["Misses"] + df["Accesses"])).fillna(0)
-        df["Accesses / Miss"] = (df["Accesses"] / (df["Misses"])).fillna(0)
+        df["Miss Rate (%)"] = 100 * (df["Misses"] / (df["Misses"] + df["Operations"])).fillna(0)
+        df["Operations / Miss"] = (df["Operations"] / (df["Misses"])).fillna(0)
         df["Bytes / Miss"] = (df["Bytes"] / (df["Misses"])).fillna(0)
 
         # Set index to the type
@@ -754,7 +781,17 @@ class CacheTagStats(CacheStats):
 
         # Set the format for floats
         fmt = [".0f"] * 4 + [".2f"] * 3
-        s = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right", stralign="right")
+        tab = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right", stralign="right")
+
+        l = len(tab.splitlines()[0])   
+        s = ""
+        s += cls._make_sub_sep("", l) + "\n"
+        s += ("Miss Statistics" + " " * l)[:l] + "\n"
+        s += cls._make_sub_sep("", l) + "\n"
+        s += tab
+        s += "\n"
+        s += cls._make_sub_sep("", l) + "\n"
+
         return s
 
     # Format the Bandwidth Stats table
@@ -765,14 +802,14 @@ class CacheTagStats(CacheStats):
         # Compute the DRAM Read/Write bandwidth in Bytes/Cycle. Since we
         # don't know the frequency of the manycore this is the best we
         # can do.
-        df["DRAM Rd BW (B/Cyc)"] = ds["Event"]["Miss"] * self._cache_line_bytes() / ds["Cycle"]["Cycles"]["Total"]
+        df["DRAM Rd BW (B/Cyc)"] = ds["Event"]["Miss"] * self._cache_line_bytes() / (ds["Cycle"]["Cycles"]["Total"] / self._ncaches)
         df.index = df.index.map({"miss_st": "Store",
                                  "miss_ld": "Load",
                                  "miss_amo": "Atomic",
                                  "Total": "Total"})
 
         # Repeat for DRAM write bandwidth
-        wr_bw = float(ds["Event"]["Replace"]["replace_dirty"] * self._cache_line_bytes()) / ds["Cycle"]["Cycles"]["Total"]
+        wr_bw = float(ds["Event"]["Replace"]["replace_dirty"] * self._cache_line_bytes()) / (ds["Cycle"]["Cycles"]["Total"] / self._ncaches)
         df["DRAM Wr BW (B/Cyc)"] = pd.Series({"Store": np.nan,
                                               "Atomic": np.nan,
                                               "Load": 0.0,
@@ -787,8 +824,7 @@ class CacheTagStats(CacheStats):
         dolla_rd_bw = ds["Bytes"].droplevel(1) 
         dolla_rd_bw["Store"] = 0.0
         dolla_rd_bw["Total"] = dolla_rd_bw.sum()
-        dolla_rd_bw = dolla_rd_bw / ds["Cycle"]["Cycles"]["Total"]
-        #dolla_rd_bw["Store"] = "N/A"
+        dolla_rd_bw = dolla_rd_bw / (ds["Cycle"]["Cycles"]["Total"] / self._ncaches)
         df["$ Rd BW (B/Cyc)"] = dolla_rd_bw
 
         # But we can compute the cache bandwidth utilization by taking
@@ -797,31 +833,38 @@ class CacheTagStats(CacheStats):
         dolla_rd_util = ds["Bytes"].droplevel(1) 
         dolla_rd_util["Store"] = 0.0
         dolla_rd_util["Total"] = dolla_rd_util.sum()
-        dolla_rd_util = 100.0 * dolla_rd_util / (self._ncaches * self.network_bytes * ds["Cycle"]["Cycles"]["Total"])
-        #dolla_rd_util["Store"] = "N/A"
-        df["$ Rd Util. (%)"] = dolla_rd_util
+        dolla_rd_util = 100.0 * dolla_rd_util / (self.network_bytes * ds["Cycle"]["Cycles"]["Total"])
+        df["% $ Rd BW"] = dolla_rd_util
 
         # Repeat for cache write bandwidth
         dolla_wr_bw = ds["Bytes"].droplevel(1) 
         dolla_wr_bw["Load"] = 0.0
         dolla_wr_bw["Total"] = dolla_wr_bw.sum()
-        dolla_wr_bw = dolla_wr_bw / ds["Cycle"]["Cycles"]["Total"]
-        #dolla_wr_bw["Load"] = "N/A"
+        dolla_wr_bw = dolla_wr_bw / (ds["Cycle"]["Cycles"]["Total"] / self._ncaches)
         df["$ Wr BW (B/Cyc)"] = dolla_wr_bw
 
         dolla_wr_util = ds["Bytes"].droplevel(1) 
         dolla_wr_util["Load"] = 0.0
         dolla_wr_util["Total"] = dolla_wr_util.sum()
-        dolla_wr_util = 100.0 * dolla_wr_util / (self._ncaches * self.network_bytes * ds["Cycle"]["Cycles"]["Total"])
-        #dolla_wr_util["Load"] = "N/A"
-        df["$ Wr Util. (%)"] = dolla_wr_util
+        dolla_wr_util = 100.0 * dolla_wr_util / (self.network_bytes * ds["Cycle"]["Cycles"]["Total"])
+        df["% $ Wr BW"] = dolla_wr_util
 
         # Name --> Type for the index column
         df.index.name = "Type"
 
         # Set the format for floats
         fmt = [".2f"] * 7
-        s = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right", stralign="right")
+        tab = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right", stralign="right")
+
+        l = len(tab.splitlines()[0])        
+        s = "\n"
+        s += self._make_sub_sep("", l) + "\n"
+        s += ("DRAM and Cache ($) Bandwidth Statistics" + " " * l)[:l] + "\n"
+        s += self._make_sub_sep("", l) + "\n"
+        s += tab
+        s += "\n"
+        s += self._make_sub_sep("", l) + "\n"
+
         return s
 
     # Get a pretty formatted table representation for a tag
@@ -834,34 +877,11 @@ class CacheTagStats(CacheStats):
         at_total = df.loc[("Cycle", ["Atomic"], "Total")][0]
         atb_total = df.loc[("Bytes", ["Atomic"], "bytes_amo")][0]
 
-        counts = self.__cycle_tostr(df.loc["Cycle"]) + "\n"
-        l = len(counts.splitlines()[0])
+        s = self.__cycle_tostr(df.loc["Cycle"]) + "\n"
 
-        s = ""
-        s += ("Operation Cycle Counts" + " " * l)[:l] + "\n"
-        s += self._make_sub_sep("", l) + "\n"
-        s += counts
-        s += self._make_sub_sep("", l) + "\n"
+        s += self.__event_tostr(df.loc["Event"], ld_total, ldb_total, st_total, stb_total, at_total, atb_total)
 
-        events = self.__event_tostr(df.loc["Event"], ld_total, ldb_total, st_total, stb_total, at_total, atb_total)
-        l = len(events.splitlines()[0])        
-        s += "\n"
-        s += self._make_sub_sep("", l) + "\n"
-        s += ("Miss Statistics" + " " * l)[:l] + "\n"
-        s += self._make_sub_sep("", l) + "\n"
-        s += events
-        s += "\n"
-        s += self._make_sub_sep("", l) + "\n"
-
-        events = self.__bw_tostr(df)
-        l = len(events.splitlines()[0])        
-        s += "\n"
-        s += self._make_sub_sep("", l) + "\n"
-        s += ("DRAM and Cache ($) Bandwidth Statistics" + " " * l)[:l] + "\n"
-        s += self._make_sub_sep("", l) + "\n"
-        s += events
-        s += "\n"
-        s += self._make_sub_sep("", l) + "\n"
+        s += self.__bw_tostr(df)
 
         return s
 
@@ -952,65 +972,67 @@ class CacheBankStats(CacheStats):
         # Compute pretty table
 
         # Fill nans as 0's where this is expected behaviour (i.e. 0/0) but leave infs.
-        doc += "Table Fields: \n"
+        doc += "Table Columns: \n"
 
         doc += "\t- Cache Coordinate (Y,X): Cache Coordinate within HammerBlade Pod\n"
 
-        doc += "\t- Total Cycles: Total Cache Execution Cycles\n"
-        pretty["Total Cycles"] = self.df["global_ctr"]
+        doc += "\t- Cycles: Total Cache Bank Execution Cycles\n"
+        pretty["Cycles"] = self.df["global_ctr"]
 
-        doc += "\t- # Misses: Total Number of Cache Misses\n"
+        doc += "\t- # Misses: Total Number of Cache Bank Misses\n"
         pretty["# Misses"] = self.df["total_miss"]
 
-        doc += "\t- Operations: Total Number of Cache Operations (Loads + Stores + Atomics + Management)\n"
+        doc += "\t- Operations: Total Number of Cache Bank Operations (Loads + Stores + Atomics + Management)\n"
         pretty["# Operations"] = ops
 
-        doc += "\t- Miss Rate: 100 * (Number of Misses / Number of Ops)\n"
-        pretty["Miss Rate (%)"] = 100 * (self.df["total_miss"] / ops)
+        doc += "\t- Miss Rate: 100 * (Number of Misses / Number of Ops + Misses)\n"
+        pretty["% Miss"] = 100 * (self.df["total_miss"] / ops + self.df["total_miss"])
 
-        doc += "\t- Bytes Loaded Ratio: Bytes Loaded from Cache / Bytes Loaded to Cache via Load Miss\n"
-        pretty["Bytes Loaded Ratio"] = (self.df["bytes_ld"] / (self.df["miss_ld"] * self._cache_line_bytes()))
+        doc += "\t- Load Ratio: Bytes Loaded from Cache Bank / Bytes Loaded to Cache Bank via Load Op. Miss             (NOTE: nan if no misses caused by load operations)\n"
+        pretty["Load Ratio"] = (self.df["bytes_ld"] / (self.df["miss_ld"] * self._cache_line_bytes()))
 
-        doc += "\t- Bytes Stored Ratio: Bytes Stored to Cache / Bytes Loded to Cache via Store Miss\n"
-        pretty["Bytes Stored Ratio"] = (self.df["bytes_st"] / (self.df["miss_st"] * self._cache_line_bytes()))
+        doc += "\t- Store Ratio: Bytes Stored to Cache Bank / Bytes Loaded to Cache Bank via Store Op. Miss             (NOTE: nan if no misses caused by store operations)\n"
+        pretty["Stored Ratio"] = (self.df["bytes_st"] / (self.df["miss_st"] * self._cache_line_bytes()))
 
-        doc += "\t- Bytes Atomic'd Ratio: Bytes Atomic'd in Cache / Bytes Loaded to Cache via Atomic Miss\n"
-        pretty["Bytes Atomic'd Ratio"] = (self.df["bytes_amo"] / (self.df["miss_amo"] * self._cache_line_bytes()))
+        doc += "\t- Atomic'd Ratio: Bytes Atomic'd in Cache Bank / Bytes Loaded to Cache Bank via Atomic Op. Miss       (NOTE: nan if no misses caused by atomic operations)\n"
+        pretty["Atomic'd Ratio"] = (self.df["bytes_amo"] / (self.df["miss_amo"] * self._cache_line_bytes()))
 
-        doc += "\t- Bytes Used Ratio: (Bytes Stored to Cache + Bytes Loaded from Cache) / Bytes Loaded to Cache via Miss)\n"
-        pretty["Bytes Used Ratio"] =  ((self.df[["bytes_ld", "bytes_st", "bytes_amo"]].sum(axis="columns")) / (self.df["total_miss"] * self._cache_line_bytes()))
+        doc += "\t- Total Ratio: Bytes (Loaded + Atomic'd + Stored) to Cache Bank / Bytes Loaded to Cache Bank via Miss (NOTE: nan if no misses caused by operations)\n"
+        pretty["Total Ratio"] =  ((self.df[["bytes_ld", "bytes_st", "bytes_amo"]].sum(axis="columns")) / (self.df["total_miss"] * self._cache_line_bytes()))
 
-        doc += "\t- DRAM Read BW (Bytes/Cycle): Bytes Loaded from DRAM via Misses / Total Cycles\n"
-        pretty["DRAM Read Bytes/Cycle"] = (self.df["total_miss"] * self._cache_line_bytes()) / (self.df["global_ctr"])
-
-        doc += "\t- DRAM Write BW (Bytes/Cycle): 100 * (Bytes Written to DRAM via Evictions) / (Total Cycles)\n"
-        pretty["DRAM Write Bytes/Cycle"] = (self.df["replace_dirty"] * self._cache_line_bytes()) / (self.df["global_ctr"])
-
-        doc += "\t- Memory Access Latency: Average Memory Access Latency for Misses (Total Miss Cycles / Number of Misses)\n"
-        pretty["Mem. Latency"] = (self.df["stall_miss"] / self.df["total_miss"]).fillna(0)
-
-        doc += "\t- Percent Idle Cycles: 100 * (Total Idle Cycles / Total Cycles)\n"
+        doc += "\t- Percent Idle Cycles: 100 * (Total Bank Idle Cycles / Total Bank Cycles)\n"
         pretty["% $ Idle"] = 100 *(self.df["stall_idle"] / self.df["global_ctr"])
 
-        doc += "\t- Percent Miss Cycles: 100 * (Total Miss Cycles / Total Cycles)\n"
+        doc += "\t- Percent Miss Cycles: 100 * (Total Bank Miss Cycles / Total Bank Cycles)\n"
         pretty["% $ Misses"] = 100 *(self.df["stall_miss"] / self.df["global_ctr"])
 
-        doc += "\t- Percent Response Stall Cycles: 100 * (Total Response Stall Cycles / Total Cycles)\n"
+        doc += "\t- Percent Response Stall Cycles: 100 * (Total Bank Response Stall Cycles / Total Bank Cycles)\n"
         pretty["% $ Stalls"] = 100 *(self.df["stall_rsp"] / self.df["global_ctr"])
 
-        doc += "\t- Percent Operations Cycles: 100 * (Total Operation Cycles / Total Cycles)\n"
+        doc += "\t- Percent Operations Cycles: 100 * (Total Bank Operation Cycles / Total Bank Cycles)\n"
         pretty["% $ Ops."] = 100 * (ops / self.df["global_ctr"])
 
-        doc += "\t- Percent Cache Network Read BW Utilization: 100 * (Total Load Bytes + Total Atomic Bytes) / (Total Cycles * Network Data Width)\n"
-        pretty["% $ Read BW"] = 100 * (self.df["bytes_ld"] + self.df["bytes_amo"]) / (self.df["global_ctr"] * self.network_bytes)
+        doc += "\t- Percent Cache Bank Network Read BW: 100 * (Total Bytes Loaded + Total Bytes Atomic'd) / (Total Bank Cycles * Network Data Width)\n"
+        pretty["% $ Rd. BW"] = 100 * (self.df["bytes_ld"] + self.df["bytes_amo"]) / (self.df["global_ctr"] * self.network_bytes)
 
-        doc += "\t- Percent Cache Network Write BW Utilization: 100 * (Total Store Bytes + Total Atomic Bytes) / (Total Cycles * Network Data Width)\n"
-        pretty["% $ Write BW"] = 100 * (self.df["bytes_st"] + self.df["bytes_amo"]) / (self.df["global_ctr"] * self.network_bytes)
+        doc += "\t- Percent Cache Bank Network Write BW: 100 * (Total Bytes Stored + Total Bytes Atomic'd) / (Total Bank Cycles * Network Data Width)\n"
+        pretty["% $ Wr. BW"] = 100 * (self.df["bytes_st"] + self.df["bytes_amo"]) / (self.df["global_ctr"] * self.network_bytes)
+
+        doc += "\t- Percent Cache Bank Network BW: 100 * (Total Bytes Read & Written) / (Total Bank Cycles * Network Data Width)\n"
+        pretty["% $ BW"] = 100 * (self.df["bytes_st"] + self.df["bytes_amo"] + self.df["bytes_ld"]) / (self.df["global_ctr"] * self.network_bytes)
+
+        doc += "\t- DRAM Read BW (B/Cyc): Bytes Loaded from DRAM via Misses / Total Cycles\n"
+        pretty["DRAM Rd. B/Cyc"] = (self.df["total_miss"] * self._cache_line_bytes()) / (self.df["global_ctr"])
+
+        doc += "\t- DRAM Write BW (B/Cyc): 100 * Bytes Written to DRAM via Evictions / Total Cycles\n"
+        pretty["DRAM Wr. B/Cyc"] = (self.df["replace_dirty"] * self._cache_line_bytes()) / (self.df["global_ctr"])
+
+        doc += "\t- DRAM Access Latency: Average Memory Access Latency for Misses (Total Bank Miss Cycles / Number of Misses)\n"
+        pretty["DRAM Latency"] = (self.df["stall_miss"] / self.df["total_miss"]).fillna(0)
 
         doc += "\n"
-        doc += "Note: inf (Infinite) occurs when a tag window captures miss stall cycles that bleed into its window, but has no misses"
+        doc += "Use the columns of this table to identify load imbalances between cache banks."
         doc += "\n"
-        doc += "Note: nan occurs when there are no misses recorded for a type"
         
         doc += "\n"
         
