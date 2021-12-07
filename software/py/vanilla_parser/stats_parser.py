@@ -749,8 +749,7 @@ class CacheTagStats(CacheStats):
         return s
 
     # Format the events table (misses)
-    @classmethod
-    def __event_tostr(cls, ds, ld, bld, st, bst, atom, batom):
+    def __event_tostr(self, ds, ld, bld, st, bst, atom, batom):
         # Construct a pretty dataframe to print
         df = pd.DataFrame()
 
@@ -777,22 +776,23 @@ class CacheTagStats(CacheStats):
         df["Miss Rate (%)"] = 100 * (df["Misses"] / (df["Operations"])).fillna(0)
         df["Operations / Miss"] = (df["Operations"] / (df["Misses"])).fillna(0)
         df["Bytes / Miss"] = (df["Bytes"] / (df["Misses"])).fillna(0)
+        df["% Used / Miss"] = (100 * df["Bytes"] / (self.__cache_line_words * 4)) / (df["Misses"]).fillna(0)
 
         # Set index to the type
         df = df.set_index(["Type"])
 
         # Set the format for floats
-        fmt = [".0f"] * 4 + [".2f"] * 5
+        fmt = [".0f"] * 4 + [".2f"] * 6
         tab = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right", stralign="right")
 
         l = len(tab.splitlines()[0])   
         s = ""
-        s += cls._make_sub_sep("", l) + "\n"
+        s += self._make_sub_sep("", l) + "\n"
         s += ("Miss Statistics" + " " * l)[:l] + "\n"
-        s += cls._make_sub_sep("", l) + "\n"
+        s += self._make_sub_sep("", l) + "\n"
         s += tab
         s += "\n"
-        s += cls._make_sub_sep("", l) + "\n"
+        s += self._make_sub_sep("", l) + "\n"
 
         return s
 
