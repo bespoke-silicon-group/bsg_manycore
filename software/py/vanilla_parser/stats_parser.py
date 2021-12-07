@@ -782,7 +782,7 @@ class CacheTagStats(CacheStats):
         df = df.set_index(["Type"])
 
         # Set the format for floats
-        fmt = [".0f"] * 4 + [".2f"] * 3
+        fmt = [".0f"] * 4 + [".2f"] * 5
         tab = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right", stralign="right")
 
         l = len(tab.splitlines()[0])   
@@ -813,12 +813,30 @@ class CacheTagStats(CacheStats):
         
 
         # Repeat for DRAM write bandwidth
-        wr_bw = float(ds["Event"]["Replace"]["replace_dirty"] * self._cache_line_bytes()) / (ds["Cycle"]["Cycles"]["Total"] / self._ncaches)
-        df["DRAM Wr BW (B/$-Cyc)"] = pd.Series({"Store": np.nan,
-                                              "Atomic": np.nan,
-                                              "Load": 0.0,
-                                              "Total": wr_bw})
-        df["DRAM Wr BW (GB/s)"] = df["DRAM Wr BW (B/$-Cyc)"].map(lambda x: f"{x:.2f} * F_cache (GHz)")
+        wr_bw = ds["Event"]["Replace"]["replace_dirty"] * self._cache_line_bytes() / (ds["Cycle"]["Cycles"]["Total"] / self._ncaches)
+        df["DRAM Wr BW (B/$-Cyc)"] = pd.Series({"Store": "Inseparable",
+                                                "Atomic": "Inseparable",
+                                                "Load": 0.0,
+                                                "Total": f"{wr_bw:.2f}"})
+
+        df["DRAM Wr BW (GB/s)"] = pd.Series({"Store": "Inseparable",
+                                             "Atomic": "Inseparable",
+                                             "Load": 0.0,
+                                             "Total": f"{wr_bw:.2f} * F_cache (GHz)"})
+
+        bw = (ds["Event"]["Replace"]["replace_dirty"] + ds["Event"]["Miss"]["Total"])* self._cache_line_bytes() / (ds["Cycle"]["Cycles"]["Total"] / self._ncaches)
+        df["DRAM BW (B/$-Cyc)"] = pd.Series({"Store": "-----",
+                                             "Atomic": "-----",
+                                             "Load": "-----",
+                                             "Total": f"{bw:.2f}"})
+
+        df["DRAM BW (GB/s)"] = pd.Series({"Store": "-----",
+                                          "Atomic": "-----",
+                                          "Load": "-----",
+                                          "Total": f"{bw:.2f} * F_cache (GHz)"})
+        
+        # df["DRAM BW (B/$-Cyc)"] = bw
+
 
         # We don't know the peak read/write bandwidth of DRAM, so we
         # can't compute it for the stats table.
@@ -854,11 +872,21 @@ class CacheTagStats(CacheStats):
         dolla_wr_util = 100.0 * dolla_wr_util / (self.network_bytes * ds["Cycle"]["Cycles"]["Total"])
         df["% $ Wr BW"] = dolla_wr_util
 
+        dolla_bw = ds["Bytes"].droplevel(1) 
+        dolla_bw["Total"] = dolla_bw.sum()
+        dolla_bw = dolla_bw / (ds["Cycle"]["Cycles"]["Total"] / self._ncaches)
+        df["$ Tot. BW (B/$-Cyc)"] = dolla_bw
+
+        dolla_util = ds["Bytes"].droplevel(1) 
+        dolla_util["Total"] = dolla_util.sum()
+        dolla_util = 100.0 * dolla_util / (self.network_bytes * ds["Cycle"]["Cycles"]["Total"])
+        df["% Tot. $ BW"] = dolla_util
+
         # Name --> Type for the index column
         df.index.name = "Type"
 
         # Set the format for floats
-        fmt = [".2f"] * 7
+        fmt = [".2f"] * 13
         tab = df.to_markdown(tablefmt="simple", floatfmt=fmt, numalign="right", stralign="right")
 
         l = len(tab.splitlines()[0])        
