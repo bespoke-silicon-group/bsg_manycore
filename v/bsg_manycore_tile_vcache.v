@@ -286,7 +286,8 @@ module bsg_manycore_tile_vcache
     // concentrator id
     // lower bits come from lower bits of global_x
     // upper bits come from whether its north or south vc.
-    ,.my_wh_cid_i({~global_y_r[y_subcord_width_lp-1], global_x_r[0+:lg_wh_ruche_factor_lp]})
+    // top bit is whether its eastbound or westbound
+    ,.my_wh_cid_i({wh_dest_east_not_west_lo, ~global_y_r[y_subcord_width_lp-1], global_x_r[0+:lg_wh_ruche_factor_lp]})
   );
  
 
