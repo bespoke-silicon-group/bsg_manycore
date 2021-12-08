@@ -83,7 +83,7 @@ module icache
     ,.data_o(icache_data_lo)
   );
 
-  assign icache_addr_li = (v_i & w_i)
+  assign icache_addr_li = w_i
     ? w_addr
     : pc_i[0+:icache_addr_width_lp];
 
