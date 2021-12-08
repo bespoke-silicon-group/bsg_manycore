@@ -249,7 +249,8 @@ typedef struct packed {
     logic is_hex_op;
     logic is_load_unsigned;
     logic local_load;
-    logic [RV32_reg_data_width_gp-1:0] mem_addr_sent;
+    logic [1:0] byte_sel;
+    //logic [RV32_reg_data_width_gp-1:0] mem_addr_sent;
     logic icache_miss;
 } mem_ctrl_signals_s;
 
@@ -262,7 +263,7 @@ typedef struct packed {
     logic                              write_rd;
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
     logic                              icache_miss;
-    logic [RV32_reg_data_width_gp-1:0] icache_miss_pc;
+    //logic [RV32_reg_data_width_gp-1:0] icache_miss_pc;
     logic clear_sb;
 } wb_ctrl_signals_s;
 

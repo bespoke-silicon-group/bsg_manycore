@@ -107,6 +107,19 @@ module vanilla_core
     , input [y_cord_width_p-1:0] global_y_i
   );
 
+
+
+  // reset edge down detect
+  logic reset_r;
+  bsg_dff #(.width_p(1)) reset_dff (
+    .clk_i(clk_i)
+    ,.data_i(reset_i)
+    ,.data_o(reset_r)
+  );  
+
+  wire reset_down = reset_r & ~reset_i;
+
+
   // pipeline signals
   // ctrl signals set to zero when reset_i is high.
   // data signals are not reset to zero.
@@ -679,7 +692,7 @@ module vanilla_core
   logic [data_width_p-1:0] lsu_dmem_data_lo;
   logic [data_mask_width_lp-1:0] lsu_dmem_mask_lo;
   logic lsu_reserve_lo;
-  logic [data_width_p-1:0] lsu_mem_addr_sent_lo;
+  logic [1:0] lsu_byte_sel_lo;
 
   lsu #(
     .data_width_p(data_width_p)
@@ -707,7 +720,7 @@ module vanilla_core
 
     ,.reserve_o(lsu_reserve_lo)
 
-    ,.mem_addr_sent_o(lsu_mem_addr_sent_lo)
+    ,.byte_sel_o(lsu_byte_sel_lo)
   );
 
 
@@ -967,7 +980,7 @@ module vanilla_core
     ,.unsigned_load_i(mem_ctrl_r.is_load_unsigned)
     ,.byte_load_i(mem_ctrl_r.is_byte_op)
     ,.hex_load_i(mem_ctrl_r.is_hex_op)
-    ,.part_sel_i(mem_ctrl_r.mem_addr_sent[1:0])
+    ,.part_sel_i(mem_ctrl_r.byte_sel)
     ,.load_data_o(local_load_packed_data) 
   );
 
@@ -1140,16 +1153,6 @@ module vanilla_core
   // ID stage is not stalled and not flushed.
   wire id_issue = ~stall_id & ~stall_all & ~flush;
 
-  // reset edge down detect
-  logic reset_r;
-  bsg_dff #(.width_p(1)) reset_dff (
-    .clk_i(clk_i)
-    ,.data_i(reset_i)
-    ,.data_o(reset_r)
-  );  
-
-  wire reset_down = reset_r & ~reset_i;
-
 
   // Next PC logic
   always_comb begin
@@ -1157,7 +1160,7 @@ module vanilla_core
       pc_n = pc_init_val_i;
     end
     else if (wb_ctrl_r.icache_miss) begin
-      pc_n = wb_ctrl_r.icache_miss_pc[2+:pc_width_lp];
+      pc_n = pc_r;
     end
     else if (interrupt_ready) begin
       if (remote_interrupt_ready) begin
@@ -1224,15 +1227,15 @@ module vanilla_core
   // icache logic
   wire read_icache = (icache_miss_in_pipe & ~flush)
     ? wb_ctrl_r.icache_miss
-    : 1'b1;
+    : (~icache_miss | reset_down);
 
   assign icache_v_li = icache_v_i | ifetch_v_i
-    | (read_icache & ~stall_all & ~(stall_id & ~flush));
+    | (read_icache & ~reset_i & ~stall_all & ~(stall_id & ~flush));
 
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
   assign icache_w_pc = ifetch_v_i
-    ? mem_ctrl_r.mem_addr_sent[2+:pc_width_lp]
+    ? pc_r
     : icache_pc_i;
 
   assign icache_winstr = ifetch_v_i
@@ -1667,7 +1670,7 @@ module vanilla_core
       is_hex_op: exe_r.decode.is_hex_op,
       is_load_unsigned: exe_r.decode.is_load_unsigned,
       local_load: local_load_in_exe,
-      mem_addr_sent: lsu_mem_addr_sent_lo,
+      byte_sel: lsu_byte_sel_lo,
       icache_miss: exe_r.icache_miss
     };
     mem_data_n = '{
@@ -1699,7 +1702,7 @@ module vanilla_core
         is_hex_op: 1'b0,
         is_load_unsigned: 1'b0,
         local_load: 1'b0,
-        mem_addr_sent: '0,
+        byte_sel: '0,
         icache_miss: 1'b0
       };      
       mem_data_n = '{
@@ -1772,7 +1775,6 @@ module vanilla_core
     wb_ctrl_n.rd_addr = '0;
     wb_data_n.rf_data = '0;
     wb_ctrl_n.icache_miss = 1'b0;
-    wb_ctrl_n.icache_miss_pc = '0;
     wb_ctrl_n.clear_sb = 1'b0;
     int_remote_load_resp_yumi_o = 1'b0;
     idiv_yumi_li = 1'b0;
@@ -1790,7 +1792,6 @@ module vanilla_core
     end
     else if (mem_ctrl_r.icache_miss & ifetch_v_i) begin
       wb_ctrl_n.icache_miss = 1'b1;
-      wb_ctrl_n.icache_miss_pc = mem_ctrl_r.mem_addr_sent;
     end
     else begin
       if (imul_v_lo) begin
