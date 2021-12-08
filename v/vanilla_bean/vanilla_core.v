@@ -1227,7 +1227,7 @@ module vanilla_core
   // icache logic
   wire read_icache = (icache_miss_in_pipe & ~flush)
     ? wb_ctrl_r.icache_miss
-    : (~icache_miss | reset_down);
+    : (~icache_miss | flush | reset_down);
 
   assign icache_v_li = icache_v_i | ifetch_v_i
     | (read_icache & ~reset_i & ~stall_all & ~(stall_id & ~flush));
