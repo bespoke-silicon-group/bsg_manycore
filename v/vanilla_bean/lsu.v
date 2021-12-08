@@ -104,7 +104,7 @@ module lsu
   assign dmem_data_o = store_data;
   assign dmem_mask_o = store_mask;
 
-  assign mem_addr_sent_o = mem_addr[1:0];
+  assign byte_sel_o = mem_addr[1:0];
 
   // remote request
   // 1) icache fetch
