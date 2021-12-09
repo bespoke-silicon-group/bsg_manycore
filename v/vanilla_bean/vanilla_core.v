@@ -1112,12 +1112,10 @@ module vanilla_core
   logic stall_barrier;
 
   // MEM stall signals
-  logic stall_idiv_wb;
   logic stall_remote_ld_wb;
   logic stall_ifetch_wait;
   
   // FP_WB stall signals
-  logic stall_fdiv_wb;
   logic stall_remote_flw_wb;
 
   wire stall_id = stall_depend_long_op
@@ -1136,10 +1134,8 @@ module vanilla_core
     | stall_barrier;
 
   wire stall_all = stall_icache_store
-    | stall_idiv_wb
     | stall_remote_ld_wb
     | stall_ifetch_wait
-    | stall_fdiv_wb
     | stall_remote_flw_wb;
 
 
@@ -1778,7 +1774,6 @@ module vanilla_core
     wb_ctrl_n.clear_sb = 1'b0;
     int_remote_load_resp_yumi_o = 1'b0;
     idiv_yumi_li = 1'b0;
-    stall_idiv_wb = 1'b0;
     stall_remote_ld_wb = 1'b0;
 
     // int remote_load_resp and icache response are mutually exclusive events.
@@ -1855,7 +1850,6 @@ module vanilla_core
   // float scoreboard clear logic
   always_comb begin
     stall_remote_flw_wb = 1'b0;
-    stall_fdiv_wb = 1'b0;
 
     float_remote_load_resp_yumi_o = 1'b0;
     fdiv_fsqrt_yumi_li = 1'b0;
@@ -1924,7 +1918,7 @@ module vanilla_core
 
   // fpu_float stall control
   assign stall_fpu1_li = stall_all;
-  assign stall_fpu2_li = stall_fdiv_wb | stall_remote_flw_wb;
+  assign stall_fpu2_li = stall_remote_flw_wb;
 
 
 
