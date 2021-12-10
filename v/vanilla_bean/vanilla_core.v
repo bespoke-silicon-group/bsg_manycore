@@ -24,7 +24,9 @@ module vanilla_core
     , `BSG_INV_PARAM(pod_x_cord_width_p)
     , `BSG_INV_PARAM(pod_y_cord_width_p)
     , `BSG_INV_PARAM(barrier_dirs_p)
-    
+
+    , icache_block_size_in_words_p = 2 
+   
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
 
@@ -35,8 +37,7 @@ module vanilla_core
     , localparam lg_fwd_fifo_els_lp=`BSG_WIDTH(fwd_fifo_els_p)
 
     , dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
-    , icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
-    , pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
+    , pc_width_lp=(icache_tag_width_p+`BSG_SAFE_CLOG2(icache_entries_p))
     , reg_addr_width_lp = RV32_reg_addr_width_gp
     , data_mask_width_lp=(data_width_p>>3)
 
@@ -140,6 +141,7 @@ module vanilla_core
   //
   logic icache_v_li;
   logic icache_w_li;
+  logic icache_read_pc_plus4_li;
 
   logic [pc_width_lp-1:0] icache_w_pc;
   logic [data_width_p-1:0] icache_winstr;
@@ -157,6 +159,7 @@ module vanilla_core
   icache #(
     .icache_tag_width_p(icache_tag_width_p)
     ,.icache_entries_p(icache_entries_p)
+    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
   ) icache0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -164,6 +167,7 @@ module vanilla_core
     ,.v_i(icache_v_li)
     ,.w_i(icache_w_li)
     ,.flush_i(icache_flush)
+    ,.read_pc_plus4_i(icache_read_pc_plus_4_li)
 
     ,.w_pc_i(icache_w_pc)
     ,.w_instr_i(icache_winstr)
@@ -1152,6 +1156,7 @@ module vanilla_core
 
   // Next PC logic
   always_comb begin
+    icache_read_pc_plus4_li = 1'b0;
     if (reset_down) begin
       pc_n = pc_init_val_i;
     end
@@ -1184,6 +1189,7 @@ module vanilla_core
       pc_n = pred_or_jump_addr;
     end
     else begin
+      icache_read_pc_plus4_li = 1'b1;
       pc_n = pc_plus4;
     end
   end
