@@ -26,7 +26,7 @@ module icache
     , input v_i
     , input w_i
     , input flush_i
-    , input read_pc_plus_4_i
+    , input read_pc_plus4_i
 
     // icache write
     , input [pc_width_lp-1:0] w_pc_i
@@ -136,10 +136,10 @@ module icache
     : jal_pc_lower_cout;
 
   assign icache_data_li = '{
-    lower_sign : {block_size_in_words_mp{imm_sign}},
-    lower_cout : {block_size_in_words_mp{pc_lower_cout}},
+    lower_sign : {icache_block_size_in_words_p{imm_sign}},
+    lower_cout : {icache_block_size_in_words_p{pc_lower_cout}},
     tag        : w_tag,
-    instr      : {block_size_in_words_mp{injected_instr}}
+    instr      : {icache_block_size_in_words_p{injected_instr}}
   };
 
   logic [icache_block_size_in_words_p-1:0] w_block_offset_decoded;
@@ -163,7 +163,7 @@ module icache
   assign icache_mask_li = '{
     lower_sign: w_block_offset_decoded,
     lower_cout: w_block_offset_decoded,
-    tag       : {icache_tag_width_lp{1'b1}},
+    tag       : {icache_tag_width_p{1'b1}},
     instr     : instr_w_mask
   };
                 
@@ -198,12 +198,13 @@ module icache
   //   there is a hint from the next-pc logic that it is reading pc+4 next (no branch or jump).
   assign v_li = w_i
     ? v_i
-    : (v_i & ~read_pc_plus_4_i);
+    : (v_i & (pc_r[0] | ~read_pc_plus4_i));
 
 
   // Merge the PC lower part and high part
   // BYTE operations
-  instruction_s instr_out = icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]];
+  instruction_s instr_out;
+  assign instr_out = icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]];
   wire lower_sign_out = icache_data_lo.lower_sign[pc_r[0+:icache_block_offset_width_lp]];
   wire lower_cout_out = icache_data_lo.lower_cout[pc_r[0+:icache_block_offset_width_lp]];
   wire sel_pc    = ~(lower_sign_out ^ lower_cout_out); 
@@ -270,7 +271,7 @@ module icache
       : branch_pc[2+:pc_width_lp]);
 
   // the icache miss logic
-  assign icache_miss_o = icache_data_lo.tag != pc_r[icache_addr_width_lp+:icache_tag_width_p];
+  assign icache_miss_o = icache_data_lo.tag != pc_r[icache_block_offset_width_lp+icache_addr_width_lp+:icache_tag_width_p];
   
 endmodule
 

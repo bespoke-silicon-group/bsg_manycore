@@ -11,6 +11,7 @@
 
 module vanilla_core
   import bsg_vanilla_pkg::*;
+  import bsg_manycore_pkg::*;
   import bsg_manycore_addr_pkg::*;
   #(`BSG_INV_PARAM(data_width_p)
     , `BSG_INV_PARAM(dmem_size_p)
@@ -25,7 +26,7 @@ module vanilla_core
     , `BSG_INV_PARAM(pod_y_cord_width_p)
     , `BSG_INV_PARAM(barrier_dirs_p)
 
-    , icache_block_size_in_words_p = 2 
+    , icache_block_size_in_words_p = bsg_manycore_icache_block_size_in_words_gp
    
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
@@ -139,6 +140,7 @@ module vanilla_core
 
   // icache
   //
+  localparam lg_icache_block_size_in_words_lp = `BSG_SAFE_CLOG2(icache_block_size_in_words_p);
   logic icache_v_li;
   logic icache_w_li;
   logic icache_read_pc_plus4_li;
@@ -167,7 +169,7 @@ module vanilla_core
     ,.v_i(icache_v_li)
     ,.w_i(icache_w_li)
     ,.flush_i(icache_flush)
-    ,.read_pc_plus4_i(icache_read_pc_plus_4_li)
+    ,.read_pc_plus4_i(icache_read_pc_plus4_li)
 
     ,.w_pc_i(icache_w_pc)
     ,.w_instr_i(icache_winstr)
@@ -183,6 +185,19 @@ module vanilla_core
   );
 
   wire [pc_width_lp-1:0] pc_plus4 = pc_r + 1'b1;
+
+  // ifetch counter
+  logic [lg_icache_block_size_in_words_lp-1:0] ifetch_count_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      ifetch_count_r <= '0;
+    end
+    else begin
+      if (ifetch_v_i) begin
+        ifetch_count_r <= ifetch_count_r + 1'b1;
+      end
+    end
+  end
 
   // debug pc
   // synopsys translate_off
@@ -1237,7 +1252,7 @@ module vanilla_core
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
   assign icache_w_pc = ifetch_v_i
-    ? pc_r
+    ? {pc_r[pc_width_lp-1:lg_icache_block_size_in_words_lp], ifetch_count_r}
     : icache_pc_i;
 
   assign icache_winstr = ifetch_v_i
@@ -1432,7 +1447,12 @@ module vanilla_core
   assign stall_remote_req = id_remote_req_op & (remote_req_available == '0);
   
   // stall_remote_credit
-  assign stall_remote_credit = id_remote_req_op & ((out_credits_used_i + remote_req_in_exe) >= credit_limit_r);
+  logic credit_cout;
+  logic [credit_counter_width_p-1:0] credit_sum;
+  assign {credit_cout, credit_sum} = out_credits_used_i + (remote_req_in_exe
+                                                          ? (exe_r.icache_miss ? 2 : 1)
+                                                          : '0);
+  assign stall_remote_credit = id_remote_req_op & ((credit_sum >= credit_limit_r) | credit_cout);
 
   // stall_fdiv_busy
   assign stall_fdiv_busy = (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op) & (fdiv_fsqrt_ready_lo
@@ -1759,7 +1779,9 @@ module vanilla_core
   assign break_reserve = reserved_r & (reserved_addr_r == dmem_addr_li) & dmem_v_li & dmem_w_li;
 
   // stall_ifetch_wait
-  assign stall_ifetch_wait = mem_ctrl_r.icache_miss & ~ifetch_v_i;
+
+  assign stall_ifetch_wait = mem_ctrl_r.icache_miss &
+    ~((ifetch_count_r == lg_icache_block_size_in_words_lp'(icache_block_size_in_words_p-1)) & ifetch_v_i);
 
   // mem_result
   assign mem_result = imul_v_lo
