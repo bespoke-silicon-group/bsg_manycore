@@ -347,7 +347,7 @@ module bsg_manycore_link_to_cache
           e_remote_load: begin
             cache_pkt.addr = {
               packet_lo.addr[1+:link_addr_width_p-1],
-              load_info.icache_fetch ? 1'b0 : packet_lo.addr[1],
+              load_info.icache_fetch ? 1'b0 : packet_lo.addr[0],
               load_info.part_sel
             };
           end
@@ -364,7 +364,7 @@ module bsg_manycore_link_to_cache
         yumi_o = v_i & return_packet_ready_lo;
 
         state_n = is_packet_ifetch
-          ? (ready_i ? IFETCH2 : READY)
+          ? ((ready_i & packet_v_lo) ? IFETCH2 : READY)
           : READY;
       end
 
