@@ -46,6 +46,7 @@ module vanilla_core
   )
   (
     input clk_i
+    , input network_reset_i
     , input reset_i
 
     , input [pc_width_lp-1:0] pc_init_val_i
@@ -164,6 +165,7 @@ module vanilla_core
     ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
   ) icache0 (
     .clk_i(clk_i)
+    ,.network_reset_i(network_reset_i)
     ,.reset_i(reset_i)
    
     ,.v_i(icache_v_li)

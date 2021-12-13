@@ -20,6 +20,7 @@ module icache
   )
   (
     input clk_i
+    , input network_reset_i
     , input reset_i
 
     // ctrl signal
@@ -67,10 +68,10 @@ module icache
   // Instantiate icache memory 
   //
   logic v_li;
-  icache_format_s icache_data_li, icache_data_lo, icache_mask_li;
+  icache_format_s icache_data_li, icache_data_lo;
   logic [icache_addr_width_lp-1:0] icache_addr_li;
 
-  bsg_mem_1rw_sync_mask_write_bit #(
+  bsg_mem_1rw_sync #(
     .width_p(icache_format_width_lp)
     ,.els_p(icache_entries_p/icache_block_size_in_words_p)
     ,.latch_last_read_p(1)
@@ -80,7 +81,6 @@ module icache
     ,.v_i(v_li)
     ,.w_i(w_i)
     ,.addr_i(icache_addr_li)
-    ,.w_mask_i(icache_mask_li)
     ,.data_i(icache_data_li)
     ,.data_o(icache_data_lo)
   );
@@ -104,7 +104,6 @@ module icache
   wire write_jal_instr    = w_instr.op ==? `RV32_JAL_OP;
   
   // BYTE address computation
-
   wire [branch_pc_low_width_lp-1:0] branch_imm_val = `RV32_Bimm_13extract(w_instr);
   wire [branch_pc_low_width_lp-1:0] branch_pc_val = branch_pc_low_width_lp'({w_pc_i, 2'b0}); 
   
@@ -135,39 +134,63 @@ module icache
     ? branch_pc_lower_cout
     : jal_pc_lower_cout;
 
+
+  // buffered writes
+  logic [icache_block_size_in_words_p-2:0] imm_sign_r;
+  logic [icache_block_size_in_words_p-2:0] pc_lower_cout_r;
+  logic [icache_block_size_in_words_p-2:0][RV32_instr_width_gp-1:0] injected_instr_r;
+
   assign icache_data_li = '{
-    lower_sign : {icache_block_size_in_words_p{imm_sign}},
-    lower_cout : {icache_block_size_in_words_p{pc_lower_cout}},
+    lower_sign : {imm_sign, imm_sign_r},
+    lower_cout : {pc_lower_cout, pc_lower_cout_r},
     tag        : w_tag,
-    instr      : {icache_block_size_in_words_p{injected_instr}}
+    instr      : {injected_instr, injected_instr_r}
   };
 
-  logic [icache_block_size_in_words_p-1:0] w_block_offset_decoded;
-  bsg_decode #(
-    .num_out_p(icache_block_size_in_words_p)
-  ) dec0 (
-    .i(w_block_offset)
-    ,.o(w_block_offset_decoded)
-  );
 
-  logic [icache_block_size_in_words_p-1:0][RV32_instr_width_gp-1:0] instr_w_mask;
-  bsg_expand_bitmask #(
-    .in_width_p(icache_block_size_in_words_p)
-    ,.expand_p(RV32_instr_width_gp)
-  ) exp0 (
-    .i(w_block_offset_decoded)
-    ,.o(instr_w_mask)
-  );
+  // icache write counter
+  logic [icache_block_offset_width_lp-1:0] write_count_r;
+  always_ff @ (posedge clk_i) begin
+    if (network_reset_i) begin
+      write_count_r <= '0;
+    end
+    else begin
+      if (v_i & w_i) begin
+        write_count_r <= write_count_r + 1'b1;
+      end
+    end
+  end
 
+  logic write_en_buffer;
+  logic write_en_icache;
+  always_ff @ (posedge clk_i) begin
+    if (write_en_buffer) begin
+      imm_sign_r[write_count_r] <= imm_sign;
+      pc_lower_cout_r[write_count_r] <= pc_lower_cout;
+      injected_instr_r[write_count_r] <= injected_instr;
+    end
+  end
 
-  assign icache_mask_li = '{
-    lower_sign: w_block_offset_decoded,
-    lower_cout: w_block_offset_decoded,
-    tag       : {icache_tag_width_p{1'b1}},
-    instr     : instr_w_mask
-  };
-                
+  always_comb begin
+    if (write_count_r == icache_block_size_in_words_p-1) begin
+      write_en_buffer = 1'b0;
+      write_en_icache = v_i & w_i;
+    end
+    else begin
+      write_en_buffer = v_i & w_i;
+      write_en_icache = 1'b0;
+    end
+  end
 
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if ((network_reset_i === 1'b0) & v_i & w_i) begin
+      assert(write_count_r == w_block_offset) else $error("icache being written not in sequence.");
+    end
+  end
+  // synopsys translate_on
+
+  // Program counter
   logic [pc_width_lp-1:0] pc_r; 
   logic icache_flush_r;
   // Since imem has one cycle delay and we send next cycle's address, pc_n,
@@ -197,7 +220,7 @@ module icache
   // - Don't read the icache if the current pc is at the first word of the block, and 
   //   there is a hint from the next-pc logic that it is reading pc+4 next (no branch or jump).
   assign v_li = w_i
-    ? v_i
+    ? write_en_icache
     : (v_i & (pc_r[0] | ~read_pc_plus4_i));
 
 

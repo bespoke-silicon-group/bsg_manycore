@@ -343,6 +343,7 @@ module bsg_manycore_proc_vanilla
     ,.barrier_dirs_p(barrier_dirs_p)
   ) vcore (
     .clk_i(clk_i)
+    ,.network_reset_i(reset_i)
     ,.reset_i(freeze)
 
     ,.pc_init_val_i(pc_init_val)
