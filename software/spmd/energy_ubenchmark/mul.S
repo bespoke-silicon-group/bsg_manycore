@@ -140,10 +140,4 @@ pass:
   bsg_asm_finish(IO_X_INDEX, 0)
 
 pass_loop:
-  beq x0, x0, pass_loop
-
-fail:
-  bsg_asm_fail(IO_X_INDEX, 0)
-
-fail_loop:
-  beq x0, x0, fail_loop
+  j pass_loop
