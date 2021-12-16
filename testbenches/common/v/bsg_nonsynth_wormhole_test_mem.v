@@ -56,6 +56,17 @@ module bsg_nonsynth_wormhole_test_mem
 
   assign mem_r_data = mem_r[mem_addr];
 
+  logic [vcache_dma_data_width_p-1:0] mem_r_data_filtered;
+  always_comb begin
+    for (integer b = 0; b < vcache_dma_data_width_p; b++) begin
+      if (mem_r_data[b] === 1'bX) begin
+        mem_r_data_filtered[b] = 1'b0;
+      end
+      else begin
+        mem_r_data_filtered[b] = mem_r_data[b];
+      end
+    end
+  end
 
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
   wh_link_sif_s wh_link_sif_in;
@@ -171,7 +182,7 @@ module bsg_nonsynth_wormhole_test_mem
 
       SEND_FILL_DATA: begin
         wh_link_sif_out.v = 1'b1;
-        wh_link_sif_out.data = mem_r_data;
+        wh_link_sif_out.data = mem_r_data_filtered;
         if (wh_link_sif_in.ready_and_rev) begin
           clear_li = (count_lo == data_len_lp-1);
           up_li = (count_lo != data_len_lp-1);
