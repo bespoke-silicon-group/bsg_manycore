@@ -100,11 +100,9 @@ module bsg_manycore_link_to_sdr_north_row
   logic btc_core_reset_lo;
   bsg_tag_client #(
     .width_p(1)
-    ,.default_p(0)
   ) btc (
     .bsg_tag_i(clients_lo)
     ,.recv_clk_i(core_clk_i)
-    ,.recv_reset_i(1'b0)
     ,.recv_new_r_o()
     ,.recv_data_r_o(btc_core_reset_lo)
   );
