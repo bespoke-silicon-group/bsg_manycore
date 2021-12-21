@@ -1,4 +1,5 @@
 
+ import bsg_link_pkg::*;
  import bsg_noc_pkg::*;
  import bsg_tag_pkg::*;
  import bsg_manycore_pkg::*;
@@ -15,7 +16,6 @@
   ,parameter `BSG_INV_PARAM(wh_flit_width_p)
 
   ,parameter tag_els_p=1024
-  ,parameter tag_local_els_p=4*2
   ,parameter tag_lg_width_p=4
   ,parameter tag_lg_els_lp=`BSG_SAFE_CLOG2(tag_els_p)
     
@@ -95,10 +95,10 @@
 
   
   // BTM
-  bsg_tag_s [tag_local_els_p-1:0] clients_lo;
+  bsg_link_sdr_tag_lines_s [1:0] clients_lo;
   bsg_tag_master_decentralized #(
     .els_p(tag_els_p)
-    ,.local_els_p(tag_local_els_p)
+    ,.local_els_p(2*bsg_link_sdr_tag_local_els_gp)
     ,.lg_width_p(tag_lg_width_p)
   ) btm0 (
     .clk_i(tag_clk_i)
@@ -116,25 +116,25 @@
   bsg_tag_client_unsync #(
     .width_p(1)
   ) btc0 (
-    .bsg_tag_i(clients_lo[0])
+    .bsg_tag_i(clients_lo[0].token_reset)
     ,.data_async_r_o({async_token_reset_lo})
   );
   bsg_tag_client_unsync #(
     .width_p(1)
   ) btc1 (
-    .bsg_tag_i(clients_lo[1])
+    .bsg_tag_i(clients_lo[0].downstream_reset)
     ,.data_async_r_o({async_downstream_reset_lo})
   );
   bsg_tag_client_unsync #(
     .width_p(1)
   ) btc2 (
-    .bsg_tag_i(clients_lo[2])
+    .bsg_tag_i(clients_lo[0].downlink_reset)
     ,.data_async_r_o({async_downlink_reset_lo})
   );
   bsg_tag_client_unsync #(
     .width_p(1)
   ) btc3 (
-    .bsg_tag_i(clients_lo[3])
+    .bsg_tag_i(clients_lo[0].uplink_reset)
     ,.data_async_r_o({async_uplink_reset_lo})
   );
 
@@ -147,25 +147,25 @@
   bsg_tag_client_unsync #(
     .width_p(1)
   ) btc4 (
-    .bsg_tag_i(clients_lo[4])
+    .bsg_tag_i(clients_lo[1].token_reset)
     ,.data_async_r_o({async_wh_token_reset_lo})
   );
   bsg_tag_client_unsync #(
     .width_p(1)
   ) btc5 (
-    .bsg_tag_i(clients_lo[5])
+    .bsg_tag_i(clients_lo[1].downstream_reset)
     ,.data_async_r_o({async_wh_downstream_reset_lo})
   );
   bsg_tag_client_unsync #(
     .width_p(1)
   ) btc6 (
-    .bsg_tag_i(clients_lo[6])
+    .bsg_tag_i(clients_lo[1].downlink_reset)
     ,.data_async_r_o({async_wh_downlink_reset_lo})
   );
   bsg_tag_client_unsync #(
     .width_p(1)
   ) btc7 (
-    .bsg_tag_i(clients_lo[7])
+    .bsg_tag_i(clients_lo[1].uplink_reset)
     ,.data_async_r_o({async_wh_uplink_reset_lo})
   );
 
