@@ -22,6 +22,7 @@ module bsg_manycore_link_to_cache
 
     , fifo_els_p=4
     , icache_block_size_in_words_p=bsg_manycore_icache_block_size_in_words_gp
+    , localparam icache_block_offset_width_lp=`BSG_SAFE_CLOG2(icache_block_size_in_words_p)
 
     , localparam lg_sets_lp=`BSG_SAFE_CLOG2(sets_p)
     , lg_ways_lp=`BSG_SAFE_CLOG2(ways_p)
@@ -122,7 +123,7 @@ module bsg_manycore_link_to_cache
     RESET
     ,CLEAR_TAG
     ,READY
-    ,IFETCH2
+    ,IFETCH
   } state_e;
 
   state_e state_r, state_n;
@@ -178,7 +179,7 @@ module bsg_manycore_link_to_cache
   );
 
   always_ff @ (posedge clk_i) begin
-    if (state_r == READY || state_r == IFETCH2) begin
+    if (state_r == READY || state_r == IFETCH) begin
       if (v_o & ready_i) begin
         tl_info_r <= '{
           pkt_type: return_pkt_type,
@@ -194,8 +195,19 @@ module bsg_manycore_link_to_cache
       end
     end
   end
-
-
+  
+  logic ifetch_count_up;
+  logic [icache_block_offset_width_lp-1:0] ifetch_count_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      ifetch_count_r <= '0;
+    end
+    else begin
+      if (ifetch_count_up) begin
+        ifetch_count_r <= ifetch_count_r + 1'b1;
+      end
+    end
+  end
 
   always_comb begin
 
@@ -212,6 +224,8 @@ module bsg_manycore_link_to_cache
 
     packet_yumi_li = 1'b0;
     return_packet_v_li = 1'b0;  
+
+    ifetch_count_up = 1'b0;
 
     case (state_r)
       RESET: begin
@@ -346,8 +360,8 @@ module bsg_manycore_link_to_cache
         unique case (packet_lo.op_v2)
           e_remote_load: begin
             cache_pkt.addr = {
-              packet_lo.addr[1+:link_addr_width_p-1],
-              load_info.icache_fetch ? 1'b0 : packet_lo.addr[0],
+              packet_lo.addr[icache_block_offset_width_lp+:link_addr_width_p-1],
+              load_info.icache_fetch ? ifetch_count_r : packet_lo.addr[0+:icache_block_offset_width_lp],
               load_info.part_sel
             };
           end
@@ -363,30 +377,36 @@ module bsg_manycore_link_to_cache
         return_packet_v_li = v_i;
         yumi_o = v_i & return_packet_ready_lo;
 
+        
+        ifetch_count_up = (is_packet_ifetch & ready_i & packet_v_lo);
         state_n = is_packet_ifetch
-          ? ((ready_i & packet_v_lo) ? IFETCH2 : READY)
+          ? ((ready_i & packet_v_lo) ? IFETCH : READY)
           : READY;
       end
 
-      IFETCH2: begin
+      IFETCH: begin
         v_o = packet_v_lo;
-        packet_yumi_li = packet_v_lo & ready_i;
+        packet_yumi_li = packet_v_lo & ready_i & (ifetch_count_r == icache_block_size_in_words_p-1);
 
         cache_pkt.opcode = LW;
         cache_pkt.data = '0;
         cache_pkt.mask = '0;
         cache_pkt.addr = {
-          packet_lo.addr[1+:link_addr_width_p-1],
-          3'b100
+          packet_lo.addr[icache_block_offset_width_lp+:link_addr_width_p-1],
+          ifetch_count_r,
+          2'b00
         }; 
        
         // return pkt
         return_packet_v_li = v_i;
         yumi_o = v_i & return_packet_ready_lo;
 
+        ifetch_count_up = (packet_v_lo & ready_i);
         state_n = (packet_v_lo & ready_i)
-          ? READY
-          : IFETCH2;
+          ? ((ifetch_count_r == icache_block_size_in_words_p-1) 
+            ? READY
+            : IFETCH)
+          : IFETCH;
       end
 
       default: begin

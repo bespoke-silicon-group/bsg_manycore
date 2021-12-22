@@ -156,7 +156,7 @@ module bsg_manycore_endpoint_fc
 
   wire [step_width_lp-1:0] launching_out = (packet_v_i & ((use_credits_for_local_fifo_p == 1) | packet_credit_or_ready_o))
     ? (is_ifetch 
-      ? step_width_lp'(2)
+      ? step_width_lp'(bsg_manycore_icache_block_size_in_words_gp)
       : step_width_lp'(1))
     : step_width_lp'(0);
   wire [step_width_lp-1:0] returned_credit = (return_packet_v_o & return_packet_yumi_i)
