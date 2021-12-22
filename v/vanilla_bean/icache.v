@@ -221,7 +221,7 @@ module icache
   //   there is a hint from the next-pc logic that it is reading pc+4 next (no branch or jump).
   assign v_li = w_i
     ? write_en_icache
-    : (v_i & (pc_r[0] | ~read_pc_plus4_i));
+    : (v_i & ((&pc_r[0+:icache_block_offset_width_lp]) | ~read_pc_plus4_i));
 
 
   // Merge the PC lower part and high part
