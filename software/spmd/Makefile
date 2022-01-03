@@ -20,6 +20,7 @@ NO-RECURSE = \
 	beebs saif \
 	interrupt_tests \
 	bp_manycore_test \
+	energy_loop_test \
 	energy_ubenchmark
 
 # Define this variable on cmd line to run coverage analysis. Currently
