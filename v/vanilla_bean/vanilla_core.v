@@ -1452,7 +1452,7 @@ module vanilla_core
   logic credit_cout;
   logic [credit_counter_width_p-1:0] credit_sum;
   assign {credit_cout, credit_sum} = out_credits_used_i + (remote_req_in_exe
-                                                          ? (exe_r.icache_miss ? 2 : 1)
+                                                          ? (exe_r.icache_miss ? icache_block_size_in_words_p : 1)
                                                           : '0);
   assign stall_remote_credit = id_remote_req_op & ((credit_sum >= credit_limit_r) | credit_cout);
 
