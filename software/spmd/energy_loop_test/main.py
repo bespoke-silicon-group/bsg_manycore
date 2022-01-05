@@ -14,6 +14,9 @@ print("li s1, 100")
 
 print("bsg_asm_saif_start")
 
+print("nop")
+print("nop")
+print("nop")
 print("loop:")
 for i in range(LOOP_SIZE-2):
   print("addi s0, s0, 1")
