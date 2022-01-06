@@ -171,7 +171,7 @@ void inline bsg_tile_wait(bsg_row_barrier * p_row_b){
 //------------------------------------------------------------------
 //  The main sync funciton
 //------------------------------------------------------------------
-void bsg_tile_group_barrier(bsg_row_barrier *p_row_b, bsg_col_barrier * p_col_b){
+void inline bsg_tile_group_barrier(bsg_row_barrier *p_row_b, bsg_col_barrier * p_col_b){
         int center_x_cord = (p_row_b->_x_cord_start + p_row_b->_x_cord_end)/2;
 
         int center_y_cord = (p_col_b->_y_cord_start + p_col_b->_y_cord_end)/2;
