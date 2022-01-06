@@ -100,6 +100,10 @@ module vcache_profiler
   wire inc_amoswap  = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_swap); // atomic swap
   wire inc_amoor    = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_or);   // atomic or
   wire inc_amoadd   = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_add);   // atomic add
+  wire inc_amomin   = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_min);   // atomic min
+  wire inc_amomax   = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_max);   // atomic max
+  wire inc_amominu  = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_minu);   // atomic minu
+  wire inc_amomaxu  = inc_atomic & (decode_v_r.amo_subop == e_cache_amo_maxu);   // atomic maxu
 
   wire inc_miss_ld  = v_o & yumi_i & decode_v_r.ld_op & miss_v; // miss on load
   wire inc_miss_st  = v_o & yumi_i & decode_v_r.st_op & miss_v; // miss on store

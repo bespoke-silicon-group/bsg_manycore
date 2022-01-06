@@ -51,6 +51,10 @@ module bsg_manycore_tile_vcache
     , parameter vcache_amo_support_p = (1 << e_cache_amo_swap)
                                 | (1 << e_cache_amo_or)
                                 | (1 << e_cache_amo_add)
+                                | (1 << e_cache_amo_min)
+                                | (1 << e_cache_amo_minu)
+                                | (1 << e_cache_amo_max)
+                                | (1 << e_cache_amo_maxu)
   )
   (
     input clk_i
