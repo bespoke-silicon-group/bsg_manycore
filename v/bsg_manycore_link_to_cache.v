@@ -360,7 +360,7 @@ module bsg_manycore_link_to_cache
         unique case (packet_lo.op_v2)
           e_remote_load: begin
             cache_pkt.addr = {
-              packet_lo.addr[icache_block_offset_width_lp+:link_addr_width_p-1],
+              packet_lo.addr[link_addr_width_p-2:icache_block_offset_width_lp],
               load_info.icache_fetch ? ifetch_count_r : packet_lo.addr[0+:icache_block_offset_width_lp],
               load_info.part_sel
             };
@@ -392,7 +392,7 @@ module bsg_manycore_link_to_cache
         cache_pkt.data = '0;
         cache_pkt.mask = '0;
         cache_pkt.addr = {
-          packet_lo.addr[icache_block_offset_width_lp+:link_addr_width_p-1],
+          packet_lo.addr[link_addr_width_p-2:icache_block_offset_width_lp],
           ifetch_count_r,
           2'b00
         }; 
