@@ -112,7 +112,7 @@ class bsg_manycore_link_gen:
         script += "  ASSERT((__{0}_end <= 0x{1:08x}), " \
                   "\"Error: {0} section exceeded limit 0x{1:08x}\");".format(name, boundary)
 
-    script += "\n  . = ALIGN(8);\n"
+    script += "\n  . = ALIGN(16);\n"
     script += "\n}} {0} {1}\n\n".format(vma_redirect, lma_redirect)
 
     return script
