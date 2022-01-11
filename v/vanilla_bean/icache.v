@@ -5,6 +5,8 @@
  *
  *  05/11/2018, shawnless.xie@gmail.com
  *
+ *  Diagram on branch target pre-computation logic:
+ *  https://docs.google.com/presentation/d/1ZeRHYhqMHJQ0mRgDTilLuWQrZF7On-Be_KNNosgeW0c/edit#slide=id.g10d2e6febb9_1_0
  */
 
 `include "bsg_vanilla_defines.vh"
@@ -217,7 +219,7 @@ module icache
 
 
   // Energy-saving logic
-  // - Don't read the icache if the current pc is at the first word of the block, and 
+  // - Don't read the icache if the current pc is not at the last word of the block, and 
   //   there is a hint from the next-pc logic that it is reading pc+4 next (no branch or jump).
   assign v_li = w_i
     ? write_en_icache

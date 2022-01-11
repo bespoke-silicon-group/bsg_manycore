@@ -46,6 +46,8 @@ module vanilla_core
   )
   (
     input clk_i
+    // network_reset_i used in icache to reset the icache write counter 
+    // so that icache can be written by remote packets while the tile is still in freeze reset.
     , input network_reset_i
     , input reset_i
 
