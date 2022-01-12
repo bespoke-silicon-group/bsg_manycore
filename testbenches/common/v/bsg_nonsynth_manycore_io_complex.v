@@ -13,7 +13,7 @@ module bsg_nonsynth_manycore_io_complex
     , parameter `BSG_INV_PARAM(data_width_p)
     , parameter `BSG_INV_PARAM(x_cord_width_p)
     , parameter `BSG_INV_PARAM(y_cord_width_p)
-
+    , parameter `BSG_INV_PARAM(icache_block_size_in_words_p)
     , parameter `BSG_INV_PARAM(saif_toggle_scope_p)
 
     , parameter io_x_cord_p=0 
@@ -78,6 +78,7 @@ module bsg_nonsynth_manycore_io_complex
     ,.addr_width_p(addr_width_p)
     ,.credit_counter_width_p(credit_counter_width_lp)
     ,.fifo_els_p(16)
+    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
   ) endp (
     .clk_i(clk_i)
     ,.reset_i(reset_i)

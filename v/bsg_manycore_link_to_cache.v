@@ -19,9 +19,9 @@ module bsg_manycore_link_to_cache
     , `BSG_INV_PARAM(sets_p)
     , `BSG_INV_PARAM(ways_p)
     , `BSG_INV_PARAM(block_size_in_words_p)
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
     , fifo_els_p=4
-    , icache_block_size_in_words_p=bsg_manycore_icache_block_size_in_words_gp
     , localparam icache_block_offset_width_lp=`BSG_SAFE_CLOG2(icache_block_size_in_words_p)
 
     , localparam lg_sets_lp=`BSG_SAFE_CLOG2(sets_p)

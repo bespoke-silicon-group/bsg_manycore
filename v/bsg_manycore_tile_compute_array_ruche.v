@@ -13,6 +13,7 @@ module bsg_manycore_tile_compute_array_ruche
   #(`BSG_INV_PARAM(dmem_size_p ) // number of words in DMEM
     , `BSG_INV_PARAM(icache_entries_p ) // in words
     , `BSG_INV_PARAM(icache_tag_width_p )
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
     , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_size_p ) // capacity per vcache in words
@@ -161,6 +162,7 @@ module bsg_manycore_tile_compute_array_ruche
         ,.vcache_size_p(vcache_size_p)
         ,.icache_entries_p(icache_entries_p)
         ,.icache_tag_width_p(icache_tag_width_p)
+        ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
         ,.x_cord_width_p(x_cord_width_p)
         ,.y_cord_width_p(y_cord_width_p)
         ,.pod_x_cord_width_p(pod_x_cord_width_p)

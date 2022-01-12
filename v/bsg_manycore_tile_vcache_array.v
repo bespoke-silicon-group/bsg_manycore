@@ -15,6 +15,7 @@ module bsg_manycore_tile_vcache_array
     , `BSG_INV_PARAM(y_cord_width_p)
     , `BSG_INV_PARAM(pod_x_cord_width_p)
     , `BSG_INV_PARAM(pod_y_cord_width_p)
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
     // Number of tiles in a pod
     , `BSG_INV_PARAM(num_tiles_x_p)
@@ -86,7 +87,7 @@ module bsg_manycore_tile_vcache_array
         ,.x_cord_width_p(x_cord_width_p)
         ,.y_cord_width_p(y_cord_width_p)
         ,.num_tiles_y_p(num_tiles_y_p)  
-
+        ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
         ,.vcache_addr_width_p(vcache_addr_width_p)
         ,.vcache_data_width_p(vcache_data_width_p)
         ,.vcache_ways_p(vcache_ways_p)

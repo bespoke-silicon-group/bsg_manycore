@@ -26,7 +26,7 @@ module vanilla_core
     , `BSG_INV_PARAM(pod_y_cord_width_p)
     , `BSG_INV_PARAM(barrier_dirs_p)
 
-    , icache_block_size_in_words_p = bsg_manycore_icache_block_size_in_words_gp
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
    
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
     , parameter credit_counter_width_p=`BSG_WIDTH(32)

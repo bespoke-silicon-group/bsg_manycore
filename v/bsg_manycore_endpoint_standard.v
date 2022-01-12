@@ -32,6 +32,7 @@ module bsg_manycore_endpoint_standard
     , `BSG_INV_PARAM(fifo_els_p             )
     , `BSG_INV_PARAM(data_width_p           )
     , `BSG_INV_PARAM(addr_width_p           )
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
     , credit_counter_width_p = `BSG_WIDTH(32)
     , warn_out_of_credits_p  = 1
@@ -133,6 +134,7 @@ module bsg_manycore_endpoint_standard
     ,.fifo_els_p(fifo_els_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
+    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
 
     ,.credit_counter_width_p(credit_counter_width_p)
     ,.warn_out_of_credits_p(warn_out_of_credits_p)
