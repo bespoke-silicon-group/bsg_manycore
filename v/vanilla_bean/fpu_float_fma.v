@@ -151,6 +151,7 @@ module fpu_float_fma
     ,.sigWidth(sig_width_p)
   ) mulAdd0 (
     .control(`flControl_default)
+    ,.clock (clk_i) // not used.
     ,.op(fma_op_li)
     ,.a(fma_a_li)
     ,.b(fma_b_li)
