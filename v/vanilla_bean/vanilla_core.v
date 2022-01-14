@@ -27,6 +27,7 @@ module vanilla_core
     , `BSG_INV_PARAM(barrier_dirs_p)
 
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
+    , `BSG_INV_PARAM(icache_instr_30b_p)
    
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
@@ -166,6 +167,7 @@ module vanilla_core
     .icache_tag_width_p(icache_tag_width_p)
     ,.icache_entries_p(icache_entries_p)
     ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+    ,.icache_instr_30b_p(icache_instr_30b_p)
   ) icache0 (
     .clk_i(clk_i)
     ,.network_reset_i(network_reset_i)

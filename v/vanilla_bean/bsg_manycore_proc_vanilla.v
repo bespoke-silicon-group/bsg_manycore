@@ -28,6 +28,7 @@ module bsg_manycore_proc_vanilla
     , `BSG_INV_PARAM(num_tiles_y_p)
 
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
+    , `BSG_INV_PARAM(icache_instr_30b_p)
 
     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
@@ -344,6 +345,7 @@ module bsg_manycore_proc_vanilla
     ,.pod_x_cord_width_p(pod_x_cord_width_p)
     ,.pod_y_cord_width_p(pod_y_cord_width_p)		 		 
     ,.barrier_dirs_p(barrier_dirs_p)
+    ,.icache_instr_30b_p(icache_instr_30b_p)
   ) vcore (
     .clk_i(clk_i)
     ,.network_reset_i(reset_i)
