@@ -16,6 +16,7 @@ module icache
   #(`BSG_INV_PARAM(icache_tag_width_p)
     , `BSG_INV_PARAM(icache_entries_p)
     , `BSG_INV_PARAM(icache_block_size_in_words_p) // block size is power of 2.
+    , parameter icache_30b_p = 1
     , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p/icache_block_size_in_words_p)
     , pc_width_lp=(icache_tag_width_p+`BSG_SAFE_CLOG2(icache_entries_p))
     , icache_block_offset_width_lp=`BSG_SAFE_CLOG2(icache_block_size_in_words_p)
@@ -43,11 +44,11 @@ module icache
     , output [pc_width_lp-1:0] pc_r_o
     , output icache_miss_o
     , output icache_flush_r_o
+    , output logic branch_imm_sign_o
   );
 
   // localparam
   //
-  localparam icache_format_width_lp = `icache_format_width(icache_tag_width_p, icache_block_size_in_words_p);
 
   localparam branch_pc_low_width_lp = (RV32_Bimm_width_gp+1);
   localparam jal_pc_low_width_lp    = (RV32_Jimm_width_gp+1);
@@ -55,9 +56,12 @@ module icache
   localparam branch_pc_high_width_lp = (pc_width_lp+2) - branch_pc_low_width_lp; 
   localparam jal_pc_high_width_lp    = (pc_width_lp+2) - jal_pc_low_width_lp;
 
+  localparam icache_instr_width_lp    = icache_30b_p ? 30 : 32;
+  localparam icache_format_width_lp = `icache_format_width(icache_tag_width_p, icache_block_size_in_words_p, icache_instr_width_lp);
+
   // declare icache entry struct.
   //
-  `declare_icache_format_s(icache_tag_width_p, icache_block_size_in_words_p);
+  `declare_icache_format_s(icache_tag_width_p, icache_block_size_in_words_p, icache_instr_width_lp);
 
   // address decode
   //
@@ -128,6 +132,11 @@ module icache
       ? `RV32_Jimm_20inject1(w_instr, jal_pc_lower_res)
       : w_instr);
 
+  // Drop bottom 2-bits which are assumed to be 2'b11 for all instr types.
+  wire [icache_instr_width_lp-1:0] dropped_instr = icache_30b_p
+    ? injected_instr[31:2]
+    : injected_instr[31:0];
+
   wire imm_sign = write_branch_instr
     ? branch_imm_val[RV32_Bimm_width_gp] 
     : jal_imm_val[RV32_Jimm_width_gp];
@@ -140,13 +149,13 @@ module icache
   // buffered writes
   logic [icache_block_size_in_words_p-2:0] imm_sign_r;
   logic [icache_block_size_in_words_p-2:0] pc_lower_cout_r;
-  logic [icache_block_size_in_words_p-2:0][RV32_instr_width_gp-1:0] injected_instr_r;
+  logic [icache_block_size_in_words_p-2:0][icache_instr_width_lp-1:0] buffered_instr_r;
 
   assign icache_data_li = '{
     lower_sign : {imm_sign, imm_sign_r},
     lower_cout : {pc_lower_cout, pc_lower_cout_r},
     tag        : w_tag,
-    instr      : {injected_instr, injected_instr_r}
+    instr      : {dropped_instr, buffered_instr_r}
   };
 
 
@@ -169,7 +178,7 @@ module icache
     if (write_en_buffer) begin
       imm_sign_r[write_count_r] <= imm_sign;
       pc_lower_cout_r[write_count_r] <= pc_lower_cout;
-      injected_instr_r[write_count_r] <= injected_instr;
+      buffered_instr_r[write_count_r] <= dropped_instr;
     end
   end
 
@@ -229,7 +238,9 @@ module icache
   // Merge the PC lower part and high part
   // BYTE operations
   instruction_s instr_out;
-  assign instr_out = icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]];
+  assign instr_out = icache_30b_p
+    ? {icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]], 2'b11}
+    : icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]];
   wire lower_sign_out = icache_data_lo.lower_sign[pc_r[0+:icache_block_offset_width_lp]];
   wire lower_cout_out = icache_data_lo.lower_cout[pc_r[0+:icache_block_offset_width_lp]];
   wire sel_pc    = ~(lower_sign_out ^ lower_cout_out); 
@@ -297,7 +308,11 @@ module icache
 
   // the icache miss logic
   assign icache_miss_o = icache_data_lo.tag != pc_r[icache_block_offset_width_lp+icache_addr_width_lp+:icache_tag_width_p];
-  
+ 
+  // branch imm sign
+  assign branch_imm_sign_o = lower_sign_out;
+
+ 
 endmodule
 
 `BSG_ABSTRACT_MODULE(icache)

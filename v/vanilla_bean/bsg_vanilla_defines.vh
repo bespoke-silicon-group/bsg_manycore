@@ -11,16 +11,16 @@
 
 `include "bsg_defines.v"
 
-`define declare_icache_format_s(tag_width_mp, block_size_in_words_mp) \
+`define declare_icache_format_s(tag_width_mp, block_size_in_words_mp, instr_width_mp) \
   typedef struct packed { \
     logic [block_size_in_words_mp-1:0] lower_cout; \
     logic [block_size_in_words_mp-1:0] lower_sign; \
     logic [tag_width_mp-1:0] tag; \
-    instruction_s [block_size_in_words_mp-1:0] instr; \
+    logic [block_size_in_words_mp-1:0][instr_width_mp-1:0] instr; \
   } icache_format_s
 
-`define icache_format_width(tag_width_mp, block_size_in_words_mp) \
-   ((2*block_size_in_words_mp)+tag_width_mp+(block_size_in_words_mp*$bits(instruction_s)))
+`define icache_format_width(tag_width_mp, block_size_in_words_mp, instr_width_mp) \
+   ((2*block_size_in_words_mp)+tag_width_mp+(block_size_in_words_mp*instr_width_mp))
 
 // FPU recoded Constants
 `define FPU_RECODED_ONE   33'h080000000
@@ -66,12 +66,8 @@
 `define RV32_signext_Uimm(instr) {``instr``[31:12], {12{1'b0}}}
 `define RV32_signext_Jimm(instr) {{12{``instr``[31]}},``instr``[19:12],``instr``[20],``instr``[30:21], {1'b0}}
 
-// RV32 12bit Immediate injection/extraction, replace the Imm content with specified value
-// for injection, input immediate value index starting from 1
-// * store the sign bit (bit 31) of branches into bit of the stored instruction for use as prediction bit
-
 `define RV32_Bimm_12inject1(instr,value) {``value``[12], ``value``[10:5], ``instr``[24:12],\
-                                          ``value``[4:1],``value``[11],``instr``[6:1],``instr``[31]}
+                                          ``value``[4:1],``value``[11],``instr``[6:0]}
 `define RV32_Jimm_20inject1(instr,value) {``value``[20], ``value``[10:1], ``value``[11],``value``[19:12], ``instr``[11:0]}
 
 // Both JAL and BRANCH use 2-byte address, we need to pad 1'b0 at MSB to get
