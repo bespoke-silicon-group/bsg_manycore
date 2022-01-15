@@ -27,6 +27,7 @@
                           ,.debug_p(debug_p)                                           \
                           ,.icache_entries_p(icache_entries_p)                         \
                           ,.icache_tag_width_p (icache_tag_width_p)                    \
+                          ,.icache_block_size_in_words_p(icache_block_size_in_words_p) \
                           ,.num_tiles_x_p(num_tiles_x_p)                               \
                           ,.num_tiles_y_p(num_tiles_y_p)                               \
                           ,.pod_x_cord_width_p(pod_x_cord_width_p)                     \
@@ -61,6 +62,7 @@ module bsg_manycore_hetero_socket
     , `BSG_INV_PARAM(dmem_size_p )
     , `BSG_INV_PARAM(icache_entries_p ) // in words
     , `BSG_INV_PARAM(icache_tag_width_p )
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
     , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_size_p )
     , debug_p = 0

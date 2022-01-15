@@ -17,7 +17,6 @@ package bsg_manycore_pkg;
 
   localparam bsg_manycore_reg_id_width_gp = 5;
 
-
   //  request packet type
   //
   typedef enum logic [3:0] {

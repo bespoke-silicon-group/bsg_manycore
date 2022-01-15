@@ -19,6 +19,7 @@ module bsg_manycore_endpoint_fc
     , `BSG_INV_PARAM(fifo_els_p             )
     , `BSG_INV_PARAM(data_width_p           )
     , `BSG_INV_PARAM(addr_width_p           )
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
     , credit_counter_width_p = `BSG_WIDTH(32)
     , warn_out_of_credits_p  = 1
@@ -147,14 +148,26 @@ module bsg_manycore_endpoint_fc
 
   // credit counter starts from zero.
   // sending out a request increments and receiving a response decrements.
+  // sending icache miss packet increments the counter by the size of the icache block size.
+  bsg_manycore_packet_s packet_cast;
+  assign packet_cast = packet_i;
+  wire is_ifetch = (packet_cast.op_v2 == e_remote_load) & packet_cast.payload.load_info_s.load_info.icache_fetch;
 
-  wire launching_out = packet_v_i & ((use_credits_for_local_fifo_p == 1) | packet_credit_or_ready_o);
-  wire returned_credit = return_packet_v_o & return_packet_yumi_i;
+  localparam step_width_lp = `BSG_WIDTH(icache_block_size_in_words_p);
+
+  wire [step_width_lp-1:0] launching_out = (packet_v_i & ((use_credits_for_local_fifo_p == 1) | packet_credit_or_ready_o))
+    ? (is_ifetch 
+      ? step_width_lp'(icache_block_size_in_words_p)
+      : step_width_lp'(1))
+    : step_width_lp'(0);
+  wire [step_width_lp-1:0] returned_credit = (return_packet_v_o & return_packet_yumi_i)
+    ? step_width_lp'(1)
+    : step_width_lp'(0);
 
   bsg_counter_up_down #(
     .max_val_p((1<<credit_counter_width_p)-1)
     ,.init_val_p(0)
-    ,.max_step_p(1)
+    ,.max_step_p(icache_block_size_in_words_p)
   ) out_credit_ctr (
     .clk_i(clk_i)
     ,.reset_i(reset_i)

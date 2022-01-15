@@ -26,6 +26,7 @@ module bsg_manycore_pod_ruche_row
     , `BSG_INV_PARAM(dmem_size_p)
     , `BSG_INV_PARAM(icache_entries_p)
     , `BSG_INV_PARAM(icache_tag_width_p)
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
     , num_vcache_rows_p=1
     , `BSG_INV_PARAM(vcache_addr_width_p)
@@ -130,7 +131,7 @@ module bsg_manycore_pod_ruche_row
       ,.dmem_size_p(dmem_size_p)
       ,.icache_entries_p(icache_entries_p)
       ,.icache_tag_width_p(icache_tag_width_p)
-
+      ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
       ,.num_vcache_rows_p(num_vcache_rows_p)
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_data_width_p(vcache_data_width_p)

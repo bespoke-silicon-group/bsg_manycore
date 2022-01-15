@@ -24,6 +24,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter `BSG_INV_PARAM(dmem_size_p)
     , parameter `BSG_INV_PARAM(icache_entries_p)
     , parameter `BSG_INV_PARAM(icache_tag_width_p)
+    , parameter `BSG_INV_PARAM(icache_block_size_in_words_p)
     , parameter `BSG_INV_PARAM(ruche_factor_X_p)
     , parameter `BSG_INV_PARAM(barrier_ruche_factor_X_p)
 
@@ -171,6 +172,7 @@ module bsg_nonsynth_manycore_testbench
     ,.dmem_size_p(dmem_size_p)
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
+    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
 
     ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_addr_width_p(vcache_addr_width_p)

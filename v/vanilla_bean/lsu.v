@@ -50,7 +50,7 @@ module lsu
     , output logic [data_mask_width_lp-1:0] dmem_mask_o 
 
     , output logic reserve_o
-    , output logic [data_width_p-1:0] mem_addr_sent_o
+    , output logic [1:0] byte_sel_o 
 
   );
 
@@ -104,9 +104,7 @@ module lsu
   assign dmem_data_o = store_data;
   assign dmem_mask_o = store_mask;
 
-  assign mem_addr_sent_o = icache_miss_i
-    ? miss_addr
-    : mem_addr;
+  assign byte_sel_o = mem_addr[1:0];
 
   // remote request
   // 1) icache fetch

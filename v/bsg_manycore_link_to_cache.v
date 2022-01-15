@@ -19,8 +19,10 @@ module bsg_manycore_link_to_cache
     , `BSG_INV_PARAM(sets_p)
     , `BSG_INV_PARAM(ways_p)
     , `BSG_INV_PARAM(block_size_in_words_p)
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
     , fifo_els_p=4
+    , localparam icache_block_offset_width_lp=`BSG_SAFE_CLOG2(icache_block_size_in_words_p)
 
     , localparam lg_sets_lp=`BSG_SAFE_CLOG2(sets_p)
     , lg_ways_lp=`BSG_SAFE_CLOG2(ways_p)
@@ -107,7 +109,8 @@ module bsg_manycore_link_to_cache
   // load info
   bsg_manycore_load_info_s load_info;
   assign load_info = packet_lo.payload.load_info_s.load_info;
-
+  
+  wire is_packet_ifetch = (packet_lo.op_v2 == e_remote_load) & load_info.icache_fetch;
 
   // at the reset, this module intializes all the tags and valid bits to zero.
   // After all the tags are completedly initialized, this module starts
@@ -120,6 +123,7 @@ module bsg_manycore_link_to_cache
     RESET
     ,CLEAR_TAG
     ,READY
+    ,IFETCH
   } state_e;
 
   state_e state_r, state_n;
@@ -175,7 +179,7 @@ module bsg_manycore_link_to_cache
   );
 
   always_ff @ (posedge clk_i) begin
-    if (state_r == READY) begin
+    if (state_r == READY || state_r == IFETCH) begin
       if (v_o & ready_i) begin
         tl_info_r <= '{
           pkt_type: return_pkt_type,
@@ -191,8 +195,19 @@ module bsg_manycore_link_to_cache
       end
     end
   end
-
-
+  
+  logic ifetch_count_up;
+  logic [icache_block_offset_width_lp-1:0] ifetch_count_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      ifetch_count_r <= '0;
+    end
+    else begin
+      if (ifetch_count_up) begin
+        ifetch_count_r <= ifetch_count_r + 1'b1;
+      end
+    end
+  end
 
   always_comb begin
 
@@ -209,6 +224,8 @@ module bsg_manycore_link_to_cache
 
     packet_yumi_li = 1'b0;
     return_packet_v_li = 1'b0;  
+
+    ifetch_count_up = 1'b0;
 
     case (state_r)
       RESET: begin
@@ -246,7 +263,9 @@ module bsg_manycore_link_to_cache
 
         // cache pkt
         v_o = packet_v_lo;
-        packet_yumi_li = packet_v_lo & ready_i;
+        packet_yumi_li = is_packet_ifetch
+          ? 1'b0
+          : (packet_v_lo & ready_i);
     
 
         // if two MSBs are ones, then it maps to wh_dest_east_not_west.
@@ -337,16 +356,57 @@ module bsg_manycore_link_to_cache
         cache_pkt.mask = (packet_lo.op_v2 == e_remote_sw)
           ? 4'b1111
           : packet_lo.reg_id.store_mask_s.mask;
-        cache_pkt.addr = {
-          packet_lo.addr[0+:link_addr_width_p-1],
-          (packet_lo.op_v2 == e_remote_load) ? load_info.part_sel : 2'b00
-        };
+        
+        unique case (packet_lo.op_v2)
+          e_remote_load: begin
+            cache_pkt.addr = {
+              packet_lo.addr[link_addr_width_p-2:icache_block_offset_width_lp],
+              load_info.icache_fetch ? ifetch_count_r : packet_lo.addr[0+:icache_block_offset_width_lp],
+              load_info.part_sel
+            };
+          end
+          default: begin
+            cache_pkt.addr = {
+              packet_lo.addr[0+:link_addr_width_p-1],
+              2'b00
+            };
+          end
+        endcase
 
         // return pkt
         return_packet_v_li = v_i;
         yumi_o = v_i & return_packet_ready_lo;
 
-        state_n = READY;
+        
+        ifetch_count_up = (is_packet_ifetch & ready_i & packet_v_lo);
+        state_n = is_packet_ifetch
+          ? ((ready_i & packet_v_lo) ? IFETCH : READY)
+          : READY;
+      end
+
+      IFETCH: begin
+        v_o = packet_v_lo;
+        packet_yumi_li = packet_v_lo & ready_i & (ifetch_count_r == icache_block_size_in_words_p-1);
+
+        cache_pkt.opcode = LW;
+        cache_pkt.data = '0;
+        cache_pkt.mask = '0;
+        cache_pkt.addr = {
+          packet_lo.addr[link_addr_width_p-2:icache_block_offset_width_lp],
+          ifetch_count_r,
+          2'b00
+        }; 
+       
+        // return pkt
+        return_packet_v_li = v_i;
+        yumi_o = v_i & return_packet_ready_lo;
+
+        ifetch_count_up = (packet_v_lo & ready_i);
+        state_n = (packet_v_lo & ready_i)
+          ? ((ifetch_count_r == icache_block_size_in_words_p-1) 
+            ? READY
+            : IFETCH)
+          : IFETCH;
       end
 
       default: begin

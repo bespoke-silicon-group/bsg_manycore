@@ -16,6 +16,8 @@ all: checkout
 	$(MAKE) -f Makefile.$*
 	$(MAKE) -f Makefile.$* clean
 
+%.dis:
+	$(MAKE) -f Makefile.$* $*.dis
 checkout:
 	git clone git@bitbucket.org:taylor-bsg/greenlight.git 2> /dev/null || (cd greenlight ; git pull)
 
@@ -23,3 +25,7 @@ clean:
 	for benchmark in $(BENCHMARKS) ; do \
 	$(MAKE) -f Makefile.$$benchmark clean; \
 	done;
+
+include ../../../../bsg_cadenv/cadenv.mk
+dve:
+	$(DVE) -full64 -vpd vcdplus.vpd &

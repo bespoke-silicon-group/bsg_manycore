@@ -46,7 +46,7 @@ module bsg_nonsynth_manycore_monitor
     , output logic [data_width_p-1:0] print_stat_tag_o
   );
 
-  int max_cycle;
+  longint max_cycle;
   int num_finish;   // Number of finish packets needs to be received to end the simulation.
                     // By default, number of pods running the SPMD program. Each pod sends one finish packet.
                     // However, you can set a different number, depending on the nature of the spmd program.

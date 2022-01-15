@@ -147,4 +147,4 @@ energy_start:
 pass:
   bsg_asm_finish(IO_X_INDEX, 0)
 pass_loop:
-  beq x0, x0, pass_loop
+  j pass_loop

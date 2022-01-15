@@ -5,6 +5,8 @@
  *
  *  05/11/2018, shawnless.xie@gmail.com
  *
+ *  Diagram on branch target pre-computation logic:
+ *  https://docs.google.com/presentation/d/1ZeRHYhqMHJQ0mRgDTilLuWQrZF7On-Be_KNNosgeW0c/edit#slide=id.g10d2e6febb9_1_0
  */
 
 `include "bsg_vanilla_defines.vh"
@@ -13,18 +15,21 @@ module icache
   import bsg_vanilla_pkg::*;
   #(`BSG_INV_PARAM(icache_tag_width_p)
     , `BSG_INV_PARAM(icache_entries_p)
-
-    , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
-    , pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
+    , `BSG_INV_PARAM(icache_block_size_in_words_p) // block size is power of 2.
+    , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p/icache_block_size_in_words_p)
+    , pc_width_lp=(icache_tag_width_p+`BSG_SAFE_CLOG2(icache_entries_p))
+    , icache_block_offset_width_lp=`BSG_SAFE_CLOG2(icache_block_size_in_words_p)
   )
   (
     input clk_i
+    , input network_reset_i
     , input reset_i
 
     // ctrl signal
     , input v_i
     , input w_i
     , input flush_i
+    , input read_pc_plus4_i
 
     // icache write
     , input [pc_width_lp-1:0] w_pc_i
@@ -42,7 +47,7 @@ module icache
 
   // localparam
   //
-  localparam icache_format_width_lp = `icache_format_width(icache_tag_width_p);
+  localparam icache_format_width_lp = `icache_format_width(icache_tag_width_p, icache_block_size_in_words_p);
 
   localparam branch_pc_low_width_lp = (RV32_Bimm_width_gp+1);
   localparam jal_pc_low_width_lp    = (RV32_Jimm_width_gp+1);
@@ -52,40 +57,39 @@ module icache
 
   // declare icache entry struct.
   //
-  `declare_icache_format_s(icache_tag_width_p);
+  `declare_icache_format_s(icache_tag_width_p, icache_block_size_in_words_p);
 
   // address decode
   //
-  logic [icache_addr_width_lp-1:0] w_addr;
   logic [icache_tag_width_p-1:0] w_tag;
-
-  assign w_addr = w_pc_i[0+:icache_addr_width_lp]; 
-  assign w_tag = w_pc_i[icache_addr_width_lp+:icache_tag_width_p];
+  logic [icache_addr_width_lp-1:0] w_addr;
+  logic [icache_block_offset_width_lp-1:0] w_block_offset;
+  assign {w_tag, w_addr, w_block_offset} = w_pc_i;
   
 
   // Instantiate icache memory 
   //
-  icache_format_s icache_data_li;
-  icache_format_s icache_data_lo;
+  logic v_li;
+  icache_format_s icache_data_li, icache_data_lo;
   logic [icache_addr_width_lp-1:0] icache_addr_li;
 
   bsg_mem_1rw_sync #(
     .width_p(icache_format_width_lp)
-    ,.els_p(icache_entries_p)
+    ,.els_p(icache_entries_p/icache_block_size_in_words_p)
     ,.latch_last_read_p(1)
   ) imem_0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.v_i(v_i)
+    ,.v_i(v_li)
     ,.w_i(w_i)
     ,.addr_i(icache_addr_li)
     ,.data_i(icache_data_li)
     ,.data_o(icache_data_lo)
   );
 
-  assign icache_addr_li = (v_i & w_i)
+  assign icache_addr_li = w_i
     ? w_addr
-    : pc_i[0+:icache_addr_width_lp];
+    : pc_i[icache_block_offset_width_lp+:icache_addr_width_lp];
 
 
   //  Pre-compute the lower part of the jump address for JAL and BRANCH
@@ -98,20 +102,15 @@ module icache
   //
   instruction_s w_instr;
   assign w_instr = w_instr_i;
-
-  logic write_branch_instr;
-  logic write_jal_instr;
-
-  assign write_branch_instr = w_instr.op ==? `RV32_BRANCH;
-  assign write_jal_instr    = w_instr.op ==? `RV32_JAL_OP;
+  wire write_branch_instr = w_instr.op ==? `RV32_BRANCH;
+  wire write_jal_instr    = w_instr.op ==? `RV32_JAL_OP;
   
   // BYTE address computation
-
   wire [branch_pc_low_width_lp-1:0] branch_imm_val = `RV32_Bimm_13extract(w_instr);
-  wire [branch_pc_low_width_lp-1:0] branch_pc_val = branch_pc_low_width_lp'({w_tag, w_addr, 2'b0}); 
+  wire [branch_pc_low_width_lp-1:0] branch_pc_val = branch_pc_low_width_lp'({w_pc_i, 2'b0}); 
   
   wire [jal_pc_low_width_lp-1:0] jal_imm_val = `RV32_Jimm_21extract(w_instr);
-  wire [jal_pc_low_width_lp-1:0] jal_pc_val = jal_pc_low_width_lp'({w_tag, w_addr, 2'b0}); 
+  wire [jal_pc_low_width_lp-1:0] jal_pc_val = jal_pc_low_width_lp'({w_pc_i, 2'b0}); 
   
   logic [branch_pc_low_width_lp-1:0] branch_pc_lower_res;
   logic branch_pc_lower_cout;
@@ -123,32 +122,77 @@ module icache
   
   
   // Inject the 2-BYTE (half) address, the LSB is ignored.
-  logic [RV32_instr_width_gp-1:0] injected_instr;
-  logic imm_sign;
-  logic pc_lower_cout;
-
-  assign injected_instr = write_branch_instr
+  wire [RV32_instr_width_gp-1:0] injected_instr = write_branch_instr
     ? `RV32_Bimm_12inject1(w_instr, branch_pc_lower_res)
     : (write_jal_instr
       ? `RV32_Jimm_20inject1(w_instr, jal_pc_lower_res)
       : w_instr);
 
-  assign imm_sign = write_branch_instr
+  wire imm_sign = write_branch_instr
     ? branch_imm_val[RV32_Bimm_width_gp] 
     : jal_imm_val[RV32_Jimm_width_gp];
 
-  assign pc_lower_cout = write_branch_instr
+  wire pc_lower_cout = write_branch_instr
     ? branch_pc_lower_cout
     : jal_pc_lower_cout;
 
-  
+
+  // buffered writes
+  logic [icache_block_size_in_words_p-2:0] imm_sign_r;
+  logic [icache_block_size_in_words_p-2:0] pc_lower_cout_r;
+  logic [icache_block_size_in_words_p-2:0][RV32_instr_width_gp-1:0] injected_instr_r;
+
   assign icache_data_li = '{
-    lower_sign : imm_sign,
-    lower_cout : pc_lower_cout,
+    lower_sign : {imm_sign, imm_sign_r},
+    lower_cout : {pc_lower_cout, pc_lower_cout_r},
     tag        : w_tag,
-    instr      : injected_instr
+    instr      : {injected_instr, injected_instr_r}
   };
-                             
+
+
+  // icache write counter
+  logic [icache_block_offset_width_lp-1:0] write_count_r;
+  always_ff @ (posedge clk_i) begin
+    if (network_reset_i) begin
+      write_count_r <= '0;
+    end
+    else begin
+      if (v_i & w_i) begin
+        write_count_r <= write_count_r + 1'b1;
+      end
+    end
+  end
+
+  logic write_en_buffer;
+  logic write_en_icache;
+  always_ff @ (posedge clk_i) begin
+    if (write_en_buffer) begin
+      imm_sign_r[write_count_r] <= imm_sign;
+      pc_lower_cout_r[write_count_r] <= pc_lower_cout;
+      injected_instr_r[write_count_r] <= injected_instr;
+    end
+  end
+
+  always_comb begin
+    if (write_count_r == icache_block_size_in_words_p-1) begin
+      write_en_buffer = 1'b0;
+      write_en_icache = v_i & w_i;
+    end
+    else begin
+      write_en_buffer = v_i & w_i;
+      write_en_icache = 1'b0;
+    end
+  end
+
+  // synopsys translate_off
+  always_ff @ (negedge clk_i) begin
+    if ((network_reset_i === 1'b0) & v_i & w_i) begin
+      assert(write_count_r == w_block_offset) else $error("icache being written not in sequence.");
+    end
+  end
+  // synopsys translate_on
+
+  // Program counter
   logic [pc_width_lp-1:0] pc_r; 
   logic icache_flush_r;
   // Since imem has one cycle delay and we send next cycle's address, pc_n,
@@ -174,10 +218,22 @@ module icache
   assign icache_flush_r_o = icache_flush_r;
 
 
+  // Energy-saving logic
+  // - Don't read the icache if the current pc is not at the last word of the block, and 
+  //   there is a hint from the next-pc logic that it is reading pc+4 next (no branch or jump).
+  assign v_li = w_i
+    ? write_en_icache
+    : (v_i & ((&pc_r[0+:icache_block_offset_width_lp]) | ~read_pc_plus4_i));
+
+
   // Merge the PC lower part and high part
   // BYTE operations
-  wire sel_pc    = ~(icache_data_lo.lower_sign ^ icache_data_lo.lower_cout); 
-  wire sel_pc_p1 = (~icache_data_lo.lower_sign) & icache_data_lo.lower_cout; 
+  instruction_s instr_out;
+  assign instr_out = icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]];
+  wire lower_sign_out = icache_data_lo.lower_sign[pc_r[0+:icache_block_offset_width_lp]];
+  wire lower_cout_out = icache_data_lo.lower_cout[pc_r[0+:icache_block_offset_width_lp]];
+  wire sel_pc    = ~(lower_sign_out ^ lower_cout_out); 
+  wire sel_pc_p1 = (~lower_sign_out) & lower_cout_out; 
 
   logic [branch_pc_high_width_lp-1:0] branch_pc_high;
   logic [jal_pc_high_width_lp-1:0] jal_pc_high;
@@ -218,18 +274,18 @@ module icache
     end
   end
 
-  wire is_jal_instr = icache_data_lo.instr.op == `RV32_JAL_OP;
-  wire is_jalr_instr = icache_data_lo.instr.op == `RV32_JALR_OP;
+  wire is_jal_instr =  instr_out.op == `RV32_JAL_OP;
+  wire is_jalr_instr = instr_out.op == `RV32_JALR_OP;
 
   // these are bytes address
   logic [pc_width_lp+2-1:0] jal_pc;
   logic [pc_width_lp+2-1:0] branch_pc;
    
-  assign branch_pc = {branch_pc_high_out, `RV32_Bimm_13extract(icache_data_lo.instr)};
-  assign jal_pc = {jal_pc_high_out, `RV32_Jimm_21extract(icache_data_lo.instr)};
+  assign branch_pc = {branch_pc_high_out, `RV32_Bimm_13extract(instr_out)};
+  assign jal_pc = {jal_pc_high_out, `RV32_Jimm_21extract(instr_out)};
 
   // assign outputs.
-  assign instr_o = icache_data_lo.instr;
+  assign instr_o = instr_out;
   assign pc_r_o = pc_r;
 
   // this is word addr.
@@ -240,7 +296,7 @@ module icache
       : branch_pc[2+:pc_width_lp]);
 
   // the icache miss logic
-  assign icache_miss_o = icache_data_lo.tag != pc_r[icache_addr_width_lp+:icache_tag_width_p];
+  assign icache_miss_o = icache_data_lo.tag != pc_r[icache_block_offset_width_lp+icache_addr_width_lp+:icache_tag_width_p];
   
 endmodule
 

@@ -11,6 +11,7 @@
 
 module vanilla_core
   import bsg_vanilla_pkg::*;
+  import bsg_manycore_pkg::*;
   import bsg_manycore_addr_pkg::*;
   #(`BSG_INV_PARAM(data_width_p)
     , `BSG_INV_PARAM(dmem_size_p)
@@ -24,7 +25,9 @@ module vanilla_core
     , `BSG_INV_PARAM(pod_x_cord_width_p)
     , `BSG_INV_PARAM(pod_y_cord_width_p)
     , `BSG_INV_PARAM(barrier_dirs_p)
-    
+
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
+   
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
 
@@ -35,8 +38,7 @@ module vanilla_core
     , localparam lg_fwd_fifo_els_lp=`BSG_WIDTH(fwd_fifo_els_p)
 
     , dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
-    , icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
-    , pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
+    , pc_width_lp=(icache_tag_width_p+`BSG_SAFE_CLOG2(icache_entries_p))
     , reg_addr_width_lp = RV32_reg_addr_width_gp
     , data_mask_width_lp=(data_width_p>>3)
 
@@ -44,6 +46,9 @@ module vanilla_core
   )
   (
     input clk_i
+    // network_reset_i used in icache to reset the icache write counter 
+    // so that icache can be written by remote packets while the tile is still in freeze reset.
+    , input network_reset_i
     , input reset_i
 
     , input [pc_width_lp-1:0] pc_init_val_i
@@ -107,6 +112,19 @@ module vanilla_core
     , input [y_cord_width_p-1:0] global_y_i
   );
 
+
+
+  // reset edge down detect
+  logic reset_r;
+  bsg_dff #(.width_p(1)) reset_dff (
+    .clk_i(clk_i)
+    ,.data_i(reset_i)
+    ,.data_o(reset_r)
+  );  
+
+  wire reset_down = reset_r & ~reset_i;
+
+
   // pipeline signals
   // ctrl signals set to zero when reset_i is high.
   // data signals are not reset to zero.
@@ -125,8 +143,10 @@ module vanilla_core
 
   // icache
   //
+  localparam lg_icache_block_size_in_words_lp = `BSG_SAFE_CLOG2(icache_block_size_in_words_p);
   logic icache_v_li;
   logic icache_w_li;
+  logic icache_read_pc_plus4_li;
 
   logic [pc_width_lp-1:0] icache_w_pc;
   logic [data_width_p-1:0] icache_winstr;
@@ -144,13 +164,16 @@ module vanilla_core
   icache #(
     .icache_tag_width_p(icache_tag_width_p)
     ,.icache_entries_p(icache_entries_p)
+    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
   ) icache0 (
     .clk_i(clk_i)
+    ,.network_reset_i(network_reset_i)
     ,.reset_i(reset_i)
    
     ,.v_i(icache_v_li)
     ,.w_i(icache_w_li)
     ,.flush_i(icache_flush)
+    ,.read_pc_plus4_i(icache_read_pc_plus4_li)
 
     ,.w_pc_i(icache_w_pc)
     ,.w_instr_i(icache_winstr)
@@ -166,6 +189,19 @@ module vanilla_core
   );
 
   wire [pc_width_lp-1:0] pc_plus4 = pc_r + 1'b1;
+
+  // ifetch counter
+  logic [lg_icache_block_size_in_words_lp-1:0] ifetch_count_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      ifetch_count_r <= '0;
+    end
+    else begin
+      if (ifetch_v_i) begin
+        ifetch_count_r <= ifetch_count_r + 1'b1;
+      end
+    end
+  end
 
   // debug pc
   // synopsys translate_off
@@ -679,7 +715,7 @@ module vanilla_core
   logic [data_width_p-1:0] lsu_dmem_data_lo;
   logic [data_mask_width_lp-1:0] lsu_dmem_mask_lo;
   logic lsu_reserve_lo;
-  logic [data_width_p-1:0] lsu_mem_addr_sent_lo;
+  logic [1:0] lsu_byte_sel_lo;
 
   lsu #(
     .data_width_p(data_width_p)
@@ -707,7 +743,7 @@ module vanilla_core
 
     ,.reserve_o(lsu_reserve_lo)
 
-    ,.mem_addr_sent_o(lsu_mem_addr_sent_lo)
+    ,.byte_sel_o(lsu_byte_sel_lo)
   );
 
 
@@ -967,7 +1003,7 @@ module vanilla_core
     ,.unsigned_load_i(mem_ctrl_r.is_load_unsigned)
     ,.byte_load_i(mem_ctrl_r.is_byte_op)
     ,.hex_load_i(mem_ctrl_r.is_hex_op)
-    ,.part_sel_i(mem_ctrl_r.mem_addr_sent[1:0])
+    ,.part_sel_i(mem_ctrl_r.byte_sel)
     ,.load_data_o(local_load_packed_data) 
   );
 
@@ -1099,12 +1135,10 @@ module vanilla_core
   logic stall_barrier;
 
   // MEM stall signals
-  logic stall_idiv_wb;
   logic stall_remote_ld_wb;
   logic stall_ifetch_wait;
   
   // FP_WB stall signals
-  logic stall_fdiv_wb;
   logic stall_remote_flw_wb;
 
   wire stall_id = stall_depend_long_op
@@ -1123,10 +1157,8 @@ module vanilla_core
     | stall_barrier;
 
   wire stall_all = stall_icache_store
-    | stall_idiv_wb
     | stall_remote_ld_wb
     | stall_ifetch_wait
-    | stall_fdiv_wb
     | stall_remote_flw_wb;
 
 
@@ -1140,24 +1172,15 @@ module vanilla_core
   // ID stage is not stalled and not flushed.
   wire id_issue = ~stall_id & ~stall_all & ~flush;
 
-  // reset edge down detect
-  logic reset_r;
-  bsg_dff #(.width_p(1)) reset_dff (
-    .clk_i(clk_i)
-    ,.data_i(reset_i)
-    ,.data_o(reset_r)
-  );  
-
-  wire reset_down = reset_r & ~reset_i;
-
 
   // Next PC logic
   always_comb begin
+    icache_read_pc_plus4_li = 1'b0;
     if (reset_down) begin
       pc_n = pc_init_val_i;
     end
     else if (wb_ctrl_r.icache_miss) begin
-      pc_n = wb_ctrl_r.icache_miss_pc[2+:pc_width_lp];
+      pc_n = pc_r;
     end
     else if (interrupt_ready) begin
       if (remote_interrupt_ready) begin
@@ -1185,6 +1208,7 @@ module vanilla_core
       pc_n = pred_or_jump_addr;
     end
     else begin
+      icache_read_pc_plus4_li = 1'b1;
       pc_n = pc_plus4;
     end
   end
@@ -1224,15 +1248,15 @@ module vanilla_core
   // icache logic
   wire read_icache = (icache_miss_in_pipe & ~flush)
     ? wb_ctrl_r.icache_miss
-    : 1'b1;
+    : (~icache_miss | flush | reset_down);
 
   assign icache_v_li = icache_v_i | ifetch_v_i
-    | (read_icache & ~stall_all & ~(stall_id & ~flush));
+    | (read_icache & ~reset_i & ~stall_all & ~(stall_id & ~flush));
 
   assign icache_w_li = icache_v_i | ifetch_v_i;
 
   assign icache_w_pc = ifetch_v_i
-    ? mem_ctrl_r.mem_addr_sent[2+:pc_width_lp]
+    ? {pc_r[pc_width_lp-1:lg_icache_block_size_in_words_lp], ifetch_count_r}
     : icache_pc_i;
 
   assign icache_winstr = ifetch_v_i
@@ -1427,7 +1451,12 @@ module vanilla_core
   assign stall_remote_req = id_remote_req_op & (remote_req_available == '0);
   
   // stall_remote_credit
-  assign stall_remote_credit = id_remote_req_op & ((out_credits_used_i + remote_req_in_exe) >= credit_limit_r);
+  logic credit_cout;
+  logic [credit_counter_width_p-1:0] credit_sum;
+  assign {credit_cout, credit_sum} = out_credits_used_i + (remote_req_in_exe
+                                                          ? (exe_r.icache_miss ? icache_block_size_in_words_p : 1)
+                                                          : '0);
+  assign stall_remote_credit = id_remote_req_op & ((credit_sum >= credit_limit_r) | credit_cout);
 
   // stall_fdiv_busy
   assign stall_fdiv_busy = (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op) & (fdiv_fsqrt_ready_lo
@@ -1667,7 +1696,7 @@ module vanilla_core
       is_hex_op: exe_r.decode.is_hex_op,
       is_load_unsigned: exe_r.decode.is_load_unsigned,
       local_load: local_load_in_exe,
-      mem_addr_sent: lsu_mem_addr_sent_lo,
+      byte_sel: lsu_byte_sel_lo,
       icache_miss: exe_r.icache_miss
     };
     mem_data_n = '{
@@ -1699,7 +1728,7 @@ module vanilla_core
         is_hex_op: 1'b0,
         is_load_unsigned: 1'b0,
         local_load: 1'b0,
-        mem_addr_sent: '0,
+        byte_sel: '0,
         icache_miss: 1'b0
       };      
       mem_data_n = '{
@@ -1754,7 +1783,9 @@ module vanilla_core
   assign break_reserve = reserved_r & (reserved_addr_r == dmem_addr_li) & dmem_v_li & dmem_w_li;
 
   // stall_ifetch_wait
-  assign stall_ifetch_wait = mem_ctrl_r.icache_miss & ~ifetch_v_i;
+
+  assign stall_ifetch_wait = mem_ctrl_r.icache_miss &
+    ~((ifetch_count_r == lg_icache_block_size_in_words_lp'(icache_block_size_in_words_p-1)) & ifetch_v_i);
 
   // mem_result
   assign mem_result = imul_v_lo
@@ -1772,11 +1803,9 @@ module vanilla_core
     wb_ctrl_n.rd_addr = '0;
     wb_data_n.rf_data = '0;
     wb_ctrl_n.icache_miss = 1'b0;
-    wb_ctrl_n.icache_miss_pc = '0;
     wb_ctrl_n.clear_sb = 1'b0;
     int_remote_load_resp_yumi_o = 1'b0;
     idiv_yumi_li = 1'b0;
-    stall_idiv_wb = 1'b0;
     stall_remote_ld_wb = 1'b0;
 
     // int remote_load_resp and icache response are mutually exclusive events.
@@ -1790,7 +1819,6 @@ module vanilla_core
     end
     else if (mem_ctrl_r.icache_miss & ifetch_v_i) begin
       wb_ctrl_n.icache_miss = 1'b1;
-      wb_ctrl_n.icache_miss_pc = mem_ctrl_r.mem_addr_sent;
     end
     else begin
       if (imul_v_lo) begin
@@ -1854,7 +1882,6 @@ module vanilla_core
   // float scoreboard clear logic
   always_comb begin
     stall_remote_flw_wb = 1'b0;
-    stall_fdiv_wb = 1'b0;
 
     float_remote_load_resp_yumi_o = 1'b0;
     fdiv_fsqrt_yumi_li = 1'b0;
@@ -1923,7 +1950,7 @@ module vanilla_core
 
   // fpu_float stall control
   assign stall_fpu1_li = stall_all;
-  assign stall_fpu2_li = stall_fdiv_wb | stall_remote_flw_wb;
+  assign stall_fpu2_li = stall_remote_flw_wb;
 
 
 

@@ -27,6 +27,8 @@ module bsg_manycore_proc_vanilla
     , `BSG_INV_PARAM(num_tiles_x_p)
     , `BSG_INV_PARAM(num_tiles_y_p)
 
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
+
     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
@@ -107,7 +109,7 @@ module bsg_manycore_proc_vanilla
     ,.y_cord_width_p(y_cord_width_p)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
-
+    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
     ,.fifo_els_p(proc_fifo_els_p)
 
     ,.credit_counter_width_p(credit_counter_width_p)
@@ -334,6 +336,7 @@ module bsg_manycore_proc_vanilla
     ,.dmem_size_p(dmem_size_p)
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
+    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
     ,.credit_counter_width_p(credit_counter_width_p)
@@ -343,6 +346,7 @@ module bsg_manycore_proc_vanilla
     ,.barrier_dirs_p(barrier_dirs_p)
   ) vcore (
     .clk_i(clk_i)
+    ,.network_reset_i(reset_i)
     ,.reset_i(freeze)
 
     ,.pc_init_val_i(pc_init_val)

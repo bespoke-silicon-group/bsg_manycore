@@ -25,6 +25,7 @@ module spmd_testbench
   parameter dmem_size_p = 1024;
   parameter icache_entries_p = 1024;
   parameter icache_tag_width_p = 12;
+  parameter icache_block_size_in_words_p = 4;
   parameter ruche_factor_X_p    = `BSG_MACHINE_RUCHE_FACTOR_X;
   parameter barrier_ruche_factor_X_p    = `BSG_MACHINE_BARRIER_RUCHE_FACTOR_X;
 
@@ -97,6 +98,7 @@ module spmd_testbench
     ,.dmem_size_p(dmem_size_p)
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
+    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
     ,.ruche_factor_X_p(ruche_factor_X_p)
     ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
 
@@ -165,6 +167,7 @@ module spmd_testbench
     ,.data_width_p(data_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
+    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
     ,.io_x_cord_p(`BSG_MACHINE_HOST_X_CORD)
     ,.io_y_cord_p(`BSG_MACHINE_HOST_Y_CORD)
     ,.saif_toggle_scope_p("spmd_testbench.tb.DUT.podrow.px[0].pod.mc_y[0].mc_x[0].mc.y[0].x[0].tile")
