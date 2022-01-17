@@ -299,6 +299,22 @@ module bsg_manycore_link_to_cache
               cache_pkt.opcode = AMOADD_W;
             end
 
+            e_remote_amomin: begin
+              cache_pkt.opcode = AMOMIN_W;
+            end
+
+            e_remote_amominu: begin
+              cache_pkt.opcode = AMOMINU_W;
+            end
+
+            e_remote_amomax: begin
+              cache_pkt.opcode = AMOMAX_W;
+            end
+
+            e_remote_amomaxu: begin
+              cache_pkt.opcode = AMOMAXU_W;
+            end
+
             e_cache_op: begin
               case (packet_lo.reg_id.cache_op)
                 e_afl: cache_pkt.opcode = AFL;
