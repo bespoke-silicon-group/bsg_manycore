@@ -796,6 +796,7 @@ if (enable_router_profiling_p) begin
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
+    ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
   );
 end
 
