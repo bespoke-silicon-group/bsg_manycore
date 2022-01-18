@@ -31,6 +31,7 @@ module bsg_manycore_pod_ruche_array
     , `BSG_INV_PARAM(icache_entries_p)
     , `BSG_INV_PARAM(icache_tag_width_p)
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
+
     , num_vcache_rows_p=1
     , `BSG_INV_PARAM(vcache_addr_width_p)
     , `BSG_INV_PARAM(vcache_data_width_p)
