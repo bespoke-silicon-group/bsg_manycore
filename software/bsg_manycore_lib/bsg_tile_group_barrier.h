@@ -72,24 +72,24 @@ bsg_col_barrier COL_BARRIER_NAME= {        \
 
 //------------------------------------------------------------------
 //a. check if the char array are all non-zeros
-void inline poll_range( int range, unsigned char *p);
+static inline void poll_range( int range, unsigned char *p);
 //------------------------------------------------------------------
 //b. send alert to all of the tiles in the row 
-void inline alert_row ( bsg_row_barrier * p_row_b);
+static inline void alert_row ( bsg_row_barrier * p_row_b);
 //------------------------------------------------------------------
 //c. send alert to all of the tiles in the col 
-void inline alert_col ( bsg_col_barrier * p_col_b);
+static inline void alert_col ( bsg_col_barrier * p_col_b);
 
 //------------------------------------------------------------------
 //d. wait a address to be writen by others with specific value 
 
-inline int bsg_wait_local_int(int * ptr,  int cond );
-inline int bsg_wait_local_int_asm(int * ptr,  int cond );
+static inline int bsg_wait_local_int(int * ptr,  int cond );
+static inline int bsg_wait_local_int_asm(int * ptr,  int cond );
 
 //------------------------------------------------------------------
 // 1. send the sync signal to the center tile of the row
 //    executed by all tiles in the group.
-void inline bsg_row_barrier_sync(bsg_row_barrier * p_row_b, int center_x_cord ){
+static inline void bsg_row_barrier_sync(bsg_row_barrier * p_row_b, int center_x_cord ){
         int  i;
         bsg_row_barrier * p_remote_barrier = (bsg_row_barrier *) bsg_remote_ptr( center_x_cord,    \
                                                                                  bsg_y        ,    \
@@ -100,7 +100,7 @@ void inline bsg_row_barrier_sync(bsg_row_barrier * p_row_b, int center_x_cord ){
 //------------------------------------------------------------------
 //2. wait row sync'ed and send sync signal to center tile of the column
 //   executed only by the tiles at the center of the row 
-void inline bsg_col_barrier_sync(bsg_row_barrier * p_row_b, bsg_col_barrier * p_col_b, int center_x_cord, int center_y_cord ){
+static inline void bsg_col_barrier_sync(bsg_row_barrier * p_row_b, bsg_col_barrier * p_col_b, int center_x_cord, int center_y_cord ){
         int i;
         bsg_col_barrier * p_remote_barrier = (bsg_col_barrier *) bsg_remote_ptr( center_x_cord,    \
                                                                                  center_y_cord,    \
@@ -118,7 +118,7 @@ void inline bsg_col_barrier_sync(bsg_row_barrier * p_row_b, bsg_col_barrier * p_
 //------------------------------------------------------------------
 //3. wait column sync'ed and send alert signal back to tiles in the column
 //   execute only by the center tile of the group
-void inline bsg_col_barrier_alert(  bsg_col_barrier *  p_col_b ) {
+static inline void bsg_col_barrier_alert(  bsg_col_barrier *  p_col_b ) {
         //the center tile needs to check the status
         int i;
         int y_range = p_col_b-> _y_cord_end - p_col_b->_y_cord_start;
@@ -139,7 +139,7 @@ void inline bsg_col_barrier_alert(  bsg_col_barrier *  p_col_b ) {
 //------------------------------------------------------------------
 //4. wait column alert signal and send alert signal back to all tiles of the row
 //   executed only by the tiles at the center of the row
-void inline bsg_row_barrier_alert(  bsg_row_barrier *  p_row_b, bsg_col_barrier * p_col_b ){
+static inline void bsg_row_barrier_alert(  bsg_row_barrier *  p_row_b, bsg_col_barrier * p_col_b ){
         int i;
         int x_range = p_row_b-> _x_cord_end - p_row_b->_x_cord_start;
         
@@ -162,7 +162,7 @@ void inline bsg_row_barrier_alert(  bsg_row_barrier *  p_row_b, bsg_col_barrier 
 //5. wait the row alert signal 
 //   execute by all tiles in the group
 //------------------------------------------------------------------
-void inline bsg_tile_wait(bsg_row_barrier * p_row_b){
+static inline void bsg_tile_wait(bsg_row_barrier * p_row_b){
         bsg_wait_local_int( (int *) &(p_row_b->_local_alert), 1);
         //re-initilized the flag.
         p_row_b->_local_alert = 0;
@@ -171,7 +171,7 @@ void inline bsg_tile_wait(bsg_row_barrier * p_row_b){
 //------------------------------------------------------------------
 //  The main sync funciton
 //------------------------------------------------------------------
-void bsg_tile_group_barrier(bsg_row_barrier *p_row_b, bsg_col_barrier * p_col_b){
+static inline void bsg_tile_group_barrier(bsg_row_barrier *p_row_b, bsg_col_barrier * p_col_b){
         int center_x_cord = (p_row_b->_x_cord_start + p_row_b->_x_cord_end)/2;
 
         int center_y_cord = (p_col_b->_y_cord_start + p_col_b->_y_cord_end)/2;
@@ -204,7 +204,7 @@ void bsg_tile_group_barrier(bsg_row_barrier *p_row_b, bsg_col_barrier * p_col_b)
 //------------------------------------------------------------------
 //  Helper funcitons.
 //------------------------------------------------------------------
-void inline poll_range( int range, unsigned char *p){
+static inline void poll_range( int range, unsigned char *p){
         int i;
         do{
                 for( i= 0; i <= range; i++) {
@@ -213,7 +213,7 @@ void inline poll_range( int range, unsigned char *p){
         }while ( i <= range);
 }
 
-void inline alert_col( bsg_col_barrier * p_col_b){
+static inline void alert_col( bsg_col_barrier * p_col_b){
         int i;
         bsg_col_barrier * p_remote_barrier;
         for( i= p_col_b-> _y_cord_start; i <= p_col_b-> _y_cord_end; i++) {
@@ -224,7 +224,7 @@ void inline alert_col( bsg_col_barrier * p_col_b){
         }
 }
 
-void inline alert_row( bsg_row_barrier * p_row_b){
+static inline void alert_row( bsg_row_barrier * p_row_b){
         int i;
         bsg_row_barrier * p_remote_barrier;
         for( i= p_row_b-> _x_cord_start; i <= p_row_b-> _x_cord_end; i++) {
@@ -236,7 +236,7 @@ void inline alert_row( bsg_row_barrier * p_row_b){
 }
 
 // wait until the specified memory address was written with specific value
-inline int bsg_wait_local_int(int * ptr,  int cond ) {
+static inline int bsg_wait_local_int(int * ptr,  int cond ) {
     int tmp;
     while(1){
         tmp = bsg_lr( ptr );
@@ -251,7 +251,7 @@ inline int bsg_wait_local_int(int * ptr,  int cond ) {
 // assembly equivalent of the above; note stalls after lr's, and at least one branch
 // mispredict on exit path
 
-inline int bsg_wait_local_int_asm (int *ptr, int cond)
+static inline int bsg_wait_local_int_asm (int *ptr, int cond)
 { int tmp; __asm__ __volatile__("2: lr.w %0, %1\n\t"
                                 "beq %0, %2, 1f\n\t"
                                 "lr.w.aq %0, %1\n\t"
@@ -263,7 +263,7 @@ inline int bsg_wait_local_int_asm (int *ptr, int cond)
 // checks to see if a word is set; waits if it is not
 // but assumes that any incoming word is the correct word
 
-inline int bsg_wait_local_int_asm_blind (int *ptr, int cond)
+static inline int bsg_wait_local_int_asm_blind (int *ptr, int cond)
 { int tmp; __asm__ __volatile__("lr.w %0, %1\n\t"
                                 "beq %0, %2, 1f\n\t"
                                 "lr.w.aq %0, %1\n\t"
@@ -281,7 +281,7 @@ inline int bsg_wait_local_int_asm_blind (int *ptr, int cond)
 // this code is polling so should only be used when you know the word is coming in
 // quickly; e.g. a barrier
 
-inline int bsg_join4_relay  (volatile int *ptr_in, int cond, char *ptr_out)
+static inline int bsg_join4_relay  (volatile int *ptr_in, int cond, char *ptr_out)
 { int tmp; int tmp2; __asm__ __volatile__(
 				"4:\n\t"
 				"lw %0, 0+%4\n\t"
@@ -301,7 +301,7 @@ inline int bsg_join4_relay  (volatile int *ptr_in, int cond, char *ptr_out)
   return tmp; 
 }
 
-inline int bsg_join2  (volatile int *ptr_in, int cond)
+static inline int bsg_join2  (volatile int *ptr_in, int cond)
 { int tmp; int tmp2; __asm__ __volatile__(
 				"4:\n\t"
 				"lw %0, 0+%3\n\t"
