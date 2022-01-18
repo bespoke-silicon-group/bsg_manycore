@@ -11,16 +11,16 @@
 
 `include "bsg_defines.v"
 
-`define declare_icache_format_s(tag_width_mp, block_size_in_words_mp, instr_width_mp) \
+`define declare_icache_format_s(tag_width_mp, block_size_in_words_mp) \
   typedef struct packed { \
     logic [block_size_in_words_mp-1:0] lower_cout; \
     logic [block_size_in_words_mp-1:0] lower_sign; \
     logic [tag_width_mp-1:0] tag; \
-    logic [block_size_in_words_mp-1:0][instr_width_mp-1:0] instr; \
+    instruction_s [block_size_in_words_mp-1:0] instr; \
   } icache_format_s
 
-`define icache_format_width(tag_width_mp, block_size_in_words_mp, instr_width_mp) \
-   ((2*block_size_in_words_mp)+tag_width_mp+(block_size_in_words_mp*instr_width_mp))
+`define icache_format_width(tag_width_mp, block_size_in_words_mp) \
+   ((2*block_size_in_words_mp)+tag_width_mp+(block_size_in_words_mp*$bits(instruction_s)))
 
 // FPU recoded Constants
 `define FPU_RECODED_ONE   33'h080000000
