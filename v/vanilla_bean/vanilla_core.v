@@ -156,6 +156,7 @@ module vanilla_core
   logic icache_miss;
   logic icache_flush;
   logic icache_flush_r_lo;
+  logic icache_branch_predicted_taken_lo;
 
   logic [pc_width_lp-1:0] jalr_prediction; 
   logic [pc_width_lp-1:0] pred_or_jump_addr; 
@@ -186,6 +187,7 @@ module vanilla_core
     ,.pc_r_o(pc_r)
     ,.icache_miss_o(icache_miss)
     ,.icache_flush_r_o(icache_flush_r_lo)
+    ,.branch_predicted_taken_o(icache_branch_predicted_taken_lo)
   );
 
   wire [pc_width_lp-1:0] pc_plus4 = pc_r + 1'b1;
@@ -772,14 +774,13 @@ module vanilla_core
   // synopsys translate_on
 
 
-  // In the icache, branch instruction has the direction of the branch encoded in the bit-0 of the instruction.
   // 0 = forward branch (always predict 'not taken')
   // 1 = backward branch (always predict 'taken')
   // 'branch underpredict' means that branch was predicted to be "not taken", but actually needs to be taken.
   // 'branch overpredict' means that branch was predicted to be "taken", but actually needs to be not taken.
   // In either cases, the frontend should be flushed. 
-  wire branch_under_predict = (alu_jump_now & ~exe_r.instruction[0]);
-  wire branch_over_predict  = (~alu_jump_now & exe_r.instruction[0]); 
+  wire branch_under_predict = (alu_jump_now & ~exe_r.branch_predicted_taken);
+  wire branch_over_predict  = (~alu_jump_now & exe_r.branch_predicted_taken); 
   wire branch_mispredict = (branch_under_predict | branch_over_predict) & exe_r.decode.is_branch_op;
   wire jalr_mispredict = exe_r.decode.is_jalr_op & (alu_jalr_addr != exe_r.pred_or_jump_addr[2+:pc_width_lp]);
 
@@ -1201,7 +1202,7 @@ module vanilla_core
     else if (jalr_mispredict) begin
       pc_n = alu_jalr_addr;
     end
-    else if (decode.is_branch_op & instruction[0]) begin
+    else if (decode.is_branch_op & icache_branch_predicted_taken_lo) begin
       pc_n = pred_or_jump_addr;
     end
     else if (decode.is_jal_op | decode.is_jalr_op) begin
@@ -1280,7 +1281,8 @@ module vanilla_core
       decode: decode,
       fp_decode: fp_decode,
       icache_miss: 1'b0,
-      valid: 1'b1
+      valid: 1'b1,
+      branch_predicted_taken:  icache_branch_predicted_taken_lo
     };
 
     if (stall_all) begin
@@ -1308,7 +1310,8 @@ module vanilla_core
           decode: '0,
           fp_decode: '0,
           icache_miss: 1'b1,
-          valid: 1'b0
+          valid: 1'b0,
+          branch_predicted_taken: 1'b0
         };
       end
       else begin
@@ -1583,7 +1586,8 @@ module vanilla_core
                       : mcsr_data_lo)
                     : rs2_val_to_exe),
       mem_addr_op2: mem_addr_op2,
-      icache_miss: id_r.icache_miss
+      icache_miss: id_r.icache_miss,
+      branch_predicted_taken: id_r.branch_predicted_taken
     };
 
     if (stall_all) begin
@@ -1609,7 +1613,8 @@ module vanilla_core
           rs1_val: '0,
           rs2_val: '0,
           mem_addr_op2: '0,
-          icache_miss: 1'b0
+          icache_miss: 1'b0,
+          branch_predicted_taken: 1'b0
         };
       end
       else begin

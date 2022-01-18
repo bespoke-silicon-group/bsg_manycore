@@ -221,6 +221,7 @@ typedef struct packed
     fp_decode_s                        fp_decode;
     logic                              icache_miss;
     logic                              valid;             // valid instruction in ID
+    logic                              branch_predicted_taken;
 } id_signals_s;
 
 // Execute stage signals
@@ -237,6 +238,7 @@ typedef struct packed
                                                           // memory address
     logic                              icache_miss;
     logic                              valid;             // valid instruction in EXE
+    logic                              branch_predicted_taken;
 } exe_signals_s;
 
 
