@@ -8,18 +8,18 @@ include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
 RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles -mno-relax
 
 LOOP_SIZES = $(shell seq 2 32)
-all: $(addsuffix _run, $(LOOP_SIZES))
+all: $(addprefix run_, $(LOOP_SIZES))
 
 %.riscv: $(LINK_SCRIPT) %.o
 	$(RISCV_LINK) $*.o -o $@ $(RISCV_LINK_OPTS)
 
-%_run:
+run_%:
 	mkdir -p $@
 	python main.py $* > $@/main.S
 	$(MAKE) -C $@ -f ../Makefile main.run
 
-%_dis:
-	$(MAKE) -C $*_run -f ../Makefile main.dis
+dis_%:
+	$(MAKE) -C run_$* -f ../Makefile main.dis
 
 clean:
-	rm -rf *_run
+	rm -rf run_*
