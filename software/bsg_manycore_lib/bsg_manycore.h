@@ -246,10 +246,8 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 #define BSG_CUDA_PRINT_STAT_Y_MASK          ((1 << BSG_CUDA_PRINT_STAT_Y_WIDTH) - 1)      // 0x3F
 
 //Macros for triggering saif generation
-#define bsg_saif_start() asm volatile ("addi zero,zero,1")
-
-#define bsg_saif_end() asm volatile ("addi zero,zero,2")
-
+#define bsg_saif_start() bsg_global_store(IO_X_INDEX, IO_Y_INDEX,0xFFF0,0)
+#define bsg_saif_end()   bsg_global_store(IO_X_INDEX, IO_Y_INDEX,0xFFF4,0)
 
 #define bsg_print_stat(tag) do { bsg_remote_int_ptr ptr = bsg_remote_ptr_io(IO_X_INDEX,0xd0c); *ptr = tag; } while (0)
 
