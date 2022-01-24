@@ -67,13 +67,24 @@ module fpu_fdiv_fsqrt
   } ds_state_e;
   
   ds_state_e ds_state_n, ds_state_r;
-  logic [reg_addr_width_p-1:0] rd_r, rd_n;
+
+  logic rd_en;
+  bsg_dff_reset_en #(
+    .width_p(reg_addr_width_p)
+    ,.reset_val_p(0)
+  ) rd_dff (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.en_i(rd_en)
+    ,.data_i(rd_i)
+    ,.data_o(rd_o)
+  );
  
   always_comb begin
     v_li = 1'b0;
     ready_o = 1'b0;
     v_o = 1'b0;
-    rd_n = rd_r;
+    rd_en = 1'b0;
     ds_state_n = ds_state_r;
 
     case (ds_state_r)
@@ -82,10 +93,8 @@ module fpu_fdiv_fsqrt
       eIDLE: begin
         ready_o = ready_lo;
         v_li = v_i;
-        rd_n = (ready_o & v_i)
-          ? rd_i 
-          : rd_r;
-        ds_state_n = (ready_o & v_i)
+        rd_en = ready_lo & v_i;
+        ds_state_n = (ready_lo & v_i)
           ? eBUSY
           : eIDLE;
       end
@@ -119,16 +128,11 @@ module fpu_fdiv_fsqrt
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       ds_state_r <= eIDLE;
-      rd_r <= '0;
     end
     else begin
       ds_state_r <= ds_state_n;
-      rd_r <= rd_n;
     end
   end  
-
-  assign rd_o = rd_r;
-
 
 endmodule
 
