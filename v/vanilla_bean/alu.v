@@ -7,6 +7,7 @@ module alu
            ( input [RV32_reg_data_width_gp-1:0] rs1_i
             ,input [RV32_reg_data_width_gp-1:0] rs2_i
             ,input [RV32_reg_data_width_gp-1:0] pc_plus4_i
+            ,input [pc_width_p-1:0] exe_pc_i
             ,input  instruction_s op_i
             ,output logic [RV32_reg_data_width_gp-1:0] result_o
             ,output logic [pc_width_p-1:0] jalr_addr_o
@@ -53,7 +54,7 @@ always_comb
         result_o = `RV32_signext_Uimm(op_i);
 
       `RV32_AUIPC:
-        result_o = `RV32_signext_Uimm(op_i) + pc_plus4_i - 3'b100;
+        result_o = `RV32_signext_Uimm(op_i) + {exe_pc_i, 2'b00};
 
       `RV32_ADDI, `RV32_ADD:
         begin

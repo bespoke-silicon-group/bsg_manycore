@@ -35,7 +35,7 @@ module lsu
     , input [data_width_p-1:0] exe_rs2_i
     , input [reg_addr_width_lp-1:0] exe_rd_i
     , input [11:0] mem_offset_i
-    , input [data_width_p-1:0] pc_plus4_i
+    , input [pc_width_p-1:0] exe_pc_i
     , input icache_miss_i
 
     // to network TX
@@ -60,7 +60,7 @@ module lsu
   logic [data_width_p-1:0] miss_addr;
 
   assign mem_addr = exe_rs1_i + `BSG_SIGN_EXTEND(mem_offset_i, data_width_p);
-  assign miss_addr = (pc_plus4_i - 'h4) | bsg_dram_npa_prefix_gp;
+  assign miss_addr = {exe_pc_i, 2'b00} | bsg_dram_npa_prefix_gp;
 
   // store data mask
   //

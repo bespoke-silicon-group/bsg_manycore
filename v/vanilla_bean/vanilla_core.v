@@ -209,7 +209,6 @@ module vanilla_core
   // synopsys translate_off
   wire [data_width_p-1:0] if_pc = {{(data_width_p-pc_width_lp-2){1'b0}}, pc_r, 2'b00};
   wire [data_width_p-1:0] id_pc = (id_r.pc_plus4 - 'd4);
-  wire [data_width_p-1:0] exe_pc = (exe_r.pc_plus4 - 'd4);
   // synopsys translate_on
 
   // instruction decode
@@ -632,7 +631,10 @@ module vanilla_core
     ,.data_o(exe_r)
   );
 
-
+  wire [pc_width_lp-1:0] exe_pc = (exe_r.pc_plus4[2+:pc_width_lp] - 1'b1);
+  // synopsys translate_off
+  wire [data_width_p-1:0] exe_pc_00 = data_width_p'({exe_pc, 2'b00});
+  // synopsys translate_on
 
   // ALU
   //
@@ -646,6 +648,7 @@ module vanilla_core
     .rs1_i(exe_r.rs1_val)
     ,.rs2_i(exe_r.rs2_val)
     ,.pc_plus4_i(exe_r.pc_plus4)
+    ,.exe_pc_i(exe_pc)
     ,.op_i(exe_r.instruction)
     ,.result_o(alu_result)
     ,.jalr_addr_o(alu_jalr_addr)
@@ -726,7 +729,7 @@ module vanilla_core
     ,.exe_rs2_i(exe_r.rs2_val)
     ,.exe_rd_i(exe_r.instruction.rd)
     ,.mem_offset_i(exe_r.mem_addr_op2)
-    ,.pc_plus4_i(exe_r.pc_plus4)
+    ,.exe_pc_i(exe_pc)
     ,.icache_miss_i(exe_r.icache_miss)
 
     ,.remote_req_o(remote_req_o)
