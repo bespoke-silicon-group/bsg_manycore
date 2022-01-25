@@ -145,10 +145,17 @@ module fpu_float
     ,.fflags_o(aux_fflags_lo)
   );
 
+  // fpu_float_aux pipeline
+  logic [1:0] aux_v_r;
+  logic [1:0][recoded_data_width_lp-1:0] aux_result_r;
+  fflags_s [1:0] aux_fflags_r;
+
+  wire fpu1_valid = fma1_v_lo | aux_v_r[0];
 
   logic [reg_addr_width_p-1:0] fpu1_rd_r;
   logic [reg_addr_width_p-1:0] fpu2_rd_r;
 
+  // Pipeline Logic: input -> fpu1
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       fpu1_rd_r <= '0;
@@ -164,18 +171,14 @@ module fpu_float
         end
       end
 
-      if (~stall_fpu2_i) begin
+      if (~stall_fpu2_i & fpu1_valid) begin
         fpu2_rd_r <= fpu1_rd_r;
       end
     end
   end
 
 
-  // fpu_float_aux pipeline
-  logic [1:0] aux_v_r;
-  logic [1:0][recoded_data_width_lp-1:0] aux_result_r;
-  fflags_s [1:0] aux_fflags_r;
-
+  // Pipeline Logic: fpu1 -> fpu2
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       aux_v_r <= '0;
@@ -201,7 +204,7 @@ module fpu_float
 
 
   // FPU1 output
-  assign fpu1_v_r_o= fma1_v_lo | aux_v_r[0];
+  assign fpu1_v_r_o= fpu1_valid;
   assign fpu1_rd_o = fpu1_rd_r;
 
 
