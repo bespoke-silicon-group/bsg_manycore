@@ -44,7 +44,6 @@ module fpu_float
     // int mul output
     , output logic imul_v_o
     , output logic [data_width_p-1:0] imul_result_o
-    , output logic [reg_addr_width_p-1:0] imul_rd_o
    
     // FPU output
     , output logic fp_v_o
@@ -204,7 +203,6 @@ module fpu_float
   // FPU1 output
   assign fpu1_v_r_o= fma1_v_lo | aux_v_r[0];
   assign fpu1_rd_o = fpu1_rd_r;
-  assign imul_rd_o = fpu1_rd_r;
 
 
   // FPU2 output

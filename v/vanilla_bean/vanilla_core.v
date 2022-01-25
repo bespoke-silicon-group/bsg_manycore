@@ -832,7 +832,6 @@ module vanilla_core
 
   logic imul_v_lo;
   logic [data_width_p-1:0] imul_result_lo;
-  logic [reg_addr_width_lp-1:0] imul_rd_lo;
 
   logic fpu_float_v_lo;
   logic [fpu_recoded_data_width_gp-1:0] fpu_float_result_lo;
@@ -864,7 +863,6 @@ module vanilla_core
 
     ,.imul_v_o(imul_v_lo)
     ,.imul_result_o(imul_result_lo)
-    ,.imul_rd_o(imul_rd_lo)
 
     ,.fp_v_o(fpu_float_v_lo)
     ,.fp_result_o(fpu_float_result_lo)
@@ -1393,7 +1391,7 @@ module vanilla_core
 
   wire stall_bypass_fp_rs1 = (id_r.decode.read_rs1 & id_rs1_non_zero) &
     ((id_rs1_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_int_op)
-    |((id_rs1 == imul_rd_lo) & imul_v_lo)
+    |((id_rs1 == fpu1_rd_r) & imul_v_lo)
     |(id_rs1_equal_exe_rd & exe_r.decode.write_rd)
     |(id_rs1_equal_mem_rd & mem_ctrl_r.write_rd)
     |(id_rs1_equal_wb_rd & wb_ctrl_r.write_rd));
@@ -1503,7 +1501,7 @@ module vanilla_core
     & id_rs1_non_zero;
   assign has_forward_data_rs1[1] =
     ((mem_ctrl_r.write_rd & id_rs1_equal_mem_rd)
-    |(imul_v_lo & (imul_rd_lo == id_rs1)))
+    |(imul_v_lo & (fpu1_rd_r == id_rs1)))
     & id_rs1_non_zero;
   assign has_forward_data_rs1[2] =
     wb_ctrl_r.write_rd & id_rs1_equal_wb_rd
@@ -1524,7 +1522,7 @@ module vanilla_core
     & id_rs2_non_zero;
   assign has_forward_data_rs2[1] =
     ((mem_ctrl_r.write_rd & id_rs2_equal_mem_rd)
-    |(imul_v_lo & (imul_rd_lo == id_rs2)))
+    |(imul_v_lo & (fpu1_rd_r== id_rs2)))
     & id_rs2_non_zero;
   assign has_forward_data_rs2[2] =
     wb_ctrl_r.write_rd & id_rs2_equal_wb_rd
@@ -1826,7 +1824,7 @@ module vanilla_core
     else begin
       if (imul_v_lo) begin
         wb_ctrl_n.write_rd = 1'b1;
-        wb_ctrl_n.rd_addr = imul_rd_lo;
+        wb_ctrl_n.rd_addr = fpu1_rd_r;
         wb_data_n.rf_data = imul_result_lo;
       end
       else if (mem_ctrl_r.write_rd) begin
