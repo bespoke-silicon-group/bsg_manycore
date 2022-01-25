@@ -129,7 +129,7 @@ module vanilla_core
   // ctrl signals set to zero when reset_i is high.
   // data signals are not reset to zero.
   logic id_en, exe_en, mem_ctrl_en, mem_data_en,
-        fp_exe_ctrl_en, fp_exe_data_en, flw_wb_ctrl_en, flw_wb_data_en;
+        fp_exe_ctrl_en, fp_exe_data_en, flw_wb_en;
   id_signals_s id_r, id_n;
   exe_signals_s exe_r, exe_n;
   mem_ctrl_signals_s mem_ctrl_r, mem_ctrl_n;
@@ -138,8 +138,7 @@ module vanilla_core
   wb_data_signals_s wb_data_r, wb_data_n;
   fp_exe_ctrl_signals_s fp_exe_ctrl_n, fp_exe_ctrl_r;
   fp_exe_data_signals_s fp_exe_data_n, fp_exe_data_r;
-  flw_wb_ctrl_signals_s flw_wb_ctrl_n, flw_wb_ctrl_r;
-  flw_wb_data_signals_s flw_wb_data_n, flw_wb_data_r;
+  flw_wb_signals_s flw_wb_n, flw_wb_r;
 
   // icache
   //
@@ -1066,23 +1065,12 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  bsg_dff_reset_en #(
-    .width_p($bits(flw_wb_ctrl_signals_s))
-  ) flw_wb_ctrl_pipeline (
+  flw_wb_pipeline flw_wb0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.en_i(flw_wb_ctrl_en)
-    ,.data_i(flw_wb_ctrl_n)
-    ,.data_o(flw_wb_ctrl_r)
-  );
-
-  bsg_dff_en #(
-    .width_p($bits(flw_wb_data_signals_s))
-  ) flw_wb_data_pipeline (
-    .clk_i(clk_i)
-    ,.en_i(flw_wb_data_en)
-    ,.data_i(flw_wb_data_n)
-    ,.data_o(flw_wb_data_r)
+    ,.en_i(flw_wb_en)
+    ,.data_i(flw_wb_n)
+    ,.data_o(flw_wb_r)
   );
 
   logic select_remote_flw;
@@ -1091,7 +1079,7 @@ module vanilla_core
     .width_p(data_width_p)
     ,.els_p(2)
   ) flw_recFN_mux (
-    .data_i({float_remote_load_resp_data_i, flw_wb_data_r.rf_data})
+    .data_i({float_remote_load_resp_data_i, flw_wb_r.rf_data})
     ,.sel_i(select_remote_flw)
     ,.data_o(flw_data)
   );
@@ -1402,7 +1390,7 @@ module vanilla_core
     |((id_rs2 == fpu1_rd_r) & fpu1_v_r)
     |((id_rs2 == fpu_float_rd_lo) & fpu_float_v_lo)
     |(id_rs2_equal_mem_rd & mem_ctrl_r.write_frd)
-    |((id_rs2 == flw_wb_ctrl_r.rd_addr) & flw_wb_ctrl_r.valid));
+    |((id_rs2 == flw_wb_r.rd_addr) & flw_wb_r.valid));
     
 
   assign stall_bypass = id_r.decode.is_fp_op
@@ -1866,13 +1854,10 @@ module vanilla_core
 
   // MEM -> FLW_WB
   always_comb begin
-    flw_wb_ctrl_en = ~stall_all;
-    flw_wb_data_en = ~stall_all;
-    flw_wb_ctrl_n = '{
+    flw_wb_en = ~stall_all;
+    flw_wb_n = '{
       valid: mem_ctrl_r.write_frd,
-      rd_addr: mem_ctrl_r.rd_addr
-    };
-    flw_wb_data_n = '{
+      rd_addr: mem_ctrl_r.rd_addr,
       rf_data: local_load_data_r
     };
   end
@@ -1905,15 +1890,15 @@ module vanilla_core
       float_rf_waddr = float_remote_load_resp_rd_i;
       float_rf_wdata = flw_recoded_data;
       float_remote_load_resp_yumi_o = 1'b1;
-      stall_remote_flw_wb = flw_wb_ctrl_r.valid | fpu_float_v_lo;
+      stall_remote_flw_wb = flw_wb_r.valid | fpu_float_v_lo;
 
       float_sb_clear = 1'b1;
       float_sb_clear_id = float_remote_load_resp_rd_i;
     end
-    else if (flw_wb_ctrl_r.valid) begin
+    else if (flw_wb_r.valid) begin
       select_remote_flw = 1'b0;
       float_rf_wen = 1'b1;
-      float_rf_waddr = flw_wb_ctrl_r.rd_addr;
+      float_rf_waddr = flw_wb_r.rd_addr;
       float_rf_wdata = flw_recoded_data; 
     end
     else if (fpu_float_v_lo) begin

@@ -288,11 +288,8 @@ typedef struct packed {
 typedef struct packed {
     logic valid;
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
-} flw_wb_ctrl_signals_s;
-
-typedef struct packed {
     logic [RV32_reg_data_width_gp-1:0] rf_data;
-} flw_wb_data_signals_s;
+} flw_wb_signals_s;
 
 
 // MACHINE CSR structs, constants
