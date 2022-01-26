@@ -21,7 +21,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   // Pipeline registers
   ,input id_signals_s  id_r
   ,input exe_signals_s exe_r
-  ,input mem_ctrl_signals_s mem_ctrl_r
+  ,input mem_signals_s mem_r
   ,input wb_signals_s  wb_r
   // Decoder output
   ,input decode_s      decode
@@ -80,7 +80,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
     // interrupt_ready
     rem: coverpoint remote_interrupt_ready;
     trac: coverpoint trace_interrupt_ready;
-    icache_miss: coverpoint {wb_r.icache_miss, mem_ctrl_r.icache_miss, exe_r.icache_miss} {
+    icache_miss: coverpoint {wb_r.icache_miss, mem_r.icache_miss, exe_r.icache_miss} {
       bins wb_imiss = {3'b100};
       bins mem_imiss = {3'b010};
       bins exe_imiss = {3'b001};

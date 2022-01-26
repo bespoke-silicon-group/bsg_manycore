@@ -128,12 +128,11 @@ module vanilla_core
   // pipeline signals
   // ctrl signals set to zero when reset_i is high.
   // data signals are not reset to zero.
-  logic id_en, exe_en, mem_ctrl_en, mem_data_en,
+  logic id_en, exe_en, mem_en,
         fp_exe_ctrl_en, fp_exe_data_en, flw_wb_en;
   id_signals_s id_r, id_n;
   exe_signals_s exe_r, exe_n;
-  mem_ctrl_signals_s mem_ctrl_r, mem_ctrl_n;
-  mem_data_signals_s mem_data_r, mem_data_n;
+  mem_signals_s mem_r, mem_n;
   wb_signals_s wb_r, wb_n;
   fp_exe_ctrl_signals_s fp_exe_ctrl_n, fp_exe_ctrl_r;
   fp_exe_data_signals_s fp_exe_data_n, fp_exe_data_r;
@@ -471,7 +470,7 @@ module vanilla_core
   wire trace_interrupt_ready = mip_r.trace & mie_r.trace;
   wire interrupt_ready = mstatus_r.mie
                        & (remote_interrupt_ready | trace_interrupt_ready)
-                       & ~(exe_r.icache_miss | mem_ctrl_r.icache_miss | wb_r.icache_miss);
+                       & ~(exe_r.icache_miss | mem_r.icache_miss | wb_r.icache_miss);
 
 
 
@@ -922,23 +921,12 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  bsg_dff_reset_en #(
-    .width_p($bits(mem_ctrl_signals_s))
-  ) mem_ctrl_pipeline (
+  mem_pipeline mem0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
-    ,.en_i(mem_ctrl_en)
-    ,.data_i(mem_ctrl_n)
-    ,.data_o(mem_ctrl_r)
-  );
-
-  bsg_dff_en #(
-    .width_p($bits(mem_data_signals_s))
-  ) mem_data_pipeline (
-    .clk_i(clk_i)
-    ,.en_i(mem_data_en)
-    ,.data_i(mem_data_n)
-    ,.data_o(mem_data_r)
+    ,.en_i(mem_en)
+    ,.data_i(mem_n)
+    ,.data_o(mem_r)
   );
 
   logic dmem_v_li;
@@ -995,10 +983,10 @@ module vanilla_core
 
   load_packer local_lp (
     .mem_data_i(local_load_data_r)
-    ,.unsigned_load_i(mem_ctrl_r.is_load_unsigned)
-    ,.byte_load_i(mem_ctrl_r.is_byte_op)
-    ,.hex_load_i(mem_ctrl_r.is_hex_op)
-    ,.part_sel_i(mem_ctrl_r.byte_sel)
+    ,.unsigned_load_i(mem_r.is_load_unsigned)
+    ,.byte_load_i(mem_r.is_byte_op)
+    ,.hex_load_i(mem_r.is_hex_op)
+    ,.part_sel_i(mem_r.byte_sel)
     ,.load_data_o(local_load_packed_data) 
   );
 
@@ -1141,7 +1129,7 @@ module vanilla_core
   // 2) mret in EXE
   // 3) interrupt taken
   wire flush = (branch_mispredict | jalr_mispredict) | (exe_r.decode.is_mret_op) | interrupt_ready;
-  wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_ctrl_r.icache_miss | wb_r.icache_miss;
+  wire icache_miss_in_pipe = id_r.icache_miss | exe_r.icache_miss | mem_r.icache_miss | wb_r.icache_miss;
 
   // ID stage is not stalled and not flushed.
   wire id_issue = ~stall_id & ~stall_all & ~flush;
@@ -1323,9 +1311,9 @@ module vanilla_core
   wire id_rs1_equal_fp_exe_rd = (id_rs1 == fp_exe_ctrl_r.rd);
   wire id_rs2_equal_fp_exe_rd = (id_rs2 == fp_exe_ctrl_r.rd);
   wire id_rs3_equal_fp_exe_rd = (id_rs3 == fp_exe_ctrl_r.rd);
-  wire id_rs1_equal_mem_rd = (id_rs1 == mem_ctrl_r.rd_addr);
-  wire id_rs2_equal_mem_rd = (id_rs2 == mem_ctrl_r.rd_addr);
-  wire id_rs3_equal_mem_rd = (id_rs3 == mem_ctrl_r.rd_addr);
+  wire id_rs1_equal_mem_rd = (id_rs1 == mem_r.rd_addr);
+  wire id_rs2_equal_mem_rd = (id_rs2 == mem_r.rd_addr);
+  wire id_rs3_equal_mem_rd = (id_rs3 == mem_r.rd_addr);
   wire id_rs1_equal_wb_rd = (id_rs1 == wb_r.rd_addr);
   wire id_rs2_equal_wb_rd = (id_rs2 == wb_r.rd_addr);
 
@@ -1362,15 +1350,15 @@ module vanilla_core
     |(id_r.decode.read_frs1 & (id_rs1 == fpu1_rd_r) & fpu1_v_r)
     |(id_r.decode.read_frs2 & (id_rs2 == fpu1_rd_r) & fpu1_v_r)
     |(id_r.decode.read_frs3 & (id_rs3 == fpu1_rd_r) & fpu1_v_r)
-    |(id_r.decode.read_frs1 & id_rs1_equal_mem_rd & mem_ctrl_r.write_frd)
-    |(id_r.decode.read_frs2 & id_rs2_equal_mem_rd & mem_ctrl_r.write_frd)
-    |(id_r.decode.read_frs3 & id_rs3_equal_mem_rd & mem_ctrl_r.write_frd);
+    |(id_r.decode.read_frs1 & id_rs1_equal_mem_rd & mem_r.write_frd)
+    |(id_r.decode.read_frs2 & id_rs2_equal_mem_rd & mem_r.write_frd)
+    |(id_r.decode.read_frs3 & id_rs3_equal_mem_rd & mem_r.write_frd);
 
   wire stall_bypass_fp_rs1 = (id_r.decode.read_rs1 & id_rs1_non_zero) &
     ((id_rs1_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_int_op)
     |((id_rs1 == fpu1_rd_r) & imul_v_lo)
     |(id_rs1_equal_exe_rd & exe_r.decode.write_rd)
-    |(id_rs1_equal_mem_rd & mem_ctrl_r.write_rd)
+    |(id_rs1_equal_mem_rd & mem_r.write_rd)
     |(id_rs1_equal_wb_rd & wb_r.write_rd));
   
 
@@ -1378,7 +1366,7 @@ module vanilla_core
     ((id_rs2_equal_fp_exe_rd & fp_exe_ctrl_r.fp_decode.is_fpu_float_op)
     |((id_rs2 == fpu1_rd_r) & fpu1_v_r)
     |((id_rs2 == fpu_float_rd_lo) & fpu_float_v_lo)
-    |(id_rs2_equal_mem_rd & mem_ctrl_r.write_frd)
+    |(id_rs2_equal_mem_rd & mem_r.write_frd)
     |((id_rs2 == flw_wb_r.rd_addr) & flw_wb_r.valid));
     
 
@@ -1477,7 +1465,7 @@ module vanilla_core
     |(fp_exe_ctrl_r.fp_decode.is_fpu_int_op & id_rs1_equal_fp_exe_rd))
     & id_rs1_non_zero;
   assign has_forward_data_rs1[1] =
-    ((mem_ctrl_r.write_rd & id_rs1_equal_mem_rd)
+    ((mem_r.write_rd & id_rs1_equal_mem_rd)
     |(imul_v_lo & (fpu1_rd_r == id_rs1)))
     & id_rs1_non_zero;
   assign has_forward_data_rs1[2] =
@@ -1498,7 +1486,7 @@ module vanilla_core
     |(fp_exe_ctrl_r.fp_decode.is_fpu_int_op & id_rs2_equal_fp_exe_rd))
     & id_rs2_non_zero;
   assign has_forward_data_rs2[1] =
-    ((mem_ctrl_r.write_rd & id_rs2_equal_mem_rd)
+    ((mem_r.write_rd & id_rs2_equal_mem_rd)
     |(imul_v_lo & (fpu1_rd_r== id_rs2)))
     & id_rs2_non_zero;
   assign has_forward_data_rs2[2] =
@@ -1666,7 +1654,7 @@ module vanilla_core
   // EXE,FP_EXE -> MEM
   always_comb begin
     // common case
-    mem_ctrl_n = '{
+    mem_n = '{
       rd_addr: exe_r.instruction.rd,
       write_rd: exe_r.decode.write_rd,
       write_frd: exe_r.decode.write_frd,
@@ -1675,9 +1663,7 @@ module vanilla_core
       is_load_unsigned: exe_r.decode.is_load_unsigned,
       local_load: local_load_in_exe,
       byte_sel: lsu_byte_sel_lo,
-      icache_miss: exe_r.icache_miss
-    };
-    mem_data_n = '{
+      icache_miss: exe_r.icache_miss,
       exe_result: exe_result
     };
 
@@ -1685,20 +1671,16 @@ module vanilla_core
     fcsr_fflags_li[0] = fpu_int_fflags_lo;
 
     if (stall_all) begin
-      mem_ctrl_en = 1'b0;
-      mem_data_en = 1'b0;
+      mem_en = 1'b0;
     end
     else if (exe_r.decode.is_idiv_op | (remote_req_in_exe & ~exe_r.icache_miss)) begin
-      mem_ctrl_en = 1'b1;
-      mem_data_en = 1'b1;
-      mem_ctrl_n = '0;
-      mem_data_n = '0;
+      mem_en = 1'b1;
+      mem_n = '0;
     end
     else if (fp_exe_ctrl_r.fp_decode.is_fpu_int_op) begin
       fcsr_fflags_v_li[0] = 1'b1;
-      mem_ctrl_en = 1'b1;
-      mem_data_en = 1'b1;
-      mem_ctrl_n = '{
+      mem_en = 1'b1;
+      mem_n = '{
         rd_addr: fp_exe_ctrl_r.rd,
         write_rd: 1'b1,
         write_frd: 1'b0,
@@ -1707,12 +1689,12 @@ module vanilla_core
         is_load_unsigned: 1'b0,
         local_load: 1'b0,
         byte_sel: '0,
-        icache_miss: 1'b0
+        icache_miss: 1'b0,
+        exe_result: exe_result
       };      
     end
     else begin
-      mem_ctrl_en = 1'b1;
-      mem_data_en = 1'b1;
+      mem_en = 1'b1;
     end
   end  
 
@@ -1759,17 +1741,17 @@ module vanilla_core
 
   // stall_ifetch_wait
 
-  assign stall_ifetch_wait = mem_ctrl_r.icache_miss &
+  assign stall_ifetch_wait = mem_r.icache_miss &
     ~((ifetch_count_r == lg_icache_block_size_in_words_lp'(icache_block_size_in_words_p-1)) & ifetch_v_i);
 
   // mem_result
   assign mem_result = imul_v_lo
     ? imul_result_lo
-    : (mem_ctrl_r.local_load
+    : (mem_r.local_load
       ? local_load_packed_data
-      : mem_data_r.exe_result);
+      : mem_r.exe_result);
 
-  wire mem_result_valid = imul_v_lo | mem_ctrl_r.write_rd | mem_ctrl_r.write_frd;
+  wire mem_result_valid = imul_v_lo | mem_r.write_rd | mem_r.write_frd;
  
  
   // MEM -> WB
@@ -1789,10 +1771,10 @@ module vanilla_core
       wb_n.rd_addr = int_remote_load_resp_rd_i;
       wb_n.rf_data = int_remote_load_resp_data_i;
       wb_n.clear_sb = 1'b1;
-      stall_remote_ld_wb = mem_result_valid | mem_ctrl_r.icache_miss;
+      stall_remote_ld_wb = mem_result_valid | mem_r.icache_miss;
       int_remote_load_resp_yumi_o = 1'b1;
     end
-    else if (mem_ctrl_r.icache_miss & ifetch_v_i) begin
+    else if (mem_r.icache_miss & ifetch_v_i) begin
       wb_n.icache_miss = 1'b1;
     end
     else begin
@@ -1801,12 +1783,12 @@ module vanilla_core
         wb_n.rd_addr = fpu1_rd_r;
         wb_n.rf_data = imul_result_lo;
       end
-      else if (mem_ctrl_r.write_rd) begin
+      else if (mem_r.write_rd) begin
         wb_n.write_rd = 1'b1;
-        wb_n.rd_addr = mem_ctrl_r.rd_addr;
-        wb_n.rf_data = mem_ctrl_r.local_load
+        wb_n.rd_addr = mem_r.rd_addr;
+        wb_n.rf_data = mem_r.local_load
           ? local_load_packed_data
-          : mem_data_r.exe_result;
+          : mem_r.exe_result;
       end
       else begin
         if (int_remote_load_resp_v_i) begin
@@ -1842,8 +1824,8 @@ module vanilla_core
   always_comb begin
     flw_wb_en = ~stall_all;
     flw_wb_n = '{
-      valid: mem_ctrl_r.write_frd,
-      rd_addr: mem_ctrl_r.rd_addr,
+      valid: mem_r.write_frd,
+      rd_addr: mem_r.rd_addr,
       rf_data: local_load_data_r
     };
   end
