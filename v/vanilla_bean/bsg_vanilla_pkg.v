@@ -265,11 +265,9 @@ typedef struct packed {
     logic [RV32_reg_addr_width_gp-1:0] rd_addr;
     logic                              icache_miss;
     logic clear_sb;
-} wb_ctrl_signals_s;
-
-typedef struct packed {
     logic [RV32_reg_data_width_gp-1:0] rf_data;
-} wb_data_signals_s;
+} wb_signals_s;
+
 
 // FP Execute stage signals
 typedef struct packed {
