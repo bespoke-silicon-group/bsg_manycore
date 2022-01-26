@@ -1678,7 +1678,7 @@ module vanilla_core
       icache_miss: exe_r.icache_miss
     };
     mem_data_n = '{
-      exe_result: alu_or_csr_result
+      exe_result: exe_result
     };
 
     fcsr_fflags_v_li[0] = 1'b0;
@@ -1709,9 +1709,6 @@ module vanilla_core
         byte_sel: '0,
         icache_miss: 1'b0
       };      
-      mem_data_n = '{
-        exe_result: fpu_int_result_lo
-      };
     end
     else begin
       mem_ctrl_en = 1'b1;
