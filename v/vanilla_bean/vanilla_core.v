@@ -480,16 +480,11 @@ module vanilla_core
 
   // calculate mem address offset
   //
-  wire is_amo_or_lr_op = id_r.decode.is_lr_op
-    | id_r.decode.is_lr_aq_op
-    | id_r.decode.is_amo_op;
-
-  wire [data_width_p-1:0] mem_addr_op2 = is_amo_or_lr_op
-    ? '0
-    : (id_r.decode.is_store_op
-      ? `RV32_signext_Simm(id_r.instruction)
-      : `RV32_signext_Iimm(id_r.instruction));
-
+  wire [RV32_Iimm_width_gp-1:0] mem_addr_op2 = id_r.decode.is_store_op
+    ? `RV32_Simm_12extract(id_r.instruction)
+    : (id_r.decode.is_load_op
+      ? `RV32_Iimm_12extract(id_r.instruction)
+      : '0);
 
   // 'aq' register
   // When amo_op with aq is issued to EXE, 'aq' register is set.
