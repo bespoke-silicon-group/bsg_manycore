@@ -32,7 +32,7 @@ module lsu
     // from EXE
     , input decode_s exe_decode_i
     , input [data_width_p-1:0] exe_rs1_i
-    , input [data_width_p-1:0] exe_rs2_i
+    , input [fpu_recoded_data_width_gp-1:0] exe_rs2_i
     , input [reg_addr_width_lp-1:0] exe_rd_i
     , input [RV32_Iimm_width_gp-1:0] mem_offset_i
     , input [data_width_p-1:0] pc_plus4_i
@@ -64,30 +64,46 @@ module lsu
 
   // store data mask
   //
+  logic [data_width_p-1:0] fsw_data;
   logic [data_width_p-1:0] store_data;
   logic [data_mask_width_lp-1:0] store_mask;
 
+  recFNToFN #(
+    .expWidth(fpu_recoded_exp_width_gp)
+    ,.sigWidth(fpu_recoded_sig_width_gp) 
+  ) frs2_to_fn (
+    .in(exe_rs2_i)
+    ,.out(fsw_data)
+  );
+
   always_comb begin
-    if (exe_decode_i.is_byte_op) begin
-      store_data = {4{exe_rs2_i[7:0]}};
-      store_mask = {
-         mem_addr[1] &  mem_addr[0],
-         mem_addr[1] & ~mem_addr[0],
-        ~mem_addr[1] &  mem_addr[0],
-        ~mem_addr[1] & ~mem_addr[0]
-      };
-    end
-    else if (exe_decode_i.is_hex_op) begin
-      store_data = {2{exe_rs2_i[15:0]}};
-      store_mask = {
-        {2{mem_addr[1]}},
-        {2{~mem_addr[1]}}
-      };
+    if (exe_decode_i.read_frs2) begin
+      // FSW
+      store_data = fsw_data;
+      store_mask = 4'b1111;
     end
     else begin
-      // also covers AMO op
-      store_data = exe_rs2_i;
-      store_mask = 4'b1111;
+      if (exe_decode_i.is_byte_op) begin
+        store_data = {4{exe_rs2_i[7:0]}};
+        store_mask = {
+          mem_addr[1] &  mem_addr[0],
+          mem_addr[1] & ~mem_addr[0],
+          ~mem_addr[1] &  mem_addr[0],
+          ~mem_addr[1] & ~mem_addr[0]
+        };
+      end
+      else if (exe_decode_i.is_hex_op) begin
+        store_data = {2{exe_rs2_i[15:0]}};
+        store_mask = {
+          {2{mem_addr[1]}},
+          {2{~mem_addr[1]}}
+        };
+      end
+      else begin
+        // also covers AMO op
+        store_data = exe_rs2_i;
+        store_mask = 4'b1111;
+      end
     end
   end
 
