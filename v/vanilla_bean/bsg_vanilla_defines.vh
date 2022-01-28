@@ -75,6 +75,8 @@
 `define RV32_Bimm_13extract(instr) {``instr``[31], ``instr``[7], ``instr``[30:25], ``instr``[11:8], 1'b0}
 `define RV32_Jimm_21extract(instr) {``instr``[31], ``instr``[19:12],``instr``[20],``instr``[30:21], 1'b0}
 
+`define RV32_Iimm_12extract(instr) {``instr``[31:20]}
+`define RV32_Simm_12extract(instr) {``instr[31:25],``instr``[11:7]}
 
 // RV32I Instruction encodings
 // We have to delete the white space in macro definition,

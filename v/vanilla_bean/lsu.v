@@ -34,7 +34,7 @@ module lsu
     , input [data_width_p-1:0] exe_rs1_i
     , input [data_width_p-1:0] exe_rs2_i
     , input [reg_addr_width_lp-1:0] exe_rd_i
-    , input [11:0] mem_offset_i
+    , input [RV32_Iimm_width_gp-1:0] mem_offset_i
     , input [data_width_p-1:0] pc_plus4_i
     , input icache_miss_i
 

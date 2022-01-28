@@ -480,10 +480,10 @@ module vanilla_core
 
   // calculate mem address offset
   //
-  wire [11:0] mem_addr_op2 = id_r.decode.is_store_op
-    ? 12'(`RV32_signext_Simm(id_r.instruction))
+  wire [RV32_Iimm_width_gp-1:0] mem_addr_op2 = id_r.decode.is_store_op
+    ? `RV32_Simm_12extract(id_r.instruction)
     : (id_r.decode.is_load_op
-      ? 12'(`RV32_signext_Iimm(id_r.instruction))
+      ? `RV32_Iimm_12extract(id_r.instruction)
       : '0);
 
   // 'aq' register
