@@ -76,7 +76,7 @@ module vanilla_core_profiler
     , input remote_req_s remote_req_o
 
     , input [data_width_p-1:0] rs1_val_to_exe
-    , input [data_width_p-1:0] mem_addr_op2
+    , input [RV32_Iimm_width_gp-1:0] mem_addr_op2
 
     , input int_sb_clear
     , input float_sb_clear
@@ -266,7 +266,7 @@ module vanilla_core_profiler
   logic [reg_els_lp-1:0][3:0] int_sb_r;
   logic [reg_els_lp-1:0][3:0] float_sb_r;
 
-  wire [data_width_p-1:0] id_mem_addr = rs1_val_to_exe + mem_addr_op2;
+  wire [data_width_p-1:0] id_mem_addr = rs1_val_to_exe + `BSG_SIGN_EXTEND(mem_addr_op2,data_width_p);
   wire remote_ld_dram_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & id_mem_addr[data_width_p-1];
   wire remote_ld_global_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & (id_mem_addr[data_width_p-1-:2] == 2'b01);
   wire remote_ld_group_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & (id_mem_addr[data_width_p-1-:3] == 3'b001);
