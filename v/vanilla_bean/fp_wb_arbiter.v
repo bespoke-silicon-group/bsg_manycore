@@ -18,11 +18,11 @@ module fp_wb_arbiter
     // from flw_wb stage (local)
     input flw_wb_v_i
     , input [reg_addr_width_lp-1:0] flw_wb_rd_i
-    , input [data_width_lp-1:0] flw_wb_data_i
+    , input [RV32_reg_data_width_gp-1:0] flw_wb_data_i
 
     // from float remote response
     , input [reg_addr_width_lp-1:0] float_remote_load_resp_rd_i
-    , input [data_width_lp-1:0] float_remote_load_resp_data_i
+    , input [RV32_reg_data_width_gp-1:0] float_remote_load_resp_data_i
     , input float_remote_load_resp_v_i
     , input float_remote_load_resp_force_i
     , output logic float_remote_load_resp_yumi_o
@@ -56,6 +56,25 @@ module fp_wb_arbiter
   end
   // synopsys translate_on
 
+  // recode data
+  logic [fpu_recoded_data_width_gp-1:0] float_remote_load_recoded_data;
+  logic [fpu_recoded_data_width_gp-1:0] flw_wb_recoded_data;
+
+  fNToRecFN #(
+    .expWidth(fpu_recoded_exp_width_gp)
+    ,.sigWidth(fpu_recoded_sig_width_gp)
+  ) remote_flw_to_RecFN (
+    .in(float_remote_load_resp_data_i)
+    ,.out(float_remote_load_recoded_data)
+  );
+
+  fNToRecFN #(
+    .expWidth(fpu_recoded_exp_width_gp)
+    ,.sigWidth(fpu_recoded_sig_width_gp)
+  ) local_flw_to_RecFN (
+    .in(flw_wb_data_i)
+    ,.out(flw_wb_recoded_data)
+  );
 
   //    crossbar inputs order
   //    [3] fpu_float
@@ -69,7 +88,7 @@ module fp_wb_arbiter
     ,.o_els_p(num_banks_p)
     ,.width_p(data_width_lp)
   ) xbar_data (
-    .i({fpu_float_data_i, fdiv_fsqrt_data_i, float_remote_load_resp_data_i, flw_wb_data_i})
+    .i({fpu_float_data_i, fdiv_fsqrt_data_i, float_remote_load_recoded_data, flw_wb_recoded_data})
     ,.sel_oi_one_hot_i(xbar_sel)
     ,.o(float_rf_wdata_o)
   );
