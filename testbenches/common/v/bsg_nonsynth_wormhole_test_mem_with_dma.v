@@ -85,11 +85,10 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   assign wh_link_sif_o = wh_link_sif_out;
 
 
-  `declare_bsg_manycore_vcache_wh_header_flit_s(wh_flit_width_p,wh_cord_width_p,wh_len_width_p,wh_cid_width_p);
+  `declare_bsg_cache_wh_header_flit_s(wh_flit_width_p,wh_cord_width_p,wh_len_width_p,wh_cid_width_p);
 
-  bsg_manycore_vcache_wh_header_flit_s header_flit_in;
+  bsg_cache_wh_header_flit_s header_flit_in;
   assign header_flit_in = wh_link_sif_in.data;
-
 
   // dma mem read data -> wormhole read data
 
@@ -180,7 +179,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   logic [wh_cord_width_p-1:0] src_cord_r, src_cord_n;
   logic [wh_cid_width_p-1:0] src_cid_r, src_cid_n;
   
-  bsg_manycore_vcache_wh_header_flit_s header_flit_out;
+  bsg_cache_wh_header_flit_s header_flit_out;
   assign header_flit_out.unused = '0;
   assign header_flit_out.write_not_read = '0; // dont care
   assign header_flit_out.src_cord = '0;   // dont care
