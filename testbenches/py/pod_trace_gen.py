@@ -17,6 +17,7 @@ if __name__ == "__main__":
   # reset all bsg_tag_master
   tg.send(masters=0b1,client_id=0,data_not_reset=0,length=0,data=0)
   tg.wait(16)
+  tg.wait(16)
   
   # client indexing [num_pods_y-1:0][num_pods_x-1:0][S:N]
   # reset all clients
@@ -43,5 +44,6 @@ if __name__ == "__main__":
   #  tg.send(masters=0b1, client_id=client_id, data_not_reset=1, length=1, data=0b0)
 
 
+  tg.wait(16)
   tg.wait(16)
   tg.done()

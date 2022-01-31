@@ -67,7 +67,7 @@ NBF_FILE = $(PROG_NAME).nbf
 # Using trace file is optional
 TRACE_FILE ?= $(BSG_MACHINE_PATH)/bsg_tag_boot.tr
 
-BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
+BSG_SIM_OPTS = +nbf_file=$(subst .nbf,,$(NBF_FILE)) \
                +trace_file=$(TRACE_FILE) \
                +max_cycle=$(MAX_CYCLES) \
                +num_finish=$(NUM_FINISH) \

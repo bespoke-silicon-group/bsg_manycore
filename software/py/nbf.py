@@ -241,7 +241,8 @@ class NBF:
           self.print_nbf(x_eff, y_eff, epa, east_not_west)
           # south vcache
           x_eff = pod_origin_x + x
-          y_eff = pod_origin_y + self.num_tiles_y + r
+          #y_eff = pod_origin_y + self.num_tiles_y + r
+          y_eff = pod_origin_y + 16 + r
           self.print_nbf(x_eff, y_eff, epa, east_not_west)
     # if there are more than one pod, then the left half of pods goes to west, and the right half to east.
     else:
@@ -254,7 +255,8 @@ class NBF:
           self.print_nbf(x_eff, y_eff, epa, east_not_west)
           # south vcache
           x_eff = pod_origin_x + x
-          y_eff = pod_origin_y + self.num_tiles_y + r
+          #y_eff = pod_origin_y + self.num_tiles_y + r
+          y_eff = pod_origin_y + 16 + r
           self.print_nbf(x_eff, y_eff, epa, east_not_west)
 
 
@@ -312,7 +314,8 @@ class NBF:
         # top vcache
         self.print_nbf(x+pod_origin_x, pod_origin_y-1, epa, data)
         # bot vcache
-        self.print_nbf(x+pod_origin_x, pod_origin_y+self.num_tiles_y, epa, data)
+        #self.print_nbf(x+pod_origin_x, pod_origin_y+self.num_tiles_y, epa, data)
+        self.print_nbf(x+pod_origin_x, pod_origin_y+16, epa, data)
          
  
   # init DRAM
@@ -345,7 +348,8 @@ class NBF:
           if y % 2 == 0:
             self.print_nbf(x, pod_origin_y-1-(y/2), epa, self.dram_data[k]) #top
           else:
-            self.print_nbf(x, pod_origin_y+self.num_tiles_y+(y/2), epa, self.dram_data[k]) #bot
+            #self.print_nbf(x, pod_origin_y+self.num_tiles_y+(y/2), epa, self.dram_data[k]) #bot
+            self.print_nbf(x, pod_origin_y+16+(y/2), epa, self.dram_data[k]) #bot
       else:
         print("hash function not supported for x={0}.")
         sys.exit()
@@ -362,7 +366,8 @@ class NBF:
           self.print_nbf(x_eff, y_eff, epa, self.dram_data[k])
         elif (x < self.num_tiles_x*2):
           x_eff = (x % self.num_tiles_x) + pod_origin_x
-          y_eff = pod_origin_y + self.num_tiles_y
+          #y_eff = pod_origin_y + self.num_tiles_y
+          y_eff = pod_origin_y + 16
           self.print_nbf(x_eff, y_eff, epa, self.dram_data[k])
         else:
           print("## WARNING: NO DRAM MODE, DRAM DATA OUT OF RANGE!!!")

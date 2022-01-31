@@ -65,6 +65,7 @@ module bsg_nonsynth_manycore_tag_master
     ,.error_o()
   );  
 
+  `ifndef NONSYNTH_TEST_ROM
   // BSG TAG boot rom
   bsg_tag_boot_rom #(
     .width_p(rom_data_width_lp)
@@ -73,7 +74,17 @@ module bsg_nonsynth_manycore_tag_master
     .addr_i(rom_addr)
     ,.data_o(rom_data)
   );
-
+  `else
+  bsg_nonsynth_test_rom_plusargs
+   #(.data_width_p(rom_data_width_lp)
+     ,.addr_width_p(rom_addr_width_lp)
+     ,.plusargs_str_p("TAG_TRACE")
+     )
+   rom
+    (.addr_i(rom_addr)
+     ,.data_o(rom_data)
+     );
+  `endif
 
   // BSG TAG MASTER
   bsg_tag_master #(

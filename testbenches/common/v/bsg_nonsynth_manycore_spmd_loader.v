@@ -21,7 +21,7 @@ module bsg_nonsynth_manycore_spmd_loader
 
     , parameter max_out_credits_p=200
     , parameter credit_counter_width_lp=`BSG_WIDTH(max_out_credits_p)
-    , parameter verbose_p = 0
+    , parameter verbose_p = 1
 
     , parameter uptime_p=1
   )
@@ -78,7 +78,7 @@ module bsg_nonsynth_manycore_spmd_loader
   string nbf_file;
   initial begin
     void'($value$plusargs("nbf_file=%s", nbf_file));
-    $readmemh(nbf_file, nbf);
+    $readmemh({nbf_file, ".nbf"}, nbf);
   end
 
   logic loader_done_r, loader_done_n;
