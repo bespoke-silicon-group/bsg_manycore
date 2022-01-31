@@ -254,10 +254,8 @@ module bsg_manycore_tile_vcache
   wh_link_sif_s cache_wh_link_lo;
 
   bsg_cache_dma_to_wormhole #(
-    .vcache_addr_width_p(vcache_addr_width_p)
-    ,.vcache_data_width_p(vcache_data_width_p)
-    ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
-    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+    .dma_addr_width_p(vcache_addr_width_p)
+    ,.dma_burst_len_p(vcache_block_size_in_words_p)
 
     ,.wh_flit_width_p(wh_flit_width_p)
     ,.wh_cid_width_p(wh_cid_width_p)
@@ -273,7 +271,7 @@ module bsg_manycore_tile_vcache
 
     ,.dma_data_o(dma_data_li)
     ,.dma_data_v_o(dma_data_v_li)
-    ,.dma_data_ready_i(dma_data_ready_lo)
+    ,.dma_data_ready_and_i(dma_data_ready_lo)
 
     ,.dma_data_i(dma_data_lo)
     ,.dma_data_v_i(dma_data_v_lo)
@@ -284,6 +282,7 @@ module bsg_manycore_tile_vcache
 
     ,.my_wh_cord_i(global_x_r)
     ,.dest_wh_cord_i({wh_cord_width_p{wh_dest_east_not_west_lo}})
+    ,.dest_wh_cid_i('0)
     // concentrator id
     // lower bits come from lower bits of global_x
     // upper bits come from whether its north or south vc.

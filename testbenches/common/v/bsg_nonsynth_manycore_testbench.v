@@ -362,28 +362,79 @@ module bsg_nonsynth_manycore_testbench
         for (genvar k = N; k <= S; k++) begin: py
           for (genvar n = 0; n < num_vcache_rows_p; n++) begin: row
             for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf
-              bsg_manycore_vcache_wh_to_cache_dma #(
-               .wh_flit_width_p(wh_flit_width_p)
-               ,.wh_cid_width_p(wh_cid_width_p)
+              localparam lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p);
+              localparam lg_num_vcaches_per_link_lp = `BSG_SAFE_CLOG2(num_vcaches_per_link_lp);
+
+              // This code is preserved from the previous mapping algorithm. For this specific
+              //   testbench, only "no_concentration_p" is used
+              //  if (no_concentration_p) begin
+              //    assign send_cache_id = header_flit_in.src_cord[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp];
+              //
+              //  end
+              //  else begin
+              //    if (num_pods_x_p == 1) begin
+              //      // For pod 1x1, there are 1 HBM on each side of west and east.
+              //      // Left half of top and bottom vcaches (16 total) maps to ch0 of HBM2 on west.
+              //      // Right half of top and bottom vcaches (16 total) maps to ch0 of HBM2 on east.
+              //      assign send_cache_id = {
+              //        (1)'(header_flit_in.cid/wh_ruche_factor_p),
+              //        header_flit_in.src_cord[lg_num_tiles_x_lp-2:0]
+              //      };
+              //    end
+              //    else begin
+              //      //  The left half of the pod array maps to HBM2 on the left side, and the right half on the right.
+              //      //  HBM2 channels are allocated to pods starting from the top left corner.
+              //      //  Within a pod, a row of vcaches (16) is allocated to a channel, so that there is one-to-one mapping from
+              //      //  vcache to HBM2 bank.
+              //      //
+              //      //
+              //      // For pod 4x4
+              //      //
+              //      // [dev0-ch0] [dev0-ch2] [dev2-ch0] [dev2-ch2]
+              //      // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+              //      // [dev0-ch1] [dev0-ch3] [dev2-ch1] [dev2-ch3]
+              //      //
+              //      // [dev0-ch4] [dev0-ch6] [dev2-ch4] [dev2-ch6]
+              //      // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+              //      // [dev0-ch5] [dev0-ch7] [dev2-ch5] [dev2-ch7]
+              //      //
+              //      // [dev1-ch0] [dev1-ch2] [dev3-ch0] [dev3-ch2]
+              //      // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+              //      // [dev1-ch1] [dev0-ch3] [dev3-ch1] [dev3-ch3]
+              //      //
+              //      // [dev1-ch4] [dev1-ch6] [dev3-ch4] [dev3-ch6]
+              //      // [  m  c  ] [   mc   ] [  m  c  ] [   mc   ]
+              //      // [dev1-ch5] [dev1-ch7] [dev3-ch5] [dev3-ch7]
+              //      //
+              //      assign send_cache_id = {
+              //        (lg_num_pods_x_lp-1)'((header_flit_in.src_cord[wh_cord_width_p-1:lg_num_tiles_x_lp] - pod_start_x_p)%(num_pods_x_p/2)),
+              //        (1)'(header_flit_in.cid/wh_ruche_factor_p),
+              //        header_flit_in.src_cord[lg_num_tiles_x_lp-1:0]
+              //      };
+              //    end
+
+              `declare_bsg_cache_wh_header_flit_s(wh_flit_width_p,wh_cord_width_p,wh_len_width_p,wh_cid_width_p);
+              bsg_cache_wh_header_flit_s header_flit_in;
+              assign header_flit_in = buffered_wh_link_sif_lo[i][j][k][n][r];
+
+              wire [lg_num_vcaches_per_link_lp-1:0] dma_id_li =
+                header_flit_in.src_cord[lg_wh_ruche_factor_lp+:lg_num_vcaches_per_link_lp];
+
+              bsg_wormhole_to_cache_dma_fanout#(
+                .num_dma_p(num_vcaches_per_link_lp)
+                ,.dma_addr_width_p(vcache_addr_width_p)
+                ,.dma_burst_len_p(vcache_block_size_in_words_p)
+
+                ,.wh_flit_width_p(wh_flit_width_p)
+                ,.wh_cid_width_p(wh_cid_width_p)
                 ,.wh_len_width_p(wh_len_width_p)
                 ,.wh_cord_width_p(wh_cord_width_p)
-                ,.wh_ruche_factor_p(wh_ruche_factor_p)
-
-                ,.num_vcaches_p(num_vcaches_per_link_lp)
-                ,.vcache_addr_width_p(vcache_addr_width_p)
-                ,.vcache_data_width_p(vcache_data_width_p)
-                ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
-                ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
-
-                ,.no_concentration_p(1)
-                ,.num_pods_x_p(num_pods_x_p)
-                ,.pod_start_x_p(1)
-                ,.num_tiles_x_p(num_tiles_x_p)
               ) wh_to_dma (
                 .clk_i(clk_i)
                 ,.reset_i(reset_r)
     
                 ,.wh_link_sif_i     (buffered_wh_link_sif_lo[i][j][k][n][r])
+                ,.wh_dma_id_i       (dma_id_li)
                 ,.wh_link_sif_o     (buffered_wh_link_sif_li[i][j][k][n][r])
 
                 ,.dma_pkt_o         (dma_pkt_lo[i][j][k][n][r])
@@ -392,7 +443,7 @@ module bsg_nonsynth_manycore_testbench
 
                 ,.dma_data_i        (dma_data_li[i][j][k][n][r])
                 ,.dma_data_v_i      (dma_data_v_li[i][j][k][n][r])
-                ,.dma_data_ready_o  (dma_data_ready_lo[i][j][k][n][r])
+                ,.dma_data_ready_and_o (dma_data_ready_lo[i][j][k][n][r])
 
                 ,.dma_data_o        (dma_data_lo[i][j][k][n][r])
                 ,.dma_data_v_o      (dma_data_v_lo[i][j][k][n][r])
