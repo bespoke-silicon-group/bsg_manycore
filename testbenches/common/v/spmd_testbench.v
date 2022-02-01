@@ -196,6 +196,20 @@ module spmd_testbench
     assign trace_en = (trace_arg == 1);
   end
 
+  // vanilla operations trace
+  int vanilla_trace_fd;
+  localparam vanilla_trace_file = "vanilla_operation_trace.csv";
+  initial begin
+    vanilla_trace_fd = $fopen(vanilla_trace_file, "w");
+    $fwrite(vanilla_trace_fd, "cycle,x,y,pc,operation\n");
+  end
+  final begin
+    $fclose(vanilla_trace_fd);
+  end
+
+  // vcache trace
+  // router trace
+
   // coverage enable
   int coverage_arg;
   logic coverage_en;
