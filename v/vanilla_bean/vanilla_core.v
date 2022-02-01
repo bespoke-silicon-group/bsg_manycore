@@ -150,6 +150,7 @@ module vanilla_core
 
   logic [pc_width_lp-1:0] icache_w_pc;
   logic [data_width_p-1:0] icache_winstr;
+  logic icache_write_en_r_lo;
 
   logic [pc_width_lp-1:0] pc_n, pc_r;
   instruction_s instruction;
@@ -178,6 +179,7 @@ module vanilla_core
 
     ,.w_pc_i(icache_w_pc)
     ,.w_instr_i(icache_winstr)
+    ,.write_en_r_o(icache_write_en_r_lo)
 
     ,.pc_i(pc_n)
     ,.jalr_prediction_i(jalr_prediction)
@@ -1262,8 +1264,9 @@ module vanilla_core
   assign icache_yumi_o = icache_v_i & ~ifetch_v_i;
 
   assign icache_flush = flush | icache_miss_in_pipe;
-  
-  assign stall_icache_store = icache_v_i & icache_yumi_o;
+    
+  // stall the pipeline when the buffered instructions are being written into the icache SRAM.
+  assign stall_icache_store = icache_write_en_r_lo;
 
 
   // IF -> ID
@@ -1783,7 +1786,6 @@ module vanilla_core
   assign break_reserve = reserved_r & (reserved_addr_r == dmem_addr_li) & dmem_v_li & dmem_w_li;
 
   // stall_ifetch_wait
-
   assign stall_ifetch_wait = mem_ctrl_r.icache_miss &
     ~((ifetch_count_r == lg_icache_block_size_in_words_lp'(icache_block_size_in_words_p-1)) & ifetch_v_i);
 
@@ -1817,7 +1819,7 @@ module vanilla_core
       stall_remote_ld_wb = mem_result_valid | mem_ctrl_r.icache_miss;
       int_remote_load_resp_yumi_o = 1'b1;
     end
-    else if (mem_ctrl_r.icache_miss & ifetch_v_i) begin
+    else if (mem_ctrl_r.icache_miss) begin
       wb_ctrl_n.icache_miss = 1'b1;
     end
     else begin

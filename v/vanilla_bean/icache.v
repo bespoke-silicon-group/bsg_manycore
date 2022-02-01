@@ -34,7 +34,8 @@ module icache
     // icache write
     , input [pc_width_lp-1:0] w_pc_i
     , input [RV32_instr_width_gp-1:0] w_instr_i
-
+    , output logic write_en_r_o
+  
     // icache read (by processor)
     , input [pc_width_lp-1:0] pc_i
     , input [pc_width_lp-1:0] jalr_prediction_i
@@ -70,7 +71,7 @@ module icache
 
   // Instantiate icache memory 
   //
-  logic v_li;
+  logic v_li, w_li;
   icache_format_s icache_data_li, icache_data_lo;
   logic [icache_addr_width_lp-1:0] icache_addr_li;
 
@@ -82,15 +83,11 @@ module icache
     .clk_i(clk_i)
     ,.reset_i(reset_i)
     ,.v_i(v_li)
-    ,.w_i(w_i)
+    ,.w_i(w_li)
     ,.addr_i(icache_addr_li)
     ,.data_i(icache_data_li)
     ,.data_o(icache_data_lo)
   );
-
-  assign icache_addr_li = w_i
-    ? w_addr
-    : pc_i[icache_block_offset_width_lp+:icache_addr_width_lp];
 
 
   //  Pre-compute the lower part of the jump address for JAL and BRANCH
@@ -139,15 +136,18 @@ module icache
 
 
   // buffered writes
-  logic [icache_block_size_in_words_p-2:0] imm_sign_r;
-  logic [icache_block_size_in_words_p-2:0] pc_lower_cout_r;
-  logic [icache_block_size_in_words_p-2:0][RV32_instr_width_gp-1:0] buffered_instr_r;
+  logic [icache_block_size_in_words_p-1:0] imm_sign_r;
+  logic [icache_block_size_in_words_p-1:0] pc_lower_cout_r;
+  logic [icache_block_size_in_words_p-1:0][RV32_instr_width_gp-1:0] buffered_instr_r;
+  logic [icache_tag_width_p-1:0] w_tag_r;
+  logic [icache_addr_width_lp-1:0] w_addr_r;
+  logic write_en_r, write_en_n;
 
   assign icache_data_li = '{
-    lower_sign : {imm_sign, imm_sign_r},
-    lower_cout : {pc_lower_cout, pc_lower_cout_r},
-    tag        : w_tag,
-    instr      : {injected_instr, buffered_instr_r}
+    lower_sign : imm_sign_r,
+    lower_cout : pc_lower_cout_r,
+    tag        : w_tag_r,
+    instr      : buffered_instr_r
   };
 
 
@@ -165,6 +165,7 @@ module icache
   end
 
   logic write_en_buffer;
+  logic write_en_tag;
   logic write_en_icache;
   always_ff @ (posedge clk_i) begin
     if (write_en_buffer) begin
@@ -172,18 +173,41 @@ module icache
       pc_lower_cout_r[write_count_r] <= pc_lower_cout;
       buffered_instr_r[write_count_r] <= injected_instr;
     end
+    if (write_en_tag) begin
+      w_tag_r <= w_tag;
+      w_addr_r <= w_addr;
+    end
+  
+    if (network_reset_i) begin
+      write_en_r <= 1'b0;
+    end
+    else begin
+      write_en_r <= write_en_n;
+    end
   end
+
+  assign write_en_r_o = write_en_r;
 
   always_comb begin
     if (write_count_r == icache_block_size_in_words_p-1) begin
-      write_en_buffer = 1'b0;
+      write_en_buffer = v_i & w_i;
       write_en_icache = v_i & w_i;
+      write_en_tag = v_i & w_i;
+      write_en_n = v_i & w_i;
     end
     else begin
       write_en_buffer = v_i & w_i;
       write_en_icache = 1'b0;
+      write_en_tag = 1'b0;
+      write_en_n = 1'b0;
     end
   end
+
+
+  assign icache_addr_li = w_li
+    ? w_addr_r
+    : pc_i[icache_block_offset_width_lp+:icache_addr_width_lp];
+
 
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin
@@ -222,10 +246,10 @@ module icache
   // Energy-saving logic
   // - Don't read the icache if the current pc is not at the last word of the block, and 
   //   there is a hint from the next-pc logic that it is reading pc+4 next (no branch or jump).
-  assign v_li = w_i
-    ? write_en_icache
+  assign v_li = write_en_r
+    ? 1'b1
     : (v_i & ((&pc_r[0+:icache_block_offset_width_lp]) | ~read_pc_plus4_i));
-
+  assign w_li = write_en_r;
 
   // Merge the PC lower part and high part
   // BYTE operations
