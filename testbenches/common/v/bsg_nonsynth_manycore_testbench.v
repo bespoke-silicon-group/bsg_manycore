@@ -341,6 +341,8 @@ module bsg_nonsynth_manycore_testbench
     parameter num_total_channels_lp = num_total_vcaches_lp/num_vcaches_per_channel_p;
     parameter num_dram_lp = `BSG_CDIV(num_total_channels_lp,hbm2_num_channels_p);
 
+    parameter lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p);
+    parameter lg_num_vcaches_per_link_lp = `BSG_SAFE_CLOG2(num_vcaches_per_link_lp);
 
     // WH to cache dma
     `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p);
@@ -362,8 +364,6 @@ module bsg_nonsynth_manycore_testbench
         for (genvar k = N; k <= S; k++) begin: py
           for (genvar n = 0; n < num_vcache_rows_p; n++) begin: row
             for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf
-              localparam lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p);
-              localparam lg_num_vcaches_per_link_lp = `BSG_SAFE_CLOG2(num_vcaches_per_link_lp);
 
               // This code is preserved from the previous mapping algorithm. For this specific
               //   testbench, only "no_concentration_p" is used
