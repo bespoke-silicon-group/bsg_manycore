@@ -1786,8 +1786,29 @@ module vanilla_core
   assign break_reserve = reserved_r & (reserved_addr_r == dmem_addr_li) & dmem_v_li & dmem_w_li;
 
   // stall_ifetch_wait
-  assign stall_ifetch_wait = mem_ctrl_r.icache_miss &
-    ~((ifetch_count_r == lg_icache_block_size_in_words_lp'(icache_block_size_in_words_p-1)) & ifetch_v_i);
+  logic ifetch_done_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      ifetch_done_r <= 1'b0;
+    end
+    else begin
+      if (ifetch_done_r) begin
+        // clear once the icache bubble moves to WB
+        if (~stall_all) begin
+          ifetch_done_r <= 1'b0;
+        end
+      end
+      else begin
+        // Set done once the fetched instructions are written into the icache SRAM.
+        if (mem_ctrl_r.icache_miss & icache_write_en_r_lo) begin
+          ifetch_done_r <= 1'b1;
+        end
+      end
+    end
+  end
+
+  assign stall_ifetch_wait = mem_ctrl_r.icache_miss & ~ifetch_done_r;
+    //~((ifetch_count_r == lg_icache_block_size_in_words_lp'(icache_block_size_in_words_p-1)) & ifetch_v_i);
 
   // mem_result
   assign mem_result = imul_v_lo
