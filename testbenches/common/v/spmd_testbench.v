@@ -218,7 +218,16 @@ module spmd_testbench
     $fclose(vcache_trace_fd);
   end
   
-  // router trace
+  // remote load trace
+  int remote_trace_fd;
+  localparam remote_load_trace_file_lp = "remote_load_trace.csv";
+  initial begin
+    remote_trace_fd = $fopen(remote_load_trace_file_lp, "w");
+    $fwrite(remote_trace_fd, "start_cycle,end_cycle,src_x,src_y,dest_x,dest_y,type,latency\n");
+  end
+  final begin
+    $fclose(remote_trace_fd);
+  end
 
   // coverage enable
   int coverage_arg;
