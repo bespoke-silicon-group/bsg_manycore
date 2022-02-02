@@ -19,7 +19,6 @@ module vanilla_core_trace
   (
     input clk_i
     , input reset_i
-    , input trace_en_i
 
     , input stall_all
     , input stall_remote_ld_wb
@@ -212,7 +211,7 @@ module vanilla_core_trace
         dmem_access = "";
         remote_access = "";
 
-        if (~reset_i & (trace_en_i == 1)) begin
+        if (reset_i === 1'b0) begin
           fd = $fopen("vanilla.log", "a");
 
           // STAMP
@@ -291,7 +290,7 @@ module vanilla_core_trace
 
           $fclose(fd);
 
-        end // if (~reset_i & (trace_en_i == 1))     
+        end // if (~reset_i & (trace_en_i == 1))
   end // always @ (negedge clk_i)
    
  
