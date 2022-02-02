@@ -813,6 +813,27 @@ end
 `endif
 `endif
 
+  ///             ///
+  ///   TRACER    ///
+  ///             ///
+  
+if (1) begin
+  bind vanilla_core vanilla_core_trace #(
+    .x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.icache_tag_width_p(icache_tag_width_p)
+    ,.icache_entries_p(icache_entries_p)
+    ,.data_width_p(data_width_p)
+    ,.dmem_size_p(dmem_size_p)
+  ) trace0 (
+    .*
+    ,.trace_en_i(1'b1)
+  );
+
+end
+
+
+
 endmodule
 
 `BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_testbench)
