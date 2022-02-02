@@ -19,13 +19,10 @@ module vanilla_core_trace
   (
     input clk_i
     , input reset_i
-    , input trace_en_i
 
     , input stall_all
-    , input stall_idiv_wb
     , input stall_remote_ld_wb
     , input stall_ifetch_wait
-    , input stall_fdiv_wb
     , input stall_remote_flw_wb
 
     , input exe_signals_s exe_r
@@ -49,8 +46,8 @@ module vanilla_core_trace
     , input [reg_addr_width_lp-1:0] float_rf_waddr
     , input [fpu_recoded_data_width_gp-1:0] float_rf_wdata
 
-    , input [x_cord_width_p-1:0] my_x_i
-    , input [y_cord_width_p-1:0] my_y_i
+    , input [x_cord_width_p-1:0] global_x_i
+    , input [y_cord_width_p-1:0] global_y_i
   );
 
   //                      //
@@ -65,7 +62,7 @@ module vanilla_core_trace
     logic [RV32_instr_width_gp-1:0] btarget;
     logic is_local_load;
     logic is_local_store;
-    logic [9:0] local_dmem_addr; // hard-coded for now...
+    logic [dmem_addr_width_lp-1:0] local_dmem_addr;
     logic [RV32_reg_data_width_gp-1:0] local_store_data;
     logic is_remote_load;
     logic is_remote_store;
@@ -82,7 +79,7 @@ module vanilla_core_trace
     logic [RV32_instr_width_gp-1:0] btarget;
     logic is_local_load;
     logic is_local_store;
-    logic [9:0] local_dmem_addr;
+    logic [dmem_addr_width_lp-1:0] local_dmem_addr;
     logic [RV32_reg_data_width_gp-1:0] local_store_data;
     logic is_remote_load;
     logic is_remote_store;
@@ -98,7 +95,7 @@ module vanilla_core_trace
     logic [RV32_instr_width_gp-1:0] btarget;
     logic is_local_load;
     logic is_local_store;
-    logic [9:0] local_dmem_addr;
+    logic [dmem_addr_width_lp-1:0] local_dmem_addr;
     logic [RV32_reg_data_width_gp-1:0] local_load_data;
     logic [RV32_reg_data_width_gp-1:0] local_store_data;
     logic is_remote_load;
@@ -214,11 +211,11 @@ module vanilla_core_trace
         dmem_access = "";
         remote_access = "";
 
-        if (~reset_i & (trace_en_i == 1)) begin
+        if (reset_i === 1'b0) begin
           fd = $fopen("vanilla.log", "a");
 
           // STAMP
-          stamp = $sformatf("%08t %2d %2d", $time, my_x_i, my_y_i);
+          stamp = $sformatf("%08t %2d %2d", $time, global_x_i, global_y_i);
 
           // PC_INSTR
           pc_instr = (wb_debug.pc == 32'hfffffffc)
@@ -233,12 +230,8 @@ module vanilla_core_trace
           // STALL_REASON
           if (stall_ifetch_wait)
             stall_reason = "STALL=IFETCH";
-          else if (stall_idiv_wb)
-            stall_reason = "STALL=IDIVWB";
           else if (stall_remote_ld_wb)
             stall_reason = "STALL=LOADWB";
-          else if (stall_fdiv_wb)
-            stall_reason = "STALL=FDIVWB";
           else if (stall_remote_flw_wb)
             stall_reason = "STALL=FLW_WB";
           else
@@ -297,7 +290,7 @@ module vanilla_core_trace
 
           $fclose(fd);
 
-        end // if (~reset_i & (trace_en_i == 1))     
+        end // if (~reset_i & (trace_en_i == 1))
   end // always @ (negedge clk_i)
    
  

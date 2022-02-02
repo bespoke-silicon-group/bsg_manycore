@@ -54,6 +54,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter enable_vcore_profiling_p=0
     , parameter enable_router_profiling_p=0
     , parameter enable_cache_profiling_p=0
+    , parameter enable_vanilla_core_trace_p = 0
 
     , parameter enable_vcore_pc_coverage_p=0
 
@@ -812,6 +813,25 @@ if (enable_vcore_pc_coverage_p) begin
 end
 `endif
 `endif
+
+  ///             ///
+  ///   TRACER    ///
+  ///             ///
+  
+if (enable_vanilla_core_trace_p) begin
+  bind vanilla_core vanilla_core_trace #(
+    .x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.icache_tag_width_p(icache_tag_width_p)
+    ,.icache_entries_p(icache_entries_p)
+    ,.data_width_p(data_width_p)
+    ,.dmem_size_p(dmem_size_p)
+  ) trace0 (
+    .*
+  );
+end
+
+
 
 endmodule
 
