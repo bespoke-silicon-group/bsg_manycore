@@ -166,7 +166,6 @@ module icache
 
   logic write_en_buffer;
   logic write_en_tag;
-  logic write_en_icache;
   always_ff @ (posedge clk_i) begin
     if (write_en_buffer) begin
       imm_sign_r[write_count_r] <= imm_sign;
@@ -191,13 +190,11 @@ module icache
   always_comb begin
     if (write_count_r == icache_block_size_in_words_p-1) begin
       write_en_buffer = v_i & w_i;
-      write_en_icache = v_i & w_i;
       write_en_tag = v_i & w_i;
       write_en_n = v_i & w_i;
     end
     else begin
       write_en_buffer = v_i & w_i;
-      write_en_icache = 1'b0;
       write_en_tag = 1'b0;
       write_en_n = 1'b0;
     end
@@ -248,7 +245,7 @@ module icache
   //   there is a hint from the next-pc logic that it is reading pc+4 next (no branch or jump).
   assign v_li = write_en_r
     ? 1'b1
-    : (v_i & ((&pc_r[0+:icache_block_offset_width_lp]) | ~read_pc_plus4_i));
+    : (v_i & ~w_i & ((&pc_r[0+:icache_block_offset_width_lp]) | ~read_pc_plus4_i));
   assign w_li = write_en_r;
 
   // Merge the PC lower part and high part
