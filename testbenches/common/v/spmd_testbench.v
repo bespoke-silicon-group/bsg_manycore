@@ -208,6 +208,16 @@ module spmd_testbench
   end
 
   // vcache trace
+  int vcache_trace_fd;
+  localparam vcache_trace_file_lp = "vcache_operation_trace.csv";
+  initial begin
+    vcache_trace_fd = $fopen(vcache_trace_file_lp, "w");
+    $fwrite(vcache_trace_fd, "cycle,vcache,operation\n");
+  end
+  final begin
+    $fclose(vcache_trace_fd);
+  end
+  
   // router trace
 
   // coverage enable
