@@ -423,7 +423,7 @@ module bsg_nonsynth_manycore_testbench
               bsg_wormhole_to_cache_dma_fanout#(
                 .num_dma_p(num_vcaches_per_link_lp)
                 ,.dma_addr_width_p(vcache_addr_width_p)
-                ,.dma_burst_len_p(vcache_block_size_in_words_p)
+                ,.dma_burst_len_p(vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)
 
                 ,.wh_flit_width_p(wh_flit_width_p)
                 ,.wh_cid_width_p(wh_cid_width_p)

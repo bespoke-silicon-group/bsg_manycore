@@ -255,7 +255,7 @@ module bsg_manycore_tile_vcache
 
   bsg_cache_dma_to_wormhole #(
     .dma_addr_width_p(vcache_addr_width_p)
-    ,.dma_burst_len_p(vcache_block_size_in_words_p)
+    ,.dma_burst_len_p(vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)
 
     ,.wh_flit_width_p(wh_flit_width_p)
     ,.wh_cid_width_p(wh_cid_width_p)
