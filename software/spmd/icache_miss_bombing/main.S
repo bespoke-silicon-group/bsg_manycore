@@ -525,6 +525,7 @@ here0:
   addi s0, s0, 509
   addi s0, s0, 510
   addi s0, s0, 511
+  j check_result
 
 .org (4096*2)
 check_result:
