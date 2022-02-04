@@ -414,6 +414,13 @@ class NBF:
   # public main function
   # users only have to call this function.
   def dump(self):
+    # vcache_wh_dest should be programmed for all pods whether or not they are used,
+    for px in range(self.machine_pods_x):
+      for py in range(self.machine_pods_y):
+        pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
+        pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
+        self.init_vcache_wh_dest(pod_origin_x, pod_origin_y, px)
+
     # initialize all pods
     for px in range(self.num_pods_x):
       for py in range(self.num_pods_y):
@@ -423,7 +430,6 @@ class NBF:
         self.init_icache(pod_origin_x, pod_origin_y)
         self.init_dmem(pod_origin_x, pod_origin_y)
         self.set_pc_init_val(pod_origin_x, pod_origin_y)
-        self.init_vcache_wh_dest(pod_origin_x, pod_origin_y, px)
 
         if self.enable_dram != 1:
           self.disable_dram(pod_origin_x, pod_origin_y)
