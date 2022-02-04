@@ -75,9 +75,9 @@ module bsg_nonsynth_wormhole_test_mem
   assign wh_link_sif_o = wh_link_sif_out;
 
 
-  `declare_bsg_manycore_vcache_wh_header_flit_s(wh_flit_width_p,wh_cord_width_p,wh_len_width_p,wh_cid_width_p);
+  `declare_bsg_cache_wh_header_flit_s(wh_flit_width_p,wh_cord_width_p,wh_len_width_p,wh_cid_width_p);
 
-  bsg_manycore_vcache_wh_header_flit_s header_flit_in;
+  bsg_cache_wh_header_flit_s header_flit_in;
   assign header_flit_in = wh_link_sif_in.data;
 
   logic clear_li;
@@ -109,15 +109,16 @@ module bsg_nonsynth_wormhole_test_mem
   logic write_not_read_r, write_not_read_n;
   logic [wh_flit_width_p-1:0] addr_r, addr_n;
   logic [wh_cord_width_p-1:0] src_cord_r, src_cord_n;
-  logic [wh_cid_width_p-1:0] cid_r, cid_n;
+  logic [wh_cid_width_p-1:0] src_cid_r, src_cid_n;
   
-  bsg_manycore_vcache_wh_header_flit_s header_flit_out;
+  bsg_cache_wh_header_flit_s header_flit_out;
   assign header_flit_out.unused = '0;
   assign header_flit_out.write_not_read = '0; // dont care
   assign header_flit_out.src_cord = '0;   // dont care
-  assign header_flit_out.cid = cid_r;
+  assign header_flit_out.src_cid = '0;   // dont care
+  assign header_flit_out.cid = src_cid_r;
   assign header_flit_out.len = wh_len_width_p'(data_len_lp);
-  assign header_flit_out.dest_cord = src_cord_r;
+  assign header_flit_out.cord = src_cord_r;
 
   always_comb begin
     wh_link_sif_out = '0;
@@ -127,7 +128,7 @@ module bsg_nonsynth_wormhole_test_mem
     write_not_read_n = write_not_read_r;
     addr_n = addr_r;
     src_cord_n = src_cord_r;
-    cid_n = cid_r;
+    src_cid_n = src_cid_r;
     mem_state_n = mem_state_r;
  
     mem_we = 1'b0;
@@ -145,7 +146,7 @@ module bsg_nonsynth_wormhole_test_mem
         if (wh_link_sif_in.v) begin
           write_not_read_n = header_flit_in.write_not_read;
           src_cord_n = header_flit_in.src_cord;
-          cid_n = header_flit_in.cid;
+          src_cid_n = header_flit_in.src_cid;
           mem_state_n = RECV_ADDR;
         end
       end
@@ -214,7 +215,7 @@ module bsg_nonsynth_wormhole_test_mem
   else begin
     // wh ruche links coming from top and bottom caches are concentrated into one link.
     assign mem_addr = {
-      (1)'(cid_r/wh_ruche_factor_p), // determine north or south vcache
+      (1)'(src_cid_r/wh_ruche_factor_p), // determine north or south vcache
       src_cord_r[0+:(lg_num_vcaches_lp-1)],
       addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
       count_lo
@@ -230,14 +231,14 @@ module bsg_nonsynth_wormhole_test_mem
       mem_state_r <= RESET;
       write_not_read_r <= 1'b0;
       src_cord_r <= '0;
-      cid_r <= '0;
+      src_cid_r <= '0;
       addr_r <= '0;
     end
     else begin
       mem_state_r <= mem_state_n;
       write_not_read_r <= write_not_read_n;
       src_cord_r <= src_cord_n;
-      cid_r <= cid_n;
+      src_cid_r <= src_cid_n;
       addr_r <= addr_n;
     end
   end

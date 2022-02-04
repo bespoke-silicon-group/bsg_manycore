@@ -85,11 +85,10 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   assign wh_link_sif_o = wh_link_sif_out;
 
 
-  `declare_bsg_manycore_vcache_wh_header_flit_s(wh_flit_width_p,wh_cord_width_p,wh_len_width_p,wh_cid_width_p);
+  `declare_bsg_cache_wh_header_flit_s(wh_flit_width_p,wh_cord_width_p,wh_len_width_p,wh_cid_width_p);
 
-  bsg_manycore_vcache_wh_header_flit_s header_flit_in;
+  bsg_cache_wh_header_flit_s header_flit_in;
   assign header_flit_in = wh_link_sif_in.data;
-
 
   // dma mem read data -> wormhole read data
 
@@ -178,13 +177,14 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   logic write_not_read_r, write_not_read_n;
   logic [wh_flit_width_p-1:0] addr_r, addr_n;
   logic [wh_cord_width_p-1:0] src_cord_r, src_cord_n;
-  logic [wh_cid_width_p-1:0] cid_r, cid_n;
+  logic [wh_cid_width_p-1:0] src_cid_r, src_cid_n;
   
-  bsg_manycore_vcache_wh_header_flit_s header_flit_out;
+  bsg_cache_wh_header_flit_s header_flit_out;
   assign header_flit_out.unused = '0;
   assign header_flit_out.write_not_read = '0; // dont care
   assign header_flit_out.src_cord = '0;   // dont care
-  assign header_flit_out.cid = cid_r;
+  assign header_flit_out.src_cid = '0;   // dont care
+  assign header_flit_out.cid = src_cid_r;
   assign header_flit_out.len = wh_len_width_p'(data_len_lp);
   assign header_flit_out.dest_cord = src_cord_r;
 
@@ -196,7 +196,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     write_not_read_n = write_not_read_r;
     addr_n = addr_r;
     src_cord_n = src_cord_r;
-    cid_n = cid_r;
+    src_cid_n = src_cid_r;
     mem_state_n = mem_state_r;
  
     dma_mem_v_n = '0;
@@ -219,7 +219,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
         if (wh_link_sif_in.v) begin
           write_not_read_n = header_flit_in.write_not_read;
           src_cord_n = header_flit_in.src_cord;
-          cid_n = header_flit_in.cid;
+          src_cid_n = header_flit_in.src_cid;
           mem_state_n = RECV_ADDR;
         end
       end
@@ -305,7 +305,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   else begin
     // wh ruche links coming from top and bottom caches are concentrated into one link.
     assign dma_mem_addr = {
-       (1)'(cid_r/wh_ruche_factor_p),
+       (1)'(src_cid_r/wh_ruche_factor_p),
        cord[0+:(lg_num_vcaches_lp-1)],
        addr_r[block_offset_width_lp+:dma_mem_addr_width_lp-lg_num_vcaches_lp]
     };
@@ -318,7 +318,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
       mem_state_r <= RESET;
       write_not_read_r <= 1'b0;
       src_cord_r <= '0;
-      cid_r <= '0;
+      src_cid_r <= '0;
       addr_r <= '0;
       dma_mem_v_r <= '0;
       dma_mem_w_r <= '0;      
@@ -330,7 +330,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
       mem_state_r <= mem_state_n;
       write_not_read_r <= write_not_read_n;
       src_cord_r <= src_cord_n;
-      cid_r <= cid_n;
+      src_cid_r <= src_cid_n;
       addr_r <= addr_n;
       dma_mem_v_r <= dma_mem_v_n;
       dma_mem_w_r <= dma_mem_w_n;      
@@ -352,11 +352,11 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
           end
           RECV_EVICT_DATA: begin
             $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, src_cord_r = %04x, cord = %04x, dma_mem_addr = %08x, wh_data_n = %08x, count_lo = %d, wh_data_v_n = %b, wh_data_v_r = %08x", 
-                     id_p, mem_state_r.name(), cid_r, addr_r, src_cord_r, cord, dma_mem_addr, wh_data_n, count_lo, wh_data_v_n, wh_data_v_r);
+                     id_p, mem_state_r.name(), src_cid_r, addr_r, src_cord_r, cord, dma_mem_addr, wh_data_n, count_lo, wh_data_v_n, wh_data_v_r);
           end
           default: begin
             $display("[DEBUG] WH MEM: id = %d: %s: cid = %d, addr_r = %08x, src_cord_r = %04x, cord = %04x, dma_mem_addr = %08x, piso_data_lo = %08x, count_lo = %d, dma_mem_v_r = %b, dma_data_v_r = %b",
-                     id_p, mem_state_r.name(), cid_r, addr_r, src_cord_r,cord, dma_mem_addr, piso_data_lo, count_lo, dma_mem_v_r, dma_data_v_r);
+                     id_p, mem_state_r.name(), src_cid_r, addr_r, src_cord_r,cord, dma_mem_addr, piso_data_lo, count_lo, dma_mem_v_r, dma_data_v_r);
           end
         endcase // case (mem_state_r)
       end // if (~reset_i)
