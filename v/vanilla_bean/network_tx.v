@@ -204,21 +204,31 @@ module network_tx
     int_remote_load_resp_force_o = 1'b0;
     float_remote_load_resp_v_o = 1'b0;
     float_remote_load_resp_force_o = 1'b0;
+    returned_yumi_o = 1'b0;
 
-    if (returned_pkt_type_i == e_return_ifetch) begin
-      ifetch_v_o = returned_v_i;
-      returned_yumi_o = returned_v_i;
-    end
-    else if (returned_pkt_type_i == e_return_float_wb) begin
-      float_remote_load_resp_v_o = returned_v_i;
-      float_remote_load_resp_force_o = returned_fifo_full_i;
-      returned_yumi_o = float_remote_load_resp_yumi_i | (returned_fifo_full_i);
-    end
-    else begin
-      int_remote_load_resp_v_o = returned_v_i;
-      int_remote_load_resp_force_o = returned_fifo_full_i;
-      returned_yumi_o = int_remote_load_resp_yumi_i | (returned_fifo_full_i);
-    end
+    // vanilla_core must accept ifetch right away.
+    // vanilla_core must accept writeback return if the fifo full is valid, as indicated by the force signal.
+    // The force signal being high implies that there is a valid return pkt (non-credit)
+    unique casez (returned_pkt_type_i)
+      e_return_ifetch: begin
+        ifetch_v_o = returned_v_i;
+        returned_yumi_o = returned_v_i;
+      end
+      e_return_float_wb: begin
+        float_remote_load_resp_v_o = returned_v_i;
+        float_remote_load_resp_force_o = returned_v_i  & returned_fifo_full_i;
+        returned_yumi_o = float_remote_load_resp_yumi_i;
+      end
+      e_return_int_wb: begin
+        int_remote_load_resp_v_o = returned_v_i;
+        int_remote_load_resp_force_o = returned_v_i & returned_fifo_full_i;
+        returned_yumi_o = int_remote_load_resp_yumi_i;
+      end
+      default: begin
+        // Default case covers both e_return_credit and X cases, where no data is presented to the core.
+        // Warning: returner_v_i will not be high for e_return_credit.
+      end
+    endcase
 
   end
 
@@ -236,7 +246,7 @@ module network_tx
     end
 
     // if the return fifo is full, the response has to be taken by the core at that cycle.
-    if (returned_fifo_full_i) begin
+    if (returned_v_i & returned_fifo_full_i) begin
       assert(returned_yumi_o) else $error("[ERROR][TX] Return fifo is full, but the response is not taken by the core.");
     end
 
