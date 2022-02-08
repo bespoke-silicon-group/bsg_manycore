@@ -1266,7 +1266,7 @@ module vanilla_core
   assign icache_flush = flush | icache_miss_in_pipe;
     
   // stall the pipeline when the buffered instructions are being written into the icache SRAM.
-  assign stall_icache_store = icache_write_en_r_lo;
+  assign stall_icache_store = icache_write_en_r_lo & ~mem_ctrl_r.icache_miss;
 
 
   // IF -> ID
@@ -1785,30 +1785,28 @@ module vanilla_core
   assign make_reserve = lsu_reserve_lo & ~stall_all;
   assign break_reserve = reserved_r & (reserved_addr_r == dmem_addr_li) & dmem_v_li & dmem_w_li;
 
-  // stall_ifetch_wait
-  logic ifetch_done_r;
+  // stall_ifetch_wait logic
+  logic ifetch_done, ifetch_done_r;
+  logic ifetch_done_clear, ifetch_done_set;
+
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       ifetch_done_r <= 1'b0;
     end
     else begin
-      if (ifetch_done_r) begin
-        // clear once the icache bubble moves to WB
-        if (~stall_all) begin
-          ifetch_done_r <= 1'b0;
-        end
+      if (ifetch_done_clear) begin
+        ifetch_done_r <= 1'b0;
       end
-      else begin
-        // Set done once the fetched instructions are written into the icache SRAM.
-        if (mem_ctrl_r.icache_miss & icache_write_en_r_lo) begin
-          ifetch_done_r <= 1'b1;
-        end
+      else if (ifetch_done_set) begin
+        ifetch_done_r <= 1'b1;
       end
     end
   end
-
-  assign stall_ifetch_wait = mem_ctrl_r.icache_miss & ~ifetch_done_r;
-    //~((ifetch_count_r == lg_icache_block_size_in_words_lp'(icache_block_size_in_words_p-1)) & ifetch_v_i);
+  
+  assign ifetch_done_clear = ~stall_remote_ld_wb & ~stall_remote_flw_wb;
+  assign ifetch_done_set = mem_ctrl_r.icache_miss & icache_write_en_r_lo;
+  assign ifetch_done = ifetch_done_r | ifetch_done_set;
+  assign stall_ifetch_wait = mem_ctrl_r.icache_miss & ~ifetch_done;
 
   // mem_result
   assign mem_result = imul_v_lo
@@ -1840,7 +1838,7 @@ module vanilla_core
       stall_remote_ld_wb = mem_result_valid | mem_ctrl_r.icache_miss;
       int_remote_load_resp_yumi_o = 1'b1;
     end
-    else if (mem_ctrl_r.icache_miss) begin
+    else if (mem_ctrl_r.icache_miss & ifetch_done & ~stall_remote_flw_wb) begin
       wb_ctrl_n.icache_miss = 1'b1;
     end
     else begin
