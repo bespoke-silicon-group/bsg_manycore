@@ -48,14 +48,11 @@ module icache
   );
 
   // localparam
-  //
+  // (these are all byte-sized width). 
   localparam branch_pc_low_width_lp = (RV32_Bimm_width_gp+1);
-  localparam jal_pc_low_width_lp    = (RV32_Jimm_width_gp+1);
-
+  localparam jal_pc_low_width_lp    = (RV32_Bimm_width_gp+1);
   localparam branch_pc_high_width_lp = (pc_width_lp+2) - branch_pc_low_width_lp; 
   localparam jal_pc_high_width_lp    = (pc_width_lp+2) - jal_pc_low_width_lp;
-
-  localparam icache_format_width_lp = `icache_format_width(icache_tag_width_p, icache_block_size_in_words_p);
 
   // declare icache entry struct.
   //
@@ -76,7 +73,7 @@ module icache
   logic [icache_addr_width_lp-1:0] icache_addr_li;
 
   bsg_mem_1rw_sync #(
-    .width_p(icache_format_width_lp)
+    .width_p($bits(icache_format_s))
     ,.els_p(icache_entries_p/icache_block_size_in_words_p)
     ,.latch_last_read_p(1)
   ) imem_0 (
@@ -107,7 +104,8 @@ module icache
   wire [branch_pc_low_width_lp-1:0] branch_imm_val = `RV32_Bimm_13extract(w_instr);
   wire [branch_pc_low_width_lp-1:0] branch_pc_val = branch_pc_low_width_lp'({w_pc_i, 2'b0}); 
   
-  wire [jal_pc_low_width_lp-1:0] jal_imm_val = `RV32_Jimm_21extract(w_instr);
+  wire [(RV32_Jimm_width_gp+1)-1:0] jal_imm_val = `RV32_Jimm_21extract(w_instr);
+  wire [jal_pc_low_width_lp-1:0] jal_imm_val_lower_13 = jal_imm_val[0+:jal_pc_low_width_lp];
   wire [jal_pc_low_width_lp-1:0] jal_pc_val = jal_pc_low_width_lp'({w_pc_i, 2'b0}); 
   
   logic [branch_pc_low_width_lp-1:0] branch_pc_lower_res;
@@ -115,20 +113,18 @@ module icache
   logic [jal_pc_low_width_lp-1:0] jal_pc_lower_res;
   logic jal_pc_lower_cout;
   
-  assign {branch_pc_lower_cout, branch_pc_lower_res} = {1'b0, branch_imm_val} + {1'b0, branch_pc_val};
-  assign {jal_pc_lower_cout,    jal_pc_lower_res   } = {1'b0, jal_imm_val}    + {1'b0, jal_pc_val   };
+  assign {branch_pc_lower_cout, branch_pc_lower_res} = {1'b0, branch_imm_val}       + {1'b0, branch_pc_val};
+  assign {jal_pc_lower_cout,    jal_pc_lower_res   } = {1'b0, jal_imm_val_lower_13} + {1'b0, jal_pc_val   };
   
   
   // Inject the 2-BYTE (half) address, the LSB is ignored.
   wire [RV32_instr_width_gp-1:0] injected_instr = write_branch_instr
     ? `RV32_Bimm_12inject1(w_instr, branch_pc_lower_res)
     : (write_jal_instr
-      ? `RV32_Jimm_20inject1(w_instr, jal_pc_lower_res)
+      ? `RV32_Jimm_12inject_lower(w_instr, jal_pc_lower_res)
       : w_instr);
 
-  wire imm_sign = write_branch_instr
-    ? branch_imm_val[RV32_Bimm_width_gp] 
-    : jal_imm_val[RV32_Jimm_width_gp];
+  wire imm_sign = branch_imm_val[RV32_Bimm_width_gp];
 
   wire pc_lower_cout = write_branch_instr
     ? branch_pc_lower_cout
@@ -217,9 +213,9 @@ module icache
   // Program counter
   logic [pc_width_lp-1:0] pc_r; 
   logic icache_flush_r;
+
   // Since imem has one cycle delay and we send next cycle's address, pc_n,
   // if the PC is not written, the instruction must not change.
-
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       pc_r <= '0;
@@ -240,75 +236,49 @@ module icache
   assign icache_flush_r_o = icache_flush_r;
 
 
+  // pc block offset
+  wire [icache_block_offset_width_lp-1:0] pc_block_offset = pc_r[0+:icache_block_offset_width_lp];
+
+
   // Energy-saving logic
   // - Don't read the icache if the current pc is not at the last word of the block, and 
   //   there is a hint from the next-pc logic that it is reading pc+4 next (no branch or jump).
   assign v_li = write_en_r
     ? 1'b1
-    : (v_i & ~w_i & ((&pc_r[0+:icache_block_offset_width_lp]) | ~read_pc_plus4_i));
+    : (v_i & ~w_i & (&pc_block_offset | ~read_pc_plus4_i));
   assign w_li = write_en_r;
 
+
+
+
+  // OUTPUT LOGIC
   // Merge the PC lower part and high part
   // BYTE operations
   instruction_s instr_out;
-  assign instr_out = icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]];
-  wire lower_sign_out = icache_data_lo.lower_sign[pc_r[0+:icache_block_offset_width_lp]];
-  wire lower_cout_out = icache_data_lo.lower_cout[pc_r[0+:icache_block_offset_width_lp]];
-  wire sel_pc    = ~(lower_sign_out ^ lower_cout_out); 
-  wire sel_pc_p1 = (~lower_sign_out) & lower_cout_out; 
-
-  logic [branch_pc_high_width_lp-1:0] branch_pc_high;
-  logic [jal_pc_high_width_lp-1:0] jal_pc_high;
-
-  assign branch_pc_high = pc_r[(branch_pc_low_width_lp-2)+:branch_pc_high_width_lp];
-  assign jal_pc_high = pc_r[(jal_pc_low_width_lp-2)+:jal_pc_high_width_lp];
-
-  logic [branch_pc_high_width_lp-1:0] branch_pc_high_out;
-  logic [jal_pc_high_width_lp-1:0] jal_pc_high_out;
+  assign instr_out    = icache_data_lo.instr[pc_block_offset];
+  wire lower_sign_out = icache_data_lo.lower_sign[pc_block_offset];
+  wire lower_cout_out = icache_data_lo.lower_cout[pc_block_offset];
 
 
-  // We are saving the carry-out when we are partially computing the
-  // lower-portion jump addr, as we write to the icache.
-  // When we are calculating the full jump addr, as we read back from the icache,
-  // we decide how to propagate the carry to the upper portion of the jump
-  // addr, using this table.
-  // -------------------------------------------------------------
-  // pc_lower_sign  pc_lower_cout  | pc_high-1  pc_high  pc_high+1
-  // ------------------------------+------------------------------
-  //   0              0            |            1                   
-  //   0              1            |                     1
-  //   1              0            | 1                                     
-  //   1              1            |            1 
-  // ------------------------------+------------------------------
-  //
-  always_comb begin
-    if (sel_pc) begin
-      branch_pc_high_out = branch_pc_high;
-      jal_pc_high_out = jal_pc_high;
-    end
-    else if (sel_pc_p1) begin
-      branch_pc_high_out = branch_pc_high + 1'b1;
-      jal_pc_high_out = jal_pc_high + 1'b1;
-    end
-    else begin // sel_pc_n1
-      branch_pc_high_out = branch_pc_high - 1'b1;
-      jal_pc_high_out = jal_pc_high - 1'b1;
-    end
-  end
+  // Branch target calculation
+  wire [branch_pc_high_width_lp-1:0] branch_pc_high = pc_r[(branch_pc_low_width_lp-2)+:branch_pc_high_width_lp];
+  wire [branch_pc_low_width_lp-1:0] branch_pc_low_out = `RV32_Bimm_13extract(instr_out);
+  wire [branch_pc_high_width_lp-1:0] branch_pc_high_out = branch_pc_high + {branch_pc_high_width_lp{lower_sign_out}} + lower_cout_out;
+
+  // JAL target calculation
+  wire [(RV32_Jimm_width_gp+1)-1:0] jal_imm_out = `RV32_Jimm_21extract(instr_out);
+  wire [jal_pc_high_width_lp-1:0] jal_pc_high = pc_r[(jal_pc_low_width_lp-2)+:jal_pc_high_width_lp];
+  wire [jal_pc_low_width_lp-1:0] jal_pc_low_out =  jal_imm_out[0+:jal_pc_low_width_lp];
+  wire [RV32_Jimm_width_gp-jal_pc_low_width_lp:0] jal_imm_upper = jal_imm_out[RV32_Jimm_width_gp:jal_pc_low_width_lp]; 
+  wire [jal_pc_high_width_lp-1:0] jal_imm_upper_out = `BSG_SIGN_EXTEND(jal_imm_upper, jal_pc_high_width_lp);
+  wire [jal_pc_high_width_lp-1:0] jal_pc_high_out = jal_pc_high + jal_imm_upper_out + lower_cout_out;
+
+  // these are bytes address
+  wire [pc_width_lp+2-1:0] branch_pc = {branch_pc_high_out, branch_pc_low_out};
+  wire [pc_width_lp+2-1:0] jal_pc    = {jal_pc_high_out, jal_pc_low_out};
 
   wire is_jal_instr =  instr_out.op == `RV32_JAL_OP;
   wire is_jalr_instr = instr_out.op == `RV32_JALR_OP;
-
-  // these are bytes address
-  logic [pc_width_lp+2-1:0] jal_pc;
-  logic [pc_width_lp+2-1:0] branch_pc;
-   
-  assign branch_pc = {branch_pc_high_out, `RV32_Bimm_13extract(instr_out)};
-  assign jal_pc = {jal_pc_high_out, `RV32_Jimm_21extract(instr_out)};
-
-  // assign outputs.
-  assign instr_o = instr_out;
-  assign pc_r_o = pc_r;
 
   // this is word addr.
   assign pred_or_jump_addr_o = is_jal_instr
@@ -317,10 +287,16 @@ module icache
       ? jalr_prediction_i
       : branch_pc[2+:pc_width_lp]);
 
+
+  // assign outputs.
+  assign instr_o = instr_out;
+  assign pc_r_o = pc_r;
+
   // the icache miss logic
   assign icache_miss_o = icache_data_lo.tag != pc_r[icache_block_offset_width_lp+icache_addr_width_lp+:icache_tag_width_p];
  
-  // branch imm sign
+  // Branch imm sign
+  // only used for branch instructions.
   assign branch_predicted_taken_o = lower_sign_out;
 
  
