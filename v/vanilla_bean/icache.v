@@ -139,15 +139,22 @@ module icache
 
 
   // buffered writes
-  logic [icache_block_size_in_words_p-2:0] imm_sign_r;
-  logic [icache_block_size_in_words_p-2:0] pc_lower_cout_r;
-  logic [icache_block_size_in_words_p-2:0][RV32_instr_width_gp-1:0] buffered_instr_r;
+  logic [icache_block_size_in_words_p-2:0] imm_sign_r, imm_sign_delayed;
+  logic [icache_block_size_in_words_p-2:0] pc_lower_cout_r, pc_lower_cout_delayed;
+  logic [icache_block_size_in_words_p-2:0][RV32_instr_width_gp-1:0] buffered_instr_r, buffered_instr_delayed;
+
+  bsg_dly_cell #(
+    .width_p((icache_block_size_in_words_p-1)*(2+RV32_instr_width_gp))
+  ) dly0 (
+    .i({imm_sign_r, pc_lower_cout_r, buffered_instr_r})
+    ,.o({imm_sign_delayed, pc_lower_cout_delayed, buffered_instr_delayed})
+  );
 
   assign icache_data_li = '{
-    lower_sign : {imm_sign, imm_sign_r},
-    lower_cout : {pc_lower_cout, pc_lower_cout_r},
+    lower_sign : {imm_sign, imm_sign_delayed},
+    lower_cout : {pc_lower_cout, pc_lower_cout_delayed},
     tag        : w_tag,
-    instr      : {injected_instr, buffered_instr_r}
+    instr      : {injected_instr, buffered_instr_delayed}
   };
 
 
