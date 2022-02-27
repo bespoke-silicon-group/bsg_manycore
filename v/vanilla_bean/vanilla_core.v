@@ -1585,7 +1585,7 @@ module vanilla_core
 
     if (stall_all) begin
       exe_en = 1'b0;
-      exe_clear = 1'b1;
+      exe_clear = 1'b0;
     end
     else begin
       if (flush | stall_id) begin
