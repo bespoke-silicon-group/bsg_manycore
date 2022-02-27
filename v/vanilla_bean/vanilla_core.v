@@ -130,6 +130,7 @@ module vanilla_core
   // data signals are not reset to zero.
   logic id_en, exe_en, mem_ctrl_en, mem_data_en,
         fp_exe_ctrl_en, fp_exe_data_en, flw_wb_ctrl_en, flw_wb_data_en;
+  logic exe_clear;
   id_signals_s id_r, id_n;
   exe_signals_s exe_r, exe_n;
   mem_ctrl_signals_s mem_ctrl_r, mem_ctrl_n;
@@ -622,16 +623,14 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  bsg_dff_reset_en #(
-    .width_p($bits(exe_signals_s))
-  ) exe_pipeline (
+  exe_pipeline exe_pipeline0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
     ,.en_i(exe_en)
-    ,.data_i(exe_n)
-    ,.data_o(exe_r)
+    ,.clear_i(exe_clear)
+    ,.exe_i(exe_n)
+    ,.exe_o(exe_r)
   );
-
 
 
   // ALU
@@ -1563,7 +1562,6 @@ module vanilla_core
   assign stall_barrier = id_r.decode.is_barrecv_op & (barrier_data_i != barrier_data_o);
 
   // ID -> EXE
-  // update npc_r, when the pipeline is not stalled, and there is a valid instruction in EXE/FP_EXE;
   always_comb begin
     // common case
     exe_n = '{
@@ -1587,18 +1585,18 @@ module vanilla_core
 
     if (stall_all) begin
       exe_en = 1'b0;
-      npc_write_en = 1'b0;
+      exe_clear = 1'b1;
     end
     else begin
-      npc_write_en = (exe_r.valid & mstatus_r.mie) | exe_r.decode.is_mret_op;
       if (flush | stall_id) begin
-        exe_en = 1'b1;
-        exe_n = '0;
+        exe_en = 1'b0;
+        exe_clear = 1'b1;
       end
       else if (id_r.decode.is_fp_op) begin
         // for fp_op, we still want to keep track of npc_r.
         // so we set the valid and pc_plus4.
         exe_en = 1'b1;
+        exe_clear = 1'b0;
         exe_n = '{
           pc_plus4: id_r.pc_plus4,
           valid: id_r.valid,
@@ -1614,9 +1612,13 @@ module vanilla_core
       end
       else begin
         exe_en = 1'b1;
+        exe_clear = 1'b0;
       end
     end
   end
+
+  // update npc_r, when the pipeline is not stalled, and there is a valid instruction in EXE/FP_EXE;
+  assign npc_write_en = ((exe_r.valid & mstatus_r.mie) | exe_r.decode.is_mret_op) & ~stall_all;
 
   // idiv input control
   assign idiv_v_li = exe_r.decode.is_idiv_op & ~stall_all;
