@@ -29,7 +29,7 @@ module exe_pipeline
   wire pred_or_jump_addr_en = en_i & (exe_i.decode.is_branch_op | exe_i.decode.is_jal_op | exe_i.decode.is_jalr_op);
   wire instr_en = en_i;
   wire rs1_val_en = en_i & exe_i.decode.read_rs1;
-  wire rs2_val_en = en_i & exe_i.decode.read_rs2;
+  wire rs2_val_en = en_i & (exe_i.decode.read_rs2 | exe_i.decode.is_csr_op);
   wire mem_addr_op2_en = en_i & (exe_i.decode.is_load_op | exe_i.decode.is_store_op
                             | exe_i.decode.is_lr_op | exe_i.decode.is_lr_aq_op | exe_i.decode.is_amo_op);
 
