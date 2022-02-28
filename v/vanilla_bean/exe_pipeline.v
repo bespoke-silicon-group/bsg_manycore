@@ -1,7 +1,8 @@
 /**
  *    exe_pipeline.v
  *
- *    This module implements a reset, clear, clock-gating logic (business logic) at a struct-field level for energy-saving.
+ *    This module instantiates flops for the EXE pipeline,
+ *    and implements reset, clear, clock-gating logic (business logic) for each field.
  *
  */
 
