@@ -1961,9 +1961,9 @@ module vanilla_core
 
 
   // Backend Clk Enable logic
-  wire all_bubble = ~(exe_r.valid | exe_r.icache_miss)
-                  & ~(mem_ctrl_r.write_rd | mem_ctrl_r.write_frd | mem_ctrl_r.icache_miss)
-                  & ~(wb_ctrl_r.write_rd | wb_ctrl_r.icache_miss)
+  wire all_bubble = ~(exe_r.valid)
+                  & ~(mem_ctrl_r.write_rd | mem_ctrl_r.write_frd)
+                  & ~(wb_ctrl_r.write_rd)
                   & ~(fp_exe_ctrl_r.fp_decode.is_fpu_float_op
                       | fp_exe_ctrl_r.fp_decode.is_fpu_int_op
                       | fp_exe_ctrl_r.fp_decode.is_fdiv_op
@@ -1973,10 +1973,17 @@ module vanilla_core
                   & ~flw_wb_ctrl_r.valid;
 
 
-  assign clk_backend_en = reset_i | ~stall_id | ~all_bubble 
-                        | int_remote_load_resp_v_i | float_remote_load_resp_v_i 
-                        | idiv_v_lo | fdiv_fsqrt_v_lo;
+  // When to disable backend clk?
+  // 1) pipeline is in stall ID, and it's filled up with bubbles.
+  // 2) icache bubble is in MEM, and it's waiting on ifetch.
+  assign clk_backend_en = reset_i
+                        | int_remote_load_resp_v_i
+                        | float_remote_load_resp_v_i 
+                        | idiv_v_lo | fdiv_fsqrt_v_lo
+                        | ifetch_v_i
+                        | ~((stall_id & all_bubble) | mem_ctrl_r.icache_miss);
 
+  
 
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin
