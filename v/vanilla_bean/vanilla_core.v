@@ -112,6 +112,17 @@ module vanilla_core
     , input [y_cord_width_p-1:0] global_y_i
   );
 
+
+  // Pipeline Frontend ICG
+  logic clk_frontend_lo;
+  logic clk_frontend_en;
+  bsg_icg_pos icg_fe0 (
+    .clk_i(clk_i)
+    ,.en_i(clk_frontend_en)
+    ,.clk_o(clk_frontend_lo)
+  );
+
+
   // Pipeline Backend ICG
   logic clk_backend_lo;
   logic clk_backend_en;
@@ -174,7 +185,7 @@ module vanilla_core
     ,.icache_entries_p(icache_entries_p)
     ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
   ) icache0 (
-    .clk_i(clk_i)
+    .clk_i(clk_frontend_lo)
     ,.network_reset_i(network_reset_i)
     ,.reset_i(reset_i)
    
@@ -262,7 +273,7 @@ module vanilla_core
     ,.num_rs_p(2)
     ,.x0_tied_to_zero_p(1)
   ) int_rf (
-    .clk_i(clk_i)
+    .clk_i(clk_frontend_lo)
     ,.reset_i(reset_i)
 
     ,.w_v_i(int_rf_wen)
@@ -289,7 +300,7 @@ module vanilla_core
     ,.num_clear_port_p(1)
     ,.x0_tied_to_zero_p(1)
   ) int_sb (
-    .clk_i(clk_i)
+    .clk_i(clk_frontend_lo)
     ,.reset_i(reset_i)
   
     ,.src_id_i({id_r.instruction.rs2, id_r.instruction.rs1})
@@ -323,7 +334,7 @@ module vanilla_core
     ,.num_rs_p(3)
     ,.x0_tied_to_zero_p(0)
   ) float_rf (
-    .clk_i(clk_i)
+    .clk_i(clk_frontend_lo)
     ,.reset_i(reset_i)
 
     ,.w_v_i(float_rf_wen)
@@ -350,7 +361,7 @@ module vanilla_core
     ,.num_src_port_p(3)
     ,.num_clear_port_p(1)
   ) float_sb (
-    .clk_i(clk_i)
+    .clk_i(clk_frontend_lo)
     ,.reset_i(reset_i)
   
     ,.src_id_i({id_r.instruction[31:27], id_r.instruction.rs2, id_r.instruction.rs1})
@@ -382,7 +393,7 @@ module vanilla_core
   frm_e frm_r;
 
   fcsr fcsr0 (
-    .clk_i(clk_i)
+    .clk_i(clk_frontend_lo)
     ,.reset_i(reset_i)
     
     ,.v_i(fcsr_v_li)
@@ -424,7 +435,7 @@ module vanilla_core
     ,.cfg_pod_width_p(pod_y_cord_width_p+pod_x_cord_width_p)
     ,.barrier_dirs_p(barrier_dirs_p)
   ) mcsr0 (
-    .clk_i(clk_i)
+    .clk_i(clk_frontend_lo)
     ,.reset_i(reset_i)
 
     ,.remote_interrupt_set_i(remote_interrupt_set_i)
@@ -1959,6 +1970,13 @@ module vanilla_core
   assign stall_fpu1_li = stall_all;
   assign stall_fpu2_li = stall_remote_flw_wb;
 
+
+  // Frontend Clk Enable logic
+  assign clk_frontend_en = reset_i
+                         | ifetch_v_i
+                         | icache_v_i
+                         | ~(stall_id | stall_all);
+  
 
   // Backend Clk Enable logic
   wire all_bubble = ~(exe_r.valid)
