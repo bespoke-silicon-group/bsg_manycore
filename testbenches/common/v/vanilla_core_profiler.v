@@ -104,8 +104,15 @@ module vanilla_core_profiler
 
   // task to print a line of operation trace
   task print_operation_trace(string op, logic [data_width_p-1:0] pc);
-    integer fd = $root.`HOST_MODULE_PATH.vanilla_trace_fd;    
-    $fwrite(fd, "%0d,%0d,%0d,%0h,%s\n", global_ctr_i, global_x_i - origin_x_cord_p, global_y_i - origin_y_cord_p, pc, op);
+    $fwrite
+      ($root.`HOST_MODULE_PATH.vanilla_trace_fd
+       , "%0d,%0d,%0d,%0h,%s\n"
+       , global_ctr_i
+       , global_x_i - origin_x_cord_p
+       , global_y_i - origin_y_cord_p
+       , pc
+       , op
+       );
   endtask
 
 
