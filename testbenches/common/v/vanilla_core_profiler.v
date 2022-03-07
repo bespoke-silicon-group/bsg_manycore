@@ -103,7 +103,8 @@ module vanilla_core_profiler
   assign print_stat_tag = print_stat_tag_i;
 
   // task to print a line of operation trace
-  task print_operation_trace(integer fd, string op, logic [data_width_p-1:0] pc);
+  task print_operation_trace(string op, logic [data_width_p-1:0] pc);
+    integer fd = $root.`HOST_MODULE_PATH.vanilla_trace_fd;    
     $fwrite(fd, "%0d,%0d,%0d,%0h,%s\n", global_ctr_i, global_x_i - origin_x_cord_p, global_y_i - origin_y_cord_p, pc, op);
   endtask
 
@@ -1239,145 +1240,145 @@ module vanilla_core_profiler
         // trace logging
         if (~reset_i & trace_en_i) begin
              
-          if (fadd_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fadd", fp_exe_pc_r);
-          else if (fsub_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fsub", fp_exe_pc_r);
-          else if (fmul_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fmul", fp_exe_pc_r);
-          else if (fsgnj_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fsgnj", fp_exe_pc_r);
-          else if (fsgnjn_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fsgnjn", fp_exe_pc_r);
-          else if (fsgnjx_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fsgnjx", fp_exe_pc_r);
-          else if (fmin_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fmin", fp_exe_pc_r);
-          else if (fmax_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fmax", fp_exe_pc_r);
-          else if (fcvt_s_w_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fcvt_s_w", fp_exe_pc_r);
-          else if (fcvt_s_wu_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fcvt_s_wu", fp_exe_pc_r);
-          else if (fmv_w_x_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fmv_w_x", fp_exe_pc_r);
-          else if (fmadd_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fmadd", fp_exe_pc_r);
-          else if (fmsub_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fmsub", fp_exe_pc_r);
-          else if (fnmsub_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fnmsub", fp_exe_pc_r);
-          else if (fnmadd_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fnmadd", fp_exe_pc_r);
+          if (fadd_inc) print_operation_trace("fadd", fp_exe_pc_r);
+          else if (fsub_inc) print_operation_trace("fsub", fp_exe_pc_r);
+          else if (fmul_inc) print_operation_trace("fmul", fp_exe_pc_r);
+          else if (fsgnj_inc) print_operation_trace("fsgnj", fp_exe_pc_r);
+          else if (fsgnjn_inc) print_operation_trace("fsgnjn", fp_exe_pc_r);
+          else if (fsgnjx_inc) print_operation_trace("fsgnjx", fp_exe_pc_r);
+          else if (fmin_inc) print_operation_trace("fmin", fp_exe_pc_r);
+          else if (fmax_inc) print_operation_trace("fmax", fp_exe_pc_r);
+          else if (fcvt_s_w_inc) print_operation_trace("fcvt_s_w", fp_exe_pc_r);
+          else if (fcvt_s_wu_inc) print_operation_trace("fcvt_s_wu", fp_exe_pc_r);
+          else if (fmv_w_x_inc) print_operation_trace("fmv_w_x", fp_exe_pc_r);
+          else if (fmadd_inc) print_operation_trace("fmadd", fp_exe_pc_r);
+          else if (fmsub_inc) print_operation_trace("fmsub", fp_exe_pc_r);
+          else if (fnmsub_inc) print_operation_trace("fnmsub", fp_exe_pc_r);
+          else if (fnmadd_inc) print_operation_trace("fnmadd", fp_exe_pc_r);
 
-          else if (feq_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "feq", exe_pc);
-          else if (flt_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "flt", exe_pc);
-          else if (fle_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fle", exe_pc);
-          else if (fcvt_w_s_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fcvt_w_s", exe_pc);
-          else if (fcvt_wu_s_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fcvt_wu_s", exe_pc);
-          else if (fclass_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fclass", exe_pc);
-          else if (fmv_x_w_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fmv_x_w", exe_pc);
+          else if (feq_inc) print_operation_trace("feq", exe_pc);
+          else if (flt_inc) print_operation_trace("flt", exe_pc);
+          else if (fle_inc) print_operation_trace("fle", exe_pc);
+          else if (fcvt_w_s_inc) print_operation_trace("fcvt_w_s", exe_pc);
+          else if (fcvt_wu_s_inc) print_operation_trace("fcvt_wu_s", exe_pc);
+          else if (fclass_inc) print_operation_trace("fclass", exe_pc);
+          else if (fmv_x_w_inc) print_operation_trace("fmv_x_w", exe_pc);
 
-          else if (fdiv_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fdiv", exe_pc);
-          else if (fsqrt_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fsqrt", exe_pc);
+          else if (fdiv_inc) print_operation_trace("fdiv", exe_pc);
+          else if (fsqrt_inc) print_operation_trace("fsqrt", exe_pc);
 
-          else if (local_ld_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "local_ld", exe_pc);
-          else if (local_st_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "local_st", exe_pc);
-          else if (remote_ld_dram_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_ld_dram", exe_pc);
-          else if (remote_ld_global_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_ld_global", exe_pc);
-          else if (remote_ld_group_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_ld_group", exe_pc);
-          else if (remote_st_dram_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_st_dram", exe_pc);
-          else if (remote_st_global_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_st_global", exe_pc);
-          else if (remote_st_group_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_st_group", exe_pc);
+          else if (local_ld_inc) print_operation_trace("local_ld", exe_pc);
+          else if (local_st_inc) print_operation_trace("local_st", exe_pc);
+          else if (remote_ld_dram_inc) print_operation_trace("remote_ld_dram", exe_pc);
+          else if (remote_ld_global_inc) print_operation_trace("remote_ld_global", exe_pc);
+          else if (remote_ld_group_inc) print_operation_trace("remote_ld_group", exe_pc);
+          else if (remote_st_dram_inc) print_operation_trace("remote_st_dram", exe_pc);
+          else if (remote_st_global_inc) print_operation_trace("remote_st_global", exe_pc);
+          else if (remote_st_group_inc) print_operation_trace("remote_st_group", exe_pc);
 
-          else if (local_flw_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "local_flw", exe_pc);
-          else if (local_fsw_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "local_fsw", exe_pc);
-          else if (remote_flw_dram_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_flw_dram", exe_pc);
-          else if (remote_flw_global_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_flw_global", exe_pc);
-          else if (remote_flw_group_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_flw_group", exe_pc);
-          else if (remote_fsw_dram_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_fsw_dram", exe_pc);
-          else if (remote_fsw_global_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_fsw_global", exe_pc);
-          else if (remote_fsw_group_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remote_fsw_group", exe_pc);
+          else if (local_flw_inc) print_operation_trace("local_flw", exe_pc);
+          else if (local_fsw_inc) print_operation_trace("local_fsw", exe_pc);
+          else if (remote_flw_dram_inc) print_operation_trace("remote_flw_dram", exe_pc);
+          else if (remote_flw_global_inc) print_operation_trace("remote_flw_global", exe_pc);
+          else if (remote_flw_group_inc) print_operation_trace("remote_flw_group", exe_pc);
+          else if (remote_fsw_dram_inc) print_operation_trace("remote_fsw_dram", exe_pc);
+          else if (remote_fsw_global_inc) print_operation_trace("remote_fsw_global", exe_pc);
+          else if (remote_fsw_group_inc) print_operation_trace("remote_fsw_group", exe_pc);
 
-          else if (icache_miss_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "icache_miss", exe_pc);
-          else if (lr_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "lr", exe_pc);
-          else if (lr_aq_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "lr_aq", exe_pc);
-          else if (amoswap_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "amoswap", exe_pc);
-          else if (amoor_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "amoor", exe_pc); 
-          else if (amoadd_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "amoadd", exe_pc); 
+          else if (icache_miss_inc) print_operation_trace("icache_miss", exe_pc);
+          else if (lr_inc) print_operation_trace("lr", exe_pc);
+          else if (lr_aq_inc) print_operation_trace("lr_aq", exe_pc);
+          else if (amoswap_inc) print_operation_trace("amoswap", exe_pc);
+          else if (amoor_inc) print_operation_trace("amoor", exe_pc); 
+          else if (amoadd_inc) print_operation_trace("amoadd", exe_pc); 
 
-          else if (beq_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "beq", exe_pc);
-          else if (bne_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bne", exe_pc);
-          else if (blt_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "blt", exe_pc);
-          else if (bge_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bge", exe_pc);
-          else if (bltu_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bltu", exe_pc);
-          else if (bgeu_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bgeu", exe_pc);
-          else if (jal_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "jal", exe_pc);
-          else if (jalr_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "jalr", exe_pc);
+          else if (beq_inc) print_operation_trace("beq", exe_pc);
+          else if (bne_inc) print_operation_trace("bne", exe_pc);
+          else if (blt_inc) print_operation_trace("blt", exe_pc);
+          else if (bge_inc) print_operation_trace("bge", exe_pc);
+          else if (bltu_inc) print_operation_trace("bltu", exe_pc);
+          else if (bgeu_inc) print_operation_trace("bgeu", exe_pc);
+          else if (jal_inc) print_operation_trace("jal", exe_pc);
+          else if (jalr_inc) print_operation_trace("jalr", exe_pc);
 
-          else if (beq_miss_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "beq_miss", exe_pc);
-          else if (bne_miss_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bne_miss", exe_pc);
-          else if (blt_miss_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "blt_miss", exe_pc);
-          else if (bge_miss_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bge_miss", exe_pc);
-          else if (bltu_miss_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bltu_miss", exe_pc);
-          else if (bgeu_miss_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bgeu_miss", exe_pc);
-          else if (jalr_miss_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "jalr_miss", exe_pc);
+          else if (beq_miss_inc) print_operation_trace("beq_miss", exe_pc);
+          else if (bne_miss_inc) print_operation_trace("bne_miss", exe_pc);
+          else if (blt_miss_inc) print_operation_trace("blt_miss", exe_pc);
+          else if (bge_miss_inc) print_operation_trace("bge_miss", exe_pc);
+          else if (bltu_miss_inc) print_operation_trace("bltu_miss", exe_pc);
+          else if (bgeu_miss_inc) print_operation_trace("bgeu_miss", exe_pc);
+          else if (jalr_miss_inc) print_operation_trace("jalr_miss", exe_pc);
      
-          else if (sll_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "sll", exe_pc); 
-          else if (slli_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "slli", exe_pc); 
-          else if (srl_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "srl", exe_pc); 
-          else if (srli_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "srli", exe_pc); 
-          else if (sra_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "sra", exe_pc); 
-          else if (srai_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "srai", exe_pc); 
+          else if (sll_inc) print_operation_trace("sll", exe_pc); 
+          else if (slli_inc) print_operation_trace("slli", exe_pc); 
+          else if (srl_inc) print_operation_trace("srl", exe_pc); 
+          else if (srli_inc) print_operation_trace("srli", exe_pc); 
+          else if (sra_inc) print_operation_trace("sra", exe_pc); 
+          else if (srai_inc) print_operation_trace("srai", exe_pc); 
 
-          else if (add_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "add", exe_pc);
-          else if (addi_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "addi", exe_pc);
-          else if (sub_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "sub", exe_pc);
-          else if (lui_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "lui", exe_pc);
-          else if (auipc_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "auipc", exe_pc);
-          else if (xor_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "xor", exe_pc);
-          else if (xori_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "xori", exe_pc);
-          else if (or_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "or", exe_pc);
-          else if (ori_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "ori", exe_pc);
-          else if (and_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "and", exe_pc);
-          else if (andi_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "andi", exe_pc);
-          else if (slt_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "slt", exe_pc);
-          else if (slti_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "slti", exe_pc);
-          else if (sltu_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "sltu", exe_pc);
-          else if (sltiu_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "sltiu", exe_pc);
+          else if (add_inc) print_operation_trace("add", exe_pc);
+          else if (addi_inc) print_operation_trace("addi", exe_pc);
+          else if (sub_inc) print_operation_trace("sub", exe_pc);
+          else if (lui_inc) print_operation_trace("lui", exe_pc);
+          else if (auipc_inc) print_operation_trace("auipc", exe_pc);
+          else if (xor_inc) print_operation_trace("xor", exe_pc);
+          else if (xori_inc) print_operation_trace("xori", exe_pc);
+          else if (or_inc) print_operation_trace("or", exe_pc);
+          else if (ori_inc) print_operation_trace("ori", exe_pc);
+          else if (and_inc) print_operation_trace("and", exe_pc);
+          else if (andi_inc) print_operation_trace("andi", exe_pc);
+          else if (slt_inc) print_operation_trace("slt", exe_pc);
+          else if (slti_inc) print_operation_trace("slti", exe_pc);
+          else if (sltu_inc) print_operation_trace("sltu", exe_pc);
+          else if (sltiu_inc) print_operation_trace("sltiu", exe_pc);
 
-          else if (div_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "div", exe_pc);
-          else if (divu_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "divu", exe_pc);
-          else if (rem_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "rem", exe_pc);
-          else if (remu_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "remu", exe_pc);
-          else if (mul_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "mul", exe_pc);
+          else if (div_inc) print_operation_trace("div", exe_pc);
+          else if (divu_inc) print_operation_trace("divu", exe_pc);
+          else if (rem_inc) print_operation_trace("rem", exe_pc);
+          else if (remu_inc) print_operation_trace("remu", exe_pc);
+          else if (mul_inc) print_operation_trace("mul", exe_pc);
 
-          else if (fence_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "fence", exe_pc);
+          else if (fence_inc) print_operation_trace("fence", exe_pc);
 
-          else if (csrrw_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "csrrw", exe_pc);
-          else if (csrrs_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "csrrs", exe_pc);
-          else if (csrrc_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "csrrc", exe_pc);
-          else if (csrrwi_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "csrrwi", exe_pc);
-          else if (csrrsi_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "csrrsi", exe_pc);
-          else if (csrrci_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "csrrci", exe_pc);
+          else if (csrrw_inc) print_operation_trace("csrrw", exe_pc);
+          else if (csrrs_inc) print_operation_trace("csrrs", exe_pc);
+          else if (csrrc_inc) print_operation_trace("csrrc", exe_pc);
+          else if (csrrwi_inc) print_operation_trace("csrrwi", exe_pc);
+          else if (csrrsi_inc) print_operation_trace("csrrsi", exe_pc);
+          else if (csrrci_inc) print_operation_trace("csrrci", exe_pc);
 
-          else if (barsend_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "barsend", exe_pc);
-          else if (barrecv_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "barrecv", exe_pc);
+          else if (barsend_inc) print_operation_trace("barsend", exe_pc);
+          else if (barrecv_inc) print_operation_trace("barrecv", exe_pc);
 
           // Traces that can be attributed to stall_all should have higher priority of being printed
           // than stall_id, flush traces.
-          else if (stall_remote_ld_wb) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_remote_ld_wb", exe_pc);
-          else if (stall_ifetch_wait) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_ifetch_wait", exe_pc);
-          else if (stall_remote_flw_wb) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_remote_flw_wb", exe_pc);
+          else if (stall_remote_ld_wb) print_operation_trace("stall_remote_ld_wb", exe_pc);
+          else if (stall_ifetch_wait) print_operation_trace("stall_ifetch_wait", exe_pc);
+          else if (stall_remote_flw_wb) print_operation_trace("stall_remote_flw_wb", exe_pc);
 
           // flush/bubble, stall_id traces
-          else if (branch_miss_bubble_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bubble_branch_miss", exe_bubble_pc_r);
-          else if (jalr_miss_bubble_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bubble_jalr_miss", exe_bubble_pc_r);
-          else if (icache_miss_bubble_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "bubble_icache_miss", exe_bubble_pc_r);
-          else if (stall_depend_dram_load_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_depend_dram_load", exe_bubble_pc_r);
-          else if (stall_depend_group_load_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_depend_group_load", exe_bubble_pc_r);
-          else if (stall_depend_global_load_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_depend_global_load", exe_bubble_pc_r);
-          else if (stall_depend_idiv_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_depend_idiv", exe_bubble_pc_r);
-          else if (stall_depend_fdiv_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_depend_fdiv", exe_bubble_pc_r);
-          else if (stall_depend_local_load_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_depend_local_load", exe_bubble_pc_r);
-          else if (stall_depend_imul_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_depend_imul", exe_bubble_pc_r);
-          else if (stall_amo_aq_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_amo_aq", exe_bubble_pc_r);
-          else if (stall_amo_rl_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_amo_rl", exe_bubble_pc_r);
-          else if (stall_bypass_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_bypass", exe_bubble_pc_r);
-          else if (stall_lr_aq_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_lr_aq", exe_bubble_pc_r);
-          else if (stall_fence_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_fence", exe_bubble_pc_r);
-          else if (stall_remote_req_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_remote_req", exe_bubble_pc_r);
-          else if (stall_remote_credit_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_remote_credit", exe_bubble_pc_r);
-          else if (stall_fdiv_busy_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_fdiv_busy", exe_bubble_pc_r);
-          else if (stall_idiv_busy_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_idiv_busy", exe_bubble_pc_r);
-          else if (stall_fcsr_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_fcsr", exe_bubble_pc_r);
-          else if (stall_barrier_inc) print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "stall_barrier", exe_bubble_pc_r);
-          else print_operation_trace($root.`HOST_MODULE_PATH.vanilla_trace_fd, "unknown", 0);
+          else if (branch_miss_bubble_inc) print_operation_trace("bubble_branch_miss", exe_bubble_pc_r);
+          else if (jalr_miss_bubble_inc) print_operation_trace("bubble_jalr_miss", exe_bubble_pc_r);
+          else if (icache_miss_bubble_inc) print_operation_trace("bubble_icache_miss", exe_bubble_pc_r);
+          else if (stall_depend_dram_load_inc) print_operation_trace("stall_depend_dram_load", exe_bubble_pc_r);
+          else if (stall_depend_group_load_inc) print_operation_trace("stall_depend_group_load", exe_bubble_pc_r);
+          else if (stall_depend_global_load_inc) print_operation_trace("stall_depend_global_load", exe_bubble_pc_r);
+          else if (stall_depend_idiv_inc) print_operation_trace("stall_depend_idiv", exe_bubble_pc_r);
+          else if (stall_depend_fdiv_inc) print_operation_trace("stall_depend_fdiv", exe_bubble_pc_r);
+          else if (stall_depend_local_load_inc) print_operation_trace("stall_depend_local_load", exe_bubble_pc_r);
+          else if (stall_depend_imul_inc) print_operation_trace("stall_depend_imul", exe_bubble_pc_r);
+          else if (stall_amo_aq_inc) print_operation_trace("stall_amo_aq", exe_bubble_pc_r);
+          else if (stall_amo_rl_inc) print_operation_trace("stall_amo_rl", exe_bubble_pc_r);
+          else if (stall_bypass_inc) print_operation_trace("stall_bypass", exe_bubble_pc_r);
+          else if (stall_lr_aq_inc) print_operation_trace("stall_lr_aq", exe_bubble_pc_r);
+          else if (stall_fence_inc) print_operation_trace("stall_fence", exe_bubble_pc_r);
+          else if (stall_remote_req_inc) print_operation_trace("stall_remote_req", exe_bubble_pc_r);
+          else if (stall_remote_credit_inc) print_operation_trace("stall_remote_credit", exe_bubble_pc_r);
+          else if (stall_fdiv_busy_inc) print_operation_trace("stall_fdiv_busy", exe_bubble_pc_r);
+          else if (stall_idiv_busy_inc) print_operation_trace("stall_idiv_busy", exe_bubble_pc_r);
+          else if (stall_fcsr_inc) print_operation_trace("stall_fcsr", exe_bubble_pc_r);
+          else if (stall_barrier_inc) print_operation_trace("stall_barrier", exe_bubble_pc_r);
+          else print_operation_trace("unknown", 0);
 
         end
    end // always @ (negedge clk_i)
