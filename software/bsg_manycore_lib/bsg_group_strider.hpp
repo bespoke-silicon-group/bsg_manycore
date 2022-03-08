@@ -18,6 +18,12 @@
 //    bsg_tile_group_strider<bsg_tiles_X, 1, bsg_tiles_Y, 1, int> stride_y(foo, 0, 0);
 //
 // Use the stride() method to get an updated pointer after construction.
+//
+// When the strider reaches the end of a tile group it wraps back
+// around to 0 -- i.e. mod.
+
+// NOTE: THIS STRIDER ONLY WORKS WITH TILE GROUPS THAT ARE A POWER OF
+// TWO IN THE DIMENSION(S) OF STRIDING.
 
 #ifndef __BSG_GROUP_STRIDER
 #define __BSG_GROUP_STRIDER
@@ -33,6 +39,9 @@
 #define BSG_TILE_GROUP_LOG_X_DIM ((int)(log2(BSG_TILE_GROUP_X_DIM)))
 
 #define MAKE_MASK(WIDTH) ((1UL << (WIDTH)) - 1UL)
+// TG_X/Y -- Tile Group X/Y Dimension
+// S_X/Y -- Number of tiles to stride X/Y dimension
+// T -- Type of underlying pointer.
 template<unsigned int TG_X, unsigned int S_X, unsigned int TG_Y, unsigned int S_Y, typename T>
 class bsg_tile_group_strider{
         static const unsigned int GROUP_EPA_WIDTH = REMOTE_EPA_WIDTH;
@@ -50,8 +59,8 @@ class bsg_tile_group_strider{
 protected:
 public:
         T *ptr;
-        // x_off and y_off are starting tile offsets in the horizontal
-        // and vertical directions.
+        // x/y_off starting stride offsets in the horizontal and
+        // vertical directions.
         bsg_tile_group_strider(T *p, int x_off, int y_off){
                 ptr =(T*)( ((1 << GROUP_PREFIX_SHIFT)
                             | (y_off << GROUP_Y_COORD_SHIFT)
@@ -59,6 +68,8 @@ public:
                             | ((unsigned int) p)));
         }
 
+        // Execute a stride operation and return a pointer to the new
+        // location.
         T* stride(){
                 if(S_X == 0){
                         return ptr = (T*)(((unsigned int) ptr + Y_STRIDE) & Y_MASK);

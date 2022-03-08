@@ -25,22 +25,24 @@ int main()
         if ((__bsg_x == 0) && (__bsg_y == 0)) {
 
                 // Stride vertically between tiles
-                for (int i = 1; i < bsg_tiles_Y; i++){
+                for (int i = 1; i <= bsg_tiles_Y; i++){
                         int cur = *stride_y.stride();
                         bsg_printf("Tile (%d, %d) @ Tile (%d, %d), __bsg_y = %d\n", __bsg_y, __bsg_x, i, 0, cur);
-                        if(i != cur)
+                        // The strider will wrap around to 0 at the edge of the tile group
+                        if((i % bsg_tiles_Y) != cur)
                                 bsg_fail();
                 }
 
                 // Stride horizontally
-                for (int i = 1; i < bsg_tiles_X; i++){
+                for (int i = 1; i <= bsg_tiles_X; i++){
                         int cur = *stride_x.stride();
                         bsg_printf("Tile (%d, %d) @ Tile (%d, %d), __bsg_y = %d\n", __bsg_y, __bsg_x, 0, i, cur);
-                        if(i != cur)
+                        // The strider will wrap around to 0 at the edge of the tile group
+                        if((i % bsg_tiles_X) != cur)
                                 bsg_fail();
                 }
 
-                // Stride diagonally
+                // Stride diagonally, no wrap 
                 int lim = std::min(bsg_tiles_X, bsg_tiles_Y);
                 for (int i = 1; i < lim; i++){
                         int cur = *stride_xy.stride();
