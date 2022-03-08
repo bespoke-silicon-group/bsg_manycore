@@ -70,6 +70,33 @@ module remote_load_trace
     , input [31:0] global_ctr_i
   );
 
+  import "DPI-C" context function
+    void remote_load_profiler_init(int trace_fd);
+  import "DPI-C" context function
+    void remote_load_profiler_exit();
+  import "DPI-C" context function
+    int remote_load_profiler_is_init();
+  import "DPI-C" context function
+    int remote_load_profiler_is_exit();
+  import "DPI-C" context function
+    int remote_load_profiler_trace_fd();
+
+  initial begin
+    if (remote_load_profiler_is_init() == 0) begin
+      int trace_fd = $fopen("remote_load_trace.csv", "w");
+      $fwrite(trace_fd, "start_cycle,end_cycle,src_x,src_y,dest_x,dest_y,type,latency\n");
+      remote_load_profiler_init(trace_fd);
+    end
+  end
+
+  final begin
+    if (remote_load_profiler_is_exit() == 0) begin
+      $fclose(remote_load_profiler_trace_fd());
+      remote_load_profiler_exit();
+    end
+  end
+
+
   wire [x_cord_width_p-1:0] global_x = {pod_x_i, my_x_i};
   wire [y_cord_width_p-1:0] global_y = {pod_y_i, my_y_i};
 
@@ -163,7 +190,7 @@ module remote_load_trace
         case (returned_pkt_type_i)
 
           e_return_int_wb: begin
-            $fwrite($root.`HOST_MODULE_PATH.remote_trace_fd,"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
+            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
               int_rl_status_r[returned_reg_id_i].start_cycle,
               global_ctr_i,
               global_x,
@@ -176,7 +203,7 @@ module remote_load_trace
           end
 
           e_return_float_wb: begin
-            $fwrite($root.`HOST_MODULE_PATH.remote_trace_fd,"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
+            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
               float_rl_status_r[returned_reg_id_i].start_cycle,
               global_ctr_i,
               global_x,
@@ -189,7 +216,7 @@ module remote_load_trace
 
           end
           e_return_ifetch: begin
-            $fwrite($root.`HOST_MODULE_PATH.remote_trace_fd,"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
+            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
               icache_status_r.start_cycle,
               global_ctr_i,
               global_x,
