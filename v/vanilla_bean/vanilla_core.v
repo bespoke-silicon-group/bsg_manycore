@@ -135,7 +135,7 @@ module vanilla_core
   // pipeline signals
   // ctrl signals set to zero when reset_i is high.
   // data signals are not reset to zero.
-  logic id_en, exe_en, mem_ctrl_en, mem_data_en,
+  logic id_en, exe_en, exe_clear, mem_ctrl_en, mem_data_en,
         fp_exe_ctrl_en, fp_exe_data_en, flw_wb_ctrl_en, flw_wb_data_en;
   id_signals_s id_r, id_n;
   exe_signals_s exe_r, exe_n;
@@ -629,14 +629,13 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  bsg_dff_reset_en #(
-    .width_p($bits(exe_signals_s))
-  ) exe_pipeline (
+  exe_pipeline exe_pipeline (
     .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
     ,.en_i(exe_en)
-    ,.data_i(exe_n)
-    ,.data_o(exe_r)
+    ,.clear_i(exe_clear)
+    ,.exe_i(exe_n)
+    ,.exe_o(exe_r)
   );
 
 
@@ -1594,18 +1593,21 @@ module vanilla_core
 
     if (stall_all) begin
       exe_en = 1'b0;
+      exe_clear = 1'b0;
       npc_write_en = 1'b0;
     end
     else begin
       npc_write_en = (exe_r.valid & mstatus_r.mie) | exe_r.decode.is_mret_op;
       if (flush | stall_id) begin
-        exe_en = 1'b1;
-        exe_n = '0;
+        exe_en = 1'b0;
+        exe_clear = 1'b1;
+        //exe_n = '0;
       end
       else if (id_r.decode.is_fp_op) begin
         // for fp_op, we still want to keep track of npc_r.
         // so we set the valid and pc_plus4.
         exe_en = 1'b1;
+        exe_clear = 1'b0;
         exe_n = '{
           pc_plus4: id_r.pc_plus4,
           valid: id_r.valid,
@@ -1621,6 +1623,7 @@ module vanilla_core
       end
       else begin
         exe_en = 1'b1;
+        exe_clear = 1'b0;
       end
     end
   end
