@@ -1,5 +1,6 @@
 # This file contains a list of non-synthesizable files used in manycore
 # simulation. These augment the sythesizable files in core.include.
+VINCLUDES += $(BSG_MANYCORE_DIR)/testbenches/common/v
 
 VHEADERS += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_mem_cfg_pkg.v
 VHEADERS += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_network_cfg_pkg.v

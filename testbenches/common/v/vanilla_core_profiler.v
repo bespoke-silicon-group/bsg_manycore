@@ -13,6 +13,7 @@
 
 `include "bsg_manycore_defines.vh"
 `include "bsg_vanilla_defines.vh"
+`include "profiler.vh"
 
 module vanilla_core_profiler
   import bsg_manycore_pkg::*;
@@ -102,35 +103,10 @@ module vanilla_core_profiler
   bsg_manycore_vanilla_core_stat_tag_s print_stat_tag;
   assign print_stat_tag = print_stat_tag_i;
 
-  import "DPI-C" context function
-    void bsg_vanilla_core_profiler_init(int tracer_fd);
-
-  import "DPI-C" context function
-    void bsg_vanilla_core_profiler_exit();
-
-  import "DPI-C" context function
-    int bsg_vanilla_core_profiler_is_init();
-
-  import "DPI-C" context function
-    int bsg_vanilla_core_profiler_is_exit();
-
-  import "DPI-C" context function
-    int  bsg_vanilla_core_profiler_trace_fd();
-
-  initial begin
-    if (bsg_vanilla_core_profiler_is_init() == 0) begin
-      int trace_fd = $fopen("vanilla_operation_trace.csv", "w");
-      bsg_vanilla_core_profiler_init(trace_fd);
-      $fwrite(trace_fd, "cycle,x,y,pc,operation\n");
-    end
-  end
-
-  final begin
-    if (bsg_vanilla_core_profiler_is_exit()) begin
-      $fclose(bsg_vanilla_core_profiler_trace_fd());
-      bsg_vanilla_core_profiler_exit();
-    end
-  end
+  `DEFINE_PROFILER(bsg_vanilla_core_profiler
+                   , "vanilla_operation_trace.csv"
+                   , "cycle,x,y,pc,operation\n"
+                   )
 
   // task to print a line of operation trace
   task print_operation_trace(string op, logic [data_width_p-1:0] pc);

@@ -21,6 +21,7 @@
 // {latency}      # of cycles to complete remote load. (end_cycle - start_cycle)
 
 `include "bsg_manycore_defines.vh"
+`include "profiler.vh"
 
 module remote_load_trace
   import bsg_manycore_pkg::*;
@@ -70,32 +71,10 @@ module remote_load_trace
     , input [31:0] global_ctr_i
   );
 
-  import "DPI-C" context function
-    void remote_load_profiler_init(int trace_fd);
-  import "DPI-C" context function
-    void remote_load_profiler_exit();
-  import "DPI-C" context function
-    int remote_load_profiler_is_init();
-  import "DPI-C" context function
-    int remote_load_profiler_is_exit();
-  import "DPI-C" context function
-    int remote_load_profiler_trace_fd();
-
-  initial begin
-    if (remote_load_profiler_is_init() == 0) begin
-      int trace_fd = $fopen("remote_load_trace.csv", "w");
-      $fwrite(trace_fd, "start_cycle,end_cycle,src_x,src_y,dest_x,dest_y,type,latency\n");
-      remote_load_profiler_init(trace_fd);
-    end
-  end
-
-  final begin
-    if (remote_load_profiler_is_exit() == 0) begin
-      $fclose(remote_load_profiler_trace_fd());
-      remote_load_profiler_exit();
-    end
-  end
-
+  `DEFINE_PROFILER(remote_load_profiler
+                   ,"remote_load_trace.csv"
+                   ,"start_cycle,end_cycle,src_x,src_y,dest_x,dest_y,type,latency\n"
+                   )
 
   wire [x_cord_width_p-1:0] global_x = {pod_x_i, my_x_i};
   wire [y_cord_width_p-1:0] global_y = {pod_y_i, my_y_i};

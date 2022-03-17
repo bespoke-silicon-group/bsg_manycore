@@ -5,6 +5,7 @@
 
 `include "bsg_defines.v"
 `include "bsg_cache.vh"
+`include "profiler.vh"
 
 module vcache_profiler
   import bsg_cache_pkg::*;
@@ -47,31 +48,10 @@ module vcache_profiler
     , input trace_en_i // from toplevel testbench
   );
 
-  import "DPI-C" context function
-    void bsg_vcache_profiler_init(int trace_fd);
-  import "DPI-C" context function
-    int bsg_vcache_profiler_is_init();
-  import "DPI-C" context function
-    int bsg_vcache_profiler_is_exit();
-  import "DPI-C" context function
-    void bsg_vcache_profiler_exit();
-  import "DPI-C" context function
-    int bsg_vcache_profiler_trace_fd();
-
-  initial begin
-    if (bsg_vcache_profiler_is_init() == 0) begin
-      int trace_fd = $fopen("vcache_operation_trace.csv", "w");
-      $fwrite(trace_fd, "cycle,vcache,operation\n");
-      bsg_vcache_profiler_init(trace_fd);
-    end
-  end
-
-  final begin
-    if (bsg_vcache_profiler_is_exit() == 0) begin
-      $fclose(bsg_vcache_profiler_trace_fd());
-      bsg_vcache_profiler_exit();
-    end
-  end
+  `DEFINE_PROFILER(bsg_vcache_profiler
+                   ,"vcache_operation_trace.csv"
+                   ,"cycle,vcache,operation\n"
+                   )
 
   // task to print a line of operation trace
   task print_operation_trace(string vcache_name, string op);

@@ -50,4 +50,6 @@ public:
     PROFILER_EXIT_FUNC(profiler_name)           \
     PROFILER_IS_INIT_FUNC(profiler_name)        \
     PROFILER_IS_EXIT_FUNC(profiler_name)        \
-    PROFILER_TRACE_FD_FUNC(profiler_name)
+    PROFILER_TRACE_FD_FUNC(profiler_name)       \
+    PROFILER_LOCK_FUNC(profiler_name)           \
+    PROFILER_UNLOCK_FUNC(profiler_name)
