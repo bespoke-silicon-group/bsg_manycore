@@ -1,4 +1,5 @@
 #pragma once
+#include <mutex>
 namespace bsg_profiler {
 class profiler {
 public:
@@ -12,8 +13,20 @@ public:
     int is_init;
     int is_exit;
     int trace_file;
+
+    std::mutex mtx;
 };
 }
+
+#define PROFILER_LOCK_FUNC(profiler_name)               \
+    extern "C" void profiler_name ##_lock() {           \
+        profiler_name.mtx.lock();                       \
+    }
+
+#define PROFILER_UNLOCK_FUNC(profiler_name)             \
+    extern "C" void profiler_name ##_unlock() {         \
+        profiler_name.mtx.unlock();                     \
+    }
 
 #define PROFILER_INIT_FUNC(profiler_name)               \
     extern "C" void profiler_name ## _init(             \
