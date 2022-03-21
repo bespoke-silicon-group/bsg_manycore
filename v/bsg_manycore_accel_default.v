@@ -23,6 +23,8 @@ module bsg_manycore_accel_default
      , `BSG_INV_PARAM(num_tiles_x_p )
      , `BSG_INV_PARAM(num_tiles_y_p )
 
+     , `BSG_INV_PARAM(icache_block_size_in_words_p)
+
      , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
      , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
@@ -39,6 +41,9 @@ module bsg_manycore_accel_default
      , data_mask_width_lp=(data_width_p>>3)
      , reg_addr_width_lp=RV32_reg_addr_width_gp
 
+     , parameter `BSG_INV_PARAM(barrier_dirs_p)
+     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
+
      , link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
@@ -49,6 +54,11 @@ module bsg_manycore_accel_default
     // input and output links
     , input  [link_sif_width_lp-1:0] link_sif_i
     , output [link_sif_width_lp-1:0] link_sif_o
+
+    , input barrier_data_i
+    , output barrier_data_o
+    , output [barrier_dirs_p-1:0]     barrier_src_r_o
+    , output [barrier_lg_dirs_lp-1:0] barrier_dest_r_o
 
     // subcord within a pod
     , input [x_subcord_width_lp-1:0] my_x_i
