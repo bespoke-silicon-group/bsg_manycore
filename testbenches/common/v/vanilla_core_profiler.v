@@ -13,6 +13,7 @@
 
 `include "bsg_manycore_defines.vh"
 `include "bsg_vanilla_defines.vh"
+`include "profiler.vh"
 
 module vanilla_core_profiler
   import bsg_manycore_pkg::*;
@@ -102,9 +103,22 @@ module vanilla_core_profiler
   bsg_manycore_vanilla_core_stat_tag_s print_stat_tag;
   assign print_stat_tag = print_stat_tag_i;
 
+  `DEFINE_PROFILER(bsg_vanilla_core_profiler
+                   , "vanilla_operation_trace.csv"
+                   , "cycle,x,y,pc,operation\n"
+                   )
+
   // task to print a line of operation trace
-  task print_operation_trace(integer fd, string op, logic [data_width_p-1:0] pc);
-    $fwrite(fd, "%0d,%0d,%0d,%0h,%s\n", global_ctr_i, global_x_i - origin_x_cord_p, global_y_i - origin_y_cord_p, pc, op);
+  task print_operation_trace(string op, logic [data_width_p-1:0] pc);
+    $fwrite
+      (bsg_vanilla_core_profiler_trace_fd()
+       , "%0d,%0d,%0d,%0h,%s\n"
+       , global_ctr_i
+       , global_x_i - origin_x_cord_p
+       , global_y_i - origin_y_cord_p
+       , pc
+       , op
+       );
   endtask
 
 
@@ -914,7 +928,7 @@ module vanilla_core_profiler
   localparam logfile_lp = "vanilla_stats.csv";
   localparam tracefile_lp = "vanilla_operation_trace.csv";
 
-  integer fd, fd2;
+  integer fd;
   string header;
    initial begin
       fd = $fopen(logfile_lp, "w");
@@ -1073,10 +1087,6 @@ module vanilla_core_profiler
       $fwrite(fd, "stall_remote_flw_wb");
       $fwrite(fd, "\n");
       $fclose(fd);
-
-      fd2 = $fopen(tracefile_lp, "w");
-      $fwrite(fd2, "cycle,x,y,pc,operation\n");
-      $fclose(fd2);
 
     end // if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p)))
    end // always @ (my_x_i)
@@ -1242,149 +1252,147 @@ module vanilla_core_profiler
       
         // trace logging
         if (~reset_i & trace_en_i) begin
-          fd2 = $fopen(tracefile_lp, "a");
              
-          if (fadd_inc) print_operation_trace(fd2, "fadd", fp_exe_pc_r);
-          else if (fsub_inc) print_operation_trace(fd2, "fsub", fp_exe_pc_r);
-          else if (fmul_inc) print_operation_trace(fd2, "fmul", fp_exe_pc_r);
-          else if (fsgnj_inc) print_operation_trace(fd2, "fsgnj", fp_exe_pc_r);
-          else if (fsgnjn_inc) print_operation_trace(fd2, "fsgnjn", fp_exe_pc_r);
-          else if (fsgnjx_inc) print_operation_trace(fd2, "fsgnjx", fp_exe_pc_r);
-          else if (fmin_inc) print_operation_trace(fd2, "fmin", fp_exe_pc_r);
-          else if (fmax_inc) print_operation_trace(fd2, "fmax", fp_exe_pc_r);
-          else if (fcvt_s_w_inc) print_operation_trace(fd2, "fcvt_s_w", fp_exe_pc_r);
-          else if (fcvt_s_wu_inc) print_operation_trace(fd2, "fcvt_s_wu", fp_exe_pc_r);
-          else if (fmv_w_x_inc) print_operation_trace(fd2, "fmv_w_x", fp_exe_pc_r);
-          else if (fmadd_inc) print_operation_trace(fd2, "fmadd", fp_exe_pc_r);
-          else if (fmsub_inc) print_operation_trace(fd2, "fmsub", fp_exe_pc_r);
-          else if (fnmsub_inc) print_operation_trace(fd2, "fnmsub", fp_exe_pc_r);
-          else if (fnmadd_inc) print_operation_trace(fd2, "fnmadd", fp_exe_pc_r);
+          if (fadd_inc) print_operation_trace("fadd", fp_exe_pc_r);
+          else if (fsub_inc) print_operation_trace("fsub", fp_exe_pc_r);
+          else if (fmul_inc) print_operation_trace("fmul", fp_exe_pc_r);
+          else if (fsgnj_inc) print_operation_trace("fsgnj", fp_exe_pc_r);
+          else if (fsgnjn_inc) print_operation_trace("fsgnjn", fp_exe_pc_r);
+          else if (fsgnjx_inc) print_operation_trace("fsgnjx", fp_exe_pc_r);
+          else if (fmin_inc) print_operation_trace("fmin", fp_exe_pc_r);
+          else if (fmax_inc) print_operation_trace("fmax", fp_exe_pc_r);
+          else if (fcvt_s_w_inc) print_operation_trace("fcvt_s_w", fp_exe_pc_r);
+          else if (fcvt_s_wu_inc) print_operation_trace("fcvt_s_wu", fp_exe_pc_r);
+          else if (fmv_w_x_inc) print_operation_trace("fmv_w_x", fp_exe_pc_r);
+          else if (fmadd_inc) print_operation_trace("fmadd", fp_exe_pc_r);
+          else if (fmsub_inc) print_operation_trace("fmsub", fp_exe_pc_r);
+          else if (fnmsub_inc) print_operation_trace("fnmsub", fp_exe_pc_r);
+          else if (fnmadd_inc) print_operation_trace("fnmadd", fp_exe_pc_r);
 
-          else if (feq_inc) print_operation_trace(fd2, "feq", exe_pc);
-          else if (flt_inc) print_operation_trace(fd2, "flt", exe_pc);
-          else if (fle_inc) print_operation_trace(fd2, "fle", exe_pc);
-          else if (fcvt_w_s_inc) print_operation_trace(fd2, "fcvt_w_s", exe_pc);
-          else if (fcvt_wu_s_inc) print_operation_trace(fd2, "fcvt_wu_s", exe_pc);
-          else if (fclass_inc) print_operation_trace(fd2, "fclass", exe_pc);
-          else if (fmv_x_w_inc) print_operation_trace(fd2, "fmv_x_w", exe_pc);
+          else if (feq_inc) print_operation_trace("feq", exe_pc);
+          else if (flt_inc) print_operation_trace("flt", exe_pc);
+          else if (fle_inc) print_operation_trace("fle", exe_pc);
+          else if (fcvt_w_s_inc) print_operation_trace("fcvt_w_s", exe_pc);
+          else if (fcvt_wu_s_inc) print_operation_trace("fcvt_wu_s", exe_pc);
+          else if (fclass_inc) print_operation_trace("fclass", exe_pc);
+          else if (fmv_x_w_inc) print_operation_trace("fmv_x_w", exe_pc);
 
-          else if (fdiv_inc) print_operation_trace(fd2, "fdiv", exe_pc);
-          else if (fsqrt_inc) print_operation_trace(fd2, "fsqrt", exe_pc);
+          else if (fdiv_inc) print_operation_trace("fdiv", exe_pc);
+          else if (fsqrt_inc) print_operation_trace("fsqrt", exe_pc);
 
-          else if (local_ld_inc) print_operation_trace(fd2, "local_ld", exe_pc);
-          else if (local_st_inc) print_operation_trace(fd2, "local_st", exe_pc);
-          else if (remote_ld_dram_inc) print_operation_trace(fd2, "remote_ld_dram", exe_pc);
-          else if (remote_ld_global_inc) print_operation_trace(fd2, "remote_ld_global", exe_pc);
-          else if (remote_ld_group_inc) print_operation_trace(fd2, "remote_ld_group", exe_pc);
-          else if (remote_st_dram_inc) print_operation_trace(fd2, "remote_st_dram", exe_pc);
-          else if (remote_st_global_inc) print_operation_trace(fd2, "remote_st_global", exe_pc);
-          else if (remote_st_group_inc) print_operation_trace(fd2, "remote_st_group", exe_pc);
+          else if (local_ld_inc) print_operation_trace("local_ld", exe_pc);
+          else if (local_st_inc) print_operation_trace("local_st", exe_pc);
+          else if (remote_ld_dram_inc) print_operation_trace("remote_ld_dram", exe_pc);
+          else if (remote_ld_global_inc) print_operation_trace("remote_ld_global", exe_pc);
+          else if (remote_ld_group_inc) print_operation_trace("remote_ld_group", exe_pc);
+          else if (remote_st_dram_inc) print_operation_trace("remote_st_dram", exe_pc);
+          else if (remote_st_global_inc) print_operation_trace("remote_st_global", exe_pc);
+          else if (remote_st_group_inc) print_operation_trace("remote_st_group", exe_pc);
 
-          else if (local_flw_inc) print_operation_trace(fd2, "local_flw", exe_pc);
-          else if (local_fsw_inc) print_operation_trace(fd2, "local_fsw", exe_pc);
-          else if (remote_flw_dram_inc) print_operation_trace(fd2, "remote_flw_dram", exe_pc);
-          else if (remote_flw_global_inc) print_operation_trace(fd2, "remote_flw_global", exe_pc);
-          else if (remote_flw_group_inc) print_operation_trace(fd2, "remote_flw_group", exe_pc);
-          else if (remote_fsw_dram_inc) print_operation_trace(fd2, "remote_fsw_dram", exe_pc);
-          else if (remote_fsw_global_inc) print_operation_trace(fd2, "remote_fsw_global", exe_pc);
-          else if (remote_fsw_group_inc) print_operation_trace(fd2, "remote_fsw_group", exe_pc);
+          else if (local_flw_inc) print_operation_trace("local_flw", exe_pc);
+          else if (local_fsw_inc) print_operation_trace("local_fsw", exe_pc);
+          else if (remote_flw_dram_inc) print_operation_trace("remote_flw_dram", exe_pc);
+          else if (remote_flw_global_inc) print_operation_trace("remote_flw_global", exe_pc);
+          else if (remote_flw_group_inc) print_operation_trace("remote_flw_group", exe_pc);
+          else if (remote_fsw_dram_inc) print_operation_trace("remote_fsw_dram", exe_pc);
+          else if (remote_fsw_global_inc) print_operation_trace("remote_fsw_global", exe_pc);
+          else if (remote_fsw_group_inc) print_operation_trace("remote_fsw_group", exe_pc);
 
-          else if (icache_miss_inc) print_operation_trace(fd2, "icache_miss", exe_pc);
-          else if (lr_inc) print_operation_trace(fd2, "lr", exe_pc);
-          else if (lr_aq_inc) print_operation_trace(fd2, "lr_aq", exe_pc);
-          else if (amoswap_inc) print_operation_trace(fd2, "amoswap", exe_pc);
-          else if (amoor_inc) print_operation_trace(fd2, "amoor", exe_pc); 
-          else if (amoadd_inc) print_operation_trace(fd2, "amoadd", exe_pc); 
+          else if (icache_miss_inc) print_operation_trace("icache_miss", exe_pc);
+          else if (lr_inc) print_operation_trace("lr", exe_pc);
+          else if (lr_aq_inc) print_operation_trace("lr_aq", exe_pc);
+          else if (amoswap_inc) print_operation_trace("amoswap", exe_pc);
+          else if (amoor_inc) print_operation_trace("amoor", exe_pc); 
+          else if (amoadd_inc) print_operation_trace("amoadd", exe_pc); 
 
-          else if (beq_inc) print_operation_trace(fd2, "beq", exe_pc);
-          else if (bne_inc) print_operation_trace(fd2, "bne", exe_pc);
-          else if (blt_inc) print_operation_trace(fd2, "blt", exe_pc);
-          else if (bge_inc) print_operation_trace(fd2, "bge", exe_pc);
-          else if (bltu_inc) print_operation_trace(fd2, "bltu", exe_pc);
-          else if (bgeu_inc) print_operation_trace(fd2, "bgeu", exe_pc);
-          else if (jal_inc) print_operation_trace(fd2, "jal", exe_pc);
-          else if (jalr_inc) print_operation_trace(fd2, "jalr", exe_pc);
+          else if (beq_inc) print_operation_trace("beq", exe_pc);
+          else if (bne_inc) print_operation_trace("bne", exe_pc);
+          else if (blt_inc) print_operation_trace("blt", exe_pc);
+          else if (bge_inc) print_operation_trace("bge", exe_pc);
+          else if (bltu_inc) print_operation_trace("bltu", exe_pc);
+          else if (bgeu_inc) print_operation_trace("bgeu", exe_pc);
+          else if (jal_inc) print_operation_trace("jal", exe_pc);
+          else if (jalr_inc) print_operation_trace("jalr", exe_pc);
 
-          else if (beq_miss_inc) print_operation_trace(fd2, "beq_miss", exe_pc);
-          else if (bne_miss_inc) print_operation_trace(fd2, "bne_miss", exe_pc);
-          else if (blt_miss_inc) print_operation_trace(fd2, "blt_miss", exe_pc);
-          else if (bge_miss_inc) print_operation_trace(fd2, "bge_miss", exe_pc);
-          else if (bltu_miss_inc) print_operation_trace(fd2, "bltu_miss", exe_pc);
-          else if (bgeu_miss_inc) print_operation_trace(fd2, "bgeu_miss", exe_pc);
-          else if (jalr_miss_inc) print_operation_trace(fd2, "jalr_miss", exe_pc);
+          else if (beq_miss_inc) print_operation_trace("beq_miss", exe_pc);
+          else if (bne_miss_inc) print_operation_trace("bne_miss", exe_pc);
+          else if (blt_miss_inc) print_operation_trace("blt_miss", exe_pc);
+          else if (bge_miss_inc) print_operation_trace("bge_miss", exe_pc);
+          else if (bltu_miss_inc) print_operation_trace("bltu_miss", exe_pc);
+          else if (bgeu_miss_inc) print_operation_trace("bgeu_miss", exe_pc);
+          else if (jalr_miss_inc) print_operation_trace("jalr_miss", exe_pc);
      
-          else if (sll_inc) print_operation_trace(fd2, "sll", exe_pc); 
-          else if (slli_inc) print_operation_trace(fd2, "slli", exe_pc); 
-          else if (srl_inc) print_operation_trace(fd2, "srl", exe_pc); 
-          else if (srli_inc) print_operation_trace(fd2, "srli", exe_pc); 
-          else if (sra_inc) print_operation_trace(fd2, "sra", exe_pc); 
-          else if (srai_inc) print_operation_trace(fd2, "srai", exe_pc); 
+          else if (sll_inc) print_operation_trace("sll", exe_pc); 
+          else if (slli_inc) print_operation_trace("slli", exe_pc); 
+          else if (srl_inc) print_operation_trace("srl", exe_pc); 
+          else if (srli_inc) print_operation_trace("srli", exe_pc); 
+          else if (sra_inc) print_operation_trace("sra", exe_pc); 
+          else if (srai_inc) print_operation_trace("srai", exe_pc); 
 
-          else if (add_inc) print_operation_trace(fd2, "add", exe_pc);
-          else if (addi_inc) print_operation_trace(fd2, "addi", exe_pc);
-          else if (sub_inc) print_operation_trace(fd2, "sub", exe_pc);
-          else if (lui_inc) print_operation_trace(fd2, "lui", exe_pc);
-          else if (auipc_inc) print_operation_trace(fd2, "auipc", exe_pc);
-          else if (xor_inc) print_operation_trace(fd2, "xor", exe_pc);
-          else if (xori_inc) print_operation_trace(fd2, "xori", exe_pc);
-          else if (or_inc) print_operation_trace(fd2, "or", exe_pc);
-          else if (ori_inc) print_operation_trace(fd2, "ori", exe_pc);
-          else if (and_inc) print_operation_trace(fd2, "and", exe_pc);
-          else if (andi_inc) print_operation_trace(fd2, "andi", exe_pc);
-          else if (slt_inc) print_operation_trace(fd2, "slt", exe_pc);
-          else if (slti_inc) print_operation_trace(fd2, "slti", exe_pc);
-          else if (sltu_inc) print_operation_trace(fd2, "sltu", exe_pc);
-          else if (sltiu_inc) print_operation_trace(fd2, "sltiu", exe_pc);
+          else if (add_inc) print_operation_trace("add", exe_pc);
+          else if (addi_inc) print_operation_trace("addi", exe_pc);
+          else if (sub_inc) print_operation_trace("sub", exe_pc);
+          else if (lui_inc) print_operation_trace("lui", exe_pc);
+          else if (auipc_inc) print_operation_trace("auipc", exe_pc);
+          else if (xor_inc) print_operation_trace("xor", exe_pc);
+          else if (xori_inc) print_operation_trace("xori", exe_pc);
+          else if (or_inc) print_operation_trace("or", exe_pc);
+          else if (ori_inc) print_operation_trace("ori", exe_pc);
+          else if (and_inc) print_operation_trace("and", exe_pc);
+          else if (andi_inc) print_operation_trace("andi", exe_pc);
+          else if (slt_inc) print_operation_trace("slt", exe_pc);
+          else if (slti_inc) print_operation_trace("slti", exe_pc);
+          else if (sltu_inc) print_operation_trace("sltu", exe_pc);
+          else if (sltiu_inc) print_operation_trace("sltiu", exe_pc);
 
-          else if (div_inc) print_operation_trace(fd2, "div", exe_pc);
-          else if (divu_inc) print_operation_trace(fd2, "divu", exe_pc);
-          else if (rem_inc) print_operation_trace(fd2, "rem", exe_pc);
-          else if (remu_inc) print_operation_trace(fd2, "remu", exe_pc);
-          else if (mul_inc) print_operation_trace(fd2, "mul", exe_pc);
+          else if (div_inc) print_operation_trace("div", exe_pc);
+          else if (divu_inc) print_operation_trace("divu", exe_pc);
+          else if (rem_inc) print_operation_trace("rem", exe_pc);
+          else if (remu_inc) print_operation_trace("remu", exe_pc);
+          else if (mul_inc) print_operation_trace("mul", exe_pc);
 
-          else if (fence_inc) print_operation_trace(fd2, "fence", exe_pc);
+          else if (fence_inc) print_operation_trace("fence", exe_pc);
 
-          else if (csrrw_inc) print_operation_trace(fd2, "csrrw", exe_pc);
-          else if (csrrs_inc) print_operation_trace(fd2, "csrrs", exe_pc);
-          else if (csrrc_inc) print_operation_trace(fd2, "csrrc", exe_pc);
-          else if (csrrwi_inc) print_operation_trace(fd2, "csrrwi", exe_pc);
-          else if (csrrsi_inc) print_operation_trace(fd2, "csrrsi", exe_pc);
-          else if (csrrci_inc) print_operation_trace(fd2, "csrrci", exe_pc);
+          else if (csrrw_inc) print_operation_trace("csrrw", exe_pc);
+          else if (csrrs_inc) print_operation_trace("csrrs", exe_pc);
+          else if (csrrc_inc) print_operation_trace("csrrc", exe_pc);
+          else if (csrrwi_inc) print_operation_trace("csrrwi", exe_pc);
+          else if (csrrsi_inc) print_operation_trace("csrrsi", exe_pc);
+          else if (csrrci_inc) print_operation_trace("csrrci", exe_pc);
 
-          else if (barsend_inc) print_operation_trace(fd2, "barsend", exe_pc);
-          else if (barrecv_inc) print_operation_trace(fd2, "barrecv", exe_pc);
+          else if (barsend_inc) print_operation_trace("barsend", exe_pc);
+          else if (barrecv_inc) print_operation_trace("barrecv", exe_pc);
 
           // Traces that can be attributed to stall_all should have higher priority of being printed
           // than stall_id, flush traces.
-          else if (stall_remote_ld_wb) print_operation_trace(fd2, "stall_remote_ld_wb", exe_pc);
-          else if (stall_ifetch_wait) print_operation_trace(fd2, "stall_ifetch_wait", exe_pc);
-          else if (stall_remote_flw_wb) print_operation_trace(fd2, "stall_remote_flw_wb", exe_pc);
+          else if (stall_remote_ld_wb) print_operation_trace("stall_remote_ld_wb", exe_pc);
+          else if (stall_ifetch_wait) print_operation_trace("stall_ifetch_wait", exe_pc);
+          else if (stall_remote_flw_wb) print_operation_trace("stall_remote_flw_wb", exe_pc);
 
           // flush/bubble, stall_id traces
-          else if (branch_miss_bubble_inc) print_operation_trace(fd2, "bubble_branch_miss", exe_bubble_pc_r);
-          else if (jalr_miss_bubble_inc) print_operation_trace(fd2, "bubble_jalr_miss", exe_bubble_pc_r);
-          else if (icache_miss_bubble_inc) print_operation_trace(fd2, "bubble_icache_miss", exe_bubble_pc_r);
-          else if (stall_depend_dram_load_inc) print_operation_trace(fd2, "stall_depend_dram_load", exe_bubble_pc_r);
-          else if (stall_depend_group_load_inc) print_operation_trace(fd2, "stall_depend_group_load", exe_bubble_pc_r);
-          else if (stall_depend_global_load_inc) print_operation_trace(fd2, "stall_depend_global_load", exe_bubble_pc_r);
-          else if (stall_depend_idiv_inc) print_operation_trace(fd2, "stall_depend_idiv", exe_bubble_pc_r);
-          else if (stall_depend_fdiv_inc) print_operation_trace(fd2, "stall_depend_fdiv", exe_bubble_pc_r);
-          else if (stall_depend_local_load_inc) print_operation_trace(fd2, "stall_depend_local_load", exe_bubble_pc_r);
-          else if (stall_depend_imul_inc) print_operation_trace(fd2, "stall_depend_imul", exe_bubble_pc_r);
-          else if (stall_amo_aq_inc) print_operation_trace(fd2, "stall_amo_aq", exe_bubble_pc_r);
-          else if (stall_amo_rl_inc) print_operation_trace(fd2, "stall_amo_rl", exe_bubble_pc_r);
-          else if (stall_bypass_inc) print_operation_trace(fd2, "stall_bypass", exe_bubble_pc_r);
-          else if (stall_lr_aq_inc) print_operation_trace(fd2, "stall_lr_aq", exe_bubble_pc_r);
-          else if (stall_fence_inc) print_operation_trace(fd2, "stall_fence", exe_bubble_pc_r);
-          else if (stall_remote_req_inc) print_operation_trace(fd2, "stall_remote_req", exe_bubble_pc_r);
-          else if (stall_remote_credit_inc) print_operation_trace(fd2, "stall_remote_credit", exe_bubble_pc_r);
-          else if (stall_fdiv_busy_inc) print_operation_trace(fd2, "stall_fdiv_busy", exe_bubble_pc_r);
-          else if (stall_idiv_busy_inc) print_operation_trace(fd2, "stall_idiv_busy", exe_bubble_pc_r);
-          else if (stall_fcsr_inc) print_operation_trace(fd2, "stall_fcsr", exe_bubble_pc_r);
-          else if (stall_barrier_inc) print_operation_trace(fd2, "stall_barrier", exe_bubble_pc_r);
-          else print_operation_trace(fd2, "unknown", 0);
+          else if (branch_miss_bubble_inc) print_operation_trace("bubble_branch_miss", exe_bubble_pc_r);
+          else if (jalr_miss_bubble_inc) print_operation_trace("bubble_jalr_miss", exe_bubble_pc_r);
+          else if (icache_miss_bubble_inc) print_operation_trace("bubble_icache_miss", exe_bubble_pc_r);
+          else if (stall_depend_dram_load_inc) print_operation_trace("stall_depend_dram_load", exe_bubble_pc_r);
+          else if (stall_depend_group_load_inc) print_operation_trace("stall_depend_group_load", exe_bubble_pc_r);
+          else if (stall_depend_global_load_inc) print_operation_trace("stall_depend_global_load", exe_bubble_pc_r);
+          else if (stall_depend_idiv_inc) print_operation_trace("stall_depend_idiv", exe_bubble_pc_r);
+          else if (stall_depend_fdiv_inc) print_operation_trace("stall_depend_fdiv", exe_bubble_pc_r);
+          else if (stall_depend_local_load_inc) print_operation_trace("stall_depend_local_load", exe_bubble_pc_r);
+          else if (stall_depend_imul_inc) print_operation_trace("stall_depend_imul", exe_bubble_pc_r);
+          else if (stall_amo_aq_inc) print_operation_trace("stall_amo_aq", exe_bubble_pc_r);
+          else if (stall_amo_rl_inc) print_operation_trace("stall_amo_rl", exe_bubble_pc_r);
+          else if (stall_bypass_inc) print_operation_trace("stall_bypass", exe_bubble_pc_r);
+          else if (stall_lr_aq_inc) print_operation_trace("stall_lr_aq", exe_bubble_pc_r);
+          else if (stall_fence_inc) print_operation_trace("stall_fence", exe_bubble_pc_r);
+          else if (stall_remote_req_inc) print_operation_trace("stall_remote_req", exe_bubble_pc_r);
+          else if (stall_remote_credit_inc) print_operation_trace("stall_remote_credit", exe_bubble_pc_r);
+          else if (stall_fdiv_busy_inc) print_operation_trace("stall_fdiv_busy", exe_bubble_pc_r);
+          else if (stall_idiv_busy_inc) print_operation_trace("stall_idiv_busy", exe_bubble_pc_r);
+          else if (stall_fcsr_inc) print_operation_trace("stall_fcsr", exe_bubble_pc_r);
+          else if (stall_barrier_inc) print_operation_trace("stall_barrier", exe_bubble_pc_r);
+          else print_operation_trace("unknown", 0);
 
-          $fclose(fd2);
         end
    end // always @ (negedge clk_i)
 

@@ -195,7 +195,7 @@ module spmd_testbench
     status = $value$plusargs("vanilla_trace_en=%d", trace_arg);
     assign trace_en = (trace_arg == 1);
   end
-
+  
   // coverage enable
   int coverage_arg;
   logic coverage_en;
