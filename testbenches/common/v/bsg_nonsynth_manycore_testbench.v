@@ -774,6 +774,16 @@ module bsg_nonsynth_manycore_testbench
 //    PROFILERS     //
 //                  //
 
+// NOTE: Verilator does not allow parameter-controlled module
+// instantiation (There's an issue filed, but not fixed as of
+// 4.222). For this reason, we clock gate the profilers based on the
+// profiler parameter. E.g.: ,.clk_i(clk_i && $root.`HOST_MODULE_PATH.testbench.enable_vcore_profiling_p)
+//
+// I agree that this is super annoying but until it gets fixed, this
+// is the only way to prevent Verilator from running the profilers and
+// slowing down simulation.
+   
+
 // Exponential parsing from surelog: https://github.com/chipsalliance/Surelog/issues/2035
 `ifndef SURELOG
 if (enable_vcore_profiling_p) begin
@@ -788,6 +798,7 @@ if (enable_vcore_profiling_p) begin
     ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
   ) vcore_prof (
     .*
+    ,.clk_i(clk_i && $root.`HOST_MODULE_PATH.testbench.enable_vcore_profiling_p)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
@@ -807,6 +818,7 @@ if (enable_vcore_profiling_p) begin
     ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
   ) rlt (
     .*
+    ,.clk_i(clk_i && $root.`HOST_MODULE_PATH.testbench.enable_vcore_profiling_p)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
@@ -822,6 +834,7 @@ if (enable_cache_profiling_p) begin
   ) vcache_prof (
     // everything else
     .*
+    ,.clk_i(clk_i && $root.`HOST_MODULE_PATH.testbench.enable_cache_profiling_p)
     // bsg_cache_miss
     ,.chosen_way_n(miss.chosen_way_n)
     // from testbench
@@ -845,6 +858,7 @@ if (enable_router_profiling_p) begin
     ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
   ) rp0 (
     .*
+    ,.clk_i(clk_i && $root.`HOST_MODULE_PATH.testbench.enable_router_profiling_p)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
@@ -859,6 +873,7 @@ if (enable_vcore_pc_coverage_p) begin
   )
   pc_cov (
     .*
+    ,.clk_i(clk_i && $root.`HOST_MODULE_PATH.testbench.enable_vcore_pc_coverage_p)
     ,.coverage_en_i($root.`HOST_MODULE_PATH.coverage_en)
   );
 end
@@ -879,6 +894,7 @@ if (enable_vanilla_core_trace_p) begin
     ,.dmem_size_p(dmem_size_p)
   ) trace0 (
     .*
+    ,.clk_i(clk_i && $root.`HOST_MODULE_PATH.testbench.enable_vanilla_core_trace_p)
   );
 end
 
