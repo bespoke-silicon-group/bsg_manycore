@@ -21,6 +21,7 @@
 // {latency}      # of cycles to complete remote load. (end_cycle - start_cycle)
 
 `include "bsg_manycore_defines.vh"
+`include "profiler.vh"
 
 module remote_load_trace
   import bsg_manycore_pkg::*;
@@ -38,8 +39,6 @@ module remote_load_trace
 
     , parameter `BSG_INV_PARAM(origin_x_cord_p)
     , parameter `BSG_INV_PARAM(origin_y_cord_p)
-
-    , parameter tracefile_p = "remote_load_trace.csv"
 
     , parameter packet_width_lp=
     `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -71,6 +70,11 @@ module remote_load_trace
     , input trace_en_i
     , input [31:0] global_ctr_i
   );
+
+  `DEFINE_PROFILER(remote_load_profiler
+                   ,"remote_load_trace.csv"
+                   ,"start_cycle,end_cycle,src_x,src_y,dest_x,dest_y,type,latency\n"
+                   )
 
   wire [x_cord_width_p-1:0] global_x = {pod_x_i, my_x_i};
   wire [y_cord_width_p-1:0] global_y = {pod_y_i, my_y_i};
@@ -157,29 +161,6 @@ module remote_load_trace
   
 
 
-  // responses logging
-  integer fd;
-
-  initial begin
-    fd = $fopen(tracefile_p, "w");
-    $fwrite(fd,"");   
-    $fclose(fd);
-  end
-
-
-  // origin tile writes the csv header.
-  always @ (negedge reset_i) begin
-    if ((global_x == x_cord_width_p'(origin_x_cord_p))
-      & (global_y == y_cord_width_p'(origin_y_cord_p))) begin
-
-      fd = $fopen(tracefile_p, "a");
-      $fwrite(fd,"start_cycle,end_cycle,src_x,src_y,dest_x,dest_y,type,latency\n");
-      $fclose(fd);
-      
-    end
-  end
-
-
   always @ (negedge clk_i) begin
     if (~reset_i & trace_en_i) begin
 
@@ -188,8 +169,7 @@ module remote_load_trace
         case (returned_pkt_type_i)
 
           e_return_int_wb: begin
-            fd = $fopen(tracefile_p, "a");
-            $fwrite(fd,"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n", 
+            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
               int_rl_status_r[returned_reg_id_i].start_cycle,
               global_ctr_i,
               global_x,
@@ -199,12 +179,10 @@ module remote_load_trace
               "int",
               global_ctr_i-int_rl_status_r[returned_reg_id_i].start_cycle
             );   
-            $fclose(fd);
           end
 
           e_return_float_wb: begin
-            fd = $fopen(tracefile_p, "a");
-            $fwrite(fd,"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n", 
+            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
               float_rl_status_r[returned_reg_id_i].start_cycle,
               global_ctr_i,
               global_x,
@@ -214,12 +192,10 @@ module remote_load_trace
               "float",
               global_ctr_i-float_rl_status_r[returned_reg_id_i].start_cycle
             );   
-            $fclose(fd);
 
           end
           e_return_ifetch: begin
-            fd = $fopen(tracefile_p, "a");
-            $fwrite(fd,"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n", 
+            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
               icache_status_r.start_cycle,
               global_ctr_i,
               global_x,
@@ -229,7 +205,6 @@ module remote_load_trace
               "icache",
               global_ctr_i-icache_status_r.start_cycle
             );   
-            $fclose(fd);
 
           end
 

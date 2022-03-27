@@ -71,6 +71,7 @@ class BloodGraph:
                       "stall_remote_ld",
                       "stall_ifetch_wait",
                       "stall_remote_flw_wb",
+                      "stall_remote_ld_wb",
                       "bubble_branch_miss",
                       "bubble_jalr_miss",
                       "bubble_icache_miss"]
@@ -213,6 +214,7 @@ class BloodGraph:
                                      "stall_remote_ld"           : (0xaa, 0x00, 0x00), ## dark red
 
                                      "stall_remote_flw_wb"       : (0xff, 0xff, 0x80), ## light yellow
+                                     "stall_remote_ld_wb"       : (0xff, 0xff, 0x40), ## light-ish yellow
                                      
                                      "bubble_branch_miss"        : (0x80, 0x00, 0x80), ## purple
                                      "bubble_jalr_miss"          : (0xff, 0xa5, 0x00), ## orange
@@ -255,6 +257,7 @@ class BloodGraph:
                                      "stall_remote_ld"           : (0x00, 0x00, 0x00), ## black
 
                                      "stall_remote_flw_wb"       : (0x00, 0x00, 0x00), ## black
+                                     "stall_remote_ld_wb"       : (0x00, 0x00, 0x00), ## black
                                      
                                      "bubble_branch_miss"        : (0x00, 0x00, 0x00), ## black
                                      "bubble_jalr_miss"          : (0x00, 0x00, 0x00), ## black

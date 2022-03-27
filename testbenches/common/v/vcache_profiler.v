@@ -5,6 +5,7 @@
 
 `include "bsg_defines.v"
 `include "bsg_cache.vh"
+`include "profiler.vh"
 
 module vcache_profiler
   import bsg_cache_pkg::*;
@@ -47,10 +48,14 @@ module vcache_profiler
     , input trace_en_i // from toplevel testbench
   );
 
+  `DEFINE_PROFILER(bsg_vcache_profiler
+                   ,"vcache_operation_trace.csv"
+                   ,"cycle,vcache,operation\n"
+                   )
 
   // task to print a line of operation trace
-  task print_operation_trace(integer fd, string vcache_name, string op);
-    $fwrite(fd, "%0d,%0s,%0s\n", global_ctr_i, vcache_name, op);
+  task print_operation_trace(string vcache_name, string op);
+    $fwrite(bsg_vcache_profiler_trace_fd(), "%0d,%0s,%0s\n", global_ctr_i, vcache_name, op);
   endtask
 
 
@@ -336,19 +341,17 @@ module vcache_profiler
 
 
         if (~reset_i & trace_en_i) begin
-          trace_fd = $fopen(tracefile_lp, "a");
-
           // If miss handler has finished the dma request and result is ready
           // for a missed request
           if (inc_miss_ld)
-            print_operation_trace(trace_fd, my_name, "miss_ld");
+            print_operation_trace(my_name, "miss_ld");
           else if (inc_miss_st)
-            print_operation_trace(trace_fd, my_name, "miss_st");
+            print_operation_trace(my_name, "miss_st");
 
 
           // If miss handler is still busy on a request
           else if (miss_v) begin
-            print_operation_trace(trace_fd, my_name, "miss");
+            print_operation_trace(my_name, "miss");
           end 
 
         
@@ -357,74 +360,73 @@ module vcache_profiler
 
             if (inc_ld) begin
               if (inc_ld_ld) 
-                print_operation_trace(trace_fd, my_name, "ld_ld");
+                print_operation_trace(my_name, "ld_ld");
               else if (inc_ld_ldu)
-                print_operation_trace(trace_fd, my_name, "ld_ldu");
+                print_operation_trace(my_name, "ld_ldu");
               else if (inc_ld_lw)
-                print_operation_trace(trace_fd, my_name, "ld_lw");
+                print_operation_trace(my_name, "ld_lw");
               else if (inc_ld_lwu)
-                print_operation_trace(trace_fd, my_name, "ld_lwu");
+                print_operation_trace(my_name, "ld_lwu");
               else if (inc_ld_lh)
-                print_operation_trace(trace_fd, my_name, "ld_lh");
+                print_operation_trace(my_name, "ld_lh");
               else if (inc_ld_lhu)
-                print_operation_trace(trace_fd, my_name, "ld_lhu");
+                print_operation_trace(my_name, "ld_lhu");
               else if (inc_ld_lb) 
-                print_operation_trace(trace_fd, my_name, "ld_lb");
+                print_operation_trace(my_name, "ld_lb");
               else if (inc_ld_lbu)
-                print_operation_trace(trace_fd, my_name, "ld_lbu");
+                print_operation_trace(my_name, "ld_lbu");
               else
-                print_operation_trace(trace_fd, my_name, "ld");
+                print_operation_trace(my_name, "ld");
             end
 
 
             else if (inc_st) begin
               if (inc_sm_sd)
-                print_operation_trace(trace_fd, my_name, "sm_sd");  
+                print_operation_trace(my_name, "sm_sd");
               else if (inc_sm_sw)
-                print_operation_trace(trace_fd, my_name, "sm_sw");  
+                print_operation_trace(my_name, "sm_sw");
               else if (inc_sm_sh)
-                print_operation_trace(trace_fd, my_name, "sm_sh");  
+                print_operation_trace(my_name, "sm_sh");
               else if (inc_sm_sb)
-                print_operation_trace(trace_fd, my_name, "sm_sb");  
+                print_operation_trace(my_name, "sm_sb");
               else
-                print_operation_trace(trace_fd, my_name, "st");
+                print_operation_trace(my_name, "st");
             end
 
 
             else if (inc_stall_rsp)
-              print_operation_trace(trace_fd, my_name, "stall_rsp");
+              print_operation_trace(my_name, "stall_rsp");
 
             else if (inc_tagst)
-              print_operation_trace(trace_fd, my_name, "tagst");
+              print_operation_trace(my_name, "tagst");
             else if (inc_tagfl)
-              print_operation_trace(trace_fd, my_name, "tagfl");
+              print_operation_trace(my_name, "tagfl");
             else if (inc_taglv)
-              print_operation_trace(trace_fd, my_name, "taglv");
+              print_operation_trace(my_name, "taglv");
             else if (inc_tagla)
-              print_operation_trace(trace_fd, my_name, "tagla");
+              print_operation_trace(my_name, "tagla");
             else if (inc_afl)
-              print_operation_trace(trace_fd, my_name, "afl");
+              print_operation_trace(my_name, "afl");
             else if (inc_aflinv)
-              print_operation_trace(trace_fd, my_name, "aflinv");
+              print_operation_trace(my_name, "aflinv");
             else if (inc_ainv)
-              print_operation_trace(trace_fd, my_name, "ainv");
+              print_operation_trace(my_name, "ainv");
             else if (inc_alock)
-              print_operation_trace(trace_fd, my_name, "alock");
+              print_operation_trace(my_name, "alock");
             else if (inc_aunlock)
-              print_operation_trace(trace_fd, my_name, "aunlock");
+              print_operation_trace(my_name, "aunlock");
             else if (inc_atomic)
-              print_operation_trace(trace_fd, my_name, "atomic");
+              print_operation_trace(my_name, "atomic");
             else if (inc_amoswap)
-              print_operation_trace(trace_fd, my_name, "amoswap");
+              print_operation_trace(my_name, "amoswap");
             else if (inc_amoor)
-              print_operation_trace(trace_fd, my_name, "amoor");
+              print_operation_trace(my_name, "amoor");
             else if (inc_amoadd)
-              print_operation_trace(trace_fd, my_name, "amoadd");
+              print_operation_trace(my_name, "amoadd");
             else
-              print_operation_trace(trace_fd, my_name, "idle");
+              print_operation_trace(my_name, "idle");
           end
 
-          $fclose(trace_fd);
         end // if (~reset_i & trace_en_i)
     end // always @ (negedge clk_i)
 

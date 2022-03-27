@@ -1,5 +1,6 @@
 # This file contains a list of non-synthesizable files used in manycore
 # simulation. These augment the sythesizable files in core.include.
+VINCLUDES += $(BSG_MANYCORE_DIR)/testbenches/common/v
 
 VHEADERS += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_mem_cfg_pkg.v
 VHEADERS += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_network_cfg_pkg.v
@@ -55,9 +56,12 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_wormhole_to_cache_dma_fanout.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/router_profiler.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vanilla_core_trace.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/remote_load_trace.v
+CSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/remote_load_profiler.cpp
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/instr_trace.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vanilla_core_profiler.v
+CSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vanilla_core_profiler.cpp
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vcache_profiler.v
+CSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vcache_profiler.cpp
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vcache_non_blocking_profiler.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/infinite_mem_profiler.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_tag_master.v

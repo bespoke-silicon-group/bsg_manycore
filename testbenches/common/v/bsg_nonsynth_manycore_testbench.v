@@ -774,8 +774,25 @@ module bsg_nonsynth_manycore_testbench
 //    PROFILERS     //
 //                  //
 
+// NOTE: Verilator does not allow parameter-controlled module binds
+// (There's an issue filed, but not fixed as of 4.222). There are two ways we can fix this:
+//
+// 1. Clock gate the profilers based on the profiler parameter. E.g.:
+//   ,.clk_i(clk_i && $root.`HOST_MODULE_PATH.testbench.enable_vcore_profiling_p)
+//
+// 2. Disable the profilers using Macros.
+//
+// Using clock gating was somewhat controversial, so for the moment we
+// are controling the instantiation using macros *** FOR VERILATOR
+// ONLY ***
+//
+// I agree that this is super annoying but until it gets fixed, this
+// is the only way to prevent Verilator from running the profilers and
+// slowing down simulation.
+
 // Exponential parsing from surelog: https://github.com/chipsalliance/Surelog/issues/2035
 `ifndef SURELOG
+`ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_PROFILING
 if (enable_vcore_profiling_p) begin
   // vanilla core profiler
    bind vanilla_core vanilla_core_profiler #(
@@ -788,6 +805,7 @@ if (enable_vcore_profiling_p) begin
     ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
   ) vcore_prof (
     .*
+    ,.clk_i(clk_i)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
@@ -807,12 +825,15 @@ if (enable_vcore_profiling_p) begin
     ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
   ) rlt (
     .*
+    ,.clk_i(clk_i)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
 
 end
+`endif
 
+`ifndef VERILATOR_WORKAROUND_DISABLE_VCACHE_PROFILING
 if (enable_cache_profiling_p) begin
   bind bsg_cache vcache_profiler #(
     .data_width_p(data_width_p)
@@ -822,6 +843,7 @@ if (enable_cache_profiling_p) begin
   ) vcache_prof (
     // everything else
     .*
+    ,.clk_i(clk_i)
     // bsg_cache_miss
     ,.chosen_way_n(miss.chosen_way_n)
     // from testbench
@@ -832,9 +854,11 @@ if (enable_cache_profiling_p) begin
   );
 
   end
+`endif
 
 // Covergroups are not fully supported by Verilator 4.213
 `ifndef VERILATOR
+`ifndef VERILATOR_WORKAROUND_DISABLE_ROUTER_PROFILER
 if (enable_router_profiling_p) begin
   bind bsg_mesh_router router_profiler #(
     .x_cord_width_p(x_cord_width_p)
@@ -845,13 +869,15 @@ if (enable_router_profiling_p) begin
     ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
   ) rp0 (
     .*
+    ,.clk_i(clk_i)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
   );
 end
+`endif
 
-
+`ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_COVERAGE
 if (enable_vcore_pc_coverage_p) begin
   bind vanilla_core bsg_nonsynth_manycore_vanilla_core_pc_cov #(
     .icache_tag_width_p(icache_tag_width_p)
@@ -859,9 +885,11 @@ if (enable_vcore_pc_coverage_p) begin
   )
   pc_cov (
     .*
+    ,.clk_i(clk_i)
     ,.coverage_en_i($root.`HOST_MODULE_PATH.coverage_en)
   );
 end
+`endif
 `endif
 `endif
 
@@ -869,6 +897,7 @@ end
   ///   TRACER    ///
   ///             ///
   
+`ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_TRACE
 if (enable_vanilla_core_trace_p) begin
   bind vanilla_core vanilla_core_trace #(
     .x_cord_width_p(x_cord_width_p)
@@ -879,9 +908,10 @@ if (enable_vanilla_core_trace_p) begin
     ,.dmem_size_p(dmem_size_p)
   ) trace0 (
     .*
+    ,.clk_i(clk_i)
   );
 end
-
+`endif
 
 
 endmodule
