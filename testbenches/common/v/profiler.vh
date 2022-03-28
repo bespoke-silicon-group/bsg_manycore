@@ -31,21 +31,24 @@ import "DPI-C" context function \
 
 
 `define DEFINE_PROFILER_INITIAL_BLOCK(profiler_name, trace_file_name, trace_file_header) \
+int init_trace_fd; \
 initial begin \
   profiler_name``_lock();  \
   if (profiler_name``_is_init() == 0) begin \
-    int trace_fd = $fopen(trace_file_name, "w"); \
-    profiler_name``_init(trace_fd); \
-    $fwrite(trace_fd, trace_file_header); \
+    init_trace_fd = $fopen(trace_file_name, "w"); \
+    profiler_name``_init(init_trace_fd); \
+    $fwrite(init_trace_fd, trace_file_header); \
   end \
   profiler_name``_unlock(); \
 end
 
-`define DEFINE_PROFILER_FINAL_BLOCK(profiler_name, trace_file_name, trace_file_header) \
+`define DEFINE_PROFILER_FINAL_BLOCK(profiler_name) \
+  int final_trace_fd; \
   final begin \
     profiler_name``_lock(); \
     if (profiler_name``_is_exit()) begin \
-      $fclose(profiler_name``_trace_fd()); \
+      final_trace_fd = profiler_name``_trace_fd(); \
+      $fclose(final_trace_fd); \
       profiler_name``_exit(); \
     end \
     profiler_name``_unlock(); \
