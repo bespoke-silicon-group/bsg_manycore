@@ -805,7 +805,7 @@ if (enable_vcore_profiling_p) begin
     ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
   ) vcore_prof (
     .*
-    ,.clk_i(clk_i && $root.`HOST_MODULE_PATH.testbench.enable_vcore_profiling_p)
+    ,.clk_i(clk_i)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
