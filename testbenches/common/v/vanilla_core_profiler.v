@@ -299,41 +299,67 @@ module vanilla_core_profiler
     end
     else begin
       // int sb
-      if (~stall_id & ~stall_all & ~flush) begin
-        if (id_r.decode.is_idiv_op) begin
-          int_sb_r[id_r.instruction.rd][3] <= 1'b1;
+      for (integer i = 0; i < RV32_reg_els_gp; i++) begin
+        // idiv
+        if (~stall_id & ~stall_all & ~flush & id_r.decode.is_idiv_op & (id_rd == i)) begin
+          int_sb_r[i][3] <= 1'b1;
         end
-        else if (remote_ld_dram_in_id) begin
-          int_sb_r[id_r.instruction.rd][2] <= 1'b1;
+        else if (int_sb_clear & (int_sb_clear_id == i)) begin
+          int_sb_r[i][3] <= 1'b0;
         end
-        else if (remote_ld_global_in_id) begin
-          int_sb_r[id_r.instruction.rd][1] <= 1'b1;
+        // remote ld dram
+        if (~stall_id & ~stall_all & ~flush & remote_ld_dram_in_id & (id_rd == i)) begin
+          int_sb_r[i][2] <= 1'b1;
         end
-        else if (remote_ld_group_in_id) begin
-          int_sb_r[id_r.instruction.rd][0] <= 1'b1;
+        else if (int_sb_clear & (int_sb_clear_id == i)) begin
+          int_sb_r[i][2] <= 1'b0;
         end
-      end
-      else if (int_sb_clear) begin
-        int_sb_r[int_sb_clear_id] <= '0;
+        // remote ld global
+        if (~stall_id & ~stall_all & ~flush & remote_ld_global_in_id & (id_rd == i)) begin
+          int_sb_r[i][1] <= 1'b1;
+        end
+        else if (int_sb_clear & (int_sb_clear_id == i)) begin
+          int_sb_r[i][1] <= 1'b0;
+        end
+        // remote ld group
+        if (~stall_id & ~stall_all & ~flush & remote_ld_group_in_id & (id_rd == i)) begin
+          int_sb_r[i][0] <= 1'b1;
+        end
+        else if (int_sb_clear & (int_sb_clear_id == i)) begin
+          int_sb_r[i][0] <= 1'b0;
+        end
       end
       
       // float sb
-      if (~stall_id & ~stall_all & ~flush) begin
-        if (id_r.decode.is_fp_op & (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op)) begin
-          float_sb_r[id_r.instruction.rd][3] <= 1'b1;
+      for (integer i = 0; i < RV32_reg_els_gp; i++) begin
+        // fdiv, fsqrt
+        if (~stall_id & ~stall_all & ~flush & (id_r.decode.is_fp_op & (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op)) & (id_rd == i)) begin
+          float_sb_r[i][3] <= 1'b1;
         end
-        else if (remote_flw_dram_in_id) begin
-          float_sb_r[id_r.instruction.rd][2] <= 1'b1;
+        else if (float_sb_clear & (float_sb_clear_id == i)) begin
+          float_sb_r[i][3] <= 1'b0;
         end
-        else if (remote_flw_global_in_id) begin
-          float_sb_r[id_r.instruction.rd][1] <= 1'b1;
+        // remote flw dram
+        if (~stall_id & ~stall_all & ~flush & remote_flw_dram_in_id & (id_rd == i)) begin
+          float_sb_r[i][2] <= 1'b1;
         end
-        else if (remote_flw_group_in_id) begin
-          float_sb_r[id_r.instruction.rd][0] <= 1'b1;
+        else if (float_sb_clear & (float_sb_clear_id == i)) begin
+          float_sb_r[i][2] <= 1'b0;
         end
-      end
-      else if (float_sb_clear) begin
-        float_sb_r[float_sb_clear_id] <= '0;
+        // remote flw global
+        if (~stall_id & ~stall_all & ~flush & remote_flw_global_in_id & (id_rd == i)) begin
+          float_sb_r[i][1] <= 1'b1;
+        end
+        else if (float_sb_clear & (float_sb_clear_id == i)) begin
+          float_sb_r[i][1] <= 1'b0;
+        end
+        // remote flw group
+        if (~stall_id & ~stall_all & ~flush & remote_flw_group_in_id & (id_rd == i)) begin
+          float_sb_r[i][0] <= 1'b1;
+        end
+        else if (float_sb_clear & (float_sb_clear_id == i)) begin
+          float_sb_r[i][0] <= 1'b0;
+        end
       end
     end
   end
