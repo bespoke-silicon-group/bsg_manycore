@@ -87,7 +87,7 @@ module bsg_manycore_mesh_node
     ,.fifo_els_p(fwd_fifo_els_p)
     ,.ruche_factor_X_p(ruche_factor_X_p)
     ,.ruche_factor_Y_p(ruche_factor_Y_p)
-    ,.depopulate_p(0)
+    ,.depopulated_p(0)
   ) fwd (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -119,7 +119,7 @@ module bsg_manycore_mesh_node
     ,.fifo_els_p(rev_fifo_els_p)
     ,.ruche_factor_X_p(ruche_factor_X_p)
     ,.ruche_factor_Y_p(ruche_factor_Y_p)
-    ,.depopulate_p(0)
+    ,.depopulated_p(0)
   ) rev (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
