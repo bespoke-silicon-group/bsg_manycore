@@ -95,7 +95,11 @@ always_comb begin
       // According the ISA, LR instruction don't read rs2
       decode_o.read_rs2 = (instruction_i.funct7 ==? 7'b00001??)   // amoswap
                             | (instruction_i.funct7 ==? 7'b01000??)  // amoor
-                            | (instruction_i.funct7 ==? 7'b00000??); // amoadd
+                            | (instruction_i.funct7 ==? 7'b00000??)  // amoadd
+                            | (instruction_i.funct7 ==? 7'b10000??)  // amomin
+                            | (instruction_i.funct7 ==? 7'b10100??)  // amomax
+                            | (instruction_i.funct7 ==? 7'b11000??)  // amominu
+                            | (instruction_i.funct7 ==? 7'b11100??); // amomaxu
     end
     default: begin
       decode_o.read_rs2 = 1'b0;
@@ -227,6 +231,22 @@ always_comb begin
     `RV32_AMOADD_W: begin
       decode_o.is_amo_op = 1'b1;
       decode_o.amo_type = e_vanilla_amoadd;
+    end
+    `RV32_AMOMIN_W: begin
+      decode_o.is_amo_op = 1'b1;
+      decode_o.amo_type = e_vanilla_amomin;
+    end
+    `RV32_AMOMAX_W: begin
+      decode_o.is_amo_op = 1'b1;
+      decode_o.amo_type = e_vanilla_amomax;
+    end
+    `RV32_AMOMINU_W: begin
+      decode_o.is_amo_op = 1'b1;
+      decode_o.amo_type = e_vanilla_amominu;
+    end
+    `RV32_AMOMAXU_W: begin
+      decode_o.is_amo_op = 1'b1;
+      decode_o.amo_type = e_vanilla_amomaxu;
     end
     default: begin
       decode_o.is_amo_op = 1'b0;

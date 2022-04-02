@@ -47,10 +47,14 @@ typedef struct packed {
 
 // remote request from vanilla core
 //
-typedef enum logic [1:0] {
+typedef enum logic [2:0] {
   e_vanilla_amoswap
   , e_vanilla_amoor
   , e_vanilla_amoadd
+  , e_vanilla_amomin
+  , e_vanilla_amomax
+  , e_vanilla_amominu
+  , e_vanilla_amomaxu
 } bsg_vanilla_amo_type_e;
 
 typedef struct packed
