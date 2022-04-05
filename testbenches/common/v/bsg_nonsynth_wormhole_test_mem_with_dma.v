@@ -1,3 +1,6 @@
+`include "bsg_manycore_defines.vh"
+`include "bsg_cache.vh"
+
 module bsg_nonsynth_wormhole_test_mem_with_dma
   import bsg_manycore_pkg::*;
   #(parameter vcache_data_width_p = "inv"
