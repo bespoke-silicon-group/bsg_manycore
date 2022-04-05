@@ -5,5 +5,7 @@ ifeq ($(BSG_PLATFORM),verilator)
 BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1_4X2Y
 else ifeq ($(BSG_PLATFORM),vcs)
 BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1
+else ifeq ($(BSG_PLATFORM),xcelium)
+BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1_4X2Y
 endif
 
