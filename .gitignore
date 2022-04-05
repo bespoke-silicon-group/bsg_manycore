@@ -34,6 +34,12 @@ csrc
 software/spmd/*/build/
 software/spmd/*/link_script.ld
 
+simx
+xcelium.d*
+*.history
+dump.shm/
+.simvision/
+
 syn/results/
 
 dump.fst

@@ -1,0 +1,121 @@
+
+# Sets "XRUN" variable
+include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
+
+ifeq ($(XRUN),)
+$(warning XRUN must be set; probably need XRUN_HOME, SNPSLMD_LICENSE_FILE too, maybe LM_LICENSE file)
+endif
+
+XRUN_INCLUDES += $(foreach inc,$(VINCLUDES),+incdir+"$(inc)")
+XRUN_DEFINES  += $(foreach def,$(VDEFINES),+define+"$(def)")
+XRUN_SOURCES  += $(VHEADERS) $(VSOURCES)
+XRUN_FLAGS    += -elaborate -notimingchecks
+XRUN_FLAGS    += -sv -64bit -timescale 1ps/1ps \
+    +lint=all,noSVA-UA,noSVA-NSVU,noVCDE,noNS -top spmd_testbench
+XRUN_FLAGS    += -assert # needed for "assert final"
+
+XRUN_CFLAGS   += "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/src"
+XRUN_CFLAGS   += "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/ext/headers"
+XRUN_CFLAGS   += "-I$(BASEJUMP_STL_DIR)/imports/DRAMSim3/ext/fmt/include"
+XRUN_CFLAGS   += "-I$(BASEJUMP_STL_DIR)/bsg_test"
+XRUN_CFLAGS   += "-DFMT_HEADER_ONLY=1"
+XRUN_CFLAGS   += "-DBASEJUMP_STL_DIR=$(BASEJUMP_STL_DIR)"
+
+XMSIM_FLAGS   += -64bit
+
+# XRUN_DEFINES that define the architecture for a machine. This should be called
+# from inside of the rule that builds the machine-specific executable for a
+# machine so that the *correct* Makfile.machine.include can be included
+define set_xrun_machine_variables
+	$(eval include $1)
+	$(eval XRUN_DEFINES := +define+BSG_MACHINE_PODS_X=${BSG_MACHINE_PODS_X})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_PODS_Y=${BSG_MACHINE_PODS_Y})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_GLOBAL_X=${BSG_MACHINE_GLOBAL_X})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_GLOBAL_Y=${BSG_MACHINE_GLOBAL_Y})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_X_CORD_WIDTH=${BSG_MACHINE_X_CORD_WIDTH})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_Y_CORD_WIDTH=${BSG_MACHINE_Y_CORD_WIDTH})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_RUCHE_FACTOR_X=${BSG_MACHINE_RUCHE_FACTOR_X})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_BARRIER_RUCHE_FACTOR_X=${BSG_MACHINE_BARRIER_RUCHE_FACTOR_X})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_NUM_VCACHE_ROWS="${BSG_MACHINE_NUM_VCACHE_ROWS}")
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_VCACHE_SET=${BSG_MACHINE_VCACHE_SET})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_VCACHE_WAY=${BSG_MACHINE_VCACHE_WAY})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS=${BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_VCACHE_DMA_DATA_WIDTH=${BSG_MACHINE_VCACHE_DMA_DATA_WIDTH})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_NUM_VCACHES_PER_CHANNEL="${BSG_MACHINE_NUM_VCACHES_PER_CHANNEL}")
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_DRAM_SIZE_WORDS=${BSG_MACHINE_DRAM_SIZE_WORDS})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_DRAM_BANK_SIZE_WORDS=${BSG_MACHINE_DRAM_BANK_SIZE_WORDS})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_DRAM_INCLUDED=${BSG_MACHINE_DRAM_INCLUDED})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_MAX_EPA_WIDTH=${BSG_MACHINE_MAX_EPA_WIDTH})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_BRANCH_TRACE_EN=${BSG_MACHINE_BRANCH_TRACE_EN})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_HETERO_TYPE_VEC="${BSG_MACHINE_HETERO_TYPE_VEC}")
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_ORIGIN_X_CORD=${BSG_MACHINE_ORIGIN_X_CORD})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_ORIGIN_Y_CORD=${BSG_MACHINE_ORIGIN_Y_CORD})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_HOST_X_CORD=${BSG_MACHINE_HOST_X_CORD})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_HOST_Y_CORD=${BSG_MACHINE_HOST_Y_CORD})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_MEM_CFG=${BSG_MACHINE_MEM_CFG})
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_DRAMSIM3_PKG="${BSG_MACHINE_DRAMSIM3_PKG}")
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_SUBARRAY_X="${BSG_MACHINE_SUBARRAY_X}")
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_SUBARRAY_Y="${BSG_MACHINE_SUBARRAY_Y}")
+	# specify where the host module is instantiated for profiler trigger (print_stat).
+	# relative to $root
+	$(eval XRUN_DEFINES += +define+HOST_MODULE_PATH=spmd_testbench) 
+	# These define are required by mobile_ddr.v.
+	# density     	= 2048 Mbit
+	# speed grade 	= 5
+	# organization 	= x16
+	# allocation    = FULL_MEM
+	$(eval XRUN_DEFINES += +define+den2048Mb+sg5+x16+FULL_MEM)
+endef
+
+# boot tag rom gen
+POD_TRACE_GEN_PY = $(BSG_MANYCORE_DIR)/testbenches/py/pod_trace_gen.py
+ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py 
+# build simx
+# without debug option for faster simulation.
+%/simx : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_xrun_machine_variables,$<)
+	python $(POD_TRACE_GEN_PY) $(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) > $*/pod_trace.tr
+	python $(ASCII_TO_ROM_PY) $*/pod_trace.tr bsg_tag_boot_rom > $*/bsg_tag_boot_rom.v
+	$(XRUN) $(XRUN_FLAGS) $(XRUN_CFLAGS) \
+		$(XRUN_INCLUDES) $(XRUN_DEFINES) $(CSOURCES) $(XRUN_SOURCES) $*/bsg_tag_boot_rom.v \
+		-l $*/build.log -xmlibdirname $*/xcelium.d
+	echo "ln -nsf $(abspath $*)/xcelium.d xcelium.d" > $@
+	echo "$(XRUN) $(XMSIM_FLAGS) -xmlibdirname xcelium.d -r spmd_testbench \$$@" >> $@
+	chmod +x $@
+
+# build simx-debug
+# with debug option for waveform generation.
+%/simx-debug : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_xrun_machine_variables,$<)
+	python $(POD_TRACE_GEN_PY) $(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) > $*/pod_trace.tr
+	python $(ASCII_TO_ROM_PY) $*/pod_trace.tr bsg_tag_boot_rom > $*/bsg_tag_boot_rom.v
+	$(eval XRUN_FLAGS += -access +rwc) # Debug adds these two variables to generate waveforms
+	$(eval XRUN_FLAGS += +define+BSG_ENABLE_VANILLA_CORE_TRACE) # Enable vanilla_core_trace
+	$(eval XMSIM_FLAGS += -input $(BSG_MANYCORE_DIR)/machines/xcelium_dump.tcl)
+	$(XRUN) $(XRUN_FLAGS) $(XRUN_CFLAGS) \
+		$(XRUN_INCLUDES) $(XRUN_DEFINES) $(CSOURCES) $(XRUN_SOURCES) $*/bsg_tag_boot_rom.v \
+		-l $*/build-debug.log -xmlibdirname $*/xcelium-debug.d
+	echo "ln -nsf $(abspath $*)/xcelium-debug.d xcelium-debug.d" > $@
+	echo "$(XRUN) $(XMSIM_FLAGS) -xmlibdirname xcelium-debug.d -r spmd_testbench \$$@" >> $@
+	chmod +x $@
+
+# building simx-profile
+# with trace-based profiler for bloodgraphs etc
+%/simx-profile : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(call set_xrun_machine_variables,$<)
+	python $(POD_TRACE_GEN_PY) $(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) > $*/pod_trace.tr
+	python $(ASCII_TO_ROM_PY) $*/pod_trace.tr bsg_tag_boot_rom > $*/bsg_tag_boot_rom.v
+	$(eval XRUN_FLAGS += +define+BSG_ENABLE_PROFILING) # Debug adds these two variables to generate waveforms
+	$(eval XRUN_CFLAGS   += "-DBLOOD_GRAPH")
+	$(XRUN) $(XRUN_FLAGS) $(XRUN_CFLAGS) \
+		$(XRUN_INCLUDES) $(XRUN_DEFINES) $(CSOURCES) $(XRUN_SOURCES) $*/bsg_tag_boot_rom.v \
+		-l $*/build-profile.log -xmlibdirname $*/xcelium-profile.d
+	echo "ln -nsf $(abspath $*)/xcelium-profile.d xcelium-profile.d" > $@
+	echo "$(XMSIM) $(XMSIM_FLAGS) -xmlibdirname xcelium-profile.d -r spmd_testbench \$$@" >> $@
+	chmod +x $@
+
+# build simx-coverage
+# with coverage options for code/functional coverage
+%/simx-coverage : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
+	$(error coverage is not currently supported for Xcelium)
+

@@ -21,7 +21,7 @@ ifneq ($(IGNORE_CADENV),)
   # select the tools
 
 # Checking the VCS settings
-else ifeq (,$findstring(cs.washington.edu,$(HOSTNAME)))
+else ifeq (,$(findstring cs.washington.edu,$(HOSTNAME)))
   ifeq ($(VCS),)
     $(error Unfamiliar machine/cadtool setup: Please define the $$VCS which points to the VCS binaries )
   endif
@@ -44,6 +44,8 @@ ifeq ($(BSG_PLATFORM),vcs)
   BSG_SIM_BASE = simv
 else ifeq ($(BSG_PLATFORM),verilator)
   BSG_SIM_BASE = simsc
+else ifeq ($(BSG_PLATFORM),xcelium)
+  BSG_SIM_BASE = simx
 endif
 
 ifeq ($(WAVE),0)
@@ -73,8 +75,12 @@ BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
                +num_finish=$(NUM_FINISH) \
                +vanilla_trace_en=$(TRACE) \
                +coverage_en=$(COVERAGE) \
-               -licqueue -reportstats \
-               -l run.log
+
+ifeq ($(BSG_PLATFORM),vcs)
+BSG_SIM_OPTS += -reportstats \
+                -licqueue \
+                -l run.log
+endif
 
 ifneq ($(COVERAGE), 0)
   BSG_SIM_OPTS += -cm line+fsm+branch+cond+tgl -cm_name $(CM_NAME) -cm_dir $(COV_DIR)/$(COV_DB_NAME).vdb
