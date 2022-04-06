@@ -29,6 +29,14 @@ import "DPI-C" context function \
 import "DPI-C" context function \
   void profiler_name``_unlock();
 
+`define DECLARE_PROFILER_DPI_FUNCTIONS(profiler_name) \
+  `DECLARE_PROFILER_INIT_FUNC(profiler_name) \
+  `DECLARE_PROFILER_EXIT_FUNC(profiler_name) \
+  `DECLARE_PROFILER_IS_INIT_FUNC(profiler_name) \
+  `DECLARE_PROFILER_IS_EXIT_FUNC(profiler_name) \
+  `DECLARE_PROFILER_TRACE_FD_FUNC(profiler_name) \
+  `DECLARE_PROFILER_LOCK_FUNC(profiler_name) \
+  `DECLARE_PROFILER_UNLOCK_FUNC(profiler_name)
 
 `define DEFINE_PROFILER_INITIAL_BLOCK(profiler_name, trace_file_name, trace_file_header) \
 initial begin \
@@ -52,13 +60,7 @@ end
   end
 
 `define DEFINE_PROFILER(profiler_name, trace_file_name, trace_file_header) \
-  `DECLARE_PROFILER_INIT_FUNC(profiler_name) \
-  `DECLARE_PROFILER_EXIT_FUNC(profiler_name) \
-  `DECLARE_PROFILER_IS_INIT_FUNC(profiler_name) \
-  `DECLARE_PROFILER_IS_EXIT_FUNC(profiler_name) \
-  `DECLARE_PROFILER_TRACE_FD_FUNC(profiler_name) \
-  `DECLARE_PROFILER_LOCK_FUNC(profiler_name) \
-  `DECLARE_PROFILER_UNLOCK_FUNC(profiler_name) \
+  `DECLARE_PROFILER_DPI_FUNCTIONS(profiler_name) \
   `DEFINE_PROFILER_INITIAL_BLOCK(profiler_name, trace_file_name, trace_file_header) \
   `DEFINE_PROFILER_FINAL_BLOCK(profiler_name)
 
