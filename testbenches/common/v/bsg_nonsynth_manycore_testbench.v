@@ -810,6 +810,7 @@ if (enable_vcore_profiling_p) begin
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
+    ,.pc_hist_en_i($root.`HOST_MODULE_PATH.pc_hist_en)
   );
 
   bind network_tx remote_load_trace #(
