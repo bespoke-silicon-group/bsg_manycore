@@ -4,6 +4,7 @@
 MAX_CYCLES ?= 100000000
 WAVE       ?= 0
 TRACE      ?= 0
+PC_HIST    ?= 0
 COVERAGE   ?= 0
 PROG_NAME  ?= main
 
@@ -47,11 +48,15 @@ else ifeq ($(BSG_PLATFORM),verilator)
 endif
 
 ifeq ($(WAVE),0)
+ifeq ($(PC_HIST),0)
 ifeq ($(TRACE),0)
 ifeq ($(COVERAGE),0)
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-coverage
+endif
+else
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-profile
 endif
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-profile
@@ -72,6 +77,7 @@ BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
                +max_cycle=$(MAX_CYCLES) \
                +num_finish=$(NUM_FINISH) \
                +vanilla_trace_en=$(TRACE) \
+	       +vanilla_pc_hist_en=$(PC_HIST) \
                +coverage_en=$(COVERAGE) \
                -licqueue -reportstats \
                -l run.log

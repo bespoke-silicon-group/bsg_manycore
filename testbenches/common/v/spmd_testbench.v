@@ -195,6 +195,15 @@ module spmd_testbench
     status = $value$plusargs("vanilla_trace_en=%d", trace_arg);
     assign trace_en = (trace_arg == 1);
   end
+
+  // pc_hist enable
+  int pc_hist_arg;
+  logic pc_hist_en;
+  initial begin
+    status = $value$plusargs("vanilla_pc_hist_en=%d", pc_hist_arg);
+    assign pc_hist_en = (pc_hist_arg == 1);
+  end
+
   
   // coverage enable
   int coverage_arg;
