@@ -14,6 +14,10 @@ vanilla_core_profiler bsg_vanilla_core_profiler;
 
 DEFINE_PROFILER(bsg_vanilla_core_profiler);
 
+
+// pc width is 24 bits
+// op is 8 bits
+// key width
 class vanilla_core_pc_hist {
 public:
     // types
