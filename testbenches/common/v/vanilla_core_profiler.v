@@ -121,7 +121,12 @@ module vanilla_core_profiler
 
   // pc histogram
   import "DPI-C" context function
-    chandle vanilla_core_pc_hist_new(string instance);
+    chandle vanilla_core_pc_hist_new();
+  import "DPI-C" context function
+    chandle vanilla_core_pc_hist_set_instance_name
+      (chandle pc_hist_vptr
+       ,string instance
+       );
   import "DPI-C" context function
     void vanilla_core_pc_hist_increment
       (chandle pc_hist_vptr
@@ -138,11 +143,10 @@ module vanilla_core_profiler
     void vanilla_core_pc_hist_del(chandle pc_hist_vptr);
 
   chandle pc_hist_vptr;
-  string my_name = $sformatf("%m");
 
   initial
     begin
-      pc_hist_vptr = vanilla_core_pc_hist_new(my_name);
+      pc_hist_vptr = vanilla_core_pc_hist_new();
   `define DEFINE_TRACE_STATE(state, incr, pc) \
       vanilla_core_pc_hist_register_operation \
       (pc_hist_vptr \
@@ -156,6 +160,15 @@ module vanilla_core_profiler
     begin
       vanilla_core_pc_hist_del(pc_hist_vptr);
     end
+
+  always @(negedge reset_i) begin
+    string me = $sformatf
+         ("x[%0d]y[%0d]"
+          ,x_cord_width_p'(origin_x_cord_p)
+          ,y_cord_width_p'(origin_y_cord_p)
+          );
+    vanilla_core_pc_hist_set_instance_name(pc_hist_vptr, me);
+  end
 
   // operations trace
   // task to print a line of operation trace
