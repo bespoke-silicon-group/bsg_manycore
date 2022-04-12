@@ -125,7 +125,8 @@ module vanilla_core_profiler
   import "DPI-C" context function
     chandle vanilla_core_pc_hist_set_instance_name
       (chandle pc_hist_vptr
-       ,string instance
+       ,int x
+       ,int y
        );
   import "DPI-C" context function
     void vanilla_core_pc_hist_increment
@@ -162,12 +163,11 @@ module vanilla_core_profiler
     end
 
   always @(negedge reset_i) begin
-    string me = $sformatf
-         ("x[%0d]y[%0d]"
-          ,x_cord_width_p'(origin_x_cord_p)
-          ,y_cord_width_p'(origin_y_cord_p)
-          );
-    vanilla_core_pc_hist_set_instance_name(pc_hist_vptr, me);
+    vanilla_core_pc_hist_set_instance_name
+      (pc_hist_vptr
+       , global_x_i
+       , global_y_i
+       );
   end
 
   // operations trace
