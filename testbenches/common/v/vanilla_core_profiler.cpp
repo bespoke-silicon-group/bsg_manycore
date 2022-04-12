@@ -94,17 +94,20 @@ public:
         FILE*                      _ofile;
     };
 
+    // constants
+    static constexpr int PC_WIDTH = 24;
+
     // constructors
     vanilla_core_pc_hist(){}
 
     //api
     void increment(int pc, int operation) {
-        auto it = _pc_hist.find(pc);
+        int key = make_key(pc, operation);
+        auto it = _pc_hist.find(key);
         if (it != _pc_hist.end()) {
-            _pc_hist[pc][operation]++;
+            _pc_hist[key]++;
         } else {
-            _pc_hist[pc] = std::vector<int>(ClassData().ops_vector_size(), 0);
-            _pc_hist[pc][operation]++;
+            _pc_hist[key]=1;
         }
     }
     std::string &instance() {
@@ -115,18 +118,15 @@ public:
         for (auto it = _pc_hist.begin();
              it != _pc_hist.end();
              it++) {
-            int pc = it->first;
-            std::vector<int>& cycle_counts = it->second;
-            for (int op = 0; op < cycle_counts.size(); op++) {
-                if (cycle_counts[op]!=0) {
-                    cd.write_entry(
-                        _instance
-                        ,pc
-                        ,cd.opstr(op)
-                        ,cycle_counts[op]
-                        );
-                }
-            }
+            int key = it->first;
+            int pc = key_to_pc(key);
+            int op = key_to_op(key);
+            cd.write_entry(
+                _instance
+                ,pc
+                ,cd.opstr(op)
+                ,it->second
+                );
         }
     }
 
@@ -144,19 +144,34 @@ protected:
         return _singleton;
     }
 
+    int make_key(int pc, int op) const {
+        return (op << PC_WIDTH) | (pc & ((1<<PC_WIDTH)-1));
+    }
+
+    int key_to_pc(int key) const {
+        return key & ((1<<PC_WIDTH)-1);
+    }
+
+    int key_to_op(int key) const {
+        return (key >> PC_WIDTH) & ((1<<(sizeof(int)*8 - PC_WIDTH))-1);
+    }
 private:
     // members
-    std::string                    _instance;
-    std::map<int, std::vector<int>> _pc_hist;
+    std::string          _instance;
+    std::map<int, int>   _pc_hist;
 };
 
-extern "C" void* vanilla_core_pc_hist_new(
-    const char *instance
-    )
-{
+extern "C" void* vanilla_core_pc_hist_new() {
     vanilla_core_pc_hist *pc_hist = new vanilla_core_pc_hist;
-    pc_hist->instance() = std::string(instance);
     return pc_hist;
+}
+extern "C" void  vanilla_core_pc_hist_set_instance_name(
+    void *pc_hist_vptr
+    ,const char *instance
+    ) {
+   vanilla_core_pc_hist *pc_hist
+        = reinterpret_cast<vanilla_core_pc_hist*>(pc_hist_vptr);
+   pc_hist->instance() = std::string(instance);
 }
 
 extern "C" void vanilla_core_pc_hist_increment(
