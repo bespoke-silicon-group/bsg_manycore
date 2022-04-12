@@ -1,5 +1,6 @@
 #include <map>
 #include <vector>
+#include <sstream>
 #include <string>
 #include <cstdio>
 #include <cstdlib>
@@ -167,11 +168,14 @@ extern "C" void* vanilla_core_pc_hist_new() {
 }
 extern "C" void  vanilla_core_pc_hist_set_instance_name(
     void *pc_hist_vptr
-    ,const char *instance
+    ,int x
+    ,int y
     ) {
    vanilla_core_pc_hist *pc_hist
         = reinterpret_cast<vanilla_core_pc_hist*>(pc_hist_vptr);
-   pc_hist->instance() = std::string(instance);
+   std::stringstream ss;
+   ss << "x[" << x << "].y[" << y << "]";
+   pc_hist->instance() = ss.str();
 }
 
 extern "C" void vanilla_core_pc_hist_increment(
