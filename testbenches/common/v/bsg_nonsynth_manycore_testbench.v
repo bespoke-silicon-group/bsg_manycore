@@ -914,6 +914,20 @@ if (enable_vanilla_core_trace_p) begin
 end
 `endif
 
+  //////////////////
+  // PC Histogram //
+  //////////////////
+  bind vanilla_core vanilla_core_pc_histogram
+    #(.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.data_width_p(data_width_p)
+      ,.icache_tag_width_p(icache_tag_width_p)
+      ,.icache_entries_p(icache_entries_p)
+      ,.origin_x_cord_p(`BSG_MACHINE_ORIGIN_X_CORD)
+      ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
+      )
+  vcore_pc_hist
+    (.*);
 
 endmodule
 
