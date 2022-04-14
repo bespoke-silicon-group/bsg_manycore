@@ -914,6 +914,7 @@ if (enable_vanilla_core_trace_p) begin
 end
 `endif
 
+`ifdef PC_HIST
   //////////////////
   // PC Histogram //
   //////////////////
@@ -928,7 +929,7 @@ end
       )
   vcore_pc_hist
     (.*);
-
+`endif
 endmodule
 
 `BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_testbench)
