@@ -19,6 +19,7 @@ module vanilla_core_profiler
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
   import bsg_manycore_profile_pkg::*;
+  import vanilla_exe_bubble_classifier_pkg::*;  
   #(parameter `BSG_INV_PARAM(x_cord_width_p)
     , parameter `BSG_INV_PARAM(y_cord_width_p)
     , parameter `BSG_INV_PARAM(data_width_p)
@@ -329,111 +330,22 @@ module vanilla_core_profiler
   wire barsend_inc = (exe_r.instruction ==? `RV32_FENCE_OP) & (exe_r.instruction[31:28] == `RV32_BARSEND_FM);
   wire barrecv_inc = (exe_r.instruction ==? `RV32_FENCE_OP) & (exe_r.instruction[31:28] == `RV32_BARRECV_FM);
 
-  // remote/local scoreboard tracking 
-  //
-  // int_sb[3]: idiv
-  // int_sb[2]: remote dram load
-  // int_sb[1]: remote global load
-  // int_sb[0]: remote group load
-  //
-  // float_sb[3]: fdiv / fsqrt
-  // float_sb[2]: remote dram load
-  // float_sb[1]: remote global load
-  // float_sb[0]: remote group load
-  logic [reg_els_lp-1:0][3:0] int_sb_r;
-  logic [reg_els_lp-1:0][3:0] float_sb_r;
-
-  wire [data_width_p-1:0] id_mem_addr = rs1_val_to_exe + `BSG_SIGN_EXTEND(mem_addr_op2,data_width_p);
-  wire remote_ld_dram_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & id_mem_addr[data_width_p-1];
-  wire remote_ld_global_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & (id_mem_addr[data_width_p-1-:2] == 2'b01);
-  wire remote_ld_group_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & (id_mem_addr[data_width_p-1-:3] == 3'b001);
-
-  wire remote_flw_dram_in_id = (id_r.decode.is_load_op & id_r.decode.write_frd) & id_mem_addr[data_width_p-1];
-  wire remote_flw_global_in_id = (id_r.decode.is_load_op & id_r.decode.write_frd) & (id_mem_addr[data_width_p-1-:2] == 2'b01);
-  wire remote_flw_group_in_id = (id_r.decode.is_load_op & id_r.decode.write_frd) & (id_mem_addr[data_width_p-1-:3] == 3'b001);
-
-  wire [reg_addr_width_lp-1:0] id_rd = id_r.instruction.rd;
-
-
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      int_sb_r <= '0;
-      float_sb_r <= '0;
-    end
-    else begin
-      // int sb
-      if (~stall_id & ~stall_all & ~flush) begin
-        if (id_r.decode.is_idiv_op) begin
-          int_sb_r[id_r.instruction.rd][3] <= 1'b1;
-        end
-        else if (remote_ld_dram_in_id) begin
-          int_sb_r[id_r.instruction.rd][2] <= 1'b1;
-        end
-        else if (remote_ld_global_in_id) begin
-          int_sb_r[id_r.instruction.rd][1] <= 1'b1;
-        end
-        else if (remote_ld_group_in_id) begin
-          int_sb_r[id_r.instruction.rd][0] <= 1'b1;
-        end
-      end
-      else if (int_sb_clear) begin
-        int_sb_r[int_sb_clear_id] <= '0;
-      end
-      
-      // float sb
-      if (~stall_id & ~stall_all & ~flush) begin
-        if (id_r.decode.is_fp_op & (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op)) begin
-          float_sb_r[id_r.instruction.rd][3] <= 1'b1;
-        end
-        else if (remote_flw_dram_in_id) begin
-          float_sb_r[id_r.instruction.rd][2] <= 1'b1;
-        end
-        else if (remote_flw_global_in_id) begin
-          float_sb_r[id_r.instruction.rd][1] <= 1'b1;
-        end
-        else if (remote_flw_group_in_id) begin
-          float_sb_r[id_r.instruction.rd][0] <= 1'b1;
-        end
-      end
-      else if (float_sb_clear) begin
-        float_sb_r[float_sb_clear_id] <= '0;
-      end
-    end
-  end
-
-  wire stall_depend_group_load = stall_depend_long_op
-    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][0]) |
-       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][0]) |
-       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][0]) |
-       (id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][0]) |
-       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][0]) |
-       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][0]));
-
-  wire stall_depend_global_load = stall_depend_long_op
-    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][1]) |
-       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][1]) |
-       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][1]) |
-       (id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][1]) |
-       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][1]) |
-       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][1]));
-
-  wire stall_depend_dram_load = stall_depend_long_op
-    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][2]) |
-       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][2]) |
-       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][2]) |
-       (id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][2]) |
-       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][2]) |
-       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][2]));
-
-  wire stall_depend_idiv = stall_depend_long_op
-    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][3]) |
-       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][3]) |
-       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][3]));
-
-  wire stall_depend_fdiv = stall_depend_long_op
-    & ((id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][3]) |
-       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][3]) |
-       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][3]));
+  // Track bubbles in the EXE stage
+  // and their associated PC
+  logic [data_width_p-1:0] exe_bubble_pc_r;
+  exe_bubble_type_e exe_bubble_r;
+  
+  vanilla_exe_bubble_classifier
+    #(.pc_width_p(pc_width_lp)
+      ,.data_width_p(data_width_p)
+      ,.classify_long_op(1)
+      )
+  classifier
+    (.*
+     ,.exe_bubble_pc_o(exe_bubble_pc_r)
+     ,.exe_bubble_type_o(exe_bubble_r)
+     );
+  
 
   // FP_EXE pc tracker (also for imul)
   logic [data_width_p-1:0] fp_exe_pc_r;
@@ -452,7 +364,6 @@ module vanilla_core_profiler
 
   // icache miss PC tracker
   logic [data_width_p-1:0] icache_miss_pc_r;
-
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       icache_miss_pc_r <= '0;
@@ -464,187 +375,6 @@ module vanilla_core_profiler
     end
   end
 
-
-  // ID stage bubble
-  typedef enum logic [1:0] {
-    e_id_bubble_branch_miss,
-    e_id_bubble_jalr_miss,
-    e_id_bubble_icache_miss,
-    e_id_no_bubble
-  } id_bubble_type_e;
-  
-  id_bubble_type_e id_bubble_r;
-  logic [data_width_p-1:0] id_bubble_pc_r;
-
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      id_bubble_r <= e_id_no_bubble;
-      id_bubble_pc_r <= '0;
-    end
-    else begin
-      if (~stall_all) begin
-        if (branch_mispredict) begin
-          id_bubble_r <= e_id_bubble_branch_miss;
-          id_bubble_pc_r <= exe_pc;
-        end
-        else if (jalr_mispredict) begin
-          id_bubble_r <= e_id_bubble_jalr_miss;
-          id_bubble_pc_r <= exe_pc;
-        end
-        else if (icache_miss_in_pipe) begin
-          id_bubble_r <= e_id_bubble_icache_miss;
-          id_bubble_pc_r <= icache_miss_pc_r;
-        end
-        else begin
-          id_bubble_r <= e_id_no_bubble;
-          id_bubble_pc_r <= '0;
-        end
-      end
-    end
-  end
-
-  // EXE stage bubble
-  typedef enum logic [5:0] {
-    e_exe_bubble_branch_miss,
-    e_exe_bubble_jalr_miss,
-    e_exe_bubble_icache_miss,
-    
-    e_exe_bubble_stall_depend_dram,
-    e_exe_bubble_stall_depend_global,
-    e_exe_bubble_stall_depend_group,
-    e_exe_bubble_stall_depend_fdiv,
-    e_exe_bubble_stall_depend_idiv,
-
-    e_exe_bubble_stall_depend_local_load,
-    e_exe_bubble_stall_depend_imul,
-
-    e_exe_bubble_stall_amo_aq,
-    e_exe_bubble_stall_amo_rl,
-
-    e_exe_bubble_stall_bypass,
-    e_exe_bubble_stall_lr_aq,
-    e_exe_bubble_stall_fence,
-
-    e_exe_bubble_stall_remote_req,
-    e_exe_bubble_stall_remote_credit,
-    
-    e_exe_bubble_stall_fdiv_busy,
-    e_exe_bubble_stall_idiv_busy,
-    e_exe_bubble_stall_fcsr,
-    e_exe_bubble_stall_barrier,    
-
-    e_exe_no_bubble
-  } exe_bubble_type_e;
-
-  exe_bubble_type_e exe_bubble_r;
-  logic [data_width_p-1:0] exe_bubble_pc_r;
-
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      exe_bubble_r <= e_exe_no_bubble;
-      exe_bubble_pc_r <= '0;
-    end
-    else begin
-      if (~stall_all) begin
-        if (branch_mispredict) begin
-          exe_bubble_r <= e_exe_bubble_branch_miss;
-          exe_bubble_pc_r <= exe_pc;
-        end
-        else if (jalr_mispredict) begin
-          exe_bubble_r <= e_exe_bubble_jalr_miss;
-          exe_bubble_pc_r <= exe_pc;
-        end
-        else if (id_bubble_r == e_id_bubble_branch_miss) begin
-          exe_bubble_r <= e_exe_bubble_branch_miss;
-          exe_bubble_pc_r <= id_bubble_pc_r;
-        end
-        else if (id_bubble_r == e_id_bubble_jalr_miss) begin
-          exe_bubble_r <= e_exe_bubble_jalr_miss;
-          exe_bubble_pc_r <= id_bubble_pc_r;
-        end
-        else if (id_bubble_r == e_id_bubble_icache_miss) begin
-          exe_bubble_r <= e_exe_bubble_icache_miss;
-          exe_bubble_pc_r <= id_bubble_pc_r;
-        end
-        else if (stall_depend_dram_load) begin
-          exe_bubble_r <= e_exe_bubble_stall_depend_dram;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_depend_group_load) begin
-          exe_bubble_r <= e_exe_bubble_stall_depend_group;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_depend_global_load) begin
-          exe_bubble_r <= e_exe_bubble_stall_depend_global;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_depend_idiv) begin
-          exe_bubble_r <= e_exe_bubble_stall_depend_idiv;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_depend_fdiv) begin
-          exe_bubble_r <= e_exe_bubble_stall_depend_fdiv;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_depend_local_load) begin
-          exe_bubble_r <= e_exe_bubble_stall_depend_local_load;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_depend_imul) begin
-          exe_bubble_r <= e_exe_bubble_stall_depend_imul;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_amo_aq) begin
-          exe_bubble_r <= e_exe_bubble_stall_amo_aq;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_amo_rl) begin
-          exe_bubble_r <= e_exe_bubble_stall_amo_rl;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_bypass) begin
-          exe_bubble_r <= e_exe_bubble_stall_bypass;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_lr_aq) begin
-          exe_bubble_r <= e_exe_bubble_stall_lr_aq;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_fence) begin
-          exe_bubble_r <= e_exe_bubble_stall_fence;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_remote_req) begin
-          exe_bubble_r <= e_exe_bubble_stall_remote_req;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_remote_credit) begin
-          exe_bubble_r <= e_exe_bubble_stall_remote_credit;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_fdiv_busy) begin
-          exe_bubble_r <= e_exe_bubble_stall_fdiv_busy;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_idiv_busy) begin
-          exe_bubble_r <= e_exe_bubble_stall_idiv_busy;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_fcsr) begin
-          exe_bubble_r <= e_exe_bubble_stall_fcsr;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else if (stall_barrier) begin
-          exe_bubble_r <= e_exe_bubble_stall_barrier;
-          exe_bubble_pc_r <= id_pc;
-        end
-        else begin
-          exe_bubble_r <= e_exe_no_bubble;
-          exe_bubble_pc_r <= '0;
-        end
-      end
-    end
-  end
 
 
   wire branch_miss_bubble_inc = (exe_bubble_r == e_exe_bubble_branch_miss);
