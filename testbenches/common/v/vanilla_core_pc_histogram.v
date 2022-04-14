@@ -168,6 +168,7 @@ module vanilla_core_pc_histogram
   vanilla_exe_bubble_classifier
     #(.pc_width_p(pc_width_lp)
       ,.data_width_p(data_width_p)
+      ,.classify_long_op(0)
       )
   stall_class
     (.*
