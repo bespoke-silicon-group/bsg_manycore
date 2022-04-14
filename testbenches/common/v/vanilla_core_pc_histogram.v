@@ -5,6 +5,7 @@ module vanilla_core_pc_histogram
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
   import bsg_manycore_profile_pkg::*;
+  import vanilla_exe_bubble_classifier_pkg::*;
   #(parameter `BSG_INV_PARAM(x_cord_width_p)
     ,parameter `BSG_INV_PARAM(y_cord_width_p)
     ,parameter `BSG_INV_PARAM(data_width_p)
@@ -152,41 +153,6 @@ module vanilla_core_pc_histogram
        , global_y_i
        );
   end
-
-  // EXE stage bubble
-  typedef enum logic [31:0] {
-    e_exe_bubble_branch_miss,
-    e_exe_bubble_jalr_miss,
-    e_exe_bubble_icache_miss,
-`ifdef CLASSIFY_LONG_OP
-    e_exe_bubble_stall_depend_dram,
-    e_exe_bubble_stall_depend_global,
-    e_exe_bubble_stall_depend_group,
-    e_exe_bubble_stall_depend_fdiv,
-    e_exe_bubble_stall_depend_idiv,
-`else
-    e_exe_bubble_stall_depend_long_op,
-`endif
-    e_exe_bubble_stall_depend_local_load,
-    e_exe_bubble_stall_depend_imul,
-
-    e_exe_bubble_stall_amo_aq,
-    e_exe_bubble_stall_amo_rl,
-
-    e_exe_bubble_stall_bypass,
-    e_exe_bubble_stall_lr_aq,
-    e_exe_bubble_stall_fence,
-
-    e_exe_bubble_stall_remote_req,
-    e_exe_bubble_stall_remote_credit,
-
-    e_exe_bubble_stall_fdiv_busy,
-    e_exe_bubble_stall_idiv_busy,
-    e_exe_bubble_stall_fcsr,
-    e_exe_bubble_stall_barrier,
-
-    e_exe_no_bubble
-  } exe_bubble_type_e;
 
   exe_bubble_type_e exe_bubble_type;
   logic [pc_width_lp-1:0] exe_bubble_pc;
