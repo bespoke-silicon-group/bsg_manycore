@@ -1,6 +1,9 @@
 `include "bsg_manycore_defines.vh"
 `include "bsg_vanilla_defines.vh"
+`define CLASSIFY_LONG_OP
 module vanilla_exe_bubble_classifier
+  import bsg_manycore_pkg::*;
+  import bsg_vanilla_pkg::*;
   import vanilla_exe_bubble_classifier_pkg::*;
   #(parameter `BSG_INV_PARAM(pc_width_p)
     ,parameter `BSG_INV_PARAM(data_width_p)
@@ -41,44 +44,67 @@ module vanilla_exe_bubble_classifier
    ,input branch_mispredict
    ,input jalr_mispredict
 
+   ,input [data_width_p-1:0] rs1_val_to_exe
+   ,input [RV32_Iimm_width_gp-1:0] mem_addr_op2
+
+   ,input int_sb_clear
+   ,input float_sb_clear
+   ,input [RV32_reg_addr_width_gp-1:0] int_sb_clear_id
+   ,input [RV32_reg_addr_width_gp-1:0] float_sb_clear_id
+
+   ,input id_signals_s id_r
+   ,input exe_signals_s exe_r
+   ,input fp_exe_ctrl_signals_s fp_exe_ctrl_r
+
    ,output [pc_width_p-1:0] exe_bubble_pc_o
    ,output [31:0] exe_bubble_type_o
    );
 
 `ifdef CLASSIFY_LONG_OP
+  logic [RV32_reg_els_gp-1:0][3:0] int_sb;
+  logic [RV32_reg_els_gp-1:0][3:0] float_sb;
+
+  vanilla_scoreboard_tracker
+    #(.data_width_p(data_width_p))
+  sb_tracker
+    (.*
+     ,.int_sb_o(int_sb)
+     ,.float_sb_o(float_sb)
+     );
+
     wire stall_depend_group_load = stall_depend_long_op
-    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][0]) |
-       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][0]) |
-       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][0]) |
-       (id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][0]) |
-       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][0]) |
-       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][0]));
+    & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][0]) |
+       (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][0]) |
+       (id_r.decode.write_rd & int_sb[id_r.instruction.rd][0]) |
+       (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][0]) |
+       (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][0]) |
+       (id_r.decode.write_frd & float_sb[id_r.instruction.rd][0]));
 
   wire stall_depend_global_load = stall_depend_long_op
-    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][1]) |
-       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][1]) |
-       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][1]) |
-       (id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][1]) |
-       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][1]) |
-       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][1]));
+    & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][1]) |
+       (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][1]) |
+       (id_r.decode.write_rd & int_sb[id_r.instruction.rd][1]) |
+       (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][1]) |
+       (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][1]) |
+       (id_r.decode.write_frd & float_sb[id_r.instruction.rd][1]));
 
   wire stall_depend_dram_load = stall_depend_long_op
-    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][2]) |
-       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][2]) |
-       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][2]) |
-       (id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][2]) |
-       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][2]) |
-       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][2]));
+    & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][2]) |
+       (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][2]) |
+       (id_r.decode.write_rd & int_sb[id_r.instruction.rd][2]) |
+       (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][2]) |
+       (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][2]) |
+       (id_r.decode.write_frd & float_sb[id_r.instruction.rd][2]));
 
   wire stall_depend_idiv = stall_depend_long_op
-    & ((id_r.decode.read_rs1 & int_sb_r[id_r.instruction.rs1][3]) |
-       (id_r.decode.read_rs2 & int_sb_r[id_r.instruction.rs2][3]) |
-       (id_r.decode.write_rd & int_sb_r[id_r.instruction.rd][3]));
+    & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][3]) |
+       (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][3]) |
+       (id_r.decode.write_rd & int_sb[id_r.instruction.rd][3]));
 
   wire stall_depend_fdiv = stall_depend_long_op
-    & ((id_r.decode.read_frs1 & float_sb_r[id_r.instruction.rs1][3]) |
-       (id_r.decode.read_frs2 & float_sb_r[id_r.instruction.rs2][3]) |
-       (id_r.decode.write_frd & float_sb_r[id_r.instruction.rd][3]));
+    & ((id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][3]) |
+       (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][3]) |
+       (id_r.decode.write_frd & float_sb[id_r.instruction.rd][3]));
 `endif //  `ifdef CLASSIFY_LONG_OP
 
   // icache miss PC tracker
