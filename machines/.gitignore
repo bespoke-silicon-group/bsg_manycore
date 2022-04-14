@@ -1,3 +1,5 @@
+simv-pc-histogram
+simv-pc-histogram.daidir
 simv-debug
 simv-debug.daidir
 simv-profile
@@ -6,11 +8,13 @@ simv-coverage
 simv-coverage.daidir
 vc_hdrs.h
 stack.info.*
+*/build-pc-histogram
 */build-profile
 */build-debug
 */build-coverage
 */build
 */csrc
+*/csrc-pc-histogram
 */csrc-debug
 */csrc-profile
 */csrc-coverage

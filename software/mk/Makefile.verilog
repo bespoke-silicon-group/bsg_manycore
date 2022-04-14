@@ -59,7 +59,7 @@ else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-profile
 endif
 else
-  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-profile
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-pc-histogram
 endif
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-debug
@@ -77,7 +77,6 @@ BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
                +max_cycle=$(MAX_CYCLES) \
                +num_finish=$(NUM_FINISH) \
                +vanilla_trace_en=$(TRACE) \
-	       +vanilla_pc_hist_en=$(PC_HIST) \
                +coverage_en=$(COVERAGE) \
                -licqueue -reportstats \
                -l run.log

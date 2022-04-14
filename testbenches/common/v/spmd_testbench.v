@@ -137,6 +137,9 @@ module spmd_testbench
 `ifdef BSG_ENABLE_VANILLA_CORE_TRACE
     ,.enable_vanilla_core_trace_p(1)
 `endif
+`ifdef BSG_ENABLE_PC_HISTOGRAM
+    ,.enable_vanilla_core_pc_histogram_p(1)
+`endif
   // DR: If the instance name is changed, the bind statements in the
   // file where this module is defined, and header strings in the
   // profilers need to be changed as well.
@@ -198,15 +201,6 @@ module spmd_testbench
     status = $value$plusargs("vanilla_trace_en=%d", trace_arg);
     assign trace_en = (trace_arg == 1);
   end
-
-  // pc_hist enable
-  int pc_hist_arg;
-  logic pc_hist_en;
-  initial begin
-    status = $value$plusargs("vanilla_pc_hist_en=%d", pc_hist_arg);
-    assign pc_hist_en = (pc_hist_arg == 1);
-  end
-
   
   // coverage enable
   int coverage_arg;
