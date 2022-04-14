@@ -58,6 +58,8 @@ module bsg_nonsynth_manycore_testbench
 
     , parameter enable_vcore_pc_coverage_p=0
 
+    , parameter enable_vanilla_core_pc_histogram_p=0
+
     , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p*num_vcache_rows_p)*4) // byte addr
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -792,7 +794,6 @@ if (enable_vcore_profiling_p) begin
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
-    ,.pc_hist_en_i($root.`HOST_MODULE_PATH.pc_hist_en)
   );
 
   bind network_tx remote_load_trace #(
@@ -882,11 +883,11 @@ if (enable_vanilla_core_trace_p) begin
     .*
   );
 end // if (enable_vanilla_core_trace_p)
-//`define PC_HIST
-`ifdef PC_HIST
+
   //////////////////
   // PC Histogram //
   //////////////////
+if (enable_vanilla_core_pc_histogram_p) begin
   bind vanilla_core vanilla_core_pc_histogram
     #(.x_cord_width_p(x_cord_width_p)
       ,.y_cord_width_p(y_cord_width_p)
@@ -898,7 +899,8 @@ end // if (enable_vanilla_core_trace_p)
       )
   vcore_pc_hist
     (.*);
-`endif
+end // if (enable_vanilla_core_pc_histogram_p)
+
 endmodule
 
 `BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_testbench)
