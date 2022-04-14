@@ -53,6 +53,9 @@ module vanilla_core_pc_histogram
    , input stall_ifetch_wait
    , input stall_remote_flw_wb
 
+   , input branch_mispredict
+   , input jalr_mispredict
+
    , input id_signals_s id_r
    , input exe_signals_s exe_r
    , input fp_exe_ctrl_signals_s fp_exe_ctrl_r
@@ -129,6 +132,11 @@ module vanilla_core_pc_histogram
          ,e_stall
          ,"stall"
          );
+      vanilla_core_pc_hist_register_operation
+        (pc_hist_vptr
+         ,e_unknown
+         ,"unknown"
+         );
     end
 
   // cleanup dpi module
@@ -145,6 +153,55 @@ module vanilla_core_pc_histogram
        );
   end
 
+  // EXE stage bubble
+  typedef enum logic [31:0] {
+    e_exe_bubble_branch_miss,
+    e_exe_bubble_jalr_miss,
+    e_exe_bubble_icache_miss,
+`ifdef CLASSIFY_LONG_OP
+    e_exe_bubble_stall_depend_dram,
+    e_exe_bubble_stall_depend_global,
+    e_exe_bubble_stall_depend_group,
+    e_exe_bubble_stall_depend_fdiv,
+    e_exe_bubble_stall_depend_idiv,
+`else
+    e_exe_bubble_stall_depend_long_op,
+`endif
+    e_exe_bubble_stall_depend_local_load,
+    e_exe_bubble_stall_depend_imul,
+
+    e_exe_bubble_stall_amo_aq,
+    e_exe_bubble_stall_amo_rl,
+
+    e_exe_bubble_stall_bypass,
+    e_exe_bubble_stall_lr_aq,
+    e_exe_bubble_stall_fence,
+
+    e_exe_bubble_stall_remote_req,
+    e_exe_bubble_stall_remote_credit,
+
+    e_exe_bubble_stall_fdiv_busy,
+    e_exe_bubble_stall_idiv_busy,
+    e_exe_bubble_stall_fcsr,
+    e_exe_bubble_stall_barrier,
+
+    e_exe_no_bubble
+  } exe_bubble_type_e;
+
+  exe_bubble_type_e exe_bubble_type;
+  logic [pc_width_lp-1:0] exe_bubble_pc;
+
+  vanilla_exe_bubble_classifier
+    #(.pc_width_p(pc_width_lp)
+      ,.data_width_p(data_width_p)
+      )
+  stall_class
+    (.*
+     ,.exe_bubble_pc_o(exe_bubble_pc)
+     ,.exe_bubble_type_o(exe_bubble_type)
+     );
+  
+  
   // event signals
   wire instr_inc = ~(stall_all) * (exe_r.instruction != '0) & ~exe_r.icache_miss;
   wire fp_instr_inc = (fp_exe_ctrl_r.fp_decode.is_fpu_float_op
@@ -169,7 +226,14 @@ module vanilla_core_pc_histogram
            ,e_fp_instr
            );
       end
-      else if (stall_all | stall_id | stall_remote_ld_wb | stall_remote_flw_wb | stall_ifetch_wait) begin
+      else if (exe_bubble_type !== e_exe_no_bubble) begin
+        vanilla_core_pc_hist_increment
+          (pc_hist_vptr
+           ,exe_bubble_pc
+           ,e_stall
+           );
+      end
+      else if (stall_all) begin
         vanilla_core_pc_hist_increment
           (pc_hist_vptr
            ,exe_pc
@@ -178,18 +242,6 @@ module vanilla_core_pc_histogram
       end
     end
   end
-
-  // test
-  // always @ (negedge reset_i) begin
-  //   if (global_x_i == (x_cord_width_p)'(origin_x_cord_p)
-  //       & global_y_i == (y_cord_width_p)'(origin_y_cord_p)) begin
-  //     #1000 vanilla_core_pc_hist_increment
-  //       (pc_hist_vptr
-  //        ,0
-  //        ,e_instr
-  //        );
-  //   end
-  // end
 
 endmodule
 
