@@ -75,9 +75,6 @@ module vanilla_scoreboard_tracker
           int_sb_r[id_r.instruction.rd][0] <= 1'b1;
         end
       end
-      else if (int_sb_clear) begin
-        int_sb_r[int_sb_clear_id] <= '0;
-      end
 
       // float sb
       if (~stall_id & ~stall_all & ~flush) begin
@@ -94,11 +91,18 @@ module vanilla_scoreboard_tracker
           float_sb_r[id_r.instruction.rd][0] <= 1'b1;
         end
       end
-      else if (float_sb_clear) begin
+
+      // clear scoreboards
+      if (int_sb_clear) begin
+        int_sb_r[int_sb_clear_id] <= '0;
+      end
+      if (float_sb_clear) begin
         float_sb_r[float_sb_clear_id] <= '0;
       end
+
     end
   end // always_ff @ (posedge clk_i)
+
   assign int_sb_o = int_sb_r;
   assign float_sb_o = float_sb_r;
 endmodule // vanilla_scoreboard_tracker
