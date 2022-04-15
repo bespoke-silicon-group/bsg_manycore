@@ -50,6 +50,7 @@ module vanilla_core_pc_histogram
 
    , input stall_barrier
 
+   , input stall_icache_store
    , input stall_remote_ld_wb
    , input stall_ifetch_wait
    , input stall_remote_flw_wb
