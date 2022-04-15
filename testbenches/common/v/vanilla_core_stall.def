@@ -24,6 +24,7 @@
 `VANILLA_CORE_STALL(stall_fcsr, exe_bubble_type == e_exe_bubble_stall_fcsr, exe_bubble_pc)
 `VANILLA_CORE_STALL(stall_barrier, exe_bubble_type == e_exe_bubble_stall_barrier, exe_bubble_pc)
 // stalls that stall entire pipeline
+`VANILLA_CORE_STALL(stall_icache_store, stall_all & stall_icache_store, exe_pc)
 `VANILLA_CORE_STALL(stall_remote_ld_wb, stall_all & stall_remote_ld_wb, exe_pc)
 `VANILLA_CORE_STALL(stall_ifetch_wait, stall_all & stall_ifetch_wait, exe_pc)
 `VANILLA_CORE_STALL(stall_remote_flw_wb, stall_all & stall_remote_flw_wb, exe_pc)
