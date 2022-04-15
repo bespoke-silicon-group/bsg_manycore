@@ -113,10 +113,14 @@ module vanilla_core_pc_histogram
   import "DPI-C" context function
     void vanilla_core_pc_hist_del(chandle pc_hist_vptr);
 
+`define CLASSIFY_LONG_OP_STALL
   typedef enum bit [31:0] {
     e_instr
     ,e_fp_instr
-    ,e_stall
+`define VANILLA_CORE_STALL(name, cond, pc) \
+    ,e_``name
+`include "vanilla_core_stall.def"
+`undef VANILLA_CORE_STALL
     ,e_unknown
   } pc_state_e;
 
@@ -136,11 +140,15 @@ module vanilla_core_pc_histogram
          ,e_fp_instr
          ,"fp_instr"
          );
-      vanilla_core_pc_hist_register_operation
-        (pc_hist_vptr
-         ,e_stall
-         ,"stall"
-         );
+`define VANILLA_CORE_STALL(name, cond, pc) \
+      vanilla_core_pc_hist_register_operation \
+      (pc_hist_vptr \
+       ,e_``name \
+       ,`BSG_STRINGIFY(name) \
+       );
+`include "vanilla_core_stall.def"
+`undef VANILLA_CORE_STALL
+
       vanilla_core_pc_hist_register_operation
         (pc_hist_vptr
          ,e_unknown
@@ -168,7 +176,7 @@ module vanilla_core_pc_histogram
   vanilla_exe_bubble_classifier
     #(.pc_width_p(pc_width_lp)
       ,.data_width_p(data_width_p)
-      ,.classify_long_op(0)
+      ,.classify_long_op(1)
       )
   stall_class
     (.*
@@ -201,20 +209,23 @@ module vanilla_core_pc_histogram
            ,e_fp_instr
            );
       end
-      else if (exe_bubble_type !== e_exe_no_bubble) begin
-        vanilla_core_pc_hist_increment
-          (pc_hist_vptr
-           ,exe_bubble_pc
-           ,e_stall
-           );
-      end
-      else if (stall_all) begin
+`define VANILLA_CORE_STALL(name, cond, pc) \
+      else if ((cond)) begin \
+        vanilla_core_pc_hist_increment \
+          (pc_hist_vptr \
+           ,pc \
+           ,e_``name \
+           ); \
+            end
+`include "vanilla_core_stall.def"
+`undef VANILLA_CORE_STALL      
+      else begin 
         vanilla_core_pc_hist_increment
           (pc_hist_vptr
            ,exe_pc
-           ,e_stall
-           );
-      end
+           ,e_unknown
+           );   
+        end
     end
   end
 

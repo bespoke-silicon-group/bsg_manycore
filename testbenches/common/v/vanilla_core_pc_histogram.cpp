@@ -134,21 +134,23 @@ protected:
         return _singleton;
     }
 
-    int make_key(int pc, int op) const {
-        return (op << PC_WIDTH) | (pc & ((1<<PC_WIDTH)-1));
+    long make_key(int pc, int op) const {
+        long lop = static_cast<long>(op);
+        long lpc = static_cast<long>(pc);
+        return (lop << PC_WIDTH) | (lpc & ((1l<<PC_WIDTH)-1));
     }
 
-    int key_to_pc(int key) const {
-        return key & ((1<<PC_WIDTH)-1);
+    int key_to_pc(long key) const {
+        return key & ((1l<<PC_WIDTH)-1);
     }
 
-    int key_to_op(int key) const {
-        return (key >> PC_WIDTH) & ((1<<(sizeof(int)*8 - PC_WIDTH))-1);
+    int key_to_op(long key) const {
+        return (key >> PC_WIDTH) & ((1l<<(sizeof(long)*8 - PC_WIDTH))-1);
     }
 private:
     // members
     std::string          _instance;
-    std::map<int, int>   _pc_hist;
+    std::map<long, int>   _pc_hist;
 };
 
 extern "C" void* vanilla_core_pc_hist_new() {
