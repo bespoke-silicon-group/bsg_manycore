@@ -80,7 +80,8 @@ ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py
 		$(XRUN_INCLUDES) $(XRUN_DEFINES) $(CSOURCES) $(XRUN_SOURCES) $*/bsg_tag_boot_rom.v \
 		-l $*/build.log -xmlibdirname $*/xcelium.d
 	echo "ln -nsf $(abspath $*)/xcelium.d xcelium.d" > $@
-	echo "$(XRUN) $(XMSIM_FLAGS) -xmlibdirname xcelium.d -r spmd_testbench \$$@" >> $@
+	#echo "$(XRUN) $(XMSIM_FLAGS) -xmlibdirname xcelium.d -r spmd_testbench \$$@" >> $@
+	echo "$(XMSIM) $(XMSIM_FLAGS) spmd_testbench \$$@" >> $@
 	chmod +x $@
 
 # build simx-debug
@@ -95,8 +96,9 @@ ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py
 	$(XRUN) $(XRUN_FLAGS) $(XRUN_CFLAGS) \
 		$(XRUN_INCLUDES) $(XRUN_DEFINES) $(CSOURCES) $(XRUN_SOURCES) $*/bsg_tag_boot_rom.v \
 		-l $*/build-debug.log -xmlibdirname $*/xcelium-debug.d
-	echo "ln -nsf $(abspath $*)/xcelium-debug.d xcelium-debug.d" > $@
-	echo "$(XRUN) $(XMSIM_FLAGS) -xmlibdirname xcelium-debug.d -r spmd_testbench \$$@" >> $@
+	echo "ln -nsf $(abspath $*)/xcelium-debug.d xcelium.d" > $@
+	#echo "$(XRUN) $(XMSIM_FLAGS) -xmlibdirname xcelium-debug.d -r spmd_testbench \$$@" >> $@
+	echo "$(XMSIM) $(XMSIM_FLAGS) spmd_testbench \$$@" >> $@
 	chmod +x $@
 
 # building simx-profile
@@ -110,8 +112,9 @@ ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py
 	$(XRUN) $(XRUN_FLAGS) $(XRUN_CFLAGS) \
 		$(XRUN_INCLUDES) $(XRUN_DEFINES) $(CSOURCES) $(XRUN_SOURCES) $*/bsg_tag_boot_rom.v \
 		-l $*/build-profile.log -xmlibdirname $*/xcelium-profile.d
-	echo "ln -nsf $(abspath $*)/xcelium-profile.d xcelium-profile.d" > $@
-	echo "$(XMSIM) $(XMSIM_FLAGS) -xmlibdirname xcelium-profile.d -r spmd_testbench \$$@" >> $@
+	echo "ln -nsf $(abspath $*)/xcelium-profile.d xcelium.d" > $@
+	#echo "$(XMSIM) $(XMSIM_FLAGS) -xmlibdirname xcelium-profile.d -r spmd_testbench \$$@" >> $@
+	echo "$(XMSIM) $(XMSIM_FLAGS) spmd_testbench \$$@" >> $@
 	chmod +x $@
 
 # build simx-coverage
