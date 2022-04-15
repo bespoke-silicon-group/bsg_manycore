@@ -98,7 +98,6 @@ module vanilla_core_profiler
     , input [data_width_p-1:0] print_stat_tag_i
 
     , input trace_en_i
-    , input pc_hist_en_i
   );
 
   // bsg_manycore_profile_pkg for the packed print_stat_tag_i signal
@@ -110,66 +109,6 @@ module vanilla_core_profiler
                    , "vanilla_operation_trace.csv"
                    , "cycle,x,y,pc,operation\n"
                    )
-  // define enum for trace state
-  `define DEFINE_TRACE_STATE(state,u0,u1) \
-    e_``state,
-
-    typedef enum bit [31:0] {
-  `include "vanilla_core_trace.def"
-      e_unkown_trace_state
-    } trace_state_type_e;
-  `undef DEFINE_TRACE_STATE
-
-  // pc histogram
-  import "DPI-C" context function
-    chandle vanilla_core_pc_hist_new();
-  import "DPI-C" context function
-    chandle vanilla_core_pc_hist_set_instance_name
-      (chandle pc_hist_vptr
-       ,int x
-       ,int y
-       );
-  import "DPI-C" context function
-    void vanilla_core_pc_hist_increment
-      (chandle pc_hist_vptr
-       ,int pc
-       ,int operation
-       );
-  import "DPI-C" context function
-    void vanilla_core_pc_hist_register_operation
-      (chandle pc_hist_vptr
-       ,int operation
-       ,string operation_name
-       );
-  import "DPI-C" context function
-    void vanilla_core_pc_hist_del(chandle pc_hist_vptr);
-
-  chandle pc_hist_vptr;
-
-  initial
-    begin
-      pc_hist_vptr = vanilla_core_pc_hist_new();
-  `define DEFINE_TRACE_STATE(state, incr, pc) \
-      vanilla_core_pc_hist_register_operation \
-      (pc_hist_vptr \
-       ,e_``state \
-       ,`BSG_STRINGIFY(state) \
-       );
-  `include "vanilla_core_trace.def"
-  `undef DEFINE_TRACE_STATE
-    end
-  final
-    begin
-      vanilla_core_pc_hist_del(pc_hist_vptr);
-    end
-
-  always @(negedge reset_i) begin
-    vanilla_core_pc_hist_set_instance_name
-      (pc_hist_vptr
-       , global_x_i
-       , global_y_i
-       );
-  end
 
   // operations trace
   // task to print a line of operation trace
@@ -1053,24 +992,6 @@ module vanilla_core_profiler
           `include "vanilla_core_trace.def"
           else print_operation_trace("unknown", 0);
         end
-`undef DEFINE_TRACE_STATE
-
-     // pc histogram
-`define DEFINE_TRACE_STATE(state,cond,pc) \
-        else if (cond) begin \
-          vanilla_core_pc_hist_increment \
-            (pc_hist_vptr \
-             ,pc \
-             ,e_``state \
-             ); \
-        end
-
-     // pc histogram
-     if (~reset_i & pc_hist_en_i) begin
-       if (0);
-       `include "vanilla_core_trace.def"
-       else;
-     end
 `undef DEFINE_TRACE_STATE
    end // always @ (negedge clk_i)
 
