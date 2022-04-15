@@ -461,6 +461,7 @@ module vanilla_core_profiler
     integer stall_depend_dram_load;
     integer stall_depend_group_load;
     integer stall_depend_global_load;
+
     integer stall_depend_idiv;
     integer stall_depend_fdiv;
     integer stall_depend_local_load;
