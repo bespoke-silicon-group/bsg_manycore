@@ -101,7 +101,7 @@ module vanilla_exe_bubble_classifier
           id_bubble_r <= e_id_bubble_jalr_miss;
           id_bubble_pc_r <= exe_pc;
         end
-        else if (icache_miss_in_pipe) begin
+        else if (icache_miss | icache_miss_in_pipe) begin
           id_bubble_r <= e_id_bubble_icache_miss;
           id_bubble_pc_r <= icache_miss_pc_r;
         end
