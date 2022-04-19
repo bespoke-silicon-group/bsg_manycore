@@ -18,7 +18,7 @@ module bsg_manycore_pod_ruche_row
     , `BSG_INV_PARAM(y_cord_width_p)
     , `BSG_INV_PARAM(addr_width_p)
     , `BSG_INV_PARAM(data_width_p)
-    , ruche_factor_X_p=3  // only support 3 for now
+    , ruche_factor_X_p=3 
     , barrier_ruche_factor_X_p=3
     , num_subarray_x_p=1
     , num_subarray_y_p=1
@@ -104,8 +104,8 @@ module bsg_manycore_pod_ruche_row
   bsg_manycore_link_sif_s [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0] hor_link_sif_lo;
   bsg_manycore_link_sif_s [num_pods_x_p-1:0][S:N][num_tiles_x_p-1:0] ver_link_sif_li;
   bsg_manycore_link_sif_s [num_pods_x_p-1:0][S:N][num_tiles_x_p-1:0] ver_link_sif_lo;
-  bsg_manycore_ruche_x_link_sif_s [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_li;  
-  bsg_manycore_ruche_x_link_sif_s [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][ruche_factor_X_p-1:0] ruche_link_lo;  
+  bsg_manycore_ruche_x_link_sif_s [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][`BSG_SAFE_MINUS(ruche_factor_X_p,1):0] ruche_link_li;  
+  bsg_manycore_ruche_x_link_sif_s [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][`BSG_SAFE_MINUS(ruche_factor_X_p,1):0] ruche_link_lo;  
   wh_link_sif_s [num_pods_x_p-1:0][S:N][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_li;
   wh_link_sif_s [num_pods_x_p-1:0][S:N][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_lo;
   logic [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0] hor_barrier_link_li, hor_barrier_link_lo;
@@ -229,22 +229,24 @@ module bsg_manycore_pod_ruche_row
 
 
   // hard-coded for ruche factor = 3
-  for (genvar y = 0; y < num_tiles_y_p; y++) begin: ry
-    // connect manycore ruche to west
-    assign ruche_link_li[0][W][y][1] = ruche_link_i[W][y];
-    assign ruche_link_o[W][y] = ruche_link_lo[0][W][y][1];
+  if (ruche_factor_X_p == 3) begin
+    for (genvar y = 0; y < num_tiles_y_p; y++) begin: ry
+      // connect manycore ruche to west
+      assign ruche_link_li[0][W][y][1] = ruche_link_i[W][y];
+      assign ruche_link_o[W][y] = ruche_link_lo[0][W][y][1];
 
-    // tieoff west manycore ruche
-    assign ruche_link_li[0][W][y][0] = '0; // tieoff
-    assign ruche_link_li[0][W][y][2] = '1; // tieoff
+      // tieoff west manycore ruche
+      assign ruche_link_li[0][W][y][0] = '0; // tieoff
+      assign ruche_link_li[0][W][y][2] = '1; // tieoff
 
-    // connect manycore ruche to east
-    assign ruche_link_li[num_pods_x_p-1][E][y][0] = ruche_link_i[E][y];
-    assign ruche_link_o[E][y] = ruche_link_lo[num_pods_x_p-1][E][y][0];
+      // connect manycore ruche to east
+      assign ruche_link_li[num_pods_x_p-1][E][y][0] = ruche_link_i[E][y];
+      assign ruche_link_o[E][y] = ruche_link_lo[num_pods_x_p-1][E][y][0];
 
-    // tieoff east manycore ruche
-    assign ruche_link_li[num_pods_x_p-1][E][y][1] = '1;
-    assign ruche_link_li[num_pods_x_p-1][E][y][2] = '0;
+      // tieoff east manycore ruche
+      assign ruche_link_li[num_pods_x_p-1][E][y][1] = '1;
+      assign ruche_link_li[num_pods_x_p-1][E][y][2] = '0;
+    end
   end
 
   // connect wormhole ruche links to the outside

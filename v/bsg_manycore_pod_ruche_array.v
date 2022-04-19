@@ -21,7 +21,7 @@ module bsg_manycore_pod_ruche_array
     , `BSG_INV_PARAM(y_cord_width_p)
     , `BSG_INV_PARAM(addr_width_p)
     , `BSG_INV_PARAM(data_width_p)
-    , ruche_factor_X_p=3  // only support 3 for now
+    , ruche_factor_X_p=3
     , barrier_ruche_factor_X_p = 3
 
     , num_subarray_x_p=1
@@ -228,17 +228,21 @@ module bsg_manycore_pod_ruche_array
     // local
     assign hor_link_sif_o[W][y] = hor_link_sif_lo[y][W];
     assign hor_link_sif_li[y][W] = hor_link_sif_i[W][y];
-    // ruche
-    assign ruche_link_o[W][y] = ruche_link_lo[y][W];
-    assign ruche_link_li[y][W] = ruche_link_i[W][y];
-
+    if (ruche_factor_X_p > 0) begin
+      // ruche
+      assign ruche_link_o[W][y] = ruche_link_lo[y][W];
+      assign ruche_link_li[y][W] = ruche_link_i[W][y];
+    end
+  
     // connect horizontal links on the side to the east
     // local
     assign hor_link_sif_o[E][y] = hor_link_sif_lo[y][E];
     assign hor_link_sif_li[y][E] = hor_link_sif_i[E][y];
-    // ruche
-    assign ruche_link_o[E][y] = ruche_link_lo[y][E];
-    assign ruche_link_li[y][E] = ruche_link_i[E][y];
+    if (ruche_factor_X_p > 0) begin
+      // ruche
+      assign ruche_link_o[E][y] = ruche_link_lo[y][E];
+      assign ruche_link_li[y][E] = ruche_link_i[E][y];
+    end
 
     // connect wh to the west
     assign wh_link_sif_o[W][y][N] = wh_link_sif_lo[y][W][N];

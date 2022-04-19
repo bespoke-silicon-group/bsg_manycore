@@ -34,7 +34,9 @@ module bsg_manycore_tile_compute_ruche
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_sets_p)
 
-    , parameter dims_p = 3
+    // when ruche_factor_X is zero, it chooses radix-5 mesh router.
+    , parameter dims_p = ((ruche_factor_X_p > 0) ? 3 : 2)
+
     , localparam dirs_lp = (dims_p*2)
     // The topology of the barrier network is matched to the one of manycore links, so that we don't add any additional timing path complexity.
     , parameter barrier_dirs_p=7
@@ -60,8 +62,8 @@ module bsg_manycore_tile_compute_ruche
     , output [S:W][link_sif_width_lp-1:0] link_o
 
     // ruche links
-    , input  [ruche_factor_X_p-1:0][E:W][ruche_x_link_sif_width_lp-1:0] ruche_link_i
-    , output [ruche_factor_X_p-1:0][E:W][ruche_x_link_sif_width_lp-1:0] ruche_link_o
+    , input  [`BSG_SAFE_MINUS(ruche_factor_X_p,1):0][E:W][ruche_x_link_sif_width_lp-1:0] ruche_link_i
+    , output [`BSG_SAFE_MINUS(ruche_factor_X_p,1):0][E:W][ruche_x_link_sif_width_lp-1:0] ruche_link_o
 
     // barrier links
     , input  [S:W] barrier_link_i
@@ -124,18 +126,10 @@ module bsg_manycore_tile_compute_ruche
 
   // For vanilla core (hetero type = 0), it uses credit interface for the P ports,
   // which has three-element fifo because the credit returns with one extra cycle delay.
-  localparam fwd_use_credits_lp = (hetero_type_p == 0)
-    ? 7'b0000001
-    : 7'b0000000;
-  localparam int fwd_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0)
-    ? '{2,2,2,2,2,2,3}
-    : '{2,2,2,2,2,2,2};
-  localparam rev_use_credits_lp = (hetero_type_p == 0)
-    ? 7'b0000001
-    : 7'b0000000;
-  localparam int rev_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0)
-    ? '{2,2,2,2,2,2,3}
-    : '{2,2,2,2,2,2,2};
+  localparam fwd_use_credits_lp = (hetero_type_p == 0) ? 7'b0000001 : 7'b0000000;
+  localparam int fwd_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0) ? '{2,2,2,2,2,2,3} : '{2,2,2,2,2,2,2};
+  localparam rev_use_credits_lp = (hetero_type_p == 0) ? 7'b0000001 : 7'b0000000;
+  localparam int rev_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0) ? '{2,2,2,2,2,2,3} : '{2,2,2,2,2,2,2};
    
  
   // Instantiate router and the socket.
@@ -233,41 +227,41 @@ module bsg_manycore_tile_compute_ruche
 
   
   // connect ruche link
-  `declare_bsg_manycore_ruche_x_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-  bsg_manycore_ruche_x_link_sif_s [ruche_factor_X_p-1:0][E:W] ruche_link_li, ruche_link_lo;
-  assign ruche_link_li = ruche_link_i;
-  assign ruche_link_o = ruche_link_lo;
+  if (ruche_factor_X_p > 0) begin
+    `declare_bsg_manycore_ruche_x_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+    bsg_manycore_ruche_x_link_sif_s [ruche_factor_X_p-1:0][E:W] ruche_link_li, ruche_link_lo;
+    assign ruche_link_li = ruche_link_i;
+    assign ruche_link_o = ruche_link_lo;
 
+    // For incoming fwd, inject my_y_i as src_y.
+    // For incoming rev, inject my_y_i as dest_y.
+    assign links_sif_li[5].fwd =
+      `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][E].fwd,{pod_y_r, my_y_r});
+    assign links_sif_li[5].rev =
+      `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][E].rev,{pod_y_r, my_y_r});
+    assign links_sif_li[4].fwd =
+      `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][W].fwd,{pod_y_r, my_y_r});
+    assign links_sif_li[4].rev =
+      `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][W].rev,{pod_y_r, my_y_r});
 
-  // For incoming fwd, inject my_y_i as src_y.
-  // For incoming rev, inject my_y_i as dest_y.
-  assign links_sif_li[5].fwd =
-    `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][E].fwd,{pod_y_r, my_y_r});
-  assign links_sif_li[5].rev =
-    `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][E].rev,{pod_y_r, my_y_r});
-  assign links_sif_li[4].fwd =
-    `bsg_manycore_ruche_x_link_fwd_inject_src_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][W].fwd,{pod_y_r, my_y_r});
-  assign links_sif_li[4].rev =
-    `bsg_manycore_ruche_x_link_rev_inject_dest_y(x_cord_width_p,y_cord_width_p,ruche_link_li[0][W].rev,{pod_y_r, my_y_r});
+    // For outgoing fwd, filter out src_y.
+    // For outgoing rev, filter out dest_y.
+    assign ruche_link_lo[0][E].fwd =
+      `bsg_manycore_link_sif_fwd_filter_src_y(x_cord_width_p,y_cord_width_p,links_sif_lo[5].fwd);
+    assign ruche_link_lo[0][E].rev =
+      `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,links_sif_lo[5].rev);
+    assign ruche_link_lo[0][W].fwd =
+      `bsg_manycore_link_sif_fwd_filter_src_y(x_cord_width_p,y_cord_width_p,links_sif_lo[4].fwd);
+    assign ruche_link_lo[0][W].rev =
+      `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,links_sif_lo[4].rev);
 
-
-  // For outgoing fwd, filter out src_y.
-  // For outgoing rev, filter out dest_y.
-  assign ruche_link_lo[0][E].fwd =
-    `bsg_manycore_link_sif_fwd_filter_src_y(x_cord_width_p,y_cord_width_p,links_sif_lo[5].fwd);
-  assign ruche_link_lo[0][E].rev =
-    `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,links_sif_lo[5].rev);
-  assign ruche_link_lo[0][W].fwd =
-    `bsg_manycore_link_sif_fwd_filter_src_y(x_cord_width_p,y_cord_width_p,links_sif_lo[4].fwd);
-  assign ruche_link_lo[0][W].rev =
-    `bsg_manycore_link_sif_rev_filter_dest_y(x_cord_width_p,y_cord_width_p,links_sif_lo[4].rev);
-
-
-  // Connect feedthrough ruche links.
-  for (genvar i = 1; i < ruche_factor_X_p; i++) begin
-    assign ruche_link_lo[i][E] = ruche_link_li[i][W];
-    assign ruche_link_lo[i][W] = ruche_link_li[i][E];
+    // Connect feedthrough ruche links.
+    for (genvar i = 1; i < ruche_factor_X_p; i++) begin
+      assign ruche_link_lo[i][E] = ruche_link_li[i][W];
+      assign ruche_link_lo[i][W] = ruche_link_li[i][E];
+    end
   end
+
 
   // connect barrier links
   assign barr_data_li[4:1] = barrier_link_i;

@@ -97,8 +97,8 @@ module bsg_manycore_tile_compute_array_ruche
     , output [S:N][subarray_num_tiles_x_p-1:0][link_sif_width_lp-1:0] ver_link_sif_o
 
     // ruche link
-    , input [E:W][subarray_num_tiles_y_p-1:0][ruche_factor_X_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_i
-    , output [E:W][subarray_num_tiles_y_p-1:0][ruche_factor_X_p-1:0][ruche_x_link_sif_width_lp-1:0] ruche_link_o
+    , input  [E:W][subarray_num_tiles_y_p-1:0][`BSG_SAFE_MINUS(ruche_factor_X_p,1):0][ruche_x_link_sif_width_lp-1:0] ruche_link_i
+    , output [E:W][subarray_num_tiles_y_p-1:0][`BSG_SAFE_MINUS(ruche_factor_X_p,1):0][ruche_x_link_sif_width_lp-1:0] ruche_link_o
 
     // barrier local link
     , input  [S:N][subarray_num_tiles_x_p-1:0] ver_barrier_link_i
@@ -144,8 +144,8 @@ module bsg_manycore_tile_compute_array_ruche
   bsg_manycore_link_sif_s [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][S:W] link_out;
  
   `declare_bsg_manycore_ruche_x_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-  bsg_manycore_ruche_x_link_sif_s [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][ruche_factor_X_p-1:0][E:W] ruche_link_in;   
-  bsg_manycore_ruche_x_link_sif_s [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][ruche_factor_X_p-1:0][E:W] ruche_link_out;
+  bsg_manycore_ruche_x_link_sif_s [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][`BSG_SAFE_MINUS(ruche_factor_X_p,1):0][E:W] ruche_link_in;   
+  bsg_manycore_ruche_x_link_sif_s [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][`BSG_SAFE_MINUS(ruche_factor_X_p,1):0][E:W] ruche_link_out;
  
   logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_li, global_x_lo;
   logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_li, global_y_lo;
@@ -274,64 +274,67 @@ module bsg_manycore_tile_compute_array_ruche
   // https://docs.google.com/presentation/d/1MdQODg7RtSm3qP2aIDhG5b7j58DfMFEDun-4yWoRzcw/edit#slide=id.p
 
   // stitch ruche links
-  for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: rr
-    for (genvar c = 0; c < subarray_num_tiles_x_p; c++) begin: rc
-      for (genvar l = 0; l < ruche_factor_X_p; l++) begin: rl    // ruche stage
-        if (c == subarray_num_tiles_x_p-1) begin: cl
-          bsg_ruche_buffer #(
-            .width_p(ruche_x_link_sif_width_lp)
-            ,.ruche_factor_p(ruche_factor_X_p)
-            ,.ruche_stage_p(l)
-            ,.harden_p(1)
-          ) rb_w (
-            .i(ruche_link_i[E][r][l])
-            ,.o(ruche_link_in[r][c][(l+ruche_factor_X_p-1) % ruche_factor_X_p][E])
-          );
+  if (ruche_factor_X_p > 1) begin
+    for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: rr
+      for (genvar c = 0; c < subarray_num_tiles_x_p; c++) begin: rc
+        for (genvar l = 0; l < ruche_factor_X_p; l++) begin: rl    // ruche stage
+          if (c == subarray_num_tiles_x_p-1) begin: cl
+            bsg_ruche_buffer #(
+              .width_p(ruche_x_link_sif_width_lp)
+              ,.ruche_factor_p(ruche_factor_X_p)
+              ,.ruche_stage_p(l)
+              ,.harden_p(1)
+            ) rb_w (
+              .i(ruche_link_i[E][r][l])
+              ,.o(ruche_link_in[r][c][(l+ruche_factor_X_p-1) % ruche_factor_X_p][E])
+            );
 
-          bsg_ruche_buffer #(
-            .width_p(ruche_x_link_sif_width_lp)
-            ,.ruche_factor_p(ruche_factor_X_p)
-            ,.ruche_stage_p(l)
-            ,.harden_p(1)
-          ) rb_e (
-            .i(ruche_link_out[r][c][l][E])
-            ,.o(ruche_link_o[E][r][(l+1)%ruche_factor_X_p])
-          );
-        end
-        else begin: cn
-          bsg_ruche_buffer #(
-            .width_p(ruche_x_link_sif_width_lp)
-            ,.ruche_factor_p(ruche_factor_X_p)
-            ,.ruche_stage_p(l)
-            ,.harden_p(1)
-          ) rb_w (
-            .i(ruche_link_out[r][c+1][l][W])
-            ,.o(ruche_link_in[r][c][(l+ruche_factor_X_p-1) % ruche_factor_X_p][E])
-          );
+            bsg_ruche_buffer #(
+              .width_p(ruche_x_link_sif_width_lp)
+              ,.ruche_factor_p(ruche_factor_X_p)
+              ,.ruche_stage_p(l)
+              ,.harden_p(1)
+            ) rb_e (
+              .i(ruche_link_out[r][c][l][E])
+              ,.o(ruche_link_o[E][r][(l+1)%ruche_factor_X_p])
+            );
+          end
+          else begin: cn
+            bsg_ruche_buffer #(
+              .width_p(ruche_x_link_sif_width_lp)
+              ,.ruche_factor_p(ruche_factor_X_p)
+              ,.ruche_stage_p(l)
+              ,.harden_p(1)
+            ) rb_w (
+              .i(ruche_link_out[r][c+1][l][W])
+              ,.o(ruche_link_in[r][c][(l+ruche_factor_X_p-1) % ruche_factor_X_p][E])
+            );
 
-          bsg_ruche_buffer #(
-            .width_p(ruche_x_link_sif_width_lp)
-            ,.ruche_factor_p(ruche_factor_X_p)
-            ,.ruche_stage_p(l)
-            ,.harden_p(1)
-          ) rb_e (
-            .i(ruche_link_out[r][c][l][E])
-            ,.o(ruche_link_in[r][c+1][(l+1)%ruche_factor_X_p][W])
-          );
+            bsg_ruche_buffer #(
+              .width_p(ruche_x_link_sif_width_lp)
+              ,.ruche_factor_p(ruche_factor_X_p)
+              ,.ruche_stage_p(l)
+              ,.harden_p(1)
+            ) rb_e (
+              .i(ruche_link_out[r][c][l][E])
+              ,.o(ruche_link_in[r][c+1][(l+1)%ruche_factor_X_p][W])
+            );
+          end
         end
+      end
+    end
+
+    // edge ruche links
+    for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: er
+      for (genvar l = 0; l < ruche_factor_X_p; l++) begin: el
+        // west
+        assign ruche_link_o[W][r][l] = ruche_link_out[r][0][l][W];
+        assign ruche_link_in[r][0][l][W] = ruche_link_i[W][r][l];
       end
     end
   end
 
 
-  // edge ruche links
-  for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: er
-    for (genvar l = 0; l < ruche_factor_X_p; l++) begin: el
-      // west
-      assign ruche_link_o[W][r][l] = ruche_link_out[r][0][l][W];
-      assign ruche_link_in[r][0][l][W] = ruche_link_i[W][r][l];
-    end
-  end
 
 
 
