@@ -300,6 +300,7 @@ module vanilla_core_profiler
 
   // icache miss PC tracker
   logic [data_width_p-1:0] icache_miss_pc_r;
+
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       icache_miss_pc_r <= '0;
