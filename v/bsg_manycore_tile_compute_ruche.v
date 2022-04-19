@@ -127,10 +127,20 @@ module bsg_manycore_tile_compute_ruche
   // For vanilla core (hetero type = 0), it uses credit interface for the P ports,
   // which has three-element fifo because the credit returns with one extra cycle delay.
   localparam fwd_use_credits_lp = (hetero_type_p == 0) ? 7'b0000001 : 7'b0000000;
-  localparam int fwd_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0) ? '{2,2,2,2,2,2,3} : '{2,2,2,2,2,2,2};
   localparam rev_use_credits_lp = (hetero_type_p == 0) ? 7'b0000001 : 7'b0000000;
-  localparam int rev_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0) ? '{2,2,2,2,2,2,3} : '{2,2,2,2,2,2,2};
-   
+
+  typedef int fifo_els_p_vec[dirs_lp:0];
+  function fifo_els_p_vec get_fifo_els();
+    fifo_els_p_vec vec;
+    for (int i = 0; i < dirs_lp+1; i++) begin
+      vec[i] = 2;
+    end
+    if (hetero_type_p == 0) begin 
+      vec[0] = 3;
+    end
+    return vec;
+  endfunction
+
  
   // Instantiate router and the socket.
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
@@ -148,9 +158,9 @@ module bsg_manycore_tile_compute_ruche
     ,.repeater_output_p(repeater_output_p) // select buffer for this particular node
     ,.ruche_factor_X_p(ruche_factor_X_p)
     ,.fwd_use_credits_p(fwd_use_credits_lp)
-    ,.fwd_fifo_els_p(fwd_fifo_els_lp)
+    ,.fwd_fifo_els_p(get_fifo_els())
     ,.rev_use_credits_p(rev_use_credits_lp)
-    ,.rev_fifo_els_p(rev_fifo_els_lp)
+    ,.rev_fifo_els_p(get_fifo_els())
   ) rtr (
     .clk_i(clk_i)
     ,.reset_i(reset_r)
@@ -197,8 +207,8 @@ module bsg_manycore_tile_compute_ruche
     ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
-    ,.fwd_fifo_els_p(fwd_fifo_els_lp[0])
-    ,.rev_fifo_els_p(rev_fifo_els_lp[0])
+    ,.fwd_fifo_els_p(hetero_type_p == 0 ? 3 : 2)
+    ,.rev_fifo_els_p(hetero_type_p == 0 ? 3 : 2)
     ,.barrier_dirs_p(barrier_dirs_p)
     ,.debug_p(debug_p)
   ) proc (
