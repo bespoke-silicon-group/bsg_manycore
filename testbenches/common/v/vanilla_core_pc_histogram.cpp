@@ -59,14 +59,14 @@ public:
         void write_entry(
             const std::string &instance
             ,int pc
-            ,const std::string &opstr
+            ,int op
             ,int cycles
             ) {
             fprintf(ofile()
                     ,"%s,0x%08x,%s,%d\n"
                     ,instance.c_str()
                     ,pc
-                    ,opstr.c_str()
+                    ,opstr(op)
                     ,cycles
                 );
         }
@@ -103,6 +103,7 @@ public:
     std::string &instance() {
         return _instance;
     }
+
     void write_data() {
         class_data &cd = ClassData();
         for (auto it = _pc_hist.begin();
@@ -114,7 +115,7 @@ public:
             cd.write_entry(
                 _instance
                 ,pc
-                ,cd.opstr(op)
+                ,op
                 ,it->second
                 );
         }
