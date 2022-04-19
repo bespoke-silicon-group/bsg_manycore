@@ -1,13 +1,11 @@
 `include "bsg_manycore_defines.vh"
 `include "bsg_vanilla_defines.vh"
-`define CLASSIFY_LONG_OP
 module vanilla_exe_bubble_classifier
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
   import vanilla_exe_bubble_classifier_pkg::*;
   #(parameter `BSG_INV_PARAM(pc_width_p)
     ,parameter `BSG_INV_PARAM(data_width_p)
-    ,parameter `BSG_INV_PARAM(classify_long_op)
     )
   (
    input clk_i
@@ -117,27 +115,26 @@ module vanilla_exe_bubble_classifier
   exe_bubble_type_e exe_bubble_r;
   logic [data_width_p-1:0] exe_bubble_pc_r;
 
-  if (classify_long_op) begin
-    logic [RV32_reg_els_gp-1:0][3:0] int_sb;
-    logic [RV32_reg_els_gp-1:0][3:0] float_sb;
+  logic [RV32_reg_els_gp-1:0][3:0] int_sb;
+  logic [RV32_reg_els_gp-1:0][3:0] float_sb;
 
-    vanilla_scoreboard_tracker
-      #(.data_width_p(data_width_p))
-    sb_tracker
-      (.*
-       ,.int_sb_o(int_sb)
-       ,.float_sb_o(float_sb)
-       );
+  vanilla_scoreboard_tracker
+    #(.data_width_p(data_width_p))
+  sb_tracker
+    (.*
+     ,.int_sb_o(int_sb)
+     ,.float_sb_o(float_sb)
+     );
 
-    wire stall_depend_group_load = stall_depend_long_op
-         & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][0]) |
-            (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][0]) |
-            (id_r.decode.write_rd & int_sb[id_r.instruction.rd][0]) |
-            (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][0]) |
-            (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][0]) |
-            (id_r.decode.write_frd & float_sb[id_r.instruction.rd][0]));
+  wire stall_depend_group_load = stall_depend_long_op
+       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][0]) |
+          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][0]) |
+          (id_r.decode.write_rd & int_sb[id_r.instruction.rd][0]) |
+          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][0]) |
+          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][0]) |
+          (id_r.decode.write_frd & float_sb[id_r.instruction.rd][0]));
 
-    wire stall_depend_global_load = stall_depend_long_op
+  wire stall_depend_global_load = stall_depend_long_op
        & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][1]) |
           (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][1]) |
           (id_r.decode.write_rd & int_sb[id_r.instruction.rd][1]) |
@@ -145,7 +142,7 @@ module vanilla_exe_bubble_classifier
           (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][1]) |
           (id_r.decode.write_frd & float_sb[id_r.instruction.rd][1]));
 
-    wire stall_depend_dram_load = stall_depend_long_op
+  wire stall_depend_dram_load = stall_depend_long_op
        & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][2]) |
           (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][2]) |
           (id_r.decode.write_rd & int_sb[id_r.instruction.rd][2]) |
@@ -153,215 +150,122 @@ module vanilla_exe_bubble_classifier
           (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][2]) |
           (id_r.decode.write_frd & float_sb[id_r.instruction.rd][2]));
 
-    wire stall_depend_idiv = stall_depend_long_op
+  wire stall_depend_idiv = stall_depend_long_op
        & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][3]) |
           (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][3]) |
           (id_r.decode.write_rd & int_sb[id_r.instruction.rd][3]));
 
-    wire stall_depend_fdiv = stall_depend_long_op
+  wire stall_depend_fdiv = stall_depend_long_op
        & ((id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][3]) |
           (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][3]) |
           (id_r.decode.write_frd & float_sb[id_r.instruction.rd][3]));
 
-    always_ff @ (posedge clk_i) begin
-      if (reset_i) begin
-        exe_bubble_r <= e_exe_no_bubble;
-        exe_bubble_pc_r <= '0;
-      end
-      else begin
-        if (~stall_all) begin
-          if (branch_mispredict) begin
-            exe_bubble_r <= e_exe_bubble_branch_miss;
-            exe_bubble_pc_r <= exe_pc;
-          end
-          else if (jalr_mispredict) begin
-            exe_bubble_r <= e_exe_bubble_jalr_miss;
-            exe_bubble_pc_r <= exe_pc;
-          end
-          else if (id_bubble_r == e_id_bubble_branch_miss) begin
-            exe_bubble_r <= e_exe_bubble_branch_miss;
-            exe_bubble_pc_r <= id_bubble_pc_r;
-          end
-          else if (id_bubble_r == e_id_bubble_jalr_miss) begin
-            exe_bubble_r <= e_exe_bubble_jalr_miss;
-            exe_bubble_pc_r <= id_bubble_pc_r;
-          end
-          else if (id_bubble_r == e_id_bubble_icache_miss) begin
-            exe_bubble_r <= e_exe_bubble_icache_miss;
-            exe_bubble_pc_r <= id_bubble_pc_r;
-          end
-          else if (stall_depend_dram_load) begin
-            exe_bubble_r <= e_exe_bubble_stall_depend_dram;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_depend_group_load) begin
-            exe_bubble_r <= e_exe_bubble_stall_depend_group;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_depend_global_load) begin
-            exe_bubble_r <= e_exe_bubble_stall_depend_global;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_depend_idiv) begin
-            exe_bubble_r <= e_exe_bubble_stall_depend_idiv;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_depend_fdiv) begin
-            exe_bubble_r <= e_exe_bubble_stall_depend_fdiv;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_depend_local_load) begin
-            exe_bubble_r <= e_exe_bubble_stall_depend_local_load;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_depend_imul) begin
-            exe_bubble_r <= e_exe_bubble_stall_depend_imul;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_amo_aq) begin
-            exe_bubble_r <= e_exe_bubble_stall_amo_aq;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_amo_rl) begin
-            exe_bubble_r <= e_exe_bubble_stall_amo_rl;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_bypass) begin
-            exe_bubble_r <= e_exe_bubble_stall_bypass;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_lr_aq) begin
-            exe_bubble_r <= e_exe_bubble_stall_lr_aq;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_fence) begin
-            exe_bubble_r <= e_exe_bubble_stall_fence;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_remote_req) begin
-            exe_bubble_r <= e_exe_bubble_stall_remote_req;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_remote_credit) begin
-            exe_bubble_r <= e_exe_bubble_stall_remote_credit;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_fdiv_busy) begin
-            exe_bubble_r <= e_exe_bubble_stall_fdiv_busy;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_idiv_busy) begin
-            exe_bubble_r <= e_exe_bubble_stall_idiv_busy;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_fcsr) begin
-            exe_bubble_r <= e_exe_bubble_stall_fcsr;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_barrier) begin
-            exe_bubble_r <= e_exe_bubble_stall_barrier;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else begin
-            exe_bubble_r <= e_exe_no_bubble;
-            exe_bubble_pc_r <= '0;
-          end
-        end // if (~stall_all)
-      end // else: !if(reset_i)
-    end // always_ff @ (posedge clk_i)
-  end // if (classify_long_op)
-  else begin
-    always_ff @ (posedge clk_i) begin
-      if (reset_i) begin
-        exe_bubble_r <= e_exe_no_bubble;
-        exe_bubble_pc_r <= '0;
-      end
-      else begin
-        if (~stall_all) begin
-          if (branch_mispredict) begin
-            exe_bubble_r <= e_exe_bubble_branch_miss;
-            exe_bubble_pc_r <= exe_pc;
-          end
-          else if (jalr_mispredict) begin
-            exe_bubble_r <= e_exe_bubble_jalr_miss;
-            exe_bubble_pc_r <= exe_pc;
-          end
-          else if (id_bubble_r == e_id_bubble_branch_miss) begin
-            exe_bubble_r <= e_exe_bubble_branch_miss;
-            exe_bubble_pc_r <= id_bubble_pc_r;
-          end
-          else if (id_bubble_r == e_id_bubble_jalr_miss) begin
-            exe_bubble_r <= e_exe_bubble_jalr_miss;
-            exe_bubble_pc_r <= id_bubble_pc_r;
-          end
-          else if (id_bubble_r == e_id_bubble_icache_miss) begin
-            exe_bubble_r <= e_exe_bubble_icache_miss;
-            exe_bubble_pc_r <= id_bubble_pc_r;
-          end
-          else if (stall_depend_long_op) begin
-            exe_bubble_r <= e_exe_bubble_stall_depend_long_op;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_depend_local_load) begin
-            exe_bubble_r <= e_exe_bubble_stall_depend_local_load;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_depend_imul) begin
-            exe_bubble_r <= e_exe_bubble_stall_depend_imul;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_amo_aq) begin
-            exe_bubble_r <= e_exe_bubble_stall_amo_aq;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_amo_rl) begin
-            exe_bubble_r <= e_exe_bubble_stall_amo_rl;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_bypass) begin
-            exe_bubble_r <= e_exe_bubble_stall_bypass;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_lr_aq) begin
-            exe_bubble_r <= e_exe_bubble_stall_lr_aq;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_fence) begin
-            exe_bubble_r <= e_exe_bubble_stall_fence;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_remote_req) begin
-            exe_bubble_r <= e_exe_bubble_stall_remote_req;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_remote_credit) begin
-            exe_bubble_r <= e_exe_bubble_stall_remote_credit;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_fdiv_busy) begin
-            exe_bubble_r <= e_exe_bubble_stall_fdiv_busy;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_idiv_busy) begin
-            exe_bubble_r <= e_exe_bubble_stall_idiv_busy;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_fcsr) begin
-            exe_bubble_r <= e_exe_bubble_stall_fcsr;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else if (stall_barrier) begin
-            exe_bubble_r <= e_exe_bubble_stall_barrier;
-            exe_bubble_pc_r <= id_pc;
-          end
-          else begin
-            exe_bubble_r <= e_exe_no_bubble;
-            exe_bubble_pc_r <= '0;
-          end
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      exe_bubble_r <= e_exe_no_bubble;
+      exe_bubble_pc_r <= '0;
+    end
+    else begin
+      if (~stall_all) begin
+        if (branch_mispredict) begin
+          exe_bubble_r <= e_exe_bubble_branch_miss;
+          exe_bubble_pc_r <= exe_pc;
         end
-      end
-    end // always_ff @ (posedge clk_i)
-  end // else: !if(classify_long_op)
+        else if (jalr_mispredict) begin
+          exe_bubble_r <= e_exe_bubble_jalr_miss;
+          exe_bubble_pc_r <= exe_pc;
+        end
+        else if (id_bubble_r == e_id_bubble_branch_miss) begin
+          exe_bubble_r <= e_exe_bubble_branch_miss;
+          exe_bubble_pc_r <= id_bubble_pc_r;
+        end
+        else if (id_bubble_r == e_id_bubble_jalr_miss) begin
+          exe_bubble_r <= e_exe_bubble_jalr_miss;
+          exe_bubble_pc_r <= id_bubble_pc_r;
+        end
+        else if (id_bubble_r == e_id_bubble_icache_miss) begin
+          exe_bubble_r <= e_exe_bubble_icache_miss;
+          exe_bubble_pc_r <= id_bubble_pc_r;
+        end
+        else if (stall_depend_dram_load) begin
+          exe_bubble_r <= e_exe_bubble_stall_depend_dram;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_depend_group_load) begin
+          exe_bubble_r <= e_exe_bubble_stall_depend_group;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_depend_global_load) begin
+          exe_bubble_r <= e_exe_bubble_stall_depend_global;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_depend_idiv) begin
+          exe_bubble_r <= e_exe_bubble_stall_depend_idiv;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_depend_fdiv) begin
+          exe_bubble_r <= e_exe_bubble_stall_depend_fdiv;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_depend_local_load) begin
+          exe_bubble_r <= e_exe_bubble_stall_depend_local_load;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_depend_imul) begin
+          exe_bubble_r <= e_exe_bubble_stall_depend_imul;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_amo_aq) begin
+          exe_bubble_r <= e_exe_bubble_stall_amo_aq;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_amo_rl) begin
+          exe_bubble_r <= e_exe_bubble_stall_amo_rl;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_bypass) begin
+          exe_bubble_r <= e_exe_bubble_stall_bypass;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_lr_aq) begin
+          exe_bubble_r <= e_exe_bubble_stall_lr_aq;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_fence) begin
+          exe_bubble_r <= e_exe_bubble_stall_fence;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_remote_req) begin
+          exe_bubble_r <= e_exe_bubble_stall_remote_req;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_remote_credit) begin
+          exe_bubble_r <= e_exe_bubble_stall_remote_credit;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_fdiv_busy) begin
+          exe_bubble_r <= e_exe_bubble_stall_fdiv_busy;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_idiv_busy) begin
+          exe_bubble_r <= e_exe_bubble_stall_idiv_busy;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_fcsr) begin
+          exe_bubble_r <= e_exe_bubble_stall_fcsr;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_barrier) begin
+          exe_bubble_r <= e_exe_bubble_stall_barrier;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else begin
+          exe_bubble_r <= e_exe_no_bubble;
+          exe_bubble_pc_r <= '0;
+        end
+      end // if (~stall_all)
+    end // else: !if(reset_i)
+  end // always_ff @ (posedge clk_i)
 
   assign exe_bubble_type_o = exe_bubble_r;
   assign exe_bubble_pc_o = exe_bubble_pc_r;
