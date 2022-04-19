@@ -110,7 +110,6 @@ module vanilla_core_profiler
                    , "cycle,x,y,pc,operation\n"
                    )
 
-  // operations trace
   // task to print a line of operation trace
   task print_operation_trace(string op, logic [data_width_p-1:0] pc);
     $fwrite
