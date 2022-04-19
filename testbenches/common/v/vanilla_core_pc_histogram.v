@@ -114,7 +114,6 @@ module vanilla_core_pc_histogram
   import "DPI-C" context function
     void vanilla_core_pc_hist_del(chandle pc_hist_vptr);
 
-`define CLASSIFY_LONG_OP_STALL
   typedef enum bit [31:0] {
     e_instr
     ,e_fp_instr
