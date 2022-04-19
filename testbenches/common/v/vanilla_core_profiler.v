@@ -979,9 +979,10 @@ module vanilla_core_profiler
 
         end
       
-
+     
         // trace logging
         if (~reset_i & trace_en_i) begin
+
           if (fadd_inc) print_operation_trace("fadd", fp_exe_pc_r);
           else if (fsub_inc) print_operation_trace("fsub", fp_exe_pc_r);
           else if (fmul_inc) print_operation_trace("fmul", fp_exe_pc_r);
