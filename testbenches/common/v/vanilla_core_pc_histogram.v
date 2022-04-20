@@ -94,7 +94,7 @@ module vanilla_core_pc_histogram
   import "DPI-C" context function
     chandle vanilla_core_pc_hist_new();
   import "DPI-C" context function
-    chandle vanilla_core_pc_hist_set_instance_name
+    void vanilla_core_pc_hist_set_instance_name
       (chandle pc_hist_vptr
        ,int x
        ,int y
