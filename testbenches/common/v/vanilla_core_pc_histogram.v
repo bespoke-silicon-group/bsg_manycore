@@ -182,8 +182,20 @@ module vanilla_core_pc_histogram
      ,.exe_bubble_pc_o(exe_bubble_pc)
      ,.exe_bubble_type_o(exe_bubble_type)
      );
-  
-  
+
+  // MEM stage pc tracker
+  logic [data_width_p-1:0] mem_pc_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      mem_pc_r <= '0;
+    end
+    else begin
+      if (~stall_all & (exe_bubble_type == e_exe_no_bubble)) begin
+        mem_pc_r <= exe_pc;
+      end
+    end
+  end
+
   // event signals
   wire instr_inc = ~(stall_all) * (exe_r.instruction != '0) & ~exe_r.icache_miss;
   wire fp_instr_inc = (fp_exe_ctrl_r.fp_decode.is_fpu_float_op
