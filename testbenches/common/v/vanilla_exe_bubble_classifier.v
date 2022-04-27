@@ -4,6 +4,7 @@ module vanilla_exe_bubble_classifier
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;
   import vanilla_exe_bubble_classifier_pkg::*;
+  import vanilla_scoreboard_tracker_pkg::*;
   #(parameter `BSG_INV_PARAM(pc_width_p)
     ,parameter `BSG_INV_PARAM(data_width_p)
     )
@@ -115,8 +116,8 @@ module vanilla_exe_bubble_classifier
   exe_bubble_type_e exe_bubble_r;
   logic [data_width_p-1:0] exe_bubble_pc_r;
 
-  logic [RV32_reg_els_gp-1:0][3:0] int_sb;
-  logic [RV32_reg_els_gp-1:0][3:0] float_sb;
+  logic [RV32_reg_els_gp-1:0][e_vanilla_isb_n-1:0] int_sb;
+  logic [RV32_reg_els_gp-1:0][e_vanilla_fsb_n-1:0] float_sb;
 
   vanilla_scoreboard_tracker
     #(.data_width_p(data_width_p))
@@ -127,38 +128,38 @@ module vanilla_exe_bubble_classifier
      );
 
   wire stall_depend_group_load = stall_depend_long_op
-       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][0]) |
-          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][0]) |
-          (id_r.decode.write_rd & int_sb[id_r.instruction.rd][0]) |
-          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][0]) |
-          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][0]) |
-          (id_r.decode.write_frd & float_sb[id_r.instruction.rd][0]));
+       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][e_vanilla_isb_remote_group_load]) |
+          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][e_vanilla_isb_remote_group_load]) |
+          (id_r.decode.write_rd & int_sb[id_r.instruction.rd][e_vanilla_isb_remote_group_load]) |
+          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][e_vanilla_fsb_remote_group_load]) |
+          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][e_vanilla_fsb_remote_group_load]) |
+          (id_r.decode.write_frd & float_sb[id_r.instruction.rd][e_vanilla_fsb_remote_group_load]));
 
   wire stall_depend_global_load = stall_depend_long_op
-       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][1]) |
-          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][1]) |
-          (id_r.decode.write_rd & int_sb[id_r.instruction.rd][1]) |
-          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][1]) |
-          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][1]) |
-          (id_r.decode.write_frd & float_sb[id_r.instruction.rd][1]));
+       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][e_vanilla_isb_remote_global_load]) |
+          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][e_vanilla_isb_remote_global_load]) |
+          (id_r.decode.write_rd & int_sb[id_r.instruction.rd][e_vanilla_isb_remote_global_load]) |
+          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][e_vanilla_fsb_remote_global_load]) |
+          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][e_vanilla_fsb_remote_global_load]) |
+          (id_r.decode.write_frd & float_sb[id_r.instruction.rd][e_vanilla_fsb_remote_global_load]));
 
   wire stall_depend_dram_load = stall_depend_long_op
-       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][2]) |
-          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][2]) |
-          (id_r.decode.write_rd & int_sb[id_r.instruction.rd][2]) |
-          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][2]) |
-          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][2]) |
-          (id_r.decode.write_frd & float_sb[id_r.instruction.rd][2]));
+       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][e_vanilla_isb_remote_dram_load]) |
+          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][e_vanilla_isb_remote_dram_load]) |
+          (id_r.decode.write_rd & int_sb[id_r.instruction.rd][e_vanilla_isb_remote_dram_load]) |
+          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][e_vanilla_fsb_remote_dram_load]) |
+          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][e_vanilla_fsb_remote_dram_load]) |
+          (id_r.decode.write_frd & float_sb[id_r.instruction.rd][e_vanilla_fsb_remote_dram_load]));
 
   wire stall_depend_idiv = stall_depend_long_op
-       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][3]) |
-          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][3]) |
-          (id_r.decode.write_rd & int_sb[id_r.instruction.rd][3]));
+       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1][e_vanilla_isb_idiv]) |
+          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2][e_vanilla_isb_idiv]) |
+          (id_r.decode.write_rd & int_sb[id_r.instruction.rd][e_vanilla_isb_idiv]));
 
   wire stall_depend_fdiv = stall_depend_long_op
-       & ((id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][3]) |
-          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][3]) |
-          (id_r.decode.write_frd & float_sb[id_r.instruction.rd][3]));
+       & ((id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1][e_vanilla_fsb_fdiv_fsqrt]) |
+          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2][e_vanilla_fsb_fdiv_fsqrt]) |
+          (id_r.decode.write_frd & float_sb[id_r.instruction.rd][e_vanilla_fsb_fdiv_fsqrt]));
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin

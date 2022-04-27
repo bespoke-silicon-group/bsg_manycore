@@ -240,5 +240,12 @@ module vanilla_core_pc_histogram
     end
   end
 
+  // debug
+  always @(posedge stall_remote_ld_wb) begin
+    if (~reset_i) begin
+      $display("%m: stall_remote_ld_wb\n");      
+    end    
+  end
+  
 endmodule
 
