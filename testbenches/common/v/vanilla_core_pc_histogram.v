@@ -117,10 +117,32 @@ module vanilla_core_pc_histogram
   typedef enum bit [31:0] {
     e_instr
     ,e_fp_instr
-`define VANILLA_CORE_STALL(name, cond, pc) \
-    ,e_``name
-`include "vanilla_core_stall.def"
-`undef VANILLA_CORE_STALL
+    ,e_icache_miss
+    ,e_stall_icache_store
+    ,e_stall_remote_ld_wb
+    ,e_stall_remote_flw_wb
+    ,e_stall_ifetch_wait
+    ,e_branch_miss
+    ,e_jalr_miss
+    ,e_icache_miss_bubble
+    ,e_stall_depend_dram
+    ,e_stall_depend_global
+    ,e_stall_depend_group
+    ,e_stall_depend_fdiv
+    ,e_stall_depend_idiv
+    ,e_stall_depend_local_load
+    ,e_stall_depend_imul
+    ,e_stall_amo_aq
+    ,e_stall_amo_rl
+    ,e_stall_bypass
+    ,e_stall_lr_aq
+    ,e_stall_fence
+    ,e_stall_remote_req
+    ,e_stall_remote_credit
+    ,e_stall_fdiv_busy
+    ,e_stall_idiv_busy
+    ,e_stall_fcsr
+    ,e_stall_barrier
     ,e_unknown
   } pc_state_e;
 
@@ -130,30 +152,35 @@ module vanilla_core_pc_histogram
     begin
       pc_hist_vptr = vanilla_core_pc_hist_new();
       // define states
-      vanilla_core_pc_hist_register_operation
-        (pc_hist_vptr
-         ,e_instr
-         ,"instr"
-         );
-      vanilla_core_pc_hist_register_operation
-        (pc_hist_vptr
-         ,e_fp_instr
-         ,"fp_instr"
-         );
-`define VANILLA_CORE_STALL(name, cond, pc) \
-      vanilla_core_pc_hist_register_operation \
-      (pc_hist_vptr \
-       ,e_``name \
-       ,`BSG_STRINGIFY(name) \
-       );
-`include "vanilla_core_stall.def"
-`undef VANILLA_CORE_STALL
-
-      vanilla_core_pc_hist_register_operation
-        (pc_hist_vptr
-         ,e_unknown
-         ,"unknown"
-         );
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_instr, "instr");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_fp_instr, "fp_instr");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_icache_miss, "icache_miss");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_icache_store, "stall_icache_store");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_remote_ld_wb, "stall_remote_ld_wb");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_remote_flw_wb, "stall_remote_flw_wb");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_ifetch_wait, "stall_ifetch_wait");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_branch_miss, "branch_miss");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_jalr_miss, "jalr_miss");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_icache_miss_bubble, "icache_miss_bubble");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_dram, "stall_depend_dram");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_global, "stall_depend_global");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_group, "stall_depend_group");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_fdiv, "stall_depend_fdiv");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_idiv, "stall_depend_idiv");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_local_load, "stall_depend_local_load");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_imul, "stall_depend_imul");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_amo_aq, "stall_amo_aq");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_amo_rl, "stall_amo_rl");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_bypass, "stall_bypass");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_lr_aq, "stall_lr_aq");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_fence, "stall_fence");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_remote_req, "stall_remote_req");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_remote_credit, "stall_remote_credit");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_fdiv_busy, "stall_fdiv_busy");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_idiv_busy, "stall_idiv_busy");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_fcsr, "stall_fcsr");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_barrier, "stall_barrier");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_unknown, "unknown");
     end
 
   // cleanup dpi module
@@ -207,36 +234,95 @@ module vanilla_core_pc_histogram
   always @(negedge clk_i) begin
     if (~reset_i) begin
       if (instr_inc) begin
-        vanilla_core_pc_hist_increment
-          (pc_hist_vptr
-           ,exe_pc
-           ,e_instr
-           );
+        vanilla_core_pc_hist_increment(pc_hist_vptr, exe_pc, e_instr);
       end
       else if (fp_instr_inc) begin
-        vanilla_core_pc_hist_increment
-          (pc_hist_vptr
-           ,fp_exe_pc_r
-           ,e_fp_instr
-           );
+        vanilla_core_pc_hist_increment(pc_hist_vptr, fp_exe_pc_r, e_fp_instr);
       end
-`define VANILLA_CORE_STALL(name, cond, pc) \
-      else if ((cond)) begin \
-        vanilla_core_pc_hist_increment \
-          (pc_hist_vptr \
-           ,pc \
-           ,e_``name \
-           ); \
-            end
-`include "vanilla_core_stall.def"
-`undef VANILLA_CORE_STALL      
-      else begin 
-        vanilla_core_pc_hist_increment
-          (pc_hist_vptr
-           ,exe_pc
-           ,e_unknown
-           );   
-        end
+      else if ( exe_r.icache_miss) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_pc,  e_icache_miss);
+      end
+      // TODO: we should report a more informative PC than exe_pc for
+      // icache_store, remote_lw_wb, and remote_flw_wb
+      else if ( stall_all & stall_icache_store) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_pc,  e_stall_icache_store);
+      end
+      else if ( stall_all & stall_remote_ld_wb) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_pc,  e_stall_remote_ld_wb);
+      end
+      else if ( stall_all & stall_remote_flw_wb) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_pc,  e_stall_remote_flw_wb);
+      end
+      else if ( stall_all & stall_ifetch_wait) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  mem_pc_r,  e_stall_ifetch_wait);
+      end
+      // stalls that originate in id stage or exe stage
+      else if ( exe_bubble_type == e_exe_bubble_branch_miss) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_branch_miss);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_jalr_miss) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_jalr_miss);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_icache_miss) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_icache_miss_bubble);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_depend_dram) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_dram);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_depend_global) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_global);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_depend_group) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_group);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_depend_fdiv) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_fdiv);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_depend_idiv) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_idiv);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_depend_local_load) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_local_load);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_depend_imul) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_imul);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_amo_aq) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_amo_aq);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_amo_rl) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_amo_rl);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_bypass) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_bypass);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_lr_aq) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_lr_aq);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_fence) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_fence);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_remote_req) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_remote_req);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_remote_credit) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_remote_credit);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_fdiv_busy) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_fdiv_busy);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_idiv_busy) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_idiv_busy);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_fcsr) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_fcsr);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_barrier) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_barrier);
+      end
+      else begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr, exe_pc, e_unknown);
+      end
     end
   end
 
