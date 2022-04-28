@@ -1,8 +1,9 @@
 // stalls that stall entire pipeline
 `VANILLA_CORE_STALL(icache_miss, exe_r.icache_miss, exe_pc)
-`VANILLA_CORE_STALL(stall_icache_store, stall_all & stall_icache_store, exe_pc)
-`VANILLA_CORE_STALL(stall_remote_ld_wb, stall_all & stall_remote_ld_wb, exe_pc)
-`VANILLA_CORE_STALL(stall_remote_flw_wb, stall_all & stall_remote_flw_wb, exe_pc)
+// TODO: we omit these for now, but ideally we would track pc of instruction responsible for wb congestion
+// `VANILLA_CORE_STALL(stall_icache_store, stall_all & stall_icache_store, exe_pc)
+// `VANILLA_CORE_STALL(stall_remote_ld_wb, stall_all & stall_remote_ld_wb, exe_pc)
+// `VANILLA_CORE_STALL(stall_remote_flw_wb, stall_all & stall_remote_flw_wb, exe_pc)
 `VANILLA_CORE_STALL(stall_ifetch_wait, stall_all & stall_ifetch_wait, mem_pc_r)
 // stalls that originate in id stage or exe stage
 `VANILLA_CORE_STALL(branch_miss, exe_bubble_type == e_exe_bubble_branch_miss, exe_bubble_pc)
