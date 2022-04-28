@@ -918,6 +918,7 @@ end
   //////////////////
   // PC Histogram //
   //////////////////
+`ifndef VERILATOR_WORKAROUND_DISABLE_PC_HISTOGRAM
 if (enable_vanilla_core_pc_histogram_p) begin
   bind vanilla_core vanilla_core_pc_histogram
     #(.x_cord_width_p(x_cord_width_p)
@@ -930,6 +931,7 @@ if (enable_vanilla_core_pc_histogram_p) begin
       )
   vcore_pc_hist
     (.*);
+`endif
 end // if (enable_vanilla_core_pc_histogram_p)
 
 endmodule
