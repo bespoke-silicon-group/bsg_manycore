@@ -273,3 +273,4 @@ module vanilla_exe_bubble_classifier
 
 endmodule // vanilla_exe_bubble_classifier
 
+`BSG_ABSTRACT_MODULE(vanilla_exe_bubble_classifier)

@@ -328,3 +328,4 @@ module vanilla_core_pc_histogram
 
 endmodule
 
+`BSG_ABSTRACT_MODULE(vanilla_core_pc_histogram)

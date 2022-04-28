@@ -134,3 +134,4 @@ module vanilla_scoreboard_tracker
   assign float_sb_o = float_sb_r;
 endmodule // vanilla_scoreboard_tracker
 
+`BSG_ABSTRACT_MODULE(vanilla_scoreboard_tracker)
