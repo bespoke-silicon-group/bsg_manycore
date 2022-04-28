@@ -26,8 +26,8 @@ module vanilla_scoreboard_tracker
    ,input exe_signals_s exe_r
    ,input fp_exe_ctrl_signals_s fp_exe_ctrl_r
 
-   ,output vanilla_isb_info [RV32_reg_els_gp-1:0] int_sb_o
-   ,output vanilla_fsb_info [RV32_reg_els_gp-1:0] float_sb_o
+   ,output vanilla_isb_info_s [RV32_reg_els_gp-1:0] int_sb_o
+   ,output vanilla_fsb_info_s [RV32_reg_els_gp-1:0] float_sb_o
    );
 
   // remote/local scoreboard tracking
@@ -42,8 +42,8 @@ module vanilla_scoreboard_tracker
   // float_sb[1]: remote global load
   // float_sb[0]: remote group load
 
-  vanilla_isb_info [RV32_reg_els_gp-1:0] int_sb_r;
-  vanilla_fsb_info [RV32_reg_els_gp-1:0] float_sb_r;
+  vanilla_isb_info_s [RV32_reg_els_gp-1:0] int_sb_r;
+  vanilla_fsb_info_s [RV32_reg_els_gp-1:0] float_sb_r;
 
   wire [data_width_p-1:0] id_mem_addr = rs1_val_to_exe + `BSG_SIGN_EXTEND(mem_addr_op2,data_width_p);
   wire remote_ld_dram_in_id = ((id_r.decode.is_load_op & id_r.decode.write_rd) | id_r.decode.is_amo_op) & id_mem_addr[data_width_p-1];

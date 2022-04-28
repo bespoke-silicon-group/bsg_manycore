@@ -6,7 +6,7 @@ package vanilla_scoreboard_tracker_pkg;
     logic remote_global_load;
     logic remote_dram_load;
     logic idiv;
-  } vanilla_isb_info;
+  } vanilla_isb_info_s;
 
   // floating point scoreboard
   typedef struct packed {
@@ -14,6 +14,6 @@ package vanilla_scoreboard_tracker_pkg;
     logic remote_global_load;
     logic remote_dram_load;
     logic fdiv_fsqrt;
-  } vanilla_fsb_info;
+  } vanilla_fsb_info_s;
 
 endpackage // vanilla_scoreboard_tracker_pkg

@@ -116,8 +116,8 @@ module vanilla_exe_bubble_classifier
   exe_bubble_type_e exe_bubble_r;
   logic [data_width_p-1:0] exe_bubble_pc_r;
 
-  vanilla_isb_info [RV32_reg_els_gp-1:0]  int_sb;
-  vanilla_fsb_info [RV32_reg_els_gp-1:0]  float_sb;
+  vanilla_isb_info_s [RV32_reg_els_gp-1:0]  int_sb;
+  vanilla_fsb_info_s [RV32_reg_els_gp-1:0]  float_sb;
 
   vanilla_scoreboard_tracker
     #(.data_width_p(data_width_p))
