@@ -63,32 +63,71 @@ module vanilla_scoreboard_tracker
       float_sb_r <= '0;
     end
     else begin
-      if (~stall_id & ~stall_all & ~flush) begin
-        // int sb
-        int_sb_r[id_r.instruction.rd] <= '{
-          idiv: id_r.decode.is_idiv_op,
-          remote_dram_load: remote_ld_dram_in_id,
-          remote_group_load: remote_ld_group_in_id,
-          remote_global_load: remote_ld_global_in_id
-        };
-        // float sb
-        float_sb_r[id_r.instruction.rd] <= '{
-          fdiv_fsqrt: id_r.decode.is_fp_op & (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op),
-          remote_dram_load: remote_flw_dram_in_id,
-          remote_group_load: remote_flw_group_in_id,
-          remote_global_load: remote_flw_global_in_id
-        };
-      end
 
-      // clear scoreboards
-      if (int_sb_clear) begin
-        int_sb_r[int_sb_clear_id] <= '0;
-      end
-      if (float_sb_clear) begin
-        float_sb_r[float_sb_clear_id] <= '0;
-      end
+      // int sb
+      for (integer i = 0; i < RV32_reg_els_gp; i++) begin
+        // idiv
+        if (~stall_id & ~stall_all & ~flush & id_r.decode.is_idiv_op & (id_rd == i)) begin
+          int_sb_r[i].idiv <= 1'b1;
+        end
+        else if (int_sb_clear & (int_sb_clear_id == i)) begin
+          int_sb_r[i].idiv <= 1'b0;
+        end
+        // remote ld dram
+        if (~stall_id & ~stall_all & ~flush & remote_ld_dram_in_id & (id_rd == i)) begin
+          int_sb_r[i].remote_dram_load <= 1'b1;
+        end
+        else if (int_sb_clear & (int_sb_clear_id == i)) begin
+          int_sb_r[i].remote_dram_load <= 1'b0;
+        end
+        // remote ld global
+        if (~stall_id & ~stall_all & ~flush & remote_ld_global_in_id & (id_rd == i)) begin
+          int_sb_r[i].remote_global_load <= 1'b1;
+        end
+        else if (int_sb_clear & (int_sb_clear_id == i)) begin
+          int_sb_r[i].remote_global_load <= 1'b0;
+        end
+        // remote ld group
+        if (~stall_id & ~stall_all & ~flush & remote_ld_group_in_id & (id_rd == i)) begin
+          int_sb_r[i].remote_group_load <= 1'b1;
+        end
+        else if (int_sb_clear & (int_sb_clear_id == i)) begin
+          int_sb_r[i].remote_global_load <= 1'b0;
+        end
+      end // for (integer i = 0; i < RV32_reg_els_gp; i++)
 
-    end
+      // float sb
+      for (integer i = 0; i < RV32_reg_els_gp; i++) begin
+        // fdiv, fsqrt
+        if (~stall_id & ~stall_all & ~flush & (id_r.decode.is_fp_op & (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op)) & (id_rd == i)) begin
+          float_sb_r[i].fdiv_fsqrt <= 1'b1;
+        end
+        else if (float_sb_clear & (float_sb_clear_id == i)) begin
+          float_sb_r[i].fdiv_fsqrt <= 1'b0;
+        end
+        // remote flw dram
+        if (~stall_id & ~stall_all & ~flush & remote_flw_dram_in_id & (id_rd == i)) begin
+          float_sb_r[i].remote_dram_load <= 1'b1;
+        end
+        else if (float_sb_clear & (float_sb_clear_id == i)) begin
+          float_sb_r[i].remote_dram_load <= 1'b0;
+        end
+        // remote flw global
+        if (~stall_id & ~stall_all & ~flush & remote_flw_global_in_id & (id_rd == i)) begin
+          float_sb_r[i].remote_global_load <= 1'b1;
+        end
+        else if (float_sb_clear & (float_sb_clear_id == i)) begin
+          float_sb_r[i].remote_global_load <= 1'b0;
+        end
+        // remote flw group
+        if (~stall_id & ~stall_all & ~flush & remote_flw_group_in_id & (id_rd == i)) begin
+          float_sb_r[i].remote_group_load <= 1'b1;
+        end
+        else if (float_sb_clear & (float_sb_clear_id == i)) begin
+          float_sb_r[i].remote_group_load <= 1'b0;
+        end
+      end // for (integer i = 0; i < RV32_reg_els_gp; i++)
+    end // else: !if(reset_i)
   end // always_ff @ (posedge clk_i)
 
   assign int_sb_o = int_sb_r;
