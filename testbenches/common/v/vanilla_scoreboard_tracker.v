@@ -92,7 +92,7 @@ module vanilla_scoreboard_tracker
           int_sb_r[i].remote_group_load <= 1'b1;
         end
         else if (int_sb_clear & (int_sb_clear_id == i)) begin
-          int_sb_r[i].remote_global_load <= 1'b0;
+          int_sb_r[i].remote_group_load <= 1'b0;
         end
       end // for (integer i = 0; i < RV32_reg_els_gp; i++)
 
