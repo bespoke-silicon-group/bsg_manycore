@@ -4,6 +4,7 @@
 MAX_CYCLES ?= 100000000
 WAVE       ?= 0
 TRACE      ?= 0
+PC_HIST    ?= 0
 COVERAGE   ?= 0
 PROG_NAME  ?= main
 
@@ -47,6 +48,7 @@ else ifeq ($(BSG_PLATFORM),verilator)
 endif
 
 ifeq ($(WAVE),0)
+ifeq ($(PC_HIST),0)
 ifeq ($(TRACE),0)
 ifeq ($(COVERAGE),0)
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)
@@ -55,6 +57,9 @@ else
 endif
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-profile
+endif
+else
+  BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-pc-histogram
 endif
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-debug
