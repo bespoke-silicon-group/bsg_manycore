@@ -224,7 +224,7 @@ module vanilla_core_pc_histogram
   end
 
   // event signals
-  wire instr_inc = ~(stall_all) * (exe_r.instruction != '0) & ~exe_r.icache_miss;
+  wire instr_inc = ~(stall_all) & (exe_r.instruction != '0) & ~exe_r.icache_miss;
   wire fp_instr_inc = (fp_exe_ctrl_r.fp_decode.is_fpu_float_op
                        | fp_exe_ctrl_r.fp_decode.is_fpu_int_op
                        | fp_exe_ctrl_r.fp_decode.is_fdiv_op
