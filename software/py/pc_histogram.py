@@ -58,7 +58,7 @@ colors = {
 
 # Use the colors key order above to stack the bars, 
 # but first we have to pick stalls that are actually IN the CSV (not all are printed)
-cols = [k for k in colors.keys() if k in groups.columns]
+cols = [k for k in colors.keys() if k in df.columns]
 ax = df[cols][(df.instr > 128) | (df.fp_instr > 128)].plot.bar(stacked = True, figsize=(50,15), color = colors)
 ax.tick_params(labelsize=9)
 fig = ax.get_figure()
