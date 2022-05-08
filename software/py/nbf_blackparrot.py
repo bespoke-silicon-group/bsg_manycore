@@ -8,8 +8,8 @@ import sys
 # device 1 - CLINT
 # device 2 - DRAM Base Address Register
 cfg_base_addr          = 0x0000
-cfg_reg_unused         = 0x0004
-cfg_reg_freeze         = 0x0008
+cfg_reg_freeze         = 0x0004
+cfg_reg_npc            = 0x0008
 cfg_reg_hio_mask       = 0x001c
 cfg_reg_icache_id      = 0x0200
 cfg_reg_icache_mode    = 0x0204
@@ -33,6 +33,9 @@ class NBF:
         self.num_tiles_x = 16
         self.num_tiles_y = 12
 
+        # Ths is the boot PC that BP will start executing from
+        # TODO: Do we need a bootrom? Make this a compile time parameter?
+        self.bp_boot_pc = 0x80000000
         # This is the base address in the manycore DRAM space where BP code lives
         self.mc_dram_base = 0x81000000
         # 3-bit pod y, 3-bit pod x
@@ -127,6 +130,7 @@ class NBF:
 
     # BP core configuration
     def init_config(self):
+        self.print_nbf(0x0f, 1 << 4 | 1, cfg_base_addr + cfg_reg_npc, self.bp_boot_pc)
         self.print_nbf(0x0f, 1 << 4 | 1, cfg_base_addr + cfg_reg_hio_mask, 1)
         self.print_nbf(0x0f, 1 << 4 | 1, cfg_base_addr + cfg_reg_icache_mode, 1)
         self.print_nbf(0x0f, 1 << 4 | 1, cfg_base_addr + cfg_reg_dcache_mode, 1)
