@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import pandas as pd
 #pd.set_option('display.max_columns', None)
 #pd.set_option('display.max_rows', None)
@@ -11,11 +12,16 @@ import seaborn as sns
 import matplotlib as plt
 import matplotlib.pyplot as plt
 
+parser = argparse.ArgumentParser(description="Argument parser for vanilla_pc_histogram.py")
+parser.add_argument("--start", default="0x00000000", type=str, help="Start PC for PC/BB Histogram, in hex. e.g: 0x000000")
+parser.add_argument("--end", default="0x00000000", type=str, help="End PC for PC/BB Histogram, in hex. e.g: 0x00000000")
+args = parser.parse_args()
+
 sns.set()
 
 df = pd.read_csv("vanilla_core_pc_hist.csv")
 
-
+df = df[(df.pc < args.end) & (df.pc > args.start)]
 # Aggregate across all tiles
 df = df.groupby(["pc", "operation"]).sum()
 
@@ -41,7 +47,7 @@ colors = {
     "stall_amo_aq": "thistle",
     "stall_amo_rl": "plum",
     "stall_lr_aq": "violet",
-    "stall_fence": "orchid",
+    "stall_fence": "magenta",
     "stall_barrier": "purple",
     "stall_remote_req": "lightcoral",
     "stall_depend_local_load": "indianred",
@@ -59,7 +65,7 @@ colors = {
 # Use the colors key order above to stack the bars, 
 # but first we have to pick stalls that are actually IN the CSV (not all are printed)
 cols = [k for k in colors.keys() if k in df.columns]
-ax = df[cols][(df.instr > 128) | (df.fp_instr > 128)].plot.bar(stacked = True, figsize=(50,15), color = colors)
+ax = df[cols][(df.instr >= 128) | (df.fp_instr >= 128)].plot.bar(stacked = True, figsize=(50,15), color = colors)
 ax.tick_params(labelsize=9)
 fig = ax.get_figure()
 fig.savefig("pc_hist.pdf")
