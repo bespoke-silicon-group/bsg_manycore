@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description="Argument parser for vanilla_pc_histogram.py")
 parser.add_argument("--start", default="0x00000000", type=str, help="Start PC for PC/BB Histogram, in hex. e.g: 0x000000")
-parser.add_argument("--end", default="0x00000000", type=str, help="End PC for PC/BB Histogram, in hex. e.g: 0x00000000")
+parser.add_argument("--end", default="0xffffffff", type=str, help="End PC for PC/BB Histogram, in hex. e.g: 0x00000000")
 args = parser.parse_args()
 
 sns.set()
