@@ -9,27 +9,15 @@ import pandas as pd
 import re
 from pathlib import Path
 import seaborn as sns
+sns.set()
 import matplotlib as plt
 import matplotlib.pyplot as plt
 
-parser = argparse.ArgumentParser(description="Argument parser for vanilla_pc_histogram.py")
-parser.add_argument("--start", default="0x00000000", type=str, help="Start PC for PC/BB Histogram, in hex. e.g: 0x000000")
+parser = argparse.ArgumentParser(description="Argument parser for pc_histogram.py")
+parser.add_argument("--start", default="0x00000000", type=str, help="Start PC for PC/BB Histogram, in hex. e.g: 0x00000000")
 parser.add_argument("--end", default="0xffffffff", type=str, help="End PC for PC/BB Histogram, in hex. e.g: 0x00000000")
+parser.add_argument("--pathpat", default="./", type=str, help="Search Path for CSV Files")
 args = parser.parse_args()
-
-sns.set()
-
-df = pd.read_csv("vanilla_core_pc_hist.csv")
-
-df = df[(df.pc < args.end) & (df.pc > args.start)]
-# Aggregate across all tiles
-df = df.groupby(["pc", "operation"]).sum()
-
-
-# Pivot, and then drop the "cycles" level of the multi-index.
-df = pd.pivot_table(df, index = ["pc"], columns = "operation")
-df = df.fillna(0)
-df = df.droplevel(level=0, axis = "columns")
 
 # Colors assigns colors to each stall/instruction type, but it ALSO assigns the order.
 # The order in the dictonary will be used below when graphed
@@ -60,27 +48,86 @@ colors = {
     "branch_miss" : "gold",
     "stall_fcsr": "gray",
     "unknown": "black"}
+labelsize = 9 #point
+def read_histogram_csv(p):
+    df = pd.read_csv(p)
+    df = df[(df.pc < args.end) & (df.pc > args.start)]
+    # Aggregate across all tiles
+    df = df.groupby(["pc", "operation"]).sum()
+    return df
+
+def write_pc_hist(df, p):
+    # Pivot, and then drop the "cycles" level of the multi-index.
+    df = pd.pivot_table(df, index = ["pc"], columns = "operation")
+    df = df.fillna(0)
+    df = df.droplevel(level=0, axis = "columns")
+    
+    # Use the colors key order above to stack the bars, 
+    # but first we have to pick stalls that are actually IN the CSV (not all are printed)
+    cols = [k for k in colors.keys() if k in df.columns]
+    # Select only instructions that were executed more than once
+    # TODO: Set nexecutions based on number of tiles in CSV
+    df = df[cols][(df.instr >= 128) | (df.fp_instr >= 128)]
+    # TODO: Set figure size based on label size
+    width = df.shape[0] * (labelsize + 4) / 72
+    ax = df.plot.bar(stacked = True, figsize=(width,15), color = colors)
+    ax.tick_params(labelsize=labelsize)
+    fig = ax.get_figure()
+    fig.savefig( p / "pc_hist.pdf")
+    plt.close(fig)
+
+def write_bb_hist(df, p):
+    # Pivot, and then drop the "cycles" level of the multi-index.
+    df = pd.pivot_table(df, index = ["pc"], columns = "operation")
+    df = df.fillna(0)
+    df = df.droplevel(level=0, axis = "columns")
+    
+    # Group together floating point and regular instructionos
+    tot_instrs = df.instr + df.fp_instr
+
+    # Group together PCs that have the same number of executions
+    bb_ranges = (tot_instrs != tot_instrs.shift()).cumsum()
+    df = df.groupby(bb_ranges).sum()
+
+    # Get the new grouped index
+    bb_index = map(lambda x: bb_ranges[bb_ranges == x].index.min() + "-" + bb_ranges[bb_ranges == x].index.max(), df.index)
+    df.index = bb_index
+
+    # Use the colors key order above to stack the bars, 
+    # but first we have to pick stalls that are actually IN the CSV (not all are printed)
+    cols = [k for k in colors.keys() if k in df.columns]
+    width = df.shape[0] * (labelsize + 4) / 72
+    ax = df[cols].plot.bar(stacked = True, figsize=(width,15), color = colors)
+    ax.tick_params(labelsize=labelsize)
+    fig = ax.get_figure()
+    fig.savefig(p / "bb_hist.pdf")
+    plt.close(fig)
+
+files = list(Path('./').glob(args.pathpat + "/vanilla_core_pc_hist.csv"))
+
+if(len(files) == 0):
+    print("Error! No vanilla_core_pc_hist.csv files found")
+    exit()
+
+agg = None
+for f in files:
+    p = f.parent
+    print("Parsing: "  + str(f))
+    df = read_histogram_csv(f)
+    write_bb_hist(df, p)
+    write_pc_hist(df, p)
+    if(agg is not None):
+        agg += df
+    else:
+        agg = df.copy()
+
+if(len(files) > 1):
+    print("Writing aggregate histograms")
+    write_bb_hist(df, Path("./"))
+    write_pc_hist(df, Path("./"))
 
 
-# Use the colors key order above to stack the bars, 
-# but first we have to pick stalls that are actually IN the CSV (not all are printed)
-cols = [k for k in colors.keys() if k in df.columns]
-ax = df[cols][(df.instr >= 128) | (df.fp_instr >= 128)].plot.bar(stacked = True, figsize=(50,15), color = colors)
-ax.tick_params(labelsize=9)
-fig = ax.get_figure()
-fig.savefig("pc_hist.pdf")
 
 
-# The plot above is the PC Histogram. Now group PC ranges by basic block.
-tot_instrs = df.instr + df.fp_instr
-bbs = (tot_instrs != tot_instrs.shift()).cumsum()
-groups = df.groupby(bbs).sum()
-groups.index = map(lambda x: bbs[bbs == x].index.min() + "-" + bbs[bbs == x].index.max(), groups.index)
-cols = [k for k in colors.keys() if k in groups.columns]
 
-
-ax = groups[cols].plot.bar(stacked = True, figsize=(15,15), color = colors)
-ax.tick_params(labelsize=10)
-fig = ax.get_figure()
-fig.savefig("bb_hist.pdf")
 
