@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import math
 import argparse
 import pandas as pd
 #pd.set_option('display.max_columns', None)
@@ -71,8 +72,12 @@ def write_pc_hist(df, p):
     # TODO: Set figure size based on label size
     width = df.shape[0] * (labelsize + 4) / 72
     ax = df.plot.bar(stacked = True, figsize=(width,15), color = colors)
+    ax.set_xlabel("Program Counter")
+    ax.set_ylabel(f"Cycles * 10^{math.floor(math.log10(ax.get_ylim()[1]))}")
+    ax.set_title(f"HammerBlade Program Counter Cycles Histogram")
     ax.tick_params(labelsize=labelsize)
     fig = ax.get_figure()
+    plt.tight_layout()
     fig.savefig( p / "pc_hist.pdf")
     plt.close(fig)
 
@@ -92,14 +97,24 @@ def write_bb_hist(df, p):
     # Get the new grouped index
     bb_index = map(lambda x: bb_ranges[bb_ranges == x].index.min() + "-" + bb_ranges[bb_ranges == x].index.max(), df.index)
     df.index = bb_index
+    ipc =  (df.instr + df.fp_instr) / df.sum(axis = 1)
+    pct = 100.0 *  df.sum(axis = 1) / df.sum(axis = 1).sum()
+    idx = df.index.to_series()
+    idx = idx.combine(pct, lambda i, pct: f"{i} ({pct:.0f}%".rjust(10))
+    idx = idx.combine(ipc, (lambda i, ipc: f"{i} @ {ipc:1.3f})"))
+    df.index = idx
 
     # Use the colors key order above to stack the bars, 
     # but first we have to pick stalls that are actually IN the CSV (not all are printed)
     cols = [k for k in colors.keys() if k in df.columns]
     width = df.shape[0] * (labelsize + 4) / 72
-    ax = df[cols].plot.bar(stacked = True, figsize=(width,15), color = colors)
+    ax = df[cols].plot.bar(stacked = True, figsize=(width,20), color = colors)
+    ax.set_xlabel("Basic Block Range (% Cycles @ IPC)")
+    ax.set_ylabel(f"Cycles * 10^{math.floor(math.log10(ax.get_ylim()[1]))}")
+    ax.set_title(f"HammerBlade Basic Block Cycles Histogram")
     ax.tick_params(labelsize=labelsize)
     fig = ax.get_figure()
+    plt.tight_layout()
     fig.savefig(p / "bb_hist.pdf")
     plt.close(fig)
 
