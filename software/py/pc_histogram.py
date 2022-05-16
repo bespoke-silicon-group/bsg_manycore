@@ -23,8 +23,8 @@ args = parser.parse_args()
 # Colors assigns colors to each stall/instruction type, but it ALSO assigns the order.
 # The order in the dictonary will be used below when graphed
 colors = {
-    "instr": "lightgreen",
-    "fp_instr": "green",
+    "Instruction": "lightgreen",
+    "FPU Instruction": "green",
     "stall_remote_ld_wb": "cyan",
     "stall_remote_flw_wb": "teal",
     "stall_depend_idiv": "lightsteelblue",
@@ -55,6 +55,9 @@ def read_histogram_csv(p):
     df = df[(df.pc < args.end) & (df.pc > args.start)]
     # Aggregate across all tiles
     df = df.groupby(["pc", "operation"]).sum()
+    df.rename({"instr": "Instruction",
+               "fp_instr": "FPU Instruction"},
+              inplace=True)
     return df
 
 def write_pc_hist(df, p):
@@ -66,14 +69,12 @@ def write_pc_hist(df, p):
     # Use the colors key order above to stack the bars, 
     # but first we have to pick stalls that are actually IN the CSV (not all are printed)
     cols = [k for k in colors.keys() if k in df.columns]
-    # Select only instructions that were executed more than once
-    # TODO: Set nexecutions based on number of tiles in CSV
-    df = df[cols][(df.instr >= 128) | (df.fp_instr >= 128)]
+    df = df[cols]
     # TODO: Set figure size based on label size
-    width = df.shape[0] * (labelsize + 4) / 72
-    ax = df.plot.bar(stacked = True, figsize=(width,15), color = colors)
-    ax.set_xlabel("Program Counter")
-    ax.set_ylabel(f"Cycles * 10^{math.floor(math.log10(ax.get_ylim()[1]))}")
+    height = df.shape[0] * (labelsize + 4) / 72
+    ax = df.plot.barh(stacked = True, figsize=(11, height), color = colors)
+    ax.set_ylabel("Program Counter")
+    ax.set_xlabel(f"Cycles * 10^{math.floor(math.log10(ax.get_xlim()[1]))}")
     ax.set_title(f"HammerBlade Program Counter Cycles Histogram")
     ax.tick_params(labelsize=labelsize)
     fig = ax.get_figure()
@@ -88,7 +89,7 @@ def write_bb_hist(df, p):
     df = df.droplevel(level=0, axis = "columns")
     
     # Group together floating point and regular instructionos
-    tot_instrs = df.instr + df.fp_instr
+    tot_instrs = df.Instruction + df["FPU Instruction"]
 
     # Group together PCs that have the same number of executions
     bb_ranges = (tot_instrs != tot_instrs.shift()).cumsum()
@@ -97,7 +98,7 @@ def write_bb_hist(df, p):
     # Get the new grouped index
     bb_index = map(lambda x: bb_ranges[bb_ranges == x].index.min() + "-" + bb_ranges[bb_ranges == x].index.max(), df.index)
     df.index = bb_index
-    ipc =  (df.instr + df.fp_instr) / df.sum(axis = 1)
+    ipc =  (df.Instruction + df["FPU Instruction"]) / df.sum(axis = 1)
     pct = 100.0 *  df.sum(axis = 1) / df.sum(axis = 1).sum()
     idx = df.index.to_series()
     idx = idx.combine(pct, lambda i, pct: f"{i} ({pct:.0f}%".rjust(10))
@@ -107,10 +108,10 @@ def write_bb_hist(df, p):
     # Use the colors key order above to stack the bars, 
     # but first we have to pick stalls that are actually IN the CSV (not all are printed)
     cols = [k for k in colors.keys() if k in df.columns]
-    width = df.shape[0] * (labelsize + 4) / 72
-    ax = df[cols].plot.bar(stacked = True, figsize=(width,20), color = colors)
-    ax.set_xlabel("Basic Block Range (% Cycles @ IPC)")
-    ax.set_ylabel(f"Cycles * 10^{math.floor(math.log10(ax.get_ylim()[1]))}")
+    height = df.shape[0] * (labelsize + 4) / 72
+    ax = df[cols].plot.barh(stacked = True, figsize=(11, height), color = colors)
+    ax.set_ylabel("Basic Block Range (% Cycles @ IPC)")
+    ax.set_xlabel(f"Cycles * 10^{math.floor(math.log10(ax.get_xlim()[1]))}")
     ax.set_title(f"HammerBlade Basic Block Cycles Histogram")
     ax.tick_params(labelsize=labelsize)
     fig = ax.get_figure()
