@@ -59,6 +59,7 @@ module remote_load_trace
     , input bsg_manycore_return_packet_type_e returned_pkt_type_i
     , input returned_yumi_o
 
+
     // coord
     , input [x_subcord_width_lp-1:0] my_x_i
     , input [y_subcord_width_lp-1:0] my_y_i
@@ -114,9 +115,25 @@ module remote_load_trace
   logic [RV32_reg_els_gp-1:0] int_rl_we;
   logic [RV32_reg_els_gp-1:0] float_rl_we;
 
-  remote_load_status_s next_rop;
+  bsg_decode_with_v #(
+    .num_out_p(RV32_reg_els_gp)
+  ) dv0 (
+    .i(out_packet.reg_id)
+    ,.v_i(int_rl_v)
+    ,.o(int_rl_we)
+  );
 
-  assign next_rop = '{
+  bsg_decode_with_v #(
+    .num_out_p(RV32_reg_els_gp)
+  ) dv1 (
+    .i(out_packet.reg_id)
+    ,.v_i(float_rl_v)
+    ,.o(float_rl_we)
+  );
+
+  remote_load_status_s next_rl;
+
+  assign next_rl = '{
     start_cycle : global_ctr_i,
     x_cord      : out_packet.x_cord,
     y_cord      : out_packet.y_cord
@@ -133,16 +150,18 @@ module remote_load_trace
        
       for (integer i = 0 ; i < RV32_reg_els_gp; i++) begin
         if (int_rl_we[i])
-          int_rl_status_r[i] <= next_rop;
+          int_rl_status_r[i] <= next_rl;
         if (float_rl_we[i])
-          float_rl_status_r[i] <= next_rop;
+          float_rl_status_r[i] <= next_rl;
       end 
 
       if (icache_rl_v)
-        icache_status_r <= next_rop;
+        icache_status_r <= next_rl;
     
     end
   end
+
+
   
 
 
@@ -169,7 +188,7 @@ module remote_load_trace
             "x"
           );
       end
-       
+
       if (returned_v_i & returned_yumi_o) begin
 
         case (returned_pkt_type_i)
@@ -182,7 +201,7 @@ module remote_load_trace
               global_y,
               int_rl_status_r[returned_reg_id_i].x_cord,
               int_rl_status_r[returned_reg_id_i].y_cord,
-              "int", 
+              "int",
               global_ctr_i-int_rl_status_r[returned_reg_id_i].start_cycle
             );   
           end
