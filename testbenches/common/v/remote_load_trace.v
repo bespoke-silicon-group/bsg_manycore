@@ -53,7 +53,7 @@ module remote_load_trace
     , input [packet_width_lp-1:0] out_packet_o
 
 
-    // response coming back
+    // Load response coming back
     , input returned_v_i
     , input [RV32_reg_addr_width_gp-1:0] returned_reg_id_i
     , input bsg_manycore_return_packet_type_e returned_pkt_type_i
@@ -104,6 +104,10 @@ module remote_load_trace
     | remote_req_i.is_amo_op);
   wire float_rl_v = out_v_o & (
     (out_packet.op_v2 == e_remote_load) & load_info.float_wb); 
+
+  wire write_op_v = out_v_o & (
+    ((out_packet.op_v2 == e_remote_store) |
+     (out_packet.op_v2 == e_remote_sw)));
 
   wire icache_rl_v = out_v_o & (
     (out_packet.op_v2 == e_remote_load) & load_info.icache_fetch);
@@ -163,6 +167,27 @@ module remote_load_trace
 
   always @ (negedge clk_i) begin
     if (~reset_i & trace_en_i) begin
+
+      // It is not currently possible to track the return of store
+      // packets using reg_id, so we record store packets when they
+      // depart.  While the caches respond in order, and we could use
+      // this fact to determine the corresponding store packets in
+      // post-processing that would require plumbing the
+      // return_packet_lo.x/y_cord signals from
+      // bsg_manycore_endpoint_standard and I'm not up for that much
+      // of a change at the moment.
+      if (write_op_v) begin
+          $fwrite(remote_load_profiler_trace_fd(),"%0d,%s,%0d,%0d,%0d,%0d,%s,%s\n",
+            global_ctr_i,
+            "x",
+            global_x,
+            global_y,
+            out_packet.x_cord,
+            out_packet.y_cord,
+            "write",
+            "x"
+          );
+      end
 
       if (returned_v_i & returned_yumi_o) begin
 

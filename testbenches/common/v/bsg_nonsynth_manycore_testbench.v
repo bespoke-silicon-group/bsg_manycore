@@ -55,6 +55,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter enable_router_profiling_p=0
     , parameter enable_cache_profiling_p=0
     , parameter enable_vanilla_core_trace_p = 0
+    , parameter enable_remote_op_profiling_p = 0
 
     , parameter enable_vcore_pc_coverage_p=0
 
@@ -813,7 +814,11 @@ if (enable_vcore_profiling_p) begin
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
+end
+`endif
 
+`ifndef VERILATOR_WORKAROUND_DISABLE_REMOTE_OP_PROFILING
+if (enable_remote_op_profiling_p) begin
   bind network_tx remote_load_trace #(
     .addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
@@ -831,7 +836,6 @@ if (enable_vcore_profiling_p) begin
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
-
 end
 `endif
 
