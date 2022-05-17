@@ -167,6 +167,18 @@ inline void bsg_fence()      { __asm__ __volatile__("fence" :::); }
 
 #define bsg_compiler_memory_barrier() asm volatile("" ::: "memory")
 
+
+// These functions are a simple way to issue pre-fetch commands to the
+// caches.  amo prefetch should not be used in practice since it marks
+// the cache line as dirty. However, it is a great way to verify that
+// preloads are accomplishing their goal; if all data is prefetched
+// correctly with an amo operation, the load and store miss rate will
+// go to 0.
+inline void bsg_amo_prefetch(int * ptr){ asm volatile ("amoor.w x0, x0, 0(%[p])": : [p] "r" (ptr));}
+// Verify behavioral correctness with amo prefetch, then replace with
+// lw prefetch:
+inline void bsg_lw_prefetch(int * ptr){ asm volatile ("lw x0, 0(%[p])": : [p] "r" (ptr));}
+        
 #define bsg_commit_stores() do { bsg_fence(); /* fixme: add commit stores instr */  } while (0)
 
 // This micros are used to print the definiations in manycore program at compile time.
