@@ -95,7 +95,11 @@ module network_tx
     , output logic invalid_eva_access_o
   );
 
+  // Unused wires
   wire unused = reset_i;
+  // These are used for bind/profiling, not synthesis
+  wire unused0 = returned_credit_v_i;
+  wire [RV32_reg_addr_width_gp-1:0] unused1 = returned_credit_reg_id_i;
 
   // manycore packet struct
   //
