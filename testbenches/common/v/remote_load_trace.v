@@ -191,12 +191,12 @@ module remote_load_trace
       // returned_credit_v_i gets set when returned_v_i is also high.
       if (returned_credit_v_i & ~ returned_v_i) begin
           $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
-            write_op_status_r[returned_reg_id_i].start_cycle,
+            write_op_status_r[returned_credit_reg_id_i].start_cycle,
             global_ctr_i,
             global_x,
             global_y,
-            write_op_status_r[returned_reg_id_i].x_cord,
-            write_op_status_r[returned_reg_id_i].y_cord,
+            write_op_status_r[returned_credit_reg_id_i].x_cord,
+            write_op_status_r[returned_credit_reg_id_i].y_cord,
             "write",
             global_ctr_i-write_op_status_r[returned_reg_id_i].start_cycle
           );
