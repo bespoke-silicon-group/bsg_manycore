@@ -130,6 +130,7 @@ module spmd_testbench
     ,.enable_vcore_profiling_p(1)
     ,.enable_router_profiling_p(1)
     ,.enable_cache_profiling_p(1)
+    ,.enable_remote_op_profiling_p(1)
 `endif
 `ifdef BSG_ENABLE_COVERAGE
     ,.enable_vcore_pc_coverage_p(1)
