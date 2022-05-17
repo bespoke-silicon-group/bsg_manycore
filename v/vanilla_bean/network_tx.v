@@ -55,6 +55,10 @@ module network_tx
     , input bsg_manycore_return_packet_type_e returned_pkt_type_i
     , input returned_fifo_full_i
     , output logic returned_yumi_o
+
+    // Write response coming back. Unused for synthesis, used in bind statements
+    , input                               returned_credit_v_i
+    , input [RV32_reg_addr_width_gp-1:0]  returned_credit_reg_id_i
     
     , input [x_subcord_width_lp-1:0] tgo_x_i
     , input [y_subcord_width_lp-1:0] tgo_y_i
