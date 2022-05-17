@@ -93,9 +93,6 @@ module bsg_manycore_proc_vanilla
   logic out_credit_or_ready_lo;
   logic link_credit_lo;
 
-  logic returned_credit_v_r_lo;
-  logic [bsg_manycore_reg_id_width_gp-1:0] returned_credit_reg_id_r_lo;
-
   logic returned_v_r_lo;
   logic returned_yumi_li;
   logic [data_width_p-1:0] returned_data_r_lo;
@@ -152,8 +149,8 @@ module bsg_manycore_proc_vanilla
     ,.returned_fifo_full_o(returned_fifo_full_lo)
     ,.returned_yumi_i(returned_yumi_li)
 
-    ,.returned_credit_v_r_o(returned_credit_v_r_lo)
-    ,.returned_credit_reg_id_r_o(returned_credit_reg_id_r_lo)
+    ,.returned_credit_v_r_o()
+    ,.returned_credit_reg_id_r_o()
 
     ,.out_credits_used_o(out_credits_used_lo)
 
@@ -297,9 +294,6 @@ module bsg_manycore_proc_vanilla
     ,.returned_pkt_type_i(returned_pkt_type_r_lo)
     ,.returned_fifo_full_i(returned_fifo_full_lo)
     ,.returned_yumi_o(returned_yumi_li)
-
-    ,.returned_credit_v_i(returned_credit_v_r_lo)
-    ,.returned_credit_reg_id_i(returned_credit_reg_id_r_lo)
 
     ,.tgo_x_i(tgo_x)
     ,.tgo_y_i(tgo_y) 

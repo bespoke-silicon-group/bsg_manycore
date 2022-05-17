@@ -59,10 +59,6 @@ module remote_load_trace
     , input bsg_manycore_return_packet_type_e returned_pkt_type_i
     , input returned_yumi_o
 
-    // Write response coming back
-    , input                               returned_credit_v_i
-    , input [RV32_reg_addr_width_gp-1:0]  returned_credit_reg_id_i
-
     // coord
     , input [x_subcord_width_lp-1:0] my_x_i
     , input [y_subcord_width_lp-1:0] my_y_i
@@ -99,7 +95,6 @@ module remote_load_trace
 
 
   remote_load_status_s [RV32_reg_els_gp-1:0] int_rl_status_r;
-  remote_load_status_s [RV32_reg_els_gp-1:0] write_op_status_r;
   remote_load_status_s [RV32_reg_els_gp-1:0] float_rl_status_r;
   remote_load_status_s icache_status_r;
 
@@ -118,38 +113,6 @@ module remote_load_trace
     
   logic [RV32_reg_els_gp-1:0] int_rl_we;
   logic [RV32_reg_els_gp-1:0] float_rl_we;
-  logic [RV32_reg_els_gp-1:0] write_op_we;
-
-  bsg_decode_with_v #(
-    .num_out_p(RV32_reg_els_gp)
-  ) dv0 (
-    .i(out_packet.reg_id)
-    ,.v_i(int_rl_v)
-    ,.o(int_rl_we)
-  );
-
-  bsg_decode_with_v #(
-    .num_out_p(RV32_reg_els_gp)
-  ) dv1 (
-    .i(out_packet.reg_id)
-    ,.v_i(float_rl_v)
-    ,.o(float_rl_we)
-  );
-
-  wire [bsg_manycore_reg_id_width_gp-1:0] wr_reg_id;
-  bsg_manycore_reg_id_decode pd0 (
-    .data_i(out_packet.payload)
-    ,.mask_i(out_packet.reg_id.store_mask_s.mask)
-    ,.reg_id_o(wr_reg_id)
-  );
-
-  bsg_decode_with_v #(
-    .num_out_p(RV32_reg_els_gp)
-  ) dv2 (
-    .i((out_packet.op_v2 == e_remote_sw) ? out_packet.reg_id : wr_reg_id)
-    ,.v_i(write_op_v)
-    ,.o(write_op_we)
-  );
 
   remote_load_status_s next_rop;
 
@@ -173,8 +136,6 @@ module remote_load_trace
           int_rl_status_r[i] <= next_rop;
         if (float_rl_we[i])
           float_rl_status_r[i] <= next_rop;
-        if (write_op_we[i])
-          write_op_status_r[i] <= next_rop;
       end 
 
       if (icache_rl_v)
@@ -188,17 +149,24 @@ module remote_load_trace
   always @ (negedge clk_i) begin
     if (~reset_i & trace_en_i) begin
 
-      // returned_credit_v_i gets set when returned_v_i is also high.
-      if (returned_credit_v_i & ~ returned_v_i) begin
-          $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
-            write_op_status_r[returned_credit_reg_id_i].start_cycle,
+      // It is not currently possible to track the return of store
+      // packets using reg_id, so we record store packets when they
+      // depart.  While the caches respond in order, and we could use
+      // this fact to determine the corresponding store packets in
+      // post-processing that would require plumbing the
+      // return_packet_lo.x/y_cord signals from
+      // bsg_manycore_endpoint_standard and I'm not up for that much
+      // of a change at the moment.
+      if (write_op_v) begin
+          $fwrite(remote_load_profiler_trace_fd(),"%0d,%s,%0d,%0d,%0d,%0d,%s,%s\n",
             global_ctr_i,
+            "x",
             global_x,
             global_y,
-            write_op_status_r[returned_credit_reg_id_i].x_cord,
-            write_op_status_r[returned_credit_reg_id_i].y_cord,
+            out_packet.x_cord,
+            out_packet.y_cord,
             "write",
-            global_ctr_i-write_op_status_r[returned_reg_id_i].start_cycle
+            "x"
           );
       end
        
