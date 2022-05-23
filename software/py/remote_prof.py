@@ -18,6 +18,7 @@ parser.add_argument("--last", default=np.Inf, type=int, help="Last Cycle for Spa
 args = parser.parse_args()
 args.source = set(tuple(map(int, c.split(","))) for c in args.source)
 
+
 # Tommy, you can change this to point to different files.
 p = "remote_load_trace.csv"
 
@@ -29,7 +30,7 @@ df = df[df.dest_y != 0] # Filter host packets
 df = df[(df.dest_y == df.dest_y.min()) | (df.dest_y == df.dest_y.max())]
 
 # Filter out specified sources
-if(args.source != []):
+if(args.source != set()):
     srcs = (df.src_y.combine(df.src_x, lambda y,x: (int(y),int(x))))
     df = df[srcs.apply(lambda l: l in args.source)]
 
