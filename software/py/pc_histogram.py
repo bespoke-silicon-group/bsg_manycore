@@ -74,7 +74,7 @@ def write_pc_hist(df, p, args):
 
     # Remove all PCs that were specified using the without flag
     fi = [pc for pc in df.index
-          if (all(e != pc) for e in set(args.without))]
+          if (all(e != pc for e in set(args.without)))]
     df = df.loc[fi]
 
     height = df.shape[0] * (labelsize + 4) / 72
