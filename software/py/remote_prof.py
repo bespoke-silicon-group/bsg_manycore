@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
+#!/usr/bin/env python3
 
 import math
 import argparse
@@ -12,6 +11,12 @@ import matplotlib as plt
 import matplotlib.pyplot as plt
 import numpy as np
 
+parser = argparse.ArgumentParser(description="Argument parser for the HB Spacetime Heatmap (Remote Load Profiler)")
+parser.add_argument("-s", "--source", default=[], action="append", help="Source tile y,x for remote requests. Can specify multiple.")
+parser.add_argument("--first", default=0, type=int, help="First Cycle for Spacetime Graph")
+parser.add_argument("--last", default=np.Inf, type=int, help="Last Cycle for Spacetime Graph")
+args = parser.parse_args()
+args.source = set(tuple(map(int, c.split(","))) for c in args.source)
 
 # Tommy, you can change this to point to different files.
 p = "remote_load_trace.csv"
@@ -21,12 +26,16 @@ df = pd.read_csv(p)
 df = df[df.type != "icache"]
 df = df[df.dest_y != 0] # Filter host packets
 
-
 df = df[(df.dest_y == df.dest_y.min()) | (df.dest_y == df.dest_y.max())]
 
-#df = df[df.start_cycle > 1246542]
+# Filter out specified sources
+if(args.source != []):
+    srcs = (df.src_y.combine(df.src_x, lambda y,x: (int(y),int(x))))
+    df = df[srcs.apply(lambda l: l in args.source)]
 
-#df = df[df.start_cycle < np.Inf]
+# Filter outside of first/last cycle
+df = df[df.start_cycle > args.first]
+df = df[df.start_cycle < args.last]
 
 # Bin the CSV entries
 stdf = df
@@ -55,7 +64,6 @@ ax.set_title(f"HammerBlade Spacetime Request Heatmap")
 plt.tight_layout()
 fig.savefig("request_heatmap.pdf")
 plt.close(fig)
-
 
 
 
