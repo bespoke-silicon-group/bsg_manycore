@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser(description="Argument parser for pc_histogram.py")
 parser.add_argument("--start", default="0x00000000", type=str, help="Start PC for PC/BB Histogram, in hex. e.g: 0x00000000")
 parser.add_argument("--end", default="0xffffffff", type=str, help="End PC for PC/BB Histogram, in hex. e.g: 0x00000000")
+parser.add_argument("-wo", "--without", default=[], action="append", help="PC to filter in the PC histogram. In the BB histogram, the entire BB will be eliminated.")
 parser.add_argument("--pathpat", default="./", type=str, help="Search Path for CSV Files")
 args = parser.parse_args()
 
@@ -52,15 +53,15 @@ colors = {
 labelsize = 9 #point
 def read_histogram_csv(p):
     df = pd.read_csv(p)
-    df = df[(df.pc < args.end) & (df.pc > args.start)]
     # Aggregate across all tiles
+    df = df[(df.pc < args.end) & (df.pc > args.start)]
     df = df.groupby(["pc", "operation"]).sum()
     df.rename({"instr": "Instruction",
                "fp_instr": "FPU Instruction"},
               inplace=True)
     return df
 
-def write_pc_hist(df, p):
+def write_pc_hist(df, p, args):
     # Pivot, and then drop the "cycles" level of the multi-index.
     df = pd.pivot_table(df, index = ["pc"], columns = "operation")
     df = df.fillna(0)
@@ -70,7 +71,12 @@ def write_pc_hist(df, p):
     # but first we have to pick stalls that are actually IN the CSV (not all are printed)
     cols = [k for k in colors.keys() if k in df.columns]
     df = df[cols]
-    # TODO: Set figure size based on label size
+
+    # Remove all PCs that were specified using the without flag
+    fi = [pc for pc in df.index
+          if (all(e != pc) for e in set(args.without))]
+    df = df.loc[fi]
+
     height = df.shape[0] * (labelsize + 4) / 72
     ax = df.plot.barh(stacked = True, figsize=(11, height), color = colors)
     ax.set_ylabel("Program Counter")
@@ -84,12 +90,11 @@ def write_pc_hist(df, p):
     fig.savefig( p / "pc_hist.pdf")
     plt.close(fig)
 
-def write_bb_hist(df, p):
+def write_bb_hist(df, p, args):
     # Pivot, and then drop the "cycles" level of the multi-index.
     df = pd.pivot_table(df, index = ["pc"], columns = "operation")
     df = df.fillna(0)
     df = df.droplevel(level=0, axis = "columns")
-    
     # Group together floating point and regular instructionos
     tot_instrs = df.Instruction + df["FPU Instruction"]
 
@@ -98,8 +103,21 @@ def write_bb_hist(df, p):
     df = df.groupby(bb_ranges).sum()
 
     # Get the new grouped index
-    bb_index = map(lambda x: bb_ranges[bb_ranges == x].index.min() + "-" + bb_ranges[bb_ranges == x].index.max(), df.index)
-    df.index = bb_index
+    bb_tups = [(bb_ranges[bb_ranges == x].index.min(), bb_ranges[bb_ranges == x].index.max()) for x in df.index]
+    bb_ranges = [range(int(x, 16),int(y,16) + 1) for (x,y) in bb_tups]
+
+    # Filter BBs that include PCs that were specified with --without
+    df.index = [x + "-" + y for (x,y) in bb_tups]
+    fi = [x + "-" + y for (x,y) in bb_tups
+          if (all(int(e,16) not in range(int(x,16),int(y,16) + 1) for e in set(args.without)))]
+    removed = [x + "-" + y for (x,y) in bb_tups
+               if (any(int(e,16) in range(int(x,16),int(y,16) + 1) for e in set(args.without)))]
+
+    # TODO: Print filtered BBs on graph?
+    print(f"Removed Basic Blocks: {removed}")
+
+    df = df.loc[fi]
+    
     ipc =  (df.Instruction + df["FPU Instruction"]) / df.sum(axis = 1)
     pct = 100.0 *  df.sum(axis = 1) / df.sum(axis = 1).sum()
     idx = df.index.to_series()
@@ -134,8 +152,8 @@ for f in files:
     p = f.parent
     print("Parsing: "  + str(f))
     df = read_histogram_csv(f)
-    write_bb_hist(df, p)
-    write_pc_hist(df, p)
+    write_bb_hist(df, p, args)
+    write_pc_hist(df, p, args)
     if(agg is not None):
         agg += df
     else:
@@ -143,8 +161,8 @@ for f in files:
 
 if(len(files) > 1):
     print("Writing aggregate histograms")
-    write_bb_hist(df, Path("./"))
-    write_pc_hist(df, Path("./"))
+    write_bb_hist(df, Path("./"), args)
+    write_pc_hist(df, Path("./"), args)
 
 
 
