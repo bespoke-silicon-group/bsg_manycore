@@ -73,9 +73,13 @@ def write_pc_hist(df, p, args):
     df = df[cols]
 
     # Remove all PCs that were specified using the without flag
-    fi = [pc for pc in df.index
-          if (all(e != pc for e in set(args.without)))]
+    filts = {int(pc, 16) for pc in args.without}
+    fi = [pc for pc in df.index if int(pc, 16) not in filts]
+    removed = [pc for pc in df.index if int(pc, 16) in filts]
+
     df = df.loc[fi]
+
+    print(f"Removed PCs: {removed}")
 
     height = df.shape[0] * (labelsize + 4) / 72
     ax = df.plot.barh(stacked = True, figsize=(11, height), color = colors)
@@ -107,11 +111,12 @@ def write_bb_hist(df, p, args):
     bb_ranges = [range(int(x, 16),int(y,16) + 1) for (x,y) in bb_tups]
 
     # Filter BBs that include PCs that were specified with --without
+    filts = {int(pc, 16) for pc in args.without}    
     df.index = [x + "-" + y for (x,y) in bb_tups]
     fi = [x + "-" + y for (x,y) in bb_tups
-          if (all(int(e,16) not in range(int(x,16),int(y,16) + 1) for e in set(args.without)))]
+          if (all(e not in range(int(x,16),int(y,16) + 1) for e in filts))]
     removed = [x + "-" + y for (x,y) in bb_tups
-               if (any(int(e,16) in range(int(x,16),int(y,16) + 1) for e in set(args.without)))]
+               if (any(e in range(int(x,16),int(y,16) + 1) for e in filts))]
 
     # TODO: Print filtered BBs on graph?
     print(f"Removed Basic Blocks: {removed}")
