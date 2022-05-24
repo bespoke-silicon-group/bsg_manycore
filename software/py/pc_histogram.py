@@ -54,7 +54,8 @@ labelsize = 9 #point
 def read_histogram_csv(p):
     df = pd.read_csv(p)
     # Aggregate across all tiles
-    df = df[(df.pc < args.end) & (df.pc > args.start)]
+
+    df = df[(df.pc < '0x{int(args.end, 16):08x}') & (df.pc > '0x{int(args.start, 16):08x}')]
     df = df.groupby(["pc", "operation"]).sum()
     df.rename({"instr": "Instruction",
                "fp_instr": "FPU Instruction"},
