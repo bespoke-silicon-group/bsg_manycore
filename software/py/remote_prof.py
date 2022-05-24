@@ -68,12 +68,14 @@ bins = pd.cut(stdf.start_cycle, bins=r, precision=1)
 
 stdf = stdf.groupby([bins, "dest_y", "dest_x"]).size()
 stdf = stdf.unstack(level=0)
+stdf = 100.0 *(stdf/f)
 
 height = len(stdf.index) / rpi
 width = len(stdf.columns) / cpi
 
+print()
 fig = plt.figure(figsize=(width, height))
-ax = sns.heatmap(stdf, cbar_kws={'label': 'Number of Requests'})
+ax = sns.heatmap(stdf, cbar_kws={'label': 'Percent of Cache Request Bandwidth (# Requests / # of Cycles in bin)'}, vmin =0, vmax=max(stdf.max().max(), 100.00))
 ax.tick_params(axis='x', labelsize=lsx)
 ax.tick_params(axis='y', labelsize=lsy)
 
