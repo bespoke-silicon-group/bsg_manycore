@@ -56,6 +56,10 @@ def read_histogram_csv(p):
     # Aggregate across all tiles
 
     df = df[(df.pc < f'0x{int(args.end, 16):08x}') & (df.pc > f'0x{int(args.start, 16):08x}')]
+    if(df.empty):
+        print(f"Error! Start (0x{int(args.start, 16):08x}) and End (0x{int(args.end, 16):08x}) PC combination removed all data.")
+        exit(1)
+
     df = df.groupby(["pc", "operation"]).sum()
     df.rename({"instr": "Instruction",
                "fp_instr": "FPU Instruction"},
