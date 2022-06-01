@@ -564,8 +564,8 @@ module bsg_nonsynth_manycore_testbench
 
         ,.print_stat_clk_i    (clk_i)
         ,.print_stat_reset_i  (reset_r)
-        ,.print_stat_v_i      ($root.`HOST_MODULE_PATH.print_stat_v)
-        ,.print_stat_tag_i    ($root.`HOST_MODULE_PATH.print_stat_tag)
+        ,.print_stat_v_i      ($root.`HOST_MODULE_PATH.testbench.print_stat_v)
+        ,.print_stat_tag_i    ($root.`HOST_MODULE_PATH.testbench.print_stat_tag)
 
         ,.write_done_o        ()
         ,.write_done_ch_addr_o()
@@ -765,12 +765,26 @@ module bsg_nonsynth_manycore_testbench
     end
   end
   
+  logic print_stat_v;
+  logic [data_width_p-1:0] print_stat_tag;
 
+  bsg_print_stat_snoop #(
+    .data_width_p(data_width_p)
+    ,.addr_width_p(addr_width_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.enable_vcore_profiling_p(enable_vcore_profiling_p)
+  ) print_stat_snoop (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
 
+    ,.manycore_link_sif_o_i(io_link_sif_o)
+    ,.host_link_sif_i_i(io_link_sif_i)
 
-
-
-
+    ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
+    ,.print_stat_v_o(print_stat_v)
+    ,.print_stat_tag_o(print_stat_tag)
+  );
 
 
 //                  //
@@ -810,8 +824,8 @@ if (enable_vcore_profiling_p) begin
     .*
     ,.clk_i(clk_i)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
-    ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
-    ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
+    ,.print_stat_v_i($root.`HOST_MODULE_PATH.testbench.print_stat_v)
+    ,.print_stat_tag_i($root.`HOST_MODULE_PATH.testbench.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
 end
@@ -854,8 +868,8 @@ if (enable_cache_profiling_p) begin
     ,.chosen_way_n(miss.chosen_way_n)
     // from testbench
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
-    ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
-    ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
+    ,.print_stat_v_i($root.`HOST_MODULE_PATH.testbench.print_stat_v)
+    ,.print_stat_tag_i($root.`HOST_MODULE_PATH.testbench.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
 
@@ -878,7 +892,7 @@ if (enable_router_profiling_p) begin
     ,.clk_i(clk_i)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
-    ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
+    ,.print_stat_v_i($root.`HOST_MODULE_PATH.testbench.print_stat_v)
   );
 end
 `endif

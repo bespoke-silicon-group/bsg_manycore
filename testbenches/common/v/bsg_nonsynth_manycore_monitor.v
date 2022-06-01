@@ -41,9 +41,6 @@ module bsg_nonsynth_manycore_monitor
     , output logic [data_width_p-1:0] data_o
     , output logic v_o
 
-
-    , output logic print_stat_v_o
-    , output logic [data_width_p-1:0] print_stat_tag_o
   );
 
   longint max_cycle;
@@ -269,11 +266,6 @@ module bsg_nonsynth_manycore_monitor
       end
     end
   end
-
-  // print stat trigger
-  //
-  assign print_stat_v_o = v_i & (epa_addr == bsg_print_stat_epa_gp);
-  assign print_stat_tag_o = data_i;
 
 endmodule
 
