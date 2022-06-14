@@ -7,7 +7,7 @@ import sys
 # device 0 - CFG
 # device 1 - CLINT
 # device 2 - DRAM Base Address Register
-cfg_base_addr          = 0x0000
+cfg_base_addr          = 0x2000
 cfg_reg_freeze         = 0x0004
 cfg_reg_npc            = 0x0008
 cfg_reg_hio_mask       = 0x001c
@@ -16,9 +16,10 @@ cfg_reg_icache_mode    = 0x0204
 cfg_reg_dcache_id      = 0x0400
 cfg_reg_dcache_mode    = 0x0404
 
-dram_offset_base_addr  = 0x2000
-dram_base_addr_reg     = 0x0000
+bridge_base_addr       = 0x4000
+dram_offset_addr_reg   = 0x0000
 dram_pod_offset_reg    = 0x0004
+host_addr_reg          = 0x0008
 
 class NBF:
     # Initialize
@@ -37,9 +38,13 @@ class NBF:
         # TODO: Do we need a bootrom? Make this a compile time parameter?
         self.bp_boot_pc = 0x80000000
         # This is the base address in the manycore DRAM space where BP code lives
-        self.mc_dram_base = 0x81000000
+        #self.mc_dram_offset = 0x81000000
+        #self.mc_dram_offset = 0x80000000
+        #self.mc_dram_offset = 0x00000000
+        self.mc_dram_offset = 0x01000000
         # 3-bit pod y, 3-bit pod x
         self.mc_dram_pod_offset = 0b001001
+        self.mc_host_addr = ((1 << 7) << 4) | (2 << 4)
 
         self.cache_block_size_words = self.cache_block_size // 32
 
@@ -101,7 +106,7 @@ class NBF:
                 continue
 
             for word in stripped.split():
-                addr = curr_addr + self.mc_dram_base
+                addr = curr_addr + self.mc_dram_offset
                 data = ""
                 for i in range(0, len(word), 2):
                     data = word[i:i+2] + data
@@ -131,7 +136,7 @@ class NBF:
     # BP core configuration
     def init_config(self):
         self.print_nbf(0x0f, 1 << 4 | 1, cfg_base_addr + cfg_reg_npc, self.bp_boot_pc)
-        self.print_nbf(0x0f, 1 << 4 | 1, cfg_base_addr + cfg_reg_hio_mask, 1)
+        self.print_nbf(0x0f, 1 << 4 | 1, cfg_base_addr + cfg_reg_hio_mask, 511)
         self.print_nbf(0x0f, 1 << 4 | 1, cfg_base_addr + cfg_reg_icache_mode, 1)
         self.print_nbf(0x0f, 1 << 4 | 1, cfg_base_addr + cfg_reg_dcache_mode, 1)
 
@@ -141,8 +146,11 @@ class NBF:
         self.fence()
 
         # Write to the DRAM offset registers in all the bridge modules
-        self.print_nbf(0x0f, 1 << 4 | 1, dram_offset_base_addr + dram_base_addr_reg, self.mc_dram_base)
-        self.print_nbf(0x0f, 1 << 4 | 1, dram_offset_base_addr + dram_pod_offset_reg, self.mc_dram_pod_offset)
+        self.print_nbf(0x0f, 1 << 4 | 1, bridge_base_addr + dram_offset_addr_reg, self.mc_dram_offset)
+        self.print_nbf(0x0f, 1 << 4 | 1, bridge_base_addr + dram_pod_offset_reg, self.mc_dram_pod_offset)
+        self.print_nbf(0x0f, 1 << 4 | 1, bridge_base_addr + host_addr_reg, self.mc_host_addr)
+
+        self.print_nbf(0x0f, 1 << 4 | 0, 0, 0xdead)
 
         self.fence()
 
