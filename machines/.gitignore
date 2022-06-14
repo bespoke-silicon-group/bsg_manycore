@@ -4,6 +4,13 @@ simv-profile
 simv-profile.daidir
 simv-coverage
 simv-coverage.daidir
+simx-debug
+xcelium-debug.d
+simx-profile
+xcelium-profile.d
+simx-coverage
+xcelium-coverage.d
+dump.tcl
 vc_hdrs.h
 stack.info.*
 */build-profile

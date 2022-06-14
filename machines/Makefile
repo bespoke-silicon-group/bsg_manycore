@@ -26,9 +26,12 @@ include sim_filelist.mk
 include Makefile.vcs
 include Makefile.verilator
 include Makefile.surelog
+include Makefile.xcelium
 
 clean:
 	rm -rf */csrc*
+	rm -rf */xcelium.d*
+	rm -rf */*.log */*.daidir */simx */simx-debug */simx-profile */simx-coverage
 	rm -rf */*.log */*.daidir */simv */simv-debug */simv-profile */simv-coverage
 	rm -rf */*.log */*.daidir */simsc */simsc-debug */simsc-profile */simsc-coverage
 	rm -rf */obj_dir */simsc */simsc-debug */simsc-profile */simsc-coverage
