@@ -164,7 +164,7 @@ endif
 LINK_SCRIPT ?= $(CURR_DIR)/bsg_link.ld
 
 $(CURR_DIR)/bsg_link.ld: $(LINK_GEN)
-	$(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
+	python $(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
 
 RISCV_LINK_OPTS ?= 
 
