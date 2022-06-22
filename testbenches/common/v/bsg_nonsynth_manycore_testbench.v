@@ -935,8 +935,9 @@ if (enable_vanilla_core_pc_histogram_p) begin
       )
   vcore_pc_hist
     (.*);
-`endif
 end // if (enable_vanilla_core_pc_histogram_p)
+`endif
+
 
 endmodule
 
