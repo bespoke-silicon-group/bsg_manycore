@@ -22,9 +22,9 @@ module bsg_manycore_crossbar
 
     // set using the credit interface for the local FIFO for fwd and rev network.
     , parameter `BSG_INV_PARAM(fwd_use_credits_p)
-    , parameter int fwd_fifo_els_p[num_in_lp-1:0] = -1
+    , parameter int fwd_fifo_els_p[num_in_lp-1:0] = '{-1}
     , parameter `BSG_INV_PARAM(rev_use_credits_p)
-    , parameter int rev_fifo_els_p[num_in_lp-1:0] = -1
+    , parameter int rev_fifo_els_p[num_in_lp-1:0] = '{-1}
 
     , parameter link_sif_width_lp=
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
