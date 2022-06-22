@@ -117,3 +117,13 @@ ASCII_TO_ROM_PY = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py
 %/simsc-coverage : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS) 
 	$(info Coverage is not currently supported for Verilator)
 
+# build simsc
+# without debug option for faster simulation.
+%/simsc-pc-histogram : %/Makefile.machine.include $(VSOURCES) $(CSOURCES) $(VINCLUDES) $(VHEADERS)
+	$(call set_verilator_machine_variables,$<)
+	python $(POD_TRACE_GEN_PY) $(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) > $*/pod_trace.tr
+	python $(ASCII_TO_ROM_PY) $*/pod_trace.tr bsg_tag_boot_rom > $*/bsg_tag_boot_rom.v
+	$(eval VERILATOR_FLAGS += +define+BSG_ENABLE_PC_HISTOGRAM)
+	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_CFLAGS) -Mdir $(@D)/obj_dir -o $(@F) \
+		$(VERILATOR_INCLUDES) $(VERILATOR_DEFINES) $(CSOURCES) $(VERILATOR_SOURCES) $*/bsg_tag_boot_rom.v
+	ln -s $(abspath $(@D))/obj_dir/simsc $@

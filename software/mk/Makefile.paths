@@ -6,6 +6,6 @@ BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1_4X2Y
 else ifeq ($(BSG_PLATFORM),vcs)
 BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1_16X12Y
 else ifeq ($(BSG_PLATFORM),xcelium)
-BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1_4X2Y
+BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1_16X12Y
 endif
 
