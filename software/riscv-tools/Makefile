@@ -73,7 +73,7 @@ checkout-repos:
 	@echo "====================================="
 	@cd $(DEPENDS_DIR) && 		\
 	for dep_url in $(DEPENDS_URL); do 	\
-		wget $$dep_url;			\
+		wget $$dep_url --no-check-certificate;			\
 	done
 	@echo "====================================="
 	@echo "Cloning riscv-toolchain repo..."
