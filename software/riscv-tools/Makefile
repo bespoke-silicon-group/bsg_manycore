@@ -160,7 +160,7 @@ build-llvm:
 build-all: 
 	$(MAKE) build-deps 
 	$(MAKE) build-riscv-gnu-tools 
-	$(MAKE) build-spike
+	#$(MAKE) build-spike
 	$(MAKE) build-llvm
 
 rebuild-newlib: PATH:=$(RISCV)/bin:$(PATH)
