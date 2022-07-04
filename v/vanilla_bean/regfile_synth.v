@@ -42,12 +42,10 @@ module regfile_synth
 
   if (x0_tied_to_zero_p) begin: xz
     // x0 is tied to zero.
-    logic [els_p-1:1][width_p-1:0] mem_r;
-    
-    wire [els_p-1:0][width_p-1:0] mem_with_zero = {mem_r, {width_p{1'b0}}};
+    logic [width_p-1:0] mem_r [els_p-1:1];
     
     for (genvar i = 0; i < num_rs_p; i++)
-      assign r_data_o[i] = mem_with_zero[r_addr_r[i]];
+      assign r_data_o[i] = (r_addr_r[i] == '0)? '0 : mem_r[r_addr_r[i]];
 
     always_ff @ (posedge clk_i)
       if (w_v_i & (w_addr_i != '0))
@@ -57,7 +55,7 @@ module regfile_synth
   end
   else begin: xnz
     // x0 is not tied to zero.
-    logic [els_p-1:0][width_p-1:0] mem_r;
+    logic [width_p-1:0] mem_r [els_p-1:0];
    
     for (genvar i = 0; i < num_rs_p; i++)
       assign r_data_o[i] = mem_r[r_addr_r[i]];
