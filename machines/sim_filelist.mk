@@ -76,3 +76,10 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_router_crossbar_o_by_i.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_top_crossbar.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_crossbar.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_link_to_crossbar.v
+
+
+
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_wormhole_to_cache_dma_fanout.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_tx.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_rx.v

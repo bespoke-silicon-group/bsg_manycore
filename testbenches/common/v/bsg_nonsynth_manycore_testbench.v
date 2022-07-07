@@ -282,6 +282,7 @@ module bsg_nonsynth_manycore_testbench
         for (genvar k = N; k <= S; k++) begin: vs                       // vertical side
           for (genvar v = 0; v < num_vcache_rows_p; v++) begin: vr      // vcache row
             for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf    // ruching
+/*
               bsg_nonsynth_wormhole_test_mem #(
                 .vcache_data_width_p(vcache_data_width_p)
                 ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
@@ -301,6 +302,214 @@ module bsg_nonsynth_manycore_testbench
                 ,.wh_link_sif_i(buffered_wh_link_sif_lo[i][j][k][v][r])
                 ,.wh_link_sif_o(buffered_wh_link_sif_li[i][j][k][v][r])
               );
+*/
+
+              // WH to cache dma
+              `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p);
+              bsg_cache_dma_pkt_s                 dma_pkt_lo;
+              logic                               dma_pkt_v_lo;
+              logic                               dma_pkt_yumi_li;
+
+              logic [vcache_dma_data_width_p-1:0] dma_data_li;
+              logic                               dma_data_v_li;
+              logic                               dma_data_ready_lo;
+
+              logic [vcache_dma_data_width_p-1:0] dma_data_lo;
+              logic                               dma_data_v_lo;
+              logic                               dma_data_yumi_li;
+
+              bsg_wormhole_to_cache_dma_fanout
+             #(.num_dma_p       (1)
+              ,.dma_addr_width_p(vcache_addr_width_p)
+              ,.dma_burst_len_p (vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)
+              ,.wh_flit_width_p (wh_flit_width_p)
+              ,.wh_cid_width_p  (wh_cid_width_p)
+              ,.wh_len_width_p  (wh_len_width_p)
+              ,.wh_cord_width_p (wh_cord_width_p)
+              ,.dma_data_width_p(vcache_dma_data_width_p)
+              ) wh_to_dma
+              (.clk_i  (clk_i)
+              ,.reset_i(reset_r)
+
+              ,.wh_link_sif_i     (buffered_wh_link_sif_lo[i][j][k][v][r])
+              ,.wh_dma_id_i       ('0)
+              ,.wh_link_sif_o     (buffered_wh_link_sif_li[i][j][k][v][r])
+
+              ,.dma_pkt_o            (dma_pkt_lo)
+              ,.dma_pkt_v_o          (dma_pkt_v_lo)
+              ,.dma_pkt_yumi_i       (dma_pkt_yumi_li)
+
+              ,.dma_data_i           (dma_data_li)
+              ,.dma_data_v_i         (dma_data_v_li)
+              ,.dma_data_ready_and_o (dma_data_ready_lo)
+
+              ,.dma_data_o           (dma_data_lo)
+              ,.dma_data_v_o         (dma_data_v_lo)
+              ,.dma_data_yumi_i      (dma_data_yumi_li)
+              );
+
+              parameter axi_id_width_p   = 1;
+              parameter axi_addr_width_p = 34;
+              parameter axi_data_width_p = 256;
+              parameter axi_burst_len_p  = 1;
+
+              wire [axi_addr_width_p-1:0]s_axi_araddr;
+              wire [1:0]s_axi_arburst;
+              wire [3:0]s_axi_arcache;
+              wire [axi_id_width_p-1:0]s_axi_arid;
+              wire [7:0]s_axi_arlen;
+              wire [0:0]s_axi_arlock;
+              wire [2:0]s_axi_arprot;
+              wire [3:0]s_axi_arqos;
+              wire s_axi_arready;
+              wire [3:0]s_axi_arregion;
+              wire [2:0]s_axi_arsize;
+              wire s_axi_arvalid;
+
+              wire [axi_addr_width_p-1:0]s_axi_awaddr;
+              wire [1:0]s_axi_awburst;
+              wire [3:0]s_axi_awcache;
+              wire [axi_id_width_p-1:0]s_axi_awid;
+              wire [7:0]s_axi_awlen;
+              wire [0:0]s_axi_awlock;
+              wire [2:0]s_axi_awprot;
+              wire [3:0]s_axi_awqos;
+              wire s_axi_awready;
+              wire [3:0]s_axi_awregion;
+              wire [2:0]s_axi_awsize;
+              wire s_axi_awvalid;
+
+              wire [axi_id_width_p-1:0]s_axi_bid;
+              wire s_axi_bready;
+              wire [1:0]s_axi_bresp;
+              wire s_axi_bvalid;
+
+              wire [axi_data_width_p-1:0]s_axi_rdata;
+              wire [axi_id_width_p-1:0]s_axi_rid;
+              wire s_axi_rlast;
+              wire s_axi_rready;
+              wire [1:0]s_axi_rresp;
+              wire s_axi_rvalid;
+
+              wire [axi_data_width_p-1:0]s_axi_wdata;
+              wire s_axi_wlast;
+              wire s_axi_wready;
+              wire [(axi_data_width_p>>3)-1:0]s_axi_wstrb;
+              wire s_axi_wvalid;
+
+              // s_axi port
+              // not supported
+              assign s_axi_arqos    = '0;
+              assign s_axi_arregion = '0;
+              assign s_axi_awqos    = '0;
+              assign s_axi_awregion = '0;
+
+              bsg_cache_to_axi
+             #(.addr_width_p         (vcache_addr_width_p)
+              ,.block_size_in_words_p(vcache_block_size_in_words_p)
+              ,.data_width_p         (vcache_dma_data_width_p)
+              ,.num_cache_p          (1)
+              ,.axi_id_width_p       (axi_id_width_p)
+              ,.axi_addr_width_p     (axi_addr_width_p)
+              ,.axi_data_width_p     (axi_data_width_p)
+              ,.axi_burst_len_p      (axi_burst_len_p)
+              ) dma_to_axi
+              (.clk_i  (clk_i)
+              ,.reset_i(reset_r)
+
+              ,.dma_pkt_i       (dma_pkt_lo)
+              ,.dma_pkt_v_i     (dma_pkt_v_lo)
+              ,.dma_pkt_yumi_o  (dma_pkt_yumi_li)
+
+              ,.dma_data_o      (dma_data_li)
+              ,.dma_data_v_o    (dma_data_v_li)
+              ,.dma_data_ready_i(dma_data_ready_lo)
+
+              ,.dma_data_i      (dma_data_lo)
+              ,.dma_data_v_i    (dma_data_v_lo)
+              ,.dma_data_yumi_o (dma_data_yumi_li)
+
+              ,.axi_awid_o      (s_axi_awid)
+              ,.axi_awaddr_o    (s_axi_awaddr)
+              ,.axi_awlen_o     (s_axi_awlen)
+              ,.axi_awsize_o    (s_axi_awsize)
+              ,.axi_awburst_o   (s_axi_awburst)
+              ,.axi_awcache_o   (s_axi_awcache)
+              ,.axi_awprot_o    (s_axi_awprot)
+              ,.axi_awlock_o    (s_axi_awlock)
+              ,.axi_awvalid_o   (s_axi_awvalid)
+              ,.axi_awready_i   (s_axi_awready)
+
+              ,.axi_wdata_o     (s_axi_wdata)
+              ,.axi_wstrb_o     (s_axi_wstrb)
+              ,.axi_wlast_o     (s_axi_wlast)
+              ,.axi_wvalid_o    (s_axi_wvalid)
+              ,.axi_wready_i    (s_axi_wready)
+
+              ,.axi_bid_i       (s_axi_bid)
+              ,.axi_bresp_i     (s_axi_bresp)
+              ,.axi_bvalid_i    (s_axi_bvalid)
+              ,.axi_bready_o    (s_axi_bready)
+
+              ,.axi_arid_o      (s_axi_arid)
+              ,.axi_araddr_o    (s_axi_araddr)
+              ,.axi_arlen_o     (s_axi_arlen)
+              ,.axi_arsize_o    (s_axi_arsize)
+              ,.axi_arburst_o   (s_axi_arburst)
+              ,.axi_arcache_o   (s_axi_arcache)
+              ,.axi_arprot_o    (s_axi_arprot)
+              ,.axi_arlock_o    (s_axi_arlock)
+              ,.axi_arvalid_o   (s_axi_arvalid)
+              ,.axi_arready_i   (s_axi_arready)
+
+              ,.axi_rid_i       (s_axi_rid)
+              ,.axi_rdata_i     (s_axi_rdata)
+              ,.axi_rresp_i     (s_axi_rresp)
+              ,.axi_rlast_i     (s_axi_rlast)
+              ,.axi_rvalid_i    (s_axi_rvalid)
+              ,.axi_rready_o    (s_axi_rready)
+              );
+
+              bsg_nonsynth_manycore_axi_mem
+             #(.axi_id_width_p     (axi_id_width_p)
+              ,.axi_addr_width_p   (axi_addr_width_p)
+              ,.axi_data_width_p   (axi_data_width_p)
+              ,.axi_burst_len_p    (axi_burst_len_p)
+              ,.mem_els_p          (mem_size_lp/(axi_data_width_p/8))
+              ,.bsg_dram_included_p(1)
+              ) axi_mem
+              (.clk_i  (clk_i)
+              ,.reset_i(reset_r)
+
+              ,.axi_awid_i   (s_axi_awid)
+              ,.axi_awaddr_i (s_axi_awaddr)
+              ,.axi_awvalid_i(s_axi_awvalid)
+              ,.axi_awready_o(s_axi_awready)
+
+              ,.axi_wdata_i  (s_axi_wdata)
+              ,.axi_wstrb_i  (s_axi_wstrb)
+              ,.axi_wlast_i  (s_axi_wlast)
+              ,.axi_wvalid_i (s_axi_wvalid)
+              ,.axi_wready_o (s_axi_wready)
+
+              ,.axi_bid_o    (s_axi_bid)
+              ,.axi_bresp_o  (s_axi_bresp)
+              ,.axi_bvalid_o (s_axi_bvalid)
+              ,.axi_bready_i (s_axi_bready)
+
+              ,.axi_arid_i   (s_axi_arid)
+              ,.axi_araddr_i (s_axi_araddr)
+              ,.axi_arvalid_i(s_axi_arvalid)
+              ,.axi_arready_o(s_axi_arready)
+
+              ,.axi_rid_o    (s_axi_rid)
+              ,.axi_rdata_o  (s_axi_rdata)
+              ,.axi_rresp_o  (s_axi_rresp)
+              ,.axi_rlast_o  (s_axi_rlast)
+              ,.axi_rvalid_o (s_axi_rvalid)
+              ,.axi_rready_i (s_axi_rready)
+              );
+
             end
           end
         end
