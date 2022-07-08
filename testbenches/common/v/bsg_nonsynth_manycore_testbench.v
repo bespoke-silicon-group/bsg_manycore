@@ -253,43 +253,68 @@ module bsg_nonsynth_manycore_testbench
     localparam longint unsigned mem_size_lp = (2**30)*num_pods_x_p/wh_ruche_factor_p/num_vcache_rows_p/2;
     localparam num_vcaches_per_test_mem_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2;
 
+    parameter axi_id_width_p   = 1;
+    parameter axi_addr_width_p = 34;
+    parameter axi_data_width_p = 256;
+    parameter axi_burst_len_p  = 1;
+
+    parameter axi_sel_width_p = 4;
+    parameter dma_addr_width_p = axi_addr_width_p - axi_sel_width_p;
+    localparam lg_mem_size_lp = `BSG_SAFE_CLOG2(mem_size_lp);
+    localparam lg_num_vcaches_lp = `BSG_SAFE_CLOG2(num_vcaches_per_test_mem_lp);
+    localparam lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p);
+
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][axi_addr_width_p-1:0]s_axi_araddr;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][1:0]s_axi_arburst;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][3:0]s_axi_arcache;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][axi_id_width_p-1:0]s_axi_arid;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][7:0]s_axi_arlen;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][0:0]s_axi_arlock;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][2:0]s_axi_arprot;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][3:0]s_axi_arqos;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_arready;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][3:0]s_axi_arregion;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][2:0]s_axi_arsize;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_arvalid;
+
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][axi_addr_width_p-1:0]s_axi_awaddr;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][1:0]s_axi_awburst;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][3:0]s_axi_awcache;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][axi_id_width_p-1:0]s_axi_awid;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][7:0]s_axi_awlen;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][0:0]s_axi_awlock;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][2:0]s_axi_awprot;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][3:0]s_axi_awqos;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_awready;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][3:0]s_axi_awregion;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][2:0]s_axi_awsize;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_awvalid;
+
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][axi_id_width_p-1:0]s_axi_bid;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_bready;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][1:0]s_axi_bresp;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_bvalid;
+
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][axi_data_width_p-1:0]s_axi_rdata;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][axi_id_width_p-1:0]s_axi_rid;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_rlast;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_rready;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][1:0]s_axi_rresp;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_rvalid;
+
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][axi_data_width_p-1:0]s_axi_wdata;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_wlast;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_wready;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][(axi_data_width_p>>3)-1:0]s_axi_wstrb;
+    wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_wvalid;
+
+
+
     for (genvar i = W; i <= E; i++) begin: hs                           // horizontal side
       for (genvar j = 0; j < num_pods_y_p; j++) begin: py               // pod y
         for (genvar k = N; k <= S; k++) begin: vs                       // vertical side
           for (genvar v = 0; v < num_vcache_rows_p; v++) begin: vr      // vcache row
             for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf    // ruching
-/*
-              bsg_nonsynth_wormhole_test_mem #(
-                .vcache_data_width_p(vcache_data_width_p)
-                ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
-                ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
-                ,.num_vcaches_p(num_vcaches_per_test_mem_lp)
-                ,.wh_cid_width_p(wh_cid_width_p)
-                ,.wh_flit_width_p(wh_flit_width_p)
-                ,.wh_cord_width_p(wh_cord_width_p)
-                ,.wh_len_width_p(wh_len_width_p)
-                ,.wh_ruche_factor_p(wh_ruche_factor_p)
-                ,.no_concentration_p(1)
-                ,.mem_size_p(mem_size_lp)
-              ) test_mem (
-                .clk_i(clk_i)
-                ,.reset_i(reset_r)
-
-                ,.wh_link_sif_i(buffered_wh_link_sif_lo[i][j][k][v][r])
-                ,.wh_link_sif_o(buffered_wh_link_sif_li[i][j][k][v][r])
-              );
-*/
-
-              parameter axi_id_width_p   = 1;
-              parameter axi_addr_width_p = 34;
-              parameter axi_data_width_p = 256;
-              parameter axi_burst_len_p  = 1;
-
-              parameter axi_sel_width_p = 4;
-              parameter dma_addr_width_p = axi_addr_width_p - axi_sel_width_p;
-              localparam lg_mem_size_lp = `BSG_SAFE_CLOG2(mem_size_lp);
-              localparam lg_num_vcaches_lp = `BSG_SAFE_CLOG2(num_vcaches_per_test_mem_lp);
-              localparam lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p);
 
               // WH to cache dma
               `declare_bsg_cache_dma_pkt_s(dma_addr_width_p);
@@ -345,50 +370,6 @@ module bsg_nonsynth_manycore_testbench
               ,.dma_data_yumi_i      (dma_data_yumi_li)
               );
 
-              wire [axi_addr_width_p-1:0]s_axi_araddr;
-              wire [1:0]s_axi_arburst;
-              wire [3:0]s_axi_arcache;
-              wire [axi_id_width_p-1:0]s_axi_arid;
-              wire [7:0]s_axi_arlen;
-              wire [0:0]s_axi_arlock;
-              wire [2:0]s_axi_arprot;
-              wire [3:0]s_axi_arqos;
-              wire s_axi_arready;
-              wire [3:0]s_axi_arregion;
-              wire [2:0]s_axi_arsize;
-              wire s_axi_arvalid;
-
-              wire [axi_addr_width_p-1:0]s_axi_awaddr;
-              wire [1:0]s_axi_awburst;
-              wire [3:0]s_axi_awcache;
-              wire [axi_id_width_p-1:0]s_axi_awid;
-              wire [7:0]s_axi_awlen;
-              wire [0:0]s_axi_awlock;
-              wire [2:0]s_axi_awprot;
-              wire [3:0]s_axi_awqos;
-              wire s_axi_awready;
-              wire [3:0]s_axi_awregion;
-              wire [2:0]s_axi_awsize;
-              wire s_axi_awvalid;
-
-              wire [axi_id_width_p-1:0]s_axi_bid;
-              wire s_axi_bready;
-              wire [1:0]s_axi_bresp;
-              wire s_axi_bvalid;
-
-              wire [axi_data_width_p-1:0]s_axi_rdata;
-              wire [axi_id_width_p-1:0]s_axi_rid;
-              wire s_axi_rlast;
-              wire s_axi_rready;
-              wire [1:0]s_axi_rresp;
-              wire s_axi_rvalid;
-
-              wire [axi_data_width_p-1:0]s_axi_wdata;
-              wire s_axi_wlast;
-              wire s_axi_wready;
-              wire [(axi_data_width_p>>3)-1:0]s_axi_wstrb;
-              wire s_axi_wvalid;
-
               // s_axi port
               // not supported
               assign s_axi_arqos    = '0;
@@ -421,46 +402,64 @@ module bsg_nonsynth_manycore_testbench
               ,.dma_data_v_i    (dma_data_v_lo)
               ,.dma_data_yumi_o (dma_data_yumi_li)
 
-              ,.axi_awid_o      (s_axi_awid)
-              ,.axi_awaddr_o    (s_axi_awaddr)
-              ,.axi_awlen_o     (s_axi_awlen)
-              ,.axi_awsize_o    (s_axi_awsize)
-              ,.axi_awburst_o   (s_axi_awburst)
-              ,.axi_awcache_o   (s_axi_awcache)
-              ,.axi_awprot_o    (s_axi_awprot)
-              ,.axi_awlock_o    (s_axi_awlock)
-              ,.axi_awvalid_o   (s_axi_awvalid)
-              ,.axi_awready_i   (s_axi_awready)
+              ,.axi_awid_o      (s_axi_awid   [i][j][k][v][r])
+              ,.axi_awaddr_o    (s_axi_awaddr [i][j][k][v][r])
+              ,.axi_awlen_o     (s_axi_awlen  [i][j][k][v][r])
+              ,.axi_awsize_o    (s_axi_awsize [i][j][k][v][r])
+              ,.axi_awburst_o   (s_axi_awburst[i][j][k][v][r])
+              ,.axi_awcache_o   (s_axi_awcache[i][j][k][v][r])
+              ,.axi_awprot_o    (s_axi_awprot [i][j][k][v][r])
+              ,.axi_awlock_o    (s_axi_awlock [i][j][k][v][r])
+              ,.axi_awvalid_o   (s_axi_awvalid[i][j][k][v][r])
+              ,.axi_awready_i   (s_axi_awready[i][j][k][v][r])
 
-              ,.axi_wdata_o     (s_axi_wdata)
-              ,.axi_wstrb_o     (s_axi_wstrb)
-              ,.axi_wlast_o     (s_axi_wlast)
-              ,.axi_wvalid_o    (s_axi_wvalid)
-              ,.axi_wready_i    (s_axi_wready)
+              ,.axi_wdata_o     (s_axi_wdata  [i][j][k][v][r])
+              ,.axi_wstrb_o     (s_axi_wstrb  [i][j][k][v][r])
+              ,.axi_wlast_o     (s_axi_wlast  [i][j][k][v][r])
+              ,.axi_wvalid_o    (s_axi_wvalid [i][j][k][v][r])
+              ,.axi_wready_i    (s_axi_wready [i][j][k][v][r])
 
-              ,.axi_bid_i       (s_axi_bid)
-              ,.axi_bresp_i     (s_axi_bresp)
-              ,.axi_bvalid_i    (s_axi_bvalid)
-              ,.axi_bready_o    (s_axi_bready)
+              ,.axi_bid_i       (s_axi_bid    [i][j][k][v][r])
+              ,.axi_bresp_i     (s_axi_bresp  [i][j][k][v][r])
+              ,.axi_bvalid_i    (s_axi_bvalid [i][j][k][v][r])
+              ,.axi_bready_o    (s_axi_bready [i][j][k][v][r])
 
-              ,.axi_arid_o      (s_axi_arid)
-              ,.axi_araddr_o    (s_axi_araddr)
-              ,.axi_arlen_o     (s_axi_arlen)
-              ,.axi_arsize_o    (s_axi_arsize)
-              ,.axi_arburst_o   (s_axi_arburst)
-              ,.axi_arcache_o   (s_axi_arcache)
-              ,.axi_arprot_o    (s_axi_arprot)
-              ,.axi_arlock_o    (s_axi_arlock)
-              ,.axi_arvalid_o   (s_axi_arvalid)
-              ,.axi_arready_i   (s_axi_arready)
+              ,.axi_arid_o      (s_axi_arid   [i][j][k][v][r])
+              ,.axi_araddr_o    (s_axi_araddr [i][j][k][v][r])
+              ,.axi_arlen_o     (s_axi_arlen  [i][j][k][v][r])
+              ,.axi_arsize_o    (s_axi_arsize [i][j][k][v][r])
+              ,.axi_arburst_o   (s_axi_arburst[i][j][k][v][r])
+              ,.axi_arcache_o   (s_axi_arcache[i][j][k][v][r])
+              ,.axi_arprot_o    (s_axi_arprot [i][j][k][v][r])
+              ,.axi_arlock_o    (s_axi_arlock [i][j][k][v][r])
+              ,.axi_arvalid_o   (s_axi_arvalid[i][j][k][v][r])
+              ,.axi_arready_i   (s_axi_arready[i][j][k][v][r])
 
-              ,.axi_rid_i       (s_axi_rid)
-              ,.axi_rdata_i     (s_axi_rdata)
-              ,.axi_rresp_i     (s_axi_rresp)
-              ,.axi_rlast_i     (s_axi_rlast)
-              ,.axi_rvalid_i    (s_axi_rvalid)
-              ,.axi_rready_o    (s_axi_rready)
+              ,.axi_rid_i       (s_axi_rid    [i][j][k][v][r])
+              ,.axi_rdata_i     (s_axi_rdata  [i][j][k][v][r])
+              ,.axi_rresp_i     (s_axi_rresp  [i][j][k][v][r])
+              ,.axi_rlast_i     (s_axi_rlast  [i][j][k][v][r])
+              ,.axi_rvalid_i    (s_axi_rvalid [i][j][k][v][r])
+              ,.axi_rready_o    (s_axi_rready [i][j][k][v][r])
               );
+
+            end
+          end
+        end
+      end
+    end
+
+
+
+  ////                        ////
+  ////      Fake Memory       ////
+  ////                        ////
+
+    for (genvar i = W; i <= E; i++) begin: fk_hs                           // horizontal side
+      for (genvar j = 0; j < num_pods_y_p; j++) begin: fk_py               // pod y
+        for (genvar k = N; k <= S; k++) begin: fk_vs                       // vertical side
+          for (genvar v = 0; v < num_vcache_rows_p; v++) begin: fk_vr      // vcache row
+            for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: fk_rf    // ruching
 
               bsg_nonsynth_manycore_axi_mem
              #(.axi_id_width_p     (axi_id_width_p)
@@ -473,33 +472,33 @@ module bsg_nonsynth_manycore_testbench
               (.clk_i  (clk_i)
               ,.reset_i(reset_r)
 
-              ,.axi_awid_i   (s_axi_awid)
-              ,.axi_awaddr_i ({(axi_sel_width_p)'(0), s_axi_awaddr[dma_addr_width_p-1:0]})
-              ,.axi_awvalid_i(s_axi_awvalid)
-              ,.axi_awready_o(s_axi_awready)
+              ,.axi_awid_i   (s_axi_awid   [i][j][k][v][r])
+              ,.axi_awaddr_i (s_axi_awaddr [i][j][k][v][r])
+              ,.axi_awvalid_i(s_axi_awvalid[i][j][k][v][r])
+              ,.axi_awready_o(s_axi_awready[i][j][k][v][r])
 
-              ,.axi_wdata_i  (s_axi_wdata)
-              ,.axi_wstrb_i  (s_axi_wstrb)
-              ,.axi_wlast_i  (s_axi_wlast)
-              ,.axi_wvalid_i (s_axi_wvalid)
-              ,.axi_wready_o (s_axi_wready)
+              ,.axi_wdata_i  (s_axi_wdata  [i][j][k][v][r])
+              ,.axi_wstrb_i  (s_axi_wstrb  [i][j][k][v][r])
+              ,.axi_wlast_i  (s_axi_wlast  [i][j][k][v][r])
+              ,.axi_wvalid_i (s_axi_wvalid [i][j][k][v][r])
+              ,.axi_wready_o (s_axi_wready [i][j][k][v][r])
 
-              ,.axi_bid_o    (s_axi_bid)
-              ,.axi_bresp_o  (s_axi_bresp)
-              ,.axi_bvalid_o (s_axi_bvalid)
-              ,.axi_bready_i (s_axi_bready)
+              ,.axi_bid_o    (s_axi_bid    [i][j][k][v][r])
+              ,.axi_bresp_o  (s_axi_bresp  [i][j][k][v][r])
+              ,.axi_bvalid_o (s_axi_bvalid [i][j][k][v][r])
+              ,.axi_bready_i (s_axi_bready [i][j][k][v][r])
 
-              ,.axi_arid_i   (s_axi_arid)
-              ,.axi_araddr_i ({(axi_sel_width_p)'(0), s_axi_araddr[dma_addr_width_p-1:0]})
-              ,.axi_arvalid_i(s_axi_arvalid)
-              ,.axi_arready_o(s_axi_arready)
+              ,.axi_arid_i   (s_axi_arid   [i][j][k][v][r])
+              ,.axi_araddr_i (s_axi_araddr [i][j][k][v][r])
+              ,.axi_arvalid_i(s_axi_arvalid[i][j][k][v][r])
+              ,.axi_arready_o(s_axi_arready[i][j][k][v][r])
 
-              ,.axi_rid_o    (s_axi_rid)
-              ,.axi_rdata_o  (s_axi_rdata)
-              ,.axi_rresp_o  (s_axi_rresp)
-              ,.axi_rlast_o  (s_axi_rlast)
-              ,.axi_rvalid_o (s_axi_rvalid)
-              ,.axi_rready_i (s_axi_rready)
+              ,.axi_rid_o    (s_axi_rid    [i][j][k][v][r])
+              ,.axi_rdata_o  (s_axi_rdata  [i][j][k][v][r])
+              ,.axi_rresp_o  (s_axi_rresp  [i][j][k][v][r])
+              ,.axi_rlast_o  (s_axi_rlast  [i][j][k][v][r])
+              ,.axi_rvalid_o (s_axi_rvalid [i][j][k][v][r])
+              ,.axi_rready_i (s_axi_rready [i][j][k][v][r])
               );
 
             end
@@ -507,7 +506,6 @@ module bsg_nonsynth_manycore_testbench
         end
       end
     end
-
 
 
   ////                        ////
