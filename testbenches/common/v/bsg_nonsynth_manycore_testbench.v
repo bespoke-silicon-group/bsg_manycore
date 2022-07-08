@@ -50,6 +50,9 @@ module bsg_nonsynth_manycore_testbench
     , parameter enable_router_profiling_p=0
     , parameter enable_cache_profiling_p=0
 
+    , parameter host_x_cord_p=0
+    , parameter host_y_cord_p=0
+
     , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p*num_vcache_rows_p)*4) // byte addr
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -65,9 +68,6 @@ module bsg_nonsynth_manycore_testbench
     , input reset_i
 
     , output tag_done_o
-    
-    , input  [link_sif_width_lp-1:0] io_link_sif_i
-    , output [link_sif_width_lp-1:0] io_link_sif_o
   );
 
 
@@ -238,8 +238,26 @@ module bsg_nonsynth_manycore_testbench
 
 
   // Host link connection
-  assign io_link_sif_li[0][P] = io_link_sif_i;
-  assign io_link_sif_o = io_link_sif_lo[0][P];
+
+  // SPMD LOADER
+  logic print_stat_v;
+  logic [data_width_p-1:0] print_stat_tag;
+  bsg_nonsynth_manycore_io_complex #(
+    .addr_width_p(addr_width_p)
+    ,.data_width_p(data_width_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.io_x_cord_p(host_x_cord_p)
+    ,.io_y_cord_p(host_y_cord_p)
+  ) io (
+    .clk_i(clk_i)
+    ,.reset_i(reset_r)
+    ,.io_link_sif_i(io_link_sif_lo[0][P])
+    ,.io_link_sif_o(io_link_sif_li[0][P])
+    ,.print_stat_v_o(print_stat_v)
+    ,.print_stat_tag_o(print_stat_tag)
+    ,.loader_done_o()
+  );
 
 
 

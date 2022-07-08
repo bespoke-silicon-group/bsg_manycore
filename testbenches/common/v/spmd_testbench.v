@@ -68,8 +68,6 @@ module spmd_testbench();
 
 
   // testbench
-  `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-  bsg_manycore_link_sif_s io_link_sif_li, io_link_sif_lo;
   logic tag_done_lo;
 
   bsg_nonsynth_manycore_testbench #(
@@ -107,7 +105,6 @@ module spmd_testbench();
     ,.wh_len_width_p(wh_len_width_p)
     ,.wh_cord_width_p(wh_cord_width_p)
 
-    ,.bsg_manycore_mem_cfg_p(bsg_manycore_mem_cfg_p)
     ,.bsg_dram_size_p(bsg_dram_size_p)
 
     ,.reset_depth_p(reset_depth_p)
@@ -117,12 +114,12 @@ module spmd_testbench();
     ,.enable_router_profiling_p(1)
     ,.enable_cache_profiling_p(1)
 `endif				    
+
+    ,.host_x_cord_p(`BSG_MACHINE_HOST_X_CORD)
+    ,.host_y_cord_p(`BSG_MACHINE_HOST_Y_CORD)
   ) tb (
     .clk_i(core_clk)
     ,.reset_i(global_reset)
-
-    ,.io_link_sif_i(io_link_sif_li)
-    ,.io_link_sif_o(io_link_sif_lo)
 
     ,.tag_done_o(tag_done_lo)
   );
@@ -139,25 +136,7 @@ module spmd_testbench();
   );
 
 
-  // SPMD LOADER
-  logic print_stat_v;
-  logic [data_width_p-1:0] print_stat_tag;
-  bsg_nonsynth_manycore_io_complex #(
-    .addr_width_p(addr_width_p)
-    ,.data_width_p(data_width_p)
-    ,.x_cord_width_p(x_cord_width_p)
-    ,.y_cord_width_p(y_cord_width_p)
-    ,.io_x_cord_p(`BSG_MACHINE_HOST_X_CORD)
-    ,.io_y_cord_p(`BSG_MACHINE_HOST_Y_CORD)
-  ) io (
-    .clk_i(core_clk)
-    ,.reset_i(reset_r)
-    ,.io_link_sif_i(io_link_sif_lo)
-    ,.io_link_sif_o(io_link_sif_li)
-    ,.print_stat_v_o(print_stat_v)
-    ,.print_stat_tag_o(print_stat_tag)
-    ,.loader_done_o()
-  );
+
 
   // reset dff
 
