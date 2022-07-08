@@ -304,9 +304,21 @@ module bsg_nonsynth_manycore_testbench
               );
 */
 
+              parameter axi_id_width_p   = 1;
+              parameter axi_addr_width_p = 34;
+              parameter axi_data_width_p = 256;
+              parameter axi_burst_len_p  = 1;
+
+              parameter axi_sel_width_p = 4;
+              parameter dma_addr_width_p = axi_addr_width_p - axi_sel_width_p;
+              localparam lg_mem_size_lp = `BSG_SAFE_CLOG2(mem_size_lp);
+              localparam lg_num_vcaches_lp = `BSG_SAFE_CLOG2(num_vcaches_per_test_mem_lp);
+              localparam lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p);
+
               // WH to cache dma
-              `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p);
+              `declare_bsg_cache_dma_pkt_s(dma_addr_width_p);
               bsg_cache_dma_pkt_s                 dma_pkt_lo;
+              bsg_cache_dma_pkt_s                 dma_pkt_remap_lo;
               logic                               dma_pkt_v_lo;
               logic                               dma_pkt_yumi_li;
 
@@ -318,9 +330,17 @@ module bsg_nonsynth_manycore_testbench
               logic                               dma_data_v_lo;
               logic                               dma_data_yumi_li;
 
+              logic [wh_cord_width_p-1:0]         dma_src_cord_lo;
+
+              assign dma_pkt_remap_lo.write_not_read = dma_pkt_lo.write_not_read;
+              assign dma_pkt_remap_lo.addr = {'0,
+                dma_src_cord_lo[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp],
+                dma_pkt_lo.addr[0+:lg_mem_size_lp-lg_num_vcaches_lp]
+              };
+
               bsg_wormhole_to_cache_dma_fanout
              #(.num_dma_p       (1)
-              ,.dma_addr_width_p(vcache_addr_width_p)
+              ,.dma_addr_width_p(dma_addr_width_p)
               ,.dma_burst_len_p (vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)
               ,.wh_flit_width_p (wh_flit_width_p)
               ,.wh_cid_width_p  (wh_cid_width_p)
@@ -336,6 +356,7 @@ module bsg_nonsynth_manycore_testbench
               ,.wh_link_sif_o     (buffered_wh_link_sif_li[i][j][k][v][r])
 
               ,.dma_pkt_o            (dma_pkt_lo)
+              ,.dma_src_cord_o       (dma_src_cord_lo)
               ,.dma_pkt_v_o          (dma_pkt_v_lo)
               ,.dma_pkt_yumi_i       (dma_pkt_yumi_li)
 
@@ -347,11 +368,6 @@ module bsg_nonsynth_manycore_testbench
               ,.dma_data_v_o         (dma_data_v_lo)
               ,.dma_data_yumi_i      (dma_data_yumi_li)
               );
-
-              parameter axi_id_width_p   = 1;
-              parameter axi_addr_width_p = 34;
-              parameter axi_data_width_p = 256;
-              parameter axi_burst_len_p  = 1;
 
               wire [axi_addr_width_p-1:0]s_axi_araddr;
               wire [1:0]s_axi_arburst;
@@ -405,7 +421,7 @@ module bsg_nonsynth_manycore_testbench
               assign s_axi_awregion = '0;
 
               bsg_cache_to_axi
-             #(.addr_width_p         (vcache_addr_width_p)
+             #(.addr_width_p         (dma_addr_width_p)
               ,.block_size_in_words_p(vcache_block_size_in_words_p)
               ,.data_width_p         (vcache_dma_data_width_p)
               ,.num_cache_p          (1)
@@ -417,7 +433,7 @@ module bsg_nonsynth_manycore_testbench
               (.clk_i  (clk_i)
               ,.reset_i(reset_r)
 
-              ,.dma_pkt_i       (dma_pkt_lo)
+              ,.dma_pkt_i       (dma_pkt_remap_lo)
               ,.dma_pkt_v_i     (dma_pkt_v_lo)
               ,.dma_pkt_yumi_o  (dma_pkt_yumi_li)
 
@@ -482,7 +498,7 @@ module bsg_nonsynth_manycore_testbench
               ,.reset_i(reset_r)
 
               ,.axi_awid_i   (s_axi_awid)
-              ,.axi_awaddr_i (s_axi_awaddr)
+              ,.axi_awaddr_i ({(axi_sel_width_p)'(0), s_axi_awaddr[dma_addr_width_p-1:0]})
               ,.axi_awvalid_i(s_axi_awvalid)
               ,.axi_awready_o(s_axi_awready)
 
@@ -498,7 +514,7 @@ module bsg_nonsynth_manycore_testbench
               ,.axi_bready_i (s_axi_bready)
 
               ,.axi_arid_i   (s_axi_arid)
-              ,.axi_araddr_i (s_axi_araddr)
+              ,.axi_araddr_i ({(axi_sel_width_p)'(0), s_axi_araddr[dma_addr_width_p-1:0]})
               ,.axi_arvalid_i(s_axi_arvalid)
               ,.axi_arready_o(s_axi_arready)
 

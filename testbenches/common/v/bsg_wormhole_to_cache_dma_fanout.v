@@ -46,6 +46,7 @@ module bsg_wormhole_to_cache_dma_fanout
 
     // cache DMA
     , output logic [num_dma_p-1:0][dma_pkt_width_lp-1:0] dma_pkt_o
+    , output logic [num_dma_p-1:0][wh_cord_width_p-1:0] dma_src_cord_o
     , output logic [num_dma_p-1:0] dma_pkt_v_o
     , input [num_dma_p-1:0] dma_pkt_yumi_i
 
@@ -87,6 +88,8 @@ module bsg_wormhole_to_cache_dma_fanout
   logic [wh_cord_width_p-1:0] src_cord_n;
   logic [lg_num_dma_lp-1:0] table_w_addr;
   logic table_we;
+
+  assign dma_src_cord_o = src_cord_r;
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
