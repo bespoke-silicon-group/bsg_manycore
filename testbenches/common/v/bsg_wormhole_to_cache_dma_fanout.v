@@ -105,6 +105,28 @@ module bsg_wormhole_to_cache_dma_fanout
   end
 
 
+  logic [num_dma_p-1:0] recv_fifo_v_li, recv_fifo_yumi_li;
+  logic [num_dma_p-1:0][wh_cid_width_p-1:0] src_cid_r_r;
+  logic [num_dma_p-1:0][wh_cord_width_p-1:0] src_cord_r_r;
+
+  for (genvar i = 0; i < num_dma_p; i++)
+  begin: sf
+    bsg_fifo_1r1w_small
+   #(.width_p(wh_cid_width_p+wh_cord_width_p)
+    ,.els_p  (16)
+    ) recv_fifo
+    (.clk_i  (clk_i)
+    ,.reset_i(reset_i)
+    ,.v_i    (recv_fifo_v_li[i])
+    ,.ready_o()
+    ,.data_i ({src_cid_r[i], src_cord_r[i]})
+    ,.v_o    ()
+    ,.data_o ({src_cid_r_r[i], src_cord_r_r[i]})
+    ,.yumi_i (recv_fifo_yumi_li[i])
+    );
+  end
+
+
 
   // send FSM
   // receives wh packets and cache dma pkts.
@@ -151,6 +173,7 @@ module bsg_wormhole_to_cache_dma_fanout
 
     dma_data_v_o = '0;
     dma_data_o = '0;
+    recv_fifo_v_li = '0;
 
     case (send_state_r)
       // coming out of reset
@@ -183,6 +206,7 @@ module bsg_wormhole_to_cache_dma_fanout
         dma_pkt_out.addr = dma_addr_width_p'(wh_link_sif_in.data);
 
         wh_link_sif_out.then_ready_rev = dma_pkt_yumi_i[send_cache_id_r];
+        recv_fifo_v_li[send_cache_id_r] = dma_pkt_yumi_i[send_cache_id_r] & ~write_not_read_r;
         send_state_n = wh_link_sif_out.then_ready_rev
           ? (write_not_read_r ? SEND_EVICT_DATA : SEND_READY)
           : SEND_DMA_PKT;
@@ -295,10 +319,11 @@ module bsg_wormhole_to_cache_dma_fanout
     header_flit_out.src_cord = '0; // doesn't matter
     //header_flit_out.src_cid = '0; // doesn't matter
     header_flit_out.len = dma_burst_len_p;
-    header_flit_out.dest_cord = src_cord_r[recv_cache_id_r];
-    header_flit_out.cid = src_cid_r[recv_cache_id_r];
+    header_flit_out.dest_cord = src_cord_r_r[recv_cache_id_r];
+    header_flit_out.cid = src_cid_r_r[recv_cache_id_r];
 
     dma_data_ready_and_o = '0;
+    recv_fifo_yumi_li = '0;
 
     case (recv_state_r)
 
@@ -338,6 +363,7 @@ module bsg_wormhole_to_cache_dma_fanout
           recv_state_n = recv_clear_li
             ? RECV_READY
             : RECV_FILL_DATA;
+          recv_fifo_yumi_li[recv_cache_id_r] = recv_clear_li;
         end
       end
 
