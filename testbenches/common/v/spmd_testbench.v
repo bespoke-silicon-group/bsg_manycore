@@ -122,6 +122,7 @@ module spmd_testbench();
     ,.reset_i(global_reset)
 
     ,.tag_done_o(tag_done_lo)
+    ,.finish_o()
   );
 
   // reset is deasserted when tag programming is done.

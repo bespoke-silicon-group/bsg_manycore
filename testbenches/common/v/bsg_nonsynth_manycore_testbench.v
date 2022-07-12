@@ -68,6 +68,7 @@ module bsg_nonsynth_manycore_testbench
     , input reset_i
 
     , output tag_done_o
+    , output finish_o
   );
 
 
@@ -257,6 +258,7 @@ module bsg_nonsynth_manycore_testbench
     ,.print_stat_v_o(print_stat_v)
     ,.print_stat_tag_o(print_stat_tag)
     ,.loader_done_o()
+    ,.finish_o(finish_o)
   );
 
 

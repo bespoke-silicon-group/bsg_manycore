@@ -41,6 +41,7 @@ module bsg_nonsynth_manycore_monitor
 
     , output logic print_stat_v_o
     , output logic [data_width_p-1:0] print_stat_tag_o
+    , output logic finish_o
   );
 
   int max_cycle;
@@ -76,9 +77,14 @@ module bsg_nonsynth_manycore_monitor
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
       if (finish_count == num_finish) begin
+        finish_o <= 1'b1;
+      end
+      if (finish_o) begin
         $display("[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from all pods, time=%0t", $time);
         $finish;
       end
+    end else begin
+      finish_o <= 1'b0;
     end
   end
 
