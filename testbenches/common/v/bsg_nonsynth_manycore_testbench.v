@@ -154,7 +154,9 @@ module bsg_nonsynth_manycore_testbench
     ,.num_pods_x_p(num_pods_x_p)
 
     ,.reset_depth_p(reset_depth_p)
+    `ifndef SYNTHESIS
     ,.hetero_type_vec_p(hetero_type_vec_p)
+    `endif
   ) DUT (
     .clk_i(clk_i)
 
@@ -486,7 +488,8 @@ module bsg_nonsynth_manycore_testbench
               ,.axi_addr_width_p   (axi_addr_width_p)
               ,.axi_data_width_p   (axi_data_width_p)
               ,.axi_burst_len_p    (axi_burst_len_p)
-              ,.mem_els_p          (mem_size_lp/(axi_data_width_p/8))
+              //,.mem_els_p          (mem_size_lp/(axi_data_width_p/8))
+              ,.mem_els_p(2)
               ,.bsg_dram_included_p(1)
               ) axi_mem
               (.clk_i  (clk_i)

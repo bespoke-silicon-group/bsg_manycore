@@ -15,7 +15,8 @@ module bsg_nonsynth_manycore_spmd_loader
       `bsg_manycore_packet_width(addr_width_p,data_width_p,
         x_cord_width_p,y_cord_width_p)
 
-    , parameter max_nbf_p = 2**24
+    //, parameter max_nbf_p = 2**24
+    , parameter max_nbf_p = 4096
     , parameter nbf_addr_width_lp = `BSG_SAFE_CLOG2(max_nbf_p)
 
     , parameter max_out_credits_p=200
@@ -74,10 +75,10 @@ module bsg_nonsynth_manycore_spmd_loader
   assign packet.reg_id.store_mask_s.mask = '1;
   assign packet.reg_id.store_mask_s.unused = 1'b0;
 
-  string nbf_file;
+  //string nbf_file;
   initial begin
-    void'($value$plusargs("nbf_file=%s", nbf_file));
-    $readmemh(nbf_file, nbf);
+    //void'($value$plusargs("nbf_file=%s", nbf_file));
+    $readmemh("main.nbf", nbf);
   end
 
   logic loader_done_r, loader_done_n;
@@ -120,7 +121,7 @@ module bsg_nonsynth_manycore_spmd_loader
   
   wire loader_done = ~loader_done_r & loader_done_n;
 
-
+  //synopsys translate_off
   // get uptime from /proc/uptime
   function string get_uptime();
     string uptime;
@@ -150,7 +151,7 @@ module bsg_nonsynth_manycore_spmd_loader
         );
     end
   end
- 
+  //synopsys translate_on
 
   // sequential
   //
