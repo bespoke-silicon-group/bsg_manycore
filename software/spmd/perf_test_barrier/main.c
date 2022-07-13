@@ -14,22 +14,24 @@ int main()
   bsg_set_tile_x_y();
   
   int id = __bsg_id;
-
-  if (id == 0) bsg_cuda_print_stat_start(0);
+  
+  if (id == 0) bsg_print_int(0);
   bsg_tile_group_barrier(&r_barrier, &c_barrier);
-  if (id == 0) bsg_cuda_print_stat_end(0);
-
-  if (id == 0) bsg_cuda_print_stat_start(0);
+  if (id == 0) bsg_print_int(0);
   bsg_tile_group_barrier(&r_barrier, &c_barrier);
-  if (id == 0) bsg_cuda_print_stat_end(0);
-
-  if (id == 0) bsg_cuda_print_stat_start(0);
+  if (id == 0) bsg_print_int(0);
   bsg_tile_group_barrier(&r_barrier, &c_barrier);
-  if (id == 0) bsg_cuda_print_stat_end(0);
-
-  if (id == 0) bsg_cuda_print_stat_start(0);
+  if (id == 0) bsg_print_int(0);
   bsg_tile_group_barrier(&r_barrier, &c_barrier);
-  if (id == 0) bsg_cuda_print_stat_end(0);
+  if (id == 0) bsg_print_int(0);
+  bsg_tile_group_barrier(&r_barrier, &c_barrier);
+  if (id == 0) bsg_print_int(0);
+  bsg_tile_group_barrier(&r_barrier, &c_barrier);
+  if (id == 0) bsg_print_int(0);
+  bsg_tile_group_barrier(&r_barrier, &c_barrier);
+  if (id == 0) bsg_print_int(0);
+  bsg_tile_group_barrier(&r_barrier, &c_barrier);
+  if (id == 0) bsg_print_int(0);
 
   if (id == 0) {
     bsg_finish();

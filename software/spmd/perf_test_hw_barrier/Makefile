@@ -1,12 +1,12 @@
 TRACE=0
-bsg_tiles_X = 1
+bsg_tiles_X = 8
 bsg_tiles_Y = 8
 
 
 
 all: main.run
 
-OBJECT_FILES=main.o
+OBJECT_FILES=main.o bsg_barrier_amoadd.o
 
 include ../Makefile.include
 
