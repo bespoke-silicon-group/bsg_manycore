@@ -53,6 +53,11 @@ module bsg_nonsynth_manycore_testbench
     , parameter host_x_cord_p=0
     , parameter host_y_cord_p=0
 
+    , parameter axi_id_width_p   = "inv"
+    , parameter axi_addr_width_p = "inv"
+    , parameter axi_data_width_p = "inv"
+    , parameter axi_burst_len_p  = "inv"
+
     , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p*num_vcache_rows_p)*4) // byte addr
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -69,6 +74,50 @@ module bsg_nonsynth_manycore_testbench
 
     , output tag_done_o
     , output finish_o
+
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*axi_addr_width_p-1:0]mem_axi_araddr
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*2-1:0]mem_axi_arburst
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*4-1:0]mem_axi_arcache
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*axi_id_width_p-1:0]mem_axi_arid
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*8-1:0]mem_axi_arlen
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*1-1:0]mem_axi_arlock
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*3-1:0]mem_axi_arprot
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*4-1:0]mem_axi_arqos
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_arready
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*4-1:0]mem_axi_arregion
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*3-1:0]mem_axi_arsize
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_arvalid
+
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*axi_addr_width_p-1:0]mem_axi_awaddr
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*2-1:0]mem_axi_awburst
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*4-1:0]mem_axi_awcache
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*axi_id_width_p-1:0]mem_axi_awid
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*8-1:0]mem_axi_awlen
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*1-1:0]mem_axi_awlock
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*3-1:0]mem_axi_awprot
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*4-1:0]mem_axi_awqos
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_awready
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*4-1:0]mem_axi_awregion
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*3-1:0]mem_axi_awsize
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_awvalid
+
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*axi_id_width_p-1:0]mem_axi_bid
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_bready
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*2-1:0]mem_axi_bresp
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_bvalid
+
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*axi_data_width_p-1:0]mem_axi_rdata
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*axi_id_width_p-1:0]mem_axi_rid
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_rlast
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_rready
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*2-1:0]mem_axi_rresp
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_rvalid
+
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*axi_data_width_p-1:0]mem_axi_wdata
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_wlast
+    , input  [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_wready
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*(axi_data_width_p>>3)-1:0]mem_axi_wstrb
+    , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p-1:0]mem_axi_wvalid
   );
 
 
@@ -275,11 +324,6 @@ module bsg_nonsynth_manycore_testbench
     localparam longint unsigned mem_size_lp = (2**30)*num_pods_x_p/wh_ruche_factor_p/num_vcache_rows_p/2;
     localparam num_vcaches_per_test_mem_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2;
 
-    parameter axi_id_width_p   = 1;
-    parameter axi_addr_width_p = 34;
-    parameter axi_data_width_p = 256;
-    parameter axi_burst_len_p  = 1;
-
     parameter axi_sel_width_p = 4;
     parameter dma_addr_width_p = axi_addr_width_p - axi_sel_width_p;
     localparam lg_mem_size_lp = `BSG_SAFE_CLOG2(mem_size_lp);
@@ -330,7 +374,49 @@ module bsg_nonsynth_manycore_testbench
     wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][(axi_data_width_p>>3)-1:0]s_axi_wstrb;
     wire [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0]s_axi_wvalid;
 
+    assign mem_axi_araddr   = s_axi_araddr    ;
+    assign mem_axi_arburst  = s_axi_arburst   ;
+    assign mem_axi_arcache  = s_axi_arcache   ;
+    assign mem_axi_arid     = s_axi_arid      ;
+    assign mem_axi_arlen    = s_axi_arlen     ;
+    assign mem_axi_arlock   = s_axi_arlock    ;
+    assign mem_axi_arprot   = s_axi_arprot    ;
+    assign mem_axi_arqos    = s_axi_arqos     ;
+    assign s_axi_arready    = mem_axi_arready ;
+    assign mem_axi_arregion = s_axi_arregion  ;
+    assign mem_axi_arsize   = s_axi_arsize    ;
+    assign mem_axi_arvalid  = s_axi_arvalid   ;
 
+    assign mem_axi_awaddr   = s_axi_awaddr    ;
+    assign mem_axi_awburst  = s_axi_awburst   ;
+    assign mem_axi_awcache  = s_axi_awcache   ;
+    assign mem_axi_awid     = s_axi_awid      ;
+    assign mem_axi_awlen    = s_axi_awlen     ;
+    assign mem_axi_awlock   = s_axi_awlock    ;
+    assign mem_axi_awprot   = s_axi_awprot    ;
+    assign mem_axi_awqos    = s_axi_awqos     ;
+    assign s_axi_awready    = mem_axi_awready ;
+    assign mem_axi_awregion = s_axi_awregion  ;
+    assign mem_axi_awsize   = s_axi_awsize    ;
+    assign mem_axi_awvalid  = s_axi_awvalid   ;
+
+    assign s_axi_bid        = mem_axi_bid     ;
+    assign mem_axi_bready   = s_axi_bready    ;
+    assign s_axi_bresp      = mem_axi_bresp   ;
+    assign s_axi_bvalid     = mem_axi_bvalid  ;
+
+    assign s_axi_rdata      = mem_axi_rdata   ;
+    assign s_axi_rid        = mem_axi_rid     ;
+    assign s_axi_rlast      = mem_axi_rlast   ;
+    assign mem_axi_rready   = s_axi_rready    ;
+    assign s_axi_rresp      = mem_axi_rresp   ;
+    assign s_axi_rvalid     = mem_axi_rvalid  ;
+
+    assign mem_axi_wdata    = s_axi_wdata     ;
+    assign mem_axi_wlast    = s_axi_wlast     ;
+    assign s_axi_wready     = mem_axi_wready  ;
+    assign mem_axi_wstrb    = s_axi_wstrb     ;
+    assign mem_axi_wvalid   = s_axi_wvalid    ;
 
     for (genvar i = W; i <= E; i++) begin: hs                           // horizontal side
       for (genvar j = 0; j < num_pods_y_p; j++) begin: py               // pod y
@@ -471,64 +557,6 @@ module bsg_nonsynth_manycore_testbench
       end
     end
 
-
-
-  ////                        ////
-  ////      Fake Memory       ////
-  ////                        ////
-
-    for (genvar i = W; i <= E; i++) begin: fk_hs                           // horizontal side
-      for (genvar j = 0; j < num_pods_y_p; j++) begin: fk_py               // pod y
-        for (genvar k = N; k <= S; k++) begin: fk_vs                       // vertical side
-          for (genvar v = 0; v < num_vcache_rows_p; v++) begin: fk_vr      // vcache row
-            for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: fk_rf    // ruching
-
-              bsg_nonsynth_manycore_axi_mem
-             #(.axi_id_width_p     (axi_id_width_p)
-              ,.axi_addr_width_p   (axi_addr_width_p)
-              ,.axi_data_width_p   (axi_data_width_p)
-              ,.axi_burst_len_p    (axi_burst_len_p)
-              //,.mem_els_p          (mem_size_lp/(axi_data_width_p/8))
-              ,.mem_els_p(2)
-              ,.bsg_dram_included_p(1)
-              ) axi_mem
-              (.clk_i  (clk_i)
-              ,.reset_i(reset_r)
-
-              ,.axi_awid_i   (s_axi_awid   [i][j][k][v][r])
-              ,.axi_awaddr_i (s_axi_awaddr [i][j][k][v][r])
-              ,.axi_awvalid_i(s_axi_awvalid[i][j][k][v][r])
-              ,.axi_awready_o(s_axi_awready[i][j][k][v][r])
-
-              ,.axi_wdata_i  (s_axi_wdata  [i][j][k][v][r])
-              ,.axi_wstrb_i  (s_axi_wstrb  [i][j][k][v][r])
-              ,.axi_wlast_i  (s_axi_wlast  [i][j][k][v][r])
-              ,.axi_wvalid_i (s_axi_wvalid [i][j][k][v][r])
-              ,.axi_wready_o (s_axi_wready [i][j][k][v][r])
-
-              ,.axi_bid_o    (s_axi_bid    [i][j][k][v][r])
-              ,.axi_bresp_o  (s_axi_bresp  [i][j][k][v][r])
-              ,.axi_bvalid_o (s_axi_bvalid [i][j][k][v][r])
-              ,.axi_bready_i (s_axi_bready [i][j][k][v][r])
-
-              ,.axi_arid_i   (s_axi_arid   [i][j][k][v][r])
-              ,.axi_araddr_i (s_axi_araddr [i][j][k][v][r])
-              ,.axi_arvalid_i(s_axi_arvalid[i][j][k][v][r])
-              ,.axi_arready_o(s_axi_arready[i][j][k][v][r])
-
-              ,.axi_rid_o    (s_axi_rid    [i][j][k][v][r])
-              ,.axi_rdata_o  (s_axi_rdata  [i][j][k][v][r])
-              ,.axi_rresp_o  (s_axi_rresp  [i][j][k][v][r])
-              ,.axi_rlast_o  (s_axi_rlast  [i][j][k][v][r])
-              ,.axi_rvalid_o (s_axi_rvalid [i][j][k][v][r])
-              ,.axi_rready_i (s_axi_rready [i][j][k][v][r])
-              );
-
-            end
-          end
-        end
-      end
-    end
 
 
   ////                        ////

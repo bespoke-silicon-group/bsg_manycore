@@ -7,6 +7,7 @@
 module spmd_testbench();
   import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
+  import bsg_noc_pkg::*; // {P=0, W, E, N, S}
 
   parameter num_pods_x_p  = `BSG_MACHINE_PODS_X;
   parameter num_pods_y_p  = `BSG_MACHINE_PODS_Y;
@@ -47,6 +48,10 @@ module spmd_testbench();
   parameter bsg_manycore_mem_cfg_e bsg_manycore_mem_cfg_p = `BSG_MACHINE_MEM_CFG;
   parameter reset_depth_p = 3;
 
+  parameter axi_id_width_p   = 1;
+  parameter axi_addr_width_p = 34;
+  parameter axi_data_width_p = 256;
+  parameter axi_burst_len_p  = 1;
 
   // clock and reset
   parameter core_clk_period_p = 1000; // 1000 ps == 1 GHz
@@ -66,9 +71,109 @@ module spmd_testbench();
     ,.async_reset_o(global_reset)
   );
 
+  wire mig_clk = core_clk;
+  wire mig_reset = global_reset;
+
+
+
+    wire [7:0][axi_addr_width_p-1:0]mem_axi_araddr;
+    wire [7:0][1:0]mem_axi_arburst;
+    wire [7:0][3:0]mem_axi_arcache;
+    wire [7:0][axi_id_width_p-1:0]mem_axi_arid;
+    wire [7:0][7:0]mem_axi_arlen;
+    wire [7:0][0:0]mem_axi_arlock;
+    wire [7:0][2:0]mem_axi_arprot;
+    wire [7:0][3:0]mem_axi_arqos;
+    wire [7:0]mem_axi_arready;
+    wire [7:0][3:0]mem_axi_arregion;
+    wire [7:0][2:0]mem_axi_arsize;
+    wire [7:0]mem_axi_arvalid;
+
+    wire [7:0][axi_addr_width_p-1:0]mem_axi_awaddr;
+    wire [7:0][1:0]mem_axi_awburst;
+    wire [7:0][3:0]mem_axi_awcache;
+    wire [7:0][axi_id_width_p-1:0]mem_axi_awid;
+    wire [7:0][7:0]mem_axi_awlen;
+    wire [7:0][0:0]mem_axi_awlock;
+    wire [7:0][2:0]mem_axi_awprot;
+    wire [7:0][3:0]mem_axi_awqos;
+    wire [7:0]mem_axi_awready;
+    wire [7:0][3:0]mem_axi_awregion;
+    wire [7:0][2:0]mem_axi_awsize;
+    wire [7:0]mem_axi_awvalid;
+
+    wire [7:0][axi_id_width_p-1:0]mem_axi_bid;
+    wire [7:0]mem_axi_bready;
+    wire [7:0][1:0]mem_axi_bresp;
+    wire [7:0]mem_axi_bvalid;
+
+    wire [7:0][axi_data_width_p-1:0]mem_axi_rdata;
+    wire [7:0][axi_id_width_p-1:0]mem_axi_rid;
+    wire [7:0]mem_axi_rlast;
+    wire [7:0]mem_axi_rready;
+    wire [7:0][1:0]mem_axi_rresp;
+    wire [7:0]mem_axi_rvalid;
+
+    wire [7:0][axi_data_width_p-1:0]mem_axi_wdata;
+    wire [7:0]mem_axi_wlast;
+    wire [7:0]mem_axi_wready;
+    wire [7:0][(axi_data_width_p>>3)-1:0]mem_axi_wstrb;
+    wire [7:0]mem_axi_wvalid;
+
+  ////                        ////
+  ////      Fake Memory       ////
+  ////                        ////
+
+    for (genvar i = 0; i < 8; i++) begin: fk_mem
+
+              bsg_nonsynth_manycore_axi_mem
+             #(.axi_id_width_p     (axi_id_width_p)
+              ,.axi_addr_width_p   (axi_addr_width_p)
+              ,.axi_data_width_p   (axi_data_width_p)
+              ,.axi_burst_len_p    (axi_burst_len_p)
+              //,.mem_els_p          (mem_size_lp/(axi_data_width_p/8))
+              ,.mem_els_p(2)
+              ,.bsg_dram_included_p(1)
+              ) axi_mem
+              (.clk_i  (mig_clk)
+              ,.reset_i(mig_reset)
+
+              ,.axi_awid_i   (mem_axi_awid   [i])
+              ,.axi_awaddr_i (mem_axi_awaddr [i])
+              ,.axi_awvalid_i(mem_axi_awvalid[i])
+              ,.axi_awready_o(mem_axi_awready[i])
+
+              ,.axi_wdata_i  (mem_axi_wdata  [i])
+              ,.axi_wstrb_i  (mem_axi_wstrb  [i])
+              ,.axi_wlast_i  (mem_axi_wlast  [i])
+              ,.axi_wvalid_i (mem_axi_wvalid [i])
+              ,.axi_wready_o (mem_axi_wready [i])
+
+              ,.axi_bid_o    (mem_axi_bid    [i])
+              ,.axi_bresp_o  (mem_axi_bresp  [i])
+              ,.axi_bvalid_o (mem_axi_bvalid [i])
+              ,.axi_bready_i (mem_axi_bready [i])
+
+              ,.axi_arid_i   (mem_axi_arid   [i])
+              ,.axi_araddr_i (mem_axi_araddr [i])
+              ,.axi_arvalid_i(mem_axi_arvalid[i])
+              ,.axi_arready_o(mem_axi_arready[i])
+
+              ,.axi_rid_o    (mem_axi_rid    [i])
+              ,.axi_rdata_o  (mem_axi_rdata  [i])
+              ,.axi_rresp_o  (mem_axi_rresp  [i])
+              ,.axi_rlast_o  (mem_axi_rlast  [i])
+              ,.axi_rvalid_o (mem_axi_rvalid [i])
+              ,.axi_rready_i (mem_axi_rready [i])
+              );
+
+    end
+
+
+
 
   // testbench
-  logic tag_done_lo;
+  logic tag_done_lo, finish_lo;
 
   bsg_nonsynth_manycore_testbench #(
     .num_pods_x_p(num_pods_x_p)
@@ -117,12 +222,61 @@ module spmd_testbench();
 
     ,.host_x_cord_p(`BSG_MACHINE_HOST_X_CORD)
     ,.host_y_cord_p(`BSG_MACHINE_HOST_Y_CORD)
+
+    ,.axi_id_width_p  (axi_id_width_p)
+    ,.axi_addr_width_p(axi_addr_width_p)
+    ,.axi_data_width_p(axi_data_width_p)
+    ,.axi_burst_len_p (axi_burst_len_p)
   ) tb (
     .clk_i(core_clk)
     ,.reset_i(global_reset)
 
     ,.tag_done_o(tag_done_lo)
-    ,.finish_o()
+    ,.finish_o(finish_lo)
+
+    ,.mem_axi_araddr  (mem_axi_araddr  )
+    ,.mem_axi_arburst (mem_axi_arburst )
+    ,.mem_axi_arcache (mem_axi_arcache )
+    ,.mem_axi_arid    (mem_axi_arid    )
+    ,.mem_axi_arlen   (mem_axi_arlen   )
+    ,.mem_axi_arlock  (mem_axi_arlock  )
+    ,.mem_axi_arprot  (mem_axi_arprot  )
+    ,.mem_axi_arqos   (mem_axi_arqos   )
+    ,.mem_axi_arready (mem_axi_arready )
+    ,.mem_axi_arregion(mem_axi_arregion)
+    ,.mem_axi_arsize  (mem_axi_arsize  )
+    ,.mem_axi_arvalid (mem_axi_arvalid )
+
+    ,.mem_axi_awaddr  (mem_axi_awaddr  )
+    ,.mem_axi_awburst (mem_axi_awburst )
+    ,.mem_axi_awcache (mem_axi_awcache )
+    ,.mem_axi_awid    (mem_axi_awid    )
+    ,.mem_axi_awlen   (mem_axi_awlen   )
+    ,.mem_axi_awlock  (mem_axi_awlock  )
+    ,.mem_axi_awprot  (mem_axi_awprot  )
+    ,.mem_axi_awqos   (mem_axi_awqos   )
+    ,.mem_axi_awready (mem_axi_awready )
+    ,.mem_axi_awregion(mem_axi_awregion)
+    ,.mem_axi_awsize  (mem_axi_awsize  )
+    ,.mem_axi_awvalid (mem_axi_awvalid )
+
+    ,.mem_axi_bid     (mem_axi_bid     )
+    ,.mem_axi_bready  (mem_axi_bready  )
+    ,.mem_axi_bresp   (mem_axi_bresp   )
+    ,.mem_axi_bvalid  (mem_axi_bvalid  )
+
+    ,.mem_axi_rdata   (mem_axi_rdata   )
+    ,.mem_axi_rid     (mem_axi_rid     )
+    ,.mem_axi_rlast   (mem_axi_rlast   )
+    ,.mem_axi_rready  (mem_axi_rready  )
+    ,.mem_axi_rresp   (mem_axi_rresp   )
+    ,.mem_axi_rvalid  (mem_axi_rvalid  )
+
+    ,.mem_axi_wdata   (mem_axi_wdata   )
+    ,.mem_axi_wlast   (mem_axi_wlast   )
+    ,.mem_axi_wready  (mem_axi_wready  )
+    ,.mem_axi_wstrb   (mem_axi_wstrb   )
+    ,.mem_axi_wvalid  (mem_axi_wvalid  )
   );
 
   // reset is deasserted when tag programming is done.
