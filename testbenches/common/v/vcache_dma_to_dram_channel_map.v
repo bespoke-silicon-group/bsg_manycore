@@ -19,6 +19,7 @@ module vcache_dma_to_dram_channel_map
     , parameter `BSG_INV_PARAM(num_vcache_rows_p)
     , parameter `BSG_INV_PARAM(vcache_addr_width_p)
     , parameter `BSG_INV_PARAM(vcache_dma_data_width_p)
+    , parameter `BSG_INV_PARAM(vcache_block_size_in_words_p)
 
     , parameter num_vcaches_per_link_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2
     , parameter num_total_vcaches_lp = (num_pods_x_p*num_pods_y_p*2*num_tiles_x_p*num_vcache_rows_p)
@@ -26,7 +27,7 @@ module vcache_dma_to_dram_channel_map
     , parameter num_vcaches_per_slice_lp = (num_pods_x_p == 1)
         ? (num_tiles_x_p/2)
         : (num_tiles_x_p)
-    , parameter cache_dma_pkt_width_lp=`bsg_cache_dma_pkt_width(vcache_addr_width_p)
+    , parameter cache_dma_pkt_width_lp=`bsg_cache_dma_pkt_width(vcache_addr_width_p, vcache_block_size_in_words_p)
   )
   (
     // unmapped
@@ -58,7 +59,7 @@ module vcache_dma_to_dram_channel_map
   );
 
 
-  `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p);
+  `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p, vcache_block_size_in_words_p);
 
 
   // cache dma unruched mapping

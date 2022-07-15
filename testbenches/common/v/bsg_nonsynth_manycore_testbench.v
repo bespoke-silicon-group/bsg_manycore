@@ -9,6 +9,7 @@
 module bsg_nonsynth_manycore_testbench
   import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   import bsg_tag_pkg::*;
+  import bsg_cache_pkg::*;
   import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
   #(parameter `BSG_INV_PARAM(num_pods_x_p)
@@ -349,7 +350,7 @@ module bsg_nonsynth_manycore_testbench
     parameter lg_num_vcaches_per_link_lp = `BSG_SAFE_CLOG2(num_vcaches_per_link_lp);
 
     // WH to cache dma
-    `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p);
+    `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p, vcache_block_size_in_words_p);
     bsg_cache_dma_pkt_s [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_pkt_lo;
     logic [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_pkt_v_lo;
     logic [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_pkt_yumi_li;
@@ -428,6 +429,7 @@ module bsg_nonsynth_manycore_testbench
               bsg_wormhole_to_cache_dma_fanout#(
                 .num_dma_p(num_vcaches_per_link_lp)
                 ,.dma_addr_width_p(vcache_addr_width_p)
+                ,.dma_mask_width_p(vcache_block_size_in_words_p)
                 ,.dma_burst_len_p(vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)
 
                 ,.wh_flit_width_p(wh_flit_width_p)
@@ -486,6 +488,7 @@ module bsg_nonsynth_manycore_testbench
       ,.num_vcache_rows_p(num_vcache_rows_p)
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ) dma_map (
       // unmapped
       .dma_pkt_i                    (dma_pkt_lo)
@@ -519,6 +522,7 @@ module bsg_nonsynth_manycore_testbench
     logic [(num_dram_lp*hbm2_num_channels_p)-1:0] dramsim3_v_li;
     logic [(num_dram_lp*hbm2_num_channels_p)-1:0] dramsim3_write_not_read_li;
     logic [(num_dram_lp*hbm2_num_channels_p)-1:0][hbm2_channel_addr_width_p-1:0] dramsim3_ch_addr_li;
+    logic [(num_dram_lp*hbm2_num_channels_p)-1:0][(hbm2_data_width_p>>3)-1:0] dramsim3_mask_li;
     logic [(num_dram_lp*hbm2_num_channels_p)-1:0] dramsim3_yumi_lo;
 
     logic [(num_dram_lp*hbm2_num_channels_p)-1:0][hbm2_data_width_p-1:0] dramsim3_data_li;
@@ -544,6 +548,7 @@ module bsg_nonsynth_manycore_testbench
         ,.config_p            (`dram_pkg::config_p)
         ,.init_mem_p          (1)
         ,.base_id_p           (i*hbm2_num_channels_p)
+        ,.masked_p            (1)
       ) hbm0 (
         .clk_i                (dram_clk_i)
         ,.reset_i             (dram_reset_r)
@@ -551,11 +556,11 @@ module bsg_nonsynth_manycore_testbench
         ,.v_i                 (dramsim3_v_li[hbm2_num_channels_p*i+:hbm2_num_channels_p])
         ,.write_not_read_i    (dramsim3_write_not_read_li[hbm2_num_channels_p*i+:hbm2_num_channels_p])
         ,.ch_addr_i           (dramsim3_ch_addr_li[hbm2_num_channels_p*i+:hbm2_num_channels_p])
-        ,.mask_i              ('1)
         ,.yumi_o              (dramsim3_yumi_lo[hbm2_num_channels_p*i+:hbm2_num_channels_p])
 
         ,.data_v_i            (dramsim3_data_v_li[hbm2_num_channels_p*i+:hbm2_num_channels_p])
         ,.data_i              (dramsim3_data_li[hbm2_num_channels_p*i+:hbm2_num_channels_p])
+        ,.mask_i              (dramsim3_mask_li[hbm2_num_channels_p*i+:hbm2_num_channels_p])
         ,.data_yumi_o         (dramsim3_data_yumi_lo[hbm2_num_channels_p*i+:hbm2_num_channels_p])
 
         ,.data_v_o            (dramsim3_data_v_lo[hbm2_num_channels_p*i+:hbm2_num_channels_p])
@@ -626,6 +631,7 @@ module bsg_nonsynth_manycore_testbench
 
         ,.dram_data_v_o           (dramsim3_data_v_li[i])
         ,.dram_data_o             (dramsim3_data_li[i])
+        ,.dram_mask_o             (dramsim3_mask_li[i])
         ,.dram_data_yumi_i        (dramsim3_data_yumi_lo[i])
 
         ,.dram_data_v_i           (dramsim3_data_v_lo[i])
@@ -845,6 +851,7 @@ if (enable_cache_profiling_p) begin
   bind bsg_cache vcache_profiler #(
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
+    ,.block_size_in_words_p(block_size_in_words_p)
     ,.header_print_p({`BSG_STRINGIFY(`HOST_MODULE_PATH),".testbench.DUT.py[0].podrow.px[0].pod.north_vc_x[0].north_vc_row.vc_y[0].vc_x[0].vc.cache.vcache_prof"})
     ,.ways_p(ways_p)
   ) vcache_prof (

@@ -132,9 +132,9 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_dma.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_dma_to_wormhole.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_miss.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_sbuf.v
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_sbuf_queue.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_tbuf.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_buffer_queue.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_to_cache.v
-VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_vcache_blocking.v
 
 
 VSOURCES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/fNToRecFN.v
