@@ -52,6 +52,8 @@ module spmd_testbench();
   parameter axi_addr_width_p = 34;
   parameter axi_data_width_p = 256;
   parameter axi_burst_len_p  = 1;
+  parameter axi_sel_width_p = 4;
+  parameter dma_addr_width_p = axi_addr_width_p - axi_sel_width_p;
 
   // clock and reset
   parameter core_clk_period_p = 1000; // 1000 ps == 1 GHz
@@ -120,6 +122,15 @@ module spmd_testbench();
     wire [7:0][(axi_data_width_p>>3)-1:0]mem_axi_wstrb;
     wire [7:0]mem_axi_wvalid;
 
+    wire [7:0][axi_addr_width_p-1:0]mem_axi_araddr_sel;
+    wire [7:0][axi_addr_width_p-1:0]mem_axi_awaddr_sel;
+
+    for (genvar i = 0; i < 8; i++)
+      begin
+        assign mem_axi_araddr_sel[i] = {(axi_sel_width_p)'(i), mem_axi_araddr[i][dma_addr_width_p-1:0]};
+        assign mem_axi_awaddr_sel[i] = {(axi_sel_width_p)'(i), mem_axi_awaddr[i][dma_addr_width_p-1:0]};
+      end
+
   ////                        ////
   ////      Fake Memory       ////
   ////                        ////
@@ -132,14 +143,14 @@ module spmd_testbench();
               ,.axi_data_width_p   (axi_data_width_p)
               ,.axi_burst_len_p    (axi_burst_len_p)
               //,.mem_els_p          (mem_size_lp/(axi_data_width_p/8))
-              ,.mem_els_p(2)
+              ,.mem_els_p(2**29)
               ,.bsg_dram_included_p(1)
               ) axi_mem
               (.clk_i  (mig_clk)
               ,.reset_i(mig_reset)
 
               ,.axi_awid_i   (mem_axi_awid   [i])
-              ,.axi_awaddr_i (mem_axi_awaddr [i])
+              ,.axi_awaddr_i (mem_axi_awaddr_sel[i])
               ,.axi_awvalid_i(mem_axi_awvalid[i])
               ,.axi_awready_o(mem_axi_awready[i])
 
@@ -155,7 +166,7 @@ module spmd_testbench();
               ,.axi_bready_i (mem_axi_bready [i])
 
               ,.axi_arid_i   (mem_axi_arid   [i])
-              ,.axi_araddr_i (mem_axi_araddr [i])
+              ,.axi_araddr_i (mem_axi_araddr_sel[i])
               ,.axi_arvalid_i(mem_axi_arvalid[i])
               ,.axi_arready_o(mem_axi_arready[i])
 
