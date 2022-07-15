@@ -42,7 +42,7 @@ module bsg_wormhole_to_cache_dma_fanout
     //   it may be desirable for timing or congestion to buffer input flits
     , input [wh_ready_and_link_sif_width_lp-1:0] wh_link_sif_i
     , input [lg_num_dma_lp-1:0] wh_dma_id_i
-    , output logic [wh_then_ready_link_sif_width_lp-1:0] wh_link_sif_o
+    , output logic [wh_ready_and_link_sif_width_lp-1:0] wh_link_sif_o
 
     // cache DMA
     , output logic [num_dma_p-1:0][dma_pkt_width_lp-1:0] dma_pkt_o
@@ -70,8 +70,37 @@ module bsg_wormhole_to_cache_dma_fanout
   // cast wormhole links
   wh_ready_and_link_sif_s wh_link_sif_in;
   wh_then_ready_link_sif_s wh_link_sif_out;
-  assign wh_link_sif_in = wh_link_sif_i;
-  assign wh_link_sif_o = wh_link_sif_out;
+
+  // twofer fifos
+  wh_ready_and_link_sif_s wh_link_sif_in_twofer, wh_link_sif_out_twofer;
+  assign wh_link_sif_in_twofer = wh_link_sif_i;
+  assign wh_link_sif_o = wh_link_sif_out_twofer;
+
+  bsg_two_fifo
+ #(.width_p(wh_flit_width_p)
+  ) twofer_in
+  (.clk_i  (clk_i)
+  ,.reset_i(reset_i)
+  ,.v_i    (wh_link_sif_in_twofer.v)
+  ,.data_i (wh_link_sif_in_twofer.data)
+  ,.ready_o(wh_link_sif_out_twofer.ready_and_rev)
+  ,.v_o    (wh_link_sif_in.v)
+  ,.data_o (wh_link_sif_in.data)
+  ,.yumi_i (wh_link_sif_out.then_ready_rev)
+  );
+
+  bsg_two_fifo
+ #(.width_p(wh_flit_width_p)
+  ) twofer_out
+  (.clk_i  (clk_i)
+  ,.reset_i(reset_i)
+  ,.v_i    (wh_link_sif_out.v)
+  ,.data_i (wh_link_sif_out.data)
+  ,.ready_o(wh_link_sif_in.ready_and_rev)
+  ,.v_o    (wh_link_sif_out_twofer.v)
+  ,.data_o (wh_link_sif_out_twofer.data)
+  ,.yumi_i (wh_link_sif_out_twofer.v & wh_link_sif_in_twofer.ready_and_rev)
+  );
 
   // DMA pkt going out
   bsg_cache_dma_pkt_s dma_pkt_out;
