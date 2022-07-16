@@ -16,8 +16,7 @@ module bsg_nonsynth_manycore_monitor
     , parameter data_width_p="inv"
 
     , parameter data_mask_width_lp=(data_width_p>>3)
-    //, parameter mem_els_p=2**18
-    , parameter mem_els_p=2
+    , parameter mem_els_p=2**18
     , parameter mem_addr_width_lp=`BSG_SAFE_CLOG2(mem_els_p)
 
     , parameter uptime_p = 1
@@ -45,43 +44,43 @@ module bsg_nonsynth_manycore_monitor
     , output logic finish_o
   );
 
-  // int max_cycle;
-  // int num_finish;   // Number of finish packets needs to be received to end the simulation.
-  //                   // By default, number of pods running the SPMD program. Each pod sends one finish packet.
-  //                   // However, you can set a different number, depending on the nature of the spmd program.
-  //                   // For example, you can require a finish packet from each tile in 4x4 tile-group spmd program.
-  //                   // In  that case, you would set num_finish to 16. this helps with not requiring barrier to synchronize task completion of all tiles.
-  // initial begin
-  //   void'($value$plusargs("max_cycle=%d", max_cycle));
-  //   void'($value$plusargs("num_finish=%d", num_finish));
-  //   if (max_cycle == 0) begin
-  //     max_cycle = 1000000; // default
-  //   end
-  // end
-  // 
-  // 
-  // // get uptime from proc uptime.
-  // function string get_uptime();
-  //   string uptime;
-  //   if (uptime_p) begin
-  //     int fd;
-  //     fd = $fopen("/proc/uptime", "r");
-  //     void'($fscanf(fd, "%s", uptime));
-  //     $fclose(fd);
-  //   end
-  //   return uptime;
-  // endfunction
+  int max_cycle;
+  int num_finish;   // Number of finish packets needs to be received to end the simulation.
+                    // By default, number of pods running the SPMD program. Each pod sends one finish packet.
+                    // However, you can set a different number, depending on the nature of the spmd program.
+                    // For example, you can require a finish packet from each tile in 4x4 tile-group spmd program.
+                    // In  that case, you would set num_finish to 16. this helps with not requiring barrier to synchronize task completion of all tiles.
+  initial begin
+    void'($value$plusargs("max_cycle=%d", max_cycle));
+    void'($value$plusargs("num_finish=%d", num_finish));
+    if (max_cycle == 0) begin
+      max_cycle = 1000000; // default
+    end
+  end
+
+
+  // get uptime from proc uptime.
+  function string get_uptime();
+    string uptime;
+    if (uptime_p) begin
+      int fd;
+      fd = $fopen("/proc/uptime", "r");
+      void'($fscanf(fd, "%s", uptime));
+      $fclose(fd);
+    end
+    return uptime;
+  endfunction
 
 
   // keep track of number of finish packets received.
   integer finish_count;
   always_ff @ (negedge clk_i) begin
     if (~reset_i) begin
-      if (finish_count == 1) begin
+      if (finish_count == num_finish) begin
         finish_o <= 1'b1;
       end
       if (finish_o) begin
-        //$display("[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from all pods, time=%0t", $time);
+        $display("[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from all pods, time=%0t", $time);
         $finish;
       end
     end else begin
@@ -93,23 +92,23 @@ module bsg_nonsynth_manycore_monitor
   //
   logic [39:0] cycle_count;
 
-  // bsg_cycle_counter #(
-  //   .width_p(40)
-  //   ,.init_val_p(0)
-  // ) cc (
-  //   .clk_i(clk_i)
-  //   ,.reset_i(reset_i)
-  //   ,.ctr_r_o(cycle_count)
-  // );
-  // 
-  // always_ff @ (negedge clk_i) begin
-  //   if (~reset_i) begin
-  //     if (cycle_count > max_cycle) begin
-  //       $display("[INFO][MONITOR] BSG_TIMEOUT reached max_cycle = %d", max_cycle);
-  //       $finish;
-  //     end
-  //   end
-  // end
+  bsg_cycle_counter #(
+    .width_p(40)
+    ,.init_val_p(0)
+  ) cc (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.ctr_r_o(cycle_count)
+  );
+
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i) begin
+      if (cycle_count > max_cycle) begin
+        $display("[INFO][MONITOR] BSG_TIMEOUT reached max_cycle = %d", max_cycle);
+        $finish;
+      end
+    end
+  end
 
   // off-chip memory that tiles can access.
   //
@@ -199,64 +198,64 @@ module bsg_nonsynth_manycore_monitor
       if (v_i & we_i) begin
         if (~addr_i[addr_width_p-1]) begin
           if (epa_addr == bsg_finish_epa_gp) begin
-            // $display("[INFO][MONITOR] RECEIVED a finish packet from tile y,x=%2d,%2d, data=%x, sim_time=%0t, wall_time=%s",
-            //   src_y_cord_i, src_x_cord_i, data_i, $time, get_uptime());
+            $display("[INFO][MONITOR] RECEIVED a finish packet from tile y,x=%2d,%2d, data=%x, sim_time=%0t, wall_time=%s",
+              src_y_cord_i, src_x_cord_i, data_i, $time, get_uptime());
             finish_count <= finish_count + 1;
           end
-          // else if (epa_addr == bsg_time_epa_gp) begin
-          //   $display("[INFO][MONITOR] RECEIVED TIME BSG_PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
-          //     src_y_cord_i, src_x_cord_i, data_i, $time);
-          // end
-          // else if (epa_addr == bsg_heartbeat_init_epa_gp) begin
-          //   $display("[INFO][MONITOR] RECEIVED HEARTBEAT START from tile y,x=%2d,%2d, data=%x, time=%0t",
-          //     src_y_cord_i, src_x_cord_i, data_i, $time);
-          // end
-          // else if (epa_addr == bsg_heartbeat_iter_epa_gp) begin
-          //   $display("[INFO][MONITOR] RECEIVED HEARTBEAT ITER from tile y,x=%2d,%2d, data=%x, time=%0t",
-          //     src_y_cord_i, src_x_cord_i, data_i, $time);
-          // end
-          // else if (epa_addr == bsg_heartbeat_end_epa_gp) begin
-          //   $display("[INFO][MONITOR] RECEIVED HEARTBEAT END from tile y,x=%2d,%2d, data=%x, time=%0t",
-          //     src_y_cord_i, src_x_cord_i, data_i, $time);
-          // end
-          // else if (epa_addr == bsg_fail_epa_gp) begin
-          //   $display("[INFO][MONITOR] RECEIVED BSG_FAIL PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
-          //     src_y_cord_i, src_x_cord_i, data_i, $time);
-          //   $finish;
-          // end
-          // else if (epa_addr == bsg_stdout_epa_gp || epa_addr == bsg_stderr_epa_gp) begin
-          //   out_fd = (epa_addr == bsg_stdout_epa_gp) 
-          //              ? 32'h8000_0001  // 0xEADC => stdout
-          //              : 32'h8000_0002; // 0xEEE0 => stderr
-          // 
-          //   for (integer i = 0; i < 4; i++) begin
-          //     if (mask_i[i]) begin
-          //       $fwrite(out_fd, "%c", data_i[i*8+:8]);
-          //     end
-          //   end
-          // end
-          // else if (epa_addr == bsg_branch_trace_epa_gp) begin
-          //   // Branch and JALR trace
-          //   $fwrite('h8000_0002, "BSG_BRANCH_TRACE t=%0t x=%0d y=%0d target=%x\n"
-          //             , $time, src_x_cord_i, src_y_cord_i, data_i
-          //          );
-          // end
-          // else if (epa_addr == bsg_print_stat_epa_gp) begin
-          //   $display("[INFO][MONITOR] RECEIVED PRINT_STAT PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
-          //     src_y_cord_i, src_x_cord_i, data_i, $time);      
-          // end
-          // else begin
-          //   $display("[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x=%2d,%2d, data=%x, addr=%x, time=%0t",
-          //     src_y_cord_i, src_x_cord_i, data_i, addr_i, $time);
-          // end
+          else if (epa_addr == bsg_time_epa_gp) begin
+            $display("[INFO][MONITOR] RECEIVED TIME BSG_PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, $time);
+          end
+          else if (epa_addr == bsg_heartbeat_init_epa_gp) begin
+            $display("[INFO][MONITOR] RECEIVED HEARTBEAT START from tile y,x=%2d,%2d, data=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, $time);
+          end
+          else if (epa_addr == bsg_heartbeat_iter_epa_gp) begin
+            $display("[INFO][MONITOR] RECEIVED HEARTBEAT ITER from tile y,x=%2d,%2d, data=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, $time);
+          end
+          else if (epa_addr == bsg_heartbeat_end_epa_gp) begin
+            $display("[INFO][MONITOR] RECEIVED HEARTBEAT END from tile y,x=%2d,%2d, data=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, $time);
+          end
+          else if (epa_addr == bsg_fail_epa_gp) begin
+            $display("[INFO][MONITOR] RECEIVED BSG_FAIL PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, $time);
+            $finish;
+          end
+          else if (epa_addr == bsg_stdout_epa_gp || epa_addr == bsg_stderr_epa_gp) begin
+            out_fd = (epa_addr == bsg_stdout_epa_gp) 
+                       ? 32'h8000_0001  // 0xEADC => stdout
+                       : 32'h8000_0002; // 0xEEE0 => stderr
+
+            for (integer i = 0; i < 4; i++) begin
+              if (mask_i[i]) begin
+                $fwrite(out_fd, "%c", data_i[i*8+:8]);
+              end
+            end
+          end
+          else if (epa_addr == bsg_branch_trace_epa_gp) begin
+            // Branch and JALR trace
+            $fwrite('h8000_0002, "BSG_BRANCH_TRACE t=%0t x=%0d y=%0d target=%x\n"
+                      , $time, src_x_cord_i, src_y_cord_i, data_i
+                   );
+          end
+          else if (epa_addr == bsg_print_stat_epa_gp) begin
+            $display("[INFO][MONITOR] RECEIVED PRINT_STAT PACKET from tile y,x=%2d,%2d, data=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, $time);      
+          end
+          else begin
+            $display("[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x=%2d,%2d, data=%x, addr=%x, time=%0t",
+              src_y_cord_i, src_x_cord_i, data_i, addr_i, $time);
+          end
         end
       end
-      // else if (v_i & ~we_i) begin
-      //   if (~addr_i[addr_width_p-1]) begin
-      //     $display("[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x=%2d,%2d, time=%0t",
-      //       src_y_cord_i, src_x_cord_i, $time);
-      //   end
-      // end
+      else if (v_i & ~we_i) begin
+        if (~addr_i[addr_width_p-1]) begin
+          $display("[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x=%2d,%2d, time=%0t",
+            src_y_cord_i, src_x_cord_i, $time);
+        end
+      end
     end
   end
 
