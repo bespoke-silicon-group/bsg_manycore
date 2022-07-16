@@ -89,18 +89,9 @@ module bsg_wormhole_to_cache_dma_fanout
   ,.yumi_i (wh_link_sif_out.then_ready_rev)
   );
 
-  bsg_two_fifo
- #(.width_p(wh_flit_width_p)
-  ) twofer_out
-  (.clk_i  (clk_i)
-  ,.reset_i(reset_i)
-  ,.v_i    (wh_link_sif_out.v)
-  ,.data_i (wh_link_sif_out.data)
-  ,.ready_o(wh_link_sif_in.ready_and_rev)
-  ,.v_o    (wh_link_sif_out_twofer.v)
-  ,.data_o (wh_link_sif_out_twofer.data)
-  ,.yumi_i (wh_link_sif_out_twofer.v & wh_link_sif_in_twofer.ready_and_rev)
-  );
+  assign wh_link_sif_out_twofer.v = wh_link_sif_out.v;
+  assign wh_link_sif_out_twofer.data = wh_link_sif_out.data;
+  assign wh_link_sif_in.ready_and_rev = wh_link_sif_in_twofer.ready_and_rev;
 
   // DMA pkt going out
   bsg_cache_dma_pkt_s dma_pkt_out;
