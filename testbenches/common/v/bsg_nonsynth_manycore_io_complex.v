@@ -33,7 +33,6 @@ module bsg_nonsynth_manycore_io_complex
     input clk_i
     , input reset_i
     , output loader_done_o
-    , output finish_o
 
     , input [link_sif_width_lp-1:0] io_link_sif_i
     , output [link_sif_width_lp-1:0] io_link_sif_o
@@ -144,7 +143,6 @@ module bsg_nonsynth_manycore_io_complex
 
     ,.print_stat_v_o(print_stat_v_o)
     ,.print_stat_tag_o(print_stat_tag_o)
-    ,.finish_o(finish_o)
   );
 
   // SPMD loader

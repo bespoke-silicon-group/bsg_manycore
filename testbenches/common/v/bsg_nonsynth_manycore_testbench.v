@@ -73,7 +73,6 @@ module bsg_nonsynth_manycore_testbench
     , input reset_i
 
     , output tag_done_o
-    , output finish_o
 
     , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*axi_addr_width_p-1:0]mem_axi_araddr
     , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*2-1:0]mem_axi_arburst
@@ -309,7 +308,6 @@ module bsg_nonsynth_manycore_testbench
     ,.print_stat_v_o(print_stat_v)
     ,.print_stat_tag_o(print_stat_tag)
     ,.loader_done_o()
-    ,.finish_o(finish_o)
   );
 
 

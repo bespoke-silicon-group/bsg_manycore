@@ -184,7 +184,7 @@ module spmd_testbench();
 
 
   // testbench
-  logic tag_done_lo, finish_lo;
+  logic tag_done_lo;
 
   bsg_nonsynth_manycore_testbench #(
     .num_pods_x_p(num_pods_x_p)
@@ -243,7 +243,6 @@ module spmd_testbench();
     ,.reset_i(global_reset)
 
     ,.tag_done_o(tag_done_lo)
-    ,.finish_o(finish_lo)
 
     ,.mem_axi_araddr  (mem_axi_araddr  )
     ,.mem_axi_arburst (mem_axi_arburst )
