@@ -53,5 +53,5 @@ finish:
     li t0, 1;
     //csrw mtohost, t0;
     bsg_asm_finish(IO_X_INDEX, 0);
-    j finish
+    //j finish
 _code_section_2_end = .
