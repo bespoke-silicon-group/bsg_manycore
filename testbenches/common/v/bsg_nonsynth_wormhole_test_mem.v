@@ -26,7 +26,7 @@ module bsg_nonsynth_wormhole_test_mem
 
     , parameter lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
 
-    , parameter count_width_lp = `BSG_SAFE_CLOG2(data_len_lp)
+    , parameter count_width_lp = `BSG_WIDTH(data_len_lp)
 
     , parameter block_offset_width_lp = `BSG_SAFE_CLOG2((vcache_data_width_p>>3)*vcache_block_size_in_words_p)
 
@@ -86,7 +86,7 @@ module bsg_nonsynth_wormhole_test_mem
   logic [count_width_lp-1:0] count_lo;
 
   bsg_counter_clear_up #(
-    .max_val_p(data_len_lp-1)
+    .max_val_p(data_len_lp)
     ,.init_val_p(0)
   ) count (
     .clk_i(clk_i)
@@ -185,10 +185,11 @@ module bsg_nonsynth_wormhole_test_mem
       SEND_FILL_DATA: begin
         wh_link_sif_out.v = 1'b1;
         wh_link_sif_out.data = mem_r_data_filtered;
+        // DWP -- send an extra flit to avoid chip guts 64b flit problem
         if (wh_link_sif_in.ready_and_rev) begin
-          clear_li = (count_lo == data_len_lp-1);
-          up_li = (count_lo != data_len_lp-1);
-          mem_state_n = (count_lo == data_len_lp-1)
+          clear_li = (count_lo == data_len_lp);
+          up_li = (count_lo != data_len_lp);
+          mem_state_n = (count_lo == data_len_lp)
             ? READY
             : SEND_FILL_DATA;
         end
