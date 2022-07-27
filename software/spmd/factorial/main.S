@@ -63,5 +63,8 @@ finish:
     fence;
     li t0, 1;
     bsg_asm_finish(IO_X_INDEX, 0);
-    //j finish
+    j infloop;
+
+infloop:
+    j infloop;
 
