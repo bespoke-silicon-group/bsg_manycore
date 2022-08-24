@@ -56,6 +56,8 @@ package bsg_manycore_pkg;
   // this is included in payload for e_remote_load.
   // byte-selection for int_wb load should be done at the destination of request packet.
   typedef struct packed {
+    logic [2:0][bsg_manycore_reg_id_width_gp-1:0] coalesce_rd;
+    logic [1:0] coalesce_len;
     logic float_wb;
     logic icache_fetch;
     logic is_unsigned_op;
