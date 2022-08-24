@@ -30,6 +30,8 @@ module bsg_manycore_mesh_node
     , parameter int fwd_fifo_els_p[dirs_lp-1:0] = '{2,2,2,2,2}
     , parameter int rev_fifo_els_p[dirs_lp-1:0] = '{2,2,2,2,2}
 
+    , parameter fwd_instantiate_fifo_p = {dirs_lp{1'b1}}
+  
     , debug_p = 0
 
     , localparam packet_width_lp =
@@ -87,6 +89,7 @@ module bsg_manycore_mesh_node
     ,.fifo_els_p(fwd_fifo_els_p)
     ,.ruche_factor_X_p(ruche_factor_X_p)
     ,.ruche_factor_Y_p(ruche_factor_Y_p)
+    ,.instantiate_fifo_p(fwd_instantiate_fifo_p)  // Replacing P  with coalescing FIFO.
   ) fwd (
     .clk_i(clk_i)
     ,.reset_i(reset_i)

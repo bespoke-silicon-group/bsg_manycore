@@ -19,9 +19,13 @@ module network_tx
     , `BSG_INV_PARAM(vcache_size_p) // vcache capacity in words
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_sets_p)
+    , `BSG_INV_PARAM(icache_block_size_in_words_p)
  
     , `BSG_INV_PARAM(num_tiles_x_p)
     , `BSG_INV_PARAM(num_tiles_y_p)
+
+    , `BSG_INV_PARAM(credit_counter_width_p)
+ 
     , localparam x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
     , y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
   
@@ -41,19 +45,23 @@ module network_tx
       `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   (
-    input clk_i
-    , input reset_i
+    input clk_i       // debug only
+    , input reset_i   // debug only
  
     // network side
     , output logic [packet_width_lp-1:0] out_packet_o
+    , output logic load_coalescing_hint_o
+    , output logic load_coalescing_pair_o
     , output logic out_v_o
-    , input out_credit_or_ready_i
+    , input out_credit_i
+    , output [credit_counter_width_p-1:0] out_credits_used_o
 
     , input returned_v_i
     , input [data_width_p-1:0] returned_data_i
     , input [bsg_manycore_reg_id_width_gp-1:0] returned_reg_id_i
     , input bsg_manycore_return_packet_type_e returned_pkt_type_i
     , input returned_fifo_full_i
+    , input returned_credit_v_i
     , output logic returned_yumi_o
     
     , input [x_subcord_width_lp-1:0] tgo_x_i
@@ -99,7 +107,6 @@ module network_tx
 
   bsg_manycore_packet_s out_packet;
   assign out_packet_o = out_packet;
-
 
   // EVA -> NPA translation
   //
@@ -183,10 +190,14 @@ module network_tx
 
   end
 
+  assign load_coalescing_hint_o = remote_req_i.load_coalescing_hint;
+  assign load_coalescing_pair_o = remote_req_i.load_coalescing_pair;
+
+
   // handling outgoing requests
   //
   assign out_v_o = remote_req_v_i & ~is_invalid_addr_lo;
-  assign remote_req_credit_o = out_credit_or_ready_i;
+  assign remote_req_credit_o = out_credit_i;
   assign invalid_eva_access_o = remote_req_v_i & is_invalid_addr_lo;
 
 
@@ -231,6 +242,32 @@ module network_tx
     endcase
 
   end
+
+
+  // credit counting
+  localparam step_width_lp = `BSG_WIDTH(icache_block_size_in_words_p);
+
+  wire is_ifetch = (out_packet.op_v2 == e_remote_load) && out_packet.payload.load_info_s.load_info.icache_fetch;
+  wire [step_width_lp-1:0] launching_out = out_v_o
+    ? (is_ifetch
+      ? step_width_lp'(icache_block_size_in_words_p)
+      : step_width_lp'(1))
+    : step_width_lp'(0);
+  wire [step_width_lp-1:0] returned_credit = returned_credit_v_i
+    ? step_width_lp'(1)
+    : step_width_lp'(0);
+  bsg_counter_up_down #(
+    .max_val_p((1<<credit_counter_width_p)-1)
+    ,.init_val_p(0)
+    ,.max_step_p(icache_block_size_in_words_p)
+  ) out_credit_ctr (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.down_i(returned_credit) // receive credit back
+    ,.up_i(launching_out)     // launch remote packet
+    ,.count_o(out_credits_used_o)
+  );
+
 
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin
