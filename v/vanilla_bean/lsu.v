@@ -28,15 +28,22 @@ module lsu
   (
     input clk_i
     , input reset_i
+    
+    // from ID
+    , input [reg_addr_width_lp-1:0] id_rs1_i
+    , input [RV32_Iimm_width_gp-1:0] id_load_imm_i
+    , input decode_s id_decode_i
 
     // from EXE
     , input decode_s exe_decode_i
-    , input [data_width_p-1:0] exe_rs1_i
-    , input [data_width_p-1:0] exe_rs2_i
+    , input [reg_addr_width_lp-1:0] exe_rs1_i
+    , input [data_width_p-1:0] exe_rs1_val_i
+    , input [data_width_p-1:0] exe_rs2_val_i
     , input [reg_addr_width_lp-1:0] exe_rd_i
     , input [RV32_Iimm_width_gp-1:0] mem_offset_i
     , input [data_width_p-1:0] pc_plus4_i
     , input icache_miss_i
+    , input load_coalescing_pair_i
 
     // to network TX
     , output remote_req_s remote_req_o
@@ -59,7 +66,7 @@ module lsu
   logic [data_width_p-1:0] mem_addr;
   logic [data_width_p-1:0] miss_addr;
 
-  assign mem_addr = exe_rs1_i + `BSG_SIGN_EXTEND(mem_offset_i, data_width_p);
+  assign mem_addr = exe_rs1_val_i + `BSG_SIGN_EXTEND(mem_offset_i, data_width_p);
   assign miss_addr = (pc_plus4_i - 'h4) | bsg_dram_npa_prefix_gp;
 
   // store data mask
@@ -69,7 +76,7 @@ module lsu
 
   always_comb begin
     if (exe_decode_i.is_byte_op) begin
-      store_data = {4{exe_rs2_i[7:0]}};
+      store_data = {4{exe_rs2_val_i[7:0]}};
       store_mask = {
          mem_addr[1] &  mem_addr[0],
          mem_addr[1] & ~mem_addr[0],
@@ -78,7 +85,7 @@ module lsu
       };
     end
     else if (exe_decode_i.is_hex_op) begin
-      store_data = {2{exe_rs2_i[15:0]}};
+      store_data = {2{exe_rs2_val_i[15:0]}};
       store_mask = {
         {2{mem_addr[1]}},
         {2{~mem_addr[1]}}
@@ -86,7 +93,7 @@ module lsu
     end
     else begin
       // also covers AMO op
-      store_data = exe_rs2_i;
+      store_data = exe_rs2_val_i;
       store_mask = 4'b1111;
     end
   end
@@ -106,6 +113,22 @@ module lsu
 
   assign byte_sel_o = mem_addr[1:0];
 
+  // Load coalescing hint
+  wire [9:0] exe_imm_plus4 = 1'b1 + mem_offset_i[11:2];
+  wire coalesce_frd_cond = exe_decode_i.write_frd & id_decode_i.write_frd;
+  wire coalesce_rd_cond = exe_decode_i.write_rd 
+                        & id_decode_i.write_rd 
+                        & ~(exe_decode_i.is_byte_op | exe_decode_i.is_hex_op | id_decode_i.is_byte_op | id_decode_i.is_hex_op);
+  wire load_coalescing_hint = (exe_rs1_i == id_rs1_i)
+                            && ((exe_imm_plus4 == id_load_imm_i[11:2]) 
+                                  && (mem_offset_i[11] | ~exe_imm_plus4[9])) // make sure to check rollover
+                            && ((exe_rd_i != exe_rs1_i) || exe_decode_i.write_frd)
+                            && exe_decode_i.is_load_op
+                            && id_decode_i.is_load_op
+                            && (coalesce_frd_cond || coalesce_rd_cond)
+                            && mem_addr[data_width_p-1]; // going to DRAM
+
+
   // remote request
   // 1) icache fetch
   // 2) remote store
@@ -117,6 +140,8 @@ module lsu
     // load info
     if (icache_miss_i) begin
       load_info = '{
+        coalesce_rd: '0,
+        coalesce_len: 2'b00,
         float_wb: 1'b0,
         icache_fetch: 1'b1,
         is_unsigned_op: 1'b0,
@@ -127,6 +152,8 @@ module lsu
     end
     else begin
       load_info = '{
+        coalesce_rd: '0,
+        coalesce_len: 2'b00,
         float_wb: exe_decode_i.write_frd,
         icache_fetch: 1'b0,
         is_unsigned_op: exe_decode_i.is_load_unsigned,
@@ -144,7 +171,9 @@ module lsu
       load_info : load_info,
       reg_id : exe_rd_i,
       data : store_data,
-      addr : (icache_miss_i ? miss_addr : mem_addr)
+      addr : (icache_miss_i ? miss_addr : mem_addr),
+      load_coalescing_hint: load_coalescing_hint,
+      load_coalescing_pair: load_coalescing_pair_i
     }; 
 
   end

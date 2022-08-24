@@ -32,8 +32,9 @@ module vanilla_core
     , parameter credit_counter_width_p=`BSG_WIDTH(32)
 
     // For network input FIFO credit counting
-      // By default, 3 credits are needed, because the round trip to get the credit back takes three cycles.
-      // ID->EXE->FIFO->CREDIT.
+      // By default, 4 credits are needed, because the round trip to get the credit back takes four cycles in the worst case.
+      // The worst case is when there is a load coalescing.
+      // ID->EXE->FIFO->FIFO->CREDIT.
     , `BSG_INV_PARAM(fwd_fifo_els_p)
     , localparam lg_fwd_fifo_els_lp=`BSG_WIDTH(fwd_fifo_els_p)
 
@@ -480,10 +481,12 @@ module vanilla_core
 
   // calculate mem address offset
   //
+  wire [RV32_Iimm_width_gp-1:0] id_load_imm = `RV32_Iimm_12extract(id_r.instruction);
+  wire [RV32_Iimm_width_gp-1:0] id_store_imm = `RV32_Simm_12extract(id_r.instruction);
   wire [RV32_Iimm_width_gp-1:0] mem_addr_op2 = id_r.decode.is_store_op
-    ? `RV32_Simm_12extract(id_r.instruction)
+    ? id_store_imm
     : (id_r.decode.is_load_op
-      ? `RV32_Iimm_12extract(id_r.instruction)
+      ? id_load_imm 
       : '0);
 
   // 'aq' register
@@ -616,6 +619,26 @@ module vanilla_core
       : int_rf_rdata[1]);
 
 
+  // load coalescing pair bit
+  logic id_load_coalescing_pair_r;
+  logic id_load_coalescing_pair_set;
+  logic id_load_coalescing_pair_clear;
+
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      id_load_coalescing_pair_r <= 1'b0;
+    end
+    else begin
+      if (id_load_coalescing_pair_clear) begin
+        id_load_coalescing_pair_r <= 1'b0;
+      end
+      else if (id_load_coalescing_pair_set) begin
+        id_load_coalescing_pair_r <= 1'b1;
+      end
+    end
+  end
+
+
   //////////////////////////////
   //                          //
   //        EXE STAGE         //
@@ -721,13 +744,18 @@ module vanilla_core
   ) lsu0 (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
+    ,.id_rs1_i(id_r.instruction.rs1)
+    ,.id_load_imm_i(id_load_imm)
+    ,.id_decode_i(id_r.decode)
     ,.exe_decode_i(exe_r.decode)
-    ,.exe_rs1_i(exe_r.rs1_val)
-    ,.exe_rs2_i(exe_r.rs2_val)
+    ,.exe_rs1_i(exe_r.instruction.rs1)
+    ,.exe_rs1_val_i(exe_r.rs1_val)
+    ,.exe_rs2_val_i(exe_r.rs2_val)
     ,.exe_rd_i(exe_r.instruction.rd)
     ,.mem_offset_i(exe_r.mem_addr_op2)
     ,.pc_plus4_i(exe_r.pc_plus4)
     ,.icache_miss_i(exe_r.icache_miss)
+    ,.load_coalescing_pair_i(exe_r.load_coalescing_pair)
 
     ,.remote_req_o(remote_req_o)
     ,.remote_req_v_o(lsu_remote_req_v_lo)
@@ -1582,7 +1610,8 @@ module vanilla_core
                     : rs2_val_to_exe),
       mem_addr_op2: mem_addr_op2,
       icache_miss: id_r.icache_miss,
-      branch_predicted_taken: id_r.branch_predicted_taken
+      branch_predicted_taken: id_r.branch_predicted_taken,
+      load_coalescing_pair: (remote_req_o.load_coalescing_hint | id_load_coalescing_pair_r)
     };
 
     if (stall_all) begin
@@ -1609,7 +1638,8 @@ module vanilla_core
           rs2_val: '0,
           mem_addr_op2: '0,
           icache_miss: 1'b0,
-          branch_predicted_taken: 1'b0
+          branch_predicted_taken: 1'b0,
+          load_coalescing_pair: 1'b0
         };
       end
       else begin
@@ -1617,6 +1647,10 @@ module vanilla_core
       end
     end
   end
+
+  assign id_load_coalescing_pair_clear = flush | ~(stall_id & stall_all);
+  assign id_load_coalescing_pair_set = remote_req_o.load_coalescing_hint;
+
 
   // idiv input control
   assign idiv_v_li = exe_r.decode.is_idiv_op & ~stall_all;

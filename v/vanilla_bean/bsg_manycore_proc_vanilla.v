@@ -88,10 +88,9 @@ module bsg_manycore_proc_vanilla
   logic returning_data_v_li;
   logic [data_width_p-1:0] returning_data_li;
 
-  bsg_manycore_packet_s out_packet_li;
-  logic out_v_li;
-  logic out_credit_or_ready_lo;
-  logic link_credit_lo;
+  bsg_manycore_packet_s endp_out_packet_li;
+  logic endp_out_v_li;
+  logic endp_out_yumi_lo;
 
   logic returned_v_r_lo;
   logic returned_yumi_li;
@@ -99,8 +98,8 @@ module bsg_manycore_proc_vanilla
   bsg_manycore_return_packet_type_e returned_pkt_type_r_lo;
   logic [bsg_manycore_reg_id_width_gp-1:0] returned_reg_id_r_lo;
   logic returned_fifo_full_lo;
+  logic returned_credit_v_r_lo;
 
-  logic [credit_counter_width_p-1:0] out_credits_used_lo;
   logic [x_cord_width_p-1:0] 	      src_x_cord_debug_lo;
   logic [y_cord_width_p-1:0] 	      src_y_cord_debug_lo;   
    
@@ -112,10 +111,13 @@ module bsg_manycore_proc_vanilla
     ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
     ,.fifo_els_p(proc_fifo_els_p)
 
+    // credit counting is disabled here,
+    // because the fifo is taken out of the router module, and replaced with the coalescing FIFO.
+    ,.enable_credit_counter_p(0)
     ,.credit_counter_width_p(credit_counter_width_p)
     ,.rev_fifo_els_p(rev_fifo_els_p)
 
-    ,.use_credits_for_local_fifo_p(1)
+    ,.use_credits_for_local_fifo_p(0)
   ) endp (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -138,9 +140,9 @@ module bsg_manycore_proc_vanilla
     ,.returning_data_i(returning_data_li)
 
     // tx
-    ,.out_packet_i(out_packet_li)
-    ,.out_v_i(out_v_li)
-    ,.out_credit_or_ready_o(out_credit_or_ready_lo)
+    ,.out_packet_i(endp_out_packet_li)
+    ,.out_v_i(endp_out_v_li)
+    ,.out_credit_or_ready_o(endp_out_yumi_lo)
 
     ,.returned_v_r_o(returned_v_r_lo)
     ,.returned_data_r_o(returned_data_r_lo)
@@ -149,10 +151,10 @@ module bsg_manycore_proc_vanilla
     ,.returned_fifo_full_o(returned_fifo_full_lo)
     ,.returned_yumi_i(returned_yumi_li)
 
-    ,.returned_credit_v_r_o()
+    ,.returned_credit_v_r_o(returned_credit_v_r_lo)
     ,.returned_credit_reg_id_r_o()
 
-    ,.out_credits_used_o(out_credits_used_lo)
+    ,.out_credits_used_o() // disabled
 
     ,.global_x_i({pod_x_i, my_x_i})
     ,.global_y_i({pod_y_i, my_y_i})
@@ -245,6 +247,7 @@ module bsg_manycore_proc_vanilla
   remote_req_s remote_req;
   logic remote_req_v;
   logic remote_req_credit;
+  logic [credit_counter_width_p-1:0] tx_out_credits_used_lo;
 
   logic ifetch_v_lo;
   logic [data_width_p-1:0] ifetch_instr_lo;
@@ -262,6 +265,12 @@ module bsg_manycore_proc_vanilla
   logic int_remote_load_resp_yumi_li;
 
   logic invalid_eva_access_lo;
+  
+  logic tx_load_coalescing_hint_lo;
+  logic tx_load_coalescing_pair_lo;
+  bsg_manycore_packet_s tx_out_packet_lo;
+  logic tx_out_v_lo;
+  logic tx_out_credit_li;
 
   network_tx #(
     .data_width_p(data_width_p)
@@ -274,9 +283,11 @@ module bsg_manycore_proc_vanilla
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
-
+    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
+
+    ,.credit_counter_width_p(credit_counter_width_p)
 
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
@@ -284,9 +295,12 @@ module bsg_manycore_proc_vanilla
     .clk_i(clk_i)
     ,.reset_i(reset_i)
 
-    ,.out_packet_o(out_packet_li)
-    ,.out_v_o(out_v_li)
-    ,.out_credit_or_ready_i(out_credit_or_ready_lo)
+    ,.load_coalescing_hint_o(tx_load_coalescing_hint_lo)
+    ,.load_coalescing_pair_o(tx_load_coalescing_pair_lo)
+    ,.out_packet_o(tx_out_packet_lo)
+    ,.out_v_o(tx_out_v_lo)
+    ,.out_credit_i(tx_out_credit_li)
+    ,.out_credits_used_o(tx_out_credits_used_lo)
 
     ,.returned_v_i(returned_v_r_lo)
     ,.returned_data_i(returned_data_r_lo)
@@ -294,6 +308,7 @@ module bsg_manycore_proc_vanilla
     ,.returned_pkt_type_i(returned_pkt_type_r_lo)
     ,.returned_fifo_full_i(returned_fifo_full_lo)
     ,.returned_yumi_o(returned_yumi_li)
+    ,.returned_credit_v_i(returned_credit_v_r_lo)
 
     ,.tgo_x_i(tgo_x)
     ,.tgo_y_i(tgo_y) 
@@ -328,6 +343,29 @@ module bsg_manycore_proc_vanilla
 
     ,.invalid_eva_access_o(invalid_eva_access_lo)
   );
+
+  // Coalescing FIFO
+  coalescing_fifo #(
+    .addr_width_p(addr_width_p)
+    ,.data_width_p(data_width_p)
+    ,.x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+  ) coalfifo (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.packet_i(tx_out_packet_lo)
+    ,.v_i(tx_out_v_lo)
+    ,.load_coalescing_hint_i(tx_load_coalescing_hint_lo)
+    ,.load_coalescing_pair_i(tx_load_coalescing_pair_lo)
+    ,.credit_o(tx_out_credit_li)
+
+    ,.packet_o(endp_out_packet_li)
+    ,.v_o(endp_out_v_li)
+    ,.yumi_i(endp_out_yumi_lo)
+  );
+
 
   // Vanilla Core
   //
@@ -383,7 +421,7 @@ module bsg_manycore_proc_vanilla
     ,.int_remote_load_resp_force_i(int_remote_load_resp_force_lo)
     ,.int_remote_load_resp_yumi_o(int_remote_load_resp_yumi_li)
 
-    ,.out_credits_used_i(out_credits_used_lo)
+    ,.out_credits_used_i(tx_out_credits_used_lo)
     ,.invalid_eva_access_i(invalid_eva_access_lo)
   
     ,.remote_interrupt_set_i(remote_interrupt_set_lo)

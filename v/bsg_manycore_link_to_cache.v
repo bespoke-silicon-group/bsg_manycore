@@ -22,7 +22,6 @@ module bsg_manycore_link_to_cache
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
     , fifo_els_p=4
-    , localparam icache_block_offset_width_lp=`BSG_SAFE_CLOG2(icache_block_size_in_words_p)
 
     , localparam lg_sets_lp=`BSG_SAFE_CLOG2(sets_p)
     , lg_ways_lp=`BSG_SAFE_CLOG2(ways_p)
@@ -31,6 +30,9 @@ module bsg_manycore_link_to_cache
     , byte_offset_width_lp=`BSG_SAFE_CLOG2(data_width_p>>3)
     , cache_addr_width_lp=(link_addr_width_p-1+byte_offset_width_lp) 
     , block_offset_width_lp=(word_offset_width_lp+byte_offset_width_lp)
+
+    , localparam icache_block_offset_width_lp=`BSG_SAFE_CLOG2(icache_block_size_in_words_p)
+    , localparam counter_width_lp=`BSG_MAX(word_offset_width_lp, icache_block_offset_width_lp)
   
     , link_sif_width_lp=
       `bsg_manycore_link_sif_width(link_addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
@@ -111,6 +113,8 @@ module bsg_manycore_link_to_cache
   assign load_info = packet_lo.payload.load_info_s.load_info;
   
   wire is_packet_ifetch = (packet_lo.op_v2 == e_remote_load) & load_info.icache_fetch;
+  wire is_packet_load_coalesce = (load_info.coalesce_len != 2'b0) 
+                              && (packet_lo.op_v2 == e_remote_load);
 
   // at the reset, this module intializes all the tags and valid bits to zero.
   // After all the tags are completedly initialized, this module starts
@@ -119,11 +123,12 @@ module bsg_manycore_link_to_cache
   bsg_cache_pkt_s cache_pkt;
   assign cache_pkt_o = cache_pkt;
 
-  typedef enum logic [1:0] {
+  typedef enum logic [2:0] {
     RESET
     ,CLEAR_TAG
     ,READY
     ,IFETCH
+    ,LOAD_UNCOALESCE
   } state_e;
 
   state_e state_r, state_n;
@@ -136,7 +141,7 @@ module bsg_manycore_link_to_cache
   // 
   typedef struct packed {
     bsg_manycore_return_packet_type_e pkt_type;
-    logic [4:0] reg_id;
+    logic [bsg_manycore_reg_id_width_gp-1:0] reg_id;
     logic [y_cord_width_p-1:0] y_cord;
     logic [x_cord_width_p-1:0] x_cord;
   } cache_info_s;
@@ -178,14 +183,32 @@ module bsg_manycore_link_to_cache
     ,.reg_id_o(payload_reg_id)
   );
 
+  
+  logic expand_count_up, expand_count_clear;
+  logic [counter_width_lp-1:0] expand_count_r;
+  bsg_counter_clear_up #(
+    .max_val_p({counter_width_lp{1'b1}})
+    ,.init_val_p(0)
+  ) expc (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.clear_i(expand_count_clear)
+    ,.up_i(expand_count_up)
+    ,.count_o(expand_count_r)
+  );
+
+  wire [3:0][bsg_manycore_reg_id_width_gp-1:0] load_coalesce_reg_id = {load_info.coalesce_rd, packet_lo.reg_id};
+
   always_ff @ (posedge clk_i) begin
-    if (state_r == READY || state_r == IFETCH) begin
+    if (state_r == READY || state_r == IFETCH || state_r == LOAD_UNCOALESCE) begin
       if (v_o & ready_i) begin
         tl_info_r <= '{
           pkt_type: return_pkt_type,
           reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
               ? payload_reg_id
-              : packet_lo.reg_id,
+              : ((state_r == LOAD_UNCOALESCE)
+                ? load_coalesce_reg_id[expand_count_r[1:0]]
+                : packet_lo.reg_id),
           y_cord: packet_lo.src_y_cord,
           x_cord: packet_lo.src_x_cord
         };
@@ -195,19 +218,11 @@ module bsg_manycore_link_to_cache
       end
     end
   end
+
   
-  logic ifetch_count_up;
-  logic [icache_block_offset_width_lp-1:0] ifetch_count_r;
-  always_ff @ (posedge clk_i) begin
-    if (reset_i) begin
-      ifetch_count_r <= '0;
-    end
-    else begin
-      if (ifetch_count_up) begin
-        ifetch_count_r <= ifetch_count_r + 1'b1;
-      end
-    end
-  end
+  // load coalesce word offset
+  wire [word_offset_width_lp-1:0] load_coalesce_word_offset = expand_count_r[0+:word_offset_width_lp] + packet_lo.addr[0+:word_offset_width_lp];
+
 
   always_comb begin
 
@@ -225,7 +240,8 @@ module bsg_manycore_link_to_cache
     packet_yumi_li = 1'b0;
     return_packet_v_li = 1'b0;  
 
-    ifetch_count_up = 1'b0;
+    expand_count_up = 1'b0;
+    expand_count_clear = 1'b0;
 
     case (state_r)
       RESET: begin
@@ -263,7 +279,7 @@ module bsg_manycore_link_to_cache
 
         // cache pkt
         v_o = packet_v_lo;
-        packet_yumi_li = is_packet_ifetch
+        packet_yumi_li = (is_packet_ifetch | is_packet_load_coalesce)
           ? 1'b0
           : (packet_v_lo & ready_i);
     
@@ -359,11 +375,26 @@ module bsg_manycore_link_to_cache
         
         unique case (packet_lo.op_v2)
           e_remote_load: begin
-            cache_pkt.addr = {
-              packet_lo.addr[link_addr_width_p-2:icache_block_offset_width_lp],
-              load_info.icache_fetch ? ifetch_count_r : packet_lo.addr[0+:icache_block_offset_width_lp],
-              load_info.part_sel
-            };
+            if (load_info.icache_fetch) begin
+              cache_pkt.addr = {
+                packet_lo.addr[link_addr_width_p-2:icache_block_offset_width_lp],
+                expand_count_r[0+:icache_block_offset_width_lp],
+                2'b00
+              };
+            end
+            else if (is_packet_load_coalesce) begin
+              cache_pkt.addr = {
+                packet_lo.addr[link_addr_width_p-2:word_offset_width_lp],
+                load_coalesce_word_offset,
+                2'b00
+              };
+            end
+            else begin
+              cache_pkt.addr = {
+                packet_lo.addr[link_addr_width_p-2:0],
+                load_info.part_sel
+              };
+            end
           end
           default: begin
             cache_pkt.addr = {
@@ -378,22 +409,31 @@ module bsg_manycore_link_to_cache
         yumi_o = v_i & return_packet_ready_lo;
 
         
-        ifetch_count_up = (is_packet_ifetch & ready_i & packet_v_lo);
+        expand_count_up = (is_packet_ifetch | is_packet_load_coalesce) & ready_i & packet_v_lo;
+/*
         state_n = is_packet_ifetch
           ? ((ready_i & packet_v_lo) ? IFETCH : READY)
+          : (is_packet_load_coalesce 
+            ? ((ready_i & packet_v_lo) ? LOAD_UNCOALESCE : READY)
+            : READY);
+*/
+        state_n = (ready_i & packet_v_lo)
+          ? (is_packet_ifetch
+            ? IFETCH
+            : (is_packet_load_coalesce ? LOAD_UNCOALESCE : READY))
           : READY;
       end
 
       IFETCH: begin
         v_o = packet_v_lo;
-        packet_yumi_li = packet_v_lo & ready_i & (ifetch_count_r == icache_block_size_in_words_p-1);
+        packet_yumi_li = packet_v_lo & ready_i & (expand_count_r == icache_block_size_in_words_p-1);
 
         cache_pkt.opcode = LW;
         cache_pkt.data = '0;
         cache_pkt.mask = '0;
         cache_pkt.addr = {
           packet_lo.addr[link_addr_width_p-2:icache_block_offset_width_lp],
-          ifetch_count_r,
+          expand_count_r[0+:icache_block_offset_width_lp],
           2'b00
         }; 
        
@@ -401,13 +441,41 @@ module bsg_manycore_link_to_cache
         return_packet_v_li = v_i;
         yumi_o = v_i & return_packet_ready_lo;
 
-        ifetch_count_up = (packet_v_lo & ready_i);
+        expand_count_up = (packet_v_lo & ready_i) && (expand_count_r != icache_block_size_in_words_p-1);
+        expand_count_clear = (packet_v_lo & ready_i) && (expand_count_r == icache_block_size_in_words_p-1);
         state_n = (packet_v_lo & ready_i)
-          ? ((ifetch_count_r == icache_block_size_in_words_p-1) 
+          ? ((expand_count_r == icache_block_size_in_words_p-1) 
             ? READY
             : IFETCH)
           : IFETCH;
       end
+
+      LOAD_UNCOALESCE: begin
+        v_o = packet_v_lo;
+        packet_yumi_li = packet_v_lo & ready_i & (expand_count_r == load_info.coalesce_len);
+       
+        cache_pkt.opcode = LW;
+        cache_pkt.data = '0;
+        cache_pkt.mask = '0;
+        cache_pkt.addr = {
+          packet_lo.addr[link_addr_width_p-2:word_offset_width_lp],
+          load_coalesce_word_offset,
+          2'b00
+        }; 
+
+        // return pkt
+        return_packet_v_li = v_i;
+        yumi_o = v_i & return_packet_ready_lo;
+
+        expand_count_up = (packet_v_lo & ready_i) && (expand_count_r != load_info.coalesce_len);
+        expand_count_clear = (packet_v_lo & ready_i) && (expand_count_r == load_info.coalesce_len);
+        state_n = (packet_v_lo & ready_i)
+          ? ((expand_count_r == load_info.coalesce_len) 
+            ? READY
+            : LOAD_UNCOALESCE)
+          : LOAD_UNCOALESCE;
+      end
+
 
       default: begin
         // this should never happen.

@@ -63,6 +63,8 @@ typedef struct packed
   logic [bsg_manycore_reg_id_width_gp-1:0] reg_id;
   logic [31:0] data;
   logic [31:0] addr;
+  logic load_coalescing_hint;
+  logic load_coalescing_pair;
 } remote_req_s;
 
 // remote load response from network
@@ -239,6 +241,7 @@ typedef struct packed
     logic                              icache_miss;
     logic                              valid;             // valid instruction in EXE
     logic                              branch_predicted_taken;
+    logic                              load_coalescing_pair;
 } exe_signals_s;
 
 
