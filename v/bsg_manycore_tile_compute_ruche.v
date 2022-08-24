@@ -128,7 +128,7 @@ module bsg_manycore_tile_compute_ruche
     ? 7'b0000001
     : 7'b0000000;
   localparam int fwd_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0)
-    ? '{2,2,2,2,2,2,3}
+    ? '{2,2,2,2,2,2,4}
     : '{2,2,2,2,2,2,2};
   localparam rev_use_credits_lp = (hetero_type_p == 0)
     ? 7'b0000001
@@ -157,6 +157,7 @@ module bsg_manycore_tile_compute_ruche
     ,.fwd_fifo_els_p(fwd_fifo_els_lp)
     ,.rev_use_credits_p(rev_use_credits_lp)
     ,.rev_fifo_els_p(rev_fifo_els_lp)
+    ,.fwd_instantiate_fifo_p({{(dirs_lp){1'b1}}, 1'b0})
   ) rtr (
     .clk_i(clk_i)
     ,.reset_i(reset_r)

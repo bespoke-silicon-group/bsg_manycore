@@ -34,6 +34,7 @@ module bsg_manycore_endpoint_standard
     , `BSG_INV_PARAM(addr_width_p           )
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
+    , enable_credit_counter_p = 1
     , credit_counter_width_p = `BSG_WIDTH(32)
     , warn_out_of_credits_p  = 1
 
@@ -136,6 +137,7 @@ module bsg_manycore_endpoint_standard
     ,.addr_width_p(addr_width_p)
     ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
 
+    ,.enable_credit_counter_p(enable_credit_counter_p)
     ,.credit_counter_width_p(credit_counter_width_p)
     ,.warn_out_of_credits_p(warn_out_of_credits_p)
 
