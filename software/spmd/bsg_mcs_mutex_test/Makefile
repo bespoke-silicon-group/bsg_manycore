@@ -6,12 +6,13 @@ export BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
 
 RISCV_GXX_EXTRA_OPTS += -DITERS=16
 
+all: main.run
+
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
 
 OBJECT_FILES=main.o
 
-all: main.run
 
 main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) crt.o
 	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
