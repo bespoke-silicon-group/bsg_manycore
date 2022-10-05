@@ -5,13 +5,20 @@
 
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
+#include "bsg_hw_barrier.h"
+#include "bsg_hw_barrier_config_init.h"
 
-#define BSG_TILE_GROUP_X_DIM bsg_tiles_X
-#define BSG_TILE_GROUP_Y_DIM bsg_tiles_Y
-#include "bsg_tile_group_barrier.h"
-INIT_TILE_GROUP_BARRIER(r_barrier, c_barrier, 0, bsg_tiles_X-1, 0, bsg_tiles_Y-1);
 #define N (bsg_tiles_X*bsg_tiles_Y)
 #define M 64
+
+// HW barrier configuration
+int barcfg[bsg_tiles_X*bsg_tiles_Y] __attribute__ ((section (".dram"))) = {0};
+
+// AMOADD barrier
+extern void bsg_barrier_amoadd(int*, int*);
+int amoadd_lock __attribute__ ((section (".dram"))) = 0;
+int amoadd_alarm = 1;
+
 
 // Tiles write to this array.
 int data[N*64] __attribute__ ((section (".dram"))) = {0};
@@ -22,6 +29,34 @@ int main()
 
   // set tiles
   bsg_set_tile_x_y();
+
+
+  // setup HW barrier
+  // calculate barcfg
+  if (__bsg_id == 0) {
+    // calculate HW barrier config.
+    bsg_hw_barrier_config_init(barcfg, bsg_tiles_X, bsg_tiles_Y);
+    // print the configuration matrix.
+    for (int y = 0; y < bsg_tiles_Y; y++) {
+      for (int x = 0; x < bsg_tiles_X; x++) {
+        int id = (y*bsg_tiles_X) + x;
+      } 
+    }
+  }
+
+  // AMOADD barrier
+  bsg_fence();
+  bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm);  
+
+  // configure HW barrier
+  int my_barcfg = barcfg[__bsg_id];
+  asm volatile ("csrrw x0, 0xfc1, %0" : : "r" (my_barcfg));
+
+
+  // join barrier
+  bsg_fence();
+  bsg_barsend();
+  bsg_barrecv();
 
   
   // Everyone writes to DRAM.
@@ -36,7 +71,8 @@ int main()
 
   // join barrier
   bsg_fence();
-  bsg_tile_group_barrier(&r_barrier, &c_barrier);  
+  bsg_barsend();
+  bsg_barrecv();
 
 
   // validated by origin tile.
@@ -54,7 +90,5 @@ int main()
   {
     bsg_wait_while(1);
   }
-
-
 }
 
