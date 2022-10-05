@@ -421,8 +421,9 @@ module bsg_nonsynth_manycore_testbench
               bsg_cache_wh_header_flit_s header_flit_in;
               assign header_flit_in = buffered_wh_link_sif_lo[i][j][k][n][r];
 
-              wire [lg_num_vcaches_per_link_lp-1:0] dma_id_li =
-                header_flit_in.src_cord[lg_wh_ruche_factor_lp+:lg_num_vcaches_per_link_lp];
+              wire [lg_num_vcaches_per_link_lp-1:0] dma_id_li = (num_vcaches_per_link_lp == 1)
+                ? 1'b0
+                : header_flit_in.src_cord[lg_wh_ruche_factor_lp+:lg_num_vcaches_per_link_lp];
 
               bsg_wormhole_to_cache_dma_fanout#(
                 .num_dma_p(num_vcaches_per_link_lp)
