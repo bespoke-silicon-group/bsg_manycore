@@ -44,4 +44,7 @@ if __name__ == "__main__":
 
 
   tg.wait(16)
+  tg.wait(16)
+  tg.wait(16)
+  tg.wait(16)
   tg.done()
