@@ -32,16 +32,9 @@ int main()
 
 
   // setup HW barrier
-  // calculate barcfg
   if (__bsg_id == 0) {
     // calculate HW barrier config.
     bsg_hw_barrier_config_init(barcfg, bsg_tiles_X, bsg_tiles_Y);
-    // print the configuration matrix.
-    for (int y = 0; y < bsg_tiles_Y; y++) {
-      for (int x = 0; x < bsg_tiles_X; x++) {
-        int id = (y*bsg_tiles_X) + x;
-      } 
-    }
   }
 
   // AMOADD barrier
