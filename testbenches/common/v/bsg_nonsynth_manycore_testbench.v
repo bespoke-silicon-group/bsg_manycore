@@ -419,7 +419,7 @@ module bsg_nonsynth_manycore_testbench
 
               `declare_bsg_cache_wh_header_flit_s(wh_flit_width_p,wh_cord_width_p,wh_len_width_p,wh_cid_width_p);
               bsg_cache_wh_header_flit_s header_flit_in;
-              assign header_flit_in = buffered_wh_link_sif_lo[i][j][k][n][r];
+              assign header_flit_in = buffered_wh_link_sif_lo[i][j][k][n][r].data;
 
               wire [lg_num_vcaches_per_link_lp-1:0] dma_id_li = (num_vcaches_per_link_lp == 1)
                 ? 1'b0
