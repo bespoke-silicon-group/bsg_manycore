@@ -2,7 +2,7 @@ MAX_CYCLES=100000000
 
 all: main.run
 
-OBJECT_FILES=main.o
+OBJECT_FILES=main.o bsg_barrier_amoadd.o
 
 include ../Makefile.include
 

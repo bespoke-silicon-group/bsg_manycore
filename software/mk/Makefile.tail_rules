@@ -2,7 +2,7 @@
 	echo $($*)
 
 dve:
-	$(VCS_BIN)/dve -full64 -vpd dump.vpd &
+	$(VCS_BIN)/dve -full64 -vpd vcdplus.vpd &
 
 %.pelog: pe.log
 	cat pe.log | grep '^$@' | sed 's/$@ //' > $@
