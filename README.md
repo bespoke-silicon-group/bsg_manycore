@@ -54,7 +54,7 @@ In bsg\_manycore:
 
 BSG Manycore has preliminary support for simulating with the open-source [Verilator](https://github.com/verilator/verilator) toolchain!
 
-To test this feature, set BSG\_PLATFORM=verilator in machines/bsg\_platform.mk and then follow the
+To test this feature, set BSG\_PLATFORM=verilator in machines/platform.mk and then follow the
 above instructions to run tests normally. This platform only currently supports the machine
 pod\_1x1\_4X2Y due to excessive compilation times for larger machines. Most likely, future work can
 enable larger machines with hierarchical Verilation. verilator must be on your path (or override
