@@ -22,28 +22,41 @@ aggregated [CoreMark](https://www.eembc.org/coremark/) score, a world record. Ma
         * Version tag: **tile\_group\_org\_master**
         * A more comprehensive document including programming model, FPGA emulation and applications ([TVM](https://tvm.ai)) of manycore.
 
-# Initial Setup for running programs
+# Initial setup for running programs
 
-Above this directory:
+NOTE: If you do not have bsg\_cadenv, then you will have to add IGNORE\_CADENV=1 to your make commands. To use commerical tools in this case, you may need
+to set some platform-dependent VCS or Xcelium variables. If you do not have access to commerical CAD tools, then we suggest using the free and open-source
+Verilator flow described in the section below.
 
-- Checkout `basejump_stl`; cd into imports directory and type `make DRAMSim3`
-- Checkout `bsg_cadenv` if you are a BSG group member
+In a scratch directory:
 
-In this directory:
+    git clone bsg_manycore
+    git clone basejump_stl
+    make -C basejump_stl/imports DRAMSim3
+    # If a BSG group member
+    git clone bsg_cadenv
+
+This should result in your directory looking like the following:
+
+    bsg_manycore/
+    basejump_stl/
+    bsg_cadenv/ (if BSG member)
+
+In bsg\_manycore:
 
 - `make checkout_submodules`: To update all submodules in `imports/`.
 - `make tools`: To install software toolchain required running programs on BSG Manycore. (This build uses 12-16 threads by default.)
-- `make machines`: Compile simulation executables in `machines/`.  If you do not have bsg_cadenv, then you will have to set some VCS-related variables.
-- Edit `BSG_MACHINE_PATH` in `software/mk/Makefile.paths` to choose the machine to run somd programs on.
+- `make machines`: Compile simulation executables in `machines/`.
+- Edit `BSG_MACHINE_PATH` in `software/mk/Makefile.paths` to choose the machine to run spmd programs on.
 - go into `software/spmd/bsg_barrier` and type `make` to run a test!
 
 ## Verilator (Beta Support)
 
 BSG Manycore has preliminary support for simulating with the open-source [Verilator](https://github.com/verilator/verilator) toolchain!
 
-To test this feature, set BSG_PLATFORM=verilator in machines/bsg_platform.mk and then follow the
+To test this feature, set BSG\_PLATFORM=verilator in machines/bsg\_platform.mk and then follow the
 above instructions to run tests normally. This platform only currently supports the machine
-pod_1x1_4X2Y due to excessive compilation times for larger machines. Most likely, future work can
+pod\_1x1\_4X2Y due to excessive compilation times for larger machines. Most likely, future work can
 enable larger machines with hierarchical Verilation. verilator must be on your path (or override
 the VERILATOR variable in machines/Makefile.verilator).
 
@@ -55,7 +68,7 @@ by putting `source scl_source enable devtoolset-8` in your .basrhc.
 BSG Manycore has preliminary support for parsing with the open-source [Surelog](https://github.com/chipsalliance/SureLog) toolchain!
 
 To test this feature, run `make -C machines parse`. Parse-only module is supported, which verifies
-that each file in bsg_manycore can be parsed as an individual compilation unit, in order to provide
+that each file in bsg\_manycore can be parsed as an individual compilation unit, in order to provide
 the greatest tool compatibility. Future work will enable full UHDM generation.
 
 # Contributions
