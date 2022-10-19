@@ -61,7 +61,7 @@ enable larger machines with hierarchical Verilation. verilator must be on your p
 the VERILATOR variable in machines/Makefile.verilator).
 
 On CentOS, you may need to use a modern GCC installation with `scl enable devtoolset-8 -- bash` or
-by putting `source scl_source enable devtoolset-8` in your .basrhc.
+by putting `source scl_source enable devtoolset-8` in your .bashrc.
 
 ## Surelog (Beta Support)
 
