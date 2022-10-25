@@ -27,6 +27,7 @@ module bsg_manycore_tile_vcache
     , `BSG_INV_PARAM(vcache_sets_p)
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_dma_data_width_p)
+    , `BSG_INV_PARAM(vcache_word_tracking_p)
 
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
     // wh_ruche_factor_p supported only for 2^n, n>0.
@@ -217,7 +218,7 @@ module bsg_manycore_tile_vcache
     ,.block_size_in_words_p(vcache_block_size_in_words_p)
     ,.sets_p(vcache_sets_p)
     ,.ways_p(vcache_ways_p)
-    ,.word_tracking_p(1)
+    ,.word_tracking_p(vcache_word_tracking_p)
     ,.dma_data_width_p(vcache_dma_data_width_p)
     ,.amo_support_p(vcache_amo_support_p)
   ) cache (

@@ -41,6 +41,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter `BSG_INV_PARAM(vcache_size_p) // in words
     , parameter `BSG_INV_PARAM(vcache_addr_width_p) // byte addr
     , parameter `BSG_INV_PARAM(num_vcaches_per_channel_p)
+    , parameter vcache_word_tracking_p = 1
 
     , parameter `BSG_INV_PARAM(wh_flit_width_p)
     , parameter wh_ruche_factor_p = 2
@@ -102,6 +103,7 @@ module bsg_nonsynth_manycore_testbench
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_X_CORD            = %d", `BSG_MACHINE_ORIGIN_X_CORD);
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_Y_CORD            = %d", `BSG_MACHINE_ORIGIN_Y_CORD);
     $display("[INFO][TESTBENCH] BSG_MACHINE_NUM_VCACHE_ROWS          = %d", num_vcache_rows_p);
+    $display("[INFO][TESTBENCH] vcache_word_tracking_p               = %d", vcache_word_tracking_p);
     $display("[INFO][TESTBENCH] enable_vcore_profiling_p             = %d", enable_vcore_profiling_p);
     $display("[INFO][TESTBENCH] enable_router_profiling_p            = %d", enable_router_profiling_p);
     $display("[INFO][TESTBENCH] enable_cache_profiling_p             = %d", enable_cache_profiling_p);
@@ -187,6 +189,7 @@ module bsg_nonsynth_manycore_testbench
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+    ,.vcache_word_tracking_p(vcache_word_tracking_p)
 
     ,.wh_ruche_factor_p(wh_ruche_factor_p)
     ,.wh_cid_width_p(wh_cid_width_p)
