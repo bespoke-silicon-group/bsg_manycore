@@ -96,7 +96,7 @@ module router_profiler
 
   // when there is print_stat_v_i signal received, it dumps the stats.
   always @ (posedge clk_i) begin
-    if (~reset_i & trace_en_i & print_stat_v_i) begin
+    if (~reset_i & print_stat_v_i) begin
       fd = $fopen(tracefile_p, "a");
       for (integer i = 0; i < dirs_lp; i++) begin
         $fwrite(fd, "%0t,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n", 
