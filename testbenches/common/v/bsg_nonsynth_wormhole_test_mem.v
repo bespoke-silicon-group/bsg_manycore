@@ -4,6 +4,7 @@
 
 module bsg_nonsynth_wormhole_test_mem
   import bsg_manycore_pkg::*;
+  import bsg_cache_pkg::*;
   #(parameter `BSG_INV_PARAM(vcache_data_width_p)
     , parameter `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , parameter `BSG_INV_PARAM(vcache_dma_data_width_p)
@@ -18,15 +19,16 @@ module bsg_nonsynth_wormhole_test_mem
 
     // determines address hashing based on cid and src_cord
     , parameter no_concentration_p=0
+  
+    , parameter dma_ratio_lp = (vcache_dma_data_width_p/vcache_data_width_p)
+    , parameter data_len_lp = (vcache_block_size_in_words_p/dma_ratio_lp)
 
-    , parameter data_len_lp = (vcache_data_width_p*vcache_block_size_in_words_p/vcache_dma_data_width_p)
     , parameter longint unsigned `BSG_INV_PARAM(mem_size_p)   // size of memory in bytes
     , parameter mem_els_lp = mem_size_p/(vcache_dma_data_width_p/8)
     , parameter mem_addr_width_lp = `BSG_SAFE_CLOG2(mem_els_lp)
 
     , parameter lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
 
-    , parameter count_width_lp = `BSG_SAFE_CLOG2(data_len_lp)
 
     , parameter block_offset_width_lp = `BSG_SAFE_CLOG2((vcache_data_width_p>>3)*vcache_block_size_in_words_p)
 
@@ -41,8 +43,55 @@ module bsg_nonsynth_wormhole_test_mem
     , output [wh_link_sif_width_lp-1:0] wh_link_sif_o
   );
 
- 
-  // memory
+  // State variables
+  typedef enum logic [2:0] {
+    RESET
+    ,READY
+    ,RECV_ADDR
+    ,RECV_MASK
+    ,RECV_EVICT_DATA
+    ,SEND_FILL_HEADER
+    ,SEND_FILL_DATA
+  } mem_state_e;
+
+  mem_state_e mem_state_r, mem_state_n;
+  bsg_cache_wh_opcode_e opcode_r, opcode_n;
+  logic [wh_flit_width_p-1:0] addr_r, addr_n;
+  logic [wh_cord_width_p-1:0] src_cord_r, src_cord_n;
+  logic [wh_cid_width_p-1:0] src_cid_r, src_cid_n;
+  logic [vcache_block_size_in_words_p-1:0] mask_r, mask_n;
+
+
+  // flit counter
+  localparam count_width_lp = `BSG_SAFE_CLOG2(data_len_lp);
+  logic clear_li;
+  logic up_li;
+  logic [count_width_lp-1:0] count_lo;
+
+  bsg_counter_clear_up #(
+    .max_val_p(data_len_lp-1)
+    ,.init_val_p(0)
+  ) count (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+    ,.clear_i(clear_li)
+    ,.up_i(up_li)
+    ,.count_o(count_lo)
+  );
+
+
+  // write mask mux
+  logic [dma_ratio_lp-1:0] mask_selected;
+  bsg_mux #(
+    .width_p(dma_ratio_lp)
+    ,.els_p(data_len_lp)
+  ) mux0 (
+    .data_i(mask_r)
+    ,.sel_i(count_lo)
+    ,.data_o(mask_selected)
+  );
+
+  // memory block
   logic mem_we;
   logic [mem_addr_width_lp-1:0] mem_addr;
   logic [vcache_dma_data_width_p-1:0] mem_w_data;
@@ -51,12 +100,18 @@ module bsg_nonsynth_wormhole_test_mem
 
   always_ff @ (posedge clk_i) begin
     if (mem_we) begin
-      mem_r[mem_addr] <= mem_w_data;
+      for (integer i = 0; i < dma_ratio_lp; i++) begin
+        if (mask_selected[i]) begin
+          mem_r[mem_addr][vcache_data_width_p*i+:vcache_data_width_p] <= mem_w_data[vcache_data_width_p*i+:vcache_data_width_p];
+        end
+      end
     end
   end
 
   assign mem_r_data = mem_r[mem_addr];
 
+  // Memory Output
+  // mem_r is not initialized  on reset, but we filter the X data being injected into the network to prevent X propagation.
   logic [vcache_dma_data_width_p-1:0] mem_r_data_filtered;
   always_comb begin
     for (integer b = 0; b < vcache_dma_data_width_p; b++) begin
@@ -81,40 +136,9 @@ module bsg_nonsynth_wormhole_test_mem
   bsg_cache_wh_header_flit_s header_flit_in;
   assign header_flit_in = wh_link_sif_in.data;
 
-  logic clear_li;
-  logic up_li;
-  logic [count_width_lp-1:0] count_lo;
-
-  bsg_counter_clear_up #(
-    .max_val_p(data_len_lp-1)
-    ,.init_val_p(0)
-  ) count (
-    .clk_i(clk_i)
-    ,.reset_i(reset_i)
-    ,.clear_i(clear_li)
-    ,.up_i(up_li)
-    ,.count_o(count_lo)
-  );
-
-
-  typedef enum logic [2:0] {
-    RESET
-    ,READY
-    ,RECV_ADDR
-    ,RECV_EVICT_DATA
-    ,SEND_FILL_HEADER
-    ,SEND_FILL_DATA
-  } mem_state_e;
-
-  mem_state_e mem_state_r, mem_state_n;
-  logic write_not_read_r, write_not_read_n;
-  logic [wh_flit_width_p-1:0] addr_r, addr_n;
-  logic [wh_cord_width_p-1:0] src_cord_r, src_cord_n;
-  logic [wh_cid_width_p-1:0] src_cid_r, src_cid_n;
-  
   bsg_cache_wh_header_flit_s header_flit_out;
   assign header_flit_out.unused = '0;
-  assign header_flit_out.write_not_read = '0; // dont care
+  assign header_flit_out.opcode = e_cache_wh_read; // dont care
   assign header_flit_out.src_cord = '0;   // dont care
   assign header_flit_out.src_cid = '0;   // dont care
   assign header_flit_out.cid = src_cid_r;
@@ -126,10 +150,11 @@ module bsg_nonsynth_wormhole_test_mem
     clear_li = 1'b0;
     up_li = 1'b0;
 
-    write_not_read_n = write_not_read_r;
+    opcode_n = opcode_r;
     addr_n = addr_r;
     src_cord_n = src_cord_r;
     src_cid_n = src_cid_r;
+    mask_n = mask_r;
     mem_state_n = mem_state_r;
  
     mem_we = 1'b0;
@@ -145,7 +170,7 @@ module bsg_nonsynth_wormhole_test_mem
       READY: begin
         wh_link_sif_out.ready_and_rev = 1'b1;
         if (wh_link_sif_in.v) begin
-          write_not_read_n = header_flit_in.write_not_read;
+          opcode_n = header_flit_in.opcode;
           src_cord_n = header_flit_in.src_cord;
           src_cid_n = header_flit_in.src_cid;
           mem_state_n = RECV_ADDR;
@@ -156,9 +181,24 @@ module bsg_nonsynth_wormhole_test_mem
         wh_link_sif_out.ready_and_rev = 1'b1;
         if (wh_link_sif_in.v) begin
           addr_n = wh_link_sif_in.data;
-          mem_state_n = write_not_read_r
-            ? RECV_EVICT_DATA
-            : SEND_FILL_HEADER;
+          mask_n = (opcode_r == e_cache_wh_write_non_masked)
+            ? ('1)
+            : mask_r;
+          case (opcode_r)
+            e_cache_wh_read:              mem_state_n = SEND_FILL_HEADER;
+            e_cache_wh_write_non_masked:  mem_state_n = RECV_EVICT_DATA;
+            e_cache_wh_write_masked:      mem_state_n = RECV_MASK;
+            // This never happens.
+            default: mem_state_n = READY; 
+          endcase
+        end
+      end
+
+      RECV_MASK: begin
+        wh_link_sif_out.ready_and_rev = 1'b1;
+        if (wh_link_sif_in.v) begin
+          mask_n = wh_link_sif_in.data[0+:vcache_block_size_in_words_p];
+          mem_state_n = RECV_EVICT_DATA;
         end
       end
 
@@ -230,17 +270,19 @@ module bsg_nonsynth_wormhole_test_mem
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       mem_state_r <= RESET;
-      write_not_read_r <= 1'b0;
+      opcode_r <= e_cache_wh_read;
       src_cord_r <= '0;
       src_cid_r <= '0;
       addr_r <= '0;
+      mask_r <= '0;
     end
     else begin
       mem_state_r <= mem_state_n;
-      write_not_read_r <= write_not_read_n;
+      opcode_r <= opcode_n;
       src_cord_r <= src_cord_n;
       src_cid_r <= src_cid_n;
       addr_r <= addr_n;
+      mask_r <= mask_n;
     end
   end
 

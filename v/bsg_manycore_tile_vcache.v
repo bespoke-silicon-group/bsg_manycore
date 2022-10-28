@@ -27,6 +27,7 @@ module bsg_manycore_tile_vcache
     , `BSG_INV_PARAM(vcache_sets_p)
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_dma_data_width_p)
+    , `BSG_INV_PARAM(vcache_word_tracking_p)
 
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
     // wh_ruche_factor_p supported only for 2^n, n>0.
@@ -76,7 +77,7 @@ module bsg_manycore_tile_vcache
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
   `declare_bsg_cache_pkt_s(vcache_addr_width_p,vcache_data_width_p);
-  `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p);
+  `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p, vcache_block_size_in_words_p);
 
 
   // reset dff
@@ -217,6 +218,7 @@ module bsg_manycore_tile_vcache
     ,.block_size_in_words_p(vcache_block_size_in_words_p)
     ,.sets_p(vcache_sets_p)
     ,.ways_p(vcache_ways_p)
+    ,.word_tracking_p(vcache_word_tracking_p)
     ,.dma_data_width_p(vcache_dma_data_width_p)
     ,.amo_support_p(vcache_amo_support_p)
   ) cache (
@@ -255,6 +257,7 @@ module bsg_manycore_tile_vcache
 
   bsg_cache_dma_to_wormhole #(
     .dma_addr_width_p(vcache_addr_width_p)
+    ,.dma_mask_width_p(vcache_block_size_in_words_p)
     ,.dma_burst_len_p(vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)
 
     ,.wh_flit_width_p(wh_flit_width_p)

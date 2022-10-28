@@ -36,6 +36,7 @@ module bsg_manycore_pod_ruche_row
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_size_p)
     , `BSG_INV_PARAM(vcache_dma_data_width_p)
+    , `BSG_INV_PARAM(vcache_word_tracking_p)
 
     , wh_ruche_factor_p=2 // only support 2 for now
     , `BSG_INV_PARAM(wh_cid_width_p)
@@ -140,6 +141,7 @@ module bsg_manycore_pod_ruche_row
       ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
       ,.vcache_size_p(vcache_size_p)
       ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_word_tracking_p(vcache_word_tracking_p)
 
       ,.wh_ruche_factor_p(wh_ruche_factor_p)
       ,.wh_cid_width_p(wh_cid_width_p)

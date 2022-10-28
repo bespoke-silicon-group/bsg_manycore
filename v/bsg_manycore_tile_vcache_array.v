@@ -34,6 +34,7 @@ module bsg_manycore_tile_vcache_array
     , `BSG_INV_PARAM(vcache_sets_p)
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_dma_data_width_p)
+    , `BSG_INV_PARAM(vcache_word_tracking_p)
 
     , `BSG_INV_PARAM(wh_ruche_factor_p)
     , `BSG_INV_PARAM(wh_cid_width_p)
@@ -94,6 +95,7 @@ module bsg_manycore_tile_vcache_array
         ,.vcache_sets_p(vcache_sets_p)
         ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
         ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+        ,.vcache_word_tracking_p(vcache_word_tracking_p)
 
         ,.wh_ruche_factor_p(wh_ruche_factor_p)
         ,.wh_cid_width_p(wh_cid_width_p)

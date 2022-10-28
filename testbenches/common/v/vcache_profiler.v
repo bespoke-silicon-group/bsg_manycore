@@ -12,13 +12,14 @@ module vcache_profiler
   #(parameter `BSG_INV_PARAM(data_width_p)
     , parameter `BSG_INV_PARAM(addr_width_p)
     , parameter `BSG_INV_PARAM(ways_p)
+    , parameter `BSG_INV_PARAM(block_size_in_words_p)
 
     // this string is matched against the name of the instance, and decides whether to print csv header or not.
     , parameter header_print_p="y[3].x[0]"
 
     , parameter data_mask_width_lp=(data_width_p>>3)
     , parameter lg_ways_lp=`BSG_SAFE_CLOG2(ways_p)
-    , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p)
+    , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p, block_size_in_words_p)
     , parameter stat_info_width_lp=`bsg_cache_stat_info_width(ways_p)
   )
   (
@@ -59,7 +60,7 @@ module vcache_profiler
   endtask
 
 
-  `declare_bsg_cache_dma_pkt_s(addr_width_p);
+  `declare_bsg_cache_dma_pkt_s(addr_width_p, block_size_in_words_p);
   bsg_cache_dma_pkt_s dma_pkt;
   assign dma_pkt = dma_pkt_o;
 

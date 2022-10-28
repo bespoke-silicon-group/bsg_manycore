@@ -37,13 +37,14 @@ module spmd_testbench
   parameter vcache_dma_data_width_p = `BSG_MACHINE_VCACHE_DMA_DATA_WIDTH; // in bits
   parameter vcache_size_p = vcache_sets_p*vcache_ways_p*vcache_block_size_in_words_p;
   parameter vcache_addr_width_p=(addr_width_p-1+`BSG_SAFE_CLOG2(data_width_p>>3));  // in bytes
+  parameter vcache_word_tracking_p = `BSG_MACHINE_VCACHE_WORD_TRACKING;
   parameter num_vcaches_per_channel_p = `BSG_MACHINE_NUM_VCACHES_PER_CHANNEL;  
 
 
   parameter wh_flit_width_p = vcache_dma_data_width_p;
   parameter wh_ruche_factor_p = 2;
   parameter wh_cid_width_p = `BSG_SAFE_CLOG2(2*wh_ruche_factor_p); // no concentration in this testbench; cid is ignored.
-  parameter wh_len_width_p = `BSG_SAFE_CLOG2(1+(vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)); // header + addr + data
+  parameter wh_len_width_p = `BSG_SAFE_CLOG2(2+(vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)); // header + addr + mask + data
   parameter wh_cord_width_p = x_cord_width_p;
 
   parameter bsg_dram_size_p = `BSG_MACHINE_DRAM_SIZE_WORDS; // in words
@@ -113,6 +114,7 @@ module spmd_testbench
     ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_addr_width_p(vcache_addr_width_p)
+    ,.vcache_word_tracking_p(vcache_word_tracking_p)
     ,.num_vcaches_per_channel_p(num_vcaches_per_channel_p)
 
     ,.wh_flit_width_p(wh_flit_width_p)
