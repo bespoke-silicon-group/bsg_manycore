@@ -37,7 +37,7 @@ module spmd_testbench
   parameter vcache_dma_data_width_p = `BSG_MACHINE_VCACHE_DMA_DATA_WIDTH; // in bits
   parameter vcache_size_p = vcache_sets_p*vcache_ways_p*vcache_block_size_in_words_p;
   parameter vcache_addr_width_p=(addr_width_p-1+`BSG_SAFE_CLOG2(data_width_p>>3));  // in bytes
-  parameter vcache_word_tracking_p = 1; // default
+  parameter vcache_word_tracking_p = `BSG_MACHINE_VCACHE_WORD_TRACKING;
   parameter num_vcaches_per_channel_p = `BSG_MACHINE_NUM_VCACHES_PER_CHANNEL;  
 
 
