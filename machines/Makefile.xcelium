@@ -1,6 +1,8 @@
 
 # Sets "XRUN" variable
+ifeq ($(IGNORE_CADENV),)
 include $(BSG_MANYCORE_DIR)/../bsg_cadenv/cadenv.mk
+endif
 
 ifeq ($(XRUN),)
 $(warning XRUN must be set; probably need XRUN_HOME, SNPSLMD_LICENSE_FILE too, maybe LM_LICENSE file)
