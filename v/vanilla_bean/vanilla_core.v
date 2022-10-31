@@ -905,7 +905,7 @@ module vanilla_core
     ,.fp_rs1_i(fp_exe_data_r.rs1_val)
     ,.fp_rs2_i(fp_exe_data_r.rs2_val)
     ,.fsqrt_i(fp_exe_ctrl_r.fp_decode.is_fsqrt_op)
-    ,.ready_o(fdiv_fsqrt_ready_lo)
+    ,.ready_and_o(fdiv_fsqrt_ready_lo)
 
     ,.v_o(fdiv_fsqrt_v_lo)
     ,.result_o(fdiv_fsqrt_result_lo)
