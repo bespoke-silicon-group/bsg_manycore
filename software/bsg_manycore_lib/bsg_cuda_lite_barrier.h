@@ -4,10 +4,6 @@
 #include "bsg_hw_barrier.h"
 #include "bsg_tile_config_vars.h"
 
-#if defined(BSG_BARRIER_HW_TILE_GROUP_USE_BSG_TILE_GROUP_BARRIER)
-#include "bsg_tile_group_barrier.hpp"
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,26 +11,17 @@ extern "C" {
 extern int *__cuda_barrier_cfg;
 
 #if defined(BSG_BARRIER_HW_TILE_GROUP_USE_BSG_TILE_GROUP_BARRIER)
-    __attribute__((weak))
-    bsg_barrier<bsg_tiles_X, bsg_tiles_Y> __cuda_tg_barrier;
 /**
  * Initialize the tile-group barrier.
  * This function should only be called once for the lifetime of the tile-group.
  */
-static inline void bsg_barrier_hw_tile_group_init()
-{
-    int sense = 1;
-    __cuda_tg_barrier.reset();        
-    bsg_barrier_amoadd(&__cuda_barrier_cfg[0], &sense);
-}
+void bsg_barrier_hw_tile_group_init();
 
 /**
  * Invoke the tile-group barrier.
  */
-static inline void bsg_barrier_hw_tile_group_sync()
-{
-    __cuda_tg_barrier.sync();
-}
+void bsg_barrier_hw_tile_group_sync();
+
 
 #elif defined(BSG_BARRIER_HW_TILE_GROUP_USE_BSG_BARRIER_AMOADD)
 __attribute__((weak))
