@@ -49,10 +49,15 @@ module vcache_profiler
     , input trace_en_i // from toplevel testbench
   );
 
-  `DEFINE_PROFILER(bsg_vcache_profiler
-                   ,"vcache_operation_trace.csv"
-                   ,"cycle,vcache,operation\n"
-                   )
+  localparam string stats_header = "time,vcache,global_ctr,tag,instr_ld,instr_ld_ld,instr_ld_ldu,instr_ld_lw,instr_ld_lwu,instr_ld_lh,instr_ld_lhu,instr_ld_lb,instr_ld_lbu,instr_st,instr_sm_sd,instr_sm_sw,instr_sm_sh,instr_sm_sb,instr_tagst,instr_tagfl,instr_taglv,instr_tagla,instr_afl,instr_aflinv,instr_ainv,instr_alock,instr_aunlock,instr_atomic,instr_amoswap,instr_amoor,instr_amoadd,miss_ld,miss_st,miss_amo,stall_miss,stall_idle,stall_rsp,dma_read_req,dma_write_req,replace_invalid,replace_valid,replace_dirty\n";
+  
+  `DECLARE_PROFILER_DPI_FUNCTIONS(bsg_vcache_profiler)
+  `DEFINE_PROFILER_INITIAL_BLOCK_0(bsg_vcache_profiler
+                                   ,"vcache_stats.csv"
+                                   ,stats_header
+                                   ,"vcache_operation_trace.csv"
+                                   ,"cycle,vcache,operation\n")
+  `DEFINE_PROFILER_FINAL_BLOCK(bsg_vcache_profiler)
 
   // task to print a line of operation trace
   task print_operation_trace(string vcache_name, string op);

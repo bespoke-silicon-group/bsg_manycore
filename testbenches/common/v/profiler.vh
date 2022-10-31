@@ -50,6 +50,22 @@ initial begin \
   profiler_name``_unlock(); \
 end
 
+`define DEFINE_PROFILER_INITIAL_BLOCK_0(profiler_name, stats_file_name, stats_file_header, trace_file_name, trace_file_header) \
+int init_trace_fd; \
+int stats_fd; \
+initial begin \
+  profiler_name``_lock();  \
+  if (profiler_name``_is_init() == 0) begin \
+    init_trace_fd = $fopen(trace_file_name, "w"); \
+    profiler_name``_init(init_trace_fd); \
+    stats_fd = $fopen(stats_file_name, "w"); \
+    $fwrite(stats_fd, stats_file_header); \
+    $fclose(stats_fd); \
+    $fwrite(init_trace_fd, trace_file_header); \
+  end \
+  profiler_name``_unlock(); \
+end
+
 `define DEFINE_PROFILER_FINAL_BLOCK(profiler_name) \
   int final_trace_fd; \
   final begin \
