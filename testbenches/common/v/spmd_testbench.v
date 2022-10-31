@@ -8,6 +8,7 @@
 module spmd_testbench
   import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
+  import bsg_manycore_network_cfg_pkg::*;
   (output bit reset_o);
 
   parameter num_pods_x_p  = `BSG_MACHINE_PODS_X;
@@ -28,6 +29,7 @@ module spmd_testbench
   parameter icache_block_size_in_words_p = 4;
   parameter ruche_factor_X_p    = `BSG_MACHINE_RUCHE_FACTOR_X;
   parameter barrier_ruche_factor_X_p    = `BSG_MACHINE_BARRIER_RUCHE_FACTOR_X;
+
 
   parameter num_vcache_rows_p = `BSG_MACHINE_NUM_VCACHE_ROWS;
   parameter vcache_data_width_p = data_width_p;
@@ -50,6 +52,7 @@ module spmd_testbench
   parameter bsg_dram_size_p = `BSG_MACHINE_DRAM_SIZE_WORDS; // in words
   parameter bsg_dram_included_p = `BSG_MACHINE_DRAM_INCLUDED;
   parameter bsg_manycore_mem_cfg_e bsg_manycore_mem_cfg_p = `BSG_MACHINE_MEM_CFG;
+  parameter bsg_manycore_network_cfg_e bsg_manycore_network_cfg_p = `BSG_MACHINE_NETWORK_CFG;
   parameter reset_depth_p = 3;
 
 
@@ -123,6 +126,7 @@ module spmd_testbench
     ,.wh_len_width_p(wh_len_width_p)
     ,.wh_cord_width_p(wh_cord_width_p)
 
+    ,.bsg_manycore_network_cfg_p(bsg_manycore_network_cfg_p)
     ,.bsg_manycore_mem_cfg_p(bsg_manycore_mem_cfg_p)
     ,.bsg_dram_size_p(bsg_dram_size_p)
 
