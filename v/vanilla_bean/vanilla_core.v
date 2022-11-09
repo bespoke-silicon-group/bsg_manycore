@@ -679,7 +679,7 @@ module vanilla_core
   // IDIV
   //
   logic idiv_v_li;
-  logic idiv_ready_lo;
+  logic idiv_ready_and_lo;
   logic idiv_v_lo;
   logic [reg_addr_width_lp-1:0] idiv_rd_lo;
   logic [data_width_p-1:0] idiv_result_lo;
@@ -694,7 +694,7 @@ module vanilla_core
     ,.rs2_i(exe_r.rs2_val)
     ,.rd_i(exe_r.instruction.rd)
     ,.op_i(exe_r.decode.idiv_op)
-    ,.ready_o(idiv_ready_lo)
+    ,.ready_and_o(idiv_ready_and_lo)
   
     ,.v_o(idiv_v_lo)
     ,.rd_o(idiv_rd_lo)
@@ -888,7 +888,7 @@ module vanilla_core
 
   // FPU div sqrt - this writes back to FP regfile.
   logic fdiv_fsqrt_v_li;
-  logic fdiv_fsqrt_ready_lo;
+  logic fdiv_fsqrt_ready_and_lo;
   logic fdiv_fsqrt_v_lo;
   logic [fpu_recoded_data_width_gp-1:0] fdiv_fsqrt_result_lo;
   fflags_s fdiv_fsqrt_fflags_lo;
@@ -905,7 +905,7 @@ module vanilla_core
     ,.fp_rs1_i(fp_exe_data_r.rs1_val)
     ,.fp_rs2_i(fp_exe_data_r.rs2_val)
     ,.fsqrt_i(fp_exe_ctrl_r.fp_decode.is_fsqrt_op)
-    ,.ready_and_o(fdiv_fsqrt_ready_lo)
+    ,.ready_and_o(fdiv_fsqrt_ready_and_lo)
 
     ,.v_o(fdiv_fsqrt_v_lo)
     ,.result_o(fdiv_fsqrt_result_lo)
@@ -1457,12 +1457,12 @@ module vanilla_core
   assign stall_remote_credit = id_remote_req_op & ((credit_sum >= credit_limit_r) | credit_cout);
 
   // stall_fdiv_busy
-  assign stall_fdiv_busy = (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op) & (fdiv_fsqrt_ready_lo
+  assign stall_fdiv_busy = (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op) & (fdiv_fsqrt_ready_and_lo
     ? (fp_exe_ctrl_r.fp_decode.is_fdiv_op | fp_exe_ctrl_r.fp_decode.is_fsqrt_op)
     : 1'b1);
 
   // stall_idiv_busy
-  assign stall_idiv_busy = id_r.decode.is_idiv_op & (idiv_ready_lo
+  assign stall_idiv_busy = id_r.decode.is_idiv_op & (idiv_ready_and_lo
     ? exe_r.decode.is_idiv_op
     : 1'b1);
 
@@ -1474,7 +1474,7 @@ module vanilla_core
       |fp_exe_ctrl_r.fp_decode.is_fpu_int_op
       |fp_exe_ctrl_r.fp_decode.is_fdiv_op
       |fp_exe_ctrl_r.fp_decode.is_fsqrt_op
-      |(~fdiv_fsqrt_ready_lo)
+      |(~fdiv_fsqrt_ready_and_lo)
       |fdiv_fsqrt_v_lo
       |fpu1_v_r
       |fpu_float_v_lo);
@@ -1961,11 +1961,11 @@ module vanilla_core
     if (~reset_i) begin
 
       if (idiv_v_li) begin
-        assert(idiv_ready_lo) else $error("idiv_op issued when idiv is not ready.");
+        assert(idiv_ready_and_lo) else $error("idiv_op issued when idiv is not ready.");
       end
 
       if (fdiv_fsqrt_v_li) begin
-        assert(fdiv_fsqrt_ready_lo) else $error("fdiv_fsqrt_op issued, when fdiv_fsqrt is not ready.");
+        assert(fdiv_fsqrt_ready_and_lo) else $error("fdiv_fsqrt_op issued, when fdiv_fsqrt is not ready.");
       end
 
       assert(~id_r.decode.unsupported) else $error("Unsupported instruction: %8x", id_r.instruction);
