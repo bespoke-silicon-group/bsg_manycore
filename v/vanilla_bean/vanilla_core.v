@@ -43,6 +43,7 @@ module vanilla_core
     , data_mask_width_lp=(data_width_p>>3)
 
     , parameter debug_p=0
+    , parameter disable_non_blocking_load_p=1
   )
   (
     input clk_i
@@ -511,6 +512,29 @@ module vanilla_core
         aq_r <= 1'b0;
       end
     end
+  end
+
+
+  logic blocking_load_r;
+  logic blocking_load_clear, blocking_load_set;
+
+  if (disable_non_blocking_load_p) begin
+    always_ff @ (posedge clk_i) begin
+      if (reset_i) begin
+        blocking_load_r <= 1'b0;
+      end
+      else begin
+        if (blocking_load_set) begin
+          blocking_load_r <= 1'b1;
+        end
+        else if (blocking_load_clear) begin
+          blocking_load_r <= 1'b0;
+        end
+      end
+    end
+  end
+  else begin
+    assign blocking_load_r = 1'b0;
   end
 
 
@@ -1129,6 +1153,7 @@ module vanilla_core
   logic stall_idiv_busy;
   logic stall_fcsr;
   logic stall_barrier;
+  logic stall_blocking_load;
 
   // MEM stall signals
   logic stall_remote_ld_wb;
@@ -1150,7 +1175,8 @@ module vanilla_core
     | stall_fdiv_busy
     | stall_idiv_busy
     | stall_fcsr
-    | stall_barrier;
+    | stall_barrier
+    | stall_blocking_load;
 
   wire stall_all = stall_icache_store
     | stall_remote_ld_wb
@@ -1480,6 +1506,9 @@ module vanilla_core
       |fpu_float_v_lo);
 
 
+  // stall blocking load
+  assign stall_blocking_load = blocking_load_r | blocking_load_set;
+
   // FP_EXE forwarding mux control logic
   //
   assign select_rs1_to_fp_exe = id_r.decode.read_rs1;
@@ -1683,6 +1712,11 @@ module vanilla_core
   assign float_sb_score_id = fdiv_fsqrt_in_fp_exe
     ? fp_exe_ctrl_r.rd
     : exe_r.instruction.rd;
+
+
+  assign blocking_load_set   = ~stall_all & (int_remote_load_in_exe | float_remote_load_in_exe);
+  assign blocking_load_clear = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o)
+                             | (float_remote_load_resp_v_i & float_remote_load_resp_yumi_o);
 
 
   // EXE,FP_EXE -> MEM
