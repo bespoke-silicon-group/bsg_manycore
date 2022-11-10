@@ -22,7 +22,7 @@ module idiv
     , input [reg_addr_width_p-1:0] rd_i
     // corresponds to instruction[13:12] or funct3[1:0]
     , input idiv_op_e op_i    
-    , output logic ready_o
+    , output logic ready_and_o
 
     , output logic v_o
     , output logic [reg_addr_width_p-1:0] rd_o
@@ -40,7 +40,7 @@ module idiv
     ,.reset_i(reset_i)
 
     ,.v_i(v_i)
-    ,.ready_and_o(ready_o)
+    ,.ready_and_o(ready_and_o)
 
     ,.dividend_i(rs1_i)
     ,.divisor_i(rs2_i)
@@ -62,7 +62,7 @@ module idiv
       rem_r <= 1'b0;
     end
     else begin
-      if (v_i & ready_o) begin
+      if (v_i & ready_and_o) begin
         rd_r <= rd_i;
         rem_r <= ((op_i == eREM) | (op_i == eREMU));
       end
