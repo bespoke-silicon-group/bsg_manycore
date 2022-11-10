@@ -26,7 +26,7 @@ module fpu_fdiv_fsqrt
     , input [recoded_data_width_lp-1:0] fp_rs1_i
     , input [recoded_data_width_lp-1:0] fp_rs2_i
     , input fsqrt_i   // 0=fdiv, 1=fsqrt
-    , output logic ready_o
+    , output logic ready_and_o
 
     , output logic v_o
     , output logic [recoded_data_width_lp-1:0] result_o
@@ -71,7 +71,7 @@ module fpu_fdiv_fsqrt
  
   always_comb begin
     v_li = 1'b0;
-    ready_o = 1'b0;
+    ready_and_o = 1'b0;
     v_o = 1'b0;
     rd_n = rd_r;
     ds_state_n = ds_state_r;
@@ -80,12 +80,12 @@ module fpu_fdiv_fsqrt
 
       // wait for new input
       eIDLE: begin
-        ready_o = ready_lo;
+        ready_and_o = ready_lo;
         v_li = v_i;
-        rd_n = (ready_o & v_i)
+        rd_n = (ready_and_o & v_i)
           ? rd_i 
           : rd_r;
-        ds_state_n = (ready_o & v_i)
+        ds_state_n = (ready_and_o & v_i)
           ? eBUSY
           : eIDLE;
       end

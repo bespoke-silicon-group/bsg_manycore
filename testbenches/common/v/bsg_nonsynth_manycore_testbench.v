@@ -12,6 +12,7 @@ module bsg_nonsynth_manycore_testbench
   import bsg_cache_pkg::*;
   import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
+  import bsg_manycore_network_cfg_pkg::*;
   #(parameter `BSG_INV_PARAM(num_pods_x_p)
     , parameter `BSG_INV_PARAM(num_pods_y_p)
     , parameter `BSG_INV_PARAM(num_tiles_x_p)
@@ -49,6 +50,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter `BSG_INV_PARAM(wh_len_width_p)
     , parameter `BSG_INV_PARAM(wh_cord_width_p)
 
+    , parameter bsg_manycore_network_cfg_e bsg_manycore_network_cfg_p = e_network_half_ruche_x
     , parameter bsg_manycore_mem_cfg_e bsg_manycore_mem_cfg_p = e_vcache_test_mem
     , parameter `BSG_INV_PARAM(bsg_dram_size_p) // in word
     , parameter reset_depth_p = 3
@@ -96,6 +98,7 @@ module bsg_nonsynth_manycore_testbench
     $display("[INFO][TESTBENCH] BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS  = %d", vcache_block_size_in_words_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_MAX_EPA_WIDTH            = %d", addr_width_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = %s", bsg_manycore_mem_cfg_p.name());
+    $display("[INFO][TESTBENCH] BSG_MACHINE_NETWORK_CFG              = %s", bsg_manycore_network_cfg_p.name());
     $display("[INFO][TESTBENCH] BSG_MACHINE_RUCHE_FACTOR_X           = %d", ruche_factor_X_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_BARRIER_RUCHE_FACTOR_X   = %d", barrier_ruche_factor_X_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_X               = %d", num_subarray_x_p);
@@ -162,63 +165,125 @@ module bsg_nonsynth_manycore_testbench
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] ruche_link_li;
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] ruche_link_lo;
 
-  bsg_manycore_pod_ruche_array #(
-    .num_tiles_x_p(num_tiles_x_p)
-    ,.num_tiles_y_p(num_tiles_y_p)
-    ,.pod_x_cord_width_p(pod_x_cord_width_p)
-    ,.pod_y_cord_width_p(pod_y_cord_width_p)
-    ,.x_cord_width_p(x_cord_width_p)
-    ,.y_cord_width_p(y_cord_width_p)
-    ,.addr_width_p(addr_width_p)
-    ,.data_width_p(data_width_p)
-    ,.ruche_factor_X_p(ruche_factor_X_p)
-    ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
-    ,.num_subarray_x_p(num_subarray_x_p)
-    ,.num_subarray_y_p(num_subarray_y_p)
+  if (bsg_manycore_network_cfg_p == e_network_half_ruche_x) begin: halfruche
+    bsg_manycore_pod_ruche_array #(
+      .num_tiles_x_p(num_tiles_x_p)
+      ,.num_tiles_y_p(num_tiles_y_p)
+      ,.pod_x_cord_width_p(pod_x_cord_width_p)
+      ,.pod_y_cord_width_p(pod_y_cord_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.ruche_factor_X_p(ruche_factor_X_p)
+      ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+      ,.num_subarray_x_p(num_subarray_x_p)
+      ,.num_subarray_y_p(num_subarray_y_p)
 
-    ,.dmem_size_p(dmem_size_p)
-    ,.icache_entries_p(icache_entries_p)
-    ,.icache_tag_width_p(icache_tag_width_p)
-    ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+      ,.dmem_size_p(dmem_size_p)
+      ,.icache_entries_p(icache_entries_p)
+      ,.icache_tag_width_p(icache_tag_width_p)
+      ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
 
-    ,.num_vcache_rows_p(num_vcache_rows_p)
-    ,.vcache_addr_width_p(vcache_addr_width_p)
-    ,.vcache_data_width_p(vcache_data_width_p)
-    ,.vcache_ways_p(vcache_ways_p)
-    ,.vcache_sets_p(vcache_sets_p)
-    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
-    ,.vcache_size_p(vcache_size_p)
-    ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
-    ,.vcache_word_tracking_p(vcache_word_tracking_p)
+      ,.num_vcache_rows_p(num_vcache_rows_p)
+      ,.vcache_addr_width_p(vcache_addr_width_p)
+      ,.vcache_data_width_p(vcache_data_width_p)
+      ,.vcache_ways_p(vcache_ways_p)
+      ,.vcache_sets_p(vcache_sets_p)
+      ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+      ,.vcache_size_p(vcache_size_p)
+      ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_word_tracking_p(vcache_word_tracking_p)
 
-    ,.wh_ruche_factor_p(wh_ruche_factor_p)
-    ,.wh_cid_width_p(wh_cid_width_p)
-    ,.wh_flit_width_p(wh_flit_width_p)
-    ,.wh_cord_width_p(wh_cord_width_p)
-    ,.wh_len_width_p(wh_len_width_p)
+      ,.wh_ruche_factor_p(wh_ruche_factor_p)
+      ,.wh_cid_width_p(wh_cid_width_p)
+      ,.wh_flit_width_p(wh_flit_width_p)
+      ,.wh_cord_width_p(wh_cord_width_p)
+      ,.wh_len_width_p(wh_len_width_p)
 
-    ,.num_pods_y_p(num_pods_y_p)
-    ,.num_pods_x_p(num_pods_x_p)
+      ,.num_pods_y_p(num_pods_y_p)
+      ,.num_pods_x_p(num_pods_x_p)
 
-    ,.reset_depth_p(reset_depth_p)
-    ,.hetero_type_vec_p(hetero_type_vec_p)
-  ) DUT (
-    .clk_i(clk_i)
+      ,.reset_depth_p(reset_depth_p)
+      ,.hetero_type_vec_p(hetero_type_vec_p)
+    ) DUT (
+      .clk_i(clk_i)
 
-    ,.ver_link_sif_i(ver_link_sif_li)
-    ,.ver_link_sif_o(ver_link_sif_lo)
+      ,.ver_link_sif_i(ver_link_sif_li)
+      ,.ver_link_sif_o(ver_link_sif_lo)
 
-    ,.wh_link_sif_i(wh_link_sif_li)
-    ,.wh_link_sif_o(wh_link_sif_lo)
+      ,.wh_link_sif_i(wh_link_sif_li)
+      ,.wh_link_sif_o(wh_link_sif_lo)
 
-    ,.hor_link_sif_i(hor_link_sif_li)
-    ,.hor_link_sif_o(hor_link_sif_lo)
+      ,.hor_link_sif_i(hor_link_sif_li)
+      ,.hor_link_sif_o(hor_link_sif_lo)
 
-    ,.ruche_link_i(ruche_link_li)
-    ,.ruche_link_o(ruche_link_lo)
+      ,.ruche_link_i(ruche_link_li)
+      ,.ruche_link_o(ruche_link_lo)
 
-    ,.pod_tags_i(pod_tags_lo) 
-  );
+      ,.pod_tags_i(pod_tags_lo) 
+    );
+  end
+  else if (bsg_manycore_network_cfg_p == e_network_mesh) begin: mesh
+    bsg_manycore_pod_mesh_array #(
+      .num_tiles_x_p(num_tiles_x_p)
+      ,.num_tiles_y_p(num_tiles_y_p)
+      ,.pod_x_cord_width_p(pod_x_cord_width_p)
+      ,.pod_y_cord_width_p(pod_y_cord_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+      ,.num_subarray_x_p(num_subarray_x_p)
+      ,.num_subarray_y_p(num_subarray_y_p)
+
+      ,.dmem_size_p(dmem_size_p)
+      ,.icache_entries_p(icache_entries_p)
+      ,.icache_tag_width_p(icache_tag_width_p)
+      ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+
+      ,.num_vcache_rows_p(num_vcache_rows_p)
+      ,.vcache_addr_width_p(vcache_addr_width_p)
+      ,.vcache_data_width_p(vcache_data_width_p)
+      ,.vcache_ways_p(vcache_ways_p)
+      ,.vcache_sets_p(vcache_sets_p)
+      ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+      ,.vcache_size_p(vcache_size_p)
+      ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_word_tracking_p(vcache_word_tracking_p)
+
+      ,.wh_ruche_factor_p(wh_ruche_factor_p)
+      ,.wh_cid_width_p(wh_cid_width_p)
+      ,.wh_flit_width_p(wh_flit_width_p)
+      ,.wh_cord_width_p(wh_cord_width_p)
+      ,.wh_len_width_p(wh_len_width_p)
+
+      ,.num_pods_y_p(num_pods_y_p)
+      ,.num_pods_x_p(num_pods_x_p)
+
+      ,.reset_depth_p(reset_depth_p)
+      ,.hetero_type_vec_p(hetero_type_vec_p)
+    ) DUT (
+      .clk_i(clk_i)
+
+      ,.ver_link_sif_i(ver_link_sif_li)
+      ,.ver_link_sif_o(ver_link_sif_lo)
+
+      ,.wh_link_sif_i(wh_link_sif_li)
+      ,.wh_link_sif_o(wh_link_sif_lo)
+
+      ,.hor_link_sif_i(hor_link_sif_li)
+      ,.hor_link_sif_o(hor_link_sif_lo)
+
+      ,.pod_tags_i(pod_tags_lo) 
+    );
+  end
+  else begin
+    initial begin
+      $error("Invalid bsg_manycore_network_cfg_p.");
+    end
+  end
 
   // Invert WH ruche links
   // hardcoded for ruche factor = 2
