@@ -1507,7 +1507,7 @@ module vanilla_core
 
 
   // stall blocking load
-  assign stall_blocking_load = blocking_load_r | blocking_load_set;
+  assign stall_blocking_load = (blocking_load_r | blocking_load_set) & (id_r.decode.is_load_op | id_r.decode.is_amo_op);
 
   // FP_EXE forwarding mux control logic
   //
