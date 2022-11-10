@@ -42,7 +42,7 @@ module bsg_manycore_link_to_cache_non_blocking
     // cache side
     , output [cache_pkt_width_lp-1:0] cache_pkt_o
     , output logic v_o
-    , input ready_and_i
+    , input ready_i
   
     , input [data_width_p-1:0] data_i
     , input [id_width_lp-1:0] id_i
@@ -166,7 +166,7 @@ module bsg_manycore_link_to_cache_non_blocking
           {block_offset_width_lp{1'b0}}
         };
 
-        tagst_sent_n = (v_o & ready_and_i)
+        tagst_sent_n = (v_o & ready_i)
           ? tagst_sent_r + 1
           : tagst_sent_r;
 
@@ -186,7 +186,7 @@ module bsg_manycore_link_to_cache_non_blocking
 
         // cache pkt
         v_o = packet_v_lo;
-        packet_yumi_li = packet_v_lo & ready_and_i;
+        packet_yumi_li = packet_v_lo & ready_i;
         
         if (packet_lo.addr[addr_width_p-1]) begin
           case (packet_lo.op_v2)

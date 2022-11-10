@@ -84,7 +84,7 @@ module bsg_manycore_vcache_blocking
 
     ,.cache_pkt_o(cache_pkt)
     ,.v_o(cache_v_li)
-    ,.ready_and_i(cache_ready_lo)
+    ,.ready_i(cache_ready_lo)
 
     ,.data_i(cache_data_lo)
     ,.v_i(cache_v_lo)

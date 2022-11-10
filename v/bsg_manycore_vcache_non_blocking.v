@@ -109,7 +109,7 @@ module bsg_manycore_vcache_non_blocking
 
     ,.cache_pkt_o(cache_pkt)
     ,.v_o(cache_v_li)
-    ,.ready_and_i(cache_ready_lo)
+    ,.ready_i(cache_ready_lo)
 
     ,.v_i(fifo_v_lo)
     ,.id_i(fifo_id_lo)
