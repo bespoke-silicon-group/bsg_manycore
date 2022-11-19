@@ -19,9 +19,6 @@ int main()
     int y = bsg_amoadd(lock_ptr, 1);
     int z = *lock_ptr;
 
-    bsg_print_hexadecimal(x);
-    bsg_print_hexadecimal(y);
-    bsg_print_hexadecimal(z);
     if (x != 0 || y != 0 || z != 1) bsg_fail();
 
     bsg_finish();
