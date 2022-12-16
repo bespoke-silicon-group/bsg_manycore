@@ -34,7 +34,8 @@ module vanilla_exe_bubble_classifier
    ,input stall_fcsr
    ,input stall_remote_req
    ,input stall_remote_credit
-
+   ,input stall_blocking_load
+   
    ,input stall_barrier
 
    ,input stall_remote_ld_wb
@@ -44,6 +45,10 @@ module vanilla_exe_bubble_classifier
    ,input branch_mispredict
    ,input jalr_mispredict
 
+   ,input blocking_load_set
+   ,input blocking_load_clear
+   ,input int_remote_load_in_exe
+   ,input float_remote_load_in_exe
    ,input [data_width_p-1:0] rs1_val_to_exe
    ,input [RV32_Iimm_width_gp-1:0] mem_addr_op2
 
@@ -127,30 +132,60 @@ module vanilla_exe_bubble_classifier
      ,.float_sb_o(float_sb)
      );
 
-  wire stall_depend_group_load = stall_depend_long_op
-       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1].remote_group_load) |
-          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2].remote_group_load) |
-          (id_r.decode.write_rd & int_sb[id_r.instruction.rd].remote_group_load) |
-          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1].remote_group_load) |
-          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2].remote_group_load) |
-          (id_r.decode.write_frd & float_sb[id_r.instruction.rd].remote_group_load));
+  typedef enum logic [31:0] {
+    e_remote_none,
+    e_remote_int_dram,
+    e_remote_int_group,
+    e_remote_int_global,
+    e_remote_float_dram,
+    e_remote_float_group,
+    e_remote_float_global
+  } blocking_remote_load_type_e;
 
-  wire stall_depend_global_load = stall_depend_long_op
-       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1].remote_global_load) |
-          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2].remote_global_load) |
-          (id_r.decode.write_rd & int_sb[id_r.instruction.rd].remote_global_load) |
-          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1].remote_global_load) |
-          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2].remote_global_load) |
-          (id_r.decode.write_frd & float_sb[id_r.instruction.rd].remote_global_load));
+  blocking_remote_load_type_e blocking_remote_load_type;
+  logic [data_width_p-1:0]    blocking_remote_load_addr;
+  assign blocking_remote_load_addr = exe_r.rs1_val + `BSG_SIGN_EXTEND(exe_r.mem_addr_op2,data_width_p);
+  
+  always @(posedge clk_i) begin
+    if (reset_i) begin
+      blocking_remote_load_type <= e_remote_none;
+    end
+    else if (blocking_load_set) begin
+      if (blocking_remote_load_addr[data_width_p-1]) begin
+        blocking_remote_load_type <= (int_remote_load_in_exe 
+                                      ? e_remote_int_dram
+                                      : e_remote_float_dram);
+      end else if (blocking_remote_load_addr[data_width_p-1-:2] == 2'b01) begin
+        blocking_remote_load_type <= (int_remote_load_in_exe 
+                                      ? e_remote_int_global 
+                                      : e_remote_float_global);
+      end else if (blocking_remote_load_addr[data_width_p-1-:3] == 3'b001) begin
+        blocking_remote_load_type <= (int_remote_load_in_exe
+                                      ? e_remote_int_group
+                                      : e_remote_float_group);        
+      end
+    end else if (blocking_load_clear) begin
+      blocking_remote_load_type <= e_remote_none;
+    end
+  end
+  
+  logic int_remote_load_dram_in_exe;
+  logic float_remote_load_dram_in_exe;  
+  assign int_remote_load_dram_in_exe = int_remote_load_in_exe;
+  assign float_remote_load_dram_in_exe = float_remote_load_in_exe;   
 
-  wire stall_depend_dram_load = stall_depend_long_op
-       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1].remote_dram_load) |
-          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2].remote_dram_load) |
-          (id_r.decode.write_rd & int_sb[id_r.instruction.rd].remote_dram_load) |
-          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1].remote_dram_load) |
-          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2].remote_dram_load) |
-          (id_r.decode.write_frd & float_sb[id_r.instruction.rd].remote_dram_load));
+  wire stall_depend_group_load = stall_blocking_load
+       & ((blocking_remote_load_type == e_remote_int_group
+           |blocking_remote_load_type == e_remote_float_group));
 
+  wire stall_depend_global_load = stall_blocking_load
+       & ((blocking_remote_load_type == e_remote_int_global)
+          |(blocking_remote_load_type == e_remote_float_global));
+  
+  wire stall_depend_dram_load = stall_blocking_load
+       & ((blocking_remote_load_type == e_remote_int_dram
+           |blocking_remote_load_type == e_remote_float_dram));  
+  
   wire stall_depend_idiv = stall_depend_long_op
        & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1].idiv) |
           (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2].idiv) |

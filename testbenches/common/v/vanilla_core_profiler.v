@@ -64,7 +64,8 @@ module vanilla_core_profiler
     , input stall_fcsr
     , input stall_remote_req
     , input stall_remote_credit
-
+    , input stall_blocking_load
+   
     , input stall_barrier
 
     , input stall_remote_ld_wb
@@ -77,7 +78,10 @@ module vanilla_core_profiler
     , input lsu_dmem_v_lo
     , input lsu_remote_req_v_lo
     , input remote_req_s remote_req_o
-
+    , input int_remote_load_in_exe
+    , input float_remote_load_in_exe
+    , input blocking_load_set
+    , input blocking_load_clear
     , input [data_width_p-1:0] rs1_val_to_exe
     , input [RV32_Iimm_width_gp-1:0] mem_addr_op2
 
