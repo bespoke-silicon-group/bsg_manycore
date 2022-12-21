@@ -117,7 +117,7 @@ module fpu_float_fma
           fma_a_li = fp_rs1_i;
           fma_b_li = fp_rs2_i;
           fma_c_li = fp_rs3_i;
-          fma_op_li = eNM_PB;
+          fma_op_li = eNM_NB;
           is_fma_op = 1'b1;
 
         end
@@ -125,7 +125,7 @@ module fpu_float_fma
           fma_a_li = fp_rs1_i;
           fma_b_li = fp_rs2_i;
           fma_c_li = fp_rs3_i;
-          fma_op_li = eNM_NB;
+          fma_op_li = eNM_PB;
           is_fma_op = 1'b1;
         end
         default: begin
