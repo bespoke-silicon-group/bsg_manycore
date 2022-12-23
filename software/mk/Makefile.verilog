@@ -22,7 +22,7 @@ ifneq ($(IGNORE_CADENV),)
   # select the tools
 
 # Checking the VCS settings
-else ifeq (,$(findstring cs.washington.edu,$(HOSTNAME)))
+else ifeq (,$(wildcard $(CAD_DIR)/cadenv.mk))
   ifeq ($(VCS),)
     $(error Unfamiliar machine/cadtool setup: Please define the $$VCS which points to the VCS binaries )
   endif
