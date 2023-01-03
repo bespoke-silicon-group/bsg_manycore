@@ -9,7 +9,7 @@
 //
 //
 
-`include "bsg_defines.v"
+`include "bsg_manycore_defines.vh"
 
 module bsg_manycore_link_async_to_wormhole
  import bsg_manycore_pkg::*;
