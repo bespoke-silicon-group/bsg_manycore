@@ -165,7 +165,7 @@ module bsg_nonsynth_manycore_testbench
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] ruche_link_li;
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] ruche_link_lo;
 
-  if (bsg_manycore_network_cfg_p == e_network_half_ruche_x) begin: halfruche
+  if (bsg_manycore_network_cfg_p == e_network_half_ruche_x) begin: fi1
     bsg_manycore_pod_ruche_array #(
       .num_tiles_x_p(num_tiles_x_p)
       ,.num_tiles_y_p(num_tiles_y_p)
@@ -224,7 +224,7 @@ module bsg_nonsynth_manycore_testbench
       ,.pod_tags_i(pod_tags_lo) 
     );
   end
-  else if (bsg_manycore_network_cfg_p == e_network_mesh) begin: mesh
+  else if (bsg_manycore_network_cfg_p == e_network_mesh) begin: fi1
     bsg_manycore_pod_mesh_array #(
       .num_tiles_x_p(num_tiles_x_p)
       ,.num_tiles_y_p(num_tiles_y_p)
@@ -920,7 +920,7 @@ if (enable_cache_profiling_p) begin
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
     ,.block_size_in_words_p(block_size_in_words_p)
-    ,.header_print_p({`BSG_STRINGIFY(`HOST_MODULE_PATH),".testbench.DUT.py[0].podrow.px[0].pod.north_vc_x[0].north_vc_row.vc_y[0].vc_x[0].vc.cache.vcache_prof"})
+    ,.header_print_p({`BSG_STRINGIFY(`HOST_MODULE_PATH),".testbench.fi1.DUT.py[0].podrow.px[0].pod.north_vc_x[0].north_vc_row.vc_y[0].vc_x[0].vc.cache.vcache_prof"})
     ,.ways_p(ways_p)
   ) vcache_prof (
     // everything else
