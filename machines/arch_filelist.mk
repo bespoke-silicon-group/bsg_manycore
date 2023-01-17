@@ -76,6 +76,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_unconcentrate_static.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mux2_gatestack.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_counting_leading_zeros.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mul_add_unsigned.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_icg_pos.v
 
 
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_client.v
@@ -174,6 +175,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_synth.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_hard.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.v
+VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/exe_pipeline.v
 
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_array.v
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche.v

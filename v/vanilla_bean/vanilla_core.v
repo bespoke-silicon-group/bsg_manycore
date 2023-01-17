@@ -112,7 +112,14 @@ module vanilla_core
     , input [y_cord_width_p-1:0] global_y_i
   );
 
-
+  // Hard ICG
+  logic clk_hard_lo;
+  logic clk_hard_en;
+  bsg_icg_pos icg0 (
+    .clk_i(clk_i)
+    ,.en_i(clk_hard_en)
+    ,.clk_o(clk_hard_lo)
+  );
 
   // reset edge down detect
   logic reset_r;
@@ -128,7 +135,7 @@ module vanilla_core
   // pipeline signals
   // ctrl signals set to zero when reset_i is high.
   // data signals are not reset to zero.
-  logic id_en, exe_en, mem_ctrl_en, mem_data_en,
+  logic id_en, exe_en, exe_clear, mem_ctrl_en, mem_data_en,
         fp_exe_ctrl_en, fp_exe_data_en, flw_wb_ctrl_en, flw_wb_data_en;
   id_signals_s id_r, id_n;
   exe_signals_s exe_r, exe_n;
@@ -255,7 +262,7 @@ module vanilla_core
     ,.num_rs_p(2)
     ,.x0_tied_to_zero_p(1)
   ) int_rf (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
 
     ,.w_v_i(int_rf_wen)
@@ -282,7 +289,7 @@ module vanilla_core
     ,.num_clear_port_p(1)
     ,.x0_tied_to_zero_p(1)
   ) int_sb (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
   
     ,.src_id_i({id_r.instruction.rs2, id_r.instruction.rs1})
@@ -316,7 +323,7 @@ module vanilla_core
     ,.num_rs_p(3)
     ,.x0_tied_to_zero_p(0)
   ) float_rf (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
 
     ,.w_v_i(float_rf_wen)
@@ -343,7 +350,7 @@ module vanilla_core
     ,.num_src_port_p(3)
     ,.num_clear_port_p(1)
   ) float_sb (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
   
     ,.src_id_i({id_r.instruction[31:27], id_r.instruction.rs2, id_r.instruction.rs1})
@@ -622,14 +629,13 @@ module vanilla_core
   //                          //
   //////////////////////////////
 
-  bsg_dff_reset_en #(
-    .width_p($bits(exe_signals_s))
-  ) exe_pipeline (
-    .clk_i(clk_i)
+  exe_pipeline exe_pipeline (
+    .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
     ,.en_i(exe_en)
-    ,.data_i(exe_n)
-    ,.data_o(exe_r)
+    ,.clear_i(exe_clear)
+    ,.exe_i(exe_n)
+    ,.exe_o(exe_r)
   );
 
 
@@ -806,7 +812,7 @@ module vanilla_core
   bsg_dff_reset_en #(
     .width_p($bits(fp_exe_ctrl_signals_s))
   ) fp_exe_ctrl_pipeline (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
     ,.en_i(fp_exe_ctrl_en)
     ,.data_i(fp_exe_ctrl_n)
@@ -816,7 +822,7 @@ module vanilla_core
   bsg_dff_en #(
     .width_p($bits(fp_exe_data_signals_s))
   ) fp_exe_data_pipeline (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.en_i(fp_exe_data_en)
     ,.data_i(fp_exe_data_n)
     ,.data_o(fp_exe_data_r)
@@ -840,7 +846,7 @@ module vanilla_core
   logic [reg_addr_width_lp-1:0] fpu1_rd_r;
 
   fpu_float fpu_float0 (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
 
     ,.stall_fpu1_i(stall_fpu1_li)
@@ -926,7 +932,7 @@ module vanilla_core
   bsg_dff_reset_en #(
     .width_p($bits(mem_ctrl_signals_s))
   ) mem_ctrl_pipeline (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
     ,.en_i(mem_ctrl_en)
     ,.data_i(mem_ctrl_n)
@@ -936,7 +942,7 @@ module vanilla_core
   bsg_dff_en #(
     .width_p($bits(mem_data_signals_s))
   ) mem_data_pipeline (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.en_i(mem_data_en)
     ,.data_i(mem_data_n)
     ,.data_o(mem_data_r)
@@ -1045,7 +1051,7 @@ module vanilla_core
   bsg_dff_reset #(
     .width_p($bits(wb_ctrl_signals_s))
   ) wb_ctrl_pipeline (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
     ,.data_i(wb_ctrl_n)
     ,.data_o(wb_ctrl_r)
@@ -1054,7 +1060,7 @@ module vanilla_core
   bsg_dff #(
     .width_p($bits(wb_data_signals_s))
   ) wb_data_pipeline (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.data_i(wb_data_n)
     ,.data_o(wb_data_r)
   );
@@ -1068,7 +1074,7 @@ module vanilla_core
   bsg_dff_reset_en #(
     .width_p($bits(flw_wb_ctrl_signals_s))
   ) flw_wb_ctrl_pipeline (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.reset_i(reset_i)
     ,.en_i(flw_wb_ctrl_en)
     ,.data_i(flw_wb_ctrl_n)
@@ -1078,7 +1084,7 @@ module vanilla_core
   bsg_dff_en #(
     .width_p($bits(flw_wb_data_signals_s))
   ) flw_wb_data_pipeline (
-    .clk_i(clk_i)
+    .clk_i(clk_hard_lo)
     ,.en_i(flw_wb_data_en)
     ,.data_i(flw_wb_data_n)
     ,.data_o(flw_wb_data_r)
@@ -1587,18 +1593,21 @@ module vanilla_core
 
     if (stall_all) begin
       exe_en = 1'b0;
+      exe_clear = 1'b0;
       npc_write_en = 1'b0;
     end
     else begin
       npc_write_en = (exe_r.valid & mstatus_r.mie) | exe_r.decode.is_mret_op;
       if (flush | stall_id) begin
-        exe_en = 1'b1;
-        exe_n = '0;
+        exe_en = 1'b0;
+        exe_clear = 1'b1;
+        //exe_n = '0;
       end
       else if (id_r.decode.is_fp_op) begin
         // for fp_op, we still want to keep track of npc_r.
         // so we set the valid and pc_plus4.
         exe_en = 1'b1;
+        exe_clear = 1'b0;
         exe_n = '{
           pc_plus4: id_r.pc_plus4,
           valid: id_r.valid,
@@ -1614,6 +1623,7 @@ module vanilla_core
       end
       else begin
         exe_en = 1'b1;
+        exe_clear = 1'b0;
       end
     end
   end
@@ -1953,8 +1963,30 @@ module vanilla_core
   assign stall_fpu2_li = stall_remote_flw_wb;
 
 
+  // Backend Clk Enable logic
+  wire all_bubble = ~(exe_r.valid)
+                  & ~(mem_ctrl_r.write_rd | mem_ctrl_r.write_frd)
+                  & ~(wb_ctrl_r.write_rd)
+                  & ~(fp_exe_ctrl_r.fp_decode.is_fpu_float_op
+                      | fp_exe_ctrl_r.fp_decode.is_fpu_int_op
+                      | fp_exe_ctrl_r.fp_decode.is_fdiv_op
+                      | fp_exe_ctrl_r.fp_decode.is_fsqrt_op)
+                  & ~(fpu1_v_r | imul_v_lo)
+                  & ~fpu_float_v_lo
+                  & ~flw_wb_ctrl_r.valid;
 
 
+  // When to disable backend clk?
+  // 1) pipeline is in stall ID, and it's filled up with bubbles.
+  // 2) icache bubble is in MEM, and it's waiting on ifetch.
+  assign clk_hard_en = reset_i
+                        | int_remote_load_resp_v_i
+                        | float_remote_load_resp_v_i 
+                        | idiv_v_lo | fdiv_fsqrt_v_lo
+                        | ifetch_v_i
+                        | ~((stall_id & all_bubble) | mem_ctrl_r.icache_miss);
+
+  
 
   // synopsys translate_off
   always_ff @ (negedge clk_i) begin
