@@ -50,7 +50,7 @@ module bsg_manycore_link_to_cache
     // cache-side
     , output [bsg_cache_pkt_width_lp-1:0] cache_pkt_o
     , output logic v_o
-    , input ready_and_i
+    , input yumi_i
 
     , input [data_width_p-1:0] data_i
     , input v_i
@@ -180,7 +180,7 @@ module bsg_manycore_link_to_cache
 
   always_ff @ (posedge clk_i) begin
     if (state_r == READY || state_r == IFETCH) begin
-      if (v_o & ready_and_i) begin
+      if (yumi_i) begin
         tl_info_r <= '{
           pkt_type: return_pkt_type,
           reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
@@ -245,7 +245,7 @@ module bsg_manycore_link_to_cache
         };
 
 
-        tagst_sent_n = (v_o & ready_and_i)
+        tagst_sent_n = yumi_i
           ? tagst_sent_r + 1
           : tagst_sent_r;
         tagst_received_n = v_i
@@ -265,7 +265,7 @@ module bsg_manycore_link_to_cache
         v_o = packet_v_lo;
         packet_yumi_li = is_packet_ifetch
           ? 1'b0
-          : (packet_v_lo & ready_and_i);
+          : yumi_i;
     
 
         // if two MSBs are ones, then it maps to wh_dest_east_not_west.
@@ -284,7 +284,7 @@ module bsg_manycore_link_to_cache
           endcase
 
           // updated when nop packet is taken by the cache.
-          wh_dest_east_not_west_n = (packet_v_lo & ready_and_i)
+          wh_dest_east_not_west_n = yumi_i
             ? packet_lo.payload[0]
             : wh_dest_east_not_west_r;
         end
@@ -378,15 +378,15 @@ module bsg_manycore_link_to_cache
         yumi_o = v_i & return_packet_ready_lo;
 
         
-        ifetch_count_up = (is_packet_ifetch & ready_and_i & packet_v_lo);
+        ifetch_count_up = (is_packet_ifetch & yumi_i);
         state_n = is_packet_ifetch
-          ? ((ready_and_i & packet_v_lo) ? IFETCH : READY)
+          ? (yumi_i ? IFETCH : READY)
           : READY;
       end
 
       IFETCH: begin
         v_o = packet_v_lo;
-        packet_yumi_li = packet_v_lo & ready_and_i & (ifetch_count_r == icache_block_size_in_words_p-1);
+        packet_yumi_li = yumi_i & (ifetch_count_r == icache_block_size_in_words_p-1);
 
         cache_pkt.opcode = LW;
         cache_pkt.data = '0;
@@ -401,8 +401,8 @@ module bsg_manycore_link_to_cache
         return_packet_v_li = v_i;
         yumi_o = v_i & return_packet_ready_lo;
 
-        ifetch_count_up = (packet_v_lo & ready_and_i);
-        state_n = (packet_v_lo & ready_and_i)
+        ifetch_count_up = yumi_i;
+        state_n = yumi_i
           ? ((ifetch_count_r == icache_block_size_in_words_p-1) 
             ? READY
             : IFETCH)
