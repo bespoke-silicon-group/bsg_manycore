@@ -158,7 +158,7 @@ module bsg_manycore_tile_vcache
   // link_to_cache
   bsg_cache_pkt_s cache_pkt;
   logic cache_v_li;
-  logic cache_ready_lo;
+  logic cache_yumi_lo;
   logic [vcache_data_width_p-1:0] cache_data_lo;
   logic cache_v_lo;
   logic cache_yumi_li;  
@@ -186,7 +186,7 @@ module bsg_manycore_tile_vcache
 
     ,.cache_pkt_o(cache_pkt)
     ,.v_o(cache_v_li)
-    ,.ready_and_i(cache_ready_lo)
+    ,.yumi_i(cache_yumi_lo)
 
     ,.data_i(cache_data_lo)
     ,.v_i(cache_v_lo)
@@ -228,7 +228,7 @@ module bsg_manycore_tile_vcache
     // to manycore
     ,.cache_pkt_i(cache_pkt)
     ,.v_i(cache_v_li)
-    ,.ready_o(cache_ready_lo)
+    ,.yumi_o(cache_yumi_lo)
 
     ,.data_o(cache_data_lo)
     ,.v_o(cache_v_lo)
