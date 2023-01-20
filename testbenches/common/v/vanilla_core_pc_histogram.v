@@ -49,18 +49,26 @@ module vanilla_core_pc_histogram
    , input stall_remote_credit
 
    , input stall_barrier
+   , input stall_blocking_load
 
    , input stall_icache_store
    , input stall_remote_ld_wb
    , input stall_ifetch_wait
    , input stall_remote_flw_wb
 
+   , input blocking_load_r
+   , input blocking_load_set
+   , input blocking_load_clear
+   
    , input branch_mispredict
    , input jalr_mispredict
 
    , input [data_width_p-1:0] rs1_val_to_exe
    , input [RV32_Iimm_width_gp-1:0] mem_addr_op2
 
+   , input int_remote_load_in_exe
+   , input float_remote_load_in_exe
+   
    , input int_sb_clear
    , input float_sb_clear
    , input [reg_addr_width_lp-1:0] int_sb_clear_id

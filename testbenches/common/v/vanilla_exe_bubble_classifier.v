@@ -47,6 +47,7 @@ module vanilla_exe_bubble_classifier
 
    ,input blocking_load_set
    ,input blocking_load_clear
+   ,input blocking_load_r
    ,input int_remote_load_in_exe
    ,input float_remote_load_in_exe
    ,input [data_width_p-1:0] rs1_val_to_exe
@@ -124,67 +125,95 @@ module vanilla_exe_bubble_classifier
   vanilla_isb_info_s [RV32_reg_els_gp-1:0]  int_sb;
   vanilla_fsb_info_s [RV32_reg_els_gp-1:0]  float_sb;
 
+  logic remote_ld_dram_in_id;
+  logic remote_ld_global_in_id;
+  logic remote_ld_group_in_id;
+  logic remote_flw_dram_in_id;
+  logic remote_flw_global_in_id;
+  logic remote_flw_group_in_id;
+  
   vanilla_scoreboard_tracker
     #(.data_width_p(data_width_p))
   sb_tracker
     (.*
      ,.int_sb_o(int_sb)
      ,.float_sb_o(float_sb)
+     ,.remote_ld_dram_in_id_o(remote_ld_dram_in_id)
+     ,.remote_ld_global_in_id_o(remote_ld_global_in_id)
+     ,.remote_ld_group_in_id_o(remote_ld_group_in_id)
+     ,.remote_flw_dram_in_id_o(remote_flw_dram_in_id)
+     ,.remote_flw_global_in_id_o(remote_flw_global_in_id)
+     ,.remote_flw_group_in_id_o(remote_flw_group_in_id)
      );
 
   typedef enum logic [31:0] {
-    e_remote_none,
-    e_remote_int_dram,
-    e_remote_int_group,
-    e_remote_int_global,
-    e_remote_float_dram,
-    e_remote_float_group,
-    e_remote_float_global
-  } blocking_remote_load_type_e;
+    e_ld_notype,
+    e_ld_int,
+    e_ld_float
+  } load_data_type_e;
 
-  blocking_remote_load_type_e blocking_remote_load_type;
-  logic [data_width_p-1:0]    blocking_remote_load_addr;
-  assign blocking_remote_load_addr = exe_r.rs1_val + `BSG_SIGN_EXTEND(exe_r.mem_addr_op2,data_width_p);
-  
-  always @(posedge clk_i) begin
+  typedef enum logic [31:0] {
+    e_ld_nodst,
+    e_ld_dram,
+    e_ld_group,
+    e_ld_global
+  } load_dst_type_e;
+
+  load_data_type_e exe_remote_ld_data_type;
+  load_dst_type_e  exe_remote_ld_dst;
+
+  always_ff @(posedge clk_i) begin
     if (reset_i) begin
-      blocking_remote_load_type <= e_remote_none;
-    end
-    else if (blocking_load_set) begin
-      if (blocking_remote_load_addr[data_width_p-1]) begin
-        blocking_remote_load_type <= (int_remote_load_in_exe 
-                                      ? e_remote_int_dram
-                                      : e_remote_float_dram);
-      end else if (blocking_remote_load_addr[data_width_p-1-:2] == 2'b01) begin
-        blocking_remote_load_type <= (int_remote_load_in_exe 
-                                      ? e_remote_int_global 
-                                      : e_remote_float_global);
-      end else if (blocking_remote_load_addr[data_width_p-1-:3] == 3'b001) begin
-        blocking_remote_load_type <= (int_remote_load_in_exe
-                                      ? e_remote_int_group
-                                      : e_remote_float_group);        
-      end
+      exe_remote_ld_data_type <= e_ld_notype;
+      exe_remote_ld_dst <= e_ld_nodst;      
+    end else if (~stall_all) begin
+      if (remote_ld_dram_in_id) begin
+        exe_remote_ld_data_type <= e_ld_int;
+        exe_remote_ld_dst <= e_ld_dram;
+      end else if (remote_ld_group_in_id) begin
+        exe_remote_ld_data_type <= e_ld_int;
+        exe_remote_ld_dst <= e_ld_group;        
+      end else if (remote_ld_global_in_id) begin
+        exe_remote_ld_data_type <= e_ld_int;
+        exe_remote_ld_dst <= e_ld_global;        
+      end else if (remote_flw_dram_in_id) begin
+        exe_remote_ld_data_type <= e_ld_float;
+        exe_remote_ld_dst <= e_ld_dram;        
+      end else if (remote_flw_group_in_id) begin
+        exe_remote_ld_data_type <= e_ld_float;
+        exe_remote_ld_dst <= e_ld_group;        
+      end else if (remote_flw_global_in_id) begin
+        exe_remote_ld_data_type <= e_ld_float;
+        exe_remote_ld_dst <= e_ld_global;        
+      end else begin
+        exe_remote_ld_data_type <= e_ld_notype;
+        exe_remote_ld_dst <= e_ld_nodst;
+      end      
+    end    
+  end // always_ff @ (posedge clk_i)
+  
+  load_dst_type_e blocking_remote_ld_dst;  
+  always_ff @(posedge clk_i) begin
+    if (reset_i) begin
+      blocking_remote_ld_dst <= e_ld_nodst;      
+    end else if (blocking_load_set) begin
+      blocking_remote_ld_dst <= exe_remote_ld_dst;      
     end else if (blocking_load_clear) begin
-      blocking_remote_load_type <= e_remote_none;
-    end
-  end
-  
-  logic int_remote_load_dram_in_exe;
-  logic float_remote_load_dram_in_exe;  
-  assign int_remote_load_dram_in_exe = int_remote_load_in_exe;
-  assign float_remote_load_dram_in_exe = float_remote_load_in_exe;   
+      blocking_remote_ld_dst <= e_ld_nodst;
+    end    
+  end  
 
-  wire stall_depend_group_load = stall_blocking_load
-       & ((blocking_remote_load_type == e_remote_int_group
-           |blocking_remote_load_type == e_remote_float_group));
-
-  wire stall_depend_global_load = stall_blocking_load
-       & ((blocking_remote_load_type == e_remote_int_global)
-          |(blocking_remote_load_type == e_remote_float_global));
+  wire stall_depend_group_load
+       = (blocking_load_set & (exe_remote_ld_dst == e_ld_group))
+       | (blocking_load_r & (blocking_remote_ld_dst == e_ld_group));
   
-  wire stall_depend_dram_load = stall_blocking_load
-       & ((blocking_remote_load_type == e_remote_int_dram
-           |blocking_remote_load_type == e_remote_float_dram));  
+  wire stall_depend_dram_load
+       = (blocking_load_set & (exe_remote_ld_dst == e_ld_dram))
+       | (blocking_load_r & (blocking_remote_ld_dst == e_ld_dram));
+  
+  wire stall_depend_global_load
+       = (blocking_load_set & (exe_remote_ld_dst == e_ld_global))
+       | (blocking_load_r & (blocking_remote_ld_dst == e_ld_global));
   
   wire stall_depend_idiv = stall_depend_long_op
        & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1].idiv) |
@@ -196,6 +225,17 @@ module vanilla_exe_bubble_classifier
           (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2].fdiv_fsqrt) |
           (id_r.decode.write_frd & float_sb[id_r.instruction.rd].fdiv_fsqrt));
 
+  always @(negedge clk_i) begin
+    if (blocking_load_set | blocking_load_r) begin
+      if (~stall_depend_group_load
+          & ~stall_depend_dram_load
+          & ~stall_depend_global_load) begin
+        $display("blocking_load stall, but no destination identified");
+        assert(0);        
+      end      
+    end    
+  end
+  
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       exe_bubble_r <= e_exe_no_bubble;

@@ -82,6 +82,7 @@ module vanilla_core_profiler
     , input float_remote_load_in_exe
     , input blocking_load_set
     , input blocking_load_clear
+    , input blocking_load_r
     , input [data_width_p-1:0] rs1_val_to_exe
     , input [RV32_Iimm_width_gp-1:0] mem_addr_op2
 
