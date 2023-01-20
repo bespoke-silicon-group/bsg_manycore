@@ -1361,6 +1361,7 @@ module vanilla_core
   wire id_rs1_non_zero = id_rs1 != '0;
   wire id_rs2_non_zero = id_rs2 != '0;
   wire id_rd_non_zero = id_rd != '0;
+  wire int_remote_amo_in_exe = remote_req_in_exe & exe_r.decode.is_amo_op & exe_r.decode.write_rd;  
   wire int_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_rd;
   wire float_remote_load_in_exe = remote_req_in_exe & exe_r.decode.is_load_op & exe_r.decode.write_frd;
   wire fdiv_fsqrt_in_fp_exe = fp_exe_ctrl_r.fp_decode.is_fdiv_op | fp_exe_ctrl_r.fp_decode.is_fsqrt_op;
@@ -1714,7 +1715,7 @@ module vanilla_core
     : exe_r.instruction.rd;
 
 
-  assign blocking_load_set   = ~stall_all & (int_remote_load_in_exe | float_remote_load_in_exe);
+  assign blocking_load_set   = ~stall_all & (int_remote_load_in_exe | int_remote_amo_in_exe | float_remote_load_in_exe);
   assign blocking_load_clear = (int_remote_load_resp_v_i & int_remote_load_resp_yumi_o)
                              | (float_remote_load_resp_v_i & float_remote_load_resp_yumi_o);
 
