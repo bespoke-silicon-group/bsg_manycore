@@ -65,14 +65,14 @@ module vanilla_core_saif_dumper
             if(debug_p)
               $display("TRIGGER_ON t=%t (%m)", $time);
             $set_gate_level_monitoring("rtl_on", "sv");
-            $set_toggle_region(`HOST_MODULE_PATH.testbench.DUT);
+           $set_toggle_region(`HOST_MODULE_PATH.testbench.fi1.DUT);
             $toggle_start();
          end
          if(trigger_end) begin
             if(debug_p)
               $display("TRIGGER_OFF t=%t (%m)", $time);
             $toggle_stop();
-            $toggle_report("run.saif", 1.0e-12, `HOST_MODULE_PATH.testbench.DUT);
+           $toggle_report("run.saif", 1.0e-12, `HOST_MODULE_PATH.testbench.fi1.DUT);
          end
       end // if (saif_en_i ^ saif_en_r)
    end // always @ (negedge clk_i)

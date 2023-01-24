@@ -186,7 +186,7 @@ module spmd_testbench
     ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
     ,.io_x_cord_p(`BSG_MACHINE_HOST_X_CORD)
     ,.io_y_cord_p(`BSG_MACHINE_HOST_Y_CORD)
-    ,.saif_toggle_scope_p("spmd_testbench.testbench.DUT.podrow.px[0].pod.mc_y[0].mc_x[0].mc.y[0].x[0].tile")
+    ,.saif_toggle_scope_p("spmd_testbench.testbench.fi1.DUT.podrow.px[0].pod.mc_y[0].mc_x[0].mc.y[0].x[0].tile")
   ) io (
     .clk_i(core_clk)
     ,.reset_i(reset_r)
