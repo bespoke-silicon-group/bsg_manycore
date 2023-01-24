@@ -1,3 +1,7 @@
+#   dram_utilization.py
+#
+#   Usage: python dram_utilization.py {blood_graph_stats.log path}
+
 import pandas as pd
 import sys
 import os
@@ -55,7 +59,6 @@ def parse_dram_stat(FILENAME):
 
 
 if __name__ == "__main__":
-  os.chdir(sys.argv[1])
-  num_channels = int(sys.argv[2])
-  for ch in range(num_channels):
-    parse_dram_stat("blood_graph_stat_{}.log".format(ch))
+  # path to blood_graph_stat.log
+  filepath = sys.argv[1]
+  parse_dram_stat(filepath)
