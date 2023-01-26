@@ -42,7 +42,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter `BSG_INV_PARAM(vcache_size_p) // in words
     , parameter `BSG_INV_PARAM(vcache_addr_width_p) // byte addr
     , parameter `BSG_INV_PARAM(num_vcaches_per_channel_p)
-    , parameter vcache_word_tracking_p = 1
+    , parameter vcache_word_tracking_p = 0
 
     , parameter `BSG_INV_PARAM(wh_flit_width_p)
     , parameter wh_ruche_factor_p = 2
@@ -50,7 +50,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter `BSG_INV_PARAM(wh_len_width_p)
     , parameter `BSG_INV_PARAM(wh_cord_width_p)
 
-    , parameter bsg_manycore_network_cfg_e bsg_manycore_network_cfg_p = e_network_half_ruche_x
+    , parameter bsg_manycore_network_cfg_e bsg_manycore_network_cfg_p = e_network_mesh
     , parameter bsg_manycore_mem_cfg_e bsg_manycore_mem_cfg_p = e_vcache_test_mem
     , parameter `BSG_INV_PARAM(bsg_dram_size_p) // in word
     , parameter reset_depth_p = 3
