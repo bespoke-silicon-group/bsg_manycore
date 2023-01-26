@@ -242,11 +242,15 @@ module bsg_manycore_pod_mesh_row
     assign hor_barrier_link_li[num_pods_x_p-1][E][y] = 1'b0;
     // ruche (hardcoded for ruche factor of 3 for now)
     assign barrier_ruche_link_li[0][W][y][0] = 1'b0;
-    assign barrier_ruche_link_li[0][W][y][1] = 1'b0;
-    assign barrier_ruche_link_li[0][W][y][2] = 1'b1;
     assign barrier_ruche_link_li[num_pods_x_p-1][E][y][0] = 1'b0;
-    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][1] = 1'b1;
-    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][2] = 1'b0;
+    if (barrier_ruche_factor_X_p > 1) begin
+      assign barrier_ruche_link_li[0][W][y][1] = 1'b0;
+      assign barrier_ruche_link_li[num_pods_x_p-1][E][y][1] = 1'b1;
+    end
+    if (barrier_ruche_factor_X_p > 2) begin
+      assign barrier_ruche_link_li[0][W][y][2] = 1'b1;
+      assign barrier_ruche_link_li[num_pods_x_p-1][E][y][2] = 1'b0;
+    end
   end
 
 endmodule
