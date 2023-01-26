@@ -70,7 +70,7 @@ module vanilla_core_profiler
     , input stall_remote_ld_wb
     , input stall_ifetch_wait
     , input stall_remote_flw_wb
-
+    , input stall_blocking_load
 
     , input branch_mispredict
     , input jalr_mispredict
@@ -335,6 +335,7 @@ module vanilla_core_profiler
   wire stall_idiv_busy_inc = (exe_bubble_r == e_exe_bubble_stall_idiv_busy);
   wire stall_fcsr_inc = (exe_bubble_r == e_exe_bubble_stall_fcsr);
   wire stall_barrier_inc = (exe_bubble_r == e_exe_bubble_stall_barrier);
+  wire stall_blocking_load_inc = (exe_bubble_r == e_exe_bubble_stall_blocking_load);
   
   
   // profiling counters
@@ -479,6 +480,7 @@ module vanilla_core_profiler
     integer stall_remote_ld_wb;
     integer stall_ifetch_wait;
     integer stall_remote_flw_wb;
+    integer stall_blocking_load;
 
   } vanilla_stat_s;
 
@@ -626,6 +628,7 @@ module vanilla_core_profiler
         else if (branch_miss_bubble_inc) stat_r.branch_miss_bubble++;
         else if (jalr_miss_bubble_inc) stat_r.jalr_miss_bubble++;
         else if (icache_miss_bubble_inc) stat_r.icache_miss_bubble++;
+        else if (stall_blocking_load) stat_r.stall_blocking_load++;
         else if (stall_depend_dram_load_inc) stat_r.stall_depend_dram_load++;
         else if (stall_depend_group_load_inc) stat_r.stall_depend_group_load++;
         else if (stall_depend_global_load_inc) stat_r.stall_depend_global_load++;
@@ -814,7 +817,8 @@ module vanilla_core_profiler
 
       $fwrite(fd, "stall_remote_ld_wb,");
       $fwrite(fd, "stall_ifetch_wait,");
-      $fwrite(fd, "stall_remote_flw_wb");
+      $fwrite(fd, "stall_remote_flw_wb,");
+      $fwrite(fd, "stall_blocking_load");
       $fwrite(fd, "\n");
       $fclose(fd);
 
@@ -973,7 +977,8 @@ module vanilla_core_profiler
     
           $fwrite(fd, "%0d,", stat_r.stall_remote_ld_wb);
           $fwrite(fd, "%0d,", stat_r.stall_ifetch_wait);
-          $fwrite(fd, "%0d\n", stat_r.stall_remote_flw_wb);
+          $fwrite(fd, "%0d,", stat_r.stall_remote_flw_wb);
+          $fwrite(fd, "%0d\n", stat_r.stall_blocking_load);
 
           $fclose(fd);
 
@@ -1103,6 +1108,7 @@ module vanilla_core_profiler
           else if (branch_miss_bubble_inc) print_operation_trace("bubble_branch_miss", exe_bubble_pc_r);
           else if (jalr_miss_bubble_inc) print_operation_trace("bubble_jalr_miss", exe_bubble_pc_r);
           else if (icache_miss_bubble_inc) print_operation_trace("bubble_icache_miss", exe_bubble_pc_r);
+          else if (stall_blocking_load) print_operation_trace("stall_blocking_load", exe_bubble_pc_r);
           else if (stall_depend_dram_load_inc) print_operation_trace("stall_depend_dram_load", exe_bubble_pc_r);
           else if (stall_depend_group_load_inc) print_operation_trace("stall_depend_group_load", exe_bubble_pc_r);
           else if (stall_depend_global_load_inc) print_operation_trace("stall_depend_global_load", exe_bubble_pc_r);

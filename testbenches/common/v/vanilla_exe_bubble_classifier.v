@@ -40,6 +40,7 @@ module vanilla_exe_bubble_classifier
    ,input stall_remote_ld_wb
    ,input stall_ifetch_wait
    ,input stall_remote_flw_wb
+   ,input stall_blocking_load
 
    ,input branch_mispredict
    ,input jalr_mispredict
@@ -258,6 +259,10 @@ module vanilla_exe_bubble_classifier
         end
         else if (stall_barrier) begin
           exe_bubble_r <= e_exe_bubble_stall_barrier;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_blocking_load) begin
+          exe_bubble_r <= e_exe_bubble_stall_blocking_load;
           exe_bubble_pc_r <= id_pc;
         end
         else begin

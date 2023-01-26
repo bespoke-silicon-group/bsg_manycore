@@ -30,7 +30,7 @@ package vanilla_exe_bubble_classifier_pkg;
     e_exe_bubble_stall_idiv_busy,
     e_exe_bubble_stall_fcsr,
     e_exe_bubble_stall_barrier,
-
+    e_exe_bubble_stall_blocking_load,
     e_exe_no_bubble
   } exe_bubble_type_e;
 
