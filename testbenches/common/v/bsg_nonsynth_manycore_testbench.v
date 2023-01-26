@@ -193,7 +193,7 @@ module bsg_nonsynth_manycore_testbench
       ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
       ,.vcache_size_p(vcache_size_p)
       ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
-      ,.vcache_word_tracking_p(vcache_word_tracking_p)
+      ,.vcache_word_tracking_p(0)
 
       ,.wh_ruche_factor_p(wh_ruche_factor_p)
       ,.wh_cid_width_p(wh_cid_width_p)
@@ -251,7 +251,7 @@ module bsg_nonsynth_manycore_testbench
       ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
       ,.vcache_size_p(vcache_size_p)
       ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
-      ,.vcache_word_tracking_p(vcache_word_tracking_p)
+      ,.vcache_word_tracking_p(0)
 
       ,.wh_ruche_factor_p(wh_ruche_factor_p)
       ,.wh_cid_width_p(wh_cid_width_p)
