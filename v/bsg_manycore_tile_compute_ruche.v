@@ -27,7 +27,7 @@ module bsg_manycore_tile_compute_ruche
     , parameter `BSG_INV_PARAM(data_width_p )
     , `BSG_INV_PARAM(addr_width_p )
 
-    , ruche_factor_X_p = 3
+    , `BSG_INV_PARAM(ruche_factor_X_p)
     , barrier_ruche_factor_X_p = 3    
 
     , `BSG_INV_PARAM(num_vcache_rows_p )

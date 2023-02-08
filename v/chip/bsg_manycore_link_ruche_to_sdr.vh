@@ -105,8 +105,7 @@
 
   if (tieoff_east_not_west_p == 0)
   begin: tieoff_west
-    // hard-coded for odd ruche factor (= 3).
-    assign core_link_sif_li  [E] = core_hor_link_sif_i;
+    assign core_link_sif_li[E] = core_hor_link_sif_i;
     bsg_inv #(
       .width_p($bits(bsg_manycore_ruche_x_link_sif_s))
       ,.harden_p(1)
@@ -114,16 +113,27 @@
       .i(core_ruche_link_i)
       ,.o(core_ruche_link_li[E])
     );
-    assign core_link_sif_li  [W] = '0;
+    assign core_link_sif_li[W] = '0;
     assign core_ruche_link_li[W] = '0;
     assign core_hor_link_sif_o = core_link_sif_lo  [E];
-    bsg_buf #(
-      .width_p($bits(bsg_manycore_ruche_x_link_sif_s))
-      ,.harden_p(1)
-    ) buf0 (
-      .i(core_ruche_link_lo[E])
-      ,.o(core_ruche_link_o)
-    );
+    if (ruche_factor_X_p % 2 == 0) begin:fi1
+      bsg_inv #(
+        .width_p($bits(bsg_manycore_ruche_x_link_sif_s))
+        ,.harden_p(1)
+      ) inv0 (
+        .i(core_ruche_link_lo[E])
+        ,.o(core_ruche_link_o)
+      );
+    end
+    else begin: fi1
+      bsg_buf #(
+        .width_p($bits(bsg_manycore_ruche_x_link_sif_s))
+        ,.harden_p(1)
+      ) buf0 (
+        .i(core_ruche_link_lo[E])
+        ,.o(core_ruche_link_o)
+      );
+    end
   end
   else
   begin
