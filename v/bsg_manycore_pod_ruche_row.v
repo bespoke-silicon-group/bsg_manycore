@@ -19,7 +19,7 @@ module bsg_manycore_pod_ruche_row
     , `BSG_INV_PARAM(addr_width_p)
     , `BSG_INV_PARAM(data_width_p)
     , `BSG_INV_PARAM(ruche_factor_X_p)
-    , barrier_ruche_factor_X_p=3
+    , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
     , num_subarray_x_p=1
     , num_subarray_y_p=1
 
@@ -292,18 +292,26 @@ module bsg_manycore_pod_ruche_row
   end
 
   // Tieoff barrier links
-  // (Hardcoded for ruche factor of 3 for now)
   for (genvar y = 0; y < num_tiles_y_p; y++) begin
     // local
     assign hor_barrier_link_li[0][W][y] = 1'b0;
     assign hor_barrier_link_li[num_pods_x_p-1][E][y] = 1'b0;
-    // ruche
+
+    // ruche west
     assign barrier_ruche_link_li[0][W][y][0] = 1'b0;
-    assign barrier_ruche_link_li[0][W][y][1] = 1'b0;
-    assign barrier_ruche_link_li[0][W][y][2] = 1'b1;
-    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][0] = 1'b0;
-    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][1] = 1'b1;
-    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][2] = 1'b0;
+    for (genvar r = 1; r < barrier_ruche_factor_X_p; r++) begin
+      if (barrier_ruche_factor_X_p % 2 == 0) begin
+        assign barrier_ruche_link_li[0][W][y][r] = ((r%2)==0) ? 1'b0 : 1'b1;
+      end
+      else begin
+        assign barrier_ruche_link_li[0][W][y][r] = ((r%2)==0) ? 1'b1 : 1'b0;
+      end
+    end
+
+    // ruche east
+    for (genvar r = 0; r < barrier_ruche_factor_X_p; r++) begin
+      assign barrier_ruche_link_li[num_pods_x_p-1][E][y][r] = ((r%2)==0) ? 1'b0 : 1'b1;
+    end
   end
 
 endmodule

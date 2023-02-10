@@ -42,7 +42,7 @@ module bsg_manycore_tile_compute_array_ruche
     , `BSG_INV_PARAM(data_width_p ) // 32
 
     // barrier ruche factor
-    , barrier_ruche_factor_X_p=3
+    , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
 
     // global coordinate width
     // global_x/y_i

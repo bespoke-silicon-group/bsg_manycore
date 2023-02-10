@@ -22,7 +22,7 @@ module bsg_manycore_pod_ruche_array
     , `BSG_INV_PARAM(addr_width_p)
     , `BSG_INV_PARAM(data_width_p)
     , `BSG_INV_PARAM(ruche_factor_X_p)
-    , barrier_ruche_factor_X_p = 3
+    , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
 
     , num_subarray_x_p=1
     , num_subarray_y_p=1

@@ -28,7 +28,7 @@ module bsg_manycore_tile_compute_ruche
     , `BSG_INV_PARAM(addr_width_p )
 
     , `BSG_INV_PARAM(ruche_factor_X_p)
-    , barrier_ruche_factor_X_p = 3    
+    , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
 
     , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
@@ -282,7 +282,12 @@ module bsg_manycore_tile_compute_ruche
     assign barrier_ruche_link_o[i][E] = barrier_ruche_link_i[i][W];
   end
 
-
+  // synopsys translate_off
+  initial begin
+    assert(ruche_factor_X_p >= 2) else $error("ruche_factor_X_p must be greater or equal to 2.");
+    assert(barrier_ruche_factor_X_p >= 2) else $error("barrier_ruche_factor_X_p must be greater or equal to 2.");
+  end
+  // synopsys translate_on
 
 
 endmodule
