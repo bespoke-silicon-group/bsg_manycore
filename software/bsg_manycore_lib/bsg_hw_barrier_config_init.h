@@ -60,7 +60,7 @@ static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
 
       // setting input mask
       // input = W
-      if (((x == (center_x-1)) || (x == center_x))  && x > 0) {
+      if (((center_x-x) < BARRIER_RUCHE_FACTOR_X-1) && (x <= center_x)  && (x > 0)) {
         val |= (1 << 1);
       }
 
@@ -70,7 +70,7 @@ static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
       }
 
       // input = E
-      if (((x == (center_x+1)) || (x == center_x)) && (x < (tx-1))) {
+      if (((x-center_x) < BARRIER_RUCHE_FACTOR_X-1) && (x >= center_x) && (x < (tx-1))) {
         val |= (1 << 2);
       }
 
