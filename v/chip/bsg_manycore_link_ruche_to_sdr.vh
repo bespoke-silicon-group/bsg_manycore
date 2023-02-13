@@ -116,6 +116,9 @@
     assign core_link_sif_li[W] = '0;
     assign core_ruche_link_li[W] = '0;
     assign core_hor_link_sif_o = core_link_sif_lo  [E];
+    // This is the first ruche buffer so the even ruche factor uses an inverter, whereas the odd ruche factor uses a regular buffer.
+    // Look at the diagrams to understand better.
+    // https://docs.google.com/presentation/d/1MdQODg7RtSm3qP2aIDhG5b7j58DfMFEDun-4yWoRzcw/edit#slide=id.g206d26623c2_0_1138
     if (ruche_factor_X_p % 2 == 0) begin:fi1
       bsg_inv #(
         .width_p($bits(bsg_manycore_ruche_x_link_sif_s))
