@@ -18,8 +18,8 @@ module bsg_manycore_pod_ruche_row
     , `BSG_INV_PARAM(y_cord_width_p)
     , `BSG_INV_PARAM(addr_width_p)
     , `BSG_INV_PARAM(data_width_p)
-    , ruche_factor_X_p=3  // only support 3 for now
-    , barrier_ruche_factor_X_p=3
+    , `BSG_INV_PARAM(ruche_factor_X_p)
+    , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
     , num_subarray_x_p=1
     , num_subarray_y_p=1
 
@@ -229,24 +229,39 @@ module bsg_manycore_pod_ruche_row
   end
 
 
-
-  // hard-coded for ruche factor = 3
-  for (genvar y = 0; y < num_tiles_y_p; y++) begin: ry
-    // connect manycore ruche to west
+  for (genvar y = 0; y < num_tiles_y_p; y++) begin
+    // West input
+    // always connect [1] as is.
+    // always tieoff [0] with 0.
+    assign ruche_link_li[0][W][y][0] = '0; // tieoff
     assign ruche_link_li[0][W][y][1] = ruche_link_i[W][y];
+    for (genvar r = 2; r < ruche_factor_X_p; r++) begin
+      if (ruche_factor_X_p % 2 == 0) begin
+        assign ruche_link_li[0][W][y][r] = ((r%2)==0) ? '0 : '1;
+      end
+      else begin
+        assign ruche_link_li[0][W][y][r] = ((r%2)==0) ? '1 : '0;
+      end
+    end
+  
+    // West output
+    // always connect [1] as is
+    // other ports remain dangle.
     assign ruche_link_o[W][y] = ruche_link_lo[0][W][y][1];
 
-    // tieoff west manycore ruche
-    assign ruche_link_li[0][W][y][0] = '0; // tieoff
-    assign ruche_link_li[0][W][y][2] = '1; // tieoff
-
-    // connect manycore ruche to east
+    // East input
+    // always connect [0] as is.
+    // tieoff with 0 if r is even.
+    // tieoff with 1 if r is odd.
     assign ruche_link_li[num_pods_x_p-1][E][y][0] = ruche_link_i[E][y];
-    assign ruche_link_o[E][y] = ruche_link_lo[num_pods_x_p-1][E][y][0];
+    for (genvar r = 1; r < ruche_factor_X_p; r++) begin
+      assign ruche_link_li[num_pods_x_p-1][E][y][r] = ((r%2) == 0) ? '0 : '1;
+    end
 
-    // tieoff east manycore ruche
-    assign ruche_link_li[num_pods_x_p-1][E][y][1] = '1;
-    assign ruche_link_li[num_pods_x_p-1][E][y][2] = '0;
+    // East output
+    // always connect [0] as is.
+    // other ports remain dangle.
+    assign ruche_link_o[E][y] = ruche_link_lo[num_pods_x_p-1][E][y][0];
   end
 
   // connect wormhole ruche links to the outside
@@ -277,18 +292,26 @@ module bsg_manycore_pod_ruche_row
   end
 
   // Tieoff barrier links
-  // (Hardcoded for ruche factor of 3 for now)
   for (genvar y = 0; y < num_tiles_y_p; y++) begin
     // local
     assign hor_barrier_link_li[0][W][y] = 1'b0;
     assign hor_barrier_link_li[num_pods_x_p-1][E][y] = 1'b0;
-    // ruche
+
+    // ruche west
     assign barrier_ruche_link_li[0][W][y][0] = 1'b0;
-    assign barrier_ruche_link_li[0][W][y][1] = 1'b0;
-    assign barrier_ruche_link_li[0][W][y][2] = 1'b1;
-    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][0] = 1'b0;
-    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][1] = 1'b1;
-    assign barrier_ruche_link_li[num_pods_x_p-1][E][y][2] = 1'b0;
+    for (genvar r = 1; r < barrier_ruche_factor_X_p; r++) begin
+      if (barrier_ruche_factor_X_p % 2 == 0) begin
+        assign barrier_ruche_link_li[0][W][y][r] = ((r%2)==0) ? 1'b0 : 1'b1;
+      end
+      else begin
+        assign barrier_ruche_link_li[0][W][y][r] = ((r%2)==0) ? 1'b1 : 1'b0;
+      end
+    end
+
+    // ruche east
+    for (genvar r = 0; r < barrier_ruche_factor_X_p; r++) begin
+      assign barrier_ruche_link_li[num_pods_x_p-1][E][y][r] = ((r%2)==0) ? 1'b0 : 1'b1;
+    end
   end
 
 endmodule

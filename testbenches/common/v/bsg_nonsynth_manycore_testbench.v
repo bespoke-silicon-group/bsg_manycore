@@ -827,15 +827,16 @@ module bsg_nonsynth_manycore_testbench
   // RUCHE LINK TIEOFF (west)
   for (genvar j = 0; j < num_pods_y_p; j++) begin
     for (genvar k = 0; k < num_tiles_y_p; k++) begin
-      // hard coded for ruche factor 3
-      assign ruche_link_li[W][j][k] = '0;
+      // if ruche factor is even, tieoff with '1
+      // if ruche factor is odd,  tieoff with '0
+      assign ruche_link_li[W][j][k] = (ruche_factor_X_p%2 == 0) ? '1 : '0;
     end
   end
 
   // RUCHE LINK TIEOFF (east)
   for (genvar j = 0; j < num_pods_y_p; j++) begin
     for (genvar k = 0; k < num_tiles_y_p; k++) begin
-      // hard coded for ruche factor 3
+      // always tieoff with '0;
       assign ruche_link_li[E][j][k] = '0;
     end
   end

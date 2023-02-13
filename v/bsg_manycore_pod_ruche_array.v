@@ -21,8 +21,8 @@ module bsg_manycore_pod_ruche_array
     , `BSG_INV_PARAM(y_cord_width_p)
     , `BSG_INV_PARAM(addr_width_p)
     , `BSG_INV_PARAM(data_width_p)
-    , ruche_factor_X_p=3  // only support 3 for now
-    , barrier_ruche_factor_X_p = 3
+    , `BSG_INV_PARAM(ruche_factor_X_p)
+    , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
 
     , num_subarray_x_p=1
     , num_subarray_y_p=1
