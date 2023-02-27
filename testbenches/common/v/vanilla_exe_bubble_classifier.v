@@ -56,6 +56,9 @@ module vanilla_exe_bubble_classifier
    ,input exe_signals_s exe_r
    ,input fp_exe_ctrl_signals_s fp_exe_ctrl_r
 
+   ,input instruction_s instruction
+   ,input decode_s decode
+
    ,output [pc_width_p-1:0] exe_bubble_pc_o
    ,output [31:0] exe_bubble_type_o
    );
@@ -151,6 +154,19 @@ module vanilla_exe_bubble_classifier
           (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2].remote_dram_load) |
           (id_r.decode.write_frd & float_sb[id_r.instruction.rd].remote_dram_load));
 
+  wire stall_depend_dram_seq_load = stall_depend_long_op
+       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1].remote_dram_seq_load) |
+          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2].remote_dram_seq_load) |
+          (id_r.decode.write_rd & int_sb[id_r.instruction.rd].remote_dram_seq_load) |
+          (id_r.decode.read_frs1 & float_sb[id_r.instruction.rs1].remote_dram_seq_load) |
+          (id_r.decode.read_frs2 & float_sb[id_r.instruction.rs2].remote_dram_seq_load) |
+          (id_r.decode.write_frd & float_sb[id_r.instruction.rd].remote_dram_seq_load));
+
+  wire stall_depend_dram_amo = stall_depend_long_op
+       & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1].remote_dram_amo) |
+          (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2].remote_dram_amo) |
+          (id_r.decode.write_rd & int_sb[id_r.instruction.rd].remote_dram_amo));
+
   wire stall_depend_idiv = stall_depend_long_op
        & ((id_r.decode.read_rs1 & int_sb[id_r.instruction.rs1].idiv) |
           (id_r.decode.read_rs2 & int_sb[id_r.instruction.rs2].idiv) |
@@ -190,6 +206,14 @@ module vanilla_exe_bubble_classifier
         end
         else if (stall_depend_dram_load) begin
           exe_bubble_r <= e_exe_bubble_stall_depend_dram;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_depend_dram_seq_load) begin
+          exe_bubble_r <= e_exe_bubble_stall_depend_seq_dram;
+          exe_bubble_pc_r <= id_pc;
+        end
+        else if (stall_depend_dram_amo) begin
+          exe_bubble_r <= e_exe_bubble_stall_depend_dram_amo;
           exe_bubble_pc_r <= id_pc;
         end
         else if (stall_depend_group_load) begin
