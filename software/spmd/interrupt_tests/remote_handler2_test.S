@@ -30,6 +30,7 @@ _start:
   sw x2, 0(x1)
 
   // wait for interrupt
+  fence
   nop
   li x31, 0xbeef
   bne x30, x31, fail

@@ -132,6 +132,9 @@ module spmd_testbench
 
     ,.reset_depth_p(reset_depth_p)
 
+    ,.host_x_cord_p(`BSG_MACHINE_HOST_X_CORD)
+    ,.host_y_cord_p(`BSG_MACHINE_HOST_Y_CORD)
+
 `ifdef BSG_ENABLE_PROFILING
     ,.enable_vcore_profiling_p(1)
     ,.enable_router_profiling_p(1)

@@ -30,6 +30,12 @@ _start:
 
   // wait for interrupt
   nop
+  nop
+  nop
+  nop
+  nop
+  nop
+  nop
   li x31, 0xbeef
   bne x30, x31, fail
 

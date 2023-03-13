@@ -50,6 +50,9 @@ module bsg_nonsynth_manycore_testbench
     , parameter `BSG_INV_PARAM(wh_len_width_p)
     , parameter `BSG_INV_PARAM(wh_cord_width_p)
 
+    , `BSG_INV_PARAM(host_x_cord_p)
+    , `BSG_INV_PARAM(host_y_cord_p)
+
     , parameter bsg_manycore_network_cfg_e bsg_manycore_network_cfg_p = e_network_half_ruche_x
     , parameter bsg_manycore_mem_cfg_e bsg_manycore_mem_cfg_p = e_vcache_test_mem
     , parameter `BSG_INV_PARAM(bsg_dram_size_p) // in word
@@ -279,6 +282,49 @@ module bsg_nonsynth_manycore_testbench
       ,.pod_tags_i(pod_tags_lo) 
     );
   end
+  else if (bsg_manycore_network_cfg_p == e_network_xbar) begin: fi1
+    bsg_manycore_pod_xbar #(
+      .num_tiles_x_p(num_tiles_x_p)
+      ,.num_tiles_y_p(num_tiles_y_p)
+      ,.pod_x_cord_width_p(pod_x_cord_width_p)
+      ,.pod_y_cord_width_p(pod_y_cord_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.dmem_size_p(dmem_size_p)
+      ,.icache_entries_p(icache_entries_p)
+      ,.icache_tag_width_p(icache_tag_width_p)
+      ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+      ,.vcache_addr_width_p(vcache_addr_width_p)
+      ,.vcache_data_width_p(vcache_data_width_p)
+      ,.vcache_ways_p(vcache_ways_p)
+      ,.vcache_sets_p(vcache_sets_p)
+      ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+      ,.vcache_size_p(vcache_size_p)
+      ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_word_tracking_p(vcache_word_tracking_p)
+      ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+      ,.wh_ruche_factor_p(wh_ruche_factor_p)
+      ,.wh_cid_width_p(wh_cid_width_p)
+      ,.wh_flit_width_p(wh_flit_width_p)
+      ,.wh_cord_width_p(wh_cord_width_p)
+      ,.wh_len_width_p(wh_len_width_p)
+      ,.host_x_cord_p(host_x_cord_p)
+      ,.host_y_cord_p(host_y_cord_p)
+    ) DUT (
+      .clk_i(clk_i)
+      ,.reset_i(reset_r)
+      
+      ,.host_link_i(io_link_sif_i)
+      ,.host_link_o(io_link_sif_o)
+    
+      ,.wh_link_sif_i(wh_link_sif_li)
+      ,.wh_link_sif_o(wh_link_sif_lo)
+    );
+    assign ver_link_sif_lo = '0;
+    assign hor_link_sif_lo = '0;
+  end
   else begin
     initial begin
       $error("Invalid bsg_manycore_network_cfg_p.");
@@ -314,45 +360,51 @@ module bsg_nonsynth_manycore_testbench
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_li;
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_lo;
 
-  for (genvar x = 0; x < num_pods_x_p*num_tiles_x_p; x++) begin: io_rtr_x
-    bsg_manycore_mesh_node #(
-      .x_cord_width_p(x_cord_width_p)
-      ,.y_cord_width_p(y_cord_width_p)
-      ,.addr_width_p(addr_width_p)
-      ,.data_width_p(data_width_p)
-      ,.stub_p(4'b0100) // stub north
-      ,.rev_use_credits_p(rev_use_credits_lp)
-      ,.rev_fifo_els_p(rev_fifo_els_lp)
-    ) io_rtr (
-      .clk_i(clk_i)
-      ,.reset_i(reset_r)
+  if ((bsg_manycore_network_cfg_p == e_network_half_ruche_x)
+      || (bsg_manycore_network_cfg_p == e_network_mesh)) begin: fi2
 
-      ,.links_sif_i(io_link_sif_li[x][S:W])
-      ,.links_sif_o(io_link_sif_lo[x][S:W])
+    for (genvar x = 0; x < num_pods_x_p*num_tiles_x_p; x++) begin: io_rtr_x
+      bsg_manycore_mesh_node #(
+        .x_cord_width_p(x_cord_width_p)
+        ,.y_cord_width_p(y_cord_width_p)
+        ,.addr_width_p(addr_width_p)
+        ,.data_width_p(data_width_p)
+        ,.stub_p(4'b0100) // stub north
+        ,.rev_use_credits_p(rev_use_credits_lp)
+        ,.rev_fifo_els_p(rev_fifo_els_lp)
+      ) io_rtr (
+        .clk_i(clk_i)
+        ,.reset_i(reset_r)
 
-      ,.proc_link_sif_i(io_link_sif_li[x][P])
-      ,.proc_link_sif_o(io_link_sif_lo[x][P])
+        ,.links_sif_i(io_link_sif_li[x][S:W])
+        ,.links_sif_o(io_link_sif_lo[x][S:W])
 
-      ,.global_x_i(x_cord_width_p'(num_tiles_x_p+x))
-      ,.global_y_i(y_cord_width_p'(0))
-    );
+        ,.proc_link_sif_i(io_link_sif_li[x][P])
+        ,.proc_link_sif_o(io_link_sif_lo[x][P])
 
-    // connect to pod array
-    assign ver_link_sif_li[N][x] = io_link_sif_lo[x][S];
-    assign io_link_sif_li[x][S] = ver_link_sif_lo[N][x];
+        ,.global_x_i(x_cord_width_p'(num_tiles_x_p+x))
+        ,.global_y_i(y_cord_width_p'(0))
+      );
 
-    // connect between io rtr
-    if (x < (num_pods_x_p*num_tiles_x_p)-1) begin
-      assign io_link_sif_li[x][E] = io_link_sif_lo[x+1][W];
-      assign io_link_sif_li[x+1][W] = io_link_sif_lo[x][E];
+      // connect to pod array
+      assign ver_link_sif_li[N][x] = io_link_sif_lo[x][S];
+      assign io_link_sif_li[x][S] = ver_link_sif_lo[N][x];
+
+      // connect between io rtr
+      if (x < (num_pods_x_p*num_tiles_x_p)-1) begin
+        assign io_link_sif_li[x][E] = io_link_sif_lo[x+1][W];
+        assign io_link_sif_li[x+1][W] = io_link_sif_lo[x][E];
+      end
     end
+
+    // Host link connection
+    assign io_link_sif_li[0][P] = io_link_sif_i;
+    assign io_link_sif_o = io_link_sif_lo[0][P];
+
   end
-
-
-
-  // Host link connection
-  assign io_link_sif_li[0][P] = io_link_sif_i;
-  assign io_link_sif_o = io_link_sif_lo[0][P];
+  else begin
+    assign io_link_sif_lo = '0;
+  end
 
 
 
@@ -917,6 +969,8 @@ end
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCACHE_PROFILING
 if (enable_cache_profiling_p) begin
+  if ((bsg_manycore_network_cfg_p == e_network_half_ruche_x)
+      || (bsg_manycore_network_cfg_p == e_network_mesh)) begin: fi2
   bind bsg_cache vcache_profiler #(
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
@@ -935,8 +989,29 @@ if (enable_cache_profiling_p) begin
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
+  end
+  else begin
+    bind bsg_cache vcache_profiler #(
+      .data_width_p(data_width_p)
+      ,.addr_width_p(addr_width_p)
+      ,.block_size_in_words_p(block_size_in_words_p)
+      ,.header_print_p({`BSG_STRINGIFY(`HOST_MODULE_PATH),".testbench.fi1.DUT.vc_x[0].north_vc.cache.vcache_prof"})
+      ,.ways_p(ways_p)
+    ) vcache_prof (
+      // everything else
+      .*
+      ,.clk_i(clk_i)
+      // bsg_cache_miss
+      ,.chosen_way_n(miss.chosen_way_n)
+      // from testbench
+      ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
+      ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
+      ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
+      ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
+    );
 
   end
+end
 `endif
 
 // Covergroups are not fully supported by Verilator 4.213

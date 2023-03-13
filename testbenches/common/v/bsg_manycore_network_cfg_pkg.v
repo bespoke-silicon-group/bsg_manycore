@@ -13,7 +13,7 @@ package bsg_manycore_network_cfg_pkg;
 
   typedef enum bit [lg_max_cfgs-1:0] {
     // Crossbar network
-    e_network_crossbar
+    e_network_xbar
 
     // 2D mesh
     , e_network_mesh

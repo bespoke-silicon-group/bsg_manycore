@@ -41,6 +41,7 @@ int main()
   int small_id = small_x + (4*small_y);
   int barcfg = barcfg_4x4[small_id];
   asm volatile ("csrrw x0, 0xfc1, %0" : : "r" (barcfg));
+  bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm);
 
   int temp[NUM_WORDS];
   for (int n = 0; n < N; n++) {
@@ -54,7 +55,7 @@ int main()
     bsg_barsend();
     bsg_barrecv();
 
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < NUM_WORDS; i++) {
       temp[i]++;
       bsg_remote_store(tx, ty, &data[i], temp[i]);
     }
@@ -70,6 +71,7 @@ int main()
   bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm);
   barcfg = barcfg_16x8[__bsg_id];
   asm volatile ("csrrw x0, 0xfc1, %0" : : "r" (barcfg));
+  bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm);
   
   for (int n = 0; n < 4*N; n++) {
     int tx = (__bsg_x + n) % bsg_tiles_X;
@@ -99,6 +101,7 @@ int main()
   bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm);
   barcfg = barcfg_4x4[small_id];
   asm volatile ("csrrw x0, 0xfc1, %0" : : "r" (barcfg));
+  bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm);
 
   for (int n = 0; n < N; n++) {
     int tx = small_org_x + ((small_x + n) % 4);
