@@ -261,10 +261,10 @@ endif
 
 else
 %.o: %.c
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ 2>&1 tee $*.comp.log
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ 2>&1 | tee $*.comp.log
 
 %.o: %.cpp
-	$(RISCV_GXX) $(RISCV_GXX_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ 2>&1 tee $*.comp.log
+	$(RISCV_GXX) $(RISCV_GXX_OPTS) $(OPT_LEVEL) $(spmd_defs) -c $(INCS) $< -o $@ 2>&1 | tee $*.comp.log
 endif
 
 
