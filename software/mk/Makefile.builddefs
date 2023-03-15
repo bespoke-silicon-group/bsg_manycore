@@ -344,8 +344,8 @@ else
 endif
 
 %.S: %.c
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ 2>&1 tee $*.comp.log
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ 2>&1 | tee $*.comp.log
 
 %.S: %.cpp
-	$(RISCV_GXX) $(RISCV_GXX_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ 2>&1 tee $*.comp.log
+	$(RISCV_GXX) $(RISCV_GXX_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ 2>&1 | tee $*.comp.log
 
