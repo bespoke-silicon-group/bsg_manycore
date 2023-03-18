@@ -90,6 +90,10 @@ module vanilla_core_profiler
     , input exe_signals_s exe_r
     , input fp_exe_ctrl_signals_s fp_exe_ctrl_r
 
+    // IF stage
+    , input instruction_s instruction
+    , input decode_s decode
+
     , input [x_cord_width_p-1:0] global_x_i
     , input [y_cord_width_p-1:0] global_y_i
 
@@ -272,7 +276,8 @@ module vanilla_core_profiler
   // and their associated PC
   logic [data_width_p-1:0] exe_bubble_pc_r;
   exe_bubble_type_e exe_bubble_r;
-  
+  logic is_exe_seq_lw, is_exe_seq_flw;
+
   vanilla_exe_bubble_classifier
     #(.pc_width_p(pc_width_lp)
       ,.data_width_p(data_width_p)
@@ -281,7 +286,10 @@ module vanilla_core_profiler
     (.*
      ,.exe_bubble_pc_o(exe_bubble_pc_r)
      ,.exe_bubble_type_o(exe_bubble_r)
+     ,.is_exe_seq_lw_o(is_exe_seq_lw)
+     ,.is_exe_seq_flw_o(is_exe_seq_flw)
      );
+
 
   // FP_EXE pc tracker (also for imul)
   logic [data_width_p-1:0] fp_exe_pc_r;
@@ -318,6 +326,8 @@ module vanilla_core_profiler
   wire jalr_miss_bubble_inc = (exe_bubble_r == e_exe_bubble_jalr_miss);
   wire icache_miss_bubble_inc = (exe_bubble_r == e_exe_bubble_icache_miss);
   wire stall_depend_dram_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_dram);
+  wire stall_depend_dram_seq_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_seq_dram);
+  wire stall_depend_dram_amo_inc = (exe_bubble_r == e_exe_bubble_stall_depend_dram_amo);
   wire stall_depend_group_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_group);
   wire stall_depend_global_load_inc = (exe_bubble_r == e_exe_bubble_stall_depend_global);
   wire stall_depend_idiv_inc = (exe_bubble_r == e_exe_bubble_stall_depend_idiv);
@@ -373,6 +383,7 @@ module vanilla_core_profiler
     integer local_ld;
     integer local_st;
     integer remote_ld_dram;
+    integer remote_seq_ld_dram;
     integer remote_ld_global;
     integer remote_ld_group;
     integer remote_st_dram;
@@ -382,6 +393,7 @@ module vanilla_core_profiler
     integer local_flw;
     integer local_fsw;
     integer remote_flw_dram;
+    integer remote_seq_flw_dram;
     integer remote_flw_global;
     integer remote_flw_group;
     integer remote_fsw_dram;
@@ -458,6 +470,8 @@ module vanilla_core_profiler
     integer jalr_miss_bubble;
     integer icache_miss_bubble;
     integer stall_depend_dram_load;
+    integer stall_depend_dram_seq_load;
+    integer stall_depend_dram_amo;
     integer stall_depend_group_load;
     integer stall_depend_global_load;
     integer stall_depend_idiv;
@@ -527,7 +541,8 @@ module vanilla_core_profiler
 
         else if (local_ld_inc) stat_r.local_ld++;
         else if (local_st_inc) stat_r.local_st++;
-        else if (remote_ld_dram_inc) stat_r.remote_ld_dram++;
+        else if (remote_ld_dram_inc & ~is_exe_seq_lw) stat_r.remote_ld_dram++;
+        else if (remote_ld_dram_inc & is_exe_seq_lw) stat_r.remote_seq_ld_dram++;
         else if (remote_ld_global_inc) stat_r.remote_ld_global++;
         else if (remote_ld_group_inc) stat_r.remote_ld_group++;
         else if (remote_st_dram_inc) stat_r.remote_st_dram++;
@@ -536,7 +551,8 @@ module vanilla_core_profiler
 
         else if (local_flw_inc) stat_r.local_flw++;
         else if (local_fsw_inc) stat_r.local_fsw++;
-        else if (remote_flw_dram_inc) stat_r.remote_flw_dram++;
+        else if (remote_flw_dram_inc & ~is_exe_seq_flw) stat_r.remote_flw_dram++;
+        else if (remote_flw_dram_inc & is_exe_seq_flw) stat_r.remote_seq_flw_dram++;
         else if (remote_flw_global_inc) stat_r.remote_flw_global++;
         else if (remote_flw_group_inc) stat_r.remote_flw_group++;
         else if (remote_fsw_dram_inc) stat_r.remote_fsw_dram++;
@@ -627,6 +643,8 @@ module vanilla_core_profiler
         else if (jalr_miss_bubble_inc) stat_r.jalr_miss_bubble++;
         else if (icache_miss_bubble_inc) stat_r.icache_miss_bubble++;
         else if (stall_depend_dram_load_inc) stat_r.stall_depend_dram_load++;
+        else if (stall_depend_dram_seq_load_inc) stat_r.stall_depend_dram_seq_load++;
+        else if (stall_depend_dram_amo_inc) stat_r.stall_depend_dram_amo++;
         else if (stall_depend_group_load_inc) stat_r.stall_depend_group_load++;
         else if (stall_depend_global_load_inc) stat_r.stall_depend_global_load++;
         else if (stall_depend_idiv_inc) stat_r.stall_depend_idiv++;
@@ -709,6 +727,7 @@ module vanilla_core_profiler
       $fwrite(fd, "instr_local_ld,");
       $fwrite(fd, "instr_local_st,");
       $fwrite(fd, "instr_remote_ld_dram,");
+      $fwrite(fd, "instr_remote_seq_ld_dram,");
       $fwrite(fd, "instr_remote_ld_global,");
       $fwrite(fd, "instr_remote_ld_group,");
       $fwrite(fd, "instr_remote_st_dram,");
@@ -718,6 +737,7 @@ module vanilla_core_profiler
       $fwrite(fd, "instr_local_flw,");
       $fwrite(fd, "instr_local_fsw,");
       $fwrite(fd, "instr_remote_flw_dram,");
+      $fwrite(fd, "instr_remote_seq_flw_dram,");
       $fwrite(fd, "instr_remote_flw_global,");
       $fwrite(fd, "instr_remote_flw_group,");
       $fwrite(fd, "instr_remote_fsw_dram,");
@@ -794,6 +814,8 @@ module vanilla_core_profiler
       $fwrite(fd, "bubble_jalr_miss,");
       $fwrite(fd, "bubble_icache_miss,");
       $fwrite(fd, "stall_depend_dram_load,");
+      $fwrite(fd, "stall_depend_dram_seq_load,");
+      $fwrite(fd, "stall_depend_dram_amo,");
       $fwrite(fd, "stall_depend_group_load,");
       $fwrite(fd, "stall_depend_global_load,");
       $fwrite(fd, "stall_depend_idiv,");
@@ -868,6 +890,7 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.local_ld);
           $fwrite(fd, "%0d,", stat_r.local_st);
           $fwrite(fd, "%0d,", stat_r.remote_ld_dram);
+          $fwrite(fd, "%0d,", stat_r.remote_seq_ld_dram);
           $fwrite(fd, "%0d,", stat_r.remote_ld_global);
           $fwrite(fd, "%0d,", stat_r.remote_ld_group);
           $fwrite(fd, "%0d,", stat_r.remote_st_dram);
@@ -877,6 +900,7 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.local_flw);
           $fwrite(fd, "%0d,", stat_r.local_fsw);
           $fwrite(fd, "%0d,", stat_r.remote_flw_dram);
+          $fwrite(fd, "%0d,", stat_r.remote_seq_flw_dram);
           $fwrite(fd, "%0d,", stat_r.remote_flw_global);
           $fwrite(fd, "%0d,", stat_r.remote_flw_group);
           $fwrite(fd, "%0d,", stat_r.remote_fsw_dram);
@@ -949,10 +973,12 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.barsend);
           $fwrite(fd, "%0d,", stat_r.barrecv);
    
-          $fwrite(fd, "%0d,", stat_r.branch_miss_bubble);   
-          $fwrite(fd, "%0d,", stat_r.jalr_miss_bubble);   
-          $fwrite(fd, "%0d,", stat_r.icache_miss_bubble);   
-          $fwrite(fd, "%0d,", stat_r.stall_depend_dram_load);   
+          $fwrite(fd, "%0d,", stat_r.branch_miss_bubble); 
+          $fwrite(fd, "%0d,", stat_r.jalr_miss_bubble); 
+          $fwrite(fd, "%0d,", stat_r.icache_miss_bubble); 
+          $fwrite(fd, "%0d,", stat_r.stall_depend_dram_load); 
+          $fwrite(fd, "%0d,", stat_r.stall_depend_dram_seq_load);
+          $fwrite(fd, "%0d,", stat_r.stall_depend_dram_amo);   
           $fwrite(fd, "%0d,", stat_r.stall_depend_group_load);   
           $fwrite(fd, "%0d,", stat_r.stall_depend_global_load);   
           $fwrite(fd, "%0d,", stat_r.stall_depend_idiv);
@@ -1104,6 +1130,8 @@ module vanilla_core_profiler
           else if (jalr_miss_bubble_inc) print_operation_trace("bubble_jalr_miss", exe_bubble_pc_r);
           else if (icache_miss_bubble_inc) print_operation_trace("bubble_icache_miss", exe_bubble_pc_r);
           else if (stall_depend_dram_load_inc) print_operation_trace("stall_depend_dram_load", exe_bubble_pc_r);
+          else if (stall_depend_dram_seq_load_inc) print_operation_trace("stall_depend_dram_seq_load", exe_bubble_pc_r);
+          else if (stall_depend_dram_amo_inc) print_operation_trace("stall_depend_dram_amo", exe_bubble_pc_r);
           else if (stall_depend_group_load_inc) print_operation_trace("stall_depend_group_load", exe_bubble_pc_r);
           else if (stall_depend_global_load_inc) print_operation_trace("stall_depend_global_load", exe_bubble_pc_r);
           else if (stall_depend_idiv_inc) print_operation_trace("stall_depend_idiv", exe_bubble_pc_r);
