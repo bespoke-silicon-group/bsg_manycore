@@ -22,6 +22,10 @@ module bsg_manycore_xbar_fanout
     , `BSG_INV_PARAM(use_credits_p)
 
     , `BSG_INV_PARAM(fwd_not_rev_p)
+    , `BSG_INV_PARAM(global_x_p)
+    , `BSG_INV_PARAM(global_y_p)
+  
+    , parameter ruche_factor_X_p = 3
 
     , parameter input_fifo_els_p = 2
     , localparam num_out_lp = (fwd_not_rev_p
@@ -101,9 +105,9 @@ module bsg_manycore_xbar_fanout
 
   // Fanout FIFO
   logic [num_out_lp-1:0] fifo_v_li, fifo_ready_lo;
-  logic [num_out_lp-1:0] fifo_v_lo, fifo_yumi_li;
-  logic [num_out_lp-1:0][packet_width_lp-1:0] fifo_data_lo;
-
+  //logic [num_out_lp-1:0] fifo_v_lo, fifo_yumi_li;
+  //logic [num_out_lp-1:0][packet_width_lp-1:0] fifo_data_lo;
+/*
   for (genvar i = 0; i < num_out_lp; i++) begin: ff
     bsg_fifo_1r1w_small #(
       .width_p(packet_width_lp)
@@ -116,14 +120,136 @@ module bsg_manycore_xbar_fanout
       ,.data_i(in_packet_lo)
       ,.ready_o(fifo_ready_lo[i])
 
-      ,.v_o(v_o[i])
-      ,.data_o(packet_o[i])
-      ,.yumi_i(yumi_i[i])
+      ,.v_o(fifo_v_lo[i])
+      ,.data_o(fifo_data_lo[i])
+      ,.yumi_i(fifo_yumi_li[i])
     );
   end
-
+*/
   assign fifo_v_li = sel_one_hot & {num_out_lp{in_v_lo}};
   assign in_yumi_li = in_v_lo & (|(sel_one_hot & fifo_ready_lo));
+
+
+  // delay FIFO
+  function int calculate_delay(int src_x, int src_y, int dest_x, int dest_y);
+    int diff_y;
+    int diff_x;
+    int delay_x;
+    diff_y = dest_y - src_y;
+    diff_x = dest_x - src_x;
+
+    if (diff_y < 0) begin
+      diff_y = -diff_y;
+    end
+
+    if (diff_x < 0) begin
+      diff_x = -diff_x;
+    end
+
+    if ((diff_x % ruche_factor_X_p == 0) && (diff_x != 0)) begin
+      delay_x = ((diff_x-ruche_factor_X_p)/ruche_factor_X_p) + ruche_factor_X_p;
+    end
+    else begin
+      delay_x = (diff_x/ruche_factor_X_p) + (diff_x%ruche_factor_X_p);
+    end
+    return diff_y + delay_x;
+  endfunction
+
+
+  //logic [num_out_lp-1:0] delay_ready_lo;
+
+  // host
+  bsg_fifo_delay #(
+    .delay_p(`BSG_MAX(1,calculate_delay(global_x_p,global_y_p,num_tiles_x_p,num_tiles_y_p-2)))
+    ,.width_p(packet_width_lp)
+    ,.els_p(fifo_els_p)
+  ) delay0 (
+    .clk_i(clk_i)
+    ,.reset_i(reset_i)
+
+    ,.v_i(fifo_v_li[0])
+    ,.ready_o(fifo_ready_lo[0])
+    ,.data_i(in_packet_lo)
+
+    ,.v_o(v_o[0])
+    ,.data_o(packet_o[0])
+    ,.yumi_i(yumi_i[0])
+  );
+  //assign fifo_yumi_li[0] = fifo_v_lo[0] & delay_ready_lo[0];
+
+  // tiles
+  for (genvar r = 0; r < num_tiles_y_p; r++) begin: ty
+    for (genvar c = 0; c < num_tiles_x_p; c++) begin: tx
+
+      localparam id = 1+c+(r*num_tiles_x_p);
+
+      bsg_fifo_delay #(
+        .delay_p(`BSG_MAX(1,calculate_delay(global_x_p,global_y_p,num_tiles_x_p+c,num_tiles_y_p+r)))
+        ,.width_p(packet_width_lp)
+        ,.els_p(fifo_els_p)
+      ) delay0 (
+        .clk_i(clk_i)
+        ,.reset_i(reset_i)
+
+        ,.v_i(fifo_v_li[id])
+        ,.ready_o(fifo_ready_lo[id])
+        ,.data_i(in_packet_lo)
+
+        ,.v_o(v_o[id])
+        ,.data_o(packet_o[id])
+        ,.yumi_i(yumi_i[id])
+      );
+
+      //assign fifo_yumi_li[id] = fifo_v_lo[id] & delay_ready_lo[id];
+    end
+  end
+  
+  // vc
+  if (fwd_not_rev_p) begin
+    for (genvar c = 0; c < num_tiles_x_p; c++) begin: vx
+      // north
+      localparam nid = 1+c+(num_tiles_y_p*num_tiles_x_p);
+      bsg_fifo_delay #(
+        .delay_p(`BSG_MAX(1,calculate_delay(global_x_p,global_y_p,num_tiles_x_p+c,num_tiles_y_p-1)))
+        ,.width_p(packet_width_lp)
+        ,.els_p(fifo_els_p)
+      ) delayn (
+        .clk_i(clk_i)
+        ,.reset_i(reset_i)
+
+        ,.v_i(fifo_v_li[nid])
+        ,.ready_o(fifo_ready_lo[nid])
+        ,.data_i(in_packet_lo)
+
+        ,.v_o(v_o[nid])
+        ,.data_o(packet_o[nid])
+        ,.yumi_i(yumi_i[nid])
+      );
+
+      //assign fifo_yumi_li[nid] = fifo_v_lo[nid] & delay_ready_lo[nid];
+
+      // south
+      localparam sid = 1+c+(num_tiles_y_p*num_tiles_x_p)+num_tiles_x_p;
+      bsg_fifo_delay #(
+        .delay_p(`BSG_MAX(1,calculate_delay(global_x_p,global_y_p,num_tiles_x_p+c,num_tiles_y_p*2)))
+        ,.width_p(packet_width_lp)
+        ,.els_p(fifo_els_p)
+      ) delays (
+        .clk_i(clk_i)
+        ,.reset_i(reset_i)
+
+        ,.v_i(fifo_v_li[sid])
+        ,.ready_o(fifo_ready_lo[sid])
+        ,.data_i(in_packet_lo)
+
+        ,.v_o(v_o[sid])
+        ,.data_o(packet_o[sid])
+        ,.yumi_i(yumi_i[sid])
+      );
+
+      //assign fifo_yumi_li[sid] = fifo_v_lo[sid] & delay_ready_lo[sid];
+    end
+  end
 
 endmodule
 

@@ -75,6 +75,8 @@ module bsg_manycore_xbar
     ,.fwd_not_rev_p(1)
     ,.fifo_els_p(fwd_fifo_els_p)
     ,.use_credits_p(0)
+    ,.global_x_p(num_tiles_x_p)
+    ,.global_y_p(num_tiles_y_p-2)
   ) host_fwd_fanout (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -104,6 +106,8 @@ module bsg_manycore_xbar
         ,.input_fifo_els_p(fwd_fifo_els_p)
         ,.fifo_els_p(fwd_fifo_els_p)
         ,.use_credits_p(1)
+        ,.global_x_p(num_tiles_x_p+c)
+        ,.global_y_p(num_tiles_y_p+r)
       ) core_fwd_fanout (
         .clk_i(clk_i)
         ,.reset_i(reset_i)
@@ -228,6 +232,8 @@ module bsg_manycore_xbar
     ,.fwd_not_rev_p(0)
     ,.fifo_els_p(rev_fifo_els_p)
     ,.use_credits_p(0)
+    ,.global_x_p(num_tiles_x_p)
+    ,.global_y_p(num_tiles_y_p-2)
   ) host_rev_fanout (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
@@ -257,6 +263,8 @@ module bsg_manycore_xbar
         ,.input_fifo_els_p(rev_fifo_els_p)
         ,.fifo_els_p(rev_fifo_els_p)
         ,.use_credits_p(1)
+        ,.global_x_p(num_tiles_x_p+c)
+        ,.global_y_p(num_tiles_y_p+r)
       ) core_rev_fanout (
         .clk_i(clk_i)
         ,.reset_i(reset_i)
@@ -287,6 +295,8 @@ module bsg_manycore_xbar
         ,.fwd_not_rev_p(0)
         ,.fifo_els_p(rev_fifo_els_p)
         ,.use_credits_p(0)
+        ,.global_x_p(num_tiles_x_p+c)
+        ,.global_y_p((r==1) ? (num_tiles_y_p*2) : (num_tiles_y_p-1))
       ) vc_rev_fanout (
         .clk_i(clk_i)
         ,.reset_i(reset_i)

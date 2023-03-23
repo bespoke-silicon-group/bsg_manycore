@@ -44,6 +44,8 @@ module bsg_manycore_pod_xbar
     , `BSG_INV_PARAM(host_x_cord_p)
     , `BSG_INV_PARAM(host_y_cord_p)
 
+    , parameter ruche_factor_X_p = 3
+
     , parameter fwd_fifo_els_p=32
     , parameter rev_fifo_els_p=32
 
