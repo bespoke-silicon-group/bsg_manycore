@@ -13,7 +13,7 @@ module fpu_fdiv_fsqrt
   #( parameter exp_width_p=fpu_recoded_exp_width_gp
     ,parameter sig_width_p=fpu_recoded_sig_width_gp
     ,parameter reg_addr_width_p=RV32_reg_addr_width_gp
-    ,parameter bits_per_iter_p=fpu_recoded_bits_per_iter_gp
+    ,parameter bits_per_iter_p=1
 	,localparam recoded_data_width_lp=(1+exp_width_p+sig_width_p)
   )
   (
