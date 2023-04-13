@@ -25,7 +25,6 @@ localparam RV32_Bimm_width_gp     = 12;
 localparam RV32_Uimm_width_gp     = 20;
 localparam RV32_Jimm_width_gp     = 20;
 
-localparam fpu_recoded_bits_per_iter_gp = 1;
 localparam fpu_recoded_exp_width_gp    = 8;
 localparam fpu_recoded_sig_width_gp    = 24;
 localparam fpu_recoded_data_width_gp   = (1+fpu_recoded_exp_width_gp+fpu_recoded_sig_width_gp);
