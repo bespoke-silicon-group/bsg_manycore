@@ -13,7 +13,7 @@ module fpu_fdiv_fsqrt
   #( parameter exp_width_p=fpu_recoded_exp_width_gp
     ,parameter sig_width_p=fpu_recoded_sig_width_gp
     ,parameter reg_addr_width_p=RV32_reg_addr_width_gp
-	,parameter bits_per_iter_p=fpu_recoded_bits_per_iter_gp
+    ,parameter bits_per_iter_p=fpu_recoded_bits_per_iter_gp
 	,localparam recoded_data_width_lp=(1+exp_width_p+sig_width_p)
   )
   (
@@ -30,7 +30,7 @@ module fpu_fdiv_fsqrt
 
     , output logic v_o
     , output logic [recoded_data_width_lp-1:0] result_o
-	, output logic sqrtOpOut
+    , output logic sqrtOpOut
     , output fflags_s fflags_o
     , output logic [reg_addr_width_p-1:0] rd_o
     , input yumi_i
@@ -44,7 +44,7 @@ module fpu_fdiv_fsqrt
   divSqrtRecFN #(
     .expWidth(exp_width_p)
     ,.sigWidth(sig_width_p)
-	,.bits_per_iter_p(bits_per_iter_p)
+    ,.bits_per_iter_p(bits_per_iter_p)
   ) ds0 (
     .nReset(~reset_i)
     ,.clock(clk_i)
