@@ -5,16 +5,16 @@
  *
  */
 
-`include "bsg_defines.v"
 `include "HardFloat_consts.vi"
 `include "HardFloat_specialize.vi"
 
 module fpu_fdiv_fsqrt 
   import bsg_vanilla_pkg::*;
-  #(exp_width_p=fpu_recoded_exp_width_gp
-    ,sig_width_p=fpu_recoded_sig_width_gp
-    ,reg_addr_width_p=RV32_reg_addr_width_gp
-    , localparam recoded_data_width_lp=(1+exp_width_p+sig_width_p)
+  #( parameter exp_width_p=fpu_recoded_exp_width_gp
+    ,parameter sig_width_p=fpu_recoded_sig_width_gp
+    ,parameter reg_addr_width_p=RV32_reg_addr_width_gp
+	,parameter bits_per_iter_p=fpu_recoded_bits_per_iter_gp
+	,localparam recoded_data_width_lp=(1+exp_width_p+sig_width_p)
   )
   (
     input clk_i
@@ -30,6 +30,7 @@ module fpu_fdiv_fsqrt
 
     , output logic v_o
     , output logic [recoded_data_width_lp-1:0] result_o
+	, output logic sqrtOpOut
     , output fflags_s fflags_o
     , output logic [reg_addr_width_p-1:0] rd_o
     , input yumi_i
@@ -40,9 +41,10 @@ module fpu_fdiv_fsqrt
   logic v_li;
   logic v_lo;
 
-  divSqrtRecFN_small #(
+  divSqrtRecFN #(
     .expWidth(exp_width_p)
     ,.sigWidth(sig_width_p)
+	,.bits_per_iter_p(bits_per_iter_p)
   ) ds0 (
     .nReset(~reset_i)
     ,.clock(clk_i)
@@ -54,7 +56,7 @@ module fpu_fdiv_fsqrt
     ,.b(fp_rs2_i)
     ,.roundingMode(rm_i)
     ,.outValid(v_lo)    // v_lo is high for one cycle, when the compuation is finished.
-    ,.sqrtOpOut()
+    ,.sqrtOpOut(sqrtOpOut)
     ,.out(result_o)
     ,.exceptionFlags(fflags_o)
   );
@@ -131,4 +133,3 @@ module fpu_fdiv_fsqrt
 
 
 endmodule
-

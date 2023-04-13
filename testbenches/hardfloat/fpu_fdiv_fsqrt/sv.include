@@ -1,0 +1,17 @@
+test_fpu_fdiv_fsqrt.v
+$BSG_MANYCORE_DIR/v/vanilla_bean/fpu_fdiv_fsqrt.v
+$BSG_MANYCORE_DIR/v/vanilla_bean/bsg_vanilla_pkg.v
+$BSG_MANYCORE_DIR/v/bsg_manycore_pkg.v
+$HARDFLOAT_DIR/source/divSqrtRecFN.v
+$HARDFLOAT_DIR/source/isSigNaNRecFN.v
+$HARDFLOAT_DIR/source/divSqrtRecFNToRaw_medium.v
+$HARDFLOAT_DIR/source/divSqrtRecFNToRaw_small.v
+$HARDFLOAT_DIR/source/fNToRecFN.v
+$HARDFLOAT_DIR/source/recFNToFN.v
+$HARDFLOAT_DIR/source/HardFloat_primitives.v
+$HARDFLOAT_DIR/source/HardFloat_consts.vi
+$HARDFLOAT_DIR/source/HardFloat_localFuncs.vi
+$HARDFLOAT_DIR/source/HardFloat_rawFN.v
+$HARDFLOAT_DIR/source/RISCV/HardFloat_specialize.v
+$HARDFLOAT_DIR/source/RISCV/HardFloat_specialize.vi
+

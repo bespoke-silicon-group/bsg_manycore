@@ -25,6 +25,7 @@ localparam RV32_Bimm_width_gp     = 12;
 localparam RV32_Uimm_width_gp     = 20;
 localparam RV32_Jimm_width_gp     = 20;
 
+localparam fpu_recoded_bits_per_iter_gp = 1;
 localparam fpu_recoded_exp_width_gp    = 8;
 localparam fpu_recoded_sig_width_gp    = 24;
 localparam fpu_recoded_data_width_gp   = (1+fpu_recoded_exp_width_gp+fpu_recoded_sig_width_gp);
@@ -190,7 +191,7 @@ typedef enum logic [2:0] {
   eRDN = 3'b010,    // Round Down (towards -oo)
   eRUP = 3'b011,    // Round Up (towards +oo)
   eRMM = 3'b100,    // Round to Nearest, ties to Max magnitude
-  eDYN = 3'b111    // dynamic rounding mode
+  eDYN = 3'b110    // dynamic rounding mode
 } frm_e;
 
 
