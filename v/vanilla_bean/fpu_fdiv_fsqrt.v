@@ -14,7 +14,7 @@ module fpu_fdiv_fsqrt
     ,parameter sig_width_p=fpu_recoded_sig_width_gp
     ,parameter reg_addr_width_p=RV32_reg_addr_width_gp
     ,parameter bits_per_iter_p=1
-	,localparam recoded_data_width_lp=(1+exp_width_p+sig_width_p)
+    ,localparam recoded_data_width_lp=(1+exp_width_p+sig_width_p)
   )
   (
     input clk_i

@@ -190,7 +190,7 @@ typedef enum logic [2:0] {
   eRDN = 3'b010,    // Round Down (towards -oo)
   eRUP = 3'b011,    // Round Up (towards +oo)
   eRMM = 3'b100,    // Round to Nearest, ties to Max magnitude
-  eDYN = 3'b110    // dynamic rounding mode
+  eDYN = 3'b111    // dynamic rounding mode
 } frm_e;
 
 
