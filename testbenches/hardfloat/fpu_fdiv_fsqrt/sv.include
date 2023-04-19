@@ -5,6 +5,7 @@ $HARDFLOAT_DIR/source/HardFloat_consts.vi
 $HARDFLOAT_DIR/source/HardFloat_localFuncs.vi
 $HARDFLOAT_DIR/source/RISCV/HardFloat_specialize.v
 $HARDFLOAT_DIR/source/RISCV/HardFloat_specialize.vi
+$BASEJUMP_STL_DIR/bsg_misc/bsg_defines.v
 test_fpu_fdiv_fsqrt.v
 $HARDFLOAT_DIR/source/fNToRecFN.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_counting_leading_zeros.v
@@ -12,6 +13,7 @@ $BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode_one_hot_out.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_scan.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_encode_one_hot.v
+$BASEJUMP_STL_DIR/bsg_misc/bsg_mux_one_hot.v
 $BSG_MANYCORE_DIR/v/vanilla_bean/fpu_fdiv_fsqrt.v
 $HARDFLOAT_DIR/source/divSqrtRecFN.v
 $HARDFLOAT_DIR/source/divSqrtRecFN_medium.v
@@ -20,5 +22,3 @@ $HARDFLOAT_DIR/source/isSigNaNRecFN.v
 $HARDFLOAT_DIR/source/HardFloat_rawFN.v
 $HARDFLOAT_DIR/source/recFNToRecFN.v
 $HARDFLOAT_DIR/source/recFNToFN.v
-
-
