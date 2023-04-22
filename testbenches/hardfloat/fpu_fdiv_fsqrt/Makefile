@@ -15,3 +15,6 @@ run:
 
 dve:
 	dve -full64 -vpd vcdplus.vpd &
+
+clean:
+	rm -rf csrc DVEfiles output_32.txt simv simv.daidir vcs.log vcdplus.vpd ucli.key
