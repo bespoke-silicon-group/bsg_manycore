@@ -30,7 +30,7 @@ module fpu_fdiv_fsqrt
 
     , output logic v_o
     , output logic [recoded_data_width_lp-1:0] result_o
-    , output logic sqrtOpOut
+    , output logic sqrtOpOut_o
     , output fflags_s fflags_o
     , output logic [reg_addr_width_p-1:0] rd_o
     , input yumi_i
@@ -56,7 +56,7 @@ module fpu_fdiv_fsqrt
     ,.b(fp_rs2_i)
     ,.roundingMode(rm_i)
     ,.outValid(v_lo)    // v_lo is high for one cycle, when the compuation is finished.
-    ,.sqrtOpOut(sqrtOpOut)
+    ,.sqrtOpOut(sqrtOpOut_o)
     ,.out(result_o)
     ,.exceptionFlags(fflags_o)
   );

@@ -910,6 +910,7 @@ module vanilla_core
     ,.v_o(fdiv_fsqrt_v_lo)
     ,.result_o(fdiv_fsqrt_result_lo)
     ,.fflags_o(fdiv_fsqrt_fflags_lo)
+    ,.sqrtOpOut_o()
     ,.rd_o(fdiv_fsqrt_rd_lo)
     ,.yumi_i(fdiv_fsqrt_yumi_li)
   );
