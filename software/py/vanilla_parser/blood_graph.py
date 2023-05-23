@@ -52,6 +52,7 @@ class BloodGraph:
 
     # List of types of stalls incurred by the core
     _STALLS_LIST   = ["stall_depend_dram_load",
+                      "stall_depend_dram_amo",
                       "stall_depend_dram_seq_load",
                       "stall_depend_group_load",
                       "stall_depend_global_load",
@@ -189,6 +190,7 @@ class BloodGraph:
     # i_cache miss is treated the same is stall_ifetch_wait
     _DETAILED_STALL_BUBBLE_COLOR = {
                                      "stall_depend_dram_load"    : (0xff, 0x00, 0x00), ## red
+                                     "stall_depend_dram_amo"     : (0x55, 0x00, 0x55), ## purple
                                      "stall_depend_dram_seq_load": (0x55, 0x00, 0x55), ## purple
                                      "stall_depend_group_load"   : (0x00, 0xff, 0x00), ## green
                                      "stall_depend_global_load"  : (0x00, 0x55, 0x00), ## dark green
