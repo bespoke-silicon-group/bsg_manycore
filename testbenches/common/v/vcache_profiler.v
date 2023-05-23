@@ -71,7 +71,7 @@ module vcache_profiler
 
   // event signals
   //
-  wire inc_miss     = miss_v;
+  wire inc_miss     = miss_v & ~v_o;
 
   // Manycore performs all types of stores operations using the SM, therefore
   // mask_op should be hight while evaluating the store signals, but not for
