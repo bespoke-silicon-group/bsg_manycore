@@ -1636,9 +1636,9 @@ module vanilla_core
 
   // ID -> FP_EXE
   frm_e fpu_rm;
-  assign fpu_rm = (id_r.instruction.funct3 == eDYN)
+  assign fpu_rm = frm_e'((id_r.instruction.funct3 == eDYN)
     ? frm_r
-    : frm_e'(id_r.instruction.funct3);
+    : id_r.instruction.funct3);
 
   always_comb begin
     fp_exe_ctrl_n = '{
