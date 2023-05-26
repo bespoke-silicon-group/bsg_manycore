@@ -34,6 +34,8 @@ module vanilla_core_profiler
 
     , parameter reg_els_lp = RV32_reg_els_gp
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
+
+    , parameter period_p = 250
   )
   (
     input clk_i
@@ -673,20 +675,23 @@ module vanilla_core_profiler
 
 
   // file logging
-  localparam logfile_lp = "vanilla_stats.csv";
-  localparam tracefile_lp = "vanilla_operation_trace.csv";
+  localparam string logfile_lp = "vanilla_stats.csv";
+  localparam string tracefile_lp = "vanilla_operation_trace.csv";
+  localparam string periodicfile_lp = "vanilla_periodic_stats.csv";
 
   integer fd;
   string header;
    initial begin
       fd = $fopen(logfile_lp, "w");
       $fwrite(fd,"");
+      $fclose(fd);
+      fd = $fopen(periodicfile_lp, "w");
+      $fwrite(fd,"");
+      $fclose(fd);
    end
 
-   always @(negedge reset_i) begin      
-    // the origin tile opens the logfile and writes the csv header.
-    if ((global_x_i == x_cord_width_p'(origin_x_cord_p)) & (global_y_i == y_cord_width_p'(origin_y_cord_p))) begin
-      fd = $fopen(logfile_lp, "a");
+  task print_header(input string filename);
+      fd = $fopen(filename, "a");
       $fwrite(fd, "time,");
       $fwrite(fd, "x,");
       $fwrite(fd, "y,");
@@ -840,16 +845,11 @@ module vanilla_core_profiler
       $fwrite(fd, "\n");
       $fclose(fd);
 
-    end // if ((my_x_i == x_cord_width_p'(origin_x_cord_p)) & (my_y_i == y_cord_width_p'(origin_y_cord_p)))
-   end // always @ (my_x_i)
-   
+  endtask
 
-   always @(negedge clk_i)  begin
-        // stat printing
-        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == (global_y_i) & print_stat_tag.x_cord == (global_x_i)) begin
-          $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, global_x_i, global_y_i);
+  task print_stat(input string filename);
 
-          fd = $fopen(logfile_lp, "a");
+          fd = $fopen(filename, "a");
           $fwrite(fd, "%0d,", $time);
           $fwrite(fd, "%0d,", global_x_i - origin_x_cord_p);
           $fwrite(fd, "%0d,", global_y_i - origin_y_cord_p);
@@ -1002,7 +1002,24 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d\n", stat_r.stall_remote_flw_wb);
 
           $fclose(fd);
+  endtask
 
+
+   always @(negedge reset_i) begin      
+    // the origin tile opens the logfile and writes the csv header.
+    if ((global_x_i == x_cord_width_p'(origin_x_cord_p)) & (global_y_i == y_cord_width_p'(origin_y_cord_p))) begin
+      print_header(logfile_lp);
+      print_header(periodicfile_lp);
+    end
+   end
+   
+
+
+   always @(negedge clk_i)  begin
+        // stat printing
+        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == (global_y_i) & print_stat_tag.x_cord == (global_x_i)) begin
+          $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, global_x_i, global_y_i);
+          print_stat(logfile_lp);
         end
       
      
@@ -1153,6 +1170,27 @@ module vanilla_core_profiler
 
         end
    end // always @ (negedge clk_i)
+
+
+  // periodic stat;
+  logic kernel_start_received_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      kernel_start_received_r <= 1'b0;
+    end
+    else begin
+      if (print_stat_v_i && print_stat_tag_i[31:30] == 2'b10) begin
+        kernel_start_received_r <= 1'b1;
+      end
+    end
+  end
+
+  always @ (negedge clk_i) begin
+    if ((reset_i === 1'b0) && kernel_start_received_r && ((global_ctr_i % period_p) == 0)) begin
+          print_stat(periodicfile_lp);
+    end
+  end
+
 
    // DPI Profiler interface. See interface comments below.
    export "DPI-C" function bsg_dpi_init;

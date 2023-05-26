@@ -21,6 +21,8 @@ module vcache_profiler
     , parameter lg_ways_lp=`BSG_SAFE_CLOG2(ways_p)
     , parameter dma_pkt_width_lp=`bsg_cache_dma_pkt_width(addr_width_p, block_size_in_words_p)
     , parameter stat_info_width_lp=`bsg_cache_stat_info_width(ways_p)
+    // periodic stat;
+    , parameter period_p = 250
   )
   (
     input clk_i
@@ -236,9 +238,10 @@ module vcache_profiler
   //
   localparam logfile_lp = "vcache_stats.csv";
   localparam tracefile_lp = "vcache_operation_trace.csv";
+  localparam periodicfile_lp = "vcache_periodic_stats.csv";
 
   string my_name;
-  integer log_fd, trace_fd;
+  integer log_fd, trace_fd, periodic_fd;
 
   initial begin
 
@@ -259,15 +262,19 @@ module vcache_profiler
       trace_fd = $fopen(tracefile_lp, "w");
       $fwrite(trace_fd, "cycle,vcache,operation\n");
       $fclose(trace_fd);
+
+      periodic_fd = $fopen(periodicfile_lp, "w");
+      $fwrite(periodic_fd, "global_ctr,load,store,atomic,miss,stall_rsp,idle\n");
+      $fclose(periodic_fd);
     end
   end
+
 
 
 
     always @(negedge clk_i) begin
         if (~reset_i & print_stat_v_i) begin
 
-          $display("[BSG_INFO][VCACHE_PROFILER] %s t=%0t printing stats.", my_name, $time);
 
           log_fd = $fopen(logfile_lp, "a");
           $fwrite(log_fd, "%0d,%s,%0d,%0d,",
@@ -431,6 +438,35 @@ module vcache_profiler
         end // if (~reset_i & trace_en_i)
     end // always @ (negedge clk_i)
 
+
+  // periodic stat
+  logic kernel_start_received_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      kernel_start_received_r <= 1'b0;
+    end
+    else begin
+      if (print_stat_v_i && (print_stat_tag_i[data_width_p-1-:2] == 2'b10)) begin
+        kernel_start_received_r <= 1'b1;
+      end
+    end
+  end
+
+  always @ (negedge clk_i) begin
+    if (kernel_start_received_r && ((global_ctr_i % period_p) == 0)) begin
+      periodic_fd = $fopen(periodicfile_lp, "a");
+      $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
+        global_ctr_i,
+        stat_r.ld_count,
+        stat_r.st_count,
+        stat_r.atomic_count,
+        stat_r.miss_count,
+        stat_r.stall_rsp_count,
+        stat_r.idle_count
+      );
+      $fclose(periodic_fd);
+    end
+  end
 
   // string match helper
   //
