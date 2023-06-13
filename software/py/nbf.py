@@ -69,18 +69,20 @@ class NBF:
     self.enable_dram = config["enable_dram"]
     # if skip_dram_instruction_load == 1, skip loading instruction data to DRAM, if the binary fits in the icache.
     self.skip_dram_instruction_load = config["skip_dram_instruction_load"]
-
+    # if skip_zeros == 1, skip storing zeros to DRAM, if simulation DRAM is automatically cleared
+    self.skip_zeros = config["skip_zeros"]
 
     # derived params
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size # in words
     self.x_cord_width = self.safe_clog2(self.num_tiles_x)
+    self.y_cord_width = self.safe_clog2(self.num_tiles_y)
 
     # process riscv
     self.get_data_end_addr()
     self.get_start_addr()
     self.read_dmem()
     self.read_dram()
-   
+
   ##### UTIL FUNCTIONS #####
 
   # take width and val and convert to binary string
@@ -163,9 +165,9 @@ class NBF:
 
   # read dram
   def read_dram(self):
-    self.dram_data = self.read_objcopy("*.dram", "main_dram.mem")    
+    self.dram_data = self.read_objcopy("*.dram", "main_dram.mem")
 
-  
+
   def get_data_end_addr(self):
     proc = subprocess.Popen(["nm", "--radix=d", self.riscv_file], stdout=subprocess.PIPE)
     lines = proc.stdout.readlines()
@@ -316,7 +318,7 @@ class NBF:
          
  
   # init DRAM
-  def init_dram(self, pod_origin_x, pod_origin_y): 
+  def init_dram(self, pod_origin_x, pod_origin_y):
     cache_size = self.cache_size
     lg_x = self.safe_clog2(self.num_tiles_x)
     lg_block_size = self.safe_clog2(self.cache_block_size)
@@ -337,6 +339,8 @@ class NBF:
           addr = k - 0x20000000
           # if the binary fits in icaches, skip loading instruction to DRAM, to speed up simulation
           if (self.skip_dram_instruction_load == 1) and (spmd_binary_size < self.icache_size) and (addr < spmd_binary_size):
+            continue
+          if (self.skip_zeros == 1) and (self.dram_data[k] == 0):
             continue
           x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + pod_origin_x
           y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
@@ -407,8 +411,6 @@ class NBF:
     self.print_nbf(0xff, 0xff, 0x0, 0x0)
 
 
-
-
   ##### LOADER ROUTINES END  #####  
 
   # public main function
@@ -436,7 +438,6 @@ class NBF:
           self.init_vcache(pod_origin_x, pod_origin_y)
 
         self.init_dram(pod_origin_x, pod_origin_y)
-
 
     # wait for all store credits to return.
     self.fence()
@@ -477,7 +478,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 22:
+  if len(sys.argv) == 23:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -501,7 +502,8 @@ if __name__ == "__main__":
       "num_pods_x" : int(sys.argv[18]),
       "num_pods_y" : int(sys.argv[19]),
       "num_vcache_rows" : int(sys.argv[20]),
-      "skip_dram_instruction_load": int(sys.argv[21])
+      "skip_dram_instruction_load": int(sys.argv[21]),
+      "skip_zeros": int(sys.argv[22])
     }
 
     converter = NBF(config)
@@ -517,5 +519,6 @@ if __name__ == "__main__":
     command += "{num_pods_x} {num_pods_y}"
     command += "{num_vcache_rows}"
     command += "{skip_dram_instruction_load}"
+    command += "{skip_zeros}"
     print(command)
 
