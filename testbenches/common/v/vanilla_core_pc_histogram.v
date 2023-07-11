@@ -28,6 +28,8 @@ module vanilla_core_pc_histogram
    , input [data_width_p-1:0] if_pc
    , input [data_width_p-1:0] id_pc
    , input [data_width_p-1:0] exe_pc
+   , input instruction_s instruction
+   , input decode_s decode
 
    , input flush
    , input icache_miss
@@ -126,6 +128,8 @@ module vanilla_core_pc_histogram
     ,e_jalr_miss
     ,e_icache_miss_bubble
     ,e_stall_depend_dram
+    ,e_stall_depend_seq_dram
+    ,e_stall_depend_dram_amo
     ,e_stall_depend_global
     ,e_stall_depend_group
     ,e_stall_depend_fdiv
@@ -163,6 +167,8 @@ module vanilla_core_pc_histogram
       vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_jalr_miss, "jalr_miss");
       vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_icache_miss_bubble, "icache_miss_bubble");
       vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_dram, "stall_depend_dram");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_seq_dram, "stall_depend_seq_dram");
+      vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_dram_amo, "stall_depend_dram_amo");
       vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_global, "stall_depend_global");
       vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_group, "stall_depend_group");
       vanilla_core_pc_hist_register_operation(pc_hist_vptr, e_stall_depend_fdiv, "stall_depend_fdiv");
@@ -208,6 +214,8 @@ module vanilla_core_pc_histogram
     (.*
      ,.exe_bubble_pc_o(exe_bubble_pc)
      ,.exe_bubble_type_o(exe_bubble_type)
+     ,.is_exe_seq_lw_o()
+     ,.is_exe_seq_flw_o()
      );
 
   // MEM stage pc tracker
@@ -268,6 +276,12 @@ module vanilla_core_pc_histogram
       end
       else if ( exe_bubble_type == e_exe_bubble_stall_depend_dram) begin
         vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_dram);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_depend_seq_dram) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_seq_dram);
+      end
+      else if ( exe_bubble_type == e_exe_bubble_stall_depend_dram_amo) begin
+        vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_dram_amo);
       end
       else if ( exe_bubble_type == e_exe_bubble_stall_depend_global) begin
         vanilla_core_pc_hist_increment(pc_hist_vptr,  exe_bubble_pc,  e_stall_depend_global);
