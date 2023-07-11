@@ -44,6 +44,8 @@ colors = {
     "stall_depend_group": "red",
     "stall_depend_global": "firebrick",
     "stall_depend_dram": "maroon",
+    "stall_depend_seq_dram": "maroon",
+    "stall_depend_dram_amo": "maroon",
     "stall_ifetch_wait": "peachpuff",
     "stall_remote_credit": "sandybrown",
     "jalr_miss" : "yellow",
