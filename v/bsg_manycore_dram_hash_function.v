@@ -47,31 +47,15 @@ module bsg_manycore_dram_hash_function
 
   wire [dram_index_width_lp-1:0] dram_index = eva_i[2+vcache_word_offset_width_lp+x_subcord_width_p+vcache_row_id_width_lp+:dram_index_width_lp];
 
-// xcord hashing start;
-/*
-  wire is_south = vcache_row_id[0];
-  wire [x_subcord_width_p-1:0] xcord_tmp = dram_x_subcord ^ dram_index[3:0]
-                                                          ^ dram_index[7:4]
-                                                          ^ dram_index[11:8]
-                                                          ^ dram_index[15:12]
-                                                          ^ dram_index[19:16];
-*/
-// xcord hashing end;
 
 
-// ipoly hashing (xy)  start;
-///*
-  wire is_south = vcache_row_id[0]
-                ^ dram_index[2]
-                ^ dram_index[4]
-                ^ dram_index[5]
-                ^ dram_index[8]
-                ^ dram_index[9]
-                ^ dram_index[10]
-                ^ dram_index[11]
-                ^ dram_index[12];
-  wire [x_subcord_width_p-1:0] xcord_tmp;
-  assign xcord_tmp[0] = dram_x_subcord[0]
+  // ipoly hashing (xy)  start;
+  ///*
+  logic [x_subcord_width_p-1:0] xcord_tmp;
+  logic is_south;
+
+  if (x_subcord_width_p == 4) begin
+    assign xcord_tmp[0] = dram_x_subcord[0]
                       ^ dram_index[0]   
                       ^ dram_index[3]   
                       ^ dram_index[5]   
@@ -81,7 +65,7 @@ module bsg_manycore_dram_hash_function
                       ^ dram_index[11]   
                       ^ dram_index[12]   
                       ^ dram_index[13];
-  assign xcord_tmp[1] = dram_x_subcord[1]
+    assign xcord_tmp[1] = dram_x_subcord[1]
                       ^ dram_index[1]
                       ^ dram_index[4]
                       ^ dram_index[6]
@@ -91,7 +75,7 @@ module bsg_manycore_dram_hash_function
                       ^ dram_index[12]
                       ^ dram_index[13]
                       ^ dram_index[14];
-  assign xcord_tmp[2] = dram_x_subcord[2]
+    assign xcord_tmp[2] = dram_x_subcord[2]
                       ^ dram_index[0]
                       ^ dram_index[2]
                       ^ dram_index[3]
@@ -101,7 +85,7 @@ module bsg_manycore_dram_hash_function
                       ^ dram_index[9]
                       ^ dram_index[10]
                       ^ dram_index[14];
-  assign xcord_tmp[3] = dram_x_subcord[3]
+    assign xcord_tmp[3] = dram_x_subcord[3]
                       ^ dram_index[1]
                       ^ dram_index[3]
                       ^ dram_index[4]
@@ -110,66 +94,84 @@ module bsg_manycore_dram_hash_function
                       ^ dram_index[9]
                       ^ dram_index[10]
                       ^ dram_index[11];
+    assign is_south = vcache_row_id[0]
+                ^ dram_index[2]
+                ^ dram_index[4]
+                ^ dram_index[5]
+                ^ dram_index[8]
+                ^ dram_index[9]
+                ^ dram_index[10]
+                ^ dram_index[11]
+                ^ dram_index[12];
+  end
+  else if (x_subcord_width_p == 5) begin
+    assign xcord_tmp[0] = dram_x_subcord[0]
+                        ^ dram_index[0]
+                        ^ dram_index[5]
+                        ^ dram_index[6]
+                        ^ dram_index[10]
+                        ^ dram_index[12]
+                        ^ dram_index[15]
+                        ^ dram_index[16]
+                        ^ dram_index[17]
+                        ^ dram_index[18];
+    assign xcord_tmp[1] = dram_x_subcord[1]
+                        ^ dram_index[0]
+                        ^ dram_index[1]
+                        ^ dram_index[5]
+                        ^ dram_index[7]
+                        ^ dram_index[10]
+                        ^ dram_index[11]
+                        ^ dram_index[12]
+                        ^ dram_index[13]
+                        ^ dram_index[15];
+    assign xcord_tmp[2] = dram_x_subcord[2]
+                        ^ dram_index[1]
+                        ^ dram_index[2]
+                        ^ dram_index[6]
+                        ^ dram_index[8]
+                        ^ dram_index[11]
+                        ^ dram_index[12]
+                        ^ dram_index[13]
+                        ^ dram_index[14]
+                        ^ dram_index[16];
+    assign xcord_tmp[3] = dram_x_subcord[3]
+                        ^ dram_index[2]
+                        ^ dram_index[3]
+                        ^ dram_index[7]
+                        ^ dram_index[9]
+                        ^ dram_index[12]
+                        ^ dram_index[13]
+                        ^ dram_index[14]
+                        ^ dram_index[15]
+                        ^ dram_index[17];
+    assign xcord_tmp[4] = dram_x_subcord[4]
+                        ^ dram_index[3]
+                        ^ dram_index[4]
+                        ^ dram_index[8]
+                        ^ dram_index[10]
+                        ^ dram_index[13]
+                        ^ dram_index[14]
+                        ^ dram_index[15]
+                        ^ dram_index[16]
+                        ^ dram_index[18];
+    assign is_south = vcache_row_id[0]
+                    ^ dram_index[4]
+                    ^ dram_index[5]
+                    ^ dram_index[9]
+                    ^ dram_index[11]
+                    ^ dram_index[14]
+                    ^ dram_index[15]
+                    ^ dram_index[16]
+                    ^ dram_index[17];
+  end
+  else begin
+    $error("Unsupported banks for IPOLY hashing.");
+  end
 //*/
 // ipoly hashing (xy) end;
 
 
-// ipoly hashing (x)  start;
-/*
-  wire is_south = vcache_row_id[0];
-  wire [x_subcord_width_p-1:0] xcord_tmp;
-  assign xcord_tmp[0] = dram_x_subcord[0]
-                      ^ dram_index[19]
-                      ^ dram_index[17]
-                      ^ dram_index[16]
-                      ^ dram_index[13]
-                      ^ dram_index[11]
-                      ^ dram_index[10]
-                      ^ dram_index[9]
-                      ^ dram_index[8]
-                      ^ dram_index[6]
-                      ^ dram_index[4]
-                      ^ dram_index[3]
-                      ^ dram_index[0];
-  assign xcord_tmp[1] = dram_x_subcord[1]
-                      ^ dram_index[19]
-                      ^ dram_index[18]
-                      ^ dram_index[16]
-                      ^ dram_index[14]
-                      ^ dram_index[13]
-                      ^ dram_index[12]
-                      ^ dram_index[8]
-                      ^ dram_index[7]
-                      ^ dram_index[6]
-                      ^ dram_index[5]
-                      ^ dram_index[3]
-                      ^ dram_index[1]
-                      ^ dram_index[0];
-  assign xcord_tmp[2] = dram_x_subcord[2]
-                      ^ dram_index[19]
-                      ^ dram_index[17]
-                      ^ dram_index[15]
-                      ^ dram_index[14]
-                      ^ dram_index[9]
-                      ^ dram_index[8]
-                      ^ dram_index[7]
-                      ^ dram_index[6]
-                      ^ dram_index[4]
-                      ^ dram_index[2]
-                      ^ dram_index[1];
-  assign xcord_tmp[3] = dram_x_subcord[3]
-                      ^ dram_index[18]
-                      ^ dram_index[16]
-                      ^ dram_index[15]
-                      ^ dram_index[10]
-                      ^ dram_index[9]
-                      ^ dram_index[8]
-                      ^ dram_index[7]
-                      ^ dram_index[5]
-                      ^ dram_index[3]
-                      ^ dram_index[2];
-*/
-// ipoly hashing (x)  end;
 
   wire [pod_y_cord_width_p-1:0] dram_pod_y_cord = is_south
     ? pod_y_cord_width_p'(pod_y_i+1)
