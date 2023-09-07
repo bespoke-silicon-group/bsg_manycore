@@ -1,5 +1,4 @@
-// A simple test to write to the full range of DMEM (4KB) and read it back.
-
+// toggle every bit in DMEM.
 
 #include "bsg_manycore_arch.h"
 #include "bsg_manycore_asm.h"
