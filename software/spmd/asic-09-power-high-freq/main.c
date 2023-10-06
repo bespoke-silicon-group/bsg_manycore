@@ -24,6 +24,9 @@ int delay[bsg_tiles_X*bsg_tiles_Y] = {
   1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1
 };
 
+float sum = 0.0f;
+float incr = 1.0f;
+float answer = ANSWER;
 
 int main()
 {
@@ -94,8 +97,6 @@ int main()
       break;
   }
 
-  float sum = 0.0f;
-  float incr = 1.0f;
   for (int i = 0; i < NUM_ITER; i++) {
     // fadd x 64
     fadd_asm(sum, sum, incr);
@@ -164,7 +165,7 @@ int main()
     fadd_asm(sum, sum, incr);
   }
 
-  if (sum == ANSWER) {
+  if (sum == answer) {
     bsg_finish();
   } else {
     bsg_fail();
