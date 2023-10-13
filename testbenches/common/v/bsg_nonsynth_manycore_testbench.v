@@ -65,7 +65,7 @@ module bsg_nonsynth_manycore_testbench
 
     , parameter enable_vanilla_core_pc_histogram_p=0
 
-    , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p*num_vcache_rows_p)*4) // byte addr
+    , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p*num_pods_x_p*num_vcache_rows_p)*4) // byte addr
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
@@ -895,6 +895,7 @@ end
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_REMOTE_OP_PROFILING
 if (enable_remote_op_profiling_p) begin
+  /*
   bind network_tx remote_load_trace #(
     .addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
@@ -912,11 +913,13 @@ if (enable_remote_op_profiling_p) begin
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
+  */
 end
 `endif
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCACHE_PROFILING
 if (enable_cache_profiling_p) begin
+  /*
   bind bsg_cache vcache_profiler #(
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
@@ -935,7 +938,7 @@ if (enable_cache_profiling_p) begin
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
-
+  */
   end
 `endif
 
@@ -965,6 +968,7 @@ end
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_COVERAGE
 if (enable_vcore_pc_coverage_p) begin
+  /*
   bind vanilla_core bsg_nonsynth_manycore_vanilla_core_pc_cov #(
     .icache_tag_width_p(icache_tag_width_p)
     ,.icache_entries_p(icache_entries_p)
@@ -974,15 +978,17 @@ if (enable_vcore_pc_coverage_p) begin
     ,.clk_i(clk_i)
     ,.coverage_en_i($root.`HOST_MODULE_PATH.coverage_en)
   );
+  */
 end
 `endif
 `endif
+
 `endif
 
   ///             ///
   ///   TRACER    ///
   ///             ///
-  
+/*
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_TRACE
 if (enable_vanilla_core_trace_p) begin
   bind vanilla_core vanilla_core_trace #(
@@ -1017,8 +1023,7 @@ if (enable_vanilla_core_pc_histogram_p) begin
     (.*);
 end // if (enable_vanilla_core_pc_histogram_p)
 `endif
-
-
+*/
 endmodule
 
 `BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_testbench)

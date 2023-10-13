@@ -36,6 +36,7 @@ module vanilla_core_profiler
     , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
 
     , parameter period_p = 250
+    , parameter enable_periodic_p = 0
   )
   (
     input clk_i
@@ -1186,7 +1187,7 @@ module vanilla_core_profiler
   end
 
   always @ (negedge clk_i) begin
-    if ((reset_i === 1'b0) && kernel_start_received_r && ((global_ctr_i % period_p) == 0)) begin
+    if ((reset_i === 1'b0) && enable_periodic_p &&kernel_start_received_r && ((global_ctr_i % period_p) == 0)) begin
           print_stat(periodicfile_lp);
     end
   end
