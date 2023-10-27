@@ -32,7 +32,7 @@ To install most dependencies, execute the following command:
 
     sudo apt install build-essential gawk texinfo bison flex libgmp-dev libmpfr-dev libmpc-dev libz-dev device-tree-compiler cmake
 
-Check the verison of your gcc or g++ by the following command:
+Check the version of your gcc or g++ by the following command:
 
     gcc --version # or g++ --version
 
