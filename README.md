@@ -36,7 +36,7 @@ Check the verison of your gcc or g++ by the following command:
 
     gcc --version # or g++ --version
 
-If your gcc/g++ version is 12 or above, you need to downgrade your gcc/g++ or install older version and set alternative version, you may follow [this](https://linuxconfig.org/how-to-switch-between-multiple-gcc-and-g-compiler-versions-on-ubuntu-22-04-lts-jammy-jellyfish) link for more informations.
+If your gcc/g++ version is 12 or above, you need to downgrade your gcc/g++ or install older version and set alternative version, you may follow [this](https://linuxconfig.org/how-to-switch-between-multiple-gcc-and-g-compiler-versions-on-ubuntu-22-04-lts-jammy-jellyfish) link for more information.
 
 # Initial setup for running programs
 
