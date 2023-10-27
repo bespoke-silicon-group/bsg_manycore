@@ -22,6 +22,22 @@ aggregated [CoreMark](https://www.eembc.org/coremark/) score, a world record. Ma
         * Version tag: **tile\_group\_org\_master**
         * A more comprehensive document including programming model, FPGA emulation and applications ([TVM](https://tvm.ai)) of manycore.
 
+# Getting started
+
+## Prerequisites
+
+### Ubuntu or Debian
+
+To install most dependencies, execute the following command:
+
+    sudo apt install build-essential gawk texinfo bison flex libgmp-dev libmpfr-dev libmpc-dev libz-dev device-tree-compiler cmake
+
+Check the version of your gcc or g++ by the following command:
+
+    gcc --version # or g++ --version
+
+If your gcc/g++ version is 12 or above, you need to downgrade your gcc/g++ or install older version and set alternative version, you may follow [this](https://linuxconfig.org/how-to-switch-between-multiple-gcc-and-g-compiler-versions-on-ubuntu-22-04-lts-jammy-jellyfish) link for more information.
+
 # Initial setup for running programs
 
 NOTE: If you do not have bsg\_cadenv, then you will have to add IGNORE\_CADENV=1 to your make commands. To use commerical tools in this case, you may need
