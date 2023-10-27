@@ -3,8 +3,8 @@
  *    
  */
 
-`include "bsg_defines.v"
-`include "bsg_cache.vh"
+`include "bsg_defines.sv"
+`include "bsg_cache.svh"
 `include "profiler.vh"
 
 module vcache_profiler

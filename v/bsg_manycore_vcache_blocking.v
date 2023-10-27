@@ -4,7 +4,7 @@
  */
 
 `include "bsg_manycore_defines.vh"
-`include "bsg_cache.vh"
+`include "bsg_cache.svh"
 
 module bsg_manycore_vcache_blocking
   import bsg_manycore_pkg::*;

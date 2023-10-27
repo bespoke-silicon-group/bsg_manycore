@@ -3,7 +3,7 @@
  *    
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module bsg_cache_to_axi_hashed
   import bsg_cache_pkg::*;

@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module bsg_nonsynth_manycore_tag_master
   import bsg_tag_pkg::*;

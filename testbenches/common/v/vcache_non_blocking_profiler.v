@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_cache_non_blocking.vh"
+`include "bsg_cache_non_blocking.svh"
 
 module vcache_non_blocking_profiler
   import bsg_cache_non_blocking_pkg::*;

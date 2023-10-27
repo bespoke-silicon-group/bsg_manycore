@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module fpu_int_fclass
   import bsg_vanilla_pkg::*;

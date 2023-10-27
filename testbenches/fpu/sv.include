@@ -1,26 +1,26 @@
 
 $BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_pkg.v
 
-$BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_clock_gen.v
-$BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_reset_gen.v
+$BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_clock_gen.sv
+$BASEJUMP_STL_DIR/bsg_test/bsg_nonsynth_reset_gen.sv
 $BASEJUMP_STL_DIR/bsg_fsb/bsg_fsb_node_trace_replay.v
 
-$BASEJUMP_STL_DIR/bsg_misc/bsg_less_than.v
-$BASEJUMP_STL_DIR/bsg_misc/bsg_reduce.v
-$BASEJUMP_STL_DIR/bsg_misc/bsg_mul_synth.v
-$BASEJUMP_STL_DIR/bsg_misc/bsg_abs.v
-$BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode.v
-$BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode_one_hot_out.v
-$BASEJUMP_STL_DIR/bsg_misc/bsg_encode_one_hot.v
-$BASEJUMP_STL_DIR/bsg_misc/bsg_scan.v
+$BASEJUMP_STL_DIR/bsg_misc/bsg_less_than.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_reduce.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_mul_synth.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_abs.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode_one_hot_out.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_encode_one_hot.sv
+$BASEJUMP_STL_DIR/bsg_misc/bsg_scan.sv
 
-$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_add_sub.v
-$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_mul.v
-$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_i2f.v
-$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_cmp.v
-$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_preprocess.v
-$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_sticky.v
-$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_clz.v
+$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_add_sub.sv
+$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_mul.sv
+$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_i2f.sv
+$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_cmp.sv
+$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_preprocess.sv
+$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_sticky.sv
+$BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_clz.sv
 
 $BSG_MANYCORE_DIR/v/vanilla_bean/fpu_float.v
 $BSG_MANYCORE_DIR/v/vanilla_bean/fpu_float_aux.v

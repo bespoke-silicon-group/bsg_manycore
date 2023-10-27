@@ -1,6 +1,6 @@
 
 `include "bsg_manycore_defines.vh"
-`include "bsg_cache.vh"
+`include "bsg_cache.svh"
 
 module bsg_nonsynth_wormhole_test_mem
   import bsg_manycore_pkg::*;

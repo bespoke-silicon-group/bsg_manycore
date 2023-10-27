@@ -4,7 +4,7 @@
 //
 //
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module bsg_tq_sender #(width_p       = 32
                        // the largest buffer ever allowed

@@ -7,7 +7,7 @@
 //
 // Pleas contact Prof Taylor for the document.
 //
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 `include "bsg_manycore_packet.vh"
 
 module  bsg_manycore_link_to_fifo
