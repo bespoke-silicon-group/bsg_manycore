@@ -41,7 +41,10 @@ SPIKE_REPO        := riscv-isa-sim
 SPIKE_URL         := https://github.com/riscv/riscv-isa-sim.git
 SPIKE_PATCH       := spike.patch
 SPIKE_GCC_PATCH   := spike-gcc.patch
-SPIKE_TAG         := v1.0.0
+SPIKE_TAG         := v1.1.0
+
+# How many thread you want to use compiling tools
+COMPILING_THREADS := 6
 
 LLVM_DIR          := $(CURDIR)/llvm
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
@@ -86,7 +89,7 @@ checkout-repos:
 ifeq ($(shell [ $(call git-version,1) -gt 1 ] && \
               [ $(call git-version,1) -gt 2 -o $(call git-version,2) -gt 8 ] && \
               echo 1), 1)
-	#cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive -j 16;
+	#cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive -j $(COMPILING_THREADS);
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-binutils
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-glibc
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-gcc
@@ -113,7 +116,7 @@ checkout-spike:
 	@rm -rf $(SPIKE_REPO);
 	git clone --recursive $(SPIKE_URL);
 	cd $(SPIKE_REPO) && git checkout tags/$(SPIKE_TAG)
-	cd $(SPIKE_REPO) && git apply ../$(SPIKE_PATCH) && git apply ../$(SPIKE_GCC_PATCH)
+	#cd $(SPIKE_REPO) && git apply ../$(SPIKE_PATCH) && git apply ../$(SPIKE_GCC_PATCH)
 
 checkout-all: 
 	$(MAKE) checkout-repos 
@@ -142,7 +145,7 @@ build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	@echo "Building toolchain..."
 	@echo "====================================="
-	cd riscv-gnu-toolchain && $(MAKE) -j 16 CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS)
+	cd riscv-gnu-toolchain && $(MAKE) -j $(COMPILING_THREADS) CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS)
 
 build-spike:
 	@echo "====================================="

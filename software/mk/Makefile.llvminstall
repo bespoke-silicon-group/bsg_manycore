@@ -32,6 +32,8 @@ ifndef GENERATOR
   endif
 endif
 
+COMPILING_THREADS = 6
+
 llvm-install:
 	mkdir -p $(LLVM_DIR)/llvm-build && mkdir -p $(LLVM_DIR)/llvm-install
 	# Get LLVM sources
@@ -50,4 +52,4 @@ llvm-install:
 	    -DLLVM_USE_SPLIT_DWARF=True \
 	    -DLLVM_OPTIMIZED_TABLEGEN=True \
 	    ../llvm-src/llvm
-	cd  $(LLVM_DIR)/llvm-build && $(CMAKE) --build . --target install -- -j 12
+	cd  $(LLVM_DIR)/llvm-build && $(CMAKE) --build . --target install -- -j $(COMPILING_THREADS)
