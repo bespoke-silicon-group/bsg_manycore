@@ -44,7 +44,19 @@ SPIKE_GCC_PATCH   := spike-gcc.patch
 SPIKE_TAG         := v1.1.0
 
 # How many thread you want to use compiling tools
-COMPILING_THREADS := 6
+
+ifeq ($(OS),Linux)
+        NUMPROC := $(shell grep -c ^processor /proc/cpuinfo)
+else ifeq ($(OS),Darwin)
+        NUMPROC := $(shell sysctl hw.ncpu | awk '{print $$2}')
+endif
+
+# Only take half as many processors as available
+COMPILING_THREADS := $(shell echo "$(NUMPROC)/2"|bc)
+
+ifeq ($(COMPILING_THREADS),0)
+        COMPILING_THREADS = 1
+endif 
 
 LLVM_DIR          := $(CURDIR)/llvm
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
