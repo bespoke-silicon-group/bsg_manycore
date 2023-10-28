@@ -64,17 +64,17 @@ module bsg_manycore_link_resp_credit_to_ready_and_handshake
   assign fifo_yumi_li = ready_and_link_sif_lo.rev.v & ready_and_link_sif_li.rev.ready_and_rev;
 
   bsg_fifo_1r1w_small
- #(.width_p (rev_width_lp                  )
-  ,.els_p   (fifo_els_p                    )
+ #(.width_p       (rev_width_lp                  )
+  ,.els_p         (fifo_els_p                    )
   ) fifo
-  (.clk_i   (clk_i                         )
-  ,.reset_i (reset_i                       )
-  ,.v_i     (credit_link_sif_li.rev.v      )
-  ,.data_i  (credit_link_sif_li.rev.data   )
-  ,.ready_o (fifo_ready_lo                 )
-  ,.v_o     (ready_and_link_sif_lo.rev.v   )
-  ,.data_o  (ready_and_link_sif_lo.rev.data)
-  ,.yumi_i  (fifo_yumi_li                  )
+  (.clk_i         (clk_i                         )
+  ,.reset_i       (reset_i                       )
+  ,.v_i           (credit_link_sif_li.rev.v      )
+  ,.data_i        (credit_link_sif_li.rev.data   )
+  ,.ready_param_o (fifo_ready_lo                 )
+  ,.v_o           (ready_and_link_sif_lo.rev.v   )
+  ,.data_o        (ready_and_link_sif_lo.rev.data)
+  ,.yumi_i        (fifo_yumi_li                  )
   );
 
   bsg_dff_reset

@@ -72,14 +72,14 @@ module bsg_manycore_endpoint
      ( .clk_i(clk_i)
       ,.reset_i(reset_i)
 
-      ,.v_i     (link_sif_in.fwd.v)
-      ,.data_i  (link_sif_in.fwd.data)
-      ,.ready_o (link_sif_out.fwd.ready_and_rev)
+      ,.v_i           (link_sif_in.fwd.v)
+      ,.data_i        (link_sif_in.fwd.data)
+      ,.ready_param_o (link_sif_out.fwd.ready_and_rev)
 
 
-      ,.v_o     (packet_v_o    )
-      ,.data_o  (packet_o )
-      ,.yumi_i  (packet_yumi_i )
+      ,.v_o           (packet_v_o    )
+      ,.data_o        (packet_o )
+      ,.yumi_i        (packet_yumi_i )
       );
 
    // ----------------------------------------------------------------------------------------
@@ -110,13 +110,13 @@ module bsg_manycore_endpoint
        (.clk_i(clk_i)
         ,.reset_i(reset_i)
 
-        ,.v_i     (link_sif_in.rev.v)
-        ,.data_i  (link_sif_in.rev.data)
-        ,.ready_o (returned_fifo_ready)
+        ,.v_i           (link_sif_in.rev.v)
+        ,.data_i        (link_sif_in.rev.data)
+        ,.ready_param_o (returned_fifo_ready)
 
-        ,.v_o     (return_packet_v_o)
-        ,.data_o  (return_packet_o)
-        ,.yumi_i  (return_packet_yumi_i)
+        ,.v_o           (return_packet_v_o)
+        ,.data_o        (return_packet_o)
+        ,.yumi_i        (return_packet_yumi_i)
         );
 
    assign return_packet_fifo_full_o = ~returned_fifo_ready;
