@@ -32,8 +32,6 @@ ifndef GENERATOR
   endif
 endif
 
-COMPILING_THREADS = 6
-
 llvm-install:
 	mkdir -p $(LLVM_DIR)/llvm-build && mkdir -p $(LLVM_DIR)/llvm-install
 	# Get LLVM sources
