@@ -23,6 +23,7 @@ module vcache_profiler
     , parameter stat_info_width_lp=`bsg_cache_stat_info_width(ways_p)
     // periodic stat;
     , parameter period_p = 250
+    , parameter enable_periodic_p=0
   )
   (
     input clk_i
@@ -453,7 +454,7 @@ module vcache_profiler
   end
 
   always @ (negedge clk_i) begin
-    if (kernel_start_received_r && ((global_ctr_i % period_p) == 0)) begin
+    if (kernel_start_received_r && enable_periodic_p && ((global_ctr_i % period_p) == 0)) begin
       periodic_fd = $fopen(periodicfile_lp, "a");
       $fwrite(log_fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
         global_ctr_i,

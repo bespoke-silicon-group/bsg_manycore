@@ -28,6 +28,7 @@ module router_profiler
     , parameter tracefile_p = "router_stat.csv"
     , parameter periodfile_p = "router_periodic_stat.csv"
     , parameter period_p = 250
+    , parameter enable_periodic_p = 0
     , localparam dirs_lp = 1+(2*dims_p)
   )
   (
@@ -153,7 +154,7 @@ module router_profiler
 
   // print only bisection links
   always @ (posedge clk_i) begin
-    if ((reset_i === 1'b0) && kernel_start_received_r && ((global_ctr_i % period_p) == 0)
+    if ((reset_i === 1'b0) && enable_periodic_p && kernel_start_received_r && ((global_ctr_i % period_p) == 0)
         && (my_x_i >= origin_x_cord_p) && (my_x_i < (origin_x_cord_p+num_tiles_x_p))
         && (my_y_i >= origin_y_cord_p) && (my_y_i < (origin_y_cord_p+num_tiles_y_p))) begin
       fd = $fopen(periodfile_p, "a");
