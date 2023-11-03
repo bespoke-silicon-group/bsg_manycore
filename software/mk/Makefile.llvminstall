@@ -32,12 +32,12 @@ ifndef GENERATOR
   endif
 endif
 
-llvm-install:
+
+
+llvm-install: $(LLVM_DIR)/llvm-src
 	mkdir -p $(LLVM_DIR)/llvm-build && mkdir -p $(LLVM_DIR)/llvm-install
 	# Get LLVM sources
-	cd $(LLVM_DIR) && \
-    git clone https://github.com/bespoke-silicon-group/llvm-project.git ./llvm-src && \
-    cd ./llvm-src && git fetch && git checkout hb-dev
+	cd $(LLVM_DIR)/llvm-src && git stash && git fetch && git checkout hb-dev && git apply $(PATCH_DIR)/llvm-gcc11.patch
 	# Install only X86 and RISCV targets
 	cd $(LLVM_DIR)/llvm-build \
 	    && $(CMAKE) -G $(GENERATOR) -DCMAKE_BUILD_TYPE="Debug" \
@@ -51,3 +51,7 @@ llvm-install:
 	    -DLLVM_OPTIMIZED_TABLEGEN=True \
 	    ../llvm-src/llvm
 	cd  $(LLVM_DIR)/llvm-build && $(CMAKE) --build . --target install -- -j 12
+
+$(LLVM_DIR)/llvm-src:
+	cd $(LLVM_DIR) && \
+    git clone https://github.com/bespoke-silicon-group/llvm-project.git ./llvm-src
