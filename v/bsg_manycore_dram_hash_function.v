@@ -26,7 +26,7 @@ module bsg_manycore_dram_hash_function
 
     , `BSG_INV_PARAM(num_vcache_rows_p)
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
-    , parameter enable_ipoly_hashing_p=0
+    , parameter enable_ipoly_hashing_p=1
   )
   (
     input [data_width_p-1:0] eva_i // 32-bit byte address

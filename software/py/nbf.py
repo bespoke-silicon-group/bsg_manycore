@@ -71,6 +71,14 @@ class NBF:
     self.skip_dram_instruction_load = config["skip_dram_instruction_load"]
     # if skip_zeros == 1, skip storing zeros to DRAM, if simulation DRAM is automatically cleared
     self.skip_zeros = config["skip_zeros"]
+  
+    # IPOLY hashing
+    self.enable_ipoly = (1 == config["enable_ipoly"])
+    if self.enable_ipoly:
+      if (self.num_vcache_rows != 1) or (self.num_tiles_x != 16):
+        print("Error: Ipoly only supported for num_vcache_rows=1 and num_tiles_x=16")
+        sys.exit()
+        
 
     # derived params
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size # in words
@@ -342,14 +350,38 @@ class NBF:
             continue
           if (self.skip_zeros == 1) and (self.dram_data[k] == 0):
             continue
-          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + pod_origin_x
-          y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
-          index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
-          epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
-          if y % 2 == 0:
-            self.print_nbf(x, pod_origin_y-1-(y/2), epa, self.dram_data[k]) #top
+          
+          if self.enable_ipoly and (lg_x == 4):
+            temp_x = [0]*lg_x
+            for i in range(lg_x):
+              temp_x[i] = self.select_bits(addr, lg_block_size+i, lg_block_size + i)
+            temp_y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x)
+            block_offset = self.select_bits(addr, 0, lg_block_size-1)
+            ibits = [0]*index_width
+            for i in range(index_width):
+              ibits[i] = self.select_bits(addr, lg_block_size+lg_x+lg_y+i, lg_block_size+lg_x+lg_y+i)
+            
+            x0 = temp_x[0] ^ ibits[0] ^ ibits[3] ^ ibits[5] ^ ibits[6] ^ ibits[9] ^ ibits[10] ^ ibits[11] ^ ibits[12] ^ ibits[13]
+            x1 = temp_x[1] ^ ibits[1] ^ ibits[4] ^ ibits[6] ^ ibits[7] ^ ibits[10] ^ ibits[11] ^ ibits[12] ^ ibits[13] ^ ibits[14]
+            x2 = temp_x[2] ^ ibits[0] ^ ibits[2] ^ ibits[3] ^ ibits[6] ^ ibits[7] ^ ibits[8] ^ ibits[9] ^ ibits[10] ^ ibits[14]
+            x3 = temp_x[3] ^ ibits[1] ^ ibits[3] ^ ibits[4] ^ ibits[7] ^ ibits[8] ^ ibits[9] ^ ibits[10] ^ ibits[11]
+            is_south = temp_y ^ ibits[2] ^ ibits[4] ^ ibits[5] ^ ibits[8] ^ ibits[9] ^ ibits[10] ^ ibits[11] ^ ibits[12]
+            x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3)
+            index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
+            epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
+            if is_south:
+              self.print_nbf(pod_origin_x+x, pod_origin_y+self.num_tiles_y, epa, self.dram_data[k]) # bot
+            else:
+              self.print_nbf(pod_origin_x+x, pod_origin_y-1, epa, self.dram_data[k]) # top
           else:
-            self.print_nbf(x, pod_origin_y+self.num_tiles_y+(y/2), epa, self.dram_data[k]) #bot
+            x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + pod_origin_x
+            y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
+            index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
+            epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
+            if y % 2 == 0:
+              self.print_nbf(x, pod_origin_y-1-(y/2), epa, self.dram_data[k]) #top
+            else:
+              self.print_nbf(x, pod_origin_y+self.num_tiles_y+(y/2), epa, self.dram_data[k]) #bot
       else:
         print("hash function not supported for x={0}.")
         sys.exit()
@@ -503,7 +535,8 @@ if __name__ == "__main__":
       "num_pods_y" : int(sys.argv[19]),
       "num_vcache_rows" : int(sys.argv[20]),
       "skip_dram_instruction_load": int(sys.argv[21]),
-      "skip_zeros": int(sys.argv[22])
+      "skip_zeros": int(sys.argv[22]),
+      "enable_ipoly": 1
     }
 
     converter = NBF(config)
