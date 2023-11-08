@@ -682,7 +682,7 @@ module bsg_nonsynth_manycore_testbench
 
         ,.dma_data_o          (remapped_dma_data_li[i])
         ,.dma_data_v_o        (remapped_dma_data_v_li[i])
-        ,.dma_data_ready_i    (remapped_dma_data_ready_lo[i])
+        ,.dma_data_ready_and_i    (remapped_dma_data_ready_lo[i])
 
         ,.dma_data_i          (remapped_dma_data_lo[i])
         ,.dma_data_v_i        (remapped_dma_data_v_lo[i])

@@ -21,7 +21,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_round_robin_1_to_n.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_one_fifo.sv
 
 
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_fsb/bsg_fsb_node_trace_replay.v
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_legacy/bsg_fsb/bsg_fsb_node_trace_replay.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_trace_replay.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_master.sv
 
