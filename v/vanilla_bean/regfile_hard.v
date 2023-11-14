@@ -8,7 +8,7 @@
 // register. When there is a write and read and the same time, it output
 // the newly written value, which is "write through"
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module regfile_hard
   #(`BSG_INV_PARAM(width_p )

@@ -4,7 +4,7 @@
 
 package bsg_manycore_mem_cfg_pkg;
 
-  `include "bsg_defines.v"
+  `include "bsg_defines.sv"
 
   localparam max_cfgs = 128;
   localparam lg_max_cfgs = `BSG_SAFE_CLOG2(max_cfgs); 

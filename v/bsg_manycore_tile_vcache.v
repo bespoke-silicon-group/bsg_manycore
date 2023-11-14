@@ -8,7 +8,7 @@
  */
 
 `include "bsg_manycore_defines.vh"
-`include "bsg_cache.vh"
+`include "bsg_cache.svh"
 
 module bsg_manycore_tile_vcache
   import bsg_noc_pkg::*;
@@ -243,7 +243,7 @@ module bsg_manycore_tile_vcache
 
     ,.dma_data_i(dma_data_li)
     ,.dma_data_v_i(dma_data_v_li)
-    ,.dma_data_ready_o(dma_data_ready_lo)
+    ,.dma_data_ready_and_o(dma_data_ready_lo)
 
     ,.dma_data_o(dma_data_lo)
     ,.dma_data_v_o(dma_data_v_lo)

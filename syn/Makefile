@@ -76,13 +76,13 @@ results/flist.vcs:
 	@# Adding hardened sram wrappers
 	@echo "+incdir+$(BASEJUMP_STL_DIR)/hard/pickle/bsg_mem"              >> $@
 	@# Remove old memories
-	@sed -i "/bsg_mem_1rw_sync.v/d"                                         $@
-	@sed -i "/bsg_mem_1rw_sync_mask_write_byte.v/d"                         $@
-	@sed -i "/bsg_mem_1rw_sync_mask_write_bit.v/d"                          $@
+	@sed -i "/bsg_mem_1rw_sync.sv/d"                                         $@
+	@sed -i "/bsg_mem_1rw_sync_mask_write_byte.sv/d"                         $@
+	@sed -i "/bsg_mem_1rw_sync_mask_write_bit.sv/d"                          $@
 	@# Swap new hardened wrappers
-	@echo "$(BSG_MANYCORE_DIR)/syn/v/bsg_mem_1rw_sync.v"                 >> $@
-	@echo "$(BSG_MANYCORE_DIR)/syn/v/bsg_mem_1rw_sync_mask_write_byte.v" >> $@
-	@echo "$(BSG_MANYCORE_DIR)/syn/v/bsg_mem_1rw_sync_mask_write_bit.v"  >> $@
+	@echo "$(BSG_MANYCORE_DIR)/syn/v/bsg_mem_1rw_sync.sv"                 >> $@
+	@echo "$(BSG_MANYCORE_DIR)/syn/v/bsg_mem_1rw_sync_mask_write_byte.sv" >> $@
+	@echo "$(BSG_MANYCORE_DIR)/syn/v/bsg_mem_1rw_sync_mask_write_bit.sv"  >> $@
 	@# Trim whitespace from beginning of lines
 	@sed -i "s/^ *//"                                                       $@
 

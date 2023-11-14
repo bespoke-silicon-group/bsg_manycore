@@ -1,5 +1,5 @@
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module bsg_manycore_accel_default 
   import bsg_manycore_pkg::*;

@@ -4,7 +4,7 @@
  */
 
 `include "bsg_manycore_defines.vh"
-`include "bsg_cache.vh"
+`include "bsg_cache.svh"
 
 module bsg_manycore_vcache_blocking
   import bsg_manycore_pkg::*;
@@ -110,7 +110,7 @@ module bsg_manycore_vcache_blocking
     
     ,.cache_pkt_i(cache_pkt)
     ,.v_i(cache_v_li)
-    ,.ready_o(cache_ready_lo)
+    ,.yumi_o(cache_ready_lo)
 
     ,.data_o(cache_data_lo)
     ,.v_o(cache_v_lo)
@@ -122,7 +122,7 @@ module bsg_manycore_vcache_blocking
 
     ,.dma_data_i(dma_data_i)
     ,.dma_data_v_i(dma_data_v_i)
-    ,.dma_data_ready_o(dma_data_ready_o)
+    ,.dma_data_ready_and_o(dma_data_ready_o)
 
     ,.dma_data_o(dma_data_o)
     ,.dma_data_v_o(dma_data_v_o)

@@ -4,8 +4,8 @@
  *    used for tieing off ruche links (wh) on the sides.
  */
 
-`include "bsg_defines.v"
-`include "bsg_noc_links.vh"
+`include "bsg_defines.sv"
+`include "bsg_noc_links.svh"
 
 module bsg_ruche_link_sif_tieoff
   #(`BSG_INV_PARAM(link_data_width_p)

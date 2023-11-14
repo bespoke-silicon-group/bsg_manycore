@@ -2,7 +2,7 @@
  *  bsg_nonsynth_manycore_axi_mem.v
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module bsg_nonsynth_manycore_axi_mem
   #(parameter `BSG_INV_PARAM(axi_id_width_p)

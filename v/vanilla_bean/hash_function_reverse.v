@@ -1,5 +1,5 @@
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module hash_function_reverse
   #(`BSG_INV_PARAM(width_p)

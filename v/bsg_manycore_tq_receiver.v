@@ -4,7 +4,7 @@
 //
 //
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module bsg_tq_receiver #(width_p       = 32
                        // the greatest amount that is processed at a time

@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_cache_non_blocking.vh"
+`include "bsg_cache_non_blocking.svh"
 
 module bsg_manycore_vcache_non_blocking 
   import bsg_manycore_pkg::*;
@@ -43,7 +43,7 @@ module bsg_manycore_vcache_non_blocking
 
     , input [data_width_p-1:0] dma_data_i
     , input dma_data_v_i
-    , output logic dma_data_ready_o
+    , output logic dma_data_ready_and_o
 
     , output logic [data_width_p-1:0] dma_data_o
     , output logic dma_data_v_o
@@ -82,7 +82,7 @@ module bsg_manycore_vcache_non_blocking
 
     ,.v_i(cache_v_lo)
     ,.data_i({cache_id_lo, cache_data_lo})
-    ,.ready_o(fifo_ready_lo)
+    ,.ready_param_o(fifo_ready_lo)
 
     ,.v_o(fifo_v_lo)
     ,.yumi_i(fifo_yumi_li)
@@ -146,7 +146,7 @@ module bsg_manycore_vcache_non_blocking
 
     ,.dma_data_i(dma_data_i)
     ,.dma_data_v_i(dma_data_v_i)
-    ,.dma_data_ready_o(dma_data_ready_o)
+    ,.dma_data_ready_and_o(dma_data_ready_o)
 
     ,.dma_data_o(dma_data_o)
     ,.dma_data_v_o(dma_data_v_o)

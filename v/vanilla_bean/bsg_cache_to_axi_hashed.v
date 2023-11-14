@@ -3,7 +3,7 @@
  *    
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module bsg_cache_to_axi_hashed
   import bsg_cache_pkg::*;
@@ -230,7 +230,7 @@ module bsg_cache_to_axi_hashed
     ,.data_width_p(data_width_p)
     ,.block_size_in_words_p(block_size_in_words_p)
     ,.axi_id_width_p(axi_id_width_p)
-    ,.axi_addr_width_p(axi_addr_width_p)
+    ,.addr_width_p(axi_addr_width_p)
     ,.axi_data_width_p(axi_data_width_p)
     ,.axi_burst_len_p(axi_burst_len_p)
   ) axi_rx (
@@ -239,15 +239,15 @@ module bsg_cache_to_axi_hashed
 
     ,.v_i(read_rr_v_lo)
     ,.yumi_o(read_rr_yumi_li)
-    ,.tag_i(read_rr_tag_lo)
-    ,.axi_addr_i(rx_axi_addr)
+    ,.cache_id_i(read_rr_tag_lo)
+    ,.addr_i(rx_axi_addr)
 
     ,.dma_data_o(dma_data_o)
     ,.dma_data_v_o(dma_data_v_o)
-    ,.dma_data_ready_i(dma_data_ready_i)
+    ,.dma_data_ready_and_i(dma_data_ready_i)
 
     ,.axi_arid_o(axi_arid_o)
-    ,.axi_araddr_o(axi_araddr_o)
+    ,.axi_araddr_addr_o(axi_araddr_o)
     ,.axi_arlen_o(axi_arlen_o)
     ,.axi_arsize_o(axi_arsize_o)
     ,.axi_arburst_o(axi_arburst_o)
@@ -272,7 +272,7 @@ module bsg_cache_to_axi_hashed
     ,.data_width_p(data_width_p)
     ,.block_size_in_words_p(block_size_in_words_p)
     ,.axi_id_width_p(axi_id_width_p)
-    ,.axi_addr_width_p(axi_addr_width_p)
+    ,.addr_width_p(axi_addr_width_p)
     ,.axi_data_width_p(axi_data_width_p)
     ,.axi_burst_len_p(axi_burst_len_p)
   ) axi_tx (
@@ -281,15 +281,15 @@ module bsg_cache_to_axi_hashed
     
     ,.v_i(write_rr_v_lo)
     ,.yumi_o(write_rr_yumi_li)
-    ,.tag_i(write_rr_tag_lo)
-    ,.axi_addr_i(tx_axi_addr)
+    ,.cache_id_i(write_rr_tag_lo)
+    ,.addr_i(tx_axi_addr)
 
     ,.dma_data_i(dma_data_i)
     ,.dma_data_v_i(dma_data_v_i)
     ,.dma_data_yumi_o(dma_data_yumi_o)
 
     ,.axi_awid_o(axi_awid_o)
-    ,.axi_awaddr_o(axi_awaddr_o)
+    ,.axi_awaddr_addr_o(axi_awaddr_o)
     ,.axi_awlen_o(axi_awlen_o)
     ,.axi_awsize_o(axi_awsize_o)
     ,.axi_awburst_o(axi_awburst_o)

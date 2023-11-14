@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module bsg_ruche_buffer
   #(`BSG_INV_PARAM(width_p)

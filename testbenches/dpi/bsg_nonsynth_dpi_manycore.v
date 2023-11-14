@@ -100,7 +100,7 @@ module bsg_nonsynth_dpi_manycore
       ,.reset_i(reset_i)
 
       ,.v_i(mc_req_v_li)
-      ,.ready_o(mc_req_ready_lo)
+      ,.ready_param_o(mc_req_ready_lo)
       ,.data_i(mc_req_data_li)
 
       ,.v_o(f2d_req_v_li)
@@ -135,7 +135,7 @@ module bsg_nonsynth_dpi_manycore
       ,.reset_i(reset_i)
 
       ,.v_i(mc_rsp_v_li)
-      ,.ready_o(mc_rsp_ready_lo)
+      ,.ready_param_o(mc_rsp_ready_lo)
       ,.data_i(mc_rsp_data_li)
 
       ,.v_o(f2d_rsp_v_li)

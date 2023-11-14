@@ -8,7 +8,7 @@
  *    @author tommy
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 module regfile
   #(`BSG_INV_PARAM(width_p)
