@@ -27,8 +27,8 @@
 #
 .DEFAULT_GOAL := help
 
-TARGET_ARCH       := rv32imaf
-TARGET_ABI        := ilp32f
+TARGET_ARCH       := rv64imaf
+TARGET_ABI        := lp64f
 TARGET_CFLAGS     := '-fno-common'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
@@ -37,13 +37,6 @@ TOOLCHAIN_VERSION := 656708846d723936eb5ba2648f6f919608a8ccaf
 
 DEPENDS_DIR       := $(CURDIR)/depends
 
-SPIKE_REPO        := riscv-isa-sim
-SPIKE_URL         := https://github.com/riscv/riscv-isa-sim.git
-SPIKE_PATCH       := spike.patch
-SPIKE_GCC_PATCH   := spike-gcc.patch
-SPIKE_TAG         := v1.0.0
-
-LLVM_DIR          := $(CURDIR)/llvm
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
 
 DEPENDS_LIST=autoconf-2.69 automake-1.14
@@ -106,18 +99,8 @@ endif
 	# cd $(TOOLCHAIN_REPO)/riscv-gcc && git apply $(CURDIR)/riscv-gcc.patch
 
 
-checkout-spike:
-	@echo "====================================="
-	@echo "Cloning riscv-isa-sim repo..."
-	@echo "====================================="
-	@rm -rf $(SPIKE_REPO);
-	git clone --recursive $(SPIKE_URL);
-	cd $(SPIKE_REPO) && git checkout tags/$(SPIKE_TAG)
-	cd $(SPIKE_REPO) && git apply ../$(SPIKE_PATCH) && git apply ../$(SPIKE_GCC_PATCH)
-
 checkout-all: 
 	$(MAKE) checkout-repos 
-	$(MAKE) checkout-spike
 
 build-deps:
 	@echo "====================================="
@@ -136,7 +119,7 @@ configure-riscv-gnu-tools:
 	@echo "Configuring toolchain..."
 	@echo "====================================="
 	cd riscv-gnu-toolchain && \
-		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI) --disable-gdb --with-tune=bsg_vanilla_2020
+		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI) --disable-gdb --with-tune=bsg_vanilla_2020 --with-target-cxxflags="-mstrict-align -mcmodel=medany" --with-target-cflags="-mstrict-align -mcmodel=medany"
 
 build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
@@ -144,24 +127,9 @@ build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	cd riscv-gnu-toolchain && $(MAKE) -j 16 CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS)
 
-build-spike:
-	@echo "====================================="
-	@echo "Building $(SPIKE_REPO)..."
-	@echo "====================================="
-	cd $(SPIKE_REPO) && ./configure --prefix=$(RISCV) --enable-commitlog
-	cd $(SPIKE_REPO) && $(MAKE) && $(MAKE) install
-
-build-llvm:
-	@echo "====================================="
-	@echo "Building $(LLVM_DIR)..."
-	@echo "====================================="
-	$(MAKE) -C ../mk/ -f Makefile.llvminstall LLVM_DIR=$(LLVM_DIR) RISCV_INSTALL_DIR=$(RISCV)
-
 build-all: 
 	$(MAKE) build-deps 
 	$(MAKE) build-riscv-gnu-tools 
-	$(MAKE) build-spike
-	$(MAKE) build-llvm
 
 rebuild-newlib: PATH:=$(RISCV)/bin:$(PATH)
 rebuild-newlib:
@@ -178,10 +146,6 @@ install-clean:
 
 clean-builds:
 	rm -rf $(DEPENDS_DIR) $(TOOLCHAIN_REPO) $(SPIKE_REPO) && \
-	$(MAKE) clean-llvm
-
-clean-llvm:
-	rm -rf $(LLVM_DIR)/llvm-src $(LLVM_DIR)/llvm-build
 
 clean-install:
 	rm -rf riscv-install

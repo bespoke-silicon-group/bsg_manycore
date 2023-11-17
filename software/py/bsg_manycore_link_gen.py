@@ -235,7 +235,7 @@ class bsg_manycore_link_gen:
       # .text section virtual address starts at 0x0 but
       # loaded at 0x80000000
       if sec == ".text.dram":
-        vaddr = "0x0"
+        vaddr = "0x80000000"
 
       # Append .dram to output section name
       if re.search(".dram$", sec) == None and self._default_data_loc == 'dram':

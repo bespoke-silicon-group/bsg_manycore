@@ -5,7 +5,7 @@ bsg_tiles_Y=1
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
 
-RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles -mno-relax
+RISCV_LINK_OPTS = -march=rv64imaf -nostdlib -nostartfiles -mno-relax
 
 LOOP_SIZES = $(shell seq 2 32)
 all: $(addprefix run_, $(LOOP_SIZES))

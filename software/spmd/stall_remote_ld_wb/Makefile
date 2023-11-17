@@ -5,7 +5,7 @@ all: main.run
 
 include ../Makefile.include
 
-RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles
+RISCV_LINK_OPTS = -march=rv64imaf -nostdlib -nostartfiles
 
 main.riscv: $(LINK_SCRIPT)  main.o
 	$(RISCV_LINK)  main.o -o $@ $(RISCV_LINK_OPTS)

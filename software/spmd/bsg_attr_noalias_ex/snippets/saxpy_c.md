@@ -62,9 +62,9 @@ String dump of section '.GCC.command.line':
   [   148]  -D PREALLOCATE=0
   [   159]  -D HOST_DEBUG=0
   [   169]  saxpy-c.c
-  [   173]  -march=rv32imaf
+  [   173]  -march=rv64imaf
   [   183]  -mtune=bsg_vanilla_2020
-  [   19b]  -mabi=ilp32f
+  [   19b]  -mabi=lp64f
   [   1a8]  -auxbase-strip saxpy-c.o
   [   1c1]  -g
   [   1c4]  -O2

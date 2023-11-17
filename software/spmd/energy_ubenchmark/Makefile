@@ -6,7 +6,7 @@ include $(BSG_MANYCORE_DIR)/software/mk/Makefile.master
 include $(BSG_MANYCORE_DIR)/software/mk/Makefile.tail_rules
 include $(BSG_MANYCORE_DIR)/software/spmd/energy_ubenchmark/Makefile.testlist
 
-RISCV_LINK_OPTS = -march=rv32imaf -nostdlib -nostartfiles -mno-relax
+RISCV_LINK_OPTS = -march=rv64imaf -nostdlib -nostartfiles -mno-relax
 
 all: $(addsuffix _run, $(ENERGY_UBENCHMARK))
 

@@ -28,7 +28,7 @@ vpath %.S $(RVTEST_ASM_DIRs)
 RVTEST_INCS = -I.. -I$(RVTEST_DIR)/macros/scalar
 
 INCS += $(RVTEST_INCS)
-RISCV_LINK_OPTS = -march=rv32ima -nostdlib -nostartfiles
+RISCV_LINK_OPTS = -march=rv64ima -nostdlib -nostartfiles
 
 %.riscv: $(LINK_SCRIPT) %.o
 	$(RISCV_LINK) $*.o -o $@ $(RISCV_LINK_OPTS)
