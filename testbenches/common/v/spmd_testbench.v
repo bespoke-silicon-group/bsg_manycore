@@ -3,7 +3,7 @@
  *
  */ 
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module spmd_testbench
   import bsg_manycore_pkg::*;

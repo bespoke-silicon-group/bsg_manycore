@@ -4,7 +4,7 @@
  */
 
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module bsg_manycore_pod_mesh_row
   import bsg_noc_pkg::*;

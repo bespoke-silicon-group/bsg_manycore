@@ -4,7 +4,7 @@
  *  A compute tile with 2D mesh router
  */
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module bsg_manycore_tile_compute_mesh
   import bsg_noc_pkg::*; // { P=0, W,E,N,S }

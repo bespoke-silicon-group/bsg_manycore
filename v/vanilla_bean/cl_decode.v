@@ -11,7 +11,7 @@
  *
  */
 
-`include "bsg_vanilla_defines.vh"
+`include "bsg_vanilla_defines.svh"
 
 module cl_decode
 import bsg_vanilla_pkg::*;

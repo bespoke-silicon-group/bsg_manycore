@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module bsg_nonsynth_manycore_monitor
  

@@ -4,7 +4,7 @@
  *    This handles sending out remote packets and receiving responses.
  */
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module network_tx
   import bsg_manycore_pkg::*;

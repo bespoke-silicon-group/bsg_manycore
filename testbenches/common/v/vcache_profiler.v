@@ -5,7 +5,7 @@
 
 `include "bsg_defines.sv"
 `include "bsg_cache.svh"
-`include "profiler.vh"
+`include "profiler.svh"
 
 module vcache_profiler
   import bsg_cache_pkg::*;

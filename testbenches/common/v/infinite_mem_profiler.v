@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module infinite_mem_profiler
   import bsg_manycore_pkg::*;

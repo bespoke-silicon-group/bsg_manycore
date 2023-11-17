@@ -6,7 +6,7 @@
  */
 
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module bsg_manycore_pod_ruche
   import bsg_noc_pkg::*;

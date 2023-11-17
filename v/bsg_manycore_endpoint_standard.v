@@ -23,7 +23,7 @@
 //              |  <------------------- |               |          |         |
 //--------------                        |---------------|          |---------|
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module bsg_manycore_endpoint_standard 
   import bsg_manycore_pkg::*; 

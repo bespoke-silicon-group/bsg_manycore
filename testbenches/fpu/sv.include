@@ -22,8 +22,8 @@ $BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_preprocess.sv
 $BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_sticky.sv
 $BASEJUMP_STL_DIR/bsg_fpu/bsg_fpu_clz.sv
 
-$BSG_MANYCORE_DIR/v/vanilla_bean/fpu_float.v
-$BSG_MANYCORE_DIR/v/vanilla_bean/fpu_float_aux.v
+$BSG_MANYCORE_DIR/v/vanilla_bean/fpu_float.sv
+$BSG_MANYCORE_DIR/v/vanilla_bean/fpu_float_aux.sv
 
-testbench.v
+testbench.sv
 bsg_trace_rom.v

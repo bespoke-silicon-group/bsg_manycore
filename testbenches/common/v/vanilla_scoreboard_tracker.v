@@ -1,5 +1,5 @@
-`include "bsg_manycore_defines.vh"
-`include "bsg_vanilla_defines.vh"
+`include "bsg_manycore_defines.svh"
+`include "bsg_vanilla_defines.svh"
 module vanilla_scoreboard_tracker
   import bsg_manycore_pkg::*;
   import bsg_vanilla_pkg::*;

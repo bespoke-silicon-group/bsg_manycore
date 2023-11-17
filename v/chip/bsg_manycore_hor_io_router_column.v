@@ -5,7 +5,7 @@
  *    which can attach to the side of the pods to provide accelerator connectivity.
  */
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module bsg_manycore_hor_io_router_column
   import bsg_noc_pkg::*;

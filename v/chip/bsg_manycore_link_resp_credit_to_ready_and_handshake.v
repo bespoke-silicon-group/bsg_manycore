@@ -8,7 +8,7 @@
 // This adapter converts credit-based interface to regular manycore links.
 //
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module bsg_manycore_link_resp_credit_to_ready_and_handshake
 

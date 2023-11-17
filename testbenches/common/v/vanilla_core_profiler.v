@@ -11,9 +11,9 @@
 //  If the pipeline gets stalled by incoming remote load response or idiv/fdiv, it will print out whatever PC is in the EXE stage.
 
 
-`include "bsg_manycore_defines.vh"
-`include "bsg_vanilla_defines.vh"
-`include "profiler.vh"
+`include "bsg_manycore_defines.svh"
+`include "bsg_vanilla_defines.svh"
+`include "profiler.svh"
 
 module vanilla_core_profiler
   import bsg_manycore_pkg::*;

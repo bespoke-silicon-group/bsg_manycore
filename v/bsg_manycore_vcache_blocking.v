@@ -3,7 +3,7 @@
  *
  */
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 `include "bsg_cache.svh"
 
 module bsg_manycore_vcache_blocking
