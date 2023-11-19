@@ -1,8 +1,8 @@
 #########################################################
 # Chip Architecture
 
-ARCH_OP=rv32imaf
-ABI=ilp32f
+ARCH_OP=rv64imaf
+ABI=lp64f
 
 
 #######################################################
@@ -56,11 +56,11 @@ ifeq ($(RISCV_BIN_DIR),)
 $(error RISCV_BIN_DIR not defined)
 endif
 
-RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-gcc
-RISCV_GXX     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-g++
+RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-dramfs-gcc
+RISCV_GXX     ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-dramfs-g++
 RISCV_ELF2HEX ?= LD_LIBRARY_PATH=$(RISCV_BIN_DIR)/../lib $(RISCV_BIN_DIR)/elf2hex
-RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-objcopy
-RISCV_AR      ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-ar
+RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-dramfs-objcopy
+RISCV_AR      ?= $(RISCV_BIN_DIR)/riscv64-unknown-elf-dramfs-ar
 RISCV_SIM     ?= $(RISCV_BIN_DIR)/spike
 
 BSG_ROM_GEN     = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
@@ -83,7 +83,7 @@ vpath %.S $(COMMON_SRC_DIRS)
 # flags
 OPT_LEVEL ?= -O2
 RISCV_GCC_EXTRA_OPTS ?=
-RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -mtune=bsg_vanilla_2020
+RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -mtune=bsg_vanilla_2020 -mcmodel=medany
 
 RISCV_GCC_OPTS +=$(RISCV_GCC_EXTRA_OPTS) -I$(BSG_MANYCORE_DIR)/software/spmd/common/ -I$(BSG_MANYCORE_DIR)/software/bsg_manycore_lib
 RISCV_GCC_OPTS +=-Dbsg_tiles_X=$(bsg_tiles_X) -Dbsg_tiles_Y=$(bsg_tiles_Y)
@@ -124,7 +124,7 @@ LFS_BLOCK_SIZE ?= 128
 LFS_BLOCK_COUNT ?= 64
 
 lfs.c: $(IN_FILES)
-	$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/bin/dramfs_mklfs $(LFS_BLOCK_SIZE) $(LFS_BLOCK_COUNT) $(IN_FILES) > $@
+	$(RISCV_BIN_DIR)/../riscv64-unknown-elf-dramfs/bin/dramfs_mklfs $(LFS_BLOCK_SIZE) $(LFS_BLOCK_COUNT) $(IN_FILES) > $@
 endif
 
 # Manycore C library archiving rule
@@ -204,12 +204,12 @@ LLVM_CLANG        ?= $(LLVM_DIR)/bin/clang
 LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
 LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
 LLVM_LLC          ?= $(LLVM_DIR)/bin/llc
-CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
+CLANG_TARGET_OPTS ?= --target=risc64 -march=$(ARCH_OP) -mabi=$(ABI)
 
 # Ideally LLC should infer targets option provided to Clang. But LLC 11.0.0 fails
 # to infer the architecture extensions correctly. Hence the information is repeated
 # in LLC target options below.
-LLC_TARGET_OPTS   ?= -march=riscv32 -mcpu=hb-rv32 -mattr=+m,+a,+f
+LLC_TARGET_OPTS   ?= -march=riscv64 -mcpu=hb-rv64 -mattr=+m,+a,+f
 
 ifdef ENABLE_LLVM_PASSES
 PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
@@ -230,15 +230,15 @@ $(LLVM_DIR):
 # Opt can run optimizations in any order, so it doesn't matter
 %.ll: %.c $(LLVM_DIR) $(RUNTIME_FNS)
 	$(LLVM_CLANG) $(CLANG_TARGET_OPTS) $(RISCV_GCC_OPTS) \
-		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
+		--sysroot=$(RISCV_BIN_DIR)/../riscv64-unknown-elf-dramfs \
 		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm -S $(INCS) $< -o $@
 
 # do the same for C++ sources
 %.ll: %.cpp $(LLVM_DIR) $(RUNTIME_FNS)
 	$(LLVM_CLANGPP) $(CLANG_TARGET_OPTS) $(RISCV_GXX_OPTS) \
-		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
-		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0 \
-		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0/riscv32-unknown-elf-dramfs \
+		--sysroot=$(RISCV_BIN_DIR)/../riscv64-unknown-elf-dramfs \
+		-I$(RISCV_BIN_DIR)/../riscv64-unknown-elf-dramfs/include/c++/9.2.0 \
+		-I$(RISCV_BIN_DIR)/../riscv64-unknown-elf-dramfs/include/c++/9.2.0/riscv64-unknown-elf-dramfs \
 		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm -S $(INCS) $< -o $@
 
 ifdef ENABLE_LLVM_PASSES
@@ -319,7 +319,7 @@ SKIP_ZEROS ?= 0
 	python $(HEX2BIN) $< 32 > $@
 
 %.dis: %.riscv
-	$(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-objdump -M numeric --disassemble-all -S $<
+	$(RISCV_BIN_DIR)/riscv64-unknown-elf-dramfs-objdump -M numeric --disassemble-all -S $<
 
 PROG_NAME ?= main
 
