@@ -1,8 +1,16 @@
 #########################################################
 # Chip Architecture
 
-ARCH_OP=rv64imaf
-ABI=lp64f
+# The Chip Architecture is based on the machine's XLEN
+include $(BSG_MACHINE_PATH)/Makefile.machine.include
+
+ifeq ($BSG_MACHINE_XLEN, 64)
+	ARCH_OP=rv64imaf
+	ABI=lp64f
+else
+	ARCH_OP=rv32imaf
+	ABI=ilp32f
+endif
 
 
 #######################################################
