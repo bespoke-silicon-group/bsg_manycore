@@ -44,16 +44,18 @@ class bsg_manycore_link_gen:
     "/*********************************************************\n" \
     + " BSG Manycore Linker Script \n\n"
 
-  def __init__(self, default_data_loc, dram_size, imem_size, sp):
+  def __init__(self, default_data_loc, dram_size, imem_size, sp, xlen):
     self._default_data_loc = default_data_loc
     self._dram_size = dram_size
     self._imem_size = imem_size
     self._sp = sp
+    self._xlen = xlen
     self._opening_comment += \
         " data default: {0}\n".format(default_data_loc) \
         + " dram memory size: 0x{0:08x}\n".format(dram_size) \
         + " imem allocated size: 0x{0:08x}\n".format(imem_size) \
         + " stack pointer init: 0x{0:08x}\n".format(sp) \
+        + " RISC-V XLEN: {0}".format(xlen)\
         + "\n" \
         + " Generated at " + str(datetime.now()) + "\n" \
       + "**********************************************************/\n"
@@ -234,8 +236,14 @@ class bsg_manycore_link_gen:
 
       # .text section virtual address starts at 0x0 but
       # loaded at 0x80000000
+
+      # For 64b code, we currently set vaddr to 0x80000000
+      # so the toolchain can link successfully
       if sec == ".text.dram":
-        vaddr = "0x80000000"
+        if self._xlen == '64':
+          vaddr = "0x80000000"
+        else:
+          vaddr = "0x0"
 
       # Append .dram to output section name
       if re.search(".dram$", sec) == None and self._default_data_loc == 'dram':
@@ -315,12 +323,16 @@ if __name__ == '__main__':
   parser.add_argument('--out',
     help = 'Output file name',
     default = None)
+  parser.add_argument('--xlen',
+    help = 'RISC-V XLEN',
+    default = '32',
+    choices = ['32', '64'])
   args = parser.parse_args()
 
 
   # Generate linker script
   link_gen = bsg_manycore_link_gen(args.default_data_loc, args.dram_size,
-      args.imem_size, args.sp)
+      args.imem_size, args.sp, args.xlen)
 
   if args.out is None:
     print(link_gen.script())

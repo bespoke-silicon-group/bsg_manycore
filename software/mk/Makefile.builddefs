@@ -4,7 +4,11 @@
 # The Chip Architecture is based on the machine's XLEN
 include $(BSG_MACHINE_PATH)/Makefile.machine.include
 
-ifeq ($BSG_MACHINE_XLEN, 64)
+BSG_XLEN = $(BSG_MACHINE_XLEN)
+
+$(info BSG_XLEN: $(BSG_XLEN))
+
+ifeq ($(BSG_XLEN), 64)
 	ARCH_OP=rv64imaf
 	ABI=lp64f
 	ARCH_NAME=riscv64
@@ -173,7 +177,13 @@ else
   $(error Invalid BSG_ELF_OFF_CHIP_MEM = $(BSG_ELF_OFF_CHIP_MEM); Only 0 and 1 are valid)
 endif
 
+ifeq ($(BSG_XLEN), 64)
+	LINK_GEN_OPTS += --xlen=64
+endif
+
 LINK_SCRIPT ?= $(CURR_DIR)/bsg_link.ld
+
+$(info $(LINK_GEN_OPTS))
 
 $(CURR_DIR)/bsg_link.ld: $(LINK_GEN)
 	python $(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
