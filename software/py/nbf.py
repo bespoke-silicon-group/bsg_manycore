@@ -38,7 +38,7 @@ class NBF:
 
     # fixed arch params
     self.icache_size = 1024
-    self.data_width = 32
+    self.data_width = config["machine_xlen"]
 
     # input binary
     self.riscv_file = config["riscv_file"]
@@ -71,6 +71,7 @@ class NBF:
     self.skip_dram_instruction_load = config["skip_dram_instruction_load"]
     # if skip_zeros == 1, skip storing zeros to DRAM, if simulation DRAM is automatically cleared
     self.skip_zeros = config["skip_zeros"]
+    self.machine_xlen = config["machine_xlen"]
 
     # derived params
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size # in words
@@ -102,13 +103,17 @@ class NBF:
     print(line)
 
   # read objcopy dumped in 'verilog' format.
-  # return in EPA (word addr) and 32-bit value dictionary
+  # return in EPA (word addr) and 32-bit / 64-bit value dictionary
   def read_objcopy(self, section, output_file):
 
     # make sure that you have riscv tool binaries in
     # bsg_manycore/software/riscv-tools/riscv-install/bin
     dirname = os.path.abspath(os.path.dirname(__file__))
-    objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv32-unknown-elf-dramfs-objcopy")
+
+    if self.machine_xlen == 32:
+      objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv32-unknown-elf-dramfs-objcopy")
+    else:
+      objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv64-unknown-elf-dramfs-objcopy")
 
     if not os.path.isfile(objcopy_path):
       print("install riscv-tools first...")
@@ -478,7 +483,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 23:
+  if len(sys.argv) == 24:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -503,7 +508,8 @@ if __name__ == "__main__":
       "num_pods_y" : int(sys.argv[19]),
       "num_vcache_rows" : int(sys.argv[20]),
       "skip_dram_instruction_load": int(sys.argv[21]),
-      "skip_zeros": int(sys.argv[22])
+      "skip_zeros": int(sys.argv[22]),
+      "machine_xlen": int(sys.argv[23])
     }
 
     converter = NBF(config)
@@ -519,6 +525,6 @@ if __name__ == "__main__":
     command += "{num_pods_x} {num_pods_y}"
     command += "{num_vcache_rows}"
     command += "{skip_dram_instruction_load}"
-    command += "{skip_zeros}"
+    command += "{skip_zeros} {machine_xlen}"
     print(command)
 
