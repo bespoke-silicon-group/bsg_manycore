@@ -109,10 +109,7 @@ class NBF:
     # bsg_manycore/software/riscv-tools/riscv-install/bin
     dirname = os.path.abspath(os.path.dirname(__file__))
 
-    if self.data_width == 32:
-      objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv32-unknown-elf-dramfs-objcopy")
-    else:
-      objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv64-unknown-elf-dramfs-objcopy")
+    objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv64-unknown-elf-dramfs-objcopy")
 
     if not os.path.isfile(objcopy_path):
       print("install riscv-tools first...")
