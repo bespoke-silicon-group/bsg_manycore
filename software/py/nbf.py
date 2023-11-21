@@ -71,7 +71,6 @@ class NBF:
     self.skip_dram_instruction_load = config["skip_dram_instruction_load"]
     # if skip_zeros == 1, skip storing zeros to DRAM, if simulation DRAM is automatically cleared
     self.skip_zeros = config["skip_zeros"]
-    self.machine_xlen = config["machine_xlen"]
 
     # derived params
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size # in words
@@ -110,7 +109,7 @@ class NBF:
     # bsg_manycore/software/riscv-tools/riscv-install/bin
     dirname = os.path.abspath(os.path.dirname(__file__))
 
-    if self.machine_xlen == 32:
+    if self.data_width == 32:
       objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv32-unknown-elf-dramfs-objcopy")
     else:
       objcopy_path = os.path.join(dirname, "../riscv-tools/riscv-install/bin/riscv64-unknown-elf-dramfs-objcopy")
