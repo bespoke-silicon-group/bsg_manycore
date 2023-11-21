@@ -27,8 +27,10 @@
 #
 .DEFAULT_GOAL := help
 
-TARGET_ARCH       := rv64imaf
-TARGET_ABI        := lp64f
+TARGET_ARCH       := rv32imaf
+TARGET_ABI        := ilp32f
+TARGET_ARCH_64    := rv64imaf
+TARGET_ABI_64     := lp64f
 TARGET_CFLAGS     := '-fno-common'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
@@ -135,8 +137,9 @@ configure-riscv-gnu-tools:
 	@echo "====================================="
 	@echo "Configuring toolchain..."
 	@echo "====================================="
+	./$(TOOLCHAIN_REPO)/riscv-gcc/gcc/config/riscv/multilib-generator $(TARGET_ARCH)-$(TARGET_ABI)-- $(TARGET_ARCH_64)-$(TARGET_ABI_64)-- > $(TOOLCHAIN_REPO)/riscv-gcc/gcc/config/riscv/t-elf-multilib
 	cd riscv-gnu-toolchain && \
-		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI) --disable-gdb --with-tune=bsg_vanilla_2020 --with-cmodel=medany \
+		./configure --prefix=$(RISCV) --disable-linux --enable-multilib --disable-gdb --with-tune=bsg_vanilla_2020 --with-cmodel=medany \
 			--disable-linux --with-target-cflags="-mstrict-align -mcmodel=medany" \
 			--disable-linux --with-target-cxxflags="-mstrict-align -mcmodel=medany"
 
