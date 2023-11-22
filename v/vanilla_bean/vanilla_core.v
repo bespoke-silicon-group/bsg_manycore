@@ -39,7 +39,7 @@ module vanilla_core
 
     , dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , pc_width_lp=(icache_tag_width_p+`BSG_SAFE_CLOG2(icache_entries_p))
-    , reg_addr_width_lp = RV32_reg_addr_width_gp
+    , reg_addr_width_lp = reg_addr_width_gp
     , data_mask_width_lp=(data_width_p>>3)
 
     , parameter debug_p=0
@@ -217,7 +217,7 @@ module vanilla_core
   decode_s decode;
   fp_decode_s fp_decode;
 
-  cl_decode decode0 (
+  riscv_decode decode0 (
     .instruction_i(instruction)
     ,.decode_o(decode)
     ,.fp_decode_o(fp_decode)
@@ -251,7 +251,7 @@ module vanilla_core
 
   regfile #(
     .width_p(data_width_p)
-    ,.els_p(RV32_reg_els_gp)
+    ,.els_p(reg_els_gp)
     ,.num_rs_p(2)
     ,.x0_tied_to_zero_p(1)
   ) int_rf (
@@ -277,7 +277,7 @@ module vanilla_core
   logic [reg_addr_width_lp-1:0] int_sb_clear_id;
 
   scoreboard #(
-    .els_p(RV32_reg_els_gp)
+    .els_p(reg_els_gp)
     ,.num_src_port_p(2)
     ,.num_clear_port_p(1)
     ,.x0_tied_to_zero_p(1)
@@ -312,7 +312,7 @@ module vanilla_core
 
   regfile #(
     .width_p(fpu_recoded_data_width_gp)
-    ,.els_p(RV32_reg_els_gp)
+    ,.els_p(reg_els_gp)
     ,.num_rs_p(3)
     ,.x0_tied_to_zero_p(0)
   ) float_rf (
@@ -338,7 +338,7 @@ module vanilla_core
   logic [reg_addr_width_lp-1:0] float_sb_clear_id;
 
   scoreboard #(
-    .els_p(RV32_reg_els_gp)
+    .els_p(reg_els_gp)
     ,.x0_tied_to_zero_p(0)
     ,.num_src_port_p(3)
     ,.num_clear_port_p(1)
@@ -480,10 +480,10 @@ module vanilla_core
 
   // calculate mem address offset
   //
-  wire [RV32_Iimm_width_gp-1:0] mem_addr_op2 = id_r.decode.is_store_op
-    ? `RV32_Simm_12extract(id_r.instruction)
+  wire [Iimm_width_gp-1:0] mem_addr_op2 = id_r.decode.is_store_op
+    ? `Vanilla_Simm_12extract(id_r.instruction)
     : (id_r.decode.is_load_op
-      ? `RV32_Iimm_12extract(id_r.instruction)
+      ? `Vanilla_Iimm_12extract(id_r.instruction)
       : '0);
 
   // 'aq' register
@@ -1469,8 +1469,8 @@ module vanilla_core
 
   // stall_fcsr
   assign stall_fcsr = (id_r.decode.is_csr_op)
-    & ((id_r.instruction[31:20] == `RV32_CSR_FFLAGS_ADDR)
-      |(id_r.instruction[31:20] == `RV32_CSR_FCSR_ADDR))
+    & ((id_r.instruction[31:20] == `VANILLA_CSR_FFLAGS_ADDR)
+      |(id_r.instruction[31:20] == `VANILLA_CSR_FCSR_ADDR))
     & (fp_exe_ctrl_r.fp_decode.is_fpu_float_op
       |fp_exe_ctrl_r.fp_decode.is_fpu_int_op
       |fp_exe_ctrl_r.fp_decode.is_fdiv_op

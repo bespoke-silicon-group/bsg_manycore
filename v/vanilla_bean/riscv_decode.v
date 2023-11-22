@@ -1,6 +1,6 @@
 /**
  *
- *  cl_decode.v
+ *  riscv_decode.v
  *
  *  instruction decoder.
  *
@@ -12,8 +12,9 @@
  */
 
 `include "bsg_vanilla_defines.vh"
+`include "bsg_riscv_defines.vh"
 
-module cl_decode
+module riscv_decode
 import bsg_vanilla_pkg::*;
 import bsg_manycore_pkg::*;
 (

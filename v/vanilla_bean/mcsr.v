@@ -13,8 +13,8 @@
 
 module mcsr
   import bsg_vanilla_pkg::*;
-  #(localparam reg_addr_width_lp = RV32_reg_addr_width_gp
-    , reg_data_width_lp = RV32_reg_data_width_gp
+  #(localparam reg_addr_width_lp = reg_addr_width_gp
+    , reg_data_width_lp = reg_data_width_gp
     , parameter `BSG_INV_PARAM(pc_width_p)
     , `BSG_INV_PARAM(barrier_dirs_p)
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
@@ -103,38 +103,38 @@ module mcsr
       mstatus_n.mie = 1'b0;
       mstatus_n.mpie = mstatus_r.mie;
     end
-    else if (we_i & (addr_i == `RV32_CSR_MSTATUS_ADDR)) begin
+    else if (we_i & (addr_i == `VANILLA_CSR_MSTATUS_ADDR)) begin
       case (funct3_i)
-        `RV32_CSRRW_FUN3: begin
-          mstatus_n.mpie = data_i[`RV32_MSTATUS_MPIE_BIT_IDX];
-          mstatus_n.mie = data_i[`RV32_MSTATUS_MIE_BIT_IDX];
+        `VANILLA_CSRRW_FUN3: begin
+          mstatus_n.mpie = data_i[`VANILLA_MSTATUS_MPIE_BIT_IDX];
+          mstatus_n.mie = data_i[`VANILLA_MSTATUS_MIE_BIT_IDX];
         end
-        `RV32_CSRRS_FUN3: begin
-          mstatus_n.mpie = data_i[`RV32_MSTATUS_MPIE_BIT_IDX]
+        `VANILLA_CSRRS_FUN3: begin
+          mstatus_n.mpie = data_i[`VANILLA_MSTATUS_MPIE_BIT_IDX]
             ? 1'b1
             : mstatus_r.mpie;
-          mstatus_n.mie = data_i[`RV32_MSTATUS_MIE_BIT_IDX]
+          mstatus_n.mie = data_i[`VANILLA_MSTATUS_MIE_BIT_IDX]
             ? 1'b1
             : mstatus_r.mie;
         end
-        `RV32_CSRRC_FUN3: begin
-          mstatus_n.mpie = data_i[`RV32_MSTATUS_MPIE_BIT_IDX]
+        `VANILLA_CSRRC_FUN3: begin
+          mstatus_n.mpie = data_i[`VANILLA_MSTATUS_MPIE_BIT_IDX]
             ? 1'b0
             : mstatus_r.mpie;
-          mstatus_n.mie = data_i[`RV32_MSTATUS_MIE_BIT_IDX]
+          mstatus_n.mie = data_i[`VANILLA_MSTATUS_MIE_BIT_IDX]
             ? 1'b0
             : mstatus_r.mie;
         end
-        `RV32_CSRRWI_FUN3: begin
-          mstatus_n.mie = rs1_i[`RV32_MSTATUS_MIE_BIT_IDX];
+        `VANILLA_CSRRWI_FUN3: begin
+          mstatus_n.mie = rs1_i[`VANILLA_MSTATUS_MIE_BIT_IDX];
         end
-        `RV32_CSRRSI_FUN3: begin
-          mstatus_n.mie = rs1_i[`RV32_MSTATUS_MIE_BIT_IDX]
+        `VANILLA_CSRRSI_FUN3: begin
+          mstatus_n.mie = rs1_i[`VANILLA_MSTATUS_MIE_BIT_IDX]
             ? 1'b1
             : mstatus_r.mie;
         end
-        `RV32_CSRRCI_FUN3: begin
-          mstatus_n.mie = rs1_i[`RV32_MSTATUS_MIE_BIT_IDX]
+        `VANILLA_CSRRCI_FUN3: begin
+          mstatus_n.mie = rs1_i[`VANILLA_MSTATUS_MIE_BIT_IDX]
             ? 1'b0
             : mstatus_r.mie;
         end
@@ -150,12 +150,12 @@ module mcsr
   // this can be only modified by csr instr. 
   always_comb begin
     mie_n = mie_r;
-    if (we_i & (addr_i == `RV32_CSR_MIE_ADDR)) begin
+    if (we_i & (addr_i == `VANILLA_CSR_MIE_ADDR)) begin
       case (funct3_i)
-        `RV32_CSRRW_FUN3: begin
+        `VANILLA_CSRRW_FUN3: begin
           mie_n = data_i[17:16];
         end
-        `RV32_CSRRS_FUN3: begin
+        `VANILLA_CSRRS_FUN3: begin
           mie_n.trace = data_i[17]
             ? 1'b1
             : mie_r.trace;
@@ -163,7 +163,7 @@ module mcsr
             ? 1'b1
             : mie_r.remote;
         end
-        `RV32_CSRRC_FUN3: begin
+        `VANILLA_CSRRC_FUN3: begin
           mie_n.trace = data_i[17]
             ? 1'b0
             : mie_r.trace;
@@ -189,17 +189,17 @@ module mcsr
     if (instr_executed_i & mie_r.trace) begin
       mip_n.trace = 1'b1;
     end
-    else if (we_i & (addr_i == `RV32_CSR_MIP_ADDR)) begin
+    else if (we_i & (addr_i == `VANILLA_CSR_MIP_ADDR)) begin
       case (funct3_i)
-        `RV32_CSRRW_FUN3: begin
+        `VANILLA_CSRRW_FUN3: begin
           mip_n.trace = data_i[17];
         end
-        `RV32_CSRRS_FUN3: begin
+        `VANILLA_CSRRS_FUN3: begin
           mip_n.trace = data_i[17]
             ? 1'b1
             : mip_r.trace;
         end
-        `RV32_CSRRC_FUN3: begin
+        `VANILLA_CSRRC_FUN3: begin
           mip_n.trace = data_i[17]
             ? 1'b0
             : mip_r.trace;
@@ -215,17 +215,17 @@ module mcsr
     else if (remote_interrupt_clear_i) begin
       mip_n.remote = 1'b0;
     end
-    else if (we_i & (addr_i == `RV32_CSR_MIP_ADDR)) begin
+    else if (we_i & (addr_i == `VANILLA_CSR_MIP_ADDR)) begin
       case (funct3_i)
-        `RV32_CSRRW_FUN3: begin
+        `VANILLA_CSRRW_FUN3: begin
           mip_n.remote = data_i[16];
         end
-        `RV32_CSRRS_FUN3: begin
+        `VANILLA_CSRRS_FUN3: begin
           mip_n.remote = data_i[16]
             ? 1'b1
             : mip_r.remote;
         end
-        `RV32_CSRRC_FUN3: begin
+        `VANILLA_CSRRC_FUN3: begin
           mip_n.remote = data_i[16]
             ? 1'b0
             : mip_r.remote;
@@ -245,19 +245,19 @@ module mcsr
     if (interrupt_entered_i) begin
       mepc_n = npc_r_i;
     end
-    else if (we_i & (addr_i == `RV32_CSR_MEPC_ADDR)) begin
+    else if (we_i & (addr_i == `VANILLA_CSR_MEPC_ADDR)) begin
       case (funct3_i)
-        `RV32_CSRRW_FUN3: begin
+        `VANILLA_CSRRW_FUN3: begin
           mepc_n = data_i[2+:pc_width_p];
         end
-        `RV32_CSRRS_FUN3: begin
+        `VANILLA_CSRRS_FUN3: begin
           for (integer i = 0; i < pc_width_p; i++) begin
             mepc_n[i] = data_i[2+i]
               ? 1'b1
               : mepc_r[i];
           end
         end
-        `RV32_CSRRC_FUN3: begin
+        `VANILLA_CSRRC_FUN3: begin
           for (integer i = 0; i < pc_width_p; i++) begin
             mepc_n[i] = data_i[2+i]
               ? 1'b0
@@ -274,7 +274,7 @@ module mcsr
   always_comb begin
     credit_limit_n = credit_limit_r;
 
-    if (we_i & (addr_i == `RV32_CSR_CREDIT_LIMIT_ADDR) & (funct3_i == `RV32_CSRRW_FUN3)) begin
+    if (we_i & (addr_i == `VANILLA_CSR_CREDIT_LIMIT_ADDR) & (funct3_i == `VANILLA_CSRRW_FUN3)) begin
       credit_limit_n = data_i[0+:credit_counter_width_p];
     end
   end
@@ -286,7 +286,7 @@ module mcsr
 	    cfg_pod_r <= cfg_pod_reset_val_i;
     end
     else begin
-      if (we_i && (addr_i == `RV32_CSR_CFG_POD_ADDR) && (funct3_i == `RV32_CSRRW_FUN3)) begin
+      if (we_i && (addr_i == `VANILLA_CSR_CFG_POD_ADDR) && (funct3_i == `VANILLA_CSRRW_FUN3)) begin
 	      cfg_pod_r <= data_i[0+:cfg_pod_width_p];
       end
     end
@@ -300,7 +300,7 @@ module mcsr
       {barrier_src_r, barrier_dest_r} <= '0;
     end
     else begin
-      if (we_i && (addr_i == `RV32_CSR_BARCFG_ADDR) && (funct3_i == `RV32_CSRRW_FUN3)) begin
+      if (we_i && (addr_i == `VANILLA_CSR_BARCFG_ADDR) && (funct3_i == `VANILLA_CSRRW_FUN3)) begin
         barrier_src_r <= data_i[0+:barrier_dirs_p];
         barrier_dest_r <= data_i[16+:barrier_lg_dirs_lp];
       end
@@ -317,14 +317,14 @@ module mcsr
       barrier_data_r <= 1'b0;
     end
     else begin
-      if (we_i && (addr_i == `RV32_CSR_BAR_PI_ADDR)) begin
+      if (we_i && (addr_i == `VANILLA_CSR_BAR_PI_ADDR)) begin
         case (funct3_i)
-          `RV32_CSRRW_FUN3:   barrier_data_r <= data_i[0];
-          `RV32_CSRRS_FUN3:   barrier_data_r <= data_i[0] ? 1'b1 : barrier_data_r;
-          `RV32_CSRRC_FUN3:   barrier_data_r <= data_i[0] ? 1'b0 : barrier_data_r;
-          `RV32_CSRRWI_FUN3:  barrier_data_r <= rs1_i[0];
-          `RV32_CSRRSI_FUN3:  barrier_data_r <= rs1_i[0] ? 1'b1 : barrier_data_r;
-          `RV32_CSRRCI_FUN3:  barrier_data_r <= rs1_i[0] ? 1'b0 : barrier_data_r;
+          `VANILLA_CSRRW_FUN3:   barrier_data_r <= data_i[0];
+          `VANILLA_CSRRS_FUN3:   barrier_data_r <= data_i[0] ? 1'b1 : barrier_data_r;
+          `VANILLA_CSRRC_FUN3:   barrier_data_r <= data_i[0] ? 1'b0 : barrier_data_r;
+          `VANILLA_CSRRWI_FUN3:  barrier_data_r <= rs1_i[0];
+          `VANILLA_CSRRSI_FUN3:  barrier_data_r <= rs1_i[0] ? 1'b1 : barrier_data_r;
+          `VANILLA_CSRRCI_FUN3:  barrier_data_r <= rs1_i[0] ? 1'b0 : barrier_data_r;
         endcase
       end
       else if (barsend_i) begin
@@ -340,33 +340,33 @@ module mcsr
   always_comb begin
     data_o = '0;
     case (addr_i)
-      `RV32_CSR_MSTATUS_ADDR: begin
-        data_o[`RV32_MSTATUS_MPIE_BIT_IDX] = mstatus_r.mpie;
-        data_o[`RV32_MSTATUS_MIE_BIT_IDX] = mstatus_r.mie;
+      `VANILLA_CSR_MSTATUS_ADDR: begin
+        data_o[`VANILLA_MSTATUS_MPIE_BIT_IDX] = mstatus_r.mpie;
+        data_o[`VANILLA_MSTATUS_MIE_BIT_IDX] = mstatus_r.mie;
       end
-      `RV32_CSR_MIE_ADDR: begin
+      `VANILLA_CSR_MIE_ADDR: begin
         data_o[17:16] = mie_r;
       end
-      `RV32_CSR_MIP_ADDR: begin
+      `VANILLA_CSR_MIP_ADDR: begin
         data_o[17:16] = mip_r;
       end
-      `RV32_CSR_MEPC_ADDR: begin
+      `VANILLA_CSR_MEPC_ADDR: begin
         data_o[2+:pc_width_p] = mepc_r;
       end
-      `RV32_CSR_CREDIT_LIMIT_ADDR: begin
+      `VANILLA_CSR_CREDIT_LIMIT_ADDR: begin
         data_o[0+:credit_counter_width_p] = credit_limit_r;
       end
-      `RV32_CSR_CFG_POD_ADDR: begin
+      `VANILLA_CSR_CFG_POD_ADDR: begin
 	      data_o[0+:cfg_pod_width_p] = cfg_pod_r;
       end
-      `RV32_CSR_BARCFG_ADDR: begin
+      `VANILLA_CSR_BARCFG_ADDR: begin
         data_o[0+:barrier_dirs_p] = barrier_src_r;
         data_o[16+:barrier_lg_dirs_lp] = barrier_dest_r;
       end
-      `RV32_CSR_BAR_PO_ADDR: begin
+      `VANILLA_CSR_BAR_PO_ADDR: begin
         data_o[0] = barrier_data_i;
       end
-      `RV32_CSR_BAR_PI_ADDR: begin
+      `VANILLA_CSR_BAR_PI_ADDR: begin
         data_o[0] = barrier_data_r;
       end
 

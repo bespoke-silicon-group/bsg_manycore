@@ -33,12 +33,12 @@ module icache
 
     // icache write
     , input [pc_width_lp-1:0] w_pc_i
-    , input [RV32_instr_width_gp-1:0] w_instr_i
+    , input [instr_width_gp-1:0] w_instr_i
 
     // icache read (by processor)
     , input [pc_width_lp-1:0] pc_i
     , input [pc_width_lp-1:0] jalr_prediction_i
-    , output [RV32_instr_width_gp-1:0] instr_o
+    , output [instr_width_gp-1:0] instr_o
     , output [pc_width_lp-1:0] pred_or_jump_addr_o
     , output [pc_width_lp-1:0] pc_r_o
     , output icache_miss_o
@@ -48,8 +48,8 @@ module icache
 
   // localparam
   //
-  localparam branch_pc_low_width_lp = (RV32_Bimm_width_gp+1);
-  localparam jal_pc_low_width_lp    = (RV32_Jimm_width_gp+1);
+  localparam branch_pc_low_width_lp = (Bimm_width_gp+1);
+  localparam jal_pc_low_width_lp    = (Jimm_width_gp+1);
 
   localparam branch_pc_high_width_lp = (pc_width_lp+2) - branch_pc_low_width_lp; 
   localparam jal_pc_high_width_lp    = (pc_width_lp+2) - jal_pc_low_width_lp;
@@ -103,14 +103,14 @@ module icache
   //
   instruction_s w_instr;
   assign w_instr = w_instr_i;
-  wire write_branch_instr = w_instr.op ==? `RV32_BRANCH;
-  wire write_jal_instr    = w_instr.op ==? `RV32_JAL_OP;
+  wire write_branch_instr = w_instr.op ==? `VANILLA_BRANCH;
+  wire write_jal_instr    = w_instr.op ==? `VANILLA_JAL_OP;
   
   // BYTE address computation
-  wire [branch_pc_low_width_lp-1:0] branch_imm_val = `RV32_Bimm_13extract(w_instr);
+  wire [branch_pc_low_width_lp-1:0] branch_imm_val = `Vanilla_Bimm_13extract(w_instr);
   wire [branch_pc_low_width_lp-1:0] branch_pc_val = branch_pc_low_width_lp'({w_pc_i, 2'b0}); 
   
-  wire [jal_pc_low_width_lp-1:0] jal_imm_val = `RV32_Jimm_21extract(w_instr);
+  wire [jal_pc_low_width_lp-1:0] jal_imm_val = `Vanilla_Jimm_21extract(w_instr);
   wire [jal_pc_low_width_lp-1:0] jal_pc_val = jal_pc_low_width_lp'({w_pc_i, 2'b0}); 
   
   logic [branch_pc_low_width_lp-1:0] branch_pc_lower_res;
@@ -123,15 +123,15 @@ module icache
   
   
   // Inject the 2-BYTE (half) address, the LSB is ignored.
-  wire [RV32_instr_width_gp-1:0] injected_instr = write_branch_instr
-    ? `RV32_Bimm_12inject1(w_instr, branch_pc_lower_res)
+  wire [instr_width_gp-1:0] injected_instr = write_branch_instr
+    ? `Vanilla_Bimm_12inject1(w_instr, branch_pc_lower_res)
     : (write_jal_instr
-      ? `RV32_Jimm_20inject1(w_instr, jal_pc_lower_res)
+      ? `Vanilla_Jimm_20inject1(w_instr, jal_pc_lower_res)
       : w_instr);
 
   wire imm_sign = write_branch_instr
-    ? branch_imm_val[RV32_Bimm_width_gp] 
-    : jal_imm_val[RV32_Jimm_width_gp];
+    ? branch_imm_val[Bimm_width_gp] 
+    : jal_imm_val[Jimm_width_gp];
 
   wire pc_lower_cout = write_branch_instr
     ? branch_pc_lower_cout
@@ -141,7 +141,7 @@ module icache
   // buffered writes
   logic [icache_block_size_in_words_p-2:0] imm_sign_r;
   logic [icache_block_size_in_words_p-2:0] pc_lower_cout_r;
-  logic [icache_block_size_in_words_p-2:0][RV32_instr_width_gp-1:0] buffered_instr_r;
+  logic [icache_block_size_in_words_p-2:0][instr_width_gp-1:0] buffered_instr_r;
 
   assign icache_data_li = '{
     lower_sign : {imm_sign, imm_sign_r},
@@ -275,15 +275,15 @@ module icache
     end
   end
 
-  wire is_jal_instr =  instr_out.op == `RV32_JAL_OP;
-  wire is_jalr_instr = instr_out.op == `RV32_JALR_OP;
+  wire is_jal_instr =  instr_out.op == `VANILLA_JAL_OP;
+  wire is_jalr_instr = instr_out.op == `VANILLA_JALR_OP;
 
   // these are bytes address
   logic [pc_width_lp+2-1:0] jal_pc;
   logic [pc_width_lp+2-1:0] branch_pc;
    
-  assign branch_pc = {branch_pc_high_out, `RV32_Bimm_13extract(instr_out)};
-  assign jal_pc = {jal_pc_high_out, `RV32_Jimm_21extract(instr_out)};
+  assign branch_pc = {branch_pc_high_out, `Vanilla_Bimm_13extract(instr_out)};
+  assign jal_pc = {jal_pc_high_out, `Vanilla_Jimm_21extract(instr_out)};
 
   // assign outputs.
   assign instr_o = instr_out;

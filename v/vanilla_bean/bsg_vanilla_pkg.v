@@ -12,18 +12,18 @@ package bsg_vanilla_pkg;
 import bsg_manycore_pkg::*;
 
 // vanilla_core global parameters
-localparam RV32_reg_data_width_gp = 32;
-localparam RV32_instr_width_gp    = 32;
-localparam RV32_reg_els_gp        = 32;
-localparam RV32_reg_addr_width_gp = 5;
-localparam RV32_opcode_width_gp   = 7;
-localparam RV32_funct3_width_gp   = 3;
-localparam RV32_funct7_width_gp   = 7;
-localparam RV32_Iimm_width_gp     = 12;
-localparam RV32_Simm_width_gp     = 12;
-localparam RV32_Bimm_width_gp     = 12;
-localparam RV32_Uimm_width_gp     = 20;
-localparam RV32_Jimm_width_gp     = 20;
+localparam reg_data_width_gp = 32;
+localparam instr_width_gp    = 32;
+localparam reg_els_gp        = 32;
+localparam reg_addr_width_gp = 5;
+localparam opcode_width_gp   = 7;
+localparam funct3_width_gp   = 3;
+localparam funct7_width_gp   = 7;
+localparam Iimm_width_gp     = 12;
+localparam Simm_width_gp     = 12;
+localparam Bimm_width_gp     = 12;
+localparam Uimm_width_gp     = 20;
+localparam Jimm_width_gp     = 20;
 
 localparam fpu_recoded_exp_width_gp    = 8;
 localparam fpu_recoded_sig_width_gp    = 24;
@@ -33,16 +33,17 @@ localparam fpu_recoded_data_width_gp   = (1+fpu_recoded_exp_width_gp+fpu_recoded
 localparam epa_word_addr_width_gp=16;
 
 
-// RV32 Instruction structure
+// Vanilla Core Instruction structure (Optimised towards RV32 format, may
+// require changes while adding new formats)
 // Ideally represents a R-type instruction; these fields if
 // present in other types of instructions, appear at same positions
 typedef struct packed {
-  logic [RV32_funct7_width_gp-1:0]   funct7;
-  logic [RV32_reg_addr_width_gp-1:0] rs2;
-  logic [RV32_reg_addr_width_gp-1:0] rs1;
-  logic [RV32_funct3_width_gp-1:0]   funct3;
-  logic [RV32_reg_addr_width_gp-1:0] rd;
-  logic [RV32_opcode_width_gp-1:0]   op;
+  logic [funct7_width_gp-1:0]   funct7;
+  logic [reg_addr_width_gp-1:0] rs2;
+  logic [reg_addr_width_gp-1:0] rs1;
+  logic [funct3_width_gp-1:0]   funct3;
+  logic [reg_addr_width_gp-1:0] rd;
+  logic [opcode_width_gp-1:0]   op;
 } instruction_s;
 
 // remote request from vanilla core
@@ -214,8 +215,8 @@ typedef struct packed {
 // Instruction decode stage signals
 typedef struct packed
 {
-    logic [RV32_reg_data_width_gp-1:0] pc_plus4;          // PC + 4
-    logic [RV32_reg_data_width_gp-1:0] pred_or_jump_addr; // Jump target PC
+    logic [reg_data_width_gp-1:0]      pc_plus4;          // PC + 4
+    logic [reg_data_width_gp-1:0]      pred_or_jump_addr; // Jump target PC
     instruction_s                      instruction;       // Instruction being executed
     decode_s                           decode;            // Decode signals
     fp_decode_s                        fp_decode;
@@ -227,14 +228,14 @@ typedef struct packed
 // Execute stage signals
 typedef struct packed
 {
-    logic [RV32_reg_data_width_gp-1:0] pc_plus4;          // PC + 4
-    logic [RV32_reg_data_width_gp-1:0] pred_or_jump_addr; // Jump target PC
+    logic [reg_data_width_gp-1:0]      pc_plus4;          // PC + 4
+    logic [reg_data_width_gp-1:0]      pred_or_jump_addr; // Jump target PC
     instruction_s                      instruction;       // Instruction being executed
     decode_s                           decode;            // Decode signals
-    logic [RV32_reg_data_width_gp-1:0] rs1_val;           // RF output data from RS1 address
-    logic [RV32_reg_data_width_gp-1:0] rs2_val;           // RF output data from RS2 address
+    logic [reg_data_width_gp-1:0]      rs1_val;           // RF output data from RS1 address
+    logic [reg_data_width_gp-1:0]      rs2_val;           // RF output data from RS2 address
                                                           // CSR instructions use this register for loading CSR vals
-    logic [RV32_Iimm_width_gp-1:0]     mem_addr_op2;      // the second operands to compute
+    logic [Iimm_width_gp-1:0]          mem_addr_op2;      // the second operands to compute
                                                           // memory address
     logic                              icache_miss;
     logic                              valid;             // valid instruction in EXE
@@ -244,7 +245,7 @@ typedef struct packed
 
 // Memory stage signals
 typedef struct packed {
-    logic [RV32_reg_addr_width_gp-1:0] rd_addr;
+    logic [reg_addr_width_gp-1:0]      rd_addr;
     logic write_rd;
     logic write_frd;
     logic is_byte_op;
@@ -256,26 +257,26 @@ typedef struct packed {
 } mem_ctrl_signals_s;
 
 typedef struct packed {
-    logic [RV32_reg_data_width_gp-1:0] exe_result;
+    logic [reg_data_width_gp-1:0]      exe_result;
 } mem_data_signals_s;
 
 // RF write back stage signals
 typedef struct packed {
     logic                              write_rd;
-    logic [RV32_reg_addr_width_gp-1:0] rd_addr;
+    logic [reg_addr_width_gp-1:0]      rd_addr;
     logic                              icache_miss;
     logic clear_sb;
 } wb_ctrl_signals_s;
 
 typedef struct packed {
-    logic [RV32_reg_data_width_gp-1:0] rf_data;
+    logic [reg_data_width_gp-1:0]      rf_data;
 } wb_data_signals_s;
 
 // FP Execute stage signals
 typedef struct packed {
-  logic [RV32_reg_addr_width_gp-1:0] rd;
-  fp_decode_s fp_decode;
-  frm_e rm;
+  logic [reg_addr_width_gp-1:0]        rd;
+  fp_decode_s                          fp_decode;
+  frm_e                                rm;
 } fp_exe_ctrl_signals_s;
 
 typedef struct packed {
@@ -287,11 +288,11 @@ typedef struct packed {
 // FLW write back stage signals
 typedef struct packed {
     logic valid;
-    logic [RV32_reg_addr_width_gp-1:0] rd_addr;
+    logic [reg_addr_width_gp-1:0]      rd_addr;
 } flw_wb_ctrl_signals_s;
 
 typedef struct packed {
-    logic [RV32_reg_data_width_gp-1:0] rf_data;
+    logic [reg_data_width_gp-1:0]      rf_data;
 } flw_wb_data_signals_s;
 
 
