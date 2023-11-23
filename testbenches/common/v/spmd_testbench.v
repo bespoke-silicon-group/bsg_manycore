@@ -176,8 +176,6 @@ module spmd_testbench
 
 
   // SPMD LOADER
-  logic print_stat_v;
-  logic [data_width_p-1:0] print_stat_tag;
   bsg_nonsynth_manycore_io_complex #(
     .addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
@@ -192,8 +190,6 @@ module spmd_testbench
     ,.reset_i(reset_r)
     ,.io_link_sif_i(io_link_sif_lo)
     ,.io_link_sif_o(io_link_sif_li)
-    ,.print_stat_v_o(print_stat_v)
-    ,.print_stat_tag_o(print_stat_tag)
     ,.loader_done_o()
   );
 
