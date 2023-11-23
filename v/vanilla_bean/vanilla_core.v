@@ -217,7 +217,7 @@ module vanilla_core
   decode_s decode;
   fp_decode_s fp_decode;
 
-  riscv_decode decode0 (
+  cl_decode decode0 (
     .instruction_i(instruction)
     ,.decode_o(decode)
     ,.fp_decode_o(fp_decode)

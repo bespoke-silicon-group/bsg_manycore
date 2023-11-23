@@ -32,8 +32,8 @@ module vanilla_core_profiler
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
 
-    , parameter reg_els_lp = RV32_reg_els_gp
-    , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
+    , parameter reg_els_lp = reg_els_gp
+    , parameter reg_addr_width_lp = reg_addr_width_gp
   )
   (
     input clk_i
@@ -79,7 +79,7 @@ module vanilla_core_profiler
     , input remote_req_s remote_req_o
 
     , input [data_width_p-1:0] rs1_val_to_exe
-    , input [RV32_Iimm_width_gp-1:0] mem_addr_op2
+    , input [Iimm_width_gp-1:0] mem_addr_op2
 
     , input int_sb_clear
     , input float_sb_clear

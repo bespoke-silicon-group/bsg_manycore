@@ -8,7 +8,7 @@
  *  - F2I, FMV
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 `include "HardFloat_consts.vi"
 `include "HardFloat_specialize.vi"
 

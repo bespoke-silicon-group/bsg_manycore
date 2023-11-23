@@ -9,7 +9,7 @@
  *
  */
 
-`include "bsg_defines.v"
+`include "bsg_defines.sv"
 
 `define declare_icache_format_s(tag_width_mp, block_size_in_words_mp) \
   typedef struct packed { \

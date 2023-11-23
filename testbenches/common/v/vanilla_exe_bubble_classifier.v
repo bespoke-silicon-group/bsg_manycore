@@ -45,12 +45,12 @@ module vanilla_exe_bubble_classifier
    ,input jalr_mispredict
 
    ,input [data_width_p-1:0] rs1_val_to_exe
-   ,input [RV32_Iimm_width_gp-1:0] mem_addr_op2
+   ,input [Iimm_width_gp-1:0] mem_addr_op2
 
    ,input int_sb_clear
    ,input float_sb_clear
-   ,input [RV32_reg_addr_width_gp-1:0] int_sb_clear_id
-   ,input [RV32_reg_addr_width_gp-1:0] float_sb_clear_id
+   ,input [reg_addr_width_gp-1:0] int_sb_clear_id
+   ,input [reg_addr_width_gp-1:0] float_sb_clear_id
 
    ,input id_signals_s id_r
    ,input exe_signals_s exe_r
@@ -122,8 +122,8 @@ module vanilla_exe_bubble_classifier
   exe_bubble_type_e exe_bubble_r;
   logic [data_width_p-1:0] exe_bubble_pc_r;
 
-  vanilla_isb_info_s [RV32_reg_els_gp-1:0]  int_sb;
-  vanilla_fsb_info_s [RV32_reg_els_gp-1:0]  float_sb;
+  vanilla_isb_info_s [reg_els_gp-1:0]  int_sb;
+  vanilla_fsb_info_s [reg_els_gp-1:0]  float_sb;
   logic is_id_seq_lw, is_id_seq_flw;
 
   vanilla_scoreboard_tracker

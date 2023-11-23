@@ -55,7 +55,7 @@ module remote_load_trace
 
     // Load response coming back
     , input returned_v_i
-    , input [RV32_reg_addr_width_gp-1:0] returned_reg_id_i
+    , input [reg_addr_width_gp-1:0] returned_reg_id_i
     , input bsg_manycore_return_packet_type_e returned_pkt_type_i
     , input returned_yumi_o
 
@@ -95,8 +95,8 @@ module remote_load_trace
   } remote_load_status_s;
 
 
-  remote_load_status_s [RV32_reg_els_gp-1:0] int_rl_status_r;
-  remote_load_status_s [RV32_reg_els_gp-1:0] float_rl_status_r;
+  remote_load_status_s [reg_els_gp-1:0] int_rl_status_r;
+  remote_load_status_s [reg_els_gp-1:0] float_rl_status_r;
   remote_load_status_s icache_status_r;
 
   wire int_rl_v    = out_v_o & (
@@ -112,11 +112,11 @@ module remote_load_trace
   wire icache_rl_v = out_v_o & (
     (out_packet.op_v2 == e_remote_load) & load_info.icache_fetch);
     
-  logic [RV32_reg_els_gp-1:0] int_rl_we;
-  logic [RV32_reg_els_gp-1:0] float_rl_we;
+  logic [reg_els_gp-1:0] int_rl_we;
+  logic [reg_els_gp-1:0] float_rl_we;
 
   bsg_decode_with_v #(
-    .num_out_p(RV32_reg_els_gp)
+    .num_out_p(reg_els_gp)
   ) dv0 (
     .i(out_packet.reg_id)
     ,.v_i(int_rl_v)
@@ -124,7 +124,7 @@ module remote_load_trace
   );
 
   bsg_decode_with_v #(
-    .num_out_p(RV32_reg_els_gp)
+    .num_out_p(reg_els_gp)
   ) dv1 (
     .i(out_packet.reg_id)
     ,.v_i(float_rl_v)
@@ -148,7 +148,7 @@ module remote_load_trace
     end
     else begin
        
-      for (integer i = 0 ; i < RV32_reg_els_gp; i++) begin
+      for (integer i = 0 ; i < reg_els_gp; i++) begin
         if (int_rl_we[i])
           int_rl_status_r[i] <= next_rl;
         if (float_rl_we[i])

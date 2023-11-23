@@ -4,7 +4,7 @@
 module
     test_fpu_fdiv_fsqrt
 	import bsg_vanilla_pkg::*;
-	#(parameter expWidth = 8, parameter sigWidth = 24, parameter bits_per_iter_p = 1, parameter reg_addr_width_p = RV32_reg_addr_width_gp);
+	#(parameter expWidth = 8, parameter sigWidth = 24, parameter bits_per_iter_p = 1, parameter reg_addr_width_p = reg_addr_width_gp);
 	
     parameter maxNumErrors = 20;
 

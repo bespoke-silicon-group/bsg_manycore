@@ -9,7 +9,7 @@
  *
  */
 
-`include "bsg_vanilla_defines.v"
+`include "bsg_vanilla_defines.vh"
 
 `define RV32_MSTATUS_MIE_BIT_IDX  3
 `define RV32_MSTATUS_MPIE_BIT_IDX 7

@@ -15,8 +15,8 @@ module vanilla_core_pc_histogram
     ,parameter `BSG_INV_PARAM(origin_y_cord_p)
     ,parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     ,parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
-    ,parameter reg_els_lp=RV32_reg_els_gp
-    ,parameter reg_addr_width_lp=RV32_reg_addr_width_gp
+    ,parameter reg_els_lp=reg_els_gp
+    ,parameter reg_addr_width_lp=reg_addr_width_gp
     )
   (
    input clk_i
@@ -61,7 +61,7 @@ module vanilla_core_pc_histogram
    , input jalr_mispredict
 
    , input [data_width_p-1:0] rs1_val_to_exe
-   , input [RV32_Iimm_width_gp-1:0] mem_addr_op2
+   , input [Iimm_width_gp-1:0] mem_addr_op2
 
    , input int_sb_clear
    , input float_sb_clear
