@@ -72,7 +72,7 @@ results/flist.vcs:
 	@echo -en "$(subst  ,,$(addsuffix \n, $(addprefix +incdir+,$(VINCLUDES))))" >> $@
 	@echo -en "$(subst  ,,$(addsuffix \n, $(VHEADERS)))                       " >> $@
 	@echo -en "$(subst  ,,$(addsuffix \n, $(VSOURCES)))                       " >> $@
-	@echo "$(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_compute_mesh.v"       >> $@
+	@echo "$(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_compute_mesh.sv"       >> $@
 	@# Adding hardened sram wrappers
 	@echo "+incdir+$(BASEJUMP_STL_DIR)/hard/pickle/bsg_mem"              >> $@
 	@# Remove old memories

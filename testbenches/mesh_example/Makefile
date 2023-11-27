@@ -43,7 +43,7 @@ run:
 	$(addprefix +incdir+, $(INC_DIRS) )	\
 	$(addprefix -y , $(SRC_DIRS)     )	\
 	$(PKG_FILES)				\
-	test_bench.v -top test_bench
+	test_bench.sv -top test_bench
 dve:
 	$(VCS_BIN)/dve -full64 -vpd vcdplus.vpd &
 

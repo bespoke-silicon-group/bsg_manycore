@@ -71,8 +71,8 @@ $BASEJUMP_STL_DIR/bsg_noc/bsg_wormhole_router_pkg.sv
 $BASEJUMP_STL_DIR/bsg_noc/bsg_wormhole_router_generalized.v
 $BASEJUMP_STL_DIR/bsg_noc/bsg_ready_and_link_async_to_wormhole.sv
 
-$BSG_MANYCORE_DIR/v/bsg_manycore_link_async_to_wormhole.v
+$BSG_MANYCORE_DIR/v/bsg_manycore_link_async_to_wormhole.sv
 
-./bsg_manycore_loopback_ddr_link_tester.v
-./bsg_manycore_loopback_test_node.v
+./bsg_manycore_loopback_ddr_link_tester.sv
+./bsg_manycore_loopback_test_node.sv
 
