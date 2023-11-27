@@ -27,11 +27,9 @@
 #
 .DEFAULT_GOAL := help
 
-TARGET_ARCH       := rv32imaf
-TARGET_ABI        := ilp32f
-TARGET_ARCH_64    := rv64imaf
-TARGET_ABI_64     := lp64f
-TARGET_CFLAGS     := '-fno-common'
+TARGET_MULTILIB   := rv32imaf-ilp32f-- rv64imaf-lp64f--
+TARGET_CFLAGS     := '-fno-common -mstrict-align -mcmodel=medany'
+TARGET_CXXFLAGS   := '-fno-common -mstrict-align -mcmodel=medany'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
 TOOLCHAIN_URL     := https://github.com/bespoke-silicon-group/$(TOOLCHAIN_REPO)
@@ -137,17 +135,16 @@ configure-riscv-gnu-tools:
 	@echo "====================================="
 	@echo "Configuring toolchain..."
 	@echo "====================================="
-	./$(TOOLCHAIN_REPO)/riscv-gcc/gcc/config/riscv/multilib-generator $(TARGET_ARCH)-$(TARGET_ABI)-- $(TARGET_ARCH_64)-$(TARGET_ABI_64)-- > $(TOOLCHAIN_REPO)/riscv-gcc/gcc/config/riscv/t-elf-multilib
+	./$(TOOLCHAIN_REPO)/riscv-gcc/gcc/config/riscv/multilib-generator $(TARGET_MULTILIB) > $(TOOLCHAIN_REPO)/riscv-gcc/gcc/config/riscv/t-elf-multilib
 	cd riscv-gnu-toolchain && \
-		./configure --prefix=$(RISCV) --disable-linux --enable-multilib --disable-gdb --with-tune=bsg_vanilla_2020 --with-cmodel=medany \
-			--disable-linux --with-target-cflags="-mstrict-align -mcmodel=medany" \
-			--disable-linux --with-target-cxxflags="-mstrict-align -mcmodel=medany"
+		./configure --prefix=$(RISCV) --disable-linux --enable-multilib --disable-gdb --with-tune=bsg_vanilla_2020 --with-cmodel=medany
 
 build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	@echo "Building toolchain..."
 	@echo "====================================="
-	cd riscv-gnu-toolchain && $(MAKE) -j 16 CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS)
+	cd riscv-gnu-toolchain && \
+		$(MAKE) -j 16 CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS) CXXFLAGS_FOR_TARGET_EXTRA=$(TARGET_CXXFLAGS)
 
 build-spike:
 	@echo "====================================="

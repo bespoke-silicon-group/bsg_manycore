@@ -12,12 +12,10 @@ ifeq ($(BSG_XLEN), 64)
 	ARCH_OP=rv64imaf
 	ABI=lp64f
 	ARCH_NAME=riscv64
-	ARCH_NAME_ABRV=rv64
 else
 	ARCH_OP=rv32imaf
 	ABI=ilp32f
 	ARCH_NAME=riscv32
-	ARCH_NAME_ABRV=rv32
 endif
 
 
@@ -176,14 +174,9 @@ else ifeq ($(BSG_ELF_OFF_CHIP_MEM), 0)
 else
   $(error Invalid BSG_ELF_OFF_CHIP_MEM = $(BSG_ELF_OFF_CHIP_MEM); Only 0 and 1 are valid)
 endif
-
-ifeq ($(BSG_XLEN), 64)
-	LINK_GEN_OPTS += --xlen=64
-endif
+  LINK_GEN_OPTS += --xlen=$(BSG_XLEN)
 
 LINK_SCRIPT ?= $(CURR_DIR)/bsg_link.ld
-
-$(info $(LINK_GEN_OPTS))
 
 $(CURR_DIR)/bsg_link.ld: $(LINK_GEN)
 	python $(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
@@ -231,7 +224,7 @@ CLANG_TARGET_OPTS ?= --target=$(ARCH_NAME) -march=$(ARCH_OP) -mabi=$(ABI)
 # Ideally LLC should infer targets option provided to Clang. But LLC 11.0.0 fails
 # to infer the architecture extensions correctly. Hence the information is repeated
 # in LLC target options below.
-LLC_TARGET_OPTS   ?= -march=$(ARCH_NAME) -mcpu=hb-$(ARCH_NAME_ABRV) -mattr=+m,+a,+f
+LLC_TARGET_OPTS   ?= -march=$(ARCH_NAME) -mcpu=hb-32 -mattr=+m,+a,+f
 
 ifdef ENABLE_LLVM_PASSES
 PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
