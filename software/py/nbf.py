@@ -59,7 +59,6 @@ class NBF:
     # number of pods to launch program.
     self.num_pods_x = config["num_pods_x"]  
     self.num_pods_y = config["num_pods_y"]
-    self.num_vcache_rows = config["num_vcache_rows"]
 
     # software setting
     self.tgo_x = config["tgo_x"]
@@ -234,30 +233,28 @@ class NBF:
 
     # if there is only one pod in x-direction, split the pod in half.
     if self.machine_pods_x == 1:
-      for r in range(self.num_vcache_rows):
-        for x in range(self.num_tiles_x):
-          east_not_west = 0 if x < (self.num_tiles_x/2) else 1
-          # north vcache
-          x_eff = pod_origin_x + x
-          y_eff = pod_origin_y - 1 - r
-          self.print_nbf(x_eff, y_eff, epa, east_not_west)
-          # south vcache
-          x_eff = pod_origin_x + x
-          y_eff = pod_origin_y + self.num_tiles_y + r
-          self.print_nbf(x_eff, y_eff, epa, east_not_west)
+      for x in range(self.num_tiles_x):
+        east_not_west = 0 if x < (self.num_tiles_x/2) else 1
+        # north vcache
+        x_eff = pod_origin_x + x
+        y_eff = pod_origin_y - 1
+        self.print_nbf(x_eff, y_eff, epa, east_not_west)
+        # south vcache
+        x_eff = pod_origin_x + x
+        y_eff = pod_origin_y + self.num_tiles_y
+        self.print_nbf(x_eff, y_eff, epa, east_not_west)
     # if there are more than one pod, then the left half of pods goes to west, and the right half to east.
     else:
       east_not_west = 0 if (px < (self.machine_pods_x/2)) else 1
-      for r in range(self.num_vcache_rows):
-        for x in range(self.num_tiles_x):
-          # north vcache
-          x_eff = pod_origin_x + x
-          y_eff = pod_origin_y - 1 - r
-          self.print_nbf(x_eff, y_eff, epa, east_not_west)
-          # south vcache
-          x_eff = pod_origin_x + x
-          y_eff = pod_origin_y + self.num_tiles_y + r
-          self.print_nbf(x_eff, y_eff, epa, east_not_west)
+      for x in range(self.num_tiles_x):
+        # north vcache
+        x_eff = pod_origin_x + x
+        y_eff = pod_origin_y - 1
+        self.print_nbf(x_eff, y_eff, epa, east_not_west)
+        # south vcache
+        x_eff = pod_origin_x + x
+        y_eff = pod_origin_y + self.num_tiles_y
+        self.print_nbf(x_eff, y_eff, epa, east_not_west)
 
 
 
@@ -323,7 +320,7 @@ class NBF:
     lg_x = self.safe_clog2(self.num_tiles_x)
     lg_block_size = self.safe_clog2(self.cache_block_size)
     lg_set = self.safe_clog2(self.cache_set)
-    lg_y = self.safe_clog2(2*self.num_vcache_rows)
+    lg_y = 1
     index_width = 32-1-2-lg_block_size-lg_x-lg_y
 
     if self.enable_dram == 1:
@@ -346,10 +343,10 @@ class NBF:
           y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
           index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
           epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
-          if y % 2 == 0:
-            self.print_nbf(x, pod_origin_y-1-(y/2), epa, self.dram_data[k]) #top
+          if y == 0:
+            self.print_nbf(x, pod_origin_y-1, epa, self.dram_data[k]) #top
           else:
-            self.print_nbf(x, pod_origin_y+self.num_tiles_y+(y/2), epa, self.dram_data[k]) #bot
+            self.print_nbf(x, pod_origin_y+self.num_tiles_y, epa, self.dram_data[k]) #bot
       else:
         print("hash function not supported for x={0}.")
         sys.exit()
@@ -478,7 +475,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 23:
+  if len(sys.argv) == 22:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -501,9 +498,8 @@ if __name__ == "__main__":
       "machine_pods_y" : int(sys.argv[17]),
       "num_pods_x" : int(sys.argv[18]),
       "num_pods_y" : int(sys.argv[19]),
-      "num_vcache_rows" : int(sys.argv[20]),
-      "skip_dram_instruction_load": int(sys.argv[21]),
-      "skip_zeros": int(sys.argv[22])
+      "skip_dram_instruction_load": int(sys.argv[20]),
+      "skip_zeros": int(sys.argv[21])
     }
 
     converter = NBF(config)
@@ -514,11 +510,10 @@ if __name__ == "__main__":
     command += "{num_tiles_x} {num_tiles_y} "
     command += "{cache_way} {cache_set} {cache_block_size} {dram_size} {max_epa_width} "
     command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram} "
-    command += "{origin_x_cord} {origin_y_cord}"
-    command += "{machine_pods_x} {machine_pods_y}"
-    command += "{num_pods_x} {num_pods_y}"
-    command += "{num_vcache_rows}"
-    command += "{skip_dram_instruction_load}"
+    command += "{origin_x_cord} {origin_y_cord} "
+    command += "{machine_pods_x} {machine_pods_y} "
+    command += "{num_pods_x} {num_pods_y} "
+    command += "{skip_dram_instruction_load} "
     command += "{skip_zeros}"
     print(command)
 
