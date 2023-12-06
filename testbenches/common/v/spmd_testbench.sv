@@ -31,7 +31,6 @@ module spmd_testbench
   parameter barrier_ruche_factor_X_p    = `BSG_MACHINE_BARRIER_RUCHE_FACTOR_X;
 
 
-  parameter num_vcache_rows_p = `BSG_MACHINE_NUM_VCACHE_ROWS;
   parameter vcache_data_width_p = data_width_p;
   parameter vcache_sets_p = `BSG_MACHINE_VCACHE_SET;
   parameter vcache_ways_p = `BSG_MACHINE_VCACHE_WAY;
@@ -109,7 +108,6 @@ module spmd_testbench
     ,.num_subarray_x_p(num_subarray_x_p)
     ,.num_subarray_y_p(num_subarray_y_p)
 
-    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_data_width_p(vcache_data_width_p)
     ,.vcache_sets_p(vcache_sets_p)
     ,.vcache_ways_p(vcache_ways_p)

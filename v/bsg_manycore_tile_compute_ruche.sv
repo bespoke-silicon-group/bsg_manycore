@@ -30,7 +30,6 @@ module bsg_manycore_tile_compute_ruche
     , `BSG_INV_PARAM(ruche_factor_X_p)
     , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
 
-    , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_sets_p)
 
@@ -200,7 +199,6 @@ module bsg_manycore_tile_compute_ruche
     ,.hetero_type_p(hetero_type_p)
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
-    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
     ,.fwd_fifo_els_p(fwd_fifo_els_lp[0])

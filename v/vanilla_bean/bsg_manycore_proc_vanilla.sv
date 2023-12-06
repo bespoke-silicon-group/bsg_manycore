@@ -19,7 +19,6 @@ module bsg_manycore_proc_vanilla
     , `BSG_INV_PARAM(icache_entries_p )
 
     , `BSG_INV_PARAM(dmem_size_p )
-    , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_size_p )
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_sets_p )
@@ -270,7 +269,6 @@ module bsg_manycore_proc_vanilla
     ,.y_cord_width_p(y_cord_width_p)
     ,.pod_x_cord_width_p(pod_x_cord_width_p)
     ,.pod_y_cord_width_p(pod_y_cord_width_p)
-    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)

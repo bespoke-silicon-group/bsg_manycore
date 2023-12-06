@@ -20,7 +20,6 @@
                           ,.data_width_p(data_width_p)                                 \
                           ,.addr_width_p(addr_width_p)                                 \
                           ,.dmem_size_p (dmem_size_p )                                 \
-                          ,.num_vcache_rows_p(num_vcache_rows_p)                       \
                           ,.vcache_size_p(vcache_size_p)                               \
                           ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p) \
                           ,.vcache_sets_p(vcache_sets_p)                               \
@@ -63,7 +62,6 @@ module bsg_manycore_hetero_socket
     , `BSG_INV_PARAM(icache_entries_p ) // in words
     , `BSG_INV_PARAM(icache_tag_width_p )
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
-    , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_size_p )
     , debug_p = 0
     , int hetero_type_p = 0
