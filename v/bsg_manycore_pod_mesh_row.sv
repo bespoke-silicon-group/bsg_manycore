@@ -26,7 +26,6 @@ module bsg_manycore_pod_mesh_row
     , `BSG_INV_PARAM(icache_tag_width_p)
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
-    , num_vcache_rows_p=1
     , `BSG_INV_PARAM(vcache_addr_width_p)
     , `BSG_INV_PARAM(vcache_data_width_p)
     , `BSG_INV_PARAM(vcache_ways_p)
@@ -72,8 +71,8 @@ module bsg_manycore_pod_mesh_row
     , output [S:N][num_pods_x_p-1:0][num_tiles_x_p-1:0][manycore_link_sif_width_lp-1:0] ver_link_sif_o
 
     // vcache wormhole links
-    , input  [E:W][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_i
-    , output [E:W][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_o
+    , input  [E:W][S:N][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_i
+    , output [E:W][S:N][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_o
 
     // horizontal local links
     , input  [E:W][num_tiles_y_p-1:0][manycore_link_sif_width_lp-1:0] hor_link_sif_i
@@ -93,7 +92,7 @@ module bsg_manycore_pod_mesh_row
   // Instantiate pods
   bsg_manycore_link_sif_s [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0] hor_link_sif_li, hor_link_sif_lo;
   bsg_manycore_link_sif_s [num_pods_x_p-1:0][S:N][num_tiles_x_p-1:0] ver_link_sif_li, ver_link_sif_lo;
-  wh_link_sif_s [num_pods_x_p-1:0][S:N][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_li, wh_link_sif_lo;
+  wh_link_sif_s [num_pods_x_p-1:0][S:N][E:W][wh_ruche_factor_p-1:0] wh_link_sif_li, wh_link_sif_lo;
   logic [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0] hor_barrier_link_li, hor_barrier_link_lo;
   logic [num_pods_x_p-1:0][E:W][num_tiles_y_p-1:0][barrier_ruche_factor_X_p-1:0] barrier_ruche_link_li, barrier_ruche_link_lo;
 
@@ -118,7 +117,6 @@ module bsg_manycore_pod_mesh_row
       ,.icache_entries_p(icache_entries_p)
       ,.icache_tag_width_p(icache_tag_width_p)
       ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
-      ,.num_vcache_rows_p(num_vcache_rows_p)
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_data_width_p(vcache_data_width_p)
       ,.vcache_ways_p(vcache_ways_p)
@@ -210,29 +208,26 @@ module bsg_manycore_pod_mesh_row
 
   // connect wormhole ruche links to the outside
   // (hardcoded for wh ruche factor 2)
-  // For north vcaches, the vcache row orders are reversed, so that the inner vcache layers appear at index 0.
-  for (genvar j = 0; j < num_vcache_rows_p; j++) begin
-    for (genvar r = 0; r < wh_ruche_factor_p; r++) begin
+  for (genvar r = 0; r < wh_ruche_factor_p; r++) begin
     // north VC row
     // west out
-    assign wh_link_sif_o[W][N][j][r] = wh_link_sif_lo[0][N][W][num_vcache_rows_p-1-j][r];
+    assign wh_link_sif_o[W][N][r] = wh_link_sif_lo[0][N][W][r];
     // west in
-    assign wh_link_sif_li[0][N][W][num_vcache_rows_p-1-j][r] =  wh_link_sif_i[W][N][j][r];
+    assign wh_link_sif_li[0][N][W][r] =  wh_link_sif_i[W][N][r];
     // east out
-    assign wh_link_sif_o[E][N][j][r] =  wh_link_sif_lo[num_pods_x_p-1][N][E][num_vcache_rows_p-1-j][r];
+    assign wh_link_sif_o[E][N][r] =  wh_link_sif_lo[num_pods_x_p-1][N][E][r];
     // east in
-    assign wh_link_sif_li[num_pods_x_p-1][N][E][num_vcache_rows_p-1-j][r] =  wh_link_sif_i[E][N][j][r];
+    assign wh_link_sif_li[num_pods_x_p-1][N][E][r] =  wh_link_sif_i[E][N][r];
 
     // south VC row
     // west out
-    assign wh_link_sif_o[W][S][j][r] =  wh_link_sif_lo[0][S][W][j][r];
+    assign wh_link_sif_o[W][S][r] =  wh_link_sif_lo[0][S][W][r];
     // west in
-    assign wh_link_sif_li[0][S][W][j][r] =  wh_link_sif_i[W][S][j][r];
+    assign wh_link_sif_li[0][S][W][r] =  wh_link_sif_i[W][S][r];
     // east out
-    assign wh_link_sif_o[E][S][j][r] =  wh_link_sif_lo[num_pods_x_p-1][S][E][j][r];
+    assign wh_link_sif_o[E][S][r] =  wh_link_sif_lo[num_pods_x_p-1][S][E][r];
     // east in
-    assign wh_link_sif_li[num_pods_x_p-1][S][E][j][r] =  wh_link_sif_i[E][S][j][r];
-    end
+    assign wh_link_sif_li[num_pods_x_p-1][S][E][r] =  wh_link_sif_i[E][S][r];
   end
 
   // Tieoff barrier links

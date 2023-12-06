@@ -31,7 +31,6 @@ module bsg_manycore_pod_mesh_array
     , `BSG_INV_PARAM(icache_tag_width_p)
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
-    , num_vcache_rows_p=1
     , `BSG_INV_PARAM(vcache_addr_width_p)
     , `BSG_INV_PARAM(vcache_data_width_p)
     , `BSG_INV_PARAM(vcache_ways_p)
@@ -78,8 +77,8 @@ module bsg_manycore_pod_mesh_array
     , output [S:N][num_pods_x_p-1:0][num_tiles_x_p-1:0][manycore_link_sif_width_lp-1:0] ver_link_sif_o
 
     // vcache wormhole links
-    , input  [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_i
-    , output [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_o
+    , input  [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_i
+    , output [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_o
 
     // horizontal local links
     , input  [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0][manycore_link_sif_width_lp-1:0] hor_link_sif_i
@@ -100,8 +99,8 @@ module bsg_manycore_pod_mesh_array
   bsg_manycore_link_sif_s [num_pods_y_p-1:0][S:N][num_pods_x_p-1:0][num_tiles_x_p-1:0] ver_link_sif_li;
   bsg_manycore_link_sif_s [num_pods_y_p-1:0][S:N][num_pods_x_p-1:0][num_tiles_x_p-1:0] ver_link_sif_lo;
 
-  wh_link_sif_s [num_pods_y_p-1:0][E:W][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_li;
-  wh_link_sif_s [num_pods_y_p-1:0][E:W][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_lo;
+  wh_link_sif_s [num_pods_y_p-1:0][E:W][S:N][wh_ruche_factor_p-1:0] wh_link_sif_li;
+  wh_link_sif_s [num_pods_y_p-1:0][E:W][S:N][wh_ruche_factor_p-1:0] wh_link_sif_lo;
 
   logic [num_pods_y_p-1:0][(num_pods_x_p*num_tiles_x_p)-1:0][x_cord_width_p-1:0] global_x_li;
   logic [num_pods_y_p-1:0][(num_pods_x_p*num_tiles_x_p)-1:0][y_cord_width_p-1:0] global_y_li;
@@ -151,7 +150,6 @@ module bsg_manycore_pod_mesh_array
       ,.icache_tag_width_p(icache_tag_width_p)
       ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
 
-      ,.num_vcache_rows_p(num_vcache_rows_p)
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_data_width_p(vcache_data_width_p)
       ,.vcache_ways_p(vcache_ways_p)
@@ -189,7 +187,7 @@ module bsg_manycore_pod_mesh_array
     // assign global_x/y
     for (genvar i = 0; i < num_tiles_x_p*num_pods_x_p; i++) begin
       assign global_x_li[y][i] = {  (pod_x_cord_width_p)'((i/num_tiles_x_p)+1), (x_subcord_width_lp)'(i%num_tiles_x_p)    };
-      assign global_y_li[y][i] = {  (pod_y_cord_width_p)'(y*2), (y_subcord_width_lp)'((1<<y_subcord_width_lp)-num_vcache_rows_p)  };
+      assign global_y_li[y][i] = {  (pod_y_cord_width_p)'(y*2), (y_subcord_width_lp)'((1<<y_subcord_width_lp)-1)  };
     end
 
     // connect vertical local links to north
