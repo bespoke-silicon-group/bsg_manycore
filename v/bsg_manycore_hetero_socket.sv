@@ -34,6 +34,7 @@
                           ,.fwd_fifo_els_p(fwd_fifo_els_p)                             \
                           ,.rev_fifo_els_p(rev_fifo_els_p)                             \
                           ,.barrier_dirs_p(barrier_dirs_p)                             \
+                          ,.ipoly_hashing_p(ipoly_hashing_p)                           \
                           ) z                                                          \
           (.clk_i                                                                      \
            ,.reset_i                                                                   \
@@ -76,6 +77,7 @@ module bsg_manycore_hetero_socket
     , `BSG_INV_PARAM(fwd_fifo_els_p )
     , `BSG_INV_PARAM(rev_fifo_els_p )
     , `BSG_INV_PARAM(barrier_dirs_p )
+    , `BSG_INV_PARAM(ipoly_hashing_p)
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
 
     , bsg_manycore_link_sif_width_lp =

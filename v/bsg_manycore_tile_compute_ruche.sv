@@ -32,7 +32,8 @@ module bsg_manycore_tile_compute_ruche
 
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_sets_p)
-
+    , `BSG_INV_PARAM(ipoly_hashing_p)
+  
     , parameter dims_p = 3
     , localparam dirs_lp = (dims_p*2)
     // The topology of the barrier network is matched to the one of manycore links, so that we don't add any additional timing path complexity.
@@ -204,6 +205,7 @@ module bsg_manycore_tile_compute_ruche
     ,.fwd_fifo_els_p(fwd_fifo_els_lp[0])
     ,.rev_fifo_els_p(rev_fifo_els_lp[0])
     ,.barrier_dirs_p(barrier_dirs_p)
+    ,.ipoly_hashing_p(ipoly_hashing_p)
     ,.debug_p(debug_p)
   ) proc (
     .clk_i(clk_i)

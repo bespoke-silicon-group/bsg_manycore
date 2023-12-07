@@ -27,6 +27,7 @@ module bsg_manycore_proc_vanilla
     , `BSG_INV_PARAM(num_tiles_y_p)
 
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
+    , `BSG_INV_PARAM(ipoly_hashing_p)
 
     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
@@ -272,6 +273,7 @@ module bsg_manycore_proc_vanilla
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
+    ,.ipoly_hashing_p(ipoly_hashing_p)
 
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)

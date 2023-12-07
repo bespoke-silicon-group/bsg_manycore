@@ -18,6 +18,7 @@ module network_tx
     , `BSG_INV_PARAM(vcache_size_p) // vcache capacity in words
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_sets_p)
+    , `BSG_INV_PARAM(ipoly_hashing_p)
  
     , `BSG_INV_PARAM(num_tiles_x_p)
     , `BSG_INV_PARAM(num_tiles_y_p)
@@ -119,6 +120,7 @@ module network_tx
     ,.vcache_sets_p(vcache_sets_p)
     ,.pod_x_cord_width_p(pod_x_cord_width_p)
     ,.pod_y_cord_width_p(pod_y_cord_width_p)
+    ,.ipoly_hashing_p(ipoly_hashing_p)
   ) eva2npa (
     .eva_i(remote_req_i.addr)
     ,.tgo_x_i(tgo_x_i)

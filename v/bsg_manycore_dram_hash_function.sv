@@ -26,7 +26,7 @@ module bsg_manycore_dram_hash_function
 
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
 
-    , parameter enable_ipoly_hashing_p=0
+    , `BSG_INV_PARAM(ipoly_hashing_p)
   )
   (
     input [data_width_p-1:0] eva_i // 32-bit byte address
@@ -47,10 +47,10 @@ module bsg_manycore_dram_hash_function
   assign {dram_index, temp_y, temp_x} = eva_i[2+vcache_word_offset_width_lp+:x_subcord_width_p+1+dram_index_width_lp];
 
 
-  if (enable_ipoly_hashing_p) begin: ipoly
+  if (ipoly_hashing_p) begin: ipoly
     // IPOLY hashing;
     bsg_hashing_ipoly #(
-      .num_banks_p((2**x_subcord_width_p)+1)
+      .num_banks_p(2**(x_subcord_width_p+1))
       ,.upper_width_p(dram_index_width_lp)
     ) ipoly0 (
       .upper_bits_i(dram_index)

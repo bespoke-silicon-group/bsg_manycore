@@ -43,6 +43,9 @@ module bsg_manycore_tile_compute_array_ruche
     // barrier ruche factor
     , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
 
+    // IPOLY hashing
+    , `BSG_INV_PARAM(ipoly_hashing_p)
+
     // global coordinate width
     // global_x/y_i
     // pod_*_cord_width_p  and *_subcord_width_p should sum up to *_cord_width_p.
@@ -168,6 +171,7 @@ module bsg_manycore_tile_compute_array_ruche
         ,.vcache_sets_p(vcache_sets_p)
         ,.ruche_factor_X_p(ruche_factor_X_p)
         ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+        ,.ipoly_hashing_p(ipoly_hashing_p)
       ) tile (
         .clk_i(clk_i[c/(subarray_num_tiles_x_p/num_clk_ports_p)])
 

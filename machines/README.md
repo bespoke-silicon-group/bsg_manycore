@@ -48,4 +48,5 @@ Machine.machine.include parameters
 - BSG_MACHINE_SUBARRAY_X                =   A physical design parameter breaking up pods into smaller hierarchical columns
 - BSG_MACHINE_SUBARRAY_Y                =   A physical design parameter breaking up pods into smaller hierarchical rows
 
+- BSG_MACHINE_IPOLY_HASHING             =   Enable IPOLY DRAM hashing;
 ```

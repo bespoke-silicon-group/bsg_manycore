@@ -45,6 +45,7 @@ module bsg_manycore_pod_ruche
     , `BSG_INV_PARAM(vcache_size_p)
     , `BSG_INV_PARAM(vcache_dma_data_width_p)
     , `BSG_INV_PARAM(vcache_word_tracking_p)
+    , `BSG_INV_PARAM(ipoly_hashing_p)
 
     , `BSG_INV_PARAM(ruche_factor_X_p)
     , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
@@ -254,6 +255,7 @@ module bsg_manycore_pod_ruche
         ,.subarray_num_tiles_x_p(subarray_num_tiles_x_lp)
         ,.subarray_num_tiles_y_p(subarray_num_tiles_y_lp)
         ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+        ,.ipoly_hashing_p(ipoly_hashing_p)
 
         ,.pod_x_cord_width_p(pod_x_cord_width_p)
         ,.pod_y_cord_width_p(pod_y_cord_width_p)

@@ -60,6 +60,9 @@ class NBF:
     self.num_pods_x = config["num_pods_x"]  
     self.num_pods_y = config["num_pods_y"]
 
+    # ipoly hashing
+    self.ipoly_hashing = config["ipoly_hashing"]
+
     # software setting
     self.tgo_x = config["tgo_x"]
     self.tgo_y = config["tgo_y"]
@@ -324,32 +327,61 @@ class NBF:
     index_width = 32-1-2-lg_block_size-lg_x-lg_y
 
     if self.enable_dram == 1:
-
-
-
       # dram enabled:
-      # EVA space is striped across top and bottom vcaches.
-      if self.num_tiles_x & (self.num_tiles_x-1) == 0:
-        spmd_binary_size = self.get_spmd_binary_size()
-        # hashing for power of 2 banks
-        for k in sorted(self.dram_data.keys()):
-          addr = k - 0x20000000
-          # if the binary fits in icaches, skip loading instruction to DRAM, to speed up simulation
-          if (self.skip_dram_instruction_load == 1) and (spmd_binary_size < self.icache_size) and (addr < spmd_binary_size):
-            continue
-          if (self.skip_zeros == 1) and (self.dram_data[k] == 0):
-            continue
-          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1) + pod_origin_x
-          y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
-          index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
-          epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
-          if y == 0:
-            self.print_nbf(x, pod_origin_y-1, epa, self.dram_data[k]) #top
-          else:
-            self.print_nbf(x, pod_origin_y+self.num_tiles_y, epa, self.dram_data[k]) #bot
-      else:
-        print("hash function not supported for x={0}.")
+      if (self.num_tiles_x & (self.num_tiles_x-1)) != 0:
+        print("hash function not supported for x={}.".format(self.num_tiles_x))
         sys.exit()
+
+      # spmd binary size;
+      spmd_binary_size = self.get_spmd_binary_size()
+
+      for k in sorted(self.dram_data.keys()):
+        addr = k - 0x20000000
+        # if the binary fits in icaches, skip loading instruction to DRAM, to speed up simulation
+        if (self.skip_dram_instruction_load == 1) and (spmd_binary_size < self.icache_size) and (addr < spmd_binary_size):
+          continue
+        # skip zero data in DRAM;
+        if (self.skip_zeros == 1) and (self.dram_data[k] == 0):
+          continue
+
+        if self.ipoly_hashing:
+          # collect bits;
+          temp_y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x)
+          temp_x = [0]*lg_x
+          for i in range(lg_x):
+            temp_x[i] = self.select_bits(addr, lg_block_size+i, lg_block_size + i)
+          ibits = [0]*index_width
+          for i in range(index_width):
+            ibits[i] = self.select_bits(addr, lg_block_size+lg_x+lg_y+i, lg_block_size+lg_x+lg_y+i)
+
+          if lg_x == 3:
+            return
+          elif lg_x == 4:
+            x0 = temp_x[0] ^ ibits[13] ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[9]  ^ ibits[6] ^ ibits[5] ^ ibits[3] ^ ibits[0]
+            x1 = temp_x[1] ^ ibits[14] ^ ibits[13] ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[7] ^ ibits[6] ^ ibits[4] ^ ibits[1]
+            x2 = temp_x[2] ^ ibits[14] ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[7] ^ ibits[6] ^ ibits[3] ^ ibits[2] ^ ibits[0]
+            x3 = temp_x[3] ^ ibits[11] ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[7] ^ ibits[4] ^ ibits[3] ^ ibits[1]
+            x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3)
+            y  = temp_y    ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[5] ^ ibits[4] ^ ibits[2]
+
+          elif lg_x == 5:
+            return
+          else:
+            print("IPOLY not supported for lg_x = {}".format(lg_x))
+            sys.exit()
+          
+        else:
+          # Default hashing for power of 2 banks
+          x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1)
+          y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
+
+        # Final stage;
+        index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
+        epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
+        if y == 0:
+          self.print_nbf(pod_origin_x+x, pod_origin_y-1, epa, self.dram_data[k]) #top
+        else:
+          self.print_nbf(pod_origin_x+x, pod_origin_y+self.num_tiles_y, epa, self.dram_data[k]) #bot
     else:
       # dram disabled:
       # using vcache as block mem
@@ -475,7 +507,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 22:
+  if len(sys.argv) == 23:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -499,7 +531,8 @@ if __name__ == "__main__":
       "num_pods_x" : int(sys.argv[18]),
       "num_pods_y" : int(sys.argv[19]),
       "skip_dram_instruction_load": int(sys.argv[20]),
-      "skip_zeros": int(sys.argv[21])
+      "skip_zeros": int(sys.argv[21]),
+      "ipoly_hashing": int(sys.argv[22]),
     }
 
     converter = NBF(config)
@@ -514,6 +547,7 @@ if __name__ == "__main__":
     command += "{machine_pods_x} {machine_pods_y} "
     command += "{num_pods_x} {num_pods_y} "
     command += "{skip_dram_instruction_load} "
-    command += "{skip_zeros}"
+    command += "{skip_zeros} "
+    command += "{ipoly_hashing} "
     print(command)
 

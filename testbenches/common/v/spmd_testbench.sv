@@ -40,7 +40,7 @@ module spmd_testbench
   parameter vcache_addr_width_p=(addr_width_p-1+`BSG_SAFE_CLOG2(data_width_p>>3));  // in bytes
   parameter vcache_word_tracking_p = `BSG_MACHINE_VCACHE_WORD_TRACKING;
   parameter num_vcaches_per_channel_p = `BSG_MACHINE_NUM_VCACHES_PER_CHANNEL;  
-
+  parameter ipoly_hashing_p = `BSG_MACHINE_IPOLY_HASHING;
 
   parameter wh_flit_width_p = vcache_dma_data_width_p;
   parameter wh_ruche_factor_p = `BSG_MACHINE_WH_RUCHE_FACTOR;
@@ -117,6 +117,7 @@ module spmd_testbench
     ,.vcache_addr_width_p(vcache_addr_width_p)
     ,.vcache_word_tracking_p(vcache_word_tracking_p)
     ,.num_vcaches_per_channel_p(num_vcaches_per_channel_p)
+    ,.ipoly_hashing_p(ipoly_hashing_p)
 
     ,.wh_flit_width_p(wh_flit_width_p)
     ,.wh_ruche_factor_p(wh_ruche_factor_p)
