@@ -355,7 +355,11 @@ class NBF:
             ibits[i] = self.select_bits(addr, lg_block_size+lg_x+lg_y+i, lg_block_size+lg_x+lg_y+i)
 
           if lg_x == 3:
-            return
+            x0 = temp_x[0] ^ ibits[11] ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[6] ^ ibits[4] ^ ibits[3] ^ ibits[0]
+            x1 = temp_x[1] ^ ibits[12] ^ ibits[8] ^ ibits[7] ^ ibits[6] ^ ibits[5] ^ ibits[3] ^ ibits[1] ^ ibits[0]
+            x2 = temp_x[2] ^ ibits[9] ^ ibits[8] ^ ibits[7] ^ ibits[6] ^ ibits[4] ^ ibits[2] ^ ibits[1]
+            x = x0 | (x1 << 1) | (x2 << 2)
+            y  = temp_y    ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[7] ^ ibits[5] ^ ibits[3] ^ ibits[2]
           elif lg_x == 4:
             x0 = temp_x[0] ^ ibits[13] ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[9]  ^ ibits[6] ^ ibits[5] ^ ibits[3] ^ ibits[0]
             x1 = temp_x[1] ^ ibits[14] ^ ibits[13] ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[7] ^ ibits[6] ^ ibits[4] ^ ibits[1]
@@ -363,9 +367,14 @@ class NBF:
             x3 = temp_x[3] ^ ibits[11] ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[7] ^ ibits[4] ^ ibits[3] ^ ibits[1]
             x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3)
             y  = temp_y    ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[5] ^ ibits[4] ^ ibits[2]
-
           elif lg_x == 5:
-            return
+            x0 = temp_x[0] ^ ibits[18] ^ ibits[17] ^ ibits[16] ^ ibits[15] ^ ibits[12] ^ ibits[10] ^ ibits[6] ^ ibits[5] ^ ibits[0]
+            x1 = temp_x[1] ^ ibits[15] ^ ibits[13] ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[7] ^ ibits[5] ^ ibits[1] ^ ibits[0]
+            x2 = temp_x[2] ^ ibits[16] ^ ibits[14] ^ ibits[13] ^ ibits[12] ^ ibits[11] ^ ibits[8] ^ ibits[6] ^ ibits[2] ^ ibits[1]
+            x3 = temp_x[3] ^ ibits[17] ^ ibits[15] ^ ibits[14] ^ ibits[13] ^ ibits[12] ^ ibits[9] ^ ibits[7] ^ ibits[3] ^ ibits[2]
+            x4 = temp_x[4] ^ ibits[18] ^ ibits[16] ^ ibits[15] ^ ibits[14] ^ ibits[13] ^ ibits[10] ^ ibits[8] ^ ibits[4] ^ ibits[3]
+            x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3) | (x4 << 4)
+            y  = temp_y    ^ ibits[17] ^ ibits[16] ^ ibits[15] ^ ibits[14] ^ ibits[11] ^ ibits[9] ^ ibits[5] ^ ibits[4]
           else:
             print("IPOLY not supported for lg_x = {}".format(lg_x))
             sys.exit()
