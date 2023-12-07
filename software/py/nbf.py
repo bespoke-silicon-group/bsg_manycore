@@ -204,7 +204,7 @@ class NBF:
       if words[2] == "_start":
         self.start_addr = (int(words[0]) >> 2) # make it word address
     
-
+  # select bits verilog style (e.g. num[end:start])
   def select_bits(self, num, start, end):
     retval = 0
 
@@ -213,6 +213,17 @@ class NBF:
       retval = retval | b
 
     return (retval >> start)
+
+
+  # hash addr bit;
+  # addr_bit = 1-bit that's being hashed;
+  # index = upper address bits;
+  # hash_idx = list of idx from index to hash with;
+  def hash_addr_bit(self, addr_bit, index, hash_idx):
+    temp = addr_bit
+    for i  in hash_idx:
+      temp = temp ^ self.select_bits(index, i, i)
+    return temp
 
   ##### END UTIL FUNCTIONS #####
 
@@ -344,6 +355,7 @@ class NBF:
         if (self.skip_zeros == 1) and (self.dram_data[k] == 0):
           continue
 
+        index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
         if self.ipoly_hashing:
           # collect bits;
           temp_y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x)
@@ -355,26 +367,26 @@ class NBF:
             ibits[i] = self.select_bits(addr, lg_block_size+lg_x+lg_y+i, lg_block_size+lg_x+lg_y+i)
 
           if lg_x == 3:
-            x0 = temp_x[0] ^ ibits[11] ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[6] ^ ibits[4] ^ ibits[3] ^ ibits[0]
-            x1 = temp_x[1] ^ ibits[12] ^ ibits[8] ^ ibits[7] ^ ibits[6] ^ ibits[5] ^ ibits[3] ^ ibits[1] ^ ibits[0]
-            x2 = temp_x[2] ^ ibits[9] ^ ibits[8] ^ ibits[7] ^ ibits[6] ^ ibits[4] ^ ibits[2] ^ ibits[1]
+            x0 = self.hash_addr_bit(temp_x[0], index, [11,10,9,8,6,4,3,0])
+            x1 = self.hash_addr_bit(temp_x[1], index, [12,8,7,6,5,3,1,0])
+            x2 = self.hash_addr_bit(temp_x[2], index, [9,8,7,6,4,2,1])
             x = x0 | (x1 << 1) | (x2 << 2)
-            y  = temp_y    ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[7] ^ ibits[5] ^ ibits[3] ^ ibits[2]
+            y = self.hash_addr_bit(temp_y, index, [10,9,8,7,5,3,2])
           elif lg_x == 4:
-            x0 = temp_x[0] ^ ibits[13] ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[9]  ^ ibits[6] ^ ibits[5] ^ ibits[3] ^ ibits[0]
-            x1 = temp_x[1] ^ ibits[14] ^ ibits[13] ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[7] ^ ibits[6] ^ ibits[4] ^ ibits[1]
-            x2 = temp_x[2] ^ ibits[14] ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[7] ^ ibits[6] ^ ibits[3] ^ ibits[2] ^ ibits[0]
-            x3 = temp_x[3] ^ ibits[11] ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[7] ^ ibits[4] ^ ibits[3] ^ ibits[1]
+            x0 = self.hash_addr_bit(temp_x[0], index, [13,12,11,10,9,6,5,3,0])
+            x1 = self.hash_addr_bit(temp_x[1], index, [14,13,12,11,10,7,6,4,1])
+            x2 = self.hash_addr_bit(temp_x[2], index, [14,10,9,8,7,6,3,2,0])
+            x3 = self.hash_addr_bit(temp_x[3], index, [11,10,9,8,7,4,3,1])
             x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3)
-            y  = temp_y    ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[9] ^ ibits[8] ^ ibits[5] ^ ibits[4] ^ ibits[2]
+            y = self.hash_addr_bit(temp_y, index, [12,11,10,9,8,5,4,2])
           elif lg_x == 5:
-            x0 = temp_x[0] ^ ibits[18] ^ ibits[17] ^ ibits[16] ^ ibits[15] ^ ibits[12] ^ ibits[10] ^ ibits[6] ^ ibits[5] ^ ibits[0]
-            x1 = temp_x[1] ^ ibits[15] ^ ibits[13] ^ ibits[12] ^ ibits[11] ^ ibits[10] ^ ibits[7] ^ ibits[5] ^ ibits[1] ^ ibits[0]
-            x2 = temp_x[2] ^ ibits[16] ^ ibits[14] ^ ibits[13] ^ ibits[12] ^ ibits[11] ^ ibits[8] ^ ibits[6] ^ ibits[2] ^ ibits[1]
-            x3 = temp_x[3] ^ ibits[17] ^ ibits[15] ^ ibits[14] ^ ibits[13] ^ ibits[12] ^ ibits[9] ^ ibits[7] ^ ibits[3] ^ ibits[2]
-            x4 = temp_x[4] ^ ibits[18] ^ ibits[16] ^ ibits[15] ^ ibits[14] ^ ibits[13] ^ ibits[10] ^ ibits[8] ^ ibits[4] ^ ibits[3]
+            x0 = self.hash_addr_bit(temp_x[0], index, [18,17,16,15,12,10,6,5,0])
+            x1 = self.hash_addr_bit(temp_x[1], index, [15,13,12,11,10,7,5,1,0])
+            x2 = self.hash_addr_bit(temp_x[2], index, [16,14,13,12,11,8,6,2,1])
+            x3 = self.hash_addr_bit(temp_x[3], index, [17,15,14,13,12,9,7,3,2])
+            x4 = self.hash_addr_bit(temp_x[4], index, [18,16,15,14,13,10,8,4,3])
             x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3) | (x4 << 4)
-            y  = temp_y    ^ ibits[17] ^ ibits[16] ^ ibits[15] ^ ibits[14] ^ ibits[11] ^ ibits[9] ^ ibits[5] ^ ibits[4]
+            y = self.hash_addr_bit(temp_y, index, [17,16,15,14,11,9,5,4])
           else:
             print("IPOLY not supported for lg_x = {}".format(lg_x))
             sys.exit()
@@ -385,7 +397,6 @@ class NBF:
           y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x + lg_y-1)
 
         # Final stage;
-        index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
         epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
         if y == 0:
           self.print_nbf(pod_origin_x+x, pod_origin_y-1, epa, self.dram_data[k]) #top
