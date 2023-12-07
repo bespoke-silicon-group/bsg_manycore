@@ -16,6 +16,7 @@ module bsg_manycore_tile_compute_array_mesh
     , `BSG_INV_PARAM(vcache_size_p ) // capacity per vcache in words
     , `BSG_INV_PARAM(vcache_block_size_in_words_p )
     , `BSG_INV_PARAM(vcache_sets_p )
+    , `BSG_INV_PARAM(ipoly_hashing_p) 
 
     // number of tiles in an entire pod
     , `BSG_INV_PARAM(parameter int num_tiles_x_p)
@@ -143,6 +144,7 @@ module bsg_manycore_tile_compute_array_mesh
         ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
         ,.vcache_sets_p(vcache_sets_p)
         ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+        ,.ipoly_hashing_p(ipoly_hashing_p)      
       ) tile (
         .clk_i(clk_i)
         ,.reset_i(reset_li[r][c])

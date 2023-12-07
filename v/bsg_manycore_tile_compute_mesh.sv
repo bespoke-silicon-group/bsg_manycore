@@ -32,6 +32,7 @@ module bsg_manycore_tile_compute_mesh
 
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_sets_p)
+    , `BSG_INV_PARAM(ipoly_hashing_p) 
 
     , parameter dims_p = 2
     , localparam dirs_lp = (dims_p*2)
@@ -194,6 +195,7 @@ module bsg_manycore_tile_compute_mesh
     ,.num_tiles_y_p(num_tiles_y_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
+    ,.ipoly_hashing_p(ipoly_hashing_p)      
     ,.fwd_fifo_els_p(fwd_fifo_els_lp[0])
     ,.rev_fifo_els_p(rev_fifo_els_lp[0])
     ,.barrier_dirs_p(barrier_dirs_p)
