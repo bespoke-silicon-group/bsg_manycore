@@ -366,7 +366,16 @@ class NBF:
           for i in range(index_width):
             ibits[i] = self.select_bits(addr, lg_block_size+lg_x+lg_y+i, lg_block_size+lg_x+lg_y+i)
 
-          if lg_x == 3:
+          if lg_x == 1:
+            x0 = self.hash_addr_bit(temp_x[0], index, [10,9,7,6,4,3,1,0])
+            x = x0
+            y = self.hash_addr_bit(temp_y, index, [11,9,8,6,5,3,2,0])
+          elif lg_x == 2:
+            x0 = self.hash_addr_bit(temp_x[0], index, [11,9,8,7,4,2,1,0])
+            x1 = self.hash_addr_bit(temp_x[1], index, [12,10,9,8,5,3,2,1])
+            x = x0 | (x1 << 1)
+            y = self.hash_addr_bit(temp_y, index, [13,10,8,7,6,3,1,0])
+          elif lg_x == 3:
             x0 = self.hash_addr_bit(temp_x[0], index, [11,10,9,8,6,4,3,0])
             x1 = self.hash_addr_bit(temp_x[1], index, [12,8,7,6,5,3,1,0])
             x2 = self.hash_addr_bit(temp_x[2], index, [9,8,7,6,4,2,1])
