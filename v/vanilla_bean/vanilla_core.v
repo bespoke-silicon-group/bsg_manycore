@@ -7,7 +7,7 @@
  */
 
 `include "bsg_manycore_defines.vh"
-`include "bsg_vanilla_defines.vh"
+`include "bsg_manycore_instruction_defines.vh"
 
 module vanilla_core
   import bsg_vanilla_pkg::*;
@@ -481,9 +481,9 @@ module vanilla_core
   // calculate mem address offset
   //
   wire [Iimm_width_gp-1:0] mem_addr_op2 = id_r.decode.is_store_op
-    ? `Vanilla_Simm_12extract(id_r.instruction)
+    ? `MANYCORE_Simm_12extract(id_r.instruction)
     : (id_r.decode.is_load_op
-      ? `Vanilla_Iimm_12extract(id_r.instruction)
+      ? `MANYCORE_Iimm_12extract(id_r.instruction)
       : '0);
 
   // 'aq' register
@@ -1469,8 +1469,8 @@ module vanilla_core
 
   // stall_fcsr
   assign stall_fcsr = (id_r.decode.is_csr_op)
-    & ((id_r.instruction[31:20] == `VANILLA_CSR_FFLAGS_ADDR)
-      |(id_r.instruction[31:20] == `VANILLA_CSR_FCSR_ADDR))
+    & ((id_r.instruction[31:20] == `MANYCORE_CSR_FFLAGS_ADDR)
+      |(id_r.instruction[31:20] == `MANYCORE_CSR_FCSR_ADDR))
     & (fp_exe_ctrl_r.fp_decode.is_fpu_float_op
       |fp_exe_ctrl_r.fp_decode.is_fpu_int_op
       |fp_exe_ctrl_r.fp_decode.is_fdiv_op

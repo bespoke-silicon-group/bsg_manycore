@@ -4,7 +4,7 @@
  */
 
 
-`include "bsg_vanilla_defines.vh"
+`include "bsg_manycore_instruction_defines.vh"
 `include "HardFloat_consts.vi"
 `include "HardFloat_specialize.vi"
 

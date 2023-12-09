@@ -1,5 +1,5 @@
 
-`include "bsg_vanilla_defines.vh"
+`include "bsg_manycore_instruction_defines.vh"
 
 module alu
   import bsg_vanilla_pkg::*;
@@ -23,10 +23,10 @@ logic [32:0] shr_out;
 logic [31:0] shl_out, xor_out, and_out, or_out;
 
 /////////////////////////////////////////////////////////
-assign is_imm_op    = (op_i.op ==? `VANILLA_OP_IMM) | (op_i.op ==? `VANILLA_JALR_OP);
+assign is_imm_op    = (op_i.op ==? `MANYCORE_OP_IMM) | (op_i.op ==? `MANYCORE_JALR_OP);
 
 /////////////////////////////////////////////////////////
-assign op2          = is_imm_op ? `Vanilla_signext_Iimm(op_i) : rs2_i;
+assign op2          = is_imm_op ? `MANYCORE_signext_Iimm(op_i) : rs2_i;
 ///////////////////////////////////////////////////////////
 
 
@@ -49,61 +49,61 @@ always_comb
     sign_ex_or_zero = 1'b0;
 
     unique casez (op_i)
-      `VANILLA_LUI:
-        result_o = `Vanilla_signext_Uimm(op_i);
+      `MANYCORE_LUI:
+        result_o = `MANYCORE_signext_Uimm(op_i);
 
-      `VANILLA_AUIPC:
-        result_o = `Vanilla_signext_Uimm(op_i) + pc_plus4_i - 3'b100;
+      `MANYCORE_AUIPC:
+        result_o = `MANYCORE_signext_Uimm(op_i) + pc_plus4_i - 3'b100;
 
-      `VANILLA_ADDI, `VANILLA_ADD:
+      `MANYCORE_ADDI, `MANYCORE_ADD:
         begin
           result_o = sum[31:0];
           sub_not_add = 1'b0;
         end
 
-      `VANILLA_SLTI, `VANILLA_SLT:
+      `MANYCORE_SLTI, `MANYCORE_SLT:
         begin
           sub_not_add = 1'b1;
           result_o    = {{31{1'b0}},sum[32]};
         end
 
-      `VANILLA_SLTIU, `VANILLA_SLTU:
+      `MANYCORE_SLTIU, `MANYCORE_SLTU:
         begin
           sub_not_add = 1'b1;
           result_o    = {{31{1'b0}},~carry};
         end
 
-      `VANILLA_XORI, `VANILLA_XOR:
+      `MANYCORE_XORI, `MANYCORE_XOR:
         result_o = xor_out;
 
-      `VANILLA_ORI, `VANILLA_OR:
+      `MANYCORE_ORI, `MANYCORE_OR:
         result_o = or_out;
 
-      `VANILLA_ANDI, `VANILLA_AND:
+      `MANYCORE_ANDI, `MANYCORE_AND:
         result_o = and_out;
 
-      `VANILLA_SLLI, `VANILLA_SLL:
+      `MANYCORE_SLLI, `MANYCORE_SLL:
         result_o = shl_out;
 
-      `VANILLA_SRLI, `VANILLA_SRL:
+      `MANYCORE_SRLI, `MANYCORE_SRL:
         begin
           result_o        = shr_out[31:0];
           sign_ex_or_zero = 1'b0;
         end
 
-      `VANILLA_SRAI, `VANILLA_SRA:
+      `MANYCORE_SRAI, `MANYCORE_SRA:
         begin
           result_o        = shr_out[31:0];
           sign_ex_or_zero = rs1_i[31];
         end
 
-      `VANILLA_SUB:
+      `MANYCORE_SUB:
         begin
           result_o = sum[31:0];
           sub_not_add = 1'b1;
         end
 
-      `VANILLA_JALR:
+      `MANYCORE_JALR:
         begin
           sub_not_add = 1'b0;
 //          jalr_addr_o = sum[31:0] & 32'hfffe;
@@ -111,7 +111,7 @@ always_comb
           result_o    = pc_plus4_i;
         end
 
-      `VANILLA_JAL:
+      `MANYCORE_JAL:
         begin
           result_o    =pc_plus4_i;
         end
@@ -129,12 +129,12 @@ wire rs1_lt_rs2_signed      = ( $signed(rs1_i) < $signed( rs2_i ) );
 always_comb
 begin
     unique casez(op_i )
-      `VANILLA_BEQ:    jump_now_o = rs1_eq_rs2;
-      `VANILLA_BNE:    jump_now_o = ~rs1_eq_rs2;
-      `VANILLA_BLT:    jump_now_o = rs1_lt_rs2_signed;
-      `VANILLA_BGE:    jump_now_o = ~rs1_lt_rs2_signed;
-      `VANILLA_BLTU:   jump_now_o = rs1_lt_rs2_unsigned;
-      `VANILLA_BGEU:   jump_now_o = ~rs1_lt_rs2_unsigned;
+      `MANYCORE_BEQ:    jump_now_o = rs1_eq_rs2;
+      `MANYCORE_BNE:    jump_now_o = ~rs1_eq_rs2;
+      `MANYCORE_BLT:    jump_now_o = rs1_lt_rs2_signed;
+      `MANYCORE_BGE:    jump_now_o = ~rs1_lt_rs2_signed;
+      `MANYCORE_BLTU:   jump_now_o = rs1_lt_rs2_unsigned;
+      `MANYCORE_BGEU:   jump_now_o = ~rs1_lt_rs2_unsigned;
       default:      jump_now_o = 1'b0;
     endcase
 end

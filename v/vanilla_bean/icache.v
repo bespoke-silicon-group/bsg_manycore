@@ -9,7 +9,7 @@
  *  https://docs.google.com/presentation/d/1ZeRHYhqMHJQ0mRgDTilLuWQrZF7On-Be_KNNosgeW0c/edit#slide=id.g10d2e6febb9_1_0
  */
 
-`include "bsg_vanilla_defines.vh"
+`include "bsg_manycore_instruction_defines.vh"
 
 module icache
   import bsg_vanilla_pkg::*;
@@ -103,14 +103,14 @@ module icache
   //
   instruction_s w_instr;
   assign w_instr = w_instr_i;
-  wire write_branch_instr = w_instr.op ==? `VANILLA_BRANCH;
-  wire write_jal_instr    = w_instr.op ==? `VANILLA_JAL_OP;
+  wire write_branch_instr = w_instr.op ==? `MANYCORE_BRANCH;
+  wire write_jal_instr    = w_instr.op ==? `MANYCORE_JAL_OP;
   
   // BYTE address computation
-  wire [branch_pc_low_width_lp-1:0] branch_imm_val = `Vanilla_Bimm_13extract(w_instr);
+  wire [branch_pc_low_width_lp-1:0] branch_imm_val = `MANYCORE_Bimm_13extract(w_instr);
   wire [branch_pc_low_width_lp-1:0] branch_pc_val = branch_pc_low_width_lp'({w_pc_i, 2'b0}); 
   
-  wire [jal_pc_low_width_lp-1:0] jal_imm_val = `Vanilla_Jimm_21extract(w_instr);
+  wire [jal_pc_low_width_lp-1:0] jal_imm_val = `MANYCORE_Jimm_21extract(w_instr);
   wire [jal_pc_low_width_lp-1:0] jal_pc_val = jal_pc_low_width_lp'({w_pc_i, 2'b0}); 
   
   logic [branch_pc_low_width_lp-1:0] branch_pc_lower_res;
@@ -124,9 +124,9 @@ module icache
   
   // Inject the 2-BYTE (half) address, the LSB is ignored.
   wire [instr_width_gp-1:0] injected_instr = write_branch_instr
-    ? `Vanilla_Bimm_12inject1(w_instr, branch_pc_lower_res)
+    ? `MANYCORE_Bimm_12inject1(w_instr, branch_pc_lower_res)
     : (write_jal_instr
-      ? `Vanilla_Jimm_20inject1(w_instr, jal_pc_lower_res)
+      ? `MANYCORE_Jimm_20inject1(w_instr, jal_pc_lower_res)
       : w_instr);
 
   wire imm_sign = write_branch_instr
@@ -275,15 +275,15 @@ module icache
     end
   end
 
-  wire is_jal_instr =  instr_out.op == `VANILLA_JAL_OP;
-  wire is_jalr_instr = instr_out.op == `VANILLA_JALR_OP;
+  wire is_jal_instr =  instr_out.op == `MANYCORE_JAL_OP;
+  wire is_jalr_instr = instr_out.op == `MANYCORE_JALR_OP;
 
   // these are bytes address
   logic [pc_width_lp+2-1:0] jal_pc;
   logic [pc_width_lp+2-1:0] branch_pc;
    
-  assign branch_pc = {branch_pc_high_out, `Vanilla_Bimm_13extract(instr_out)};
-  assign jal_pc = {jal_pc_high_out, `Vanilla_Jimm_21extract(instr_out)};
+  assign branch_pc = {branch_pc_high_out, `MANYCORE_Bimm_13extract(instr_out)};
+  assign jal_pc = {jal_pc_high_out, `MANYCORE_Jimm_21extract(instr_out)};
 
   // assign outputs.
   assign instr_o = instr_out;

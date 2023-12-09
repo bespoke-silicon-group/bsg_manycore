@@ -1,5 +1,5 @@
-`ifndef BSG_VANILLA_DEFINES_VH
-`define BSG_VANILLA_DEFINES_VH
+`ifndef BSG_MANYCORE_INSTRUCTION_DEFINES_VH
+`define BSG_MANYCORE_INSTRUCTION_DEFINES_VH
 
 /**
  *  bsg_manycore_instructions_defines.vh
@@ -142,7 +142,7 @@
 `define MANYCORE_CSR_FRM_ADDR     12'h002
 `define MANYCORE_CSR_FCSR_ADDR    12'h003
 // machine CSR addr
-`define VANILLA_CSR_CFG_POD_ADDR   12'h360
+`define MANYCORE_CSR_CFG_POD_ADDR   12'h360
 
 // machine custom CSR addr
 `define MANYCORE_CSR_CREDIT_LIMIT_ADDR 12'hfc0
