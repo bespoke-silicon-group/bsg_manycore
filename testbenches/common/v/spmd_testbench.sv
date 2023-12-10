@@ -31,7 +31,6 @@ module spmd_testbench
   parameter barrier_ruche_factor_X_p    = `BSG_MACHINE_BARRIER_RUCHE_FACTOR_X;
 
 
-  parameter num_vcache_rows_p = `BSG_MACHINE_NUM_VCACHE_ROWS;
   parameter vcache_data_width_p = data_width_p;
   parameter vcache_sets_p = `BSG_MACHINE_VCACHE_SET;
   parameter vcache_ways_p = `BSG_MACHINE_VCACHE_WAY;
@@ -41,7 +40,7 @@ module spmd_testbench
   parameter vcache_addr_width_p=(addr_width_p-1+`BSG_SAFE_CLOG2(data_width_p>>3));  // in bytes
   parameter vcache_word_tracking_p = `BSG_MACHINE_VCACHE_WORD_TRACKING;
   parameter num_vcaches_per_channel_p = `BSG_MACHINE_NUM_VCACHES_PER_CHANNEL;  
-
+  parameter ipoly_hashing_p = `BSG_MACHINE_IPOLY_HASHING;
 
   parameter wh_flit_width_p = vcache_dma_data_width_p;
   parameter wh_ruche_factor_p = `BSG_MACHINE_WH_RUCHE_FACTOR;
@@ -109,7 +108,6 @@ module spmd_testbench
     ,.num_subarray_x_p(num_subarray_x_p)
     ,.num_subarray_y_p(num_subarray_y_p)
 
-    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_data_width_p(vcache_data_width_p)
     ,.vcache_sets_p(vcache_sets_p)
     ,.vcache_ways_p(vcache_ways_p)
@@ -119,6 +117,7 @@ module spmd_testbench
     ,.vcache_addr_width_p(vcache_addr_width_p)
     ,.vcache_word_tracking_p(vcache_word_tracking_p)
     ,.num_vcaches_per_channel_p(num_vcaches_per_channel_p)
+    ,.ipoly_hashing_p(ipoly_hashing_p)
 
     ,.wh_flit_width_p(wh_flit_width_p)
     ,.wh_ruche_factor_p(wh_ruche_factor_p)

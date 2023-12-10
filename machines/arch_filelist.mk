@@ -76,6 +76,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_unconcentrate_static.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mux2_gatestack.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_counting_leading_zeros.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mul_add_unsigned.sv
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_hashing_ipoly.sv
 
 
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_client.sv

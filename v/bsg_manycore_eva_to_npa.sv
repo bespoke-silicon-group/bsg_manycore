@@ -29,13 +29,13 @@ module bsg_manycore_eva_to_npa
  
     , `BSG_INV_PARAM(num_tiles_x_p)
     , `BSG_INV_PARAM(num_tiles_y_p)
-    , localparam x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
-    , y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
-
-    , parameter `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)  // block size in vcache
     , `BSG_INV_PARAM(vcache_size_p) // vcache capacity in words
     , `BSG_INV_PARAM(vcache_sets_p) // number of sets in vcache
+    , `BSG_INV_PARAM(ipoly_hashing_p)
+    , localparam x_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , y_subcord_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
+
   )
   (
     // EVA 32-bit virtual address used by vanilla core
@@ -60,7 +60,6 @@ module bsg_manycore_eva_to_npa
   //
   localparam vcache_word_offset_width_lp = `BSG_SAFE_CLOG2(vcache_block_size_in_words_p);
   localparam lg_vcache_size_lp = `BSG_SAFE_CLOG2(vcache_size_p);
-  localparam vcache_row_id_width_lp = `BSG_SAFE_CLOG2(2*num_vcache_rows_p);
 
 
   // figure out what type of EVA this is.
@@ -93,8 +92,8 @@ module bsg_manycore_eva_to_npa
     ,.pod_y_cord_width_p(pod_y_cord_width_p)
     ,.x_subcord_width_p(x_subcord_width_lp)
     ,.y_subcord_width_p(y_subcord_width_lp)
-    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+    ,.ipoly_hashing_p(ipoly_hashing_p)
   ) dram_hash (
     .eva_i(eva_i)
     ,.pod_x_i(pod_x_i)

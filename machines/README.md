@@ -13,8 +13,7 @@ Machine.machine.include parameters
 - BSG_MACHINE_RUCHE_FACTOR_X            =   the [ruche](https://michaeltaylor.org/papers/Jung_NOCS_2020_Ruche_Networks.pdf) factor of the network.
 - BSG_MACHINE_BARRIER_RUCHE_FACTOR_X    =   the ruche factor of barrier network.
 
-- BSG_MACHINE_NUM_VCACHE_ROWS           =   number of vcache rows on each side of pod (north and south).
-                                            (allowed val = 1,2,4)
+- BSG_MACHINE_NUM_VCACHE_ROWS           =   number of vcache rows on each side of pod (north and south) (deprecated).
 - BSG_MACHINE_VCACHE_SET                =   number of sets in each vcache
 - BSG_MACHINE_VCACHE_WAY                =   number of ways in each vcache
 - BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS   =   number of words in each vcache block.
@@ -49,4 +48,5 @@ Machine.machine.include parameters
 - BSG_MACHINE_SUBARRAY_X                =   A physical design parameter breaking up pods into smaller hierarchical columns
 - BSG_MACHINE_SUBARRAY_Y                =   A physical design parameter breaking up pods into smaller hierarchical rows
 
+- BSG_MACHINE_IPOLY_HASHING             =   Enable IPOLY DRAM hashing;
 ```

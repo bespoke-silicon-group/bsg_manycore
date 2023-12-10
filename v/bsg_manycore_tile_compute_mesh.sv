@@ -30,9 +30,9 @@ module bsg_manycore_tile_compute_mesh
 
     , barrier_ruche_factor_X_p = 3
 
-    , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_sets_p)
+    , `BSG_INV_PARAM(ipoly_hashing_p) 
 
     , parameter dims_p = 2
     , localparam dirs_lp = (dims_p*2)
@@ -193,9 +193,9 @@ module bsg_manycore_tile_compute_mesh
     ,.hetero_type_p(hetero_type_p)
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
-    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_sets_p(vcache_sets_p)
+    ,.ipoly_hashing_p(ipoly_hashing_p)      
     ,.fwd_fifo_els_p(fwd_fifo_els_lp[0])
     ,.rev_fifo_els_p(rev_fifo_els_lp[0])
     ,.barrier_dirs_p(barrier_dirs_p)

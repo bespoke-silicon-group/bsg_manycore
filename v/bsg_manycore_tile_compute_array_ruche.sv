@@ -15,7 +15,6 @@ module bsg_manycore_tile_compute_array_ruche
     , `BSG_INV_PARAM(icache_tag_width_p )
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
-    , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_size_p ) // capacity per vcache in words
     , `BSG_INV_PARAM(vcache_block_size_in_words_p )
     , `BSG_INV_PARAM(vcache_sets_p )
@@ -43,6 +42,9 @@ module bsg_manycore_tile_compute_array_ruche
 
     // barrier ruche factor
     , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
+
+    // IPOLY hashing
+    , `BSG_INV_PARAM(ipoly_hashing_p)
 
     // global coordinate width
     // global_x/y_i
@@ -165,11 +167,11 @@ module bsg_manycore_tile_compute_array_ruche
         ,.debug_p(debug_p)
         ,.num_tiles_x_p(num_tiles_x_p)
         ,.num_tiles_y_p(num_tiles_y_p)
-        ,.num_vcache_rows_p(num_vcache_rows_p)
         ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
         ,.vcache_sets_p(vcache_sets_p)
         ,.ruche_factor_X_p(ruche_factor_X_p)
         ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+        ,.ipoly_hashing_p(ipoly_hashing_p)
       ) tile (
         .clk_i(clk_i[c/(subarray_num_tiles_x_p/num_clk_ports_p)])
 
