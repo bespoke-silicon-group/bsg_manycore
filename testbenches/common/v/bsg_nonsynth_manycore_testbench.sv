@@ -912,7 +912,7 @@ if (enable_cache_profiling_p) begin
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
     ,.block_size_in_words_p(block_size_in_words_p)
-    ,.header_print_p({`BSG_STRINGIFY(`HOST_MODULE_PATH),".testbench.fi1.DUT.py[0].podrow.px[0].pod.north_vc_x[0].north_vc_row.vc_y[0].vc_x[0].vc.cache.vcache_prof"})
+    ,.header_print_p({`BSG_STRINGIFY(`HOST_MODULE_PATH),".testbench.fi1.DUT.py[0].podrow.px[0].pod.north_vc_x[0].north_vc_row.vc_x[0].vc.cache.vcache_prof"})
     ,.ways_p(ways_p)
   ) vcache_prof (
     // everything else
