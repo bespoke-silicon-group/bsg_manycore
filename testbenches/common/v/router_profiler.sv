@@ -9,7 +9,7 @@
   // output format:
   //    {timestamp},{global_ctr},{x},{y},{XY_order_p},{output_dir},{idle},{utilized},{stalled},{arbitrated}
 
-`include "bsg_manycore_defines.vh"
+`include "bsg_manycore_defines.svh"
 
 module router_profiler
   import bsg_noc_pkg::*;
