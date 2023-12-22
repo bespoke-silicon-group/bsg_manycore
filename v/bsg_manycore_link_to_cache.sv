@@ -273,7 +273,8 @@ module bsg_manycore_link_to_cache
         if (packet_lo.addr[link_addr_width_p-1-:2] == 2'b11) begin
 
           case (packet_lo.op_v2)
-            e_remote_store: cache_pkt.opcode = TAGLA; // it injects TAGLA as noop;
+            e_remote_store
+            ,e_remote_sw: cache_pkt.opcode = TAGLA; // it injects TAGLA as noop;
             default: begin
               cache_pkt.opcode = TAGLA;
               // synopsys translate_off
