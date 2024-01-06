@@ -3,7 +3,7 @@
 #include "bsg_set_tile_x_y.h"
 
 //#define N 536870912
-#define N 32768
+#define N (1UL<<28)
 #define VCACHE_LINE_WORDS 8
 #define VCACHE_LINE_BYTES 32
 
