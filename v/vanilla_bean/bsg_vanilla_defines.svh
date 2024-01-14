@@ -1,15 +1,15 @@
-`ifndef BSG_RISCV_DEFINES_VH
-`define BSG_RISCV_DEFINES_VH
+`ifndef BSG_RISCV_DEFINES_SVH
+`define BSG_RISCV_DEFINES_SVH
 
 /**
- *  bsg_vanilla_defines.vh
+ *  bsg_vanilla_defines.svh
  *  
  *  This file defines the macros
  *  used for Vanilla ISA operations throughout the vanilla core.
  *
  */
 
-`include "bsg_manycore_instruction_defines.vh"
+`include "bsg_manycore_instruction_defines.svh"
 
 // Vanilla Opcodes
 `define VANILLA_LOAD     `MANYCORE_LOAD
@@ -212,4 +212,3 @@
 `define VANILLA_FSQRT_S  {7'b0101100, 5'b00000, 5'b?????, 3'b???, 5'b?????, 7'b0101100}
 
 `endif
-

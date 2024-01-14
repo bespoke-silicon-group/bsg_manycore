@@ -1,5 +1,5 @@
 /**
- *  icache.v
+ *  icache.sv
  *
  *  Instruction cache for manycore. 
  *
@@ -9,7 +9,7 @@
  *  https://docs.google.com/presentation/d/1ZeRHYhqMHJQ0mRgDTilLuWQrZF7On-Be_KNNosgeW0c/edit#slide=id.g10d2e6febb9_1_0
  */
 
-`include "bsg_manycore_instruction_defines.vh"
+`include "bsg_manycore_instruction_defines.svh"
 
 module icache
   import bsg_vanilla_pkg::*;

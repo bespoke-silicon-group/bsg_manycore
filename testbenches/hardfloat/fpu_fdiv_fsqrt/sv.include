@@ -1,12 +1,12 @@
-$BSG_MANYCORE_DIR/v/bsg_manycore_pkg.v
-$BSG_MANYCORE_DIR/v/vanilla_bean/bsg_vanilla_pkg.v
+$BSG_MANYCORE_DIR/v/bsg_manycore_pkg.sv
+$BSG_MANYCORE_DIR/v/vanilla_bean/bsg_vanilla_pkg.sv
 $HARDFLOAT_DIR/source/HardFloat_primitives.v
 $HARDFLOAT_DIR/source/HardFloat_consts.vi
 $HARDFLOAT_DIR/source/HardFloat_localFuncs.vi
 $HARDFLOAT_DIR/source/RISCV/HardFloat_specialize.v
 $HARDFLOAT_DIR/source/RISCV/HardFloat_specialize.vi
 $BASEJUMP_STL_DIR/bsg_misc/bsg_defines.sv
-test_fpu_fdiv_fsqrt.v
+test_fpu_fdiv_fsqrt.sv
 $HARDFLOAT_DIR/source/fNToRecFN.v
 $BASEJUMP_STL_DIR/bsg_misc/bsg_counting_leading_zeros.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode.sv
@@ -14,7 +14,7 @@ $BASEJUMP_STL_DIR/bsg_misc/bsg_priority_encode_one_hot_out.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_scan.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_encode_one_hot.sv
 $BASEJUMP_STL_DIR/bsg_misc/bsg_mux_one_hot.sv
-$BSG_MANYCORE_DIR/v/vanilla_bean/fpu_fdiv_fsqrt.v
+$BSG_MANYCORE_DIR/v/vanilla_bean/fpu_fdiv_fsqrt.sv
 $HARDFLOAT_DIR/source/divSqrtRecFN.v
 $HARDFLOAT_DIR/source/divSqrtRecFN_medium.v
 $HARDFLOAT_DIR/source/divSqrtRecFN_small.v

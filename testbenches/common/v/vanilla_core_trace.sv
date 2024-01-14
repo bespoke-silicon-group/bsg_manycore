@@ -1,5 +1,5 @@
 
-`include "bsg_vanilla_defines.vh"
+`include "bsg_vanilla_defines.svh"
 
 module vanilla_core_trace
   import bsg_vanilla_pkg::*;

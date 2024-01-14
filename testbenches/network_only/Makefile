@@ -31,15 +31,15 @@ DESIGN_SRCS = \
     bsg_misc/bsg_round_robin_arb.sv bsg_misc/bsg_arb_fixed.v bsg_misc/bsg_priority_encode.v bsg_misc/bsg_priority_encode_one_hot_out.v \
     bsg_misc/bsg_mux_one_hot.sv bsg_misc/bsg_encode_one_hot.v bsg_misc/bsg_scan.v bsg_misc/bsg_counter_up_down.v \
     bsg_misc/bsg_circular_ptr.sv bsg_mem/bsg_mem_1r1w.v  bsg_dataflow/bsg_fifo_tracker.v  bsg_misc/bsg_dff_reset.v        \
-    bsg_mem/bsg_mem_1rw_sync_mask_write_byte.sv bsg_mem/bsg_mem_1rw_sync.v bsg_dataflow/bsg_fifo_1r1w_small.v bsg_dataflow/bsg_two_fifo.v \
+    bsg_mem/bsg_mem_1rw_sync_mask_write_byte.sv bsg_mem/bsg_mem_1rw_sync.sv bsg_dataflow/bsg_fifo_1r1w_small.v bsg_dataflow/bsg_two_fifo.v \
     bsg_test/bsg_nonsynth_clock_gen.sv bsg_test/bsg_nonsynth_reset_gen.v bsg_noc/bsg_mesh_router.v bsg_noc/bsg_mesh_stitch.v \
     bsg_noc/bsg_mesh_router_buffered.sv bsg_misc/bsg_decode_with_v.v bsg_misc/bsg_decode.v bsg_misc/bsg_dff_reset_en.v bsg_misc/bsg_counter_clear_up.v) \
   $(addprefix $(BSG_MANYCORE_DIR)/v/, bsg_manycore_mesh.v bsg_manycore_mesh_node.v bsg_manycore_pkt_encode.v bsg_manycore_pkt_decode.v bsg_manycore_packet_streamer.v \
-                                      bsg_manycore_endpoint.v bsg_manycore_endpoint_standard.v bsg_manycore_link_sif_tieoff.v bsg_manycore_accel_default.v ) \
-  $(addprefix $(BSG_MANYCORE_DIR)/testbenches/network_only/, adn_example.v ) \
-  $(addprefix $(BSG_MANYCORE_DIR)/testbenches/common/v/, bsg_nonsynth_manycore_packet_printer.v)
+                                      bsg_manycore_endpoint.sv bsg_manycore_endpoint_standard.v bsg_manycore_link_sif_tieoff.v bsg_manycore_accel_default.v ) \
+  $(addprefix $(BSG_MANYCORE_DIR)/testbenches/network_only/, adn_example.sv ) \
+  $(addprefix $(BSG_MANYCORE_DIR)/testbenches/common/v/, bsg_nonsynth_manycore_packet_printer.sv)
 
-TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/network_only/test_bsg_manycore.v
+TOP_LEVEL = $(BSG_MANYCORE_DIR)/testbenches/network_only/test_bsg_manycore.sv
 
 all: gen_adn.run
 

@@ -19,7 +19,7 @@ map to FPGA, you will have to find another way to output data in the
 real world.)
 
 2a. The accelerator that is instantiated is the file
-bsg_manycore_accel_default.v.  It has three addresses that you send
+bsg_manycore_accel_default.sv.  It has three addresses that you send
 packets to. Address 1 sets the X,Y coordinate of where it sends its
 output. Address 0 sets the address at that X,Y node that it will send
 the data to.  When you write to address 2, it will forward the
@@ -27,7 +27,7 @@ incoming data to the place specified by the last values you wrote to
 Address 0 and 1. Thus, there is a way to easily build chains of
 accelerators.
 
-2b. The bsg_manycore_accel_default.v is a kind of template for
+2b. The bsg_manycore_accel_default.sv is a kind of template for
 implementing your own accelerators. It makes use of the
 bsg_manycore_endpoint_standard module (this instantiates the
 bsg_manycore_endpoint module but adds a bunch of functionality that is
@@ -41,7 +41,7 @@ modules you have already developed (it says "CUSTOMIZE BELOW").
 
 a. If you change the number of packets in the trace file used by the
 packet_streamer, you need to update the constant rom_words_lp in
-adn_example.v
+adn_example.sv
 
 b. If you add or remove I/O devices, you will need to change the
 stub_s_p parameter to stub out the I/O device.
@@ -54,7 +54,7 @@ change would be the input.trace file.
 
 d. If you have an internal network accelerator position that is
 unattached to anything, you would need to tie it off. You can use the
-bsg_manycore_link_sif_tieoff.v module to do this. (I/O positions are
+bsg_manycore_link_sif_tieoff.sv module to do this. (I/O positions are
 tied off with the stub_s_p, which actually should remove the
 unnecessary logic in synthesis.)
 

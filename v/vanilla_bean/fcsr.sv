@@ -1,9 +1,9 @@
 /**
- *    fcsr.v
+ *    fcsr.sv
  *
  */
 
-`include "bsg_manycore_instruction_defines.vh"
+`include "bsg_manycore_instruction_defines.svh"
 
 module fcsr
   import bsg_vanilla_pkg::*;

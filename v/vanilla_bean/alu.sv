@@ -1,5 +1,5 @@
 
-`include "bsg_manycore_instruction_defines.vh"
+`include "bsg_manycore_instruction_defines.svh"
 
 module alu
   import bsg_vanilla_pkg::*;

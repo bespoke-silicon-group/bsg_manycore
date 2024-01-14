@@ -311,9 +311,9 @@ SKIP_ZEROS ?= 0
 		$(BSG_MACHINE_ORIGIN_X_CORD) $(BSG_MACHINE_ORIGIN_Y_CORD) \
 		$(BSG_MACHINE_PODS_X) $(BSG_MACHINE_PODS_Y) \
 		$(bsg_pods_X) $(bsg_pods_Y) \
-		$(BSG_MACHINE_NUM_VCACHE_ROWS) \
 		$(SKIP_DRAM_INSTRUCTION_LOAD) \
-		$(SKIP_ZEROS) > $*.nbf
+		$(SKIP_ZEROS) \
+		$(BSG_MACHINE_IPOLY_HASHING) > $*.nbf
 
 %.bin:  %.hex
 	python $(HEX2BIN) $< 32 > $@

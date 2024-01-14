@@ -20,8 +20,8 @@
 // {type}         can be icache, float, or int (int includes atomic).
 // {latency}      # of cycles to complete remote load. (end_cycle - start_cycle)
 
-`include "bsg_manycore_defines.vh"
-`include "profiler.vh"
+`include "bsg_manycore_defines.svh"
+`include "profiler.svh"
 
 module remote_load_trace
   import bsg_manycore_pkg::*;

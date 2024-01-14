@@ -1,5 +1,5 @@
 /**
- *    fpu_fmin_fmax.v
+ *    fpu_fmin_fmax.sv
  *  
  */
 
@@ -10,7 +10,7 @@
 //   If only one operand is a NaN, the result is non-NaN operand.
 //  Signaling NaN inputs set the invalid exception flag, even when the result is not NaN.
 
-`include "bsg_manycore_instruction_defines.vh"
+`include "bsg_manycore_instruction_defines.svh"
 
 module fpu_fmin_fmax 
   #(`BSG_INV_PARAM(exp_width_p)
