@@ -40,7 +40,7 @@ module vanilla_scoreboard_tracker
   wire [reg_addr_width_lp-1:0] id_rs1 = id_r.instruction.rs1;
   wire [reg_addr_width_lp-1:0] id_rd = id_r.instruction.rd;
   wire [9:0] id_imm_plus4 = 1'b1 + mem_addr_op2[11:2];
-  wire [11:0] if_load_imm = `Vanilla_Iimm_12extract(instruction);
+  wire [11:0] if_load_imm = `VANILLA_Iimm_12extract(instruction);
   
   wire is_seq_lw  = id_r.decode.is_load_op & decode.is_load_op
                   & id_r.decode.write_rd & decode.write_rd

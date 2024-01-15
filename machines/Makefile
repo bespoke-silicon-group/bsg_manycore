@@ -26,9 +26,9 @@ all: $(DEFAULT_TARGETS) $(DEFAULT_DEBUG_TARGETS) $(DEFAULT_PROFILE_TARGETS)
 
 # Include source lists
 # We include different source lists for different ISAs
-ifeq ($(BSG_MANYCORE_ISA_DIR),VANILLA)
+ifeq ($(BSG_MACHINE_ISA),VANILLA)
 include $(BSG_MANYCORE_DIR)/machines/arch_filelist.mk
-else ifeq ($(BSG_MANYCORE_ISA_DIR),RISCV)
+else ifeq ($(BSG_MACHINE_ISA),RISCV)
 include $(BSG_MANYCORE_ISA_DIR)/RISCV/arch_filelist.mk
 endif
 
