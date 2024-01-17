@@ -17,10 +17,6 @@ DEFAULT_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/$(BSG_SIM_BA
 DEFAULT_DEBUG_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/$(BSG_SIM_BASE)-debug)
 DEFAULT_PROFILE_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/$(BSG_SIM_BASE)-profile)
 
-# Default Machine ISA is Vanilla. This can be modified to any of the supported ISA in the repository bsg_manycore_ISA
-# Note that you would have to sync the above repository as well to use another ISA
-BSG_MACHINE_ISA ?= VANILLA
-
 # set_vcs_machine_variables includes the Makefile.machine.include file and sets the
 all: $(DEFAULT_TARGETS) $(DEFAULT_DEBUG_TARGETS) $(DEFAULT_PROFILE_TARGETS)
 
@@ -32,7 +28,12 @@ else ifeq ($(BSG_MACHINE_ISA),RISCV)
 include $(BSG_MANYCORE_ISA_DIR)/RISCV/arch_filelist.mk
 endif
 
-include sim_filelist.mk
+# We include different sim lists for different ISAs
+ifeq ($(BSG_MACHINE_ISA),VANILLA)
+include $(BSG_MANYCORE_DIR)/machines/sim_filelist.mk
+else ifeq ($(BSG_MACHINE_ISA),RISCV)
+include $(BSG_MANYCORE_ISA_DIR)/RISCV/sim_filelist.mk
+endif
 
 include Makefile.vcs
 include Makefile.verilator
