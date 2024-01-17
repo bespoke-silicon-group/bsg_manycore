@@ -4,7 +4,7 @@
 
 #define DX 0
 #define LEN 32
-#define REPEAT 8
+#define REPEAT 100000000
 
 int data[LEN];
 

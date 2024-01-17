@@ -4,7 +4,7 @@
 
 #define DX 0
 #define LEN 32
-#define REPEAT 8
+#define REPEAT 200000000
 
 int data[LEN];
 int hold;
@@ -20,26 +20,30 @@ int main()
   // Words to store;
   uint32_t word0 = 0xaaaaaaaa;
   uint32_t word1 = 0x55555555;
-  
+
+  // 
+  uint32_t send_right = (__bsg_x == 0) ||  (__bsg_x == 8); 
+  uint32_t send_left  = (__bsg_x == 7) ||  (__bsg_x == 15); 
+ 
   // calculate dest addr;
   volatile uint32_t* dest_addr;
-  if (__bsg_x == 0) {
+  if (send_right) {
     dest_addr  = (uint32_t*) (
       0x20000000 |
       (__bsg_y<<24) |
-      (DX<<18) |
+      ((__bsg_x+DX)<<18) |
       ((int) &data[0])
     );
-  } else if (__bsg_x == 15) {
+  } else if (send_left) {
     dest_addr  = (uint32_t*) (
       0x20000000 |
       (__bsg_y<<24) |
-      ((15-DX)<<18) |
+      ((__bsg_x-DX)<<18) |
       ((int) &data[0])
     );
   }
   
-  if ((__bsg_x == 0) || (__bsg_x == 15)) {
+  if (send_left || send_right) {
     // send remote stores;
     bsg_unroll(1)
     for (int i = 0; i < REPEAT; i++) {
