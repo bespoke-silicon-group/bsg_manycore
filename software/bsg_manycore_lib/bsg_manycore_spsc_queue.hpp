@@ -9,7 +9,7 @@ class bsg_manycore_spsc_queue_recv {
 private:
     volatile T *buffer;
     volatile int *count;
-    int rptr;
+    volatile int rptr;
 
 public:
     bsg_manycore_spsc_queue_recv(T *buffer, int *count) 
@@ -27,14 +27,16 @@ public:
             return false;
         }
 
+        bsg_compiler_memory_barrier();
         *data = buffer[rptr];
+        bsg_compiler_memory_barrier();
         // Probably faster than modulo, but should see if compiler
         //   optimizes...
         if (++rptr == S)
         {
             rptr = 0;
         }
-        bsg_fence();
+        bsg_compiler_memory_barrier();
         bsg_amoadd(count, -1);
 
         return true;
@@ -58,7 +60,7 @@ class bsg_manycore_spsc_queue_send {
 private:
     volatile T *buffer;
     volatile int *count;
-    int wptr;
+    volatile int wptr;
 
 public:
     bsg_manycore_spsc_queue_send(T *buffer, int *count) 
@@ -74,13 +76,14 @@ public:
         if (is_full()) return false;
 
         buffer[wptr] = data;
+        bsg_compiler_memory_barrier();
         // Probably faster than modulo, but should see if compiler
         //   optimizes...
         if (++wptr == S)
         {
             wptr = 0;
         }
-        bsg_fence();
+        bsg_compiler_memory_barrier();
         bsg_amoadd(count, 1);
 
         return true;
