@@ -11,26 +11,44 @@
 #define K NUM_KERNELS
 #define N BUFFER_SIZE
 
-// Declaring kernels as extern
-extern "C" int kernel0(int *buffer, int n, int *sync, int k);
-extern "C" int kernel1(int *buffer, int n, int *sync, int k);
-extern "C" int kernel2(int *buffer, int n, int *sync, int k);
-extern "C" int kernel3(int *buffer, int n, int *sync, int k);
-extern "C" int kernel4(int *buffer, int n, int *sync, int k);
-extern "C" int kernel5(int *buffer, int n, int *sync, int k);
-extern "C" int kernel6(int *buffer, int n, int *sync, int k);
-extern "C" int kernel7(int *buffer, int n, int *sync, int k);
+#define MAKE_KERNEL_DEF(x) kernel##x
+#define KERNEL_DEF(x) \
+  extern "C" __attribute__ ((noinline))                                               \
+  int MAKE_KERNEL_DEF(x)(int *buffer, int n, int *sync, int k) {                      \
+  bsg_printf("Hello from kernel %d -- Tile X: %d Tile Y: %d\n", x, __bsg_x, __bsg_y); \
+                                                                                      \
+  for (int i = 0; i < n; i++) {                                                       \
+      buffer[x*n+i] += 100*(x+1);                                                     \
+      bsg_printf("kernel %d Process[%d]: %d\n", x, i, buffer[x*n+i]);                 \
+  }                                                                                   \
+                                                                                      \
+  volatile int *sync_ptr = sync;                                                      \
+  int sync_val;                                                                       \
+  bsg_printf("[kernel %d] Trying to sync to EVA: %x", x, sync);                       \
+  bsg_amoadd(sync, 1);                                                                \
+  while ((sync_val = *sync_ptr) < k) {                                                \
+     bsg_printf("[kernel %d] Waiting for sync_ptr == %d (%d)", x, k, sync_val);       \
+  }                                                                                   \
+                                                                                      \
+  return 0;                                                                           \
+}
 
-// Some global variables needed for the kernels
-int buffer[K*N] __attribute__ ((section (".dram")));
-int sync __attribute__ ((section (".dram"))) = 0;
-
-// Some global variables needed for amoadd barrier
 extern "C" void bsg_barrier_amoadd(int*, int*);
 int amoadd_lock __attribute__ ((section (".dram"))) = 0;
 int amoadd_alarm = 1;
 
-// Preamble, setup only done by core 0
+int buffer[K*N] __attribute__ ((section (".dram")));
+int sync __attribute__ ((section (".dram"))) = 0;
+
+KERNEL_DEF(0)
+KERNEL_DEF(1)
+KERNEL_DEF(2)
+KERNEL_DEF(3)
+KERNEL_DEF(4)
+KERNEL_DEF(5)
+KERNEL_DEF(6)
+KERNEL_DEF(7)
+
 void preamble() {
     for (int j = 0; j < K; j++) {
         for (int i = 0; i < N; i++) { /* fill A with increasing data */
@@ -40,7 +58,6 @@ void preamble() {
     }
 }
 
-// Postamble, cleanup only done by core 0
 void postamble() {
     for (int j = 0; j < K; j++) {
         for (int i = 0; i < N; i++) {
@@ -67,13 +84,12 @@ int main()
   bsg_set_tile_x_y();
   bsg_fence();
 
-  // Do some setup from your "host" tile
+  // Do some setup
   if (__bsg_id == 0) {
     preamble();
   }
 
-  // Launch to individual kernels
-  // (must synchronize before and after)
+  // Jump to the actual kernels
   bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm); 
   switch (__bsg_id) {
     case 0: kernel0(buffer, N, &sync, K); break;
@@ -87,7 +103,7 @@ int main()
   }
   bsg_barrier_amoadd(&amoadd_lock, &amoadd_alarm); 
 
-  // Do some cleanup if necessary 
+  // Do some cleanup  
   if (__bsg_id == 0) {
     postamble();
   }
