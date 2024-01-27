@@ -2,7 +2,7 @@
 #include "bsg_set_tile_x_y.h"
 #include <stdint.h>
 
-#define REPEAT 100000000
+#define REPEAT 300000000
 
 int data;
 int hold;
