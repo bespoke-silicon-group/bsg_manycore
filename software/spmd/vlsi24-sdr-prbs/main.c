@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 //#define REPEAT 100000000
-#define REPEAT 16
+#define REPEAT 1000000
 #define BUFFER_LEN_WORDS 8
 #define BUFFER_LEN_BYTES 32
 
@@ -25,8 +25,8 @@ int main()
   int pod_x = cfg_pod & 0x7;
   int pod_y = (cfg_pod & 0x78) >> 3; // 1 = podrow 0, 3 = podrow1;
   int global_x = (pod_x<<4) + __bsg_x;
-  uint32_t send_down    = (pod_y == 1) && (__bsg_y == 7); // y = 15
-  uint32_t send_up      = (pod_y == 3) && (__bsg_y == 0); // y = 24
+  uint32_t send_down    = (pod_y == 1) && (__bsg_y == 7) && (global_x != 31) && (global_x != 42) && (global_x != 45) && (global_x != 46) && (global_x != 51) && (global_x != 55) && (global_x != 59) && (global_x != 71); // y = 15
+  uint32_t send_up      = (pod_y == 3) && (__bsg_y == 0) && (global_x != 31) && (global_x != 45); // y = 24
  
   // calculate dest addr;
   volatile uint32_t* dest_addr;
