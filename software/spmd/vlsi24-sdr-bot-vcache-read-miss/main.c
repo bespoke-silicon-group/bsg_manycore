@@ -2,7 +2,7 @@
 #include "bsg_set_tile_x_y.h"
 #include <stdint.h>
 
-#define REPEAT 1
+#define REPEAT 1000
 #define MAX_INDEX 2048
 
 int hold;
