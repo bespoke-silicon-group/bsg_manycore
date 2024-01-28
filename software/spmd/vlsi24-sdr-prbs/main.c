@@ -25,8 +25,8 @@ int main()
   int pod_x = cfg_pod & 0x7;
   int pod_y = (cfg_pod & 0x78) >> 3; // 1 = podrow 0, 3 = podrow1;
   int global_x = (pod_x<<4) + __bsg_x;
-  uint32_t send_down    = (pod_y == 1) && (__bsg_y == 7) && (global_x != 31) && (global_x != 42) && (global_x != 45) && (global_x != 46) && (global_x != 51) && (global_x != 55) && (global_x != 59) && (global_x != 71); // y = 15
-  uint32_t send_up      = (pod_y == 3) && (__bsg_y == 0) && (global_x != 31) && (global_x != 45); // y = 24
+  uint32_t send_down    = (pod_y == 1) && (__bsg_y == 7); // y = 15
+  uint32_t send_up      = (pod_y == 3) && (__bsg_y == 0); // y = 24
  
   // calculate dest addr;
   volatile uint32_t* dest_addr;
@@ -71,30 +71,37 @@ int main()
       asm volatile("": : :"memory");
       dest_addr[0] = temp0;
       dest_addr[1] = temp1;
+      bsg_fence();
       dest_addr[2] = temp2;
       dest_addr[3] = temp3;
+      bsg_fence();
       dest_addr[4] = temp4;
       dest_addr[5] = temp5;
+      bsg_fence();
       dest_addr[6] = temp6;
       dest_addr[7] = temp7;
+      bsg_fence();
       asm volatile("": : :"memory");
       // remote load;
+      // verify;
       uint32_t val0 = dest_addr[0];
       uint32_t val1 = dest_addr[1];
+      asm volatile("": : :"memory");
+      if (val0 != local_buffer[0]) bsg_fail();
+      if (val1 != local_buffer[1]) bsg_fail();
       uint32_t val2 = dest_addr[2];
       uint32_t val3 = dest_addr[3];
+      asm volatile("": : :"memory");
+      if (val2 != local_buffer[2]) bsg_fail();
+      if (val3 != local_buffer[3]) bsg_fail();
       uint32_t val4 = dest_addr[4];
       uint32_t val5 = dest_addr[5];
+      asm volatile("": : :"memory");
+      if (val4 != local_buffer[4]) bsg_fail();
+      if (val5 != local_buffer[5]) bsg_fail();
       uint32_t val6 = dest_addr[6];
       uint32_t val7 = dest_addr[7];
       asm volatile("": : :"memory");
-      // verify;
-      if (val0 != local_buffer[0]) bsg_fail();
-      if (val1 != local_buffer[1]) bsg_fail();
-      if (val2 != local_buffer[2]) bsg_fail();
-      if (val3 != local_buffer[3]) bsg_fail();
-      if (val4 != local_buffer[4]) bsg_fail();
-      if (val5 != local_buffer[5]) bsg_fail();
       if (val6 != local_buffer[6]) bsg_fail();
       if (val7 != local_buffer[7]) bsg_fail();
     }
