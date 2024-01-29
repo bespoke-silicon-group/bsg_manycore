@@ -15,6 +15,11 @@ int main()
   int climit = 31;
   asm volatile ("csrw 0xfc0, %[climit]" : : [climit] "r" (climit));
 
+  // calculate global_x,y;
+  int cfg_pod;
+  asm volatile ("csrr %[cfg_pod], 0x360" : [cfg_pod] "=r" (cfg_pod));
+  int pod_x = cfg_pod & 0x7;
+  int pod_y = (cfg_pod & 0x78) >> 3; // 1 = podrow 0, 3 = podrow1;
   
   // top tile rows;
   uint32_t * myaddr = (uint32_t*) (
@@ -22,7 +27,18 @@ int main()
     (__bsg_x << 5)
   );
 
-  if (__bsg_y == 0) {
+  if (__bsg_y == 0 && pod_y == 1 || __bsg_y == 7 && pod_y == 3) {
+      for (int j = 0; j < MAX_INDEX; j++) {
+        uint32_t * curr_addr = (uint32_t *) ((uint32_t) myaddr | (j << 10));
+        curr_addr[0] = 0x0000ffff;
+        curr_addr[1] = 0xffff0000;
+        curr_addr[2] = 0x0000ffff;
+        curr_addr[3] = 0xffff0000;
+        curr_addr[4] = 0x0000ffff;
+        curr_addr[5] = 0xffff0000;
+        curr_addr[6] = 0x0000ffff;
+        curr_addr[7] = 0xffff0000;
+      }
     for (int i = 0; i < REPEAT; i++) {
       for (int j = 0; j < MAX_INDEX; j++) {
         uint32_t * curr_addr = (uint32_t *) ((uint32_t) myaddr | (j << 10));
