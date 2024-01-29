@@ -16,7 +16,7 @@ int main()
   bsg_set_tile_x_y();
 
   // credit limit to 32;
-  int climit = 31;
+  int climit = 1;
   asm volatile ("csrw 0xfc0, %[climit]" : : [climit] "r" (climit));
 
   // calculate global_x,y;
@@ -71,13 +71,10 @@ int main()
       asm volatile("": : :"memory");
       dest_addr[0] = temp0;
       dest_addr[1] = temp1;
-      bsg_fence();
       dest_addr[2] = temp2;
       dest_addr[3] = temp3;
-      bsg_fence();
       dest_addr[4] = temp4;
       dest_addr[5] = temp5;
-      bsg_fence();
       dest_addr[6] = temp6;
       dest_addr[7] = temp7;
       bsg_fence();
@@ -86,22 +83,19 @@ int main()
       // verify;
       uint32_t val0 = dest_addr[0];
       uint32_t val1 = dest_addr[1];
-      asm volatile("": : :"memory");
-      if (val0 != local_buffer[0]) bsg_fail();
-      if (val1 != local_buffer[1]) bsg_fail();
       uint32_t val2 = dest_addr[2];
       uint32_t val3 = dest_addr[3];
-      asm volatile("": : :"memory");
-      if (val2 != local_buffer[2]) bsg_fail();
-      if (val3 != local_buffer[3]) bsg_fail();
       uint32_t val4 = dest_addr[4];
       uint32_t val5 = dest_addr[5];
-      asm volatile("": : :"memory");
-      if (val4 != local_buffer[4]) bsg_fail();
-      if (val5 != local_buffer[5]) bsg_fail();
       uint32_t val6 = dest_addr[6];
       uint32_t val7 = dest_addr[7];
       asm volatile("": : :"memory");
+      if (val0 != local_buffer[0]) bsg_fail();
+      if (val1 != local_buffer[1]) bsg_fail();
+      if (val2 != local_buffer[2]) bsg_fail();
+      if (val3 != local_buffer[3]) bsg_fail();
+      if (val4 != local_buffer[4]) bsg_fail();
+      if (val5 != local_buffer[5]) bsg_fail();
       if (val6 != local_buffer[6]) bsg_fail();
       if (val7 != local_buffer[7]) bsg_fail();
     }
