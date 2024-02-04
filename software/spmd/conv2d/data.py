@@ -12,7 +12,7 @@ result = torch.nn.functional.conv2d(input_, kernel)
 output = torch.zeros(result.shape, dtype=torch.float32)
 
 def to_c(name, T):
-    result = f"float {name}[{T.numel()}] = "
+    result = f'float {name}[{T.numel()}] __attribute__ ((section ("dmem"))) = '
     result += "{"
     for i in T.flatten():
         result += str(i.item())
