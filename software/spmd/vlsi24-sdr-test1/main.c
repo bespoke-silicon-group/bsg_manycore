@@ -17,7 +17,7 @@ int main()
 
   // Words to store;
   uint32_t word0 = 0x00000000;
-  uint32_t word1 = 0x0f0f0f1f;
+  uint32_t word1 = 0x0f0f0f0f;
 
   // calculate global_x,y;
   int cfg_pod;
