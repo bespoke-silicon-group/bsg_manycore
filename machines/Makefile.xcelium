@@ -61,6 +61,7 @@ define set_xrun_machine_variables
 	$(eval XRUN_DEFINES += +define+BSG_MACHINE_SUBARRAY_X="${BSG_MACHINE_SUBARRAY_X}")
 	$(eval XRUN_DEFINES += +define+BSG_MACHINE_SUBARRAY_Y="${BSG_MACHINE_SUBARRAY_Y}")
 	$(eval XRUN_DEFINES += +define+BSG_MACHINE_VCACHE_WORD_TRACKING="${BSG_MACHINE_VCACHE_WORD_TRACKING}")
+	$(eval XRUN_DEFINES += +define+BSG_MACHINE_IPOLY_HASHING="${BSG_MACHINE_IPOLY_HASHING}")
 	# specify where the host module is instantiated for profiler trigger (print_stat).
 	# relative to $root
 	$(eval XRUN_DEFINES += +define+HOST_MODULE_PATH=spmd_testbench) 
