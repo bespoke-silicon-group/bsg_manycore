@@ -28,7 +28,7 @@ module vanilla_core_pc_histogram
    , input [data_width_p-1:0] if_pc
    , input [data_width_p-1:0] id_pc
    , input [data_width_p-1:0] exe_pc
-   , input instruction_s instruction
+   , input instruction_s instruction_r
    , input decode_s decode
 
    , input flush

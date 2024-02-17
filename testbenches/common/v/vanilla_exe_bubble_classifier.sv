@@ -56,7 +56,7 @@ module vanilla_exe_bubble_classifier
    ,input exe_signals_s exe_r
    ,input fp_exe_ctrl_signals_s fp_exe_ctrl_r
 
-   ,input instruction_s instruction
+   ,input instruction_s instruction_r
    ,input decode_s decode
 
    ,output [pc_width_p-1:0] exe_bubble_pc_o

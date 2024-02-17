@@ -94,7 +94,7 @@ module vanilla_core_profiler
     , input fp_exe_ctrl_signals_s fp_exe_ctrl_r
 
     // IF stage
-    , input instruction_s instruction
+    , input instruction_s instruction_r
     , input decode_s decode
 
     , input [x_cord_width_p-1:0] global_x_i

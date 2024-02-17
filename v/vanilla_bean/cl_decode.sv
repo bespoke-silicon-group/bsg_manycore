@@ -20,6 +20,7 @@ import bsg_manycore_pkg::*;
   input instruction_s instruction_i
   , output decode_s decode_o
   , output fp_decode_s fp_decode_o
+  , output instruction_s instruction_o
 );
 
 
@@ -472,6 +473,10 @@ always_comb begin
       fp_decode_o.fpu_int_op = eFEQ;
     end
   endcase
+end
+
+always_comb begin
+  instruction_o <= instruction_i;
 end
 
 // Unsupported ops:

@@ -26,7 +26,7 @@ module vanilla_scoreboard_tracker
    ,input exe_signals_s exe_r
    ,input fp_exe_ctrl_signals_s fp_exe_ctrl_r
 
-   ,input instruction_s instruction
+   ,input instruction_s instruction_r
    ,input decode_s decode
 
    ,output vanilla_isb_info_s [reg_els_gp-1:0] int_sb_o
@@ -36,11 +36,11 @@ module vanilla_scoreboard_tracker
    ,output logic is_id_seq_flw_o
    );
 
-  wire [reg_addr_width_lp-1:0] if_rs1 = instruction.rs1;
+  wire [reg_addr_width_lp-1:0] if_rs1 = instruction_r.rs1;
   wire [reg_addr_width_lp-1:0] id_rs1 = id_r.instruction.rs1;
   wire [reg_addr_width_lp-1:0] id_rd = id_r.instruction.rd;
   wire [9:0] id_imm_plus4 = 1'b1 + mem_addr_op2[11:2];
-  wire [11:0] if_load_imm = `VANILLA_Iimm_12extract(instruction);
+  wire [11:0] if_load_imm = `VANILLA_Iimm_12extract(instruction_r);
   
   wire is_seq_lw  = id_r.decode.is_load_op & decode.is_load_op
                   & id_r.decode.write_rd & decode.write_rd

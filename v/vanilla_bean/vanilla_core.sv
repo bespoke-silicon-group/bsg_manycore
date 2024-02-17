@@ -152,7 +152,7 @@ module vanilla_core
   logic [data_width_p-1:0] icache_winstr;
 
   logic [pc_width_lp-1:0] pc_n, pc_r;
-  instruction_s instruction;
+  instruction_s instruction_n, instruction_r;
   logic icache_miss;
   logic icache_flush;
   logic icache_flush_r_lo;
@@ -182,7 +182,7 @@ module vanilla_core
     ,.pc_i(pc_n)
     ,.jalr_prediction_i(jalr_prediction)
 
-    ,.instr_o(instruction)
+    ,.instr_o(instruction_n)
     ,.pred_or_jump_addr_o(pred_or_jump_addr)
     ,.pc_r_o(pc_r)
     ,.icache_miss_o(icache_miss)
@@ -218,9 +218,10 @@ module vanilla_core
   fp_decode_s fp_decode;
 
   cl_decode decode0 (
-    .instruction_i(instruction)
+    .instruction_i(instruction_n)
     ,.decode_o(decode)
     ,.fp_decode_o(fp_decode)
+    ,.instruction_o(instruction_r)
   ); 
 
 
@@ -263,7 +264,7 @@ module vanilla_core
     ,.w_data_i(int_rf_wdata)
 
     ,.r_v_i(int_rf_read)
-    ,.r_addr_i({instruction.rs2, instruction.rs1})
+    ,.r_addr_i({instruction_r.rs2, instruction_r.rs1})
     ,.r_data_o(int_rf_rdata)
   );
   
@@ -324,7 +325,7 @@ module vanilla_core
     ,.w_data_i(float_rf_wdata)
 
     ,.r_v_i(float_rf_read)
-    ,.r_addr_i({instruction[31:27], instruction.rs2, instruction.rs1})
+    ,.r_addr_i({instruction_r[31:27], instruction_r.rs2, instruction_r.rs1})
     ,.r_data_o(float_rf_rdata)
   );
 
@@ -1273,7 +1274,7 @@ module vanilla_core
     id_n = '{
       pc_plus4: {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0},
       pred_or_jump_addr: {{(data_width_p-pc_width_lp-2){1'b0}}, pred_or_jump_addr, 2'b0},
-      instruction: instruction,
+      instruction: instruction_r,
       decode: decode,
       fp_decode: fp_decode,
       icache_miss: 1'b0,
