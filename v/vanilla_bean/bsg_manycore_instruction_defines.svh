@@ -70,8 +70,10 @@
 `define MANYCORE_signext_Jimm(instr) {{12{``instr``[31]}},``instr``[19:12],``instr``[20],``instr``[30:21], {1'b0}}
 
 `define MANYCORE_Bimm_12inject1(instr,value) {``value``[12], ``value``[10:5], ``instr``[24:12],\
-                                          ``value``[4:1],``value``[11],``instr``[6:0]}
-`define MANYCORE_Jimm_20inject1(instr,value) {``value``[20], ``value``[10:1], ``value``[11],``value``[19:12], ``instr``[11:0]}
+                                          ``value``[4:1],``value``[11],``instr``[0],``instr``[1],``instr``[2],``instr``[3],\
+                                          ``instr``[4],``instr``[5],``instr``[6]}
+`define MANYCORE_Jimm_20inject1(instr,value) {``value``[20], ``value``[10:1], ``value``[11],``value``[19:12], ``instr``[11:7],\
+                                          ``instr``[0],``instr``[1],``instr``[2],``instr``[3],``instr``[4],``instr``[5],``instr``[6]}
 
 // Both JAL and BRANCH use 2-byte address, we need to pad 1'b0 at MSB to get
 // the real byte address
@@ -150,5 +152,8 @@
 `define MANYCORE_CSR_BAR_PI_ADDR       12'hfc2
 `define MANYCORE_CSR_BAR_PO_ADDR       12'hfc3
 
+// FENCE defines
+`define MANYCORE_FENCE_FUN3   3'b000
+`define MANYCORE_FENCE_OP   {4'b????,4'b????,4'b????,5'b00000,`MANYCORE_FENCE_FUN3,5'b00000,`MANYCORE_MISC_MEM}
 `endif
 
