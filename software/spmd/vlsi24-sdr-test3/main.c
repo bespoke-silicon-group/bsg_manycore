@@ -48,33 +48,42 @@ int main()
   
   if (send_up || send_down) {
     // send remote stores;
-    dest_addr[0] = word1;
-    dest_addr[1] = word1;
-    dest_addr[2] = word1;
-    dest_addr[3] = word1;
-    dest_addr[4] = word1;
-    dest_addr[5] = word1;
-    dest_addr[6] = word1;
-    dest_addr[7] = word1;
+    for (uint32_t i = 0; i < REPEAT; i++) {
+      dest_addr[0]  = word1;
+      dest_addr[1]  = word1;
+      dest_addr[2]  = word1;
+      dest_addr[3]  = word1;
+      dest_addr[4]  = word1;
+      dest_addr[5]  = word1;
+      dest_addr[6]  = word1;
+      dest_addr[7]  = word1;
+      dest_addr[8]  = word1;
+      dest_addr[9]  = word1;
+      dest_addr[10] = word1;
+      dest_addr[11] = word1;
+      dest_addr[12] = word1;
+      dest_addr[13] = word1;
+      dest_addr[14] = word1;
+      dest_addr[15] = word1;
+    }
     // send remote loads;
     for (uint32_t i = 0; i < REPEAT; i++) {
-      uint32_t var_0 = dest_addr[0];
-      uint32_t var_1 = dest_addr[1];
-      uint32_t var_2 = dest_addr[2];
-      uint32_t var_3 = dest_addr[3];
-      uint32_t var_4 = dest_addr[4];
-      uint32_t var_5 = dest_addr[5];
-      uint32_t var_6 = dest_addr[6];
-      uint32_t var_7 = dest_addr[7];
-      
-      var_0 = dest_addr[0];
-      var_1 = dest_addr[1];
-      var_2 = dest_addr[2];
-      var_3 = dest_addr[3];
-      var_4 = dest_addr[4];
-      var_5 = dest_addr[5];
-      var_6 = dest_addr[6];
-      var_7 = dest_addr[7];
+      uint32_t var_0  = dest_addr[0];
+      uint32_t var_1  = dest_addr[1];
+      uint32_t var_2  = dest_addr[2];
+      uint32_t var_3  = dest_addr[3];
+      uint32_t var_4  = dest_addr[4];
+      uint32_t var_5  = dest_addr[5];
+      uint32_t var_6  = dest_addr[6];
+      uint32_t var_7  = dest_addr[7];
+      uint32_t var_8  = dest_addr[8];
+      uint32_t var_9  = dest_addr[9];
+      uint32_t var_10 = dest_addr[10];
+      uint32_t var_11 = dest_addr[11];
+      uint32_t var_12 = dest_addr[12];
+      uint32_t var_13 = dest_addr[13];
+      uint32_t var_14 = dest_addr[14];
+      uint32_t var_15 = dest_addr[15];
     }
   }
 
