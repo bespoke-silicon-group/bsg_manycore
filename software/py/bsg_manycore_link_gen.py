@@ -153,9 +153,11 @@ class bsg_manycore_link_gen:
     section_map = [
       # Format:
       # <output section>: [<input sections>]
-      ['.text.dram'        , ['.crtbegin','.text','.text.startup','.text.*']],
+      ['.text.dram'        , ['.text.interrupt','.crtbegin','.text','.text.startup','.text.*']],
       # bsg-tommy: 8 bytes are allocated in.dmem.interrupt for interrupt handler to spill registers.
-      ['.dmem'             , ['.dmem.interrupt', '.dmem','.dmem.*']],
+      ['.dmem'             , ['.dmem.interrupt', '.dmem','.dmem.*',
+                              '.rodata','.rodata*','.srodata.cst16','.srodata.cst8',
+                              '.srodata.cst4', '.srodata.cst2','.srodata*']],
       ['.data'             , ['.data','.data*']],
       ['.sdata'            , ['.sdata','.sdata.*','.sdata*','.sdata*.*'
                               '.gnu.linkonce.s.*']],
@@ -165,8 +167,6 @@ class bsg_manycore_link_gen:
       ['.tbss'             , ['.tbss','.tbss*']],
       ['.striped.data.dmem', ['.striped.data']],
       ['.eh_frame.dram'    , ['.eh_frame','.eh_frame*']],
-      ['.rodata.dram'      , ['.rodata','.rodata*','.srodata.cst16','.srodata.cst8',
-                              '.srodata.cst4', '.srodata.cst2','.srodata*']],
       ['.dram'             , ['.dram','.dram.*']],
       ]
 

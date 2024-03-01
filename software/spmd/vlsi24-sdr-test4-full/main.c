@@ -7,10 +7,6 @@
 int data;
 int hold;
 
-// store in DMEM;
-uint32_t word0 = 0x00000000;
-uint32_t word1 = 0xffffffff;
-
 int main()
 {
   bsg_set_tile_x_y();
@@ -18,6 +14,10 @@ int main()
   // credit limit to 32;
   int climit = 32;
   asm volatile ("csrw 0xfc0, %[climit]" : : [climit] "r" (climit));
+
+  // store in DMEM;
+  uint32_t word0 = 0x00000000;
+  uint32_t word1 = 0xffffffff;
 
   // load from DMEM
   float *floatptr0 = (float*)(&word0);
