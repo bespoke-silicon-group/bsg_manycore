@@ -7,6 +7,10 @@
 int data;
 int hold;
 
+// store in DMEM;
+uint32_t word0 = 0x00000000;
+uint32_t word1 = 0xffffffff;
+
 int main()
 {
   bsg_set_tile_x_y();
@@ -15,12 +19,9 @@ int main()
   int climit = 32;
   asm volatile ("csrw 0xfc0, %[climit]" : : [climit] "r" (climit));
 
-  // Words to store;
-  uint32_t word0 = 0x00000000;
-  uint32_t word1 = 0xffffffff;
-  
-  volatile float *floatptr0 = (float*)(&word0);
-  volatile float *floatptr1 = (float*)(&word1);
+  // load from DMEM
+  float *floatptr0 = (float*)(&word0);
+  float *floatptr1 = (float*)(&word1);
 
   // calculate global_x,y;
   int cfg_pod;
