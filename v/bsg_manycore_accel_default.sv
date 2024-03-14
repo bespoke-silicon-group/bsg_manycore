@@ -19,6 +19,7 @@ module bsg_manycore_accel_default
      , `BSG_INV_PARAM(vcache_size_p )
      , `BSG_INV_PARAM(vcache_block_size_in_words_p )
      , `BSG_INV_PARAM(vcache_sets_p )
+     , `BSG_INV_PARAM(ipoly_hashing_p)
 
      , `BSG_INV_PARAM(num_tiles_x_p )
      , `BSG_INV_PARAM(num_tiles_y_p )
@@ -92,7 +93,7 @@ module bsg_manycore_accel_default
 
        ,.fifo_els_p(proc_fifo_els_p)
 
-       ,.credit_counter_width_p(credit_counter_width_p)
+       ,.credit_counter_width_p(credit_counter_width_lp)
        ,.rev_fifo_els_p(rev_fifo_els_p)
 
        ,.use_credits_for_local_fifo_p(1)

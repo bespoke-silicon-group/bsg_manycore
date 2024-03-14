@@ -44,6 +44,6 @@ syn/results/
 
 dump.fst
 dump.fst.hier
-obj_dir/
-simsc
+obj_dir*/
+simsc*
 slpp_unit/

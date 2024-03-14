@@ -113,7 +113,7 @@ module vanilla_core_profiler
   assign print_stat_tag = print_stat_tag_i;
 
   `DEFINE_PROFILER(bsg_vanilla_core_profiler
-                   , "vanilla_operation_trace.csv"
+                   , tracefile_lp
                    , "cycle,x,y,pc,operation\n"
                    )
 
