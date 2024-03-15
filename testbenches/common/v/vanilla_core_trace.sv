@@ -13,7 +13,7 @@ module vanilla_core_trace
     , localparam icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , localparam dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , localparam pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
-    , localparam reg_addr_width_lp=RV32_reg_addr_width_gp
+    , localparam reg_addr_width_lp=reg_addr_width_gp
 
   )
   (
@@ -56,52 +56,52 @@ module vanilla_core_trace
 
   typedef struct packed
   {
-    logic [RV32_reg_data_width_gp-1:0] pc;
-    logic [RV32_instr_width_gp-1:0] instr;
+    logic [reg_data_width_gp-1:0] pc;
+    logic [instr_width_gp-1:0] instr;
     logic branch_or_jump;
-    logic [RV32_instr_width_gp-1:0] btarget;
+    logic [instr_width_gp-1:0] btarget;
     logic is_local_load;
     logic is_local_store;
     logic [dmem_addr_width_lp-1:0] local_dmem_addr;
-    logic [RV32_reg_data_width_gp-1:0] local_store_data;
+    logic [reg_data_width_gp-1:0] local_store_data;
     logic is_remote_load;
     logic is_remote_store;
-    logic [RV32_reg_data_width_gp-1:0] remote_addr;
-    logic [RV32_reg_data_width_gp-1:0] remote_store_data;
+    logic [reg_data_width_gp-1:0] remote_addr;
+    logic [reg_data_width_gp-1:0] remote_store_data;
   } exe_debug_s;
 
 
   typedef struct packed
   {
-    logic [RV32_reg_data_width_gp-1:0] pc;
-    logic [RV32_instr_width_gp-1:0] instr;
+    logic [reg_data_width_gp-1:0] pc;
+    logic [instr_width_gp-1:0] instr;
     logic branch_or_jump;
-    logic [RV32_instr_width_gp-1:0] btarget;
+    logic [instr_width_gp-1:0] btarget;
     logic is_local_load;
     logic is_local_store;
     logic [dmem_addr_width_lp-1:0] local_dmem_addr;
-    logic [RV32_reg_data_width_gp-1:0] local_store_data;
+    logic [reg_data_width_gp-1:0] local_store_data;
     logic is_remote_load;
     logic is_remote_store;
-    logic [RV32_reg_data_width_gp-1:0] remote_addr;
-    logic [RV32_reg_data_width_gp-1:0] remote_store_data;
+    logic [reg_data_width_gp-1:0] remote_addr;
+    logic [reg_data_width_gp-1:0] remote_store_data;
   } mem_debug_s;
 
   typedef struct packed
   {
-    logic [RV32_reg_data_width_gp-1:0] pc;
-    logic [RV32_instr_width_gp-1:0] instr;
+    logic [reg_data_width_gp-1:0] pc;
+    logic [instr_width_gp-1:0] instr;
     logic branch_or_jump;
-    logic [RV32_instr_width_gp-1:0] btarget;
+    logic [instr_width_gp-1:0] btarget;
     logic is_local_load;
     logic is_local_store;
     logic [dmem_addr_width_lp-1:0] local_dmem_addr;
-    logic [RV32_reg_data_width_gp-1:0] local_load_data;
-    logic [RV32_reg_data_width_gp-1:0] local_store_data;
+    logic [reg_data_width_gp-1:0] local_load_data;
+    logic [reg_data_width_gp-1:0] local_store_data;
     logic is_remote_load;
     logic is_remote_store;
-    logic [RV32_reg_data_width_gp-1:0] remote_addr;
-    logic [RV32_reg_data_width_gp-1:0] remote_store_data;
+    logic [reg_data_width_gp-1:0] remote_addr;
+    logic [reg_data_width_gp-1:0] remote_store_data;
   } wb_debug_s;
 
   exe_debug_s exe_debug;

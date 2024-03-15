@@ -1,250 +1,216 @@
-`ifndef BSG_VANILLA_DEFINES_VH
-`define BSG_VANILLA_DEFINES_VH
+`ifndef BSG_RISCV_DEFINES_SVH
+`define BSG_RISCV_DEFINES_SVH
 
 /**
- *  bsg_vanilla_defines.vh
+ *  bsg_vanilla_defines.svh
  *  
  *  This file defines the macros
- *  used throughout the vanilla core.
+ *  used for Vanilla ISA operations throughout the vanilla core.
  *
  */
 
-`include "bsg_defines.sv"
+`include "bsg_manycore_instruction_defines.svh"
 
-`define declare_icache_format_s(tag_width_mp, block_size_in_words_mp) \
-  typedef struct packed { \
-    logic [block_size_in_words_mp-1:0] lower_cout; \
-    logic [block_size_in_words_mp-1:0] lower_sign; \
-    logic [tag_width_mp-1:0] tag; \
-    instruction_s [block_size_in_words_mp-1:0] instr; \
-  } icache_format_s
-
-`define icache_format_width(tag_width_mp, block_size_in_words_mp) \
-   ((2*block_size_in_words_mp)+tag_width_mp+(block_size_in_words_mp*$bits(instruction_s)))
-
-// FPU recoded Constants
-`define FPU_RECODED_ONE   33'h080000000
-`define FPU_RECODED_ZERO  33'h0
-`define FPU_RECODED_CANONICAL_NAN 33'h0e0400000
-
-`define RV32_MSTATUS_MIE_BIT_IDX  3
-`define RV32_MSTATUS_MPIE_BIT_IDX 7
-
-`define REMOTE_INTERRUPT_JUMP_ADDR  0   // remote interrupt jump addr (word addr)
-`define TRACE_INTERRUPT_JUMP_ADDR   1   // trace interrupt jump addr (word addr)
-
-// RV32 Opcodes
-`define RV32_LOAD     7'b0000011
-`define RV32_STORE    7'b0100011
+// Vanilla Opcodes
+`define VANILLA_LOAD     `MANYCORE_LOAD
+`define VANILLA_STORE    `MANYCORE_STORE
 
 // we have branch instructions ignore the low bit so that we can place the prediction bit there.
 // RISC-V by default has the low bits set to 11 in the icache, so we can use those creatively.
 // note this relies on all code using ==? and casez.
-`define RV32_BRANCH   7'b110001?
+`define VANILLA_BRANCH     `MANYCORE_BRANCH
 
-`define RV32_JALR_OP    7'b1100111
-`define RV32_MISC_MEM   7'b0001111
-`define RV32_AMO_OP     7'b0101111
-`define RV32_JAL_OP     7'b1101111
-`define RV32_OP_IMM     7'b0010011
-`define RV32_OP         7'b0110011
-`define RV32_SYSTEM     7'b1110011
-`define RV32_AUIPC_OP   7'b0010111
-`define RV32_LUI_OP     7'b0110111
+`define VANILLA_JALR_OP    `MANYCORE_JALR_OP
+`define VANILLA_MISC_MEM   `MANYCORE_MISC_MEM
+`define VANILLA_AMO_OP     `MANYCORE_AMO_OP
+`define VANILLA_JAL_OP     `MANYCORE_JAL_OP
+`define VANILLA_OP_IMM     `MANYCORE_OP_IMM
+`define VANILLA_OP         `MANYCORE_OP
+`define VANILLA_SYSTEM     `MANYCORE_SYSTEM
+`define VANILLA_AUIPC_OP   `MANYCORE_AUIPC_OP
+`define VANILLA_LUI_OP     `MANYCORE_LUI_OP
 
 
-// Some useful RV32 instruction macros
-`define RV32_Rtype(op, funct3, funct7) {``funct7``, {5{1'b?}},  {5{1'b?}},``funct3``, {5{1'b?}},``op``}
-`define RV32_Itype(op, funct3)         {{12{1'b?}},{5{1'b?}},``funct3``,{5{1'b?}},``op``}
-`define RV32_Stype(op, funct3)         {{7{1'b?}},{5{1'b?}},{5{1'b?}},``funct3``,{5{1'b?}},``op``}
-`define RV32_Utype(op)                 {{20{1'b?}},{5{1'b?}},``op``}
+// Some useful Vanilla instruction macros
+`define VANILLA_Rtype(op, funct3, funct7) {``funct7``, {5{1'b?}},  {5{1'b?}},``funct3``, {5{1'b?}},``op``}
+`define VANILLA_Itype(op, funct3)         {{12{1'b?}},{5{1'b?}},``funct3``,{5{1'b?}},``op``}
+`define VANILLA_Stype(op, funct3)         {{7{1'b?}},{5{1'b?}},{5{1'b?}},``funct3``,{5{1'b?}},``op``}
+`define VANILLA_Utype(op)                 {{20{1'b?}},{5{1'b?}},``op``}
 
-// RV32 Immediate sign extension macros
-`define RV32_signext_Iimm(instr) {{21{``instr``[31]}},``instr``[30:20]}
-`define RV32_signext_Simm(instr) {{21{``instr``[31]}},``instr[30:25],``instr``[11:7]}
-`define RV32_signext_Bimm(instr) {{20{``instr``[31]}},``instr``[7],``instr``[30:25],``instr``[11:8], {1'b0}}
-`define RV32_signext_Uimm(instr) {``instr``[31:12], {12{1'b0}}}
-`define RV32_signext_Jimm(instr) {{12{``instr``[31]}},``instr``[19:12],``instr``[20],``instr``[30:21], {1'b0}}
+// Vanilla Immediate sign extension macros
+`define VANILLA_signext_Iimm(instr) {{21{``instr``[31]}},``instr``[30:20]}
+`define VANILLA_signext_Simm(instr) {{21{``instr``[31]}},``instr[30:25],``instr``[11:7]}
+`define VANILLA_signext_Bimm(instr) {{20{``instr``[31]}},``instr``[7],``instr``[30:25],``instr``[11:8], {1'b0}}
+`define VANILLA_signext_Uimm(instr) {``instr``[31:12], {12{1'b0}}}
+`define VANILLA_signext_Jimm(instr) {{12{``instr``[31]}},``instr``[19:12],``instr``[20],``instr``[30:21], {1'b0}}
 
-`define RV32_Bimm_12inject1(instr,value) {``value``[12], ``value``[10:5], ``instr``[24:12],\
-                                          ``value``[4:1],``value``[11],``instr``[6:0]}
-`define RV32_Jimm_20inject1(instr,value) {``value``[20], ``value``[10:1], ``value``[11],``value``[19:12], ``instr``[11:0]}
+`define VANILLA_Bimm_12inject1(instr,value) {``value``[12], ``value``[10:5], ``instr``[24:12],\
+                                          ``value``[4:1],``value``[11],``instr``[0],``instr``[1],``instr``[2],\
+                                          ``instr``[3],``instr``[4],``instr``[5],``instr``[6]}
+`define VANILLA_Jimm_20inject1(instr,value) {``value``[20], ``value``[10:1], ``value``[11],``value``[19:12], ``instr``[11:7],\
+                                          ``instr``[0],``instr``[1],``instr``[2],``instr``[3],``instr``[4].``instr``[5],``instr``[6]}
 
 // Both JAL and BRANCH use 2-byte address, we need to pad 1'b0 at MSB to get
 // the real byte address
-`define RV32_Bimm_13extract(instr) {``instr``[31], ``instr``[7], ``instr``[30:25], ``instr``[11:8], 1'b0}
-`define RV32_Jimm_21extract(instr) {``instr``[31], ``instr``[19:12],``instr``[20],``instr``[30:21], 1'b0}
+`define VANILLA_Bimm_13extract(instr) {``instr``[31], ``instr``[7], ``instr``[30:25], ``instr``[11:8], 1'b0}
+`define VANILLA_Jimm_21extract(instr) {``instr``[31], ``instr``[19:12],``instr``[20],``instr``[30:21], 1'b0}
 
-`define RV32_Iimm_12extract(instr) {``instr``[31:20]}
-`define RV32_Simm_12extract(instr) {``instr[31:25],``instr``[11:7]}
+`define VANILLA_Iimm_12extract(instr) {``instr``[31:20]}
+`define VANILLA_Simm_12extract(instr) {``instr[31:25],``instr``[11:7]}
 
-// RV32I Instruction encodings
+// VanillaI Instruction encodings
 // We have to delete the white space in macro definition,
 // otherwise Design Compiler would issue warings.
-`define RV32_LUI       `RV32_Utype(`RV32_LUI_OP)
-`define RV32_AUIPC     `RV32_Utype(`RV32_AUIPC_OP)
-`define RV32_JAL       `RV32_Utype(`RV32_JAL_OP)
-`define RV32_JALR      `RV32_Itype(`RV32_JALR_OP, 3'b000)
-`define RV32_BEQ       `RV32_Stype(`RV32_BRANCH, 3'b000)
-`define RV32_BNE       `RV32_Stype(`RV32_BRANCH, 3'b001)
-`define RV32_BLT       `RV32_Stype(`RV32_BRANCH, 3'b100)
-`define RV32_BGE       `RV32_Stype(`RV32_BRANCH, 3'b101)
-`define RV32_BLTU      `RV32_Stype(`RV32_BRANCH, 3'b110)
-`define RV32_BGEU      `RV32_Stype(`RV32_BRANCH, 3'b111)
-`define RV32_LB        `RV32_Itype(`RV32_LOAD, 3'b000)
-`define RV32_LH        `RV32_Itype(`RV32_LOAD, 3'b001)
-`define RV32_LW        `RV32_Itype(`RV32_LOAD, 3'b010)
-`define RV32_LBU       `RV32_Itype(`RV32_LOAD, 3'b100)
-`define RV32_LHU       `RV32_Itype(`RV32_LOAD, 3'b101)
-`define RV32_SB        `RV32_Stype(`RV32_STORE, 3'b000)
-`define RV32_SH        `RV32_Stype(`RV32_STORE, 3'b001)
-`define RV32_SW        `RV32_Stype(`RV32_STORE, 3'b010)
-`define RV32_ADDI      `RV32_Itype(`RV32_OP_IMM,3'b000)
-`define RV32_SLTI      `RV32_Itype(`RV32_OP_IMM, 3'b010)
-`define RV32_SLTIU     `RV32_Itype(`RV32_OP_IMM, 3'b011)
-`define RV32_XORI      `RV32_Itype(`RV32_OP_IMM, 3'b100)
-`define RV32_ORI       `RV32_Itype(`RV32_OP_IMM, 3'b110)
-`define RV32_ANDI      `RV32_Itype(`RV32_OP_IMM, 3'b111)
-`define RV32_SLLI      `RV32_Rtype(`RV32_OP_IMM, 3'b001, 7'b0000000)
-`define RV32_SRLI      `RV32_Rtype(`RV32_OP_IMM, 3'b101, 7'b0000000)
-`define RV32_SRAI      `RV32_Rtype(`RV32_OP_IMM, 3'b101, 7'b0100000)
-`define RV32_ADD       `RV32_Rtype(`RV32_OP,3'b000,7'b0000000)
-`define RV32_SUB       `RV32_Rtype(`RV32_OP, 3'b000, 7'b0100000)
-`define RV32_SLL       `RV32_Rtype(`RV32_OP, 3'b001, 7'b0000000)
-`define RV32_SLT       `RV32_Rtype(`RV32_OP, 3'b010, 7'b0000000)
-`define RV32_SLTU      `RV32_Rtype(`RV32_OP, 3'b011, 7'b0000000)
-`define RV32_XOR       `RV32_Rtype(`RV32_OP, 3'b100, 7'b0000000)
-`define RV32_SRL       `RV32_Rtype(`RV32_OP, 3'b101, 7'b0000000)
-`define RV32_SRA       `RV32_Rtype(`RV32_OP, 3'b101, 7'b0100000)
-`define RV32_OR        `RV32_Rtype(`RV32_OP, 3'b110, 7'b0000000)
-`define RV32_AND       `RV32_Rtype(`RV32_OP, 3'b111, 7'b0000000)
+`define VANILLA_LUI       `MANYCORE_LUI
+`define VANILLA_AUIPC     `MANYCORE_AUIPC
+`define VANILLA_JAL       `MANYCORE_JAL
+`define VANILLA_JALR      `MANYCORE_JALR
+`define VANILLA_BEQ       `MANYCORE_BEQ
+`define VANILLA_BNE       `MANYCORE_BNE
+`define VANILLA_BLT       `MANYCORE_BLT
+`define VANILLA_BGE       `MANYCORE_BGE
+`define VANILLA_BLTU      `MANYCORE_BLTU
+`define VANILLA_BGEU      `MANYCORE_BGEU
+`define VANILLA_LB        `MANYCORE_LB
+`define VANILLA_LH        `MANYCORE_LH
+`define VANILLA_LW        `MANYCORE_LW
+`define VANILLA_LBU       `MANYCORE_LBU
+`define VANILLA_LHU       `MANYCORE_LHU
+`define VANILLA_SB        `MANYCORE_SB
+`define VANILLA_SH        `MANYCORE_SH
+`define VANILLA_SW        `MANYCORE_SW
+`define VANILLA_ADDI      `MANYCORE_ADDI
+`define VANILLA_SLTI      `MANYCORE_SLTI
+`define VANILLA_SLTIU     `MANYCORE_SLTIU
+`define VANILLA_XORI      `MANYCORE_XORI
+`define VANILLA_ORI       `MANYCORE_ORI
+`define VANILLA_ANDI      `MANYCORE_ANDI
+`define VANILLA_SLLI      `MANYCORE_SLLI
+`define VANILLA_SRLI      `MANYCORE_SRLI
+`define VANILLA_SRAI      `MANYCORE_SRAI
+`define VANILLA_ADD       `MANYCORE_ADD
+`define VANILLA_SUB       `MANYCORE_SUB
+`define VANILLA_SLL       `MANYCORE_SLL
+`define VANILLA_SLT       `MANYCORE_SLT
+`define VANILLA_SLTU      `MANYCORE_SLTU
+`define VANILLA_XOR       `MANYCORE_XOR
+`define VANILLA_SRL       `MANYCORE_SRL
+`define VANILLA_SRA       `MANYCORE_SRA
+`define VANILLA_OR        `MANYCORE_OR
+`define VANILLA_AND       `MANYCORE_AND
 
 // FENCE defines
-`define RV32_FENCE_FUN3   3'b000
-`define RV32_FENCE_OP   {4'b????,4'b????,4'b????,5'b00000,`RV32_FENCE_FUN3,5'b00000,`RV32_MISC_MEM}
-`define RV32_FENCE_FM     4'b0000
-`define RV32_BARSEND_FM   4'b0001
-`define RV32_BARRECV_FM   4'b0010
+`define VANILLA_FENCE_FUN3   3'b000
+`define VANILLA_FENCE_OP   {4'b????,4'b????,4'b????,5'b00000,`VANILLA_FENCE_FUN3,5'b00000,`VANILLA_MISC_MEM}
+`define VANILLA_FENCE_FM     4'b0000
+`define VANILLA_BARSEND_FM   4'b0001
+`define VANILLA_BARRECV_FM   4'b0010
 
 //TRIGGER SAIF DUMP defines
-`define SAIF_TRIGGER_START {12'b000000000001,5'b00000,3'b000,5'b00000,`RV32_OP_IMM}
-`define SAIF_TRIGGER_END {12'b000000000010,5'b00000,3'b000,5'b00000,`RV32_OP_IMM}
+`define SAIF_TRIGGER_START {12'b000000000001,5'b00000,3'b000,5'b00000,`VANILLA_OP_IMM}
+`define SAIF_TRIGGER_END {12'b000000000010,5'b00000,3'b000,5'b00000,`VANILLA_OP_IMM}
 
 // CSR encoding
-`define RV32_CSRRW_FUN3  3'b001
-`define RV32_CSRRS_FUN3  3'b010
-`define RV32_CSRRC_FUN3  3'b011
-`define RV32_CSRRWI_FUN3 3'b101
-`define RV32_CSRRSI_FUN3 3'b110
-`define RV32_CSRRCI_FUN3 3'b111
+`define VANILLA_CSRRW_FUN3  3'b001
+`define VANILLA_CSRRS_FUN3  3'b010
+`define VANILLA_CSRRC_FUN3  3'b011
+`define VANILLA_CSRRWI_FUN3 3'b101
+`define VANILLA_CSRRSI_FUN3 3'b110
+`define VANILLA_CSRRCI_FUN3 3'b111
 
-`define RV32_CSRRW      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRW_FUN3)
-`define RV32_CSRRS      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRS_FUN3)
-`define RV32_CSRRC      `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRC_FUN3)
-`define RV32_CSRRWI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRWI_FUN3)
-`define RV32_CSRRSI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRSI_FUN3)
-`define RV32_CSRRCI     `RV32_Itype(`RV32_SYSTEM, `RV32_CSRRCI_FUN3)
+`define VANILLA_CSRRW      `VANILLA_Itype(`VANILLA_SYSTEM, `VANILLA_CSRRW_FUN3)
+`define VANILLA_CSRRS      `VANILLA_Itype(`VANILLA_SYSTEM, `VANILLA_CSRRS_FUN3)
+`define VANILLA_CSRRC      `VANILLA_Itype(`VANILLA_SYSTEM, `VANILLA_CSRRC_FUN3)
+`define VANILLA_CSRRWI     `VANILLA_Itype(`VANILLA_SYSTEM, `VANILLA_CSRRWI_FUN3)
+`define VANILLA_CSRRSI     `VANILLA_Itype(`VANILLA_SYSTEM, `VANILLA_CSRRSI_FUN3)
+`define VANILLA_CSRRCI     `VANILLA_Itype(`VANILLA_SYSTEM, `VANILLA_CSRRCI_FUN3)
 
 // fcsr CSR addr
-`define RV32_CSR_FFLAGS_ADDR  12'h001
-`define RV32_CSR_FRM_ADDR     12'h002  
-`define RV32_CSR_FCSR_ADDR    12'h003
+`define VANILLA_CSR_FFLAGS_ADDR  12'h001
+`define VANILLA_CSR_FRM_ADDR     12'h002  
+`define VANILLA_CSR_FCSR_ADDR    12'h003
 // machine CSR addr
-`define RV32_CSR_MSTATUS_ADDR   12'h300
-`define RV32_CSR_MTVEC_ADDR     12'h305
-`define RV32_CSR_MIE_ADDR       12'h304
-`define RV32_CSR_MIP_ADDR       12'h344
-`define RV32_CSR_MEPC_ADDR      12'h341
-`define RV32_CSR_CFG_POD_ADDR   12'h360				    
+`define VANILLA_CSR_CFG_POD_ADDR   12'h360				    
 
 // machine custom CSR addr
-`define RV32_CSR_CREDIT_LIMIT_ADDR 12'hfc0
-`define RV32_CSR_BARCFG_ADDR       12'hfc1
-`define RV32_CSR_BAR_PI_ADDR       12'hfc2
-`define RV32_CSR_BAR_PO_ADDR       12'hfc3
+`define VANILLA_CSR_CREDIT_LIMIT_ADDR 12'hfc0
+`define VANILLA_CSR_BARCFG_ADDR       12'hfc1
+`define VANILLA_CSR_BAR_PI_ADDR       12'hfc2
+`define VANILLA_CSR_BAR_PO_ADDR       12'hfc3
 
 // mret
 // used for returning from the interrupt
-`define RV32_MRET     {7'b0011000, 5'b00010, 5'b00000, 3'b000, 5'b00000, `RV32_SYSTEM}
+`define VANILLA_MRET     {7'b0011000, 5'b00010, 5'b00000, 3'b000, 5'b00000, `VANILLA_SYSTEM}
 
-// RV32M Instruction Encodings
-`define MD_MUL_FUN3       3'b000
-`define MD_MULH_FUN3      3'b001
-`define MD_MULHSU_FUN3    3'b010
-`define MD_MULHU_FUN3     3'b011
-`define MD_DIV_FUN3       3'b100
-`define MD_DIVU_FUN3      3'b101
-`define MD_REM_FUN3       3'b110
-`define MD_REMU_FUN3      3'b111
-`define RV32_MUL       `RV32_Rtype(`RV32_OP, `MD_MUL_FUN3   , 7'b0000001)
-`define RV32_MULH      `RV32_Rtype(`RV32_OP, `MD_MULH_FUN3  , 7'b0000001)
-`define RV32_MULHSU    `RV32_Rtype(`RV32_OP, `MD_MULHSU_FUN3, 7'b0000001)
-`define RV32_MULHU     `RV32_Rtype(`RV32_OP, `MD_MULHU_FUN3 , 7'b0000001)
-`define RV32_DIV       `RV32_Rtype(`RV32_OP, `MD_DIV_FUN3   , 7'b0000001)
-`define RV32_DIVU      `RV32_Rtype(`RV32_OP, `MD_DIVU_FUN3  , 7'b0000001)
-`define RV32_REM       `RV32_Rtype(`RV32_OP, `MD_REM_FUN3   , 7'b0000001)
-`define RV32_REMU      `RV32_Rtype(`RV32_OP, `MD_REMU_FUN3  , 7'b0000001)
+// VANILLA M Instruction Encodings
+`define VANILLA_MUL       `VANILLA_Rtype(`VANILLA_OP, `MD_MUL_FUN3   , 7'b0000001)
+`define VANILLA_MULH      `VANILLA_Rtype(`VANILLA_OP, `MD_MULH_FUN3  , 7'b0000001)
+`define VANILLA_MULHSU    `VANILLA_Rtype(`VANILLA_OP, `MD_MULHSU_FUN3, 7'b0000001)
+`define VANILLA_MULHU     `VANILLA_Rtype(`VANILLA_OP, `MD_MULHU_FUN3 , 7'b0000001)
+`define VANILLA_DIV       `VANILLA_Rtype(`VANILLA_OP, `MD_DIV_FUN3   , 7'b0000001)
+`define VANILLA_DIVU      `VANILLA_Rtype(`VANILLA_OP, `MD_DIVU_FUN3  , 7'b0000001)
+`define VANILLA_REM       `VANILLA_Rtype(`VANILLA_OP, `MD_REM_FUN3   , 7'b0000001)
+`define VANILLA_REMU      `VANILLA_Rtype(`VANILLA_OP, `MD_REMU_FUN3  , 7'b0000001)
 
-// RV32A Instruction Encodings
-`define RV32_LR_W       {5'b00010,2'b00,5'b00000,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
-`define RV32_LR_W_AQ    {5'b00010,2'b10,5'b00000,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
-`define RV32_AMOSWAP_W  {5'b00001,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
-`define RV32_AMOOR_W    {5'b01000,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
-`define RV32_AMOADD_W   {5'b00000,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`RV32_AMO_OP}
+// VANILLA A Instruction Encodings
+`define VANILLA_LR_W       {5'b00010,2'b00,5'b00000,5'b?????,3'b010,5'b?????,`VANILLA_AMO_OP}
+`define VANILLA_LR_W_AQ    {5'b00010,2'b10,5'b00000,5'b?????,3'b010,5'b?????,`VANILLA_AMO_OP}
+`define VANILLA_AMOSWAP_W  {5'b00001,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`VANILLA_AMO_OP}
+`define VANILLA_AMOOR_W    {5'b01000,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`VANILLA_AMO_OP}
+`define VANILLA_AMOADD_W   {5'b00000,2'b??,5'b?????,5'b?????,3'b010,5'b?????,`VANILLA_AMO_OP}
 
-// RV32F Instruction Encodings
-`define RV32_OP_FP            7'b1010011
-`define RV32_LOAD_FP          7'b0000111
-`define RV32_STORE_FP         7'b0100111
+// VANILLA F Instruction Encodings
+`define VANILLA_OP_FP            7'b0101100
+`define VANILLA_LOAD_FP          7'b1111000
+`define VANILLA_STORE_FP         7'b1011000
 
-`define RV32_FCMP_S_FUN7      7'b1010000
-`define RV32_FCLASS_S_FUN7    7'b1110000
-`define RV32_FCVT_S_F2I_FUN7  7'b1100000
-`define RV32_FCVT_S_I2F_FUN7  7'b1101000
-`define RV32_FMV_W_X_FUN7     7'b1111000
-`define RV32_FMV_X_W_FUN7     7'b1110000
+`define VANILLA_FCMP_S_FUN7      7'b1010000
+`define VANILLA_FCLASS_S_FUN7    7'b1110000
+`define VANILLA_FCVT_S_F2I_FUN7  7'b1100000
+`define VANILLA_FCVT_S_I2F_FUN7  7'b1101000
+`define VANILLA_FMV_W_X_FUN7     7'b1111000
+`define VANILLA_FMV_X_W_FUN7     7'b1110000
 
-`define RV32_FADD_S `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0000000)
-`define RV32_FSUB_S `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0000100)
-`define RV32_FMUL_S `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0001000)
+`define VANILLA_FADD_S `VANILLA_Rtype(`VANILLA_OP_FP, 3'b???, 7'b0000000)
+`define VANILLA_FSUB_S `VANILLA_Rtype(`VANILLA_OP_FP, 3'b???, 7'b0000100)
+`define VANILLA_FMUL_S `VANILLA_Rtype(`VANILLA_OP_FP, 3'b???, 7'b0001000)
 
-`define RV32_FSGNJ_S  `RV32_Rtype(`RV32_OP_FP, 3'b000, 7'b0010000)
-`define RV32_FSGNJN_S `RV32_Rtype(`RV32_OP_FP, 3'b001, 7'b0010000)
-`define RV32_FSGNJX_S `RV32_Rtype(`RV32_OP_FP, 3'b010, 7'b0010000)
+`define VANILLA_FSGNJ_S  `VANILLA_Rtype(`VANILLA_OP_FP, 3'b000, 7'b0010000)
+`define VANILLA_FSGNJN_S `VANILLA_Rtype(`VANILLA_OP_FP, 3'b001, 7'b0010000)
+`define VANILLA_FSGNJX_S `VANILLA_Rtype(`VANILLA_OP_FP, 3'b010, 7'b0010000)
 
-`define RV32_FMIN_S `RV32_Rtype(`RV32_OP_FP, 3'b000, 7'b0010100)
-`define RV32_FMAX_S `RV32_Rtype(`RV32_OP_FP, 3'b001, 7'b0010100)
+`define VANILLA_FMIN_S `VANILLA_Rtype(`VANILLA_OP_FP, 3'b000, 7'b0010100)
+`define VANILLA_FMAX_S `VANILLA_Rtype(`VANILLA_OP_FP, 3'b001, 7'b0010100)
 
-`define RV32_FEQ_S `RV32_Rtype(`RV32_OP_FP, 3'b010, `RV32_FCMP_S_FUN7)
-`define RV32_FLT_S `RV32_Rtype(`RV32_OP_FP, 3'b001, `RV32_FCMP_S_FUN7)
-`define RV32_FLE_S `RV32_Rtype(`RV32_OP_FP, 3'b000, `RV32_FCMP_S_FUN7)
+`define VANILLA_FEQ_S `VANILLA_Rtype(`VANILLA_OP_FP, 3'b010, `VANILLA_FCMP_S_FUN7)
+`define VANILLA_FLT_S `VANILLA_Rtype(`VANILLA_OP_FP, 3'b001, `VANILLA_FCMP_S_FUN7)
+`define VANILLA_FLE_S `VANILLA_Rtype(`VANILLA_OP_FP, 3'b000, `VANILLA_FCMP_S_FUN7)
 
-`define RV32_FCLASS_S {`RV32_FCLASS_S_FUN7, 5'b00000, 5'b?????, 3'b001, 5'b?????, `RV32_OP_FP}
+`define VANILLA_FCLASS_S {`VANILLA_FCLASS_S_FUN7, 5'b00000, 5'b?????, 3'b001, 5'b?????, `VANILLA_OP_FP}
 
 // i2f
-`define RV32_FCVT_S_W  {`RV32_FCVT_S_I2F_FUN7, 5'b00000, 5'b?????, 3'b???, 5'b?????, `RV32_OP_FP}
-`define RV32_FCVT_S_WU {`RV32_FCVT_S_I2F_FUN7, 5'b00001, 5'b?????, 3'b???, 5'b?????, `RV32_OP_FP}
+`define VANILLA_FCVT_S_W  {`VANILLA_FCVT_S_I2F_FUN7, 5'b00000, 5'b?????, 3'b???, 5'b?????, `VANILLA_OP_FP}
+`define VANILLA_FCVT_S_WU {`VANILLA_FCVT_S_I2F_FUN7, 5'b00001, 5'b?????, 3'b???, 5'b?????, `VANILLA_OP_FP}
 
 // f2i
-`define RV32_FCVT_W_S  {`RV32_FCVT_S_F2I_FUN7, 5'b00000, 5'b?????, 3'b???, 5'b?????, `RV32_OP_FP}
-`define RV32_FCVT_WU_S {`RV32_FCVT_S_F2I_FUN7, 5'b00001, 5'b?????, 3'b???, 5'b?????, `RV32_OP_FP}
+`define VANILLA_FCVT_W_S  {`VANILLA_FCVT_S_F2I_FUN7, 5'b00000, 5'b?????, 3'b???, 5'b?????, `VANILLA_OP_FP}
+`define VANILLA_FCVT_WU_S {`VANILLA_FCVT_S_F2I_FUN7, 5'b00001, 5'b?????, 3'b???, 5'b?????, `VANILLA_OP_FP}
 
 // move (i->f) 
-`define RV32_FMV_W_X {`RV32_FMV_W_X_FUN7, 5'b0000, 5'b?????, 3'b000, 5'b?????, `RV32_OP_FP}
+`define VANILLA_FMV_W_X {`VANILLA_FMV_W_X_FUN7, 5'b0000, 5'b?????, 3'b000, 5'b?????, `VANILLA_OP_FP}
 
 // move (f->i)
-`define RV32_FMV_X_W {`RV32_FMV_X_W_FUN7, 5'b0000, 5'b?????, 3'b000, 5'b?????, `RV32_OP_FP}
+`define VANILLA_FMV_X_W {`VANILLA_FMV_X_W_FUN7, 5'b0000, 5'b?????, 3'b000, 5'b?????, `VANILLA_OP_FP}
 
-`define RV32_FLW_S `RV32_Itype(`RV32_LOAD_FP, 3'b010)
-`define RV32_FSW_S `RV32_Stype(`RV32_STORE_FP, 3'b010)
+`define VANILLA_FLW_S `VANILLA_Itype(`VANILLA_LOAD_FP, 3'b010)
+`define VANILLA_FSW_S `VANILLA_Stype(`VANILLA_STORE_FP, 3'b010)
 
-`define RV32_FMADD_S   {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b1000011}
-`define RV32_FMSUB_S   {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b1000111}
-`define RV32_FNMSUB_S  {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b1001011}
-`define RV32_FNMADD_S  {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b1001111}
+`define VANILLA_FMADD_S   {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b0111100}
+`define VANILLA_FMSUB_S   {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b0111000}
+`define VANILLA_FNMSUB_S  {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b0110100}
+`define VANILLA_FNMADD_S  {5'b?????, 2'b00, 5'b?????, 5'b?????, 3'b???, 5'b?????, 7'b0110000}
 
-`define RV32_FDIV_S   `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0001100)
-`define RV32_FSQRT_S  {7'b0101100, 5'b00000, 5'b?????, 3'b???, 5'b?????, 7'b1010011}
+`define VANILLA_FDIV_S   `VANILLA_Rtype(`VANILLA_OP_FP, 3'b???, 7'b0001100)
+`define VANILLA_FSQRT_S  {7'b0101100, 5'b00000, 5'b?????, 3'b???, 5'b?????, 7'b0101100}
 
 `endif
-
