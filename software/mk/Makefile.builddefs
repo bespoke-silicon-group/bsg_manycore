@@ -164,7 +164,7 @@ endif
 LINK_SCRIPT ?= $(CURR_DIR)/bsg_link.ld
 
 $(CURR_DIR)/bsg_link.ld: $(LINK_GEN)
-	python $(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
+	python $(LINK_GEN) $(LINK_GEN_OPTS) --xlen=32 --out=$@
 
 RISCV_LINK_OPTS ?= 
 
@@ -313,7 +313,8 @@ SKIP_ZEROS ?= 0
 		$(bsg_pods_X) $(bsg_pods_Y) \
 		$(SKIP_DRAM_INSTRUCTION_LOAD) \
 		$(SKIP_ZEROS) \
-		$(BSG_MACHINE_IPOLY_HASHING) > $*.nbf
+		$(BSG_MACHINE_IPOLY_HASHING) \
+		$(BSG_MACHINE_XLEN) > $*.nbf
 
 %.bin:  %.hex
 	python $(HEX2BIN) $< 32 > $@
