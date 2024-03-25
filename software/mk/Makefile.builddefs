@@ -1,8 +1,16 @@
 #########################################################
 # Chip Architecture
 
-ARCH_OP=rv32imaf
-ABI=ilp32f
+# read BSG_MACHINE_XLEN from machine's Makefile
+ifeq ($(BSG_MACHINE_XLEN), 64)
+ 	ARCH_OP=rv64imaf
+ 	ABI=lp64f
+ 	ARCH_NAME=riscv64
+else
+ 	ARCH_OP=rv32imaf
+ 	ABI=ilp32f
+ 	ARCH_NAME=riscv32
+endif
 
 
 #######################################################
@@ -164,7 +172,7 @@ endif
 LINK_SCRIPT ?= $(CURR_DIR)/bsg_link.ld
 
 $(CURR_DIR)/bsg_link.ld: $(LINK_GEN)
-	python $(LINK_GEN) $(LINK_GEN_OPTS) --xlen=32 --out=$@
+	python $(LINK_GEN) $(LINK_GEN_OPTS) --xlen=$(BSG_MACHINE_XLEN) --out=$@
 
 RISCV_LINK_OPTS ?= 
 
@@ -204,12 +212,12 @@ LLVM_CLANG        ?= $(LLVM_DIR)/bin/clang
 LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
 LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
 LLVM_LLC          ?= $(LLVM_DIR)/bin/llc
-CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
+CLANG_TARGET_OPTS ?= --target=$(ARCH_NAME) -march=$(ARCH_OP) -mabi=$(ABI)
 
 # Ideally LLC should infer targets option provided to Clang. But LLC 11.0.0 fails
 # to infer the architecture extensions correctly. Hence the information is repeated
 # in LLC target options below.
-LLC_TARGET_OPTS   ?= -march=riscv32 -mcpu=hb-rv32 -mattr=+m,+a,+f
+LLC_TARGET_OPTS   ?= -march=$(ARCH_NAME) -mcpu=hb-rv$(BSG_MACHINE_XLEN) -mattr=+m,+a,+f
 
 ifdef ENABLE_LLVM_PASSES
 PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
