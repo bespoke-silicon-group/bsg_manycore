@@ -1,6 +1,8 @@
 BSG_MACHINE_PODS_X									  = 1
 BSG_MACHINE_PODS_Y									  = 1
 
+BSG_MACHINE_XLEN                      = 32
+
 BSG_MACHINE_GLOBAL_X                  = 2
 BSG_MACHINE_GLOBAL_Y                  = 2
 

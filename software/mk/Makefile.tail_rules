@@ -18,7 +18,7 @@ query_vcs_licenses:
 	make -C $(CAD_DIR) USE_EE=$(USE_EE) -f cadenv_debug.mk $@
 
 pp_trace:
-	$(TRACE_PP_SCRIPT) vanilla.log $(PROG_NAME).riscv $(RISCV_BIN_DIR)/riscv32-unknown-elf-objdump
+	$(TRACE_PP_SCRIPT) vanilla.log $(PROG_NAME).riscv $(RISCV_BIN_DIR)/riscv64-unknown-elf-objdump
 
 pp_spike_trace:
 	cat spike.log | tr '\n' '@' | sed 's/@3/; /g' | sed 's/@/\n/g' > spike_pp.log

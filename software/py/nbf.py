@@ -536,7 +536,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 23:
+  if len(sys.argv) == 24:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -562,6 +562,7 @@ if __name__ == "__main__":
       "skip_dram_instruction_load": int(sys.argv[20]),
       "skip_zeros": int(sys.argv[21]),
       "ipoly_hashing": int(sys.argv[22]),
+      "riscv_xlen" : int(sys.argv[23]),
     }
 
     converter = NBF(config)
@@ -578,5 +579,6 @@ if __name__ == "__main__":
     command += "{skip_dram_instruction_load} "
     command += "{skip_zeros} "
     command += "{ipoly_hashing} "
+    command += "{riscv_xlen} "
     print(command)
 
