@@ -54,6 +54,7 @@ module bsg_manycore_gather_scatter
 
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
+    , `BSG_INV_PARAM(ipoly_hashing_p)
     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
     , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
 
@@ -138,9 +139,9 @@ module bsg_manycore_gather_scatter
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
 
-    ,.fifo_els_p(ep_fifo_els_p)
+    ,.fifo_els_p(proc_fifo_els_p)
 
-    ,.credit_counter_width_p(credit_counter_width_p)
+    ,.credit_counter_width_p(credit_counter_width_lp)
     ,.rev_fifo_els_p(rev_fifo_els_p)
 
     ,.use_credits_for_local_fifo_p(1)
@@ -328,6 +329,7 @@ module bsg_manycore_gather_scatter
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_sets_p(vcache_sets_p)
+    ,.ipoly_hashing_p(ipoly_hashing_p)
   ) eva2npa (
     .eva_i(eva_li)
     ,.tgo_x_i((x_cord_width_p)'(0))  // TODO: enable tile-group addressing?
@@ -351,6 +353,7 @@ module bsg_manycore_gather_scatter
 
   logic dealloc_v_li;
   logic [reg_addr_width_lp-1:0] dealloc_id_li;
+  localparam reg_els_lp = 2**reg_addr_width_lp;
 
   bsg_id_pool #(
     .els_p(reg_els_lp)
