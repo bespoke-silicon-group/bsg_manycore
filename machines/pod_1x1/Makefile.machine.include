@@ -34,7 +34,7 @@ BSG_MACHINE_HOST_Y_CORD               = 0
 BSG_MACHINE_HOST_X_CORD               = 16
 
 BSG_MACHINE_NETWORK_CFG               = e_network_half_ruche_x
-BSG_MACHINE_MEM_CFG                   = e_vcache_test_mem
+BSG_MACHINE_MEM_CFG                   = e_vcache_block_mem
 BSG_MACHINE_DRAMSIM3_PKG              = bsg_dramsim3_hbm2_8gb_x128_pkg
 
 BSG_MACHINE_SUBARRAY_X                = 1

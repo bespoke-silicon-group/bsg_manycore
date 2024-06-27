@@ -166,7 +166,7 @@ module bsg_nonsynth_manycore_testbench
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] ruche_link_lo;
 
   if (bsg_manycore_network_cfg_p == e_network_half_ruche_x) begin: fi1
-    bsg_manycore_pod_ruche_array #(
+    bsg_manycore_pod_ruche_block_mem #(
       .num_tiles_x_p(num_tiles_x_p)
       ,.num_tiles_y_p(num_tiles_y_p)
       ,.pod_x_cord_width_p(pod_x_cord_width_p)
@@ -175,10 +175,9 @@ module bsg_nonsynth_manycore_testbench
       ,.y_cord_width_p(y_cord_width_p)
       ,.addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
+      
       ,.ruche_factor_X_p(ruche_factor_X_p)
       ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
-      ,.num_subarray_x_p(num_subarray_x_p)
-      ,.num_subarray_y_p(num_subarray_y_p)
 
       ,.dmem_size_p(dmem_size_p)
       ,.icache_entries_p(icache_entries_p)
@@ -195,36 +194,24 @@ module bsg_nonsynth_manycore_testbench
       ,.vcache_word_tracking_p(vcache_word_tracking_p)
       ,.ipoly_hashing_p(ipoly_hashing_p)
 
-      ,.wh_ruche_factor_p(wh_ruche_factor_p)
-      ,.wh_cid_width_p(wh_cid_width_p)
-      ,.wh_flit_width_p(wh_flit_width_p)
-      ,.wh_cord_width_p(wh_cord_width_p)
-      ,.wh_len_width_p(wh_len_width_p)
-
-      ,.num_pods_y_p(num_pods_y_p)
-      ,.num_pods_x_p(num_pods_x_p)
-
       ,.reset_depth_p(reset_depth_p)
-      ,.hetero_type_vec_p(hetero_type_vec_p)
     ) DUT (
       .clk_i(clk_i)
-
+      
       ,.ver_link_sif_i(ver_link_sif_li)
       ,.ver_link_sif_o(ver_link_sif_lo)
-
-      ,.wh_link_sif_i(wh_link_sif_li)
-      ,.wh_link_sif_o(wh_link_sif_lo)
-
+      
       ,.hor_link_sif_i(hor_link_sif_li)
       ,.hor_link_sif_o(hor_link_sif_lo)
 
       ,.ruche_link_i(ruche_link_li)
       ,.ruche_link_o(ruche_link_lo)
 
-      ,.pod_tags_i(pod_tags_lo) 
+      ,.pod_tags_i(pod_tags_lo)
     );
   end
   else if (bsg_manycore_network_cfg_p == e_network_mesh) begin: fi1
+/*
     bsg_manycore_pod_mesh_array #(
       .num_tiles_x_p(num_tiles_x_p)
       ,.num_tiles_y_p(num_tiles_y_p)
@@ -278,6 +265,7 @@ module bsg_nonsynth_manycore_testbench
 
       ,.pod_tags_i(pod_tags_lo) 
     );
+*/
   end
   else begin
     initial begin
@@ -719,7 +707,10 @@ module bsg_nonsynth_manycore_testbench
       };
     end
   end
-
+  else if (mem_cfg_lp[e_vcache_block_mem]) begin: bmem
+    // tie off wormhole links;
+    assign buffered_wh_link_sif_li = '0;
+  end
 
 
 

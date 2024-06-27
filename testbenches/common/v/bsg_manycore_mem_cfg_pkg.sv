@@ -43,6 +43,7 @@ package bsg_manycore_mem_cfg_pkg;
     
     ,e_vcache_hbm2
 
+    ,e_vcache_block_mem
 
     // LEVEL 1) zero-latency, infinite capacity block mem.
     //          (uses associative array)
