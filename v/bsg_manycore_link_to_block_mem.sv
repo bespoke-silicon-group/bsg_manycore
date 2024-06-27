@@ -101,10 +101,10 @@ module bsg_manycore_link_to_block_mem
   bsg_manycore_load_info_s load_info;
   assign load_info = packet_lo.payload.load_info_s.load_info;
 
-  wire is_packet_ifetch = (packet_lo.op_v2 == e_remote_load) & load_info.icache_fetch;
+  wire is_packet_ifetch = (packet_lo.op_v2 == e_remote_load) && load_info.icache_fetch;
   wire is_packet_amo = (packet_lo.op_v2 == e_remote_amoswap)
-                     & (packet_lo.op_v2 == e_remote_amoor)
-                     & (packet_lo.op_v2 == e_remote_amoadd);
+                     || (packet_lo.op_v2 == e_remote_amoor)
+                     || (packet_lo.op_v2 == e_remote_amoadd);
 
   // block mem packet;
   `declare_block_mem_pkt_s(mem_addr_width_lp,data_width_p);
@@ -344,10 +344,16 @@ module bsg_manycore_link_to_block_mem
 
       AMO_WRITE: begin
         v_n = 1'b0; // already sent one in the previous cycle;
-        v_o = packet_v_lo & can_send;
-        packet_yumi_li = packet_v_lo & can_send;
+        v_o = 1'b1;
+        packet_yumi_li = 1'b1;
         block_mem_pkt.opcode = e_store;
         block_mem_pkt.mask = {(data_width_p>>3){1'b1}};
+
+        block_mem_pkt.addr = {
+          my_block_id,
+          packet_lo.addr[mem_block_addr_width_lp-1:0],
+          2'b00
+        };
 
         case (packet_lo.op_v2)
           e_remote_amoswap: begin

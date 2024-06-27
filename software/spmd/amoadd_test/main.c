@@ -58,6 +58,7 @@ void atomic_add()
       sum += i;
     expected *= sum;
 
+    bsg_print_int(expected);
     if ((data[0] == data[1]) && (data[0] == expected))
       bsg_finish();
     else
