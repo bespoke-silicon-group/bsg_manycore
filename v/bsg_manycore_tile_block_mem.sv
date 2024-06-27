@@ -83,6 +83,7 @@ module bsg_manycore_tile_block_mem
   bsg_manycore_link_sif_s [S:W] link_sif_li, link_sif_lo;
   bsg_manycore_link_sif_s proc_link_sif_li, proc_link_sif_lo;
   
+  localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,3};
   bsg_manycore_mesh_node #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -92,6 +93,7 @@ module bsg_manycore_tile_block_mem
     // horizontal manycore links are unnecessary.
     ,.stub_p(4'b0011) // stub E and W
     ,.rev_use_credits_p(5'b00001)
+    ,.rev_fifo_els_p(rev_fifo_els_lp)
   ) rtr (
     .clk_i(clk_i)
     ,.reset_i(reset_r)

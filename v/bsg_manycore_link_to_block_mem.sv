@@ -198,11 +198,11 @@ module bsg_manycore_link_to_block_mem
 
 
   // credit counter;
-  localparam credit_max_lp = 2;
+  localparam credit_max_lp = 3;
   localparam credit_width_lp = `BSG_WIDTH(credit_max_lp);
 
   logic [credit_width_lp-1:0] credit_count_r;
-  wire can_send = ((2)'(credit_count_r - return_packet_credit_lo)) < 2'b10;
+  wire can_send = ((credit_width_lp)'(credit_count_r - return_packet_credit_lo)) < credit_max_lp;
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
