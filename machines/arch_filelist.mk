@@ -184,6 +184,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_block_mem.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_block_mem.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_block_mem_array.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_block_mem.sv
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_mesh_block_mem.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_array.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_row.sv

@@ -211,8 +211,7 @@ module bsg_nonsynth_manycore_testbench
     );
   end
   else if (bsg_manycore_network_cfg_p == e_network_mesh) begin: fi1
-/*
-    bsg_manycore_pod_mesh_array #(
+    bsg_manycore_pod_mesh_block_mem #(
       .num_tiles_x_p(num_tiles_x_p)
       ,.num_tiles_y_p(num_tiles_y_p)
       ,.pod_x_cord_width_p(pod_x_cord_width_p)
@@ -221,9 +220,8 @@ module bsg_nonsynth_manycore_testbench
       ,.y_cord_width_p(y_cord_width_p)
       ,.addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
+      
       ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
-      ,.num_subarray_x_p(num_subarray_x_p)
-      ,.num_subarray_y_p(num_subarray_y_p)
 
       ,.dmem_size_p(dmem_size_p)
       ,.icache_entries_p(icache_entries_p)
@@ -240,32 +238,18 @@ module bsg_nonsynth_manycore_testbench
       ,.vcache_word_tracking_p(vcache_word_tracking_p)
       ,.ipoly_hashing_p(ipoly_hashing_p)
 
-      ,.wh_ruche_factor_p(wh_ruche_factor_p)
-      ,.wh_cid_width_p(wh_cid_width_p)
-      ,.wh_flit_width_p(wh_flit_width_p)
-      ,.wh_cord_width_p(wh_cord_width_p)
-      ,.wh_len_width_p(wh_len_width_p)
-
-      ,.num_pods_y_p(num_pods_y_p)
-      ,.num_pods_x_p(num_pods_x_p)
-
       ,.reset_depth_p(reset_depth_p)
-      ,.hetero_type_vec_p(hetero_type_vec_p)
     ) DUT (
       .clk_i(clk_i)
-
+      
       ,.ver_link_sif_i(ver_link_sif_li)
       ,.ver_link_sif_o(ver_link_sif_lo)
-
-      ,.wh_link_sif_i(wh_link_sif_li)
-      ,.wh_link_sif_o(wh_link_sif_lo)
-
+      
       ,.hor_link_sif_i(hor_link_sif_li)
       ,.hor_link_sif_o(hor_link_sif_lo)
 
-      ,.pod_tags_i(pod_tags_lo) 
+      ,.pod_tags_i(pod_tags_lo)
     );
-*/
   end
   else begin
     initial begin
@@ -899,6 +883,7 @@ end
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCACHE_PROFILING
 if (enable_cache_profiling_p) begin
+/*
   bind bsg_cache vcache_profiler #(
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
@@ -917,7 +902,7 @@ if (enable_cache_profiling_p) begin
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
-
+*/
   end
 `endif
 
