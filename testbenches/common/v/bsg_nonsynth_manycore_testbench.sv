@@ -859,8 +859,8 @@ if (enable_vcore_profiling_p) begin
 end
 `endif
 
-`ifndef VERILATOR_WORKAROUND_DISABLE_REMOTE_OP_PROFILING
-if (enable_remote_op_profiling_p) begin
+//`ifndef VERILATOR_WORKAROUND_DISABLE_REMOTE_OP_PROFILING
+//if (enable_remote_op_profiling_p) begin
   bind network_tx remote_load_trace #(
     .addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
@@ -876,10 +876,10 @@ if (enable_remote_op_profiling_p) begin
     .*
     ,.clk_i(clk_i)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
-    ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
+    ,.trace_en_i(1'b1)
   );
-end
-`endif
+//end
+//`endif
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCACHE_PROFILING
 if (enable_cache_profiling_p) begin

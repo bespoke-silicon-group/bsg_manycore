@@ -69,6 +69,8 @@ module remote_load_trace
     // ctrl signal
     , input trace_en_i
     , input [31:0] global_ctr_i
+    , input print_stat_v_i
+    , input [data_width_p-1:0] print_stat_tag_i
   );
 
   `DEFINE_PROFILER(remote_load_profiler
@@ -162,11 +164,21 @@ module remote_load_trace
   end
 
 
-  
+  logic kernel_start_received_r;
+  always_ff @ (posedge clk_i) begin
+    if (reset_i) begin
+      kernel_start_received_r <= 1'b0;
+    end
+    else begin
+      if (print_stat_v_i && print_stat_tag_i[31:30] == 2'b10) begin
+        kernel_start_received_r <= 1'b1;
+      end
+    end
+  end
 
 
   always @ (negedge clk_i) begin
-    if (~reset_i & trace_en_i) begin
+    if (~reset_i & trace_en_i & kernel_start_received_r) begin
 
       // It is not currently possible to track the return of store
       // packets using reg_id, so we record store packets when they
@@ -176,6 +188,7 @@ module remote_load_trace
       // return_packet_lo.x/y_cord signals from
       // bsg_manycore_endpoint_standard and I'm not up for that much
       // of a change at the moment.
+/*
       if (write_op_v) begin
           $fwrite(remote_load_profiler_trace_fd(),"%0d,%s,%0d,%0d,%0d,%0d,%s,%s\n",
             global_ctr_i,
@@ -188,7 +201,7 @@ module remote_load_trace
             "x"
           );
       end
-
+*/
       if (returned_v_i & returned_yumi_o) begin
 
         case (returned_pkt_type_i)
