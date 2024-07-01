@@ -876,6 +876,8 @@ end
     .*
     ,.clk_i(clk_i)
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
+    ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
+    ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i(1'b1)
   );
 //end
