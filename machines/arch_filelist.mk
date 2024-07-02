@@ -23,7 +23,7 @@ VHEADERS += $(BASEJUMP_STL_DIR)/bsg_fpu/bsg_fpu_defines.svh
 VHEADERS += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pkg.sv
 VHEADERS += $(BSG_MANYCORE_DIR)/v/vanilla_bean/bsg_vanilla_pkg.sv
 VHEADERS += $(BSG_MANYCORE_DIR)/v/bsg_manycore_addr_pkg.sv
-VHEADERS += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/bsg_hardfloat_pkg.v
+VHEADERS += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/bsg_hardfloat_pkg.sv
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_less_than.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_reduce.sv
