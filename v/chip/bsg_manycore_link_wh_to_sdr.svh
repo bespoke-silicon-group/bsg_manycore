@@ -260,7 +260,7 @@
 
   ,.core_data_i (ver_link_sif_li.fwd.data)
   ,.core_v_i    (ver_link_sif_li.fwd.v)
-  ,.core_ready_o(ver_link_sif_lo.fwd.ready_and_rev)
+  ,.core_ready_and_o(ver_link_sif_lo.fwd.ready_and_rev)
 
   ,.core_data_o (ver_link_sif_lo.fwd.data)
   ,.core_v_o    (ver_link_sif_lo.fwd.v)
@@ -292,7 +292,7 @@
 
   ,.core_data_i (ver_link_sif_li.rev.data)
   ,.core_v_i    (ver_link_sif_li.rev.v)
-  ,.core_ready_o(ver_link_sif_lo.rev.ready_and_rev)
+  ,.core_ready_and_o(ver_link_sif_lo.rev.ready_and_rev)
 
   ,.core_data_o (ver_link_sif_lo.rev.data)
   ,.core_v_o    (ver_link_sif_lo.rev.v)
@@ -326,7 +326,7 @@
 
     ,.core_data_i (wh_link_sif_li[i].data)
     ,.core_v_i    (wh_link_sif_li[i].v)
-    ,.core_ready_o(wh_link_sif_lo[i].ready_and_rev)
+    ,.core_ready_and_o(wh_link_sif_lo[i].ready_and_rev)
 
     ,.core_data_o (wh_link_sif_lo[i].data)
     ,.core_v_o    (wh_link_sif_lo[i].v)

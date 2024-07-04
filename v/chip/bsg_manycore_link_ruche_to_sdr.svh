@@ -205,7 +205,7 @@
 
   ,.core_data_i (proc_link_sif_lo.fwd.data)
   ,.core_v_i    (proc_link_sif_lo.fwd.v)
-  ,.core_ready_o(proc_link_sif_li.fwd.ready_and_rev)
+  ,.core_ready_and_o(proc_link_sif_li.fwd.ready_and_rev)
 
   ,.core_data_o (proc_link_sif_li.fwd.data)
   ,.core_v_o    (proc_link_sif_li.fwd.v)
@@ -237,7 +237,7 @@
 
   ,.core_data_i (proc_link_sif_lo.rev.data)
   ,.core_v_i    (proc_link_sif_lo.rev.v)
-  ,.core_ready_o(proc_link_sif_li.rev.ready_and_rev)
+  ,.core_ready_and_o(proc_link_sif_li.rev.ready_and_rev)
 
   ,.core_data_o (proc_link_sif_li.rev.data)
   ,.core_v_o    (proc_link_sif_li.rev.v)
