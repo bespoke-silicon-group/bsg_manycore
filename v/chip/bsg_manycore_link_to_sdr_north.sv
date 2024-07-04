@@ -126,7 +126,7 @@ module bsg_manycore_link_to_sdr_north
 
   ,.core_data_i (core_link_sif_li.fwd.data)
   ,.core_v_i    (core_link_sif_li.fwd.v)
-  ,.core_ready_o(core_link_sif_lo.fwd.ready_and_rev)
+  ,.core_ready_and_o(core_link_sif_lo.fwd.ready_and_rev)
 
   ,.core_data_o (core_link_sif_lo.fwd.data)
   ,.core_v_o    (core_link_sif_lo.fwd.v)
@@ -158,7 +158,7 @@ module bsg_manycore_link_to_sdr_north
 
   ,.core_data_i (core_link_sif_li.rev.data)
   ,.core_v_i    (core_link_sif_li.rev.v)
-  ,.core_ready_o(core_link_sif_lo.rev.ready_and_rev)
+  ,.core_ready_and_o(core_link_sif_lo.rev.ready_and_rev)
 
   ,.core_data_o (core_link_sif_lo.rev.data)
   ,.core_v_o    (core_link_sif_lo.rev.v)
