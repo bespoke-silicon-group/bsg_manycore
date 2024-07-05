@@ -20,8 +20,8 @@ module bsg_manycore_pod_ruche_row
     , `BSG_INV_PARAM(data_width_p)
     , `BSG_INV_PARAM(ruche_factor_X_p)
     , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
-    , num_subarray_x_p=1
-    , num_subarray_y_p=1
+    , `BSG_INV_PARAM(num_subarray_x_p)
+    , `BSG_INV_PARAM(num_subarray_y_p)
 
     , `BSG_INV_PARAM(dmem_size_p)
     , `BSG_INV_PARAM(icache_entries_p)
@@ -38,7 +38,7 @@ module bsg_manycore_pod_ruche_row
     , `BSG_INV_PARAM(vcache_word_tracking_p)
     , `BSG_INV_PARAM(ipoly_hashing_p)
 
-    , wh_ruche_factor_p=2 // only support 2 for now
+    , `BSG_INV_PARAM(wh_ruche_factor_p)
     , `BSG_INV_PARAM(wh_cid_width_p)
     , `BSG_INV_PARAM(wh_flit_width_p)
     , `BSG_INV_PARAM(wh_cord_width_p)

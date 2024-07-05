@@ -18,17 +18,16 @@ module bsg_manycore_pod_row_sdr
     , `BSG_INV_PARAM(y_cord_width_p)
     , `BSG_INV_PARAM(addr_width_p)
     , `BSG_INV_PARAM(data_width_p)
-    , parameter ruche_factor_X_p=3  // only support 3 for now
-    , parameter barrier_ruche_factor_X_p=3
-    , parameter num_subarray_x_p=1
-    , parameter num_subarray_y_p=1
+    , `BSG_INV_PARAM(ruche_factor_X_p)
+    , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
+    , `BSG_INV_PARAM(num_subarray_x_p)
+    , `BSG_INV_PARAM(num_subarray_y_p)
 
     , `BSG_INV_PARAM(dmem_size_p)
     , `BSG_INV_PARAM(icache_entries_p)
     , `BSG_INV_PARAM(icache_tag_width_p)
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
-    , parameter num_vcache_rows_p=1
     , `BSG_INV_PARAM(vcache_addr_width_p)
     , `BSG_INV_PARAM(vcache_data_width_p)
     , `BSG_INV_PARAM(vcache_ways_p)
@@ -39,7 +38,7 @@ module bsg_manycore_pod_row_sdr
     , `BSG_INV_PARAM(vcache_word_tracking_p)
     , `BSG_INV_PARAM(ipoly_hashing_p)
 
-    , parameter wh_ruche_factor_p=2 // only support 2 for now
+    , `BSG_INV_PARAM(wh_ruche_factor_p)
     , `BSG_INV_PARAM(wh_cid_width_p)
     , `BSG_INV_PARAM(wh_flit_width_p)
     , `BSG_INV_PARAM(wh_cord_width_p)
@@ -185,7 +184,6 @@ module bsg_manycore_pod_row_sdr
     ,.icache_tag_width_p  (icache_tag_width_p)
     ,.icache_block_size_in_words_p  (icache_block_size_in_words_p)
 
-    ,.num_vcache_rows_p   (num_vcache_rows_p)
     ,.vcache_addr_width_p (vcache_addr_width_p)
     ,.vcache_data_width_p (vcache_data_width_p)
     ,.vcache_ways_p       (vcache_ways_p)
