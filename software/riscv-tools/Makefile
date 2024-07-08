@@ -155,7 +155,7 @@ build-llvm:
 	@echo "====================================="
 	@echo "Building $(LLVM_DIR)..."
 	@echo "====================================="
-	$(MAKE) -C ../mk/ -f Makefile.llvminstall LLVM_DIR=$(LLVM_DIR) RISCV_INSTALL_DIR=$(RISCV)
+	$(MAKE) -C ../mk/ -f Makefile.llvminstall PATCH_DIR=$(CURDIR) LLVM_DIR=$(LLVM_DIR) RISCV_INSTALL_DIR=$(RISCV)
 
 build-all: 
 	$(MAKE) build-deps 
