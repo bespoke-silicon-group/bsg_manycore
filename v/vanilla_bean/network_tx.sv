@@ -35,7 +35,7 @@ module network_tx
     , icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
 
-    , reg_addr_width_lp=RV32_reg_addr_width_gp
+    , reg_addr_width_lp=reg_addr_width_gp
 
     , packet_width_lp=
       `bsg_manycore_packet_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
