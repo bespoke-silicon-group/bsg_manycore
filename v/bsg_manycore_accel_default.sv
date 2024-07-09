@@ -26,13 +26,13 @@ module bsg_manycore_accel_default
 
      , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
-     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
-     , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
-
      , `BSG_INV_PARAM(rev_fifo_els_p) // for FIFO credit counting.
      , `BSG_INV_PARAM(fwd_fifo_els_p) // for FIFO credit counting.
 
-     , localparam credit_counter_width_lp = `BSG_WIDTH(32)
+     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
+     , y_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_y_p)
+
+     , credit_counter_width_lp = `BSG_WIDTH(32)
      , parameter proc_fifo_els_p = 4
      , debug_p = 1
 
