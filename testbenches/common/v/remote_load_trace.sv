@@ -75,7 +75,7 @@ module remote_load_trace
 
   `DEFINE_PROFILER(remote_load_profiler
                    ,"remote_load_trace.csv"
-                   ,"start_cycle,end_cycle,src_x,src_y,dest_x,dest_y,type,latency\n"
+                   ,"src_x,src_y,dest_x,dest_y,type,latency\n"
                    )
 
   wire [x_cord_width_p-1:0] global_x = {pod_x_i, my_x_i};
@@ -207,9 +207,9 @@ module remote_load_trace
         case (returned_pkt_type_i)
 
           e_return_int_wb: begin
-            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
-              int_rl_status_r[returned_reg_id_i].start_cycle,
-              global_ctr_i,
+            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%s,%0d\n",
+              //int_rl_status_r[returned_reg_id_i].start_cycle,
+              //global_ctr_i,
               global_x,
               global_y,
               int_rl_status_r[returned_reg_id_i].x_cord,
@@ -220,9 +220,9 @@ module remote_load_trace
           end
 
           e_return_float_wb: begin
-            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
-              float_rl_status_r[returned_reg_id_i].start_cycle,
-              global_ctr_i,
+            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%s,%0d\n",
+              //float_rl_status_r[returned_reg_id_i].start_cycle,
+              //global_ctr_i,
               global_x,
               global_y,
               float_rl_status_r[returned_reg_id_i].x_cord,
@@ -233,9 +233,9 @@ module remote_load_trace
 
           end
           e_return_ifetch: begin
-            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%0d,%0d,%s,%0d\n",
-              icache_status_r.start_cycle,
-              global_ctr_i,
+            $fwrite(remote_load_profiler_trace_fd(),"%0d,%0d,%0d,%0d,%s,%0d\n",
+              //icache_status_r.start_cycle,
+              //global_ctr_i,
               global_x,
               global_y,
               icache_status_r.x_cord,

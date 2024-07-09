@@ -934,6 +934,7 @@ end
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_COVERAGE
 if (enable_vcore_pc_coverage_p) begin
+/*
   bind vanilla_core bsg_nonsynth_manycore_vanilla_core_pc_cov #(
     .icache_tag_width_p(icache_tag_width_p)
     ,.icache_entries_p(icache_entries_p)
@@ -943,6 +944,7 @@ if (enable_vcore_pc_coverage_p) begin
     ,.clk_i(clk_i)
     ,.coverage_en_i($root.`HOST_MODULE_PATH.coverage_en)
   );
+*/
 end
 `endif
 `endif
@@ -951,9 +953,10 @@ end
   ///             ///
   ///   TRACER    ///
   ///             ///
-  
+ 
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_TRACE
 if (enable_vanilla_core_trace_p) begin
+/*
   bind vanilla_core vanilla_core_trace #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -965,6 +968,7 @@ if (enable_vanilla_core_trace_p) begin
     .*
     ,.clk_i(clk_i)
   );
+*/
 end
 `endif
 
@@ -973,6 +977,7 @@ end
   //////////////////
 `ifndef VERILATOR_WORKAROUND_DISABLE_PC_HISTOGRAM
 if (enable_vanilla_core_pc_histogram_p) begin
+/*
   bind vanilla_core vanilla_core_pc_histogram
     #(.x_cord_width_p(x_cord_width_p)
       ,.y_cord_width_p(y_cord_width_p)
@@ -984,6 +989,7 @@ if (enable_vanilla_core_pc_histogram_p) begin
       )
   vcore_pc_hist
     (.*);
+*/
 end // if (enable_vanilla_core_pc_histogram_p)
 `endif
 
