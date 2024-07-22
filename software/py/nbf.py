@@ -396,6 +396,15 @@ class NBF:
             x4 = self.hash_addr_bit(temp_x[4], index, [18,16,15,14,13,10,8,4,3])
             x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3) | (x4 << 4)
             y = self.hash_addr_bit(temp_y, index, [17,16,15,14,11,9,5,4])
+          elif lg_x == 6:
+            x0 = self.hash_addr_bit(temp_x[0], index, [0,5,7,10,14,15,17])
+            x1 = self.hash_addr_bit(temp_x[1], index, [1,6,8,11,15,16])
+            x2 = self.hash_addr_bit(temp_x[2], index, [0,2,5,9,10,12,14,15,16])
+            x3 = self.hash_addr_bit(temp_x[3], index, [1,3,6,10,11,13,15,16,17])
+            x4 = self.hash_addr_bit(temp_x[4], index, [2,4,7,11,12,14,16,17])
+            x5 = self.hash_addr_bit(temp_x[5], index, [3,5,8,12,13,15,17])
+            x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3) | (x4 << 4) | (x5 << 5)
+            y = self.hash_addr_bit(temp_y, index, [4,6,9,13,14,16])
           else:
             print("IPOLY not supported for lg_x = {}".format(lg_x))
             sys.exit()
