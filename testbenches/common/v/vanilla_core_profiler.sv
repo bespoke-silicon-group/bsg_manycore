@@ -1020,11 +1020,13 @@ module vanilla_core_profiler
     end
    end
    
+  wire global_y_match = print_stat_tag.y_cord == (global_y_i[subcord_y_width_lp-1:0]);
+  wire global_x_match = print_stat_tag.x_cord == (global_x_i[subcord_x_width_lp-1:0]);
 
 
    always @(negedge clk_i)  begin
         // stat printing
-        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == (global_y_i[subcord_y_width_lp-1:0]) & print_stat_tag.x_cord == (global_x_i[subcord_x_width_lp-1:0])) begin
+        if (~reset_i & print_stat_v_i & global_y_match & global_x_match) begin
           $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, global_x_i, global_y_i);
           print_stat(logfile_lp);
         end

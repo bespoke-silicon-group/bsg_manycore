@@ -269,8 +269,8 @@ inline void bsg_lw_prefetch(int * ptr){ asm volatile ("lw x0, 0(%[p])": : [p] "r
 
 #define bsg_cuda_print_stat_type(tag,stat_type) do {                                                              \
     int val = ( (stat_type << BSG_CUDA_PRINT_STAT_TYPE_SHIFT)                                                |    \
-                (((__bsg_grp_org_y + __bsg_y) & BSG_CUDA_PRINT_STAT_Y_MASK) << BSG_CUDA_PRINT_STAT_Y_SHIFT)  |    \
-                (((__bsg_grp_org_x + __bsg_x) & BSG_CUDA_PRINT_STAT_X_MASK) << BSG_CUDA_PRINT_STAT_X_SHIFT)  |    \
+                (((__bsg_y) & BSG_CUDA_PRINT_STAT_Y_MASK) << BSG_CUDA_PRINT_STAT_Y_SHIFT)  |    \
+                (((__bsg_x) & BSG_CUDA_PRINT_STAT_X_MASK) << BSG_CUDA_PRINT_STAT_X_SHIFT)  |    \
                 ((__bsg_tile_group_id & BSG_CUDA_PRINT_STAT_TG_ID_MASK) << BSG_CUDA_PRINT_STAT_TG_ID_SHIFT)  |    \
                 ((tag & BSG_CUDA_PRINT_STAT_TAG_MASK) << BSG_CUDA_PRINT_STAT_TAG_SHIFT) );                        \
     bsg_print_stat(val);                                                                                          \
