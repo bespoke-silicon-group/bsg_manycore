@@ -29,6 +29,9 @@ module vanilla_core_profiler
     , parameter `BSG_INV_PARAM(origin_x_cord_p)
     , parameter `BSG_INV_PARAM(origin_y_cord_p)
 
+    , parameter `BSG_INV_PARAM(num_tiles_x_p)
+    , parameter `BSG_INV_PARAM(num_tiles_y_p)
+
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
 
@@ -37,6 +40,9 @@ module vanilla_core_profiler
 
     , parameter period_p = 250
     , parameter enable_periodic_p=0
+
+    , localparam subcord_x_width_lp=`BSG_SAFE_CLOG2(num_tiles_x_p)
+    , localparam subcord_y_width_lp=`BSG_SAFE_CLOG2(num_tiles_y_p)
   )
   (
     input clk_i
@@ -1018,7 +1024,7 @@ module vanilla_core_profiler
 
    always @(negedge clk_i)  begin
         // stat printing
-        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == (global_y_i) & print_stat_tag.x_cord == (global_x_i)) begin
+        if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == (global_y_i[subcord_y_width_lp-1:0]) & print_stat_tag.x_cord == (global_x_i[subcord_x_width_lp-1:0])) begin
           $display("[BSG_INFO][VCORE_PROFILER] t=%0t x,y=%02d,%02d printing stats.", $time, global_x_i, global_y_i);
           print_stat(logfile_lp);
         end

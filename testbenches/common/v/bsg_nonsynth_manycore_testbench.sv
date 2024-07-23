@@ -837,8 +837,8 @@ module bsg_nonsynth_manycore_testbench
 
 // Exponential parsing from surelog: https://github.com/chipsalliance/Surelog/issues/2035
 `ifndef SURELOG
-`ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_PROFILING
-if (enable_vcore_profiling_p) begin
+//`ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_PROFILING
+//if (enable_vcore_profiling_p) begin
   // vanilla core profiler
    bind vanilla_core vanilla_core_profiler #(
     .x_cord_width_p(x_cord_width_p)
@@ -848,6 +848,8 @@ if (enable_vcore_profiling_p) begin
     ,.data_width_p(data_width_p)
     ,.origin_x_cord_p(`BSG_MACHINE_ORIGIN_X_CORD)
     ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
+    ,.num_tiles_x_p(`BSG_MACHINE_GLOBAL_X)
+    ,.num_tiles_y_p(`BSG_MACHINE_GLOBAL_Y)
   ) vcore_prof (
     .*
     ,.clk_i(clk_i)
@@ -856,8 +858,8 @@ if (enable_vcore_profiling_p) begin
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
   );
-end
-`endif
+//end
+//`endif
 
 //`ifndef VERILATOR_WORKAROUND_DISABLE_REMOTE_OP_PROFILING
 //if (enable_remote_op_profiling_p) begin
