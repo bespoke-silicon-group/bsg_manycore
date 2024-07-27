@@ -33,7 +33,7 @@ TARGET_CFLAGS     := '-fno-common'
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
 TOOLCHAIN_URL     := https://github.com/bespoke-silicon-group/$(TOOLCHAIN_REPO)
-TOOLCHAIN_VERSION := 656708846d723936eb5ba2648f6f919608a8ccaf
+TOOLCHAIN_VERSION := bsg_custom_git_modules # 656708846d723936eb5ba2648f6f919608a8ccaf
 
 DEPENDS_DIR       := $(CURDIR)/depends
 
@@ -78,9 +78,8 @@ checkout-repos:
 	@echo "====================================="
 	@echo "Cloning riscv-toolchain repo..."
 	@echo "====================================="
-	@rm -rf $(TOOLCHAIN_REPO);
-	git clone $(TOOLCHAIN_URL);
-	cd $(TOOLCHAIN_REPO) && git checkout $(TOOLCHAIN_VERSION);
+	git clone -b $(TOOLCHAIN_VERSION) $(TOOLCHAIN_URL) $(TOOLCHAIN_REPO) || \
+		echo "RISC-V toolchain already cloned, reusing"
 
 # Checks if git > 2.8
 ifeq ($(shell [ $(call git-version,1) -gt 1 ] && \
@@ -110,10 +109,10 @@ checkout-spike:
 	@echo "====================================="
 	@echo "Cloning riscv-isa-sim repo..."
 	@echo "====================================="
-	@rm -rf $(SPIKE_REPO);
-	git clone --recursive $(SPIKE_URL);
-	cd $(SPIKE_REPO) && git checkout tags/$(SPIKE_TAG)
-	cd $(SPIKE_REPO) && git apply ../$(SPIKE_PATCH) && git apply ../$(SPIKE_GCC_PATCH)
+	git clone --recursive -b $(SPIKE_TAG) $(SPIKE_URL) $(SPIKE_REPO) || \
+		echo "riscv-isa-sim already cloned, reusing"
+	cd $(SPIKE_REPO) && git apply --reverse --check ../$(SPIKE_PATCH) || git apply ../$(SPIKE_PATCH)
+	cd $(SPIKE_REPO) && git apply --reverse --check ../$(SPIKE_GCC_PATCH) || git apply ../$(SPIKE_GCC_PATCH)
 
 checkout-all: 
 	$(MAKE) checkout-repos 
