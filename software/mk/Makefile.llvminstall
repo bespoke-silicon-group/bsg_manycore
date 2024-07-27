@@ -4,12 +4,12 @@ endif
 
 # devtoolset-8
 GCCVERSION = $(shell gcc -dumpversion)
-ifeq ($(shell expr $(GCCVERSION) \> 7), 1)
+ifeq ($(shell expr $(GCCVERSION) \> 7)$(shell expr $(GCCVERSION) \< 10), 11)
 HOST_TOOLCHAIN ?=
 $(info Using default GCCVERSION $(GCCVERSION))
 else
 HOST_TOOLCHAIN ?= /opt/rh/devtoolset-8/root/usr/bin/
-$(info Default GCCVERSION $(GCCVERSION) is too old; using $(HOST_TOOLCHAIN))
+$(info Default GCCVERSION $(GCCVERSION) is too new/old; using $(HOST_TOOLCHAIN))
 endif
 
 # We need cmake3. On older RHEL systems, cmake is version 2 and cmake3
@@ -32,22 +32,24 @@ ifndef GENERATOR
   endif
 endif
 
-llvm-install:
-	mkdir -p $(LLVM_DIR)/llvm-build && mkdir -p $(LLVM_DIR)/llvm-install
-	# Get LLVM sources
-	cd $(LLVM_DIR) && \
-    git clone https://github.com/bespoke-silicon-group/llvm-project.git ./llvm-src && \
-    cd ./llvm-src && git fetch && git checkout hb-dev
+configure-llvm:
+	@echo "====================================="
+	@echo "Configuring LLVM..."
+	@echo "====================================="
 	# Install only X86 and RISCV targets
-	cd $(LLVM_DIR)/llvm-build \
-	    && $(CMAKE) -G $(GENERATOR) -DCMAKE_BUILD_TYPE="Debug" \
-      -DLLVM_ENABLE_PROJECTS="clang" \
-	    -DCMAKE_INSTALL_PREFIX="$(LLVM_DIR)/llvm-install" \
-	    -DCMAKE_C_COMPILER=$(HOST_TOOLCHAIN)gcc \
-	    -DCMAKE_CXX_COMPILER=$(HOST_TOOLCHAIN)g++ \
-	    -DLLVM_TARGETS_TO_BUILD="X86;RISCV" \
-	    -DBUILD_SHARED_LIBS=True \
-	    -DLLVM_USE_SPLIT_DWARF=True \
-	    -DLLVM_OPTIMIZED_TABLEGEN=True \
-	    ../llvm-src/llvm
-	cd  $(LLVM_DIR)/llvm-build && $(CMAKE) --build . --target install -- -j $(COMPILING_THREADS)
+	$(CMAKE) -S $(LLVM_DIR)/llvm -B $(LLVM_DIR)/llvm-build \
+		-G $(GENERATOR) \
+		-DCMAKE_BUILD_TYPE="Debug" \
+		-DLLVM_ENABLE_PROJECTS="clang" \
+		-DCMAKE_INSTALL_PREFIX="$(RISCV)" \
+		-DCMAKE_C_COMPILER=$(HOST_TOOLCHAIN)gcc \
+		-DCMAKE_CXX_COMPILER=$(HOST_TOOLCHAIN)g++ \
+		-DLLVM_TARGETS_TO_BUILD="X86;RISCV" \
+		-DBUILD_SHARED_LIBS=True \
+		-DLLVM_USE_SPLIT_DWARF=True \
+		-DLLVM_OPTIMIZED_TABLEGEN=True
+
+llvm-install: configure-llvm
+	cd $(LLVM_DIR)/llvm-build; \
+		$(CMAKE) --build . --target install -- -j $(COMPILING_THREADS)
+

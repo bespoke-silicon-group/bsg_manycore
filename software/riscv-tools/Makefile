@@ -31,11 +31,15 @@ TARGET_ARCH       := rv32imaf
 TARGET_ABI        := ilp32f
 TARGET_CFLAGS     := '-fno-common'
 
+LLVM_REPO         := llvm-project
+LLVM_URL          := https://github.com/bespoke-silicon-group/$(LLVM_REPO)
+LLVM_VERSION      := hb-dev # 2c0472120c0c1a3b0b613099e9bc579cf02f6c1c
+
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
 TOOLCHAIN_URL     := https://github.com/bespoke-silicon-group/$(TOOLCHAIN_REPO)
-TOOLCHAIN_VERSION := 656708846d723936eb5ba2648f6f919608a8ccaf
+TOOLCHAIN_VERSION := bsg_custom_git_modules # 656708846d723936eb5ba2648f6f919608a8ccaf
 
-DEPENDS_DIR       := $(CURDIR)/depends
+DEPENDS_DIR       := depends
 
 SPIKE_REPO        := riscv-isa-sim
 SPIKE_URL         := https://github.com/riscv/riscv-isa-sim.git
@@ -44,24 +48,26 @@ SPIKE_GCC_PATCH   := spike-gcc.patch
 SPIKE_TAG         := v1.1.0
 
 # How many thread you want to use compiling tools
-
-ifeq ($(OS),Linux)
+UNAME := $(shell uname)
+ifeq ($(UNAME),Linux)
         NUMPROC := $(shell grep -c ^processor /proc/cpuinfo)
-else ifeq ($(OS),Darwin)
+else ifeq ($(UNAME),Darwin)
         NUMPROC := $(shell sysctl hw.ncpu | awk '{print $$2}')
 endif
 
 # Only take half as many processors as available
 COMPILING_THREADS ?= $(shell echo "($(NUMPROC)+1)/2" | bc)
 
-LLVM_DIR          := $(CURDIR)/llvm
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
 
 DEPENDS_LIST=autoconf-2.69 automake-1.14
 DEPENDS_URL=https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.xz \
             https://ftp.gnu.org/gnu/automake/automake-1.14.tar.xz 
 
-export RISCV:=$(CURDIR)/riscv-install
+export RISCV_INSTALL_DIR ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install
+export RISCV_BIN_DIR ?= $(RISCV_INSTALL_DIR)/bin
+
+export RISCV:=$(RISCV_INSTALL_DIR)
 export SED=sed
 export CC=gcc
 export CXX=g++
@@ -69,16 +75,44 @@ export SED=sed
 export PATH
 export SHELL:=$(SHELL)
 
+APPLY_PATCH  ?= git apply --ignore-whitespace --ignore-space-change
+CHECK_PATCH  ?= $(APPLY_PATCH) --check --reverse
+QUICK_CLONE  ?= git clone -j $(COMPILING_THREADS) --single-branch --recurse-submodules --shallow-submodules --shallow-since=2020-01-01
+STABLE_CLONE ?= git clone
+
 # Git version
 # Usage: $(call git-version,<1 (major), 2 (minor), 3(patch)>)
 git-version = $(shell git --version | awk '{print $$3}' | awk -F. '{print $$$(1)}')
 
+# Checks if git > 2.8
+ifeq ($(shell [ $(call git-version,1) -gt 1 ] && \
+              [ $(call git-version,1) -gt 2 -o $(call git-version,2) -gt 8 ] && \
+              echo 1), 1)
+GIT_CLONE ?= $(QUICK_CLONE)
+else
+GIT_CLONE ?= $(STABLE_CLONE)
+endif
+
+define patch_if_new
+	$(eval $@_src_root = $(1))
+	$(eval $@_patch = $(2))
+	$(eval $@_base_patch = $(basename $($@_patch)))
+	for p in ${$@_patch}; \
+	do \
+		echo "Checking if ${$@_base_patch} is applied..."; \
+		cd ${$@_src_root}; $(CHECK_PATCH) $$p &> /dev/null && continue; \
+		echo "Applying unapplied patch to ${$@_src_root};" \
+		cd ${$@_src_root}; $(APPLY_PATCH) $$p &> /dev/null && continue; \
+	done
+endef
+
 help:
 	@cat README.md
 
-checkout-repos:
-	mkdir -p $(DEPENDS_DIR);	
+checkout-deps: | $(DEPENDS_DIR)
+$(DEPENDS_DIR):
 	mkdir -p $(RISCV);
+	mkdir -p $(DEPENDS_DIR);	
 	@echo "====================================="
 	@echo "Downloading depends..."
 	@echo "====================================="
@@ -86,48 +120,44 @@ checkout-repos:
 	for dep_url in $(DEPENDS_URL); do 	\
 		wget $$dep_url;			\
 	done
+
+checkout-riscv-gnu-tools: | $(TOOLCHAIN_REPO)
+$(TOOLCHAIN_REPO):
 	@echo "====================================="
 	@echo "Cloning riscv-toolchain repo..."
 	@echo "====================================="
-	@rm -rf $(TOOLCHAIN_REPO);
-	git clone $(TOOLCHAIN_URL);
-	cd $(TOOLCHAIN_REPO) && git checkout $(TOOLCHAIN_VERSION);
-
-# Checks if git > 2.8
-ifeq ($(shell [ $(call git-version,1) -gt 1 ] && \
-              [ $(call git-version,1) -gt 2 -o $(call git-version,2) -gt 8 ] && \
-              echo 1), 1)
-	#cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive -j $(COMPILING_THREADS);
+	$(GIT_CLONE) -b $(TOOLCHAIN_VERSION) $(TOOLCHAIN_URL) $(TOOLCHAIN_REPO) || \
+		echo "riscv-gnu-toolchain already cloned, reusing"
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-binutils
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-glibc
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-gcc
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-newlib
-else
-	#cd $(TOOLCHAIN_REPO) && git submodule update --init --recursive;
-	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-binutils
-	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-glibc
-	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-gcc
-	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-newlib
-endif
-	# **** This patch is no longer necessary. Its changes have
-	#      been applied in the bsg_manycore_gcc branch of
-	#      riscv-gcc.
-	# This patch is necessary if target abi is ilp32f because of the issue
-	# https://github.com/riscv/riscv-gnu-toolchain/issues/530
-	# cd $(TOOLCHAIN_REPO)/riscv-gcc && git apply $(CURDIR)/riscv-gcc.patch
 
+checkout-llvm: | $(LLVM_REPO)
+$(LLVM_REPO):
+	@echo "====================================="
+	@echo "Cloning llvm-project repo..."
+	@echo "====================================="
+	$(GIT_CLONE) -b $(LLVM_VERSION) $(LLVM_URL) $(LLVM_REPO) || \
+		echo "LLVM already cloned, reusing"
 
-checkout-spike:
+checkout-repos:
+	$(MAKE) checkout-riscv-gnu-tools
+	$(MAKE) checkout-llvm
+
+checkout-spike: | $(SPIKE_REPO)
+$(SPIKE_REPO):
 	@echo "====================================="
 	@echo "Cloning riscv-isa-sim repo..."
 	@echo "====================================="
-	@rm -rf $(SPIKE_REPO);
-	git clone --recursive $(SPIKE_URL);
-	cd $(SPIKE_REPO) && git checkout tags/$(SPIKE_TAG)
-	#cd $(SPIKE_REPO) && git apply ../$(SPIKE_PATCH) && git apply ../$(SPIKE_GCC_PATCH)
+	$(GIT_CLONE) -b $(SPIKE_TAG) $(SPIKE_URL) $(SPIKE_REPO) || \
+		echo "riscv-isa-sim already cloned, reusing"
+	@$(call patch_if_new,$(SPIKE_REPO),$(abspath $(SPIKE_PATCH)))
+	@$(call patch_if_new,$(SPIKE_REPO),$(abspath $(SPIKE_GCC_PATCH)))
 
 checkout-all: 
-	$(MAKE) checkout-repos 
+	$(MAKE) checkout-deps
+	$(MAKE) checkout-repos
 	$(MAKE) checkout-spike
 
 build-deps:
@@ -146,29 +176,32 @@ configure-riscv-gnu-tools:
 	@echo "====================================="
 	@echo "Configuring toolchain..."
 	@echo "====================================="
-	cd riscv-gnu-toolchain && \
+	cd $(TOOLCHAIN_REPO) && \
 		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI) --disable-gdb --with-tune=bsg_vanilla_2020
 
 build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	@echo "Building toolchain..."
 	@echo "====================================="
-	cd riscv-gnu-toolchain && $(MAKE) -j $(COMPILING_THREADS) CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS)
+	$(MAKE) -C $(TOOLCHAIN_REPO) -j $(COMPILING_THREADS) CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS)
+	$(MAKE) -C $(TOOLCHAIN_REPO) install
 
 build-spike:
 	@echo "====================================="
 	@echo "Building $(SPIKE_REPO)..."
 	@echo "====================================="
-	cd $(SPIKE_REPO) && ./configure --prefix=$(RISCV) --enable-commitlog
-	cd $(SPIKE_REPO) && $(MAKE) && $(MAKE) install
+	cd $(SPIKE_REPO) && \
+		./configure --prefix=$(RISCV) --enable-commitlog
+	$(MAKE) -C $(SPIKE_REPO)
+	$(MAKE) -C $(SPIKE_REPO) install
 
 build-llvm:
 	@echo "====================================="
-	@echo "Building $(LLVM_DIR)..."
+	@echo "Building $(LLVM_REPO)..."
 	@echo "====================================="
-	$(MAKE) -C ../mk/ -f Makefile.llvminstall LLVM_DIR=$(LLVM_DIR) RISCV_INSTALL_DIR=$(RISCV)
+	$(MAKE) -f ../mk/Makefile.llvminstall llvm-install LLVM_DIR=$(LLVM_REPO) RISCV=$(RISCV) COMPILING_THREADS=$(COMPILING_THREADS)
 
-build-all: 
+build-all: checkout-all
 	$(MAKE) build-deps 
 	$(MAKE) build-riscv-gnu-tools 
 	$(MAKE) build-spike
@@ -188,18 +221,21 @@ install-clean:
 	$(MAKE) clean-builds
 
 clean-builds:
-	rm -rf $(DEPENDS_DIR) $(TOOLCHAIN_REPO) $(SPIKE_REPO) && \
-	$(MAKE) clean-llvm
+	rm -rf $(DEPENDS_DIR)
+	rm -rf $(TOOLCHAIN_REPO)
+	rm -rf $(LLVM_REPO)
+	rm -rf $(SPIKE_REPO)
 
 clean-llvm:
-	rm -rf $(LLVM_DIR)/llvm-src $(LLVM_DIR)/llvm-build
+	rm -rf $(LLVM_REPO)/llvm-src
+	rm -rf $(LLVM_REPO)/llvm-build
 
 clean-install:
-	rm -rf riscv-install
-	rm -rf $(LLVM_DIR)
+	rm -rf $(RISCV)
 
 clean-all:
-	rm -rf $(DEPENDS_DIR) $(TOOLCHAIN_REPO) $(SPIKE_REPO) riscv-install $(LLVM_DIR)
+	$(MAKE) clean-builds
+	$(MAKE) clean-install
 
 installs:
 	sudo apt-get install autoconf automake libtool curl gawk bison flex texinfo gperf \
