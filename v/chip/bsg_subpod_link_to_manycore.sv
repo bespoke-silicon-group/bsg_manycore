@@ -129,7 +129,7 @@ module bsg_subpod_link_to_manycore
 
   logic [x_cord_width_p-1:0] global_x_li;
   bsg_tag_client_unsync
-   #(.width_p(1))
+   #(.width_p(x_cord_width_p))
    btc_global_x
     (.bsg_tag_i(tag_lines_lo.global_x)
      ,.data_async_r_o(global_x_li)
@@ -138,7 +138,7 @@ module bsg_subpod_link_to_manycore
 
   logic [y_cord_width_p-1:0] global_y_li;
   bsg_tag_client_unsync
-   #(.width_p(1))
+   #(.width_p(y_cord_width_p))
    btc_global_y
     (.bsg_tag_i(tag_lines_lo.global_y)
      ,.data_async_r_o(global_y_li)
