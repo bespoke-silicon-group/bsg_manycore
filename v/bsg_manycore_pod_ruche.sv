@@ -454,7 +454,6 @@ module bsg_manycore_pod_ruche
     //assign south_vc_global_x_li[x] = mc_global_x_lo[num_subarray_y_p-1][x];
     // DWP Hack
     assign south_vc_global_y_li[x] = {subarray_num_tiles_x_lp{pod_y_cord_width_p'(2), y_subcord_width_lp'(0)}};
-    assign south_vc_global_y_li[x] = mc_global_y_lo[num_subarray_y_p-1][x];
 
     // connect wh link to west
     if (x == 0) begin
