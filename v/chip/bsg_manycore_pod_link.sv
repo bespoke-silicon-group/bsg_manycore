@@ -5,6 +5,7 @@
 module bsg_manycore_pod_link
  import bsg_manycore_pkg::*;
  import bsg_manycore_tag_pkg::*;
+ import bsg_clk_gen_pearl_pkg::*;
  import bsg_tag_pkg::*;
  #(parameter `BSG_INV_PARAM(tag_els_p)
    , parameter `BSG_INV_PARAM(tag_lg_width_p)
@@ -74,8 +75,8 @@ module bsg_manycore_pod_link
   bsg_tag_master_decentralized
    #(.els_p(tag_els_p)
      ,.local_els_p(tag_pod_local_els_gp)
-     ,.lg_width_p(tag_lg_width_p
-    )
+     ,.lg_width_p(tag_lg_width_p)
+     )
    btm
     (.clk_i(tag_clk_i)
      ,.data_i(tag_data_i)
@@ -84,7 +85,7 @@ module bsg_manycore_pod_link
      );
 
   logic core_reset_lo;
-  bsg_tag_client_sync
+  bsg_tag_client
    #(.width_p(1))
    btc_core_reset
     (.bsg_tag_i(tag_lines_lo.core_reset)
@@ -117,8 +118,8 @@ module bsg_manycore_pod_link
   for (genvar i = 0; i < sdr_num_links_p; i++)
     begin : links
       bsg_sdr_link_pearl
-       #(.tag_els_p(tag_num_clients_gp)
-         ,.tag_lg_width_p(tag_lg_width_gp)
+       #(.tag_els_p(tag_els_p)
+         ,.tag_lg_width_p(tag_lg_width_p)
          ,.sdr_data_width_p(sdr_data_width_p)
          ,.sdr_lg_fifo_depth_p(sdr_lg_fifo_depth_p)
          ,.sdr_lg_credit_to_token_decimation_p(sdr_lg_credit_to_token_decimation_p)
@@ -133,11 +134,11 @@ module bsg_manycore_pod_link
 
          ,.core_data_i(proc_link_sif_li[i].data)
          ,.core_v_i(proc_link_sif_li[i].v)
-         ,.core_credit_or_ready_o(proc_link_sif_lo[i].ready_and_rev)
+         ,.core_ready_and_o(proc_link_sif_lo[i].ready_and_rev)
  
          ,.core_data_o(proc_link_sif_lo[i].data)
          ,.core_v_o(proc_link_sif_lo[i].v)
-         ,.core_credit_or_ready_i(proc_link_sif_li[i].ready_and_rev)
+         ,.core_ready_and_i(proc_link_sif_li[i].ready_and_rev)
   
          ,.link_clk_o(link_clk_o[i])
          ,.link_data_o(link_data_o[i])
