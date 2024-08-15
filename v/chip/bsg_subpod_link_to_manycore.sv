@@ -166,11 +166,11 @@ module bsg_subpod_link_to_manycore
 
          ,.core_data_i(proc_link_sif_li[i].fwd.data)
          ,.core_v_i(proc_link_sif_li[i].fwd.v)
-         ,.core_credit_or_ready_o(proc_link_sif_lo[i].fwd.ready_and_rev)
+         ,.core_ready_and_o(proc_link_sif_lo[i].fwd.ready_and_rev)
  
          ,.core_data_o(proc_link_sif_lo[i].fwd.data)
          ,.core_v_o(proc_link_sif_lo[i].fwd.v)
-         ,.core_credit_or_ready_i(proc_link_sif_li[i].fwd.ready_and_rev)
+         ,.core_ready_and_i(proc_link_sif_li[i].fwd.ready_and_rev)
   
          ,.link_clk_o(io_fwd_link_clk_o[i])
          ,.link_data_o(io_fwd_link_data_o[i])
@@ -182,14 +182,31 @@ module bsg_subpod_link_to_manycore
          ,.link_v_i(io_fwd_link_v_i[i])
          ,.link_token_o(io_fwd_link_token_o[i])
          );
-  
+
+      // Convert from credit for manycore rev
+      logic [rev_width_lp-1:0] sdr_data_li;
+      logic sdr_v_li, sdr_ready_and_lo;
+      bsg_fifo_1r1w_small_credit_on_input
+       #(.width_p(rev_width_lp), .els_p(3))
+       credit_fifo
+        (.clk_i(core_clk_i)
+         ,.reset_i(core_reset_i)
+
+         ,.data_i(proc_link_sif_li[i].rev.data)
+         ,.v_i(proc_link_sif_li[i].rev.v)
+         ,.credit_o(proc_link_sif_lo[i].rev.ready_and_rev)
+      
+         ,.data_o(sdr_data_li)
+         ,.v_o(sdr_v_li)
+         ,.yumi_i(sdr_ready_and_lo & sdr_v_li)
+         );
+
       bsg_sdr_link_pearl
        #(.tag_els_p(tag_els_p)
          ,.tag_lg_width_p(tag_lg_width_p)
          ,.sdr_data_width_p(rev_width_lp)
          ,.sdr_lg_fifo_depth_p(sdr_lg_fifo_depth_p)
          ,.sdr_lg_credit_to_token_decimation_p(sdr_lg_credit_to_token_decimation_p)
-         ,.core_credit_on_input_p(1) // Convert to manycore rev credit
          )
        rev_sdr
         (.core_clk_i(core_clk_lo)
@@ -199,13 +216,13 @@ module bsg_subpod_link_to_manycore
          ,.tag_data_i(tag_data_i)
          ,.tag_node_id_offset_i(sdr_link_tag_node_id_offset_li)
 
-         ,.core_data_i(proc_link_sif_li[i].rev.data)
-         ,.core_v_i(proc_link_sif_li[i].rev.v)
-         ,.core_credit_or_ready_o(proc_link_sif_lo[i].rev.ready_and_rev)
+         ,.core_data_i(sdr_data_li)
+         ,.core_v_i(sdr_v_li)
+         ,.core_ready_and_o(sdr_ready_and_lo)
   
          ,.core_data_o(proc_link_sif_lo[i].rev.data)
          ,.core_v_o(proc_link_sif_lo[i].rev.v)
-         ,.core_credit_or_ready_i(proc_link_sif_li[i].rev.ready_and_rev)
+         ,.core_ready_and_i(proc_link_sif_li[i].rev.ready_and_rev)
   
          ,.link_clk_o(io_rev_link_clk_o[i])
          ,.link_data_o(io_rev_link_data_o[i])
