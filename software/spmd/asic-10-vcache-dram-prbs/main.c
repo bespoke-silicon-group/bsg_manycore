@@ -2,8 +2,8 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-//#define N 536870912
-#define N (1UL<<25)
+#define N 536870912
+//#define N (1UL<<25)
 #define VCACHE_LINE_WORDS 8
 #define VCACHE_LINE_BYTES 32
 
