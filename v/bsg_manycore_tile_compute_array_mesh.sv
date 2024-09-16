@@ -114,7 +114,7 @@ module bsg_manycore_tile_compute_array_mesh
 
   // Instantiate tiles.
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
-  bsg_manycore_link_sif_s [num_tiles_y_p-1:0][num_tiles_x_p-1:0][S:W] link_in, link_out;
+  bsg_manycore_link_sif_s [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][S:W] link_in, link_out;
 
   logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_li, global_x_lo;
   logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_li, global_y_lo;
