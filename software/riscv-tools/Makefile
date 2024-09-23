@@ -64,7 +64,7 @@ DEPENDS_LIST=autoconf-2.69 automake-1.14
 DEPENDS_URL=https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.xz \
             https://ftp.gnu.org/gnu/automake/automake-1.14.tar.xz 
 
-export RISCV_INSTALL_DIR ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install
+export RISCV_INSTALL_DIR ?= $(CURDIR)/riscv-install
 export RISCV_BIN_DIR ?= $(RISCV_INSTALL_DIR)/bin
 
 export RISCV:=$(RISCV_INSTALL_DIR)
