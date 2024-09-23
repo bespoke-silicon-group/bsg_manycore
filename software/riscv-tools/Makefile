@@ -52,11 +52,7 @@ else ifeq ($(OS),Darwin)
 endif
 
 # Only take half as many processors as available
-COMPILING_THREADS := $(shell echo "$(NUMPROC)/2"|bc)
-
-ifeq ($(COMPILING_THREADS),0)
-        COMPILING_THREADS = 1
-endif 
+COMPILING_THREADS ?= $(shell echo "($(NUMPROC)+1)/2" | bc)
 
 LLVM_DIR          := $(CURDIR)/llvm
 export PATH:=$(DEPENDS_DIR)/bin:$(PATH)
