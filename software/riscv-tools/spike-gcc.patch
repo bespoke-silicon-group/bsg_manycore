@@ -1,37 +1,24 @@
-From 49f42517db5ec1a217ca87f0a9a3934695de0644 Mon Sep 17 00:00:00 2001
+From 111c94e2dc2b6e824edcb8c564fb6590bf85cca1 Mon Sep 17 00:00:00 2001
 From: Marcus Chow <mchow009@ucr.edu>
-Date: Mon, 17 Aug 2020 12:15:50 -0700
-Subject: [PATCH] Add missing stdexcept imports (GCC 10)
+Date: Sun, 22 Sep 2024 19:07:57 -0700
+Subject: [PATCH] [PATCH] Add missing stdexcept imports (GCC 10)
 
 ---
- fesvr/dtm.cc    | 1 +
  riscv/devices.h | 1 +
- 2 files changed, 2 insertions(+)
+ 1 file changed, 1 insertion(+)
 
-diff --git a/fesvr/dtm.cc b/fesvr/dtm.cc
-index 5409321..3f5b03b 100644
---- a/fesvr/dtm.cc
-+++ b/fesvr/dtm.cc
-@@ -6,6 +6,7 @@
- #include <string.h>
- #include <assert.h>
- #include <pthread.h>
-+#include <stdexcept>
-
- #define RV_X(x, s, n) \
-   (((x) >> (s)) & ((1 << (n)) - 1))
 diff --git a/riscv/devices.h b/riscv/devices.h
-index 4e4d27f..eedde95 100644
+index 9200f29b..697f5442 100644
 --- a/riscv/devices.h
 +++ b/riscv/devices.h
 @@ -6,6 +6,7 @@
- #include <string>
+ #include "abstract_device.h"
+ #include "platform.h"
  #include <map>
- #include <vector>
 +#include <stdexcept>
-
- class processor_t;
-
---
-1.8.3.1
+ #include <vector>
+ #include <utility>
+ 
+-- 
+2.16.5
 
