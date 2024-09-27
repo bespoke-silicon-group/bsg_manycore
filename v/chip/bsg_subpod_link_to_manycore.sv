@@ -189,8 +189,8 @@ module bsg_subpod_link_to_manycore
       bsg_fifo_1r1w_small_credit_on_input
        #(.width_p(rev_width_lp), .els_p(3))
        credit_fifo
-        (.clk_i(core_clk_i)
-         ,.reset_i(core_reset_i)
+        (.clk_i(core_clk_lo)
+         ,.reset_i(core_reset_lo)
 
          ,.data_i(proc_link_sif_li[i].rev.data)
          ,.v_i(proc_link_sif_li[i].rev.v)
