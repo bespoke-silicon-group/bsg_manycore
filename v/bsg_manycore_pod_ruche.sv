@@ -451,7 +451,7 @@ module bsg_manycore_pod_ruche
     assign south_vc_ver_link_sif_li[x][S] = ver_link_sif_i[S][x*subarray_num_tiles_x_lp+:subarray_num_tiles_x_lp];
    
     // coordinate
-    //assign south_vc_global_x_li[x] = mc_global_x_lo[num_subarray_y_p-1][x];
+    assign south_vc_global_x_li[x] = mc_global_x_lo[num_subarray_y_p-1][x];
     // DWP Hack
     assign south_vc_global_y_li[x] = {subarray_num_tiles_x_lp{pod_y_cord_width_p'(2), y_subcord_width_lp'(0)}};
 
