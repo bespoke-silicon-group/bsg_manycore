@@ -43,7 +43,7 @@ module bsg_manycore_proc_vanilla
     , dmem_addr_width_lp = `BSG_SAFE_CLOG2(dmem_size_p)
     , pc_width_lp=(icache_addr_width_lp+icache_tag_width_p)
     , data_mask_width_lp=(data_width_p>>3)
-    , reg_addr_width_lp=RV32_reg_addr_width_gp
+    , reg_addr_width_lp=reg_addr_width_gp
 
     , parameter `BSG_INV_PARAM(barrier_dirs_p)
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
