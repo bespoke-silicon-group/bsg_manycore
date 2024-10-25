@@ -10,6 +10,7 @@ module bsg_nonsynth_manycore_testbench
   import bsg_noc_pkg::*; // {P=0, W, E, N, S}
   import bsg_tag_pkg::*;
   import bsg_cache_pkg::*;
+  import bsg_mesh_router_pkg::*;
   import bsg_manycore_pkg::*;
   import bsg_manycore_mem_cfg_pkg::*;
   import bsg_manycore_network_cfg_pkg::*;
@@ -158,6 +159,8 @@ module bsg_nonsynth_manycore_testbench
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
   bsg_manycore_link_sif_s [S:N][(num_pods_x_p*num_tiles_x_p)-1:0] ver_link_sif_li;
   bsg_manycore_link_sif_s [S:N][(num_pods_x_p*num_tiles_x_p)-1:0] ver_link_sif_lo;
+  bsg_manycore_link_sif_s [S:N][(num_pods_x_p*num_tiles_x_p)-1:0] ver_ruche_link_sif_li;
+  bsg_manycore_link_sif_s [S:N][(num_pods_x_p*num_tiles_x_p)-1:0] ver_ruche_link_sif_lo;
   wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0] wh_link_sif_li;
   wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0] wh_link_sif_lo;
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_li;
@@ -279,6 +282,60 @@ module bsg_nonsynth_manycore_testbench
       ,.pod_tags_i(pod_tags_lo) 
     );
   end
+  else if (bsg_manycore_network_cfg_p == e_network_full_ruche) begin: fi1
+    bsg_manycore_pod_full_ruche #(
+      .num_tiles_x_p(num_tiles_x_p)
+      ,.num_tiles_y_p(num_tiles_y_p)
+      ,.pod_x_cord_width_p(pod_x_cord_width_p)
+      ,.pod_y_cord_width_p(pod_y_cord_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+    
+      ,.dmem_size_p(dmem_size_p)
+      ,.icache_entries_p(icache_entries_p)
+      ,.icache_tag_width_p(icache_tag_width_p)
+      ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+
+      ,.vcache_addr_width_p(vcache_addr_width_p)
+      ,.vcache_data_width_p(vcache_data_width_p)
+      ,.vcache_ways_p(vcache_ways_p)
+      ,.vcache_sets_p(vcache_sets_p)
+      ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+      ,.vcache_size_p(vcache_size_p)
+      ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_word_tracking_p(vcache_word_tracking_p)
+      ,.ipoly_hashing_p(ipoly_hashing_p)
+
+      ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+      ,.ruche_factor_X_p(2)
+      ,.ruche_factor_Y_p(2)
+
+      ,.wh_ruche_factor_p(wh_ruche_factor_p)
+      ,.wh_cid_width_p(wh_cid_width_p)
+      ,.wh_flit_width_p(wh_flit_width_p)
+      ,.wh_cord_width_p(wh_cord_width_p)
+      ,.wh_len_width_p(wh_len_width_p)
+
+      ,.reset_depth_p(reset_depth_p)
+    ) DUT (
+      .clk_i(clk_i)
+
+      ,.ver_link_sif_i(ver_link_sif_li)
+      ,.ver_link_sif_o(ver_link_sif_lo)
+      ,.ver_ruche_link_i(ver_ruche_link_sif_li)
+      ,.ver_ruche_link_o(ver_ruche_link_sif_lo)
+
+      ,.wh_link_sif_i(wh_link_sif_li)
+      ,.wh_link_sif_o(wh_link_sif_lo)
+
+      ,.hor_link_sif_i(hor_link_sif_li)
+      ,.hor_link_sif_o(hor_link_sif_lo)
+
+      ,.pod_tags_i(pod_tags_lo)
+    );
+  end
   else begin
     initial begin
       $error("Invalid bsg_manycore_network_cfg_p.");
@@ -293,13 +350,25 @@ module bsg_nonsynth_manycore_testbench
     for (genvar j = 0; j < num_pods_y_p; j++) begin
       for (genvar k = N; k <= S; k++) begin
         for (genvar r = 0; r < wh_ruche_factor_p; r++) begin
-          if (r == 0) begin
-            assign wh_link_sif_li[i][j][k][r] = buffered_wh_link_sif_li[i][j][k][r];
-            assign buffered_wh_link_sif_lo[i][j][k][r] = wh_link_sif_lo[i][j][k][r];
+          if (bsg_manycore_network_cfg_p == e_network_full_ruche) begin
+            if (r == 0) begin
+              assign wh_link_sif_li[i][j][k][r] = buffered_wh_link_sif_li[i][j][k][r];
+              assign buffered_wh_link_sif_lo[i][j][k][r] = wh_link_sif_lo[i][j][k][r];
+            end
+            else begin
+              assign wh_link_sif_li[i][j][k][r] = buffered_wh_link_sif_li[i][j][k][r];
+              assign buffered_wh_link_sif_lo[i][j][k][r] = wh_link_sif_lo[i][j][k][r];
+            end
           end
           else begin
-            assign wh_link_sif_li[i][j][k][r] = ~buffered_wh_link_sif_li[i][j][k][r];
-            assign buffered_wh_link_sif_lo[i][j][k][r] = ~wh_link_sif_lo[i][j][k][r];
+            if (r == 0) begin
+              assign wh_link_sif_li[i][j][k][r] = buffered_wh_link_sif_li[i][j][k][r];
+              assign buffered_wh_link_sif_lo[i][j][k][r] = wh_link_sif_lo[i][j][k][r];
+            end
+            else begin
+              assign wh_link_sif_li[i][j][k][r] = ~buffered_wh_link_sif_li[i][j][k][r];
+              assign buffered_wh_link_sif_lo[i][j][k][r] = ~wh_link_sif_lo[i][j][k][r];
+            end
           end
         end
       end
@@ -307,44 +376,109 @@ module bsg_nonsynth_manycore_testbench
   end
 
   // IO ROUTER
-  localparam rev_use_credits_lp = 5'b00001;
-  localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,3};
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_li;
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_lo;
+  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:W] io_ruche_link_sif_li;
+  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:W] io_ruche_link_sif_lo;
 
-  for (genvar x = 0; x < num_pods_x_p*num_tiles_x_p; x++) begin: io_rtr_x
-    bsg_manycore_mesh_node #(
-      .x_cord_width_p(x_cord_width_p)
-      ,.y_cord_width_p(y_cord_width_p)
-      ,.addr_width_p(addr_width_p)
-      ,.data_width_p(data_width_p)
-      ,.stub_p(4'b0100) // stub north
-      ,.rev_use_credits_p(rev_use_credits_lp)
-      ,.rev_fifo_els_p(rev_fifo_els_lp)
-    ) io_rtr (
-      .clk_i(clk_i)
-      ,.reset_i(reset_r)
+  if (bsg_manycore_network_cfg_p == e_network_full_ruche) begin
+    localparam rev_use_credits_lp = 9'b000000001;
+    localparam int rev_fifo_els_lp[8:0] = '{2,2,2,2,2,2,2,2,3};
+    localparam fwd_use_credits_lp = 9'b000000000;
+    localparam int fwd_fifo_els_lp[8:0] = '{2,2,2,2,2,2,2,2,2};
 
-      ,.links_sif_i(io_link_sif_li[x][S:W])
-      ,.links_sif_o(io_link_sif_lo[x][S:W])
+    for (genvar x = 0; x < num_pods_x_p*num_tiles_x_p; x++) begin: io_rtr_x
+      bsg_manycore_mesh_node #(
+        .x_cord_width_p(x_cord_width_p)
+        ,.y_cord_width_p(y_cord_width_p)
+        ,.addr_width_p(addr_width_p)
+        ,.data_width_p(data_width_p)
+        ,.dims_p(4)
+        ,.stub_p(8'b01000100) // stub north
+        ,.rev_use_credits_p(rev_use_credits_lp)
+        ,.rev_fifo_els_p(rev_fifo_els_lp)
+        ,.fwd_use_credits_p(fwd_use_credits_lp)
+        ,.fwd_fifo_els_p(fwd_fifo_els_lp)
+        ,.ruche_factor_X_p(2)
+        ,.ruche_factor_Y_p(2)
+      ) io_rtr (
+        .clk_i(clk_i)
+        ,.reset_i(reset_r)
 
-      ,.proc_link_sif_i(io_link_sif_li[x][P])
-      ,.proc_link_sif_o(io_link_sif_lo[x][P])
+        ,.links_sif_i({io_ruche_link_sif_li[x][S:W], io_link_sif_li[x][S:W]})
+        ,.links_sif_o({io_ruche_link_sif_lo[x][S:W], io_link_sif_lo[x][S:W]})
 
-      ,.global_x_i(x_cord_width_p'(num_tiles_x_p+x))
-      ,.global_y_i(y_cord_width_p'(0))
-    );
+        ,.proc_link_sif_i(io_link_sif_li[x][P])
+        ,.proc_link_sif_o(io_link_sif_lo[x][P])
 
-    // connect to pod array
-    assign ver_link_sif_li[N][x] = io_link_sif_lo[x][S];
-    assign io_link_sif_li[x][S] = ver_link_sif_lo[N][x];
+        ,.global_x_i(x_cord_width_p'(num_tiles_x_p+x))
+        ,.global_y_i(y_cord_width_p'(num_tiles_y_p-2))
+      );
 
-    // connect between io rtr
-    if (x < (num_pods_x_p*num_tiles_x_p)-1) begin
-      assign io_link_sif_li[x][E] = io_link_sif_lo[x+1][W];
-      assign io_link_sif_li[x+1][W] = io_link_sif_lo[x][E];
+
+      // connect to pod array
+      assign ver_link_sif_li[N][x] = io_link_sif_lo[x][S];
+      assign io_link_sif_li[x][S] = ver_link_sif_lo[N][x];
+      assign ver_ruche_link_sif_li[N][x] = io_ruche_link_sif_lo[x][S];
+      assign io_ruche_link_sif_li[x][S] = ver_ruche_link_sif_lo[N][x];
+
+
+      // connect between io rtr
+      if (x < (num_pods_x_p*num_tiles_x_p)-1) begin
+        assign io_link_sif_li[x][E] = io_link_sif_lo[x+1][W];
+        assign io_link_sif_li[x+1][W] = io_link_sif_lo[x][E];
+      end
+
+      if (x < (num_pods_x_p*num_tiles_x_p)-2) begin
+        assign io_ruche_link_sif_li[x][E] = io_ruche_link_sif_lo[x+ruche_factor_X_p][W];
+        assign io_ruche_link_sif_li[x+ruche_factor_X_p][W] = io_ruche_link_sif_lo[x][E];
+      end
     end
+
+
+
   end
+  else begin
+    // half ruche mesh;
+    localparam rev_use_credits_lp = 5'b00001;
+    localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,3};
+
+    for (genvar x = 0; x < num_pods_x_p*num_tiles_x_p; x++) begin: io_rtr_x
+      bsg_manycore_mesh_node #(
+        .x_cord_width_p(x_cord_width_p)
+        ,.y_cord_width_p(y_cord_width_p)
+        ,.addr_width_p(addr_width_p)
+        ,.data_width_p(data_width_p)
+        ,.stub_p(4'b0100) // stub north
+        ,.rev_use_credits_p(rev_use_credits_lp)
+        ,.rev_fifo_els_p(rev_fifo_els_lp)
+      ) io_rtr (
+        .clk_i(clk_i)
+        ,.reset_i(reset_r)
+
+        ,.links_sif_i(io_link_sif_li[x][S:W])
+        ,.links_sif_o(io_link_sif_lo[x][S:W])
+
+        ,.proc_link_sif_i(io_link_sif_li[x][P])
+        ,.proc_link_sif_o(io_link_sif_lo[x][P])
+
+        ,.global_x_i(x_cord_width_p'(num_tiles_x_p+x))
+        ,.global_y_i(y_cord_width_p'(0))
+      );
+
+      // connect to pod array
+      assign ver_link_sif_li[N][x] = io_link_sif_lo[x][S];
+      assign io_link_sif_li[x][S] = ver_link_sif_lo[N][x];
+
+      // connect between io rtr
+      if (x < (num_pods_x_p*num_tiles_x_p)-1) begin
+        assign io_link_sif_li[x][E] = io_link_sif_lo[x+1][W];
+        assign io_link_sif_li[x+1][W] = io_link_sif_lo[x][E];
+      end
+    end
+
+  end
+
 
 
 
@@ -778,6 +912,54 @@ module bsg_nonsynth_manycore_testbench
     ,.link_sif_o(io_link_sif_li[(num_pods_x_p*num_tiles_x_p)-1][E])
   );
 
+  // IO ruche tieoff;
+  if (bsg_manycore_network_cfg_p == e_network_full_ruche) begin
+    bsg_manycore_link_sif_tieoff #(
+      .addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+    ) io_rw_tieoff0 (
+      .clk_i(clk_i)
+      ,.reset_i(reset_r)
+      ,.link_sif_i(io_ruche_link_sif_lo[0][W])
+      ,.link_sif_o(io_ruche_link_sif_li[0][W])
+    );
+    bsg_manycore_link_sif_tieoff #(
+      .addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+    ) io_rw_tieoff1 (
+      .clk_i(clk_i)
+      ,.reset_i(reset_r)
+      ,.link_sif_i(io_ruche_link_sif_lo[1][W])
+      ,.link_sif_o(io_ruche_link_sif_li[1][W])
+    );
+    bsg_manycore_link_sif_tieoff #(
+      .addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+    ) io_re_tieoff0 (
+      .clk_i(clk_i)
+      ,.reset_i(reset_r)
+      ,.link_sif_i(io_ruche_link_sif_lo[(num_pods_x_p*num_tiles_x_p)-1][E])
+      ,.link_sif_o(io_ruche_link_sif_li[(num_pods_x_p*num_tiles_x_p)-1][E])
+    );
+    bsg_manycore_link_sif_tieoff #(
+      .addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+    ) io_re_tieoff1 (
+      .clk_i(clk_i)
+      ,.reset_i(reset_r)
+      ,.link_sif_i(io_ruche_link_sif_lo[(num_pods_x_p*num_tiles_x_p)-2][E])
+      ,.link_sif_o(io_ruche_link_sif_li[(num_pods_x_p*num_tiles_x_p)-2][E])
+    );
+  end
+
 
   // SOUTH VER LINK TIE OFFS
   for (genvar i = 0; i < num_pods_x_p*num_tiles_x_p; i++) begin
@@ -793,6 +975,8 @@ module bsg_nonsynth_manycore_testbench
       ,.link_sif_o(ver_link_sif_li[S][i])
     );
   end
+
+ assign ver_ruche_link_sif_li[S] = '0;
 
 
   // HOR TIEOFF (local link)
@@ -820,7 +1004,12 @@ module bsg_nonsynth_manycore_testbench
     for (genvar k = 0; k < num_tiles_y_p; k++) begin
       // if ruche factor is even, tieoff with '1
       // if ruche factor is odd,  tieoff with '0
-      assign ruche_link_li[W][j][k] = (ruche_factor_X_p%2 == 0) ? '1 : '0;
+      if (bsg_manycore_network_cfg_p == e_network_full_ruche) begin
+        assign ruche_link_li[W][j][k] = '0;
+      end
+      else begin
+        assign ruche_link_li[W][j][k] = (ruche_factor_X_p%2 == 0) ? '1 : '0;
+      end
     end
   end
 
