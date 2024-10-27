@@ -16,12 +16,14 @@ module bsg_manycore_link_to_cache
     , `BSG_INV_PARAM(x_cord_width_p)
     , `BSG_INV_PARAM(y_cord_width_p)
 
+    , `BSG_INV_PARAM(num_tiles_x_p)
+    , `BSG_INV_PARAM(num_tiles_y_p)
     , `BSG_INV_PARAM(sets_p)
     , `BSG_INV_PARAM(ways_p)
     , `BSG_INV_PARAM(block_size_in_words_p)
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
-    , fifo_els_p=4
+    , fifo_els_p=512
     , localparam icache_block_offset_width_lp=`BSG_SAFE_CLOG2(icache_block_size_in_words_p)
 
     , localparam lg_sets_lp=`BSG_SAFE_CLOG2(sets_p)

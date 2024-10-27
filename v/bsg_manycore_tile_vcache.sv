@@ -19,6 +19,7 @@ module bsg_manycore_tile_vcache
     , `BSG_INV_PARAM(x_cord_width_p)
     , `BSG_INV_PARAM(y_cord_width_p)
 
+    , `BSG_INV_PARAM(num_tiles_x_p)
     , `BSG_INV_PARAM(num_tiles_y_p)
 
     , `BSG_INV_PARAM(vcache_addr_width_p)
@@ -179,6 +180,9 @@ module bsg_manycore_tile_vcache
     ,.data_width_p(data_width_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
+
+    ,.num_tiles_x_p(num_tiles_x_p)
+    ,.num_tiles_y_p(num_tiles_y_p)
 
     ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
     ,.sets_p(vcache_sets_p)

@@ -86,6 +86,7 @@ module bsg_manycore_tile_vcache_array
         ,.x_cord_width_p(x_cord_width_p)
         ,.y_cord_width_p(y_cord_width_p)
         ,.num_tiles_y_p(num_tiles_y_p)  
+        ,.num_tiles_x_p(num_tiles_x_p)  
         ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
         ,.vcache_addr_width_p(vcache_addr_width_p)
         ,.vcache_data_width_p(vcache_data_width_p)
