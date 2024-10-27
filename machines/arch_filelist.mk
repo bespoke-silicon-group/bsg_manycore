@@ -13,6 +13,7 @@ VINCLUDES += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/RISCV
 
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_defines.sv
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_pkg.sv
+VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_torus_router_pkg.sv
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_mesh_router_pkg.sv
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_wormhole_router_pkg.sv
 VHEADERS += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_noc_links.svh
@@ -27,6 +28,9 @@ VHEADERS += $(BSG_MANYCORE_DIR)/imports/HardFloat/source/bsg_hardfloat_pkg.sv
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_less_than.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_reduce.sv
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_transpose_reduce.sv
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_alloc_wavefront.sv
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_alloc_wavefront_cell.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_abs.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_mul_synth.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_priority_encode.sv
@@ -122,6 +126,13 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_wormhole_concentrator_in.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_wormhole_concentrator_out.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_barrier.sv
 
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_torus_router.sv
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_torus_router_vc.sv
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_torus_router_xbar.sv
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_torus_router_alloc.sv
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_noc/bsg_torus_router_decode.sv
+
+
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_launch_sync_sync.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_sync_sync.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_async/bsg_async_fifo.sv
@@ -178,6 +189,10 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_synth.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/regfile_hard.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/vanilla_bean/scoreboard.sv
 
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_compute_torus.sv
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_tile_vcache_torus.sv
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_torus_node.sv
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_torus.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_array.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_pod_ruche_row.sv

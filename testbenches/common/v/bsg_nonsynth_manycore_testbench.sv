@@ -167,6 +167,8 @@ module bsg_nonsynth_manycore_testbench
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_lo;
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] ruche_link_li;
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] ruche_link_lo;
+  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0] temp_io_link_sif_li;
+  bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0] temp_io_link_sif_lo;
 
   if (bsg_manycore_network_cfg_p == e_network_half_ruche_x) begin: fi1
     bsg_manycore_pod_ruche_array #(
@@ -336,6 +338,57 @@ module bsg_nonsynth_manycore_testbench
       ,.pod_tags_i(pod_tags_lo)
     );
   end
+  else if (bsg_manycore_network_cfg_p == e_network_torus) begin: fi1
+    bsg_manycore_pod_torus #(
+      .num_tiles_x_p(num_tiles_x_p)
+      ,.num_tiles_y_p(num_tiles_y_p)
+      ,.pod_x_cord_width_p(pod_x_cord_width_p)
+      ,.pod_y_cord_width_p(pod_y_cord_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+    
+      ,.dmem_size_p(dmem_size_p)
+      ,.icache_entries_p(icache_entries_p)
+      ,.icache_tag_width_p(icache_tag_width_p)
+      ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+
+      ,.vcache_addr_width_p(vcache_addr_width_p)
+      ,.vcache_data_width_p(vcache_data_width_p)
+      ,.vcache_ways_p(vcache_ways_p)
+      ,.vcache_sets_p(vcache_sets_p)
+      ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+      ,.vcache_size_p(vcache_size_p)
+      ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_word_tracking_p(vcache_word_tracking_p)
+      ,.ipoly_hashing_p(ipoly_hashing_p)
+
+      ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+
+      ,.wh_ruche_factor_p(wh_ruche_factor_p)
+      ,.wh_cid_width_p(wh_cid_width_p)
+      ,.wh_flit_width_p(wh_flit_width_p)
+      ,.wh_cord_width_p(wh_cord_width_p)
+      ,.wh_len_width_p(wh_len_width_p)
+
+      ,.reset_depth_p(reset_depth_p)
+    ) DUT (
+      .clk_i(clk_i)
+
+      ,.io_link_sif_i(temp_io_link_sif_li)
+      ,.io_link_sif_o(temp_io_link_sif_lo)
+
+      ,.wh_link_sif_i(wh_link_sif_li)
+      ,.wh_link_sif_o(wh_link_sif_lo)
+
+      ,.pod_tags_i(pod_tags_lo)
+    );
+
+    assign hor_link_sif_lo = '0;
+    assign ver_link_sif_lo = '0;
+    assign ruche_link_lo = '0;
+  end
   else begin
     initial begin
       $error("Invalid bsg_manycore_network_cfg_p.");
@@ -436,6 +489,17 @@ module bsg_nonsynth_manycore_testbench
     end
 
 
+
+  end
+  else if (bsg_manycore_network_cfg_p == e_network_torus) begin
+    for (genvar x = 0; x < num_tiles_x_p; x++) begin
+      assign io_link_sif_lo[x][P] = temp_io_link_sif_lo[x];
+      assign temp_io_link_sif_li[x] = io_link_sif_li[x][P];
+      assign io_link_sif_lo[x][S] = '0;
+      assign io_link_sif_lo[x][N] = '0;
+      assign io_link_sif_lo[x][E] = '0;
+      assign io_link_sif_lo[x][W] = '0;
+    end
 
   end
   else begin

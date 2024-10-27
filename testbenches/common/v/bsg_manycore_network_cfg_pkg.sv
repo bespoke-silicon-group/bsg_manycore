@@ -24,6 +24,9 @@ package bsg_manycore_network_cfg_pkg;
     // full ruche
     , e_network_full_ruche
 
+    // torus;
+    , e_network_torus
+
     // placeholder for max enum val
     , e_network_max_val
 
