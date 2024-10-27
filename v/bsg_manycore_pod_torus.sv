@@ -122,6 +122,8 @@ module bsg_manycore_pod_torus
 
 
   // IO router north;
+  localparam rev_use_credits_lp = 5'b00001;
+  localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,3};
   for (genvar i = 0; i < num_tiles_x_p; i++) begin: ion
     bsg_manycore_torus_node #(
       .x_cord_width_p(x_cord_width_p)
@@ -132,6 +134,8 @@ module bsg_manycore_pod_torus
       ,.num_tiles_y_p(num_tiles_y_p+4)
       ,.base_x_cord_p(num_tiles_x_p)
       ,.base_y_cord_p(num_tiles_y_p-2)
+      ,.rev_use_credits_p(rev_use_credits_lp)
+      ,.rev_fifo_els_p(rev_fifo_els_lp)
     ) io_rtr_n (
       .clk_i(clk_i)
       ,.reset_i(reset_r[i])
@@ -156,9 +160,9 @@ module bsg_manycore_pod_torus
       ,.num_tiles_y_p(num_tiles_y_p+4)
       ,.base_x_cord_p(num_tiles_x_p)
       ,.base_y_cord_p(num_tiles_y_p-2)
-    ) io_rtr_n (
+    ) io_rtr_s (
       .clk_i(clk_i)
-      ,.reset_i(reset_r[i])
+      ,.reset_i(svc_reset_lo[i]) // make sure to reset correctly;
       ,.links_sif_i(vc_link_li[num_tiles_y_p+4-1][i])
       ,.links_sif_o(vc_link_lo[num_tiles_y_p+4-1][i])
       ,.proc_link_sif_i('0)
