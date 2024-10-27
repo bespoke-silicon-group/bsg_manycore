@@ -41,6 +41,8 @@
       bsg_manycore_return_packet_type_e pkt_type;                              \
       logic [data_width_mp-1:0] data;                                          \
       logic [bsg_manycore_reg_id_width_gp-1:0] reg_id;                         \
+       logic [y_cord_width_mp-1:0] src_y_cord;                          \
+       logic [x_cord_width_mp-1:0] src_x_cord;                          \
       logic [y_cord_width_mp-1:0] y_cord;                                      \
       logic [x_cord_width_mp-1:0] x_cord;                                      \
     } bsg_manycore_return_packet_s;                                            \
@@ -74,7 +76,7 @@
     } bsg_manycore_packet_s
   
   `define bsg_manycore_return_packet_width(x_cord_width_mp,y_cord_width_mp,data_width_mp) \
-    ($bits(bsg_manycore_return_packet_type_e)+data_width_mp+bsg_manycore_reg_id_width_gp+x_cord_width_mp+y_cord_width_mp)
+    ($bits(bsg_manycore_return_packet_type_e)+data_width_mp+bsg_manycore_reg_id_width_gp+(2*(x_cord_width_mp+y_cord_width_mp)))
 
   `define bsg_manycore_packet_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
     (addr_width_mp+$bits(bsg_manycore_packet_op_e)+bsg_manycore_reg_id_width_gp+data_width_mp+(2*(y_cord_width_mp+x_cord_width_mp)))

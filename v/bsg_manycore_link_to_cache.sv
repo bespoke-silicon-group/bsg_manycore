@@ -59,6 +59,8 @@ module bsg_manycore_link_to_cache
     , input v_we_i
 
     , output logic wh_dest_east_not_west_o
+    , input [x_cord_width_p-1:0] global_x_i
+    , input [y_cord_width_p-1:0] global_y_i
   );
 
 
@@ -423,7 +425,9 @@ module bsg_manycore_link_to_cache
     data   : data_i,
     reg_id : tv_info_r.reg_id,
     y_cord : tv_info_r.y_cord,
-    x_cord : tv_info_r.x_cord
+    x_cord : tv_info_r.x_cord,
+    src_y_cord: global_y_i, 
+    src_x_cord: global_x_i
   };
 
   // synopsys sync_set_reset "reset_i"

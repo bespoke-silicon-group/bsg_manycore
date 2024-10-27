@@ -307,7 +307,9 @@ module bsg_manycore_endpoint_standard
                 : returning_data_i,
     y_cord    : return_info_r.y_cord,
     x_cord    : return_info_r.x_cord,
-    reg_id    : return_info_r.reg_id
+    reg_id    : return_info_r.reg_id,
+    src_y_cord : global_y_i,
+    src_x_cord : global_x_i
   };
 
 

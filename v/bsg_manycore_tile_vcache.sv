@@ -204,6 +204,9 @@ module bsg_manycore_tile_vcache
     ,.v_we_i(v_we_lo)
 
     ,.wh_dest_east_not_west_o(wh_dest_east_not_west_lo)
+
+    ,.global_x_i(global_x_r)
+    ,.global_y_i(global_y_r)
   );
 
 
