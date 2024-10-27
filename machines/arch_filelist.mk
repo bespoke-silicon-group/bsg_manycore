@@ -223,3 +223,4 @@ VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_ruche_buffer.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/tile_fwd_trace.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vc_fwd_trace.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vc_rev_trace.sv
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/tile_rev_trace.sv
