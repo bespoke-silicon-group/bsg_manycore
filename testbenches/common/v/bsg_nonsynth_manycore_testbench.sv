@@ -1106,10 +1106,23 @@ bind bsg_manycore_link_to_cache vc_fwd_trace #(
   ,.y_cord_width_p(y_cord_width_p)
   ,.num_tiles_y_p(num_tiles_y_p)
   ,.num_tiles_x_p(num_tiles_x_p)
-) tft0 (
+) vft0 (
   .*
   ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
 );
+
+bind bsg_manycore_link_to_cache vc_rev_trace #(
+  .link_addr_width_p(link_addr_width_p)
+  ,.data_width_p(data_width_p)
+  ,.x_cord_width_p(x_cord_width_p)
+  ,.y_cord_width_p(y_cord_width_p)
+  ,.num_tiles_y_p(num_tiles_y_p)
+  ,.num_tiles_x_p(num_tiles_x_p)
+) vrt0 (
+  .*
+  ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
+);
+
 
 
 
