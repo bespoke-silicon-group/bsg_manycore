@@ -128,7 +128,7 @@ module bsg_manycore_tile_compute_ruche
     ? 7'b0000001
     : 7'b0000000;
   localparam int fwd_fifo_els_lp[dirs_lp:0] = (hetero_type_p == 0)
-    ? '{2,2,2,2,2,2,3}
+    ? '{2,2,2,2,2,2,64}
     : '{2,2,2,2,2,2,2};
   localparam rev_use_credits_lp = (hetero_type_p == 0)
     ? 7'b0000001

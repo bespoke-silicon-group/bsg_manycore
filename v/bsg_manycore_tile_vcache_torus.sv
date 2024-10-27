@@ -36,7 +36,7 @@ module bsg_manycore_tile_vcache_torus
     , `BSG_INV_PARAM(wh_cord_width_p)
     , localparam int wh_cord_markers_pos_lp[1:0] = '{wh_cord_width_p, 0}
 
-    , parameter req_fifo_els_p=4
+    , parameter req_fifo_els_p=512
     , parameter num_vc_p=2
     , localparam lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
 
@@ -122,7 +122,7 @@ module bsg_manycore_tile_vcache_torus
   bsg_manycore_link_sif_s proc_link_sif_lo;
  
   localparam rev_use_credits_lp = 5'b00000;
-  localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,2};
+  localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,512};
   localparam fwd_use_credits_lp = 5'b00000;
   localparam int fwd_fifo_els_lp[4:0] = '{2,2,2,2,2};
 

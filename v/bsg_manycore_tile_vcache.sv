@@ -38,7 +38,7 @@ module bsg_manycore_tile_vcache
     , `BSG_INV_PARAM(wh_cord_width_p)
     , localparam int wh_cord_markers_pos_lp[1:0] = '{wh_cord_width_p, 0}
 
-    , parameter req_fifo_els_p=4
+    , parameter req_fifo_els_p=512
 
     , localparam lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
 
@@ -120,6 +120,11 @@ module bsg_manycore_tile_vcache
 
   // mesh router
   // vcache connects to P
+  localparam rev_use_credits_lp = 5'b000000000;
+  localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,512};
+  localparam fwd_use_credits_lp = 5'b000000000;
+  localparam int fwd_fifo_els_lp[4:0] = '{2,2,2,2,2};
+
   bsg_manycore_link_sif_s [S:W] link_sif_li;
   bsg_manycore_link_sif_s [S:W] link_sif_lo;
   bsg_manycore_link_sif_s proc_link_sif_li;
@@ -133,6 +138,10 @@ module bsg_manycore_tile_vcache
     // Because vcaches do not initiate packets, and there are no clients on the same Row,
     // horizontal manycore links are unnecessary.
     ,.stub_p(4'b0011) // stub E and W
+    ,.rev_use_credits_p(rev_use_credits_lp)
+    ,.rev_fifo_els_p(rev_fifo_els_lp)
+    ,.fwd_use_credits_p(fwd_use_credits_lp)
+    ,.fwd_fifo_els_p(fwd_fifo_els_lp)
   ) rtr (
     .clk_i(clk_i)
     ,.reset_i(reset_r)
