@@ -65,7 +65,7 @@ module router_profiler
       stat_r <= '0;
     end
     else begin
-      for (integer W = 0; i < dirs_lp; i++) begin
+      for (integer i = W; i < dirs_lp; i++) begin
         if (XY_order_p) begin
           //stat_r[i].idle        <= stat_r[i].idle + ($countones(req_t[i]) == 0);
           stat_r[i].utilized    <= stat_r[i].utilized + ((req_t[i] & yumi_lo[i]) != '0);
@@ -116,7 +116,7 @@ module router_profiler
   always @ (posedge clk_i) begin
     if (~reset_i & print_stat_v_i) begin
       fd = $fopen(tracefile_p, "a");
-      for (integer W = 0; i < dirs_lp; i++) begin
+      for (integer i = W; i < dirs_lp; i++) begin
         if (XY_order_p) begin
           $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d\n", 
             global_ctr_i, my_x_i, my_y_i, XY_order_p, i,
@@ -125,6 +125,7 @@ module router_profiler
             //stat_r[i].stalled
             //stat_r[i].arbitrated
           );
+        end
       end
       $fclose(fd); 
     end
@@ -146,11 +147,11 @@ module router_profiler
 
   // task to print periodic stat;
   task print_periodic_stat(integer fd, integer dir);
-    $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n", 
+    $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d\n", 
       global_ctr_i, my_x_i, my_y_i, XY_order_p, dir,
-      stat_r[dir].idle,
+      //stat_r[dir].idle,
       stat_r[dir].utilized,
-      stat_r[dir].stalled,
+      //stat_r[dir].stalled,
     );
   endtask
 
