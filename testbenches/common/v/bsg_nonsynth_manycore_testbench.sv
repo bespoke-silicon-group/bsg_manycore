@@ -1183,7 +1183,7 @@ end
 `endif
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_REMOTE_OP_PROFILING
-if (enable_remote_op_profiling_p) begin
+if (0) begin
   bind network_tx remote_load_trace #(
     .addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
@@ -1205,7 +1205,7 @@ end
 `endif
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCACHE_PROFILING
-if (enable_cache_profiling_p) begin
+if (0) begin
   bind bsg_cache vcache_profiler #(
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
@@ -1230,8 +1230,11 @@ if (enable_cache_profiling_p) begin
 
 // Covergroups are not fully supported by Verilator 4.213
 `ifndef VERILATOR
-`ifndef VERILATOR_WORKAROUND_DISABLE_ROUTER_PROFILER
-if (enable_router_profiling_p) begin
+//`ifndef VERILATOR_WORKAROUND_DISABLE_ROUTER_PROFILER
+if ((bsg_manycore_network_cfg_p == e_network_mesh)
+    || (bsg_manycore_network_cfg_p == e_network_half_ruche_x) 
+    || (bsg_manycore_network_cfg_p == e_network_full_ruche)
+  ) begin
   bind bsg_mesh_router router_profiler #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -1250,10 +1253,27 @@ if (enable_router_profiling_p) begin
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
   );
 end
-`endif
+else if (bsg_manycore_network_cfg_p == e_network_torus) begin
+  bind bsg_torus_router torus_router_profiler #(
+    .x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.dims_p(dims_p)
+    ,.XY_order_p(XY_order_p)
+    ,.origin_x_cord_p(`BSG_MACHINE_ORIGIN_X_CORD)
+    ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
+    ,.num_tiles_x_p(`BSG_MACHINE_GLOBAL_X)
+    ,.num_tiles_y_p(`BSG_MACHINE_GLOBAL_Y)
+  ) rp0 (
+    .*
+    ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
+    ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
+    ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
+  );
+end
+//`endif
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_COVERAGE
-if (enable_vcore_pc_coverage_p) begin
+if (0) begin
   bind vanilla_core bsg_nonsynth_manycore_vanilla_core_pc_cov #(
     .icache_tag_width_p(icache_tag_width_p)
     ,.icache_entries_p(icache_entries_p)
@@ -1273,7 +1293,7 @@ end
   ///             ///
   
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_TRACE
-if (enable_vanilla_core_trace_p) begin
+if (0) begin
   bind vanilla_core vanilla_core_trace #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -1292,7 +1312,7 @@ end
   // PC Histogram //
   //////////////////
 `ifndef VERILATOR_WORKAROUND_DISABLE_PC_HISTOGRAM
-if (enable_vanilla_core_pc_histogram_p) begin
+if (0) begin
   bind vanilla_core vanilla_core_pc_histogram
     #(.x_cord_width_p(x_cord_width_p)
       ,.y_cord_width_p(y_cord_width_p)

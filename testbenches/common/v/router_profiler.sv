@@ -50,10 +50,10 @@ module router_profiler
 
   // per output
   typedef struct packed {
-    integer idle;
+    //integer idle;
     integer utilized;
-    integer stalled;
-    integer arbitrated;
+    //integer stalled;
+    //integer arbitrated;
   } router_stat_s;
 
 
@@ -65,11 +65,13 @@ module router_profiler
       stat_r <= '0;
     end
     else begin
-      for (integer i = 0; i < dirs_lp; i++) begin
-        stat_r[i].idle        <= stat_r[i].idle + ($countones(req_t[i]) == 0);
-        stat_r[i].utilized    <= stat_r[i].utilized + ((req_t[i] & yumi_lo[i]) != '0);
-        stat_r[i].stalled     <= stat_r[i].stalled + (($countones(req_t[i]) > 0) & (yumi_lo[i] == '0));
-        stat_r[i].arbitrated  <= stat_r[i].arbitrated + (($countones(req_t[i]) > 1) & (yumi_lo[i] != '0));
+      for (integer W = 0; i < dirs_lp; i++) begin
+        if (XY_order_p) begin
+          //stat_r[i].idle        <= stat_r[i].idle + ($countones(req_t[i]) == 0);
+          stat_r[i].utilized    <= stat_r[i].utilized + ((req_t[i] & yumi_lo[i]) != '0);
+          //stat_r[i].stalled     <= stat_r[i].stalled + (($countones(req_t[i]) > 0) & (yumi_lo[i] == '0));
+          //stat_r[i].arbitrated  <= stat_r[i].arbitrated + (($countones(req_t[i]) > 1) & (yumi_lo[i] != '0));
+        end
       end     
     end
   end
@@ -98,7 +100,7 @@ module router_profiler
       & (XY_order_p == 1)) begin
 
       fd = $fopen(tracefile_p, "a");
-      $fwrite(fd,"timestamp,global_ctr,x,y,XY_order,output_dir,idle,utilized,stalled,arbitrated\n");
+      $fwrite(fd,"timestamp,global_ctr,x,y,XY_order,output_dir,utilized\n");
       $fclose(fd);
       
       fd = $fopen(periodfile_p, "a");
@@ -114,14 +116,15 @@ module router_profiler
   always @ (posedge clk_i) begin
     if (~reset_i & print_stat_v_i) begin
       fd = $fopen(tracefile_p, "a");
-      for (integer i = 0; i < dirs_lp; i++) begin
-        $fwrite(fd, "%0t,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d\n", 
-          $time, global_ctr_i, my_x_i, my_y_i, XY_order_p, i,
-          stat_r[i].idle,
-          stat_r[i].utilized,
-          stat_r[i].stalled,
-          stat_r[i].arbitrated
-        );
+      for (integer W = 0; i < dirs_lp; i++) begin
+        if (XY_order_p) begin
+          $fwrite(fd, "%0d,%0d,%0d,%0d,%0d,%0d\n", 
+            global_ctr_i, my_x_i, my_y_i, XY_order_p, i,
+            //stat_r[i].idle,
+            stat_r[i].utilized
+            //stat_r[i].stalled
+            //stat_r[i].arbitrated
+          );
       end
       $fclose(fd); 
     end
