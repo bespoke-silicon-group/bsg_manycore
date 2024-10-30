@@ -39,6 +39,11 @@ module tile_rev_trace
   assign return_packet = link_sif_in.rev.data;
 
 
+  import "DPI-C" context function
+    void dpi_tile_rev_trace(input int ctr, input int tile_x, input int tile_y,
+                            input int vc_x, input int vc_y);
+
+
   always @ (posedge clk_i) begin
     if (reset_i == 1'b0) begin
       if (link_sif_in.rev.v &&
@@ -50,7 +55,10 @@ module tile_rev_trace
           ((return_packet.src_y_cord == num_tiles_y_p-1) || (return_packet.src_y_cord == num_tiles_y_p*2))
         ) begin
         
-  
+        dpi_tile_rev_trace(global_ctr_i,
+                          return_packet.x_cord, return_packet.y_cord,
+                          return_packet.src_x_cord, return_packet.src_y_cord);
+ /*
         $display("tile_rev,%0d,%0d,%0d,%0d,%0d",
           global_ctr_i,
           return_packet.src_x_cord,
@@ -58,6 +66,7 @@ module tile_rev_trace
           return_packet.x_cord,
           return_packet.y_cord
         );
+*/
       end
     end
   end

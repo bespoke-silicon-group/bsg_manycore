@@ -32,6 +32,9 @@ module vc_rev_trace
   bsg_manycore_return_packet_s return_packet;
   assign return_packet = return_packet_li;
 
+  import "DPI-C" context function
+    void dpi_vc_rev_trace(input int ctr, input int tile_x, input int tile_y,
+                            input int vc_x, input int vc_y);
 
   always @ (posedge clk_i) begin
     if (reset_i == 1'b0) begin
@@ -42,7 +45,10 @@ module vc_rev_trace
           (return_packet.x_cord < 2*num_tiles_x_p) &&
           (return_packet.y_cord < 2*num_tiles_y_p)) begin
         
-  
+        dpi_vc_rev_trace(global_ctr_i,
+                          return_packet.x_cord, return_packet.y_cord,
+                          return_packet.src_x_cord, return_packet.src_y_cord);
+/*
         $display("vc_rev,%0d,%0d,%0d,%0d,%0d",
           global_ctr_i,
           return_packet.src_x_cord,
@@ -50,6 +56,7 @@ module vc_rev_trace
           return_packet.x_cord,
           return_packet.y_cord
         );
+*/
       end
     end
   end

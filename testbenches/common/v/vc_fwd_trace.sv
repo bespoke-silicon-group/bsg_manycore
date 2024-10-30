@@ -39,6 +39,9 @@ module vc_fwd_trace
   bsg_manycore_packet_s packet;
   assign packet = link_sif_in.fwd.data;
 
+  import "DPI-C" context function
+    void dpi_vc_fwd_trace(input int ctr, input int tile_x, input int tile_y,
+                            input int vc_x, input int vc_y);
 
   always @ (posedge clk_i) begin
     if (reset_i == 1'b0) begin
@@ -48,8 +51,11 @@ module vc_fwd_trace
           (packet.src_y_cord >= num_tiles_y_p) &&
           (packet.src_x_cord < 2*num_tiles_x_p) &&
           (packet.src_y_cord < 2*num_tiles_y_p)) begin
-        
   
+        dpi_vc_fwd_trace(global_ctr_i,
+                        packet.src_x_cord, packet.src_y_cord,
+                        packet.x_cord, packet.y_cord);
+/*
         $display("vc_fwd,%0d,%0d,%0d,%0d,%0d",
           global_ctr_i,
           packet.src_x_cord,
@@ -57,6 +63,8 @@ module vc_fwd_trace
           packet.x_cord,
           packet.y_cord
         );
+*/
+
       end
     end
   end

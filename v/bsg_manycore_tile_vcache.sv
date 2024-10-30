@@ -121,9 +121,9 @@ module bsg_manycore_tile_vcache
 
   // mesh router
   // vcache connects to P
-  localparam rev_use_credits_lp = 5'b000000000;
+  localparam rev_use_credits_lp = 5'b00000;
   localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,512};
-  localparam fwd_use_credits_lp = 5'b000000000;
+  localparam fwd_use_credits_lp = 5'b00000;
   localparam int fwd_fifo_els_lp[4:0] = '{2,2,2,2,2};
 
   bsg_manycore_link_sif_s [S:W] link_sif_li;

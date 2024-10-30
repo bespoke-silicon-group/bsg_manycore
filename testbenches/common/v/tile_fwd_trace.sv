@@ -28,18 +28,19 @@ module tile_fwd_trace
   bsg_manycore_packet_s out_packet;
   assign out_packet = out_packet_o;
 
+
+  import "DPI-C" context function
+    void dpi_tile_fwd_trace(input int ctr, input int tile_x, input int tile_y,
+                            input int vc_x, input int vc_y);
+
   always @ (posedge clk_i) begin
     if (reset_i == 1'b0) begin 
       // print only vcache dest;
       if (out_v_o && ((out_packet.y_cord == num_tiles_y_p-1) || (out_packet.y_cord == 2*num_tiles_y_p)))
-      // "type,global_ctr,src_x,srx_y,dest_x,dest_y"
-      $display("tile_fwd,%0d,%0d,%0d,%0d,%0d",
-        global_ctr_i,
-        out_packet.src_x_cord,
-        out_packet.src_y_cord,
-        out_packet.x_cord,
-        out_packet.y_cord
-      );
+
+        dpi_tile_fwd_trace(global_ctr_i, out_packet.src_x_cord, out_packet.src_y_cord,
+                                         out_packet.x_cord, out_packet.y_cord);
+      
     end
   end
 

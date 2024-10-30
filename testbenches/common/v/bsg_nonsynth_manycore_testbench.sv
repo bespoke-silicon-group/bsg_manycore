@@ -1088,6 +1088,21 @@ module bsg_nonsynth_manycore_testbench
 
 
 // NoC Tracer //
+import "DPI-C" context function
+  void dpi_network_trace_init(input int num_tiles_x, input int num_tiles_y);
+import "DPI-C" context function
+  void dpi_network_trace_finish();
+
+initial begin
+  $display("Calling dpi_network_trace_init()...");
+  dpi_network_trace_init(num_tiles_x_p, num_tiles_y_p);
+end
+
+final begin
+  dpi_network_trace_finish();
+end
+
+
 bind network_tx tile_fwd_trace #(
   .addr_width_p(addr_width_p)
   ,.data_width_p(data_width_p)
@@ -1231,10 +1246,7 @@ if (0) begin
 // Covergroups are not fully supported by Verilator 4.213
 `ifndef VERILATOR
 //`ifndef VERILATOR_WORKAROUND_DISABLE_ROUTER_PROFILER
-if ((bsg_manycore_network_cfg_p == e_network_mesh)
-    || (bsg_manycore_network_cfg_p == e_network_half_ruche_x) 
-    || (bsg_manycore_network_cfg_p == e_network_full_ruche)
-  ) begin
+/*
   bind bsg_mesh_router router_profiler #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -1252,8 +1264,8 @@ if ((bsg_manycore_network_cfg_p == e_network_mesh)
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
   );
-end
-else if (bsg_manycore_network_cfg_p == e_network_torus) begin
+*/
+/*
   bind bsg_torus_router torus_router_profiler #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -1269,7 +1281,7 @@ else if (bsg_manycore_network_cfg_p == e_network_torus) begin
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
   );
-end
+*/
 //`endif
 
 `ifndef VERILATOR_WORKAROUND_DISABLE_VCORE_COVERAGE
