@@ -91,69 +91,16 @@ module bsg_manycore_link_to_sdr_south
   ,.oclk_data_o(core_downstream_reset_sync)
   );
 
-  bsg_link_sdr
- #(.width_p                        (fwd_width_lp)
-  ,.lg_fifo_depth_p                (lg_fifo_depth_p)
-  ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
-  ,.bypass_upstream_twofer_fifo_p  (1)
-  ,.bypass_downstream_twofer_fifo_p(0)
-  ) fwd_sdr
-  (.core_clk_i             (core_clk_i)
-  ,.core_uplink_reset_i    (core_uplink_reset_sync     | async_fwd_link_o_disable_i)
-  ,.core_downstream_reset_i(core_downstream_reset_sync | async_fwd_link_i_disable_i)
-  ,.async_downlink_reset_i (async_downlink_reset_i     | async_fwd_link_i_disable_i)
-  ,.async_token_reset_i    (async_token_reset_i        | async_fwd_link_o_disable_i)
+   assign core_link_sif_lo = '0;
+   assign io_fwd_link_clk_o = '0;
+   assign io_fwd_link_data_o = '0;
+   assign io_fwd_link_v_o = '0;
+   assign io_fwd_link_token_o = '0;
+   assign io_rev_link_clk_o = '0;
+   assign io_rev_link_data_o = '0;
+   assign io_rev_link_v_o = '0;
+   assign io_rev_link_token_o = '0;
 
-  ,.core_data_i (core_link_sif_li.fwd.data)
-  ,.core_v_i    (core_link_sif_li.fwd.v)
-  ,.core_ready_and_o(core_link_sif_lo.fwd.ready_and_rev)
-
-  ,.core_data_o (core_link_sif_lo.fwd.data)
-  ,.core_v_o    (core_link_sif_lo.fwd.v)
-  ,.core_yumi_i (core_link_sif_lo.fwd.v & core_link_sif_li.fwd.ready_and_rev)
-
-  ,.link_clk_o  (io_fwd_link_clk_o)
-  ,.link_data_o (io_fwd_link_data_o)
-  ,.link_v_o    (io_fwd_link_v_o)
-  ,.link_token_i(io_fwd_link_token_i)
-
-  ,.link_clk_i  (io_fwd_link_clk_i)
-  ,.link_data_i (io_fwd_link_data_i)
-  ,.link_v_i    (io_fwd_link_v_i)
-  ,.link_token_o(io_fwd_link_token_o)
-  );
-
-  bsg_link_sdr
- #(.width_p                        (rev_width_lp)
-  ,.lg_fifo_depth_p                (lg_fifo_depth_p)
-  ,.lg_credit_to_token_decimation_p(lg_credit_to_token_decimation_p)
-  ,.bypass_upstream_twofer_fifo_p  (1)
-  ,.bypass_downstream_twofer_fifo_p(0)
-  ) rev_sdr
-  (.core_clk_i             (core_clk_i)
-  ,.core_uplink_reset_i    (core_uplink_reset_sync     | async_rev_link_o_disable_i)
-  ,.core_downstream_reset_i(core_downstream_reset_sync | async_rev_link_i_disable_i)
-  ,.async_downlink_reset_i (async_downlink_reset_i     | async_rev_link_i_disable_i)
-  ,.async_token_reset_i    (async_token_reset_i        | async_rev_link_o_disable_i)
-
-  ,.core_data_i (core_link_sif_li.rev.data)
-  ,.core_v_i    (core_link_sif_li.rev.v)
-  ,.core_ready_and_o(core_link_sif_lo.rev.ready_and_rev)
-
-  ,.core_data_o (core_link_sif_lo.rev.data)
-  ,.core_v_o    (core_link_sif_lo.rev.v)
-  ,.core_yumi_i (core_link_sif_lo.rev.v & core_link_sif_li.rev.ready_and_rev)
-
-  ,.link_clk_o  (io_rev_link_clk_o)
-  ,.link_data_o (io_rev_link_data_o)
-  ,.link_v_o    (io_rev_link_v_o)
-  ,.link_token_i(io_rev_link_token_i)
-
-  ,.link_clk_i  (io_rev_link_clk_i)
-  ,.link_data_i (io_rev_link_data_i)
-  ,.link_v_i    (io_rev_link_v_i)
-  ,.link_token_o(io_rev_link_token_o)
-  );
 
 endmodule
 
