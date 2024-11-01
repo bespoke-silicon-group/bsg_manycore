@@ -1246,7 +1246,7 @@ if (0) begin
 // Covergroups are not fully supported by Verilator 4.213
 `ifndef VERILATOR
 //`ifndef VERILATOR_WORKAROUND_DISABLE_ROUTER_PROFILER
-/*
+
   bind bsg_mesh_router router_profiler #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -1264,7 +1264,7 @@ if (0) begin
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
   );
-*/
+
 /*
   bind bsg_torus_router torus_router_profiler #(
     .x_cord_width_p(x_cord_width_p)
