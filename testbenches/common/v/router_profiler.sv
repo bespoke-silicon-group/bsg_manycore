@@ -100,7 +100,7 @@ module router_profiler
       & (XY_order_p == 1)) begin
 
       fd = $fopen(tracefile_p, "a");
-      $fwrite(fd,"timestamp,global_ctr,x,y,XY_order,output_dir,utilized\n");
+      $fwrite(fd,"global_ctr,x,y,XY_order,output_dir,utilized\n");
       $fclose(fd);
       
       fd = $fopen(periodfile_p, "a");
