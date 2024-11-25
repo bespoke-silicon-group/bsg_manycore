@@ -1,6 +1,6 @@
 bsg_tiles_X ?= 16
 bsg_tiles_Y ?= 8
-
+NUM_FINISH = $(call bsg-times-fn,$(bsg_tiles_X),$(bsg_tiles_Y))
 
 all: main.run
 
