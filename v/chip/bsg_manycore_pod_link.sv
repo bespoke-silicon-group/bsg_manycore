@@ -149,6 +149,10 @@ module bsg_manycore_pod_link
          ,.link_data_i(link_data_i[i])
          ,.link_v_i(link_v_i[i])
          ,.link_token_o(link_token_o[i])
+
+         // Manycore pod link uses global disable
+         ,.async_link_i_disable_o()
+         ,.async_link_o_disable_o()
          );
   
       assign link_sif_o[i] = proc_link_sif_lo[i];

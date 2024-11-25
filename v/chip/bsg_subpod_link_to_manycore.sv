@@ -181,6 +181,10 @@ module bsg_subpod_link_to_manycore
          ,.link_data_i(io_fwd_link_data_i[i])
          ,.link_v_i(io_fwd_link_v_i[i])
          ,.link_token_o(io_fwd_link_token_o[i])
+
+         // Manycore subpod link uses global disable
+         ,.async_link_i_disable_o()
+         ,.async_link_o_disable_o()
          );
 
       // Convert from credit for manycore rev
@@ -233,6 +237,10 @@ module bsg_subpod_link_to_manycore
          ,.link_data_i(io_rev_link_data_i[i])
          ,.link_v_i(io_rev_link_v_i[i])
          ,.link_token_o(io_rev_link_token_o[i])
+
+         // Manycore subpod link uses global disable
+         ,.async_link_i_disable_o()
+         ,.async_link_o_disable_o()
          );
 
       assign link_sif_o[i] = proc_link_sif_lo[i];
