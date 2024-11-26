@@ -41,6 +41,7 @@ static inline void bsg_barrier_hw_tile_group_sync()
     bsg_barsend();
     bsg_barrecv();
     #else
+    // if HW barrier is not enabled, fall back to amoadd barrier;
     bsg_barrier_amoadd(&__cuda_barrier_cfg[0], &sense);
     #endif
 }
