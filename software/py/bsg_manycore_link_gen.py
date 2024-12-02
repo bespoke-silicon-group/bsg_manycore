@@ -44,11 +44,12 @@ class bsg_manycore_link_gen:
     "/*********************************************************\n" \
     + " BSG Manycore Linker Script \n\n"
 
-  def __init__(self, default_data_loc, dram_size, imem_size, sp):
+  def __init__(self, default_data_loc, dram_size, imem_size, sp, move_rodata_to_dmem):
     self._default_data_loc = default_data_loc
     self._dram_size = dram_size
     self._imem_size = imem_size
     self._sp = sp
+    self._move_rodata_to_dmem = move_rodata_to_dmem
     self._opening_comment += \
         " data default: {0}\n".format(default_data_loc) \
         + " dram memory size: 0x{0:08x}\n".format(dram_size) \
@@ -117,6 +118,54 @@ class bsg_manycore_link_gen:
 
     return script
 
+
+
+  def get_section_map(self):
+    section_map = [
+      # Format:
+      # <output section>: [<input sections>]
+      ['.text.dram'        , ['.text.interrupt', '.crtbegin','.text','.text.startup','.text.*']],
+      # bsg-tommy: 8 bytes are allocated in.dmem.interrupt for interrupt handler to spill registers.
+      ['.dmem'             , ['.dmem.interrupt', '.dmem','.dmem.*']],
+      ['.data'             , ['.data','.data*']],
+      ['.sdata'            , ['.sdata','.sdata.*','.sdata*','.sdata*.*'
+                              '.gnu.linkonce.s.*']],
+      ['.sbss'             , ['.sbss','.sbss.*','.gnu.linkonce.sb.*','.scommon']],
+      ['.bss'              , ['.bss','.bss*']],
+      ['.tdata'            , ['.tdata','.tdata*']],
+      ['.tbss'             , ['.tbss','.tbss*']],
+      ['.striped.data.dmem', ['.striped.data']],
+      ['.eh_frame.dram'    , ['.eh_frame','.eh_frame*']],
+      ['.rodata.dram'      , ['.rodata','.rodata*','.srodata.cst16','.srodata.cst8',
+                              '.srodata.cst4', '.srodata.cst2','.srodata*']],
+      ['.dram'             , ['.dram','.dram.*']],
+    ]
+
+    if self._move_rodata_to_dmem:
+      # remove .rodata.dram
+      ro_idx = None
+      for i, m in enumerate(section_map):
+        sec = m[0]
+        if sec == ".rodata.dram":
+          ro_idx = i
+          break
+      section_map.pop(ro_idx)
+
+      # add to .dmem
+      for i, m in enumerate(section_map):
+        sec = m[0]
+        if sec == ".dmem":
+          m[1].append(".rodata")
+          m[1].append(".rodata*")
+          m[1].append(".srodata.cst16")
+          m[1].append(".srodata.cst8")
+          m[1].append(".srodata.cst4")
+          m[1].append(".srodata.cst2")
+          m[1].append(".srodata*")
+      
+    return section_map
+    
+
   def script(self):
     """
     This generates the link script by linking in two memory regions,
@@ -150,25 +199,7 @@ class bsg_manycore_link_gen:
       ['DRAM_D_LMA', 'rw', _DRAM_D_LMA_START, _DRAM_D_LMA_SIZE],
       ]
 
-    section_map = [
-      # Format:
-      # <output section>: [<input sections>]
-      ['.text.dram'        , ['.text.interrupt', '.crtbegin','.text','.text.startup','.text.*']],
-      # bsg-tommy: 8 bytes are allocated in.dmem.interrupt for interrupt handler to spill registers.
-      ['.dmem'             , ['.dmem.interrupt', '.dmem','.dmem.*']],
-      ['.data'             , ['.data','.data*']],
-      ['.sdata'            , ['.sdata','.sdata.*','.sdata*','.sdata*.*'
-                              '.gnu.linkonce.s.*']],
-      ['.sbss'             , ['.sbss','.sbss.*','.gnu.linkonce.sb.*','.scommon']],
-      ['.bss'              , ['.bss','.bss*']],
-      ['.tdata'            , ['.tdata','.tdata*']],
-      ['.tbss'             , ['.tbss','.tbss*']],
-      ['.striped.data.dmem', ['.striped.data']],
-      ['.eh_frame.dram'    , ['.eh_frame','.eh_frame*']],
-      ['.rodata.dram'      , ['.rodata','.rodata*','.srodata.cst16','.srodata.cst8',
-                              '.srodata.cst4', '.srodata.cst2','.srodata*']],
-      ['.dram'             , ['.dram','.dram.*']],
-      ]
+    section_map = self.get_section_map()
 
     sections = "SECTIONS {\n\n"
 
@@ -315,12 +346,15 @@ if __name__ == '__main__':
   parser.add_argument('--out',
     help = 'Output file name',
     default = None)
+  parser.add_argument("--move_rodata_to_dmem",
+    help="Move .rodata to DMEM",
+    action="store_true")
   args = parser.parse_args()
 
 
   # Generate linker script
   link_gen = bsg_manycore_link_gen(args.default_data_loc, args.dram_size,
-      args.imem_size, args.sp)
+      args.imem_size, args.sp, args.move_rodata_to_dmem)
 
   if args.out is None:
     print(link_gen.script())
