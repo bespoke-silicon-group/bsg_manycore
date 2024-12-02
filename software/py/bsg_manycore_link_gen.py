@@ -55,6 +55,7 @@ class bsg_manycore_link_gen:
         + " dram memory size: 0x{0:08x}\n".format(dram_size) \
         + " imem allocated size: 0x{0:08x}\n".format(imem_size) \
         + " stack pointer init: 0x{0:08x}\n".format(sp) \
+        + " move_rodata_to_dmem: {}\n".format(move_rodata_to_dmem) \
         + "\n" \
         + " Generated at " + str(datetime.now()) + "\n" \
       + "**********************************************************/\n"
@@ -149,19 +150,14 @@ class bsg_manycore_link_gen:
         if sec == ".rodata.dram":
           ro_idx = i
           break
-      section_map.pop(ro_idx)
+      popped_rodata_dram_map = section_map.pop(ro_idx)
 
       # add to .dmem
       for i, m in enumerate(section_map):
         sec = m[0]
         if sec == ".dmem":
-          m[1].append(".rodata")
-          m[1].append(".rodata*")
-          m[1].append(".srodata.cst16")
-          m[1].append(".srodata.cst8")
-          m[1].append(".srodata.cst4")
-          m[1].append(".srodata.cst2")
-          m[1].append(".srodata*")
+          for in_sec in popped_rodata_dram_map[1]:
+            m[1].append(in_sec)
       
     return section_map
     
