@@ -168,7 +168,7 @@ build-deps:
 	for dep_tool in $(DEPENDS_LIST); do 	\
 		tar xf $$dep_tool.tar.xz &&      \
 		cd $$dep_tool	&&	\
-		./configure --prefix=$(DEPENDS_DIR) && $(MAKE) && $(MAKE) install; \
+		./configure --prefix=$(abspath $(DEPENDS_DIR)) && $(MAKE) && $(MAKE) install; \
 		cd ..;	\
 	done
 
