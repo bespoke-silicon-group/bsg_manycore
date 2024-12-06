@@ -1,4 +1,4 @@
-SPECInt2000 Benchamarks on Manycore
+SPECInt2000 Benchmarks on Manycore
 ===================================
 
 - Initial setup:
