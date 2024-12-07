@@ -23,6 +23,10 @@ NO-RECURSE = \
 	energy_loop_test \
 	energy_ubenchmark
 
+# Skip hb_mc test series
+SPMD_HB_MC_TESTS := $(shell find $(BSG_MANYCORE_DIR)/software/spmd -maxdepth 1 -type d -name 'hb_mc_*' -printf '%P\n')
+NO-RECURSE += $(SPMD_HB_MC_TESTS)
+
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
 COVERAGE = 
