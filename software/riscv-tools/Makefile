@@ -73,7 +73,7 @@ export CC=gcc
 export CXX=g++
 export SED=sed
 export PATH
-export SHELL:=$(SHELL)
+export SHELL:=/bin/bash
 
 APPLY_PATCH  ?= git apply --ignore-whitespace --ignore-space-change
 CHECK_PATCH  ?= $(APPLY_PATCH) --check --reverse
