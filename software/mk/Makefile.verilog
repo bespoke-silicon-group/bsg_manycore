@@ -17,6 +17,7 @@ COV_DB_NAME ?= simv
 ########################################
 # CAD Setup
 
+export IGNORE_CADENV := 1
 ifneq ($(IGNORE_CADENV),)
   $(info CAD Environment: Ignoring cadenv)
   # select the tools

@@ -44,8 +44,8 @@ class NBF:
     self.riscv_file = config["riscv_file"]
 
     # machine setting
-    self.num_tiles_x = config["num_tiles_x"]
-    self.num_tiles_y = config["num_tiles_y"]
+    self.num_tiles_x = 2**self.safe_clog2(config["num_tiles_x"])
+    self.num_tiles_y = 2**self.safe_clog2(config["num_tiles_y"])
     self.cache_way = config["cache_way"]
     self.cache_set = config["cache_set"]
     self.cache_block_size = config["cache_block_size"]
@@ -57,7 +57,7 @@ class NBF:
     self.machine_pods_x = config["machine_pods_x"]
     self.machine_pods_y = config["machine_pods_y"]
     # number of pods to launch program.
-    self.num_pods_x = config["num_pods_x"]  
+    self.num_pods_x = config["num_pods_x"]
     self.num_pods_y = config["num_pods_y"]
 
     # ipoly hashing
@@ -118,7 +118,7 @@ class NBF:
 
     cmd = [objcopy_path, "-O", "verilog", "-j", section, "--set-section-flags", "*bss*=alloc,load,contents", self.riscv_file, output_file]
     result = subprocess.call(cmd)
-  
+
     addr_val = {}
     curr_addr = 0
 
@@ -163,7 +163,7 @@ class NBF:
 
   # read dmem
   def read_dmem(self):
-    self.dmem_data = self.read_objcopy("*.dmem", "main_dmem.mem")    
+    self.dmem_data = self.read_objcopy("*.dmem", "main_dmem.mem")
 
   # read dram
   def read_dram(self):
@@ -188,7 +188,7 @@ class NBF:
       words = stripped.split()
       if words[2] == "__.text.dram_end":
         return (int(words[0])/4) -1
-    
+
 
   # grab address for _start symbol.
   # code earlier than that contains interrupt handler.
@@ -203,7 +203,7 @@ class NBF:
       words = stripped.split()
       if words[2] == "_start":
         self.start_addr = (int(words[0]) >> 2) # make it word address
-    
+
   # select bits verilog style (e.g. num[end:start])
   def select_bits(self, num, start, end):
     retval = 0
@@ -227,7 +227,7 @@ class NBF:
 
   ##### END UTIL FUNCTIONS #####
 
-  ##### LOADER ROUTINES #####  
+  ##### LOADER ROUTINES #####
 
 
   # set TGO x,y
@@ -283,8 +283,8 @@ class NBF:
           if addr < self.icache_size:
             icache_epa = ICACHE_BASE_EPA | addr
             self.print_nbf(x_eff, y_eff, icache_epa, self.dram_data[k])
-        
- 
+
+
   # initialize dmem
   def init_dmem(self, pod_origin_x, pod_origin_y):
     # if there is nothing in dmem, just return.
@@ -296,14 +296,14 @@ class NBF:
 
         x_eff = self.tgo_x + x + pod_origin_x
         y_eff = self.tgo_y + y + pod_origin_y
-          
+
         for k in range(self.bsg_data_end_addr):
           if k in self.dmem_data.keys():
             self.print_nbf(x_eff, y_eff, k, self.dmem_data[k])
           else:
             self.print_nbf(x_eff, y_eff, k, 0)
 
- 
+
   # disable dram mode
   def disable_dram(self, pod_origin_x, pod_origin_y):
     for x in range(self.tg_dim_x):
@@ -311,8 +311,8 @@ class NBF:
         x_eff = self.tgo_x + x + pod_origin_x
         y_eff = self.tgo_y + y + pod_origin_y
         self.print_nbf(x_eff, y_eff, CSR_ENABLE_DRAM, 0)
-   
- 
+
+
   # initialize vcache in no DRAM mode
   def init_vcache(self, pod_origin_x, pod_origin_y):
 
@@ -326,8 +326,8 @@ class NBF:
         self.print_nbf(x+pod_origin_x, pod_origin_y-1, epa, data)
         # bot vcache
         self.print_nbf(x+pod_origin_x, pod_origin_y+self.num_tiles_y, epa, data)
-         
- 
+
+
   # init DRAM
   def init_dram(self, pod_origin_x, pod_origin_y):
     cache_size = self.cache_size
@@ -399,7 +399,7 @@ class NBF:
           else:
             print("IPOLY not supported for lg_x = {}".format(lg_x))
             sys.exit()
-          
+
         else:
           # Default hashing for power of 2 banks
           x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1)
@@ -429,7 +429,7 @@ class NBF:
         else:
           print("## WARNING: NO DRAM MODE, DRAM DATA OUT OF RANGE!!!")
 
-      
+
 
   # unfreeze tiles
   def unfreeze_tiles(self, pod_origin_x, pod_origin_y):
@@ -469,7 +469,7 @@ class NBF:
     self.print_nbf(0xff, 0xff, 0x0, 0x0)
 
 
-  ##### LOADER ROUTINES END  #####  
+  ##### LOADER ROUTINES END  #####
 
   # public main function
   # users only have to call this function.
@@ -512,7 +512,7 @@ class NBF:
 
 
   # hash logic for 9 bank situation. saved for posterity.
-      #if self.num_tiles_x == 9:      
+      #if self.num_tiles_x == 9:
         # hashing for 9 banks (deprecated)
       #  for k in sorted(self.dram_data.keys()):
       #    addr = k - 0x20000000
@@ -525,7 +525,7 @@ class NBF:
       #      x = 8
       #    else:
       #      x = bit_2_0
-    
+
       #    block_offset = self.select_bits(addr, 0, lg_block_size-1)
       #    index = self.select_bits(addr, lg_block_size+3, lg_block_size+3+index_width-1) << lg_block_size
       #    epa = block_offset | index

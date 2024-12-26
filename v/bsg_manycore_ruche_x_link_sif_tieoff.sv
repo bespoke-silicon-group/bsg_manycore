@@ -46,7 +46,9 @@ module bsg_manycore_ruche_x_link_sif_tieoff
           ? (ruche_factor_X_even_lp ^ ~ruche_stage_even_lp)
           : (ruche_factor_X_even_lp ^ ruche_stage_even_lp))
 */
-    , ruche_x_link_sif_width_lp=
+    // Bug in Xcelium 22.1 requires localparam specification
+    //, ruche_x_link_sif_width_lp=
+    , localparam ruche_x_link_sif_width_lp=
       `bsg_manycore_ruche_x_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
   )
   (
