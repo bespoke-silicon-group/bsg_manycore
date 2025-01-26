@@ -587,6 +587,11 @@ bsg_putchar( c );
 
 int ee_printf(const char *fmt, ...)
 {
+    if (!((fmt[0]=='C'&&fmt[1]=='o'&&fmt[2]=='r'&&fmt[3]=='r'&&fmt[4]=='e'&&fmt[5]=='c'&&fmt[6]=='t') || (fmt[0]=='E'&&fmt[1]=='r'&&fmt[2]=='r'&&fmt[3]=='o'&&fmt[4]=='r')))
+    {
+        return 0;
+    }
+    
   char buf[256],*p;
   va_list args;
   int n=0;

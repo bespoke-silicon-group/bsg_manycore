@@ -1,5 +1,5 @@
-bsg_tiles_X = 1
-bsg_tiles_Y = 1
+bsg_tiles_X = 16
+bsg_tiles_Y = 8
 
 include ../Makefile.include
 
@@ -14,7 +14,7 @@ SRCS = core_list_join.c core_main.c core_matrix.c core_state.c \
 
 OBJECT_FILES = $(patsubst %.c,%.o,$(SRCS))
 
-RISCV_GCC_EXTRA_OPTS += -I$(COREMARK_DIR) -I. -DITERATIONS=1 -DFLAGS_STR=\"$(OPT_LEVEL)\"
+RISCV_GCC_EXTRA_OPTS += -I$(COREMARK_DIR) -I. -DITERATIONS=100000 -DFLAGS_STR=\"$(OPT_LEVEL)\"
 
 all: main.run
 

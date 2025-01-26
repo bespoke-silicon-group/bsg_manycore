@@ -70,6 +70,8 @@ static CORETIMETYPE start_time_val, stop_time_val;
 */
 void start_time(void) {
 	GETMYTIME(&start_time_val );      
+    for (int i = 0; i < 100000000; i++) asm volatile ("nop");
+    bsg_print_time();
 }
 /* Function : stop_time
 	This function will be called right after ending the timed portion of the benchmark.
@@ -79,6 +81,7 @@ void start_time(void) {
 */
 void stop_time(void) {
 	GETMYTIME(&stop_time_val );      
+    bsg_print_time();
 }
 /* Function : get_time
 	Return an abstract "ticks" number that signifies time on the system.
@@ -124,7 +127,7 @@ void portable_init(core_portable *p, int *argc, char *argv[])
         //Initial the Manycore ID
         bsg_set_tile_x_y();
         if( bsg_x >0 || bsg_y >0) { 
-                bsg_wait_while(1);
+                //bsg_wait_while(1);
         }
 }
 /* Function : portable_fini
