@@ -251,6 +251,48 @@ module bsg_nonsynth_manycore_testbench
       ,.pod_tags_i(pod_tags_lo)
     );
   end
+  else if (bsg_manycore_network_cfg_p == e_network_half_torus) begin: fi1
+    bsg_manycore_pod_half_torus_block_mem #(
+      .num_tiles_x_p(num_tiles_x_p)
+      ,.num_tiles_y_p(num_tiles_y_p)
+      ,.pod_x_cord_width_p(pod_x_cord_width_p)
+      ,.pod_y_cord_width_p(pod_y_cord_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      
+      ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+
+      ,.dmem_size_p(dmem_size_p)
+      ,.icache_entries_p(icache_entries_p)
+      ,.icache_tag_width_p(icache_tag_width_p)
+      ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+
+      ,.vcache_addr_width_p(vcache_addr_width_p)
+      ,.vcache_data_width_p(vcache_data_width_p)
+      ,.vcache_ways_p(vcache_ways_p)
+      ,.vcache_sets_p(vcache_sets_p)
+      ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+      ,.vcache_size_p(vcache_size_p)
+      ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_word_tracking_p(vcache_word_tracking_p)
+      ,.ipoly_hashing_p(ipoly_hashing_p)
+
+      ,.reset_depth_p(reset_depth_p)
+    ) DUT (
+      .clk_i(clk_i)
+      
+      ,.ver_link_sif_i(ver_link_sif_li)
+      ,.ver_link_sif_o(ver_link_sif_lo)
+
+      ,.pod_tags_i(pod_tags_lo)
+    );
+   
+    // stub; 
+    assign hor_link_sif_lo = '0;
+  
+  end
   else begin
     initial begin
       $error("Invalid bsg_manycore_network_cfg_p.");

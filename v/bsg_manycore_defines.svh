@@ -106,6 +106,29 @@
 
 
 
+  // VC link interface;
+  `define bsg_manycore_vc_link_sif_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp,num_vc_mp) \
+    ( `bsg_vc_link_sif_width(`bsg_manycore_packet_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp),num_vc_mp) \
+    + `bsg_vc_link_sif_width(`bsg_manycore_return_packet_width(x_cord_width_mp,y_cord_width_mp,data_width_mp),num_vc_mp))
+
+  `define declare_bsg_manycore_fwd_vc_link_sif_s(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp,num_vc_mp) \
+    `declare_bsg_vc_link_sif_s(`bsg_manycore_packet_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp),num_vc_mp,bsg_manycore_fwd_vc_link_sif_s)
+
+  `define declare_bsg_manycore_rev_vc_link_sif_s(x_cord_width_mp,y_cord_width_mp,data_width_mp,num_vc_mp) \
+    `declare_bsg_vc_link_sif_s(`bsg_manycore_return_packet_width(x_cord_width_mp,y_cord_width_mp,data_width_mp),num_vc_mp,bsg_manycore_rev_vc_link_sif_s)
+
+  // Users should use this macro to declare vc_link_sif.
+  `define declare_bsg_manycore_vc_link_sif_s(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp,num_vc_mp) \
+    `declare_bsg_manycore_fwd_vc_link_sif_s(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp,num_vc_mp); \
+    `declare_bsg_manycore_rev_vc_link_sif_s(x_cord_width_mp,y_cord_width_mp,data_width_mp,num_vc_mp);               \
+                                         \
+    typedef struct packed {              \
+      bsg_manycore_fwd_vc_link_sif_s fwd;   \
+      bsg_manycore_rev_vc_link_sif_s rev;   \
+    } bsg_manycore_vc_link_sif_s
+
+
+
   //  Ruche X link struct
   //  We can take advantage of the dimension-ordered depopulated routing,
   //  and optimize out some of the coordinate bits to save wiring tracks.
