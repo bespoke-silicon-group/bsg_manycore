@@ -15,7 +15,6 @@ module bsg_nonsynth_wormhole_test_mem
     , parameter `BSG_INV_PARAM(wh_flit_width_p)
     , parameter `BSG_INV_PARAM(wh_cord_width_p)
     , parameter `BSG_INV_PARAM(wh_len_width_p)
-    , parameter `BSG_INV_PARAM(wh_ruche_factor_p)
 
     // determines address hashing based on cid and src_cord
     , parameter no_concentration_p=0
@@ -27,7 +26,6 @@ module bsg_nonsynth_wormhole_test_mem
     , parameter mem_els_lp = mem_size_p/(vcache_dma_data_width_p/8)
     , parameter mem_addr_width_lp = `BSG_SAFE_CLOG2(mem_els_lp)
 
-    , parameter lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
 
 
     , parameter block_offset_width_lp = `BSG_SAFE_CLOG2((vcache_data_width_p>>3)*vcache_block_size_in_words_p)
@@ -248,19 +246,13 @@ module bsg_nonsynth_wormhole_test_mem
   if (no_concentration_p) begin
     // no concentration. each wh ruche link gets a test_mem.
     assign mem_addr = {
-      src_cord_r[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp],
+      src_cord_r[0+:lg_num_vcaches_lp],
       addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
       count_lo
     };
   end
   else begin
-    // wh ruche links coming from top and bottom caches are concentrated into one link.
-    assign mem_addr = {
-      (1)'(src_cid_r/wh_ruche_factor_p), // determine north or south vcache
-      src_cord_r[0+:(lg_num_vcaches_lp-1)],
-      addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp],
-      count_lo
-    };
+    // not implemented;
   end
 
 
