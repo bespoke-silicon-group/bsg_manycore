@@ -164,7 +164,8 @@ module mini_testbench
     ,.svc_ver_link_o()
     ,.global_x_o()
     ,.global_y_o()
-    ,.reset_o()
+    ,.hor_reset_o()
+    ,.ver_reset_o()
   );
 
 
@@ -197,7 +198,53 @@ module mini_testbench
 
 
 
-  // SPMD LOADER
+  // SPMD LOADER;
+  // Convert REV IO->MC Credit-valid to make it compatible with bsg_manycore_endpoint_standard inside io complex;
+  bsg_manycore_link_sif_s io_link_converted_lo, io_link_converted_li;
+  // FWD MC -> IO;
+  assign io_link_converted_lo.fwd.data = io_link_sif_lo[E].fwd.data;
+  assign io_link_converted_lo.fwd.v    = io_link_sif_lo[E].fwd.v;
+  assign io_link_sif_li[E].fwd.ready_and_rev = io_link_converted_li.fwd.ready_and_rev;
+
+  // REV IO -> MC;
+  logic fifo_yumi;
+  bsg_fifo_1r1w_small #(
+    .width_p(`bsg_manycore_return_packet_width(x_cord_width_p,y_cord_width_p,data_width_p))
+    ,.els_p(3)
+  ) rev_fifo0 (
+    .clk_i(core_clk)
+    ,.reset_i(reset)
+
+    ,.v_i(io_link_converted_li.rev.v)
+    ,.data_i(io_link_converted_li.rev.data)
+    ,.ready_param_o()
+  
+    ,.v_o(io_link_sif_li[E].rev.v)
+    ,.data_o(io_link_sif_li[E].rev.data)
+    ,.yumi_i(fifo_yumi)
+  );
+  assign fifo_yumi = io_link_sif_lo[E].rev.ready_and_rev & io_link_sif_li[E].rev.v;
+
+  bsg_dff_reset #(
+    .width_p(1)
+    ,.reset_val_p(0)
+  ) cr_dff0 (
+    .clk_i(core_clk)
+    ,.reset_i(reset)
+    ,.data_i(fifo_yumi)
+    ,.data_o(io_link_converted_lo.rev.ready_and_rev)
+  );
+
+  // FWD IO -> MC;
+  assign io_link_sif_li[E].fwd.data = io_link_converted_li.fwd.data;
+  assign io_link_sif_li[E].fwd.v    = io_link_converted_li.fwd.v;
+  assign io_link_converted_lo.fwd.ready_and_rev = io_link_sif_lo[E].fwd.ready_and_rev;
+  // REV MC -> IO;
+  assign io_link_converted_lo.rev.data = io_link_sif_lo[E].rev.data;
+  assign io_link_converted_lo.rev.v    = io_link_sif_lo[E].rev.v;
+  assign io_link_sif_li[E].rev.ready_and_rev = io_link_converted_li.rev.ready_and_rev;
+
+
   bsg_nonsynth_manycore_io_complex #(
     .addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
@@ -210,8 +257,8 @@ module mini_testbench
   ) io (
     .clk_i(core_clk)
     ,.reset_i(reset)
-    ,.io_link_sif_i(io_link_sif_lo[E])
-    ,.io_link_sif_o(io_link_sif_li[E])
+    ,.io_link_sif_i(io_link_converted_lo)
+    ,.io_link_sif_o(io_link_converted_li)
     ,.print_stat_v_o()
     ,.print_stat_tag_o()
     ,.loader_done_o()

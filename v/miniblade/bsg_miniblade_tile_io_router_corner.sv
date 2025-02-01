@@ -130,8 +130,8 @@ module bsg_miniblade_tile_io_router_corner
   bsg_manycore_link_sif_s [S:W] links_sif_li, links_sif_lo;
 
 
-  localparam rev_use_credits_lp = 5'b00001;
-  localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,3};
+  localparam rev_use_credits_lp = 5'b00000;
+  localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,2};
 
   bsg_manycore_mesh_node #(
     .x_cord_width_p(x_cord_width_p)

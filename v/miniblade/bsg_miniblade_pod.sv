@@ -59,7 +59,8 @@ module bsg_miniblade_pod
     input clk_i
    
     // reset_o tieoff;
-    , output [num_tiles_x_p-1:0] reset_o 
+    , output hor_reset_o 
+    , output [num_tiles_x_p-1:0] ver_reset_o 
     // bsg_tag interface;
     , input tag_clk_i
     , input tag_data_i
@@ -199,6 +200,7 @@ module bsg_miniblade_pod
     end
   end
 
+  assign hor_reset_o = io_reset_lo[0][1];
 
   // Inject IO coordinates;
   for (genvar c = 0; c < num_tiles_x_p; c++) begin
@@ -443,7 +445,7 @@ module bsg_miniblade_pod
     assign svc_reset_li[c] = mc_reset_lo[num_tiles_y_p-1][c];
     assign svc_global_x_li[c] = mc_global_x_lo[num_tiles_y_p-1][c];
     assign svc_global_y_li[c] = mc_global_y_lo[num_tiles_y_p-1][c];
-    assign reset_o[c] = svc_reset_lo[c];
+    assign ver_reset_o[c] = svc_reset_lo[c];
 
     // connect north;
     assign svc_ver_link_sif_li[c][N] = mc_link_lo[num_tiles_y_p-1][c][S];
