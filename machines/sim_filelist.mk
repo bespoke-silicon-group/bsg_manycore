@@ -24,6 +24,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_one_fifo.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_trace_replay.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_trace_replay.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_master.sv
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_tag/bsg_tag_master_decentralized.sv
 
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_mem/bsg_nonsynth_mem_1r1w_sync_mask_write_byte_dma.sv
@@ -77,7 +78,8 @@ VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_monit
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_wormhole_test_mem.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_testbench.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vcache_dma_to_dram_channel_map.sv
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/spmd_testbench.sv
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/mini_testbench.sv
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_miniblade_tag_trace_replay.sv
 
 
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_misc/bsg_crossbar_control_basic_o_by_i.sv
