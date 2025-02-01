@@ -17,6 +17,70 @@
 
 #define OUTDIR_OFFSET 16
 
+#if BARRIER_RUCHE_FACTOR_X==0
+static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
+
+  // center tile coordinate
+  int center_x = (tx/2);
+  int center_y = (ty/2);
+
+  for (int x = 0; x < tx; x++) {
+    for (int y = 0; y < ty; y++) {
+  
+      // tile id
+      int id = x + (y*tx);
+ 
+      // input P is always on.
+      int val = 1;
+
+      // setting output dir
+      if (x < center_x) {
+        // output = E
+        val |= (2 << OUTDIR_OFFSET);
+      } else if (x == center_x) {
+        if (y < center_y) {
+          // output = S
+          val |= (4 << OUTDIR_OFFSET);
+        } else if (y == center_y) {
+          // output = Root
+          val |= (5 << OUTDIR_OFFSET);
+        } else {
+          // output = N
+          val |= (3 << OUTDIR_OFFSET);
+        }
+      } else {
+        // output = W
+        val |= (1 << OUTDIR_OFFSET);
+      }
+
+      // setting input mask
+      // input = W
+      if ((x <= center_x)  && (x > 0)) {
+        val |= (1 << 1);
+      }
+
+      // input = E
+      if ((x >= center_x) && (x < (tx-1))) {
+        val |= (1 << 2);
+      }
+
+      if (x == center_x) {
+        // input = N
+        if ((y > 0) && (y <= center_y)) {
+          val |= (1 << 3);
+        }
+        // input = S
+        if ((y < (ty-1)) && (y >= center_y)) {
+          val |= (1 << 4);
+        }
+      }
+  
+      // save
+      arr[id] = val;
+    }
+  }
+}
+#else
 static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
 
   // center tile coordinate
@@ -96,5 +160,5 @@ static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
     }
   }
 }
-
+#endif
 #endif
