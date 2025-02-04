@@ -281,12 +281,12 @@ module bsg_miniblade_tile_vcache
     ,.wh_link_sif_o(cache_wh_link_lo)
 
     ,.my_wh_cord_i(global_x_r)
-    ,.dest_wh_cord_i({wh_cord_width_p{1'b1}}) // always send to east;
-    ,.dest_wh_cid_i('0)
+    ,.dest_wh_cord_i  ({wh_cord_width_p{1'b1}}) // always send to east;
     // concentrator id
     // north vc = 1'b0;
     // south vc = 1'b1;
-    ,.my_wh_cid_i(~global_y_r[y_subcord_width_lp-1])
+    ,.my_wh_cid_i     (~global_y_r[y_subcord_width_lp-1]) // src_cid;
+    ,.dest_wh_cid_i   (~global_y_r[y_subcord_width_lp-1]) // dest_cid;
   );
  
 
