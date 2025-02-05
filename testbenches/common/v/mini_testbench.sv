@@ -100,6 +100,13 @@ module mini_testbench
   bsg_manycore_link_sif_s [E:W] io_link_sif_li, io_link_sif_lo;
   wh_link_sif_s [S:N][E:W] wh_link_sif_li, wh_link_sif_lo;
 
+  // inject coordinates;
+  logic [num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_li;
+  logic [num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_li;
+  for (genvar i = 0; i < num_tiles_x_p; i++) begin
+    assign global_x_li[i] = x_cord_width_p'(i); // Leftmost column, x=0;
+    assign global_y_li[i] = y_cord_width_p'(2); // Io router y coordinate;
+  end
 
   // DUT;
   bsg_miniblade_pod #(
@@ -154,6 +161,9 @@ module mini_testbench
     ,.north_wh_link_sif_o(wh_link_sif_lo[N])
     ,.south_wh_link_sif_i(wh_link_sif_li[S])
     ,.south_wh_link_sif_o(wh_link_sif_lo[S])
+
+    ,.global_x_i(global_x_li)
+    ,.global_y_i(global_y_li)
 
     // stubbed ports;
     ,.mc_link_sif_i('0)
