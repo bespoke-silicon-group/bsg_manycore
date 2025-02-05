@@ -90,6 +90,10 @@ module bsg_miniblade_pod
     , input  [num_tiles_x_p-1:0][link_sif_width_lp-1:0] svc_ver_link_i
     , output [num_tiles_x_p-1:0][link_sif_width_lp-1:0] svc_ver_link_o
 
+
+    // coordinates assigned at top level;
+    , input [num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_i
+    , input [num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_i
     // coordinates (connect to south VC);
     // For tie off;
     , output [num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_o
@@ -106,8 +110,8 @@ module bsg_miniblade_pod
 
   // io router corner;
   logic [num_tiles_x_p-1:0][1:0] io_reset_lo; // 0 = south; 1 = west;
-  logic [num_tiles_x_p-1:0][y_cord_width_p-1:0]  io_global_y_lo, io_global_y_li;
-  logic [num_tiles_x_p-1:0][x_cord_width_p-1:0]  io_global_x_lo, io_global_x_li;
+  logic [num_tiles_x_p-1:0][y_cord_width_p-1:0]  io_global_y_lo;
+  logic [num_tiles_x_p-1:0][x_cord_width_p-1:0]  io_global_x_lo;
 
   bsg_manycore_link_sif_s  io_corner_hor_link_sif_li, io_corner_hor_link_sif_lo;
   bsg_manycore_link_sif_s [num_tiles_x_p-1:0]      io_ver_link_sif_li, io_ver_link_sif_lo;
@@ -142,8 +146,8 @@ module bsg_miniblade_pod
     ,.proc_link_sif_i(io_link_sif_i[E])
     ,.proc_link_sif_o(io_link_sif_o[E])
 
-    ,.global_x_i(io_global_x_li[num_tiles_x_p-1])
-    ,.global_y_i(io_global_y_li[num_tiles_x_p-1])
+    ,.global_x_i(global_x_i[num_tiles_x_p-1])
+    ,.global_y_i(global_y_i[num_tiles_x_p-1])
     ,.global_x_o(io_global_x_lo[num_tiles_x_p-1])
     ,.global_y_o(io_global_y_lo[num_tiles_x_p-1])
   );
@@ -172,8 +176,8 @@ module bsg_miniblade_pod
       ,.ver_link_sif_i(io_ver_link_sif_li[i])
       ,.ver_link_sif_o(io_ver_link_sif_lo[i])
 
-      ,.global_x_i(io_global_x_li[i])
-      ,.global_y_i(io_global_y_li[i])
+      ,.global_x_i(global_x_i[i])
+      ,.global_y_i(global_y_i[i])
       ,.global_x_o(io_global_x_lo[i])
       ,.global_y_o(io_global_y_lo[i])
     );
@@ -202,11 +206,6 @@ module bsg_miniblade_pod
 
   assign hor_reset_o = io_reset_lo[0][1];
 
-  // Inject IO coordinates;
-  for (genvar c = 0; c < num_tiles_x_p; c++) begin
-    assign io_global_x_li[c] = x_cord_width_p'(c);
-    assign io_global_y_li[c] = y_cord_width_p'(2); // IO y coordinate = 2;
-  end
 
 
   //// TILE ports;
