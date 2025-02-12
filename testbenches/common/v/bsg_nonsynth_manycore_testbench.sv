@@ -905,6 +905,7 @@ module bsg_nonsynth_manycore_testbench
 
 //`ifndef VERILATOR_WORKAROUND_DISABLE_REMOTE_OP_PROFILING
 //if (enable_remote_op_profiling_p) begin
+
   bind network_tx remote_load_trace #(
     .addr_width_p(addr_width_p)
     ,.data_width_p(data_width_p)
@@ -956,6 +957,7 @@ if (enable_cache_profiling_p) begin
 `ifndef VERILATOR
 `ifndef VERILATOR_WORKAROUND_DISABLE_ROUTER_PROFILER
 if (enable_router_profiling_p) begin
+/*
   bind bsg_mesh_router router_profiler #(
     .x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
@@ -969,6 +971,22 @@ if (enable_router_profiling_p) begin
   ) rp0 (
     .*
     ,.clk_i(clk_i)
+    ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
+    ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
+    ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
+  );
+*/
+  bind bsg_half_torus_router half_torus_profiler #(
+    .x_cord_width_p(x_cord_width_p)
+    ,.y_cord_width_p(y_cord_width_p)
+    ,.width_p(width_p)
+    ,.XY_order_p(XY_order_p)
+    ,.origin_x_cord_p(`BSG_MACHINE_ORIGIN_X_CORD)
+    ,.origin_y_cord_p(`BSG_MACHINE_ORIGIN_Y_CORD)
+    ,.num_tiles_x_p(`BSG_MACHINE_GLOBAL_X)
+    ,.num_tiles_y_p(`BSG_MACHINE_GLOBAL_Y)
+  ) rp0 (
+    .*
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
