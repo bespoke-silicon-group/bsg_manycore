@@ -1,8 +1,8 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-#define N 536870912
-//#define N 32768
+//#define N 536870912
+#define N 32768
 #define VCACHE_LINE_WORDS 8
 
 int *dram_ptr = (int *) 0x80000000;
