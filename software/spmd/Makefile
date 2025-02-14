@@ -27,6 +27,41 @@ NO-RECURSE = \
 SPMD_HB_MC_TESTS := $(shell find $(BSG_MANYCORE_DIR)/software/spmd -maxdepth 1 -type d -name 'hb_mc_*' -printf '%P\n')
 NO-RECURSE += $(SPMD_HB_MC_TESTS)
 
+SPMD_HB_MC_GOOD :=            \
+    hb_mc_00_local_dmem       \
+    hb_mc_01_vcache_dram      \
+    hb_mc_02_noc_intrapod     \
+    hb_mc_03_icache           \
+    hb_mc_05_regfile          \
+    hb_mc_06_icache_miss      \
+    hb_mc_07_vcache_dram_prbs
+SPMD_HB_MC_TESTS := $(filter-out $(SPMD_HB_MC_GOOD), $(NO-RECURSE))
+
+# 101GB log size
+NO-RECURSE += write_bandwidth_test
+NO-RECURSE += prefetch_bandwidth_test2
+NO-RECURSE += perf_test_scan
+
+# No BSG_FINISH
+#NO-RECURSE += bsg_tile_group_barrier
+#NO-RECURSE += bsg_barrier
+#NO-RECURSE += hw_barrier_NxN_test
+#NO-RECURSE += bsg_barrier_time
+#NO-RECURSE += hw_barrier_16x8_interrupt_test
+#NO-RECURSE += bsg_barrier_amoadd_test
+NO-RECURSE += hw_barrier_reconfigure_test
+
+# BSG_TIMEOUT
+NO-RECURSE += pod_barrier
+NO-RECURSE += test_global_pod_ptr_lite
+NO-RECURSE += test_global_pod_ptr
+NO-RECURSE += interpod_memory_test
+NO-RECURSE += test_global_pod_ptr_yx
+
+# BSG_FAIL
+NO-RECURSE += perf_test_reduction
+NO-RECURSE += hw_barrier_csr_test
+
 # Define this variable on cmd line to run coverage analysis. Currently
 # supports VCS coverage: run "make COVERAGE=VCS"
 COVERAGE = 
