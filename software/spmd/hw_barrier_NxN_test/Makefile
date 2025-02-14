@@ -1,5 +1,5 @@
-bsg_tiles_X = 13
-bsg_tiles_Y = 6
+bsg_tiles_X = 4
+bsg_tiles_Y = 4
 
 
 all: main.run
