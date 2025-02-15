@@ -3,6 +3,7 @@
 
 module bsg_nonsynth_wormhole_test_mem_with_dma
   import bsg_manycore_pkg::*;
+  import bsg_cache_pkg::*;
   #(parameter vcache_data_width_p = "inv"
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_dma_data_width_p="inv"
@@ -189,7 +190,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   assign header_flit_out.src_cid = '0;   // dont care
   assign header_flit_out.cid = src_cid_r;
   assign header_flit_out.len = wh_len_width_p'(data_len_lp);
-  assign header_flit_out.dest_cord = src_cord_r;
+  assign header_flit_out.cord = src_cord_r;
 
   always_comb begin
     wh_link_sif_out = '0;
