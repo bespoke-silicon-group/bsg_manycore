@@ -189,7 +189,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   always @(posedge clk_i)
     // assert (dma_data_v_r & count_lo == '1 => piso_ready_lo)
     // this asserts that the piso is ready the cycle after we read from dma mem
-    assert((reset_i !== 1'b0) | (~(dma_data_v_r & count_lo == '1) | piso_ready_lo));
+    assert((reset_i !== 1'b0) | (~(dma_data_v_r & ~dma_data_v_n) | piso_ready_lo));
 
   typedef enum logic [2:0] {
     RESET
