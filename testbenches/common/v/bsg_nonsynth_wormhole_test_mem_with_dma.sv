@@ -168,7 +168,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
   always @(posedge clk_i)
     // assert (dma_mem_w_r & dma_mem_v_r => sipo_data_v_lo)
-    assert(reset_i | (~(dma_mem_w_r & dma_mem_v_r) | sipo_data_v_lo));
+    assert((reset_i !== 1'b0) | (~(dma_mem_w_r & dma_mem_v_r) | sipo_data_v_lo));
 
   // flit counter
   logic clear_li;
@@ -189,7 +189,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   always @(posedge clk_i)
     // assert (dma_data_v_r & count_lo == '1 => piso_ready_lo)
     // this asserts that the piso is ready the cycle after we read from dma mem
-    assert(reset_i | (~(dma_data_v_r & count_lo == '1) | piso_ready_lo));
+    assert((reset_i !== 1'b0) | (~(dma_data_v_r & count_lo == '1) | piso_ready_lo));
 
   typedef enum logic [2:0] {
     RESET
@@ -257,7 +257,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
         wh_link_sif_out.ready_and_rev = 1'b1;
         if (wh_link_sif_in.v) begin
           addr_n = wh_link_sif_in.data;
-          dma_mem_v_n = ~write_not_read_r;          
+          dma_mem_v_n = (opcode_r == e_cache_wh_read);
           mask_n = (opcode_r == e_cache_wh_write_non_masked)
             ? ('1)
             : mask_r;
