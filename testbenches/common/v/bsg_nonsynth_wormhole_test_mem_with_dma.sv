@@ -93,6 +93,20 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
      ,.w_mask_i(dma_mem_w_mask)
      );
 
+  // Memory Output
+  // mem_r is not initialized on reset, but we filter the X data being injected into the network to prevent X propagation.
+  logic [dma_mem_data_width_lp-1:0] dma_mem_r_data_filtered;
+  always_comb begin
+    for (integer b = 0; b < dma_mem_data_width_lp; b++) begin
+      if (dma_mem_r_data[b] === 1'bX) begin
+        dma_mem_r_data_filtered[b] = 1'b0;
+      end
+      else begin
+        dma_mem_r_data_filtered[b] = dma_mem_r_data[b];
+      end
+    end
+  end
+
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
   wh_link_sif_s wh_link_sif_in;
   wh_link_sif_s wh_link_sif_out;
@@ -121,7 +135,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
      ,.v_i(dma_data_v_r)
      ,.ready_and_o(piso_ready_lo)
-     ,.data_i(dma_mem_r_data)
+     ,.data_i(dma_mem_r_data_filtered)
 
      ,.v_o(piso_data_v_lo)
      ,.ready_and_i(piso_ready_li)
