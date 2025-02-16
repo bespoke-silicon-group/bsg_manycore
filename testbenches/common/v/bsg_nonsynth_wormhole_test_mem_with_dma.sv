@@ -14,7 +14,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     , parameter wh_flit_width_p="inv"
     , parameter wh_cord_width_p="inv"
     , parameter wh_len_width_p="inv"
-    , parameter wh_ruche_factor_p="inv"
     , parameter wh_subcord_width_p = "inv" // src subcoordinate in pod
     , parameter wh_cord_offset_lp = (1<<wh_subcord_width_p)
 
@@ -26,7 +25,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     , parameter mem_els_lp = mem_size_p/(vcache_dma_data_width_p/8)
     , parameter mem_addr_width_lp = `BSG_SAFE_CLOG2(mem_els_lp)
 
-    , parameter lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
 
     , parameter count_width_lp = `BSG_SAFE_CLOG2(data_len_lp)
 
@@ -343,19 +341,13 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   if (no_concentration_p) begin
     // no concentration. each wh ruche link gets a test_mem.
     assign dma_mem_addr = {
-      cord[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp],
+      cord[0+:lg_num_vcaches_lp],
       addr_r[block_offset_width_lp+:dma_mem_addr_width_lp-lg_num_vcaches_lp]
     };
     
   end
   else begin
-    // wh ruche links coming from top and bottom caches are concentrated into one link.
-    assign dma_mem_addr = {
-       (1)'(src_cid_r/wh_ruche_factor_p),
-       cord[0+:(lg_num_vcaches_lp-1)],
-       addr_r[block_offset_width_lp+:dma_mem_addr_width_lp-lg_num_vcaches_lp]
-    };
-    
+    // not implemented;
   end
 
 
@@ -414,8 +406,8 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
   initial begin
     if (debug_p) begin
-      $display("%m: lg_wh_ruche_factor_lp=%d, lg_num_vcaches_lp=%d, block_offset_width_lp=%d, mem_addr_width_lp=%d, lg_num_vcaches_lp=%d, wh_cord_offset_lp=%d, dma_mem_addr_width_lp=%d",
-               lg_wh_ruche_factor_lp, lg_num_vcaches_lp, block_offset_width_lp, mem_addr_width_lp, lg_num_vcaches_lp, wh_cord_offset_lp, dma_mem_addr_width_lp);
+      $display("%m: lg_num_vcaches_lp=%d, block_offset_width_lp=%d, mem_addr_width_lp=%d, lg_num_vcaches_lp=%d, wh_cord_offset_lp=%d, dma_mem_addr_width_lp=%d",
+               lg_num_vcaches_lp, block_offset_width_lp, mem_addr_width_lp, lg_num_vcaches_lp, wh_cord_offset_lp, dma_mem_addr_width_lp);
     end
   end
   
