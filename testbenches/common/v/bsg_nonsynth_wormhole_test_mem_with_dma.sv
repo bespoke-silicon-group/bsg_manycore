@@ -3,6 +3,7 @@
 
 module bsg_nonsynth_wormhole_test_mem_with_dma
   import bsg_manycore_pkg::*;
+  import bsg_cache_pkg::*;
   #(parameter vcache_data_width_p = "inv"
     , parameter vcache_block_size_in_words_p="inv"
     , parameter vcache_dma_data_width_p="inv"
@@ -13,7 +14,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     , parameter wh_flit_width_p="inv"
     , parameter wh_cord_width_p="inv"
     , parameter wh_len_width_p="inv"
-    , parameter wh_ruche_factor_p="inv"
     , parameter wh_subcord_width_p = "inv" // src subcoordinate in pod
     , parameter wh_cord_offset_lp = (1<<wh_subcord_width_p)
 
@@ -25,7 +25,6 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     , parameter mem_els_lp = mem_size_p/(vcache_dma_data_width_p/8)
     , parameter mem_addr_width_lp = `BSG_SAFE_CLOG2(mem_els_lp)
 
-    , parameter lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p)
 
     , parameter count_width_lp = `BSG_SAFE_CLOG2(data_len_lp)
 
@@ -61,6 +60,17 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   logic  dma_data_v_r;
   logic  dma_data_v_n;
   
+  localparam vcache_data_width_in_byte_lp = vcache_data_width_p / 8;
+  localparam dma_mem_mask_width_lp = vcache_block_size_in_words_p * vcache_data_width_in_byte_lp;
+
+  logic [vcache_block_size_in_words_p-1:0] mask_r, mask_n;
+  logic [dma_mem_mask_width_lp-1:0] dma_mem_w_mask;
+
+  for (genvar i = 0; i < dma_mem_mask_width_lp; i++)
+  begin
+    assign dma_mem_w_mask[i] = mask_r[i/vcache_data_width_in_byte_lp];
+  end
+
   bsg_nonsynth_mem_1rw_sync_mask_write_byte_dma
     #(.width_p(dma_mem_data_width_lp)
       ,.els_p(dma_mem_els_lp)
@@ -78,8 +88,22 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
      ,.data_o(dma_mem_r_data)
 
      ,.data_i(dma_mem_w_data)
-     ,.w_mask_i('1)
+     ,.w_mask_i(dma_mem_w_mask)
      );
+
+  // Memory Output
+  // mem_r is not initialized on reset, but we filter the X data being injected into the network to prevent X propagation.
+  logic [dma_mem_data_width_lp-1:0] dma_mem_r_data_filtered;
+  always_comb begin
+    for (integer b = 0; b < dma_mem_data_width_lp; b++) begin
+      if (dma_mem_r_data[b] === 1'bX) begin
+        dma_mem_r_data_filtered[b] = 1'b0;
+      end
+      else begin
+        dma_mem_r_data_filtered[b] = dma_mem_r_data[b];
+      end
+    end
+  end
 
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
   wh_link_sif_s wh_link_sif_in;
@@ -109,7 +133,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
      ,.v_i(dma_data_v_r)
      ,.ready_and_o(piso_ready_lo)
-     ,.data_i(dma_mem_r_data)
+     ,.data_i(dma_mem_r_data_filtered)
 
      ,.v_o(piso_data_v_lo)
      ,.ready_and_i(piso_ready_li)
@@ -144,7 +168,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
   always @(posedge clk_i)
     // assert (dma_mem_w_r & dma_mem_v_r => sipo_data_v_lo)
-    assert(reset_i | (~(dma_mem_w_r & dma_mem_v_r) | sipo_data_v_lo));
+    assert((reset_i !== 1'b0) | (~(dma_mem_w_r & dma_mem_v_r) | sipo_data_v_lo));
 
   // flit counter
   logic clear_li;
@@ -165,41 +189,43 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   always @(posedge clk_i)
     // assert (dma_data_v_r & count_lo == '1 => piso_ready_lo)
     // this asserts that the piso is ready the cycle after we read from dma mem
-    assert(reset_i | (~(dma_data_v_r & count_lo == '1) | piso_ready_lo));
+    assert((reset_i !== 1'b0) | (~(dma_data_v_r & ~dma_data_v_n) | piso_ready_lo));
 
   typedef enum logic [2:0] {
     RESET
     ,READY
     ,RECV_ADDR
+    ,RECV_MASK
     ,RECV_EVICT_DATA
     ,SEND_FILL_HEADER
     ,SEND_FILL_DATA
   } mem_state_e;
 
   mem_state_e mem_state_r, mem_state_n;
-  logic write_not_read_r, write_not_read_n;
+  bsg_cache_wh_opcode_e opcode_r, opcode_n;
   logic [wh_flit_width_p-1:0] addr_r, addr_n;
   logic [wh_cord_width_p-1:0] src_cord_r, src_cord_n;
   logic [wh_cid_width_p-1:0] src_cid_r, src_cid_n;
   
   bsg_cache_wh_header_flit_s header_flit_out;
   assign header_flit_out.unused = '0;
-  assign header_flit_out.write_not_read = '0; // dont care
+  assign header_flit_out.opcode = e_cache_wh_read; // dont care
   assign header_flit_out.src_cord = '0;   // dont care
   assign header_flit_out.src_cid = '0;   // dont care
   assign header_flit_out.cid = src_cid_r;
   assign header_flit_out.len = wh_len_width_p'(data_len_lp);
-  assign header_flit_out.dest_cord = src_cord_r;
+  assign header_flit_out.cord = src_cord_r;
 
   always_comb begin
     wh_link_sif_out = '0;
     clear_li = 1'b0;
     up_li = 1'b0;
 
-    write_not_read_n = write_not_read_r;
+    opcode_n = opcode_r;
     addr_n = addr_r;
     src_cord_n = src_cord_r;
     src_cid_n = src_cid_r;
+    mask_n = mask_r;
     mem_state_n = mem_state_r;
  
     dma_mem_v_n = '0;
@@ -220,7 +246,7 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
       READY: begin
         wh_link_sif_out.ready_and_rev = 1'b1;
         if (wh_link_sif_in.v) begin
-          write_not_read_n = header_flit_in.write_not_read;
+          opcode_n = header_flit_in.opcode;
           src_cord_n = header_flit_in.src_cord;
           src_cid_n = header_flit_in.src_cid;
           mem_state_n = RECV_ADDR;
@@ -231,10 +257,25 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
         wh_link_sif_out.ready_and_rev = 1'b1;
         if (wh_link_sif_in.v) begin
           addr_n = wh_link_sif_in.data;
-          dma_mem_v_n = ~write_not_read_r;          
-          mem_state_n = write_not_read_r
-            ? RECV_EVICT_DATA
-            : SEND_FILL_HEADER;
+          dma_mem_v_n = (opcode_r == e_cache_wh_read);
+          mask_n = (opcode_r == e_cache_wh_write_non_masked)
+            ? ('1)
+            : mask_r;
+          case (opcode_r)
+            e_cache_wh_read:              mem_state_n = SEND_FILL_HEADER;
+            e_cache_wh_write_non_masked:  mem_state_n = RECV_EVICT_DATA;
+            e_cache_wh_write_masked:      mem_state_n = RECV_MASK;
+            // This never happens.
+            default: mem_state_n = READY; 
+          endcase
+        end
+      end
+
+      RECV_MASK: begin
+        wh_link_sif_out.ready_and_rev = 1'b1;
+        if (wh_link_sif_in.v) begin
+          mask_n = wh_link_sif_in.data[0+:vcache_block_size_in_words_p];
+          mem_state_n = RECV_EVICT_DATA;
         end
       end
 
@@ -300,29 +341,24 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
   if (no_concentration_p) begin
     // no concentration. each wh ruche link gets a test_mem.
     assign dma_mem_addr = {
-      cord[lg_wh_ruche_factor_lp+:lg_num_vcaches_lp],
+      cord[0+:lg_num_vcaches_lp],
       addr_r[block_offset_width_lp+:dma_mem_addr_width_lp-lg_num_vcaches_lp]
     };
     
   end
   else begin
-    // wh ruche links coming from top and bottom caches are concentrated into one link.
-    assign dma_mem_addr = {
-       (1)'(src_cid_r/wh_ruche_factor_p),
-       cord[0+:(lg_num_vcaches_lp-1)],
-       addr_r[block_offset_width_lp+:dma_mem_addr_width_lp-lg_num_vcaches_lp]
-    };
-    
+    // not implemented;
   end
 
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       mem_state_r <= RESET;
-      write_not_read_r <= 1'b0;
+      opcode_r <= e_cache_wh_read;
       src_cord_r <= '0;
       src_cid_r <= '0;
       addr_r <= '0;
+      mask_r <= '0;
       dma_mem_v_r <= '0;
       dma_mem_w_r <= '0;      
       dma_data_v_r <= '0;
@@ -331,10 +367,11 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
     end
     else begin
       mem_state_r <= mem_state_n;
-      write_not_read_r <= write_not_read_n;
+      opcode_r <= opcode_n;
       src_cord_r <= src_cord_n;
       src_cid_r <= src_cid_n;
       addr_r <= addr_n;
+      mask_r <= mask_n;
       dma_mem_v_r <= dma_mem_v_n;
       dma_mem_w_r <= dma_mem_w_n;      
       dma_data_v_r <= dma_data_v_n;
@@ -369,8 +406,8 @@ module bsg_nonsynth_wormhole_test_mem_with_dma
 
   initial begin
     if (debug_p) begin
-      $display("%m: lg_wh_ruche_factor_lp=%d, lg_num_vcaches_lp=%d, block_offset_width_lp=%d, mem_addr_width_lp=%d, lg_num_vcaches_lp=%d, wh_cord_offset_lp=%d, dma_mem_addr_width_lp=%d",
-               lg_wh_ruche_factor_lp, lg_num_vcaches_lp, block_offset_width_lp, mem_addr_width_lp, lg_num_vcaches_lp, wh_cord_offset_lp, dma_mem_addr_width_lp);
+      $display("%m: lg_num_vcaches_lp=%d, block_offset_width_lp=%d, mem_addr_width_lp=%d, lg_num_vcaches_lp=%d, wh_cord_offset_lp=%d, dma_mem_addr_width_lp=%d",
+               lg_num_vcaches_lp, block_offset_width_lp, mem_addr_width_lp, lg_num_vcaches_lp, wh_cord_offset_lp, dma_mem_addr_width_lp);
     end
   end
   
