@@ -57,6 +57,7 @@ typedef struct packed
 {
   logic write_not_read;
   logic is_amo_op;
+  logic is_uncached_op;
   bsg_vanilla_amo_type_e amo_type;
   logic [3:0] mask;
   bsg_manycore_load_info_s load_info;
@@ -125,6 +126,9 @@ typedef struct packed {
   logic is_amo_aq;
   logic is_amo_rl;
   bsg_vanilla_amo_type_e amo_type;
+
+  // Uncached IO
+  logic is_uncached_op;
 
   // FPU
   logic is_fp_op;           // goes into FP_EXE
