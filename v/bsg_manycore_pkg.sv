@@ -33,6 +33,8 @@ package bsg_manycore_pkg;
     , e_remote_amomax
     , e_remote_amominu
     , e_remote_amomaxu
+    , e_remote_uncached_load // load word
+    , e_remote_uncached_store // store word
   } bsg_manycore_packet_op_e;
 
 
