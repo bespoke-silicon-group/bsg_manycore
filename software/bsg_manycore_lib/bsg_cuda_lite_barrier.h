@@ -29,6 +29,8 @@ static inline void bsg_barrier_tile_group_init()
     asm volatile ("csrrwi x0, 0xfc2, 0");
     // sync with amoadd barrier
     bsg_barrier_amoadd(&__cuda_barrier_cfg[0], &sense0);
+    #else
+    sense = 1;
     #endif
 }
 
