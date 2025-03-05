@@ -208,7 +208,7 @@ RISCV_GXX_OPTS += $(RISCV_GXX_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 ifdef CLANG
-LLVM_DIR          ?= $(RISCV)
+LLVM_DIR          ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install
 LLVM_CLANG        ?= $(LLVM_DIR)/bin/clang
 LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
 LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
