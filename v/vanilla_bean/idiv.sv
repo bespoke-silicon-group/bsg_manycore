@@ -9,8 +9,8 @@
 
 module idiv 
   import bsg_vanilla_pkg::*;
-  #(data_width_p=RV32_reg_data_width_gp
-    ,reg_addr_width_p=RV32_reg_addr_width_gp
+  #(data_width_p=reg_data_width_gp
+    ,reg_addr_width_p=reg_addr_width_gp
   )
   (
     input clk_i

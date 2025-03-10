@@ -5,7 +5,7 @@ module vanilla_scoreboard_tracker
   import bsg_vanilla_pkg::*;
   import vanilla_scoreboard_tracker_pkg::*;
   #(parameter `BSG_INV_PARAM(data_width_p)
-    ,parameter reg_addr_width_lp=RV32_reg_addr_width_gp
+    ,parameter reg_addr_width_lp=reg_addr_width_gp
     )
   (input clk_i
    ,input reset_i
@@ -15,7 +15,7 @@ module vanilla_scoreboard_tracker
    ,input stall_id
 
    ,input [data_width_p-1:0] rs1_val_to_exe
-   ,input [RV32_Iimm_width_gp-1:0] mem_addr_op2
+   ,input [Iimm_width_gp-1:0] mem_addr_op2
 
    ,input int_sb_clear
    ,input float_sb_clear
@@ -26,21 +26,21 @@ module vanilla_scoreboard_tracker
    ,input exe_signals_s exe_r
    ,input fp_exe_ctrl_signals_s fp_exe_ctrl_r
 
-   ,input instruction_s instruction
+   ,input instruction_s instruction_r
    ,input decode_s decode
 
-   ,output vanilla_isb_info_s [RV32_reg_els_gp-1:0] int_sb_o
-   ,output vanilla_fsb_info_s [RV32_reg_els_gp-1:0] float_sb_o
+   ,output vanilla_isb_info_s [reg_els_gp-1:0] int_sb_o
+   ,output vanilla_fsb_info_s [reg_els_gp-1:0] float_sb_o
    // is the load in ID sequential load?
    ,output logic is_id_seq_lw_o
    ,output logic is_id_seq_flw_o
    );
 
-  wire [reg_addr_width_lp-1:0] if_rs1 = instruction.rs1;
+  wire [reg_addr_width_lp-1:0] if_rs1 = instruction_r.rs1;
   wire [reg_addr_width_lp-1:0] id_rs1 = id_r.instruction.rs1;
   wire [reg_addr_width_lp-1:0] id_rd = id_r.instruction.rd;
   wire [9:0] id_imm_plus4 = 1'b1 + mem_addr_op2[11:2];
-  wire [11:0] if_load_imm = `RV32_Iimm_12extract(instruction);
+  wire [11:0] if_load_imm = `VANILLA_Iimm_12extract(instruction_r);
   
   wire is_seq_lw  = id_r.decode.is_load_op & decode.is_load_op
                   & id_r.decode.write_rd & decode.write_rd
@@ -71,8 +71,8 @@ module vanilla_scoreboard_tracker
 
 
   // remote/local scoreboard tracking
-  vanilla_isb_info_s [RV32_reg_els_gp-1:0] int_sb_r;
-  vanilla_fsb_info_s [RV32_reg_els_gp-1:0] float_sb_r;
+  vanilla_isb_info_s [reg_els_gp-1:0] int_sb_r;
+  vanilla_fsb_info_s [reg_els_gp-1:0] float_sb_r;
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
@@ -82,7 +82,7 @@ module vanilla_scoreboard_tracker
     else begin
 
       // int sb
-      for (integer i = 0; i < RV32_reg_els_gp; i++) begin
+      for (integer i = 0; i < reg_els_gp; i++) begin
         // idiv
         if (~stall_id & ~stall_all & ~flush & id_r.decode.is_idiv_op & (id_rd == i)) begin
           int_sb_r[i].idiv <= 1'b1;
@@ -128,7 +128,7 @@ module vanilla_scoreboard_tracker
       end
 
       // float sb
-      for (integer i = 0; i < RV32_reg_els_gp; i++) begin
+      for (integer i = 0; i < reg_els_gp; i++) begin
         // fdiv, fsqrt
         if (~stall_id & ~stall_all & ~flush & (id_r.decode.is_fp_op & (id_r.fp_decode.is_fdiv_op | id_r.fp_decode.is_fsqrt_op)) & (id_rd == i)) begin
           float_sb_r[i].fdiv_fsqrt <= 1'b1;

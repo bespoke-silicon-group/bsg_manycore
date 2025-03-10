@@ -1,15 +1,15 @@
 /**
- *    fcsr.v
+ *    fcsr.sv
  *
  */
 
-`include "bsg_vanilla_defines.svh"
+`include "bsg_manycore_instruction_defines.svh"
 
 module fcsr
   import bsg_vanilla_pkg::*;
   #(localparam fflags_width_lp=$bits(fflags_s)
     , frm_width_lp=$bits(frm_e)
-    , reg_addr_width_lp=RV32_reg_addr_width_gp
+    , reg_addr_width_lp=reg_addr_width_gp
   )
   (
     input clk_i
@@ -41,27 +41,27 @@ module fcsr
   always_comb begin
     if (v_i) begin
       case (funct3_i)
-        `RV32_CSRRW_FUN3: begin
+        `MANYCORE_CSRRW_FUN3: begin
           write_mask = {8{1'b1}};
           write_data = data_i;
         end
-        `RV32_CSRRS_FUN3: begin
+        `MANYCORE_CSRRS_FUN3: begin
           write_mask = data_i;
           write_data = data_i;
         end
-        `RV32_CSRRC_FUN3: begin
+        `MANYCORE_CSRRC_FUN3: begin
           write_mask = data_i;
           write_data = ~data_i;
         end
-        `RV32_CSRRWI_FUN3: begin
+        `MANYCORE_CSRRWI_FUN3: begin
           write_mask = {8{1'b1}};
           write_data = {3'b000, rs1_i};
         end
-        `RV32_CSRRSI_FUN3: begin
+        `MANYCORE_CSRRSI_FUN3: begin
           write_mask = {3'b000, rs1_i};
           write_data = {3'b000, rs1_i};
         end
-        `RV32_CSRRCI_FUN3: begin
+        `MANYCORE_CSRRCI_FUN3: begin
           write_mask = {3'b000, rs1_i};
           write_data = {3'b000, ~rs1_i};
         end
@@ -87,12 +87,12 @@ module fcsr
   always_comb begin
     case (addr_i)
       // frm
-      `RV32_CSR_FRM_ADDR: begin
+      `MANYCORE_CSR_FRM_ADDR: begin
         frm_write_mask = write_mask[0+:frm_width_lp];
         frm_write_data = write_data[0+:frm_width_lp];
       end
       // fcsr
-      `RV32_CSR_FCSR_ADDR: begin
+      `MANYCORE_CSR_FCSR_ADDR: begin
         frm_write_mask = write_mask[fflags_width_lp+:frm_width_lp];
         frm_write_data = write_data[fflags_width_lp+:frm_width_lp];
       end
@@ -120,8 +120,8 @@ module fcsr
     if (v_i) begin
       case (addr_i)
         // fflags, fcsr
-        `RV32_CSR_FFLAGS_ADDR,
-        `RV32_CSR_FCSR_ADDR: begin
+        `MANYCORE_CSR_FFLAGS_ADDR,
+        `MANYCORE_CSR_FCSR_ADDR: begin
           fflags_write_mask = write_mask[0+:fflags_width_lp];
           fflags_write_data = write_data[0+:fflags_width_lp];
         end
@@ -158,16 +158,16 @@ module fcsr
   // output
   always_comb begin
     case (addr_i)
-      `RV32_CSR_FFLAGS_ADDR: begin
+      `MANYCORE_CSR_FFLAGS_ADDR: begin
         data_o = {3'b0, fflags_r};
         data_v_o = 1'b1;
       end
-      `RV32_CSR_FRM_ADDR: begin
+      `MANYCORE_CSR_FRM_ADDR: begin
         data_o = {5'b0, frm_r};
         data_v_o = 1'b1;
       end
-      `RV32_CSR_FCSR_ADDR: begin
-         data_o = {frm_r, fflags_r};
+      `MANYCORE_CSR_FCSR_ADDR: begin
+        data_o = {frm_r, fflags_r};
         data_v_o = 1'b1;
       end
       default: begin
@@ -185,7 +185,7 @@ module fcsr
     if (~reset_i) begin
       // this assertion checks that there are no fflags exception being accrued
       // while fflags are being accessed by CSR instruction in ID.
-      if (v_i & ((addr_i == `RV32_CSR_FFLAGS_ADDR) || (addr_i == `RV32_CSR_FCSR_ADDR))) begin
+      if (v_i & ((addr_i == `MANYCORE_CSR_FFLAGS_ADDR) || (addr_i == `MANYCORE_CSR_FCSR_ADDR))) begin
         assert(~(|fflags_v_i)) else $error("[BSG_ERROR] Exception cannot be accrued while being written by fcsr op.");
       end
     end

@@ -4,8 +4,8 @@ module nb_waw_detector
     , parameter x_cord_width_p="inv"
     , parameter y_cord_width_p="inv"
 
-    , parameter reg_els_lp=RV32_reg_els_gp
-    , parameter instr_width_lp=RV32_instr_width_gp
+    , parameter reg_els_lp=reg_els_gp
+    , parameter instr_width_lp=instr_width_gp
   )
   (
     input clk_i
@@ -18,7 +18,7 @@ module nb_waw_detector
 
     , input int_remote_load_resp_v_i
     , input int_remote_load_resp_force_i
-    , input [RV32_reg_addr_width_gp-1:0] int_remote_load_resp_rd_i
+    , input [reg_addr_width_gp-1:0] int_remote_load_resp_rd_i
     
     , input mem_signals_s mem_r
     , input wb_signals_s wb_r

@@ -7,7 +7,7 @@
  */
 
 `include "bsg_manycore_defines.svh"
-`include "bsg_vanilla_defines.svh"
+`include "bsg_manycore_instruction_defines.svh"
 
 module vanilla_core
   import bsg_vanilla_pkg::*;
@@ -39,7 +39,7 @@ module vanilla_core
 
     , dmem_addr_width_lp=`BSG_SAFE_CLOG2(dmem_size_p)
     , pc_width_lp=(icache_tag_width_p+`BSG_SAFE_CLOG2(icache_entries_p))
-    , reg_addr_width_lp = RV32_reg_addr_width_gp
+    , reg_addr_width_lp = reg_addr_width_gp
     , data_mask_width_lp=(data_width_p>>3)
 
     , parameter debug_p=0
@@ -152,7 +152,7 @@ module vanilla_core
   logic [data_width_p-1:0] icache_winstr;
 
   logic [pc_width_lp-1:0] pc_n, pc_r;
-  instruction_s instruction;
+  instruction_s instruction_n, instruction_r;
   logic icache_miss;
   logic icache_flush;
   logic icache_flush_r_lo;
@@ -182,7 +182,7 @@ module vanilla_core
     ,.pc_i(pc_n)
     ,.jalr_prediction_i(jalr_prediction)
 
-    ,.instr_o(instruction)
+    ,.instr_o(instruction_n)
     ,.pred_or_jump_addr_o(pred_or_jump_addr)
     ,.pc_r_o(pc_r)
     ,.icache_miss_o(icache_miss)
@@ -218,9 +218,10 @@ module vanilla_core
   fp_decode_s fp_decode;
 
   cl_decode decode0 (
-    .instruction_i(instruction)
+    .instruction_i(instruction_n)
     ,.decode_o(decode)
     ,.fp_decode_o(fp_decode)
+    ,.instruction_o(instruction_r)
   ); 
 
 
@@ -251,7 +252,7 @@ module vanilla_core
 
   regfile #(
     .width_p(data_width_p)
-    ,.els_p(RV32_reg_els_gp)
+    ,.els_p(reg_els_gp)
     ,.num_rs_p(2)
     ,.x0_tied_to_zero_p(1)
   ) int_rf (
@@ -263,7 +264,7 @@ module vanilla_core
     ,.w_data_i(int_rf_wdata)
 
     ,.r_v_i(int_rf_read)
-    ,.r_addr_i({instruction.rs2, instruction.rs1})
+    ,.r_addr_i({instruction_r.rs2, instruction_r.rs1})
     ,.r_data_o(int_rf_rdata)
   );
   
@@ -277,7 +278,7 @@ module vanilla_core
   logic [reg_addr_width_lp-1:0] int_sb_clear_id;
 
   scoreboard #(
-    .els_p(RV32_reg_els_gp)
+    .els_p(reg_els_gp)
     ,.num_src_port_p(2)
     ,.num_clear_port_p(1)
     ,.x0_tied_to_zero_p(1)
@@ -312,7 +313,7 @@ module vanilla_core
 
   regfile #(
     .width_p(fpu_recoded_data_width_gp)
-    ,.els_p(RV32_reg_els_gp)
+    ,.els_p(reg_els_gp)
     ,.num_rs_p(3)
     ,.x0_tied_to_zero_p(0)
   ) float_rf (
@@ -324,7 +325,7 @@ module vanilla_core
     ,.w_data_i(float_rf_wdata)
 
     ,.r_v_i(float_rf_read)
-    ,.r_addr_i({instruction[31:27], instruction.rs2, instruction.rs1})
+    ,.r_addr_i({instruction_r[31:27], instruction_r.rs2, instruction_r.rs1})
     ,.r_data_o(float_rf_rdata)
   );
 
@@ -338,7 +339,7 @@ module vanilla_core
   logic [reg_addr_width_lp-1:0] float_sb_clear_id;
 
   scoreboard #(
-    .els_p(RV32_reg_els_gp)
+    .els_p(reg_els_gp)
     ,.x0_tied_to_zero_p(0)
     ,.num_src_port_p(3)
     ,.num_clear_port_p(1)
@@ -480,10 +481,10 @@ module vanilla_core
 
   // calculate mem address offset
   //
-  wire [RV32_Iimm_width_gp-1:0] mem_addr_op2 = id_r.decode.is_store_op
-    ? `RV32_Simm_12extract(id_r.instruction)
+  wire [Iimm_width_gp-1:0] mem_addr_op2 = id_r.decode.is_store_op
+    ? `MANYCORE_Simm_12extract(id_r.instruction)
     : (id_r.decode.is_load_op
-      ? `RV32_Iimm_12extract(id_r.instruction)
+      ? `MANYCORE_Iimm_12extract(id_r.instruction)
       : '0);
 
   // 'aq' register
@@ -1273,7 +1274,7 @@ module vanilla_core
     id_n = '{
       pc_plus4: {{(data_width_p-pc_width_lp-2){1'b0}}, pc_plus4, 2'b0},
       pred_or_jump_addr: {{(data_width_p-pc_width_lp-2){1'b0}}, pred_or_jump_addr, 2'b0},
-      instruction: instruction,
+      instruction: instruction_r,
       decode: decode,
       fp_decode: fp_decode,
       icache_miss: 1'b0,
@@ -1469,8 +1470,8 @@ module vanilla_core
 
   // stall_fcsr
   assign stall_fcsr = (id_r.decode.is_csr_op)
-    & ((id_r.instruction[31:20] == `RV32_CSR_FFLAGS_ADDR)
-      |(id_r.instruction[31:20] == `RV32_CSR_FCSR_ADDR))
+    & ((id_r.instruction[31:20] == `MANYCORE_CSR_FFLAGS_ADDR)
+      |(id_r.instruction[31:20] == `MANYCORE_CSR_FCSR_ADDR))
     & (fp_exe_ctrl_r.fp_decode.is_fpu_float_op
       |fp_exe_ctrl_r.fp_decode.is_fpu_int_op
       |fp_exe_ctrl_r.fp_decode.is_fdiv_op

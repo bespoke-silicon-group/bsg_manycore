@@ -16,7 +16,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   ,input reset_down
 
   // Instruction
-  ,input instruction_s instruction
+  ,input instruction_s instruction_r
 
   // Pipeline registers
   ,input id_signals_s  id_r
@@ -47,7 +47,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   ,input coverage_en_i
   );
 
-  wire take_br = decode.is_branch_op & instruction[0];
+  wire take_br = decode.is_branch_op & instruction_r[0];
   wire take_jalr = decode.is_jal_op | decode.is_jalr_op;
 
   covergroup cg_pc_reset @(negedge clk_i);
@@ -131,7 +131,7 @@ module bsg_nonsynth_manycore_vanilla_core_pc_cov
   covergroup cg_pc_take_jump @(negedge clk_i iff ~reset_down);
 
     br_op: coverpoint decode.is_branch_op;
-    instr0: coverpoint instruction[0];
+    instr0: coverpoint instruction_r[0];
     jal_op: coverpoint decode.is_jal_op;
     jalr_op: coverpoint decode.is_jalr_op;
 

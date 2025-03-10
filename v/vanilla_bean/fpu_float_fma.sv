@@ -4,7 +4,7 @@
  */
 
 
-`include "bsg_vanilla_defines.svh"
+`include "bsg_manycore_instruction_defines.svh"
 `include "HardFloat_consts.vi"
 `include "HardFloat_specialize.vi"
 
@@ -13,7 +13,7 @@ module fpu_float_fma
   import bsg_hardfloat_pkg::*;
   #(parameter exp_width_p=fpu_recoded_exp_width_gp
     , sig_width_p=fpu_recoded_sig_width_gp
-    , data_width_p=RV32_reg_data_width_gp
+    , data_width_p=reg_data_width_gp
     , localparam recoded_data_width_lp=(1+exp_width_p+sig_width_p)
   )
   (

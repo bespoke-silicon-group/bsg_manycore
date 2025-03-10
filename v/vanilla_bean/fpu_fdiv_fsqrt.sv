@@ -12,7 +12,7 @@ module fpu_fdiv_fsqrt
   import bsg_vanilla_pkg::*;
   #( parameter exp_width_p=fpu_recoded_exp_width_gp
     ,parameter sig_width_p=fpu_recoded_sig_width_gp
-    ,parameter reg_addr_width_p=RV32_reg_addr_width_gp
+    ,parameter reg_addr_width_p=reg_addr_width_gp
     ,parameter bits_per_iter_p=2
     ,localparam recoded_data_width_lp=(1+exp_width_p+sig_width_p)
   )

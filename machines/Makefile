@@ -3,6 +3,7 @@
 BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
 # By convention, basejump_stl is in the same directory as $(BSG_MANYCORE_DIR)
 BASEJUMP_STL_DIR := $(abspath $(BSG_MANYCORE_DIR)/../basejump_stl)
+BSG_MANYCORE_ISA_DIR := $(abspath $(BSG_MANYCORE_DIR)/../bsg_manycore_ISA)
 
 ifeq ($(wildcard $(BASEJUMP_STL_DIR)/imports/DRAMSim3/Makefile),)
 $(error DRAMSim3 has not been submoduled in basejump_stl, see top-level README.md)
@@ -20,8 +21,19 @@ DEFAULT_PROFILE_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/$(BS
 all: $(DEFAULT_TARGETS) $(DEFAULT_DEBUG_TARGETS) $(DEFAULT_PROFILE_TARGETS)
 
 # Include source lists
-include arch_filelist.mk
-include sim_filelist.mk
+# We include different source lists for different ISAs
+ifeq ($(BSG_MACHINE_ISA),VANILLA)
+include $(BSG_MANYCORE_DIR)/machines/arch_filelist.mk
+else ifeq ($(BSG_MACHINE_ISA),RISCV)
+include $(BSG_MANYCORE_ISA_DIR)/RISCV/arch_filelist.mk
+endif
+
+# We include different sim lists for different ISAs
+ifeq ($(BSG_MACHINE_ISA),VANILLA)
+include $(BSG_MANYCORE_DIR)/machines/sim_filelist.mk
+else ifeq ($(BSG_MACHINE_ISA),RISCV)
+include $(BSG_MANYCORE_ISA_DIR)/RISCV/sim_filelist.mk
+endif
 
 include Makefile.vcs
 include Makefile.verilator

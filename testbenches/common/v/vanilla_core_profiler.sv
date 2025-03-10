@@ -1,5 +1,5 @@
 /**
- *    vanilla_core_profiler.v
+ *    vanilla_core_profiler.sv
  *
  */
 
@@ -32,8 +32,8 @@ module vanilla_core_profiler
     , parameter icache_addr_width_lp=`BSG_SAFE_CLOG2(icache_entries_p)
     , parameter pc_width_lp=(icache_tag_width_p+icache_addr_width_lp)
 
-    , parameter reg_els_lp = RV32_reg_els_gp
-    , parameter reg_addr_width_lp = RV32_reg_addr_width_gp
+    , parameter reg_els_lp = reg_els_gp
+    , parameter reg_addr_width_lp = reg_addr_width_gp
 
     , parameter period_p = 250
     , parameter enable_periodic_p=0
@@ -82,7 +82,7 @@ module vanilla_core_profiler
     , input remote_req_s remote_req_o
 
     , input [data_width_p-1:0] rs1_val_to_exe
-    , input [RV32_Iimm_width_gp-1:0] mem_addr_op2
+    , input [Iimm_width_gp-1:0] mem_addr_op2
 
     , input int_sb_clear
     , input float_sb_clear
@@ -94,7 +94,7 @@ module vanilla_core_profiler
     , input fp_exe_ctrl_signals_s fp_exe_ctrl_r
 
     // IF stage
-    , input instruction_s instruction
+    , input instruction_s instruction_r
     , input decode_s decode
 
     , input [x_cord_width_p-1:0] global_x_i
@@ -207,12 +207,12 @@ module vanilla_core_profiler
   wire amoadd_inc = exe_r.decode.is_amo_op & (exe_r.decode.amo_type == e_vanilla_amoadd);
 
   // branch & jump
-  wire beq_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BEQ);
-  wire bne_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BNE);
-  wire blt_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLT);
-  wire bge_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGE);
-  wire bltu_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BLTU);
-  wire bgeu_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `RV32_BGEU);
+  wire beq_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `VANILLA_BEQ);
+  wire bne_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `VANILLA_BNE);
+  wire blt_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `VANILLA_BLT);
+  wire bge_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `VANILLA_BGE);
+  wire bltu_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `VANILLA_BLTU);
+  wire bgeu_inc = exe_r.decode.is_branch_op & (exe_r.instruction ==? `VANILLA_BGEU);
 
   wire jal_inc = exe_r.decode.is_jal_op;
   wire jalr_inc = exe_r.decode.is_jalr_op;
@@ -227,29 +227,29 @@ module vanilla_core_profiler
   wire jalr_miss_inc = jalr_inc & jalr_mispredict;
 
   // ALU
-  wire sll_inc = (exe_r.instruction ==? `RV32_SLL);
-  wire slli_inc = (exe_r.instruction ==? `RV32_SLLI);
-  wire srl_inc = (exe_r.instruction ==? `RV32_SRL);
-  wire srli_inc = (exe_r.instruction ==? `RV32_SRLI);
-  wire sra_inc = (exe_r.instruction ==? `RV32_SRA);
-  wire srai_inc = (exe_r.instruction ==? `RV32_SRAI);
+  wire sll_inc = (exe_r.instruction ==? `VANILLA_SLL);
+  wire slli_inc = (exe_r.instruction ==? `VANILLA_SLLI);
+  wire srl_inc = (exe_r.instruction ==? `VANILLA_SRL);
+  wire srli_inc = (exe_r.instruction ==? `VANILLA_SRLI);
+  wire sra_inc = (exe_r.instruction ==? `VANILLA_SRA);
+  wire srai_inc = (exe_r.instruction ==? `VANILLA_SRAI);
 
-  wire add_inc = (exe_r.instruction ==? `RV32_ADD);
-  wire addi_inc = (exe_r.instruction ==? `RV32_ADDI);
-  wire sub_inc = (exe_r.instruction ==? `RV32_SUB);
-  wire lui_inc = (exe_r.instruction ==? `RV32_LUI);
-  wire auipc_inc = (exe_r.instruction ==? `RV32_AUIPC);
-  wire xor_inc = (exe_r.instruction ==? `RV32_XOR);
-  wire xori_inc = (exe_r.instruction ==? `RV32_XORI);
-  wire or_inc = (exe_r.instruction ==? `RV32_OR);
-  wire ori_inc = (exe_r.instruction ==? `RV32_ORI);
-  wire and_inc = (exe_r.instruction ==? `RV32_AND);
-  wire andi_inc = (exe_r.instruction ==? `RV32_ANDI);
+  wire add_inc = (exe_r.instruction ==? `VANILLA_ADD);
+  wire addi_inc = (exe_r.instruction ==? `VANILLA_ADDI);
+  wire sub_inc = (exe_r.instruction ==? `VANILLA_SUB);
+  wire lui_inc = (exe_r.instruction ==? `VANILLA_LUI);
+  wire auipc_inc = (exe_r.instruction ==? `VANILLA_AUIPC);
+  wire xor_inc = (exe_r.instruction ==? `VANILLA_XOR);
+  wire xori_inc = (exe_r.instruction ==? `VANILLA_XORI);
+  wire or_inc = (exe_r.instruction ==? `VANILLA_OR);
+  wire ori_inc = (exe_r.instruction ==? `VANILLA_ORI);
+  wire and_inc = (exe_r.instruction ==? `VANILLA_AND);
+  wire andi_inc = (exe_r.instruction ==? `VANILLA_ANDI);
 
-  wire slt_inc = (exe_r.instruction ==? `RV32_SLT);
-  wire slti_inc = (exe_r.instruction ==? `RV32_SLTI);
-  wire sltu_inc = (exe_r.instruction ==? `RV32_SLTU);
-  wire sltiu_inc = (exe_r.instruction ==? `RV32_SLTIU);
+  wire slt_inc = (exe_r.instruction ==? `VANILLA_SLT);
+  wire slti_inc = (exe_r.instruction ==? `VANILLA_SLTI);
+  wire sltu_inc = (exe_r.instruction ==? `VANILLA_SLTU);
+  wire sltiu_inc = (exe_r.instruction ==? `VANILLA_SLTIU);
  
   // IDIV
   wire div_inc = exe_r.decode.is_idiv_op & (exe_r.decode.idiv_op == eDIV);
@@ -264,16 +264,16 @@ module vanilla_core_profiler
   wire fence_inc = exe_r.decode.is_fence_op;
 
   // CSR
-  wire csrrw_inc = (exe_r.instruction ==? `RV32_CSRRW);
-  wire csrrs_inc = (exe_r.instruction ==? `RV32_CSRRS);
-  wire csrrc_inc = (exe_r.instruction ==? `RV32_CSRRC);
-  wire csrrwi_inc = (exe_r.instruction ==? `RV32_CSRRWI);
-  wire csrrsi_inc = (exe_r.instruction ==? `RV32_CSRRSI);
-  wire csrrci_inc = (exe_r.instruction ==? `RV32_CSRRCI);
+  wire csrrw_inc = (exe_r.instruction ==? `VANILLA_CSRRW);
+  wire csrrs_inc = (exe_r.instruction ==? `VANILLA_CSRRS);
+  wire csrrc_inc = (exe_r.instruction ==? `VANILLA_CSRRC);
+  wire csrrwi_inc = (exe_r.instruction ==? `VANILLA_CSRRWI);
+  wire csrrsi_inc = (exe_r.instruction ==? `VANILLA_CSRRSI);
+  wire csrrci_inc = (exe_r.instruction ==? `VANILLA_CSRRCI);
 
   // Barrier Instruction
-  wire barsend_inc = (exe_r.instruction ==? `RV32_FENCE_OP) & (exe_r.instruction[31:28] == `RV32_BARSEND_FM);
-  wire barrecv_inc = (exe_r.instruction ==? `RV32_FENCE_OP) & (exe_r.instruction[31:28] == `RV32_BARRECV_FM);
+  wire barsend_inc = (exe_r.instruction ==? `VANILLA_FENCE_OP) & (exe_r.instruction[31:28] == `VANILLA_BARSEND_FM);
+  wire barrecv_inc = (exe_r.instruction ==? `VANILLA_FENCE_OP) & (exe_r.instruction[31:28] == `VANILLA_BARRECV_FM);
 
   // Track bubbles in the EXE stage
   // and their associated PC
