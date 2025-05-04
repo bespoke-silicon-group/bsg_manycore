@@ -26,22 +26,22 @@ int main()
   int pod_y = (cfg_pod & 0x78) >> 3; // 1 = podrow 0, 3 = podrow1;
   int global_x = (pod_x<<4) + __bsg_x;
   int global_y = (pod_y<<3) + __bsg_y;
-  uint32_t send_down    = (pod_y == 1 || pod_y == 3 || pod_y == 5) && (__bsg_y <= 7); // y = 15
-  uint32_t send_up      = (pod_y == 3 || pod_y == 5 || pod_y == 7) && (__bsg_y >= 0); // y = 24
+  uint32_t send_down    = (pod_y == 1 || pod_y == 3 || pod_y == 5) && (__bsg_y >= 4); // y = 15
+  uint32_t send_up      = (pod_y == 3 || pod_y == 5 || pod_y == 7) && (__bsg_y <= 3); // y = 24
  
   // calculate dest addr;
   volatile uint32_t* dest_addr;
   if (send_down) {
     dest_addr  = (uint32_t*) (
       0x40000000 |
-      ((global_y+16)<<23) |
+      ((global_y+12)<<23) |
       ((global_x)<<16) |
       ((int) &remote_buffer)
     );
   } else if (send_up) {
     dest_addr  = (uint32_t*) (
       0x40000000 |
-      ((global_y-16)<<23) |
+      ((global_y-12)<<23) |
       ((global_x)<<16) |
       ((int) &remote_buffer)
     );
