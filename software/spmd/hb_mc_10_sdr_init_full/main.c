@@ -49,6 +49,9 @@ int main()
   if (send_up || send_down) {
     for (uint32_t i = 0; i < 1000000000; i++) {
       asm volatile ("nop");
+      asm volatile ("nop");
+      asm volatile ("nop");
+      asm volatile ("nop");
     }
   }
   
