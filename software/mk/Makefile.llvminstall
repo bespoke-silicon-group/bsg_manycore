@@ -4,7 +4,7 @@ endif
 
 # devtoolset-8
 GCCVERSION = $(shell gcc -dumpversion)
-ifeq ($(shell expr $(GCCVERSION) \> 7)$(shell expr $(GCCVERSION) \< 10), 11)
+ifeq ($(shell expr $(GCCVERSION) \> 7)$(shell expr $(GCCVERSION) \< 12), 11)
 HOST_TOOLCHAIN ?=
 $(info Using default GCCVERSION $(GCCVERSION))
 else
