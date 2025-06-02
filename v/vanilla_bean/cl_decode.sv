@@ -116,7 +116,11 @@ assign decode_o.is_hex_op =
   (is_rv32_load & (instruction_i.funct3 ==? 3'b?01)) |
   (is_rv32_store & (instruction_i.funct3 == 3'b001));
 assign decode_o.is_load_unsigned =
-  is_rv32_load & (instruction_i.funct3 ==? 3'b10?);
+  is_rv32_load & (instruction_i.funct3 ==? 3'b10? | instruction_i.funct3 == 3'b111);
+
+// UNCACHED IO
+assign decode_o.is_uncached_op = (is_rv32_load | is_rv32_store) &
+  (instruction_i.funct3 == 3'b111);
 
 // Branch & Jump
 assign decode_o.is_branch_op = instruction_i.op ==? `RV32_BRANCH;
@@ -237,7 +241,6 @@ end
 
 assign decode_o.is_amo_aq = instruction_i[26];
 assign decode_o.is_amo_rl = instruction_i[25];
-
 
 //+----------------------------------------------
 //|

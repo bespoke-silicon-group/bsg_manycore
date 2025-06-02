@@ -104,9 +104,27 @@ module network_tx
   // EVA -> NPA translation
   //
   logic is_invalid_addr_lo;
+  logic is_invalid_eva;
   logic [x_cord_width_p-1:0] x_cord_lo;
   logic [y_cord_width_p-1:0] y_cord_lo;
   logic [addr_width_p-1:0] epa_lo;
+
+  wire [x_cord_width_p-1:0] src_x_cord = {pod_x_i, my_x_i};
+  wire [y_cord_width_p-1:0] src_y_cord = {pod_y_i, my_y_i};
+
+  wire proxy_is_in_the_south = src_y_cord[y_subcord_width_lp-1];
+
+  // Uncached requests will be sent to the nearest vcache
+  wire [x_cord_width_p-1:0] proxy_x_cord_lo = (x_cord_width_p)'(src_x_cord);
+  wire [y_cord_width_p-1:0] proxy_y_cord_lo = proxy_is_in_the_south
+    ? {(pod_y_cord_width_p)'(pod_y_i + 1'b1), {y_subcord_width_lp{1'b0}}}
+    : {(pod_y_cord_width_p)'(pod_y_i - 1'b1), {y_subcord_width_lp{1'b1}}};
+
+  wire [addr_width_p-1:0] io_addr = remote_req_i.addr[addr_width_p+1:2];
+
+  wire is_uncached_op = remote_req_i.is_uncached_op;
+  // Uncached op does not carry eva
+  assign is_invalid_addr_lo = is_invalid_eva & ~is_uncached_op;
 
   bsg_manycore_eva_to_npa #(
     .data_width_p(data_width_p)
@@ -130,12 +148,13 @@ module network_tx
     ,.y_cord_o(y_cord_lo)
     ,.epa_o(epa_lo)
 
-    ,.is_invalid_addr_o(is_invalid_addr_lo) 
+    ,.is_invalid_addr_o(is_invalid_eva)
 
     // the pod rehoming stuff should not affect instruction cache fetches	     
     ,.pod_x_i(remote_req_i.load_info.icache_fetch ? pod_x_i : cfg_pod_x_i)
     ,.pod_y_i(remote_req_i.load_info.icache_fetch ? pod_y_i : cfg_pod_y_i)
   );
+
 
   // Out Packet Builder.
   //
@@ -149,9 +168,16 @@ module network_tx
       out_packet.payload.load_info_s.reserved  = '0;
     end
 
-    out_packet.y_cord = y_cord_lo;
-    out_packet.x_cord = x_cord_lo;
-    out_packet.addr = epa_lo;
+    if (is_uncached_op) begin
+      out_packet.y_cord = proxy_y_cord_lo;
+      out_packet.x_cord = proxy_x_cord_lo;
+      out_packet.addr = io_addr;
+    end
+    else begin
+      out_packet.y_cord = y_cord_lo;
+      out_packet.x_cord = x_cord_lo;
+      out_packet.addr = epa_lo;
+    end
 
     if (remote_req_i.write_not_read) begin
       out_packet.reg_id.store_mask_s.mask = remote_req_i.mask;
@@ -161,8 +187,8 @@ module network_tx
       out_packet.reg_id = remote_req_i.reg_id;
     end
     
-    out_packet.src_y_cord = {pod_y_i, my_y_i};
-    out_packet.src_x_cord = {pod_x_i, my_x_i};
+    out_packet.src_y_cord = src_y_cord;
+    out_packet.src_x_cord = src_x_cord;
 
     if (remote_req_i.is_amo_op) begin
       case (remote_req_i.amo_type)
@@ -174,10 +200,10 @@ module network_tx
     end
     else begin
       if (remote_req_i.write_not_read) begin
-        out_packet.op_v2 = e_remote_store;
+        out_packet.op_v2 = is_uncached_op ? e_remote_uncached_store : e_remote_store;
       end
       else begin
-        out_packet.op_v2 = e_remote_load;
+        out_packet.op_v2 = is_uncached_op ? e_remote_uncached_load : e_remote_load;
       end
     end
 

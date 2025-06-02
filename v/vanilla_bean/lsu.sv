@@ -132,13 +132,14 @@ module lsu
         is_unsigned_op: exe_decode_i.is_load_unsigned,
         is_byte_op: exe_decode_i.is_byte_op,
         is_hex_op: exe_decode_i.is_hex_op,
-        part_sel: mem_addr[1:0]
+        part_sel: exe_decode_i.is_uncached_op ? 2'b00 : mem_addr[1:0]
       };
     end
 
     remote_req_o = '{
       write_not_read : (exe_decode_i.is_store_op),
       is_amo_op : exe_decode_i.is_amo_op, 
+      is_uncached_op : exe_decode_i.is_uncached_op,
       amo_type : exe_decode_i.amo_type,
       mask: store_mask,
       load_info : load_info,
