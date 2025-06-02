@@ -147,10 +147,10 @@ module bsg_manycore_link_to_cache
 
   always_comb begin
     unique case (packet_lo.op_v2)
-      e_remote_store, e_remote_sw: begin
+      e_remote_store, e_remote_sw, e_remote_uncached_store: begin
         return_pkt_type = e_return_credit;
       end
-      e_remote_load: begin
+      e_remote_load, e_remote_uncached_load: begin
         if (load_info.icache_fetch)
           return_pkt_type = e_return_ifetch;
         else if (load_info.float_wb)
@@ -183,7 +183,7 @@ module bsg_manycore_link_to_cache
       if (yumi_i) begin
         tl_info_r <= '{
           pkt_type: return_pkt_type,
-          reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
+          reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_remote_uncached_store) | (packet_lo.op_v2 == e_cache_op)) 
               ? payload_reg_id
               : packet_lo.reg_id,
           y_cord: packet_lo.src_y_cord,
@@ -303,7 +303,7 @@ module bsg_manycore_link_to_cache
         end
         else begin
           unique case (packet_lo.op_v2)
-            e_remote_store, e_remote_sw: begin
+            e_remote_store, e_remote_sw, e_remote_uncached_store: begin
               cache_pkt.opcode = SM;
             end
 
@@ -330,7 +330,7 @@ module bsg_manycore_link_to_cache
               endcase
             end
 
-            e_remote_load: begin
+            e_remote_load, e_remote_uncached_load: begin
               if (load_info.is_byte_op)
                 cache_pkt.opcode = load_info.is_unsigned_op
                   ? LBU
@@ -354,12 +354,12 @@ module bsg_manycore_link_to_cache
         end
 
         cache_pkt.data = packet_lo.payload;
-        cache_pkt.mask = (packet_lo.op_v2 == e_remote_sw)
+        cache_pkt.mask = (packet_lo.op_v2 == e_remote_sw && e_remote_uncached_store)
           ? 4'b1111
           : packet_lo.reg_id.store_mask_s.mask;
         
         unique case (packet_lo.op_v2)
-          e_remote_load: begin
+          e_remote_load, e_remote_uncached_load: begin
             cache_pkt.addr = {
               packet_lo.addr[link_addr_width_p-2:icache_block_offset_width_lp],
               load_info.icache_fetch ? ifetch_count_r : packet_lo.addr[0+:icache_block_offset_width_lp],
