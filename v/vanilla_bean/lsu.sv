@@ -152,7 +152,8 @@ module lsu
 
 
   assign remote_req_v_o = icache_miss_i |
-    ((exe_decode_i.is_load_op | exe_decode_i.is_store_op | exe_decode_i.is_amo_op) & ~is_local_dmem_addr);
+    ((exe_decode_i.is_load_op | exe_decode_i.is_store_op | exe_decode_i.is_amo_op) & ~is_local_dmem_addr) |
+    exe_decode_i.is_uncached_op;
 
   // reserve
   // only valid on local DMEM
