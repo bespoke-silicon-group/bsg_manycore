@@ -259,7 +259,7 @@ module mini_testbench
     ,.wh_cord_width_p(wh_cord_width_p)
     ,.wh_len_width_p(wh_len_width_p)
     ,.mem_size_p(2*mem_size_lp)
-    ,.no_concentration_p(1)
+    ,.no_concentration_p(0)
   ) test_io (
     .clk_i(core_clk)
     ,.reset_i(reset)

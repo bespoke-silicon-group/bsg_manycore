@@ -57,37 +57,6 @@ module bsg_nonsynth_wormhole_test_uncached_io
   logic [wh_flit_width_p-1:0] addr_r, addr_n;
   logic [wh_cord_width_p-1:0] src_cord_r, src_cord_n;
   logic [wh_cid_width_p-1:0] src_cid_r, src_cid_n;
-  logic [vcache_block_size_in_words_p-1:0] mask_r, mask_n;
-
-
-  // flit counter
-  localparam count_width_lp = `BSG_SAFE_CLOG2(data_len_lp);
-  logic clear_li;
-  logic up_li;
-  logic [count_width_lp-1:0] count_lo;
-
-  bsg_counter_clear_up #(
-    .max_val_p(data_len_lp-1)
-    ,.init_val_p(0)
-  ) count (
-    .clk_i(clk_i)
-    ,.reset_i(reset_i)
-    ,.clear_i(clear_li)
-    ,.up_i(up_li)
-    ,.count_o(count_lo)
-  );
-
-
-  // write mask mux
-  logic [dma_ratio_lp-1:0] mask_selected;
-  bsg_mux #(
-    .width_p(dma_ratio_lp)
-    ,.els_p(data_len_lp)
-  ) mux0 (
-    .data_i(mask_r)
-    ,.sel_i(count_lo)
-    ,.data_o(mask_selected)
-  );
 
   // memory block
   logic mem_we;
@@ -99,9 +68,7 @@ module bsg_nonsynth_wormhole_test_uncached_io
   always_ff @ (posedge clk_i) begin
     if (mem_we) begin
       for (integer i = 0; i < dma_ratio_lp; i++) begin
-        if (mask_selected[i]) begin
-          mem_r[mem_addr][vcache_data_width_p*i+:vcache_data_width_p] <= mem_w_data[vcache_data_width_p*i+:vcache_data_width_p];
-        end
+        mem_r[mem_addr][vcache_data_width_p*i+:vcache_data_width_p] <= mem_w_data[vcache_data_width_p*i+:vcache_data_width_p];
       end
     end
   end
@@ -145,14 +112,11 @@ module bsg_nonsynth_wormhole_test_uncached_io
 
   always_comb begin
     wh_link_sif_out = '0;
-    clear_li = 1'b0;
-    up_li = 1'b0;
 
     opcode_n = opcode_r;
     addr_n = addr_r;
     src_cord_n = src_cord_r;
     src_cid_n = src_cid_r;
-    mask_n = mask_r;
     mem_state_n = mem_state_r;
  
     mem_we = 1'b0;
@@ -179,24 +143,12 @@ module bsg_nonsynth_wormhole_test_uncached_io
         wh_link_sif_out.ready_and_rev = 1'b1;
         if (wh_link_sif_in.v) begin
           addr_n = wh_link_sif_in.data;
-          mask_n = (opcode_r == e_cache_wh_write_non_masked)
-            ? ('1)
-            : mask_r;
           case (opcode_r)
             e_cache_wh_read:              mem_state_n = SEND_FILL_HEADER;
             e_cache_wh_write_non_masked:  mem_state_n = RECV_EVICT_DATA;
-            e_cache_wh_write_masked:      mem_state_n = RECV_MASK;
             // This never happens.
             default: mem_state_n = READY; 
           endcase
-        end
-      end
-
-      RECV_MASK: begin
-        wh_link_sif_out.ready_and_rev = 1'b1;
-        if (wh_link_sif_in.v) begin
-          mask_n = wh_link_sif_in.data[0+:vcache_block_size_in_words_p];
-          mem_state_n = RECV_EVICT_DATA;
         end
       end
 
@@ -204,11 +156,7 @@ module bsg_nonsynth_wormhole_test_uncached_io
         wh_link_sif_out.ready_and_rev = 1'b1;
         if (wh_link_sif_in.v) begin
           mem_we = 1'b1;
-          up_li = (count_lo != data_len_lp-1);
-          clear_li = (count_lo == data_len_lp-1);
-          mem_state_n = (count_lo == data_len_lp-1)
-            ? READY
-            : RECV_EVICT_DATA;
+          mem_state_n = READY;
         end
       end
 
@@ -224,11 +172,7 @@ module bsg_nonsynth_wormhole_test_uncached_io
         wh_link_sif_out.v = 1'b1;
         wh_link_sif_out.data = mem_r_data_filtered;
         if (wh_link_sif_in.ready_and_rev) begin
-          clear_li = (count_lo == data_len_lp-1);
-          up_li = (count_lo != data_len_lp-1);
-          mem_state_n = (count_lo == data_len_lp-1)
-            ? READY
-            : SEND_FILL_DATA;
+          mem_state_n = READY;
         end
       end
 
@@ -248,12 +192,11 @@ module bsg_nonsynth_wormhole_test_uncached_io
     assign mem_addr = {
       src_cid_r[0+:wh_cid_width_p],
       src_cord_r[0+:lg_num_vcaches_lp],
-      addr_r[block_offset_width_lp+:mem_addr_width_lp-lg_num_vcaches_lp-count_width_lp-wh_cid_width_p],
-      count_lo
+      addr_r[mem_addr_width_lp-lg_num_vcaches_lp-wh_cid_width_p-1:0]
     };
   end
   else begin
-    // not implemented;
+    assign mem_addr = addr_r;
   end
 
 
@@ -264,7 +207,6 @@ module bsg_nonsynth_wormhole_test_uncached_io
       src_cord_r <= '0;
       src_cid_r <= '0;
       addr_r <= '0;
-      mask_r <= '0;
     end
     else begin
       mem_state_r <= mem_state_n;
@@ -272,7 +214,6 @@ module bsg_nonsynth_wormhole_test_uncached_io
       src_cord_r <= src_cord_n;
       src_cid_r <= src_cid_n;
       addr_r <= addr_n;
-      mask_r <= mask_n;
     end
   end
 
