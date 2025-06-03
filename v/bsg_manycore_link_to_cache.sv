@@ -59,6 +59,7 @@ module bsg_manycore_link_to_cache
     , input v_we_i
 
     , output logic wh_dest_east_not_west_o
+    , output logic notification_en_o
   );
 
 
@@ -130,7 +131,9 @@ module bsg_manycore_link_to_cache
   logic [lg_sets_lp+lg_ways_lp:0] tagst_sent_r, tagst_sent_n;
   logic [lg_sets_lp+lg_ways_lp:0] tagst_received_r, tagst_received_n;
   logic wh_dest_east_not_west_r, wh_dest_east_not_west_n;
+  logic notification_en_r, notification_en_n;
   assign wh_dest_east_not_west_o = wh_dest_east_not_west_r;
+  assign notification_en_o       = notification_en_r;
 
   // cache pipeline tracker
   // 
@@ -147,10 +150,10 @@ module bsg_manycore_link_to_cache
 
   always_comb begin
     unique case (packet_lo.op_v2)
-      e_remote_store, e_remote_sw: begin
+      e_remote_store, e_remote_sw, e_remote_uncached_store: begin
         return_pkt_type = e_return_credit;
       end
-      e_remote_load: begin
+      e_remote_load, e_remote_uncached_load: begin
         if (load_info.icache_fetch)
           return_pkt_type = e_return_ifetch;
         else if (load_info.float_wb)
@@ -183,7 +186,7 @@ module bsg_manycore_link_to_cache
       if (yumi_i) begin
         tl_info_r <= '{
           pkt_type: return_pkt_type,
-          reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
+          reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_remote_uncached_store) | (packet_lo.op_v2 == e_cache_op)) 
               ? payload_reg_id
               : packet_lo.reg_id,
           y_cord: packet_lo.src_y_cord,
@@ -218,6 +221,7 @@ module bsg_manycore_link_to_cache
     tagst_sent_n = tagst_sent_r;
     tagst_received_n = tagst_received_r;
     wh_dest_east_not_west_n = wh_dest_east_not_west_r;
+    notification_en_n = notification_en_r;
     v_o = 1'b0;
     yumi_o = 1'b0;
     state_n = state_r;
@@ -279,15 +283,21 @@ module bsg_manycore_link_to_cache
               cache_pkt.opcode = TAGLA;
               // synopsys translate_off
               assert final(reset_i !== 1'b0 | ~packet_v_lo)
-                else $error("[BSG_ERROR] Invalid packet op for wh_dest_east_not_west EPA: %b", packet_lo.op_v2);
+                else $error("[BSG_ERROR] Invalid packet op for wh_dest_east_not_west/notification_en EPA: %b", packet_lo.op_v2);
               // synopsys translate_on
             end
           endcase
 
           // updated when nop packet is taken by the cache.
-          wh_dest_east_not_west_n = yumi_i
-            ? packet_lo.payload[0]
-            : wh_dest_east_not_west_r;
+          if(packet_lo.addr[0] == 1'b0) begin
+            wh_dest_east_not_west_n = yumi_i
+              ? packet_lo.payload[0]
+              : wh_dest_east_not_west_r;
+          end else if(packet_lo.addr[0] == 1'b1) begin
+            notification_en_n = yumi_i
+              ? packet_lo.payload[0]
+              : notification_en_r;
+          end
         end
         // if MSB of addr is one, then it maps to tag_mem
         // otherwise it's regular access to data_mem.
@@ -305,6 +315,9 @@ module bsg_manycore_link_to_cache
           unique case (packet_lo.op_v2)
             e_remote_store, e_remote_sw: begin
               cache_pkt.opcode = SM;
+            end
+            e_remote_uncached_store: begin
+              cache_pkt.opcode = UNCACHED_SW;
             end
 
             e_remote_amoswap: begin
@@ -343,6 +356,9 @@ module bsg_manycore_link_to_cache
                 cache_pkt.opcode = LW;
               end
             end            
+            e_remote_uncached_load: begin
+              cache_pkt.opcode = UNCACHED_LW;
+            end
             // this should never happen.
             default: begin
               cache_pkt.opcode = AFL;
@@ -354,7 +370,7 @@ module bsg_manycore_link_to_cache
         end
 
         cache_pkt.data = packet_lo.payload;
-        cache_pkt.mask = (packet_lo.op_v2 == e_remote_sw)
+        cache_pkt.mask = (packet_lo.op_v2 == e_remote_sw && e_remote_uncached_store)
           ? 4'b1111
           : packet_lo.reg_id.store_mask_s.mask;
         
@@ -433,12 +449,14 @@ module bsg_manycore_link_to_cache
       tagst_sent_r     <= '0;
       tagst_received_r <= '0;
       wh_dest_east_not_west_r <= 1'b0;
+      notification_en_r <= 1'b0;
     end
     else begin
       state_r          <= state_n;
       tagst_sent_r     <= tagst_sent_n;
       tagst_received_r <= tagst_received_n;
       wh_dest_east_not_west_r <= wh_dest_east_not_west_n;
+      notification_en_r <= notification_en_n;
     end
   end
 
