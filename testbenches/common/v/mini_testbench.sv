@@ -204,8 +204,7 @@ module mini_testbench
       ,.link_i(rtr_wh_link_sif_li[i])
       ,.link_o(rtr_wh_link_sif_lo[i])
 
-      // 4'b1111
-      ,.my_cord_i({{wh_cord_width_p-1{1'b1}}, 1'b1})
+      ,.my_cord_i({{wh_cord_width_p-1{1'b1}}, 1'b0})
     );
 
     bsg_nonsynth_wormhole_test_mem #(
