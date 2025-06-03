@@ -56,6 +56,8 @@ module mini_testbench
   parameter bsg_manycore_network_cfg_e bsg_manycore_network_cfg_p = `BSG_MACHINE_NETWORK_CFG;
   parameter reset_depth_p = 3;
 
+  localparam int wh_cord_markers_pos_lp[1:0] = '{wh_cord_width_p, 0};
+
 
   // Clock;
   parameter core_clk_period_p = 1000; // 1000 ps == 1 GHz
@@ -97,8 +99,11 @@ module mini_testbench
   // Declare links;
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p,wh_link_sif_s);
+
   bsg_manycore_link_sif_s [E:W] io_link_sif_li, io_link_sif_lo;
   wh_link_sif_s [S:N][E:W] wh_link_sif_li, wh_link_sif_lo;
+  wh_link_sif_s [S:N][E:P] rtr_wh_link_sif_li, rtr_wh_link_sif_lo;
+  wh_link_sif_s concentrated_link_li, concentrated_link_lo;
 
   // inject coordinates;
   logic [num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_li;
@@ -183,6 +188,26 @@ module mini_testbench
   localparam longint unsigned mem_size_lp = (2**30); // size in bytes (1GB each)
 
   for (genvar i = N; i <= S; i++) begin
+
+    assign rtr_wh_link_sif_li[i][W] = wh_link_sif_lo[i][E];
+    assign wh_link_sif_li[i][E] = rtr_wh_link_sif_lo[i][W];
+
+    bsg_wormhole_router #(
+      .flit_width_p(wh_flit_width_p)
+      ,.dims_p(1)
+      ,.cord_markers_pos_p(wh_cord_markers_pos_lp)
+      ,.len_width_p(wh_len_width_p)
+    ) wh_rtr (
+      .clk_i(core_clk)
+      ,.reset_i(reset)
+
+      ,.link_i(rtr_wh_link_sif_li[i])
+      ,.link_o(rtr_wh_link_sif_lo[i])
+
+      // 4'b1111
+      ,.my_cord_i({{wh_cord_width_p-1{1'b1}}, 1'b1})
+    );
+
     bsg_nonsynth_wormhole_test_mem #(
       .vcache_data_width_p(vcache_data_width_p)
       ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
@@ -198,14 +223,50 @@ module mini_testbench
       .clk_i(core_clk)
       ,.reset_i(reset)
 
-      ,.wh_link_sif_i(wh_link_sif_lo[i][E])
-      ,.wh_link_sif_o(wh_link_sif_li[i][E])
+      ,.wh_link_sif_i(rtr_wh_link_sif_lo[i][E])
+      ,.wh_link_sif_o(rtr_wh_link_sif_li[i][E])
     );
 
     // tieoff;
     assign wh_link_sif_li[i][W] = '0;
   end
 
+  bsg_wormhole_concentrator #(
+    .flit_width_p(wh_flit_width_p)
+    ,.len_width_p(wh_len_width_p)
+    ,.cid_width_p(1)
+    ,.cord_width_p(wh_cord_width_p)
+    ,.num_in_p(2)
+  ) wh_ctr (
+     .clk_i(core_clk)
+    ,.reset_i(reset)
+
+    ,.links_i({rtr_wh_link_sif_lo[S][P], rtr_wh_link_sif_lo[N][P]})
+    ,.links_o({rtr_wh_link_sif_li[S][P], rtr_wh_link_sif_li[N][P]})
+
+    ,.concentrated_link_i(concentrated_link_li)
+    ,.concentrated_link_o(concentrated_link_lo)
+  );
+
+
+  bsg_nonsynth_wormhole_test_uncached_io #(
+    .vcache_data_width_p(vcache_data_width_p)
+    ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+    ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+    ,.num_vcaches_p(num_tiles_x_p)
+    ,.wh_cid_width_p(wh_cid_width_p)
+    ,.wh_flit_width_p(wh_flit_width_p)
+    ,.wh_cord_width_p(wh_cord_width_p)
+    ,.wh_len_width_p(wh_len_width_p)
+    ,.mem_size_p(2*mem_size_lp)
+    ,.no_concentration_p(1)
+  ) test_io (
+    .clk_i(core_clk)
+    ,.reset_i(reset)
+
+    ,.wh_link_sif_i(concentrated_link_lo)
+    ,.wh_link_sif_o(concentrated_link_li)
+  );
 
 
   // SPMD LOADER;
