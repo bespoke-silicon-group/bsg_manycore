@@ -74,7 +74,7 @@ module bsg_miniblade_tile_vcache
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
   `declare_bsg_cache_pkt_s(vcache_addr_width_p,vcache_data_width_p);
-  `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p, vcache_block_size_in_words_p);
+  `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p, vcache_block_size_in_words_p, vcache_ways_p);
 
 
   // reset dff
@@ -161,6 +161,7 @@ module bsg_miniblade_tile_vcache
   logic cache_yumi_li;  
   logic v_we_lo;
   logic wh_dest_east_not_west_lo;
+  logic notification_en_lo;
 
   bsg_manycore_link_to_cache #(
     .link_addr_width_p(addr_width_p) // word addr
@@ -192,6 +193,7 @@ module bsg_miniblade_tile_vcache
     ,.v_we_i(v_we_lo)
 
     ,.wh_dest_east_not_west_o(wh_dest_east_not_west_lo) // unused;
+    ,.notification_en_o(notification_en_lo)
   );
 
 
@@ -245,6 +247,8 @@ module bsg_miniblade_tile_vcache
     ,.dma_data_o(dma_data_lo)
     ,.dma_data_v_o(dma_data_v_lo)
     ,.dma_data_yumi_i(dma_data_yumi_li)
+
+    ,.notification_en_i(notification_en_lo)
   );
   
 
@@ -256,6 +260,7 @@ module bsg_miniblade_tile_vcache
     .dma_addr_width_p(vcache_addr_width_p)
     ,.dma_mask_width_p(vcache_block_size_in_words_p)
     ,.dma_burst_len_p(vcache_block_size_in_words_p*vcache_data_width_p/vcache_dma_data_width_p)
+    ,.dma_ways_p(vcache_ways_p)
 
     ,.wh_flit_width_p(wh_flit_width_p)
     ,.wh_cid_width_p(wh_cid_width_p)

@@ -50,10 +50,6 @@ CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/simple_stats.cc
 CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/timing.cc
 CSOURCES += $(BASEJUMP_STL_DIR)/imports/DRAMSim3/src/blood_graph.cc
 
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram.sv
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram_tx.sv
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram_rx.sv
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_test_dram_rx_reorder.sv
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_wormhole_to_cache_dma_fanout.sv
 
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/router_profiler.sv
@@ -66,9 +62,6 @@ VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vanilla_exe_bubble_classifi
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vanilla_scoreboard_tracker.sv
 CSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vanilla_core_profiler.cpp
 CSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vanilla_core_pc_histogram.cpp
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vcache_profiler.sv
-CSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vcache_profiler.cpp
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vcache_non_blocking_profiler.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vanilla_core_pc_histogram.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/infinite_mem_profiler.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_tag_master.sv
@@ -77,8 +70,6 @@ VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_spmd_
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_monitor.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_wormhole_test_mem.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_wormhole_test_uncached_io.sv
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_testbench.sv
-VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/vcache_dma_to_dram_channel_map.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/mini_testbench.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_miniblade_tag_trace_replay.sv
 
