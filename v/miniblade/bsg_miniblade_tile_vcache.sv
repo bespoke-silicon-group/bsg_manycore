@@ -287,6 +287,8 @@ module bsg_miniblade_tile_vcache
 
     ,.my_wh_cord_i(global_x_r)
     ,.dest_wh_cord_i  ({wh_cord_width_p{1'b1}}) // always send to east;
+
+    ,.dest_io_wh_cord_i({{(wh_cord_width_p-1){1'b1}}, 1'b0})
     // concentrator id
     // north vc = 1'b0;
     // south vc = 1'b1;
