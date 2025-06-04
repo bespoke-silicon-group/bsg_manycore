@@ -107,7 +107,7 @@ module bsg_nonsynth_wormhole_test_uncached_io
   assign header_flit_out.src_cord = '0;   // dont care
   assign header_flit_out.src_cid = '0;   // dont care
   assign header_flit_out.cid = src_cid_r;
-  assign header_flit_out.len = wh_len_width_p'(data_len_lp);
+  assign header_flit_out.len = wh_len_width_p'(1);
   assign header_flit_out.cord = src_cord_r;
 
   always_comb begin
