@@ -1,27 +1,6 @@
 #include "bsg_manycore.h"
 #include "bsg_set_tile_x_y.h"
 
-#define N 536870912
-//#define N 32768
-#define VCACHE_LINE_WORDS 8
-
-
-#define cbo_inval_block(addr) ({ \
-  __asm__ __volatile__ (".insn i 0x0f, 0b010, x0, %0, 0x0" : : "r" (addr)); \
-  })
-
-#define cbo_clean_block(addr) ({ \
-  __asm__ __volatile__ (".insn i 0x0f, 0b010, x0, %0, 0x1" : : "r" (addr)); \
-  })
-
-#define cbo_flush_block(addr) ({ \
-  __asm__ __volatile__ (".insn i 0x0f, 0b010, x0, %0, 0x2" : : "r" (addr)); \
-  })
-
-#define cbo_taglv(ret, addr) ({ \
-  __asm__ __volatile__ (".insn i 0x0f, 0b010, %0, %1, 0x3" : "=r" (ret) : "r" (addr)); \
-  })
-
 // 0(rs1) <- rs2
 #define uncached_write(rs1, rs2) ({ \
   __asm__ __volatile__ (".insn r 0b0100011, 0b111, 0x0, x0, %0, %1" : : "r" (rs1), "r" (rs2)); \
