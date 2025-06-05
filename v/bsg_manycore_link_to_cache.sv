@@ -112,6 +112,8 @@ module bsg_manycore_link_to_cache
   assign load_info = packet_lo.payload.load_info_s.load_info;
   
   wire is_packet_ifetch = (packet_lo.op_v2 == e_remote_load) & load_info.icache_fetch;
+  wire is_uncached_op = (packet_lo.op_v2 == e_remote_uncached_store)
+    || (packet_lo.op_v2 == e_remote_uncached_load);
 
   // at the reset, this module intializes all the tags and valid bits to zero.
   // After all the tags are completedly initialized, this module starts
@@ -274,7 +276,7 @@ module bsg_manycore_link_to_cache
 
         // if two MSBs are ones, then it maps to wh_dest_east_not_west.
         // store-only;
-        if (packet_lo.addr[link_addr_width_p-1-:2] == 2'b11) begin
+        if ((packet_lo.addr[link_addr_width_p-1-:2] == 2'b11) && ~is_uncached_op) begin
 
           case (packet_lo.op_v2)
             e_remote_store
@@ -303,7 +305,7 @@ module bsg_manycore_link_to_cache
         // otherwise it's regular access to data_mem.
         // we want to expose read/write access to tag_mem on NPA
         // for extra debugging capability.
-        else if (packet_lo.addr[link_addr_width_p-1]) begin
+        else if ((packet_lo.addr[link_addr_width_p-1] == 1'b1) && ~is_uncached_op) begin
           case (packet_lo.op_v2)
             e_remote_store, e_remote_sw: cache_pkt.opcode = TAGST;
             e_remote_load:  cache_pkt.opcode = TAGLA;
