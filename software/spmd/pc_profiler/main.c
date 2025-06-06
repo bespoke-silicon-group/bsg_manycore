@@ -40,7 +40,7 @@ void read_histogram()
   for (i = &_histogram_arr; i < (&_histogram_arr + (HIST_SPACE >> 2)); i++)
   {
     val = *i;
-    if (val != 0)
+    if ((val != 0) && (count < 10))
     {
       bsg_printf("%p: %x\n", i, val);
       if (expectation[count] != val)
