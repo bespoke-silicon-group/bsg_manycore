@@ -274,7 +274,7 @@ class NBF:
   # initialize vcache notification enable
   def init_vcache_notification_en(self, pod_origin_x, pod_origin_y, px):
     # top two MSBs are 1.
-    epa = 0b11 << (self.addr_width-2) + 1
+    epa = (0b11 << (self.addr_width-2)) + 1
     if self.machine_pods_x == 1:
       for x in range(self.num_tiles_x):
         notification_en = self.cache_notification_en
