@@ -49,6 +49,7 @@ class NBF:
     self.cache_way = config["cache_way"]
     self.cache_set = config["cache_set"]
     self.cache_block_size = config["cache_block_size"]
+    self.cache_notification_en = config["cache_notification_en"]
     self.dram_size = config["dram_size"]
     self.addr_width = config["addr_width"]
     self.origin_x_cord = config["origin_x_cord"]
@@ -270,6 +271,21 @@ class NBF:
         y_eff = pod_origin_y + self.num_tiles_y
         self.print_nbf(x_eff, y_eff, epa, east_not_west)
 
+  # initialize vcache notification enable
+  def init_vcache_notification_en(self, pod_origin_x, pod_origin_y, px):
+    # top two MSBs are 1.
+    epa = 0b11 << (self.addr_width-2) + 1
+    if self.machine_pods_x == 1:
+      for x in range(self.num_tiles_x):
+        notification_en = self.cache_notification_en
+        # north vcache
+        x_eff = pod_origin_x + x
+        y_eff = pod_origin_y - 1
+        self.print_nbf(x_eff, y_eff, epa, notification_en)
+        # south vcache
+        x_eff = pod_origin_x + x
+        y_eff = pod_origin_y + self.num_tiles_y
+        self.print_nbf(x_eff, y_eff, epa, notification_en)
 
 
   # initialize icache
@@ -480,6 +496,7 @@ class NBF:
         pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
         pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
         self.init_vcache_wh_dest(pod_origin_x, pod_origin_y, px)
+        self.init_vcache_notification_en(pod_origin_x, pod_origin_y, px)
 
     # initialize all pods
     for px in range(self.num_pods_x):
@@ -536,7 +553,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 23:
+  if len(sys.argv) == 24:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -545,23 +562,24 @@ if __name__ == "__main__":
       "cache_way" : int(sys.argv[4]),
       "cache_set" : int(sys.argv[5]),
       "cache_block_size" : int(sys.argv[6]),
-      "dram_size": int(sys.argv[7]),
-      "addr_width": int(sys.argv[8]),
+      "cache_notification_en" : int(sys.argv[7]),
+      "dram_size": int(sys.argv[8]),
+      "addr_width": int(sys.argv[9]),
 
-      "tgo_x" : int(sys.argv[9]),
-      "tgo_y" : int(sys.argv[10]),
-      "tg_dim_x" : int(sys.argv[11]),
-      "tg_dim_y" : int(sys.argv[12]),
-      "enable_dram" : int(sys.argv[13]),
-      "origin_x_cord" : int(sys.argv[14]),
-      "origin_y_cord" : int(sys.argv[15]),
-      "machine_pods_x" : int(sys.argv[16]),
-      "machine_pods_y" : int(sys.argv[17]),
-      "num_pods_x" : int(sys.argv[18]),
-      "num_pods_y" : int(sys.argv[19]),
-      "skip_dram_instruction_load": int(sys.argv[20]),
-      "skip_zeros": int(sys.argv[21]),
-      "ipoly_hashing": int(sys.argv[22]),
+      "tgo_x" : int(sys.argv[10]),
+      "tgo_y" : int(sys.argv[11]),
+      "tg_dim_x" : int(sys.argv[12]),
+      "tg_dim_y" : int(sys.argv[13]),
+      "enable_dram" : int(sys.argv[14]),
+      "origin_x_cord" : int(sys.argv[15]),
+      "origin_y_cord" : int(sys.argv[16]),
+      "machine_pods_x" : int(sys.argv[17]),
+      "machine_pods_y" : int(sys.argv[18]),
+      "num_pods_x" : int(sys.argv[19]),
+      "num_pods_y" : int(sys.argv[20]),
+      "skip_dram_instruction_load": int(sys.argv[21]),
+      "skip_zeros": int(sys.argv[22]),
+      "ipoly_hashing": int(sys.argv[23]),
     }
 
     converter = NBF(config)
@@ -570,7 +588,9 @@ if __name__ == "__main__":
     print("USAGE:")
     command = "python nbf.py {program.riscv} "
     command += "{num_tiles_x} {num_tiles_y} "
-    command += "{cache_way} {cache_set} {cache_block_size} {dram_size} {max_epa_width} "
+    command += "{cache_way} {cache_set} {cache_block_size} "
+    command += "{cache_notification_en} "
+    command += "{dram_size} {max_epa_width} "
     command += "{tgo_x} {tgo_y} {tg_dim_x} {tg_dim_y} {enable_dram} "
     command += "{origin_x_cord} {origin_y_cord} "
     command += "{machine_pods_x} {machine_pods_y} "
