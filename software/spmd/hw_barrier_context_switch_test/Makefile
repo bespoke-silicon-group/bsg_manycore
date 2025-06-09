@@ -1,5 +1,6 @@
 bsg_tiles_X = 4
 bsg_tiles_Y = 4
+RESET_ALL_DMEM=1
 
 all: main.run
 

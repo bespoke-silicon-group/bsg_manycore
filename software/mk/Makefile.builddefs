@@ -307,6 +307,7 @@ $(BSG_MANYCORE_LIB): $(BSG_MANYCORE_LIB_OBJS)
 
 SKIP_DRAM_INSTRUCTION_LOAD ?= 0
 SKIP_ZEROS ?= 0
+RESET_ALL_DMEM ?= 0
 
 %.nbf: %.riscv
 	python $(NBF_PY) \
@@ -323,7 +324,8 @@ SKIP_ZEROS ?= 0
 		$(bsg_pods_X) $(bsg_pods_Y) \
 		$(SKIP_DRAM_INSTRUCTION_LOAD) \
 		$(SKIP_ZEROS) \
-		$(BSG_MACHINE_IPOLY_HASHING) > $*.nbf
+		$(BSG_MACHINE_IPOLY_HASHING) \
+		$(RESET_ALL_DMEM) > $*.nbf
 
 %.bin:  %.hex
 	python $(HEX2BIN) $< 32 > $@
