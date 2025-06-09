@@ -38,6 +38,7 @@ class NBF:
 
     # fixed arch params
     self.icache_size = 1024
+    self.dmem_size = 1024
     self.data_width = 32
 
     # input binary
@@ -74,6 +75,9 @@ class NBF:
     self.skip_dram_instruction_load = config["skip_dram_instruction_load"]
     # if skip_zeros == 1, skip storing zeros to DRAM, if simulation DRAM is automatically cleared
     self.skip_zeros = config["skip_zeros"]
+    # reset all DMEM to zero when before loading anything to DMEM;
+    self.reset_all_dmem = config["reset_all_dmem"]
+
 
     # derived params
     self.cache_size = self.cache_way * self.cache_set * self.cache_block_size # in words
@@ -312,12 +316,18 @@ class NBF:
 
         x_eff = self.tgo_x + x + pod_origin_x
         y_eff = self.tgo_y + y + pod_origin_y
-          
+      
+        # reset all DMEM to zero;
+        if self.reset_all_dmem == 1:
+          for i in range(self.dmem_size):
+            self.print_nbf(x_eff, y_eff, i, 0)
+    
         for k in range(self.bsg_data_end_addr):
           if k in self.dmem_data.keys():
             self.print_nbf(x_eff, y_eff, k, self.dmem_data[k])
           else:
             self.print_nbf(x_eff, y_eff, k, 0)
+    return
 
  
   # disable dram mode
@@ -553,7 +563,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 24:
+  if len(sys.argv) == 25:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -580,6 +590,7 @@ if __name__ == "__main__":
       "skip_dram_instruction_load": int(sys.argv[21]),
       "skip_zeros": int(sys.argv[22]),
       "ipoly_hashing": int(sys.argv[23]),
+      "reset_all_dmem": int(sys.argv[24]),
     }
 
     converter = NBF(config)
@@ -598,5 +609,6 @@ if __name__ == "__main__":
     command += "{skip_dram_instruction_load} "
     command += "{skip_zeros} "
     command += "{ipoly_hashing} "
+    command += "{reset_all_dmem} "
     print(command)
 
