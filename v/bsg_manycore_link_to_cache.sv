@@ -372,7 +372,7 @@ module bsg_manycore_link_to_cache
         end
 
         cache_pkt.data = packet_lo.payload;
-        cache_pkt.mask = (packet_lo.op_v2 == e_remote_sw && e_remote_uncached_store)
+        cache_pkt.mask = (packet_lo.op_v2 == e_remote_sw)
           ? 4'b1111
           : packet_lo.reg_id.store_mask_s.mask;
         
