@@ -32,6 +32,8 @@ module bsg_nonsynth_wormhole_test_uncached_io
 
     , parameter wh_link_sif_width_lp =
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
+
+    , localparam word_offset_width_lp = `BSG_SAFE_CLOG2(vcache_data_width_p>>3)
   )
   (
     input clk_i
@@ -192,13 +194,12 @@ module bsg_nonsynth_wormhole_test_uncached_io
     assign mem_addr = {
       src_cid_r[0+:wh_cid_width_p],
       src_cord_r[0+:lg_num_vcaches_lp],
-      addr_r[mem_addr_width_lp-lg_num_vcaches_lp-wh_cid_width_p-1:0]
+      (mem_addr_width_lp-lg_num_vcaches_lp-wh_cid_width_p)'(addr_r[wh_flit_width_p-1:word_offset_width_lp])
     };
   end
   else begin
-    assign mem_addr = addr_r;
+    assign mem_addr = (mem_addr_width_lp)'(addr_r[wh_flit_width_p-1:word_offset_width_lp]);
   end
-
 
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
