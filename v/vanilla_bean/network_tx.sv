@@ -112,15 +112,21 @@ module network_tx
   wire [x_cord_width_p-1:0] src_x_cord = {pod_x_i, my_x_i};
   wire [y_cord_width_p-1:0] src_y_cord = {pod_y_i, my_y_i};
 
-  wire proxy_is_in_the_south = src_y_cord[y_subcord_width_lp-1];
+  wire [31:0] io_addr = remote_req_i.addr;
+//  wire proxy_is_in_the_south = src_y_cord[y_subcord_width_lp-1];
+  wire proxy_is_in_the_south = io_addr[31];
 
   // Uncached requests will be sent to the nearest vcache
-  wire [x_cord_width_p-1:0] proxy_x_cord_lo = (x_cord_width_p)'(src_x_cord);
+//  wire [x_cord_width_p-1:0] proxy_x_cord_lo = (x_cord_width_p)'(src_x_cord);
+//  wire [y_cord_width_p-1:0] proxy_y_cord_lo = proxy_is_in_the_south
+//    ? {(pod_y_cord_width_p)'(pod_y_i + 1'b1), {y_subcord_width_lp{1'b0}}}
+//    : {(pod_y_cord_width_p)'(pod_y_i - 1'b1), {y_subcord_width_lp{1'b1}}};
+
+  wire [x_cord_width_p-1:0] proxy_x_cord_lo = {pod_x_i, io_addr[30:29]};
   wire [y_cord_width_p-1:0] proxy_y_cord_lo = proxy_is_in_the_south
     ? {(pod_y_cord_width_p)'(pod_y_i + 1'b1), {y_subcord_width_lp{1'b0}}}
     : {(pod_y_cord_width_p)'(pod_y_i - 1'b1), {y_subcord_width_lp{1'b1}}};
 
-  wire [addr_width_p-1:0] io_addr = remote_req_i.addr[addr_width_p+1:2];
 
   wire is_uncached_op = remote_req_i.is_uncached_op;
   // Uncached op does not carry eva
@@ -171,7 +177,7 @@ module network_tx
     if (is_uncached_op) begin
       out_packet.y_cord = proxy_y_cord_lo;
       out_packet.x_cord = proxy_x_cord_lo;
-      out_packet.addr = io_addr;
+      out_packet.addr = (addr_width_p)'(io_addr[28:2]);
     end
     else begin
       out_packet.y_cord = y_cord_lo;
