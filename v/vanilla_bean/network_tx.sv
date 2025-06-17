@@ -122,7 +122,7 @@ module network_tx
 //    ? {(pod_y_cord_width_p)'(pod_y_i + 1'b1), {y_subcord_width_lp{1'b0}}}
 //    : {(pod_y_cord_width_p)'(pod_y_i - 1'b1), {y_subcord_width_lp{1'b1}}};
 
-  wire [x_cord_width_p-1:0] proxy_x_cord_lo = {pod_x_i, io_addr[30:29]};
+  wire [x_cord_width_p-1:0] proxy_x_cord_lo = {pod_x_i, io_addr[30-:x_subcord_width_lp]};
   wire [y_cord_width_p-1:0] proxy_y_cord_lo = proxy_is_in_the_south
     ? {(pod_y_cord_width_p)'(pod_y_i + 1'b1), {y_subcord_width_lp{1'b0}}}
     : {(pod_y_cord_width_p)'(pod_y_i - 1'b1), {y_subcord_width_lp{1'b1}}};
@@ -177,7 +177,7 @@ module network_tx
     if (is_uncached_op) begin
       out_packet.y_cord = proxy_y_cord_lo;
       out_packet.x_cord = proxy_x_cord_lo;
-      out_packet.addr = (addr_width_p)'(io_addr[28:2]);
+      out_packet.addr = (addr_width_p)'(io_addr[30-x_subcord_width_lp:2]);
     end
     else begin
       out_packet.y_cord = y_cord_lo;
