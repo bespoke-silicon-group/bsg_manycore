@@ -1,389 +1,250 @@
+
+spec:
+  inputs:
+    update_image:
+      type: boolean
+      default: true
+      description: "Whether to rebuild image or pull from the latest container"
+    update_tools:
+      type: boolean
+      default: true
+      description: "Whether to rebuild tools or pull from the latest package"
+    platform:
+      type: string
+      options: ["centos7", "ubuntu24.04"]
+      default: "ubuntu24.04"
+---
+
 variables:
-  GIT_STRATEGY: none
-  GIT_SUBMODULE_STRATEGY: none
+  # https://docs.gitlab.com/ci/runners/configure_runners/#ignore-errors-in-after_script
+  AFTER_SCRIPT_IGNORE_ERRORS: false
+  FF_ENABLE_BASH_EXIT_CODE_CHECK: true
+  # workaround for https://gitlab.com/gitlab-org/gitlab/-/issues/386967
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: "safe.directory"
+  GIT_CONFIG_VALUE_0: "*"
+  # Performance flags https://docs.gitlab.com/runner/configuration/feature-flags/
+  FF_USE_FASTZIP: "true"
+  FF_ENABLE_JOB_CLEANUP: "true"
+  FF_SET_PERMISSIONS_BEFORE_CLEANUP: "true"
+  ARTIFACT_COMPRESSION_LEVEL: "slowest"
+  CACHE_COMPRESSION_LEVEL: "slowest"
+  # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/1736#note_107983504
+  FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: "true"
+  FF_LOG_IMAGES_CONFIGURED_FOR_JOB: "true"
+  FF_SCRIPT_SECTIONS: "true"
+  DOCKER_PLATFORM: "$[[ inputs.platform ]]"
+  CONTAINER_IMAGE: "registry.gitlab.com/bespoke-silicon-group/bsg_manycore:$DOCKER_PLATFORM"
+  # API links
+  TOOL_PACKAGE: "riscv-install"
+  PROJECT_URL: "$CI_API_V4_URL/projects/$CI_PROJECT_ID"
+  PACKAGE_URL: "$PROJECT_URL/packages/generic/$TOOL_PACKAGE-$DOCKER_PLATFORM"
+  CURL_URL: "$PACKAGE_URL/$CI_COMMIT_REF_NAME/$TOOL_PACKAGE.tar.gz"
 
-stages:
-  - checkout
-  - build
-  - check
-  - test_1x1
-  - test_1x1_hbm2
-  - test_4x4
-  - test_4x4_hbm2
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+    on_job_failure: all
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ "/^ci_.*$|master|main/"'
 
-build-repos:
-  stage: checkout
-  tags:
-    - bsg
-  script:
-    - echo "Cloning repos..."
-    - rm -rf bsg_cadenv basejump_stl bsg_manycore
-    - cp -r $BSG_CADENV_DIR bsg_cadenv
-    - git clone --recursive -b master https://github.com/bespoke-silicon-group/basejump_stl.git
-    - git clone --recursive -b $CI_COMMIT_REF_NAME https://github.com/bespoke-silicon-group/bsg_manycore.git
-    - echo "pwd"
-    - echo $CI_PROJECT_DIR
-    - echo $CI_COMMIT_REF_NAME
-    - >
-      if [ -e cache/ ]; then
-        echo "Pulling toolchain installation from cache...";
-        cp -r cache/riscv-install bsg_manycore/software/riscv-tools/;
-        cp -r cache/llvm bsg_manycore/software/riscv-tools/;
-      else
-        echo "Building toolchain...";
-        make -C bsg_manycore/software/riscv-tools clean-all install-clean;
-        echo "Updating cache with latest toolchain";
-        mkdir -p cache/;
-        cp -r bsg_manycore/software/riscv-tools/riscv-install cache/;
-        cp -r bsg_manycore/software/riscv-tools/llvm cache/;
-      fi;
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: push
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
-
-build-machines:
-  stage: build
-  tags:
-    - bsg
-  script:
-    - echo "Building machines..."
-    - cd bsg_manycore/machines
-    - make clean
-    - make
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
-
-build-toolchain:
-  stage: build
-  tags:
-    - bsg
-  script:
-    - echo "Building toolchain..."
-    - make -C bsg_manycore/software/riscv-tools clean-all install-clean > toolchain.log
-    - echo "Updating cache with latest toolchain"
-    - pwd
-    - rm -rf cache/riscv-install
-    - rm -rf cache/llvm
-    - cp -r bsg_manycore/software/riscv-tools/riscv-install cache/
-    - cp -r bsg_manycore/software/riscv-tools/llvm cache/
-  when: manual
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
+.project_template:
+  image: $CONTAINER_IMAGE
+  tags: [bsg]
+  variables:
+    GIT_STRATEGY: "fetch"
+    GIT_SUBMODULE_STRATEGY: "normal"
+    JOB_CAD_ROOT: "/cad"
+    JOB_COMMON_ROOT: "/common/$CI_PROJECT_NAME/$CI_PIPELINE_ID"
+    CAD_DIR: "$BSG_CADENV_DIR"
+    VERILATOR_DIR: "$CI_PROJECT_DIR/verilator"
+    SURELOG_DIR: "$CI_PROJECT_DIR/Surelog"
+    RISCV_INSTALL_DIR: "$CI_PROJECT_DIR/riscv-install"
+    BASEJUMP_STL_DIR: "$CI_PROJECT_DIR/basejump_stl"
+    BEEBS_DIR: "$CI_PROJECT_DIR/imports/beebs"
+    COREMARK_DIR: "$CI_PROJECT_DIR/imports/coremark"
+    HARDFLOAT_DIR: "$CI_PROJECT_DIR/imports/HardFloat"
+    RVTESTS_DIR: "$CI_PROJECT_DIR/imports/riscv-tests"
+    GNU_DIR: "$CI_PROJECT_DIR/software/riscv-tools/riscv-gnu-toolchain"
+    LLVM_DIR: "$CI_PROJECT_DIR/software/riscv-tools/llvm-project"
+  before_script:
+    - git config --global user.email "ci@fake.com"
+    - git config --global user.name "CI"
+    - echo "Cloning repos..." | tee -i job.log
+    - echo "Cloning basejump_stl..."
+    - git clone https://github.com/bespoke-silicon-group/basejump_stl $BASEJUMP_STL_DIR
+    - git -C $BASEJUMP_STL_DIR checkout master
+    - git -C $BASEJUMP_STL_DIR submodule update --init imports/DRAMSim3
+    - echo "Updating native submodules"
+    - git submodule update --init --recursive $BEEBS_DIR
+    - git submodule update --init --recursive $COREMARK_DIR
+    - git submodule update --init --recursive $HARDFLOAT_DIR
+    - git submodule update --init --recursive $RVTESTS_DIR
+    - echo "Updating path..."
+    - export PATH=$RISCV_INSTALL_DIR/bin:$PATH
+    - echo "Initializing common mount @ $JOB_COMMON_ROOT"
+    - COMMON_RISCV_INSTALL_DIR="$JOB_COMMON_ROOT/$(basename $RISCV_INSTALL_DIR)"
+    - if [ -d "$COMMON_RISCV_INSTALL_DIR" ]; then
+        ln -nsf "$COMMON_RISCV_INSTALL_DIR" "$RISCV_INSTALL_DIR";
+      fi
   artifacts:
     when: always
     paths:
       - "*.log"
   retry: 2
 
+update-image:
+  tags: [saas-linux-small-amd64]
+  image: docker:24.0.5
+  services: [docker:24.0.5-dind]
+  variables:
+    GIT_STRATEGY: "clone"
+    GIT_SUBMODULE_STRATEGY: "none"
+    DOCKER_BUILDKIT: "1"
+    DOCKER_DRIVER: "overlay2"
+  before_script:
+    - echo "logging into docker registry"
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
+    - echo "checking for previous docker image ${CONTAINER_IMAGE}"
+    - |
+      if docker manifest inspect ${CONTAINER_IMAGE} > /dev/null 2>&1; then
+        echo "${CONTAINER_IMAGE} exists, pulling..."
+        docker pull ${CONTAINER_IMAGE}
+      else
+        echo "${CONTAINER_IMAGE} does not exist, starting from scratch"
+      fi
+  script:
+    - docker build docker -f docker/Dockerfile.${DOCKER_PLATFORM}
+        --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from ${CONTAINER_IMAGE}
+        --build-arg USER_NAME="${BSG_CI_USER_NAME}"
+        --build-arg USER_ID="${BSG_CI_USER_ID}"
+        --build-arg GROUP_NAME="${BSG_CI_GROUP_NAME}"
+        --build-arg GROUP_ID="${BSG_CI_GROUP_ID}"
+        --build-arg OTHER_GROUPS="${BSG_CI_OTHER_GROUPS}"
+        -t ${CONTAINER_IMAGE}
+  after_script:
+    - echo "logging into docker registry"
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
+    - echo "publishing docker images"
+    - docker push ${CONTAINER_IMAGE}
+  rules:
+    - if: '"$[[ inputs.update_image ]]" =~ "/true/"'
+
+update-tools:
+  extends: [.project_template]
+  script:
+    - echo "Building tools with CI script..."
+    - echo "$VERILATOR_DIR $SURELOG_DIR $GNU_DIR $LLVM_DIR $BSG_CI_CORES_PER_JOB"
+    - ./ci/tools.sh $VERILATOR_DIR $SURELOG_DIR $GNU_DIR $LLVM_DIR $BSG_CI_CORES_PER_JOB
+    - echo "Stripping binaries..."
+    - |
+      find $RISCV_INSTALL_DIR -type f -exec sh -c '\
+        for file; do \
+          if file "$$file" | grep -qE "ELF (.* )?(executable|shared)"; then \
+            strip "$$file" >/dev/null 2>&1 || :; \
+          fi; \
+      done \
+      ' sh {} +; \
+      :;
+    - echo "Publishing toolchain...";
+    - >
+      tar -C $(dirname $RISCV_INSTALL_DIR)  -czf - $(basename $RISCV_INSTALL_DIR)
+      | curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file - $CURL_URL
+  rules:
+    - if: '"$[[ inputs.update_tools ]]" =~ "/true/"'
+  needs: [{job: update-image, optional: true}]
+
+download-tools:
+  extends: [.project_template]
+  script:
+    - mkdir -p $COMMON_RISCV_INSTALL_DIR
+    - >
+      curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN" $CURL_URL
+      | tar --totals --warning=no-file-changed -xzf - -C $(dirname $COMMON_RISCV_INSTALL_DIR)
+  needs: [{job: update-tools, optional: true}]
+
 surelog:
-  stage: check
-  allow_failure: true
-  tags:
-    - bsg
+  extends: [.project_template]
+  variables:
+    MACHINE: "pod_1x1_2X2Y"
   script:
-    - echo "Parsing with Surelog"
-    - cd bsg_manycore
-    - pwd
-    - ./ci/surelog.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
+    - echo "Parsing with Surelog..."
+    - ./ci/surelog.sh $MACHINE $BSG_CI_CORES_PER_JOB
+  needs: [download-tools]
 
-verilator:
-  stage: check
-  allow_failure: true
-  tags:
-    - bsg
+.small_config: &small_config
+  PLATFORM: ["vcs", "verilator", "xcelium"]
+  MACHINE: ["pod_1x1_2X2Y", "pod_1x1_4X2Y"]
+
+.large_config: &large_config
+  PLATFORM: ["vcs"]
+  MACHINE: ["pod_1x1"]
+  ##MACHINE: ["pod_1x1", "pod_1x1_hbm2", "pod_4x4", "pod_4x4_hbm2"]
+
+.small_parallel: &small_parallel
+  matrix:
+    - *small_config
+
+.large_parallel: &large_parallel
+  matrix:
+    - *large_config
+
+.all_parallel: &all_parallel
+  matrix:
+    - *small_config
+    - *large_config
+
+build-machines:
+  extends: [.project_template]
   script:
-    - echo "Verifying verilator build"
-    - cd bsg_manycore
-    - pwd
-    - ./ci/verilator.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
+    - echo "Building machine $MACHINE for platform $PLATFORM..."
+    - ./ci/machine.sh $PLATFORM $MACHINE $BSG_CI_CORES_PER_JOB
+  artifacts:
     paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
+      - machines/$MACHINE
+  parallel: *all_parallel
+  needs: [surelog]
+  rules:
+    - if: '$DOCKER_PLATFORM == "centos7"'
 
-test-spmd:
-  stage: test_1x1
-  tags:
-    - bsg
-    - vcs
+regress-smoke:
+  extends: [.project_template]
   script:
-    - echo "Running Manycore regression..."
-    - cd bsg_manycore
-    - pwd
-    - ./ci/spmd.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
+    - echo "Running Manycore $PLATFORM smoke..."
+    - ./ci/hello.sh $PLATFORM $MACHINE $BSG_CI_CORES_PER_JOB
+  parallel: *small_parallel
+  needs: [build-machines]
+  rules:
+    - if: '$DOCKER_PLATFORM == "centos7"'
 
+# Currently failing
+#regress-spmd:
+#  extends: [.project_template]
+#  script:
+#    - echo "Running Manycore $PLATFORM spmd regression..."
+#    - ./ci/spmd.sh $PLATFORM $MACHINE $BSG_CI_CORES_PER_JOB
+#  parallel: *large_parallel
+#  needs: [regress-smoke]
+#  rules:
+#    - if: '$DOCKER_PLATFORM == "centos7"'
+#
+#regress-beebs:
+#  extends: [.project_template]
+#  script:
+#    - echo "Running Manycore $PLATFORM beebs regression..."
+#    - ./ci/beebs.sh $PLATFORM $MACHINE $BSG_CI_CORES_PER_JOB
+#  parallel: *large_parallel
+#  needs: [regress-smoke]
+#  rules:
+#    - if: '$DOCKER_PLATFORM == "centos7"'
+#
+#regress-interrupt:
+#  extends: [.project_template]
+#  script:
+#    - echo "Running Manycore $PLATFORM interrupt regression..."
+#    - ./ci/interrupt.sh $PLATFORM $MACHINE $BSG_CI_CORES_PER_JOB
+#  parallel: *large_parallel
+#  needs: [regress-smoke]
+#  rules:
+#    - if: '$DOCKER_PLATFORM == "centos7"'
 
-test-beebs:
-  stage: test_1x1
-  tags:
-    - bsg
-    - vcs
-  script:
-    - echo "Running BEEBS regression..."
-    - cd bsg_manycore
-    - pwd
-    - ./ci/beebs.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
-
-
-test-interrupt:
-  stage: test_1x1
-  tags:
-    - bsg
-    - vcs
-  script:
-    - echo "Running interrupt regression..."
-    - cd bsg_manycore
-    - pwd
-    - ./ci/interrupt.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
-
-
-
-test-spmd-hbm2:
-  stage: test_1x1_hbm2
-  tags:
-    - bsg
-    - vcs
-  script:
-    - export BSG_MACHINE_PATH=$CI_PROJECT_DIR/bsg_manycore/machines/pod_1x1_hbm2
-    - echo "Running Manycore regression..."
-    - cd bsg_manycore
-    - pwd
-    - ./ci/spmd.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
-
-
-test-interrupt-hbm2:
-  stage: test_1x1_hbm2
-  tags:
-    - bsg
-    - vcs
-  script:
-    - export BSG_MACHINE_PATH=$CI_PROJECT_DIR/bsg_manycore/machines/pod_1x1_hbm2
-    - echo "Running interrupt regression..."
-    - cd bsg_manycore
-    - pwd
-    - ./ci/interrupt.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
-
-
-
-
-
-
-
-test-spmd-4x4:
-  stage: test_4x4
-  tags:
-    - bsg
-    - vcs
-  script:
-    - export BSG_MACHINE_PATH=$CI_PROJECT_DIR/bsg_manycore/machines/pod_4x4
-    - echo "Running Manycore regression..."
-    - cd bsg_manycore
-    - pwd
-    - ./ci/spmd.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
-
-
-test-interrupt-4x4:
-  stage: test_4x4
-  tags:
-    - bsg
-    - vcs
-  script:
-    - export BSG_MACHINE_PATH=$CI_PROJECT_DIR/bsg_manycore/machines/pod_4x4
-    - echo "Running interrupt regression..."
-    - cd bsg_manycore
-    - pwd
-    - ./ci/interrupt.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
-
-
-test-spmd-4x4-hbm2:
-  stage: test_4x4_hbm2
-  tags:
-    - bsg
-    - vcs
-  script:
-    - export BSG_MACHINE_PATH=$CI_PROJECT_DIR/bsg_manycore/machines/pod_4x4_hbm2
-    - echo "Running Manycore regression..."
-    - cd bsg_manycore
-    - pwd
-    - ./ci/spmd.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2
-
-
-test-interrupt-4x4-hbm2:
-  stage: test_4x4_hbm2
-  tags:
-    - bsg
-    - vcs
-  script:
-    - export BSG_MACHINE_PATH=$CI_PROJECT_DIR/bsg_manycore/machines/pod_4x4_hbm2
-    - echo "Running interrupt regression..."
-    - cd bsg_manycore
-    - pwd
-    - ./ci/interrupt.sh
-  cache:
-    key: $CI_COMMIT_REF_NAME
-    paths:
-      - $CI_PROJECT_DIR/bsg_cadenv
-      - $CI_PROJECT_DIR/basejump_stl
-      - $CI_PROJECT_DIR/bsg_manycore
-      - $CI_PROJECT_DIR/bsg_bladerunner
-    policy: pull
-  only:
-    refs:
-      - /^ci_.*$/
-      - master
-  retry: 2

@@ -1,12 +1,13 @@
-export BSG_IP_CORES_DIR ?= $(BSG_MANYCORE_DIR)/../basejump_stl
-export RISCV_INSTALL_DIR ?= $(BSG_MANYCORE_DIR)/software/riscv-tools/riscv-install
-export RISCV_BIN_DIR ?= $(RISCV_INSTALL_DIR)/bin
-export CAD_DIR ?= $(BSG_MANYCORE_DIR)/../bsg_cadenv
 ifeq ($(BSG_PLATFORM),verilator)
-BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1_4X2Y
+BSG_MACHINE ?= pod_1x1_2X2Y
 else ifeq ($(BSG_PLATFORM),vcs)
-BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1_4X2Y
+BSG_MACHINE ?= pod_1x1_2X2Y
 else ifeq ($(BSG_PLATFORM),xcelium)
-BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/pod_1x1_4X2Y
+BSG_MACHINE ?= pod_1x1_2X2Y
+endif
+BSG_MACHINE_PATH ?= $(BSG_MANYCORE_DIR)/machines/$(BSG_MACHINE)
+
+ifeq (,$(findstring $(BSG_MACHINE),$(BSG_MACHINE_PATH)))
+$(error BSG_MACHINE $(BSG_MACHINE) is inconsistent with $(BSG_MACHINE_PATH))
 endif
 

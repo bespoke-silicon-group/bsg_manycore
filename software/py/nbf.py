@@ -1,4 +1,4 @@
-#
+
 #   nbf.py
 #
 #   ELF (.riscv) to Network Boot Format (.nbf)
@@ -109,12 +109,14 @@ class NBF:
 
     # make sure that you have riscv tool binaries in
     # bsg_manycore/software/riscv-tools/riscv-install/bin
+    riscv_bin_dir = os.environ.get('RISCV_BIN_DIR')
+    if riscv_bin_dir is None:
+        raise ValueError("RISCV_BIN_DIR must be set in environment")
     dirname = os.path.abspath(os.path.dirname(__file__))
-    objcopy_path = "{}/riscv32-unknown-elf-dramfs-objcopy".format(os.environ.get('RISCV_BIN_DIR'))
+    objcopy_path = "{}/riscv32-unknown-elf-dramfs-objcopy".format(riscv_bin_dir)
 
     if not os.path.isfile(objcopy_path):
-      print("install riscv-tools first...")
-      sys.exit()
+        raise FileNotFoundError("install riscv-tools first... {}".format(objcopy_path))
 
     cmd = [objcopy_path, "-O", "verilog", "-j", section, "--set-section-flags", "*bss*=alloc,load,contents", self.riscv_file, output_file]
     result = subprocess.call(cmd)
@@ -322,7 +324,7 @@ class NBF:
     for x in range(self.num_tiles_x):
       for t in range(self.cache_way * self.cache_set):
         epa = (t << t_shift) | (1 << (self.addr_width-1))
-        data = (1 << (self.data_width-1)) | (t / self.cache_set)
+        data = (1 << (self.data_width-1)) | (t // self.cache_set)
         # top vcache
         self.print_nbf(x+pod_origin_x, pod_origin_y-1, epa, data)
         # bot vcache
@@ -341,8 +343,7 @@ class NBF:
     if self.enable_dram == 1:
       # dram enabled:
       if (self.num_tiles_x & (self.num_tiles_x-1)) != 0:
-        print("hash function not supported for x={}.".format(self.num_tiles_x))
-        sys.exit()
+        raise ValueError("hash function not supported for x={}.".format(self.num_tiles_x))
 
       # spmd binary size;
       spmd_binary_size = self.get_spmd_binary_size()
@@ -398,8 +399,7 @@ class NBF:
             x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3) | (x4 << 4)
             y = self.hash_addr_bit(temp_y, index, [17,16,15,14,11,9,5,4])
           else:
-            print("IPOLY not supported for lg_x = {}".format(lg_x))
-            sys.exit()
+            raise ValueError("IPOLY not supported for lg_x = {}".format(lg_x))
           
         else:
           # Default hashing for power of 2 banks
@@ -417,7 +417,7 @@ class NBF:
       # using vcache as block mem
       for k in sorted(self.dram_data.keys()):
         addr = k - 0x20000000
-        x = (addr / cache_size)
+        x = (addr // cache_size)
         epa = addr % cache_size
         if (x < self.num_tiles_x):
           x_eff = x + pod_origin_x

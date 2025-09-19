@@ -71,5 +71,8 @@ endef
 	$(SURELOG) $(SURELOG_OPTS) $(SURELOG_INCLUDES) $(SURELOG_DEFINES) $(VSOURCES) $(VHEADERS) | tee $(@D)/parse.log
 
 # Since we parse the whole tree regardless, this config is as good as any
-parse: pod_1x1_4X2Y/parse
+parse: $(BSG_MACHINE)/parse
+
+check_parse:
+	fgrep "[  ERROR] : 0" $(BSG_MACHINE)/parse.log
 

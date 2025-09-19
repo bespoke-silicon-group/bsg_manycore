@@ -1,7 +1,12 @@
-#~/bin/bash
+#/bin/bash
 
-cd software/spmd/interrupt_tests
+PLATFORM=$1
+MACHINE=$2
+NUM_CORES=${3:-5}
 
-make clean
-make regress > /dev/null 2>&1
-make check_finish
+export BSG_MACHINE=$MACHINE
+export BSG_PLATFORM=$PLATFORM
+
+make -j$NUM_CORES -C software/spmd/interrupt_tests regress
+make -C software/spmd/interrupt_tests check_finish
+

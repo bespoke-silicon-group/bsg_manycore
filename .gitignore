@@ -47,3 +47,6 @@ dump.fst.hier
 obj_dir*/
 simsc*
 slpp_unit/
+
+basejump_stl/
+bsg_cadenv/
