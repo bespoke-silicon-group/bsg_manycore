@@ -36,9 +36,9 @@ variables:
   DOCKER_PLATFORM: "$[[ inputs.platform ]]"
   CONTAINER_IMAGE: "registry.gitlab.com/bespoke-silicon-group/bsg_manycore:$DOCKER_PLATFORM"
   # API links
-  TOOL_PACKAGE: "riscv-install"
+  TOOL_PACKAGE: "riscv-install-$DOCKER_PLATFORM"
   PROJECT_URL: "$CI_API_V4_URL/projects/$CI_PROJECT_ID"
-  PACKAGE_URL: "$PROJECT_URL/packages/generic/$TOOL_PACKAGE-$DOCKER_PLATFORM"
+  PACKAGE_URL: "$PROJECT_URL/packages/generic/$TOOL_PACKAGE"
   CURL_URL: "$PACKAGE_URL/$CI_COMMIT_REF_NAME/$TOOL_PACKAGE.tar.gz"
 
 workflow:
