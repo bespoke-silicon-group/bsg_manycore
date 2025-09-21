@@ -12,7 +12,7 @@ spec:
     platform:
       type: string
       options: ["centos7", "ubuntu24.04"]
-      default: "ubuntu24.04"
+      default: "centos7"
 ---
 
 variables:
