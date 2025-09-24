@@ -37,7 +37,7 @@ LLVM_VERSION      := hb-dev # 2c0472120c0c1a3b0b613099e9bc579cf02f6c1c
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
 TOOLCHAIN_URL     := https://github.com/bespoke-silicon-group/$(TOOLCHAIN_REPO)
-TOOLCHAIN_VERSION := bsg_custom_git_modules # 656708846d723936eb5ba2648f6f919608a8ccaf
+TOOLCHAIN_VERSION := bsg_custom_git_modules_noqemu # 9e30b59f42d3ddb6d211b6774322d9e29c2ebdda
 
 DEPENDS_DIR       := depends
 
