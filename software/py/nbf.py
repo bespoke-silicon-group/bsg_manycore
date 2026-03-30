@@ -129,7 +129,7 @@ class NBF:
       stripped = line.strip()
       if stripped:
         if stripped.startswith("@"):
-          curr_addr = int(stripped.strip("@"), 16) / 4
+          curr_addr = int(stripped.strip("@"), 16) // 4
         else:
           words = stripped.split()
           #for i in range(len(words)/4):
@@ -176,8 +176,9 @@ class NBF:
     for line in lines:
       stripped = line.strip()
       words = stripped.split()
-      if words[2] == "_bsg_data_end_addr":
+      if words[2] == "_bsg_data_end_addr" or words[2] == b"_bsg_data_end_addr":
         self.bsg_data_end_addr = (int(words[0]) >> 2) # make it word address
+    assert hasattr(self, "bsg_data_end_addr"), "missing _bsg_data_end_addr from nm's stdout"
 
   # get the size of the spmd binary (text section) in unit of words.
   def get_spmd_binary_size(self):
