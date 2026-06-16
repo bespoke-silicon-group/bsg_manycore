@@ -81,6 +81,7 @@ class NBF:
 
     # process riscv
     self.get_data_end_addr()
+    self.get_kernel_dmem_start_addr()
     self.get_start_addr()
     self.read_dmem()
     self.read_dram()
@@ -105,7 +106,7 @@ class NBF:
 
   # read objcopy dumped in 'verilog' format.
   # return in EPA (word addr) and 32-bit value dictionary
-  def read_objcopy(self, section, output_file):
+  def read_objcopy(self, section, output_file, base_vma=0):
 
     # make sure that you have riscv tool binaries in
     # bsg_manycore/software/riscv-tools/riscv-install/bin
@@ -116,7 +117,10 @@ class NBF:
       print("install riscv-tools first...")
       sys.exit()
 
-    cmd = [objcopy_path, "-O", "verilog", "-j", section, "--set-section-flags", "*bss*=alloc,load,contents", self.riscv_file, output_file]
+    if base_vma:
+        cmd = [objcopy_path, "--change-section-lma", f"{section}={base_vma}", "-O", "verilog", "-j", section, "--set-section-flags", "*bss*=alloc,load,contents", self.riscv_file, output_file]
+    else:
+        cmd = [objcopy_path, "-O", "verilog", "-j", section, "--set-section-flags", "*bss*=alloc,load,contents", self.riscv_file, output_file]
     result = subprocess.call(cmd)
   
     addr_val = {}
@@ -163,7 +167,12 @@ class NBF:
 
   # read dmem
   def read_dmem(self):
-    self.dmem_data = self.read_objcopy("*.dmem", "main_dmem.mem")    
+    self.dmem_data = self.read_objcopy("*.dmem", "main_dmem.mem")
+    self.kernel_dmem = []
+
+    # Arbitrarily 4 kernels for now
+    for i in range(4):
+        self.kernel_dmem.append(self.read_objcopy(f"*.kernel{i}_dmem", f"kernel{i}_dmem.mem", base_vma=(self.kernel_dmem_start_addr<<2)))
 
   # read dram
   def read_dram(self):
@@ -179,6 +188,16 @@ class NBF:
       if words[2] == "_bsg_data_end_addr" or words[2] == b"_bsg_data_end_addr":
         self.bsg_data_end_addr = (int(words[0]) >> 2) # make it word address
     assert hasattr(self, "bsg_data_end_addr"), "missing _bsg_data_end_addr from nm's stdout"
+
+  def get_kernel_dmem_start_addr(self):
+    proc = subprocess.Popen(["nm", "--radix=d", self.riscv_file], stdout=subprocess.PIPE)
+    lines = proc.stdout.readlines()
+    for line in lines:
+      stripped = line.strip()
+      words = stripped.split()
+      if words[2] == "_kernel_dmem_start_addr" or words[2] == b"_kernel_dmem_start_addr":
+        self.kernel_dmem_start_addr = (int(words[0]) >> 2) # make it word address
+    assert hasattr(self, "kernel_dmem_start_addr"), "missing __kernel_dmem_start_addr from nm's stdout"
 
   # get the size of the spmd binary (text section) in unit of words.
   def get_spmd_binary_size(self):
@@ -303,6 +322,19 @@ class NBF:
             self.print_nbf(x_eff, y_eff, k, self.dmem_data[k])
           else:
             self.print_nbf(x_eff, y_eff, k, 0)
+
+  def init_kernel_dmem(self, pod_origin_x, pod_origin_y, kernel_map):
+    for i in range(len(self.kernel_dmem)):
+        kernel_dmem = self.kernel_dmem[i]
+
+        if len(kernel_dmem.keys()) == 0:
+            continue
+
+        for (kx, ky) in kernel_map[i]:
+            x_eff = self.tgo_x + kx + pod_origin_x
+            y_eff = self.tgo_y + ky + pod_origin_y
+            for k in kernel_dmem.keys():
+                self.print_nbf(x_eff, y_eff, k, kernel_dmem[k])
 
  
   # disable dram mode
@@ -490,6 +522,9 @@ class NBF:
         self.config_tile_group(pod_origin_x, pod_origin_y)
         self.init_icache(pod_origin_x, pod_origin_y)
         self.init_dmem(pod_origin_x, pod_origin_y)
+        # TODO: This should be set by script parameters
+        kernel_map =  {0: [(0,0)], 1: [(1,0)], 2: [(2,0)]}
+        self.init_kernel_dmem(pod_origin_x, pod_origin_y, kernel_map)
         self.set_pc_init_val(pod_origin_x, pod_origin_y)
 
         if self.enable_dram != 1:

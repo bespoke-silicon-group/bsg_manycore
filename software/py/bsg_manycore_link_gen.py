@@ -242,6 +242,16 @@ class bsg_manycore_link_gen:
       sections += self._section(sec, laddr, 'DMEM_VMA', None,
           in_sections, in_objects)
 
+    sections += "_kernel_dmem_start_addr = .;\n"
+
+    # Adding an overlay section for kernel
+    # Arbitrarily 4 kernels allowed right now
+    sections += "OVERLAY ALIGN(4) : NOCROSSREFS\n"
+    sections += "{\n"
+    for i in range(0,4):
+        sections += f"\t.kernel{i}_dmem {{ *(*.kernel{i}_dmem*) }}\n"
+    sections += "}\n"
+
     # DMEM boundary check
     # Note on a linker quirk: no ';' after the assert when it's not within a section.
     sections += "__dmem_end = .;\n"
