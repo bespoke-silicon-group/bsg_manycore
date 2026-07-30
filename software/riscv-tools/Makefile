@@ -37,7 +37,7 @@ LLVM_VERSION      := hb-dev # 2c0472120c0c1a3b0b613099e9bc579cf02f6c1c
 
 TOOLCHAIN_REPO    := riscv-gnu-toolchain
 TOOLCHAIN_URL     := https://github.com/bespoke-silicon-group/$(TOOLCHAIN_REPO)
-TOOLCHAIN_VERSION := bsg_custom_git_modules # 656708846d723936eb5ba2648f6f919608a8ccaf
+TOOLCHAIN_VERSION := bsg_custom_git_modules_noqemu # 9e30b59f42d3ddb6d211b6774322d9e29c2ebdda
 
 DEPENDS_DIR       := depends
 
@@ -64,16 +64,8 @@ DEPENDS_LIST=autoconf-2.69 automake-1.14
 DEPENDS_URL=https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.xz \
             https://ftp.gnu.org/gnu/automake/automake-1.14.tar.xz 
 
-export RISCV_INSTALL_DIR ?= $(CURDIR)/riscv-install
-export RISCV_BIN_DIR ?= $(RISCV_INSTALL_DIR)/bin
-
-export RISCV:=$(RISCV_INSTALL_DIR)
-export SED=sed
-export CC=gcc
-export CXX=g++
-export SED=sed
-export PATH
-export SHELL:=/bin/bash
+BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
+include $(BSG_MANYCORE_DIR)/machines/paths.mk
 
 APPLY_PATCH  ?= git apply --ignore-whitespace --ignore-space-change
 CHECK_PATCH  ?= $(APPLY_PATCH) --check --reverse
@@ -177,12 +169,14 @@ configure-riscv-gnu-tools:
 	@echo "Configuring toolchain..."
 	@echo "====================================="
 	cd $(TOOLCHAIN_REPO) && \
-		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI) --disable-gdb --with-tune=bsg_vanilla_2020
+		./configure --prefix=$(RISCV) --disable-linux --with-arch=$(TARGET_ARCH) --with-abi=$(TARGET_ABI) --disable-gdb --with-tune=bsg_vanilla_2020 SHELL=/bin/bash
 
 build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	@echo "Building toolchain..."
 	@echo "====================================="
+	@# workaround for non-POSIX dependency check
+	cd $(TOOLCHAIN_REPO)/riscv-gcc; ./contrib/download_prerequisites
 	$(MAKE) -C $(TOOLCHAIN_REPO) -j $(COMPILING_THREADS) CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS)
 	$(MAKE) -C $(TOOLCHAIN_REPO) install
 
@@ -199,7 +193,7 @@ build-llvm:
 	@echo "====================================="
 	@echo "Building $(LLVM_REPO)..."
 	@echo "====================================="
-	$(MAKE) -f ../mk/Makefile.llvminstall llvm-install LLVM_DIR=$(LLVM_REPO) RISCV=$(RISCV) COMPILING_THREADS=$(COMPILING_THREADS)
+	$(MAKE) -f ../mk/Makefile.llvminstall llvm-install LLVM_DIR=$(LLVM_REPO) RISCV=$(RISCV) COMPILING_THREADS=$(COMPILING_THREADS) GCC=$(GCC) GXX=$(GXX) CMAKE=$(CMAKE) GENERATOR="$(GENERATOR)"
 
 build-all: checkout-all
 	$(MAKE) build-deps 

@@ -47,6 +47,7 @@ module bsg_nonsynth_manycore_tag_master
   ) tr (
     .clk_i(clk_i)
     ,.reset_i(reset_i)
+    ,.en_i(1'b1)
 
     ,.rom_addr_o(rom_addr)
     ,.rom_data_i(rom_data)

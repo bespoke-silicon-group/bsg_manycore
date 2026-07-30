@@ -39,6 +39,11 @@ dramsim3.%: blood_graph_%.log
 simvision:
 	$(SIMVISION) -64bit dump.shm
 
+check_finish:
+	if ! grep -q BSG_FINISH run.log; then \
+		echo $$log failed; \
+		exit 1; \
+	fi
 
 clean:
 	-rm -rf *.o *.a *.jou *.log *.pelog *.pb bsg_manycore_io_complex_rom.v *.riscv *.wdb *.bin *.hex *.ld

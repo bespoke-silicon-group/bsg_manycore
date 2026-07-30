@@ -1,36 +1,6 @@
-ifndef LLVM_DIR
-    $(error Need to define LLVM_DIR)
-endif
 
-# devtoolset-8
-GCCVERSION = $(shell gcc -dumpversion)
-ifeq ($(shell expr $(GCCVERSION) \> 7)$(shell expr $(GCCVERSION) \< 12), 11)
-HOST_TOOLCHAIN ?=
-$(info Using default GCCVERSION $(GCCVERSION))
-else
-HOST_TOOLCHAIN ?= /opt/rh/devtoolset-8/root/usr/bin/
-$(info Default GCCVERSION $(GCCVERSION) is too new/old; using $(HOST_TOOLCHAIN))
-endif
-
-# We need cmake3. On older RHEL systems, cmake is version 2 and cmake3
-# is version 3. On newer systems cmake is version3. Default to cmake3
-# if it is available, and backup to cmake. If cmake is NOT version 3,
-# it will fail during LLVM compilation with the appropriate warning.
-ifneq (, $(shell which cmake3))
-    CMAKE=$(shell which cmake3)
-else ifneq (, $(shell which cmake))
-    CMAKE=$(shell which cmake)
-else
-    $(error "Could not find cmake, or cmake3 in PATH. Please install cmake (Version 3)")
-endif
-
-# Build tool: Pick ninja over make if available
-ifndef GENERATOR
-  GENERATOR = 'Unix Makefiles'
-  ifneq (,$(shell which ninja))
-    GENERATOR = 'Ninja'
-  endif
-endif
+#LLVM_BUILD_TYPE ?= Debug
+LLVM_BUILD_TYPE ?= MinSizeRel
 
 configure-llvm:
 	@echo "====================================="
@@ -38,16 +8,20 @@ configure-llvm:
 	@echo "====================================="
 	# Install only X86 and RISCV targets
 	$(CMAKE) -S $(LLVM_DIR)/llvm -B $(LLVM_DIR)/llvm-build \
-		-G $(GENERATOR) \
-		-DCMAKE_BUILD_TYPE="Debug" \
+		-G "$(GENERATOR)" \
+		-DCMAKE_BUILD_TYPE="$(LLVM_BUILD_TYPE)" \
 		-DLLVM_ENABLE_PROJECTS="clang" \
 		-DCMAKE_INSTALL_PREFIX="$(RISCV)" \
-		-DCMAKE_C_COMPILER=$(HOST_TOOLCHAIN)gcc \
-		-DCMAKE_CXX_COMPILER=$(HOST_TOOLCHAIN)g++ \
+		-DCMAKE_C_COMPILER="$(GCC)" \
+		-DCMAKE_CXX_COMPILER="$(GXX)" \
 		-DLLVM_TARGETS_TO_BUILD="X86;RISCV" \
-		-DBUILD_SHARED_LIBS=True \
 		-DLLVM_USE_SPLIT_DWARF=True \
-		-DLLVM_OPTIMIZED_TABLEGEN=True
+		-DLLVM_OPTIMIZED_TABLEGEN=True \
+		-DLLVM_BUILD_TESTS=False \
+		-DLLVM_BUILD_EXAMPLES=False \
+		-DLLVM_BUILD_BENCHMARKS=False \
+		-DLLVM_LINK_LLVM_DYLIB=True
+
 
 llvm-install: configure-llvm
 	cd $(LLVM_DIR)/llvm-build; \

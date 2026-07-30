@@ -1,15 +1,8 @@
 .DEFAULT_GOAL = all
 
-BSG_MANYCORE_DIR := $(shell git rev-parse --show-toplevel)
-# By convention, basejump_stl is in the same directory as $(BSG_MANYCORE_DIR)
-BASEJUMP_STL_DIR := $(abspath $(BSG_MANYCORE_DIR)/../basejump_stl)
-
-ifeq ($(wildcard $(BASEJUMP_STL_DIR)/imports/DRAMSim3/Makefile),)
-$(error DRAMSim3 has not been submoduled in basejump_stl, see top-level README.md)
-endif
-
 .PHONY: all clean
 
+include paths.mk
 include platform.mk
 
 DEFAULT_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/$(BSG_SIM_BASE))
@@ -18,6 +11,7 @@ DEFAULT_PROFILE_TARGETS = $(foreach machine, $(DEFAULT_MACHINES),$(machine)/$(BS
 
 # set_vcs_machine_variables includes the Makefile.machine.include file and sets the
 all: $(DEFAULT_TARGETS) $(DEFAULT_DEBUG_TARGETS) $(DEFAULT_PROFILE_TARGETS)
+machine: $(BSG_MACHINE)/$(BSG_SIM_BASE)
 
 # Include source lists
 include arch_filelist.mk

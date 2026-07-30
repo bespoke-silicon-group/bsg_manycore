@@ -13,41 +13,8 @@ CM_NAME     ?= $(notdir $(shell pwd))
 COV_DIR     ?= $(abspath ../coverage)
 COV_DB_NAME ?= simv
 
-
-########################################
-# CAD Setup
-
-ifneq ($(IGNORE_CADENV),)
-  $(info CAD Environment: Ignoring cadenv)
-  # select the tools
-
-# Checking the VCS settings
-else ifeq (,$(wildcard $(CAD_DIR)/cadenv.mk))
-  ifeq ($(VCS),)
-    $(error Unfamiliar machine/cadtool setup: Please define the $$VCS which points to the VCS binaries )
-  endif
-
-  ifeq ($(DVE),)
-    $(error Please define the $$DVE which points to the DVE binaries )
-  endif
-
-# Using the cadenv.mk to setup the VCS
-else 
-  $(info CAD Environment: using $(CAD_DIR)/cadenv.mk to configure cad tools)
-  include $(CAD_DIR)/cadenv.mk
-endif
-
-
 #######################################
 # Simulator setup
-
-ifeq ($(BSG_PLATFORM),vcs)
-  BSG_SIM_BASE = simv
-else ifeq ($(BSG_PLATFORM),verilator)
-  BSG_SIM_BASE = simsc
-else ifeq ($(BSG_PLATFORM),xcelium)
-  BSG_SIM_BASE = simx
-endif
 
 ifeq ($(WAVE),0)
 ifeq ($(PC_HIST),0)
@@ -83,8 +50,7 @@ BSG_SIM_OPTS = +nbf_file=$(NBF_FILE) \
 
 ifeq ($(BSG_PLATFORM),vcs)
 BSG_SIM_OPTS += -reportstats \
-                -licqueue \
-                -l run.log
+                -licqueue
 endif
 
 ifneq ($(COVERAGE), 0)
@@ -102,7 +68,7 @@ $(info Machine executable: $(BSG_SIM_EXE))
 ifeq ($(abspath $(BSG_MACHINE_PATH)/..),$(abspath $(BSG_MANYCORE_DIR)/machines))
 	$(MAKE) -C $(BSG_MACHINE_PATH)/.. $(BSG_SIM_EXE)
 endif
-	$(BSG_SIM_EXE) $(BSG_SIM_OPTS)
+	$(BSG_SIM_EXE) $(BSG_SIM_OPTS) | tee -i run.log
 ifeq ($(TRACE),1)
 	PYTHONPATH=$(BSG_MANYCORE_DIR)/software/py/vanilla_parser/.. python3 -m vanilla_parser --generate-key
 endif

@@ -7,5 +7,5 @@ NUM_CORES=${3:-5}
 export BSG_MACHINE=$MACHINE
 export BSG_PLATFORM=$PLATFORM
 
-make -j$NUM_CORES -C software/spmd/beebs
-make -C software/spmd/beebs check_finish
+make -j$NUM_CORES -C machines machine
+

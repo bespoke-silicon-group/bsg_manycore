@@ -1,5 +1,10 @@
 #~/bin/bash
 
+MACHINE=$1
+NUM_CORES=${2:-5}
+
+export BSG_MACHINE=$MACHINE
+
 make -C machines parse
-fgrep "[  ERROR] : 0" machines/pod_1x1_4X2Y/parse.log
+make -C machines check_parse
 

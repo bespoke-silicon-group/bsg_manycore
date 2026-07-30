@@ -4,14 +4,46 @@ Date: Mon, 3 Jun 2019 14:44:41 -0700
 Subject: [PATCH] Hack to print a char by tohost write
 
 ---
+ fesvr/device.h   | 1 +
  fesvr/syscall.cc | 3 +++
- 1 file changed, 3 insertions(+)
+ 2 files changed, 4 insertions(+)
 
+diff --git a/fesvr/device.h b/fesvr/device.h
+index 1387b74..639b837 100644
+--- a/fesvr/device.h
++++ b/fesvr/device.h
+@@ -1,18 +1,19 @@
+ #ifndef _DEVICE_H
+ #define _DEVICE_H
+ 
+ #include <vector>
+ #include <queue>
+ #include <cstring>
+ #include <string>
+ #include <functional>
++#include <cstdint>
+ 
+ class memif_t;
+ 
+ class command_t
+ {
+  public:
+   typedef std::function<void(uint64_t)> callback_t;
+   command_t(memif_t& memif, uint64_t tohost, callback_t cb)
+     : _memif(memif), tohost(tohost), cb(cb) {}
+ 
 diff --git a/fesvr/syscall.cc b/fesvr/syscall.cc
-index 6e8baf6..a2423eb 100644
+index ab7fc3b..750f090 100644
 --- a/fesvr/syscall.cc
 +++ b/fesvr/syscall.cc
-@@ -110,6 +110,9 @@ void syscall_t::handle_syscall(command_t cmd)
+@@ -193,20 +193,23 @@ std::string syscall_t::undo_chroot(const char* fn)
+ 
+ void syscall_t::handle_syscall(command_t cmd)
+ {
+   if (cmd.payload() & 1) // test pass/fail
+   {
+     htif->exitcode = cmd.payload();
+     if (htif->exit_code())
        std::cerr << "*** FAILED *** (tohost = " << htif->exit_code() << ")" << std::endl;
      return;
    }
@@ -21,6 +53,13 @@ index 6e8baf6..a2423eb 100644
    else // proxied system call
      dispatch(cmd.payload());
  
+   cmd.respond(1);
+ }
+ 
+ reg_t syscall_t::sys_exit(reg_t code, reg_t a1, reg_t a2, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
+ {
+   htif->exitcode = code << 1 | 1;
+   return 0;
 -- 
-1.8.3.1
+2.18.4
 

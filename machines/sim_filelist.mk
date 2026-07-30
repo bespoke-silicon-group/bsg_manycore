@@ -87,11 +87,7 @@ VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_top_crossbar.s
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_crossbar.sv
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_manycore_link_to_crossbar.sv
 
-ifeq ($(BSG_PLATFORM),verilator)
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_dpi_clock_gen.sv
-VSOURCES += $(BASEJUMP_STL_DIR)/bsg_test/bsg_nonsynth_dpi_clock_gen.cpp
-CSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/test.cpp
-else ifeq ($(BSG_PLATFORM),vcs)
+ifeq ($(BSG_PLATFORM),vcs)
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/common/v/bsg_nonsynth_manycore_vanilla_core_pc_cov.sv
 endif
 

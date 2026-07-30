@@ -58,15 +58,15 @@ endif
 
 RISCV_GCC     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-gcc
 RISCV_GXX     ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-g++
-RISCV_ELF2HEX ?= LD_LIBRARY_PATH=$(RISCV_BIN_DIR)/../lib $(RISCV_BIN_DIR)/elf2hex
+RISCV_ELF2HEX ?= LD_LIBRARY_PATH=$(RISCV_LIB_DIR) $(RISCV_BIN_DIR)/elf2hex
+DRAMFS_MKLFS  ?= $(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/bin/dramfs_mklfs
 RISCV_OBJCOPY ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-objcopy
 RISCV_AR      ?= $(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-ar
 RISCV_SIM     ?= $(RISCV_BIN_DIR)/spike
 
-BSG_ROM_GEN     = $(BSG_IP_CORES_DIR)/bsg_mem/bsg_ascii_to_rom.py
+BSG_ROM_GEN     = $(BASEJUMP_STL_DIR)/bsg_mem/bsg_ascii_to_rom.py
 HEX2BIN         = $(BSG_MANYCORE_DIR)/software/py/hex2binascii.py
-NBF_PY 			    = $(BSG_MANYCORE_DIR)/software/py/nbf.py
-NBF_BP_PY 	    = $(BSG_MANYCORE_DIR)/software/py/nbf_blackparrot.py
+NBF_PY          = $(BSG_MANYCORE_DIR)/software/py/nbf.py
 TRACE_PP_SCRIPT = $(BSG_MANYCORE_DIR)/software/py/post_process_trace.py
 LINK_GEN        = $(BSG_MANYCORE_DIR)/software/py/bsg_manycore_link_gen.py
 
@@ -124,7 +124,7 @@ LFS_BLOCK_SIZE ?= 128
 LFS_BLOCK_COUNT ?= 64
 
 lfs.c: $(IN_FILES)
-	$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/bin/dramfs_mklfs $(LFS_BLOCK_SIZE) $(LFS_BLOCK_COUNT) $(IN_FILES) > $@
+	$(DRAMFS_MKLFS) $(LFS_BLOCK_SIZE) $(LFS_BLOCK_COUNT) $(IN_FILES) > $@
 endif
 
 # Manycore C library archiving rule
@@ -173,7 +173,7 @@ endif
 LINK_SCRIPT ?= $(CURR_DIR)/bsg_link.ld
 
 $(CURR_DIR)/bsg_link.ld: $(LINK_GEN)
-	python $(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
+	$(PYTHON) $(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
 
 RISCV_LINK_OPTS ?= 
 
@@ -208,11 +208,10 @@ RISCV_GXX_OPTS += $(RISCV_GXX_EXTRA_OPTS)
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
 ifdef CLANG
-LLVM_DIR          ?= $(RISCV_INSTALL_DIR)
-LLVM_CLANG        ?= $(LLVM_DIR)/bin/clang
-LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
-LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
-LLVM_LLC          ?= $(LLVM_DIR)/bin/llc
+LLVM_CLANG        ?= $(LLVM_BIN_DIR)/clang
+LLVM_CLANGPP      ?= $(LLVM_BIN_DIR)/clang++
+LLVM_OPT          ?= $(LLVM_BIN_DIR)/opt
+LLVM_LLC          ?= $(LLVM_BIN_DIR)/llc
 CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
 
 # Ideally LLC should infer targets option provided to Clang. But LLC 11.0.0 fails
@@ -309,7 +308,7 @@ SKIP_DRAM_INSTRUCTION_LOAD ?= 0
 SKIP_ZEROS ?= 0
 
 %.nbf: %.riscv
-	python $(NBF_PY) \
+	$(PYTHON) $(NBF_PY) \
 	  $*.riscv \
 		$(BSG_MACHINE_GLOBAL_X) $(BSG_MACHINE_GLOBAL_Y) \
 		$(BSG_MACHINE_VCACHE_WAY) $(BSG_MACHINE_VCACHE_SET) \
@@ -325,7 +324,7 @@ SKIP_ZEROS ?= 0
 		$(BSG_MACHINE_IPOLY_HASHING) > $*.nbf
 
 %.bin:  %.hex
-	python $(HEX2BIN) $< 32 > $@
+	$(PYTHON) $(HEX2BIN) $< 32 > $@
 
 %.dis: %.riscv
 	$(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-objdump -M numeric --disassemble-all -S $<
