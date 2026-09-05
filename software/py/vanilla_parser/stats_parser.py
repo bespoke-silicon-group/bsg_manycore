@@ -478,7 +478,8 @@ class CacheStats:
         # missing a row/index then it will insert a row of
         # NaNs at the cooresponding index in the output that
         # we can use to print an error.
-        diff = e.sort_index() - s.sort_index()
+        diff = e.sort_index().select_dtypes(include="number") - \
+            s.sort_index().select_dtypes(include="number")
         
         # Find rows with NaNs
         mismatches = diff[diff.isnull().any(axis="columns")].index
@@ -550,7 +551,7 @@ class CacheTagStats(CacheStats):
         # Then, for per-tag statistics we take the sum of the lowest
         # group, to get aggregate the counters across all banks.
         hierarchy = ["Action", "Tag", "Tile Coordinate (Y,X)", "Tile-Tag Iteration"]
-        banksums = df.groupby(hierarchy).sum()
+        banksums = df.groupby(hierarchy).sum(numeric_only=True)
 
         # Split into Start/End 
         starts = banksums.loc["Start"]
@@ -908,12 +909,12 @@ class CacheTagStats(CacheStats):
     # Get a pretty formatted table representation for a tag
     def __tag_tostr(self, df):
         # Get load and store totals for miss statistics
-        ld_total = df.loc[("Cycle", ["Load"], "Total")][0]
-        ldb_total = df.loc[("Bytes", ["Load"], "bytes_ld")][0]
-        st_total = df.loc[("Cycle", ["Store"], "Total")][0]
-        stb_total = df.loc[("Bytes", ["Store"], "bytes_st")][0]
-        at_total = df.loc[("Cycle", ["Atomic"], "Total")][0]
-        atb_total = df.loc[("Bytes", ["Atomic"], "bytes_amo")][0]
+        ld_total = df.loc[("Cycle", ["Load"], "Total")].iloc[0]
+        ldb_total = df.loc[("Bytes", ["Load"], "bytes_ld")].iloc[0]
+        st_total = df.loc[("Cycle", ["Store"], "Total")].iloc[0]
+        stb_total = df.loc[("Bytes", ["Store"], "bytes_st")].iloc[0]
+        at_total = df.loc[("Cycle", ["Atomic"], "Total")].iloc[0]
+        atb_total = df.loc[("Bytes", ["Atomic"], "bytes_amo")].iloc[0]
 
         s = self.__cycle_tostr(df.loc["Cycle"]) + "\n"
 
@@ -2364,7 +2365,7 @@ def add_args(parser):
 
 def main(args): 
     if (args.vcache_stats and args.cache_line_words is None):
-        parser.error('The -cache_line_words_argument is required to parse the cache stats')
+        raise ValueError("--cache-line-words is required to parse cache statistics")
 
     st = VanillaStatsParser(args.tile, args.tile_group, args.stats, args.vcache_stats, args.cache_line_words)
     st.print_manycore_stats_all()

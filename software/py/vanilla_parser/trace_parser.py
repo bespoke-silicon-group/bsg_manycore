@@ -45,56 +45,56 @@ class VanillaTraceParser:
 
     # second column
     # int_pc, int_instr, rd, rd_write_val, stall_reason
-    match = re.search("([0-9a-f]{8}) ([0-9a-f]{8})", columns[1])
+    match = re.search(r"([0-9a-f]{8}) ([0-9a-f]{8})", columns[1])
     if match:
       trace["int_pc"] = match.group(1)
       trace["int_instr"] = match.group(2)
 
-    match = re.search("x([0-9]{2})=([0-9a-f]{8})", columns[1])
+    match = re.search(r"x([0-9]{2})=([0-9a-f]{8})", columns[1])
     if match:
       trace["int_rd"] = int(match.group(1))
       trace["int_rd_val"] = match.group(2)
 
-    match = re.search("STALL=(\w+)", columns[1])
+    match = re.search(r"STALL=(\w+)", columns[1])
     if match:
       trace["stall_reason"] = match.group(1)
 
     # third column
     # fp_pc, fp_instr, fp_rd, fp_rd_val
-    match = re.search("([0-9a-f]{8}) ([0-9a-f]{8})", columns[2])
+    match = re.search(r"([0-9a-f]{8}) ([0-9a-f]{8})", columns[2])
     if match:
       trace["fp_pc"] = match.group(1)
       trace["fp_instr"] = match.group(2)
 
-    match = re.search("f([0-9]{2})=([0-9a-f]{8})", columns[2])
+    match = re.search(r"f([0-9]{2})=([0-9a-f]{8})", columns[2])
     if match:
       trace["fp_rd"] = int(match.group(1))
       trace["fp_rd_val"] = match.group(2)
 
     # fourth column
     # branch_target, local load/store
-    match = re.search("bt=([0-9a-f]{8})", columns[3])
+    match = re.search(r"bt=([0-9a-f]{8})", columns[3])
     if match:
       trace["bt"] = match.group(1)
 
-    match = re.search("LL=\[([0-9a-f]{3})\]=([0-9a-f]{8})", columns[3])
+    match = re.search(r"LL=\[([0-9a-f]{3})\]=([0-9a-f]{8})", columns[3])
     if match:
       trace["ll_addr"] = match.group(1)
       trace["ll_val"] = match.group(2)
   
-    match = re.search("LS=\[([0-9a-f]{3})\]=([0-9a-f]{8})", columns[3])
+    match = re.search(r"LS=\[([0-9a-f]{3})\]=([0-9a-f]{8})", columns[3])
     if match:
       trace["ls_addr"] = match.group(1)
       trace["ls_val"] = match.group(2)
 
     # fifth column
     # remote load/store
-    match = re.search("RS=\[([0-9a-f]{8})\]=([0-9a-f]{8})", columns[4])
+    match = re.search(r"RS=\[([0-9a-f]{8})\]=([0-9a-f]{8})", columns[4])
     if match:
       trace["rs_addr"] = match.group(1)
       trace["rs_val"] = match.group(2)
 
-    match = re.search("RL=\[([0-9a-f]{8})\]=", columns[4])
+    match = re.search(r"RL=\[([0-9a-f]{8})\]=", columns[4])
     if match:
       trace["rl_addr"] = match.group(1)
 
