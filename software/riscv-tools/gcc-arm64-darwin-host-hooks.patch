@@ -1,0 +1,66 @@
+diff --git a/gcc/config.host b/gcc/config.host
+index e27eab789..034c24b51 100644
+--- a/gcc/config.host
++++ b/gcc/config.host
+@@ -250,6 +250,10 @@ case ${host} in
+     host_extra_gcc_objs="${host_extra_gcc_objs} driver-mingw32.o"
+     host_lto_plugin_soname=liblto_plugin-0.dll
+     ;;
++  arm*-*-darwin* | aarch64*-*-darwin*)
++    out_host_hook_obj="${out_host_hook_obj} host-aarch64-darwin.o"
++    host_xmake_file="${host_xmake_file} aarch64/x-darwin"
++    ;;
+   i[34567]86-*-darwin* | x86_64-*-darwin*)
+     out_host_hook_obj="${out_host_hook_obj} host-i386-darwin.o"
+     host_xmake_file="${host_xmake_file} i386/x-darwin"
+diff --git a/gcc/config/aarch64/host-aarch64-darwin.c b/gcc/config/aarch64/host-aarch64-darwin.c
+new file mode 100644
+index 000000000..7aaaf9dc6
+--- /dev/null
++++ b/gcc/config/aarch64/host-aarch64-darwin.c
+@@ -0,0 +1,16 @@
++/* arm64/aarch64 Darwin host-specific hook definitions.  */
++
++#define IN_TARGET_CODE 1
++
++#include "config.h"
++#include "system.h"
++#include "coretypes.h"
++#include "hosthooks.h"
++#include "hosthooks-def.h"
++#include "config/host-darwin.h"
++
++/* Darwin does not need additional arm64-specific hooks.  This translation
++   unit instantiates the generic Darwin hooks, matching current upstream
++   GCC's aarch64 Darwin host support.  */
++
++const struct host_hooks host_hooks = HOST_HOOKS_INITIALIZER;
+diff --git a/gcc/config/host-darwin.c b/gcc/config/host-darwin.c
+index 2643888e5..a15512073 100644
+--- a/gcc/config/host-darwin.c
++++ b/gcc/config/host-darwin.c
+@@ -23,8 +23,14 @@
+ #include "diagnostic-core.h"
+ #include "config/host-darwin.h"
+ 
++#if defined (__aarch64__)
++#define DARWIN_PCH_ALIGNMENT 16384
++#else
++#define DARWIN_PCH_ALIGNMENT 4096
++#endif
++
+ /* Yes, this is really supposed to work.  */
+-static char pch_address_space[1024*1024*1024] __attribute__((aligned (4096)));
++static char pch_address_space[1024*1024*1024] __attribute__((aligned (DARWIN_PCH_ALIGNMENT)));
+ 
+ /* Return the address of the PCH address space, if the PCH will fit in it.  */
+ 
+diff --git a/gcc/config/aarch64/x-darwin b/gcc/config/aarch64/x-darwin
+new file mode 100644
+index 000000000..02c9190a1
+--- /dev/null
++++ b/gcc/config/aarch64/x-darwin
+@@ -0,0 +1,3 @@
++host-aarch64-darwin.o : $(srcdir)/config/aarch64/host-aarch64-darwin.c
++	$(COMPILE) $<
++	$(POSTCOMPILE)
