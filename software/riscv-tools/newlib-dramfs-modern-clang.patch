@@ -1,0 +1,12 @@
+diff --git a/libgloss/dramfs/dramfs/dramfs_util.c b/libgloss/dramfs/dramfs/dramfs_util.c
+index 35c9b8448..b1595c1d2 100644
+--- a/libgloss/dramfs/dramfs/dramfs_util.c
++++ b/libgloss/dramfs/dramfs/dramfs_util.c
+@@ -3,6 +3,7 @@
+ // Bandhav Veluri
+ // 08/15/2019
+ 
++#include <stdlib.h>
+ #include <stdio.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>

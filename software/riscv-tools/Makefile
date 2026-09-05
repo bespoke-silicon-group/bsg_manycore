@@ -27,6 +27,8 @@
 #
 .DEFAULT_GOAL := help
 
+.PHONY: checkout-riscv-gnu-tools install-gcc
+
 TARGET_ARCH       := rv32imaf
 TARGET_ABI        := ilp32f
 TARGET_CFLAGS     := '-fno-common'
@@ -46,13 +48,24 @@ SPIKE_URL         := https://github.com/riscv/riscv-isa-sim.git
 SPIKE_PATCH       := spike.patch
 SPIKE_GCC_PATCH   := spike-gcc.patch
 SPIKE_TAG         := v1.1.0
+BINUTILS_ZLIB_PATCH := $(abspath binutils-zlib-modern-macos.patch)
+GCC_LIBCXX_PATCH     := $(abspath gcc-modern-libcxx-safe-ctype.patch)
+GCC_ARM64_HOST_PATCH := $(abspath gcc-arm64-darwin-host-hooks.patch)
+NEWLIB_DRAMFS_PATCH  := $(abspath newlib-dramfs-modern-clang.patch)
 
 # How many thread you want to use compiling tools
 UNAME := $(shell uname)
 ifeq ($(UNAME),Linux)
-        NUMPROC := $(shell grep -c ^processor /proc/cpuinfo)
+        NUMPROC ?= $(shell grep -c ^processor /proc/cpuinfo)
 else ifeq ($(UNAME),Darwin)
-        NUMPROC := $(shell sysctl hw.ncpu | awk '{print $$2}')
+        NUMPROC ?= $(shell getconf _NPROCESSORS_ONLN)
+        export BINUTILS_TARGET_FLAGS_EXTRA ?= --disable-nls
+        HOMEBREW_PREFIX ?= $(shell command -v brew >/dev/null 2>&1 && brew --prefix)
+ifneq ($(HOMEBREW_PREFIX),)
+        export PATH := $(HOMEBREW_PREFIX)/opt/bison/bin:$(HOMEBREW_PREFIX)/opt/flex/bin:$(HOMEBREW_PREFIX)/opt/m4/bin:$(HOMEBREW_PREFIX)/opt/texinfo/bin:$(PATH)
+        export M4 := $(HOMEBREW_PREFIX)/opt/m4/bin/m4
+        export SED := $(HOMEBREW_PREFIX)/opt/gnu-sed/bin/gsed
+endif
 endif
 
 # Only take half as many processors as available
@@ -68,16 +81,17 @@ export RISCV_INSTALL_DIR ?= $(CURDIR)/riscv-install
 export RISCV_BIN_DIR ?= $(RISCV_INSTALL_DIR)/bin
 
 export RISCV:=$(RISCV_INSTALL_DIR)
-export SED=sed
+ifneq ($(UNAME),Darwin)
+export SED ?= sed
+endif
 export CC=gcc
 export CXX=g++
-export SED=sed
 export PATH
 export SHELL:=/bin/bash
 
 APPLY_PATCH  ?= git apply --ignore-whitespace --ignore-space-change
 CHECK_PATCH  ?= $(APPLY_PATCH) --check --reverse
-QUICK_CLONE  ?= git clone -j $(COMPILING_THREADS) --single-branch --recurse-submodules --shallow-submodules --shallow-since=2020-01-01
+QUICK_CLONE  ?= git clone -j $(COMPILING_THREADS) --single-branch --shallow-since=2020-01-01
 STABLE_CLONE ?= git clone
 
 # Git version
@@ -121,17 +135,24 @@ $(DEPENDS_DIR):
 		wget $$dep_url;			\
 	done
 
-checkout-riscv-gnu-tools: | $(TOOLCHAIN_REPO)
 $(TOOLCHAIN_REPO):
 	@echo "====================================="
 	@echo "Cloning riscv-toolchain repo..."
 	@echo "====================================="
 	$(GIT_CLONE) -b $(TOOLCHAIN_VERSION) $(TOOLCHAIN_URL) $(TOOLCHAIN_REPO) || \
 		echo "riscv-gnu-toolchain already cloned, reusing"
+
+checkout-riscv-gnu-tools: $(TOOLCHAIN_REPO)
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-binutils
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-glibc
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-gcc
 	cd $(TOOLCHAIN_REPO) && git submodule update --init --checkout riscv-newlib
+ifeq ($(UNAME),Darwin)
+	@$(call patch_if_new,$(TOOLCHAIN_REPO)/riscv-binutils,$(BINUTILS_ZLIB_PATCH))
+	@$(call patch_if_new,$(TOOLCHAIN_REPO)/riscv-gcc,$(GCC_LIBCXX_PATCH))
+	@$(call patch_if_new,$(TOOLCHAIN_REPO)/riscv-gcc,$(GCC_ARM64_HOST_PATCH))
+	@$(call patch_if_new,$(TOOLCHAIN_REPO)/riscv-newlib,$(NEWLIB_DRAMFS_PATCH))
+endif
 
 checkout-llvm: | $(LLVM_REPO)
 $(LLVM_REPO):
@@ -185,6 +206,9 @@ build-riscv-gnu-tools: configure-riscv-gnu-tools
 	@echo "====================================="
 	$(MAKE) -C $(TOOLCHAIN_REPO) -j $(COMPILING_THREADS) CFLAGS_FOR_TARGET_EXTRA=$(TARGET_CFLAGS)
 	$(MAKE) -C $(TOOLCHAIN_REPO) install
+
+install-gcc: checkout-riscv-gnu-tools
+	$(MAKE) build-riscv-gnu-tools
 
 build-spike:
 	@echo "====================================="
@@ -240,4 +264,3 @@ clean-all:
 installs:
 	sudo apt-get install autoconf automake libtool curl gawk bison flex texinfo gperf \
 		sed autotools-dev libmpc-dev libmpfr-dev libgmp-dev build-essential
-
