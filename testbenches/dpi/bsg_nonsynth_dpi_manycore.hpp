@@ -9,9 +9,17 @@
 #include <svdpi.h>
 #include <cstring>
 #include <cstdint>
-// We use __m128i so that we can pass a 128-bit type between Verilog
-// and C.
+// Use an x86 vector where available, and an ABI-compatible byte container on
+// other hosts. The DPI conversion copies bytes and does not require SIMD.
+#if defined(__x86_64__) || defined(__i386__)
 #include <xmmintrin.h>
+typedef __m128i bsg_dpi_128_t;
+#else
+typedef struct alignas(16) {
+        uint64_t words[2];
+} bsg_dpi_128_t;
+#endif
+static_assert(sizeof(bsg_dpi_128_t) == 16, "DPI packet container must be 128 bits");
 
 // These are DPI functions provided by SystemVerilog compiler. If they
 // are not found at link time, compilation will fail. See the
@@ -46,13 +54,13 @@ namespace bsg_nonsynth_dpi{
         template <unsigned int N>
         class dpi_manycore : public dpi_base{
                 // DPI To Fifo (Request) Interface Object
-                dpi_to_fifo<__m128i> d2f_req;
+                dpi_to_fifo<bsg_dpi_128_t> d2f_req;
                 // DPI To Fifo (Response) Interface Object
-                dpi_to_fifo<__m128i> d2f_rsp;
+                dpi_to_fifo<bsg_dpi_128_t> d2f_rsp;
                 // Fifo to DPI (Response) Interface Object
-                dpi_from_fifo<__m128i> f2d_rsp;
+                dpi_from_fifo<bsg_dpi_128_t> f2d_rsp;
                 // Fifo to DPI (Request) Interface Object
-                dpi_from_fifo<__m128i> f2d_req;
+                dpi_from_fifo<bsg_dpi_128_t> f2d_req;
                 // Maximum available credits
                 int max_credits = -1;
                 // Current Response capacity
@@ -202,7 +210,7 @@ namespace bsg_nonsynth_dpi{
                  *         BSG_NONSYNTH_DPI_NO_CAPACITY when there is no capacity in the response buffer
                  *         BSG_NONSYNTH_DPI_NOT_READY when the packet was not transmitted (call again next cycle)
                  */
-                int tx_req(const __m128i &data, bool response){
+                int tx_req(const bsg_dpi_128_t &data, bool response){
                         int res = BSG_NONSYNTH_DPI_SUCCESS;
 
                         // Current available credits (used for flow control, and fences)
@@ -247,7 +255,7 @@ namespace bsg_nonsynth_dpi{
                  *         BSG_NONSYNTH_DPI_NOT_WINDOW when not in valid clock window
                  *         BSG_NONSYNTH_DPI_NOT_READY when the packet was not transmitted (call again next cycle)
                  */
-                int tx_rsp(const __m128i &data){
+                int tx_rsp(const bsg_dpi_128_t &data){
                         int res = BSG_NONSYNTH_DPI_SUCCESS;
 
                         if(!reset_done)
@@ -274,7 +282,7 @@ namespace bsg_nonsynth_dpi{
                  *         BSG_NONSYNTH_DPI_NOT_WINDOW when not in valid clock window
                  *         BSG_NONSYNTH_DPI_NOT_VALID when no packet is available
                  */
-                int rx_rsp(__m128i &data){
+                int rx_rsp(bsg_dpi_128_t &data){
                         int res = BSG_NONSYNTH_DPI_SUCCESS;
                         if(!reset_done)
                                 res = reset_is_done(reset_done);
@@ -306,7 +314,7 @@ namespace bsg_nonsynth_dpi{
                  *         BSG_NONSYNTH_DPI_NOT_WINDOW when not in valid clock window
                  *         BSG_NONSYNTH_DPI_NOT_VALID when no packet is available
                  */
-                int rx_req(__m128i &data){
+                int rx_req(bsg_dpi_128_t &data){
                         int res = BSG_NONSYNTH_DPI_SUCCESS;
                         if(!reset_done)
                                 res = reset_is_done(reset_done);
