@@ -83,6 +83,19 @@ module bsg_manycore_eva_to_npa
   logic [y_cord_width_p-1:0] dram_y_cord_lo;
   logic [addr_width_p-1:0] dram_epa_lo;
 
+  if (num_tiles_x_p == 1) begin: single_column_dram
+    // Alternate cache lines north/south; no address bit selects an X bank.
+    wire south = eva_i[2+vcache_word_offset_width_lp];
+    assign dram_x_cord_lo = {pod_x_i, {x_subcord_width_lp{1'b0}}};
+    assign dram_y_cord_lo = south
+      ? {pod_y_cord_width_p'(pod_y_i+1), {y_subcord_width_lp{1'b0}}}
+      : {pod_y_cord_width_p'(pod_y_i-1), {y_subcord_width_lp{1'b1}}};
+    assign dram_epa_lo = addr_width_p'({1'b0,
+      eva_i[30:3+vcache_word_offset_width_lp],
+      eva_i[2+:vcache_word_offset_width_lp]});
+    initial assert (!ipoly_hashing_p)
+      else $error("Single-column pods require iPoly disabled");
+  end else begin: multi_column_dram
   bsg_manycore_dram_hash_function #(
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
@@ -105,6 +118,8 @@ module bsg_manycore_eva_to_npa
   );
 
 
+
+  end
 
   // EVA->NPA table
   always_comb begin

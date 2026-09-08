@@ -112,7 +112,7 @@ module bsg_manycore_tile_compute_mesh
   );
 
   assign global_x_o = {pod_x_r, my_x_r};
-  assign global_y_o = (y_cord_width_p)'(({pod_y_r, my_y_r}) + 1);
+  assign global_y_o = (y_cord_width_p)'(({pod_y_r, my_y_r}) + ((num_tiles_y_p == 1) ? 2 : 1));
 
 
 

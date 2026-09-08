@@ -331,7 +331,7 @@ module bsg_nonsynth_manycore_testbench
       ,.proc_link_sif_i(io_link_sif_li[x][P])
       ,.proc_link_sif_o(io_link_sif_lo[x][P])
 
-      ,.global_x_i(x_cord_width_p'(num_tiles_x_p+x))
+      ,.global_x_i(x_cord_width_p'((1 << `BSG_SAFE_CLOG2(num_tiles_x_p))+x))
       ,.global_y_i(y_cord_width_p'(0))
     );
 
@@ -405,7 +405,7 @@ module bsg_nonsynth_manycore_testbench
       
     parameter num_total_vcaches_lp = (num_pods_x_p*num_pods_y_p*2*num_tiles_x_p);
     parameter lg_num_total_vcaches_lp = `BSG_SAFE_CLOG2(num_total_vcaches_lp);
-    parameter num_vcaches_per_link_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2; // # of vcaches attached to each link
+    parameter num_vcaches_per_link_lp = `BSG_MAX(1, (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2); // # of vcaches attached to each link
 
     parameter num_total_channels_lp = num_total_vcaches_lp/num_vcaches_per_channel_p;
     parameter num_dram_lp = `BSG_CDIV(num_total_channels_lp,hbm2_num_channels_p);
