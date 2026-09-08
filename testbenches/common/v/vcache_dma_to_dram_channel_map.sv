@@ -20,7 +20,9 @@ module vcache_dma_to_dram_channel_map
     , parameter `BSG_INV_PARAM(vcache_dma_data_width_p)
     , parameter `BSG_INV_PARAM(vcache_block_size_in_words_p)
 
-    , parameter num_vcaches_per_link_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2
+    // Normally, divide columns between east/west and then among cache-to-DRAM lanes.
+    // With one column and one lane, division gives zero, but each used east link serves one cache.
+    , parameter num_vcaches_per_link_lp = `BSG_MAX(1, (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2)
     , parameter num_total_vcaches_lp = (num_pods_x_p*num_pods_y_p*2*num_tiles_x_p)
 
     , parameter num_vcaches_per_slice_lp = (num_pods_x_p == 1)
@@ -61,6 +63,32 @@ module vcache_dma_to_dram_channel_map
   `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p, vcache_block_size_in_words_p);
 
 
+  if (num_tiles_x_p == 1 && num_pods_x_p == 1) begin: single_column
+    // This wiring requires one cache-to-DRAM lane per endpoint, so its lane index is always 0.
+    // Runtime initialization sends both caches east; keep the unused west handshakes inactive.
+    initial assert (wh_ruche_factor_p == 1)
+      else $error("Single-column HBM wiring requires WH factor 1");
+    assign dma_pkt_yumi_o[W] = '0;
+    assign dma_data_o[W] = '0;
+    assign dma_data_v_o[W] = '0;
+    assign dma_data_yumi_o[W] = '0;
+    for (genvar y = 0; y < num_pods_y_p; y++) begin: py
+      for (genvar k = N; k <= S; k++) begin: ns
+        // Each pod row contributes two caches, ordered north then south.
+        // Thus row y occupies indices 2*y and 2*y+1, with the same mapping for data and handshakes.
+        localparam idx = 2*y + (k == S);
+        assign remapped_dma_pkt_o[idx] = dma_pkt_i[E][y][k][0][0];
+        assign remapped_dma_pkt_v_o[idx] = dma_pkt_v_i[E][y][k][0][0];
+        assign dma_pkt_yumi_o[E][y][k][0][0] = remapped_dma_pkt_yumi_i[idx];
+        assign dma_data_o[E][y][k][0][0] = remapped_dma_data_i[idx];
+        assign dma_data_v_o[E][y][k][0][0] = remapped_dma_data_v_i[idx];
+        assign remapped_dma_data_ready_o[idx] = dma_data_ready_i[E][y][k][0][0];
+        assign remapped_dma_data_o[idx] = dma_data_i[E][y][k][0][0];
+        assign remapped_dma_data_v_o[idx] = dma_data_v_i[E][y][k][0][0];
+        assign dma_data_yumi_o[E][y][k][0][0] = remapped_dma_data_yumi_i[idx];
+      end
+    end
+  end else begin: multiple_columns
   // cache dma unruched mapping
   bsg_cache_dma_pkt_s [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0] unruched_dma_pkt_lo;
   logic [E:W][num_pods_y_p-1:0][S:N][(num_tiles_x_p*num_pods_x_p/2)-1:0][vcache_dma_data_width_p-1:0] unruched_dma_data_li, unruched_dma_data_lo;
@@ -138,9 +166,9 @@ module vcache_dma_to_dram_channel_map
   assign remapped_dma_data_v_o = flattened_dma_data_v_lo;
   assign flattened_dma_data_yumi_li = remapped_dma_data_yumi_i;
 
+  end
 
 
 endmodule
 
 `BSG_ABSTRACT_MODULE(vcache_dma_to_dram_channel_map)
-
