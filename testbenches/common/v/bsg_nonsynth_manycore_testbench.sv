@@ -331,6 +331,10 @@ module bsg_nonsynth_manycore_testbench
       ,.proc_link_sif_i(io_link_sif_li[x][P])
       ,.proc_link_sif_o(io_link_sif_lo[x][P])
 
+      // The first pod starts at 2^local_X_bits; SAFE_CLOG2 reserves one bit even for X=1.
+      // Add the column index to that origin, placing the single-column I/O router at X=2.
+      // Multiple pods across X are unsupported when each pod is only one tile wide.
+      // They require I/O X coordinates 2,4,..., but this formula produces 2,3,... .
       ,.global_x_i(x_cord_width_p'((1 << `BSG_SAFE_CLOG2(num_tiles_x_p))+x))
       ,.global_y_i(y_cord_width_p'(0))
     );
@@ -405,6 +409,8 @@ module bsg_nonsynth_manycore_testbench
       
     parameter num_total_vcaches_lp = (num_pods_x_p*num_pods_y_p*2*num_tiles_x_p);
     parameter lg_num_total_vcaches_lp = `BSG_SAFE_CLOG2(num_total_vcaches_lp);
+    // Normally, divide columns between east/west and then among cache-to-DRAM lanes.
+    // With one column and one lane, division gives zero, but each used east link serves one cache.
     parameter num_vcaches_per_link_lp = `BSG_MAX(1, (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2); // # of vcaches attached to each link
 
     parameter num_total_channels_lp = num_total_vcaches_lp/num_vcaches_per_channel_p;
@@ -1013,4 +1019,3 @@ end // if (enable_vanilla_core_pc_histogram_p)
 endmodule
 
 `BSG_ABSTRACT_MODULE(bsg_nonsynth_manycore_testbench)
-

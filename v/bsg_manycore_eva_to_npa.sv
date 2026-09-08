@@ -84,15 +84,22 @@ module bsg_manycore_eva_to_npa
   logic [addr_width_p-1:0] dram_epa_lo;
 
   if (num_tiles_x_p == 1) begin: single_column_dram
-    // Alternate cache lines north/south; no address bit selects an X bank.
+    // One column needs no X-bank selector, so its local X coordinate is always zero.
+    // The first EVA bit above the cache-line offset instead selects north versus south.
     wire south = eva_i[2+vcache_word_offset_width_lp];
     assign dram_x_cord_lo = {pod_x_i, {x_subcord_width_lp{1'b0}}};
+    // Cache rows border the pod's reserved Y range: north just before it, south just after.
+    // All-ones/all-zeros local fields select those boundaries: Y=1/Y=4 in our one-row profiles.
     assign dram_y_cord_lo = south
       ? {pod_y_cord_width_p'(pod_y_i+1), {y_subcord_width_lp{1'b0}}}
       : {pod_y_cord_width_p'(pod_y_i-1), {y_subcord_width_lp{1'b1}}};
+    // Remove the DRAM flag, two byte-offset bits, and the north/south bank-selection bit.
+    // Pack the remaining bits into a word address, keeping its MSB zero for normal cache data.
     assign dram_epa_lo = addr_width_p'({1'b0,
       eva_i[30:3+vcache_word_offset_width_lp],
       eva_i[2+:vcache_word_offset_width_lp]});
+    // This branch implements plain two-bank striping and does not apply an iPoly hash.
+    // Reject iPoly-enabled profiles so the RTL cannot silently disagree with the runtime.
     initial assert (!ipoly_hashing_p)
       else $error("Single-column pods require iPoly disabled");
   end else begin: multi_column_dram

@@ -20,6 +20,8 @@ module vcache_dma_to_dram_channel_map
     , parameter `BSG_INV_PARAM(vcache_dma_data_width_p)
     , parameter `BSG_INV_PARAM(vcache_block_size_in_words_p)
 
+    // Normally, divide columns between east/west and then among cache-to-DRAM lanes.
+    // With one column and one lane, division gives zero, but each used east link serves one cache.
     , parameter num_vcaches_per_link_lp = `BSG_MAX(1, (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2)
     , parameter num_total_vcaches_lp = (num_pods_x_p*num_pods_y_p*2*num_tiles_x_p)
 
@@ -62,7 +64,8 @@ module vcache_dma_to_dram_channel_map
 
 
   if (num_tiles_x_p == 1 && num_pods_x_p == 1) begin: single_column
-    // Both banks drain east. The unused west endpoints remain quiescent.
+    // This wiring requires one cache-to-DRAM lane per endpoint, so its lane index is always 0.
+    // Runtime initialization sends both caches east; keep the unused west handshakes inactive.
     initial assert (wh_ruche_factor_p == 1)
       else $error("Single-column HBM wiring requires WH factor 1");
     assign dma_pkt_yumi_o[W] = '0;
@@ -71,6 +74,8 @@ module vcache_dma_to_dram_channel_map
     assign dma_data_yumi_o[W] = '0;
     for (genvar y = 0; y < num_pods_y_p; y++) begin: py
       for (genvar k = N; k <= S; k++) begin: ns
+        // Each pod row contributes two caches, ordered north then south.
+        // Thus row y occupies indices 2*y and 2*y+1, with the same mapping for data and handshakes.
         localparam idx = 2*y + (k == S);
         assign remapped_dma_pkt_o[idx] = dma_pkt_i[E][y][k][0][0];
         assign remapped_dma_pkt_v_o[idx] = dma_pkt_v_i[E][y][k][0][0];
@@ -167,4 +172,3 @@ module vcache_dma_to_dram_channel_map
 endmodule
 
 `BSG_ABSTRACT_MODULE(vcache_dma_to_dram_channel_map)
-
