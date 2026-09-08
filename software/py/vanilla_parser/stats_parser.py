@@ -1150,7 +1150,7 @@ class GroupCacheStats():
 
         # Group the dataframe by Tile Group ID and then parse that
         # group
-        for i, grp in df.groupby(["Tile Group ID"]):
+        for i, grp in df.groupby("Tile Group ID"):
             self._agg[i] = AggregateCacheStats(grp, cache_line_words)
 
     def __getitem__(self, i):
