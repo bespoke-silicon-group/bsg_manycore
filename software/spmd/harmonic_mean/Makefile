@@ -2,6 +2,10 @@ bsg_tiles_X = 1
 bsg_tiles_Y = 1
 
 
+# The expected harmonic mean is an exact FP32 bit pattern. Preserve the source
+# reduction order while retaining the surrounding SDK fast-math policy.
+RISCV_GCC_EXTRA_OPTS += -fno-associative-math
+
 all: main.run
 
 OBJECT_FILES=main.o
