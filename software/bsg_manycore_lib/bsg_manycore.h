@@ -134,10 +134,10 @@ static inline void bsg_print_float_scientific(float f)
 #define bsg_wait_while(cond) do {} while ((cond))
 
 // load reserved; and load reserved acquire
-#ifdef __clang__
-inline int bsg_lr(int *p)    { int tmp; __asm__ __volatile__("lr.w    %0,%1\n" : "=r" (tmp) : "m" (*p)); return tmp; }
-inline int bsg_lr_aq(int *p) { int tmp; __asm__ __volatile__("lr.w.aq %0,%1\n" : "=r" (tmp) : "m" (*p)); return tmp; }
-#elif defined(__GNUC__) || defined(__GNUG__)
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+// RISC-V LR has no encoded offset. The A constraint forces the address into a
+// register for both GCC and Clang instead of allowing a generic offset(base)
+// memory operand that modern LLVM's integrated assembler correctly rejects.
 inline int bsg_lr(int *p)    { int tmp; __asm__ __volatile__("lr.w    %0,%1\n" : "=r" (tmp) : "A" (*p)); return tmp; }
 inline int bsg_lr_aq(int *p) { int tmp; __asm__ __volatile__("lr.w.aq %0,%1\n" : "=r" (tmp) : "A" (*p)); return tmp; }
 
