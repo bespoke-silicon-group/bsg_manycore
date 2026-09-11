@@ -225,7 +225,8 @@ LLVM_CLANG        ?= $(LLVM_DIR)/bin/clang
 LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
 LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
 LLVM_LLC          ?= $(LLVM_DIR)/bin/llc
-CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
+LLVM_OPT_OPTS     ?=
+CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI) -mcpu=hb-rv32
 # Preserve optimization-sensitive frontend behavior while leaving the single
 # LLVM optimization pipeline to the explicit opt step below.
 CLANG_IR_OPTS     ?= -Xclang -disable-llvm-passes
@@ -233,8 +234,17 @@ CLANG_IR_OPTS     ?= -Xclang -disable-llvm-passes
 # Ideally LLC should infer targets option provided to Clang. But LLC 11.0.0 fails
 # to infer the architecture extensions correctly. Hence the information is repeated
 # in LLC target options below.
-LLC_TARGET_OPTS   ?= -march=riscv32 -mcpu=hb-rv32 -mattr=+m,+a,+f
+LLC_TARGET_OPTS   ?= -march=riscv32 -mcpu=hb-rv32 -mattr=+m,+a,+f -target-abi=$(ABI)
 LLC_CODEGEN_OPTS  ?= $(OPT_LEVEL)
+# Emit ELF objects with LLVM's integrated assembler. Recent LLVM versions emit
+# current RISC-V ISA-attribute spellings that the SDK's older GNU assembler
+# cannot parse; the resulting objects remain compatible with the GNU linker.
+LLVM_LLC_FILETYPE ?= asm
+# The bundled binutils 2.32 linker rejects the versioned extension names in
+# modern LLVM's .riscv.attributes section. The link already receives the
+# explicit rv32imaf architecture, so remove only this metadata section from
+# LLVM-generated objects before passing them to the legacy linker.
+LLVM_STRIP_RISCV_ATTRIBUTES ?= 1
 
 ifdef ENABLE_LLVM_PASSES
 PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
@@ -270,13 +280,21 @@ ifdef ENABLE_LLVM_PASSES
 PASS_OPTS = -load $(PASS_LIB) -manycore
 endif
 %.ll.pass: %.ll $(PASS_LIB)
-	$(LLVM_OPT) $(PASS_OPTS) $(OPT_LEVEL) -S $< -o $@
+	$(LLVM_OPT) $(PASS_OPTS) $(OPT_LEVEL) $(LLVM_OPT_OPTS) -S $< -o $@
 
+ifeq ($(LLVM_LLC_FILETYPE),obj)
+%.o: %.ll.pass
+	$(LLVM_LLC) $(LLC_TARGET_OPTS) $(LLC_CODEGEN_OPTS) -filetype=obj $< -o $@
+ifeq ($(LLVM_STRIP_RISCV_ATTRIBUTES),1)
+	$(RISCV_OBJCOPY) --remove-section=.riscv.attributes $@
+endif
+else
 %.ll.s: %.ll.pass
 	$(LLVM_LLC) $(LLC_TARGET_OPTS) $(LLC_CODEGEN_OPTS) $< -o $@
 
 %.o: %.ll.s
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) -c $< -o $@
+endif
 
 ifdef ENABLE_LLVM_PASSES
 $(PASS_LIB): $(PASS_DIR)/manycore/Manycore.cpp $(LLVM_DIR)
