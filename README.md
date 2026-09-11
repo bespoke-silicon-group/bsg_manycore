@@ -68,7 +68,8 @@ In bsg\_manycore:
 
 ## Verilator (Beta Support)
 
-BSG Manycore has preliminary support for simulating with the open-source [Verilator](https://github.com/verilator/verilator) toolchain!
+BSG Manycore has preliminary support for simulating with the open-source [Verilator 5](https://github.com/verilator/verilator) toolchain!
+We support this extensively on MacOS.
 
 To test this feature, set BSG\_PLATFORM=verilator in machines/platform.mk and then follow the
 above instructions to run tests normally. This platform only currently supports the machine
@@ -95,4 +96,6 @@ updates and rebase `ci_mybranch` on `mybranch` when it's ready for another CI ru
 
 # Tutorial 
 
-Comming Soon!
+See:
+
+https://docs.google.com/document/d/15iSvd8ZCa1r1JmvFL6FjU55Zfn1vyG6DxyU-L4-cE9M/edit?usp=drivesdk
