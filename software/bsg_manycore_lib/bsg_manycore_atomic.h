@@ -47,6 +47,16 @@ inline int bsg_amoor (volatile int* p, int val)
   return result;
 }
 
+// Use this form when the caller does not consume the old memory value.  The
+// architectural zero register prevents a long-latency remote AMO response
+// from making a general-purpose register unavailable to following work.
+inline void bsg_amoor_no_return (volatile int* p, int val)
+{
+  asm volatile ("amoor.w x0, %[val], 0(%[p])" \
+                : \
+                : [p] "r" (p), [val] "r" (val));
+}
+
 inline int bsg_amoor_aq (volatile int* p, int val)
 {
   int result;
