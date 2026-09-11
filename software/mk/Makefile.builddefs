@@ -226,6 +226,9 @@ LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
 LLVM_OPT          ?= $(LLVM_DIR)/bin/opt
 LLVM_LLC          ?= $(LLVM_DIR)/bin/llc
 CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
+# Preserve optimization-sensitive frontend behavior while leaving the single
+# LLVM optimization pipeline to the explicit opt step below.
+CLANG_IR_OPTS     ?= -Xclang -disable-llvm-passes
 
 # Ideally LLC should infer targets option provided to Clang. But LLC 11.0.0 fails
 # to infer the architecture extensions correctly. Hence the information is repeated
@@ -253,7 +256,7 @@ $(LLVM_DIR):
 %.ll: %.c $(LLVM_DIR) $(RUNTIME_FNS)
 	$(LLVM_CLANG) $(CLANG_TARGET_OPTS) $(RISCV_GCC_OPTS) \
 		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
-		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm -S $(INCS) $< -o $@
+		$(OPT_LEVEL) $(CLANG_IR_OPTS) $(spmd_defs) -c -emit-llvm -S $(INCS) $< -o $@
 
 # do the same for C++ sources
 %.ll: %.cpp $(LLVM_DIR) $(RUNTIME_FNS)
@@ -261,7 +264,7 @@ $(LLVM_DIR):
 		--sysroot=$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs \
 		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0 \
 		-I$(RISCV_BIN_DIR)/../riscv32-unknown-elf-dramfs/include/c++/9.2.0/riscv32-unknown-elf-dramfs \
-		$(OPT_LEVEL) $(spmd_defs) -c -emit-llvm -S $(INCS) $< -o $@
+		$(OPT_LEVEL) $(CLANG_IR_OPTS) $(spmd_defs) -c -emit-llvm -S $(INCS) $< -o $@
 
 ifdef ENABLE_LLVM_PASSES
 PASS_OPTS = -load $(PASS_LIB) -manycore

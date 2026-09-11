@@ -16,7 +16,9 @@ In any of the sub-directories:
 - `make SPMD_COMPILER=gcc`: Build device C/C++ with GCC (the default).
 - `make SPMD_COMPILER=llvm LLVM_DIR=/path/to/llvm-build`: Build device C/C++
   with the HammerBlade LLVM toolchain. The linker and assembler remain from
-  the compatible RISC-V GNU installation.
+  the compatible RISC-V GNU installation. Clang emits IR without running its
+  internal LLVM optimization pipeline; the explicit `opt` step runs the chosen
+  optimization level exactly once.
 - `make WAVE=1` Run VCS simulation with waveform dump.
 - `make main.riscv`: Generate ELF binary of that SPMD program.
 - `make COVERAGE=1` Run VCS simulation with coverage analysis.
