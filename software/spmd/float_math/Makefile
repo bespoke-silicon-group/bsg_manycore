@@ -1,6 +1,10 @@
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 
+# This test checks the exact bits produced by source-order FP32 reductions.
+# Keep the surrounding SDK fast-math policy, but do not permit reassociation or
+# reciprocal replacement to change the numerical contract being tested.
+RISCV_GCC_EXTRA_OPTS += -fno-associative-math -fno-reciprocal-math
 
 all: main.run
 
