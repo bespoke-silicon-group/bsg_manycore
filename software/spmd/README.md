@@ -13,6 +13,10 @@ Running single spmd program
 
 In any of the sub-directories:
 - `make`: Run VCS simulation.
+- `make SPMD_COMPILER=gcc`: Build device C/C++ with GCC (the default).
+- `make SPMD_COMPILER=llvm LLVM_DIR=/path/to/llvm-build`: Build device C/C++
+  with the HammerBlade LLVM toolchain. The linker and assembler remain from
+  the compatible RISC-V GNU installation.
 - `make WAVE=1` Run VCS simulation with waveform dump.
 - `make main.riscv`: Generate ELF binary of that SPMD program.
 - `make COVERAGE=1` Run VCS simulation with coverage analysis.
@@ -65,6 +69,9 @@ Some useful flags:
     above dimension variables are explicitly set.
 - `ENABLE_VCACHE={0|1}`:
     include vcache or instead include block SRAM.
+- `SPMD_COMPILER={gcc|llvm}`:
+    Select the device C/C++ compiler. `CLANG=1` remains a compatibility alias
+    for `SPMD_COMPILER=llvm`; new automation should use the explicit selector.
 
 Note: 
     Current design is only tested for x<=4, y<=4 and dimensions mentioned in
