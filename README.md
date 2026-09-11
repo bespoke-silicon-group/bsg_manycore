@@ -9,8 +9,11 @@ The tile based architecture is designed for computing efficiency, scalability an
 
 Without any custom circuits, a 16nm prototype chip with 16x31 tiles on a 4.5x3.4 mm^2 die space achieves **812,350**
 aggregated [CoreMark](https://www.eembc.org/coremark/) score, a world record. Many improvements have been made since this previous version,
-and we have had a 12nm 99mm^2  2,048 core chip (also with 8 Linux-Capable BlackParrot cores) running in our lab, breaking many RISC-V world records.
+and we have had the "HammerBlade Prime" 12nm 99mm^2  2,048 core chip (also with 8 Linux-Capable BlackParrot cores) running in our lab, breaking many RISC-V world records.
 This is detailed in our TVLSI 2026 paper.
+
+In total, we have taped out 4 FinFet chips using evolutions of this code base,
+the most recent in 2025. 
 
 # Documentation 
 
