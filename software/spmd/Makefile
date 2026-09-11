@@ -23,8 +23,9 @@ NO-RECURSE = \
 	energy_loop_test \
 	energy_ubenchmark
 
-# Skip hb_mc test series
-SPMD_HB_MC_TESTS := $(shell find $(BSG_MANYCORE_DIR)/software/spmd -maxdepth 1 -type d -name 'hb_mc_*' -printf '%P\n')
+# Skip hb_mc test series. Use make's wildcard functions so this also works
+# with BSD find on macOS.
+SPMD_HB_MC_TESTS := $(notdir $(patsubst %/,%,$(wildcard $(BSG_MANYCORE_DIR)/software/spmd/hb_mc_*/)))
 NO-RECURSE += $(SPMD_HB_MC_TESTS)
 
 # Define this variable on cmd line to run coverage analysis. Currently

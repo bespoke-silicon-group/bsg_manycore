@@ -82,6 +82,18 @@ vpath %.S $(COMMON_SRC_DIRS)
 
 # flags
 OPT_LEVEL ?= -O2
+PYTHON ?= python3
+
+# Select the SPMD C/C++ compiler explicitly. Keep CLANG as a compatibility
+# alias for existing invocations, but prefer SPMD_COMPILER in new scripts.
+ifdef CLANG
+SPMD_COMPILER ?= llvm
+endif
+SPMD_COMPILER ?= gcc
+ifeq ($(filter $(SPMD_COMPILER),gcc llvm),)
+$(error Unsupported SPMD_COMPILER '$(SPMD_COMPILER)'; expected gcc or llvm)
+endif
+
 RISCV_GCC_EXTRA_OPTS ?=
 RISCV_GCC_OPTS  =-march=$(ARCH_OP) -static -std=gnu99 -ffast-math -fno-common -mtune=bsg_vanilla_2020
 
@@ -173,7 +185,7 @@ endif
 LINK_SCRIPT ?= $(CURR_DIR)/bsg_link.ld
 
 $(CURR_DIR)/bsg_link.ld: $(LINK_GEN)
-	python $(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
+	$(PYTHON) $(LINK_GEN) $(LINK_GEN_OPTS) --out=$@
 
 RISCV_LINK_OPTS ?= 
 
@@ -194,7 +206,7 @@ https://stackoverflow.com/questions/56518056/risc-v-linker-throwing-sections-lma
 RISCV_LINK = $(RISCV_GCC) -t -T $(LINK_SCRIPT) $(RISCV_LINK_SYMS)
 
 
-ifndef CLANG
+ifeq ($(SPMD_COMPILER),gcc)
   RISCV_GCC_OPTS += -fweb -frename-registers -frerun-cse-after-loop
 endif
 
@@ -207,7 +219,7 @@ RISCV_GXX_OPTS += $(RISCV_GXX_EXTRA_OPTS)
 
 spmd_defs = -DPREALLOCATE=0 -DHOST_DEBUG=0
 
-ifdef CLANG
+ifeq ($(SPMD_COMPILER),llvm)
 LLVM_DIR          ?= $(RISCV_INSTALL_DIR)
 LLVM_CLANG        ?= $(LLVM_DIR)/bin/clang
 LLVM_CLANGPP      ?= $(LLVM_DIR)/bin/clang++
@@ -219,6 +231,7 @@ CLANG_TARGET_OPTS ?= --target=riscv32 -march=$(ARCH_OP) -mabi=$(ABI)
 # to infer the architecture extensions correctly. Hence the information is repeated
 # in LLC target options below.
 LLC_TARGET_OPTS   ?= -march=riscv32 -mcpu=hb-rv32 -mattr=+m,+a,+f
+LLC_CODEGEN_OPTS  ?= $(OPT_LEVEL)
 
 ifdef ENABLE_LLVM_PASSES
 PASS_DIR          ?= $(BSG_MANYCORE_DIR)/software/manycore-llvm-pass
@@ -257,7 +270,7 @@ endif
 	$(LLVM_OPT) $(PASS_OPTS) $(OPT_LEVEL) -S $< -o $@
 
 %.ll.s: %.ll.pass
-	$(LLVM_LLC) $(LLC_TARGET_OPTS) $< -o $@
+	$(LLVM_LLC) $(LLC_TARGET_OPTS) $(LLC_CODEGEN_OPTS) $< -o $@
 
 %.o: %.ll.s
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(OPT_LEVEL) -c $< -o $@
@@ -309,7 +322,7 @@ SKIP_DRAM_INSTRUCTION_LOAD ?= 0
 SKIP_ZEROS ?= 0
 
 %.nbf: %.riscv
-	python $(NBF_PY) \
+	$(PYTHON) $(NBF_PY) \
 	  $*.riscv \
 		$(BSG_MACHINE_GLOBAL_X) $(BSG_MACHINE_GLOBAL_Y) \
 		$(BSG_MACHINE_VCACHE_WAY) $(BSG_MACHINE_VCACHE_SET) \
@@ -325,7 +338,7 @@ SKIP_ZEROS ?= 0
 		$(BSG_MACHINE_IPOLY_HASHING) > $*.nbf
 
 %.bin:  %.hex
-	python $(HEX2BIN) $< 32 > $@
+	$(PYTHON) $(HEX2BIN) $< 32 > $@
 
 %.dis: %.riscv
 	$(RISCV_BIN_DIR)/riscv32-unknown-elf-dramfs-objdump -M numeric --disassemble-all -S $<
@@ -346,4 +359,3 @@ endif
 
 %.S: %.cpp
 	$(RISCV_GXX) $(RISCV_GXX_OPTS) $(spmd_defs) -S -fverbose-asm $(INCS) $< -o $@ 2>&1 | tee $*.comp.log
-
