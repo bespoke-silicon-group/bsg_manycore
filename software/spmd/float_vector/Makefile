@@ -1,6 +1,9 @@
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 
+# The precomputed checks below are exact FP32 bit patterns, so preserve the
+# source reduction order and division rounding under both supported compilers.
+RISCV_GCC_EXTRA_OPTS += -fno-associative-math -fno-reciprocal-math
 
 all: main.run
 

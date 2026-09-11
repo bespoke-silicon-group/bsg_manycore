@@ -1,6 +1,10 @@
 bsg_tiles_X = 1
 bsg_tiles_Y = 1
 
+# Expected centroids are exact FP32 bit patterns. Fast reciprocal replacement
+# changes their final rounding, so preserve source division for both compilers.
+RISCV_GCC_EXTRA_OPTS += -fno-reciprocal-math
+
 all: main.run
 
 OBJECT_FILES=main.o
