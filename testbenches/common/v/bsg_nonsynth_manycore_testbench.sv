@@ -882,10 +882,17 @@ if (enable_vcore_profiling_p) begin
   ) vcore_prof (
     .*
     ,.clk_i(clk_i)
+`ifdef BSG_VERILATOR_PROFILE_PORTS
+    ,.global_ctr_i(bsg_manycore_hetero_socket.profiler_global_ctr_i)
+    ,.print_stat_v_i(bsg_manycore_hetero_socket.profiler_print_stat_v_i)
+    ,.print_stat_tag_i(bsg_manycore_hetero_socket.profiler_print_stat_tag_i)
+    ,.trace_en_i(bsg_manycore_hetero_socket.profiler_trace_en_i)
+`else
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
     ,.print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
+`endif
   );
 end
 `endif
@@ -906,8 +913,13 @@ if (enable_remote_op_profiling_p) begin
   ) rlt (
     .*
     ,.clk_i(clk_i)
+`ifdef BSG_VERILATOR_PROFILE_PORTS
+    ,.global_ctr_i(bsg_manycore_hetero_socket.profiler_global_ctr_i)
+    ,.trace_en_i(bsg_manycore_hetero_socket.profiler_trace_en_i)
+`else
     ,.global_ctr_i($root.`HOST_MODULE_PATH.global_ctr)
     ,.trace_en_i($root.`HOST_MODULE_PATH.trace_en)
+`endif
   );
 end
 `endif

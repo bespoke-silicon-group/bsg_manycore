@@ -104,6 +104,14 @@ module bsg_manycore_hetero_socket
 
     , input [pod_x_cord_width_p-1:0] pod_x_i
     , input [pod_y_cord_width_p-1:0] pod_y_i
+`ifdef BSG_VERILATOR_PROFILE_PORTS
+    // Simulation-only inputs at the independently compiled processor boundary.
+    // Bound observers consume them; the processor and endpoint do not.
+    , input [31:0] profiler_global_ctr_i
+    , input profiler_print_stat_v_i
+    , input [31:0] profiler_print_stat_tag_i
+    , input profiler_trace_en_i
+`endif
   );
 
   // add as many types as you like...

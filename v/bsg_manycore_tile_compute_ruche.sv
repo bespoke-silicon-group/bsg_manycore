@@ -224,6 +224,12 @@ module bsg_manycore_tile_compute_ruche
 
     ,.my_x_i(my_x_r)
     ,.my_y_i(my_y_r)
+`ifdef BSG_VERILATOR_PROFILE_PORTS
+    ,.profiler_global_ctr_i($root.`HOST_MODULE_PATH.global_ctr[31:0])
+    ,.profiler_print_stat_v_i($root.`HOST_MODULE_PATH.print_stat_v)
+    ,.profiler_print_stat_tag_i($root.`HOST_MODULE_PATH.print_stat_tag)
+    ,.profiler_trace_en_i($root.`HOST_MODULE_PATH.trace_en)
+`endif
   );
 
 
