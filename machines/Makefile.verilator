@@ -2,7 +2,7 @@
 GCCVERSION = $(shell gcc -dumpversion)
 ifeq ($(shell expr $(GCCVERSION) \> 7), 1)
 else
-$(error Verilator requires > GCC 7)
+$(warning Verilator requires > GCC 7)
 endif
 
 VERILATOR ?= verilator
@@ -67,6 +67,7 @@ define set_verilator_machine_variables
 	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_SUBARRAY_X="${BSG_MACHINE_SUBARRAY_X}")
 	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_SUBARRAY_Y="${BSG_MACHINE_SUBARRAY_Y}")
 	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_VCACHE_WORD_TRACKING="${BSG_MACHINE_VCACHE_WORD_TRACKING}")
+	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_VCACHE_AMO_SUPPORT="${BSG_MACHINE_VCACHE_AMO_SUPPORT}")
 	$(eval VERILATOR_DEFINES += +define+BSG_MACHINE_IPOLY_HASHING="${BSG_MACHINE_IPOLY_HASHING}")
 	# specify where the host module is instantiated for profiler trigger (print_stat).
 	# relative to $root
