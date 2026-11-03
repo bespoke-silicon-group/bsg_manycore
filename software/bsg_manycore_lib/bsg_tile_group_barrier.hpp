@@ -255,6 +255,11 @@ public:
 
     //  The main sync funciton
     void sync() {
+
+        // First perform memory operation fence to ensure in-order 
+        // memory operation execution
+        bsg_fence();
+
         // If barrier dimensions is 1x1, i.e. only a single tile is 
         // participating, there is nothing to be done
         if (BARRIER_Y_DIM == 1 && BARRIER_X_DIM == 1)
