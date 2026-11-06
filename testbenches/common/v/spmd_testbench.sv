@@ -39,6 +39,8 @@ module spmd_testbench
   parameter vcache_size_p = vcache_sets_p*vcache_ways_p*vcache_block_size_in_words_p;
   parameter vcache_addr_width_p=(addr_width_p-1+`BSG_SAFE_CLOG2(data_width_p>>3));  // in bytes
   parameter vcache_word_tracking_p = `BSG_MACHINE_VCACHE_WORD_TRACKING;
+  parameter vcache_amo_support_p = `BSG_MACHINE_VCACHE_AMO_SUPPORT;
+
   parameter num_vcaches_per_channel_p = `BSG_MACHINE_NUM_VCACHES_PER_CHANNEL;  
   parameter ipoly_hashing_p = `BSG_MACHINE_IPOLY_HASHING;
 
@@ -116,6 +118,7 @@ module spmd_testbench
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_addr_width_p(vcache_addr_width_p)
     ,.vcache_word_tracking_p(vcache_word_tracking_p)
+    ,.vcache_amo_support_p(vcache_amo_support_p)
     ,.num_vcaches_per_channel_p(num_vcaches_per_channel_p)
     ,.ipoly_hashing_p(ipoly_hashing_p)
 

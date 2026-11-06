@@ -28,6 +28,7 @@ module bsg_manycore_tile_vcache
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
     , `BSG_INV_PARAM(vcache_dma_data_width_p)
     , `BSG_INV_PARAM(vcache_word_tracking_p)
+    , `BSG_INV_PARAM(vcache_amo_support_p)
 
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
     // wh_ruche_factor_p supported only for 2^n, n>0.
@@ -49,10 +50,6 @@ module bsg_manycore_tile_vcache
 
     , wh_link_sif_width_lp = 
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
-
-    , parameter vcache_amo_support_p = (1 << e_cache_amo_swap)
-                                | (1 << e_cache_amo_or)
-                                | (1 << e_cache_amo_add)
   )
   (
     input clk_i
@@ -219,8 +216,8 @@ module bsg_manycore_tile_vcache
     ,.sets_p(vcache_sets_p)
     ,.ways_p(vcache_ways_p)
     ,.word_tracking_p(vcache_word_tracking_p)
-    ,.dma_data_width_p(vcache_dma_data_width_p)
     ,.amo_support_p(vcache_amo_support_p)
+    ,.dma_data_width_p(vcache_dma_data_width_p)
   ) cache (
     .clk_i(clk_i)
     ,.reset_i(reset_r)
