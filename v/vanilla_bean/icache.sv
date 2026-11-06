@@ -123,11 +123,11 @@ module icache
   
   
   // Inject the 2-BYTE (half) address, the LSB is ignored.
-  wire [RV32_instr_width_gp-1:0] injected_instr = write_branch_instr
-    ? `RV32_Bimm_12inject1(w_instr, branch_pc_lower_res)
-    : (write_jal_instr
-      ? `RV32_Jimm_20inject1(w_instr, jal_pc_lower_res)
-      : w_instr);
+  wire instruction_s instr = write_branch_instr
+      ? `RV32_Bimm_12inject1(w_instr, branch_pc_lower_res)
+      : (write_jal_instr
+        ? `RV32_Jimm_20inject1(w_instr, jal_pc_lower_res)
+        : w_instr);
 
   wire imm_sign = write_branch_instr
     ? branch_imm_val[RV32_Bimm_width_gp] 
@@ -137,19 +137,19 @@ module icache
     ? branch_pc_lower_cout
     : jal_pc_lower_cout;
 
-
-  // buffered writes
-  logic [icache_block_size_in_words_p-2:0] imm_sign_r;
-  logic [icache_block_size_in_words_p-2:0] pc_lower_cout_r;
-  logic [icache_block_size_in_words_p-2:0][RV32_instr_width_gp-1:0] buffered_instr_r;
-
-  assign icache_data_li = '{
-    lower_sign : {imm_sign, imm_sign_r},
-    lower_cout : {pc_lower_cout, pc_lower_cout_r},
-    tag        : w_tag,
-    instr      : {injected_instr, buffered_instr_r}
+  wire icache_instr_s injected_instr = '{
+    instr31to2:  (instr >> 2)
+    ,lower_sign: imm_sign
+    ,lower_cout: pc_lower_cout
   };
 
+  // buffered writes
+  icache_instr_s [icache_block_size_in_words_p-2:0] buffered_instr_r;
+
+  assign icache_data_li = '{
+    tag: w_tag
+    ,instr: {injected_instr, buffered_instr_r}
+  };
 
   // icache write counter
   logic [icache_block_offset_width_lp-1:0] write_count_r;
@@ -168,8 +168,6 @@ module icache
   logic write_en_icache;
   always_ff @ (posedge clk_i) begin
     if (write_en_buffer) begin
-      imm_sign_r[write_count_r] <= imm_sign;
-      pc_lower_cout_r[write_count_r] <= pc_lower_cout;
       buffered_instr_r[write_count_r] <= injected_instr;
     end
   end
@@ -230,9 +228,9 @@ module icache
   // Merge the PC lower part and high part
   // BYTE operations
   instruction_s instr_out;
-  assign instr_out = icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]];
-  wire lower_sign_out = icache_data_lo.lower_sign[pc_r[0+:icache_block_offset_width_lp]];
-  wire lower_cout_out = icache_data_lo.lower_cout[pc_r[0+:icache_block_offset_width_lp]];
+  assign instr_out = {icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]].instr31to2,2'b11};
+  wire lower_sign_out = icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]].lower_sign;
+  wire lower_cout_out = icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]].lower_cout;
   wire sel_pc    = ~(lower_sign_out ^ lower_cout_out); 
   wire sel_pc_p1 = (~lower_sign_out) & lower_cout_out; 
 
@@ -302,7 +300,7 @@ module icache
   // branch imm sign
   assign branch_predicted_taken_o = lower_sign_out;
 
- 
+
 endmodule
 
 `BSG_ABSTRACT_MODULE(icache)

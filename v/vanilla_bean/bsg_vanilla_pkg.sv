@@ -45,6 +45,13 @@ typedef struct packed {
   logic [RV32_opcode_width_gp-1:0]   op;
 } instruction_s;
 
+// icache packs cout and sign into the low bits of the instruction
+typedef struct packed {
+    logic [RV32_instr_width_gp-3:0] instr31to2;
+    logic lower_cout;
+    logic lower_sign;
+} icache_instr_s;
+
 // remote request from vanilla core
 //
 typedef enum logic [1:0] {
