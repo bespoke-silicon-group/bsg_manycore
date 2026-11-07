@@ -25,7 +25,6 @@ CSR_FREEZE = 0 | CSR_BASE
 CSR_TGO_X = 1 | CSR_BASE
 CSR_TGO_Y = 2 | CSR_BASE
 CSR_PC_INIT = 3 | CSR_BASE
-CSR_ENABLE_DRAM = 4 | CSR_BASE
 ################################
 
 
@@ -305,15 +304,6 @@ class NBF:
             self.print_nbf(x_eff, y_eff, k, 0)
 
  
-  # disable dram mode
-  def disable_dram(self, pod_origin_x, pod_origin_y):
-    for x in range(self.tg_dim_x):
-      for y in range(self.tg_dim_y):
-        x_eff = self.tgo_x + x + pod_origin_x
-        y_eff = self.tgo_y + y + pod_origin_y
-        self.print_nbf(x_eff, y_eff, CSR_ENABLE_DRAM, 0)
-   
- 
   # initialize vcache in no DRAM mode
   def init_vcache(self, pod_origin_x, pod_origin_y):
 
@@ -493,7 +483,6 @@ class NBF:
         self.set_pc_init_val(pod_origin_x, pod_origin_y)
 
         if self.enable_dram != 1:
-          self.disable_dram(pod_origin_x, pod_origin_y)
           self.init_vcache(pod_origin_x, pod_origin_y)
 
         self.init_dram(pod_origin_x, pod_origin_y)
