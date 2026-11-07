@@ -230,7 +230,7 @@ module mcsr
             ? 1'b0
             : mip_r.remote;
         end
-        default: mip_n = mip_r;
+        default: mip_n.remote = mip_r.remote;
       endcase
     end
   end
