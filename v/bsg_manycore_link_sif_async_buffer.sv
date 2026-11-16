@@ -14,7 +14,9 @@ module bsg_manycore_link_sif_async_buffer
       , `BSG_INV_PARAM(data_width_p  )
       , `BSG_INV_PARAM(x_cord_width_p)
       , `BSG_INV_PARAM(y_cord_width_p)
-      , fifo_els_p    = 2
+      // Cover the pointer synchronization round trip for one transfer per
+      // cycle at equal clock rates; four entries still introduce bubbles.
+      , fifo_els_p    = 8
       , localparam bsg_manycore_link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p, data_width_p, x_cord_width_p, y_cord_width_p)
     )(
     //the left side signal
