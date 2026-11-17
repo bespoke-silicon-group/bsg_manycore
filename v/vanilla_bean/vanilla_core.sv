@@ -1540,7 +1540,12 @@ module vanilla_core
 
   // AMO aq control
   assign aq_set = (id_r.decode.is_amo_op & id_r.decode.is_amo_aq) & id_issue;
-  assign aq_clear = int_rf_wen & (int_rf_waddr == aq_rd_r);
+  // While the AMO is outstanding, only its result clears the scoreboard entry of its rd.
+  // x0 has no entry, and a result for x0 can belong to another request, so then wait
+  // until no request is outstanding.
+  assign aq_clear = (aq_rd_r == '0)
+    ? ~(remote_credit_pending | remote_req_in_exe)
+    : (int_sb_clear & (int_sb_clear_id == aq_rd_r));
 
 
   // FCSR control
