@@ -3,7 +3,7 @@
 import sys
 
 if len(sys.argv) != 3:
-    print "Usage: hex2binascii.py <hexfile> <width>"
+    print("Usage: hex2binascii.py <hexfile> <width>")
 else:
     hexfile = open(sys.argv[1], "r")
     width   = int(sys.argv[2])
@@ -43,4 +43,4 @@ for i in range(0, len(bincode), width):
     binline = ""
     for j in range(width, 0, -4):
         binline += bincode[i:(i+width)][j-4:j]
-    print binline
+    print(binline)
