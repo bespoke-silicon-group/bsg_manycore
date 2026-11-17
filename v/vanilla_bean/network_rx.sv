@@ -110,6 +110,9 @@ module network_rx
 
   // CSR registers
   //
+  // freeze_r is the reset of the vanilla core, not a pause. Answers to requests sent before a
+  // freeze still arrive: a refill can overwrite the icache line at address 0, and a remote
+  // FP load its destination register. Wait for them before loading the icache or unfreezing.
   logic freeze_r;
   logic [x_subcord_width_p-1:0] tgo_x_r;
   logic [y_subcord_width_p-1:0] tgo_y_r;
