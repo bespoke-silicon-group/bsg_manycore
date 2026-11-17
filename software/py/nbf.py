@@ -176,7 +176,7 @@ class NBF:
     for line in lines:
       stripped = line.strip()
       words = stripped.split()
-      if words[2] == "_bsg_data_end_addr" or words[2] == b"_bsg_data_end_addr":
+      if words[2] == b"_bsg_data_end_addr":
         self.bsg_data_end_addr = (int(words[0]) >> 2) # make it word address
     assert hasattr(self, "bsg_data_end_addr"), "missing _bsg_data_end_addr from nm's stdout"
 
@@ -187,8 +187,8 @@ class NBF:
     for line in lines:
       stripped = line.strip()
       words = stripped.split()
-      if words[2] == "__.text.dram_end":
-        return (int(words[0])/4) -1
+      if words[2] == b"__.text.dram_end":
+        return (int(words[0])//4) -1
     
 
   # grab address for _start symbol.
@@ -202,7 +202,7 @@ class NBF:
     for line in lines:
       stripped = line.strip()
       words = stripped.split()
-      if words[2] == "_start":
+      if words[2] == b"_start":
         self.start_addr = (int(words[0]) >> 2) # make it word address
     
   # select bits verilog style (e.g. num[end:start])
@@ -249,7 +249,7 @@ class NBF:
     # if there is only one pod in x-direction, split the pod in half.
     if self.machine_pods_x == 1:
       for x in range(self.num_tiles_x):
-        east_not_west = 0 if x < (self.num_tiles_x/2) else 1
+        east_not_west = 0 if x < (self.num_tiles_x//2) else 1
         # north vcache
         x_eff = pod_origin_x + x
         y_eff = pod_origin_y - 1
@@ -260,7 +260,7 @@ class NBF:
         self.print_nbf(x_eff, y_eff, epa, east_not_west)
     # if there are more than one pod, then the left half of pods goes to west, and the right half to east.
     else:
-      east_not_west = 0 if (px < (self.machine_pods_x/2)) else 1
+      east_not_west = 0 if (px < (self.machine_pods_x//2)) else 1
       for x in range(self.num_tiles_x):
         # north vcache
         x_eff = pod_origin_x + x
@@ -322,7 +322,7 @@ class NBF:
     for x in range(self.num_tiles_x):
       for t in range(self.cache_way * self.cache_set):
         epa = (t << t_shift) | (1 << (self.addr_width-1))
-        data = (1 << (self.data_width-1)) | (t / self.cache_set)
+        data = (1 << (self.data_width-1)) | (t // self.cache_set)
         # top vcache
         self.print_nbf(x+pod_origin_x, pod_origin_y-1, epa, data)
         # bot vcache
@@ -417,7 +417,7 @@ class NBF:
       # using vcache as block mem
       for k in sorted(self.dram_data.keys()):
         addr = k - 0x20000000
-        x = (addr / cache_size)
+        x = (addr // cache_size)
         epa = addr % cache_size
         if (x < self.num_tiles_x):
           x_eff = x + pod_origin_x
