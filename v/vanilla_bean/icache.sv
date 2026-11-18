@@ -129,11 +129,12 @@ module icache
   
   
   // Inject the 2-BYTE (half) address, the LSB is ignored.
-  wire instruction_s instr = write_branch_instr
-      ? `RV32_Bimm_12inject1(w_instr, branch_pc_lower_res)
-      : (write_jal_instr
-        ? `RV32_Jimm_20inject1(w_instr, jal_pc_lower_res)
-        : w_instr);
+  instruction_s injected_instr;
+  assign injected_instr = write_branch_instr
+    ? `RV32_Bimm_12inject1(w_instr, branch_pc_lower_res)
+    : (write_jal_instr
+      ? `RV32_Jimm_20inject1(w_instr, jal_pc_lower_res)
+      : w_instr);
 
   wire imm_sign = write_branch_instr
     ? branch_imm_val[RV32_Bimm_width_gp] 
@@ -143,8 +144,10 @@ module icache
     ? branch_pc_lower_cout
     : jal_pc_lower_cout;
 
-  wire icache_instr_s injected_instr = '{
-    instr31to2:  instr[RV32_instr_width_gp-1:2]
+  // the word stored in the icache
+  icache_instr_s w_icache_instr;
+  assign w_icache_instr = '{
+    instr31to2:  injected_instr[RV32_instr_width_gp-1:2]
     ,lower_sign: imm_sign
     ,lower_cout: pc_lower_cout
   };
@@ -154,7 +157,7 @@ module icache
 
   assign icache_data_li = '{
     tag: w_tag
-    ,instr: {injected_instr, buffered_instr_r}
+    ,instr: {w_icache_instr, buffered_instr_r}
   };
 
   // icache write counter
@@ -174,7 +177,7 @@ module icache
   logic write_en_icache;
   always_ff @ (posedge clk_i) begin
     if (write_en_buffer) begin
-      buffered_instr_r[write_count_r] <= injected_instr;
+      buffered_instr_r[write_count_r] <= w_icache_instr;
     end
   end
 
