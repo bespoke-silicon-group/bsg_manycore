@@ -18,7 +18,7 @@
   } icache_format_s
 
 `define icache_format_width(tag_width_mp, block_size_in_words_mp) \
-   (tag_width_mp+(block_size_in_words_mp*$bits(instruction_s)))
+   (tag_width_mp+(block_size_in_words_mp*$bits(icache_instr_s)))
 
 // FPU recoded Constants
 `define FPU_RECODED_ONE   33'h080000000
