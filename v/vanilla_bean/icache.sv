@@ -138,7 +138,7 @@ module icache
     : jal_pc_lower_cout;
 
   wire icache_instr_s injected_instr = '{
-    instr31to2:  (instr >> 2)
+    instr31to2:  instr[RV32_instr_width_gp-1:2]
     ,lower_sign: imm_sign
     ,lower_cout: pc_lower_cout
   };
