@@ -35,9 +35,11 @@
 `define RV32_LOAD     7'b0000011
 `define RV32_STORE    7'b0100011
 
-// we have branch instructions ignore the low bit so that we can place the prediction bit there.
-// RISC-V by default has the low bits set to 11 in the icache, so we can use those creatively.
-// note this relies on all code using ==? and casez.
+// The low bit is a wildcard because the icache used to hand out the branch
+// prediction bit there. It now sends the prediction on its own output and
+// returns every instruction with bits [1:0] = 2'b11 (see icache.sv), so the
+// wildcard no longer matters. Code that tests this opcode must still use
+// ==? or casez.
 `define RV32_BRANCH   7'b110001?
 
 `define RV32_JALR_OP    7'b1100111
