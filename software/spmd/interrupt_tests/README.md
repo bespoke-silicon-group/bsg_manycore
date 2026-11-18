@@ -2,6 +2,14 @@
 
 This suite checks interaction of the vanilla core logic with trace and remote interrupts. 
 
+`trace_mip_csr_test` covers PR #779: a CSR access to `mip` must preserve the
+hardware trace event raised by that instruction. It checks all six CSR forms,
+immediate operands 0 and 31, and preservation of a masked remote pending bit
+for set/clear operations. Each case checks the CSR's old value, the pending
+bits in the handler, the exact `mepc`, and one interrupt per tested instruction.
+The test reports `BSG_FINISH` with a count of 13 on success, or `BSG_FAIL` with
+the failing case number. Run it with `make trace_mip_csr_test_run`.
+
 ## Summary of Files
 1. `*.S`: Files containing RISC-V assembly code testing a specific function.
 2. `Makefile.testlist`: A makefile defining a variable `TESTS` that lists all the tests for the regression.

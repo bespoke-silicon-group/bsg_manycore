@@ -16,6 +16,7 @@ TESTS = csr_test \
         remote_remote_load_loop_test \
         remote_jalr_mispredict_test \
         trace_test \
+        trace_mip_csr_test \
         trace_fdiv_test \
         trace_idiv_test \
         trace_imul_test \
