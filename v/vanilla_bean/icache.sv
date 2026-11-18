@@ -98,11 +98,17 @@ module icache
   //
   //  The width of the adder is defined by the Imm width +1.
   //
-  //  For the branch op, we are saving the sign of an imm13 value, in the LSB
-  //  of instruction opcode, to use it later when making branch prediction.
+  //  Each entry keeps instruction bits [31:2] plus two bits for the target
+  //  computed here: the sign of the branch/JAL immediate (also the branch
+  //  prediction) and the carry-out of the lower sum. They replace bits [1:0],
+  //  which are 2'b11 in every 32-bit RV32 instruction; reads restore 2'b11.
+  //
+  //  Refills and the loader also write words that are not instructions
+  //  (padding, data), so force bits [1:0] to 2'b11 on the way in too. The
+  //  branch/JAL check below then classifies the same word the decoder sees.
   //
   instruction_s w_instr;
-  assign w_instr = w_instr_i;
+  assign w_instr = {w_instr_i[RV32_instr_width_gp-1:2], 2'b11};
   wire write_branch_instr = w_instr.op ==? `RV32_BRANCH;
   wire write_jal_instr    = w_instr.op ==? `RV32_JAL_OP;
   
@@ -228,6 +234,7 @@ module icache
   // Merge the PC lower part and high part
   // BYTE operations
   instruction_s instr_out;
+  // bits [1:0] were forced to 2'b11 on write and are not stored
   assign instr_out = {icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]].instr31to2,2'b11};
   wire lower_sign_out = icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]].lower_sign;
   wire lower_cout_out = icache_data_lo.instr[pc_r[0+:icache_block_offset_width_lp]].lower_cout;
