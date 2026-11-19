@@ -7,12 +7,17 @@
 #ifndef BSG_HW_BARRIER_CONFIG_INIT_H
 #define BSG_HW_BARRIER_CONFIG_INIT_H
 
+#ifndef BARRIER_RUCHE_FACTOR_X
+#error "BARRIER_RUCHE_FACTOR_X must be defined (0 for mesh barriers)"
+#endif
+
 
 //  Initialize HW barrier configuration array for a tile group size (x,y).
 //  This can be used either by the manycore tile or by the host to save icache footprint.
 // arr =  location of array
 // tx  =  x-dim of tile group
 // ty  =  y-dim of tile group
+// BARRIER_RUCHE_FACTOR_X = 0 selects a five-direction mesh barrier.
 
 
 #define OUTDIR_OFFSET 16
@@ -33,6 +38,28 @@ static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
       int val = 1;
 
       // setting output dir
+#if BARRIER_RUCHE_FACTOR_X == 0
+      if (x < center_x) {
+        val |= (2 << OUTDIR_OFFSET);
+      } else if (x > center_x) {
+        val |= (1 << OUTDIR_OFFSET);
+      } else {
+        if (y < center_y) {
+          val |= (4 << OUTDIR_OFFSET);
+        } else if (y == center_y) {
+          val |= (5 << OUTDIR_OFFSET);
+        } else {
+          val |= (3 << OUTDIR_OFFSET);
+        }
+      }
+
+      if ((x > 0) && (x <= center_x)) {
+        val |= (1 << 1);
+      }
+      if ((x < tx-1) && (x >= center_x)) {
+        val |= (1 << 2);
+      }
+#else
       if (x <= center_x - BARRIER_RUCHE_FACTOR_X) {
         // output = RE
         val |= (6 << OUTDIR_OFFSET);
@@ -78,6 +105,7 @@ static void bsg_hw_barrier_config_init(int *arr, int tx, int ty) {
       if (((x+BARRIER_RUCHE_FACTOR_X) < tx) && (x >= center_x)) {
         val |= (1 << 6);
       }
+#endif
 
       if (x == center_x) {
         // input = N

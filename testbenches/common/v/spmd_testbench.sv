@@ -28,6 +28,7 @@ module spmd_testbench
   parameter icache_tag_width_p = `BSG_MACHINE_ICACHE_TAG_WIDTH;
   parameter icache_block_size_in_words_p = `BSG_MACHINE_ICACHE_BLOCK_SIZE_WORDS;
   parameter ruche_factor_X_p    = `BSG_MACHINE_RUCHE_FACTOR_X;
+  parameter ruche_factor_Y_p    = `BSG_MACHINE_RUCHE_FACTOR_Y;
   parameter barrier_ruche_factor_X_p    = `BSG_MACHINE_BARRIER_RUCHE_FACTOR_X;
 
 
@@ -104,6 +105,7 @@ module spmd_testbench
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
     ,.ruche_factor_X_p(ruche_factor_X_p)
+    ,.ruche_factor_Y_p(ruche_factor_Y_p)
     ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
 
     ,.num_subarray_x_p(num_subarray_x_p)

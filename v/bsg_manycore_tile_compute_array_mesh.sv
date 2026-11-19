@@ -39,8 +39,7 @@ module bsg_manycore_tile_compute_array_mesh
     , `BSG_INV_PARAM(addr_width_p )
     , `BSG_INV_PARAM(data_width_p ) // 32
 
-    // barrier ruche factor
-    , barrier_ruche_factor_X_p=3
+    , `BSG_INV_PARAM(ruche_factor_Y_p)
 
     // global coordinate width
     , `BSG_INV_PARAM(y_cord_width_p)
@@ -80,9 +79,6 @@ module bsg_manycore_tile_compute_array_mesh
     , output [S:N][subarray_num_tiles_x_p-1:0] ver_barrier_link_o
     , input  [E:W][subarray_num_tiles_y_p-1:0] hor_barrier_link_i
     , output [E:W][subarray_num_tiles_y_p-1:0] hor_barrier_link_o
-    // barrier ruche link
-    , input  [E:W][subarray_num_tiles_y_p-1:0][barrier_ruche_factor_X_p-1:0] barrier_ruche_link_i
-    , output [E:W][subarray_num_tiles_y_p-1:0][barrier_ruche_factor_X_p-1:0] barrier_ruche_link_o
 
     // global coordinates
     , input [subarray_num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_i
@@ -121,7 +117,6 @@ module bsg_manycore_tile_compute_array_mesh
   logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_li, global_y_lo;
   logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0] reset_li, reset_lo;
   logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][S:W] barrier_link_li, barrier_link_lo;
-  logic [subarray_num_tiles_y_p-1:0][subarray_num_tiles_x_p-1:0][barrier_ruche_factor_X_p-1:0][E:W] barrier_ruche_link_li, barrier_ruche_link_lo;
 
  
   for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: y
@@ -145,7 +140,7 @@ module bsg_manycore_tile_compute_array_mesh
         ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
         ,.num_vcache_rows_p(num_vcache_rows_p)
         ,.vcache_sets_p(vcache_sets_p)
-        ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+        ,.ruche_factor_Y_p(ruche_factor_Y_p)
         ,.ipoly_hashing_p(ipoly_hashing_p)      
       ) tile (
         .clk_i(clk_i)
@@ -157,8 +152,6 @@ module bsg_manycore_tile_compute_array_mesh
 
         ,.barrier_link_i(barrier_link_li[r][c])
         ,.barrier_link_o(barrier_link_lo[r][c])
-        ,.barrier_ruche_link_i(barrier_ruche_link_li[r][c])
-        ,.barrier_ruche_link_o(barrier_ruche_link_lo[r][c])
     
         ,.global_x_i(global_x_li[r][c])
         ,.global_y_i(global_y_li[r][c])
@@ -260,66 +253,6 @@ module bsg_manycore_tile_compute_array_mesh
       ,.o(hor_barrier_link_li[E][r])
     );
   end
-
-  // switch barrier ruche link
-  for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin: brr
-    for (genvar c = 0; c < subarray_num_tiles_x_p; c++) begin: brc
-      for (genvar l = 0; l < barrier_ruche_factor_X_p; l++) begin: brl
-        if (c == subarray_num_tiles_x_p-1) begin: cl
-          bsg_ruche_buffer #(
-            .width_p(1)
-            ,.ruche_factor_p(barrier_ruche_factor_X_p)
-            ,.ruche_stage_p(l)
-            ,.harden_p(1)
-          ) brb_w (
-            .i(barrier_ruche_link_i[E][r][l])
-            ,.o(barrier_ruche_link_li[r][c][(l+barrier_ruche_factor_X_p-1) % barrier_ruche_factor_X_p][E])
-          );
-
-          bsg_ruche_buffer #(
-            .width_p(1)
-            ,.ruche_factor_p(barrier_ruche_factor_X_p)
-            ,.ruche_stage_p(l)
-            ,.harden_p(1)
-          ) brb_e (
-            .i(barrier_ruche_link_lo[r][c][l][E])
-            ,.o(barrier_ruche_link_o[E][r][(l+1)%barrier_ruche_factor_X_p])
-          );
-        end
-        else begin: cn
-          bsg_ruche_buffer #(
-            .width_p(1)
-            ,.ruche_factor_p(barrier_ruche_factor_X_p)
-            ,.ruche_stage_p(l)
-            ,.harden_p(1)
-          ) brb_w (
-            .i(barrier_ruche_link_lo[r][c+1][l][W])
-            ,.o(barrier_ruche_link_li[r][c][(l+barrier_ruche_factor_X_p-1) % barrier_ruche_factor_X_p][E])
-          );
-
-          bsg_ruche_buffer #(
-            .width_p(1)
-            ,.ruche_factor_p(barrier_ruche_factor_X_p)
-            ,.ruche_stage_p(l)
-            ,.harden_p(1)
-          ) brb_e (
-            .i(barrier_ruche_link_lo[r][c][l][E])
-            ,.o(barrier_ruche_link_li[r][c+1][(l+1)%barrier_ruche_factor_X_p][W])
-          );
-        end
-      end
-    end
-  end
-
-  // edge barrier ruche links
-  for (genvar r = 0; r < subarray_num_tiles_y_p; r++) begin
-    for (genvar l = 0; l < barrier_ruche_factor_X_p; l++) begin
-      // west
-      assign barrier_ruche_link_o[W][r][l] = barrier_ruche_link_lo[r][0][l][W];
-      assign barrier_ruche_link_li[r][0][l][W] = barrier_ruche_link_i[W][r][l];
-    end
-  end
-
 
 endmodule
 

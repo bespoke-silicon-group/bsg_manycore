@@ -15,6 +15,7 @@ module bsg_manycore_hor_io_router_column
     , `BSG_INV_PARAM(x_cord_width_p)
     , `BSG_INV_PARAM(y_cord_width_p)
     , `BSG_INV_PARAM(ruche_factor_X_p)
+    , `BSG_INV_PARAM(ruche_factor_Y_p)
     
     , `BSG_INV_PARAM(num_row_p)
     , `BSG_INV_PARAM(bit [num_row_p-1:0] tieoff_west_p)
@@ -61,6 +62,7 @@ module bsg_manycore_hor_io_router_column
       ,.x_cord_width_p(x_cord_width_p)
       ,.y_cord_width_p(y_cord_width_p)
       ,.ruche_factor_X_p(ruche_factor_X_p)
+      ,.ruche_factor_Y_p(ruche_factor_Y_p)
     
       ,.tieoff_west_p(tieoff_west_p[i])
       ,.tieoff_east_p(tieoff_east_p[i])

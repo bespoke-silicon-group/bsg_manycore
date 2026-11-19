@@ -11,7 +11,13 @@ Machine.machine.include parameters
 - BSG_MACHINE_Y_CORD_WIDTH              =   the global ({pod_y, subcord_y}) y coordinate width.
 
 - BSG_MACHINE_RUCHE_FACTOR_X            =   the [ruche](https://michaeltaylor.org/papers/Jung_NOCS_2020_Ruche_Networks.pdf) factor of the network.
-- BSG_MACHINE_BARRIER_RUCHE_FACTOR_X    =   the ruche factor of barrier network.
+- BSG_MACHINE_RUCHE_FACTOR_Y            =   the Y ruche factor passed through the compute hierarchy to the routers (default 0).
+                                            Parameter plumbing only: this does not add vertical ruche links or change the topology.
+                                            Keep at 0 for the existing mesh and half-ruche-X networks.
+- BSG_MACHINE_BARRIER_RUCHE_FACTOR_X    =   the ruche factor of the half-ruche-X barrier network.
+                                            Mesh pods have only P/W/E/N/S barrier directions and no barrier ruche links.
+                                            Mesh software uses BARRIER_RUCHE_FACTOR_X=0 and root direction 5;
+                                            half-ruche-X software retains root direction 7.
 
 - BSG_MACHINE_NUM_VCACHE_ROWS           =   number of vcache rows on each side of pod (north and south).
 - BSG_MACHINE_VCACHE_SET                =   number of sets in each vcache

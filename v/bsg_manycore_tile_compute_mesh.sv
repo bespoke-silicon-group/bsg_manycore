@@ -28,7 +28,7 @@ module bsg_manycore_tile_compute_mesh
     , parameter `BSG_INV_PARAM(data_width_p )
     , `BSG_INV_PARAM(addr_width_p )
 
-    , barrier_ruche_factor_X_p = 3
+    , `BSG_INV_PARAM(ruche_factor_Y_p)
 
     , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
@@ -38,7 +38,7 @@ module bsg_manycore_tile_compute_mesh
     , parameter dims_p = 2
     , localparam dirs_lp = (dims_p*2)
   
-    , parameter barrier_dirs_p = 7
+    , parameter barrier_dirs_p = 5
     , localparam barrier_lg_dirs_lp=`BSG_SAFE_CLOG2(barrier_dirs_p+1)
 
     , parameter stub_p = {dirs_lp{1'b0}}           // {re,rw,s,n,e,w}
@@ -61,10 +61,6 @@ module bsg_manycore_tile_compute_mesh
     // barrier links
     , input  [S:W] barrier_link_i
     , output [S:W] barrier_link_o
-
-    // barrier ruche links
-    , input  [barrier_ruche_factor_X_p-1:0][E:W] barrier_ruche_link_i
-    , output [barrier_ruche_factor_X_p-1:0][E:W] barrier_ruche_link_o
 
     // tile coordinates
     , input [x_cord_width_p-1:0] global_x_i
@@ -152,6 +148,7 @@ module bsg_manycore_tile_compute_mesh
     ,.debug_p(debug_p)
     ,.repeater_output_p(repeater_output_p) // select buffer for this particular node
     ,.ruche_factor_X_p(0)
+    ,.ruche_factor_Y_p(ruche_factor_Y_p)
     ,.fwd_use_credits_p(fwd_use_credits_lp)
     ,.fwd_fifo_els_p(fwd_fifo_els_lp)
     ,.rev_use_credits_p(rev_use_credits_lp)
@@ -238,15 +235,6 @@ module bsg_manycore_tile_compute_mesh
   // connect barrier link
   assign barr_data_li[4:1] = barrier_link_i;
   assign barrier_link_o = barr_data_lo[4:1];
-  assign barr_data_li[5] = barrier_ruche_link_i[0][W];
-  assign barr_data_li[6] = barrier_ruche_link_i[0][E];
-  assign barrier_ruche_link_o[0][W] = barr_data_lo[5];
-  assign barrier_ruche_link_o[0][E] = barr_data_lo[6];
-
-  for (genvar i = 1; i < barrier_ruche_factor_X_p; i++) begin
-    assign barrier_ruche_link_o[i][W] = barrier_ruche_link_i[i][E];
-    assign barrier_ruche_link_o[i][E] = barrier_ruche_link_i[i][W];
-  end
  
 
 endmodule

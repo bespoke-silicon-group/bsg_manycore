@@ -49,6 +49,7 @@ module bsg_manycore_pod_ruche
     , `BSG_INV_PARAM(ipoly_hashing_p)
 
     , `BSG_INV_PARAM(ruche_factor_X_p)
+    , `BSG_INV_PARAM(ruche_factor_Y_p)
     , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
   
     , `BSG_INV_PARAM(wh_ruche_factor_p)
@@ -267,6 +268,7 @@ module bsg_manycore_pod_ruche
         ,.addr_width_p(addr_width_p)
         ,.data_width_p(data_width_p)
         ,.ruche_factor_X_p(ruche_factor_X_p)
+        ,.ruche_factor_Y_p(ruche_factor_Y_p)
         ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
           `ifndef SYNTHESIS
         ,.hetero_type_vec_p(get_subarray_hetero_type_vec(y, x))

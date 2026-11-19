@@ -22,6 +22,7 @@ module bsg_manycore_pod_ruche_array
     , `BSG_INV_PARAM(addr_width_p)
     , `BSG_INV_PARAM(data_width_p)
     , `BSG_INV_PARAM(ruche_factor_X_p)
+    , `BSG_INV_PARAM(ruche_factor_Y_p)
     , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
 
     , num_subarray_x_p=1
@@ -154,6 +155,7 @@ module bsg_manycore_pod_ruche_array
       ,.data_width_p(data_width_p)
 
       ,.ruche_factor_X_p(ruche_factor_X_p)
+      ,.ruche_factor_Y_p(ruche_factor_Y_p)
       ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
       ,.num_pods_x_p(num_pods_x_p)    
   

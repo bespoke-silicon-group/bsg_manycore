@@ -28,6 +28,7 @@ module bsg_manycore_tile_compute_ruche
     , `BSG_INV_PARAM(addr_width_p )
 
     , `BSG_INV_PARAM(ruche_factor_X_p)
+    , `BSG_INV_PARAM(ruche_factor_Y_p)
     , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
 
     , `BSG_INV_PARAM(num_vcache_rows_p )
@@ -154,6 +155,7 @@ module bsg_manycore_tile_compute_ruche
     ,.debug_p(debug_p)
     ,.repeater_output_p(repeater_output_p) // select buffer for this particular node
     ,.ruche_factor_X_p(ruche_factor_X_p)
+    ,.ruche_factor_Y_p(ruche_factor_Y_p)
     ,.fwd_use_credits_p(fwd_use_credits_lp)
     ,.fwd_fifo_els_p(fwd_fifo_els_lp)
     ,.rev_use_credits_p(rev_use_credits_lp)

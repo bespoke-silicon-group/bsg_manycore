@@ -19,6 +19,7 @@ module bsg_manycore_pod_row_sdr
     , `BSG_INV_PARAM(addr_width_p)
     , `BSG_INV_PARAM(data_width_p)
     , parameter ruche_factor_X_p=3  // only support 3 for now
+    , `BSG_INV_PARAM(ruche_factor_Y_p)
     , parameter barrier_ruche_factor_X_p=3
     , parameter num_subarray_x_p=1
     , parameter num_subarray_y_p=1
@@ -175,6 +176,7 @@ module bsg_manycore_pod_row_sdr
     ,.addr_width_p        (addr_width_p)
     ,.data_width_p        (data_width_p)
     ,.ruche_factor_X_p    (ruche_factor_X_p)
+    ,.ruche_factor_Y_p    (ruche_factor_Y_p)
 
     ,.num_subarray_x_p    (num_subarray_x_p)
     ,.num_subarray_y_p    (num_subarray_y_p)

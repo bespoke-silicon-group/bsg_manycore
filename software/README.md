@@ -31,3 +31,18 @@ Manycore programs. Some useful flags to customize compilation are:
 - `CLANG`:                Flag to compile with RISC-V LLVM infrastructure instead of GCC.
 - `LLVM_DIR`:             Path to LLVM+Clang installation. Requires LLVM >9.0.0. Default: `./riscv-tools/llvm/llvm-install`.
 - `ENABLE_LLVM_PASSES`:   Enable Manycore LLVM passes when compiling with `CLANG=1`.
+
+## Hardware barrier configuration
+
+Mesh machines use five barrier directions (P/W/E/N/S), with root selector 5.
+The build automatically sets `BARRIER_RUCHE_FACTOR_X=0` for `e_network_mesh`;
+other networks retain their configured ruche factor and root selector 7.
+Host code using `bsg_hw_barrier_config_init.h` must select the matching factor.
+
+The mesh configuration initializer can be tested from the repository root:
+
+```sh
+cc -std=c99 -Wall -Wextra -Werror -DBARRIER_RUCHE_FACTOR_X=0 \
+  software/bsg_manycore_lib/test_bsg_hw_barrier_config_init.c -o /tmp/bsg-mesh-barrier-test
+/tmp/bsg-mesh-barrier-test
+```
