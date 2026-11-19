@@ -197,8 +197,19 @@ module network_tx
         e_vanilla_amoadd:   out_packet.op_v2 = e_remote_amoadd;
         default:            out_packet.op_v2 = e_remote_amoswap;  // should never happen.
       endcase
-    end
-    else begin
+    end else if (remote_req_i.is_cache_op) begin
+      out_packet.op_v2 = e_cache_op;
+      case (remote_req_i.cbo_type)
+        e_vanilla_cbo_zero:  out_packet.reg_id.cache_op = e_azero;
+        e_vanilla_cbo_inval: out_packet.reg_id.cache_op = e_ainv;
+        e_vanilla_cbo_clean: out_packet.reg_id.cache_op = e_afl;
+        e_vanilla_cbo_flush: out_packet.reg_id.cache_op = e_aflinv;
+        default: begin
+          // should never happen.
+          out_packet.reg_id.cache_op = e_azero;
+        end
+      endcase
+    end else begin
       if (remote_req_i.write_not_read) begin
         out_packet.op_v2 = is_uncached_op ? e_remote_uncached_store : e_remote_store;
       end

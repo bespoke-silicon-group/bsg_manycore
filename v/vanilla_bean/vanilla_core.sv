@@ -1432,7 +1432,7 @@ module vanilla_core
   // stall_remote_req
   logic [lg_fwd_fifo_els_lp-1:0] remote_req_counter_r;
   wire local_mem_op_restore = (lsu_dmem_v_lo & ~exe_r.decode.is_lr_op & ~exe_r.decode.is_lr_aq_op) & ~stall_all;
-  wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.icache_miss);
+  wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.decode.is_cache_op | id_r.icache_miss);
   wire memory_op_issued = id_remote_req_op & id_issue;
   wire [lg_fwd_fifo_els_lp-1:0] remote_req_available =
     remote_req_counter_r +
