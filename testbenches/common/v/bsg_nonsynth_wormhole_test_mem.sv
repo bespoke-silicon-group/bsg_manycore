@@ -138,6 +138,7 @@ module bsg_nonsynth_wormhole_test_mem
 
   bsg_cache_wh_header_flit_s header_flit_out;
   assign header_flit_out.unused = '0;
+  assign header_flit_out.uncached_op = 1'b0;
   assign header_flit_out.opcode = e_cache_wh_read; // dont care
   assign header_flit_out.src_cord = '0;   // dont care
   assign header_flit_out.src_cid = '0;   // dont care
