@@ -26,6 +26,7 @@ module bsg_manycore_tile_vcache_array
 
     // Number of tiles in a subarray 
     , parameter `BSG_INV_PARAM(subarray_num_tiles_x_p)
+    , ruche_factor_Y_p=0
 
     , `BSG_INV_PARAM(num_vcache_rows_p )
     , `BSG_INV_PARAM(vcache_addr_width_p )
@@ -47,6 +48,9 @@ module bsg_manycore_tile_vcache_array
 
     , localparam manycore_link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , ruche_y_link_sif_width_lp =
+      `bsg_manycore_ruche_y_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , ruche_y_lanes_lp = `BSG_MAX(1,ruche_factor_Y_p)
 
     , wh_link_sif_width_lp = 
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
@@ -62,6 +66,9 @@ module bsg_manycore_tile_vcache_array
     , input  [S:N][subarray_num_tiles_x_p-1:0][manycore_link_sif_width_lp-1:0] ver_link_sif_i
     , output [S:N][subarray_num_tiles_x_p-1:0][manycore_link_sif_width_lp-1:0] ver_link_sif_o
 
+    , input  [S:N][subarray_num_tiles_x_p-1:0][ruche_y_lanes_lp-1:0][ruche_y_link_sif_width_lp-1:0] ver_ruche_link_i
+    , output [S:N][subarray_num_tiles_x_p-1:0][ruche_y_lanes_lp-1:0][ruche_y_link_sif_width_lp-1:0] ver_ruche_link_o
+
     // coord id
     , input [subarray_num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_i
     , input [subarray_num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_i
@@ -71,23 +78,26 @@ module bsg_manycore_tile_vcache_array
 
 
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+  `declare_bsg_manycore_ruche_y_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
 
   logic [num_vcache_rows_p-1:0][subarray_num_tiles_x_p-1:0] reset_li, reset_lo;
   wh_link_sif_s [num_vcache_rows_p-1:0][subarray_num_tiles_x_p-1:0][wh_ruche_factor_p-1:0][E:W] wh_link_sif_li, wh_link_sif_lo;
   bsg_manycore_link_sif_s [num_vcache_rows_p-1:0][subarray_num_tiles_x_p-1:0][S:N] ver_link_sif_li, ver_link_sif_lo;
+  bsg_manycore_ruche_y_link_sif_s [num_vcache_rows_p-1:0][subarray_num_tiles_x_p-1:0][ruche_y_lanes_lp-1:0][S:N] ver_ruche_link_li, ver_ruche_link_lo;
   logic [num_vcache_rows_p-1:0][subarray_num_tiles_x_p-1:0][x_cord_width_p-1:0] global_x_li, global_x_lo;
   logic [num_vcache_rows_p-1:0][subarray_num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_li, global_y_lo;
 
   // instantiate vcaches.
   for (genvar y = 0; y < num_vcache_rows_p; y++) begin: vc_y
     for (genvar x = 0; x < subarray_num_tiles_x_p; x++) begin: vc_x
-      bsg_manycore_tile_vcache #(
+      bsg_manycore_tile_vcache_ruche #(
         .addr_width_p(addr_width_p)
         ,.data_width_p(data_width_p)
         ,.x_cord_width_p(x_cord_width_p)
         ,.y_cord_width_p(y_cord_width_p)
         ,.num_tiles_y_p(num_tiles_y_p)  
+        ,.ruche_factor_Y_p(ruche_factor_Y_p)
         ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
         ,.vcache_addr_width_p(vcache_addr_width_p)
         ,.vcache_data_width_p(vcache_data_width_p)
@@ -112,6 +122,8 @@ module bsg_manycore_tile_vcache_array
 
         ,.ver_link_sif_i(ver_link_sif_li[y][x])
         ,.ver_link_sif_o(ver_link_sif_lo[y][x])
+        ,.ver_ruche_link_i(ver_ruche_link_li[y][x])
+        ,.ver_ruche_link_o(ver_ruche_link_lo[y][x])
 
         ,.global_x_i(global_x_li[y][x])
         ,.global_y_i(global_y_li[y][x])
@@ -149,6 +161,60 @@ module bsg_manycore_tile_vcache_array
 
         assign ver_link_sif_o[S][x] = ver_link_sif_lo[y][x][S];
         assign ver_link_sif_li[y][x][S] = ver_link_sif_i[S][x];
+      end
+
+      if (ruche_factor_Y_p > 0) begin: y_ruche
+        for (genvar l = 0; l < ruche_factor_Y_p; l++) begin: lane
+          if (y == 0) begin: north
+            assign ver_ruche_link_li[y][x][l][N] = ver_ruche_link_i[N][x][l];
+            assign ver_ruche_link_o[N][x][l] = ver_ruche_link_lo[y][x][l][N];
+          end
+          if (y < num_vcache_rows_p-1) begin: between
+            bsg_ruche_buffer #(
+              .width_p(ruche_y_link_sif_width_lp)
+              ,.ruche_factor_p(ruche_factor_Y_p)
+              ,.ruche_stage_p(l)
+              ,.harden_p(1)
+            ) rb_n (
+              .i(ver_ruche_link_lo[y+1][x][l][N])
+              ,.o(ver_ruche_link_li[y][x][(l+ruche_factor_Y_p-1)%ruche_factor_Y_p][S])
+            );
+            bsg_ruche_buffer #(
+              .width_p(ruche_y_link_sif_width_lp)
+              ,.ruche_factor_p(ruche_factor_Y_p)
+              ,.ruche_stage_p(l)
+              ,.harden_p(1)
+            ) rb_s (
+              .i(ver_ruche_link_lo[y][x][l][S])
+              ,.o(ver_ruche_link_li[y+1][x][(l+1)%ruche_factor_Y_p][N])
+            );
+          end
+          else begin: south
+            bsg_ruche_buffer #(
+              .width_p(ruche_y_link_sif_width_lp)
+              ,.ruche_factor_p(ruche_factor_Y_p)
+              ,.ruche_stage_p(l)
+              ,.harden_p(1)
+            ) rb_n (
+              .i(ver_ruche_link_i[S][x][l])
+              ,.o(ver_ruche_link_li[y][x][(l+ruche_factor_Y_p-1)%ruche_factor_Y_p][S])
+            );
+            bsg_ruche_buffer #(
+              .width_p(ruche_y_link_sif_width_lp)
+              ,.ruche_factor_p(ruche_factor_Y_p)
+              ,.ruche_stage_p(l)
+              ,.harden_p(1)
+            ) rb_s (
+              .i(ver_ruche_link_lo[y][x][l][S])
+              ,.o(ver_ruche_link_o[S][x][(l+1)%ruche_factor_Y_p])
+            );
+          end
+        end
+      end
+      else begin: no_y_ruche
+        assign ver_ruche_link_li[y][x] = '0;
+        if (y == 0) assign ver_ruche_link_o[N][x] = '0;
+        if (y == num_vcache_rows_p-1) assign ver_ruche_link_o[S][x] = '0;
       end
       
     end

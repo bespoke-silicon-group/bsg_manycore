@@ -151,5 +151,24 @@
       link_rev[x_cord_width_mp-1:0]                                                                             \
     }
  
+  // On Y ruche links, requests have completed X routing, so dest_x is redundant.
+  // Responses traverse Y before X and must retain their destination X.
+  `define bsg_manycore_ruche_y_link_sif_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
+    (`bsg_manycore_link_sif_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp)-x_cord_width_mp)
+
+  `define declare_bsg_manycore_ruche_y_link_sif_s(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp) \
+    `declare_bsg_ready_and_link_sif_s(`bsg_manycore_packet_width(addr_width_mp,data_width_mp,x_cord_width_mp,y_cord_width_mp)-x_cord_width_mp,bsg_manycore_fwd_ruche_y_link_s); \
+    `declare_bsg_ready_and_link_sif_s(`bsg_manycore_return_packet_width(x_cord_width_mp,y_cord_width_mp,data_width_mp),bsg_manycore_rev_ruche_y_link_s); \
+    typedef struct packed {                 \
+      bsg_manycore_fwd_ruche_y_link_s fwd;  \
+      bsg_manycore_rev_ruche_y_link_s rev;  \
+    } bsg_manycore_ruche_y_link_sif_s
+
+  `define bsg_manycore_ruche_y_link_fwd_inject_dest_x(x_cord_width_mp,ruche_link_fwd,my_x) \
+    {ruche_link_fwd[$bits(ruche_link_fwd)-1:0], (x_cord_width_mp)'(my_x)}
+
+  `define bsg_manycore_link_sif_fwd_filter_dest_x(x_cord_width_mp,link_fwd) \
+    link_fwd[$bits(link_fwd)-1:x_cord_width_mp]
+
 `endif
 

@@ -138,6 +138,8 @@ module bsg_manycore_pod_mesh
 
       ,.ver_link_sif_i(north_vc_ver_link_sif_li[x])
       ,.ver_link_sif_o(north_vc_ver_link_sif_lo[x])
+      ,.ver_ruche_link_i('0)
+      ,.ver_ruche_link_o()
 
       ,.global_x_i(north_vc_global_x_li[x])
       ,.global_y_i(north_vc_global_y_li[x])
@@ -368,6 +370,8 @@ module bsg_manycore_pod_mesh
     
       ,.ver_link_sif_i(south_vc_ver_link_sif_li[x])
       ,.ver_link_sif_o(south_vc_ver_link_sif_lo[x])
+      ,.ver_ruche_link_i('0)
+      ,.ver_ruche_link_o()
 
       ,.global_x_i(south_vc_global_x_li[x])
       ,.global_y_i(south_vc_global_y_li[x])

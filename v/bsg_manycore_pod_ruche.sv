@@ -51,6 +51,7 @@ module bsg_manycore_pod_ruche
     , `BSG_INV_PARAM(ruche_factor_X_p)
     , `BSG_INV_PARAM(ruche_factor_Y_p)
     , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
+    , `BSG_INV_PARAM(barrier_ruche_factor_Y_p)
   
     , `BSG_INV_PARAM(wh_ruche_factor_p)
     , `BSG_INV_PARAM(wh_cid_width_p)
@@ -66,6 +67,7 @@ module bsg_manycore_pod_ruche
 
     , manycore_ruche_link_sif_width_lp =
       `bsg_manycore_ruche_x_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+    , ruche_y_lanes_lp = `BSG_MAX(1,ruche_factor_Y_p)
 
     , wh_link_sif_width_lp = 
       `bsg_ready_and_link_sif_width(wh_flit_width_p)
@@ -95,8 +97,8 @@ module bsg_manycore_pod_ruche
     , input  [E:W][num_tiles_y_p-1:0] hor_barrier_link_i
     , output [E:W][num_tiles_y_p-1:0] hor_barrier_link_o
 
-    , input  [E:W][num_tiles_y_p-1:0][barrier_ruche_factor_X_p-1:0] barrier_ruche_link_i
-    , output [E:W][num_tiles_y_p-1:0][barrier_ruche_factor_X_p-1:0] barrier_ruche_link_o
+    , input  [E:W][num_tiles_y_p-1:0][barrier_ruche_factor_X_p-1:0] hor_barrier_ruche_link_i
+    , output [E:W][num_tiles_y_p-1:0][barrier_ruche_factor_X_p-1:0] hor_barrier_ruche_link_o
 
     // vcache
     , input  [E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] north_wh_link_sif_i
@@ -111,9 +113,9 @@ module bsg_manycore_pod_ruche
     , input [num_tiles_x_p-1:0][y_cord_width_p-1:0] global_y_i
   );
 
-
   `declare_bsg_manycore_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_manycore_ruche_x_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+  `declare_bsg_manycore_ruche_y_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
 
 
@@ -123,6 +125,7 @@ module bsg_manycore_pod_ruche
   wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] north_vc_wh_link_sif_lo;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] north_vc_ver_link_sif_li;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] north_vc_ver_link_sif_lo;
+  bsg_manycore_ruche_y_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0][ruche_y_lanes_lp-1:0] north_vc_ver_ruche_link_li, north_vc_ver_ruche_link_lo;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][x_cord_width_p-1:0] north_vc_global_x_li;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][y_cord_width_p-1:0] north_vc_global_y_li;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][x_cord_width_p-1:0] north_vc_global_x_lo;
@@ -139,6 +142,7 @@ module bsg_manycore_pod_ruche
 
       ,.num_tiles_x_p(num_tiles_x_p)
       ,.num_tiles_y_p(num_tiles_y_p)
+      ,.ruche_factor_Y_p(ruche_factor_Y_p)
 
       ,.subarray_num_tiles_x_p(subarray_num_tiles_x_lp)
       ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
@@ -170,6 +174,8 @@ module bsg_manycore_pod_ruche
     
       ,.ver_link_sif_i(north_vc_ver_link_sif_li[x])
       ,.ver_link_sif_o(north_vc_ver_link_sif_lo[x])
+      ,.ver_ruche_link_i(north_vc_ver_ruche_link_li[x])
+      ,.ver_ruche_link_o(north_vc_ver_ruche_link_lo[x])
 
       ,.global_x_i(north_vc_global_x_li[x])
       ,.global_y_i(north_vc_global_y_li[x])
@@ -185,6 +191,30 @@ module bsg_manycore_pod_ruche
     // connect north ver link
     assign ver_link_sif_o[N][(x*subarray_num_tiles_x_lp)+:subarray_num_tiles_x_lp] = north_vc_ver_link_sif_lo[x][N];
     assign north_vc_ver_link_sif_li[x][N] = ver_link_sif_i[N][(x*subarray_num_tiles_x_lp)+:subarray_num_tiles_x_lp]; 
+
+    for (genvar c = 0; c < subarray_num_tiles_x_lp; c++) begin: y_edge
+      if (ruche_factor_Y_p > 0) begin: enabled
+        for (genvar l = 0; l < ruche_factor_Y_p; l++) begin: lane
+          bsg_manycore_ruche_y_link_sif_tieoff #(
+            .addr_width_p(addr_width_p)
+            ,.data_width_p(data_width_p)
+            ,.x_cord_width_p(x_cord_width_p)
+            ,.y_cord_width_p(y_cord_width_p)
+            ,.ruche_factor_Y_p(ruche_factor_Y_p)
+            ,.ruche_stage_p(l)
+            ,.north_not_south_p(1'b1)
+          ) tieoff (
+            .clk_i(clk_i)
+            ,.reset_i(north_vc_reset_lo[x][c])
+            ,.ruche_link_i(north_vc_ver_ruche_link_lo[x][N][c][l])
+            ,.ruche_link_o(north_vc_ver_ruche_link_li[x][N][c][l])
+          );
+        end
+      end
+      else begin: disabled
+        assign north_vc_ver_ruche_link_li[x][N][c] = '0;
+      end
+    end
 
     // connect wh link to west
     if (x == 0) begin
@@ -215,6 +245,7 @@ module bsg_manycore_pod_ruche
   bsg_manycore_link_sif_s [num_subarray_y_p-1:0][num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] mc_ver_link_sif_lo;
   bsg_manycore_ruche_x_link_sif_s [num_subarray_y_p-1:0][num_subarray_x_p-1:0][E:W][subarray_num_tiles_y_lp-1:0][ruche_factor_X_p-1:0] mc_ruche_link_li;
   bsg_manycore_ruche_x_link_sif_s [num_subarray_y_p-1:0][num_subarray_x_p-1:0][E:W][subarray_num_tiles_y_lp-1:0][ruche_factor_X_p-1:0] mc_ruche_link_lo;
+  bsg_manycore_ruche_y_link_sif_s [num_subarray_y_p-1:0][num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0][ruche_y_lanes_lp-1:0] mc_ver_ruche_link_li, mc_ver_ruche_link_lo;
   logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][x_cord_width_p-1:0] mc_global_x_li;
   logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][y_cord_width_p-1:0] mc_global_y_li;
   logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][x_cord_width_p-1:0] mc_global_x_lo;
@@ -226,6 +257,7 @@ module bsg_manycore_pod_ruche
   logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] mc_ver_barrier_link_li, mc_ver_barrier_link_lo;
   logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][E:W][subarray_num_tiles_y_lp-1:0] mc_hor_barrier_link_li, mc_hor_barrier_link_lo;
   logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][E:W][subarray_num_tiles_y_lp-1:0][barrier_ruche_factor_X_p-1:0] mc_barrier_ruche_link_li, mc_barrier_ruche_link_lo;
+  logic [num_subarray_y_p-1:0][num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0][barrier_ruche_factor_Y_p-1:0] mc_ver_barrier_ruche_link_li, mc_ver_barrier_ruche_link_lo;
   
 
   // Split the hetero_type_vec_p array into sub-arrays.
@@ -270,6 +302,7 @@ module bsg_manycore_pod_ruche
         ,.ruche_factor_X_p(ruche_factor_X_p)
         ,.ruche_factor_Y_p(ruche_factor_Y_p)
         ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+        ,.barrier_ruche_factor_Y_p(barrier_ruche_factor_Y_p)
           `ifndef SYNTHESIS
         ,.hetero_type_vec_p(get_subarray_hetero_type_vec(y, x))
           `endif
@@ -288,13 +321,17 @@ module bsg_manycore_pod_ruche
 
         ,.ruche_link_i(mc_ruche_link_li[y][x])
         ,.ruche_link_o(mc_ruche_link_lo[y][x])
+        ,.ver_ruche_link_i(mc_ver_ruche_link_li[y][x])
+        ,.ver_ruche_link_o(mc_ver_ruche_link_lo[y][x])
 
         ,.ver_barrier_link_i(mc_ver_barrier_link_li[y][x])
         ,.ver_barrier_link_o(mc_ver_barrier_link_lo[y][x])
         ,.hor_barrier_link_i(mc_hor_barrier_link_li[y][x])
         ,.hor_barrier_link_o(mc_hor_barrier_link_lo[y][x])
-        ,.barrier_ruche_link_i(mc_barrier_ruche_link_li[y][x])
-        ,.barrier_ruche_link_o(mc_barrier_ruche_link_lo[y][x])
+        ,.hor_barrier_ruche_link_i(mc_barrier_ruche_link_li[y][x])
+        ,.hor_barrier_ruche_link_o(mc_barrier_ruche_link_lo[y][x])
+        ,.ver_barrier_ruche_link_i(mc_ver_barrier_ruche_link_li[y][x])
+        ,.ver_barrier_ruche_link_o(mc_ver_barrier_ruche_link_lo[y][x])
 
         ,.global_x_i(mc_global_x_li[y][x])
         ,.global_y_i(mc_global_y_li[y][x])
@@ -307,6 +344,8 @@ module bsg_manycore_pod_ruche
         // ver link
         assign north_vc_ver_link_sif_li[x][S] = mc_ver_link_sif_lo[y][x][N];
         assign mc_ver_link_sif_li[y][x][N] = north_vc_ver_link_sif_lo[x][S];
+        assign north_vc_ver_ruche_link_li[x][S] = mc_ver_ruche_link_lo[y][x][N];
+        assign mc_ver_ruche_link_li[y][x][N] = north_vc_ver_ruche_link_lo[x][S];
         // coordinates
         assign mc_global_x_li[y][x] = north_vc_global_x_lo[x];
         assign mc_global_y_li[y][x] = north_vc_global_y_lo[x];
@@ -314,6 +353,18 @@ module bsg_manycore_pod_ruche
         assign mc_reset_li[y][x] = north_vc_reset_lo[x];
         // tieoff ver barrier
         assign mc_ver_barrier_link_li[y][x][N] = '0;
+        if (barrier_ruche_factor_Y_p > 0) begin: barrier_n
+          for (genvar c = 0; c < subarray_num_tiles_x_lp; c++) begin: col
+            for (genvar l = 0; l < barrier_ruche_factor_Y_p; l++) begin: lane
+              // Same boundary polarity as X ruche at the west edge.
+              assign mc_ver_barrier_ruche_link_li[y][x][N][c][l] =
+                (l > 0) && ((barrier_ruche_factor_Y_p % 2 == 0) ? (l % 2 != 0) : (l % 2 == 0));
+            end
+          end
+        end
+        else begin: no_barrier_n
+          assign mc_ver_barrier_ruche_link_li[y][x][N] = '0;
+        end
       end
   
       // connect ver links to the next row
@@ -321,6 +372,8 @@ module bsg_manycore_pod_ruche
         // ver link
         assign mc_ver_link_sif_li[y+1][x][N] = mc_ver_link_sif_lo[y][x][S];
         assign mc_ver_link_sif_li[y][x][S] = mc_ver_link_sif_lo[y+1][x][N];
+        assign mc_ver_ruche_link_li[y+1][x][N] = mc_ver_ruche_link_lo[y][x][S];
+        assign mc_ver_ruche_link_li[y][x][S] = mc_ver_ruche_link_lo[y+1][x][N];
         // coordinates
         assign mc_global_x_li[y+1][x] = mc_global_x_lo[y][x];
         assign mc_global_y_li[y+1][x] = mc_global_y_lo[y][x];
@@ -329,12 +382,24 @@ module bsg_manycore_pod_ruche
         // ver barrier
         assign mc_ver_barrier_link_li[y+1][x][N] = mc_ver_barrier_link_lo[y][x][S];
         assign mc_ver_barrier_link_li[y][x][S] = mc_ver_barrier_link_lo[y+1][x][N];
+        assign mc_ver_barrier_ruche_link_li[y+1][x][N] = mc_ver_barrier_ruche_link_lo[y][x][S];
+        assign mc_ver_barrier_ruche_link_li[y][x][S] = mc_ver_barrier_ruche_link_lo[y+1][x][N];
       end
     
       // last row
       if (y == num_subarray_y_p-1) begin
         // tieoff ver barrier
         assign mc_ver_barrier_link_li[y][x][S] = '0;
+        if (barrier_ruche_factor_Y_p > 0) begin: barrier_s
+          for (genvar c = 0; c < subarray_num_tiles_x_lp; c++) begin: col
+            for (genvar l = 0; l < barrier_ruche_factor_Y_p; l++) begin: lane
+              assign mc_ver_barrier_ruche_link_li[y][x][S][c][l] = (l % 2 != 0);
+            end
+          end
+        end
+        else begin: no_barrier_s
+          assign mc_ver_barrier_ruche_link_li[y][x][S] = '0;
+        end
       end
 
       // connect to west
@@ -349,8 +414,8 @@ module bsg_manycore_pod_ruche
         assign hor_barrier_link_o[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_hor_barrier_link_lo[y][x][W];
         assign mc_hor_barrier_link_li[y][x][W] = hor_barrier_link_i[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
         // barrier ruche
-        assign barrier_ruche_link_o[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_barrier_ruche_link_lo[y][x][W];
-        assign mc_barrier_ruche_link_li[y][x][W] = barrier_ruche_link_i[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
+        assign hor_barrier_ruche_link_o[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_barrier_ruche_link_lo[y][x][W];
+        assign mc_barrier_ruche_link_li[y][x][W] = hor_barrier_ruche_link_i[W][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
       end
 
       // connect hor links to the next col
@@ -381,8 +446,8 @@ module bsg_manycore_pod_ruche
         assign hor_barrier_link_o[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_hor_barrier_link_lo[y][x][E];
         assign mc_hor_barrier_link_li[y][x][E] = hor_barrier_link_i[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
         // barrier ruche
-        assign barrier_ruche_link_o[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_barrier_ruche_link_lo[y][x][E];
-        assign mc_barrier_ruche_link_li[y][x][E] = barrier_ruche_link_i[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
+        assign hor_barrier_ruche_link_o[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp] = mc_barrier_ruche_link_lo[y][x][E];
+        assign mc_barrier_ruche_link_li[y][x][E] = hor_barrier_ruche_link_i[E][y*subarray_num_tiles_y_lp+:subarray_num_tiles_y_lp];
       end
 
     end
@@ -392,8 +457,10 @@ module bsg_manycore_pod_ruche
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] south_vc_reset_li;
   wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] south_vc_wh_link_sif_li;
   wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] south_vc_wh_link_sif_lo;
+  logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] south_vc_reset_lo;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] south_vc_ver_link_sif_li;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] south_vc_ver_link_sif_lo;
+  bsg_manycore_ruche_y_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0][ruche_y_lanes_lp-1:0] south_vc_ver_ruche_link_li, south_vc_ver_ruche_link_lo;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][x_cord_width_p-1:0] south_vc_global_x_li;
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0][y_cord_width_p-1:0] south_vc_global_y_li;
   
@@ -408,6 +475,7 @@ module bsg_manycore_pod_ruche
 
       ,.num_tiles_x_p(num_tiles_x_p)
       ,.num_tiles_y_p(num_tiles_y_p)
+      ,.ruche_factor_Y_p(ruche_factor_Y_p)
 
       ,.subarray_num_tiles_x_p(subarray_num_tiles_x_lp)
       ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
@@ -431,13 +499,15 @@ module bsg_manycore_pod_ruche
     ) south_vc_row (
       .clk_i({num_clk_ports_p{clk_i}})
       ,.reset_i(south_vc_reset_li[x])
-      ,.reset_o()
+      ,.reset_o(south_vc_reset_lo[x])
     
       ,.wh_link_sif_i(south_vc_wh_link_sif_li[x])
       ,.wh_link_sif_o(south_vc_wh_link_sif_lo[x])
     
       ,.ver_link_sif_i(south_vc_ver_link_sif_li[x])
       ,.ver_link_sif_o(south_vc_ver_link_sif_lo[x])
+      ,.ver_ruche_link_i(south_vc_ver_ruche_link_li[x])
+      ,.ver_ruche_link_o(south_vc_ver_ruche_link_lo[x])
 
       ,.global_x_i(south_vc_global_x_li[x])
       ,.global_y_i(south_vc_global_y_li[x])
@@ -451,10 +521,36 @@ module bsg_manycore_pod_ruche
     // connect ver link to manycore
     assign south_vc_ver_link_sif_li[x][N] = mc_ver_link_sif_lo[num_subarray_y_p-1][x][S];
     assign mc_ver_link_sif_li[num_subarray_y_p-1][x][S] = south_vc_ver_link_sif_lo[x][N];
+    assign south_vc_ver_ruche_link_li[x][N] = mc_ver_ruche_link_lo[num_subarray_y_p-1][x][S];
+    assign mc_ver_ruche_link_li[num_subarray_y_p-1][x][S] = south_vc_ver_ruche_link_lo[x][N];
  
     // connect ver link to south
     assign ver_link_sif_o[S][x*subarray_num_tiles_x_lp+:subarray_num_tiles_x_lp] = south_vc_ver_link_sif_lo[x][S];
     assign south_vc_ver_link_sif_li[x][S] = ver_link_sif_i[S][x*subarray_num_tiles_x_lp+:subarray_num_tiles_x_lp];
+
+    for (genvar c = 0; c < subarray_num_tiles_x_lp; c++) begin: y_edge
+      if (ruche_factor_Y_p > 0) begin: enabled
+        for (genvar l = 0; l < ruche_factor_Y_p; l++) begin: lane
+          bsg_manycore_ruche_y_link_sif_tieoff #(
+            .addr_width_p(addr_width_p)
+            ,.data_width_p(data_width_p)
+            ,.x_cord_width_p(x_cord_width_p)
+            ,.y_cord_width_p(y_cord_width_p)
+            ,.ruche_factor_Y_p(ruche_factor_Y_p)
+            ,.ruche_stage_p(l)
+            ,.north_not_south_p(1'b0)
+          ) tieoff (
+            .clk_i(clk_i)
+            ,.reset_i(south_vc_reset_lo[x][c])
+            ,.ruche_link_i(south_vc_ver_ruche_link_lo[x][S][c][l])
+            ,.ruche_link_o(south_vc_ver_ruche_link_li[x][S][c][l])
+          );
+        end
+      end
+      else begin: disabled
+        assign south_vc_ver_ruche_link_li[x][S][c] = '0;
+      end
+    end
    
     // coordinate
     assign south_vc_global_x_li[x] = mc_global_x_lo[num_subarray_y_p-1][x];

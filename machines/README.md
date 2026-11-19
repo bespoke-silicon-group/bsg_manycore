@@ -11,13 +11,21 @@ Machine.machine.include parameters
 - BSG_MACHINE_Y_CORD_WIDTH              =   the global ({pod_y, subcord_y}) y coordinate width.
 
 - BSG_MACHINE_RUCHE_FACTOR_X            =   the [ruche](https://michaeltaylor.org/papers/Jung_NOCS_2020_Ruche_Networks.pdf) factor of the network.
-- BSG_MACHINE_RUCHE_FACTOR_Y            =   the Y ruche factor passed through the compute hierarchy to the routers (default 0).
-                                            Parameter plumbing only: this does not add vertical ruche links or change the topology.
-                                            Keep at 0 for the existing mesh and half-ruche-X networks.
+- BSG_MACHINE_RUCHE_FACTOR_Y            =   the Y ruche factor (default 0); use >= 2 to enable pod-local Y ruche in ruche pods.
+                                            Data lanes connect compute subarrays and both vcache rows, terminating at pod edges.
+                                            Y barrier lanes connect compute subarrays and terminate before the vcache rows.
+                                            Factor 0 preserves half-ruche-X; keep at 0 for mesh pods.
+                                            Full-ruche barriers have nine directions (RN=7, RS=8, root=9); configure software
+                                            accordingly rather than using the existing seven-direction barrier initializer.
+                                            Wiring only: the router can select terminated Y lanes for off-pod/host traffic.
+                                            Boundary-aware routing is not implemented; keep factor 0 for such workloads.
 - BSG_MACHINE_BARRIER_RUCHE_FACTOR_X    =   the ruche factor of the half-ruche-X barrier network.
                                             Mesh pods have only P/W/E/N/S barrier directions and no barrier ruche links.
                                             Mesh software uses BARRIER_RUCHE_FACTOR_X=0 and root direction 5;
                                             half-ruche-X software retains root direction 7.
+- BSG_MACHINE_BARRIER_RUCHE_FACTOR_Y    =   the independent Y barrier ruche factor (default 0).
+                                            Set to >= 2 alongside nonzero Y data ruche, or 0 when Y data ruche is disabled.
+                                            Directly sizes vertical barrier links and stages throughout ruche pods.
 
 - BSG_MACHINE_NUM_VCACHE_ROWS           =   number of vcache rows on each side of pod (north and south).
 - BSG_MACHINE_VCACHE_SET                =   number of sets in each vcache

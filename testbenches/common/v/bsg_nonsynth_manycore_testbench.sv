@@ -30,6 +30,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter `BSG_INV_PARAM(ruche_factor_X_p)
     , `BSG_INV_PARAM(ruche_factor_Y_p)
     , parameter `BSG_INV_PARAM(barrier_ruche_factor_X_p)
+    , parameter `BSG_INV_PARAM(barrier_ruche_factor_Y_p)
 
     , parameter `BSG_INV_PARAM(num_subarray_x_p)
     , parameter `BSG_INV_PARAM(num_subarray_y_p)
@@ -104,6 +105,7 @@ module bsg_nonsynth_manycore_testbench
     $display("[INFO][TESTBENCH] BSG_MACHINE_RUCHE_FACTOR_X           = %d", ruche_factor_X_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_RUCHE_FACTOR_Y           = %d", ruche_factor_Y_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_BARRIER_RUCHE_FACTOR_X   = %d", barrier_ruche_factor_X_p);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_BARRIER_RUCHE_FACTOR_Y   = %d", barrier_ruche_factor_Y_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_X               = %d", num_subarray_x_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_Y               = %d", num_subarray_y_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_X_CORD            = %d", `BSG_MACHINE_ORIGIN_X_CORD);
@@ -182,6 +184,7 @@ module bsg_nonsynth_manycore_testbench
       ,.ruche_factor_X_p(ruche_factor_X_p)
       ,.ruche_factor_Y_p(ruche_factor_Y_p)
       ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+      ,.barrier_ruche_factor_Y_p(barrier_ruche_factor_Y_p)
       ,.num_subarray_x_p(num_subarray_x_p)
       ,.num_subarray_y_p(num_subarray_y_p)
 

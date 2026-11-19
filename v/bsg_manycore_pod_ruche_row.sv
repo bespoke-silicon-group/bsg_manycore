@@ -21,6 +21,7 @@ module bsg_manycore_pod_ruche_row
     , `BSG_INV_PARAM(ruche_factor_X_p)
     , `BSG_INV_PARAM(ruche_factor_Y_p)
     , `BSG_INV_PARAM(barrier_ruche_factor_X_p)
+    , `BSG_INV_PARAM(barrier_ruche_factor_Y_p)
     , num_subarray_x_p=1
     , num_subarray_y_p=1
 
@@ -128,6 +129,7 @@ module bsg_manycore_pod_ruche_row
       ,.ruche_factor_X_p(ruche_factor_X_p)
       ,.ruche_factor_Y_p(ruche_factor_Y_p)
       ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+      ,.barrier_ruche_factor_Y_p(barrier_ruche_factor_Y_p)
       
       ,.num_subarray_x_p(num_subarray_x_p)
       ,.num_subarray_y_p(num_subarray_y_p)
@@ -170,8 +172,8 @@ module bsg_manycore_pod_ruche_row
       ,.ruche_link_o(ruche_link_lo[x])
       ,.hor_barrier_link_i(hor_barrier_link_li[x])
       ,.hor_barrier_link_o(hor_barrier_link_lo[x])
-      ,.barrier_ruche_link_i(barrier_ruche_link_li[x])
-      ,.barrier_ruche_link_o(barrier_ruche_link_lo[x])
+      ,.hor_barrier_ruche_link_i(barrier_ruche_link_li[x])
+      ,.hor_barrier_ruche_link_o(barrier_ruche_link_lo[x])
 
       ,.north_wh_link_sif_i(wh_link_sif_li[x][N])
       ,.north_wh_link_sif_o(wh_link_sif_lo[x][N])

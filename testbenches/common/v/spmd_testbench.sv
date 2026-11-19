@@ -30,6 +30,7 @@ module spmd_testbench
   parameter ruche_factor_X_p    = `BSG_MACHINE_RUCHE_FACTOR_X;
   parameter ruche_factor_Y_p    = `BSG_MACHINE_RUCHE_FACTOR_Y;
   parameter barrier_ruche_factor_X_p    = `BSG_MACHINE_BARRIER_RUCHE_FACTOR_X;
+  parameter barrier_ruche_factor_Y_p    = `BSG_MACHINE_BARRIER_RUCHE_FACTOR_Y;
 
 
   parameter num_vcache_rows_p = `BSG_MACHINE_NUM_VCACHE_ROWS;
@@ -107,6 +108,7 @@ module spmd_testbench
     ,.ruche_factor_X_p(ruche_factor_X_p)
     ,.ruche_factor_Y_p(ruche_factor_Y_p)
     ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+    ,.barrier_ruche_factor_Y_p(barrier_ruche_factor_Y_p)
 
     ,.num_subarray_x_p(num_subarray_x_p)
     ,.num_subarray_y_p(num_subarray_y_p)
