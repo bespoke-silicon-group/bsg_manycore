@@ -161,7 +161,8 @@ module bsg_manycore_link_to_cache
       e_cache_op: begin
         return_pkt_type = e_return_credit;
       end
-      e_remote_amoswap, e_remote_amoor, e_remote_amoadd, e_remote_amoand, e_remote_amoxor, e_remote_amomin, e_remote_amomax, e_remote_amominu, e_remote_amomaxu: begin
+      e_remote_amoswap, e_remote_amoadd, e_remote_amoxor, e_remote_amoand, e_remote_amoor,
+      e_remote_amomin, e_remote_amomax, e_remote_amominu, e_remote_amomaxu: begin
         return_pkt_type = e_return_int_wb;
       end
       // should never happen
