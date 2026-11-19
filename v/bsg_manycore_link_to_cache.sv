@@ -308,41 +308,15 @@ module bsg_manycore_link_to_cache
               cache_pkt.opcode = SM;
             end
 
-            e_remote_amoswap: begin
-              cache_pkt.opcode = AMOSWAP_W;
-            end
-
-            e_remote_amoor: begin
-              cache_pkt.opcode = AMOOR_W;
-            end
-
-            e_remote_amoadd: begin
-              cache_pkt.opcode = AMOADD_W;
-            end
-
-            e_remote_amoand: begin
-              cache_pkt.opcode = AMOAND_W;
-            end
-
-            e_remote_amoxor: begin
-              cache_pkt.opcode = AMOXOR_W;
-            end
-
-            e_remote_amomin: begin
-              cache_pkt.opcode = AMOMIN_W;
-            end
-
-            e_remote_amomax: begin
-              cache_pkt.opcode = AMOMAX_W;
-            end
-
-            e_remote_amominu: begin
-              cache_pkt.opcode = AMOMINU_W;
-            end
-
-            e_remote_amomaxu: begin
-              cache_pkt.opcode = AMOMAXU_W;
-            end
+            e_remote_amoswap: cache_pkt.opcode = AMOSWAP_W;
+            e_remote_amoadd:  cache_pkt.opcode = AMOADD_W;
+            e_remote_amoxor:  cache_pkt.opcode = AMOXOR_W;
+            e_remote_amoand:  cache_pkt.opcode = AMOAND_W;
+            e_remote_amoor:   cache_pkt.opcode = AMOOR_W;
+            e_remote_amomin:  cache_pkt.opcode = AMOMIN_W;
+            e_remote_amomax:  cache_pkt.opcode = AMOMAX_W;
+            e_remote_amominu: cache_pkt.opcode = AMOMINU_W;
+            e_remote_amomaxu: cache_pkt.opcode = AMOMAXU_W;
 
             e_cache_op: begin
               case (packet_lo.reg_id.cache_op)
