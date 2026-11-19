@@ -110,7 +110,8 @@ module bsg_manycore_link_to_cache
   bsg_manycore_load_info_s load_info;
   assign load_info = packet_lo.payload.load_info_s.load_info;
   
-  wire is_packet_ifetch = (packet_lo.op_v2 == e_remote_load) & load_info.icache_fetch;
+  wire is_packet_ifetch = packet_v_lo & (packet_lo.op_v2 == e_remote_load) & load_info.icache_fetch;
+  wire is_packet_azero = packet_v_lo & (packet_lo.op_v2 == e_cache_op) & (packet_lo.reg_id.cache_op == e_azero);
 
   // at the reset, this module intializes all the tags and valid bits to zero.
   // After all the tags are completedly initialized, this module starts
@@ -119,11 +120,12 @@ module bsg_manycore_link_to_cache
   bsg_cache_pkt_s cache_pkt;
   assign cache_pkt_o = cache_pkt;
 
-  typedef enum logic [1:0] {
+  typedef enum logic [2:0] {
     RESET
     ,CLEAR_TAG
     ,READY
     ,IFETCH
+    ,AZERO
   } state_e;
 
   state_e state_r, state_n;
@@ -136,7 +138,7 @@ module bsg_manycore_link_to_cache
   // 
   typedef struct packed {
     bsg_manycore_return_packet_type_e pkt_type;
-    logic [4:0] reg_id;
+    bsg_manycore_packet_reg_id_u reg_id;
     logic [y_cord_width_p-1:0] y_cord;
     logic [x_cord_width_p-1:0] x_cord;
   } cache_info_s;
@@ -179,12 +181,12 @@ module bsg_manycore_link_to_cache
   );
 
   always_ff @ (posedge clk_i) begin
-    if (state_r == READY || state_r == IFETCH) begin
+    if (state_r == READY || state_r == IFETCH || state_r == AZERO) begin
       if (yumi_i) begin
         tl_info_r <= '{
           pkt_type: return_pkt_type,
           reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
-              ? payload_reg_id
+              ? is_packet_azero ? packet_lo.reg_id : payload_reg_id
               : packet_lo.reg_id,
           y_cord: packet_lo.src_y_cord,
           x_cord: packet_lo.src_x_cord
@@ -198,13 +200,21 @@ module bsg_manycore_link_to_cache
   
   logic ifetch_count_up;
   logic [icache_block_offset_width_lp-1:0] ifetch_count_r;
+
+  logic azero_count_up;
+  logic [word_offset_width_lp-1:0] azero_count_r;
+
   always_ff @ (posedge clk_i) begin
     if (reset_i) begin
       ifetch_count_r <= '0;
+      azero_count_r <= '0;
     end
     else begin
       if (ifetch_count_up) begin
         ifetch_count_r <= ifetch_count_r + 1'b1;
+      end
+      else if (azero_count_up) begin
+        azero_count_r <= azero_count_r + 1'b1;
       end
     end
   end
@@ -226,6 +236,7 @@ module bsg_manycore_link_to_cache
     return_packet_v_li = 1'b0;  
 
     ifetch_count_up = 1'b0;
+    azero_count_up = 1'b0;
 
     case (state_r)
       RESET: begin
@@ -260,13 +271,12 @@ module bsg_manycore_link_to_cache
       end
 
       READY: begin
-
         // cache pkt
         v_o = packet_v_lo;
-        packet_yumi_li = is_packet_ifetch
+        packet_yumi_li = is_packet_ifetch || is_packet_azero
           ? 1'b0
           : yumi_i;
-    
+
 
         // if two MSBs are ones, then it maps to wh_dest_east_not_west.
         // store-only;
@@ -324,6 +334,7 @@ module bsg_manycore_link_to_cache
                 e_afl: cache_pkt.opcode = AFL;
                 e_aflinv: cache_pkt.opcode = AFLINV;
                 e_ainv: cache_pkt.opcode = AINV;
+                e_azero: cache_pkt.opcode = SM;
                 default: begin
                   cache_pkt.opcode = AFL; // should never happen
                 end
@@ -354,16 +365,23 @@ module bsg_manycore_link_to_cache
         end
 
         cache_pkt.data = packet_lo.payload;
-        cache_pkt.mask = (packet_lo.op_v2 == e_remote_sw)
+        cache_pkt.mask = (packet_lo.op_v2 == e_remote_sw) || (packet_lo.op_v2 == e_cache_op)
           ? 4'b1111
           : packet_lo.reg_id.store_mask_s.mask;
-        
+
         unique case (packet_lo.op_v2)
           e_remote_load: begin
             cache_pkt.addr = {
               packet_lo.addr[link_addr_width_p-2:icache_block_offset_width_lp],
               load_info.icache_fetch ? ifetch_count_r : packet_lo.addr[0+:icache_block_offset_width_lp],
               load_info.part_sel
+            };
+          end
+          e_cache_op: begin
+            cache_pkt.addr = {
+              packet_lo.addr[link_addr_width_p-2:word_offset_width_lp],
+              is_packet_azero ? azero_count_r : packet_lo.addr[0+:word_offset_width_lp],
+              2'b00
             };
           end
           default: begin
@@ -375,16 +393,39 @@ module bsg_manycore_link_to_cache
         endcase
 
         // return pkt
-        return_packet_v_li = v_i;
+        return_packet_v_li = v_i & !(tv_info_r.reg_id == e_azero);
         yumi_o = v_i & return_packet_ready_lo;
 
-        
         ifetch_count_up = (is_packet_ifetch & yumi_i);
-        state_n = is_packet_ifetch
-          ? (yumi_i ? IFETCH : READY)
-          : READY;
+        azero_count_up = (is_packet_azero & yumi_i);
+
+        state_n = (is_packet_ifetch & yumi_i)
+          ? IFETCH
+          : (is_packet_azero & yumi_i)
+            ? AZERO
+            : READY;
       end
 
+      AZERO: begin
+        v_o = return_packet_ready_lo & packet_v_lo;
+        packet_yumi_li = yumi_i & (azero_count_r == block_size_in_words_p-1);
+        return_packet_v_li = packet_yumi_li;
+        yumi_o = v_i;
+
+        //cbo zero cache pkt
+        cache_pkt.opcode = SM;
+        cache_pkt.data = '0;
+        cache_pkt.mask = '1;
+        cache_pkt.addr = {
+          packet_lo.addr[link_addr_width_p-2:word_offset_width_lp],
+          azero_count_r,
+          2'b00
+        };
+
+        azero_count_up = yumi_i;
+
+        state_n = packet_yumi_li ? READY : AZERO;
+      end
       IFETCH: begin
         v_o = packet_v_lo;
         packet_yumi_li = yumi_i & (ifetch_count_r == icache_block_size_in_words_p-1);

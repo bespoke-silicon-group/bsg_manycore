@@ -23,7 +23,7 @@ package bsg_manycore_pkg;
     e_remote_load
     , e_remote_store  // masked store (reg_id is used as store mask)
     , e_remote_sw     // store word   (reg_id is used as a tracking id)
-    , e_cache_op // AFL, AFLINV, AINV for DRAM addresses - TAGFL for tag memory
+    , e_cache_op // AFL, AFLINV, AINV for DRAM addresses - TAGFL for tag memory, AZERO for zeroing cache block
     , e_remote_amoswap
     , e_remote_amoadd
     , e_remote_amoxor
@@ -73,6 +73,7 @@ package bsg_manycore_pkg;
     ,e_ainv
     ,e_aflinv
     ,e_tagfl
+    ,e_azero
   } bsg_manycore_cache_op_type_e;
 
 

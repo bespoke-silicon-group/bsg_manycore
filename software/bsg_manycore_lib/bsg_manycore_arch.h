@@ -48,6 +48,7 @@
 
 #define DRAM_PREFIX_SHIFT     31
 
+#define VCACHE_BLOCK_SIZE_BYTES (VCACHE_BLOCK_SIZE_WORDS * sizeof(int))
 
 // The Network CSR Addr configurations
 #define CSR_BASE_ADDR   (1<<(REMOTE_EPA_WIDTH-1))
