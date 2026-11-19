@@ -29,6 +29,7 @@ module bsg_manycore_pod_row_sdr
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
 
     , parameter num_vcache_rows_p=1
+    , parameter ipoly_hashing_p=0
     , `BSG_INV_PARAM(vcache_addr_width_p)
     , `BSG_INV_PARAM(vcache_data_width_p)
     , `BSG_INV_PARAM(vcache_ways_p)
@@ -184,6 +185,7 @@ module bsg_manycore_pod_row_sdr
     ,.icache_block_size_in_words_p  (icache_block_size_in_words_p)
 
     ,.num_vcache_rows_p   (num_vcache_rows_p)
+    ,.ipoly_hashing_p     (ipoly_hashing_p)
     ,.vcache_addr_width_p (vcache_addr_width_p)
     ,.vcache_data_width_p (vcache_data_width_p)
     ,.vcache_ways_p       (vcache_ways_p)
