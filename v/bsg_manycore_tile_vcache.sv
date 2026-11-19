@@ -285,6 +285,10 @@ module bsg_manycore_tile_vcache
 
     ,.my_wh_cord_i(global_x_r)
     ,.dest_wh_cord_i({wh_cord_width_p{wh_dest_east_not_west_lo}})
+    // Destination of uncached requests. This tile does not issue any:
+    // bsg_manycore_link_to_cache has no case for e_remote_uncached_load or
+    // e_remote_uncached_store.
+    ,.dest_io_wh_cord_i('0)
     ,.dest_wh_cid_i('0)
     // concentrator id
     // lower bits come from lower bits of global_x
