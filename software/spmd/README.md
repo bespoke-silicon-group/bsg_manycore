@@ -81,6 +81,30 @@ Note:
 
 
 
+Uncached IO tests
+-----------------
+
+`io_space/`, `io_space_independence/`, `io_inter_tile/`, `io_flood/` and `io_dram_mix/` use the uncached load and
+the uncached store: the `LOAD` and `STORE` opcodes with funct3 `0b111`. The tests write them with `.insn`:
+
+    .insn i 0b0000011, 0b111, rd, rs1, 0x0        # rd <- 0(rs1)
+    .insn r 0b0100011, 0b111, 0x0, x0, rs1, rs2   # 0(rs1) <- rs2
+
+An uncached request does not go to the DRAM. A vcache of the tile's pod passes it on to the IO, which is a separate
+address space, and keeps no copy of the word. The address of the request selects that vcache:
+
+- bit 31: the vcache row, 0 for north and 1 for south.
+- the next log2(pod width) bits, from bit 30 down: the vcache column.
+- the remaining bits, down to bit 2: the word address that the vcache sends to the IO.
+
+The store returns when the vcache has queued the word, not when the IO has it. An uncached load through the same
+vcache is answered only after the IO has received the stores that this vcache queued before it.
+
+In simulation, `bsg_nonsynth_wormhole_test_mem` answers uncached requests (machines with
+`BSG_MACHINE_MEM_CFG = e_vcache_test_mem`). It keeps one IO space for each vcache. The machines with DRAMSim3
+(`e_vcache_hbm2`) have no IO: `bsg_wormhole_to_cache_dma_fanout` reports the request and the test does not finish.
+
+
 `common/`
 ----------
 
