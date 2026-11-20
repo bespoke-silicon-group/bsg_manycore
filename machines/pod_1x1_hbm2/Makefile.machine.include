@@ -27,10 +27,10 @@ BSG_MACHINE_MAX_EPA_WIDTH             = 28
 BSG_MACHINE_BRANCH_TRACE_EN           = 0
 BSG_MACHINE_HETERO_TYPE_VEC           = default:0
 
-BSG_MACHINE_ORIGIN_Y_CORD             = $(BSG_MACHINE_GLOBAL_Y)
-BSG_MACHINE_ORIGIN_X_CORD             = $(BSG_MACHINE_GLOBAL_X)
+BSG_MACHINE_ORIGIN_Y_CORD             = 8
+BSG_MACHINE_ORIGIN_X_CORD             = 16
 
-BSG_MACHINE_HOST_Y_CORD               = 0
+BSG_MACHINE_HOST_Y_CORD               = 17
 BSG_MACHINE_HOST_X_CORD               = $(BSG_MACHINE_GLOBAL_X)
 
 BSG_MACHINE_NETWORK_CFG               = e_network_half_ruche_x

@@ -326,6 +326,7 @@ module bsg_manycore_gather_scatter
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)
 
+    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.vcache_size_p(vcache_size_p)
     ,.vcache_sets_p(vcache_sets_p)

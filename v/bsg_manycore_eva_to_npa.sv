@@ -29,6 +29,7 @@ module bsg_manycore_eva_to_npa
  
     , `BSG_INV_PARAM(num_tiles_x_p)
     , `BSG_INV_PARAM(num_tiles_y_p)
+    , `BSG_INV_PARAM(num_vcache_rows_p)
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)  // block size in vcache
     , `BSG_INV_PARAM(vcache_size_p) // vcache capacity in words
     , `BSG_INV_PARAM(vcache_sets_p) // number of sets in vcache
@@ -102,6 +103,9 @@ module bsg_manycore_eva_to_npa
     // Reject iPoly-enabled profiles so the RTL cannot silently disagree with the runtime.
     initial assert (!ipoly_hashing_p)
       else $error("Single-column pods require iPoly disabled");
+    // The striping above only addresses one vcache row per side.
+    initial assert (num_vcache_rows_p == 1)
+      else $error("Single-column pods require a single vcache row");
   end else begin: multi_column_dram
   bsg_manycore_dram_hash_function #(
     .data_width_p(data_width_p)
@@ -112,6 +116,7 @@ module bsg_manycore_eva_to_npa
     ,.pod_y_cord_width_p(pod_y_cord_width_p)
     ,.x_subcord_width_p(x_subcord_width_lp)
     ,.y_subcord_width_p(y_subcord_width_lp)
+    ,.num_vcache_rows_p(num_vcache_rows_p)
     ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
     ,.ipoly_hashing_p(ipoly_hashing_p)
   ) dram_hash (
