@@ -23,10 +23,10 @@ module spmd_testbench
   parameter num_subarray_y_p = `BSG_MACHINE_SUBARRAY_Y;
   parameter data_width_p = 32;
   parameter addr_width_p = `BSG_MACHINE_MAX_EPA_WIDTH; // word addr
-  parameter dmem_size_p = 1024;
-  parameter icache_entries_p = 1024;
-  parameter icache_tag_width_p = 12;
-  parameter icache_block_size_in_words_p = 4;
+  parameter dmem_size_p = `BSG_MACHINE_DMEM_ENTRIES;
+  parameter icache_entries_p = `BSG_MACHINE_ICACHE_ENTRIES;
+  parameter icache_tag_width_p = `BSG_MACHINE_ICACHE_TAG_WIDTH;
+  parameter icache_block_size_in_words_p = `BSG_MACHINE_ICACHE_BLOCK_SIZE_WORDS;
   parameter ruche_factor_X_p    = `BSG_MACHINE_RUCHE_FACTOR_X;
   parameter barrier_ruche_factor_X_p    = `BSG_MACHINE_BARRIER_RUCHE_FACTOR_X;
 
