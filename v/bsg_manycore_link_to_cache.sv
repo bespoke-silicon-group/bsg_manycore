@@ -112,6 +112,11 @@ module bsg_manycore_link_to_cache
   
   wire is_packet_ifetch = (packet_lo.op_v2 == e_remote_load) & load_info.icache_fetch;
 
+  // An uncached request carries an IO address. It does not select the
+  // wh_dest_east_not_west register or the tag_mem, as an EPA does.
+  wire is_uncached_op = (packet_lo.op_v2 == e_remote_uncached_store)
+    | (packet_lo.op_v2 == e_remote_uncached_load);
+
   // at the reset, this module intializes all the tags and valid bits to zero.
   // After all the tags are completedly initialized, this module starts
   // accepting packets from manycore network.
@@ -147,10 +152,10 @@ module bsg_manycore_link_to_cache
 
   always_comb begin
     unique case (packet_lo.op_v2)
-      e_remote_store, e_remote_sw: begin
+      e_remote_store, e_remote_sw, e_remote_uncached_store: begin
         return_pkt_type = e_return_credit;
       end
-      e_remote_load: begin
+      e_remote_load, e_remote_uncached_load: begin
         if (load_info.icache_fetch)
           return_pkt_type = e_return_ifetch;
         else if (load_info.float_wb)
@@ -183,7 +188,7 @@ module bsg_manycore_link_to_cache
       if (yumi_i) begin
         tl_info_r <= '{
           pkt_type: return_pkt_type,
-          reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_cache_op)) 
+          reg_id : ((packet_lo.op_v2 == e_remote_store) | (packet_lo.op_v2 == e_remote_uncached_store) | (packet_lo.op_v2 == e_cache_op))
               ? payload_reg_id
               : packet_lo.reg_id,
           y_cord: packet_lo.src_y_cord,
@@ -270,7 +275,7 @@ module bsg_manycore_link_to_cache
 
         // if two MSBs are ones, then it maps to wh_dest_east_not_west.
         // store-only;
-        if (packet_lo.addr[link_addr_width_p-1-:2] == 2'b11) begin
+        if ((packet_lo.addr[link_addr_width_p-1-:2] == 2'b11) & ~is_uncached_op) begin
 
           case (packet_lo.op_v2)
             e_remote_store
@@ -293,7 +298,7 @@ module bsg_manycore_link_to_cache
         // otherwise it's regular access to data_mem.
         // we want to expose read/write access to tag_mem on NPA
         // for extra debugging capability.
-        else if (packet_lo.addr[link_addr_width_p-1]) begin
+        else if (packet_lo.addr[link_addr_width_p-1] & ~is_uncached_op) begin
           case (packet_lo.op_v2)
             e_remote_store, e_remote_sw: cache_pkt.opcode = TAGST;
             e_remote_load:  cache_pkt.opcode = TAGLA;
@@ -305,6 +310,10 @@ module bsg_manycore_link_to_cache
           unique case (packet_lo.op_v2)
             e_remote_store, e_remote_sw: begin
               cache_pkt.opcode = SM;
+            end
+
+            e_remote_uncached_store: begin
+              cache_pkt.opcode = UNCACHED_SW;
             end
 
             e_remote_amoswap: begin
@@ -342,7 +351,11 @@ module bsg_manycore_link_to_cache
               else begin
                 cache_pkt.opcode = LW;
               end
-            end            
+            end
+
+            e_remote_uncached_load: begin
+              cache_pkt.opcode = UNCACHED_LW;
+            end
             // this should never happen.
             default: begin
               cache_pkt.opcode = AFL;
