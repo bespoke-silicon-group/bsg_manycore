@@ -93,8 +93,10 @@ module lsu
 
 
   // to local DMEM
-  //
-  wire is_local_dmem_addr = (mem_addr ==? 32'b00000000_00000000_0000????_????????);
+  // The uncached IO space is a separate address space, so an uncached request
+  // is never a local DMEM access, whatever its address.
+  wire is_local_dmem_addr = (mem_addr ==? 32'b00000000_00000000_0000????_????????)
+    & ~exe_decode_i.is_uncached_op;
 
   assign dmem_v_o = is_local_dmem_addr &
     (exe_decode_i.is_load_op | exe_decode_i.is_store_op |
