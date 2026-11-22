@@ -24,6 +24,8 @@ VCS_FLAGS    += -assert svaext  # needed for "assert final"
 # simv-coverage is compiled without it, so that coverage results stay as they
 # are: line, condition and branch coverage also count what an expression sees
 # while its inputs settle within a time step, and that differs with -fgp.
+# A run can use more cores with VCS_FGP_THREADS, see
+# software/mk/Makefile.verilog.
 VCS_FGP ?= 1
 ifeq ($(VCS_FGP),1)
 VCS_FLAGS    += -fgp
