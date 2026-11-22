@@ -156,6 +156,7 @@
 `define RV32_CSR_MIP_ADDR       12'h344
 `define RV32_CSR_MEPC_ADDR      12'h341
 `define RV32_CSR_CFG_POD_ADDR   12'h360				    
+`define RV32_CSR_CFG_IO_POD_ADDR 12'h361
 
 // machine custom CSR addr
 `define RV32_CSR_CREDIT_LIMIT_ADDR 12'hfc0
