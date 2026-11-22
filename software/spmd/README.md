@@ -92,8 +92,8 @@ uncached load and the uncached store: the `LOAD` and `STORE` opcodes with funct3
     .insn r 0b0100011, 0b111, 0x0, x0, rs1, rs2   # 0(rs1) <- rs2
 
 An uncached request does not go to the DRAM. A vcache passes it on to the IO, which is a separate address space, and
-keeps no copy of the word. The pod register (CSR `0x360`) selects the pod of that vcache, as it does for DRAM
-requests; after reset it holds the tile's own pod. The address of the request selects the vcache in that pod:
+keeps no copy of the word. The IO pod register (CSR `0x361`) selects the pod of that vcache; after reset it holds the
+tile's own pod. The address of the request selects the vcache in that pod:
 
 - bit 31: the vcache row, 0 for north and 1 for south.
 - the next log2(pod width) bits, from bit 30 down: the vcache column.
@@ -101,6 +101,11 @@ requests; after reset it holds the tile's own pod. The address of the request se
 
 The request leaves the machine on the side that the block requests of that vcache go to, west or east. So the pod,
 the row and the column choose the memory port, and any tile can send a request through any vcache.
+
+The IO pod register has the layout of the pod register of the DRAM requests (CSR `0x360`), `{pod y, pod x}`, and is
+separate from it: a write to one does not change where the requests of the other go. A program can therefore use the
+IO behind another pod while its data stays in the DRAM of its own pod, and the other way around. Both are written
+with `csrw`, and a request that follows the write already goes to the new pod.
 
 The store returns when the vcache has queued the word, not when the IO has it. An uncached load through the same
 vcache is answered only after the IO has received the stores that this vcache queued before it.
