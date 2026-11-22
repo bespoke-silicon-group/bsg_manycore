@@ -285,9 +285,10 @@ module bsg_manycore_tile_vcache
 
     ,.my_wh_cord_i(global_x_r)
     ,.dest_wh_cord_i({wh_cord_width_p{wh_dest_east_not_west_lo}})
-    // Uncached requests go east, to the coordinate just below the one
-    // of the memory behind the east end of the wormhole links.
-    ,.dest_io_wh_cord_i({{(wh_cord_width_p-1){1'b1}}, 1'b0})
+    // Uncached requests leave on the same side as the block requests of
+    // this vcache, to the coordinate next to the one of the memory there:
+    // all ones except bit 0 in the east, all zeros except bit 0 in the west.
+    ,.dest_io_wh_cord_i({{(wh_cord_width_p-1){wh_dest_east_not_west_lo}}, ~wh_dest_east_not_west_lo})
     ,.dest_wh_cid_i('0)
     // concentrator id
     // lower bits come from lower bits of global_x
