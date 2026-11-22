@@ -110,6 +110,10 @@ with `csrw`, and a request that follows the write already goes to the new pod.
 The store returns when the vcache has queued the word, not when the IO has it. An uncached load through the same
 vcache is answered only after the IO has received the stores that this vcache queued before it.
 
+`bsg_fence()` waits until the vcaches have answered all requests of the tile, so after it every uncached store is
+queued in its vcache, and may not have reached the IO yet. A program that has to know that the IO has its stores does
+an uncached load through the same vcache.
+
 In simulation, `bsg_nonsynth_wormhole_test_mem` answers uncached requests (machines with
 `BSG_MACHINE_MEM_CFG = e_vcache_test_mem`). It keeps one IO space for each vcache. The machines with DRAMSim3
 (`e_vcache_hbm2`) have no IO: `bsg_wormhole_to_cache_dma_fanout` reports the request and the test does not finish.
