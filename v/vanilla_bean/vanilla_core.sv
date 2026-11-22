@@ -106,6 +106,10 @@ module vanilla_core
     // pod csr coord.
     , output [pod_x_cord_width_p-1:0] cfg_pod_x_o
     , output [pod_y_cord_width_p-1:0] cfg_pod_y_o
+
+    // IO pod csr coord.
+    , output [pod_x_cord_width_p-1:0] cfg_io_pod_x_o
+    , output [pod_y_cord_width_p-1:0] cfg_io_pod_y_o
    
     // For debugging + reset
     , input [x_cord_width_p-1:0] global_x_i
@@ -434,6 +438,7 @@ module vanilla_core
 			   ,global_x_i[x_cord_width_p-1-:pod_x_cord_width_p]}
 			  )
     ,.cfg_pod_r_o({cfg_pod_y_o,cfg_pod_x_o})
+    ,.cfg_io_pod_r_o({cfg_io_pod_y_o,cfg_io_pod_x_o})
     ,.instr_executed_i(mcsr_instr_executed_li)
     ,.interrupt_entered_i(mcsr_interrupt_entered_li)
     ,.mret_called_i(mcsr_mret_called_li)

@@ -67,6 +67,9 @@ module network_tx
     , input [pod_x_cord_width_p-1:0] cfg_pod_x_i
     , input [pod_y_cord_width_p-1:0] cfg_pod_y_i
 
+    , input [pod_x_cord_width_p-1:0] cfg_io_pod_x_i
+    , input [pod_y_cord_width_p-1:0] cfg_io_pod_y_i
+
     // core side
     // vanilla core uses valid-credit interface for outgoing requests.
     , input remote_req_s remote_req_i
@@ -113,19 +116,19 @@ module network_tx
   wire [y_cord_width_p-1:0] src_y_cord = {pod_y_i, my_y_i};
 
   // An uncached request goes to a vcache, which sends it on to the IO.
-  // The pod register selects the pod of that vcache, as it does for DRAM
-  // requests; after reset that is this tile's own pod. The address of the
-  // request selects the vcache in that pod:
+  // The IO pod register selects the pod of that vcache; after reset that is
+  // this tile's own pod. It is separate from the pod register of the DRAM
+  // requests. The address of the request selects the vcache in that pod:
   //   addr[31]                       0: north vcache row, 1: south vcache row
   //   addr[30-:x_subcord_width_lp]   vcache column
   //   addr[30-x_subcord_width_lp:2]  word address that the vcache sends to the IO
   wire [31:0] io_addr = remote_req_i.addr;
   wire proxy_is_in_the_south = io_addr[31];
 
-  wire [x_cord_width_p-1:0] proxy_x_cord_lo = {cfg_pod_x_i, io_addr[30-:x_subcord_width_lp]};
+  wire [x_cord_width_p-1:0] proxy_x_cord_lo = {cfg_io_pod_x_i, io_addr[30-:x_subcord_width_lp]};
   wire [y_cord_width_p-1:0] proxy_y_cord_lo = proxy_is_in_the_south
-    ? {(pod_y_cord_width_p)'(cfg_pod_y_i + 1'b1), {y_subcord_width_lp{1'b0}}}
-    : {(pod_y_cord_width_p)'(cfg_pod_y_i - 1'b1), {y_subcord_width_lp{1'b1}}};
+    ? {(pod_y_cord_width_p)'(cfg_io_pod_y_i + 1'b1), {y_subcord_width_lp{1'b0}}}
+    : {(pod_y_cord_width_p)'(cfg_io_pod_y_i - 1'b1), {y_subcord_width_lp{1'b1}}};
 
   wire is_uncached_op = remote_req_i.is_uncached_op;
   // Uncached op does not carry eva

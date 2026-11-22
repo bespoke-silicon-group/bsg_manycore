@@ -239,6 +239,8 @@ module bsg_manycore_proc_vanilla
 
    wire [pod_x_cord_width_p-1:0] cfg_pod_x_lo;
    wire [pod_y_cord_width_p-1:0] cfg_pod_y_lo;
+   wire [pod_x_cord_width_p-1:0] cfg_io_pod_x_lo;
+   wire [pod_y_cord_width_p-1:0] cfg_io_pod_y_lo;
    
   // TX unit
   //
@@ -303,6 +305,9 @@ module bsg_manycore_proc_vanilla
 
     ,.cfg_pod_x_i(cfg_pod_x_lo)
     ,.cfg_pod_y_i(cfg_pod_y_lo)	
+
+    ,.cfg_io_pod_x_i(cfg_io_pod_x_lo)
+    ,.cfg_io_pod_y_i(cfg_io_pod_y_lo)
 
     ,.my_x_i(my_x_i)
     ,.my_y_i(my_y_i)
@@ -397,6 +402,9 @@ module bsg_manycore_proc_vanilla
 
     ,.cfg_pod_x_o(cfg_pod_x_lo)
     ,.cfg_pod_y_o(cfg_pod_y_lo)	
+
+    ,.cfg_io_pod_x_o(cfg_io_pod_x_lo)
+    ,.cfg_io_pod_y_o(cfg_io_pod_y_lo)
 	   
     ,.global_x_i({pod_x_i, my_x_i})
     ,.global_y_i({pod_y_i, my_y_i})

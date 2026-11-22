@@ -41,6 +41,7 @@ module mcsr
 
     , input  [cfg_pod_width_p-1:0] cfg_pod_reset_val_i
     , output [cfg_pod_width_p-1:0] cfg_pod_r_o
+    , output [cfg_pod_width_p-1:0] cfg_io_pod_r_o
    
     // from between ID and EXE
     , input instr_executed_i
@@ -72,6 +73,7 @@ module mcsr
   logic [pc_width_p-1:0] mepc_r, mepc_n;
   logic [credit_counter_width_p-1:0] credit_limit_r, credit_limit_n;
   logic [cfg_pod_width_p-1:0] 	     cfg_pod_r;
+  logic [cfg_pod_width_p-1:0] cfg_io_pod_r;
   logic [barrier_dirs_p-1:0] barrier_src_r;
   logic [barrier_lg_dirs_lp-1:0] barrier_dest_r;
 
@@ -82,6 +84,7 @@ module mcsr
   assign mepc_r_o = mepc_r;
   assign credit_limit_o = credit_limit_r;
   assign cfg_pod_r_o = cfg_pod_r;
+  assign cfg_io_pod_r_o = cfg_io_pod_r;
   assign barrier_src_r_o = barrier_src_r;
   assign barrier_dest_r_o = barrier_dest_r;  
 
@@ -293,6 +296,22 @@ module mcsr
   end
 
 
+  // IO pod config
+  // The pod of the vcache that an uncached request goes through. It has the
+  // layout and the reset value of the pod config, and is a register of its
+  // own, so that a program can send IO through the vcaches of another pod
+  // while its DRAM requests stay where they are.
+  always_ff @(posedge clk_i) begin
+    if (reset_i) begin
+      cfg_io_pod_r <= cfg_pod_reset_val_i;
+    end
+    else begin
+      if (we_i && (addr_i == `RV32_CSR_CFG_IO_POD_ADDR) && (funct3_i == `RV32_CSRRW_FUN3)) begin
+        cfg_io_pod_r <= data_i[0+:cfg_pod_width_p];
+      end
+    end
+  end
+
 
   // Barrier configuration register (barcfg)
   always_ff @ (posedge clk_i) begin
@@ -358,6 +377,9 @@ module mcsr
       end
       `RV32_CSR_CFG_POD_ADDR: begin
 	      data_o[0+:cfg_pod_width_p] = cfg_pod_r;
+      end
+      `RV32_CSR_CFG_IO_POD_ADDR: begin
+        data_o[0+:cfg_pod_width_p] = cfg_io_pod_r;
       end
       `RV32_CSR_BARCFG_ADDR: begin
         data_o[0+:barrier_dirs_p] = barrier_src_r;
