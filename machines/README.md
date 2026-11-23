@@ -15,8 +15,8 @@ Machine.machine.include parameters
                                             Data lanes connect compute subarrays and both vcache rows, terminating at pod edges.
                                             Y barrier lanes connect compute subarrays and terminate before the vcache rows.
                                             Factor 0 preserves half-ruche-X; keep at 0 for mesh pods.
-                                            Full-ruche barriers have nine directions (RN=7, RS=8, root=9); configure software
-                                            accordingly rather than using the existing seven-direction barrier initializer.
+                                            Full-ruche barriers have nine directions (RN=7, RS=8, root=9);
+                                            software barrier configuration uses the independent Y barrier factor.
                                             Wiring only: the router can select terminated Y lanes for off-pod/host traffic.
                                             Boundary-aware routing is not implemented; keep factor 0 for such workloads.
 - BSG_MACHINE_BARRIER_RUCHE_FACTOR_X    =   the ruche factor of the half-ruche-X barrier network.

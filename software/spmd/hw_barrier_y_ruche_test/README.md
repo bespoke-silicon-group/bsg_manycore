@@ -1,6 +1,7 @@
 # Y-ruche software barrier test
 
-This SPMD test configures a five-tile, one-column barrier tree directly.
+This SPMD test generates a five-tile, one-column barrier tree with
+`bsg_hw_barrier_config_init` and checks its configuration.
 Rows 0 and 4 send to the root at row 2 over RS and RN; rows 1 and 3 use
 nearest-neighbor links. It alternates delayed arrivals between the two ruche
 leaves for 16 iterations, checking every tile's arrival after each barrier.
@@ -20,6 +21,3 @@ row, so boot and host traffic do not use the pod-local Y data links. This
 avoids the documented off-pod routing limitation; it does not test Y data
 ruche routing. The machine is specific to this test and is not a general
 workload configuration. Simulator build products are created in `machine/`.
-
-The test configures its own nine-direction CSR values; it does not add a
-general-purpose software initializer for Y-ruche barriers.

@@ -35,14 +35,21 @@ Manycore programs. Some useful flags to customize compilation are:
 ## Hardware barrier configuration
 
 Mesh machines use five barrier directions (P/W/E/N/S), with root selector 5.
-The build automatically sets `BARRIER_RUCHE_FACTOR_X=0` for `e_network_mesh`;
-other networks retain their configured ruche factor and root selector 7.
-Host code using `bsg_hw_barrier_config_init.h` must select the matching factor.
+X-only ruche machines use seven directions and root selector 7; Y-enabled
+ruche machines use nine directions and root selector 9. The build sets
+`BARRIER_RUCHE_FACTOR_X` and `BARRIER_RUCHE_FACTOR_Y` from the machine
+configuration (both zero for `e_network_mesh`).
+Host code using `bsg_hw_barrier_config_init.h` must define matching factors;
+Y defaults to zero when omitted for compatibility. Y must be zero or at least
+2, and nonzero Y requires X to be at least 2. The initializer builds a tree
+within the specified tile group and uses both X and Y ruche links where the
+group is large enough.
 
-The mesh configuration initializer can be tested from the repository root:
+The configuration tree can be tested from the repository root:
 
 ```sh
-cc -std=c99 -Wall -Wextra -Werror -DBARRIER_RUCHE_FACTOR_X=0 \
-  software/bsg_manycore_lib/test_bsg_hw_barrier_config_init.c -o /tmp/bsg-mesh-barrier-test
-/tmp/bsg-mesh-barrier-test
+cc -std=c99 -Wall -Wextra -Werror \
+  -DBARRIER_RUCHE_FACTOR_X=3 -DBARRIER_RUCHE_FACTOR_Y=2 \
+  software/bsg_manycore_lib/test_bsg_hw_barrier_config_tree.c -o /tmp/bsg-barrier-test
+/tmp/bsg-barrier-test
 ```

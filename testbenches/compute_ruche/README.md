@@ -20,9 +20,9 @@ Set `ruche_factor_Y_p >= 2` to enable Y data and barrier links.
 value >= 2. Vertical barrier ports, wires, stages, and boundary tieoffs use
 this factor directly, without a separate lane-count parameter.
 Full-ruche barrier CSR directions are
-P/W/E/N/S/RW/RE/RN/RS = 0..8, with root selector 9. Software must explicitly
-configure this nine-direction tree; the existing half-ruche-X initializer
-still describes a seven-direction tree.
+P/W/E/N/S/RW/RE/RN/RS = 0..8, with root selector 9.
+`bsg_hw_barrier_config_init` generates the matching tree when built with
+`BARRIER_RUCHE_FACTOR_Y` set to the machine's Y barrier factor.
 
 With Y factor zero, the tile retains the X-only router and seven-direction
 barrier layout (root selector 7). The unused Y data ports have one placeholder
