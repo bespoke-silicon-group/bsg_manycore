@@ -99,3 +99,6 @@ make -C testbenches/compute_ruche run \
 `SUBARRAY_X/Y` select the pod test's hierarchy split (defaults 2x2); 1x1,
 2x2 and 1x4 cover single-subarray, multi-column, and single-row subarrays.
 Factors 0, 2 and 3 cover backward compatibility and both ruche parities.
+
+For a full-system SPMD test of both Y barrier directions, see
+[`hw_barrier_y_ruche_test`](../../software/spmd/hw_barrier_y_ruche_test/README.md).

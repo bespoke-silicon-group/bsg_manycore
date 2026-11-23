@@ -120,7 +120,7 @@ module bsg_manycore_pod_ruche
 
 
   // vcache row (north)
-  logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] north_vc_reset_lo;
+  logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] north_vc_reset_lo, south_vc_reset_lo;
   wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] north_vc_wh_link_sif_li;
   wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] north_vc_wh_link_sif_lo;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] north_vc_ver_link_sif_li;
@@ -205,7 +205,9 @@ module bsg_manycore_pod_ruche
             ,.north_not_south_p(1'b1)
           ) tieoff (
             .clk_i(clk_i)
-            ,.reset_i(north_vc_reset_lo[x][c])
+            // A passive lane can carry signals from any row, including the
+            // south vcache, whose reset is released last in this column.
+            ,.reset_i(north_vc_reset_lo[x][c] | south_vc_reset_lo[x][c])
             ,.ruche_link_i(north_vc_ver_ruche_link_lo[x][N][c][l])
             ,.ruche_link_o(north_vc_ver_ruche_link_li[x][N][c][l])
           );
@@ -457,7 +459,6 @@ module bsg_manycore_pod_ruche
   logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] south_vc_reset_li;
   wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] south_vc_wh_link_sif_li;
   wh_link_sif_s [num_subarray_x_p-1:0][E:W][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] south_vc_wh_link_sif_lo;
-  logic [num_subarray_x_p-1:0][subarray_num_tiles_x_lp-1:0] south_vc_reset_lo;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] south_vc_ver_link_sif_li;
   bsg_manycore_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0] south_vc_ver_link_sif_lo;
   bsg_manycore_ruche_y_link_sif_s [num_subarray_x_p-1:0][S:N][subarray_num_tiles_x_lp-1:0][ruche_y_lanes_lp-1:0] south_vc_ver_ruche_link_li, south_vc_ver_ruche_link_lo;
