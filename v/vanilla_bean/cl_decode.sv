@@ -79,6 +79,10 @@ always_comb begin
         end
       endcase
     end
+    // Only supported CBO encodings read a block address from rs1.
+    `RV32_MISC_MEM: begin
+      decode_o.read_rs1 = decode_o.is_cache_op;
+    end
     default: begin
       decode_o.read_rs1 = 1'b0;
     end
@@ -473,6 +477,35 @@ always_comb begin
       fp_decode_o.is_fsqrt_op = 1'b0;
       fp_decode_o.fpu_float_op = eFADD;
       fp_decode_o.fpu_int_op = eFEQ;
+    end
+  endcase
+end
+
+//+-------------------------------------------------------
+//|
+//|     RISC-V Zicbom cache block management instructions
+//|
+//+-------------------------------------------------------
+
+always_comb begin
+  decode_o.is_cache_op = 1'b0;
+  decode_o.cbo_type = e_vanilla_cbo_inval;
+  unique casez (instruction_i)
+    `RV32_CBO_INVAL: begin
+      decode_o.is_cache_op = 1'b1;
+      decode_o.cbo_type = e_vanilla_cbo_inval;
+    end
+    `RV32_CBO_CLEAN: begin
+      decode_o.is_cache_op = 1'b1;
+      decode_o.cbo_type = e_vanilla_cbo_clean;
+    end
+    `RV32_CBO_FLUSH: begin
+      decode_o.is_cache_op = 1'b1;
+      decode_o.cbo_type = e_vanilla_cbo_flush;
+    end
+    default: begin
+      decode_o.is_cache_op = 1'b0;
+      decode_o.cbo_type = e_vanilla_cbo_inval;
     end
   endcase
 end

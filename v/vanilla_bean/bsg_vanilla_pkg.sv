@@ -60,12 +60,20 @@ typedef enum logic [1:0] {
   , e_vanilla_amoadd
 } bsg_vanilla_amo_type_e;
 
+typedef enum logic [1:0] {
+  e_vanilla_cbo_inval
+  , e_vanilla_cbo_clean
+  , e_vanilla_cbo_flush
+} bsg_vanilla_cbo_type_e;
+
 typedef struct packed
 {
   logic write_not_read;
   logic is_amo_op;
   logic is_uncached_op;
   bsg_vanilla_amo_type_e amo_type;
+  logic is_cache_op;
+  bsg_vanilla_cbo_type_e cbo_type;
   logic [3:0] mask;
   bsg_manycore_load_info_s load_info;
   logic [bsg_manycore_reg_id_width_gp-1:0] reg_id;
@@ -149,6 +157,10 @@ typedef struct packed {
 
   // MRET
   logic is_mret_op;
+
+  // CBO
+  logic is_cache_op;
+  bsg_vanilla_cbo_type_e cbo_type;
 
   // This signal is for debugging only.
   // It shouldn't be used to synthesize any actual circuits.

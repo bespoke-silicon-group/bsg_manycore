@@ -488,7 +488,7 @@ module vanilla_core
 
   // 'aq' register
   // When amo_op with aq is issued to EXE, 'aq' register is set.
-  // While 'aq' is set, subsequent memory ops (e.g. load, store, lr, AMO) cannot be isssued, until 'aq' is cleared.
+  // While 'aq' is set, subsequent memory ops (load, store, lr, AMO, CBO) wait until 'aq' is cleared.
   // When the amoswap result returns and clears the scoreboard, it also clears the 'aq'.
   // Even if amoswap.w.aq has x0 as rd, 'aq' bit is set.
   // Since AMO op is only supported for remote, only remote resp can clear the 'aq'.
@@ -1420,6 +1420,7 @@ module vanilla_core
     (id_r.decode.is_load_op
     |id_r.decode.is_store_op
     |id_r.decode.is_amo_op
+    |id_r.decode.is_cache_op
     |id_r.decode.is_lr_aq_op
     |id_r.decode.is_lr_op);
 
@@ -1432,12 +1433,15 @@ module vanilla_core
   // stall_remote_req
   logic [lg_fwd_fifo_els_lp-1:0] remote_req_counter_r;
   wire local_mem_op_restore = (lsu_dmem_v_lo & ~exe_r.decode.is_lr_op & ~exe_r.decode.is_lr_aq_op) & ~stall_all;
-  wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.icache_miss);
+  // Non-DRAM CBOs are no-ops: the LSU sends nothing, so return their issue slot here.
+  wire cache_op_restore = exe_r.decode.is_cache_op & ~lsu_remote_req_v_lo & ~stall_all;
+  wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.decode.is_cache_op | id_r.icache_miss);
   wire memory_op_issued = id_remote_req_op & id_issue;
   wire [lg_fwd_fifo_els_lp-1:0] remote_req_available =
     remote_req_counter_r +
     remote_req_credit_i +
     local_mem_op_restore +
+    cache_op_restore +
     invalid_eva_access_i;
 
   always_ff @ (posedge clk_i) begin

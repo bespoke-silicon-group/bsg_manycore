@@ -23,6 +23,7 @@ typedef volatile unsigned char  *bsg_remote_uint8_ptr;
 typedef volatile unsigned short  *bsg_remote_uint16_ptr;
 typedef volatile unsigned *bsg_remote_uint32_ptr;
 typedef volatile void *bsg_remote_void_ptr;
+typedef volatile struct { int data[VCACHE_BLOCK_SIZE_WORDS]; } *bsg_remote_cacheline_ptr;
 
 #define bsg_remote_flt_store(x,y,local_addr,val) do { *(bsg_remote_flt_ptr((x),(y),(local_addr))) = (float) (val); } while (0)
 #define bsg_remote_flt_load(x,y,local_addr,val)  do { val = *(bsg_remote_flt_ptr((x),(y),(local_addr))) ; } while (0)
@@ -145,6 +146,20 @@ inline int bsg_li(int constant_val) { int result; asm("li %0, %1" : "=r"(result)
 inline int bsg_div(int a, int b)  { int result; __asm__ __volatile__("divu %0,%1,%2" : "=r"(result) : "r" (a), "r" (b)); return result; }
 inline int bsg_mulu(int a, int b) { int result; __asm__ __volatile__("mul %0,%1,%2" : "=r"(result) : "r" (a), "r" (b)); return result; }
 
+// Operate on the entire DRAM cache block containing p; other addresses are no-ops.
+// The memory operand orders accesses to that block. Use bsg_fence() for completion.
+static inline void bsg_cbo_flush_block(void *p) {
+    bsg_remote_cacheline_ptr addr = (bsg_remote_cacheline_ptr)(((unsigned)p) & ~(VCACHE_BLOCK_SIZE_BYTES - 1));
+    __asm__ volatile (".insn i 0x0f, 2, x0, %1, 2" : "+m" (*addr) : "r"(p));
+}
+static inline void bsg_cbo_clean_block(void *p) {
+    bsg_remote_cacheline_ptr addr = (bsg_remote_cacheline_ptr)(((unsigned)p) & ~(VCACHE_BLOCK_SIZE_BYTES - 1));
+    __asm__ volatile (".insn i 0x0f, 2, x0, %1, 1" : "+m" (*addr) : "r"(p));
+}
+static inline void bsg_cbo_inv_block(void *p) {
+    bsg_remote_cacheline_ptr addr = (bsg_remote_cacheline_ptr)(((unsigned)p) & ~(VCACHE_BLOCK_SIZE_BYTES - 1));
+    __asm__ volatile (".insn i 0x0f, 2, x0, %1, 0" : "+m" (*addr) : "r"(p));
+}
 
 #else
 #error Unsupported Compiler!
