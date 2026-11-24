@@ -261,6 +261,10 @@ module vanilla_core_profiler
   wire mul_inc = exe_r.decode.is_imul_op;
 
   // FENCE
+  wire cbo_inval_inc = exe_r.decode.is_cache_op & (exe_r.decode.cbo_type == e_vanilla_cbo_inval);
+  wire cbo_clean_inc = exe_r.decode.is_cache_op & (exe_r.decode.cbo_type == e_vanilla_cbo_clean);
+  wire cbo_flush_inc = exe_r.decode.is_cache_op & (exe_r.decode.cbo_type == e_vanilla_cbo_flush);
+
   wire fence_inc = exe_r.decode.is_fence_op;
 
   // CSR
@@ -457,6 +461,9 @@ module vanilla_core_profiler
     integer remu;
     integer mul;
 
+    integer cbo_inval;
+    integer cbo_clean;
+    integer cbo_flush;
     integer fence;
   
     integer csrrw;
@@ -630,6 +637,9 @@ module vanilla_core_profiler
         else if (remu_inc) stat_r.remu++;
         else if (mul_inc) stat_r.mul++;
 
+        else if (cbo_inval_inc) stat_r.cbo_inval++;
+        else if (cbo_clean_inc) stat_r.cbo_clean++;
+        else if (cbo_flush_inc) stat_r.cbo_flush++;
         else if (fence_inc) stat_r.fence++;
 
         else if (csrrw_inc) stat_r.csrrw++;
@@ -804,6 +814,9 @@ module vanilla_core_profiler
       $fwrite(fd, "instr_remu,");
       $fwrite(fd, "instr_mul,");
 
+      $fwrite(fd, "instr_cbo_inval,");
+      $fwrite(fd, "instr_cbo_clean,");
+      $fwrite(fd, "instr_cbo_flush,");
       $fwrite(fd, "instr_fence,");
 
       $fwrite(fd, "instr_csrrw,");
@@ -962,6 +975,9 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.remu);
           $fwrite(fd, "%0d,", stat_r.mul);
 
+          $fwrite(fd, "%0d,", stat_r.cbo_inval);
+          $fwrite(fd, "%0d,", stat_r.cbo_clean);
+          $fwrite(fd, "%0d,", stat_r.cbo_flush);
           $fwrite(fd, "%0d,", stat_r.fence);
 
           $fwrite(fd, "%0d,", stat_r.csrrw);
@@ -1125,6 +1141,9 @@ module vanilla_core_profiler
           else if (remu_inc) print_operation_trace("remu", exe_pc);
           else if (mul_inc) print_operation_trace("mul", exe_pc);
 
+          else if (cbo_inval_inc) print_operation_trace("cbo_inval", exe_pc);
+          else if (cbo_clean_inc) print_operation_trace("cbo_clean", exe_pc);
+          else if (cbo_flush_inc) print_operation_trace("cbo_flush", exe_pc);
           else if (fence_inc) print_operation_trace("fence", exe_pc);
 
           else if (csrrw_inc) print_operation_trace("csrrw", exe_pc);

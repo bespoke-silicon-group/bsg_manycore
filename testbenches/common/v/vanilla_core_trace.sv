@@ -119,7 +119,7 @@ module vanilla_core_trace
   assign exe_debug.local_dmem_addr = lsu_dmem_addr_lo;
   assign exe_debug.local_store_data = lsu_dmem_data_lo;
   
-  assign exe_debug.is_remote_load = remote_req_v_o & ~remote_req_o.write_not_read & ~remote_req_o.load_info.icache_fetch;
+  assign exe_debug.is_remote_load = remote_req_v_o & ~remote_req_o.write_not_read & ~remote_req_o.is_cache_op & ~remote_req_o.load_info.icache_fetch;
   assign exe_debug.is_remote_store = remote_req_v_o & remote_req_o.write_not_read;
   assign exe_debug.remote_addr = remote_req_o.addr;
   assign exe_debug.remote_store_data = remote_req_o.data;
