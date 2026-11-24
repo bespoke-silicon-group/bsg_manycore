@@ -233,6 +233,68 @@ module bsg_nonsynth_manycore_testbench
       ,.pod_tags_i(pod_tags_lo) 
     );
   end
+  else if (bsg_manycore_network_cfg_p == e_network_full_ruche_xy) begin: fi1
+    bsg_manycore_pod_ruche_full_array #(
+      .num_tiles_x_p(num_tiles_x_p)
+      ,.num_tiles_y_p(num_tiles_y_p)
+      ,.pod_x_cord_width_p(pod_x_cord_width_p)
+      ,.pod_y_cord_width_p(pod_y_cord_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      ,.addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.ruche_factor_X_p(ruche_factor_X_p)
+      ,.ruche_factor_Y_p(ruche_factor_Y_p)
+      ,.barrier_ruche_factor_X_p(barrier_ruche_factor_X_p)
+      ,.barrier_ruche_factor_Y_p(barrier_ruche_factor_Y_p)
+      ,.num_subarray_x_p(num_subarray_x_p)
+      ,.num_subarray_y_p(num_subarray_y_p)
+
+      ,.dmem_size_p(dmem_size_p)
+      ,.icache_entries_p(icache_entries_p)
+      ,.icache_tag_width_p(icache_tag_width_p)
+      ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+
+      ,.num_vcache_rows_p(num_vcache_rows_p)
+      ,.vcache_addr_width_p(vcache_addr_width_p)
+      ,.vcache_data_width_p(vcache_data_width_p)
+      ,.vcache_ways_p(vcache_ways_p)
+      ,.vcache_sets_p(vcache_sets_p)
+      ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+      ,.vcache_size_p(vcache_size_p)
+      ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+      ,.vcache_word_tracking_p(vcache_word_tracking_p)
+      ,.ipoly_hashing_p(ipoly_hashing_p)
+
+      ,.wh_ruche_factor_p(wh_ruche_factor_p)
+      ,.wh_cid_width_p(wh_cid_width_p)
+      ,.wh_flit_width_p(wh_flit_width_p)
+      ,.wh_cord_width_p(wh_cord_width_p)
+      ,.wh_len_width_p(wh_len_width_p)
+
+      ,.num_pods_y_p(num_pods_y_p)
+      ,.num_pods_x_p(num_pods_x_p)
+
+      ,.reset_depth_p(reset_depth_p)
+      ,.hetero_type_vec_p(hetero_type_vec_p)
+    ) DUT (
+      .clk_i(clk_i)
+
+      ,.ver_link_sif_i(ver_link_sif_li)
+      ,.ver_link_sif_o(ver_link_sif_lo)
+
+      ,.wh_link_sif_i(wh_link_sif_li)
+      ,.wh_link_sif_o(wh_link_sif_lo)
+
+      ,.hor_link_sif_i(hor_link_sif_li)
+      ,.hor_link_sif_o(hor_link_sif_lo)
+
+      ,.ruche_link_i(ruche_link_li)
+      ,.ruche_link_o(ruche_link_lo)
+
+      ,.pod_tags_i(pod_tags_lo)
+    );
+  end
   else if (bsg_manycore_network_cfg_p == e_network_mesh) begin: fi1
     bsg_manycore_pod_mesh_array #(
       .num_tiles_x_p(num_tiles_x_p)
@@ -949,7 +1011,7 @@ if (enable_cache_profiling_p) begin
     .data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
     ,.block_size_in_words_p(block_size_in_words_p)
-    ,.header_print_p({`BSG_STRINGIFY(`HOST_MODULE_PATH),".testbench.fi1.DUT.py[0].podrow.px[0].pod.north_vc_x[0].north_vc_row.vc_x[0].vc.cache.vcache_prof"})
+    ,.header_print_p({`BSG_STRINGIFY(`HOST_MODULE_PATH),".testbench.fi1.DUT.py[0].podrow.px[0].pod.north_vc_x[0].north_vc_row.vc_y[0].vc_x[0].vc.cache.vcache_prof"})
     ,.ways_p(ways_p)
   ) vcache_prof (
     // everything else

@@ -22,7 +22,6 @@ module bsg_manycore_hor_io_router
     , `BSG_INV_PARAM(y_cord_width_p)
    
     , `BSG_INV_PARAM(ruche_factor_X_p)
-    , `BSG_INV_PARAM(ruche_factor_Y_p)
  
     , `BSG_INV_PARAM(tieoff_west_p)
     , `BSG_INV_PARAM(tieoff_east_p)
@@ -88,7 +87,6 @@ module bsg_manycore_hor_io_router
     ,.addr_width_p(addr_width_p)
     ,.dims_p(dims_lp)
     ,.ruche_factor_X_p(ruche_factor_X_p)
-    ,.ruche_factor_Y_p(ruche_factor_Y_p)
     ,.stub_p(stub_lp) 
 
     ,.fwd_use_credits_p(fwd_use_credits_p)

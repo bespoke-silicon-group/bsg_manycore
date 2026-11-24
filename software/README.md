@@ -36,7 +36,8 @@ Manycore programs. Some useful flags to customize compilation are:
 
 Mesh machines use five barrier directions (P/W/E/N/S), with root selector 5.
 X-only ruche machines use seven directions and root selector 7; Y-enabled
-ruche machines use nine directions and root selector 9. The build sets
+ruche machines use nine directions and root selector 9. Select
+`e_network_full_ruche_xy` for cross-pod Y ruche wiring. The build sets
 `BARRIER_RUCHE_FACTOR_X` and `BARRIER_RUCHE_FACTOR_Y` from the machine
 configuration (both zero for `e_network_mesh`).
 Host code using `bsg_hw_barrier_config_init.h` must define matching factors;
