@@ -82,8 +82,9 @@ pod\_1x1\_4X2Y due to excessive compilation times for larger machines. Most like
 enable larger machines with hierarchical Verilation. verilator must be on your path (or override
 the VERILATOR variable in machines/Makefile.verilator).
 
-On CentOS, you may need to use a modern GCC installation with `scl enable devtoolset-8 -- bash` or
-by putting `source scl_source enable devtoolset-8` in your .bashrc.
+The testbench runs on Verilator's own `main` with `--timing`, which needs C++20 coroutines:
+GCC 10 or newer, or Clang. On CentOS, you may need to use a modern GCC installation with
+`scl enable devtoolset-10 -- bash` or by putting `source scl_source enable devtoolset-10` in your .bashrc.
 
 ## Surelog (Beta Support)
 
