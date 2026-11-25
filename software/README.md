@@ -38,7 +38,9 @@ The vanilla core supports the Zicbom instructions `cbo.inval`, `cbo.clean`,
 and `cbo.flush`. Their address is the value of `rs1`, with no immediate offset;
 it may point to any byte in a cache block. Only DRAM EVAs (bit 31 set) send a
 cache operation. Local data memory, tile-group, global (including host I/O),
-and invalid addresses are no-ops, with no packet or error.
+and invalid addresses are no-ops, with no packet or error. In simulation, the
+core prints a `[WARN][VCORE]` line for each such instruction with the time, the
+tile's coordinates, the PC, the operation and the address.
 
 Include `bsg_manycore.h` to use these helpers:
 

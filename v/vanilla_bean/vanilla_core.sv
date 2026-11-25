@@ -1451,6 +1451,18 @@ module vanilla_core
       remote_req_counter_r <= remote_req_available - memory_op_issued;
   end 
 
+  // A dropped CBO is easy to miss, so report each one with enough to find it.
+`ifndef BSG_HIDE_FROM_SYNTHESIS
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i & cache_op_restore) begin
+      $display("[WARN][VCORE] %s ignored: address is not in DRAM. t=%0t, x=%0d, y=%0d, pc=%h, addr=%h",
+        (exe_r.decode.cbo_type == e_vanilla_cbo_clean) ? "cbo.clean"
+          : ((exe_r.decode.cbo_type == e_vanilla_cbo_flush) ? "cbo.flush" : "cbo.inval"),
+        $time, global_x_i, global_y_i, exe_r.pc_plus4 - 32'd4, exe_r.rs1_val);
+    end
+  end
+`endif
+
   assign stall_remote_req = id_remote_req_op & (remote_req_available == '0);
   
   // stall_remote_credit

@@ -46,6 +46,7 @@ static void noops(int id, void *p)
   bsg_print_int(id);
   // More than the forward FIFO's request slots, with no intervening data
   // memory access to accidentally conceal a missing slot restoration.
+  // The core prints a [WARN][VCORE] line for each of these 48 instructions.
   __asm__ volatile (
     ".rept 16\n\t.insn i 0x0f, 2, x0, %0, 0\n\t.endr\n\t"
     ".rept 16\n\t.insn i 0x0f, 2, x0, %0, 1\n\t.endr\n\t"
