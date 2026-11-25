@@ -22,6 +22,12 @@ import bsg_manycore_pkg::*;
   , output fp_decode_s fp_decode_o
 );
 
+// Supported Zicbom encodings, decoded straight from the instruction so that
+// other blocks never read decode_o back.
+wire is_cbo_op = (instruction_i ==? `RV32_CBO_INVAL)
+               | (instruction_i ==? `RV32_CBO_CLEAN)
+               | (instruction_i ==? `RV32_CBO_FLUSH);
+
 
 // Op Writes RF -- register file write operation
 always_comb begin
@@ -81,7 +87,7 @@ always_comb begin
     end
     // Only supported CBO encodings read a block address from rs1.
     `RV32_MISC_MEM: begin
-      decode_o.read_rs1 = decode_o.is_cache_op;
+      decode_o.read_rs1 = is_cbo_op;
     end
     default: begin
       decode_o.read_rs1 = 1'b0;
@@ -487,35 +493,26 @@ end
 //|
 //+-------------------------------------------------------
 
+assign decode_o.is_cache_op = is_cbo_op;
+
 always_comb begin
-  decode_o.is_cache_op = 1'b0;
-  decode_o.cbo_type = e_vanilla_cbo_inval;
   unique casez (instruction_i)
-    `RV32_CBO_INVAL: begin
-      decode_o.is_cache_op = 1'b1;
-      decode_o.cbo_type = e_vanilla_cbo_inval;
-    end
-    `RV32_CBO_CLEAN: begin
-      decode_o.is_cache_op = 1'b1;
-      decode_o.cbo_type = e_vanilla_cbo_clean;
-    end
-    `RV32_CBO_FLUSH: begin
-      decode_o.is_cache_op = 1'b1;
-      decode_o.cbo_type = e_vanilla_cbo_flush;
-    end
-    default: begin
-      decode_o.is_cache_op = 1'b0;
-      decode_o.cbo_type = e_vanilla_cbo_inval;
-    end
+    `RV32_CBO_CLEAN: decode_o.cbo_type = e_vanilla_cbo_clean;
+    `RV32_CBO_FLUSH: decode_o.cbo_type = e_vanilla_cbo_flush;
+    default:         decode_o.cbo_type = e_vanilla_cbo_inval; // cbo.inval, or not a CBO
   endcase
 end
 
 // Unsupported ops:
 // mulh, mulhsu, mulhu
+// cbo.zero and reserved encodings in the CBO space
 always_comb begin
   unique casez (instruction_i)
     `RV32_MULH, `RV32_MULHSU, `RV32_MULHU: begin
       decode_o.unsupported = 1'b1;
+    end
+    `RV32_CBO_ANY: begin
+      decode_o.unsupported = ~is_cbo_op;
     end
     default: begin
       decode_o.unsupported = 1'b0;

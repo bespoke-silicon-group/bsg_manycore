@@ -10,16 +10,6 @@ volatile int local_word = 0x12345678;
 volatile unsigned ticks;
 volatile int command, done;
 
-static void kernel_stat(unsigned kind)
-{
-  // SPMD setup returns a pod-relative group origin; profiler tags use global coordinates.
-  unsigned x = TEST_ORIGIN_X + __bsg_grp_org_x + bsg_x;
-  unsigned y = TEST_ORIGIN_Y + __bsg_grp_org_y + bsg_y;
-  bsg_print_stat((kind << BSG_CUDA_PRINT_STAT_TYPE_SHIFT)
-    | ((x & BSG_CUDA_PRINT_STAT_X_MASK) << BSG_CUDA_PRINT_STAT_X_SHIFT)
-    | ((y & BSG_CUDA_PRINT_STAT_Y_MASK) << BSG_CUDA_PRINT_STAT_Y_SHIFT));
-}
-
 static void check(int id, int got, int expected)
 {
   if (got != expected) {
@@ -65,15 +55,23 @@ static void noops(int id, void *p)
   check(id, local_word, 0x12345678);
 }
 
-// Measure a dependent load against the other tile's counter. Fences keep the
-// counter reads on either side of the load, including its returned credit.
-static unsigned load_ticks(volatile int *p)
+// Blocks 4-11 hold 0x5000 + i in word 0 after test 20. Timing a dependent load
+// from each of them multiplies the hit/miss difference, which keeps the clean vs
+// flush comparison well clear of timing noise.
+#define TIMED_FIRST 4
+#define TIMED_BLOCKS 8
+
+// Measure dependent loads of the timed blocks against the other tile's counter.
+// Fences keep the counter reads on either side of the loads and their credits.
+static unsigned load_ticks(void)
 {
+  volatile int *v = buf;
   volatile unsigned *clock = (volatile unsigned *)bsg_remote_ptr(1, 0, &ticks);
   unsigned start = *clock;
   __asm__ volatile ("add x0, %0, x0" : : "r"(start));
   bsg_fence();
-  check(30, *p, 0x44444444);
+  for (int i = TIMED_FIRST; i < TIMED_FIRST + TIMED_BLOCKS; i++)
+    check(30, v[i*BW], 0x5000 + i);
   bsg_fence();
   return *clock - start;
 }
@@ -85,7 +83,6 @@ int main(void)
   if (bsg_id != 0) bsg_wait_while(1);
 
   volatile int *a = buf, *b = &buf[BW], *c = &buf[2*BW];
-  kernel_stat(BSG_CUDA_PRINT_STAT_ID_KERNEL_START);
 
   // 1. Clean writes back; invalidate discards a later dirty value.
   a[0] = 0x11111111;
@@ -149,25 +146,31 @@ int main(void)
                     : : "r"(a), "r"(0x1234), "r"(0x5678) : "memory");
   check(21, a[0], 0x5678);
 
-  // 30-31. Clean retains a hot block, while flush invalidates it. Their data
-  // results alone are identical, so compare repeated dependent-load times.
+  // 30-31. Clean retains hot blocks, while flush invalidates them. Their data
+  // results alone are identical, so compare the time to reload the timed blocks.
   // Discard a warm-up iteration and use minima to exclude instruction misses.
+  // With this repository's toolchain, clean_min and flush_min are 25 and 46
+  // ticks on pod_1x1_4X2Y and 29 and 52 on pod_1x1. A clean that invalidates,
+  // or a flush that does not, makes them equal to within a tick, so require a
+  // tick per timed block.
   unsigned clean_min = ~0u, flush_min = ~0u;
   for (int i = 0; i < 17; i++) {
-    check(30, c[0], 0x44444444);
-    bsg_cbo_clean_block((void *)c);
+    load_ticks();  // make the timed blocks resident again after the last flush
+    for (int j = TIMED_FIRST; j < TIMED_FIRST + TIMED_BLOCKS; j++)
+      bsg_cbo_clean_block(&buf[j*BW]);
     bsg_fence();
-    unsigned clean = load_ticks(c);
-    bsg_cbo_flush_block((void *)c);
+    unsigned clean = load_ticks();
+    for (int j = TIMED_FIRST; j < TIMED_FIRST + TIMED_BLOCKS; j++)
+      bsg_cbo_flush_block(&buf[j*BW]);
     bsg_fence();
-    unsigned flush = load_ticks(c);
+    unsigned flush = load_ticks();
     if (i && clean < clean_min) clean_min = clean;
     if (i && flush < flush_min) flush_min = flush;
   }
   bsg_print_int(31);
   bsg_print_unsigned(clean_min);
   bsg_print_unsigned(flush_min);
-  check(31, clean_min < flush_min, 1);
+  check(31, clean_min + TIMED_BLOCKS < flush_min, 1);
 
   // 40-42. Each tile takes turns managing the same block at the same vcache.
   // Publishing the handoff only after a fence checks completion across tiles.
@@ -181,7 +184,6 @@ int main(void)
     check(42, a[0], 0x7000 + i);
   }
   bsg_fence();
-  kernel_stat(BSG_CUDA_PRINT_STAT_ID_KERNEL_END);
   bsg_finish();
   bsg_wait_while(1);
 }

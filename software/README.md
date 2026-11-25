@@ -49,16 +49,19 @@ Include `bsg_manycore.h` to use these helpers:
 | `bsg_cbo_flush_block(p)` | `cbo.flush` | Write dirty data back and invalidate the cached copy. |
 
 `VCACHE_BLOCK_SIZE_BYTES` gives the machine's block size. The helpers accept
-an unaligned pointer and describe the entire containing block to the compiler
-as a memory operand, ordering accesses to that block around the instruction.
-They use `.insn`, so an assembler with Zicbom mnemonic support is not required.
-Use `bsg_fence()` to wait for the operations' returned credits before publishing
-completion to another tile. Cache block operations also respect an outstanding
-AMO acquire operation. They do not synchronize other tiles automatically.
+an unaligned pointer and act as compiler memory barriers. They use `.insn`, so
+an assembler with Zicbom mnemonic support is not required.
 
-`cbo.zero` remains unsupported. The decoder's debug-only `unsupported` flag
-retains its existing selective coverage; it is not a complete illegal-instruction
-detector and does not flag `cbo.zero`.
+The vcaches are shared by all tiles, so `cbo.inval` discards dirty data that
+any tile wrote to the block. Only invalidate blocks your code owns entirely.
+
+`bsg_fence()` waits until the vcache has performed each operation. Writebacks
+may still be on their way to DRAM at that point, so this orders accesses between
+tiles but does not guarantee the data has reached DRAM. Cache block operations
+also wait for an outstanding AMO acquire.
+
+`cbo.zero` is not supported. In simulation, the core reports it, and any other
+reserved encoding in the CBO space, as an unsupported instruction.
 
 The self-checking [CBO test](spmd/cbo_test) exercises these rules using ordinary
 memory accesses and two tiles. Run it on a machine with at least two tiles in X.

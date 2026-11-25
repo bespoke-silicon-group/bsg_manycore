@@ -260,11 +260,12 @@ module vanilla_core_profiler
   // MUL
   wire mul_inc = exe_r.decode.is_imul_op;
 
-  // FENCE
+  // CBO
   wire cbo_inval_inc = exe_r.decode.is_cache_op & (exe_r.decode.cbo_type == e_vanilla_cbo_inval);
   wire cbo_clean_inc = exe_r.decode.is_cache_op & (exe_r.decode.cbo_type == e_vanilla_cbo_clean);
   wire cbo_flush_inc = exe_r.decode.is_cache_op & (exe_r.decode.cbo_type == e_vanilla_cbo_flush);
 
+  // FENCE
   wire fence_inc = exe_r.decode.is_fence_op;
 
   // CSR

@@ -252,6 +252,8 @@
 `define RV32_CBO_INVAL {12'b000000000000, 5'b?????, `RV32_CBO_FUN3, 5'b00000, `RV32_MISC_MEM}
 `define RV32_CBO_CLEAN {12'b000000000001, 5'b?????, `RV32_CBO_FUN3, 5'b00000, `RV32_MISC_MEM}
 `define RV32_CBO_FLUSH {12'b000000000010, 5'b?????, `RV32_CBO_FUN3, 5'b00000, `RV32_MISC_MEM}
+// Any encoding in the CBO space, including cbo.zero (Zicboz) and reserved ones
+`define RV32_CBO_ANY   {12'b????????????, 5'b?????, `RV32_CBO_FUN3, 5'b?????, `RV32_MISC_MEM}
 
 `endif
 
