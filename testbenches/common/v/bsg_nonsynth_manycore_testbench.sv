@@ -851,7 +851,7 @@ module bsg_nonsynth_manycore_testbench
 //                  //
 
 // NOTE: Verilator does not allow parameter-controlled module binds
-// (There's an issue filed, but not fixed as of 4.222). There are two ways we can fix this:
+// (There's an issue filed, but not fixed as of 5.055). There are two ways we can fix this:
 //
 // 1. Clock gate the profilers based on the profiler parameter. E.g.:
 //   ,.clk_i(clk_i && $root.`HOST_MODULE_PATH.testbench.enable_vcore_profiling_p)
@@ -865,6 +865,24 @@ module bsg_nonsynth_manycore_testbench
 // I agree that this is super annoying but until it gets fixed, this
 // is the only way to prevent Verilator from running the profilers and
 // slowing down simulation.
+
+// Under Verilator, the workaround macros follow the macros that set the
+// enable parameters, so each build binds what its VCS counterpart binds:
+// simsc nothing, simsc-profile the profilers, simsc-debug the tracer and
+// simsc-pc-histogram the PC histogram.
+`ifdef VERILATOR
+`ifndef BSG_ENABLE_PROFILING
+`define VERILATOR_WORKAROUND_DISABLE_VCORE_PROFILING
+`define VERILATOR_WORKAROUND_DISABLE_REMOTE_OP_PROFILING
+`define VERILATOR_WORKAROUND_DISABLE_VCACHE_PROFILING
+`endif
+`ifndef BSG_ENABLE_VANILLA_CORE_TRACE
+`define VERILATOR_WORKAROUND_DISABLE_VCORE_TRACE
+`endif
+`ifndef BSG_ENABLE_PC_HISTOGRAM
+`define VERILATOR_WORKAROUND_DISABLE_PC_HISTOGRAM
+`endif
+`endif
 
 // Exponential parsing from surelog: https://github.com/chipsalliance/Surelog/issues/2035
 `ifndef SURELOG

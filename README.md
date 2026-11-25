@@ -82,6 +82,10 @@ pod\_1x1\_4X2Y due to excessive compilation times for larger machines. Most like
 enable larger machines with hierarchical Verilation. verilator must be on your path (or override
 the VERILATOR variable in machines/Makefile.verilator).
 
+As under VCS, the default machine binds no profilers and no instruction tracer: `make TRACE=1`
+uses `simsc-profile`, which has the profilers, and `make WAVE=1` uses `simsc-debug`, which has the
+tracer (`vanilla.log`) and writes `dump.fst`.
+
 The testbench runs on Verilator's own `main` with `--timing`, which needs C++20 coroutines:
 GCC 10 or newer, or Clang. On CentOS, you may need to use a modern GCC installation with
 `scl enable devtoolset-10 -- bash` or by putting `source scl_source enable devtoolset-10` in your .bashrc.
