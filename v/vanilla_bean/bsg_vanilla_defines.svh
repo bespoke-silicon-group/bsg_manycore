@@ -246,5 +246,14 @@
 `define RV32_FDIV_S   `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0001100)
 `define RV32_FSQRT_S  {7'b0101100, 5'b00000, 5'b?????, 3'b???, 5'b?????, 7'b1010011}
 
+// RV32 CMO Instructions
+`define RV32_CBO_FUN3  {3'b010}
+
+`define RV32_CBO_INVAL {12'b000000000000, 5'b?????, `RV32_CBO_FUN3, 5'b00000, `RV32_MISC_MEM}
+`define RV32_CBO_CLEAN {12'b000000000001, 5'b?????, `RV32_CBO_FUN3, 5'b00000, `RV32_MISC_MEM}
+`define RV32_CBO_FLUSH {12'b000000000010, 5'b?????, `RV32_CBO_FUN3, 5'b00000, `RV32_MISC_MEM}
+// Any encoding in the CBO space, including cbo.zero (Zicboz) and reserved ones
+`define RV32_CBO_ANY   {12'b????????????, 5'b?????, `RV32_CBO_FUN3, 5'b?????, `RV32_MISC_MEM}
+
 `endif
 

@@ -111,6 +111,7 @@ module lsu
   // 2) remote store
   // 3) remote load
   // 4) atomic
+  // 5) remote cache ops
   bsg_manycore_load_info_s load_info;
   
   always_comb begin
@@ -141,6 +142,8 @@ module lsu
       is_amo_op : exe_decode_i.is_amo_op, 
       is_uncached_op : exe_decode_i.is_uncached_op,
       amo_type : exe_decode_i.amo_type,
+      is_cache_op : exe_decode_i.is_cache_op,
+      cbo_type : exe_decode_i.cbo_type,
       mask: store_mask,
       load_info : load_info,
       reg_id : exe_rd_i,
@@ -151,8 +154,11 @@ module lsu
   end
 
 
+  // CBOs use the DRAM EVA space (bit 31). Discard every other address here,
+  // before translation can send it to a tile/host or report an invalid EVA.
   assign remote_req_v_o = icache_miss_i |
-    ((exe_decode_i.is_load_op | exe_decode_i.is_store_op | exe_decode_i.is_amo_op) & ~is_local_dmem_addr);
+    ((exe_decode_i.is_load_op | exe_decode_i.is_store_op | exe_decode_i.is_amo_op) & ~is_local_dmem_addr) |
+    (exe_decode_i.is_cache_op & mem_addr[31]);
 
   // reserve
   // only valid on local DMEM
