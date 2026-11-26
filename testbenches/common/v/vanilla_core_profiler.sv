@@ -112,6 +112,11 @@ module vanilla_core_profiler
   bsg_manycore_vanilla_core_stat_tag_s print_stat_tag;
   assign print_stat_tag = print_stat_tag_i;
 
+  // file logging
+  localparam string logfile_lp = "vanilla_stats.csv";
+  localparam string tracefile_lp = "vanilla_operation_trace.csv";
+  localparam string periodicfile_lp = "vanilla_periodic_stats.csv";
+
   `DEFINE_PROFILER(bsg_vanilla_core_profiler
                    , tracefile_lp
                    , "cycle,x,y,pc,operation\n"
@@ -686,10 +691,6 @@ module vanilla_core_profiler
 
 
 
-  // file logging
-  localparam string logfile_lp = "vanilla_stats.csv";
-  localparam string tracefile_lp = "vanilla_operation_trace.csv";
-  localparam string periodicfile_lp = "vanilla_periodic_stats.csv";
 
   integer fd;
   string header;
