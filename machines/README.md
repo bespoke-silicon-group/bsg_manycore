@@ -22,6 +22,7 @@ Machine.machine.include parameters
 - BSG_MACHINE_NUM_VCACHES_PER_CHANNEL   =   number of vcaches allocated per one HBM2 channel (only for e_vcache_hbm2)
                                             (constraint for single pod: NUM_VCACHES_PER_CHANNEL <= 2*NUM_VCACHE_ROWS*BSG_MACHINE_GLOBAL_X)
 - BSG_MACHINE_VCACHE_WORD_TRACKING      =   Enable word tracking in vcache.
+- BSG_MACHINE_VCACHE_AMO_SUPPORT        =   Bitmask of possible amo support in vcache (according to bsg_cache_amo_subop_e in bsg_cache_pkg)
 
 - BSG_MACHINE_VCACHE_MISS_FIFO_ELS      =   number of entries in miss fifo (non-blocking vcache only).
 - BSG_MACHINE_DRAM_SIZE_WORDS           =   the total size of main memory. 2GB max, but it can be set to lower.

@@ -161,7 +161,8 @@ module bsg_manycore_link_to_cache
       e_cache_op: begin
         return_pkt_type = e_return_credit;
       end
-      e_remote_amoswap, e_remote_amoor, e_remote_amoadd: begin
+      e_remote_amoswap, e_remote_amoadd, e_remote_amoxor, e_remote_amoand, e_remote_amoor,
+      e_remote_amomin, e_remote_amomax, e_remote_amominu, e_remote_amomaxu: begin
         return_pkt_type = e_return_int_wb;
       end
       // should never happen
@@ -307,17 +308,15 @@ module bsg_manycore_link_to_cache
               cache_pkt.opcode = SM;
             end
 
-            e_remote_amoswap: begin
-              cache_pkt.opcode = AMOSWAP_W;
-            end
-
-            e_remote_amoor: begin
-              cache_pkt.opcode = AMOOR_W;
-            end
-
-            e_remote_amoadd: begin
-              cache_pkt.opcode = AMOADD_W;
-            end
+            e_remote_amoswap: cache_pkt.opcode = AMOSWAP_W;
+            e_remote_amoadd:  cache_pkt.opcode = AMOADD_W;
+            e_remote_amoxor:  cache_pkt.opcode = AMOXOR_W;
+            e_remote_amoand:  cache_pkt.opcode = AMOAND_W;
+            e_remote_amoor:   cache_pkt.opcode = AMOOR_W;
+            e_remote_amomin:  cache_pkt.opcode = AMOMIN_W;
+            e_remote_amomax:  cache_pkt.opcode = AMOMAX_W;
+            e_remote_amominu: cache_pkt.opcode = AMOMINU_W;
+            e_remote_amomaxu: cache_pkt.opcode = AMOMAXU_W;
 
             e_cache_op: begin
               case (packet_lo.reg_id.cache_op)
