@@ -270,7 +270,11 @@ module vcache_profiler
     end
   end
 
-
+  // Trace only after this instance's first reset. Under VCS reset_i is X
+  // until then, which keeps the trace empty; under Verilator it starts at 0,
+  // and the trace would show the logic before it was ever reset.
+  bit reset_seen_r;
+  always_ff @ (posedge clk_i) if (reset_i) reset_seen_r <= 1'b1;
 
 
     always @(negedge clk_i) begin
@@ -349,7 +353,7 @@ module vcache_profiler
 
 
 
-        if (~reset_i & trace_en_i) begin
+        if (~reset_i & trace_en_i & reset_seen_r) begin
           // If miss handler has finished the dma request and result is ready
           // for a missed request
           if (inc_miss_ld)
