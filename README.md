@@ -85,8 +85,11 @@ pod\_1x1 it gives the same results as VCS on every test that `make recurse-all` 
 
 To test this feature, set BSG\_PLATFORM=verilator in machines/platform.mk and then follow the
 above instructions to run tests normally. With `VERILATOR_THREADS=48`, pod\_1x1\_4X2Y builds in
-under a minute and pod\_1x1 in about two and a half minutes; the 16-pod pod\_4x4 takes far longer.
-verilator must be on your path (or override the VERILATOR variable in machines/Makefile.verilator).
+under a minute and pod\_1x1 in about two and a half minutes. The 16-pod pod\_4x4 takes about 55
+minutes, almost all in Verilator's single-threaded front end, and its simulations use about 33 GB
+and run about 40 times as long as under VCS. Hierarchical Verilation, which bsg\_replicant's
+Verilator platform uses, may help there. verilator must be on your path (or override the
+VERILATOR variable in machines/Makefile.verilator).
 
 As under VCS, the default machine binds no profilers and no instruction tracer: `make TRACE=1`
 uses `simsc-profile`, which has the profilers, and `make WAVE=1` uses `simsc-debug`, which has the
