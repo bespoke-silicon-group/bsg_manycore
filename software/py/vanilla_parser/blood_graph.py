@@ -39,7 +39,11 @@ import csv
 import argparse
 import warnings
 import os.path
-from PIL import Image, ImageDraw, ImageFont
+# Pillow is needed to draw, not to import this module.
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    Image = None
 from itertools import chain
 from . import common
 
@@ -472,6 +476,8 @@ def add_args(parser):
                         help="Skip blood graph generation")
 
 def main(args):
+    if Image is None:
+        raise RuntimeError("blood_graph needs Pillow")
     bg = BloodGraph(args.trace, args.stats, args.cycle, args.abstract)
     if not args.no_blood_graph:
         bg.generate()

@@ -27,16 +27,15 @@ import functools
 import os
 import re
 import csv
-import numpy as np
-
-# Pandas must be at least version 1.0.0 and tabulate must be installed
-# This is not uncommon, but do this check to provide a better error message
-import pandas as pd
-import tabulate
+# numpy, pandas 1.0.0 or later and tabulate are needed to make the stats,
+# not to import this module: a run that makes no stats needs none of them.
 try:
-    pd.DataFrame.to_markdown
-except:
-    raise RuntimeError("Pandas version is not sufficient. Upgrade pandas to > 1.0.0")
+    import numpy as np
+    import pandas as pd
+    import tabulate
+    _missing = None if hasattr(pd.DataFrame, "to_markdown") else "pandas 1.0.0 or later"
+except ImportError as e:
+    _missing = e.name
 
 from enum import Enum
 from collections import Counter
@@ -2364,6 +2363,8 @@ def add_args(parser):
                         help="Words per cache line (required to parse cache stats)")
 
 def main(args): 
+    if _missing:
+        raise RuntimeError("stats_parser needs numpy, pandas 1.0.0 or later and tabulate; missing: " + _missing)
     if (args.vcache_stats and args.cache_line_words is None):
         raise ValueError("--cache-line-words is required to parse cache statistics")
 

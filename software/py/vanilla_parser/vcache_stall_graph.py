@@ -37,7 +37,11 @@ import csv
 import argparse
 import warnings
 import os.path
-from PIL import Image, ImageDraw, ImageFont
+# Pillow is needed to draw, not to import this module.
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    Image = None
 from itertools import chain
 from . import common
 
@@ -358,6 +362,8 @@ def add_args(parser):
                         help="Skip stall graph generation")
 
 def main(args): 
+    if Image is None:
+        raise RuntimeError("vcache_stall_graph needs Pillow")
     bg = VcacheStallGraph(args.vcache_trace, args.vcache_stats, args.cycle, args.abstract, args.no_stall_graph)
     if not args.no_stall_graph:
         bg.generate()
