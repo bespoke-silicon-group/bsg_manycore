@@ -141,10 +141,12 @@ module fpu_int
     end
     else if (is_fcvt_w_s | is_fcvt_wu_s) begin
       result_o = f2i_result_lo;    
+      // A value that does not fit the integer is an invalid operation
+      // in RISC-V, not an overflow.
       fflags_o = '{
-        invalid   : f2i_fflags_lo.invalid,
+        invalid   : f2i_fflags_lo.invalid | f2i_fflags_lo.overflow,
         div_zero  : 1'b0,
-        overflow  : f2i_fflags_lo.overflow,
+        overflow  : 1'b0,
         underflow : 1'b0,
         inexact   : f2i_fflags_lo.inexact
       };

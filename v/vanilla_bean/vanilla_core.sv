@@ -106,6 +106,10 @@ module vanilla_core
     // pod csr coord.
     , output [pod_x_cord_width_p-1:0] cfg_pod_x_o
     , output [pod_y_cord_width_p-1:0] cfg_pod_y_o
+
+    // IO pod csr coord.
+    , output [pod_x_cord_width_p-1:0] cfg_io_pod_x_o
+    , output [pod_y_cord_width_p-1:0] cfg_io_pod_y_o
    
     // For debugging + reset
     , input [x_cord_width_p-1:0] global_x_i
@@ -434,6 +438,7 @@ module vanilla_core
 			   ,global_x_i[x_cord_width_p-1-:pod_x_cord_width_p]}
 			  )
     ,.cfg_pod_r_o({cfg_pod_y_o,cfg_pod_x_o})
+    ,.cfg_io_pod_r_o({cfg_io_pod_y_o,cfg_io_pod_x_o})
     ,.instr_executed_i(mcsr_instr_executed_li)
     ,.interrupt_entered_i(mcsr_interrupt_entered_li)
     ,.mret_called_i(mcsr_mret_called_li)
@@ -488,7 +493,7 @@ module vanilla_core
 
   // 'aq' register
   // When amo_op with aq is issued to EXE, 'aq' register is set.
-  // While 'aq' is set, subsequent memory ops (e.g. load, store, lr, AMO) cannot be isssued, until 'aq' is cleared.
+  // While 'aq' is set, subsequent memory ops (load, store, lr, AMO, CBO) wait until 'aq' is cleared.
   // When the amoswap result returns and clears the scoreboard, it also clears the 'aq'.
   // Even if amoswap.w.aq has x0 as rd, 'aq' bit is set.
   // Since AMO op is only supported for remote, only remote resp can clear the 'aq'.
@@ -1420,6 +1425,7 @@ module vanilla_core
     (id_r.decode.is_load_op
     |id_r.decode.is_store_op
     |id_r.decode.is_amo_op
+    |id_r.decode.is_cache_op
     |id_r.decode.is_lr_aq_op
     |id_r.decode.is_lr_op);
 
@@ -1432,12 +1438,15 @@ module vanilla_core
   // stall_remote_req
   logic [lg_fwd_fifo_els_lp-1:0] remote_req_counter_r;
   wire local_mem_op_restore = (lsu_dmem_v_lo & ~exe_r.decode.is_lr_op & ~exe_r.decode.is_lr_aq_op) & ~stall_all;
-  wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.icache_miss);
+  // Non-DRAM CBOs are no-ops: the LSU sends nothing, so return their issue slot here.
+  wire cache_op_restore = exe_r.decode.is_cache_op & ~lsu_remote_req_v_lo & ~stall_all;
+  wire id_remote_req_op = (id_r.decode.is_load_op | id_r.decode.is_store_op | id_r.decode.is_amo_op | id_r.decode.is_cache_op | id_r.icache_miss);
   wire memory_op_issued = id_remote_req_op & id_issue;
   wire [lg_fwd_fifo_els_lp-1:0] remote_req_available =
     remote_req_counter_r +
     remote_req_credit_i +
     local_mem_op_restore +
+    cache_op_restore +
     invalid_eva_access_i;
 
   always_ff @ (posedge clk_i) begin
@@ -1446,6 +1455,18 @@ module vanilla_core
     else
       remote_req_counter_r <= remote_req_available - memory_op_issued;
   end 
+
+  // A dropped CBO is easy to miss, so report each one with enough to find it.
+`ifndef BSG_HIDE_FROM_SYNTHESIS
+  always_ff @ (negedge clk_i) begin
+    if (~reset_i & cache_op_restore) begin
+      $display("[WARN][VCORE] %s ignored: address is not in DRAM. t=%0t, x=%0d, y=%0d, pc=%h, addr=%h",
+        (exe_r.decode.cbo_type == e_vanilla_cbo_clean) ? "cbo.clean"
+          : ((exe_r.decode.cbo_type == e_vanilla_cbo_flush) ? "cbo.flush" : "cbo.inval"),
+        $time, global_x_i, global_y_i, exe_r.pc_plus4 - 32'd4, exe_r.rs1_val);
+    end
+  end
+`endif
 
   assign stall_remote_req = id_remote_req_op & (remote_req_available == '0);
   
@@ -1540,7 +1561,12 @@ module vanilla_core
 
   // AMO aq control
   assign aq_set = (id_r.decode.is_amo_op & id_r.decode.is_amo_aq) & id_issue;
-  assign aq_clear = int_rf_wen & (int_rf_waddr == aq_rd_r);
+  // While the AMO is outstanding, only its result clears the scoreboard entry of its rd.
+  // x0 has no entry, and a result for x0 can belong to another request, so then wait
+  // until no request is outstanding.
+  assign aq_clear = (aq_rd_r == '0)
+    ? ~(remote_credit_pending | remote_req_in_exe)
+    : (int_sb_clear & (int_sb_clear_id == aq_rd_r));
 
 
   // FCSR control

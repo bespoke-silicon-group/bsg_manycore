@@ -125,9 +125,11 @@ module fcsr
           fflags_write_mask = write_mask[0+:fflags_width_lp];
           fflags_write_data = write_data[0+:fflags_width_lp];
         end
+        // v_i is high for a CSR instruction on any address.
+        // Addresses other than fflags and fcsr must still accrue flags.
         default: begin
-          fflags_write_mask = '0;
-          fflags_write_data = '0;
+          fflags_write_mask = combined_fflags;
+          fflags_write_data = combined_fflags;
         end
       endcase
     end

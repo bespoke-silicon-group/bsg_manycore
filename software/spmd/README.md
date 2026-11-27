@@ -20,10 +20,12 @@ In any of the sub-directories:
   internal LLVM optimization pipeline; the explicit `opt` step runs the chosen
   optimization level exactly once.
 - `make WAVE=1` Run VCS simulation with waveform dump.
+- `make VCS_FGP_THREADS=8`: Run VCS simulation on 9 cores. This is for one long
+  simulation: VCS needs that many idle cores and a `VCS-ELITE-RUNTIME` licence.
 - `make main.riscv`: Generate ELF binary of that SPMD program.
 - `make COVERAGE=1` Run VCS simulation with coverage analysis.
 - `make main.dis`: Print disassembly to the terminal.
-- `vanilla.log`: Vanilla core trace dumped during the simulation.
+- `vanilla.log`: Vanilla core trace, dumped during a `make WAVE=1` simulation.
 
 Note: In directories containing multiple SPMD programs, `bsg_riscv_tests/` for instance,
 `main` has to be replaced by the program name. For example, to generate ELF binary of
@@ -79,6 +81,44 @@ Note:
     Current design is only tested for x<=4, y<=4 and dimensions mentioned in
     individual testcases.
 
+
+
+Uncached IO tests
+-----------------
+
+`io_space/`, `io_space_independence/`, `io_inter_tile/`, `io_flood/`, `io_dram_mix/` and `io_vcache_select/` use the
+uncached load and the uncached store: the `LOAD` and `STORE` opcodes with funct3 `0b111`. The tests write them with
+`.insn`:
+
+    .insn i 0b0000011, 0b111, rd, rs1, 0x0        # rd <- 0(rs1)
+    .insn r 0b0100011, 0b111, 0x0, x0, rs1, rs2   # 0(rs1) <- rs2
+
+An uncached request does not go to the DRAM. A vcache passes it on to the IO, which is a separate address space, and
+keeps no copy of the word. The IO pod register (CSR `0x361`) selects the pod of that vcache; after reset it holds the
+tile's own pod. The address of the request selects the vcache in that pod:
+
+- bit 31: the vcache row, 0 for north and 1 for south.
+- the next log2(pod width) bits, from bit 30 down: the vcache column.
+- the remaining bits, down to bit 2: the word address that the vcache sends to the IO.
+
+The request leaves the machine on the side that the block requests of that vcache go to, west or east. So the pod,
+the row and the column choose the memory port, and any tile can send a request through any vcache.
+
+The IO pod register has the layout of the pod register of the DRAM requests (CSR `0x360`), `{pod y, pod x}`, and is
+separate from it: a write to one does not change where the requests of the other go. A program can therefore use the
+IO behind another pod while its data stays in the DRAM of its own pod, and the other way around. Both are written
+with `csrw`, and a request that follows the write already goes to the new pod.
+
+The store returns when the vcache has queued the word, not when the IO has it. An uncached load through the same
+vcache is answered only after the IO has received the stores that this vcache queued before it.
+
+`bsg_fence()` waits until the vcaches have answered all requests of the tile, so after it every uncached store is
+queued in its vcache, and may not have reached the IO yet. A program that has to know that the IO has its stores does
+an uncached load through the same vcache.
+
+In simulation, `bsg_nonsynth_wormhole_test_mem` answers uncached requests (machines with
+`BSG_MACHINE_MEM_CFG = e_vcache_test_mem`). It keeps one IO space for each vcache. The machines with DRAMSim3
+(`e_vcache_hbm2`) have no IO: `bsg_wormhole_to_cache_dma_fanout` reports the request and the test does not finish.
 
 
 `common/`

@@ -145,6 +145,19 @@ inline int bsg_li(int constant_val) { int result; asm("li %0, %1" : "=r"(result)
 inline int bsg_div(int a, int b)  { int result; __asm__ __volatile__("divu %0,%1,%2" : "=r"(result) : "r" (a), "r" (b)); return result; }
 inline int bsg_mulu(int a, int b) { int result; __asm__ __volatile__("mul %0,%1,%2" : "=r"(result) : "r" (a), "r" (b)); return result; }
 
+// Operate on the entire DRAM cache block containing p; other addresses are no-ops.
+// The "memory" clobber keeps the compiler from moving loads or stores across the
+// instruction. A typed memory operand is not enough: alias analysis would still let
+// accesses of other types move. Use bsg_fence() to wait for the vcache to perform it.
+static inline void bsg_cbo_flush_block(void *p) {
+    __asm__ volatile (".insn i 0x0f, 2, x0, %0, 2" : : "r"(p) : "memory");
+}
+static inline void bsg_cbo_clean_block(void *p) {
+    __asm__ volatile (".insn i 0x0f, 2, x0, %0, 1" : : "r"(p) : "memory");
+}
+static inline void bsg_cbo_inv_block(void *p) {
+    __asm__ volatile (".insn i 0x0f, 2, x0, %0, 0" : : "r"(p) : "memory");
+}
 
 #else
 #error Unsupported Compiler!

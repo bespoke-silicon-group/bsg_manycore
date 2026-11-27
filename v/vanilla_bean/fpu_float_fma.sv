@@ -94,7 +94,10 @@ module fpu_float_fma
         eFMUL: begin
           fma_a_li = fp_rs1_i;
           fma_b_li = fp_rs2_i;
-          fma_c_li = `FPU_RECODED_ZERO;
+          // The zero addend has the sign of the product,
+          // so that an exact zero product keeps its sign.
+          fma_c_li = {fp_rs1_i[recoded_data_width_lp-1] ^ fp_rs2_i[recoded_data_width_lp-1]
+                      , {(recoded_data_width_lp-1){1'b0}}};
           fma_op_li = ePM_PB;
           is_fma_op = 1'b1;
         end

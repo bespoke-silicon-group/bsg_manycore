@@ -173,6 +173,26 @@ module spmd_testbench
   );
   assign reset_o = reset_r;
 
+`ifdef VERILATOR
+  // Under Verilator every variable starts at 0 instead of X, so logic that
+  // has not been reset yet can look valid to the assertions. Keep them off
+  // until the first reset is over.
+  initial begin
+    $assertoff;
+    wait (reset_o === 1'b1);
+    wait (reset_o === 1'b0);
+    $asserton;
+  end
+
+`ifdef BSG_VERILATOR_DUMP_FST
+  // simsc-debug: waveform of the whole design
+  initial begin
+    $dumpfile("dump.fst");
+    $dumpvars;
+  end
+`endif
+`endif
+
 
   // SPMD LOADER
   logic print_stat_v;

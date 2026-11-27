@@ -112,6 +112,11 @@ module vanilla_core_profiler
   bsg_manycore_vanilla_core_stat_tag_s print_stat_tag;
   assign print_stat_tag = print_stat_tag_i;
 
+  // file logging
+  localparam string logfile_lp = "vanilla_stats.csv";
+  localparam string tracefile_lp = "vanilla_operation_trace.csv";
+  localparam string periodicfile_lp = "vanilla_periodic_stats.csv";
+
   `DEFINE_PROFILER(bsg_vanilla_core_profiler
                    , tracefile_lp
                    , "cycle,x,y,pc,operation\n"
@@ -259,6 +264,11 @@ module vanilla_core_profiler
 
   // MUL
   wire mul_inc = exe_r.decode.is_imul_op;
+
+  // CBO
+  wire cbo_inval_inc = exe_r.decode.is_cache_op & (exe_r.decode.cbo_type == e_vanilla_cbo_inval);
+  wire cbo_clean_inc = exe_r.decode.is_cache_op & (exe_r.decode.cbo_type == e_vanilla_cbo_clean);
+  wire cbo_flush_inc = exe_r.decode.is_cache_op & (exe_r.decode.cbo_type == e_vanilla_cbo_flush);
 
   // FENCE
   wire fence_inc = exe_r.decode.is_fence_op;
@@ -457,6 +467,9 @@ module vanilla_core_profiler
     integer remu;
     integer mul;
 
+    integer cbo_inval;
+    integer cbo_clean;
+    integer cbo_flush;
     integer fence;
   
     integer csrrw;
@@ -630,6 +643,9 @@ module vanilla_core_profiler
         else if (remu_inc) stat_r.remu++;
         else if (mul_inc) stat_r.mul++;
 
+        else if (cbo_inval_inc) stat_r.cbo_inval++;
+        else if (cbo_clean_inc) stat_r.cbo_clean++;
+        else if (cbo_flush_inc) stat_r.cbo_flush++;
         else if (fence_inc) stat_r.fence++;
 
         else if (csrrw_inc) stat_r.csrrw++;
@@ -675,10 +691,6 @@ module vanilla_core_profiler
 
 
 
-  // file logging
-  localparam string logfile_lp = "vanilla_stats.csv";
-  localparam string tracefile_lp = "vanilla_operation_trace.csv";
-  localparam string periodicfile_lp = "vanilla_periodic_stats.csv";
 
   integer fd;
   string header;
@@ -804,6 +816,9 @@ module vanilla_core_profiler
       $fwrite(fd, "instr_remu,");
       $fwrite(fd, "instr_mul,");
 
+      $fwrite(fd, "instr_cbo_inval,");
+      $fwrite(fd, "instr_cbo_clean,");
+      $fwrite(fd, "instr_cbo_flush,");
       $fwrite(fd, "instr_fence,");
 
       $fwrite(fd, "instr_csrrw,");
@@ -962,6 +977,9 @@ module vanilla_core_profiler
           $fwrite(fd, "%0d,", stat_r.remu);
           $fwrite(fd, "%0d,", stat_r.mul);
 
+          $fwrite(fd, "%0d,", stat_r.cbo_inval);
+          $fwrite(fd, "%0d,", stat_r.cbo_clean);
+          $fwrite(fd, "%0d,", stat_r.cbo_flush);
           $fwrite(fd, "%0d,", stat_r.fence);
 
           $fwrite(fd, "%0d,", stat_r.csrrw);
@@ -1016,6 +1034,12 @@ module vanilla_core_profiler
    
 
 
+  // Trace only after this instance's first reset. Under VCS reset_i is X
+  // until then, which keeps the trace empty; under Verilator it starts at 0,
+  // and the trace would show the logic before it was ever reset.
+  bit reset_seen_r;
+  always_ff @ (posedge clk_i) if (reset_i) reset_seen_r <= 1'b1;
+
    always @(negedge clk_i)  begin
         // stat printing
         if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == (global_y_i) & print_stat_tag.x_cord == (global_x_i)) begin
@@ -1025,7 +1049,7 @@ module vanilla_core_profiler
       
      
         // trace logging
-        if (~reset_i & trace_en_i) begin
+        if (~reset_i & trace_en_i & reset_seen_r) begin
 
           if (fadd_inc) print_operation_trace("fadd", fp_exe_pc_r);
           else if (fsub_inc) print_operation_trace("fsub", fp_exe_pc_r);
@@ -1125,6 +1149,9 @@ module vanilla_core_profiler
           else if (remu_inc) print_operation_trace("remu", exe_pc);
           else if (mul_inc) print_operation_trace("mul", exe_pc);
 
+          else if (cbo_inval_inc) print_operation_trace("cbo_inval", exe_pc);
+          else if (cbo_clean_inc) print_operation_trace("cbo_clean", exe_pc);
+          else if (cbo_flush_inc) print_operation_trace("cbo_flush", exe_pc);
           else if (fence_inc) print_operation_trace("fence", exe_pc);
 
           else if (csrrw_inc) print_operation_trace("csrrw", exe_pc);

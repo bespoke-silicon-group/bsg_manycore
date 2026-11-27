@@ -13,14 +13,12 @@
 
 `define declare_icache_format_s(tag_width_mp, block_size_in_words_mp) \
   typedef struct packed { \
-    logic [block_size_in_words_mp-1:0] lower_cout; \
-    logic [block_size_in_words_mp-1:0] lower_sign; \
     logic [tag_width_mp-1:0] tag; \
-    instruction_s [block_size_in_words_mp-1:0] instr; \
+    icache_instr_s [block_size_in_words_mp-1:0] instr; \
   } icache_format_s
 
 `define icache_format_width(tag_width_mp, block_size_in_words_mp) \
-   ((2*block_size_in_words_mp)+tag_width_mp+(block_size_in_words_mp*$bits(instruction_s)))
+   (tag_width_mp+(block_size_in_words_mp*$bits(icache_instr_s)))
 
 // FPU recoded Constants
 `define FPU_RECODED_ONE   33'h080000000
@@ -37,9 +35,11 @@
 `define RV32_LOAD     7'b0000011
 `define RV32_STORE    7'b0100011
 
-// we have branch instructions ignore the low bit so that we can place the prediction bit there.
-// RISC-V by default has the low bits set to 11 in the icache, so we can use those creatively.
-// note this relies on all code using ==? and casez.
+// The low bit is a wildcard because the icache used to hand out the branch
+// prediction bit there. It now sends the prediction on its own output and
+// returns every instruction with bits [1:0] = 2'b11 (see icache.sv), so the
+// wildcard no longer matters. Code that tests this opcode must still use
+// ==? or casez.
 `define RV32_BRANCH   7'b110001?
 
 `define RV32_JALR_OP    7'b1100111
@@ -156,6 +156,7 @@
 `define RV32_CSR_MIP_ADDR       12'h344
 `define RV32_CSR_MEPC_ADDR      12'h341
 `define RV32_CSR_CFG_POD_ADDR   12'h360				    
+`define RV32_CSR_CFG_IO_POD_ADDR 12'h361
 
 // machine custom CSR addr
 `define RV32_CSR_CREDIT_LIMIT_ADDR 12'hfc0
@@ -245,6 +246,15 @@
 
 `define RV32_FDIV_S   `RV32_Rtype(`RV32_OP_FP, 3'b???, 7'b0001100)
 `define RV32_FSQRT_S  {7'b0101100, 5'b00000, 5'b?????, 3'b???, 5'b?????, 7'b1010011}
+
+// RV32 CMO Instructions
+`define RV32_CBO_FUN3  {3'b010}
+
+`define RV32_CBO_INVAL {12'b000000000000, 5'b?????, `RV32_CBO_FUN3, 5'b00000, `RV32_MISC_MEM}
+`define RV32_CBO_CLEAN {12'b000000000001, 5'b?????, `RV32_CBO_FUN3, 5'b00000, `RV32_MISC_MEM}
+`define RV32_CBO_FLUSH {12'b000000000010, 5'b?????, `RV32_CBO_FUN3, 5'b00000, `RV32_MISC_MEM}
+// Any encoding in the CBO space, including cbo.zero (Zicboz) and reserved ones
+`define RV32_CBO_ANY   {12'b????????????, 5'b?????, `RV32_CBO_FUN3, 5'b?????, `RV32_MISC_MEM}
 
 `endif
 
