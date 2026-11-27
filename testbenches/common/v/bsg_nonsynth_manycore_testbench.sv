@@ -27,6 +27,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter `BSG_INV_PARAM(icache_entries_p)
     , parameter `BSG_INV_PARAM(icache_tag_width_p)
     , parameter `BSG_INV_PARAM(icache_block_size_in_words_p)
+    , parameter icache_ways_p = 1 // icache associativity, a power of 2
     , parameter `BSG_INV_PARAM(ruche_factor_X_p)
     , parameter `BSG_INV_PARAM(barrier_ruche_factor_X_p)
 
@@ -184,6 +185,7 @@ module bsg_nonsynth_manycore_testbench
       ,.icache_entries_p(icache_entries_p)
       ,.icache_tag_width_p(icache_tag_width_p)
       ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+      ,.icache_ways_p(icache_ways_p)
 
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_data_width_p(vcache_data_width_p)
@@ -242,6 +244,7 @@ module bsg_nonsynth_manycore_testbench
       ,.icache_entries_p(icache_entries_p)
       ,.icache_tag_width_p(icache_tag_width_p)
       ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+      ,.icache_ways_p(icache_ways_p)
 
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_data_width_p(vcache_data_width_p)

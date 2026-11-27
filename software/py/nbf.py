@@ -39,10 +39,11 @@ class NBF:
     # fixed arch params
     self.data_width = 32
 
-    # icache: total words and tag width. The PC is tag width +
+    # icache: total words, tag width and ways. The PC is tag width +
     # log2(entries) bits, and the icache EPA is the bit above it.
     self.icache_size = config["icache_entries"]
     self.icache_tag_width = config["icache_tag_width"]
+    self.icache_ways = config["icache_ways"]
     self.icache_base_epa = 1 << (self.icache_tag_width + self.safe_clog2(self.icache_size))
 
     # input binary
@@ -279,16 +280,24 @@ class NBF:
 
 
   # initialize icache
+  #
+  # The icache has no valid bits: these writes are what fill it. A
+  # set-associative icache gets every word below icache_size, with 0 where
+  # the binary has none, so no way is left holding a stale tag that could
+  # match a block another way also holds.
   def init_icache(self, pod_origin_x, pod_origin_y):
+    if self.icache_ways > 1:
+      icache_words = [(addr, self.dram_data.get(0x20000000 + addr, 0)) for addr in range(self.icache_size)]
+    else:
+      icache_words = [(k - 0x20000000, self.dram_data[k]) for k in sorted(self.dram_data.keys())
+                      if k - 0x20000000 < self.icache_size]
+
     for x in range(self.tg_dim_x):
       for y in range(self.tg_dim_y):
         x_eff = self.tgo_x + x + pod_origin_x
         y_eff = self.tgo_y + y + pod_origin_y
-        for k in sorted(self.dram_data.keys()):
-          addr = k - 0x20000000
-          if addr < self.icache_size:
-            icache_epa = self.icache_base_epa | addr
-            self.print_nbf(x_eff, y_eff, icache_epa, self.dram_data[k])
+        for (addr, data) in icache_words:
+          self.print_nbf(x_eff, y_eff, self.icache_base_epa | addr, data)
         
  
   # initialize dmem
@@ -542,10 +551,10 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  # The icache entries and tag width are optional, for machines that do not
-  # set them; they default to the original 1024 / 12.
-  if 23 <= len(sys.argv) <= 25:
-    icache_args = [int(a) for a in sys.argv[23:]] + [1024, 12][len(sys.argv)-23:]
+  # The icache entries, tag width and ways are optional, for machines that
+  # do not set them; they default to the original 1024 / 12 / 1.
+  if 23 <= len(sys.argv) <= 26:
+    icache_args = [int(a) for a in sys.argv[23:]] + [1024, 12, 1][len(sys.argv)-23:]
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -573,6 +582,7 @@ if __name__ == "__main__":
       "ipoly_hashing": int(sys.argv[22]),
       "icache_entries": icache_args[0],
       "icache_tag_width": icache_args[1],
+      "icache_ways": icache_args[2],
     }
 
     converter = NBF(config)
@@ -589,6 +599,6 @@ if __name__ == "__main__":
     command += "{skip_dram_instruction_load} "
     command += "{skip_zeros} "
     command += "{ipoly_hashing} "
-    command += "[{icache_entries} [{icache_tag_width}]]"
+    command += "[{icache_entries} [{icache_tag_width} [{icache_ways}]]]"
     print(command)
 

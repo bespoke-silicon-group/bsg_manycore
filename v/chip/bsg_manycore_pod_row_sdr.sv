@@ -27,6 +27,7 @@ module bsg_manycore_pod_row_sdr
     , `BSG_INV_PARAM(icache_entries_p)
     , `BSG_INV_PARAM(icache_tag_width_p)
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
+    , parameter icache_ways_p = 1 // icache associativity, a power of 2
 
     , parameter num_vcache_rows_p=1
     , `BSG_INV_PARAM(vcache_addr_width_p)
@@ -182,6 +183,7 @@ module bsg_manycore_pod_row_sdr
     ,.icache_entries_p    (icache_entries_p)
     ,.icache_tag_width_p  (icache_tag_width_p)
     ,.icache_block_size_in_words_p  (icache_block_size_in_words_p)
+    ,.icache_ways_p(icache_ways_p)
 
     ,.num_vcache_rows_p   (num_vcache_rows_p)
     ,.vcache_addr_width_p (vcache_addr_width_p)

@@ -27,6 +27,7 @@ module bsg_manycore_proc_vanilla
     , `BSG_INV_PARAM(num_tiles_y_p)
 
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
+    , parameter icache_ways_p = 1 // icache associativity, a power of 2
     , `BSG_INV_PARAM(ipoly_hashing_p)
 
     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
@@ -342,6 +343,7 @@ module bsg_manycore_proc_vanilla
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+    ,.icache_ways_p(icache_ways_p)
     ,.x_cord_width_p(x_cord_width_p)
     ,.y_cord_width_p(y_cord_width_p)
     ,.credit_counter_width_p(credit_counter_width_p)

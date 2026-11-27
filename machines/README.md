@@ -24,10 +24,13 @@ Machine.machine.include parameters
 - BSG_MACHINE_VCACHE_WORD_TRACKING      =   Enable word tracking in vcache.
 
 - BSG_MACHINE_DMEM_ENTRIES              =   number of words in each tile's data memory.
-- BSG_MACHINE_ICACHE_ENTRIES            =   number of words in each tile's icache.
+- BSG_MACHINE_ICACHE_ENTRIES            =   number of words in each tile's icache, across all ways.
 - BSG_MACHINE_ICACHE_TAG_WIDTH          =   icache tag width. The PC is ICACHE_TAG_WIDTH + log2(ICACHE_ENTRIES) bits
                                             (constraint: 22 bits, which the linker's 16MB text space assumes).
 - BSG_MACHINE_ICACHE_BLOCK_SIZE_WORDS   =   number of words in each icache block.
+- BSG_MACHINE_ICACHE_WAYS               =   icache associativity, a power of 2 (1 = direct mapped).
+                                            Replacement is least recently filled per set.
+                                            (constraint: ICACHE_ENTRIES / BLOCK_SIZE_WORDS / WAYS >= 2)
 
 - BSG_MACHINE_VCACHE_MISS_FIFO_ELS      =   number of entries in miss fifo (non-blocking vcache only).
 - BSG_MACHINE_DRAM_SIZE_WORDS           =   the total size of main memory. 2GB max, but it can be set to lower.

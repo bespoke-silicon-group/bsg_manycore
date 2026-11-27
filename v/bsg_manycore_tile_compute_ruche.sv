@@ -13,6 +13,7 @@ module bsg_manycore_tile_compute_ruche
     , `BSG_INV_PARAM(icache_entries_p )
     , `BSG_INV_PARAM(icache_tag_width_p )
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
+    , parameter icache_ways_p = 1 // icache associativity, a power of 2
     , `BSG_INV_PARAM(x_cord_width_p )
     , `BSG_INV_PARAM(y_cord_width_p )
     , `BSG_INV_PARAM(pod_x_cord_width_p )
@@ -197,6 +198,7 @@ module bsg_manycore_tile_compute_ruche
     ,.icache_entries_p(icache_entries_p)
     ,.icache_tag_width_p(icache_tag_width_p)
     ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+    ,.icache_ways_p(icache_ways_p)
     ,.hetero_type_p(hetero_type_p)
     ,.num_tiles_x_p(num_tiles_x_p)
     ,.num_tiles_y_p(num_tiles_y_p)

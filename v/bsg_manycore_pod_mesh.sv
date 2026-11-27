@@ -34,6 +34,7 @@ module bsg_manycore_pod_mesh
     , `BSG_INV_PARAM(icache_entries_p)
     , `BSG_INV_PARAM(icache_tag_width_p)
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
+    , parameter icache_ways_p = 1 // icache associativity, a power of 2
 
     , `BSG_INV_PARAM(vcache_addr_width_p)
     , `BSG_INV_PARAM(vcache_data_width_p)
@@ -220,6 +221,7 @@ module bsg_manycore_pod_mesh
         ,.subarray_num_tiles_x_p(subarray_num_tiles_x_lp)
         ,.subarray_num_tiles_y_p(subarray_num_tiles_y_lp)
         ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
+        ,.icache_ways_p(icache_ways_p)
 
         ,.pod_x_cord_width_p(pod_x_cord_width_p)
         ,.pod_y_cord_width_p(pod_y_cord_width_p)

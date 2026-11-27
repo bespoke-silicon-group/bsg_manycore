@@ -27,6 +27,7 @@ VPARAMS += pod_y_cord_width_p=4
 VPARAMS += dmem_size_p=1024
 VPARAMS += icache_entries_p=1024
 VPARAMS += icache_tag_width_p=12
+VPARAMS += icache_ways_p=1
 VPARAMS += num_vcache_rows_p=1
 endif
 

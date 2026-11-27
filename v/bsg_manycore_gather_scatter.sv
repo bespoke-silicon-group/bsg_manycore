@@ -53,6 +53,7 @@ module bsg_manycore_gather_scatter
     , `BSG_INV_PARAM(num_tiles_y_p )
 
     , `BSG_INV_PARAM(icache_block_size_in_words_p)
+    , parameter icache_ways_p = 1 // icache associativity, a power of 2
 
     , `BSG_INV_PARAM(ipoly_hashing_p)
     , localparam x_subcord_width_lp = `BSG_SAFE_CLOG2(num_tiles_x_p)
