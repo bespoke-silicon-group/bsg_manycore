@@ -35,6 +35,7 @@ clean:
 	rm -rf */*.log */*.daidir */simv */simv-debug */simv-profile */simv-coverage */simv-pc-histogram
 	rm -rf */*.log */*.daidir */simsc */simsc-debug */simsc-profile */simsc-coverage
 	rm -rf */obj_dir */simsc */simsc-debug */simsc-profile */simsc-coverage
+	rm -rf */obj_dir_t* */simsc-t*
 	rm -rf stack.info.*
 	rm -f */vc_hdrs.h
 	rm -f */*.tr */bsg_tag_boot_rom.v

@@ -17,6 +17,12 @@ PROG_NAME  ?= main
 # It is not used with COVERAGE=1: simv-coverage is compiled without -fgp.
 VCS_FGP_THREADS ?= 0
 
+# VERILATOR_SIM_THREADS=n runs a Verilator model built for n threads,
+# <machine>/simsc-t<n> (see machines/Makefile.verilator). Only the default
+# simulator is multithreaded; WAVE, TRACE, PC_HIST and COVERAGE runs use the
+# single-threaded ones.
+VERILATOR_SIM_THREADS ?= 1
+
 # Coverage Analysis
 CM_NAME     ?= $(notdir $(shell pwd))
 COV_DIR     ?= $(abspath ../coverage)
@@ -58,11 +64,21 @@ else ifeq ($(BSG_PLATFORM),xcelium)
   BSG_SIM_BASE = simx
 endif
 
+# Threads of the simulator that runs, one unless VERILATOR_SIM_THREADS selects
+# a multithreaded Verilator model below.
+BSG_SIM_THREADS = 1
+
 ifeq ($(WAVE),0)
 ifeq ($(PC_HIST),0)
 ifeq ($(TRACE),0)
 ifeq ($(COVERAGE),0)
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)
+  ifeq ($(BSG_PLATFORM),verilator)
+  ifneq ($(VERILATOR_SIM_THREADS),1)
+    BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-t$(VERILATOR_SIM_THREADS)
+    BSG_SIM_THREADS = $(VERILATOR_SIM_THREADS)
+  endif
+  endif
 else
   BSG_SIM_EXE = $(BSG_MACHINE_PATH)/$(BSG_SIM_BASE)-coverage
 endif
