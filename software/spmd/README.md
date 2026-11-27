@@ -41,9 +41,20 @@ host has cores for, with each simulation on cores of its own: one core per
 simulator thread, in one socket, taken one last-level cache at a time
 (`software/py/sim_cpus.py slots <threads>` prints the layout). On Linux every
 simulator thread is pinned to its core; elsewhere the simulations run
-unpinned. Each test prints a line when it ends, and its output is in
-`recurse-results/<test>-run.log`, as with `recurse-all`. `make regress` fails
-if a test does not reach `BSG_FINISH` or reports `BSG_FAIL` or `BSG_TIMEOUT`.
+unpinned. Each test prints its verdict when it ends, and its output is in
+`recurse-results/<test>-run.log`, as with `recurse-all`.
+
+A test passes only if its make exits with status 0, every simulation it runs
+(one for each subtest in `bsg_riscv_tests`) reaches `BSG_FINISH`, and its output
+has no `BSG_FAIL`, `BSG_TIMEOUT` or `BSG_ERROR` and no error report of the
+simulator: VCS goes on after `$error` and a failed assertion and exits with
+status 0. `make regress` fails if a test does not pass. `make regress-selftest`
+checks these verdicts on the tests in `regress-selftest/`, which print canned
+simulator output and need no simulator or toolchain.
+
+The `bsg_attr_*` tests post-process their statistics with
+`software/py/vanilla_parser`, which needs the Python packages numpy, pandas,
+Pillow and tabulate; without them these tests fail.
 
 With Verilator, the simulations can be multithreaded. The thread placement is
 for the 16x8 pod, and Verilator's default machine is pod_1x1_4X2Y, so give

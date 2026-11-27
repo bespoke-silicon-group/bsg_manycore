@@ -1,0 +1,44 @@
+[INFO][TESTBENCH] BSG_MACHINE_GLOBAL_X                 =          16
+[INFO][TESTBENCH] BSG_MACHINE_GLOBAL_Y                 =           8
+[INFO][TESTBENCH] BSG_MACHINE_VCACHE_SET               =          64
+[INFO][TESTBENCH] BSG_MACHINE_VCACHE_WAY               =           4
+[INFO][TESTBENCH] BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS  =           8
+[INFO][TESTBENCH] BSG_MACHINE_MAX_EPA_WIDTH            =          28
+[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = e_vcache_test_mem
+[INFO][TESTBENCH] BSG_MACHINE_NETWORK_CFG              = e_network_half_ruche_x
+[INFO][TESTBENCH] BSG_MACHINE_RUCHE_FACTOR_X           =           3
+[INFO][TESTBENCH] BSG_MACHINE_BARRIER_RUCHE_FACTOR_X   =           3
+[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_X               =           1
+[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_Y               =           1
+[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_X_CORD            =          16
+[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_Y_CORD            =           8
+[INFO][TESTBENCH] vcache_word_tracking_p               =           1
+[INFO][TESTBENCH] ipoly_hashing_p                      =           1
+[INFO][TESTBENCH] enable_vcore_profiling_p             =           0
+[INFO][TESTBENCH] enable_router_profiling_p            =           0
+[INFO][TESTBENCH] enable_cache_profiling_p             =           0
+[INFO][TESTBENCH] enable_vcore_pc_coverage_p           =           0
+[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. sim_time=2296000, wall_time=0
+[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x= 8,16, data=00000000, addr=0000498, time=2446000
+Error: "probe.sv", 7: probe: at time 1
+[BSG_ERROR][PROBE] something went wrong
+[INFO][MONITOR] RECEIVED a finish packet from tile y,x= 8,16, data=00000000, sim_time=11813000, wall_time=0
+[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from all pods, time=11814000
+$finish called from file "bsg_manycore/testbenches/common/v/bsg_nonsynth_manycore_monitor.sv", line 83.
+[WH_X_MON] spmd_testbench.testbench.test_mem.hs[1].py[0].vs[3].rf[0].test_mem.x_mon: 0 response headers (0 with unknown bits), 0 data flits (0 with unknown bits)
+[WH_X_MON] spmd_testbench.testbench.test_mem.hs[1].py[0].vs[3].rf[1].test_mem.x_mon: 0 response headers (0 with unknown bits), 0 data flits (0 with unknown bits)
+[WH_X_MON] spmd_testbench.testbench.test_mem.hs[1].py[0].vs[4].rf[0].test_mem.x_mon: 0 response headers (0 with unknown bits), 0 data flits (0 with unknown bits)
+[WH_X_MON] spmd_testbench.testbench.test_mem.hs[1].py[0].vs[4].rf[1].test_mem.x_mon: 0 response headers (0 with unknown bits), 0 data flits (0 with unknown bits)
+[WH_X_MON] spmd_testbench.testbench.test_mem.hs[2].py[0].vs[3].rf[0].test_mem.x_mon: 0 response headers (0 with unknown bits), 0 data flits (0 with unknown bits)
+[WH_X_MON] spmd_testbench.testbench.test_mem.hs[2].py[0].vs[3].rf[1].test_mem.x_mon: 0 response headers (0 with unknown bits), 0 data flits (0 with unknown bits)
+[WH_X_MON] spmd_testbench.testbench.test_mem.hs[2].py[0].vs[4].rf[0].test_mem.x_mon: 0 response headers (0 with unknown bits), 0 data flits (0 with unknown bits)
+[WH_X_MON] spmd_testbench.testbench.test_mem.hs[2].py[0].vs[4].rf[1].test_mem.x_mon: 0 response headers (0 with unknown bits), 0 data flits (0 with unknown bits)
+$finish at simulation time             11814000
+           V C S   S i m u l a t i o n   R e p o r t
+Time: 11814000 ps
+
+Compilation Performance Summary
+===============================
+VCS started at        :  Thu Nov 26 18:04:21 2026
+Elapsed time          :  53 sec
+CPU Time              :  53.3 sec
