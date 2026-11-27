@@ -8,6 +8,15 @@ PC_HIST    ?= 0
 COVERAGE   ?= 0
 PROG_NAME  ?= main
 
+# VCS_FGP_THREADS=n runs a VCS simulation on n+1 cores. The simulator has to
+# be compiled with -fgp, which is the default (machines/Makefile.vcs).
+# VCS takes n+1 idle physical cores and one more licence (VCS-ELITE-RUNTIME),
+# and stops with FGP_AFFINITY_FAILED when it does not find the cores idle.
+# So this is for one long simulation, not for a regression that runs many
+# simulations at once. With threads, vanilla.log can miss its last line.
+# It is not used with COVERAGE=1: simv-coverage is compiled without -fgp.
+VCS_FGP_THREADS ?= 0
+
 # Coverage Analysis
 CM_NAME     ?= $(notdir $(shell pwd))
 COV_DIR     ?= $(abspath ../coverage)
@@ -85,6 +94,11 @@ ifeq ($(BSG_PLATFORM),vcs)
 BSG_SIM_OPTS += -reportstats \
                 -licqueue \
                 -l run.log
+ifneq ($(VCS_FGP_THREADS),0)
+ifeq ($(COVERAGE),0)
+BSG_SIM_OPTS += -fgp=num_threads:$(VCS_FGP_THREADS)
+endif
+endif
 endif
 
 ifneq ($(COVERAGE), 0)

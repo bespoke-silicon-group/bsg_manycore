@@ -125,6 +125,9 @@ clean: recurse-clean
 pre-recurse-all:
 	mkdir -p recurse-results
 	$(MAKE) common/crt.o
+ifeq ($(abspath $(BSG_MACHINE_PATH)/..),$(abspath $(BSG_MANYCORE_DIR)/machines))
+	$(MAKE) -C $(BSG_MACHINE_PATH)/.. $(BSG_SIM_EXE)
+endif
 
 pre-recurse-clean:
 	rm -rf recurse-results

@@ -20,6 +20,8 @@ In any of the sub-directories:
   internal LLVM optimization pipeline; the explicit `opt` step runs the chosen
   optimization level exactly once.
 - `make WAVE=1` Run VCS simulation with waveform dump.
+- `make VCS_FGP_THREADS=8`: Run VCS simulation on 9 cores. This is for one long
+  simulation: VCS needs that many idle cores and a `VCS-ELITE-RUNTIME` licence.
 - `make main.riscv`: Generate ELF binary of that SPMD program.
 - `make COVERAGE=1` Run VCS simulation with coverage analysis.
 - `make main.dis`: Print disassembly to the terminal.
