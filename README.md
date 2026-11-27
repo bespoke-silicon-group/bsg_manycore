@@ -77,10 +77,16 @@ BSG Manycore has preliminary support for simulating with the open-source [Verila
 We support this extensively on MacOS.
 
 To test this feature, set BSG\_PLATFORM=verilator in machines/platform.mk and then follow the
-above instructions to run tests normally. This platform only currently supports the machine
-pod\_1x1\_4X2Y due to excessive compilation times for larger machines. Most likely, future work can
-enable larger machines with hierarchical Verilation. verilator must be on your path (or override
+above instructions to run tests normally. verilator must be on your path (or override
 the VERILATOR variable in machines/Makefile.verilator).
+
+Flat Verilation of large machines takes a long time and a lot of memory. Set
+`VERILATOR_HIERARCHICAL=1` (on the make command line or in the environment) to verilate each tile
+type once as a hierarchy block (see machines/verilator\_hier.vlt). With Verilator 5.054, a 16x8
+full-ruche pod builds in about 7 minutes with 1.1 GB peak memory, and simulates 3-7x faster than the
+flat model. The bind-based profilers and tracers cannot reach into hierarchy blocks, so they are
+compiled out in this mode. Keep the setting consistent between building and running tests, since
+running a test rebuilds the simulator when sources change.
 
 On CentOS, you may need to use a modern GCC installation with `scl enable devtoolset-8 -- bash` or
 by putting `source scl_source enable devtoolset-8` in your .bashrc.

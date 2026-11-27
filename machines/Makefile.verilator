@@ -19,6 +19,22 @@ VERILATOR_FLAGS    += -O2
 VERILATOR_FLAGS    += --build --exe
 VERILATOR_FLAGS    += -j $(VERILATOR_THREADS)
 
+# VERILATOR_HIERARCHICAL=1 verilates each tile type once as a library (see
+# verilator_hier.vlt) instead of flattening every tile into the top-level
+# model, which greatly reduces build time and memory for large machines.
+# The testbench's bind-based profilers and tracers reach into tiles through
+# $root, which cannot cross a hierarchy block boundary, so they are compiled
+# out.
+VERILATOR_HIERARCHICAL ?= 0
+ifeq ($(VERILATOR_HIERARCHICAL),1)
+VERILATOR_FLAGS    += --hierarchical $(BSG_MANYCORE_DIR)/machines/verilator_hier.vlt
+VERILATOR_FLAGS    += +define+VERILATOR_WORKAROUND_DISABLE_VCORE_PROFILING
+VERILATOR_FLAGS    += +define+VERILATOR_WORKAROUND_DISABLE_REMOTE_OP_PROFILING
+VERILATOR_FLAGS    += +define+VERILATOR_WORKAROUND_DISABLE_VCACHE_PROFILING
+VERILATOR_FLAGS    += +define+VERILATOR_WORKAROUND_DISABLE_VCORE_TRACE
+VERILATOR_FLAGS    += +define+VERILATOR_WORKAROUND_DISABLE_PC_HISTOGRAM
+endif
+
 VERILATOR_CFLAGS   += -CFLAGS "-std=c++14 -g -Wall"
 VERILATOR_CFLAGS   += -CFLAGS "-O2"
 VERILATOR_CFLAGS   += -CFLAGS "-fPIC"

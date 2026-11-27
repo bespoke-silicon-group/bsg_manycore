@@ -1,0 +1,9 @@
+`verilator_config
+// Hierarchy blocks for VERILATOR_HIERARCHICAL=1 (see Makefile.verilator).
+// Each tile type is verilated once as a library and instantiated by the
+// top-level model. Only the tile types present in a machine are used.
+hier_block -module "bsg_manycore_tile_compute_mesh"
+hier_block -module "bsg_manycore_tile_compute_ruche"
+hier_block -module "bsg_manycore_tile_compute_ruche_full"
+hier_block -module "bsg_manycore_tile_vcache"
+hier_block -module "bsg_manycore_tile_vcache_ruche"
