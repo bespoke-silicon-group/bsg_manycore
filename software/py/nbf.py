@@ -18,7 +18,7 @@ import subprocess
 
 ################################
 # EPA Constants
-ICACHE_BASE_EPA = 0x400000
+# The icache EPA is 1 << (icache PC width); see init below.
 
 CSR_BASE = 0x8000
 CSR_FREEZE = 0 | CSR_BASE
@@ -37,8 +37,13 @@ class NBF:
     self.config = config
 
     # fixed arch params
-    self.icache_size = 1024
     self.data_width = 32
+
+    # icache: total words and tag width. The PC is tag width +
+    # log2(entries) bits, and the icache EPA is the bit above it.
+    self.icache_size = config["icache_entries"]
+    self.icache_tag_width = config["icache_tag_width"]
+    self.icache_base_epa = 1 << (self.icache_tag_width + self.safe_clog2(self.icache_size))
 
     # input binary
     self.riscv_file = config["riscv_file"]
@@ -282,7 +287,7 @@ class NBF:
         for k in sorted(self.dram_data.keys()):
           addr = k - 0x20000000
           if addr < self.icache_size:
-            icache_epa = ICACHE_BASE_EPA | addr
+            icache_epa = self.icache_base_epa | addr
             self.print_nbf(x_eff, y_eff, icache_epa, self.dram_data[k])
         
  
@@ -537,7 +542,10 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 23:
+  # The icache entries and tag width are optional, for machines that do not
+  # set them; they default to the original 1024 / 12.
+  if 23 <= len(sys.argv) <= 25:
+    icache_args = [int(a) for a in sys.argv[23:]] + [1024, 12][len(sys.argv)-23:]
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -563,6 +571,8 @@ if __name__ == "__main__":
       "skip_dram_instruction_load": int(sys.argv[20]),
       "skip_zeros": int(sys.argv[21]),
       "ipoly_hashing": int(sys.argv[22]),
+      "icache_entries": icache_args[0],
+      "icache_tag_width": icache_args[1],
     }
 
     converter = NBF(config)
@@ -579,5 +589,6 @@ if __name__ == "__main__":
     command += "{skip_dram_instruction_load} "
     command += "{skip_zeros} "
     command += "{ipoly_hashing} "
+    command += "[{icache_entries} [{icache_tag_width}]]"
     print(command)
 
