@@ -18,10 +18,11 @@ saves `x_cord_width_p` bits. Shared interface/conversion macros are in
 The vcache array rotates/buffers the south-side stages, while the ruche pod
 stitches these lanes to compute subarrays and terminates them outside each
 vcache row. Boundary tieoffs account for stage-dependent inversion and diagnose
-errant packets. Y ruche lanes do not cross pod boundaries.
-The existing router has no boundary-aware nearest-neighbor fallback for
-off-pod destinations (including the host); enabling Y ruche can route such
-traffic into a tieoff. See the [routing limitation](../compute_ruche/README.md#routing-limitation).
+errant packets. In `e_network_half_ruche_x` pods, Y ruche lanes do not cross
+pod boundaries and the router has no boundary-aware fallback for off-pod
+destinations (including the host), so such traffic can reach a tieoff.
+`e_network_full_ruche_xy` stitches the lanes between pod rows and adds a
+ruche-capable host I/O row. See [routing](../compute_ruche/README.md#routing).
 
 Run the focused Xcelium test with a matching BaseJump STL checkout:
 

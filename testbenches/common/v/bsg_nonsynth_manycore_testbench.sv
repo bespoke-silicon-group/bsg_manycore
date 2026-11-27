@@ -182,6 +182,14 @@ module bsg_nonsynth_manycore_testbench
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] ruche_link_li;
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] ruche_link_lo;
 
+  // Y ruche lanes between the array's south edge and the I/O row. Only used by
+  // e_network_full_ruche_xy with ruche_factor_Y_p > 0; one placeholder lane otherwise.
+  localparam ruche_y_lanes_lp = `BSG_MAX(1,ruche_factor_Y_p);
+  localparam io_ruche_y_lp = (bsg_manycore_network_cfg_p == e_network_full_ruche_xy) && (ruche_factor_Y_p > 0);
+  `declare_bsg_manycore_ruche_y_link_sif_s(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p);
+  bsg_manycore_ruche_y_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][ruche_y_lanes_lp-1:0] south_ruche_link_li;
+  bsg_manycore_ruche_y_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][ruche_y_lanes_lp-1:0] south_ruche_link_lo;
+
   if (bsg_manycore_network_cfg_p == e_network_half_ruche_x) begin: fi1
     bsg_manycore_pod_ruche_array #(
       .num_tiles_x_p(num_tiles_x_p)
@@ -294,6 +302,9 @@ module bsg_nonsynth_manycore_testbench
       ,.ver_link_sif_i(ver_link_sif_li)
       ,.ver_link_sif_o(ver_link_sif_lo)
 
+      ,.south_ruche_link_i(south_ruche_link_li)
+      ,.south_ruche_link_o(south_ruche_link_lo)
+
       ,.wh_link_sif_i(wh_link_sif_li)
       ,.wh_link_sif_o(wh_link_sif_lo)
 
@@ -400,31 +411,108 @@ module bsg_nonsynth_manycore_testbench
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_lo;
 
   for (genvar x = 0; x < num_pods_x_p*num_tiles_x_p; x++) begin: io_rtr_x
-    bsg_manycore_mesh_node #(
-      .x_cord_width_p(x_cord_width_p)
-      ,.y_cord_width_p(y_cord_width_p)
-      ,.addr_width_p(addr_width_p)
-      ,.data_width_p(data_width_p)
-      ,.stub_p(4'b1000) // stub south
-      ,.rev_use_credits_p(rev_use_credits_lp)
-      ,.rev_fifo_els_p(rev_fifo_els_lp)
-    ) io_rtr (
-      .clk_i(clk_i)
-      ,.reset_i(reset_r)
+    // The first pod starts at 2^local_X_bits; SAFE_CLOG2 reserves one bit even for X=1.
+    // Add the column index to that origin, placing the single-column I/O router at X=2.
+    // Multiple pods across X are unsupported when each pod is only one tile wide.
+    // They require I/O X coordinates 2,4,..., but this formula produces 2,3,... .
+    wire [x_cord_width_p-1:0] io_global_x_li = x_cord_width_p'((1 << `BSG_SAFE_CLOG2(num_tiles_x_p))+x);
+    wire [y_cord_width_p-1:0] io_global_y_li = y_cord_width_p'(`BSG_MACHINE_HOST_Y_CORD);
 
-      ,.links_sif_i(io_link_sif_li[x][S:W])
-      ,.links_sif_o(io_link_sif_lo[x][S:W])
+    if (io_ruche_y_lp) begin: ruche_y
+      // XY requests addressed to the I/O row arrive on Y ruche lanes.
+      bsg_manycore_ruche_y_link_sif_s [ruche_factor_Y_p-1:0][S:N] io_ruche_link_li, io_ruche_link_lo;
+      bsg_manycore_ruche_y_link_sif_s [ruche_factor_Y_p-1:0] edge_ruche_link_li, edge_ruche_link_lo;
 
-      ,.proc_link_sif_i(io_link_sif_li[x][P])
-      ,.proc_link_sif_o(io_link_sif_lo[x][P])
+      bsg_manycore_io_router_ruche_y #(
+        .x_cord_width_p(x_cord_width_p)
+        ,.y_cord_width_p(y_cord_width_p)
+        ,.addr_width_p(addr_width_p)
+        ,.data_width_p(data_width_p)
+        ,.ruche_factor_Y_p(ruche_factor_Y_p)
+      ) io_rtr (
+        .clk_i(clk_i)
+        ,.reset_i(reset_r)
 
-      // The first pod starts at 2^local_X_bits; SAFE_CLOG2 reserves one bit even for X=1.
-      // Add the column index to that origin, placing the single-column I/O router at X=2.
-      // Multiple pods across X are unsupported when each pod is only one tile wide.
-      // They require I/O X coordinates 2,4,..., but this formula produces 2,3,... .
-      ,.global_x_i(x_cord_width_p'((1 << `BSG_SAFE_CLOG2(num_tiles_x_p))+x))
-      ,.global_y_i(y_cord_width_p'(`BSG_MACHINE_HOST_Y_CORD))
-    );
+        ,.links_sif_i(io_link_sif_li[x][S:W])
+        ,.links_sif_o(io_link_sif_lo[x][S:W])
+
+        ,.ver_ruche_link_i(io_ruche_link_li)
+        ,.ver_ruche_link_o(io_ruche_link_lo)
+
+        ,.proc_link_sif_i(io_link_sif_li[x][P])
+        ,.proc_link_sif_o(io_link_sif_lo[x][P])
+
+        ,.global_x_i(io_global_x_li)
+        ,.global_y_i(io_global_y_li)
+      );
+
+      for (genvar l = 0; l < ruche_factor_Y_p; l++) begin: lane
+        // north: the array's south outputs are already rotated by one row
+        assign io_ruche_link_li[l][N] = south_ruche_link_lo[x][l];
+        assign south_ruche_link_li[x][l] = io_ruche_link_lo[l][N];
+
+        // south: rotate one more row, as the vcache array does on its south
+        // side, then terminate below the I/O row.
+        bsg_ruche_buffer #(
+          .width_p($bits(bsg_manycore_ruche_y_link_sif_s))
+          ,.ruche_factor_p(ruche_factor_Y_p)
+          ,.ruche_stage_p(l)
+        ) rb_in (
+          .i(edge_ruche_link_li[l])
+          ,.o(io_ruche_link_li[(l+ruche_factor_Y_p-1)%ruche_factor_Y_p][S])
+        );
+        bsg_ruche_buffer #(
+          .width_p($bits(bsg_manycore_ruche_y_link_sif_s))
+          ,.ruche_factor_p(ruche_factor_Y_p)
+          ,.ruche_stage_p(l)
+        ) rb_out (
+          .i(io_ruche_link_lo[l][S])
+          ,.o(edge_ruche_link_lo[(l+1)%ruche_factor_Y_p])
+        );
+
+        bsg_manycore_ruche_y_link_sif_tieoff #(
+          .addr_width_p(addr_width_p)
+          ,.data_width_p(data_width_p)
+          ,.x_cord_width_p(x_cord_width_p)
+          ,.y_cord_width_p(y_cord_width_p)
+          ,.ruche_factor_Y_p(ruche_factor_Y_p)
+          ,.ruche_stage_p(l)
+          ,.north_not_south_p(1'b0)
+        ) tieoff (
+          .clk_i(clk_i)
+          ,.reset_i(reset_r)
+          ,.ruche_link_i(edge_ruche_link_lo[l])
+          ,.ruche_link_o(edge_ruche_link_li[l])
+        );
+      end
+    end
+    else begin: mesh
+      bsg_manycore_mesh_node #(
+        .x_cord_width_p(x_cord_width_p)
+        ,.y_cord_width_p(y_cord_width_p)
+        ,.addr_width_p(addr_width_p)
+        ,.data_width_p(data_width_p)
+        ,.stub_p(4'b1000) // stub south
+        ,.rev_use_credits_p(rev_use_credits_lp)
+        ,.rev_fifo_els_p(rev_fifo_els_lp)
+      ) io_rtr (
+        .clk_i(clk_i)
+        ,.reset_i(reset_r)
+
+        ,.links_sif_i(io_link_sif_li[x][S:W])
+        ,.links_sif_o(io_link_sif_lo[x][S:W])
+
+        ,.proc_link_sif_i(io_link_sif_li[x][P])
+        ,.proc_link_sif_o(io_link_sif_lo[x][P])
+
+        ,.global_x_i(io_global_x_li)
+        ,.global_y_i(io_global_y_li)
+      );
+
+      // Y ruche disabled (or not a full-ruche array): the south lanes are
+      // placeholders; drive idle.
+      assign south_ruche_link_li[x] = '0;
+    end
 
     // connect to pod array
     assign ver_link_sif_li[S][x] = io_link_sif_lo[x][N];

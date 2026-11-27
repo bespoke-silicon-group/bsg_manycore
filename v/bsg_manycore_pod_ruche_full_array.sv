@@ -86,6 +86,12 @@ module bsg_manycore_pod_ruche_full_array
     , input  [S:N][num_pods_x_p-1:0][num_tiles_x_p-1:0][manycore_link_sif_width_lp-1:0] ver_link_sif_i
     , output [S:N][num_pods_x_p-1:0][num_tiles_x_p-1:0][manycore_link_sif_width_lp-1:0] ver_link_sif_o
 
+    // south Y ruche data links, for a ruche-capable I/O row below the array.
+    // Outputs are already rotated by one row, so they connect directly to the
+    // next row's north lanes. Disabled Y ruche keeps one placeholder lane.
+    , input  [num_pods_x_p-1:0][num_tiles_x_p-1:0][ruche_y_lanes_lp-1:0][ruche_y_link_sif_width_lp-1:0] south_ruche_link_i
+    , output [num_pods_x_p-1:0][num_tiles_x_p-1:0][ruche_y_lanes_lp-1:0][ruche_y_link_sif_width_lp-1:0] south_ruche_link_o
+
     // vcache wormhole links
     , input  [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_i
     , output [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][wh_link_sif_width_lp-1:0] wh_link_sif_o
@@ -289,30 +295,12 @@ module bsg_manycore_pod_ruche_full_array
       else begin: no_barrier_s
         assign ver_barrier_ruche_link_li[y][S] = '0;
       end
-      if (ruche_factor_Y_p > 0) begin: ruche_s
-        for (genvar x = 0; x < num_pods_x_p; x++) begin: px
-          for (genvar c = 0; c < num_tiles_x_p; c++) begin: col
-            for (genvar l = 0; l < ruche_factor_Y_p; l++) begin: lane
-              bsg_manycore_ruche_y_link_sif_tieoff #(
-                .addr_width_p(addr_width_p)
-                ,.data_width_p(data_width_p)
-                ,.x_cord_width_p(x_cord_width_p)
-                ,.y_cord_width_p(y_cord_width_p)
-                ,.ruche_factor_Y_p(ruche_factor_Y_p)
-                ,.ruche_stage_p(l)
-                ,.north_not_south_p(1'b0)
-              ) tieoff (
-                .clk_i(clk_i)
-                ,.reset_i(reset_r[y][x][c])
-                ,.ruche_link_i(ver_ruche_link_lo[y][S][x][c][l])
-                ,.ruche_link_o(ver_ruche_link_li[y][S][x][c][l])
-              );
-            end
-          end
-        end
-      end
-      else begin: no_ruche_s
-        assign ver_ruche_link_li[y][S] = '0;
+      // Off-array destinations (the host I/O row) are reached on Y ruche
+      // lanes, so the south lanes are exported rather than terminated here.
+      // The consumer must terminate any lanes it does not use.
+      for (genvar x = 0; x < num_pods_x_p; x++) begin: south_ruche
+        assign south_ruche_link_o[x] = ver_ruche_link_lo[y][S][x];
+        assign ver_ruche_link_li[y][S][x] = south_ruche_link_i[x];
       end
     end
 
@@ -323,39 +311,14 @@ module bsg_manycore_pod_ruche_full_array
       assign ver_barrier_link_li[y+1][N] = ver_barrier_link_lo[y][S];
       assign ver_barrier_link_li[y][S] = ver_barrier_link_lo[y+1][N];
 
-      if (ruche_factor_Y_p > 0) begin: data_ruche
-        for (genvar x = 0; x < num_pods_x_p; x++) begin: px
-          for (genvar c = 0; c < num_tiles_x_p; c++) begin: col
-            for (genvar l = 0; l < ruche_factor_Y_p; l++) begin: lane
-              bsg_ruche_buffer #(
-                .width_p(ruche_y_link_sif_width_lp)
-                ,.ruche_factor_p(ruche_factor_Y_p)
-                ,.ruche_stage_p(l)
-                ,.harden_p(1)
-              ) north_to_south (
-                .i(ver_ruche_link_lo[y][S][x][c][l])
-                ,.o(ver_ruche_link_li[y+1][N][x][c][(l+1)%ruche_factor_Y_p])
-              );
-              bsg_ruche_buffer #(
-                .width_p(ruche_y_link_sif_width_lp)
-                ,.ruche_factor_p(ruche_factor_Y_p)
-                ,.ruche_stage_p(l)
-                ,.harden_p(1)
-              ) south_to_north (
-                .i(ver_ruche_link_lo[y+1][N][x][c][l])
-                ,.o(ver_ruche_link_li[y][S][x][c][(l+ruche_factor_Y_p-1)%ruche_factor_Y_p])
-              );
-            end
-          end
-        end
-      end
-      else begin: no_data_ruche
-        assign ver_ruche_link_li[y+1][N] = '0;
-        assign ver_ruche_link_li[y][S] = '0;
-      end
-
-      // The compute-array edge already rotates barrier stages; only data lanes
-      // need another boundary buffer because they continue through vcaches.
+      // A pod row's south port is already rotated by one row (the south vcache
+      // array and compute array both buffer their south side), so both data
+      // and barrier lanes connect directly to the next pod row's north port.
+      // Pod rows are two pod_y coordinates apart, so Y coordinates skip values
+      // between these physically adjacent rows; see the configuration check
+      // at the end of this module.
+      assign ver_ruche_link_li[y+1][N] = ver_ruche_link_lo[y][S];
+      assign ver_ruche_link_li[y][S] = ver_ruche_link_lo[y+1][N];
       assign ver_barrier_ruche_link_li[y+1][N] = ver_barrier_ruche_link_lo[y][S];
       assign ver_barrier_ruche_link_li[y][S] = ver_barrier_ruche_link_lo[y+1][N];
     end
@@ -391,6 +354,43 @@ module bsg_manycore_pod_ruche_full_array
   end
 
 
+  // synopsys translate_off
+  // Y ruche configuration check.
+  //
+  // With T = num_tiles_y_p and V = num_vcache_rows_p, pod row k's tiles sit at
+  // Y coordinates {2k, T-V..T-1} (north vcaches), {2k+1, 0..T-1} (compute) and
+  // {2k+2, 0..V-1} (south vcaches). T must be a power of two so the south
+  // vcache rows directly follow the compute rows. Between pod rows, the
+  // G = T-2V coordinates {2k+2, V..T-V-1} have no tile, but the Y ruche lanes
+  // join the physically adjacent rows on either side, and bsg_mesh_router
+  // counts the gap as G extra rows. Routing still works when:
+  //   - G % R == 0 (R = ruche_factor_Y_p). Requests route XY: the router takes
+  //     local hops until the remaining distance is a multiple of R, then rides
+  //     a ruche lane to the destination and cannot leave it. Any other G puts
+  //     requests on a lane that misses their destination.
+  //   - R <= V. Responses route YX: the router rides ruche while more than R
+  //     rows remain, then finishes with local hops, since a packet cannot leave
+  //     a ruche lane at its destination. The gap makes a destination within R
+  //     rows past it look farther away than it is, so a response could
+  //     overshoot. Vcaches never receive responses, so the nearest response
+  //     destination past a gap is the first compute row, V+1 rows in.
+  // G is even, so R = 2 works for any V >= 2, and G == 0 works for any R.
+  // A single pod row has no gap. Lifting this restriction without changing
+  // bsg_mesh_router is described in bsg_manycore_mesh_node.
+  localparam int y_gap_lp = num_tiles_y_p - 2*num_vcache_rows_p;
+  initial begin
+    if (ruche_factor_Y_p > 0) begin
+      if (!`BSG_IS_POW2(num_tiles_y_p))
+        $fatal(1, "Y ruche requires a power-of-two num_tiles_y_p (%0d).", num_tiles_y_p);
+      if ((num_pods_y_p > 1)
+          && !((y_gap_lp == 0)
+               || ((y_gap_lp > 0) && (y_gap_lp % ruche_factor_Y_p == 0)
+                   && (ruche_factor_Y_p <= num_vcache_rows_p))))
+        $fatal(1, "Y ruche across pod rows requires num_tiles_y_p-2*num_vcache_rows_p == 0, or a positive multiple of ruche_factor_Y_p with ruche_factor_Y_p <= num_vcache_rows_p (num_tiles_y_p=%0d, num_vcache_rows_p=%0d, ruche_factor_Y_p=%0d).",
+          num_tiles_y_p, num_vcache_rows_p, ruche_factor_Y_p);
+    end
+  end
+  // synopsys translate_on
 
 endmodule
 

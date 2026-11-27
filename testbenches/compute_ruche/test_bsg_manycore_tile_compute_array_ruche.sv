@@ -55,6 +55,8 @@ module test_bsg_manycore_tile_compute_array_ruche
     ,.pod_y_cord_width_p(4)
     ,.num_tiles_x_p(8)
     ,.num_tiles_y_p(8)
+    // Only used by the processor's address mapping, which this test bypasses.
+    ,.num_vcache_rows_p(2)
     ,.subarray_num_tiles_x_p(cols_lp)
     ,.subarray_num_tiles_y_p(rows_lp)
     ,.data_width_p(data_width_p)

@@ -48,15 +48,41 @@ Machine builds set it with `BSG_MACHINE_BARRIER_RUCHE_FACTOR_Y` (default 0);
 enable it explicitly alongside Y data ruche. The focused tests default the
 barrier factor to their data factor as a convenience.
 
-### Routing limitation
+### Routing
 
-This change completes wiring only. The existing dimension-ordered router is
-not aware of pod-local Y boundaries and can select a Y ruche hop that would
-cross one for an off-pod destination, including the host. Such traffic reaches
-a boundary tieoff and is reported as an error; it is not automatically
-rerouted onto a nearest-neighbor link. General off-pod traffic with Y ruche
-enabled therefore requires a future boundary-aware routing change. Keep Y
-factor zero for existing workloads that need unrestricted off-pod routing.
+Requests are routed XY and responses YX. Once a request turns into Y it takes
+local hops until the remaining distance is a multiple of the ruche factor, then
+rides a ruche lane to its destination row. A response rides ruche lanes while
+it is more than the factor away and finishes with local hops.
+
+Y ruche requires a power-of-two `num_tiles_y_p`, so the south vcache rows
+directly follow the compute rows in Y. Pod rows sit two `pod_y` coordinates
+apart, so global Y skips `G = num_tiles_y_p - 2*num_vcache_rows_p` values
+between one pod row's south vcache rows and the next pod row's north vcache
+rows. The ruche lanes join the physically adjacent rows, but the router counts
+the gap as `G` extra rows. With more than one pod row this routes correctly
+only when `G == 0`, or when `G` is a multiple of `ruche_factor_Y_p` and
+`ruche_factor_Y_p <= num_vcache_rows_p`:
+
+- A `G` that is not a multiple of the factor shifts requests onto a ruche lane
+  that misses their destination.
+- A factor larger than `num_vcache_rows_p` lets a response overshoot the first
+  compute row past the gap. Vcaches never receive responses, so the vcache
+  rows absorb the error otherwise.
+
+`G` is even, so a factor of 2 works whenever `num_vcache_rows_p >= 2`.
+`bsg_manycore_pod_ruche_full_array` checks this at simulation start. The
+comment in `bsg_manycore_mesh_node` describes how to lift the restriction
+without changing the BaseJump STL router, by translating Y coordinates to
+physical rows where packets enter and leave the network.
+
+- `e_network_full_ruche_xy` stitches Y lanes between pod rows and connects the
+  south lanes to a ruche-capable host I/O row
+  (`bsg_manycore_io_router_ruche_y`), so inter-pod and host traffic use them.
+- `e_network_half_ruche_x` with Y ruche keeps lanes pod-local, so requests to
+  an off-pod destination, including the host, can reach a boundary tieoff,
+  which reports an error. Keep Y factor zero there for workloads that need
+  off-pod traffic.
 
 ## Regression
 

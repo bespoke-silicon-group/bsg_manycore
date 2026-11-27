@@ -5,6 +5,16 @@
 #include "bsg_manycore_asm.h"
 #define N 1024
 
+// Root output selector: P/W/E/N/S (mesh) = 5, plus RW/RE (half-ruche X) = 7,
+// plus RN/RS (Y ruche) = 9.
+#if BARRIER_RUCHE_FACTOR_Y > 0
+#define BAR_ROOT 9
+#elif BARRIER_RUCHE_FACTOR_X > 0
+#define BAR_ROOT 7
+#else
+#define BAR_ROOT 5
+#endif
+
 // initialize
 .text
   bsg_asm_init_regfile
@@ -15,7 +25,7 @@
   bne x0, t0, fail
   
   // test2
-  li t0, 0x70001
+  li t0, ((BAR_ROOT << 16) | 1)
   csrrw x0, BARCFG_CSR_ADDR, t0
   csrr t1, BARCFG_CSR_ADDR
   bne t1, t0, fail

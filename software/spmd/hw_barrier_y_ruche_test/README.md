@@ -8,16 +8,12 @@ leaves for 16 iterations, checking every tile's arrival after each barrier.
 A second barrier prevents the next iteration from overwriting those values.
 The test times out if a barrier cannot complete.
 
-Run with the repository's RISC-V toolchain and Xcelium:
+It runs on the `pod_1x1_full` machine (`e_network_full_ruche_xy`, Y data and
+barrier ruche factor 2) with any supported simulator, e.g.:
 
 ```sh
-make -C software/spmd/hw_barrier_y_ruche_test \
-  IGNORE_CADENV=1 XRUN=xrun XMSIM=xmsim MAX_CYCLES=250000
+make -C software/spmd/hw_barrier_y_ruche_test BSG_PLATFORM=verilator
 ```
 
-The supplied machine uses Y barrier factor 2 and Y data factor 18. The latter
-is deliberately larger than the distance between the host and either vcache
-row, so boot and host traffic do not use the pod-local Y data links. This
-avoids the documented off-pod routing limitation; it does not test Y data
-ruche routing. The machine is specific to this test and is not a general
-workload configuration. Simulator build products are created in `machine/`.
+Boot, the result stores and the finish packet travel over the Y data ruche
+links, including to the host I/O row below the array.

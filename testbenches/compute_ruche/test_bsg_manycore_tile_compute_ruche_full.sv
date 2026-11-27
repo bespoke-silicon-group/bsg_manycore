@@ -49,6 +49,8 @@ module test_bsg_manycore_tile_compute_ruche_full
     ,.pod_y_cord_width_p(4)
     ,.num_tiles_x_p(8)
     ,.num_tiles_y_p(8)
+    // Only used by the processor's address mapping, which this test bypasses.
+    ,.num_vcache_rows_p(2)
     ,.data_width_p(data_width_p)
     ,.addr_width_p(addr_width_p)
     ,.ruche_factor_X_p(2)
