@@ -87,9 +87,17 @@ To test this feature, set BSG\_PLATFORM=verilator in machines/platform.mk and th
 above instructions to run tests normally. With `VERILATOR_THREADS=48`, pod\_1x1\_4X2Y builds in
 under a minute and pod\_1x1 in about two and a half minutes. The 16-pod pod\_4x4 takes about 55
 minutes, almost all in Verilator's single-threaded front end, and its simulations use about 33 GB
-and run about 40 times as long as under VCS. Hierarchical Verilation, which bsg\_replicant's
-Verilator platform uses, may help there. verilator must be on your path (or override the
-VERILATOR variable in machines/Makefile.verilator).
+and run about 40 times as long as under VCS; for large machines, see `VERILATOR_HIERARCHICAL` below.
+verilator must be on your path (or override the VERILATOR variable in machines/Makefile.verilator).
+
+Set `VERILATOR_HIERARCHICAL=1` (on the make command line or in the environment) to verilate each
+tile type once as a hierarchy block (see machines/verilator\_hier.vlt) instead of flattening every
+tile into the top-level model. On a 4-core machine with Verilator 5.054 and GCC 15.2, pod\_1x1 then
+builds in about 2 minutes with 1.2 GB peak memory instead of 15 minutes and 4.1 GB, and its tests
+run 2-3 times faster with the same results cycle for cycle. The bind-based profilers, tracer and PC
+histogram cannot reach into hierarchy blocks, so they are compiled out in this mode; use a flat
+build for `TRACE=1`, `vanilla.log` or the PC histogram. Keep the setting the same when building and
+when running tests, since running a test rebuilds the simulator when sources change.
 
 As under VCS, the default machine binds no profilers and no instruction tracer: `make TRACE=1`
 uses `simsc-profile`, which has the profilers, and `make WAVE=1` uses `simsc-debug`, which has the

@@ -19,6 +19,23 @@ VERILATOR_FLAGS    += -Wno-fatal
 VERILATOR_FLAGS    += -O2
 VERILATOR_FLAGS    += -j $(VERILATOR_THREADS)
 
+# VERILATOR_HIERARCHICAL=1 verilates each tile type once as a hierarchy
+# block (see verilator_hier.vlt) instead of flattening every tile into the
+# top-level model, which greatly reduces build time and memory for large
+# machines. The testbench's bind-based profilers, tracer and PC histogram
+# reach into tiles through $root, which cannot cross a hierarchy block
+# boundary, so they are compiled out: use a flat build for TRACE=1, the
+# vanilla.log tracer or the PC histogram.
+VERILATOR_HIERARCHICAL ?= 0
+ifeq ($(VERILATOR_HIERARCHICAL),1)
+VERILATOR_FLAGS    += --hierarchical $(BSG_MANYCORE_DIR)/machines/verilator_hier.vlt
+VERILATOR_FLAGS    += +define+VERILATOR_WORKAROUND_DISABLE_VCORE_PROFILING
+VERILATOR_FLAGS    += +define+VERILATOR_WORKAROUND_DISABLE_REMOTE_OP_PROFILING
+VERILATOR_FLAGS    += +define+VERILATOR_WORKAROUND_DISABLE_VCACHE_PROFILING
+VERILATOR_FLAGS    += +define+VERILATOR_WORKAROUND_DISABLE_VCORE_TRACE
+VERILATOR_FLAGS    += +define+VERILATOR_WORKAROUND_DISABLE_PC_HISTOGRAM
+endif
+
 VERILATOR_CFLAGS   += -CFLAGS "-g -Wall"
 # --timing compiles as C++20; the fmt library bundled with DRAMSim3 declares
 # its own char8_t, which C++20 makes a keyword.
