@@ -307,7 +307,7 @@ class VcacheStallGraph:
         # for each color in stalls...
         for operation in self.operation_color.keys():
             # get the font size
-            (font_height,font_width) = font.getsize(operation)
+            (font_height,font_width) = common.text_size(font, operation)
             # draw a rectangle with color fill
             yb = yt + font_width
             # [0, yt, 64, yb] is [top left x, top left y, bottom right x, bottom left y]

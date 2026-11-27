@@ -415,7 +415,7 @@ class BloodGraph:
                                   ("unified_fp_instr" ,self.unified_fp_instr_color)]):
 
             # get the font size
-            (font_height,font_width) = font.getsize(operation)
+            (font_height,font_width) = common.text_size(font, operation)
             # draw a rectangle with color fill
             yb = yt + font_width
             # [0, yt, 64, yb] is [top left x, top left y, bottom right x, bottom left y]
