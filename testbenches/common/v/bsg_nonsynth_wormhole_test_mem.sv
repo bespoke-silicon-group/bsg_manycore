@@ -96,7 +96,14 @@ module bsg_nonsynth_wormhole_test_mem
   logic [mem_addr_width_lp-1:0] mem_addr;
   logic [vcache_dma_data_width_p-1:0] mem_w_data;
   logic [vcache_dma_data_width_p-1:0] mem_r_data;
+`ifdef VERILATOR
+  // Sparse storage. Verilator zero-fills a fixed array when the model is
+  // constructed, so every simulation would hold the whole DRAM model in RSS
+  // (2 GiB per pod). Unwritten entries read as zero, as before.
+  logic [vcache_dma_data_width_p-1:0] mem_r [logic [mem_addr_width_lp-1:0]];
+`else
   logic [vcache_dma_data_width_p-1:0] mem_r [mem_els_lp-1:0];
+`endif
 
   always_ff @ (posedge clk_i) begin
     if (mem_we) begin
