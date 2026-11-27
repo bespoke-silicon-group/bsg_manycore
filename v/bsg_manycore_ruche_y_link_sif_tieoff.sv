@@ -38,14 +38,24 @@ module bsg_manycore_ruche_y_link_sif_tieoff
   assign ruche_link_o = invert_output_lp ? '1 : '0;
 
   // synopsys translate_off
+  // Pod resets come from bsg_tag and are low (2-state) or X (4-state) until
+  // tag programming asserts them, while the un-reset routers drive garbage.
+  // Only check once reset has actually been asserted.
+  logic reset_seen_r = 1'b0;
+  always_ff @(posedge clk_i)
+    if (reset_i === 1'b1)
+      reset_seen_r <= 1'b1;
+
   always_ff @(negedge clk_i) begin
-    if (~reset_i) begin
-      assert (!(invert_input_lp ^ ruche_link_in.fwd.v))
-        else $error("[BSG_ERROR] Errant forward packet at Y ruche pod boundary (north=%0d, stage=%0d).",
-                    north_not_south_p,ruche_stage_p);
-      assert (!(invert_input_lp ^ ruche_link_in.rev.v))
-        else $error("[BSG_ERROR] Errant reverse packet at Y ruche pod boundary (north=%0d, stage=%0d).",
-                    north_not_south_p,ruche_stage_p);
+    // Plain checks (like bsg_manycore_ruche_x_link_sif_tieoff) so they also
+    // run when immediate assertions are disabled.
+    if (reset_seen_r && (reset_i === 1'b0)) begin
+      if (invert_input_lp ^ ruche_link_in.fwd.v)
+        $error("[BSG_ERROR] Errant forward packet at Y ruche boundary (north=%0d, stage=%0d).",
+               north_not_south_p,ruche_stage_p);
+      if (invert_input_lp ^ ruche_link_in.rev.v)
+        $error("[BSG_ERROR] Errant reverse packet at Y ruche boundary (north=%0d, stage=%0d).",
+               north_not_south_p,ruche_stage_p);
     end
   end
   // synopsys translate_on

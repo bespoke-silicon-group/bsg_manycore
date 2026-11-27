@@ -140,15 +140,26 @@ module bsg_nonsynth_manycore_testbench
 
   // deassert reset when tag programming is done.
   wire reset = ~tag_done_lo;
-  logic reset_r;
+  logic reset_chain_lo;
   bsg_dff_chain #(
     .width_p(1)
     ,.num_stages_p(reset_depth_p)
   ) reset_dff (
     .clk_i(clk_i)
     ,.data_i(reset)
-    ,.data_o(reset_r)
+    ,.data_o(reset_chain_lo)
   );
+
+  // The chain powers up at 0 in 2-state simulators (Verilator), which would
+  // leave the I/O routers and edge tieoffs out of reset for the first
+  // reset_depth_p cycles while their FIFOs hold garbage. Hold reset until the
+  // asserted value has propagated through the chain.
+  logic reset_por_r = 1'b1;
+  always_ff @(posedge clk_i)
+    if (reset_chain_lo === 1'b1)
+      reset_por_r <= 1'b0;
+
+  wire reset_r = reset_chain_lo | reset_por_r;
 
   logic dram_reset_r;
   bsg_sync_sync #(.width_p(1)) dram_reset_bss (
