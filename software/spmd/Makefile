@@ -58,6 +58,7 @@ all:
 	@echo "Usage:"
 	@echo "  make -j <numthreads> recurse-clean # clean up after regression"
 	@echo "  make -j <numthreads> recurse-all   # run tests in all subdirs"
+	@echo "  make regress                       # run them with each simulation on cores of its own"
 	@echo "  make watch-summary                 # summarize results of tests"
 	@echo ""
 	@echo -n " Hyperthreads detected: "; cat /proc/cpuinfo | grep processor | wc -l
@@ -112,7 +113,7 @@ coverage-debug:
 
 clean: recurse-clean
 	rm -rf run.log cov.log coverage* DVEfiles/ common/crt.o
-	rm -rf recurse-results
+	rm -rf recurse-results $(REGRESS_TIMES)
 
 
 #
@@ -144,6 +145,60 @@ recurse-%: pre-recurse-%
 # first word is the rule to run and the second is the benchmark
 recurse-iterate@%:
 	-$(MAKE) $(firstword $(subst @, ,$*)) -C $(word 2,$(subst @, ,$*)) 2>&1 | /usr/bin/tee recurse-results/$(word 2,$(subst @, ,$*))-run.log
+
+#
+# make regress: the tests of recurse-all, each simulation on cores of its own
+#
+# Runs as many tests at once as the host has cores for, giving every
+# simulation one core per simulator thread (VERILATOR_SIM_THREADS with
+# BSG_PLATFORM=verilator, otherwise one). A simulation's cores are in one
+# socket and are taken a last-level cache at a time: a socket of 18 cores
+# with one L3 runs two 8-thread simulations, a socket of eight 4-core
+# chiplets four, each on two whole chiplets. Every socket is used. On Linux
+# each simulator thread is pinned to its core; elsewhere the simulations run
+# unpinned. See software/py/sim_cpus.py.
+#
+# REGRESS_JOBS=n runs at most n tests at once. The tests that took longest in
+# the previous make regress start first (their times are in regress-times,
+# which recurse-clean keeps).
+# Every test prints a line when it ends, and its output is in
+# recurse-results/<test>-run.log as with recurse-all. make regress fails if a
+# test did not reach BSG_FINISH or reported BSG_FAIL or BSG_TIMEOUT.
+
+REGRESS_JOBS ?=
+REGRESS_TESTS = $(filter-out $(NO-RECURSE),$(SUBDIRS-WITH-MAKE))
+# Every test appends "<seconds> <test>" to REGRESS_TIMES; its last time counts.
+REGRESS_TIMES = regress-times
+REGRESS_LAST_TIMES = awk '{t[$$2] = $$1} END {for (n in t) print t[n], n}' $(REGRESS_TIMES) 2>/dev/null | sort -rn
+REGRESS_KNOWN = $(filter $(REGRESS_TESTS),$(shell $(REGRESS_LAST_TIMES) | cut -d' ' -f2))
+REGRESS_ORDER = $(filter-out $(REGRESS_KNOWN),$(REGRESS_TESTS)) $(REGRESS_KNOWN)
+REGRESS_SLOTS = recurse-results/regress-slots
+REGRESS_PASSED = grep -q BSG_FINISH $(1) && ! grep -q "BSG_FAIL\|BSG_TIMEOUT" $(1)
+
+regress: pre-recurse-all
+	@rm -rf recurse-results/regress-slot-*
+	@python3 $(BSG_MANYCORE_DIR)/software/py/sim_cpus.py slots $(BSG_SIM_THREADS) $(REGRESS_JOBS) > $(REGRESS_SLOTS)
+	@echo "make regress: $(words $(REGRESS_TESTS)) tests, $$(grep -c '' $(REGRESS_SLOTS)) at a time, $(BSG_SIM_THREADS) simulator thread(s) each"
+	@start=$$(date +%s); \
+	$(MAKE) --no-print-directory -j $$(grep -c '' $(REGRESS_SLOTS)) $(addprefix regress-iterate@,$(REGRESS_ORDER)); \
+	$(REGRESS_LAST_TIMES) > $(REGRESS_TIMES).tmp; mv $(REGRESS_TIMES).tmp $(REGRESS_TIMES); \
+	failed=$$(for t in $(REGRESS_TESTS); do \
+	  $(call REGRESS_PASSED,recurse-results/$$t-run.log) || echo $$t; done); \
+	secs=$$(( $$(date +%s) - start )); \
+	if [ -z "$$failed" ]; then echo "make regress: all $(words $(REGRESS_TESTS)) tests passed, $$secs s"; \
+	else echo "make regress: $$(echo $$failed | wc -w | tr -d ' ') of $(words $(REGRESS_TESTS)) tests failed, $$secs s:" $$failed; exit 1; fi
+
+# Take the first free slot (line of $(REGRESS_SLOTS)): make -j runs no more
+# tests than there are slots.
+regress-iterate@%:
+	@n=1; until mkdir recurse-results/regress-slot-$$n 2>/dev/null; do \
+	  n=$$((n + 1)); [ $$n -le $$(grep -c '' $(REGRESS_SLOTS)) ] || { n=1; sleep 1; }; done; \
+	cpus=$$(sed -n "$${n}p" $(REGRESS_SLOTS)); start=$$(date +%s); \
+	$(MAKE) -j1 all -C $* BSG_SIM_CPUS=$$cpus > recurse-results/$*-run.log 2>&1; \
+	secs=$$(( $$(date +%s) - start )); rmdir recurse-results/regress-slot-$$n; \
+	echo "$$secs $*" >> $(REGRESS_TIMES); \
+	if $(call REGRESS_PASSED,recurse-results/$*-run.log); then r=ok; else r=FAILED; fi; \
+	printf '  %-6s %5s s  %s\n' $$r $$secs $*
 
 LOG_FILES=`ls -t $(shell /usr/bin/find . -maxdepth 2 -iname *-run.log) $(shell /usr/bin/find bsg_riscv_tests -maxdepth 2 -iname *-run.log)`
 

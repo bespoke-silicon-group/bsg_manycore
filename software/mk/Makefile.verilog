@@ -23,6 +23,11 @@ VCS_FGP_THREADS ?= 0
 # single-threaded ones.
 VERILATOR_SIM_THREADS ?= 1
 
+# BSG_SIM_CPUS=<cpu>,<cpu>,... runs the simulator on those CPUs (Linux), with
+# its threads pinned one to each CPU, in order. software/spmd's make regress
+# sets it for every test (software/py/sim_cpus.py).
+BSG_SIM_CPUS ?=
+
 # Coverage Analysis
 CM_NAME     ?= $(notdir $(shell pwd))
 COV_DIR     ?= $(abspath ../coverage)
@@ -121,6 +126,10 @@ ifneq ($(COVERAGE), 0)
   BSG_SIM_OPTS += -cm line+fsm+branch+cond+tgl -cm_name $(CM_NAME) -cm_dir $(COV_DIR)/$(COV_DB_NAME).vdb
 endif
 
+ifneq ($(BSG_SIM_CPUS),)
+  BSG_SIM_LAUNCH = python3 $(BSG_MANYCORE_DIR)/software/py/sim_cpus.py run $(BSG_SIM_CPUS) --
+endif
+
 ########################################
 # Simulation Run Target
 
@@ -132,7 +141,7 @@ $(info Machine executable: $(BSG_SIM_EXE))
 ifeq ($(abspath $(BSG_MACHINE_PATH)/..),$(abspath $(BSG_MANYCORE_DIR)/machines))
 	$(MAKE) -C $(BSG_MACHINE_PATH)/.. $(BSG_SIM_EXE)
 endif
-	$(BSG_SIM_EXE) $(BSG_SIM_OPTS)
+	$(BSG_SIM_LAUNCH) $(BSG_SIM_EXE) $(BSG_SIM_OPTS)
 ifeq ($(TRACE),1)
 	PYTHONPATH=$(BSG_MANYCORE_DIR)/software/py/vanilla_parser/.. python3 -m vanilla_parser --generate-key
 endif

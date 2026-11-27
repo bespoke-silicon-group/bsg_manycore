@@ -98,7 +98,8 @@ tracer (`vanilla.log`) and writes `dump.fst`.
 `VERILATOR_SIM_THREADS=n` builds and runs a model for n threads, `<machine>/simsc-t<n>`; only the
 default simulator is multithreaded. pod\_1x1 and pod\_1x1\_hbm2 place their tiles and vcaches on
 2, 4, 8 or 16 threads (`machines/<machine>/verilator_threads.vlt`, which needs Verilator 5.055 or
-later).
+later). In software/spmd, `make regress` runs the regression with every simulation on cores of its
+own; see software/spmd/README.md.
 
 The testbench runs on Verilator's own `main` with `--timing`, which needs C++20 coroutines:
 Clang, or GCC 10 or newer (GCC 11.5 and 15.2 also work). On CentOS, you may need to use a
