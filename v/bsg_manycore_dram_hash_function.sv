@@ -24,6 +24,7 @@ module bsg_manycore_dram_hash_function
     , `BSG_INV_PARAM(x_subcord_width_p)
     , `BSG_INV_PARAM(y_subcord_width_p)
 
+    , `BSG_INV_PARAM(num_vcache_rows_p)
     , `BSG_INV_PARAM(vcache_block_size_in_words_p)
 
     , `BSG_INV_PARAM(ipoly_hashing_p)
@@ -39,37 +40,51 @@ module bsg_manycore_dram_hash_function
   );
 
   localparam vcache_word_offset_width_lp = `BSG_SAFE_CLOG2(vcache_block_size_in_words_p);
-  localparam dram_index_width_lp = data_width_p-1-2-vcache_word_offset_width_lp-x_subcord_width_p-1;
+  localparam vcache_row_id_width_lp = `BSG_SAFE_CLOG2(2*num_vcache_rows_p);
+  localparam dram_index_width_lp = data_width_p-1-2-vcache_word_offset_width_lp-x_subcord_width_p-vcache_row_id_width_lp;
 
   logic [dram_index_width_lp-1:0] dram_index;
-  logic temp_y, new_y;
+  logic [vcache_row_id_width_lp-1:0] temp_row_id, vcache_row_id;
   logic [x_subcord_width_p-1:0] temp_x, new_x;
-  assign {dram_index, temp_y, temp_x} = eva_i[2+vcache_word_offset_width_lp+:x_subcord_width_p+1+dram_index_width_lp];
+  assign {dram_index, temp_row_id, temp_x} = eva_i[2+vcache_word_offset_width_lp+:x_subcord_width_p+vcache_row_id_width_lp+dram_index_width_lp];
 
 
   if (ipoly_hashing_p) begin: ipoly
     // IPOLY hashing;
+    // The bank id is {vcache_row_id, x_subcord}.
     bsg_hashing_ipoly #(
-      .num_banks_p(2**(x_subcord_width_p+1))
+      .num_banks_p(2**(x_subcord_width_p+vcache_row_id_width_lp))
       ,.upper_width_p(dram_index_width_lp)
     ) ipoly0 (
       .upper_bits_i(dram_index)
-      ,.bank_id_i({temp_y, temp_x})
-      ,.new_bank_id_o({new_y, new_x})
+      ,.bank_id_i({temp_row_id, temp_x})
+      ,.new_bank_id_o({vcache_row_id, new_x})
     );
   end
   else begin
     // default hashing;
     assign new_x = temp_x;
-    assign new_y = temp_y;
+    assign vcache_row_id = temp_row_id;
   end
 
 
   wire [x_subcord_width_p-1:0] dram_x_subcord = new_x;
-  wire [y_subcord_width_p-1:0] dram_y_subcord = {y_subcord_width_p{~new_y}};
-  wire [pod_y_cord_width_p-1:0] dram_pod_y_cord = new_y
+  wire [y_subcord_width_p-1:0] dram_y_subcord;
+  wire [pod_y_cord_width_p-1:0] dram_pod_y_cord = vcache_row_id[0]
     ? pod_y_cord_width_p'(pod_y_i+1)
     : pod_y_cord_width_p'(pod_y_i-1);
+
+  if (num_vcache_rows_p == 1) begin
+    assign dram_y_subcord = {y_subcord_width_p{~vcache_row_id[0]}};
+  end
+  else begin
+    assign dram_y_subcord = {
+      {(y_subcord_width_p+1-vcache_row_id_width_lp){~vcache_row_id[0]}},
+      (vcache_row_id[0]
+        ?  vcache_row_id[vcache_row_id_width_lp-1:1]
+        : ~vcache_row_id[vcache_row_id_width_lp-1:1])
+    };
+  end
 
 
   // NPA

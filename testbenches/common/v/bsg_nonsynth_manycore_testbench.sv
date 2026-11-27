@@ -33,6 +33,7 @@ module bsg_nonsynth_manycore_testbench
     , parameter `BSG_INV_PARAM(num_subarray_x_p)
     , parameter `BSG_INV_PARAM(num_subarray_y_p)
 
+    , parameter `BSG_INV_PARAM(num_vcache_rows_p)
     , parameter `BSG_INV_PARAM(vcache_data_width_p)
     , parameter `BSG_INV_PARAM(vcache_sets_p)
     , parameter `BSG_INV_PARAM(vcache_ways_p)
@@ -65,7 +66,7 @@ module bsg_nonsynth_manycore_testbench
 
     , parameter enable_vanilla_core_pc_histogram_p=0
 
-    , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p)*4) // byte addr
+    , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p*num_vcache_rows_p)*4) // byte addr
     , parameter link_sif_width_lp =
       `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
 
@@ -105,6 +106,7 @@ module bsg_nonsynth_manycore_testbench
     $display("[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_Y               = %d", num_subarray_y_p);
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_X_CORD            = %d", `BSG_MACHINE_ORIGIN_X_CORD);
     $display("[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_Y_CORD            = %d", `BSG_MACHINE_ORIGIN_Y_CORD);
+    $display("[INFO][TESTBENCH] BSG_MACHINE_NUM_VCACHE_ROWS          = %d", num_vcache_rows_p);
     $display("[INFO][TESTBENCH] vcache_word_tracking_p               = %d", vcache_word_tracking_p);
     $display("[INFO][TESTBENCH] ipoly_hashing_p                      = %d", ipoly_hashing_p);
     $display("[INFO][TESTBENCH] enable_vcore_profiling_p             = %d", enable_vcore_profiling_p);
@@ -158,8 +160,8 @@ module bsg_nonsynth_manycore_testbench
   `declare_bsg_ready_and_link_sif_s(wh_flit_width_p, wh_link_sif_s);
   bsg_manycore_link_sif_s [S:N][(num_pods_x_p*num_tiles_x_p)-1:0] ver_link_sif_li;
   bsg_manycore_link_sif_s [S:N][(num_pods_x_p*num_tiles_x_p)-1:0] ver_link_sif_lo;
-  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0] wh_link_sif_li;
-  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0] wh_link_sif_lo;
+  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_li;
+  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] wh_link_sif_lo;
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_li;
   bsg_manycore_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] hor_link_sif_lo;
   bsg_manycore_ruche_x_link_sif_s [E:W][num_pods_y_p-1:0][num_tiles_y_p-1:0] ruche_link_li;
@@ -185,6 +187,7 @@ module bsg_nonsynth_manycore_testbench
       ,.icache_tag_width_p(icache_tag_width_p)
       ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
 
+      ,.num_vcache_rows_p(num_vcache_rows_p)
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_data_width_p(vcache_data_width_p)
       ,.vcache_ways_p(vcache_ways_p)
@@ -243,6 +246,7 @@ module bsg_nonsynth_manycore_testbench
       ,.icache_tag_width_p(icache_tag_width_p)
       ,.icache_block_size_in_words_p(icache_block_size_in_words_p)
 
+      ,.num_vcache_rows_p(num_vcache_rows_p)
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_data_width_p(vcache_data_width_p)
       ,.vcache_ways_p(vcache_ways_p)
@@ -287,19 +291,21 @@ module bsg_nonsynth_manycore_testbench
 
   // Invert WH ruche links
   // hardcoded for ruche factor = 2
-  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0] buffered_wh_link_sif_li,
-                                                                    buffered_wh_link_sif_lo;
+  wh_link_sif_s [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0] buffered_wh_link_sif_li,
+                                                                                           buffered_wh_link_sif_lo;
   for (genvar i = W; i <= E; i++) begin
     for (genvar j = 0; j < num_pods_y_p; j++) begin
       for (genvar k = N; k <= S; k++) begin
-        for (genvar r = 0; r < wh_ruche_factor_p; r++) begin
-          if (r == 0) begin
-            assign wh_link_sif_li[i][j][k][r] = buffered_wh_link_sif_li[i][j][k][r];
-            assign buffered_wh_link_sif_lo[i][j][k][r] = wh_link_sif_lo[i][j][k][r];
-          end
-          else begin
-            assign wh_link_sif_li[i][j][k][r] = ~buffered_wh_link_sif_li[i][j][k][r];
-            assign buffered_wh_link_sif_lo[i][j][k][r] = ~wh_link_sif_lo[i][j][k][r];
+        for (genvar v = 0; v < num_vcache_rows_p; v++) begin
+          for (genvar r = 0; r < wh_ruche_factor_p; r++) begin
+            if (r == 0) begin
+              assign wh_link_sif_li[i][j][k][v][r] = buffered_wh_link_sif_li[i][j][k][v][r];
+              assign buffered_wh_link_sif_lo[i][j][k][v][r] = wh_link_sif_lo[i][j][k][v][r];
+            end
+            else begin
+              assign wh_link_sif_li[i][j][k][v][r] = ~buffered_wh_link_sif_li[i][j][k][v][r];
+              assign buffered_wh_link_sif_lo[i][j][k][v][r] = ~wh_link_sif_lo[i][j][k][v][r];
+            end
           end
         end
       end
@@ -307,6 +313,8 @@ module bsg_nonsynth_manycore_testbench
   end
 
   // IO ROUTER
+  // The IO/host row sits at the south edge of the pod array, below the south vcaches,
+  // so that the pod coordinates (starting with the north vcaches at pod_y=0) are unaffected.
   localparam rev_use_credits_lp = 5'b00001;
   localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,3};
   bsg_manycore_link_sif_s [(num_pods_x_p*num_tiles_x_p)-1:0][S:P] io_link_sif_li;
@@ -318,7 +326,7 @@ module bsg_nonsynth_manycore_testbench
       ,.y_cord_width_p(y_cord_width_p)
       ,.addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
-      ,.stub_p(4'b0100) // stub north
+      ,.stub_p(4'b1000) // stub south
       ,.rev_use_credits_p(rev_use_credits_lp)
       ,.rev_fifo_els_p(rev_fifo_els_lp)
     ) io_rtr (
@@ -336,12 +344,12 @@ module bsg_nonsynth_manycore_testbench
       // Multiple pods across X are unsupported when each pod is only one tile wide.
       // They require I/O X coordinates 2,4,..., but this formula produces 2,3,... .
       ,.global_x_i(x_cord_width_p'((1 << `BSG_SAFE_CLOG2(num_tiles_x_p))+x))
-      ,.global_y_i(y_cord_width_p'(0))
+      ,.global_y_i(y_cord_width_p'(`BSG_MACHINE_HOST_Y_CORD))
     );
 
     // connect to pod array
-    assign ver_link_sif_li[N][x] = io_link_sif_lo[x][S];
-    assign io_link_sif_li[x][S] = ver_link_sif_lo[N][x];
+    assign ver_link_sif_li[S][x] = io_link_sif_lo[x][N];
+    assign io_link_sif_li[x][N] = ver_link_sif_lo[S][x];
 
     // connect between io rtr
     if (x < (num_pods_x_p*num_tiles_x_p)-1) begin
@@ -367,32 +375,34 @@ module bsg_nonsynth_manycore_testbench
   if (mem_cfg_lp[e_vcache_test_mem]) begin: test_mem
     // in bytes
     // north + south row of vcache
-    localparam longint unsigned mem_size_lp = (2**30)*num_pods_x_p/wh_ruche_factor_p/2;
+    localparam longint unsigned mem_size_lp = (2**30)*num_pods_x_p/wh_ruche_factor_p/num_vcache_rows_p/2;
     localparam num_vcaches_per_test_mem_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2;
 
     for (genvar i = W; i <= E; i++) begin: hs                           // horizontal side
       for (genvar j = 0; j < num_pods_y_p; j++) begin: py               // pod y
         for (genvar k = N; k <= S; k++) begin: vs                       // vertical side
-          for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf    // ruching
-            bsg_nonsynth_wormhole_test_mem #(
-              .vcache_data_width_p(vcache_data_width_p)
-              ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
-              ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
-              ,.num_vcaches_p(num_vcaches_per_test_mem_lp)
-              ,.wh_cid_width_p(wh_cid_width_p)
-              ,.wh_flit_width_p(wh_flit_width_p)
-              ,.wh_cord_width_p(wh_cord_width_p)
-              ,.wh_len_width_p(wh_len_width_p)
-              ,.wh_ruche_factor_p(wh_ruche_factor_p)
-              ,.no_concentration_p(1)
-              ,.mem_size_p(mem_size_lp)
-            ) test_mem (
-              .clk_i(clk_i)
-              ,.reset_i(reset_r)
+          for (genvar v = 0; v < num_vcache_rows_p; v++) begin: vr      // vcache row
+            for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf    // ruching
+              bsg_nonsynth_wormhole_test_mem #(
+                .vcache_data_width_p(vcache_data_width_p)
+                ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
+                ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
+                ,.num_vcaches_p(num_vcaches_per_test_mem_lp)
+                ,.wh_cid_width_p(wh_cid_width_p)
+                ,.wh_flit_width_p(wh_flit_width_p)
+                ,.wh_cord_width_p(wh_cord_width_p)
+                ,.wh_len_width_p(wh_len_width_p)
+                ,.wh_ruche_factor_p(wh_ruche_factor_p)
+                ,.no_concentration_p(1)
+                ,.mem_size_p(mem_size_lp)
+              ) test_mem (
+                .clk_i(clk_i)
+                ,.reset_i(reset_r)
 
-              ,.wh_link_sif_i(buffered_wh_link_sif_lo[i][j][k][r])
-              ,.wh_link_sif_o(buffered_wh_link_sif_li[i][j][k][r])
-            );
+                ,.wh_link_sif_i(buffered_wh_link_sif_lo[i][j][k][v][r])
+                ,.wh_link_sif_o(buffered_wh_link_sif_li[i][j][k][v][r])
+              );
+            end
           end
         end
       end
@@ -407,7 +417,7 @@ module bsg_nonsynth_manycore_testbench
     parameter hbm2_channel_addr_width_p = `dram_pkg::channel_addr_width_p;
     parameter hbm2_num_channels_p = `dram_pkg::num_channels_p;
       
-    parameter num_total_vcaches_lp = (num_pods_x_p*num_pods_y_p*2*num_tiles_x_p);
+    parameter num_total_vcaches_lp = (num_pods_x_p*num_pods_y_p*2*num_tiles_x_p*num_vcache_rows_p);
     parameter lg_num_total_vcaches_lp = `BSG_SAFE_CLOG2(num_total_vcaches_lp);
     // Normally, divide columns between east/west and then among cache-to-DRAM lanes.
     // With one column and one lane, division gives zero, but each used east link serves one cache.
@@ -421,20 +431,21 @@ module bsg_nonsynth_manycore_testbench
 
     // WH to cache dma
     `declare_bsg_cache_dma_pkt_s(vcache_addr_width_p, vcache_block_size_in_words_p);
-    bsg_cache_dma_pkt_s [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_pkt_lo;
-    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_pkt_v_lo, dma_pkt_yumi_li;
+    bsg_cache_dma_pkt_s [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_pkt_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_pkt_v_lo, dma_pkt_yumi_li;
 
-    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0][vcache_dma_data_width_p-1:0] dma_data_li;
-    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_data_v_li, dma_data_ready_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0][vcache_dma_data_width_p-1:0] dma_data_li;
+    logic [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_data_v_li, dma_data_ready_lo;
 
-    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0][vcache_dma_data_width_p-1:0] dma_data_lo;
-    logic [E:W][num_pods_y_p-1:0][S:N][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_data_v_lo, dma_data_yumi_li;
+    logic [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0][vcache_dma_data_width_p-1:0] dma_data_lo;
+    logic [E:W][num_pods_y_p-1:0][S:N][num_vcache_rows_p-1:0][wh_ruche_factor_p-1:0][num_vcaches_per_link_lp-1:0] dma_data_v_lo, dma_data_yumi_li;
 
 
     for (genvar i = W; i <= E; i++) begin: hs
       for (genvar j = 0; j < num_pods_y_p; j++) begin: py
         for (genvar k = N; k <= S; k++) begin: py
-          for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf
+          for (genvar n = 0; n < num_vcache_rows_p; n++) begin: row
+            for (genvar r = 0; r < wh_ruche_factor_p; r++) begin: rf
 
               // This code is preserved from the previous mapping algorithm. For this specific
               //   testbench, only "no_concentration_p" is used
@@ -486,7 +497,7 @@ module bsg_nonsynth_manycore_testbench
 
               `declare_bsg_cache_wh_header_flit_s(wh_flit_width_p,wh_cord_width_p,wh_len_width_p,wh_cid_width_p);
               bsg_cache_wh_header_flit_s header_flit_in;
-              assign header_flit_in = buffered_wh_link_sif_lo[i][j][k][r].data;
+              assign header_flit_in = buffered_wh_link_sif_lo[i][j][k][n][r].data;
 
               wire [lg_num_vcaches_per_link_lp-1:0] dma_id_li = (num_vcaches_per_link_lp == 1)
                 ? 1'b0
@@ -506,23 +517,24 @@ module bsg_nonsynth_manycore_testbench
                 .clk_i(clk_i)
                 ,.reset_i(reset_r)
     
-                ,.wh_link_sif_i     (buffered_wh_link_sif_lo[i][j][k][r])
+                ,.wh_link_sif_i     (buffered_wh_link_sif_lo[i][j][k][n][r])
                 ,.wh_dma_id_i       (dma_id_li)
-                ,.wh_link_sif_o     (buffered_wh_link_sif_li[i][j][k][r])
+                ,.wh_link_sif_o     (buffered_wh_link_sif_li[i][j][k][n][r])
 
-                ,.dma_pkt_o         (dma_pkt_lo[i][j][k][r])
-                ,.dma_pkt_v_o       (dma_pkt_v_lo[i][j][k][r])
-                ,.dma_pkt_yumi_i    (dma_pkt_yumi_li[i][j][k][r])
+                ,.dma_pkt_o         (dma_pkt_lo[i][j][k][n][r])
+                ,.dma_pkt_v_o       (dma_pkt_v_lo[i][j][k][n][r])
+                ,.dma_pkt_yumi_i    (dma_pkt_yumi_li[i][j][k][n][r])
 
-                ,.dma_data_i        (dma_data_li[i][j][k][r])
-                ,.dma_data_v_i      (dma_data_v_li[i][j][k][r])
-                ,.dma_data_ready_and_o (dma_data_ready_lo[i][j][k][r])
+                ,.dma_data_i        (dma_data_li[i][j][k][n][r])
+                ,.dma_data_v_i      (dma_data_v_li[i][j][k][n][r])
+                ,.dma_data_ready_and_o (dma_data_ready_lo[i][j][k][n][r])
 
-                ,.dma_data_o        (dma_data_lo[i][j][k][r])
-                ,.dma_data_v_o      (dma_data_v_lo[i][j][k][r])
-                ,.dma_data_yumi_i   (dma_data_yumi_li[i][j][k][r])
+                ,.dma_data_o        (dma_data_lo[i][j][k][n][r])
+                ,.dma_data_v_o      (dma_data_v_lo[i][j][k][n][r])
+                ,.dma_data_yumi_i   (dma_data_yumi_li[i][j][k][n][r])
               );
 
+          end
           end
         end
       end
@@ -551,6 +563,7 @@ module bsg_nonsynth_manycore_testbench
 
       ,.wh_ruche_factor_p(wh_ruche_factor_p)
 
+      ,.num_vcache_rows_p(num_vcache_rows_p)
       ,.vcache_addr_width_p(vcache_addr_width_p)
       ,.vcache_dma_data_width_p(vcache_dma_data_width_p)
       ,.vcache_block_size_in_words_p(vcache_block_size_in_words_p)
@@ -785,18 +798,18 @@ module bsg_nonsynth_manycore_testbench
   );
 
 
-  // SOUTH VER LINK TIE OFFS
+  // NORTH VER LINK TIE OFFS
   for (genvar i = 0; i < num_pods_x_p*num_tiles_x_p; i++) begin
     bsg_manycore_link_sif_tieoff #(
       .addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
       ,.x_cord_width_p(x_cord_width_p)
       ,.y_cord_width_p(y_cord_width_p)
-    ) ver_s_tieoff (
+    ) ver_n_tieoff (
       .clk_i(clk_i)
       ,.reset_i(reset_r)
-      ,.link_sif_i(ver_link_sif_lo[S][i])
-      ,.link_sif_o(ver_link_sif_li[S][i])
+      ,.link_sif_i(ver_link_sif_lo[N][i])
+      ,.link_sif_o(ver_link_sif_li[N][i])
     );
   end
 

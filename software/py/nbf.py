@@ -59,6 +59,7 @@ class NBF:
     # number of pods to launch program.
     self.num_pods_x = config["num_pods_x"]  
     self.num_pods_y = config["num_pods_y"]
+    self.num_vcache_rows = config["num_vcache_rows"]
 
     # ipoly hashing
     self.ipoly_hashing = config["ipoly_hashing"]
@@ -248,28 +249,30 @@ class NBF:
 
     # if there is only one pod in x-direction, split the pod in half.
     if self.machine_pods_x == 1:
-      for x in range(self.num_tiles_x):
-        east_not_west = 0 if x < (self.num_tiles_x//2) else 1
-        # north vcache
-        x_eff = pod_origin_x + x
-        y_eff = pod_origin_y - 1
-        self.print_nbf(x_eff, y_eff, epa, east_not_west)
-        # south vcache
-        x_eff = pod_origin_x + x
-        y_eff = pod_origin_y + self.num_tiles_y
-        self.print_nbf(x_eff, y_eff, epa, east_not_west)
+      for r in range(self.num_vcache_rows):
+        for x in range(self.num_tiles_x):
+          east_not_west = 0 if x < (self.num_tiles_x//2) else 1
+          # north vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y - 1 - r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
+          # south vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y + self.num_tiles_y + r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
     # if there are more than one pod, then the left half of pods goes to west, and the right half to east.
     else:
       east_not_west = 0 if (px < (self.machine_pods_x//2)) else 1
-      for x in range(self.num_tiles_x):
-        # north vcache
-        x_eff = pod_origin_x + x
-        y_eff = pod_origin_y - 1
-        self.print_nbf(x_eff, y_eff, epa, east_not_west)
-        # south vcache
-        x_eff = pod_origin_x + x
-        y_eff = pod_origin_y + self.num_tiles_y
-        self.print_nbf(x_eff, y_eff, epa, east_not_west)
+      for r in range(self.num_vcache_rows):
+        for x in range(self.num_tiles_x):
+          # north vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y - 1 - r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
+          # south vcache
+          x_eff = pod_origin_x + x
+          y_eff = pod_origin_y + self.num_tiles_y + r
+          self.print_nbf(x_eff, y_eff, epa, east_not_west)
 
 
 
@@ -335,7 +338,7 @@ class NBF:
     lg_x = self.safe_clog2(self.num_tiles_x)
     lg_block_size = self.safe_clog2(self.cache_block_size)
     lg_set = self.safe_clog2(self.cache_set)
-    lg_y = 1
+    lg_y = self.safe_clog2(2*self.num_vcache_rows)
     index_width = 32-1-2-lg_block_size-lg_x-lg_y
 
     if self.enable_dram == 1:
@@ -358,49 +361,48 @@ class NBF:
 
         index = self.select_bits(addr, lg_block_size+lg_x+lg_y, lg_block_size+lg_x+lg_y+index_width-1)
         if self.ipoly_hashing:
-          # collect bits;
-          temp_y = self.select_bits(addr, lg_block_size + lg_x, lg_block_size + lg_x)
-          temp_x = [0]*lg_x
-          for i in range(lg_x):
-            temp_x[i] = self.select_bits(addr, lg_block_size+i, lg_block_size + i)
-          ibits = [0]*index_width
-          for i in range(index_width):
-            ibits[i] = self.select_bits(addr, lg_block_size+lg_x+lg_y+i, lg_block_size+lg_x+lg_y+i)
-
-          if lg_x == 1:
-            x0 = self.hash_addr_bit(temp_x[0], index, [10,9,7,6,4,3,1,0])
-            x = x0
-            y = self.hash_addr_bit(temp_y, index, [11,9,8,6,5,3,2,0])
-          elif lg_x == 2:
-            x0 = self.hash_addr_bit(temp_x[0], index, [11,9,8,7,4,2,1,0])
-            x1 = self.hash_addr_bit(temp_x[1], index, [12,10,9,8,5,3,2,1])
-            x = x0 | (x1 << 1)
-            y = self.hash_addr_bit(temp_y, index, [13,10,8,7,6,3,1,0])
-          elif lg_x == 3:
-            x0 = self.hash_addr_bit(temp_x[0], index, [11,10,9,8,6,4,3,0])
-            x1 = self.hash_addr_bit(temp_x[1], index, [12,8,7,6,5,3,1,0])
-            x2 = self.hash_addr_bit(temp_x[2], index, [9,8,7,6,4,2,1])
-            x = x0 | (x1 << 1) | (x2 << 2)
-            y = self.hash_addr_bit(temp_y, index, [10,9,8,7,5,3,2])
-          elif lg_x == 4:
-            x0 = self.hash_addr_bit(temp_x[0], index, [13,12,11,10,9,6,5,3,0])
-            x1 = self.hash_addr_bit(temp_x[1], index, [14,13,12,11,10,7,6,4,1])
-            x2 = self.hash_addr_bit(temp_x[2], index, [14,10,9,8,7,6,3,2,0])
-            x3 = self.hash_addr_bit(temp_x[3], index, [11,10,9,8,7,4,3,1])
-            x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3)
-            y = self.hash_addr_bit(temp_y, index, [12,11,10,9,8,5,4,2])
-          elif lg_x == 5:
-            x0 = self.hash_addr_bit(temp_x[0], index, [18,17,16,15,12,10,6,5,0])
-            x1 = self.hash_addr_bit(temp_x[1], index, [15,13,12,11,10,7,5,1,0])
-            x2 = self.hash_addr_bit(temp_x[2], index, [16,14,13,12,11,8,6,2,1])
-            x3 = self.hash_addr_bit(temp_x[3], index, [17,15,14,13,12,9,7,3,2])
-            x4 = self.hash_addr_bit(temp_x[4], index, [18,16,15,14,13,10,8,4,3])
-            x = x0 | (x1 << 1) | (x2 << 2) | (x3 << 3) | (x4 << 4)
-            y = self.hash_addr_bit(temp_y, index, [17,16,15,14,11,9,5,4])
-          else:
-            print("IPOLY not supported for lg_x = {}".format(lg_x))
+          # IPOLY hashing;
+          # The bank id is {y, x} (lg_y + lg_x bits); each bank id bit is hashed
+          # with bits of the upper index. The tables below are keyed by the
+          # total number of bank bits, and match bsg_hashing_ipoly in
+          # basejump_stl for num_banks = 2**(lg_x+lg_y).
+          ipoly_hash_idx = {
+            2: [[10,9,7,6,4,3,1,0],
+                [11,9,8,6,5,3,2,0]],
+            3: [[11,9,8,7,4,2,1,0],
+                [12,10,9,8,5,3,2,1],
+                [13,10,8,7,6,3,1,0]],
+            4: [[11,10,9,8,6,4,3,0],
+                [12,8,7,6,5,3,1,0],
+                [9,8,7,6,4,2,1],
+                [10,9,8,7,5,3,2]],
+            5: [[13,12,11,10,9,6,5,3,0],
+                [14,13,12,11,10,7,6,4,1],
+                [14,10,9,8,7,6,3,2,0],
+                [11,10,9,8,7,4,3,1],
+                [12,11,10,9,8,5,4,2]],
+            6: [[18,17,16,15,12,10,6,5,0],
+                [15,13,12,11,10,7,5,1,0],
+                [16,14,13,12,11,8,6,2,1],
+                [17,15,14,13,12,9,7,3,2],
+                [18,16,15,14,13,10,8,4,3],
+                [17,16,15,14,11,9,5,4]],
+          }
+          num_bank_bits = lg_x + lg_y
+          if num_bank_bits not in ipoly_hash_idx:
+            print("IPOLY not supported for lg_x = {}, lg_y = {}".format(lg_x, lg_y))
             sys.exit()
-          
+
+          x = 0
+          y = 0
+          for i in range(num_bank_bits):
+            bank_bit = self.select_bits(addr, lg_block_size+i, lg_block_size+i)
+            hashed_bit = self.hash_addr_bit(bank_bit, index, ipoly_hash_idx[num_bank_bits][i])
+            if i < lg_x:
+              x = x | (hashed_bit << i)
+            else:
+              y = y | (hashed_bit << (i-lg_x))
+
         else:
           # Default hashing for power of 2 banks
           x = self.select_bits(addr, lg_block_size, lg_block_size + lg_x - 1)
@@ -408,10 +410,10 @@ class NBF:
 
         # Final stage;
         epa = self.select_bits(addr, 0, lg_block_size-1) | (index << lg_block_size)
-        if y == 0:
-          self.print_nbf(pod_origin_x+x, pod_origin_y-1, epa, self.dram_data[k]) #top
+        if y % 2 == 0:
+          self.print_nbf(pod_origin_x+x, pod_origin_y-1-(y//2), epa, self.dram_data[k]) #top
         else:
-          self.print_nbf(pod_origin_x+x, pod_origin_y+self.num_tiles_y, epa, self.dram_data[k]) #bot
+          self.print_nbf(pod_origin_x+x, pod_origin_y+self.num_tiles_y+(y//2), epa, self.dram_data[k]) #bot
     else:
       # dram disabled:
       # using vcache as block mem
@@ -537,7 +539,7 @@ class NBF:
 #
 if __name__ == "__main__":
 
-  if len(sys.argv) == 23:
+  if len(sys.argv) == 24:
     # config setting
     config = {
       "riscv_file" : sys.argv[1],
@@ -563,6 +565,7 @@ if __name__ == "__main__":
       "skip_dram_instruction_load": int(sys.argv[20]),
       "skip_zeros": int(sys.argv[21]),
       "ipoly_hashing": int(sys.argv[22]),
+      "num_vcache_rows" : int(sys.argv[23]),
     }
 
     converter = NBF(config)
@@ -576,6 +579,7 @@ if __name__ == "__main__":
     command += "{origin_x_cord} {origin_y_cord} "
     command += "{machine_pods_x} {machine_pods_y} "
     command += "{num_pods_x} {num_pods_y} "
+    command += "{num_vcache_rows} "
     command += "{skip_dram_instruction_load} "
     command += "{skip_zeros} "
     command += "{ipoly_hashing} "
