@@ -23,7 +23,7 @@ In any of the sub-directories:
 - `make main.riscv`: Generate ELF binary of that SPMD program.
 - `make COVERAGE=1` Run VCS simulation with coverage analysis.
 - `make main.dis`: Print disassembly to the terminal.
-- `vanilla.log`: Vanilla core trace dumped during the simulation.
+- `vanilla.log`: Vanilla core trace, dumped during a `make WAVE=1` simulation.
 
 Note: In directories containing multiple SPMD programs, `bsg_riscv_tests/` for instance,
 `main` has to be replaced by the program name. For example, to generate ELF binary of

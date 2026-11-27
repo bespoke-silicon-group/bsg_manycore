@@ -76,14 +76,29 @@ In bsg\_manycore:
 BSG Manycore has preliminary support for simulating with the open-source [Verilator 5](https://github.com/verilator/verilator) toolchain!
 We support this extensively on MacOS.
 
-To test this feature, set BSG\_PLATFORM=verilator in machines/platform.mk and then follow the
-above instructions to run tests normally. This platform only currently supports the machine
-pod\_1x1\_4X2Y due to excessive compilation times for larger machines. Most likely, future work can
-enable larger machines with hierarchical Verilation. verilator must be on your path (or override
-the VERILATOR variable in machines/Makefile.verilator).
+We strongly recommend Verilator 5.055 with LLVM 23. Verilator compiles the C++ it generates with
+the compiler it was configured with, so configure it with Clang from LLVM 23
+(`./configure CXX=<llvm-23>/bin/clang++`). This is the combination we validated: Verilator master
+at 549e2b16a (5.055 development version, after the 5.054 release) built with Clang 23.1.4. On
+pod\_1x1 it gives the same results as VCS on every test that `make recurse-all` runs except
+`pc_profiler`, and the same profiler output with `make TRACE=1`.
 
-On CentOS, you may need to use a modern GCC installation with `scl enable devtoolset-8 -- bash` or
-by putting `source scl_source enable devtoolset-8` in your .bashrc.
+To test this feature, set BSG\_PLATFORM=verilator in machines/platform.mk and then follow the
+above instructions to run tests normally. With `VERILATOR_THREADS=48`, pod\_1x1\_4X2Y builds in
+under a minute and pod\_1x1 in about two and a half minutes. The 16-pod pod\_4x4 takes about 55
+minutes, almost all in Verilator's single-threaded front end, and its simulations use about 33 GB
+and run about 40 times as long as under VCS. Hierarchical Verilation, which bsg\_replicant's
+Verilator platform uses, may help there. verilator must be on your path (or override the
+VERILATOR variable in machines/Makefile.verilator).
+
+As under VCS, the default machine binds no profilers and no instruction tracer: `make TRACE=1`
+uses `simsc-profile`, which has the profilers, and `make WAVE=1` uses `simsc-debug`, which has the
+tracer (`vanilla.log`) and writes `dump.fst`.
+
+The testbench runs on Verilator's own `main` with `--timing`, which needs C++20 coroutines:
+Clang, or GCC 10 or newer (GCC 11.5 and 15.2 also work). On CentOS, you may need to use a
+modern GCC installation with `scl enable devtoolset-10 -- bash` or by putting
+`source scl_source enable devtoolset-10` in your .bashrc.
 
 ## Surelog (Beta Support)
 

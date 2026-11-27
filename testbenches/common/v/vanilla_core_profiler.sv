@@ -112,6 +112,11 @@ module vanilla_core_profiler
   bsg_manycore_vanilla_core_stat_tag_s print_stat_tag;
   assign print_stat_tag = print_stat_tag_i;
 
+  // file logging
+  localparam string logfile_lp = "vanilla_stats.csv";
+  localparam string tracefile_lp = "vanilla_operation_trace.csv";
+  localparam string periodicfile_lp = "vanilla_periodic_stats.csv";
+
   `DEFINE_PROFILER(bsg_vanilla_core_profiler
                    , tracefile_lp
                    , "cycle,x,y,pc,operation\n"
@@ -686,10 +691,6 @@ module vanilla_core_profiler
 
 
 
-  // file logging
-  localparam string logfile_lp = "vanilla_stats.csv";
-  localparam string tracefile_lp = "vanilla_operation_trace.csv";
-  localparam string periodicfile_lp = "vanilla_periodic_stats.csv";
 
   integer fd;
   string header;
@@ -1033,6 +1034,12 @@ module vanilla_core_profiler
    
 
 
+  // Trace only after this instance's first reset. Under VCS reset_i is X
+  // until then, which keeps the trace empty; under Verilator it starts at 0,
+  // and the trace would show the logic before it was ever reset.
+  bit reset_seen_r;
+  always_ff @ (posedge clk_i) if (reset_i) reset_seen_r <= 1'b1;
+
    always @(negedge clk_i)  begin
         // stat printing
         if (~reset_i & print_stat_v_i & print_stat_tag.y_cord == (global_y_i) & print_stat_tag.x_cord == (global_x_i)) begin
@@ -1042,7 +1049,7 @@ module vanilla_core_profiler
       
      
         // trace logging
-        if (~reset_i & trace_en_i) begin
+        if (~reset_i & trace_en_i & reset_seen_r) begin
 
           if (fadd_inc) print_operation_trace("fadd", fp_exe_pc_r);
           else if (fsub_inc) print_operation_trace("fsub", fp_exe_pc_r);
