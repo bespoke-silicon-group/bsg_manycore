@@ -37,7 +37,11 @@ import csv
 import argparse
 import warnings
 import os.path
-from PIL import Image, ImageDraw, ImageFont
+# Pillow is needed to draw, not to import this module.
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    Image = None
 from itertools import chain
 from . import common
 
@@ -303,7 +307,7 @@ class VcacheStallGraph:
         # for each color in stalls...
         for operation in self.operation_color.keys():
             # get the font size
-            (font_height,font_width) = font.getsize(operation)
+            (font_height,font_width) = common.text_size(font, operation)
             # draw a rectangle with color fill
             yb = yt + font_width
             # [0, yt, 64, yb] is [top left x, top left y, bottom right x, bottom left y]
@@ -358,6 +362,8 @@ def add_args(parser):
                         help="Skip stall graph generation")
 
 def main(args): 
+    if Image is None:
+        raise RuntimeError("vcache_stall_graph needs Pillow")
     bg = VcacheStallGraph(args.vcache_trace, args.vcache_stats, args.cycle, args.abstract, args.no_stall_graph)
     if not args.no_stall_graph:
         bg.generate()

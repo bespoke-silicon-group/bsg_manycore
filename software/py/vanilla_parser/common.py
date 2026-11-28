@@ -1,5 +1,14 @@
 from os import path
 
+def text_size(font, text):
+    """Width and height of text in a Pillow font, as FreeTypeFont.getsize
+    gave them; Pillow 10 removed getsize, and getbbox is in Pillow 8 and
+    later."""
+    if hasattr(font, "getbbox"):
+        left, top, right, bottom = font.getbbox(text)
+        return (right, bottom)
+    return font.getsize(text)
+
 def add_args(parser):
     parser.add_argument("--trace", default="vanilla_operation_trace.csv", type=str,
                         help="Vanilla operation log file")

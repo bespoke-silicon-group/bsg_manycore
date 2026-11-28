@@ -39,7 +39,11 @@ import csv
 import argparse
 import warnings
 import os.path
-from PIL import Image, ImageDraw, ImageFont
+# Pillow is needed to draw, not to import this module.
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    Image = None
 from itertools import chain
 from . import common
 
@@ -411,7 +415,7 @@ class BloodGraph:
                                   ("unified_fp_instr" ,self.unified_fp_instr_color)]):
 
             # get the font size
-            (font_height,font_width) = font.getsize(operation)
+            (font_height,font_width) = common.text_size(font, operation)
             # draw a rectangle with color fill
             yb = yt + font_width
             # [0, yt, 64, yb] is [top left x, top left y, bottom right x, bottom left y]
@@ -472,6 +476,8 @@ def add_args(parser):
                         help="Skip blood graph generation")
 
 def main(args):
+    if Image is None:
+        raise RuntimeError("blood_graph needs Pillow")
     bg = BloodGraph(args.trace, args.stats, args.cycle, args.abstract)
     if not args.no_blood_graph:
         bg.generate()
