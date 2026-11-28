@@ -1,0 +1,28 @@
+[INFO][TESTBENCH] BSG_MACHINE_GLOBAL_X                 =          16
+[INFO][TESTBENCH] BSG_MACHINE_GLOBAL_Y                 =           8
+[INFO][TESTBENCH] BSG_MACHINE_VCACHE_SET               =          64
+[INFO][TESTBENCH] BSG_MACHINE_VCACHE_WAY               =           4
+[INFO][TESTBENCH] BSG_MACHINE_VCACHE_BLOCK_SIZE_WORDS  =           8
+[INFO][TESTBENCH] BSG_MACHINE_MAX_EPA_WIDTH            =          28
+[INFO][TESTBENCH] BSG_MACHINE_MEM_CFG                  = e_vcache_test_mem
+[INFO][TESTBENCH] BSG_MACHINE_NETWORK_CFG              = e_network_half_ruche_x
+[INFO][TESTBENCH] BSG_MACHINE_RUCHE_FACTOR_X           =           3
+[INFO][TESTBENCH] BSG_MACHINE_BARRIER_RUCHE_FACTOR_X   =           3
+[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_X               =           1
+[INFO][TESTBENCH] BSG_MACHINE_SUBARRAY_Y               =           1
+[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_X_CORD            =          16
+[INFO][TESTBENCH] BSG_MACHINE_ORIGIN_Y_CORD            =           8
+[INFO][TESTBENCH] vcache_word_tracking_p               =           1
+[INFO][TESTBENCH] ipoly_hashing_p                      =           1
+[INFO][TESTBENCH] enable_vcore_profiling_p             =           0
+[INFO][TESTBENCH] enable_router_profiling_p            =           0
+[INFO][TESTBENCH] enable_cache_profiling_p             =           0
+[INFO][TESTBENCH] enable_vcore_pc_coverage_p           =           0
+[BSG_INFO][SPMD_LOADER] SPMD loader finished loading. sim_time=2296000, wall_time=0
+[INFO][MONITOR] RECEIVED BSG_IO PACKET from tile y,x= 8,16, data=00000000, addr=0000498, time=2446000
+[INFO][MONITOR] BSG_TIMEOUT reached max_cycle =      1000000
+[INFO][MONITOR] RECEIVED BSG_FINISH PACKET from all pods, time=11814000
+- bsg_manycore/testbenches/common/v/bsg_nonsynth_manycore_monitor.sv:83: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.055 devel
+- Verilator: $finish at 12us; walltime 0.547 s; speed 21.585 us/s
+- Verilator: cpu 4.324 s on 8 threads; allocated 2262 MB

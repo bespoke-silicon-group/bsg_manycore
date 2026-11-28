@@ -22,6 +22,8 @@ In any of the sub-directories:
 - `make WAVE=1` Run VCS simulation with waveform dump.
 - `make VCS_FGP_THREADS=8`: Run VCS simulation on 9 cores. This is for one long
   simulation: VCS needs that many idle cores and a `VCS-ELITE-RUNTIME` licence.
+- `make BSG_PLATFORM=verilator VERILATOR_SIM_THREADS=8`: Run a Verilator model
+  built for 8 threads, `<machine>/simsc-t8` (built if it is not there).
 - `make main.riscv`: Generate ELF binary of that SPMD program.
 - `make COVERAGE=1` Run VCS simulation with coverage analysis.
 - `make main.dis`: Print disassembly to the terminal.
@@ -30,6 +32,54 @@ In any of the sub-directories:
 Note: In directories containing multiple SPMD programs, `bsg_riscv_tests/` for instance,
 `main` has to be replaced by the program name. For example, to generate ELF binary of
 `add` riscv test, you have to run `make add.riscv`.
+
+Parallel regression
+-------------------
+
+`make regress` runs the tests of `make recurse-all`, as many at once as the
+host has cores for, with each simulation on cores of its own: one core per
+simulator thread, in one socket, taken one last-level cache at a time
+(`software/py/sim_cpus.py slots <threads>` prints the layout). On Linux every
+simulator thread is pinned to its core; elsewhere the simulations run
+unpinned. Each test prints its verdict when it ends, and its output is in
+`recurse-results/<test>-run.log`, as with `recurse-all`.
+
+A test passes only if its make exits with status 0, every simulation it runs
+(one for each subtest in `bsg_riscv_tests`) reaches `BSG_FINISH`, and its output
+has no `BSG_FAIL`, `BSG_TIMEOUT` or `BSG_ERROR` and no error report of the
+simulator: VCS goes on after `$error` and a failed assertion and exits with
+status 0. `make regress` fails if a test does not pass. `make regress-selftest`
+checks these verdicts on the tests in `regress-selftest/`, which print canned
+simulator output and need no simulator or toolchain.
+
+The `bsg_attr_*` tests post-process their statistics with
+`software/py/vanilla_parser`, which needs the Python packages numpy, pandas,
+Pillow and tabulate; without them these tests fail.
+
+With Verilator, the simulations can be multithreaded. The thread placement is
+for the 16x8 pod, and Verilator's default machine is pod_1x1_4X2Y, so give
+the 16x8 pod (an absolute path):
+
+    make regress BSG_PLATFORM=verilator VERILATOR_SIM_THREADS=8 \
+        BSG_MACHINE_PATH=<bsg_manycore>/machines/pod_1x1
+
+- With 18 cores and one L3 per socket (for example Intel Xeon Gold 6254), two
+  simulations run on each socket, on its cores 0-7 and 8-15.
+- With eight 4-core chiplets per socket, each with its own L3 (for example AMD
+  EPYC 9374F), four run on each socket, each on two whole chiplets: threads
+  0-3 of a simulation on one chiplet, threads 4-7 on the other.
+
+Every socket is used: the simulations alternate between sockets, so that
+fewer simulations than the host has room for still spread over all of them.
+
+Flags:
+
+- `REGRESS_JOBS=<n>`: Run at most n tests at once. Under VCS every simulation
+  takes a licence.
+- `REGRESS_TESTS="<test> ..."`: Run only these tests.
+
+The tests that took longest in the previous `make regress` start first. Their
+times are in `regress-times`, which `make recurse-clean` keeps.
 
 Coverage Analysis
 ------------------

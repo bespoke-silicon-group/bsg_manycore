@@ -50,3 +50,8 @@ Machine.machine.include parameters
 
 - BSG_MACHINE_IPOLY_HASHING             =   Enable IPOLY DRAM hashing;
 ```
+
+A machine directory can also have `verilator_threads.vlt`, a Verilator
+configuration file for its multithreaded simulator, `simsc-t<n>`
+(`VERILATOR_SIM_THREADS=n`, see Makefile.verilator). pod\_1x1's places the
+tiles and vcaches on 2, 4, 8 or 16 threads with `threads_group`.

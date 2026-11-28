@@ -22,9 +22,11 @@ all: $(foreach instr, $(RVTEST_INSTS), $(instr).riscv_tests_run)
 	$(warning Finished running: $(TEST_INSTS))
 
 
+# Not piped through tee, which would hide the exit status of a failing subtest.
 %.riscv_tests_run: check_riscv_tests
 	mkdir -p $*_run
-	$(MAKE) -C $*_run -f ../Makefile.include $*.run 2>&1 | /usr/bin/tee $*_run/$*-run.log
+	$(MAKE) -C $*_run -f ../Makefile.include $*.run > $*_run/$*-run.log 2>&1; \
+	  status=$$?; cat $*_run/$*-run.log; exit $$status
 
 # The tests are built from the riscv-tests import as it is. An earlier version
 # of this Makefile patched the fflags and fcsr checks out of two of its files.
